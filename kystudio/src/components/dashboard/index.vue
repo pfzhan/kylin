@@ -142,7 +142,10 @@
               {{$t('avgBulidTime')}}
               <el-button plain size="mini" class="ksd-fright" @click.stop="gotoJoblist">{{$t('viewDetail')}}</el-button>
             </div>
-            <div class="content">
+            <div class="content" v-if="noEnoughData">
+              <span>{{$t('noEnoughData')}}</span>
+            </div>
+            <div class="content" v-else>
               <span class="num">{{avgBulidTime}}</span>
               <span class="unit">sec</span>
             </div>
@@ -222,8 +225,8 @@ import LineChart from './LineChart'
     ])
   },
   locales: {
-    'en': {storageQuota: 'Storage Quota', acceImpact: 'Acceleration Ratio', totalStorage: 'Total Storage', useageMana: 'Used Storage', trash: 'Garbage Storage', clear: 'Clear', queryCount: 'Query Count', viewDetail: 'View Detail', avgQueryLatency: 'Avg. Query Latency', jobCount: 'Job Count', avgBulidTime: 'Avg. Job Duration per MB', queryByModel: '{type} by Model', queryByDay: '{type}', queryByIndex: '{type} by Index', lastWeek: 'Last Week', lastMonth: 'Last Month', thisMonth: 'This Month', day: 'Day', week: 'Week', month: 'Month', storageQuotaDesc: 'In the project, the total storage can be used.', acceImpactDesc: 'In the project, accelerated queries ratio.'},
-    'zh-cn': {storageQuota: '存储配额', acceImpact: '加速比例', totalStorage: '总空间', useageMana: '已使用的存储', trash: '系统垃圾', clear: '清除', queryCount: '查询次数', viewDetail: '查看详情', avgQueryLatency: '平均查询延迟', jobCount: '任务次数', avgBulidTime: '构建1MB数据的平均时间', queryByModel: '以模型{type}', queryByDay: '{type}', queryByIndex: '以索引{type}', lastWeek: '最近一周', lastMonth: '上个月', thisMonth: '当前月', day: '天', week: '周', month: '月', storageQuotaDesc: '本项目可使用的存储空间总量。', acceImpactDesc: '本项目中，已经加速的查询的比例。'}
+    'en': {storageQuota: 'Storage Quota', acceImpact: 'Acceleration Ratio', totalStorage: 'Total Storage', useageMana: 'Used Storage', trash: 'Garbage Storage', clear: 'Clear', queryCount: 'Query Count', viewDetail: 'View Detail', avgQueryLatency: 'Avg. Query Latency', jobCount: 'Job Count', avgBulidTime: 'Avg. Job Duration per MB', queryByModel: '{type} by Model', queryByDay: '{type}', queryByIndex: '{type} by Index', lastWeek: 'Last Week', lastMonth: 'Last Month', thisMonth: 'This Month', day: 'Day', week: 'Week', month: 'Month', storageQuotaDesc: 'In the project, the total storage can be used.', acceImpactDesc: 'In the project, accelerated queries ratio.', noEnoughData: 'Not enough data yet'},
+    'zh-cn': {storageQuota: '存储配额', acceImpact: '加速比例', totalStorage: '总空间', useageMana: '已使用的存储', trash: '系统垃圾', clear: '清除', queryCount: '查询次数', viewDetail: '查看详情', avgQueryLatency: '平均查询延迟', jobCount: '任务次数', avgBulidTime: '构建1MB数据的平均时间', queryByModel: '以模型{type}', queryByDay: '{type}', queryByIndex: '以索引{type}', lastWeek: '最近一周', lastMonth: '上个月', thisMonth: '当前月', day: '天', week: '周', month: '月', storageQuotaDesc: '本项目可使用的存储空间总量。', acceImpactDesc: '本项目中，已经加速的查询的比例。', noEnoughData: '尚无足够数据统计'}
   }
 })
 export default class Dashboard extends Vue {
@@ -243,6 +246,7 @@ export default class Dashboard extends Vue {
   queryMean = 0
   jobCount = 0
   avgBulidTime = 0
+  noEnoughData = false
   quotaHeight = 170
   showQueryChart = true
   showLatencyChart = false
@@ -535,7 +539,12 @@ export default class Dashboard extends Vue {
     const resJob = await this.loadDashboardJobInfo({project: this.currentSelectedProject, start_time: this.daterange[0].getTime(), end_time: this.daterange[1].getTime()})
     const resDataJob = await handleSuccessAsync(resJob)
     this.jobCount = resDataJob.count || 0
-    this.avgBulidTime = resDataJob.duration_per_byte ? (resDataJob.duration_per_byte * 1024 * 1024 / 1000).toFixed(2) : 0
+    this.avgBulidTime = resDataJob.total_duration && resDataJob.total_byte_size ? (resDataJob.total_duration * 1000 / (resDataJob.total_byte_size * 1024 * 1024)).toFixed(2) : 0
+    if (resDataJob.total_byte_size < 1024 * 1024) {
+      this.noEnoughData = true
+    } else {
+      this.noEnoughData = false
+    }
   }
 }
 </script>
@@ -544,6 +553,9 @@ export default class Dashboard extends Vue {
   @import "../../assets/styles/variables.less";
   #dashboard {
     margin: 20px;
+    .el-date-editor--daterange.el-input__inner {
+      width: 226px;
+    }
     .dash-card {
       box-shadow: 0px 0px 4px 0px @line-border-color;
       border: 1px solid @table-stripe-color;
@@ -563,6 +575,7 @@ export default class Dashboard extends Vue {
       }
       .content {
         margin: 20px 0 20px auto;
+        color: @text-title-color;
         .num {
           color: @base-color;
           font-size: 36px;

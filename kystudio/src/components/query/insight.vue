@@ -14,12 +14,12 @@
       <div class="layout-right">
         <div class="ksd_right_box">
            <!-- for guide start -->
-          <el-button @click="handleForGuide" v-visible v-guide.queryTriggerBtn></el-button>
+          <el-button @click="handleForGuide" style="position: absolute;" v-visible v-guide.queryTriggerBtn></el-button>
           <!-- for guide end -->
           <div class="query_result_box ksd-border-tab">
             <div class="btn-group">
               <el-button size="mini" plain="plain" @click.native="closeAllTabs" style="display:inline-block">{{$t('closeAll')}}</el-button>
-              <el-button size="mini" plain="plain" icon="el-icon-ksd-sql" @click.native="openSaveQueryListDialog" style="display:inline-block">{{$t('kylinLang.query.reLoad')}}</el-button>
+              <el-button size="mini" plain="plain" @click.native="openSaveQueryListDialog" style="display:inline-block">{{$t('kylinLang.query.reLoad')}}</el-button>
             </div>
             <tab class="insight_tab" :isedit="true" :tabslist="editableTabs" :active="activeSubMenu" v-on:clicktab="activeTab"  v-on:removetab="delTab">
               <template slot-scope="props">
@@ -162,6 +162,9 @@ export default class NewQuery extends Vue {
   }
   toggleDetail (index) {
     this.savedList[index].isShow = !this.savedList[index].isShow
+    if (this.$refs.saveQueries) {
+      this.$refs.saveQueries.$emit('setReadOnly', false)
+    }
   }
   loadSavedQuery (pageIndex) {
     this.getSavedQueries({
@@ -329,6 +332,9 @@ export default class NewQuery extends Vue {
   #newQuery {
     position: relative;
     height: 100%;
+    .data-source-bar .el-tree__empty-block {
+      display: none;
+    }
     #tab-WorkSpace .el-icon-close {
       visibility: hidden;
       display: none;
@@ -447,6 +453,7 @@ export default class NewQuery extends Vue {
     .query_result_box{
       border: 0;
       position: relative;
+      top: -16px;
       > .btn-group {
         position: absolute;
         right: 10px;

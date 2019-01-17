@@ -326,6 +326,7 @@ exports.default = {
     partlyAcce: '部分加速',
     ongoingAcce: '正在加速',
     wartingAcce: '待加速',
+    blocked: '无法加速',
     unAcce1: '未加速',
     unAcce: '尚未加速，点击成为加速查询'
   },

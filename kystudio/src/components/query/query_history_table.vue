@@ -12,16 +12,17 @@
       :data="queryHistoryData"
       border
       class="history-table"
+      @expand-change="onExpandChange"
       style="width: 100%">
-      <el-table-column type="expand">
+      <el-table-column type="expand" width="34">
         <template slot-scope="props">
           <div class="detail-title">
             <span class="ksd-fleft ksd-fs-16">{{$t('queryDetails')}}</span>
           </div>
           <div class="detail-content">
-            <el-row :gutter="20">
+            <el-row :gutter="30">
               <el-col :span="14">
-                <kap-editor height="220" width="90%" lang="sql" theme="chrome" :isFormatter="true" v-model="props.row.sql_text" dragbar="#393e53">
+                <kap-editor height="320" width="100%" lang="sql" theme="chrome" ref="historySqlEditor" :isFormatter="true" v-model="props.row.sql_text" dragbar="#393e53">
                 </kap-editor>
               </el-col>
               <el-col :span="10">
@@ -64,7 +65,7 @@
           </div>
         </template>
       </el-table-column>
-      <el-table-column :renderHeader="renderColumn" prop="query_time" header-align="center" width="210">
+      <el-table-column :renderHeader="renderColumn" prop="query_time" header-align="center" width="207">
         <template slot-scope="props">
           {{transToGmtTime(props.row.query_time)}}
         </template>
@@ -86,7 +87,7 @@
           </div>
         </template>
       </el-table-column>
-      <el-table-column :label="$t('kylinLang.query.submitter')" prop="submitter" align="center" width="200">
+      <el-table-column :label="$t('kylinLang.query.submitter')" prop="submitter" align="center" width="145">
       </el-table-column>
       <!-- <el-table-column :renderHeader="renderColumn5" prop="accelerate_status" align="center" width="120">
         <template slot-scope="props">
@@ -210,6 +211,14 @@ export default class QueryHistoryTable extends Vue {
         }, 3000)
       }
     })
+  }
+
+  onExpandChange () {
+    setTimeout(() => {
+      if (this.$refs.historySqlEditor) {
+        this.$refs.historySqlEditor.$emit('setReadOnly', false)
+      }
+    }, 0)
   }
 
   getAnsweredByList (answeredBy) {
@@ -351,13 +360,13 @@ export default class QueryHistoryTable extends Vue {
             <el-input-number
               size="medium"
               value={this.startSec}
-              min={-1}
+              min={0}
               onInput={val1 => (this.startSec = val1)}></el-input-number>
             <span>&nbsp;S&nbsp;&nbsp;To</span>
             <el-input-number
               size="medium"
               value={this.endSec}
-              min={-1}
+              min={0}
               onInput={val2 => (this.endSec = val2)}></el-input-number>
             <span>&nbsp;S</span>
           </div>
@@ -440,9 +449,9 @@ export default class QueryHistoryTable extends Vue {
       .detail-content {
         padding: 10px 0;
         line-height: 1.8;
-        .smyles_editor_wrap {
-          margin-left: 12px;
-        }
+        // .smyles_editor_wrap {
+        //   margin-left: 12px;
+        // }
         // .ksd-table {
         //   th {
         //     border-right: 0px;
@@ -468,8 +477,9 @@ export default class QueryHistoryTable extends Vue {
         right: 10px;
       }
       .el-icon-ksd-filter {
+        float: right;
         position: relative;
-        top: 1px;
+        top: 5px;
       }
       .el-icon-ksd-negative {
         color: @text-normal-color;

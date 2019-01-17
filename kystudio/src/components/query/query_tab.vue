@@ -1,6 +1,6 @@
 <template>
   <div id="queryTab">
-    <div class="query_panel_box ksd-mb-40">
+    <div class="query_panel_box ksd-mb-30">
       <kap-editor ref="insightBox" :class="{'guide-WorkSpaceEditor':isWorkspace}" height="170" lang="sql" theme="chrome" @keydown.meta.enter.native="submitQuery(sourceSchema)" @keydown.ctrl.enter.native="submitQuery(sourceSchema)" v-model="sourceSchema">
       </kap-editor>
       <div class="clearfix operatorBox">
@@ -38,8 +38,8 @@
         <div class="resultTips">
           <p class="resultText" v-if="extraoptionObj.queryId"><span class="label">{{$t('kylinLang.query.query_id')}}</span>
           <span class="text" v-if="extraoptionObj.queryId">{{extraoptionObj.queryId}}</span></p>
-          <p class="resultText"><span class="label">{{$t('kylinLang.query.status')}}</span>
-          <span class="ky-error">{{$t('kylinLang.common.error')}}</span></p>
+          <!-- <p class="resultText"><span class="label">{{$t('kylinLang.query.status')}}</span>
+          <span class="ky-error">{{$t('kylinLang.common.error')}}</span></p> -->
         </div>
         <div class="error-block">{{errinfo}}</div>
       </div>

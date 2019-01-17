@@ -26,7 +26,7 @@
         <el-button size="mini" type="primary" v-guide.speedSqlNowBtn plain :disabled="!modelSpeedEvents" @click="applySpeed">{{$t('accelerateNow')}}</el-button>
       </div>
     </div>
-    <div class="fav-tables">
+    <div class="fav-tables ksd-mt-30">
       <div class="btn-group">
         <el-button size="mini" type="primary" icon="el-icon-ksd-setting" plain @click="openRuleSetting">{{$t('ruleSetting')}}</el-button>
         <el-button size="mini" type="primary" icon="el-icon-ksd-table_discard" plain @click="openBlackList">{{$t('blackList')}}</el-button>
@@ -167,12 +167,12 @@
           </div>
           <el-table :data="blackSqlData.sqls" border @row-click="viewBlackSql" class="import-table" style="width: 100%">
             <el-table-column prop="sql_pattern" label="SQL" header-align="center" show-overflow-tooltip min-width="350"></el-table-column>
-            <el-table-column prop="create_time" :label="$t('createdTime')" show-overflow-tooltip header-align="center" min-width="180">
+            <el-table-column prop="create_time" :label="$t('createdTime')" show-overflow-tooltip header-align="center" min-width="207">
               <template slot-scope="props">
                 {{transToGmtTime(props.row.create_time)}}
               </template>
             </el-table-column>
-            <el-table-column :label="$t('kylinLang.common.action')" align="center" min-width="80">
+            <el-table-column :label="$t('kylinLang.common.action')" align="center" min-width="83">
               <template slot-scope="props">
                 <i class="el-icon-ksd-table_delete ksd-ml-10" @click.stop="delBlack(props.row.id)"></i>
                </template>
@@ -1283,8 +1283,9 @@ export default class FavoriteQuery extends Vue {
         }
       }
       .el-icon-ksd-filter {
+        float: right;
         position: relative;
-        top: 1px;
+        top: 5px;
       }
     }
     .fav-dropdown {

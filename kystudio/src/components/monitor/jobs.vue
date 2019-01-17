@@ -54,17 +54,19 @@
           ></i>
         </template>
       </el-table-column>
-      <el-table-column :renderHeader="renderColumn" prop="job_name" :width="140"></el-table-column>
+      <el-table-column :renderHeader="renderColumn" prop="job_name" header-align="center" width="140"></el-table-column>
       <el-table-column
         :label="$t('TargetSubject')"
         sortable
-        :min-width="140"
+        min-width="140"
+        header-align="center"
         show-overflow-tooltip
         prop="target_model_alias">
       </el-table-column>
        <el-table-column
         :label="$t('dataRange')"
-        :min-width="180"
+        min-width="180"
+        header-align="center"
         show-overflow-tooltip>
         <template slot-scope="scope">
           <span v-if="scope.row.data_range_end==9223372036854776000">{{$t('fullLoad')}}</span>
@@ -72,16 +74,18 @@
         </template>
       </el-table-column>
       <el-table-column
-        :width="180"
+        width="180"
+        header-align="center"
         :renderHeader="renderColumn2">
         <template slot-scope="scope">
           <kap-progress :percent="scope.row.step_ratio * 100 | number(0)" :status="scope.row.job_status"></kap-progress>
         </template>
       </el-table-column>
       <el-table-column
-        :width="230"
+        width="207"
         :label="$t('startTime')"
         show-overflow-tooltip
+        header-align="center"
         prop="create_time"
         sortable>
         <template slot-scope="scope">
@@ -89,8 +93,9 @@
         </template>
       </el-table-column>
       <el-table-column
-        :width="140"
+        width="140"
         sortable
+        header-align="center"
         prop="duration"
         :label="$t('Duration')">
         <template slot-scope="scope">
@@ -100,7 +105,7 @@
       <el-table-column
         :label="$t('Actions')"
         align="center"
-        width="100">
+        width="83">
         <template slot-scope="scope">
           <common-tip :content="$t('jobDrop')" v-if="scope.row.job_status=='DISCARDED' || scope.row.job_status=='FINISHED'">
             <i class="el-icon-ksd-table_delete ksd-fs-16" @click.stop="drop([scope.row.id])"></i>
@@ -1156,13 +1161,22 @@ export default class JobsList extends Vue {
       }
     }
     .jobs-table {
-      th .el-dropdown {
-        display: inline;
-        padding: 0;
-      }
       .el-icon-ksd-filter {
         position: relative;
-        top: 1px;
+        top: 5px;
+        float: right;
+      }
+      th .el-dropdown {
+        padding: 0;
+        line-height: 0;
+        float: right;
+        position: relative;
+        top: 5px;
+        .el-icon-ksd-filter {
+          float: none;
+          position: relative;
+          top: 0px;
+        }
       }
       .el-icon-ksd-dock_to_right_return,
       .el-icon-ksd-dock_to_right {

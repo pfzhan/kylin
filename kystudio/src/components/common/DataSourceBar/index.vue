@@ -419,7 +419,7 @@ export default class DataSourceBar extends Vue {
     box-sizing: border-box;
   }
   .header {
-    padding: 15px 20px;
+    padding: 13px 20px;
     font-size: 16px;
     color: @text-title-color;
     border-bottom: 1px solid @line-split-color;

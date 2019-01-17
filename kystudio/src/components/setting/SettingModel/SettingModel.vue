@@ -5,14 +5,14 @@
       class="model-setting-table"
       border
       style="width: 100%">
-      <el-table-column width="230px" show-overflow-tooltip prop="alias" :label="$t('kylinLang.model.modelNameGrid')"></el-table-column>
-      <el-table-column prop="last_modified" show-overflow-tooltip width="250px" :label="$t('modifyTime')">
+      <el-table-column width="230px" header-align="center" show-overflow-tooltip prop="alias" :label="$t('kylinLang.model.modelNameGrid')"></el-table-column>
+      <el-table-column prop="last_modified" header-align="center" show-overflow-tooltip width="207px" :label="$t('modifyTime')">
         <template slot-scope="scope">
           <span v-if="scope.row.config_last_modified>0">{{transToGmtTime(scope.row.config_last_modified)}}</span>
         </template>
       </el-table-column>
-      <el-table-column prop="config_last_modifier" show-overflow-tooltip width="100" :label="$t('modifiedUser')"></el-table-column>
-      <el-table-column min-width="400px" :label="$t('modelSetting')">
+      <el-table-column prop="config_last_modifier" header-align="center" show-overflow-tooltip width="100" :label="$t('modifiedUser')"></el-table-column>
+      <el-table-column min-width="400px" header-align="center" :label="$t('modelSetting')">
         <template slot-scope="scope">
           <div v-if="scope.row.auto_merge_time_ranges">
             <span class="model-setting-item">
@@ -38,7 +38,7 @@
         </template>
       </el-table-column>
       <el-table-column
-        width="100px"
+        width="83px"
         align="center"
         :label="$t('kylinLang.common.action')">
           <template slot-scope="scope">

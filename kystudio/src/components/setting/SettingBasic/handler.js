@@ -44,7 +44,7 @@ export const initialFormValue = {
 }
 export const validate = {
   'positiveNumber' (rule, value, callback) {
-    if (value === '' || value === undefined || value < 0) {
+    if (value === '' || value === undefined || value < 0 || isNaN(value)) {
       callback(new Error(null))
     } else {
       callback()

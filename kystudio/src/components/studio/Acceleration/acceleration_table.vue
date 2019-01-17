@@ -8,26 +8,26 @@
     :row-class-name="tableRowClassName"
     style="width: 100%">
     <el-table-column :label="$t('kylinLang.query.sqlContent_th')" prop="sql_pattern" header-align="center" show-overflow-tooltip></el-table-column>
-    <el-table-column :label="$t('kylinLang.query.lastModefied')" prop="last_query_time" sortable header-align="center" width="210">
+    <el-table-column :label="$t('kylinLang.query.lastModefied')" prop="last_query_time" sortable header-align="center" width="207">
       <template slot-scope="props">
         {{transToGmtTime(props.row.last_query_time)}}
       </template>
     </el-table-column>
-    <el-table-column :label="$t('kylinLang.query.original')" prop="channel" align="center" width="135">
+    <el-table-column :label="$t('kylinLang.query.original')" prop="channel" align="center" width="98">
     </el-table-column>
     <el-table-column :label="$t('kylinLang.query.rate')" prop="success_rate" sortable align="center" width="135" v-if="isAccelerated">
       <template slot-scope="props">
         {{props.row.success_rate * 100 | number(2)}}%
       </template>
     </el-table-column>
-    <el-table-column :label="$t('kylinLang.query.frequency')" prop="total_count" sortable align="center" width="120" v-if="isAccelerated"></el-table-column>
-    <el-table-column :label="$t('kylinLang.query.avgDuration')" prop="average_duration" sortable align="center" width="160" v-if="isAccelerated">
+    <el-table-column :label="$t('kylinLang.query.frequency')" prop="total_count" sortable align="center" width="115" v-if="isAccelerated"></el-table-column>
+    <el-table-column :label="$t('kylinLang.query.avgDuration')" prop="average_duration" sortable align="center" width="155" v-if="isAccelerated">
       <template slot-scope="props">
         <span v-if="props.row.average_duration < 1000"> &lt; 1s</span>
         <span v-else>{{props.row.average_duration / 1000 | fixed(2)}}s</span>
       </template>
     </el-table-column>
-    <el-table-column :renderHeader="renderColumn" prop="status" header-align="center" width="155">
+    <el-table-column :renderHeader="renderColumn" prop="status" header-align="center" width="165">
       <template slot-scope="props">
         <div v-if="props.row.status === 'FULLY_ACCELERATED'">
           <i class="status-icon el-icon-ksd-acclerate_all"></i>
@@ -47,10 +47,11 @@
         </div>
         <el-tooltip class="item" effect="dark" :content="props.row.comment" placement="top-end" v-if="props.row.status === 'BLOCKED'">
           <i class="status-icon el-icon-ksd-table_discard"></i>
+          <span>{{$t('kylinLang.query.blocked')}}</span>
         </el-tooltip>
       </template>
     </el-table-column>
-    <el-table-column :label="$t('kylinLang.common.action')" align="center" width="100">
+    <el-table-column :label="$t('kylinLang.common.action')" align="center" width="83">
       <template slot-scope="props">
         <span @click="delFav(props.row.uuid, props.row.channel)">
           <i class="el-icon-ksd-table_delete" v-if="props.row.channel==='Imported'"></i>
@@ -87,11 +88,9 @@ import { handleError } from '../../../util/index'
 })
 export default class FavoriteTable extends Vue {
   statusFilteArr = [
-    // {name: 'el-icon-ksd-acclerate_all', value: 'FULLY_ACCELERATED'},
-    {name: 'el-icon-ksd-acclerate_pendding', value: 'WAITING'},
-    // {name: 'el-icon-ksd-acclerate_portion', value: 'PARTLY_ACCELERATED'},
-    {name: 'el-icon-ksd-acclerate_ongoing', value: 'ACCELERATING'},
-    {name: 'el-icon-ksd-table_discard', value: 'BLOCKED'}
+    {name: 'el-icon-ksd-acclerate_pendding', value: 'WAITING', label: 'wartingAcce'},
+    {name: 'el-icon-ksd-acclerate_ongoing', value: 'ACCELERATING', label: 'ongoingAcce'},
+    {name: 'el-icon-ksd-table_discard', value: 'BLOCKED', label: 'blocked'}
   ]
   checkedStatus = []
   filterData = {
@@ -103,7 +102,7 @@ export default class FavoriteTable extends Vue {
     if (!this.isAccelerated) {
       let items = []
       for (let i = 0; i < this.statusFilteArr.length; i++) {
-        items.push(<el-checkbox label={this.statusFilteArr[i].value} key={this.statusFilteArr[i].value}><i class={this.statusFilteArr[i].name}></i></el-checkbox>)
+        items.push(<el-checkbox label={this.statusFilteArr[i].value} key={this.statusFilteArr[i].value}><i class={this.statusFilteArr[i].name}></i> <span class="ksd-fs-12" style="position: relative; top:-1.5px;">{this.$t('kylinLang.query.' + this.statusFilteArr[i].label)}</span></el-checkbox>)
       }
       return (<span>
         <span>{this.$t('kylinLang.query.acceleration_th')}</span>

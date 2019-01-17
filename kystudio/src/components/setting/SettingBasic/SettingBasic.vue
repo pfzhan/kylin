@@ -39,7 +39,7 @@
             v-model="form.storage_garbage"
             :active-text="$t('kylinLang.common.OFF')"
             :inactive-text="$t('kylinLang.common.ON')"
-            @input="value => handleSwitch('pushdown-engine', value)">
+            @input="value => handleSwitch('storage-garbage', value)">
           </el-switch>
         </span>
         <div class="setting-desc">
@@ -207,8 +207,8 @@ export default class SettingBasic extends Vue {
   }
   get rules () {
     return {
-      'volatile_range.volatile_range_number': [{ validator: validate['positiveNumber'], trigger: 'blur' }],
-      'retention_range.retention_range_number': [{ validator: validate['positiveNumber'], trigger: 'blur' }]
+      'volatile_range.volatile_range_number': [{ validator: validate['positiveNumber'], trigger: 'change' }],
+      'retention_range.retention_range_number': [{ validator: validate['positiveNumber'], trigger: 'change' }]
     }
   }
   @Watch('form', { deep: true })

@@ -7,19 +7,19 @@
           <span class="label">{{$t('kylinLang.query.query_id')}}</span>
           <span class="text">{{extraoption.queryId}}</span>
         </p>
-        <p class="resultText">
+        <!-- <p class="resultText">
           <span class="label">{{$t('kylinLang.query.status')}}</span>
           <span>{{$t('kylinLang.common.success')}}</span>
+        </p> -->
+        <p class="resultText">
+          <span class="label">{{$t('kylinLang.query.duration')}}</span>
+          <span class="text">{{(extraoption.duration/1000)|fixed(2)||0.00}}s</span>
         </p>
         <p class="resultText" :class="{'guide-queryAnswerBy': isWorkspace}">
           <span class="label">{{$t('kylinLang.query. answered_by')}}</span>
           <span class="text">{{extraoption.answeredBy | arrayToStr}}</span>
         </p>
-        <p class="resultText">
-          <span class="label">{{$t('kylinLang.query.duration')}}</span>
-          <span class="text">{{(extraoption.duration/1000)|fixed(2)||0.00}}s</span>
-        </p>
-        <el-button plain size="medium" @click="toggleDetail" class="show-more-btn" v-if="!extraoption.pushDown">
+        <el-button plain size="mini" @click="toggleDetail" class="show-more-btn" v-if="!extraoption.pushDown">
           {{$t('kylinLang.common.seeDetail')}}
           <i class="el-icon-arrow-down" v-show="!showDetail"></i>
           <i class="el-icon-arrow-up" v-show="showDetail"></i>
@@ -189,14 +189,14 @@ export default class queryResult extends Vue {
   }
   .resultTipsLine{
     font-size: 14px;
-    padding: 20px;
+    padding: 10px;
     background-color: @table-stripe-color;
-    line-height: 1.8;
+    line-height: 20px;
     position: relative;
     .show-more-btn {
       position: absolute;
-      right: 20px;
-      top: 20px;
+      right: 10px;
+      top: 10px;
     }
     .resultTips{
       align-items: center;
@@ -204,7 +204,7 @@ export default class queryResult extends Vue {
       .resultText{
         color:@color-text-primary;
         .label {
-          font-weight: bold;
+          font-weight: normal;
         }
         .text{
           color:@color-text-primary;
