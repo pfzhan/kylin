@@ -88,6 +88,7 @@
             @row-click="activeSql"
             @select="handleSelectionChange"
             @select-all="handleSelectAllChange"
+            :row-class-name="tableRowClassName"
             class="import-table"
             style="width: 100%">
             <el-table-column type="selection" align="center" width="44" :selectable="selectable"></el-table-column>
@@ -467,6 +468,12 @@ export default class FavoriteQuery extends Vue {
     label: this.$t('kylinLang.menu.group'),
     options: ['ALL_USERS', 'ROLE_ADMIN', 'ROLE_ANALYST', 'ROLE_MODELER']
   }]
+  tableRowClassName ({row, rowIndex}) {
+    if (this.activeSqlObj && row.id === this.activeSqlObj.id) {
+      return 'active-row'
+    }
+    return ''
+  }
   handleClick () {
     this.checkedStatus = this.activeList === 'wartingAcce' ? ['WAITING', 'ACCELERATING', 'BLOCKED'] : ['FULLY_ACCELERATED']
     this.loadFavoriteList()
@@ -982,6 +989,7 @@ export default class FavoriteQuery extends Vue {
   cancelEdit (isErrorMes) {
     this.isEditSql = false
     this.inputHeight = isErrorMes ? 574 - 150 : 574
+    this.activeSqlObj = null
     setTimeout(() => {
       this.$refs.whiteInputBox.$refs.kapEditor.editor.setReadOnly(true)
     }, 0)
@@ -1173,6 +1181,9 @@ export default class FavoriteQuery extends Vue {
       .el-dialog__body {
         min-height: 600px;
         .import-table {
+          .active-row {
+            background-color: @base-color-9;
+          }
           .el-table__row {
             cursor: pointer;
           }
