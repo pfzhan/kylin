@@ -45,8 +45,8 @@
       :style="{width:showStep?'70%':'100%'}"
     >
       <!-- :default-sort="{prop: 'jobname', order: 'descending'}" -->
-      <el-table-column type="selection" align="center" width="55"></el-table-column>
-      <el-table-column align="center" width="55" prop="icon">
+      <el-table-column type="selection" align="center" width="34"></el-table-column>
+      <el-table-column align="center" width="40" prop="icon">
         <template slot-scope="scope">
           <i :class="{
           'el-icon-ksd-dock_to_right_return': scope.row.id !== selectedJob.id || !showStep,
@@ -93,7 +93,7 @@
         </template>
       </el-table-column>
       <el-table-column
-        width="140"
+        width="105"
         sortable
         header-align="center"
         prop="duration"
@@ -924,6 +924,9 @@ export default class JobsList extends Vue {
 <style lang="less">
   @import '../../assets/styles/variables.less';
   .jobs_list {
+    #show-diagnos .el-textarea__inner:focus {
+      border-color: @line-border-color;
+    }
     .jobs_tools_row {
       font-size: 0px;
     }

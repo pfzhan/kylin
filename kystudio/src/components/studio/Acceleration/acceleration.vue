@@ -92,17 +92,17 @@
             class="import-table"
             style="width: 100%">
             <el-table-column type="selection" align="center" width="44" :selectable="selectable"></el-table-column>
-            <el-table-column prop="sql" label="SQL" header-align="center" min-width="530">
+            <el-table-column prop="sql" label="SQL" header-align="center" :resizable="false">
               <template slot-scope="props">
                 <span class="ksd-nobr-text">{{props.row.sql}}</span>
               </template>
             </el-table-column>
-            <el-table-column prop="capable" :label="$t('kylinLang.common.status')" align="center" min-width="80">
+            <el-table-column prop="capable" :label="$t('kylinLang.common.status')" align="center" width="83">
               <template slot-scope="props">
                 <i :class="{'el-icon-ksd-good_health': props.row.capable, 'el-icon-ksd-error_01': !props.row.capable}"></i>
               </template>
             </el-table-column>
-            <el-table-column :label="$t('kylinLang.common.action')" align="center" min-width="80">
+            <el-table-column :label="$t('kylinLang.common.action')" align="center" width="83">
               <template slot-scope="props">
                 <i class="el-icon-ksd-table_edit" @click.stop="editWhiteSql(props.row)"></i>
                 <i class="el-icon-ksd-table_delete ksd-ml-10" @click.stop="delWhiteComfirm(props.row.id)"></i>
@@ -167,13 +167,13 @@
             </div>
           </div>
           <el-table :data="blackSqlData.sqls" border @row-click="viewBlackSql" class="import-table" style="width: 100%">
-            <el-table-column prop="sql_pattern" label="SQL" header-align="center" show-overflow-tooltip min-width="350"></el-table-column>
-            <el-table-column prop="create_time" :label="$t('createdTime')" show-overflow-tooltip header-align="center" min-width="207">
+            <el-table-column prop="sql_pattern" label="SQL" :resizable="false" header-align="center" show-overflow-tooltip></el-table-column>
+            <el-table-column prop="create_time" :label="$t('createdTime')" show-overflow-tooltip header-align="center" width="207">
               <template slot-scope="props">
                 {{transToGmtTime(props.row.create_time)}}
               </template>
             </el-table-column>
-            <el-table-column :label="$t('kylinLang.common.action')" align="center" min-width="83">
+            <el-table-column :label="$t('kylinLang.common.action')" align="center" width="83">
               <template slot-scope="props">
                 <i class="el-icon-ksd-table_delete ksd-ml-10" @click.stop="delBlack(props.row.id)"></i>
                </template>
