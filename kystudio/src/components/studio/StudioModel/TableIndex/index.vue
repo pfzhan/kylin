@@ -9,39 +9,41 @@
       </div>
       <kap-nodata v-if="tableIndexBaseList.length === 0" class="ksd-mt-40"></kap-nodata>
       <el-steps direction="vertical">
-        <el-step :title="$t(key) + '(' + tableIndex.length + ')'" status="finish" v-if="tableIndex.length" v-for="(tableIndex, key) in tableIndexGroup" :key="key">
-          <div slot="icon"><i class="el-icon-ksd-elapsed_time"></i></div>
-          <div slot="description">
-            <el-carousel @change="(i) => {changeTableIndexCard(tableIndex[i])}"  indicator-position="none" :arrow="tableIndex.length === 1 ? 'never' : 'hover'"  :interval="4000" type="card" height="187px" :autoplay="false" :initial-index="tableIndex.length - 1">
-              <el-carousel-item class="card-box" v-for="item in tableIndex" :key="item.name" @click.native="showTableIndexDetal(item)" :class="{'table-index-active': currentShowTableIndex && currentShowTableIndex.id === item.id}">
-                <img v-if="item.manual" class="icon-tableindex-type" src="../../../../assets/img/icon_model/index_manual.png"/>
-                <img v-else class="icon-tableindex-type" src="../../../../assets/img/icon_model/index_auto.png"/>
-                <div class="card-content" :class="{'empty-table-index': item.status === 'EMPTY', 'is-manual': item.manual}">
-                  <div class="slider-content-above">
-                    <div class="main-title" :title="item.name">{{item.name|omit(30, '...')}}</div>
-                    <div class="status-list">
-                      <!-- <div v-if="item.status === 'AVAIABLE'" class="broken-icon">{{$t('available ')}}</div> -->
-                      <div v-if="item.status === 'BROKEN'" class="broken-icon">{{$t('broken')}}</div>
-                      <div v-if="item.status === 'EMPTY'" class="empty-icon">{{$t('empty')}}</div>
-                    </div>
-                    <div class="sub-info">
-                      <div>{{$t('tableIndexId')}}{{item.id}}</div>
-                      <i class="el-icon-ksd-elapsed_time ksd-mr-4"></i>{{transToGmtTime(item.update_time)}}
-                       <div class="actions ksd-fright">
-                        <span class="del-icon" v-if="item.manual" @click="delTableIndex(item.id)">{{$t('kylinLang.common.delete')}}</span>
+        <template v-for="(tableIndex, key) in tableIndexGroup">
+          <el-step :title="$t(key) + '(' + tableIndex.length + ')'" status="finish" v-if="tableIndex.length"  :key="key">
+            <div slot="icon"><i class="el-icon-ksd-elapsed_time"></i></div>
+            <div slot="description">
+              <el-carousel @change="(i) => {changeTableIndexCard(tableIndex[i])}"  indicator-position="none" :arrow="tableIndex.length === 1 ? 'never' : 'hover'"  :interval="4000" type="card" height="187px" :autoplay="false" :initial-index="tableIndex.length - 1">
+                <el-carousel-item class="card-box" v-for="item in tableIndex" :key="item.name" @click.native="showTableIndexDetal(item)" :class="{'table-index-active': currentShowTableIndex && currentShowTableIndex.id === item.id}">
+                  <img v-if="item.manual" class="icon-tableindex-type" src="../../../../assets/img/icon_model/index_manual.png"/>
+                  <img v-else class="icon-tableindex-type" src="../../../../assets/img/icon_model/index_auto.png"/>
+                  <div class="card-content" :class="{'empty-table-index': item.status === 'EMPTY', 'is-manual': item.manual}">
+                    <div class="slider-content-above">
+                      <div class="main-title" :title="item.name">{{item.name|omit(30, '...')}}</div>
+                      <div class="status-list">
+                        <!-- <div v-if="item.status === 'AVAIABLE'" class="broken-icon">{{$t('available ')}}</div> -->
+                        <div v-if="item.status === 'BROKEN'" class="broken-icon">{{$t('broken')}}</div>
+                        <div v-if="item.status === 'EMPTY'" class="empty-icon">{{$t('empty')}}</div>
+                      </div>
+                      <div class="sub-info">
+                        <div>{{$t('tableIndexId')}}{{item.id}}</div>
+                        <i class="el-icon-ksd-elapsed_time ksd-mr-4"></i>{{transToGmtTime(item.update_time)}}
+                        <div class="actions ksd-fright">
+                          <span class="del-icon" v-if="item.manual" @click="delTableIndex(item.id)">{{$t('kylinLang.common.delete')}}</span>
+                        </div>
                       </div>
                     </div>
+                    <div class="ky-line"></div>
+                    <div class="slider-content-below">
+                      <span class="tableindex-user">{{item.owner}}</span>
+                      <span class="tableindex-count"><span>{{item.col_order.length}}</span> Columns</span>
+                    </div>
                   </div>
-                  <div class="ky-line"></div>
-                  <div class="slider-content-below">
-                    <span class="tableindex-user">{{item.owner}}</span>
-                    <span class="tableindex-count"><span>{{item.col_order.length}}</span> Columns</span>
-                  </div>
-                </div>
-              </el-carousel-item>
-            </el-carousel>
-           </div>
-        </el-step>
+                </el-carousel-item>
+              </el-carousel>
+            </div>
+          </el-step>
+        </template>
       </el-steps>
     </div>
     <div class="right-part">
@@ -60,7 +62,7 @@
             header-align="center"
             align="center"
             prop="id"
-            width="60">
+            width="64">
           </el-table-column>
           <el-table-column
             show-overflow-tooltip

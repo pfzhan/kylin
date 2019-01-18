@@ -16,7 +16,7 @@
         :row-key="renderRowKey"
         @sort-change="onSortChange"
         style="width: 100%">
-        <el-table-column type="expand" min-width="30">
+        <el-table-column type="expand" width="34">
           <template slot-scope="props">
             <transition name="full-model-slide-fade">
               <div class="cell-content" v-if="props.row.showModelDetail">
@@ -47,33 +47,38 @@
           </template>
         </el-table-column>
         <el-table-column
+        header-align="center"
         min-width="229px"
         show-overflow-tooltip
         prop="alias"
           :label="$t('kylinLang.model.modelNameGrid')">
         </el-table-column>
         <el-table-column
+          header-align="center"
           prop="fact_table"
           show-overflow-tooltip
           min-width="229px"
           :label="$t('kylinLang.common.fact')">
         </el-table-column>
         <el-table-column
+          header-align="center"
           prop="usage"
           show-overflow-tooltip
-          width="90px"
+          width="80px"
           :label="$t('usage')">
         </el-table-column>
          <el-table-column
+          header-align="center"
           prop="storage"
           show-overflow-tooltip
-          width="90px"
+          width="77px"
           :label="$t('storage')">
           <template slot-scope="scope">
             {{scope.row.storage|dataSize}}
           </template>
         </el-table-column>
         <el-table-column
+          header-align="center"
           prop="gmtTime"
           show-overflow-tooltip
           sortable="custom"
@@ -81,6 +86,7 @@
           :label="$t('dataLoadTime')">
         </el-table-column>
         <el-table-column
+          header-align="center"
           prop="status"
           show-overflow-tooltip
           width="94"
@@ -90,6 +96,7 @@
       </template>
         </el-table-column>
         <el-table-column
+          header-align="center"
           v-if="!isAutoProject"
           prop="owner"
           show-overflow-tooltip
@@ -97,18 +104,19 @@
           :label="$t('kylinLang.model.ownerGrid')">
         </el-table-column>
         <el-table-column class="ksd-center"
-        width="98px"
+        header-align="center"
+        width="96px"
         v-if="!isAutoProject"
         :label="$t('kylinLang.common.action')">
           <template slot-scope="scope">
             <span v-if="!(isAdmin || hasPermissionOfProject())"> N/A</span>
              <div v-show="isAdmin || hasPermissionOfProject()">
-              <common-tip :content="$t('kylinLang.common.edit')"><i class="el-icon-ksd-table_edit ksd-fs-16" @click="handleEditModel(scope.row.alias)"></i></common-tip>
-              <common-tip :content="$t('build')" v-if="scope.row.management_type!=='TABLE_ORIENTED'" class="ksd-ml-10"><i class="el-icon-ksd-data_range ksd-fs-16" @click="setModelBuldRange(scope.row)"></i></common-tip>
+              <common-tip :content="$t('kylinLang.common.edit')"><i class="el-icon-ksd-table_edit ksd-fs-14" @click="handleEditModel(scope.row.alias)"></i></common-tip>
+              <common-tip :content="$t('build')" v-if="scope.row.management_type!=='TABLE_ORIENTED'" class="ksd-ml-10"><i class="el-icon-ksd-data_range ksd-fs-14" @click="setModelBuldRange(scope.row)"></i></common-tip>
               <common-tip :content="$t('kylinLang.common.moreActions')" class="ksd-ml-10" v-if="!scope.row.is_draft">
                 <el-dropdown @command="(command) => {handleCommand(command, scope.row)}" :id="scope.row.name" trigger="click" >
                   <span class="el-dropdown-link" >
-                      <i class="el-icon-ksd-table_others ksd-fs-16"></i>
+                      <i class="el-icon-ksd-table_others ksd-fs-14"></i>
                   </span>
                  <el-dropdown-menu slot="dropdown"  :uuid='scope.row.uuid' >
                     <!-- 数据检测移动至project 级别处理， -->

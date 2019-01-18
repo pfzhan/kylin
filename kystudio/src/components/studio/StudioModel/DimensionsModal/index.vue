@@ -27,9 +27,10 @@
               @select="selectionChange">
               <el-table-column
                 type="selection"
-                width="55">
+                width="34">
               </el-table-column>
               <el-table-column
+                header-align="center"
                 :label="$t('name')">
                 <template slot-scope="scope">
                   <div @click.stop>
@@ -41,17 +42,20 @@
                 </template>
               </el-table-column>
               <el-table-column
+                header-align="center"
                 show-overflow-tooltip
                 prop="name"
                 :label="$t('column')">
               </el-table-column>
               <el-table-column
+                header-align="center"
                 prop="datatype"
                 show-overflow-tooltip
                 :label="$t('datatype')"
                 width="110">
               </el-table-column>
               <el-table-column
+                header-align="center"
                 show-overflow-tooltip
                 prop="cardinality"
                 :label="$t('cardinality')"
@@ -60,8 +64,9 @@
                 </template>
               </el-table-column>
               <el-table-column
-              prop="comment"
-              :label="$t('Comment')">
+                header-align="center"
+                prop="comment"
+                :label="$t('comment')">
               </el-table-column>
             </el-table>
           </div>
@@ -116,7 +121,7 @@
                 </template>
               </el-table-column>
                <el-table-column
-              :label="$t('Comment')">
+              :label="$t('comment')">
               </el-table-column>
             </el-table>
           </div>

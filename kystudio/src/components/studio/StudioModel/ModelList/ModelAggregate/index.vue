@@ -52,7 +52,7 @@
             <div class="detail-content">
               <template v-if="cuboidDetail.id !== ''">
                 <el-table class="cuboid-info" :data="cuboidInfo" border stripe :show-header="false">
-                  <el-table-column prop="key" align="right">
+                  <el-table-column prop="key" align="right" width="166px">
                     <template slot-scope="scope">
                       <div v-if="scope.row.key === 'dataRange'">
                         <div>{{$t(scope.row.key)}}</div>
@@ -76,7 +76,7 @@
                   </el-table-column>
                 </el-table>
                 <el-table class="cuboid-content" :data="cuboidContent" border max-height="335">
-                  <el-table-column type="index" :label="$t('order')" width="80" align="center">
+                  <el-table-column type="index" :label="$t('order')" width="64" align="center">
                   </el-table-column>
                   <el-table-column prop="content" :label="$t('content')" align="center">
                     <template slot-scope="scope">

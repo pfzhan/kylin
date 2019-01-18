@@ -47,6 +47,7 @@
         <el-input v-guide.addProjectInput
           v-focus="isShow"
           size="small"
+          :disabled="editType !== 'new'"
           auto-complete="off"
           :value="form.name"
           :placeholder="$t('projectPlace')"
