@@ -343,6 +343,7 @@ import accelerationTable from './acceleration_table'
       unit: 'Seconds / Job',
       inputSql: 'Add SQL',
       delSql: 'Are you sure to delete this sql?',
+      delSqlTitle: 'Delete SQL',
       giveUpEdit: 'Are you sure to give up the edit?',
       thereAre: 'There are {modelSpeedEvents} SQLs waiting for acceleration on the threshold of <span class="highlight">{threshold}</span>.',
       accelerateNow: 'Accelerate now',
@@ -384,6 +385,7 @@ import accelerationTable from './acceleration_table'
       unit: '秒 / 任务',
       inputSql: '新增查询语句',
       delSql: '确定删除这条查询语句吗？',
+      delSqlTitle: '删除查询语句',
       giveUpEdit: '确定放弃本次编辑吗？',
       thereAre: '已有{modelSpeedEvents}条SQL查询等待加速(阈值为<span class="highlight">{threshold}</span>条SQL)',
       accelerateNow: '立即加速',
@@ -1030,7 +1032,7 @@ export default class FavoriteQuery extends Vue {
   }
 
   delWhiteComfirm (id) {
-    kapConfirm(this.$t('delSql')).then(() => {
+    kapConfirm(this.$t('delSql'), null, this.$t('delSqlTitle')).then(() => {
       this.delWhite(id)
     })
   }
@@ -1059,7 +1061,7 @@ export default class FavoriteQuery extends Vue {
   }
 
   delBlack (id) {
-    kapConfirm(this.$t('delSql')).then(() => {
+    kapConfirm(this.$t('delSql'), null, this.$t('delSqlTitle')).then(() => {
       this.deleteBlack({id: id, project: this.currentSelectedProject}).then((res) => {
         handleSuccess(res, (data) => {
           this.$message({

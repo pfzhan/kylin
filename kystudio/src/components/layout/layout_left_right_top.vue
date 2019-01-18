@@ -121,7 +121,7 @@
       </span>
     </el-dialog>
     <!-- 全局apply favorite query -->
-    <el-dialog width="440px" :title="$t('kylinLang.common.notice')" class="speed_dialog" :visible="reachThresholdVisible" @close="manualClose = false" :close-on-click-modal="false">
+    <el-dialog width="440px" :title="$t('accelerateTips')" class="speed_dialog" :visible="reachThresholdVisible" @close="manualClose = false" :close-on-click-modal="false">
       <el-row>
         <el-col :span="14">
           {{$t('hello', {user: currentUser.username})}}<br/>
@@ -222,8 +222,8 @@ let MessageBox = ElementUI.MessageBox
     }
   },
   locales: {
-    'en': {resetPassword: 'Reset Password', confirmLoginOut: 'Are you sure to exit?', validPeriod: 'Valid Period: ', overtip1: 'This License will be expired in ', overtip2: 'days. Please contact sales support to apply for the Enterprise License.', applayLisence: 'Apply for Enterprise License', 'continueUse': 'I Know', speedTip: 'System will accelerate <span class="ky-highlight-text">{queryCount}</span> queries: this will optimize <span class="ky-highlight-text">{modelCount}</span> models! Do you want to apply it?', ignore: 'Ignore', apply: 'Apply', hello: 'Hi {user},', leaveAdmin: 'Going to leave the administration mode.', enterAdmin: 'Hi {username}, welcome to the administration mode.'},
-    'zh-cn': {resetPassword: '重置密码', confirmLoginOut: '确认退出吗？', validPeriod: '使用期限: ', overtip1: '当前使用的许可证将在 ', overtip2: '天后过期。欢迎联系销售支持人员申请企业版许可证。', applayLisence: '申请企业版许可证', 'continueUse': '我知道了', speedTip: '系统即将加速 <span class="ky-highlight-text">{queryCount}</span> 条查询：需要优化的模型有 <span class="ky-highlight-text">{modelCount}</span> 个！同意此次加速吗？', ignore: '忽略建议', apply: '同意', hello: '{user} 你好，', leaveAdmin: '您即将离开系统管理。', enterAdmin: '{username} 你好，欢迎进入系统管理。'}
+    'en': {resetPassword: 'Reset Password', confirmLoginOut: 'Are you sure to exit?', validPeriod: 'Valid Period: ', overtip1: 'This License will be expired in ', overtip2: 'days. Please contact sales support to apply for the Enterprise License.', applayLisence: 'Apply for Enterprise License', 'continueUse': 'I Know', speedTip: 'System will accelerate <span class="ky-highlight-text">{queryCount}</span> queries: this will optimize <span class="ky-highlight-text">{modelCount}</span> models! Do you want to apply it?', ignore: 'Ignore', apply: 'Apply', hello: 'Hi {user},', leaveAdmin: 'Going to leave the administration mode.', enterAdmin: 'Hi {username}, welcome to the administration mode.', accelerateTips: 'Accelerating Tips'},
+    'zh-cn': {resetPassword: '重置密码', confirmLoginOut: '确认退出吗？', validPeriod: '使用期限: ', overtip1: '当前使用的许可证将在 ', overtip2: '天后过期。欢迎联系销售支持人员申请企业版许可证。', applayLisence: '申请企业版许可证', 'continueUse': '我知道了', speedTip: '系统即将加速 <span class="ky-highlight-text">{queryCount}</span> 条查询：需要优化的模型有 <span class="ky-highlight-text">{modelCount}</span> 个！同意此次加速吗？', ignore: '忽略建议', apply: '同意', hello: '{user} 你好，', leaveAdmin: '您即将离开系统管理。', enterAdmin: '{username} 你好，欢迎进入系统管理。', accelerateTips: '加速建议 '}
   }
 })
 export default class LayoutLeftRightTop extends Vue {

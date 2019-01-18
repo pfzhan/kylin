@@ -66,9 +66,10 @@ export function loadingBox () {
   }
 }
 // 确认弹窗
-export function kapConfirm (content, para) {
+export function kapConfirm (content, para, title) {
+  var dialogTitle = title || window.kapVm.$t('kylinLang.common.tip')
   var dialogPara = para || {type: 'warning'}
-  return MessageBox.confirm(content, window.kapVm.$t('kylinLang.common.tip'), dialogPara)
+  return MessageBox.confirm(content, dialogTitle, dialogPara)
 }
 
 export function kapWarn (content, para) {

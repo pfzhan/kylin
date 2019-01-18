@@ -321,6 +321,7 @@ import { transToGmtTime, kapConfirm, handleError, handleSuccess } from 'util/bus
       restartJob: 'Are you sure to restart the job?',
       pauseJob: 'Are you sure to pause the job?',
       dropJob: 'Are you sure to drop the job?',
+      dropJobTitle: 'Delete Job',
       jobName: 'Job Name',
       duration: 'Duration',
       waiting: 'Waiting',
@@ -374,6 +375,7 @@ import { transToGmtTime, kapConfirm, handleError, handleSuccess } from 'util/bus
       restartJob: '确定要重启任务?',
       pauseJob: '确定要暂停任务?',
       dropJob: '确定要删除任务?',
+      dropJobTitle: '删除任务',
       jobName: '任务名',
       duration: '持续时间',
       waiting: '等待时间',
@@ -850,7 +852,7 @@ export default class JobsList extends Vue {
     })
   }
   drop (jobIds) {
-    kapConfirm(this.$t('dropJob')).then(() => {
+    kapConfirm(this.$t('dropJob'), null, this.$t('dropJobTitle')).then(() => {
       this.removeJob({jobIds: jobIds, project: this.currentSelectedProject, status: this.filter.status}).then(() => {
         this.$message({
           type: 'success',

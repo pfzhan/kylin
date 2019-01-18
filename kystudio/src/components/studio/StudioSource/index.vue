@@ -184,7 +184,7 @@ export default class StudioSource extends Vue {
     }
   }
   _showDataRangeConfrim () {
-    const confirmTitle = this.$t('kylinLang.common.notice')
+    const confirmTitle = this.$t('remindLoadRangeTitle')
     const confirmMessage = this.$t('remindLoadRange')
     const confirmButtonText = this.$t('kylinLang.common.ok')
     const confirmButtonClass = 'guideTipSetPartitionConfitmBtn'

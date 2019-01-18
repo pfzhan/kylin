@@ -117,7 +117,7 @@ export default class SecurityGroup extends Vue {
 
   async dropGroup (groupName) {
     try {
-      await kapConfirm(this.$t('confirmDelGroup'))
+      await kapConfirm(this.$t('confirmDelGroup'), null, this.$t('delGroupTitle'))
       await this.delGroup({groupName: groupName})
       await this.loadGroupUsers()
     } catch (e) {

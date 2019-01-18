@@ -1,6 +1,6 @@
 export default {
   'en': {
-    selectSource: 'Add New Source',
+    selectSource: 'Load hive table metadata',
     configSource: 'Add Hive Source',
     viewSource: 'General Information',
     loadTables: 'Load Table Metadata',

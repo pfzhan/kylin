@@ -13,7 +13,8 @@ export default {
     disable: 'Disable',
     enable: 'Enable',
     groupMembership: 'Group Membership',
-    cofirmDelUser: 'Are you sure to delete this user?'
+    cofirmDelUser: 'Are you sure to delete this user?',
+    delUserTitle: 'Delete User'
   },
   'zh-cn': {
     back: '返回',
@@ -29,6 +30,7 @@ export default {
     disable: '禁用',
     enable: '启用',
     groupMembership: '分组',
-    cofirmDelUser: '确认删除该用户吗？'
+    cofirmDelUser: '确认删除该用户吗？',
+    delUserTitle: '删除用户'
   }
 }

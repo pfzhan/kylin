@@ -1324,7 +1324,7 @@ export default class ModelEdit extends Vue {
           return
         }
         setTimeout(() => {
-          kapConfirm(this.$t('saveSuccessTip'), {
+          kapConfirm(this.$t('saveSuccessTip', null, this.$t('addIndexTip')), {
             confirmButtonText: this.$t('addIndexTip'),
             cancelButtonText: this.$t('ignoreaddIndexTip'),
             type: 'success',
