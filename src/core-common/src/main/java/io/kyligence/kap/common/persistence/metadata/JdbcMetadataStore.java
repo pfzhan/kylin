@@ -68,7 +68,7 @@ public class JdbcMetadataStore extends MetadataStore {
     private static final String SELECT_ALL_KEY_SQL = SELECT_TERM + META_TABLE_KEY + " from %s";
     private static final String SELECT_BY_PAGE_SQL = SELECT_TERM
             + Joiner.on(",").join(META_TABLE_KEY, META_TABLE_CONTENT, META_TABLE_TS, META_TABLE_MVCC)
-            + " from %s order by " + META_TABLE_KEY + " limit %s offset %s";
+            + " from %s where + " + META_TABLE_KEY + " > '%s' order by " + META_TABLE_KEY + " limit %s";
     private static final String SELECT_BY_KEY_MVCC_SQL = SELECT_TERM
             + Joiner.on(",").join(META_TABLE_KEY, META_TABLE_CONTENT, META_TABLE_TS, META_TABLE_MVCC)
             + " from %s where " + META_TABLE_KEY + "='%s' and " + META_TABLE_MVCC + "=%d";
@@ -160,10 +160,12 @@ public class JdbcMetadataStore extends MetadataStore {
             long count = jdbcTemplate.queryForObject(String.format(COUNT_ALL_SQL, table), Long.class);
             long offset = 0;
             long pageSize = 1000;
+            var prevKey = "/";
             while (offset < count) {
                 for (RawResource resource : jdbcTemplate
-                        .query(String.format(SELECT_BY_PAGE_SQL, table, pageSize, offset), rowMapper)) {
+                        .query(String.format(SELECT_BY_PAGE_SQL, table, prevKey, pageSize), rowMapper)) {
                     store.putResourceWithoutCheck(resource.getResPath(), resource.getByteSource(), resource.getMvcc());
+                    prevKey = resource.getResPath();
                 }
                 offset += pageSize;
             }

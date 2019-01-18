@@ -101,9 +101,7 @@ public class NDataModelManager {
             }
         };
 
-        // touch lower level metadata before registering model listener
         NTableMetadataManager.getInstance(config, project);
-        crud.reloadAll();
     }
 
     public KylinConfig getConfig() {

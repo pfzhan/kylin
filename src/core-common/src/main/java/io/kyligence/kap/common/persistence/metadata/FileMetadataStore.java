@@ -76,7 +76,6 @@ public class FileMetadataStore extends MetadataStore {
         if (!scanFolder.exists()) {
             return result;
         }
-
         val files = FileUtils.listFiles(scanFolder, null, true);
         for (File file : files) {
             result.add(file.getPath().replace(scanFolder.getPath(), ""));
@@ -88,8 +87,10 @@ public class FileMetadataStore extends MetadataStore {
     public RawResource load(String path) throws IOException {
         val f = new File(root, namespace + path);
         val resPath = f.getPath().replace(root.getPath() + path, "");
-        val bs = ByteStreams.asByteSource(IOUtils.toByteArray(new FileInputStream(f)));
-        return new RawResource(resPath, bs, f.lastModified(), getMvcc(bs));
+        try (FileInputStream in = new FileInputStream(f)) {
+            val bs = ByteStreams.asByteSource(IOUtils.toByteArray(in));
+            return new RawResource(resPath, bs, f.lastModified(), getMvcc(bs));
+        }
     }
 
     private File file(String resPath) {
