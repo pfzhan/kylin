@@ -56,8 +56,8 @@ import java.util.concurrent.LinkedBlockingDeque;
 
 public class HdfsAppender extends AppenderSkeleton {
 
-    private static long A_DAY_MILLIS = 24 * 60 * 60 * 1000;
-    private static long A_HOUR_MILLIS = 60 * 60 * 1000;
+    private static long A_DAY_MILLIS = 24 * 60 * 60 * 1000L;
+    private static long A_HOUR_MILLIS = 60 * 60 * 1000L;
     private SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
     private SimpleDateFormat hourFormat = new SimpleDateFormat("HH");
     FSDataOutputStream outStream = null;
@@ -113,6 +113,9 @@ public class HdfsAppender extends AppenderSkeleton {
         try {
             logBufferQue.put(loggingEvent);
         } catch (InterruptedException e) {
+            LogLog.warn("Append logging event interrupted!", e);
+            // Restore interrupted state...
+            Thread.currentThread().interrupt();
         }
     }
 
@@ -122,7 +125,6 @@ public class HdfsAppender extends AppenderSkeleton {
         try {
             flushService.flushLog(logBufferQue.size());
             closeWriter();
-            IOUtils.closeQuietly(fileSystem);
             if (appendHdfsService != null && !appendHdfsService.isShutdown()) {
                 appendHdfsService.shutdownNow();
             }
@@ -221,7 +223,7 @@ public class HdfsAppender extends AppenderSkeleton {
         public void run() {
             setName("SparkExecutorLogAppender");
             long start = System.currentTimeMillis();
-            while (true) {
+            while (!Thread.currentThread().isInterrupted()) {
                 try {
                     if (SparkEnv.get() == null && StringUtils.isBlank(executorId)) {
                         LogLog.warn("Waiting for spark executor to start");
@@ -247,10 +249,14 @@ public class HdfsAppender extends AppenderSkeleton {
                     try {
                         Thread.sleep(10000);
                     } catch (InterruptedException e) {
-                        break;
+                        LogLog.warn("Interrupted!", e);
+                        // Restore interrupted state...
+                        Thread.currentThread().interrupt();
                     }
                 } catch (InterruptedException e) {
-                    break;
+                    LogLog.warn("Flush log interrupted!", e);
+                    // Restore interrupted state...
+                    Thread.currentThread().interrupt();
                 } catch (Exception e) {
                     LogLog.error("Unknown exception, ignore", e);
                 }
@@ -316,6 +322,9 @@ public class HdfsAppender extends AppenderSkeleton {
                 try {
                     Thread.sleep(1000);//waiting for acl to turn to current user
                 } catch (InterruptedException e) {
+                    LogLog.warn("Init writer interrupted!", e);
+                    // Restore interrupted state...
+                    Thread.currentThread().interrupt();
                 }
             }
             bufferedWriter = new BufferedWriter(new OutputStreamWriter(outStream));

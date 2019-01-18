@@ -187,7 +187,7 @@ public abstract class MetadataStore {
         //     1.may have one UUID file or user_group file
         //     2.all subdir as a project and must have only one project.json file execept one dir called user
         val allFiles = list(File.separator);
-        for (val file : allFiles) {
+        for (final String file : allFiles) {
             //check uuid file
             if (file.equals(ResourceStore.METASTORE_UUID_TAG)) {
                 verifyResult.existUUIDFile = true;

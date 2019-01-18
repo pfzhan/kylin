@@ -50,18 +50,22 @@ public class QueryLoggerBufferUtil {
     private QueryLoggerBufferUtil() {
     }
 
-    public static void buffer(String queryId, String level, String msg) {
+    public static boolean buffer(String queryId, String level, String msg) {
         final LinkedBlockingQueue<BufferedMessage> buffer = QUERY_CONTEXT.get(queryId);
         if (buffer != null) {
-            buffer.offer(new BufferedMessage(level, msg));
+            return buffer.offer(new BufferedMessage(level, msg));
         }
+
+        return false;
     }
 
-    public static void buffer(String queryId, String level, String format, Object... arguments) {
+    public static boolean buffer(String queryId, String level, String format, Object... arguments) {
         final LinkedBlockingQueue<BufferedMessage> buffer = QUERY_CONTEXT.get(queryId);
         if (buffer != null) {
-            buffer.offer(new BufferedMessage(level, format, arguments));
+            return buffer.offer(new BufferedMessage(level, format, arguments));
         }
+
+        return false;
     }
 
     public static boolean bufferIfNecessary(String loggerName, String level, String msg) {

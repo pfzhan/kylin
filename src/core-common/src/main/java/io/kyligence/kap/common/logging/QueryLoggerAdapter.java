@@ -34,7 +34,7 @@ import java.io.Serializable;
 
 public class QueryLoggerAdapter extends MarkerIgnoringBase implements LocationAwareLogger, Serializable {
 
-    private final Logger originalLogger;
+    private transient Logger originalLogger;
 
     public QueryLoggerAdapter(Logger originalLogger) {
         this.originalLogger = originalLogger;
