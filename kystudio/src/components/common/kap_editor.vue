@@ -23,7 +23,7 @@ import $ from 'jquery'
 import sqlFormatter from 'sql-formatter'
 export default {
   name: 'kapEditor',
-  props: ['height', 'lang', 'theme', 'value', 'width', 'dragbar', 'isFormatter'],
+  props: ['height', 'lang', 'theme', 'value', 'width', 'dragbar', 'isFormatter', 'readOnly'],
   data () {
     return {
       editorData: this.isFormatter ? sqlFormatter.format(this.value) : this.value,
@@ -63,8 +63,11 @@ export default {
     // editor.setOption('wrap', 'free')
     var editorWrap = this.$el
     var smylesEditor = this.$el.querySelector('.smyles_editor')
+    if (this.readOnly) {
+      editor.setReadOnly(this.readOnly)
+    }
     this.$on('setReadOnly', (isReadyOnly) => {
-      editor.setReadOnly(true)
+      editor.setReadOnly(isReadyOnly)
     })
     this.setOption()
     this.$on('setOption', (option) => {
@@ -133,6 +136,11 @@ export default {
   watch: {
     value (val) {
       this.editorData = this.isFormatter ? sqlFormatter.format(val) : val
+    },
+    readOnly (val) {
+      if (this.$refs.kapEditor.editor) {
+        this.$refs.kapEditor.editor.setReadOnly(val)
+      }
     }
   }
 }

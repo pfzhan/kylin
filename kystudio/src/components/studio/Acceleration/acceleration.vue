@@ -114,7 +114,7 @@
         <el-col :span="8">
           <div class="ky-list-title ksd-mt-10 ksd-fs-16">{{$t('sqlBox')}}</div>
           <div class="query_panel_box ksd-mt-10">
-            <kap-editor ref="whiteInputBox" :height="inputHeight" :isFormatter="true" lang="sql" theme="chrome" v-model="whiteSql">
+            <kap-editor ref="whiteInputBox" :height="inputHeight" :readOnly="this.isReadOnly" :isFormatter="true" lang="sql" theme="chrome" v-model="whiteSql">
             </kap-editor>
             <div class="operatorBox" v-show="isEditSql">
               <div class="btn-group ksd-fright">
@@ -184,7 +184,7 @@
         <el-col :span="8" v-if="blackSqlData&&blackSqlData.size">
           <div class="ky-list-title ksd-mt-10 ksd-fs-16">{{$t('sqlBox')}}</div>
           <div class="query_panel_box ksd-mt-10">
-            <kap-editor ref="blackInputBox" :height="inputHeight" :isFormatter="true" lang="sql" theme="chrome" v-model="blackSql">
+            <kap-editor ref="blackInputBox" :height="inputHeight" :readOnly="true" :isFormatter="true" lang="sql" theme="chrome" v-model="blackSql">
             </kap-editor>
           </div>
         </el-col>
@@ -426,6 +426,7 @@ export default class FavoriteQuery extends Vue {
   blackSqlData = null
   blackSql = ''
   whiteSql = ''
+  isReadOnly = true
   validateLoading = false
   fileSizeError = false
   isWhiteErrorMessage = false
@@ -763,9 +764,6 @@ export default class FavoriteQuery extends Vue {
       this.inputHeight = 574 - 150
       this.whiteMessages = sqlObj.sqlAdvices
     }
-    setTimeout(() => {
-      this.$refs.whiteInputBox.$refs.kapEditor.editor.setReadOnly(true)
-    }, 0)
   }
 
   editWhiteSql (sqlObj) {
@@ -780,7 +778,7 @@ export default class FavoriteQuery extends Vue {
     }
     this.whiteSql = sqlObj.sql
     this.activeSqlObj = sqlObj
-    this.$refs.whiteInputBox.$refs.kapEditor.editor.setReadOnly(false)
+    this.isReadOnly = false
   }
 
   get uploadHeader () {
@@ -791,21 +789,21 @@ export default class FavoriteQuery extends Vue {
     }
   }
   fileItemChange (file, fileList) {
-    if (file.name.indexOf('.txt') !== -1 || file.name.indexOf('.sql') !== -1) {
-      let totalSize = 0
-      this.uploadItems = fileList.map((item) => {
-        totalSize = totalSize + item.size
-        return item.raw ? item.raw : item
-      })
-      if (totalSize > 20 * 1024 * 1024) { // 附件不能大于20M
-        this.$message.warning(this.$t('filesSizeError'))
-        this.fileSizeError = true
-      } else {
-        this.fileSizeError = false
-      }
+    let totalSize = 0
+    this.uploadItems = fileList.filter((file) => {
+      return file.name.indexOf('.txt') !== -1 || file.name.indexOf('.sql') !== -1
+    }).map((item) => {
+      totalSize = totalSize + item.size
+      return item.raw ? item.raw : item
+    })
+    if (totalSize > 20 * 1024 * 1024) { // 附件不能大于20M
+      this.$message.warning(this.$t('filesSizeError'))
+      this.fileSizeError = true
     } else {
+      this.fileSizeError = false
+    }
+    if (!(file.name.indexOf('.txt') !== -1 || file.name.indexOf('.sql') !== -1)) {
       this.$message.error(this.$t('fileTypeError'))
-      this.$refs['sqlUpload'].clearFiles()
     }
   }
   handleRemove (file, fileList) {
@@ -989,10 +987,9 @@ export default class FavoriteQuery extends Vue {
   cancelEdit (isErrorMes) {
     this.isEditSql = false
     this.inputHeight = isErrorMes ? 574 - 150 : 574
+    this.whiteSql = this.activeSqlObj.sql
     this.activeSqlObj = null
-    setTimeout(() => {
-      this.$refs.whiteInputBox.$refs.kapEditor.editor.setReadOnly(true)
-    }, 0)
+    this.isReadOnly = true
   }
 
   validateWhiteSql () {
@@ -1059,9 +1056,6 @@ export default class FavoriteQuery extends Vue {
 
   viewBlackSql (row) {
     this.blackSql = row.sql_pattern
-    setTimeout(() => {
-      this.$refs.blackInputBox.$refs.kapEditor.editor.setReadOnly(true)
-    }, 0)
   }
 
   delBlack (id) {

@@ -554,7 +554,7 @@ export default class Dashboard extends Vue {
   #dashboard {
     margin: 20px;
     .el-date-editor--daterange.el-input__inner {
-      width: 226px;
+      width: 230px;
     }
     .dash-card {
       box-shadow: 0px 0px 4px 0px @line-border-color;

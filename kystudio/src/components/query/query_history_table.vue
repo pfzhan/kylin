@@ -12,7 +12,6 @@
       :data="queryHistoryData"
       border
       class="history-table"
-      @expand-change="onExpandChange"
       style="width: 100%">
       <el-table-column type="expand" width="34">
         <template slot-scope="props">
@@ -22,7 +21,7 @@
           <div class="detail-content">
             <el-row :gutter="30">
               <el-col :span="14">
-                <kap-editor height="320" width="100%" lang="sql" theme="chrome" ref="historySqlEditor" :isFormatter="true" v-model="props.row.sql_text" dragbar="#393e53">
+                <kap-editor height="320" width="100%" lang="sql" theme="chrome" ref="historySqlEditor" :readOnly="true" :isFormatter="true" v-model="props.row.sql_text" dragbar="#393e53">
                 </kap-editor>
               </el-col>
               <el-col :span="10">
@@ -212,15 +211,6 @@ export default class QueryHistoryTable extends Vue {
       }
     })
   }
-
-  onExpandChange () {
-    setTimeout(() => {
-      if (this.$refs.historySqlEditor) {
-        this.$refs.historySqlEditor.$emit('setReadOnly', false)
-      }
-    }, 0)
-  }
-
   getAnsweredByList (answeredBy) {
     return answeredBy ? answeredBy.split(',') : []
   }

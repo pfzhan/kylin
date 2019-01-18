@@ -1,7 +1,7 @@
 <template>
   <div id="queryTab">
     <div class="query_panel_box ksd-mb-30">
-      <kap-editor ref="insightBox" :class="{'guide-WorkSpaceEditor':isWorkspace}" height="170" lang="sql" theme="chrome" @keydown.meta.enter.native="submitQuery(sourceSchema)" @keydown.ctrl.enter.native="submitQuery(sourceSchema)" v-model="sourceSchema">
+      <kap-editor ref="insightBox" :class="{'guide-WorkSpaceEditor':isWorkspace}" height="170" lang="sql" theme="chrome" @keydown.meta.enter.native="submitQuery(sourceSchema)" @keydown.ctrl.enter.native="submitQuery(sourceSchema)" v-model="sourceSchema" :readOnly="!isWorkspace">
       </kap-editor>
       <div class="clearfix operatorBox">
         <p class="tips_box">
@@ -178,15 +178,6 @@ export default class QueryTab extends Vue {
   }
   get showHtrace () {
     return this.$store.state.system.showHtrace === 'true'
-  }
-  mounted () {
-    if (this.isWorkspace) {
-      this.$nextTick(() => {
-        this.$refs.insightBox.$emit('focus')
-      })
-    } else {
-      this.$refs.insightBox.$emit('setReadOnly', false)
-    }
   }
   @Watch('completeData')
   onCompleteDataChange (val) {
