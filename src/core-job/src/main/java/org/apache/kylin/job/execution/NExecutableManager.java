@@ -26,6 +26,9 @@ package org.apache.kylin.job.execution;
 
 import static org.apache.kylin.job.execution.AbstractExecutable.RUNTIME_INFO;
 
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.IOException;
 import java.lang.reflect.Constructor;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -35,10 +38,16 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.persistence.JsonSerializer;
 import org.apache.kylin.common.persistence.ResourceStore;
+import org.apache.kylin.common.persistence.Serializer;
 import org.apache.kylin.common.util.ClassUtil;
+import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.kylin.job.dao.ExecutableOutputPO;
 import org.apache.kylin.job.dao.ExecutablePO;
 import org.apache.kylin.job.dao.NExecutableDao;
@@ -59,6 +68,8 @@ public class NExecutableManager {
 
     private static final Logger logger = LoggerFactory.getLogger(NExecutableManager.class);
     private static final String PARSE_ERROR_MSG = "Error parsing the executablePO: ";
+    private static final Serializer<ExecutableOutputPO> JOB_OUTPUT_SERIALIZER = new JsonSerializer<>(
+            ExecutableOutputPO.class);
 
     public static NExecutableManager getInstance(KylinConfig config, String project) {
         if (null == project) {
@@ -176,6 +187,13 @@ public class NExecutableManager {
     private Output getOutputByPath(String path) {
         final ExecutableOutputPO jobOutput = executableDao.getOutputPO(path);
         Preconditions.checkArgument(jobOutput != null, "there is no related output for job :" + path);
+        return parseOutput(jobOutput);
+    }
+
+    public Output getOutputFromHDFSByJobId(String jobId) {
+        ExecutableOutputPO jobOutput = getJobOutputFromHDFS(KylinConfig.getInstanceFromEnv().getJobTmpOutputStorePath(jobId));
+        Preconditions.checkArgument(jobOutput != null, "there is no related output for job :"
+                + KylinConfig.getInstanceFromEnv().getJobTmpOutputStorePath(jobId));
         return parseOutput(jobOutput);
     }
 
@@ -373,6 +391,10 @@ public class NExecutableManager {
         return executableDao.getOutputPO(path);
     }
 
+    public ExecutableOutputPO getJobOutputByJobId(String jobId) {
+        return executableDao.getOutputPO(pathOfOutput(jobId, project));
+    }
+
     public void updateJobOutput(String jobId, ExecutableState newStatus, Map<String, String> info, String output) {
         final ExecutableOutputPO jobOutput = executableDao.getOutputPO(pathOfOutput(jobId, project));
         Preconditions.checkArgument(jobOutput != null, "there is no related output for job id:" + jobId);
@@ -496,5 +518,40 @@ public class NExecutableManager {
 
     public static String extractId(String path) {
         return path.substring(path.lastIndexOf("/") + 1);
+    }
+
+    public void updateJobOutputToHDFS(String resPath, ExecutableOutputPO obj) {
+        DataOutputStream dout = null;
+        Path path = new Path(resPath);
+
+        try {
+            FileSystem fs = HadoopUtil.getFileSystem(path);
+            dout = fs.create(path, true);
+            JOB_OUTPUT_SERIALIZER.serialize(obj, dout);
+        } catch (IOException e) {
+            throw new RuntimeException("there is an error in updating JobOutput to HDFS.", e);
+        } finally {
+            IOUtils.closeQuietly(dout);
+        }
+    }
+
+    public ExecutableOutputPO getJobOutputFromHDFS(String resPath) {
+        ExecutableOutputPO executableOutputPO = null;
+        DataInputStream din = null;
+        Path path = new Path(resPath);
+
+        try {
+            FileSystem fs = HadoopUtil.getFileSystem(resPath);
+            din = fs.open(path);
+
+            if (fs.getFileStatus(path).getLen() > 0) {
+                executableOutputPO = JOB_OUTPUT_SERIALIZER.deserialize(din);
+            }
+        } catch (IOException e) {
+            throw new RuntimeException("there is an error in getting JobOutput from HDFS.", e);
+        } finally {
+            IOUtils.closeQuietly(din);
+        }
+        return executableOutputPO == null ? new ExecutableOutputPO() : executableOutputPO;
     }
 }

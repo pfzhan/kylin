@@ -53,9 +53,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.function.Consumer;
-
-import lombok.Getter;
-import lombok.Setter;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -66,6 +63,7 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.MailService;
 import org.apache.kylin.common.util.StringUtil;
 import org.apache.kylin.job.constant.ExecutableConstants;
+import org.apache.kylin.job.dao.ExecutableOutputPO;
 import org.apache.kylin.job.exception.ExecuteException;
 import org.apache.kylin.job.exception.JobSuicideException;
 import org.apache.kylin.job.impl.threadpool.DefaultContext;
@@ -84,10 +82,12 @@ import io.kyligence.kap.metadata.cube.model.NBatchConstants;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
-import io.kyligence.kap.metadata.model.ManagementType;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
+import io.kyligence.kap.metadata.model.ManagementType;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
+import lombok.Getter;
+import lombok.Setter;
 import lombok.val;
 
 /**
@@ -257,8 +257,7 @@ public abstract class AbstractExecutable implements Executable, Idempotent {
         Preconditions.checkState(this.getStatus() == ExecutableState.RUNNING);
 
         setEndTime(result);
-        // remove output from metadata, move it to HDFS #9172
-        updateJobOutput(project, getId(), ExecutableState.SUCCEED, result.getExtraInfo(), null);
+        updateJobOutput(project, getId(), ExecutableState.SUCCEED, result.getExtraInfo(), result.output());
     }
 
     protected void onExecuteError(ExecuteResult result, ExecutableContext executableContext) {
@@ -309,24 +308,41 @@ public abstract class AbstractExecutable implements Executable, Idempotent {
     }
 
     public static void updateJobOutput(String project, String jobId, ExecutableState newStatus,
-            Map<String, String> info, String output) {
+                                       Map<String, String> info, String output) {
         updateJobOutput(project, jobId, newStatus, info, output, null);
     }
 
     public static void updateJobOutput(String project, String jobId, ExecutableState newStatus,
-            Map<String, String> info, String output, Consumer<String> hook) {
+                                       Map<String, String> info, String output, Consumer<String> hook) {
         UnitOfWork.doInTransactionWithRetry(() -> {
             NExecutableManager executableManager = getExecutableManager(project);
             val existedInfo = executableManager.getOutput(jobId).getExtra();
             if (info != null) {
                 existedInfo.putAll(info);
             }
-            executableManager.updateJobOutput(jobId, newStatus, existedInfo, output);
+
+            //The output will be stored in HDFS,not in RS
+            executableManager.updateJobOutput(jobId, newStatus, existedInfo, null);
             if (hook != null) {
                 hook.accept(jobId);
             }
             return null;
         }, project);
+
+        //write output to HDFS
+        updateJobOutputToHDFS(project, jobId, output);
+    }
+
+    private static void updateJobOutputToHDFS(String project, String jobId, String output) {
+        NExecutableManager nExecutableManager = getExecutableManager(project);
+        ExecutableOutputPO jobOutput = nExecutableManager.getJobOutputByJobId(jobId);
+        if (output != null) {
+            jobOutput.setContent(output);
+        }
+
+        String outputHDFSPath = KylinConfig.getInstanceFromEnv().getJobTmpOutputStorePath(jobId);
+
+        nExecutableManager.updateJobOutputToHDFS(outputHDFSPath, jobOutput);
     }
 
     protected static NExecutableManager getExecutableManager(String project) {

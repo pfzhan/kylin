@@ -60,11 +60,13 @@ import io.kyligence.kap.rest.response.EventModelResponse;
 import io.kyligence.kap.rest.response.EventResponse;
 import io.kyligence.kap.rest.response.JobStatisticsResponse;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.job.dao.ExecutableOutputPO;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.rest.constant.Constant;
+import org.assertj.core.api.Assertions;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.Before;
@@ -331,6 +333,20 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(2, response.size());
         Assert.assertEquals(JobTypeEnum.INDEX_BUILD.toString(), response.get(1).getJobType());
         Assert.assertEquals(JobTypeEnum.INC_BUILD.toString(), response.get(0).getJobType());
+    }
+
+    @Test
+    public void testGetJobOutput() {
+        NExecutableManager manager = NExecutableManager.getInstance(jobService.getConfig(), "default");
+        ExecutableOutputPO executableOutputPO = new ExecutableOutputPO();
+        executableOutputPO.setStatus("SUCCEED");
+        executableOutputPO.setContent("succeed");
+        manager.updateJobOutputToHDFS(
+                KylinConfig.getInstanceFromEnv().getJobTmpOutputStorePath("e1ad7bb0-522e-456a-859d-2eab1df448de"),
+                executableOutputPO);
+
+        Assertions.assertThat(jobService.getJobOutput("default", "e1ad7bb0-522e-456a-859d-2eab1df448de"))
+                .isEqualTo("succeed");
     }
 
     private void prepareEventData() {

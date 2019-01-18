@@ -42,6 +42,7 @@ import org.apache.kylin.job.execution.NoErrorStatusExecutable;
 import org.apache.kylin.job.execution.SelfStopExecutable;
 import org.apache.kylin.job.execution.SucceedTestExecutable;
 import org.apache.kylin.metadata.realization.RealizationStatusEnum;
+import org.assertj.core.api.Assertions;
 import org.junit.Assert;
 import org.junit.Rule;
 import org.junit.Test;
@@ -57,9 +58,9 @@ import io.kyligence.kap.metadata.cube.model.NBatchConstants;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
+import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import io.kyligence.kap.metadata.model.ManagementType;
 import io.kyligence.kap.metadata.model.NDataModelManager;
-import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import lombok.val;
 
 public class NDefaultSchedulerTest extends BaseSchedulerTest {
@@ -120,6 +121,10 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         Assert.assertEquals(ExecutableState.SUCCEED, executableManager.getOutput(job.getId()).getState());
         Assert.assertEquals(ExecutableState.SUCCEED, executableManager.getOutput(task1.getId()).getState());
         Assert.assertEquals(ExecutableState.SUCCEED, executableManager.getOutput(task2.getId()).getState());
+        Assertions.assertThat(executableManager.getOutputFromHDFSByJobId(task1.getId()).getVerboseMsg())
+                .contains("succeed");
+        Assertions.assertThat(executableManager.getOutputFromHDFSByJobId(task2.getId()).getVerboseMsg())
+                .contains("succeed");
     }
 
     @Test
@@ -144,6 +149,12 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         Assert.assertEquals(ExecutableState.ERROR, executableManager.getOutput(job.getId()).getState());
         Assert.assertEquals(ExecutableState.SUCCEED, executableManager.getOutput(task1.getId()).getState());
         Assert.assertEquals(ExecutableState.ERROR, executableManager.getOutput(task2.getId()).getState());
+        Assertions.assertThat(executableManager.getOutputFromHDFSByJobId(job.getId()).getVerboseMsg())
+                .contains("org.apache.kylin.job.execution.MockJobException");
+        Assertions.assertThat(executableManager.getOutputFromHDFSByJobId(task1.getId()).getVerboseMsg())
+                .contains("succeed");
+        Assertions.assertThat(executableManager.getOutputFromHDFSByJobId(task2.getId()).getVerboseMsg())
+                .contains("org.apache.kylin.job.execution.MockJobException");
     }
 
     @Test
@@ -168,6 +179,10 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         Assert.assertEquals(ExecutableState.ERROR, executableManager.getOutput(job.getId()).getState());
         Assert.assertEquals(ExecutableState.ERROR, executableManager.getOutput(task1.getId()).getState());
         Assert.assertEquals(ExecutableState.READY, executableManager.getOutput(task2.getId()).getState());
+        Assertions.assertThat(executableManager.getOutputFromHDFSByJobId(job.getId()).getVerboseMsg()).contains("test error");
+        Assertions.assertThat(executableManager.getOutputFromHDFSByJobId(task1.getId()).getVerboseMsg())
+                .contains("test error");
+
     }
 
     @Test
@@ -238,7 +253,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         dfMgr.updateDataflow(update);
 
         waitForJobFinish(job.getId());
-        val output = executableManager.getOutput(job.getId());
+        val output = executableManager.getOutputFromHDFSByJobId(job.getId());
         Assert.assertEquals(ExecutableState.SUICIDAL, output.getState());
         Assert.assertTrue(output.getVerboseMsg().contains("suicide"));
 
@@ -342,7 +357,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         executableManager.addJob(job2);
 
         waitForJobFinish(job.getId());
-        val output = executableManager.getOutput(job.getId());
+        val output = executableManager.getOutputFromHDFSByJobId(job.getId());
         Assert.assertEquals(ExecutableState.SUICIDAL, output.getState());
         Assert.assertTrue(output.getVerboseMsg().contains("suicide"));
 

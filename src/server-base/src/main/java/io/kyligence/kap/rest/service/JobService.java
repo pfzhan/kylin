@@ -376,6 +376,11 @@ public class JobService extends BasicService {
         return result;
     }
 
+    public String getJobOutput(String project, String jobId) {
+        val executableManager = getExecutableManager(project);
+        return executableManager.getOutputFromHDFSByJobId(jobId).getVerboseMsg();
+    }
+
     public List<EventResponse> getWaitingJobsByModel(String project, String modelId) {
         List<Event> jobRelatedEvents = getEventDao(project).getJobRelatedEventsByModel(modelId);
 

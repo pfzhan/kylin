@@ -25,6 +25,7 @@
 package io.kyligence.kap.rest.controller;
 
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -138,6 +139,19 @@ public class NJobController extends NBasicController {
         checkRequiredArg("jobId", jobId);
         List<ExecutableStepResponse> jobDetails = jobService.getJobDetail(project, jobId);
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, jobDetails, "");
+    }
+
+    @RequestMapping(value = "/{jobId}/steps/{stepId}/output", method = { RequestMethod.GET }, produces = {
+            "application/vnd.apache.kylin-v2+json" })
+    @ResponseBody
+    public EnvelopeResponse getJobOutput(@PathVariable("jobId") String jobId, @PathVariable("stepId") String stepId,
+            @RequestParam(value = "project", required = true) String project) {
+        Map<String, String> result = new HashMap<String, String>();
+        result.put("jobId", jobId);
+        result.put("stepId", stepId);
+        result.put("cmd_output",
+                jobService.getJobOutput(project, stepId));
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, result, "");
     }
 
     @RequestMapping(value = "/statistics", method = { RequestMethod.GET }, produces = {

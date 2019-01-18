@@ -248,4 +248,18 @@ public class NJobControllerTest {
 
         Mockito.verify(nJobController).getJobDurationPerByte("default", Long.MIN_VALUE, Long.MAX_VALUE, "model");
     }
+
+    @Test
+    public void testGetJobOutput() throws Exception {
+        mockJobUpdateRequest();
+        mockMvc.perform(MockMvcRequestBuilders
+                .get("/api/jobs/{jobId}/steps/{stepId}/output", "e1ad7bb0-522e-456a-859d-2eab1df448de",
+                        "e1ad7bb0-522e-456a-859d-2eab1df448de")
+                .contentType(MediaType.APPLICATION_JSON).param("project", "default")
+                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
+
+        Mockito.verify(nJobController).getJobOutput("e1ad7bb0-522e-456a-859d-2eab1df448de",
+                "e1ad7bb0-522e-456a-859d-2eab1df448de", "default");
+    }
 }
