@@ -32,6 +32,7 @@ import org.apache.kylin.common.persistence.ResourceStore;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
@@ -116,6 +117,32 @@ public class JdbcMetadataStoreTest extends NLocalFileMetadataTestCase {
         val resourceStore = ResourceStore.getKylinMetaStore(getTestConfig());
         Assert.assertEquals(1024, resourceStore.listResourcesRecursively("/p0").size());
         Assert.assertEquals(1024, resourceStore.listResourcesRecursively("/p1").size());
+    }
+
+    @Test
+    @Ignore("for develop")
+    public void testDuplicate() {
+        UnitOfWork.doInTransactionWithRetry(() -> {
+            val store = ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv());
+            store.checkAndPutResource("/p1/abc", ByteStreams.asByteSource("abc".getBytes()), -1);
+            store.checkAndPutResource("/p1/abc", ByteStreams.asByteSource("abc".getBytes()), 0);
+            return 0;
+        }, "p1");
+
+        val dataSource = new DriverManagerDataSource();
+        val url = getTestConfig().getMetadataUrl();
+        dataSource.setUrl(url.getParameter("url"));
+        dataSource.setDriverClassName(url.getParameter("driverClassName"));
+        dataSource.setUsername(url.getParameter("username"));
+        dataSource.setPassword(url.getParameter("password"));
+        val jdbcTemplate = new JdbcTemplate(dataSource);
+        jdbcTemplate.update("update " + url.getIdentifier() + "_metadata set META_TABLE_MVCC = 10");
+
+        UnitOfWork.doInTransactionWithRetry(() -> {
+            val store = ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv());
+            store.checkAndPutResource("/p1/abc", ByteStreams.asByteSource("abc".getBytes()), 1);
+            return 0;
+        }, "p1");
     }
 
 }

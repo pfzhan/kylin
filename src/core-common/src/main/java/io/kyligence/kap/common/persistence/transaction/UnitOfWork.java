@@ -92,6 +92,7 @@ public class UnitOfWork {
 
         // new independent transaction with retry
         int retry = 0;
+        val traceId = UUID.randomUUID().toString();
         while (retry++ < maxRetry) {
             try {
                 T ret;
@@ -113,7 +114,12 @@ public class UnitOfWork {
                 if (retry >= maxRetry) {
                     f.onProcessError(throwable);
                     throw new TransactionException(
-                            "exhausted max retry times, transaction failed due to inconsistent state", throwable);
+                            "exhausted max retry times, transaction failed due to inconsistent state, traceId:"
+                                    + traceId,
+                            throwable);
+                }
+                if (retry == 1) {
+                    log.warn("transaction failed at first time, retry it. traceId:" + traceId, throwable);
                 }
                 //else proceed retry
             } finally {

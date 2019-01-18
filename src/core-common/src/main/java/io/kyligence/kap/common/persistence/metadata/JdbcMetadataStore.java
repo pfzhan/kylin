@@ -28,12 +28,14 @@ import java.io.IOException;
 import java.util.NavigableSet;
 import java.util.Optional;
 
-import lombok.var;
+import javax.annotation.Nullable;
+
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.dbcp2.BasicDataSource;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.RawResource;
 import org.apache.kylin.common.persistence.ResourceStore;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
@@ -47,6 +49,7 @@ import com.google.common.io.ByteSource;
 import io.kyligence.kap.common.persistence.UnitMessages;
 import io.kyligence.kap.common.persistence.metadata.jdbc.RawResourceRowMapper;
 import lombok.val;
+import lombok.var;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -101,20 +104,31 @@ public class JdbcMetadataStore extends MetadataStore {
     }
 
     @Override
-    protected void save(String path, ByteSource bs, long ts, long mvcc) throws Exception {
-        withTransaction(() -> {
-            if (bs != null) {
-                val result = jdbcTemplate.query(String.format(SELECT_BY_KEY_MVCC_SQL, table, path, mvcc - 1),
-                        RAW_RESOURCE_ROW_MAPPER);
-                if (CollectionUtils.isEmpty(result)) {
-                    jdbcTemplate.update(String.format(INSERT_SQL, table), path, bs.read(), ts, mvcc);
+    protected void save(String path, @Nullable ByteSource bs, long ts, long mvcc) throws Exception {
+        withTransaction(new Callback<Object>() {
+            @Override
+            public Object handle() throws Exception {
+                if (bs != null) {
+                    val result = jdbcTemplate.query(String.format(SELECT_BY_KEY_MVCC_SQL, table, path, mvcc - 1),
+                            RAW_RESOURCE_ROW_MAPPER);
+                    if (CollectionUtils.isEmpty(result)) {
+                        jdbcTemplate.update(String.format(INSERT_SQL, table), path, bs.read(), ts, mvcc);
+                    } else {
+                        jdbcTemplate.update(String.format(UPDATE_SQL, table), bs.read(), mvcc, ts, path, mvcc - 1);
+                    }
                 } else {
-                    jdbcTemplate.update(String.format(UPDATE_SQL, table), bs.read(), mvcc, ts, path, mvcc - 1);
+                    jdbcTemplate.update(String.format(DELETE_SQL, table), path);
                 }
-            } else {
-                jdbcTemplate.update(String.format(DELETE_SQL, table), path);
+                return null;
             }
-            return null;
+
+            @Override
+            public void onError() {
+                try {
+                    log.warn("write {} {} {} failed", path, mvcc, bs == null ? null : new String(bs.read()));
+                } catch (IOException ignore) {
+                }
+            }
         });
     }
 
@@ -179,7 +193,8 @@ public class JdbcMetadataStore extends MetadataStore {
             sql += " COLLATE utf8_bin";
         }
         sql += ", %s longblob, %s bigint, %s bigint)";
-        jdbcTemplate.execute(String.format(sql, table, META_TABLE_KEY, META_TABLE_CONTENT, META_TABLE_TS, META_TABLE_MVCC));
+        jdbcTemplate
+                .execute(String.format(sql, table, META_TABLE_KEY, META_TABLE_CONTENT, META_TABLE_TS, META_TABLE_MVCC));
     }
 
     private <T> T withTransaction(Callback<T> consumer) {
@@ -192,11 +207,18 @@ public class JdbcMetadataStore extends MetadataStore {
             return result;
         } catch (Exception e) {
             transactionManager.rollback(status);
+            if (e instanceof DataIntegrityViolationException) {
+                consumer.onError();
+            }
             throw new PersistException("persist messages failed", e);
         }
     }
 
     private interface Callback<T> {
         T handle() throws Exception;
+
+        default void onError() {
+            // do nothing by default
+        }
     }
 }
