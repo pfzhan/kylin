@@ -48,7 +48,6 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.kylin.common.StorageURL;
 import org.apache.kylin.common.debug.BackdoorToggles;
-import org.apache.kylin.gridtable.StorageLimitLevel;
 import org.apache.kylin.metadata.filter.TupleFilter;
 import org.apache.kylin.metadata.model.FunctionDesc;
 import org.apache.kylin.metadata.model.TblColRef;

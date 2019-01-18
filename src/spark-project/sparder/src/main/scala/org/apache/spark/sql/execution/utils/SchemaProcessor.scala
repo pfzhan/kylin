@@ -25,10 +25,11 @@ package org.apache.spark.sql.execution.utils
 
 import java.util
 
+import io.kyligence.kap.metadata.cube.gridtable.NCuboidToGridTableMapping
 import io.kyligence.kap.metadata.cube.model.{LayoutEntity, NDataSegment, NDataflow, NDataflowManager}
 import io.kyligence.kap.query.runtime.plan.TableScanPlan
+import org.apache.kylin.common.util.ImmutableBitSet
 import org.apache.kylin.common.{KapConfig, KylinConfig}
-import org.apache.kylin.gridtable.GTInfo
 import org.apache.kylin.metadata.model.{ColumnDesc, FunctionDesc}
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.types._
@@ -40,16 +41,17 @@ import scala.collection.JavaConverters._
 object SchemaProcessor {
 
   def buildGTSchema(cuboid: LayoutEntity,
-                    gTInfo: GTInfo,
+                    mapping: NCuboidToGridTableMapping,
                     tableName: String): (StructType, Seq[String]) = {
 
-    (genCuboidSchemaFromNCuboidLayout(cuboid),genColumnNames(tableName, cuboid, gTInfo))
+    (genCuboidSchemaFromNCuboidLayout(cuboid),genColumnNames(tableName, cuboid, mapping))
   }
 
-  private def genColumnNames(tableName: String, cuboid: LayoutEntity, gTInfo: GTInfo) = {
+  private def genColumnNames(tableName: String, cuboid: LayoutEntity, mapping: NCuboidToGridTableMapping) = {
     val coolumnMapping = initColumnNameMapping(cuboid).map(_._1)
-    val measures = gTInfo.getAllColumns.andNot(gTInfo.getPrimaryKey).asScala
-    gTInfo.getPrimaryKey.asScala.map { i =>
+    val colAll = new ImmutableBitSet(0, mapping.getDataTypes.length)
+    val measures = colAll.andNot(mapping.getPrimaryKey).asScala
+    mapping.getPrimaryKey.asScala.map { i =>
       FactTableCulumnInfo(tableName, i, coolumnMapping.apply(i)).toString
     }.toSeq ++
       measures

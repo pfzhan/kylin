@@ -27,7 +27,6 @@ import com.github.lightcopy.implicits._
 import com.google.common.collect.Sets
 import io.kyligence.kap.metadata.cube.cuboid.NLayoutCandidate
 import io.kyligence.kap.metadata.cube.gridtable.NCuboidToGridTableMapping
-import io.kyligence.kap.metadata.cube.kv.NCubeDimEncMap
 import io.kyligence.kap.metadata.cube.model.{NDataflow, NDataSegment}
 import io.kyligence.kap.query.exception.UnsupportedQueryException
 import io.kyligence.kap.query.relnode.KapRel
@@ -35,7 +34,6 @@ import io.kyligence.kap.query.runtime.RuntimeHelper
 import io.kyligence.kap.query.util.SparderDerivedUtil
 import org.apache.calcite.DataContext
 import org.apache.kylin.common.{KapConfig, QueryContext}
-import org.apache.kylin.cube.gridtable.GridTables
 import org.apache.kylin.metadata.model._
 import org.apache.kylin.metadata.realization.IRealization
 import org.apache.kylin.metadata.tuple.TupleInfo
@@ -97,11 +95,8 @@ object TableScanPlan extends Logging {
 
           val tableName = olapContext.firstTableScan.getBackupAlias
           val mapping = new NCuboidToGridTableMapping(cuboidLayout)
-          val info =
-            GridTables.newGTInfo(mapping,
-              new NCubeDimEncMap(dataflow.getFirstSegment))
           val relation =
-            CubeRelation(tableName, dataflow, info, cuboidLayout, context.getMetrics)(session)
+            CubeRelation(tableName, dataflow, mapping, cuboidLayout, context.getMetrics)(session)
           /////////////////////////////////////////////
           val kapConfig = KapConfig.wrap(dataflow.getConfig)
           val basePath = kapConfig.getReadParquetStoragePath(dataflow.getProject)

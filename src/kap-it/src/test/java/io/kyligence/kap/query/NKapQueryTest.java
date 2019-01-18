@@ -27,30 +27,23 @@ package io.kyligence.kap.query;
 import java.io.File;
 import java.sql.SQLException;
 import java.util.List;
-import java.util.Map;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.hadoop.util.Shell;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.KylinVersion;
-import org.apache.kylin.common.debug.BackdoorToggles;
-import org.apache.kylin.common.exceptions.KylinTimeoutException;
-import org.apache.kylin.gridtable.StorageSideBehavior;
 import org.dbunit.database.DatabaseConnection;
 import org.dbunit.database.IDatabaseConnection;
 import org.dbunit.dataset.ITable;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Throwables;
-import com.google.common.collect.Maps;
 
 import jersey.repackaged.com.google.common.collect.Lists;
 
@@ -103,36 +96,6 @@ public class NKapQueryTest extends NKylinTestBase {
         }
     }
 
-    @Test
-    @Ignore("not ready yet, need to rebase for KYLIN-3157. checkout io.kyligence.kap.storage.parquet.NDataflowSparkRPC.getGTScanner")
-    public void testTimeoutQuery() throws Exception {
-        try {
-            KylinConfig.getInstanceFromEnv().setProperty("kylin.query.timeout-seconds", "3");//set timeout to 3s
-
-            Map<String, String> toggles = Maps.newHashMap();
-            toggles.put(BackdoorToggles.DEBUG_TOGGLE_COPROCESSOR_BEHAVIOR,
-                    StorageSideBehavior.SCAN_FILTER_AGGR_CHECKMEM_WITHDELAY.toString());//delay 10ms for every scan
-            BackdoorToggles.setToggles(toggles);
-
-            List<File> sqlFiles = getFilesFromFolder(new File(KYLIN_SQL_BASE_DIR + File.separator + "sql_timeout"),
-                    ".sql");
-            for (File sqlFile : sqlFiles) {
-                try {
-                    runSQL(sqlFile, false, false);
-                } catch (Exception e) {
-                    if (Throwables.getRootCause(e) instanceof KylinTimeoutException) {
-                        //expected
-                        continue;
-                    }
-                }
-                throw new RuntimeException("Expecting KylinTimeoutException");
-            }
-        } finally {
-            KylinConfig.getInstanceFromEnv().setProperty("kylin.query.timeout-seconds", "300");//set timeout to default
-            BackdoorToggles.cleanToggles();
-
-        }
-    }
 
     @Test
     public void testQuery_validSql_fail() throws Exception {

@@ -30,7 +30,6 @@ import java.util
 
 import com.google.common.collect.Maps
 import org.apache.kylin.common.util.ByteArray
-import org.apache.kylin.gridtable.GTInfo
 import org.apache.kylin.measure.MeasureAggregator
 import org.apache.kylin.measure.bitmap.BitmapCounter
 import org.apache.kylin.measure.dim.DimCountDistinctCounter
@@ -72,7 +71,6 @@ class SparderAggFun(funcName: String, dataTp: KyDataType)
 
   protected var byteBuffer: ByteBuffer = null
   protected var init = false
-  protected var gtInfo: GTInfo = _
   protected var measureAggregator: MeasureAggregator[Any] = _
   protected var colId: Int = _
   protected var serializer: DataTypeSerializer[Any] = _

@@ -22,8 +22,8 @@
 
 package org.apache.spark.sql.execution.datasource
 
+import io.kyligence.kap.metadata.cube.gridtable.NCuboidToGridTableMapping
 import io.kyligence.kap.metadata.cube.model.{LayoutEntity, NDataflow}
-import org.apache.kylin.gridtable.GTInfo
 import org.apache.kylin.metadata.model.FunctionDesc
 import org.apache.spark.sql.execution.utils.SchemaProcessor
 import org.apache.spark.sql.types.StructType
@@ -32,14 +32,14 @@ import org.apache.spark.sql.{SQLContext, SparderEnv, SparkSession}
 // scalastyle:off
 case class CubeRelation(tableName: String
                         , dataflow: NDataflow
-                        , info: GTInfo
+                        , mapping: NCuboidToGridTableMapping
                         , cuboid: LayoutEntity
                         , metrics: java.util.Set[FunctionDesc]
                        )(val sparkSession: SparkSession) extends KylinRelation {
   var columnNames: Seq[String] = _
 
   def initSchema(): StructType = {
-    val tp = SchemaProcessor.buildGTSchema(cuboid, info, tableName)
+    val tp = SchemaProcessor.buildGTSchema(cuboid, mapping, tableName)
     columnNames = tp._2
     tp._1
   }
