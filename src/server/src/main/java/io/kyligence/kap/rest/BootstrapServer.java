@@ -61,6 +61,8 @@ public class BootstrapServer implements ApplicationListener<ApplicationReadyEven
 
     public static void main(String[] args) {
         setEnvs(args);
+        KerberosLoginTask kerberosLoginTask = new KerberosLoginTask();
+        kerberosLoginTask.execute();
         SpringApplication.run(BootstrapServer.class, args);
         initSparkSession();
     }
@@ -100,8 +102,6 @@ public class BootstrapServer implements ApplicationListener<ApplicationReadyEven
     }
 
     private static void initSparkSession() {
-        KerberosLoginTask kerberosLoginTask = new KerberosLoginTask();
-        kerberosLoginTask.execute();
         SparderEnv.init();
         if ("true".equalsIgnoreCase(System.getProperty("spark.local"))) {
             logger.debug("spark.local=true");

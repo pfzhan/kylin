@@ -28,25 +28,16 @@ else
     quit "Java 1.8 or above is required."
 fi
 
-# Newer versions of glibc use an arena memory allocator that causes virtual
-# memory usage to explode. Tune the variable down to prevent vmem explosion.
-# See HADOOP-7154.
-export MALLOC_ARENA_MAX=${MALLOC_ARENA_MAX:-4}
-
-# (if you're deploying KYLIN on a powerful server and want to replace the default conservative settings)
-# uncomment following to for it to take effect
-
-#if [[ $JAVA_VERSION ]] && [[ "$JAVA_VERSION" > "1.8" ]]; then
-#    export KYLIN_JVM_SETTINGS="-XX:+UseG1GC -Xms24g -Xmx24g -XX:G1HeapRegionSize=32m -XX:+PrintFlagsFinal -XX:+PrintReferenceGC -verbose:gc -XX:+PrintGCDetails -XX:+PrintGCTimeStamps -XX:+PrintGCDateStamps -XX:+PrintAdaptiveSizePolicy -XX:+UnlockDiagnosticVMOptions -XX:+G1SummarizeConcMark  -Xloggc:$KYLIN_HOME/logs/kylin.gc.$$  -XX:+UseGCLogFileRotation -XX:NumberOfGCLogFiles=10 -XX:GCLogFileSize=64M"
-#else
-#    quit "Java 1.8 or above is required."
-#fi
-
 # uncomment following to for it to take effect(the values need adjusting to fit your env)
 # export KYLIN_DEBUG_SETTINGS="-Dcom.sun.management.jmxremote -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false"
 
 # uncomment following to for it to take effect(the values need adjusting to fit your env)
 # export KYLIN_LD_LIBRARY_SETTINGS="-Djava.library.path=/apache/hadoop/lib/native/Linux-amd64-64"
+
+# Newer versions of glibc use an arena memory allocator that causes virtual
+# memory usage to explode. Tune the variable down to prevent vmem explosion.
+# See HADOOP-7154.
+export MALLOC_ARENA_MAX=${MALLOC_ARENA_MAX:-4}
 
 export KYLIN_EXTRA_START_OPTS=""
 

@@ -1,12 +1,128 @@
 #!/bin/bash
 # Kyligence Inc. License
-source $(cd -P -- "$(dirname -- "$0")" && pwd -P)/header.sh $@
-mkdir -p ${KYLIN_HOME}/logs
-mkdir -p ${KYLIN_HOME}/ext
-ERR_LOG=${KYLIN_HOME}/logs/shell.stderr
-OUT_LOG=${KYLIN_HOME}/logs/shell.stdout
-echo "-----------------------  log start  -----------------------" >>${ERR_LOG}
-echo "-----------------------  log start  -----------------------" >>${OUT_LOG}
-bash -x ${KYLIN_HOME}/bin/bootstrap.sh $@ 2>>${ERR_LOG}  | tee -a ${OUT_LOG}
-echo "-----------------------  log end  -------------------------" >>${ERR_LOG}
-echo "-----------------------  log end  -------------------------" >>${OUT_LOG}
+
+alias cd='cd -P'
+dir=$(dirname ${0})
+cd "${dir}"
+
+# setup verbose
+verbose=${verbose:-""}
+while getopts ":v" opt; do
+    case $opt in
+        v)
+            echo "Turn on verbose mode." >&2
+            export verbose=true
+            shift 1
+            ;;
+        \?)
+            echo "Invalid option: -$OPTARG" >&2
+            ;;
+    esac
+done
+
+function quit {
+        echo "$@"
+        if [[ -n "${QUIT_MESSAGE_LOG}" ]]; then
+            echo `setColor 31 "$@"` >> ${QUIT_MESSAGE_LOG}
+        fi
+        if [ $# == 2 ]
+        then
+            exit $2
+        else
+            exit 1
+        fi
+    }
+
+function verbose {
+    if [[ -n "$verbose" ]]; then
+        echo "$@"
+    fi
+}
+
+# start command
+if [ "$1" == "start" ]
+then
+
+    export KYLIN_HOME=`cd ../; pwd`
+    export KYLIN_HADOOP_CONF=${KYLIN_HOME}/hadoop_conf
+    export SPARK_HOME=${KYLIN_HOME}/spark
+
+    echo "KYLIN_HOME is:${KYLIN_HOME}"
+    echo "KYLIN_HADOOP_CONF is:${KYLIN_HADOOP_CONF}"
+    echo "SPARK_HOME is:${SPARK_HOME}"
+
+    if [ -f "../pid" ]
+    then
+        PID=`cat ../pid`
+	if ps -p $PID > /dev/null
+        then
+          quit "Kylin is running, stop it first, PID is $PID"
+        fi
+    fi
+
+    cd ${KYLIN_HOME}/server
+
+    mkdir -p ${KYLIN_HOME}/logs
+    mkdir -p ${KYLIN_HOME}/hadoop_conf
+
+    cp -rf /etc/hadoop/conf/core-site.xml ${KYLIN_HADOOP_CONF}
+    cp -rf /etc/hadoop/conf/hdfs-site.xml ${KYLIN_HADOOP_CONF}
+    cp -rf /etc/hadoop/conf/yarn-site.xml ${KYLIN_HADOOP_CONF}
+    cp -rf /etc/hive/conf/hive-site.xml ${KYLIN_HADOOP_CONF}
+    cp -rf /etc/hadoop/conf/mapred-site.xml ${KYLIN_HADOOP_CONF}
+
+    cp -rf /etc/hadoop/conf/topology.map ${KYLIN_HADOOP_CONF}
+    cp -rf /etc/hadoop/conf/topology.py ${KYLIN_HADOOP_CONF}
+    cp -rf /etc/hadoop/conf/ssl-client.xml ${KYLIN_HADOOP_CONF}
+    cp -rf /etc/hadoop/conf/hadoop-env.sh ${KYLIN_HADOOP_CONF}
+
+    port=7070
+
+    #retrive $KYLIN_EXTRA_START_OPTS
+    if [ -f "${KYLIN_HOME}/conf/setenv.sh" ]; then
+        source ${KYLIN_HOME}/conf/setenv.sh
+        export KYLIN_EXTRA_START_OPTS=`echo ${KYLIN_JVM_SETTINGS}|sed  "s/-XX:+PrintFlagsFinal//g"`
+    fi
+
+    java ${KYLIN_EXTRA_START_OPTS} -Dlogging.path=${KYLIN_HOME}/logs -Dlogging.config=file:${KYLIN_HOME}/conf/kylin-server-log4j.properties -Dkylin.hadoop.conf.dir=${KYLIN_HADOOP_CONF} -Dhdp.version=current -Dserver.port=$port -Dloader.path="${KYLIN_HADOOP_CONF},${KYLIN_HOME}/server/jars,${SPARK_HOME}/jars"  -jar newten.jar PROD >> ../logs/kylin.out 2>&1 & echo $! > ../pid &
+
+    echo "Kylin is starting, PID:`cat ../pid`. Please checkout http://`hostname`:$port/kylin/index.html"
+
+# stop command
+elif [ "$1" == "stop" ]
+then
+
+    if [ -f "../pid" ]
+    then
+        PID=`cat ../pid`
+        if ps -p $PID > /dev/null
+        then
+           echo "Stopping Kylin: $PID"
+           kill $PID
+           for i in {1..10}
+           do
+              sleep 3
+              if ps -p $PID -f | grep kylin > /dev/null
+              then
+                 if [ "$i" == "10" ]
+                 then
+                    echo "Killing Kylin: $PID"
+                    kill -9 $PID
+                 fi
+                 continue
+              fi
+              break
+           done
+           rm ../pid
+           exit 0
+        else
+           quit "Kylin is not running" 0
+        fi
+
+    else
+        quit "Kylin is not running" 0
+    fi
+
+else
+    quit "Usage: 'kylin.sh [-v] start' or 'kylin.sh [-v] stop'"
+fi
