@@ -27,6 +27,7 @@ package io.kyligence.kap.metadata.model;
 import java.io.IOException;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.apache.kylin.common.KylinConfig;
@@ -82,7 +83,9 @@ public class NDataModelManager {
             @Override
             protected NDataModel initEntityAfterReload(NDataModel model, String resourceName) {
                 if (!model.isDraft()) {
-                    model.init(config, getAllTablesMap(), listAllValidCache().stream().filter(m -> !m.isBroken()).collect(Collectors.toList()), project);
+                    model.init(config, getAllTablesMap(),
+                            listAllValidCache().stream().filter(m -> !m.isBroken()).collect(Collectors.toList()),
+                            project);
                 }
                 return model;
             }
@@ -131,6 +134,10 @@ public class NDataModelManager {
     public NDataModel dropModel(NDataModel desc) {
         crud.delete(desc);
         return desc;
+    }
+
+    public Set<String> listAllModelAlias() {
+        return crud.listAll().stream().map(NDataModel::getAlias).collect(Collectors.toSet());
     }
 
     public NDataModel createDataModelDesc(NDataModel desc, String owner) {

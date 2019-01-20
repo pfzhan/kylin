@@ -1,5 +1,5 @@
 {
-  "uuid" : "9b2a8065-37cb-4a9d-bfdb-82e8198b89b6",
+  "uuid" : "1c2a7e77-11ba-4881-936f-fd4fdb540fda",
   "last_modified" : 0,
   "version" : "3.0.0.0",
   "mvcc" : 0,
@@ -35,7 +35,8 @@
   "all_named_columns" : [ {
     "id" : 0,
     "name" : "CAL_DT",
-    "column" : "TEST_KYLIN_FACT.CAL_DT"
+    "column" : "TEST_KYLIN_FACT.CAL_DT",
+    "status" : "DIMENSION"
   }, {
     "id" : 1,
     "name" : "ITEM_COUNT",
@@ -79,6 +80,17 @@
     "column" : "TEST_KYLIN_FACT.TRANS_ID"
   } ],
   "all_measures" : [ {
+    "name" : "COUNT_ALL",
+    "function" : {
+      "expression" : "COUNT",
+      "parameter" : {
+        "type" : "constant",
+        "value" : "1"
+      },
+      "returntype" : "bigint"
+    },
+    "id" : 100000
+  }, {
     "name" : "SUM_PRICE",
     "function" : {
       "expression" : "SUM",

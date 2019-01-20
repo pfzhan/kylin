@@ -31,7 +31,6 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.junit.Assert;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import io.kyligence.kap.common.persistence.transaction.TransactionException;
@@ -46,10 +45,6 @@ import io.kyligence.kap.smart.NSmartContext;
 import io.kyligence.kap.smart.NSmartMaster;
 import io.kyligence.kap.smart.common.AccelerateInfo;
 
-/**
- * This class is used to test corrupted metadata. Not run in IT test!
- */
-@Ignore
 public class NCorruptMetadataTest extends NAutoTestBase {
 
     @Test
@@ -104,31 +99,6 @@ public class NCorruptMetadataTest extends NAutoTestBase {
             String expectedCauseMessage = "layout 1's measure is illegal";
             assertWithException(e, expectedMessage, expectedCauseMessage);
         }
-    }
-
-    /**
-     * Column missing in the IndexPlan's json file, program ends normally,
-     */
-    @Test
-    public void testIndexPlanMissingColumnEncoding() {
-
-        String[] sqls = new String[] { "select lstg_format_name, sum(price) from test_kylin_fact "
-                + "group by lstg_format_name order by lstg_format_name" };
-
-        NSmartMaster smartMaster = new NSmartMaster(getTestConfig(), "index_plan_missing_col_encoding", sqls);
-        smartMaster.runAll();
-        final NSmartContext.NModelContext modelContext = smartMaster.getContext().getModelContexts().get(0);
-
-        Assert.assertEquals(5, modelContext.getOrigIndexPlan().getIndexPlanOverrideEncodings().size());
-        Assert.assertEquals(11, modelContext.getTargetIndexPlan().getIndexPlanOverrideEncodings().size());
-        Assert.assertEquals(1, modelContext.getTargetIndexPlan().getAllIndexes().size());
-        Assert.assertEquals(1, modelContext.getTargetIndexPlan().getAllLayouts().size());
-    }
-
-    @Test
-    public void testIndexPlanMissingColumnEncodingManually() {
-        setModelMaintainTypeToManual(kylinConfig, "index_plan_missing_col_encoding");
-        testIndexPlanMissingColumnEncoding();
     }
 
     /**
@@ -231,81 +201,100 @@ public class NCorruptMetadataTest extends NAutoTestBase {
     public void testLoadEmptyModel() {
         String[] sqls = new String[] { "select lstg_format_name, sum(price) from test_kylin_fact "
                 + "group by lstg_format_name order by lstg_format_name" };
-        NSmartMaster smartMaster = null;
-        try {
-            smartMaster = new NSmartMaster(getTestConfig(), "model_empty", sqls);
-            smartMaster.runAll();
-            Assert.fail();
-        } catch (Exception e) {
-            assertAccelerationInfoMap(sqls, smartMaster);
-            assertModelContexts(smartMaster);
-            String expectedMessage = "exhausted max retry times, transaction failed due to inconsistent state";
-            String expectedCauseMessage = "Error loading NDataModel at /model_empty/model_desc/4aa8bb26-a17c-499f-89ce-eeaae6f9cf01.json";
-            assertWithException(e, expectedMessage, expectedCauseMessage);
-        }
+        NSmartMaster smartMaster = new NSmartMaster(getTestConfig(), "model_empty", sqls);
+        smartMaster.runAll();
+
+        final Map<String, AccelerateInfo> accelerateInfoMap = smartMaster.getContext().getAccelerateInfoMap();
+        Assert.assertFalse(accelerateInfoMap.get(sqls[0]).isBlocked());
+        final NSmartContext.NModelContext modelContext = smartMaster.getContext().getModelContexts().get(0);
+        Assert.assertNull(modelContext.getOrigModel());
+        Assert.assertNull(modelContext.getOrigIndexPlan());
+        Assert.assertNotNull(modelContext.getTargetModel());
+        Assert.assertNotNull(modelContext.getTargetIndexPlan());
     }
 
     @Test
-    public void testModelMissingJoinTables() {
-        String[] sqls = new String[] { "SELECT test_category_groupings.meta_categ_name, "
-                + "test_category_groupings.categ_lvl2_name, test_kylin_fact.lstg_format_name,\n"
-                + "\t SUM(test_kylin_fact.price) AS GMV, COUNT(*) AS TRANS_CNT\n"
-                + "FROM test_kylin_fact INNER JOIN test_category_groupings\n"
-                + "\tON test_kylin_fact.leaf_categ_id = test_category_groupings.leaf_categ_id\n"
-                + "\t\tAND test_kylin_fact.lstg_site_id = test_category_groupings.site_id\n"
-                + "WHERE test_kylin_fact.seller_id < 9 OR test_kylin_fact.seller_id > 10000003\n"
-                + "GROUP BY test_category_groupings.meta_categ_name, "
-                + "test_category_groupings.categ_lvl2_name, test_kylin_fact.lstg_format_name" };
-
-        NSmartMaster smartMaster = null;
-        try {
-            smartMaster = new NSmartMaster(getTestConfig(), "model_missing_join_tables", sqls);
-            smartMaster.runAll();
-            Assert.fail();
-        } catch (Exception e) {
-            assertAccelerationInfoMap(sqls, smartMaster);
-            assertModelContexts(smartMaster);
-            String expectedMessage = "exhausted max retry times, transaction failed due to inconsistent state";
-            String expectedCauseMessage = "Error loading NDataModel at /model_missing_join_tables/model_desc/8ab5e866-51a4-43a7-b24b-c6aa4fccd09e.json";
-            assertWithException(e, expectedMessage, expectedCauseMessage);
-        }
+    public void testLoadEmptyModelManually() {
+        setModelMaintainTypeToManual(kylinConfig, "model_empty");
+        String[] sqls = new String[] { "select lstg_format_name, sum(price) from test_kylin_fact "
+                + "group by lstg_format_name order by lstg_format_name" };
+        NSmartMaster smartMaster = new NSmartMaster(getTestConfig(), "model_empty", sqls);
+        smartMaster.runAll();
+        Map<String, AccelerateInfo> accelerateInfoMap = smartMaster.getContext().getAccelerateInfoMap();
+        AccelerateInfo accelerateInfo = accelerateInfoMap.get(sqls[0]);
+        Assert.assertTrue(accelerateInfo.isBlocked());
+        String expectedMessage = "No model matches the SQL. Please add a model matches the SQL before attempting to accelerate this query.";
+        Assert.assertEquals(expectedMessage, accelerateInfo.getBlockingCause().getMessage());
+        Assert.assertNull(smartMaster.getContext().getModelContexts().get(0).getOrigModel());
+        Assert.assertNull(smartMaster.getContext().getModelContexts().get(0).getTargetModel());
     }
 
+    @Test
+    public void testModelWithoutIndexPlan() {
+        String[] sqls = new String[] { "select lstg_format_name, sum(price) from test_kylin_fact "
+                + "group by lstg_format_name order by lstg_format_name" };
+
+        NSmartMaster smartMaster = new NSmartMaster(getTestConfig(), "model_without_index_plan", sqls);
+        smartMaster.runAll();
+        final Map<String, AccelerateInfo> accelerateInfoMap = smartMaster.getContext().getAccelerateInfoMap();
+        Assert.assertFalse(accelerateInfoMap.get(sqls[0]).isBlocked());
+        final NSmartContext.NModelContext modelContext = smartMaster.getContext().getModelContexts().get(0);
+        Assert.assertNull(modelContext.getOrigModel());
+        Assert.assertNull(modelContext.getOrigIndexPlan());
+        Assert.assertNotNull(modelContext.getTargetModel());
+        Assert.assertNotNull(modelContext.getTargetIndexPlan());
+    }
+
+    @Test
+    public void testModelWithoutIndexPlanManually() {
+        setModelMaintainTypeToManual(kylinConfig, "model_without_index_plan");
+        String[] sqls = new String[] { "select lstg_format_name, sum(price) from test_kylin_fact "
+                + "group by lstg_format_name order by lstg_format_name" };
+        NSmartMaster smartMaster = new NSmartMaster(getTestConfig(), "model_without_index_plan", sqls);
+        smartMaster.runAll();
+        Map<String, AccelerateInfo> accelerateInfoMap = smartMaster.getContext().getAccelerateInfoMap();
+        AccelerateInfo accelerateInfo = accelerateInfoMap.get(sqls[0]);
+        Assert.assertTrue(accelerateInfo.isBlocked());
+        String expectedMessage = "No model matches the SQL. Please add a model matches the SQL before attempting to accelerate this query.";
+        Assert.assertEquals(expectedMessage, accelerateInfo.getBlockingCause().getMessage());
+        Assert.assertNull(smartMaster.getContext().getModelContexts().get(0).getOrigModel());
+        Assert.assertNull(smartMaster.getContext().getModelContexts().get(0).getTargetModel());
+    }
+
+    // Losing the join table and measure will produce the same result, no longer shown here
     @Test
     public void testModelMissingUsedColumn() {
         String[] sqls = new String[] { "select lstg_format_name, sum(price) from test_kylin_fact "
                 + "group by lstg_format_name order by lstg_format_name" };
 
-        NSmartMaster smartMaster = null;
-        try {
-            smartMaster = new NSmartMaster(getTestConfig(), "model_missing_column", sqls);
-            smartMaster.runAll();
-            Assert.fail();
-        } catch (Exception e) {
-            assertAccelerationInfoMap(sqls, smartMaster);
-            assertModelContexts(smartMaster);
-            String expectedMessage = "exhausted max retry times, transaction failed due to inconsistent state";
-            String expectedCauseMessage = "Error loading NDataModel at /model_missing_column/model_desc/193734fa-3ac0-4f27-80a0-6f3071e53202.json";
-            assertWithException(e, expectedMessage, expectedCauseMessage);
-        }
+        NSmartMaster smartMaster = new NSmartMaster(getTestConfig(), "model_missing_column", sqls);
+        smartMaster.runAll();
+        Map<String, AccelerateInfo> accelerateInfoMap = smartMaster.getContext().getAccelerateInfoMap();
+        AccelerateInfo accelerateInfo = accelerateInfoMap.get(sqls[0]);
+        Assert.assertFalse(accelerateInfo.isBlocked());
+        final NSmartContext.NModelContext modelContext = smartMaster.getContext().getModelContexts().get(0);
+        Assert.assertNull(modelContext.getOrigModel());
+        Assert.assertEquals(11, modelContext.getTargetModel().getEffectiveCols().size());
     }
 
     @Test
-    public void testModelMissingMeasure() {
+    public void testModelMissingColumnManually() {
+        setModelMaintainTypeToManual(kylinConfig, "model_missing_column");
+
         String[] sqls = new String[] { "select lstg_format_name, sum(price) from test_kylin_fact "
                 + "group by lstg_format_name order by lstg_format_name" };
 
-        NSmartMaster smartMaster = null;
-        try {
-            smartMaster = new NSmartMaster(getTestConfig(), "model_missing_measure", sqls);
-            smartMaster.runAll();
-        } catch (Exception e) {
-            assertAccelerationInfoMap(sqls, smartMaster);
-            assertModelContexts(smartMaster);
-            String expectedMessage = "exhausted max retry times, transaction failed due to inconsistent state";
-            String expectedCauseMessage = "Error loading NDataModel at /model_missing_measure/model_desc/9b2a8065-37cb-4a9d-bfdb-82e8198b89b6.json";
-            assertWithException(e, expectedMessage, expectedCauseMessage);
-        }
+        NSmartMaster smartMaster = new NSmartMaster(getTestConfig(), "model_missing_column", sqls);
+        smartMaster.runAll();
+        final Map<String, AccelerateInfo> accelerateInfoMap = smartMaster.getContext().getAccelerateInfoMap();
+        final AccelerateInfo accelerateInfo = accelerateInfoMap.get(sqls[0]);
+        assertAccelerationInfoMap(sqls, smartMaster);
+        String expectedMessage = "No model matches the SQL. Please add a model matches the SQL before attempting to accelerate this query.";
+        Assert.assertEquals(expectedMessage, accelerateInfo.getBlockingCause().getMessage());
+        Assert.assertNull(smartMaster.getContext().getModelContexts().get(0).getOrigModel());
+        Assert.assertNull(smartMaster.getContext().getModelContexts().get(0).getOrigIndexPlan());
+        Assert.assertNull(smartMaster.getContext().getModelContexts().get(0).getTargetModel());
+        Assert.assertNull(smartMaster.getContext().getModelContexts().get(0).getTargetIndexPlan());
     }
 
     /**
@@ -337,11 +326,12 @@ public class NCorruptMetadataTest extends NAutoTestBase {
         smartMaster.runAll();
         assertAccelerationInfoMap(sqls, smartMaster);
         final IndexPlan targetIndexPlan = smartMaster.getContext().getModelContexts().get(0).getTargetIndexPlan();
-        Assert.assertEquals(0, targetIndexPlan.getAllIndexes().size());
-        String expectedCauseMessage = "In the model designer project, the system is not allowed to modify the semantic layer "
-                + "(dimensions, measures, tables, and joins) of the model. Column not found. Please add column ";
+        Assert.assertEquals(1, targetIndexPlan.getAllIndexes().size());
+        String expectedCauseMessage = "The model [AUTO_MODEL_TEST_KYLIN_FACT_1] matches this query, "
+                + "but the dimension [TEST_KYLIN_FACT.LSTG_FORMAT_NAME] is missing. "
+                + "Please add the above dimension before attempting to accelerate this query.";
         AccelerateInfo accelerateInfo = smartMaster.getContext().getAccelerateInfoMap().get(sqls[0]);
-        Assert.assertTrue(accelerateInfo.getBlockingCause().getMessage().startsWith(expectedCauseMessage));
+        Assert.assertEquals(expectedCauseMessage, accelerateInfo.getBlockingCause().getMessage());
     }
 
     /**
@@ -361,14 +351,19 @@ public class NCorruptMetadataTest extends NAutoTestBase {
         Assert.assertFalse(accelerateInfo.isBlocked());
         Assert.assertEquals(1, accelerateInfo.getRelatedLayouts().size());
         final NSmartContext.NModelContext modelContext = smartMaster.getContext().getModelContexts().get(0);
+        Assert.assertNotNull(modelContext.getOrigModel());
         Assert.assertNull(modelContext.getOrigModel().getPartitionDesc().getPartitionDateColumn());
+        Assert.assertNotNull(modelContext.getTargetModel());
         Assert.assertEquals("TEST_KYLIN_FACT.CAL_DT",
                 modelContext.getTargetModel().getPartitionDesc().getPartitionDateColumn());
     }
 
     @Test
     public void testModelMissingPartitionManually() {
+
+        preparePartition();
         setModelMaintainTypeToManual(getTestConfig(), "model_missing_partition");
+
         String[] sqls = new String[] { "select lstg_format_name, sum(price) from test_kylin_fact "
                 + "group by lstg_format_name order by lstg_format_name" };
         NSmartMaster smartMaster = new NSmartMaster(getTestConfig(), "model_missing_partition", sqls);
@@ -392,12 +387,6 @@ public class NCorruptMetadataTest extends NAutoTestBase {
                 .createDataLoadingRange(dataLoadingRange);
     }
 
-    private void assertModelContexts(NSmartMaster smartMaster) {
-        if (smartMaster != null) {
-            Assert.assertNull(smartMaster.getContext().getModelContexts());
-        }
-    }
-
     private void assertAccelerationInfoMap(String[] sqls, NSmartMaster smartMaster) {
         if (smartMaster != null) {
             Map<String, AccelerateInfo> accelerateInfoMap = smartMaster.getContext().getAccelerateInfoMap();
@@ -410,7 +399,7 @@ public class NCorruptMetadataTest extends NAutoTestBase {
     private void assertWithException(Exception e, String expectedMessage, String expectedCauseMessage) {
         Assert.assertTrue(e instanceof TransactionException);
         Assert.assertTrue(e.getCause() instanceof IllegalStateException);
-        Assert.assertEquals(expectedMessage, e.getMessage());
+        Assert.assertTrue(e.getMessage().startsWith(expectedMessage));
         Assert.assertEquals(expectedCauseMessage, e.getCause().getMessage());
     }
 

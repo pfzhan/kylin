@@ -29,16 +29,11 @@ import java.io.IOException;
 import java.util.Map;
 
 import org.junit.Assert;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import io.kyligence.kap.smart.NSmartMaster;
 import io.kyligence.kap.smart.common.AccelerateInfo;
 
-/**
- * This class is used to test corrupted SQL. Not run in IT test!
- */
-@Ignore
 public class NCorruptSqlTest extends NAutoTestBase {
 
     /**

@@ -1,5 +1,5 @@
 {
-  "uuid": "105ad84f-0bdd-48aa-b0ee-102caead0767",
+  "uuid": "569839f7-dd28-4e59-aebc-94a4bdd52030",
   "override_kylin_properties": {
     "kylin.storage.hbase.owner-tag": "kylin@kylin.apache.org"
   }

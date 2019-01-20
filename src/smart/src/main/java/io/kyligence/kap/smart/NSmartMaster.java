@@ -31,7 +31,6 @@ import java.util.function.Consumer;
 import org.apache.kylin.common.KylinConfig;
 
 import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
@@ -98,14 +97,8 @@ public class NSmartMaster {
     }
 
     public void renameModel() {
-        NDataflowManager dataflowManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
-        List<NDataModel> modelList = dataflowManager.listUnderliningDataModels();
-        Set<String> usedNames = Sets.newHashSet();
-        if (modelList != null) {
-            for (NDataModel model : modelList) {
-                usedNames.add(model.getAlias());
-            }
-        }
+        NDataModelManager dataModelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+        Set<String> usedNames = dataModelManager.listAllModelAlias();
         List<NSmartContext.NModelContext> modelContexts = context.getModelContexts();
         for (NSmartContext.NModelContext modelCtx : modelContexts) {
             if (modelCtx.withoutTargetModel()) {
