@@ -26,7 +26,6 @@ package io.kyligence.kap.smart.cube;
 
 import java.util.Map;
 
-import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import org.apache.kylin.dimension.DateDimEnc;
 import org.apache.kylin.dimension.DictionaryDimEnc;
 import org.apache.kylin.dimension.FixedLenDimEnc;
@@ -38,6 +37,7 @@ import org.apache.kylin.metadata.model.TblColRef;
 
 import com.google.common.collect.Maps;
 
+import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.NEncodingDesc;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.smart.NSmartContext;
@@ -99,7 +99,9 @@ class NDimensionProposer extends NAbstractCubeProposer {
 
         // select dict or fixlen for other type columns according to cardinality
         SmartConfig smartConfig = context.getSmartContext().getSmartConfig();
-        TableExtDesc.ColumnStats columnStats = context.getSmartContext().getColumnStats(colRef);
+        TableExtDesc.ColumnStats columnStats = TableExtDesc.ColumnStats.getColumnStats(
+                context.getSmartContext().getTableMetadataManager(), colRef,
+                context.getSmartContext().getColumnStatsCache());
         if (columnStats != null) {
             long cardinality = columnStats.getCardinality();
 

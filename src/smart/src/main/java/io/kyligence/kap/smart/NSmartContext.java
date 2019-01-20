@@ -31,7 +31,6 @@ import java.util.Set;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.model.TableExtDesc;
-import org.apache.kylin.metadata.model.TblColRef;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
@@ -169,23 +168,5 @@ public class NSmartContext {
         this.accelerateInfoMap = Maps.newHashMap();
 
         tableMetadataManager = NTableMetadataManager.getInstance(this.kylinConfig, project);
-    }
-
-    // =======================
-
-    public TableExtDesc.ColumnStats getColumnStats(TblColRef colRef) {
-        TableExtDesc.ColumnStats ret = columnStatsCache.get(colRef.getIdentity());
-        if (ret != null)
-            return ret;
-
-        TableExtDesc tableExtDesc = tableMetadataManager.getOrCreateTableExt(colRef.getTableRef().getTableDesc());
-        int colIndex = colRef.getColumnDesc().getZeroBasedIndex();
-        if (tableExtDesc != null && colIndex < tableExtDesc.getColumnStats().size()) {
-            ret = tableExtDesc.getColumnStats().get(colIndex);
-            columnStatsCache.put(colRef.getIdentity(), ret);
-        } else {
-            ret = null;
-        }
-        return ret;
     }
 }

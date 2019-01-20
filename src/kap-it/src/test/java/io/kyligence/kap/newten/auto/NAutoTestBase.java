@@ -58,6 +58,7 @@ import io.kyligence.kap.spark.KapSparkSession;
 import io.kyligence.kap.utils.RecAndQueryCompareUtil;
 import io.kyligence.kap.utils.RecAndQueryCompareUtil.AccelerationMatchedLevel;
 import io.kyligence.kap.utils.RecAndQueryCompareUtil.CompareEntity;
+import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -122,6 +123,9 @@ public class NAutoTestBase extends NLocalWithSparkSessionTest {
             kapSparkSession.use(getProject());
             kapSparkSession.buildAllCubes(kylinConfig, getProject());
 
+            // dump metadata for debugging
+            // dumpMetadata();
+
             // 3. validate results between SparkSQL and cube
             Arrays.stream(testScenarios).forEach(testScenario -> {
                 populateSSWithCSVData(kylinConfig, getProject(), kapSparkSession);
@@ -151,6 +155,17 @@ public class NAutoTestBase extends NLocalWithSparkSessionTest {
         sb.append("All used queries: ").append(compareMap.size()).append('\n');
         rankInfoMap.forEach((key, value) -> sb.append(key).append(": ").append(value).append("\n"));
         System.out.println(sb);
+    }
+
+    private void dumpMetadata() throws Exception {
+        val config = KylinConfig.getInstanceFromEnv();
+        val metadataUrlPrefix = config.getMetadataUrlPrefix();
+        val metadataUrl = metadataUrlPrefix + "/metadata";
+        FileUtils.deleteQuietly(new File(metadataUrl));
+        val resourceStore = ResourceStore.getKylinMetaStore(config);
+        val outputConfig = KylinConfig.createKylinConfig(config);
+        outputConfig.setMetadataUrl(metadataUrlPrefix);
+        ResourceStore.createMetadataStore(outputConfig, "/metadata").dump(resourceStore);
     }
 
     NSmartMaster proposeWithSmartMaster(TestScenario[] testScenarios, String project) throws IOException {

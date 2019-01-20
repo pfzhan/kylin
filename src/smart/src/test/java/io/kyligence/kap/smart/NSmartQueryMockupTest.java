@@ -318,11 +318,11 @@ public class NSmartQueryMockupTest extends NLocalFileMetadataTestCase {
                 switch (ctx.getEnumeratorType()) {
                     case OLAP:
                         Assert.assertNotNull(ctx.realization);
-                        Assert.assertNotNull(ctx.storageContext.getCuboidId());
+                        Assert.assertNotNull(ctx.storageContext.getCuboidLayoutId());
                         Assert.assertTrue(ctx.realization instanceof NDataflow);
 
                         NDataflow df = (NDataflow) ctx.realization;
-                        Assert.assertNotNull(df.getLastSegment().getLayout(ctx.storageContext.getCuboidId()));
+                        Assert.assertNotNull(df.getLastSegment().getLayout(ctx.storageContext.getCuboidLayoutId()));
                         break;
                     default:
                         break;

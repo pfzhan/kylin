@@ -44,7 +44,7 @@ class NCuboidProposer extends NAbstractCubeProposer {
         Map<IndexEntity.IndexIdentifier, IndexEntity> indexEntityMap = indexPlan.getWhiteListIndexesMap();
 
         CuboidSuggester suggester = new CuboidSuggester(context, indexPlan, indexEntityMap);
-        suggester.suggestCuboids(context.getModelTree());
+        suggester.suggestIndexes(context.getModelTree());
 
         indexPlan.setIndexes(Lists.newArrayList(indexEntityMap.values()));
 

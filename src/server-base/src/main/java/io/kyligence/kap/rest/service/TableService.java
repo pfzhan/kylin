@@ -35,8 +35,6 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.metadata.cube.model.IndexPlan;
-import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.fs.ContentSummary;
@@ -71,15 +69,17 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.SetMultimap;
 
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
+import io.kyligence.kap.event.manager.EventManager;
+import io.kyligence.kap.event.model.AddSegmentEvent;
+import io.kyligence.kap.event.model.PostAddSegmentEvent;
+import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.NDataLoadingRange;
 import io.kyligence.kap.metadata.cube.model.NDataLoadingRangeManager;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
+import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import io.kyligence.kap.metadata.cube.model.NSegmentConfigHelper;
-import io.kyligence.kap.event.manager.EventManager;
-import io.kyligence.kap.event.model.AddSegmentEvent;
-import io.kyligence.kap.event.model.PostAddSegmentEvent;
 import io.kyligence.kap.metadata.model.AutoMergeTimeEnum;
 import io.kyligence.kap.metadata.model.ManagementType;
 import io.kyligence.kap.metadata.model.NDataModel;
@@ -258,7 +258,7 @@ public class TableService extends BasicService {
             return tableDescResponse;
         }
         // get TableDescResponse
-        Map<String, Long> cardinality = new HashMap<String, Long>();
+        Map<String, Long> cardinality = new HashMap<>();
         Map<String, String> dataSourceProp = new HashMap<>();
         String cardinalityString = tableExtDesc.getCardinality();
         if (!StringUtils.isEmpty(cardinalityString)) {
@@ -271,14 +271,14 @@ public class TableService extends BasicService {
             }
             tableDescResponse.setCardinality(cardinality);
         }
-        dataSourceProp.putAll(tableExtDesc.getDataSourceProp());
+        dataSourceProp.putAll(tableExtDesc.getDataSourceProps());
         tableDescResponse.setDescExd(dataSourceProp);
         return tableDescResponse;
     }
 
     private List<TableDesc> getTablesResponse(List<TableDesc> tables, String project, boolean withExt)
             throws IOException {
-        List<TableDesc> descs = new ArrayList<TableDesc>();
+        List<TableDesc> descs = new ArrayList<>();
         val dataflowManager = getDataflowManager(project);
         for (val table : tables) {
             TableDescResponse rtableDesc;
@@ -360,7 +360,6 @@ public class TableService extends BasicService {
             return size;
         }
     }
-
 
     //get table's primaryKeys(pair first) and foreignKeys(pair second)
     private Pair<Set<String>, Set<String>> getTableColumnType(TableDesc table, String project) {

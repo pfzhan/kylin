@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -52,50 +51,90 @@ import org.apache.kylin.metadata.filter.TupleFilter;
 import org.apache.kylin.metadata.model.FunctionDesc;
 import org.apache.kylin.metadata.model.TblColRef;
 import org.apache.kylin.metadata.realization.IRealization;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Range;
 
 import io.kyligence.kap.metadata.cube.cuboid.NLayoutCandidate;
 import lombok.Getter;
 import lombok.Setter;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * @author xjiang
  */
+@Slf4j
 public class StorageContext {
-    private static final Logger logger = LoggerFactory.getLogger(StorageContext.class);
     @Getter
     private int ctxId;
+    @Getter
+    @Setter
     private StorageURL connUrl;
     private int limit = Integer.MAX_VALUE;
     private boolean overlookOuterLimit = false;
-    private int offset = 0;
+
+    @Getter
+    @Setter
+    private int offset = 0; //the offset here correspond to the offset concept in SQL
+
+    @Getter
     private int finalPushDownLimit = Integer.MAX_VALUE;
+    @Getter
     private StorageLimitLevel storageLimitLevel = StorageLimitLevel.NO_LIMIT;
     private boolean hasSort = false;
+    @Getter
+    @Setter
     private boolean acceptPartialResult = false;
+
+    @Getter
     private long deadline;
 
+    @Getter
+    @Setter
     private boolean exactAggregation = false;
+
+    @Getter
+    @Setter
     private boolean needStorageAggregation = false;
+    @Getter
     private boolean enableCoprocessor = false;
     private boolean enableStreamAggregate = false;
 
+    @Getter
+    @Setter
     private IStorageQuery storageQuery;
-    private Long cuboidId;
+
+    @Getter
+    @Setter
+    private Long cuboidLayoutId;
 
     private AtomicLong processedRowCount = new AtomicLong();
+
+    @Getter
+    @Setter
     private boolean partialResultReturned = false;
 
+    @Getter
+    @Setter
     private Range<Long> reusedPeriod;
 
+    @Getter
+    @Setter
     private NLayoutCandidate candidate;
+
+    @Getter
+    @Setter
     private TupleFilter filter;
+
+    @Getter
+    @Setter
     private Set<TblColRef> dimensions;
+
+    @Getter
+    @Setter
     private Set<FunctionDesc> metrics;
-    @Getter @Setter
+
+    @Getter
+    @Setter
     private boolean useSnapshot = false;
 
     public StorageContext() {
@@ -103,14 +142,6 @@ public class StorageContext {
 
     public StorageContext(int ctxId) {
         this.ctxId = ctxId;
-    }
-
-    public StorageURL getConnUrl() {
-        return connUrl;
-    }
-
-    public void setConnUrl(StorageURL connUrl) {
-        this.connUrl = connUrl;
     }
 
     //the limit here correspond to the limit concept in SQL
@@ -126,8 +157,7 @@ public class StorageContext {
 
     public void setLimit(int l) {
         if (limit != Integer.MAX_VALUE) {
-            logger.warn("Setting limit to {} but in current olap context, the limit is already {}, won't apply", l,
-                    limit);
+            log.warn("Setting limit to {} but in current olap context, the limit is already {}, won't apply", l, limit);
         } else {
             limit = l;
         }
@@ -136,55 +166,6 @@ public class StorageContext {
     //outer limit is sth like Statement.setMaxRows in JDBC
     public void setOverlookOuterLimit() {
         this.overlookOuterLimit = true;
-    }
-
-    //the offset here correspond to the offset concept in SQL
-    public int getOffset() {
-        return offset;
-    }
-
-    public void setOffset(int offset) {
-        this.offset = offset;
-    }
-
-    public Long getCuboidId() {
-        return cuboidId;
-    }
-
-    public void setCuboidId(Long cuboidId) {
-        this.cuboidId = cuboidId;
-    }
-
-    public NLayoutCandidate getCandidate() {
-        return candidate;
-    }
-
-    public void setCandidate(NLayoutCandidate candidate) {
-        this.candidate = candidate;
-    }
-
-    public TupleFilter getFilter() {
-        return filter;
-    }
-
-    public void setFilter(TupleFilter filter) {
-        this.filter = filter;
-    }
-
-    public Set<TblColRef> getDimensions() {
-        return dimensions;
-    }
-
-    public void setDimensions(Set<TblColRef> dimensions) {
-        this.dimensions = dimensions;
-    }
-
-    public Set<FunctionDesc> getMetrics() {
-        return metrics;
-    }
-
-    public void setMetrics(Set<FunctionDesc> metrics) {
-        this.metrics = metrics;
     }
 
     /**
@@ -200,14 +181,6 @@ public class StorageContext {
         return finalPushDownLimit < Integer.MAX_VALUE && finalPushDownLimit > 0;
     }
 
-    public int getFinalPushDownLimit() {
-        return finalPushDownLimit;
-    }
-
-    public StorageLimitLevel getStorageLimitLevel() {
-        return storageLimitLevel;
-    }
-
     public void applyLimitPushDown(IRealization realization, StorageLimitLevel storageLimitLevel) {
 
         if (storageLimitLevel == StorageLimitLevel.NO_LIMIT) {
@@ -215,20 +188,20 @@ public class StorageContext {
         }
 
         if (!realization.supportsLimitPushDown()) {
-            logger.warn("Not enabling limit push down because cube storage type not supported");
+            log.warn("Not enabling limit push down because cube storage type not supported");
             return;
         }
 
         int temp = this.getOffset() + this.getLimit();
 
         if (!isValidPushDownLimit(temp)) {
-            logger.warn("Not enabling limit push down because current limit is invalid: {}", this.getLimit());
+            log.warn("Not enabling limit push down because current limit is invalid: {}", this.getLimit());
             return;
         }
 
         this.finalPushDownLimit = temp;
         this.storageLimitLevel = storageLimitLevel;
-        logger.info("Enabling limit push down: {} at level: {}", temp, storageLimitLevel);
+        log.info("Enabling limit push down: {} at level: {}", temp, storageLimitLevel);
     }
 
     public boolean mergeSortPartitionResults() {
@@ -237,10 +210,6 @@ public class StorageContext {
 
     public static boolean mergeSortPartitionResults(int finalPushDownLimit) {
         return isValidPushDownLimit(finalPushDownLimit);
-    }
-
-    public long getDeadline() {
-        return this.deadline;
     }
 
     public void setDeadline(IRealization realization) {
@@ -268,60 +237,8 @@ public class StorageContext {
         return processedRowCount.addAndGet(count);
     }
 
-    public boolean isAcceptPartialResult() {
-        return acceptPartialResult;
-    }
-
-    public void setAcceptPartialResult(boolean acceptPartialResult) {
-        this.acceptPartialResult = acceptPartialResult;
-    }
-
-    public boolean isPartialResultReturned() {
-        return partialResultReturned;
-    }
-
-    public void setPartialResultReturned(boolean partialResultReturned) {
-        this.partialResultReturned = partialResultReturned;
-    }
-
-    public boolean isNeedStorageAggregation() {
-        return needStorageAggregation;
-    }
-
-    public void setNeedStorageAggregation(boolean needStorageAggregation) {
-        this.needStorageAggregation = needStorageAggregation;
-    }
-
-    public void setExactAggregation(boolean isExactAggregation) {
-        this.exactAggregation = isExactAggregation;
-    }
-
-    public boolean isExactAggregation() {
-        return this.exactAggregation;
-    }
-
     public void enableCoprocessor() {
         this.enableCoprocessor = true;
-    }
-
-    public boolean isCoprocessorEnabled() {
-        return this.enableCoprocessor;
-    }
-
-    public Range<Long> getReusedPeriod() {
-        return reusedPeriod;
-    }
-
-    public void setReusedPeriod(Range<Long> reusedPeriod) {
-        this.reusedPeriod = reusedPeriod;
-    }
-
-    public IStorageQuery getStorageQuery() {
-        return storageQuery;
-    }
-
-    public void setStorageQuery(IStorageQuery storageQuery) {
-        this.storageQuery = storageQuery;
     }
 
     public boolean isStreamAggregateEnabled() {

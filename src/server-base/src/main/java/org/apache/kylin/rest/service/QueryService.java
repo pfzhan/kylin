@@ -70,7 +70,6 @@ import java.util.stream.Collectors;
 
 import javax.annotation.PostConstruct;
 
-import lombok.NoArgsConstructor;
 import org.apache.calcite.avatica.ColumnMetaData.Rep;
 import org.apache.calcite.config.CalciteConnectionConfig;
 import org.apache.calcite.jdbc.CalcitePrepare;
@@ -144,6 +143,7 @@ import io.kyligence.kap.rest.metrics.QueryMetricsContext;
 import io.kyligence.kap.rest.transaction.Transaction;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.val;
 import net.sf.ehcache.Cache;
@@ -956,7 +956,7 @@ public class QueryService extends BasicService {
                         realizationType = QueryMetricsContext.AGG_INDEX;
                     }
                     realizationMetrics.add(QueryMetricsContext.createRealizationMetrics(
-                            String.valueOf(ctx.storageContext.getCuboidId()), realizationType,
+                            String.valueOf(ctx.storageContext.getCuboidLayoutId()), realizationType,
                             ctx.realization.getModel().getUuid()));
                     engineTypes.add(realizationType);
                 }
@@ -1118,4 +1118,3 @@ public class QueryService extends BasicService {
     }
 
 }
-

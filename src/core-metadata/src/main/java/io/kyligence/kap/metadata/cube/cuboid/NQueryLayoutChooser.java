@@ -132,8 +132,8 @@ public class NQueryLayoutChooser {
         }
     }
 
-    private static boolean matchAggIndex(SQLDigest sqlDigest, final LayoutEntity cuboidLayout,
-            final NDataflow dataFlow, Set<TblColRef> unmatchedCols, Collection<FunctionDesc> unmatchedMetrics,
+    private static boolean matchAggIndex(SQLDigest sqlDigest, final LayoutEntity cuboidLayout, final NDataflow dataFlow,
+            Set<TblColRef> unmatchedCols, Collection<FunctionDesc> unmatchedMetrics,
             Map<TblColRef, DeriveInfo> needDerive, CapabilityResult result) {
         unmatchedCols.removeAll(cuboidLayout.getOrderedDimensions().values());
         goThruDerivedDims(cuboidLayout.getIndex(), dataFlow, needDerive, unmatchedCols, cuboidLayout.getModel());
@@ -141,8 +141,7 @@ public class NQueryLayoutChooser {
 
         removeUnmatchedGroupingAgg(unmatchedMetrics);
         if (!unmatchedMetrics.isEmpty() || !unmatchedCols.isEmpty()) {
-            applyAdvanceMeasureStrategy(cuboidLayout.getIndex(), sqlDigest, unmatchedCols, unmatchedMetrics,
-                    result);
+            applyAdvanceMeasureStrategy(cuboidLayout.getIndex(), sqlDigest, unmatchedCols, unmatchedMetrics, result);
             applyDimAsMeasureStrategy(cuboidLayout.getIndex(), unmatchedMetrics, result);
         }
 
@@ -150,7 +149,7 @@ public class NQueryLayoutChooser {
     }
 
     private static boolean matchTableIndex(final LayoutEntity cuboidLayout, final NDataflow dataflow,
-                                           Set<TblColRef> unmatchedCols, Map<TblColRef, DeriveInfo> needDerive, CapabilityResult result) {
+            Set<TblColRef> unmatchedCols, Map<TblColRef, DeriveInfo> needDerive, CapabilityResult result) {
         unmatchedCols.removeAll(cuboidLayout.getOrderedDimensions().values());
         goThruDerivedDims(cuboidLayout.getIndex(), dataflow, needDerive, unmatchedCols, cuboidLayout.getModel());
         if (!unmatchedCols.isEmpty()) {
@@ -170,7 +169,7 @@ public class NQueryLayoutChooser {
     }
 
     private static void applyDimAsMeasureStrategy(IndexEntity indexEntity, Collection<FunctionDesc> unmatchedAggs,
-                                                  CapabilityResult result) {
+            CapabilityResult result) {
         Iterator<FunctionDesc> it = unmatchedAggs.iterator();
         while (it.hasNext()) {
             FunctionDesc functionDesc = it.next();
@@ -195,7 +194,7 @@ public class NQueryLayoutChooser {
     }
 
     private static void applyAdvanceMeasureStrategy(IndexEntity indexEntity, SQLDigest digest,
-                                                    Collection<TblColRef> unmatchedDims, Collection<FunctionDesc> unmatchedMetrics, CapabilityResult result) {
+            Collection<TblColRef> unmatchedDims, Collection<FunctionDesc> unmatchedMetrics, CapabilityResult result) {
         List<String> influencingMeasures = Lists.newArrayList();
         for (MeasureDesc measure : indexEntity.getMeasureSet()) {
             MeasureType measureType = measure.getFunction().getMeasureType();
@@ -241,7 +240,7 @@ public class NQueryLayoutChooser {
     }
 
     private static void goThruDerivedDims(final IndexEntity indexEntity, final NDataflow dataflow,
-                                          Map<TblColRef, DeriveInfo> needDeriveCollector, Set<TblColRef> unmatchedDims, NDataModel model) {
+            Map<TblColRef, DeriveInfo> needDeriveCollector, Set<TblColRef> unmatchedDims, NDataModel model) {
         Iterator<TblColRef> unmatchedDimItr = unmatchedDims.iterator();
         while (unmatchedDimItr.hasNext()) {
             TblColRef unmatchedDim = unmatchedDimItr.next();

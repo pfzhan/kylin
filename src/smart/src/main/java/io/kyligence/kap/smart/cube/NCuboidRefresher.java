@@ -106,7 +106,7 @@ class NCuboidRefresher extends NAbstractCubeProposer {
 
         // 6. propose cuboid again
         final CuboidSuggester cuboidSuggester = new CuboidSuggester(context, indexPlan, originalCuboidsMap);
-        cuboidSuggester.suggestCuboids(context.getModelTree());
+        cuboidSuggester.suggestIndexes(context.getModelTree());
 
         // 7. publish all layouts
         StringBuilder afterRefreshLogBuilder = new StringBuilder();

@@ -28,14 +28,14 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
-import io.kyligence.kap.metadata.cube.model.IndexPlan;
-import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import org.junit.Assert;
 import org.junit.Test;
 
 import com.google.common.collect.Lists;
 
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
+import io.kyligence.kap.metadata.cube.model.IndexPlan;
+import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.smart.NSmartContext;
 import io.kyligence.kap.smart.NSmartMaster;
@@ -78,10 +78,10 @@ public class CuboidSuggesterTest extends NTestBase {
         final IndexPlan targetIndexPlan = mdCtx.getTargetIndexPlan();
         final List<IndexEntity> allCuboids = targetIndexPlan.getAllIndexes();
         final LayoutEntity layout = allCuboids.get(0).getLayouts().get(0);
-        Assert.assertEquals("unexpected colOrder", "[6, 1, 4, 5, 8]", layout.getColOrder().toString());
+        Assert.assertEquals("unexpected colOrder", "[6, 8, 1, 4, 5]", layout.getColOrder().toString());
 
         final LayoutEntity layout2 = allCuboids.get(1).getLayouts().get(0);
-        Assert.assertEquals("unexpected colOrder", "[7, 1, 4, 5, 6, 8]", layout2.getColOrder().toString());
+        Assert.assertEquals("unexpected colOrder", "[7, 8, 1, 4, 5, 6]", layout2.getColOrder().toString());
     }
 
     @Test

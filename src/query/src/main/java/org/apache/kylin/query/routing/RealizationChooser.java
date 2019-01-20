@@ -49,7 +49,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.measure.bitmap.BitmapMeasureType;
@@ -79,6 +78,7 @@ import com.google.common.collect.Sets;
 
 import io.kyligence.kap.metadata.cube.cuboid.NLayoutCandidate;
 import io.kyligence.kap.metadata.cube.cuboid.NLookupCandidate;
+import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.project.NProjectManager;
@@ -197,7 +197,7 @@ public class RealizationChooser {
         context.setCandidate(selectedCandidate);
         context.setDimensions(dimensions);
         context.setMetrics(metrics);
-        context.setCuboidId(cuboidLayout.getId());
+        context.setCuboidLayoutId(cuboidLayout.getId());
         logger.info("Choose model name: {} joins: {}", cuboidLayout.getModel().getUuid(),
                 cuboidLayout.getModel().getJoinsGraph().toString());
         logger.info("Choose indexPlan name: {} for context: {}", cuboidLayout.getIndex().getIndexPlan().getUuid(),

@@ -25,12 +25,12 @@
 package io.kyligence.kap.smart.cube;
 
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.SortedSet;
-import java.util.stream.Collectors;
 
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.metadata.filter.CompareTupleFilter;
@@ -43,6 +43,7 @@ import org.apache.kylin.query.relnode.OLAPContext;
 import org.apache.kylin.query.routing.RealizationChooser;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableBiMap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -130,7 +131,7 @@ class CuboidSuggester {
                 .forEach(layout -> cuboidLayoutIds.add(layout.getId())));
     }
 
-    void suggestCuboids(ModelTree modelTree) {
+    void suggestIndexes(ModelTree modelTree) {
         final Map<String, AccelerateInfo> sql2AccelerateInfo = smartContext.getAccelerateInfoMap();
         for (OLAPContext ctx : modelTree.getOlapContexts()) {
 
@@ -176,7 +177,8 @@ class CuboidSuggester {
         List<Integer> shardBy = Lists.newArrayList();
         for (int dimId : dimIds) {
             TblColRef colRef = model.getEffectiveColsMap().get(dimId);
-            TableExtDesc.ColumnStats colStats = smartContext.getColumnStats(colRef);
+            TableExtDesc.ColumnStats colStats = TableExtDesc.ColumnStats
+                    .getColumnStats(smartContext.getTableMetadataManager(), colRef, smartContext.getColumnStatsCache());
             if (colStats != null
                     && colStats.getCardinality() > smartContext.getSmartConfig().getRowkeyUHCCardinalityMin()) {
                 shardBy.add(dimId);
@@ -185,8 +187,8 @@ class CuboidSuggester {
         return shardBy;
     }
 
-    private List<Integer> suggestSortBy(OLAPContext ctx, Map<TblColRef, Integer> colIdMap) {
-
+    private List<Integer> suggestSortBy(OLAPContext ctx) {
+        Map<TblColRef, Integer> colIdMap = model.getEffectiveColsMap().inverse();
         // TODO need a more proper fix
         if (CollectionUtils.isEmpty(ctx.getSortColumns())) {
             return Lists.newArrayList();
@@ -202,78 +204,12 @@ class CuboidSuggester {
         return ret;
     }
 
-    private Map<Integer, Double> getDimScores(OLAPContext ctx, Map<TblColRef, Integer> colIdMap, boolean isTableIndex) {
-
-        final Map<Integer, Double> dimScores = Maps.newHashMap();
-        Set<TblColRef> nonFilterCols = Sets.newHashSet(ctx.allColumns);
-        nonFilterCols.removeAll(ctx.filterColumns);
-        ctx.aggregations.forEach(functionDesc -> {
-            if (functionDesc.getParameter() == null) {
-                return;
-            }
-
-            final List<TblColRef> aggCols = functionDesc.getParameter().getColRefs();
-            if (CollectionUtils.isNotEmpty(aggCols)) {
-                aggCols.removeAll(ctx.getGroupByColumns());
-                aggCols.removeAll(ctx.getSubqueryJoinParticipants());
-                nonFilterCols.removeAll(aggCols);
-            }
-        });
-
-        calcDimScores(nonFilterCols, dimScores, colIdMap, false, isTableIndex);
-        calcDimScores(ctx.filterColumns, dimScores, colIdMap, true, isTableIndex);
-
-        return dimScores;
-    }
-
-    private void calcDimScores(Set<TblColRef> cols, Map<Integer, Double> dimScores, Map<TblColRef, Integer> colIdMap,
-            boolean isFilterCols, boolean isTableIndex) {
-
-        if (CollectionUtils.isEmpty(cols)) {
-            return;
-        }
-
-        cols.forEach(colRef -> {
-            Integer colId = colIdMap.get(colRef);
-            Preconditions.checkState(colId != null,
-                    getMsgTemplateByModelMaintainType(COLUMN_NOT_FOUND_PTN, Type.COLUMN), model.getAlias(),
-                    colRef.getIdentity());
-            TableExtDesc.ColumnStats columnStats = smartContext.getColumnStats(colRef);
-
-            // without column stats
-            if (columnStats == null) {
-                dimScores.put(colId, isFilterCols ? 1D : -1D);
-                return;
-            }
-
-            // with column stats
-            double cardinality = columnStats.getCardinality();
-            cardinality = cardinality > 0 ? cardinality : 1;
-            double score;
-            if (isFilterCols) {
-                score = cardinality;
-            } else if (isTableIndex) {
-                score = -1;
-            } else {
-                score = -1 / cardinality;
-            }
-            dimScores.put(colId, score);
-        });
-    }
-
     private QueryLayoutRelation ingest(OLAPContext ctx, NDataModel model) {
 
+        final List<Integer> dimIds = suggestDimensions(ctx);
         boolean isTableIndex = ctx.getSQLDigest().isRawQuery;
-
-        // for table index need all effective cols, for agg index only need all dimensions
-        Map<TblColRef, Integer> colIdMap = Maps
-                .newHashMap((isTableIndex ? model.getEffectiveColsMap() : model.getEffectiveDimenionsMap()).inverse());
-
-        final Map<Integer, Double> dimScores = getDimScores(ctx, colIdMap, isTableIndex);
-
-        SortedSet<Integer> measureIds = Sets.newTreeSet();
-        IndexEntity indexEntity = isTableIndex ? createTableIndex(ctx, dimScores)
-                : createAggregatedIndex(ctx, dimScores, measureIds, colIdMap);
+        SortedSet<Integer> measureIds = isTableIndex ? Sets.newTreeSet() : suggestMeasures(ctx);
+        IndexEntity indexEntity = createIndexEntity(dimIds, measureIds, isTableIndex);
 
         final IndexIdentifier cuboidIdentifier = indexEntity.createCuboidIdentifier();
         if (collector.containsKey(cuboidIdentifier)) {
@@ -285,13 +221,13 @@ class CuboidSuggester {
         List<Integer> shardBy = Lists.newArrayList();
         List<Integer> sortBy = Lists.newArrayList();
         if (isTableIndex) {
-            shardBy = suggestShardBy(dimScores.keySet());
-            sortBy = suggestSortBy(ctx, colIdMap);
+            shardBy = suggestShardBy(dimIds);
+            sortBy = suggestSortBy(ctx);
         }
 
         LayoutEntity layout = new LayoutEntity();
         layout.setId(suggestLayoutId(indexEntity));
-        layout.setColOrder(suggestColOrder(dimScores, measureIds));
+        layout.setColOrder(suggestColOrder(dimIds, measureIds));
         layout.setIndex(indexEntity);
         layout.setShardByColumns(shardBy);
         layout.setSortByColumns(sortBy);
@@ -312,25 +248,54 @@ class CuboidSuggester {
         return new QueryLayoutRelation(ctx.sql, modelId, layout.getId(), semanticVersion);
     }
 
-    private IndexEntity createTableIndex(OLAPContext ctx, Map<Integer, Double> dimScores) {
-        // no column selected in raw query (i.e. select 1 from kylin_sales)
-        if (dimScores.isEmpty()) {
-            Preconditions.checkState(CollectionUtils.isNotEmpty(model.getAllNamedColumns()),
-                    "Cannot suggest any columns in table index.");
-            final NDataModel.NamedColumn namedColumn = model.getAllNamedColumns().iterator().next();
-            dimScores.put(namedColumn.getId(), -1D);
-        }
+    private List<Integer> suggestDimensions(OLAPContext context) {
+        Set<TblColRef> allDimensions = Sets.newHashSet();
+        Set<TblColRef> nonFilterCols = Sets.newHashSet(context.allColumns);
+        nonFilterCols.removeAll(context.filterColumns);
+        context.aggregations.forEach(functionDesc -> {
+            if (functionDesc.getParameter() == null) {
+                return;
+            }
 
-        final Set<TblColRef> allColumns = ctx.allColumns;
-        for (TblColRef col : allColumns) {
-            dimScores.putIfAbsent(model.getColumnIdByColumnName(col.getIdentity()), -1D);
-        }
+            final List<TblColRef> aggCols = functionDesc.getParameter().getColRefs();
+            if (CollectionUtils.isNotEmpty(aggCols)) {
+                aggCols.removeAll(context.getGroupByColumns());
+                aggCols.removeAll(context.getSubqueryJoinParticipants());
+                nonFilterCols.removeAll(aggCols);
+            }
+        });
+        allDimensions.addAll(context.filterColumns);
+        allDimensions.addAll(nonFilterCols);
 
-        return createIndexEntity(dimScores, Sets.newTreeSet(), true);
+        List<Integer> dimensions = Lists.newArrayList();
+        boolean isTableIndex = context.getSQLDigest().isRawQuery;
+        final ImmutableBiMap<Integer, TblColRef> colMap;
+        if (isTableIndex) {
+            colMap = model.getEffectiveColsMap();
+            // no column selected in raw query , select the first column of the model (i.e. select 1 from table1)
+            if (allDimensions.isEmpty()) {
+                Preconditions.checkState(CollectionUtils.isNotEmpty(model.getAllNamedColumns()),
+                        "Cannot suggest any columns in table index.");
+                final NDataModel.NamedColumn namedColumn = model.getAllNamedColumns().iterator().next();
+                allDimensions.add(colMap.get(namedColumn.getId()));
+            }
+        } else {
+            colMap = model.getEffectiveDimenionsMap();
+        }
+        final List<TblColRef> orderedDimensions = Lists.newArrayList(allDimensions);
+        final Comparator<TblColRef> tblColRefComparator = TableExtDesc.ColumnStats.filterColComparator(
+                smartContext.getKylinConfig(), smartContext.getProject(), smartContext.getColumnStatsCache());
+        orderedDimensions.sort(tblColRefComparator);
+        final ImmutableBiMap<TblColRef, Integer> colIdMap = colMap.inverse();
+        orderedDimensions.forEach(dimension -> {
+            dimensions.add(Preconditions.checkNotNull(colIdMap.get(dimension)));
+        });
+        return dimensions;
     }
 
-    private IndexEntity createAggregatedIndex(OLAPContext ctx, Map<Integer, Double> dimScores,
-            SortedSet<Integer> measureIds, Map<TblColRef, Integer> colIdMap) {
+    private SortedSet<Integer> suggestMeasures(OLAPContext ctx) {
+        Map<TblColRef, Integer> colIdMap = model.getEffectiveDimenionsMap().inverse();
+        SortedSet<Integer> measureIds = Sets.newTreeSet();
         // Add default measure count(1)
         measureIds.add(NDataModel.MEASURE_ID_BASE);
 
@@ -347,8 +312,7 @@ class CuboidSuggester {
                 }
             }
         });
-
-        return createIndexEntity(dimScores, measureIds, false);
+        return measureIds;
     }
 
     private String getMsgTemplateByModelMaintainType(String messagePattern, Type type) {
@@ -367,31 +331,22 @@ class CuboidSuggester {
                 : messagePattern;
     }
 
-    private IndexEntity createIndexEntity(Map<Integer, Double> dimScores, SortedSet<Integer> measureIds,
-            boolean isTableIndex) {
-        Preconditions.checkState(!dimScores.isEmpty() || !measureIds.isEmpty(),
+    private IndexEntity createIndexEntity(List<Integer> dimIds, SortedSet<Integer> measureIds, boolean isTableIndex) {
+        Preconditions.checkState(!dimIds.isEmpty() || !measureIds.isEmpty(),
                 "Neither dimension nor measure could be proposed for indexEntity");
 
         IndexEntity indexEntity = new IndexEntity();
         indexEntity.setId(suggestDescId(isTableIndex));
-        indexEntity.setDimensions(dimScores.keySet().stream().sorted().collect(Collectors.toList()));
+        indexEntity.setDimensions(Lists.newArrayList(dimIds));
+        indexEntity.getDimensions().sort(Integer::compareTo);
         indexEntity.setMeasures(Lists.newArrayList(measureIds));
+        indexEntity.getMeasures().sort(Integer::compareTo);
         indexEntity.setIndexPlan(indexPlan);
-
         return indexEntity;
     }
 
-    private List<Integer> suggestColOrder(final Map<Integer, Double> dimScores, Set<Integer> measureIds) {
+    private List<Integer> suggestColOrder(final List<Integer> orderedDimIds, Set<Integer> measureIds) {
         List<Integer> colOrder = Lists.newArrayList();
-        final List<Integer> orderedDimIds = dimScores.entrySet().stream() //
-                .sorted((e1, e2) -> {
-                    if (e1.getValue() < e2.getValue()) {
-                        return 1;
-                    } else if (e1.getValue() > e2.getValue()) {
-                        return -1;
-                    }
-                    return Integer.compare(e1.getKey(), e2.getKey());
-                }).map(Map.Entry::getKey).collect(Collectors.toList());
         colOrder.addAll(orderedDimIds);
         colOrder.addAll(measureIds);
         return colOrder;

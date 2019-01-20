@@ -266,7 +266,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
             final LayoutEntity mockLayout = new LayoutEntity();
             mockLayout.setIndex(mockIndexEntity);
             mock.storageContext.setCandidate(new NLayoutCandidate(mockLayout));
-            mock.storageContext.setCuboidId(i);
+            mock.storageContext.setCuboidLayoutId(i);
 
             OLAPContext.registerContext(mock);
         }

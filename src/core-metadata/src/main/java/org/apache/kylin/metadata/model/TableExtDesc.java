@@ -47,25 +47,32 @@ import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import lombok.Data;
+import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.persistence.RootPersistentEntity;
 import org.apache.kylin.common.util.Pair;
-
-import com.fasterxml.jackson.annotation.JsonAutoDetect;
-import com.fasterxml.jackson.annotation.JsonBackReference;
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import com.fasterxml.jackson.annotation.JsonProperty;
 import org.apache.kylin.measure.hllc.HLLCSerializer;
 import org.apache.kylin.measure.hllc.HLLCounter;
 import org.apache.kylin.metadata.datatype.DataType;
 
+import com.fasterxml.jackson.annotation.JsonAutoDetect;
+import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
+import io.kyligence.kap.metadata.model.NTableMetadataManager;
+import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
+
+@Getter
 @SuppressWarnings("serial")
 @JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.NONE, getterVisibility = JsonAutoDetect.Visibility.NONE, isGetterVisibility = JsonAutoDetect.Visibility.NONE, setterVisibility = JsonAutoDetect.Visibility.NONE)
 public class TableExtDesc extends RootPersistentEntity implements Serializable {
@@ -87,30 +94,44 @@ public class TableExtDesc extends RootPersistentEntity implements Serializable {
 
     // ============================================================================
 
+    @Setter
     @JsonProperty("table_name")
-    private String tableIdentity;
+    private String identity;
+
+    @Setter
     @JsonProperty("last_build_job_id")
     private String jodID;
 
+    @Setter
     @JsonProperty("frequency")
     private int frequency;
+
+    @Setter
     @JsonProperty("columns_stats")
     private List<ColumnStats> columnStats = new ArrayList<>();
 
+    @Setter
     @JsonProperty("sample_rows")
     private List<String[]> sampleRows = new ArrayList<>();
 
+    @Setter
     @JsonProperty("last_modified_time")
     private long lastModifiedTime;
+
+    @Setter
     @JsonProperty("total_rows")
     private long totalRows;
+
+    @Setter
     @JsonProperty("mapper_rows")
     private List<Long> mapRecords = new ArrayList<>();
+
     @JsonProperty("data_source_properties")
     private Map<String, String> dataSourceProps = new HashMap<>();
 
     private String project;
 
+    @Setter
     @JsonProperty("loading_range")
     private List<SegmentRange> loadingRange = new ArrayList<>();
 
@@ -120,7 +141,7 @@ public class TableExtDesc extends RootPersistentEntity implements Serializable {
     public TableExtDesc(TableExtDesc other) {
         this.uuid = other.uuid;
         this.lastModified = other.lastModified;
-        this.tableIdentity = other.tableIdentity;
+        this.identity = other.identity;
         this.jodID = other.jodID;
         this.frequency = other.frequency;
         this.columnStats = other.columnStats;
@@ -147,53 +168,13 @@ public class TableExtDesc extends RootPersistentEntity implements Serializable {
         Collections.sort(loadingRange);
     }
 
-    public String getProject() {
-        return project;
-    }
-
-    public int getFrequency() {
-        return this.frequency;
-    }
-
-    public void setFrequency(int frequency) {
-        this.frequency = frequency;
-    }
-
-    public String getIdentity() {
-        return this.tableIdentity;
-    }
-
-    public String getJodID() {
-        return this.jodID;
-    }
-
     public void addDataSourceProp(String key, String value) {
         this.dataSourceProps.put(key, value);
     }
 
-    public Map<String, String> getDataSourceProp() {
-        return this.dataSourceProps;
-    }
-
-    public void setSampleRows(List<String[]> sampleRows) {
-        this.sampleRows = sampleRows;
-    }
-
-    public List<String[]> getSampleRows() {
-        return this.sampleRows;
-    }
-
-    public void setMapRecords(List<Long> mapRecords) {
-        this.mapRecords = mapRecords;
-    }
-
-    public List<Long> getMapRecords() {
-        return this.mapRecords;
-    }
-
     public String getCardinality() {
 
-        StringBuffer cardinality = new StringBuffer();
+        StringBuilder cardinality = new StringBuilder();
         for (ColumnStats stat : this.columnStats) {
             cardinality.append(stat.getCardinality());
             cardinality.append(",");
@@ -215,10 +196,10 @@ public class TableExtDesc extends RootPersistentEntity implements Serializable {
 
         String[] cardi = cardinality.split(",");
 
-        if (0 == this.columnStats.size()) {
-            for (int i = 0; i < cardi.length; i++) {
+        if (this.columnStats.isEmpty()) {
+            for (String aCardi : cardi) {
                 ColumnStats columnStat = new ColumnStats();
-                columnStat.setCardinality(Long.parseLong(cardi[i]));
+                columnStat.setCardinality(Long.parseLong(aCardi));
                 this.columnStats.add(columnStat);
             }
         } else if (this.columnStats.size() == cardi.length) {
@@ -226,13 +207,8 @@ public class TableExtDesc extends RootPersistentEntity implements Serializable {
                 this.columnStats.get(i).setCardinality(Long.parseLong(cardi[i]));
             }
         } else {
-            throw new IllegalArgumentException("The given cardinality columns don't match tables " + tableIdentity);
-
+            throw new IllegalArgumentException("The given cardinality columns don't match tables " + identity);
         }
-    }
-
-    public List<ColumnStats> getColumnStats() {
-        return this.columnStats;
     }
 
     public ColumnStats getColumnStats(final int colIdx) {
@@ -242,56 +218,19 @@ public class TableExtDesc extends RootPersistentEntity implements Serializable {
         return null;
     }
 
-    public void setColumnStats(List<ColumnStats> columnStats) {
-        this.columnStats = null;
-        this.columnStats = columnStats;
-    }
-
-    public void setTotalRows(long totalRows) {
-        this.totalRows = totalRows;
-    }
-
-    public long getTotalRows() {
-        return this.totalRows;
-    }
-
-    public void setIdentity(String name) {
-        this.tableIdentity = name;
-    }
-
-    public void setJodID(String jobID) {
-        this.jodID = jobID;
-    }
-
     public void init(String project) {
         this.project = project;
-        if (this.tableIdentity != null)
-            this.tableIdentity = this.tableIdentity.toUpperCase();
+        if (this.identity != null)
+            this.identity = this.identity.toUpperCase();
 
         for (final ColumnStats colStats : this.columnStats) {
             colStats.init();
         }
     }
 
-    public void setLastModifiedTime(long lastModifiedTime) {
-        this.lastModifiedTime = lastModifiedTime;
-    }
-
-    public long getLastModifiedTime() {
-        return this.lastModifiedTime;
-    }
-
     public boolean isPartitioned() {
-        return this.dataSourceProps.get("partition_column") == null ? false
-                : !this.dataSourceProps.get("partition_column").isEmpty();
-    }
-
-    public List<SegmentRange> getLoadingRange() {
-        return loadingRange;
-    }
-
-    public void setLoadingRange(List<SegmentRange> loadingRange) {
-        this.loadingRange = loadingRange;
+        return this.dataSourceProps.get("partition_column") != null
+                && !this.dataSourceProps.get("partition_column").isEmpty();
     }
 
     @Override
@@ -301,15 +240,13 @@ public class TableExtDesc extends RootPersistentEntity implements Serializable {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o)
-            return true;
-        return false;
+        return this == o;
     }
 
     @Override
     public String toString() {
-        return "TableExtDesc{" + "name='" + (null == tableIdentity ? "NULL" : tableIdentity) + '\''
-                + ", columns_samples=" + (null == columnStats ? "null" : Arrays.toString(columnStats.toArray()));
+        return "TableExtDesc{" + "name='" + (null == identity ? "NULL" : identity) + '\'' + ", columns_samples="
+                + (null == columnStats ? "null" : Arrays.toString(columnStats.toArray()));
     }
 
     @Data
@@ -375,9 +312,6 @@ public class TableExtDesc extends RootPersistentEntity implements Serializable {
             return 0;
         }
 
-        public ColumnStats() {
-        }
-
         void init() {
             if (rangeHLLC.isEmpty()) {
                 return;
@@ -435,6 +369,50 @@ public class TableExtDesc extends RootPersistentEntity implements Serializable {
             this.minValue = min;
             this.maxLengthValue = maxLenValue;
             this.minLengthValue = minLenValue;
+        }
+
+        public static TableExtDesc.ColumnStats getColumnStats(NTableMetadataManager tableMetadataManager,
+                TblColRef colRef, final Map<String, TableExtDesc.ColumnStats> columnStatsCache) {
+            TableExtDesc.ColumnStats ret;
+            if (columnStatsCache != null) {
+                ret = columnStatsCache.get(colRef.getIdentity());
+                if (ret != null)
+                    return ret;
+            }
+
+            TableExtDesc tableExtDesc = tableMetadataManager.getOrCreateTableExt(colRef.getTableRef().getTableDesc());
+            int colIndex = colRef.getColumnDesc().getZeroBasedIndex();
+            if (tableExtDesc != null && colIndex < tableExtDesc.getColumnStats().size()) {
+                ret = tableExtDesc.getColumnStats().get(colIndex);
+                if (columnStatsCache != null) {
+                    columnStatsCache.put(colRef.getIdentity(), ret);
+                }
+            } else {
+                ret = null;
+            }
+            return ret;
+        }
+
+        public static Comparator<TblColRef> filterColComparator(KylinConfig config, String project,
+                final Map<String, TableExtDesc.ColumnStats> columnStatsCache) {
+            NTableMetadataManager tableMetadataManager = NTableMetadataManager.getInstance(config, project);
+            return (col1, col2) -> {
+                // priority desc
+                int res = col2.getFilterLevel().getPriority() - col1.getFilterLevel().getPriority();
+                if (res == 0) {
+                    final ColumnStats ret1 = ColumnStats.getColumnStats(tableMetadataManager, col1, columnStatsCache);
+                    final ColumnStats ret2 = ColumnStats.getColumnStats(tableMetadataManager, col2, columnStatsCache);
+
+                    //null last
+                    if (ret2 == null)
+                        return (ret1 == null) ? 0 : -1;
+                    if (ret1 == null)
+                        return 1;
+                    // getCardinality desc
+                    res = Long.compare(ret2.getCardinality(), ret1.getCardinality());
+                }
+                return res;
+            };
         }
     }
 }

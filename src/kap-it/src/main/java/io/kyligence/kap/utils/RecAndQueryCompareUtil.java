@@ -26,14 +26,13 @@ package io.kyligence.kap.utils;
 
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import io.kyligence.kap.metadata.cube.model.IndexPlan;
-import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.model.TblColRef;
@@ -48,14 +47,17 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
-import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
+import io.kyligence.kap.metadata.cube.model.IndexPlan;
+import io.kyligence.kap.metadata.cube.model.LayoutEntity;
+import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.smart.common.AccelerateInfo;
 import io.kyligence.kap.smart.common.AccelerateInfo.QueryLayoutRelation;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
+import lombok.val;
 
 public class RecAndQueryCompareUtil {
 
@@ -68,8 +70,12 @@ public class RecAndQueryCompareUtil {
             return "[ ]";
         }
 
+        // get a stable result
+        val orderedLayouts = Lists.newArrayList(relatedLayouts);
+        orderedLayouts.sort(Comparator.comparingLong(QueryLayoutRelation::getLayoutId));
+
         List<String> list = Lists.newArrayList();
-        relatedLayouts.forEach(queryLayoutRelation -> {
+        orderedLayouts.forEach(queryLayoutRelation -> {
             List<String> colOrderNames = Lists.newArrayList();
 
             final IndexPlan indexPlan = NIndexPlanManager.getInstance(kylinConfig, project)
@@ -87,8 +93,7 @@ public class RecAndQueryCompareUtil {
                     colOrderNames.add(effectiveMeasures.get(column).getName());
                 }
             });
-            String tmp = String.format("{model=%s,indexPlan=%s,layout=%s,colOrderName=[%s]}",
-                    queryLayoutRelation.getModelId(), queryLayoutRelation.getModelId(),
+            String tmp = String.format("{model=%s,layout=%s,colOrderName=[%s]}", queryLayoutRelation.getModelId(),
                     queryLayoutRelation.getLayoutId(), String.join(",", colOrderNames));
             list.add(tmp);
         });
@@ -153,7 +158,7 @@ public class RecAndQueryCompareUtil {
             if (Objects.equals(cuboidIds, proposedCuboidIds)) {
                 entity.setLevel(AccelerationMatchedLevel.LAYOUT_NOT_MATCH);
             } else if (Objects.equals(modelIds, proposedModelIds)) {
-                entity.setLevel(AccelerationMatchedLevel.CUBOID_NOT_MATCH);
+                entity.setLevel(AccelerationMatchedLevel.INDEX_NOT_MATCH);
             } else if (entity.getAccelerateInfo().isBlocked()) {
                 entity.setLevel(AccelerationMatchedLevel.BLOCKED_QUERY);
             } else {
@@ -226,20 +231,18 @@ public class RecAndQueryCompareUtil {
         ALL_MATCH,
 
         /**
-         * cuboid matched, but layout not matched
+         * index matched, but layout not matched
          */
         LAYOUT_NOT_MATCH,
 
         /**
-         * model matched, but cuboid not matched
+         * model matched, but index not matched
          */
-        CUBOID_NOT_MATCH,
+        INDEX_NOT_MATCH,
 
         /**
          * model not matched
          */
         MODEL_NOT_MATCH
-
     }
-
 }

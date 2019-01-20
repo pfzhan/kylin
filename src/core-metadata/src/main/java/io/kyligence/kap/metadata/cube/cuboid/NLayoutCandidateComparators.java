@@ -27,18 +27,14 @@ package io.kyligence.kap.metadata.cube.cuboid;
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
-import java.util.SortedSet;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.model.DeriveInfo;
-import org.apache.kylin.metadata.model.TableExtDesc;
+import org.apache.kylin.metadata.model.TableExtDesc.ColumnStats;
 import org.apache.kylin.metadata.model.TblColRef;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
-
-import io.kyligence.kap.metadata.model.NTableMetadataManager;
 
 public class NLayoutCandidateComparators {
 
@@ -57,8 +53,8 @@ public class NLayoutCandidateComparators {
 
             @Override
             public int compare(NLayoutCandidate o1, NLayoutCandidate o2) {
-                SortedSet<Integer> position1 = getFilterPositionSet(o1);
-                SortedSet<Integer> position2 = getFilterPositionSet(o2);
+                List<Integer> position1 = getFilterPositionSet(o1);
+                List<Integer> position2 = getFilterPositionSet(o2);
                 Iterator<Integer> iter1 = position1.iterator();
                 Iterator<Integer> iter2 = position2.iterator();
 
@@ -74,8 +70,8 @@ public class NLayoutCandidateComparators {
                 return 0;
             }
 
-            private SortedSet<Integer> getFilterPositionSet(final NLayoutCandidate candidate) {
-                SortedSet<Integer> positions = Sets.newTreeSet();
+            private List<Integer> getFilterPositionSet(final NLayoutCandidate candidate) {
+                List<Integer> positions = Lists.newArrayList();
                 List<TblColRef> sortedFilterCols = Lists.newArrayList(filters);
                 sortedFilterCols.sort(filterColComparator(candidate, config));
 
@@ -98,30 +94,7 @@ public class NLayoutCandidateComparators {
     }
 
     private static Comparator<TblColRef> filterColComparator(NLayoutCandidate candidate, KylinConfig config) {
-        return (o1, o2) -> {
-            // priority desc
-            int res = o2.getFilterLevel().getPriority() - o1.getFilterLevel().getPriority();
-            if (res == 0) {
-                NTableMetadataManager tableMetadataManager = NTableMetadataManager.getInstance(config,
-                        candidate.getCuboidLayout().getModel().getProject());
-                TableExtDesc tableExtDesc1 = tableMetadataManager
-                        .getOrCreateTableExt(o1.getTableRef().getTableDesc());
-                TableExtDesc.ColumnStats ret1 = tableExtDesc1.getColumnStats()
-                        .get(o1.getColumnDesc().getZeroBasedIndex());
-                TableExtDesc tableExtDesc2 = tableMetadataManager
-                        .getOrCreateTableExt(o2.getTableRef().getTableDesc());
-                TableExtDesc.ColumnStats ret2 = tableExtDesc2.getColumnStats()
-                        .get(o2.getColumnDesc().getZeroBasedIndex());
-
-                //null last
-                if (ret2 == null)
-                    return (ret1 == null) ? 0 : -1;
-                if (ret1 == null)
-                    return 1;
-                // getCardinality desc
-                res = Long.compare(ret2.getCardinality(), ret1.getCardinality());
-            }
-            return res;
-        };
+        String project = candidate.getCuboidLayout().getModel().getProject();
+        return ColumnStats.filterColComparator(config, project, null);
     }
 }

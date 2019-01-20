@@ -53,7 +53,7 @@ class NCuboidReducer extends NAbstractCubeProposer {
         final Map<IndexIdentifier, IndexEntity> proposedCuboids = Maps.newLinkedHashMap();
 
         final CuboidSuggester cuboidSuggester = new CuboidSuggester(context, indexPlan, proposedCuboids);
-        cuboidSuggester.suggestCuboids(context.getModelTree());
+        cuboidSuggester.suggestIndexes(context.getModelTree());
 
         // log before shrink cuboids
         proposedCuboids.forEach((cuboidIdentifier, indexEntity) -> {

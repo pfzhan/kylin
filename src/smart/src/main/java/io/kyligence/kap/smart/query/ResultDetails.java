@@ -79,7 +79,7 @@ public final class ResultDetails {
                 this.realizationNames.add(ctx.realization.getCanonicalName());
             }
 
-            Long cuboid = ctx.storageContext.getCuboidId();
+            Long cuboid = ctx.storageContext.getCuboidLayoutId();
             if (cuboid != null) {
                 this.cuboidIds.add(cuboid);
             }

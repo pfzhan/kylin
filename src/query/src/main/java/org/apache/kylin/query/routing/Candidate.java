@@ -83,12 +83,12 @@ public class Candidate implements Comparable<Candidate> {
 
     @Override
     public int compareTo(Candidate o) {
-        int comp = o.realization.getCost() - this.realization.getCost();
+        int comp = this.realization.getCost() - o.realization.getCost();
         if (comp != 0)
             return comp;
 
-        comp = Double.compare(o.capability.getSelectedCandidate().getCost(),
-                this.capability.getSelectedCandidate().getCost());
+        comp = Double.compare(this.capability.getSelectedCandidate().getCost(),
+                o.capability.getSelectedCandidate().getCost());
         if (comp != 0)
             return comp;
 
