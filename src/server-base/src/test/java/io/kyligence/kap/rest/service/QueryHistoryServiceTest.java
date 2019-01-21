@@ -32,6 +32,7 @@ import io.kyligence.kap.metadata.query.QueryHistoryRequest;
 import io.kyligence.kap.metadata.query.QueryStatistics;
 import io.kyligence.kap.rest.response.QueryHistoryResponse;
 import io.kyligence.kap.rest.response.QueryStatisticsResponse;
+import org.apache.kylin.rest.exception.BadRequestException;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -226,5 +227,26 @@ public class QueryHistoryServiceTest extends NLocalFileMetadataTestCase {
         queryStatistics3.setMonth(date);
 
         return Lists.newArrayList(queryStatistics1, queryStatistics2, queryStatistics3);
+    }
+
+    @Test
+    public void testGetQueryHistoryTableNames() {
+        List<String> projects = Lists.newArrayList(PROJECT, "newten");
+        Map<String, String> tableMap = queryHistoryService.getQueryHistoryTableMap(projects);
+        Assert.assertEquals(2, tableMap.size());
+        Assert.assertEquals("_examples_test_metadata_query_metric_5cabc32a_a33e_4b69_83dd_1bb8b1f8c92b", tableMap.get("newten"));
+        Assert.assertEquals("_examples_test_metadata_query_metric_1eaca32a_a33e_4b69_83dd_0bb8b1f8c91b", tableMap.get(PROJECT));
+
+        // get all tables
+        tableMap = queryHistoryService.getQueryHistoryTableMap(null);
+        Assert.assertEquals(8, tableMap.size());
+
+        // not existing project
+        try {
+            tableMap = queryHistoryService.getQueryHistoryTableMap(Lists.newArrayList("not_existing_project"));
+        } catch (Exception ex) {
+            Assert.assertEquals(BadRequestException.class, ex.getClass());
+            Assert.assertEquals("Cannot find project 'not_existing_project'.", ex.getMessage());
+        }
     }
 }

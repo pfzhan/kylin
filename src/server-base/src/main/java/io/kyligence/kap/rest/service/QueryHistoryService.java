@@ -36,6 +36,9 @@ import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.RootPersistentEntity;
+import org.apache.kylin.metadata.project.ProjectInstance;
+import org.apache.kylin.rest.exception.BadRequestException;
+import org.apache.kylin.rest.msg.MsgPicker;
 import org.apache.kylin.rest.service.BasicService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -156,6 +159,24 @@ public class QueryHistoryService extends BasicService {
             SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
             result.put(sdf.format(date), getValueByField(singleStatistics, fieldName));
         });
+
+        return result;
+    }
+
+    public Map<String, String> getQueryHistoryTableMap(List<String> projects) {
+        if (projects == null) {
+            projects = getProjectManager().listAllProjects().stream().map(projectInstance -> projectInstance.getName())
+                    .collect(Collectors.toList());
+        }
+
+        Map<String, String> result = Maps.newHashMap();
+        for (String project : projects) {
+            Preconditions.checkArgument(StringUtils.isNotEmpty(project));
+            ProjectInstance projectInstance = getProjectManager().getProject(project);
+            if (projectInstance == null)
+                throw new BadRequestException(String.format(MsgPicker.getMsg().getPROJECT_NOT_FOUND(), project));
+            result.put(project, getQueryHistoryDao(project).getQueryMetricMeasurement());
+        }
 
         return result;
     }

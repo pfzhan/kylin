@@ -265,4 +265,10 @@ public class NQueryController extends NBasicController {
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS,
                 queryHistoryService.getAvgDuration(project, startTime, endTime, dimension), "");
     }
+
+    @RequestMapping(value = "/history_queries/table_names", method = { RequestMethod.GET }, produces = {
+            "application/vnd.apache.kylin-v2+json" })
+    public EnvelopeResponse getQueryHistoryTableNames(@RequestParam(value = "projects", required = false) List<String> projects) {
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, queryHistoryService.getQueryHistoryTableMap(projects), "");
+    }
 }
