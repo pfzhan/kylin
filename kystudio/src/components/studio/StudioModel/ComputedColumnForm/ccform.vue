@@ -6,16 +6,8 @@
       <span slot="label">{{$t('columnName')}} <span v-if="!isEdit">: {{ccObject.columnName}}</span></span>
       <el-input class="measures-width" size="medium" v-model="ccObject.columnName" v-if="isEdit" @blur="upperCaseCCName"></el-input>
     </el-form-item>
-    <el-form-item prop="datatype" class="ksd-mb-10">
-      <span slot="label">{{$t('returnType')}}<span v-if="!isEdit">: {{ccObject.datatype}}</span></span>
-      <el-select size="medium" v-model="ccObject.datatype" class="measures-width" v-if="isEdit">
-        <el-option
-          v-for="(item, index) in computedRetrunType"
-          :key="index"
-          :label="item"
-          :value="item">
-        </el-option>
-      </el-select>
+    <el-form-item prop="datatype" class="ksd-mb-10" v-if="!isEdit">
+      <span slot="label">{{$t('returnType')}}<span>: {{ccObject.datatype}}</span></span>
     </el-form-item>
     <el-form-item :label="$t('expression')" prop="expression" class="ksd-mb-10">
       <span slot="label">{{$t('kylinLang.dataSource.expression')}} <common-tip :content="$t('conditionExpress')" ><i class="el-icon-question"></i></common-tip></span>
@@ -40,7 +32,7 @@ import Vue from 'vue'
 import { Component, Watch } from 'vue-property-decorator'
 import { mapActions, mapGetters } from 'vuex'
 import { computedDataType } from 'config/index'
-import { handleError, kapMessage } from 'util/business'
+import { handleError, kapMessage, handleSuccess } from 'util/business'
 import { objectClone } from 'util/index'
 import { modelErrorMsg } from '../ModelEdit/config'
 import { NamedRegex } from 'config'
@@ -71,7 +63,6 @@ export default class CCForm extends Vue {
       { required: true, message: this.$t('requiredCCName'), trigger: 'blur' },
       { validator: this.checkCCName, trigger: 'blur' }
     ],
-    datatype: [{ required: true, message: this.$t('requiredReturnType'), trigger: 'change' }],
     expression: [{ required: true, message: this.$t('requiredExpress'), trigger: 'change' }]
   }
   ccMeta = JSON.stringify({
@@ -117,6 +108,7 @@ export default class CCForm extends Vue {
       // 组装带cc的模型功校验cc接口使用
       let resData = objectClone(data)
       let ccMeta = this.modelInstance.generateCCMeta(this.ccObject)
+      ccMeta.datatype = 'any' // 默认传给后台的数据类型
       resData.computed_columns.push(ccMeta)
       this.checkBtnLoading = true
       this.checkCC({
@@ -127,7 +119,9 @@ export default class CCForm extends Vue {
       }).then((res) => {
         this.checkBtnLoading = false
         this.errorMsg = ''
-        cb && cb()
+        handleSuccess(res, (data) => {
+          cb && cb(data)
+        })
       }, (res) => {
         this.$emit('saveError')
         this.checkBtnLoading = false
@@ -139,10 +133,6 @@ export default class CCForm extends Vue {
       kapMessage(this.$t(modelErrorMsg[code]), { type: 'warning' })
     })
   }
-  // test temp code
-  checkRemoteCC1 (cb) {
-    cb()
-  }
   addCC () {
     this.$refs['ccForm'].validate((valid) => {
       if (valid) {
@@ -152,8 +142,10 @@ export default class CCForm extends Vue {
           kapMessage(this.$t(modelErrorMsg['noFact']), { type: 'warning' })
           return
         }
-        this.checkRemoteCC(() => {
+        this.checkRemoteCC((data) => {
           this.ccObject.table_guid = factTable.guid
+          // 由后台推荐的datatype
+          this.ccObject.datatype = data.datatype
           if (this.ccObject.guid) {
             this.modelInstance.editCC(this.ccObject).then((cc) => {
               this.$emit('saveSuccess', cc)

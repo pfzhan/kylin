@@ -96,7 +96,7 @@
       col_order: [],
       sort_by_columns: [],
       shard_by_columns: [],
-      load_data: true
+      load_data: false
     })
     tableIndexMeta = JSON.parse(this.tableIndexMetaStr)
     rules = {
