@@ -45,7 +45,6 @@
       <!-- 表单：项目名 -->
       <el-form-item :label="$t('projectName')" prop="name" v-if="isFieldShow('name')">
         <el-input v-guide.addProjectInput
-          v-focus="isShow"
           size="small"
           :disabled="editType !== 'new'"
           auto-complete="off"

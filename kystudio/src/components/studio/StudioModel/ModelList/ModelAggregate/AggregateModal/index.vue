@@ -145,7 +145,7 @@
       </div>
       <div class="right">
         <el-button size="medium" @click="handleClose(false)">{{$t('kylinLang.common.cancel')}}</el-button>
-        <el-button size="medium" v-if="isShow" v-guide.saveAggBtn plain type="primary" @click="handleSubmit">{{$t('kylinLang.common.submit')}}</el-button>
+        <el-button size="medium" v-if="isShow" v-guide.saveAggBtn plain type="primary" :loading="isSubmit" @click="handleSubmit">{{$t('kylinLang.common.submit')}}</el-button>
       </div>
     </div>
   </el-dialog>
@@ -198,6 +198,7 @@ vuex.registerModule(['modals', 'AggregateModal'], store)
 export default class AggregateModal extends Vue {
   isFormShow = false
   isDimensionShow = false
+  isSubmit = false
   get modalTitle () {
     return titleMaps[this.editType]
   }
@@ -346,6 +347,7 @@ export default class AggregateModal extends Vue {
     this.handleInput(`aggregateArray.${aggregateIdx}.includes`, [])
   }
   async handleSubmit () {
+    this.isSubmit = true
     try {
       if (this.checkFormVaild()) {
         const data = this.getSubmitData()
@@ -354,10 +356,12 @@ export default class AggregateModal extends Vue {
           type: 'success',
           message: this.$t('kylinLang.common.saveSuccess')
         })
+        this.isSubmit = false
         this.handleClose(true)
       }
     } catch (e) {
       e && handleError(e)
+      this.isSubmit = false
     }
   }
   checkFormVaild () {

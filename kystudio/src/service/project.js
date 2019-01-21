@@ -9,7 +9,7 @@ export default {
     return Vue.resource(apiUrl + 'projects').get(params)
   },
   deleteProject: (projectName) => {
-    return Vue.resource(apiUrl + 'projects/' + projectName).remove({})
+    return Vue.resource(apiUrl + 'projects/' + projectName).delete()
   },
   updateProject: (project) => {
     return Vue.resource(apiUrl + 'projects').update({ formerProjectName: project.name, projectDescData: project.desc })
@@ -50,7 +50,7 @@ export default {
     return Vue.resource(apiUrl + 'extFilter/updateExtFilter').update(filterData)
   },
   backupProject: (project) => {
-    return Vue.resource(apiUrl + 'metastore/backup?project=' + project.name).save()
+    return Vue.resource(apiUrl + 'projects/backup/' + project.name).save()
   },
   accessAvailableUserOrGroup: (sidType, uuid, data) => {
     return Vue.resource(apiUrl + 'access/available/' + sidType + '/' + uuid).get(data)
