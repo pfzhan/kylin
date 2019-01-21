@@ -12,6 +12,7 @@
     "lint": "eslint --ext .js,.vue src test/unit/specs test/e2e/specs"
   },
   "dependencies": {
+    "@babel/polyfill": "7.0.0",
     "@tweenjs/tween.js": "17.1.1",
     "brace": "0.10.0",
     "d3": "3.5.17",
