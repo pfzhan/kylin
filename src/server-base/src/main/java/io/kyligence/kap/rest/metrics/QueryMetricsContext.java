@@ -108,7 +108,7 @@ public class QueryMetricsContext {
     public static void start(final String queryId) {
         if (!isCollectEnabled()) {
             logger.warn(
-                    "Can't to start QueryMetricsContext, please set kap.metric.diagnosis.graph-writer-type to 'INFLUX'");
+                    "Can't to start QueryMetricsContext, please set kap.metric.write-destination to 'INFLUX'");
             return;
         }
 
@@ -120,7 +120,7 @@ public class QueryMetricsContext {
     }
 
     private static boolean isCollectEnabled() {
-        return "INFLUX".equals(kapConfig.diagnosisMetricWriterType());
+        return "INFLUX".equals(kapConfig.getMetricWriteDest());
     }
 
     public static boolean isStarted() {

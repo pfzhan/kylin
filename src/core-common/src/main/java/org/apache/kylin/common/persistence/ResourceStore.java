@@ -179,7 +179,7 @@ public abstract class ResourceStore {
             resourceStore.init(snapshotStore);
             return resourceStore;
         } catch (Exception e) {
-            throw new IllegalArgumentException("Failed to create metadata store by url: " + config.getMetadataUrl(), e);
+            throw new IllegalArgumentException("Failed to create metadata store", e);
         }
     }
 
@@ -191,7 +191,7 @@ public abstract class ResourceStore {
             Class<? extends MetadataStore> cls = ClassUtil.forName(clsName, MetadataStore.class);
             return cls.getConstructor(KylinConfig.class, String.class).newInstance(config, namespace);
         } catch (Exception e) {
-            throw new IllegalArgumentException("Failed to create metadata store by url: " + url, e);
+            throw new IllegalArgumentException("Failed to create metadata store", e);
         }
     }
 
@@ -363,7 +363,7 @@ public abstract class ResourceStore {
      * delete a resource, does nothing on a folder
      */
     public final void deleteResource(String resPath) {
-        logger.trace("Deleting resource {} (Store {})", resPath, kylinConfig.getMetadataUrl());
+        logger.trace("Deleting resource {}", resPath);
         deleteResourceImpl(resPath);
     }
 

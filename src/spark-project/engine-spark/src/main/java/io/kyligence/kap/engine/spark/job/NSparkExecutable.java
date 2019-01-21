@@ -36,7 +36,6 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 
-import com.google.common.collect.Maps;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -55,6 +54,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.Maps;
 
 import io.kyligence.kap.common.persistence.metadata.MetadataStore;
 import io.kyligence.kap.metadata.cube.model.NBatchConstants;
@@ -180,6 +180,7 @@ public class NSparkExecutable extends AbstractExecutable {
         val jobOverrides = Maps.<String, String> newHashMap();
         val parentId = getParentId();
         jobOverrides.put("job.id", StringUtils.defaultIfBlank(parentId, getId()));
+        jobOverrides.put("job.project", project);
         if (StringUtils.isNotBlank(parentId)) {
             jobOverrides.put("job.stepId", getId());
         }

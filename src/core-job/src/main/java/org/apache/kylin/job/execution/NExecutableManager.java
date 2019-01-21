@@ -156,9 +156,10 @@ public class NExecutableManager {
     public void deleteJob(String jobId) {
         AbstractExecutable executable = getJob(jobId);
         ExecutableState status = executable.getStatus();
-        if (!status.equals(ExecutableState.SUCCEED) && !status.equals(ExecutableState.DISCARDED) && !status.equals(ExecutableState.SUICIDAL)) {
+        if (!status.equals(ExecutableState.SUCCEED) && !status.equals(ExecutableState.DISCARDED)
+                && !status.equals(ExecutableState.SUICIDAL)) {
             throw new IllegalStateException(
-                    "Cannot drop running job " + executable.getName() + ", please discard it first.");
+                    "Cannot drop running job " + executable.getDisplayName() + ", please discard it first.");
         }
         executableDao.deleteJob(jobId);
     }
@@ -192,9 +193,10 @@ public class NExecutableManager {
     }
 
     public Output getOutputFromHDFSByJobId(String jobId) {
-        ExecutableOutputPO jobOutput = getJobOutputFromHDFS(KylinConfig.getInstanceFromEnv().getJobTmpOutputStorePath(jobId));
+        ExecutableOutputPO jobOutput = getJobOutputFromHDFS(
+                KylinConfig.getInstanceFromEnv().getJobTmpOutputStorePath(project, jobId));
         Preconditions.checkArgument(jobOutput != null, "there is no related output for job :"
-                + KylinConfig.getInstanceFromEnv().getJobTmpOutputStorePath(jobId));
+                + KylinConfig.getInstanceFromEnv().getJobTmpOutputStorePath(project, jobId));
         return parseOutput(jobOutput);
     }
 

@@ -36,7 +36,7 @@ public enum MetricWriterStrategy {
     INSTANCE;
     public static final Logger logger = LoggerFactory.getLogger(MetricWriterStrategy.class);
     private static AtomicInteger failoverFlag = new AtomicInteger(0);
-    private final static String CONFIG_KEY = "kap.metric.diagnosis.graph-writer-type";
+    private final static String CONFIG_KEY = "kap.metric.write-destination";
 
     public void write(String dbName, String measurement, Map<String, String> tags, Map<String, Object> metrics) {
         write(dbName, measurement, tags, metrics, System.currentTimeMillis());
@@ -75,7 +75,7 @@ public enum MetricWriterStrategy {
 
     private String getType() {
         try {
-            return KapConfig.getInstanceFromEnv().diagnosisMetricWriterType();
+            return KapConfig.getInstanceFromEnv().getMetricWriteDest();
         } catch (Exception e) {
             // In spark executor may can not get kylin config, use system property instead.
             return System.getProperty(CONFIG_KEY);

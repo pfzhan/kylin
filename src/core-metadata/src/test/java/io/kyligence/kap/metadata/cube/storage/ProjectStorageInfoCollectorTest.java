@@ -79,12 +79,12 @@ public class ProjectStorageInfoCollectorTest extends NLocalFileMetadataTestCase 
         Assert.assertEquals(4,
                 storageVolumeInfo.getGarbageModelIndexMap().get("741ca86a-1f13-46da-a59f-95fb68615e3a").size());
 
-        getTestConfig().setProperty("kylin.storage.garbage.cuboid-layout-survival-time-threshold", "500d");
+        getTestConfig().setProperty("kylin.garbage.storage.cuboid-layout-survival-time-threshold", "500d");
         val storageVolumeInfo2 = collector.getStorageVolumeInfo(getTestConfig(), PROJECT);
         Assert.assertEquals(1024 * 1024 * 1024L, storageVolumeInfo2.getStorageQuotaSize());
         Assert.assertEquals(0L, storageVolumeInfo2.getGarbageStorageSize());
         Assert.assertEquals(0L, storageVolumeInfo2.getGarbageModelIndexMap().size());
-        getTestConfig().setProperty("kylin.storage.garbage.cuboid-layout-survival-time-threshold", "7d");
+        getTestConfig().setProperty("kylin.garbage.storage.cuboid-layout-survival-time-threshold", "7d");
 
     }
 

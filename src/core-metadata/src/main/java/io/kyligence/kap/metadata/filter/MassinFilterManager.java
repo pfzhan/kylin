@@ -59,6 +59,8 @@ import com.google.common.cache.RemovalNotification;
 import com.google.common.collect.Sets;
 import com.google.common.io.ByteStreams;
 
+import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
+
 public class MassinFilterManager {
     public static final Logger logger = LoggerFactory.getLogger(MassinFilterManager.class);
 
@@ -85,8 +87,9 @@ public class MassinFilterManager {
 
     private KylinConfig kylinConfig;
 
-    private MassinFilterManager(KylinConfig config) throws IOException {
-        logger.info("Initializing MassinFilterManager with config " + config);
+    private MassinFilterManager(KylinConfig config) {
+        if (!UnitOfWork.isAlreadyInTransaction())
+            logger.info("Initializing MassinFilterManager with KylinConfig Id: {}", System.identityHashCode(config));
         this.kylinConfig = config;
     }
 
@@ -177,20 +180,20 @@ public class MassinFilterManager {
     }
 
     private ResourceStore getStore() {
-//        ResourceStore store = RESOURCE_STORE_CACHE.get(kylinConfig);
-//        if (store == null) {
-//            StorageURL url = StorageURL.valueOf(
-//                    kylinConfig.getMetadataUrlPrefix() + "@hdfs,path=" + kylinConfig.getHdfsWorkingDirectory());
-//            try {
-//                store = new HDFSResourceStore(kylinConfig);
-//                synchronized (MassinFilterManager.class) {
-//                    RESOURCE_STORE_CACHE.put(kylinConfig, store);
-//                }
-//            } catch (Exception e) {
-//                throw new RuntimeException("Failed to create HDFSResourceStore at " + url, e);
-//            }
-//        }
-//        return store;
+        //        ResourceStore store = RESOURCE_STORE_CACHE.get(kylinConfig);
+        //        if (store == null) {
+        //            StorageURL url = StorageURL.valueOf(
+        //                    kylinConfig.getMetadataUrlPrefix() + "@hdfs,path=" + kylinConfig.getHdfsWorkingDirectory());
+        //            try {
+        //                store = new HDFSResourceStore(kylinConfig);
+        //                synchronized (MassinFilterManager.class) {
+        //                    RESOURCE_STORE_CACHE.put(kylinConfig, store);
+        //                }
+        //            } catch (Exception e) {
+        //                throw new RuntimeException("Failed to create HDFSResourceStore at " + url, e);
+        //            }
+        //        }
+        //        return store;
         throw new NotImplementedException("never use it again");
     }
 }

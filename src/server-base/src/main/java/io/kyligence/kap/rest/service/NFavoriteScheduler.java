@@ -104,8 +104,7 @@ public class NFavoriteScheduler {
         this.project = project;
         backwardShiftTime = KapConfig.getInstanceFromEnv().getInfluxDBFlushDuration() * 2;
 
-        logger.debug("New NFavoriteScheduler created by project '{}': {}", project,
-                System.identityHashCode(NFavoriteScheduler.this));
+        logger.debug("New NFavoriteScheduler created by project {}", project);
     }
 
     public static NFavoriteScheduler getInstance(String project) {
@@ -134,9 +133,9 @@ public class NFavoriteScheduler {
 
         // init schedulers
         autoFavoriteScheduler = Executors.newScheduledThreadPool(1,
-                new NamedThreadFactory("NAutoFavoriteScheduler-" + project));
+                new NamedThreadFactory("AutoFavoriteWorker(project:" + project + ")"));
         updateFavoriteScheduler = Executors.newScheduledThreadPool(1,
-                new NamedThreadFactory("NUpdateFavoriteScheduler-" + project));
+                new NamedThreadFactory("UpdateFQWorker(project:" + project + ")"));
 
         // init frequency status
         autoFavoriteScheduler.schedule(this::initFrequencyStatus, 0, TimeUnit.SECONDS);

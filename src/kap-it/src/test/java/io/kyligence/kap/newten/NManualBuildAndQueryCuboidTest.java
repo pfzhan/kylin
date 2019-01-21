@@ -101,7 +101,6 @@ public class NManualBuildAndQueryCuboidTest extends NManualBuildAndQueryTest {
     @Test
     public void testBasics() throws Exception {
         final KylinConfig config = KylinConfig.getInstanceFromEnv();
-        config.setProperty("kap.storage.columnar.ii-spill-threshold-mb", "128");
 
         buildCubes();
         compareCuboidParquetWithSparkSql("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
@@ -110,7 +109,6 @@ public class NManualBuildAndQueryCuboidTest extends NManualBuildAndQueryTest {
 
     private void compareCuboidParquetWithSparkSql(String dfName) {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
-        config.setProperty("kap.storage.columnar.ii-spill-threshold-mb", "128");
 
         NDataflowManager dsMgr = NDataflowManager.getInstance(config, DEFAULT_PROJECT);
         Assert.assertTrue(config.getHdfsWorkingDirectory().startsWith("file:"));

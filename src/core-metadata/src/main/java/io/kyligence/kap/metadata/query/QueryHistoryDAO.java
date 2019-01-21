@@ -35,6 +35,7 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Lists;
 
+import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.shaded.influxdb.org.influxdb.InfluxDB;
 import io.kyligence.kap.shaded.influxdb.org.influxdb.InfluxDBFactory;
@@ -69,7 +70,9 @@ public class QueryHistoryDAO {
     private KapConfig kapConfig;
 
     public QueryHistoryDAO(KylinConfig config, String project) {
-        logger.info("Initializing QueryHistoryDAO with config " + config);
+        if (!UnitOfWork.isAlreadyInTransaction())
+            logger.info("Initializing QueryHistoryDAO with KylinConfig Id: {} for project {}",
+                    System.identityHashCode(config), project);
         this.kapConfig = KapConfig.wrap(config);
         this.queryMetricMeasurement = getMeasurementName(config, project, QueryHistory.QUERY_MEASUREMENT_PREFIX);
         this.realizationMetricMeasurement = getMeasurementName(config, project,
@@ -115,7 +118,8 @@ public class QueryHistoryDAO {
     }
 
     public List<QueryHistory> getQueryHistoriesByTime(long startTime, long endTime) {
-        return getResultBySql(getQueryHistoriesByTimeSql(startTime, endTime), QueryHistory.class, this.queryMetricMeasurement);
+        return getResultBySql(getQueryHistoriesByTimeSql(startTime, endTime), QueryHistory.class,
+                this.queryMetricMeasurement);
     }
 
     public List<QueryHistory> getQueryHistoriesByConditions(QueryHistoryRequest request, int limit, int offset) {
@@ -132,8 +136,8 @@ public class QueryHistoryDAO {
     }
 
     public <T> List<T> getQueryTimesByModel(String suite, String model, long start, long end, Class clazz) {
-        String sql = String.format(QUERY_TIMES_BY_MODEL_SQL_FORMAT, this.realizationMetricMeasurement, suite, model, start,
-                end == 0 ? System.currentTimeMillis() : end);
+        String sql = String.format(QUERY_TIMES_BY_MODEL_SQL_FORMAT, this.realizationMetricMeasurement, suite, model,
+                start, end == 0 ? System.currentTimeMillis() : end);
         return getResultBySql(sql, clazz, this.realizationMetricMeasurement);
     }
 
@@ -174,6 +178,7 @@ public class QueryHistoryDAO {
         String sql = getQueryStatsByTimeSql(AVG_DURATION_BY_TIME_SQL_PREFIX, startTime, endTime, timeDimension);
         return getResultBySql(sql, QueryStatistics.class, this.queryMetricMeasurement);
     }
+
     /**
      *  format sqls to query Query History statistics
      */
@@ -205,15 +210,15 @@ public class QueryHistoryDAO {
             sb.append("AND (");
             for (int i = 0; i < request.getRealizations().size(); i++) {
                 switch (request.getRealizations().get(i)) {
-                    case "pushdown":
-                        sb.append("cube_hit = 'false' OR ");
-                        break;
-                    case "modelId":
-                        sb.append("cube_hit = 'true' OR ");
-                        break;
-                    default:
-                        throw new IllegalArgumentException(
-                                String.format("Illegal realization type %s", request.getRealizations().get(i)));
+                case "pushdown":
+                    sb.append("cube_hit = 'false' OR ");
+                    break;
+                case "modelId":
+                    sb.append("cube_hit = 'true' OR ");
+                    break;
+                default:
+                    throw new IllegalArgumentException(
+                            String.format("Illegal realization type %s", request.getRealizations().get(i)));
                 }
 
                 if (i == request.getRealizations().size() - 1) {
@@ -237,8 +242,7 @@ public class QueryHistoryDAO {
     }
 
     String getQueryHistoriesByTimeSql(long startTime, long endTime) {
-        return String.format(QUERY_HISTORY_BY_TIME_SQL_FORMAT, this.queryMetricMeasurement,
-                startTime, endTime);
+        return String.format(QUERY_HISTORY_BY_TIME_SQL_FORMAT, this.queryMetricMeasurement, startTime, endTime);
     }
 
     private String getQueryEngineStatisticsSql(long startTime, long endTime) {
@@ -246,7 +250,8 @@ public class QueryHistoryDAO {
     }
 
     private String getCuboidLayoutQueryTimesSql(int queryTimesThreshold) {
-        return String.format(CUBOID_LAYOUT_QUERY_TIMES_SQL_FORMAT, this.realizationMetricMeasurement, queryTimesThreshold);
+        return String.format(CUBOID_LAYOUT_QUERY_TIMES_SQL_FORMAT, this.realizationMetricMeasurement,
+                queryTimesThreshold);
     }
 
     private String getQueryStatisticsSql(long startTime, long endTime) {
@@ -255,15 +260,15 @@ public class QueryHistoryDAO {
 
     protected String getQueryStatsByTimeSql(String sqlPrefix, long startTime, long endTime, String timeDimension) {
         switch (timeDimension) {
-            case "day":
-                return String.format(sqlPrefix, this.queryMetricMeasurement, startTime, endTime) + "time(1d)";
-            case "week":
-                // influxDB start a week from thursday, so need to set a 4 day offset to start a week from monday
-                return String.format(sqlPrefix, this.queryMetricMeasurement, startTime, endTime) + "time(1w, 4d)";
-            case "month":
-                return String.format(sqlPrefix, this.queryMetricMeasurement, startTime, endTime) + "month";
-            default:
-                return String.format(sqlPrefix, this.queryMetricMeasurement, startTime, endTime) + "time(1d)";
+        case "day":
+            return String.format(sqlPrefix, this.queryMetricMeasurement, startTime, endTime) + "time(1d)";
+        case "week":
+            // influxDB start a week from thursday, so need to set a 4 day offset to start a week from monday
+            return String.format(sqlPrefix, this.queryMetricMeasurement, startTime, endTime) + "time(1w, 4d)";
+        case "month":
+            return String.format(sqlPrefix, this.queryMetricMeasurement, startTime, endTime) + "month";
+        default:
+            return String.format(sqlPrefix, this.queryMetricMeasurement, startTime, endTime) + "time(1d)";
         }
     }
 

@@ -205,6 +205,11 @@ public class NDataModelManager {
         return crud.copyForWrite(nDataModel);
     }
 
+    public String getModelDisplayName(String modelId) {
+        NDataModel dataModelDesc = getDataModelDesc(modelId);
+        return dataModelDesc == null ? "NotFoundModel(" + modelId + ")" : dataModelDesc.toString();
+    }
+
     private NProjectManager getProjectManager() {
         return NProjectManager.getInstance(config);
     }

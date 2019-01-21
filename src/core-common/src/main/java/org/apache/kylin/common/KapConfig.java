@@ -458,6 +458,7 @@ public class KapConfig {
     public String getLDAPGroupMemberAttr() {
         return config.getOptional("kylin.security.ldap.group-member-attr", "member");
     }
+
     /**
      * Metastore
      */
@@ -477,30 +478,29 @@ public class KapConfig {
     /**
      * Diagnosis graph
      */
-    public String diagnosisMetricWriterType() {
-        return config.getOptional("kap.metric.diagnosis.graph-writer-type", "BLACK_HOLE");
+    public String getMetricWriteDest() {
+        return config.getOptional("kap.metric.write-destination", "BLACK_HOLE");
     }
 
     public String influxdbAddress() {
-        return config.getOptional("kap.metric.diagnosis.influxDB-address", "localhost:8086");
+        return config.getOptional("kap.influxdb.address", "localhost:8086");
     }
 
     public String influxdbUsername() {
-        return config.getOptional("kap.metric.diagnosis.influxDB-username", "root");
+        return config.getOptional("kap.influxdb.username", "root");
     }
 
     public String influxdbPassword() {
-        return config.getOptional("kap.metric.diagnosis.influxDB-password", "root");
+        return config.getOptional("kap.influxdb.password", "root");
     }
 
     public int getInfluxDBFlushDuration() {
-        return Integer.valueOf(config.getOptional("kap.metric.diagnosis.influxDB-flush-duration", "3000"));
+        return Integer.valueOf(config.getOptional("kap.influxdb.flush-duration", "3000"));
     }
 
     public String sparderJars() {
         try {
-            File storageFile = FileUtils.findFile(KylinConfigBase.getKylinHome() + "/lib",
-                    "newten-job.jar");
+            File storageFile = FileUtils.findFile(KylinConfigBase.getKylinHome() + "/lib", "newten-job.jar");
             String path1 = "";
             if (storageFile != null) {
                 path1 = storageFile.getCanonicalPath();

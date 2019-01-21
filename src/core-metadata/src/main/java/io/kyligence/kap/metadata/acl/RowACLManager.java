@@ -57,6 +57,8 @@ import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.collect.ArrayListMultimap;
 
+import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
+
 public class RowACLManager {
 
     private static final Logger logger = LoggerFactory.getLogger(RowACLManager.class);
@@ -81,8 +83,9 @@ public class RowACLManager {
     private AutoReadWriteLock lock = new AutoReadWriteLock();
 
     public RowACLManager(KylinConfig config) throws IOException {
+        if (!UnitOfWork.isAlreadyInTransaction())
+            logger.info("Initializing RowACLManager with KylinConfig Id: {}", System.identityHashCode(config));
         this.config = config;
-        logger.info("Initializing LegacyRowACLManager with config " + config);
         this.store = ResourceStore.getKylinMetaStore(config);
         this.queryUserRowACL = CacheBuilder.newBuilder().maximumSize(1000).expireAfterAccess(3, TimeUnit.DAYS).build();
 

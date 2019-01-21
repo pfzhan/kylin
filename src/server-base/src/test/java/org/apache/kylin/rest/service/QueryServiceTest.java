@@ -208,7 +208,6 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testQueryWithCache() throws Exception {
-        getTestConfig().setProperty("kap.metric.diagnosis.graph-writer-type", "INFLUX");
 
         final String sql = "select * from success_table";
         final String project = "default";

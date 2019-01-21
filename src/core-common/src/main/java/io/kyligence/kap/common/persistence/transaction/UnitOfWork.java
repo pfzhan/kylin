@@ -75,7 +75,7 @@ public class UnitOfWork {
     public static <T> T doInTransactionWithRetry(Callback<T> f, String unitName, int maxRetry) {
 
         // reused transaction, won't retry
-        if (isReusableTransaction()) {
+        if (isAlreadyInTransaction()) {
             UnitOfWork unitOfWork = UnitOfWork.get();
             Preconditions.checkState(unitOfWork.project.equals(unitName),
                     "re-entry of UnitOfWork with different unit name? existing: %s, new: %s", unitOfWork.project,
@@ -104,11 +104,13 @@ public class UnitOfWork {
                 UnitOfWork.endTransaction();
                 long duration = System.currentTimeMillis() - startTime;
                 if (duration > 3000) {
-                    log.warn("a UnitOfWork takes too long time: {}", duration);
+                    log.warn("a UnitOfWork takes too long time {}ms to complete", duration);
+                } else {
+                    log.debug("a UnitOfWork takes {}ms to complete", duration);
                 }
                 return ret;
-            } catch (MQPublishFailureException mqe) {
-                throw new TransactionException("transaction failed due to Message Queue problem", mqe);
+                //            } catch (MQPublishFailureException mqe) {
+                //                throw new TransactionException("transaction failed due to Message Queue problem", mqe);
             } catch (Throwable throwable) {
                 if (retry >= maxRetry) {
                     f.onProcessError(throwable);
@@ -122,12 +124,12 @@ public class UnitOfWork {
                 }
                 //else proceed retry
             } finally {
-                if (isReusableTransaction()) {
+                if (isAlreadyInTransaction()) {
                     try {
                         UnitOfWork unitOfWork = UnitOfWork.get();
                         unitOfWork.unlock();
                         unitOfWork.done();
-                        log.debug("UnitOfWork for {} is done", unitOfWork.project);
+                        log.debug("leaving UnitOfWork for project {}", unitOfWork.project);
                     } catch (IllegalStateException e) {
                         //has not hold the lock yet, it's ok
                         log.warn(e.getMessage());
@@ -141,7 +143,7 @@ public class UnitOfWork {
         throw new IllegalStateException("Unexpected doInTransactionWithRetry end");
     }
 
-    private static boolean isReusableTransaction() {
+    public static boolean isAlreadyInTransaction() {
         return threadLocals.get() != null;
     }
 
@@ -149,7 +151,7 @@ public class UnitOfWork {
 
         ReentrantLock lock = getLock(project);
 
-        log.debug("get lock {}, {}", project, lock.isHeldByCurrentThread());
+        log.trace("get lock for project {}, lock is held by current thread: {}", project, lock.isHeldByCurrentThread());
         //re-entry is not encouraged (because it indicates complex handling logic, bad smell), let's abandon it first
         Preconditions.checkState(!lock.isHeldByCurrentThread());
         lock.lock();
@@ -179,7 +181,7 @@ public class UnitOfWork {
         ResourceStore.setRS(configCopy, rs);
         unitOfWork.localConfig = KylinConfig.setAndUnsetThreadLocalConfig(configCopy);
 
-        log.info("sandbox RS {} now takes place for main RS {}", rs, underlying);
+        log.trace("sandbox RS {} now takes place for main RS {}", rs, underlying);
 
         return unitOfWork;
     }

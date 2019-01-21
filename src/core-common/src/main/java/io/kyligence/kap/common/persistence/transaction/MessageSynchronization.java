@@ -87,13 +87,13 @@ public class MessageSynchronization {
 
     private void replayDelete(ResourceDeleteEvent event) {
         val resourceStore = ResourceStore.getKylinMetaStore(config);
-        log.debug("replay delete {}", event.getResPath());
+        log.trace("replay delete for res {}", event.getResPath());
         resourceStore.deleteResource(event.getResPath());
     }
 
     private void replayUpdate(ResourceCreateOrUpdateEvent event) {
         val resourceStore = ResourceStore.getKylinMetaStore(config);
-        log.debug("replay update {}, {}", event.getResPath(), event.getCreatedOrUpdated().getMvcc());
+        log.trace("replay update for res {}, with new version: {}", event.getResPath(), event.getCreatedOrUpdated().getMvcc());
         val raw = event.getCreatedOrUpdated();
         val oldRaw = resourceStore.getResource(raw.getResPath());
         if (oldRaw == null) {

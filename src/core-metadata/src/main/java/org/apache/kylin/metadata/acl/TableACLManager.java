@@ -50,6 +50,8 @@ import org.apache.kylin.metadata.cachesync.CachedCrudAssist;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
+
 /**
  */
 public class TableACLManager {
@@ -71,7 +73,8 @@ public class TableACLManager {
     private CachedCrudAssist<TableACL> crud;
 
     public TableACLManager(KylinConfig config) throws IOException {
-        logger.info("Initializing TableACLManager with config " + config);
+        if (!UnitOfWork.isAlreadyInTransaction())
+            logger.info("Initializing TableACLManager with KylinConfig Id: {}", System.identityHashCode(config));
         this.config = config;
         this.crud = new CachedCrudAssist<TableACL>(getStore(), "/table_acl", TableACL.class) {
             @Override

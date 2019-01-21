@@ -27,6 +27,7 @@ package io.kyligence.kap.metadata.favorite;
 import java.io.IOException;
 import java.util.List;
 
+import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.metadata.cachesync.CachedCrudAssist;
@@ -54,7 +55,8 @@ public class FavoriteRuleManager {
     }
 
     private FavoriteRuleManager(KylinConfig kylinConfig, String project) {
-        logger.info("Initializing FavoriteRuleManager with config {} for project {}", kylinConfig, project);
+        if (!UnitOfWork.isAlreadyInTransaction())
+            logger.info("Initializing FavoriteRuleManager with config {} for project {}", kylinConfig, project);
 
         this.kylinConfig = kylinConfig;
         this.project = project;

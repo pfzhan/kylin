@@ -46,31 +46,39 @@ import io.kyligence.kap.rest.storage.ModelCleaner;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
-
 @Slf4j
 @Service
 public class MetadataCleanupService {
 
-    @Scheduled(cron = "${kylin.garbage.metadata-cleanup-cron:0 0 * * * *}")
-    public void clean() throws Exception {
-        cleanupAcl();
-        val config = KylinConfig.getInstanceFromEnv();
-        val projectManager = NProjectManager.getInstance(config);
-        for (ProjectInstance project : projectManager.listAllProjects()) {
-            log.info("Start garbage collection for project<{}>", project.getName());
-            try {
-                cleanupProject(project);
-            } catch (Exception e) {
-                log.warn("clean project<" + project.getName() + "> failed", e);
+    @Scheduled(cron = "${kylin.garbage.metadata-cleanup-cron:0 0 0 * * *}")
+    public void clean() {
+        String oldTheadName = Thread.currentThread().getName();
+
+        try {
+            Thread.currentThread().setName("MetadataCleanupWorker");
+            cleanupAcl();
+            val config = KylinConfig.getInstanceFromEnv();
+            val projectManager = NProjectManager.getInstance(config);
+            for (ProjectInstance project : projectManager.listAllProjects()) {
+                log.info("Start garbage collection for project<{}>", project.getName());
+                try {
+                    cleanupProject(project);
+                } catch (Exception e) {
+                    log.warn("clean project<" + project.getName() + "> failed", e);
+                }
+                log.info("metadata cleanup for project {} finished", project.getName());
+
             }
-            log.info("Garbage collection for project<{}> finished", project.getName());
+        } finally {
+            Thread.currentThread().setName(oldTheadName);
         }
     }
 
     private void cleanupAcl() {
         UnitOfWork.doInTransactionWithRetry(() -> {
             val prjManager = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv());
-            List<String> prjects = prjManager.listAllProjects().stream().map(ProjectInstance::getUuid).collect(Collectors.toList());
+            List<String> prjects = prjManager.listAllProjects().stream().map(ProjectInstance::getUuid)
+                    .collect(Collectors.toList());
             val aclManager = AclManager.getInstance(KylinConfig.getInstanceFromEnv());
             for (val acl : aclManager.listAll()) {
                 val id = acl.getDomainObjectInfo().getId();
@@ -82,7 +90,7 @@ public class MetadataCleanupService {
         }, UnitOfWork.GLOBAL_UNIT);
     }
 
-    public void cleanupProject(ProjectInstance project) throws Exception {
+    public void cleanupProject(ProjectInstance project) {
         UnitOfWork.doInTransactionWithRetry(() -> {
             val dfManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project.getName());
             val favoriteQueryCleaner = new FavoriteQueryCleaner(project);

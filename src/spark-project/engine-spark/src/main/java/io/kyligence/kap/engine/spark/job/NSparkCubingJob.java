@@ -30,7 +30,6 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import org.apache.kylin.common.KylinConfigExt;
 import org.apache.kylin.job.constant.ExecutableConstants;
 import org.apache.kylin.job.execution.DefaultChainedExecutable;
@@ -41,6 +40,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.spark_project.guava.base.Preconditions;
 
+import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
@@ -61,7 +61,7 @@ public class NSparkCubingJob extends DefaultChainedExecutable {
     }
 
     public static NSparkCubingJob create(Set<NDataSegment> segments, Set<LayoutEntity> layouts, String submitter,
-                                         JobTypeEnum jobType, String jobId) {
+            JobTypeEnum jobType, String jobId) {
         Preconditions.checkArgument(segments.size() > 0);
         Preconditions.checkArgument(layouts.size() > 0);
         Preconditions.checkArgument(submitter != null);
@@ -111,7 +111,7 @@ public class NSparkCubingJob extends DefaultChainedExecutable {
         step.setCuboidLayoutIds(NSparkCubingUtil.toCuboidLayoutIds(layouts));
         this.addTask(step);
         //after addTask, step's id is changed
-        step.setDistMetaUrl(config.getJobTmpMetaStoreUrl(step.getId()).toString());
+        step.setDistMetaUrl(config.getJobTmpMetaStoreUrl(getProject(), step.getId()).toString());
     }
 
     private void addSparkCubingStep(Set<NDataSegment> segments, Set<LayoutEntity> layouts) {
@@ -129,7 +129,7 @@ public class NSparkCubingJob extends DefaultChainedExecutable {
         step.setJobId(getId());
         this.addTask(step);
         //after addTask, step's id is changed
-        step.setDistMetaUrl(config.getJobTmpMetaStoreUrl(step.getId()).toString());
+        step.setDistMetaUrl(config.getJobTmpMetaStoreUrl(getProject(), step.getId()).toString());
     }
 
     @Override

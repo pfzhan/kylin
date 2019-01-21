@@ -102,7 +102,6 @@ public class NMeasuresTest extends NLocalWithSparkSessionTest {
 
         //validate Cube Data by decode
         KylinConfig config = KylinConfig.getInstanceFromEnv();
-        config.setProperty("kap.storage.columnar.ii-spill-threshold-mb", "128");
 
         buildCuboid();
         //build is done, start to test query
@@ -209,7 +208,6 @@ public class NMeasuresTest extends NLocalWithSparkSessionTest {
 
     private void buildCuboid() throws Exception {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
-        config.setProperty("kap.storage.columnar.ii-spill-threshold-mb", "128");
 
         NDataModelManager modelMgr = NDataModelManager.getInstance(config, getProject());
         NDataModel model = modelMgr.getDataModelDesc("cb596712-3a09-46f8-aea1-988b43fe9b6c");

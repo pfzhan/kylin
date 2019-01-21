@@ -60,8 +60,6 @@ public abstract class AbstractMVCIntegrationTestCase extends NLocalFileMetadataT
     @BeforeClass
     public static void setupResource() throws Exception {
         staticCreateTestMetadata();
-        getTestConfig().setProperty("kap.metric.diagnosis.graph-writer-type", "INFLUX");
-        getTestConfig().setProperty("kylin.favorite.storage-url", "kylin_favorite@jdbc,url=jdbc:h2:mem:db_default;MODE=MySQL,username=sa,password=,driverClassName=org.h2.Driver");
     }
 
 

@@ -49,16 +49,14 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
-import io.kyligence.kap.metadata.cube.model.NDataflowManager;
-import lombok.val;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.ExecutorServiceUtil;
-import org.apache.kylin.metadata.realization.RealizationStatusEnum;
+import org.apache.kylin.common.util.NamedThreadFactory;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.NExecutableManager;
+import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -67,12 +65,15 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
+import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.event.handle.EventHandler;
 import io.kyligence.kap.event.model.AddSegmentEvent;
 import io.kyligence.kap.event.model.Event;
 import io.kyligence.kap.event.model.EventContext;
 import io.kyligence.kap.event.model.JobRelatedEvent;
 import io.kyligence.kap.event.model.PostAddSegmentEvent;
+import io.kyligence.kap.metadata.cube.model.NDataflowManager;
+import lombok.val;
 
 /**
  */
@@ -88,6 +89,10 @@ public class EventOrchestrator {
     private KylinConfig kylinConfig;
 
     public EventOrchestrator(String project, KylinConfig kylinConfig) {
+        if (!UnitOfWork.isAlreadyInTransaction())
+            logger.info("Initializing EventOrchestrator with KylinConfig Id: {} for project {}",
+                    System.identityHashCode(kylinConfig), project);
+
         Preconditions.checkNotNull(project);
 
         this.project = project;
@@ -98,14 +103,14 @@ public class EventOrchestrator {
             logger.info("server mode: " + serverMode + ", no need to run EventOrchestrator");
             return;
         }
-        logger.info("Initializing EventOrchestrator for project {} ....", project);
 
         eventDao = EventDao.getInstance(kylinConfig, project);
 
         int pollSecond = kylinConfig.getEventPollIntervalSecond();
         logger.info("Fetching events every {} seconds", pollSecond);
         EventChecker checker = new EventChecker();
-        checkerPool = Executors.newScheduledThreadPool(1);
+        checkerPool = Executors.newScheduledThreadPool(1,
+                new NamedThreadFactory("EventChecker(project:" + project + ")"));
         checkerPool.scheduleAtFixedRate(checker, pollSecond, pollSecond, TimeUnit.SECONDS);
     }
 
@@ -115,18 +120,19 @@ public class EventOrchestrator {
         synchronized public void run() {
 
             List<Event> events = eventDao.getEvents();
-            logger.trace("project {} contains {} events", project, events.size());
+            logger.debug("project {} contains {} events", project, events.size());
             Map<String, Event> eventsToBeProcessed = chooseEventForeachModel(events);
             for (Map.Entry<String, Event> eventsEntry : eventsToBeProcessed.entrySet()) {
 
                 String modelId = eventsEntry.getKey();
                 Event event = eventsEntry.getValue();
+
                 val runTimes = event.getRunTimes();
                 if (runTimes >= MAX_RUN_TIMES) {
                     handleEventError(modelId);
                     continue;
                 }
-                logger.trace("project: {}, model: {}, event to be processed: {}", project, modelId, event);
+                logger.trace("project: {}, model: {}, events to be processed: {}", project, modelId, event);
 
                 try {
                     EventContext eventContext = new EventContext(event, kylinConfig, project);
@@ -144,6 +150,7 @@ public class EventOrchestrator {
         }
 
         private void handleEventError(String modelId) {
+            logger.warn("handling event error for model {}", modelId);
             UnitOfWork.doInTransactionWithRetry(() -> {
                 val eventDao = EventDao.getInstance(KylinConfig.getInstanceFromEnv(), project);
                 eventDao.deleteEventsByModel(modelId);
@@ -181,8 +188,8 @@ public class EventOrchestrator {
                 val event = entry.getValue().stream()
                         .filter(e -> CollectionUtils.isEmpty(executableIds)
                                 || ((e instanceof AddSegmentEvent || e instanceof PostAddSegmentEvent)
-                                && !executableIds.contains(((JobRelatedEvent) e).getJobId()) // to skip Post*Event
-                        )).findFirst().orElse(null);
+                                        && !executableIds.contains(((JobRelatedEvent) e).getJobId()) // to skip Post*Event
+                )).findFirst().orElse(null);
                 if (event != null) {
                     String groupKey = genGroupKey(event);
                     map.put(groupKey, event);

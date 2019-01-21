@@ -57,6 +57,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 
 import io.kyligence.kap.common.obf.IKeepNames;
+import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.metadata.model.ManagementType;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
@@ -84,7 +85,9 @@ public class NDataflowManager implements IRealizationProvider, IKeepNames {
     private CachedCrudAssist<NDataflow> crud;
 
     private NDataflowManager(KylinConfig cfg, final String project) {
-        logger.info("Initializing NDataflowManager with config {}", cfg);
+        if (!UnitOfWork.isAlreadyInTransaction())
+            logger.info("Initializing NDataflowManager with KylinConfig Id: {} for project {}",
+                    System.identityHashCode(cfg), project);
         this.config = cfg;
         this.project = project;
         String resourceRootPath = "/" + project + NDataflow.DATAFLOW_RESOURCE_ROOT;
@@ -156,7 +159,8 @@ public class NDataflowManager implements IRealizationProvider, IKeepNames {
 
     // get all dataflows include broken ones
     public List<NDataflow> listAllDataflows(boolean includeBroken) {
-        return crud.listAll().stream().filter(df -> includeBroken || !df.checkBrokenWithRelatedInfo()).collect(Collectors.toList());
+        return crud.listAll().stream().filter(df -> includeBroken || !df.checkBrokenWithRelatedInfo())
+                .collect(Collectors.toList());
     }
 
     // listUnderliningDataModels only get the healthy models,
@@ -209,8 +213,8 @@ public class NDataflowManager implements IRealizationProvider, IKeepNames {
     }
 
     public NDataflow getDataflowByModelAlias(String name) {
-        return listAllDataflows(true).stream().filter(dataflow -> Objects.equals(dataflow.getModelAlias(), name)).findFirst()
-                .orElse(null);
+        return listAllDataflows(true).stream().filter(dataflow -> Objects.equals(dataflow.getModelAlias(), name))
+                .findFirst().orElse(null);
     }
 
     public NDataflow createDataflow(IndexPlan plan, String owner) {
@@ -232,15 +236,13 @@ public class NDataflowManager implements IRealizationProvider, IKeepNames {
         if (df.getModel().getManagementType() != ManagementType.TABLE_ORIENTED) {
             return;
         }
-        val dataLoadingRangeManager = NDataLoadingRangeManager
-                .getInstance(KylinConfig.getInstanceFromEnv(), project);
+        val dataLoadingRangeManager = NDataLoadingRangeManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
         String tableName = df.getModel().getRootFactTable().getTableIdentity();
         NDataLoadingRange dataLoadingRange = dataLoadingRangeManager.getDataLoadingRange(tableName);
         val segmentRanges = dataLoadingRangeManager.getSegRangesToBuildForNewDataflow(dataLoadingRange);
         if (CollectionUtils.isNotEmpty(segmentRanges)) {
             fillDfWithNewRanges(df, segmentRanges);
         }
-
 
     }
 

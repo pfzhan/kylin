@@ -23,6 +23,8 @@
  */
 package io.kyligence.kap.metadata.favorite;
 
+import java.util.List;
+
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.JsonSerializer;
 import org.apache.kylin.common.persistence.ResourceStore;
@@ -31,7 +33,7 @@ import org.apache.kylin.metadata.MetadataConstants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.List;
+import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 
 public class QueryHistoryTimeOffsetManager {
     private static final Logger logger = LoggerFactory.getLogger(QueryHistoryTimeOffsetManager.class);
@@ -48,12 +50,14 @@ public class QueryHistoryTimeOffsetManager {
     }
 
     // called by reflection
-    static QueryHistoryTimeOffsetManager newInstance(KylinConfig config, String project){
+    static QueryHistoryTimeOffsetManager newInstance(KylinConfig config, String project) {
         return new QueryHistoryTimeOffsetManager(config, project);
     }
 
     private QueryHistoryTimeOffsetManager(KylinConfig kylinConfig, String project) {
-        logger.info("Initializing QueryHistoryTimeOffsetManager with config " + kylinConfig);
+        if (!UnitOfWork.isAlreadyInTransaction())
+            logger.info("Initializing QueryHistoryTimeOffsetManager with KylinConfig Id: {} for project {}",
+                    System.identityHashCode(kylinConfig), project);
         this.kylinConfig = kylinConfig;
         resourceStore = ResourceStore.getKylinMetaStore(this.kylinConfig);
         this.resourceRootPath = "/" + project + ResourceStore.QUERY_HISTORY_TIME_OFFSET;
@@ -68,9 +72,11 @@ public class QueryHistoryTimeOffsetManager {
     }
 
     public QueryHistoryTimeOffset get() {
-        List<QueryHistoryTimeOffset> queryHistoryTimeOffsetList = resourceStore.getAllResources(resourceRootPath, QUERY_HISTORY_TIME_OFFSET_SERIALIZER);
+        List<QueryHistoryTimeOffset> queryHistoryTimeOffsetList = resourceStore.getAllResources(resourceRootPath,
+                QUERY_HISTORY_TIME_OFFSET_SERIALIZER);
         if (queryHistoryTimeOffsetList.isEmpty()) {
-            QueryHistoryTimeOffset queryHistoryTimeOffset = new QueryHistoryTimeOffset(System.currentTimeMillis(), System.currentTimeMillis());
+            QueryHistoryTimeOffset queryHistoryTimeOffset = new QueryHistoryTimeOffset(System.currentTimeMillis(),
+                    System.currentTimeMillis());
             return queryHistoryTimeOffset;
         }
 

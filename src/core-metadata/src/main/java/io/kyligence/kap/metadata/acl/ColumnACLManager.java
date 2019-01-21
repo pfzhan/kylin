@@ -27,6 +27,7 @@ package io.kyligence.kap.metadata.acl;
 import java.io.IOException;
 import java.util.Set;
 
+import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.metadata.cachesync.CachedCrudAssist;
@@ -55,7 +56,8 @@ public class ColumnACLManager {
     private CachedCrudAssist<ColumnACL> crud;
 
     public ColumnACLManager(KylinConfig config) {
-        logger.info("Initializing ColumnACLManager with config " + config);
+        if (!UnitOfWork.isAlreadyInTransaction())
+            logger.info("Initializing ColumnACLManager with KylinConfig Id: {}", System.identityHashCode(config));
         this.config = config;
         this.crud = new CachedCrudAssist<ColumnACL>(getStore(), "/column_acl", "", ColumnACL.class) {
             @Override

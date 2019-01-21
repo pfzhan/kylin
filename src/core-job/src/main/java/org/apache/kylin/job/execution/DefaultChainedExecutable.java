@@ -86,7 +86,7 @@ public class DefaultChainedExecutable extends AbstractExecutable implements Chai
                 break;
             } else if (state == ExecutableState.ERROR) {
                 throw new IllegalStateException(
-                        "invalid subtask state, subtask:" + subTask.getName() + ", state:" + subTask.getStatus());
+                        "invalid subtask state, subtask:" + subTask.getDisplayName() + ", state:" + subTask.getStatus());
             }
             if (subTask.isRunnable()) {
                 try {
@@ -133,9 +133,9 @@ public class DefaultChainedExecutable extends AbstractExecutable implements Chai
                 switch (task.getStatus()) {
                 case RUNNING:
                     logger.error(
-                            "There shouldn't be a running subtask[jobId: {}, jobName: {}], \n"
+                            "There shouldn't be a running subtask[{}], \n"
                                     + "it might cause endless state, will retry to fetch subtask's state.",
-                            task.getId(), task.getName());
+                            task.getDisplayName());
                     hasError = true;
                     break;
                 case ERROR:
@@ -194,15 +194,6 @@ public class DefaultChainedExecutable extends AbstractExecutable implements Chai
         return false;
     }
 
-    public final AbstractExecutable getTaskByName(String name) {
-        for (AbstractExecutable task : subTasks) {
-            if (task.getName() != null && task.getName().equalsIgnoreCase(name)) {
-                return task;
-            }
-        }
-        return null;
-    }
-
     @Override
     public void addTask(AbstractExecutable executable) {
         executable.setId(getId() + "-" + String.format("%02d", subTasks.size()));
@@ -232,7 +223,7 @@ public class DefaultChainedExecutable extends AbstractExecutable implements Chai
         }
         if (hasRunning) {
             logger.error("Parent task: {} is finished, but it's subtask: {}'s state is still RUNNING \n"
-                    + ", mark parent task failed.", getName(), task.getName());
+                    + ", mark parent task failed.", getDisplayName(), task.getDisplayName());
             return false;
         }
         return true;

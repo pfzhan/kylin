@@ -69,19 +69,21 @@ public class QueryMetricsContextTest extends NLocalFileMetadataTestCase {
         try {
             Assert.assertEquals(false, QueryMetricsContext.isStarted());
 
+            QueryMetricsContext.kapConfig.getKylinConfig().setProperty("kap.metric.diagnosis.graph-writer-type",
+                    "BLACK_HOLE");
+
             QueryMetricsContext.start(QUERY_ID);
             Assert.assertEquals(false, QueryMetricsContext.isStarted());
 
             QueryMetricsContext.kapConfig.getKylinConfig().setProperty("kap.metric.diagnosis.graph-writer-type",
                     "INFLUX");
+
             QueryMetricsContext.start(QUERY_ID);
             Assert.assertEquals(true, QueryMetricsContext.isStarted());
 
             QueryMetricsContext.start(QUERY_ID);
         } finally {
             QueryMetricsContext.reset();
-            QueryMetricsContext.kapConfig.getKylinConfig().setProperty("kap.metric.diagnosis.graph-writer-type",
-                    "BLACK_HOLE");
         }
     }
 
@@ -96,7 +98,6 @@ public class QueryMetricsContextTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void assertCollectOtherError() {
-        QueryMetricsContext.kapConfig.getKylinConfig().setProperty("kap.metric.diagnosis.graph-writer-type", "INFLUX");
         try {
             final String sql = "select * from test_with_otherError";
             final QueryContext queryContext = QueryContext.current();
@@ -128,14 +129,11 @@ public class QueryMetricsContextTest extends NLocalFileMetadataTestCase {
         } finally {
             QueryContext.reset();
             QueryMetricsContext.reset();
-            QueryMetricsContext.kapConfig.getKylinConfig().setProperty("kap.metric.diagnosis.graph-writer-type",
-                    "BLACK_HOLE");
         }
     }
 
     @Test
     public void assertCollectWithoutError() {
-        QueryMetricsContext.kapConfig.getKylinConfig().setProperty("kap.metric.diagnosis.graph-writer-type", "INFLUX");
         try {
             String sql = "select * from test_with_otherError";
             final QueryContext queryContext = QueryContext.current();
@@ -164,14 +162,11 @@ public class QueryMetricsContextTest extends NLocalFileMetadataTestCase {
         } finally {
             QueryContext.reset();
             QueryMetricsContext.reset();
-            QueryMetricsContext.kapConfig.getKylinConfig().setProperty("kap.metric.diagnosis.graph-writer-type",
-                    "BLACK_HOLE");
         }
     }
 
     @Test
     public void assertCollectWithPushdown() {
-        QueryMetricsContext.kapConfig.getKylinConfig().setProperty("kap.metric.diagnosis.graph-writer-type", "INFLUX");
         try {
             final String sql = "select * from test_with_pushdown";
             final QueryContext queryContext = QueryContext.current();
@@ -218,14 +213,11 @@ public class QueryMetricsContextTest extends NLocalFileMetadataTestCase {
         } finally {
             QueryContext.reset();
             QueryMetricsContext.reset();
-            QueryMetricsContext.kapConfig.getKylinConfig().setProperty("kap.metric.diagnosis.graph-writer-type",
-                    "BLACK_HOLE");
         }
     }
 
     @Test
     public void assertCollectWithRealization() {
-        QueryMetricsContext.kapConfig.getKylinConfig().setProperty("kap.metric.diagnosis.graph-writer-type", "INFLUX");
         try {
             final String sql = "select * from test_with_realization";
             final QueryContext queryContext = QueryContext.current();
@@ -278,14 +270,11 @@ public class QueryMetricsContextTest extends NLocalFileMetadataTestCase {
             QueryContext.reset();
             QueryMetricsContext.reset();
             OLAPContext.clearThreadLocalContexts();
-            QueryMetricsContext.kapConfig.getKylinConfig().setProperty("kap.metric.diagnosis.graph-writer-type",
-                    "BLACK_HOLE");
         }
     }
 
     @Test
     public void testSqlPatternParseError() {
-        QueryMetricsContext.kapConfig.getKylinConfig().setProperty("kap.metric.diagnosis.graph-writer-type", "INFLUX");
         try {
             // error happens when there is a comma, but the query history still gets to record down
             final String origSql = "select * from test_parse_sql_pattern_error";
@@ -314,14 +303,11 @@ public class QueryMetricsContextTest extends NLocalFileMetadataTestCase {
         } finally {
             QueryContext.reset();
             QueryMetricsContext.reset();
-            QueryMetricsContext.kapConfig.getKylinConfig().setProperty("kap.metric.diagnosis.graph-writer-type",
-                    "BLACK_HOLE");
         }
     }
 
     @Test
     public void testMassagedSqlIsNull() {
-        QueryMetricsContext.kapConfig.getKylinConfig().setProperty("kap.metric.diagnosis.graph-writer-type", "INFLUX");
         try {
             final String origSql = "select * from test_massage_sql_is_null";
             final String sqlPattern = QueryPatternUtil.normalizeSQLPattern(origSql);
@@ -349,8 +335,6 @@ public class QueryMetricsContextTest extends NLocalFileMetadataTestCase {
         } finally {
             QueryContext.reset();
             QueryMetricsContext.reset();
-            QueryMetricsContext.kapConfig.getKylinConfig().setProperty("kap.metric.diagnosis.graph-writer-type",
-                    "BLACK_HOLE");
         }
     }
 }

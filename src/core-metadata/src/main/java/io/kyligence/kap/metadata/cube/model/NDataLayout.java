@@ -211,6 +211,7 @@ public class NDataLayout implements Serializable {
 
     @Override
     public String toString() {
-        return "NDataLayout [" + segDetails.getDataflowId() + "." + segDetails.getUuid() + "." + layoutId + "]";
+        return "NDataLayout [ Model Name:" + segDetails.getDataflow().getModelAlias() + ", Segment Id:" + segDetails.getId()
+                + ", Layout Id:" + layoutId + "]";
     }
 }

@@ -32,7 +32,6 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
 
-import lombok.val;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.JsonSerializer;
@@ -45,6 +44,8 @@ import org.slf4j.LoggerFactory;
 import com.google.common.base.Preconditions;
 
 import io.kyligence.kap.common.obf.IKeepNames;
+import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
+import lombok.val;
 
 /**
  * Package private. Not intended for public use.
@@ -73,7 +74,9 @@ class NDataSegDetailsManager implements IKeepNames {
     private String project;
 
     private NDataSegDetailsManager(KylinConfig config, String project) {
-        logger.info("Initializing NDataSegDetailsManager with config {}", config);
+        if (!UnitOfWork.isAlreadyInTransaction())
+            logger.info("Initializing NDataSegDetailsManager with KylinConfig Id: {} for project {}",
+                    System.identityHashCode(config), project);
         this.kylinConfig = config;
         this.project = project;
     }
@@ -191,8 +194,7 @@ class NDataSegDetailsManager implements IKeepNames {
     }
 
     private String getResourcePathForSegment(String dfId, String segId) {
-        return getResourcePathForDetails(dfId) + "/" + segId
-                + MetadataConstants.FILE_SURFIX;
+        return getResourcePathForDetails(dfId) + "/" + segId + MetadataConstants.FILE_SURFIX;
     }
 
     private String getResourcePathForDetails(String dfId) {

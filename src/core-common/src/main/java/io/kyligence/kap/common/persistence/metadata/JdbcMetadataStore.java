@@ -200,18 +200,22 @@ public class JdbcMetadataStore extends MetadataStore {
     }
 
     private <T> T withTransaction(Callback<T> consumer) {
+        long start = System.currentTimeMillis();
         val definition = new DefaultTransactionDefinition();
         definition.setIsolationLevel(TransactionDefinition.ISOLATION_REPEATABLE_READ);
         val status = transactionManager.getTransaction(definition);
         try {
             T result = consumer.handle();
             transactionManager.commit(status);
+            log.info("current jdbc transaction takes {}ms to complete", System.currentTimeMillis() - start);
             return result;
         } catch (Exception e) {
             transactionManager.rollback(status);
             if (e instanceof DataIntegrityViolationException) {
                 consumer.onError();
             }
+            log.info("current jdbc transaction takes {}ms to complete and rollback",
+                    System.currentTimeMillis() - start);
             throw new PersistException("persist messages failed", e);
         }
     }

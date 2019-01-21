@@ -48,6 +48,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
+import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.metadata.model.MaintainModelType;
 import lombok.val;
 
@@ -72,7 +73,8 @@ public class NProjectManager {
     private CachedCrudAssist<ProjectInstance> crud;
 
     public NProjectManager(KylinConfig config) {
-        logger.info("Initializing ProjectManager with metadata url " + config);
+        if (!UnitOfWork.isAlreadyInTransaction())
+            logger.info("Initializing NProjectManager with KylinConfig Id: {}", System.identityHashCode(config));
         this.config = config;
         this.projectLoader = new NProjectLoader(this);
         crud = new CachedCrudAssist<ProjectInstance>(getStore(), "",

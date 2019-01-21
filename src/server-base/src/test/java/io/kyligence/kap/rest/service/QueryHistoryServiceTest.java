@@ -63,7 +63,6 @@ public class QueryHistoryServiceTest extends NLocalFileMetadataTestCase {
     @Before
     public void setUp() {
         createTestMetadata();
-        getTestConfig().setProperty("kap.metric.diagnosis.graph-writer-type", "INFLUX");
     }
 
     @After

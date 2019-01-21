@@ -100,7 +100,6 @@ trait JobSupport
                               prj: String = DEFAULT_PROJECT): Unit = {
     logInfo("Build cube :" + dfName)
     val config: KylinConfig = KylinConfig.getInstanceFromEnv
-    config.setProperty("kap.storage.columnar.ii-spill-threshold-mb", "128")
     val dsMgr: NDataflowManager = NDataflowManager.getInstance(config, prj)
     // ready dataflow, segment, cuboid layout
     var df: NDataflow = dsMgr.getDataflow(dfName)
@@ -168,7 +167,6 @@ trait JobSupport
   def buildFourSegementAndMerge(dfName: String,
                                 prj: String = DEFAULT_PROJECT): Unit = {
     val config = KylinConfig.getInstanceFromEnv
-    config.setProperty("kap.storage.columnar.ii-spill-threshold-mb", "128")
     val dsMgr = NDataflowManager.getInstance(config, DEFAULT_PROJECT)
     val execMgr = NExecutableManager.getInstance(config, DEFAULT_PROJECT)
     var df = dsMgr.getDataflow(dfName)
@@ -265,7 +263,6 @@ trait JobSupport
   def buildTwoSegementAndMerge(dfName: String,
                                prj: String = DEFAULT_PROJECT): Unit = {
     val config = KylinConfig.getInstanceFromEnv
-    config.setProperty("kap.storage.columnar.ii-spill-threshold-mb", "128")
     val dsMgr = NDataflowManager.getInstance(config, DEFAULT_PROJECT)
     val execMgr = NExecutableManager.getInstance(config, DEFAULT_PROJECT)
     var df = dsMgr.getDataflow(dfName)

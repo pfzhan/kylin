@@ -24,6 +24,19 @@
 
 package io.kyligence.kap.spark.common.logging;
 
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.IOException;
+import java.io.OutputStreamWriter;
+import java.security.PrivilegedExceptionAction;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.UUID;
+import java.util.concurrent.BlockingDeque;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.LinkedBlockingDeque;
+
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.conf.Configuration;
@@ -40,19 +53,6 @@ import org.apache.log4j.helpers.LogLog;
 import org.apache.log4j.spi.LoggingEvent;
 import org.apache.spark.SparkEnv;
 import org.apache.spark.deploy.yarn.YarnSparkHadoopUtil;
-
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.IOException;
-import java.io.OutputStreamWriter;
-import java.security.PrivilegedExceptionAction;
-import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.UUID;
-import java.util.concurrent.BlockingDeque;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.LinkedBlockingDeque;
 
 public class HdfsAppender extends AppenderSkeleton {
 
@@ -81,6 +81,7 @@ public class HdfsAppender extends AppenderSkeleton {
     private String identifier;
     // only cubing job
     private String jobName;
+    private String project;
 
     @Override
     public void activateOptions() {
@@ -98,6 +99,7 @@ public class HdfsAppender extends AppenderSkeleton {
         LogLog.warn("metadataUrl -> " + metadataUrl);
         LogLog.warn("category -> " + category);
         LogLog.warn("identifier -> " + identifier);
+        LogLog.warn("project -> " + identifier);
 
         logBufferQue = new LinkedBlockingDeque<>(logQueueCapacity);
 
@@ -215,6 +217,14 @@ public class HdfsAppender extends AppenderSkeleton {
 
     public void setJobName(String jobName) {
         this.jobName = jobName;
+    }
+
+    public String getProject() {
+        return project;
+    }
+
+    public void setProject(String project) {
+        this.project = project;
     }
 
     private class HdfsFlushService implements Runnable {
@@ -394,7 +404,13 @@ public class HdfsAppender extends AppenderSkeleton {
         }
 
         private String getRootPathName() {
-            return parseHdfsWordingDir() + "/" + "spark_logs" + "/" + category;
+            if ("job".equals(category)) {
+                return parseHdfsWordingDir() + "/" + project + "/spark_logs";
+            } else if ("sparder".equals(category)) {
+                return parseHdfsWordingDir() + "/sparder_logs";
+            } else {
+                throw new IllegalArgumentException("illegal category: " + category);
+            }
         }
 
         private boolean isTimeChanged(LoggingEvent event) {

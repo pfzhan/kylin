@@ -23,17 +23,6 @@
  */
 package io.kyligence.kap.event.handle;
 
-import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
-
-import io.kyligence.kap.event.event.ErrorEvent;
-
-import io.kyligence.kap.event.manager.EventDao;
-import io.kyligence.kap.event.manager.EventManager;
-import io.kyligence.kap.event.manager.EventOrchestrator;
-
-import io.kyligence.kap.metadata.cube.model.NDataflowManager;
-import lombok.val;
-import lombok.var;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 import org.junit.After;
@@ -41,6 +30,14 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
+import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.event.event.ErrorEvent;
+import io.kyligence.kap.event.manager.EventDao;
+import io.kyligence.kap.event.manager.EventManager;
+import io.kyligence.kap.event.manager.EventOrchestrator;
+import io.kyligence.kap.metadata.cube.model.NDataflowManager;
+import lombok.val;
+import lombok.var;
 
 public class ErrorEventHandlerTest extends NLocalFileMetadataTestCase {
 
@@ -49,6 +46,7 @@ public class ErrorEventHandlerTest extends NLocalFileMetadataTestCase {
     @Before
     public void setUp() {
         this.createTestMetadata();
+        KylinConfig.getInstanceFromEnv().setProperty("kylin.job.event.poll-interval-second", "3");
     }
 
     @After

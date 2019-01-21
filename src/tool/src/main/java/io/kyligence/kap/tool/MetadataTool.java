@@ -133,7 +133,7 @@ public class MetadataTool extends AbstractApplication {
             throw new IllegalStateException("The leader is not avalilable");
         }
 
-        log.info("The metadataUrl is {} , start to init ResourceStore.", kylinConfig.getMetadataUrl());
+        log.info("start to init ResourceStore");
         resourceStore = ResourceStore.getKylinMetaStore(kylinConfig);
 
         if (optionsHelper.hasOption(OPERATE_BACKUP)) {

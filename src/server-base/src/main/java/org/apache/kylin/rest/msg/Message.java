@@ -572,7 +572,7 @@ public class Message {
     // Query statistics
 
     public String getNOT_SET_INFLUXDB(){
-        return "Not set kap.metric.diagnosis.graph-writer-type to 'INFLUX'";
+        return "Not set kap.metric.write-destination to 'INFLUX'";
     }
 
     // License

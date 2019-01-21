@@ -43,7 +43,6 @@ public class NTableIndexTest extends NLocalWithSparkSessionTest {
     public void testQuery() throws Exception {
         ss.sparkContext().setLogLevel("ERROR");
         KylinConfig config = KylinConfig.getInstanceFromEnv();
-        config.setProperty("kap.storage.columnar.ii-spill-threshold-mb", "128");
 
         ss.close();
         KapSparkSession ksc = new KapSparkSession(SparkContext.getOrCreate(sparkConf));

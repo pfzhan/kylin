@@ -181,7 +181,6 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
     @Ignore("should be covered by nencodingtest")
     public void testBuildWithEncoding() throws Exception {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
-        config.setProperty("kap.storage.columnar.ii-spill-threshold-mb", "128");
         config.setProperty("kylin.job.scheduler.provider.110",
                 "io.kyligence.kap.job.impl.threadpool.NDefaultScheduler");
         config.setProperty("kylin.job.scheduler.default", "110");
@@ -238,7 +237,6 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
 
     @Test
     public void testBuildJob() throws Exception {
-        config.setProperty("kap.storage.columnar.ii-spill-threshold-mb", "128");
         NDataflowManager dsMgr = NDataflowManager.getInstance(config, getProject());
         NExecutableManager execMgr = NExecutableManager.getInstance(config, getProject());
 
@@ -327,7 +325,6 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
 
     @Test
     public void testCancelCubingJob() throws Exception {
-        config.setProperty("kap.storage.columnar.ii-spill-threshold-mb", "128");
         NDataflowManager dsMgr = NDataflowManager.getInstance(config, getProject());
         NExecutableManager execMgr = NExecutableManager.getInstance(config, getProject());
         NDataflow df = dsMgr.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
@@ -375,7 +372,6 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
 
     @Test
     public void testCancelMergingJob() throws Exception {
-        config.setProperty("kap.storage.columnar.ii-spill-threshold-mb", "128");
 
         NDataflowManager dsMgr = NDataflowManager.getInstance(config, getProject());
         NExecutableManager execMgr = NExecutableManager.getInstance(config, getProject());
@@ -440,7 +436,6 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
     @Test
     //should it test merge case?
     public void testRuleBasedCube() throws Exception {
-        config.setProperty("kap.storage.columnar.ii-spill-threshold-mb", "128");
         NDataflowManager dsMgr = NDataflowManager.getInstance(config, getProject());
         NExecutableManager execMgr = NExecutableManager.getInstance(config, getProject());
 
@@ -551,7 +546,6 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
     @Ignore("the build process is tested in manual & auto test, no need to build again")
     public void testMergeJob() throws Exception {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
-        config.setProperty("kap.storage.columnar.ii-spill-threshold-mb", "128");
         NDataflowManager dsMgr = NDataflowManager.getInstance(config, getProject());
         NExecutableManager execMgr = NExecutableManager.getInstance(config, getProject());
 

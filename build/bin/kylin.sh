@@ -154,11 +154,11 @@ then
            rm ../pid
            exit 0
         else
-           quit "Kylin is not running" 0
+           quit "Kylin is not running"
         fi
 
     else
-        quit "Kylin is not running" 0
+        quit "Kylin is not running"
     fi
 
 else

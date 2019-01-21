@@ -312,12 +312,12 @@ public abstract class AbstractExecutable implements Executable, Idempotent {
     }
 
     public static void updateJobOutput(String project, String jobId, ExecutableState newStatus,
-                                       Map<String, String> info, String output) {
+            Map<String, String> info, String output) {
         updateJobOutput(project, jobId, newStatus, info, output, null);
     }
 
     public static void updateJobOutput(String project, String jobId, ExecutableState newStatus,
-                                       Map<String, String> info, String output, Consumer<String> hook) {
+            Map<String, String> info, String output, Consumer<String> hook) {
         UnitOfWork.doInTransactionWithRetry(() -> {
             NExecutableManager executableManager = getExecutableManager(project);
             val existedInfo = executableManager.getOutput(jobId).getExtra();
@@ -344,7 +344,7 @@ public abstract class AbstractExecutable implements Executable, Idempotent {
             jobOutput.setContent(output);
         }
 
-        String outputHDFSPath = KylinConfig.getInstanceFromEnv().getJobTmpOutputStorePath(jobId);
+        String outputHDFSPath = KylinConfig.getInstanceFromEnv().getJobTmpOutputStorePath(project, jobId);
 
         nExecutableManager.updateJobOutputToHDFS(outputHDFSPath, jobOutput);
     }
@@ -356,7 +356,7 @@ public abstract class AbstractExecutable implements Executable, Idempotent {
     @Override
     public final ExecuteResult execute(ExecutableContext executableContext) throws ExecuteException {
 
-        logger.info("Executing AbstractExecutable (" + this.getName() + ")");
+        logger.info("Executing AbstractExecutable {}", this.getDisplayName());
 
         Preconditions.checkArgument(executableContext instanceof DefaultContext);
         ExecuteResult result;
@@ -452,6 +452,10 @@ public abstract class AbstractExecutable implements Executable, Idempotent {
 
     public void setName(String name) {
         this.name = name;
+    }
+
+    public String getDisplayName() {
+        return this.name + " (" + this.id + ")";
     }
 
     @Override
@@ -555,7 +559,7 @@ public abstract class AbstractExecutable implements Executable, Idempotent {
             return;
         }
         logger.info("prepare to send email to:" + users);
-        logger.info("job name:" + getName());
+        logger.info("job name:" + getDisplayName());
         logger.info("submitter:" + getSubmitter());
         logger.info("notify list:" + users);
         new MailService(kylinConfig).sendMail(users, email.getLeft(), email.getRight());

@@ -125,8 +125,8 @@ public class KylinConfig extends KylinConfigBase {
                     config = new KylinConfig();
                     config.reloadKylinConfig(buildSiteProperties());
 
-                    logger.info("Initialized a new KylinConfig from getInstanceFromEnv : "
-                            + System.identityHashCode(config));
+                    logger.trace("Created a new KylinConfig by getInstanceFromEnv, KylinConfig Id: {}",
+                            System.identityHashCode(config));
                     SYS_ENV_INSTANCE = config;
                 } catch (IllegalArgumentException e) {
                     throw new IllegalStateException("Failed to find KylinConfig ", e);
@@ -504,12 +504,12 @@ public class KylinConfig extends KylinConfigBase {
 
     private KylinConfig() {
         super();
-        logger.debug("a new KylinConfig is created {}", System.identityHashCode(this));
+        logger.trace("a new KylinConfig is created with id: {}", System.identityHashCode(this));
     }
 
     protected KylinConfig(Properties props, boolean force) {
         super(props, force);
-        logger.debug("a new KylinConfig is created {}", System.identityHashCode(this));
+        logger.trace("a new KylinConfig is created with id: {}", System.identityHashCode(this));
     }
 
     public <T> T getManager(Class<T> clz) {
@@ -704,7 +704,7 @@ public class KylinConfig extends KylinConfigBase {
     }
 
     public String toString() {
-        return getMetadataUrl().toString() + "@base:" + System.identityHashCode(base());
+        return "KylinConfig " + System.identityHashCode(this) + " with base id: " + System.identityHashCode(base());
     }
 
     public static SetAndUnsetThreadLocalConfig setAndUnsetThreadLocalConfig(KylinConfig config) {

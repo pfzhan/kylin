@@ -60,6 +60,7 @@ import io.kyligence.kap.event.manager.EventDao;
 import io.kyligence.kap.event.manager.EventManager;
 import io.kyligence.kap.event.model.Event;
 import io.kyligence.kap.event.model.EventContext;
+import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
@@ -77,13 +78,13 @@ public abstract class AbstractEventHandler implements EventHandler {
             // check twice to reduce the calls of transaction
             // and avoid the problem when resuming job concurrently
             if (!checkBeforeHandle(eventContext)) {
-                log.info("handle {} later", eventContext.getEvent());
+                log.trace("handle event {} later", eventContext.getEvent());
                 return;
             }
             incRunTimes(eventContext);
             UnitOfWork.doInTransactionWithRetry(() -> {
                 if (!checkBeforeHandle(eventContext)) {
-                    log.info("handle {} later", eventContext.getEvent());
+                    log.trace("handle event {} later", eventContext.getEvent());
                     return null;
                 }
                 doHandle(eventContext);
@@ -115,7 +116,9 @@ public abstract class AbstractEventHandler implements EventHandler {
         val execManager = NExecutableManager.getInstance(kylinConfig, project);
         val runningCount = execManager.countByModelAndStatus(event.getModelId(),
                 Sets.newHashSet(ExecutableState.RUNNING, ExecutableState.READY));
-        log.debug("model {} has {} running jobs", event.getModelId(), runningCount);
+        log.trace("model {} has {} running jobs",
+                NDataModelManager.getInstance(kylinConfig, project).getModelDisplayName(event.getModelId()),
+                runningCount);
         return runningCount == 0L;
     }
 

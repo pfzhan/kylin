@@ -97,7 +97,6 @@ public class NManualBuildAndQueryTest extends NLocalWithSparkSessionTest {
     @Ignore("for developing")
     public void testTmp() throws Exception {
         final KylinConfig config = KylinConfig.getInstanceFromEnv();
-        config.setProperty("kap.storage.columnar.ii-spill-threshold-mb", "128");
         System.setProperty("noBuild", "true");
         System.setProperty("isDeveloperMode", "true");
         buildCubes();
@@ -110,7 +109,6 @@ public class NManualBuildAndQueryTest extends NLocalWithSparkSessionTest {
     @Ignore
     public void testBasics() throws Exception {
         final KylinConfig config = KylinConfig.getInstanceFromEnv();
-        config.setProperty("kap.storage.columnar.ii-spill-threshold-mb", "128");
 
         buildCubes();
 
@@ -290,7 +288,6 @@ public class NManualBuildAndQueryTest extends NLocalWithSparkSessionTest {
 
     private void buildTwoSegementAndMerge(String dfName) throws Exception {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
-        config.setProperty("kap.storage.columnar.ii-spill-threshold-mb", "128");
         NDataflowManager dsMgr = NDataflowManager.getInstance(config, getProject());
         NExecutableManager execMgr = NExecutableManager.getInstance(config, getProject());
 
@@ -366,7 +363,6 @@ public class NManualBuildAndQueryTest extends NLocalWithSparkSessionTest {
 
     private void buildFourSegementAndMerge(String dfName) throws Exception {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
-        config.setProperty("kap.storage.columnar.ii-spill-threshold-mb", "128");
         NDataflowManager dsMgr = NDataflowManager.getInstance(config, getProject());
         NExecutableManager execMgr = NExecutableManager.getInstance(config, getProject());
 

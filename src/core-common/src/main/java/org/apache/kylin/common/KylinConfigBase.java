@@ -600,14 +600,14 @@ abstract public class KylinConfigBase implements Serializable {
     // JOB
     // ============================================================================
 
-    public StorageURL getJobTmpMetaStoreUrl(String jobId) {
+    public StorageURL getJobTmpMetaStoreUrl(String project, String jobId) {
         Map<String, String> params = new HashMap<>();
-        params.put("path", getHdfsWorkingDirectory() + "job_tmp/" + jobId + "/meta");
+        params.put("path", getHdfsWorkingDirectory() + project + "/job_tmp/" + jobId + "/meta");
         return new StorageURL(getMetadataUrlPrefix(), HDFSMetadataStore.HDFS_SCHEME, params);
     }
 
-    public String getJobTmpOutputStorePath(String jobId) {
-        return getHdfsWorkingDirectory() + "job_tmp/" + jobId +  "/execute_output.json";
+    public String getJobTmpOutputStorePath(String project, String jobId) {
+        return getHdfsWorkingDirectory() + project + "/job_tmp/" + jobId + "/execute_output.json";
     }
 
     public CliCommandExecutor getCliCommandExecutor() {
@@ -1267,10 +1267,6 @@ abstract public class KylinConfigBase implements Serializable {
         return this.getOptional("kylin.server.cluster-name", getMetadataUrlPrefix());
     }
 
-    public String getInitTasks() {
-        return getOptional("kylin.server.init-tasks");
-    }
-
     public String getNodeId() {
         return getOptional("kylin.server.node-id", "kylin0");
     }
@@ -1482,11 +1478,11 @@ abstract public class KylinConfigBase implements Serializable {
     }
 
     public int getEventPollIntervalSecond() {
-        return Integer.parseInt(getOptional("kylin.job.event.poll-interval-second", "3"));
+        return Integer.parseInt(getOptional("kylin.job.event.poll-interval-second", "60"));
     }
 
     public int getQueryTimesThresholdOfGarbageStorage() {
-        return Integer.parseInt(getOptional("kylin.storage.garbage.query-times-threshold", "5"));
+        return Integer.parseInt(getOptional("kylin.garbage.storage.query-times-threshold", "5"));
     }
 
     public long getStorageQuotaSize() {
@@ -1494,7 +1490,7 @@ abstract public class KylinConfigBase implements Serializable {
     }
 
     public long getCuboidLayoutSurvivalTimeThreshold() {
-        return TimeUtil.timeStringAs(getOptional("kylin.storage.garbage.cuboid-layout-survival-time-threshold", "7d"),
+        return TimeUtil.timeStringAs(getOptional("kylin.garbage.storage.cuboid-layout-survival-time-threshold", "7d"),
                 TimeUnit.MILLISECONDS);
     }
 

@@ -39,9 +39,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Predicate;
 
-import io.kyligence.kap.metadata.cube.cuboid.NSpanningTree;
-import io.kyligence.kap.metadata.cube.cuboid.NSpanningTreeFactory;
-import lombok.Setter;
 import org.apache.calcite.linq4j.function.Predicate2;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -74,10 +71,13 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.obf.IKeep;
+import io.kyligence.kap.metadata.cube.cuboid.NSpanningTree;
+import io.kyligence.kap.metadata.cube.cuboid.NSpanningTreeFactory;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import lombok.Getter;
+import lombok.Setter;
 import lombok.val;
 
 @SuppressWarnings("serial")
@@ -140,8 +140,11 @@ public class IndexPlan extends RootPersistentEntity implements Serializable, IEn
     // computed fields below
     @Setter
     private String project;
+
     @Setter
     private KylinConfigExt config = null;
+    private long prjMvccWhenConfigInitted = -1;
+    private long indexPlanMvccWhenConfigInitted = -1;
 
     private transient NSpanningTree spanningTree = null; // transient, because can self recreate
     private transient BiMap<Integer, TblColRef> effectiveDimCols; // BiMap impl (com.google.common.collect.Maps$FilteredEntryBiMap) is not serializable
@@ -161,8 +164,7 @@ public class IndexPlan extends RootPersistentEntity implements Serializable, IEn
 
     public void initAfterReload(KylinConfig config, String p) {
         this.project = p;
-
-        initConfig(config, overrideProps);
+        initConfig4IndexPlan(config);
 
         checkNotNull(getModel(), "NDataModel(%s) not found", uuid);
 
@@ -173,8 +175,21 @@ public class IndexPlan extends RootPersistentEntity implements Serializable, IEn
         initDictionaryDesc();
     }
 
-    private void initConfig(KylinConfig config, LinkedHashMap<String, String> overrideProps) {
-        this.config = KylinConfigExt.createInstance(config, overrideProps);
+    private void initConfig4IndexPlan(KylinConfig config) {
+
+        Map<String, String> newOverrides = Maps.newLinkedHashMap(this.overrideProps);
+        ProjectInstance ownerPrj = NProjectManager.getInstance(config).getProject(project);
+        // cube inherit the project override props
+        Map<String, String> prjOverrideProps = ownerPrj.getOverrideKylinProps();
+        for (Map.Entry<String, String> entry : prjOverrideProps.entrySet()) {
+            if (!newOverrides.containsKey(entry.getKey())) {
+                newOverrides.put(entry.getKey(), entry.getValue());
+            }
+        }
+
+        this.config = KylinConfigExt.createInstance(config, newOverrides);
+        this.prjMvccWhenConfigInitted = ownerPrj.getMvcc();
+        this.indexPlanMvccWhenConfigInitted = this.getMvcc();
     }
 
     private void initAllCuboids() {
@@ -287,15 +302,10 @@ public class IndexPlan extends RootPersistentEntity implements Serializable, IEn
         }
 
         ProjectInstance ownerPrj = NProjectManager.getInstance(config).getProject(project);
-        LinkedHashMap<String, String> overrideProps = Maps.newLinkedHashMap(this.overrideProps);
-        // cube inherit the project override props
-        Map<String, String> prjOverrideProps = ownerPrj.getOverrideKylinProps();
-        for (Map.Entry<String, String> entry : prjOverrideProps.entrySet()) {
-            if (!overrideProps.containsKey(entry.getKey())) {
-                overrideProps.put(entry.getKey(), entry.getValue());
-            }
+        if (ownerPrj.getMvcc() != prjMvccWhenConfigInitted || this.getMvcc() != indexPlanMvccWhenConfigInitted) {
+            initConfig4IndexPlan(this.config);
         }
-        return KylinConfigExt.createInstance(config, overrideProps);
+        return config;
     }
 
     public void addError(String message) {

@@ -71,7 +71,6 @@ public class NQueryControllerTest extends AbstractMVCIntegrationTestCase {
 
     @Test
     public void testPushDownQuery() throws Exception {
-        System.setProperty("kap.metric.diagnosis.graph-writer-type", "INFLUX");
         System.setProperty("kylin.query.pushdown.runner-class-name", "io.kyligence.kap.query.pushdown.PushDownRunnerJdbcImpl");
         System.setProperty("kylin.query.pushdown.converter-class-names", "org.apache.kylin.source.adhocquery.HivePushDownConverter");
         System.setProperty("kylin.query.pushdown.cache-enabled", "true");

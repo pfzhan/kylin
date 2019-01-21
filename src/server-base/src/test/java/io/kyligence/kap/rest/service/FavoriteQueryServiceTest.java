@@ -99,7 +99,6 @@ public class FavoriteQueryServiceTest extends NLocalFileMetadataTestCase {
     @Before
     public void setup() {
         createTestMetadata();
-        getTestConfig().setProperty("kap.metric.diagnosis.graph-writer-type", "INFLUX");
         SecurityContextHolder.getContext()
                 .setAuthentication(new TestingAuthenticationToken("ADMIN", "ADMIN", Constant.ROLE_ADMIN));
         for (ProjectInstance projectInstance : NProjectManager.getInstance(getTestConfig()).listAllProjects()) {

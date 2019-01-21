@@ -39,7 +39,6 @@ trait YarnSupport
     checkSystem("kylin.env.hdfs-working-dir")
     super.beforeAll()
     val env = KylinConfig.getInstanceFromEnv
-    env.setProperty("kap.storage.columnar.ii-spill-threshold-mb", "128")
     env.setProperty("kylin.source.provider.11",
                     "io.kyligence.kap.engine.spark.source.NSparkDataSource")
     env.setProperty("kylin.source.provider.9",

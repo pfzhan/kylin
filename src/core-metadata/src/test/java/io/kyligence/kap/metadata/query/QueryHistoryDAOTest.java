@@ -85,7 +85,6 @@ public class QueryHistoryDAOTest extends NLocalFileMetadataTestCase {
     @Before
     public void setUp() {
         this.createTestMetadata();
-        getTestConfig().setProperty("kap.metric.diagnosis.graph-writer-type", "INFLUX");
         queryHistoryDAO = QueryHistoryDAO.getInstance(getTestConfig(), PROJECT);
         queryMeasurement = queryHistoryDAO.getQueryMetricMeasurement();
         realizationMeasurement = queryHistoryDAO.getRealizationMetricMeasurement();

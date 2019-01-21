@@ -54,6 +54,8 @@ import org.apache.kylin.metadata.cachesync.CachedCrudAssist;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
+
 public class KylinUserManager {
 
     private static final Logger logger = LoggerFactory.getLogger(KylinUserManager.class);
@@ -74,7 +76,8 @@ public class KylinUserManager {
     private CachedCrudAssist<ManagedUser> crud;
 
     public KylinUserManager(KylinConfig config) {
-        logger.info("Initializing KylinUserManager with config " + config);
+        if (!UnitOfWork.isAlreadyInTransaction())
+            logger.info("Initializing KylinUserManager with KylinConfig Id: {}", System.identityHashCode(config));
         this.config = config;
         this.crud = new CachedCrudAssist<ManagedUser>(getStore(), USER_ROOT, "", ManagedUser.class) {
             @Override

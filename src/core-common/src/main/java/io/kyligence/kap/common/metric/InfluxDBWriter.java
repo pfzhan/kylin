@@ -106,10 +106,10 @@ public class InfluxDBWriter implements MetricWriter {
                 try {
                     tryConnectInfluxDB();
 
-                    if (!Type.INFLUX.name().equals(System.getProperty("kap.metric.diagnosis.graph-writer-type"))) {
-                        // fallback to 'INFLUX', reset "kap.metric.diagnosis.graph-writer-type" to "INFLUX"
-                        logger.info("Fallback to 'INFLUX'");
-                        System.setProperty("kap.metric.diagnosis.graph-writer-type", Type.INFLUX.name());
+                    if (!Type.INFLUX.name().equals(System.getProperty("kap.metric.write-destination"))) {
+                        // fallback to 'INFLUX', reset "kap.metric.write-destination" to "INFLUX"
+                        logger.info("Changed to 'INFLUX'");
+                        System.setProperty("kap.metric.write-destination", Type.INFLUX.name());
                     }
 
                 } catch (Exception ex) {
@@ -165,7 +165,7 @@ public class InfluxDBWriter implements MetricWriter {
                 final String addr = KapConfig.getInstanceFromEnv().influxdbAddress();
                 final String username = KapConfig.getInstanceFromEnv().influxdbUsername();
                 final String password = KapConfig.getInstanceFromEnv().influxdbPassword();
-                logger.info("Init influxDB, address [{}], username [{}], password [{}]", addr, username, password);
+                logger.info("Init influxDB, address: {}, username: {}, password: {}", addr, username, password);
                 influxDB = InfluxDBFactory.connect("http://" + addr, username, password);
             }
         }

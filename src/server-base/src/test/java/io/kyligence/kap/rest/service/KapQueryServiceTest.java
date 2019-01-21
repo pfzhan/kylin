@@ -59,7 +59,6 @@ public class KapQueryServiceTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testGetQueryStatistics() {
-        System.setProperty("kap.metric.diagnosis.graph-writer-type", "INFLUX");
         QueryHistoryDAO queryHistoryDAO = Mockito.mock(QueryHistoryDAO.class);
         QueryStatistics queryStatistics = new QueryStatistics();
         queryStatistics.setEngineType("RDBMS");

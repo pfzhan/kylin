@@ -518,7 +518,7 @@ public class CnMessage extends Message {
     // Query statistics
 
     public String getNOT_SET_INFLUXDB(){
-        return "未设置参数 kap.metric.diagnosis.graph-writer-type 为 'INFLUX'";
+        return "未设置参数 kap.metric.write-destination 为 INFLUX";
     }
 
     //license

@@ -25,6 +25,7 @@
 package io.kyligence.kap.metadata.cube.model;
 
 import java.io.IOException;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
 
@@ -32,6 +33,7 @@ import org.apache.kylin.common.KylinConfigExt;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.metadata.model.MeasureDesc;
 import org.apache.kylin.metadata.model.TblColRef;
+import org.apache.kylin.metadata.project.ProjectInstance;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -46,6 +48,7 @@ import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.metadata.project.NProjectManager;
 import lombok.val;
 import lombok.var;
 
@@ -259,11 +262,57 @@ public class IndexPlanTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testGetConfig() {
-        val cubeDefaultMgr = NIndexPlanManager.getInstance(getTestConfig(), projectDefault);
-        val indexPlan = cubeDefaultMgr.getIndexPlanByModelAlias("nmodel_basic");
+        val indexPlanMgr = NIndexPlanManager.getInstance(getTestConfig(), projectDefault);
+        val indexPlan = indexPlanMgr.getIndexPlanByModelAlias("nmodel_basic");
         val config = (KylinConfigExt) indexPlan.getConfig();
         Assert.assertEquals(getTestConfig(), config.base());
         Assert.assertEquals(0, indexPlan.getOverrideProps().size());
         Assert.assertEquals(1, config.getExtendedOverrides().size());
+    }
+
+    @Test
+    public void testConfigOverride() {
+        val indexPlanMgr = NIndexPlanManager.getInstance(getTestConfig(), projectDefault);
+        val indexPlan = indexPlanMgr.getIndexPlanByModelAlias("nmodel_basic");
+
+        // test effect on index plan when index plan is updated
+        {
+            IndexPlan copy = indexPlanMgr.copy(indexPlan);
+            LinkedHashMap<String, String> overrideCopy = new LinkedHashMap<>(copy.getOverrideProps());
+            overrideCopy.put("testkey", "testvalue0");
+            copy.setOverrideProps(overrideCopy);
+            indexPlanMgr.updateIndexPlan(copy);
+            Assert.assertEquals("testvalue0",
+                    ((KylinConfigExt) indexPlanMgr.getIndexPlanByModelAlias("nmodel_basic").getConfig())
+                            .getExtendedOverrides().get("testkey"));
+        }
+
+        // test effect on index plan when project is updated
+        {
+            NProjectManager pm = NProjectManager.getInstance(getTestConfig());
+            ProjectInstance p = pm.getProject(projectDefault);
+            ProjectInstance newP = pm.copyForWrite(p);
+            LinkedHashMap<String, String> overrideCopy = new LinkedHashMap<>(newP.getOverrideKylinProps());
+            overrideCopy.put("testkey", "testvalue1");
+            newP.setOverrideKylinProps(overrideCopy);
+            pm.updateProject(newP);
+
+            Assert.assertEquals("testvalue1",
+                    ((KylinConfigExt) indexPlan.getConfig()).getExtendedOverrides().get("testkey"));
+        }
+
+        {
+            NProjectManager pm = NProjectManager.getInstance(getTestConfig());
+            ProjectInstance p = pm.getProject(projectDefault);
+            ProjectInstance newP = pm.copyForWrite(p);
+            LinkedHashMap<String, String> overrideCopy = new LinkedHashMap<>(newP.getOverrideKylinProps());
+            overrideCopy.put("testkey", "testvalue2");
+            newP.setOverrideKylinProps(overrideCopy);
+            pm.updateProject(newP);
+
+            Assert.assertEquals("testvalue2",
+                    ((KylinConfigExt) indexPlan.getConfig()).getExtendedOverrides().get("testkey"));
+        }
+
     }
 }

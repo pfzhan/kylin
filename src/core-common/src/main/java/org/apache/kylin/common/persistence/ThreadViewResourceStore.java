@@ -146,7 +146,7 @@ public class ThreadViewResourceStore extends ResourceStore {
 
     @Override
     public String toString() {
-        return "<thread view metastore@" + System.identityHashCode(this) + ":kylin config@"
+        return "<thread view metastore@" + System.identityHashCode(this) + ":KylinConfig@"
                 + System.identityHashCode(kylinConfig.base()) + ">";
     }
 

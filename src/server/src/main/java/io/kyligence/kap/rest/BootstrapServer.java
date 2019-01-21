@@ -73,14 +73,14 @@ public class BootstrapServer implements ApplicationListener<ApplicationReadyEven
             runEnv = args[0];
         }
         if ("SANDBOX".equals(runEnv)) {
+            //remember to export HADOOP_USER_NAME and SPARK_HOME
+            //and you need to make sure both JDBC and InfluxDB runs on your sandbox
             setSandboxEnvs();
         } else if ("PROD".equals(runEnv)) {
             setProdEnvs();
         } else {
             setLocalEnvs();
         }
-        // set influx config
-        System.setProperty("kap.metric.diagnosis.graph-writer-type", "INFLUX");
         // enable CC check
         System.setProperty("needCheckCC", "true");
         // set log4j logging system
@@ -98,6 +98,7 @@ public class BootstrapServer implements ApplicationListener<ApplicationReadyEven
         System.setProperty(KylinConfig.KYLIN_CONF, dir1.getAbsolutePath());
 
         System.setProperty("kylin.hadoop.conf.dir", "../examples/test_case_data/sandbox");
+        System.setProperty("hdp.version", "version");
 
     }
 

@@ -28,8 +28,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-import com.google.common.collect.Maps;
-import io.kyligence.kap.metadata.cube.model.validation.NIndexPlanValidator;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.KylinConfigExt;
@@ -41,9 +39,12 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.obf.IKeepNames;
+import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
+import io.kyligence.kap.metadata.cube.model.validation.NIndexPlanValidator;
 import io.kyligence.kap.metadata.model.NDataModel;
 import lombok.val;
 
@@ -67,7 +68,9 @@ public class NIndexPlanManager implements IKeepNames {
     private CachedCrudAssist<IndexPlan> crud;
 
     private NIndexPlanManager(KylinConfig cfg, final String project) {
-        logger.info("Initializing NIndexPlanManager with config " + config);
+        if (!UnitOfWork.isAlreadyInTransaction())
+            logger.info("Initializing NIndexPlanManager with KylinConfig Id: {} for project {}",
+                    System.identityHashCode(cfg), project);
         this.config = cfg;
         this.project = project;
         String resourceRootPath = "/" + project + IndexPlan.INDEX_PLAN_RESOURCE_ROOT;
@@ -80,10 +83,10 @@ public class NIndexPlanManager implements IKeepNames {
 
             @Override
             protected IndexPlan initBrokenEntity(IndexPlan entity, String resourceName) {
-                val cubePlan = super.initBrokenEntity(entity, resourceName);
-                cubePlan.setProject(project);
-                cubePlan.setConfig(KylinConfigExt.createInstance(config, Maps.newHashMap()));
-                return cubePlan;
+                val indexPlan = super.initBrokenEntity(entity, resourceName);
+                indexPlan.setProject(project);
+                indexPlan.setConfig(KylinConfigExt.createInstance(config, Maps.newHashMap()));
+                return indexPlan;
             }
 
         };
@@ -99,8 +102,8 @@ public class NIndexPlanManager implements IKeepNames {
     }
 
     public IndexPlan getIndexPlanByModelAlias(String name) {
-        return listAllIndexPlans(true).stream().filter(indexPlan -> Objects.equals(indexPlan.getModelAlias(), name)).findFirst()
-                .orElse(null);
+        return listAllIndexPlans(true).stream().filter(indexPlan -> Objects.equals(indexPlan.getModelAlias(), name))
+                .findFirst().orElse(null);
     }
 
     // listAllIndexPlans only get the healthy indexPlans, the broken ones need to be invisible in the auto-suggestion process
@@ -110,8 +113,10 @@ public class NIndexPlanManager implements IKeepNames {
 
     // list all indexPlans include broken ones
     public List<IndexPlan> listAllIndexPlans(boolean includeBroken) {
-        return Lists.newArrayList(crud.listAll().stream().filter(cp -> includeBroken || !cp.isBroken()).collect(Collectors.toList()));
+        return Lists.newArrayList(
+                crud.listAll().stream().filter(cp -> includeBroken || !cp.isBroken()).collect(Collectors.toList()));
     }
+
     public IndexPlan createIndexPlan(IndexPlan indexPlan) {
         if (indexPlan.getUuid() == null)
             throw new IllegalArgumentException();

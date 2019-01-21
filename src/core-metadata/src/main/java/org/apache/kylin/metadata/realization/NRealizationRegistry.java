@@ -36,6 +36,8 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Maps;
 
+import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
+
 /**
  */
 public class NRealizationRegistry {
@@ -58,7 +60,9 @@ public class NRealizationRegistry {
     private String project;
 
     public NRealizationRegistry(KylinConfig config, String project) throws IOException {
-        logger.info("Initializing RealizationRegistry with metadata url " + config);
+        if (!UnitOfWork.isAlreadyInTransaction())
+            logger.info("Initializing NRealizationRegistry with KylinConfig Id: {} for project {}",
+                    System.identityHashCode(config), project);
         this.config = config;
         this.project = project;
         init();
@@ -85,8 +89,7 @@ public class NRealizationRegistry {
         }
 
         if (providers.isEmpty())
-            throw new IllegalArgumentException(
-                    "Failed to find realization provider by url: " + config.getMetadataUrl());
+            throw new IllegalArgumentException("Failed to find realization provider");
 
         logger.info("RealizationRegistry is " + providers);
     }

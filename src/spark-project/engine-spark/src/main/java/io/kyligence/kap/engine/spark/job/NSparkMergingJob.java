@@ -33,7 +33,6 @@ import java.util.Set;
 
 import javax.annotation.Nullable;
 
-import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import org.apache.kylin.common.KylinConfigExt;
 import org.apache.kylin.job.constant.ExecutableConstants;
 import org.apache.kylin.job.execution.DefaultChainedExecutable;
@@ -49,6 +48,7 @@ import com.google.common.collect.Collections2;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
+import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
@@ -65,7 +65,8 @@ public class NSparkMergingJob extends DefaultChainedExecutable {
      * @param layouts,       user is allowed to specify the cuboids to merge. By default, it is null and merge all
      *                       the ready cuboids in the segments.
      */
-    public static NSparkMergingJob merge(NDataSegment mergedSegment, Set<LayoutEntity> layouts, String submitter, String jobId) {
+    public static NSparkMergingJob merge(NDataSegment mergedSegment, Set<LayoutEntity> layouts, String submitter,
+            String jobId) {
         Preconditions.checkArgument(mergedSegment != null);
         Preconditions.checkArgument(submitter != null);
 
@@ -124,7 +125,7 @@ public class NSparkMergingJob extends DefaultChainedExecutable {
         step.setJobId(getId());
         this.addTask(step);
         //after addTask, step's id is changed
-        step.setDistMetaUrl(config.getJobTmpMetaStoreUrl(step.getId()).toString());
+        step.setDistMetaUrl(config.getJobTmpMetaStoreUrl(getProject(), step.getId()).toString());
     }
 
     private void addCleanupStep(NDataSegment mergedSegment) {

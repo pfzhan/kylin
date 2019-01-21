@@ -57,6 +57,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
+import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.metadata.cube.storage.ProjectStorageInfoCollector;
 import io.kyligence.kap.metadata.cube.storage.StorageInfoEnum;
 import lombok.Getter;
@@ -156,7 +157,7 @@ public class NDefaultScheduler implements Scheduler<AbstractExecutable>, Connect
                 }
 
                 logger.info(
-                        "{} Job Status: {} should running, {} actual running, {} stopped, {} ready, {} already succeed, {} error, {} discarded, {} suicidal,  {} others",
+                        "Job Status in project {}: {} should running, {} actual running, {} stopped, {} ready, {} already succeed, {} error, {} discarded, {} suicidal,  {} others",
                         project, nRunning, runningJobs.size(), nStopped, nReady, nSucceed, nError, nDiscarded,
                         nSuicidal, nOthers);
             } catch (Exception e) {
@@ -220,8 +221,9 @@ public class NDefaultScheduler implements Scheduler<AbstractExecutable>, Connect
 
         @Override
         public void run() {
-            try (SetThreadName ignored = new SetThreadName("Scheduler %s Job %s",
-                    System.identityHashCode(NDefaultScheduler.this), executable.getId())) {
+            //only the first 8 chars of the job uuid
+            try (SetThreadName ignored = new SetThreadName("JobWorker(project:%s,jobidprefix:%s)", project,
+                    executable.getId().substring(0, 8))) {
                 threadToInterrupt.put(executable.getId(), Thread.currentThread());
                 executable.execute(context);
                 // trigger the next step asap
@@ -290,7 +292,8 @@ public class NDefaultScheduler implements Scheduler<AbstractExecutable>, Connect
             logger.info("server mode: {}, no need to run job scheduler", serverMode);
             return;
         }
-        logger.info("Initializing Job Engine ....");
+        if (!UnitOfWork.isAlreadyInTransaction())
+            logger.info("Initializing Job Engine ....");
 
         if (!initialized) {
             initialized = true;
@@ -307,10 +310,11 @@ public class NDefaultScheduler implements Scheduler<AbstractExecutable>, Connect
         collector = new ProjectStorageInfoCollector(storageInfoEnumList);
 
         //load all executable, set them to a consistent status
-        fetcherPool = Executors.newScheduledThreadPool(1, new NamedThreadFactory("NDefaultSchedulerFetchPool"));
+        fetcherPool = Executors.newScheduledThreadPool(1,
+                new NamedThreadFactory("FetchJobWorker(project:" + project + ")"));
         int corePoolSize = jobEngineConfig.getMaxConcurrentJobLimit();
         jobPool = new ThreadPoolExecutor(corePoolSize, corePoolSize, Long.MAX_VALUE, TimeUnit.DAYS,
-                new SynchronousQueue<>(), new NamedThreadFactory("NDefaultSchedulerJobPool"));
+                new SynchronousQueue<>(), new NamedThreadFactory("RunJobWorker(project:" + project + ")"));
         context = new DefaultContext(Maps.newConcurrentMap(), jobEngineConfig.getConfig());
 
         val executableManager = NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
@@ -325,7 +329,7 @@ public class NDefaultScheduler implements Scheduler<AbstractExecutable>, Connect
 
     @Override
     public void shutdown() {
-        logger.info("Shutting down DefaultScheduler ....");
+        logger.info("Shutting down DefaultScheduler for project {} ....", project);
         jobLock.unlockJobEngine();
         ExecutorServiceUtil.shutdownGracefully(fetcherPool, 60);
         ExecutorServiceUtil.shutdownGracefully(jobPool, 60);

@@ -42,11 +42,18 @@ import lombok.val;
 @Service
 public class MetadataBackupService {
 
-    @Scheduled(cron = "${kylin.metadata.backup-cron:0 0 0 * * *}")
+    @Scheduled(cron = "${kylin.metadata.backup-cron:0 0 1 * * *}")
     public void backupAll() throws Exception {
 
-        String[] args = new String[]{"-backup", "-dir", getBackupDir()};
-        backup(args);
+        String oldTheadName = Thread.currentThread().getName();
+        try {
+            Thread.currentThread().setName("MetadataBackupWorker");
+
+            String[] args = new String[] { "-backup", "-dir", getBackupDir() };
+            backup(args);
+        } finally {
+            Thread.currentThread().setName(oldTheadName);
+        }
     }
 
     public void backup(String[] args) throws Exception {
@@ -57,9 +64,8 @@ public class MetadataBackupService {
     }
 
     public String backupProject(String project) throws Exception {
-        val folder = LocalDateTime.now().format(MetadataTool.DATE_TIME_FORMATTER)
-                + "_backup";
-        String[] args = new String[]{"-backup", "-project", project, "-folder", folder, "-dir", getBackupDir()};
+        val folder = LocalDateTime.now().format(MetadataTool.DATE_TIME_FORMATTER) + "_backup";
+        String[] args = new String[] { "-backup", "-project", project, "-folder", folder, "-dir", getBackupDir() };
         backup(args);
         return StringUtils.appendIfMissing(getBackupDir(), "/") + folder;
     }

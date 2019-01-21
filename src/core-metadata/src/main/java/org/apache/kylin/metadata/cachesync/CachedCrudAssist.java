@@ -135,7 +135,7 @@ public abstract class CachedCrudAssist<T extends RootPersistentEntity> {
             reloadQuietlyAt(path);
         }
 
-        logger.debug("Loaded " + cache.size() + " " + entityType.getSimpleName() + "(s) out of " + paths.size()
+        logger.trace("Loaded " + cache.size() + " " + entityType.getSimpleName() + "(s) out of " + paths.size()
                 + " resource from " + store.getReadableResourcePath(resRootPath));
     }
 
