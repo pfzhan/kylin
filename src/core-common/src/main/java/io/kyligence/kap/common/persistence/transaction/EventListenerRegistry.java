@@ -32,7 +32,6 @@ import com.google.common.collect.Maps;
 
 import io.kyligence.kap.common.persistence.event.ResourceCreateOrUpdateEvent;
 import io.kyligence.kap.common.persistence.event.ResourceDeleteEvent;
-import lombok.val;
 
 public class EventListenerRegistry {
 
@@ -53,23 +52,19 @@ public class EventListenerRegistry {
     }
 
     public void onUpdate(ResourceCreateOrUpdateEvent event) {
-        val listener = eventListeners.get(event.getKey());
-        if (listener == null) {
-            return;
-        }
-        listener.onUpdate(config, event.getCreatedOrUpdated());
+        eventListeners.forEach((k, listener) -> {
+            listener.onUpdate(config, event.getCreatedOrUpdated());
+        });
     }
 
     public void onDelete(ResourceDeleteEvent event) {
-        val listener = eventListeners.get(event.getKey());
-        if (listener == null) {
-            return;
-        }
-        listener.onDelete(config, event.getResPath());
+        eventListeners.forEach((k, listener) -> {
+            listener.onDelete(config, event.getResPath());
+        });
     }
 
-    public void register(ResourceEventListener eventListener, String unit) {
-        eventListeners.put(unit, eventListener);
+    public void register(ResourceEventListener eventListener, String name) {
+        eventListeners.put(name, eventListener);
     }
 
     public interface ResourceEventListener {

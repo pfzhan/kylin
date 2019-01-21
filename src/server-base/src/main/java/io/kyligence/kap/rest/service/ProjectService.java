@@ -32,15 +32,11 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.event.manager.EventOrchestratorManager;
-import io.kyligence.kap.metadata.cube.model.LayoutEntity;
-import io.kyligence.kap.metadata.project.NProjectManager;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.directory.api.util.Strings;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.JsonUtil;
-import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.rest.exception.BadRequestException;
 import org.apache.kylin.rest.msg.Message;
@@ -58,10 +54,12 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
+import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.storage.ProjectStorageInfoCollector;
 import io.kyligence.kap.metadata.cube.storage.StorageInfoEnum;
 import io.kyligence.kap.metadata.favorite.FavoriteRule;
 import io.kyligence.kap.metadata.model.MaintainModelType;
+import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.rest.request.JobNotificationConfigRequest;
 import io.kyligence.kap.rest.request.ProjectGeneralInfoRequest;
 import io.kyligence.kap.rest.request.ProjectRequest;
@@ -96,8 +94,8 @@ public class ProjectService extends BasicService {
         return projectDesc;
     }
 
-    @Transaction
-    public ProjectInstance createProject(ProjectInstance newProject) {
+    @Transaction(project = 0)
+    public ProjectInstance createProject(String name, ProjectInstance newProject) {
         Message msg = MsgPicker.getMsg();
         String projectName = newProject.getName();
         String description = newProject.getDescription();
@@ -154,8 +152,8 @@ public class ProjectService extends BasicService {
                 .collect(Collectors.toList());
     }
 
-    @Transaction
-    public ProjectInstance updateProject(ProjectInstance newProject, ProjectInstance currentProject) {
+    @Transaction(project = 0)
+    public ProjectInstance updateProject(String name, ProjectInstance newProject, ProjectInstance currentProject) {
         String newProjectName = newProject.getName();
         String newDescription = newProject.getDescription();
         LinkedHashMap<String, String> overrideProps = newProject.getOverrideKylinProps();
@@ -336,14 +334,6 @@ public class ProjectService extends BasicService {
     public void dropProject(String project) {
         val prjManager = getProjectManager();
         prjManager.forceDropProject(project);
-        shutdownRelatedScheduler(project);
-    }
-
-    private void shutdownRelatedScheduler(String project) {
-        val eventOrchestratorManager = EventOrchestratorManager.getInstance(getConfig());
-        eventOrchestratorManager.shutDownByProject(project);
-        NDefaultScheduler.shutDownByProject(project);
-        NFavoriteScheduler.shutDownByProject(project);
     }
 
     public String backupProject(String project) throws Exception {

@@ -21,35 +21,23 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+package io.kyligence.kap.rest.config;
 
-package io.kyligence.kap.rest.request;
-
-import java.util.regex.Pattern;
-
-import javax.validation.constraints.AssertTrue;
-
-import org.apache.kylin.common.util.JsonUtil;
-import org.apache.kylin.metadata.project.ProjectInstance;
-
-import lombok.Data;
 import lombok.val;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.scheduling.TaskScheduler;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
 
-@Data
-public class ProjectRequest {
+@Configuration
+public class AppConfig {
 
-    private String formerProjectName;
-
-    private String projectDescData;
-
-    @AssertTrue
-    public boolean isNameValid() {
-        val pattern = Pattern.compile("^(?![_])\\w+$");
-        try {
-            val instance = JsonUtil.readValue(projectDescData, ProjectInstance.class);
-            return pattern.matcher(instance.getName()).matches();
-        } catch (Exception e) {
-            return false;
-        }
+    @Bean
+    public TaskScheduler taskScheduler() {
+        val scheduler = new ThreadPoolTaskScheduler();
+        scheduler.setPoolSize(5);
+        scheduler.setThreadNamePrefix("DefaultTaskScheduler-");
+        return scheduler;
     }
 
 }

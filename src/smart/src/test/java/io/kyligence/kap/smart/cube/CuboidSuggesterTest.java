@@ -79,9 +79,11 @@ public class CuboidSuggesterTest extends NTestBase {
         final List<IndexEntity> allCuboids = targetIndexPlan.getAllIndexes();
         final LayoutEntity layout = allCuboids.get(0).getLayouts().get(0);
         Assert.assertEquals("unexpected colOrder", "[6, 8, 1, 4, 5]", layout.getColOrder().toString());
+        Assert.assertTrue(layout.getUpdateTime() > 0);
 
         final LayoutEntity layout2 = allCuboids.get(1).getLayouts().get(0);
         Assert.assertEquals("unexpected colOrder", "[7, 8, 1, 4, 5, 6]", layout2.getColOrder().toString());
+        Assert.assertTrue(layout2.getUpdateTime() > 0);
     }
 
     @Test

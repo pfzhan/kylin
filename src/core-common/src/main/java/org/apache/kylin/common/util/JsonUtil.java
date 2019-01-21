@@ -42,6 +42,10 @@
 
 package org.apache.kylin.common.util;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -49,6 +53,12 @@ import java.io.OutputStream;
 import java.io.Reader;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.function.BiConsumer;
+
+import javax.annotation.Nullable;
+
+import org.apache.kylin.common.persistence.RootPersistentEntity;
+import org.apache.kylin.common.persistence.Serializer;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -56,6 +66,7 @@ import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
+import com.google.common.base.Preconditions;
 
 public class JsonUtil {
 
@@ -125,6 +136,40 @@ public class JsonUtil {
     public static <T> T deepCopy(T src, Class<T> valueType) throws IOException {
         String s = mapper.writeValueAsString(src);
         return mapper.readValue(s, valueType);
+    }
+
+    public static <T extends RootPersistentEntity> T copyForWrite(T entity, Serializer<T> serializer,
+            @Nullable BiConsumer<T, String> initEntityAfterReload) {
+        if (!entity.isCachedAndShared())
+            return entity;
+        else
+            return copyBySerialization(entity, serializer, initEntityAfterReload);
+    }
+
+    public static <T extends RootPersistentEntity> T copyBySerialization(T entity, Serializer<T> serializer,
+            @Nullable BiConsumer<T, String> initEntityAfterReload) {
+        Preconditions.checkNotNull(entity);
+        T copy;
+        try {
+            byte[] bytes;
+            try (ByteArrayOutputStream buf = new ByteArrayOutputStream();
+                    DataOutputStream dout = new DataOutputStream(buf)) {
+                serializer.serialize(entity, dout);
+                bytes = buf.toByteArray();
+            }
+
+            try (DataInputStream in = new DataInputStream(new ByteArrayInputStream(bytes))) {
+                copy = serializer.deserialize(in);
+            }
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+
+        copy.setCachedAndShared(false);
+        if (initEntityAfterReload != null) {
+            initEntityAfterReload.accept(copy, entity.resourceName());
+        }
+        return copy;
     }
 
 }

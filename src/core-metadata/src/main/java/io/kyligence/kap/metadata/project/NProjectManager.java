@@ -31,7 +31,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.commons.lang.SerializationUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
@@ -169,7 +168,7 @@ public class NProjectManager {
 
     public ProjectInstance copyForWrite(ProjectInstance projectInstance) {
         Preconditions.checkNotNull(projectInstance);
-        return (ProjectInstance) SerializationUtils.clone(projectInstance);
+        return crud.copyForWrite(projectInstance);
     }
 
     private ProjectInstance save(ProjectInstance prj) {

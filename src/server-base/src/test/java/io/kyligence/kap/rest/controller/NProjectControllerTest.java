@@ -142,7 +142,7 @@ public class NProjectControllerTest {
         projectInstance.setName("test");
         ProjectRequest projectRequest = mockProjectRequest();
         Mockito.when(projectService.deserializeProjectDesc(projectRequest)).thenReturn(projectInstance);
-        Mockito.when(projectService.createProject(projectInstance)).thenReturn(projectInstance);
+        Mockito.when(projectService.createProject(projectInstance.getName(), projectInstance)).thenReturn(projectInstance);
         MvcResult mvcResult = mockMvc
                 .perform(MockMvcRequestBuilders.post("/api/projects").contentType(MediaType.APPLICATION_JSON)
                         .content(JsonUtil.writeValueAsString(projectRequest))

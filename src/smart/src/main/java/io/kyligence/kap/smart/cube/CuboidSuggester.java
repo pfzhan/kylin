@@ -232,6 +232,7 @@ class CuboidSuggester {
         layout.setShardByColumns(shardBy);
         layout.setSortByColumns(sortBy);
         layout.setAuto(true);
+        layout.setUpdateTime(System.currentTimeMillis());
         layout.setDraftVersion(smartContext.getDraftVersion());
 
         String modelId = model.getUuid();

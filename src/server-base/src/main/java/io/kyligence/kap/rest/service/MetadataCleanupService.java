@@ -23,9 +23,12 @@
  */
 package io.kyligence.kap.rest.service;
 
+import java.util.List;
+import java.util.stream.Collectors;
+
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.project.ProjectInstance;
-import org.apache.kylin.rest.security.ACLManager;
+import org.apache.kylin.rest.security.AclManager;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
@@ -42,9 +45,6 @@ import io.kyligence.kap.rest.storage.GarbageCleaner;
 import io.kyligence.kap.rest.storage.ModelCleaner;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
-
-import java.util.List;
-import java.util.stream.Collectors;
 
 
 @Slf4j
@@ -71,7 +71,7 @@ public class MetadataCleanupService {
         UnitOfWork.doInTransactionWithRetry(() -> {
             val prjManager = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv());
             List<String> prjects = prjManager.listAllProjects().stream().map(ProjectInstance::getUuid).collect(Collectors.toList());
-            val aclManager = ACLManager.getInstance(KylinConfig.getInstanceFromEnv());
+            val aclManager = AclManager.getInstance(KylinConfig.getInstanceFromEnv());
             for (val acl : aclManager.listAll()) {
                 val id = acl.getDomainObjectInfo().getId();
                 if (!prjects.contains(id)) {

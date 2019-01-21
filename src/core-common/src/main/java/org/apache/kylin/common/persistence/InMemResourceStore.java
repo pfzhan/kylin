@@ -24,7 +24,6 @@
 
 package org.apache.kylin.common.persistence;
 
-import java.util.Map;
 import java.util.NavigableSet;
 import java.util.TreeSet;
 import java.util.concurrent.ConcurrentSkipListMap;
@@ -62,8 +61,7 @@ public class InMemResourceStore extends ResourceStore {
 
         TreeSet<String> ret = new TreeSet<>();
         String finalFolderPath = folderPath;
-        subset.entrySet().stream().map(Map.Entry::getKey).map(x -> mapToFolder(x, recursive, finalFolderPath))
-                .forEach(ret::add);
+        subset.keySet().stream().map(x -> mapToFolder(x, recursive, finalFolderPath)).forEach(ret::add);
 
         // return null to indicate not a folder
         return ret.isEmpty() ? null : ret;

@@ -52,7 +52,7 @@ public class EventManager {
 
     private static final Logger logger = LoggerFactory.getLogger(EventManager.class);
 
-    public static final String GLOBAL = "@global";
+    public static final String GLOBAL = "_global";
     private KylinConfig config;
     private String project;
     private EventDao eventDao;

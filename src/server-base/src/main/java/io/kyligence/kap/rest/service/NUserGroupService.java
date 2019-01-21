@@ -62,7 +62,6 @@ import io.kyligence.kap.rest.transaction.Transaction;
 public class NUserGroupService implements IUserGroupService {
     public static final Logger logger = LoggerFactory.getLogger(NUserGroupService.class);
 
-    private static final String PATH = "/user_group";
     private static final Serializer<UserGroup> USER_GROUP_SERIALIZER = new JsonSerializer<>(UserGroup.class);
 
     @Autowired
@@ -95,10 +94,10 @@ public class NUserGroupService implements IUserGroupService {
             }
 
             try {
-                if (getStore().getResource(PATH) != null) {
+                if (getStore().getResource(ResourceStore.USER_GROUP_ROOT) != null) {
                     return;
                 }
-                getStore().putResourceWithoutCheck(PATH,
+                getStore().putResourceWithoutCheck(ResourceStore.USER_GROUP_ROOT,
                         ByteStreams.asByteSource(JsonUtil.writeValueAsBytes(userGroup)), 0);
                 return;
             } catch (WriteConflictException e) {
@@ -111,7 +110,7 @@ public class NUserGroupService implements IUserGroupService {
     }
 
     private UserGroup getUserGroup() throws IOException {
-        UserGroup userGroup = getStore().getResource(PATH, USER_GROUP_SERIALIZER);
+        UserGroup userGroup = getStore().getResource(ResourceStore.USER_GROUP_ROOT, USER_GROUP_SERIALIZER);
         if (userGroup == null) {
             userGroup = new UserGroup();
         }
@@ -140,7 +139,7 @@ public class NUserGroupService implements IUserGroupService {
     public void addGroup(String name) throws IOException {
         aclEvaluate.checkIsGlobalAdmin();
         UserGroup userGroup = getUserGroup();
-        getStore().checkAndPutResource(PATH, userGroup.add(name), USER_GROUP_SERIALIZER);
+        getStore().checkAndPutResource(ResourceStore.USER_GROUP_ROOT, userGroup.add(name), USER_GROUP_SERIALIZER);
     }
 
     @Override
@@ -158,7 +157,8 @@ public class NUserGroupService implements IUserGroupService {
         //delete group's project ACL
         accessService.revokeProjectPermission(name, MetadataConstants.TYPE_GROUP);
 
-        getStore().checkAndPutResource(PATH, getUserGroup().delete(name), USER_GROUP_SERIALIZER);
+        getStore().checkAndPutResource(ResourceStore.USER_GROUP_ROOT, getUserGroup().delete(name),
+                USER_GROUP_SERIALIZER);
     }
 
     //user's group information is stored by user its own.Object user group does not hold user's ref.

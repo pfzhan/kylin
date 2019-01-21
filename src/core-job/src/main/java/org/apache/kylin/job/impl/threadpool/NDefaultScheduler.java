@@ -24,6 +24,7 @@
 
 package org.apache.kylin.job.impl.threadpool;
 
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
@@ -58,12 +59,14 @@ import com.google.common.collect.Maps;
 
 import io.kyligence.kap.metadata.cube.storage.ProjectStorageInfoCollector;
 import io.kyligence.kap.metadata.cube.storage.StorageInfoEnum;
+import lombok.Getter;
 import lombok.val;
 
 /**
  */
 public class NDefaultScheduler implements Scheduler<AbstractExecutable>, ConnectionStateListener {
 
+    @Getter
     private String project;
     private JobLock jobLock;
     private FetcherRunner fetcher;
@@ -154,7 +157,8 @@ public class NDefaultScheduler implements Scheduler<AbstractExecutable>, Connect
 
                 logger.info(
                         "{} Job Status: {} should running, {} actual running, {} stopped, {} ready, {} already succeed, {} error, {} discarded, {} suicidal,  {} others",
-                        project, nRunning, runningJobs.size(), nStopped, nReady, nSucceed, nError, nDiscarded, nSuicidal, nOthers);
+                        project, nRunning, runningJobs.size(), nStopped, nReady, nSucceed, nError, nDiscarded,
+                        nSuicidal, nOthers);
             } catch (Exception e) {
                 logger.warn("Job Fetcher caught a exception ", e);
             }
@@ -252,6 +256,10 @@ public class NDefaultScheduler implements Scheduler<AbstractExecutable>, Connect
         return ret;
     }
 
+    public static List<NDefaultScheduler> listAllSchedulers() {
+        return Lists.newArrayList(INSTANCE_MAP.values());
+    }
+
     public static synchronized void destroyInstance() {
 
         for (Map.Entry<String, NDefaultScheduler> entry : INSTANCE_MAP.entrySet()) {
@@ -260,7 +268,7 @@ public class NDefaultScheduler implements Scheduler<AbstractExecutable>, Connect
         INSTANCE_MAP.clear();
     }
 
-    public static synchronized void shutDownByProject(String project) {
+    public static synchronized void shutdownByProject(String project) {
         val instance = getInstanceByProject(project);
         if (instance != null) {
             instance.forceShutdown();

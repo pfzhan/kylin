@@ -42,11 +42,6 @@
 
 package org.apache.kylin.metadata.cachesync;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -54,6 +49,7 @@ import org.apache.kylin.common.persistence.JsonSerializer;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.persistence.RootPersistentEntity;
 import org.apache.kylin.common.persistence.Serializer;
+import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.metadata.MetadataConstants;
 import org.apache.kylin.util.BrokenEntityProxy;
 import org.slf4j.Logger;
@@ -112,33 +108,11 @@ public abstract class CachedCrudAssist<T extends RootPersistentEntity> {
     // Make copy of an entity such that update can apply on the copy.
     // Note cached and shared object MUST NOT be updated directly.
     public T copyForWrite(T entity) {
-        if (!entity.isCachedAndShared())
-            return entity;
-        else
-            return copyBySerialization(entity);
+        return JsonUtil.copyForWrite(entity, serializer, this::initEntityAfterReload);
     }
 
     public T copyBySerialization(T entity) {
-        Preconditions.checkNotNull(entity);
-        T copy;
-        try {
-            byte[] bytes;
-            try (ByteArrayOutputStream buf = new ByteArrayOutputStream();
-                    DataOutputStream dout = new DataOutputStream(buf)) {
-                serializer.serialize(entity, dout);
-                bytes = buf.toByteArray();
-            }
-
-            try (DataInputStream in = new DataInputStream(new ByteArrayInputStream(bytes))) {
-                copy = serializer.deserialize(in);
-            }
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-
-        copy.setCachedAndShared(false);
-        initEntityAfterReload(copy, entity.resourceName());
-        return copy;
+        return JsonUtil.copyBySerialization(entity, serializer, this::initEntityAfterReload);
     }
 
     private String resourcePath(String resourceName) {
@@ -194,7 +168,6 @@ public abstract class CachedCrudAssist<T extends RootPersistentEntity> {
             if (!path.equals(resourcePath(entity.resourceName())))
                 throw new IllegalStateException("The entity " + entity + " read from " + path
                         + " will save to a different path " + resourcePath(entity.resourceName()));
-
 
         } catch (Exception e) {
             entity = initBrokenEntity(entity, resourceName(path));

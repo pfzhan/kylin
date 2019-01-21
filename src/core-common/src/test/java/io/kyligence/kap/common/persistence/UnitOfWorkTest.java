@@ -52,16 +52,16 @@ public class UnitOfWorkTest extends NLocalFileMetadataTestCase {
     public void testTransaction() {
         val ret = UnitOfWork.doInTransactionWithRetry(() -> {
             val resourceStore = ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv());
-            resourceStore.checkAndPutResource("/path/to/res", ByteStreams.asByteSource("{}".getBytes()), -1L);
-            resourceStore.checkAndPutResource("/path/to/res2", ByteStreams.asByteSource("{}".getBytes()), -1L);
-            resourceStore.checkAndPutResource("/path/to/res3", ByteStreams.asByteSource("{}".getBytes()), -1L);
+            resourceStore.checkAndPutResource("/_global/path/to/res", ByteStreams.asByteSource("{}".getBytes()), -1L);
+            resourceStore.checkAndPutResource("/_global/path/to/res2", ByteStreams.asByteSource("{}".getBytes()), -1L);
+            resourceStore.checkAndPutResource("/_global/path/to/res3", ByteStreams.asByteSource("{}".getBytes()), -1L);
             return 0;
         }, UnitOfWork.GLOBAL_UNIT);
 
         val resourceStore = ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv());
-        Assert.assertEquals(0, resourceStore.getResource("/path/to/res").getMvcc());
-        Assert.assertEquals(0, resourceStore.getResource("/path/to/res2").getMvcc());
-        Assert.assertEquals(0, resourceStore.getResource("/path/to/res3").getMvcc());
+        Assert.assertEquals(0, resourceStore.getResource("/_global/path/to/res").getMvcc());
+        Assert.assertEquals(0, resourceStore.getResource("/_global/path/to/res2").getMvcc());
+        Assert.assertEquals(0, resourceStore.getResource("/_global/path/to/res3").getMvcc());
     }
 
     @Test
@@ -69,16 +69,16 @@ public class UnitOfWorkTest extends NLocalFileMetadataTestCase {
         try {
             val ret = UnitOfWork.doInTransactionWithRetry(() -> {
                 val resourceStore = ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv());
-                resourceStore.checkAndPutResource("/path/to/res", ByteStreams.asByteSource("{}".getBytes()), -1L);
-                resourceStore.checkAndPutResource("/path/to/res2", ByteStreams.asByteSource("{}".getBytes()), -1L);
+                resourceStore.checkAndPutResource("/_global/path/to/res", ByteStreams.asByteSource("{}".getBytes()), -1L);
+                resourceStore.checkAndPutResource("/_global/path/to/res2", ByteStreams.asByteSource("{}".getBytes()), -1L);
                 throw new IllegalArgumentException("surprise");
             }, UnitOfWork.GLOBAL_UNIT);
         } catch (Exception ignore) {
         }
 
         val resourceStore = ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv());
-        Assert.assertEquals(null, resourceStore.getResource("/path/to/res"));
-        Assert.assertEquals(null, resourceStore.getResource("/path/to/res2"));
+        Assert.assertEquals(null, resourceStore.getResource("/_global/path/to/res"));
+        Assert.assertEquals(null, resourceStore.getResource("/_global/path/to/res2"));
 
         // test can be used again after exception
         testTransaction();
@@ -88,27 +88,27 @@ public class UnitOfWorkTest extends NLocalFileMetadataTestCase {
     public void testReentrant() {
         UnitOfWork.doInTransactionWithRetry(() -> {
             val resourceStore = ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv());
-            resourceStore.checkAndPutResource("/path/to/res", ByteStreams.asByteSource("{}".getBytes()), -1L);
-            resourceStore.checkAndPutResource("/path/to/res2", ByteStreams.asByteSource("{}".getBytes()), -1L);
+            resourceStore.checkAndPutResource("/_global/path/to/res", ByteStreams.asByteSource("{}".getBytes()), -1L);
+            resourceStore.checkAndPutResource("/_global/path/to/res2", ByteStreams.asByteSource("{}".getBytes()), -1L);
             UnitOfWork.doInTransactionWithRetry(() -> {
                 val resourceStore2 = ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv());
-                resourceStore2.checkAndPutResource("/path2/to/res2/1", ByteStreams.asByteSource("{}".getBytes()), -1L);
-                resourceStore2.checkAndPutResource("/path2/to/res2/2", ByteStreams.asByteSource("{}".getBytes()), -1L);
-                resourceStore2.checkAndPutResource("/path2/to/res2/3", ByteStreams.asByteSource("{}".getBytes()), -1L);
+                resourceStore2.checkAndPutResource("/_global/path2/to/res2/1", ByteStreams.asByteSource("{}".getBytes()), -1L);
+                resourceStore2.checkAndPutResource("/_global/path2/to/res2/2", ByteStreams.asByteSource("{}".getBytes()), -1L);
+                resourceStore2.checkAndPutResource("/_global/path2/to/res2/3", ByteStreams.asByteSource("{}".getBytes()), -1L);
                 Assert.assertEquals(resourceStore, resourceStore2);
                 return 0;
             }, UnitOfWork.GLOBAL_UNIT);
-            resourceStore.checkAndPutResource("/path/to/res3", ByteStreams.asByteSource("{}".getBytes()), -1L);
+            resourceStore.checkAndPutResource("/_global/path/to/res3", ByteStreams.asByteSource("{}".getBytes()), -1L);
             return 0;
         }, UnitOfWork.GLOBAL_UNIT);
 
         val resourceStore = ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv());
-        Assert.assertEquals(0, resourceStore.getResource("/path/to/res").getMvcc());
-        Assert.assertEquals(0, resourceStore.getResource("/path/to/res2").getMvcc());
-        Assert.assertEquals(0, resourceStore.getResource("/path2/to/res2/1").getMvcc());
-        Assert.assertEquals(0, resourceStore.getResource("/path2/to/res2/2").getMvcc());
-        Assert.assertEquals(0, resourceStore.getResource("/path2/to/res2/3").getMvcc());
-        Assert.assertEquals(0, resourceStore.getResource("/path/to/res3").getMvcc());
+        Assert.assertEquals(0, resourceStore.getResource("/_global/path/to/res").getMvcc());
+        Assert.assertEquals(0, resourceStore.getResource("/_global/path/to/res2").getMvcc());
+        Assert.assertEquals(0, resourceStore.getResource("/_global/path2/to/res2/1").getMvcc());
+        Assert.assertEquals(0, resourceStore.getResource("/_global/path2/to/res2/2").getMvcc());
+        Assert.assertEquals(0, resourceStore.getResource("/_global/path2/to/res2/3").getMvcc());
+        Assert.assertEquals(0, resourceStore.getResource("/_global/path/to/res3").getMvcc());
     }
 
 }

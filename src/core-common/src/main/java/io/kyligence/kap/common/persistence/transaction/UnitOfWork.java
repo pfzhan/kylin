@@ -58,12 +58,11 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
 public class UnitOfWork {
-    public static final String GLOBAL_UNIT = "@global";
+    public static final String GLOBAL_UNIT = "_global";
 
     private static ThreadLocal<Boolean> replaying = new ThreadLocal<>();
     private static ThreadLocal<UnitOfWork> threadLocals = new ThreadLocal<>();
     private static Map<String, ReentrantLock> projectLocks = Maps.newConcurrentMap();
-    private static ReentrantLock globalLock = new ReentrantLock();
 
     private SetAndUnsetThreadLocalConfig localConfig;
     private ReentrantLock currentLock = null;
@@ -252,12 +251,10 @@ public class UnitOfWork {
     }
 
     private static UnitMessages packageEvents(List<Event> events, String project) {
-        if (!project.equals(GLOBAL_UNIT)) {
-            Preconditions.checkState(
-                    events.stream().filter(e -> e instanceof ResourceRelatedEvent)
-                            .allMatch(e -> ((ResourceRelatedEvent) e).getResPath().startsWith("/" + project)),
-                    "some event are not in project " + project);
-        }
+        Preconditions.checkState(
+                events.stream().filter(e -> e instanceof ResourceRelatedEvent)
+                        .allMatch(e -> ((ResourceRelatedEvent) e).getResPath().startsWith("/" + project)),
+                "some event are not in project " + project);
         val uuid = UUID.randomUUID().toString();
         events.add(0, new StartUnit(uuid));
         events.add(new EndUnit(uuid));
@@ -271,9 +268,6 @@ public class UnitOfWork {
     }
 
     public static ReentrantLock getLock(String project) {
-        if (project.equals(GLOBAL_UNIT)) {
-            return globalLock;
-        }
         ReentrantLock lock = projectLocks.get(project);
         if (lock == null) {
             synchronized (UnitOfWork.class) {

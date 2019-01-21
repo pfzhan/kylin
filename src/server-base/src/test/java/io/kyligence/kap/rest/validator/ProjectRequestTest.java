@@ -21,35 +21,28 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-
-package io.kyligence.kap.rest.request;
-
-import java.util.regex.Pattern;
-
-import javax.validation.constraints.AssertTrue;
+package io.kyligence.kap.rest.validator;
 
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.metadata.project.ProjectInstance;
+import org.junit.Assert;
+import org.junit.Test;
 
-import lombok.Data;
+import io.kyligence.kap.rest.request.ProjectRequest;
 import lombok.val;
 
-@Data
-public class ProjectRequest {
+public class ProjectRequestTest {
 
-    private String formerProjectName;
+    @Test
+    public void testRequest_isNameValid() throws Exception {
+        val req = new ProjectRequest();
+        val project = new ProjectInstance();
+        project.setName("_invalid");
+        req.setProjectDescData(JsonUtil.writeValueAsString(project));
+        Assert.assertFalse(req.isNameValid());
 
-    private String projectDescData;
-
-    @AssertTrue
-    public boolean isNameValid() {
-        val pattern = Pattern.compile("^(?![_])\\w+$");
-        try {
-            val instance = JsonUtil.readValue(projectDescData, ProjectInstance.class);
-            return pattern.matcher(instance.getName()).matches();
-        } catch (Exception e) {
-            return false;
-        }
+        project.setName("valid");
+        req.setProjectDescData(JsonUtil.writeValueAsString(project));
+        Assert.assertTrue(req.isNameValid());
     }
-
 }

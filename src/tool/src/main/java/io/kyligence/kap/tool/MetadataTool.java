@@ -192,10 +192,18 @@ public class MetadataTool extends AbstractApplication {
 
         if (StringUtils.isBlank(project)) {
             log.info("start to restore all projects");
-            val distResources = resourceStore.listResourcesRecursively("/");
-            val srcResources = restoreMetadataStore.list("/");
-            UnitOfWork.doInTransactionWithRetry(() -> doRestore(restoreMetadataStore, distResources, srcResources),
-                    UnitOfWork.GLOBAL_UNIT);
+            val projectFolders = resourceStore.listResources("/");
+            for (String projectPath : projectFolders) {
+                if (projectPath.equals(ResourceStore.METASTORE_UUID_TAG)) {
+                    continue;
+                }
+                val projectName = projectPath.substring(1);
+                val distResources = resourceStore.listResourcesRecursively(projectPath);
+                val srcResources = restoreMetadataStore.list(projectPath).stream().map(x -> projectPath + x)
+                        .collect(Collectors.toSet());
+                UnitOfWork.doInTransactionWithRetry(() -> doRestore(restoreMetadataStore, distResources, srcResources),
+                        projectName);
+            }
 
         } else {
             log.info("start to restore project {}", project);

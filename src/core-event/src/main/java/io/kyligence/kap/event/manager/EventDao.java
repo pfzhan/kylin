@@ -47,19 +47,20 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.event.model.AddCuboidEvent;
-import io.kyligence.kap.event.model.AddSegmentEvent;
-import io.kyligence.kap.event.model.MergeSegmentEvent;
-import io.kyligence.kap.event.model.RefreshSegmentEvent;
-import lombok.val;
-import org.apache.commons.lang.SerializationUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.JsonSerializer;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.persistence.Serializer;
+import org.apache.kylin.common.util.JsonUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import io.kyligence.kap.event.model.AddCuboidEvent;
+import io.kyligence.kap.event.model.AddSegmentEvent;
 import io.kyligence.kap.event.model.Event;
+import io.kyligence.kap.event.model.MergeSegmentEvent;
+import io.kyligence.kap.event.model.RefreshSegmentEvent;
+import lombok.val;
 
 /**
  */
@@ -120,7 +121,7 @@ public class EventDao {
     }
 
     private Event copyForWrite(Event event) {
-        return (Event) SerializationUtils.clone(event);
+        return JsonUtil.copyForWrite(event, EVENT_SERIALIZER, null);
     }
 
     public List<Event> getEvents() {

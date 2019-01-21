@@ -49,6 +49,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import io.kyligence.kap.event.manager.EventOrchestratorManager;
 import io.kyligence.kap.metadata.model.NDataModelManager;
+import io.kyligence.kap.rest.config.AppInitializer;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.engine.JobEngineConfig;
 import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
@@ -124,7 +125,7 @@ public class ProjectServiceTest extends NLocalFileMetadataTestCase {
 
         ProjectInstance projectInstance = new ProjectInstance();
         projectInstance.setName("project11");
-        projectService.createProject(projectInstance);
+        projectService.createProject(projectInstance.getName(), projectInstance);
         ProjectInstance projectInstance2 = projectManager.getProject("project11");
         Assert.assertTrue(projectInstance2 != null);
         Assert.assertEquals(projectInstance2.getMaintainModelType(), MaintainModelType.AUTO_MAINTAIN);
@@ -137,7 +138,7 @@ public class ProjectServiceTest extends NLocalFileMetadataTestCase {
         ProjectInstance projectInstance = new ProjectInstance();
         projectInstance.setName("project11");
         projectInstance.setMaintainModelType(MaintainModelType.MANUAL_MAINTAIN);
-        projectService.createProject(projectInstance);
+        projectService.createProject(projectInstance.getName(), projectInstance);
         ProjectInstance projectInstance2 = projectManager.getProject("project11");
         Assert.assertTrue(projectInstance2 != null);
         Assert.assertEquals(projectInstance2.getMaintainModelType(), MaintainModelType.MANUAL_MAINTAIN);
@@ -151,7 +152,7 @@ public class ProjectServiceTest extends NLocalFileMetadataTestCase {
         projectInstance.setName("default");
         thrown.expect(BadRequestException.class);
         thrown.expectMessage("The project named 'default' already exists.");
-        projectService.createProject(projectInstance);
+        projectService.createProject(projectInstance.getName(), projectInstance);
 
     }
 
@@ -326,7 +327,7 @@ public class ProjectServiceTest extends NLocalFileMetadataTestCase {
         val project = "project12";
         ProjectInstance projectInstance = new ProjectInstance();
         projectInstance.setName(project);
-        projectService.createProject(projectInstance);
+        projectService.createProject(project, projectInstance);
 
         val eventOrchestratorManager = EventOrchestratorManager.getInstance(getTestConfig());
         eventOrchestratorManager.addProject(project);
@@ -339,6 +340,7 @@ public class ProjectServiceTest extends NLocalFileMetadataTestCase {
         favoriteScheduler.init();
         Assert.assertTrue(favoriteScheduler.hasStarted());
         projectService.dropProject(project);
+        new AppInitializer.BootstrapCommand().run();
         val prjManager = NProjectManager.getInstance(getTestConfig());
         Assert.assertNull(prjManager.getProject(project));
         Assert.assertNull(eventOrchestratorManager.getEventOrchestratorByProject(project));

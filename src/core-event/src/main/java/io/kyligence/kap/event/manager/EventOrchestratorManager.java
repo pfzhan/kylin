@@ -117,7 +117,7 @@ public class EventOrchestratorManager {
         return INSTANCE_MAP.get(project);
     }
 
-    public synchronized void shutDownByProject(String project) {
+    public synchronized void shutdownByProject(String project) {
         val eventOrchestrator = getEventOrchestratorByProject(project);
         if (eventOrchestrator != null) {
             eventOrchestrator.forceShutdown();

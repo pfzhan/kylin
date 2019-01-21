@@ -83,6 +83,8 @@ public class NFavoriteScheduler {
 
     private ScheduledExecutorService autoFavoriteScheduler;
     private ScheduledExecutorService updateFavoriteScheduler;
+
+    @Getter
     private String project;
 
     private TreeSet<FrequencyStatus> frequencyStatuses = new TreeSet<>();
@@ -120,6 +122,10 @@ public class NFavoriteScheduler {
         }
 
         return ret;
+    }
+
+    public static List<NFavoriteScheduler> listAllSchedulers() {
+        return Lists.newArrayList(INSTANCE_MAP.values());
     }
 
     public void init() {
@@ -461,7 +467,7 @@ public class NFavoriteScheduler {
     }
 
 
-    public static synchronized void shutDownByProject(String project) {
+    public static synchronized void shutdownByProject(String project) {
         val instance = getInstanceByProject(project);
         if (instance != null) {
             instance.shutdown();

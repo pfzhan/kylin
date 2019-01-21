@@ -28,12 +28,8 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 
-import io.kyligence.kap.rest.request.JobNotificationConfigRequest;
-import io.kyligence.kap.rest.request.ProjectGeneralInfoRequest;
-import io.kyligence.kap.rest.request.PushDownConfigRequest;
-import io.kyligence.kap.rest.request.SegmentConfigRequest;
-import io.kyligence.kap.rest.request.StorageQuotaRequest;
-import io.kyligence.kap.rest.service.MetadataCleanupService;
+import javax.validation.Valid;
+
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.rest.constant.Constant;
@@ -56,8 +52,14 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
 import io.kyligence.kap.rest.request.FavoriteQueryThresholdRequest;
+import io.kyligence.kap.rest.request.JobNotificationConfigRequest;
 import io.kyligence.kap.rest.request.MaintainModelTypeRequest;
+import io.kyligence.kap.rest.request.ProjectGeneralInfoRequest;
 import io.kyligence.kap.rest.request.ProjectRequest;
+import io.kyligence.kap.rest.request.PushDownConfigRequest;
+import io.kyligence.kap.rest.request.SegmentConfigRequest;
+import io.kyligence.kap.rest.request.StorageQuotaRequest;
+import io.kyligence.kap.rest.service.MetadataCleanupService;
 import io.kyligence.kap.rest.service.ProjectService;
 
 @Controller
@@ -108,7 +110,7 @@ public class NProjectController extends NBasicController {
     @RequestMapping(value = "", method = { RequestMethod.POST }, produces = { "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
-    public EnvelopeResponse saveProject(@RequestBody ProjectRequest projectRequest) {
+    public EnvelopeResponse saveProject(@Valid @RequestBody ProjectRequest projectRequest) {
 
         ProjectInstance projectDesc = projectService.deserializeProjectDesc(projectRequest);
         if (StringUtils.isEmpty(projectDesc.getName())) {
@@ -119,14 +121,14 @@ public class NProjectController extends NBasicController {
                     projectDesc.getName());
             throw new BadRequestException(String.format(msg.getINVALID_PROJECT_NAME(), projectDesc.getName()));
         }
-        ProjectInstance createdProj = projectService.createProject(projectDesc);
+        ProjectInstance createdProj = projectService.createProject(projectDesc.getName(), projectDesc);
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, createdProj, "");
     }
 
     @RequestMapping(value = "", method = { RequestMethod.PUT }, produces = { "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#project, 'ADMINISTRATION')")
-    public EnvelopeResponse updateProject(@RequestBody ProjectRequest projectRequest) throws IOException {
+    public EnvelopeResponse updateProject(@Valid @RequestBody ProjectRequest projectRequest) throws IOException {
 
         String formerProjectName = projectRequest.getFormerProjectName();
         if (StringUtils.isEmpty(formerProjectName)) {
@@ -142,7 +144,7 @@ public class NProjectController extends NBasicController {
 
         ProjectInstance updatedProj;
         if (projectDesc.getName().equals(currentProject.getName())) {
-            updatedProj = projectService.updateProject(projectDesc, currentProject);
+            updatedProj = projectService.updateProject(formerProjectName, projectDesc, currentProject);
         } else {
             throw new BadRequestException(msg.getPROJECT_RENAME());
         }
@@ -188,17 +190,18 @@ public class NProjectController extends NBasicController {
     @RequestMapping(value = "/storage_volume_info", method = { RequestMethod.GET }, produces = {
             "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public EnvelopeResponse getStorageVolumeInfo(
-            @RequestParam(value = "project", required = true) String project) throws Exception {
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, projectService.getStorageVolumeInfoResponse(project), "");
+    public EnvelopeResponse getStorageVolumeInfo(@RequestParam(value = "project", required = true) String project)
+            throws Exception {
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, projectService.getStorageVolumeInfoResponse(project),
+                "");
     }
 
     @RequestMapping(value = "/storage", method = { RequestMethod.PUT }, produces = {
             "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#project, 'ADMINISTRATION')")
-    public EnvelopeResponse cleanupProjectStorage(
-            @RequestParam(value = "project", required = true) String project) throws Exception {
+    public EnvelopeResponse cleanupProjectStorage(@RequestParam(value = "project", required = true) String project)
+            throws Exception {
         ProjectInstance projectInstance = projectService.getProjectManager().getProject(project);
         if (projectInstance == null) {
             throw new BadRequestException(String.format(msg.getPROJECT_NOT_FOUND(), project));
@@ -212,8 +215,8 @@ public class NProjectController extends NBasicController {
             "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#project, 'ADMINISTRATION')")
-    public EnvelopeResponse updateStorageQuotaConfig(
-            @RequestBody StorageQuotaRequest storageQuotaRequest) throws Exception {
+    public EnvelopeResponse updateStorageQuotaConfig(@RequestBody StorageQuotaRequest storageQuotaRequest)
+            throws Exception {
         String project = storageQuotaRequest.getProject();
         checkProjectName(project);
 
@@ -222,7 +225,6 @@ public class NProjectController extends NBasicController {
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, true, "");
     }
 
-
     @RequestMapping(value = "/job_notification_config", method = { RequestMethod.PUT }, produces = {
             "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
@@ -230,7 +232,8 @@ public class NProjectController extends NBasicController {
     public EnvelopeResponse updateJobNotificationConfig(
             @RequestBody JobNotificationConfigRequest jobNotificationConfigRequest) {
         checkProjectName(jobNotificationConfigRequest.getProject());
-        projectService.updateJobNotificationConfig(jobNotificationConfigRequest.getProject(), jobNotificationConfigRequest);
+        projectService.updateJobNotificationConfig(jobNotificationConfigRequest.getProject(),
+                jobNotificationConfigRequest);
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, null, "");
     }
 
@@ -238,8 +241,7 @@ public class NProjectController extends NBasicController {
             "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#project, 'ADMINISTRATION')")
-    public EnvelopeResponse updatePushDownConfig(
-            @RequestBody PushDownConfigRequest pushDownConfigRequest) {
+    public EnvelopeResponse updatePushDownConfig(@RequestBody PushDownConfigRequest pushDownConfigRequest) {
         checkProjectName(pushDownConfigRequest.getProject());
         projectService.updatePushDownConfig(pushDownConfigRequest.getProject(), pushDownConfigRequest);
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, null, "");
@@ -249,8 +251,7 @@ public class NProjectController extends NBasicController {
             "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#project, 'ADMINISTRATION')")
-    public EnvelopeResponse updateSegmentConfig(
-            @RequestBody SegmentConfigRequest segmentConfigRequest) {
+    public EnvelopeResponse updateSegmentConfig(@RequestBody SegmentConfigRequest segmentConfigRequest) {
         checkProjectName(segmentConfigRequest.getProject());
         checkSegmentConfigArg(segmentConfigRequest);
         projectService.updateSegmentConfig(segmentConfigRequest.getProject(), segmentConfigRequest);
@@ -261,8 +262,7 @@ public class NProjectController extends NBasicController {
             "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#project, 'ADMINISTRATION')")
-    public EnvelopeResponse updateProjectGeneralInfo(
-            @RequestBody ProjectGeneralInfoRequest projectGeneralInfoRequest) {
+    public EnvelopeResponse updateProjectGeneralInfo(@RequestBody ProjectGeneralInfoRequest projectGeneralInfoRequest) {
         checkProjectName(projectGeneralInfoRequest.getProject());
         projectService.updateProjectGeneralInfo(projectGeneralInfoRequest.getProject(), projectGeneralInfoRequest);
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, null, "");
@@ -271,11 +271,9 @@ public class NProjectController extends NBasicController {
     @RequestMapping(value = "/project_config", method = { RequestMethod.GET }, produces = {
             "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public EnvelopeResponse getProjectConfig(
-            @RequestParam(value = "project", required = true) String project) {
+    public EnvelopeResponse getProjectConfig(@RequestParam(value = "project", required = true) String project) {
         checkProjectName(project);
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS,
-                projectService.getProjectConfig(project), "");
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, projectService.getProjectConfig(project), "");
     }
 
 }

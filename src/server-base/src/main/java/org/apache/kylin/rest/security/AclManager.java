@@ -39,17 +39,17 @@ import lombok.val;
 
 /**
  */
-public class ACLManager {
+public class AclManager {
 
-    private static final Logger logger = LoggerFactory.getLogger(ACLManager.class);
+    private static final Logger logger = LoggerFactory.getLogger(AclManager.class);
 
-    public static ACLManager getInstance(KylinConfig config) {
-        return config.getManager(ACLManager.class);
+    public static AclManager getInstance(KylinConfig config) {
+        return config.getManager(AclManager.class);
     }
 
     // called by reflection
-    static ACLManager newInstance(KylinConfig config) {
-        return new ACLManager(config);
+    static AclManager newInstance(KylinConfig config) {
+        return new AclManager(config);
     }
 
     public static final String DIR_PREFIX = "/acl/";
@@ -59,10 +59,10 @@ public class ACLManager {
     private KylinConfig config;
     private CachedCrudAssist<AclRecord> crud;
 
-    public ACLManager(KylinConfig config) {
+    public AclManager(KylinConfig config) {
         this.config = config;
         ResourceStore aclStore = ResourceStore.getKylinMetaStore(config);
-        this.crud = new CachedCrudAssist<AclRecord>(aclStore, "/acl", "", AclRecord.class) {
+        this.crud = new CachedCrudAssist<AclRecord>(aclStore, ResourceStore.ACL_ROOT, "", AclRecord.class) {
             @Override
             protected AclRecord initEntityAfterReload(AclRecord acl, String resourceName) {
                 val aclPermissionFactory = SpringContext.getBean(PermissionFactory.class);

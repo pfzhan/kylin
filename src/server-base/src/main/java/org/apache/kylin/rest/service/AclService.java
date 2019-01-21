@@ -42,7 +42,7 @@
 
 package org.apache.kylin.rest.service;
 
-import static org.apache.kylin.rest.security.ACLManager.DIR_PREFIX;
+import static org.apache.kylin.rest.security.AclManager.DIR_PREFIX;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -58,7 +58,7 @@ import org.apache.kylin.common.persistence.WriteConflictException;
 import org.apache.kylin.rest.exception.BadRequestException;
 import org.apache.kylin.rest.msg.Message;
 import org.apache.kylin.rest.msg.MsgPicker;
-import org.apache.kylin.rest.security.ACLManager;
+import org.apache.kylin.rest.security.AclManager;
 import org.apache.kylin.rest.security.AclRecord;
 import org.apache.kylin.rest.security.MutableAclRecord;
 import org.apache.kylin.rest.security.ObjectIdentityImpl;
@@ -234,8 +234,8 @@ public class AclService implements MutableAclService {
         return new PrincipalSid(SecurityContextHolder.getContext().getAuthentication());
     }
 
-    public ACLManager getAclManager() {
-        return ACLManager.getInstance(KylinConfig.getInstanceFromEnv());
+    public AclManager getAclManager() {
+        return AclManager.getInstance(KylinConfig.getInstanceFromEnv());
     }
 
     public interface AclRecordUpdater {

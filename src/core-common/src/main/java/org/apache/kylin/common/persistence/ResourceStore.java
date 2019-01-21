@@ -88,7 +88,11 @@ public abstract class ResourceStore {
 
     private static final Logger logger = LoggerFactory.getLogger(ResourceStore.class);
 
-    public static final String CUBE_RESOURCE_ROOT = "/cube";
+    public static final String GLOBAL_PROJECT = "/_global";
+    public static final String USER_ROOT = GLOBAL_PROJECT +  "/user";
+    public static final String USER_GROUP_ROOT = GLOBAL_PROJECT +  "/user_group";
+    public static final String ACL_ROOT = GLOBAL_PROJECT + "/acl";
+
     public static final String DATA_MODEL_DESC_RESOURCE_ROOT = "/model_desc";
     public static final String DICT_RESOURCE_ROOT = "/dict";
     public static final String SNAPSHOT_RESOURCE_ROOT = "/table_snapshot";
@@ -100,16 +104,11 @@ public abstract class ResourceStore {
     public static final String EXECUTE_OUTPUT_RESOURCE_ROOT = "/execute_output";
     public static final String STREAMING_RESOURCE_ROOT = "/streaming";
     public static final String DATAFLOW_RESOURCE_ROOT = "/dataflow";
-    public static final String USER_ROOT = "/user";
-    public static final String USER_GROUP_ROOT = "/user_group";
     public static final String EVENT_RESOURCE_ROOT = "/event";
     public static final String DATA_LOADING_RANGE_RESOURCE_ROOT = "/loading_range";
     public static final String QUERY_FILTER_RULE_RESOURCE_ROOT = "/rule";
     public static final String FAVORITE_QUERY_RESOURCE_ROOT = "/favorite";
     public static final String JOB_STATISTICS = "/job_stats";
-
-    public static final String PROJECT_DICT_RESOURCE_ROOT = DICT_RESOURCE_ROOT + "/project_dict";
-    public static final String SPARDER_DICT_RESOURCE_ROOT = "/sparder/sdict";
 
     public static final String GLOBAL_DICT_RESOURCE_ROOT = DICT_RESOURCE_ROOT + "/global_dict";
 

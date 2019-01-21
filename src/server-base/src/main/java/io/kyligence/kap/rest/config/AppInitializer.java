@@ -26,6 +26,7 @@ package io.kyligence.kap.rest.config;
 import java.io.DataInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.JsonSerializer;
 import org.apache.kylin.common.persistence.RawResource;
@@ -34,10 +35,12 @@ import org.apache.kylin.job.engine.JobEngineConfig;
 import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
 import org.apache.kylin.job.lock.MockJobLock;
 import org.apache.kylin.metadata.project.ProjectInstance;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.event.ApplicationContextEvent;
 import org.springframework.context.event.ContextRefreshedEvent;
 import org.springframework.context.event.EventListener;
+import org.springframework.scheduling.TaskScheduler;
 import org.springframework.stereotype.Component;
 
 import io.kyligence.kap.common.cluster.LeaderInitiator;
@@ -58,6 +61,9 @@ import lombok.extern.slf4j.Slf4j;
 @Component
 public class AppInitializer {
 
+    @Autowired
+    TaskScheduler taskScheduler;
+
     @EventListener(ContextRefreshedEvent.class)
     public void init(ContextRefreshedEvent event) {
         val kylinConfig = KylinConfig.getInstanceFromEnv();
@@ -67,11 +73,7 @@ public class AppInitializer {
         leaderInitiator.start(candidate);
 
         if (leaderInitiator.isLeader()) {
-            val projectManager = NProjectManager.getInstance(kylinConfig);
-            for (ProjectInstance project : projectManager.listAllProjects()) {
-                initProject(kylinConfig, project.getName(), true);
-            }
-            EventListenerRegistry.getInstance(kylinConfig).register(new GlobalEventListener(), UnitOfWork.GLOBAL_UNIT);
+            taskScheduler.scheduleWithFixedDelay(new BootstrapCommand(), 10000);
         } else {
             val messageQueue = MessageQueue.getInstance(kylinConfig);
             if (messageQueue != null) {
@@ -79,58 +81,54 @@ public class AppInitializer {
                 messageQueue.startConsumer(replayer::replay);
             }
         }
+        EventListenerRegistry.getInstance(kylinConfig).register(new FavoriteQueryUpdateListener(), "fq");
         event.getApplicationContext().publishEvent(new AppInitializedEvent(event.getApplicationContext()));
+
     }
 
-    static void initProject(KylinConfig config, String project, boolean needTransaction) {
-        EventListenerRegistry.getInstance(config).register(new FavoriteQueryUpdateListener(), project);
+    static void initProject(KylinConfig config, String project) {
         val leaderInitiator = LeaderInitiator.getInstance(config);
         if (!leaderInitiator.isLeader()) {
             return;
         }
-        if (needTransaction) {
-            UnitOfWork.doInTransactionWithRetry(() -> {
-                initProjectSchedulers(config, project);
-                return 0;
-            }, project);
-        } else {
-            initProjectSchedulers(config, project);
+        if (NFavoriteScheduler.getInstance(project).hasStarted()) {
+            return;
         }
-    }
-
-    static void initProjectSchedulers(KylinConfig config, String project) {
-        EventOrchestratorManager.getInstance(config).addProject(project);
-        NDefaultScheduler scheduler = NDefaultScheduler.getInstance(project);
-        scheduler.init(new JobEngineConfig(config), new MockJobLock());
-        if (!scheduler.hasStarted()) {
-            throw new RuntimeException("Scheduler for " + project + " has not been started");
-        }
-
-        NFavoriteScheduler favoriteScheduler = NFavoriteScheduler.getInstance(project);
-        favoriteScheduler.init();
-
-        if (!favoriteScheduler.hasStarted()) {
-            throw new RuntimeException("Auto favorite scheduler for " + project + " has not been started");
-        }
-
-    }
-
-    static class GlobalEventListener implements EventListenerRegistry.ResourceEventListener {
-
-        @Override
-        public void onUpdate(KylinConfig config, RawResource rawResource) {
-            val term = rawResource.getResPath().split("\\/");
-            if (term.length != 3 || !term[2].equals("project.json")) {
-                return;
+        UnitOfWork.doInTransactionWithRetry(() -> {
+            EventOrchestratorManager.getInstance(config).addProject(project);
+            NDefaultScheduler scheduler = NDefaultScheduler.getInstance(project);
+            scheduler.init(new JobEngineConfig(config), new MockJobLock());
+            if (!scheduler.hasStarted()) {
+                throw new RuntimeException("Scheduler for " + project + " has not been started");
             }
-            val project = term[1];
-            log.debug("try to init project {}", project);
-            initProject(config, project, false);
-        }
+
+            NFavoriteScheduler favoriteScheduler = NFavoriteScheduler.getInstance(project);
+            favoriteScheduler.init();
+
+            if (!favoriteScheduler.hasStarted()) {
+                throw new RuntimeException("Auto favorite scheduler for " + project + " has not been started");
+            }
+            return 0;
+        }, project);
+    }
+
+    public static class BootstrapCommand implements Runnable {
 
         @Override
-        public void onDelete(KylinConfig config, String resPath) {
-            /// just implement it
+        public void run() {
+            val kylinConfig = KylinConfig.getInstanceFromEnv();
+            val projectManager = NProjectManager.getInstance(kylinConfig);
+            for (ProjectInstance project : projectManager.listAllProjects()) {
+                initProject(kylinConfig, project.getName());
+            }
+            for (val scheduler : NDefaultScheduler.listAllSchedulers()) {
+                val project = scheduler.getProject();
+                if (projectManager.getProject(scheduler.getProject()) == null) {
+                    EventOrchestratorManager.getInstance(kylinConfig).shutdownByProject(project);
+                    NFavoriteScheduler.shutdownByProject(project);
+                    NDefaultScheduler.shutdownByProject(project);
+                }
+            }
         }
     }
 

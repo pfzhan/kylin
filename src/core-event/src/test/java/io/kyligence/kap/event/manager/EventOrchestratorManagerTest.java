@@ -60,7 +60,7 @@ public class EventOrchestratorManagerTest extends NLocalFileMetadataTestCase {
         Field x = EventOrchestratorManager.class.getDeclaredField("INSTANCE_MAP");
         x.setAccessible(true);
         Map<String, EventOrchestrator> map = (Map<String, EventOrchestrator>) x.get(null);
-        EventOrchestrator eventOrchestrator = map.get("@global");
+        EventOrchestrator eventOrchestrator = map.get(EventManager.GLOBAL);
 
         Field fetcherPoolField = EventOrchestrator.class.getDeclaredField("checkerPool");
         fetcherPoolField.setAccessible(true);

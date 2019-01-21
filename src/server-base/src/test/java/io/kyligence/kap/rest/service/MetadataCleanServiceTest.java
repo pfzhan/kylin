@@ -28,7 +28,7 @@ import java.util.HashSet;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-import org.apache.kylin.rest.security.ACLManager;
+import org.apache.kylin.rest.security.AclManager;
 import org.apache.kylin.rest.security.AclRecord;
 import org.apache.kylin.rest.security.ObjectIdentityImpl;
 import org.apache.kylin.rest.service.ServiceTestBase;
@@ -77,7 +77,7 @@ public class MetadataCleanServiceTest extends ServiceTestBase {
 
     private static void initData() throws IOException {
         val modelMgr = NDataModelManager.getInstance(getTestConfig(), PROJECT);
-        val aclManager = ACLManager.getInstance(getTestConfig());
+        val aclManager = AclManager.getInstance(getTestConfig());
         val indePlanManager = NIndexPlanManager.getInstance(getTestConfig(), PROJECT);
         val record = new AclRecord();
         record.setUuid(UUID.randomUUID().toString());
@@ -93,7 +93,8 @@ public class MetadataCleanServiceTest extends ServiceTestBase {
         val cube = indePlanManager.getIndexPlan(MODEL_ID);
         val layoutIds = cube.getAllLayouts().stream().map(LayoutEntity::getId).collect(Collectors.toList());
 
-        modelMgr.updateDataModel("89af4ee2-2cdb-4b07-b39e-4c29856309aa", copyForWrite -> copyForWrite.setSemanticVersion(2));
+        modelMgr.updateDataModel("89af4ee2-2cdb-4b07-b39e-4c29856309aa",
+                copyForWrite -> copyForWrite.setSemanticVersion(2));
 
         val favoriteQueryManager = FavoriteQueryManager.getInstance(getTestConfig(), PROJECT);
         val mocks = new HashSet<FavoriteQuery>();
@@ -160,8 +161,7 @@ public class MetadataCleanServiceTest extends ServiceTestBase {
         });
         gcService.clean();
 
-
-        val acl = ACLManager.getInstance(getTestConfig()).get(PROJECT_ID);
+        val acl = AclManager.getInstance(getTestConfig()).get(PROJECT_ID);
         Assert.assertNull(acl);
 
         val allFqs = favoriteQueryManager.getAll();

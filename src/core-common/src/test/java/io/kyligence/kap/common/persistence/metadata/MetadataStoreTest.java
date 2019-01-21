@@ -26,6 +26,7 @@ package io.kyligence.kap.common.persistence.metadata;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
+import java.nio.file.Files;
 import java.nio.file.Paths;
 
 import org.apache.kylin.common.KylinConfig;
@@ -103,15 +104,16 @@ public class MetadataStoreTest extends NLocalFileMetadataTestCase {
 
         //the metadata dir doesn't have user group file
         assertFalse(metadataStore.verify().existUserGroupFile);
-        Paths.get(junitFolder.getAbsolutePath(), MetadataStore.METADATA_NAMESPACE, "/user_group").toFile()
-                .createNewFile();
+        Files.createDirectory(Paths.get(junitFolder.getAbsolutePath(), MetadataStore.METADATA_NAMESPACE, "/_global"));
+        Files.createFile(
+                Paths.get(junitFolder.getAbsolutePath(), MetadataStore.METADATA_NAMESPACE, "/_global/user_group"));
         assertTrue(metadataStore.verify().existUserGroupFile);
 
         //the metadata dir doesn't have user dir
         assertFalse(metadataStore.verify().existUserDir);
-        Paths.get(junitFolder.getAbsolutePath(), MetadataStore.METADATA_NAMESPACE, "/user").toFile().mkdir();
-        Paths.get(junitFolder.getAbsolutePath(), MetadataStore.METADATA_NAMESPACE, "/user/ADMIN").toFile()
-                .createNewFile();
+        Paths.get(junitFolder.getAbsolutePath(), MetadataStore.METADATA_NAMESPACE, "/_global/user").toFile().mkdir();
+        Files.createFile(
+                Paths.get(junitFolder.getAbsolutePath(), MetadataStore.METADATA_NAMESPACE, "/_global/user/ADMIN"));
         assertTrue(metadataStore.verify().existUserDir);
     }
 }

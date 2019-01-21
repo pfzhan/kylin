@@ -106,9 +106,6 @@ public class NDataflowManager implements IRealizationProvider, IKeepNames {
             }
         };
         this.crud.setCheckCopyOnWrite(true);
-
-        // touch lower level metadata before registering my listener
-        crud.reloadAll();
     }
 
     public NDataflow removeLayouts(NDataflow df, Collection<Long> tobeRemoveCuboidLayoutIds) {
