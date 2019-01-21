@@ -26,8 +26,8 @@ export default {
   exportPushDownQueries: (para) => {
     return Vue.resource(apiUrl + 'diag/export/push_down').save(para)
   },
-  getStepOutputs: (stepDetail) => {
-    return Vue.resource(apiUrl + 'jobs/' + stepDetail.jobID + '/steps/' + stepDetail.stepID + '/output').get()
+  getStepOutputs: (para) => {
+    return Vue.resource(apiUrl + 'jobs/output').get(para)
   },
   resumeJob: (para) => {
     return Vue.resource(apiUrl + 'jobs/status').update(para)

@@ -4,6 +4,7 @@
     border
     class="favorite-table"
     ref="favoriteTable"
+    :default-sort = "{prop: 'last_query_time', order: 'descending'}"
     @sort-change="sortFavoriteList"
     :row-class-name="tableRowClassName"
     style="width: 100%">

@@ -14,6 +14,7 @@
         tooltip-effect="dark"
         :expand-row-keys=[currentExtandRow]
         :row-key="renderRowKey"
+        :default-sort = "{prop: 'gmtTime', order: 'descending'}"
         @sort-change="onSortChange"
         style="width: 100%">
         <el-table-column type="expand" width="34">
@@ -255,7 +256,7 @@ export default class ModelList extends Vue {
     pageSize: 10,
     exact: false,
     model: '',
-    sortBy: '',
+    sortBy: 'last_modify',
     reverse: true
   }
   currentEditModel = null

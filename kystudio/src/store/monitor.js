@@ -19,8 +19,8 @@ export default {
     [types.EXPORT_PUSHDOWN]: function ({ commit }, para) {
       return api.monitor.exportPushDownQueries(para)
     },
-    [types.LOAD_STEP_OUTPUTS]: function ({ commit }, stepDetail) {
-      return api.monitor.getStepOutputs(stepDetail)
+    [types.LOAD_STEP_OUTPUTS]: function ({ commit }, para) {
+      return api.monitor.getStepOutputs(para)
     },
     [types.RESUME_JOB]: function ({ commit }, para) {
       return api.monitor.resumeJob(para)

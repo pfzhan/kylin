@@ -1324,12 +1324,12 @@ export default class ModelEdit extends Vue {
           return
         }
         setTimeout(() => {
-          kapConfirm(this.$t('saveSuccessTip', null, this.$t('addIndexTip')), {
+          kapConfirm(this.$t('saveSuccessTip'), {
             confirmButtonText: this.$t('addIndexTip'),
             cancelButtonText: this.$t('ignoreaddIndexTip'),
             type: 'success',
             confirmButtonClass: 'guide-gotoindex-btn'
-          }).then(() => {
+          }, this.$t('addIndexTip')).then(() => {
             this.$router.replace({name: 'ModelList', params: { ignoreIntercept: true, addIndex: true }})
           }).catch(() => {
             this.$router.replace({name: 'ModelList', params: { ignoreIntercept: true }})

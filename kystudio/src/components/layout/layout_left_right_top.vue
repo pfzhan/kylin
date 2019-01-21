@@ -204,7 +204,6 @@ let MessageBox = ElementUI.MessageBox
       'currentSelectedProject',
       'briefMenuGet',
       'currentProjectData',
-      'isAutoProject',
       'availableMenus',
       'isAutoProject'
     ]),

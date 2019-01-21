@@ -448,7 +448,7 @@ export default class FavoriteQuery extends Vue {
   activeNames = ['rules']
   filterData = {
     sortBy: 'last_query_time',
-    reverse: false
+    reverse: true
   }
   frequencyObj = {
     enable: true,

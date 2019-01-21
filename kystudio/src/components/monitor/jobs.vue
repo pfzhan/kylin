@@ -36,6 +36,7 @@
       border
       :data="jobsList"
       highlight-current-row
+      :default-sort = "{prop: 'create_time', order: 'descending'}"
       @sort-change="sortJobList"
       @selection-change="handleSelectionChange"
       @select="handleSelect"
@@ -44,7 +45,6 @@
       :row-class-name="tableRowClassName"
       :style="{width:showStep?'70%':'100%'}"
     >
-      <!-- :default-sort="{prop: 'jobname', order: 'descending'}" -->
       <el-table-column type="selection" align="center" width="34"></el-table-column>
       <el-table-column align="center" width="40" prop="icon">
         <template slot-scope="scope">
@@ -418,7 +418,8 @@ export default class JobsList extends Vue {
     pageSize: pageCount,
     timeFilter: 4,
     jobNames: [],
-    sortBy: 'last_modify',
+    sortBy: 'create_time',
+    reverse: true,
     status: '',
     subjectAlias: ''
   }
@@ -485,21 +486,25 @@ export default class JobsList extends Vue {
         <el-checkbox-group class="filter-groups" value={this.filter.jobNames} onInput={val => (this.filter.jobNames = val)} onChange={this.filterChange2}>
           {items}
         </el-checkbox-group>
-        <i class="el-icon-ksd-filter" slot="reference"></i>
+        <i class={this.filter.jobNames.length ? 'el-icon-ksd-filter isFilter' : 'el-icon-ksd-filter'} slot="reference"></i>
       </el-popover>
     </span>)
   }
   renderColumn2 (h) {
     let items = []
     for (let i = 0; i < this.allStatus.length; i++) {
-      items.push(<div onClick={() => { this.filterChange2(this.allStatus[i]) }}><el-dropdown-item key={i}>{this.$t(this.allStatus[i])}</el-dropdown-item></div>)
+      items.push(
+        <div onClick={() => { this.filterChange2(this.allStatus[i]) }}>
+          <el-dropdown-item class={this.allStatus[i] === this.filter.status ? 'active' : ''} key={i}>{this.$t(this.allStatus[i])}</el-dropdown-item>
+        </div>
+      )
     }
     return (<span>
       <span>{this.$t('ProgressStatus')}</span>
-      <el-dropdown>
-        <i class="el-icon-ksd-filter el-dropdown-link"></i>
+      <el-dropdown hide-on-click={false} trigger="click">
+        <i class={this.filter.status && this.filter.status !== 'ALL' ? 'el-icon-ksd-filter el-dropdown-link isFilter' : 'el-icon-ksd-filter el-dropdown-link'}></i>
         <template slot="dropdown">
-          <el-dropdown-menu>
+          <el-dropdown-menu class="jobs-dropdown">
             {items}
           </el-dropdown-menu>
         </template>
@@ -901,9 +906,11 @@ export default class JobsList extends Vue {
     this.stepAttrToShow = 'output'
     this.dialogVisible = true
     this.outputDetail = this.$t('load')
-    this.loadStepOutputs({jobID: this.selectedJob.id, stepID: step.id}).then((result) => {
-      this.outputDetail = result.body.data.cmd_output
-    }).catch((result) => {
+    this.loadStepOutputs({jobId: this.selectedJob.id, project: this.currentSelectedProject}).then((res) => {
+      handleSuccess(res, (data) => {
+        this.outputDetail = data.cmd_output
+      })
+    }, (resError) => {
       this.outputDetail = this.$t('cmdOutput')
     })
   }
@@ -1170,6 +1177,9 @@ export default class JobsList extends Vue {
         position: relative;
         top: 5px;
         float: right;
+        &.isFilter {
+          color: @base-color;
+        }
       }
       th .el-dropdown {
         padding: 0;
@@ -1201,5 +1211,11 @@ export default class JobsList extends Vue {
       }
     }
   }
-
+  .jobs-dropdown {
+    min-width: 80px;
+    .el-dropdown-menu__item.active {
+      background-color: @base-color-9;
+      color: @base-color-2;
+    }
+  }
 </style>
