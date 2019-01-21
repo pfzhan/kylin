@@ -90,25 +90,15 @@ function obfuscate {
 }
 
 # extract server jar
-mkdir tmp_jar
-cd tmp_jar
-jar tvf ../src/server/target/kap-server-${kap_version}.jar | grep 'kap.*.jar' | awk '{print $8 }' > kap_jar.txt
-jar xf ../src/server/target/kap-server-${kap_version}.jar @kap_jar.txt
-cd ..
+ls src/server/target/jars/kap-*.jar > kap_jar.txt
 
 # only obfuscate kap* jars
-obfuscate src/server/ tmp_jar/BOOT-INF/lib 0 0 kap-all `cd tmp_jar/BOOT-INF/lib;ls kap-*.jar`
+obfuscate src/server/ src/server/target/jars 0 0 kap-all `cd src/server/target/jars;ls kap-*.jar`
 
-cd tmp_jar
-cp ../src/server/target/kap-server-${kap_version}.jar .
 for f in `cat kap_jar.txt`; do
-	zip -d kap-server-${kap_version}.jar $f
+	rm -f $f
 done
-jar -uf0 kap-server-${kap_version}.jar BOOT-INF/lib/*.jar
-mv kap-server-${kap_version}.jar ../tmp/kap.jar
-chmod 644 ../tmp/kap.jar
-cd ..
-rm -rf tmp_jar
+rm kap_jar.txt
 
 # obfuscate job(assembly) jar
 obfuscate src/assembly/ src/assembly/target 1 1 kap-assembly-${release_version}-job-obf kap-assembly-${release_version}-job.jar

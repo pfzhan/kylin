@@ -42,7 +42,9 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
 
-public class KerberosLoginTask extends InitialTask {
+import io.kyligence.kap.common.obf.IKeep;
+
+public class KerberosLoginTask extends InitialTask implements IKeep {
 
     private static final Logger logger = LoggerFactory.getLogger(KerberosLoginTask.class);
 

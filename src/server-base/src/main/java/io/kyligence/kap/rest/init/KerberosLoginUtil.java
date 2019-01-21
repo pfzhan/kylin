@@ -36,9 +36,10 @@ import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.security.authentication.util.KerberosUtil;
 import org.apache.log4j.Logger;
 
+import io.kyligence.kap.common.obf.IKeep;
 import sun.security.krb5.internal.ktab.KeyTab;
 
-public class KerberosLoginUtil {
+public class KerberosLoginUtil implements IKeep {
     public enum Module {
         STORM("StormClient"), KAFKA("KafkaClient"), ZOOKEEPER("Client");
 
