@@ -28,6 +28,8 @@ import com.google.common.collect.Lists
 import io.kyligence.kap.engine.spark.storage.ParquetStorage
 import io.kyligence.kap.engine.spark.utils.RepartitionHelper
 import org.apache.commons.io.FileUtils
+import org.apache.hadoop.fs.{FSDataOutputStream, Path}
+import org.apache.kylin.common.util.HadoopUtil
 import org.apache.spark.sql.common.{LocalMetadata, SharedSparkSession}
 import org.apache.spark.sql.types.{StringType, StructType}
 import org.apache.spark.sql.{Dataset, Row}
@@ -104,17 +106,28 @@ class TestDFBuildJob extends WordSpec with MockFactory with SharedSparkSession w
       }
     }
 
-    "neither have shardByColumns or average file size is too small" should {
+    "neither have shardByColumns or average file size is too small and goal file is exist" should {
       "do not repartition" in {
         val origin = generateOriginData()
         storage.saveTo(tempPath, origin, spark)
         val mockHelper = genMockHelper(needRepartition = false, needRepartitionForFileSize = false,
           needRepartitionForShardByColumns = false, 1, null)
+
+        var stream: FSDataOutputStream = null
+        try {
+          stream = HadoopUtil.getReadFileSystem.create(new Path(path))
+          stream.writeUTF("test")
+        } finally {
+          if (stream != null) {
+            stream.close()
+          }
+        }
         DFBuildJob.repartition(storage, path, spark, mockHelper)
         val files = new File(path).listFiles().filter(_.getName.endsWith(".parquet"))
         assert(files.length == spark.conf.get("spark.sql.shuffle.partitions").toInt)
       }
     }
+
   }
 
   def genMockHelper(needRepartition: Boolean, needRepartitionForFileSize: Boolean, needRepartitionForShardByColumns: Boolean,

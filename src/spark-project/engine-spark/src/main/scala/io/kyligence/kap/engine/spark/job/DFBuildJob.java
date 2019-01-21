@@ -145,7 +145,7 @@ public class DFBuildJob extends NDataflowJob {
     private void recursiveBuildCuboid(NDataSegment seg, IndexEntity cuboid, Dataset<Row> parent,
                                       Map<Integer, NDataModel.Measure> measures, NSpanningTree nSpanningTree) throws IOException {
         if (cuboid.getId() >= IndexEntity.TABLE_INDEX_START_ID) {
-            Preconditions.checkArgument(cuboid.getMeasures().size() == 0);
+            Preconditions.checkArgument(cuboid.getMeasures().isEmpty());
             Set<Integer> dimIndexes = cuboid.getEffectiveDimCols().keySet();
             Dataset<Row> afterPrj = parent.select(NSparkCubingUtil.getColumns(dimIndexes));
             // TODO: shard number should respect the shard column defined in cuboid
@@ -235,6 +235,7 @@ public class DFBuildJob extends NDataflowJob {
         String tempPath = path + tempDirSuffix;
         Path tempResourcePath = new Path(tempPath);
 
+        FileSystem readFileSystem = HadoopUtil.getReadFileSystem();
         if (helper.needRepartition()) {
             // repartition and write to target path
             logger.info("Start repartition and rewrite");
@@ -248,7 +249,7 @@ public class DFBuildJob extends NDataflowJob {
                 data = storage.getFrom(tempPath, ss).repartition(helper.getRepartitionNum());
             }
             storage.saveTo(path, data, ss);
-            if (HadoopUtil.getReadFileSystem().delete(tempResourcePath, true)) {
+            if (readFileSystem.delete(tempResourcePath, true)) {
                 logger.info("Delete temp cuboid path successful. Temp path: {}.", tempPath);
             } else {
                 logger.error("Delete temp cuboid path wrong, leave garbage. Temp path: {}.", tempPath);
@@ -256,7 +257,12 @@ public class DFBuildJob extends NDataflowJob {
             long end = System.currentTimeMillis();
             logger.info("Repartition and rewrite ends. Cost: {} ms.", end - start);
         } else {
-            if (HadoopUtil.getReadFileSystem().rename(new Path(tempPath), new Path(path))) {
+            Path goalPath = new Path(path);
+            if (readFileSystem.exists(goalPath)) {
+                logger.info("Path {} is exists, delete it.", goalPath);
+                 readFileSystem.delete(goalPath, true);
+            }
+            if (readFileSystem.rename(new Path(tempPath), goalPath)) {
                 logger.info("Rename temp path to target path successfully. Temp path: {}, target path: {}.", tempPath,
                         path);
             } else {
