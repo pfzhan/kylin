@@ -735,7 +735,7 @@ class NModel {
     }
   }
   getComputedColumns () {
-    return this._mount.computed_columns
+    return this._mount ? this._mount.computed_columns : this.computed_columns
   }
   _updateAllMeasuresCCToNewFactTable () {
     let factTable = this.getFactTable()
@@ -775,8 +775,8 @@ class NModel {
     }
   }
   // 移除和某个表相关的partition信息
-  _delTableRelatedPartitionInfo (t) {
-    if (this.partition_desc.partition_date_column && t && this.partition_desc.partition_date_column.split('.')[0] === t.alias) {
+  _delTableRelatedPartitionInfo (t, column) {
+    if (this.partition_desc.partition_date_column && t && this.partition_desc.partition_date_column.split('.')[0] === t.alias && (!column || column && this.partition_desc.partition_date_column.split('.')[1] === column)) {
       this.partition_desc.table_guid = null
       this.partition_desc.partition_date_column = null
       this.partition_desc.partition_time_column = null
@@ -1039,27 +1039,29 @@ class NModel {
     let dimensionIndex = indexOfObjWithSomeKey(this._mount.dimensions, 'name', name)
     this._mount.dimensions.splice(dimensionIndex, 1)
   }
-  _delDimensionByAlias (alias) {
+  // 删除某个别名table下的所有 Dimension 用到的列
+  _delDimensionByAlias (alias, column) {
     let dimensions = this._mount.dimensions.filter((item) => {
-      return item.column && item.column.split('.')[0] !== alias
+      return !(item.column && item.column.split('.')[0] === alias && (!column || column && item.column.split('.')[1] === column))
     })
     this._mount.dimensions.splice(0, this._mount.dimensions.length)
     this._mount.dimensions.push(...dimensions)
   }
-  _delTableIndexByAlias (alias) {
+  // 删除某个别名下的table里的所有的table index 用到的列
+  _delTableIndexByAlias (alias, column) {
     let tableIndexColumns = this.tableIndexColumns.filter((item) => {
-      return item.column && item.column.split('.')[0] !== alias
+      return !(item.column && item.column.split('.')[0] === alias && (!column || column && item.column.split('.')[1] === column))
     })
     this.tableIndexColumns.splice(0, this.tableIndexColumns.length)
     this.tableIndexColumns.push(...tableIndexColumns)
   }
-  // measure parameterValue 临时结构
-  _delMeasureByAlias (alias) {
+  // 删除某个别名下的 Measure 里的用到的列
+  _delMeasureByAlias (alias, column) {
     let measures = this._mount.all_measures.filter((item) => {
       let isUseAlias = false
       if (item.parameter_value && item.parameter_value.length > 0) {
         for (let i = 0; i < item.parameter_value.length; i++) {
-          if (item.parameter_value[i].value.split('.')[0] === alias) {
+          if (item.parameter_value[i].value.split('.')[0] === alias && (!column || column && item.parameter_value[i].value.split('.')[1] === column)) {
             isUseAlias = true
             break
           }
@@ -1138,12 +1140,24 @@ class NModel {
       }
     })
   }
+  _delCCRelated (t, column) {
+    let alias = t.alias
+    // 删除dimension里的cc
+    this._delDimensionByAlias(alias, column)
+    // 删除measure里的cc
+    this._delMeasureByAlias(alias, column)
+    // 删除table index里的cc
+    this._delTableIndexByAlias(alias, column)
+    // 删除partition里的cc
+    this._delTableRelatedPartitionInfo(t, column)
+  }
   // 删除可计算列
   delCC (cc) {
     let ccColumnName = typeof cc === 'object' ? cc.columnName : cc
     return new Promise((resolve) => {
       let ccIndex = indexOfObjWithSomeKey(this._mount.computed_columns, 'columnName', ccColumnName)
       let delCC = this._mount.computed_columns.splice(ccIndex, 1)
+      this._delCCRelated(this.getFactTable(), ccColumnName)
       resolve(delCC)
     })
   }

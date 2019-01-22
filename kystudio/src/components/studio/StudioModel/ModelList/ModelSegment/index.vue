@@ -2,10 +2,10 @@
   <div class="model-segment">
     <div class="segment-actions clearfix">
       <div class="left">
-        <el-button size="medium" type="primary" @click="handleRefreshSegment">{{$t('kylinLang.common.refresh')}}</el-button>
+        <el-button size="medium" type="primary" v-if="!isAutoProject" @click="handleRefreshSegment">{{$t('kylinLang.common.refresh')}}</el-button>
         <!-- <el-button size="medium" type="primary" icon="el-icon-ksd-merge" @click="handleMergeSegment">{{$t('merge')}}</el-button> -->
-        <el-button size="medium" type="default" @click="handleDeleteSegment">{{$t('kylinLang.common.delete')}}</el-button>
-        <el-button size="medium" type="default" v-if="model.management_type!=='TABLE_ORIENTED'" @click="handlePurgeModel">{{$t('kylinLang.common.purge')}}</el-button>
+        <el-button size="medium" type="default" v-if="!isAutoProject" @click="handleDeleteSegment">{{$t('kylinLang.common.delete')}}</el-button>
+        <el-button size="medium" type="default" v-if="!isAutoProject" @click="handlePurgeModel">{{$t('kylinLang.common.purge')}}</el-button>
       </div>
       <div class="right">
         <div class="segment-action">
@@ -127,7 +127,8 @@ import { formatSegments } from './handler'
   },
   computed: {
     ...mapGetters([
-      'currentSelectedProject'
+      'currentSelectedProject',
+      'isAutoProject'
     ])
   },
   methods: {

@@ -196,15 +196,16 @@ export default class SingleDimensionModal extends Vue {
     }
   }
   _handleCloseFunc (isSubmit) {
+    let dimension = objectClone(this.dimensionInfo)
     this.hideModal()
     setTimeout(() => {
-      this.resetModalForm()
       this.callback && this.callback({
         isSubmit: isSubmit,
         data: {
-          dimension: objectClone(this.dimensionInfo)
+          dimension: dimension
         }
       })
+      this.resetModalForm()
     }, 300)
   }
   handleClose (isSubmit) {

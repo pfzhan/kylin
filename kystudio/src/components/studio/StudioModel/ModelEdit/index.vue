@@ -323,6 +323,16 @@
           </div>
         </div>
         </transition>
+
+        <div class="search-action-list" v-if="modelSearchActionHistoryList && modelSearchActionHistoryList.length">
+          <div class="action-list-title">Search History</div>
+          <div class="action-content" v-for="(item, index) in modelSearchActionHistoryList" :key="index">
+            <div class="action-title">
+              <i :class="item.icon" class="ksd-mr-8"></i>
+              {{item.title}}</div>
+            <div class="action-detail"></div>
+          </div>
+        </div>
       </div>
     </transition> 
     <PartitionModal/>
@@ -513,6 +523,7 @@ export default class ModelEdit extends Vue {
   modelData = {}
   columnTypeIconMap = columnTypeIcon
   modelSearchActionSuccessTip = ''
+  modelSearchActionHistoryList = []
   globalLoading = loadingBox()
   renderBox = modelRenderConfig.drawBox
   measureVisible = false
@@ -690,11 +701,12 @@ export default class ModelEdit extends Vue {
   activeTablePanel (t) {
     this.modelInstance.setIndexTop(Object.values(this.modelRender.tables), t, 'drawSize')
   }
-  closeAddMeasureDia (isSubmit) {
+  closeAddMeasureDia ({isSubmit, data, isEdit}) {
     if (isSubmit) {
       this.modelSearchActionSuccessTip = 'measure 保存成功'
+      this._collectSearchActionRecords(data, isEdit ? 'editmeasure' : 'addmeasure')
+      this.measureVisible = false
     }
-    this.measureVisible = false
   }
   changeTableType (t) {
     if (this._checkTableType(t)) {
@@ -706,10 +718,6 @@ export default class ModelEdit extends Vue {
       // 提示 增量构建的不能改成lookup
       return false
     }
-    // if (Object.keys(t.joinInfo).length && t.kind === modelRenderConfig.tableKind.lookup) {
-    //   // 提示，主键表不能作为fact
-    //   return false
-    // }
     return true
   }
   // 放大视图
@@ -1067,6 +1075,37 @@ export default class ModelEdit extends Vue {
     e.preventDefault()
     this.removeDragInClass()
   }
+  _collectSearchActionRecords (data, type) {
+    let record = {}
+    let actionData = objectClone(data)
+    if (type === 'tableaddjoin' || type === 'addjoin') {
+      record.icon = ''
+      let fTable = this.modelInstance.getTableByGuid(actionData.selectF)
+      let pTable = this.modelInstance.getTableByGuid(actionData.selectP)
+      record.data = objectClone(actionData.joinData)
+      record.title = `Add Table Join Condition (${fTable.alias} ${data.joinType} ${pTable.alias})`
+    } else if (type === 'tableeditjoin' || type === 'editjoin') {
+      let fTable = this.modelInstance.getTableByGuid(actionData.selectF)
+      let pTable = this.modelInstance.getTableByGuid(actionData.selectP)
+      record.data = objectClone(actionData.joinData)
+      record.title = `Edit Table Join Condition (${fTable.alias} ${data.joinType} ${pTable.alias})`
+    } else if (type === 'addmeasure') {
+      record.icon = 'el-icon-ksd-measure'
+      record.title = `Add Measure (${actionData.name}), expression (${data.expression})`
+    } else if (type === 'editmeasure') {
+      record.icon = 'el-icon-ksd-measure'
+      record.title = `Edit Measure (${actionData.name}), expression (${data.expression})`
+    } else if (type === 'adddimension') {
+      record.icon = 'el-icon-ksd-dimension'
+      record.title = `Add Dimension (${actionData.name})`
+    } else if (type === 'editdimension') {
+      record.icon = 'el-icon-ksd-dimension'
+      record.title = `Edit Dimension (${actionData.name})`
+    } else if (type === 'showtable') {
+      record.title = `Search Table (${actionData.alias})`
+    }
+    this.modelSearchActionHistoryList.unshift(record)
+  }
   searchHandleStart = false // 标识业务弹窗是不是通过搜索弹出的
   selectResult (e, select) {
     this.modelSearchActionSuccessTip = ''
@@ -1077,6 +1116,7 @@ export default class ModelEdit extends Vue {
         let nTable = select.more
         let offset = nTable.getTableInViewOffset()
         this.modelInstance.moveModelPosition(offset.x, offset.y)
+        this._collectSearchActionRecords(nTable, select.action)
       }
     }
     if (select.action === 'tableeditjoin') {
@@ -1087,7 +1127,8 @@ export default class ModelEdit extends Vue {
         pid: pguid,
         fid: fguid,
         tables: this.modelRender.tables
-      }).then(() => {
+      }).then((data) => {
+        this._collectSearchActionRecords(data, select.action)
         this.modelSearchActionSuccessTip = 'table join 条件编辑成功'
       })
     }
@@ -1097,7 +1138,8 @@ export default class ModelEdit extends Vue {
         fid: '',
         pid: pguid,
         tables: this.modelRender.tables
-      }).then(() => {
+      }).then((data) => {
+        this._collectSearchActionRecords(data, select.action)
         this.modelSearchActionSuccessTip = 'table join 条件添加成功'
       })
     }
@@ -1109,6 +1151,7 @@ export default class ModelEdit extends Vue {
         modelInstance: this.modelInstance
       }).then((res) => {
         if (res && res.isSubmit) {
+          this._collectSearchActionRecords(res.data.dimension, select.action)
           this.modelSearchActionSuccessTip = 'dimension添加成功'
         }
       })
@@ -1119,6 +1162,7 @@ export default class ModelEdit extends Vue {
         modelInstance: this.modelInstance
       }).then((res) => {
         if (res && res.isSubmit) {
+          this._collectSearchActionRecords(res.data.dimension, select.action)
           this.modelSearchActionSuccessTip = 'dimension修改成功'
         }
       })
@@ -1131,7 +1175,8 @@ export default class ModelEdit extends Vue {
         pid: pguid,
         fid: fguid,
         tables: this.modelRender.tables
-      }).then((res) => {
+      }).then((data) => {
+        this._collectSearchActionRecords(data, select.action)
         this.modelSearchActionSuccessTip = '连接条件编辑成功'
       })
     }
@@ -1141,13 +1186,15 @@ export default class ModelEdit extends Vue {
         expression: 'SUM(column)',
         parameterValue: {type: 'column', value: moreInfo.full_colname, table_guid: null},
         convertedColumns: [],
-        return_type: ''
+        return_type: '',
+        fromSearch: true
       }
       this.measureVisible = true
       this.isEditMeasure = false
     }
     if (select.action === 'editmeasure') {
       this.measureObj = moreInfo
+      moreInfo.fromSearch = true
       this.measureVisible = true
       this.isEditMeasure = true
     }
@@ -1158,7 +1205,8 @@ export default class ModelEdit extends Vue {
         fid: '',
         tables: this.modelRender.tables,
         pColumnName: moreInfo.name
-      }).then((res) => {
+      }).then((data) => {
+        this._collectSearchActionRecords(data, select.action)
         this.modelSearchActionSuccessTip = '连接条件添加成功'
       })
     }
@@ -1401,9 +1449,9 @@ export default class ModelEdit extends Vue {
   background-color:@grey-3;
 }
 .search-position() {
-  width:783px;
+  width:620px;
   left:50%;
-  margin-left:-392px;
+  margin-left:-310px;
   position:relative;
 }
 .model-edit-outer {
@@ -1684,6 +1732,25 @@ export default class ModelEdit extends Vue {
       }
     }
     .panel-search-box {
+      .search-action-list {
+        font-size:12px;
+        right:30px;
+        top:130px;
+        width:300px;
+        position:absolute;
+        width:324px;
+        .action-list-title {
+          height:30px;
+          line-height:30px;
+          border-bottom: solid 1px @line-split-color;
+        }
+        .action-content {
+          border-bottom: dashed 1px @line-split-color;
+          .action-title {
+            padding:10px
+          }
+        }
+      }
       &.full-screen {
         top:88px!important;
       }
@@ -1752,12 +1819,12 @@ export default class ModelEdit extends Vue {
         }
       }
       .search-action-result {
-        width:783px;
+        width:620px;
         // margin: 0 auto;
         top: 90px;
         position: absolute;
         left: 50%;
-        margin-left: -392px;
+        margin-left: -310px;
       }
       .search-input {
         .search-position();

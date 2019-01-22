@@ -9,25 +9,9 @@
     :close-on-press-escape="false" 
     :close-on-click-modal="false">     
     <div class="ky-list-title">{{$t('partitionSet')}}</div>
-    <!-- <div class="ky-list-sub-title">一级分区</div>
-    <el-form :inline="true" :model="form" class="demo-form-inline">
-      <el-form-item label="表">
-        <el-select v-model="form.region" placeholder="请选择表">
-          <el-option label="1" value="shanghai"></el-option>
-          <el-option label="2" value="beijing"></el-option>
-        </el-select>
-      </el-form-item>
-      <el-form-item label="列">
-        <el-select v-model="form.region" placeholder="请选择列">
-          <el-option label="1" value="shanghai"></el-option>
-          <el-option label="2" value="beijing"></el-option>
-        </el-select>
-      </el-form-item>
-    </el-form> -->
-    <!-- <div class="ky-list-sub-title ksd-mt-16">时间分区</div> -->
     <el-form :model="partitionMeta" :rules="rules"  label-width="85px" class="ksd-mt-16" label-position="top"> 
       <el-form-item :label="$t('partitionDateColumn')">
-        <el-col :span="12">
+        <el-col :span="12" style="width:258px">
           <el-form-item prop="date1">
              <el-select v-guide.partitionTable v-model="partitionMeta.table" @change="partitionTableChange" :placeholder="$t('kylinLang.common.pleaseSelect')" style="width:248px">
                <el-option :label="$t('noPartition')" value=""></el-option>
@@ -44,32 +28,12 @@
         </el-select>
         </el-col>
       </el-form-item>
-      <!-- <el-form-item :label="$t('dateFormat')">
-        <el-select v-guide.partitionFormat  size="medium" v-model="partitionMeta.format" style="width:248px" :placeholder="$t('kylinLang.common.pleaseSelect')">
-          <el-option
-            v-for="item in formatList"
-            :key="item.value"
-            :label="item.label"
-            :value="item.value">
-          </el-option>
-        </el-select>
-      </el-form-item> -->
-      <!-- <el-form-item :label="$t('buildRange')" prop="dataRangeVal">
-        <el-date-picker
-          v-model="modelBuildMeta.dataRangeVal"
-          type="datetimerange"
-          :range-separator="$t('to')"
-          :start-placeholder="$t('startDate')"
-          :end-placeholder="$t('endDate')">
-        </el-date-picker>
-      </el-form-item> -->
     <template v-if="!(modelInstance && modelInstance.uuid) && partitionMeta.table && partitionMeta.column">
       <div class="ky-list-title ksd-mt-14">{{$t('loadRange')}}</div>
       <el-form-item prop="isLoadExisted" class="ksd-mt-10 ksd-mb-2">
         <el-radio class="font-medium" v-model="modelBuildMeta.isLoadExisted" :label="true">
           {{$t('loadExistingData')}}
         </el-radio>
-        <!-- <div class="item-desc">{{$t('loadExistingDataDesc')}}</div> -->
       </el-form-item>
       <el-form-item class="custom-load" prop="loadDataRange">
         <el-radio class="font-medium" v-model="modelBuildMeta.isLoadExisted" :label="false">
@@ -107,13 +71,7 @@
       </el-form-item>
       </template>
     </el-form>
-    <!-- <div class="ky-line"></div>
-    <div class="ky-list-title ksd-mt-16">Where 条件设置</div>
-    <el-input type="textarea" class="where-area" v-model="filterCondition"></el-input>
-    <div class="ksd-mt-10">Please input : “column_name = value”, i.e. Region = Beijing</div> -->
     <div slot="footer" class="dialog-footer">
-      <!-- <span class="ksd-fleft up-performance"><i class="el-icon-ksd-arrow_up"></i>提升<i>5%</i></span> -->
-      <!-- <span class="ksd-fleft down-performance"><i class="el-icon-ksd-arrow_down"></i>下降<span>5%</span></span> -->
       <el-button plain  size="medium" @click="isShow && handleClose(false)">{{$t('kylinLang.common.cancel')}}</el-button>
       <el-button type="primary" v-if="isShow" v-guide.partitionSaveBtn plain @click="savePartition" size="medium">{{$t('kylinLang.common.ok')}}</el-button>
     </div>
@@ -131,7 +89,7 @@ import store, { types } from './store'
 import { timeDataType } from '../../../../../config'
 import NModel from '../../ModelEdit/model.js'
 // import { titleMaps, cancelMaps, confirmMaps, getSubmitData } from './handler'
-import { isDatePartitionType } from '../../../../../util'
+import { isDatePartitionType, objectClone } from '../../../../../util'
 import { transToUTCMs, handleError, getGmtDateFromUtcLike } from 'util/business'
 import { handleSuccessAsync } from 'util/index'
 vuex.registerModule(['modals', 'ModelPartitionModal'], store)
@@ -271,6 +229,15 @@ export default class ModelPartitionModal extends Vue {
         }
       })
     }
+    let ccColumns = this.modelInstance.getComputedColumns()
+    let cloneCCList = objectClone(ccColumns)
+    cloneCCList.forEach((x) => {
+      let cc = {
+        name: x.columnName,
+        datatype: x.datatype
+      }
+      result.push(cc)
+    })
     return result
   }
   get formatList () {

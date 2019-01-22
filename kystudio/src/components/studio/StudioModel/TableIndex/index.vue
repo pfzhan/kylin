@@ -258,9 +258,10 @@ export default class TableIndex extends Vue {
     this.currentShowTableIndex = item
   }
   editTableIndex (isNew) {
+    let defaultName = isNew ? 'TableIndex_' + (this.tableIndexBaseList.length + 1) : ''
     this.showTableIndexEditModal({
       modelInstance: this.modelInstance,
-      tableIndexDesc: isNew ? null : this.currentShowTableIndex
+      tableIndexDesc: isNew ? {name: defaultName} : this.currentShowTableIndex
     }).then((res) => {
       if (res.isSubmit) {
         this.getAllTableIndex()

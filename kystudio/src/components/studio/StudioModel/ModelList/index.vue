@@ -21,8 +21,8 @@
           <template slot-scope="props">
             <transition name="full-model-slide-fade">
               <div class="cell-content" v-if="props.row.showModelDetail">
-                <div  v-if="!showFull" class="row-action" @click="toggleShowFull(props.$index, props.row)"><span class="tip-text">Full Screen</span><i class="el-icon-ksd-full_screen_1 full-model-box"></i></div>
-                <div v-else class="row-action"  @click="toggleShowFull(props.$index, props.row)"><span class="tip-text">Exit Full Screen</span><i class="el-icon-ksd-collapse_1 full-model-box" ></i></div>
+                <div  v-if="!showFull" class="row-action" @click="toggleShowFull(props.$index, props.row)"><span class="tip-text">{{$t('fullScreen')}}</span><i class="el-icon-ksd-full_screen_1 full-model-box"></i></div>
+                <div v-else class="row-action"  @click="toggleShowFull(props.$index, props.row)"><span class="tip-text">{{$t('exitFullScreen')}}</span><i class="el-icon-ksd-collapse_1 full-model-box" ></i></div>
                 <el-tabs class="el-tabs--default model-detail-tabs" v-model="props.row.tabTypes">
                   <el-tab-pane :label="$t('segment')" name="first">
                     <ModelSegment :model="props.row" v-if="props.row.tabTypes === 'first'" @purge-model="model => handleCommand('purge', model)" />
@@ -33,7 +33,7 @@
                   <el-tab-pane :label="$t('tableIndex')" name="third">
                     <TableIndex :modelDesc="props.row" v-if="props.row.tabTypes === 'third'"></TableIndex>
                   </el-tab-pane>
-                  <el-tab-pane label="JSON" name="forth">
+                  <!-- <el-tab-pane label="JSON" name="forth">
                     <el-input
                       class="model-json"
                       :value="JSON.stringify(props.row, '', 4)"
@@ -41,7 +41,7 @@
                       :rows="18"
                       :readonly="true">
                     </el-input>
-                  </el-tab-pane>
+                  </el-tab-pane> -->
                 </el-tabs>
               </div>
             </transition>
