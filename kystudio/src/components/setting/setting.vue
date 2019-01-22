@@ -95,12 +95,12 @@ export default class Setting extends Vue {
     this._hideLoading()
   }
   leaveConfirm () {
-    const confirmTitle = this.$t('kylinLang.common.willGo')
-    const confirmMessage = this.$t('kylinLang.common.tip')
+    const confirmMessage = this.$t('kylinLang.common.willGo')
+    const confirmTitle = this.$t('kylinLang.common.notice')
     const confirmButtonText = this.$t('kylinLang.common.go')
     const cancelButtonText = this.$t('kylinLang.common.cancel')
     const type = 'warning'
-    return this.$confirm(confirmTitle, confirmMessage, { confirmButtonText, cancelButtonText, type })
+    return this.$confirm(confirmMessage, confirmTitle, { confirmButtonText, cancelButtonText, type })
   }
   mounted () {
     if (this.currentProjectData) {

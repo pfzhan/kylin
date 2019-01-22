@@ -15,7 +15,7 @@ exports.default = {
     close: 'Close',
     update: 'Update',
     copy: 'Copy',
-    notice: 'Notice',
+    notice: 'Notification',
     save: 'Save',
     leave: 'Leave',
     ok: 'OK',
