@@ -52,30 +52,29 @@ class TestGlobalDictBuild extends SparderBaseFunSuite with SharedSparkSession wi
     val seg = df.getLastSegment
     val nSpanningTree = NSpanningTreeFactory.fromLayouts(seg.getIndexPlan.getAllLayouts, df.getUuid)
     val dictColSet = DictionaryBuilder.extractGlobalEncodeColumns(seg, nSpanningTree)
-    val col = dictColSet.iterator().next()
     seg.getConfig.setProperty("kylin.dictionary.globalV2-threshold-bucket-size", "100")
 
     // When to resize the dictionary, please refer to the description of DictionaryBuilder.calculateBucketSize
 
     // First build dictionary, no dictionary file exists
-    var randomDataSet = generateOriginData(1000)
+    var randomDataSet = generateOriginData(1000, 21)
     val meta1 = buildDict(seg, randomDataSet, dictColSet)
     Assert.assertEquals(20, meta1.getBucketSize)
     Assert.assertEquals(1000, meta1.getDictCount)
 
     // apply rule #1
-    randomDataSet = generateOriginData(3000)
+    randomDataSet = generateOriginData(3000, 22)
     val meta2 = buildDict(seg, randomDataSet, dictColSet)
     Assert.assertEquals(60, meta2.getBucketSize)
     Assert.assertEquals(4000, meta2.getDictCount)
 
-    randomDataSet = generateOriginData(3000)
+    randomDataSet = generateOriginData(3000, 23)
     val meta3 = buildDict(seg, randomDataSet, dictColSet)
     Assert.assertEquals(60, meta3.getBucketSize)
     Assert.assertEquals(7000, meta3.getDictCount)
 
     // apply rule #2
-    randomDataSet = generateOriginData(200)
+    randomDataSet = generateOriginData(200, 24)
     val meta4 = buildDict(seg, randomDataSet, dictColSet)
     Assert.assertEquals(140, meta4.getBucketSize)
     Assert.assertEquals(7200, meta4.getDictCount)
@@ -86,12 +85,12 @@ class TestGlobalDictBuild extends SparderBaseFunSuite with SharedSparkSession wi
     Assert.assertEquals(7400, meta5.getDictCount)
 
     // apply rule #3
-    randomDataSet = generateOriginData(200)
+    randomDataSet = generateOriginData(200, 25)
     val meta6 = buildDict(seg, randomDataSet, dictColSet)
     Assert.assertEquals(280, meta6.getBucketSize)
     Assert.assertEquals(7600, meta6.getDictCount)
 
-    randomDataSet = generateOriginData(2000)
+    randomDataSet = generateOriginData(2000, 26)
     val meta7 = buildDict(seg, randomDataSet, dictColSet)
     Assert.assertEquals(280, meta7.getBucketSize)
     Assert.assertEquals(9600, meta7.getDictCount)
@@ -105,27 +104,27 @@ class TestGlobalDictBuild extends SparderBaseFunSuite with SharedSparkSession wi
     dict.getMetaInfo
   }
 
-  def generateOriginData(count: Int): Dataset[Row] = {
-    var range = Range(0, count)
+  def generateOriginData(count: Int, length: Int): Dataset[Row] = {
+    val range = Range(0, count)
     var schema = new StructType
     schema = schema.add("26", StringType)
     var list = new ListBuffer[Row]
-    for (i <- range) {
+    for (_ <- range) {
       val objects = new Array[String](1)
-      objects(0) = RandomStringUtils.randomAlphabetic(20)
+      objects(0) = RandomStringUtils.randomAlphabetic(length)
       list.+=(Row.fromSeq(objects.toSeq))
     }
 
-    spark.createDataFrame(spark.sparkContext.parallelize(list.toSeq), schema)
+    spark.createDataFrame(spark.sparkContext.parallelize(list), schema)
   }
 
   def generateHotOriginData(threshold: Int, bucketSize: Int): Dataset[Row] = {
-    var range = Range(0, 30000)
+    val range = Range(0, 30000)
     var schema = new StructType
     schema = schema.add("26", StringType)
     var list = new ListBuffer[Row]
     val partitioner = new NHashPartitioner(bucketSize)
-    for (i <- range if list.length != threshold) {
+    for (_ <- range if list.length != threshold) {
       val objects = new Array[String](1)
       val randomValue = RandomStringUtils.randomAlphabetic(30)
       if (partitioner.getPartition(randomValue) == 1) {
@@ -134,6 +133,6 @@ class TestGlobalDictBuild extends SparderBaseFunSuite with SharedSparkSession wi
       }
     }
 
-    spark.createDataFrame(spark.sparkContext.parallelize(list.toSeq), schema)
+    spark.createDataFrame(spark.sparkContext.parallelize(list), schema)
   }
 }
