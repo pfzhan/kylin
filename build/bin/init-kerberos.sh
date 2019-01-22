@@ -17,6 +17,7 @@ function initKerberos() {
     KAP_KERBEROS_PRINCIPAL=`$KYLIN_HOME/bin/get-properties.sh kap.kerberos.principal`
     KAP_KERBEROS_KEYTAB=`$KYLIN_HOME/bin/get-properties.sh kap.kerberos.keytab`
     KAP_KERBEROS_KEYTAB_PATH=${KYLIN_HOME}"/conf/"${KAP_KERBEROS_KEYTAB}
+    echo "Kerberos is enabled, init..."
     kinit -kt $KAP_KERBEROS_KEYTAB_PATH $KAP_KERBEROS_PRINCIPAL
 }
 

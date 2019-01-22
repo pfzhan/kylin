@@ -39,6 +39,52 @@ function verbose {
     fi
 }
 
+function fetchHadoopConf() {
+    export FI_ENV_PLATFORM=
+
+    ## FusionInsight platform C70.
+    if [ -n "$BIGDATA_CLIENT_HOME" ]
+    then
+        FI_ENV_PLATFORM=$BIGDATA_CLIENT_HOME
+    fi
+
+    ## FusionInsight platform C60.
+    if [ -n "$BIGDATA_HOME" ]
+    then
+        FI_ENV_PLATFORM=$BIGDATA_HOME
+    fi
+
+    if [ -n "$FI_ENV_PLATFORM" ]
+    then
+        # FI platform
+        cp -rf $FI_ENV_PLATFORM/HDFS/hadoop/etc/hadoop/core-site.xml ${KYLIN_HADOOP_CONF}
+        cp -rf $FI_ENV_PLATFORM/HDFS/hadoop/etc/hadoop/hdfs-site.xml ${KYLIN_HADOOP_CONF}
+        cp -rf $FI_ENV_PLATFORM/HDFS/hadoop/etc/hadoop/yarn-site.xml ${KYLIN_HADOOP_CONF}
+        cp -rf $FI_ENV_PLATFORM/Hive/config/hive-site.xml ${KYLIN_HADOOP_CONF}
+        cp -rf $FI_ENV_PLATFORM/HDFS/hadoop/etc/hadoop/mapred-site.xml ${KYLIN_HADOOP_CONF}
+
+        # Spark need hive-site.xml in FI
+        cp -rf $FI_ENV_PLATFORM/Hive/config/hive-site.xml ${SPARK_HOME}/conf
+
+        # don't find topology.map in FI
+        cp -rf $FI_ENV_PLATFORM/HDFS/hadoop/etc/hadoop/topology.py ${KYLIN_HADOOP_CONF}
+        cp -rf $FI_ENV_PLATFORM/HDFS/hadoop/etc/hadoop/ssl-client.xml ${KYLIN_HADOOP_CONF}
+        cp -rf $FI_ENV_PLATFORM/HDFS/hadoop/etc/hadoop/hadoop-env.sh ${KYLIN_HADOOP_CONF}
+    else
+        # CDH/HDP platform
+        cp -rf /etc/hadoop/conf/core-site.xml ${KYLIN_HADOOP_CONF}
+        cp -rf /etc/hadoop/conf/hdfs-site.xml ${KYLIN_HADOOP_CONF}
+        cp -rf /etc/hadoop/conf/yarn-site.xml ${KYLIN_HADOOP_CONF}
+        cp -rf /etc/hive/conf/hive-site.xml ${KYLIN_HADOOP_CONF}
+        cp -rf /etc/hadoop/conf/mapred-site.xml ${KYLIN_HADOOP_CONF}
+
+        cp -rf /etc/hadoop/conf/topology.py ${KYLIN_HADOOP_CONF}
+        cp -rf /etc/hadoop/conf/topology.map ${KYLIN_HADOOP_CONF}
+        cp -rf /etc/hadoop/conf/ssl-client.xml ${KYLIN_HADOOP_CONF}
+        cp -rf /etc/hadoop/conf/hadoop-env.sh ${KYLIN_HADOOP_CONF}
+    fi
+}
+
 # start command
 if [ "$1" == "start" ]
 then
@@ -65,16 +111,8 @@ then
     mkdir -p ${KYLIN_HOME}/logs
     mkdir -p ${KYLIN_HOME}/hadoop_conf
 
-    cp -rf /etc/hadoop/conf/core-site.xml ${KYLIN_HADOOP_CONF}
-    cp -rf /etc/hadoop/conf/hdfs-site.xml ${KYLIN_HADOOP_CONF}
-    cp -rf /etc/hadoop/conf/yarn-site.xml ${KYLIN_HADOOP_CONF}
-    cp -rf /etc/hive/conf/hive-site.xml ${KYLIN_HADOOP_CONF}
-    cp -rf /etc/hadoop/conf/mapred-site.xml ${KYLIN_HADOOP_CONF}
-
-    cp -rf /etc/hadoop/conf/topology.map ${KYLIN_HADOOP_CONF}
-    cp -rf /etc/hadoop/conf/topology.py ${KYLIN_HADOOP_CONF}
-    cp -rf /etc/hadoop/conf/ssl-client.xml ${KYLIN_HADOOP_CONF}
-    cp -rf /etc/hadoop/conf/hadoop-env.sh ${KYLIN_HADOOP_CONF}
+    fetchHadoopConf
+    source ${KYLIN_HOME}/bin/replace-jars-under-spark.sh
 
     port=7070
 
