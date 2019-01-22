@@ -1478,11 +1478,12 @@ export default class ModelEdit extends Vue {
   user-select:none;
   overflow:hidden;
   .box-css();
-  height: calc(~"100% - 34px");
+  height: calc(~"100% - 54px");
   .panel-box{
       box-shadow: @box-shadow;
       position:relative;
       width:250px;
+      overflow-x: hidden;
       .panel-title {
         background:@text-normal-color;
         height:28px;

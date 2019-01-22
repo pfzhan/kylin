@@ -1,6 +1,7 @@
 <template>
   <div class="security-group">
-    <el-row class="ksd-mb-14 ksd-mt-10 ksd-mrl-20">
+    <div class="ksd-title-label ksd-mt-20 ksd-mrl-20">{{$t('userGroupsList')}}</div>
+    <el-row class="ksd-mb-10 ksd-mt-10 ksd-mrl-20">
       <el-button type="primary" plain size="medium" v-if="groupActions.includes('addGroup')" icon="el-icon-ksd-add_2" @click="editGroup('new')">{{$t('kylinLang.common.group')}}</el-button>
     </el-row>
     <el-row class="ksd-mrl-20">

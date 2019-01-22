@@ -46,7 +46,7 @@
 
     <div class="segment-views">
       <el-table border :data="segments" @selection-change="handleSelectSegments" @sort-change="handleSortChange">
-        <el-table-column type="selection" width="35" align="center">
+        <el-table-column type="selection" width="40" align="center">
         </el-table-column>
         <el-table-column prop="id" header-align="center" label="Segment Id">
         </el-table-column>
@@ -291,9 +291,8 @@ export default class ModelSegment extends Vue {
 
 .model-segment {
   padding: 20px 0;
-  margin-bottom: 20px;
   .segment-actions {
-    margin-bottom: 15px;
+    margin-bottom: 10px;
     .left {
       float: left;
     }

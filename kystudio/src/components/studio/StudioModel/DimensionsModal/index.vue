@@ -15,7 +15,7 @@
               <i class="el-icon-arrow-down  ksd-fright ksd-mt-14 right-icon" v-else></i>
               <span class="ksd-ml-2"><i class="el-icon-ksd-fact_table"></i></span><span class="table-title">{{table.alias}} <span>({{countTableSelectColumns(table)}})</span> </span>
             </div>
-            <el-table style="width:98%;margin: 0 auto"
+            <el-table
               class="ksd-mt-10"
               v-if="table.show"
               border
@@ -27,7 +27,8 @@
               @select="selectionChange">
               <el-table-column
                 type="selection"
-                width="34">
+                align="center"
+                width="40">
               </el-table-column>
               <el-table-column
                 header-align="center"

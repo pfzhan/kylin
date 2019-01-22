@@ -81,7 +81,7 @@
       </el-col>
     </el-row>
     <hr class="divider"/>
-    <div class="clearfix ksd-mb-10">
+    <div class="clearfix ksd-mb-16">
       <div class="ksd-fleft">
         <el-date-picker v-model="daterange"
           type="daterange"
@@ -725,7 +725,7 @@ export default class Dashboard extends Vue {
       }
     }
     .divider {
-      margin: 25px 0;
+      margin: 20px 0;
       border-top: 1px solid @table-stripe-color;
     }
   }

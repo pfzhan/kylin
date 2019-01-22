@@ -7,7 +7,7 @@
     <el-dialog class="errMsgBox"
        width="660px"
       :before-close="handleClose"
-      :title="$t('kylinLang.common.tip')"
+      :title="$t('kylinLang.common.notice')"
       :close-on-click-modal="false"
       :append-to-body="true"
       :visible.sync="$store.state.config.errorMsgBox.isShow"

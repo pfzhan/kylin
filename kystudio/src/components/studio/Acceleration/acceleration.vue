@@ -1,6 +1,6 @@
 <template>
   <div id="favoriteQuery">
-    <div class="ksd-title-label ksd-mt-10 ksd-mb-10">
+    <div class="ksd-title-label ksd-mt-20 ksd-mb-20">
       <span>{{$t('acceleration')}}</span>
     </div>
     <div class="img-groups" v-guide.speedProcess>

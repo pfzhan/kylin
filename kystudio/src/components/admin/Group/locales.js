@@ -6,7 +6,8 @@ export default {
     haschecked: 'Assigned Users',
     confirmDelGroup: 'Are you sure to delete this group?',
     usersCount: 'User Number',
-    delGroupTitle: 'Delete Group'
+    delGroupTitle: 'Delete Group',
+    userGroupsList: 'User Group List'
   },
   'zh-cn': {
     newGroup: '新建组',
@@ -15,6 +16,7 @@ export default {
     haschecked: '已分配组用户',
     confirmDelGroup: '确认删除该组吗？',
     usersCount: '用户数',
-    delGroupTitle: '删除用户组'
+    delGroupTitle: '删除用户组',
+    userGroupsList: '用户组列表'
   }
 }

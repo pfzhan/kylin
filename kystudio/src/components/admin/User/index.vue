@@ -1,7 +1,8 @@
 <template>
   <div class="security-user">
+    <div class="ksd-title-label ksd-mt-20">{{$t('userList')}}</div>
     <!-- 新建/过滤用户 -->
-    <el-row class="ksd-mt-10 ksd-mb-14">
+    <el-row class="ksd-mt-10 ksd-mb-10">
       <el-col :span="24">
         <el-button plain type="primary"
           size="medium"

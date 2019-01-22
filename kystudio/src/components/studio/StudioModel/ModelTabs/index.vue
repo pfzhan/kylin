@@ -1,5 +1,5 @@
 <template>
-  <div class="mode-edit-tabs">
+  <div class="mode-edit-tabs ksd-mt-20">
     <kap-tab class="studio-top-tab" type="card" v-on:addtab="addTab" v-on:reload="reloadTab" v-on:removetab="delTab" :tabslist="modelEditPanels"  :active="activeName" v-on:clicktab="checkTab">
     </kap-tab>
     <component :is="p.content" v-for="p in modelEditPanels" :key="p.name" v-on:saveRequestEnd="requestEnd" v-on:addtabs="addTab" v-on:reload="reloadTab" v-on:removetabs="delTab" :extraoption="p.extraoption" :ref="p.content" v-if="p.name === activeName"></component>

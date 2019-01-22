@@ -1,5 +1,6 @@
 <template>
   <div class="jobs_list ksd-mrl-20" @click.stop>
+    <div class="ksd-title-label ksd-mt-20">{{$t('jobsList')}}</div>
     <el-row :gutter="20" class="jobs_tools_row ksd-mt-10 ksd-mb-10">
       <el-col :span="18">
         <el-dropdown class="ksd-fleft waiting-jobs" placement="bottom-start" @command="handleCommand">
@@ -45,7 +46,7 @@
       :row-class-name="tableRowClassName"
       :style="{width:showStep?'70%':'100%'}"
     >
-      <el-table-column type="selection" align="center" width="34"></el-table-column>
+      <el-table-column type="selection" align="center" width="40"></el-table-column>
       <el-table-column align="center" width="40" prop="icon">
         <template slot-scope="scope">
           <i :class="{
@@ -335,7 +336,8 @@ import { transToGmtTime, kapConfirm, handleError, handleSuccess } from 'util/bus
       waitingJobList: 'Waiting Job List',
       triggerTime: 'Trigger Time',
       order: 'Order',
-      jobTarget: 'Job Target:'
+      jobTarget: 'Job Target:',
+      jobsList: 'Jobs List'
     },
     'zh-cn': {
       dataRange: '数据范围',
@@ -389,7 +391,8 @@ import { transToGmtTime, kapConfirm, handleError, handleSuccess } from 'util/bus
       waitingJobList: '等待任务列表',
       triggerTime: '触发时间',
       order: '排序',
-      jobTarget: '任务目标：'
+      jobTarget: '任务目标：',
+      jobsList: '任务列表'
     }
   }
 })
