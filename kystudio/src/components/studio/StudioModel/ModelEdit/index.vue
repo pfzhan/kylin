@@ -1531,7 +1531,6 @@ export default class ModelEdit extends Vue {
       box-shadow: @box-shadow;
       position:relative;
       width:250px;
-      overflow-x: hidden;
       .panel-title {
         background:@text-normal-color;
         height:28px;

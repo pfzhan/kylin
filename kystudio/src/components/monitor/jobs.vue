@@ -228,9 +228,9 @@
       <div v-if="waitingJob">
         <span class="ksd-title-label ksd-fs-14">{{$t('jobTarget')}}</span>{{waitingJob.modelName}}
         <el-table :data="waitingJob.jobsList" border class="ksd-mt-10">
-          <el-table-column type="index" :label="$t('order')" width="60" align="center"></el-table-column>
-          <el-table-column property="job_type" :label="$t('JobType')" width="140"></el-table-column>
-          <el-table-column property="create_time" :label="$t('triggerTime')">
+          <el-table-column type="index" :label="$t('order')" width="60" :resizable="false" align="center"></el-table-column>
+          <el-table-column property="job_type" :label="$t('JobType')" show-overflow-tooltip :resizable="false" header-align="center"></el-table-column>
+          <el-table-column property="create_time" :label="$t('triggerTime')" width="207" header-align="center" :resizable="false">
             <template slot-scope="scope">
               {{transToGmtTime(scope.row.create_time)}}
             </template>
@@ -449,6 +449,7 @@ export default class JobsList extends Vue {
     this.waitingJobListVisibel = true
     this.waittingJobsFilter.project = this.currentSelectedProject
     this.waittingJobsFilter.model = uuid
+    this.waitingJob.modelName = this.waittingJobModels.data[uuid].model_alias
     this.laodWaittingJobsByModel(this.waittingJobsFilter).then((res) => {
       handleSuccess(res, (data) => {
         this.waitingJob.jobsList = data.data
