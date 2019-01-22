@@ -298,10 +298,6 @@ public class QueryService extends BasicService {
 
         String log = stringBuilder.toString();
 
-        if (QueryMetricsContext.isStarted()) {
-            QueryMetricsContext.log(log);
-        }
-
         logger.info(log);
         return log;
     }

@@ -65,7 +65,6 @@ public class QueryMetricsContext {
     private static final Logger logger = LoggerFactory.getLogger(QueryMetricsContext.class);
 
     protected static final KapConfig kapConfig = KapConfig.getInstanceFromEnv().getInstanceFromEnv();
-    private static final String LOG_METRIC = "log";
     public static final String UNKNOWN = "Unknown";
 
     public static final String AGG_INDEX = "Agg Index";
@@ -102,8 +101,6 @@ public class QueryMetricsContext {
 
     private final List<RealizationMetrics> realizationMetrics = new ArrayList<>();
 
-    private String log;
-
     private QueryMetricsContext(String queryId) {
         this.queryId = queryId;
     }
@@ -137,10 +134,6 @@ public class QueryMetricsContext {
         current.doCollect(request, response, context);
 
         return current;
-    }
-
-    public static void log(final String log) {
-        obtainCurrentQueryMetrics().log = log;
     }
 
     public static void reset() {
@@ -294,10 +287,6 @@ public class QueryMetricsContext {
                     });
 
             builder.put(QueryHistory.REALIZATIONS, Joiner.on(",").join(realizations));
-        }
-
-        if (StringUtils.isNotBlank(this.log)) {
-            builder.put(LOG_METRIC, log);
         }
 
         return builder.build();

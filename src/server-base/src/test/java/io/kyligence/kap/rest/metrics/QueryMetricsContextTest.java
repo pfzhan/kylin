@@ -31,7 +31,6 @@ import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import io.kyligence.kap.metadata.query.QueryHistory;
 import io.kyligence.kap.query.util.QueryPatternUtil;
 import org.apache.calcite.sql.validate.SqlValidatorException;
-import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.metadata.realization.NoRealizationFoundException;
 import org.apache.kylin.query.relnode.OLAPContext;
@@ -84,14 +83,6 @@ public class QueryMetricsContextTest extends NLocalFileMetadataTestCase {
             QueryMetricsContext.kapConfig.getKylinConfig().setProperty("kap.metric.diagnosis.graph-writer-type",
                     "BLACK_HOLE");
         }
-    }
-
-    @Test
-    public void assertLogWithoutStart() {
-        exceptionRule.expect(IllegalStateException.class);
-        exceptionRule.expectMessage("Query metric context is not started");
-
-        QueryMetricsContext.log(RandomStringUtils.random(10));
     }
 
     @Test
@@ -257,8 +248,6 @@ public class QueryMetricsContextTest extends NLocalFileMetadataTestCase {
             response.setRealizationMetrics(Lists.newArrayList(aggIndex, tableIndex));
             response.setEngineType(Joiner.on(",").join((Lists.newArrayList(QueryMetricsContext.AGG_INDEX, QueryMetricsContext.TABLE_INDEX))));
 
-            QueryMetricsContext.log("query logs");
-
             final QueryMetricsContext metricsContext = QueryMetricsContext.collect(request, response, queryContext);
 
             // assert query metric tags
@@ -269,7 +258,6 @@ public class QueryMetricsContextTest extends NLocalFileMetadataTestCase {
             // assert query metric fields
             final Map<String, Object> influxdbFields = metricsContext.getInfluxdbFields();
             Assert.assertEquals("1,200000000002", influxdbFields.get("realizations"));
-            Assert.assertEquals("query logs", influxdbFields.get("log"));
 
             // assert realizations
             final List<QueryMetricsContext.RealizationMetrics> realizationMetrics = metricsContext
