@@ -209,12 +209,17 @@ export default class AddMeasure extends Vue {
         callback(new Error(this.$t('kylinLang.common.nameFormatValidTip')))
       }
       if (this.modelInstance.all_measures.length) {
+        let isResuse = false
         for (let i = 0; i < this.modelInstance.all_measures.length; i++) {
           if (this.modelInstance.all_measures[i].name.toLocaleUpperCase() === this.measure.name.toLocaleUpperCase() && this.measure.guid !== this.modelInstance.all_measures[i].guid) {
-            callback(new Error(this.$t('nameReuse')))
-          } else {
-            callback()
+            isResuse = true
+            break
           }
+        }
+        if (isResuse) {
+          callback(new Error(this.$t('nameReuse')))
+        } else {
+          callback()
         }
       } else {
         callback()
