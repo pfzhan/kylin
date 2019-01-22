@@ -361,6 +361,10 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
         Event event7 = new PostAddCuboidEvent();
         event7.setModelId("abe3bf1a-c4bc-458d-8278-7ea8b00f5e96");
         eventDao.addEvent(event7);
+
+        Event event8 = new AddCuboidEvent();
+        event8.setModelId("not_existing_model");
+        eventDao.addEvent(event8);
     }
 
 }

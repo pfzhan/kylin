@@ -25,6 +25,7 @@
 package org.apache.kylin.job.dao;
 
 import com.google.common.collect.Maps;
+import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
@@ -130,6 +131,8 @@ public class JobStatisticsManager {
 
         aggregateStatsByModel(startTime, endTime).forEach((modelName, value) -> {
             String modelAlias = getModelAlias(modelName);
+            if (modelAlias == null)
+                return;
             result.put(modelAlias, value.getCount());
         });
 
@@ -147,6 +150,8 @@ public class JobStatisticsManager {
 
         aggregateStatsByModel(startTime, endTime).forEach((modelName, value) -> {
             String modelAlias = getModelAlias(modelName);
+            if (modelAlias == null)
+                return;
             transformedResult.put(modelAlias,
                     new JobStatisticsBasic(value.getTotalDuration(), value.getTotalByteSize()));
         });
@@ -156,8 +161,11 @@ public class JobStatisticsManager {
 
     private String getModelAlias(String modelId) {
         NDataModelManager dataModelManager = NDataModelManager.getInstance(config, project);
-        String modelAlias = dataModelManager.getDataModelDesc(modelId).getAlias();
-        return modelAlias;
+        NDataModel model = dataModelManager.getDataModelDesc(modelId);
+        if (model == null)
+            return null;
+
+        return model.getAlias();
     }
 
     private JobStatistics aggregateJobStats(List<JobStatistics> jobStatisticsToAggregate) {

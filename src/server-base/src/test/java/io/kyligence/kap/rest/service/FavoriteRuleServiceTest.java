@@ -137,6 +137,12 @@ public class FavoriteRuleServiceTest extends NLocalFileMetadataTestCase {
         String failedFilesMsg = (String) result.get("msg");
         Assert.assertNotNull(failedFilesMsg);
         Assert.assertEquals("exception_file.sql parse failed", failedFilesMsg);
+
+        // import empty file
+        MockMultipartFile emptyFile = new MockMultipartFile("empty_file.sql", "empty_file.sql", "text/plain", "".getBytes());
+        result = favoriteRuleService.importSqls(new MultipartFile[]{emptyFile}, PROJECT);
+        Assert.assertNotNull(result);
+        Assert.assertEquals(0, result.get("size"));
     }
 
     @Test

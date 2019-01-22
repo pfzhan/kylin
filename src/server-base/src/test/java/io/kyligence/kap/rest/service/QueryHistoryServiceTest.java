@@ -138,21 +138,21 @@ public class QueryHistoryServiceTest extends NLocalFileMetadataTestCase {
 
         // query count by day
         result = queryHistoryService.getQueryCount(PROJECT, 0, Long.MAX_VALUE, "day");
-        Assert.assertEquals(3, result.size());
+        Assert.assertEquals(4, result.size());
         Assert.assertEquals(10, result.get("2018-01-01"));
         Assert.assertEquals(11, result.get("2018-01-02"));
         Assert.assertEquals(12, result.get("2018-01-03"));
 
         // query count by week
         result = queryHistoryService.getQueryCount(PROJECT, 0, Long.MAX_VALUE, "week");
-        Assert.assertEquals(3, result.size());
+        Assert.assertEquals(4, result.size());
         Assert.assertEquals(10, result.get("2018-01-01"));
         Assert.assertEquals(11, result.get("2018-01-02"));
         Assert.assertEquals(12, result.get("2018-01-03"));
 
         // query count by month
         result = queryHistoryService.getQueryCount(PROJECT, 0, Long.MAX_VALUE, "month");
-        Assert.assertEquals(3, result.size());
+        Assert.assertEquals(4, result.size());
         Assert.assertEquals(10, result.get("2018-01-01"));
         Assert.assertEquals(11, result.get("2018-01-02"));
         Assert.assertEquals(12, result.get("2018-01-03"));
@@ -174,21 +174,21 @@ public class QueryHistoryServiceTest extends NLocalFileMetadataTestCase {
 
         // avg duration by day
         result = queryHistoryService.getAvgDuration(PROJECT, 0, Long.MAX_VALUE, "day");
-        Assert.assertEquals(3, result.size());
+        Assert.assertEquals(4, result.size());
         Assert.assertEquals(500, (double) result.get("2018-01-01"), 0.1);
         Assert.assertEquals(600, (double) result.get("2018-01-02"), 0.1);
         Assert.assertEquals(700, (double) result.get("2018-01-03"), 0.1);
 
         // avg duration by week
         result = queryHistoryService.getAvgDuration(PROJECT, 0, Long.MAX_VALUE, "week");
-        Assert.assertEquals(3, result.size());
+        Assert.assertEquals(4, result.size());
         Assert.assertEquals(500, (double) result.get("2018-01-01"), 0.1);
         Assert.assertEquals(600, (double) result.get("2018-01-02"), 0.1);
         Assert.assertEquals(700, (double) result.get("2018-01-03"), 0.1);
 
         // avg duration by month
         result = queryHistoryService.getAvgDuration(PROJECT, 0, Long.MAX_VALUE, "month");
-        Assert.assertEquals(3, result.size());
+        Assert.assertEquals(4, result.size());
         Assert.assertEquals(500, (double) result.get("2018-01-01"), 0.1);
         Assert.assertEquals(600, (double) result.get("2018-01-02"), 0.1);
         Assert.assertEquals(700, (double) result.get("2018-01-03"), 0.1);
@@ -226,7 +226,16 @@ public class QueryHistoryServiceTest extends NLocalFileMetadataTestCase {
         queryStatistics3.setTime(Instant.ofEpochMilli(time));
         queryStatistics3.setMonth(date);
 
-        return Lists.newArrayList(queryStatistics1, queryStatistics2, queryStatistics3);
+        date = "2018-01-04";
+        time = format.parse(date).getTime();
+        QueryStatistics queryStatistics4 = new QueryStatistics();
+        queryStatistics4.setCount(12);
+        queryStatistics4.setMeanDuration(800);
+        queryStatistics4.setModel("not_existing_model");
+        queryStatistics4.setTime(Instant.ofEpochMilli(time));
+        queryStatistics4.setMonth(date);
+
+        return Lists.newArrayList(queryStatistics1, queryStatistics2, queryStatistics3, queryStatistics4);
     }
 
     @Test

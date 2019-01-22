@@ -196,9 +196,6 @@ public class FavoriteRuleService extends BasicService {
             }
         }
 
-        if (sqls.isEmpty())
-            return null;
-
         List<ImportSqlResponse> sqlData = Lists.newArrayList();
         int capableSqlNum = 0;
 

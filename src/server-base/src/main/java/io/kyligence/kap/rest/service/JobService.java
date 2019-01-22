@@ -43,6 +43,7 @@ import io.kyligence.kap.event.model.RefreshSegmentEvent;
 import io.kyligence.kap.rest.response.EventModelResponse;
 import io.kyligence.kap.rest.response.EventResponse;
 import io.kyligence.kap.rest.response.JobStatisticsResponse;
+import lombok.var;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.util.Pair;
@@ -351,22 +352,26 @@ public class JobService extends BasicService {
         Map<String, Object> result = Maps.newHashMap();
         Map<String, EventModelResponse> models = Maps.newHashMap();
         List<Event> jobRelatedEvents = getEventDao(project).getJobRelatedEvents();
+        int jobSize = 0;
 
-        jobRelatedEvents.forEach(event -> {
+        for (var event : jobRelatedEvents) {
             String modelId = event.getModelId();
             EventModelResponse eventModelResponse = models.get(modelId);
 
             if (eventModelResponse == null) {
-                String modelAlias = getDataModelManager(project).getDataModelDesc(modelId).getAlias();
-                eventModelResponse = new EventModelResponse(0, modelAlias);
+                val model = getDataModelManager(project).getDataModelDesc(modelId);
+                if (model == null)
+                    continue;
+                eventModelResponse = new EventModelResponse(0, model.getAlias());
             }
 
             eventModelResponse.updateSize();
             models.put(modelId, eventModelResponse);
-        });
+            jobSize++;
+        }
 
         result.put("data", models);
-        result.put("size", jobRelatedEvents.size());
+        result.put("size", jobSize);
         return result;
     }
 

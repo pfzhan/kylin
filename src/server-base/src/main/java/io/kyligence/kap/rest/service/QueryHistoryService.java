@@ -125,8 +125,10 @@ public class QueryHistoryService extends BasicService {
         NDataModelManager modelManager = getDataModelManager(project);
 
         statistics.forEach(singleStatistics -> {
-            String modelAlias = modelManager.getDataModelDesc(singleStatistics.getModel()).getAlias();
-            result.put(modelAlias, getValueByField(singleStatistics, fieldName));
+            NDataModel model = modelManager.getDataModelDesc(singleStatistics.getModel());
+            if (model == null)
+                return;
+            result.put(model.getAlias(), getValueByField(singleStatistics, fieldName));
         });
 
         return result;
