@@ -160,11 +160,11 @@ public class NModelController extends NBasicController {
     @ResponseBody
     public EnvelopeResponse getModelInfo(
             @RequestParam(value = "model", required = false, defaultValue = "*") String model,
-            @RequestParam(value = "project", required = false, defaultValue = "*") String project,
+            @RequestParam(value = "project", required = false) List<String> projects,
             @RequestParam(value = "suite", required = false, defaultValue = "*") String suite,
             @RequestParam(value = "start", required = false, defaultValue = "0") long start,
             @RequestParam(value = "end", required = false, defaultValue = "0") long end) {
-        val result = modelService.getModelInfo(suite, model, project, start, end);
+        val result = modelService.getModelInfo(suite, model, projects, start, end);
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, result, "");
     }
 

@@ -2142,6 +2142,7 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testGetModelInfoByModel() throws IOException {
+        val projects = Lists.newArrayList("default");
         val result1 = new QueryTimesResponse();
         result1.setModel("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         result1.setQueryTimes(10);
@@ -2152,18 +2153,30 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
         Mockito.doReturn(Lists.newArrayList(result1, result2)).when(queryHistoryDAO).getQueryTimesByModel(
                 Mockito.anyString(), Mockito.anyString(), Mockito.anyLong(), Mockito.anyLong(), Mockito.any());
         Mockito.doReturn(queryHistoryDAO).when(modelService).getQueryHistoryDao(Mockito.anyString());
-        val modelInfo = modelService.getModelInfo("*", "89af4ee2-2cdb-4b07-b39e-4c29856309aa", "default", 0, 0);
+        val modelInfo = modelService.getModelInfo("*", "89af4ee2-2cdb-4b07-b39e-4c29856309aa", projects, 0, 0);
         Assert.assertEquals(1, modelInfo.size());
         Assert.assertEquals(10, modelInfo.get(0).getQueryTimes());
         Assert.assertEquals(3380224, modelInfo.get(0).getModelStorageSize());
-        val modelInfo2 = modelService.getModelInfo("*", "cb596712-3a09-46f8-aea1-988b43fe9b6c", "default", 0, 0);
+        val modelInfo2 = modelService.getModelInfo("*", "cb596712-3a09-46f8-aea1-988b43fe9b6c", projects, 0, 0);
         Assert.assertEquals(1, modelInfo2.size());
         Assert.assertEquals(10, modelInfo2.get(0).getQueryTimes());
         Assert.assertEquals(0, modelInfo2.get(0).getModelStorageSize());
     }
 
+
+    @Test
+    public void testGetModelInfoByModel_ProjectNotSpecifiedOnly() throws IOException {
+        val projects = Lists.newArrayList("default", "demo");
+        thrown.expect(BadRequestException.class);
+        thrown.expectMessage("Only one project name should be specified while model is specified!");
+        modelService.getModelInfo("*", "89af4ee2-2cdb-4b07-b39e-4c29856309aa", projects, 0, 0);
+    }
+
     @Test
     public void testGetModelInfoByProject() throws IOException {
+
+        List<String> projects = Lists.newArrayList("default");
+
         val result1 = new QueryTimesResponse();
         result1.setModel("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         result1.setQueryTimes(10);
@@ -2171,7 +2184,7 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
         Mockito.doReturn(Lists.newArrayList(result1)).when(queryHistoryDAO).getQueryTimesByModel(Mockito.anyString(),
                 Mockito.anyString(), Mockito.anyLong(), Mockito.anyLong(), Mockito.any());
         Mockito.doReturn(queryHistoryDAO).when(modelService).getQueryHistoryDao(Mockito.anyString());
-        val modelInfo = modelService.getModelInfo("*", "*", "default", 0, 0);
+        val modelInfo = modelService.getModelInfo("*", "*", projects, 0, 0);
         Assert.assertEquals(6, modelInfo.size());
         Assert.assertEquals(10, modelInfo.get(2).getQueryTimes());
         Assert.assertEquals(3380224, modelInfo.get(2).getModelStorageSize());
@@ -2180,6 +2193,8 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
     @Test
     @Ignore
     public void testGetAllModelInfo() throws IOException {
+        List<String> projects = Lists.newArrayList();
+
         val result1 = new QueryTimesResponse();
         result1.setModel("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         result1.setQueryTimes(10);
@@ -2187,22 +2202,26 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
         Mockito.doReturn(Lists.newArrayList(result1)).when(queryHistoryDAO).getQueryTimesByModel(Mockito.anyString(),
                 Mockito.anyString(), Mockito.anyLong(), Mockito.anyLong(), Mockito.any());
         Mockito.doReturn(queryHistoryDAO).when(modelService).getQueryHistoryDao(Mockito.anyString());
-        val modelInfo = modelService.getModelInfo("*", "*", "*", 0, 0);
+        val modelInfo = modelService.getModelInfo("*", "*", projects, 0, 0);
         Assert.assertEquals(8, modelInfo.size());
     }
 
     @Test
     public void testGetModelInfo_ProjectEmpty_exception() throws IOException {
+        List<String> projects = Lists.newArrayList();
+
         thrown.expect(BadRequestException.class);
-        thrown.expectMessage("Project name can not be empty when model is selected!");
-        modelService.getModelInfo("*", "89af4ee2-2cdb-4b07-b39e-4c29856309aa", "*", 0, 0);
+        thrown.expectMessage("Only one project name should be specified while model is specified!");
+        modelService.getModelInfo("*", "89af4ee2-2cdb-4b07-b39e-4c29856309aa", projects, 0, 0);
     }
 
     @Test
     public void testGetModelInfo_ModelNotExist_exception() throws IOException {
+        List<String> projects = Lists.newArrayList("default");
+
         thrown.expect(BadRequestException.class);
         thrown.expectMessage("Model 'nmodel_basic2222' does not exist!");
-        modelService.getModelInfo("*", "nmodel_basic2222", "default", 0, 0);
+        modelService.getModelInfo("*", "nmodel_basic2222", projects, 0, 0);
     }
 
     @Test

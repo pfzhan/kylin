@@ -36,6 +36,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import com.google.common.collect.Maps;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -1174,24 +1175,30 @@ public class ModelService extends BasicService {
         }
     }
 
-    private void checkProjectWhenModelSelected(String model, String project) {
-        if (!isSelectAll(model) && isSelectAll(project)) {
-            throw new BadRequestException("Project name can not be empty when model is selected!");
+    private void checkProjectWhenModelSelected(String model, List<String> projects) {
+        if (!isSelectAll(model) && (CollectionUtils.isEmpty(projects) || projects.size() != 1)) {
+            throw new BadRequestException("Only one project name should be specified while model is specified!");
         }
     }
 
-    public List<ModelInfoResponse> getModelInfo(String suite, String model, String project, long start, long end) {
+    public List<ModelInfoResponse> getModelInfo(String suite, String model, List<String> projects, long start, long end) {
         List<ModelInfoResponse> modelInfoList = Lists.newArrayList();
-        checkProjectWhenModelSelected(model, project);
-        if (isSelectAll(project)) {
-            modelInfoList.addAll(getAllModelInfo());
-        } else if (isSelectAll(model)) {
-            modelInfoList.addAll(getModelInfoByProject(project));
-        } else {
-            modelInfoList.add(getModelInfoByModel(model, project));
-        }
+        checkProjectWhenModelSelected(model, projects);
 
-        val resultMap = getModelQueryTimesMap(suite, project, model, start, end);
+        val projectManager = getProjectManager();
+        if (CollectionUtils.isEmpty(projects)) {
+            projects = projectManager.listAllProjects().stream().map(ProjectInstance::getName).collect(Collectors.toList());
+        }
+        if (isSelectAll(model)) {
+            modelInfoList.addAll(getModelInfoByProject(projects));
+        } else {
+            modelInfoList.add(getModelInfoByModel(model, projects.get(0)));
+        }
+        Map<String, QueryTimesResponse> resultMap = Maps.newHashMap();
+        for (val project : projects) {
+            resultMap.putAll(getModelQueryTimesMap(suite, project, model, start, end));
+
+        }
         for (val modelInfoResponse : modelInfoList) {
             if (resultMap.containsKey(modelInfoResponse.getModel())) {
                 modelInfoResponse.setQueryTimes(resultMap.get(modelInfoResponse.getModel()).getQueryTimes());
@@ -1209,30 +1216,14 @@ public class ModelService extends BasicService {
                 .collect(Collectors.toMap(QueryTimesResponse::getModel, queryTimesResponse -> queryTimesResponse));
     }
 
-    private List<ModelInfoResponse> getAllModelInfo() {
+    private List<ModelInfoResponse> getModelInfoByProject(List<String> projects) {
         List<ModelInfoResponse> modelInfoLists = Lists.newArrayList();
-        val projectManager = getProjectManager();
-        List<ProjectInstance> projects = Lists.newArrayList();
-        projects.addAll(projectManager.listAllProjects());
-        for (val projectInstance : projects) {
-            modelInfoLists.addAll(getModelInfoByProject(projectInstance.getName()));
-        }
-        return modelInfoLists;
-    }
 
-    private List<ModelInfoResponse> getModelInfoByProject(String project) {
-        List<ModelInfoResponse> modelInfoLists = Lists.newArrayList();
-        val projectManager = getProjectManager();
-        List<ProjectInstance> projects = Lists.newArrayList();
-        if (isSelectAll(project)) {
-            projects.addAll(projectManager.listAllProjects());
-        } else {
-            projects.add(projectManager.getProject(project));
-        }
-        for (val projectInstance : projects) {
-            val models = projectInstance.getModels();
+        for (val project : projects) {
+            val dfManager = getDataflowManager(project);
+            val models = dfManager.listUnderliningDataModels();
             for (val model : models) {
-                modelInfoLists.add(getModelInfoByModel(model, projectInstance.getName()));
+                modelInfoLists.add(getModelInfoByModel(model.getId(), project));
             }
         }
         return modelInfoLists;

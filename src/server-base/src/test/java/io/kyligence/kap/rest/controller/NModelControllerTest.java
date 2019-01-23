@@ -46,6 +46,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
+import com.google.common.collect.Lists;
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.JsonUtil;
@@ -464,12 +465,13 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testGetModelInfo() throws Exception {
-        Mockito.doReturn(null).when(modelService).getModelInfo("*", "*", "*", 0, 0);
+        List<String> projects = Lists.newArrayList();
+        Mockito.doReturn(null).when(modelService).getModelInfo("*", "*", projects, 0, 0);
         mockMvc.perform(MockMvcRequestBuilders.get("/api/models/model_info").param("suite", "*").param("model", "*")
-                .param("project", "*").param("start", "0").param("end", "0")
+                .param("project", "").param("start", "0").param("end", "0")
                 .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
                 .andExpect(MockMvcResultMatchers.status().isOk());
-        Mockito.verify(nModelController).getModelInfo("*", "*", "*", 0, 0);
+        Mockito.verify(nModelController).getModelInfo("*", projects, "*", 0, 0);
     }
 
     @Test
