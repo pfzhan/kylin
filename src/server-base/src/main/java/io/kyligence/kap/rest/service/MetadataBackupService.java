@@ -85,15 +85,17 @@ public class MetadataBackupService {
             return;
         }
 
-        val childrenSize = fs.listStatus(rootMetadataBackupPath).length;
+        int childrenSize = fs.listStatus(rootMetadataBackupPath).length;
 
-        if (childrenSize >= kylinConfig.getMetadataBackupCountThreshold()) {
+        while (childrenSize >= kylinConfig.getMetadataBackupCountThreshold()) {
             // remove the oldest backup metadata dir
             val maybeOldest = Stream.of(fs.listStatus(rootMetadataBackupPath))
                     .min(Comparator.comparing(FileStatus::getModificationTime));
             if (maybeOldest.isPresent()) {
                 fs.delete(maybeOldest.get().getPath(), true);
             }
+
+            childrenSize--;
         }
 
         fs.close();

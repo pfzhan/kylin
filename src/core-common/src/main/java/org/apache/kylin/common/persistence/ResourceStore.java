@@ -89,8 +89,8 @@ public abstract class ResourceStore {
     private static final Logger logger = LoggerFactory.getLogger(ResourceStore.class);
 
     public static final String GLOBAL_PROJECT = "/_global";
-    public static final String USER_ROOT = GLOBAL_PROJECT +  "/user";
-    public static final String USER_GROUP_ROOT = GLOBAL_PROJECT +  "/user_group";
+    public static final String USER_ROOT = GLOBAL_PROJECT + "/user";
+    public static final String USER_GROUP_ROOT = GLOBAL_PROJECT + "/user_group";
     public static final String ACL_ROOT = GLOBAL_PROJECT + "/acl";
 
     public static final String DATA_MODEL_DESC_RESOURCE_ROOT = "/model_desc";
@@ -474,5 +474,26 @@ public abstract class ResourceStore {
 
     public static void dumpResources(KylinConfig kylinConfig, String dumpDir) {
         dumpResources(kylinConfig, new File(dumpDir), null, null);
+    }
+
+    public void copy(String resPath, ResourceStore destRS) {
+        val resource = getResource(resPath);
+        if (resource != null) {
+            //res is a file
+            destRS.putResourceWithoutCheck(resPath, resource.getByteSource(), resource.getMvcc());
+        } else {
+            NavigableSet<String> resources = listResourcesRecursively(resPath);
+            if (resources == null || resources.isEmpty()) {
+                return;
+            }
+            for (val res : resources) {
+                val rawResource = getResource(res);
+                if (rawResource == null) {
+                    logger.warn("The resource {} doesn't exists,there may be transaction problems here", res);
+                    continue;
+                }
+                destRS.putResourceWithoutCheck(res, rawResource.getByteSource(), rawResource.getMvcc());
+            }
+        }
     }
 }

@@ -97,15 +97,19 @@ public class MetadataBackupServiceTest extends NLocalFileMetadataTestCase {
         for (int i = 0; i < metadataBackupCountThreshold - 1; i++) {
             fs.mkdirs(new Path(rootMetadataPath.toString() + "/test" + i));
         }
-        Assertions.assertThat(fs.listStatus(rootMetadataPath)).hasSize(metadataBackupCountThreshold - 1);
+        Assertions.assertThat(fs.listStatus(rootMetadataPath)).hasSize(6);
 
         metadataBackupService.cleanBeforeBackup(kylinConfig);
         fs.mkdirs(new Path(rootMetadataPath.toString() + "/test" + (metadataBackupCountThreshold - 1)));
-        Assertions.assertThat(fs.listStatus(rootMetadataPath)).hasSize(metadataBackupCountThreshold);
+        Assertions.assertThat(fs.listStatus(rootMetadataPath)).hasSize(7);
 
         metadataBackupService.cleanBeforeBackup(kylinConfig);
         fs.mkdirs(new Path(rootMetadataPath.toString() + "/test" + metadataBackupCountThreshold));
-        Assertions.assertThat(fs.listStatus(rootMetadataPath)).hasSize(metadataBackupCountThreshold);
+        Assertions.assertThat(fs.listStatus(rootMetadataPath)).hasSize(7);
+
+        kylinConfig.setProperty("kylin.metadata.backup-count-threshold", "3");
+        metadataBackupService.cleanBeforeBackup(kylinConfig);
+        Assertions.assertThat(fs.listStatus(rootMetadataPath)).hasSize(2);
 
         fs.close();
     }

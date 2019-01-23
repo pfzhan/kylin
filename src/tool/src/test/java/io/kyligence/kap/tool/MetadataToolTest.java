@@ -66,7 +66,8 @@ public class MetadataToolTest extends NLocalFileMetadataTestCase {
     public void testBackupProject() throws IOException {
         val junitFolder = temporaryFolder.getRoot();
         val tool = new MetadataTool();
-        tool.execute(new String[]{"-backup", "-project", "default", "-dir", junitFolder.getAbsolutePath(), "-folder", "prj_bak"});
+        tool.execute(new String[] { "-backup", "-project", "default", "-dir", junitFolder.getAbsolutePath(), "-folder",
+                "prj_bak" });
 
         Assertions.assertThat(junitFolder.listFiles()).hasSize(1);
         val archiveFolder = junitFolder.listFiles()[0];
@@ -114,10 +115,44 @@ public class MetadataToolTest extends NLocalFileMetadataTestCase {
         val junitFolder = temporaryFolder.getRoot();
         MetadataToolTestFixture.fixtureRestoreTest(getTestConfig(), junitFolder, "/");
 
+        //there is a project that destResourceStore contains and srcResourceStore doesn't contain
+        FileUtils.forceDelete(
+                Paths.get(junitFolder.getAbsolutePath(), MetadataStore.METADATA_NAMESPACE, "/demo").toFile());
+
+        //there is a project that destResourceStore doesn't contain and srcResourceStore contains
+        val destResourceStore = ResourceStore.getKylinMetaStore(getTestConfig());
+        val destResources = destResourceStore.getMetadataStore().list("/ssb");
+        for (String res : destResources) {
+            destResourceStore.deleteResource("/ssb" + res);
+        }
+
+        Assertions.assertThat(NProjectManager.getInstance(getTestConfig()).getProject("demo")).isNotNull();
+        Assertions.assertThat(NProjectManager.getInstance(getTestConfig()).getProject("ssb")).isNull();
         assertBeforeRestoreTest();
         val tool = new MetadataTool();
         tool.execute(new String[] { "-restore", "-dir", junitFolder.getAbsolutePath() });
         assertAfterRestoreTest();
+        Assertions.assertThat(NProjectManager.getInstance(getTestConfig()).getProject("demo")).isNull();
+        Assertions.assertThat(NProjectManager.getInstance(getTestConfig()).getProject("ssb")).isNotNull();
+    }
+
+    @Test
+    public void testRestoreAllWithSrcOrDestIsEmpty() throws IOException {
+        val emptyFolder = temporaryFolder.newFolder();
+        val restoreFolder = temporaryFolder.newFolder();
+        MetadataToolTestFixture.fixtureRestoreTest(getTestConfig(), restoreFolder, "/");
+
+        Assertions.assertThat(NProjectManager.getInstance(getTestConfig()).getProject("demo")).isNotNull();
+        Assertions.assertThat(NProjectManager.getInstance(getTestConfig()).getProject("ssb")).isNotNull();
+        Assertions.assertThat(NProjectManager.getInstance(getTestConfig()).getProject("default")).isNotNull();
+        val tool = new MetadataTool();
+        tool.execute(new String[] { "-restore", "-dir", emptyFolder.getAbsolutePath() });
+        Assertions.assertThat(NProjectManager.getInstance(getTestConfig()).listAllProjects()).isEmpty();
+
+        tool.execute(new String[] { "-restore", "-dir", restoreFolder.getAbsolutePath() });
+        Assertions.assertThat(NProjectManager.getInstance(getTestConfig()).getProject("demo")).isNotNull();
+        Assertions.assertThat(NProjectManager.getInstance(getTestConfig()).getProject("ssb")).isNotNull();
+        Assertions.assertThat(NProjectManager.getInstance(getTestConfig()).getProject("default")).isNotNull();
     }
 
     @Test
@@ -132,36 +167,33 @@ public class MetadataToolTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void testRestoreProjectWithDistOrSrcIsEmpty() throws IOException {
+    public void testRestoreProjectWithSrcOrDestIsEmpty() throws IOException {
         val junitFolder = temporaryFolder.getRoot();
         ResourceTool.copy(getTestConfig(), KylinConfig.createInstanceFromUri(junitFolder.getAbsolutePath()), "/");
         val tool = new MetadataTool();
 
-        //there is a project metadata that distResourceStore contains and srcResourceStore doesn't contain
+        //there is a project metadata that destResourceStore contains and srcResourceStore doesn't contain
         FileUtils.forceDelete(
                 Paths.get(junitFolder.getAbsolutePath(), MetadataStore.METADATA_NAMESPACE, "/demo").toFile());
 
-        Assertions.assertThat(NProjectManager.getInstance(KylinConfig.getInstanceFromEnv()).getProject("demo"))
-                .isNotNull();
+        Assertions.assertThat(NProjectManager.getInstance(getTestConfig()).getProject("demo")).isNotNull();
         tool.execute(new String[] { "-restore", "-project", "demo", "-dir", junitFolder.getAbsolutePath() });
-        Assertions.assertThat(NProjectManager.getInstance(KylinConfig.getInstanceFromEnv()).getProject("demo"))
-                .isNull();
+        Assertions.assertThat(NProjectManager.getInstance(getTestConfig()).getProject("demo")).isNull();
 
-        //there is a project metadata that distResourceStore doesn't contain and srcResourceStore contains
-        val distResourceStore = ResourceStore.getKylinMetaStore(getTestConfig());
-        val distResources = distResourceStore.getMetadataStore().list("/ssb");
-        for (String res : distResources) {
-            distResourceStore.deleteResource("/ssb" + res);
+        //there is a project metadata that destResourceStore doesn't contain and srcResourceStore contains
+        val destResourceStore = ResourceStore.getKylinMetaStore(getTestConfig());
+        val destResources = destResourceStore.getMetadataStore().list("/ssb");
+        for (String res : destResources) {
+            destResourceStore.deleteResource("/ssb" + res);
         }
 
-        Assertions.assertThat(NProjectManager.getInstance(KylinConfig.getInstanceFromEnv()).getProject("ssb")).isNull();
+        Assertions.assertThat(NProjectManager.getInstance(getTestConfig()).getProject("ssb")).isNull();
         tool.execute(new String[] { "-restore", "-project", "ssb", "-dir", junitFolder.getAbsolutePath() });
-        Assertions.assertThat(NProjectManager.getInstance(KylinConfig.getInstanceFromEnv()).getProject("ssb"))
-                .isNotNull();
+        Assertions.assertThat(NProjectManager.getInstance(getTestConfig()).getProject("ssb")).isNotNull();
     }
 
     private void assertBeforeRestoreTest() {
-        val dataModelMgr = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
+        val dataModelMgr = NDataModelManager.getInstance(getTestConfig(), "default");
 
         val dataModel1 = dataModelMgr.getDataModelDescByAlias("nmodel_basic");
         Assertions.assertThat(dataModel1).isNotNull().hasFieldOrPropertyWithValue("owner", "who")
@@ -176,7 +208,7 @@ public class MetadataToolTest extends NLocalFileMetadataTestCase {
     }
 
     private void assertAfterRestoreTest() {
-        val dataModelMgr = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
+        val dataModelMgr = NDataModelManager.getInstance(getTestConfig(), "default");
 
         val dataModel1 = dataModelMgr.getDataModelDescByAlias("nmodel_basic");
         Assertions.assertThat(dataModel1).isNotNull().hasFieldOrPropertyWithValue("owner", "ADMIN")

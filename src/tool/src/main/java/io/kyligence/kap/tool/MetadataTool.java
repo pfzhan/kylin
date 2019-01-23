@@ -25,13 +25,13 @@
 package io.kyligence.kap.tool;
 
 import java.io.IOException;
+import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Collections;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import lombok.var;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.OptionBuilder;
 import org.apache.commons.cli.OptionGroup;
@@ -50,6 +50,7 @@ import io.kyligence.kap.common.cluster.NodeCandidate;
 import io.kyligence.kap.common.persistence.metadata.MetadataStore;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import lombok.val;
+import lombok.var;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -150,8 +151,7 @@ public class MetadataTool extends AbstractApplication {
         val path = optionsHelper.getOptionValue(OPTION_DIR);
         var folder = optionsHelper.getOptionValue(FOLDER_NAME);
         if (StringUtils.isEmpty(folder)) {
-            folder = LocalDateTime.now().format(DATE_TIME_FORMATTER)
-                    + "_backup";
+            folder = LocalDateTime.now().format(DATE_TIME_FORMATTER) + "_backup";
         }
         val backupPath = StringUtils.appendIfMissing(path, "/") + folder;
         val backupMetadataUrl = getMetadataUrl(backupPath);
@@ -159,20 +159,45 @@ public class MetadataTool extends AbstractApplication {
         backupConfig.setMetadataUrl(backupMetadataUrl);
         log.info("The backup metadataUrl is {} and backup path is {}", backupMetadataUrl, backupPath);
 
-        val backupMetadataStore = ResourceStore.createMetadataStore(backupConfig, MetadataStore.METADATA_NAMESPACE);
+        val backupResourceStore = ResourceStore.getKylinMetaStore(backupConfig);
+        val backupMetadataStore = backupResourceStore.getMetadataStore();
 
         if (StringUtils.isBlank(project)) {
+            log.info("start to copy all projects from ResourceStore.");
+
+            val projectFolders = resourceStore.listResources("/");
+            for (String projectPath : projectFolders) {
+                if (projectPath.equals(ResourceStore.METASTORE_UUID_TAG)) {
+                    continue;
+                }
+                copyResourceStore(projectPath, resourceStore, backupResourceStore);
+            }
+
             log.info("start to backup all projects");
-            backupMetadataStore.dump(resourceStore);
+
         } else {
+            log.info("start to copy project {} from ResourceStore.", project);
+            copyResourceStore("/" + project, resourceStore, backupResourceStore);
+
             log.info("start to backup project {}", project);
-            backupMetadataStore.dump(resourceStore, "/" + project);
-            backupMetadataStore.putResource(resourceStore.getResource(ResourceStore.METASTORE_UUID_TAG));
         }
 
+        backupMetadataStore.dump(backupResourceStore);
         log.info("backup successfully");
     }
 
+    public void copyResourceStore(String projectPath, ResourceStore srcResourceStore, ResourceStore destResourceStore) {
+        val lock = UnitOfWork.getLock(Paths.get(projectPath).getName(0).toString());
+
+        lock.lock();
+        try {
+            log.info("lock project: {}", Paths.get(projectPath).getName(0).toString());
+            srcResourceStore.copy(projectPath, destResourceStore);
+        } finally {
+            lock.unlock();
+            log.info("unlock project: {}", Paths.get(projectPath).getName(0).toString());
+        }
+    }
 
     private void restore(OptionsHelper optionsHelper) throws IOException {
         val project = optionsHelper.getOptionValue(OPTION_PROJECT);
@@ -183,7 +208,8 @@ public class MetadataTool extends AbstractApplication {
         restoreConfig.setMetadataUrl(restoreMetadataUrl);
         log.info("The restore metadataUrl is {} and restore path is {} ", restoreMetadataUrl, restorePath);
 
-        val restoreMetadataStore = ResourceStore.createMetadataStore(restoreConfig, MetadataStore.METADATA_NAMESPACE);
+        val restoreResourceStore = ResourceStore.getKylinMetaStore(restoreConfig);
+        val restoreMetadataStore = restoreResourceStore.getMetadataStore();
 
         val verifyResult = restoreMetadataStore.verify();
         if (!verifyResult.isQualified()) {
@@ -192,54 +218,57 @@ public class MetadataTool extends AbstractApplication {
 
         if (StringUtils.isBlank(project)) {
             log.info("start to restore all projects");
-            val projectFolders = resourceStore.listResources("/");
+            val srcProjectFolders = restoreResourceStore.listResources("/");
+            val destProjectFolders = resourceStore.listResources("/");
+            val projectFolders = Sets.union(srcProjectFolders, destProjectFolders);
+
             for (String projectPath : projectFolders) {
                 if (projectPath.equals(ResourceStore.METASTORE_UUID_TAG)) {
                     continue;
                 }
-                val projectName = projectPath.substring(1);
-                val distResources = resourceStore.listResourcesRecursively(projectPath);
+                val projectName = Paths.get(projectPath).getName(0).toString();
+                val destResources = resourceStore.listResourcesRecursively(projectPath);
                 val srcResources = restoreMetadataStore.list(projectPath).stream().map(x -> projectPath + x)
                         .collect(Collectors.toSet());
-                UnitOfWork.doInTransactionWithRetry(() -> doRestore(restoreMetadataStore, distResources, srcResources),
+                UnitOfWork.doInTransactionWithRetry(() -> doRestore(restoreMetadataStore, destResources, srcResources),
                         projectName);
             }
 
         } else {
             log.info("start to restore project {}", project);
             val projectPath = "/" + project;
-            val distResources = resourceStore.listResourcesRecursively(projectPath);
+            val destResources = resourceStore.listResourcesRecursively(projectPath);
             val srcResources = restoreMetadataStore.list(projectPath).stream().map(x -> projectPath + x)
                     .collect(Collectors.toSet());
-            UnitOfWork.doInTransactionWithRetry(() -> doRestore(restoreMetadataStore, distResources, srcResources),
+            UnitOfWork.doInTransactionWithRetry(() -> doRestore(restoreMetadataStore, destResources, srcResources),
                     project);
         }
 
         log.info("restore successfully");
     }
 
-    private int doRestore(MetadataStore restoreMetadataStore, Set<String> distResources, Set<String> srcResources)
+    private int doRestore(MetadataStore restoreMetadataStore, Set<String> destResources, Set<String> srcResources)
             throws IOException {
         val threadViewRS = ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv());
 
-        //check distResources and srcResources are null,because  Sets.difference(srcResources, distResources) will report NullPointerException
-        distResources = distResources == null ? Collections.EMPTY_SET : distResources;
+        //check destResources and srcResources are null,because  Sets.difference(srcResources, destResources) will report NullPointerException
+        destResources = destResources == null ? Collections.EMPTY_SET : destResources;
         srcResources = srcResources == null ? Collections.EMPTY_SET : srcResources;
 
-        val insertRes = Sets.difference(srcResources, distResources);
+        val insertRes = Sets.difference(srcResources, destResources);
         for (val res : insertRes) {
             val metadataRaw = restoreMetadataStore.load(res);
             threadViewRS.checkAndPutResource(res, metadataRaw.getByteSource(), -1L);
         }
 
-        val updateRes = Sets.intersection(distResources, srcResources);
+        val updateRes = Sets.intersection(destResources, srcResources);
         for (val res : updateRes) {
             val raw = resourceStore.getResource(res);
             val metadataRaw = restoreMetadataStore.load(res);
             threadViewRS.checkAndPutResource(res, metadataRaw.getByteSource(), raw.getMvcc());
         }
 
-        val deleteRes = Sets.difference(distResources, srcResources);
+        val deleteRes = Sets.difference(destResources, srcResources);
         for (val res : deleteRes) {
             threadViewRS.deleteResource(res);
         }
@@ -261,5 +290,4 @@ public class MetadataTool extends AbstractApplication {
 
         }
     }
-
 }

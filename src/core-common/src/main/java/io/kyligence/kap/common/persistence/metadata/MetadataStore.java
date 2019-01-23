@@ -114,10 +114,10 @@ public abstract class MetadataStore {
         dump(store, "/");
     }
 
-    public void dump(ResourceStore store, String projectPath) throws Exception {
-        val resources = store.listResourcesRecursively(projectPath);
+    public void dump(ResourceStore store, String rootPath) throws Exception {
+        val resources = store.listResourcesRecursively(rootPath);
         if (resources == null || resources.isEmpty()) {
-            log.info("there is no resources in projectPath ({}),please check the projectPath.", projectPath);
+            log.info("there is no resources in rootPath ({}),please check the rootPath.", rootPath);
             return;
         }
         for (String resPath : resources) {
@@ -184,8 +184,10 @@ public abstract class MetadataStore {
         VerifyResult verifyResult = new VerifyResult();
 
         // The valid metadata image contains at least the following conditions：
-        //     1.may have one UUID file or user_group file
-        //     2.all subdir as a project and must have only one project.json file execept one dir called user
+        //     1.may have one UUID file
+        //     2.may have one _global dir which may have one user_group file or one user dir or one acl dir
+        //     3.all other subdir as a project and must have only one project.json file
+
         val allFiles = list(File.separator);
         for (final String file : allFiles) {
             //check uuid file
@@ -206,6 +208,12 @@ public abstract class MetadataStore {
                 continue;
             }
 
+            //check acl dir
+            if (file.startsWith(ResourceStore.ACL_ROOT)) {
+                verifyResult.existACLDir = true;
+                continue;
+            }
+
             //check illegal file which locates in metadata dir
             if (File.separator.equals(Paths.get(file).toFile().getParent())) {
                 verifyResult.illegalFiles.add(file);
@@ -214,6 +222,9 @@ public abstract class MetadataStore {
 
             //check project dir
             val project = Paths.get(file).getName(0).toString();
+            if (Paths.get(ResourceStore.GLOBAL_PROJECT).getName(0).toString().equals(project)) {
+                continue;
+            }
             if (!allFiles.contains(Paths.get(File.separator + project, "project.json").toString())) {
                 verifyResult.illegalProjects.add(project);
                 verifyResult.illegalFiles.add(file);
@@ -227,6 +238,7 @@ public abstract class MetadataStore {
     public class VerifyResult {
         @VisibleForTesting
         boolean existUUIDFile = false;
+        boolean existACLDir = false;
         boolean existUserDir = false;
         boolean existUserGroupFile = false;
         Set<String> illegalProjects = Sets.newHashSet();
@@ -242,6 +254,7 @@ public abstract class MetadataStore {
             resultMessage.append("the uuid file exists : " + existUUIDFile + "\n");
             resultMessage.append("the user_group file exists : " + existUserGroupFile + "\n");
             resultMessage.append("the user dir exist : " + existUserDir + "\n");
+            resultMessage.append("the acl dir exist : " + existACLDir + "\n");
 
             if (!illegalProjects.isEmpty()) {
                 resultMessage.append("illegal projects : \n");
