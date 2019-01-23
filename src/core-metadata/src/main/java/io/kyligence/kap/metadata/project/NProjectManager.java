@@ -128,7 +128,7 @@ public class NProjectManager {
     }
 
     public ProjectInstance dropProject(String projectName) {
-        if (projectName == null)
+        if (StringUtils.isEmpty(projectName))
             throw new IllegalArgumentException("Project name not given");
 
         ProjectInstance projectInstance = getProject(projectName);
@@ -232,6 +232,21 @@ public class NProjectManager {
 
     ResourceStore getStore() {
         return ResourceStore.getKylinMetaStore(this.config);
+    }
+
+    public void forceDropProject(String project) {
+        if (StringUtils.isEmpty(project))
+            throw new IllegalArgumentException("Project name not given");
+
+        ProjectInstance projectInstance = getProject(project);
+
+        if (projectInstance == null) {
+            throw new IllegalStateException("The project named " + project + " does not exist");
+        }
+        val paths = getStore().listResourcesRecursively(project);
+        for (val path : paths) {
+            getStore().deleteResource(path);
+        }
     }
 
     public interface NProjectUpdater {

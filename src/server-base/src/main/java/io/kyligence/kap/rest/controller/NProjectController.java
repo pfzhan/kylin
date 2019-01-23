@@ -48,6 +48,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
@@ -85,6 +86,22 @@ public class NProjectController extends NBasicController {
         List<ProjectInstance> readableProjects = projectService.getReadableProjects(projectName);
         HashMap<String, Object> projects = getDataResponse("projects", readableProjects, offset, size);
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, projects, "");
+
+    }
+
+    @RequestMapping(value = "/{project}", method = {RequestMethod.DELETE}, produces = {"application/vnd.apache.kylin-v2+json"})
+    @ResponseBody
+    public EnvelopeResponse dropProject(@PathVariable("project") String project) {
+        projectService.dropProject(project);
+        projectService.clearManagerCache(project);
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, null, "");
+
+    }
+
+    @RequestMapping(value = "/backup/{project}", method = {RequestMethod.POST}, produces = {"application/vnd.apache.kylin-v2+json"})
+    @ResponseBody
+    public EnvelopeResponse backupProject(@PathVariable("project") String project) throws Exception {
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, projectService.backupProject(project), "");
 
     }
 

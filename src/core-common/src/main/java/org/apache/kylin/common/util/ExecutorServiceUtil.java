@@ -46,4 +46,10 @@ public class ExecutorServiceUtil {
             Thread.currentThread().interrupt();
         }
     }
+
+    public static void forceShutdown(ExecutorService threadPool) {
+        if (threadPool != null) {
+            threadPool.shutdownNow();
+        }
+    }
 }

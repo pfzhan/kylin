@@ -32,11 +32,15 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.event.manager.EventOrchestratorManager;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
+import io.kyligence.kap.metadata.project.NProjectManager;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.directory.api.util.Strings;
+import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.JsonUtil;
+import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.rest.exception.BadRequestException;
 import org.apache.kylin.rest.msg.Message;
@@ -77,6 +81,9 @@ public class ProjectService extends BasicService {
 
     @Autowired
     private AclEvaluate aclEvaluate;
+
+    @Autowired
+    private MetadataBackupService metadataBackupService;
 
     public ProjectInstance deserializeProjectDesc(ProjectRequest projectRequest) {
         logger.debug("Saving project " + projectRequest.getProjectDescData());
@@ -325,4 +332,27 @@ public class ProjectService extends BasicService {
         });
     }
 
+    @Transaction(project = 0)
+    public void dropProject(String project) {
+        val prjManager = getProjectManager();
+        prjManager.forceDropProject(project);
+        shutdownRelatedScheduler(project);
+    }
+
+    private void shutdownRelatedScheduler(String project) {
+        val eventOrchestratorManager = EventOrchestratorManager.getInstance(getConfig());
+        eventOrchestratorManager.shutDownByProject(project);
+        NDefaultScheduler.shutDownByProject(project);
+        NFavoriteScheduler.shutDownByProject(project);
+    }
+
+    public String backupProject(String project) throws Exception {
+        return metadataBackupService.backupProject(project);
+    }
+
+    public void clearManagerCache(String project) {
+        val config = KylinConfig.getInstanceFromEnv();
+        config.clearManagersByProject(project);
+        config.clearManagersByClz(NProjectManager.class);
+    }
 }

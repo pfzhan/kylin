@@ -24,9 +24,11 @@
 package io.kyligence.kap.rest.service;
 
 import java.io.IOException;
+import java.time.LocalDateTime;
 import java.util.Comparator;
 import java.util.stream.Stream;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.Path;
 import org.apache.kylin.common.KylinConfig;
@@ -41,16 +43,31 @@ import lombok.val;
 public class MetadataBackupService {
 
     @Scheduled(cron = "${kylin.metadata.backup-cron:0 0 0 * * *}")
-    public void backup() throws Exception {
+    public void backupAll() throws Exception {
+
+        String[] args = new String[]{"-backup", "-dir", getBackupDir()};
+        backup(args);
+    }
+
+    public void backup(String[] args) throws Exception {
         val kylinConfig = KylinConfig.getInstanceFromEnv();
-
         cleanBeforeBackup(kylinConfig);
-
-        String rootMetadataBackupPath = kylinConfig.getHdfsWorkingDirectory() + "/backup";
-        String[] args = new String[] { "-backup", "-dir", rootMetadataBackupPath };
-
         val metadataTool = new MetadataTool(kylinConfig);
         metadataTool.execute(args);
+    }
+
+    public String backupProject(String project) throws Exception {
+        val folder = LocalDateTime.now().format(MetadataTool.DATE_TIME_FORMATTER)
+                + "_backup";
+        String[] args = new String[]{"-backup", "-project", project, "-folder", folder, "-dir", getBackupDir()};
+        backup(args);
+        return StringUtils.appendIfMissing(getBackupDir(), "/") + folder;
+    }
+
+    private String getBackupDir() {
+        val kylinConfig = KylinConfig.getInstanceFromEnv();
+        return StringUtils.appendIfMissing(kylinConfig.getHdfsWorkingDirectory(), "/") + "backup";
+
     }
 
     public void cleanBeforeBackup(KylinConfig kylinConfig) throws IOException {

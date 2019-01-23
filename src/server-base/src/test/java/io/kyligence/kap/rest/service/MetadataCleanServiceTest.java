@@ -25,8 +25,12 @@ package io.kyligence.kap.rest.service;
 
 import java.io.IOException;
 import java.util.HashSet;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
+import org.apache.kylin.rest.security.ACLManager;
+import org.apache.kylin.rest.security.AclRecord;
+import org.apache.kylin.rest.security.ObjectIdentityImpl;
 import org.apache.kylin.rest.service.ServiceTestBase;
 import org.junit.AfterClass;
 import org.junit.Assert;
@@ -56,6 +60,7 @@ public class MetadataCleanServiceTest extends ServiceTestBase {
 
     private static final String PROJECT = "default";
     private static final String MODEL_ID = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
+    private static final String PROJECT_ID = "a8f4da94-a8a4-464b-ab6f-b3012aba04d5";
 
     private MetadataCleanupService gcService = new MetadataCleanupService();
 
@@ -72,7 +77,18 @@ public class MetadataCleanServiceTest extends ServiceTestBase {
 
     private static void initData() throws IOException {
         val modelMgr = NDataModelManager.getInstance(getTestConfig(), PROJECT);
+        val aclManager = ACLManager.getInstance(getTestConfig());
         val indePlanManager = NIndexPlanManager.getInstance(getTestConfig(), PROJECT);
+        val record = new AclRecord();
+        record.setUuid(UUID.randomUUID().toString());
+
+        //project not exist
+        val info = new ObjectIdentityImpl("project", PROJECT_ID);
+        record.setDomainObjectInfo(info);
+        aclManager.save(record);
+
+        val acl = aclManager.get(PROJECT_ID);
+        Assert.assertNotNull(acl);
         val model = modelMgr.getDataModelDesc(MODEL_ID);
         val cube = indePlanManager.getIndexPlan(MODEL_ID);
         val layoutIds = cube.getAllLayouts().stream().map(LayoutEntity::getId).collect(Collectors.toList());
@@ -143,6 +159,10 @@ public class MetadataCleanServiceTest extends ServiceTestBase {
             copyForWrite.removeLayouts(Sets.newHashSet(1L), LayoutEntity::equals, true, false);
         });
         gcService.clean();
+
+
+        val acl = ACLManager.getInstance(getTestConfig()).get(PROJECT_ID);
+        Assert.assertNull(acl);
 
         val allFqs = favoriteQueryManager.getAll();
         val usedIds = Sets.<Long> newHashSet();

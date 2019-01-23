@@ -31,6 +31,7 @@ import java.util.Collections;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import lombok.var;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.OptionBuilder;
 import org.apache.commons.cli.OptionGroup;
@@ -54,7 +55,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class MetadataTool extends AbstractApplication {
 
-    private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd-HH-mm-ss");
+    public static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd-HH-mm-ss");
 
     private static final String HDFS_METADATA_URL_FROMATTER = "kylin_metadata@hdfs,path=%s";
 
@@ -70,6 +71,9 @@ public class MetadataTool extends AbstractApplication {
 
     private static final Option OPTION_PROJECT = OptionBuilder.hasArg().withArgName("PROJECT_NAME")
             .withDescription("Specify project level backup and restore (optional)").isRequired(false).create("project");
+
+    private static final Option FOLDER_NAME = OptionBuilder.hasArg().withArgName("FOLDER_NAME")
+            .withDescription("Specify the folder name for backup").isRequired(false).create("folder");
 
     private final Options options;
 
@@ -101,6 +105,7 @@ public class MetadataTool extends AbstractApplication {
         options.addOptionGroup(optionGroup);
         options.addOption(OPTION_DIR);
         options.addOption(OPTION_PROJECT);
+        options.addOption(FOLDER_NAME);
     }
 
     public static void main(String[] args) {
@@ -143,9 +148,12 @@ public class MetadataTool extends AbstractApplication {
     private void backup(OptionsHelper optionsHelper) throws Exception {
         val project = optionsHelper.getOptionValue(OPTION_PROJECT);
         val path = optionsHelper.getOptionValue(OPTION_DIR);
-
-        val backupPath = StringUtils.appendIfMissing(path, "/") + LocalDateTime.now().format(DATE_TIME_FORMATTER)
-                + "_backup";
+        var folder = optionsHelper.getOptionValue(FOLDER_NAME);
+        if (StringUtils.isEmpty(folder)) {
+            folder = LocalDateTime.now().format(DATE_TIME_FORMATTER)
+                    + "_backup";
+        }
+        val backupPath = StringUtils.appendIfMissing(path, "/") + folder;
         val backupMetadataUrl = getMetadataUrl(backupPath);
         val backupConfig = KylinConfig.createKylinConfig(kylinConfig);
         backupConfig.setMetadataUrl(backupMetadataUrl);
@@ -164,6 +172,7 @@ public class MetadataTool extends AbstractApplication {
 
         log.info("backup successfully");
     }
+
 
     private void restore(OptionsHelper optionsHelper) throws IOException {
         val project = optionsHelper.getOptionValue(OPTION_PROJECT);

@@ -60,6 +60,7 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.ConcurrentHashMap;
 
+import lombok.val;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.fs.FileSystem;
@@ -586,6 +587,29 @@ public class KylinConfig extends KylinConfigBase {
 
         if (managersCache != null)
             managersCache.clear();
+    }
+
+    public void clearManagersByProject(String project) {
+        KylinConfig base = base();
+        if (base != this) {
+            base.clearManagersByProject(project);
+            return;
+        }
+        if (managersByPrjCache != null) {
+            for (val value : managersByPrjCache.values()) {
+                value.remove(project);
+            }
+        }
+    }
+
+    public void clearManagersByClz(Class clz) {
+        KylinConfig base = base();
+        if (base != this) {
+            base.clearManagersByClz(clz);
+            return;
+        }
+        if (managersCache != null)
+            managersCache.remove(clz);
     }
 
     public Properties exportToProperties() {

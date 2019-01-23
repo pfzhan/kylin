@@ -25,6 +25,7 @@ package io.kyligence.kap.rest.service;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.project.ProjectInstance;
+import org.apache.kylin.rest.security.ACLManager;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
@@ -42,12 +43,17 @@ import io.kyligence.kap.rest.storage.ModelCleaner;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
+import java.util.List;
+import java.util.stream.Collectors;
+
+
 @Slf4j
 @Service
 public class MetadataCleanupService {
 
     @Scheduled(cron = "${kylin.garbage.metadata-cleanup-cron:0 0 * * * *}")
     public void clean() throws Exception {
+        cleanupAcl();
         val config = KylinConfig.getInstanceFromEnv();
         val projectManager = NProjectManager.getInstance(config);
         for (ProjectInstance project : projectManager.listAllProjects()) {
@@ -59,6 +65,21 @@ public class MetadataCleanupService {
             }
             log.info("Garbage collection for project<{}> finished", project.getName());
         }
+    }
+
+    private void cleanupAcl() {
+        UnitOfWork.doInTransactionWithRetry(() -> {
+            val prjManager = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv());
+            List<String> prjects = prjManager.listAllProjects().stream().map(ProjectInstance::getUuid).collect(Collectors.toList());
+            val aclManager = ACLManager.getInstance(KylinConfig.getInstanceFromEnv());
+            for (val acl : aclManager.listAll()) {
+                val id = acl.getDomainObjectInfo().getId();
+                if (!prjects.contains(id)) {
+                    aclManager.delete(id);
+                }
+            }
+            return 0;
+        }, UnitOfWork.GLOBAL_UNIT);
     }
 
     public void cleanupProject(ProjectInstance project) throws Exception {

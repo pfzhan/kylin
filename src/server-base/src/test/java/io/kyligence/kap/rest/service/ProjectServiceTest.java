@@ -47,7 +47,12 @@ import java.lang.reflect.Field;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 
+import io.kyligence.kap.event.manager.EventOrchestratorManager;
+import io.kyligence.kap.metadata.model.NDataModelManager;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.job.engine.JobEngineConfig;
+import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
+import org.apache.kylin.job.lock.MockJobLock;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.exception.BadRequestException;
@@ -315,4 +320,55 @@ public class ProjectServiceTest extends NLocalFileMetadataTestCase {
 
     }
 
+
+    @Test
+    public void testDropProject() {
+        val project = "project12";
+        ProjectInstance projectInstance = new ProjectInstance();
+        projectInstance.setName(project);
+        projectService.createProject(projectInstance);
+
+        val eventOrchestratorManager = EventOrchestratorManager.getInstance(getTestConfig());
+        eventOrchestratorManager.addProject(project);
+        Assert.assertNotNull(eventOrchestratorManager.getEventOrchestratorByProject(project));
+        NDefaultScheduler scheduler = NDefaultScheduler.getInstance(project);
+        scheduler.init(new JobEngineConfig(getTestConfig()), new MockJobLock());
+        Assert.assertTrue(scheduler.hasStarted());
+
+        NFavoriteScheduler favoriteScheduler = NFavoriteScheduler.getInstance(project);
+        favoriteScheduler.init();
+        Assert.assertTrue(favoriteScheduler.hasStarted());
+        projectService.dropProject(project);
+        val prjManager = NProjectManager.getInstance(getTestConfig());
+        Assert.assertNull(prjManager.getProject(project));
+        Assert.assertNull(eventOrchestratorManager.getEventOrchestratorByProject(project));
+        Assert.assertNull(NDefaultScheduler.getInstanceByProject(project));
+        Assert.assertNull(NFavoriteScheduler.getInstanceByProject(project));
+    }
+
+    @Test
+    public void testClearManagerCache() throws NoSuchFieldException, IllegalAccessException {
+        val config = getTestConfig();
+        val modelManager = NDataModelManager.getInstance(config, "default");
+        Field filed = KylinConfig.class.getDeclaredField("managersCache");
+        Field filed2 = KylinConfig.class.getDeclaredField("managersByPrjCache");
+        filed.setAccessible(true);
+        filed2.setAccessible(true);
+        ConcurrentHashMap<Class, Object> managersCache = (ConcurrentHashMap<Class, Object>) filed.get(config);
+        ConcurrentHashMap<Class, ConcurrentHashMap<String, Object>> managersByPrjCache = (ConcurrentHashMap<Class, ConcurrentHashMap<String, Object>>) filed2.get(config);
+
+        Assert.assertTrue(managersByPrjCache.containsKey(NDataModelManager.class));
+        Assert.assertTrue(managersByPrjCache.get(NDataModelManager.class).containsKey("default"));
+
+        Assert.assertTrue(managersCache.containsKey(NProjectManager.class));
+        projectService.clearManagerCache("default");
+
+        managersCache = (ConcurrentHashMap<Class, Object>) filed.get(config);
+        managersByPrjCache = (ConcurrentHashMap<Class, ConcurrentHashMap<String, Object>>) filed2.get(config);
+        //cleared
+        Assert.assertTrue(!managersCache.containsKey(NProjectManager.class));
+        Assert.assertTrue(!managersByPrjCache.get(NDataModelManager.class).containsKey("default"));
+
+
+    }
 }

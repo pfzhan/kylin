@@ -206,4 +206,10 @@ public class EventOrchestrator {
             ExecutorServiceUtil.shutdownGracefully(checkerPool, 60);
     }
 
+    public void forceShutdown() {
+        logger.info("Shutting down EventOrchestrator ....");
+        if (checkerPool != null)
+            ExecutorServiceUtil.forceShutdown(checkerPool);
+    }
+
 }

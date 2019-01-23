@@ -66,7 +66,7 @@ public class MetadataToolTest extends NLocalFileMetadataTestCase {
     public void testBackupProject() throws IOException {
         val junitFolder = temporaryFolder.getRoot();
         val tool = new MetadataTool();
-        tool.execute(new String[] { "-backup", "-project", "default", "-dir", junitFolder.getAbsolutePath() });
+        tool.execute(new String[]{"-backup", "-project", "default", "-dir", junitFolder.getAbsolutePath(), "-folder", "prj_bak"});
 
         Assertions.assertThat(junitFolder.listFiles()).hasSize(1);
         val archiveFolder = junitFolder.listFiles()[0];

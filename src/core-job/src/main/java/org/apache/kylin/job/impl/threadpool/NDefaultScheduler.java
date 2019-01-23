@@ -260,6 +260,19 @@ public class NDefaultScheduler implements Scheduler<AbstractExecutable>, Connect
         INSTANCE_MAP.clear();
     }
 
+    public static synchronized void shutDownByProject(String project) {
+        val instance = getInstanceByProject(project);
+        if (instance != null) {
+            instance.forceShutdown();
+            INSTANCE_MAP.remove(project);
+
+        }
+    }
+
+    public static synchronized NDefaultScheduler getInstanceByProject(String project) {
+        return INSTANCE_MAP.get(project);
+    }
+
     @Override
     public synchronized void init(JobEngineConfig jobEngineConfig, JobLock lock) {
         jobLock = lock;
@@ -308,6 +321,13 @@ public class NDefaultScheduler implements Scheduler<AbstractExecutable>, Connect
         jobLock.unlockJobEngine();
         ExecutorServiceUtil.shutdownGracefully(fetcherPool, 60);
         ExecutorServiceUtil.shutdownGracefully(jobPool, 60);
+    }
+
+    public void forceShutdown() {
+        logger.info("Shutting down DefaultScheduler ....");
+        jobLock.unlockJobEngine();
+        ExecutorServiceUtil.forceShutdown(fetcherPool);
+        ExecutorServiceUtil.forceShutdown(jobPool);
     }
 
     @Override

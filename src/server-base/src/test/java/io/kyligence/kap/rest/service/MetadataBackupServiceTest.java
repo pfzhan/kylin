@@ -70,7 +70,7 @@ public class MetadataBackupServiceTest extends NLocalFileMetadataTestCase {
         rootFS.close();
 
         //2.execute backup()
-        metadataBackupService.backup();
+        metadataBackupService.backupAll();
 
         //3.assert there is a metadata dir in root metadata dir after backup,the metadata dir location is junitFolder.getAbsolutePath()/metadata_backup_ut_test/backup/LocalDateTime/metadata
         val rootMetadataPath = new Path(kylinConfig.getHdfsWorkingDirectory() + "/backup");

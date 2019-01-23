@@ -50,8 +50,10 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
+import lombok.val;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.util.ExecutorServiceUtil;
 import org.apache.kylin.common.util.NamedThreadFactory;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.slf4j.Logger;
@@ -459,6 +461,30 @@ public class NFavoriteScheduler {
 
         favoritesAboutToUpdate.put(sqlPattern, favoriteQuery);
     }
+
+
+    public static synchronized void shutDownByProject(String project) {
+        val instance = getInstanceByProject(project);
+        if (instance != null) {
+            instance.shutdown();
+            INSTANCE_MAP.remove(project);
+        }
+    }
+
+    public static synchronized NFavoriteScheduler getInstanceByProject(String project) {
+        return INSTANCE_MAP.get(project);
+    }
+
+    private void shutdown() {
+        logger.info("Shutting down DefaultScheduler ....");
+        if (autoFavoriteScheduler != null) {
+            ExecutorServiceUtil.forceShutdown(autoFavoriteScheduler);
+        }
+        if (updateFavoriteScheduler != null) {
+            ExecutorServiceUtil.forceShutdown(updateFavoriteScheduler);
+        }
+    }
+
 
     @Getter
     @Setter

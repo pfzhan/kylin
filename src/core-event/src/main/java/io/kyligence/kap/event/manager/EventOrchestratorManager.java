@@ -47,6 +47,7 @@ import static io.kyligence.kap.event.manager.EventManager.GLOBAL;
 import java.util.List;
 import java.util.Map;
 
+import lombok.val;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.slf4j.Logger;
@@ -109,6 +110,18 @@ public class EventOrchestratorManager {
         if (!INSTANCE_MAP.containsKey(project)) {
             EventOrchestrator eventOrchestrator = new EventOrchestrator(project, KylinConfig.getInstanceFromEnv());
             INSTANCE_MAP.put(project, eventOrchestrator);
+        }
+    }
+
+    public synchronized EventOrchestrator getEventOrchestratorByProject(String project) {
+        return INSTANCE_MAP.get(project);
+    }
+
+    public synchronized void shutDownByProject(String project) {
+        val eventOrchestrator = getEventOrchestratorByProject(project);
+        if (eventOrchestrator != null) {
+            eventOrchestrator.forceShutdown();
+            INSTANCE_MAP.remove(project);
         }
     }
 }
