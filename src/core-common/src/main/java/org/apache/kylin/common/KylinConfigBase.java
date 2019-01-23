@@ -767,6 +767,10 @@ abstract public class KylinConfigBase implements Serializable {
         return getOptional("kylin.job.tracking-url-pattern", "");
     }
 
+    public String getAnalyzeStrategy() {
+        return getOptional("kylin.job.analyze-strategy", "always");
+    }
+
     // ============================================================================
     // SOURCE.HIVE
     // ============================================================================

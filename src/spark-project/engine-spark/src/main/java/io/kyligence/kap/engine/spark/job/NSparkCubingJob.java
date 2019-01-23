@@ -50,9 +50,6 @@ public class NSparkCubingJob extends DefaultChainedExecutable {
     @SuppressWarnings("unused")
     private static final Logger logger = LoggerFactory.getLogger(NSparkCubingJob.class);
 
-    public NSparkCubingJob() {
-    }
-
     // for test use only
     public static NSparkCubingJob create(Set<NDataSegment> segments, Set<LayoutEntity> layouts, String submitter) {
         return create(segments, layouts, submitter, JobTypeEnum.INDEX_BUILD, UUID.randomUUID().toString());
@@ -60,8 +57,8 @@ public class NSparkCubingJob extends DefaultChainedExecutable {
 
     public static NSparkCubingJob create(Set<NDataSegment> segments, Set<LayoutEntity> layouts, String submitter,
             JobTypeEnum jobType, String jobId) {
-        Preconditions.checkArgument(segments.size() > 0);
-        Preconditions.checkArgument(layouts.size() > 0);
+        Preconditions.checkArgument(!segments.isEmpty());
+        Preconditions.checkArgument(!layouts.isEmpty());
         Preconditions.checkArgument(submitter != null);
         NDataflow df = segments.iterator().next().getDataflow();
         NSparkCubingJob job = new NSparkCubingJob();
@@ -83,7 +80,17 @@ public class NSparkCubingJob extends DefaultChainedExecutable {
         job.setProject(df.getProject());
         job.setSubmitter(submitter);
         JobStepFactory.addStep(job, JobStepType.RESOURCE_DETECT, segments, layouts);
-        JobStepFactory.addStep(job, JobStepType.ANALYSIS, segments, layouts);
+        switch (df.getConfig().getAnalyzeStrategy()) {
+            case "first":
+                if (df.getQueryableSegments().isEmpty()) {
+                    JobStepFactory.addStep(job, JobStepType.ANALYSIS, segments, layouts);
+                }
+                break;
+            case "always":
+                JobStepFactory.addStep(job, JobStepType.ANALYSIS, segments, layouts);
+                break;
+            default:
+        }
         JobStepFactory.addStep(job, JobStepType.CUBING, segments, layouts);
         return job;
     }

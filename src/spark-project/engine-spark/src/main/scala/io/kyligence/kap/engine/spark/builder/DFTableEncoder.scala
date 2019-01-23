@@ -43,6 +43,7 @@ object DFTableEncoder extends Logging {
     var globalDictRdd = ds.rdd
 
     var structType = ds.schema
+    val sourceCnt = globalDictRdd.count()
 
     // process global dictionary
     for (ref: TblColRef <- cols.asScala) {
@@ -51,7 +52,6 @@ object DFTableEncoder extends Logging {
 
       structType = structType.add(structType.apply(columnIndex).name + ENCODE_SUFFIX, LongType)
 
-      val sourceCnt = globalDictRdd.count()
       val bucketThreshold = seg.getConfig.getGlobalDictV2ThresholdBucketSize
       val minBucketSize: Long = sourceCnt / bucketThreshold
 

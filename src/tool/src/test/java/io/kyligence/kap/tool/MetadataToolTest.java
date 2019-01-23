@@ -37,7 +37,6 @@ import org.apache.kylin.common.persistence.ResourceTool;
 import org.assertj.core.api.Assertions;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -62,7 +61,6 @@ public class MetadataToolTest extends NLocalFileMetadataTestCase {
         cleanupTestMetadata();
     }
 
-    @Ignore
     @Test
     public void testBackupProject() throws IOException {
         val junitFolder = temporaryFolder.getRoot();
@@ -90,7 +88,6 @@ public class MetadataToolTest extends NLocalFileMetadataTestCase {
         return true;
     }
 
-    @Ignore
     @Test
     public void testBackupAll() throws IOException {
         val junitFolder = temporaryFolder.getRoot();
@@ -108,7 +105,6 @@ public class MetadataToolTest extends NLocalFileMetadataTestCase {
 
     }
 
-    @Ignore
     @Test
     public void testRestoreAll() throws IOException {
         val junitFolder = temporaryFolder.getRoot();
@@ -153,7 +149,6 @@ public class MetadataToolTest extends NLocalFileMetadataTestCase {
         Assertions.assertThat(NProjectManager.getInstance(getTestConfig()).getProject("default")).isNotNull();
     }
 
-    @Ignore
     @Test
     public void testRestoreProject() throws IOException {
         val junitFolder = temporaryFolder.getRoot();
@@ -165,7 +160,6 @@ public class MetadataToolTest extends NLocalFileMetadataTestCase {
         assertAfterRestoreTest();
     }
 
-    @Ignore
     @Test
     public void testRestoreProjectWithSrcOrDestIsEmpty() throws IOException {
         val junitFolder = temporaryFolder.getRoot();

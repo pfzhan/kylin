@@ -28,9 +28,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.ArrayList;
 import java.util.Collections;
-import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
@@ -57,6 +55,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
+import io.kyligence.kap.engine.spark.merger.MetadataMerger;
 import io.kyligence.kap.metadata.cube.model.NBatchConstants;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
@@ -161,7 +160,7 @@ public class NSparkExecutable extends AbstractExecutable {
         } catch (IOException e) {
             throw new ExecuteException("meta dump failed", e);
         }
-        String filePath = dumpCuboidLayoutIdsIfNeed();
+        String filePath = dumpArgs();
         if (config.isUTEnv()) {
             return runLocalMode(filePath);
         } else {
@@ -170,12 +169,14 @@ public class NSparkExecutable extends AbstractExecutable {
         }
     }
 
-    String dumpCuboidLayoutIdsIfNeed() throws ExecuteException {
+    String dumpArgs() throws ExecuteException {
             File tmpDir = null;
             try {
                 tmpDir = File.createTempFile(NBatchConstants.P_LAYOUT_IDS, "");
                 FileUtils.writeByteArrayToFile(tmpDir,
                         JsonUtil.writeValueAsBytes(getParams()));
+
+                logger.info("Spark job args json is : {}.", JsonUtil.writeValueAsString(getParams()));
                 return tmpDir.getCanonicalPath();
             } catch (IOException e) {
                 if (tmpDir != null && tmpDir.exists()) {
@@ -250,7 +251,7 @@ public class NSparkExecutable extends AbstractExecutable {
         sb.append("--jars %s %s %s");
         String cmd = String.format(sb.toString(), hadoopConf, KylinConfig.getSparkHome(), jars, kylinJobJar,
                 appArgs);
-        logger.debug("spark submit cmd: {}", cmd);
+        logger.info("spark submit cmd: {}", cmd);
         return cmd;
     }
 
@@ -267,54 +268,6 @@ public class NSparkExecutable extends AbstractExecutable {
         } catch (Exception e) {
             return ExecuteResult.createError(e);
         }
-    }
-
-    private String[] formatAppArgsForSparkLocal() {
-        List<String> appArgs = new ArrayList<>();
-        for (Map.Entry<String, String> entry : getParams().entrySet()) {
-            String k = entry.getKey();
-            String v = entry.getValue();
-
-            if (k.equals(NBatchConstants.P_JARS)) {
-                continue; // JARS is for spark-submit, not for app
-            }
-
-            if (k.equals(NBatchConstants.P_CLASS_NAME)) {
-                continue;
-            }
-
-            if (k.equals(AbstractExecutable.PARENT_ID)) {
-                continue;
-            }
-
-            appArgs.add("-" + k);
-            appArgs.add(v);
-        }
-        return (String[]) appArgs.toArray(new String[appArgs.size()]);
-    }
-
-    private String[] formatAppArgs() {
-        List<String> appArgs = new ArrayList<>();
-        for (Map.Entry<String, String> entry : getParams().entrySet()) {
-            String k = entry.getKey();
-            String v = entry.getValue();
-            switch (k) {
-            case NBatchConstants.P_CLASS_NAME:
-                appArgs.add(0, v);
-                appArgs.add(0, "-" + k);
-                break;
-            case NBatchConstants.P_JARS:
-                // JARS is for spark-submit, not for app
-                break;
-            case PARENT_ID:
-                // JARS is for spark-submit, not for app
-                break;
-            default:
-                appArgs.add("-" + k);
-                appArgs.add(v);
-            }
-        }
-        return (String[]) appArgs.toArray(new String[appArgs.size()]);
     }
 
     protected Set<String> getMetadataDumpList(KylinConfig config) {
@@ -347,4 +300,14 @@ public class NSparkExecutable extends AbstractExecutable {
         logger.debug("Copied metadata to the target metaUrl, delete the temp dir: {}", tmpDir);
         FileUtils.forceDelete(tmpDir);
     }
+
+    public boolean needMergeMetadata(){
+        return false;
+    }
+
+     public void mergerMetadata(MetadataMerger merger){
+        throw new UnsupportedOperationException();
+     }
+
+
 }

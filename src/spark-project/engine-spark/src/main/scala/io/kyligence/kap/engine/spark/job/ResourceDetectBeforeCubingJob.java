@@ -42,8 +42,8 @@ import org.slf4j.LoggerFactory;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
+import io.kyligence.kap.engine.spark.application.SparkApplication;
 import io.kyligence.kap.engine.spark.builder.NBuildSourceInfo;
-import io.kyligence.kap.engine.spark.builder.NDataflowJob;
 import io.kyligence.kap.metadata.cube.cuboid.NSpanningTree;
 import io.kyligence.kap.metadata.cube.cuboid.NSpanningTreeFactory;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
@@ -53,7 +53,7 @@ import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import scala.collection.JavaConversions;
 
-public class ResourceDetectBeforeCubingJob extends NDataflowJob {
+public class ResourceDetectBeforeCubingJob extends SparkApplication {
     protected volatile NSpanningTree nSpanningTree;
     protected volatile List<NBuildSourceInfo> sources = new ArrayList<>();
     protected static final Logger logger = LoggerFactory.getLogger(ResourceDetectBeforeCubingJob.class);
@@ -109,7 +109,4 @@ public class ResourceDetectBeforeCubingJob extends NDataflowJob {
         resourceDetectJob.execute(args);
     }
 
-    @Override
-    public void checkArgs() {
-    }
 }

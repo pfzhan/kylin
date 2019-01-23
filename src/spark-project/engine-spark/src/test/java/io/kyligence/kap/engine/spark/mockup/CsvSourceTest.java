@@ -24,6 +24,7 @@
 
 package io.kyligence.kap.engine.spark.mockup;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Set;
 
@@ -32,6 +33,7 @@ import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.TableExtDesc;
+import org.apache.kylin.metadata.model.TblColRef;
 import org.apache.kylin.source.IReadableTable;
 import org.apache.kylin.source.ISourceMetadataExplorer;
 import org.apache.spark.sql.Column;
@@ -103,7 +105,7 @@ public class CsvSourceTest extends NLocalWithSparkSessionTest {
 
         NCubeJoinedFlatTableDesc flatTable = new NCubeJoinedFlatTableDesc(df.getIndexPlan(),
                 new SegmentRange.TimePartitionedSegmentRange(0L, System.currentTimeMillis()));
-        Dataset<Row> ds = CreateFlatTable.generateDataset(flatTable, ss);
+        Dataset<Row> ds = CreateFlatTable.generateDataset(flatTable, ss, new HashMap<String, Set<TblColRef>>(), null);
         ds.show(10);
 
         StructType schema = ds.schema();

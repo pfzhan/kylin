@@ -30,7 +30,6 @@ import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
-import io.kyligence.kap.engine.spark.ExecutableUtils;
 import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
 import io.kyligence.kap.engine.spark.job.NSparkMergingJob;
 import io.kyligence.kap.engine.spark.merger.AfterMergeOrRefreshResourceMerger;
@@ -38,7 +37,6 @@ import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.newten.NExecAndComp.CompareLevel;
 import io.kyligence.kap.spark.KapSparkSession;
 import lombok.val;
-import lombok.var;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.job.execution.ExecutableState;
@@ -320,8 +318,7 @@ public class NManualBuildAndQueryTest extends NLocalWithSparkSessionTest {
         // wait job done
         Assert.assertEquals(ExecutableState.SUCCEED, wait(firstMergeJob));
         val merger = new AfterMergeOrRefreshResourceMerger(config, getProject());
-        var mergeStore = ExecutableUtils.getRemoteStore(config, firstMergeJob.getSparkMergingStep());
-        merger.mergeAfterJob(df.getUuid(), firstMergeSeg.getId(), mergeStore);
+        merger.merge(firstMergeJob.getSparkMergingStep());
 
 
         /**
@@ -407,8 +404,7 @@ public class NManualBuildAndQueryTest extends NLocalWithSparkSessionTest {
         // wait job done
         Assert.assertEquals(ExecutableState.SUCCEED, wait(firstMergeJob));
         val merger = new AfterMergeOrRefreshResourceMerger(config, getProject());
-        var mergeStore = ExecutableUtils.getRemoteStore(config, firstMergeJob.getSparkMergingStep());
-        merger.mergeAfterJob(df.getUuid(), firstMergeSeg.getId(), mergeStore);
+        merger.merge(firstMergeJob.getSparkMergingStep());
 
         df = dsMgr.getDataflow(dfName);
 
@@ -417,8 +413,7 @@ public class NManualBuildAndQueryTest extends NLocalWithSparkSessionTest {
         execMgr.addJob(secondMergeJob);
         // wait job done
         Assert.assertEquals(ExecutableState.SUCCEED, wait(secondMergeJob));
-        mergeStore = ExecutableUtils.getRemoteStore(config, secondMergeJob.getSparkMergingStep());
-        merger.mergeAfterJob(df.getUuid(), secondMergeSeg.getId(), mergeStore);
+        merger.merge(secondMergeJob.getSparkMergingStep());
 
         /**
          * validate cube segment info

@@ -23,6 +23,7 @@
  */
 package io.kyligence.kap.event.handle;
 
+import io.kyligence.kap.engine.spark.job.NSparkExecutable;
 import java.util.UUID;
 
 import org.apache.kylin.common.KylinConfig;
@@ -38,7 +39,6 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.engine.spark.ExecutableUtils;
-import io.kyligence.kap.engine.spark.job.NSparkAnalysisStep;
 import io.kyligence.kap.engine.spark.job.NSparkCubingStep;
 import io.kyligence.kap.engine.spark.merger.AfterBuildResourceMerger;
 import io.kyligence.kap.event.manager.EventManager;
@@ -56,9 +56,12 @@ import io.kyligence.kap.metadata.model.ManagementType;
 import io.kyligence.kap.metadata.model.NDataModel;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Slf4j
 public class PostAddSegmentHandler extends AbstractEventPostJobHandler {
+    private static final Logger logger = LoggerFactory.getLogger(PostAddSegmentHandler.class);
 
     @Override
     protected void doHandle(EventContext eventContext, ChainedExecutable executable) {
@@ -66,44 +69,28 @@ public class PostAddSegmentHandler extends AbstractEventPostJobHandler {
         String project = eventContext.getProject();
         val jobId = event.getJobId();
         Preconditions.checkState(executable.getTasks().size() > 1, "job " + jobId + " steps is not enough");
-
+        if (!checkSubjectExists(project, event.getModelId(), event.getSegmentId(), event)) {
+            finishEvent(project, event.getId());
+            return;
+        }
         val buildTask = executable.getTask(NSparkCubingStep.class);
         val dataflowId = ExecutableUtils.getDataflowId(buildTask);
-        val segmentIds = ExecutableUtils.getSegmentIds(buildTask);
-        val layoutIds = ExecutableUtils.getLayoutIds(buildTask);
-
-        val analysisResourceStore = ExecutableUtils.getRemoteStore(eventContext.getConfig(),
-                executable.getTask(NSparkAnalysisStep.class));
-        val buildResourceStore = ExecutableUtils.getRemoteStore(eventContext.getConfig(), buildTask);
         try {
-            if (!checkSubjectExists(project, event.getModelId(), event.getSegmentId(), event)) {
-                finishEvent(project, event.getId());
-                return;
-            }
-
             val kylinConfig = KylinConfig.getInstanceFromEnv();
-
-            val merger = new AfterBuildResourceMerger(kylinConfig, project);
-            val updatedCuboids = merger.mergeAfterIncrement(dataflowId, segmentIds.iterator().next(), layoutIds,
-                    buildResourceStore);
-            merger.mergeAnalysis(dataflowId, analysisResourceStore);
-
-            recordDownJobStats(buildTask, updatedCuboids);
-            
-            notifyUserIfNecessary(executable, updatedCuboids);
-
+            val merger = new AfterBuildResourceMerger(kylinConfig, project, JobTypeEnum.INC_BUILD);
+            executable.getTasks().stream()
+                    .filter(task -> task instanceof NSparkExecutable)
+                    .filter(task -> ((NSparkExecutable)task).needMergeMetadata())
+                    .forEach(task -> ((NSparkExecutable) task).mergerMetadata(merger));
             NDataflowManager dfMgr = NDataflowManager.getInstance(kylinConfig, project);
-
             markDFOnlineIfNecessary(dfMgr.getDataflow(dataflowId));
-
             handleRetention(project, event.getModelId());
             //TODO: take care of this
             autoMergeSegments(project, event.getModelId(), event.getOwner());
-
             finishEvent(project, event.getId());
-        } finally {
-            analysisResourceStore.close();
-            buildResourceStore.close();
+        } catch (Throwable throwable) {
+            logger.error("Process event " + event.toString() + " failed:", throwable);
+            throw throwable;
         }
     }
 

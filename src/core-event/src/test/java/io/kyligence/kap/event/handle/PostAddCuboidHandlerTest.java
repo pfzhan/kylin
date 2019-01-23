@@ -40,9 +40,6 @@ import org.spark_project.guava.collect.Sets;
 import com.google.common.collect.Lists;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
-import io.kyligence.kap.metadata.cube.model.NDataSegment;
-import io.kyligence.kap.metadata.cube.model.NDataflowManager;
-import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
 import io.kyligence.kap.engine.spark.job.NSparkCubingJob;
 import io.kyligence.kap.event.manager.EventDao;
 import io.kyligence.kap.event.manager.EventManager;
@@ -50,6 +47,9 @@ import io.kyligence.kap.event.model.AddCuboidEvent;
 import io.kyligence.kap.event.model.Event;
 import io.kyligence.kap.event.model.EventContext;
 import io.kyligence.kap.event.model.PostAddCuboidEvent;
+import io.kyligence.kap.metadata.cube.model.NDataSegment;
+import io.kyligence.kap.metadata.cube.model.NDataflowManager;
+import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
 import lombok.val;
 import lombok.var;
 
@@ -67,23 +67,16 @@ public class PostAddCuboidHandlerTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testRestartNoJobForSuicideJob_SuicideByCuttingJobAndSegmentsMissing() {
-        val dataflowManager = NDataflowManager.getInstance(getTestConfig(), "default");
-        var dataflow = dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
-        NDataflowUpdate update = new NDataflowUpdate(dataflow.getId());
-        update.setToRemoveSegs(dataflow.getSegments().toArray(new NDataSegment[0]));
-        dataflowManager.updateDataflow(update);
-
+        cleanModel("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         val sql = "select * from test_kylin_fact";
         val postAddEvent = mockEvent(sql);
         EventManager.getInstance(getTestConfig(), "default").post(postAddEvent);
 
-        val job = mockJob(postAddEvent.getJobId(), SegmentRange.dateToLong("2012-01-01"), SegmentRange.dateToLong("2012-09-01"));
+        val job = mockJob(postAddEvent.getJobId(), SegmentRange.dateToLong("2012-01-01"),
+                SegmentRange.dateToLong("2012-09-01"));
         mockJob(UUID.randomUUID().toString(), SegmentRange.dateToLong("2012-09-01"),
                 SegmentRange.dateToLong("2012-10-01"));
-        dataflow = dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
-        update = new NDataflowUpdate(dataflow.getId());
-        update.setToRemoveSegs(dataflow.getSegments().toArray(new NDataSegment[0]));
-        dataflowManager.updateDataflow(update);
+        cleanModel("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
 
         PostAddCuboidHandler handler = new PostAddCuboidHandler();
         EventContext context = new EventContext(postAddEvent, getTestConfig(), "default");
@@ -107,11 +100,7 @@ public class PostAddCuboidHandlerTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testRestartNewJobForSuicideJob_SuicideByCuttingJob() {
-        val dataflowManager = NDataflowManager.getInstance(getTestConfig(), "default");
-        var dataflow = dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
-        NDataflowUpdate update = new NDataflowUpdate(dataflow.getId());
-        update.setToRemoveSegs(dataflow.getSegments().toArray(new NDataSegment[0]));
-        dataflowManager.updateDataflow(update);
+        cleanModel("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         val sql = "select * from test_kylin_fact";
         val postAddEvent = mockEvent(sql);
         EventManager.getInstance(getTestConfig(), "default").post(postAddEvent);
@@ -135,27 +124,27 @@ public class PostAddCuboidHandlerTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testRestartNewJobForSuicideJob_SuicideBySegmentsMissing() {
-        val dataflowManager = NDataflowManager.getInstance(getTestConfig(), "default");
-        var dataflow = dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
-        NDataflowUpdate update = new NDataflowUpdate(dataflow.getId());
-        update.setToRemoveSegs(dataflow.getSegments().toArray(new NDataSegment[0]));
-        dataflowManager.updateDataflow(update);
+        cleanModel("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         val sql = "select * from test_kylin_fact";
         val postAddEvent = mockEvent(sql);
         EventManager.getInstance(getTestConfig(), "default").post(postAddEvent);
         val job = mockJob(postAddEvent.getJobId(), SegmentRange.dateToLong("2012-01-01"),
                 SegmentRange.dateToLong("2012-09-01"));
-
-        update = new NDataflowUpdate(dataflow.getId());
-        update.setToRemoveSegs(dataflow.getSegments().toArray(new NDataSegment[0]));
-        dataflowManager.updateDataflow(update);
-
+        cleanModel("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         PostAddCuboidHandler handler = new PostAddCuboidHandler();
         EventContext context = new EventContext(postAddEvent, getTestConfig(), "default");
         handler.restartNewJobIfNecessary(context, (ChainedExecutable) job);
         val events = EventDao.getInstance(getTestConfig(), "default").getEvents();
         events.sort(Event::compareTo);
         Assert.assertEquals(1, events.size());
+    }
+
+    private void cleanModel(String dataflowId) {
+        val dataflowManager = NDataflowManager.getInstance(getTestConfig(), "default");
+        var dataflow = dataflowManager.getDataflow(dataflowId);
+        NDataflowUpdate update = new NDataflowUpdate(dataflow.getId());
+        update.setToRemoveSegs(dataflow.getSegments().toArray(new NDataSegment[0]));
+        dataflowManager.updateDataflow(update);
     }
 
     private PostAddCuboidEvent mockEvent(String sql) {

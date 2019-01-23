@@ -30,38 +30,63 @@ import java.util.stream.Collectors;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
-import org.apache.kylin.metadata.model.JoinTableDesc;
+import org.apache.kylin.job.execution.AbstractExecutable;
+import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 
+import io.kyligence.kap.engine.spark.ExecutableUtils;
+import io.kyligence.kap.engine.spark.SegmentUtils;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.model.NDataLayout;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
-import io.kyligence.kap.engine.spark.SegmentUtils;
-import io.kyligence.kap.metadata.model.NDataModel;
-import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public class AfterBuildResourceMerger {
+public class AfterBuildResourceMerger extends SparkJobMetadataMerger{
 
-    private final KylinConfig config;
-    private final String project;
+    private JobTypeEnum jobTypeEnum;
 
-    public AfterBuildResourceMerger(KylinConfig config, String project) {
-        this.config = config;
-        this.project = project;
+    public AfterBuildResourceMerger(KylinConfig config, String project, JobTypeEnum jobTypeEnum) {
+        super(config, project);
+        this.jobTypeEnum = jobTypeEnum;
     }
 
-    public NDataLayout[] mergeAfterIncrement(String flowName, String segmentId, Set<Long> layoutIds, ResourceStore remoteStore) {
-        val localDataflowManager = NDataflowManager.getInstance(config, project);
+    @Override
+    public NDataLayout[] merge(String flowName, Set<String> segmentId, Set<Long> layoutIds, ResourceStore remoteStore) {
+        switch (jobTypeEnum) {
+        case INDEX_BUILD:
+            return mergeAfterCatchup(flowName, segmentId, layoutIds, remoteStore);
+        case INC_BUILD:
+            Preconditions.checkArgument(segmentId.size() == 1);
+            return mergeAfterIncrement(flowName, segmentId.iterator().next(), layoutIds, remoteStore);
+        default:
+            throw new UnsupportedOperationException("Error job type: " + jobTypeEnum);
+        }
+    }
+
+    @Override
+    public void merge(AbstractExecutable abstractExecutable) {
+        try (val buildResourceStore = ExecutableUtils.getRemoteStore(this.getConfig(), abstractExecutable)) {
+            val dataFlowId = ExecutableUtils.getDataflowId(abstractExecutable);
+            val segmentIds = ExecutableUtils.getSegmentIds(abstractExecutable);
+            val layoutIds = ExecutableUtils.getLayoutIds(abstractExecutable);
+            NDataLayout[] nDataLayouts = merge(dataFlowId, segmentIds, layoutIds, buildResourceStore);
+            recordDownJobStats(abstractExecutable, nDataLayouts);
+            abstractExecutable.notifyUserIfNecessary(nDataLayouts);
+        }
+    }
+
+    public NDataLayout[] mergeAfterIncrement(String flowName, String segmentId, Set<Long> layoutIds,
+            ResourceStore remoteStore) {
+        val localDataflowManager = NDataflowManager.getInstance(getConfig(), getProject());
         val localDataflow = localDataflowManager.getDataflow(flowName);
-        val remoteDataflowManager = NDataflowManager.getInstance(remoteStore.getConfig(), project);
+        val remoteDataflowManager = NDataflowManager.getInstance(remoteStore.getConfig(), getProject());
         val remoteDataflow = remoteDataflowManager.getDataflow(flowName).copy();
 
         val dfUpdate = new NDataflowUpdate(flowName);
@@ -78,10 +103,10 @@ public class AfterBuildResourceMerger {
     }
 
     public NDataLayout[] mergeAfterCatchup(String flowName, Set<String> segmentIds, Set<Long> layoutIds,
-                                           ResourceStore remoteStore) {
-        val localDataflowManager = NDataflowManager.getInstance(config, project);
+            ResourceStore remoteStore) {
+        val localDataflowManager = NDataflowManager.getInstance(getConfig(), getProject());
         val localDataflow = localDataflowManager.getDataflow(flowName);
-        val remoteDataflowManager = NDataflowManager.getInstance(remoteStore.getConfig(), project);
+        val remoteDataflowManager = NDataflowManager.getInstance(remoteStore.getConfig(), getProject());
         val remoteDataflow = remoteDataflowManager.getDataflow(flowName).copy();
 
         val dataflow = localDataflowManager.getDataflow(flowName);
@@ -112,19 +137,6 @@ public class AfterBuildResourceMerger {
         return dfUpdate.getToAddOrUpdateCuboids();
     }
 
-    public void mergeAnalysis(String dataflowId, ResourceStore remoteStore) {
-        val remoteConfig = remoteStore.getConfig();
-        final NTableMetadataManager remoteTblMgr = NTableMetadataManager.getInstance(remoteConfig, project);
-        final NTableMetadataManager localTblMgr = NTableMetadataManager.getInstance(config, project);
-
-        final NDataModel dataModel = NDataflowManager.getInstance(config, project).getDataflow(dataflowId).getModel();
-
-        mergeAndUpdateTableExt(localTblMgr, remoteTblMgr, dataModel.getRootFactTableName());
-        for (final JoinTableDesc lookupDesc : dataModel.getJoinTables()) {
-            mergeAndUpdateTableExt(localTblMgr, remoteTblMgr, lookupDesc.getTable());
-        }
-
-    }
 
     private Set<Long> intersectionWithLastSegment(NDataflow dataflow, Collection<Long> layoutIds) {
         val layoutInSegmentIds = SegmentUtils.getToBuildLayouts(dataflow).stream().map(LayoutEntity::getId)
@@ -132,11 +144,4 @@ public class AfterBuildResourceMerger {
         return layoutIds.stream().filter(layoutInSegmentIds::contains).collect(Collectors.toSet());
     }
 
-    private void mergeAndUpdateTableExt(NTableMetadataManager localTblMgr, NTableMetadataManager remoteTblMgr,
-            String tableName) {
-        val localFactTblExt = localTblMgr.getOrCreateTableExt(tableName);
-        val remoteFactTblExt = remoteTblMgr.getOrCreateTableExt(tableName);
-
-        localTblMgr.mergeAndUpdateTableExt(localFactTblExt, remoteFactTblExt);
-    }
 }

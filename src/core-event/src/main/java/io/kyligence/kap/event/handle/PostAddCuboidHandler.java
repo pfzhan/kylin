@@ -26,16 +26,17 @@ package io.kyligence.kap.event.handle;
 import java.util.List;
 import java.util.UUID;
 
-import io.kyligence.kap.engine.spark.job.NSparkAnalysisStep;
-import io.kyligence.kap.engine.spark.job.NSparkCubingStep;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.execution.ChainedExecutable;
 import org.apache.kylin.job.execution.DefaultChainedExecutable;
+import org.apache.kylin.job.execution.JobTypeEnum;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
 
-import io.kyligence.kap.engine.spark.ExecutableUtils;
+import io.kyligence.kap.engine.spark.job.NSparkExecutable;
 import io.kyligence.kap.engine.spark.merger.AfterBuildResourceMerger;
 import io.kyligence.kap.event.model.AddCuboidEvent;
 import io.kyligence.kap.event.model.EventContext;
@@ -47,6 +48,7 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class PostAddCuboidHandler extends AbstractEventPostJobHandler {
+    private static final Logger logger = LoggerFactory.getLogger(PostAddCuboidHandler.class);
 
     private static FavoriteQueryManager getFavoriteQueryDao(String project) {
         return FavoriteQueryManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
@@ -55,38 +57,26 @@ public class PostAddCuboidHandler extends AbstractEventPostJobHandler {
     @Override
     protected void doHandle(EventContext eventContext, ChainedExecutable executable) {
         PostAddCuboidEvent event = (PostAddCuboidEvent) eventContext.getEvent();
-        String project = eventContext.getProject();
-        List<String> sqlList = event.getSqlPatterns();
-        val jobId = event.getJobId();
-
-        Preconditions.checkState(executable.getTasks().size() > 1, "job " + jobId + " steps is not enough");
-        val buildTask = executable.getTask(NSparkCubingStep.class);
-        val dataflowId = ExecutableUtils.getDataflowId(buildTask);
-        val segmentIds = ExecutableUtils.getSegmentIds(buildTask);
-        val layoutIds = ExecutableUtils.getLayoutIds(buildTask);
-        val analysisResourceStore = ExecutableUtils.getRemoteStore(eventContext.getConfig(), executable.getTask(NSparkAnalysisStep.class));
-        val buildResourceStore = ExecutableUtils.getRemoteStore(eventContext.getConfig(), buildTask);
         try {
+            String project = eventContext.getProject();
+            List<String> sqlList = event.getSqlPatterns();
+            val jobId = event.getJobId();
+            Preconditions.checkState(executable.getTasks().size() > 1, "job " + jobId + " steps is not enough");
             if (!checkSubjectExists(project, event.getModelId(), null, event)) {
                 finishEvent(project, event.getId());
                 return;
             }
-
             val kylinConfig = KylinConfig.getInstanceFromEnv();
-            val merger = new AfterBuildResourceMerger(kylinConfig, project);
-            val addedCuboids = merger.mergeAfterCatchup(dataflowId, segmentIds, layoutIds, buildResourceStore);
-            merger.mergeAnalysis(dataflowId, analysisResourceStore);
-
-            recordDownJobStats(buildTask, addedCuboids);
-
-            notifyUserIfNecessary(executable, addedCuboids);
-
+            val merger = new AfterBuildResourceMerger(kylinConfig, project, JobTypeEnum.INDEX_BUILD);
+            executable.getTasks().stream()
+                    .filter(task -> task instanceof  NSparkExecutable)
+                    .filter(task -> ((NSparkExecutable)task).needMergeMetadata())
+                    .forEach(task -> ((NSparkExecutable) task).mergerMetadata(merger));
             handleFavoriteQuery(project, sqlList);
-
             finishEvent(project, event.getId());
-        } finally {
-            analysisResourceStore.close();
-            buildResourceStore.close();
+        } catch (Throwable throwable) {
+            logger.error("Process event " + event.toString() + " failed:", throwable);
+            throw throwable;
         }
     }
 

@@ -43,7 +43,6 @@ import org.apache.kylin.storage.StorageFactory;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparkSession;
-import org.apache.spark.sql.hive.utils.ResourceDetectUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -51,8 +50,8 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.engine.spark.NSparkCubingEngine;
+import io.kyligence.kap.engine.spark.application.SparkApplication;
 import io.kyligence.kap.engine.spark.builder.NBuildSourceInfo;
-import io.kyligence.kap.engine.spark.builder.NDataflowJob;
 import io.kyligence.kap.engine.spark.utils.JobMetrics;
 import io.kyligence.kap.engine.spark.utils.JobMetricsUtils;
 import io.kyligence.kap.engine.spark.utils.Metrics;
@@ -66,14 +65,11 @@ import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.model.NBatchConstants;
 import io.kyligence.kap.metadata.cube.model.NDataLayout;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
-import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
-import io.kyligence.kap.metadata.cube.utils.ParameterType;
-import io.kyligence.kap.metadata.cube.utils.ParametersUtils;
 import io.kyligence.kap.metadata.model.NDataModel;
 
-public class DFBuildJob extends NDataflowJob {
+public class DFBuildJob extends SparkApplication {
     public static final Long FLAT_TABLE_FLAG = -1L;
     protected static final Logger logger = LoggerFactory.getLogger(DFBuildJob.class);
     protected static String tempDirSuffix = "_temp";
@@ -131,17 +127,6 @@ public class DFBuildJob extends NDataflowJob {
                 }
                 if (buildFromFlatTable != null) {
                     buildFromFlatTable.getDataset().unpersist();
-
-                    // update resource paths when build from flat table
-                    Map<String, List<String>> resourcePaths = ResourceDetectUtils.readResourcePaths(
-                            new Path(config.getJobTmpShareDir(project, jobId), segId + "_" + ResourceDetectUtils.fileName()));
-                    String value = ParametersUtils.serializeValue(resourcePaths.get(String.valueOf(FLAT_TABLE_FLAG)));
-                    NDataflow flowCopy = dfMgr.getDataflow(dataflowId).copy();
-                    NDataSegment segCopy = flowCopy.getSegment(segId);
-                    segCopy.addParameter(ParameterType.RESOURCE_PATHS.getKey(), value);
-                    NDataflowUpdate update = new NDataflowUpdate(dataflowId);
-                    update.setToUpdateSegs(segCopy);
-                    dfMgr.updateDataflow(update);
                 }
             }
 
@@ -154,7 +139,7 @@ public class DFBuildJob extends NDataflowJob {
             Map<Integer, NDataModel.Measure> measures, NSpanningTree nSpanningTree) throws IOException {
         if (cuboid.getId() >= IndexEntity.TABLE_INDEX_START_ID) {
             Preconditions.checkArgument(cuboid.getMeasures().isEmpty());
-            Set<Integer> dimIndexes = cuboid.getEffectiveDimCols().keySet();
+            Set<Integer> dimIndexes = cuboid.getEffectiveDimCols().keySet();                                  
             Dataset<Row> afterPrj = parent.select(NSparkCubingUtil.getColumns(dimIndexes));
             // TODO: shard number should respect the shard column defined in cuboid
             for (LayoutEntity layout : nSpanningTree.getLayouts(cuboid)) {
@@ -283,10 +268,5 @@ public class DFBuildJob extends NDataflowJob {
     public static void main(String[] args) {
         DFBuildJob nDataflowBuildJob = new DFBuildJob();
         nDataflowBuildJob.execute(args);
-    }
-
-    @Override
-    public void checkArgs() {
-
     }
 }

@@ -25,12 +25,19 @@
 package io.kyligence.kap.engine.spark.job;
 
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.Set;
 import java.util.UUID;
 
+import lombok.val;
+import lombok.var;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.KylinConfigExt;
 import org.apache.kylin.job.constant.ExecutableConstants;
+import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.DefaultChainedExecutable;
+import org.apache.kylin.job.execution.JobTypeEnum;
+import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
@@ -153,7 +160,7 @@ public class JobStepFactoryTest extends NLocalWithSparkSessionTest {
                 NDataSegment::getId);
         Assert.assertEquals(Sets.newHashSet(ids), cleanStep.getSegmentIds());
         Assert.assertEquals(NSparkCubingUtil.toCuboidLayoutIds(layouts), cleanStep.getCuboidLayoutIds());
-        Assert.assertEquals(config.getJobTmpMetaStoreUrl(cleanStep.getId()).toString(), cleanStep.getDistMetaUrl());
+        Assert.assertEquals(config.getJobTmpMetaStoreUrl(getProject(), cleanStep.getId()).toString(), cleanStep.getDistMetaUrl());
     }
 
     private void compareParameter(NSparkExecutable step, Set<NDataSegment> segments, Set<LayoutEntity> layouts,
@@ -163,6 +170,76 @@ public class JobStepFactoryTest extends NLocalWithSparkSessionTest {
         Assert.assertEquals(segments.iterator().next().getDataflow().getUuid(), step.getDataflowId());
         Assert.assertEquals(NSparkCubingUtil.toSegmentIds(segments), step.getSegmentIds());
         Assert.assertEquals(NSparkCubingUtil.toCuboidLayoutIds(layouts), step.getCuboidLayoutIds());
-        Assert.assertEquals(config.getJobTmpMetaStoreUrl(step.getId()).toString(), step.getDistMetaUrl());
+        Assert.assertEquals(config.getJobTmpMetaStoreUrl(getProject(), step.getId()).toString(), step.getDistMetaUrl());
+    }
+
+
+
+    @Test
+    public void testModeAnalyzeStrategyAlaways() {
+        cleanModel("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+        NSparkCubingJob abstractExecutable = (NSparkCubingJob) mockJob(UUID.randomUUID().toString(),
+                SegmentRange.dateToLong("2011-01-01"), SegmentRange.dateToLong("2011-09-01"));
+        Assert.assertNotNull(abstractExecutable.getSparkAnalysisStep());
+    }
+
+    @Test
+    public void testModeAnalyzeStrategyNever() {
+        cleanModel("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+        val dataflowManager = NDataflowManager.getInstance(getTestConfig(), "default");
+        var dataflow = dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+        getTestConfig().setProperty("kylin.job.analyze-strategy", "never");
+        dataflow.getIndexPlan()
+                .setConfig(KylinConfigExt.createInstance(getTestConfig(), new HashMap<String, String>()));
+        NSparkCubingJob abstractExecutable = (NSparkCubingJob) mockJob(UUID.randomUUID().toString(),
+                SegmentRange.dateToLong("2011-01-01"), SegmentRange.dateToLong("2011-09-01"));
+        Assert.assertNull(abstractExecutable.getSparkAnalysisStep());
+        getTestConfig().setProperty("kylin.job.analyze-strategy", "always");
+    }
+
+    @Test
+    public void testModeAnalyzeStrategyFirst() {
+        val dataflowManager = NDataflowManager.getInstance(getTestConfig(), "default");
+        var dataflow = dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+
+        cleanModel("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+        SegmentRange.TimePartitionedSegmentRange timePartitionedSegmentRange = new SegmentRange.TimePartitionedSegmentRange(
+                SegmentRange.dateToLong("2010-06-01"), SegmentRange.dateToLong("2010-06-01"));
+        NDataSegment nDataSegment = dataflowManager.appendSegment(dataflowManager.getDataflow(dataflow.getId()),
+                timePartitionedSegmentRange);
+        nDataSegment.setStatus(SegmentStatusEnum.READY);
+        getTestConfig().setProperty("kylin.job.analyze-strategy", "first");
+        NDataflowUpdate update = new NDataflowUpdate(dataflow.getId());
+        update.setToAddSegs(nDataSegment);
+        dataflowManager.updateDataflow(update);
+        NSparkCubingJob abstractExecutable = (NSparkCubingJob) mockJob(UUID.randomUUID().toString(),
+                SegmentRange.dateToLong("2011-01-01"), SegmentRange.dateToLong("2011-09-01"));
+        Assert.assertNull(abstractExecutable.getSparkAnalysisStep());
+
+        cleanModel("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+        abstractExecutable = (NSparkCubingJob) mockJob(UUID.randomUUID().toString(),
+                SegmentRange.dateToLong("2011-01-01"), SegmentRange.dateToLong("2011-09-01"));
+        Assert.assertNotNull(abstractExecutable.getSparkAnalysisStep());
+        getTestConfig().setProperty("kylin.job.analyze-strategy", "always");
+    }
+
+    private void cleanModel(String dataflowId) {
+        val dataflowManager = NDataflowManager.getInstance(getTestConfig(), "default");
+        var dataflow = dataflowManager.getDataflow(dataflowId);
+        NDataflowUpdate update = new NDataflowUpdate(dataflow.getId());
+        update.setToRemoveSegs(dataflow.getSegments().toArray(new NDataSegment[0]));
+        dataflowManager.updateDataflow(update);
+    }
+
+    private AbstractExecutable mockJob(String jobId, long start, long end) {
+        val dataflowManager = NDataflowManager.getInstance(getTestConfig(), "default");
+        var dataflow = dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+        dataflow = dataflowManager.getDataflow(dataflow.getId());
+        val layouts = dataflow.getIndexPlan().getAllLayouts();
+        val oneSeg = dataflowManager.appendSegment(dataflow, new SegmentRange.TimePartitionedSegmentRange(start, end));
+        NSparkCubingJob job = NSparkCubingJob.create(Sets.newHashSet(oneSeg), Sets.newLinkedHashSet(layouts), "ADMIN",
+                JobTypeEnum.INDEX_BUILD, jobId);
+        NExecutableManager.getInstance(getTestConfig(), "default").addJob(job);
+        return NExecutableManager.getInstance(getTestConfig(), "default").getJob(jobId);
     }
 }

@@ -42,7 +42,8 @@ import scala.collection.JavaConverters._
 class DFChooser(toBuildTree: NSpanningTree,
                 var seg: NDataSegment,
                 ss: SparkSession,
-                config: KylinConfig)
+                config: KylinConfig,
+                needEncoding: Boolean)
   extends Logging {
   var reuseSources: java.util.Map[java.lang.Long, NBuildSourceInfo] =
     Maps.newHashMap[java.lang.Long, NBuildSourceInfo]()
@@ -68,8 +69,10 @@ class DFChooser(toBuildTree: NSpanningTree,
           }
         } else {
           if (flatTableSource == null) {
-            val snapshotBuilder = new DFSnapshotBuilder(seg, ss)
-            seg = snapshotBuilder.buildSnapshot
+            if (needEncoding) {
+              val snapshotBuilder = new DFSnapshotBuilder(seg, ss)
+              seg = snapshotBuilder.buildSnapshot
+            }
             flatTableSource = getFlatTable()
           }
           flatTableSource.getToBuildCuboids.add(desc)
@@ -105,7 +108,7 @@ class DFChooser(toBuildTree: NSpanningTree,
     val dictionaryBuilder = new DictionaryBuilder(seg, ss, colSet)
     dictionaryBuilder.buildDictionary
 
-    val encodeColSet = DictionaryBuilder.extractGlobalEncodeColumns(seg, toBuildTree)
+    val encodeColSet = if (needEncoding) DictionaryBuilder.extractGlobalEncodeColumns(seg, toBuildTree) else Sets.newHashSet[TblColRef]()
     val encodeColMap: util.Map[String, util.Set[TblColRef]] = DFChooser.convert(encodeColSet)
     val flatTable = new NCubeJoinedFlatTableDesc(seg.getIndexPlan, seg.getSegRange)
     val afterJoin = CreateFlatTable.generateDataset(flatTable, ss, encodeColMap, seg)
@@ -123,11 +126,13 @@ object DFChooser {
   def apply(toBuildTree: NSpanningTree,
             seg: NDataSegment,
             ss: SparkSession,
-            config: KylinConfig): DFChooser =
+            config: KylinConfig,
+            needEncoding: Boolean): DFChooser =
     new DFChooser(toBuildTree: NSpanningTree,
       seg: NDataSegment,
       ss: SparkSession,
-      config: KylinConfig)
+      config: KylinConfig,
+      needEncoding)
 
   def convert(colSet: util.Set[TblColRef]): util.Map[String, util.Set[TblColRef]] = {
     val encodeColMap: util.Map[String, util.Set[TblColRef]] = Maps.newHashMap[String, util.Set[TblColRef]]()

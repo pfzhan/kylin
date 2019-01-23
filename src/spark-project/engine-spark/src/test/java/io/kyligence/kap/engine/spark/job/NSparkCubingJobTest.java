@@ -44,6 +44,7 @@ import org.apache.kylin.job.engine.JobEngineConfig;
 import org.apache.kylin.job.exception.ExecuteException;
 import org.apache.kylin.job.execution.ExecutableContext;
 import org.apache.kylin.job.execution.ExecutableState;
+import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.job.impl.threadpool.DefaultContext;
 import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
@@ -67,9 +68,7 @@ import com.google.common.collect.Maps;
 
 import io.kyligence.kap.engine.spark.ExecutableUtils;
 import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
-import io.kyligence.kap.engine.spark.builder.CreateFlatTable;
 import io.kyligence.kap.engine.spark.builder.DFSnapshotBuilder;
-import io.kyligence.kap.engine.spark.builder.NDictionaryBuilder;
 import io.kyligence.kap.engine.spark.merger.AfterBuildResourceMerger;
 import io.kyligence.kap.engine.spark.storage.ParquetStorage;
 import io.kyligence.kap.metadata.cube.cuboid.NCuboidLayoutChooser;
@@ -78,7 +77,6 @@ import io.kyligence.kap.metadata.cube.cuboid.NSpanningTreeFactory;
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.model.NBatchConstants;
-import io.kyligence.kap.metadata.cube.model.NCubeJoinedFlatTableDesc;
 import io.kyligence.kap.metadata.cube.model.NDataLayout;
 import io.kyligence.kap.metadata.cube.model.NDataSegDetails;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
@@ -141,22 +139,6 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
         dataset3.show();
         dataFile1.delete();
         dataFile2.delete();
-    }
-
-    @Test
-    public void testBuildDictionary() throws Exception {
-        NDataflowManager dsMgr = NDataflowManager.getInstance(config, getProject());
-        NDataflow df = dsMgr.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
-
-        NDataSegment seg = df.copy().getLastSegment();
-        seg.setDictionaries(null);
-        Assert.assertEquals(0, seg.getDictionaries().size());
-        NCubeJoinedFlatTableDesc flatTable = new NCubeJoinedFlatTableDesc(df.getIndexPlan(), seg.getSegRange());
-        Dataset<Row> ds = CreateFlatTable.generateDataset(flatTable, ss);
-
-        NDictionaryBuilder dictionaryBuilder = new NDictionaryBuilder(seg, ds);
-        seg = dictionaryBuilder.buildDictionary();
-        Assert.assertEquals(32, seg.getDictionaries().size());
     }
 
     @Test
@@ -280,10 +262,10 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
         ExecutableState status = wait(job);
         Assert.assertEquals(ExecutableState.SUCCEED, status);
 
-        val merger = new AfterBuildResourceMerger(config, getProject());
+        val merger = new AfterBuildResourceMerger(config, getProject(), JobTypeEnum.INC_BUILD);
         merger.mergeAfterIncrement(df.getUuid(), oneSeg.getId(), ExecutableUtils.getLayoutIds(sparkStep),
                 ExecutableUtils.getRemoteStore(config, sparkStep));
-        merger.mergeAnalysis(df.getUuid(), ExecutableUtils.getRemoteStore(config, job.getSparkAnalysisStep()));
+        merger.mergeAnalysis(job.getSparkAnalysisStep());
 
         /**
          * Round2. Build new layouts, should reuse the data from already existing cuboid.
@@ -314,7 +296,7 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
         merger.mergeAfterCatchup(df2.getUuid(), Sets.newHashSet(oneSeg.getId()),
                 ExecutableUtils.getLayoutIds(job.getSparkCubingStep()),
                 ExecutableUtils.getRemoteStore(config, job.getSparkCubingStep()));
-        merger.mergeAnalysis(df2.getUuid(), ExecutableUtils.getRemoteStore(config, job.getSparkAnalysisStep()));
+        merger.mergeAnalysis(job.getSparkAnalysisStep());
 
         validateCube(df2.getSegments().getFirstSegment().getId());
         validateTableIndex(df2.getSegments().getFirstSegment().getId());
@@ -739,7 +721,7 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
                 randomLayouts.add(RandomUtils.nextLong(1, 100000));
             }
             executable.setParam(P_LAYOUT_IDS, NSparkCubingUtil.ids2Str(randomLayouts));
-            executable.dumpCuboidLayoutIdsIfNeed();
+            executable.dumpArgs();
             Set<Long> layouts = NSparkCubingUtil.str2Longs(executable.getParam(P_LAYOUT_IDS));
             randomLayouts.removeAll(layouts);
             Assert.assertEquals(0, randomLayouts.size());

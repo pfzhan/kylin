@@ -27,24 +27,29 @@ import java.util
 import com.google.common.collect.Sets
 import io.kyligence.kap.engine.spark.job.NSparkCubingUtil
 import io.kyligence.kap.engine.spark.utils.SparkDataSource._
-import io.kyligence.kap.metadata.cube.model.NCubeJoinedFlatTableDesc
+import io.kyligence.kap.metadata.cube.model.{NCubeJoinedFlatTableDesc, NDataSegment}
 import io.kyligence.kap.metadata.model.{NDataModel, NDataModelFlatTableDesc}
 import org.apache.commons.lang.StringUtils
 import org.apache.kylin.metadata.model._
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.functions._
-import org.apache.spark.sql.{Dataset, Row, SparkSession}
+import org.apache.spark.sql.{Column, Dataset, Row, SparkSession}
 
 import scala.collection.JavaConverters._
 import scala.collection.mutable.ListBuffer
 
 object CreateFlatTable extends Logging {
   def generateDataset(model: NDataModel,
-                      ss: SparkSession): Dataset[Row] = {
+                      ss: SparkSession,
+                      encodeColMap: util.Map[String, util.Set[TblColRef]],
+                      seg: NDataSegment): Dataset[Row] = {
     val rootFactDesc = model.getRootFactTable.getTableDesc
     var ds = ss.table(rootFactDesc).alias(model.getRootFactTable.getAlias)
-
+    logInfo(s"Root table schema ${ds.schema.treeString}")
     ds = changeSchemaToAliasDotName(ds, model.getRootFactTable.getAlias)
+    if (!encodeColMap.isEmpty) {
+      ds = encodeDataset(ds, model.getRootFactTable.getAlias, encodeColMap, seg)
+    }
     for (lookupDesc <- model.getJoinTables.asScala) {
       val join = lookupDesc.getJoin
       if (join != null && !StringUtils.isEmpty(join.getType)) {
@@ -57,13 +62,18 @@ object CreateFlatTable extends Logging {
         val fk = join.getForeignKeyColumns
         if (pk.length != fk.length) {
           throw new RuntimeException(
-            "Invalid join condition of lookup table:" + lookupDesc)
+            s"Invalid join condition of fact table: $rootFactDesc,fk: ${fk.mkString(",")}," +
+              s" lookup table:$lookupDesc, pk: ${pk.mkString(",")}")
         }
         val condition = fk.zip(pk).map(joinKey =>
           col(NSparkCubingUtil.convertFromDot(joinKey._1.getIdentity))
             .equalTo(col(NSparkCubingUtil.convertFromDot(joinKey._2.getIdentity))))
           .reduce(_.and(_))
+        logInfo(s"Lookup table schema ${lookupTable.schema.treeString}")
         logInfo(s"Root table ${rootFactDesc.getIdentity}, join table ${lookupDesc.getAlias}, condition: ${condition.toString()}")
+        if (!encodeColMap.isEmpty) {
+          lookupTable = encodeDataset(lookupTable, dimTable.getTableName, encodeColMap, seg)
+        }
         ds = ds.join(lookupTable, condition, joinType)
       }
     }
@@ -71,12 +81,16 @@ object CreateFlatTable extends Logging {
   }
 
   def generateDataset(flatTable: IJoinedFlatTableDesc,
-                      ss: SparkSession): Dataset[Row] = {
+                      ss: SparkSession,
+                      encodeColMap: util.Map[String, util.Set[TblColRef]],
+                      seg: NDataSegment): Dataset[Row] = {
     val model = flatTable.getDataModel
-    var ds = generateDataset(model, ss)
-
+    var ds = generateDataset(model, ss, encodeColMap, seg)
+    logInfo(s"After join schema is ${ds.schema.treeString}")
+    logInfo(s"After join plan ${ds.queryExecution.toString()}")
     if (StringUtils.isNotBlank(model.getFilterCondition)) {
       val afterConvertCondition = replaceDot(model.getFilterCondition, model)
+      logInfo(s"Filter condition is $afterConvertCondition")
       ds = ds.where(afterConvertCondition)
     }
     val partDesc = model.getPartitionDesc
@@ -95,35 +109,32 @@ object CreateFlatTable extends Logging {
     flatTable match {
       case joined: NCubeJoinedFlatTableDesc =>
         selectNCubeJoinedFlatTable(ds, joined)
-      case model: NDataModelFlatTableDesc =>
-        selectNModelJoinedFlatTable(ds, model)
+      case unsupported =>
+        throw new UnsupportedOperationException(
+          s"Unsupported flat table desc type : ${unsupported.getClass}.")
     }
-  }
-
-  /*
-     * Convert IJoinedFlatTableDesc to Dataset
-     */
-  def selectNModelJoinedFlatTable(ds: Dataset[Row], flatTable: NDataModelFlatTableDesc): Dataset[Row] = {
-    val colRefs = flatTable.getAllColumns
-    val exprs = new Array[String](colRefs.size)
-    val names = new Array[String](exprs.length)
-    for (i <- exprs.indices) {
-      exprs(i) = NSparkCubingUtil.convertFromDot(colRefs.get(i).getExpressionInSourceDB)
-      names(i) = NSparkCubingUtil.convertFromDot(colRefs.get(i).getIdentity)
-    }
-    ds.selectExpr(exprs: _*).toDF(names: _*)
   }
 
   def selectNCubeJoinedFlatTable(ds: Dataset[Row], flatTable: NCubeJoinedFlatTableDesc): Dataset[Row] = {
-    val colRefs = flatTable.getAllColumns
-    val colIndices = flatTable.getIndices
-    val exprs = new Array[String](colRefs.size)
-    val indices = new Array[String](exprs.length)
-    for (i <- exprs.indices) {
-      exprs(i) = NSparkCubingUtil.convertFromDot(colRefs.get(i).getExpressionInSourceDB)
-      indices(i) = String.valueOf(colIndices.get(i))
+    val structType = ds.schema
+    val colIndices = flatTable.getIndices.asScala
+    val columnNameToIndex = flatTable.getAllColumns
+      .asScala
+      .map(column => NSparkCubingUtil.convertFromDot(column.getExpressionInSourceDB))
+      .zip(colIndices)
+    val columnToIndexMap = columnNameToIndex.toMap
+    val encodeSeq = structType.filter(_.name.endsWith(DFTableEncoder.ENCODE_SUFFIX)).map{
+      tp =>
+        val originNam = tp.name.replaceFirst(DFTableEncoder.ENCODE_SUFFIX, "")
+        val index = columnToIndexMap.apply(originNam)
+        col(tp.name).alias(index.toString + DFTableEncoder.ENCODE_SUFFIX)
     }
-    ds.selectExpr(exprs: _*).toDF(indices: _*)
+    val columns = columnNameToIndex.map(tp => expr(tp._1).alias(tp._2.toString)).toSeq
+    logInfo(s"Select model column is ${columns.mkString(",")}")
+    logInfo(s"Select model encoding column is ${encodeSeq.mkString(",")}")
+    val selectedColumns = columns  ++ encodeSeq
+    logInfo(s"Select model all column is ${selectedColumns.mkString(",")}")
+    ds.select(selectedColumns: _*)
   }
 
   def replaceDot(original: String, model: NDataModel): String = {
@@ -149,7 +160,20 @@ object CreateFlatTable extends Logging {
     val newSchema = sf
       .map(field => NSparkCubingUtil.convertFromDot(alias + "." + field.name))
       .toSeq
-    original.toDF(newSchema: _*)
+    val newdf = original.toDF(newSchema: _*)
+    logInfo(s"After change alias from ${original.schema.treeString} to ${newdf.schema.treeString}")
+    newdf
+  }
+
+  def encodeDataset(ds: Dataset[Row], tableName: String, encodeColMap: util.Map[String, util.Set[TblColRef]],
+                    seg: NDataSegment): Dataset[Row] = {
+    var encodeDs = ds
+    encodeColMap.asScala.get(tableName).headOption match {
+      case Some(cols) =>
+        encodeDs = DFTableEncoder.encode(ds, seg, cols)
+      case None => None
+    }
+    encodeDs
   }
 
   /*

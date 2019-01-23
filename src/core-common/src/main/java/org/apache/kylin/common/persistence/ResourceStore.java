@@ -84,7 +84,7 @@ import lombok.val;
  * In additional to raw bytes save and load, the store takes special care for concurrent modifications
  * by using a timestamp based test-and-set mechanism to detect (and refuse) dirty writes.
  */
-public abstract class ResourceStore {
+public abstract class ResourceStore implements AutoCloseable{
 
     private static final Logger logger = LoggerFactory.getLogger(ResourceStore.class);
 

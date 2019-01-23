@@ -26,9 +26,7 @@ package io.kyligence.kap.engine.spark.utils;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
-import com.google.common.collect.Maps;
 import org.apache.spark.SparkConf;
 import org.junit.Assert;
 import org.junit.Test;
@@ -38,78 +36,74 @@ import com.google.common.collect.Lists;
 public class SparkConfHelperTest {
 
     @Test
-    public void testUseDefaultConfWhenSmallDataSize() {
-        SparkConfHelper helper = new SparkConfHelper();
-        helper.setOption(SparkConfHelper.SOURCE_TABLE_SIZE, "1");
-        SparkConf sparkConf = new SparkConf();
-        Map<String, String> interval = Maps.newHashMap();
-        interval.put("spark.executor.memory.min", "512mb");
-        interval.put("spark.executor.cores.min", "1");
-        interval.put("spark.executor.memoryOverhead.min", "128mb");
-        interval.put("spark.executor.instances.min", "4");
-        interval.put("spark.sql.shuffle.partitions.min", "10");
-        helper.generateSparkConf(interval);
-        helper.applySparkConf(sparkConf);
-        ArrayList<CompareTuple> compareTuples = Lists.newArrayList(
-                new CompareTuple("512mb", SparkConfHelper.EXECUTOR_MEMORY),
-                new CompareTuple("1", SparkConfHelper.EXECUTOR_CORES),
-                new CompareTuple("128mb", SparkConfHelper.EXECUTOR_OVERHEAD),
-                new CompareTuple("4", SparkConfHelper.EXECUTOR_INSTANCES),
-                new CompareTuple("10", SparkConfHelper.SHUFFLE_PARTITIONS));
-        compareConf(compareTuples, sparkConf);
-    }
-
-    @Test
-    public void testUseDefaultConfWhenMediumDataSize() {
+    public void testOneGradeWhenLessTHan1GB() {
         SparkConfHelper helper = new SparkConfHelper();
         String instances = "10";
-        helper.setOption(SparkConfHelper.SOURCE_TABLE_SIZE, String.valueOf(200L * 1024 * 1024 * 1024));
+        helper.setOption(SparkConfHelper.SOURCE_TABLE_SIZE, "1b");
         helper.setConf(SparkConfHelper.EXECUTOR_INSTANCES, instances);
         SparkConf sparkConf = new SparkConf();
-        Map<String, String> interval = Maps.newHashMap();
-        interval.put("spark.executor.memory.max", "20000mb");
-        interval.put("spark.executor.memory.min", "5000mb");
-        interval.put("spark.executor.cores.max", "3");
-        interval.put("spark.executor.cores.min", "1");
-        interval.put("spark.executor.memoryOverhead.max", "3000mb");
-        interval.put("spark.executor.memoryOverhead.min", "1000mb");
-        interval.put("spark.executor.instances.max", "20");
-        interval.put("spark.executor.instances.min", "5");
-        interval.put("spark.sql.shuffle.partitions.max", "10000");
-        interval.put("spark.sql.shuffle.partitions.min", "10");
-        helper.generateSparkConf(interval);
+        helper.generateSparkConf();
         helper.applySparkConf(sparkConf);
         ArrayList<CompareTuple> compareTuples = Lists.newArrayList(
-                new CompareTuple("10240mb", SparkConfHelper.EXECUTOR_MEMORY),
-                new CompareTuple("2", SparkConfHelper.EXECUTOR_CORES),
-                new CompareTuple("2560mb", SparkConfHelper.EXECUTOR_OVERHEAD),
+                new CompareTuple("1GB", SparkConfHelper.EXECUTOR_MEMORY),
+                new CompareTuple("1", SparkConfHelper.EXECUTOR_CORES),
+                new CompareTuple("512MB", SparkConfHelper.EXECUTOR_OVERHEAD),
                 new CompareTuple(instances, SparkConfHelper.EXECUTOR_INSTANCES),
-                new CompareTuple("6400", SparkConfHelper.SHUFFLE_PARTITIONS));
+                new CompareTuple("1", SparkConfHelper.SHUFFLE_PARTITIONS));
         compareConf(compareTuples, sparkConf);
     }
 
-
     @Test
-    public void testRuleBasedConfWhenLargeDataSize() {
+    public void testTwoGradeWhenLessTHan10GB() {
         SparkConfHelper helper = new SparkConfHelper();
         String instances = "10";
-        helper.setOption(SparkConfHelper.SOURCE_TABLE_SIZE, String.valueOf(200L * 1024 * 1024 * 1024));
+        helper.setOption(SparkConfHelper.SOURCE_TABLE_SIZE, 8L * 1024 * 1024 * 1024 + "b");
         helper.setConf(SparkConfHelper.EXECUTOR_INSTANCES, instances);
         SparkConf sparkConf = new SparkConf();
-        Map<String, String> interval = Maps.newHashMap();
-        interval.put("spark.executor.memory.max", "8192mb");
-        interval.put("spark.executor.cores.max", "1");
-        interval.put("spark.executor.memoryOverhead.max", "500mb");
-        interval.put("spark.executor.instances.max", "4");
-        interval.put("spark.sql.shuffle.partitions.max", "100");
-        helper.generateSparkConf(interval);
+        helper.generateSparkConf();
         helper.applySparkConf(sparkConf);
         ArrayList<CompareTuple> compareTuples = Lists.newArrayList(
-                new CompareTuple("8192mb", SparkConfHelper.EXECUTOR_MEMORY),
-                new CompareTuple("1", SparkConfHelper.EXECUTOR_CORES),
-                new CompareTuple("500mb", SparkConfHelper.EXECUTOR_OVERHEAD),
-                new CompareTuple("4", SparkConfHelper.EXECUTOR_INSTANCES),
-                new CompareTuple("100", SparkConfHelper.SHUFFLE_PARTITIONS));
+                new CompareTuple("4GB", SparkConfHelper.EXECUTOR_MEMORY),
+                new CompareTuple("5", SparkConfHelper.EXECUTOR_CORES),
+                new CompareTuple("1GB", SparkConfHelper.EXECUTOR_OVERHEAD),
+                new CompareTuple(instances, SparkConfHelper.EXECUTOR_INSTANCES),
+                new CompareTuple("256", SparkConfHelper.SHUFFLE_PARTITIONS));
+        compareConf(compareTuples, sparkConf);
+    }
+
+    @Test
+    public void testThreeGradeWhenLessHan100GB() {
+        SparkConfHelper helper = new SparkConfHelper();
+        String instances = "10";
+        helper.setOption(SparkConfHelper.SOURCE_TABLE_SIZE, 50L * 1024 * 1024 * 1024 + "b");
+        helper.setConf(SparkConfHelper.EXECUTOR_INSTANCES, instances);
+        SparkConf sparkConf = new SparkConf();
+        helper.generateSparkConf();
+        helper.applySparkConf(sparkConf);
+        ArrayList<CompareTuple> compareTuples = Lists.newArrayList(
+                new CompareTuple("10GB", SparkConfHelper.EXECUTOR_MEMORY),
+                new CompareTuple("5", SparkConfHelper.EXECUTOR_CORES),
+                new CompareTuple("2GB", SparkConfHelper.EXECUTOR_OVERHEAD),
+                new CompareTuple(instances, SparkConfHelper.EXECUTOR_INSTANCES),
+                new CompareTuple("1600", SparkConfHelper.SHUFFLE_PARTITIONS));
+        compareConf(compareTuples, sparkConf);
+    }
+
+    @Test
+    public void testFourGradeWhenGreaterThanOrEqual100GB() {
+        SparkConfHelper helper = new SparkConfHelper();
+        String instances = "10";
+        helper.setOption(SparkConfHelper.SOURCE_TABLE_SIZE, 100L * 1024 * 1024 * 1024 + "b");
+        helper.setConf(SparkConfHelper.EXECUTOR_INSTANCES, instances);
+        SparkConf sparkConf = new SparkConf();
+        helper.generateSparkConf();
+        helper.applySparkConf(sparkConf);
+        ArrayList<CompareTuple> compareTuples = Lists.newArrayList(
+                new CompareTuple("16GB", SparkConfHelper.EXECUTOR_MEMORY),
+                new CompareTuple("5", SparkConfHelper.EXECUTOR_CORES),
+                new CompareTuple("4GB", SparkConfHelper.EXECUTOR_OVERHEAD),
+                new CompareTuple(instances, SparkConfHelper.EXECUTOR_INSTANCES),
+                new CompareTuple("3200", SparkConfHelper.SHUFFLE_PARTITIONS));
         compareConf(compareTuples, sparkConf);
     }
 

@@ -34,6 +34,7 @@ import org.apache.kylin.metadata.model.TableRef;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.engine.spark.builder.NModelAnalysisJob;
+import io.kyligence.kap.engine.spark.merger.MetadataMerger;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
@@ -61,5 +62,15 @@ public class NSparkAnalysisStep extends NSparkExecutable {
             dumpList.add(tableExtDesc.getResourcePath());
         }
         return dumpList;
+    }
+
+    @Override
+    public boolean needMergeMetadata() {
+        return true;
+    }
+
+    @Override
+    public void mergerMetadata(MetadataMerger merger) {
+            merger.mergeAnalysis(this);
     }
 }

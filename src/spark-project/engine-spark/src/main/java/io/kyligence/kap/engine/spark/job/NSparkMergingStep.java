@@ -32,6 +32,7 @@ import org.apache.kylin.job.constant.ExecutableConstants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import io.kyligence.kap.engine.spark.merger.MetadataMerger;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 
@@ -39,6 +40,7 @@ public class NSparkMergingStep extends NSparkExecutable {
     private static final Logger logger = LoggerFactory.getLogger(NSparkCubingStep.class);
 
     public NSparkMergingStep() {
+
     }
 
     public NSparkMergingStep(String sparkSubmitClassName) {
@@ -56,6 +58,16 @@ public class NSparkMergingStep extends NSparkExecutable {
         public static void main(String[] args) {
             logger.info(NSparkMergingStep.Mockup.class + ".main() invoked, args: " + Arrays.toString(args));
         }
+    }
+
+    @Override
+    public void mergerMetadata(MetadataMerger merger) {
+        merger.merge(this);
+    }
+
+    @Override
+    public boolean needMergeMetadata() {
+        return true;
     }
 
 }

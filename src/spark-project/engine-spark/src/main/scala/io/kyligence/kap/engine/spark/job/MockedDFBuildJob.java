@@ -35,7 +35,6 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import org.apache.hadoop.util.StringUtils;
-import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.model.TblColRef;
 import org.apache.kylin.storage.StorageFactory;
 import org.apache.spark.sql.Dataset;
@@ -52,8 +51,8 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.engine.spark.NSparkCubingEngine;
+import io.kyligence.kap.engine.spark.application.SparkApplication;
 import io.kyligence.kap.engine.spark.builder.DictionaryBuilder;
-import io.kyligence.kap.engine.spark.builder.NDataflowJob;
 import io.kyligence.kap.metadata.cube.cuboid.NSpanningTree;
 import io.kyligence.kap.metadata.cube.cuboid.NSpanningTreeFactory;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
@@ -68,7 +67,7 @@ import io.kyligence.kap.engine.spark.builder.DFTableEncoder;
 import lombok.val;
 import lombok.var;
 
-public class MockedDFBuildJob extends NDataflowJob {
+public class MockedDFBuildJob extends SparkApplication {
     protected static final Logger logger = LoggerFactory.getLogger(MockedDFBuildJob.class);
     protected volatile NSpanningTree nSpanningTree;
 
@@ -146,8 +145,4 @@ public class MockedDFBuildJob extends NDataflowJob {
         nDataflowBuildJob.execute(args);
     }
 
-    @Override
-    public void checkArgs() {
-
-    }
 }

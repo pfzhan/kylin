@@ -65,12 +65,12 @@ public class SparkConfHelper {
             new ExecutorInstancesRule(),
             new ShufflePartitionsRule());
 
-    public void generateSparkConf(Map<String, String> map) {
-        EXECUTOR_RULES.forEach(sparkConfRule -> sparkConfRule.apply(this, map));
+    public void generateSparkConf() {
+        EXECUTOR_RULES.forEach(sparkConfRule -> sparkConfRule.apply(this));
     }
 
     public String getOption(String key) {
-        return options.get(key);
+        return options.getOrDefault(key, null);
     }
 
     public void setOption(String key, String value) {
@@ -82,13 +82,13 @@ public class SparkConfHelper {
     }
 
     public String getConf(String key) {
-        return confs.get(key);
+        return confs.getOrDefault(key, null);
     }
 
     public void applySparkConf(SparkConf sparkConf) {
         for (Map.Entry<String, String> entry : confs.entrySet()) {
             sparkConf.set(entry.getKey(), entry.getValue());
-            logger.info("Auto set spark conf. {} = {}", entry.getKey(), entry.getValue());
+            logger.info("Auto set spark conf: {} = {}.", entry.getKey(), entry.getValue());
         }
     }
 }

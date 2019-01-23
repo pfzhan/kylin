@@ -24,6 +24,7 @@
 
 package io.kyligence.kap.smart.util;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -51,7 +52,7 @@ public class ComputedColumnEvalUtil {
         String cols = StringUtils.join(expressions, ",");
         try {
             SparkSession ss = SparderEnv.getSparkSession();
-            Dataset<Row> ds = CreateFlatTable.generateDataset(nDataModel, ss)
+            Dataset<Row> ds = CreateFlatTable.generateDataset(nDataModel, ss, new HashMap<>(), null)
                     .selectExpr(expressions.stream().map(NSparkCubingUtil::convertFromDot).toArray(String[]::new));
             for (int i = 0; i < computedColumns.size(); i++) {
                 String dataType = SparderTypeUtil.convertSparkTypeToSqlType(ds.schema().fields()[i].dataType());

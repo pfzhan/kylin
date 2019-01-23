@@ -40,6 +40,7 @@ public class NResourceDetectStep extends NSparkExecutable {
     private static final Logger logger = LoggerFactory.getLogger(NSparkExecutable.class);
 
     public NResourceDetectStep() {
+
     }
 
     public NResourceDetectStep(DefaultChainedExecutable parent) {
@@ -51,6 +52,7 @@ public class NResourceDetectStep extends NSparkExecutable {
         this.setName(ExecutableConstants.STEP_NAME_DETECT_RESOURCE);
     }
 
+    @Override
     protected Set<String> getMetadataDumpList(KylinConfig config) {
         NDataflow df = NDataflowManager.getInstance(config, getProject()).getDataflow(getDataflowId());
         return df.collectPrecalculationResource();
@@ -68,7 +70,7 @@ public class NResourceDetectStep extends NSparkExecutable {
 
         sb.append("--jars %s %s %s");
         String cmd = String.format(sb.toString(), hadoopConf, KylinConfig.getSparkHome(), jars, kylinJobJar, appArgs);
-        logger.debug("spark submit cmd: {}", cmd);
+        logger.info("spark submit cmd: {}", cmd);
         return cmd;
     }
 

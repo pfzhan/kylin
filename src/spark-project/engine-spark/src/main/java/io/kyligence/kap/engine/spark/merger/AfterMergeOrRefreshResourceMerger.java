@@ -25,42 +25,43 @@
 package io.kyligence.kap.engine.spark.merger;
 
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.metadata.cube.model.NDataLayout;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
+import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
 
 import com.clearspring.analytics.util.Lists;
 
+import io.kyligence.kap.engine.spark.ExecutableUtils;
+import io.kyligence.kap.metadata.cube.model.NDataLayout;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
 import lombok.val;
 
-public class AfterMergeOrRefreshResourceMerger {
+public class AfterMergeOrRefreshResourceMerger extends SparkJobMetadataMerger{
 
-    private final KylinConfig config;
-    private final String project;
 
     public AfterMergeOrRefreshResourceMerger(KylinConfig config, String project) {
-        this.config = config;
-        this.project = project;
+        super(config, project);
     }
 
-    public NDataLayout[] mergeAfterJob(String dataflowId, String segmentId, ResourceStore remoteResourceStore) {
-        NDataflowManager mgr = NDataflowManager.getInstance(config, project);
+    public NDataLayout[] merge(String dataflowId, Set<String> segmentIds, Set<Long> layoutIds, ResourceStore remoteResourceStore) {
+
+        NDataflowManager mgr = NDataflowManager.getInstance(getConfig(), getProject());
         NDataflowUpdate update = new NDataflowUpdate(dataflowId);
 
-        NDataflowManager distMgr = NDataflowManager.getInstance(remoteResourceStore.getConfig(), project);
+        NDataflowManager distMgr = NDataflowManager.getInstance(remoteResourceStore.getConfig(), getProject());
         NDataflow distDataflow = distMgr.getDataflow(update.getDataflowId()).copy(); // avoid changing cached objects
 
         List<NDataSegment> toUpdateSegments = Lists.newArrayList();
         List<NDataLayout> toUpdateCuboids = Lists.newArrayList();
 
-        NDataSegment mergedSegment = distDataflow.getSegment(segmentId);
+        NDataSegment mergedSegment = distDataflow.getSegment(segmentIds.iterator().next());
 
         if (mergedSegment.getStatus() == SegmentStatusEnum.NEW)
             mergedSegment.setStatus(SegmentStatusEnum.READY);
@@ -81,6 +82,18 @@ public class AfterMergeOrRefreshResourceMerger {
         mgr.updateDataflow(update);
 
         return update.getToAddOrUpdateCuboids();
+    }
+
+    @Override
+    public void merge(AbstractExecutable abstractExecutable) {
+        try (val buildResourceStore = ExecutableUtils.getRemoteStore(this.getConfig(), abstractExecutable)) {
+            val dataFlowId = ExecutableUtils.getDataflowId(abstractExecutable);
+            val segmentIds = ExecutableUtils.getSegmentIds(abstractExecutable);
+            val layoutIds = ExecutableUtils.getLayoutIds(abstractExecutable);
+            NDataLayout[] nDataLayouts = merge(dataFlowId, segmentIds, layoutIds, buildResourceStore);
+            recordDownJobStats(abstractExecutable, nDataLayouts);
+            abstractExecutable.notifyUserIfNecessary(nDataLayouts);
+        }
     }
 
 }

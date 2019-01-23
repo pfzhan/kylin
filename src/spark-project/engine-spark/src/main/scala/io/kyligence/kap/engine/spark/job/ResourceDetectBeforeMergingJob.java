@@ -32,20 +32,20 @@ import org.apache.hadoop.fs.Path;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.hive.utils.ResourceDetectUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Maps;
 
+import io.kyligence.kap.engine.spark.application.SparkApplication;
 import io.kyligence.kap.engine.spark.builder.DFLayoutMergeAssist;
-import io.kyligence.kap.engine.spark.builder.NDataflowJob;
 import io.kyligence.kap.metadata.cube.model.NBatchConstants;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import scala.collection.JavaConversions;
 
-public class ResourceDetectBeforeMergingJob extends NDataflowJob {
+public class ResourceDetectBeforeMergingJob extends SparkApplication {
     protected static final Logger logger = LoggerFactory.getLogger(ResourceDetectBeforeMergingJob.class);
 
     @Override
@@ -85,8 +85,4 @@ public class ResourceDetectBeforeMergingJob extends NDataflowJob {
         resourceDetectJob.execute(args);
     }
 
-    @Override
-    public void checkArgs() {
-
-    }
 }

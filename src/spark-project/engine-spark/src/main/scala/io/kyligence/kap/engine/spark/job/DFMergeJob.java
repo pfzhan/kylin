@@ -30,8 +30,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
-import io.kyligence.kap.metadata.cube.utils.ParameterType;
-import io.kyligence.kap.metadata.cube.utils.ParametersUtils;
 import org.apache.hadoop.fs.ContentSummary;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -46,11 +44,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
 
 import io.kyligence.kap.engine.spark.NSparkCubingEngine;
+import io.kyligence.kap.engine.spark.application.SparkApplication;
 import io.kyligence.kap.engine.spark.builder.DFLayoutMergeAssist;
-import io.kyligence.kap.engine.spark.builder.NDataflowJob;
 import io.kyligence.kap.engine.spark.utils.JobMetrics;
 import io.kyligence.kap.engine.spark.utils.JobMetricsUtils;
 import io.kyligence.kap.engine.spark.utils.Metrics;
@@ -64,9 +61,8 @@ import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
-import io.kyligence.kap.shaded.influxdb.com.google.common.common.collect.Lists;
 
-public class DFMergeJob extends NDataflowJob {
+public class DFMergeJob extends SparkApplication {
     protected static final Logger logger = LoggerFactory.getLogger(DFMergeJob.class);
 
     @Override
@@ -129,24 +125,6 @@ public class DFMergeJob extends NDataflowJob {
                 saveAndUpdateCuboid(afterSort, mergedSeg, layout, assist);
             }
         }
-
-        Set<String> resourcePaths = Sets.newHashSet();
-        for (NDataSegment seg : mergingSegments) {
-            String parameter = seg.getParameter(ParameterType.RESOURCE_PATHS.getKey());
-            if (parameter != null) {
-                List<String> paths = (List<String>) ParametersUtils.deSerializeValue(parameter,
-                        ParameterType.RESOURCE_PATHS.getClz());
-                resourcePaths.addAll(paths);
-            }
-        }
-
-        String value = ParametersUtils.serializeValue(Lists.newArrayList(resourcePaths));
-        NDataflow flowCopy = mgr.getDataflow(dataflowId).copy();
-        NDataSegment segCopy = flowCopy.getSegment(segmentId);
-        segCopy.addParameter(ParameterType.RESOURCE_PATHS.getKey(), value);
-        NDataflowUpdate update = new NDataflowUpdate(dataflowId);
-        update.setToUpdateSegs(segCopy);
-        mgr.updateDataflow(update);
     }
 
     public static Map<Long, DFLayoutMergeAssist> generateMergeAssist(List<NDataSegment> mergingSegments,
@@ -227,8 +205,4 @@ public class DFMergeJob extends NDataflowJob {
         nDataflowBuildJob.execute(args);
     }
 
-    @Override
-    public void checkArgs() {
-
-    }
 }

@@ -76,7 +76,7 @@ public class JobStepFactory {
         step.setCuboidLayoutIds(NSparkCubingUtil.toCuboidLayoutIds(layouts));
         parent.addTask(step);
         //after addTask, step's id is changed
-        step.setDistMetaUrl(config.getJobTmpMetaStoreUrl(step.getId()).toString());
+        step.setDistMetaUrl(config.getJobTmpMetaStoreUrl(parent.getProject(), step.getId()).toString());
         return step;
     }
 }

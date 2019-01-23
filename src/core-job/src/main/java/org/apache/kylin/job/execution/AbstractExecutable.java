@@ -56,7 +56,6 @@ import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import io.kyligence.kap.common.persistence.transaction.TransactionException;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.tuple.Pair;
@@ -80,8 +79,10 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
+import io.kyligence.kap.common.persistence.transaction.TransactionException;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.metadata.cube.model.NBatchConstants;
+import io.kyligence.kap.metadata.cube.model.NDataLayout;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
@@ -533,9 +534,22 @@ public abstract class AbstractExecutable implements Executable, Idempotent {
         String body = content.getEmailBody();
         return Pair.of(title, body);
     }
+    public void notifyUserIfNecessary(NDataLayout[] addOrUpdateCuboids) {
+        boolean hasEmptyLayout = false;
+        for (NDataLayout dataCuboid : addOrUpdateCuboids) {
+            if (dataCuboid.getRows() == 0) {
+                hasEmptyLayout = true;
+                break;
+            }
+        }
+        if (hasEmptyLayout) {
+            notifyUserJobIssue(JobIssueEnum.LOAD_EMPTY_DATA);
+        }
+    }
 
     public final void notifyUserJobIssue(JobIssueEnum jobIssue) {
-        Preconditions.checkState(this instanceof DefaultChainedExecutable);
+        Preconditions.checkState(
+                (this instanceof DefaultChainedExecutable) || this.getParent() instanceof DefaultChainedExecutable);
         val projectConfig = NProjectManager.getInstance(config).getProject(project).getConfig();
         boolean needNotification = true;
         switch (jobIssue) {
@@ -554,7 +568,11 @@ public abstract class AbstractExecutable implements Executable, Idempotent {
         if (!needNotification) {
             return;
         }
-        notifyUser(projectConfig, EmailNotificationContent.createContent(jobIssue, this));
+        if (this instanceof DefaultChainedExecutable) {
+            notifyUser(projectConfig, EmailNotificationContent.createContent(jobIssue, this));
+        } else {
+            notifyUser(projectConfig, EmailNotificationContent.createContent(jobIssue, this.getParent()));
+        }
     }
 
     private final void notifyUser(KylinConfig kylinConfig, EmailNotificationContent content) {

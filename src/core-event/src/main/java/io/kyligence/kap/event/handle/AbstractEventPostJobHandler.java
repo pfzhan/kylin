@@ -23,24 +23,13 @@
  */
 package io.kyligence.kap.event.handle;
 
-import io.kyligence.kap.metadata.cube.model.NDataLayout;
-import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.job.constant.JobIssueEnum;
-import org.apache.kylin.job.dao.JobStatisticsManager;
-import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.ChainedExecutable;
-import org.apache.kylin.job.execution.DefaultChainedExecutable;
 import org.apache.kylin.job.execution.ExecutableState;
 
 import io.kyligence.kap.event.model.EventContext;
 import io.kyligence.kap.event.model.JobRelatedEvent;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
-
-import java.time.Instant;
-import java.time.LocalDate;
-import java.time.ZoneId;
-import java.util.TimeZone;
 
 @Slf4j
 public abstract class AbstractEventPostJobHandler extends AbstractEventHandler {
@@ -72,39 +61,6 @@ public abstract class AbstractEventPostJobHandler extends AbstractEventHandler {
     }
 
     protected abstract void doHandleWithNullJob(EventContext eventContext);
-
-    protected void recordDownJobStats(AbstractExecutable buildTask, NDataLayout[] addOrUpdateCuboids) {
-        String model = buildTask.getTargetModel();
-        long buildEndTime = buildTask.getParent().getEndTime();
-        long duration = buildTask.getParent().getDuration();
-        long byteSize = 0;
-
-        for (NDataLayout dataCuboid : addOrUpdateCuboids) {
-            byteSize += dataCuboid.getByteSize();
-        }
-
-        KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
-        ZoneId zoneId = TimeZone.getTimeZone(kylinConfig.getTimeZone()).toZoneId();
-        LocalDate localDate = Instant.ofEpochMilli(buildEndTime).atZone(zoneId).toLocalDate();
-        long startOfDay = localDate.atStartOfDay().atZone(zoneId).toInstant().toEpochMilli();
-        // update
-        JobStatisticsManager jobStatisticsManager = JobStatisticsManager.getInstance(kylinConfig, buildTask.getProject());
-        jobStatisticsManager.updateStatistics(startOfDay, model, duration, byteSize);
-    }
-
-    protected void notifyUserIfNecessary(ChainedExecutable executable, NDataLayout[] addOrUpdateCuboids) {
-        boolean hasEmptyLayout = false;
-        for (NDataLayout dataCuboid : addOrUpdateCuboids) {
-            if (dataCuboid.getRows() == 0) {
-                hasEmptyLayout = true;
-                break;
-            }
-        }
-        if (hasEmptyLayout) {
-            val job = (DefaultChainedExecutable)executable;
-            job.notifyUserJobIssue(JobIssueEnum.LOAD_EMPTY_DATA);
-        }
-    }
 
     /**
      *

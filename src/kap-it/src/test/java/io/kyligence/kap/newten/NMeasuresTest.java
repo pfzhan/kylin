@@ -45,6 +45,7 @@ import org.apache.kylin.common.StorageURL;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.job.engine.JobEngineConfig;
 import org.apache.kylin.job.execution.ExecutableState;
+import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
 import org.apache.kylin.job.lock.MockJobLock;
@@ -256,11 +257,10 @@ public class NMeasuresTest extends NLocalWithSparkSessionTest {
 
         Assert.assertEquals(ExecutableState.SUCCEED, wait(job));
 
-        val analysisStore = ExecutableUtils.getRemoteStore(config, job.getSparkAnalysisStep());
         val buildStore = ExecutableUtils.getRemoteStore(config, job.getSparkCubingStep());
-        AfterBuildResourceMerger merger = new AfterBuildResourceMerger(config, getProject());
+        AfterBuildResourceMerger merger = new AfterBuildResourceMerger(config, getProject(), JobTypeEnum.INC_BUILD);
         val layoutIds = toBuildLayouts.stream().map(LayoutEntity::getId).collect(Collectors.toSet());
         merger.mergeAfterIncrement(df.getUuid(), oneSeg.getId(), layoutIds, buildStore);
-        merger.mergeAnalysis(df.getUuid(), analysisStore);
+        merger.mergeAnalysis(job.getSparkAnalysisStep());
     }
 }

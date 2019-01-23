@@ -24,32 +24,53 @@
 
 package io.kyligence.kap.engine.spark.application;
 
-import com.google.common.collect.Maps;
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.List;
 import java.util.Map;
+
+import org.apache.hadoop.fs.FileStatus;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
+import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.util.Application;
+import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.kylin.common.util.JsonUtil;
+import org.apache.spark.SparkConf;
+import org.apache.spark.sql.SparderEnv;
+import org.apache.spark.sql.SparkSession;
+import org.apache.spark.sql.hive.utils.ResourceDetectUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Preconditions;
+import com.google.common.collect.Maps;
 
+import io.kyligence.kap.engine.spark.job.UdfManager;
+import io.kyligence.kap.engine.spark.utils.JobMetricsUtils;
+import io.kyligence.kap.engine.spark.utils.SparkConfHelper;
+import io.kyligence.kap.metadata.cube.model.NBatchConstants;
+import lombok.val;
 
 public abstract class SparkApplication implements Application {
-    private static final Logger log = LoggerFactory.getLogger(SparkApplication.class);
+    private static final Logger logger = LoggerFactory.getLogger(SparkApplication.class);
     private Map<String, String> params = Maps.newHashMap();
-
-    protected abstract void execute() throws Exception;
+    protected volatile KylinConfig config;
+    protected volatile String jobId;
+    protected SparkSession ss;
+    protected String project;
 
     public void execute(String[] args) {
         try {
             String argsLine = Files.readAllLines(Paths.get(args[0])).get(0);
-            if(argsLine.isEmpty()){
+            if (argsLine.isEmpty()) {
                 throw new RuntimeException("Args file is empty");
             }
             params = JsonUtil.readValueAsMap(argsLine);
             checkArgs();
-            log.info("Executor task " + this.getClass().getName() + " with args : " + argsLine);
+            logger.info("Executor task " + this.getClass().getName() + " with args : " + argsLine);
             execute();
         } catch (Exception e) {
             throw new RuntimeException("Error execute " + this.getClass().getName(), e);
@@ -72,5 +93,86 @@ public abstract class SparkApplication implements Application {
         return params.containsKey(key);
     }
 
-    abstract public void checkArgs();
+    public void checkArgs() {
+        // do nothing
+    }
+
+    final protected void execute() throws Exception {
+        String hdfsMetalUrl = getParam(NBatchConstants.P_DIST_META_URL);
+        jobId = getParam(NBatchConstants.P_JOB_ID);
+
+        try (KylinConfig.SetAndUnsetThreadLocalConfig autoCloseConfig = KylinConfig
+                .setAndUnsetThreadLocalConfig(KylinConfig.loadKylinConfigFromHdfs(hdfsMetalUrl))) {
+            config = autoCloseConfig.get();
+            SparkConf sparkConf = new SparkConf();
+            if (config.isAutoSetSparkConf() && isAutoSetSparkConfEnabled()) {
+                try {
+                    autoSetSparkConf(sparkConf);
+                } catch (Exception e) {
+                    logger.warn("Auto set spark conf failed. Load spark conf from system properties", e);
+                    sparkConf = new SparkConf();
+                }
+            }
+            ss = SparkSession.builder().enableHiveSupport().config(sparkConf)
+                    .config("mapreduce.fileoutputcommitter.marksuccessfuljobs", "false").getOrCreate();
+
+            // for spark metrics
+            JobMetricsUtils.registerListener(ss);
+
+            //#8341
+            SparderEnv.setSparkSession(ss);
+            UdfManager.create(ss);
+
+            if (!config.isUTEnv()) {
+                System.setProperty("kylin.env", config.getDeployEnv());
+            }
+            doExecute();
+            // Output metadata to another folder
+            val resourceStore = ResourceStore.getKylinMetaStore(config);
+            val outputConfig = KylinConfig.createKylinConfig(config);
+            outputConfig.setMetadataUrl(getParam(NBatchConstants.P_OUTPUT_META_URL));
+            ResourceStore.createMetadataStore(outputConfig).dump(resourceStore);
+        } finally {
+            if (ss != null && !ss.conf().get("spark.master").startsWith("local")) {
+                JobMetricsUtils.unRegisterListener(ss);
+                ss.stop();
+            }
+        }
+    }
+
+    public boolean isAutoSetSparkConfEnabled() {
+        return true;
+    }
+
+    protected abstract void doExecute() throws Exception;
+
+    private void autoSetSparkConf(SparkConf sparkConf) throws Exception {
+        logger.info("Start set spark conf automatically.");
+        SparkConfHelper helper = new SparkConfHelper();
+        Path shareDir = config.getJobTmpShareDir(project, jobId);
+        String contentSize = chooseContentSize(shareDir);
+        // add content size with unit
+        helper.setOption(SparkConfHelper.SOURCE_TABLE_SIZE, contentSize);
+        Map<String, String> configOverride = config.getSparkConfigOverride();
+        Preconditions.checkState(configOverride.containsKey(SparkConfHelper.EXECUTOR_INSTANCES));
+        helper.setConf(SparkConfHelper.EXECUTOR_INSTANCES, configOverride.get(SparkConfHelper.EXECUTOR_INSTANCES));
+        helper.generateSparkConf();
+        helper.applySparkConf(sparkConf);
+    }
+
+    protected String chooseContentSize(Path shareDir) throws IOException {
+        FileSystem fs = HadoopUtil.getFileSystem(shareDir);
+        FileStatus[] fileStatuses = fs.listStatus(shareDir, path -> path.toString().endsWith(ResourceDetectUtils.fileName()));
+        Map<String, List<String>> resourcePaths = Maps.newHashMap();
+        for (FileStatus file : fileStatuses) {
+            String fileName = file.getPath().getName();
+            String segmentId = fileName.substring(0, fileName.indexOf(ResourceDetectUtils.fileName()));
+            Map<String, List<String>> map = ResourceDetectUtils.readResourcePaths(file.getPath());
+            for (Map.Entry<String, List<String>> entry : map.entrySet()) {
+                resourcePaths.put(segmentId + entry.getKey(), entry.getValue());
+            }
+        }
+        // return size with unit
+        return ResourceDetectUtils.getMaxResourceSize(resourcePaths) + "b";
+    }
 }

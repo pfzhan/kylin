@@ -26,6 +26,7 @@ package io.kyligence.kap.engine.spark.builder;
 
 import org.apache.hadoop.util.StringUtils;
 
+import io.kyligence.kap.engine.spark.application.SparkApplication;
 import io.kyligence.kap.engine.spark.stats.analyzer.ModelAnalyzer;
 import io.kyligence.kap.metadata.cube.model.NBatchConstants;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
@@ -33,8 +34,11 @@ import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.model.NDataModel;
 import lombok.val;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-public class NModelAnalysisJob extends NDataflowJob {
+public class NModelAnalysisJob extends SparkApplication {
+    private static final Logger logger = LoggerFactory.getLogger(NModelAnalysisJob.class);
 
     @Override
     protected void doExecute() throws Exception {
@@ -60,8 +64,4 @@ public class NModelAnalysisJob extends NDataflowJob {
         modelAnalysisJob.execute(args);
     }
 
-    @Override
-    public void checkArgs() {
-
-    }
 }

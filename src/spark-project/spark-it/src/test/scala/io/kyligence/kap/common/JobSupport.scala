@@ -28,14 +28,15 @@ import java.util.{Objects, UUID}
 import com.google.common.collect.{Lists, Maps, Sets}
 import io.kyligence.kap.common.persistence.metadata.MetadataStore
 import io.kyligence.kap.engine.spark.ExecutableUtils
-import io.kyligence.kap.engine.spark.job.{NSparkCubingJob, NSparkCubingStep, NSparkMergingJob}
+import io.kyligence.kap.engine.spark.job.{NSparkCubingJob, NSparkCubingStep, NSparkMergingJob, NSparkMergingStep}
 import io.kyligence.kap.engine.spark.merger.{AfterBuildResourceMerger, AfterMergeOrRefreshResourceMerger}
 import io.kyligence.kap.metadata.cube.model._
 import org.apache.commons.io.FileUtils
 import org.apache.kylin.common.persistence.ResourceStore
 import org.apache.kylin.common.{KylinConfig, StorageURL}
+import org.apache.kylin.job.constant.JobStatusEnum
 import org.apache.kylin.job.engine.JobEngineConfig
-import org.apache.kylin.job.execution.{AbstractExecutable, ExecutableState, NExecutableManager}
+import org.apache.kylin.job.execution.{AbstractExecutable, ExecutableState, JobTypeEnum, NExecutableManager}
 import org.apache.kylin.job.impl.threadpool.NDefaultScheduler
 import org.apache.kylin.job.lock.MockJobLock
 import org.apache.kylin.metadata.model.SegmentRange
@@ -145,10 +146,10 @@ trait JobSupport
 
     val analysisStore: ResourceStore = ExecutableUtils.getRemoteStore(config, job.getSparkAnalysisStep)
     val buildStore: ResourceStore = ExecutableUtils.getRemoteStore(config, job.getSparkCubingStep)
-    val merger: AfterBuildResourceMerger = new AfterBuildResourceMerger(config, prj)
+    val merger: AfterBuildResourceMerger = new AfterBuildResourceMerger(config, prj, JobTypeEnum.INC_BUILD)
     val layoutIds: java.util.Set[java.lang.Long] = toBuildLayouts.asScala.map(c => new java.lang.Long(c.getId)).asJava
     merger.mergeAfterIncrement(df.getUuid, oneSeg.getId, layoutIds, buildStore)
-    merger.mergeAnalysis(df.getUuid, analysisStore)
+    merger.mergeAnalysis(job.getSparkAnalysisStep)
   }
 
   @throws[InterruptedException]
@@ -222,8 +223,7 @@ trait JobSupport
     // wait job done
     Assert.assertEquals(ExecutableState.SUCCEED, wait(firstMergeJob))
     val merger = new AfterMergeOrRefreshResourceMerger(config, prj)
-    var mergeStore = ExecutableUtils.getRemoteStore(config, firstMergeJob.getSparkMergingStep)
-    merger.mergeAfterJob(df.getUuid, firstMergeSeg.getId, mergeStore)
+    merger.merge(firstMergeJob.getTask(classOf[NSparkMergingStep]))
 
     df = dsMgr.getDataflow(dfName)
     val secondMergeSeg = dsMgr.mergeSegments(
@@ -237,8 +237,7 @@ trait JobSupport
                                                 "ADMIN", UUID.randomUUID().toString)
     execMgr.addJob(secondMergeJob)
     Assert.assertEquals(ExecutableState.SUCCEED, wait(secondMergeJob))
-    mergeStore = ExecutableUtils.getRemoteStore(config, secondMergeJob.getSparkMergingStep)
-    merger.mergeAfterJob(df.getUuid, secondMergeSeg.getId, mergeStore)
+    merger.merge(secondMergeJob.getTask(classOf[NSparkMergingStep]))
 
     /**
       * validate cube segment info
@@ -306,8 +305,7 @@ trait JobSupport
     // wait job done
     Assert.assertEquals(ExecutableState.SUCCEED, wait(firstMergeJob))
     val merger = new AfterMergeOrRefreshResourceMerger(config, prj)
-    val mergeStore = ExecutableUtils.getRemoteStore(config, firstMergeJob.getSparkMergingStep)
-    merger.mergeAfterJob(df.getUuid, firstMergeSeg.getId, mergeStore)
+    merger.merge(firstMergeJob.getTask(classOf[NSparkMergingStep]))
 
     /**
       * validate cube segment info

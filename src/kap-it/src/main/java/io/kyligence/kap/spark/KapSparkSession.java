@@ -39,6 +39,7 @@ import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.DBUtils;
 import org.apache.kylin.job.execution.ExecutableState;
+import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
@@ -265,7 +266,7 @@ public class KapSparkSession extends SparkSession {
                 }
                 val analysisStore = ExecutableUtils.getRemoteStore(kylinConfig, job.getSparkAnalysisStep());
                 val buildStore = ExecutableUtils.getRemoteStore(kylinConfig, job.getSparkCubingStep());
-                AfterBuildResourceMerger merger = new AfterBuildResourceMerger(kylinConfig, project);
+                AfterBuildResourceMerger merger = new AfterBuildResourceMerger(kylinConfig, project, JobTypeEnum.INC_BUILD);
                 val layoutIds = layouts.stream().map(LayoutEntity::getId).collect(Collectors.toSet());
                 if (isAppend) {
                     merger.mergeAfterIncrement(df.getUuid(), oneSeg.getId(), layoutIds, buildStore);
@@ -273,7 +274,7 @@ public class KapSparkSession extends SparkSession {
                     val segIds = readySegments.stream().map(nDataSegment -> nDataSegment.getId()).collect(Collectors.toSet());
                     merger.mergeAfterCatchup(df.getUuid(), segIds, layoutIds, buildStore);
                 }
-                merger.mergeAnalysis(df.getUuid(), analysisStore);
+                merger.mergeAnalysis(job.getSparkAnalysisStep());
                 SchemaProcessor.checkSchema(this, df.getUuid(), project);
             }
         }

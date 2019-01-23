@@ -42,6 +42,7 @@ import org.apache.kylin.dimension.IDimensionEncodingMap;
 import org.apache.kylin.job.engine.JobEngineConfig;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.ExecutableState;
+import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
 import org.apache.kylin.job.lock.MockJobLock;
@@ -283,7 +284,7 @@ public class NLocalWithSparkSessionTest extends NLocalFileMetadataTestCase imple
             throw new IllegalStateException();
         }
 
-        val merger = new AfterBuildResourceMerger(config, getProject());
+        val merger = new AfterBuildResourceMerger(config, getProject(), JobTypeEnum.INC_BUILD);
         if (isAppend) {
             merger.mergeAfterIncrement(df.getUuid(), oneSeg.getId(), ExecutableUtils.getLayoutIds(sparkStep),
                     ExecutableUtils.getRemoteStore(config, sparkStep));
@@ -291,7 +292,7 @@ public class NLocalWithSparkSessionTest extends NLocalFileMetadataTestCase imple
             merger.mergeAfterCatchup(df.getUuid(), Sets.newHashSet(oneSeg.getId()),
                     ExecutableUtils.getLayoutIds(sparkStep), ExecutableUtils.getRemoteStore(config, sparkStep));
         }
-        merger.mergeAnalysis(df.getUuid(), ExecutableUtils.getRemoteStore(config, job.getSparkAnalysisStep()));
+        merger.mergeAnalysis(job.getSparkAnalysisStep());
 
         //Assert.assertEquals(ExecutableState.SUCCEED, wait(job));
     }
