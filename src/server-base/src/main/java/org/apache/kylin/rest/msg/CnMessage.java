@@ -520,4 +520,15 @@ public class CnMessage extends Message {
     public String getNOT_SET_INFLUXDB(){
         return "未设置参数 kap.metric.diagnosis.graph-writer-type 为 'INFLUX'";
     }
+
+    //license
+
+    public String getLICENSE_NOT_FOUND() {
+        return "没有许可证文件。请联系 Kyligence 销售人员。";
+    }
+
+    public String getLICENSE_OUT_OF_DATE() {
+        return "许可证已过期，当前有效期为 ['%s' - '%s']。请联系 Kyligence 销售人员。";
+    }
+
 }

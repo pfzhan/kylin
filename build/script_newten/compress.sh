@@ -21,7 +21,7 @@ mkdir ${package_name}
 
 cp -r ../src/examples/sample_cube ${package_name}
 
-cp -rf CHANGELOG.md VERSION commit_SHA1 ext lib tool ${package_name}/
+cp -rf CHANGELOG.md VERSION commit_SHA1 ext lib tool LICENSE ${package_name}/
 
 if [ "${PACKAGE_SPARK}" = "1" ]; then
     cp -rf spark ${package_name}/

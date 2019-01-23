@@ -426,7 +426,6 @@ public class NFavoriteScheduler {
                 .getInstance(KylinConfig.getInstanceFromEnv(), project).get();
         long endTime = getSystemTime() - backwardShiftTime;
         Map<String, FavoriteQuery> favoritesAboutToUpdate = Maps.newHashMap();
-
         List<QueryHistory> queryHistories = getQueryHistoryDao()
                 .getQueryHistoriesByTime(timeOffset.getFavoriteQueryUpdateTimeOffset(), endTime);
 
@@ -438,7 +437,6 @@ public class NFavoriteScheduler {
         for (Map.Entry<String, FavoriteQuery> favoritesInProj : favoritesAboutToUpdate.entrySet()) {
             favoriteQueries.add(favoritesInProj.getValue());
         }
-
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         FavoriteQueryManager.getInstance(config, project).updateStatistics(favoriteQueries);
         timeOffset.setFavoriteQueryUpdateTimeOffset(endTime);

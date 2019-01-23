@@ -42,25 +42,26 @@
 
 package io.kyligence.kap.rest.controller;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
+import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.rest.request.PasswordChangeRequest;
 import lombok.val;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.rest.constant.Constant;
+import org.apache.kylin.rest.exception.BadRequestException;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.response.ResponseCode;
 import org.apache.kylin.rest.security.ManagedUser;
 import org.apache.kylin.rest.service.AccessService;
-import org.apache.kylin.rest.service.ServiceTestBase;
 import org.apache.kylin.rest.service.UserService;
-import org.apache.kylin.rest.util.AclEvaluate;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
@@ -76,7 +77,7 @@ import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
-public class NUserControllerTest extends ServiceTestBase {
+public class NUserControllerTest extends NLocalFileMetadataTestCase {
 
     private MockMvc mockMvc;
 
@@ -86,11 +87,18 @@ public class NUserControllerTest extends ServiceTestBase {
     @Mock
     private UserService userService;
 
-    @Mock
-    private AclEvaluate aclEvaluate;
+    @Rule
+    public ExpectedException thrown = ExpectedException.none();
 
     @Mock
     private AccessService accessService;
+
+    @Before
+    public void setupResource() {
+        createTestMetadata();
+        System.clearProperty("ke.license.valid-dates");
+        getTestConfig().setProperty("kylin.env", "UT");
+    }
 
     @Before
     public void setup() {
@@ -105,13 +113,32 @@ public class NUserControllerTest extends ServiceTestBase {
 
     @After
     public void tearDown() {
+        cleanupTestMetadata();
     }
 
     @Test
-    public void testBasics() throws IOException {
+    public void testBasics() {
         EnvelopeResponse<UserDetails> userDetailsEnvelopeResponse = nUserController.authenticatedUser();
         Assert.assertNotNull(userDetailsEnvelopeResponse);
         Assert.assertTrue(userDetailsEnvelopeResponse.code.equals(ResponseCode.CODE_SUCCESS));
+    }
+
+
+    @Test
+    public void testAuthenticatedUser_WithOutOfDateLicense() {
+        getTestConfig().setProperty("kylin.env", "DEV");
+        System.setProperty("ke.license.valid-dates", "2018-12-17,2019-01-17");
+        thrown.expect(BadRequestException.class);
+        thrown.expectMessage("This license has expired and the validity period is ['2018-12-17' - '2019-01-17']. Please contact the Kyligence sales staff.");
+        nUserController.authenticatedUser();
+    }
+
+    @Test
+    public void testAuthenticatedUser_WithoutLicense() {
+        getTestConfig().setProperty("kylin.env", "DEV");
+        thrown.expect(BadRequestException.class);
+        thrown.expectMessage("No license file. Please contact the Kyligence sales staff.");
+        nUserController.authenticatedUser();
     }
 
     @Test

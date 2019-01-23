@@ -574,4 +574,14 @@ public class Message {
     public String getNOT_SET_INFLUXDB(){
         return "Not set kap.metric.diagnosis.graph-writer-type to 'INFLUX'";
     }
+
+    // License
+
+    public String getLICENSE_NOT_FOUND() {
+        return "No license file. Please contact the Kyligence sales staff.";
+    }
+
+    public String getLICENSE_OUT_OF_DATE() {
+        return "This license has expired and the validity period is ['%s' - '%s']. Please contact the Kyligence sales staff.";
+    }
 }

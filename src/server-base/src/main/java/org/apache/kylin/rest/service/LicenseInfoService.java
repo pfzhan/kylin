@@ -25,47 +25,15 @@
 package org.apache.kylin.rest.service;
 
 
-import org.apache.commons.lang.StringUtils;
-import org.apache.kylin.common.KapConfig;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 import java.util.HashMap;
 import java.util.Map;
 
 @Component("licenseInfoService")
 public class LicenseInfoService extends BasicService {
-    private static final Logger logger = LoggerFactory.getLogger(LicenseInfoService.class);
-    private KapConfig kapConfig = KapConfig.getInstanceFromEnv();
-    public boolean isVolumeLimitExceeded = false;
-
     public Map<String, String> extractLicenseInfo() {
         Map<String, String> result = new HashMap<>();
-        String lic = System.getProperty("kap.license.statement");
-        result.put("kap.license.statement", lic);
-        result.put("kap.version", System.getProperty("kap.version"));
-        result.put("kap.dates", System.getProperty("kap.dates"));
-        result.put("kap.commit", System.getProperty("kap.commit"));
-        result.put("kylin.commit", System.getProperty("kylin.commit"));
-
-        if ("true".equals(System.getProperty("kap.license.isEvaluation"))) {
-            result.put("kap.license.isEvaluation", "true");
-        }
-
-        if (!StringUtils.isEmpty(System.getProperty("kap.license.serviceEnd"))) {
-            result.put("kap.license.serviceEnd", System.getProperty("kap.license.serviceEnd"));
-        }
-
-        result.put("kap.license.isEvaluation", System.getProperty("kap.license.isEvaluation"));
-
-        long total;
-        try {
-            total = Long.parseLong(result.get("kap.license.source.total"));
-        } catch (NumberFormatException e) {
-            total = Long.MAX_VALUE;
-        }
-        float used = Float.parseFloat(result.get("kap.license.source.used"));
-        isVolumeLimitExceeded = used < total ? false : true;
+        result.put("ke.license.valid-dates", System.getProperty("ke.license.valid-dates"));
         return result;
     }
 

@@ -29,6 +29,8 @@ import io.kyligence.kap.rest.config.AppInitializer;
 import io.kyligence.kap.rest.request.PasswordChangeRequest;
 import lombok.val;
 import org.apache.commons.lang.StringUtils;
+import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.util.DateFormat;
 import org.apache.kylin.metadata.MetadataConstants;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.exception.BadRequestException;
@@ -254,7 +256,7 @@ public class NUserController extends NBasicController {
     }
 
     @RequestMapping(value = "/authentication", method = RequestMethod.POST, produces = {
-            "application/vnd.apache.kylin-v2+json" })
+            "application/vnd.apache.kylin-v2+json"})
     @ResponseBody
     public EnvelopeResponse<UserDetails> authenticate() {
         EnvelopeResponse response = authenticatedUser();
@@ -262,12 +264,25 @@ public class NUserController extends NBasicController {
         return response;
     }
 
+    private void checkLicense() {
+        if (!KylinConfig.getInstanceFromEnv().isUTEnv()) {
+            if (StringUtils.isEmpty(System.getProperty("ke.license.valid-dates"))) {
+                throw new BadRequestException(msg.getLICENSE_NOT_FOUND());
+            }
+            val dates = System.getProperty("ke.license.valid-dates").split(",");
+            val dateStart = DateFormat.stringToMillis(dates[0]);
+            val dateEnd = DateFormat.stringToMillis(dates[1]);
+            if (System.currentTimeMillis() > dateEnd || System.currentTimeMillis() < dateStart) {
+                throw new BadRequestException(String.format(msg.getLICENSE_OUT_OF_DATE(), dates[0], dates[1]));
+            }
+        }
+    }
+
     @RequestMapping(value = "/authentication", method = RequestMethod.GET, produces = {
             "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
     public EnvelopeResponse<UserDetails> authenticatedUser() {
-        Message msg = MsgPicker.getMsg();
-
+        checkLicense();
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         UserDetails data = null;
 
