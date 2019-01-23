@@ -50,6 +50,7 @@ import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.job.common.ShellExecutable;
 import org.apache.kylin.job.constant.JobStatusEnum;
 import org.apache.kylin.job.constant.JobTimeFilterEnum;
+import org.apache.kylin.job.dao.JobStatistics;
 import org.apache.kylin.job.dao.JobStatisticsManager;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.ChainedExecutable;
@@ -327,9 +328,9 @@ public class JobService extends BasicService {
 
     public JobStatisticsResponse getJobStats(String project, long startTime, long endTime) {
         JobStatisticsManager manager = getJobStatisticsManager(project);
-        Pair<Integer, Double> stats = manager.getOverallJobStats(startTime, endTime);
-
-        return new JobStatisticsResponse(stats.getFirst(), stats.getSecond());
+        Pair<Integer, JobStatistics> stats = manager.getOverallJobStats(startTime, endTime);
+        JobStatistics jobStatistics = stats.getSecond();
+        return new JobStatisticsResponse(stats.getFirst(), jobStatistics.getTotalDuration(), jobStatistics.getTotalByteSize());
     }
 
     public Map<String, Integer> getJobCount(String project, long startTime, long endTime, String dimension) {

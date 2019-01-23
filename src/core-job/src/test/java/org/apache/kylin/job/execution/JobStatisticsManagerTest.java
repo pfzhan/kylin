@@ -159,9 +159,10 @@ public class JobStatisticsManagerTest extends NLocalFileMetadataTestCase {
         date = "2018-03-01";
         long endTime = format.parse(date).getTime();
         // get overall job stats
-        Pair<Integer, Double> jobStats = jobStatisticsManager.getOverallJobStats(startTime, endTime);
+        Pair<Integer, JobStatistics> jobStats = jobStatisticsManager.getOverallJobStats(startTime, endTime);
         Assert.assertEquals(19, (int) jobStats.getFirst());
-        Assert.assertEquals(1.55, jobStats.getSecond(), 0.01);
+        Assert.assertEquals(17408L, jobStats.getSecond().getTotalByteSize());
+        Assert.assertEquals(27000L, jobStats.getSecond().getTotalDuration());
 
         // get job count by day
         Map<String, Integer> jobCountByTime = jobStatisticsManager.getJobCountByTime(startTime, endTime, "day");

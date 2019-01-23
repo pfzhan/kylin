@@ -282,7 +282,8 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
     public void testGetJobStats() throws ParseException {
         JobStatisticsResponse jobStats = jobService.getJobStats("default", Long.MIN_VALUE, Long.MAX_VALUE);
         Assert.assertEquals(0, jobStats.getCount());
-        Assert.assertEquals(0, jobStats.getDurationPerByte(), 0);
+        Assert.assertEquals(0, jobStats.getTotalByteSize(), 0);
+        Assert.assertEquals(0, jobStats.getTotalDuration(), 0);
 
         SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd");
         String date = "2018-01-01";

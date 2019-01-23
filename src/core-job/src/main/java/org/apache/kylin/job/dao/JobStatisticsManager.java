@@ -105,16 +105,13 @@ public class JobStatisticsManager {
         return crud.save(jobStatisticsToUpdate);
     }
 
-    public Pair<Integer, Double> getOverallJobStats(final long startTime, final long endTime) {
+    public Pair<Integer, JobStatistics> getOverallJobStats(final long startTime, final long endTime) {
         // filter
         List<JobStatistics> filteredJobStats = getFilteredJobStatsByTime(crud.listAll(), startTime, endTime);
         // aggregate all job stats
         JobStatistics aggregatedStats = aggregateJobStats(filteredJobStats);
-        if (aggregatedStats.getTotalByteSize() == 0)
-            return new Pair<>(aggregatedStats.getCount(), .0);
 
-        return new Pair<>(aggregatedStats.getCount(),
-                (double) aggregatedStats.getTotalDuration() / aggregatedStats.getTotalByteSize());
+        return new Pair<>(aggregatedStats.getCount(), aggregatedStats);
     }
 
     public Map<String, Integer> getJobCountByTime(final long startTime, final long endTime,

@@ -36,6 +36,8 @@ import lombok.Setter;
 public class JobStatisticsResponse {
     @JsonProperty("count")
     private int count;
-    @JsonProperty("duration_per_byte")
-    private double durationPerByte;
+    @JsonProperty("total_duration")
+    private long totalDuration;
+    @JsonProperty("total_byte_size")
+    private long totalByteSize;
 }
