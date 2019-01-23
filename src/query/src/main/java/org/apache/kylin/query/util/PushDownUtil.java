@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -48,6 +47,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+import javax.ws.rs.BadRequestException;
+
 import org.apache.calcite.sql.SqlBasicCall;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlDataTypeSpec;
@@ -70,6 +71,7 @@ import org.apache.commons.lang.text.StrBuilder;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.QueryContext;
+import org.apache.kylin.common.exceptions.KylinTimeoutException;
 import org.apache.kylin.common.util.ClassUtil;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.metadata.model.SegmentRange;
@@ -84,23 +86,21 @@ import org.slf4j.LoggerFactory;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 
-import javax.ws.rs.BadRequestException;
-
 public class PushDownUtil {
     private static final Logger logger = LoggerFactory.getLogger(PushDownUtil.class);
 
     public static Pair<List<List<String>>, List<SelectedColumnMeta>> tryPushDownSelectQuery(String project, String sql,
-                                                                                            String defaultSchema, SQLException sqlException, boolean isPrepare) throws Exception {
+            String defaultSchema, SQLException sqlException, boolean isPrepare) throws Exception {
         return tryPushDownQuery(project, sql, defaultSchema, sqlException, true, isPrepare);
     }
 
     public static Pair<List<List<String>>, List<SelectedColumnMeta>> tryPushDownNonSelectQuery(String project,
-                                                                                               String sql, String defaultSchema, boolean isPrepare) throws Exception {
+            String sql, String defaultSchema, boolean isPrepare) throws Exception {
         return tryPushDownQuery(project, sql, defaultSchema, null, false, isPrepare);
     }
 
     private static Pair<List<List<String>>, List<SelectedColumnMeta>> tryPushDownQuery(String project, String sql,
-                                                                                       String defaultSchema, SQLException sqlException, boolean isSelect, boolean isPrepare) throws Exception {
+            String defaultSchema, SQLException sqlException, boolean isSelect, boolean isPrepare) throws Exception {
 
         KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
 
@@ -108,7 +108,8 @@ public class PushDownUtil {
             return null;
 
         if (isSelect) {
-            logger.info("Query failed to utilize pre-calculation, routing to other engines", sqlException);
+            logger.info("Query:[{}] failed to utilize pre-calculation, routing to other engines",
+                    QueryContext.current().getCorrectedSql(), sqlException);
             if (!isExpectedCause(sqlException)) {
                 logger.info("quit doPushDownQuery because prior exception thrown is unexpected");
                 return null;
@@ -154,8 +155,7 @@ public class PushDownUtil {
         return Pair.newPair(returnRows, returnColumnMeta);
     }
 
-    public static Pair<String, String> getMaxAndMinTime(String partitionColumn, String table)
-            throws Exception {
+    public static Pair<String, String> getMaxAndMinTime(String partitionColumn, String table) throws Exception {
         String sql = String.format("select min(%s), max(%s) from %s", partitionColumn, partitionColumn, table);
         Pair<String, String> result = new Pair<>();
         // pushdown
@@ -170,7 +170,6 @@ public class PushDownUtil {
 
     }
 
-
     public static boolean needPushdown(String start, String end) {
         if (StringUtils.isEmpty(start) && StringUtils.isEmpty(end))
             return true;
@@ -178,8 +177,8 @@ public class PushDownUtil {
             return false;
     }
 
-
-    public static Pair<List<List<String>>, List<SelectedColumnMeta>> trySimplePushDownSelectQuery(String sql) throws Exception {
+    public static Pair<List<List<String>>, List<SelectedColumnMeta>> trySimplePushDownSelectQuery(String sql)
+            throws Exception {
         KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
         List<List<String>> returnRows = Lists.newArrayList();
         List<SelectedColumnMeta> returnColumnMeta = Lists.newArrayList();
@@ -209,20 +208,28 @@ public class PushDownUtil {
         Preconditions.checkArgument(sqlException != null);
         Throwable rootCause = ExceptionUtils.getRootCause(sqlException);
 
+        boolean isPushDownUpdateEnabled = KylinConfig.getInstanceFromEnv().isPushDownUpdateEnabled();
         //SqlValidatorException is not an excepted exception in the origin design.But in the multi pass scene,
         //query pushdown may create tables, and the tables are not in the model, so will throw SqlValidatorException.
-        boolean isPushDownUpdateEnabled = KylinConfig.getInstanceFromEnv().isPushDownUpdateEnabled();
-
-        if (!isPushDownUpdateEnabled) {
-            return rootCause != null //
-                    && (rootCause instanceof NoRealizationFoundException //
-                    || rootCause instanceof RoutingIndicatorException); //
+        if (isPushDownUpdateEnabled) {
+            return (rootCause instanceof NoRealizationFoundException //
+                    || rootCause instanceof RoutingIndicatorException || rootCause instanceof SqlValidatorException); //
         } else {
-            return (rootCause != null //
-                    && (rootCause instanceof NoRealizationFoundException //
-                    || rootCause instanceof SqlValidatorException //
-                    || rootCause instanceof RoutingIndicatorException)); //
+            if (rootCause instanceof KylinTimeoutException)
+                return false;
+
+            if (rootCause instanceof RoutingIndicatorException || rootCause instanceof NoRealizationFoundException) {
+                return true;
+            }
+
+            if (QueryContext.current().isWithoutSyntaxError()) {
+                logger.warn(
+                        "route to push down for met error when running the query: " + QueryContext.current().getSql(),
+                        sqlException);
+                return true;
+            }
         }
+        return false;
     }
 
     static String schemaCompletion(String inputSql, String schema) throws SqlParseException {

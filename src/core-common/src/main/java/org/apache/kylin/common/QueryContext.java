@@ -50,6 +50,9 @@ import java.util.concurrent.atomic.AtomicLong;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import lombok.Getter;
+import lombok.Setter;
+
 /**
  * Holds per query information and statistics.
  */
@@ -96,6 +99,9 @@ public class QueryContext {
 
     private Throwable errorCause;
     private String pushdownEngine;
+    @Getter
+    @Setter
+    private boolean withoutSyntaxError;
 
     private String correctedSql;
 

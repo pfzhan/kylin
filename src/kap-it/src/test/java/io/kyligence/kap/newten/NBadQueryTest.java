@@ -47,6 +47,12 @@ import io.kyligence.kap.spark.KapSparkSession;
 
 public class NBadQueryTest extends NLocalWithSparkSessionTest {
     private static final String PUSHDOWN_RUNNER_KEY = "kylin.query.pushdown.runner-class-name";
+    private final static String PROJECT_NAME = "bad_query_test";
+
+    @Override
+    public String getProject() {
+        return PROJECT_NAME;
+    }
 
     @After
     public void teardown() {
@@ -84,6 +90,22 @@ public class NBadQueryTest extends NLocalWithSparkSessionTest {
                     ExceptionUtils.getRootCause(e) instanceof NoSuchTableException);
             Assert.assertTrue(ExceptionUtils.getRootCauseMessage(e)
                     .contains("Table or view 'lineitem' not found in database 'default'"));
+        }
+    }
+
+    @Test
+    public void testPushDownForFileNotExist() throws Exception {
+        final String sql = "select max(price) from test_kylin_fact";
+        KylinConfig.getInstanceFromEnv().setProperty(PUSHDOWN_RUNNER_KEY,
+                "io.kyligence.kap.query.pushdown.PushDownRunnerSparkImpl");
+        try (KapSparkSession kapSparkSession = new KapSparkSession(SparkContext.getOrCreate(sparkConf))) {
+            kapSparkSession.use(getProject());
+            kapSparkSession.queryCube(sql);
+        } catch (Exception sqlException) {
+            if (sqlException instanceof SQLException) {
+                Assert.assertTrue(ExceptionUtils.getRootCauseMessage(sqlException).contains("Path does not exist"));
+                pushDownSql(getProject(), sql, (SQLException) sqlException);
+            }
         }
     }
 

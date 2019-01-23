@@ -69,6 +69,7 @@ public class KapOLAPToEnumerableConverter extends OLAPToEnumerableConverter impl
         //        Thread.currentThread().setContextClassLoader(ClassLoaderUtils.getSparkClassLoader());
         ContextUtil.dumpCalcitePlan("EXECUTION PLAN BEFORE OLAPImplementor", this);
 
+        QueryContext.current().setWithoutSyntaxError(true);
         List<OLAPContext> contexts = QueryContextCutter.selectRealization(this,
                 BackdoorToggles.getIsQueryFromAutoModeling());
         ContextUtil.dumpCalcitePlan("EXECUTION PLAN AFTER REALIZATION IS SET", this);
