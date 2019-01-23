@@ -76,7 +76,7 @@ public class HdfsAppender extends AppenderSkeleton {
     private boolean rollingByHour = false;
     private int rollingPeriod = 5;
     private String hdfsWorkingDir;
-    private String metadataUrl;
+    private String metadataIdentifier;
     private String category;
     private String identifier;
     // only cubing job
@@ -96,7 +96,7 @@ public class HdfsAppender extends AppenderSkeleton {
 
         LogLog.warn("HdfsAppender start ...");
         LogLog.warn("hdfsWorkingDir -> " + hdfsWorkingDir);
-        LogLog.warn("metadataUrl -> " + metadataUrl);
+        LogLog.warn("metadataIdentifier -> " + metadataIdentifier);
         LogLog.warn("category -> " + category);
         LogLog.warn("identifier -> " + identifier);
         LogLog.warn("project -> " + identifier);
@@ -147,12 +147,12 @@ public class HdfsAppender extends AppenderSkeleton {
         return true;
     }
 
-    public String getMetadataUrl() {
-        return metadataUrl;
+    public String getMetadataIdentifier() {
+        return metadataIdentifier;
     }
 
-    public void setMetadataUrl(String metadataUrl) {
-        this.metadataUrl = metadataUrl;
+    public void setMetadataIdentifier(String metadataIdentifier) {
+        this.metadataIdentifier = metadataIdentifier;
     }
 
     public String getCategory() {
@@ -430,12 +430,7 @@ public class HdfsAppender extends AppenderSkeleton {
         }
 
         private String parseHdfsWordingDir() {
-            if (metadataUrl.contains("@")) {
-                return StringUtils.appendIfMissing(hdfsWorkingDir, "/")
-                        + metadataUrl.substring(0, metadataUrl.indexOf("@"));
-            }
-
-            return StringUtils.appendIfMissing(hdfsWorkingDir, "/") + StringUtils.replace(metadataUrl, "/", "-");
+            return StringUtils.appendIfMissing(hdfsWorkingDir, "/") + StringUtils.replace(metadataIdentifier, "/", "-");
         }
     }
 

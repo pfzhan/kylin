@@ -67,6 +67,7 @@ public class AppInitializer {
     @EventListener(ContextRefreshedEvent.class)
     public void init(ContextRefreshedEvent event) {
         val kylinConfig = KylinConfig.getInstanceFromEnv();
+        kylinConfig.setProperty("kylin.metadata.url.identifier", kylinConfig.getMetadataUrlPrefix());
 
         val candidate = new NodeCandidate(kylinConfig.getNodeId());
         val leaderInitiator = LeaderInitiator.getInstance(kylinConfig);
