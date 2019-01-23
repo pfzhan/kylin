@@ -33,15 +33,9 @@
                   <el-tab-pane :label="$t('tableIndex')" name="third">
                     <TableIndex :modelDesc="props.row" v-if="props.row.tabTypes === 'third'"></TableIndex>
                   </el-tab-pane>
-                  <!-- <el-tab-pane label="JSON" name="forth">
-                    <el-input
-                      class="model-json"
-                      :value="JSON.stringify(props.row, '', 4)"
-                      type="textarea"
-                      :rows="18"
-                      :readonly="true">
-                    </el-input>
-                  </el-tab-pane> -->
+                  <el-tab-pane label="JSON" name="forth">
+                    <ModelJson v-if="props.row.tabTypes === 'forth'" :model="props.row.uuid"/>
+                  </el-tab-pane>
                 </el-tabs>
               </div>
             </transition>
@@ -183,6 +177,7 @@ import ModelAddModal from './ModelAddModal/addmodel.vue'
 import ModelCheckDataModal from './ModelCheckData/checkdata.vue'
 import ModelBuildModal from './ModelBuildModal/build.vue'
 import ModelPartitionModal from './ModelPartitionModal/index.vue'
+import ModelJson from './ModelJson/modelJson.vue'
 import { mockSQL } from './mock'
 import '../../../../util/fly.js'
 @Component({
@@ -215,7 +210,8 @@ import '../../../../util/fly.js'
       purgeModel: 'PURGE_MODEL',
       disableModel: 'DISABLE_MODEL',
       enableModel: 'ENABLE_MODEL',
-      updataModel: 'UPDATE_MODEL'
+      updataModel: 'UPDATE_MODEL',
+      getModelJson: 'GET_MODEL_JSON'
     }),
     ...mapActions('ModelRenameModal', {
       callRenameModelDialog: 'CALL_MODAL'
@@ -245,7 +241,8 @@ import '../../../../util/fly.js'
     ModelAddModal,
     ModelCheckDataModal,
     ModelBuildModal,
-    ModelPartitionModal
+    ModelPartitionModal,
+    ModelJson
   },
   locales
 })
@@ -605,12 +602,6 @@ export default class ModelList extends Vue {
   }
   .el-tabs__nav {
     margin-left: 0;
-  }
-  .model-json {
-    margin: 20px 0;
-    .el-textarea__inner:focus {
-      border-color: @line-border-color;
-    }
   }
   .el-tabs__content {
     overflow: initial;

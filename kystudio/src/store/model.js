@@ -225,6 +225,9 @@ export default {
     },
     [types.GET_MODEL_NEWEST_RANGE] ({ commit }, params) {
       return api.model.getModelDataNewestRange(params)
+    },
+    [types.GET_MODEL_JSON] ({ commit }, paras) {
+      return api.model.getModelJSON(paras)
     }
   },
   getters: {

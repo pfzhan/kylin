@@ -169,5 +169,8 @@ export default {
   },
   updateModelConfig: (para) => {
     return Vue.resource(apiUrl + 'models/' + para.model + '/config').update(para)
+  },
+  getModelJSON: (para) => {
+    return Vue.resource(apiUrl + 'models/json').get(para)
   }
 }
