@@ -77,7 +77,7 @@ fi
 
 jar_list="${common_jars} ${hdfs_jars} ${mr_jars} ${yarn_jars} ${other_jars}"
 
-echo "Find platform specify jars:${jar_list}, will replace with these jars under ${SPARK_HOME}/jars."
+echo "Find platform specific jars:${jar_list}, will replace with these jars under ${SPARK_HOME}/jars."
 
 find ${SPARK_HOME}/jars -name "htrace-core-*" -exec rm -rf {} \;
 find ${SPARK_HOME}/jars -name "hadoop-*2.6.*.jar" -exec rm -rf {} \;
