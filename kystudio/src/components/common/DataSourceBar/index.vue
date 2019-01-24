@@ -23,7 +23,7 @@
         :default-expanded-keys="defaultExpandedKeys"
         :draggable-node-types="draggableNodeTypes"
         :is-expand-all="isExpandAll"
-        :is-show-filter="isShowFilter"
+        :is-show-filter="isShowFilter && !!databaseArray.length"
         :is-expand-on-click-node="isExpandOnClickNode"
         :is-resizable="isResizable"
         :on-filter="handleFilter"
