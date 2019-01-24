@@ -120,6 +120,7 @@ import org.apache.kylin.rest.response.SQLResponse;
 import org.apache.kylin.rest.util.AclEvaluate;
 import org.apache.kylin.rest.util.AclPermissionUtil;
 import org.apache.kylin.rest.util.QueryRequestLimits;
+import org.apache.kylin.rest.util.QueryCacheSignatureUtil;
 import org.apache.kylin.rest.util.TableauInterceptor;
 import org.apache.kylin.shaded.htrace.org.apache.htrace.Sampler;
 import org.apache.kylin.shaded.htrace.org.apache.htrace.Trace;
@@ -213,7 +214,7 @@ public class QueryService extends BasicService {
             columnMetas.add(new SelectedColumnMeta(false, false, false, false, 1, false, Integer.MAX_VALUE, "c0", "c0",
                     null, null, null, Integer.MAX_VALUE, 128, 1, "char", false, false, false));
 
-            return buildSqlResponse(true, r.getFirst(), columnMetas);
+            return buildSqlResponse(true, r.getFirst(), columnMetas, sqlRequest.getProject());
 
         } catch (Exception e) {
             logger.info("pushdown engine failed to finish current non-select query");
@@ -511,6 +512,9 @@ public class QueryService extends BasicService {
         } else if ((element = successCache.get(sqlRequest.getCacheKey())) != null) {
             logger.info("The sqlResponse is found in SUCCESS_QUERY_CACHE");
             response = (SQLResponse) element.getObjectValue();
+            if (QueryCacheSignatureUtil.checkCacheExpired(response, sqlRequest.getProject())) {
+                return null;
+            }
             response.setAnsweredBy(Lists.newArrayList("CACHE"));
             response.setStorageCacheUsed(true);
         }
@@ -800,7 +804,7 @@ public class QueryService extends BasicService {
 
             // special case for prepare query.
             if (BackdoorToggles.getPrepareOnly()) {
-                return getPrepareOnlySqlResponse(correctedSql, conn, isPushDown, results, columnMetas);
+                return getPrepareOnlySqlResponse(correctedSql, conn, isPushDown, results, columnMetas, sqlRequest.getProject());
             }
 
             if (isPrepareStatementWithParams(sqlRequest)) {
@@ -864,7 +868,7 @@ public class QueryService extends BasicService {
             close(resultSet, stat, null); //conn is passed in, not my duty to close
         }
 
-        return buildSqlResponse(isPushDown, results, columnMetas);
+        return buildSqlResponse(isPushDown, results, columnMetas, sqlRequest.getProject());
     }
 
     protected String makeErrorMsgUserFriendly(Throwable e) {
@@ -872,7 +876,7 @@ public class QueryService extends BasicService {
     }
 
     private SQLResponse getPrepareOnlySqlResponse(String correctedSql, Connection conn, Boolean isPushDown,
-            List<List<String>> results, List<SelectedColumnMeta> columnMetas) throws SQLException {
+            List<List<String>> results, List<SelectedColumnMeta> columnMetas, String project) throws SQLException {
 
         CalcitePrepareImpl.KYLIN_ONLY_PREPARE.set(true);
 
@@ -917,7 +921,7 @@ public class QueryService extends BasicService {
             DBUtils.closeQuietly(preparedStatement);
         }
 
-        return buildSqlResponse(isPushDown, results, columnMetas);
+        return buildSqlResponse(isPushDown, results, columnMetas, project);
     }
 
     private boolean isPrepareStatementWithParams(SQLRequest sqlRequest) {
@@ -928,7 +932,7 @@ public class QueryService extends BasicService {
     }
 
     private SQLResponse buildSqlResponse(Boolean isPushDown, List<List<String>> results,
-            List<SelectedColumnMeta> columnMetas) {
+            List<SelectedColumnMeta> columnMetas, String project) {
         boolean isPartialResult = false;
         List<String> models = Lists.newArrayList();
         StringBuilder cubeSb = new StringBuilder();
@@ -986,6 +990,7 @@ public class QueryService extends BasicService {
 
         response.setEngineType(Joiner.on(",").join(engineTypes));
         response.setAnsweredBy(models);
+        response.setSignature(QueryCacheSignatureUtil.createCacheSignature(response, project));
 
         return response;
     }

@@ -48,6 +48,8 @@ import java.util.List;
 import io.kyligence.kap.rest.metrics.QueryMetricsContext;
 import io.swagger.annotations.ApiModel;
 
+import lombok.Getter;
+import lombok.Setter;
 import org.apache.kylin.common.debug.BackdoorToggles;
 import org.apache.kylin.metadata.querymeta.SelectedColumnMeta;
 import org.slf4j.Logger;
@@ -113,6 +115,10 @@ public class SQLResponse implements Serializable {
     private String suite;
 
     private List<String> answeredBy;
+
+    @Setter
+    @Getter
+    private String signature;
 
     private transient List<QueryMetricsContext.RealizationMetrics> realizationMetrics;
 

@@ -59,11 +59,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import com.google.common.collect.Lists;
-import io.kyligence.kap.metadata.cube.cuboid.NLayoutCandidate;
-import io.kyligence.kap.metadata.cube.model.IndexEntity;
-import io.kyligence.kap.metadata.cube.model.LayoutEntity;
-import io.kyligence.kap.rest.metrics.QueryMetricsContext;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.common.exceptions.ResourceLimitExceededException;
@@ -71,6 +66,7 @@ import org.apache.kylin.common.persistence.Serializer;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.metadata.model.ColumnDesc;
+import org.apache.kylin.metadata.model.Segments;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.querymeta.ColumnMeta;
 import org.apache.kylin.metadata.querymeta.SelectedColumnMeta;
@@ -84,6 +80,7 @@ import org.apache.kylin.rest.model.Query;
 import org.apache.kylin.rest.request.SQLRequest;
 import org.apache.kylin.rest.response.SQLResponse;
 import org.apache.kylin.rest.util.AclEvaluate;
+import org.apache.kylin.rest.util.QueryCacheSignatureUtil;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.Before;
@@ -96,9 +93,13 @@ import org.springframework.security.authentication.TestingAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.metadata.cube.cuboid.NLayoutCandidate;
+import io.kyligence.kap.metadata.cube.model.IndexEntity;
+import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
@@ -106,6 +107,8 @@ import io.kyligence.kap.metadata.model.ComputedColumnDesc;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
+import io.kyligence.kap.rest.metrics.QueryMetricsContext;
+import lombok.val;
 import net.sf.ehcache.CacheManager;
 
 /**
@@ -270,6 +273,27 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
 
             OLAPContext.registerContext(mock);
         }
+
+        Mockito.doNothing().when(queryService).clearThreadLocalContexts();
+    }
+
+    private void mockOLAPContextWithOneModelInfo(String modelId, String modelAlias, long layoutId) {
+        final OLAPContext mock = new OLAPContext(1);
+
+        final NDataModel mockModel = Mockito.spy(new NDataModel());
+        Mockito.when(mockModel.getUuid()).thenReturn(modelId);
+        Mockito.when(mockModel.getAlias()).thenReturn(modelAlias);
+        final IRealization mockRealization = Mockito.mock(IRealization.class);
+        Mockito.when(mockRealization.getModel()).thenReturn(mockModel);
+        mock.realization = mockRealization;
+
+        final IndexEntity mockIndexEntity = new IndexEntity();
+        mockIndexEntity.setId(layoutId);
+        final LayoutEntity mockLayout = new LayoutEntity();
+        mockLayout.setIndex(mockIndexEntity);
+        mock.storageContext.setCandidate(new NLayoutCandidate(mockLayout));
+
+        OLAPContext.registerContext(mock);
 
         Mockito.doNothing().when(queryService).clearThreadLocalContexts();
     }
@@ -586,6 +610,69 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         queryRecord = queryService.getSavedQueries("admin", "default");
         Assert.assertEquals(1, queryRecord.getQueries().size());
         Assert.assertEquals("test", queryRecord.getQueries().get(0).getName());
+    }
+
+    @Test
+    public void testCacheSignature() {
+        val project = "default";
+        val modelId = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
+        val layoutId = "1000001L";
+        val dataflowManager = NDataflowManager.getInstance(getTestConfig(), project);
+
+        SQLResponse response = new SQLResponse();
+        List<QueryMetricsContext.RealizationMetrics> realizationMetrics = Lists.newArrayList();
+        realizationMetrics
+                .add(QueryMetricsContext.createRealizationMetrics(layoutId, QueryMetricsContext.AGG_INDEX, modelId));
+        response.setRealizationMetrics(realizationMetrics);
+        String signature = QueryCacheSignatureUtil.createCacheSignature(response, project);
+        Assert.assertEquals(String.valueOf(dataflowManager.getDataflow(modelId).getLastModified()), signature);
+
+        response.setSignature(signature);
+        dataflowManager.updateDataflow(modelId, copyForWrite -> {
+            copyForWrite.setSegments(new Segments<>());
+        });
+        Assert.assertEquals(true, QueryCacheSignatureUtil.checkCacheExpired(response, project));
+    }
+
+    @Test
+    public void testQueryWithCacheSignatureExpired() throws Exception {
+        getTestConfig().setProperty("kap.metric.diagnosis.graph-writer-type", "INFLUX");
+
+        val modelId = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
+        val modelAlias = "nmodel_basic";
+        long layoutId = 1000001L;
+        final String project = "default";
+        val dataflowManager = NDataflowManager.getInstance(getTestConfig(), project);
+
+        final String sql = "select * from success_table";
+        stubQueryConnection(sql, project);
+        mockOLAPContextWithOneModelInfo(modelId, modelAlias, layoutId);
+
+        final SQLRequest request = new SQLRequest();
+        request.setProject(project);
+        request.setSql(sql);
+
+        // case of not hitting cache
+        final SQLResponse firstSuccess = queryService.doQueryWithCache(request, false);
+
+        // case of hitting cache
+        final SQLResponse secondSuccess = queryService.doQueryWithCache(request, false);
+        Assert.assertEquals(true, secondSuccess.isStorageCacheUsed());
+        Assert.assertEquals(1, secondSuccess.getRealizationMetrics().size());
+        Assert.assertEquals(QueryMetricsContext.AGG_INDEX,
+                secondSuccess.getRealizationMetrics().get(0).getRealizationType());
+        Assert.assertEquals("CACHE", secondSuccess.getAnsweredBy().get(0));
+
+        dataflowManager.updateDataflow(modelId, copyForWrite -> {
+            copyForWrite.setSegments(new Segments<>());
+        });
+        // case of cache expired
+        final SQLResponse thirdSuccess = queryService.doQueryWithCache(request, false);
+        Assert.assertEquals(false, thirdSuccess.isStorageCacheUsed());
+        Assert.assertEquals(1, thirdSuccess.getRealizationMetrics().size());
+        Assert.assertEquals(QueryMetricsContext.AGG_INDEX,
+                thirdSuccess.getRealizationMetrics().get(0).getRealizationType());
+        Assert.assertEquals(modelAlias, thirdSuccess.getAnsweredBy().get(0));
     }
 
 }
