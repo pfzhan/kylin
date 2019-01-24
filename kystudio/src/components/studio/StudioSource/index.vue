@@ -194,8 +194,8 @@ export default class StudioSource extends Vue {
   async _getAffectedModelCountAndSize () {
     const projectName = this.currentSelectedProject
     const tableName = this.selectedTable.fullName
-    const isSelectFact = !this.selectedTable.__data.increment_loading
-    const response = await this.fetchChangeTypeInfo({ projectName, tableName, isSelectFact })
+    const isIncrement = this.selectedTable.__data.increment_loading
+    const response = await this.fetchChangeTypeInfo({ projectName, tableName, isSelectFact: isIncrement })
     const result = await handleSuccessAsync(response)
     return { modelCount: result.models.length, modelSize: result.byte_size }
   }
