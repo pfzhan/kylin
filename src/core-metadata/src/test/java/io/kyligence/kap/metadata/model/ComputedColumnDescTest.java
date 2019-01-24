@@ -48,7 +48,7 @@ public class ComputedColumnDescTest {
     public void simpleParserCheckTestFail1() {
         thrown.expect(IllegalArgumentException.class);
         thrown.expectMessage(
-                "Unrecognized column identifier: C.Y in expression 'a.x + c.y'. When referencing a column, expressions should use patterns like ALIAS.COLUMN, where ALIAS is the table alias defined in model.");
+                "Unrecognized column: C.Y in expression 'a.x + c.y'. When referencing a column, expressions should use patterns like ALIAS.COLUMN, where ALIAS is the table alias defined in model.");
 
         ComputedColumnDesc cc = new ComputedColumnDesc();
         Set<String> aliasSet = Sets.newHashSet("A", "B");

@@ -157,7 +157,7 @@ public class ComputedColumnDesc implements Serializable {
             public Object visit(SqlIdentifier id) {
                 if (id.names.size() != 2 || !aliasSet.contains(id.names.get(0))) {
                     throw new IllegalArgumentException(
-                            "Unrecognized column identifier: " + id.toString() + " in expression '" + expr
+                            "Unrecognized column: " + id.toString() + " in expression '" + expr
                                     + "'. When referencing a column, expressions should use patterns like ALIAS.COLUMN,"
                                     + " where ALIAS is the table alias defined in model.");
                 }
