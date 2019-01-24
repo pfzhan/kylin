@@ -49,16 +49,18 @@ import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import io.kyligence.kap.metadata.project.NProjectManager;
-
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.ClassUtil;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.source.adhocquery.IPushDownConverter;
+import org.apache.spark.sql.catalyst.analysis.NoSuchDatabaseException;
+import org.apache.spark.sql.catalyst.analysis.NoSuchTableException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Lists;
+
+import io.kyligence.kap.metadata.project.NProjectManager;
 
 /**
  */
@@ -175,7 +177,8 @@ public class QueryUtil {
         // pick ParseException error message if possible
         Throwable cause = e;
         while (cause != null) {
-            if (cause.getClass().getName().contains("ParseException")) {
+            if (cause.getClass().getName().contains("ParseException") || cause instanceof NoSuchTableException
+                    || cause instanceof NoSuchDatabaseException) {
                 msg = cause.getMessage();
                 break;
             }

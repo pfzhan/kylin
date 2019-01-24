@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -43,13 +42,16 @@
 
 package org.apache.kylin.query.util;
 
+import java.sql.SQLException;
 import java.util.Properties;
 
-import io.kyligence.kap.query.util.SparkSQLFunctionConverter;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.KylinConfig.SetAndUnsetThreadLocalConfig;
+import org.apache.spark.sql.catalyst.analysis.NoSuchTableException;
 import org.junit.Assert;
 import org.junit.Test;
+
+import io.kyligence.kap.query.util.SparkSQLFunctionConverter;
 
 public class QueryUtilTest {
 
@@ -57,17 +59,17 @@ public class QueryUtilTest {
     public void testMassageSql() {
         KylinConfig config = KylinConfig.createKylinConfig(new Properties());
         try (SetAndUnsetThreadLocalConfig autoUnset = KylinConfig.setAndUnsetThreadLocalConfig(config)) {
-        config.setProperty("kylin.query.transformers", DefaultQueryTransformer.class.getCanonicalName());
+            config.setProperty("kylin.query.transformers", DefaultQueryTransformer.class.getCanonicalName());
 
-        String sql = "SELECT * FROM TABLE";
-        String newSql = QueryUtil.massageSql(config, sql, "", 100, 20, "");
-        Assert.assertEquals("SELECT * FROM TABLE\nLIMIT 100\nOFFSET 20", newSql);
+            String sql = "SELECT * FROM TABLE";
+            String newSql = QueryUtil.massageSql(config, sql, "", 100, 20, "");
+            Assert.assertEquals("SELECT * FROM TABLE\nLIMIT 100\nOFFSET 20", newSql);
 
-        String sql2 = "SELECT SUM({fn convert(0, INT)}) from TABLE";
-        String newSql2 = QueryUtil.massageSql(config, sql2, "", 0, 0, "");
-        // SUM({fn convert(0, INT)}) -> SUM(0) -> 0 * COUNT(1)
-        Assert.assertEquals("SELECT 0 * COUNT(1) from TABLE", newSql2);
-    }
+            String sql2 = "SELECT SUM({fn convert(0, INT)}) from TABLE";
+            String newSql2 = QueryUtil.massageSql(config, sql2, "", 0, 0, "");
+            // SUM({fn convert(0, INT)}) -> SUM(0) -> 0 * COUNT(1)
+            Assert.assertEquals("SELECT 0 * COUNT(1) from TABLE", newSql2);
+        }
     }
 
     @Test
@@ -79,12 +81,12 @@ public class QueryUtilTest {
             String sql = "SELECT \"Z_PROVDASH_UM_ED\".\"GENDER\" AS \"GENDER\",\n"
                     + "SUM({fn CONVERT(0, SQL_BIGINT)}) AS \"sum_Calculation_336925569152049156_ok\"\n"
                     + "FROM \"POPHEALTH_ANALYTICS\".\"Z_PROVDASH_UM_ED\" \"Z_PROVDASH_UM_ED\"";
-        String massagedSql = QueryUtil.massagePushDownSql(config, sql, "", "default", false);
+            String massagedSql = QueryUtil.massagePushDownSql(config, sql, "", "default", false);
             String expectedSql = "SELECT \"Z_PROVDASH_UM_ED\".\"GENDER\" AS \"GENDER\",\n"
                     + "SUM(CAST(0 AS BIGINT)) AS \"sum_Calculation_336925569152049156_ok\"\n"
                     + "FROM \"POPHEALTH_ANALYTICS\".\"Z_PROVDASH_UM_ED\" \"Z_PROVDASH_UM_ED\"";
-        Assert.assertEquals(expectedSql, massagedSql);
-    }
+            Assert.assertEquals(expectedSql, massagedSql);
+        }
     }
 
     @Test
@@ -92,16 +94,24 @@ public class QueryUtilTest {
         KylinConfig config = KylinConfig.createKylinConfig(new Properties());
         try (SetAndUnsetThreadLocalConfig autoUnset = KylinConfig.setAndUnsetThreadLocalConfig(config)) {
 
-        config.setProperty("kylin.query.transformers", DefaultQueryTransformer.class.getCanonicalName());
-        Assert.assertEquals(0, QueryUtil.queryTransformers.size());
-        QueryUtil.initQueryTransformersIfNeeded(config);
-        Assert.assertEquals(1, QueryUtil.queryTransformers.size());
-        Assert.assertTrue(QueryUtil.queryTransformers.get(0) instanceof DefaultQueryTransformer);
+            config.setProperty("kylin.query.transformers", DefaultQueryTransformer.class.getCanonicalName());
+            Assert.assertEquals(0, QueryUtil.queryTransformers.size());
+            QueryUtil.initQueryTransformersIfNeeded(config);
+            Assert.assertEquals(1, QueryUtil.queryTransformers.size());
+            Assert.assertTrue(QueryUtil.queryTransformers.get(0) instanceof DefaultQueryTransformer);
 
-        config.setProperty("kylin.query.transformers", KeywordDefaultDirtyHack.class.getCanonicalName());
-        QueryUtil.initQueryTransformersIfNeeded(config);
-        Assert.assertEquals(1, QueryUtil.queryTransformers.size());
-        Assert.assertTrue(QueryUtil.queryTransformers.get(0) instanceof KeywordDefaultDirtyHack);
+            config.setProperty("kylin.query.transformers", KeywordDefaultDirtyHack.class.getCanonicalName());
+            QueryUtil.initQueryTransformersIfNeeded(config);
+            Assert.assertEquals(1, QueryUtil.queryTransformers.size());
+            Assert.assertTrue(QueryUtil.queryTransformers.get(0) instanceof KeywordDefaultDirtyHack);
+        }
     }
-}
+
+    @Test
+    public void testMakeErrorMsgUserFriendly() {
+        Assert.assertTrue(
+                QueryUtil.makeErrorMsgUserFriendly(new SQLException(new NoSuchTableException("default", "test_ab")))
+                        .contains("default"));
+    }
+
 }
