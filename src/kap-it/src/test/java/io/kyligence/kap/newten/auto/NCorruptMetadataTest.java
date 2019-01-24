@@ -35,7 +35,6 @@ import org.junit.Test;
 
 import io.kyligence.kap.common.persistence.transaction.TransactionException;
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
-import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.model.NDataLoadingRange;
 import io.kyligence.kap.metadata.cube.model.NDataLoadingRangeManager;
@@ -311,7 +310,7 @@ public class NCorruptMetadataTest extends NAutoTestBase {
         AccelerateInfo accelerateInfo = accelerateInfoMap.get(sqls[0]);
         Assert.assertFalse(accelerateInfo.isBlocked());
         final NSmartContext.NModelContext modelContext = smartMaster.getContext().getModelContexts().get(0);
-        Assert.assertEquals(6, modelContext.getOrigModel().getEffectiveCols().size());
+        Assert.assertEquals(7, modelContext.getOrigModel().getEffectiveCols().size());
         Assert.assertEquals(11, modelContext.getTargetModel().getEffectiveCols().size());
     }
 
@@ -324,14 +323,12 @@ public class NCorruptMetadataTest extends NAutoTestBase {
 
         NSmartMaster smartMaster = new NSmartMaster(getTestConfig(), "flaw_model", sqls);
         smartMaster.runAll();
-        assertAccelerationInfoMap(sqls, smartMaster);
-        final IndexPlan targetIndexPlan = smartMaster.getContext().getModelContexts().get(0).getTargetIndexPlan();
-        Assert.assertEquals(1, targetIndexPlan.getAllIndexes().size());
-        String expectedCauseMessage = "The model [AUTO_MODEL_TEST_KYLIN_FACT_1] matches this query, "
-                + "but the dimension [TEST_KYLIN_FACT.LSTG_FORMAT_NAME] is missing. "
-                + "Please add the above dimension before attempting to accelerate this query.";
-        AccelerateInfo accelerateInfo = smartMaster.getContext().getAccelerateInfoMap().get(sqls[0]);
-        Assert.assertEquals(expectedCauseMessage, accelerateInfo.getBlockingCause().getMessage());
+        Map<String, AccelerateInfo> accelerateInfoMap = smartMaster.getContext().getAccelerateInfoMap();
+        AccelerateInfo accelerateInfo = accelerateInfoMap.get(sqls[0]);
+        Assert.assertFalse(accelerateInfo.isBlocked());
+        final NSmartContext.NModelContext modelContext = smartMaster.getContext().getModelContexts().get(0);
+        Assert.assertEquals(modelContext.getTargetModel(), modelContext.getOrigModel());
+        Assert.assertEquals(7, modelContext.getOrigModel().getEffectiveCols().size());
     }
 
     /**
