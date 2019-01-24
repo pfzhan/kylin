@@ -970,6 +970,7 @@ public class QueryService extends BasicService {
         response.setNativeRealizations(realizations);
 
         if (isPushDown) {
+            response.setNativeRealizations(Lists.newArrayList());
             response.setEngineType(QueryContext.current().getPushdownEngine());
             return response;
         }
