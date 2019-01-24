@@ -39,7 +39,9 @@ public class NAutoTdvtTest extends NAutoTestBase {
 
     @Test
     public void testTdvt() throws Exception {
-        new TestScenario(CompareLevel.NONE, "sql_tdvt").execute();
+        if ("true".equals(System.getProperty("runNonCompareTdvt"))) { // -DrunNonCompareTdvt=true
+            new TestScenario(CompareLevel.NONE, "sql_tdvt").execute();
+        }
     }
 
     @Test

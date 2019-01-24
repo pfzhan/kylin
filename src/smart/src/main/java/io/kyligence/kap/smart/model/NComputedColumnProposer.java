@@ -62,6 +62,7 @@ public class NComputedColumnProposer extends NAbstractModelProposer {
     protected void doPropose(NDataModel nDataModel) {
         logger.trace("Propose computed column for model [{}]", nDataModel.getId());
 
+        long startTime = System.currentTimeMillis();
         List<NDataModel> otherModels = NDataflowManager.getInstance(kylinConfig, project) //
                 .listUnderliningDataModels().stream() //
                 .filter(m -> !m.getUuid().equals(nDataModel.getUuid())) //
@@ -128,8 +129,9 @@ public class NComputedColumnProposer extends NAbstractModelProposer {
         // 2. unsupported CC: something wrong happened in inferring type
         // 3. the type of CC is ANY: something unlikely thing happened in inferring type
         nDataModel.getComputedColumnDescs().removeIf(cc -> cc.getDatatype().equals("ANY"));
-        logger.info("There are valid computed columns {} for model [{}] after validation",
-                nDataModel.getComputedColumnNames(), nDataModel.getId());
+        long duration = System.currentTimeMillis() - startTime;
+        logger.info("There are valid computed columns {} for model [{}] after validation, cost {} s",
+                nDataModel.getComputedColumnNames(), nDataModel.getId(), duration / 1000);
     }
 
     private Set<String> collectComputedColumnSuggestion(NModelContext modelContext, NDataModel nDataModel) {

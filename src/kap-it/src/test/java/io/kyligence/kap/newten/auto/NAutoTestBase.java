@@ -27,7 +27,6 @@ package io.kyligence.kap.newten.auto;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -46,7 +45,6 @@ import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.apache.kylin.metadata.model.Segments;
 import org.apache.kylin.metadata.realization.IRealization;
 import org.apache.kylin.query.KylinTestBase;
-import org.apache.kylin.query.util.QueryUtil;
 import org.apache.spark.sql.SparderEnv;
 import org.apache.spark.sql.execution.utils.SchemaProcessor;
 import org.junit.After;
@@ -127,20 +125,24 @@ public class NAutoTestBase extends NLocalWithSparkSessionTest {
             throws Exception {
 
         // 1. execute auto-modeling propose
+        long startTime = System.currentTimeMillis();
         final NSmartMaster smartMaster = proposeWithSmartMaster(getProject(), testScenarios);
-
         final Map<String, CompareEntity> compareMap = collectCompareEntity(smartMaster);
+        log.debug("smart proposal cost {} ms", System.currentTimeMillis() - startTime);
 
         try {
             // 2. execute cube building
+            startTime = System.currentTimeMillis();
             buildAllCubes(kylinConfig, getProject());
+            log.debug("build cube cost {} s", System.currentTimeMillis() - startTime);
 
             // dump metadata for debugging
             // dumpMetadata();
 
             // 3. validate results between SparkSQL and cube
-            Arrays.stream(testScenarios).forEach(testScenario -> {
-                populateSSWithCSVData(kylinConfig, getProject(), SparderEnv.getSparkSession());
+            populateSSWithCSVData(kylinConfig, getProject(), SparderEnv.getSparkSession());
+            startTime = System.currentTimeMillis();
+            Lists.newArrayList(testScenarios).parallelStream().forEach(testScenario -> {
                 if (testScenario.isLimit) {
                     NExecAndComp.execLimitAndValidateNew(testScenario.queries, getProject(), JoinType.DEFAULT.name(),
                             compareMap);
@@ -152,6 +154,9 @@ public class NAutoTestBase extends NLocalWithSparkSessionTest {
                             testScenario.joinType.name(), compareMap);
                 }
             });
+            log.debug("compare result cost {} s", System.currentTimeMillis() - startTime);
+            startTime = System.currentTimeMillis();
+
         } finally {
             FileUtils.deleteDirectory(new File("../kap-it/metastore_db"));
         }
@@ -160,13 +165,15 @@ public class NAutoTestBase extends NLocalWithSparkSessionTest {
         RecAndQueryCompareUtil.computeCompareRank(kylinConfig, getProject(), compareMap);
         // 5. check layout
         assertOrPrintCmpResult(compareMap);
+        log.debug("compare realization cost {} s", System.currentTimeMillis() - startTime);
+        startTime = System.currentTimeMillis();
 
         // 6. summary info
         val rankInfoMap = RecAndQueryCompareUtil.summarizeRankInfo(compareMap);
         StringBuilder sb = new StringBuilder();
         sb.append("All used queries: ").append(compareMap.size()).append('\n');
         rankInfoMap.forEach((key, value) -> sb.append(key).append(": ").append(value).append("\n"));
-        System.out.println(sb);
+        log.debug(sb.toString());
         return compareMap;
     }
 
@@ -252,8 +259,7 @@ public class NAutoTestBase extends NLocalWithSparkSessionTest {
 
     private void normalizeSql(JoinType joinType, List<Pair<String, String>> queries) {
         queries.forEach(pair -> {
-            String transformedQuery = QueryUtil.removeCommentInSql(pair.getSecond());
-            String tmp = KylinTestBase.changeJoinType(transformedQuery, joinType.name());
+            String tmp = KylinTestBase.changeJoinType(pair.getSecond(), joinType.name());
             // tmp = QueryPatternUtil.normalizeSQLPattern(tmp); // something wrong with sqlPattern, skip this step
             pair.setSecond(tmp);
         });

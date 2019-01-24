@@ -1698,6 +1698,9 @@
                         <configuration>
                             <reportsDirectory>${project.basedir}/../../target/surefire-reports
                             </reportsDirectory>
+                            <argLine>-Xms2G -Xmx4G -XX:PermSize=128M -XX:MaxPermSize=512M -Dhdp.version=current
+                            </argLine>
+                            <reportFormat>plain</reportFormat>
                             <excludes>
                                 <exclude>**/IT*.java</exclude>
                             </excludes>

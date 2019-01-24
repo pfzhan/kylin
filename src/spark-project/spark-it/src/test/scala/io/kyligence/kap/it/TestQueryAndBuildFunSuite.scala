@@ -226,7 +226,7 @@ class TestQueryAndBuildFunSuite
       .flatMap {
         case (fileName: String, query: String) =>
           joinType.map { joinType =>
-            val afterChangeJoin = changeJoinType(query, "left")
+            val afterChangeJoin = changeJoinType(query, joinType)
 
               Future[String] {
                 runAndCompare(afterChangeJoin, cleanSql(afterChangeJoin), DEFAULT_PROJECT, floderInfo.checkOrder,
