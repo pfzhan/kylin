@@ -64,8 +64,6 @@ import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
-import io.kyligence.kap.event.model.AddCuboidEvent;
-import io.kyligence.kap.rest.response.ExistedDataRangeResponse;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
@@ -107,6 +105,7 @@ import com.google.common.collect.Lists;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.event.manager.EventDao;
+import io.kyligence.kap.event.model.AddCuboidEvent;
 import io.kyligence.kap.event.model.AddSegmentEvent;
 import io.kyligence.kap.event.model.Event;
 import io.kyligence.kap.event.model.PostMergeOrRefreshSegmentEvent;
@@ -138,6 +137,7 @@ import io.kyligence.kap.rest.request.ModelConfigRequest;
 import io.kyligence.kap.rest.request.ModelRequest;
 import io.kyligence.kap.rest.response.ComputedColumnUsageResponse;
 import io.kyligence.kap.rest.response.CuboidStatus;
+import io.kyligence.kap.rest.response.ExistedDataRangeResponse;
 import io.kyligence.kap.rest.response.IndexEntityResponse;
 import io.kyligence.kap.rest.response.NDataModelResponse;
 import io.kyligence.kap.rest.response.NDataSegmentResponse;
@@ -818,6 +818,7 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
         ModelRequest modelRequest = new ModelRequest(model);
         modelRequest.setProject("default");
         modelRequest.setAlias("new_model");
+        modelRequest.setUuid(null);
         modelRequest.setLastModified(0L);
         val newModel = modelService.createModel(modelRequest.getProject(), modelRequest);
         Assert.assertEquals("new_model", newModel.getAlias());
@@ -952,6 +953,7 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
         ModelRequest modelRequest = new ModelRequest(model);
         modelRequest.setProject("default");
         modelRequest.setAlias("new_model");
+        modelRequest.setUuid(null);
         modelRequest.setLastModified(0L);
         val newModel = modelService.createModel(modelRequest.getProject(), modelRequest);
         Assert.assertEquals("new_model", newModel.getAlias());
@@ -972,6 +974,7 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
         modelRequest.setAlias("new_model2");
         modelRequest.setStart("0");
         modelRequest.setEnd("100");
+        modelRequest.setUuid(null);
         modelRequest.setLastModified(0L);
         modelRequest.getPartitionDesc().setPartitionDateFormat("");
         Assert.assertEquals("", modelRequest.getPartitionDesc().getPartitionDateFormat());
@@ -997,6 +1000,7 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
         modelRequest.setLastModified(0L);
         modelRequest.setStart("0");
         modelRequest.setEnd("100");
+        modelRequest.setUuid(null);
         modelRequest.getPartitionDesc().setPartitionDateFormat("yyyy-MM-dd");
         val newModel = modelService.createModel(modelRequest.getProject(), modelRequest);
         Assert.assertEquals("new_model", newModel.getAlias());
@@ -1251,6 +1255,7 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
         request.setStart("0");
         request.setEnd("100");
         request.getPartitionDesc().setPartitionDateFormat("yyyy-MM-dd");
+        request.setUuid(null);
         modelService.createModel(request.getProject(), request);
 
         List<NDataModelResponse> dataModelDescs = modelService.getModels("nmodel_cc_test", "default", true, null, null,
@@ -1302,6 +1307,7 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
         request.getPartitionDesc().setPartitionDateFormat("yyyy-MM-dd");
         request.setStart("0");
         request.setEnd("100");
+        request.setUuid(UUID.randomUUID().toString());
         modelService.createModel(request.getProject(), request);
         //TODO modelService.updateModelToResourceStore(deserialized, "default");
 
@@ -1929,6 +1935,7 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
             bais = IOUtils.toInputStream(contents, Charset.defaultCharset());
 
             deserialized = serializer.deserialize(new DataInputStream(bais));
+            deserialized.setUuid(UUID.randomUUID().toString());
             deserialized.setSeekingCCAdvice(true);
 
             modelService.checkComputedColumn(deserialized, "default", null);

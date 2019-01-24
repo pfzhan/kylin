@@ -54,14 +54,14 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
+import io.kyligence.kap.event.manager.EventManager;
+import io.kyligence.kap.event.model.AddCuboidEvent;
+import io.kyligence.kap.event.model.PostAddCuboidEvent;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import io.kyligence.kap.metadata.cube.model.NRuleBasedIndex;
-import io.kyligence.kap.event.manager.EventManager;
-import io.kyligence.kap.event.model.AddCuboidEvent;
-import io.kyligence.kap.event.model.PostAddCuboidEvent;
 import io.kyligence.kap.metadata.model.ComputedColumnDesc;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModel.Measure;
@@ -83,7 +83,7 @@ public class ModelSemanticHelper extends BasicService {
         try {
             List<SimplifiedMeasure> simplifiedMeasures = modelRequest.getSimplifiedMeasures();
             NDataModel dataModel = JsonUtil.readValue(JsonUtil.writeValueAsString(modelRequest), NDataModel.class);
-            dataModel.setUuid(UUID.randomUUID().toString());
+            dataModel.setUuid(modelRequest.getUuid() != null ? modelRequest.getUuid() : UUID.randomUUID().toString());
             dataModel.setAllMeasures(convertMeasure(simplifiedMeasures));
             dataModel.setAllNamedColumns(convertNamedColumns(modelRequest.getProject(), dataModel));
             return dataModel;
