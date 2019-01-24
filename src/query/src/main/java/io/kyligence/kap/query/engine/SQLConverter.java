@@ -41,6 +41,7 @@ import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.SqlOperatorTable;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.parser.SqlParser;
@@ -80,8 +81,10 @@ public class SQLConverter {
 
     private SqlValidator createValidator(CalciteConnectionConfig connectionConfig,
             Prepare.CatalogReader catalogReader) {
+        final SqlOperatorTable opTab0 = connectionConfig.fun(SqlOperatorTable.class,
+                ChainedSqlOperatorTable.of(SqlStdOperatorTable.instance(), catalogReader));
         SqlValidator sqlValidator = new KylinSqlValidator((SqlValidatorImpl) SqlValidatorUtil.newValidator(
-                ChainedSqlOperatorTable.of(SqlStdOperatorTable.instance(), catalogReader),
+                opTab0,
                 catalogReader,
                 javaTypeFactory(),
                 connectionConfig.conformance()));

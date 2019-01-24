@@ -209,6 +209,13 @@ public class NAutoBuildAndQueryTest extends NAutoTestBase {
         testScenario.execute();
     }
 
+    @Test
+    public void testExtraCalciteFunction() throws Exception {
+        // NVL
+        overwriteSystemProp("kylin.query.calcite.extras-props.FUN", "standard,oracle");
+        new TestScenario(CompareLevel.SAME, "query/sql_function/oracle_function").execute();
+    }
+
     /**
      * Following cased are not supported in auto-model test
      */
