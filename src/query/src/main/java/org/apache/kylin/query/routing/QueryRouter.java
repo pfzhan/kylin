@@ -47,7 +47,6 @@ import java.util.Set;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.metadata.realization.IRealization;
-import org.apache.kylin.metadata.realization.NoRealizationFoundException;
 import org.apache.kylin.metadata.realization.SQLDigest;
 import org.apache.kylin.query.relnode.OLAPContext;
 import org.slf4j.Logger;
@@ -60,10 +59,12 @@ import com.google.common.collect.Lists;
  */
 public class QueryRouter {
 
+    private QueryRouter() {
+    }
+
     private static final Logger logger = LoggerFactory.getLogger(QueryRouter.class);
 
-    public static Candidate selectRealization(OLAPContext olapContext, Set<IRealization> realizations)
-            throws NoRealizationFoundException {
+    public static Candidate selectRealization(OLAPContext olapContext, Set<IRealization> realizations) {
         String factTableName = olapContext.firstTableScan.getTableName();
         String projectName = olapContext.olapSchema.getProjectName();
         SQLDigest sqlDigest = olapContext.getSQLDigest();

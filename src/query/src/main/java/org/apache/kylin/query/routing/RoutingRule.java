@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -72,13 +71,12 @@ public abstract class RoutingRule {
             String before = getPrintableText(candidates);
             rule.apply(candidates);
             String after = getPrintableText(candidates);
-            logger.info(
-                    "Applying rule: " + rule + ", realizations before: " + before + ", realizations after: " + after);
+            logger.info("Applying rule: {}, realizations before:{}, realizations after: {}", rule, before, after);
         }
     }
 
     public static String getPrintableText(List<Candidate> candidates) {
-        StringBuffer sb = new StringBuffer();
+        StringBuilder sb = new StringBuilder();
         sb.append("[");
         for (Candidate candidate : candidates) {
             IRealization r = candidate.realization;
@@ -98,8 +96,8 @@ public abstract class RoutingRule {
      */
     public static void registerRule(RoutingRule rule, int applyOrder) {
         if (applyOrder > rules.size()) {
-            logger.warn("apply order " + applyOrder + "  is larger than rules size " + rules.size()
-                    + ", will put the new rule at the end");
+            logger.warn("apply order {} is larger than rules size {}, will put the new rule at the end", applyOrder,
+                    rules.size());
             rules.add(rule);
         }
 

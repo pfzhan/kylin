@@ -25,6 +25,7 @@
 package io.kyligence.kap.newten.auto;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
@@ -43,15 +44,18 @@ import org.apache.kylin.query.KylinTestBase;
 import org.apache.kylin.query.util.QueryUtil;
 import org.apache.spark.SparkContext;
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 
 import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
 import io.kyligence.kap.newten.NExecAndComp;
 import io.kyligence.kap.newten.NExecAndComp.CompareLevel;
+import io.kyligence.kap.query.util.QueryPatternUtil;
 import io.kyligence.kap.smart.NSmartMaster;
 import io.kyligence.kap.smart.common.AccelerateInfo;
 import io.kyligence.kap.spark.KapSparkSession;
@@ -67,11 +71,16 @@ public class NAutoTestBase extends NLocalWithSparkSessionTest {
     private static final String IT_SQL_KAP_DIR = "../kap-it/src/test/resources/query";
     private Map<String, String> systemProp = Maps.newHashMap();
     protected KylinConfig kylinConfig;
+    private static Set<String> excludedSqlPatterns;
+    private static final String FILE_SEPARATOR = System.getProperty("line.separator");
 
     @Before
     public void setup() throws Exception {
         super.init();
         kylinConfig = getTestConfig();
+        if (excludedSqlPatterns == null) {
+            excludedSqlPatterns = loadWhiteListSqlPatterns();
+        }
     }
 
     @Override
@@ -113,6 +122,10 @@ public class NAutoTestBase extends NLocalWithSparkSessionTest {
     }
 
     protected void executeTestScenario(TestScenario... testScenarios) throws Exception {
+        executeTestScenario(true, testScenarios);
+    }
+
+    private void executeTestScenario(boolean needCompareLayouts, TestScenario... testScenarios) throws Exception {
 
         // 1. execute auto-modeling propose
         final NSmartMaster smartMaster = proposeWithSmartMaster(testScenarios, getProject());
@@ -144,11 +157,10 @@ public class NAutoTestBase extends NLocalWithSparkSessionTest {
             FileUtils.deleteDirectory(new File("../kap-it/metastore_db"));
         }
 
-        // print details
-        compareMap.forEach((key, value) -> System.out.println(value.toString() + '\n'));
-        // TODO use assert in the future #9318
+        // 5. check layout
+        assertOrPrintCmpResult(compareMap, needCompareLayouts);
 
-        // 5. summary info
+        // 6. summary info
         final Map<AccelerationMatchedLevel, AtomicInteger> rankInfoMap = RecAndQueryCompareUtil
                 .summarizeRankInfo(compareMap);
         StringBuilder sb = new StringBuilder();
@@ -166,6 +178,69 @@ public class NAutoTestBase extends NLocalWithSparkSessionTest {
         val outputConfig = KylinConfig.createKylinConfig(config);
         outputConfig.setMetadataUrl(metadataUrlPrefix);
         ResourceStore.createMetadataStore(outputConfig, "/metadata").dump(resourceStore);
+    }
+
+    private void assertOrPrintCmpResult(Map<String, CompareEntity> compareMap, boolean needCompareLayouts) {
+        // print details
+        compareMap.forEach((key, value) -> {
+            final String sqlPattern = QueryPatternUtil.normalizeSQLPattern(key);
+            if (!excludedSqlPatterns.contains(sqlPattern) && needCompareLayouts) {
+                Assert.assertEquals(value.getAccelerateLayouts(), value.getQueryUsedLayouts());
+            } else {
+                System.out.println(value.toString() + '\n');
+            }
+        });
+    }
+
+    private Set<String> loadWhiteListSqlPatterns() throws IOException {
+
+        Set<String> result = Sets.newHashSet();
+        final String folder = getFolder("unchecked_layout_list");
+        final File[] files = new File(folder).listFiles();
+        Preconditions.checkState(files != null && files.length != 0);
+
+        String[] fileContentArr = new String(getFileBytes(files[0])).split(FILE_SEPARATOR);
+        final List<String> fileNames = Arrays.stream(fileContentArr)
+                .filter(name -> !name.startsWith("-") && name.length() > 0) //
+                .collect(Collectors.toList());
+        final List<Pair<String, String>> queries = Lists.newArrayList();
+        for (String name : fileNames) {
+            File tmp = new File(IT_SQL_KAP_DIR + "/" + name);
+            final String sql = new String(getFileBytes(tmp));
+            queries.add(new Pair<>(tmp.getCanonicalPath(), sql));
+        }
+
+        queries.forEach(pair -> {
+            String sql = pair.getSecond(); // origin sql
+            result.addAll(changeJoinType(sql));
+
+            // add limit
+            if (!sql.toLowerCase().contains("limit ")) {
+                result.addAll(changeJoinType(sql + " limit 5"));
+            }
+        });
+
+        return result;
+    }
+
+    private Set<String> changeJoinType(String sql) {
+        Set<String> patterns = Sets.newHashSet();
+        for (JoinType joinType : JoinType.values()) {
+            final String rst = KylinTestBase.changeJoinType(sql, joinType.name());
+            patterns.add(QueryPatternUtil.normalizeSQLPattern(rst));
+        }
+
+        return patterns;
+    }
+
+    private byte[] getFileBytes(File whiteListFile) throws IOException {
+        final Long fileLength = whiteListFile.length();
+        byte[] fileContent = new byte[fileLength.intValue()];
+        try (FileInputStream inputStream = new FileInputStream(whiteListFile)) {
+            final int read = inputStream.read(fileContent);
+            Preconditions.checkState(read != -1);
+        }
+        return fileContent;
     }
 
     NSmartMaster proposeWithSmartMaster(TestScenario[] testScenarios, String project) throws IOException {
@@ -194,7 +269,6 @@ public class NAutoTestBase extends NLocalWithSparkSessionTest {
             queries = NExecAndComp.fetchPartialQueries(folder, fromIndex, toIndex);
         }
         return queries;
-
     }
 
     private void normalizeSql(JoinType joinType, List<Pair<String, String>> queries) {
@@ -270,13 +344,17 @@ public class NAutoTestBase extends NLocalWithSparkSessionTest {
             this.exclusionList = exclusionList;
         }
 
+        public void execute(boolean needCompareLayouts) throws Exception {
+            executeTestScenario(needCompareLayouts, this);
+        }
+
         public void execute() throws Exception {
             executeTestScenario(this);
         }
 
     } // end TestScenario
 
-    Map<String, CompareEntity> collectCompareEntity(NSmartMaster smartMaster) {
+    private Map<String, CompareEntity> collectCompareEntity(NSmartMaster smartMaster) {
         Map<String, CompareEntity> map = Maps.newHashMap();
         final Map<String, AccelerateInfo> accelerateInfoMap = smartMaster.getContext().getAccelerateInfoMap();
         accelerateInfoMap.forEach((sql, accelerateInfo) -> {

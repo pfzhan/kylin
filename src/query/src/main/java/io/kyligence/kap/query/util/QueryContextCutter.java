@@ -94,12 +94,12 @@ public class QueryContextCutter {
 
     private static List<OLAPContext> collectContextInfoAndSelectRealization(RelNode queryRoot) {
         // post-order travel children
-        OLAPRel.OLAPImplementor KAPImplementor = new OLAPRel.OLAPImplementor();
-        KAPImplementor.visitChild(queryRoot.getInput(0), queryRoot);
+        OLAPRel.OLAPImplementor kapImplementor = new OLAPRel.OLAPImplementor();
+        kapImplementor.visitChild(queryRoot.getInput(0), queryRoot);
         // identify model
         List<OLAPContext> contexts = ContextUtil.listContextsHavingScan();
 
-        if (contexts.size() > 0) {
+        if (!contexts.isEmpty()) {
             // intercept query
             List<QueryInterceptor> intercepts = QueryInterceptorUtil.getQueryInterceptors();
             for (QueryInterceptor intercept : intercepts) {

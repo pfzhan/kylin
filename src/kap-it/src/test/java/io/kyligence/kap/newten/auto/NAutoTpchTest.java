@@ -45,7 +45,7 @@ public class NAutoTpchTest extends NAutoTestBase {
     public void testReProposeCase() throws Exception {
         // run twice to verify KAP#7515
         for (int i = 0; i < 2; ++i) {
-            new TestScenario(CompareLevel.SAME, "sql_tpch", 1, 2).execute();
+            new TestScenario(CompareLevel.SAME, "sql_tpch", 1, 2).execute(false);
         }
     }
 

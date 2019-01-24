@@ -25,7 +25,6 @@ package io.kyligence.kap.query.relnode;
 
 import java.util.List;
 
-import io.kyligence.kap.common.obf.IKeepNames;
 import org.apache.calcite.adapter.enumerable.EnumerableRel;
 import org.apache.calcite.adapter.enumerable.EnumerableRelImplementor;
 import org.apache.calcite.adapter.enumerable.JavaRowFormat;
@@ -35,20 +34,16 @@ import org.apache.calcite.linq4j.tree.BlockBuilder;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.plan.RelOptCluster;
-import org.apache.calcite.plan.RelOptCost;
-import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
-import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.common.debug.BackdoorToggles;
 import org.apache.kylin.query.relnode.OLAPContext;
 import org.apache.kylin.query.relnode.OLAPRel;
 import org.apache.kylin.query.relnode.OLAPToEnumerableConverter;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
+import io.kyligence.kap.common.obf.IKeepNames;
 import io.kyligence.kap.query.exec.SparderMethod;
 import io.kyligence.kap.query.util.QueryContextCutter;
 
@@ -57,11 +52,8 @@ import io.kyligence.kap.query.util.QueryContextCutter;
  * see org.apache.calcite.plan.OLAPRelMdRowCount#shouldIntercept(org.apache.calcite.rel.RelNode)
  */
 public class KapOLAPToEnumerableConverter extends OLAPToEnumerableConverter implements EnumerableRel, IKeepNames {
-    private static final Logger logger = LoggerFactory.getLogger(KapOLAPToEnumerableConverter.class);
 
-    public static final int MAX_RETRY_TIMES_OF_CONTEXT_CUT = 10;
-
-    public static final String SPARDER_CALL_METHOD_NAME = "enumerable";
+    private static final String SPARDER_CALL_METHOD_NAME = "enumerable";
 
     public KapOLAPToEnumerableConverter(RelOptCluster cluster, RelTraitSet traits, RelNode input) {
         super(cluster, traits, input);
@@ -70,12 +62,6 @@ public class KapOLAPToEnumerableConverter extends OLAPToEnumerableConverter impl
     @Override
     public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
         return new KapOLAPToEnumerableConverter(getCluster(), traitSet, sole(inputs));
-    }
-
-    @Override
-    public RelOptCost computeSelfCost(RelOptPlanner planner, RelMetadataQuery mq) {
-        // huge cost to ensure OLAPToEnumerableConverter only appears once in rel tree
-        return super.computeSelfCost(planner, mq);
     }
 
     @Override

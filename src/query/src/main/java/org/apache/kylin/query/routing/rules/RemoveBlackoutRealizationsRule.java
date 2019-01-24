@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -43,7 +42,6 @@
 
 package org.apache.kylin.query.routing.rules;
 
-import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -62,7 +60,7 @@ import com.google.common.collect.Sets;
 public class RemoveBlackoutRealizationsRule extends RoutingRule {
     public static Set<String> blackList = Sets.newHashSet();
     public static Set<String> whiteList = Sets.newHashSet();
-    
+
     private static ConcurrentHashMap<KylinConfig, IRealizationFilter> filters = new ConcurrentHashMap<>();
 
     public static boolean accept(IRealization real) {
@@ -71,16 +69,16 @@ public class RemoveBlackoutRealizationsRule extends RoutingRule {
             return false;
         if (!whiteList.isEmpty() && !whiteList.contains(canonicalName))
             return false;
-        
+
         String filterClz = real.getConfig().getQueryRealizationFilter();
         if (filterClz != null) {
             if (!getFilterImpl(real.getConfig()).accept(real))
                 return false;
         }
-        
+
         return true;
     }
-    
+
     private static IRealizationFilter getFilterImpl(KylinConfig conf) {
         IRealizationFilter filter = filters.get(conf);
         if (filter == null) {
@@ -97,13 +95,7 @@ public class RemoveBlackoutRealizationsRule extends RoutingRule {
 
     @Override
     public void apply(List<Candidate> candidates) {
-        for (Iterator<Candidate> iterator = candidates.iterator(); iterator.hasNext();) {
-            Candidate candidate = iterator.next();
-
-            if (!accept(candidate.getRealization())) {
-                iterator.remove();
-            }
-        }
+        candidates.removeIf(candidate -> !accept(candidate.getRealization()));
     }
 
 }
