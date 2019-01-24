@@ -28,6 +28,6 @@ import lombok.Data;
 
 @Data
 public class SegmentTimeRequest {
-    public String start;
-    public String end;
+    private String start;
+    private String end;
 }
