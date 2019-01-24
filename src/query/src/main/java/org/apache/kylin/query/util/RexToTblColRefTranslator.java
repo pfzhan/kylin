@@ -290,7 +290,7 @@ public class RexToTblColRefTranslator {
 
         public OLAPRexSqlStandardConvertletTable(RexCall call) {
             super();
-            this.registerUdfOperator(call);
+            registerUdfOperator(call);
             registerCaseOpNew();
             registerReinterpret();
             registerCast();
@@ -298,6 +298,7 @@ public class RexToTblColRefTranslator {
             registerExtract();
             registerTimestampAdd();
             registerTimestampDiff();
+            registerOperatorIfHasNot(call);
         }
 
         private void registerUdfOperator(RexCall call) {
@@ -321,6 +322,18 @@ public class RexToTblColRefTranslator {
                 if (udfRexNode instanceof RexCall) {
                     registerUdfOperator((RexCall) udfRexNode);
                 }
+            }
+        }
+
+        /**
+         * ## WARN
+         * Simply register the sqlCall, but if the sqlcall is not same with the rexCall,
+         * it needs to construct own defined RexSqlConvertlet,just like TimesStampDiff
+         * @param call
+         */
+        private void registerOperatorIfHasNot(RexCall call) {
+            if (get(call) == null) {
+                registerEquivOp(call.getOperator());
             }
         }
 

@@ -73,6 +73,7 @@ import org.apache.kylin.metadata.model.tool.CalciteParser;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 import org.apache.kylin.query.util.PushDownUtil;
+import org.apache.kylin.query.util.QueryUtil;
 import org.apache.kylin.rest.exception.BadRequestException;
 import org.apache.kylin.rest.msg.Message;
 import org.apache.kylin.rest.msg.MsgPicker;
@@ -81,7 +82,6 @@ import org.apache.kylin.rest.util.AclEvaluate;
 import org.apache.kylin.rest.util.AclPermissionUtil;
 import org.apache.kylin.rest.util.PagingUtil;
 import org.apache.kylin.source.SourceFactory;
-import org.apache.kylin.source.adhocquery.HivePushDownConverter;
 import org.apache.kylin.source.adhocquery.PushDownConverterKeyWords;
 import org.apache.spark.sql.SparderEnv;
 import org.apache.spark.sql.SparkSession;
@@ -1052,7 +1052,7 @@ public class ModelService extends BasicService {
         try {
             SparkSession ss = SparderEnv.getSparkSession();
             String flatTableSql = JoinedFlatTable.generateSelectDataStatement(dataModel, false);
-            String pushdownSql = new HivePushDownConverter().convert(flatTableSql, "", "default", false);
+            String pushdownSql = QueryUtil.massagePushDownSql(flatTableSql, dataModel.getProject(), "default", false);
             ss.sql(pushdownSql);
         } catch (Exception e) {
             Pattern pattern = Pattern.compile("cannot resolve '(.*?)' given input columns");
