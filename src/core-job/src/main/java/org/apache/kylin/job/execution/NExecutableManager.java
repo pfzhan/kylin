@@ -42,6 +42,7 @@ import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.kylin.common.JobProcessContext;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.JsonSerializer;
 import org.apache.kylin.common.persistence.ResourceStore;
@@ -414,6 +415,20 @@ public class NExecutableManager {
         }
         executableDao.updateOutputPO(jobOutput);
         logger.info("Job id: {} from {} to {}", jobId, oldStatus, newStatus);
+        if (ExecutableState.STOPPED.equals(newStatus)) {
+            // kill spark-submit process
+            destroyProcess(jobId);
+        }
+    }
+
+    public void destroyProcess(String jobId) {
+        // in ut env, there is no process for job, just do nothing
+        if (!config.isUTEnv()) {
+            Process process = JobProcessContext.getProcess(jobId);
+            if (process != null && process.isAlive()) {
+                process.destroyForcibly();
+            }
+        }
     }
 
     public void forceKillJob(String jobId) {

@@ -63,7 +63,7 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Service("indexPlanService")
-public class indexPlanService extends BasicService {
+public class IndexPlanService extends BasicService {
 
     @Setter
     @Autowired

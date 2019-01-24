@@ -48,7 +48,7 @@ import com.google.common.collect.Sets;
 
 import io.kyligence.kap.metadata.cube.cuboid.NAggregationGroup;
 import io.kyligence.kap.rest.request.UpdateRuleBasedCuboidRequest;
-import io.kyligence.kap.rest.service.indexPlanService;
+import io.kyligence.kap.rest.service.IndexPlanService;
 import lombok.val;
 
 public class IndexPlanControllerTest {
@@ -56,7 +56,7 @@ public class IndexPlanControllerTest {
     private MockMvc mockMvc;
 
     @Mock
-    private indexPlanService indexPlanService;
+    private IndexPlanService indexPlanService;
 
     @InjectMocks
     private NIndexPlanController indexPlanController = Mockito.spy(new NIndexPlanController());

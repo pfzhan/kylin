@@ -138,7 +138,7 @@ public class NSparkExecutable extends AbstractExecutable {
             return runLocalMode(formatAppArgsForSparkLocal());
         } else {
             String[] appArgs = formatAppArgs();
-            return runSparkSubmit(config, sparkHome, hadoopConf, jars, kylinJobJar, appArgs);
+            return runSparkSubmit(config, sparkHome, hadoopConf, jars, kylinJobJar, appArgs, getParent().getId());
         }
     }
 
@@ -188,14 +188,14 @@ public class NSparkExecutable extends AbstractExecutable {
     }
 
     private ExecuteResult runSparkSubmit(KylinConfig config, String sparkHome, String hadoopConf, String jars,
-            String kylinJobJar, String[] appArgs) {
+            String kylinJobJar, String[] appArgs, String jobId) {
 
         PatternedLogger patternedLogger = new PatternedLogger(logger);
         try {
             String cmd = generateSparkCmd(config, hadoopConf, jars, kylinJobJar, appArgs);
 
             CliCommandExecutor exec = new CliCommandExecutor();
-            Pair<Integer, String> result = exec.execute(cmd, patternedLogger);
+            Pair<Integer, String> result = exec.execute(cmd, patternedLogger, jobId);
 
             Preconditions.checkState(result.getFirst() == 0);
             Map<String, String> extraInfo = makeExtraInfo(patternedLogger.getInfo());

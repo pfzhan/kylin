@@ -25,10 +25,16 @@
 package org.apache.kylin.job.impl.threadpool;
 
 import java.io.FileNotFoundException;
+import java.util.UUID;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.stream.Collectors;
 
+import org.apache.kylin.common.JobProcessContext;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.util.CliCommandExecutor;
+import org.apache.kylin.common.util.Pair;
+import org.apache.kylin.common.util.ShellException;
+import org.apache.kylin.job.exception.JobStoppedException;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.BaseTestExecutable;
 import org.apache.kylin.job.execution.DefaultChainedExecutable;
@@ -427,6 +433,60 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
     }
 
     @Test
+    public void testCheckJobStopped_TaskSucceed() throws InterruptedException {
+        val dfMgr = NDataflowManager.getInstance(getTestConfig(), project);
+        val modelId = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
+        val df = dfMgr.getDataflow(modelId);
+        val targetSegs = df.getSegments().stream().map(NDataSegment::getId).collect(Collectors.toList());
+        NoErrorStatusExecutable job = new NoErrorStatusExecutable();
+        job.setProject("default");
+        job.setTargetSegments(targetSegs);
+        job.setTargetModel(modelId);
+        val task = new FiveSecondSucceedTestExecutable();
+        task.setProject("default");
+        task.setTargetModel(modelId);
+        task.setTargetSegments(targetSegs);
+        job.addTask(task);
+
+        executableManager.addJob(job);
+        Thread.sleep(1500);
+        executableManager.pauseJob(job.getId());
+
+        Thread.sleep(5000);
+        Assert.assertEquals(ExecutableState.STOPPED, job.getStatus());
+        Assert.assertEquals(ExecutableState.SUCCEED, task.getStatus());
+
+        thrown.expect(JobStoppedException.class);
+        task.checkJobPaused();
+    }
+
+    @Test
+    public void testCheckJobStopped_TaskError() throws InterruptedException {
+        val dfMgr = NDataflowManager.getInstance(getTestConfig(), project);
+        val modelId = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
+        val df = dfMgr.getDataflow(modelId);
+        val targetSegs = df.getSegments().stream().map(NDataSegment::getId).collect(Collectors.toList());
+        NoErrorStatusExecutable job = new NoErrorStatusExecutable();
+        job.setProject("default");
+        job.setTargetSegments(targetSegs);
+        job.setTargetModel(modelId);
+        val task = new ErrorTestExecutable();
+        task.setProject("default");
+        task.setTargetModel(modelId);
+        task.setTargetSegments(targetSegs);
+        job.addTask(task);
+
+        executableManager.addJob(job);
+        Thread.sleep(1100);
+        executableManager.pauseJob(job.getId());
+
+        Thread.sleep(1000);
+        Assert.assertEquals(ExecutableState.STOPPED, job.getStatus());
+        Assert.assertEquals(ExecutableState.READY, task.getStatus());
+
+    }
+
+    @Test
     public void testFinishJob_EventStoreDownAndUp() throws Exception {
         val dfMgr = NDataflowManager.getInstance(getTestConfig(), project);
         NoErrorStatusExecutable job = new NoErrorStatusExecutable();
@@ -588,6 +648,38 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
 
         Assert.assertTrue(task.needRetry(1, new FileNotFoundException()));
         Assert.assertFalse(task.needRetry(1, new Exception("")));
+    }
+
+    @Test
+    public void testKillProcess() throws ShellException, InterruptedException {
+        val cmd = "sleep 5s";
+        getTestConfig().setProperty("kylin.env", "DEV");
+        val jobId = UUID.randomUUID().toString();
+        Thread executorThread = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                CliCommandExecutor exec = new CliCommandExecutor();
+                try {
+                    Pair<Integer, String> result = exec.execute(cmd, null, jobId);
+                } catch (ShellException e) {
+                    // do nothing
+                    e.printStackTrace();
+                }
+            }
+        });
+        executorThread.start();
+        Thread.sleep(1000);
+        Process process = JobProcessContext.getProcess(jobId);
+
+        Assert.assertNotNull(process);
+        Assert.assertEquals(true, process.isAlive());
+
+        executableManager.destroyProcess(jobId);
+
+        Thread.sleep(1000);
+        Assert.assertNull(JobProcessContext.getProcess(jobId));
+
+        getTestConfig().setProperty("kylin.env", "UT");
     }
 
 }

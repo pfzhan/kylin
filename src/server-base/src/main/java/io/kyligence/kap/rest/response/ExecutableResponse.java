@@ -26,6 +26,7 @@ package io.kyligence.kap.rest.response;
 
 import java.util.List;
 
+import lombok.var;
 import org.apache.kylin.job.constant.JobStatusEnum;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.ChainedExecutable;
@@ -94,7 +95,12 @@ public class ExecutableResponse implements Comparable<ExecutableResponse> {
                 successSteps++;
             }
         }
-        executableResponse.setStepRatio((float) successSteps / tasks.size());
+        var stepRatio = (float) successSteps / tasks.size();
+        // in case all steps are succeed, but the job is paused, the stepRatio should be 99%
+        if (stepRatio == 1 && ExecutableState.STOPPED.equals(abstractExecutable.getStatus())) {
+            stepRatio = 0.99F;
+        }
+        executableResponse.setStepRatio(stepRatio);
         return executableResponse;
     }
 

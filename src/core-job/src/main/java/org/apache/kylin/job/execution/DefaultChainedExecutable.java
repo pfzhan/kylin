@@ -47,6 +47,7 @@ import java.util.Map;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.exception.ExecuteException;
+import org.apache.kylin.job.exception.JobStoppedException;
 import org.apache.kylin.job.exception.JobSuicideException;
 
 import com.google.common.collect.Lists;
@@ -92,7 +93,9 @@ public class DefaultChainedExecutable extends AbstractExecutable implements Chai
                     return subTask.execute(context);
                 } catch (JobSuicideException e) {
                     return ExecuteResult.createSucceed();
-                } catch (ExecuteException e) {
+                } catch (JobStoppedException e) {
+                    return ExecuteResult.createSucceed();
+                }catch (ExecuteException e) {
                     if (e.getCause() instanceof JobSuicideException) {
                         return ExecuteResult.createSucceed();
                     }

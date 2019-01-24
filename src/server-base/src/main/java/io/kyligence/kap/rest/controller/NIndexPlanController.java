@@ -39,7 +39,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import io.kyligence.kap.rest.request.CreateTableIndexRequest;
 import io.kyligence.kap.rest.request.UpdateRuleBasedCuboidRequest;
-import io.kyligence.kap.rest.service.indexPlanService;
+import io.kyligence.kap.rest.service.IndexPlanService;
 import lombok.val;
 
 import javax.validation.Valid;
@@ -52,7 +52,7 @@ public class NIndexPlanController extends NBasicController {
 
     @Autowired
     @Qualifier("indexPlanService")
-    private indexPlanService indexPlanService;
+    private IndexPlanService indexPlanService;
 
     @PutMapping(value = "/rule", produces = { "application/vnd.apache.kylin-v2+json" })
     public EnvelopeResponse updateRule(@RequestBody UpdateRuleBasedCuboidRequest request) {

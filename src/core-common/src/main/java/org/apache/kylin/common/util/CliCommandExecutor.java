@@ -48,6 +48,8 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang.StringUtils;
+import org.apache.kylin.common.JobProcessContext;
 
 /**
  * @author yangli9
@@ -102,9 +104,13 @@ public class CliCommandExecutor {
 
 
     public Pair<Integer, String> execute(String command, Logger logAppender) throws ShellException {
+        return execute(command, logAppender, null);
+    }
+
+    public Pair<Integer, String> execute(String command, Logger logAppender, String jobId) throws ShellException {
         Pair<Integer, String> r;
         if (remoteHost == null) {
-            r = runNativeCommand(command, logAppender);
+            r = runNativeCommand(command, logAppender, jobId);
         } else {
             r = runRemoteCommand(command, logAppender);
         }
@@ -132,7 +138,7 @@ public class CliCommandExecutor {
         }
     }
 
-    private Pair<Integer, String> runNativeCommand(String command, Logger logAppender) throws ShellException {
+    private Pair<Integer, String> runNativeCommand(String command, Logger logAppender, String jobId) throws ShellException {
         try {
 
             String[] cmd = new String[3];
@@ -149,6 +155,10 @@ public class CliCommandExecutor {
             ProcessBuilder builder = new ProcessBuilder(cmd);
             builder.redirectErrorStream(true);
             Process proc = builder.start();
+
+            if (StringUtils.isNotBlank(jobId)) {
+                JobProcessContext.registerProcess(jobId, proc);
+            }
 
             BufferedReader reader = new BufferedReader(new InputStreamReader(proc.getInputStream()));
             String line;
@@ -169,6 +179,10 @@ public class CliCommandExecutor {
             }
         } catch (Exception e) {
             throw new ShellException(e);
+        } finally {
+            if (StringUtils.isNotBlank(jobId)) {
+                JobProcessContext.removeProcess(jobId);
+            }
         }
     }
 

@@ -58,10 +58,10 @@ import io.kyligence.kap.rest.response.TableIndexResponse;
 import lombok.val;
 import lombok.var;
 
-public class indexPlanServiceTest extends NLocalFileMetadataTestCase {
+public class IndexPlanServiceTest extends NLocalFileMetadataTestCase {
 
     @InjectMocks
-    private indexPlanService indexPlanService = Mockito.spy(new indexPlanService());
+    private IndexPlanService indexPlanService = Mockito.spy(new IndexPlanService());
 
     @InjectMocks
     private ModelSemanticHelper semanticService = Mockito.spy(new ModelSemanticHelper());

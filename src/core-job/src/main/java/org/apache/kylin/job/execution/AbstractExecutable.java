@@ -56,6 +56,7 @@ import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import io.kyligence.kap.common.persistence.transaction.TransactionException;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.tuple.Pair;
@@ -65,6 +66,7 @@ import org.apache.kylin.common.util.StringUtil;
 import org.apache.kylin.job.constant.ExecutableConstants;
 import org.apache.kylin.job.dao.ExecutableOutputPO;
 import org.apache.kylin.job.exception.ExecuteException;
+import org.apache.kylin.job.exception.JobStoppedException;
 import org.apache.kylin.job.exception.JobSuicideException;
 import org.apache.kylin.job.impl.threadpool.DefaultContext;
 import org.apache.kylin.metadata.realization.RealizationStatusEnum;
@@ -240,6 +242,7 @@ public abstract class AbstractExecutable implements Executable, Idempotent {
     protected void onExecuteStart(ExecutableContext executableContext) {
 
         suicideIfNecessary();
+        checkJobPaused();
         final long startTime = getStartTime();
         if (startTime > 0) {
             updateJobOutput(project, getId(), ExecutableState.RUNNING, null, null);
@@ -262,6 +265,7 @@ public abstract class AbstractExecutable implements Executable, Idempotent {
 
     protected void onExecuteError(ExecuteResult result, ExecutableContext executableContext) {
         suicideIfNecessary();
+        checkJobPaused(result.getErrorMsg());
 
         Preconditions.checkState(!result.succeed());
         Preconditions.checkState(this.getStatus() == ExecutableState.RUNNING);
@@ -364,7 +368,7 @@ public abstract class AbstractExecutable implements Executable, Idempotent {
             }
 
             suicideIfNecessary();
-
+            checkJobPaused();
             try {
                 result = doWork(executableContext);
             } catch (Throwable e) {
@@ -382,6 +386,34 @@ public abstract class AbstractExecutable implements Executable, Idempotent {
         } else {
             onExecuteFinished(result, executableContext);
             return result;
+        }
+    }
+    public void checkJobPaused() {
+        checkJobPaused(null);
+    }
+
+    public void checkJobPaused(String output) {
+        if (this instanceof DefaultChainedExecutable) {
+            return;
+        }
+        val parent = this.getParent();
+        try {
+            // doInTransaction for get latest status
+            UnitOfWork.doInTransactionWithRetry(() -> {
+                if (ExecutableState.STOPPED.equals(parent.getStatus())) {
+                    throw new JobStoppedException();
+                }
+                return 0;
+            }, project, 1);
+        } catch (TransactionException e) {
+            if (e.getCause() instanceof JobStoppedException) {
+                Map<String, String> info = Maps.newHashMap();
+                info.put(END_TIME, Long.toString(System.currentTimeMillis()));
+                updateJobOutput(project, getId(), ExecutableState.READY, info, output);
+                throw (JobStoppedException) e.getCause();
+            } else {
+                throw e;
+            }
         }
     }
 

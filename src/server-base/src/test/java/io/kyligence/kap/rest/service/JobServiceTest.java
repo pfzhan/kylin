@@ -59,6 +59,7 @@ import io.kyligence.kap.event.model.RefreshSegmentEvent;
 import io.kyligence.kap.rest.response.EventModelResponse;
 import io.kyligence.kap.rest.response.EventResponse;
 import io.kyligence.kap.rest.response.JobStatisticsResponse;
+import lombok.val;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.dao.ExecutableOutputPO;
 import org.apache.kylin.job.execution.AbstractExecutable;
@@ -177,6 +178,24 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
         List<ExecutableResponse> jobs12 = jobService.listJobs(jobFilter);
         Assert.assertTrue(jobs12.size() == 3 && jobs12.get(0).getJobName().equals("sparkjob1"));
 
+    }
+
+    @Test
+    public void testJobStepRatio() {
+        val project = "default";
+        NExecutableManager manager = NExecutableManager.getInstance(jobService.getConfig(), project);
+        SucceedTestExecutable executable = new SucceedTestExecutable();
+        executable.setProject(project);
+        SucceedTestExecutable task = new SucceedTestExecutable();
+        task.setProject(project);
+        executable.addTask(task);
+        manager.addJob(executable);
+        manager.updateJobOutput(executable.getId(), ExecutableState.STOPPED, null, null);
+        manager.updateJobOutput(task.getId(), ExecutableState.RUNNING, null, null);
+        manager.updateJobOutput(task.getId(), ExecutableState.SUCCEED, null, null);
+
+        ExecutableResponse response = ExecutableResponse.create(executable);
+        Assert.assertEquals(0.99F, response.getStepRatio(), 0.001);
     }
 
     @Test
