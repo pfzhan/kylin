@@ -171,10 +171,10 @@ public abstract class AbstractExecutable implements Executable {
 
     /**
      * jude it will cause segment-holes or not if discard this job
-     * @return defult false
+     * @return true by default
      */
     public boolean safetyIfDiscard() {
-        return false;
+        return true;
     }
 
     protected KylinConfig getConfig() {

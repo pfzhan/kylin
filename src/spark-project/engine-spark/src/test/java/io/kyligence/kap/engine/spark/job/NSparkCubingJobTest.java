@@ -515,8 +515,11 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
                 JobTypeEnum.INC_BUILD, UUID.randomUUID().toString(), Sets.newHashSet());
         NSparkCubingJob job2 = NSparkCubingJob.create(Sets.newHashSet(secondSeg), Sets.newLinkedHashSet(round1),
                 "ADMIN", JobTypeEnum.INC_BUILD, UUID.randomUUID().toString(), Sets.newHashSet());
+        NSparkCubingJob job3 = NSparkCubingJob.create(Sets.newHashSet(secondSeg), Sets.newLinkedHashSet(round1),
+                "ADMIN", JobTypeEnum.INDEX_REFRESH, UUID.randomUUID().toString(), Sets.newHashSet());
         execMgr.addJob(job1);
         execMgr.addJob(job2);
+        execMgr.addJob(job3);
 
         execMgr.updateJobOutput(job1.getId(), ExecutableState.READY);
         execMgr.updateJobOutput(job2.getId(), ExecutableState.READY);
@@ -529,6 +532,8 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
         execMgr.updateJobOutput(job1.getId(), ExecutableState.SUCCEED);
         Assert.assertTrue(job1.safetyIfDiscard());
         Assert.assertTrue(job2.safetyIfDiscard());
+
+        Assert.assertTrue(job3.safetyIfDiscard());
     }
 
     private void cleanupSegments(NDataflowManager dsMgr, String dfName) {

@@ -3772,4 +3772,46 @@ public class ModelServiceTest extends CSVSourceTestCase {
         }
 
     }
+
+    @Test
+    public void testCheckSegmentHole() {
+        val modelId = "741ca86a-1f13-46da-a59f-95fb68615e3a";
+        var dataflowManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), getProject());
+        val modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), getProject());
+        modelManager.updateDataModel(modelId, model -> {
+            model.setManagementType(ManagementType.MODEL_BASED);
+        });
+        var res = modelService.checkSegHoleIfSegDeleted(modelId, getProject(), new String[0]);
+        Assert.assertEquals(0, res.getOverlapSegments().size());
+        Assert.assertEquals(0, res.getSegmentHoles().size());
+
+        var df = dataflowManager.getDataflow(modelId);
+        val update = new NDataflowUpdate(modelId);
+        update.setToRemoveSegs(df.getSegments().toArray(new NDataSegment[0]));
+        dataflowManager.updateDataflow(update);
+
+        df = dataflowManager.getDataflow(modelId);
+        dataflowManager.appendSegment(df, new SegmentRange.TimePartitionedSegmentRange(0L, 1L));
+        dataflowManager.appendSegment(df, new SegmentRange.TimePartitionedSegmentRange(10L, 100L));
+        dataflowManager.appendSegment(df, new SegmentRange.TimePartitionedSegmentRange(1000L, 10000L));
+
+        val segs = dataflowManager.getDataflow(modelId).getSegments();
+        res = modelService.checkSegHoleIfSegDeleted(modelId, getProject(),
+                segs.subList(1, 2).stream().map(NDataSegment::getId).toArray(String[]::new));
+        Assert.assertEquals(0, res.getOverlapSegments().size());
+        Assert.assertEquals(1, res.getSegmentHoles().size());
+
+        var range = new SegmentRange.TimePartitionedSegmentRange(10000L, 20000L);
+        res = modelService.checkSegHoleExistIfNewRangeBuild(getProject(), modelId, "20000", "30000");
+        Assert.assertEquals(0, res.getOverlapSegments().size());
+        Assert.assertEquals(3, res.getSegmentHoles().size());
+
+        res = modelService.checkSegHoleExistIfNewRangeBuild(getProject(), modelId, "1", "10");
+        Assert.assertEquals(0, res.getOverlapSegments().size());
+        Assert.assertEquals(1, res.getSegmentHoles().size());
+
+        res = modelService.checkSegHoleExistIfNewRangeBuild(getProject(), modelId, "1", "5");
+        Assert.assertEquals(0, res.getOverlapSegments().size());
+        Assert.assertEquals(2, res.getSegmentHoles().size());
+    }
 }
