@@ -226,7 +226,7 @@
     </el-card>
     <el-dialog :title="$t('waitingJobList')" :visible.sync="waitingJobListVisibel" width="440px">
       <div v-if="waitingJob">
-        <span class="ksd-title-label ksd-fs-14">{{$t('jobTarget')}}</span>{{waitingJob.modelName}}
+        <span class="ksd-title-label ksd-fs-14">{{$t('jobTarget')}}</span><span class="ky-title-color">{{waitingJob.modelName}}</span>
         <el-table :data="waitingJob.jobsList" border class="ksd-mt-10">
           <el-table-column type="index" :label="$t('order')" width="60" :resizable="false" align="center"></el-table-column>
           <el-table-column property="job_type" :label="$t('JobType')" show-overflow-tooltip :resizable="false" header-align="center"></el-table-column>
@@ -910,7 +910,7 @@ export default class JobsList extends Vue {
     this.stepAttrToShow = 'output'
     this.dialogVisible = true
     this.outputDetail = this.$t('load')
-    this.loadStepOutputs({jobId: this.selectedJob.id, project: this.currentSelectedProject}).then((res) => {
+    this.loadStepOutputs({jobId: this.selectedJob.id, stepId: step.id, project: this.currentSelectedProject}).then((res) => {
       handleSuccess(res, (data) => {
         this.outputDetail = data.cmd_output
       })

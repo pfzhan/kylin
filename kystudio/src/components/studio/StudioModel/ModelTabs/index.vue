@@ -140,22 +140,16 @@ export default class ModelTabs extends Vue {
 @import '../../../../assets/styles/variables.less';
 .mode-edit-tabs {
   .studio-top-tab {
-    background-color:@breadcrumbs-bg-color;
     .el-tabs__item.is-active {
       border:solid 1px @line-split-color;
       border-bottom:none;
       background: #fff;
     }
-    &>.el-tabs--card {
-      &>.el-tabs__header{
-        border-bottom:solid 1px @line-split-color;
-      }
-    }
     .el-tabs__nav-wrap {
       margin-bottom: 0;
     }
   }
-  height: 100%;
+  height: calc(~'100% - 54px');
   .footer {
     height:60px;
     background:transparent;

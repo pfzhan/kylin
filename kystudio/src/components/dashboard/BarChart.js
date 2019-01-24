@@ -13,7 +13,7 @@ export default {
     yFormat: {type: [Function, String]},
     staggerLabels: {type: Boolean, default: false},
     tooltips: {type: Boolean, default: false},
-    showValues: {type: Boolean, default: true},
+    showValues: {type: Boolean, default: false},
     colors: {type: Array, default: () => ['#82DFD6', '#ddd']},
     contentGenerator: {type: Function}
   },
@@ -25,10 +25,11 @@ export default {
       const chart = nv.models.discreteBarChart()
         .x(d => d[textField])
         .y(d => d[valField])
-        .margin({top: 20, right: 40, bottom: 60, left: 25})
+        .margin({top: 20, right: 40, bottom: 60, left: 35})
         .staggerLabels(this.staggerLabels)    // Too many bars and not enough room? Try staggering labels.
         .showValues(this.showValues)       // ...instead, show the bar value right on top of each bar.
         .noData(this.$t('kylinLang.common.noData'))
+        // .showXAxis(false)
 
       // Axis settings
       const xaxis = chart.xAxis.showMaxMin(false)

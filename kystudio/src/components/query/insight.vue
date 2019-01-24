@@ -200,7 +200,7 @@ export default class NewQuery extends Vue {
       queryObj: queryObj,
       index: tabIndex
     })
-    this.activeSubMenu = tabName
+    // this.activeSubMenu = tabName
     this.cacheTabs()
   }
   activeTab (tabName) {

@@ -225,8 +225,60 @@ import LineChart from './LineChart'
     ])
   },
   locales: {
-    'en': {storageQuota: 'Storage Quota', acceImpact: 'Acceleration Ratio', totalStorage: 'Total Storage', useageMana: 'Used Storage', trash: 'Garbage Storage', clear: 'Clear', queryCount: 'Query Count', viewDetail: 'View Detail', avgQueryLatency: 'Avg. Query Latency', jobCount: 'Job Count', avgBulidTime: 'Avg. Job Duration per MB', queryByModel: '{type} by Model', queryByDay: '{type}', queryByIndex: '{type} by Index', lastWeek: 'Last Week', lastMonth: 'Last Month', thisMonth: 'This Month', day: 'Day', week: 'Week', month: 'Month', storageQuotaDesc: 'In the project, the total storage can be used.', acceImpactDesc: 'In the project, accelerated queries ratio.', noEnoughData: 'Not enough data yet'},
-    'zh-cn': {storageQuota: '存储配额', acceImpact: '加速比例', totalStorage: '总空间', useageMana: '已使用的存储', trash: '系统垃圾', clear: '清除', queryCount: '查询次数', viewDetail: '查看详情', avgQueryLatency: '平均查询延迟', jobCount: '任务次数', avgBulidTime: '构建1MB数据的平均时间', queryByModel: '以模型{type}', queryByDay: '{type}', queryByIndex: '以索引{type}', lastWeek: '最近一周', lastMonth: '上个月', thisMonth: '当前月', day: '天', week: '周', month: '月', storageQuotaDesc: '本项目可使用的存储空间总量。', acceImpactDesc: '本项目中，已经加速的查询的比例。', noEnoughData: '尚无足够数据统计'}
+    'en': {
+      storageQuota: 'Storage Quota',
+      acceImpact: 'Acceleration Ratio',
+      totalStorage: 'Total Storage',
+      useageMana: 'Used Storage',
+      trash: 'Garbage Storage',
+      clear: 'Clear',
+      queryCount: 'Query Count',
+      viewDetail: 'View Detail',
+      avgQueryLatency: 'Avg. Query Latency',
+      queryLatency: 'Query Latency',
+      jobCount: 'Job Count',
+      avgBulidTime: 'Avg. Job Duration per MB',
+      jobDuration: 'Job Duration',
+      queryByModel: '{type} by Model',
+      queryByDay: '{type} by Time',
+      queryByIndex: '{type} by Index Group',
+      lastWeek: 'Last Week',
+      lastMonth: 'Last Month',
+      thisMonth: 'This Month',
+      day: 'Day',
+      week: 'Week',
+      month: 'Month',
+      storageQuotaDesc: 'In the project, the total storage can be used.',
+      acceImpactDesc: 'In the project, accelerated queries ratio.',
+      noEnoughData: 'Not enough data yet'
+    },
+    'zh-cn': {
+      storageQuota: '存储配额',
+      acceImpact: '加速比例',
+      totalStorage: '总空间',
+      useageMana: '已使用的存储',
+      trash: '系统垃圾',
+      clear: '清除',
+      queryCount: '查询次数',
+      viewDetail: '查看详情',
+      avgQueryLatency: '平均查询延迟',
+      queryLatency: '查询延迟',
+      jobCount: '任务数',
+      avgBulidTime: '构建1MB数据的平均时间',
+      jobDuration: '任务时间',
+      queryByModel: '按模型统计{type}',
+      queryByDay: '按时间统计{type}',
+      queryByIndex: '按索引组统计{type}',
+      lastWeek: '最近一周',
+      lastMonth: '上个月',
+      thisMonth: '当前月',
+      day: '天',
+      week: '周',
+      month: '月',
+      storageQuotaDesc: '本项目可使用的存储空间总量。',
+      acceImpactDesc: '本项目中，已经加速的查询的比例。',
+      noEnoughData: '尚无足够数据统计'
+    }
   }
 })
 export default class Dashboard extends Vue {
@@ -252,11 +304,21 @@ export default class Dashboard extends Vue {
   showLatencyChart = false
   showJobChart = false
   showBulidChart = false
-  chartTitle = this.$t('queryCount')
   barChartData = {}
   lineChartDara = {}
   dateUnit = 'day'
   unitOptions = ['day', 'week', 'month']
+  get chartTitle () {
+    if (this.showQueryChart) {
+      return this.$t('queryCount')
+    } else if (this.showLatencyChart) {
+      return this.$t('queryLatency')
+    } else if (this.showJobChart) {
+      return this.$t('jobCount')
+    } else if (this.showBulidChart) {
+      return this.$t('jobDuration')
+    }
+  }
   gotoQueryHistory () {
     this.$router.push('/query/queryhistory')
   }
@@ -305,7 +367,6 @@ export default class Dashboard extends Vue {
   loadQueryChart () {
     this.resetShow()
     this.showQueryChart = true
-    this.chartTitle = this.$t('queryCount')
     this.getQueryBarChartData()
     this.getQueryLineChartData()
   }
@@ -322,7 +383,6 @@ export default class Dashboard extends Vue {
   loadLatencyChart () {
     this.resetShow()
     this.showLatencyChart = true
-    this.chartTitle = this.$t('avgQueryLatency')
     this.getQueryDuraBarChartData()
     this.getQueryDuraLineChartData()
   }
@@ -345,7 +405,6 @@ export default class Dashboard extends Vue {
   loadJobChart () {
     this.resetShow()
     this.showJobChart = true
-    this.chartTitle = this.$t('jobCount')
     this.getJobBarChartData()
     this.getJobLineChartData()
   }
@@ -362,7 +421,6 @@ export default class Dashboard extends Vue {
   loadBulidChart () {
     this.resetShow()
     this.showBulidChart = true
-    this.chartTitle = this.$t('avgBulidTime')
     this.getJobBulidBarChartData()
     this.getJobBulidLineChartData()
   }
@@ -436,13 +494,19 @@ export default class Dashboard extends Vue {
   get traffics () {
     return [
       {
-        key: 'QUERY',
+        key: this.chartTitle,
         area: true,
         values: Object.entries(this.barChartData).map(([key, value]) => ({ label: key, value: value }))
       }
     ]
   }
   formatLabel (d) {
+    // const dataNums = Object.keys(this.barChartData).length
+    // if (dataNums <= 6) {
+    //   return d.length > 7 ? d.substring(0, 7) + '...' : d
+    // } else if (dataNums > 6) {
+    //   return d.length > 1 ? d.substring(0, 1) + '...' : d
+    // }
     return d.length > 7 ? d.substring(0, 7) + '...' : d
   }
   formatYAxis (d) {
@@ -461,14 +525,14 @@ export default class Dashboard extends Vue {
     return `<table>
       <tr>
         <td class="key">${d.data.label}</td>
-        <td class="value">${d.data.value.toFixed(2)}</td>
+        <td class="value">${d.data.value && d.data.value.toFixed(2)}</td>
       </tr>
     </table>`
   }
   get traffics2 () {
     return [
       {
-        key: 'QUERY',
+        key: this.chartTitle,
         area: true,
         values: Object.entries(this.lineChartDara).map(([key, value]) => ({ x: new Date(key).getTime(), y: value })).sort((a, b) => {
           return b.x - a.x

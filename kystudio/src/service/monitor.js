@@ -27,7 +27,7 @@ export default {
     return Vue.resource(apiUrl + 'diag/export/push_down').save(para)
   },
   getStepOutputs: (para) => {
-    return Vue.resource(apiUrl + 'jobs/output').get(para)
+    return Vue.resource(apiUrl + 'jobs/' + para.jobId + '/steps/' + para.stepId + '/output?project=' + para.project).get()
   },
   resumeJob: (para) => {
     return Vue.resource(apiUrl + 'jobs/status').update(para)

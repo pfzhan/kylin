@@ -462,7 +462,7 @@ export default class DataSourceBar extends Vue {
   }
   // datasource tree样式
   .el-tree {
-    margin-bottom: 20px;
+    margin-bottom: 40px;
     *[draggable="true"] {
       cursor: move;
     }

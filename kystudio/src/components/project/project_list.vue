@@ -62,16 +62,17 @@
       prop="gmtTime">
     </el-table-column>
     <el-table-column
-      :width="87"
-      header-align="center"
+      :width="83"
+      align="center"
       :label="$t('actions')">
       <template slot-scope="scope">
       <!--<span v-if="!(isAdmin || hasAdminProjectPermission(scope.row.uuid))">N/A</span> v-if="isAdmin || hasAdminProjectPermission(scope.row.uuid)"-->
       <!-- <i class="el-icon-ksd-setting ksd-fs-16" @click="editProject(scope.row)" v-if="isAdmin || hasAdminProjectPermission(scope.row.uuid)"></i> -->
-        <el-tooltip :content="$t('setting')" effect="dark" placement="top">
+        <!-- <el-tooltip :content="$t('setting')" effect="dark" placement="top">
           <i class="el-icon-ksd-setting ksd-mr-10 ksd-fs-14" @click="changeProject(scope.row)" v-if="isAdmin || hasAdminProjectPermission(scope.row.uuid)"></i>
         </el-tooltip><span>
-        </span><el-tooltip :content="$t('backup')" effect="dark" placement="top">
+        </span> -->
+        <el-tooltip :content="$t('backup')" effect="dark" placement="top">
           <i class="el-icon-ksd-backup ksd-mr-10 ksd-fs-14" @click="backup(scope.row)"></i>
         </el-tooltip><span>
         </span><el-tooltip :content="$t('delete')" effect="dark" placement="top">

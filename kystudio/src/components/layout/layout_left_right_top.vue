@@ -709,7 +709,7 @@ export default class LayoutLeftRightTop extends Vue {
       overflow: auto;
       height: 100%;
       .main-content {
-        height: calc(~"100% - 54px");
+        height: 100%;
         box-sizing: border-box;
         background: white;
       }
@@ -838,7 +838,7 @@ export default class LayoutLeftRightTop extends Vue {
           position: absolute;
           top:0;
           border-bottom: 1px solid @text-placeholder-color;
-          box-shadow: 0 1px 2px 0 #bdbdbd;
+          box-shadow: 0 1px 2px 0 #f7f7f7;
           z-index: 100;
           >i{
             margin-left: 158px;

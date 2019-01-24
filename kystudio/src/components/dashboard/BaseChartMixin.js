@@ -28,7 +28,7 @@ export default {
         .duration(500)
         .call(chart)
       if (this.id === 'barChart') {
-        const chartBar = d3.select(`#${this.id} g.nv-group`)
+        const chartBar = d3.select(`#${this.id} g.nv-groups`)
         const linearColor = chartBar.append('defs')
           .append('linearGradient')
           .attr('id', 'linear-gradient')
