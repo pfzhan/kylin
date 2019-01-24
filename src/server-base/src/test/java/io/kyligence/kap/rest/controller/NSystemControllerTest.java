@@ -42,22 +42,38 @@
 
 package io.kyligence.kap.rest.controller;
 
-import org.apache.kylin.rest.service.ServiceTestBase;
+import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import org.junit.After;
 import org.junit.Assert;
-import org.junit.BeforeClass;
+import org.junit.Before;
 import org.junit.Test;
+import org.mockito.InjectMocks;
+import org.mockito.Mockito;
+
+import java.io.IOException;
 
 
-public class NSystemControllerTest extends ServiceTestBase {
+public class NSystemControllerTest extends NLocalFileMetadataTestCase {
 
 
-    @BeforeClass
-    public static void setEnv() {
-        getTestConfig().setProperty("kylin.env", "DEV");
+    @Before
+    public void setupResource() {
+        createTestMetadata();
+    }
+
+
+    @InjectMocks
+    private NSystemController nSystemController = Mockito.spy(new NSystemController());
+
+    @After
+    public void tearDown() {
+        cleanupTestMetadata();
     }
 
     @Test
-    public void testBasics() {
+    public void testBasics() throws IOException {
+        getTestConfig().setProperty("kylin.env", "DEV");
+        nSystemController.init();
         Assert.assertEquals("2019-01-21,2019-02-21", System.getProperty("ke.license.valid-dates"));
         Assert.assertEquals("fa01972b23213ad948adc8f9de91f50c", System.getProperty("ke.license"));
         System.clearProperty("ke.license.valid-dates");
