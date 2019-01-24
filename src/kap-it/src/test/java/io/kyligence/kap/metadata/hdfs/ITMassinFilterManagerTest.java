@@ -59,30 +59,6 @@ public class ITMassinFilterManagerTest extends KylinTestBase {
     }
 
     @Test
-    public void testSaveHBase() throws IOException {
-        try {
-            manager.save(Functions.FilterTableType.HBASE_TABLE, null);
-        } catch (RuntimeException e) {
-            // This exception is expected.
-            Assert.assertTrue(true);
-            return;
-        }
-        Assert.assertTrue(false);
-    }
-
-    @Test
-    public void testLoadHBase() throws IOException {
-        try {
-            manager.load(Functions.FilterTableType.HBASE_TABLE, null);
-        } catch (RuntimeException e) {
-            // This exception is expected.
-            Assert.assertTrue(true);
-            return;
-        }
-        Assert.assertTrue(false);
-    }
-
-    @Test
     public void testSaveHDFS() throws IOException {
         List<List<String>> result = Lists.newArrayList();
         for (String s : testStrings) {

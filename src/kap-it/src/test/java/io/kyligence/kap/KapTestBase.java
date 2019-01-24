@@ -27,7 +27,7 @@ package io.kyligence.kap;
 import java.sql.DriverManager;
 
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.util.HBaseMetadataTestCase;
+import org.apache.kylin.common.util.SandboxMetadataTestCase;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.query.KylinTestBase;
 import org.apache.kylin.query.QueryConnection;
@@ -38,7 +38,7 @@ public class KapTestBase extends KylinTestBase {
     protected static void setupAll() throws Exception {
         initQueryEngine();
         //setup env
-        HBaseMetadataTestCase.staticCreateTestMetadata();
+        SandboxMetadataTestCase.staticCreateTestMetadata();
         config = KylinConfig.getInstanceFromEnv();
 
         //setup cube conn

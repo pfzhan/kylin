@@ -43,7 +43,7 @@
 
 package org.apache.kylin.source.hive;
 
-import org.apache.kylin.common.util.HBaseMetadataTestCase;
+import org.apache.kylin.common.util.SandboxMetadataTestCase;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.TableExtDesc;
@@ -55,7 +55,7 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-public class ITHiveSourceTableLoaderTest extends HBaseMetadataTestCase {
+public class ITHiveSourceTableLoaderTest extends SandboxMetadataTestCase {
 
     @Before
     public void setup() throws Exception {

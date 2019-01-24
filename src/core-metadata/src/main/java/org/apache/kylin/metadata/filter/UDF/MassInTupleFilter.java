@@ -70,7 +70,7 @@ public class MassInTupleFilter extends FunctionTupleFilter {
     private transient TblColRef column;
 
     private String filterTableName;//key in MetadataManager.extFilterMap
-    private String filterTableResourceIdentifier;//HDFS path, or hbase table name depending on FilterTableType
+    private String filterTableResourceIdentifier;//HDFS path name depending on FilterTableType
     private Functions.FilterTableType filterTableType;
     private boolean reverse = false;
 

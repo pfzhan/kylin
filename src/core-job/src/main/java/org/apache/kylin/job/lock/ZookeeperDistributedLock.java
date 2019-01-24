@@ -112,7 +112,7 @@ public class ZookeeperDistributedLock implements DistributedLock, JobLock {
         }
 
         private static String getZKConnectString() {
-            // the ZKConnectString should come from KylinConfig, however it is taken from HBase configuration at the moment
+            // the ZKConnectString should come from KylinConfig
             return ZookeeperUtil.getZKConnectString();
         }
 

@@ -181,21 +181,6 @@
       "isShardBy" : false
     } ]
   },
-  "hbase_mapping" : {
-    "column_family" : [ {
-      "name" : "F1",
-      "columns" : [ {
-        "qualifier" : "M",
-        "measure_refs" : [ "_COUNT_", "SUPPLYCOST_MIN", "PARTVALUE_SUM" ]
-      } ]
-    }, {
-      "name" : "F2",
-      "columns" : [ {
-        "qualifier" : "M",
-        "measure_refs" : [ "SUPPKEY_COUNT_DISTINCT" ]
-      } ]
-    } ]
-  },
   "aggregation_groups" : [ {
     "includes" : [ "V_PARTSUPP.PS_PARTKEY", "V_PARTSUPP.PS_AVAILQTY", "V_PARTSUPP.PS_SUPPKEY", "PART.P_MFGR", "PART.P_BRAND", "PART.P_TYPE", "PART.P_SIZE", "NATION.N_NAME", "REGION.R_NAME", "PART.P_NAME", "V_PARTSUPP.PS_SUPPLYCOST" ],
     "select_rule" : {

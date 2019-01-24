@@ -50,7 +50,7 @@ import java.util.Random;
 import org.apache.commons.io.FileUtils;
 import org.apache.http.HttpResponse;
 import org.apache.kylin.common.restclient.RestClient;
-import org.apache.kylin.common.util.HBaseMetadataTestCase;
+import org.apache.kylin.common.util.SandboxMetadataTestCase;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.webapp.WebAppContext;
 import org.junit.AfterClass;
@@ -62,7 +62,7 @@ import org.slf4j.LoggerFactory;
 
 /**
  */
-public class ITRestClientTest extends HBaseMetadataTestCase {
+public class ITRestClientTest extends SandboxMetadataTestCase {
 
     private static Server server = null;
 

@@ -57,7 +57,7 @@ import org.slf4j.LoggerFactory;
 import com.google.common.base.Throwables;
 
 /**
- * Be called by LocalFileResourceStoreTest, ITHBaseResourceStoreTest and ITHDFSResourceStoreTest.
+ * Be called by LocalFileResourceStoreTest and ITHDFSResourceStoreTest.
  */
 public class ResourceStoreTestBase {
 

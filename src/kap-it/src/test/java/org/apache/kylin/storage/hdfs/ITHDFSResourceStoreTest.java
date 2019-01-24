@@ -44,13 +44,13 @@ package org.apache.kylin.storage.hdfs;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStoreTestBase;
-import org.apache.kylin.common.util.HBaseMetadataTestCase;
+import org.apache.kylin.common.util.SandboxMetadataTestCase;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
 
-public class ITHDFSResourceStoreTest extends HBaseMetadataTestCase {
+public class ITHDFSResourceStoreTest extends SandboxMetadataTestCase {
 
     private KylinConfig kylinConfig;
 
@@ -77,8 +77,5 @@ public class ITHDFSResourceStoreTest extends HBaseMetadataTestCase {
         //test hdfs performance
         String hdfs = ResourceStoreTestBase.mockUrl("hdfs", kylinConfig);
         ResourceStoreTestBase.wrapInNewUrl(hdfs, kylinConfig, ResourceStoreTestBase::testPerformance);
-        //test hbase
-        String hbase = ResourceStoreTestBase.mockUrl("hbase", kylinConfig);
-        ResourceStoreTestBase.wrapInNewUrl(hbase, kylinConfig, ResourceStoreTestBase::testPerformance);
     }
 }

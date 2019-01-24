@@ -229,7 +229,6 @@ public class KapTableScan extends OLAPTableScan implements EnumerableRel, KapRel
         if (context.olapSchema == null) {
             OLAPSchema schema = olapTable.getSchema();
             context.olapSchema = schema;
-            context.storageContext.setConnUrl(schema.getStorageUrl());
         }
         if (context.firstTableScan == null) {
             context.firstTableScan = this;

@@ -61,7 +61,7 @@ public class SparkClassLoader extends URLClassLoader {
             "com.sun.", "launcher.", "java.", "javax.", "org.ietf", "org.omg", "org.w3c", "org.xml", "sunw.", "sun.",
             // logging
             "org.apache.commons.logging", "org.apache.log4j", "org.slf4j", "org.apache.hadoop",
-            // Hadoop/HBase/ZK:
+            // Hadoop/ZK:
             "io.kyligence", "org.apache.kylin", "com.intellij", "org.apache.calcite" };
 
     private static final Set<String> classNotFoundCache = new HashSet<>();

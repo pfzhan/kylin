@@ -25,15 +25,16 @@ package io.kyligence.kap.metadata.cube;
 
 import static org.junit.Assert.assertEquals;
 
-import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
-import io.kyligence.kap.metadata.cube.model.IndexPlan;
-import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
-import io.kyligence.kap.metadata.cube.model.NDataflow;
-import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import org.apache.kylin.common.KylinConfig;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+
+import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.metadata.cube.model.IndexPlan;
+import io.kyligence.kap.metadata.cube.model.NDataflow;
+import io.kyligence.kap.metadata.cube.model.NDataflowManager;
+import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 
 public class ProjectSpecificConfigTest extends NLocalFileMetadataTestCase {
     public static final String DEFAULT_PROJECT = "default";
@@ -51,19 +52,21 @@ public class ProjectSpecificConfigTest extends NLocalFileMetadataTestCase {
     @Test
     public void testProject1() {
         KylinConfig baseConfig = KylinConfig.getInstanceFromEnv();
-        IndexPlan indexPlan = NIndexPlanManager.getInstance(baseConfig, DEFAULT_PROJECT).getIndexPlanByModelAlias("nmodel_basic");
+        IndexPlan indexPlan = NIndexPlanManager.getInstance(baseConfig, DEFAULT_PROJECT)
+                .getIndexPlanByModelAlias("nmodel_basic");
         verifyProjectOverride(baseConfig, indexPlan.getConfig());
     }
 
     @Test
     public void testProject2() {
         KylinConfig baseConfig = KylinConfig.getInstanceFromEnv();
-        NDataflow dataflow = NDataflowManager.getInstance(baseConfig, DEFAULT_PROJECT).getDataflowByModelAlias("nmodel_basic");
+        NDataflow dataflow = NDataflowManager.getInstance(baseConfig, DEFAULT_PROJECT)
+                .getDataflowByModelAlias("nmodel_basic");
         verifyProjectOverride(baseConfig, dataflow.getConfig());
     }
 
     private void verifyProjectOverride(KylinConfig base, KylinConfig override) {
-        assertEquals("whoami@kylin.apache.org", base.getKylinOwner());
-        assertEquals("kylin@kylin.apache.org", override.getKylinOwner());
+        assertEquals(3, base.getSlowQueryDefaultDetectIntervalSeconds());
+        assertEquals(4, override.getSlowQueryDefaultDetectIntervalSeconds());
     }
 }

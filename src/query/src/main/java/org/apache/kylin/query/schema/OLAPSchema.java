@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -50,7 +49,6 @@ import java.util.Map;
 import org.apache.calcite.schema.Table;
 import org.apache.calcite.schema.impl.AbstractSchema;
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.StorageURL;
 import org.apache.kylin.metadata.model.TableDesc;
 
 import io.kyligence.kap.metadata.model.NDataModelManager;
@@ -66,14 +64,12 @@ public class OLAPSchema extends AbstractSchema {
     private String projectName;
     private String schemaName;
     private boolean exposeMore;
-    private StorageURL storageUrl;
     private String starSchemaUrl;
     private String starSchemaUser;
     private String starSchemaPassword;
 
     private void init() {
         this.config = KylinConfig.getInstanceFromEnv();
-        this.storageUrl = config.getStorageUrl();
         this.starSchemaUrl = config.getHiveUrl();
         this.starSchemaUser = config.getHiveUser();
         this.starSchemaPassword = config.getHivePassword();
@@ -116,10 +112,6 @@ public class OLAPSchema extends AbstractSchema {
 
     public String getSchemaName() {
         return schemaName;
-    }
-
-    public StorageURL getStorageUrl() {
-        return storageUrl;
     }
 
     public boolean hasStarSchemaUrl() {

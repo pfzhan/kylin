@@ -66,7 +66,6 @@ import org.apache.kylin.common.util.ClassUtil;
 import org.apache.kylin.common.util.CliCommandExecutor;
 import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.kylin.common.util.TimeUtil;
-import org.apache.kylin.common.util.ZooKeeperUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -342,10 +341,6 @@ abstract public class KylinConfigBase implements Serializable {
         if (str != null)
             return str;
 
-        str = ZooKeeperUtil.getZKConnectStringFromHBase();
-        if (str != null)
-            return str;
-
         throw new RuntimeException("Please set 'kylin.env.zookeeper-connect-string' in kylin.properties");
     }
 
@@ -426,10 +421,6 @@ abstract public class KylinConfigBase implements Serializable {
         String clsName = getOptional("kylin.metadata.distributed-lock-impl",
                 "org.apache.kylin.job.lock.ZookeeperDistributedLock$Factory");
         return (DistributedLockFactory) ClassUtil.newInstance(clsName);
-    }
-
-    public String getHBaseMappingAdapter() {
-        return getOptional("kylin.metadata.hbasemapping-adapter");
     }
 
     public boolean isCheckCopyOnWrite() {
@@ -910,7 +901,7 @@ abstract public class KylinConfigBase implements Serializable {
     }
 
     // ============================================================================
-    // STORAGE.HBASE
+    // STORAGE.PARQUET
     // ============================================================================
 
     public Map<Integer, String> getStorageEngines() {
@@ -925,47 +916,7 @@ abstract public class KylinConfigBase implements Serializable {
         return Integer.parseInt(getOptional("kylin.storage.default", "20"));
     }
 
-    public StorageURL getStorageUrl() {
-        String url = getOptional("kylin.storage.url", "default@hbase");
-
-        // for backward compatibility
-        if ("hbase".equals(url))
-            url = "default@hbase";
-
-        return StorageURL.valueOf(url);
-    }
-
-    public String getHBaseTableNamePrefix() {
-        return getOptional("kylin.storage.hbase.table-name-prefix", "KYLIN_");
-    }
-
-    public String getHBaseClusterFs() {
-        return getOptional("kylin.storage.hbase.cluster-fs", "");
-    }
-
-    public String getHBaseClusterHDFSConfigFile() {
-        return getOptional("kylin.storage.hbase.cluster-hdfs-config-file", "");
-    }
-
-    private static final Pattern COPROCESSOR_JAR_NAME_PATTERN = Pattern.compile("kylin-coprocessor-(.+)\\.jar");
     private static final Pattern JOB_JAR_NAME_PATTERN = Pattern.compile("kylin-job-(.+)\\.jar");
-
-    public String getCoprocessorLocalJar() {
-        final String coprocessorJar = getOptional("kylin.storage.hbase.coprocessor-local-jar");
-        if (StringUtils.isNotEmpty(coprocessorJar)) {
-            return coprocessorJar;
-        }
-        String kylinHome = getKylinHome();
-        if (StringUtils.isEmpty(kylinHome)) {
-            throw new RuntimeException("getCoprocessorLocalJar needs KYLIN_HOME");
-        }
-        return getFileName(kylinHome + File.separator + "lib", COPROCESSOR_JAR_NAME_PATTERN);
-    }
-
-    public void overrideCoprocessorLocalJar(String path) {
-        logger.info("override " + "kylin.storage.hbase.coprocessor-local-jar" + " to " + path);
-        System.setProperty("kylin.storage.hbase.coprocessor-local-jar", path);
-    }
 
     private static String getFileName(String homePath, Pattern pattern) {
         File home = new File(homePath);
@@ -987,105 +938,6 @@ abstract public class KylinConfigBase implements Serializable {
             return files.last();
         }
     }
-
-    public int getHBaseRegionCountMin() {
-        return Integer.parseInt(getOptional("kylin.storage.hbase.min-region-count", "1"));
-    }
-
-    public int getHBaseRegionCountMax() {
-        return Integer.parseInt(getOptional("kylin.storage.hbase.max-region-count", "500"));
-    }
-
-    public float getHBaseHFileSizeGB() {
-        return Float.parseFloat(getOptional("kylin.storage.hbase.hfile-size-gb", "2.0"));
-    }
-
-    public boolean getQueryRunLocalCoprocessor() {
-        return Boolean.parseBoolean(getOptional("kylin.storage.hbase.run-local-coprocessor", "false"));
-    }
-
-    public double getQueryCoprocessorMemGB() {
-        return Double.parseDouble(this.getOptional("kylin.storage.hbase.coprocessor-mem-gb", "3.0"));
-    }
-
-    public boolean getQueryCoprocessorSpillEnabled() {
-        return Boolean.parseBoolean(this.getOptional("kylin.storage.partition.aggr-spill-enabled", "true"));
-    }
-
-    public long getPartitionMaxScanBytes() {
-        long value = Long.parseLong(
-                this.getOptional("kylin.storage.partition.max-scan-bytes", String.valueOf(3L * 1024 * 1024 * 1024)));
-        return value > 0 ? value : Long.MAX_VALUE;
-    }
-
-    public int getQueryCoprocessorTimeoutSeconds() {
-        return Integer.parseInt(this.getOptional("kylin.storage.hbase.coprocessor-timeout-seconds", "0"));
-    }
-
-    public int getQueryScanFuzzyKeyMax() {
-        return Integer.parseInt(this.getOptional("kylin.storage.hbase.max-fuzzykey-scan", "200"));
-    }
-
-    public int getQueryStorageVisitScanRangeMax() {
-        return Integer.valueOf(this.getOptional("kylin.storage.hbase.max-visit-scanrange", "1000000"));
-    }
-
-    public String getDefaultIGTStorage() {
-        return getOptional("kylin.storage.hbase.gtstorage",
-                "org.apache.kylin.storage.hbase.cube.v2.CubeHBaseEndpointRPC");
-    }
-
-    public int getHBaseScanCacheRows() {
-        return Integer.parseInt(this.getOptional("kylin.storage.hbase.scan-cache-rows", "1024"));
-    }
-
-    public float getKylinHBaseRegionCut() {
-        return Float.valueOf(getOptional("kylin.storage.hbase.region-cut-gb", "5.0"));
-    }
-
-    public int getHBaseScanMaxResultSize() {
-        return Integer.parseInt(this.getOptional("kylin.storage.hbase.max-scan-result-bytes", "" + (5 * 1024 * 1024))); // 5 MB
-    }
-
-    public String getHbaseDefaultCompressionCodec() {
-        return getOptional("kylin.storage.hbase.compression-codec", "none");
-    }
-
-    public String getHbaseDefaultEncoding() {
-        return getOptional("kylin.storage.hbase.rowkey-encoding", "FAST_DIFF");
-    }
-
-    public int getHbaseDefaultBlockSize() {
-        return Integer.valueOf(getOptional("kylin.storage.hbase.block-size-bytes", "1048576"));
-    }
-
-    public int getHbaseSmallFamilyBlockSize() {
-        return Integer.valueOf(getOptional("kylin.storage.hbase.small-family-block-size-bytes", "65536"));
-    }
-
-    public String getKylinOwner() {
-        return this.getOptional("kylin.storage.hbase.owner-tag", "");
-    }
-
-    public boolean getCompressionResult() {
-        return Boolean.parseBoolean(getOptional("kylin.storage.hbase.endpoint-compress-result", "true"));
-    }
-
-    public int getHBaseMaxConnectionThreads() {
-        return Integer.parseInt(getOptional("kylin.storage.hbase.max-hconnection-threads", "2048"));
-    }
-
-    public int getHBaseCoreConnectionThreads() {
-        return Integer.parseInt(getOptional("kylin.storage.hbase.core-hconnection-threads", "2048"));
-    }
-
-    public long getHBaseConnectionThreadPoolAliveSeconds() {
-        return Long.parseLong(getOptional("kylin.storage.hbase.hconnection-threads-alive-seconds", "60"));
-    }
-
-    // ============================================================================
-    // ENGINE.MR
-    // ============================================================================
 
     public String getKylinJobJarPath() {
         final String jobJar = getOptional("kylin.engine.spark.job-jar");

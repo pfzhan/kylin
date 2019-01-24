@@ -69,9 +69,7 @@ public final class ExecutableConstants {
     public static final String STEP_NAME_UPDATE_CUBE_INFO = "Refresh Index Information";
     public static final String STEP_NAME_BUILD_N_D_CUBOID = "Build N-Dimension Cuboid";
     public static final String STEP_NAME_GET_CUBOID_KEY_DISTRIBUTION = "Calculate HTable Region Splits";
-    public static final String STEP_NAME_CREATE_HBASE_TABLE = "Create HTable";
     public static final String STEP_NAME_CONVERT_CUBOID_TO_HFILE = "Convert Cuboid Data to HFile";
-    public static final String STEP_NAME_BULK_LOAD_HFILE = "Load HFile to HBase Table";
     public static final String STEP_NAME_MERGE_DICTIONARY = "Merge Cuboid Dictionary";
     public static final String STEP_NAME_MERGE_STATISTICS = "Merge Cuboid Statistics";
     public static final String STEP_NAME_SAVE_STATISTICS = "Save Cuboid Statistics";
@@ -79,7 +77,6 @@ public final class ExecutableConstants {
     public static final String STEP_NAME_HIVE_CLEANUP = "Hive Cleanup";
     public static final String STEP_NAME_KAFKA_CLEANUP = "Kafka Intermediate File Cleanup";
     public static final String STEP_NAME_GARBAGE_COLLECTION = "Garbage Collection";
-    public static final String STEP_NAME_GARBAGE_COLLECTION_HBASE = "Garbage Collection on HBase";
     public static final String STEP_NAME_GARBAGE_COLLECTION_HDFS = "Garbage Collection on HDFS";
     public static final String STEP_NAME_REDISTRIBUTE_FLAT_HIVE_TABLE = "Redistribute Flat Hive Table";
     public static final String STEP_NAME_DATA_PROFILING = "Data Profiling";

@@ -41,49 +41,52 @@
  * limitations under the License.
  */
 
-package org.apache.kylin.storage.hbase;
+package org.apache.kylin.common.util;
 
-import java.io.IOException;
+import java.io.File;
 
-import org.apache.hadoop.fs.FSDataOutputStream;
-import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.Path;
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.util.HBaseMetadataTestCase;
-import org.apache.kylin.common.util.HadoopUtil;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
 
 /**
+ * @author ysong1
  */
-public class ITHdfsOpsTest extends HBaseMetadataTestCase {
+public class SandboxMetadataTestCase extends AbstractKylinTestCase {
 
-    FileSystem fileSystem;
+    public static String SANDBOX_TEST_DATA = "../examples/test_case_data/sandbox";
 
-    @Before
-    public void setup() throws Exception {
-
-        this.createTestMetadata();
-
-        fileSystem = HadoopUtil.getWorkingFileSystem();
+    static {
+        try {
+            ClassUtil.addClasspath(new File(SANDBOX_TEST_DATA).getAbsolutePath());
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
-    @Test
-    public void TestPath() throws IOException {
-        String hdfsWorkingDirectory = KylinConfig.getInstanceFromEnv().getHdfsWorkingDirectory();
-        Path coprocessorDir = new Path(hdfsWorkingDirectory, "test");
-        fileSystem.mkdirs(coprocessorDir);
-
-        Path newFile = new Path(coprocessorDir, "test_file");
-        newFile = newFile.makeQualified(fileSystem.getUri(), null);
-        FSDataOutputStream stream = fileSystem.create(newFile);
-        stream.write(new byte[] { 0, 1, 2 });
-        stream.close();
+    @Override
+    public void createTestMetadata(String... overlayMetadataDirs) throws Exception {
+        staticCreateTestMetadata();
     }
 
-    @After
-    public void after() throws Exception {
-        this.cleanupTestMetadata();
+    @Override
+    public void cleanupTestMetadata() {
+        staticCleanupTestMetadata();
     }
+
+    public static void staticCreateTestMetadata() throws Exception {
+        staticCreateTestMetadata(SANDBOX_TEST_DATA);
+    }
+
+    public static void staticCreateTestMetadata(String kylinConfigFolder) {
+
+        KylinConfig.destroyInstance();
+
+        if (System.getProperty(KylinConfig.KYLIN_CONF) == null && System.getenv(KylinConfig.KYLIN_CONF) == null)
+            System.setProperty(KylinConfig.KYLIN_CONF, kylinConfigFolder);
+
+    }
+
+    public static void staticCleanupTestMetadata() {
+        clearTestConfig();
+    }
+
 }

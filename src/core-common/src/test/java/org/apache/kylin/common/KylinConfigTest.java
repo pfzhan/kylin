@@ -50,9 +50,9 @@ import org.apache.kylin.common.KylinConfig.SetAndUnsetThreadLocalConfig;
 import org.junit.Assert;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 
 import com.google.common.collect.Maps;
-import org.junit.rules.ExpectedException;
 
 public class KylinConfigTest extends HotLoadKylinPropertiesTestCase {
 
@@ -109,20 +109,17 @@ public class KylinConfigTest extends HotLoadKylinPropertiesTestCase {
     @Test
     public void testPropertiesHotLoad() {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
-        Assert.assertEquals("whoami@kylin.apache.org", config.getKylinOwner());
+        Assert.assertEquals(3, config.getSlowQueryDefaultDetectIntervalSeconds());
 
-        updateProperty("kylin.storage.hbase.owner-tag", "kylin@kylin.apache.org");
+        updateProperty("kylin.query.slowquery-detect-interval", "4");
         KylinConfig.getInstanceFromEnv().reloadFromSiteProperties();
 
-        Assert.assertEquals("kylin@kylin.apache.org", config.getKylinOwner());
+        Assert.assertEquals(4, config.getSlowQueryDefaultDetectIntervalSeconds());
     }
 
     @Test
     public void testGetMetadataUrlPrefix() {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
-
-        config.setMetadataUrl("testMetaPrefix@hbase");
-        Assert.assertEquals("testMetaPrefix", config.getMetadataUrlPrefix());
 
         config.setMetadataUrl("testMetaPrefix@hdfs");
         Assert.assertEquals("testMetaPrefix", config.getMetadataUrlPrefix());

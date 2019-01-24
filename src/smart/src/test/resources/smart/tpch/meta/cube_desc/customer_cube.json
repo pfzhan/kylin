@@ -59,15 +59,6 @@
       "isShardBy" : false
     } ]
   },
-  "hbase_mapping" : {
-    "column_family" : [ {
-      "name" : "F1",
-      "columns" : [ {
-        "qualifier" : "M",
-        "measure_refs" : [ "_COUNT_", "ACCBAL_SUM" ]
-      } ]
-    } ]
-  },
   "aggregation_groups" : [ {
     "includes" : [ "CUSTOMER.C_CUSTKEY", "CUSTOMER.C_PHONE", "CUSTOMER.C_ACCTBAL" ],
     "select_rule" : {

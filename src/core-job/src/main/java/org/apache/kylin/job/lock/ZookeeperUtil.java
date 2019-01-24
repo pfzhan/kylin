@@ -46,9 +46,6 @@ import org.apache.kylin.common.KylinConfig;
 
 public class ZookeeperUtil {
 
-    /**
-     * Get zookeeper connection string from HBase Configuration or from kylin.properties
-     */
     public static String getZKConnectString() {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         return config.getZookeeperConnectString();

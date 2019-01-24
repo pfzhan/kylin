@@ -45,7 +45,7 @@ package org.apache.kylin.source.hive;
 
 import java.io.IOException;
 
-import org.apache.kylin.common.util.HBaseMetadataTestCase;
+import org.apache.kylin.common.util.SandboxMetadataTestCase;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -55,7 +55,7 @@ import org.junit.Test;
  *
  * It is in the exclude list of default profile in pom.xml
  */
-public class ITHiveTableReaderTest extends HBaseMetadataTestCase {
+public class ITHiveTableReaderTest extends SandboxMetadataTestCase {
 
     @Test
     public void test() throws IOException {

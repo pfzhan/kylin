@@ -198,19 +198,13 @@ public abstract class ResourceStore {
     // ============================================================================
 
     protected final KylinConfig kylinConfig;
-    protected final StorageURL storageUrl;
 
     protected ResourceStore(KylinConfig kylinConfig) {
         this.kylinConfig = kylinConfig;
-        this.storageUrl = kylinConfig.getStorageUrl();
     }
 
     public final KylinConfig getConfig() {
         return kylinConfig;
-    }
-
-    public final StorageURL getStorageUrl() {
-        return storageUrl;
     }
 
     /**

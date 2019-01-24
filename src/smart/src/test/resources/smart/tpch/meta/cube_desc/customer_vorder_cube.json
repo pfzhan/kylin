@@ -77,21 +77,6 @@
       "isShardBy" : false
     } ]
   },
-  "hbase_mapping" : {
-    "column_family" : [ {
-      "name" : "F1",
-      "columns" : [ {
-        "qualifier" : "M",
-        "measure_refs" : [ "_COUNT_" ]
-      } ]
-    }, {
-      "name" : "F2",
-      "columns" : [ {
-        "qualifier" : "M",
-        "measure_refs" : [ "ORDERKEY_COUNT_DISTINCT" ]
-      } ]
-    } ]
-  },
   "aggregation_groups" : [ {
     "includes" : [ "CUSTOMER.C_CUSTKEY", "CUSTOMER.C_PHONE", "CUSTOMER.C_ACCTBAL", "V_ORDERS.O_ORDERKEY", "V_ORDERS.O_COMMENT" ],
     "select_rule" : {

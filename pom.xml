@@ -34,9 +34,6 @@
         <hive.version>1.2.1</hive.version>
         <hive-hcatalog.version>1.2.1</hive-hcatalog.version>
 
-        <!-- HBase versions -->
-        <hbase-hadoop2.version>1.1.1</hbase-hadoop2.version>
-
         <!-- Kafka versions -->
         <kafka.version>1.1.0</kafka.version>
 
@@ -70,7 +67,6 @@
         <!-- Test Dependency versions -->
         <antlr.version>3.4</antlr.version>
         <junit.version>4.12</junit.version>
-        <mrunit.version>1.1.0</mrunit.version>
         <dbunit.version>2.5.2</dbunit.version>
         <h2.version>1.4.197</h2.version>
         <jetty.version>9.2.20.v20161216</jetty.version>
@@ -550,57 +546,6 @@
                 <version>${commons-dbcp.version}</version>
             </dependency>
 
-            <!-- HBase2 dependencies -->
-            <dependency>
-                <groupId>org.apache.hbase</groupId>
-                <artifactId>hbase-hadoop2-compat</artifactId>
-                <version>${hbase-hadoop2.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.hbase</groupId>
-                <artifactId>hbase-common</artifactId>
-                <exclusions>
-                    <exclusion>
-                        <groupId>com.sun.jersey</groupId>
-                        <artifactId>*</artifactId>
-                    </exclusion>
-                </exclusions>
-                <version>${hbase-hadoop2.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.hbase</groupId>
-                <artifactId>hbase-client</artifactId>
-                <version>${hbase-hadoop2.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.hbase</groupId>
-                <artifactId>hbase-server</artifactId>
-                <exclusions>
-                    <exclusion>
-                        <groupId>com.sun.jersey</groupId>
-                        <artifactId>*</artifactId>
-                    </exclusion>
-                </exclusions>
-                <version>${hbase-hadoop2.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.mrunit</groupId>
-                <artifactId>mrunit</artifactId>
-                <version>${mrunit.version}</version>
-                <classifier>hadoop2</classifier>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.hbase</groupId>
-                <artifactId>hbase-testing-util</artifactId>
-                <exclusions>
-                    <exclusion>
-                        <groupId>com.sun.jersey</groupId>
-                        <artifactId>*</artifactId>
-                    </exclusion>
-                </exclusions>
-                <version>${hbase-hadoop2.version}</version>
-                <scope>test</scope>
-            </dependency>
             <!-- Hive dependencies -->
             <dependency>
                 <groupId>org.apache.hive</groupId>
@@ -1668,7 +1613,6 @@
                 <yarn.version>2.6.0-cdh5.7.0</yarn.version>
                 <hive.version>1.1.0-cdh5.7.0</hive.version>
                 <hive-hcatalog.version>1.1.0-cdh5.7.0</hive-hcatalog.version>
-                <hbase-hadoop2.version>1.2.0-cdh5.7.0</hbase-hadoop2.version>
                 <zookeeper.version>3.4.5-cdh5.7.0</zookeeper.version>
             </properties>
             <dependencyManagement>
@@ -1784,52 +1728,6 @@
                         </exclusions>
                         <version>${hadoop2.version}</version>
                         <optional>true</optional>
-                    </dependency>
-
-                    <!-- HBase dependencies -->
-                    <dependency>
-                        <groupId>org.apache.hbase</groupId>
-                        <artifactId>hbase-hadoop2-compat</artifactId>
-                        <version>${hbase-hadoop2.version}</version>
-                    </dependency>
-                    <dependency>
-                        <groupId>org.apache.hbase</groupId>
-                        <artifactId>hbase-common</artifactId>
-                        <exclusions>
-                            <exclusion>
-                                <groupId>com.sun.jersey</groupId>
-                                <artifactId>*</artifactId>
-                            </exclusion>
-                        </exclusions>
-                        <version>${hbase-hadoop2.version}</version>
-                    </dependency>
-                    <dependency>
-                        <groupId>org.apache.hbase</groupId>
-                        <artifactId>hbase-client</artifactId>
-                        <version>${hbase-hadoop2.version}</version>
-                    </dependency>
-                    <dependency>
-                        <groupId>org.apache.hbase</groupId>
-                        <artifactId>hbase-server</artifactId>
-                        <exclusions>
-                            <exclusion>
-                                <groupId>com.sun.jersey</groupId>
-                                <artifactId>*</artifactId>
-                            </exclusion>
-                        </exclusions>
-                        <version>${hbase-hadoop2.version}</version>
-                    </dependency>
-                    <dependency>
-                        <groupId>org.apache.hbase</groupId>
-                        <artifactId>hbase-testing-util</artifactId>
-                        <exclusions>
-                            <exclusion>
-                                <groupId>com.sun.jersey</groupId>
-                                <artifactId>*</artifactId>
-                            </exclusion>
-                        </exclusions>
-                        <version>${hbase-hadoop2.version}</version>
-                        <scope>test</scope>
                     </dependency>
 
                     <!-- Hive dependencies -->

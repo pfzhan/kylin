@@ -90,18 +90,6 @@ public class BackdoorToggles {
         return map.get(key);
     }
 
-    public static String getCoprocessorBehavior() {
-        return getString(DEBUG_TOGGLE_COPROCESSOR_BEHAVIOR);
-    }
-
-    public static String getHbaseCubeQueryVersion() {
-        return getString(DEBUG_TOGGLE_HBASE_CUBE_QUERY_VERSION);
-    }
-
-    public static String getHbaseCubeQueryProtocol() {
-        return getString(DEBUG_TOGGLE_HBASE_CUBE_QUERY_PROTOCOL);
-    }
-
     public static boolean getDisableCache() {
         return getBoolean(DEBUG_TOGGLE_DISABLE_QUERY_CACHE);
     }
@@ -112,10 +100,6 @@ public class BackdoorToggles {
 
     public static boolean getIsQueryFromAutoModeling() {
         return getBoolean(QUERY_FROM_AUTO_MODELING);
-    }
-
-    public static boolean getRunLocalCoprocessor() {
-        return getBoolean(DEBUG_TOGGLE_LOCAL_COPROCESSOR);
     }
 
     public static String getPartitionDumpDir() {
@@ -208,47 +192,6 @@ public class BackdoorToggles {
      }
      */
     public final static String DEBUG_TOGGLE_DISABLE_QUERY_CACHE = "DEBUG_TOGGLE_DISABLE_QUERY_CACHE";
-
-    /**
-     * set DEBUG_TOGGLE_HBASE_CUBE_QUERY_VERSION=v1/v2 to control which version CubeStorageQuery to use
-     *
-     example:(put it into request body)
-     "backdoorToggles": {
-     "DEBUG_TOGGLE_HBASE_CUBE_QUERY_VERSION": "v1"
-     }
-     */
-    public final static String DEBUG_TOGGLE_HBASE_CUBE_QUERY_VERSION = "DEBUG_TOGGLE_HBASE_CUBE_QUERY_VERSION";
-
-    /**
-     * set DEBUG_TOGGLE_HBASE_CUBE_QUERY_PROTOCOL=endpoint/scan to control how to visit hbase cube
-     * this param is only valid when DEBUG_TOGGLE_HBASE_CUBE_QUERY_VERSION set to v2(bdefault)
-     *
-     example:(put it into request body)
-     "backdoorToggles": {
-     "DEBUG_TOGGLE_HBASE_CUBE_QUERY_PROTOCOL": "scan"
-     }
-     */
-    public final static String DEBUG_TOGGLE_HBASE_CUBE_QUERY_PROTOCOL = "DEBUG_TOGGLE_HBASE_CUBE_QUERY_PROTOCOL";
-
-    /**
-     * set DEBUG_TOGGLE_COPROCESSOR_BEHAVIOR=SCAN/SCAN_FILTER/SCAN_FILTER_AGGR/SCAN_FILTER_AGGR_CHECKMEM to control observer behavior for debug/profile usage
-     *
-     example:(put it into request body)
-     "backdoorToggles": {
-        "DEBUG_TOGGLE_COPROCESSOR_BEHAVIOR": "SCAN"
-     }
-     */
-    public final static String DEBUG_TOGGLE_COPROCESSOR_BEHAVIOR = "DEBUG_TOGGLE_COPROCESSOR_BEHAVIOR";
-
-    /**
-     * set DEBUG_TOGGLE_LOCAL_COPROCESSOR=true to run coprocessor at client side (not in HBase region server)
-     *
-     example:(put it into request body)
-     "backdoorToggles": {
-        "DEBUG_TOGGLE_LOCAL_COPROCESSOR": "true"
-     }
-     */
-    public final static String DEBUG_TOGGLE_LOCAL_COPROCESSOR = "DEBUG_TOGGLE_LOCAL_COPROCESSOR";
 
     /**
      * set DEBUG_TOGGLE_QUERY_TIMEOUT="timeout_millis" to overwrite the global timeout settings

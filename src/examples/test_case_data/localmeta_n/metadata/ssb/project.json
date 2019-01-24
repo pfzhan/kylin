@@ -9,6 +9,6 @@
   "description" : null,
   "ext_filters" : [ ],
   "override_kylin_properties" : {
-    "kylin.storage.hbase.owner-tag" : "kylin@kylin.apache.org"
+    "kylin.query.slowquery-detect-interval": "4"
   }
 }

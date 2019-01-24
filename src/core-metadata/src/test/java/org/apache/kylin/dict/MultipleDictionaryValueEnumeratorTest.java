@@ -57,7 +57,7 @@ import java.util.List;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.ClassUtil;
 import org.apache.kylin.common.util.Dictionary;
-import org.apache.kylin.common.util.HBaseMetadataTestCase;
+import org.apache.kylin.common.util.SandboxMetadataTestCase;
 import org.apache.kylin.metadata.datatype.DataType;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -70,8 +70,8 @@ public class MultipleDictionaryValueEnumeratorTest {
 
     @BeforeClass
     public static void beforeClass() throws Exception {
-        ClassUtil.addClasspath(new File(HBaseMetadataTestCase.SANDBOX_TEST_DATA).getAbsolutePath());
-        System.setProperty(KylinConfig.KYLIN_CONF, HBaseMetadataTestCase.SANDBOX_TEST_DATA);
+        ClassUtil.addClasspath(new File(SandboxMetadataTestCase.SANDBOX_TEST_DATA).getAbsolutePath());
+        System.setProperty(KylinConfig.KYLIN_CONF, SandboxMetadataTestCase.SANDBOX_TEST_DATA);
     }
 
     private static DictionaryInfo createDictInfo(String[] values) {

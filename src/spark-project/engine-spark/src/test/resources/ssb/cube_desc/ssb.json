@@ -201,15 +201,6 @@
       "index" : "eq"
     } ]
   },
-  "hbase_mapping" : {
-    "column_family" : [ {
-      "name" : "F1",
-      "columns" : [ {
-        "qualifier" : "M",
-        "measure_refs" : [ "_COUNT_", "P_LINEORDER.V_REVENUE_SUM", "P_LINEORDER.LO_SUPPLYCOST_SUM", "P_LINEORDER.LO_REVENUE_SUM" ]
-      } ]
-    } ]
-  },
   "aggregation_groups" : [ {
     "includes" : [ "CUSTOMER.C_CITY", "CUSTOMER.C_NATION", "CUSTOMER.C_REGION", "SUPPLIER.S_CITY", "SUPPLIER.S_REGION", "SUPPLIER.S_NATION", "DATES.D_YEARMONTH", "DATES.D_YEAR", "PART.P_BRAND", "PART.P_CATEGORY", "PART.P_MFGR" ],
     "select_rule" : {
@@ -243,7 +234,6 @@
   "engine_type" : 2,
   "storage_type" : 2,
   "override_kylin_properties" : {
-    "kylin.cube.aggrgroup.is-mandatory-only-valid" : "true",
-    "kylin.storage.hbase.min-region-count" : "4"
+    "kylin.cube.aggrgroup.is-mandatory-only-valid" : "true"
   }
 }

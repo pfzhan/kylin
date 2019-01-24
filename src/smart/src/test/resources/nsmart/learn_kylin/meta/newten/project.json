@@ -1,6 +1,6 @@
 {
   "uuid": "5cabc32a-a33e-4b69-83dd-1bb8b1f8c92b",
   "override_kylin_properties": {
-    "kylin.storage.hbase.owner-tag": "kylin@kylin.apache.org"
+    "kylin.query.slowquery-detect-interval": "4"
   }
 }

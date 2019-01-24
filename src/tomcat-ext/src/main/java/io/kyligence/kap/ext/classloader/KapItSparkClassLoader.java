@@ -54,7 +54,7 @@ public class KapItSparkClassLoader extends URLClassLoader {
             "com.sun.", "launcher.", "java.", "javax.", "org.ietf", "org.omg", "org.w3c", "org.xml", "sunw.", "sun.",
             // logging
             "org.apache.commons.logging", "org.apache.log4j", "com.hadoop", "org.slf4j",
-            // Hadoop/HBase/ZK:
+            // Hadoop/ZK:
             "org.apache.hadoop", "org.apache.zookeeper", "io.kyligence", "org.apache.kylin", "com.intellij",
             "org.apache.calcite", "org.roaringbitmap", "org.apache.parquet" };
     private static final Set<String> classNotFoundCache = new HashSet<>();

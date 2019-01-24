@@ -56,7 +56,7 @@ import java.util.Properties;
 import java.util.Random;
 
 import org.apache.commons.io.FileUtils;
-import org.apache.kylin.common.util.HBaseMetadataTestCase;
+import org.apache.kylin.common.util.SandboxMetadataTestCase;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.webapp.WebAppContext;
 import org.junit.AfterClass;
@@ -70,7 +70,7 @@ import com.google.common.collect.Lists;
 
 /**
  */
-public class ITJDBCDriverTest extends HBaseMetadataTestCase {
+public class ITJDBCDriverTest extends SandboxMetadataTestCase {
 
     private static Server server = null;
     private static SystemPropertiesOverride sysPropsOverride = new SystemPropertiesOverride();

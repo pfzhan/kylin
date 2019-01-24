@@ -74,7 +74,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.common.debug.BackdoorToggles;
-import org.apache.kylin.common.util.HBaseMetadataTestCase;
+import org.apache.kylin.common.util.SandboxMetadataTestCase;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.metadata.querymeta.SelectedColumnMeta;
@@ -792,7 +792,7 @@ public class KylinTestBase {
 
     protected static void setupAll() throws Exception {
         //setup env
-        HBaseMetadataTestCase.staticCreateTestMetadata();
+        SandboxMetadataTestCase.staticCreateTestMetadata();
         config = KylinConfig.getInstanceFromEnv();
 
         //setup cube conn
@@ -813,7 +813,7 @@ public class KylinTestBase {
         if (h2Connection != null)
             closeConnection(h2Connection);
 
-        HBaseMetadataTestCase.staticCleanupTestMetadata();
+        SandboxMetadataTestCase.staticCleanupTestMetadata();
         RemoveBlackoutRealizationsRule.blackList.clear();
 
     }
