@@ -201,7 +201,9 @@ public class OLAPContext {
     private Set<TblColRef> subqueryJoinParticipants = new HashSet<TblColRef>();//subqueryJoinParticipants will be added to groupByColumns(only when other group by co-exists) and allColumns
     public Set<TblColRef> metricsColumns = new HashSet<>();
     public List<FunctionDesc> aggregations = new ArrayList<>(); // storage level measure type, on top of which various sql aggr function may apply
-    public List<FunctionDesc> constantAggregations = new ArrayList<>(); // agg like min(2),max(2),avg(2), not including count(1)
+    @Setter
+    @Getter
+    private List<FunctionDesc> constantAggregations = new ArrayList<>(); // agg like min(2),max(2),avg(2), not including count(1)
     public List<TblColRef> aggrOutCols = new ArrayList<>(); // aggregation output (inner) columns
     public List<SQLCall> aggrSqlCalls = new ArrayList<>(); // sql level aggregation function call
     public Set<TblColRef> filterColumns = new LinkedHashSet<>();
@@ -225,7 +227,7 @@ public class OLAPContext {
     public OLAPAuthentication olapAuthen = new OLAPAuthentication();
 
     public boolean isSimpleQuery() {
-        return (joins.size() == 0) && (groupByColumns.size() == 0) && (aggregations.size() == 0);
+        return (joins.isEmpty()) && (groupByColumns.isEmpty()) && (aggregations.isEmpty());
     }
 
     public boolean isConstantQuery() {
@@ -371,6 +373,7 @@ public class OLAPContext {
         this.joinsGraph = null;
 
         this.sqlDigest = null;
+        this.getConstantAggregations().clear();
     }
 
     public void bindVariable(DataContext dataContext) {

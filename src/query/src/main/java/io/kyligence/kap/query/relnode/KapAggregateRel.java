@@ -109,6 +109,7 @@ public class KapAggregateRel extends OLAPAggregateRel implements KapRel {
 
     @Override
     public void implementOLAP(OLAPImplementor olapContextImplementor) {
+
         olapContextImplementor.visitChild(getInput(), this);
 
         this.columnRowType = buildColumnRowType();
@@ -120,12 +121,11 @@ public class KapAggregateRel extends OLAPAggregateRel implements KapRel {
                 addToContextGroupBy(this.groups);
                 for (FunctionDesc agg : aggregations) {
                     if (agg.isAggregateOnConstant()) {
-                        this.context.constantAggregations.add(agg);
+                        this.context.getConstantAggregations().add(agg);
                     } else {
                         this.context.aggregations.add(agg);
                     }
                 }
-
                 this.context.aggrOutCols.addAll(
                         columnRowType.getAllColumns().subList(groups.size(), columnRowType.getAllColumns().size()));
                 this.context.afterAggregate = true;
@@ -134,14 +134,10 @@ public class KapAggregateRel extends OLAPAggregateRel implements KapRel {
                 }
 
                 addSourceColsToContext();
-            } else {
-                for (AggregateCall aggCall : aggCalls) {
-                    // check if supported by kylin
-                    if (aggCall.isDistinct()) {
-                        throw new IllegalStateException("Distinct count is only allowed in innermost sub-query.");
-                    }
-                }
+                return;
             }
+
+            checkAggCallAfterAggRel();
         }
     }
 
@@ -254,6 +250,15 @@ public class KapAggregateRel extends OLAPAggregateRel implements KapRel {
             for (TblColRef colRef : colRefs) {
                 if (context.belongToContextTables(colRef) && !colRef.getName().startsWith("_KY_"))
                     context.allColumns.add(colRef);
+            }
+        }
+    }
+
+    private void checkAggCallAfterAggRel() {
+        for (AggregateCall aggCall : aggCalls) {
+            // check if supported by kylin
+            if (aggCall.isDistinct()) {
+                throw new IllegalStateException("Distinct count is only allowed in innermost sub-query.");
             }
         }
     }

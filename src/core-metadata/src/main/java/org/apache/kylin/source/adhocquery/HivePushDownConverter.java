@@ -85,7 +85,7 @@ public class HivePushDownConverter implements IPushDownConverter {
             .compile("group\\s+by\\s+(grouping\\s+sets\\s*\\(([`_a-z0-9A-Z(),\\s]+)\\))", Pattern.CASE_INSENSITIVE);
     private static final Pattern COLUMN_NAME_PATTERN = Pattern.compile("[`_a-z0-9A-Z]+", Pattern.CASE_INSENSITIVE);
     private static final Set<String> sqlKeyWordsExceptAS = FluentIterable //
-            .from(calciteKeyWords) //
+            .from(SqlSyntaxConstant.CALCITE_KEY_WORDS) //
             .filter(not(equalTo("AS"))) //
             .toSet(); //
 

@@ -286,26 +286,18 @@ public class OLAPAggregateRel extends Aggregate implements OLAPRel {
     }
 
     void buildAggregations() {
+
         ColumnRowType inputColumnRowType = ((OLAPRel) getInput()).getColumnRowType();
-        this.aggregations = new ArrayList<FunctionDesc>();
+        this.aggregations = new ArrayList<>();
         for (AggregateCall aggCall : this.rewriteAggCalls) {
             ParameterDesc parameter = null;
             // By default all args are included, UDFs can define their own in getParamAsMeasureCount method.
             if (!aggCall.getArgList().isEmpty()) {
                 List<TblColRef> columns = Lists.newArrayList();
-                String funcName = getSqlFuncName(aggCall);
-                int columnsCount = aggCall.getArgList().size();
-                if (AGGR_FUNC_PARAM_AS_MEASURE_MAP.containsKey(funcName)) {
-                    int asMeasureCnt = AGGR_FUNC_PARAM_AS_MEASURE_MAP.get(funcName);
-                    if (asMeasureCnt > 0) {
-                        columnsCount = asMeasureCnt;
-                    } else {
-                        columnsCount += asMeasureCnt;
-                    }
-                }
-                for (Integer index : aggCall.getArgList().subList(0, columnsCount)) {
+                int argsCount = getAggArgCount(aggCall);
+                for (Integer index : aggCall.getArgList().subList(0, argsCount)) {
                     TblColRef column = inputColumnRowType.getColumnByIndex(index);
-                    if ("SUM".equals(funcName)) {
+                    if (FunctionDesc.FUNC_SUM.equals(getSqlFuncName(aggCall))) {
                         column = rewriteCastInSumIfNecessary(aggCall, inputColumnRowType, index);
                     }
                     columns.add(column);
@@ -609,5 +601,19 @@ public class OLAPAggregateRel extends Aggregate implements OLAPRel {
     public RelWriter explainTerms(RelWriter pw) {
         return super.explainTerms(pw).item("ctx",
                 context == null ? "" : String.valueOf(context.id) + "@" + context.realization);
+    }
+
+    private int getAggArgCount(AggregateCall aggCall) {
+
+        int argsCount = aggCall.getArgList().size();
+        if (AGGR_FUNC_PARAM_AS_MEASURE_MAP.containsKey(getSqlFuncName(aggCall))) {
+            int asMeasureCnt = AGGR_FUNC_PARAM_AS_MEASURE_MAP.get(getSqlFuncName(aggCall));
+            if (asMeasureCnt > 0) {
+                argsCount = asMeasureCnt;
+            } else {
+                argsCount += asMeasureCnt;
+            }
+        }
+        return argsCount;
     }
 }
