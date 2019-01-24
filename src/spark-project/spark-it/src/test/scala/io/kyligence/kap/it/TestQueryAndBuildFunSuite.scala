@@ -27,6 +27,7 @@ import java.io.File
 import io.kyligence.kap.common.{CompareSupport, JobSupport, QuerySupport, SSSource}
 import io.kyligence.kap.query.{QueryConstants, QueryFetcher}
 import io.netty.util.internal.ThrowableUtil
+import org.apache.kylin.common.KylinConfig
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.SparderEnv
 import org.apache.spark.sql.common.{LocalMetadata, SparderBaseFunSuite}
@@ -95,6 +96,7 @@ class TestQueryAndBuildFunSuite
 
   override def beforeAll(): Unit = {
     super.beforeAll()
+    KylinConfig.getInstanceFromEnv.setProperty("kylin.query.pushdown.runner-class-name", "")
     SparderEnv.skipCompute()
     build()
   }

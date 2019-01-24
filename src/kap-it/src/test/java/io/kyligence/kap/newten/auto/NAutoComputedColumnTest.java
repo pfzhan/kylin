@@ -24,10 +24,11 @@
 
 package io.kyligence.kap.newten.auto;
 
-import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import org.junit.Assert;
+import org.junit.Ignore;
 import org.junit.Test;
 
+import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.model.ComputedColumnDesc;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModel.Measure;
@@ -156,6 +157,7 @@ public class NAutoComputedColumnTest extends NAutoTestBase {
     }
 
     @Test
+    @Ignore("blocked by #10760")
     public void testComputedColumnFailOnSumExpr() {
         String query = "SELECT SUM(PRICE_TOTAL + 1), CAL_DT FROM (SELECT PRICE * ITEM_COUNT AS PRICE_TOTAL, CAL_DT FROM TEST_KYLIN_FACT) T GROUP BY CAL_DT";
         NSmartMaster smartMaster = new NSmartMaster(kylinConfig, getProject(), new String[] { query });

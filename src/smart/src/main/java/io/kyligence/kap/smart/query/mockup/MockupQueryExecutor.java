@@ -49,6 +49,7 @@ public class MockupQueryExecutor extends AbstractQueryExecutor {
         BackdoorToggles.addToggle(BackdoorToggles.DEBUG_TOGGLE_CHECK_ALL_MODELS, "true");
         BackdoorToggles.addToggle(BackdoorToggles.DISABLE_RAW_QUERY_HACKER, "true");
         BackdoorToggles.addToggle(BackdoorToggles.QUERY_FROM_AUTO_MODELING, "true");
+        BackdoorToggles.addToggle(BackdoorToggles.DEBUG_TOGGLE_PREPARE_ONLY, "true");
 
         QueryRecord record = getCurrentRecord();
         SQLResult sqlResult = new SQLResult();
