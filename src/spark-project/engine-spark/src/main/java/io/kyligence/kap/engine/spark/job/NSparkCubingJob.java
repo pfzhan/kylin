@@ -145,10 +145,12 @@ public class NSparkCubingJob extends DefaultChainedExecutableOnModel {
 
     @Override
     public boolean safetyIfDiscard() {
-        NDataflowManager nDataflowManager = NDataflowManager.getInstance(getConfig(), getProject());
-        NDataflow dataflow = nDataflowManager.getDataflow(getSparkCubingStep().getDataflowId());
+        if (this.getStatus().isFinalState()) {
+            return true;
+        }
+
         val execManager = NExecutableManager.getInstance(getConfig(), getProject());
-        val pendingJobsInModel = execManager.listExecByModelAndStatus(dataflow.getModel().getId(),
+        val pendingJobsInModel = execManager.listExecByModelAndStatus(getSparkCubingStep().getDataflowId(),
                 state -> state == ExecutableState.READY, JobTypeEnum.INC_BUILD);
         return pendingJobsInModel.stream().allMatch(job -> job.getId().equals(getId()));
     }

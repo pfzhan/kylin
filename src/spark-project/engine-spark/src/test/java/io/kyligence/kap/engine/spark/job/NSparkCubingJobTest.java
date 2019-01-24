@@ -44,6 +44,7 @@ import org.apache.kylin.job.engine.JobEngineConfig;
 import org.apache.kylin.job.exception.ExecuteException;
 import org.apache.kylin.job.execution.ExecutableContext;
 import org.apache.kylin.job.execution.ExecutableState;
+import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
 import org.apache.kylin.job.lock.MockJobLock;
@@ -422,7 +423,8 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
     @Test
     public void testSparkExecutable_WrapConfig() {
         val project = "default";
-        ExecutableContext context = new ExecutableContext(Maps.newConcurrentMap(), Maps.newConcurrentMap(), getTestConfig());
+        ExecutableContext context = new ExecutableContext(Maps.newConcurrentMap(), Maps.newConcurrentMap(),
+                getTestConfig());
         NSparkExecutable executable = new NSparkExecutable();
         executable.setProject(project);
 
@@ -491,6 +493,42 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
         } finally {
             System.clearProperty("kylin.storage.provider.20");
         }
+    }
+
+    @Test
+    public void testSafetyIfDiscard() throws Exception {
+        NDataflowManager dsMgr = NDataflowManager.getInstance(config, getProject());
+        NExecutableManager execMgr = NExecutableManager.getInstance(config, getProject());
+        cleanupSegments(dsMgr, "89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+        NDataflow df = dsMgr.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+        Assert.assertEquals(0, df.getSegments().size());
+
+        // ready dataflow, segment, cuboid layout
+        NDataSegment oneSeg = dsMgr.appendSegment(df, new SegmentRange.TimePartitionedSegmentRange(0L, 10L));
+        NDataSegment secondSeg = dsMgr.appendSegment(df, new SegmentRange.TimePartitionedSegmentRange(11L, 12L));
+        List<LayoutEntity> layouts = df.getIndexPlan().getAllLayouts();
+        List<LayoutEntity> round1 = new ArrayList<>();
+        round1.add(layouts.get(0));
+        round1.add(layouts.get(1));
+        // Round1. Build new segment
+        NSparkCubingJob job1 = NSparkCubingJob.create(Sets.newHashSet(oneSeg), Sets.newLinkedHashSet(round1), "ADMIN",
+                JobTypeEnum.INC_BUILD, UUID.randomUUID().toString(), Sets.newHashSet());
+        NSparkCubingJob job2 = NSparkCubingJob.create(Sets.newHashSet(secondSeg), Sets.newLinkedHashSet(round1),
+                "ADMIN", JobTypeEnum.INC_BUILD, UUID.randomUUID().toString(), Sets.newHashSet());
+        execMgr.addJob(job1);
+        execMgr.addJob(job2);
+
+        execMgr.updateJobOutput(job1.getId(), ExecutableState.READY);
+        execMgr.updateJobOutput(job2.getId(), ExecutableState.READY);
+        Assert.assertFalse(job1.safetyIfDiscard());
+
+        execMgr.updateJobOutput(job1.getId(), ExecutableState.RUNNING);
+        Assert.assertFalse(job1.safetyIfDiscard());
+        Assert.assertTrue(job2.safetyIfDiscard());
+
+        execMgr.updateJobOutput(job1.getId(), ExecutableState.SUCCEED);
+        Assert.assertTrue(job1.safetyIfDiscard());
+        Assert.assertTrue(job2.safetyIfDiscard());
     }
 
     private void cleanupSegments(NDataflowManager dsMgr, String dfName) {
