@@ -325,10 +325,10 @@
         </transition>
 
         <div class="search-action-list" v-if="modelSearchActionHistoryList && modelSearchActionHistoryList.length">
-          <div class="action-list-title">Search History</div>
+          <div class="action-list-title">{{$t('searchHistory')}}</div>
           <div class="action-content" v-for="(item, index) in modelSearchActionHistoryList" :key="index">
             <div class="action-title">
-              <i :class="item.icon" class="ksd-mr-8"></i>
+              <i :class="item.icon" class="ksd-mr-6 search-list-icon"></i>
               {{item.title}}</div>
             <div class="action-detail"></div>
           </div>
@@ -701,10 +701,12 @@ export default class ModelEdit extends Vue {
   activeTablePanel (t) {
     this.modelInstance.setIndexTop(Object.values(this.modelRender.tables), t, 'drawSize')
   }
-  closeAddMeasureDia ({isSubmit, data, isEdit}) {
+  closeAddMeasureDia ({isSubmit, data, isEdit, fromSearch}) {
     if (isSubmit) {
-      this.modelSearchActionSuccessTip = 'measure 保存成功'
-      this._collectSearchActionRecords(data, isEdit ? 'editmeasure' : 'addmeasure')
+      if (fromSearch) {
+        this.modelSearchActionSuccessTip = 'measure 保存成功'
+        this._collectSearchActionRecords(data, isEdit ? 'editmeasure' : 'addmeasure')
+      }
       this.measureVisible = false
     }
   }
@@ -1079,7 +1081,7 @@ export default class ModelEdit extends Vue {
     let record = {}
     let actionData = objectClone(data)
     if (type === 'tableaddjoin' || type === 'addjoin') {
-      record.icon = ''
+      record.icon = 'el-icon-ksd-joint_condition'
       let fTable = this.modelInstance.getTableByGuid(actionData.selectF)
       let pTable = this.modelInstance.getTableByGuid(actionData.selectP)
       record.data = objectClone(actionData.joinData)
@@ -1742,6 +1744,13 @@ export default class ModelEdit extends Vue {
           height:30px;
           line-height:30px;
           border-bottom: solid 1px @line-split-color;
+        }
+        .search-list-icon {
+          width:16px;
+          height:16px;
+          .ky-square-box(16px, 16px);
+          border-radius: 50%;
+          background-color: @line-split-color;
         }
         .action-content {
           border-bottom: dashed 1px @line-split-color;

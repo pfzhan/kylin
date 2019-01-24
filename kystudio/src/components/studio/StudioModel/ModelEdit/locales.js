@@ -43,7 +43,8 @@ export default {
     noDimensionTipTitle: 'Add Dimension',
     noDimensionAndMeasureTipTitle: 'Add Dimension and Measure',
     noDimensionGoOnSave: 'Save',
-    noDimensionBackEdit: 'Back to edit'
+    noDimensionBackEdit: 'Back to edit',
+    searchHistory: 'Searh History'
   },
   'zh-cn': {
     'adddimension': '添加维度',
@@ -89,6 +90,7 @@ export default {
     noDimensionAndMeasureTipTitle: '添加维度和度量',
     noDimensionAndMeasureTipContent: '本模型中尚无维度和度量，如此保存后将无法添加聚合索引。如果只需要明细查询，继续保存即可。如果本模型后续将服务于聚合函数的查询，系统建议您添加一些要分析的维度和度量。',
     noDimensionGoOnSave: '继续保存',
-    noDimensionBackEdit: '回到编辑'
+    noDimensionBackEdit: '回到编辑',
+    searchHistory: '搜索历史'
   }
 }

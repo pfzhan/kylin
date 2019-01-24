@@ -27,7 +27,7 @@ import { mapActions, mapGetters } from 'vuex'
   }
 })
 export default class modelJSON extends Vue {
-  jsonInfo = null
+  jsonInfo = ''
   mounted () {
     this.getModelJson({
       model: this.model,

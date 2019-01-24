@@ -392,10 +392,11 @@ export default class AddMeasure extends Vue {
     return targetColumns
   }
 
-  handleHide (isSubmit, measure, isEdit) {
+  handleHide (isSubmit, measure, isEdit, fromSearch) {
     this.measureVisible = false
     this.$emit('closeAddMeasureDia', {
       isEdit: isEdit,
+      fromSearch: fromSearch,
       data: measure,
       isSubmit: isSubmit
     })
@@ -404,6 +405,8 @@ export default class AddMeasure extends Vue {
     this.$refs.measureForm.validate((valid) => {
       if (valid) {
         const measureClone = objectClone(this.measure)
+        // 判断该操作是否属于搜索入口进来
+        let isFromSearchAciton = measureClone.fromSearch
         if (measureClone.expression.indexOf('SUM') !== -1) {
           measureClone.expression = 'SUM'
         }
@@ -414,17 +417,12 @@ export default class AddMeasure extends Vue {
         measureClone.parameter_value = measureClone.convertedColumns
         delete measureClone.parameterValue
         delete measureClone.convertedColumns
-        if (this.isEditMeasure) {
-          this.modelInstance.editMeasure(measureClone).then(() => {
-            this.resetMeasure()
-            this.handleHide(true, measureClone, this.isEditMeasure)
-          })
-        } else {
-          this.modelInstance.addMeasure(measureClone).then(() => {
-            this.resetMeasure()
-            this.handleHide(true, measureClone, this.isEditMeasure)
-          })
-        }
+        delete measureClone.fromSearch
+        let action = this.isEditMeasure ? 'editMeasure' : 'addMeasure'
+        this.modelInstance[action](measureClone).then(() => {
+          this.resetMeasure()
+          this.handleHide(true, measureClone, this.isEditMeasure, isFromSearchAciton)
+        })
       }
     })
   }
