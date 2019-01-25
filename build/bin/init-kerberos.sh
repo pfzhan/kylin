@@ -6,13 +6,6 @@ function exportKRB5CCNAME() {
     export KRB5CCNAME=${KYLIN_HOME}"/conf/"${KAP_KERBEROS_CACHE}
 }
 
-function exportKrb5ccNameIfNeeded(){
-    if ! klist -s
-    then
-        exportKRB5CCNAME
-    fi
-}
-
 function initKerberos() {
     KAP_KERBEROS_PRINCIPAL=`$KYLIN_HOME/bin/get-properties.sh kap.kerberos.principal`
     KAP_KERBEROS_KEYTAB=`$KYLIN_HOME/bin/get-properties.sh kap.kerberos.keytab`
@@ -25,7 +18,7 @@ function initKerberosIfNeeded(){
     KAP_KERBEROS_ENABLED=`$KYLIN_HOME/bin/get-properties.sh kap.kerberos.enabled`
     if [[ "${KAP_KERBEROS_ENABLED}" == "true" ]]
     then
-        exportKrb5ccNameIfNeeded
+        exportKRB5CCNAME
 
         if ! klist -s
         then
