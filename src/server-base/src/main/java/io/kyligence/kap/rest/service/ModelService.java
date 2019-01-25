@@ -117,7 +117,6 @@ import io.kyligence.kap.rest.response.NSpanningTreeResponse;
 import io.kyligence.kap.rest.response.RefreshAffectedSegmentsResponse;
 import io.kyligence.kap.rest.response.RelatedModelResponse;
 import io.kyligence.kap.rest.response.SimplifiedMeasure;
-import io.kyligence.kap.rest.storage.ModelCleaner;
 import io.kyligence.kap.rest.transaction.Transaction;
 import io.kyligence.kap.smart.util.ComputedColumnEvalUtil;
 import lombok.Setter;
@@ -427,9 +426,13 @@ public class ModelService extends BasicService {
         Preconditions.checkState(MaintainModelType.MANUAL_MAINTAIN.equals(projectInstance.getMaintainModelType()));
 
         NDataModel dataModelDesc = getModelById(modelId, project);
-        val cleaner = new ModelCleaner();
-        cleaner.collect(dataModelDesc);
-        cleaner.cleanup();
+
+        val dataflowManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+        val indexPlanManager = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+        val dataModelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+        dataflowManager.dropDataflow(modelId);
+        indexPlanManager.removeCubePlan(modelId);
+        dataModelManager.dropModel(dataModelDesc);
     }
 
     @Transaction(project = 1)

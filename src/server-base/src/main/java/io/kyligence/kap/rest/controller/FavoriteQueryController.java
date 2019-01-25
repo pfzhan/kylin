@@ -90,6 +90,7 @@ public class FavoriteQueryController extends NBasicController {
     public EnvelopeResponse deleteFavoriteQuery(@RequestParam(value = "project") String project,
                                                 @RequestParam(value = "uuid") String uuid) {
         checkProjectName(project);
+        checkId(uuid);
         favoriteRuleService.deleteFavoriteQuery(project, uuid);
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, "", "");
     }

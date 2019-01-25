@@ -88,6 +88,11 @@ abstract public class RootPersistentEntity implements AclEntity, Serializable {
     @JsonProperty("last_modified")
     protected long lastModified;
 
+    @Getter
+    @Setter
+    @JsonProperty("create_time")
+    protected long createTime = System.currentTimeMillis();
+
     // if cached and shared, the object MUST NOT be modified (call setXXX() for example)
     protected boolean isCachedAndShared = false;
 

@@ -59,7 +59,6 @@ import io.kyligence.kap.rest.request.StorageQuotaRequest;
 import io.kyligence.kap.rest.response.FavoriteQueryThresholdResponse;
 import io.kyligence.kap.rest.response.ProjectConfigResponse;
 import io.kyligence.kap.rest.response.StorageVolumeInfoResponse;
-import io.kyligence.kap.rest.service.MetadataCleanupService;
 import io.kyligence.kap.rest.service.ProjectService;
 import lombok.val;
 import org.apache.kylin.common.util.JsonUtil;
@@ -89,9 +88,6 @@ public class NProjectControllerTest {
 
     @Mock
     private ProjectService projectService;
-
-    @Mock
-    private MetadataCleanupService garbageCleanService;
 
     @InjectMocks
     private NProjectController nProjectController = Mockito.spy(new NProjectController());
@@ -215,10 +211,9 @@ public class NProjectControllerTest {
     public void testStorageCleanup() throws Exception {
         ProjectInstance projectInstance = new ProjectInstance();
         NProjectManager projectManager = Mockito.mock(NProjectManager.class);
-        Mockito.doNothing().when(garbageCleanService).cleanupProject(Mockito.any());
         Mockito.doReturn(projectInstance).when(projectManager).getProject("default");
         Mockito.doReturn(projectManager).when(projectService).getProjectManager();
-        Mockito.doNothing().when(projectService).cleanupProjectGarbageIndex("default");
+        Mockito.doNothing().when(projectService).cleanupGarbage("default");
         mockMvc.perform(MockMvcRequestBuilders.put("/api/projects/storage")
                 .contentType(MediaType.APPLICATION_JSON).param("project", "default")
                 .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))

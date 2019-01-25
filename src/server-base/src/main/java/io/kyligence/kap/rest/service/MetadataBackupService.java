@@ -42,7 +42,7 @@ import lombok.val;
 @Service
 public class MetadataBackupService {
 
-    @Scheduled(cron = "${kylin.metadata.backup-cron:0 0 1 * * *}")
+    @Scheduled(cron = "${kylin.metadata.backup-cron:0 0 0 * * *}")
     public void backupAll() throws Exception {
 
         String oldTheadName = Thread.currentThread().getName();

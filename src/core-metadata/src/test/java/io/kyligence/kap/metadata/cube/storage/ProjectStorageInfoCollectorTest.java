@@ -25,15 +25,16 @@
 package io.kyligence.kap.metadata.cube.storage;
 
 import java.io.IOException;
-import java.lang.reflect.Field;
 import java.util.List;
-import java.util.concurrent.ConcurrentHashMap;
-
-import org.apache.kylin.common.KylinConfig;
+import java.util.TreeMap;
+import com.google.common.collect.Sets;
+import io.kyligence.kap.metadata.favorite.FavoriteQuery;
+import io.kyligence.kap.metadata.favorite.FavoriteQueryManager;
+import io.kyligence.kap.metadata.favorite.FavoriteQueryRealization;
+import io.kyligence.kap.metadata.model.NDataModelManager;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.mockito.Mockito;
 
@@ -43,13 +44,12 @@ import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
-import io.kyligence.kap.metadata.query.CuboidLayoutQueryTimes;
-import io.kyligence.kap.metadata.query.QueryHistoryDAO;
 import lombok.val;
 
 public class ProjectStorageInfoCollectorTest extends NLocalFileMetadataTestCase {
 
     private String PROJECT = "default";
+    private static final String MODEL_ID = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
 
     @Before
     public void setUp() throws Exception {
@@ -62,86 +62,135 @@ public class ProjectStorageInfoCollectorTest extends NLocalFileMetadataTestCase 
     }
 
     @Test
-    @Ignore
-    public void testGetStorageVolumeInfo() throws Exception {
-        mockHotModelLayouts();
-        val storageInfoEnumList = Lists.newArrayList(StorageInfoEnum.GARBAGE_STORAGE, StorageInfoEnum.STORAGE_QUOTA,
-                StorageInfoEnum.TOTAL_STORAGE);
+    public void testGetStorageVolumeInfo() {
+        initTestData();
+        val storageInfoEnumList = Lists.newArrayList(StorageInfoEnum.GARBAGE_STORAGE,
+                StorageInfoEnum.STORAGE_QUOTA, StorageInfoEnum.TOTAL_STORAGE);
         val collector = new ProjectStorageInfoCollector(storageInfoEnumList);
         val storageVolumeInfo = collector.getStorageVolumeInfo(getTestConfig(), PROJECT);
 
         Assert.assertEquals(1024 * 1024 * 1024L, storageVolumeInfo.getStorageQuotaSize());
-        Assert.assertEquals(3240960L, storageVolumeInfo.getGarbageStorageSize());
-        Assert.assertEquals(4, storageVolumeInfo.getGarbageModelIndexMap().size());
+        Assert.assertEquals(5112832L, storageVolumeInfo.getGarbageStorageSize());
+        Assert.assertEquals(5, storageVolumeInfo.getGarbageModelIndexMap().size());
+        Assert.assertEquals(8, storageVolumeInfo.getGarbageModelIndexMap().get(MODEL_ID).size());
+        // layout 1 was considered as garbage
+        Assert.assertTrue(storageVolumeInfo.getGarbageModelIndexMap().get(MODEL_ID).contains(1L));
+        // layout 40001 and 40002 were not considered as garbage
+        Assert.assertFalse(storageVolumeInfo.getGarbageModelIndexMap().get(MODEL_ID).contains(40001L));
+        Assert.assertFalse(storageVolumeInfo.getGarbageModelIndexMap().get(MODEL_ID).contains(40002L));
+        // manually built layout was not considered as garbage
+        Assert.assertFalse(storageVolumeInfo.getGarbageModelIndexMap().get(MODEL_ID).contains(IndexEntity.TABLE_INDEX_START_ID + 40001));
 
-        Assert.assertEquals(7,
-                storageVolumeInfo.getGarbageModelIndexMap().get("89af4ee2-2cdb-4b07-b39e-4c29856309aa").size());
-        Assert.assertEquals(4,
-                storageVolumeInfo.getGarbageModelIndexMap().get("741ca86a-1f13-46da-a59f-95fb68615e3a").size());
-
-        getTestConfig().setProperty("kylin.garbage.storage.cuboid-layout-survival-time-threshold", "500d");
-        val storageVolumeInfo2 = collector.getStorageVolumeInfo(getTestConfig(), PROJECT);
-        Assert.assertEquals(1024 * 1024 * 1024L, storageVolumeInfo2.getStorageQuotaSize());
-        Assert.assertEquals(0L, storageVolumeInfo2.getGarbageStorageSize());
-        Assert.assertEquals(0L, storageVolumeInfo2.getGarbageModelIndexMap().size());
-        getTestConfig().setProperty("kylin.garbage.storage.cuboid-layout-survival-time-threshold", "7d");
-
+        // layout 1 is only related to low frequency fq
+        Assert.assertTrue(storageVolumeInfo.getGarbageModelIndexMap().get(MODEL_ID).contains(1L));
+        Assert.assertFalse(storageVolumeInfo.getGarbageModelIndexMap().get(MODEL_ID).contains(IndexEntity.TABLE_INDEX_START_ID + 40001));
     }
 
-    @Test
-    public void testGetStorageVolumeInfoWhenIndexIsBuilding() throws Exception {
-        mockHotModelLayouts();
+    private void initTestData() {
+        val modelMgr = NDataModelManager.getInstance(getTestConfig(), PROJECT);
         val indePlanManager = NIndexPlanManager.getInstance(getTestConfig(), PROJECT);
+        val model = modelMgr.getDataModelDesc(MODEL_ID);
+        val cube = indePlanManager.getIndexPlan(MODEL_ID);
 
-        // add an new layout
-        indePlanManager.updateIndexPlan("89af4ee2-2cdb-4b07-b39e-4c29856309aa", copyForWrite -> {
+        val favoriteQueryManager = FavoriteQueryManager.getInstance(getTestConfig(), PROJECT);
+        long currentTime = System.currentTimeMillis();
+        long currentDate = currentTime - currentTime % (24 * 60 * 60 * 1000L);
+        long dayInMillis = 24 * 60 * 60 * 1000L;
+
+        // a low frequency favorite query, related layout 1 will be considered as garbage
+        val fq1 = new FavoriteQuery("sql1");
+        fq1.setCreateTime(currentTime - 32 * dayInMillis);
+        fq1.setFrequencyMap(new TreeMap<Long, Integer>() {
+            {
+                put(currentDate - 7 * dayInMillis, 1);
+                put(currentDate - 31 * dayInMillis, 100);
+            }
+        });
+
+        val fqr1 = new FavoriteQueryRealization();
+        fqr1.setModelId(model.getId());
+        fqr1.setSemanticVersion(model.getSemanticVersion());
+        fqr1.setLayoutId(40001);
+
+        val fqr2 = new FavoriteQueryRealization();
+        fqr2.setModelId(model.getId());
+        fqr2.setSemanticVersion(model.getSemanticVersion());
+        fqr2.setLayoutId(1);
+
+        fq1.setRealizations(Lists.newArrayList(fqr1, fqr2));
+
+        // not reached low frequency threshold, related layouts are 40001 and 40002
+        val fq2 = new FavoriteQuery("sql2");
+        fq2.setCreateTime(currentTime - 8 * dayInMillis);
+        fq2.setFrequencyMap(new TreeMap<Long, Integer>() {
+            {
+                put(currentDate - 7 * 24 * 60 * 60 * 1000L, 1);
+                put(currentDate, 2);
+            }
+        });
+
+        val fqr3 = new FavoriteQueryRealization();
+        fqr3.setModelId(model.getId());
+        fqr3.setSemanticVersion(model.getSemanticVersion());
+        fqr3.setLayoutId(40001);
+
+        val fqr4 = new FavoriteQueryRealization();
+        fqr4.setModelId(model.getId());
+        fqr4.setSemanticVersion(model.getSemanticVersion());
+        fqr4.setLayoutId(40002);
+        fq2.setRealizations(Lists.newArrayList(fqr3, fqr4));
+
+        // not a low frequency fq, related layouts are 10001 and 10002
+        val fq3 = new FavoriteQuery("sql3");
+        fq3.setCreateTime(currentDate - 31 * dayInMillis);
+        fq3.setFrequencyMap(new TreeMap<Long, Integer>() {
+            {
+                put(currentDate - 30 * 24 * 60 * 60 * 1000L, 10);
+            }
+        });
+
+        val fqr5 = new FavoriteQueryRealization();
+        fqr5.setModelId(model.getId());
+        fqr5.setSemanticVersion(model.getSemanticVersion());
+        fqr5.setLayoutId(10001);
+
+        val fqr6 = new FavoriteQueryRealization();
+        fqr6.setModelId(model.getId());
+        fqr6.setSemanticVersion(model.getSemanticVersion());
+        fqr6.setLayoutId(10002);
+        fq3.setRealizations(Lists.newArrayList(fqr5, fqr6));
+
+        favoriteQueryManager.create(Sets.newHashSet(fq1, fq2, fq3));
+
+        // add some new layouts for cube
+        indePlanManager.updateIndexPlan(cube.getUuid(), copyForWrite -> {
             val newDesc = new IndexEntity();
-            newDesc.setId(4000L);
+            newDesc.setId(40000);
             newDesc.setDimensions(Lists.newArrayList(1, 2, 3, 4));
             newDesc.setMeasures(Lists.newArrayList(100000, 100001, 100005));
             val layout = new LayoutEntity();
-            layout.setId(4001L);
+            layout.setId(40001);
             layout.setColOrder(Lists.newArrayList(2, 1, 3, 4, 100000, 100001, 100005));
             layout.setAuto(true);
-            newDesc.setLayouts(Lists.newArrayList(layout));
+            val layout3 = new LayoutEntity();
+            layout3.setId(40002);
+            layout3.setColOrder(Lists.newArrayList(3, 2, 1, 4, 100000, 100001, 100005));
+            layout3.setAuto(true);
+            newDesc.setLayouts(Lists.newArrayList(layout, layout3));
+
+            val newDesc2 = new IndexEntity();
+            newDesc2.setId(IndexEntity.TABLE_INDEX_START_ID + 40000);
+            newDesc2.setDimensions(Lists.newArrayList(1, 2, 3, 4, 5, 6, 7));
+            val layout2 = new LayoutEntity();
+            layout2.setId(IndexEntity.TABLE_INDEX_START_ID + 40001);
+            layout2.setColOrder(Lists.newArrayList(1, 2, 3, 4, 5, 6, 7));
+            layout2.setAuto(true);
+            layout2.setManual(true);
+            newDesc2.setLayouts(Lists.newArrayList(layout2));
+
             copyForWrite.getIndexes().add(newDesc);
+            copyForWrite.getIndexes().add(newDesc2);
         });
-
-        val storageInfoEnumList = Lists.newArrayList(StorageInfoEnum.GARBAGE_STORAGE, StorageInfoEnum.STORAGE_QUOTA,
-                StorageInfoEnum.TOTAL_STORAGE);
-        val collector = new ProjectStorageInfoCollector(storageInfoEnumList);
-        val storageVolumeInfo = collector.getStorageVolumeInfo(getTestConfig(), PROJECT);
-
-        Assert.assertEquals(4, storageVolumeInfo.getGarbageModelIndexMap().size());
-        Assert.assertEquals(7,
-                storageVolumeInfo.getGarbageModelIndexMap().get("89af4ee2-2cdb-4b07-b39e-4c29856309aa").size());
-        Assert.assertTrue(!storageVolumeInfo.getGarbageModelIndexMap().get("89af4ee2-2cdb-4b07-b39e-4c29856309aa")
-                .contains(4001L));
-    }
-
-    private void mockHotModelLayouts() throws NoSuchFieldException, IllegalAccessException {
-        CuboidLayoutQueryTimes cuboidLayoutQueryTimes = new CuboidLayoutQueryTimes();
-        cuboidLayoutQueryTimes.setModelId("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
-        cuboidLayoutQueryTimes.setLayoutId("1000001");
-        cuboidLayoutQueryTimes.setQueryTimes(100);
-        List<CuboidLayoutQueryTimes> hotCuboidLayoutQueryTimesList = Lists.newArrayList();
-        hotCuboidLayoutQueryTimesList.add(cuboidLayoutQueryTimes);
-
-        KylinConfig config = getTestConfig();
-        QueryHistoryDAO.getInstance(config, PROJECT);
-
-        Field field = config.getClass().getDeclaredField("managersByPrjCache");
-        field.setAccessible(true);
-
-        ConcurrentHashMap<Class, ConcurrentHashMap<String, Object>> cache = (ConcurrentHashMap<Class, ConcurrentHashMap<String, Object>>) field
-                .get(config);
-        QueryHistoryDAO dao = Mockito.spy(QueryHistoryDAO.getInstance(config, PROJECT));
-        ConcurrentHashMap<String, Object> prjCache = new ConcurrentHashMap<>();
-        prjCache.put(PROJECT, dao);
-        cache.put(QueryHistoryDAO.class, prjCache);
-        Mockito.doReturn(hotCuboidLayoutQueryTimesList).when(dao).getCuboidLayoutQueryTimes(5,
-                CuboidLayoutQueryTimes.class);
-
     }
 
     @Test

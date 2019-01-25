@@ -214,6 +214,7 @@ public class NSmartMaster {
             List<FavoriteQueryRealization> favoriteQueryRealizations = Lists.newArrayList();
             for (val layout : accelerateInfo.getRelatedLayouts()) {
                 FavoriteQueryRealization realization = new FavoriteQueryRealization();
+                realization.setSemanticVersion(layout.getSemanticVersion());
                 realization.setModelId(layout.getModelId());
                 realization.setLayoutId(layout.getLayoutId());
                 favoriteQueryRealizations.add(realization);

@@ -568,6 +568,10 @@ public class Message {
         return "Failed to verify sqls.";
     }
 
+    public String getFAVORITE_QUERY_NOT_EXIST() {
+        return "Favorite query '%s' does not exist";
+    }
+
 
     // Query statistics
 

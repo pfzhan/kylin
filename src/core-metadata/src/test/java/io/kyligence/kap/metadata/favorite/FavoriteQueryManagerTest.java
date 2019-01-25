@@ -24,7 +24,9 @@
 package io.kyligence.kap.metadata.favorite;
 
 import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import lombok.val;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -34,6 +36,7 @@ import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.TreeMap;
 
 public class FavoriteQueryManagerTest extends NLocalFileMetadataTestCase {
     private static final String PROJECT = "default";
@@ -147,11 +150,12 @@ public class FavoriteQueryManagerTest extends NLocalFileMetadataTestCase {
         favoriteQueryManager.updateStatus("not_exist_sql_pattern", FavoriteQueryStatusEnum.FULLY_ACCELERATED, null);
 
         // delete
-        favoriteQueryManager.delete(favoriteQueryManager.get("sql1").getUuid());
+        favoriteQueryManager.delete(favoriteQueryManager.get("sql1"));
         Assert.assertEquals(5, favoriteQueryManager.getAll().size());
 
         // delete not exist sql pattern
-        favoriteQueryManager.delete("not_exist_sql_pattern");
+        FavoriteQuery favoriteQuery = new FavoriteQuery("not_exist_sql_pattern");
+        favoriteQueryManager.delete(favoriteQuery);
         Assert.assertEquals(5, favoriteQueryManager.getAll().size());
     }
 
@@ -208,5 +212,55 @@ public class FavoriteQueryManagerTest extends NLocalFileMetadataTestCase {
 
         // reset not exist sql pattern's realizations, no exception
         favoriteQueryManager.resetRealizations("not_exist_sql_pattern", Lists.newArrayList(newRealization));
+    }
+
+    @Test
+    public void testGetLowFrequencyFavoriteQuery() {
+        val favoriteQueryManager = FavoriteQueryManager.getInstance(getTestConfig(), PROJECT);
+        long currentTime = System.currentTimeMillis();
+        long dayInMillis = 24 * 60 * 60 * 1000L;
+        long currentDate = currentTime - currentTime % dayInMillis;
+
+        // a low frequency favorite query, related layout 1 will be considered as garbage
+        val fq1 = new FavoriteQuery("sql1");
+        fq1.setCreateTime(currentTime - 32 * dayInMillis);
+        fq1.setFrequencyMap(new TreeMap<Long, Integer>() {
+            {
+                put(currentDate - 7 * dayInMillis, 1);
+                put(currentDate - 31 * dayInMillis, 100);
+            }
+        });
+
+        val fqCreatedLongAgo = new FavoriteQuery("sql_long_ago");
+        fqCreatedLongAgo.setCreateTime(currentTime - 60 * dayInMillis);
+        fqCreatedLongAgo.setFrequencyMap(new TreeMap<Long, Integer>() {
+            {
+                put(currentDate, 2);
+            }
+        });
+
+        // not reached low frequency threshold, related layouts are 40001 and 40002
+        val fq2 = new FavoriteQuery("sql2");
+        fq2.setCreateTime(currentTime - 8 * dayInMillis);
+        fq2.setFrequencyMap(new TreeMap<Long, Integer>() {
+            {
+                put(currentDate - 7 * dayInMillis, 1);
+                put(currentDate, 2);
+            }
+        });
+
+        // not a low frequency fq, related layouts are 10001 and 10002
+        val fq3 = new FavoriteQuery("sql3");
+        fq3.setCreateTime(currentTime - 31 * dayInMillis);
+        fq3.setFrequencyMap(new TreeMap<Long, Integer>() {
+            {
+                put(currentDate - 30 * dayInMillis, 10);
+            }
+        });
+
+        favoriteQueryManager.create(Sets.newHashSet(fq1, fq2, fq3, fqCreatedLongAgo));
+
+        List<FavoriteQuery> lowFrequencyFQs = favoriteQueryManager.getLowFrequencyFQs();
+        Assert.assertEquals(2, lowFrequencyFQs.size());
     }
 }

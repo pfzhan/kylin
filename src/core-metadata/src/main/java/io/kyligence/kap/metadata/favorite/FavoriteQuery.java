@@ -31,9 +31,12 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
+import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.RootPersistentEntity;
 
 import java.util.List;
+import java.util.NavigableMap;
+import java.util.TreeMap;
 
 @Getter
 @Setter
@@ -67,6 +70,9 @@ public class FavoriteQuery extends RootPersistentEntity {
     @JsonProperty("average_duration")
     private float averageDuration;
 
+    @JsonProperty("frequency_map")
+    private NavigableMap<Long, Integer> frequencyMap = new TreeMap<>();
+
     @JsonProperty("realization")
     @JsonManagedReference
     private List<FavoriteQueryRealization> realizations = Lists.newArrayList();
@@ -92,12 +98,25 @@ public class FavoriteQuery extends RootPersistentEntity {
         this.status = FavoriteQueryStatusEnum.WAITING;
     }
 
-    public void update(QueryHistory queryHistory) {
-        this.totalCount ++;
+    public void incStats(QueryHistory queryHistory) {
+        this.totalCount++;
         if (!queryHistory.isException())
-            this.successCount ++;
+            this.successCount++;
         this.totalDuration += queryHistory.getDuration();
         this.lastQueryTime = queryHistory.getQueryTime();
+
+        long date = getDateInMillis(queryHistory.getQueryTime());
+        Integer freq = frequencyMap.get(date);
+        if (freq != null) {
+            freq++;
+            frequencyMap.put(date, freq);
+        } else {
+            frequencyMap.put(date, 1);
+        }
+    }
+
+    private long getDateInMillis(final long queryTime) {
+        return queryTime - queryTime % (24 * 60 * 60 * 1000L);
     }
 
     public void update(FavoriteQuery favoriteQuery) {
@@ -108,6 +127,33 @@ public class FavoriteQuery extends RootPersistentEntity {
         // this.totalcount is at least 1
         this.averageDuration = totalDuration / (float) totalCount;
         this.successRate = successCount / (float) totalCount;
+        // merge two maps
+        favoriteQuery.getFrequencyMap()
+                .forEach((k, v) -> this.frequencyMap.merge(k, v, (value1, value2) -> value1 + value2));
+        long frequencyInitialDate = getDateInMillis(this.lastQueryTime) - KylinConfig.getInstanceFromEnv().getFavoriteQueryFrequencyTimeWindow();
+
+        while (this.frequencyMap.size() != 0) {
+            if (frequencyInitialDate <= this.frequencyMap.firstKey())
+                break;
+            this.frequencyMap.pollFirstEntry();
+        }
+    }
+
+    public int getFrequency() {
+        long frequencyInitialCollectDate = getDateBeforeFrequencyTimeWindow();
+        while (frequencyMap.size() != 0) {
+            long date = frequencyMap.firstKey();
+            if (frequencyInitialCollectDate <= date)
+                break;
+            frequencyMap.pollFirstEntry();
+        }
+
+        return frequencyMap.values().stream().reduce((x, y) -> x + y).orElse(0);
+    }
+
+    private long getDateBeforeFrequencyTimeWindow() {
+        long daysInMillis = KylinConfig.getInstanceFromEnv().getFavoriteQueryFrequencyTimeWindow();
+        return getDateInMillis(System.currentTimeMillis()) - daysInMillis;
     }
 
     public void updateStatus(FavoriteQueryStatusEnum status, String comment) {

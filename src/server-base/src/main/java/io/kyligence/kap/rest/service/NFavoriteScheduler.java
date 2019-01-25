@@ -110,19 +110,7 @@ public class NFavoriteScheduler {
     }
 
     public static NFavoriteScheduler getInstance(String project) {
-        NFavoriteScheduler ret = INSTANCE_MAP.get(project);
-        if (ret != null)
-            return ret;
-
-        synchronized (NFavoriteScheduler.class) {
-            ret = INSTANCE_MAP.get(project);
-            if (ret == null) {
-                ret = new NFavoriteScheduler(project);
-                INSTANCE_MAP.put(project, ret);
-            }
-        }
-
-        return ret;
+        return INSTANCE_MAP.computeIfAbsent(project, NFavoriteScheduler::new);
     }
 
     public static List<NFavoriteScheduler> listAllSchedulers() {
@@ -482,12 +470,10 @@ public class NFavoriteScheduler {
 
         FavoriteQuery favoriteQuery = favoritesAboutToUpdate.get(sqlPattern);
         if (favoriteQuery == null) {
-            favoriteQuery = new FavoriteQuery(sqlPattern, queryHistory.getQueryTime(), 1, queryHistory.getDuration());
-            if (!queryHistory.isException())
-                favoriteQuery.setSuccessCount(1);
-        } else
-            favoriteQuery.update(queryHistory);
+            favoriteQuery = new FavoriteQuery(sqlPattern);
+        }
 
+        favoriteQuery.incStats(queryHistory);
         favoritesAboutToUpdate.put(sqlPattern, favoriteQuery);
     }
 

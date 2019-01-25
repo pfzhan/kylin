@@ -26,10 +26,11 @@ package io.kyligence.kap.metadata.favorite;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import io.kyligence.kap.common.obf.IKeepNames;
-import org.apache.commons.lang.StringUtils;
+import io.kyligence.kap.metadata.project.NProjectManager;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.metadata.cachesync.CachedCrudAssist;
+import org.apache.kylin.metadata.project.ProjectInstance;
 
 import java.util.List;
 import java.util.Map;
@@ -74,7 +75,7 @@ public class FavoriteQueryManager implements IKeepNames {
         reloadSqlPatternMap();
     }
 
-    private void reloadSqlPatternMap() {
+    public void reloadSqlPatternMap() {
         favoriteQueryMap = Maps.newConcurrentMap();
         List<FavoriteQuery> favoriteQueries = crud.listAll();
         for (FavoriteQuery favoriteQuery : favoriteQueries) {
@@ -89,25 +90,17 @@ public class FavoriteQueryManager implements IKeepNames {
     }
 
     public void create(final Set<FavoriteQuery> favoriteQueries) {
-        favoriteQueries.forEach(favoriteQuery -> {
-            favoriteQueryMap.put(favoriteQuery.getSqlPattern(), crud.save(favoriteQuery));
-        });
+        favoriteQueries.forEach(
+                favoriteQuery -> favoriteQueryMap.put(favoriteQuery.getSqlPattern(), crud.save(favoriteQuery)));
     }
 
-    public void delete(String uuid) {
-        FavoriteQuery fq = crud.get(uuid);
-        if (fq != null) {
-            String channel = fq.getChannel();
-            String sqlPattern = fq.getSqlPattern();
-            // put to blacklist
-            if (channel.equals(FavoriteQuery.CHANNEL_FROM_RULE)) {
-                FavoriteRule.SQLCondition sqlCondition = new FavoriteRule.SQLCondition(sqlPattern);
-                FavoriteRuleManager ruleManager = FavoriteRuleManager.getInstance(kylinConfig, project);
-                ruleManager.appendSqlPatternToBlacklist(sqlCondition);
-            }
-            crud.delete(fq);
-            favoriteQueryMap.remove(fq.getSqlPattern());
-        }
+    public FavoriteQuery getByUuid(String uuid) {
+        return crud.get(uuid);
+    }
+
+    public void delete(FavoriteQuery favoriteQuery) {
+        crud.delete(favoriteQuery);
+        favoriteQueryMap.remove(favoriteQuery.getSqlPattern());
     }
 
     public void updateStatistics(final List<FavoriteQuery> favoriteQueries) {
@@ -166,6 +159,13 @@ public class FavoriteQueryManager implements IKeepNames {
         return crud.listAll();
     }
 
+    public List<String> getAcceleratedSqlPattern() {
+        List<FavoriteQuery> favoriteQueries = crud.listAll().stream()
+                .filter(input -> input.getStatus().equals(FavoriteQueryStatusEnum.FULLY_ACCELERATED))
+                .collect(Collectors.toList());
+        return favoriteQueries.stream().map(FavoriteQuery::getSqlPattern).collect(Collectors.toList());
+    }
+
     public List<String> getUnAcceleratedSqlPattern() {
         List<FavoriteQuery> favoriteQueries = crud.listAll().stream()
                 .filter(input -> input.getStatus().equals(FavoriteQueryStatusEnum.WAITING))
@@ -184,23 +184,23 @@ public class FavoriteQueryManager implements IKeepNames {
         favoriteQueryMap = null;
     }
 
-    public List<FavoriteQueryRealization> getRealizationsByConditions(String modelId,
-                                                                      Long cuboidLayoutId) {
+    public List<FavoriteQueryRealization> getRealizationsByConditions(String modelId, Long cuboidLayoutId) {
         List<FavoriteQueryRealization> realizations = Lists.newArrayList();
         List<FavoriteQuery> favoriteQueries = crud.listAll();
-        favoriteQueries.forEach(fq -> {
-            List<FavoriteQueryRealization> fqRealizations = fq.getRealizations();
-            for (FavoriteQueryRealization fqr : fqRealizations) {
-                if (StringUtils.isNotBlank(modelId) && !modelId.equals(fqr.getModelId()))
-                    continue;
-
-                if (cuboidLayoutId != null && cuboidLayoutId != fqr.getLayoutId())
-                    continue;
-
-                realizations.add(fqr);
-            }
-        });
-
+        favoriteQueries.stream().map(FavoriteQuery::getRealizations).flatMap(List::stream)
+                .filter(fqr -> fqr.getModelId().equals(modelId))
+                .filter(fqr -> cuboidLayoutId == null || fqr.getLayoutId() == cuboidLayoutId)
+                .forEach(realizations::add);
         return realizations;
+    }
+
+    public List<FavoriteQuery> getLowFrequencyFQs() {
+        ProjectInstance projectInstance = NProjectManager.getInstance(kylinConfig).getProject(project);
+        int frequencyThreshold = projectInstance.getConfig().getFavoriteQueryLowFrequency();
+
+        return getAll().stream()
+                .filter(fq -> System.currentTimeMillis() - fq.getCreateTime() >= kylinConfig
+                        .getFavoriteQueryFrequencyTimeWindow())
+                .filter(fq -> fq.getFrequency() <= frequencyThreshold).collect(Collectors.toList());
     }
 }

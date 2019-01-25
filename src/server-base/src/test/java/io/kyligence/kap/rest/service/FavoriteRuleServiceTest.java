@@ -32,6 +32,7 @@ import io.kyligence.kap.metadata.favorite.FavoriteRule;
 import io.kyligence.kap.metadata.query.AccelerateRatioManager;
 import io.kyligence.kap.rest.response.ImportSqlResponse;
 import org.apache.kylin.rest.constant.Constant;
+import org.apache.kylin.rest.exception.BadRequestException;
 import org.apache.kylin.rest.exception.NotFoundException;
 import org.apache.kylin.rest.msg.MsgPicker;
 import org.apache.kylin.rest.request.FavoriteRuleUpdateRequest;
@@ -106,6 +107,14 @@ public class FavoriteRuleServiceTest extends NLocalFileMetadataTestCase {
         favoriteQueries = favoriteQueryManager.getAll();
         Assert.assertEquals(2, sqls.size());
         Assert.assertEquals(0, favoriteQueries.size());
+
+        // delete not exist favorite query
+        try {
+            favoriteRuleService.deleteFavoriteQuery(PROJECT, "not_exist_uuid");
+        } catch (Exception ex) {
+            Assert.assertEquals(BadRequestException.class, ex.getClass());
+            Assert.assertEquals("Favorite query 'not_exist_uuid' does not exist", ex.getMessage());
+        }
 
         // returned blacklist sql is sorted by create time
         FavoriteRule.SQLCondition sqlCondition1 = sqls.get(0);

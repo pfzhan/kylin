@@ -1376,6 +1376,19 @@ abstract public class KylinConfigBase implements Serializable {
         return Long.valueOf(this.getOptional("kylin.favorite.query-history-scan-period", "60")) * 1000L;
     }
 
+    public int getAutoCheckAccStatusBatchSize() {
+        return Integer.parseInt(this.getOptional("kylin.favorite.auto-check-accelerate-batch-size", "100"));
+    }
+
+    public int getFavoriteQueryLowFrequency() {
+        return Integer.parseInt(this.getOptional("kylin.favorite.low-frequency-threshold", "5"));
+    }
+
+    // unit of day
+    public long getFavoriteQueryFrequencyTimeWindow() {
+        return Long.parseLong(this.getOptional("kylin.favorite.frequency-time-window", "30")) * 24 * 60 * 60 * 1000;
+    }
+
     /**
      * metric
      */

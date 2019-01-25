@@ -48,7 +48,6 @@ public class QueryHistoryDAO {
     private String queryMetricMeasurement;
     private String realizationMetricMeasurement;
 
-    private static final String CUBOID_LAYOUT_QUERY_TIMES_SQL_FORMAT = "SELECT * FROM (SELECT count(query_id) as query_times FROM %s group by model, layout_id) WHERE query_times > %d";
     private static final String QUERY_TIMES_BY_MODEL_SQL_FORMAT = "SELECT COUNT(DISTINCT(query_id)) as query_times FROM %s WHERE suite=~ /^%s$/ AND model=~ /^%s$/ AND time>=%dms AND time<=%dms GROUP BY model";
     private static final String QUERY_STATISTICS_SQL_FORMAT = "SELECT COUNT(query_id), MEAN(\"duration\") FROM %s WHERE time>=%dms AND time <= %dms";
     private static final String QUERY_COUNT_BY_MODEL_SQL_FORMAT = "SELECT COUNT(DISTINCT(query_id)) FROM %s WHERE time>=%dms AND time <=%dms GROUP BY model";
@@ -139,11 +138,6 @@ public class QueryHistoryDAO {
         String sql = String.format(QUERY_TIMES_BY_MODEL_SQL_FORMAT, this.realizationMetricMeasurement, suite, model,
                 start, end == 0 ? System.currentTimeMillis() : end);
         return getResultBySql(sql, clazz, this.realizationMetricMeasurement);
-    }
-
-    public <T> List<T> getCuboidLayoutQueryTimes(int queryTimesThreshold, Class clazz) {
-        String query = getCuboidLayoutQueryTimesSql(queryTimesThreshold);
-        return getResultBySql(query, clazz, this.realizationMetricMeasurement);
     }
 
     public List<QueryStatistics> getQueryEngineStatistics(long startTime, long endTime) {
@@ -247,11 +241,6 @@ public class QueryHistoryDAO {
 
     private String getQueryEngineStatisticsSql(long startTime, long endTime) {
         return String.format(QUERY_STATISTICS_BY_ENGINES_SQL_FORMAT, this.queryMetricMeasurement, startTime, endTime);
-    }
-
-    private String getCuboidLayoutQueryTimesSql(int queryTimesThreshold) {
-        return String.format(CUBOID_LAYOUT_QUERY_TIMES_SQL_FORMAT, this.realizationMetricMeasurement,
-                queryTimesThreshold);
     }
 
     private String getQueryStatisticsSql(long startTime, long endTime) {

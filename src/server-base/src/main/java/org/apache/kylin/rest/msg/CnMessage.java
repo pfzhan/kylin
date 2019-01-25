@@ -515,6 +515,10 @@ public class CnMessage extends Message {
         return "验证sql失败.";
     }
 
+    public String getFAVORITE_QUERY_NOT_EXIST() {
+        return "加速查询 '%s' 不存在";
+    }
+
     // Query statistics
 
     public String getNOT_SET_INFLUXDB(){

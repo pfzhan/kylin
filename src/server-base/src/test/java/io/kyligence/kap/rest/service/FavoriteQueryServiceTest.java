@@ -29,6 +29,7 @@ import java.util.List;
 import java.util.Map;
 
 import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.event.manager.EventDao;
 import io.kyligence.kap.event.model.AddCuboidEvent;
@@ -37,11 +38,14 @@ import io.kyligence.kap.metadata.favorite.FavoriteQuery;
 import io.kyligence.kap.metadata.favorite.FavoriteQueryManager;
 import io.kyligence.kap.metadata.favorite.FavoriteQueryStatusEnum;
 import io.kyligence.kap.metadata.model.MaintainModelType;
+import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.query.util.QueryPatternUtil;
 import io.kyligence.kap.smart.NSmartMaster;
 import lombok.val;
 import lombok.var;
+import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.exception.PersistentException;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.rest.constant.Constant;
@@ -317,5 +321,58 @@ public class FavoriteQueryServiceTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals("sql3", filteredFavoriteQueries.get(0).getSqlPattern());
         Assert.assertEquals("sql2", filteredFavoriteQueries.get(1).getSqlPattern());
         Assert.assertEquals("sql1", filteredFavoriteQueries.get(2).getSqlPattern());
+    }
+
+    @Test
+    public void testAutoCheckAccelerationInfo() {
+        KylinConfig config = getTestConfig();
+        String sql = "select count(*) from TEST_KYLIN_FACT where CAL_DT = '2012-01-05' and TRANS_ID > 100 limit 10";
+
+        FavoriteQueryManager favoriteQueryManager = FavoriteQueryManager.getInstance(config, PROJECT);
+        FavoriteQuery favoriteQuery = new FavoriteQuery(sql);
+        favoriteQuery.setTotalCount(1);
+        favoriteQuery.setSuccessCount(1);
+        favoriteQuery.setLastQueryTime(10001);
+        favoriteQuery.setChannel(FavoriteQuery.CHANNEL_FROM_RULE);
+        favoriteQueryManager.create(Sets.newHashSet(favoriteQuery));
+
+        // no accelerated query by default
+        FavoriteQueryManager manager = FavoriteQueryManager.getInstance(config, PROJECT);
+        Assert.assertTrue(manager.getAcceleratedSqlPattern().isEmpty());
+
+        // accelerate
+        NSmartMaster smartMaster = new NSmartMaster(getTestConfig(), PROJECT, new String[] { sql });
+        smartMaster
+                .runAllAndForContext(ctx -> FavoriteQueryManager.getInstance(KylinConfig.getInstanceFromEnv(), PROJECT)
+                        .updateStatus(sql, FavoriteQueryStatusEnum.FULLY_ACCELERATED, ""));
+        manager.reloadSqlPatternMap();
+        Assert.assertFalse(manager.getAcceleratedSqlPattern().isEmpty());
+        Assert.assertEquals(FavoriteQueryStatusEnum.FULLY_ACCELERATED, manager.get(sql).getStatus());
+
+        // change model version
+        NDataModelManager modelManager = NDataModelManager.getInstance(config, PROJECT);
+        NDataModel model = modelManager.getDataModelDesc("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+        model.setSemanticVersion(2);
+        modelManager.updateDataModelDesc(model);
+
+        // run check, not accelerated
+        favoriteQueryService.adjustFavoriteQuery();
+        manager.reloadSqlPatternMap();
+        Assert.assertTrue(manager.getAcceleratedSqlPattern().isEmpty());
+        Assert.assertEquals(FavoriteQueryStatusEnum.WAITING, manager.get(sql).getStatus());
+
+        // accelerate again
+        NSmartMaster smartMasterAfter = new NSmartMaster(getTestConfig(), PROJECT, new String[] { sql });
+        smartMasterAfter
+                .runAllAndForContext(ctx -> FavoriteQueryManager.getInstance(KylinConfig.getInstanceFromEnv(), PROJECT)
+                        .updateStatus(sql, FavoriteQueryStatusEnum.FULLY_ACCELERATED, ""));
+        manager.reloadSqlPatternMap();
+        Assert.assertFalse(manager.getAcceleratedSqlPattern().isEmpty());
+        Assert.assertEquals(FavoriteQueryStatusEnum.FULLY_ACCELERATED, manager.get(sql).getStatus());
+
+        // run check again, accelerated
+        favoriteQueryService.adjustFavoriteQuery();
+        Assert.assertFalse(manager.getAcceleratedSqlPattern().isEmpty());
+        Assert.assertEquals(FavoriteQueryStatusEnum.FULLY_ACCELERATED, manager.get(sql).getStatus());
     }
 }

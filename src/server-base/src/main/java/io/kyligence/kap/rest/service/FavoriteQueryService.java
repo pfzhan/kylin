@@ -24,6 +24,7 @@
 package io.kyligence.kap.rest.service;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashSet;
@@ -34,6 +35,8 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.UUID;
 
+import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
+import io.kyligence.kap.metadata.favorite.FavoriteQueryRealization;
 import io.kyligence.kap.metadata.favorite.FavoriteRule;
 import io.kyligence.kap.metadata.favorite.FavoriteRuleManager;
 import io.kyligence.kap.query.util.QueryPatternUtil;
@@ -49,6 +52,7 @@ import org.apache.kylin.rest.request.FavoriteRequest;
 import org.apache.kylin.rest.service.BasicService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 import com.google.common.base.Preconditions;
@@ -467,6 +471,87 @@ public class FavoriteQueryService extends BasicService {
             layoutIds.add(layout.getId());
         }
         return layoutIds;
+    }
+
+    @Scheduled(cron = "${kylin.favorite.adjustment-cron:0 0 2 * * *}")
+    public void adjustFavoriteQuery() {
+        String oldTheadName = Thread.currentThread().getName();
+
+        try {
+            Thread.currentThread().setName("FavoriteQueryAutoAdjustmentWorker");
+
+            for (ProjectInstance project : getProjectManager().listAllProjects()) {
+                logger.trace("Start checking favorite query accelerate status adjustment for project {}.", project.getName());
+                long startTime = System.currentTimeMillis();
+                KylinConfig config = KylinConfig.getInstanceFromEnv();
+                List<String> sqlPatterns = FavoriteQueryManager.getInstance(config, project.getName()).getAcceleratedSqlPattern();
+                // split sqlPatterns into batches to avoid
+                int batchOffset = 0;
+                int batchSize = config.getAutoCheckAccStatusBatchSize();
+                Preconditions.checkArgument(batchSize > 0, "Illegal batch size: " + batchSize
+                        + ". Please check config: kylin.favorite.auto-check-accelerate-batch-size");
+                int sqlSize = sqlPatterns.size();
+                while (batchOffset < sqlSize) {
+                    int batchStart = batchOffset;
+                    batchOffset = Math.min(batchOffset + batchSize, sqlSize);
+                    String[] sqls = sqlPatterns.subList(batchStart, batchOffset).toArray(new String[0]);
+                    checkAccelerateStatus(project.getName(), sqls);
+                }
+                long endTime = System.currentTimeMillis();
+                logger.trace("End favorite query adjustment. Processed {} queries and took {}ms for project {}", sqlSize,
+                        endTime - startTime, project);
+            }
+        } finally {
+            Thread.currentThread().setName(oldTheadName);
+        }
+
+    }
+
+    private void checkAccelerateStatus(String project, String[] sqls) {
+        KylinConfig config = KylinConfig.getInstanceFromEnv();
+        FavoriteQueryManager manager = FavoriteQueryManager.getInstance(config, project);
+        NSmartMaster master = new NSmartMaster(config, project, sqls);
+        master.selectAndOptimize();
+        String[] toUpdateSqls = Arrays.stream(sqls).filter(sql -> {
+            // only unmatched to handle
+            FavoriteQuery fq = manager.get(sql);
+            AccelerateInfo accInfo = master.getContext().getAccelerateInfoMap().get(sql);
+            return !matchAccelerateInfo(fq, accInfo);
+        }).toArray(String[]::new);
+
+        UnitOfWork.doInTransactionWithRetry(() -> {
+            Arrays.stream(toUpdateSqls).forEach(sql -> {
+                manager.updateStatus(sql, FavoriteQueryStatusEnum.WAITING,
+                        "This query is not fully accelerated, move status to WAITING");
+                manager.removeRealizations(sql);
+            });
+            logger.info("There are {} favorite queries not fully accelerated, changed status to WAITING", toUpdateSqls.length);
+            return null;
+        }, project);
+    }
+
+    private boolean matchAccelerateInfo(FavoriteQuery fq, AccelerateInfo accInfo) {
+        if (fq == null) {
+            return false;
+        }
+        List<FavoriteQueryRealization> favoriteQueryRealizations = fq.getRealizations();
+
+        if (accInfo == null) {
+            return false;
+        }
+        Set<AccelerateInfo.QueryLayoutRelation> suggestedQueryRealizations = accInfo.getRelatedLayouts();
+        if (favoriteQueryRealizations.size() != suggestedQueryRealizations.size()) {
+            return false;
+        }
+        List<String> fqrInfo = favoriteQueryRealizations
+                .stream().map(real -> new StringBuilder(real.getModelId()).append('_')
+                        .append(real.getSemanticVersion()).append('_').append(real.getLayoutId()).toString())
+                .sorted().collect(Collectors.toList());
+        List<String> sqrInfo = suggestedQueryRealizations
+                .stream().map(real -> new StringBuilder(real.getModelId()).append('_')
+                        .append(real.getSemanticVersion()).append('_').append(real.getLayoutId()).toString())
+                .sorted().collect(Collectors.toList());
+        return fqrInfo.equals(sqrInfo);
     }
 
 }

@@ -24,122 +24,71 @@
 
 package io.kyligence.kap.metadata.cube.storage;
 
-import java.util.Collections;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
+import io.kyligence.kap.metadata.cube.model.NDataLayout;
+import io.kyligence.kap.metadata.cube.model.NDataSegment;
+import io.kyligence.kap.metadata.cube.model.NDataflow;
+import io.kyligence.kap.metadata.cube.model.NDataflowManager;
+import io.kyligence.kap.metadata.favorite.FavoriteQueryManager;
+import io.kyligence.kap.metadata.favorite.FavoriteQueryRealization;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
 
 import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
 
-import io.kyligence.kap.metadata.cube.model.NDataLayout;
-import io.kyligence.kap.metadata.cube.model.NDataSegment;
-import io.kyligence.kap.metadata.cube.model.NDataflow;
-import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.model.NDataModel;
-import io.kyligence.kap.metadata.project.NProjectManager;
-import io.kyligence.kap.metadata.query.CuboidLayoutQueryTimes;
-import io.kyligence.kap.metadata.query.QueryHistoryDAO;
 import lombok.val;
-import lombok.var;
 
 public class GarbageStorageCollector implements StorageInfoCollector {
 
     @Override
     public void collect(KylinConfig config, String project, StorageVolumeInfo storageVolumeInfo) {
-        config = NProjectManager.getInstance(config).getProject(project).getConfig();
-        int queryTimesThreshold = config.getQueryTimesThresholdOfGarbageStorage();
-        List<CuboidLayoutQueryTimes> hotCuboidLayoutQueryTimesList = QueryHistoryDAO.getInstance(config, project)
-                .getCuboidLayoutQueryTimes(queryTimesThreshold, CuboidLayoutQueryTimes.class);
-        // query history can not provide the statistics of cuboidLayout which never been queried,
-        // so that we calculate out the cuboidLayouts which query times is more than the queryTimesThreshold
-        // then calculate the garbage cuboidLayouts by subtraction
-        calculateGarbageStorage(config, project, hotCuboidLayoutQueryTimesList, storageVolumeInfo);
-    }
+        val favoriteQueryManager = FavoriteQueryManager.getInstance(config, project);
+        val lowFrequencyFqs = favoriteQueryManager.getLowFrequencyFQs();
+        Set<FavoriteQueryRealization> lowFrequencyFqrs = lowFrequencyFqs.stream()
+                .flatMap(fq -> fq.getRealizations().stream()).collect(Collectors.toSet());
 
-    private Map<String, Set<Long>> convertToModelIndexMap(List<CuboidLayoutQueryTimes> cuboidLayoutQueryTimesList) {
-        Map<String, Set<Long>> modelIndexMap = Maps.newHashMap();
-        if (CollectionUtils.isEmpty(cuboidLayoutQueryTimesList)) {
-            return modelIndexMap;
-        }
-        cuboidLayoutQueryTimesList.forEach(qt -> {
-            val modelId = qt.getModelId();
-            val cuboidLayoutIdStr = qt.getLayoutId();
-            var cuboidLayoutIdSet = modelIndexMap.get(modelId);
-            if (CollectionUtils.isEmpty(cuboidLayoutIdSet)) {
-                cuboidLayoutIdSet = Sets.newHashSet();
-                modelIndexMap.put(modelId, cuboidLayoutIdSet);
-            }
-            cuboidLayoutIdSet.add(Long.valueOf(cuboidLayoutIdStr));
-        });
-        return modelIndexMap;
-    }
+        Map<String, Set<Long>> garbageIndexMap = Maps.newHashMap();
+        long storageSize = 0L;
 
-    private void calculateGarbageStorage(KylinConfig config, String project,
-            List<CuboidLayoutQueryTimes> hotCuboidLayoutQueryTimesList, StorageVolumeInfo storageVolumeInfo) {
-        long garbageStorageSize = 0L;
-        Map<String, Set<Long>> garbageModelIndexMap = Maps.newHashMap();
-        Map<String, Set<Long>> hotModelIndexMap = convertToModelIndexMap(hotCuboidLayoutQueryTimesList);
+        for (val model : getModels(project)) {
+            val dataflow = getDataflow(model);
 
-        List<NDataModel> models = NDataflowManager.getInstance(config, project).listUnderliningDataModels();
-        NDataflowManager dataflowManager = NDataflowManager.getInstance(config, project);
-        long cuboidSurvivalTimeThreshold = config.getCuboidLayoutSurvivalTimeThreshold();
-
-        for (NDataModel model : models) {
-            val modelId = model.getId();
-            val dataflow = dataflowManager.getDataflow(modelId);
-            // TODO if dataflow.checkBrokenWithRelatedInfo, all layouts are garbage
-            // issue : https://github.com/Kyligence/KAP/issues/9804
-            if (dataflow == null || dataflow.checkBrokenWithRelatedInfo()) {
-                continue;
-            }
-            val firstReadySegment = getFirstBuildAndReadySegment(dataflow);
-            if (firstReadySegment == null) {
-                continue;
-            }
-
-            val dataCuboids = firstReadySegment.getLayoutsMap().values();
-            var hotCuboidLayoutIdSet = hotModelIndexMap.get(modelId);
-            if (CollectionUtils.isEmpty(hotCuboidLayoutIdSet)) {
-                hotCuboidLayoutIdSet = Sets.newHashSet();
-            }
-            val indexPlan = dataflow.getIndexPlan();
-            // ruleBaseCuboidLayouts will not be identified as garbage for the moment
-            val ruleBaseCuboidLayoutIdSet = indexPlan.getRuleBaseLayouts().stream().map(LayoutEntity::getId)
-                    .collect(Collectors.toSet());
-            val finalHotCuboidLayoutIdSet = hotCuboidLayoutIdSet;
-            val cuboidLayoutIdSet = dataCuboids.stream()
-                    .filter(dc -> (System.currentTimeMillis() - dc.getCreateTime()) > cuboidSurvivalTimeThreshold)
-                    .map(NDataLayout::getLayoutId).filter(id -> !finalHotCuboidLayoutIdSet.contains(id))
-                    .filter(id -> !ruleBaseCuboidLayoutIdSet.contains(id)).collect(Collectors.toSet());
-            if (CollectionUtils.isNotEmpty(cuboidLayoutIdSet)) {
-                garbageStorageSize += calculateLayoutSize(cuboidLayoutIdSet, dataflow);
-                garbageModelIndexMap.put(modelId, cuboidLayoutIdSet);
+            val autoLayouts = getAutoLayouts(dataflow);
+            // referenced layouts
+            val referencedlayouts = favoriteQueryManager.getRealizationsByConditions(model.getId(), null).stream().filter(fqr -> !lowFrequencyFqrs.contains(fqr))
+                    .map(FavoriteQueryRealization::getLayoutId).collect(Collectors.toSet());
+            autoLayouts.removeAll(referencedlayouts);
+            if (CollectionUtils.isNotEmpty(autoLayouts)) {
+                storageSize += calculateLayoutSize(autoLayouts, dataflow);
+                garbageIndexMap.put(model.getId(), autoLayouts);
             }
         }
-        storageVolumeInfo.setGarbageModelIndexMap(garbageModelIndexMap);
-        storageVolumeInfo.setGarbageStorageSize(garbageStorageSize);
+
+        storageVolumeInfo.setGarbageModelIndexMap(garbageIndexMap);
+        storageVolumeInfo.setGarbageStorageSize(storageSize);
     }
 
-    private NDataSegment getFirstBuildAndReadySegment(NDataflow dataflow) {
-        val readySegments = dataflow.getSegments(SegmentStatusEnum.READY);
-        if (CollectionUtils.isEmpty(readySegments)) {
-            return null;
-        }
-        Collections.sort(readySegments, new Comparator<NDataSegment>() {
-            @Override
-            public int compare(NDataSegment o1, NDataSegment o2) {
-                return Long.compare(o1.getCreateTimeUTC(), o2.getCreateTimeUTC());
-            }
-        });
-        return readySegments.get(0);
+    private List<NDataModel> getModels(String project) {
+        val dataflowManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+        return dataflowManager.listUnderliningDataModels();
+    }
+
+    private NDataflow getDataflow(NDataModel model) {
+        val dataflowManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), model.getProject());
+        return dataflowManager.getDataflow(model.getUuid());
+    }
+
+    private Set<Long> getAutoLayouts(NDataflow dataflow) {
+        val cube = dataflow.getIndexPlan();
+        return cube.getWhitelistLayouts().stream().filter(layoutEntity -> !layoutEntity.isManual())
+                .map(LayoutEntity::getId).collect(Collectors.toSet());
     }
 
     private long calculateLayoutSize(Set<Long> cuboidLayoutIdSet, NDataflow dataflow) {

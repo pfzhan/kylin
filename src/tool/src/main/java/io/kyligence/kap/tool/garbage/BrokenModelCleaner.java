@@ -21,37 +21,31 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package io.kyligence.kap.rest.storage;
 
-import java.util.List;
-import java.util.stream.Collectors;
+package io.kyligence.kap.tool.garbage;
 
-import io.kyligence.kap.metadata.cube.model.IndexPlan;
-import io.kyligence.kap.metadata.cube.model.LayoutEntity;
-import io.kyligence.kap.metadata.cube.model.NDataflow;
 import org.apache.kylin.common.KylinConfig;
 
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
+import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.metadata.model.NDataModelManager;
 import lombok.val;
 
-public interface GarbageCleaner {
+public class BrokenModelCleaner implements MetadataCleaner {
+    @Override
+    public void cleanup(String project) {
+        val dataflowManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+        val indexPlanManager = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+        val dataModelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
 
-    void collect(NDataModel model);
-
-    void cleanup() throws Exception;
-
-    default NDataflow getDataflow(NDataModel model) {
-        val dataflowManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), model.getProject());
-        return dataflowManager.getDataflow(model.getUuid());
-    }
-
-    default IndexPlan getCube(NDataModel model) {
-        return getDataflow(model).getIndexPlan();
-    }
-
-    default List<Long> getLayouts(IndexPlan cube) {
-        val layouts = cube.getAllLayouts();
-        return layouts.stream().map(LayoutEntity::getId).collect(Collectors.toList());
+        for (NDataModel model : dataflowManager.listUnderliningDataModels(true)) {
+            val dataflow = dataflowManager.getDataflow(model.getId());
+            if (dataflow.checkBrokenWithRelatedInfo()) {
+                dataflowManager.dropDataflow(model.getId());
+                indexPlanManager.removeCubePlan(model.getId());
+                dataModelManager.dropModel(dataModelManager.getDataModelDesc(model.getId()));
+            }
+        }
     }
 }

@@ -29,9 +29,9 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.directory.api.util.Strings;
@@ -41,11 +41,13 @@ import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.rest.exception.BadRequestException;
 import org.apache.kylin.rest.msg.Message;
 import org.apache.kylin.rest.msg.MsgPicker;
+import org.apache.kylin.rest.security.AclManager;
 import org.apache.kylin.rest.service.BasicService;
 import org.apache.kylin.rest.util.AclEvaluate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 
@@ -54,7 +56,6 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
-import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.storage.ProjectStorageInfoCollector;
 import io.kyligence.kap.metadata.cube.storage.StorageInfoEnum;
 import io.kyligence.kap.metadata.favorite.FavoriteRule;
@@ -69,6 +70,7 @@ import io.kyligence.kap.rest.response.FavoriteQueryThresholdResponse;
 import io.kyligence.kap.rest.response.ProjectConfigResponse;
 import io.kyligence.kap.rest.response.StorageVolumeInfoResponse;
 import io.kyligence.kap.rest.transaction.Transaction;
+import io.kyligence.kap.tool.garbage.GarbageCleaner;
 import lombok.val;
 import lombok.var;
 
@@ -205,27 +207,50 @@ public class ProjectService extends BasicService {
         return response;
     }
 
-    @Transaction(project = 0)
-    public void cleanupProjectGarbageIndex(String project) throws IOException {
-        val storageInfoEnumList = Lists.newArrayList(StorageInfoEnum.GARBAGE_STORAGE);
-        val collector = new ProjectStorageInfoCollector(storageInfoEnumList);
-        val storageVolumeInfo = collector.getStorageVolumeInfo(getConfig(), project);
-        Map<String, Set<Long>> garbageIndexMap = storageVolumeInfo.getGarbageModelIndexMap();
-        if (garbageIndexMap.size() > 0 && storageVolumeInfo.getThrowableMap().size() == 0) {
-            cleanupGarbageIndex(project, garbageIndexMap);
+    // a 24hrs scheduler to clean up auto indices that are not referenced by any favorite queries
+    @Scheduled(cron = "${kylin.garbage.cleanup-cron:0 0 1 * * *}")
+    public void scheduledGarbageCleanup() {
+        String oldTheadName = Thread.currentThread().getName();
+
+        try {
+            Thread.currentThread().setName("GarbageCleanupWorker");
+
+            // clean up acl
+            cleanupAcl();
+            val config = KylinConfig.getInstanceFromEnv();
+            val projectManager = NProjectManager.getInstance(config);
+            for (ProjectInstance project : projectManager.listAllProjects()) {
+                logger.info("Start to cleanup garbage  for project<{}>", project.getName());
+                try {
+                    GarbageCleaner.cleanupMetadataAtScheduledTime(project.getName());
+                } catch (Exception e) {
+                    logger.warn("clean project<" + project.getName() + "> failed", e);
+                }
+                logger.info("Garbage cleanup for project<{}> finished", project.getName());
+            }
+        } finally {
+            Thread.currentThread().setName(oldTheadName);
         }
+
     }
 
-    private void cleanupGarbageIndex(String project, Map<String, Set<Long>> garbageIndexMap) throws IOException {
-        val indexPlanManager = getIndexPlanManager(project);
-        for (Map.Entry<String, Set<Long>> entry : garbageIndexMap.entrySet()) {
-            val modelId = entry.getKey();
-            val cuboidLayoutIds = entry.getValue();
-            val indexPlan = indexPlanManager.getIndexPlan(modelId);
-            indexPlanManager.updateIndexPlan(indexPlan.getUuid(), copyForWrite -> {
-                copyForWrite.removeLayouts(cuboidLayoutIds, LayoutEntity::equals, true, false);
-            });
-        }
+    private void cleanupAcl() {
+        UnitOfWork.doInTransactionWithRetry(() -> {
+            val prjManager = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv());
+            List<String> prjects = prjManager.listAllProjects().stream().map(ProjectInstance::getUuid).collect(Collectors.toList());
+            val aclManager = AclManager.getInstance(KylinConfig.getInstanceFromEnv());
+            for (val acl : aclManager.listAll()) {
+                String id = acl.getDomainObjectInfo().getId();
+                if (!prjects.contains(id)) {
+                    aclManager.delete(id);
+                }
+            }
+            return 0;
+        }, UnitOfWork.GLOBAL_UNIT);
+    }
+
+    public void cleanupGarbage(String project) {
+        GarbageCleaner.cleanupMetadataManually(project);
     }
 
     @Transaction(project = 0)

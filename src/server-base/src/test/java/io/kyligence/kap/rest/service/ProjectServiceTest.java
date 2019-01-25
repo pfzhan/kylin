@@ -42,14 +42,23 @@
 
 package io.kyligence.kap.rest.service;
 
-import java.io.IOException;
 import java.lang.reflect.Field;
 import java.util.List;
+import java.util.TreeMap;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 
-import io.kyligence.kap.event.manager.EventOrchestratorManager;
+import com.google.common.collect.Sets;
+import io.kyligence.kap.metadata.cube.model.LayoutEntity;
+import io.kyligence.kap.metadata.cube.model.NDataflowManager;
+import io.kyligence.kap.metadata.favorite.FavoriteQuery;
+import io.kyligence.kap.metadata.favorite.FavoriteQueryManager;
+import io.kyligence.kap.metadata.favorite.FavoriteQueryRealization;
+import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.rest.config.AppInitializer;
+import io.kyligence.kap.event.manager.EventOrchestratorManager;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.engine.JobEngineConfig;
 import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
@@ -57,6 +66,10 @@ import org.apache.kylin.job.lock.MockJobLock;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.exception.BadRequestException;
+import org.apache.kylin.rest.security.AclManager;
+import org.apache.kylin.rest.security.AclRecord;
+import org.apache.kylin.rest.security.ObjectIdentityImpl;
+import org.apache.kylin.rest.service.ServiceTestBase;
 import org.apache.kylin.rest.util.AclEvaluate;
 import org.junit.After;
 import org.junit.Assert;
@@ -73,12 +86,9 @@ import org.springframework.test.util.ReflectionTestUtils;
 
 import com.google.common.collect.Lists;
 
-import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import io.kyligence.kap.metadata.model.MaintainModelType;
 import io.kyligence.kap.metadata.project.NProjectManager;
-import io.kyligence.kap.metadata.query.CuboidLayoutQueryTimes;
-import io.kyligence.kap.metadata.query.QueryHistoryDAO;
 import io.kyligence.kap.rest.request.JobNotificationConfigRequest;
 import io.kyligence.kap.rest.request.ProjectGeneralInfoRequest;
 import io.kyligence.kap.rest.request.PushDownConfigRequest;
@@ -87,7 +97,10 @@ import io.kyligence.kap.rest.response.StorageVolumeInfoResponse;
 import lombok.val;
 import lombok.var;
 
-public class ProjectServiceTest extends NLocalFileMetadataTestCase {
+public class ProjectServiceTest extends ServiceTestBase {
+    private static final String PROJECT = "default";
+    private static final String PROJECT_ID = "a8f4da94-a8a4-464b-ab6f-b3012aba04d5";
+    private static final String MODEL_ID = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
 
     @InjectMocks
     private final ProjectService projectService = Mockito.spy(ProjectService.class);
@@ -101,18 +114,14 @@ public class ProjectServiceTest extends NLocalFileMetadataTestCase {
     private NProjectManager projectManager;
 
     @Before
-    public void setupResource() throws Exception {
+    public void setup() {
         System.setProperty("HADOOP_USER_NAME", "root");
         staticCreateTestMetadata();
-
-    }
-
-    @Before
-    public void setup() throws IOException {
         SecurityContextHolder.getContext()
                 .setAuthentication(new TestingAuthenticationToken("ADMIN", "ADMIN", Constant.ROLE_ADMIN));
         ReflectionTestUtils.setField(projectService, "aclEvaluate", aclEvaluate);
         projectManager = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv());
+
     }
 
     @After
@@ -149,7 +158,7 @@ public class ProjectServiceTest extends NLocalFileMetadataTestCase {
     public void testCreateProjectException() throws Exception {
 
         ProjectInstance projectInstance = new ProjectInstance();
-        projectInstance.setName("default");
+        projectInstance.setName(PROJECT);
         thrown.expect(BadRequestException.class);
         thrown.expectMessage("The project named 'default' already exists.");
         projectService.createProject(projectInstance.getName(), projectInstance);
@@ -159,8 +168,8 @@ public class ProjectServiceTest extends NLocalFileMetadataTestCase {
     @Test
     public void testGetReadableProjectsByName() throws Exception {
         Mockito.doReturn(true).when(aclEvaluate).hasProjectAdminPermission(Mockito.any(ProjectInstance.class));
-        List<ProjectInstance> projectInstances = projectService.getReadableProjects("default");
-        Assert.assertTrue(projectInstances.size() == 1 && projectInstances.get(0).getName().equals("default"));
+        List<ProjectInstance> projectInstances = projectService.getReadableProjects(PROJECT);
+        Assert.assertTrue(projectInstances.size() == 1 && projectInstances.get(0).getName().equals(PROJECT));
 
     }
 
@@ -191,15 +200,15 @@ public class ProjectServiceTest extends NLocalFileMetadataTestCase {
     @Test
     public void testUpdateThreshold() throws Exception {
         Mockito.doReturn(true).when(aclEvaluate).hasProjectAdminPermission(Mockito.any(ProjectInstance.class));
-        projectService.updateQueryAccelerateThresholdConfig("default", 30, false, true);
-        List<ProjectInstance> projectInstances = projectService.getReadableProjects("default");
+        projectService.updateQueryAccelerateThresholdConfig(PROJECT, 30, false, true);
+        List<ProjectInstance> projectInstances = projectService.getReadableProjects(PROJECT);
         Assert.assertEquals("30",
                 projectInstances.get(0).getOverrideKylinProps().get("kylin.favorite.query-accelerate-threshold"));
     }
 
     @Test
     public void testGetThreshold() throws Exception {
-        val response = projectService.getQueryAccelerateThresholdConfig("default");
+        val response = projectService.getQueryAccelerateThresholdConfig(PROJECT);
         Assert.assertEquals(20, response.getThreshold());
         Assert.assertTrue(response.isBatchEnabled());
         Assert.assertFalse(response.isAutoApply());
@@ -207,59 +216,157 @@ public class ProjectServiceTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testUpdateProjectMaintainType() throws Exception {
-        projectService.updateMantainModelType("default", MaintainModelType.MANUAL_MAINTAIN.name());
+        projectService.updateMantainModelType(PROJECT, MaintainModelType.MANUAL_MAINTAIN.name());
         Assert.assertEquals(MaintainModelType.MANUAL_MAINTAIN,
-                NProjectManager.getInstance(getTestConfig()).getProject("default").getMaintainModelType());
+                NProjectManager.getInstance(getTestConfig()).getProject(PROJECT).getMaintainModelType());
     }
 
     @Test
     public void testUpdateStorageQuotaConfig() throws Exception {
-        projectService.updateStorageQuotaConfig("default", 2147483648L);
+        projectService.updateStorageQuotaConfig(PROJECT, 2147483648L);
         Assert.assertEquals(2147483648L,
-                NProjectManager.getInstance(getTestConfig()).getProject("default").getConfig().getStorageQuotaSize());
+                NProjectManager.getInstance(getTestConfig()).getProject(PROJECT).getConfig().getStorageQuotaSize());
     }
 
     @Test
-    public void testGetStorageVolumeInfoResponse() throws Exception {
-        mockHotModelLayouts();
-        StorageVolumeInfoResponse storageVolumeInfoResponse = projectService.getStorageVolumeInfoResponse("default");
+    public void testGetStorageVolumeInfoResponse() {
+        prepareFQs();
+        StorageVolumeInfoResponse storageVolumeInfoResponse = projectService.getStorageVolumeInfoResponse(PROJECT);
 
         Assert.assertEquals(1024 * 1024 * 1024L, storageVolumeInfoResponse.getStorageQuotaSize());
-        Assert.assertEquals(4442112L, storageVolumeInfoResponse.getGarbageStorageSize());
+
+        // layouts except 1 and 1000001 were all considered as garbage
+        Assert.assertEquals(4178944L, storageVolumeInfoResponse.getGarbageStorageSize());
     }
 
     @Test
-    public void testCleanupProjectGarbageIndex() throws Exception {
-        val project = "default";
-        mockHotModelLayouts();
-        projectService.cleanupProjectGarbageIndex(project);
-        val indexPlan = NIndexPlanManager.getInstance(getTestConfig(), project).getIndexPlan("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
-        Assert.assertEquals(2L, indexPlan.getAllLayouts().size());
+    public void testCleanupProjectGarbage() {
+        prepareFQs();
+        projectService.cleanupGarbage(PROJECT);
+        val indexPlan = NIndexPlanManager.getInstance(getTestConfig(), PROJECT).getIndexPlan(MODEL_ID);
+        Assert.assertEquals(2, indexPlan.getAllLayouts().size());
+        val allLayoutsIds = indexPlan.getAllLayouts().stream().map(LayoutEntity::getId).collect(Collectors.toSet());
+        Assert.assertTrue(allLayoutsIds.contains(1L));
+        Assert.assertTrue(allLayoutsIds.contains(1000001L));
+        // layout 10001 is not connected with a low frequency fq
+        Assert.assertFalse(allLayoutsIds.contains(10001L));
+
+        StorageVolumeInfoResponse storageVolumeInfoResponse = projectService.getStorageVolumeInfoResponse(PROJECT);
+        Assert.assertEquals(0, storageVolumeInfoResponse.getGarbageStorageSize());
     }
 
-    private void mockHotModelLayouts() throws NoSuchFieldException, IllegalAccessException {
+    @Test
+    public void testScheduledGarbageCleanup() {
+        prepareFQs();
+        val aclManager = AclManager.getInstance(getTestConfig());
+        val record = new AclRecord();
+        record.setUuid(UUID.randomUUID().toString());
 
-        List<CuboidLayoutQueryTimes> hotCuboidLayoutQueryTimesList = Lists.newArrayList();
-        KylinConfig config = getTestConfig();
-        QueryHistoryDAO.getInstance(config, "default");
+        //project not exist
+        val info = new ObjectIdentityImpl("project", PROJECT_ID);
+        record.setDomainObjectInfo(info);
+        aclManager.save(record);
 
-        Field field = config.getClass().getDeclaredField("managersByPrjCache");
-        field.setAccessible(true);
+        var acl = aclManager.get(PROJECT_ID);
+        Assert.assertNotNull(acl);
 
-        ConcurrentHashMap<Class, ConcurrentHashMap<String, Object>> cache = (ConcurrentHashMap<Class, ConcurrentHashMap<String, Object>>) field
-                .get(config);
-        QueryHistoryDAO dao = Mockito.spy(QueryHistoryDAO.getInstance(config, "default"));
-        ConcurrentHashMap<String, Object> prjCache = new ConcurrentHashMap<>();
-        prjCache.put("default", dao);
-        cache.put(QueryHistoryDAO.class, prjCache);
-        Mockito.doReturn(hotCuboidLayoutQueryTimesList).when(dao).getCuboidLayoutQueryTimes(5,
-                CuboidLayoutQueryTimes.class);
+        // when broken model is in MANUAL_MAINTAIN project
+        var dataflowManager = NDataflowManager.getInstance(getTestConfig(), "broken_test");
+        Assert.assertEquals(3, dataflowManager.listUnderliningDataModels(true).size());
 
+        // there are no any favorite queries
+        projectService.scheduledGarbageCleanup();
+        for (ProjectInstance projectInstance : projectManager.listAllProjects()) {
+            dataflowManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), projectInstance.getName());
+            if (projectInstance.getName().equals("broken_test")) {
+                Assert.assertEquals(0, dataflowManager.listUnderliningDataModels(true).size());
+            }
+
+            for (NDataModel model : dataflowManager.listUnderliningDataModels()) {
+                val indexPlan = dataflowManager.getDataflow(model.getId()).getIndexPlan();
+                if (model.getId().equals(MODEL_ID)) {
+                    val layouts = indexPlan.getAllLayouts().stream().map(LayoutEntity::getId).collect(Collectors.toSet());
+                    Assert.assertEquals(3, layouts.size());
+                    Assert.assertTrue(layouts.contains(1L));
+                    Assert.assertTrue(layouts.contains(10001L));
+                    Assert.assertTrue(layouts.contains(1000001L));
+                    continue;
+                }
+
+                // all auto index layouts are deleted
+                Assert.assertEquals(0, indexPlan.getWhitelistLayouts().size());
+                for (LayoutEntity layoutEntity : indexPlan.getAllLayouts()) {
+                    Assert.assertFalse(layoutEntity.isAuto());
+                }
+            }
+        }
+
+        acl = AclManager.getInstance(getTestConfig()).get(PROJECT_ID);
+        Assert.assertNull(acl);
+    }
+
+    /**
+     * Here prepared two favorite query
+     * fq1 -> low frequency fq, connects to layout 1, 10001
+     * fq2 -> high frequency fq, connects to layout 1000001
+     */
+    private void prepareFQs() {
+        val modelMgr = NDataModelManager.getInstance(getTestConfig(), PROJECT);
+        val model = modelMgr.getDataModelDesc(MODEL_ID);
+
+        val favoriteQueryManager = FavoriteQueryManager.getInstance(getTestConfig(), PROJECT);
+        long currentTime = System.currentTimeMillis();
+        long currentDate = currentTime - currentTime % (24 * 60 * 60 * 1000L);
+        long dayInMillis = 24 * 60 * 60 * 1000L;
+
+        // low frequency favorite query
+        val fq1 = new FavoriteQuery("test_sql_1");
+        fq1.setCreateTime(currentTime - 30 * dayInMillis);
+        fq1.setFrequencyMap(new TreeMap<Long, Integer>() {
+            {
+                put(currentDate - 7 * dayInMillis, 1);
+                put(currentDate - 30 * dayInMillis, 2);
+            }
+        });
+
+        val fqr1 = new FavoriteQueryRealization();
+        fqr1.setModelId(model.getId());
+        fqr1.setSemanticVersion(model.getSemanticVersion());
+        fqr1.setLayoutId(1);
+
+        val fqr2 = new FavoriteQueryRealization();
+        fqr2.setModelId(model.getId());
+        fqr2.setSemanticVersion(model.getSemanticVersion());
+        fqr2.setLayoutId(10001L);
+
+        fq1.setRealizations(Lists.newArrayList(fqr1, fqr2));
+
+        // high frequency favorite query
+        val fq2 = new FavoriteQuery("test_sql_2");
+        fq2.setCreateTime(currentTime - 30 * dayInMillis);
+        fq2.setFrequencyMap(new TreeMap<Long, Integer>() {
+            {
+                put(currentDate - 30 * dayInMillis, 10);
+            }
+        });
+
+        val fqr3 = new FavoriteQueryRealization();
+        fqr3.setModelId(model.getId());
+        fqr3.setSemanticVersion(model.getSemanticVersion());
+        fqr3.setLayoutId(1);
+
+        val fqr4 = new FavoriteQueryRealization();
+        fqr4.setModelId(model.getId());
+        fqr4.setSemanticVersion(model.getSemanticVersion());
+        fqr4.setLayoutId(1000001L);
+
+        fq2.setRealizations(Lists.newArrayList(fqr3, fqr4));
+        favoriteQueryManager.create(Sets.newHashSet(fq1, fq2));
     }
 
     @Test
     public void testGetProjectConfig() {
-        val project = "default";
+        val project = PROJECT;
         val response = projectService.getProjectConfig(project);
         Assert.assertEquals(20, response.getFavoriteQueryThreshold());
         Assert.assertEquals(true, response.isAutoMergeEnabled());
@@ -268,7 +375,7 @@ public class ProjectServiceTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testUpdateProjectConfig() {
-        val project = "default";
+        val project = PROJECT;
 
         val description = "test description";
         val request = new ProjectGeneralInfoRequest();

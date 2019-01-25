@@ -59,7 +59,6 @@ import io.kyligence.kap.rest.request.ProjectRequest;
 import io.kyligence.kap.rest.request.PushDownConfigRequest;
 import io.kyligence.kap.rest.request.SegmentConfigRequest;
 import io.kyligence.kap.rest.request.StorageQuotaRequest;
-import io.kyligence.kap.rest.service.MetadataCleanupService;
 import io.kyligence.kap.rest.service.ProjectService;
 
 @Controller
@@ -75,9 +74,6 @@ public class NProjectController extends NBasicController {
     @Autowired
     @Qualifier("projectService")
     private ProjectService projectService;
-
-    @Autowired
-    MetadataCleanupService garbageCleanService;
 
     @RequestMapping(value = "", method = { RequestMethod.GET }, produces = { "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
@@ -206,8 +202,7 @@ public class NProjectController extends NBasicController {
         if (projectInstance == null) {
             throw new BadRequestException(String.format(msg.getPROJECT_NOT_FOUND(), project));
         }
-        projectService.cleanupProjectGarbageIndex(project);
-        garbageCleanService.cleanupProject(projectInstance);
+        projectService.cleanupGarbage(project);
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, true, "");
     }
 

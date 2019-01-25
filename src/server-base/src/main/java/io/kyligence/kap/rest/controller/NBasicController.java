@@ -197,6 +197,12 @@ public class NBasicController {
         }
     }
 
+    public void checkId(String uuid) {
+        if (StringUtils.isEmpty(uuid)) {
+            throw new BadRequestException("Id cannot be empty");
+        }
+    }
+
     public void validateRange(String start, String end) {
         validateRange(Long.parseLong(start), Long.parseLong(end));
     }
