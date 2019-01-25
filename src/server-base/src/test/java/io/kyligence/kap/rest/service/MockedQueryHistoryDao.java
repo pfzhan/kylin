@@ -76,7 +76,7 @@ public class MockedQueryHistoryDao extends QueryHistoryDAO {
             QueryHistory queryHistory = new QueryHistory("sql_pattern" + i,
                     QueryHistory.QUERY_HISTORY_SUCCEEDED, "ADMIN", System.currentTimeMillis(), 6000L);
             queryHistory.setInsertTime(currentTime + 30 * i * 1000L);
-            queryHistory.setAnsweredBy("HIVE");
+            queryHistory.setAnsweredBy("89af4ee2-2cdb-4b07-b39e-4c29856309aa,82fa7671-a935-45f5-8779-85703601f49a");
             if (i == 4)
                 queryHistory.setSqlPattern("SELECT *\nFROM \"TEST_KYLIN_FACT\"");
             if (i == 5)

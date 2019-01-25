@@ -77,6 +77,7 @@ import org.apache.calcite.prepare.CalcitePrepareImpl;
 import org.apache.calcite.prepare.OnlyPrepareEarlyAbortException;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.sql.type.BasicSqlType;
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -384,7 +385,17 @@ public class QueryService extends BasicService {
             } catch (Throwable th) {
                 logger.warn("Write metric error.", th);
             }
-
+            val modelManager = getDataModelManager(sqlRequest.getProject());
+            if (CollectionUtils.isNotEmpty(sqlResponse.getAnsweredBy())) {
+                sqlResponse.setAnsweredBy(sqlResponse.getAnsweredBy().stream().map(s -> {
+                    val model = modelManager.getDataModelDesc(s);
+                    if (model != null) {
+                        return model.getAlias();
+                    } else {
+                        return s;
+                    }
+                }).collect(Collectors.toList()));
+            }
             return sqlResponse;
 
         } finally {
@@ -944,7 +955,7 @@ public class QueryService extends BasicService {
             for (OLAPContext ctx : OLAPContext.getThreadLocalContexts()) {
                 if (ctx.realization != null) {
                     hasAtLeastOneRealization = true;
-                    models.add(ctx.realization.getModel().getAlias());
+                    models.add(ctx.realization.getModel().getUuid());
                     isPartialResult |= ctx.storageContext.isPartialResultReturned();
                     if (cubeSb.length() > 0) {
                         cubeSb.append(",");

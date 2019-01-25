@@ -31,6 +31,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import io.kyligence.kap.metadata.cube.model.NDataflowManager;
+import lombok.val;
+import lombok.var;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.junit.After;
 import org.junit.Assert;
@@ -336,8 +339,14 @@ public class NFavoriteSchedulerTest extends NLocalFileMetadataTestCase {
         Mockito.doReturn(systemTime + getTestConfig().getQueryHistoryScanPeriod()).when(favoriteScheduler)
                 .getSystemTime();
         updateRunner.run();
-        currentFavoriteQueries = favoriteQueryManager.getAll();
+        val dfMgr = NDataflowManager.getInstance(getTestConfig(), PROJECT);
+        var df1 = dfMgr.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+        var df2 = dfMgr.getDataflow("82fa7671-a935-45f5-8779-85703601f49a");
 
+        Assert.assertEquals(2, df1.getQueryHitCount());
+        Assert.assertEquals(2, df2.getQueryHitCount());
+
+        currentFavoriteQueries = favoriteQueryManager.getAll();
         for (FavoriteQuery favoriteQuery : currentFavoriteQueries) {
             switch (favoriteQuery.getSqlPattern()) {
                 case "sql1":
@@ -369,6 +378,12 @@ public class NFavoriteSchedulerTest extends NLocalFileMetadataTestCase {
 
         updateRunner.run();
         currentFavoriteQueries = favoriteQueryManager.getAll();
+
+         df1 = dfMgr.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+         df2 = dfMgr.getDataflow("82fa7671-a935-45f5-8779-85703601f49a");
+
+        Assert.assertEquals(4, df1.getQueryHitCount());
+        Assert.assertEquals(4, df2.getQueryHitCount());
 
         for (FavoriteQuery favoriteQuery : currentFavoriteQueries) {
             switch (favoriteQuery.getSqlPattern()) {

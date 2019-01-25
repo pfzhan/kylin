@@ -50,7 +50,9 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
+import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import lombok.val;
+import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.ExecutorServiceUtil;
@@ -433,10 +435,23 @@ public class NFavoriteScheduler {
         Map<String, FavoriteQuery> favoritesAboutToUpdate = Maps.newHashMap();
         List<QueryHistory> queryHistories = getQueryHistoryDao()
                 .getQueryHistoriesByTime(timeOffset.getFavoriteQueryUpdateTimeOffset(), endTime);
+        val dfManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
 
+        Map<String, Integer> dfHitCountMap = Maps.newHashMap();
         for (QueryHistory queryHistory : queryHistories) {
+            if (StringUtils.isNotEmpty(queryHistory.getAnsweredBy())) {
+                val answers = Lists.newArrayList(queryHistory.getAnsweredBy().split(","));
+                for (val answer : answers) {
+                    if (dfManager.getDataflow(answer) != null) {
+                        dfHitCountMap.merge(answer, 1, Integer::sum);
+                    }
+                }
+            }
             updateFavoriteQuery(queryHistory, favoritesAboutToUpdate);
         }
+
+        incQueryHitCount(dfHitCountMap);
+
 
         List<FavoriteQuery> favoriteQueries = Lists.newArrayList();
         for (Map.Entry<String, FavoriteQuery> favoritesInProj : favoritesAboutToUpdate.entrySet()) {
@@ -446,6 +461,17 @@ public class NFavoriteScheduler {
         FavoriteQueryManager.getInstance(config, project).updateStatistics(favoriteQueries);
         timeOffset.setFavoriteQueryUpdateTimeOffset(endTime);
         QueryHistoryTimeOffsetManager.getInstance(config, project).save(timeOffset);
+    }
+
+    private void incQueryHitCount(Map<String, Integer> dfHitCountMap) {
+        val dfManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+        for (val entry : dfHitCountMap.entrySet()) {
+            if (dfManager.getDataflow(entry.getKey()) != null) {
+                dfManager.updateDataflow(entry.getKey(), copyForWrite -> {
+                    copyForWrite.setQueryHitCount(copyForWrite.getQueryHitCount() + entry.getValue());
+                });
+            }
+        }
     }
 
     private void updateFavoriteQuery(QueryHistory queryHistory, Map<String, FavoriteQuery> favoritesAboutToUpdate) {

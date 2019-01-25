@@ -64,6 +64,8 @@ public class QueryHistoryService extends BasicService {
     public HashMap<String, Object> getQueryHistories(QueryHistoryRequest request, final int limit, final int offset) {
         Preconditions.checkArgument(request.getProject() != null && StringUtils.isNotEmpty(request.getProject()));
         QueryHistoryDAO queryHistoryDAO = getQueryHistoryDao(request.getProject());
+        val dataModelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), request.getProject());
+
         val dataflowManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), request.getProject());
         val modelAliasMap = dataflowManager.listUnderliningDataModels().stream()
                 .collect(Collectors.toMap(NDataModel::getAlias, RootPersistentEntity::getUuid));
@@ -75,7 +77,15 @@ public class QueryHistoryService extends BasicService {
                         return new QueryHistoryResponse(query, null);
                     }
                     val answers = Sets.newHashSet(query.getAnsweredBy().split(","));
-                    val subMap = Maps.filterKeys(modelAliasMap, answers::contains);
+                    val subMap = Maps.filterValues(modelAliasMap, answers::contains);
+                    val answerBy = answers.stream().map(s -> {
+                        if (modelAliasMap.containsValue(s))
+                            return dataModelManager.getDataModelDesc(s).getAlias();
+                        else
+                            return s;
+                    }).collect(Collectors.joining(","));
+                    val response = new QueryHistoryResponse(query, subMap);
+                    response.getQueryHistory().setAnsweredBy(answerBy);
                     return new QueryHistoryResponse(query, subMap);
                 }).collect(Collectors.toList()));
         data.put("size", queryHistoryDAO.getQueryHistoriesSize(request));

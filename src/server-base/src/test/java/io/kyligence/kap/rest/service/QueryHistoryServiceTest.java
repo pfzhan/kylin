@@ -84,7 +84,7 @@ public class QueryHistoryServiceTest extends NLocalFileMetadataTestCase {
         // mock query history
         QueryHistory queryHistory1 = new QueryHistory();
         queryHistory1.setSql("select * from test_table_1");
-        queryHistory1.setAnsweredBy("nmodel_basic,nmodel_basic_inner");
+        queryHistory1.setAnsweredBy("741ca86a-1f13-46da-a59f-95fb68615e3a,89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         QueryHistory queryHistory2 = new QueryHistory();
         queryHistory2.setSql("select * from test_table_2");
 

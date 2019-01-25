@@ -81,7 +81,7 @@ public class MetadataCleanupService {
                     .collect(Collectors.toList());
             val aclManager = AclManager.getInstance(KylinConfig.getInstanceFromEnv());
             for (val acl : aclManager.listAll()) {
-                val id = acl.getDomainObjectInfo().getId();
+                String id = acl.getDomainObjectInfo().getId();
                 if (!prjects.contains(id)) {
                     aclManager.delete(id);
                 }

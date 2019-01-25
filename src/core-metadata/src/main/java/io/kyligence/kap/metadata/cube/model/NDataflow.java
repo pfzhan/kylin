@@ -106,6 +106,11 @@ public class NDataflow extends RootPersistentEntity implements Serializable, IRe
 
     @Getter
     @Setter
+    @JsonProperty("query_hit_count")
+    private int queryHitCount = 0;
+
+    @Getter
+    @Setter
     @JsonProperty("event_error")
     private boolean eventError;
 

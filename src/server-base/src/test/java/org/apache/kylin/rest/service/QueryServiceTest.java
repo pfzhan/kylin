@@ -247,12 +247,15 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
     }
 
     private void mockOLAPContext() {
+        val modelManager = Mockito.spy(NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), "default"));
+        Mockito.doReturn(modelManager).when(queryService).getDataModelManager("default");
         for (long i = 1; i <= 2; i++) {
             final OLAPContext mock = new OLAPContext((int) i);
 
             final NDataModel mockModel = Mockito.spy(new NDataModel());
             Mockito.when(mockModel.getUuid()).thenReturn("mock_model" + i);
             Mockito.when(mockModel.getAlias()).thenReturn("mock_model_alias" + i);
+            Mockito.doReturn(mockModel).when(modelManager).getDataModelDesc("mock_model" + i);
             final IRealization mockRealization = Mockito.mock(IRealization.class);
             Mockito.when(mockRealization.getModel()).thenReturn(mockModel);
             mock.realization = mockRealization;

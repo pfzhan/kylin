@@ -172,8 +172,6 @@ public class ModelService extends BasicService {
         List<NDataflow> dataflowList = getDataflowManager(projectName).listAllDataflows(true);
         val dfManager = getDataflowManager(projectName);
 
-        val resultMap = getModelQueryTimesMap("*", projectName, "*", 0, 0);
-
         List<NDataModelResponse> filterModels = new ArrayList<>();
         List<NDataModelResponse> brokenModels = new ArrayList<>();
         for (NDataflow dataflow : dataflowList) {
@@ -197,9 +195,7 @@ public class ModelService extends BasicService {
                     NDataModelResponse nDataModelResponse = enrichModelResponse(modelDesc, projectName);
                     nDataModelResponse.setStatus(modelStatus);
                     nDataModelResponse.setStorage(dfManager.getDataflowByteSize(modelDesc.getUuid()));
-                    if (resultMap.containsKey(modelDesc.getUuid())) {
-                        nDataModelResponse.setUsage(resultMap.get(modelDesc.getUuid()).getQueryTimes());
-                    }
+                    nDataModelResponse.setUsage(dataflow.getQueryHitCount());
                     filterModels.add(nDataModelResponse);
                 }
             }

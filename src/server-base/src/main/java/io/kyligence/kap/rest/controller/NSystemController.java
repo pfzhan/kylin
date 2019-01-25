@@ -71,10 +71,8 @@ public class NSystemController extends NBasicController {
         }
     }
 
-    private void getLicenseInfo(File licenseFile) throws IOException {
-        BufferedReader in = null;
-        try {
-            in = new BufferedReader(new InputStreamReader(new FileInputStream(licenseFile), "UTF-8"));
+    private void getLicenseInfo(File licenseFile) {
+        try (BufferedReader in = new BufferedReader(new InputStreamReader(new FileInputStream(licenseFile), "UTF-8"))) {
             String dates;
             while ((dates = in.readLine()) != null) {
                 String license = in.readLine();
@@ -89,8 +87,6 @@ public class NSystemController extends NBasicController {
         } catch (Exception ex) {
             logger.error("license is invalid", ex);
             System.exit(1);
-        } finally {
-            in.close();
         }
     }
 
