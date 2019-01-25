@@ -30,6 +30,7 @@ import java.time.ZoneId;
 import java.util.Set;
 import java.util.TimeZone;
 
+import com.google.common.collect.Sets;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.job.dao.JobStatisticsManager;
@@ -72,8 +73,15 @@ public abstract class SparkJobMetadataMerger extends MetadataMerger {
             final NDataModel dataModel = NDataflowManager.getInstance(getConfig(), project).getDataflow(dataflowId)
                     .getModel();
             mergeAndUpdateTableExt(localTblMgr, remoteTblMgr, dataModel.getRootFactTableName());
+            final Set<String> lookupMerged = Sets.newHashSet();
             for (final JoinTableDesc lookupDesc : dataModel.getJoinTables()) {
+                final String lookupTable = lookupDesc.getTable();
+                // The same lookup table should not be merged twice.
+                if (lookupMerged.contains(lookupTable)) {
+                    continue;
+                }
                 mergeAndUpdateTableExt(localTblMgr, remoteTblMgr, lookupDesc.getTable());
+                lookupMerged.add(lookupTable);
             }
         }
     }

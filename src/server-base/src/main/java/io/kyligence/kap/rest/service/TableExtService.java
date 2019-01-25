@@ -113,6 +113,7 @@ public class TableExtService extends BasicService {
             if (extDesc == null) {
                 continue;
             }
+            extDesc = tableMetadataManager.copyForWrite(extDesc);
             if (extDesc.getJodID() != null && jobId.equals(extDesc.getJodID())) {
                 extDesc.setJodID(null);
                 tableMetadataManager.saveTableExt(extDesc);

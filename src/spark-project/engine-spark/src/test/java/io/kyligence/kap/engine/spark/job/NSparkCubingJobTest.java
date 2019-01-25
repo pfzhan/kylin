@@ -38,8 +38,10 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.RandomUtils;
+import org.apache.hadoop.fs.Path;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.StorageURL;
+import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.kylin.job.engine.JobEngineConfig;
 import org.apache.kylin.job.exception.ExecuteException;
 import org.apache.kylin.job.execution.ExecutableContext;
@@ -51,9 +53,11 @@ import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
 import org.apache.kylin.job.lock.MockJobLock;
 import org.apache.kylin.measure.percentile.PercentileCounter;
 import org.apache.kylin.measure.topn.TopNCounter;
+import org.apache.kylin.metadata.model.JoinTableDesc;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.TableExtDesc;
+import org.apache.kylin.metadata.model.TableRef;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.junit.After;
@@ -300,7 +304,7 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
 
         validateCube(df2.getSegments().getFirstSegment().getId());
         validateTableIndex(df2.getSegments().getFirstSegment().getId());
-        validateTableExt(df.getModel().getRootFactTableName(), 10000, 1, 11);
+        validateTableExt(df.getModel());
     }
 
     @Test
@@ -646,14 +650,37 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
         Assert.assertEquals("英国", ret.collectAsList().get(9999).apply(1).toString());
     }
 
-    private void validateTableExt(String tableName, long rows, int segSize, int colStats) {
+    private void validateTableExt(NDataModel dataModel) throws IOException {
+        val rootFactTbl = dataModel.getRootFactTableName();
         final NTableMetadataManager tableMetadataManager = NTableMetadataManager.getInstance(config, getProject());
-        final TableDesc tableDesc = tableMetadataManager.getTableDesc(tableName);
-        final TableExtDesc tableExt = tableMetadataManager.getTableExtIfExists(tableDesc);
-        Assert.assertNotNull(tableExt);
-        Assert.assertEquals(rows, tableExt.getTotalRows());
-        Assert.assertEquals(colStats, tableExt.getColumnStats().size());
-        Assert.assertEquals(segSize, tableExt.getLoadingRange().size());
+        final TableDesc rootTableDesc = tableMetadataManager.getTableDesc(rootFactTbl);
+        final TableExtDesc rootTableExt = tableMetadataManager.getTableExtIfExists(rootTableDesc);
+        Assert.assertNotNull(rootTableExt);
+        Assert.assertEquals(10000, rootTableExt.getTotalRows());
+        Assert.assertEquals(11, rootTableExt.getColumnStats().size());
+        Assert.assertEquals(1, rootTableExt.getLoadingRange().size());
+        assertColumnStats(rootTableExt);
+
+        for (final JoinTableDesc lookupDesc : dataModel.getJoinTables()) {
+            final TableRef lookupTableRef = lookupDesc.getTableRef();
+            final TableExtDesc lookupTableExt = tableMetadataManager.getTableExtIfExists(lookupTableRef.getTableDesc());
+            Assert.assertNotNull(lookupTableExt);
+            assertColumnStats(lookupTableExt);
+        }
+
+    }
+
+    private void assertColumnStats(TableExtDesc tableExt) throws IOException {
+        val fs = HadoopUtil.getWorkingFileSystem();
+        val colStatsHdfsPath = NTableMetadataManager.ColumnStatsStore.getInstance(tableExt, getTestConfig())
+                .getColumnStatsPath();
+        val actualResult = fs.listStatus(new Path(colStatsHdfsPath));
+        Assert.assertEquals(1, actualResult.length);
+        Assert.assertEquals(tableExt.getColStatsPath(), actualResult[0].getPath().toString());
+
+        for (val colStats : tableExt.getColumnStats()) {
+            Assert.assertTrue(colStats.getRangeHLLC().size() > 0);
+        }
     }
 
     @Test

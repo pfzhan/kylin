@@ -30,6 +30,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
+import lombok.var;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
@@ -61,7 +62,6 @@ import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.model.DataCheckDesc;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
-import lombok.val;
 
 public class ModelAnalyzer implements Serializable {
 
@@ -173,7 +173,7 @@ public class ModelAnalyzer implements Serializable {
     private TableAnalyzerResult analysisTable(final Dataset<Row> tableDS, final TableDesc tableDesc) {
         final int partition = estimatePartitions(tableDS, config);
         logger.info("Analysing table {}, repartition with size {}", tableDesc.getName(), partition);
-        return tableDS.toJavaRDD().repartition(partition)
+        final TableAnalyzerResult analysisResult = tableDS.toJavaRDD().repartition(partition)
                 .mapPartitionsWithIndex(new Function2<Integer, Iterator<Row>, Iterator<TableAnalyzerResult>>() {
                     @Override
                     public Iterator<TableAnalyzerResult> call(Integer index, Iterator<Row> rowIterator)
@@ -193,6 +193,9 @@ public class ModelAnalyzer implements Serializable {
                         return TableAnalyzerResult.reduce(v1, v2);
                     }
                 });
+
+        analysisResult.decodeResult();
+        return analysisResult;
     }
 
     private void saveOrUpdateTableStats(TableAnalyzerResult analyzerResult, SegmentRange segRange) throws IOException {
@@ -200,7 +203,8 @@ public class ModelAnalyzer implements Serializable {
 
         final NTableMetadataManager tableMetadataManager = NTableMetadataManager.getInstance(config,
                 dataModel.getProject());
-        val tableExt = tableMetadataManager.getOrCreateTableExt(tableDesc);
+        var tableExt = tableMetadataManager.getOrCreateTableExt(tableDesc);
+        tableExt = tableMetadataManager.copyForWrite(tableExt);
 
         // for lookup table
         boolean isLookup = false;
@@ -241,7 +245,7 @@ public class ModelAnalyzer implements Serializable {
                 colStats.setNullCount(analyzerResult.getNullOrBlankCount(colIdx));
             }
 
-            colStats.addRangeHLLC(segRange, analyzerResult.getHLLCBytes(colIdx));
+            colStats.addRangeHLLC(segRange, analyzerResult.getHLLC(colIdx));
 
             final double maxValue = columnDesc.getType().isNumberFamily() ? analyzerResult.getMaxNumeral(colIdx)
                     : Double.NaN;

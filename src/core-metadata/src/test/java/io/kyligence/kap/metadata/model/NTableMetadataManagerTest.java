@@ -31,6 +31,11 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import lombok.val;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.hadoop.fs.Path;
+import org.apache.kylin.common.util.HadoopUtil;
+import org.apache.kylin.measure.hllc.HLLCounter;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.TableExtDesc;
 import org.junit.After;
@@ -99,6 +104,7 @@ public class NTableMetadataManagerTest extends NLocalFileMetadataTestCase {
 
         List<TableExtDesc.ColumnStats> columnStatsList = new ArrayList<>();
         TableExtDesc.ColumnStats columnStats = new NTableExtDesc.ColumnStats();
+        columnStats.setColumnName("test_col");
         columnStats.setColumnSamples("Max", "Min", "dfadsfdsfdsafds", "d");
         columnStatsList.add(columnStats);
         tableExtDesc.setColumnStats(columnStatsList);
@@ -148,5 +154,83 @@ public class NTableMetadataManagerTest extends NLocalFileMetadataTestCase {
         List<TableDesc> tables = mgrDefault.getAllIncrementalLoadTables();
         Assert.assertEquals(1, tables.size());
         Assert.assertTrue(tables.get(0).isIncrementLoading());
+    }
+
+    @Test
+    public void testColumnStatsStore() throws IOException {
+        TableDesc tableDesc = mgrDefault.getTableDesc(tableKylinFact);
+        NTableExtDesc tableExtDesc = mgrDefault.getTableExtIfExists(tableDesc);
+        Assert.assertNull(tableExtDesc);
+        tableExtDesc = mgrDefault.getOrCreateTableExt(tableDesc);
+        Assert.assertNotNull(tableExtDesc);
+        val colStatsStore = NTableMetadataManager.ColumnStatsStore.getInstance(tableExtDesc, getTestConfig());
+
+        List<TableExtDesc.ColumnStats> columnStatsList = new ArrayList<>();
+        val colStats = new TableExtDesc.ColumnStats();
+        colStats.setColumnName("col1");
+        colStats.setNullCount(10);
+        colStats.setMaxLength(20);
+        val hllc = new HLLCounter(14);
+        hllc.add(1);
+        hllc.add(2);
+        hllc.add(3);
+        colStats.addRangeHLLC("0_1", hllc);
+        val colStatsPath = new Path(colStatsStore.getColumnStatsPath());
+        val colStatsFS = HadoopUtil.getWorkingFileSystem();
+
+        columnStatsList.add(colStats);
+        tableExtDesc.setColumnStats(columnStatsList);
+
+        // round 1
+        Assert.assertFalse(colStatsFS.exists(colStatsPath));
+        mgrDefault.saveTableExt(tableExtDesc);
+        Assert.assertTrue(colStatsFS.exists(colStatsPath));
+        Assert.assertEquals(1, colStatsFS.listStatus(colStatsPath).length);
+
+        val actualExt = mgrDefault.getTableExtIfExists(tableDesc);
+        Assert.assertNotNull(actualExt);
+        val actualColStatsPath = actualExt.getColStatsPath();
+        Assert.assertEquals(colStatsFS.listStatus(colStatsPath)[0].getPath().toString(), actualColStatsPath);
+        Assert.assertEquals(1, actualExt.getColumnStats().size());
+        val actualColStats = actualExt.getColumnStats().get(0);
+        Assert.assertEquals("col1", actualColStats.getColumnName());
+        Assert.assertEquals(10, actualColStats.getNullCount());
+        Assert.assertEquals(20, actualColStats.getMaxLength().intValue());
+        Assert.assertEquals(1, actualColStats.getRangeHLLC().size());
+        Assert.assertTrue(actualColStats.getRangeHLLC().containsKey("0_1"));
+        Assert.assertEquals(hllc.getCountEstimate(), actualColStats.getRangeHLLC().get("0_1").getCountEstimate());
+
+        // round 2
+        val tableExtDesc2 = mgrDefault.copyForWrite(actualExt);
+        val colStats2 = tableExtDesc2.getColumnStats().get(0);
+        colStats2.setNullCount(11);
+        val hllc2 = new HLLCounter(14);
+        hllc2.add(1);
+        colStats2.addRangeHLLC("1_2", hllc2);
+        mgrDefault.saveTableExt(tableExtDesc2);
+        Assert.assertEquals(1, colStatsFS.listStatus(colStatsPath).length);
+        val actualExt2 = mgrDefault.getTableExtIfExists(tableDesc);
+        Assert.assertNotNull(actualExt2);
+        val actualColStatsPath2 = actualExt2.getColStatsPath();
+        Assert.assertTrue(StringUtils.isNotBlank(actualColStatsPath2));
+        Assert.assertNotEquals(actualColStatsPath, actualColStatsPath2);
+        Assert.assertEquals(colStatsFS.listStatus(colStatsPath)[0].getPath().toString(), actualColStatsPath2);
+        Assert.assertEquals(1, actualExt2.getColumnStats().size());
+        val actualColStats2 = actualExt2.getColumnStats().get(0);
+        Assert.assertEquals("col1", actualColStats2.getColumnName());
+        Assert.assertEquals(11, actualColStats2.getNullCount());
+        Assert.assertEquals(20, actualColStats2.getMaxLength().intValue());
+        Assert.assertEquals(2, actualColStats2.getRangeHLLC().size());
+        Assert.assertTrue(actualColStats2.getRangeHLLC().containsKey("0_1"));
+        Assert.assertTrue(actualColStats2.getRangeHLLC().containsKey("1_2"));
+        Assert.assertEquals(hllc2.getCountEstimate(), actualColStats2.getRangeHLLC().get("1_2").getCountEstimate());
+
+        // round 3, delete
+        mgrDefault.removeTableExt(tableExtDesc.getIdentity());
+        Assert.assertFalse(colStatsFS.exists(new Path(colStatsPath, "0_1")));
+        Assert.assertFalse(colStatsFS.exists(new Path(colStatsPath, "1_2")));
+        Assert.assertFalse(colStatsFS.exists(new Path(colStatsStore.getColumnStatsPath())));
+
+        Assert.assertNull(mgrDefault.getTableExtIfExists(tableDesc));
     }
 }

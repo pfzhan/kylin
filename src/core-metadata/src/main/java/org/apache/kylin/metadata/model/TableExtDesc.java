@@ -43,7 +43,6 @@
 package org.apache.kylin.metadata.model;
 
 import java.io.Serializable;
-import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -57,9 +56,7 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.persistence.RootPersistentEntity;
 import org.apache.kylin.common.util.Pair;
-import org.apache.kylin.measure.hllc.HLLCSerializer;
 import org.apache.kylin.measure.hllc.HLLCounter;
-import org.apache.kylin.metadata.datatype.DataType;
 
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonBackReference;
@@ -76,8 +73,6 @@ import lombok.Setter;
 @SuppressWarnings("serial")
 @JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.NONE, getterVisibility = JsonAutoDetect.Visibility.NONE, isGetterVisibility = JsonAutoDetect.Visibility.NONE, setterVisibility = JsonAutoDetect.Visibility.NONE)
 public class TableExtDesc extends RootPersistentEntity implements Serializable {
-
-    private static final HLLCSerializer HLLC_SERIALIZER = new HLLCSerializer(DataType.getType("hllc14"));
 
     public static String concatRawResourcePath(String nameOnPath) {
         return ResourceStore.TABLE_EXD_RESOURCE_ROOT + "/" + nameOnPath + ".json";
@@ -134,6 +129,11 @@ public class TableExtDesc extends RootPersistentEntity implements Serializable {
     @Setter
     @JsonProperty("loading_range")
     private List<SegmentRange> loadingRange = new ArrayList<>();
+
+    @Setter
+    @Getter
+    @JsonProperty("col_stats_path")
+    private String colStatsPath;
 
     public TableExtDesc() {
     }
@@ -223,9 +223,7 @@ public class TableExtDesc extends RootPersistentEntity implements Serializable {
         if (this.identity != null)
             this.identity = this.identity.toUpperCase();
 
-        for (final ColumnStats colStats : this.columnStats) {
-            colStats.init();
-        }
+        NTableMetadataManager.ColumnStatsStore.getInstance(this).load();
     }
 
     public boolean isPartitioned() {
@@ -298,8 +296,8 @@ public class TableExtDesc extends RootPersistentEntity implements Serializable {
         @JsonProperty("data_skew_samples")
         private Map<String, Long> dataSkewSamples = new HashMap<>();
 
-        @JsonProperty("range_hllc")
-        private Map<String, byte[]> rangeHLLC = new HashMap<>();
+        @JsonIgnore
+        private transient Map<String, HLLCounter> rangeHLLC = new HashMap<>();
 
         @JsonIgnore
         private transient HLLCounter totalHLLC;
@@ -312,16 +310,16 @@ public class TableExtDesc extends RootPersistentEntity implements Serializable {
             return 0;
         }
 
-        void init() {
+        public void init() {
             if (rangeHLLC.isEmpty()) {
                 return;
             }
 
-            final Iterator<byte[]> hllcIterator = rangeHLLC.values().iterator();
+            final Iterator<HLLCounter> hllcIterator = rangeHLLC.values().iterator();
 
-            totalHLLC = HLLC_SERIALIZER.deserialize(ByteBuffer.wrap(hllcIterator.next()));
+            totalHLLC = new HLLCounter(hllcIterator.next());
             while (hllcIterator.hasNext()) {
-                totalHLLC.merge(HLLC_SERIALIZER.deserialize(ByteBuffer.wrap(hllcIterator.next())));
+                totalHLLC.merge(hllcIterator.next());
             }
 
             totalCardinality = totalHLLC.getCountEstimate();
@@ -329,9 +327,13 @@ public class TableExtDesc extends RootPersistentEntity implements Serializable {
             cardinality = totalCardinality;
         }
 
-        public void addRangeHLLC(SegmentRange segRange, byte[] hllcBytes) {
-            final String key = segRange.getStart() + "," + segRange.getEnd();
-            rangeHLLC.put(key, hllcBytes);
+        public void addRangeHLLC(SegmentRange segRange, HLLCounter hllc) {
+            final String key = segRange.getStart() + "_" + segRange.getEnd();
+            rangeHLLC.put(key, hllc);
+        }
+
+        public void addRangeHLLC(String segRange, HLLCounter hllc) {
+            rangeHLLC.put(segRange, hllc);
         }
 
         public void updateBasicStats(double maxNumeral, double minNumeral, int maxLength, int minLength,

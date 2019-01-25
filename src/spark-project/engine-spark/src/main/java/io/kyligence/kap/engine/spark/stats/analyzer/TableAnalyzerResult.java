@@ -47,7 +47,7 @@ public class TableAnalyzerResult implements Serializable {
     private HashBasedTable<Class<?>, Integer, AbstractColumnAnalysisDelegate> colDelegateTable;
 
     public TableAnalyzerResult(TableDesc tableDesc, long rowCount,
-                               HashBasedTable<Class<?>, Integer, AbstractColumnAnalysisDelegate> colDelegateTable) {
+            HashBasedTable<Class<?>, Integer, AbstractColumnAnalysisDelegate> colDelegateTable) {
 
         this.tableDesc = tableDesc;
         this.columnDescs = tableDesc.getColumns();
@@ -63,7 +63,8 @@ public class TableAnalyzerResult implements Serializable {
 
         final long rowCount = r1.rowCount + r2.rowCount;
 
-        final HashBasedTable<Class<?>, Integer, AbstractColumnAnalysisDelegate> reduceColDelegate = HashBasedTable.create();
+        final HashBasedTable<Class<?>, Integer, AbstractColumnAnalysisDelegate> reduceColDelegate = HashBasedTable
+                .create();
         for (int colIdx = 0; colIdx < r1.columnDescs.length; colIdx++) {
             if (r1.columnDescs[colIdx].isComputedColumn()) {
                 continue;
@@ -81,7 +82,7 @@ public class TableAnalyzerResult implements Serializable {
         return new TableAnalyzerResult(r1.tableDesc, rowCount, reduceColDelegate);
     }
 
-    private void encodeResult() {
+    public void encodeResult() {
         for (int colIdx = 0; colIdx < this.columnDescs.length; colIdx++) {
             if (columnDescs[colIdx].isComputedColumn()) {
                 continue;
@@ -95,7 +96,7 @@ public class TableAnalyzerResult implements Serializable {
         }
     }
 
-    private void decodeResult() {
+    public void decodeResult() {
         for (int colIdx = 0; colIdx < this.columnDescs.length; colIdx++) {
             if (columnDescs[colIdx].isComputedColumn()) {
                 continue;

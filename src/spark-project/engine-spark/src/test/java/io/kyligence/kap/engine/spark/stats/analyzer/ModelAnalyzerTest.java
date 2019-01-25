@@ -29,9 +29,7 @@ import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
-import org.apache.kylin.measure.hllc.HLLCSerializer;
 import org.apache.kylin.measure.hllc.HLLCounter;
-import org.apache.kylin.metadata.datatype.DataType;
 import org.apache.kylin.metadata.model.PartitionDesc;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.TableExtDesc;
@@ -40,19 +38,17 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 
 public class ModelAnalyzerTest extends NLocalWithSparkSessionTest {
 
-    private static final HLLCSerializer HLLC_SERIALIZER = new HLLCSerializer(DataType.getType("hllc14"));
-
     private NDataModel dataModel;
 
     @Before
     public void setup() {
-        dataModel = NDataModelManager.getInstance(getTestConfig(), "default").getDataModelDesc("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+        dataModel = NDataModelManager.getInstance(getTestConfig(), "default")
+                .getDataModelDesc("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
     }
 
     @Test
@@ -141,7 +137,6 @@ public class ModelAnalyzerTest extends NLocalWithSparkSessionTest {
     }
 
     private HLLCounter getHLLC(TableExtDesc.ColumnStats colStats, SegmentRange segmentRange) {
-        return HLLC_SERIALIZER.deserialize(
-                ByteBuffer.wrap(colStats.getRangeHLLC().get(segmentRange.getStart() + "," + segmentRange.getEnd())));
+        return colStats.getRangeHLLC().get(segmentRange.getStart() + "_" + segmentRange.getEnd());
     }
 }

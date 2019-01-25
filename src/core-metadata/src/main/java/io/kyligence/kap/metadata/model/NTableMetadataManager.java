@@ -26,20 +26,35 @@ package io.kyligence.kap.metadata.model;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.ByteBuffer;
+import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.io.ByteStreams;
+import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.hadoop.fs.FSDataInputStream;
+import org.apache.hadoop.fs.FSDataOutputStream;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
+import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.JsonSerializer;
 import org.apache.kylin.common.persistence.RawResource;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.persistence.Serializer;
+import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.kylin.common.util.JsonUtil;
+import org.apache.kylin.measure.hllc.HLLCSerializer;
 import org.apache.kylin.metadata.MetadataConstants;
 import org.apache.kylin.metadata.cachesync.CachedCrudAssist;
+import org.apache.kylin.metadata.datatype.DataType;
 import org.apache.kylin.metadata.model.ExternalFilterDesc;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.TableExtDesc;
@@ -58,6 +73,8 @@ public class NTableMetadataManager {
 
     @SuppressWarnings("unused")
     private static final Logger logger = LoggerFactory.getLogger(NTableMetadataManager.class);
+
+    private static final HLLCSerializer HLLC_SERIALIZER = new HLLCSerializer(DataType.getType("hllc14"));
 
     private static final Serializer<NTableExtDesc> TABLE_EXT_SERIALIZER = new JsonSerializer<>(NTableExtDesc.class);
 
@@ -149,6 +166,10 @@ public class NTableMetadataManager {
 
     public TableDesc copyForWrite(TableDesc tableDesc) {
         return srcTableCrud.copyForWrite(tableDesc);
+    }
+
+    public NTableExtDesc copyForWrite(NTableExtDesc tableExtDesc) {
+        return srcExtCrud.copyForWrite(tableExtDesc);
     }
 
     /**
@@ -246,6 +267,7 @@ public class NTableMetadataManager {
         if (t != null && t.getIdentity() == null)
             store.deleteResource(path);
 
+        ColumnStatsStore.getInstance(tableExt, config).save();
         srcExtCrud.save(tableExt);
     }
 
@@ -256,9 +278,10 @@ public class NTableMetadataManager {
             // TODO merge new range if refresh
             copyForWrite.setLoadingRange(other.getLoadingRange());
             copyForWrite.setTotalRows(other.getTotalRows());
-            copyForWrite.setColumnStats(other.getColumnStats());
         }
 
+        copyForWrite.setColumnStats(other.getColumnStats());
+        copyForWrite.setColStatsPath(other.getColStatsPath());
         saveTableExt(copyForWrite);
     }
 
@@ -269,6 +292,7 @@ public class NTableMetadataManager {
             return;
 
         srcExtCrud.delete(t);
+        ColumnStatsStore.getInstance(t, config).delete();
     }
 
     private NTableExtDesc convertOldTableExtToNewer(String resourceName) {
@@ -339,5 +363,131 @@ public class NTableMetadataManager {
 
     private NProjectManager getProjectManager() {
         return NProjectManager.getInstance(config);
+    }
+
+    public static class ColumnStatsStore {
+        private final TableExtDesc tableExtDesc;
+        private final KylinConfig config;
+        @VisibleForTesting
+        FileSystem fs;
+
+        private ColumnStatsStore(TableExtDesc tableExtDesc, KylinConfig config) {
+            this.tableExtDesc = tableExtDesc;
+            this.config = config;
+            fs = HadoopUtil.getWorkingFileSystem();
+        }
+
+        public static ColumnStatsStore getInstance(TableExtDesc tableExtDesc, KylinConfig config) {
+            return new ColumnStatsStore(tableExtDesc, config);
+        }
+
+        public static ColumnStatsStore getInstance(TableExtDesc tableExtDesc) {
+            return new ColumnStatsStore(tableExtDesc, KylinConfig.getInstanceFromEnv());
+        }
+
+        public void load() {
+            if (StringUtils.isBlank(tableExtDesc.getColStatsPath())) {
+                return;
+            }
+            FSDataInputStream in = null;
+            val colStatsPath = new Path(tableExtDesc.getColStatsPath());
+            try {
+                if (!fs.exists(colStatsPath)) {
+                    logger.error("column stats file [{}] no exists in HDFS", colStatsPath);
+                    return;
+                }
+                in = fs.open(colStatsPath);
+                final Map<String, Map<String, byte[]>> colStatsTable = JsonUtil.readValue(IOUtils.toString(in),
+                        new TypeReference<Map<String, Map<String, byte[]>>>() {
+                        });
+                for (val colStats : tableExtDesc.getColumnStats()) {
+                    val colName = colStats.getColumnName();
+                    val rangeHLLC = colStatsTable.get(colName);
+                    if (rangeHLLC == null || rangeHLLC.isEmpty()) {
+                        continue;
+                    }
+                    for (val segRange : rangeHLLC.keySet()) {
+                        final byte[] hllcBytes = rangeHLLC.get(segRange);
+                        val hllc = HLLC_SERIALIZER.deserialize(ByteBuffer.wrap(hllcBytes));
+                        colStats.addRangeHLLC(segRange, hllc);
+                    }
+
+                    colStats.init();
+                }
+                logger.info("load column stats file [{}] from HDFS successful", colStatsPath);
+            } catch (Exception e) {
+                logger.error("load column stats file [{}] from HDFS failed, please refresh this segment", colStatsPath,
+                        e);
+            } finally {
+                IOUtils.closeQuietly(in);
+            }
+        }
+
+        public void save() {
+            final Map<String, Map<String, byte[]>> colStatsTable = Maps.newHashMap();
+            FSDataOutputStream out = null;
+            Path newColStatsPath = null;
+            try {
+                for (val colStats : tableExtDesc.getColumnStats()) {
+                    val colName = colStats.getColumnName();
+                    colStatsTable.put(colName, Maps.newHashMap());
+                    for (val rangeHLLC : colStats.getRangeHLLC().entrySet()) {
+                        val segRange = rangeHLLC.getKey();
+                        val hllc = rangeHLLC.getValue();
+                        final ByteBuffer buffer = ByteBuffer.allocate(hllc.maxLength());
+                        HLLC_SERIALIZER.serialize(hllc, buffer);
+                        colStatsTable.get(colName).put(segRange, buffer.array());
+                    }
+                }
+
+                newColStatsPath = new Path(getColumnStatsPath(), UUID.randomUUID().toString());
+                out = fs.create(newColStatsPath, true);
+                IOUtils.copy(ByteStreams.asByteSource(JsonUtil.writeValueAsBytes(colStatsTable)).openStream(), out);
+                val oldColStatsPath = tableExtDesc.getColStatsPath();
+                tableExtDesc.setColStatsPath(newColStatsPath.toString());
+                logger.info("update column stats file from [{}] to [{}] in HDFS successful", oldColStatsPath,
+                        newColStatsPath);
+
+                if (StringUtils.isNotBlank(oldColStatsPath) && fs.exists(new Path(oldColStatsPath))) {
+                    fs.delete(new Path(oldColStatsPath), true);
+                    logger.info("delete old column stats file [{}] in HDFS", oldColStatsPath);
+                }
+
+                // checking and warnning
+                val size = fs.listStatus(new Path(getColumnStatsPath())).length;
+                if (size > 1) {
+                    logger.warn(
+                            "found {} column stats files in [{}] on HDFS. This may be due to multiple parallel build tasks or a bug.",
+                            size, getColumnStatsPath());
+                }
+            } catch (Exception e) {
+                logger.error("save column stats file [{}] to HDFS occurred exception",
+                        newColStatsPath != null ? newColStatsPath : getColumnStatsPath(), e);
+            } finally {
+                IOUtils.closeQuietly(out);
+            }
+
+        }
+
+        public void delete() {
+            try {
+                val colStatsPath = new Path(getColumnStatsPath());
+                if (fs.exists(colStatsPath)) {
+                    fs.delete(colStatsPath, true);
+                }
+            } catch (IOException e) {
+                logger.error("delete column stats file [{}] in HDFS failed, please exec garbage clean",
+                        getColumnStatsPath(), e);
+            }
+
+        }
+
+        @VisibleForTesting
+        public String getColumnStatsPath() {
+            val baseDir = KapConfig.wrap(this.config).getReadHdfsWorkingDirectory();
+            return baseDir + Paths
+                    .get(tableExtDesc.getProject(), ResourceStore.TABLE_EXD_RESOURCE_ROOT, tableExtDesc.getIdentity())
+                    .toString();
+        }
     }
 }

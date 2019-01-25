@@ -45,14 +45,11 @@ package org.apache.kylin.model;
 import static io.kyligence.kap.metadata.model.NTableMetadataManager.getInstance;
 
 import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.commons.lang3.RandomStringUtils;
-import org.apache.kylin.measure.hllc.HLLCSerializer;
 import org.apache.kylin.measure.hllc.HLLCounter;
-import org.apache.kylin.metadata.datatype.DataType;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.TableExtDesc;
@@ -66,8 +63,6 @@ import io.kyligence.kap.metadata.model.NTableExtDesc;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 
 public class TableExtDescTest extends NLocalFileMetadataTestCase {
-
-    private static final HLLCSerializer HLLC_SERIALIZER = new HLLCSerializer(DataType.getType("hllc14"));
 
     private String project = "default";
     private String tableName = "DEFAULT.TEST_KYLIN_FACT";
@@ -88,6 +83,7 @@ public class TableExtDescTest extends NLocalFileMetadataTestCase {
     public void testBasic() throws IOException {
         final TableDesc tableDesc = tableMetadataManager.getTableDesc(tableName);
         NTableExtDesc tableExtDesc = tableMetadataManager.getOrCreateTableExt(tableName);
+        tableExtDesc = tableMetadataManager.copyForWrite(tableExtDesc);
 
         final List<TableExtDesc.ColumnStats> columnStatsList = new ArrayList<>(tableDesc.getColumnCount());
         final SegmentRange segRange_1 = new SegmentRange.TimePartitionedSegmentRange(0L, 10L);
@@ -101,6 +97,7 @@ public class TableExtDescTest extends NLocalFileMetadataTestCase {
 
         columnStatsList.clear();
         tableExtDesc = tableMetadataManager.getOrCreateTableExt(tableName);
+        tableExtDesc = tableMetadataManager.copyForWrite(tableExtDesc);
         colStats = tableExtDesc.getColumnStats(0);
         Assert.assertEquals("col_1", colStats.getColumnName());
         Assert.assertEquals(4L, colStats.getTotalCardinality());
@@ -133,9 +130,7 @@ public class TableExtDescTest extends NLocalFileMetadataTestCase {
 
         colStats.addNullCount(nullCount);
 
-        final ByteBuffer buffer = ByteBuffer.allocate(hllc.maxLength());
-        HLLC_SERIALIZER.serialize(hllc, buffer);
-        colStats.addRangeHLLC(segRange, buffer.array());
+        colStats.addRangeHLLC(segRange, hllc);
 
         colStats.updateBasicStats(maxValue, minValue, maxLength, minLength, maxLengthValue, minLengthValue);
 
