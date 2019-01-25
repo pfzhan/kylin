@@ -37,12 +37,6 @@ import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Sets;
 
-import io.kyligence.kap.metadata.cube.model.NDataLoadingRangeManager;
-import io.kyligence.kap.metadata.cube.model.NDataSegment;
-import io.kyligence.kap.metadata.cube.model.NDataflow;
-import io.kyligence.kap.metadata.cube.model.NDataflowManager;
-import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
-import io.kyligence.kap.metadata.cube.model.NSegmentConfigHelper;
 import io.kyligence.kap.engine.spark.ExecutableUtils;
 import io.kyligence.kap.engine.spark.merger.AfterBuildResourceMerger;
 import io.kyligence.kap.event.manager.EventManager;
@@ -50,6 +44,12 @@ import io.kyligence.kap.event.model.EventContext;
 import io.kyligence.kap.event.model.MergeSegmentEvent;
 import io.kyligence.kap.event.model.PostAddSegmentEvent;
 import io.kyligence.kap.event.model.PostMergeOrRefreshSegmentEvent;
+import io.kyligence.kap.metadata.cube.model.NDataLoadingRangeManager;
+import io.kyligence.kap.metadata.cube.model.NDataSegment;
+import io.kyligence.kap.metadata.cube.model.NDataflow;
+import io.kyligence.kap.metadata.cube.model.NDataflowManager;
+import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
+import io.kyligence.kap.metadata.cube.model.NSegmentConfigHelper;
 import io.kyligence.kap.metadata.model.ManagementType;
 import io.kyligence.kap.metadata.model.NDataModel;
 import lombok.val;
@@ -87,6 +87,8 @@ public class PostAddSegmentHandler extends AbstractEventPostJobHandler {
             merger.mergeAnalysis(dataflowId, analysisResourceStore);
 
             recordDownJobStats(buildTask, updatedCuboids);
+            
+            notifyUserIfNecessary(executable, updatedCuboids);
 
             NDataflowManager dfMgr = NDataflowManager.getInstance(kylinConfig, project);
 

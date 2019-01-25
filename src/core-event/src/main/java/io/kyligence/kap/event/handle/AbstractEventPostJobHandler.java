@@ -25,9 +25,11 @@ package io.kyligence.kap.event.handle;
 
 import io.kyligence.kap.metadata.cube.model.NDataLayout;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.job.constant.JobIssueEnum;
 import org.apache.kylin.job.dao.JobStatisticsManager;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.ChainedExecutable;
+import org.apache.kylin.job.execution.DefaultChainedExecutable;
 import org.apache.kylin.job.execution.ExecutableState;
 
 import io.kyligence.kap.event.model.EventContext;
@@ -88,6 +90,20 @@ public abstract class AbstractEventPostJobHandler extends AbstractEventHandler {
         // update
         JobStatisticsManager jobStatisticsManager = JobStatisticsManager.getInstance(kylinConfig, buildTask.getProject());
         jobStatisticsManager.updateStatistics(startOfDay, model, duration, byteSize);
+    }
+
+    protected void notifyUserIfNecessary(ChainedExecutable executable, NDataLayout[] addOrUpdateCuboids) {
+        boolean hasEmptyLayout = false;
+        for (NDataLayout dataCuboid : addOrUpdateCuboids) {
+            if (dataCuboid.getRows() == 0) {
+                hasEmptyLayout = true;
+                break;
+            }
+        }
+        if (hasEmptyLayout) {
+            val job = (DefaultChainedExecutable)executable;
+            job.notifyUserJobIssue(JobIssueEnum.LOAD_EMPTY_DATA);
+        }
     }
 
     /**

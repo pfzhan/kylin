@@ -79,6 +79,8 @@ public class PostAddCuboidHandler extends AbstractEventPostJobHandler {
 
             recordDownJobStats(buildTask, addedCuboids);
 
+            notifyUserIfNecessary(executable, addedCuboids);
+
             handleFavoriteQuery(project, sqlList);
 
             finishEvent(project, event.getId());

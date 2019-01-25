@@ -64,6 +64,7 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.MailService;
 import org.apache.kylin.common.util.StringUtil;
 import org.apache.kylin.job.constant.ExecutableConstants;
+import org.apache.kylin.job.constant.JobIssueEnum;
 import org.apache.kylin.job.dao.ExecutableOutputPO;
 import org.apache.kylin.job.exception.ExecuteException;
 import org.apache.kylin.job.exception.JobStoppedException;
@@ -88,6 +89,7 @@ import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import io.kyligence.kap.metadata.model.ManagementType;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
+import io.kyligence.kap.metadata.project.NProjectManager;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.val;
@@ -523,19 +525,47 @@ public abstract class AbstractExecutable implements Executable, Idempotent {
         setNotifyList(StringUtils.join(notifications, ","));
     }
 
-    protected Pair<String, String> formatNotifications(ExecutableContext executableContext, ExecutableState state) {
-        return null;
+    protected Pair<String, String> formatNotifications(KylinConfig kylinConfig, EmailNotificationContent content) {
+        if (content == null) {
+            return null;
+        }
+        String title = content.getEmailTitle();
+        String body = content.getEmailBody();
+        return Pair.of(title, body);
     }
 
-    protected final void notifyUserStatusChange(ExecutableContext context, ExecutableState state) {
+    public final void notifyUserJobIssue(JobIssueEnum jobIssue) {
+        Preconditions.checkState(this instanceof DefaultChainedExecutable);
+        val projectConfig = NProjectManager.getInstance(config).getProject(project).getConfig();
+        boolean needNotification = true;
+        switch (jobIssue) {
+        case JOB_ERROR:
+            needNotification = projectConfig.getJobErrorNotificationEnabled();
+            break;
+        case LOAD_EMPTY_DATA:
+            needNotification = projectConfig.getJobDataLoadEmptyNotificationEnabled();
+            break;
+        case SOURCE_RECORDS_CHANGE:
+            needNotification = projectConfig.getJobSourceRecordsChangeNotificationEnabled();
+            break;
+        default:
+            throw new IllegalArgumentException(String.format("no process for jobIssue: %s.", jobIssue));
+        }
+        if (!needNotification) {
+            return;
+        }
+        notifyUser(projectConfig, EmailNotificationContent.createContent(jobIssue, this));
+    }
+
+    private final void notifyUser(KylinConfig kylinConfig, EmailNotificationContent content) {
         try {
-            List<String> users = getAllNofifyUsers(config);
+            List<String> users = getAllNofifyUsers(kylinConfig);
             if (users.isEmpty()) {
-                logger.debug("no need to send email, user list is empty");
+                logger.debug("no need to send email, user list is empty.");
                 return;
             }
-            final Pair<String, String> email = formatNotifications(context, state);
-            doSendMail(config, users, email);
+            final Pair<String, String> email = formatNotifications(kylinConfig, content);
+            doSendMail(kylinConfig, users, email);
         } catch (Exception e) {
             logger.error("error send email", e);
         }

@@ -46,6 +46,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.job.constant.JobIssueEnum;
 import org.apache.kylin.job.exception.ExecuteException;
 import org.apache.kylin.job.exception.JobStoppedException;
 import org.apache.kylin.job.exception.JobSuicideException;
@@ -110,7 +111,7 @@ public class DefaultChainedExecutable extends AbstractExecutable implements Chai
     @Override
     protected void onExecuteError(ExecuteResult result, ExecutableContext executableContext) {
         super.onExecuteError(result, executableContext);
-        notifyUserStatusChange(executableContext, ExecutableState.ERROR);
+        notifyUserJobIssue(JobIssueEnum.JOB_ERROR);
     }
 
     @Override
@@ -119,10 +120,8 @@ public class DefaultChainedExecutable extends AbstractExecutable implements Chai
 
         if (isDiscarded()) {
             setEndTime(result);
-            notifyUserStatusChange(executableContext, ExecutableState.DISCARDED);
         } else if (isPaused()) {
             setEndTime(result);
-            notifyUserStatusChange(executableContext, ExecutableState.STOPPED);
         } else if (result.succeed()) {
             List<? extends Executable> jobs = getTasks();
             boolean allSucceed = true;
@@ -158,11 +157,10 @@ public class DefaultChainedExecutable extends AbstractExecutable implements Chai
             if (allSucceed) {
                 setEndTime(info);
                 updateJobOutput(getProject(), getId(), ExecutableState.SUCCEED, info, null);
-                notifyUserStatusChange(executableContext, ExecutableState.SUCCEED);
             } else if (hasError) {
                 setEndTime(info);
                 updateJobOutput(getProject(), getId(), ExecutableState.ERROR, info, null, this::onExecuteErrorHook);
-                notifyUserStatusChange(executableContext, ExecutableState.ERROR);
+                notifyUserJobIssue(JobIssueEnum.JOB_ERROR);
             } else if (hasDiscarded) {
                 setEndTime(info);
                 updateJobOutput(getProject(), getId(), ExecutableState.DISCARDED, info, null);
@@ -176,7 +174,7 @@ public class DefaultChainedExecutable extends AbstractExecutable implements Chai
         } else {
             setEndTime(info);
             updateJobOutput(getProject(), getId(), ExecutableState.ERROR, info, null, this::onExecuteErrorHook);
-            notifyUserStatusChange(executableContext, ExecutableState.ERROR);
+            notifyUserJobIssue(JobIssueEnum.JOB_ERROR);
         }
     }
 

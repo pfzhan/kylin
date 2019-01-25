@@ -1508,11 +1508,15 @@ abstract public class KylinConfigBase implements Serializable {
     }
 
     public boolean getJobDataLoadEmptyNotificationEnabled() {
-        return Boolean.parseBoolean(getOptional("kylin.job.notification-on-empty-data-load", "true"));
+        return Boolean.parseBoolean(getOptional("kylin.job.notification-on-empty-data-load", "false"));
     }
 
     public boolean getJobErrorNotificationEnabled() {
-        return Boolean.parseBoolean(getOptional("kylin.job.notification-on-job-error", "true"));
+        return Boolean.parseBoolean(getOptional("kylin.job.notification-on-job-error", "false"));
+    }
+
+    public boolean getJobSourceRecordsChangeNotificationEnabled() {
+        return Boolean.parseBoolean(getOptional("kylin.job.notification-on-source-records-change", "false"));
     }
 
     public int getMetadataBackupCountThreshold() {

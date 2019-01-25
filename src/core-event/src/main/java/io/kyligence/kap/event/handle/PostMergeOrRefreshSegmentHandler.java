@@ -74,6 +74,8 @@ public class PostMergeOrRefreshSegmentHandler extends AbstractEventPostJobHandle
 
             recordDownJobStats(task, updatedCuboids);
 
+            notifyUserIfNecessary(executable, updatedCuboids);
+
             finishEvent(project, event.getId());
         } finally {
             buildResourceStore.close();

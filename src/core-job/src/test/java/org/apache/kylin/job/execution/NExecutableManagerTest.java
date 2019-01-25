@@ -32,7 +32,9 @@ import java.io.IOException;
 import java.util.List;
 
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.job.constant.JobIssueEnum;
 import org.apache.kylin.job.exception.IllegalStateTranferException;
+import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 import org.junit.After;
 import org.junit.Assert;
@@ -353,5 +355,33 @@ public class NExecutableManagerTest extends NLocalFileMetadataTestCase {
         val dataflow = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), "default")
                 .getDataflowByModelAlias("nmodel_basic");
         Assert.assertEquals(RealizationStatusEnum.ONLINE, dataflow.getStatus());
+    }
+
+    @Test
+    public void testEmailNotificationContent() {
+        val project = "default";
+        DefaultChainedExecutable job = new DefaultChainedExecutable();
+        job.setName(JobTypeEnum.INDEX_BUILD.toString());
+        job.setJobType(JobTypeEnum.INDEX_BUILD);
+        job.setProject(project);
+        job.initConfig(getTestConfig());
+        val start = "2015-01-01 00:00:00";
+        val end = "2015-02-01 00:00:00";
+        job.setDataRangeStart(SegmentRange.dateToLong(start));
+        job.setDataRangeEnd(SegmentRange.dateToLong(end));
+        job.setTargetModel("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+        EmailNotificationContent content = EmailNotificationContent.createContent(JobIssueEnum.JOB_ERROR, job);
+        Assert.assertTrue(content.getEmailTitle().contains(JobIssueEnum.JOB_ERROR.getDisplayName()));
+        Assert.assertTrue(!content.getEmailBody().contains("$"));
+        Assert.assertTrue(content.getEmailBody().contains(project));
+        Assert.assertTrue(content.getEmailBody().contains(job.getName()));
+
+        content = EmailNotificationContent.createContent(JobIssueEnum.LOAD_EMPTY_DATA, job);
+        Assert.assertTrue(content.getEmailBody().contains(job.getTargetModelAlias()));
+
+        content = EmailNotificationContent.createContent(JobIssueEnum.SOURCE_RECORDS_CHANGE, job);
+        Assert.assertTrue(content.getEmailBody().contains(start));
+        Assert.assertTrue(content.getEmailBody().contains(end));
+
     }
 }
