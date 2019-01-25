@@ -49,16 +49,6 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
-import com.google.common.collect.Sets;
-import io.kyligence.kap.metadata.cube.model.LayoutEntity;
-import io.kyligence.kap.metadata.cube.model.NDataflowManager;
-import io.kyligence.kap.metadata.favorite.FavoriteQuery;
-import io.kyligence.kap.metadata.favorite.FavoriteQueryManager;
-import io.kyligence.kap.metadata.favorite.FavoriteQueryRealization;
-import io.kyligence.kap.metadata.model.NDataModel;
-import io.kyligence.kap.metadata.model.NDataModelManager;
-import io.kyligence.kap.rest.config.AppInitializer;
-import io.kyligence.kap.event.manager.EventOrchestratorManager;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.engine.JobEngineConfig;
 import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
@@ -85,10 +75,20 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 
+import io.kyligence.kap.event.manager.EventOrchestratorManager;
+import io.kyligence.kap.metadata.cube.model.LayoutEntity;
+import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
+import io.kyligence.kap.metadata.favorite.FavoriteQuery;
+import io.kyligence.kap.metadata.favorite.FavoriteQueryManager;
+import io.kyligence.kap.metadata.favorite.FavoriteQueryRealization;
 import io.kyligence.kap.metadata.model.MaintainModelType;
+import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
+import io.kyligence.kap.rest.config.AppInitializer;
 import io.kyligence.kap.rest.request.JobNotificationConfigRequest;
 import io.kyligence.kap.rest.request.ProjectGeneralInfoRequest;
 import io.kyligence.kap.rest.request.PushDownConfigRequest;
@@ -108,6 +108,9 @@ public class ProjectServiceTest extends ServiceTestBase {
     @Mock
     private AclEvaluate aclEvaluate = Mockito.spy(AclEvaluate.class);
 
+    @Mock
+    private AsyncTaskService asyncTaskService = Mockito.spy(AsyncTaskService.class);
+
     @Rule
     public ExpectedException thrown = ExpectedException.none();
 
@@ -120,6 +123,7 @@ public class ProjectServiceTest extends ServiceTestBase {
         SecurityContextHolder.getContext()
                 .setAuthentication(new TestingAuthenticationToken("ADMIN", "ADMIN", Constant.ROLE_ADMIN));
         ReflectionTestUtils.setField(projectService, "aclEvaluate", aclEvaluate);
+        ReflectionTestUtils.setField(projectService, "asyncTaskService", asyncTaskService);
         projectManager = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv());
 
     }
@@ -285,7 +289,8 @@ public class ProjectServiceTest extends ServiceTestBase {
             for (NDataModel model : dataflowManager.listUnderliningDataModels()) {
                 val indexPlan = dataflowManager.getDataflow(model.getId()).getIndexPlan();
                 if (model.getId().equals(MODEL_ID)) {
-                    val layouts = indexPlan.getAllLayouts().stream().map(LayoutEntity::getId).collect(Collectors.toSet());
+                    val layouts = indexPlan.getAllLayouts().stream().map(LayoutEntity::getId)
+                            .collect(Collectors.toSet());
                     Assert.assertEquals(3, layouts.size());
                     Assert.assertTrue(layouts.contains(1L));
                     Assert.assertTrue(layouts.contains(10001L));
@@ -428,7 +433,6 @@ public class ProjectServiceTest extends ServiceTestBase {
 
     }
 
-
     @Test
     public void testDropProject() {
         val project = "project12";
@@ -464,7 +468,8 @@ public class ProjectServiceTest extends ServiceTestBase {
         filed.setAccessible(true);
         filed2.setAccessible(true);
         ConcurrentHashMap<Class, Object> managersCache = (ConcurrentHashMap<Class, Object>) filed.get(config);
-        ConcurrentHashMap<Class, ConcurrentHashMap<String, Object>> managersByPrjCache = (ConcurrentHashMap<Class, ConcurrentHashMap<String, Object>>) filed2.get(config);
+        ConcurrentHashMap<Class, ConcurrentHashMap<String, Object>> managersByPrjCache = (ConcurrentHashMap<Class, ConcurrentHashMap<String, Object>>) filed2
+                .get(config);
 
         Assert.assertTrue(managersByPrjCache.containsKey(NDataModelManager.class));
         Assert.assertTrue(managersByPrjCache.get(NDataModelManager.class).containsKey("default"));
@@ -477,7 +482,6 @@ public class ProjectServiceTest extends ServiceTestBase {
         //cleared
         Assert.assertTrue(!managersCache.containsKey(NProjectManager.class));
         Assert.assertTrue(!managersByPrjCache.get(NDataModelManager.class).containsKey("default"));
-
 
     }
 }

@@ -600,14 +600,18 @@ abstract public class KylinConfigBase implements Serializable {
     // JOB
     // ============================================================================
 
+    public String getJobTmpDir(String project) {
+        return getHdfsWorkingDirectory() + project + "/job_tmp/";
+    }
+
     public StorageURL getJobTmpMetaStoreUrl(String project, String jobId) {
         Map<String, String> params = new HashMap<>();
-        params.put("path", getHdfsWorkingDirectory() + project + "/job_tmp/" + jobId + "/meta");
+        params.put("path", getJobTmpDir(project) + jobId + "/meta");
         return new StorageURL(getMetadataUrlPrefix(), HDFSMetadataStore.HDFS_SCHEME, params);
     }
 
     public String getJobTmpOutputStorePath(String project, String jobId) {
-        return getHdfsWorkingDirectory() + project + "/job_tmp/" + jobId + "/execute_output.json";
+        return  getJobTmpDir(project) + jobId + "/execute_output.json";
     }
 
     public CliCommandExecutor getCliCommandExecutor() {

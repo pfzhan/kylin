@@ -48,6 +48,7 @@ import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.ApplicationListener;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ImportResource;
+import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.scheduling.annotation.EnableScheduling;
 
 import io.kyligence.kap.common.util.TempMetadataBuilder;
@@ -55,6 +56,7 @@ import io.kyligence.kap.common.util.TempMetadataBuilder;
 @ImportResource(locations = { "applicationContext.xml", "kylinSecurity.xml" })
 @SpringBootApplication
 @EnableScheduling
+@EnableAsync
 public class BootstrapServer implements ApplicationListener<ApplicationReadyEvent> {
 
     private static final Logger logger = LoggerFactory.getLogger(BootstrapServer.class);

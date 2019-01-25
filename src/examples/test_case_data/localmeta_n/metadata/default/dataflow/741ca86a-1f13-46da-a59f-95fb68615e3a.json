@@ -41,13 +41,13 @@
       "TEST_CATEGORY_GROUPINGS.CATEG_LVL3_NAME" : "/dict/DEFAULT.TEST_CATEGORY_GROUPINGS/CATEG_LVL3_NAME/a11fb7e9-fbae-4ff8-96df-062bceff27af.dict"
     },
     "snapshots" : {
-      "EDW.TEST_SITES" : "/table_snapshot/EDW.TEST_SITES/2ecee426-f0f3-467f-884c-9dfecbca52cc.snapshot",
-      "DEFAULT.TEST_COUNTRY" : "/table_snapshot/DEFAULT.TEST_COUNTRY/83447ff5-d8a5-40fb-aeae-47189e996a82.snapshot",
-      "EDW.TEST_SELLER_TYPE_DIM" : "/table_snapshot/EDW.TEST_SELLER_TYPE_DIM/488932d6-3663-4f94-a1cf-131a45c0594d.snapshot",
-      "EDW.TEST_CAL_DT" : "/table_snapshot/EDW.TEST_CAL_DT/a27a7f08-792a-4514-a5ec-3182ea5474cc.snapshot",
-      "DEFAULT.TEST_CATEGORY_GROUPINGS" : "/table_snapshot/DEFAULT.TEST_CATEGORY_GROUPINGS/f052938d-9a19-4ea2-ba15-31e5a15f87fe.snapshot",
-      "DEFAULT.TEST_ACCOUNT" : "/table_snapshot/DEFAULT.TEST_ACCOUNT/8d43034c-1873-475a-a371-dc5f593a14c9.snapshot",
-      "DEFAULT.TEST_ORDER" : "/table_snapshot/DEFAULT.TEST_ORDER/fb283efd-36fb-43de-86dc-40cf39054f59.snapshot"
+      "EDW.TEST_SITES" : "default/table_snapshot/EDW.TEST_SITES/2ecee426-f0f3-467f-884c-9dfecbca52cc",
+      "DEFAULT.TEST_COUNTRY" : "default/table_snapshot/DEFAULT.TEST_COUNTRY/83447ff5-d8a5-40fb-aeae-47189e996a82",
+      "EDW.TEST_SELLER_TYPE_DIM" : "default/table_snapshot/EDW.TEST_SELLER_TYPE_DIM/488932d6-3663-4f94-a1cf-131a45c0594d",
+      "EDW.TEST_CAL_DT" : "default/table_snapshot/EDW.TEST_CAL_DT/a27a7f08-792a-4514-a5ec-3182ea5474cc",
+      "DEFAULT.TEST_CATEGORY_GROUPINGS" : "default/table_snapshot/DEFAULT.TEST_CATEGORY_GROUPINGS/f052938d-9a19-4ea2-ba15-31e5a15f87fe",
+      "DEFAULT.TEST_ACCOUNT" : "default/table_snapshot/DEFAULT.TEST_ACCOUNT/8d43034c-1873-475a-a371-dc5f593a14c9",
+      "DEFAULT.TEST_ORDER" : "default/table_snapshot/DEFAULT.TEST_ORDER/fb283efd-36fb-43de-86dc-40cf39054f59"
     },
     "last_build_time" : 0,
     "source_count" : 9896,

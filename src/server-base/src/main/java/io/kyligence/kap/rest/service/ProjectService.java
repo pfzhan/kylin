@@ -85,6 +85,9 @@ public class ProjectService extends BasicService {
     @Autowired
     private MetadataBackupService metadataBackupService;
 
+    @Autowired
+    private AsyncTaskService asyncTaskService;
+
     public ProjectInstance deserializeProjectDesc(ProjectRequest projectRequest) {
         logger.debug("Saving project " + projectRequest.getProjectDescData());
         ProjectInstance projectDesc;
@@ -227,6 +230,12 @@ public class ProjectService extends BasicService {
                     logger.warn("clean project<" + project.getName() + "> failed", e);
                 }
                 logger.info("Garbage cleanup for project<{}> finished", project.getName());
+            }
+            try {
+                logger.info("Start cleanup HDFS");
+                asyncTaskService.cleanupStorage();
+            } catch (IOException e) {
+                logger.warn("cleanup HDFS failed", e);
             }
         } finally {
             Thread.currentThread().setName(oldTheadName);
