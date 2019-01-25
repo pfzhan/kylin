@@ -72,7 +72,7 @@ public class NSystemControllerTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testBasics() throws IOException {
-        getTestConfig().setProperty("kylin.env", "DEV");
+        getTestConfig().setProperty("kylin.env", "PROD");
         nSystemController.init();
         Assert.assertEquals("2019-01-21,2019-02-21", System.getProperty("ke.license.valid-dates"));
         Assert.assertEquals("fa01972b23213ad948adc8f9de91f50c", System.getProperty("ke.license"));

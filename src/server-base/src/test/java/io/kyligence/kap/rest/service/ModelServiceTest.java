@@ -64,6 +64,7 @@ import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
+import io.kyligence.kap.event.model.AddCuboidEvent;
 import io.kyligence.kap.rest.response.ExistedDataRangeResponse;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.io.IOUtils;
@@ -2023,14 +2024,15 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
         modelUpdate.setManagementType(ManagementType.TABLE_ORIENTED);
         modelManager.updateDataModelDesc(modelUpdate);
 
-        val events = eventDao.getEvents();
-        events.sort(Event::compareTo);
-
+        val events = eventDao.getEventsOrdered();
         Assert.assertTrue(events.get(0) instanceof AddSegmentEvent);
         dataflow = dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         Assert.assertEquals(1, dataflow.getSegments().size());
         Assert.assertEquals(0L, dataflow.getSegments().get(0).getSegRange().getStart());
         Assert.assertEquals(100L, dataflow.getSegments().get(0).getSegRange().getEnd());
+
+
+        Assert.assertTrue(events.get(2) instanceof AddCuboidEvent);
     }
 
     public void testBuildSegmentsManually_WithPushDown() throws Exception {
@@ -2416,5 +2418,30 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
         val model2 = modelManager.getDataModelDesc(modelId);
         Assert.assertEquals(modelId, model2.getId());
         Assert.assertEquals(model, model2);
+    }
+
+    @Test
+    public void testBuildIndexManually_TableOriented_exception() {
+        val project = "default";
+        val modelId = "abe3bf1a-c4bc-458d-8278-7ea8b00f5e96";
+        thrown.expect(BadRequestException.class);
+        thrown.expectMessage("Table oriented model 'all_fixed_length' can not build indices manually!");
+        modelService.buildIndicesManually(modelId, project);
+    }
+
+    @Test
+    public void testBuildIndexManually() {
+        val project = "default";
+        val modelId = "abe3bf1a-c4bc-458d-8278-7ea8b00f5e96";
+        val modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+        modelManager.updateDataModel(modelId, copyForWrite -> {
+            copyForWrite.setManagementType(ManagementType.MODEL_BASED);
+        });
+        modelService.buildIndicesManually(modelId, project);
+        val eventDao = EventDao.getInstance(KylinConfig.getInstanceFromEnv(), project);
+        val events = eventDao.getEventsOrdered();
+        Assert.assertEquals(2, events.size());
+        Assert.assertTrue(events.get(0) instanceof AddCuboidEvent);
+
     }
 }

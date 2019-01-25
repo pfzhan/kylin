@@ -61,7 +61,7 @@ public class NSystemController extends NBasicController {
 
     @EventListener(AppInitializer.AppInitializedEvent.class)
     public void init() throws IOException {
-        if (KylinConfig.getInstanceFromEnv().isUTEnv()) {
+        if (KylinConfig.getInstanceFromEnv().isDevOrUT()) {
             return;
         }
         File kylinHome = KapConfig.getKylinHomeAtBestEffort();

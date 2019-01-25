@@ -37,6 +37,8 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 import com.google.common.collect.Maps;
+import io.kyligence.kap.event.model.AddCuboidEvent;
+import io.kyligence.kap.event.model.PostAddCuboidEvent;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -837,6 +839,19 @@ public class ModelService extends BasicService {
         postAddSegmentEvent.setOwner(getUsername());
         eventManager.post(postAddSegmentEvent);
 
+        AddCuboidEvent addCuboidEvent = new AddCuboidEvent();
+        addCuboidEvent.setModelId(modelId);
+        addCuboidEvent.setJobId(UUID.randomUUID().toString());
+        addCuboidEvent.setOwner(getUsername());
+        eventManager.post(addCuboidEvent);
+
+        PostAddCuboidEvent postAddCuboidEvent = new PostAddCuboidEvent();
+        postAddCuboidEvent.setModelId(modelId);
+        postAddCuboidEvent.setJobId(addCuboidEvent.getJobId());
+        postAddCuboidEvent.setOwner(getUsername());
+        eventManager.post(postAddCuboidEvent);
+
+
     }
 
     void syncPartitionDesc(String model, String project) {
@@ -1311,5 +1326,26 @@ public class ModelService extends BasicService {
             pushdownResult.setSecond(DateFormat.getFormattedDate(maxAndMin.getSecond(), dateFormat));
         }
         return new ExistedDataRangeResponse(pushdownResult.getFirst(), pushdownResult.getSecond());
+    }
+
+    @Transaction(project = 1)
+    public void buildIndicesManually(String modelId, String project) {
+        NDataModel modelDesc = getDataModelManager(project).getDataModelDesc(modelId);
+        if (!modelDesc.getManagementType().equals(ManagementType.MODEL_BASED)) {
+            throw new BadRequestException(
+                    "Table oriented model '" + modelDesc.getAlias() + "' can not build indices manually!");
+        }
+        val eventManager = getEventManager(project);
+        AddCuboidEvent addCuboidEvent = new AddCuboidEvent();
+        addCuboidEvent.setModelId(modelId);
+        addCuboidEvent.setJobId(UUID.randomUUID().toString());
+        addCuboidEvent.setOwner(getUsername());
+        eventManager.post(addCuboidEvent);
+
+        PostAddCuboidEvent postAddCuboidEvent = new PostAddCuboidEvent();
+        postAddCuboidEvent.setModelId(modelId);
+        postAddCuboidEvent.setJobId(addCuboidEvent.getJobId());
+        postAddCuboidEvent.setOwner(getUsername());
+        eventManager.post(postAddCuboidEvent);
     }
 }

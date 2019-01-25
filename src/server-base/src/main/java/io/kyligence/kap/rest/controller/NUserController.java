@@ -36,7 +36,6 @@ import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.exception.BadRequestException;
 import org.apache.kylin.rest.exception.ForbiddenException;
 import org.apache.kylin.rest.exception.UnauthorizedException;
-import org.apache.kylin.rest.msg.Message;
 import org.apache.kylin.rest.msg.MsgPicker;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.response.ResponseCode;
@@ -96,7 +95,6 @@ public class NUserController extends NBasicController {
 
     private String activeProfile = PROFILE;
 
-    private static final Message msg = MsgPicker.getMsg();
 
     private static Pattern passwordPattern = Pattern
             .compile("^(?=.*\\d)(?=.*[a-zA-Z])(?=.*[~!@#$%^&*(){}|:\"<>?\\[\\];',./`]).{8,}$");
@@ -139,7 +137,7 @@ public class NUserController extends NBasicController {
     public EnvelopeResponse updateUser(@RequestBody ManagedUser user) {
 
         checkProfile();
-
+        val msg = MsgPicker.getMsg();
         if (StringUtils.equals(getPrincipal(), user.getUsername()) && user.isDisabled()) {
             throw new ForbiddenException(msg.getSELF_DISABLE_FORBIDDEN());
         }
@@ -175,7 +173,7 @@ public class NUserController extends NBasicController {
     @ResponseBody
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
     public EnvelopeResponse delete(@PathVariable("username") String username) throws IOException {
-
+        val msg = MsgPicker.getMsg();
         checkProfile();
         checkUsername(username);
         if (StringUtils.equals(getPrincipal(), username)) {
@@ -217,7 +215,7 @@ public class NUserController extends NBasicController {
     @ResponseBody
     //change passwd
     public EnvelopeResponse updateUserPassword(@RequestBody PasswordChangeRequest user) {
-
+        val msg = MsgPicker.getMsg();
         if (!isAdmin() && !StringUtils.equals(getPrincipal(), user.getUsername())) {
             throw new ForbiddenException(msg.getPERMISSION_DENIED());
         }
@@ -265,7 +263,8 @@ public class NUserController extends NBasicController {
     }
 
     private void checkLicense() {
-        if (!KylinConfig.getInstanceFromEnv().isUTEnv()) {
+        val msg = MsgPicker.getMsg();
+        if (!KylinConfig.getInstanceFromEnv().isDevOrUT()) {
             if (StringUtils.isEmpty(System.getProperty("ke.license.valid-dates"))) {
                 throw new BadRequestException(msg.getLICENSE_NOT_FOUND());
             }
@@ -285,7 +284,7 @@ public class NUserController extends NBasicController {
         checkLicense();
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         UserDetails data = null;
-
+        val msg = MsgPicker.getMsg();
         if (authentication == null) {
             logger.debug("authentication is null.");
             throw new UnauthorizedException(msg.getAUTH_INFO_NOT_FOUND());
@@ -305,23 +304,27 @@ public class NUserController extends NBasicController {
     }
 
     private void checkPasswordCharacter(String password) {
+        val msg = MsgPicker.getMsg();
         if (!passwordPattern.matcher(password).matches()) {
             throw new BadRequestException(msg.getINVALID_PASSWORD());
         }
     }
 
     private void checkProfile() {
+        val msg = MsgPicker.getMsg();
         if (!PROFILE.equals(activeProfile)) {
             throw new BadRequestException(msg.getUSER_EDIT_NOT_ALLOWED());
         }
     }
 
     private void checkPasswordLength(String password) {
+        val msg = MsgPicker.getMsg();
         if (password == null || password.length() < 8)
             throw new BadRequestException(msg.getSHORT_PASSWORD());
     }
 
     private void checkUsername(String username) {
+        val msg = MsgPicker.getMsg();
         if (StringUtils.isEmpty(username))
             throw new BadRequestException(msg.getEMPTY_USER_NAME());
     }

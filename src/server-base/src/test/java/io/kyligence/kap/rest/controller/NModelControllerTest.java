@@ -48,6 +48,7 @@ import java.util.UUID;
 
 import com.google.common.collect.Lists;
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
+import io.kyligence.kap.rest.request.BuildIndexRequest;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.metadata.model.PartitionDesc;
@@ -449,6 +450,20 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
                 .andExpect(MockMvcResultMatchers.status().isOk());
         Mockito.verify(nModelController).buildSegmentsManually(Mockito.any(BuildSegmentsRequest.class));
     }
+
+    @Test
+    public void testBuildIndex() throws Exception {
+        BuildIndexRequest request = new BuildIndexRequest();
+        request.setModelId("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+        request.setProject("default");
+        Mockito.doNothing().when(modelService).buildSegmentsManually("default", "nmodel_basci", "0", "100");
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/models/indices").contentType(MediaType.APPLICATION_JSON)
+                .content(JsonUtil.writeValueAsString(request))
+                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .andExpect(MockMvcResultMatchers.status().isOk());
+        Mockito.verify(nModelController).buildIndicesManually(Mockito.any(BuildIndexRequest.class));
+    }
+
 
     @Test
     public void testUnlinkModel() throws Exception {

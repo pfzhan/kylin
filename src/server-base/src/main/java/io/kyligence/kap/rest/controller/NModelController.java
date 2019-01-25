@@ -29,6 +29,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
+import io.kyligence.kap.rest.request.BuildIndexRequest;
 import io.kyligence.kap.rest.response.NDataSegmentResponse;
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.StringUtils;
@@ -203,6 +204,16 @@ public class NModelController extends NBasicController {
         checkRequiredArg(MODEL_ID, modelId);
         List<IndexEntityResponse> tableIndices = modelService.getTableIndices(modelId, project);
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, tableIndices, "");
+    }
+
+    @RequestMapping(value = "/indices", method = RequestMethod.POST, produces = {
+            "application/vnd.apache.kylin-v2+json"})
+    @ResponseBody
+    public EnvelopeResponse buildIndicesManually(@RequestBody BuildIndexRequest request) {
+        checkProjectName(request.getProject());
+        checkRequiredArg(MODEL_ID, request.getModelId());
+        modelService.buildIndicesManually(request.getModelId(), request.getProject());
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, null, "");
     }
 
     @RequestMapping(value = "/json", method = RequestMethod.GET, produces = { "application/vnd.apache.kylin-v2+json" })
