@@ -61,8 +61,6 @@
                 prop="cardinality"
                 :label="$t('cardinality')"
                 width="100">
-                <template slot-scope="scope">
-                </template>
               </el-table-column>
               <el-table-column
                 header-align="center"
@@ -115,11 +113,10 @@
                 width="110">
               </el-table-column>
               <el-table-column
+                prop="cardinality"
                 show-overflow-tooltip
                 :label="$t('cardinality')"
                 width="100">
-                <template slot-scope="scope">
-                </template>
               </el-table-column>
                <el-table-column
               :label="$t('comment')">

@@ -55,7 +55,8 @@ export default {
     addMeasure: 'Add measure',
     editDimension: 'Edit dimension',
     editMeasure: 'Edit measure',
-    searchTable: 'Search table'
+    searchTable: 'Search table',
+    searchInputPlaceHolder: 'Search table, dimension, measure, column name'
   },
   'zh-cn': {
     'adddimension': '添加维度',
@@ -113,6 +114,7 @@ export default {
     addMeasure: '添加度量',
     editDimension: '编辑维度',
     editMeasure: '编辑度量',
-    searchTable: '搜索表'
+    searchTable: '搜索表',
+    searchInputPlaceHolder: '搜索表名、维度、度量、列名'
   }
 }

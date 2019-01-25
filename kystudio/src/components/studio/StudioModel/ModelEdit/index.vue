@@ -309,7 +309,7 @@
           :closable="false"
           show-icon>
         </el-alert>
-        <el-input @input="searchModelEverything"  clearable class="search-input" placeholder="search table, dimension, measure, column name" v-model="modelGlobalSearch" prefix-icon="el-icon-search"></el-input>
+        <el-input @input="searchModelEverything"  clearable class="search-input" :placeholder="$t('searchInputPlaceHolder')" v-model="modelGlobalSearch" prefix-icon="el-icon-search"></el-input>
         <transition name="bounceleft">
           <div v-scroll class="search-result-box" v-keyborad-select="{scope:'.search-content', searchKey: modelGlobalSearch}" v-show="modelGlobalSearch && showSearchResult" v-search-highlight="{scope:'.search-name', hightlight: modelGlobalSearch}">
             <div>
@@ -329,7 +329,8 @@
           <div class="action-content" v-for="(item, index) in modelSearchActionHistoryList" :key="index">
             <div class="action-title">
               <i :class="item.icon" class="ksd-mr-6 search-list-icon"></i>
-              {{item.title}}</div>
+              <div class="action-desc" v-html="item.title"></div>
+            </div>
             <div class="action-detail"></div>
           </div>
         </div>
@@ -1091,29 +1092,33 @@ export default class ModelEdit extends Vue {
       let fTable = this.modelInstance.getTableByGuid(actionData.selectF)
       let pTable = this.modelInstance.getTableByGuid(actionData.selectP)
       record.data = objectClone(actionData.joinData)
-      record.title = `${this.$t('addTableJoinCondition')} (${fTable.alias} ${data.joinType} ${pTable.alias})`
+      record.title = `${this.$t('addTableJoinCondition')} (<i>${fTable.alias} ${data.joinType} ${pTable.alias}</i>)`
     } else if (type === 'tableeditjoin' || type === 'editjoin') {
       record.icon = 'el-icon-ksd-joint_condition'
       let fTable = this.modelInstance.getTableByGuid(actionData.selectF)
       let pTable = this.modelInstance.getTableByGuid(actionData.selectP)
       record.data = objectClone(actionData.joinData)
-      record.title = `${this.$t('editTableJoinCondition')} (${fTable.alias} ${data.joinType} ${pTable.alias})`
+      record.title = `${this.$t('editTableJoinCondition')} (<i>${fTable.alias} ${data.joinType} ${pTable.alias}</i>)`
     } else if (type === 'addmeasure') {
       record.icon = 'el-icon-ksd-measure'
-      record.title = `${this.$t('addMeasure')} (${actionData.name}), expression (${data.expression})`
+      record.title = `${this.$t('addMeasure')} (<i>${actionData.name}</i>), expression (<i>${data.expression}</i>)`
     } else if (type === 'editmeasure') {
       record.icon = 'el-icon-ksd-measure'
-      record.title = `${this.$t('editMeasure')} (${actionData.name}), expression (${data.expression})`
+      record.title = `${this.$t('editMeasure')} (<i>${actionData.name}</i>), expression (<i>${data.expression}</i>)`
     } else if (type === 'adddimension') {
       record.icon = 'el-icon-ksd-dimension'
-      record.title = `${this.$t('addDimension')} (${actionData.name})`
+      record.title = `${this.$t('addDimension')} (<i>${actionData.name}</i>)`
     } else if (type === 'editdimension') {
       record.icon = 'el-icon-ksd-dimension'
-      record.title = `${this.$t('editDimension')} (${actionData.name})`
+      record.title = `${this.$t('editDimension')} (<i>${actionData.name}</i>)`
     } else if (type === 'showtable') {
-      record.title = `${this.$t('searchTable')} (${actionData.alias})`
+      record.icon = 'el-icon-ksd-sample'
+      record.title = `${this.$t('searchTable')} (<i>${actionData.alias}</i>)`
     }
     this.modelSearchActionHistoryList.unshift(record)
+    if (this.modelSearchActionHistoryList.length > 10) {
+      this.modelSearchActionHistoryList.pop()
+    }
   }
   searchHandleStart = false // 标识业务弹窗是不是通过搜索弹出的
   selectResult (e, select) {
@@ -1750,19 +1755,28 @@ export default class ModelEdit extends Vue {
         .action-list-title {
           height:30px;
           line-height:30px;
+          font-weight: @font-medium;
           border-bottom: solid 1px @line-split-color;
         }
         .search-list-icon {
           width:16px;
           height:16px;
+          position:absolute;
           .ky-square-box(16px, 16px);
           border-radius: 50%;
-          background-color: @line-split-color;
         }
         .action-content {
           border-bottom: dashed 1px @line-split-color;
           .action-title {
-            padding:10px
+            padding:10px 0;
+          }
+          .action-desc {
+            margin-left:26px;
+            i {
+              font-weight:@font-medium;
+              font-style: normal;
+            }
+            
           }
         }
       }
