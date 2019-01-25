@@ -7,7 +7,7 @@ export const fieldVisiableMaps = {
 }
 
 export const titleMaps = {
-  [editTypes.EDIT]: 'addAggregateGroup'
+  [editTypes.EDIT]: 'editAggregateGroup'
 }
 
 export function getPlaintDimensions (array = []) {

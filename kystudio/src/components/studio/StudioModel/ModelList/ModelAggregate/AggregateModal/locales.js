@@ -1,5 +1,6 @@
 export default {
   'en': {
+    'editAggregateGroup': 'Edit Aggregate Group',
     'addAggregateGroup': 'Add Aggregate Group',
     'hideDimensions': 'Hide Dimensions',
     'showDimensions': 'View All Dimensions',
@@ -14,6 +15,7 @@ export default {
     'tooManyDimensions': 'No more than 62 dimensions used in all aggregate groups.'
   },
   'zh-cn': {
+    'editAggregateGroup': '编辑聚合组',
     'addAggregateGroup': '添加聚合组',
     'hideDimensions': '隐藏维度',
     'showDimensions': '展示所有维度',

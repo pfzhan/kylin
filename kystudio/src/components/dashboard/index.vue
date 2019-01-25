@@ -373,7 +373,7 @@ export default class Dashboard extends Vue {
   async getQueryBarChartData () {
     const res = await this.loadQueryChartData({project: this.currentSelectedProject, start_time: this.daterange[0].getTime(), end_time: this.daterange[1].getTime(), dimension: 'model'})
     const resData = await handleSuccessAsync(res)
-    this.barChartData = resData
+    this.barChartData = Object.entries(resData).map(([key, value]) => ({ label: key, value: value }))
   }
   async getQueryLineChartData () {
     const resLine = await this.loadQueryChartData({project: this.currentSelectedProject, start_time: this.daterange[0].getTime(), end_time: this.daterange[1].getTime(), dimension: this.dateUnit})
@@ -392,7 +392,7 @@ export default class Dashboard extends Vue {
     Object.keys(resData).forEach(k => {
       resData[k] = resData[k] / 1000
     })
-    this.barChartData = resData
+    this.barChartData = Object.entries(resData).map(([key, value]) => ({ label: key, value: value }))
   }
   async getQueryDuraLineChartData () {
     const resLine = await this.loadQueryDuraChartData({project: this.currentSelectedProject, start_time: this.daterange[0].getTime(), end_time: this.daterange[1].getTime(), dimension: this.dateUnit})
@@ -411,7 +411,7 @@ export default class Dashboard extends Vue {
   async getJobBarChartData () {
     const res = await this.loadJobChartData({project: this.currentSelectedProject, start_time: this.daterange[0].getTime(), end_time: this.daterange[1].getTime(), dimension: 'model'})
     const resData = await handleSuccessAsync(res)
-    this.barChartData = resData
+    this.barChartData = Object.entries(resData).map(([key, value]) => ({ label: key, value: value }))
   }
   async getJobLineChartData () {
     const resLine = await this.loadJobChartData({project: this.currentSelectedProject, start_time: this.daterange[0].getTime(), end_time: this.daterange[1].getTime(), dimension: this.dateUnit})
@@ -430,7 +430,7 @@ export default class Dashboard extends Vue {
     Object.keys(resData).forEach(k => {
       resData[k] = resData[k] / 1000
     })
-    this.barChartData = resData
+    this.barChartData = Object.entries(resData).map(([key, value]) => ({ label: key, value: value }))
   }
   async getJobBulidLineChartData () {
     const resLine = await this.loadJobBulidChartData({project: this.currentSelectedProject, start_time: this.daterange[0].getTime(), end_time: this.daterange[1].getTime(), dimension: this.dateUnit})
@@ -496,18 +496,23 @@ export default class Dashboard extends Vue {
       {
         key: this.chartTitle,
         area: true,
-        values: Object.entries(this.barChartData).map(([key, value]) => ({ label: key, value: value }))
+        values: this.barChartData
       }
     ]
   }
+  get categoryArr () {
+    const dataNums = this.barChartData.length
+    let splitNum = 1
+    if (dataNums > 3 && dataNums < 6) {
+      splitNum = parseInt(dataNums / 2)
+    } else if (dataNums >= 6) {
+      splitNum = parseInt(dataNums / 3)
+    }
+    const categorys = this.barChartData.filter((item, index) => (index + parseInt(splitNum / 2)) % splitNum === 0).map((item) => item.label)
+    return categorys
+  }
   formatLabel (d) {
-    // const dataNums = Object.keys(this.barChartData).length
-    // if (dataNums <= 6) {
-    //   return d.length > 7 ? d.substring(0, 7) + '...' : d
-    // } else if (dataNums > 6) {
-    //   return d.length > 1 ? d.substring(0, 1) + '...' : d
-    // }
-    return d.length > 7 ? d.substring(0, 7) + '...' : d
+    return this.categoryArr.indexOf(d) !== -1 ? (d.length > 25 ? d.substring(0, 25) + '...' : d) : ''
   }
   formatYAxis (d) {
     if (d < 1000) {
@@ -522,10 +527,16 @@ export default class Dashboard extends Vue {
     }
   }
   contentGenerator (d) {
+    let valueFormate
+    if (this.showQueryChart || this.showJobChart) {
+      valueFormate = d.data.value
+    } else {
+      valueFormate = d.data.value && d.data.value.toFixed(2)
+    }
     return `<table>
       <tr>
         <td class="key">${d.data.label}</td>
-        <td class="value">${d.data.value && d.data.value.toFixed(2)}</td>
+        <td class="value">${valueFormate}</td>
       </tr>
     </table>`
   }
@@ -766,6 +777,9 @@ export default class Dashboard extends Vue {
           font-weight: 400;
           font-family: Helvetica Neue, Helvetica, PingFang SC, Hiragino Sans GB, Microsoft YaHei, SimSun, sans-serif;
           fill: @text-normal-color;
+        }
+        .nvd3 text {
+          font: normal 10px Helvetica Neue;
         }
         > div {
           height: 325px;

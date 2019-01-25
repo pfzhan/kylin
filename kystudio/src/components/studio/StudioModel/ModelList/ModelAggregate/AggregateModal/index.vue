@@ -2,6 +2,7 @@
   <el-dialog class="aggregate-modal" width="960px"
     :title="$t(modalTitle)"
     :visible="isShow"
+    top="5vh"
     :append-to-body="true"
     :close-on-click-modal="false"
     @close="isShow && handleClose(false)">
@@ -22,7 +23,7 @@
       </div>
       <!-- 聚合组按钮 -->
       <div class="aggregate-buttons">
-        <el-button type="primary" @click="handleAddAggregate">{{$t('addAggregateGroup')}}</el-button>
+        <el-button type="primary" icon="el-icon-plus" @click="handleAddAggregate">{{$t('addAggregateGroup')}}</el-button>
       </div>
       <!-- 聚合组表单 -->
       <div class="aggregate-group" v-for="(aggregate, aggregateIdx) in form.aggregateArray" :key="aggregateIdx">

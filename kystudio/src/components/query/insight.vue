@@ -116,8 +116,8 @@ import { insightKeyword } from '../../config'
     ])
   },
   locales: {
-    'en': {dialogHiveTreeNoData: 'Please click data source to load source tables', trace: 'Trace', savedQueries: 'Save Queries', queryBox: 'Query Box', more: 'More', closeAll: 'Close All'},
-    'zh-cn': {dialogHiveTreeNoData: '请点击数据源来加载源表', trace: '追踪', savedQueries: '保存的查询', queryBox: '查询窗口', more: '更多', closeAll: '关闭全部'}
+    'en': {dialogHiveTreeNoData: 'Please click data source to load source tables', trace: 'Trace', savedQueries: 'Save Queries', queryBox: 'Query Box', more: 'More', closeAll: 'Close All', delSqlTitle: 'Delete SQL'},
+    'zh-cn': {dialogHiveTreeNoData: '请点击数据源来加载源表', trace: '追踪', savedQueries: '保存的查询', queryBox: '查询窗口', more: '更多', closeAll: '关闭全部', delSqlTitle: '删除查询语句'}
   }
 })
 export default class NewQuery extends Vue {
@@ -227,9 +227,12 @@ export default class NewQuery extends Vue {
     this.cacheTabs()
   }
   clickTable (leaf) {
-    if (leaf) {
-      this.tipsName = leaf.label
-    }
+    this.tipsName = ''
+    this.$nextTick(() => {
+      if (leaf) {
+        this.tipsName = leaf.label
+      }
+    })
   }
   closeAllTabs () {
     this.editableTabs.splice(1, this.editableTabs.length - 1)
@@ -241,7 +244,7 @@ export default class NewQuery extends Vue {
     this.loadSavedQuery(this.queryCurrentPage - 1)
   }
   removeQuery (queryId) {
-    kapConfirm(this.$t('kylinLang.common.confirmDel')).then(() => {
+    kapConfirm(this.$t('kylinLang.common.confirmDel'), null, this.$t('delSqlTitle')).then(() => {
       this.delQuery({project: this.currentSelectedProject, id: queryId}).then((response) => {
         this.$message({
           type: 'success',

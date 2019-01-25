@@ -7,7 +7,7 @@
       <el-button type="primary" icon="el-icon-ksd-table_delete">
         {{$t('kylinLang.common.delete')}}
       </el-button> -->
-      <el-button type="primary" v-guide.addAggBtn icon="el-icon-ksd-backup" @click="handleAggregateGroup" v-if="availableAggregateActions.includes('viewAggGroup')">
+      <el-button type="primary" v-guide.addAggBtn icon="el-icon-ksd-table_edit" @click="handleAggregateGroup" v-if="availableAggregateActions.includes('viewAggGroup')">
         {{$t('aggregateGroup')}}
       </el-button>
     </div>

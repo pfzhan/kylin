@@ -1,6 +1,6 @@
 export default {
   'en': {
-    aggregateGroup: 'Aggregate Group',
+    aggregateGroup: 'Edit Aggregate Group',
     aggregateAmount: 'Aggregate Amount',
     aggregateIndexTree: 'Aggregate Index Tree',
     aggregateDetail: 'Aggregate Detail',
@@ -16,7 +16,7 @@ export default {
     brokenAggregate: 'Broken Aggregate:'
   },
   'zh-cn': {
-    aggregateGroup: '聚合组',
+    aggregateGroup: '编辑聚合组',
     aggregateAmount: '聚合索引总数',
     aggregateIndexTree: '聚合索引树',
     aggregateDetail: '聚合索引详情',
