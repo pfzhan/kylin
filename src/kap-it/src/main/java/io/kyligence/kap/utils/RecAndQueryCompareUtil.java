@@ -26,7 +26,6 @@ package io.kyligence.kap.utils;
 
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -45,6 +44,7 @@ import com.google.common.collect.ImmutableBiMap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Ordering;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
@@ -72,7 +72,9 @@ public class RecAndQueryCompareUtil {
 
         // get a stable result
         val orderedLayouts = Lists.newArrayList(relatedLayouts);
-        orderedLayouts.sort(Comparator.comparingLong(QueryLayoutRelation::getLayoutId));
+        Ordering<QueryLayoutRelation> ordering = Ordering.natural().onResultOf(QueryLayoutRelation::getLayoutId)
+                .compound((qlr1, qlr2) -> qlr1.getModelId().compareToIgnoreCase(qlr2.getModelId()));
+        orderedLayouts.sort(ordering);
 
         List<String> list = Lists.newArrayList();
         orderedLayouts.forEach(queryLayoutRelation -> {
