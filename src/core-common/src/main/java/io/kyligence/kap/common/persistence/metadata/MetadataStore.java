@@ -27,7 +27,6 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.nio.file.Paths;
-import java.util.Map;
 import java.util.NavigableSet;
 import java.util.Set;
 import java.util.function.Consumer;
@@ -48,7 +47,6 @@ import io.kyligence.kap.common.persistence.UnitMessages;
 import io.kyligence.kap.common.persistence.event.Event;
 import io.kyligence.kap.common.persistence.event.ResourceCreateOrUpdateEvent;
 import io.kyligence.kap.common.persistence.event.ResourceDeleteEvent;
-import io.kyligence.kap.common.persistence.transaction.mq.MessageQueue;
 import lombok.Data;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
@@ -58,15 +56,8 @@ public abstract class MetadataStore {
 
     static final Set<String> IMMUTABLE_PREFIX = Sets.newHashSet("/UUID");
 
-    public static final String ALL_NAMESPACE = "";
-    public static final String METADATA_NAMESPACE = "/metadata";
-    public static final String MQ_NAMESPACE = "/mq";
-    public static final String EVENT_PROPERTIES_FILE = "/events.json";
-
-    protected final String namespace;
-
-    public MetadataStore(KylinConfig kylinConfig, String namespace) {
-        this.namespace = namespace;
+    public MetadataStore(KylinConfig kylinConfig) {
+        // for reflection
     }
 
     protected abstract void save(String path, ByteSource bs, long ts, long mvcc) throws Exception;
@@ -84,14 +75,6 @@ public abstract class MetadataStore {
                 deleteResource(((ResourceDeleteEvent) event).getResPath());
             }
         }
-    }
-
-    public void restore(MessageQueue store) throws IOException {
-        val raw = load(EVENT_PROPERTIES_FILE);
-        Map props = JsonUtil.readValue(raw.getByteSource().openStream(), Map.class);
-        props.forEach((key, value) -> {
-            store.getEventStoreProperties().put(key.toString(), value.toString());
-        });
     }
 
     public void restore(ResourceStore store) throws IOException {
@@ -124,12 +107,6 @@ public abstract class MetadataStore {
             val raw = store.getResource(resPath);
             putResource(raw);
         }
-    }
-
-    public void dump(MessageQueue messageQueue) throws Exception {
-        val properties = messageQueue.getEventStoreProperties();
-        save(EVENT_PROPERTIES_FILE, ByteStreams.asByteSource(JsonUtil.writeValueAsBytes(properties)),
-                System.currentTimeMillis(), 0);
     }
 
     /**

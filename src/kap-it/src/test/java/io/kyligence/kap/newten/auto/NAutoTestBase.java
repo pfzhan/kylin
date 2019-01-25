@@ -177,7 +177,7 @@ public class NAutoTestBase extends NLocalWithSparkSessionTest {
         val resourceStore = ResourceStore.getKylinMetaStore(config);
         val outputConfig = KylinConfig.createKylinConfig(config);
         outputConfig.setMetadataUrl(metadataUrlPrefix);
-        ResourceStore.createMetadataStore(outputConfig, "/metadata").dump(resourceStore);
+        ResourceStore.createMetadataStore(outputConfig).dump(resourceStore);
     }
 
     private void assertOrPrintCmpResult(Map<String, CompareEntity> compareMap, boolean needCompareLayouts) {

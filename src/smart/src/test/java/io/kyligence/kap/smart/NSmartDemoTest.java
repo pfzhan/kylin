@@ -31,9 +31,6 @@ import java.io.IOException;
 import java.nio.charset.Charset;
 import java.util.List;
 
-import io.kyligence.kap.common.persistence.metadata.MetadataStore;
-import io.kyligence.kap.metadata.cube.model.NDataflowManager;
-import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import org.apache.commons.io.FileUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.KylinConfig.SetAndUnsetThreadLocalConfig;
@@ -46,6 +43,8 @@ import com.google.common.collect.Lists;
 import com.google.common.io.Files;
 
 import io.kyligence.kap.common.util.KylinConfigUtils;
+import io.kyligence.kap.metadata.cube.model.NDataflowManager;
+import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import io.kyligence.kap.smart.query.Utils;
 import lombok.extern.slf4j.Slf4j;
 
@@ -116,7 +115,7 @@ public class NSmartDemoTest {
         String[] sqls = sqlList.toArray(new String[0]);
 
         File tmpMeta = Files.createTempDir();
-        FileUtils.copyDirectory(new File(metaDir), new File(tmpMeta, MetadataStore.METADATA_NAMESPACE));
+        FileUtils.copyDirectory(new File(metaDir), tmpMeta);
         KylinConfig kylinConfig = Utils.newKylinConfig(tmpMeta.getAbsolutePath());
         kylinConfig.setProperty("kylin.env", "UT");
         KylinConfigUtils.setH2DriverAsFavoriteQueryStorageDB(kylinConfig);

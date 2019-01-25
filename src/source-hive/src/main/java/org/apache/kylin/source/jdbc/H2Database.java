@@ -113,7 +113,7 @@ public class H2Database {
         try {
             File tempFile = File.createTempFile("tmp_h2", ".csv");
             try (FileOutputStream tempFileStream = new FileOutputStream(tempFile)) {
-                try (InputStream is = new FileInputStream(Paths.get(config.getMetadataUrl().getIdentifier(), path).toFile())) {
+                try (InputStream is = new FileInputStream(Paths.get(config.getMetadataUrl().getIdentifier(), "..", path).toFile())) {
                     IOUtils.copy(is, tempFileStream);
                 }
 

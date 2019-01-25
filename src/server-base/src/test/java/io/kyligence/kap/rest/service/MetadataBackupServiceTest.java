@@ -79,7 +79,7 @@ public class MetadataBackupServiceTest extends NLocalFileMetadataTestCase {
 
         val rootMetadataChildrenPath = rootMetadataFS.listStatus(rootMetadataPath)[0].getPath();
         Assertions.assertThat(rootMetadataFS.listStatus(rootMetadataChildrenPath)).hasSize(1).contains(rootMetadataFS
-                .getFileStatus(new Path(rootMetadataChildrenPath.toString() + File.separator + "metadata")));
+                .getFileStatus(new Path(rootMetadataChildrenPath.toString() + File.separator + "UUID")));
 
         rootMetadataFS.close();
     }

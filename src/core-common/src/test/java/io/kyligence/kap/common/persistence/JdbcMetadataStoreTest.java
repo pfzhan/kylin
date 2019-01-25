@@ -79,7 +79,7 @@ public class JdbcMetadataStoreTest extends NLocalFileMetadataTestCase {
         dataSource.setUsername(url.getParameter("username"));
         dataSource.setPassword(url.getParameter("password"));
         val jdbcTemplate = new JdbcTemplate(dataSource);
-        val all = jdbcTemplate.query("select * from " + url.getIdentifier() + "_metadata", new RawResourceRowMapper());
+        val all = jdbcTemplate.query("select * from " + url.getIdentifier(), new RawResourceRowMapper());
         Assert.assertEquals(2, all.size());
         for (RawResource resource : all) {
             if (resource.getResPath().equals("/p1/abc2")) {
@@ -101,7 +101,7 @@ public class JdbcMetadataStoreTest extends NLocalFileMetadataTestCase {
         dataSource.setPassword(url.getParameter("password"));
         val jdbcTemplate = new JdbcTemplate(dataSource);
 
-        val tableName = url.getIdentifier() + "_metadata";
+        val tableName = url.getIdentifier();
         jdbcTemplate.execute(String.format(
                 "create table if not exists %s ( META_TABLE_KEY varchar(255) primary key, META_TABLE_CONTENT longblob, META_TABLE_TS bigint,  META_TABLE_MVCC bigint)",
                 tableName));
@@ -136,7 +136,7 @@ public class JdbcMetadataStoreTest extends NLocalFileMetadataTestCase {
         dataSource.setUsername(url.getParameter("username"));
         dataSource.setPassword(url.getParameter("password"));
         val jdbcTemplate = new JdbcTemplate(dataSource);
-        jdbcTemplate.update("update " + url.getIdentifier() + "_metadata set META_TABLE_MVCC = 10");
+        jdbcTemplate.update("update " + url.getIdentifier() + " set META_TABLE_MVCC = 10");
 
         UnitOfWork.doInTransactionWithRetry(() -> {
             val store = ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv());

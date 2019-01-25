@@ -41,7 +41,6 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-import io.kyligence.kap.common.persistence.metadata.MetadataStore;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
@@ -72,12 +71,10 @@ public class MetadataToolTest extends NLocalFileMetadataTestCase {
         Assertions.assertThat(junitFolder.listFiles()).hasSize(1);
         val archiveFolder = junitFolder.listFiles()[0];
         Assertions.assertThat(archiveFolder).exists();
-        Assertions.assertThat(archiveFolder.list()).hasSize(1).containsOnly("metadata");
 
-        val metadataFolder = findFile(archiveFolder.listFiles(), f -> f.getName().equals("metadata"));
-        Assertions.assertThat(metadataFolder.list()).isNotEmpty().containsOnly("default", "UUID");
+        Assertions.assertThat(archiveFolder.list()).isNotEmpty().containsOnly("default", "UUID");
 
-        val projectFolder = findFile(metadataFolder.listFiles(), f -> f.getName().equals("default"));
+        val projectFolder = findFile(archiveFolder.listFiles(), f -> f.getName().equals("default"));
         assertProjectFolder(projectFolder);
     }
 
@@ -100,12 +97,10 @@ public class MetadataToolTest extends NLocalFileMetadataTestCase {
         Assertions.assertThat(junitFolder.listFiles()).hasSize(1);
         val archiveFolder = junitFolder.listFiles()[0];
         Assertions.assertThat(archiveFolder).exists();
-        Assertions.assertThat(archiveFolder.list()).hasSize(1).containsOnly("metadata");
 
-        val metadataFolder = findFile(archiveFolder.listFiles(), f -> f.getName().equals("metadata"));
-        Assertions.assertThat(metadataFolder.list()).isNotEmpty().containsOnlyOnce("UUID").containsAnyOf("default",
+        Assertions.assertThat(archiveFolder.list()).isNotEmpty().containsOnlyOnce("UUID").containsAnyOf("default",
                 "ssb", "tdvt");
-        Assertions.assertThat(metadataFolder.listFiles()).filteredOn(f -> !f.getName().equals("UUID"))
+        Assertions.assertThat(archiveFolder.listFiles()).filteredOn(f -> !f.getName().equals("UUID"))
                 .allMatch(projectFolder -> assertProjectFolder(projectFolder));
 
     }
@@ -116,8 +111,7 @@ public class MetadataToolTest extends NLocalFileMetadataTestCase {
         MetadataToolTestFixture.fixtureRestoreTest(getTestConfig(), junitFolder, "/");
 
         //there is a project that destResourceStore contains and srcResourceStore doesn't contain
-        FileUtils.forceDelete(
-                Paths.get(junitFolder.getAbsolutePath(), MetadataStore.METADATA_NAMESPACE, "/demo").toFile());
+        FileUtils.forceDelete(Paths.get(junitFolder.getAbsolutePath(), "/demo").toFile());
 
         //there is a project that destResourceStore doesn't contain and srcResourceStore contains
         val destResourceStore = ResourceStore.getKylinMetaStore(getTestConfig());
@@ -173,8 +167,7 @@ public class MetadataToolTest extends NLocalFileMetadataTestCase {
         val tool = new MetadataTool();
 
         //there is a project metadata that destResourceStore contains and srcResourceStore doesn't contain
-        FileUtils.forceDelete(
-                Paths.get(junitFolder.getAbsolutePath(), MetadataStore.METADATA_NAMESPACE, "/demo").toFile());
+        FileUtils.forceDelete(Paths.get(junitFolder.getAbsolutePath(), "/demo").toFile());
 
         Assertions.assertThat(NProjectManager.getInstance(getTestConfig()).getProject("demo")).isNotNull();
         tool.execute(new String[] { "-restore", "-project", "demo", "-dir", junitFolder.getAbsolutePath() });

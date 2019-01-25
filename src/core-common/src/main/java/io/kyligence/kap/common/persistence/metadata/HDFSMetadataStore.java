@@ -53,8 +53,8 @@ public class HDFSMetadataStore extends MetadataStore {
     private final Path rootPath;
     private final FileSystem fs;
 
-    public HDFSMetadataStore(KylinConfig kylinConfig, String namespace) {
-        super(kylinConfig, namespace);
+    public HDFSMetadataStore(KylinConfig kylinConfig) {
+        super(kylinConfig);
         try {
             val storageUrl = kylinConfig.getMetadataUrl();
             Preconditions.checkState(HDFS_SCHEME.equals(storageUrl.getScheme()));
@@ -80,7 +80,7 @@ public class HDFSMetadataStore extends MetadataStore {
     @Override
     protected void save(String resPath, ByteSource bs, long ts, long mvcc) throws Exception {
         log.trace("res path : {}", resPath);
-        Path p = getRealHDFSPath(namespace + resPath);
+        Path p = getRealHDFSPath(resPath);
         if (bs == null) {
             fs.delete(p, true);
             return;
@@ -100,7 +100,7 @@ public class HDFSMetadataStore extends MetadataStore {
     @Override
     public NavigableSet<String> list(String resPath) {
         try {
-            Path p = getRealHDFSPath(namespace + resPath);
+            Path p = getRealHDFSPath(resPath);
             if (!fs.exists(p) || !fs.isDirectory(p)) {
                 return new TreeSet<>();
             }
@@ -115,7 +115,7 @@ public class HDFSMetadataStore extends MetadataStore {
 
     @Override
     public RawResource load(String resPath) throws IOException {
-        Path p = getRealHDFSPath(namespace + resPath);
+        Path p = getRealHDFSPath(resPath);
         if (fs.exists(p) && fs.isFile(p)) {
             if (fs.getFileStatus(p).getLen() == 0) {
                 log.warn("Zero length file: " + p.toString());

@@ -87,8 +87,8 @@ public class JdbcMetadataStore extends MetadataStore {
     private final JdbcTemplate jdbcTemplate;
     private final String table;
 
-    public JdbcMetadataStore(KylinConfig config, String namespace) {
-        super(config, namespace);
+    public JdbcMetadataStore(KylinConfig config) {
+        super(config);
         val url = config.getMetadataUrl();
         val dataSource = new BasicDataSource();
         dataSource.setDriverClassName(
@@ -98,7 +98,7 @@ public class JdbcMetadataStore extends MetadataStore {
         dataSource.setPassword(Optional.ofNullable(url.getParameter("password")).orElse(""));
         transactionManager = new DataSourceTransactionManager(dataSource);
         jdbcTemplate = new JdbcTemplate(dataSource);
-        table = url.getIdentifier() + namespace.replaceAll("/", "_");
+        table = url.getIdentifier();
 
         createIfNotExist();
     }

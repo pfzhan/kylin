@@ -57,7 +57,6 @@ import org.slf4j.LoggerFactory;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
 
-import io.kyligence.kap.common.persistence.metadata.MetadataStore;
 import io.kyligence.kap.metadata.cube.model.NBatchConstants;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
@@ -320,7 +319,7 @@ public class NSparkExecutable extends AbstractExecutable {
 
         // copy metadata to target metaUrl
         KylinConfig dstConfig = KylinConfig.createKylinConfig(props);
-        ResourceStore.createMetadataStore(dstConfig, MetadataStore.ALL_NAMESPACE).uploadFromFile(tmpDir);
+        ResourceStore.createMetadataStore(dstConfig).uploadFromFile(tmpDir);
         // clean up
         logger.debug("Copied metadata to the target metaUrl, delete the temp dir: {}", tmpDir);
         FileUtils.forceDelete(tmpDir);

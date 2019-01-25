@@ -45,7 +45,6 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.google.common.io.Files;
 
-import io.kyligence.kap.common.persistence.metadata.MetadataStore;
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.favorite.FavoriteQuery;
@@ -68,7 +67,7 @@ public abstract class NTestBase {
     public void setUp() throws Exception {
         String metaDir = "src/test/resources/nsmart/learn_kylin/meta";
         tmpMeta = Files.createTempDir();
-        FileUtils.copyDirectory(new File(metaDir), new File(tmpMeta, MetadataStore.METADATA_NAMESPACE));
+        FileUtils.copyDirectory(new File(metaDir), tmpMeta);
 
         KylinConfig kylinConfig = Utils.smartKylinConfig(tmpMeta.getCanonicalPath());
         kylinConfig.setProperty("kylin.env", "UT");
@@ -156,7 +155,7 @@ public abstract class NTestBase {
 
     private void deleteMetadataTableExd() throws IOException {
         Preconditions.checkNotNull(tmpMeta, "no valid metadata.");
-        val metaDir = new File(tmpMeta, MetadataStore.METADATA_NAMESPACE);
+        val metaDir = tmpMeta;
         final File[] files = metaDir.listFiles();
         Preconditions.checkNotNull(files);
         for (File file : files) {
@@ -182,7 +181,7 @@ public abstract class NTestBase {
 
     private void reAddMetadataTableExd() throws IOException {
         Preconditions.checkNotNull(tmpMeta, "no valid metadata.");
-        val metaDir = new File(tmpMeta, MetadataStore.METADATA_NAMESPACE);
+        val metaDir = tmpMeta;
         final File[] files = metaDir.listFiles();
         Preconditions.checkNotNull(files);
         for (File file : files) {

@@ -71,7 +71,7 @@ public class CsvSource implements ISource {
             public List<String> listDatabases() {
                 Set<String> databases = new TreeSet<>();
                 String resPath = KylinConfig.getInstanceFromEnv().getMetadataUrl().getIdentifier();
-                String path = resPath + "/data/tableDesc";
+                String path = resPath + "/../data/tableDesc";
                 File[] files = new File(path).listFiles();
                 for (File file : files) {
                     if (!file.isDirectory()) {
@@ -89,7 +89,7 @@ public class CsvSource implements ISource {
             public List<String> listTables(String database) {
                 Set<String> tables = new TreeSet<>();
                 String resPath = KylinConfig.getInstanceFromEnv().getMetadataUrl().getIdentifier();
-                String path = resPath + "/data/tableDesc";
+                String path = resPath + "/../data/tableDesc";
                 File[] files = new File(path).listFiles();
                 for (File file : files) {
                     if (!file.isDirectory()) {
@@ -108,7 +108,7 @@ public class CsvSource implements ISource {
             public Pair<TableDesc, TableExtDesc> loadTableMetadata(String database, String table, String prj)
                     throws IOException {
                 String resPath = KylinConfig.getInstanceFromEnv().getMetadataUrl().getIdentifier();
-                String path = resPath + "/data/tableDesc/" + database + "." + table + ".json";
+                String path = resPath + "/../data/tableDesc/" + database + "." + table + ".json";
                 TableDesc tableDesc = JsonUtil.readValue(new File(path), TableDesc.class);
                 tableDesc.setTableType("defaultTable");
                 TableExtDesc tableExt = new TableExtDesc();

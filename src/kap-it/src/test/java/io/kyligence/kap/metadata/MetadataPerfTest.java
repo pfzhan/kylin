@@ -68,7 +68,6 @@ import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
-import io.kyligence.kap.common.persistence.metadata.MetadataStore;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
@@ -168,9 +167,9 @@ public class MetadataPerfTest extends NLocalFileMetadataTestCase {
         }
         val jdbcTemplate = getJdbcTemplate();
         log.debug("drop table if exists");
-        val table = getTestConfig().getMetadataUrl().getIdentifier() + "_metadata";
+        val table = getTestConfig().getMetadataUrl().getIdentifier();
         jdbcTemplate.update("drop table if exists " + table);
-        val metaStore = ResourceStore.createMetadataStore(getTestConfig(), MetadataStore.METADATA_NAMESPACE);
+        val metaStore = ResourceStore.createMetadataStore(getTestConfig());
         log.debug("create a new table");
         val method = metaStore.getClass().getDeclaredMethod("createIfNotExist");
         method.setAccessible(true);
@@ -305,14 +304,14 @@ public class MetadataPerfTest extends NLocalFileMetadataTestCase {
     }
 
     private JdbcTemplate getJdbcTemplate() throws Exception {
-        val metaStore = ResourceStore.createMetadataStore(getTestConfig(), MetadataStore.METADATA_NAMESPACE);
+        val metaStore = ResourceStore.createMetadataStore(getTestConfig());
         val field = metaStore.getClass().getDeclaredField("jdbcTemplate");
         field.setAccessible(true);
         return (JdbcTemplate) field.get(metaStore);
     }
 
     private DataSourceTransactionManager getTransactionManager() throws Exception {
-        val metaStore = ResourceStore.createMetadataStore(getTestConfig(), MetadataStore.METADATA_NAMESPACE);
+        val metaStore = ResourceStore.createMetadataStore(getTestConfig());
         val field = metaStore.getClass().getDeclaredField("transactionManager");
         field.setAccessible(true);
         return (DataSourceTransactionManager) field.get(metaStore);

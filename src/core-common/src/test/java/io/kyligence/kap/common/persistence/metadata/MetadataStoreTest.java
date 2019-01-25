@@ -65,33 +65,29 @@ public class MetadataStoreTest extends NLocalFileMetadataTestCase {
                 "/default");
 
         getTestConfig().setMetadataUrl(junitFolder.getAbsolutePath());
-        val metadataStore = ResourceStore.createMetadataStore(getTestConfig(), MetadataStore.METADATA_NAMESPACE);
+        val metadataStore = ResourceStore.createMetadataStore(getTestConfig());
 
         //add illegal file,the verify result is not qualified
-        Paths.get(junitFolder.getAbsolutePath(), MetadataStore.METADATA_NAMESPACE, "/IllegalFile").toFile()
-                .createNewFile();
+        Paths.get(junitFolder.getAbsolutePath(), "/IllegalFile").toFile().createNewFile();
         val verifyResultWithIllegalFile = metadataStore.verify();
         Assertions.assertThat(verifyResultWithIllegalFile.illegalFiles).hasSize(1).contains("/IllegalFile");
         assertFalse(verifyResultWithIllegalFile.isQualified());
-        Paths.get(junitFolder.getAbsolutePath(), MetadataStore.METADATA_NAMESPACE, "/IllegalFile").toFile().delete();
+        Paths.get(junitFolder.getAbsolutePath(), "/IllegalFile").toFile().delete();
 
         //add illegal project dir ,the verify result is not qualified
-        Paths.get(junitFolder.getAbsolutePath(), MetadataStore.METADATA_NAMESPACE, "/IllegalProject").toFile().mkdir();
-        Paths.get(junitFolder.getAbsolutePath(), MetadataStore.METADATA_NAMESPACE, "/IllegalProject/test.json").toFile()
-                .createNewFile();
+        Paths.get(junitFolder.getAbsolutePath(), "/IllegalProject").toFile().mkdir();
+        Paths.get(junitFolder.getAbsolutePath(), "/IllegalProject/test.json").toFile().createNewFile();
         val verifyResultWithIllegalProject = metadataStore.verify();
         Assertions.assertThat(verifyResultWithIllegalProject.illegalProjects).hasSize(1).contains("IllegalProject");
         Assertions.assertThat(verifyResultWithIllegalProject.illegalFiles).hasSize(1)
                 .contains("/IllegalProject/test.json");
         assertFalse(verifyResultWithIllegalProject.isQualified());
-        Paths.get(junitFolder.getAbsolutePath(), MetadataStore.METADATA_NAMESPACE, "/IllegalProject/test.json").toFile()
-                .delete();
-        Paths.get(junitFolder.getAbsolutePath(), MetadataStore.METADATA_NAMESPACE, "/IllegalProject").toFile().delete();
+        Paths.get(junitFolder.getAbsolutePath(), "/IllegalProject/test.json").toFile().delete();
+        Paths.get(junitFolder.getAbsolutePath(), "/IllegalProject").toFile().delete();
 
         //add legal project and file,the verify result is qualified
-        Paths.get(junitFolder.getAbsolutePath(), MetadataStore.METADATA_NAMESPACE, "/legalProject").toFile().mkdir();
-        Paths.get(junitFolder.getAbsolutePath(), MetadataStore.METADATA_NAMESPACE, "/legalProject/project.json")
-                .toFile().createNewFile();
+        Paths.get(junitFolder.getAbsolutePath(), "/legalProject").toFile().mkdir();
+        Paths.get(junitFolder.getAbsolutePath(), "/legalProject/project.json").toFile().createNewFile();
         val verifyResultWithLegalProject = metadataStore.verify();
         Assertions.assertThat(verifyResultWithLegalProject.illegalFiles).isEmpty();
         Assertions.assertThat(verifyResultWithLegalProject.illegalProjects).isEmpty();
@@ -99,28 +95,25 @@ public class MetadataStoreTest extends NLocalFileMetadataTestCase {
 
         //the metadata dir doesn't have uuid file
         assertFalse(metadataStore.verify().existUUIDFile);
-        Paths.get(junitFolder.getAbsolutePath(), MetadataStore.METADATA_NAMESPACE, "/UUID").toFile().createNewFile();
+        Paths.get(junitFolder.getAbsolutePath(), "/UUID").toFile().createNewFile();
         assertTrue(metadataStore.verify().existUUIDFile);
 
         //the metadata dir doesn't have user group file
         assertFalse(metadataStore.verify().existUserGroupFile);
-        Files.createDirectory(Paths.get(junitFolder.getAbsolutePath(), MetadataStore.METADATA_NAMESPACE, "/_global"));
-        Files.createFile(
-                Paths.get(junitFolder.getAbsolutePath(), MetadataStore.METADATA_NAMESPACE, "/_global/user_group"));
+        Files.createDirectory(Paths.get(junitFolder.getAbsolutePath(), "/_global"));
+        Files.createFile(Paths.get(junitFolder.getAbsolutePath(), "/_global/user_group"));
         assertTrue(metadataStore.verify().existUserGroupFile);
 
         //the metadata dir doesn't have user dir
         assertFalse(metadataStore.verify().existUserDir);
-        Paths.get(junitFolder.getAbsolutePath(), MetadataStore.METADATA_NAMESPACE, "/_global/user").toFile().mkdir();
-        Files.createFile(
-                Paths.get(junitFolder.getAbsolutePath(), MetadataStore.METADATA_NAMESPACE, "/_global/user/ADMIN"));
+        Paths.get(junitFolder.getAbsolutePath(), "/_global/user").toFile().mkdir();
+        Files.createFile(Paths.get(junitFolder.getAbsolutePath(), "/_global/user/ADMIN"));
         assertTrue(metadataStore.verify().existUserDir);
 
         //the metadata dir doesn't have acl dir
         assertFalse(metadataStore.verify().existACLDir);
-        Paths.get(junitFolder.getAbsolutePath(), MetadataStore.METADATA_NAMESPACE, "/_global/acl").toFile().mkdir();
-        Files.createFile(
-                Paths.get(junitFolder.getAbsolutePath(), MetadataStore.METADATA_NAMESPACE, "/_global/acl/test"));
+        Paths.get(junitFolder.getAbsolutePath(), "/_global/acl").toFile().mkdir();
+        Files.createFile(Paths.get(junitFolder.getAbsolutePath(), "/_global/acl/test"));
         assertTrue(metadataStore.verify().existACLDir);
     }
 }

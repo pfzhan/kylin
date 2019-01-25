@@ -336,6 +336,6 @@ trait JobSupport
     val resourceStore: ResourceStore = ResourceStore.getKylinMetaStore(config)
     val outputConfig: KylinConfig = KylinConfig.createKylinConfig(config)
     outputConfig.setMetadataUrl(metadataUrlPrefix)
-    ResourceStore.createMetadataStore(outputConfig, MetadataStore.METADATA_NAMESPACE).dump(resourceStore)
+    ResourceStore.createMetadataStore(outputConfig).dump(resourceStore)
   }
 }

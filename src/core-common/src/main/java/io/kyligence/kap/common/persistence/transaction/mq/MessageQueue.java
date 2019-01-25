@@ -29,10 +29,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Consumer;
 
-import io.kyligence.kap.common.persistence.metadata.MetadataStore;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.util.ClassUtil;
 
 import com.google.common.collect.Maps;
@@ -66,12 +64,6 @@ public abstract class MessageQueue implements Closeable {
         try {
             val cls = ClassUtil.forName(clazz, MessageQueue.class);
             val instance = cls.getConstructor(KylinConfig.class).newInstance(config);
-            val snapshotStore = ResourceStore.createMetadataStore(config, MetadataStore.MQ_NAMESPACE);
-            try {
-                snapshotStore.restore(instance);
-            } catch (IOException ignore) {
-                log.info("there is no snapshot for eventStore");
-            }
             return instance;
         } catch (Exception e) {
             throw new IllegalArgumentException("Failed to create event store " + config.getMetadataUrl(), e);

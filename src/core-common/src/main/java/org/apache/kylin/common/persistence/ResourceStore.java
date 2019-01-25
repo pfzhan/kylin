@@ -174,7 +174,7 @@ public abstract class ResourceStore {
      */
     private static ResourceStore createResourceStore(KylinConfig config) {
         try {
-            val snapshotStore = createMetadataStore(config, MetadataStore.METADATA_NAMESPACE);
+            val snapshotStore = createMetadataStore(config);
             val resourceStore = new InMemResourceStore(config);
             resourceStore.init(snapshotStore);
             return resourceStore;
@@ -183,13 +183,13 @@ public abstract class ResourceStore {
         }
     }
 
-    public static MetadataStore createMetadataStore(KylinConfig config, String namespace) {
+    public static MetadataStore createMetadataStore(KylinConfig config) {
         StorageURL url = config.getMetadataUrl();
         logger.info("Creating resource store by KylinConfig {}", config);
         String clsName = config.getMetadataStoreImpls().get(url.getScheme());
         try {
             Class<? extends MetadataStore> cls = ClassUtil.forName(clsName, MetadataStore.class);
-            return cls.getConstructor(KylinConfig.class, String.class).newInstance(config, namespace);
+            return cls.getConstructor(KylinConfig.class).newInstance(config);
         } catch (Exception e) {
             throw new IllegalArgumentException("Failed to create metadata store", e);
         }
@@ -426,10 +426,10 @@ public abstract class ResourceStore {
         clearCache(this.getConfig());
     }
 
-    public static void dumpResources(KylinConfig kylinConfig, File dir, Set<String> dumpList, Properties properties) {
+    public static void dumpResources(KylinConfig kylinConfig, File metaDir, Set<String> dumpList,
+            Properties properties) {
         long startTime = System.currentTimeMillis();
 
-        val metaDir = new File(dir, MetadataStore.METADATA_NAMESPACE);
         metaDir.mkdirs();
         ResourceStore from = ResourceStore.getKylinMetaStore(kylinConfig);
 
@@ -456,7 +456,7 @@ public abstract class ResourceStore {
         }
 
         if (properties != null) {
-            File kylinPropsFile = new File(dir, "kylin.properties");
+            File kylinPropsFile = new File(metaDir, "kylin.properties");
             try (FileOutputStream os = new FileOutputStream(kylinPropsFile)) {
                 properties.store(os, kylinPropsFile.getAbsolutePath());
             } catch (Exception e) {

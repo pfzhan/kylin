@@ -47,14 +47,14 @@ public class FileMetadataStore extends MetadataStore {
 
     private final File root;
 
-    public FileMetadataStore(KylinConfig kylinConfig, String namespace) {
-        super(kylinConfig, namespace);
+    public FileMetadataStore(KylinConfig kylinConfig) {
+        super(kylinConfig);
         root = new File(kylinConfig.getMetadataUrl().getIdentifier()).getAbsoluteFile();
     }
 
     @Override
     protected void save(String path, ByteSource bs, long ts, long mvcc) throws Exception {
-        File f = file(namespace + path);
+        File f = file(path);
         f.getParentFile().mkdirs();
         if (bs == null) {
             FileUtils.deleteQuietly(f);
@@ -72,7 +72,7 @@ public class FileMetadataStore extends MetadataStore {
     @Override
     public NavigableSet<String> list(String subPath) {
         TreeSet<String> result = Sets.newTreeSet();
-        val scanFolder = new File(root, namespace + subPath);
+        val scanFolder = new File(root, subPath);
         if (!scanFolder.exists()) {
             return result;
         }
@@ -85,7 +85,7 @@ public class FileMetadataStore extends MetadataStore {
 
     @Override
     public RawResource load(String path) throws IOException {
-        val f = new File(root, namespace + path);
+        val f = new File(root, path);
         val resPath = f.getPath().replace(root.getPath() + path, "");
         try (FileInputStream in = new FileInputStream(f)) {
             val bs = ByteStreams.asByteSource(IOUtils.toByteArray(in));
