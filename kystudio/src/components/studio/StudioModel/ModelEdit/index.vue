@@ -3,7 +3,7 @@
     <div class="model-edit">
       <el-button v-guide.modelEditAction v-visible @click="guideActions"></el-button>
       <!-- table box -->
-      <div v-guide="t.guid" class="table-box" @click="activeTablePanel(t)" v-visible="!currentEditTable || currentEditTable.guid !== t.guid" :id="t.guid" v-event-stop v-if="modelRender && modelRender.tables" :class="{isLookup:t.kind==='LOOKUP'}" v-for="t in modelRender && modelRender.tables || []" :key="t.guid" :style="tableBoxStyle(t.drawSize)">
+      <div v-guide="t.guid" class="table-box" @click="activeTablePanel(t)" v-visible="!currentEditTable || currentEditTable.guid !== t.guid" :id="t.guid" v-event-stop :class="{isLookup:t.kind==='LOOKUP'}" v-for="t in modelRender && modelRender.tables || []" :key="t.guid" :style="tableBoxStyle(t.drawSize)">
         <div class="table-title" :data-zoom="modelRender.zoom"  v-drag:change.left.top="t.drawSize">
           <common-tip class="name" v-show="!t.aliasIsEdit">
             <span slot="content">{{t.alias}}</span>
@@ -704,7 +704,7 @@ export default class ModelEdit extends Vue {
   closeAddMeasureDia ({isSubmit, data, isEdit, fromSearch}) {
     if (isSubmit) {
       if (fromSearch) {
-        this.modelSearchActionSuccessTip = 'measure 保存成功'
+        this.modelSearchActionSuccessTip = this.$t('searchActionSaveSuccess', {saveObj: this.$t('measure')})
         this._collectSearchActionRecords(data, isEdit ? 'editmeasure' : 'addmeasure')
       }
       this.measureVisible = false
@@ -886,7 +886,9 @@ export default class ModelEdit extends Vue {
   }
   // 拖动画布
   dragBox (x, y) {
-    this.modelInstance.moveModelPosition(x, y)
+    this.$nextTick(() => {
+      this.modelInstance.moveModelPosition(x, y)
+    })
   }
   // 拖动tree-table
   dragTable (node) {
@@ -1085,26 +1087,27 @@ export default class ModelEdit extends Vue {
       let fTable = this.modelInstance.getTableByGuid(actionData.selectF)
       let pTable = this.modelInstance.getTableByGuid(actionData.selectP)
       record.data = objectClone(actionData.joinData)
-      record.title = `Add Table Join Condition (${fTable.alias} ${data.joinType} ${pTable.alias})`
+      record.title = `${this.$t('addTableJoinCondition')} (${fTable.alias} ${data.joinType} ${pTable.alias})`
     } else if (type === 'tableeditjoin' || type === 'editjoin') {
+      record.icon = 'el-icon-ksd-joint_condition'
       let fTable = this.modelInstance.getTableByGuid(actionData.selectF)
       let pTable = this.modelInstance.getTableByGuid(actionData.selectP)
       record.data = objectClone(actionData.joinData)
-      record.title = `Edit Table Join Condition (${fTable.alias} ${data.joinType} ${pTable.alias})`
+      record.title = `${this.$t('editTableJoinCondition')} (${fTable.alias} ${data.joinType} ${pTable.alias})`
     } else if (type === 'addmeasure') {
       record.icon = 'el-icon-ksd-measure'
-      record.title = `Add Measure (${actionData.name}), expression (${data.expression})`
+      record.title = `${this.$t('addMeasure')} (${actionData.name}), expression (${data.expression})`
     } else if (type === 'editmeasure') {
       record.icon = 'el-icon-ksd-measure'
-      record.title = `Edit Measure (${actionData.name}), expression (${data.expression})`
+      record.title = `${this.$t('editMeasure')} (${actionData.name}), expression (${data.expression})`
     } else if (type === 'adddimension') {
       record.icon = 'el-icon-ksd-dimension'
-      record.title = `Add Dimension (${actionData.name})`
+      record.title = `${this.$t('addDimension')} (${actionData.name})`
     } else if (type === 'editdimension') {
       record.icon = 'el-icon-ksd-dimension'
-      record.title = `Edit Dimension (${actionData.name})`
+      record.title = `${this.$t('editDimension')} (${actionData.name})`
     } else if (type === 'showtable') {
-      record.title = `Search Table (${actionData.alias})`
+      record.title = `${this.$t('searchTable')} (${actionData.alias})`
     }
     this.modelSearchActionHistoryList.unshift(record)
   }
@@ -1131,7 +1134,7 @@ export default class ModelEdit extends Vue {
         tables: this.modelRender.tables
       }).then((data) => {
         this._collectSearchActionRecords(data, select.action)
-        this.modelSearchActionSuccessTip = 'table join 条件编辑成功'
+        this.modelSearchActionSuccessTip = this.$t('searchActionSaveSuccess', {saveObj: this.$t('tableJoin')})
       })
     }
     if (select.action === 'tableaddjoin') {
@@ -1142,7 +1145,7 @@ export default class ModelEdit extends Vue {
         tables: this.modelRender.tables
       }).then((data) => {
         this._collectSearchActionRecords(data, select.action)
-        this.modelSearchActionSuccessTip = 'table join 条件添加成功'
+        this.modelSearchActionSuccessTip = this.$t('searchActionSaveSuccess', {saveObj: this.$t('tableJoin')})
       })
     }
     if (select.action === 'adddimension') {
@@ -1154,7 +1157,7 @@ export default class ModelEdit extends Vue {
       }).then((res) => {
         if (res && res.isSubmit) {
           this._collectSearchActionRecords(res.data.dimension, select.action)
-          this.modelSearchActionSuccessTip = 'dimension添加成功'
+          this.modelSearchActionSuccessTip = this.$t('searchActionSaveSuccess', {saveObj: this.$t('dimension')})
         }
       })
     }
@@ -1165,7 +1168,7 @@ export default class ModelEdit extends Vue {
       }).then((res) => {
         if (res && res.isSubmit) {
           this._collectSearchActionRecords(res.data.dimension, select.action)
-          this.modelSearchActionSuccessTip = 'dimension修改成功'
+          this.modelSearchActionSuccessTip = this.$t('searchActionSaveSuccess', {saveObj: this.$t('dimension')})
         }
       })
     }
@@ -1179,7 +1182,7 @@ export default class ModelEdit extends Vue {
         tables: this.modelRender.tables
       }).then((data) => {
         this._collectSearchActionRecords(data, select.action)
-        this.modelSearchActionSuccessTip = '连接条件编辑成功'
+        this.modelSearchActionSuccessTip = this.$t('searchActionSaveSuccess', {saveObj: this.$t('tableJoin')})
       })
     }
     if (select.action === 'addmeasure') {
@@ -1209,7 +1212,7 @@ export default class ModelEdit extends Vue {
         pColumnName: moreInfo.name
       }).then((data) => {
         this._collectSearchActionRecords(data, select.action)
-        this.modelSearchActionSuccessTip = '连接条件添加成功'
+        this.modelSearchActionSuccessTip = this.$t('searchActionSaveSuccess', {saveObj: this.$t('tableJoin')})
       })
     }
     this.panelAppear.search.display = false

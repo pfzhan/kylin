@@ -44,7 +44,18 @@ export default {
     noDimensionAndMeasureTipTitle: 'Add Dimension and Measure',
     noDimensionGoOnSave: 'Save',
     noDimensionBackEdit: 'Back to edit',
-    searchHistory: 'Searh History'
+    searchHistory: 'Searh History',
+    searchActionSaveSuccess: '{saveObj} saved successfully',
+    measure: 'Measure',
+    dimension: 'Dimension',
+    addTableJoinCondition: 'Add table join condition',
+    editTableJoinCondition: 'Edit table join condition',
+    tableJoin: 'Table join condition',
+    addDimension: 'Add dimension',
+    addMeasure: 'Add measure',
+    editDimension: 'Edit dimension',
+    editMeasure: 'Edit measure',
+    searchTable: 'Search table'
   },
   'zh-cn': {
     'adddimension': '添加维度',
@@ -91,6 +102,17 @@ export default {
     noDimensionAndMeasureTipContent: '本模型中尚无维度和度量，如此保存后将无法添加聚合索引。如果只需要明细查询，继续保存即可。如果本模型后续将服务于聚合函数的查询，系统建议您添加一些要分析的维度和度量。',
     noDimensionGoOnSave: '继续保存',
     noDimensionBackEdit: '回到编辑',
-    searchHistory: '搜索历史'
+    searchHistory: '搜索历史',
+    searchActionSaveSuccess: '{saveObj}保存成功',
+    measure: '度量',
+    dimension: '维度',
+    tableJoin: '表连接条件',
+    addTableJoinCondition: '设置表连接条件',
+    editTableJoinCondition: '设置表连接条件',
+    addDimension: '添加维度',
+    addMeasure: '添加度量',
+    editDimension: '编辑维度',
+    editMeasure: '编辑度量',
+    searchTable: '搜索表'
   }
 }

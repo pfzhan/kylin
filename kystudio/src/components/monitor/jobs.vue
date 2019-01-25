@@ -208,15 +208,16 @@
               </div>
             </div>
             <div class="timeline-footer">
-              <i name="file" v-if="step.step_status!='PENDING'" class="el-icon-ksd-export" @click="clickFile(step)"></i>
-              <i name="key" v-if="step.exec_cmd" class="el-icon-ksd-paramters" @click="clickKey(step)"></i>
-              <a :href="step.info.yarn_application_tracking_url" target="_blank"
-                 tooltip="MRJob" style="margin-left: 5px;">
-                  <i name="tasks" v-if="step.info.yarn_application_tracking_url" class="el-icon-ksd-details"></i>
-              </a>
-              <a  target="_blank" tooltip="Monitoring">
-                <i class="ace-icon fa fa-chain grey bigger-110"></i>
-              </a>
+              
+              <!-- <i name="key" v-if="step.exec_cmd" class="el-icon-ksd-paramters" @click="clickKey(step)"></i> -->
+              <common-tip :content="$t('sparkJobTip')">
+                <a :href="step.info.yarn_application_tracking_url" target="_blank">
+                    <i name="tasks" v-if="step.info.yarn_application_tracking_url" class="el-icon-ksd-export"></i>
+                </a>
+              </common-tip>
+              <common-tip :content="$t('logInfoTip')">
+                <i name="file" v-if="step.step_status!='PENDING'" class="el-icon-ksd-details ksd-ml-4" @click="clickFile(step)"></i>
+              </common-tip>
             </div>
           </div>
         </li>
@@ -245,7 +246,7 @@
     <el-dialog id="show-diagnos" :title="stepAttrToShow == 'cmd' ? $t('parameters') : $t('output')" :visible.sync="dialogVisible">
       <job_dialog :stepDetail="outputDetail"></job_dialog>
       <span slot="footer" class="dialog-footer">
-        <el-button type="primary" plain size="medium" @click="dialogVisible = false">Close</el-button>
+        <el-button type="primary" plain size="medium" @click="dialogVisible = false">{{$t('kylinLang.common.close')}}</el-button>
       </span>
     </el-dialog>
   </div>
@@ -337,7 +338,9 @@ import { transToGmtTime, kapConfirm, handleError, handleSuccess } from 'util/bus
       triggerTime: 'Trigger Time',
       order: 'Order',
       jobTarget: 'Job Target:',
-      jobsList: 'Jobs List'
+      jobsList: 'Jobs List',
+      sparkJobTip: 'Spark Job',
+      logInfoTip: 'Log Output'
     },
     'zh-cn': {
       dataRange: '数据范围',
@@ -392,7 +395,9 @@ import { transToGmtTime, kapConfirm, handleError, handleSuccess } from 'util/bus
       triggerTime: '触发时间',
       order: '排序',
       jobTarget: '任务目标：',
-      jobsList: '任务列表'
+      jobsList: '任务列表',
+      sparkJobTip: 'Spark任务详情',
+      logInfoTip: '日志详情'
     }
   }
 })

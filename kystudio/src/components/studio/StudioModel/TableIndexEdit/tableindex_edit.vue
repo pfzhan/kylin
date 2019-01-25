@@ -236,12 +236,12 @@
     @Watch('isShow')
     initTableIndex (val) {
       if (val) {
-        if (val && this.tableIndexDesc) {
+        if (this.tableIndexDesc) {
           Object.assign(this.tableIndexMeta, this.tableIndexDesc)
-        } else {
-          this.tableIndexMeta = JSON.parse(this.tableIndexMetaStr)
         }
         this.getAllColumns()
+      } else {
+        this.tableIndexMeta = JSON.parse(this.tableIndexMetaStr)
       }
     }
     pagerChange (pager) {
