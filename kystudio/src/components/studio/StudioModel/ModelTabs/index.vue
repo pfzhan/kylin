@@ -36,7 +36,7 @@ let MessageBox = ElementUI.MessageBox
       next(false)
       setTimeout(() => {
         MessageBox.confirm(window.kapVm.$t('kylinLang.common.willGo'), window.kapVm.$t('kylinLang.common.notice'), {
-          confirmButtonText: window.kapVm.$t('kylinLang.common.go'),
+          confirmButtonText: window.kapVm.$t('kylinLang.common.exit'),
           cancelButtonText: window.kapVm.$t('kylinLang.common.cancel'),
           type: 'warning'
         }).then(() => {

@@ -97,7 +97,7 @@ export default class Setting extends Vue {
   leaveConfirm () {
     const confirmMessage = this.$t('kylinLang.common.willGo')
     const confirmTitle = this.$t('kylinLang.common.notice')
-    const confirmButtonText = this.$t('kylinLang.common.go')
+    const confirmButtonText = this.$t('kylinLang.common.exit')
     const cancelButtonText = this.$t('kylinLang.common.cancel')
     const type = 'warning'
     return this.$confirm(confirmMessage, confirmTitle, { confirmButtonText, cancelButtonText, type })

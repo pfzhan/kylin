@@ -44,7 +44,7 @@ export default {
     projectType: '项目类型：',
     description: '描述：',
     AUTO_MAINTAIN: '智能模式',
-    MANUAL_MAINTAIN: '专业模式',
+    MANUAL_MAINTAIN: '专家模式',
     pushdownSettings: '查询下压',
     pushdownEngine: '查询下压引擎',
     pushdownEngineDesc: '开启查询下压引擎后，您才可以在没有索引时分析数据。',

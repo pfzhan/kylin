@@ -603,7 +603,7 @@ export default class Dashboard extends Vue {
     const resJob = await this.loadDashboardJobInfo({project: this.currentSelectedProject, start_time: this.daterange[0].getTime(), end_time: this.daterange[1].getTime()})
     const resDataJob = await handleSuccessAsync(resJob)
     this.jobCount = resDataJob.count || 0
-    this.avgBulidTime = resDataJob.total_duration && resDataJob.total_byte_size ? (resDataJob.total_duration * 1000 / (resDataJob.total_byte_size * 1024 * 1024)).toFixed(2) : 0
+    this.avgBulidTime = resDataJob.total_duration && resDataJob.total_byte_size ? (resDataJob.total_duration * 1024 * 1024 / (resDataJob.total_byte_size * 1000)).toFixed(2) : 0
     if (resDataJob.total_byte_size < 1024 * 1024) {
       this.noEnoughData = true
     } else {

@@ -170,6 +170,7 @@ export default {
       z-index: 9;
       opacity: 0.45;
       display: none;
+      width: 48px;
       // background-color: rgba(255,255,255,0.2);
       &.is-show {
         display: block;
@@ -181,9 +182,10 @@ export default {
       }
     }
     .el-popover {
-      right: 40px;
+      right: 46px;
       top: 0px;
       min-width: 80px;
+      text-align: right;
       background-color: transparent;
       border-color: transparent;
       box-shadow: none;
