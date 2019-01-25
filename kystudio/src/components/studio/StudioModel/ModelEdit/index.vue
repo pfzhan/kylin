@@ -945,6 +945,8 @@ export default class ModelEdit extends Vue {
   }
   // 释放列
   dropColumn (event, col, table) {
+    // 火狐默认行为会打开drop对应列的url，所以需要阻止默认行为
+    event.preventDefault && event.preventDefault()
     this.removeDragInClass()
     let fromTable = this.modelInstance.getTableByGuid(this.currentDragColumnData.guid)
     // 判断是否是自己连自己
@@ -979,6 +981,8 @@ export default class ModelEdit extends Vue {
   }
   // 释放列
   dropColumnToPanel (event, type) {
+    // 火狐默认行为会打开drop对应列的url，所以需要阻止默认行为
+    event.preventDefault && event.preventDefault()
     this.removeDragInClass()
     let guid = this.currentDragColumnData.guid
     let table = this.modelInstance.getTableByGuid(guid)
@@ -1636,7 +1640,7 @@ export default class ModelEdit extends Vue {
         padding: 1px;
         box-sizing: border-box;
         position: relative;
-        overflow-x: hidden;
+        overflow: hidden;
         .action_group,
         .batch_group {
           font-size: 0;
