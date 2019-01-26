@@ -28,7 +28,6 @@ import static org.apache.kylin.job.execution.AbstractExecutable.RUNTIME_INFO;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
-import java.io.IOException;
 import java.lang.reflect.Constructor;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -539,36 +538,40 @@ public class NExecutableManager {
 
     public void updateJobOutputToHDFS(String resPath, ExecutableOutputPO obj) {
         DataOutputStream dout = null;
-        Path path = new Path(resPath);
-
         try {
+            Path path = new Path(resPath);
             FileSystem fs = HadoopUtil.getFileSystem(path);
             dout = fs.create(path, true);
             JOB_OUTPUT_SERIALIZER.serialize(obj, dout);
-        } catch (IOException e) {
-            throw new RuntimeException("there is an error in updating JobOutput to HDFS.", e);
+        } catch (Exception e) {
+            // the operation to update output to hdfs failed, next task should not be interrupted.
+            logger.error("update job output [{}] to HDFS failed.", resPath, e);
         } finally {
             IOUtils.closeQuietly(dout);
         }
     }
 
     public ExecutableOutputPO getJobOutputFromHDFS(String resPath) {
-        ExecutableOutputPO executableOutputPO = null;
         DataInputStream din = null;
-        Path path = new Path(resPath);
-
         try {
-            FileSystem fs = HadoopUtil.getFileSystem(resPath);
-            din = fs.open(path);
-
-            if (fs.getFileStatus(path).getLen() > 0) {
-                executableOutputPO = JOB_OUTPUT_SERIALIZER.deserialize(din);
+            val path = new Path(resPath);
+            FileSystem fs = HadoopUtil.getFileSystem(path);
+            if (!fs.exists(path)) {
+                val executableOutputPO = new ExecutableOutputPO();
+                executableOutputPO.setContent("job output not found, please check kylin.log");
+                return executableOutputPO;
             }
-        } catch (IOException e) {
-            throw new RuntimeException("there is an error in getting JobOutput from HDFS.", e);
+
+            din = fs.open(path);
+            return JOB_OUTPUT_SERIALIZER.deserialize(din);
+        } catch (Exception e) {
+            // If the output file on hdfs is corrupt, give an empty output
+            logger.error("get job output [{}] from HDFS failed.", resPath, e);
+            val executableOutputPO = new ExecutableOutputPO();
+            executableOutputPO.setContent("job output broken, please check kylin.log");
+            return executableOutputPO;
         } finally {
             IOUtils.closeQuietly(din);
         }
-        return executableOutputPO == null ? new ExecutableOutputPO() : executableOutputPO;
     }
 }
