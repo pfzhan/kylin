@@ -111,7 +111,7 @@
       </el-form-item>
     </el-form>
     <span slot="footer" class="dialog-footer">
-      <el-button size="medium" @click="measureVisible = false">{{$t('kylinLang.common.cancel')}}</el-button>
+      <el-button size="medium" @click="handleHide">{{$t('kylinLang.common.cancel')}}</el-button>
       <el-button size="medium" type="primary" v-guide.saveMeasureBtn plain @click="checkMeasure">{{$t('kylinLang.common.submit')}}</el-button>
     </span>
   </el-dialog>

@@ -359,6 +359,8 @@ export default class AggregateModal extends Vue {
         })
         this.isSubmit = false
         this.handleClose(true)
+      } else {
+        this.isSubmit = false
       }
     } catch (e) {
       e && handleError(e)

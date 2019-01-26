@@ -79,7 +79,6 @@
             <el-table
               v-if="table.show || isGuideMode"
               class="ksd-mt-10"
-              style="width:98%;margin: 0 auto"
               border
               :row-class-name="(para) => tableRowClassName(para, table)"
               :data="table.columns" :ref="table.guid"
@@ -88,7 +87,8 @@
               @select="selectionChange">
               <el-table-column
                 type="selection"
-                width="55">
+                align="center"
+                width="40">
               </el-table-column>
                <el-table-column
                 :label="$t('name')">

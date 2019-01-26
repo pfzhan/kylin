@@ -113,7 +113,9 @@ export default {
         commit(types.SHOW_MODAL)
         const response = await dispatch('FETCH_AGGREGATE_GROUPS', { projectName, modelId })
         const aggregateGroupRule = await handleSuccessAsync(response)
-        commit(types.INIT_FORM, aggregateGroupRule)
+        setTimeout(() => {
+          commit(types.INIT_FORM, aggregateGroupRule)
+        }, 0)
         commit(types.HIDE_LOADING)
       })
     }

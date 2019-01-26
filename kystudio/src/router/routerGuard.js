@@ -59,7 +59,7 @@ export function bindRouterGuard (router) {
     }
   })
   router.afterEach(route => {
-    var scrollBoxDom = document.getElementById('scrollBox')
+    var scrollBoxDom = document.getElementById('scrollContent')
     if (scrollBoxDom) {
       scrollBoxDom.scrollTop = 0
     }

@@ -10,6 +10,8 @@
         <span class="info-value">
           <el-select
             v-guide.tablePartitionColumn
+            filterable
+            size="medium"
             :value="table.partitionColumn"
             @input="handleChangePartition">
             <el-option :label="$t('noPartition')" value=""></el-option>
@@ -61,8 +63,8 @@
     </template>
     <div class="hr"></div>
     <div class="ksd-mt-20">
-      <el-button type="primary" v-if="~['incremental', 'full'].indexOf(table.storageType) || table.partitionColumn" @click="handleLoadData" v-guide.tableLoadDataBtn>{{$t('loadData')}}</el-button>
-      <el-button v-if="~['incremental'].indexOf(table.storageType) || table.partitionColumn" @click="handleRefreshData">{{$t('kylinLang.common.refresh')}}</el-button>
+      <el-button type="primary" size="medium" v-if="~['incremental', 'full'].indexOf(table.storageType) || table.partitionColumn" @click="handleLoadData" v-guide.tableLoadDataBtn>{{$t('loadData')}}</el-button>
+      <el-button v-if="~['incremental'].indexOf(table.storageType) || table.partitionColumn" size="medium" @click="handleRefreshData">{{$t('kylinLang.common.refresh')}}</el-button>
     </div>
   </div>
 </template>
