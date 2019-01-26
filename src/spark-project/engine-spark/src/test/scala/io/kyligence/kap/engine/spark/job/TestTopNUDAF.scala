@@ -65,7 +65,9 @@ class TestTopNUDAF extends SparderBaseFunSuite with SharedSparkSession {
     assert(r1.apply(0).toString() == "[1,WrappedArray([30.4,[1,n1,true,2012-12-12,2016-09-30 03:03:00.0]])]")
     assert(r1.apply(1).toString() == "[2,WrappedArray([2000.0,[2,n2,true,2016-12-14,2016-12-14 03:03:00.0]], [30.2,[1,n1,true,2012-12-12,2016-09-30 03:03:00.0]])]")
     assert(r1.apply(2).toString() == "[3,WrappedArray([3000.0,[2,n2,true,2016-12-14,2016-12-14 03:03:00.0]], [1000.0,[null,null,null,null,null]])]")
-    assert(r1.apply(3).toString() == "[4,WrappedArray([0.0,[3,n2,true,2016-12-14,2016-12-14 03:03:00.0]], [0.0,[null,null,null,null,null]])]")
+    assert(
+      r1.apply(3).toString() == "[4,WrappedArray([null,[3,n2,true,2016-12-14,2016-12-14 03:03:00.0]], [null,[null,null,null,null,null]])]"
+    )
     // scalastyle:on
 
     val agg2 = callUDF("topn_afterAgg", col("topn(priceDecimal, id, name, flag, birth, time)"))
@@ -77,7 +79,7 @@ class TestTopNUDAF extends SparderBaseFunSuite with SharedSparkSession {
           "[5000.0,[2,n2,true,2016-12-14,2016-12-14 03:03:00.0]], " +
           "[1000.0,[null,null,null,null,null]], " +
           "[60.599999999999994,[1,n1,true,2012-12-12,2016-09-30 03:03:00.0]], " +
-          "[0.0,[3,n2,true,2016-12-14,2016-12-14 03:03:00.0]])]"
+          "[null,[3,n2,true,2016-12-14,2016-12-14 03:03:00.0]])]"
     )
   }
 }

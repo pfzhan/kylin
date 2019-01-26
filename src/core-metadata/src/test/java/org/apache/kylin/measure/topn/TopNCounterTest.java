@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -57,6 +56,7 @@ import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.RandomStringUtils;
 import org.apache.commons.math3.distribution.ZipfDistribution;
 import org.apache.kylin.common.util.Pair;
+import org.junit.Assert;
 import org.junit.Ignore;
 import org.junit.Test;
 
@@ -122,10 +122,12 @@ public class TopNCounterTest {
     //@Test
     public void testSingleSpaceSaving() throws IOException {
         String dataFile = prepareTestDate();
-        TopNCounterTest.SpaceSavingConsumer spaceSavingCounter = new TopNCounterTest.SpaceSavingConsumer(TOP_K * SPACE_SAVING_ROOM);
+        TopNCounterTest.SpaceSavingConsumer spaceSavingCounter = new TopNCounterTest.SpaceSavingConsumer(
+                TOP_K * SPACE_SAVING_ROOM);
         TopNCounterTest.HashMapConsumer accurateCounter = new TopNCounterTest.HashMapConsumer();
 
-        for (TopNCounterTest.TestDataConsumer consumer : new TopNCounterTest.TestDataConsumer[] { spaceSavingCounter, accurateCounter }) {
+        for (TopNCounterTest.TestDataConsumer consumer : new TopNCounterTest.TestDataConsumer[] { spaceSavingCounter,
+                accurateCounter }) {
             feedDataToConsumer(dataFile, consumer, 0, TOTAL_RECORDS);
         }
 
@@ -134,7 +136,8 @@ public class TopNCounterTest {
         compareResult(spaceSavingCounter, accurateCounter);
     }
 
-    private void compareResult(TopNCounterTest.TestDataConsumer firstConsumer, TopNCounterTest.TestDataConsumer secondConsumer) {
+    private void compareResult(TopNCounterTest.TestDataConsumer firstConsumer,
+            TopNCounterTest.TestDataConsumer secondConsumer) {
         List<Pair<String, Double>> topResult1 = firstConsumer.getTopN(TOP_K);
         outputMsg("Get topN, Space saving takes " + firstConsumer.getSpentTime() / 1000 + " seconds");
         List<Pair<String, Double>> realSequence = secondConsumer.getTopN(TOP_K);
@@ -148,8 +151,10 @@ public class TopNCounterTest {
                 //            if (topResult1.get(i).getFirst().equals(realSequence.get(i).getFirst()) && topResult1.get(i).getSecond().doubleValue() == realSequence.get(i).getSecond().doubleValue()) {
                 outputMsg("Passed; key:" + topResult1.get(i).getFirst() + ", value:" + topResult1.get(i).getSecond());
             } else {
-                outputMsg("Failed; space saving key:" + topResult1.get(i).getFirst() + ", value:" + topResult1.get(i).getSecond());
-                outputMsg("Failed; correct key:" + realSequence.get(i).getFirst() + ", value:" + realSequence.get(i).getSecond());
+                outputMsg("Failed; space saving key:" + topResult1.get(i).getFirst() + ", value:"
+                        + topResult1.get(i).getSecond());
+                outputMsg("Failed; correct key:" + realSequence.get(i).getFirst() + ", value:"
+                        + realSequence.get(i).getSecond());
                 error++;
             }
         }
@@ -192,7 +197,32 @@ public class TopNCounterTest {
 
     }
 
-    private TopNCounterTest.SpaceSavingConsumer[] singleMerge(TopNCounterTest.SpaceSavingConsumer[] consumers) throws IOException, ClassNotFoundException {
+    @Test
+    public void testComparator() {
+        List<Counter> counters = Lists.newArrayList(new Counter<>("item1", 1d), new Counter<>("item1", 2d),
+                new Counter<>("item1", 3d), new Counter<>("item1", null), new Counter<>("item1", null),
+                new Counter<>("item1", 1d), new Counter<>("item1", 3d), new Counter<>("item2", 1d),
+                new Counter<>("item2", 3d));
+        counters.sort(TopNCounter.ASC_COMPARATOR);
+
+        List<Double> expectedCounts = Lists.newArrayList(null, null, 1d, 1d, 1d, 2d, 3d, 3d, 3d);
+        List<Double> originCounts = Lists.newArrayList();
+        counters.stream().forEach(counter -> {
+            originCounts.add(counter.getCount());
+        });
+        Assert.assertArrayEquals(expectedCounts.toArray(), originCounts.toArray());
+
+        counters.sort(TopNCounter.DESC_COMPARATOR);
+        List<Double> expectedDescCounts = Lists.newArrayList(3d, 3d, 3d, 2d, 1d, 1d, 1d, null, null);
+        List<Double> originDescCounts = Lists.newArrayList();
+        counters.stream().forEach(counter -> {
+            originDescCounts.add(counter.getCount());
+        });
+        Assert.assertArrayEquals(expectedDescCounts.toArray(), originDescCounts.toArray());
+    }
+
+    private TopNCounterTest.SpaceSavingConsumer[] singleMerge(TopNCounterTest.SpaceSavingConsumer[] consumers)
+            throws IOException, ClassNotFoundException {
         List<TopNCounterTest.SpaceSavingConsumer> list = Lists.newArrayList();
         if (consumers.length == 1)
             return consumers;
@@ -208,7 +238,8 @@ public class TopNCounterTest {
 
     }
 
-    private TopNCounterTest.SpaceSavingConsumer[] binaryMerge(TopNCounterTest.SpaceSavingConsumer[] consumers) throws IOException, ClassNotFoundException {
+    private TopNCounterTest.SpaceSavingConsumer[] binaryMerge(TopNCounterTest.SpaceSavingConsumer[] consumers)
+            throws IOException, ClassNotFoundException {
         List<TopNCounterTest.SpaceSavingConsumer> list = Lists.newArrayList();
         if (consumers.length == 1)
             return consumers;
@@ -224,7 +255,8 @@ public class TopNCounterTest {
         return binaryMerge(list.toArray(new TopNCounterTest.SpaceSavingConsumer[list.size()]));
     }
 
-    private void feedDataToConsumer(String dataFile, TopNCounterTest.TestDataConsumer consumer, int startLine, int endLine) throws IOException {
+    private void feedDataToConsumer(String dataFile, TopNCounterTest.TestDataConsumer consumer, int startLine,
+            int endLine) throws IOException {
         long startTime = System.currentTimeMillis();
         BufferedReader bufferedReader = new BufferedReader(new FileReader(dataFile));
 
@@ -239,7 +271,8 @@ public class TopNCounterTest {
         }
 
         bufferedReader.close();
-        outputMsg("feed data to " + consumer.getClass().getCanonicalName() + " take time (seconds): " + (System.currentTimeMillis() - startTime) / 1000);
+        outputMsg("feed data to " + consumer.getClass().getCanonicalName() + " take time "
+                + (System.currentTimeMillis() - startTime) / 1000 + "s");
     }
 
     private void outputMsg(String msg) {

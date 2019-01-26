@@ -65,6 +65,8 @@ import org.junit.Before;
 import org.junit.Test;
 import org.spark_project.guava.collect.Sets;
 
+import com.google.common.collect.Lists;
+
 import io.kyligence.kap.engine.spark.ExecutableUtils;
 import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
 import io.kyligence.kap.engine.spark.job.NSparkCubingJob;
@@ -112,24 +114,19 @@ public class NMeasuresTest extends NLocalWithSparkSessionTest {
     }
 
     @Test
-    public void testTOPNMeasure() throws Exception {
+    public void testTopnMeasure() throws Exception {
         //validate Cube Data by decode
         KylinConfig config = KylinConfig.getInstanceFromEnv();
-        config.setProperty("kap.storage.columnar.ii-spill-threshold-mb", "128");
+        buildCuboid(generateTopnMeaLists());
 
-        buildCuboid(generateTopnMeasList());
-
-        //build is done, start to test query
+        //build is done, validate Layout data
         SparkContext existingCxt = SparkContext.getOrCreate(sparkConf);
         existingCxt.stop();
-        // Validate results between sparksql and cube
         KapSparkSession kapSparkSession = new KapSparkSession(SparkContext.getOrCreate(sparkConf));
 
         kapSparkSession.use("default");
-        ss = kapSparkSession;
         populateSSWithCSVData(config, "default", kapSparkSession);
         SchemaProcessor.checkSchema(kapSparkSession, DF_NAME, getProject());
-        String querySql = fetchTopNQuerySql();
 
         NDataSegment seg = NDataflowManager.getInstance(config, getProject()).getDataflow(DF_NAME)
                 .getLatestReadySegment();
@@ -138,81 +135,80 @@ public class NMeasuresTest extends NLocalWithSparkSessionTest {
         Dataset<Row> ret = storage.getFrom(NSparkCubingUtil.getStoragePath(dataCuboid), kapSparkSession);
         for (Row row : ret.collectAsList()) {
             if (row.apply(0).toString().equals("10000000157")) {
-                WrappedArray topnArray = (WrappedArray) row.apply(5);
+                WrappedArray topnArray = (WrappedArray) row.apply(6);
                 Assert.assertEquals("[1.0000000157E10,['ATOM']]", topnArray.apply(0).toString());// TOP_N(ID1)
                 Assert.assertEquals("[1.0000000157E10,['FT']]", topnArray.apply(1).toString());// TOP_N(ID1)
-                topnArray = (WrappedArray) row.apply(6);
+                topnArray = (WrappedArray) row.apply(7);
                 Assert.assertEquals("[1.32342342E8,['ATOM']]", topnArray.apply(0).toString());// TOP_N(ID2)
                 Assert.assertEquals("[1.32322342E8,['FT']]", topnArray.apply(1).toString());// TOP_N(ID2)
-                topnArray = (WrappedArray) row.apply(7);
+                topnArray = (WrappedArray) row.apply(8);
                 Assert.assertEquals("[124123.0,['ATOM']]", topnArray.apply(0).toString());// TOP_N(ID3)
                 Assert.assertEquals("[14123.0,['FT']]", topnArray.apply(1).toString());// TOP_N(ID3)
-                topnArray = (WrappedArray) row.apply(8);
+                topnArray = (WrappedArray) row.apply(9);
                 Assert.assertEquals("[3123.0,['ATOM']]", topnArray.apply(0).toString());// TOP_N(ID4)
                 Assert.assertEquals("[313.0,['FT']]", topnArray.apply(1).toString());// TOP_N(ID4)
-                topnArray = (WrappedArray) row.apply(9);
+                topnArray = (WrappedArray) row.apply(10);
                 Assert.assertEquals("[2.0,['FT']]", topnArray.apply(0).toString());// TOP_N(PRICE5)
                 Assert.assertEquals("[1.0,['ATOM']]", topnArray.apply(1).toString());// TOP_N(PRICE5)
-                topnArray = (WrappedArray) row.apply(10);
+                topnArray = (WrappedArray) row.apply(11);
                 Assert.assertEquals("[7.0,['FT']]", topnArray.apply(0).toString());// TOP_N(PRICE6)
                 Assert.assertEquals("[1.0,['ATOM']]", topnArray.apply(1).toString());// TOP_N(PRICE6)
-                topnArray = (WrappedArray) row.apply(11);
+                topnArray = (WrappedArray) row.apply(12);
                 Assert.assertEquals("[1.0,['ATOM']]", topnArray.apply(0).toString());// TOP_N(PRICE7)
                 Assert.assertEquals("[1.0,['FT']]", topnArray.apply(1).toString());// TOP_N(PRICE7)
-                topnArray = (WrappedArray) row.apply(12);
+                topnArray = (WrappedArray) row.apply(13);
                 Assert.assertEquals("[12.0,['ATOM']]", topnArray.apply(0).toString());// TOP_N(NAME4)
                 Assert.assertEquals("[2.0,['FT']]", topnArray.apply(1).toString());// TOP_N(NAME4)
             }
             if (row.apply(0).toString().equals("10000000158")) {
-                WrappedArray topnArray = (WrappedArray) row.apply(5);
+                WrappedArray topnArray = (WrappedArray) row.apply(6);
                 Assert.assertEquals("[1.0000000158E10,['中国']]", topnArray.apply(0).toString());// TOP_N(ID1)
                 Assert.assertEquals("[1.0000000158E10,[null]]", topnArray.apply(1).toString());// TOP_N(ID1)
-                topnArray = (WrappedArray) row.apply(6);
-                Assert.assertEquals("[3.32342342E8,['中国']]", topnArray.apply(0).toString());// TOP_N(ID2)
-                Assert.assertEquals("[0.0,[null]]", topnArray.apply(1).toString());// TOP_N(ID2)
                 topnArray = (WrappedArray) row.apply(7);
-                Assert.assertEquals("[1241.0,['中国']]", topnArray.apply(0).toString());// TOP_N(ID3)
-                Assert.assertEquals("[0.0,[null]]", topnArray.apply(1).toString());// TOP_N(ID3)
+                Assert.assertEquals("[3.32342342E8,['中国']]", topnArray.apply(0).toString());// TOP_N(ID2)
+                Assert.assertEquals("[null,[null]]", topnArray.apply(1).toString());// TOP_N(ID2)
                 topnArray = (WrappedArray) row.apply(8);
-                Assert.assertEquals("[31233.0,['中国']]", topnArray.apply(0).toString());// TOP_N(ID4)
-                Assert.assertEquals("[0.0,[null]]", topnArray.apply(1).toString());// TOP_N(ID4)
+                Assert.assertEquals("[1241.0,['中国']]", topnArray.apply(0).toString());// TOP_N(ID3)
+                Assert.assertEquals("[null,[null]]", topnArray.apply(1).toString());// TOP_N(ID3)
                 topnArray = (WrappedArray) row.apply(9);
-                Assert.assertEquals("[5.0,['中国']]", topnArray.apply(0).toString());// TOP_N(PRICE5)
-                Assert.assertEquals("[0.0,[null]]", topnArray.apply(1).toString());// TOP_N(PRICE5)
+                Assert.assertEquals("[31233.0,['中国']]", topnArray.apply(0).toString());// TOP_N(ID4)
+                Assert.assertEquals("[null,[null]]", topnArray.apply(1).toString());// TOP_N(ID4)
                 topnArray = (WrappedArray) row.apply(10);
-                Assert.assertEquals("[11.0,['中国']]", topnArray.apply(0).toString());// TOP_N(PRICE6)
-                Assert.assertEquals("[0.0,[null]]", topnArray.apply(1).toString());// TOP_N(PRICE6)
+                Assert.assertEquals("[5.0,['中国']]", topnArray.apply(0).toString());// TOP_N(PRICE5)
+                Assert.assertEquals("[null,[null]]", topnArray.apply(1).toString());// TOP_N(PRICE5)
                 topnArray = (WrappedArray) row.apply(11);
-                Assert.assertEquals("[3.0,['中国']]", topnArray.apply(0).toString());// TOP_N(PRICE7)
-                Assert.assertEquals("[0.0,[null]]", topnArray.apply(1).toString());// TOP_N(PRICE7)
+                Assert.assertEquals("[11.0,['中国']]", topnArray.apply(0).toString());// TOP_N(PRICE6)
+                Assert.assertEquals("[null,[null]]", topnArray.apply(1).toString());// TOP_N(PRICE6)
                 topnArray = (WrappedArray) row.apply(12);
+                Assert.assertEquals("[3.0,['中国']]", topnArray.apply(0).toString());// TOP_N(PRICE7)
+                Assert.assertEquals("[null,[null]]", topnArray.apply(1).toString());// TOP_N(PRICE7)
+                topnArray = (WrappedArray) row.apply(13);
                 Assert.assertEquals("[12.0,['中国']]", topnArray.apply(0).toString());// TOP_N(NAME4)
-                Assert.assertEquals("[0.0,[null]]", topnArray.apply(1).toString());// TOP_N(NAME4)
+                Assert.assertEquals("[null,[null]]", topnArray.apply(1).toString());// TOP_N(NAME4)
             }
             // verify the all null value aggregate
             if (row.apply(0).toString().equals("10000000159")) {
-                WrappedArray topnArray = (WrappedArray) row.apply(5);
+                WrappedArray topnArray = (WrappedArray) row.apply(6);
                 Assert.assertEquals("[1.0000000159E10,[null]]", topnArray.apply(0).toString());// TOP_N(ID1)
-                topnArray = (WrappedArray) row.apply(6);
-                Assert.assertEquals("[0.0,[null]]", topnArray.apply(0).toString());// TOP_N(ID2)
                 topnArray = (WrappedArray) row.apply(7);
-                Assert.assertEquals("[0.0,[null]]", topnArray.apply(0).toString());// TOP_N(ID3)
+                Assert.assertEquals("[null,[null]]", topnArray.apply(0).toString());// TOP_N(ID2)
                 topnArray = (WrappedArray) row.apply(8);
-                Assert.assertEquals("[0.0,[null]]", topnArray.apply(0).toString());// TOP_N(ID4)
+                Assert.assertEquals("[null,[null]]", topnArray.apply(0).toString());// TOP_N(ID3)
                 topnArray = (WrappedArray) row.apply(9);
-                Assert.assertEquals("[0.0,[null]]", topnArray.apply(0).toString());// TOP_N(PRICE5)
+                Assert.assertEquals("[null,[null]]", topnArray.apply(0).toString());// TOP_N(ID4)
                 topnArray = (WrappedArray) row.apply(10);
-                Assert.assertEquals("[0.0,[null]]", topnArray.apply(0).toString());// TOP_N(PRICE6)
+                Assert.assertEquals("[null,[null]]", topnArray.apply(0).toString());// TOP_N(PRICE5)
                 topnArray = (WrappedArray) row.apply(11);
-                Assert.assertEquals("[0.0,[null]]", topnArray.apply(0).toString());// TOP_N(PRICE7)
+                Assert.assertEquals("[null,[null]]", topnArray.apply(0).toString());// TOP_N(PRICE6)
                 topnArray = (WrappedArray) row.apply(12);
-                Assert.assertEquals("[0.0,[null]]", topnArray.apply(0).toString());// TOP_N(NAME4)
+                Assert.assertEquals("[null,[null]]", topnArray.apply(0).toString());// TOP_N(PRICE7)
+                topnArray = (WrappedArray) row.apply(13);
+                Assert.assertEquals("[null,[null]]", topnArray.apply(0).toString());// TOP_N(NAME4)
             }
         }
 
-        Pair<String, String> pair = new Pair<>("sql", querySql);
-
-        /*NExecAndComp.execAndCompare(newArrayList(pair), kapSparkSession, NExecAndComp.CompareLevel.SAME, "left");*/
+        // Validate results between sparksql and cube
+        NExecAndComp.execAndCompare(fetchTopNQuerySql(), kapSparkSession, NExecAndComp.CompareLevel.SAME, "left");
     }
 
     @Test
@@ -221,7 +217,6 @@ public class NMeasuresTest extends NLocalWithSparkSessionTest {
 
         //validate Cube Data by decode
         KylinConfig config = KylinConfig.getInstanceFromEnv();
-        config.setProperty("kap.storage.columnar.ii-spill-threshold-mb", "128");
 
         buildCuboid(generateMeasList());
         //build is done, start to test query
@@ -231,7 +226,6 @@ public class NMeasuresTest extends NLocalWithSparkSessionTest {
         KapSparkSession kapSparkSession = new KapSparkSession(SparkContext.getOrCreate(sparkConf));
 
         kapSparkSession.use("default");
-        ss = kapSparkSession;
         populateSSWithCSVData(config, "default", kapSparkSession);
         SchemaProcessor.checkSchema(kapSparkSession, DF_NAME, getProject());
         String querySql = fetchQuerySql();
@@ -303,27 +297,31 @@ public class NMeasuresTest extends NLocalWithSparkSessionTest {
         return counter1.getResultEstimate();
     }
 
-    private String fetchTopNQuerySql() {
+    private List<Pair<String, String>> fetchTopNQuerySql() {
         NIndexPlanManager indePlanManager = NIndexPlanManager.getInstance(getTestConfig(), getProject());
         IndexPlan indexPlan = indePlanManager.getIndexPlan(DF_NAME);
-        StringBuilder sqlBuilder = new StringBuilder();
 
+        List<Pair<String, String>> sqlPair = Lists.newArrayList();
+        int index = 0;
         for (NDataModel.Measure mea : indexPlan.getEffectiveMeasures().values()) {
             String exp = mea.getFunction().getExpression();
+            if (!FunctionDesc.FUNC_TOP_N.equalsIgnoreCase(exp)) {
+                continue;
+            }
+
             ParameterDesc parmeter = mea.getFunction().getParameter();
             if (mea.getFunction().getParameter().isColumnType()) {
-                if (exp.equalsIgnoreCase(FUNC_TOP_N)) {
-                    sqlBuilder = new StringBuilder("select ");
-                    StringBuilder topnStr = new StringBuilder(parmeter.getNextParameter().getValue());
-                    topnStr.append(" ,sum(").append(parmeter.getValue()).append(") ").append(" from TEST_MEASURE ")
-                            .append(" group by ").append(parmeter.getNextParameter().getValue()).append(" ,ID1 ")
-                            .append(" order by ").append(" sum(").append(parmeter.getValue()).append(") desc ");
-                    sqlBuilder.append(topnStr);
-                }
+                StringBuilder sqlBuilder = new StringBuilder("select ");
+                StringBuilder topnStr = new StringBuilder(parmeter.getNextParameter().getValue());
+                topnStr.append(" ,sum(").append(parmeter.getValue()).append(") ").append(" from TEST_MEASURE ")
+                        .append(" group by ").append(parmeter.getNextParameter().getValue()).append(" order by ")
+                        .append(" sum(").append(parmeter.getValue()).append(") desc limit 15");
+                sqlBuilder.append(topnStr);
+                sqlPair.add(new Pair<>(index + "_topn_sql", sqlBuilder.toString()));
             }
         }
 
-        return sqlBuilder.toString();
+        return sqlPair;
     }
 
     private String fetchQuerySql() {
@@ -412,27 +410,38 @@ public class NMeasuresTest extends NLocalWithSparkSessionTest {
         return measureList;
     }
 
-    private List<NDataModel.Measure> generateTopnMeasList() {
+    private List<NDataModel.Measure> generateTopnMeaLists() {
         NDataModelManager modelMgr = NDataModelManager.getInstance(getTestConfig(), getProject());
         NDataModel model = modelMgr.getDataModelDesc(DF_NAME);
-        List<String> funList = newArrayList(FUNC_TOP_N);
         List<TblColRef> columnList = model.getEffectiveColsMap().values().asList();
+        List<TblColRef> groupByCols = Lists.newArrayList(columnList.get(12), columnList.get(14), columnList.get(15),
+                columnList.get(16), columnList.get(3));
         int meaStart = 120000;
         List<NDataModel.Measure> measureList = model.getAllMeasures();
-        for (String fun : funList) {
+
+        boolean isFirstNumCol = false;
+        for (TblColRef groupByCol : groupByCols) {
             for (TblColRef col : columnList) {
                 // cannot support topn(date) topn(string) topn(boolean)
-                if (fun.equalsIgnoreCase(FUNC_TOP_N)
-                        && (!col.getType().isNumberFamily() || !col.getType().isIntegerFamily())) {
+                if (!col.getType().isNumberFamily() || !col.getType().isIntegerFamily() || groupByCol.equals(col)) {
                     continue;
                 }
-                ParameterDesc parameterDesc = ParameterDesc.newInstance(col, columnList.get(12));
+                if (!isFirstNumCol) {
+                    NDataModel.Measure sumMeasure = CubeUtils.newMeasure(
+                            FunctionDesc.newInstance(FunctionDesc.FUNC_SUM, ParameterDesc.newInstance(col), null),
+                            meaStart + "_" + FunctionDesc.FUNC_SUM, meaStart++);
+                    measureList.add(sumMeasure);
+                    isFirstNumCol = true;
+                }
+
+                ParameterDesc parameterDesc = ParameterDesc.newInstance(col, groupByCol);
                 NDataModel.Measure measure = CubeUtils.newMeasure(
-                        FunctionDesc.newInstance(fun, parameterDesc, "topn(10000, 4)"), meaStart + "_" + fun,
-                        meaStart++);
+                        FunctionDesc.newInstance(FUNC_TOP_N, parameterDesc, "topn(10000, 4)"),
+                        meaStart + "_" + FUNC_TOP_N, meaStart++);
                 measureList.add(measure);
             }
         }
+
         return measureList;
     }
 

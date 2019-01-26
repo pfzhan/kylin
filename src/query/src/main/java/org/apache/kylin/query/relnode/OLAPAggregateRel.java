@@ -423,8 +423,7 @@ public class OLAPAggregateRel extends Aggregate implements OLAPRel {
                 continue;
 
             if (m.getFunction().getMeasureType() instanceof TopNMeasureType) {
-                FunctionDesc internalTopn = ((TopNMeasureType) m.getFunction().getMeasureType())
-                        .getTopnInternalMeasure(m.getFunction());
+                FunctionDesc internalTopn = TopNMeasureType.getTopnInternalMeasure(m.getFunction());
                 if (aggFunc.equals(internalTopn))
                     return internalTopn;
             }

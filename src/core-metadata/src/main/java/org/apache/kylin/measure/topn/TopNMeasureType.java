@@ -134,17 +134,18 @@ public class TopNMeasureType extends MeasureType<TopNCounter<ByteArray>> {
             throw new IllegalArgumentException();
     }
 
-    public String getRewriteName(FunctionDesc func) {
-        StringBuilder sb = new StringBuilder(FunctionDesc.FUNC_SUM);
-        sb.append("(");
-        sb.append(getTopNNumericColumn(func).getIdentity());
-        sb.append(")");
-        return "_KY_" + sb.toString().replaceAll("[(),. ]", "_");
+    public static String getRewriteName(FunctionDesc func) {
+        return getTopnInternalMeasure(func).getRewriteFieldName();
     }
 
-    public FunctionDesc getTopnInternalMeasure(FunctionDesc func) {
-        return FunctionDesc.newInstance(FunctionDesc.FUNC_SUM, ParameterDesc.newInstance(getTopNNumericColumn(func)),
-                null);
+    public static FunctionDesc getTopnInternalMeasure(FunctionDesc func) {
+        if (func.getParameter().isColumnType()) {
+            return FunctionDesc.newInstance(FunctionDesc.FUNC_SUM,
+                    ParameterDesc.newInstance(func.getParameter().getColRef()),
+                    null);
+        } else {
+            return FunctionDesc.newInstance(FunctionDesc.FUNC_COUNT, ParameterDesc.newInstance("1"), null);
+        }
     }
 
     @Override

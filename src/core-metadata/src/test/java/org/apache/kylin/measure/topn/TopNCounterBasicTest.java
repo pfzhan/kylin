@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -49,7 +48,10 @@ import static org.junit.Assert.assertTrue;
 import java.util.Arrays;
 import java.util.List;
 
+import org.junit.Assert;
 import org.junit.Test;
+
+import com.google.common.collect.Lists;
 
 public class TopNCounterBasicTest {
 
@@ -87,7 +89,7 @@ public class TopNCounterBasicTest {
         TopNCounter<String> vs = new TopNCounter<String>(3);
         String[] stream = { "X", "X", "Y", "Z", "A", "B", "C", "X", "X", "A", "C", "A", "A" };
         for (String i : stream) {
-            vs.offer(i, 10);
+            vs.offer(i, 10.0);
         }
         List<Counter<String>> topK = vs.topK(3);
         for (Counter<String> c : topK) {
@@ -99,12 +101,12 @@ public class TopNCounterBasicTest {
     public void testTopKWithIncrementOutOfOrder() {
         TopNCounter<String> vs_increment = new TopNCounter<String>(3);
         TopNCounter<String> vs_single = new TopNCounter<String>(3);
-        String[] stream = { "A", "B", "C", "D", "A" };
-        Integer[] increments = { 15, 20, 25, 30, 1 };
+        String[] stream = { "A", "B", "C", "D", "A", "A", "E", "E", "A" };
+        Double[] increments = { 15d, 20d, 25d, -30d, 1d, null, null, null, 0d };
 
         for (int i = 0; i < stream.length; i++) {
             vs_increment.offer(stream[i], increments[i]);
-            for (int k = 0; k < increments[i]; k++) {
+            for (int k = 0; increments[i] != null && k < increments[i]; k++) {
                 vs_single.offer(stream[i]);
             }
         }
@@ -153,6 +155,19 @@ public class TopNCounterBasicTest {
         for (Counter<String> c : topK) {
             assertTrue(Arrays.asList("A", "B", "X").contains(c.getItem()));
         }
+    }
 
+    @Test
+    public void testMergeWithNullValue() {
+        TopNCounter<String> vs = new TopNCounter<String>(5);
+        String[] stream = { "X", "X", "Y", "Z", "A", "A", "A" };
+        Double[] count = { 1d, null, null, 4d, null, null, 0d };
+        for (int i = 0; i < stream.length; i++) {
+            vs.offer(stream[i], count[i]);
+        }
+        List<Counter<String>> topK = vs.topK(4);
+        List<String> topResult = Lists.newArrayList();
+        topK.forEach(counter -> topResult.add(counter.getItem()));
+        Assert.assertArrayEquals(new String[] { "Z", "X", "A", "Y" }, topResult.toArray());
     }
 }

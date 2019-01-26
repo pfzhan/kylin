@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -102,14 +101,24 @@ public class TopNCounter<T> implements Iterable<Counter<T>>, java.io.Serializabl
      * @param item stream element (<i>e</i>)
      * @return false if item was already in the stream summary, true otherwise
      */
-    public void offer(T item, double incrementCount) {
+    public void offer(T item, Double incrementCount) {
         Counter<T> counterNode = counterMap.get(item);
         if (counterNode == null) {
             counterNode = new Counter<T>(item, incrementCount);
             counterMap.put(item, counterNode);
             counterList.add(counterNode);
         } else {
-            counterNode.setCount(counterNode.getCount() + incrementCount);
+            Double count;
+            if (counterNode.getCount() == null && incrementCount == null) {
+                count = null;
+            } else if (counterNode.getCount() != null && incrementCount == null) {
+                count = counterNode.getCount();
+            } else if (counterNode.getCount() == null && incrementCount != null) {
+                count = incrementCount;
+            } else {
+                count = counterNode.getCount() + incrementCount;
+            }
+            counterNode.setCount(count);
         }
         ordered = false;
     }
@@ -258,17 +267,35 @@ public class TopNCounter<T> implements Iterable<Counter<T>>, java.io.Serializabl
         }
     }
 
-    private static final Comparator ASC_COMPARATOR = new Comparator<Counter>() {
+    static final Comparator ASC_COMPARATOR = new Comparator<Counter>() {
         @Override
         public int compare(Counter o1, Counter o2) {
+            if (o1.getCount() == null) {
+                if (o2.getCount() == null)
+                    return 0;
+                else
+                    return -1;
+            }
+            if (o2.getCount() == null) {
+                return 1;
+            }
             return o1.getCount() > o2.getCount() ? 1 : o1.getCount() == o2.getCount() ? 0 : -1;
         }
 
     };
 
-    private static final Comparator DESC_COMPARATOR = new Comparator<Counter>() {
+    static final Comparator DESC_COMPARATOR = new Comparator<Counter>() {
         @Override
         public int compare(Counter o1, Counter o2) {
+            if (o1.getCount() == null) {
+                if (o2.getCount() == null)
+                    return 0;
+                else
+                    return 1;
+            }
+            if (o2.getCount() == null) {
+                return -1;
+            }
             return o1.getCount() > o2.getCount() ? -1 : o1.getCount() == o2.getCount() ? 0 : 1;
         }
 

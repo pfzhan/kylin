@@ -57,7 +57,7 @@ import java.io.Serializable;
 public class Counter<T> implements Externalizable, Serializable{
 
     protected T item;
-    protected double count;
+    protected Double count;
 
     /**
      * For de-serialization
@@ -66,11 +66,11 @@ public class Counter<T> implements Externalizable, Serializable{
     }
 
     public Counter(T item) {
-        this.count = 0;
+        this.count = 0d;
         this.item = item;
     }
 
-    public Counter(T item, double count) {
+    public Counter(T item, Double count) {
         this.item = item;
         this.count = count;
     }
@@ -80,11 +80,11 @@ public class Counter<T> implements Externalizable, Serializable{
         return item;
     }
 
-    public double getCount() {
+    public Double getCount() {
         return count;
     }
 
-    public void setCount(double count) {
+    public void setCount(Double count) {
         this.count = count;
     }
     @Override

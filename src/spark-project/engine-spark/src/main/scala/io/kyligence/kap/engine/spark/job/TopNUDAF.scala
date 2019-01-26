@@ -99,13 +99,13 @@ extends UserDefinedAggregateFunction {
     row.toSeq.drop(1)
   }
 
-  private def getMeasure(row: Row): Double = {
+  private def getMeasure(row: Row): java.lang.Double = {
     val v = row.get(0)
-      if (v !=null) {
-        v.toString.toDouble
-      } else {
-        0d
-      }
+    if (v != null) {
+      v.toString.toDouble
+    } else {
+      null
+    }
   }
 
   private def digest(row: Row, counter: TopNCounter[Seq[Any]]): Unit = {

@@ -230,7 +230,7 @@ public class OLAPTable extends AbstractQueryableTable implements TranslatableTab
             FunctionDesc func = m.getFunction();
             String fieldName;
             if (FunctionDesc.FUNC_TOP_N.equalsIgnoreCase(func.getExpression())) {
-                fieldName = ((TopNMeasureType) func.getMeasureType()).getRewriteName(func);
+                fieldName = TopNMeasureType.getRewriteName(func);
             } else {
                 fieldName = func.getRewriteFieldName();
             }
