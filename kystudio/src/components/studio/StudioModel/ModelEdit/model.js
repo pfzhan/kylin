@@ -144,6 +144,8 @@ class NModel {
   }
   // 自动布局
   renderPosition () {
+    // 自动布局前先理顺链表方向
+    this._arrangeLinks()
     const layers = this.autoCalcLayer()
     if (layers && layers.length > 0) {
       const baseL = modelRenderConfig.baseLeft
