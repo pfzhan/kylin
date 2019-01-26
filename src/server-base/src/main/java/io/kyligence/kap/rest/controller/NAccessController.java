@@ -86,7 +86,7 @@ public class NAccessController extends NBasicController {
     @RequestMapping(value = "/available/{sidType}/{uuid}", method = { RequestMethod.GET }, produces = {
             "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public EnvelopeResponse getAvailableSids(@PathVariable String uuid, @PathVariable String sidType,
+    public EnvelopeResponse getAvailableSids(@PathVariable("uuid") String uuid, @PathVariable("sidType") String sidType,
             @RequestParam(value = "project", required = false) String project,
             @RequestParam(value = "name", required = false) String nameSeg,
             @RequestParam(value = "isCaseSensitive", required = false) boolean isCaseSensitive,
@@ -118,7 +118,7 @@ public class NAccessController extends NBasicController {
     @RequestMapping(value = "/{type}/{uuid}", method = { RequestMethod.GET }, produces = {
             "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public EnvelopeResponse getAccessEntities(@PathVariable String type, @PathVariable String uuid,
+    public EnvelopeResponse getAccessEntities(@PathVariable("type") String type, @PathVariable("uuid") String uuid,
             @RequestParam(value = "name", required = false) String nameSeg,
             @RequestParam(value = "isCaseSensitive", required = false) boolean isCaseSensitive,
             @RequestParam(value = "pageOffset", required = false, defaultValue = "0") Integer pageOffset,
@@ -142,7 +142,7 @@ public class NAccessController extends NBasicController {
     @RequestMapping(value = "/{type}/{uuid}", method = { RequestMethod.POST }, produces = {
             "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public EnvelopeResponse grant(@PathVariable String type, @PathVariable String uuid,
+    public EnvelopeResponse grant(@PathVariable("type") String type, @PathVariable("uuid") String uuid,
             @RequestBody AccessRequest accessRequest) throws IOException {
 
         val isPrincipal = accessRequest.isPrincipal();
@@ -167,7 +167,7 @@ public class NAccessController extends NBasicController {
     @RequestMapping(value = "/{type}/{uuid}", method = { RequestMethod.PUT }, produces = {
             "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public EnvelopeResponse updateAcl(@PathVariable String type, @PathVariable String uuid,
+    public EnvelopeResponse updateAcl(@PathVariable("type") String type, @PathVariable("uuid") String uuid,
             @RequestBody AccessRequest accessRequest) {
 
         AclEntity ae = accessService.getAclEntity(type, uuid);
@@ -186,7 +186,7 @@ public class NAccessController extends NBasicController {
     @RequestMapping(value = "/{entityType}/{uuid}", method = { RequestMethod.DELETE }, produces = {
             "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public EnvelopeResponse revokeAcl(@PathVariable String entityType, @PathVariable String uuid,
+    public EnvelopeResponse revokeAcl(@PathVariable("entityType") String entityType, @PathVariable("uuid") String uuid,
             AccessRequest accessRequest) throws IOException {
         AclEntity ae = accessService.getAclEntity(entityType, uuid);
         accessService.revoke(ae, accessRequest.getAccessEntryId());

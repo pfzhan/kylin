@@ -151,7 +151,7 @@ public class NAsyncQueryController extends NBasicController {
     @RequestMapping(value = "/async_query/{query_id}/status", method = RequestMethod.GET, produces = {
             "application/vnd.apache.kylin-v2+json"})
     @ResponseBody
-    public EnvelopeResponse inqueryStatus(@PathVariable String query_id) throws IOException {
+    public EnvelopeResponse inqueryStatus(@PathVariable("query_id") String query_id) throws IOException {
 
         AsyncQueryService.QueryStatus queryStatus = asyncQueryService.queryStatus(query_id);
         AsyncQueryResponse asyncQueryResponse = null;
@@ -181,7 +181,7 @@ public class NAsyncQueryController extends NBasicController {
     @RequestMapping(value = "/async_query/{query_id}/filestatus", method = RequestMethod.GET, produces = {
             "application/vnd.apache.kylin-v2+json"})
     @ResponseBody
-    public EnvelopeResponse fileStatus(@PathVariable String query_id) throws IOException {
+    public EnvelopeResponse fileStatus(@PathVariable("query_id") String query_id) throws IOException {
         long length = asyncQueryService.fileStatus(query_id);
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, length, "");
     }
@@ -189,7 +189,7 @@ public class NAsyncQueryController extends NBasicController {
     @RequestMapping(value = "/async_query/{query_id}/metadata", method = RequestMethod.GET, produces = {
             "application/vnd.apache.kylin-v2+json"})
     @ResponseBody
-    public EnvelopeResponse metadata(@PathVariable String query_id) throws Exception {
+    public EnvelopeResponse metadata(@PathVariable("query_id") String query_id) throws Exception {
 
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, asyncQueryService.getMetaData(query_id), "");
     }
@@ -197,7 +197,7 @@ public class NAsyncQueryController extends NBasicController {
     @RequestMapping(value = "/async_query/{query_id}/result_download", method = RequestMethod.GET, produces = {
             "application/vnd.apache.kylin-v2+json"})
     @ResponseBody
-    public void downloadQueryResult(@PathVariable String query_id, HttpServletResponse response) throws IOException {
+    public void downloadQueryResult(@PathVariable("query_id") String query_id, HttpServletResponse response) throws IOException {
         KylinConfig config = queryService.getConfig();
         Message msg = MsgPicker.getMsg();
 
@@ -215,7 +215,7 @@ public class NAsyncQueryController extends NBasicController {
     @RequestMapping(value = "/async_query/{query_id}/result_path", method = RequestMethod.GET, produces = {
             "application/vnd.apache.kylin-v2+json"})
     @ResponseBody
-    public EnvelopeResponse queryPath(@PathVariable String query_id, HttpServletResponse response) throws IOException {
+    public EnvelopeResponse queryPath(@PathVariable("query_id") String query_id, HttpServletResponse response) throws IOException {
 
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, asyncQueryService.asyncQueryResultPath(query_id), "");
     }
