@@ -97,9 +97,11 @@ class TestGlobalDictBuild extends SparderBaseFunSuite with SharedSparkSession wi
   }
 
   def buildDict(seg: NDataSegment, randomDataSet: Dataset[Row], dictColSet: Set[TblColRef]): NGlobalDictMetaInfo = {
-    val dictionaryBuilder = new DictionaryBuilder(seg, randomDataSet, dictColSet)
+    val dictionaryBuilder = new DictionaryBuilder(seg, randomDataSet.sparkSession, dictColSet)
     val col = dictColSet.iterator().next()
-    dictionaryBuilder.safeBuild(col)
+    val ds = randomDataSet.select("26").distinct()
+    val bucketPartitionSize = dictionaryBuilder.calculateBucketSize(col, ds)
+    dictionaryBuilder.build(col, bucketPartitionSize, ds)
     val dict = new NGlobalDictionaryV2(seg.getProject, col.getTable, col.getName, seg.getConfig.getHdfsWorkingDirectory)
     dict.getMetaInfo
   }

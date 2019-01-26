@@ -50,4 +50,11 @@ public class NGlobalDictMetaInfo implements Serializable {
         return bucketOffsets[point];
     }
 
+    public int getBucketSize() {
+        return bucketSize;
+    }
+
+    public void setBucketSize(int bucketSize) {
+        this.bucketSize = bucketSize;
+    }
 }

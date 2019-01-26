@@ -21,10 +21,11 @@
  */
 package io.kyligence.kap.engine.spark.builder
 
+import java.util
+
 import com.google.common.collect.Lists.newArrayList
 import com.google.common.collect.Sets
-import io.kyligence.kap.engine.spark.NJoinedFlatTable
-import io.kyligence.kap.engine.spark.job.{CuboidAggregator, UdfManager}
+import io.kyligence.kap.engine.spark.job.{CuboidAggregator, DFChooser, UdfManager}
 import io.kyligence.kap.metadata.cube.cuboid.NSpanningTreeFactory
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager.NIndexPlanUpdater
 import io.kyligence.kap.metadata.cube.model._
@@ -32,7 +33,7 @@ import io.kyligence.kap.metadata.model.NDataModel.Measure
 import io.kyligence.kap.metadata.model.{ManagementType, NDataModel, NDataModelManager}
 import org.apache.commons.lang3.StringUtils
 import org.apache.kylin.common.KylinConfig
-import org.apache.kylin.metadata.model.{FunctionDesc, ParameterDesc, SegmentRange}
+import org.apache.kylin.metadata.model.{FunctionDesc, ParameterDesc, SegmentRange, TblColRef}
 import org.apache.spark.sql.common.{LocalMetadata, SharedSparkSession, SparderBaseFunSuite}
 import org.apache.spark.sql.{Dataset, Row}
 import org.junit.Assert
@@ -55,10 +56,10 @@ class TestDFChooser extends SparderBaseFunSuite with SharedSparkSession with Loc
   }
 
   test("[INDEX_BUILD] - global dict reuse") {
-    var dsMgr: NDataflowManager = NDataflowManager.getInstance(getTestConfig, DEFAULT_PROJECT)
-    var df: NDataflow = dsMgr.getDataflow(CUBE_ID1)
+    val dsMgr: NDataflowManager = NDataflowManager.getInstance(getTestConfig, DEFAULT_PROJECT)
+    val df: NDataflow = dsMgr.getDataflow(CUBE_ID1)
     var indexMgr: NIndexPlanManager = NIndexPlanManager.getInstance(getTestConfig, DEFAULT_PROJECT)
-    var dfCopy = df.copy()
+    val dfCopy = df.copy()
     checkFlatTableEncoding(dfCopy.getUuid, dfCopy.getLastSegment, 0)
 
     var modelMgr: NDataModelManager = NDataModelManager.getInstance(getTestConfig, DEFAULT_PROJECT)
@@ -72,7 +73,6 @@ class TestDFChooser extends SparderBaseFunSuite with SharedSparkSession with Loc
     model = modelMgr.getDataModelDesc(MODEL_ID)
 
     indexMgr = NIndexPlanManager.getInstance(getTestConfig, DEFAULT_PROJECT)
-    var indexPlan = indexMgr.getIndexPlan(CUBE_ID1)
     indexMgr.updateIndexPlan(CUBE_ID1, new NIndexPlanUpdater {
       override def modify(copyForWrite: IndexPlan): Unit = {
         val indexEntity = copyForWrite.getAllIndexes.get(0)
@@ -116,14 +116,11 @@ class TestDFChooser extends SparderBaseFunSuite with SharedSparkSession with Loc
   private def checkFlatTableEncoding(dfName: String, seg: NDataSegment, expectColSize: Int): Dataset[Row] = {
     val dsMgr = NDataflowManager.getInstance(getTestConfig, DEFAULT_PROJECT)
     val df = dsMgr.getDataflow(dfName)
-    val flatTable = new NCubeJoinedFlatTableDesc(df.getIndexPlan, seg.getSegRange)
-    val afterJoin = NJoinedFlatTable.generateDataset(flatTable, spark)
-
     val nSpanningTree = NSpanningTreeFactory.fromLayouts(seg.getIndexPlan.getAllLayouts, dfName)
-
     val dictColSet = DictionaryBuilder.extractGlobalDictColumns(seg, nSpanningTree)
     Assert.assertEquals(expectColSize, dictColSet.size())
-    val dictionaryBuilder = new DictionaryBuilder(seg, afterJoin, dictColSet)
+
+    val dictionaryBuilder = new DictionaryBuilder(seg, spark, dictColSet)
     val segDict = dictionaryBuilder.buildDictionary
     dictColSet.asScala.foreach(
       col => {
@@ -136,12 +133,15 @@ class TestDFChooser extends SparderBaseFunSuite with SharedSparkSession with Loc
         Assert.assertEquals(meta1.getBucketSize + 10, dict2.getMetaInfo.getBucketSize)
       }
     )
-    afterJoin.unpersist
+
+    val flatTable = new NCubeJoinedFlatTableDesc(df.getIndexPlan, seg.getSegRange)
     val encodeColSet = DictionaryBuilder.extractGlobalEncodeColumns(seg, nSpanningTree)
-    val afterEncode = DFFlatTableEncoder.encode(afterJoin, segDict, encodeColSet, getTestConfig).persist
-    Assert.assertEquals(afterEncode.schema.fields.length,
-      afterJoin.schema.fields.length + encodeColSet.size())
-    afterEncode
+    val encodeColMap: util.Map[String, util.Set[TblColRef]] = DFChooser.convert(encodeColSet)
+    val afterJoin = CreateFlatTable.generateDataset(flatTable, spark, encodeColMap, seg)
+
+    val dictSize = afterJoin.schema.count(_.name.endsWith(DFTableEncoder.ENCODE_SUFFIX))
+    Assert.assertEquals(dictSize, encodeColSet.size())
+    afterJoin
   }
 
   // check cuboid agg choose need to encode column
@@ -162,9 +162,9 @@ class TestDFChooser extends SparderBaseFunSuite with SharedSparkSession with Loc
         var encodedColNum = 0
         for (agg <- aggExp) {
           val aggName = agg.name
-          if (aggName.endsWith(DFFlatTableEncoder.ENCODE_SUFFIX)) {
+          if (aggName.endsWith(DFTableEncoder.ENCODE_SUFFIX)) {
             encodedColNum = encodedColNum + 1
-            val encodeColId = StringUtils.remove(aggName, DFFlatTableEncoder.ENCODE_SUFFIX)
+            val encodeColId = StringUtils.remove(aggName, DFTableEncoder.ENCODE_SUFFIX)
             Assert.assertTrue(needDictColIdSet.contains(Integer.parseInt(encodeColId)))
           }
         }

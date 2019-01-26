@@ -25,13 +25,14 @@ package io.kyligence.kap.engine.spark.job
 import java.util
 
 import com.google.common.base.{Preconditions, Predicate}
-import com.google.common.collect.{Collections2, Maps}
+import com.google.common.collect.{Collections2, Maps, Sets}
 import io.kyligence.kap.engine.spark.NSparkCubingEngine
 import io.kyligence.kap.engine.spark.builder._
 import io.kyligence.kap.metadata.cube.cuboid.{NCuboidLayoutChooser, NSpanningTree}
 import io.kyligence.kap.metadata.cube.model._
 import javax.annotation.Nullable
 import org.apache.kylin.common.KylinConfig
+import org.apache.kylin.metadata.model.TblColRef
 import org.apache.kylin.storage.StorageFactory
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.SparkSession
@@ -87,7 +88,6 @@ class DFChooser(toBuildTree: NSpanningTree,
       .createEngineAdapter(layout,
         classOf[NSparkCubingEngine.NSparkCubingStorage])
       .getFrom(NSparkCubingUtil.getStoragePath(dataCuboid), ss)
-    layoutDs.persist
     buildSource.setDataset(layoutDs)
     buildSource.setCount(dataCuboid.getRows)
     buildSource.setLayoutId(layout.getId)
@@ -101,26 +101,17 @@ class DFChooser(toBuildTree: NSpanningTree,
   @throws[Exception]
   private def getFlatTable(): NBuildSourceInfo = {
 
-    val flatTable =
-      new NCubeJoinedFlatTableDesc(seg.getIndexPlan, seg.getSegRange)
-    val afterJoin = CreateFlatTable.generateDataset(flatTable, ss).persist
     val colSet = DictionaryBuilder.extractGlobalDictColumns(seg, toBuildTree)
-    val dictionaryBuilder = new DictionaryBuilder(seg, afterJoin, colSet)
-    seg = dictionaryBuilder.buildDictionary // note the segment instance is updated
-    afterJoin.unpersist
+    val dictionaryBuilder = new DictionaryBuilder(seg, ss, colSet)
+    dictionaryBuilder.buildDictionary
+
     val encodeColSet = DictionaryBuilder.extractGlobalEncodeColumns(seg, toBuildTree)
-    val afterEncode = DFFlatTableEncoder.encode(afterJoin, seg, encodeColSet, config)
-    // TODO: should use better method to detect the modifications.
-    val segCopy = seg.getDataflow.copy.getSegment(seg.getId)
-    val update = new NDataflowUpdate(seg.getDataflow.getUuid)
-    update.setToUpdateSegs(segCopy)
-    val updated = NDataflowManager
-      .getInstance(config, seg.getDataflow.getProject)
-      .updateDataflow(update)
-    seg = updated.getSegment(seg.getId)
+    val encodeColMap: util.Map[String, util.Set[TblColRef]] = DFChooser.convert(encodeColSet)
+    val flatTable = new NCubeJoinedFlatTableDesc(seg.getIndexPlan, seg.getSegRange)
+    val afterJoin = CreateFlatTable.generateDataset(flatTable, ss, encodeColMap, seg)
 
     val sourceInfo = new NBuildSourceInfo
-    sourceInfo.setDataset(afterEncode)
+    sourceInfo.setDataset(afterJoin)
 
     logInfo(
       "No suitable ready layouts could be reused, generate dataset from flat table.")
@@ -137,6 +128,20 @@ object DFChooser {
       seg: NDataSegment,
       ss: SparkSession,
       config: KylinConfig)
+
+  def convert(colSet: util.Set[TblColRef]): util.Map[String, util.Set[TblColRef]] = {
+    val encodeColMap: util.Map[String, util.Set[TblColRef]] = Maps.newHashMap[String, util.Set[TblColRef]]()
+    colSet.asScala.foreach {
+      col =>
+        val tableName = col.getTableRef.getAlias
+        if (encodeColMap.containsKey(tableName)) {
+          encodeColMap.get(tableName).add(col)
+        } else {
+          encodeColMap.put(tableName, Sets.newHashSet(col))
+        }
+    }
+    encodeColMap
+  }
 
   def getDataSourceByCuboid(sources: util.List[NBuildSourceInfo], cuboid: IndexEntity, seg: NDataSegment): NBuildSourceInfo = {
     val filterSources: util.List[NBuildSourceInfo] = new util.ArrayList[NBuildSourceInfo]

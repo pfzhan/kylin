@@ -57,7 +57,7 @@ class TestJobMetricsUtils extends SparderBaseFunSuite with SharedSparkSession wi
   }
 
   test("collectOutputRows - mock build agg index with persist") {
-    val afterJoin = flatTable.persist()
+    val afterJoin = flatTable
     val afterSort = afterJoin.groupBy("key1").agg(count("key3")).repartition(2).sort("key1")
     afterSort.collect()
     val metrics = JobMetricsUtils.collectOutputRows(afterSort.queryExecution.executedPlan)

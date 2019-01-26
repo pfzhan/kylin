@@ -63,7 +63,7 @@ import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
 import io.kyligence.kap.engine.spark.NSparkCubingEngine;
-import io.kyligence.kap.engine.spark.builder.DFFlatTableEncoder;
+import io.kyligence.kap.engine.spark.builder.DFTableEncoder;
 import io.kyligence.kap.engine.spark.builder.DictionaryBuilder;
 import io.kyligence.kap.engine.spark.builder.NDataflowJob;
 import lombok.val;
@@ -111,7 +111,7 @@ public class MockedDFBuildJob extends NDataflowJob {
                 for (TblColRef ref : DictionaryBuilder.extractGlobalEncodeColumns(seg, nSpanningTree)) {
                     int columnIndex = flatTableDesc.getColumnIndex(ref);
                     structType = structType.add(
-                            structType.apply(columnIndex).name() + DFFlatTableEncoder.ENCODE_SUFFIX(), IntegerType);
+                            structType.apply(columnIndex).name() + DFTableEncoder.ENCODE_SUFFIX(), IntegerType);
                 }
 
                 Dataset<Row> ds = ss.createDataFrame(Lists.newArrayList(), structType);

@@ -26,45 +26,50 @@ import static io.kyligence.kap.engine.spark.builder.NGlobalDictionaryBuilderAssi
 
 import java.io.IOException;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
-import io.kyligence.kap.metadata.cube.model.LayoutEntity;
-import io.kyligence.kap.metadata.cube.model.NDataLayout;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.lock.DistributedLock;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.metadata.model.MeasureDesc;
+import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.TblColRef;
+import org.apache.kylin.source.SourceFactory;
 import org.apache.spark.api.java.JavaSparkContext;
 import org.apache.spark.api.java.function.Function2;
 import org.apache.spark.api.java.function.PairFunction;
 import org.apache.spark.broadcast.Broadcast;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
+import org.apache.spark.sql.SparkSession;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.spark_project.guava.collect.Sets;
 
 import com.google.common.collect.Lists;
 
+import io.kyligence.kap.engine.spark.NSparkCubingEngine;
 import io.kyligence.kap.metadata.cube.cuboid.NCuboidLayoutChooser;
 import io.kyligence.kap.metadata.cube.cuboid.NSpanningTree;
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
+import io.kyligence.kap.metadata.cube.model.LayoutEntity;
+import io.kyligence.kap.metadata.cube.model.NDataLayout;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import scala.Tuple2;
 
 public class DictionaryBuilder {
     protected static final Logger logger = LoggerFactory.getLogger(DictionaryBuilder.class);
-    private Dataset<Row> dataSet;
+    private SparkSession ss;
     private NDataSegment seg;
     private Set<TblColRef> colRefSet;
     private DistributedLock lock;
 
-    public DictionaryBuilder(NDataSegment seg, Dataset<Row> dataSet, Set<TblColRef> colRefSet) {
+    public DictionaryBuilder(NDataSegment seg, SparkSession ss, Set<TblColRef> colRefSet) {
         this.seg = seg;
-        this.dataSet = dataSet;
+        this.ss = ss;
         this.colRefSet = colRefSet;
         lock = KylinConfig.getInstanceFromEnv().getDistributedLockFactory().lockForCurrentThread();
     }
@@ -91,10 +96,13 @@ public class DictionaryBuilder {
         lock.lock(getLockPath(sourceColumn), Long.MAX_VALUE);
         try {
             if (lock.lock(getLockPath(sourceColumn))) {
-                int id = seg.getDataflow().getIndexPlan().getModel().getColumnIdByColumnName(col.getIdentity());
-                Dataset<Row> afterDistinct = dataSet.select(String.valueOf(id)).distinct();
-                int bucketPartitionSize = calculateBucketSize(col, afterDistinct);
-                build(col, bucketPartitionSize, afterDistinct);
+                TableDesc tableDesc = col.getTableRef().getTableDesc();
+                Dataset<Row> df = SourceFactory
+                        .createEngineAdapter(tableDesc, NSparkCubingEngine.NSparkCubingSource.class)
+                        .getSourceData(tableDesc, ss, new HashMap<>());
+                Dataset<Row> dictColDistinct = df.select(col.getName()).distinct();
+                int bucketPartitionSize = calculateBucketSize(col, dictColDistinct);
+                build(col, bucketPartitionSize, dictColDistinct);
             }
         } finally {
             lock.unlock(getLockPath(sourceColumn));
@@ -110,7 +118,7 @@ public class DictionaryBuilder {
      *  #3 After the last build, the number of individual buckets in the existing dictionary is greater
      *  than the threshold multiplied by KylinConfigBase.getGlobalDictV2BucketOverheadFactor
      */
-    private int calculateBucketSize(TblColRef col, Dataset<Row> afterDistinct) throws IOException {
+    int calculateBucketSize(TblColRef col, Dataset<Row> afterDistinct) throws IOException {
         NGlobalDictionaryV2 globalDict = new NGlobalDictionaryV2(seg.getProject(), col.getTable(), col.getName(),
                 seg.getConfig().getHdfsWorkingDirectory());
         int bucketPartitionSize = globalDict.getBucketSizeOrDefault(seg.getConfig().getGlobalDictV2MinHashPartitions());
@@ -169,7 +177,7 @@ public class DictionaryBuilder {
         return resizeBucketSize;
     }
 
-    private void build(TblColRef col, int bucketPartitionSize, Dataset<Row> afterDistinct) throws IOException {
+    void build(TblColRef col, int bucketPartitionSize, Dataset<Row> afterDistinct) throws IOException {
         logger.info("Start building global dict V2 for column {}.", col.getTable() + "." + col.getName());
 
         NGlobalDictionaryV2 globalDict = new NGlobalDictionaryV2(seg.getProject(), col.getTable(), col.getName(),
@@ -177,7 +185,7 @@ public class DictionaryBuilder {
         globalDict.prepareWrite();
         Broadcast<NGlobalDictionaryV2> broadcastDict = JavaSparkContext
                 .fromSparkContext(afterDistinct.sparkSession().sparkContext()).broadcast(globalDict);
-        afterDistinct.toJavaRDD().mapToPair((PairFunction<Row, String, String>) row -> {
+        afterDistinct.javaRDD().mapToPair((PairFunction<Row, String, String>) row -> {
             if (row.get(0) == null)
                 return new Tuple2<>(null, null);
             return new Tuple2<>(row.get(0).toString(), null);

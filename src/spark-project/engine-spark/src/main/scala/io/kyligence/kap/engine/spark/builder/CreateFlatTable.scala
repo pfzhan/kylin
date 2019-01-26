@@ -27,27 +27,31 @@ import java.util
 import com.google.common.collect.{Maps, Sets}
 import io.kyligence.kap.engine.spark.NSparkCubingEngine
 import io.kyligence.kap.engine.spark.job.NSparkCubingUtil
-import io.kyligence.kap.metadata.cube.model.NCubeJoinedFlatTableDesc
+import io.kyligence.kap.metadata.cube.model.{NCubeJoinedFlatTableDesc, NDataSegment}
 import io.kyligence.kap.metadata.model.NDataModel
 import org.apache.commons.lang.StringUtils
-import org.apache.kylin.metadata.model.{IJoinedFlatTableDesc, JoinDesc, PartitionDesc, SegmentRange, TableRef, TblColRef}
+import org.apache.kylin.metadata.model._
 import org.apache.kylin.source.SourceFactory
+import org.apache.spark.sql.functions._
 import org.apache.spark.sql.{Column, Dataset, Row, SparkSession}
 
 import scala.collection.JavaConverters._
 import scala.collection.mutable.ListBuffer
 
 object CreateFlatTable {
-  def generateDataset(flatTable: IJoinedFlatTableDesc,
-                      ss: SparkSession): Dataset[Row] = {
+  def generateDataset(flatTable: IJoinedFlatTableDesc, ss: SparkSession,
+                      encodeColMap: util.Map[String, util.Set[TblColRef]],
+                      seg: NDataSegment): Dataset[Row] = {
     val model = flatTable.getDataModel.asInstanceOf[NDataModel]
     val rootFactDesc = model.getRootFactTable.getTableDesc
     var ds = SourceFactory
       .createEngineAdapter(rootFactDesc,
-                           classOf[NSparkCubingEngine.NSparkCubingSource])
+        classOf[NSparkCubingEngine.NSparkCubingSource])
       .getSourceData(rootFactDesc, ss, Maps.newHashMap())
       .alias(model.getRootFactTable.getAlias)
     ds = changeSchemaToAliasDotName(ds, model.getRootFactTable.getAlias)
+    ds = encodeDataset(ds, model.getRootFactTable.getAlias, encodeColMap, seg)
+
     for (lookupDesc <- model.getJoinTables.asScala) {
       val join = lookupDesc.getJoin
       if (join != null && !StringUtils.isEmpty(join.getType)) {
@@ -55,7 +59,7 @@ object CreateFlatTable {
         val dimTable = lookupDesc.getTableRef
         var dimDataset = SourceFactory
           .createEngineAdapter(dimTable.getTableDesc,
-                               classOf[NSparkCubingEngine.NSparkCubingSource])
+            classOf[NSparkCubingEngine.NSparkCubingSource])
           .getSourceData(dimTable.getTableDesc, ss, Maps.newHashMap())
           .alias(dimTable.getAlias)
         dimDataset = changeSchemaToAliasDotName(dimDataset, dimTable.getAlias)
@@ -67,12 +71,11 @@ object CreateFlatTable {
         }
         var joinCond: Column = null
         var i = 0
-        while ({
+        while ( {
           i < pk.length
         }) {
-          val thisJoinCond = ds
-            .col(NSparkCubingUtil.convertFromDot(fk(i).getIdentity))
-            .equalTo(dimDataset.col(
+          val thisJoinCond = col(NSparkCubingUtil.convertFromDot(fk(i).getIdentity))
+            .equalTo(col(
               NSparkCubingUtil.convertFromDot(pk(i).getIdentity)))
           if (joinCond == null) joinCond = thisJoinCond
           else joinCond = joinCond.and(thisJoinCond)
@@ -82,6 +85,8 @@ object CreateFlatTable {
             i - 1
           }
         }
+
+        dimDataset = encodeDataset(dimDataset, dimTable.getTableName, encodeColMap, seg)
         ds = ds.join(dimDataset, joinCond, joinType)
       }
     }
@@ -99,7 +104,6 @@ object CreateFlatTable {
             .buildDateRangeCondition(partDesc, null, segRange),
           model)
         ds = ds.where(afterConvertPartition) // TODO: mp not supported right now
-
       }
     }
     if (flatTable.isInstanceOf[NCubeJoinedFlatTableDesc]) {
@@ -112,7 +116,7 @@ object CreateFlatTable {
     val exprs = new Array[String](colRefs.size)
     val names = new Array[String](exprs.length)
     var i = 0
-    while ({
+    while ( {
       i < exprs.length
     }) {
       exprs(i) =
@@ -128,15 +132,18 @@ object CreateFlatTable {
   }
 
   def selectNCubeJoinedFlatTable(
-      ds: Dataset[Row],
-      flatTable: NCubeJoinedFlatTableDesc): Dataset[Row] = {
+                                  ds: Dataset[Row],
+                                  flatTable: NCubeJoinedFlatTableDesc): Dataset[Row] = {
+    val structType = ds.schema
+    val encodeSeq = structType.filter(_.name.endsWith(DFTableEncoder.ENCODE_SUFFIX)).seq
+
     val colRefs = flatTable.getAllColumns
     val colIndices = flatTable.getIndices
-    val exprs = new Array[String](colRefs.size)
+    val exprs = new Array[String](colRefs.size + encodeSeq.size)
     val indices = new Array[String](exprs.length)
     var i = 0
-    while ({
-      i < exprs.length
+    while ( {
+      i < colRefs.size
     }) {
       exprs(i) =
         NSparkCubingUtil.convertFromDot(colRefs.get(i).getExpressionInSourceDB)
@@ -147,7 +154,28 @@ object CreateFlatTable {
         i - 1
       }
     }
+
+    encodeSeq.foreach {
+      field =>
+        exprs(i) = field.name
+        indices(i) = String.valueOf(
+          indices.apply(exprs.indexOf(field.name.replaceFirst(
+            DFTableEncoder.ENCODE_SUFFIX, "")))) + DFTableEncoder.ENCODE_SUFFIX
+        i = i + 1
+    }
+
     return ds.selectExpr(exprs: _*).toDF(indices: _*)
+  }
+
+  def encodeDataset(ds: Dataset[Row], tableName: String, encodeColMap: util.Map[String, util.Set[TblColRef]],
+                    seg: NDataSegment): Dataset[Row] = {
+    var encodeDs = ds
+    encodeColMap.asScala.get(tableName).headOption match {
+      case Some(cols) =>
+        encodeDs = DFTableEncoder.encode(ds, seg, cols)
+      case None => None
+    }
+    encodeDs
   }
 
   def replaceDot(original: String, model: NDataModel): String = {
@@ -156,12 +184,12 @@ object CreateFlatTable {
     for (namedColumn <- model.getAllNamedColumns.asScala) {
       var start = 0
       while (sb.toString.toLowerCase.indexOf(
-               namedColumn.getAliasDotColumn.toLowerCase) != -1) {
+        namedColumn.getAliasDotColumn.toLowerCase) != -1) {
         start = sb.toString.toLowerCase
           .indexOf(namedColumn.getAliasDotColumn.toLowerCase)
         sb.replace(start,
-                   start + namedColumn.getAliasDotColumn.length,
-                   NSparkCubingUtil.convertFromDot(namedColumn.getAliasDotColumn))
+          start + namedColumn.getAliasDotColumn.length,
+          NSparkCubingUtil.convertFromDot(namedColumn.getAliasDotColumn))
       }
     }
     sb.toString()
@@ -193,7 +221,7 @@ object CreateFlatTable {
     val sql: StringBuilder = new StringBuilder
     sql.append("SELECT" + sep)
     var i: Int = 0
-    while ({
+    while ( {
       i < flatDesc.getAllColumns.size
     }) {
       val col: TblColRef = flatDesc.getAllColumns.get(i)
@@ -241,7 +269,7 @@ object CreateFlatTable {
             joinType + " JOIN " + dimTable.getTableIdentity + " as " + dimTable.getAlias + sep)
           sql.append("ON ")
           var i: Int = 0
-          while ({
+          while ( {
             i < pk.length
           }) {
             if (i > 0) sql.append(" AND ")
@@ -278,7 +306,7 @@ object CreateFlatTable {
     val partDesc: PartitionDesc = model.getPartitionDesc
     val segRange: SegmentRange[_ <: Comparable[_]] = flatDesc.getSegRange
     if (flatDesc.getSegment != null && partDesc != null
-        && partDesc.getPartitionDateColumn != null && segRange != null && !(segRange.isInfinite)) {
+      && partDesc.getPartitionDateColumn != null && segRange != null && !(segRange.isInfinite)) {
       val builder =
         flatDesc.getDataModel.getPartitionDesc.getPartitionConditionBuilder
       if (builder != null) {
