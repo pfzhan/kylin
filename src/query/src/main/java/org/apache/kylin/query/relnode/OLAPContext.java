@@ -165,6 +165,9 @@ public class OLAPContext {
     public boolean afterAggregate = false;
     public boolean afterHavingClauseFilter = false;
     public boolean afterLimit = false;
+    @Setter
+    @Getter
+    private int limit = Integer.MAX_VALUE;
     public boolean limitPrecedesAggr = false;
     boolean afterTopJoin = false;
     @Setter
@@ -233,7 +236,7 @@ public class OLAPContext {
                     Lists.newArrayList(groupByColumns), Sets.newHashSet(subqueryJoinParticipants), // group by
                     Sets.newHashSet(metricsColumns), Lists.newArrayList(aggregations), Lists.newArrayList(aggrSqlCalls), // aggregation
                     Sets.newLinkedHashSet(filterColumns), filter, havingFilter, // filter
-                    Lists.newArrayList(sortColumns), Lists.newArrayList(sortOrders), limitPrecedesAggr, // sort & limit
+                    Lists.newArrayList(sortColumns), Lists.newArrayList(sortOrders), limit, limitPrecedesAggr, // sort & limit
                     Sets.newHashSet(involvedMeasure));
         return sqlDigest;
     }

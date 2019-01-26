@@ -66,7 +66,7 @@ import com.google.common.collect.Maps;
  */
 public class TopNCounter<T> implements Iterable<Counter<T>>, java.io.Serializable {
 
-    public static final int EXTRA_SPACE_RATE = 50;
+    public static int EXTRA_SPACE_RATE = 50;
 
     protected int capacity;
     private HashMap<T, Counter<T>> counterMap;

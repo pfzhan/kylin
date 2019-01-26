@@ -218,7 +218,7 @@ object TableScanPlan extends Logging {
             throw new IllegalArgumentException(s"More than 1 unknow model column." +
               s" Please add measure SUM(${sumFunc.getParameter.getColRef.getName})")
           }
-          tupleInfo.getFieldIndex(tupleInfo.getAllColumns.asScala.filter(_.getTableRef == null).head.getName)
+          tupleInfo.getFieldIndex(refs.head.getName)
         } else {
           tupleInfo.getFieldIndex(sumFunc.getRewriteFieldName)
         }

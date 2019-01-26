@@ -129,6 +129,7 @@ public class KapLimitRel extends OLAPLimitRel implements KapRel {
                 Number limitValue = (Number) (((RexLiteral) localFetch).getValue());
                 int limit = limitValue.intValue();
                 this.context.storageContext.setLimit(limit);
+                this.context.setLimit(limit);
 
                 if (localOffset != null) {
                     Number offsetValue = (Number) (((RexLiteral) localOffset).getValue());

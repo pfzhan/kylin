@@ -283,13 +283,13 @@ public class TopNMeasureType extends MeasureType<TopNCounter<ByteArray>> {
 
         List<TblColRef> literalCol = getTopNLiteralColumn(topN.getFunction());
         for (TblColRef colRef : literalCol) {
-            if (digest.filterColumns.contains(colRef) == true) {
+            if (digest.filterColumns.contains(colRef)) {
                 // doesn't allow filtering by topn literal column
                 return null;
             }
         }
 
-        if (digest.groupbyColumns.containsAll(literalCol) == false)
+        if (!digest.groupbyColumns.containsAll(literalCol))
             return null;
 
         // check digest requires only one measure
@@ -297,7 +297,10 @@ public class TopNMeasureType extends MeasureType<TopNCounter<ByteArray>> {
 
             // the measure function must be SUM
             FunctionDesc onlyFunction = digest.aggregations.iterator().next();
-            if (isTopNCompatibleSum(topN.getFunction(), onlyFunction) == false)
+            if (!isTopNCompatibleSum(topN.getFunction(), onlyFunction))
+                return null;
+
+            if (!checkOrderByAndLimit(digest, topN.getFunction().getReturnDataType().getPrecision()))
                 return null;
 
             unmatchedDimensions.removeAll(literalCol);
@@ -315,25 +318,31 @@ public class TopNMeasureType extends MeasureType<TopNCounter<ByteArray>> {
             };
         }
 
-        if (digest.aggregations.size() == 0) {
-            // directly query the UHC column without sorting
-            boolean b = unmatchedDimensions.removeAll(literalCol);
-            if (b) {
-                return new CapabilityInfluence() {
-                    @Override
-                    public double suggestCostMultiplier() {
-                        return 2.0; // topn can answer but with a higher cost
-                    }
+        return null;
+    }
 
-                    @Override
-                    public MeasureDesc getInvolvedMeasure() {
-                        return topN;
-                    }
-                };
-            }
+    private boolean checkOrderByAndLimit(SQLDigest digest, int topNPrecision) {
+        if (digest.limit > topNPrecision) {
+            return false;
         }
 
-        return null;
+        // Top N style query can only has one order by field.
+        if (digest.sortColumns.size() != 1) {
+            return false;
+        }
+        TblColRef sortCol = digest.sortColumns.get(0);
+        String database = sortCol.getColumnDesc().getTable().getDatabase();
+
+        for (FunctionDesc agg : digest.aggregations) {
+            if (!agg.getParameter().getColRef().getColumnDesc().getTable().getDatabase().equals(database)) {
+                continue;
+            }
+            if (sortCol.getName().equals(agg.getRewriteFieldName())) {
+                return true;
+            }
+
+        }
+        return false;
     }
 
     private boolean isTopNCompatibleSum(FunctionDesc topN, FunctionDesc sum) {
