@@ -76,7 +76,6 @@ public class MockedDFBuildJob extends SparkApplication {
         long start = System.currentTimeMillis();
         logger.info("Start Build");
         String dfName = getParam(NBatchConstants.P_DATAFLOW_ID);
-        project = getParam(NBatchConstants.P_PROJECT_NAME);
 
         Set<String> segmentIds = Sets.newHashSet(StringUtils.split(getParam(NBatchConstants.P_SEGMENT_IDS)));
         Set<Long> layoutIds = NSparkCubingUtil.str2Longs(getParam(NBatchConstants.P_LAYOUT_IDS));

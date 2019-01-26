@@ -43,7 +43,6 @@ public class NModelAnalysisJob extends SparkApplication {
     @Override
     protected void doExecute() throws Exception {
         String dfName = getParam(NBatchConstants.P_DATAFLOW_ID);
-        project = getParam(NBatchConstants.P_PROJECT_NAME);
         val segmentIds = StringUtils.split(getParam(NBatchConstants.P_SEGMENT_IDS));
 
         final NDataflowManager mgr = NDataflowManager.getInstance(config, project);

@@ -68,7 +68,6 @@ public class DFMergeJob extends SparkApplication {
     @Override
     protected void doExecute() throws Exception {
         String dataflowId = getParam(NBatchConstants.P_DATAFLOW_ID);
-        project = getParam(NBatchConstants.P_PROJECT_NAME);
         String newSegmentId = getParam(NBatchConstants.P_SEGMENT_IDS);
         Set<Long> layoutIds = NSparkCubingUtil.str2Longs(getParam(NBatchConstants.P_LAYOUT_IDS));
         mergeSnapshot(dataflowId, newSegmentId);

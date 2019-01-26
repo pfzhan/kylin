@@ -63,7 +63,6 @@ public class ResourceDetectBeforeCubingJob extends SparkApplication {
         logger.info("Start detect resource before cube.");
 
         String dataflowId = getParam(NBatchConstants.P_DATAFLOW_ID);
-        project = getParam(NBatchConstants.P_PROJECT_NAME);
         Set<String> segmentIds = Sets.newHashSet(StringUtils.split(getParam(NBatchConstants.P_SEGMENT_IDS)));
         Set<Long> layoutIds = NSparkCubingUtil.str2Longs(getParam(NBatchConstants.P_LAYOUT_IDS));
 
