@@ -249,7 +249,7 @@ public class NSparkExecutable extends AbstractExecutable {
 
         sb.append("--name job_step_%s ");
         sb.append("--jars %s %s %s");
-        String cmd = String.format(sb.toString(), hadoopConf, KylinConfig.getSparkHome(), jars, kylinJobJar,
+        String cmd = String.format(sb.toString(), hadoopConf, KylinConfig.getSparkHome(), getId(), jars, kylinJobJar,
                 appArgs);
         logger.info("spark submit cmd: {}", cmd);
         return cmd;
