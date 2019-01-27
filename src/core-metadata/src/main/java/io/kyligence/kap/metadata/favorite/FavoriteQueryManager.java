@@ -90,8 +90,12 @@ public class FavoriteQueryManager implements IKeepNames {
     }
 
     public void create(final Set<FavoriteQuery> favoriteQueries) {
-        favoriteQueries.forEach(
-                favoriteQuery -> favoriteQueryMap.put(favoriteQuery.getSqlPattern(), crud.save(favoriteQuery)));
+        favoriteQueries.forEach(favoriteQuery -> {
+            if (contains(favoriteQuery.getSqlPattern()))
+                return;
+
+            favoriteQueryMap.put(favoriteQuery.getSqlPattern(), crud.save(favoriteQuery));
+        });
     }
 
     public FavoriteQuery getByUuid(String uuid) {

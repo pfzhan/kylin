@@ -29,7 +29,6 @@ import java.text.SimpleDateFormat;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.TreeMap;
 
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
@@ -204,35 +203,60 @@ public class NFavoriteSchedulerTest extends NLocalFileMetadataTestCase {
         NFavoriteScheduler.FrequencyStatus firstStatus = favoriteScheduler.getFrequencyStatuses().pollFirst();
         NFavoriteScheduler.FrequencyStatus lastStatus = favoriteScheduler.getFrequencyStatuses().pollLast();
 
-        Assert.assertEquals(23, (lastStatus.getAddTime() - firstStatus.getAddTime()) / 1000 / 60 / 60);
+        Assert.assertEquals(23, (lastStatus.getTime() - firstStatus.getTime()) / 1000 / 60 / 60);
     }
 
     @Test
     public void testFilteredByFrequencyRule() {
-        Map<String, Integer> sqlPatternFreqMap = Maps.newHashMap();
-        sqlPatternFreqMap.put("sql1", 1);
-        sqlPatternFreqMap.put("sql2", 2);
-        sqlPatternFreqMap.put("sql3", 3);
-        sqlPatternFreqMap.put("sql4", 4);
-        sqlPatternFreqMap.put("sql5", 5);
-        sqlPatternFreqMap.put("sql6", 6);
-        sqlPatternFreqMap.put("sql7", 7);
-        sqlPatternFreqMap.put("sql8", 8);
-        sqlPatternFreqMap.put("sql9", 9);
-        sqlPatternFreqMap.put("sql10", 9);
-        sqlPatternFreqMap.put("sql11", 10);
-        sqlPatternFreqMap.put("sql12", 10);
+        /*
+        the frequency map is as follows
+        sqlPatternFreqMap.put("test_sql1", 1);
+        sqlPatternFreqMap.put("test_sql2", 2);
+        sqlPatternFreqMap.put("test_sql3", 3);
+        sqlPatternFreqMap.put("test_sql4", 4);
+        sqlPatternFreqMap.put("test_sql5", 5);
+        sqlPatternFreqMap.put("test_sql6", 6);
+        sqlPatternFreqMap.put("test_sql7", 7);
+        sqlPatternFreqMap.put("test_sql8", 8);
+        sqlPatternFreqMap.put("test_sql9", 9);
+        sqlPatternFreqMap.put("test_sql10", 9);
+        sqlPatternFreqMap.put("test_sql11", 10);
+        sqlPatternFreqMap.put("test_sql12", 10);
+         */
+        QueryHistoryDAO queryHistoryDAO = Mockito.mock(QueryHistoryDAO.class);
+        List<QueryHistory> queryHistories = Lists.newArrayList();
+        for (int i = 1; i <=12; i++) {
+            int freq = i;
+            if (i == 10)
+                freq = 9;
 
-        NFavoriteScheduler.FrequencyStatus frequencyStatus = favoriteScheduler.new FrequencyStatus(
-                System.currentTimeMillis());
-        frequencyStatus.setSqlPatternFreqMap(sqlPatternFreqMap);
+            if (i == 11)
+                freq = 10;
 
-        Set<FavoriteQuery> candidates = new HashSet<>();
-        Mockito.doReturn(frequencyStatus).when(favoriteScheduler).getOverAllStatus();
+            if (i == 12)
+                freq = 10;
 
-        favoriteScheduler.addCandidatesByFrequencyRule(candidates);
+            for (int j = 0; j < freq; j++) {
+                QueryHistory queryHistory = Mockito.mock(QueryHistory.class);
+                Mockito.doReturn(false).when(queryHistory).isException();
+                Mockito.doReturn("HIVE").when(queryHistory).getAnsweredBy();
+                Mockito.doReturn("ADMIN").when(queryHistory).getQuerySubmitter();
+                Mockito.doReturn("test_sql" + i).when(queryHistory).getSqlPattern();
+                queryHistories.add(queryHistory);
+            }
+        }
 
-        Assert.assertEquals(2, candidates.size());
+        Mockito.doReturn(queryHistories).when(queryHistoryDAO).getQueryHistoriesByTime(Mockito.anyLong(), Mockito.anyLong());
+        Mockito.doReturn(queryHistoryDAO).when(favoriteScheduler).getQueryHistoryDao();
+        Mockito.doReturn(1514736120000L).when(favoriteScheduler).getSystemTime();
+
+        NFavoriteScheduler.AutoFavoriteRunner autoMarkFavoriteRunner = favoriteScheduler.new AutoFavoriteRunner();
+        autoMarkFavoriteRunner.run();
+
+        FavoriteQueryManager favoriteQueryManager = FavoriteQueryManager.getInstance(getTestConfig(), PROJECT);
+        favoriteQueryManager.reloadSqlPatternMap();
+        Assert.assertTrue(favoriteQueryManager.contains("test_sql11"));
+        Assert.assertTrue(favoriteQueryManager.contains("test_sql12"));
     }
 
     @Test
@@ -498,6 +522,7 @@ public class NFavoriteSchedulerTest extends NLocalFileMetadataTestCase {
         queryHistory.setInsertTime(mockedQueryHistoryDao.getCurrentTime() + 59 * 1000L);
         queryHistory.setAnsweredBy("HIVE");
         mockedQueryHistoryDao.insert(queryHistory);
+        Assert.assertEquals(0, favoriteScheduler.getFrequencyStatuses().last().getSqlPatternFreqMap().size());
 
         // current time is 02-01 00:02:00, triggered next round, runner scanned from 2018-02-01 00:00:00 to 2018-02-01 00:01:00,
         // scanned three new queries, and inserted them into database
@@ -505,6 +530,9 @@ public class NFavoriteSchedulerTest extends NLocalFileMetadataTestCase {
                 .getSystemTime();
         autoMarkFavoriteRunner.run();
         Assert.assertEquals(originFavoriteQuerySize + 3, favoriteQueryManager.getAll().size());
+        Assert.assertTrue(favoriteScheduler.getFrequencyStatuses().last().getSqlPatternFreqMap().containsKey("sql_pattern0"));
+        Assert.assertTrue(favoriteScheduler.getFrequencyStatuses().last().getSqlPatternFreqMap().containsKey("sql_pattern1"));
+        Assert.assertTrue(favoriteScheduler.getFrequencyStatuses().last().getSqlPatternFreqMap().containsKey("sql_pattern7"));
 
         // current time is 02-01 00:03:00, triggered next round, runner scanned from 2018-02-01 00:01:00 to 2018-02-01 00:02:00
         // scanned two new queries
@@ -512,6 +540,9 @@ public class NFavoriteSchedulerTest extends NLocalFileMetadataTestCase {
                 .getSystemTime();
         autoMarkFavoriteRunner.run();
         Assert.assertEquals(originFavoriteQuerySize + 5, favoriteQueryManager.getAll().size());
+        Assert.assertTrue(favoriteScheduler.getFrequencyStatuses().last().getSqlPatternFreqMap().containsKey("sql_pattern2"));
+        Assert.assertTrue(favoriteScheduler.getFrequencyStatuses().last().getSqlPatternFreqMap().containsKey("sql_pattern3"));
+        Assert.assertTrue(favoriteScheduler.getOverAllStatus().getSqlPatternFreqMap().size() > 0);
 
         // current time is 02-01 00:04:00, runner scanned from 2018-02-01 00:02:00 to 2018-02-01 00:03:00
         // scanned two new queries, but one is failed, which is not expected to be marked as favorite query, and the other is in blacklist
@@ -612,5 +643,49 @@ public class NFavoriteSchedulerTest extends NLocalFileMetadataTestCase {
         autoMarkFavoriteRunner.run();
         List<Event> events = eventDao.getEvents();
         Assert.assertEquals(0, events.size());
+    }
+
+    @Test
+    public void testTimeOffsetIsOverMaxScanInterval() {
+        MockedQueryHistoryDao mockedQueryHistoryDao = new MockedQueryHistoryDao(getTestConfig(), PROJECT);
+        Mockito.doReturn(mockedQueryHistoryDao).when(favoriteScheduler).getQueryHistoryDao();
+        // suppose current time is 2019-01-01
+        Mockito.doReturn(1546272000000L).when(favoriteScheduler).getSystemTime();
+
+        favoriteScheduler.adjustTimeOffset();
+
+        QueryHistoryTimeOffset timeOffset = QueryHistoryTimeOffsetManager.getInstance(getTestConfig(), PROJECT).get();
+        Assert.assertEquals(1546272000000L - 30 * 24 * 60 * 60 * 1000L, timeOffset.getAutoMarkTimeOffset());
+        Assert.assertEquals(1546272000000L - 30 * 24 * 60 * 60 * 1000L, timeOffset.getFavoriteQueryUpdateTimeOffset());
+    }
+
+    @Test
+    public void testAutoFavoriteException() {
+        MockedQueryHistoryDao queryHistoryDAO = Mockito.spy(new MockedQueryHistoryDao(getTestConfig(), PROJECT));
+        Mockito.doReturn(1514822640000L).when(favoriteScheduler).getSystemTime();
+        Mockito.doReturn(queryHistoryDAO).when(favoriteScheduler).getQueryHistoryDao();
+
+        // this runner will be scanning 7 query histories
+        NFavoriteScheduler.AutoFavoriteRunner autoMarkFavoriteRunner = favoriteScheduler.new AutoFavoriteRunner();
+        autoMarkFavoriteRunner.run();
+
+        Assert.assertTrue(favoriteScheduler.getFrequencyStatuses().size() > 1);
+        Assert.assertFalse(favoriteScheduler.getOverAllStatus().getSqlPatternFreqMap().isEmpty());
+        Assert.assertEquals(1, (int) favoriteScheduler.getOverAllStatus().getSqlPatternFreqMap().get("sql_pattern0"));
+
+        setUpTimeOffset();
+
+        // this runner will be scanning the same query histories as last runner
+        // if everything goes right, each sql pattern will be having 2 frequency
+        // at last minute, a RuntimeException will be thrown out, all frequency status will be rolled back to the last status
+        MockedQueryHistoryDao queryHistoryDaoWithException = Mockito.spy(new MockedQueryHistoryDao(getTestConfig(), PROJECT));
+        Mockito.doReturn(1514822640000L).when(favoriteScheduler).getSystemTime();
+        Mockito.doThrow(RuntimeException.class).when(queryHistoryDaoWithException).getQueryHistoriesByTime(1514822520000L, 1514822580000L);
+        Mockito.doReturn(queryHistoryDaoWithException).when(favoriteScheduler).getQueryHistoryDao();
+        autoMarkFavoriteRunner.run();
+
+        Assert.assertFalse(favoriteScheduler.getOverAllStatus().getSqlPatternFreqMap().isEmpty());
+        // frequency is still 1
+        Assert.assertEquals(1, (int) favoriteScheduler.getOverAllStatus().getSqlPatternFreqMap().get("sql_pattern0"));
     }
 }

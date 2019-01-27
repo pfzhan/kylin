@@ -1399,8 +1399,14 @@ abstract public class KylinConfigBase implements Serializable {
         return Integer.valueOf(this.getOptional("kylin.favorite.batch-accelerate-size", "500"));
     }
 
+    // unit of minute
     public long getQueryHistoryScanPeriod() {
-        return Long.valueOf(this.getOptional("kylin.favorite.query-history-scan-period", "60")) * 1000L;
+        return Long.valueOf(this.getOptional("kylin.favorite.query-history-scan-period", "1")) * 60 * 1000L;
+    }
+
+    // unit of month
+    public long getQueryHistoryMaxScanInterval() {
+        return Integer.valueOf(this.getOptional("kylin.favorite.query-history-max-scan-interval", "1")) * 30 * 24 * 60 * 60 * 1000L;
     }
 
     public int getAutoCheckAccStatusBatchSize() {

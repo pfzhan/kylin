@@ -79,6 +79,7 @@ public class FavoriteQueryManagerTest extends NLocalFileMetadataTestCase {
         set.add(favoriteQuery6);
         favoriteQueryManager.create(set);
         // assert if sql patterns exist
+        Assert.assertEquals(6, favoriteQueryManager.getAll().size());
         Assert.assertTrue(favoriteQueryManager.contains("sql1"));
         Assert.assertTrue(favoriteQueryManager.contains("sql2"));
         Assert.assertTrue(favoriteQueryManager.contains("sql3"));
@@ -86,6 +87,10 @@ public class FavoriteQueryManagerTest extends NLocalFileMetadataTestCase {
         Assert.assertTrue(favoriteQueryManager.contains("sql5"));
         Assert.assertTrue(favoriteQueryManager.contains("sql6"));
         Assert.assertFalse(favoriteQueryManager.contains("sql7"));
+
+        // insert sql that is already in fq
+        favoriteQueryManager.create(new HashSet<FavoriteQuery>(){{add(new FavoriteQuery("sql1"));}});
+        Assert.assertEquals(6, favoriteQueryManager.getAll().size());
 
         // case of map size is zero
         favoriteQueryManager.clearFavoriteQueryMap();

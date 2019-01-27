@@ -473,12 +473,12 @@ public class FavoriteQueryService extends BasicService {
         return layoutIds;
     }
 
-    @Scheduled(cron = "${kylin.favorite.adjustment-cron:0 0 2 * * *}")
+    @Scheduled(cron = "${kylin.favorite.adjust-cron:0 0 2 * * *}")
     public void adjustFavoriteQuery() {
         String oldTheadName = Thread.currentThread().getName();
 
         try {
-            Thread.currentThread().setName("FavoriteQueryAutoAdjustmentWorker");
+            Thread.currentThread().setName("FavoriteQueryAdjustWorker");
 
             for (ProjectInstance project : getProjectManager().listAllProjects()) {
                 logger.trace("Start checking favorite query accelerate status adjustment for project {}.", project.getName());
