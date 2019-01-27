@@ -89,7 +89,7 @@ public class NExecAndComp {
             Dataset<Row> sparkResult = queryWithSpark(kapSparkSession, sql);
             List<Row> kapRows = SparderQueryTest.castDataType(kapResult, sparkResult).toJavaRDD().collect();
             List<Row> sparkRows = sparkResult.toJavaRDD().collect();
-            if (!compareResults(sparkRows, kapRows, CompareLevel.SUBSET)) {
+            if (!compareResults(normRows(sparkRows), normRows(kapRows), CompareLevel.SUBSET)) {
                 throw new IllegalArgumentException("Result not match");
             }
         }
@@ -104,7 +104,7 @@ public class NExecAndComp {
     public static void execAndCompareNew(List<Pair<String, String>> queries, KapSparkSession kapSparkSession,
             CompareLevel compareLevel, String joinType, Map<String, CompareEntity> recAndQueryResult) {
         for (Pair<String, String> query : queries) {
-            logger.info("Exec and compare query (" + joinType + ") :" + query.getFirst());
+            logger.info("Exec and compare query ({}) :{}", joinType, query.getFirst());
 
             String sql = KylinTestBase.changeJoinType(query.getSecond(), joinType);
 
@@ -115,10 +115,10 @@ public class NExecAndComp {
                     : queryWithKap(kapSparkSession, joinType, Pair.newPair(sql, sql), recAndQueryResult);
             if (compareLevel != CompareLevel.NONE) {
                 Dataset<Row> sparkResult = queryWithSpark(kapSparkSession, sql);
-                List<Row> kapRows = SparderQueryTest.castDataType(cubeResult, sparkResult).toJavaRDD().collect();
                 List<Row> sparkRows = sparkResult.toJavaRDD().collect();
-                if (!compareResults(sparkRows, kapRows, compareLevel)) {
-                    logger.error("Failed on compare query (" + joinType + ") :" + query);
+                List<Row> kapRows = SparderQueryTest.castDataType(cubeResult, sparkResult).toJavaRDD().collect();
+                if (!compareResults(normRows(sparkRows), normRows(kapRows), compareLevel)) {
+                    logger.error("Failed on compare query ({}) :{}", joinType, query);
                     throw new IllegalArgumentException("query (" + joinType + ") :" + query + " result not match");
                 }
             } else {
@@ -128,9 +128,16 @@ public class NExecAndComp {
                 cubeResult.show();
                 cubeResult.unpersist();
             }
-            logger.info("The query (" + joinType + ") : {} cost {} (ms)", query,
-                    System.currentTimeMillis() - startTime);
+            logger.info("The query ({}) : {} cost {} (ms)", joinType, query, System.currentTimeMillis() - startTime);
         }
+    }
+
+    private static List<Row> normRows(List<Row> rows) {
+        List<Row> rowList = Lists.newArrayList();
+        rows.forEach(row -> {
+            rowList.add(SparderQueryTest.prepareRow(row));
+        });
+        return rowList;
     }
 
     static void execCompareQueryAndCompare(List<Pair<String, String>> queries, KapSparkSession kapSparkSession,
@@ -228,6 +235,9 @@ public class NExecAndComp {
     public static List<Pair<String, String>> fetchPartialQueries(String folder, int start, int end) throws IOException {
         File sqlFolder = new File(folder);
         List<Pair<String, String>> originalSqls = retrieveITSqls(sqlFolder);
+        if (end > originalSqls.size()) {
+            end = originalSqls.size();
+        }
         return originalSqls.subList(start, end);
     }
 
@@ -354,7 +364,6 @@ public class NExecAndComp {
             expectedResult.unpersist();
             actualResult.unpersist();
         }
-
     }
 
     public static List<Pair<String, String>> doFilter(List<Pair<String, String>> sources,

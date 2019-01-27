@@ -1,4 +1,6 @@
--- explain formatted 
+-- explain formatted
+-- https://github.com/Kyligence/KAP/issues/10092  filter condition push-up failed
+
 with tmp1 as (
     select p_partkey from tpch.part where p_name like 'forest%'
 ),
