@@ -24,6 +24,7 @@
 
 package io.kyligence.kap.engine.spark.application;
 
+import io.kyligence.kap.common.obf.IKeep;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -54,7 +55,7 @@ import io.kyligence.kap.engine.spark.utils.SparkConfHelper;
 import io.kyligence.kap.metadata.cube.model.NBatchConstants;
 import lombok.val;
 
-public abstract class SparkApplication implements Application {
+public abstract class SparkApplication implements Application, IKeep {
     private static final Logger logger = LoggerFactory.getLogger(SparkApplication.class);
     private Map<String, String> params = Maps.newHashMap();
     protected volatile KylinConfig config;

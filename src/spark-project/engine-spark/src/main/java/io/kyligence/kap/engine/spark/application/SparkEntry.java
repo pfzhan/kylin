@@ -24,17 +24,15 @@
 
 package io.kyligence.kap.engine.spark.application;
 
+import io.kyligence.kap.common.obf.IKeep;
 import org.apache.commons.lang.StringUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  */
-public final class SparkEntry {
+public final class SparkEntry implements IKeep {
 
-    private static final Logger logger = LoggerFactory.getLogger(SparkEntry.class);
 
-    public static void main(String[] args) throws Exception {
+    public static void main(String[] args) {
         try {
             System.out.println("SparkEntry args:" + StringUtils.join(args, " "));
             if (!(args.length >= 2)) {
@@ -57,7 +55,8 @@ public final class SparkEntry {
             abstractApplication.execute(appArgs);
             System.exit(0);
         } catch (Throwable th) {
-            logger.error("SparkEntry exec error", th);
+            System.err.println("SparkEntry exec error:");
+            th.printStackTrace(System.err);
             System.exit(1);
         }
     }
