@@ -270,29 +270,8 @@ public class FavoriteQueryServiceTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testFilterFavoriteQuery() {
-        FavoriteQuery favoriteQuery1 = new FavoriteQuery("sql1");
-        favoriteQuery1.setLastQueryTime(1000);
-        favoriteQuery1.setTotalCount(3);
-        favoriteQuery1.setAverageDuration(100);
-        favoriteQuery1.setSuccessRate(0.2f);
-        favoriteQuery1.setStatus(FavoriteQueryStatusEnum.WAITING);
-
-        FavoriteQuery favoriteQuery2 = new FavoriteQuery("sql2");
-        favoriteQuery2.setLastQueryTime(2000);
-        favoriteQuery2.setTotalCount(2);
-        favoriteQuery2.setAverageDuration(200);
-        favoriteQuery2.setSuccessRate(0.1f);
-        favoriteQuery2.setStatus(FavoriteQueryStatusEnum.ACCELERATING);
-
-        FavoriteQuery favoriteQuery3 = new FavoriteQuery("sql3");
-        favoriteQuery3.setLastQueryTime(3000);
-        favoriteQuery3.setTotalCount(1);
-        favoriteQuery3.setAverageDuration(300);
-        favoriteQuery3.setSuccessRate(0.3f);
-        favoriteQuery3.setStatus(FavoriteQueryStatusEnum.FULLY_ACCELERATED);
-
         FavoriteQueryManager favoriteQueryManager = FavoriteQueryManager.getInstance(getTestConfig(), PROJECT);
-        favoriteQueryManager.create(new HashSet(){{add(favoriteQuery1);add(favoriteQuery2);add(favoriteQuery3);}});
+        favoriteQueryManager.create(mockFavoriteQuery());
 
         // filter status
         List<FavoriteQuery> filteredFavoriteQueries = favoriteQueryService.filterAndSortFavoriteQueries(PROJECT, null, false,
@@ -321,6 +300,41 @@ public class FavoriteQueryServiceTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals("sql3", filteredFavoriteQueries.get(0).getSqlPattern());
         Assert.assertEquals("sql2", filteredFavoriteQueries.get(1).getSqlPattern());
         Assert.assertEquals("sql1", filteredFavoriteQueries.get(2).getSqlPattern());
+    }
+
+    private HashSet mockFavoriteQuery(){
+        FavoriteQuery favoriteQuery1 = new FavoriteQuery("sql1");
+        favoriteQuery1.setLastQueryTime(1000);
+        favoriteQuery1.setTotalCount(3);
+        favoriteQuery1.setAverageDuration(100);
+        favoriteQuery1.setSuccessRate(0.2f);
+        favoriteQuery1.setStatus(FavoriteQueryStatusEnum.WAITING);
+
+        FavoriteQuery favoriteQuery2 = new FavoriteQuery("sql2");
+        favoriteQuery2.setLastQueryTime(2000);
+        favoriteQuery2.setTotalCount(2);
+        favoriteQuery2.setAverageDuration(200);
+        favoriteQuery2.setSuccessRate(0.1f);
+        favoriteQuery2.setStatus(FavoriteQueryStatusEnum.ACCELERATING);
+
+        FavoriteQuery favoriteQuery3 = new FavoriteQuery("sql3");
+        favoriteQuery3.setLastQueryTime(3000);
+        favoriteQuery3.setTotalCount(1);
+        favoriteQuery3.setAverageDuration(300);
+        favoriteQuery3.setSuccessRate(0.3f);
+        favoriteQuery3.setStatus(FavoriteQueryStatusEnum.FULLY_ACCELERATED);
+
+        return new HashSet(){{add(favoriteQuery1);add(favoriteQuery2);add(favoriteQuery3);}};
+    }
+
+    @Test
+    public void testGetWaitingFavoriteQuery() {
+        FavoriteQueryManager favoriteQueryManager = FavoriteQueryManager.getInstance(getTestConfig(), PROJECT);
+        favoriteQueryManager.create(mockFavoriteQuery());
+
+        // get waiting favorite query
+        val size = favoriteQueryService.getWaitingFavoriteQuerySize(PROJECT);
+        Assert.assertEquals(1, size);
     }
 
     @Test

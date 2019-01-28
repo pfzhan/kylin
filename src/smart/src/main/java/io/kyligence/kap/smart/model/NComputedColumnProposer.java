@@ -99,8 +99,9 @@ public class NComputedColumnProposer extends NAbstractModelProposer {
                 nDataModel.getComputedColumnDescs().remove(ccDesc);
             }
         }
-
-        ComputedColumnEvalUtil.evaluateExprAndTypes(nDataModel, validCCs);
+        if (!modelContext.getSmartContext().isSkipEvaluateCC()) {
+            ComputedColumnEvalUtil.evaluateExprAndTypes(nDataModel, validCCs);
+        }
     }
 
     private Set<String> collectComputedColumnSuggestion(NModelContext modelContext, NDataModel nDataModel) {

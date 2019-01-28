@@ -168,8 +168,8 @@ public class FavoriteQueryService extends BasicService {
         NSmartMaster smartMaster = new NSmartMaster(KylinConfig.getInstanceFromEnv(), project, sqls);
         smartMaster.analyzeSQLs();
         smartMaster.selectModel();
+        smartMaster.getContext().setSkipEvaluateCC(true);
         smartMaster.optimizeModel();
-
         List<NSmartContext.NModelContext> modelContexts = Lists.newArrayList();
 
         for (NSmartContext.NModelContext modelContext : smartMaster.getContext().getModelContexts()) {
@@ -554,4 +554,11 @@ public class FavoriteQueryService extends BasicService {
         return fqrInfo.equals(sqrInfo);
     }
 
+    public int getWaitingFavoriteQuerySize(String project) {
+        List<FavoriteQuery> favoriteQueries = getFavoriteQueryManager(project).getAll();
+        val waitingFavoriteQueries = favoriteQueries.stream()
+                .filter(favoriteQuery -> FavoriteQueryStatusEnum.WAITING.equals(favoriteQuery.getStatus()))
+                .collect(Collectors.toList());
+        return waitingFavoriteQueries.size();
+    }
 }

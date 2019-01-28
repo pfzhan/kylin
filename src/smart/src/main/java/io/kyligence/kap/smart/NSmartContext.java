@@ -59,6 +59,10 @@ public class NSmartContext {
     private final String project;
     private final String[] sqls;
 
+    @Setter
+    private boolean skipEvaluateCC;
+
+
     // only used in auto-modeling
     private String draftVersion;
 

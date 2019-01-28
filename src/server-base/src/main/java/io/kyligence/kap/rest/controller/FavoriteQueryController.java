@@ -85,6 +85,13 @@ public class FavoriteQueryController extends NBasicController {
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, data, "");
     }
 
+    @RequestMapping(value = "/waiting_fq_size", method = RequestMethod.GET)
+    @ResponseBody
+    public EnvelopeResponse getWaitingFavoriteQuerySize(@RequestParam(value = "project") String project) {
+        checkProjectName(project);
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, favoriteQueryService.getWaitingFavoriteQuerySize(project), "");
+    }
+
     @RequestMapping(value = "", method = RequestMethod.DELETE)
     @ResponseBody
     public EnvelopeResponse deleteFavoriteQuery(@RequestParam(value = "project") String project,
