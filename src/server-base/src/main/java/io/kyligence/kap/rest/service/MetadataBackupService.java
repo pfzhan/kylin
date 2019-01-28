@@ -72,12 +72,12 @@ public class MetadataBackupService {
 
     private String getBackupDir() {
         val kylinConfig = KylinConfig.getInstanceFromEnv();
-        return StringUtils.appendIfMissing(kylinConfig.getHdfsWorkingDirectory(), "/") + "backup";
+        return StringUtils.appendIfMissing(kylinConfig.getHdfsWorkingDirectory(), "/") + "_backup";
 
     }
 
     public void cleanBeforeBackup(KylinConfig kylinConfig) throws IOException {
-        val rootMetadataBackupPath = new Path(kylinConfig.getHdfsWorkingDirectory() + "/backup");
+        val rootMetadataBackupPath = new Path(getBackupDir());
         val fs = HadoopUtil.getFileSystem(rootMetadataBackupPath);
         if (!fs.exists(rootMetadataBackupPath)) {
             fs.mkdirs(rootMetadataBackupPath);

@@ -37,9 +37,9 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.BiPredicate;
 import java.util.function.Predicate;
 
-import org.apache.calcite.linq4j.function.Predicate2;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.KylinConfigExt;
@@ -717,7 +717,7 @@ public class IndexPlan extends RootPersistentEntity implements Serializable, IEn
      * @param deleteManual if delete manual layout
      */
     public void removeLayouts(Map<IndexEntity.IndexIdentifier, List<LayoutEntity>> cuboids,
-            Predicate<LayoutEntity> isSkip, Predicate2<LayoutEntity, LayoutEntity> equal, boolean deleteAuto,
+            Predicate<LayoutEntity> isSkip, BiPredicate<LayoutEntity, LayoutEntity> equal, boolean deleteAuto,
             boolean deleteManual) {
         checkIsNotCachedAndShared();
         Map<IndexEntity.IndexIdentifier, IndexEntity> originalCuboidsMap = getWhiteListIndexesMap();
@@ -737,11 +737,11 @@ public class IndexPlan extends RootPersistentEntity implements Serializable, IEn
     }
 
     public void removeLayouts(Map<IndexEntity.IndexIdentifier, List<LayoutEntity>> cuboidLayoutMap,
-            Predicate2<LayoutEntity, LayoutEntity> comparator, boolean deleteAuto, boolean deleteManual) {
+            BiPredicate<LayoutEntity, LayoutEntity> comparator, boolean deleteAuto, boolean deleteManual) {
         removeLayouts(cuboidLayoutMap, null, comparator, deleteAuto, deleteManual);
     }
 
-    public void removeLayouts(Set<Long> cuboidLayoutIds, Predicate2<LayoutEntity, LayoutEntity> comparator,
+    public void removeLayouts(Set<Long> cuboidLayoutIds, BiPredicate<LayoutEntity, LayoutEntity> comparator,
             boolean deleteAuto, boolean deleteManual) {
         val cuboidMap = Maps.newHashMap(getWhiteListIndexesMap());
         val toRemovedMap = Maps.<IndexEntity.IndexIdentifier, List<LayoutEntity>> newHashMap();

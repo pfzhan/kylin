@@ -73,7 +73,7 @@ public class MetadataBackupServiceTest extends NLocalFileMetadataTestCase {
         metadataBackupService.backupAll();
 
         //3.assert there is a metadata dir in root metadata dir after backup,the metadata dir location is junitFolder.getAbsolutePath()/metadata_backup_ut_test/backup/LocalDateTime/metadata
-        val rootMetadataPath = new Path(kylinConfig.getHdfsWorkingDirectory() + "/backup");
+        val rootMetadataPath = new Path(kylinConfig.getHdfsWorkingDirectory() + "/_backup");
         val rootMetadataFS = HadoopUtil.getFileSystem(rootMetadataPath);
         Assertions.assertThat(rootMetadataFS.listStatus(rootMetadataPath)).hasSize(1);
 
@@ -88,7 +88,7 @@ public class MetadataBackupServiceTest extends NLocalFileMetadataTestCase {
     public void testCleanBeforeBackup() throws Exception {
         val kylinConfig = KylinConfig.getInstanceFromEnv();
         kylinConfig.setProperty("kylin.env.hdfs-working-dir", temporaryFolder.getRoot().getAbsolutePath());
-        val rootMetadataPath = new Path(kylinConfig.getHdfsWorkingDirectory() + "/backup");
+        val rootMetadataPath = new Path(kylinConfig.getHdfsWorkingDirectory() + "/_backup");
 
         val fs = HadoopUtil.getFileSystem(rootMetadataPath);
         fs.mkdirs(rootMetadataPath);

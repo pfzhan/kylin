@@ -31,9 +31,9 @@ import java.util.BitSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.BiPredicate;
 import java.util.function.Predicate;
 
-import org.apache.calcite.linq4j.function.Predicate2;
 import org.apache.kylin.common.util.ImmutableBitSet;
 import org.apache.kylin.metadata.model.TblColRef;
 
@@ -237,7 +237,7 @@ public class IndexEntity implements Serializable, IKeep {
     }
 
     void removeLayoutsInCuboid(List<LayoutEntity> deprecatedLayouts, Predicate<LayoutEntity> isSkip,
-            Predicate2<LayoutEntity, LayoutEntity> equal, boolean deleteAuto, boolean deleteManual) {
+            BiPredicate<LayoutEntity, LayoutEntity> equal, boolean deleteAuto, boolean deleteManual) {
         checkIsNotCachedAndShared();
         List<LayoutEntity> toRemoveLayouts = Lists.newArrayList();
         for (LayoutEntity cuboidLayout : deprecatedLayouts) {
@@ -245,7 +245,7 @@ public class IndexEntity implements Serializable, IKeep {
                 continue;
             }
             LayoutEntity toRemoveLayout = getLayouts().stream()
-                    .filter(originLayout -> equal.apply(originLayout, cuboidLayout)).findFirst().orElse(null);
+                    .filter(originLayout -> equal.test(originLayout, cuboidLayout)).findFirst().orElse(null);
             if (toRemoveLayout != null) {
                 if (deleteAuto) {
                     toRemoveLayout.setAuto(false);

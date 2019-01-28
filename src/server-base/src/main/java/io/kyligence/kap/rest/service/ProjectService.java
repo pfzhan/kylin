@@ -234,6 +234,7 @@ public class ProjectService extends BasicService {
             try {
                 logger.info("Start cleanup HDFS");
                 asyncTaskService.cleanupStorage();
+                logger.info("Garbage cleanup for HDFS finished");
             } catch (IOException e) {
                 logger.warn("cleanup HDFS failed", e);
             }

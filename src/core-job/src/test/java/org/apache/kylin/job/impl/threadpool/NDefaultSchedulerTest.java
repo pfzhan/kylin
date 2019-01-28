@@ -50,7 +50,6 @@ import org.apache.kylin.job.execution.SucceedTestExecutable;
 import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 import org.assertj.core.api.Assertions;
 import org.junit.Assert;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -70,7 +69,6 @@ import io.kyligence.kap.metadata.model.ManagementType;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import lombok.val;
 
-@Ignore
 public class NDefaultSchedulerTest extends BaseSchedulerTest {
     private static final Logger logger = LoggerFactory.getLogger(NDefaultSchedulerTest.class);
 

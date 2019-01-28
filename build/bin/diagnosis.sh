@@ -97,7 +97,7 @@ if [[ $1 == "-full" ]]; then
         start_date=`date -d "@$start_time" "+%F"`
         end_date=`date -d "@$end_time" "+%F"`
         appid=`cat $KYLIN_HOME/appid`
-        sparder_logs_path=$spark_logs_path/sparder_logs
+        sparder_logs_path=$spark_logs_path/_sparder_logs
         for sparder_log_file in $(hadoop fs -ls -d "$sparder_logs_path/*/*" | awk '{print $8}'); do
             log_appid=$(echo $sparder_log_file | awk -F "/" '{print $NF}')
             log_date=$(echo $sparder_log_file | awk -F "/" '{print $(NF-1)}')

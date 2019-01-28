@@ -47,7 +47,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.directory.api.util.Strings;
+import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.measure.MeasureType;
 import org.apache.kylin.measure.MeasureTypeFactory;
 import org.apache.kylin.measure.basic.BasicMeasureType;
@@ -170,7 +170,7 @@ public class FunctionDesc implements Serializable {
         if (returnDataType == null) {
             returnDataType = DataType.getType(TYPE_BIGINT);
         }
-        if (!Strings.isEmpty(returnType)) {
+        if (!StringUtils.isEmpty(returnType)) {
             returnDataType = DataType.getType(returnType);
         }
         returnType = returnDataType.toString();

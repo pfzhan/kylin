@@ -407,7 +407,7 @@ public class HdfsAppender extends AppenderSkeleton {
             if ("job".equals(category)) {
                 return parseHdfsWordingDir() + "/" + project + "/spark_logs";
             } else if ("sparder".equals(category)) {
-                return parseHdfsWordingDir() + "/sparder_logs";
+                return parseHdfsWordingDir() + "/_sparder_logs";
             } else {
                 throw new IllegalArgumentException("illegal category: " + category);
             }

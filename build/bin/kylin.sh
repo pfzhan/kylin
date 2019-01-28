@@ -4,6 +4,7 @@
 alias cd='cd -P'
 dir=$(dirname ${0})
 cd "${dir}"
+version=`cat ../VERSION | awk '{print $2}'`
 
 # setup verbose
 verbose=${verbose:-""}
@@ -19,6 +20,16 @@ while getopts ":v" opt; do
             ;;
     esac
 done
+
+function exportEnv {
+    export KYLIN_HOME=`cd ../; pwd`
+    export KYLIN_HADOOP_CONF=${KYLIN_HOME}/hadoop_conf
+    export SPARK_HOME=${KYLIN_HOME}/spark
+
+    echo "KYLIN_HOME is:${KYLIN_HOME}"
+    echo "KYLIN_HADOOP_CONF is:${KYLIN_HADOOP_CONF}"
+    echo "SPARK_HOME is:${SPARK_HOME}"
+}
 
 function quit {
         echo "$@"
@@ -85,17 +96,26 @@ function fetchHadoopConf() {
     fi
 }
 
+function runTool() {
+    exportEnv
+    fetchHadoopConf
+    source ${KYLIN_HOME}/bin/replace-jars-under-spark.sh
+
+    #retrive $KYLIN_EXTRA_START_OPTS
+    if [ -f "${KYLIN_HOME}/conf/setenv.sh" ]; then
+        source ${KYLIN_HOME}/conf/setenv.sh
+        export KYLIN_EXTRA_START_OPTS=`echo ${KYLIN_JVM_SETTINGS}|sed  "s/-XX:+PrintFlagsFinal//g"`
+    fi
+    java ${KYLIN_EXTRA_START_OPTS} -Dlogging.path=${KYLIN_HOME}/logs -Dlogging.config=file:${KYLIN_HOME}/conf/kylin-tool-log4j.properties -Dkylin.hadoop.conf.dir=${KYLIN_HADOOP_CONF} -Dhdp.version=current -cp "${KYLIN_HOME}/tool/kap-tool-$version.jar:${SPARK_HOME}/jars/*" $@
+}
+
 # start command
-if [ "$1" == "start" ]
+if [[ "$1" == io.kyligence.* ]]
 then
-
-    export KYLIN_HOME=`cd ../; pwd`
-    export KYLIN_HADOOP_CONF=${KYLIN_HOME}/hadoop_conf
-    export SPARK_HOME=${KYLIN_HOME}/spark
-
-    echo "KYLIN_HOME is:${KYLIN_HOME}"
-    echo "KYLIN_HADOOP_CONF is:${KYLIN_HADOOP_CONF}"
-    echo "SPARK_HOME is:${SPARK_HOME}"
+    runTool "$@"
+elif [ "$1" == "start" ]
+then
+    exportEnv
 
     if [ -f "../pid" ]
     then

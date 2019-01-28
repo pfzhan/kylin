@@ -32,14 +32,9 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
-import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
-import io.kyligence.kap.metadata.favorite.FavoriteQueryRealization;
-import io.kyligence.kap.metadata.favorite.FavoriteRule;
-import io.kyligence.kap.metadata.favorite.FavoriteRuleManager;
-import io.kyligence.kap.query.util.QueryPatternUtil;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -59,14 +54,19 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
-import io.kyligence.kap.metadata.cube.model.IndexPlan;
-import io.kyligence.kap.metadata.cube.model.LayoutEntity;
+import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.event.manager.EventManager;
 import io.kyligence.kap.event.model.AddCuboidEvent;
 import io.kyligence.kap.event.model.PostAddCuboidEvent;
+import io.kyligence.kap.metadata.cube.model.IndexPlan;
+import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.favorite.FavoriteQuery;
 import io.kyligence.kap.metadata.favorite.FavoriteQueryManager;
+import io.kyligence.kap.metadata.favorite.FavoriteQueryRealization;
 import io.kyligence.kap.metadata.favorite.FavoriteQueryStatusEnum;
+import io.kyligence.kap.metadata.favorite.FavoriteRule;
+import io.kyligence.kap.metadata.favorite.FavoriteRuleManager;
+import io.kyligence.kap.query.util.QueryPatternUtil;
 import io.kyligence.kap.rest.transaction.Transaction;
 import io.kyligence.kap.smart.NSmartContext;
 import io.kyligence.kap.smart.NSmartMaster;
@@ -208,7 +208,7 @@ public class FavoriteQueryService extends BasicService {
     }
 
     private boolean doTwoCuboidLayoutsEqual(List<LayoutEntity> origCuboidLayouts,
-                                            List<LayoutEntity> targetCuboidLayouts) {
+            List<LayoutEntity> targetCuboidLayouts) {
         if (origCuboidLayouts.size() != targetCuboidLayouts.size())
             return false;
 
@@ -429,7 +429,8 @@ public class FavoriteQueryService extends BasicService {
         return sqls;
     }
 
-    private static Pair<List<Long>, List<Long>> calcUpdatedLayoutIds(IndexPlan origIndexPlan, IndexPlan targetIndexPlan) {
+    private static Pair<List<Long>, List<Long>> calcUpdatedLayoutIds(IndexPlan origIndexPlan,
+            IndexPlan targetIndexPlan) {
         Pair<List<Long>, List<Long>> pair = new Pair<>();
         List<Long> currentLayoutIds = new ArrayList<>();
         List<Long> toBeLayoutIds = new ArrayList<>();
@@ -481,10 +482,12 @@ public class FavoriteQueryService extends BasicService {
             Thread.currentThread().setName("FavoriteQueryAdjustWorker");
 
             for (ProjectInstance project : getProjectManager().listAllProjects()) {
-                logger.trace("Start checking favorite query accelerate status adjustment for project {}.", project.getName());
+                logger.trace("Start checking favorite query accelerate status adjustment for project {}.",
+                        project.getName());
                 long startTime = System.currentTimeMillis();
                 KylinConfig config = KylinConfig.getInstanceFromEnv();
-                List<String> sqlPatterns = FavoriteQueryManager.getInstance(config, project.getName()).getAcceleratedSqlPattern();
+                List<String> sqlPatterns = FavoriteQueryManager.getInstance(config, project.getName())
+                        .getAcceleratedSqlPattern();
                 // split sqlPatterns into batches to avoid
                 int batchOffset = 0;
                 int batchSize = config.getAutoCheckAccStatusBatchSize();
@@ -498,8 +501,8 @@ public class FavoriteQueryService extends BasicService {
                     checkAccelerateStatus(project.getName(), sqls);
                 }
                 long endTime = System.currentTimeMillis();
-                logger.trace("End favorite query adjustment. Processed {} queries and took {}ms for project {}", sqlSize,
-                        endTime - startTime, project);
+                logger.trace("End favorite query adjustment. Processed {} queries and took {}ms for project {}",
+                        sqlSize, endTime - startTime, project);
             }
         } finally {
             Thread.currentThread().setName(oldTheadName);
@@ -520,12 +523,15 @@ public class FavoriteQueryService extends BasicService {
         }).toArray(String[]::new);
 
         UnitOfWork.doInTransactionWithRetry(() -> {
+            FavoriteQueryManager favoriteQueryManager = FavoriteQueryManager
+                    .getInstance(KylinConfig.getInstanceFromEnv(), project);
             Arrays.stream(toUpdateSqls).forEach(sql -> {
-                manager.updateStatus(sql, FavoriteQueryStatusEnum.WAITING,
+                favoriteQueryManager.updateStatus(sql, FavoriteQueryStatusEnum.WAITING,
                         "This query is not fully accelerated, move status to WAITING");
-                manager.removeRealizations(sql);
+                favoriteQueryManager.removeRealizations(sql);
             });
-            logger.info("There are {} favorite queries not fully accelerated, changed status to WAITING", toUpdateSqls.length);
+            logger.info("There are {} favorite queries not fully accelerated, changed status to WAITING",
+                    toUpdateSqls.length);
             return null;
         }, project);
     }
@@ -543,13 +549,11 @@ public class FavoriteQueryService extends BasicService {
         if (favoriteQueryRealizations.size() != suggestedQueryRealizations.size()) {
             return false;
         }
-        List<String> fqrInfo = favoriteQueryRealizations
-                .stream().map(real -> new StringBuilder(real.getModelId()).append('_')
-                        .append(real.getSemanticVersion()).append('_').append(real.getLayoutId()).toString())
+        List<String> fqrInfo = favoriteQueryRealizations.stream().map(real -> new StringBuilder(real.getModelId())
+                .append('_').append(real.getSemanticVersion()).append('_').append(real.getLayoutId()).toString())
                 .sorted().collect(Collectors.toList());
-        List<String> sqrInfo = suggestedQueryRealizations
-                .stream().map(real -> new StringBuilder(real.getModelId()).append('_')
-                        .append(real.getSemanticVersion()).append('_').append(real.getLayoutId()).toString())
+        List<String> sqrInfo = suggestedQueryRealizations.stream().map(real -> new StringBuilder(real.getModelId())
+                .append('_').append(real.getSemanticVersion()).append('_').append(real.getLayoutId()).toString())
                 .sorted().collect(Collectors.toList());
         return fqrInfo.equals(sqrInfo);
     }

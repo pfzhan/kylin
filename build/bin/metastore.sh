@@ -18,9 +18,9 @@ metadata_tool="-cp ${KYLIN_HOME}/tool/kap-tool-*.jar -Dlog4j.configuration=file:
 if [ "$1" == "backup" ]
 then
     if [ $# -eq 1 ]; then
-        java $metadata_tool -backup -dir ${KYLIN_HOME}/meta_backups
+        ${KYLIN_HOME}/bin/kylin.sh io.kyligence.kap.tool.MetadataTool -backup -dir ${KYLIN_HOME}/meta_backups
     elif [ $# -eq 2 ]; then
-        java $metadata_tool -backup -dir $2
+        ${KYLIN_HOME}/bin/kylin.sh io.kyligence.kap.tool.MetadataTool -backup -dir $2
     else
         help
     fi
@@ -28,7 +28,7 @@ then
 elif [ "$1" == "restore" ]
 then
     if [ $# -eq 2 ]; then
-        java $metadata_tool -restore -dir $2
+        ${KYLIN_HOME}/bin/kylin.sh io.kyligence.kap.tool.MetadataTool -restore -dir $2
     else
        help
     fi
@@ -36,9 +36,9 @@ then
 elif [ "$1" == "backup-project" ]
 then
     if [ $# -eq 2 ]; then
-        java $metadata_tool -backup -project $2 -dir ${KYLIN_HOME}/meta_backups
+        ${KYLIN_HOME}/bin/kylin.sh io.kyligence.kap.tool.MetadataTool -backup -project $2 -dir ${KYLIN_HOME}/meta_backups
     elif [ $# -eq 3 ]; then
-        java $metadata_tool -backup -project $2 -dir $3
+        ${KYLIN_HOME}/bin/kylin.sh io.kyligence.kap.tool.MetadataTool -backup -project $2 -dir $3
     else
         help
     fi
@@ -46,7 +46,7 @@ then
 elif [ "$1" == "restore-project" ]
 then
     if [ $# -eq 3 ]; then
-        java $metadata_tool -restore -project $2 -dir $3
+        ${KYLIN_HOME}/bin/kylin.sh io.kyligence.kap.tool.MetadataTool -restore -project $2 -dir $3
     else
         help
     fi
