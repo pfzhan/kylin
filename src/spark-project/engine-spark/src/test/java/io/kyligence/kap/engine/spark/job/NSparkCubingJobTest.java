@@ -308,6 +308,44 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
     }
 
     @Test
+    public void testMockedDFBuildJob() throws Exception {
+        System.setProperty("kylin.engine.spark.build-class-name", "io.kyligence.kap.engine.spark.job.MockedDFBuildJob");
+        String dataflowId = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
+        NDataflowManager dsMgr = NDataflowManager.getInstance(config, getProject());
+        NExecutableManager execMgr = NExecutableManager.getInstance(config, getProject());
+
+        NDataflow df = dsMgr.getDataflow(dataflowId);
+        NDataflowUpdate update = new NDataflowUpdate(df.getUuid());
+        update.setToRemoveSegs(df.getSegments().toArray(new NDataSegment[0]));
+        dsMgr.updateDataflow(update);
+        df = dsMgr.getDataflow(dataflowId);
+
+        List<LayoutEntity> round1 = new ArrayList<>();
+        round1.add(df.getIndexPlan().getCuboidLayout(20_000_020_001L));
+        round1.add(df.getIndexPlan().getCuboidLayout(1_000_001L));
+        round1.add(df.getIndexPlan().getCuboidLayout(30001L));
+        round1.add(df.getIndexPlan().getCuboidLayout(10002L));
+        NDataSegment oneSeg = dsMgr.appendSegment(df, SegmentRange.TimePartitionedSegmentRange.createInfinite());
+        NSparkCubingJob job = NSparkCubingJob.create(Sets.newHashSet(oneSeg), Sets.newLinkedHashSet(round1), "ADMIN");
+        NSparkCubingStep sparkStep = job.getSparkCubingStep();
+        execMgr.addJob(job);
+        ExecutableState status = wait(job);
+        Assert.assertEquals(ExecutableState.SUCCEED, status);
+
+        val merger = new AfterBuildResourceMerger(config, getProject(), JobTypeEnum.INC_BUILD);
+        merger.mergeAfterIncrement(df.getUuid(), oneSeg.getId(), ExecutableUtils.getLayoutIds(sparkStep),
+                ExecutableUtils.getRemoteStore(config, sparkStep));
+        NDataSegment newSeg = dsMgr.getDataflow(dataflowId).getSegments().getFirstSegment();
+        for (NDataLayout layout : newSeg.getLayoutsMap().values()) {
+            Assert.assertEquals(layout.getRows(), 123);
+            Assert.assertEquals(layout.getByteSize(), 123);
+            Assert.assertEquals(layout.getFileCount(), 123);
+            Assert.assertEquals(layout.getSourceRows(), 123);
+            Assert.assertEquals(layout.getSourceByteSize(), 123);
+        }
+    }
+
+    @Test
     public void testCancelCubingJob() throws Exception {
         NDataflowManager dsMgr = NDataflowManager.getInstance(config, getProject());
         NExecutableManager execMgr = NExecutableManager.getInstance(config, getProject());

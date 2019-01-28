@@ -40,7 +40,7 @@
  * limitations under the License.
  */
 
-package org.apache.kylin.query;
+package io.kyligence.kap.query.pushdown;
 
 import java.util.List;
 
@@ -57,15 +57,14 @@ import org.junit.Test;
 
 import com.google.common.collect.Lists;
 
-import io.kyligence.kap.query.pushdown.PushDownRunnerSparkImpl;
-import io.kyligence.kap.spark.KapSparkSession;
-
 public class PushDownRunnerSparkImplTest {
 
     SparkSession ss;
+
     @Before
     public void setUp() throws Exception {
         ss = SparkSession.builder().appName("local").master("local[1]").getOrCreate();
+        SparderEnv.setSparkSession(ss);
         StructType schema = new StructType();
         schema = schema.add("TRANS_ID", DataTypes.LongType, false);
         schema = schema.add("ORDER_ID", DataTypes.LongType, false);
@@ -77,13 +76,8 @@ public class PushDownRunnerSparkImplTest {
         schema = schema.add("SELLER_ID", DataTypes.LongType, false);
         schema = schema.add("PRICE", DataTypes.createDecimalType(19, 4), false);
         schema = schema.add("ITEM_COUNT", DataTypes.DoubleType, false);
-        if (ss instanceof KapSparkSession) {
-            ss.stop();
-            ss = SparkSession.builder().appName("local").master("local[1]").getOrCreate();
-        }
-        SparderEnv.setSparkSession(ss);
         schema = schema.add("TEST_COUNT_DISTINCT_BITMAP", DataTypes.StringType, false);
-        ss.read().schema(schema).csv("../examples/test_case_data/localmeta_n/data/DEFAULT.TEST_KYLIN_FACT.csv")
+        ss.read().schema(schema).csv("../../examples/test_case_data/localmeta_n/data/DEFAULT.TEST_KYLIN_FACT.csv")
                 .createOrReplaceTempView("TEST_KYLIN_FACT");
     }
 
@@ -93,7 +87,7 @@ public class PushDownRunnerSparkImplTest {
     }
 
     @Test
-    public void testPushDownRunnerSpark(){
+    public void testPushDownRunnerSpark() {
         PushDownRunnerSparkImpl pushDownRunnerSpark = new PushDownRunnerSparkImpl();
         pushDownRunnerSpark.init(null);
 
