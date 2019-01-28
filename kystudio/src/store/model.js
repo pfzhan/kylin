@@ -54,9 +54,15 @@ export default {
         })
       })
     },
-    [types.GET_SPEED_INFO]: function ({ commit }, projectName) {
+    [types.GET_SPEED_INFO]: function ({ commit, rootGetters }, projectName) {
       return new Promise((resolve, reject) => {
         api.model.getSpeedModelInfo(projectName).then((response) => {
+          // 如果请求回来的时候发现当前project和请求时候的project非同一个，驳回
+          if (rootGetters.currentSelectedProject !== projectName) {
+            commit(types.CACHE_SPEED_INFO, {reachThreshold: false, queryCount: 0, modelCount: 0})
+            resolve()
+            return
+          }
           commit(types.CACHE_SPEED_INFO, {reachThreshold: response.data.data.reach_threshold, queryCount: response.data.data.size, modelCount: response.data.data.optimized_model_num})
           resolve(response)
         }, (response) => {

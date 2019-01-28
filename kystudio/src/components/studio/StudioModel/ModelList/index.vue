@@ -117,7 +117,7 @@
                     <!-- 数据检测移动至project 级别处理， -->
                     <!-- <el-dropdown-item command="dataCheck">{{$t('datacheck')}}</el-dropdown-item> -->
                     <!-- 设置partition -->
-                    <el-dropdown-item command="dataLoad" :disabled="scope.row.management_type==='TABLE_ORIENTED'">{{$t('dataloading')}}</el-dropdown-item>
+                    <el-dropdown-item command="dataLoad" :disabled="scope.row.management_type==='TABLE_ORIENTED'">{{$t('modelPartitionSet')}}</el-dropdown-item>
                     <!-- <el-dropdown-item command="favorite" disabled>{{$t('favorite')}}</el-dropdown-item> -->
                     <el-dropdown-item command="importMDX" divided disabled v-if="scope.row.status !== 'BROKEN'">{{$t('importMdx')}}</el-dropdown-item>
                     <el-dropdown-item command="exportTDS" disabled v-if="scope.row.status !== 'BROKEN'">{{$t('exportTds')}}</el-dropdown-item>

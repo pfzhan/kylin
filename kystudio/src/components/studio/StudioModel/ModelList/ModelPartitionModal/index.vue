@@ -1,6 +1,6 @@
 <template>
   <el-dialog 
-    :title="$t('setting')"
+    :title="$t('modelPartitionSet')"
     width="660px"
     append-to-body
     :visible="isShow" 

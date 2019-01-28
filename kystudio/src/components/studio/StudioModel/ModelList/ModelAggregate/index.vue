@@ -19,7 +19,7 @@
               <div class="left font-medium">{{$t('aggregateIndexTree')}}</div>
               <div class="right">
                 <span>{{$t('aggregateAmount')}}</span>
-                <el-input v-model.trim="cuboidCount" size="small"></el-input>
+                <el-input v-model.trim="cuboidCount" :readonly="true" size="small"></el-input>
               </div>
             </div>
             <div class="agg-counter">

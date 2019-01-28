@@ -16,7 +16,8 @@ export default {
     loadRange: 'Loaded Range',
     noPartition: 'No Partition',
     invaildDate: 'Please input vaild date.',
-    detectAvailableRange: 'Detect available range'
+    detectAvailableRange: 'Detect available range',
+    modelPartitionSet: 'Model Partition'
   },
   'zh-cn': {
     partitionSet: '分区设置',
@@ -35,6 +36,7 @@ export default {
     loadRange: '加载范围',
     noPartition: '无分区',
     invaildDate: '请输入合法的时间区间。',
-    detectAvailableRange: '获取最新数据范围'
+    detectAvailableRange: '获取最新数据范围',
+    modelPartitionSet: '分区设置'
   }
 }

@@ -1,7 +1,7 @@
 export default {
   'en': {
     dataRangeValValid: 'Please input build date range',
-    modelBuild: 'Model Build',
+    modelBuild: 'Load Data',
     buildRange: 'Build Range',
     startDate: 'Start Date',
     endDate: 'End Date',
@@ -14,7 +14,7 @@ export default {
   },
   'zh-cn': {
     dataRangeValValid: '请输入构建日期范围',
-    modelBuild: '模型构建',
+    modelBuild: '加载数据',
     buildRange: '构建范围',
     startDate: '起始日期',
     endDate: '截止日期',
