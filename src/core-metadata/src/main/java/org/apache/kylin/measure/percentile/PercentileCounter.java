@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -85,7 +84,10 @@ public class PercentileCounter implements Serializable {
         registers.add(counter.registers);
     }
 
-    public double getResultEstimate() {
+    public Double getResultEstimate() {
+        if (registers.size() == 0) {
+            return null;
+        }
         return registers.quantile(quantileRatio);
     }
 

@@ -38,10 +38,11 @@ class PercentileCountEnc(dataType: DataType) extends MeasureEncoder[Any, Percent
 
   override def encoder(value: Any): PercentileCounter = {
     val current: PercentileCounter = new PercentileCounter(dataType.getPrecision)
-    current.add(value.toString.toDouble)
+    if (value != null) {
+      current.add(value.toString.toDouble)
+    }
     current
   }
-
 }
 
 class HLLCCountEnc(dataType: DataType) extends MeasureEncoder[Any, HLLCounter](dataType: DataType) with Serializable {

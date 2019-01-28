@@ -24,25 +24,21 @@
 
 package org.apache.spark.sql.udf
 
-import java.math.BigDecimal
 import java.nio.ByteBuffer
 import java.util
 
 import com.google.common.collect.Maps
-import org.apache.kylin.common.util.ByteArray
 import org.apache.kylin.measure.MeasureAggregator
 import org.apache.kylin.measure.bitmap.BitmapCounter
 import org.apache.kylin.measure.dim.DimCountDistinctCounter
 import org.apache.kylin.measure.hllc.HLLCounter
 import org.apache.kylin.measure.percentile.PercentileCounter
-import org.apache.kylin.measure.topn.TopNCounter
 import org.apache.kylin.metadata.datatype.{DataTypeSerializer, DataType => KyDataType}
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.Row
 import org.apache.spark.sql.expressions.{MutableAggregationBuffer, UserDefinedAggregateFunction}
 import org.apache.spark.sql.types._
 import org.apache.spark.sql.util.SparderTypeUtil
-import org.apache.spark.unsafe.types.UTF8String
 
 class SparderAggFun(funcName: String, dataTp: KyDataType)
   extends UserDefinedAggregateFunction
@@ -174,36 +170,10 @@ class SparderAggFun(funcName: String, dataTp: KyDataType)
         case "hllc" => x.asInstanceOf[HLLCounter].getCountEstimate
         case "bitmap" => x.asInstanceOf[BitmapCounter].getCount
         case "dim_dc" => x.asInstanceOf[DimCountDistinctCounter].result()
-        case x if x startsWith "top" =>
-          x.asInstanceOf[TopNCounter[ByteArray]].getCounterList
         case _ => null
       }
 
-      if (ret != null)
-        return ret
-      if (x == null)
-        return null
-
-      val s = x.toString
-
-      dataTp.getName match {
-        case "decimal" =>
-          Decimal(new BigDecimal(s), dataTp.getPrecision, dataTp.getScale)
-        case "date" => SparderTypeUtil.toSparkTimestamp(s.toLong)
-        case "time" => SparderTypeUtil.toSparkTimestamp(s.toLong)
-        case "timestamp" => SparderTypeUtil.toSparkTimestamp(s.toLong)
-        case "datetime" => SparderTypeUtil.toSparkTimestamp(s.toLong)
-        case "tinyint" => s.toByte
-        case "smallint" => s.toShort
-        case "integer" => s.toInt
-        case "int4" => s.toInt
-        case "bigint" => s.toLong
-        case "long8" => s.toLong
-        case "float" => s.toFloat
-        case "double" => s.toDouble
-        case "varchar" => UTF8String.fromString(toString)
-        case _ => throw new IllegalArgumentException
-      }
+      ret
     }
   }
 

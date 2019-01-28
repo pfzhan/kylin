@@ -242,14 +242,18 @@ public class FunctionDesc implements Serializable {
         }
     }
 
-    public ColumnDesc newFakeRewriteColumn(TableDesc sourceTable) {
+    public ColumnDesc newFakeRewriteColumn(String rewriteFiledName, TableDesc sourceTable) {
         ColumnDesc fakeCol = new ColumnDesc();
-        fakeCol.setName(getRewriteFieldName());
+        fakeCol.setName(rewriteFiledName);
         fakeCol.setDatatype(getRewriteFieldType().toString());
-        if (isCount())
+        if (isCountConstant())
             fakeCol.setNullable(false);
         fakeCol.init(sourceTable);
         return fakeCol;
+    }
+
+    public ColumnDesc newFakeRewriteColumn(TableDesc sourceTable) {
+        return newFakeRewriteColumn(getRewriteFieldName(), sourceTable);
     }
 
     public boolean isMin() {

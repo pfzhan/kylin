@@ -83,6 +83,8 @@ import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Util;
 import org.apache.kylin.measure.MeasureTypeFactory;
 import org.apache.kylin.measure.ParamAsMeasureCount;
+import org.apache.kylin.measure.basic.BasicMeasureType;
+import org.apache.kylin.measure.topn.TopNMeasureType;
 import org.apache.kylin.metadata.model.FunctionDesc;
 import org.apache.kylin.metadata.model.MeasureDesc;
 import org.apache.kylin.metadata.model.ParameterDesc;
@@ -362,7 +364,7 @@ public class OLAPAggregateRel extends Aggregate implements OLAPRel {
 
             //if not dim as measure (using some measure), differentiate it with a new class
             if (cubeFunc.getMeasureType() != null &&
-                    // DimCountDistinct case
+            // DimCountDistinct case
                     cubeFunc.getMeasureType().needRewriteField()) {
                 aggCall = new KylinAggregateCall(aggCall, cubeFunc);
             }
@@ -414,6 +416,19 @@ public class OLAPAggregateRel extends Aggregate implements OLAPRel {
         for (MeasureDesc m : measures) {
             if (aggFunc.equals(m.getFunction()))
                 return m.getFunction();
+        }
+        // try replace advance measure, like topn
+        for (MeasureDesc m : measures) {
+            if (m.getFunction().getMeasureType() instanceof BasicMeasureType)
+                continue;
+
+            if (m.getFunction().getMeasureType() instanceof TopNMeasureType) {
+                FunctionDesc internalTopn = ((TopNMeasureType) m.getFunction().getMeasureType())
+                        .getTopnInternalMeasure(m.getFunction());
+                if (aggFunc.equals(internalTopn))
+                    return internalTopn;
+            }
+
         }
         if (aggFunc.getExpression().equalsIgnoreCase("intersect_count")) {
             for (MeasureDesc m : measures) {

@@ -71,6 +71,7 @@ import org.apache.calcite.schema.impl.AbstractTableQueryable;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.util.ImmutableBitSet;
+import org.apache.kylin.measure.topn.TopNMeasureType;
 import org.apache.kylin.metadata.datatype.DataType;
 import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.FunctionDesc;
@@ -227,10 +228,15 @@ public class OLAPTable extends AbstractQueryableTable implements TranslatableTab
         for (MeasureDesc m : countMeasures) {
 
             FunctionDesc func = m.getFunction();
-            String fieldName = func.getRewriteFieldName();
+            String fieldName;
+            if (FunctionDesc.FUNC_TOP_N.equalsIgnoreCase(func.getExpression())) {
+                fieldName = ((TopNMeasureType) func.getMeasureType()).getRewriteName(func);
+            } else {
+                fieldName = func.getRewriteFieldName();
+            }
             if (!metFields.contains(fieldName)) {
                 metFields.add(fieldName);
-                ColumnDesc fakeCountCol = func.newFakeRewriteColumn(sourceTable);
+                ColumnDesc fakeCountCol = func.newFakeRewriteColumn(fieldName, sourceTable);
                 metricColumns.add(fakeCountCol);
             }
         }
