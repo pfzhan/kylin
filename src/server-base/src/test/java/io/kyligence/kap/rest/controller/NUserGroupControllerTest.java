@@ -50,11 +50,14 @@ import io.kyligence.kap.rest.service.NUserGroupService;
 import lombok.val;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.rest.constant.Constant;
+import org.apache.kylin.rest.exception.BadRequestException;
 import org.apache.kylin.rest.security.ManagedUser;
 import org.apache.kylin.rest.service.UserService;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
@@ -68,6 +71,8 @@ import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
+import static org.hamcrest.CoreMatchers.containsString;
+
 public class NUserGroupControllerTest {
 
     private MockMvc mockMvc;
@@ -77,6 +82,9 @@ public class NUserGroupControllerTest {
 
     @Mock
     private UserService userService;
+
+    @Rule
+    public ExpectedException thrown = ExpectedException.none();
 
     @InjectMocks
     private NUserGroupController nUserGroupController = Mockito.spy(new NUserGroupController());
@@ -136,6 +144,23 @@ public class NUserGroupControllerTest {
                 .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
                 .andExpect(MockMvcResultMatchers.status().isOk());
         Mockito.verify(nUserGroupController).addUserGroup("g1");
+    }
+
+    @Test
+    public void testAddEmptyGroup() throws Exception {
+        thrown.expect(BadRequestException.class);
+        thrown.expectMessage("User group name should not be empty.");
+        nUserGroupController.addUserGroup("");
+    }
+
+    @Test
+    public void testAddGroupWithInvalidGroupName() throws Exception {
+        Mockito.doNothing().when(userGroupService).addGroup("a$");
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/user_group/{groupName}", "a$")
+                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .andExpect(MockMvcResultMatchers.content()
+                        .string(containsString("User group name should only contain alphanumerics and underscores.")));
+        Mockito.verify(nUserGroupController).addUserGroup("a$");
     }
 
     @Test

@@ -31,10 +31,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.regex.Pattern;
 
 import io.kyligence.kap.rest.request.UpdateGroupRequest;
 import lombok.val;
+import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.util.Pair;
+import org.apache.kylin.rest.exception.BadRequestException;
+import org.apache.kylin.rest.msg.Message;
+import org.apache.kylin.rest.msg.MsgPicker;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.response.ResponseCode;
 import org.apache.kylin.rest.security.ManagedUser;
@@ -62,6 +67,9 @@ public class NUserGroupController extends NBasicController {
     @Autowired
     @Qualifier("userService")
     private UserService userService;
+
+    private static final Message msg = MsgPicker.getMsg();
+    private static final Pattern groupNamePattern = Pattern.compile("^[a-zA-Z0-9_]*$");
 
     @RequestMapping(value = "/groupMembers/{groupName}", method = { RequestMethod.GET }, produces = {
             "application/vnd.apache.kylin-v2+json" })
@@ -120,6 +128,7 @@ public class NUserGroupController extends NBasicController {
     @ResponseBody
     public EnvelopeResponse<String> addUserGroup(@PathVariable(value = "groupName") String groupName)
             throws IOException {
+        checkGroupName(groupName);
         userGroupService.addGroup(groupName);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, null, "add user group");
     }
@@ -141,5 +150,14 @@ public class NUserGroupController extends NBasicController {
             throws IOException {
         userGroupService.modifyGroupUsers(updateGroupRequest.getGroup(), updateGroupRequest.getUsers());
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, null, "modify users in user group");
+    }
+
+    private void checkGroupName(String groupName) {
+        if (StringUtils.isEmpty(groupName)) {
+            throw new BadRequestException(msg.getEMPTY_GROUP_NAME());
+        }
+        if (!groupNamePattern.matcher(groupName).matches()) {
+            throw new BadRequestException(msg.getINVALID_GROUP_NAME());
+        }
     }
 }

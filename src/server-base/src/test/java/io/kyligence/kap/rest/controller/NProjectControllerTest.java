@@ -64,9 +64,12 @@ import lombok.val;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.rest.constant.Constant;
+import org.apache.kylin.rest.exception.BadRequestException;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
@@ -85,6 +88,8 @@ public class NProjectControllerTest {
 
     private MockMvc mockMvc;
 
+    @Rule
+    public ExpectedException thrown = ExpectedException.none();
 
     @Mock
     private ProjectService projectService;
@@ -129,6 +134,17 @@ public class NProjectControllerTest {
 
         Mockito.verify(nProjectController).getProjects("default", 0, 10);
 
+    }
+
+    @Test
+    public void testInvalidProjectName() {
+        ProjectInstance projectInstance = new ProjectInstance();
+        projectInstance.setName("^project");
+        ProjectRequest projectRequest = mockProjectRequest();
+        Mockito.when(projectService.deserializeProjectDesc(projectRequest)).thenReturn(projectInstance);
+        thrown.expect(BadRequestException.class);
+        thrown.expectMessage("Invalid project name '^project', only letters, numbers and underlines are supported.");
+        nProjectController.saveProject(projectRequest);
     }
 
     @Test

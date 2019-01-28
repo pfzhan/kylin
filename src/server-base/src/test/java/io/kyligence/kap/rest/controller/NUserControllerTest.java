@@ -72,14 +72,18 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
+import static org.hamcrest.CoreMatchers.containsString;
+
 public class NUserControllerTest extends NLocalFileMetadataTestCase {
 
     private MockMvc mockMvc;
+    private static BCryptPasswordEncoder pwdEncoder = new BCryptPasswordEncoder();
 
     @InjectMocks
     private NUserController nUserController = Mockito.spy(new NUserController());
@@ -123,13 +127,13 @@ public class NUserControllerTest extends NLocalFileMetadataTestCase {
         Assert.assertTrue(userDetailsEnvelopeResponse.code.equals(ResponseCode.CODE_SUCCESS));
     }
 
-
     @Test
     public void testAuthenticatedUser_WithOutOfDateLicense() {
         getTestConfig().setProperty("kylin.env", "PROD");
         System.setProperty("ke.license.valid-dates", "2018-12-17,2019-01-17");
         thrown.expect(BadRequestException.class);
-        thrown.expectMessage("This license has expired and the validity period is ['2018-12-17' - '2019-01-17']. Please contact the Kyligence sales staff.");
+        thrown.expectMessage(
+                "This license has expired and the validity period is ['2018-12-17' - '2019-01-17']. Please contact the Kyligence sales staff.");
         nUserController.authenticatedUser();
     }
 
@@ -145,7 +149,7 @@ public class NUserControllerTest extends NLocalFileMetadataTestCase {
     public void testCreateUser() throws Exception {
         val user = new ManagedUser();
         user.setUsername("u1");
-        user.setPassword("p1");
+        user.setPassword("p14532522?");
         Mockito.doNothing().when(userService).createUser(Mockito.any(UserDetails.class));
         mockMvc.perform(MockMvcRequestBuilders.post("/api/user").contentType(MediaType.APPLICATION_JSON)
                 .content(JsonUtil.writeValueAsString(user))
@@ -156,7 +160,32 @@ public class NUserControllerTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void testCreateUser_PasswordLenth_exception() throws Exception {
+    public void testCreateUserWithEmptyUsername() {
+        val user = new ManagedUser();
+        user.setUsername("");
+        user.setPassword("p1234sgw$");
+        thrown.expect(BadRequestException.class);
+        thrown.expectMessage("Username should not be empty.");
+        nUserController.createUser(user);
+    }
+
+    @Test
+    public void testCreateUser_InvalidUsername() throws Exception {
+        val user = new ManagedUser();
+        user.setUsername("u1&");
+        user.setPassword("p1111241.");
+        Mockito.doNothing().when(userService).createUser(Mockito.any(UserDetails.class));
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/user").contentType(MediaType.APPLICATION_JSON)
+                .content(JsonUtil.writeValueAsString(user))
+                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .andExpect(MockMvcResultMatchers.content().string(containsString(
+                        "Username should only contain alphanumerics and underscores.")));
+
+        Mockito.verify(nUserController).createUser(Mockito.any(ManagedUser.class));
+    }
+
+    @Test
+    public void testCreateUser_PasswordLength_Exception() throws Exception {
         val user = new ManagedUser();
         user.setUsername("u1");
         user.setPassword("p1");
@@ -164,7 +193,8 @@ public class NUserControllerTest extends NLocalFileMetadataTestCase {
         mockMvc.perform(MockMvcRequestBuilders.post("/api/user").contentType(MediaType.APPLICATION_JSON)
                 .content(JsonUtil.writeValueAsString(user))
                 .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
-                .andExpect(MockMvcResultMatchers.status().isOk());
+                .andExpect(MockMvcResultMatchers.content().string(containsString(
+                        "The password should contain more than 8 characters!")));
 
         Mockito.verify(nUserController).createUser(Mockito.any(ManagedUser.class));
     }
@@ -183,17 +213,128 @@ public class NUserControllerTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void testUpdatePasswordUser_UserNotFound() throws Exception {
+    public void testUpdatePassword_UserNotFound() throws Exception {
         val request = new PasswordChangeRequest();
         request.setUsername("ADMIN");
         request.setPassword("KYLIN");
         request.setNewPassword("KYLIN1234@");
-        Mockito.doNothing().when(userService).deleteUser(Mockito.anyString());
-        Mockito.doNothing().when(accessService).revokeProjectPermission(Mockito.anyString(), Mockito.anyString());
         mockMvc.perform(MockMvcRequestBuilders.put("/api/user/password").contentType(MediaType.APPLICATION_JSON)
                 .content(JsonUtil.writeValueAsString(request))
                 .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
-                .andExpect(MockMvcResultMatchers.status().isBadRequest());
+                .andExpect(MockMvcResultMatchers.content().string(containsString(
+                        "User 'ADMIN' not found.")));
+
+        Mockito.verify(nUserController).updateUserPassword(Mockito.any(PasswordChangeRequest.class));
+    }
+
+    @Test
+    public void testUpdatePassword_Success() throws Exception {
+        val user = new ManagedUser("ADMIN", "KYLIN", false);
+        val request = new PasswordChangeRequest();
+        request.setUsername("ADMIN");
+        request.setPassword("KYLIN");
+        request.setNewPassword("KYLIN1234@");
+
+        Mockito.doReturn(user).when(nUserController).getManagedUser("ADMIN");
+        mockMvc.perform(MockMvcRequestBuilders.put("/api/user/password").contentType(MediaType.APPLICATION_JSON)
+                .content(JsonUtil.writeValueAsString(request))
+                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .andExpect(MockMvcResultMatchers.status().isOk());
+
+        Mockito.verify(nUserController).updateUserPassword(Mockito.any(PasswordChangeRequest.class));
+    }
+
+    @Test
+    public void testUpdatePassword_OldSameAsNew() throws Exception {
+        val user = new ManagedUser("ADMIN", pwdEncoder.encode("KYLIN1234@"), false);
+        val request = new PasswordChangeRequest();
+        request.setUsername("ADMIN");
+        request.setPassword("KYLIN1234@");
+        request.setNewPassword("KYLIN1234@");
+
+        Mockito.doReturn(user).when(nUserController).getManagedUser("ADMIN");
+        mockMvc.perform(MockMvcRequestBuilders.put("/api/user/password").contentType(MediaType.APPLICATION_JSON)
+                .content(JsonUtil.writeValueAsString(request))
+                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .andExpect(MockMvcResultMatchers.content().string(containsString(
+                        "New password should not be same as old one!")));
+
+        Mockito.verify(nUserController).updateUserPassword(Mockito.any(PasswordChangeRequest.class));
+    }
+
+    @Test
+    public void testUpdatePassword_InvalidPasswordPattern() throws Exception {
+        val user = new ManagedUser();
+        val request = new PasswordChangeRequest();
+
+        request.setUsername("ADMIN");
+        request.setPassword("KYLIN");
+        request.setNewPassword("kylin123456");
+        Mockito.doReturn(user).when(nUserController).getManagedUser("ADMIN");
+
+        mockMvc.perform(MockMvcRequestBuilders.put("/api/user/password").contentType(MediaType.APPLICATION_JSON)
+                .content(JsonUtil.writeValueAsString(request))
+                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .andExpect(MockMvcResultMatchers.content().string(containsString(
+                        "The password should contain at least one number, letter and special character")));
+
+        Mockito.verify(nUserController).updateUserPassword(Mockito.any(PasswordChangeRequest.class));
+    }
+
+    @Test
+    public void testUpdatePassword_InvalidPasswordLength() throws Exception {
+        val user = new ManagedUser();
+        val request = new PasswordChangeRequest();
+
+        request.setUsername("ADMIN");
+        request.setPassword("KYLIN");
+        request.setNewPassword("123456");
+        Mockito.doReturn(user).when(nUserController).getManagedUser("ADMIN");
+
+        mockMvc.perform(MockMvcRequestBuilders.put("/api/user/password").contentType(MediaType.APPLICATION_JSON)
+                .content(JsonUtil.writeValueAsString(request))
+                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .andExpect(MockMvcResultMatchers.content()
+                        .string(containsString("The password should contain more than 8 characters!")));
+
+        Mockito.verify(nUserController).updateUserPassword(Mockito.any(PasswordChangeRequest.class));
+    }
+
+    @Test
+    public void testUpdatePasswordForNormalUser_Success() throws Exception {
+        val user = new ManagedUser("ADMIN", pwdEncoder.encode("KYLIN"), false);
+        Authentication authentication = new TestingAuthenticationToken(user, "MODELER", Constant.ROLE_MODELER);
+        SecurityContextHolder.getContext().setAuthentication(authentication);
+        val request = new PasswordChangeRequest();
+        request.setUsername("ADMIN");
+        request.setPassword("KYLIN");
+        request.setNewPassword("KYLIN1234@");
+
+        Mockito.doReturn(user).when(nUserController).getManagedUser("ADMIN");
+        mockMvc.perform(MockMvcRequestBuilders.put("/api/user/password").contentType(MediaType.APPLICATION_JSON)
+                .content(JsonUtil.writeValueAsString(request))
+                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .andExpect(MockMvcResultMatchers.status().isOk());
+
+        Mockito.verify(nUserController).updateUserPassword(Mockito.any(PasswordChangeRequest.class));
+    }
+
+    @Test
+    public void testUpdatePasswordForNormalUser_WrongPassword() throws Exception {
+        val user = new ManagedUser("ADMIN", pwdEncoder.encode("KYLIN"), false);
+        Authentication authentication = new TestingAuthenticationToken(user, "ANALYST", Constant.ROLE_ANALYST);
+        SecurityContextHolder.getContext().setAuthentication(authentication);
+        val request = new PasswordChangeRequest();
+        request.setUsername("ADMIN");
+        request.setPassword("KYLIN1");
+        request.setNewPassword("KYLIN1234@");
+
+        Mockito.doReturn(user).when(nUserController).getManagedUser("ADMIN");
+        mockMvc.perform(MockMvcRequestBuilders.put("/api/user/password").contentType(MediaType.APPLICATION_JSON)
+                .content(JsonUtil.writeValueAsString(request))
+                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .andExpect(MockMvcResultMatchers.content()
+                        .string(containsString("Old password is not correct!")));
 
         Mockito.verify(nUserController).updateUserPassword(Mockito.any(PasswordChangeRequest.class));
     }

@@ -2328,7 +2328,7 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
             modelService.createModel(modelRequest.getProject(), modelRequest);
         } catch (Exception ex) {
             Assert.assertEquals(IllegalArgumentException.class, ex.getClass());
-            Assert.assertEquals("Invalid dimension name 'CAL_DT1@!', only letters, numbers and underline supported.",
+            Assert.assertEquals("Invalid dimension name 'CAL_DT1@!', only letters, numbers and underlines are supported.",
                     ex.getMessage());
         }
 
@@ -2352,7 +2352,7 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
         } catch (Exception e) {
             Assert.assertEquals(IllegalArgumentException.class, e.getClass());
             Assert.assertEquals(
-                    "Invalid measure name 'illegal_measure_name@!', only letters, numbers and underline supported.",
+                    "Invalid measure name 'illegal_measure_name@!', only letters, numbers and underlines are supported.",
                     e.getMessage());
         }
 

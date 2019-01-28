@@ -900,11 +900,9 @@ public class ModelService extends BasicService {
         String modelAlias = modelDesc.getAlias();
 
         if (StringUtils.isEmpty(modelAlias)) {
-            logger.info("Model name should not be empty.");
             throw new BadRequestException(msg.getEMPTY_MODEL_NAME());
         }
         if (!StringUtils.containsOnly(modelAlias, VALID_NAME_FOR_MODEL_DIMENSION_MEASURE)) {
-            logger.info("Invalid Model name {}, only letters, numbers and underline supported.", modelDesc.getUuid());
             throw new BadRequestException(String.format(msg.getINVALID_MODEL_NAME(), modelAlias));
         }
     }

@@ -407,6 +407,32 @@ public class CnMessage extends Message {
         return "找不到 Sid";
     }
 
+    // user group
+
+    public String getEMPTY_GROUP_NAME() {
+        return "用户组名不能为空.";
+    }
+
+    public String getINVALID_GROUP_NAME() {
+        return "用户组名只能包含字母，数字和下划线";
+    }
+
+    public String getEMPTY_SID() {
+        return "用户名/用户组名不能为空";
+    }
+
+    public String getINVALID_SID() {
+        return "用户名/组名只能包含字母，数字和下划线";
+    }
+
+    public String getEMPTY_QUERY_NAME() {
+        return "查询名称不能为空";
+    }
+
+    public String getINVALID_QUERY_NAME() {
+        return "查询名称只能包含字母，数字和下划线";
+    }
+
     public String getREVOKE_ADMIN_PERMISSION() {
         return "不能取消创建者的管理员权限";
     }
@@ -446,6 +472,10 @@ public class CnMessage extends Message {
         return "找不到用户 '%s'";
     }
 
+    public String getINVALID_USERNAME() {
+        return "用户名只能包含数字，字母和下划线";
+    }
+
     public String getUSER_BE_LOCKED() {
         return "用户名或密码错误，请在30秒后再次重试";
     }
@@ -460,6 +490,10 @@ public class CnMessage extends Message {
 
     public String getUSER_LOGIN_AS_USER_NOT_ADMIN() {
         return "仅 ADMIN 用户可切换为其他用户登录。";
+    }
+
+    public String getNEW_PASSWORD_SAME_AS_OLD() {
+        return "新密码与旧密码一致，请输入一个不同的新密码";
     }
 
     // Diagnosis

@@ -119,7 +119,7 @@ public class Message {
     }
 
     public String getINVALID_CUBE_NAME() {
-        return "Invalid Cube name '%s', only letters, numbers and underline supported.";
+        return "Invalid Cube name '%s', only letters, numbers and underlines are supported.";
     }
 
     public String getCUBE_ALREADY_EXIST() {
@@ -196,15 +196,15 @@ public class Message {
     }
 
     public String getINVALID_MODEL_NAME() {
-        return "Invalid model name '%s', only letters, numbers and underline supported.";
+        return "Invalid model name '%s', only letters, numbers and underlines are supported.";
     }
 
     public String getINVALID_DIMENSION_NAME() {
-        return "Invalid dimension name '%s', only letters, numbers and underline supported.";
+        return "Invalid dimension name '%s', only letters, numbers and underlines are supported.";
     }
 
     public String getINVALID_MEASURE_NAME() {
-        return "Invalid measure name '%s', only letters, numbers and underline supported.";
+        return "Invalid measure name '%s', only letters, numbers and underlines are supported.";
     }
 
     public String getDUPLICATE_DIMENSION_NAME() {
@@ -276,10 +276,35 @@ public class Message {
     public String getUSER_NOT_EXIST() {
         return "User '%s' does not exist. Please make sure the user exists.";
     }
+
+    // user group
+    public String getEMPTY_GROUP_NAME() {
+        return "User group name should not be empty.";
+    }
+
+    public String getEMPTY_SID() {
+        return "User/Group name should not be empty.";
+    }
+
+    public String getINVALID_SID() {
+        return "User/Group name should only contain alphanumerics and underscores.";
+    }
+
+    public String getEMPTY_QUERY_NAME() {
+        return "Query name should not be empty.";
+    }
+
+    public String getINVALID_QUERY_NAME() {
+        return "Query name should only contain alphanumerics and underscores.";
+    }
     
     //user
     public String getEMPTY_USER_NAME() {
-        return "User name should not be empty.";
+        return "Username should not be empty.";
+    }
+
+    public String getINVALID_USERNAME() {
+        return "Username should only contain alphanumerics and underscores.";
     }
 
     public String getSHORT_PASSWORD() {
@@ -287,7 +312,11 @@ public class Message {
     }
 
     public String getINVALID_PASSWORD() {
-        return "The password should contain at least one numbers, letters and special characters (~!@#$%^&*(){}|:\"<>?[];\\'\\,./`).";
+        return "The password should contain at least one number, letter and special character (~!@#$%^&*(){}|:\"<>?[];\\'\\,./`).";
+    }
+
+    public String getINVALID_GROUP_NAME() {
+        return "User group name should only contain alphanumerics and underscores.";
     }
 
     public String getPERMISSION_DENIED() {
@@ -314,6 +343,10 @@ public class Message {
         return "Old password is not correct!";
     }
 
+    public String getNEW_PASSWORD_SAME_AS_OLD() {
+        return "New password should not be same as old one!";
+    }
+
     public String getUSER_AUTH_FAILED() {
         return "Invalid username or password.";
     }
@@ -332,7 +365,7 @@ public class Message {
 
     // Project
     public String getINVALID_PROJECT_NAME() {
-        return "Invalid Project name '%s', only letters, numbers and underline supported.";
+        return "Invalid project name '%s', only letters, numbers and underlines are supported.";
     }
 
     public String getPROJECT_ALREADY_EXIST() {
@@ -486,7 +519,7 @@ public class Message {
 
     // Async Query
     public String getQUERY_RESULT_NOT_FOUND() {
-        return "No result for this query is available, please check its status first.";
+        return "Result for this query is unavailable, please check its status first.";
     }
 
     public String getQUERY_RESULT_FILE_NOT_FOUND() {
@@ -508,7 +541,7 @@ public class Message {
 
     // User
     public String getAUTH_INFO_NOT_FOUND() {
-        return "Can not find authentication information.";
+        return "Cannot find authentication information.";
     }
 
     public String getUSER_NOT_FOUND() {
@@ -521,15 +554,15 @@ public class Message {
     }
 
     public String getGENERATE_DIAG_PACKAGE_FAIL() {
-        return "Failed to generate diagnosis package.";
+        return "Failed to generate diagnostic package.";
     }
 
     public String getDIAG_PACKAGE_NOT_AVAILABLE() {
-        return "Diagnosis package is not available in directory: %s.";
+        return "Diagnostic package is not available in directory: %s.";
     }
 
     public String getDIAG_PACKAGE_NOT_FOUND() {
-        return "Diagnosis package not found in directory: %s.";
+        return "Diagnostic package not found in directory: %s.";
     }
 
     // Encoding
@@ -565,7 +598,7 @@ public class Message {
     }
 
     public String getFAIL_TO_VERIFY_SQL() {
-        return "Failed to verify sqls.";
+        return "Failed to verify SQLs.";
     }
 
     public String getFAVORITE_QUERY_NOT_EXIST() {

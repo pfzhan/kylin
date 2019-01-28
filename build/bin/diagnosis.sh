@@ -49,7 +49,7 @@ case $1 in
             end_time=`date +%s`
         fi
         extract_log_args="-startTime $[$start_time * 1000] -endTime $[$end_time * 1000]"
-        verbose "Start build full diagnosis package"
+        verbose "Start to build full diagnostic package"
         ;;
     "-job")
         job_id=$2
@@ -57,7 +57,7 @@ case $1 in
             diag_pkg_home=$4
         fi
         extract_log_args="-job $job_id"
-        verbose "Start build job diagnosis package"
+        verbose "Start to build job diagnostic package"
         ;;
     *) help ;;
 esac
@@ -158,12 +158,12 @@ if [[ ! -d $diag_pkg_home ]]; then
 fi
 diag_pkg_home=$(cd -P $diag_pkg_home && pwd -P)
 diag_package="diag_$(date '+%Y_%m_%d_%H_%M_%S')"
-verbose "Packaging, build diagnosis package in [${diag_pkg_home}/${diag_package}.tar.gz]"
+verbose "Packaging, build diagnostic package in [${diag_pkg_home}/${diag_package}.tar.gz]"
 (cd ${diag_tmp_dir} && mkdir $diag_package && cp -rf "metadata" "logs" "spark_logs" "conf" "hadoop_conf" "diag.log" $diag_package \
     && tar -zcf "${diag_package}.tar.gz" $diag_package \
     && cp "${diag_package}.tar.gz" "${diag_pkg_home}/${diag_package}.tar.gz")
 
-verbose "Build diagnosis package finished."
+verbose "Build diagnostic package finished."
 # delete tmp dir
 if [[ -d $diag_tmp_dir ]]; then
     rm -rf $diag_tmp_dir

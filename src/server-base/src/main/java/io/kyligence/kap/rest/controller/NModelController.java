@@ -120,7 +120,7 @@ public class NModelController extends NBasicController {
     public EnvelopeResponse createModel(@RequestBody ModelRequest modelRequest) throws Exception {
         checkProjectName(modelRequest.getProject());
         validateStartAndEndExistBoth(modelRequest.getStart(), modelRequest.getEnd());
-        validatePartionDesc(modelRequest);
+        validatePartitionDesc(modelRequest);
         modelService.createModel(modelRequest.getProject(), modelRequest);
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, null, "");
     }
@@ -262,7 +262,7 @@ public class NModelController extends NBasicController {
     @ResponseBody
     public EnvelopeResponse updateSemantic(@RequestBody ModelRequest request) throws Exception {
         checkProjectName(request.getProject());
-        validatePartionDesc(request);
+        validatePartitionDesc(request);
         checkRequiredArg(MODEL_ID, request.getUuid());
         modelService.updateDataModelSemantic(request.getProject(), request);
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, null, "");
@@ -276,7 +276,6 @@ public class NModelController extends NBasicController {
         checkRequiredArg(MODEL_ID, modelRenameRequest.getModelId());
         String newAlias = modelRenameRequest.getNewModelName();
         if (!StringUtils.containsOnly(newAlias, ModelService.VALID_NAME_FOR_MODEL_DIMENSION_MEASURE)) {
-            logger.info("Invalid Model name {}, only letters, numbers and underline supported.", newAlias);
             throw new BadRequestException(String.format(msg.getINVALID_MODEL_NAME(), newAlias));
         }
 
@@ -338,7 +337,6 @@ public class NModelController extends NBasicController {
         checkRequiredArg(MODEL_ID, modelName);
         checkRequiredArg(NEW_MODEL_NAME, newModelName);
         if (!StringUtils.containsOnly(newModelName, ModelService.VALID_NAME_FOR_MODEL_DIMENSION_MEASURE)) {
-            logger.info("Invalid Model name {}, only letters, numbers and underline supported.", newModelName);
             throw new BadRequestException(String.format(msg.getINVALID_MODEL_NAME(), newModelName));
         }
         modelService.cloneModel(request.getModelId(), request.getNewModelName(), request.getProject());
@@ -428,7 +426,7 @@ public class NModelController extends NBasicController {
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, null, "");
     }
 
-    public void validatePartionDesc(NDataModel model) {
+    public void validatePartitionDesc(NDataModel model) {
         if (model.getPartitionDesc() != null
                 && StringUtils.isEmpty(model.getPartitionDesc().getPartitionDateColumn())) {
             throw new BadRequestException("Partition column does not exist!");

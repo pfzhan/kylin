@@ -35,20 +35,23 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Pattern;
 
 import javax.servlet.http.HttpServletResponse;
 
 import io.kyligence.kap.metadata.query.QueryHistoryRequest;
 import io.kyligence.kap.rest.response.QueryEngineStatisticsResponse;
 import io.kyligence.kap.rest.service.QueryHistoryService;
+import lombok.val;
 import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.debug.BackdoorToggles;
 import org.apache.kylin.metadata.querymeta.SelectedColumnMeta;
+import org.apache.kylin.rest.exception.BadRequestException;
 import org.apache.kylin.rest.exception.ForbiddenException;
 import org.apache.kylin.rest.exception.InternalErrorException;
 import org.apache.kylin.rest.model.Query;
-import org.apache.kylin.rest.msg.Message;
 import org.apache.kylin.rest.msg.MsgPicker;
 import org.apache.kylin.rest.request.MetaRequest;
 import org.apache.kylin.rest.request.PrepareSqlRequest;
@@ -88,6 +91,7 @@ import com.google.common.collect.Maps;
 public class NQueryController extends NBasicController {
     @SuppressWarnings("unused")
     private static final Logger logger = LoggerFactory.getLogger(NQueryController.class);
+    private static final Pattern queryNamePattern = Pattern.compile("^[a-zA-Z0-9_]*$");
 
     @Autowired
     @Qualifier("kapQueryService")
@@ -122,9 +126,10 @@ public class NQueryController extends NBasicController {
     @RequestMapping(value = "/saved_queries", method = RequestMethod.POST, produces = {
             "application/vnd.apache.kylin-v2+json" })
     public void saveQuery(@RequestBody SaveSqlRequest sqlRequest) throws IOException {
-
+        String queryName = sqlRequest.getName();
+        checkQueryName(queryName);
         String creator = SecurityContextHolder.getContext().getAuthentication().getName();
-        Query newQuery = new Query(sqlRequest.getName(), sqlRequest.getProject(), sqlRequest.getSql(),
+        Query newQuery = new Query(queryName, sqlRequest.getProject(), sqlRequest.getSql(),
                 sqlRequest.getDescription());
         queryService.saveQuery(creator, sqlRequest.getProject(), newQuery);
     }
@@ -182,7 +187,7 @@ public class NQueryController extends NBasicController {
             HttpServletResponse response) throws IOException {
 
         KylinConfig config = queryService.getConfig();
-        Message msg = MsgPicker.getMsg();
+        val msg = MsgPicker.getMsg();
 
         if ((isAdmin() && !config.isAdminUserExportAllowed())
                 || (!isAdmin() && !config.isNoneAdminUserExportAllowed())) {
@@ -270,5 +275,15 @@ public class NQueryController extends NBasicController {
             "application/vnd.apache.kylin-v2+json" })
     public EnvelopeResponse getQueryHistoryTableNames(@RequestParam(value = "projects", required = false) List<String> projects) {
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, queryHistoryService.getQueryHistoryTableMap(projects), "");
+    }
+
+    private void checkQueryName(String queryName) {
+        val msg = MsgPicker.getMsg();
+        if (StringUtils.isEmpty(queryName)) {
+            throw new BadRequestException(msg.getEMPTY_QUERY_NAME());
+        }
+        if (!queryNamePattern.matcher(queryName).matches()) {
+            throw new BadRequestException(msg.getINVALID_QUERY_NAME());
+        }
     }
 }

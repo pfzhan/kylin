@@ -27,13 +27,18 @@ package io.kyligence.kap.rest.controller;
 import java.util.ArrayList;
 import java.util.List;
 
+import io.kyligence.kap.rest.request.AccessRequest;
+import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.job.constant.JobStatusEnum;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.service.AccessService;
+import org.apache.kylin.rest.service.UserService;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
@@ -48,12 +53,20 @@ import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
+import static org.hamcrest.CoreMatchers.containsString;
+
 public class NAccessControllerTest {
 
     private MockMvc mockMvc;
 
     @Mock
     private AccessService accessService;
+
+    @Mock
+    private UserService userService;
+
+    @Rule
+    public ExpectedException thrown = ExpectedException.none();
 
     @InjectMocks
     private NAccessController nAccessController = Mockito.spy(new NAccessController());
@@ -88,6 +101,51 @@ public class NAccessControllerTest {
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
 
         Mockito.verify(nAccessController).getUserPermissionInPrj("default");
+    }
+
+    @Test
+    public void testGrantPermissionForValidUser() throws Exception {
+        String type = "ProjectInstance";
+        String uuid = "u126snk32242152";
+        String sid = "user_g1";
+        AccessRequest accessRequest = new AccessRequest();
+        accessRequest.setSid(sid);
+        accessRequest.setPrincipal(true);
+        Mockito.doReturn(true).when(userService).userExists(sid);
+        Mockito.doNothing().when(accessService).grant(type, uuid, "1", true, "ADMIN");
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/access/{type}/{uuid}", type, uuid)
+                .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(accessRequest))
+                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .andExpect(MockMvcResultMatchers.status().isOk());
+        Mockito.verify(nAccessController).grant(type, uuid, accessRequest);
+    }
+
+    @Test
+    public void testGrantPermissionForEmptyUser() throws Exception {
+        String sid = "";
+        String expectedErrorMsg = "User/Group name should not be empty.";
+        testGrantPermissionForUser(sid, expectedErrorMsg);
+    }
+
+    @Test
+    public void testGrantPermissionForInvalidUser() throws Exception {
+        String sid = "1*";
+        String expectedErrorMsg = "User/Group name should only contain alphanumerics and underscores.";
+        testGrantPermissionForUser(sid, expectedErrorMsg);
+    }
+
+    private void testGrantPermissionForUser(String sid, String expectedMsg) throws Exception {
+        String type = "ProjectInstance";
+        String uuid = "u428vfn31748";
+        AccessRequest accessRequest = new AccessRequest();
+        accessRequest.setSid(sid);
+        Mockito.doNothing().when(accessService).grant(type, uuid, "1", true, "ADMIN");
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/access/{type}/{uuid}", type, uuid)
+                .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(accessRequest))
+                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .andExpect(MockMvcResultMatchers.content()
+                        .string(containsString(expectedMsg)));
+        Mockito.verify(nAccessController).grant(type, uuid, accessRequest);
     }
 
 }

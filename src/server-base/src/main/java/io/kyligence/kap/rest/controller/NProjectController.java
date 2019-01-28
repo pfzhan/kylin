@@ -113,8 +113,6 @@ public class NProjectController extends NBasicController {
             throw new BadRequestException(msg.getEMPTY_PROJECT_NAME());
         }
         if (!StringUtils.containsOnly(projectDesc.getName(), VALID_PROJECT_NAME)) {
-            logger.info("Invalid Project name {}, only letters, numbers and underline supported.",
-                    projectDesc.getName());
             throw new BadRequestException(String.format(msg.getINVALID_PROJECT_NAME(), projectDesc.getName()));
         }
         ProjectInstance createdProj = projectService.createProject(projectDesc.getName(), projectDesc);

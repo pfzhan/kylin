@@ -95,10 +95,10 @@ public class NUserController extends NBasicController {
 
     private String activeProfile = PROFILE;
 
-
-    private static Pattern passwordPattern = Pattern
+    private static final Pattern usernamePattern = Pattern.compile("^[a-zA-Z0-9_]*$");
+    private static final Pattern passwordPattern = Pattern
             .compile("^(?=.*\\d)(?=.*[a-zA-Z])(?=.*[~!@#$%^&*(){}|:\"<>?\\[\\];',./`]).{8,}$");
-    private static Pattern bcryptPattern = Pattern.compile("\\A\\$2a?\\$\\d\\d\\$[./0-9A-Za-z]{53}");
+    private static final Pattern bcryptPattern = Pattern.compile("\\A\\$2a?\\$\\d\\d\\$[./0-9A-Za-z]{53}");
     private static BCryptPasswordEncoder pwdEncoder = new BCryptPasswordEncoder();
 
     private static final SimpleGrantedAuthority ALL_USERS_AUTH = new SimpleGrantedAuthority(Constant.GROUP_ALL_USERS);
@@ -107,11 +107,11 @@ public class NUserController extends NBasicController {
     public void init() throws IOException {
         List<ManagedUser> all = userService.listUsers();
         activeProfile = env.getActiveProfiles()[0];
-        logger.info("All " + all.size() + " users");
+        logger.info("All {} users", all.size());
         if (all.isEmpty() && PROFILE.equals(activeProfile)) {
-            createUser(new ManagedUser("ADMIN", "KYLIN", true, Constant.ROLE_ADMIN, Constant.GROUP_ALL_USERS));
-            createUser(new ManagedUser("ANALYST", "ANALYST", true, Constant.GROUP_ALL_USERS));
-            createUser(new ManagedUser("MODELER", "MODELER", true, Constant.GROUP_ALL_USERS));
+            createAdminUser(new ManagedUser("ADMIN", "KYLIN", true, Constant.ROLE_ADMIN, Constant.GROUP_ALL_USERS));
+            createAdminUser(new ManagedUser("ANALYST", "ANALYST", true, Constant.GROUP_ALL_USERS));
+            createAdminUser(new ManagedUser("MODELER", "MODELER", true, Constant.GROUP_ALL_USERS));
         }
 
     }
@@ -121,10 +121,23 @@ public class NUserController extends NBasicController {
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
     //do not use aclEvaluate, if there's no users and will come into init() and will call save.
     public EnvelopeResponse createUser(@RequestBody ManagedUser user) {
+        val username = user.getUsername();
+        val password = user.getPassword();
+
+        checkUsername(username);
+        checkPasswordLength(password);
+        checkPasswordCharacter(password);
+
+        return createAdminUser(user);
+    }
+
+    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
+    //do not use aclEvaluate, if there's no users and will come into init() and will call save.
+    public EnvelopeResponse createAdminUser(@RequestBody ManagedUser user) {
         checkProfile();
         user.setUuid(UUID.randomUUID().toString());
         user.setPassword(pwdEncode(user.getPassword()));
-        logger.info("Creating " + user);
+        logger.info("Creating user: {}", user);
         completeAuthorities(user);
         userService.createUser(user);
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, null, "");
@@ -135,9 +148,9 @@ public class NUserController extends NBasicController {
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
     //do not use aclEvaluate, if there's no users and will come into init() and will call save.
     public EnvelopeResponse updateUser(@RequestBody ManagedUser user) {
-
-        checkProfile();
         val msg = MsgPicker.getMsg();
+        checkProfile();
+
         if (StringUtils.equals(getPrincipal(), user.getUsername()) && user.isDisabled()) {
             throw new ForbiddenException(msg.getSELF_DISABLE_FORBIDDEN());
         }
@@ -161,7 +174,7 @@ public class NUserController extends NBasicController {
 
         user.setPassword(pwdEncode(user.getPassword()));
 
-        logger.info("Saving " + user);
+        logger.info("Saving user {}", user);
 
         completeAuthorities(user);
         userService.updateUser(user);
@@ -174,6 +187,7 @@ public class NUserController extends NBasicController {
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
     public EnvelopeResponse delete(@PathVariable("username") String username) throws IOException {
         val msg = MsgPicker.getMsg();
+
         checkProfile();
         checkUsername(username);
         if (StringUtils.equals(getPrincipal(), username)) {
@@ -216,10 +230,15 @@ public class NUserController extends NBasicController {
     //change passwd
     public EnvelopeResponse updateUserPassword(@RequestBody PasswordChangeRequest user) {
         val msg = MsgPicker.getMsg();
-        if (!isAdmin() && !StringUtils.equals(getPrincipal(), user.getUsername())) {
+        val username = user.getUsername();
+
+        if (!isAdmin() && !StringUtils.equals(getPrincipal(), username)) {
             throw new ForbiddenException(msg.getPERMISSION_DENIED());
         }
-        val username = user.getUsername();
+
+        val oldPassword = user.getPassword();
+        val newPassword = user.getNewPassword();
+
         checkUsername(username);
 
         checkPasswordLength(user.getNewPassword());
@@ -230,15 +249,20 @@ public class NUserController extends NBasicController {
         if (existingUser == null) {
             throw new BadRequestException(String.format(msg.getUSER_NOT_FOUND(), username));
         }
+        val actualOldPassword = existingUser.getPassword();
 
-        if (!isAdmin() && !pwdEncoder.matches(user.getPassword(), existingUser.getPassword())) {
+        if (!isAdmin() && !pwdEncoder.matches(oldPassword, actualOldPassword)) {
             throw new BadRequestException(msg.getOLD_PASSWORD_WRONG());
         }
 
-        existingUser.setPassword(pwdEncode(user.getNewPassword()));
+        if (newPassword.equals(oldPassword)) {
+            throw new BadRequestException(msg.getNEW_PASSWORD_SAME_AS_OLD());
+        }
+
+        existingUser.setPassword(pwdEncode(newPassword));
         existingUser.setDefaultPassword(false);
 
-        logger.info("update password for user " + user);
+        logger.info("update password for user {}", user);
 
         completeAuthorities(existingUser);
         userService.updateUser(existingUser);
@@ -281,12 +305,12 @@ public class NUserController extends NBasicController {
             "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
     public EnvelopeResponse<UserDetails> authenticatedUser() {
+
         checkLicense();
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         UserDetails data = null;
         val msg = MsgPicker.getMsg();
         if (authentication == null) {
-            logger.debug("authentication is null.");
             throw new UnauthorizedException(msg.getAUTH_INFO_NOT_FOUND());
         }
 
@@ -325,8 +349,12 @@ public class NUserController extends NBasicController {
 
     private void checkUsername(String username) {
         val msg = MsgPicker.getMsg();
-        if (StringUtils.isEmpty(username))
+        if (StringUtils.isEmpty(username)) {
             throw new BadRequestException(msg.getEMPTY_USER_NAME());
+        }
+        if (!usernamePattern.matcher(username).matches()) {
+            throw new BadRequestException(msg.getINVALID_USERNAME());
+        }
     }
 
     private String getPrincipal() {
@@ -349,7 +377,7 @@ public class NUserController extends NBasicController {
         return userName;
     }
 
-    private ManagedUser getManagedUser(String userName) {
+    ManagedUser getManagedUser(String userName) {
         UserDetails details = userService.loadUserByUsername(userName);
         if (details == null)
             return null;

@@ -64,6 +64,13 @@ public class NUserGroupServiceTest extends ServiceTestBase {
         userGroupService.addGroup("g3");
         Assert.assertEquals(Lists.newArrayList("g1", "g2", "g3"), userGroupService.getAllUserGroups());
 
+        // test add a existing user group
+        try {
+            userGroupService.addGroup("g1");
+        } catch (Exception e) {
+            Assert.assertEquals("Operation failed, group:g1 already exists", e.getCause().getCause().getMessage());
+        }
+
         //test modify users in user group
         for (int i = 1; i <= 6; i++) {
             userService.updateUser(new ManagedUser("u" + i, "kylin", false));

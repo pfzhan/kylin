@@ -27,8 +27,12 @@ package io.kyligence.kap.rest.controller;
 import com.google.common.collect.Lists;
 import io.kyligence.kap.rest.request.AccessRequest;
 import lombok.val;
+import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.persistence.AclEntity;
 import org.apache.kylin.metadata.MetadataConstants;
+import org.apache.kylin.rest.exception.BadRequestException;
+import org.apache.kylin.rest.msg.Message;
+import org.apache.kylin.rest.msg.MsgPicker;
 import org.apache.kylin.rest.response.AccessEntryResponse;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.response.ResponseCode;
@@ -53,6 +57,7 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 @Controller
@@ -70,6 +75,9 @@ public class NAccessController extends NBasicController {
     @Autowired
     @Qualifier("nUserGroupService")
     private IUserGroupService userGroupService;
+
+    private static final Pattern sidPattern = Pattern.compile("^[a-zA-Z0-9_]*$");
+    private static final Message msg = MsgPicker.getMsg();
 
     /**
      * Get current user's permission in the project
@@ -148,15 +156,19 @@ public class NAccessController extends NBasicController {
         val isPrincipal = accessRequest.isPrincipal();
 
         val identifier = accessRequest.getSid();
+
+        checkSid(identifier);
+
         if (isPrincipal && !userService.userExists(identifier)) {
-            throw new RuntimeException("Operation failed, user:" + identifier + " not exists, please add first.");
+            throw new BadRequestException("Operation failed, user:" + identifier + " not exists, please add it first.");
         }
         if (!isPrincipal && !userGroupService.exists(identifier)) {
-            throw new RuntimeException("Operation failed, group:" + identifier + " not exists, please add first.");
+            throw new BadRequestException("Operation failed, group:" + identifier + " not exists, please add it first.");
         }
         accessService.grant(type, uuid, identifier, isPrincipal, accessRequest.getPermission());
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, null, "");
     }
+
 
     /**
      * Update a access on a domain object
@@ -195,6 +207,15 @@ public class NAccessController extends NBasicController {
 
     private List<String> getAllUsernames() throws IOException {
         return userService.listUsers().stream().map(ManagedUser::getUsername).collect(Collectors.toList());
+    }
+
+    private void checkSid(String sid) {
+        if (StringUtils.isEmpty(sid)) {
+            throw new BadRequestException(msg.getEMPTY_SID());
+        }
+        if (!sidPattern.matcher(sid).matches()) {
+            throw new BadRequestException(msg.getINVALID_SID());
+        }
     }
 
 }

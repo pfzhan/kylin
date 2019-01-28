@@ -85,6 +85,15 @@ public class LimitLoginAuthenticationProviderTest extends ServiceTestBase {
     }
 
     @Test
+    public void testAuthenticate_UserNotFound_EmptyUserName() {
+        UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken("",
+                userAdmin.getPassword(), userAdmin.getAuthorities());
+        thrown.expect(UsernameNotFoundException.class);
+        thrown.expectMessage("User '' not found.");
+        limitLoginAuthenticationProvider.authenticate(token);
+    }
+
+    @Test
     public void testAuthenticate_UserNotFound_Exception() {
         UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken("lalala",
                 userAdmin.getPassword(), userAdmin.getAuthorities());
@@ -99,6 +108,15 @@ public class LimitLoginAuthenticationProviderTest extends ServiceTestBase {
                 userAdmin.getAuthorities());
         thrown.expect(UsernameNotFoundException.class);
         thrown.expectMessage("User 'admin' not found.");
+        limitLoginAuthenticationProvider.authenticate(token);
+    }
+
+    @Test
+    public void testAuthenticate_EmptyPassword() {
+        UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken("ADMIN", "",
+                userAdmin.getAuthorities());
+        thrown.expect(BadCredentialsException.class);
+        thrown.expectMessage("Invalid username or password.");
         limitLoginAuthenticationProvider.authenticate(token);
     }
 

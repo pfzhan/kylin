@@ -28,11 +28,9 @@ import io.kyligence.kap.common.obf.IKeep;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
-import java.io.UnsupportedEncodingException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Arrays;
@@ -50,14 +48,14 @@ public class DumpHadoopSystemProps implements IKeep {
 
         String filters = NO_PARAMETER;
         switch (args.length) {
-            case 0:
-                break;
-            case 1:
-                filters = args[0];
-                break;
-            default:
-                System.out.println("Usages: DumpHadoopSystemProps 'filter1 filter2 filter3'");
-                System.exit(1);
+        case 0:
+            break;
+        case 1:
+            filters = args[0];
+            break;
+        default:
+            System.out.println("Usages: DumpHadoopSystemProps 'filter1 filter2 filter3'");
+            System.exit(1);
         }
 
         String[] cmd = new String[] { "hadoop", Inner.class.getName(), tmp.getAbsolutePath(), filters };
@@ -93,17 +91,11 @@ public class DumpHadoopSystemProps implements IKeep {
     }
 
     private static String doubleQuote(String s) {
-        if (s.contains(" "))
-            return "\"" + s + "\"";
-        else
-            return s;
+        return s.contains(" ") ? "\"" + s + "\"" : s;
     }
 
     private static String singleQuote(String s) {
-        if (s.contains(" "))
-            return "'" + s + "'";
-        else
-            return s;
+        return s.contains(" ") ? "'" + s + "'" : s;
     }
 
     private static TreeMap<String, String> diffSystemProps(String inPath) throws IOException {
@@ -125,8 +117,7 @@ public class DumpHadoopSystemProps implements IKeep {
         return map;
     }
 
-    private static TreeMap<String, String> readAndDelete(String inPath)
-            throws UnsupportedEncodingException, FileNotFoundException, IOException {
+    private static TreeMap<String, String> readAndDelete(String inPath) throws IOException {
         TreeMap<String, String> map = new TreeMap<>();
 
         try (BufferedReader in = new BufferedReader(new InputStreamReader(new FileInputStream(inPath), UTF8))) {
@@ -197,11 +188,7 @@ public class DumpHadoopSystemProps implements IKeep {
 
         private static boolean containsReturn(String s) {
             s = s.trim();
-            if (s.isEmpty())
-                return true;
-            if (s.contains("\r") || s.contains("\n"))
-                return true;
-            return false;
+            return s.isEmpty() || s.contains("\r") || s.contains("\n");
         }
     }
 
