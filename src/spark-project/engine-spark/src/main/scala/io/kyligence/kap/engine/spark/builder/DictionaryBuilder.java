@@ -34,6 +34,7 @@ import java.util.Set;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.lock.DistributedLock;
 import org.apache.kylin.common.persistence.ResourceStore;
+import org.apache.kylin.measure.bitmap.BitmapMeasureType;
 import org.apache.kylin.metadata.model.MeasureDesc;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.TblColRef;
@@ -49,6 +50,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.spark_project.guava.collect.Sets;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 
 import io.kyligence.kap.engine.spark.NSparkCubingEngine;
@@ -240,7 +242,7 @@ public class DictionaryBuilder {
         Set<TblColRef> dictColSet = Sets.newHashSet();
         for (LayoutEntity layout : layouts) {
             for (MeasureDesc measureDesc : layout.getIndex().getEffectiveMeasures().values()) {
-                if (NDictionaryBuilder.needGlobalDictionary(measureDesc) == null)
+                if (needGlobalDictionary(measureDesc) == null)
                     continue;
                 TblColRef col = measureDesc.getFunction().getParameter().getColRef();
                 dictColSet.add(col);
@@ -255,6 +257,16 @@ public class DictionaryBuilder {
 
     public static Set<TblColRef> extractGlobalEncodeColumns(NDataSegment seg, NSpanningTree toBuildTree) {
         return extractGlobalColumns(seg, toBuildTree, false);
+    }
+
+    public static TblColRef needGlobalDictionary(MeasureDesc measure) {
+        String returnDataTypeName = measure.getFunction().getReturnDataType().getName();
+        if (returnDataTypeName.equalsIgnoreCase(BitmapMeasureType.DATATYPE_BITMAP)) {
+            List<TblColRef> cols = measure.getFunction().getParameter().getColRefs();
+            Preconditions.checkArgument(cols.size() == 1);
+            return cols.get(0);
+        }
+        return null;
     }
 
     private String getLockPath(String pathName) {

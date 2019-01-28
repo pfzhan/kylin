@@ -30,7 +30,4 @@ public class JobStoppedException extends RuntimeException {
 
     private static final long serialVersionUID = 3904294672594613427L;
 
-    public JobStoppedException() {
-    }
-
 }

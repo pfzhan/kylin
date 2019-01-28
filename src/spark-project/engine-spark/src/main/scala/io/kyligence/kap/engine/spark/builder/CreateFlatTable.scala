@@ -28,12 +28,12 @@ import com.google.common.collect.Sets
 import io.kyligence.kap.engine.spark.job.NSparkCubingUtil
 import io.kyligence.kap.engine.spark.utils.SparkDataSource._
 import io.kyligence.kap.metadata.cube.model.{NCubeJoinedFlatTableDesc, NDataSegment}
-import io.kyligence.kap.metadata.model.{NDataModel, NDataModelFlatTableDesc}
+import io.kyligence.kap.metadata.model.NDataModel
 import org.apache.commons.lang.StringUtils
 import org.apache.kylin.metadata.model._
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.functions._
-import org.apache.spark.sql.{Column, Dataset, Row, SparkSession}
+import org.apache.spark.sql.{Dataset, Row, SparkSession}
 
 import scala.collection.JavaConverters._
 import scala.collection.mutable.ListBuffer
