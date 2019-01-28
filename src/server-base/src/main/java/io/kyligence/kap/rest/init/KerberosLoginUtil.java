@@ -502,7 +502,7 @@ public class KerberosLoginUtil implements IKeep {
                 } else {
                     KEYTAB_KERBEROS_OPTIONS.put("keyTab", keytabFile);
                     KEYTAB_KERBEROS_OPTIONS.put("useKeyTab", "true");
-                    KEYTAB_KERBEROS_OPTIONS.put("useTicketCache", useTicketCache ? "true" : "false");
+                    KEYTAB_KERBEROS_OPTIONS.put("useTicketCache", "false");
                 }
             }
             KEYTAB_KERBEROS_OPTIONS.put("principal", principal);

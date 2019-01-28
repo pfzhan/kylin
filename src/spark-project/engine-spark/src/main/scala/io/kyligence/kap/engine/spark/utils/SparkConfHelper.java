@@ -50,15 +50,15 @@ public class SparkConfHelper {
     private HashMap<String, String> confs = Maps.newHashMap();
 
     // options key
-    public static String SOURCE_TABLE_SIZE = "source_table_size";
+    public static final String SOURCE_TABLE_SIZE = "source_table_size";
     // configurations key
-    public static String EXECUTOR_INSTANCES = "spark.executor.instances";
-    public static String EXECUTOR_CORES = "spark.executor.cores";
-    public static String EXECUTOR_MEMORY = "spark.executor.memory";
-    public static String EXECUTOR_OVERHEAD = "spark.executor.memoryOverhead";
-    public static String SHUFFLE_PARTITIONS = "spark.sql.shuffle.partitions";
+    public static final String EXECUTOR_INSTANCES = "spark.executor.instances";
+    public static final String EXECUTOR_CORES = "spark.executor.cores";
+    public static final String EXECUTOR_MEMORY = "spark.executor.memory";
+    public static final String EXECUTOR_OVERHEAD = "spark.executor.memoryOverhead";
+    public static final String SHUFFLE_PARTITIONS = "spark.sql.shuffle.partitions";
 
-    private List<SparkConfRule> EXECUTOR_RULES = ImmutableList.of(
+    private static final List<SparkConfRule> EXECUTOR_RULES = ImmutableList.of(
             new ExecutorMemoryRule(),
             new ExecutorCoreRule(),
             new ExecutorOverheadRule(),

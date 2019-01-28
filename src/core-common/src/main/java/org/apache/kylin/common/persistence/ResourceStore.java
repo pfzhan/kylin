@@ -173,9 +173,8 @@ public abstract class ResourceStore implements AutoCloseable{
      * Create a resource store for general purpose, according specified by given StorageURL.
      */
     private static ResourceStore createResourceStore(KylinConfig config) {
-        try {
+        try (val resourceStore = new InMemResourceStore(config)) {
             val snapshotStore = createMetadataStore(config);
-            val resourceStore = new InMemResourceStore(config);
             resourceStore.init(snapshotStore);
             return resourceStore;
         } catch (Exception e) {
