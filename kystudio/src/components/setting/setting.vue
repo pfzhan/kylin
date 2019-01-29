@@ -1,7 +1,7 @@
 <template>
   <div class="setting">
     <header class="setting-header">
-      <h1 class="ksd-title-label">{{currentProjectData.name}}</h1>
+      <h1 class="ksd-title-label" v-if="currentProjectData">{{currentProjectData.name}}</h1>
     </header>
     <section class="setting-body" v-loading="isLoading">
       <el-tabs v-model="viewType" v-if="projectSettings">

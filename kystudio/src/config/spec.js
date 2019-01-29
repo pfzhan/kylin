@@ -86,11 +86,11 @@ export default {
   "disableOptionMaps": {
     // 菜单权限
     "menu": {
-      "keyPattern": "groupRole-projectRole-menu",
+      "keyPattern": "groupRole-menu",
       "entries": [
-        { "key": "systemAdmin-*-[project,user,group,groupDetail]", "value": "dashboard,query,insight,queryHistory,acceleration,studio,setting,source,model,index,modelEdit,monitor,job" },
-        { "key": "systemAdmin-*-*", "value": "project,user,group,groupDetail" },
-        { "key": "systemUser-*-*", "value": "admin,project,group,groupDetail,user" }
+        { "key": "systemAdmin-[project,user,group,groupDetail]", "value": "dashboard,query,insight,queryHistory,acceleration,studio,setting,source,model,index,modelEdit,monitor,job" },
+        { "key": "systemAdmin-*", "value": "project,user,group,groupDetail" },
+        { "key": "systemUser-*", "value": "admin,project,group,groupDetail,user" }
       ]
     },
     "modelActions": {
