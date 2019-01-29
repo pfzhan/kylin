@@ -88,6 +88,8 @@ function extract_local_log() {
         return 1
     fi
 
+    verbose "start to extract [$log_file] category[$category] identifier[$identifier] [$start_time => $end_time]"
+
     if [[ -z $4 ]] && [[ $4 != "-c" ]]; then
         sed -n "${start_line_num},${end_line_num}p" ${log_file}
         return 0
@@ -111,6 +113,29 @@ function extract_local_log() {
     done
 }
 
+function corrected_time_range() {
+    IFS=$'\n'
+    local log_file=$1
+    for line in $(sed -n "1,1000p" ${log_file}); do
+        if [[ ${line} =~ ${log_regex} ]] && [[ ${#BASH_REMATCH[*]} == 6 ]]; then
+            first_log_time=${BASH_REMATCH[1]}
+            first_log_time=${first_log_time:0:16}
+            break
+        fi
+    done
+
+    if [[ -n $first_log_time ]] && [[ $start_time < $first_log_time ]]; then
+        verbose "corrected start time from [$start_time] to [$first_log_time]"
+        start_time=$first_log_time
+    fi
+
+    last_modified=$(date -r $log_file "+%F %H:%M")
+    if [[ $end_time > $last_modified ]]; then
+        verbose "corrected end time from [$end_time] to [$last_modified]"
+        end_time=$last_modified
+    fi
+
+}
 
 function main() {
     if [[ $# -lt 3 ]]; then
@@ -129,6 +154,8 @@ function main() {
             start_time=$(date -d "@$[$3 / 1000]" "+%F %H:%M")
             end_time=$(date -d "@$[$5 / 1000]" "+%F %H:%M")
         fi
+
+        corrected_time_range $1
         extract_local_log $1 "-server" "_"
         exit $?
     else
