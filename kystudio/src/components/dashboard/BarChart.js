@@ -41,7 +41,7 @@ export default {
         }
       }
 
-      const yaxis = chart.yAxis.showMaxMin(false)
+      const yaxis = chart.yAxis.showMaxMin(true)
       if (this.yFormat) {
         if (typeof (this.yFormat) === 'string') {
           yaxis.tickFormat(d3.format(this.yFormat))

@@ -123,6 +123,9 @@ export default {
     [types.GET_FAVORITE_LIST]: function ({commit}, para) {
       return api.datasource.getFavoriteList(para)
     },
+    [types.GET_WAITING_ACCE_SIZE]: function ({commit}, para) {
+      return api.datasource.getWaitingAcceSize(para)
+    },
     [types.IMPORT_SQL_FILES]: function ({commit}, para) {
       return api.datasource.importSqlFiles(para)
     },

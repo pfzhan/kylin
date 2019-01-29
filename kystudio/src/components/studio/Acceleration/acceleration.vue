@@ -5,7 +5,7 @@
     </div>
     <div class="img-groups" v-guide.speedProcess>
       <div class="label-groups">
-        <span>{{$t('kylinLang.query.wartingAcce')}}: {{modelSpeedEvents}}</span>
+        <span>{{$t('kylinLang.query.wartingAcce')}}: {{waitingSQLSize}}</span>
         <span v-if="showGif" class="ongoing-label">{{$t('kylinLang.query.ongoingAcce')}}</span>
         <div class="pattern-num">
           <p>{{patternNum}}</p>
@@ -21,9 +21,9 @@
         <!-- <img src="../../assets/img/acc_01.jpg" width="245px" alt=""><img src="../../assets/img/acc_02.jpg" width="245px" alt=""><img src="../../assets/img/acc_03.jpg" width="245px" height="48px" alt=""> -->
       </div>
       <div class="btn-groups ksd-mt-10">
-        <span class="guide-checkData" v-if="!modelSpeedEvents"></span>
+        <span class="guide-checkData" v-if="!waitingSQLSize"></span>
         <el-button size="mini" type="primary" plain @click="openImportSql">{{$t('importSql')}}</el-button>
-        <el-button size="mini" type="primary" v-guide.speedSqlNowBtn plain :disabled="!modelSpeedEvents" @click="applySpeed">{{$t('accelerateNow')}}</el-button>
+        <el-button size="mini" type="primary" v-guide.speedSqlNowBtn plain :disabled="!waitingSQLSize" @click="applySpeed">{{$t('accelerateNow')}}</el-button>
       </div>
     </div>
     <div class="fav-tables ksd-mt-30">
@@ -307,7 +307,8 @@ import accelerationTable from './acceleration_table'
       deleteBlack: 'DELETE_BLACK_SQL',
       applySpeedInfo: 'APPLY_SPEED_INFO',
       getSpeedInfo: 'GET_SPEED_INFO',
-      importSqlFiles: 'IMPORT_SQL_FILES'
+      importSqlFiles: 'IMPORT_SQL_FILES',
+      getWaitingAcceSize: 'GET_WAITING_ACCE_SIZE'
     })
   },
   computed: {
@@ -345,7 +346,7 @@ import accelerationTable from './acceleration_table'
       delSql: 'Are you sure to delete this sql?',
       delSqlTitle: 'Delete SQL',
       giveUpEdit: 'Are you sure to give up the edit?',
-      thereAre: 'There are {modelSpeedEvents} SQLs waiting for acceleration on the threshold of <span class="highlight">{threshold}</span>.',
+      thereAre: 'There are {waitingSQLSize} SQL(s) waiting for acceleration on the threshold of <span class="highlight">{threshold}</span>.',
       accelerateNow: 'Accelerate now',
       messages: 'Error Messages:',
       suggestion: 'Suggestion:',
@@ -387,7 +388,7 @@ import accelerationTable from './acceleration_table'
       delSql: '确定删除这条查询语句吗？',
       delSqlTitle: '删除查询语句',
       giveUpEdit: '确定放弃本次编辑吗？',
-      thereAre: '已有{modelSpeedEvents}条SQL查询等待加速(阈值为<span class="highlight">{threshold}</span>条SQL)',
+      thereAre: '已有{waitingSQLSize}条SQL查询等待加速(阈值为<span class="highlight">{threshold}</span>条SQL)',
       accelerateNow: '立即加速',
       messages: '错误信息：',
       suggestion: '修改建议：',
@@ -411,6 +412,7 @@ export default class FavoriteQuery extends Vue {
   checkedStatus = ['WAITING', 'ACCELERATING', 'BLOCKED']
   activeList = 'wartingAcce'
   showGif = false
+  waitingSQLSize = 0
   unAcceListSize = 0
   patternNum = 0
   importSqlVisible = false
@@ -482,7 +484,7 @@ export default class FavoriteQuery extends Vue {
     this.loadFavoriteList()
   }
   applySpeed (event) {
-    this.applySpeedInfo({size: this.modelSpeedEvents, project: this.currentSelectedProject}).then(() => {
+    this.applySpeedInfo({size: this.waitingSQLSize, project: this.currentSelectedProject}).then(() => {
       this.flyEvent(event)
       this.getSpeedInfo(this.currentSelectedProject)
       this.showGif = true
@@ -701,7 +703,16 @@ export default class FavoriteQuery extends Vue {
     }
   }
 
+  async getWaitingSQLSize () {
+    if (this.currentSelectedProject) {
+      const res = await this.getWaitingAcceSize({project: this.currentSelectedProject})
+      const data = await handleSuccessAsync(res)
+      this.waitingSQLSize = data
+    }
+  }
+
   async init () {
+    this.getWaitingSQLSize()
     this.loadFavoriteList()
     const res = await this.getFavoriteList({
       project: this.currentSelectedProject || null,
@@ -972,6 +983,7 @@ export default class FavoriteQuery extends Vue {
           this.delWhite(item.id)
         })
         this.loadFavoriteList()
+        this.getWaitingSQLSize()
       })
     }, (res) => {
       handleError(res)

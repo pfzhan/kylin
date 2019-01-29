@@ -165,6 +165,13 @@ export default class queryResult extends Vue {
       this.pageSizeChange(0)
     }, 500)
   }
+  @Watch('extraoption')
+  onExtraoptionChange (val) {
+    this.tableData = []
+    this.tableMeta = []
+    this.pagerTableData = []
+    this.transDataForGrid()
+  }
   created () {
     this.transDataForGrid()
   }

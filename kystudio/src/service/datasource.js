@@ -82,6 +82,9 @@ export default {
   getHistoryList: (para) => {
     return Vue.resource(apiUrl + 'query/history_queries{?realization}').get(para)
   },
+  getWaitingAcceSize: (para) => {
+    return Vue.resource(apiUrl + '/query/favorite_queries/waiting_fq_size').get(para)
+  },
   getFavoriteList: (para) => {
     return Vue.resource(apiUrl + 'query/favorite_queries{?status}').get(para)
   },

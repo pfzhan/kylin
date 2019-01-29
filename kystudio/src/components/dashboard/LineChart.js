@@ -8,7 +8,8 @@ export default {
   props: {
     xFormat: {type: [Function, String]},
     yFormat: {type: [Function, String]},
-    colors: {type: Array, default: () => ['#15BDF1', '#ddd']}
+    colors: {type: Array, default: () => ['#15BDF1', '#ddd']},
+    contentGenerator: {type: Function}
   },
   mounted () {
     nv.addGraph(() => {
@@ -27,13 +28,16 @@ export default {
         }
       }
 
-      const yaxis = chart.yAxis.showMaxMin(false)
+      const yaxis = chart.yAxis.showMaxMin(true)
       if (this.yFormat) {
         if (typeof (this.yFormat) === 'string') {
           yaxis.tickFormat(d3.format(this.yFormat))
         } else {
           yaxis.tickFormat(this.yFormat)
         }
+      }
+      if (this.contentGenerator) {
+        chart.tooltip.contentGenerator(this.contentGenerator)
       }
 
       this.redraw(chart)

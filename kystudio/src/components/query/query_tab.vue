@@ -138,11 +138,14 @@ export default class QueryTab extends Vue {
     }
     this.$emit('addTab', 'query', queryObj)
   }
-  queryResult (queryObj) {
+  resetResult () {
     this.isLoading = true
     this.extraoptionObj = null
     this.errinfo = ''
     this.queryLoading()
+  }
+  queryResult (queryObj) {
+    this.resetResult()
     this.query(queryObj).then((res) => {
       clearInterval(this.ST)
       handleSuccess(res, (data) => {
@@ -202,10 +205,13 @@ export default class QueryTab extends Vue {
     this.isWorkspace = this.tabsItem.name === 'WorkSpace'
     if (this.tabsItem.queryObj && this.tabsItem.index) {
       this.queryResult(this.tabsItem.queryObj)
+    } else {
+      this.resetResult()
     }
   }
   @Watch('tabsItem.extraoption')
   onTabsResultChange (val) {
+    this.isLoading = false
     this.extraoptionObj = this.tabsItem.extraoption
     this.errinfo = this.tabsItem.queryErrorInfo
   }

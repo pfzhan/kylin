@@ -180,7 +180,8 @@
           <vn-line :model="traffics2"
           id="lineChart"
           :x-format="formatDate"
-          :y-format="formatYAxis">
+          :y-format="formatYAxis"
+          :content-generator="contentGenerator">
           </vn-line>
         </div>
       </el-col>
@@ -528,14 +529,17 @@ export default class Dashboard extends Vue {
   }
   contentGenerator (d) {
     let valueFormate
+    const formatPattern = this.dateUnit === 'month' ? '%Y-%m' : '%Y-%m-%d'
+    const label = (d.data && d.data.label) || (d.point && d3.time.format(formatPattern)(moment.unix(d.point.x / 1000).toDate()))
+    const value = (d.data && d.data.value) || (d.point && d.point.y)
     if (this.showQueryChart || this.showJobChart) {
-      valueFormate = d.data.value
+      valueFormate = value
     } else {
-      valueFormate = d.data.value && d.data.value.toFixed(2)
+      valueFormate = Number(value) > 0 && Number(value) < 0.01 ? Number(value).toFixed(4) + 's' : Number(value).toFixed(2) + 's'
     }
     return `<table>
       <tr>
-        <td class="key">${d.data.label}</td>
+        <td class="key">${label}</td>
         <td class="value">${valueFormate}</td>
       </tr>
     </table>`
