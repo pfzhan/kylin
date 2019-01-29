@@ -58,7 +58,7 @@ class Guide {
   _click (el, stepInfo, resolve) {
     this.hideAllMouse()
     this.systemStore.globalMouseClick = true
-    setTimeout(() => {
+    let st = setTimeout(() => {
       this.systemStore.globalMouseClick = false
       this.systemStore.globalMouseVisible = true
       if (stepInfo.withEvent) {
@@ -68,6 +68,7 @@ class Guide {
       }
       resolve()
     }, 100)
+    this.STs.push(st)
   }
   _fakeclick (el, stepInfo, resolve) {
     el._isVue ? el.$emit('click', stepInfo.val) : el.click(stepInfo.val)
@@ -118,9 +119,10 @@ class Guide {
           console.log('search timeout')
           return reject()
         }
-        setTimeout(() => {
+        let st = setTimeout(() => {
           searchFuc(resolve, reject)
         }, 300)
+        this.STs.push(st)
       } else {
         return resolve({dom: result, target: targetResult})
       }
@@ -205,7 +207,7 @@ class Guide {
   _inView (dom, targetDom, stepInfo, resolve) {
     let scrollInstance = Scrollbar.get(targetDom)
     scrollInstance.scrollIntoView(dom)
-    setTimeout(() => {
+    let st = setTimeout(() => {
       if (targetDom) {
         targetDom = targetDom.$el ? targetDom.$el : targetDom
       }
@@ -225,6 +227,7 @@ class Guide {
         resolve()
       }
     }, 10)
+    this.STs.push(st)
   }
   renderFuc (_event, stepInfo) {
     return new Promise((resolve) => {
@@ -316,9 +319,10 @@ class Guide {
               if (!this.isPause) {
                 this.step(step - 1, resolve, reject)
               } else {
-                setTimeout(() => {
+                let st = setTimeout(() => {
                   nextStep()
                 }, 400)
+                this.STs.push(st)
               }
             }
             let st = setTimeout(() => {
