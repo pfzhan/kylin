@@ -44,7 +44,6 @@ package org.apache.kylin.metadata.filter;
 
 import java.nio.ByteBuffer;
 import java.util.Collection;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -54,8 +53,9 @@ import org.apache.kylin.metadata.tuple.IEvaluatableTuple;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Maps;
+
+import lombok.Getter;
 
 /**
  * 
@@ -67,13 +67,20 @@ public abstract class TupleFilter {
     static final Logger logger = LoggerFactory.getLogger(TupleFilter.class);
 
     public enum FilterOperatorEnum {
-        EQ(1), NEQ(2), GT(3), LT(4), GTE(5), LTE(6), ISNULL(7), ISNOTNULL(8), IN(9), NOTIN(10), AND(20), OR(21), NOT(
-                22), COLUMN(30), CONSTANT(31), DYNAMIC(
-                        32), EXTRACT(33), CASE(34), FUNCTION(35), MASSIN(36), EVAL_FUNC(37), UNSUPPORTED(38);
+        EQ(1), // equal
+
+        IN(2), ISNULL(3), // inferior equal
+
+        NEQ(4), GT(5), LT(6), GTE(7), LTE(8), NOTIN(9), ISNOTNULL(10), // range
+
+        AND(20), OR(21), NOT(22), // logic op
+
+        COLUMN(30), CONSTANT(31), DYNAMIC(32), EXTRACT(33), CASE(34), //
+        FUNCTION(35), MASSIN(36), EVAL_FUNC(37), UNSUPPORTED(38);
 
         private final int value;
 
-        private FilterOperatorEnum(int v) {
+        FilterOperatorEnum(int v) {
             this.value = v;
         }
 
@@ -82,13 +89,8 @@ public abstract class TupleFilter {
         }
     }
 
-    static List<FilterOperatorEnum> NON_RANGE_FILTER = ImmutableList.<FilterOperatorEnum> builder()
-            .add(FilterOperatorEnum.EQ, FilterOperatorEnum.IN, FilterOperatorEnum.ISNULL).build();
-
-    public static final int BUFFER_SIZE = 10240;
-
-    protected static final Map<FilterOperatorEnum, FilterOperatorEnum> REVERSE_OP_MAP = Maps.newHashMap();
-    protected static final Map<FilterOperatorEnum, FilterOperatorEnum> SWAP_OP_MAP = Maps.newHashMap();
+    static final Map<FilterOperatorEnum, FilterOperatorEnum> REVERSE_OP_MAP = Maps.newHashMap();
+    static final Map<FilterOperatorEnum, FilterOperatorEnum> SWAP_OP_MAP = Maps.newHashMap();
 
     static {
         REVERSE_OP_MAP.put(FilterOperatorEnum.EQ, FilterOperatorEnum.NEQ);
@@ -115,16 +117,21 @@ public abstract class TupleFilter {
     protected final List<TupleFilter> children;
     protected FilterOperatorEnum operator;
 
+    @Getter
+    private TupleFilter parent;
+
     protected TupleFilter(List<TupleFilter> filters, FilterOperatorEnum op) {
         this.children = filters;
         this.operator = op;
+        this.parent = null;
     }
 
     public void addChild(TupleFilter child) {
+        child.parent = this;
         children.add(child);
     }
 
-    final public void addChildren(List<? extends TupleFilter> children) {
+    public final void addChildren(List<? extends TupleFilter> children) {
         for (TupleFilter c : children)
             addChild(c); // subclass overrides addChild()
     }
@@ -146,91 +153,8 @@ public abstract class TupleFilter {
     }
 
     public TupleFilter reverse() {
-        logger.warn("Cannot reverse " + this + ", loosen the filter to true");
+        logger.warn("Cannot reverse {}, loosen the filter to true", this);
         return ConstantTupleFilter.TRUE;
-    }
-
-    /**
-     * flatten to OR-AND filter, (A AND B AND ..) OR (C AND D AND ..) OR ..
-     * flatten filter will ONLY contain AND and OR , no NOT will exist.
-     * This will help to decide scan ranges.
-     * 
-     * Notice that the flatten filter will ONLY be used for determining scan ranges,
-     * The filter that is later pushed down into storage level is still the ORIGINAL
-     * filter, since the flattened filter will be too "fat" to evaluate
-     * 
-     * @return
-     */
-    public TupleFilter flatFilter() {
-        return flattenInternal(this);
-    }
-
-    private TupleFilter flattenInternal(TupleFilter filter) {
-        TupleFilter flatFilter = null;
-        if (!(filter instanceof LogicalTupleFilter)) {
-            flatFilter = new LogicalTupleFilter(FilterOperatorEnum.AND);
-            flatFilter.addChild(filter);
-            return flatFilter;
-        }
-
-        // post-order recursive travel
-        FilterOperatorEnum op = filter.getOperator();
-        List<TupleFilter> andChildren = new LinkedList<TupleFilter>();
-        List<TupleFilter> orChildren = new LinkedList<TupleFilter>();
-        for (TupleFilter child : filter.getChildren()) {
-            TupleFilter flatChild = flattenInternal(child);
-            FilterOperatorEnum childOp = flatChild.getOperator();
-            if (childOp == FilterOperatorEnum.AND) {
-                andChildren.add(flatChild);
-            } else if (childOp == FilterOperatorEnum.OR) {
-                orChildren.add(flatChild);
-            } else {
-                throw new IllegalStateException("Filter is " + filter + " and child is " + flatChild);
-            }
-        }
-
-        // boolean algebra flatten
-        if (op == FilterOperatorEnum.AND) {
-            flatFilter = new LogicalTupleFilter(FilterOperatorEnum.AND);
-            for (TupleFilter andChild : andChildren) {
-                flatFilter.addChildren(andChild.getChildren());
-            }
-            if (!orChildren.isEmpty()) {
-                List<TupleFilter> fullAndFilters = cartesianProduct(orChildren, flatFilter);
-                flatFilter = new LogicalTupleFilter(FilterOperatorEnum.OR);
-                flatFilter.addChildren(fullAndFilters);
-            }
-        } else if (op == FilterOperatorEnum.OR) {
-            flatFilter = new LogicalTupleFilter(FilterOperatorEnum.OR);
-            for (TupleFilter orChild : orChildren) {
-                flatFilter.addChildren(orChild.getChildren());
-            }
-            flatFilter.addChildren(andChildren);
-        } else if (op == FilterOperatorEnum.NOT) {
-            assert (filter.children.size() == 1);
-            TupleFilter reverse = filter.children.get(0).reverse();
-            flatFilter = flattenInternal(reverse);
-        } else {
-            throw new IllegalStateException("Filter is " + filter);
-        }
-        return flatFilter;
-    }
-
-    private List<TupleFilter> cartesianProduct(List<TupleFilter> leftOrFilters, TupleFilter partialAndFilter) {
-        List<TupleFilter> oldProductFilters = new LinkedList<TupleFilter>();
-        oldProductFilters.add(partialAndFilter);
-        for (TupleFilter orFilter : leftOrFilters) {
-            List<TupleFilter> newProductFilters = new LinkedList<TupleFilter>();
-            for (TupleFilter orChildFilter : orFilter.getChildren()) {
-                for (TupleFilter productFilter : oldProductFilters) {
-                    TupleFilter fullAndFilter = productFilter.copy();
-                    fullAndFilter.addChildren(orChildFilter.getChildren());
-                    newProductFilters.add(fullAndFilter);
-                }
-            }
-            oldProductFilters = newProductFilters;
-        }
-        return oldProductFilters;
     }
 
     public abstract boolean isEvaluable();
@@ -258,23 +182,38 @@ public abstract class TupleFilter {
     }
 
     public static void collectColumns(TupleFilter filter, Set<TblColRef> collector) {
-        collectColumns(filter, collector, filter != null && !NON_RANGE_FILTER.contains(filter.operator));
-    }
-
-    private static void collectColumns(TupleFilter filter, Set<TblColRef> collector, boolean isRangeFilter) {
-        if (filter == null || collector == null)
+        if (filter == null || collector == null) {
             return;
+        }
 
         if (filter instanceof ColumnTupleFilter) {
-            ColumnTupleFilter columnTupleFilter = (ColumnTupleFilter) filter;
-            TblColRef filterCol = columnTupleFilter.getColumn();
+            TblColRef filterCol = ((ColumnTupleFilter) filter).getColumn();
             collector.add(filterCol);
-            filterCol.setFilterLevel(
-                    isRangeFilter ? TblColRef.FilterColEnum.RANGE_FILTER : TblColRef.FilterColEnum.EQUALS_FILTER);
+
+            TblColRef.FilterColEnum tmpLevel;
+            final TupleFilter parent = filter.getParent();
+            final int parentOpLevel = parent.operator.getValue();
+            if (parentOpLevel == FilterOperatorEnum.EQ.getValue()) {
+                tmpLevel = TblColRef.FilterColEnum.EQUAL_FILTER;
+            } else if (parentOpLevel <= FilterOperatorEnum.ISNULL.getValue()) {
+                tmpLevel = TblColRef.FilterColEnum.INFERIOR_EQUAL_FILTER;
+            } else if (parentOpLevel <= FilterOperatorEnum.ISNOTNULL.getValue()) {
+                tmpLevel = TblColRef.FilterColEnum.RANGE_FILTER;
+            } else if (filter.getParent() instanceof BuiltInFunctionTupleFilter
+                    && ((BuiltInFunctionTupleFilter) parent).getName().equalsIgnoreCase("LIKE")) {
+                tmpLevel = TblColRef.FilterColEnum.LIKE_FILTER;
+            } else {
+                tmpLevel = TblColRef.FilterColEnum.OTHER_FILTER;
+            }
+
+            // update when priority higher than its existing value
+            if (tmpLevel.getPriority() > filterCol.getFilterLevel().getPriority()) {
+                filterCol.setFilterLevel(tmpLevel);
+            }
         }
 
         for (TupleFilter child : filter.getChildren()) {
-            collectColumns(child, collector, !NON_RANGE_FILTER.contains(filter.operator));
+            collectColumns(child, collector);
         }
     }
 

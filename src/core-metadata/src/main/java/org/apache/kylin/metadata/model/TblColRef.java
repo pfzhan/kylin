@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -84,13 +83,24 @@ public class TblColRef implements Serializable {
     }
 
     public enum FilterColEnum {
-        NONE("none", 0), RANGE_FILTER("range_filter", 1), EQUALS_FILTER("dimension_filter", 2);
+        EQUAL_FILTER("equal_filter", 5),
+
+        INFERIOR_EQUAL_FILTER("inferior_equal_filter", 4),
+
+        RANGE_FILTER("range_filter", 3),
+
+        LIKE_FILTER("like_filter", 2),
+
+        OTHER_FILTER("other_filter", 1),
+
+        NONE("none", 0);
+
         private final String filterLevel;
         private final int priority;
 
-        private FilterColEnum(String filterLevel, int cost) {
+        FilterColEnum(String filterLevel, int priority) {
             this.filterLevel = filterLevel;
-            this.priority = cost;
+            this.priority = priority;
         }
 
         public int getPriority() {
@@ -154,7 +164,8 @@ public class TblColRef implements Serializable {
     }
 
     // for test mainly
-    public static TblColRef mockup(TableDesc table, int oneBasedColumnIndex, String name, String datatype, String computedColumnExpr) {
+    public static TblColRef mockup(TableDesc table, int oneBasedColumnIndex, String name, String datatype,
+            String computedColumnExpr) {
         String id = "" + oneBasedColumnIndex;
         ColumnDesc desc = new ColumnDesc(id, name, datatype, null, null, null, computedColumnExpr);
         desc.init(table);
@@ -246,14 +257,14 @@ public class TblColRef implements Serializable {
         return column.getType();
     }
 
-    public String getBackupTableAlias(){
+    public String getBackupTableAlias() {
         return backupTable.getAlias();
     }
-    
+
     public String getParserDescription() {
         return parserDescription;
     }
-    
+
     private void markInnerColumn(InnerDataTypeEnum dataType) {
         this.column.setDatatype(dataType.getDataType());
         this.column.getTable().setName(INNER_TABLE_NAME);
@@ -288,7 +299,7 @@ public class TblColRef implements Serializable {
             return false;
         if (!StringUtils.equals(column.getName(), other.column.getName()))
             return false;
-        if ((table == null ? other.table == null : table.equals(other.table)) == false)
+        if (!(table == null ? other.table == null : table.equals(other.table)))
             return false;
         if (this.isInnerColumn() != other.isInnerColumn())
             return false;

@@ -194,11 +194,13 @@ public class RecAndQueryCompareUtil {
         private String accelerateLayouts;
         private String queryUsedLayouts;
         private AccelerationMatchedLevel level;
+        private String filePath;
 
         @Override
         public String toString() {
             return "CompareEntity{\n\tsql=[" + QueryUtil.removeCommentInSql(sql) + "],\n\taccelerateLayouts="
-                    + accelerateLayouts + ",\n\tqueryUsedLayouts=" + queryUsedLayouts + ",\n\tlevel=" + level + "\n}";
+                    + accelerateLayouts + ",\n\tqueryUsedLayouts=" + queryUsedLayouts + "\n\tfilePath=" + filePath
+                    + ",\n\tlevel=" + level + "\n}";
         }
     }
 

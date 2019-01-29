@@ -86,6 +86,7 @@ public class NExecAndComp {
             Dataset<Row> kapResult = (recAndQueryResult == null)
                     ? queryWithKap(kapSparkSession, joinType, sqlAndAddedLimitSql)
                     : queryWithKap(kapSparkSession, joinType, sqlAndAddedLimitSql, recAndQueryResult);
+            addQueryPath(recAndQueryResult, query, sql);
             Dataset<Row> sparkResult = queryWithSpark(kapSparkSession, sql);
             List<Row> kapRows = SparderQueryTest.castDataType(kapResult, sparkResult).toJavaRDD().collect();
             List<Row> sparkRows = sparkResult.toJavaRDD().collect();
@@ -113,6 +114,7 @@ public class NExecAndComp {
             Dataset<Row> cubeResult = (recAndQueryResult == null)
                     ? queryWithKap(kapSparkSession, joinType, Pair.newPair(sql, sql))
                     : queryWithKap(kapSparkSession, joinType, Pair.newPair(sql, sql), recAndQueryResult);
+            addQueryPath(recAndQueryResult, query, sql);
             if (compareLevel != CompareLevel.NONE) {
                 Dataset<Row> sparkResult = queryWithSpark(kapSparkSession, sql);
                 List<Row> sparkRows = sparkResult.toJavaRDD().collect();
@@ -138,6 +140,16 @@ public class NExecAndComp {
             rowList.add(SparderQueryTest.prepareRow(row));
         });
         return rowList;
+    }
+
+    private static void addQueryPath(Map<String, CompareEntity> recAndQueryResult, Pair<String, String> query,
+            String modifiedSql) {
+        if (recAndQueryResult == null) {
+            return;
+        }
+
+        Preconditions.checkState(recAndQueryResult.containsKey(modifiedSql));
+        recAndQueryResult.get(modifiedSql).setFilePath(query.getFirst());
     }
 
     static void execCompareQueryAndCompare(List<Pair<String, String>> queries, KapSparkSession kapSparkSession,

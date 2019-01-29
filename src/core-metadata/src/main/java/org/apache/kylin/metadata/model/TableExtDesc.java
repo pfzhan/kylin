@@ -406,10 +406,20 @@ public class TableExtDesc extends RootPersistentEntity implements Serializable {
                     final ColumnStats ret2 = ColumnStats.getColumnStats(tableMetadataManager, col2, columnStatsCache);
 
                     //null last
-                    if (ret2 == null)
-                        return (ret1 == null) ? 0 : -1;
-                    if (ret1 == null)
+                    if (ret2 == null && ret1 == null) {
+                        // column of incremental loading table ahead of its counterpart
+                        final TableDesc table1 = col1.getTableRef().getTableDesc();
+                        final TableDesc table2 = col2.getTableRef().getTableDesc();
+                        if (table1.isIncrementLoading() == table2.isIncrementLoading()) {
+                            return col1.getIdentity().compareToIgnoreCase(col2.getIdentity());
+                        } else {
+                            return table1.isIncrementLoading() ? -1 : 1;
+                        }
+                    } else if (ret2 == null) {
+                        return -1;
+                    } else if (ret1 == null) {
                         return 1;
+                    }
                     // getCardinality desc
                     res = Long.compare(ret2.getCardinality(), ret1.getCardinality());
                 }

@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -76,7 +75,7 @@ public class BuiltInFunctionTupleFilter extends FunctionTupleFilter {
     protected boolean isValidFunc = false;
     protected boolean isReversed = false;
 
-    final static Map<String, String> converters = Maps.newHashMap();
+    static final Map<String, String> converters = Maps.newHashMap();
     static {
         converters.put("||", "CONCAT");
     }

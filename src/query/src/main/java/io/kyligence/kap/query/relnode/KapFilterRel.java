@@ -51,6 +51,7 @@ public class KapFilterRel extends OLAPFilterRel implements KapRel {
     private Set<OLAPContext> subContexts = Sets.newHashSet();
 
     private boolean belongToPreAggContext = false;
+
     public KapFilterRel(RelOptCluster cluster, RelTraitSet traits, RelNode child, RexNode condition) {
         super(cluster, traits, child, condition);
     }

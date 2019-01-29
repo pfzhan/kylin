@@ -28,19 +28,25 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.metadata.model.TblColRef;
 import org.junit.Assert;
 import org.junit.Test;
 
+import com.google.common.collect.ImmutableBiMap;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.smart.NSmartContext;
 import io.kyligence.kap.smart.NSmartMaster;
 import io.kyligence.kap.smart.common.AccelerateInfo;
 import io.kyligence.kap.smart.common.NTestBase;
+import lombok.val;
 
 public class CuboidSuggesterTest extends NTestBase {
 
@@ -84,6 +90,59 @@ public class CuboidSuggesterTest extends NTestBase {
         final LayoutEntity layout2 = allCuboids.get(1).getLayouts().get(0);
         Assert.assertEquals("unexpected colOrder", "[7, 8, 1, 4, 5, 6]", layout2.getColOrder().toString());
         Assert.assertTrue(layout2.getUpdateTime() > 0);
+    }
+
+    @Test
+    public void testComplicateSuggestColOrder() {
+        String project = "newten";
+        KylinConfig kylinConfig = getTestConfig();
+
+        String[] sqls = new String[] { "SELECT test_cal_dt.week_beg_dt, test_category_groupings.meta_categ_name, "
+                + "test_category_groupings.categ_lvl2_name, test_category_groupings.categ_lvl3_name\n"
+                + "\t, SUM(test_kylin_fact.price) AS GMV, COUNT(*) AS TRANS_CNT\nFROM test_kylin_fact\n"
+                + "\tINNER JOIN edw.test_cal_dt test_cal_dt ON test_kylin_fact.cal_dt = test_cal_dt.cal_dt\n"
+                + "\tINNER JOIN test_category_groupings\n"
+                + "\tON test_kylin_fact.leaf_categ_id = test_category_groupings.leaf_categ_id\n"
+                + "\t\tAND test_kylin_fact.lstg_site_id = test_category_groupings.site_id\n"
+                + "WHERE ((test_kylin_fact.leaf_categ_id = 100\n\t\tOR test_kylin_fact.leaf_categ_id > 200)\n"
+                + "\tAND test_kylin_fact.price > 10\n\tAND test_kylin_fact.lstg_format_name LIKE '%BIN%'\n"
+                + "\tAND test_cal_dt.week_beg_dt BETWEEN DATE '2013-05-01' AND DATE '2013-08-01')\n"
+                + "\tAND concat(test_category_groupings.categ_lvl3_name, 'H') = 'AAA'\n"
+                + "GROUP BY test_cal_dt.week_beg_dt, test_category_groupings.meta_categ_name, "
+                + "test_category_groupings.categ_lvl2_name, test_category_groupings.categ_lvl3_name" };
+        NSmartMaster smartMaster = new NSmartMaster(kylinConfig, project, sqls);
+
+        val tableManager = NTableMetadataManager.getInstance(kylinConfig, project);
+        val tableTestKylinFact = tableManager.getTableDesc("DEFAULT.TEST_KYLIN_FACT");
+        tableTestKylinFact.setIncrementLoading(true);
+        tableManager.updateTableDesc(tableTestKylinFact);
+
+        smartMaster.runAll();
+
+        NSmartContext ctx = smartMaster.getContext();
+        NSmartContext.NModelContext mdCtx = ctx.getModelContexts().get(0);
+        final ImmutableBiMap<Integer, TblColRef> effectiveDimensions = mdCtx.getTargetModel().getEffectiveDimensions();
+
+        String[] expectedColOrder = new String[] { "DEFAULT.TEST_KYLIN_FACT.LEAF_CATEG_ID",
+                "DEFAULT.TEST_KYLIN_FACT.PRICE", "EDW.TEST_CAL_DT.WEEK_BEG_DT",
+                "DEFAULT.TEST_KYLIN_FACT.LSTG_FORMAT_NAME", "DEFAULT.TEST_CATEGORY_GROUPINGS.CATEG_LVL3_NAME",
+                "DEFAULT.TEST_CATEGORY_GROUPINGS.CATEG_LVL2_NAME", "DEFAULT.TEST_CATEGORY_GROUPINGS.META_CATEG_NAME" };
+
+        final IndexPlan targetIndexPlan = mdCtx.getTargetIndexPlan();
+        final List<IndexEntity> allCuboids = targetIndexPlan.getAllIndexes();
+        final LayoutEntity layout = allCuboids.get(0).getLayouts().get(0);
+        final ImmutableList<Integer> colOrder = layout.getColOrder();
+        Assert.assertEquals(expectedColOrder[0], effectiveDimensions.get(colOrder.get(0)).getCanonicalName());
+        Assert.assertEquals(expectedColOrder[1], effectiveDimensions.get(colOrder.get(1)).getCanonicalName());
+        Assert.assertEquals(expectedColOrder[2], effectiveDimensions.get(colOrder.get(2)).getCanonicalName());
+        Assert.assertEquals(expectedColOrder[3], effectiveDimensions.get(colOrder.get(3)).getCanonicalName());
+        Assert.assertEquals(expectedColOrder[4], effectiveDimensions.get(colOrder.get(4)).getCanonicalName());
+        Assert.assertEquals(expectedColOrder[5], effectiveDimensions.get(colOrder.get(5)).getCanonicalName());
+        Assert.assertEquals(expectedColOrder[6], effectiveDimensions.get(colOrder.get(6)).getCanonicalName());
+        Assert.assertTrue(layout.getUpdateTime() > 0);
+
+        tableTestKylinFact.setIncrementLoading(false);
+        tableManager.updateTableDesc(tableTestKylinFact);
     }
 
     @Test
