@@ -16,10 +16,22 @@ export default {
       if (this.chartRef) {
         this.redraw(this.chartRef)
       }
+    },
+    '$lang': function (val) {
+      this.chartRef.noData(this.$t('kylinLang.common.noData'))
+      this.redraw(this.chartRef)
     }
   },
   methods: {
     redraw (chart) {
+      const MaxY = d3.max(this.model[0].values, function (d) {
+        return +d.y
+      })
+      if (MaxY) {
+        chart.forceY([0, MaxY])
+      } else {
+        chart.forceY([0, 1])
+      }
       d3.select(this.$refs.chart)
         .style('height', this.height)
         .attr('id', this.id)

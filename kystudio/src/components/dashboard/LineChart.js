@@ -17,6 +17,9 @@ export default {
         .margin({top: 20, right: 40, bottom: 60, left: 35})
         .color(this.colors)
         .showLegend(false)
+        .forceY([0, 1])
+        .xScale(d3.time.scale.utc())
+        .clipEdge(false)
         .noData(this.$t('kylinLang.common.noData'))
 
       const xaxis = chart.xAxis.showMaxMin(true)

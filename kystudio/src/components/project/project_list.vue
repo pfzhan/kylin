@@ -6,7 +6,7 @@
  <div v-if="!(projectList && projectList.length)" class="nodata">
     <div class="ksd-mb-10"><img src="../../assets/img/default_project.png"></div>
     <div class="ksd-mb-20">{{$t('noProject')}}</div>
-    <el-button type="primary" size="medium" class="ksd-mb-20 ksd-mt-20" v-if="isAdmin" @click="addProject">+{{$t('kylinLang.common.project')}}</el-button>
+    <el-button type="primary" size="medium" class="ksd-mb-20 ksd-mt-20" v-if="isAdmin" icon="el-icon-plus" @click="newProject">{{$t('kylinLang.common.project')}}</el-button>
  </div>
   <el-table v-if="projectList && projectList.length"
     :data="projectList"
@@ -111,24 +111,18 @@ export default {
     ...mapActions('ProjectEditModal', {
       callProjectEditModal: 'CALL_MODAL'
     }),
-    editProject (project) {
-      this.isEdit = true
-      this.projectWidth = '660px'
-      this.FormVisible = true
-      this.project = project
-    },
+    // editProject (project) {
+    //   this.isEdit = true
+    //   this.projectWidth = '660px'
+    //   this.FormVisible = true
+    //   this.project = project
+    // },
     checkProjectForm () {
       this.$refs.projectForm.$emit('projectFormValid')
     },
     handleCurrentChange (currentPage) {
       this.currentPage = currentPage
       this.loadProjects({pageOffset: currentPage, pageSize: this.pageCount})
-    },
-    addProject () {
-      this.isEdit = false
-      this.projectWidth = '440px'
-      this.FormVisible = true
-      this.project = {name: '', description: '', override_kylin_properties: {}}
     },
     async newProject () {
       const isSubmit = await this.callProjectEditModal({ editType: 'new' })

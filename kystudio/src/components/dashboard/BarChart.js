@@ -29,7 +29,6 @@ export default {
         .staggerLabels(this.staggerLabels)    // Too many bars and not enough room? Try staggering labels.
         .showValues(this.showValues)       // ...instead, show the bar value right on top of each bar.
         .noData(this.$t('kylinLang.common.noData'))
-        // .showXAxis(false)
 
       // Axis settings
       const xaxis = chart.xAxis.showMaxMin(false)

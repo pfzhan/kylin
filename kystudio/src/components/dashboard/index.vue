@@ -117,7 +117,7 @@
             </div>
             <div class="content">
               <span class="num">{{queryMean}}</span>
-              <span class="unit">sec</span>
+              <span class="unit">{{$t('sec')}}</span>
             </div>
           </div>
         </div>
@@ -147,7 +147,7 @@
             </div>
             <div class="content" v-else>
               <span class="num">{{avgBulidTime}}</span>
-              <span class="unit">sec</span>
+              <span class="unit">{{$t('sec')}}</span>
             </div>
           </div>
         </div>
@@ -251,7 +251,8 @@ import LineChart from './LineChart'
       month: 'Month',
       storageQuotaDesc: 'In the project, the total storage can be used.',
       acceImpactDesc: 'In the project, accelerated queries ratio.',
-      noEnoughData: 'Not enough data yet'
+      noEnoughData: 'Not enough data yet',
+      sec: 's'
     },
     'zh-cn': {
       storageQuota: '存储配额',
@@ -278,7 +279,8 @@ import LineChart from './LineChart'
       month: '月',
       storageQuotaDesc: '本项目可使用的存储空间总量。',
       acceImpactDesc: '本项目中，已经加速的查询的比例。',
-      noEnoughData: '尚无足够数据统计'
+      noEnoughData: '尚无足够数据统计',
+      sec: '秒'
     }
   }
 })
@@ -429,7 +431,7 @@ export default class Dashboard extends Vue {
     const res = await this.loadJobBulidChartData({project: this.currentSelectedProject, start_time: this.daterange[0].getTime(), end_time: this.daterange[1].getTime(), dimension: 'model'})
     const resData = await handleSuccessAsync(res)
     Object.keys(resData).forEach(k => {
-      resData[k] = resData[k] / 1000
+      resData[k] = resData[k] * 1024 * 1024 / 1000
     })
     this.barChartData = Object.entries(resData).map(([key, value]) => ({ label: key, value: value }))
   }
@@ -533,9 +535,9 @@ export default class Dashboard extends Vue {
     const label = (d.data && d.data.label) || (d.point && d3.time.format(formatPattern)(moment.unix(d.point.x / 1000).toDate()))
     const value = (d.data && d.data.value) || (d.point && d.point.y)
     if (this.showQueryChart || this.showJobChart) {
-      valueFormate = value
+      valueFormate = value || 0
     } else {
-      valueFormate = Number(value) > 0 && Number(value) < 0.01 ? Number(value).toFixed(4) + 's' : Number(value).toFixed(2) + 's'
+      valueFormate = value ? (Number(value) > 0 && Number(value) < 0.01 ? Number(value).toFixed(4) + 's' : Number(value).toFixed(2) + this.$t('sec')) : '0.00' + this.$t('sec')
     }
     return `<table>
       <tr>
@@ -784,6 +786,11 @@ export default class Dashboard extends Vue {
         }
         .nvd3 text {
           font: normal 10px Helvetica Neue;
+        }
+        .nv-point {
+          stroke-opacity: 1;
+          stroke-width: 3px;
+          fill-opacity: 1;
         }
         > div {
           height: 325px;
