@@ -228,7 +228,7 @@ public class CnMessage extends Message {
     }
 
     public String getEMPTY_PROJECT_NAME() {
-        return "项目名称不可为空";
+        return "没有项目信息。请指定一个项目";
     }
 
     public String getEMPTY_NEW_MODEL_NAME() {

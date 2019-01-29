@@ -244,7 +244,7 @@ public class Message {
     }
 
     public String getEMPTY_PROJECT_NAME() {
-        return "Project name should not be empty.";
+        return "No valid project name. Please select one project.";
     }
 
     public String getEMPTY_NEW_MODEL_NAME() {
