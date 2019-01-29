@@ -44,9 +44,7 @@ import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.security.UserGroupInformation;
-import org.apache.hadoop.security.token.Token;
 import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.log4j.AppenderSkeleton;
 import org.apache.log4j.helpers.LogLog;
@@ -284,22 +282,14 @@ public class HdfsAppender extends AppenderSkeleton {
 
                     final Path file = new Path(outPutPath);
 
-                    // Security framework already loaded the tokens into current ugi
-                    Credentials credentials = UserGroupInformation.getCurrentUser().getCredentials();
-                    LogLog.warn("Executing with tokens:");
-                    for (Token<?> token : credentials.getAllTokens()) {
-                        LogLog.warn(token.toString());
-                    }
-
                     String sparkuser = System.getenv("SPARK_USER");
                     String user = System.getenv("USER");
                     LogLog.warn("login user is " + UserGroupInformation.getLoginUser() + " SPARK_USER is " + sparkuser
                             + " USER is " + user);
-                    UserGroupInformation childUGI = UserGroupInformation.createRemoteUser(user);
+                    UserGroupInformation ugi = SparkEnv.getUGI();
                     // Add tokens to new user so that it may execute its task correctly.
-                    childUGI.addCredentials(credentials);
-
-                    childUGI.doAs(new PrivilegedExceptionAction<Void>() {
+                    LogLog.warn("Login user hashcode is " + ugi.hashCode());
+                    ugi.doAs(new PrivilegedExceptionAction<Void>() {
                         public Void run() throws Exception {
                             initWriter(file);
                             doRollingClean(loggingEvent);
