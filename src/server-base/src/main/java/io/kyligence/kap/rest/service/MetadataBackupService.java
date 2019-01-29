@@ -81,7 +81,6 @@ public class MetadataBackupService {
         val fs = HadoopUtil.getFileSystem(rootMetadataBackupPath);
         if (!fs.exists(rootMetadataBackupPath)) {
             fs.mkdirs(rootMetadataBackupPath);
-            fs.close();
             return;
         }
 
@@ -98,7 +97,6 @@ public class MetadataBackupService {
             childrenSize--;
         }
 
-        fs.close();
     }
 
 }

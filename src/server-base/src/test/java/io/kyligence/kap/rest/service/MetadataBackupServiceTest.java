@@ -67,7 +67,6 @@ public class MetadataBackupServiceTest extends NLocalFileMetadataTestCase {
         val rootPath = new Path(kylinConfig.getHdfsWorkingDirectory()).getParent();
         val rootFS = HadoopUtil.getFileSystem(rootPath);
         Assertions.assertThat(rootFS.listStatus(rootPath)).hasSize(0);
-        rootFS.close();
 
         //2.execute backup()
         metadataBackupService.backupAll();
@@ -81,7 +80,6 @@ public class MetadataBackupServiceTest extends NLocalFileMetadataTestCase {
         Assertions.assertThat(rootMetadataFS.listStatus(rootMetadataChildrenPath)).hasSize(1).contains(rootMetadataFS
                 .getFileStatus(new Path(rootMetadataChildrenPath.toString() + File.separator + "UUID")));
 
-        rootMetadataFS.close();
     }
 
     @Test
@@ -110,8 +108,6 @@ public class MetadataBackupServiceTest extends NLocalFileMetadataTestCase {
         kylinConfig.setProperty("kylin.metadata.backup-count-threshold", "3");
         metadataBackupService.cleanBeforeBackup(kylinConfig);
         Assertions.assertThat(fs.listStatus(rootMetadataPath)).hasSize(2);
-
-        fs.close();
     }
 
 }
