@@ -29,7 +29,7 @@
     <transition name="fade">
       <div class="selectLabel" v-if="isSelectAllShow">
         <span>{{$t('selectedJobs', {selectedNumber: selectedNumber})}}</span>
-        <el-checkbox v-model="isSelectAll">{{$t('selectAll')}}</el-checkbox>
+        <el-checkbox v-model="isSelectAll" @change="selectAllChange">{{$t('selectAll')}}</el-checkbox>
       </div>
     </transition>
     <el-table class="ksd-el-table jobs-table"
@@ -698,6 +698,7 @@ export default class JobsList extends Vue {
   handleSelectAll (val) {
     if (this.jobTotal > 10 && this.filter.status !== '') {
       this.isSelectAllShow = !this.isSelectAllShow
+      this.isSelectAll = false
       this.selectedNumber = this.animatedNum(this.jobsList.length, 0)
     }
   }
@@ -705,10 +706,16 @@ export default class JobsList extends Vue {
     if (this.jobTotal > 10 && this.filter.status !== '') {
       if (this.multipleSelection.length < 10) {
         this.isSelectAllShow = false
-        this.isSelectAll = false
       } else {
         this.isSelectAllShow = true
       }
+    }
+  }
+  selectAllChange (val) {
+    if (val) {
+      this.selectAll()
+    } else {
+      this.cancelSelectAll()
     }
   }
   selectAll () {
@@ -730,57 +737,61 @@ export default class JobsList extends Vue {
     if (!this.multipleSelection.length) {
       this.$message.warning(this.$t('noSelectJobs'))
     } else {
-      if (this.isSelectAll) {
-        this.resume([])
+      if (this.isSelectAll && this.isSelectAllShow) {
+        this.resume([], 'batchAll')
       } else {
         const jobIds = this.getJobIds()
-        this.resume(jobIds)
+        this.resume(jobIds, 'batch')
       }
-      this.reCallPolling()
     }
   }
   batchRestart () {
     if (!this.multipleSelection.length) {
       this.$message.warning(this.$t('noSelectJobs'))
     } else {
-      if (this.isSelectAll) {
-        this.restart([])
+      if (this.isSelectAll && this.isSelectAllShow) {
+        this.restart([], 'batchAll')
       } else {
         const jobIds = this.getJobIds()
-        this.restart(jobIds)
+        this.restart(jobIds, 'batch')
       }
-      this.reCallPolling()
     }
   }
   batchPause () {
     if (!this.multipleSelection.length) {
       this.$message.warning(this.$t('noSelectJobs'))
     } else {
-      if (this.isSelectAll) {
-        this.pause([])
+      if (this.isSelectAll && this.isSelectAllShow) {
+        this.pause([], 'batchAll')
       } else {
         const jobIds = this.getJobIds()
-        this.pause(jobIds)
+        this.pause(jobIds, 'batch')
       }
-      this.reCallPolling()
     }
   }
   batchDrop () {
     if (!this.multipleSelection.length) {
       this.$message.warning(this.$t('noSelectJobs'))
     } else {
-      if (this.isSelectAll) {
-        this.drop([])
+      if (this.isSelectAll && this.isSelectAllShow) {
+        this.drop([], 'batchAll')
       } else {
         const jobIds = this.getJobIds()
-        this.drop(jobIds)
+        this.drop(jobIds, 'batch')
       }
-      this.reCallPolling()
     }
+  }
+  resetSelection () {
+    this.isSelectAllShow = false
+    this.isSelectAll = false
+    this.multipleSelection = []
+    this.idsArrCopy = []
+    this.idsArr = []
   }
   currentChange (size, count) {
     this.filter.pageOffset = size
     this.filter.pageSize = count
+    this.resetSelection()
     this.getJobsList()
   }
   waitingJobsCurrentChange (size, count) {
@@ -826,53 +837,85 @@ export default class JobsList extends Vue {
     this.filter.sortBy = prop
     this.getJobsList()
   }
-  resume (jobIds) {
+  resume (jobIds, isBatch) {
     kapConfirm(this.$t('resumeJob')).then(() => {
       this.resumeJob({jobIds: jobIds, project: this.currentSelectedProject, action: 'RESUME', status: this.filter.status}).then(() => {
         this.$message({
           type: 'success',
           message: this.$t('kylinLang.common.actionSuccess')
         })
-        this.refreshJobs()
+        if (isBatch) {
+          if (isBatch === 'batchAll') {
+            this.filter.status = ''
+          }
+          this.reCallPolling()
+          this.resetSelection()
+        } else {
+          this.refreshJobs()
+        }
       }).catch((res) => {
         handleError(res)
       })
     })
   }
-  restart (jobIds) {
+  restart (jobIds, isBatch) {
     kapConfirm(this.$t('restartJob')).then(() => {
       this.restartJob({jobIds: jobIds, project: this.currentSelectedProject, action: 'RESTART', status: this.filter.status}).then(() => {
         this.$message({
           type: 'success',
           message: this.$t('kylinLang.common.actionSuccess')
         })
-        this.refreshJobs()
+        if (isBatch) {
+          if (isBatch === 'batchAll') {
+            this.filter.status = ''
+          }
+          this.reCallPolling()
+          this.resetSelection()
+        } else {
+          this.refreshJobs()
+        }
       }).catch((res) => {
         handleError(res)
       })
     })
   }
-  pause (jobIds) {
+  pause (jobIds, isBatch) {
     kapConfirm(this.$t('pauseJob')).then(() => {
       this.pauseJob({jobIds: jobIds, project: this.currentSelectedProject, action: 'PAUSE', status: this.filter.status}).then(() => {
         this.$message({
           type: 'success',
           message: this.$t('kylinLang.common.actionSuccess')
         })
-        this.refreshJobs()
+        if (isBatch) {
+          if (isBatch === 'batchAll') {
+            this.filter.status = ''
+          }
+          this.reCallPolling()
+          this.resetSelection()
+        } else {
+          this.refreshJobs()
+        }
       }).catch((res) => {
         handleError(res)
       })
     })
   }
-  drop (jobIds) {
+  drop (jobIds, isBatch) {
     kapConfirm(this.$t('dropJob'), null, this.$t('dropJobTitle')).then(() => {
       this.removeJob({jobIds: jobIds, project: this.currentSelectedProject, status: this.filter.status}).then(() => {
         this.$message({
           type: 'success',
           message: this.$t('kylinLang.common.delSuccess')
         })
-        this.refreshJobs()
+        if (isBatch) {
+          if (isBatch === 'batchAll') {
+            this.filter.status = ''
+          }
+          this.reCallPolling()
+          this.resetSelection()
+        } else {
+          this.refreshJobs()
+        }
       }).catch((res) => {
         handleError(res)
       })
