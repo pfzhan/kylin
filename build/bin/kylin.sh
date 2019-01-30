@@ -26,9 +26,9 @@ function exportEnv {
     export KYLIN_HADOOP_CONF=${KYLIN_HOME}/hadoop_conf
     export SPARK_HOME=${KYLIN_HOME}/spark
 
-    echo "KYLIN_HOME is:${KYLIN_HOME}"
-    echo "KYLIN_HADOOP_CONF is:${KYLIN_HADOOP_CONF}"
-    echo "SPARK_HOME is:${SPARK_HOME}"
+    verbose "KYLIN_HOME is:${KYLIN_HOME}"
+    verbose "KYLIN_HADOOP_CONF is:${KYLIN_HADOOP_CONF}"
+    verbose "SPARK_HOME is:${SPARK_HOME}"
 }
 
 function quit {
@@ -106,7 +106,7 @@ function runTool() {
         source ${KYLIN_HOME}/conf/setenv.sh
         export KYLIN_EXTRA_START_OPTS=`echo ${KYLIN_JVM_SETTINGS}|sed  "s/-XX:+PrintFlagsFinal//g"`
     fi
-    java ${KYLIN_EXTRA_START_OPTS} -Dlogging.path=${KYLIN_HOME}/logs -Dlogging.config=file:${KYLIN_HOME}/conf/kylin-tool-log4j.properties -Dkylin.hadoop.conf.dir=${KYLIN_HADOOP_CONF} -Dhdp.version=current -cp "${KYLIN_HOME}/tool/kap-tool-$version.jar:${SPARK_HOME}/jars/*" $@
+    java ${KYLIN_EXTRA_START_OPTS} -Dlog4j.configuration=file:${KYLIN_HOME}/conf/kylin-tools-log4j.properties -Dkylin.hadoop.conf.dir=${KYLIN_HADOOP_CONF} -Dhdp.version=current -cp "${KYLIN_HOME}/tool/kap-tool-$version.jar:${SPARK_HOME}/jars/*" $@
 }
 
 # start command
@@ -135,6 +135,11 @@ then
     source ${KYLIN_HOME}/bin/replace-jars-under-spark.sh
 
     port=7070
+    used=`netstat -tpln | grep $port | awk '{print $7}' | sed "s/\// /g"`
+    if [ ! -z "$used" ]; then
+        echo "<$used> already listen on $port"
+        exit -1
+    fi
 
     #retrive $KYLIN_EXTRA_START_OPTS
     if [ -f "${KYLIN_HOME}/conf/setenv.sh" ]; then

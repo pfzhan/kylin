@@ -50,6 +50,7 @@ import org.apache.kylin.job.execution.SucceedTestExecutable;
 import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 import org.assertj.core.api.Assertions;
 import org.junit.Assert;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -493,6 +494,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
     }
 
     @Test
+    @Ignore("reopen it after #10272")
     public void testFinishJob_EventStoreDownAndUp() throws Exception {
         val dfMgr = NDataflowManager.getInstance(getTestConfig(), project);
         NoErrorStatusExecutable job = new NoErrorStatusExecutable();
@@ -525,6 +527,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
     }
 
     @Test
+    @Ignore("reopen it after #10272")
     public void testFinishJob_EventStoreDownForever() throws Exception {
         val dfMgr = NDataflowManager.getInstance(getTestConfig(), project);
         NoErrorStatusExecutable job = new NoErrorStatusExecutable();

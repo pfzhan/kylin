@@ -27,9 +27,11 @@ import java.io.File;
 import java.io.IOException;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.metadata.cube.model.NDataflow;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.hadoop.fs.Path;
+import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.job.execution.DefaultChainedExecutable;
 import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.metadata.project.ProjectInstance;
@@ -43,6 +45,7 @@ import com.google.common.collect.Maps;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
+import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.tool.garbage.StorageCleaner;
 import lombok.val;
@@ -96,6 +99,22 @@ public class StorageCleanerTest extends NLocalFileMetadataTestCase {
         val existFiles = files.stream().filter(f -> !f.getName().startsWith("."))
                 .map(f -> FilenameUtils.normalize(f.getParentFile().getAbsolutePath())).collect(Collectors.toSet());
         Assert.assertEquals(0, existFiles.size());
+    }
+
+    @Test
+    public void testCleanupAfterRemoveTable() throws IOException {
+        val cleaner = new StorageCleaner();
+
+        NTableMetadataManager.getInstance(getTestConfig(), "default").removeSourceTable("DEFAULT.TEST_KYLIN_FACT");
+        for (NDataflow dataflow : NDataflowManager.getInstance(getTestConfig(), "default").listAllDataflows()) {
+            NDataflowManager.getInstance(getTestConfig(), "default").dropDataflow(dataflow.getId());
+        }
+
+        cleaner.execute();
+        val files = FileUtils.listFiles(new File(getTestConfig().getHdfsWorkingDirectory().replace("file://", "")
+                + "/default" + ResourceStore.GLOBAL_DICT_RESOURCE_ROOT), null, true);
+        Assert.assertEquals(0, files.size());
+
     }
 
     private void prepare() throws IOException {

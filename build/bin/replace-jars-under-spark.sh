@@ -3,7 +3,9 @@
 
 source ${KYLIN_HOME}/bin/init-kerberos.sh
 
-initKerberosIfNeeded
+if [ "$SKIP_KERB" != "1" ]; then
+    initKerberosIfNeeded
+fi
 
 BYPASS=${SPARK_HOME}/jars/repalce-jars-bypass
 

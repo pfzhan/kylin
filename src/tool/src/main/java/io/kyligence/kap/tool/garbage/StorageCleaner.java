@@ -150,12 +150,10 @@ public class StorageCleaner {
     private void collectIndexData(String project) throws IOException {
         val dataflowManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
         val activeIndexDataPath = Sets.<Path> newHashSet();
-        val workingDirs = Sets.<String> newHashSet();
         val dataflowDirs = Sets.<String> newHashSet();
         dataflowManager.listAllDataflows().forEach(dataflow -> {
             KapConfig config = KapConfig.wrap(dataflow.getConfig());
             String hdfsWorkingDir = config.getReadHdfsWorkingDirectory();
-            workingDirs.add(hdfsWorkingDir);
             dataflowDirs.add(getDataflowDir(hdfsWorkingDir, project, dataflow.getUuid()));
             dataflow.getSegments().stream() //
                     .flatMap(segment -> segment.getLayoutsMap().values().stream()) //
@@ -181,8 +179,8 @@ public class StorageCleaner {
             }
         }
 
-        for (String workingDir : workingDirs) {
-            collectDictAndSnapshot(workingDir, project);
+        for (StorageItem item : allFileSystems) {
+            collectDictAndSnapshot(item.getPath(), project);
         }
     }
 
