@@ -19,9 +19,7 @@ cd build/
 rm -rf ${package_name}
 mkdir ${package_name}
 
-cp -r ../src/examples/sample_cube ${package_name}
-
-cp -rf CHANGELOG.md VERSION commit_SHA1 ext lib tool LICENSE ${package_name}/
+cp -rf CHANGELOG.md VERSION commit_SHA1 lib tool LICENSE ${package_name}/
 
 if [ "${PACKAGE_SPARK}" = "1" ]; then
     cp -rf spark ${package_name}/
@@ -41,29 +39,14 @@ cp -rf conf/spark-executor-log4j.properties ${package_name}/conf/
 cp -rf conf/fairscheduler.xml ${package_name}/conf/
 cp -rf conf/setenv.sh ${package_name}/conf/
 cp -rf bin/ ${package_name}/bin/
-cp -rf ssb-kylin/ ${package_name}/ssb-kylin/
-
-cp -rf ../src/examples ${package_name}/
 
 # update symblink, use production profile as default
 ln -sfn profile_min profile
 mv profile ${package_name}/conf/
 ln -sfn profile/kylin.properties kylin.properties
 mv kylin.properties ${package_name}/conf/
-ln -sfn profile/kylin_hive_conf.xml kylin_hive_conf.xml
-mv kylin_hive_conf.xml ${package_name}/conf/
-ln -sfn profile/kylin_job_conf.xml kylin_job_conf.xml
-mv kylin_job_conf.xml ${package_name}/conf/
-ln -sfn profile/kylin_job_conf_inmem.xml kylin_job_conf_inmem.xml
-mv kylin_job_conf_inmem.xml ${package_name}/conf/
-ln -sfn profile/kylin-kafka-consumer.xml kylin-kafka-consumer.xml
-mv kylin-kafka-consumer.xml ${package_name}/conf/
 
 rm -rf ext lib tomcat commit_SHA1 VERSION # keep the spark folder on purpose
-
-#add sparder jar  ensure the jersey 2.x can be load first
-cp spark/jars/javax.ws.rs-api-*.jar ${package_name}/ext/
-cp spark/jars/jersey-server-*.jar ${package_name}/ext/
 
 mkdir ${package_name}/server
 cp -rf server/webapp/dist ${package_name}/server/public

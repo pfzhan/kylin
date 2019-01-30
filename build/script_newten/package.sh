@@ -5,16 +5,6 @@ cd ${dir}/../..
 
 source build/script_newten/functions.sh
 
-
-# restore the removals if noPlus mode ran before
-for file in extensions/core-common/src/main/resources/kylin-defaults0.properties build/conf/profile_min/kylin.properties
-do
-    restoreKAPPlusConfigs $file
-done
-
-# restore raw table to sample cube template
-mv -f ./sample_raw_table_bak/* extensions/examples/sample_cube/template/
-    
 echo "Packing for Newten..."
 
 export PACKAGE_SPARK=1
@@ -99,17 +89,5 @@ sh build/script_newten/prepare.sh ${MVN_PROFILE} || { exit 1; }
 sh build/script_newten/compress.sh               || { exit 1; }
 
 echo "BUILD STAGE 7 - Clean up..."
-
-# restore the removals if noPlus mode ran before
-for file in src/core-common/src/main/resources/kylin-defaults0.properties build/conf/profile_min/kylin.properties
-do 
-    restoreKAPPlusConfigs $file
-done
     
-# restore raw table to sample cube template
-BAK=`ls | grep raw_table`
-if [ ! -z "$BAK" ]; then
-	mv -f raw_table* src/examples/sample_cube/template/
-fi	
-
 echo "BUILD FINISHED!"
