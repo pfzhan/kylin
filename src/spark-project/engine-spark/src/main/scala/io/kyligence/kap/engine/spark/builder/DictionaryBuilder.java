@@ -53,7 +53,6 @@ import org.spark_project.guava.collect.Sets;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 
-import io.kyligence.kap.common.obf.IKeep;
 import io.kyligence.kap.engine.spark.NSparkCubingEngine;
 import io.kyligence.kap.metadata.cube.cuboid.NCuboidLayoutChooser;
 import io.kyligence.kap.metadata.cube.cuboid.NSpanningTree;
@@ -63,7 +62,7 @@ import io.kyligence.kap.metadata.cube.model.NDataLayout;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import scala.Tuple2;
 
-public class DictionaryBuilder implements IKeep {
+public class DictionaryBuilder {
     protected static final Logger logger = LoggerFactory.getLogger(DictionaryBuilder.class);
     private SparkSession ss;
     private NDataSegment seg;
@@ -187,8 +186,9 @@ public class DictionaryBuilder implements IKeep {
         Broadcast<NGlobalDictionaryV2> broadcastDict = JavaSparkContext
                 .fromSparkContext(afterDistinct.sparkSession().sparkContext()).broadcast(globalDict);
         afterDistinct.javaRDD().mapToPair((PairFunction<Row, String, String>) row -> {
-            if (row.get(0) == null)
+            if (row.get(0) == null) {
                 return new Tuple2<>(null, null);
+            }
             return new Tuple2<>(row.get(0).toString(), null);
         }).partitionBy(new NHashPartitioner(bucketPartitionSize)).mapPartitionsWithIndex(
                 (Function2<Integer, Iterator<Tuple2<String, String>>, Iterator<Object>>) (bucketId, tuple2Iterator) -> {

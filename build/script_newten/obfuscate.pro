@@ -36,6 +36,17 @@
     static ** newInstance(org.apache.kylin.common.KylinConfig,java.lang.String);
 }
 
+-keepclassmembers class * {
+     private static synthetic java.lang.Object $deserializeLambda$(java.lang.invoke.SerializedLambda);
+}
+
+-keepclassmembernames class * {
+    private static synthetic *** lambda$*(...);
+}
+
+#Confuse the string constants corresponding to the class name.
+-adaptclassstrings io.kyligence.kap.engine.spark.builder.DictionaryBuilder
+
 -keepclassmembers class io.kyligence.kap.rest.request.** {*;}
 -keepclassmembers class io.kyligence.kap.rest.response.** {*;}
 
