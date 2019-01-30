@@ -23,7 +23,7 @@ source $(cd -P -- "$(dirname -- "$0")" && pwd -P)/header.sh
 source ${dir}/find-hadoop-conf-dir.sh
 source ${dir}/load-hive-conf.sh
 
-cd ${KYLIN_HOME}/sample_cube/data
+cd ${KYLIN_HOME}/tool/ssb/data
 
 if [ -z "${kylin_hadoop_conf_dir}" ]; then
     hadoop_conf_param=
@@ -62,10 +62,10 @@ then
         beeline_params=${beeline_params/${hive2_url}/${hive2_url}${sample_database}}
     fi
 
-    beeline ${hive_conf_properties} --hivevar hdfs_tmp_dir=${hdfs_tmp_dir} ${beeline_params} -f ${KYLIN_HOME}/sample_cube/create_sample_ssb_tables.sql  || { exit 1; }
+    beeline ${hive_conf_properties} --hivevar hdfs_tmp_dir=${hdfs_tmp_dir} ${beeline_params} -f ${KYLIN_HOME}/tool/ssb/create_sample_ssb_tables.sql  || { exit 1; }
 else
     hive ${hive_conf_properties} -e "CREATE DATABASE IF NOT EXISTS "$sample_database
-    hive ${hive_conf_properties} --hivevar hdfs_tmp_dir=${hdfs_tmp_dir} --database $sample_database -f ${KYLIN_HOME}/sample_cube/create_sample_ssb_tables.sql  || { exit 1; }
+    hive ${hive_conf_properties} --hivevar hdfs_tmp_dir=${hdfs_tmp_dir} --database $sample_database -f ${KYLIN_HOME}/tool/ssb/create_sample_ssb_tables.sql  || { exit 1; }
 fi
 
 echo "Sample hive tables are created successfully"
