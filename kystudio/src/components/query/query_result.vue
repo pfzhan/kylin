@@ -108,7 +108,6 @@ export default class queryResult extends Vue {
   showDetail = false
   modelsTotal = this.extraoption.results.length
   timer = null
-
   exportData () {
     this.sql = this.extraoption.sql
     this.project = this.currentSelectedProject

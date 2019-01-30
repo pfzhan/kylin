@@ -13,9 +13,6 @@
       </div>
       <div class="layout-right">
         <div class="ksd_right_box">
-           <!-- for guide start -->
-          <el-button @click="handleForGuide" style="position: absolute;" v-visible v-guide.queryTriggerBtn></el-button>
-          <!-- for guide end -->
           <div class="query_result_box ksd-border-tab">
             <div class="btn-group">
               <el-button size="mini" plain="plain" @click.native="closeAllTabs" style="display:inline-block">{{$t('closeAll')}}</el-button>
@@ -134,31 +131,6 @@ export default class NewQuery extends Vue {
   checkedQueryList = []
   completeData = []
   tipsName = ''
-  // 为了guide
-  handleForGuide (obj) {
-    let action = obj.action
-    let data = obj.data
-    if (action === 'intoEditor') {
-      this.activeSubMenu = 'WorkSpace'
-    } else if (action === 'inputSql') {
-      this.editableTabs[0].queryObj = {
-        sql: data
-      }
-    } else if (action === 'requestSql') {
-      const queryObj = {
-        acceptPartial: true,
-        limit: 500,
-        offset: 0,
-        project: this.currentSelectedProject,
-        sql: data,
-        backdoorToggles: {
-          DEBUG_TOGGLE_HTRACE_ENABLED: false
-        }
-      }
-      this.query(queryObj)
-    }
-  }
-  // 为了guide
   handleAutoComplete (data) {
     this.completeData = [...data, ...insightKeyword]
   }

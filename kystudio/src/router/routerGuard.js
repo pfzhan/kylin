@@ -63,6 +63,13 @@ export function bindRouterGuard (router) {
     if (scrollBoxDom) {
       scrollBoxDom.scrollTop = 0
     }
+    // 跳转路由的时候，关闭独立挂载的弹窗上的isShow的状态
+    for (let i in store.state.modals) {
+      if (store.state.modals[i]) {
+        store.state.modals[i].isShow = false
+        store.commit(i + '/RESET_MODAL_FORM')
+      }
+    }
   })
   return router
 }

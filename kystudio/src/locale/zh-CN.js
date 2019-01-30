@@ -20,6 +20,7 @@ exports.default = {
     notice: '提示',
     ok: '确定',
     exit: '退出',
+    retry: '重试',
     continue: '继续',
     submit: '提交',
     setting: '设置',

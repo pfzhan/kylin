@@ -281,12 +281,12 @@ export function addModelDrama () {
       eventID: 1,
       done: false,
       tip: 'addModelTip4',
-      search: '.guide-gotoindex-btn' // 飞向添加index 按钮
+      target: 'willAddIndex' // 飞向添加index 按钮
     },
     {
       eventID: 2,
       done: false,
-      search: '.guide-gotoindex-btn' // 点击添加index按钮
+      target: 'willAddIndex' // 点击添加index按钮
     }
   ]
 }

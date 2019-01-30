@@ -109,6 +109,7 @@ export default class DataSourceModal extends Vue {
     this._showForm()
   }
   handleClose (isSubmit) {
+    this._hideLoading()
     this.hideModal()
     this.callback && this.callback(isSubmit)
   }

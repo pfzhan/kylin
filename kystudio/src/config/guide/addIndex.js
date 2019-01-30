@@ -56,6 +56,18 @@ export function addIndexDrama () {
     {
       eventID: 1,
       done: false,
+      target: 'aggCatchUp', // 点击选择输入范围
+      val: true
+    },
+    {
+      eventID: 31,
+      done: false,
+      target: 'aggCatchUp', // 点击选择输入范围
+      val: true
+    },
+    {
+      eventID: 1,
+      done: false,
       target: 'saveAggBtn' // 移动到保存Agg的按钮
     },
     {

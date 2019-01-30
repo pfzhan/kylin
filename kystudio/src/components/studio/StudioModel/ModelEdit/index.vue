@@ -426,6 +426,22 @@
       <DragBar :dragData="currentEditTable.drawSize"/>
       <!-- 拖动操纵 -->
     </div>
+    <el-dialog
+      :title="$t('kylinLang.common.tip')"
+      :visible.sync="gotoIndexdialogVisible"
+      width="30%"
+      append-to-body
+      :close-on-click-modal="false"
+      :show-close="false">
+      <i class="el-icon-success ksd-mr-10 ky-dialog-icon"></i>
+      <div class="ksd-pl-40">
+        <span>{{$t('saveSuccessTip')}}</span>
+      </div>
+      <span slot="footer" class="dialog-footer" v-if="gotoIndexdialogVisible">
+        <el-button @click="ignoreAddIndex">{{$t('ignoreaddIndexTip')}}</el-button>
+        <el-button type="primary" @click="willAddIndex" v-guide.willAddIndex>{{$t('addIndexTip')}}</el-button>
+      </span>
+    </el-dialog>
   </div>
 </template>
 <script>
@@ -434,7 +450,7 @@ import { Component, Watch } from 'vue-property-decorator'
 import { mapActions, mapGetters, mapMutations, mapState } from 'vuex'
 import locales from './locales'
 import DataSourceBar from '../../../common/DataSourceBar'
-import { handleSuccess, handleError, loadingBox, kapMessage, kapConfirm } from '../../../../util/business'
+import { handleSuccess, handleError, loadingBox, kapMessage } from '../../../../util/business'
 import { isIE, groupData, objectClone } from '../../../../util'
 import $ from 'jquery'
 import DimensionModal from '../DimensionsModal/index.vue'
@@ -512,6 +528,7 @@ export default class ModelEdit extends Vue {
   modelRender = {tables: {}}
   dimensionSelectedList = []
   measureSelectedList = []
+  gotoIndexdialogVisible = false // 保存成功弹窗
   ccSelectedList = []
   modelInstance = null // 模型实例对象
   currentDragTable = '' // 当前拖拽的表
@@ -1368,6 +1385,14 @@ export default class ModelEdit extends Vue {
       type: 'warning'
     })
   }
+  ignoreAddIndex () {
+    this.$router.replace({name: 'ModelList', params: { ignoreIntercept: true }})
+    this.gotoIndexdialogVisible = false
+  }
+  willAddIndex () {
+    this.$router.replace({name: 'ModelList', params: { ignoreIntercept: true, addIndex: true }})
+    this.gotoIndexdialogVisible = false
+  }
   handleSaveModel (data) {
     let action = 'saveModel'
     let para = data
@@ -1386,16 +1411,17 @@ export default class ModelEdit extends Vue {
           return
         }
         setTimeout(() => {
-          kapConfirm(this.$t('saveSuccessTip'), {
-            confirmButtonText: this.$t('addIndexTip'),
-            cancelButtonText: this.$t('ignoreaddIndexTip'),
-            type: 'success',
-            confirmButtonClass: 'guide-gotoindex-btn'
-          }, this.$t('addIndexTip')).then(() => {
-            this.$router.replace({name: 'ModelList', params: { ignoreIntercept: true, addIndex: true }})
-          }).catch(() => {
-            this.$router.replace({name: 'ModelList', params: { ignoreIntercept: true }})
-          })
+          this.gotoIndexdialogVisible = true
+          // kapConfirm(this.$t('saveSuccessTip'), {
+          //   confirmButtonText: this.$t('addIndexTip'),
+          //   cancelButtonText: this.$t('ignoreaddIndexTip'),
+          //   type: 'success',
+          //   confirmButtonClass: 'guide-gotoindex-btn'
+          // }, this.$t('addIndexTip')).then(() => {
+          //   this.$router.replace({name: 'ModelList', params: { ignoreIntercept: true, addIndex: true }})
+          // }).catch(() => {
+          //   this.$router.replace({name: 'ModelList', params: { ignoreIntercept: true }})
+          // })
           this.$emit('saveRequestEnd')
         }, 1000)
       })

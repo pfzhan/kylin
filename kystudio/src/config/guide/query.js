@@ -102,6 +102,7 @@
 //   `select c_city, s_city, d_year, sum(lo_revenue) as lo_revenue from ssb.lineorder left join ssb.dates on lo_orderdate = d_datekey left join ssb.customer on lo_custkey = c_custkey left join ssb.supplier on lo_suppkey = s_suppkey where c_nation = 'UNITED STATES' and s_nation = 'UNITED STATES' and d_year >= 1992 and d_year <= 1997 group by c_city, s_city, d_year order by d_year asc, lo_revenue desc;`
 // ]
 // import { batchRequest } from './generate'
+import { verySlowGuideSpeed } from './config'
 export function queryDrama () {
   return [
     {
@@ -143,44 +144,26 @@ export function queryDrama () {
     {
       eventID: 1,
       done: false,
-      target: 'queryBox', // 飞向提交按钮
-      search: '.guid-WorkSpace-submit'
+      target: 'workSpaceSubmit' // 飞向提交按钮
     },
     {
       eventID: 2,
       done: false,
-      target: 'queryBox', // 飞向提交按钮
-      search: '.guid-WorkSpace-submit'
-    },
-    {
-      eventID: 21,
-      done: false,
-      target: 'queryTriggerBtn', //
-      val: {
-        action: 'intoEditor'
-      }
+      target: 'workSpaceSubmit' // 点击提交按钮
     },
     {
       eventID: 1,
       done: false,
       target: 'queryBox', // 飞向输入sql的框子
-      search: '.guide-WorkSpaceEditor'
+      search: '.guide-WorkSpaceEditor',
+      timer: verySlowGuideSpeed
     },
     {
       eventID: 21,
       done: false,
       target: 'queryTriggerBtn', // 飞向输入sql的框子
       val: {
-        action: 'inputSql',
-        data: ``
-      }
-    },
-    {
-      eventID: 21,
-      done: false,
-      target: 'queryTriggerBtn', // 飞向输入sql的框子
-      val: {
-        action: 'inputSql',
+        action: 'requestSql',
         data: `select c_city, s_city, d_year, sum(lo_revenue) as lo_revenue
         from ssb.lineorder
         left join ssb.dates on lo_orderdate = d_datekey
@@ -191,37 +174,20 @@ export function queryDrama () {
         and d_year >= 1992 and d_year <= 1997
         group by c_city, s_city, d_year
         order by d_year asc, lo_revenue desc;`
-      }
+      },
+      timer: verySlowGuideSpeed
     },
     {
       eventID: 1,
       done: false,
-      target: 'queryBox', // 飞向提交按钮
-      search: '.guid-WorkSpace-submit'
-    },
-    {
-      eventID: 2,
-      done: false,
-      target: 'queryBox', // 飞向提交按钮
-      search: '.guid-WorkSpace-submit'
-    },
-    {
-      eventID: 21,
-      done: false,
-      target: 'queryTriggerBtn', //
-      val: {
-        action: 'intoEditor'
-      }
+      search: '.guide-queryAnswerBy',
+      timer: verySlowGuideSpeed
     },
     {
       eventID: 1,
       done: false,
-      search: '.guide-queryAnswerBy'
-    },
-    {
-      eventID: 1,
-      done: false,
-      search: '.guide-queryResultBox'
+      search: '.guide-queryResultBox',
+      timer: verySlowGuideSpeed
     }
   ]
 }

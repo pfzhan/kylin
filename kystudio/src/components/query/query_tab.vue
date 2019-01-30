@@ -1,5 +1,8 @@
 <template>
   <div id="queryTab">
+    <!-- for guide start -->
+    <el-button @click="handleForGuide" style="position: absolute;" v-visible v-guide.queryTriggerBtn></el-button>
+    <!-- for guide end -->
     <div class="query_panel_box ksd-mb-30">
       <kap-editor ref="insightBox" :class="{'guide-WorkSpaceEditor':isWorkspace}" height="170" lang="sql" theme="chrome" @keydown.meta.enter.native="submitQuery(sourceSchema)" @keydown.ctrl.enter.native="submitQuery(sourceSchema)" v-model="sourceSchema" :readOnly="!isWorkspace">
       </kap-editor>
@@ -20,7 +23,7 @@
               <el-input placeholder="" size="small" style="width:90px;" @input="handleInputChange" v-model="listRows" class="limit-input"></el-input>
             </el-form-item>
             <el-form-item>
-              <el-button type="primary" :class="{'guid-WorkSpace-submit' : isWorkspace}" plain size="small" class="ksd-btn-minwidth" :loading="isLoading" @click.native.prevent="submitQuery(sourceSchema)">{{$t('kylinLang.common.submit')}}</el-button>
+              <el-button type="primary" v-guide.workSpaceSubmit  plain size="small" class="ksd-btn-minwidth" :loading="isLoading" @click="submitQuery(sourceSchema)">{{$t('kylinLang.common.submit')}}</el-button>
             </el-form-item>
           </el-form>
         </p>
@@ -89,6 +92,28 @@ export default class QueryTab extends Vue {
   ST = null
   errinfo = ''
   isWorkspace = true
+  // 为了guide
+  handleForGuide (obj) {
+    let action = obj.action
+    let data = obj.data
+    if (action === 'intoEditor') {
+      this.activeSubMenu = 'WorkSpace'
+    } else if (action === 'inputSql') {
+      this.sourceSchema = data
+    } else if (action === 'requestSql') {
+      const queryObj = {
+        acceptPartial: true,
+        limit: 500,
+        offset: 0,
+        project: this.currentSelectedProject,
+        sql: data,
+        backdoorToggles: {
+          DEBUG_TOGGLE_HTRACE_ENABLED: false
+        }
+      }
+      this.query(queryObj)
+    }
+  }
   changeLimit () {
     if (this.hasLimit) {
       this.listRows = 500

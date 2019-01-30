@@ -5,7 +5,7 @@ export function addProjectDrama (guideType) {
     {
       eventID: 8,
       done: false,
-      router: 'Dashboard' // 鼠标移动到添加project按钮
+      router: 'Dashboard' // 跳转到dashboard页面
     },
     {
       eventID: 1,

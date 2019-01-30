@@ -1,5 +1,5 @@
 <template>
-  <div class="global-mask" v-if="globalMaksShow" >
+  <div class="global-mask" v-if="globalMaksShow" :style="{'z-index': maskZindex}">
         <el-button v-visible v-guide.moveGuidePanelBtn @click="moveGuidePanel"> </el-button>
         <div id="guid-panel" :style="guidePanelStyle">
           <div class="guid-icon">
@@ -36,11 +36,12 @@
         <img src="../../../assets/img/guide/cursor-pointer.png" v-if="globalMouseShow" class="pointer-pic" :style="mousePos"/>
         <img src="../../../assets/img/guide/cursor-click.png" v-if="globalMouseClick" class="pointer-pic" :style="mousePos"/>
         <img src="../../../assets/img/guide/cursor-bg.png" v-if="globalMouseDrag" class="pointer-pic" :style="mousePos"/>
+
   </div>
 </template>
 <script>
 import Vue from 'vue'
-import { Component } from 'vue-property-decorator'
+import { Component, Watch } from 'vue-property-decorator'
 import { mapActions } from 'vuex'
 import Guide from 'util/guide'
 @Component({
@@ -152,7 +153,9 @@ import Guide from 'util/guide'
       addModelTitle: 'Create a model',
       monitorTitle: 'Load data',
       speedSqlTitle: 'Accelerate SQL',
-      queryTitle: 'Time to insight'
+      queryTitle: 'Time to insight',
+      sysErrorInGuide: 'The guide reports an error and cannot continue. You may exit and restart the guide later. ',
+      timeoutInGuide: 'The step has been time out, and the guide couldn\'t continue. You may retry the step or exit the guide.'
     },
     'zh-cn': {
       expertMode: '专家模式',
@@ -168,7 +171,9 @@ import Guide from 'util/guide'
       addModelTitle: '创建模型',
       monitorTitle: '加载数据',
       speedSqlTitle: '加速查询',
-      queryTitle: '数据探索'
+      queryTitle: '数据探索',
+      sysErrorInGuide: '系统出现异常，新手导览暂时无法继续。您可以暂时退出，稍后重新启动新手导览。',
+      timeoutInGuide: '当前步骤已超时，新手导览暂时无法继续。您可以重试一次或暂时退出。'
     }
   }
 })
@@ -183,6 +188,7 @@ export default class GuidePannel extends Vue {
     right: 20,
     top: 60
   }
+  maskZindex = 999999
   isPause = false
   guideLoading = false
   stepsList = null
@@ -233,6 +239,13 @@ export default class GuidePannel extends Vue {
       this.guideSteps[this.currentStep].done = true
       this.guideLoading = false
     }, () => {
+      this.openGuideErrorDialog(this.$t('timeoutInGuide'), {
+        showCancelButton: true,
+        cancelButtonText: this.$t('kylinLang.common.retry')
+      }).catch(() => {
+        this.maskZindex = 999999
+        this.retryGuide()
+      })
       this.guideLoading = false
     })
   }
@@ -264,10 +277,11 @@ export default class GuidePannel extends Vue {
     this.activeName = currentGuidePage.name
     this._guideGo()
   }
-  // 重新播放
+  // 重新开始演示当前的模块
   retryGuide () {
     // this.currentStep = 0
-    this.guide.stop()
+    this.maskZindex = 999999
+    // this.guide.stop()
     this.goNextStep()
   }
   moveGuidePanel (pos) {
@@ -276,6 +290,7 @@ export default class GuidePannel extends Vue {
       top: 60
     }
   }
+  // 关闭演示
   closeGuide () {
     this.guideLoading = false
     this.currentStep = 0
@@ -288,6 +303,25 @@ export default class GuidePannel extends Vue {
     this.showCopyStatus = false
   }
   mounted () {
+  }
+  openGuideErrorDialog (tip, options) {
+    this.maskZindex = 100
+    let dialogOptions = {
+      type: 'error',
+      confirmButtonText: this.$t('kylinLang.common.exit'),
+      showClose: false
+    }
+    Object.assign(dialogOptions, options)
+    return this.$confirm(tip, this.$t('kylinLang.common.tip'), dialogOptions).then(() => {
+      this.maskZindex = 999999
+      this.closeGuide()
+    })
+  }
+  @Watch('$store.state.config.errorMsgBox.isShow')
+  hasSysError (val) {
+    if (val && this.$store.state.system.guideConfig.globalMaskVisible) {
+      this.openGuideErrorDialog(this.$t('sysErrorInGuide'))
+    }
   }
 }
 </script>
@@ -342,7 +376,6 @@ export default class GuidePannel extends Vue {
   overflow:hidden;
   left:0;
   right:0;
-  z-index: 999999;
   background: transparent;
   #guid-panel {
     color:@fff;

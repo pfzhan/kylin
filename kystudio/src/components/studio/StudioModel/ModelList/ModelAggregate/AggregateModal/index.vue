@@ -143,7 +143,7 @@
     </template>
     <div slot="footer" class="dialog-footer clearfix">
       <div class="left">
-        <el-checkbox :value="form.isCatchUp" @input="value => handleInput('isCatchUp', value)">{{$t('kylinLang.common.catchUp')}}</el-checkbox>
+        <el-checkbox v-guide.aggCatchUp :value="form.isCatchUp" @input="value => handleInput('isCatchUp', value)">{{$t('kylinLang.common.catchUp')}}</el-checkbox>
       </div>
       <div class="right">
         <el-button size="medium" @click="handleClose(false)">{{$t('kylinLang.common.cancel')}}</el-button>

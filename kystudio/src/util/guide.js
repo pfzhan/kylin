@@ -94,7 +94,12 @@ class Guide {
   _query (target, checkAbsent, search) {
     let result = null
     let targetResult = null
+    let st = null
     let searchFuc = (resolve, reject) => {
+      // 已经退出guide
+      if (!this.systemStore.globalMaskVisible) {
+        return reject()
+      }
       if (!target && !search) {
         return resolve()
       }
@@ -119,7 +124,8 @@ class Guide {
           console.log('search timeout')
           return reject()
         }
-        let st = setTimeout(() => {
+        clearTimeout(st)
+        st = setTimeout(() => {
           searchFuc(resolve, reject)
         }, 300)
         this.STs.push(st)
@@ -138,7 +144,10 @@ class Guide {
   }
   // 无拦截跳转路由
   _jump (name) {
-    this.vm.$router.replace({name: name, params: { ignoreIntercept: true }})
+    this.vm.$router.replace({name: 'refresh', params: { ignoreIntercept: true }})
+    this.vm.$nextTick(() => {
+      this.vm.$router.replace({name: name, params: { ignoreIntercept: true }})
+    })
   }
   hideAllMouse () {
     this.systemStore.globalMouseVisible = false
@@ -230,7 +239,7 @@ class Guide {
     this.STs.push(st)
   }
   renderFuc (_event, stepInfo) {
-    return new Promise((resolve) => {
+    return new Promise((resolve, reject) => {
       this.waitCount = 0
       this._query(stepInfo.target, _event.action === 'checkAbsent', stepInfo.search).then((domList) => {
         let dom = domList && domList.dom || null
@@ -273,9 +282,8 @@ class Guide {
           resolve(stepInfo)
         }
       }).catch((e) => {
-        console.log(e)
-        this.stop()
-        console.log('查找演示节点超时')
+        reject('timeout')
+        console.log('guide timeout')
       })
     })
   }
@@ -330,15 +338,18 @@ class Guide {
             }, stepInfo.timer || this.stepSpeed)
             this.STs.push(st)
           }
+        }, (res) => {
+          // 超时抛出
+          reject(res)
         })
       } else {
         this.guiding = false
-        resolve()
+        resolve('done')
         console.log('guide done')
       }
     } else {
-      reject()
-      console.log('guiding.. can not action other guide')
+      reject('guiding')
+      console.log('guiding')
     }
   }
   getStepInfo (i) {

@@ -216,7 +216,7 @@ export default class ProjectEditModal extends Vue {
   // Action: 模态框关闭函数
   closeHandler (isSubmit) {
     this.hideModal()
-
+    this.saveLoading = false
     setTimeout(() => {
       this.resetModalForm()
       this.callback && this.callback(isSubmit)

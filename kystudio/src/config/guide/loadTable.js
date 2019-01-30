@@ -2,9 +2,9 @@ import { renderLoadHiveTables } from './generate'
 export function loadTableDrama () {
   return [
     {
-      eventID: 5,
+      eventID: 8,
       done: false,
-      target: 'addProjectInput' // 验证保存成功project的前置条件
+      router: 'Source' // 验证保存成功project的前置条件
     },
     {
       eventID: 1,

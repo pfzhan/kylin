@@ -20,6 +20,7 @@ exports.default = {
     leave: 'Leave',
     ok: 'OK',
     exit: 'Exit',
+    retry: 'Retry',
     submit: 'Submit',
     continue: 'Continue',
     setting: 'Settings',
