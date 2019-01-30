@@ -106,6 +106,10 @@ function runTool() {
         source ${KYLIN_HOME}/conf/setenv.sh
         export KYLIN_EXTRA_START_OPTS=`echo ${KYLIN_JVM_SETTINGS}|sed  "s/-XX:+PrintFlagsFinal//g"`
     fi
+    if [ "$SKIP_KERB" != "1" ]; then
+        source ${KYLIN_HOME}/bin/init-kerberos.sh
+        initKerberosIfNeeded
+    fi
     java ${KYLIN_EXTRA_START_OPTS} -Dlog4j.configuration=file:${KYLIN_HOME}/conf/kylin-tools-log4j.properties -Dkylin.hadoop.conf.dir=${KYLIN_HADOOP_CONF} -Dhdp.version=current -cp "${KYLIN_HOME}/tool/kap-tool-$version.jar:${SPARK_HOME}/jars/*" $@
 }
 
@@ -130,8 +134,9 @@ then
 
     mkdir -p ${KYLIN_HOME}/logs
     mkdir -p ${KYLIN_HOME}/hadoop_conf
-
     fetchHadoopConf
+    source ${KYLIN_HOME}/bin/init-kerberos.sh
+    initKerberosIfNeeded
     source ${KYLIN_HOME}/bin/replace-jars-under-spark.sh
 
     port=7070

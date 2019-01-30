@@ -23,6 +23,8 @@ function initKerberosIfNeeded(){
         if ! klist -s
         then
             initKerberos
+        else
+           echo "Kerberos ticket is valid, skip init."
         fi
 
         # check if kerberos init success
