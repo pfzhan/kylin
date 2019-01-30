@@ -6,6 +6,8 @@
       title="Aggregate Index"
       :visible.sync="aggDetailVisible"
       class="agg-dialog"
+      :close-on-press-escape="false"
+      :close-on-click-modal="false"
       width="1104px">
       <ModelAggregate
         v-if="aggDetailVisible"

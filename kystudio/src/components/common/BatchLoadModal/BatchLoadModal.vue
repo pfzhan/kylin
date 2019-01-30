@@ -4,6 +4,8 @@
     width="780px"
     :visible="isShow"
     :title="$t('batchLoad')"
+    :close-on-press-escape="false"
+    :close-on-click-modal="false"
     @open="handleOpen"
     @close="() => handleClose()"
     @closed="handleClosed">

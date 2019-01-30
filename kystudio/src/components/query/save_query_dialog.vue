@@ -1,6 +1,6 @@
 <template>
   <div>
-    <el-dialog :title="$t('kylinLang.common.save')" :visible.sync="saveQueryFormVisible" width="660px" append-to-body  @close="closeSaveQueryDialog">
+    <el-dialog :title="$t('kylinLang.common.save')" :visible.sync="saveQueryFormVisible" width="660px" append-to-body  @close="closeSaveQueryDialog" :close-on-press-escape="false" :close-on-click-modal="false">
       <el-form :model="saveQueryMeta" label-position="top" ref="saveQueryForm" :rules="rules" label-width="85px">
         <el-form-item :label="$t('kylinLang.query.querySql')" prop="sql">
           <kap-editor height="100" lang="sql" theme="chrome" :readOnly="true" v-model="saveQueryMeta.sql" dragbar="#393e53">

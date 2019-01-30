@@ -4,6 +4,7 @@
     :visible="isShow"
     top="5vh"
     :append-to-body="true"
+    :close-on-press-escape="false"
     :close-on-click-modal="false"
     @close="isShow && handleClose(false)">
     <div class="loading" v-if="isLoading" v-loading="isLoading"></div>

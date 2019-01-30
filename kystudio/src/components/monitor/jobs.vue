@@ -225,7 +225,7 @@
       <div class='job-btn' @click='showStep=false'><i class='el-icon-d-arrow-right' aria-hidden='true'></i>
       </div>
     </el-card>
-    <el-dialog :title="$t('waitingJobList')" :visible.sync="waitingJobListVisibel" width="440px">
+    <el-dialog :title="$t('waitingJobList')" :close-on-press-escape="false" :close-on-click-modal="false" :visible.sync="waitingJobListVisibel" width="440px">
       <div v-if="waitingJob">
         <span class="ksd-title-label ksd-fs-14">{{$t('jobTarget')}}</span><span class="ky-title-color">{{waitingJob.modelName}}</span>
         <el-table :data="waitingJob.jobsList" border class="ksd-mt-10">
@@ -243,7 +243,12 @@
         <el-button type="primary" plain size="medium" @click="waitingJobListVisibel = false">{{$t('kylinLang.common.ok')}}</el-button>
       </span>
     </el-dialog>
-    <el-dialog id="show-diagnos" :title="stepAttrToShow == 'cmd' ? $t('parameters') : $t('output')" :visible.sync="dialogVisible">
+    <el-dialog
+      id="show-diagnos"
+      :title="stepAttrToShow == 'cmd' ? $t('parameters') : $t('output')"
+      :visible.sync="dialogVisible"
+      :close-on-press-escape="false"
+      :close-on-click-modal="false">
       <job_dialog :stepDetail="outputDetail"></job_dialog>
       <span slot="footer" class="dialog-footer">
         <el-button type="primary" plain size="medium" @click="dialogVisible = false">{{$t('kylinLang.common.close')}}</el-button>

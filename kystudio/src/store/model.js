@@ -13,7 +13,8 @@ export default {
     activeMenuName: '',
     modelSpeedEvents: 0,
     modelSpeedModelsCount: 0,
-    reachThreshold: false
+    reachThreshold: false,
+    circleSpeedInfoLock: false
   },
   mutations: {
     [types.SAVE_MODEL_LIST]: function (state, result) {
@@ -40,6 +41,9 @@ export default {
       state.reachThreshold = reachThreshold
       state.modelSpeedEvents = queryCount
       state.modelSpeedModelsCount = modelCount
+    },
+    [types.LOCK_SPEED_INFO]: function (state, { isLock }) {
+      state.circleSpeedInfoLock = isLock
     }
   },
   actions: {
@@ -54,11 +58,12 @@ export default {
         })
       })
     },
-    [types.GET_SPEED_INFO]: function ({ commit, rootGetters }, projectName) {
+    [types.GET_SPEED_INFO]: function ({ commit, rootGetters, state }, projectName) {
       return new Promise((resolve, reject) => {
         api.model.getSpeedModelInfo(projectName).then((response) => {
           // 如果请求回来的时候发现当前project和请求时候的project非同一个，驳回
-          if (rootGetters.currentSelectedProject !== projectName) {
+          // 如果立即加速已经把一部分查询语句发送加速请求，此时不处理轮询回来的加速信息（因为时间差信息不对等）
+          if (rootGetters.currentSelectedProject !== projectName || state.circleSpeedInfoLock) {
             commit(types.CACHE_SPEED_INFO, {reachThreshold: false, queryCount: 0, modelCount: 0})
             resolve()
             return

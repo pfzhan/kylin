@@ -39,6 +39,8 @@
       :title="$t('kylinLang.common.notice')"
       :visible.sync="isShowResultModal"
       :append-to-body="true"
+      :close-on-press-escape="false"
+      :close-on-click-modal="false"
       @closed="handleResultModalClosed">
       <el-alert
         show-icon

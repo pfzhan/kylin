@@ -1,5 +1,5 @@
 <template>
-   <el-dialog :title="$t('kylinLang.model.addModel')" width="440px" :visible="isShow" @close="closeModal()">
+   <el-dialog :title="$t('kylinLang.model.addModel')" width="440px" :visible="isShow" :close-on-press-escape="false" :close-on-click-modal="false" @close="closeModal()">
       <el-form :model="createModelMeta"  :rules="rules" ref="addModelForm" label-width="130px" label-position="top">
         <el-form-item prop="newName" :label="$t('kylinLang.model.modelName')">
           <span slot="label">{{$t('kylinLang.model.modelName')}}<common-tip :content="$t('kylinLang.model.modelNameTips')" ><i class="el-icon-question"></i></common-tip></span>

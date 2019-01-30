@@ -3,6 +3,8 @@
     :title="$t(modalTitle)"
     :visible="isShow"
     @open="handleOpen"
+    :close-on-click-modal="false"
+    :close-on-press-escape="false"
     @close="() => handleClose()"
     @closed="handleClosed">
     <el-form :model="form" :rules="rules" ref="form" size="medium" v-if="isFormShow" label-position="top">

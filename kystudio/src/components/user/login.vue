@@ -52,7 +52,7 @@
 
     <p class="login-footer">&copy;2019 <a href="http://kyligence.io/" target="_blank">Kyligence Inc.</a> All rights reserved.</p>
 
-    <el-dialog class="updateKAPLicense" @close="closeDialog" :title="$t('license')" :visible.sync="hasLicense" :close-on-click-modal="false" width="660px">
+    <el-dialog class="updateKAPLicense" @close="closeDialog" :title="$t('license')" :visible.sync="hasLicense" :close-on-press-escape="false" :close-on-click-modal="false" width="660px">
       <div class="ksd-mb-40 license-pic">
         <img src="../../assets/img/license.png">
       </div>
@@ -64,7 +64,7 @@
       </div>
     </el-dialog>
 
-    <el-dialog class="applyLicense" @close="closeApplyLicense" :title="$t('applyLicense')" :visible.sync="applyLicense" :close-on-click-modal="false" width="440px">
+    <el-dialog class="applyLicense" @close="closeApplyLicense" :title="$t('applyLicense')" :visible.sync="applyLicense" :close-on-press-escape="false" :close-on-click-modal="false" width="440px">
       <el-form label-position="top" :model="userMessage" :rules="userRules" ref="applyLicenseForm">
         <el-form-item prop="email">
           <el-input v-model="userMessage.email" :placeholder="$t('businessEmail')"></el-input>

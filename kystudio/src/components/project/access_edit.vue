@@ -14,6 +14,8 @@
     <el-dialog
       :title="$t('grant')"
       width="660px"
+      :close-on-press-escape="false"
+      :close-on-click-modal="false"
       :visible.sync="editAccessVisible">
       <div class="grantTips">
         <h4>{{$t('grantTitle')}}</h4>

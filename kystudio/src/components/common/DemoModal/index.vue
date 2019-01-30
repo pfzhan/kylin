@@ -2,6 +2,8 @@
   <el-dialog class="demo-modal" :width="modalWidth"
     :title="$t(modalTitle)"
     :visible="isShow"
+    :close-on-click-modal="false"
+    :close-on-press-escape="false"
     @close="isShow && closeHandler(false)">
     <!-- el-form表单 -->
     <div slot="footer" class="dialog-footer">

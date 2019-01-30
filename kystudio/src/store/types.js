@@ -121,6 +121,7 @@ export const PREVIEW_ACL_SET_ROW_SQL = 'PREVIEW_ACL_SET_ROW_SQL'
 
 // model actions mutations
 export const LOAD_MODEL_LIST = 'LOAD_MODEL_LIST'
+export const LOCK_SPEED_INFO = 'LOCK_SPEED_INFO'
 export const GET_SPEED_INFO = 'GET_SPEED_INFO'
 export const CACHE_SPEED_INFO = 'CACHE_SPEED_INFO'
 export const APPLY_SPEED_INFO = 'APPLY_SPEED_INFO'

@@ -23,7 +23,7 @@
       <div class="btn-groups ksd-mt-10">
         <span class="guide-checkData" v-if="!waitingSQLSize"></span>
         <el-button size="mini" type="primary" plain @click="openImportSql">{{$t('importSql')}}</el-button>
-        <el-button size="mini" type="primary" v-guide.speedSqlNowBtn plain :disabled="!waitingSQLSize" @click="applySpeed">{{$t('accelerateNow')}}</el-button>
+        <el-button size="mini" type="primary" v-guide.speedSqlNowBtn plain :disabled="!waitingSQLSize" :loading="isAcceSubmit" @click="applySpeed">{{$t('accelerateNow')}}</el-button>
       </div>
     </div>
     <div class="fav-tables ksd-mt-30">
@@ -48,6 +48,8 @@
       :visible.sync="importSqlVisible"
       top="5vh"
       width="1180px"
+      :close-on-press-escape="false"
+      :close-on-click-modal="false"
       @closed="resetImport"
       class="importSqlDialog">
       <span slot="title" class="ky-list-title">{{$t('importSql')}}</span>
@@ -149,6 +151,8 @@
       top="5vh"
       :visible.sync="blackListVisible"
       width="1180px"
+      :close-on-press-escape="false"
+      :close-on-click-modal="false"
       class="blackListDialog">
       <span slot="title" class="ky-list-title">{{$t('blackList')}}
         <el-tooltip placement="left">
@@ -200,6 +204,8 @@
     <el-dialog
       :visible.sync="ruleSettingVisible"
       width="780px"
+      :close-on-press-escape="false"
+      :close-on-click-modal="false"
       :title="$t('ruleSetting')"
       class="ruleSettingDialog">
       <div class="conds">
@@ -285,7 +291,7 @@
 <script>
 import Vue from 'vue'
 import { Component, Watch } from 'vue-property-decorator'
-import { mapActions, mapGetters } from 'vuex'
+import { mapActions, mapMutations, mapGetters } from 'vuex'
 import $ from 'jquery'
 import { handleSuccessAsync, handleError } from '../../../util/index'
 import { handleSuccess, transToGmtTime, kapConfirm } from '../../../util/business'
@@ -309,6 +315,9 @@ import accelerationTable from './acceleration_table'
       getSpeedInfo: 'GET_SPEED_INFO',
       importSqlFiles: 'IMPORT_SQL_FILES',
       getWaitingAcceSize: 'GET_WAITING_ACCE_SIZE'
+    }),
+    ...mapMutations({
+      lockSpeedInfo: 'LOCK_SPEED_INFO'
     })
   },
   computed: {
@@ -415,6 +424,7 @@ export default class FavoriteQuery extends Vue {
   waitingSQLSize = 0
   unAcceListSize = 0
   patternNum = 0
+  isAcceSubmit = false
   importSqlVisible = false
   isUploaded = false
   ruleSettingVisible = false
@@ -484,12 +494,19 @@ export default class FavoriteQuery extends Vue {
     this.loadFavoriteList()
   }
   applySpeed (event) {
-    this.applySpeedInfo({size: this.waitingSQLSize, project: this.currentSelectedProject}).then(() => {
-      this.flyEvent(event)
-      this.getSpeedInfo(this.currentSelectedProject)
-      this.showGif = true
+    this.isAcceSubmit = true
+    this.lockSpeedInfo({isLock: true})
+    this.applySpeedInfo({size: this.waitingSQLSize, project: this.currentSelectedProject}).then((res) => {
+      handleSuccess(res, (data) => {
+        this.isAcceSubmit = false
+        this.flyEvent(event)
+        this.getWaitingSQLSize()
+        this.showGif = true
+        this.lockSpeedInfo({isLock: false})
+      })
     }, (res) => {
       handleError(res)
+      this.isAcceSubmit = false
     })
   }
   flyEvent (event) {
@@ -1054,6 +1071,7 @@ export default class FavoriteQuery extends Vue {
       if (this.whiteSqlData.data[key].id === id) {
         this.whiteSqlData.data.splice(key, 1)
         this.whiteSqlData.size--
+        this.whiteSqlData.capable_sql_num--
         this.$nextTick(() => {
           this.whiteSqlDatasPageChange(this.whiteCurrentPage)
         })

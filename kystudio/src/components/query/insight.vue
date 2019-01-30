@@ -38,6 +38,8 @@
             width="660px"
             class="saved_query_dialog"
             top="10vh"
+            :close-on-press-escape="false"
+            :close-on-click-modal="false"
             :visible.sync="savedQueryListVisible">
             <div class="list_block" v-scroll>
               <div v-if="!savedSize" class="nodata">

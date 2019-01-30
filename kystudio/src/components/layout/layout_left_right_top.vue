@@ -112,6 +112,8 @@
       :title="kapVersion"
       width="440px"
       :visible.sync="lisenceDialogVisible"
+      :close-on-press-escape="false"
+      :close-on-click-modal="false"
       :modal="false">
       <p><span>{{$t('validPeriod')}}</span>{{kapDate}}<!-- <span>2012<i>/1/2</i></span><span>－</span><span>2012<i>/1/2</i></span> --></p>
       <p class="ksd-pt-10">{{$t('overtip1')}}<span class="hastime">{{lastTime}} </span>{{$t('overtip2')}}</p>
@@ -616,8 +618,8 @@ export default class LayoutLeftRightTop extends Vue {
   ST = null
   loadCircleSpeedInfo () {
     if (this.currentSelectedProject) {
-      // 如果apply或者ignore接口还在进行中，先暂停轮训的请求发送
-      if (this.applyBtnLoading || this.btnLoadingCancel) {
+      // 如果apply或者ignore接口或者立即加速的接口还在进行中，先暂停轮训的请求发送
+      if (!this.isAutoProject || this.applyBtnLoading || this.btnLoadingCancel || this.$store.state.model.circleSpeedInfoLock) {
         return new Promise((resolve) => {
           resolve()
         })
@@ -628,16 +630,14 @@ export default class LayoutLeftRightTop extends Vue {
   }
   circleLoadSpeedInfo () {
     clearTimeout(this.ST)
-    if (this.isAutoProject) {
-      this.ST = setTimeout(() => {
-        this.loadCircleSpeedInfo().then(() => {
-          if (this._isDestroyed) {
-            return
-          }
-          this.circleLoadSpeedInfo()
-        })
-      }, speedInfoTimer)
-    }
+    this.ST = setTimeout(() => {
+      this.loadCircleSpeedInfo().then(() => {
+        if (this._isDestroyed) {
+          return
+        }
+        this.circleLoadSpeedInfo()
+      })
+    }, speedInfoTimer)
   }
   mounted () {
     // 接受cloud的参数

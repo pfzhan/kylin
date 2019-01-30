@@ -2,6 +2,8 @@
   <el-dialog class="project-edit-modal" :width="modalWidth"
     :title="$t(modalTitle)"
     :visible="isShow"
+    :close-on-click-modal="false"
+    :close-on-press-escape="false"
     @close="isShow && closeHandler(false)">
     
     <el-form :model="form" label-position="top" :rules="rules" ref="form" v-if="isFormShow" label-width="110px">
