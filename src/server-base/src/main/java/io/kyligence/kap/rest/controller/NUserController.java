@@ -281,6 +281,7 @@ public class NUserController extends NBasicController {
             "application/vnd.apache.kylin-v2+json"})
     @ResponseBody
     public EnvelopeResponse<UserDetails> authenticate() {
+        checkLicense();
         EnvelopeResponse response = authenticatedUser();
         logger.debug("User login: {}", response.data);
         return response;
@@ -305,8 +306,6 @@ public class NUserController extends NBasicController {
             "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
     public EnvelopeResponse<UserDetails> authenticatedUser() {
-
-        checkLicense();
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         UserDetails data = null;
         val msg = MsgPicker.getMsg();

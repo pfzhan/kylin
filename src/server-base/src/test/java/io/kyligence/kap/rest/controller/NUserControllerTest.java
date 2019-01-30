@@ -128,21 +128,21 @@ public class NUserControllerTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void testAuthenticatedUser_WithOutOfDateLicense() {
+    public void testAuthenticated_WithOutOfDateLicense() {
         getTestConfig().setProperty("kylin.env", "PROD");
         System.setProperty("ke.license.valid-dates", "2018-12-17,2019-01-17");
         thrown.expect(BadRequestException.class);
         thrown.expectMessage(
                 "This license has expired and the validity period is ['2018-12-17' - '2019-01-17']. Please contact the Kyligence sales staff.");
-        nUserController.authenticatedUser();
+        nUserController.authenticate();
     }
 
     @Test
-    public void testAuthenticatedUser_WithoutLicense() {
+    public void testAuthenticated_WithoutLicense() {
         getTestConfig().setProperty("kylin.env", "PROD");
         thrown.expect(BadRequestException.class);
         thrown.expectMessage("No license file. Please contact the Kyligence sales staff.");
-        nUserController.authenticatedUser();
+        nUserController.authenticate();
     }
 
     @Test
