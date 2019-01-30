@@ -168,7 +168,7 @@ export default {
       right: 5px;
       top: 5px;
       z-index: 9;
-      opacity: 0.45;
+      opacity: 0;
       display: none;
       width: 48px;
       // background-color: rgba(255,255,255,0.2);
