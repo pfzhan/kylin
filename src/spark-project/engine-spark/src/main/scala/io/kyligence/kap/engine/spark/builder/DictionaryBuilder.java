@@ -53,6 +53,7 @@ import org.spark_project.guava.collect.Sets;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 
+import io.kyligence.kap.common.obf.IKeep;
 import io.kyligence.kap.engine.spark.NSparkCubingEngine;
 import io.kyligence.kap.metadata.cube.cuboid.NCuboidLayoutChooser;
 import io.kyligence.kap.metadata.cube.cuboid.NSpanningTree;
@@ -62,7 +63,7 @@ import io.kyligence.kap.metadata.cube.model.NDataLayout;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import scala.Tuple2;
 
-public class DictionaryBuilder {
+public class DictionaryBuilder implements IKeep {
     protected static final Logger logger = LoggerFactory.getLogger(DictionaryBuilder.class);
     private SparkSession ss;
     private NDataSegment seg;
