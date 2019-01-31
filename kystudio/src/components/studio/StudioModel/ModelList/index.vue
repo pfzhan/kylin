@@ -16,9 +16,10 @@
         :row-key="renderRowKey"
         :default-sort = "{prop: 'gmtTime', order: 'descending'}"
         @sort-change="onSortChange"
+        :cell-class-name="renderColumnClass"
         style="width: 100%">
-        <el-table-column type="expand" width="34">
-          <template slot-scope="props">
+        <el-table-column  width="34" type="expand" >
+          <template slot-scope="props" v-if="props.row.status !== 'BROKEN'">
             <transition name="full-model-slide-fade">
               <div class="cell-content" v-if="props.row.showModelDetail">
                 <div  v-if="!showFull" class="row-action" @click="toggleShowFull(props.$index, props.row)"><span class="tip-text">{{$t('fullScreen')}}</span><i class="el-icon-ksd-full_screen_1 full-model-box"></i></div>
@@ -106,9 +107,9 @@
           <template slot-scope="scope">
             <span v-if="!(isAdmin || hasPermissionOfProject())"> N/A</span>
              <div v-show="isAdmin || hasPermissionOfProject()">
-              <common-tip :content="$t('kylinLang.common.edit')"><i class="el-icon-ksd-table_edit ksd-fs-14" @click="handleEditModel(scope.row.alias)"></i></common-tip>
+              <common-tip :content="$t('kylinLang.common.edit')"><i class="el-icon-ksd-table_edit ksd-fs-14" v-if="scope.row.status !== 'BROKEN'" @click="handleEditModel(scope.row.alias)"></i></common-tip>
               <common-tip :content="$t('build')" v-if="scope.row.management_type!=='TABLE_ORIENTED'" class="ksd-ml-10"><i class="el-icon-ksd-data_range ksd-fs-14" @click="setModelBuldRange(scope.row)"></i></common-tip>
-              <common-tip :content="$t('kylinLang.common.moreActions')" class="ksd-ml-10" v-if="!scope.row.is_draft">
+              <common-tip :content="$t('kylinLang.common.moreActions')" class="ksd-ml-10">
                 <el-dropdown @command="(command) => {handleCommand(command, scope.row)}" :id="scope.row.name" trigger="click" >
                   <span class="el-dropdown-link" >
                       <i class="el-icon-ksd-table_others ksd-fs-14"></i>
@@ -117,7 +118,7 @@
                     <!-- 数据检测移动至project 级别处理， -->
                     <!-- <el-dropdown-item command="dataCheck">{{$t('datacheck')}}</el-dropdown-item> -->
                     <!-- 设置partition -->
-                    <el-dropdown-item command="dataLoad" :disabled="scope.row.management_type==='TABLE_ORIENTED'">{{$t('modelPartitionSet')}}</el-dropdown-item>
+                    <el-dropdown-item command="dataLoad" v-if="scope.row.status !== 'BROKEN'">{{$t('modelPartitionSet')}}</el-dropdown-item>
                     <!-- <el-dropdown-item command="favorite" disabled>{{$t('favorite')}}</el-dropdown-item> -->
                     <el-dropdown-item command="importMDX" divided disabled v-if="scope.row.status !== 'BROKEN'">{{$t('importMdx')}}</el-dropdown-item>
                     <el-dropdown-item command="exportTDS" disabled v-if="scope.row.status !== 'BROKEN'">{{$t('exportTds')}}</el-dropdown-item>
@@ -263,6 +264,11 @@ export default class ModelList extends Vue {
   modelArray = []
   renderRowKey (row) {
     return row.alias
+  }
+  renderColumnClass ({row, column, rowIndex, columnIndex}) {
+    if (row.status === 'BROKEN' && columnIndex === 0) {
+      return 'broken-column'
+    }
   }
   checkName (rule, value, callback) {
     if (!NamedRegex.test(value)) {
@@ -484,6 +490,11 @@ export default class ModelList extends Vue {
 <style lang="less">
 @import '../../../../assets/styles/variables.less';
 .mode-list{
+  .broken-column {
+    .cell {
+      display: none;
+    }
+  }
   .full-model-slide-fade-enter-active {
     transition: all .3s ease;
   }
