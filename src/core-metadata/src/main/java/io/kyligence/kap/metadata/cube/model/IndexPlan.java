@@ -662,11 +662,21 @@ public class IndexPlan extends RootPersistentEntity implements Serializable, IEn
 
     /**
      * will ignore rule based indexes;
-     * @return
      */
     public Map<IndexEntity.IndexIdentifier, IndexEntity> getWhiteListIndexesMap() {
+        return getIndexesMap(indexes);
+    }
+
+    /**
+     * include rule based indexes
+     */
+    public Map<IndexEntity.IndexIdentifier, IndexEntity> getAllIndexesMap() {
+        return getIndexesMap(getAllIndexes());
+    }
+
+    private Map<IndexEntity.IndexIdentifier, IndexEntity> getIndexesMap(List<IndexEntity> indexEntities) {
         Map<IndexEntity.IndexIdentifier, IndexEntity> originalCuboidsMap = Maps.newLinkedHashMap();
-        for (IndexEntity cuboidDesc : indexes) {
+        for (IndexEntity cuboidDesc : indexEntities) {
             IndexEntity.IndexIdentifier identifier = cuboidDesc.createCuboidIdentifier();
             if (!originalCuboidsMap.containsKey(identifier)) {
                 originalCuboidsMap.put(identifier, cuboidDesc);
