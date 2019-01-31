@@ -65,10 +65,8 @@ export default class ModelAddModal extends Vue {
     if (!NamedRegex.test(value)) {
       callback(new Error(this.$t('kylinLang.common.nameFormatValidTip')))
     } else {
-      this.btnLoading = true
       this.getModelByModelName({model: value, project: this.currentSelectedProject}).then((response) => {
         handleSuccess(response, (data) => {
-          this.btnLoading = false
           if (data.models && data.models.length) {
             callback(new Error(this.$t('kylinLang.model.sameModelName')))
           } else {
@@ -90,14 +88,14 @@ export default class ModelAddModal extends Vue {
     }, 200)
   }
   async submit () {
-    // 需要补充重名远程校验
+    this.btnLoading = true
     this.$refs.addModelForm.validate(valid => {
-      if (!valid) {
-        return
+      if (valid) {
+        var modelName = this.createModelMeta.newName
+        this.closeModal(true)
+        this.$router.push({name: 'ModelEdit', params: { modelName: modelName, action: 'add', modelDesc: this.createModelMeta.modelDesc }})
       }
-      var modelName = this.createModelMeta.newName
-      this.closeModal(true)
-      this.$router.push({name: 'ModelEdit', params: { modelName: modelName, action: 'add', modelDesc: this.createModelMeta.modelDesc }})
+      this.btnLoading = false
     })
   }
 }
