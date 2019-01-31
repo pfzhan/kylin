@@ -122,7 +122,7 @@ class Guide {
       if (checkAbsent && result || !checkAbsent && !result) {
         if (this.waitCount > this.waitLimit) {
           console.log('search timeout')
-          return reject()
+          return reject('timeout')
         }
         clearTimeout(st)
         st = setTimeout(() => {

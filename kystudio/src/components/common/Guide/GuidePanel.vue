@@ -238,14 +238,16 @@ export default class GuidePannel extends Vue {
     this.guide.go().then(() => {
       this.guideSteps[this.currentStep].done = true
       this.guideLoading = false
-    }, () => {
-      this.openGuideErrorDialog(this.$t('timeoutInGuide'), {
-        showCancelButton: true,
-        cancelButtonText: this.$t('kylinLang.common.retry')
-      }).catch(() => {
-        this.maskZindex = 999999
-        this.retryGuide()
-      })
+    }, (err) => {
+      if (err === 'timeout') {
+        this.openGuideErrorDialog(this.$t('timeoutInGuide'), {
+          showCancelButton: true,
+          cancelButtonText: this.$t('kylinLang.common.retry')
+        }).catch(() => {
+          this.maskZindex = 999999
+          this.retryGuide()
+        })
+      }
       this.guideLoading = false
     })
   }
@@ -321,6 +323,7 @@ export default class GuidePannel extends Vue {
   hasSysError (val) {
     if (val && this.$store.state.system.guideConfig.globalMaskVisible) {
       this.openGuideErrorDialog(this.$t('sysErrorInGuide'))
+      this.guide.pause()
     }
   }
 }
