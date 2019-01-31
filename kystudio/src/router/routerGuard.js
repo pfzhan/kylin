@@ -64,10 +64,10 @@ export function bindRouterGuard (router) {
       scrollBoxDom.scrollTop = 0
     }
     // 跳转路由的时候，关闭独立挂载的弹窗上的isShow的状态(暂只处理guide模式下)
-    if (store.state.system.guideConfig.globalMaskVisible) {
-      for (let i in store.state.modals) {
-        if (store.state.modals[i]) {
-          store.state.modals[i].isShow = false
+    for (let i in store.state.modals) {
+      if (store.state.modals[i]) {
+        store.state.modals[i].isShow = false
+        if (store.state.system.guideConfig.globalMaskVisible) {
           store.commit(i + '/RESET_MODAL_FORM')
         }
       }
