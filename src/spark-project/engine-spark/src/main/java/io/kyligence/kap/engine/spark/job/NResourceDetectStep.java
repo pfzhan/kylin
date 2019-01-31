@@ -25,6 +25,7 @@
 package io.kyligence.kap.engine.spark.job;
 
 import java.nio.file.Paths;
+import java.util.Map;
 import java.util.Set;
 
 import org.apache.kylin.common.KylinConfig;
@@ -65,6 +66,11 @@ public class NResourceDetectStep extends NSparkExecutable {
         sb.append(
                 "export HADOOP_CONF_DIR=%s && %s/bin/spark-submit --class io.kyligence.kap.engine.spark.application.SparkEntry ");
 
+        // local spark also need to set spark.port.maxRetries
+        Map<String, String> sparkConfs = config.getSparkConfigOverride();
+        if (sparkConfs.containsKey("spark.port.maxRetries")) {
+            appendSparkConf(sb, "spark.port.maxRetries", sparkConfs.get("spark.port.maxRetries"));
+        }
         appendSparkConf(sb, "spark.master", "local");
         appendSparkConf(sb, "spark.executor.extraClassPath", Paths.get(kylinJobJar).getFileName().toString());
 
