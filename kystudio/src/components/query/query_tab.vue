@@ -166,6 +166,7 @@ export default class QueryTab extends Vue {
   resetResult () {
     this.extraoptionObj = null
     this.errinfo = ''
+    this.isLoading = false
     this.queryLoading()
     this.$nextTick(() => {
       this.isLoading = true
@@ -227,14 +228,16 @@ export default class QueryTab extends Vue {
   }
   @Watch('tabsItem.queryObj')
   onTabsItemChange (val) {
-    this.extraoptionObj = this.tabsItem.extraoption
-    this.errinfo = this.tabsItem.queryErrorInfo
-    this.sourceSchema = this.tabsItem.queryObj && this.tabsItem.queryObj.sql || ''
-    this.isWorkspace = this.tabsItem.name === 'WorkSpace'
-    if (this.tabsItem.queryObj && this.tabsItem.index) {
-      this.queryResult(this.tabsItem.queryObj)
-    } else {
-      this.resetResult()
+    if (val) {
+      this.extraoptionObj = this.tabsItem.extraoption
+      this.errinfo = this.tabsItem.queryErrorInfo
+      this.sourceSchema = this.tabsItem.queryObj && this.tabsItem.queryObj.sql || ''
+      this.isWorkspace = this.tabsItem.name === 'WorkSpace'
+      if (this.tabsItem.queryObj && this.tabsItem.index) {
+        this.queryResult(this.tabsItem.queryObj)
+      } else {
+        this.resetResult()
+      }
     }
   }
   @Watch('tabsItem.extraoption')
@@ -242,6 +245,15 @@ export default class QueryTab extends Vue {
     this.isLoading = false
     this.extraoptionObj = this.tabsItem.extraoption
     this.errinfo = this.tabsItem.queryErrorInfo
+  }
+  @Watch('tabsItem.cancelQuery')
+  onCancelQuery (val) {
+    this.$nextTick(() => {
+      if (val && this.isLoading) {
+        this.isLoading = false
+        this.$emit('changeView', 0, null, '')
+      }
+    })
   }
   destoryed () {
     clearInterval(this.ST)

@@ -162,6 +162,7 @@ export default class NewQuery extends Vue {
   }
   addTab (targetName, queryObj) {
     this.editableTabs[0].queryObj = queryObj
+    this.editableTabs[0].cancelQuery = false
     var tabIndex = this.editableTabs.length > 1 ? this.editableTabs[1].index + 1 : this.editableTabs[0].index + 1
     var tabName = targetName + tabIndex
     this.editableTabs.splice(1, 0, {
@@ -198,6 +199,7 @@ export default class NewQuery extends Vue {
     }
     this.editableTabs = tabs.filter(tab => tab.name !== targetName)
     this.activeSubMenu = activeName
+    this.editableTabs[0].cancelQuery = true
     this.cacheTabs()
   }
   clickTable (leaf) {
@@ -210,6 +212,7 @@ export default class NewQuery extends Vue {
   }
   closeAllTabs () {
     this.editableTabs.splice(1, this.editableTabs.length - 1)
+    this.editableTabs[0].cancelQuery = true
     this.activeSubMenu = 'WorkSpace'
     this.cacheTabs()
   }
@@ -250,6 +253,7 @@ export default class NewQuery extends Vue {
   changeTab (index, data, errorInfo) {
     this.editableTabs[0].extraoption = data
     this.editableTabs[0].queryErrorInfo = errorInfo
+    this.editableTabs[0].cancelQuery = false
     if (index) {
       let tabs = this.editableTabs
       for (var k = 1; k < tabs.length; k++) {
@@ -261,8 +265,8 @@ export default class NewQuery extends Vue {
           break
         }
       }
-      this.cacheTabs()
     }
+    this.cacheTabs()
   }
   cacheTabs () {
     const project = this.currentSelectedProject
@@ -295,7 +299,8 @@ export default class NewQuery extends Vue {
       extraoption: null,
       queryErrorInfo: '',
       queryObj: null,
-      index: 0
+      index: 0,
+      cancelQuery: false
     }]
   }
 }
