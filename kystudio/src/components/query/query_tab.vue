@@ -167,6 +167,7 @@ export default class QueryTab extends Vue {
     this.isLoading = true
     this.extraoptionObj = null
     this.errinfo = ''
+    this.percent = 0
     this.queryLoading()
   }
   queryResult (queryObj) {
