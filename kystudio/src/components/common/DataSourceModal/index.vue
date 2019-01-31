@@ -79,7 +79,8 @@ vuex.registerModule(['modals', 'DataSourceModal'], store)
     ...mapActions({
       updateProject: 'UPDATE_PROJECT',
       importTable: 'LOAD_HIVE_IN_PROJECT',
-      saveSourceConfig: 'SAVE_SOURCE_CONFIG'
+      saveSourceConfig: 'SAVE_SOURCE_CONFIG',
+      updateProjectDatasource: 'UPDATE_PROJECT_DATASOURCE'
     })
   },
   locales
@@ -173,7 +174,7 @@ export default class DataSourceModal extends Vue {
       //   return this.setModal({ editType: this.form.project.override_kylin_properties['kylin.source.default'] })
       // }
       case editTypes.SELECT_SOURCE: {
-        await this.updateProject(submitData)
+        await this.updateProjectDatasource(submitData)
         return this.setModal({ editType: this.form.project.override_kylin_properties['kylin.source.default'] })
       }
       case editTypes.VIEW_SOURCE: {

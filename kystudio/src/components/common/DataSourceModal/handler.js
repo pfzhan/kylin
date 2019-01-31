@@ -1,4 +1,3 @@
-import { set } from '../../../util'
 import { sourceTypes } from '../../../config'
 
 export const editTypes = {
@@ -41,12 +40,9 @@ export const confirmMaps = {
 
 function _getSelectSourceSubmitData (form) {
   const sourceType = String(form.project.override_kylin_properties['kylin.source.default'])
-  const properties = { ...form.project.override_kylin_properties }
-  properties['kylin.source.default'] = sourceType
-  const projectDesc = JSON.stringify(set(form.project, 'override_kylin_properties', properties))
   return {
-    name: form.project.name,
-    desc: projectDesc
+    project: form.project.name,
+    source_type: sourceType
   }
 }
 

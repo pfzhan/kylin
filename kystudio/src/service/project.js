@@ -81,5 +81,8 @@ export default {
   },
   updateJobAlertSettings (body) {
     return Vue.resource(apiUrl + 'projects/job_notification_config').update(body)
+  },
+  updateProjectDatasource (body) {
+    return Vue.resource(apiUrl + 'projects/source_type').update(body)
   }
 }

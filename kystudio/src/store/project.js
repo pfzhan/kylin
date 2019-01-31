@@ -163,6 +163,9 @@ export default {
     },
     [types.UPDATE_JOB_ALERT_SETTINGS]: function ({commit}, para) {
       return api.project.updateJobAlertSettings(para)
+    },
+    [types.UPDATE_PROJECT_DATASOURCE]: function ({commit}, para) {
+      return api.project.updateProjectDatasource(para)
     }
   },
   getters: {
