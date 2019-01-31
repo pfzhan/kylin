@@ -299,40 +299,45 @@
     <!-- 搜索面板 -->
     <transition name="bouncecenter">
       <div class="panel-search-box panel-box" :class="{'full-screen': isFullScreen}"  v-event-stop :style="panelStyle('search')" v-if="panelAppear.search.display">
+        <el-row :gutter="20">
+          <el-col :span="12" :offset="6">
+            <el-alert class="search-action-result" v-if="modelSearchActionSuccessTip" v-timer-hide:2
+              :title="modelSearchActionSuccessTip"
+              type="success"
+              :closable="false"
+              show-icon>
+            </el-alert>
+            <el-input @input="searchModelEverything"  clearable class="search-input" :placeholder="$t('searchInputPlaceHolder')" v-model="modelGlobalSearch" prefix-icon="el-icon-search"></el-input>
+            <transition name="bounceleft">
+              <div v-scroll class="search-result-box" v-keyborad-select="{scope:'.search-content', searchKey: modelGlobalSearch}" v-show="modelGlobalSearch && showSearchResult" v-search-highlight="{scope:'.search-name', hightlight: modelGlobalSearch}">
+                <div>
+                <div class="search-group" v-for="(k,v) in searchResultData" :key="v">
+                  <ul>
+                    <li class="search-content" v-for="(x, i) in k" @click="(e) => {selectResult(e, x)}" :key="x.action + x.name + i"><span class="search-category">[{{$t(x.i18n)}}]</span> <span class="search-name">{{x.name}}</span><span v-html="x.extraInfo"></span></li>
+                  </ul>
+                  <div class="ky-line"></div>
+                </div>
+                <div v-show="Object.keys(searchResultData).length === 0" class="search-noresult">{{$t('kylinLang.common.noData')}}</div>
+              </div>
+            </div>
+            </transition>
+          </el-col>
+          <el-col :span="6">
+            <div class="search-action-list" v-if="modelSearchActionHistoryList && modelSearchActionHistoryList.length">
+              <div class="action-list-title">{{$t('searchHistory')}}</div>
+              <div class="action-content" v-for="(item, index) in modelSearchActionHistoryList" :key="index">
+                <div class="action-title">
+                  <i :class="item.icon" class="ksd-mr-6 search-list-icon"></i>
+                  <div class="action-desc" v-html="item.title"></div>
+                </div>
+                <div class="action-detail"></div>
+              </div>
+            </div>
+          </el-col>
+        </el-row>
         <div class="close" @click="toggleMenu('search')" v-global-key-event.esc="() => {toggleMenu('search')}">
           <i class="el-icon-ksd-close ksd-mt-12"></i><br/>
           <span>ESC</span>
-        </div>
-        <el-alert class="search-action-result" v-if="modelSearchActionSuccessTip" v-timer-hide:2
-          :title="modelSearchActionSuccessTip"
-          type="success"
-          :closable="false"
-          show-icon>
-        </el-alert>
-        <el-input @input="searchModelEverything"  clearable class="search-input" :placeholder="$t('searchInputPlaceHolder')" v-model="modelGlobalSearch" prefix-icon="el-icon-search"></el-input>
-        <transition name="bounceleft">
-          <div v-scroll class="search-result-box" v-keyborad-select="{scope:'.search-content', searchKey: modelGlobalSearch}" v-show="modelGlobalSearch && showSearchResult" v-search-highlight="{scope:'.search-name', hightlight: modelGlobalSearch}">
-            <div>
-            <div class="search-group" v-for="(k,v) in searchResultData" :key="v">
-              <ul>
-                <li class="search-content" v-for="(x, i) in k" @click="(e) => {selectResult(e, x)}" :key="x.action + x.name + i"><span class="search-category">[{{$t(x.i18n)}}]</span> <span class="search-name">{{x.name}}</span><span v-html="x.extraInfo"></span></li>
-              </ul>
-              <div class="ky-line"></div>
-            </div>
-            <div v-show="Object.keys(searchResultData).length === 0" class="search-noresult">{{$t('kylinLang.common.noData')}}</div>
-          </div>
-        </div>
-        </transition>
-
-        <div class="search-action-list" v-if="modelSearchActionHistoryList && modelSearchActionHistoryList.length">
-          <div class="action-list-title">{{$t('searchHistory')}}</div>
-          <div class="action-content" v-for="(item, index) in modelSearchActionHistoryList" :key="index">
-            <div class="action-title">
-              <i :class="item.icon" class="ksd-mr-6 search-list-icon"></i>
-              <div class="action-desc" v-html="item.title"></div>
-            </div>
-            <div class="action-detail"></div>
-          </div>
         </div>
       </div>
     </transition> 
@@ -725,8 +730,8 @@ export default class ModelEdit extends Vue {
         this.modelSearchActionSuccessTip = this.$t('searchActionSaveSuccess', {saveObj: this.$t('measure')})
         this._collectSearchActionRecords(data, isEdit ? 'editmeasure' : 'addmeasure')
       }
-      this.measureVisible = false
     }
+    this.measureVisible = false
   }
   changeTableType (t) {
     if (this._checkTableType(t)) {
@@ -1489,9 +1494,9 @@ export default class ModelEdit extends Vue {
   background-color:@grey-3;
 }
 .search-position() {
-  width:620px;
-  left:50%;
-  margin-left:-310px;
+  // width:620px;
+  // left:50%;
+  // margin-left:-310px;
   position:relative;
 }
 .model-edit-outer {
@@ -1773,11 +1778,8 @@ export default class ModelEdit extends Vue {
     .panel-search-box {
       .search-action-list {
         font-size:12px;
-        right:30px;
-        top:130px;
-        width:300px;
-        position:absolute;
-        width:324px;
+        margin-top:140px;
+        padding-right:30px;
         .action-list-title {
           height:30px;
           line-height:30px;
@@ -1798,6 +1800,7 @@ export default class ModelEdit extends Vue {
           }
           .action-desc {
             margin-left:26px;
+            word-break: break-all;
             i {
               font-weight:@font-medium;
               font-style: normal;

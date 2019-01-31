@@ -8,7 +8,7 @@
     @close="isShow && handleClose(false)" 
     :close-on-press-escape="false" 
     :close-on-click-modal="false">     
-    <div class="ky-list-title">{{$t('partitionSet')}}</div>
+    <div class="ky-list-title" v-if="!(modelInstance && modelInstance.uuid) && partitionMeta.table && partitionMeta.column">{{$t('partitionSet')}}</div>
     <el-form :model="partitionMeta" :rules="rules"  label-width="85px" class="ksd-mt-16" label-position="top"> 
       <el-form-item :label="$t('partitionDateColumn')">
         <el-col :span="12" style="width:258px">

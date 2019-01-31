@@ -1,5 +1,5 @@
 <template>
-  <el-dialog append-to-body width="440px" :title="$t('kylinLang.cube.measure')" :visible.sync="measureVisible" top="5%" :close-on-press-escape="false" :close-on-click-modal="false" @close="handleHide">
+  <el-dialog append-to-body width="440px" :title="$t(measureTitle)" :visible.sync="measureVisible" top="5%" :close-on-press-escape="false" :close-on-click-modal="false" @close="handleHide(false)">
     <el-form :model="measure" class="add-measure" label-position="top" :rules="rules"  ref="measureForm">
       <el-form-item :label="$t('name')" prop="name">
         <div>
@@ -57,7 +57,7 @@
                 </el-option>
               </el-option-group>
             </el-select>
-            <el-button size="medium" v-if="measure.expression !== 'COUNT_DISTINCT' && measure.expression !== 'TOP_N'" icon="el-icon-ksd-auto_computed_column" type="primary" plain @click="newCC" class="ksd-ml-6" :disabled="isEdit&&ccVisible"></el-button>
+            <common-tip :content="$t('addCCTip')"><el-button size="medium" v-if="measure.expression !== 'COUNT_DISTINCT' && measure.expression !== 'TOP_N'" icon="el-icon-ksd-auto_computed_column" type="primary" plain @click="newCC" class="ksd-ml-6" :disabled="isEdit&&ccVisible"></el-button></common-tip>
           </div>
           <el-button type="primary" size="medium" icon="el-icon-plus" plain circle v-if="measure.expression === 'COUNT_DISTINCT'" class="ksd-ml-10" @click="addNewProperty"></el-button>
         </div>
@@ -105,13 +105,13 @@
               </el-option>
             </el-option-group>
           </el-select>
-          <el-button size="medium" icon="el-icon-ksd-auto_computed_column" type="primary" plain class="ksd-ml-6" @click="newCorrCC" :disabled="isCorrCCEdit && corrCCVisible"></el-button>
+          <common-tip :content="$t('addCCTip')"><el-button size="medium" icon="el-icon-ksd-auto_computed_column" type="primary" plain class="ksd-ml-6" @click="newCorrCC" :disabled="isCorrCCEdit && corrCCVisible"></el-button></common-tip>
           <CCEditForm v-if="corrCCVisible" @saveSuccess="saveCorrCC" @delSuccess="delCorrCC" :ccDesc="corrCCObject" :modelInstance="modelInstance"></CCEditForm>
         </div>
       </el-form-item>
     </el-form>
     <span slot="footer" class="dialog-footer">
-      <el-button size="medium" @click="handleHide">{{$t('kylinLang.common.cancel')}}</el-button>
+      <el-button size="medium" @click="handleHide(false)">{{$t('kylinLang.common.cancel')}}</el-button>
       <el-button size="medium" type="primary" v-guide.saveMeasureBtn plain @click="checkMeasure">{{$t('kylinLang.common.submit')}}</el-button>
     </span>
   </el-dialog>
@@ -131,13 +131,46 @@ import $ from 'jquery'
     CCEditForm
   },
   locales: {
-    'en': {requiredName: 'The measure name is required.', name: 'Name', expression: 'Expression', return_type: 'Return Type', paramValue: 'Param Value', nameReuse: 'The measure name is reused.', requiredCCName: 'The column name is required.', requiredreturn_type: 'The return type is required.', requiredExpress: 'The expression is required.', columns: 'Columns', ccolumns: 'Computed Columns', requiredParamValue: 'The param value is Required.'},
-    'zh-cn': {requiredName: '请输入度量名称', name: '名称', expression: '表达式', return_type: '返回类型', paramValue: '参数值', nameReuse: 'Measure名称已被使用', requiredCCName: '请输入列表名称', requiredreturn_type: '请选择度量返回类型', requiredExpress: '请选择表达式。', columns: '普通列', ccolumns: '可计算列', requiredParamValue: '请选择参数值。'}
+    'en': {
+      requiredName: 'The measure name is required.',
+      name: 'Name',
+      expression: 'Function',
+      return_type: 'Function Parameter',
+      paramValue: 'Column',
+      nameReuse: 'The measure name is reused.',
+      requiredCCName: 'The column name is required.',
+      requiredreturn_type: 'The function parameter is required.',
+      requiredExpress: 'The function is required.',
+      columns: 'Columns',
+      ccolumns: 'Computed Columns',
+      requiredParamValue: 'The column is Required.',
+      addCCTip: 'Create Computed Column',
+      editMeasureTitle: 'Edit Measure',
+      addMeasureTitle: 'Add Measure'
+    },
+    'zh-cn': {
+      requiredName: '请输入度量名称',
+      name: '名称',
+      expression: '函数',
+      return_type: '函数参数',
+      paramValue: '列',
+      nameReuse: 'Measure名称已被使用',
+      requiredCCName: '请输入列表名称',
+      requiredreturn_type: '请选择度量函数参数',
+      requiredExpress: '请选择函数。',
+      columns: '普通列',
+      ccolumns: '可计算列',
+      requiredParamValue: '请选择列。',
+      addCCTip: '创建可计算列',
+      editMeasureTitle: '编辑度量',
+      addMeasureTitle: '添加度量'
+    }
   }
 })
 export default class AddMeasure extends Vue {
   measureVisible = false
   reuseColumn = ''
+  measureTitle = ''
   measure = {
     name: '',
     expression: 'SUM(column)',
@@ -460,6 +493,7 @@ export default class AddMeasure extends Vue {
     this.measureVisible = val
     if (this.measureVisible) {
       this.resetMeasure()
+      this.measureTitle = this.isEditMeasure ? 'editMeasureTitle' : 'addMeasureTitle'
       this.allTableColumns = this.modelInstance && this.modelInstance.getTableColumns()
       this.ccGroups = this.modelInstance.computed_columns
       this.initExpression()

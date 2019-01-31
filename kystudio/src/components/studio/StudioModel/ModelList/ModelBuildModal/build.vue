@@ -3,7 +3,7 @@
     <el-dialog :title="$t('modelBuild')" width="660px" :visible="isShow" :close-on-press-escape="false" :close-on-click-modal="false" @close="isShow && closeModal()">
       <div>
         <el-form :model="modelBuildMeta" ref="buildForm" :rules="rules" label-position="top">
-          <div class="ky-list-title ksd-mt-14">{{$t('buildRange')}}</div>
+          <!-- <div class="ky-list-title ksd-mt-14">{{$t('buildRange')}}</div> -->
           <el-form-item prop="isLoadExisted" class="ksd-mt-10 ksd-mb-2">
             <el-radio class="font-medium" v-model="modelBuildMeta.isLoadExisted" :label="true">
               {{$t('loadExistingData')}}
