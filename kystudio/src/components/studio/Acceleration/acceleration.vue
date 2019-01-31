@@ -585,6 +585,7 @@ export default class FavoriteQuery extends Vue {
     this.updateFre()
     this.updateFre()
     this.updateDura()
+    this.ruleSettingVisible = false
   }
 
   updateFre () {

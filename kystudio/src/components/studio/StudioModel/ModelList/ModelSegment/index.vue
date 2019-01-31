@@ -74,7 +74,7 @@
       </kap-pager>
     </div>
 
-    <el-dialog :title="$t('segmentDetail')" :close-on-press-escape="false" :close-on-click-modal="false" :visible.sync="isShowDetail" width="780px">
+    <el-dialog :title="$t('segmentDetail')" append-to-body :close-on-press-escape="false" :close-on-click-modal="false" :visible.sync="isShowDetail" width="780px">
       <table class="ksd-table" v-if="detailSegment">
         <tr class="ksd-tr">
           <th>{{$t('segmentID')}}</th>
