@@ -26,12 +26,13 @@ package io.kyligence.kap.common.persistence.metadata;
 import java.io.File;
 import java.io.IOException;
 import java.util.NavigableSet;
-import java.util.Optional;
+import java.util.Properties;
 
 import javax.annotation.Nullable;
 
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.dbcp2.BasicDataSource;
+import org.apache.commons.dbcp2.BasicDataSourceFactory;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.RawResource;
 import org.apache.kylin.common.persistence.ResourceStore;
@@ -87,15 +88,18 @@ public class JdbcMetadataStore extends MetadataStore {
     private final JdbcTemplate jdbcTemplate;
     private final String table;
 
-    public JdbcMetadataStore(KylinConfig config) {
+    public JdbcMetadataStore(KylinConfig config) throws Exception {
         super(config);
         val url = config.getMetadataUrl();
-        val dataSource = new BasicDataSource();
-        dataSource.setDriverClassName(
-                Optional.ofNullable(url.getParameter("driverClassName")).orElse("com.mysql.jdbc.Driver"));
-        dataSource.setUrl(Optional.ofNullable(url.getParameter("url")).orElse("jdbc:mysql://sandbox/kylin"));
-        dataSource.setUsername(Optional.ofNullable(url.getParameter("username")).orElse("root"));
-        dataSource.setPassword(Optional.ofNullable(url.getParameter("password")).orElse(""));
+        val props = new Properties();
+        props.put("driverClassName", "com.mysql.jdbc.Driver");
+        props.put("url", "jdbc:mysql://sandbox/kylin");
+        props.put("username", "root");
+        props.put("password", "");
+        props.put("maxWaitMillis", "1000");
+        props.put("maxTotal", "10");
+        props.putAll(url.getAllParameters());
+        val dataSource = BasicDataSourceFactory.createDataSource(props);
         transactionManager = new DataSourceTransactionManager(dataSource);
         jdbcTemplate = new JdbcTemplate(dataSource);
         table = url.getIdentifier();
