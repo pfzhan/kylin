@@ -130,7 +130,7 @@ public class NFavoriteScheduler {
         autoFavoriteScheduler.schedule(this::initFrequencyStatus, 0, TimeUnit.SECONDS);
 
         // schedule runner at fixed interval
-        int initialDelay = new Random().nextInt(20);
+        int initialDelay = new Random().nextInt(projectInstance.getConfig().getAutoMarkFavoriteInterval());
         autoFavoriteScheduler.scheduleAtFixedRate(new AutoFavoriteRunner(), initialDelay,
                 projectInstance.getConfig().getAutoMarkFavoriteInterval(), TimeUnit.SECONDS);
         updateFavoriteScheduler.scheduleAtFixedRate(new UpdateFavoriteStatisticsRunner(), initialDelay + 10,

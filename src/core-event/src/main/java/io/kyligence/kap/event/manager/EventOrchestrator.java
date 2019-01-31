@@ -51,6 +51,7 @@ import java.util.stream.Collectors;
 
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.RandomUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.ExecutorServiceUtil;
 import org.apache.kylin.common.util.NamedThreadFactory;
@@ -111,7 +112,7 @@ public class EventOrchestrator {
         EventChecker checker = new EventChecker();
         checkerPool = Executors.newScheduledThreadPool(1,
                 new NamedThreadFactory("EventChecker(project:" + project + ")"));
-        checkerPool.scheduleAtFixedRate(checker, pollSecond, pollSecond, TimeUnit.SECONDS);
+        checkerPool.scheduleAtFixedRate(checker, RandomUtils.nextInt(0, pollSecond), pollSecond, TimeUnit.SECONDS);
     }
 
     protected class EventChecker implements Runnable {

@@ -57,6 +57,7 @@ import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
+@Ignore
 public class KafkaEventSourceTest extends NLocalFileMetadataTestCase {
 
     @ClassRule
@@ -72,6 +73,7 @@ public class KafkaEventSourceTest extends NLocalFileMetadataTestCase {
 
     @After
     public void destroy() {
+        cleanupTestMetadata();
         System.clearProperty("kylin.metadata.mq-url");
     }
 
