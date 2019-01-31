@@ -555,6 +555,7 @@ export default class FavoriteQuery extends Vue {
   filterFav (checkedStatus) {
     this.checkedStatus = checkedStatus.length ? checkedStatus : this.activeList === 'wartingAcce' ? ['WAITING', 'ACCELERATING', 'BLOCKED'] : ['FULLY_ACCELERATED']
     this.loadFavoriteList()
+    this.getWaitingSQLSize()
   }
 
   get modelSpeedEvents () {
