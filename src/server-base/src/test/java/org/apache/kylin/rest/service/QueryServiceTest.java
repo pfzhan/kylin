@@ -367,6 +367,8 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         Set<String> tableSchemas, tableNames;
         List<ColumnMeta> factColumns;
 
+        getTestConfig().setProperty("kylin.query.pushdown.runner-class-name", "");
+
         //we have two projects: testproject2 and testproject1. different projects exposes different views of
         //table, depending on what ready cube it has.
         {
