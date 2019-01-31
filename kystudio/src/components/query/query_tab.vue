@@ -164,11 +164,12 @@ export default class QueryTab extends Vue {
     this.$emit('addTab', 'query', queryObj)
   }
   resetResult () {
-    this.isLoading = true
     this.extraoptionObj = null
     this.errinfo = ''
-    this.percent = 0
     this.queryLoading()
+    this.$nextTick(() => {
+      this.isLoading = true
+    })
   }
   queryResult (queryObj) {
     this.resetResult()
@@ -195,6 +196,7 @@ export default class QueryTab extends Vue {
   }
   queryLoading () {
     var _this = this
+    this.percent = 0
     clearInterval(this.ST)
     this.ST = setInterval(() => {
       var randomPlus = Math.round(10 * Math.random())
