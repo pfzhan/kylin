@@ -380,4 +380,11 @@ public class ProjectService extends BasicService {
         config.clearManagersByProject(project);
         config.clearManagersByClz(NProjectManager.class);
     }
+    @Transaction(project = 0)
+    public void setDataSourceType(String project, String sourceType) {
+        getProjectManager().updateProject(project, copyForWrite -> {
+            copyForWrite.getOverrideKylinProps().put("kylin.source.default", sourceType);
+
+        });
+    }
 }

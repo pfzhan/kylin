@@ -30,6 +30,7 @@ import java.util.List;
 
 import javax.validation.Valid;
 
+import io.kyligence.kap.rest.request.DataSourceTypeRequest;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.rest.constant.Constant;
@@ -267,6 +268,15 @@ public class NProjectController extends NBasicController {
     public EnvelopeResponse getProjectConfig(@RequestParam(value = "project", required = true) String project) {
         checkProjectName(project);
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, projectService.getProjectConfig(project), "");
+    }
+
+    @RequestMapping(value = "/source_type", method = {RequestMethod.PUT}, produces = {
+            "application/vnd.apache.kylin-v2+json"})
+    @ResponseBody
+    public EnvelopeResponse setDataSourceType(@RequestBody DataSourceTypeRequest request) {
+        checkProjectName(request.getProject());
+        projectService.setDataSourceType(request.getProject(), request.getSourceType());
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, null, "");
     }
 
 }

@@ -484,4 +484,13 @@ public class ProjectServiceTest extends ServiceTestBase {
         Assert.assertTrue(!managersByPrjCache.get(NDataModelManager.class).containsKey("default"));
 
     }
+
+    @Test
+    public void testSetDataSourceType() {
+        projectService.setDataSourceType("default", "11");
+        val prjMgr = NProjectManager.getInstance(getTestConfig());
+        val prj = prjMgr.getProject("default");
+        Assert.assertEquals(11, prj.getSourceType());
+    }
+
 }

@@ -22,6 +22,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -47,6 +48,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+import io.kyligence.kap.metadata.project.NProjectManager;
+import lombok.val;
 import javax.ws.rs.BadRequestException;
 
 import org.apache.calcite.sql.SqlBasicCall;
@@ -103,8 +106,9 @@ public class PushDownUtil {
             String defaultSchema, SQLException sqlException, boolean isSelect, boolean isPrepare) throws Exception {
 
         KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
-
-        if (!kylinConfig.isPushDownEnabled())
+        val prjManager = NProjectManager.getInstance(kylinConfig);
+        val prj = prjManager.getProject(project);
+        if (!prj.getConfig().isPushDownEnabled())
             return null;
 
         if (isSelect) {
