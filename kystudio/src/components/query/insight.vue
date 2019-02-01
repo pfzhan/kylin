@@ -251,9 +251,11 @@ export default class NewQuery extends Vue {
     this.savedQueryListVisible = false
   }
   changeTab (index, data, errorInfo) {
-    this.editableTabs[0].extraoption = data
-    this.editableTabs[0].queryErrorInfo = errorInfo
-    this.editableTabs[0].cancelQuery = false
+    if (index === 0 || index === this.editableTabs[1].index) { // 编辑器结果中断查询时置空或者显示最新一条查询的结果
+      this.editableTabs[0].extraoption = data
+      this.editableTabs[0].queryErrorInfo = errorInfo
+      this.editableTabs[0].cancelQuery = false
+    }
     if (index) {
       let tabs = this.editableTabs
       for (var k = 1; k < tabs.length; k++) {

@@ -15,7 +15,7 @@
       </el-form>
       <div slot="footer" class="dialog-footer">
         <el-button size="medium" @click="closeSaveQueryDialog">{{$t('kylinLang.common.cancel')}}</el-button>
-        <el-button type="primary" plain size="medium" @click="saveQuery">{{$t('kylinLang.common.submit')}}</el-button>
+        <el-button type="primary" plain size="medium" :loading="isSubmit" @click="saveQuery">{{$t('kylinLang.common.submit')}}</el-button>
       </div>
     </el-dialog>
   </div>
@@ -37,6 +37,7 @@ import { handleError } from '../../util/business'
 })
 export default class saveQueryDialog extends Vue {
   saveQueryFormVisible = false
+  isSubmit = false
   rules = {
     name: [
       { required: true, validator: this.checkName, trigger: 'blur' }
@@ -52,10 +53,13 @@ export default class saveQueryDialog extends Vue {
   saveQuery () {
     this.$refs['saveQueryForm'].validate((valid) => {
       if (valid) {
+        this.isSubmit = true
         this.saveQueryToServer(this.saveQueryMeta).then((response) => {
+          this.isSubmit = false
           this.$message({type: 'success', message: this.$t('kylinLang.common.saveSuccess')})
           this.closeSaveQueryDialog()
         }, (res) => {
+          this.isSubmit = false
           handleError(res)
           this.closeSaveQueryDialog()
         })

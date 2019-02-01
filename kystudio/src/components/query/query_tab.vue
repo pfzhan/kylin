@@ -191,7 +191,7 @@ export default class QueryTab extends Vue {
       this.isLoading = false
       handleError(res, (data, code, status, msg) => {
         this.errinfo = msg || this.$t('kylinLang.common.timeOut')
-        this.$emit('changeView', this.tabsItem.index, data, msg || this.$t('kylinLang.common.timeOut'))
+        this.$emit('changeView', this.tabsItem.index, data, this.errinfo)
       })
     })
   }
@@ -244,6 +244,11 @@ export default class QueryTab extends Vue {
   onTabsResultChange (val) {
     this.isLoading = false
     this.extraoptionObj = this.tabsItem.extraoption
+    this.errinfo = this.tabsItem.queryErrorInfo
+  }
+  @Watch('tabsItem.queryErrorInfo')
+  onQueryException (val) {
+    this.isLoading = false
     this.errinfo = this.tabsItem.queryErrorInfo
   }
   @Watch('tabsItem.cancelQuery')
