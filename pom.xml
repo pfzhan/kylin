@@ -119,12 +119,14 @@
             **/org/apache/kylin/query/relnode/OLAP*Rel.java
         </sonar.jacoco.excludes>
         <sonar.coverage.exclusions>
-            **/io/kyligence/kap/rest/*Server.java
+            **/io/kyligence/kap/rest/*Server.java,
             **/io/kyligence/kap/engine/spark/builder/FlatTableEncoder.java,
             **/io/kyligence/kap/engine/spark/builder/DFLayoutMergeAssist.java,
             **/io/kyligence/kap/engine/spark/job/DFMergeJob.java,
             **/io/kyligence/kap/engine/spark/builder/DFBuildJob.java,
-            **/io/kyligence/kap/engine/spark/builder/DictionaryBuilder.java
+            **/io/kyligence/kap/engine/spark/builder/DictionaryBuilder.java,
+            **/io/kyligence/kap/rest/init/KerberosLoginUtil.java,
+            **/io/kyligence/kap/rest/init/KerberosLoginTask.java
         </sonar.coverage.exclusions>
         <sonar.jacoco.itReportPath>${project.basedir}/../../target/jacoco-it.exec</sonar.jacoco.itReportPath>
 
