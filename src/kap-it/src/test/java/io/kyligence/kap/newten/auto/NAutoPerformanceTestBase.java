@@ -28,6 +28,7 @@ import io.kyligence.kap.smart.NSmartMaster;
 import io.kyligence.kap.smart.common.AccelerateInfo;
 import lombok.Getter;
 import lombok.Setter;
+import org.junit.Before;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -42,6 +43,13 @@ public class NAutoPerformanceTestBase extends NAutoTestBase {
 
     protected static final Logger logger = LoggerFactory.getLogger(NAutoPerformanceTestBase.class);
     private static final String SOAK_SQL_DIR = "../kap-it/src/test/resources/query_for_soak_test";
+
+    @Override
+    @Before
+    public void setup() throws Exception {
+        super.init();
+        kylinConfig = getTestConfig();
+    }
 
     @Override
     String getFolder(String subFolder) {
