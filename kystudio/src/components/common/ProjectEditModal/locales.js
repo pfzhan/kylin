@@ -37,7 +37,7 @@ export default {
     propertyEmptyKey: '项目配置名不能为空',
     propertyEmptyValue: '项目配置值不能为空',
     projectType2: '专家模式',
-    projectType2Desc: '专家模式：通过从源数据中拖拽表，您可以手动创建直观的多维分析模型。',
+    projectType2Desc: '专家模式：通过从数据源中拖拽表，您可以手动创建直观的多维分析模型。',
     projectType4: '智能模式',
     projectType4Desc: '智能模式：通过对表创建索引，系统将加速常用的分析查询语句。'
   }

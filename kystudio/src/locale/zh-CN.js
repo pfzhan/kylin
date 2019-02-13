@@ -158,7 +158,7 @@ exports.default = {
     OFF: '关',
     willGo: '退出当前页面将丢失未保存的内容。',
     go: '跳转',
-    catchUp: '保存后，向新索引中加载数据',
+    catchUp: '立即构建索引',
     null: '无',
     nan: 'NaN',
     purge: '清空',

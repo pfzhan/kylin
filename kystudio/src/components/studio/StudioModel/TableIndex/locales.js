@@ -33,7 +33,7 @@ export default {
     searchTip: 'Search Table Index ID',
     broken: 'Broken',
     available: 'Available',
-    empty: 'Empty',
+    empty: 'Emtpy Index',
     manualAdvice: 'User-defined index',
     autoAdvice: 'System-defined index'
   },
@@ -68,7 +68,7 @@ export default {
     searchTip: '搜索明细索引ID',
     broken: '破损',
     available: '可用',
-    empty: '待刷新',
+    empty: '空索引',
     manualAdvice: '用户定义的索引',
     autoAdvice: '系统推荐的索引'
   }

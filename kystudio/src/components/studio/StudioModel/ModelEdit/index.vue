@@ -160,7 +160,7 @@
           <div class="panel-box panel-measure" @mousedown.stop="activePanel('measure')" :style="panelStyle('measure')"  v-if="panelAppear.measure.display">
             <div class="panel-title" @mousedown="activePanel('measure')" v-drag:change.right.top="panelAppear.measure">
               <span><i class="el-icon-ksd-measure"></i></span>
-              <span class="title">{{$t('kylinLang.common.measure')}}<template v-if="modelRender.all_measures.length">({{modelRender.all_measures.length}})</template></span>
+              <span class="title">{{$t('kylinLang.common.measure')}}<template v-if="allMeasure.length">({{allMeasure.length}})</template></span>
               <span class="close" @click="toggleMenu('measure')"><i class="el-icon-ksd-close"></i></span>
             </div>
             <div class="panel-sub-title">
@@ -175,7 +175,7 @@
                   <i class="el-icon-ksd-project_add"></i>
                   <span>{{$t('add')}}</span>
                 </span>
-                <span class="action_btn" @click="toggleMeaCheckbox" :class="{'disabled': modelRender.all_measures.length==1}">
+                <span class="action_btn" @click="toggleMeaCheckbox" :class="{'disabled': allMeasure.length==1}">
                   <i class="el-icon-ksd-batch_delete"></i>
                   <span>{{$t('batchDel')}}</span>
                 </span>
@@ -190,9 +190,9 @@
                   width: panelAppear.measure.width-2+'px'
                 }">
                 <span class="action_btn" @click="toggleCheckAllMeasure">
-                  <i class="el-icon-ksd-batch_uncheck" v-if="measureSelectedList.length==modelRender.all_measures.length-1"></i>
+                  <i class="el-icon-ksd-batch_uncheck" v-if="measureSelectedList.length==allMeasure.length-1"></i>
                   <i class="el-icon-ksd-batch" v-else></i>
-                  <span v-if="measureSelectedList.length==modelRender.all_measures.length-1">{{$t('unCheckAll')}}</span>
+                  <span v-if="measureSelectedList.length==allMeasure-1">{{$t('unCheckAll')}}</span>
                   <span v-else>{{$t('checkAll')}}</span>
                 </span>
                 <span class="action_btn" :class="{'disabled': measureSelectedList.length==0}" @click="deleteMeasures">
@@ -207,7 +207,7 @@
             </div>
             <div class="panel-main-content"  @dragover='($event) => {allowDropColumnToPanle($event)}' v-event-stop @drop='(e) => {dropColumnToPanel(e, "measure")}' v-scroll>
               <ul class="measure-list">
-                <li v-for="m in modelRender.all_measures" :key="m.name" :class="{'is-checked':measureSelectedList.indexOf(m.name)>-1}">
+                <li v-for="m in allMeasure" :key="m.name" :class="{'is-checked':measureSelectedList.indexOf(m.name)>-1}">
                   <span class="ksd-nobr-text">
                     <el-checkbox v-model="measureSelectedList" v-if="isShowMeaCheckbox" :disabled="m.name=='COUNT_ALL'" :label="m.name">{{m.name}}</el-checkbox>
                     <span v-else>{{m.name}}</span>
@@ -583,7 +583,10 @@ export default class ModelEdit extends Vue {
   isShowMeaCheckbox = false
   isShowCCCheckbox = false
   get allDimension () {
-    return this.modelRender.dimensions
+    return this.modelRender.dimensions || []
+  }
+  get allMeasure () {
+    return this.modelRender.all_measures || []
   }
   query (className) {
     return $(this.$el.querySelector(className))

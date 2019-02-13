@@ -1,5 +1,6 @@
 export default {
   'en': {
+    addTableIndexTitle: 'Add Table Index',
     editTableIndexTitle: 'Edit Table Index',
     tableIndexName: 'Table Index Name',
     tableIndexContent: 'Table Index Content:',
@@ -7,10 +8,11 @@ export default {
     selectAllColumns: 'Select All Columns',
     clearAll: 'Clear All',
     tableIndex: 'Index',
-    catchup: 'Load data into new index after saving',
+    catchup: 'Build index now',
     sortLimitTip: 'At most nine \'sort\' column is allowed.'
   },
   'zh-cn': {
+    addTableIndexTitle: '添加表明细索引',
     editTableIndexTitle: '编辑表明细索引',
     tableIndexName: '表明细索引名',
     tableIndexContent: '表索引内容：',
@@ -18,7 +20,7 @@ export default {
     selectAllColumns: '选择所有列',
     clearAll: '清空选择',
     tableIndex: '索引列',
-    catchup: '保存后，向新索引中加载数据',
+    catchup: '立即构建索引',
     sortLimitTip: '最多只能加9个sort列'
   }
 }

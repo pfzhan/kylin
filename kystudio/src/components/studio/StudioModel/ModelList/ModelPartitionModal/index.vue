@@ -34,8 +34,9 @@
         <el-radio class="font-medium" v-model="modelBuildMeta.isLoadExisted" :label="true">
           {{$t('loadExistingData')}}
         </el-radio>
+        <div class="item-desc">{{$t('loadExistingDataDesc')}}</div>
       </el-form-item>
-      <el-form-item class="custom-load" prop="loadDataRange">
+      <el-form-item class="custom-load ksd-mt-10" prop="loadDataRange">
         <el-radio class="font-medium" v-model="modelBuildMeta.isLoadExisted" :label="false">
           {{$t('customLoadRange')}}
         </el-radio>
@@ -326,6 +327,10 @@ export default class ModelPartitionModal extends Vue {
 <style lang="less">
 @import '../../../../../assets/styles/variables.less';
 .model-partition-dialog {
+  .item-desc {
+    font-size: 12px;
+    line-height: 1;
+  }
   .where-area {
     margin-top:20px;
   }

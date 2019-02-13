@@ -19,7 +19,7 @@
                   <img v-else class="icon-tableindex-type" src="../../../../assets/img/icon_model/index_auto.png"/>
                   <div class="card-content" :class="{'empty-table-index': item.status === 'EMPTY', 'is-manual': item.manual}">
                     <div class="slider-content-above">
-                      <div class="main-title" :title="item.name">{{item.name|omit(30, '...')}}</div>
+                      <div class="main-title" :title="item.name">{{item.name|omit(24, '...')}}</div>
                       <div class="status-list">
                         <!-- <div v-if="item.status === 'AVAIABLE'" class="broken-icon">{{$t('available ')}}</div> -->
                         <div v-if="item.status === 'BROKEN'" class="broken-icon">{{$t('broken')}}</div>
@@ -391,7 +391,7 @@ export default class TableIndex extends Vue {
       color:@text-normal-color;
       border: 1px solid @text-secondary-color;
       border-radius: 2px;
-      width:56px;
+      padding:0 10px;
       height:24px;
       line-height:24px;
       text-align:center;

@@ -159,7 +159,7 @@ exports.default = {
     OFF: 'OFF',
     willGo: 'Exit the page will lose unsaved content.',
     go: 'Continue',
-    catchUp: 'Load data into new index after saving',
+    catchUp: 'Build index now',
     null: 'Null',
     nan: 'NaN',
     purge: 'Purge',

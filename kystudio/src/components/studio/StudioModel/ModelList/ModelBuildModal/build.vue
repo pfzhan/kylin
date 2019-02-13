@@ -1,6 +1,6 @@
 <template>
   <!-- 模型构建 -->
-    <el-dialog :title="$t('modelBuild')" width="660px" :visible="isShow" :close-on-press-escape="false" :close-on-click-modal="false" @close="isShow && closeModal()">
+    <el-dialog class="model-build" :title="$t('modelBuild')" width="660px" :visible="isShow" :close-on-press-escape="false" :close-on-click-modal="false" @close="isShow && closeModal()">
       <div>
         <el-form :model="modelBuildMeta" ref="buildForm" :rules="rules" label-position="top">
           <!-- <div class="ky-list-title ksd-mt-14">{{$t('buildRange')}}</div> -->
@@ -8,9 +8,9 @@
             <el-radio class="font-medium" v-model="modelBuildMeta.isLoadExisted" :label="true">
               {{$t('loadExistingData')}}
             </el-radio>
-            <!-- <div class="item-desc">{{$t('loadExistingDataDesc')}}</div> -->
+            <div class="item-desc">{{$t('loadExistingDataDesc')}}</div>
           </el-form-item>
-          <el-form-item prop="dataRangeVal" :rule="modelBuildMeta.isLoadExisted ? [] : [{required: true, trigger: 'blur', message: this.$t('dataRangeValValid')}]">
+          <el-form-item class="ksd-mt-10" prop="dataRangeVal" :rule="modelBuildMeta.isLoadExisted ? [] : [{required: true, trigger: 'blur', message: this.$t('dataRangeValValid')}]">
             <el-radio class="font-medium" v-model="modelBuildMeta.isLoadExisted" :label="false">
               {{$t('customLoadRange')}}
             </el-radio>
@@ -187,5 +187,10 @@
   }
 </script>
 <style lang="less">
-  
+  .model-build {
+    .item-desc {
+      font-size: 12px;
+      line-height: 1;
+    }
+  }  
 </style>

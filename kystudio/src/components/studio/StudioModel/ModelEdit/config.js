@@ -53,7 +53,7 @@ export const modelRenderConfig = {
         width: 250,
         height: 316,
         zIndex: baseIndex - 2,
-        display: false,
+        display: true,
         limit: {
           height: [80],
           width: [250]
@@ -70,7 +70,7 @@ export const modelRenderConfig = {
           width: [250]
         },
         zIndex: baseIndex - 1,
-        display: false,
+        display: true,
         box: rootBox
       },
       setting: {

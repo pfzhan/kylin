@@ -1,6 +1,6 @@
 <template>
   <!-- tableindex的添加和编辑 -->
-  <el-dialog :title="$t('editTableIndexTitle')" append-to-body top="5vh" class="table-edit-dialog" width="880px" :visible="isShow" :close-on-press-escape="false" :close-on-click-modal="false" @close="isShow && closeModal()">
+  <el-dialog :title="tableIndexModalTitle" append-to-body top="5vh" class="table-edit-dialog" width="880px" :visible="isShow" :close-on-press-escape="false" :close-on-click-modal="false" @close="isShow && closeModal()">
       <el-form :model="tableIndexMeta" :rules="rules" ref="tableIndexForm" label-position="top">
         <el-form-item :label="$t('tableIndexName')" prop="name">
           <el-input v-focus="isShow" v-model="tableIndexMeta.name" auto-complete="off" placeholder="" size="medium" style="width:500px"></el-input>
@@ -276,6 +276,9 @@
         })
         this.resetModalForm()
       }, 200)
+    }
+    get tableIndexModalTitle () {
+      return this.tableIndexMeta.id !== '' ? this.$t('editTableIndexTitle') : this.$t('addTableIndexTitle')
     }
     async submit () {
       this.$refs.tableIndexForm.validate((valid) => {
