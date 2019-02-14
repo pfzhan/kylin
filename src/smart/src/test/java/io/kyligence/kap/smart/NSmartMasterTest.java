@@ -545,6 +545,29 @@ public class NSmartMasterTest extends NTestBase {
     }
 
     @Test
+    public void testProposeOnExistingRuleBasedIndexPlan() {
+        KylinConfig kylinConfig = getTestConfig();
+        String[] sqls = new String[] { "select CAL_DT from KYLIN_CAL_DT group by CAL_DT limit 10" };
+        NSmartMaster smartMaster = new NSmartMaster(kylinConfig, "rule_based", sqls);
+        smartMaster.runAll();
+
+        final NSmartContext context = smartMaster.getContext();
+        final List<NSmartContext.NModelContext> modelContexts = context.getModelContexts();
+        final NSmartContext.NModelContext modelContext = modelContexts.get(0);
+        val originalAllIndexesMap = modelContext.getOrigIndexPlan().getAllIndexesMap();
+        val originalWhiteListIndexesMap = modelContext.getOrigIndexPlan().getWhiteListIndexesMap();
+        Assert.assertEquals(1, originalAllIndexesMap.size());
+        Assert.assertEquals(0, originalWhiteListIndexesMap.size());
+
+        val targetAllIndexesMap = modelContext.getTargetIndexPlan().getAllIndexesMap();
+        Assert.assertEquals(originalAllIndexesMap, targetAllIndexesMap);
+        final Map<String, AccelerateInfo> accelerateInfoMap = context.getAccelerateInfoMap();
+
+        final AccelerateInfo accelerateInfo = accelerateInfoMap.get(sqls[0]);
+        Assert.assertFalse(accelerateInfo.isBlocked());
+    }
+
+    @Test
     public void testRenameAllColumns() {
         KylinConfig kylinConfig = getTestConfig();
         // test all named columns rename
