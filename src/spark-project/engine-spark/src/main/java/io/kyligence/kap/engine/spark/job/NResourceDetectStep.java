@@ -28,6 +28,7 @@ import java.nio.file.Paths;
 import java.util.Map;
 import java.util.Set;
 
+import lombok.val;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.constant.ExecutableConstants;
 import org.apache.kylin.job.execution.DefaultChainedExecutable;
@@ -68,8 +69,9 @@ public class NResourceDetectStep extends NSparkExecutable {
 
         // local spark also need to set spark.port.maxRetries
         Map<String, String> sparkConfs = config.getSparkConfigOverride();
-        if (sparkConfs.containsKey("spark.port.maxRetries")) {
-            appendSparkConf(sb, "spark.port.maxRetries", sparkConfs.get("spark.port.maxRetries"));
+        val maxRetriesKey = "spark.port.maxRetries";
+        if (sparkConfs.containsKey(maxRetriesKey)) {
+            appendSparkConf(sb, maxRetriesKey, sparkConfs.get(maxRetriesKey));
         }
         appendSparkConf(sb, "spark.master", "local");
         appendSparkConf(sb, "spark.executor.extraClassPath", Paths.get(kylinJobJar).getFileName().toString());

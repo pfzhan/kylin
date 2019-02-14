@@ -85,7 +85,7 @@ public class KerberosLoginUtil implements IKeep {
 
     private static final String ZOOKEEPER_SERVER_PRINCIPAL_KEY = "zookeeper.server.principal";
 
-    private static final String LOGIN_FAILED_CAUSE_PASSWORD_WRONG = "(wrong password) keytab file and user not match, you can kinit -k -t keytab user in client server to check";
+    private static final String LOGIN_FAILED_CAUSE_PSD_WRONG = "(wrong password) keytab file and user not match, you can kinit -k -t keytab user in client server to check";
 
     private static final String LOGIN_FAILED_CAUSE_TIME_WRONG = "(clock skew) time of local server and remote server not match, please check ntp to remote server";
 
@@ -369,7 +369,7 @@ public class KerberosLoginUtil implements IKeep {
             UserGroupInformation.loginUserFromKeytab(principal, keytabFile);
         } catch (IOException e) {
             LOG.error("login failed with " + principal + " and " + keytabFile + ".");
-            LOG.error("perhaps cause 1 is " + LOGIN_FAILED_CAUSE_PASSWORD_WRONG + ".");
+            LOG.error("perhaps cause 1 is " + LOGIN_FAILED_CAUSE_PSD_WRONG + ".");
             LOG.error("perhaps cause 2 is " + LOGIN_FAILED_CAUSE_TIME_WRONG + ".");
             LOG.error("perhaps cause 3 is " + LOGIN_FAILED_CAUSE_AES256_WRONG + ".");
             LOG.error("perhaps cause 4 is " + LOGIN_FAILED_CAUSE_PRINCIPAL_WRONG + ".");
