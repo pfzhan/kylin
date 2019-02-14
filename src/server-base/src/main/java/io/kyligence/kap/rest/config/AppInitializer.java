@@ -43,6 +43,8 @@ import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.TaskScheduler;
 import org.springframework.stereotype.Component;
 
+import com.google.common.collect.Lists;
+
 import io.kyligence.kap.common.cluster.LeaderInitiator;
 import io.kyligence.kap.common.cluster.NodeCandidate;
 import io.kyligence.kap.common.persistence.transaction.EventListenerRegistry;
@@ -52,6 +54,8 @@ import io.kyligence.kap.common.persistence.transaction.mq.MessageQueue;
 import io.kyligence.kap.event.manager.EventOrchestratorManager;
 import io.kyligence.kap.metadata.favorite.FavoriteQuery;
 import io.kyligence.kap.metadata.favorite.FavoriteQueryManager;
+import io.kyligence.kap.metadata.favorite.FavoriteRule;
+import io.kyligence.kap.metadata.favorite.FavoriteRuleManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.rest.service.NFavoriteScheduler;
 import lombok.val;
@@ -108,8 +112,42 @@ public class AppInitializer {
             if (!favoriteScheduler.hasStarted()) {
                 throw new RuntimeException("Auto favorite scheduler for " + project + " has not been started");
             }
+            createDefaultRules(project);
             return 0;
-        }, project);
+        }, project, 1);
+        log.info("init project {} finished", project);
+    }
+
+    static void createDefaultRules(String projectName) {
+        // create default rules
+        // frequency rule
+        val favoriteRuleManager = FavoriteRuleManager.getInstance(KylinConfig.getInstanceFromEnv(), projectName);
+        FavoriteRule.Condition freqCond = new FavoriteRule.Condition();
+        freqCond.setRightThreshold("0.1");
+        FavoriteRule freqRule = new FavoriteRule(Lists.newArrayList(freqCond), FavoriteRule.FREQUENCY_RULE_NAME, true);
+        favoriteRuleManager.createRule(freqRule);
+        // submitter rule
+        FavoriteRule.Condition submitterCond = new FavoriteRule.Condition();
+        submitterCond.setRightThreshold("ADMIN");
+        FavoriteRule submitterRule = new FavoriteRule(Lists.newArrayList(submitterCond),
+                FavoriteRule.SUBMITTER_RULE_NAME, true);
+        favoriteRuleManager.createRule(submitterRule);
+        // submitter group rule
+        FavoriteRule.Condition submitterGroupCond = new FavoriteRule.Condition();
+        submitterGroupCond.setRightThreshold("ROLE_ADMIN");
+        favoriteRuleManager.createRule(new FavoriteRule(Lists.newArrayList(submitterGroupCond), FavoriteRule.SUBMITTER_GROUP_RULE_NAME, true));
+        // duration rule
+        FavoriteRule.Condition durationCond = new FavoriteRule.Condition();
+        durationCond.setLeftThreshold("0");
+        durationCond.setRightThreshold("180");
+        FavoriteRule durationRule = new FavoriteRule(Lists.newArrayList(durationCond), FavoriteRule.DURATION_RULE_NAME,
+                false);
+        favoriteRuleManager.createRule(durationRule);
+
+        // create blacklist
+        FavoriteRule blacklist = new FavoriteRule();
+        blacklist.setName(FavoriteRule.BLACKLIST_NAME);
+        favoriteRuleManager.createRule(blacklist);
     }
 
     public static class BootstrapCommand implements Runnable {

@@ -29,12 +29,12 @@ import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
-import org.apache.kylin.metadata.MetadataConstants;
 import org.apache.kylin.metadata.cachesync.CachedCrudAssist;
 import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.MeasureDesc;
@@ -54,7 +54,6 @@ import lombok.val;
 
 public class NProjectManager {
     private static final Logger logger = LoggerFactory.getLogger(NProjectManager.class);
-    private static final String JSON_SUFFIX = ".json";
 
     public static NProjectManager getInstance(KylinConfig config) {
         return config.getManager(NProjectManager.class);
@@ -77,8 +76,7 @@ public class NProjectManager {
             logger.info("Initializing NProjectManager with KylinConfig Id: {}", System.identityHashCode(config));
         this.config = config;
         this.projectLoader = new NProjectLoader(this);
-        crud = new CachedCrudAssist<ProjectInstance>(getStore(), "",
-                "/" + MetadataConstants.PROJECT_RESOURCE + JSON_SUFFIX, ProjectInstance.class) {
+        crud = new CachedCrudAssist<ProjectInstance>(getStore(), ResourceStore.PROJECT_ROOT, ProjectInstance.class) {
             @Override
             protected ProjectInstance initEntityAfterReload(ProjectInstance entity, String projectName) {
                 entity.setName(projectName);
@@ -244,10 +242,11 @@ public class NProjectManager {
         if (projectInstance == null) {
             throw new IllegalStateException("The project named " + project + " does not exist");
         }
-        val paths = getStore().listResourcesRecursively(project);
+        val paths = Optional.ofNullable(getStore().listResourcesRecursively(project)).orElse(Sets.newTreeSet());
         for (val path : paths) {
             getStore().deleteResource(path);
         }
+        crud.delete(project);
     }
 
     public interface NProjectUpdater {

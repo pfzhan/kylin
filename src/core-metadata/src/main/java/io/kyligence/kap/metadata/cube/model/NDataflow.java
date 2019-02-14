@@ -165,7 +165,7 @@ public class NDataflow extends RootPersistentEntity implements Serializable, IRe
         r.add(getIndexPlan().getResourcePath());
 
         // project & model & tables
-        r.add(getModel().getProjectInstance().getProjectResourcePath());
+        r.add(getModel().getProjectInstance().getResourcePath());
         r.add(getModel().getResourcePath());
         for (TableRef t : getModel().getAllTables()) {
             r.add(t.getTableDesc().getResourcePath());

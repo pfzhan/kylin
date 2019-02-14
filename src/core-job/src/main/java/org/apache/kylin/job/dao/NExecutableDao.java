@@ -27,14 +27,17 @@ package org.apache.kylin.job.dao;
 import java.util.Collections;
 import java.util.List;
 import java.util.NavigableSet;
+import java.util.function.Predicate;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.JsonSerializer;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.persistence.Serializer;
+import org.apache.kylin.common.util.JsonUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 
 import lombok.val;
@@ -44,8 +47,6 @@ import lombok.val;
 public class NExecutableDao {
 
     private static final Serializer<ExecutablePO> JOB_SERIALIZER = new JsonSerializer<>(ExecutablePO.class);
-    private static final Serializer<ExecutableOutputPO> JOB_OUTPUT_SERIALIZER = new JsonSerializer<>(
-            ExecutableOutputPO.class);
     private static final Logger logger = LoggerFactory.getLogger(NExecutableDao.class);
     private static final String CREATE_TIME = "createTime";
 
@@ -76,28 +77,12 @@ public class NExecutableDao {
         return "/" + project + ResourceStore.EXECUTE_RESOURCE_ROOT + "/" + uuid;
     }
 
-    private String pathOfOutput(String uuid) {
-        return "/" + project + ResourceStore.EXECUTE_OUTPUT_RESOURCE_ROOT + "/" + uuid;
-    }
-
     private ExecutablePO readJobResource(String path) {
         return store.getResource(path, JOB_SERIALIZER);
     }
 
     private void writeJobResource(String path, ExecutablePO job) {
         store.checkAndPutResource(path, job, JOB_SERIALIZER);
-    }
-
-    private ExecutableOutputPO readOutputResource(String path) {
-        return store.getResource(path, JOB_OUTPUT_SERIALIZER);
-    }
-
-    private void writeOutputResource(String path, ExecutableOutputPO output) {
-        store.checkAndPutResource(path, output, JOB_OUTPUT_SERIALIZER);
-    }
-
-    public List<ExecutableOutputPO> getJobOutputs() {
-        return store.getAllResources("/" + project + ResourceStore.EXECUTE_OUTPUT_RESOURCE_ROOT, JOB_OUTPUT_SERIALIZER);
     }
 
     public List<ExecutablePO> getJobs() {
@@ -137,29 +122,14 @@ public class NExecutableDao {
         store.deleteResource(pathOfJob(uuid));
     }
 
-    public ExecutableOutputPO getOutputPO(String path) {
-        ExecutableOutputPO result = readOutputResource(path);
-        if (result == null) {
-            result = new ExecutableOutputPO();
-            result.setUuid(path.substring(path.lastIndexOf("/") + 1));
-            return result;
+    public void updateJob(String uuid, Predicate<ExecutablePO> updater) {
+        val job = getJobByUuid(uuid);
+        Preconditions.checkNotNull(job);
+        val copyForWrite = JsonUtil.copyBySerialization(job, JOB_SERIALIZER, null);
+        if (updater.test(copyForWrite)) {
+            writeJobResource(pathOfJob(uuid), copyForWrite);
         }
-        return result;
     }
 
-    public void addOutputPO(ExecutableOutputPO output) {
-        output.setLastModified(0);
-        val info = output.getInfo();
-        info.put(CREATE_TIME, "" + System.currentTimeMillis());
-        writeOutputResource(pathOfOutput(output.getUuid()), output);
-    }
-
-    public void updateOutputPO(ExecutableOutputPO output) {
-        writeOutputResource(pathOfOutput(output.getUuid()), output);
-    }
-
-    //TODO why no one call this?
-    public void deleteOutputPO(String uuid) {
-        store.deleteResource(pathOfOutput(uuid));
-    }
 }
+

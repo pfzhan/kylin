@@ -56,13 +56,17 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.common.io.ByteSource;
 import com.google.common.io.ByteStreams;
 
+import lombok.AllArgsConstructor;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.val;
 
 /**
  * overall, RawResource is immutable
  */
+@Getter
 @NoArgsConstructor
+@AllArgsConstructor
 public class RawResource {
 
     private String resPath;
@@ -71,29 +75,6 @@ public class RawResource {
     private ByteSource byteSource;
     private long timestamp;
     private long mvcc;
-
-    public RawResource(String resPath, ByteSource byteSource, long timestamp, long mvcc) {
-        this.resPath = resPath;
-        this.byteSource = byteSource;
-        this.timestamp = timestamp;
-        this.mvcc = mvcc;
-    }
-
-    public String getResPath() {
-        return this.resPath;
-    }
-
-    public ByteSource getByteSource() {
-        return this.byteSource;
-    }
-
-    public long getTimestamp() {
-        return this.timestamp;
-    }
-
-    public long getMvcc() {
-        return this.mvcc;
-    }
 
     private static class ByteSourceSerializer extends JsonSerializer<ByteSource> {
         @Override

@@ -79,10 +79,10 @@ public class MetadataToolTest extends NLocalFileMetadataTestCase {
     }
 
     private boolean assertProjectFolder(File projectFolder) {
-        Assertions.assertThat(projectFolder.list()).containsOnlyOnce("project.json").containsAnyOf("dataflow",
-                "dataflow_details", "cube_plan", "model_desc", "table");
+        Assertions.assertThat(projectFolder.list()).containsAnyOf("dataflow", "dataflow_details", "cube_plan",
+                "model_desc", "table");
         Assertions.assertThat(projectFolder.listFiles())
-                .filteredOn(f -> !f.getName().equals("project.json") && !f.getName().startsWith("."))
+                .filteredOn(f -> !f.getName().startsWith("."))
                 .allMatch(f -> f.listFiles().length > 0);
 
         return true;
@@ -100,7 +100,7 @@ public class MetadataToolTest extends NLocalFileMetadataTestCase {
 
         Assertions.assertThat(archiveFolder.list()).isNotEmpty().containsOnlyOnce("UUID").containsAnyOf("default",
                 "ssb", "tdvt");
-        Assertions.assertThat(archiveFolder.listFiles()).filteredOn(f -> !f.getName().equals("UUID"))
+        Assertions.assertThat(archiveFolder.listFiles()).filteredOn(f -> !f.getName().equals("UUID") && !f.getName().startsWith("_"))
                 .allMatch(projectFolder -> assertProjectFolder(projectFolder));
 
     }
@@ -112,6 +112,7 @@ public class MetadataToolTest extends NLocalFileMetadataTestCase {
 
         //there is a project that destResourceStore contains and srcResourceStore doesn't contain
         FileUtils.forceDelete(Paths.get(junitFolder.getAbsolutePath(), "/demo").toFile());
+        FileUtils.deleteQuietly(Paths.get(junitFolder.getAbsolutePath(), "_global", "project", "demo.json").toFile());
 
         //there is a project that destResourceStore doesn't contain and srcResourceStore contains
         val destResourceStore = ResourceStore.getKylinMetaStore(getTestConfig());
@@ -119,6 +120,7 @@ public class MetadataToolTest extends NLocalFileMetadataTestCase {
         for (String res : destResources) {
             destResourceStore.deleteResource("/ssb" + res);
         }
+        destResourceStore.deleteResource("/_global/project/ssb.json");
 
         Assertions.assertThat(NProjectManager.getInstance(getTestConfig()).getProject("demo")).isNotNull();
         Assertions.assertThat(NProjectManager.getInstance(getTestConfig()).getProject("ssb")).isNull();
@@ -167,7 +169,8 @@ public class MetadataToolTest extends NLocalFileMetadataTestCase {
         val tool = new MetadataTool();
 
         //there is a project metadata that destResourceStore contains and srcResourceStore doesn't contain
-        FileUtils.forceDelete(Paths.get(junitFolder.getAbsolutePath(), "/demo").toFile());
+        FileUtils.forceDelete(Paths.get(junitFolder.getAbsolutePath(), "demo").toFile());
+        FileUtils.deleteQuietly(Paths.get(junitFolder.getAbsolutePath(), "_global", "project", "demo.json").toFile());
 
         Assertions.assertThat(NProjectManager.getInstance(getTestConfig()).getProject("demo")).isNotNull();
         tool.execute(new String[] { "-restore", "-project", "demo", "-dir", junitFolder.getAbsolutePath() });
@@ -179,6 +182,7 @@ public class MetadataToolTest extends NLocalFileMetadataTestCase {
         for (String res : destResources) {
             destResourceStore.deleteResource("/ssb" + res);
         }
+        destResourceStore.deleteResource("/_global/project/ssb.json");
 
         Assertions.assertThat(NProjectManager.getInstance(getTestConfig()).getProject("ssb")).isNull();
         tool.execute(new String[] { "-restore", "-project", "ssb", "-dir", junitFolder.getAbsolutePath() });

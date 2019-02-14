@@ -94,7 +94,7 @@ public class MetadataPerfTest extends NLocalFileMetadataTestCase {
 
     private static final String TEMPLATE_UUID = "dc2efa94-76b5-4a82-b080-5c783ead85f8";
 
-    private static final String TEMPLATE_EXEC_UUID = "0e68915b-75c2-4c6b-8a28-74e09978c89d";
+    private static final String TEMPLATE_EXEC_UUID = "d5a549fb-275f-4464-b2b0-a96c7cdadbe2";
 
     private static final int SEGMENT_SIZE = 100;
 
@@ -105,7 +105,7 @@ public class MetadataPerfTest extends NLocalFileMetadataTestCase {
     public static Collection<Object[]> params() {
         return Arrays.asList(new Object[][] { //
                 { 1, 100 }, { 2, 100 }, { 5, 100 }, //
-                { 10, 100 }, { 20, 100 }, { 50, 100 } //
+                //                { 10, 100 }, { 20, 100 }, { 50, 100 } //
         });
     }
 
@@ -158,8 +158,30 @@ public class MetadataPerfTest extends NLocalFileMetadataTestCase {
         log.info("usage time: {} seconds", (end - start) / 1000.0);
     }
 
+    private static final String COUNT_ALL_SQL = "select count(1) from %s";
+    private static final String SELECT_ALL_KEY_SQL = "select meta_table_key from %s where META_TABLE_KEY > '%s' order by META_TABLE_KEY limit %s";
+
     @Test
-    @Ignore
+    public void loadIds() throws Exception {
+        val jdbcTemplate = getJdbcTemplate();
+        val table = getTestConfig().getMetadataUrl().getIdentifier();
+        long count = jdbcTemplate.queryForObject(String.format(COUNT_ALL_SQL, table), Long.class);
+        long offset = 0;
+        long pageSize = 1000;
+        List<String> result = Lists.newArrayList();
+        var prevKey = "/";
+        while (offset < count) {
+            for (String resource : jdbcTemplate
+                    .queryForList(String.format(SELECT_ALL_KEY_SQL, table, prevKey, pageSize), String.class)) {
+                //                result.add(resource);
+                log.debug("just print it {}", resource);
+            }
+            offset += pageSize;
+        }
+        log.info("all path size: {}", result.size());
+    }
+
+    @Test
     public void prepareData() throws Exception {
         val skip = Boolean.parseBoolean(System.getProperty("skipPrepare", "false"));
         if (skip) {
@@ -175,11 +197,12 @@ public class MetadataPerfTest extends NLocalFileMetadataTestCase {
         method.setAccessible(true);
         method.invoke(metaStore);
 
-        generateProject(projectSize, TEMPLATE_FOLDER);
+        val START_ID = 1000;
+        generateProject(START_ID, projectSize, TEMPLATE_FOLDER);
 
-        val allIds = IntStream.range(1, projectSize + 1).parallel().boxed()
+        val allIds = IntStream.range(START_ID, projectSize + START_ID).parallel().boxed()
                 .collect(Collectors.toCollection(ConcurrentSkipListSet::new));
-        Runnable run = () -> IntStream.range(1, projectSize + 1).forEach(i -> {
+        Runnable run = () -> IntStream.range(START_ID, projectSize + START_ID).forEach(i -> {
             try {
                 val dstFolder = new File(new File(TEMPLATE_FOLDER).getParentFile(), "tmp_" + i + "/project_" + i);
                 val root = dstFolder.getParentFile();
@@ -226,7 +249,7 @@ public class MetadataPerfTest extends NLocalFileMetadataTestCase {
         }
     }
 
-    private void generateProject(int size, String templateFolder) throws IOException {
+    private void generateProject(int startId, int size, String templateFolder) throws IOException {
         if (size < 1) {
             return;
         }
@@ -239,9 +262,9 @@ public class MetadataPerfTest extends NLocalFileMetadataTestCase {
             val details = JsonUtil.readValue(file, NDataSegDetails.class);
             detailJobMap.put(details.getId(), details.getLayoutById(1).getBuildJobId());
         }
-        val projectName = "project_1";
+        val projectName = "project_" + startId;
         log.info("start generate data for {}", projectName);
-        val dstFolder = new File(new File(templateFolder).getParentFile(), "tmp_1/" + projectName);
+        val dstFolder = new File(new File(templateFolder).getParentFile(), "tmp_" + startId + "/" + projectName);
         FileUtils.copyDirectory(new File(templateFolder), dstFolder,
                 pathname -> !pathname.getPath().contains("execute"));
         for (int j = 1; j < modelSize; j++) {
@@ -260,14 +283,12 @@ public class MetadataPerfTest extends NLocalFileMetadataTestCase {
                     .collect(Collectors.toMap(Pair::getFirst, Pair::getSecond));
             newJobsMap.forEach((k, v) -> {
                 try {
-                    for (String name : new String[] { "execute/" + k, "execute_output/" + k,
-                            "execute_output/" + k + "-00", "execute_output/" + k + "-01" }) {
-                        val file = new File(TEMPLATE_FOLDER, name);
-                        val newFile = new File(dstFolder, name.replace(k, v));
-                        FileUtils.copyFile(file, newFile);
-                        replaceInFile(newFile, Arrays.asList(Pair.newPair(TEMPLATE_UUID, newId), Pair.newPair(k, v),
-                                Pair.newPair("project_0", projectName)));
-                    }
+                    val name = "execute/" + k;
+                    val file = new File(TEMPLATE_FOLDER, name);
+                    val newFile = new File(dstFolder, name.replace(k, v));
+                    FileUtils.copyFile(file, newFile);
+                    replaceInFile(newFile, Arrays.asList(Pair.newPair(TEMPLATE_UUID, newId), Pair.newPair(k, v),
+                            Pair.newPair("project_0", projectName)));
                 } catch (IOException ignore) {
                 }
             });
@@ -281,16 +302,15 @@ public class MetadataPerfTest extends NLocalFileMetadataTestCase {
             }
         }
 
-        for (int i = 2; i <= size; i++) {
-            val projectName2 = "project_" + i;
-            val dstFolder2 = new File(new File(templateFolder).getParentFile(), "tmp_" + i + "/" + projectName2);
+        for (int i = 1; i < size; i++) {
+            val projectName2 = "project_" + (startId + i);
+            val dstFolder2 = new File(new File(templateFolder).getParentFile(), "tmp_" + (startId + i) + "/" + projectName2);
             FileUtils.copyDirectory(dstFolder, dstFolder2);
-            for (String sub : new String[] { "execute", "execute_output" }) {
-                for (File file : FileUtils.listFiles(new File(dstFolder, sub), null, true)) {
-                    var content = new String(Files.readAllBytes(file.toPath()));
-                    content = content.replaceAll("project_0", projectName2);
-                    Files.write(file.toPath(), content.getBytes());
-                }
+            val sub = "execute";
+            for (File file : FileUtils.listFiles(new File(dstFolder, sub), null, true)) {
+                var content = new String(Files.readAllBytes(file.toPath()));
+                content = content.replaceAll("project_0", projectName2);
+                Files.write(file.toPath(), content.getBytes());
             }
         }
     }
@@ -318,7 +338,6 @@ public class MetadataPerfTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    @Ignore
     public void prepareTemplate() throws IOException {
         val indexFile = new File(TEMPLATE_FOLDER, "index_plan/" + TEMPLATE_UUID + ".json");
         val indexPlan = JsonUtil.readValue(indexFile, IndexPlan.class);
@@ -392,14 +411,14 @@ public class MetadataPerfTest extends NLocalFileMetadataTestCase {
 
         for (Map.Entry<String, String> entry : detailJobMap.entrySet()) {
             val newExecId = entry.getValue();
-            for (String name : new String[] { "execute/" + TEMPLATE_EXEC_UUID, "execute_output/" + TEMPLATE_EXEC_UUID,
-                    "execute_output/" + TEMPLATE_EXEC_UUID + "-00", "execute_output/" + TEMPLATE_EXEC_UUID + "-01" }) {
-                val file = new File(TEMPLATE_FOLDER, name);
-                val newFile = new File(TEMPLATE_FOLDER, name.replace(TEMPLATE_EXEC_UUID, newExecId));
-                FileUtils.copyFile(file, newFile);
-                replaceInFile(newFile, Arrays.asList(Pair.newPair("1,20001,10001", Joiner.on(",").join(layoutIds)),
-                        Pair.newPair(TEMPLATE_EXEC_UUID, newExecId)));
-            }
+            val name = "execute/" + TEMPLATE_EXEC_UUID;
+            val file = new File(TEMPLATE_FOLDER, name);
+            val newFile = new File(TEMPLATE_FOLDER, name.replace(TEMPLATE_EXEC_UUID, newExecId));
+            FileUtils.copyFile(file, newFile);
+            replaceInFile(newFile,
+                    Arrays.asList(Pair.newPair("1,20001,10001", Joiner.on(",").join(layoutIds)),
+                            Pair.newPair(TEMPLATE_EXEC_UUID, newExecId),
+                            Pair.newPair("facd8577-8fca-48f5-803c-800ea75c8495", entry.getKey())));
         }
 
     }

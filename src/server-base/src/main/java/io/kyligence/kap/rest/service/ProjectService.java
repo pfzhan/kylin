@@ -31,8 +31,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
-import io.kyligence.kap.rest.request.GarbageCleanUpConfigRequest;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.directory.api.util.Strings;
@@ -59,10 +57,11 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
+import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.metadata.cube.storage.ProjectStorageInfoCollector;
 import io.kyligence.kap.metadata.cube.storage.StorageInfoEnum;
-import io.kyligence.kap.metadata.favorite.FavoriteRule;
 import io.kyligence.kap.metadata.project.NProjectManager;
+import io.kyligence.kap.rest.request.GarbageCleanUpConfigRequest;
 import io.kyligence.kap.rest.request.JobNotificationConfigRequest;
 import io.kyligence.kap.rest.request.ProjectGeneralInfoRequest;
 import io.kyligence.kap.rest.request.ProjectRequest;
@@ -101,7 +100,7 @@ public class ProjectService extends BasicService {
         return projectDesc;
     }
 
-    @Transaction(project = 0)
+    @Transaction
     public ProjectInstance createProject(String name, ProjectInstance newProject) {
         Message msg = MsgPicker.getMsg();
         String projectName = newProject.getName();
@@ -114,40 +113,8 @@ public class ProjectService extends BasicService {
         String owner = SecurityContextHolder.getContext().getAuthentication().getName();
         ProjectInstance createdProject = getProjectManager().createProject(projectName, owner, description,
                 overrideProps, newProject.getMaintainModelType());
-        createDefaultRules(projectName);
         logger.debug("New project created.");
         return createdProject;
-    }
-
-    private void createDefaultRules(String projectName) {
-        // create default rules
-        // frequency rule
-        FavoriteRule.Condition freqCond = new FavoriteRule.Condition();
-        freqCond.setRightThreshold("0.1");
-        FavoriteRule freqRule = new FavoriteRule(Lists.newArrayList(freqCond), FavoriteRule.FREQUENCY_RULE_NAME, true);
-        getFavoriteRuleManager(projectName).createRule(freqRule);
-        // submitter rule
-        FavoriteRule.Condition submitterCond = new FavoriteRule.Condition();
-        submitterCond.setRightThreshold("ADMIN");
-        FavoriteRule submitterRule = new FavoriteRule(Lists.newArrayList(submitterCond),
-                FavoriteRule.SUBMITTER_RULE_NAME, true);
-        getFavoriteRuleManager(projectName).createRule(submitterRule);
-        // submitter group rule
-        FavoriteRule.Condition submitterGroupCond = new FavoriteRule.Condition();
-        submitterGroupCond.setRightThreshold("ROLE_ADMIN");
-        getFavoriteRuleManager(projectName).createRule(new FavoriteRule(Lists.newArrayList(submitterGroupCond), FavoriteRule.SUBMITTER_GROUP_RULE_NAME, true));
-        // duration rule
-        FavoriteRule.Condition durationCond = new FavoriteRule.Condition();
-        durationCond.setLeftThreshold("0");
-        durationCond.setRightThreshold("180");
-        FavoriteRule durationRule = new FavoriteRule(Lists.newArrayList(durationCond), FavoriteRule.DURATION_RULE_NAME,
-                false);
-        getFavoriteRuleManager(projectName).createRule(durationRule);
-
-        // create blacklist
-        FavoriteRule blacklist = new FavoriteRule();
-        blacklist.setName(FavoriteRule.BLACKLIST_NAME);
-        getFavoriteRuleManager(projectName).createRule(blacklist);
     }
 
     public List<ProjectInstance> getReadableProjects(final String projectName) {
@@ -163,8 +130,8 @@ public class ProjectService extends BasicService {
                 .collect(Collectors.toList());
     }
 
-    @Transaction(project = 0)
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#project, 'ADMINISTRATION')")
+    @Transaction
     public void updateQueryAccelerateThresholdConfig(String project, Integer threshold, boolean tipsEnabled) {
         Map<String, String> overrideKylinProps = Maps.newHashMap();
         overrideKylinProps.put("kylin.favorite.query-accelerate-threshold", String.valueOf(threshold));
@@ -180,7 +147,6 @@ public class ProjectService extends BasicService {
         thresholdResponse.setTipsEnabled(config.getFavoriteQueryAccelerateTipsEnabled());
         return thresholdResponse;
     }
-
 
     public StorageVolumeInfoResponse getStorageVolumeInfoResponse(String project) {
         val response = new StorageVolumeInfoResponse();
@@ -248,8 +214,8 @@ public class ProjectService extends BasicService {
         GarbageCleaner.cleanupMetadataManually(project);
     }
 
-    @Transaction(project = 0)
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#project, 'ADMINISTRATION')")
+    @Transaction
     public void updateStorageQuotaConfig(String project, long storageQuotaSize) {
         Map<String, String> overrideKylinProps = Maps.newHashMap();
         long storageQuotaSizeGB = storageQuotaSize / (1024 * 1024 * 1024);
@@ -268,8 +234,8 @@ public class ProjectService extends BasicService {
         });
     }
 
-    @Transaction(project = 0)
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#project, 'ADMINISTRATION')")
+    @Transaction
     public void updateJobNotificationConfig(String project, JobNotificationConfigRequest jobNotificationConfigRequest) {
         Map<String, String> overrideKylinProps = Maps.newHashMap();
         overrideKylinProps.put("kylin.job.notification-on-empty-data-load",
@@ -323,8 +289,8 @@ public class ProjectService extends BasicService {
         return response;
     }
 
-    @Transaction(project = 0)
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#project, 'ADMINISTRATION')")
+    @Transaction
     public void updatePushDownConfig(String project, PushDownConfigRequest pushDownConfigRequest) {
         getProjectManager().updateProject(project, copyForWrite -> {
             val config = getConfig();
@@ -340,8 +306,8 @@ public class ProjectService extends BasicService {
         });
     }
 
-    @Transaction(project = 0)
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#project, 'ADMINISTRATION')")
+    @Transaction
     public void updateSegmentConfig(String project, SegmentConfigRequest segmentConfigRequest) {
         getProjectManager().updateProject(project, copyForWrite -> {
             copyForWrite.getSegmentConfig().setAutoMergeEnabled(segmentConfigRequest.getAutoMergeEnabled());
@@ -351,8 +317,8 @@ public class ProjectService extends BasicService {
         });
     }
 
-    @Transaction(project = 0)
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#project, 'ADMINISTRATION')")
+    @Transaction
     public void updateProjectGeneralInfo(String project, ProjectGeneralInfoRequest projectGeneralInfoRequest) {
         getProjectManager().updateProject(project, copyForWrite -> {
             copyForWrite.setDescription(projectGeneralInfoRequest.getDescription());
@@ -374,7 +340,7 @@ public class ProjectService extends BasicService {
         config.clearManagersByProject(project);
         config.clearManagersByClz(NProjectManager.class);
     }
-    @Transaction(project = 0)
+    @Transaction
     public void setDataSourceType(String project, String sourceType) {
         getProjectManager().updateProject(project, copyForWrite -> {
             copyForWrite.getOverrideKylinProps().put("kylin.source.default", sourceType);

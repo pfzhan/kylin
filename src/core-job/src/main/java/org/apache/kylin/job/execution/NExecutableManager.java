@@ -24,6 +24,7 @@
 
 package org.apache.kylin.job.execution;
 
+import static org.apache.kylin.job.execution.AbstractExecutable.CREATE_TIME;
 import static org.apache.kylin.job.execution.AbstractExecutable.RUNTIME_INFO;
 
 import java.io.DataInputStream;
@@ -33,6 +34,8 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -43,11 +46,10 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.kylin.common.JobProcessContext;
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.persistence.JsonSerializer;
 import org.apache.kylin.common.persistence.ResourceStore;
-import org.apache.kylin.common.persistence.Serializer;
 import org.apache.kylin.common.util.ClassUtil;
 import org.apache.kylin.common.util.HadoopUtil;
+import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.job.dao.ExecutableOutputPO;
 import org.apache.kylin.job.dao.ExecutablePO;
 import org.apache.kylin.job.dao.NExecutableDao;
@@ -68,8 +70,6 @@ public class NExecutableManager {
 
     private static final Logger logger = LoggerFactory.getLogger(NExecutableManager.class);
     private static final String PARSE_ERROR_MSG = "Error parsing the executablePO: ";
-    private static final Serializer<ExecutableOutputPO> JOB_OUTPUT_SERIALIZER = new JsonSerializer<>(
-            ExecutableOutputPO.class);
 
     public static NExecutableManager getInstance(KylinConfig config, String project) {
         if (null == project) {
@@ -135,14 +135,14 @@ public class NExecutableManager {
     }
 
     public void addJob(ExecutablePO executablePO) {
-        executableDao.addJob(executablePO);
         addJobOutput(executablePO);
+        executableDao.addJob(executablePO);
     }
 
     private void addJobOutput(ExecutablePO executable) {
         ExecutableOutputPO executableOutputPO = new ExecutableOutputPO();
-        executableOutputPO.setUuid(executable.getId());
-        executableDao.addOutputPO(executableOutputPO);
+        executableOutputPO.getInfo().put(CREATE_TIME, "" + System.currentTimeMillis());
+        executable.setOutput(executableOutputPO);
         if (CollectionUtils.isEmpty(executable.getTasks())) {
             return;
         }
@@ -177,17 +177,14 @@ public class NExecutableManager {
 
     public Output getOutputByJobPath(String jobPath) {
         String project = extractProject(jobPath);
+        Preconditions.checkState(Objects.equals(project, this.project));
         String id = extractId(jobPath);
-        return getOutputByPath(pathOfOutput(id, project));
+        return getOutput(id);
     }
 
     public Output getOutput(String id) {
-        return getOutputByPath("/" + project + ResourceStore.EXECUTE_OUTPUT_RESOURCE_ROOT + "/" + id);
-    }
-
-    private Output getOutputByPath(String path) {
-        final ExecutableOutputPO jobOutput = executableDao.getOutputPO(path);
-        Preconditions.checkArgument(jobOutput != null, "there is no related output for job :" + path);
+        val jobOutput = getJobOutput(id);
+        Preconditions.checkArgument(jobOutput != null, "there is no related output for job :" + id);
         return parseOutput(jobOutput);
     }
 
@@ -228,7 +225,7 @@ public class NExecutableManager {
     public long countByModelAndStatus(String model, Set<ExecutableState> status, JobTypeEnum jobType) {
         return getAllExecutables().stream().filter(e -> e.getTargetModel().equals(model))
                 .filter(e -> status.contains(e.getStatus()))
-                .filter(e -> (jobType == null ? true : jobType.equals(e.getJobType()))).count();
+                .filter(e -> (jobType == null || jobType.equals(e.getJobType()))).count();
     }
 
     public Map<String, List<String>> getModelExecutables(Set<String> models, Set<ExecutableState> status) {
@@ -314,13 +311,22 @@ public class NExecutableManager {
     }
 
     public void resumeAllRunningJobs() {
-        final List<ExecutableOutputPO> jobOutputs = executableDao.getJobOutputs();
-        for (ExecutableOutputPO executableOutputPO : jobOutputs) {
-            if (executableOutputPO.getStatus().equalsIgnoreCase(ExecutableState.RUNNING.toString())) {
-                executableOutputPO.setStatus(ExecutableState.READY.toString());
-                executableDao.updateOutputPO(executableOutputPO);
-            }
+        val jobs = executableDao.getJobs();
+        for (ExecutablePO executablePO : jobs) {
+            executableDao.updateJob(executablePO.getUuid(), this::resumeRunningJob);
         }
+    }
+
+    private boolean resumeRunningJob(ExecutablePO po) {
+        boolean result = false;
+        if (po.getOutput().getStatus().equalsIgnoreCase(ExecutableState.RUNNING.toString())) {
+            po.getOutput().setStatus(ExecutableState.READY.toString());
+            result = true;
+        }
+        for (ExecutablePO task : Optional.ofNullable(po.getTasks()).orElse(Lists.newArrayList())) {
+            result = result || resumeRunningJob(task);
+        }
+        return result;
     }
 
     public void resumeJob(String jobId) {
@@ -343,8 +349,7 @@ public class NExecutableManager {
             final long endTime = job.getEndTime();
             if (endTime != 0) {
                 long interruptTime = System.currentTimeMillis() - endTime + job.getInterruptTime();
-                val path = pathOfOutput(jobId, project);
-                info = Maps.newHashMap(getJobOutput(path).getInfo());
+                info = Maps.newHashMap(getJobOutput(jobId).getInfo());
                 info.put(AbstractExecutable.INTERRUPT_TIME, Long.toString(interruptTime));
                 info.remove(AbstractExecutable.END_TIME);
             }
@@ -371,7 +376,7 @@ public class NExecutableManager {
                 }
             }
         }
-        val info = Maps.newHashMap(getJobOutput(pathOfOutput(jobId, project)).getInfo());
+        val info = Maps.newHashMap(getJobOutput(jobId).getInfo());
         info.put(AbstractExecutable.END_TIME, Long.toString(System.currentTimeMillis()));
         updateJobOutput(jobId, ExecutableState.DISCARDED, info, null);
     }
@@ -381,7 +386,7 @@ public class NExecutableManager {
         if (job == null) {
             return;
         }
-        val info = Maps.newHashMap(getJobOutput(pathOfOutput(jobId, project)).getInfo());
+        val info = Maps.newHashMap(getJobOutput(jobId).getInfo());
         info.put(AbstractExecutable.END_TIME, Long.toString(System.currentTimeMillis()));
         updateJobOutput(jobId, ExecutableState.STOPPED, info, null);
         // pauseJob may happen when the job has not been scheduled
@@ -389,36 +394,53 @@ public class NExecutableManager {
         job.onExecuteStopHook();
     }
 
-    public ExecutableOutputPO getJobOutput(String path) {
-        return executableDao.getOutputPO(path);
+    ExecutableOutputPO getJobOutput(String taskOrJobId) {
+        val jobId = extractJobId(taskOrJobId);
+        val executablePO = executableDao.getJob(pathOfJob(jobId, project));
+        final ExecutableOutputPO jobOutput;
+        if (executablePO == null) {
+            jobOutput = new ExecutableOutputPO();
+        } else if (Objects.equals(taskOrJobId, jobId)) {
+            jobOutput = executablePO.getOutput();
+        } else {
+            jobOutput = executablePO.getTasks().stream().filter(po -> po.getId().equals(taskOrJobId)).findFirst()
+                    .map(ExecutablePO::getOutput).orElse(null);
+        }
+        Preconditions.checkArgument(jobOutput != null, "there is no related output for job :" + taskOrJobId);
+        return jobOutput;
     }
 
-    public ExecutableOutputPO getJobOutputByJobId(String jobId) {
-        return executableDao.getOutputPO(pathOfOutput(jobId, project));
-    }
-
-    public void updateJobOutput(String jobId, ExecutableState newStatus, Map<String, String> info, String output) {
-        final ExecutableOutputPO jobOutput = executableDao.getOutputPO(pathOfOutput(jobId, project));
-        Preconditions.checkArgument(jobOutput != null, "there is no related output for job id:" + jobId);
-        ExecutableState oldStatus = ExecutableState.valueOf(jobOutput.getStatus());
-        if (newStatus != null && oldStatus != newStatus) {
-            if (!ExecutableState.isValidStateTransfer(oldStatus, newStatus)) {
-                throw new IllegalStateTranferException("There is no valid state transfer from: " + oldStatus + " to: "
-                        + newStatus + ", job id: " + jobId);
+    public void updateJobOutput(String taskOrJobId, ExecutableState newStatus, Map<String, String> info, String output) {
+        val jobId = extractJobId(taskOrJobId);
+        executableDao.updateJob(jobId, job -> {
+            ExecutableOutputPO jobOutput;
+            if (Objects.equals(taskOrJobId, jobId)) {
+                jobOutput = job.getOutput();
+            } else {
+                jobOutput = job.getTasks().stream().filter(po -> po.getId().equals(taskOrJobId)).findFirst()
+                        .map(ExecutablePO::getOutput).orElse(null);
             }
-            jobOutput.setStatus(newStatus.toString());
-        }
-        if (info != null) {
-            jobOutput.setInfo(info);
-        }
-        if (output != null) {
-            jobOutput.setContent(output);
-        }
-        executableDao.updateOutputPO(jobOutput);
-        logger.info("Job id: {} from {} to {}", jobId, oldStatus, newStatus);
+            Preconditions.checkArgument(jobOutput != null, "there is no related output for job id:" + taskOrJobId);
+            ExecutableState oldStatus = ExecutableState.valueOf(jobOutput.getStatus());
+            if (newStatus != null && oldStatus != newStatus) {
+                if (!ExecutableState.isValidStateTransfer(oldStatus, newStatus)) {
+                    throw new IllegalStateTranferException("There is no valid state transfer from: " + oldStatus
+                            + " to: " + newStatus + ", job id: " + taskOrJobId);
+                }
+                jobOutput.setStatus(newStatus.toString());
+            }
+            if (info != null) {
+                jobOutput.setInfo(info);
+            }
+            if (output != null) {
+                jobOutput.setContent(output);
+            }
+            logger.info("Job id: {} from {} to {}", taskOrJobId, oldStatus, newStatus);
+            return true;
+        });
         if (ExecutableState.STOPPED.equals(newStatus)) {
             // kill spark-submit process
-            destroyProcess(jobId);
+            destroyProcess(taskOrJobId);
         }
     }
 
@@ -430,22 +452,6 @@ public class NExecutableManager {
                 process.destroyForcibly();
             }
         }
-    }
-
-    public void forceKillJob(String jobId) {
-        final ExecutableOutputPO jobOutput = executableDao.getOutputPO(pathOfOutput(jobId, project));
-        jobOutput.setStatus(ExecutableState.ERROR.toString());
-        List<ExecutablePO> tasks = executableDao.getJob(pathOfJob(jobId, project)).getTasks();
-
-        for (ExecutablePO task : tasks) {
-            if (executableDao.getOutputPO(pathOfJob(task.getId(), project)).getStatus().equals("SUCCEED")) {
-                continue;
-            } else if (executableDao.getOutputPO(pathOfJob(task.getId(), project)).getStatus().equals("RUNNING")) {
-                updateJobOutput(task.getId(), ExecutableState.READY, Maps.<String, String> newHashMap(), "");
-            }
-            break;
-        }
-        executableDao.updateOutputPO(jobOutput);
     }
 
     private AbstractExecutable fromPO(ExecutablePO executablePO) {
@@ -524,10 +530,6 @@ public class NExecutableManager {
         return "/" + project + ResourceStore.EXECUTE_RESOURCE_ROOT + "/" + uuid;
     }
 
-    private String pathOfOutput(String uuid, String project) {
-        return "/" + project + ResourceStore.EXECUTE_OUTPUT_RESOURCE_ROOT + "/" + uuid;
-    }
-
     private String extractProject(String path) {
         return path.split("/")[1];
     }
@@ -536,13 +538,18 @@ public class NExecutableManager {
         return path.substring(path.lastIndexOf("/") + 1);
     }
 
+    private static String extractJobId(String taskOrJobId) {
+        val jobIdPair = taskOrJobId.split("_");
+        return jobIdPair[0];
+    }
+
     public void updateJobOutputToHDFS(String resPath, ExecutableOutputPO obj) {
         DataOutputStream dout = null;
         try {
             Path path = new Path(resPath);
             FileSystem fs = HadoopUtil.getFileSystem(path);
             dout = fs.create(path, true);
-            JOB_OUTPUT_SERIALIZER.serialize(obj, dout);
+            JsonUtil.writeValue(dout, obj);
         } catch (Exception e) {
             // the operation to update output to hdfs failed, next task should not be interrupted.
             logger.error("update job output [{}] to HDFS failed.", resPath, e);
@@ -563,7 +570,7 @@ public class NExecutableManager {
             }
 
             din = fs.open(path);
-            return JOB_OUTPUT_SERIALIZER.deserialize(din);
+            return JsonUtil.readValue(din, ExecutableOutputPO.class);
         } catch (Exception e) {
             // If the output file on hdfs is corrupt, give an empty output
             logger.error("get job output [{}] from HDFS failed.", resPath, e);

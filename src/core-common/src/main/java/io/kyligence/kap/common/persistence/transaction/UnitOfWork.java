@@ -250,10 +250,10 @@ public class UnitOfWork {
     }
 
     private static UnitMessages packageEvents(List<Event> events, String project) {
-        Preconditions.checkState(
-                events.stream().filter(e -> e instanceof ResourceRelatedEvent)
-                        .allMatch(e -> ((ResourceRelatedEvent) e).getResPath().startsWith("/" + project)),
-                "some event are not in project " + project);
+        Preconditions.checkState(events.stream().filter(e -> e instanceof ResourceRelatedEvent).allMatch(e -> {
+            val event = (ResourceRelatedEvent) e;
+            return event.getResPath().startsWith("/" + project) || event.getResPath().endsWith("/" + project + ".json");
+        }), "some event are not in project " + project);
         val uuid = UUID.randomUUID().toString();
         events.add(0, new StartUnit(uuid));
         events.add(new EndUnit(uuid));

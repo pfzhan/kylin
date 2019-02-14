@@ -84,7 +84,7 @@ import lombok.val;
  * In additional to raw bytes save and load, the store takes special care for concurrent modifications
  * by using a timestamp based test-and-set mechanism to detect (and refuse) dirty writes.
  */
-public abstract class ResourceStore implements AutoCloseable{
+public abstract class ResourceStore implements AutoCloseable {
 
     private static final Logger logger = LoggerFactory.getLogger(ResourceStore.class);
 
@@ -92,6 +92,7 @@ public abstract class ResourceStore implements AutoCloseable{
     public static final String USER_ROOT = GLOBAL_PROJECT + "/user";
     public static final String USER_GROUP_ROOT = GLOBAL_PROJECT + "/user_group";
     public static final String ACL_ROOT = GLOBAL_PROJECT + "/acl";
+    public static final String PROJECT_ROOT = GLOBAL_PROJECT + "/project";
 
     public static final String DATA_MODEL_DESC_RESOURCE_ROOT = "/model_desc";
     public static final String DICT_RESOURCE_ROOT = "/dict";
@@ -101,7 +102,6 @@ public abstract class ResourceStore implements AutoCloseable{
     public static final String TABLE_RESOURCE_ROOT = "/table";
     public static final String EXTERNAL_FILTER_RESOURCE_ROOT = "/ext_filter";
     public static final String EXECUTE_RESOURCE_ROOT = "/execute";
-    public static final String EXECUTE_OUTPUT_RESOURCE_ROOT = "/execute_output";
     public static final String STREAMING_RESOURCE_ROOT = "/streaming";
     public static final String DATAFLOW_RESOURCE_ROOT = "/dataflow";
     public static final String EVENT_RESOURCE_ROOT = "/event";
@@ -109,7 +109,6 @@ public abstract class ResourceStore implements AutoCloseable{
     public static final String QUERY_FILTER_RULE_RESOURCE_ROOT = "/rule";
     public static final String FAVORITE_QUERY_RESOURCE_ROOT = "/favorite";
     public static final String JOB_STATISTICS = "/job_stats";
-
     public static final String GLOBAL_DICT_RESOURCE_ROOT = DICT_RESOURCE_ROOT + "/global_dict";
 
     public static final String METASTORE_UUID_TAG = "/UUID";

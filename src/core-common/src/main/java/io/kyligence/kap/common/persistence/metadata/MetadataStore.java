@@ -202,7 +202,7 @@ public abstract class MetadataStore {
             if (Paths.get(ResourceStore.GLOBAL_PROJECT).getName(0).toString().equals(project)) {
                 continue;
             }
-            if (!allFiles.contains(Paths.get(File.separator + project, "project.json").toString())) {
+            if (!allFiles.contains(Paths.get(File.separator + "_global", "project", project + ".json").toString())) {
                 verifyResult.illegalProjects.add(project);
                 verifyResult.illegalFiles.add(file);
             }

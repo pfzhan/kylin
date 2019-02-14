@@ -26,6 +26,7 @@ package io.kyligence.kap.common.persistence.metadata;
 import java.io.File;
 import java.io.IOException;
 import java.util.NavigableSet;
+import java.util.Optional;
 import java.util.Properties;
 
 import javax.annotation.Nullable;
@@ -67,9 +68,9 @@ public class JdbcMetadataStore extends MetadataStore {
 
     private static final String COUNT_ALL_SQL = "select count(1) from %s";
     private static final String SELECT_ALL_KEY_SQL = SELECT_TERM + META_TABLE_KEY + " from %s";
-    private static final String SELECT_BY_PAGE_SQL = SELECT_TERM
+    private static final String SELECT_BY_RANGE_SQL = SELECT_TERM
             + Joiner.on(",").join(META_TABLE_KEY, META_TABLE_CONTENT, META_TABLE_TS, META_TABLE_MVCC)
-            + " from %s where + " + META_TABLE_KEY + " > '%s' order by " + META_TABLE_KEY + " limit %s";
+            + " from %s where + " + META_TABLE_KEY + " > '%s' and " + META_TABLE_KEY + " < '%s'";
     private static final String SELECT_BY_KEY_MVCC_SQL = SELECT_TERM
             + Joiner.on(",").join(META_TABLE_KEY, META_TABLE_CONTENT, META_TABLE_TS, META_TABLE_MVCC)
             + " from %s where " + META_TABLE_KEY + "='%s' and " + META_TABLE_MVCC + "=%d";
@@ -96,8 +97,7 @@ public class JdbcMetadataStore extends MetadataStore {
         props.put("url", "jdbc:mysql://sandbox/kylin");
         props.put("username", "root");
         props.put("password", "");
-        props.put("maxWaitMillis", "1000");
-        props.put("maxTotal", "10");
+        props.put("maxTotal", "50");
         props.putAll(url.getAllParameters());
         val dataSource = BasicDataSourceFactory.createDataSource(props);
         transactionManager = new DataSourceTransactionManager(dataSource);
@@ -151,6 +151,9 @@ public class JdbcMetadataStore extends MetadataStore {
 
     @Override
     public void batchUpdate(UnitMessages unitMessages) throws Exception {
+        if (CollectionUtils.isEmpty(unitMessages.getMessages())) {
+            return;
+        }
         withTransaction(() -> {
             super.batchUpdate(unitMessages);
             return null;
@@ -159,21 +162,12 @@ public class JdbcMetadataStore extends MetadataStore {
 
     @Override
     public void restore(ResourceStore store) throws IOException {
-        val rowMapper = new RawResourceRowMapper();
-        withTransaction(() -> {
-            long count = jdbcTemplate.queryForObject(String.format(COUNT_ALL_SQL, table), Long.class);
-            long offset = 0;
-            long pageSize = 1000;
-            var prevKey = "/";
-            while (offset < count) {
-                for (RawResource resource : jdbcTemplate
-                        .query(String.format(SELECT_BY_PAGE_SQL, table, prevKey, pageSize), rowMapper)) {
-                    store.putResourceWithoutCheck(resource.getResPath(), resource.getByteSource(), resource.getMvcc());
-                    prevKey = resource.getResPath();
-                }
-                offset += pageSize;
-            }
-            return null;
+        restoreProject(store, "_global");
+        val projects = store.listResources("/_global/project");
+        Optional.ofNullable(projects).orElse(Sets.newTreeSet()).parallelStream().forEach(projectRes -> {
+            val words = projectRes.split("/");
+            val project = words[words.length - 1].replace(".json", "");
+            restoreProject(store, project);
         });
     }
 
@@ -189,6 +183,19 @@ public class JdbcMetadataStore extends MetadataStore {
     public void uploadFromFile(File folder) {
         withTransaction(() -> {
             super.uploadFromFile(folder);
+            return null;
+        });
+    }
+
+    private void restoreProject(ResourceStore store, String project) {
+        val rowMapper = new RawResourceRowMapper();
+        withTransaction(() -> {
+            var prevKey = "/" + project + "/";
+            val endKey = "/" + project + "/~";
+            val resources = jdbcTemplate.query(String.format(SELECT_BY_RANGE_SQL, table, prevKey, endKey), rowMapper);
+            for (RawResource resource : resources) {
+                store.putResourceWithoutCheck(resource.getResPath(), resource.getByteSource(), resource.getMvcc());
+            }
             return null;
         });
     }

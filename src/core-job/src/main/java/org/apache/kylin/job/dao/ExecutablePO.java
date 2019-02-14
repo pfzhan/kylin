@@ -95,4 +95,7 @@ public class ExecutablePO extends RootPersistentEntity {
 
     @JsonProperty("target_segments")
     private List<String> targetSegments;
+
+    @JsonProperty("output")
+    private ExecutableOutputPO output = new ExecutableOutputPO();
 }

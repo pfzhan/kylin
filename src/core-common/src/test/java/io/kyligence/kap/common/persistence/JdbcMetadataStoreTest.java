@@ -26,6 +26,7 @@ package io.kyligence.kap.common.persistence;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
+import com.google.common.collect.Lists;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.RawResource;
 import org.apache.kylin.common.persistence.ResourceStore;
@@ -106,6 +107,14 @@ public class JdbcMetadataStoreTest extends NLocalFileMetadataTestCase {
                 "create table if not exists %s ( META_TABLE_KEY varchar(255) primary key, META_TABLE_CONTENT longblob, META_TABLE_TS bigint,  META_TABLE_MVCC bigint)",
                 tableName));
 
+        jdbcTemplate.batchUpdate(
+                "insert into " + tableName
+                        + " ( META_TABLE_KEY, META_TABLE_CONTENT, META_TABLE_TS, META_TABLE_MVCC ) values (?, ?, ?, ?)",
+                Lists.newArrayList(
+                        new Object[] { "/_global/project/p0.json", "project".getBytes(), System.currentTimeMillis(),
+                                0L },
+                        new Object[] { "/_global/project/p1.json", "project".getBytes(), System.currentTimeMillis(),
+                                0L }));
         jdbcTemplate.batchUpdate(
                 "insert into " + tableName
                         + " ( META_TABLE_KEY, META_TABLE_CONTENT, META_TABLE_TS, META_TABLE_MVCC ) values (?, ?, ?, ?)",

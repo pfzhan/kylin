@@ -62,6 +62,8 @@ public class MetadataStoreTest extends NLocalFileMetadataTestCase {
         //copy an metadata image to junit folder
         val junitFolder = temporaryFolder.getRoot();
         ResourceTool.copy(getTestConfig(), KylinConfig.createInstanceFromUri(junitFolder.getAbsolutePath()),
+                "/_global/project/default.json");
+        ResourceTool.copy(getTestConfig(), KylinConfig.createInstanceFromUri(junitFolder.getAbsolutePath()),
                 "/default");
 
         getTestConfig().setMetadataUrl(junitFolder.getAbsolutePath());
@@ -87,7 +89,7 @@ public class MetadataStoreTest extends NLocalFileMetadataTestCase {
 
         //add legal project and file,the verify result is qualified
         Paths.get(junitFolder.getAbsolutePath(), "/legalProject").toFile().mkdir();
-        Paths.get(junitFolder.getAbsolutePath(), "/legalProject/project.json").toFile().createNewFile();
+        Paths.get(junitFolder.getAbsolutePath(), "/_global/project/legalProject.json").toFile().createNewFile();
         val verifyResultWithLegalProject = metadataStore.verify();
         Assertions.assertThat(verifyResultWithLegalProject.illegalFiles).isEmpty();
         Assertions.assertThat(verifyResultWithLegalProject.illegalProjects).isEmpty();
@@ -100,7 +102,6 @@ public class MetadataStoreTest extends NLocalFileMetadataTestCase {
 
         //the metadata dir doesn't have user group file
         assertFalse(metadataStore.verify().existUserGroupFile);
-        Files.createDirectory(Paths.get(junitFolder.getAbsolutePath(), "/_global"));
         Files.createFile(Paths.get(junitFolder.getAbsolutePath(), "/_global/user_group"));
         assertTrue(metadataStore.verify().existUserGroupFile);
 

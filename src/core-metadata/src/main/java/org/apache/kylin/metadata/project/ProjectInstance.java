@@ -136,7 +136,7 @@ public class ProjectInstance extends RootPersistentEntity implements ISourceAwar
     }
 
     public static String concatResourcePath(String projectName) {
-        return "/" + projectName + "/" + MetadataConstants.PROJECT_RESOURCE + MetadataConstants.FILE_SURFIX;
+        return ResourceStore.PROJECT_ROOT + "/" + projectName + MetadataConstants.FILE_SURFIX;
     }
 
     public static ProjectInstance create(String name, String owner, String description,
@@ -302,10 +302,6 @@ public class ProjectInstance extends RootPersistentEntity implements ISourceAwar
     @Override
     public String toString() {
         return "ProjectDesc [name=" + name + "]";
-    }
-
-    public String getProjectResourcePath() {
-        return "/" + name + "/" + MetadataConstants.PROJECT_RESOURCE + MetadataConstants.FILE_SURFIX;
     }
 
     @Override

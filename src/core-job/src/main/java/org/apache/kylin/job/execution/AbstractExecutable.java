@@ -107,7 +107,6 @@ public abstract class AbstractExecutable implements Executable, Idempotent {
     public static final String INTERRUPT_TIME = "interruptTime";
     protected static final String PARENT_ID = "parentId";
     public static final String RUNTIME_INFO = "runtimeInfo";
-    protected static final String EVENT_ID = "eventId";
 
     protected static final Logger logger = LoggerFactory.getLogger(AbstractExecutable.class);
     protected int retry = 0;
@@ -339,7 +338,7 @@ public abstract class AbstractExecutable implements Executable, Idempotent {
 
     private static void updateJobOutputToHDFS(String project, String jobId, String output) {
         NExecutableManager nExecutableManager = getExecutableManager(project);
-        ExecutableOutputPO jobOutput = nExecutableManager.getJobOutputByJobId(jobId);
+        ExecutableOutputPO jobOutput = nExecutableManager.getJobOutput(jobId);
         if (output != null) {
             jobOutput.setContent(output);
         }
