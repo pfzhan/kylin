@@ -7,21 +7,25 @@
     :close-on-press-escape="false">
     <div>
       <el-row :gutter="20">
-        <el-col :span="12">
-          <div class="guide-pic">
-            <img src="../../../assets/img/guide/expert_mode_big.png"/>
-          </div>
-          <div class="guide-title">{{$t('exportMode')}}</div>
-          <div class="guide-desc">{{$t('exportModeDesc')}}</div>
-          <div class="guide-footer" @click="startManual">{{$t('start')}}</div>
+        <el-col :span="12" >
+          <div class="guide-type-content">
+            <div class="guide-pic">
+              <img src="../../../assets/img/guide/smart_mode_big.png"/>
+            </div>
+            <div class="guide-title">{{$t('smartMode')}}</div>
+            <div class="guide-desc" :class="$lang=='en'? 'en' : ''">{{$t('smartModeDesc')}}</div>
+            <div class="guide-footer" @click="startAuto"><el-button size="medium" type="primary"  style="width:100%">{{$t('start')}}</el-button></div>
+         </div>
         </el-col>
         <el-col :span="12">
-          <div class="guide-pic">
-            <img src="../../../assets/img/guide/smart_mode_big.png"/>
+          <div class="guide-type-content">
+            <div class="guide-pic">
+              <img src="../../../assets/img/guide/expert_mode_big.png"/>
+            </div>
+            <div class="guide-title">{{$t('exportMode')}}</div>
+            <div class="guide-desc" :class="$lang=='en'? 'en' : ''">{{$t('exportModeDesc')}}</div>
+            <div class="guide-footer" @click="startManual"><el-button size="medium" type="primary" style="width:100%">{{$t('start')}}</el-button></div>
           </div>
-          <div class="guide-title">{{$t('smartMode')}}</div>
-          <div class="guide-desc">{{$t('smartModeDesc')}}</div>
-          <div class="guide-footer" @click="startAuto">{{$t('start')}}</div>
         </el-col>
       </el-row>
     </div>
@@ -59,7 +63,7 @@
         start: '开始',
         exportMode: '专家模式',
         smartMode: '智能模式',
-        switchModeTitle: '请选择你想探索的模式？',
+        switchModeTitle: '请选择你想探索的模式',
         exportModeDesc: '专家模式适用于对多维建模进行分析。',
         smartModeDesc: '智能模式适用于直接通过BI探索数据，系统将透明地加速BI发出的SQL语句。'
       }
@@ -106,11 +110,16 @@
 <style lang="less">
 @import '../../../assets/styles/variables.less';
  .guide-box {
+   .guide-type-content {
+     width:220px;
+     margin: 0 auto;
+   }
     .guide-pic{
       width:85px;
       height:85px;
       background-color: @grey-4;
       margin: 0 auto;
+      border-radius: 50%;
       margin-top:40px;
       img {
         width:85px;
@@ -127,12 +136,14 @@
       color:@text-disabled-color;
       font-size:12px;
       margin-top: 14px;
-      margin-left: 40px;
-      height:44px;
+      height:34px;
+      &.en{
+        height:56px;
+      }
     }
     .guide-footer {
       font-size: 16px;
-      margin-top:14px;
+      margin-top:20px;
       text-align: center;
       color:@base-color;
       margin-bottom: 60px;

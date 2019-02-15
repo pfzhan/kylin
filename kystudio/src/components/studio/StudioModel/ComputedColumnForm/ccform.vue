@@ -10,7 +10,7 @@
       <span slot="label">{{$t('returnType')}}<span>: {{ccObject.datatype}}</span></span>
     </el-form-item>
     <el-form-item :label="$t('expression')" prop="expression" class="ksd-mb-10">
-      <span slot="label">{{$t('kylinLang.dataSource.expression')}} <common-tip :content="$t('conditionExpress')" ><i class="el-icon-question"></i></common-tip></span>
+      <span slot="label">{{$t('kylinLang.dataSource.expression')}} <common-tip :content="$t('conditionExpress')" ><i class="el-icon-ksd-what"></i></common-tip></span>
       <kap-editor ref="ccSql" height="100" lang="sql" theme="chrome" v-model="ccObject.expression">
       </kap-editor>
     </el-form-item>

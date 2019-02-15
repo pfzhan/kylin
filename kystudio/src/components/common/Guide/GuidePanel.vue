@@ -2,12 +2,13 @@
   <div class="global-mask" v-if="globalMaksShow" :style="{'z-index': maskZindex}">
         <el-button v-visible v-guide.moveGuidePanelBtn @click="moveGuidePanel"> </el-button>
         <div id="guid-panel" :style="guidePanelStyle">
-          <div class="guid-icon">
+          <!-- <div class="guid-icon">
             <img style="width:30px;height:30px;" v-if="guideType !== 'auto'" src="../../../assets/img/guide/expert_mode_small.png"/>
              <img style="width:30px;height:30px;" v-else src="../../../assets/img/guide/smart_mode_small.png"/>
-          </div>
+          </div> -->
           <transition name="bounce">
             <div class="guid-title" v-if="showGuid.showTitle">
+              <span class="guide-icon" :class="guideType !== 'auto' ? 'el-icon-ksd-expert_mode' : 'el-icon-ksd-smart_mode'"></span>
               <span v-if="guideType !== 'auto'">{{$t('expertMode')}}</span>
               <span v-else>{{$t('smartMode')}}</span>
               <i class="el-icon-close ksd-fright ksd-mt-8 ksd-mr-10" @click="closeGuide"></i>
@@ -383,6 +384,11 @@ export default class GuidePannel extends Vue {
   #guid-panel {
     color:@fff;
     font-size:12px;
+    .guide-icon {
+      font-size:20px;
+      margin-left:10px;
+      vertical-align: middle;
+    }
     .guide-btn {
       background: transparent;
       color:@fff;
@@ -418,7 +424,7 @@ export default class GuidePannel extends Vue {
       margin-bottom:0;
     }
     // tab 组件演示覆盖
-    width:370px;
+    width:360px;
     position:absolute;
     .guid-icon {
       width: 41px;
@@ -437,9 +443,6 @@ export default class GuidePannel extends Vue {
       }
     }
     .guid-title {
-      span{
-        padding-left:28px;
-      }
       i {
         width: 12px;
         height: 12px;
@@ -450,7 +453,6 @@ export default class GuidePannel extends Vue {
         line-height:12px;
         margin-right:10px;
       }
-      width: 369px;
       height: 30px;
       line-height:30px;
       color:@fff;
