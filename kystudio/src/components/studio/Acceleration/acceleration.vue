@@ -93,18 +93,18 @@
             :row-class-name="tableRowClassName"
             class="import-table"
             style="width: 100%">
-            <el-table-column type="selection" align="center" width="44" :selectable="selectable"></el-table-column>
+            <el-table-column type="selection" align="center" width="40" :selectable="selectable"></el-table-column>
             <el-table-column prop="sql" label="SQL" header-align="center" :resizable="false">
               <template slot-scope="props">
                 <span class="ksd-nobr-text">{{props.row.sql}}</span>
               </template>
             </el-table-column>
-            <el-table-column prop="capable" :label="$t('kylinLang.common.status')" align="center" width="83">
+            <el-table-column prop="capable" :label="$t('kylinLang.common.status')" align="center" width="80">
               <template slot-scope="props">
                 <i :class="{'el-icon-ksd-good_health': props.row.capable, 'el-icon-ksd-error_01': !props.row.capable}"></i>
               </template>
             </el-table-column>
-            <el-table-column :label="$t('kylinLang.common.action')" align="center" width="83">
+            <el-table-column :label="$t('kylinLang.common.action')" align="center" width="80">
               <template slot-scope="props">
                 <i class="el-icon-ksd-table_edit" @click.stop="editWhiteSql(props.row)"></i>
                 <i class="el-icon-ksd-table_delete ksd-ml-10" @click.stop="delWhiteComfirm(props.row.id)"></i>
@@ -114,7 +114,7 @@
           <kap-pager ref="sqlListsPager" class="ksd-center ksd-mt-20" :totalSize="filteredDataSize"  v-on:handleCurrentChange='whiteSqlDatasPageChange' :perPageSize="whitePageSize" v-if="filteredDataSize > 0"></kap-pager>
         </el-col>
         <el-col :span="8">
-          <div class="ky-list-title ksd-mt-10 ksd-fs-16">{{$t('sqlBox')}}</div>
+          <div class="ky-list-title ksd-mt-12 ksd-fs-14">{{$t('sqlBox')}}</div>
           <div class="query_panel_box ksd-mt-10">
             <kap-editor ref="whiteInputBox" :height="inputHeight" :readOnly="this.isReadOnly" :isFormatter="true" lang="sql" theme="chrome" v-model="whiteSql">
             </kap-editor>
@@ -163,21 +163,25 @@
       <el-row :gutter="20">
         <el-col :span="16" v-if="blackSqlData&&blackSqlData.size">
           <div class="clearfix ksd-mb-10">
-            <span class="ksd-title-label query-count">{{$t('blackList')}}
+            <span class="ksd-title-label ksd-fs-14 query-count">{{$t('blackList')}}
               <span v-if="blackSqlData.size">({{blackSqlData.size}})</span>
             </span>
             <div class="ksd-fright ksd-inline searchInput">
               <el-input v-model="blackSqlFilter" @input="onblackSqlFilterChange" prefix-icon="el-icon-search" :placeholder="$t('kylinLang.common.search')" size="medium"></el-input>
             </div>
           </div>
-          <el-table :data="blackSqlData.sqls" border @row-click="viewBlackSql" class="import-table" style="width: 100%">
-            <el-table-column prop="sql_pattern" label="SQL" :resizable="false" header-align="center" show-overflow-tooltip></el-table-column>
+          <el-table :data="blackSqlData.sqls" border @row-click="viewBlackSql" :row-class-name="tableRowClassName" class="import-table" style="width: 100%">
+            <el-table-column prop="sql_pattern" label="SQL" :resizable="false" header-align="center">
+              <template slot-scope="props">
+                <span class="ksd-nobr-text">{{props.row.sql_pattern}}</span>
+              </template>
+            </el-table-column>
             <el-table-column prop="create_time" :label="$t('createdTime')" show-overflow-tooltip header-align="center" width="207">
               <template slot-scope="props">
                 {{transToGmtTime(props.row.create_time)}}
               </template>
             </el-table-column>
-            <el-table-column :label="$t('kylinLang.common.action')" align="center" width="83">
+            <el-table-column :label="$t('kylinLang.common.action')" align="center" width="80">
               <template slot-scope="props">
                 <i class="el-icon-ksd-table_delete ksd-ml-10" @click.stop="delBlack(props.row.id)"></i>
                </template>
@@ -186,7 +190,7 @@
           <kap-pager ref="sqlListsPager" class="ksd-center ksd-mt-20 ksd-mb-20" :totalSize="blackSqlData.size"  v-on:handleCurrentChange='blackSqlDatasPageChange' :perPageSize="10" v-if="blackSqlData.size"></kap-pager>
         </el-col>
         <el-col :span="8" v-if="blackSqlData&&blackSqlData.size">
-          <div class="ky-list-title ksd-mt-10 ksd-fs-16">{{$t('sqlBox')}}</div>
+          <div class="ky-list-title ksd-mt-12 ksd-fs-14">{{$t('sqlBox')}}</div>
           <div class="query_panel_box ksd-mt-10">
             <kap-editor ref="blackInputBox" :height="inputHeight" :readOnly="true" :isFormatter="true" lang="sql" theme="chrome" v-model="blackSql">
             </kap-editor>
@@ -782,18 +786,20 @@ export default class FavoriteQuery extends Vue {
       this.viewBlackSql(this.blackSqlData.sqls[0])
     } else {
       this.blackSql = ''
+      this.activeSqlObj = null
     }
   }
 
   activeSql (sqlObj) {
     this.whiteSql = sqlObj.sql
+    this.activeSqlObj = sqlObj
     this.isEditSql = false
     if (sqlObj.capable) {
       this.isWhiteErrorMessage = false
       this.inputHeight = 574
     } else {
       this.isWhiteErrorMessage = true
-      this.inputHeight = 574 - 150
+      this.inputHeight = 574 - 145
       this.whiteMessages = sqlObj.sqlAdvices
     }
   }
@@ -806,7 +812,7 @@ export default class FavoriteQuery extends Vue {
       this.inputHeight = 522
     } else {
       this.isWhiteErrorMessage = true
-      this.inputHeight = 522 - 150
+      this.inputHeight = 522 - 145
     }
     this.whiteSql = sqlObj.sql
     this.activeSqlObj = sqlObj
@@ -849,6 +855,7 @@ export default class FavoriteQuery extends Vue {
     this.isUploaded = false
     this.uploadItems = []
     this.whiteSqlData = null
+    this.activeSqlObj = null
     this.pagerTableData = []
     this.whiteSqlFilter = ''
   }
@@ -1019,7 +1026,7 @@ export default class FavoriteQuery extends Vue {
 
   cancelEdit (isErrorMes) {
     this.isEditSql = false
-    this.inputHeight = isErrorMes ? 574 - 150 : 574
+    this.inputHeight = isErrorMes ? 574 - 145 : 574
     this.whiteSql = this.activeSqlObj.sql
     this.activeSqlObj = null
     this.isReadOnly = true
@@ -1052,7 +1059,7 @@ export default class FavoriteQuery extends Vue {
           }
         } else {
           this.whiteMessages = data.sqlAdvices
-          this.inputHeight = 522 - 150
+          this.inputHeight = 522 - 145
           this.isWhiteErrorMessage = true
         }
       })
@@ -1089,6 +1096,7 @@ export default class FavoriteQuery extends Vue {
   }
 
   viewBlackSql (row) {
+    this.activeSqlObj = row
     this.blackSql = row.sql_pattern
   }
 
@@ -1209,6 +1217,9 @@ export default class FavoriteQuery extends Vue {
       .el-dialog__body {
         min-height: 600px;
         .import-table {
+          .cell {
+            height: 23px;
+          }
           .active-row {
             background-color: @base-color-9;
           }
@@ -1234,7 +1245,7 @@ export default class FavoriteQuery extends Vue {
           border: 1px solid @line-border-color;
           border-radius: 2px;
           font-size: 12px;
-          margin-top: 20px;
+          margin-top: 15px;
           padding: 10px;
           box-sizing: border-box;
           overflow-y: auto;

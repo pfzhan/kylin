@@ -10,9 +10,13 @@
     <span slot="prefix" class="el-input__icon" :class="isAutoProject ? 'el-icon-ksd-smart_mode_small' : 'el-icon-ksd-expert_mode_small'"></span>
     <el-option
       v-for="item in projectList" :key="item.name"
+      class="project_option"
       :label="item.name"
       :value="item.name">
-      </el-option>
+      <i class="el-icon-ksd-smart_mode_small" v-if="item.maintain_model_type === 'AUTO_MAINTAIN'"></i>
+      <i class="el-icon-ksd-expert_mode_small" v-if="item.maintain_model_type === 'MANUAL_MAINTAIN'"></i>
+      <span>{{item.name}}</span>
+    </el-option>
     </el-select>
 </template>
 <script>
@@ -67,6 +71,12 @@ export default {
     font-size: 18px;
     color: @text-disabled-color;
     transform: translate(-1px, 0px);
+  }
+}
+.project_option {
+  .el-icon-ksd-smart_mode_small,
+  .el-icon-ksd-expert_mode_small {
+    color: @text-disabled-color;
   }
 }
 </style>

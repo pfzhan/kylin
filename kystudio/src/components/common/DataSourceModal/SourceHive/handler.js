@@ -21,7 +21,7 @@ export function getDatabaseTree (databases) {
             {data.isSelected ? (
               <span class="el-icon-ksd-good_health"></span>
             ) : null}
-            {label}
+            <i class="el-icon-ksd-data_source"></i> {label}
           </div>
           <div class="select-all" onClick={event => this.handleSelectDatabase(event, data)}>
             {data.isSelected ? this.$t('cleanAll') : this.$t('selectAll')}

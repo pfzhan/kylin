@@ -146,7 +146,8 @@
               <span>{{$t('noEnoughData')}}</span>
             </div>
             <div class="content" v-else>
-              <span class="num">{{avgBulidTime}}</span>
+              <span class="num" v-if="avgBulidTime+''==='0.00'">&lt; 0.01</span>
+              <span class="num" v-else>{{avgBulidTime}}</span>
               <span class="unit">{{$t('sec')}}</span>
             </div>
           </div>
@@ -621,7 +622,7 @@ export default class Dashboard extends Vue {
     const resDataJob = await handleSuccessAsync(resJob)
     this.jobCount = resDataJob.count || 0
     this.avgBulidTime = resDataJob.total_duration && resDataJob.total_byte_size ? (resDataJob.total_duration * 1024 * 1024 / (resDataJob.total_byte_size * 1000)).toFixed(2) : 0
-    if (resDataJob.total_byte_size < 1024 * 1024) {
+    if (resDataJob.total_byte_size && resDataJob.total_byte_size < 1024 * 1024) {
       this.noEnoughData = true
     } else {
       this.noEnoughData = false
