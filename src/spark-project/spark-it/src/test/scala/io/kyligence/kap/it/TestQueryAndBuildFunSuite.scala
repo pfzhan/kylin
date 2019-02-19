@@ -32,6 +32,9 @@ import org.apache.spark.sql.SparderEnv
 import org.apache.spark.sql.common.{LocalMetadata, SparderBaseFunSuite}
 import org.apache.spark.sql.execution.utils.SchemaProcessor
 
+import scala.concurrent.duration.Duration
+import scala.concurrent.{Await, ExecutionContext, ExecutionContextExecutor, Future}
+
 class TestQueryAndBuildFunSuite
   extends SparderBaseFunSuite
     with LocalMetadata
@@ -44,6 +47,8 @@ class TestQueryAndBuildFunSuite
   override val DEFAULT_PROJECT = "default"
 
   case class FloderInfo(floder: String, filter: List[String] = List())
+
+  implicit val ec: ExecutionContextExecutor = ExecutionContext.global
 
   val queryFolders = List(
     FloderInfo("sql", List("query105.sql")),
@@ -118,28 +123,32 @@ class TestQueryAndBuildFunSuite
     assert(result.isEmpty)
   }
 
-  private def queryFolder(floderInfo: FloderInfo) = {
-    QueryFetcher
+  private def queryFolder(floderInfo: FloderInfo): List[String] = {
+    val futures = QueryFetcher
       .fetchQueries(QueryConstants.KAP_SQL_BASE_DIR + floderInfo.floder)
       .filter { tp =>
         !floderInfo.filter.contains(new File(tp._1).getName)
       }
       .flatMap {
         case (fileName: String, query: String) =>
-          joinTypes
-            .map { joinType =>
+          joinTypes.map { joinType =>
               val afterChangeJoin = changeJoinType(query, joinType)
               val cleanedSql = cleanSql(afterChangeJoin)
-              runAndCompare(afterChangeJoin,
-                            cleanedSql,
-                            DEFAULT_PROJECT,
-                            s"$joinType\n$fileName\n $query\n")
+
+              Future[String] {
+                runAndCompare(afterChangeJoin, cleanedSql, DEFAULT_PROJECT,
+                  s"$joinType\n$fileName\n $query\n")
+              }
             }
       }
+    // scalastyle:off
+    val result = Await.result(Future.sequence(futures.toList), Duration.Inf)
+    // scalastyle:on
+    result
   }
 
   private def queryFolderWithoutCompare(floderInfo: FloderInfo) = {
-    QueryFetcher
+    val futures = QueryFetcher
       .fetchQueries(QueryConstants.KAP_SQL_BASE_DIR + floderInfo.floder)
       .filter { tp =>
         !floderInfo.filter.contains(new File(tp._1).getName)
@@ -148,15 +157,22 @@ class TestQueryAndBuildFunSuite
         case (fileName: String, query: String) =>
           joinTypes.map { joinType =>
             val afterChangeJoin = changeJoinType(query, joinType)
-            try {
-              singleQuery(afterChangeJoin, DEFAULT_PROJECT)
-              null
-            } catch {
-              case exception: Throwable =>
-                s"$fileName \n$query \n${ThrowableUtil.stackTraceToString(exception)} "
+
+            Future[String] {
+              try {
+                singleQuery(afterChangeJoin, DEFAULT_PROJECT).collect()
+                null
+              } catch {
+                case exception: Throwable =>
+                  s"$fileName \n$query \n${ThrowableUtil.stackTraceToString(exception)} "
+              }
             }
           }
       }
+    // scalastyle:off
+    val result = Await.result(Future.sequence(futures.toList), Duration.Inf)
+    // scalastyle:on
+    result
   }
 
   def build(): Unit = {
