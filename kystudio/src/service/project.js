@@ -74,7 +74,7 @@ export default {
     return Vue.resource(apiUrl + 'projects/push_down_config').update(body)
   },
   updateStorageQuota (body) {
-    return Vue.resource(apiUrl + 'projects/storage_quota').update(body)
+    return Vue.resource(apiUrl + 'projects/garbage_cleanup_config').update(body)
   },
   updateAccelerationSettings (body) {
     return Vue.resource(apiUrl + 'projects/query_accelerate_threshold').update(body)

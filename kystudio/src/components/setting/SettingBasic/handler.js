@@ -2,6 +2,11 @@ export const projectTypeIcons = {
   MANUAL_MAINTAIN: 'el-icon-ksd-expert_mode_small',
   AUTO_MAINTAIN: 'el-icon-ksd-smart_mode_small'
 }
+export const lowUsageStorageTypes = [
+  'DAY',
+  'WEEK',
+  'MONTH'
+]
 export const autoMergeTypes = [
   'DAY',
   'WEEK',
@@ -85,7 +90,8 @@ export function _getPushdownConfig (data) {
 export function _getStorageQuota (data) {
   return {
     project: data.project,
-    storage_garbage: data.storage_garbage,
+    low_frequency_threshold: data.low_frequency_threshold,
+    frequency_time_window: data.frequency_time_window,
     storage_quota_size: data.storage_quota_size
   }
 }

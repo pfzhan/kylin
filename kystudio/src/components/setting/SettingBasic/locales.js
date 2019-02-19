@@ -25,6 +25,9 @@ export default {
     day: 'Day',
     week: 'Week',
     month: 'Month',
+    DAY1: 'Day',
+    WEEK1: 'Week',
+    MONTH1: 'Month',
     year: 'Year',
     HOUR: '1 hour',
     DAY: '1 day',
@@ -35,8 +38,10 @@ export default {
     storageSettings: 'Storage Setting',
     storageQuota: 'Storage Quota:',
     storageQuotaDesc: 'Granted storage quota by your system admin. If the project storage exceeds the quota, building more index or loading more data would be forbidden.',
-    storageGarbage: 'Storage Garbage',
-    storageGarbageDesc: 'Indexes and queries with low usage would be regarded as garbage.'
+    storageGarbage: 'Low Usage Storage',
+    storageGarbageDesc1: 'When ',
+    storageGarbageDesc2: ' usage is lower than ',
+    storageGarbageDesc3: ' times, then the storage of accelerated queries and indexes would be regarded as low usage storage.'
   },
   'zh-cn': {
     basicInfo: '通用信息',
@@ -65,6 +70,9 @@ export default {
     week: '周',
     month: '月',
     year: '年',
+    DAY1: '每天',
+    WEEK1: '每周',
+    MONTH1: '每月',
     HOUR: '1小时',
     DAY: '1天',
     WEEK: '1周',
@@ -74,7 +82,9 @@ export default {
     storageSettings: '存储设置',
     storageQuota: '存储配额：',
     storageQuotaDesc: '系统管理员设置的项目存储配额。如果项目存储超过配额，新的构建索引和加载数据任务将被禁止。',
-    storageGarbage: '系统垃圾',
-    storageGarbageDesc: '低频使用的索引和查询会被认为是不需要的存储。'
+    storageGarbage: '低效存储',
+    storageGarbageDesc1: '当',
+    storageGarbageDesc2: '使用频率低于',
+    storageGarbageDesc3: '次的加速查询和对应的存储即为低效存储。'
   }
 }

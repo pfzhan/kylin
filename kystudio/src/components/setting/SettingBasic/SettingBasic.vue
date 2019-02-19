@@ -25,7 +25,10 @@
     <!-- 项目存储设置 -->
     <EditableBlock
       :header-content="$t('storageSettings')"
-      :isEditable="false">
+      :is-keep-editing="true"
+      :is-edited="isFormEdited(form, 'storage-quota')"
+      @submit="(scb, ecb) => handleSubmit('storage-quota', scb, ecb)"
+      @cancel="() => handleReset('storage-quota')">
       <div class="setting-item">
         <span class="setting-label font-medium">{{$t('storageQuota')}}</span>
         <span class="setting-value fixed">{{form.storage_quota_size | dataSize}}</span>
@@ -33,17 +36,24 @@
       </div>
       <div class="setting-item">
         <span class="setting-label font-medium">{{$t('storageGarbage')}}</span>
-        <span class="setting-value fixed">
-          <el-switch
-            class="ksd-switch"
-            v-model="form.storage_garbage"
-            :active-text="$t('kylinLang.common.OFF')"
-            :inactive-text="$t('kylinLang.common.ON')"
-            @input="value => handleSwitch('storage-garbage', value)">
-          </el-switch>
-        </span>
         <div class="setting-desc">
-          {{$t('storageGarbageDesc')}}
+          <span>{{$t('storageGarbageDesc1')}}</span>
+          <el-select
+            class="setting-input"
+            size="small"
+            style="width: 100px;"
+            v-model="form.frequency_time_window"
+            :placeholder="$t('kylinLang.common.pleaseChoose')">
+            <el-option
+              v-for="lowUsageStorageType in lowUsageStorageTypes"
+              :key="lowUsageStorageType"
+              :label="$t(lowUsageStorageType+'1')"
+              :value="lowUsageStorageType">
+            </el-option>
+          </el-select>
+          <span>{{$t('storageGarbageDesc2')}}</span>
+          <el-input size="small" style="width: 100px;" v-model.number="form.low_frequency_threshold"></el-input>
+          <span>{{$t('storageGarbageDesc3')}}</span>
         </div>
       </div>
     </EditableBlock>
@@ -170,7 +180,7 @@ import { Component, Watch } from 'vue-property-decorator'
 
 import locales from './locales'
 import { handleError } from '../../../util'
-import { projectTypeIcons, autoMergeTypes, volatileTypes, validate, retentionTypes, initialFormValue, _getProjectGeneralInfo, _getSegmentSettings, _getPushdownConfig, _getStorageQuota, _getRetentionRangeScale } from './handler'
+import { projectTypeIcons, lowUsageStorageTypes, autoMergeTypes, volatileTypes, validate, retentionTypes, initialFormValue, _getProjectGeneralInfo, _getSegmentSettings, _getPushdownConfig, _getStorageQuota, _getRetentionRangeScale } from './handler'
 import EditableBlock from '../../common/EditableBlock/EditableBlock.vue'
 
 @Component({
@@ -194,6 +204,7 @@ import EditableBlock from '../../common/EditableBlock/EditableBlock.vue'
   locales
 })
 export default class SettingBasic extends Vue {
+  lowUsageStorageTypes = lowUsageStorageTypes
   autoMergeTypes = autoMergeTypes
   volatileTypes = volatileTypes
   retentionTypes = retentionTypes
@@ -254,11 +265,6 @@ export default class SettingBasic extends Vue {
           submitData.push_down_enabled = value
           await this.updatePushdownConfig(submitData); break
         }
-        case 'storage-garbage': {
-          const submitData = _getStorageQuota(this.project)
-          submitData.storage_garbage = value
-          await this.updateStorageQuota(submitData); break
-        }
       }
       this.$emit('reload-setting')
       this.$message({ type: 'success', message: this.$t('kylinLang.common.updateSuccess') })
@@ -280,6 +286,10 @@ export default class SettingBasic extends Vue {
           } else {
             return errorCallback()
           }
+        }
+        case 'storage-quota': {
+          const submitData = _getStorageQuota(this.form, this.project)
+          await this.updateStorageQuota(submitData); break
         }
       }
       successCallback()
@@ -315,6 +325,8 @@ export default class SettingBasic extends Vue {
         return JSON.stringify(_getProjectGeneralInfo(form)) !== JSON.stringify(_getProjectGeneralInfo(project))
       case 'segment-settings':
         return JSON.stringify(_getSegmentSettings(form)) !== JSON.stringify(_getSegmentSettings(project))
+      case 'storage-quota':
+        return JSON.stringify(_getStorageQuota(form)) !== JSON.stringify(_getStorageQuota(project))
     }
   }
 }
