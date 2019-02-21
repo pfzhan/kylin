@@ -26,8 +26,9 @@
               <el-input
                 size="small"
                 class="acce-input"
+                v-number="form.threshold"
                 :disabled="!form.batch_enabled"
-                v-model.number="form.threshold">
+                v-model="form.threshold">
               </el-input>
             </el-form-item>
             {{$t('notifyRightTips')}}

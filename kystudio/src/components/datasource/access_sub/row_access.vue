@@ -26,7 +26,7 @@
               :label="$t('condition')"
               >
               <template slot-scope="scope">
-                <p v-for="(key,val) in scope.row.conditions">{{val}} = {{key.join(',')}}</p>
+                <p v-for="(key,val) in scope.row.conditions" :key="key">{{val}} = {{key.join(',')}}</p>
               </template>
             </el-table-column>
             <el-table-column v-if="hasSomeProjectPermission || isAdmin"

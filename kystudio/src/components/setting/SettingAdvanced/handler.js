@@ -1,6 +1,6 @@
 export const validate = {
   'positiveNumber' (rule, value, callback) {
-    if (value === '' || value === undefined || value < 0) {
+    if (value === '' || value === undefined || value <= 0) {
       callback(new Error(null))
     } else {
       callback()

@@ -18,22 +18,48 @@
             <span class="model-setting-item">
               {{$t('segmentMerge')}}<span v-for="item in scope.row.auto_merge_time_ranges" :key="item">{{$t(item)}}</span>
             </span>
-            <i class="el-icon-ksd-table_edit ksd-mr-8 ksd-ml-10" @click="editMergeItem(scope.row)"></i>
-            <i class="el-icon-ksd-symbol_type" @click="removeAutoMerge(scope.row, 'auto_merge_time_ranges')"></i>
+            <common-tip :content="$t('kylinLang.common.edit')">
+              <i class="el-icon-ksd-table_edit ksd-mr-8 ksd-ml-10" @click="editMergeItem(scope.row)"></i>
+            </common-tip>
+            <common-tip :content="$t('kylinLang.common.delete')">
+              <i class="el-icon-ksd-symbol_type" @click="removeAutoMerge(scope.row, 'auto_merge_time_ranges')"></i>
+            </common-tip>
           </div>
           <div v-if="scope.row.volatile_range">
             <span class="model-setting-item" @click="editVolatileItem(scope.row)">
               {{$t('volatileRange')}}<span>{{scope.row.volatile_range.volatile_range_number}} {{$t(scope.row.volatile_range.volatile_range_type.toLowerCase())}}</span>
             </span>
-            <i class="el-icon-ksd-table_edit ksd-mr-8 ksd-ml-10" @click="editVolatileItem(scope.row)"></i>
-            <i class="el-icon-ksd-symbol_type" @click="removeAutoMerge(scope.row, 'volatile_range')"></i>
+            <common-tip :content="$t('kylinLang.common.edit')">
+              <i class="el-icon-ksd-table_edit ksd-mr-8 ksd-ml-10" @click="editVolatileItem(scope.row)"></i>
+            </common-tip>
+            <common-tip :content="$t('kylinLang.common.delete')">
+              <i class="el-icon-ksd-symbol_type" @click="removeAutoMerge(scope.row, 'volatile_range')"></i>
+            </common-tip>
           </div>
           <div v-if="scope.row.retention_range">
             <span class="model-setting-item" @click="editRetentionItem(scope.row)">
               {{$t('retention')}}<span>{{scope.row.retention_range.retention_range_number}} {{$t(scope.row.retention_range.retention_range_type.toLowerCase())}}</span>
             </span>
-            <i class="el-icon-ksd-table_edit ksd-mr-8 ksd-ml-10" @click="editRetentionItem(scope.row)"></i>
-            <i class="el-icon-ksd-symbol_type" @click="removeAutoMerge(scope.row, 'retention_range')"></i>
+            <common-tip :content="$t('kylinLang.common.edit')">
+              <i class="el-icon-ksd-table_edit ksd-mr-8 ksd-ml-10" @click="editRetentionItem(scope.row)"></i>
+            </common-tip>
+            <common-tip :content="$t('kylinLang.common.delete')">
+              <i class="el-icon-ksd-symbol_type" @click="removeAutoMerge(scope.row, 'retention_range')"></i>
+            </common-tip>
+          </div>
+          <div v-if="scope.row.override_props">
+            <div v-for="(propValue, key) in scope.row.override_props" :key="key">
+              <span class="model-setting-item" @click="editSparkItem(scope.row, key)">
+                <!-- 去掉前缀kylin.engine.spark-conf. -->
+                {{key.substring(24)}}:<span>{{propValue}}</span>
+              </span>
+              <common-tip :content="$t('kylinLang.common.edit')">
+                <i class="el-icon-ksd-table_edit ksd-mr-8 ksd-ml-10" @click="editSparkItem(scope.row, key)"></i>
+              </common-tip>
+              <common-tip :content="$t('kylinLang.common.delete')">
+                <i class="el-icon-ksd-symbol_type" @click="removeAutoMerge(scope.row, key)"></i>
+              </common-tip>
+            </div>
           </div>
         </template>
       </el-table-column>
@@ -42,10 +68,10 @@
         align="center"
         :label="$t('kylinLang.common.action')">
           <template slot-scope="scope">
-            <el-tooltip placement="top">
+            <common-tip>
               <div slot="content">{{$t('addSettingItem')}}</div>
-              <i class="el-icon-ksd-table_add" :class="{'disabled': scope.row.auto_merge_time_ranges&&scope.row.volatile_range&&scope.row.retention_range}" @click="addSettingItem(scope.row)"></i>
-            </el-tooltip>
+              <i class="el-icon-ksd-table_add" :class="{'disabled': scope.row.auto_merge_time_ranges&&scope.row.volatile_range&&scope.row.retention_range&&Object.keys(scope.row.override_props).length==4}" @click="addSettingItem(scope.row)"></i>
+            </common-tip>
           </template>
       </el-table-column>
     </el-table>
@@ -64,9 +90,7 @@
               :value="item">
             </el-option>
           </el-select>
-          <p v-if="modelSettingForm.settingItem==='Auto-merge'">{{$t('autoMergeTip')}}</p>
-          <p v-if="modelSettingForm.settingItem==='Volatile Range'">{{$t('volatileTip')}}</p>
-          <p v-if="modelSettingForm.settingItem==='Retention Threshold'">{{$t('retentionThresholdDesc')}}</p>
+          <p>{{optionDesc[modelSettingForm.settingItem]}}</p>
         </el-form-item>
         <el-form-item :label="$t('autoMerge')" class="ksd-mb-10" v-if="step=='stepTwo'&&modelSettingForm.settingItem==='Auto-merge'">
           <el-checkbox-group v-model="modelSettingForm.autoMerge" class="merge-groups">
@@ -88,6 +112,10 @@
         <el-form-item :label="$t('retentionThreshold')" v-if="step=='stepTwo'&&modelSettingForm.settingItem==='Retention Threshold'">
           <el-input v-model.trim.number="modelSettingForm.retentionThreshold.retention_range_number" class="retention-input"></el-input>
           <span class="ksd-ml-10">{{$t(modelSettingForm.retentionThreshold.retention_range_type.toLowerCase())}}</span>
+        </el-form-item>
+        <el-form-item :label="modelSettingForm.settingItem" v-if="step=='stepTwo'&&modelSettingForm.settingItem.indexOf('spark.')!==-1">
+          <el-input v-model.trim.number="modelSettingForm[modelSettingForm.settingItem]" class="retention-input"></el-input>
+          <span class="ksd-ml-10" v-if="modelSettingForm.settingItem==='spark.executor.memory'">G</span>
         </el-form-item>
       </el-form>
       <span slot="footer" class="dialog-footer">
@@ -119,7 +147,7 @@ import { pageCount } from '../../../config'
 import { handleSuccess, transToGmtTime, kapConfirm } from '../../../util/business'
 import { handleSuccessAsync, handleError, objectClone } from '../../../util/index'
 
-const initialSettingForm = JSON.stringify({name: '', settingItem: '', autoMerge: [], volatileRange: {volatile_range_number: 0, volatile_range_type: '', volatile_range_enabled: true}, retentionThreshold: {retention_range_number: 0, retention_range_type: '', retention_range_enabled: true}})
+const initialSettingForm = JSON.stringify({name: '', settingItem: '', autoMerge: [], volatileRange: {volatile_range_number: 0, volatile_range_type: '', volatile_range_enabled: true}, retentionThreshold: {retention_range_number: 0, retention_range_type: '', retention_range_enabled: true}, 'spark.executor.cores': null, 'spark.executor.instances': null, 'spark.executor.memory': null, 'spark.sql.shuffle.partitions': null})
 
 @Component({
   props: {
@@ -153,7 +181,7 @@ export default class SettingStorage extends Vue {
   isLoading = false
   isEdit = false
   step = 'stepOne'
-  settingOption = ['Auto-merge', 'Volatile Range', 'Retention Threshold']
+  settingOption = ['Auto-merge', 'Volatile Range', 'Retention Threshold', 'spark.executor.cores', 'spark.executor.instances', 'spark.executor.memory', 'spark.sql.shuffle.partitions']
   mergeGroups = ['HOUR', 'DAY', 'WEEK', 'MONTH', 'YEAR']
   units = [{label: 'day', value: 'DAY'}, {label: 'week', value: 'WEEK'}, {label: 'month', value: 'MONTH'}, {label: 'year', value: 'YEAR'}]
   modelSettingForm = JSON.parse(initialSettingForm)
@@ -177,6 +205,17 @@ export default class SettingStorage extends Vue {
       callback()
     }
   }
+  get optionDesc () {
+    return {
+      'Auto-merge': this.$t('autoMergeTip'),
+      'Volatile Range': this.$t('volatileTip'),
+      'Retention Threshold': this.$t('retentionThresholdDesc'),
+      'spark.executor.cores': this.$t('sparkCores'),
+      'spark.executor.instances': this.$t('sparkInstances'),
+      'spark.executor.memory': this.$t('sparkMemory'),
+      'spark.sql.shuffle.partitions': this.$t('sparkShuffle')
+    }
+  }
   get rules () {
     return {
       settingItem: [{ validator: this.validateSettingItem, message: this.$t('pleaseSetAutoMerge') }]
@@ -189,11 +228,11 @@ export default class SettingStorage extends Vue {
     this.modelSettingForm = JSON.parse(initialSettingForm)
   }
   addSettingItem (row) {
-    if (row.auto_merge_time_ranges && row.volatile_range && row.retention_range) {
+    if (row.auto_merge_time_ranges && row.volatile_range && row.retention_range && Object.keys(row.override_props).length === 4) {
       return
     }
     this.modelSettingForm.name = row.alias
-    this.activeRow = row
+    this.activeRow = objectClone(row)
     this.step = 'stepOne'
     this.editModelSetting = true
   }
@@ -207,6 +246,8 @@ export default class SettingStorage extends Vue {
       return true
     } else if (this.modelSettingForm.settingItem === 'Retention Threshold' && !(this.modelSettingForm.retentionThreshold.retention_range_number >= 0 && this.modelSettingForm.retentionThreshold.retention_range_number !== '' && this.modelSettingForm.retentionThreshold.retention_range_type)) {
       return true
+    } else if (this.modelSettingForm.settingItem.indexOf('spark.') !== -1 && !this.modelSettingForm[this.modelSettingForm.settingItem]) {
+      return true
     } else {
       return false
     }
@@ -217,6 +258,9 @@ export default class SettingStorage extends Vue {
       rowCopy[type] = null
       rowCopy['auto_merge_enabled'] = type !== 'auto_merge_time_ranges' ? rowCopy['auto_merge_enabled'] : null
       rowCopy['retention_range'] = type !== 'auto_merge_time_ranges' ? rowCopy['retention_range'] : null
+      if (type.indexOf('spark.') !== -1) {
+        delete rowCopy.override_props[type]
+      }
       this.updateModelConfig(Object.assign({}, {project: this.currentSelectedProject}, rowCopy)).then((res) => {
         handleSuccess(res, () => {
           this.getConfigList()
@@ -269,6 +313,15 @@ export default class SettingStorage extends Vue {
     this.isEdit = true
     this.editModelSetting = true
   }
+  editSparkItem (row, sparkItemKey) {
+    this.modelSettingForm.name = row.alias
+    this.modelSettingForm.settingItem = sparkItemKey.substring(24)
+    this.modelSettingForm[this.modelSettingForm.settingItem] = row.override_props[sparkItemKey]
+    this.activeRow = row
+    this.step = 'stepTwo'
+    this.isEdit = true
+    this.editModelSetting = true
+  }
   submit () {
     if (this.modelSettingForm.settingItem === 'Auto-merge') {
       this.activeRow.auto_merge_time_ranges = this.modelSettingForm.autoMerge
@@ -284,8 +337,14 @@ export default class SettingStorage extends Vue {
     if (this.modelSettingForm.settingItem === 'Retention Threshold') {
       this.activeRow.retention_range = this.modelSettingForm.retentionThreshold
     }
+    if (this.modelSettingForm.settingItem.indexOf('spark.') !== -1) {
+      this.activeRow.override_props['kylin.engine.spark-conf.' + this.modelSettingForm.settingItem] = this.modelSettingForm[this.modelSettingForm.settingItem]
+    }
+    if (this.modelSettingForm.settingItem === 'spark.executor.memory') {
+      this.activeRow.override_props['kylin.engine.spark-conf.spark.executor.memory'] = this.activeRow.override_props['kylin.engine.spark-conf.spark.executor.memory'] + 'g'
+    }
+    this.isLoading = true
     this.updateModelConfig(Object.assign({}, {project: this.currentSelectedProject}, this.activeRow)).then((res) => {
-      this.isLoading = true
       handleSuccess(res, () => {
         this.isLoading = false
         this.editModelSetting = false
