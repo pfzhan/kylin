@@ -211,17 +211,7 @@ object TableScanPlan extends Logging {
         // for TopN, the aggr must be SUM
         val sumFunc = FunctionDesc.newInstance(FunctionDesc.FUNC_SUM,
           ParameterDesc.newInstance(numericCol), numericCol.getType.toString)
-        val refs = tupleInfo.getAllColumns.asScala.filter(_.getTableRef == null)
-        if (refs.nonEmpty) {
-          // only has topn measure
-          if (refs.size > 1 && refs.head.getName.contains("SUM")) {
-            throw new IllegalArgumentException(s"More than 1 unknow model column." +
-              s" Please add measure SUM(${sumFunc.getParameter.getColRef.getName})")
-          }
-          tupleInfo.getFieldIndex(refs.head.getName)
-        } else {
-          tupleInfo.getFieldIndex(sumFunc.getRewriteFieldName)
-        }
+        tupleInfo.getFieldIndex(sumFunc.getRewriteFieldName)
       } else {
         val countFunction = FunctionDesc.newInstance(FunctionDesc.FUNC_COUNT,
           ParameterDesc.newInstance("1"), "bigint")
