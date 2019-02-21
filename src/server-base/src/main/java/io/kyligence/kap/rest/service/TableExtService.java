@@ -63,7 +63,7 @@ public class TableExtService extends BasicService {
      * [2] : tables that didn't load due to other error
      * @throws Exception if reading hive metadata error
      */
-    @Transaction(project = 1)
+    @Transaction(project = 1, retry = 1)
     public LoadTableResponse loadTables(String[] tables, String project, Integer sourceType) throws Exception {
         List<Pair<TableDesc, TableExtDesc>> extractTableMeta = tableService.extractTableMeta(tables, project,
                 sourceType);
@@ -122,7 +122,7 @@ public class TableExtService extends BasicService {
 
     }
 
-    @Transaction(project = 0)
+    @Transaction(project = 0, retry = 1)
     public LoadTableResponse loadTablesByDatabase(String project, final String[] databases, int datasourceType)
             throws Exception {
         LoadTableResponse loadTableByDatabaseResponse = new LoadTableResponse();

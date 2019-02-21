@@ -424,6 +424,9 @@ public class NTableMetadataManager {
         }
 
         public void save() {
+            if (tableExtDesc.getColumnStats().isEmpty()) {
+                return;
+            }
             final Map<String, Map<String, byte[]>> colStatsTable = Maps.newHashMap();
             FSDataOutputStream out = null;
             Path newColStatsPath = null;
@@ -440,7 +443,6 @@ public class NTableMetadataManager {
                         colStatsTable.get(colName).put(segRange, buffer.array());
                     }
                 }
-
                 newColStatsPath = new Path(getColumnStatsPath(), UUID.randomUUID().toString());
                 out = fs.create(newColStatsPath, true);
                 IOUtils.copy(ByteStreams.asByteSource(JsonUtil.writeValueAsBytes(colStatsTable)).openStream(), out);

@@ -29,6 +29,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
+import java.util.stream.Collectors;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.Pair;
@@ -38,10 +39,7 @@ import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.TableExtDesc;
 import org.apache.kylin.source.ISampleDataDeployer;
 import org.apache.kylin.source.ISourceMetadataExplorer;
-import org.apache.spark.api.java.function.MapFunction;
 import org.apache.spark.sql.Dataset;
-import org.apache.spark.sql.Encoder;
-import org.apache.spark.sql.Encoders;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparderEnv;
 
@@ -55,20 +53,8 @@ public class NSparkMetadataExplorer implements ISourceMetadataExplorer, ISampleD
 
     @Override
     public List<String> listDatabases() throws Exception {
-        Dataset<Row> dataset = SparderEnv.getSparkSession().sql("show databases");
-        return datasetRow2String(dataset, "databaseName");
-    }
-
-    private List<String> datasetRow2String(Dataset<Row> dataset, final String column) {
-        Encoder<String> stringEncoder = Encoders.STRING();
-        MapFunction<Row, String> mapFunction = new MapFunction<Row, String>() {
-            @Override
-            public String call(Row row) throws Exception {
-                return row.getAs(column);
-            }
-        };
-        Dataset<String> result = dataset.map(mapFunction, stringEncoder);
-        return result.collectAsList();
+        Dataset<Row> dataset = SparderEnv.getSparkSession().sql("show databases").select("databaseName");
+        return dataset.collectAsList().stream().map(row-> row.getString(0)).collect(Collectors.toList());
     }
 
     @Override
@@ -77,8 +63,8 @@ public class NSparkMetadataExplorer implements ISourceMetadataExplorer, ISampleD
         if (StringUtils.isNotBlank(database)) {
             sql = String.format(sql + " in %s", database);
         }
-        Dataset<Row> dataset = SparderEnv.getSparkSession().sql(sql);
-        return datasetRow2String(dataset, "tableName");
+        Dataset<Row> dataset = SparderEnv.getSparkSession().sql(sql).select("tableName");
+        return dataset.collectAsList().stream().map(row-> row.getString(0)).collect(Collectors.toList());
     }
 
     @Override

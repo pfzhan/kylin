@@ -96,6 +96,7 @@ import io.kyligence.kap.rest.response.TableDescResponse;
 import io.kyligence.kap.rest.response.TableNameResponse;
 import io.kyligence.kap.rest.response.TablesAndColumnsResponse;
 import io.kyligence.kap.rest.transaction.Transaction;
+import io.netty.util.internal.ThrowableUtil;
 import lombok.val;
 import lombok.var;
 
@@ -200,22 +201,36 @@ public class TableService extends BasicService {
             String[] parts = HadoopUtil.parseHiveTableName(fullTableName);
             databaseTables.put(parts[0], parts[1]);
         }
-        // load all tables first
-        List<Pair<TableDesc, TableExtDesc>> allMeta = Lists.newArrayList();
+        // load all tables first  Pair<TableDesc, TableExtDesc>
         ProjectInstance projectInstance = getProjectManager().getProject(project);
         ISourceMetadataExplorer explr = SourceFactory.getSource(projectInstance).getSourceMetadataExplorer();
-        for (Map.Entry<String, String> entry : databaseTables.entries()) {
-            Pair<TableDesc, TableExtDesc> pair = explr.loadTableMetadata(entry.getKey(), entry.getValue(), project);
-            TableDesc tableDesc = pair.getFirst();
-            Preconditions.checkState(tableDesc.getDatabase().equals(entry.getKey().toUpperCase()));
-            Preconditions.checkState(tableDesc.getName().equals(entry.getValue().toUpperCase()));
-            Preconditions.checkState(tableDesc.getIdentity()
-                    .equals(entry.getKey().toUpperCase() + "." + entry.getValue().toUpperCase()));
-            TableExtDesc extDesc = pair.getSecond();
-            Preconditions.checkState(tableDesc.getIdentity().equals(extDesc.getIdentity()));
-            allMeta.add(pair);
+        List<Pair<Map.Entry<String, String>, Object>> results = databaseTables.entries().parallelStream().map(entry -> {
+            try {
+                Pair<TableDesc, TableExtDesc> pair = explr.loadTableMetadata(entry.getKey(), entry.getValue(), project);
+                TableDesc tableDesc = pair.getFirst();
+                Preconditions.checkState(tableDesc.getDatabase().equalsIgnoreCase(entry.getKey()));
+                Preconditions.checkState(tableDesc.getName().equalsIgnoreCase(entry.getValue()));
+                Preconditions.checkState(tableDesc.getIdentity()
+                        .equals(entry.getKey().toUpperCase() + "." + entry.getValue().toUpperCase()));
+                TableExtDesc extDesc = pair.getSecond();
+                Preconditions.checkState(tableDesc.getIdentity().equals(extDesc.getIdentity()));
+                return new Pair<Map.Entry<String, String>, Object>(entry, pair);
+            } catch (Exception e) {
+                return new Pair<Map.Entry<String, String>, Object>(entry, e);
+            }
+        }).collect(Collectors.toList());
+        List<Pair<Map.Entry<String, String>, Object>> errorList = results.stream()
+                .filter(pair -> pair.getSecond() instanceof Throwable)
+                .collect(Collectors.toList());
+        if (!errorList.isEmpty()) {
+           String errorMessage = StringUtils.join(errorList.stream()
+                   .map(error -> "table : " + error.getFirst().getKey() + "." + error.getFirst().getValue() + " load Metadata error for exception:" + ThrowableUtil.stackTraceToString((Throwable)error.getSecond()))
+                   .collect(Collectors.toList()), "\n");
+           throw new RuntimeException(errorMessage);
         }
-        return allMeta;
+        return results.stream()
+                .map(pair -> (Pair<TableDesc, TableExtDesc>)pair.getSecond())
+                .collect(Collectors.toList());
     }
 
     public List<String> getSourceDbNames(String project, int dataSourceType) throws Exception {
