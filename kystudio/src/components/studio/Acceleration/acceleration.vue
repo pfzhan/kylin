@@ -858,6 +858,7 @@ export default class FavoriteQuery extends Vue {
     this.activeSqlObj = null
     this.pagerTableData = []
     this.whiteSqlFilter = ''
+    this.importLoading = false
   }
 
   submitFiles () {
@@ -879,6 +880,7 @@ export default class FavoriteQuery extends Vue {
       })
     }, (res) => {
       handleError(res)
+      this.importLoading = false
     })
   }
 

@@ -122,10 +122,12 @@ class NModel {
       x.guid = sampleGuid()
       if (x.parameter_value.length > 0) {
         x.parameter_value.forEach((y) => {
-          const convertedAlias = y.value.split('.')[0]
-          const convertenTable = this.getTableByAlias(convertedAlias)
-          const convertedGuid = convertenTable && convertenTable.guid
-          y.table_guid = convertedGuid
+          if (y.type === 'column') {
+            const convertedAlias = y.value.split('.')[0]
+            const convertenTable = this.getTableByAlias(convertedAlias)
+            const convertedGuid = convertenTable && convertenTable.guid
+            y.table_guid = convertedGuid
+          }
         })
       }
     })
@@ -389,7 +391,9 @@ class NModel {
       delete col.guid
       if (col.parameter_value && col.parameter_value.length) {
         col.parameter_value.forEach((k) => {
-          delete k.table_guid
+          if (k.table_guid) {
+            delete k.table_guid
+          }
         })
       }
     })
@@ -436,11 +440,13 @@ class NModel {
     this.all_measures.forEach((x) => {
       if (x.parameter_value.length > 0) {
         x.parameter_value.forEach((y) => {
-          const guid = y.table_guid
-          const nTable = guid && this.getTableByGuid(guid)
-          if (nTable) {
-            const alias = nTable.alias
-            y.value = alias + '.' + y.value.split('.')[1]
+          if (y.table_guid) {
+            const guid = y.table_guid
+            const nTable = guid && this.getTableByGuid(guid)
+            if (nTable) {
+              const alias = nTable.alias
+              y.value = alias + '.' + y.value.split('.')[1]
+            }
           }
         })
       }
@@ -744,10 +750,12 @@ class NModel {
     this.all_measures.forEach((x) => {
       if (x.parameter_value.length > 0) {
         x.parameter_value.forEach((y) => {
-          let cc = this.getCCObj(y.value)
-          if (cc && factTable) {
-            y.table_guid = factTable.guid
-            y.value = factTable.alias + '.' + y.value.split('.')[1]
+          if (y.type === 'column') {
+            let cc = this.getCCObj(y.value)
+            if (cc && factTable) {
+              y.table_guid = factTable.guid
+              y.value = factTable.alias + '.' + y.value.split('.')[1]
+            }
           }
         })
       }
