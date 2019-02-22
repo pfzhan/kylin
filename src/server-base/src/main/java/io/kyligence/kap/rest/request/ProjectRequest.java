@@ -24,18 +24,23 @@
 
 package io.kyligence.kap.rest.request;
 
+import java.io.IOException;
+import java.util.List;
 import java.util.regex.Pattern;
 
 import javax.validation.constraints.AssertTrue;
 
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.metadata.project.ProjectInstance;
+import org.apache.kylin.rest.msg.MsgPicker;
+import org.springframework.validation.FieldError;
 
 import lombok.Data;
 import lombok.val;
 
 @Data
-public class ProjectRequest {
+public class ProjectRequest implements Validation {
 
     private String formerProjectName;
 
@@ -52,4 +57,19 @@ public class ProjectRequest {
         }
     }
 
+    @Override
+    public String getErrorMessage(List<FieldError> errors) {
+        val message = MsgPicker.getMsg();
+        if (!CollectionUtils.isEmpty(errors) && errors.size() > 0) {
+            if (errors.get(0).getField().equalsIgnoreCase("nameValid")) {
+                try {
+                    val instance = JsonUtil.readValue(projectDescData, ProjectInstance.class);
+                    return String.format(message.getINVALID_PROJECT_NAME(), instance.getName());
+                } catch (IOException e) {
+                    return "";
+                }
+            }
+        }
+        return "";
+    }
 }

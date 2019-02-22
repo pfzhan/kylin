@@ -54,8 +54,6 @@ import java.util.stream.Collectors;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import io.kyligence.kap.rest.request.DateRangeRequest;
-import io.kyligence.kap.rest.request.SegmentConfigRequest;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.yarn.webapp.ForbiddenException;
@@ -80,6 +78,9 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
 
 import io.kyligence.kap.common.persistence.transaction.TransactionException;
+import io.kyligence.kap.rest.request.DateRangeRequest;
+import io.kyligence.kap.rest.request.SegmentConfigRequest;
+import io.kyligence.kap.rest.request.Validation;
 import lombok.val;
 
 public class NBasicController {
@@ -136,8 +137,14 @@ public class NBasicController {
     @ResponseBody
     ErrorResponse handleInvalidArgument(HttpServletRequest request, MethodArgumentNotValidException ex) {
         val response = new ErrorResponse(request.getRequestURL().toString(), ex);
-        response.data = ex.getBindingResult().getFieldErrors().stream()
-                .map(e -> e.getField() + ":" + e.getDefaultMessage()).collect(Collectors.toList());
+        val target = ex.getBindingResult().getTarget();
+        if (target instanceof Validation) {
+            response.msg = ((Validation) target).getErrorMessage(ex.getBindingResult().getFieldErrors());
+        } else {
+            response.msg = ex.getBindingResult().getFieldErrors().stream()
+                    .map(e -> e.getField() + ":" + e.getDefaultMessage()).collect(Collectors.joining(","));
+        }
+
         return response;
     }
 

@@ -30,6 +30,7 @@ import java.util.Objects;
 import javax.validation.constraints.AssertFalse;
 
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.model.IStorageAware;
 
@@ -43,12 +44,14 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.val;
+import org.apache.kylin.rest.msg.MsgPicker;
+import org.springframework.validation.FieldError;
 
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
 @Data
-public class CreateTableIndexRequest {
+public class CreateTableIndexRequest implements Validation {
 
     private Long id;
 
@@ -87,5 +90,16 @@ public class CreateTableIndexRequest {
                 .filter(l -> !Objects.equals(l.getId(), id)).map(LayoutEntity::getName).filter(Objects::nonNull)
                 .anyMatch(x -> Objects.equals(x, name));
 
+    }
+
+    @Override
+    public String getErrorMessage(List<FieldError> errors) {
+        val message = MsgPicker.getMsg();
+        if (!CollectionUtils.isEmpty(errors) && errors.size() > 0) {
+            if (errors.get(0).getField().equalsIgnoreCase("nameExisting")) {
+                return String.format(message.getDUPLICATE_TABLE_INDEX_NAME(), name);
+            }
+        }
+        return "";
     }
 }
