@@ -42,11 +42,14 @@
 
 package org.apache.kylin.rest.response;
 
+import lombok.Data;
+
+@Data
 public class EnvelopeResponse<T> {
 
-    public String code;
-    public T data;
-    public String msg;
+    protected String code;
+    protected T data;
+    protected String msg;
 
     //only for child
     protected EnvelopeResponse() {

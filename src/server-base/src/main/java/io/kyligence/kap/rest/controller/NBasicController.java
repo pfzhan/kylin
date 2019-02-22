@@ -139,10 +139,10 @@ public class NBasicController {
         val response = new ErrorResponse(request.getRequestURL().toString(), ex);
         val target = ex.getBindingResult().getTarget();
         if (target instanceof Validation) {
-            response.msg = ((Validation) target).getErrorMessage(ex.getBindingResult().getFieldErrors());
+            response.setMsg(((Validation) target).getErrorMessage(ex.getBindingResult().getFieldErrors()));
         } else {
-            response.msg = ex.getBindingResult().getFieldErrors().stream()
-                    .map(e -> e.getField() + ":" + e.getDefaultMessage()).collect(Collectors.joining(","));
+            response.setMsg(ex.getBindingResult().getFieldErrors().stream()
+                    .map(e -> e.getField() + ":" + e.getDefaultMessage()).collect(Collectors.joining(",")));
         }
 
         return response;

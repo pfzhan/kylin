@@ -124,7 +124,7 @@ public class NUserControllerTest extends NLocalFileMetadataTestCase {
     public void testBasics() {
         EnvelopeResponse<UserDetails> userDetailsEnvelopeResponse = nUserController.authenticatedUser();
         Assert.assertNotNull(userDetailsEnvelopeResponse);
-        Assert.assertTrue(userDetailsEnvelopeResponse.code.equals(ResponseCode.CODE_SUCCESS));
+        Assert.assertTrue(userDetailsEnvelopeResponse.getCode().equals(ResponseCode.CODE_SUCCESS));
     }
 
     @Test

@@ -37,6 +37,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingDeque;
 
+import com.google.common.annotations.VisibleForTesting;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.conf.Configuration;
@@ -60,13 +61,14 @@ public class HdfsAppender extends AppenderSkeleton {
     private SimpleDateFormat hourFormat = new SimpleDateFormat("HH");
     FSDataOutputStream outStream = null;
     BufferedWriter bufferedWriter = null;
+    @VisibleForTesting
     FileSystem fileSystem = null;
-    private String outPutPath;
-    private String executorId;
+    String outPutPath;
+    String executorId;
     private BlockingDeque<LoggingEvent> logBufferQue = null;
     private ExecutorService appendHdfsService = null;
     private HdfsFlushService flushService;
-    private long startTime = 0;
+    long startTime = 0;
 
     //configurable
     private int logQueueCapacity = 5000;
@@ -225,7 +227,8 @@ public class HdfsAppender extends AppenderSkeleton {
         this.project = project;
     }
 
-    private class HdfsFlushService implements Runnable {
+    @VisibleForTesting
+    class HdfsFlushService implements Runnable {
 
         @Override
         public void run() {
@@ -330,7 +333,8 @@ public class HdfsAppender extends AppenderSkeleton {
             bufferedWriter = new BufferedWriter(new OutputStreamWriter(outStream));
         }
 
-        private void updateOutPutDir(LoggingEvent event) {
+        @VisibleForTesting
+        void updateOutPutDir(LoggingEvent event) {
             if (rollingByHour) {
                 String rollingDir = dateFormat.format(new Date(event.getTimeStamp())) + "/"
                         + hourFormat.format(new Date(event.getTimeStamp()));
@@ -363,7 +367,8 @@ public class HdfsAppender extends AppenderSkeleton {
             return getRootPathName() + "/" + rollingDir + "/" + identifier + "/" + "executor-" + executorId + ".log";
         }
 
-        private void doRollingClean(LoggingEvent event) throws IOException {
+        @VisibleForTesting
+        void doRollingClean(LoggingEvent event) throws IOException {
 
             if (fileSystem == null) {
                 fileSystem = HadoopUtil.getWorkingFileSystem();
@@ -393,7 +398,7 @@ public class HdfsAppender extends AppenderSkeleton {
             }
         }
 
-        private String getRootPathName() {
+        String getRootPathName() {
             if ("job".equals(category)) {
                 return parseHdfsWordingDir() + "/" + project + "/spark_logs";
             } else if ("sparder".equals(category)) {
@@ -403,7 +408,8 @@ public class HdfsAppender extends AppenderSkeleton {
             }
         }
 
-        private boolean isTimeChanged(LoggingEvent event) {
+        @VisibleForTesting
+        boolean isTimeChanged(LoggingEvent event) {
             if (rollingByHour) {
                 return isNeedRolling(event, A_HOUR_MILLIS);
             } else {

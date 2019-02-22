@@ -198,7 +198,7 @@ public abstract class MetadataStore {
             }
 
             //check project dir
-            val project = Paths.get(file).getName(0).toString();
+            final String project = Paths.get(file).getName(0).toString();
             if (Paths.get(ResourceStore.GLOBAL_PROJECT).getName(0).toString().equals(project)) {
                 continue;
             }

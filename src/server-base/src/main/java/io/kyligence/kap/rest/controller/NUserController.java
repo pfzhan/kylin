@@ -283,7 +283,7 @@ public class NUserController extends NBasicController {
     public EnvelopeResponse<UserDetails> authenticate() {
         checkLicense();
         EnvelopeResponse response = authenticatedUser();
-        logger.debug("User login: {}", response.data);
+        logger.debug("User login: {}", response.getData());
         return response;
     }
 
