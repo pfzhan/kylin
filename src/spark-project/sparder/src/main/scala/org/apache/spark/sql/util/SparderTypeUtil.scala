@@ -33,7 +33,7 @@ import org.apache.kylin.common.util.DateFormat
 import org.apache.kylin.metadata.datatype.DataType
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.types._
-import org.apache.spark.sql.{types, Column}
+import org.apache.spark.sql.Column
 import org.apache.spark.sql.catalyst.expressions.Cast
 import org.apache.spark.sql.functions._
 
@@ -182,24 +182,25 @@ object SparderTypeUtil extends Logging {
     if (s == null) {
       null
     } else if (s.toString.isEmpty) {
-      val a: Any = sqlTypeName match {
-        case SqlTypeName.DECIMAL => new java.math.BigDecimal(0)
-        case SqlTypeName.CHAR => s.toString
-        case SqlTypeName.VARCHAR => s.toString
-        case SqlTypeName.INTEGER => 0
-        case SqlTypeName.TINYINT => 0.toByte
-        case SqlTypeName.SMALLINT => 0.toShort
-        case SqlTypeName.BIGINT => 0L
-        case SqlTypeName.FLOAT => 0f
-        case SqlTypeName.DOUBLE => 0d
-        case SqlTypeName.DATE => 0
-        case SqlTypeName.TIMESTAMP => 0L
-        case SqlTypeName.TIME => 0L
-        case SqlTypeName.BOOLEAN => null;
-        case null => null
-        case _ => null
-      }
-    } else {
+    sqlTypeName match {
+      case SqlTypeName.DECIMAL => new java.math.BigDecimal(0)
+      case SqlTypeName.CHAR => s.toString
+      case SqlTypeName.VARCHAR => s.toString
+      case SqlTypeName.INTEGER => 0
+      case SqlTypeName.TINYINT => 0.toByte
+      case SqlTypeName.SMALLINT => 0.toShort
+      case SqlTypeName.BIGINT => 0L
+      case SqlTypeName.FLOAT => 0f
+      case SqlTypeName.REAL => 0f
+      case SqlTypeName.DOUBLE => 0d
+      case SqlTypeName.DATE => 0
+      case SqlTypeName.TIMESTAMP => 0L
+      case SqlTypeName.TIME => 0L
+      case SqlTypeName.BOOLEAN => null;
+      case null => null
+      case _ => null
+    }
+  } else {
       try {
         val a: Any = sqlTypeName match {
           case SqlTypeName.DECIMAL =>
