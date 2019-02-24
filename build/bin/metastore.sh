@@ -20,7 +20,7 @@ then
     if [ $# -eq 1 ]; then
         ${KYLIN_HOME}/bin/kylin.sh io.kyligence.kap.tool.MetadataTool -backup -dir ${KYLIN_HOME}/meta_backups
     elif [ $# -eq 2 ]; then
-        ${KYLIN_HOME}/bin/kylin.sh io.kyligence.kap.tool.MetadataTool -backup -dir $2
+        ${KYLIN_HOME}/bin/kylin.sh io.kyligence.kap.tool.MetadataTool -backup -dir `cd $2 && pwd -P`
     else
         help
     fi
@@ -28,7 +28,7 @@ then
 elif [ "$1" == "restore" ]
 then
     if [ $# -eq 2 ]; then
-        ${KYLIN_HOME}/bin/kylin.sh io.kyligence.kap.tool.MetadataTool -restore -dir $2
+        ${KYLIN_HOME}/bin/kylin.sh io.kyligence.kap.tool.MetadataTool -restore -dir `cd $2 && pwd -P`
     else
        help
     fi
@@ -38,7 +38,7 @@ then
     if [ $# -eq 2 ]; then
         ${KYLIN_HOME}/bin/kylin.sh io.kyligence.kap.tool.MetadataTool -backup -project $2 -dir ${KYLIN_HOME}/meta_backups
     elif [ $# -eq 3 ]; then
-        ${KYLIN_HOME}/bin/kylin.sh io.kyligence.kap.tool.MetadataTool -backup -project $2 -dir $3
+        ${KYLIN_HOME}/bin/kylin.sh io.kyligence.kap.tool.MetadataTool -backup -project $2 -dir `cd $3 && pwd -P`
     else
         help
     fi
@@ -46,7 +46,7 @@ then
 elif [ "$1" == "restore-project" ]
 then
     if [ $# -eq 3 ]; then
-        ${KYLIN_HOME}/bin/kylin.sh io.kyligence.kap.tool.MetadataTool -restore -project $2 -dir $3
+        ${KYLIN_HOME}/bin/kylin.sh io.kyligence.kap.tool.MetadataTool -restore -project $2 -dir `cd $3 && pwd -P`
     else
         help
     fi
