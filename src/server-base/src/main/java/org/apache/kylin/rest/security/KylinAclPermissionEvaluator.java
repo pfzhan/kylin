@@ -46,7 +46,10 @@ import java.io.Serializable;
 import java.util.Arrays;
 import java.util.List;
 
+import io.kyligence.kap.metadata.project.NProjectManager;
+import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.AclEntity;
+import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.rest.service.AclService;
 import org.apache.kylin.rest.util.AclPermissionUtil;
 import org.springframework.security.acls.AclPermissionEvaluator;
@@ -67,6 +70,10 @@ public class KylinAclPermissionEvaluator extends AclPermissionEvaluator {
     @Override
     public boolean hasPermission(Authentication authentication, Object targetDomainObject, Object permission) {
         ExternalAclProvider eap = ExternalAclProvider.getInstance();
+        //because Transaction(project= ) need project name,transfer project name to prjInstance here
+        if (!(targetDomainObject instanceof ProjectInstance) && targetDomainObject instanceof String) {
+            targetDomainObject = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv()).getProject(targetDomainObject.toString());
+        }
         if (eap == null)
             return super.hasPermission(authentication, targetDomainObject, permission);
 

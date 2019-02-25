@@ -219,13 +219,6 @@ public class ProjectServiceTest extends ServiceTestBase {
     }
 
     @Test
-    public void testUpdateProjectMaintainType() throws Exception {
-        projectService.updateMantainModelType(PROJECT, MaintainModelType.MANUAL_MAINTAIN.name());
-        Assert.assertEquals(MaintainModelType.MANUAL_MAINTAIN,
-                NProjectManager.getInstance(getTestConfig()).getProject(PROJECT).getMaintainModelType());
-    }
-
-    @Test
     public void testUpdateStorageQuotaConfig() throws Exception {
         projectService.updateStorageQuotaConfig(PROJECT, 2147483648L);
         Assert.assertEquals(2147483648L,

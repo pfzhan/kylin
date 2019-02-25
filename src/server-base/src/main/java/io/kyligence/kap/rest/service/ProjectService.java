@@ -38,6 +38,7 @@ import org.apache.directory.api.util.Strings;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.metadata.project.ProjectInstance;
+import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.exception.BadRequestException;
 import org.apache.kylin.rest.msg.Message;
 import org.apache.kylin.rest.msg.MsgPicker;
@@ -48,6 +49,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 
@@ -59,7 +61,6 @@ import com.google.common.collect.Sets;
 import io.kyligence.kap.metadata.cube.storage.ProjectStorageInfoCollector;
 import io.kyligence.kap.metadata.cube.storage.StorageInfoEnum;
 import io.kyligence.kap.metadata.favorite.FavoriteRule;
-import io.kyligence.kap.metadata.model.MaintainModelType;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.rest.request.JobNotificationConfigRequest;
 import io.kyligence.kap.rest.request.ProjectGeneralInfoRequest;
@@ -158,21 +159,9 @@ public class ProjectService extends BasicService {
     }
 
     @Transaction(project = 0)
-    public ProjectInstance updateProject(String name, ProjectInstance newProject, ProjectInstance currentProject) {
-        String newProjectName = newProject.getName();
-        String newDescription = newProject.getDescription();
-        LinkedHashMap<String, String> overrideProps = newProject.getOverrideKylinProps();
-
-        ProjectInstance updatedProject = getProjectManager().updateProject(currentProject, newProjectName,
-                newDescription, overrideProps);
-
-        logger.debug("Project updated.");
-        return updatedProject;
-    }
-
-    @Transaction(project = 0)
+    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#project, 'ADMINISTRATION')")
     public void updateQueryAccelerateThresholdConfig(String project, Integer threshold, boolean autoApply,
-            boolean batchEnabled) {
+                                                     boolean batchEnabled) {
         Map<String, String> overrideKylinProps = Maps.newHashMap();
         overrideKylinProps.put("kylin.favorite.query-accelerate-threshold", threshold.toString());
         overrideKylinProps.put("kylin.favorite.query-accelerate-threshold-batch-enable", batchEnabled + "");
@@ -190,13 +179,6 @@ public class ProjectService extends BasicService {
         return thresholdResponse;
     }
 
-    @Transaction(project = 0)
-    public void updateMantainModelType(String project, String maintainModelType) {
-        val projectManager = getProjectManager();
-        projectManager.updateProject(project, copyForWrite -> {
-            copyForWrite.setMaintainModelType(MaintainModelType.valueOf(maintainModelType));
-        });
-    }
 
     public StorageVolumeInfoResponse getStorageVolumeInfoResponse(String project) {
         val response = new StorageVolumeInfoResponse();
@@ -259,11 +241,13 @@ public class ProjectService extends BasicService {
         }, UnitOfWork.GLOBAL_UNIT);
     }
 
+    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#project, 'ADMINISTRATION')")
     public void cleanupGarbage(String project) {
         GarbageCleaner.cleanupMetadataManually(project);
     }
 
     @Transaction(project = 0)
+    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#project, 'ADMINISTRATION')")
     public void updateStorageQuotaConfig(String project, long storageQuotaSize) {
         Map<String, String> overrideKylinProps = Maps.newHashMap();
         long storageQuotaSizeGB = storageQuotaSize / (1024 * 1024 * 1024);
@@ -283,6 +267,7 @@ public class ProjectService extends BasicService {
     }
 
     @Transaction(project = 0)
+    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#project, 'ADMINISTRATION')")
     public void updateJobNotificationConfig(String project, JobNotificationConfigRequest jobNotificationConfigRequest) {
         Map<String, String> overrideKylinProps = Maps.newHashMap();
         overrideKylinProps.put("kylin.job.notification-on-empty-data-load",
@@ -333,6 +318,7 @@ public class ProjectService extends BasicService {
     }
 
     @Transaction(project = 0)
+    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#project, 'ADMINISTRATION')")
     public void updatePushDownConfig(String project, PushDownConfigRequest pushDownConfigRequest) {
         getProjectManager().updateProject(project, copyForWrite -> {
             val config = getConfig();
@@ -349,6 +335,7 @@ public class ProjectService extends BasicService {
     }
 
     @Transaction(project = 0)
+    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#project, 'ADMINISTRATION')")
     public void updateSegmentConfig(String project, SegmentConfigRequest segmentConfigRequest) {
         getProjectManager().updateProject(project, copyForWrite -> {
             copyForWrite.getSegmentConfig().setAutoMergeEnabled(segmentConfigRequest.getAutoMergeEnabled());
@@ -359,6 +346,7 @@ public class ProjectService extends BasicService {
     }
 
     @Transaction(project = 0)
+    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#project, 'ADMINISTRATION')")
     public void updateProjectGeneralInfo(String project, ProjectGeneralInfoRequest projectGeneralInfoRequest) {
         getProjectManager().updateProject(project, copyForWrite -> {
             copyForWrite.setDescription(projectGeneralInfoRequest.getDescription());
