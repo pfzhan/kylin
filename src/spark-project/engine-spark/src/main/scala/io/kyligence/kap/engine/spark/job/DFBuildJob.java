@@ -164,7 +164,7 @@ public class DFBuildJob extends SparkApplication {
                 saveAndUpdateCuboid(afterSort, seg, layout);
             }
             for (IndexEntity child : nSpanningTree.getSpanningIndexEntities(cuboid)) {
-                recursiveBuildCuboid(seg, child, afterAgg, measures, nSpanningTree);
+                recursiveBuildCuboid(seg, child, parent, measures, nSpanningTree);
             }
         }
     }
