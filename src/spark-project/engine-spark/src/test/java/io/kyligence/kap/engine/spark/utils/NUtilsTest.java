@@ -37,7 +37,7 @@ public class NUtilsTest extends NLocalWithSparkSessionTest {
 
     @Test
     public void testDotConversion() {
-        String condition = "TEST_KYLIN_FACT.CAL_DT > 2017-09-12 AND TEST_KYLIN_FACT.CAL_DT < 2017-11-12";
+        String condition = "TEST_KYLIN_FACT.CAL_DT > 2017-09-12 AND TEST_KYLIN_FACT.PRICE < 9.9";
         String col = "TEST_KYLIN_FACT.CAL_DT";
         String withoutDot = NSparkCubingUtil.convertFromDot(col);
         Assert.assertEquals("TEST_KYLIN_FACT" + NSparkCubingUtil.SEPARATOR + "CAL_DT", withoutDot);
@@ -48,6 +48,6 @@ public class NUtilsTest extends NLocalWithSparkSessionTest {
                 .getDataModelDesc("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         String replaced = CreateFlatTable.replaceDot(condition, model);
         Assert.assertEquals("TEST_KYLIN_FACT" + NSparkCubingUtil.SEPARATOR + "CAL_DT > 2017-09-12 AND TEST_KYLIN_FACT"
-                + NSparkCubingUtil.SEPARATOR + "CAL_DT < 2017-11-12", replaced);
+                + NSparkCubingUtil.SEPARATOR + "PRICE < 9.9", replaced);
     }
 }

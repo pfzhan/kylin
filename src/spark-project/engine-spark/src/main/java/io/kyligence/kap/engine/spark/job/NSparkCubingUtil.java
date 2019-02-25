@@ -27,6 +27,8 @@ package io.kyligence.kap.engine.spark.job;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
@@ -130,8 +132,16 @@ public class NSparkCubingUtil {
         return path;
     }
 
+    private static final Pattern DOT_PATTERN = Pattern.compile("(\\S+)\\.(\\D+)");
+    
     public static String convertFromDot(String withDot) {
-        return withDot.replace(".", SEPARATOR);
+        Matcher m = DOT_PATTERN.matcher(withDot);
+        String withoutDot = withDot;
+        while (m.find()) {
+            withoutDot = m.replaceAll("$1" + SEPARATOR + "$2");
+            m = DOT_PATTERN.matcher(withoutDot);
+        }
+        return withoutDot;
     }
 
     public static String convertToDot(String withoutDot) {

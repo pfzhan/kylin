@@ -32,10 +32,158 @@ import io.kyligence.kap.metadata.model.ComputedColumnDesc;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModel.Measure;
 import io.kyligence.kap.metadata.model.NDataModel.NamedColumn;
+import io.kyligence.kap.query.util.ConvertToComputedColumn;
 import io.kyligence.kap.smart.NSmartMaster;
 import io.kyligence.kap.smart.common.AccelerateInfo;
 
 public class NAutoComputedColumnTest extends NAutoTestBase {
+
+    @Test
+    public void testComputedColumnSingle() {
+        String query = "SELECT SUM(PRICE * ITEM_COUNT + 1), AVG(PRICE * ITEM_COUNT + 1), CAL_DT FROM TEST_KYLIN_FACT GROUP BY CAL_DT";
+        NSmartMaster smartMaster = new NSmartMaster(kylinConfig, getProject(), new String[] { query });
+        smartMaster.runAll();
+
+        NDataModel model = smartMaster.getContext().getModelContexts().get(0).getTargetModel();
+        Assert.assertEquals(1, model.getComputedColumnDescs().size());
+        ComputedColumnDesc computedColumnDesc = model.getComputedColumnDescs().get(0);
+        Assert.assertEquals("CC_AUTO_1", computedColumnDesc.getColumnName());
+        Assert.assertEquals("TEST_KYLIN_FACT.PRICE * TEST_KYLIN_FACT.ITEM_COUNT + 1",
+                computedColumnDesc.getExpression());
+        
+        String convertedQuery = convertCC(query);
+        String expectedQuery = "SELECT SUM(TEST_KYLIN_FACT._CC_CC_AUTO_1), AVG(TEST_KYLIN_FACT._CC_CC_AUTO_1), CAL_DT FROM TEST_KYLIN_FACT GROUP BY CAL_DT";
+        Assert.assertEquals(expectedQuery, convertedQuery);
+    }
+
+    @Test
+    public void testComputedColumnMultiple() {
+        String query = "SELECT SUM(PRICE * ITEM_COUNT + 1), AVG(PRICE * ITEM_COUNT * 0.9), CAL_DT FROM TEST_KYLIN_FACT GROUP BY CAL_DT";
+        NSmartMaster smartMaster = new NSmartMaster(kylinConfig, getProject(), new String[] { query });
+        smartMaster.runAll();
+
+        NDataModel model = smartMaster.getContext().getModelContexts().get(0).getTargetModel();
+        Assert.assertEquals(2, model.getComputedColumnDescs().size());
+        ComputedColumnDesc computedColumnDesc = model.getComputedColumnDescs().get(0);
+        Assert.assertEquals("CC_AUTO_1", computedColumnDesc.getColumnName());
+        Assert.assertEquals("TEST_KYLIN_FACT.PRICE * TEST_KYLIN_FACT.ITEM_COUNT * 0.9",
+                computedColumnDesc.getExpression());
+        computedColumnDesc = model.getComputedColumnDescs().get(1);
+        Assert.assertEquals("CC_AUTO_2", computedColumnDesc.getColumnName());
+        Assert.assertEquals("TEST_KYLIN_FACT.PRICE * TEST_KYLIN_FACT.ITEM_COUNT + 1",
+                computedColumnDesc.getExpression());
+        
+        String convertedQuery = convertCC(query);
+        String expectedQuery = "SELECT SUM(TEST_KYLIN_FACT._CC_CC_AUTO_2), AVG(TEST_KYLIN_FACT._CC_CC_AUTO_1), CAL_DT FROM TEST_KYLIN_FACT GROUP BY CAL_DT";
+        Assert.assertEquals(expectedQuery, convertedQuery);
+    }
+
+    @Test
+    public void testComputedColumnNested() {
+        {
+            String query = "SELECT SUM(PRICE * ITEM_COUNT), CAL_DT FROM TEST_KYLIN_FACT GROUP BY CAL_DT";
+            NSmartMaster smartMaster = new NSmartMaster(kylinConfig, getProject(), new String[] { query });
+            smartMaster.runAll();
+
+            NDataModel model = smartMaster.getContext().getModelContexts().get(0).getTargetModel();
+            Assert.assertEquals(1, model.getComputedColumnDescs().size());
+            ComputedColumnDesc computedColumnDesc = model.getComputedColumnDescs().get(0);
+            Assert.assertEquals("CC_AUTO_1", computedColumnDesc.getColumnName());
+            Assert.assertEquals("TEST_KYLIN_FACT.PRICE * TEST_KYLIN_FACT.ITEM_COUNT",
+                    computedColumnDesc.getExpression());
+            
+            String convertedQuery = convertCC(query);
+            String expectedQuery = "SELECT SUM(TEST_KYLIN_FACT._CC_CC_AUTO_1), CAL_DT FROM TEST_KYLIN_FACT GROUP BY CAL_DT";
+            Assert.assertEquals(expectedQuery, convertedQuery);
+        }
+
+        {
+            String query = "SELECT SUM((PRICE * ITEM_COUNT) + 10), CAL_DT FROM TEST_KYLIN_FACT GROUP BY CAL_DT";
+            NSmartMaster smartMaster = new NSmartMaster(kylinConfig, getProject(), new String[] { query });
+            smartMaster.runAll();
+
+            NDataModel model = smartMaster.getContext().getModelContexts().get(0).getTargetModel();
+            Assert.assertEquals(2, model.getComputedColumnDescs().size());
+            ComputedColumnDesc computedColumnDesc = model.getComputedColumnDescs().get(1);
+            Assert.assertEquals("CC_AUTO_2", computedColumnDesc.getColumnName());
+            Assert.assertEquals("TEST_KYLIN_FACT.CC_AUTO_1 + 10", computedColumnDesc.getExpression());
+            Assert.assertEquals("(TEST_KYLIN_FACT.PRICE * TEST_KYLIN_FACT.ITEM_COUNT) + 10 ",
+                    computedColumnDesc.getInnerExpression());
+            
+            String convertedQuery = convertCC(query);
+            String expectedQuery = "SELECT SUM(TEST_KYLIN_FACT._CC_CC_AUTO_2), CAL_DT FROM TEST_KYLIN_FACT GROUP BY CAL_DT";
+            Assert.assertEquals(expectedQuery, convertedQuery);
+        }
+    }
+
+    @Test
+    public void testComputedColumnUnnested() {
+        String query = "SELECT SUM(PRICE * ITEM_COUNT), AVG((PRICE * ITEM_COUNT) + 10), CAL_DT FROM TEST_KYLIN_FACT GROUP BY CAL_DT";
+        NSmartMaster smartMaster = new NSmartMaster(kylinConfig, getProject(), new String[] { query });
+        smartMaster.runAll();
+
+        NDataModel model = smartMaster.getContext().getModelContexts().get(0).getTargetModel();
+        Assert.assertEquals(2, model.getComputedColumnDescs().size());
+        ComputedColumnDesc computedColumnDesc = model.getComputedColumnDescs().get(0);
+        Assert.assertEquals("CC_AUTO_1", computedColumnDesc.getColumnName());
+        Assert.assertEquals("TEST_KYLIN_FACT.PRICE * TEST_KYLIN_FACT.ITEM_COUNT + 10",
+                computedColumnDesc.getExpression());
+        computedColumnDesc = model.getComputedColumnDescs().get(1);
+        Assert.assertEquals("CC_AUTO_2", computedColumnDesc.getColumnName());
+        Assert.assertEquals("TEST_KYLIN_FACT.PRICE * TEST_KYLIN_FACT.ITEM_COUNT", computedColumnDesc.getExpression());
+        
+        String convertedQuery = convertCC(query);
+        String expectedQuery = "SELECT SUM(TEST_KYLIN_FACT._CC_CC_AUTO_2), AVG(TEST_KYLIN_FACT._CC_CC_AUTO_1), CAL_DT FROM TEST_KYLIN_FACT GROUP BY CAL_DT";
+        Assert.assertEquals(expectedQuery, convertedQuery);
+    }
+    
+    @Test
+    public void testComputedColumnPassOnSumExpr() {
+        String query = "SELECT SUM(PRICE_TOTAL), CAL_DT FROM (SELECT PRICE * ITEM_COUNT AS PRICE_TOTAL, CAL_DT FROM TEST_KYLIN_FACT) T GROUP BY CAL_DT";
+        NSmartMaster smartMaster = new NSmartMaster(kylinConfig, getProject(), new String[] { query });
+        smartMaster.runAll();
+
+        NDataModel model = smartMaster.getContext().getModelContexts().get(0).getTargetModel();
+        Assert.assertEquals(1, model.getComputedColumnDescs().size());
+        ComputedColumnDesc computedColumnDesc = model.getComputedColumnDescs().get(0);
+        Assert.assertEquals("CC_AUTO_1", computedColumnDesc.getColumnName());
+        Assert.assertEquals("TEST_KYLIN_FACT.PRICE * TEST_KYLIN_FACT.ITEM_COUNT",
+                computedColumnDesc.getExpression());
+        
+        String convertedQuery = convertCC(query);
+        String expectedQuery = "SELECT SUM(PRICE_TOTAL), CAL_DT FROM (SELECT TEST_KYLIN_FACT._CC_CC_AUTO_1 AS PRICE_TOTAL, CAL_DT FROM TEST_KYLIN_FACT) T GROUP BY CAL_DT";
+        Assert.assertEquals(expectedQuery, convertedQuery);
+    }
+
+    @Test
+    public void testComputedColumnFailOnSumExpr() {
+        String query = "SELECT SUM(PRICE_TOTAL + 1), CAL_DT FROM (SELECT PRICE * ITEM_COUNT AS PRICE_TOTAL, CAL_DT FROM TEST_KYLIN_FACT) T GROUP BY CAL_DT";
+        NSmartMaster smartMaster = new NSmartMaster(kylinConfig, getProject(), new String[] { query });
+        smartMaster.runAll();
+
+        Assert.assertTrue(smartMaster.getContext().getModelContexts().get(0).withoutTargetModel());
+    }
+    
+    @Test
+    public void testComputedColumnFailOnRexOpt() {
+        String query = "SELECT SUM(CASE WHEN 9 > 10 THEN 100 ELSE PRICE + 10 END), CAL_DT FROM TEST_KYLIN_FACT GROUP BY CAL_DT";
+        NSmartMaster smartMaster = new NSmartMaster(kylinConfig, getProject(), new String[] { query });
+        smartMaster.runAll();
+
+        NDataModel model = smartMaster.getContext().getModelContexts().get(0).getTargetModel();
+        Assert.assertEquals(1, model.getComputedColumnDescs().size());
+        ComputedColumnDesc computedColumnDesc = model.getComputedColumnDescs().get(0);
+        Assert.assertEquals("CC_AUTO_1", computedColumnDesc.getColumnName());
+        Assert.assertEquals("TEST_KYLIN_FACT.PRICE + 10",
+                computedColumnDesc.getExpression());
+        
+        String convertedQuery = convertCC(query);
+        String expectedQuery = "SELECT SUM(TEST_KYLIN_FACT._CC_CC_AUTO_1), CAL_DT FROM TEST_KYLIN_FACT GROUP BY CAL_DT";
+        Assert.assertNotEquals(expectedQuery, convertedQuery);
+        Assert.assertNotEquals(query, convertedQuery);
+        String actualQuery = "SELECT SUM(CASE WHEN 9 > 10 THEN 100 ELSE TEST_KYLIN_FACT._CC_CC_AUTO_1 END), CAL_DT FROM TEST_KYLIN_FACT GROUP BY CAL_DT";
+        Assert.assertEquals(actualQuery, convertedQuery);
+    }
 
     @Test
     public void testComputedColumnsWontImpactFavoriteQuery() {
@@ -102,6 +250,8 @@ public class NAutoComputedColumnTest extends NAutoTestBase {
         Assert.assertEquals(1, accelerateInfo.getRelatedLayouts().size());
         Assert.assertEquals(1, accelerateInfo.getRelatedLayouts().iterator().next().getLayoutId());
     }
-
-    // TODO add more detailed test case in #8285
+    
+    private String convertCC(String originSql) {
+        return (new ConvertToComputedColumn()).transform(originSql, getProject(), "DEFAULT");
+    }
 }
