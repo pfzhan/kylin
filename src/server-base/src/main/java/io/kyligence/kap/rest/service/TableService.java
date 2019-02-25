@@ -221,7 +221,7 @@ public class TableService extends BasicService {
     public List<String> getSourceDbNames(String project, int dataSourceType) throws Exception {
         ISourceMetadataExplorer explr = SourceFactory.getSource(getProjectManager().getProject(project))
                 .getSourceMetadataExplorer();
-        return explr.listDatabases();
+        return explr.listDatabases().stream().map(s -> s.toUpperCase()).collect(Collectors.toList());
     }
 
     public List<String> getSourceTableNames(String project, String database, int dataSourceType, final String table)
@@ -234,7 +234,7 @@ public class TableService extends BasicService {
             } else {
                 return s.toLowerCase().contains(table.toLowerCase());
             }
-        }).collect(Collectors.toList());
+        }).map(s -> s.toUpperCase()).collect(Collectors.toList());
     }
 
     public List<TableNameResponse> getTableNameResponses(String project, String database, int dataSourceType,

@@ -387,14 +387,8 @@ public class QueryService extends BasicService {
             }
             val modelManager = getDataModelManager(sqlRequest.getProject());
             if (CollectionUtils.isNotEmpty(sqlResponse.getAnsweredBy())) {
-                sqlResponse.setAnsweredBy(sqlResponse.getAnsweredBy().stream().map(s -> {
-                    val model = modelManager.getDataModelDesc(s);
-                    if (model != null) {
-                        return model.getAlias();
-                    } else {
-                        return s;
-                    }
-                }).collect(Collectors.toList()));
+
+                sqlResponse = transferModelIdToAlias(modelManager, sqlResponse);
             }
             return sqlResponse;
 
@@ -410,6 +404,17 @@ public class QueryService extends BasicService {
         }
     }
 
+    private SQLResponse transferModelIdToAlias(NDataModelManager modelManager, SQLResponse sqlResponse) {
+        sqlResponse.setAnsweredBy(sqlResponse.getAnsweredBy().stream().map(s -> {
+            val model = modelManager.getDataModelDesc(s);
+            if (model != null) {
+                return model.getAlias();
+            } else {
+                return s;
+            }
+        }).collect(Collectors.toList()));
+        return sqlResponse;
+    }
     private SQLResponse queryAndUpdateCache(SQLRequest sqlRequest, long startTime, boolean queryCacheEnabled) {
         KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
         Message msg = MsgPicker.getMsg();
