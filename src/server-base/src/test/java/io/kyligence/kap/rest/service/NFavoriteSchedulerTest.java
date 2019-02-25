@@ -413,17 +413,17 @@ public class NFavoriteSchedulerTest extends NLocalFileMetadataTestCase {
             case "sql1":
                 Assert.assertEquals(2, favoriteQuery.getTotalCount());
                 Assert.assertEquals(2, favoriteQuery.getSuccessCount());
-                Assert.assertEquals(2, favoriteQuery.getFrequency());
+                Assert.assertEquals(2, favoriteQuery.getFrequency(PROJECT));
                 break;
             case "sql2":
                 Assert.assertEquals(2, favoriteQuery.getTotalCount());
                 Assert.assertEquals(2, favoriteQuery.getSuccessCount());
-                Assert.assertEquals(2, favoriteQuery.getFrequency());
+                Assert.assertEquals(2, favoriteQuery.getFrequency(PROJECT));
                 break;
             case "sql3":
                 Assert.assertEquals(1, favoriteQuery.getTotalCount());
                 Assert.assertEquals(1, favoriteQuery.getSuccessCount());
-                Assert.assertEquals(0, favoriteQuery.getFrequency());
+                Assert.assertEquals(0, favoriteQuery.getFrequency(PROJECT));
                 break;
             default:
                 break;
@@ -455,17 +455,17 @@ public class NFavoriteSchedulerTest extends NLocalFileMetadataTestCase {
             case "sql1":
                 Assert.assertEquals(2, favoriteQuery.getTotalCount());
                 Assert.assertEquals(2, favoriteQuery.getSuccessCount());
-                Assert.assertEquals(2, favoriteQuery.getFrequency());
+                Assert.assertEquals(2, favoriteQuery.getFrequency(PROJECT));
                 break;
             case "sql2":
                 Assert.assertEquals(3, favoriteQuery.getTotalCount());
                 Assert.assertEquals(2, favoriteQuery.getSuccessCount());
-                Assert.assertEquals(3, favoriteQuery.getFrequency());
+                Assert.assertEquals(3, favoriteQuery.getFrequency(PROJECT));
                 break;
             case "sql3":
                 Assert.assertEquals(2, favoriteQuery.getTotalCount());
                 Assert.assertEquals(2, favoriteQuery.getSuccessCount());
-                Assert.assertEquals(1, favoriteQuery.getFrequency());
+                Assert.assertEquals(1, favoriteQuery.getFrequency(PROJECT));
                 break;
             default:
                 break;

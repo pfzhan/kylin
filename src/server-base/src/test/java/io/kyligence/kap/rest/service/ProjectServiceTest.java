@@ -49,6 +49,7 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.rest.request.GarbageCleanUpConfigRequest;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.engine.JobEngineConfig;
 import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
@@ -484,6 +485,18 @@ public class ProjectServiceTest extends ServiceTestBase {
         val prjMgr = NProjectManager.getInstance(getTestConfig());
         val prj = prjMgr.getProject("default");
         Assert.assertEquals(11, prj.getSourceType());
+    }
+
+    @Test
+    public void testUpdateGarbageCleanupConfig() {
+        val request = new GarbageCleanUpConfigRequest();
+        request.setFrequencyTimeWindow(GarbageCleanUpConfigRequest.FrequencyTimeWindowEnum.WEEK);
+        request.setLowFrequencyThreshold(12);
+        projectService.updateGarbageCleanupConfig("default", request);
+        val prjMgr = NProjectManager.getInstance(getTestConfig());
+        val prj = prjMgr.getProject("default");
+        Assert.assertEquals(604800000L, prj.getConfig().getFavoriteQueryFrequencyTimeWindow());
+        Assert.assertEquals(12, prj.getConfig().getFavoriteQueryLowFrequency());
     }
 
 }

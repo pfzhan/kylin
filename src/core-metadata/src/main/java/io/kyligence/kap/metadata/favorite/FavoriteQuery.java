@@ -26,11 +26,13 @@ package io.kyligence.kap.metadata.favorite;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.Lists;
+import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.metadata.query.QueryHistory;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
+import lombok.val;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.RootPersistentEntity;
 
@@ -139,8 +141,8 @@ public class FavoriteQuery extends RootPersistentEntity {
         }
     }
 
-    public int getFrequency() {
-        long frequencyInitialCollectDate = getDateBeforeFrequencyTimeWindow();
+    public int getFrequency(String project) {
+        long frequencyInitialCollectDate = getDateBeforeFrequencyTimeWindow(project);
         while (frequencyMap.size() != 0) {
             long date = frequencyMap.firstKey();
             if (frequencyInitialCollectDate <= date)
@@ -151,8 +153,9 @@ public class FavoriteQuery extends RootPersistentEntity {
         return frequencyMap.values().stream().reduce((x, y) -> x + y).orElse(0);
     }
 
-    private long getDateBeforeFrequencyTimeWindow() {
-        long daysInMillis = KylinConfig.getInstanceFromEnv().getFavoriteQueryFrequencyTimeWindow();
+    private long getDateBeforeFrequencyTimeWindow(String project) {
+        val prjMgr = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv());
+        long daysInMillis = prjMgr.getProject(project).getConfig().getFavoriteQueryFrequencyTimeWindow();
         return getDateInMillis(System.currentTimeMillis()) - daysInMillis;
     }
 

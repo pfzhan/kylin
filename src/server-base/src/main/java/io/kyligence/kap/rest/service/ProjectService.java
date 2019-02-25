@@ -32,6 +32,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
+import io.kyligence.kap.rest.request.GarbageCleanUpConfigRequest;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.directory.api.util.Strings;
@@ -314,6 +315,11 @@ public class ProjectService extends BasicService {
         response.setDataLoadEmptyNotificationEnabled(config.getJobDataLoadEmptyNotificationEnabled());
         response.setJobErrorNotificationEnabled(config.getJobErrorNotificationEnabled());
         response.setJobNotificationEmails(Lists.newArrayList(config.getAdminDls()));
+
+        response.setFrequencyTimeWindow(config.getFavoriteQueryFrequencyTimeWindow());
+
+        response.setLowFrequencyThreshold(config.getFavoriteQueryLowFrequency());
+
         return response;
     }
 
@@ -375,4 +381,14 @@ public class ProjectService extends BasicService {
 
         });
     }
+
+    @Transaction(project = 0)
+    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#project, 'ADMINISTRATION')")
+    public void updateGarbageCleanupConfig(String project, GarbageCleanUpConfigRequest garbageCleanUpConfigRequest) {
+        Map<String, String> overrideKylinProps = Maps.newHashMap();
+        overrideKylinProps.put("kylin.favorite.low-frequency-threshold", String.valueOf(garbageCleanUpConfigRequest.getLowFrequencyThreshold()));
+        overrideKylinProps.put("kylin.favorite.frequency-time-window", String.valueOf(garbageCleanUpConfigRequest.getFrequencyTimeWindow()));
+        updateProjectOverrideKylinProps(project, overrideKylinProps);
+    }
+
 }

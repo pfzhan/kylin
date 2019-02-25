@@ -77,4 +77,27 @@ public class ProjectConfigResponse {
     private boolean favoriteQueryBatchEnabled;
     @JsonProperty("auto_apply")
     private boolean favoriteQueryAutoApply;
+
+    @JsonProperty("frequency_time_window")
+    private String frequencyTimeWindow = "MONTH";
+    @JsonProperty("low_frequency_threshold")
+    private long lowFrequencyThreshold;
+
+    public void setFrequencyTimeWindow(long frequencyTimeWindow) {
+        int days = (int) (frequencyTimeWindow / 86400000L);
+        switch (days) {
+            case 1:
+                this.frequencyTimeWindow = "DAY";
+                break;
+            case 7:
+                this.frequencyTimeWindow = "WEEK";
+                break;
+            case 30:
+                this.frequencyTimeWindow = "MONTH";
+                break;
+            default:
+                break;
+        }
+
+    }
 }

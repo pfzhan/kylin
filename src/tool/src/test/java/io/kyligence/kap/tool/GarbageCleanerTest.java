@@ -26,11 +26,13 @@ package io.kyligence.kap.tool;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
+import java.util.HashMap;
 import java.util.Set;
 import java.util.TimeZone;
 import java.util.TreeMap;
 import java.util.stream.Collectors;
 
+import com.google.common.collect.Maps;
 import io.kyligence.kap.tool.garbage.GarbageCleaner;
 import org.junit.After;
 import org.junit.Assert;
@@ -187,6 +189,70 @@ public class GarbageCleanerTest extends NLocalFileMetadataTestCase {
             copyForWrite.getIndexes().add(newDesc2);
         });
     }
+
+    @Test
+    public void testcleanupMetadataManually_ChangeConfig() {
+        long currentTime = System.currentTimeMillis();
+        ZoneId zoneId = TimeZone.getTimeZone("GMT").toZoneId();
+        LocalDate localDate = Instant.ofEpochMilli(currentTime).atZone(zoneId).toLocalDate();
+        long currentDate = localDate.atStartOfDay().atZone(zoneId).toInstant().toEpochMilli();
+        val newFq = new FavoriteQuery("sql");
+        newFq.setCreateTime(System.currentTimeMillis() - 31 * 24 * 60 * 60 * 1000L);
+        newFq.setFrequencyMap(new TreeMap<Long, Integer>() {
+            {
+                put(currentDate - 7 * 24 * 60 * 60 * 1000L, 10);
+                put(currentDate - 30 * 24 * 60 * 60 * 1000L, 10);
+            }
+        });
+
+        val favoriteQueryManager = FavoriteQueryManager.getInstance(getTestConfig(), PROJECT);
+
+        favoriteQueryManager.create(Sets.newHashSet(newFq));
+
+        val prjManager = NProjectManager.getInstance(getTestConfig());
+        HashMap<String, String> overrideKylinProps = Maps.newHashMap();
+        overrideKylinProps.put("kylin.favorite.low-frequency-threshold", "2");
+        overrideKylinProps.put("kylin.favorite.frequency-time-window", "30");
+        prjManager.updateProject(PROJECT, copyForWrite -> {
+            copyForWrite.getOverrideKylinProps().putAll(overrideKylinProps);
+        });
+
+        // before cleaned 4 fqs
+        Assert.assertEquals(4, favoriteQueryManager.getAll().size());
+
+        GarbageCleaner.cleanupMetadataManually(PROJECT);
+        //only fq1 cleaned
+        Assert.assertEquals(3, favoriteQueryManager.getAll().size());
+
+
+        overrideKylinProps.put("kylin.favorite.low-frequency-threshold", "9");
+        overrideKylinProps.put("kylin.favorite.frequency-time-window", "7");
+        prjManager.updateProject(PROJECT, copyForWrite -> {
+            copyForWrite.getOverrideKylinProps().putAll(overrideKylinProps);
+        });
+
+        GarbageCleaner.cleanupMetadataManually(PROJECT);
+
+        //update fqmap
+        newFq.update(newFq);
+        //newFq remian 30 days fqmap
+        val remainSize = favoriteQueryManager.getFavoriteQueryMap().get("sql").getFrequencyMap().size();
+        Assert.assertEquals(2, remainSize);
+
+        //only newFq remain
+        Assert.assertEquals(1, favoriteQueryManager.getAll().size());
+
+        overrideKylinProps.put("kylin.favorite.low-frequency-threshold", "30");
+        overrideKylinProps.put("kylin.favorite.frequency-time-window", "30");
+        prjManager.updateProject(PROJECT, copyForWrite -> {
+            copyForWrite.getOverrideKylinProps().putAll(overrideKylinProps);
+        });
+
+        GarbageCleaner.cleanupMetadataManually(PROJECT);
+        //all fqs cleaned
+        Assert.assertEquals(0, favoriteQueryManager.getAll().size());
+    }
+
 
     @Test
     public void testcleanupMetadataManually() {

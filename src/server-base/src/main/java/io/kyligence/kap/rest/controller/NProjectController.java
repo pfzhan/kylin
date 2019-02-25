@@ -30,6 +30,7 @@ import java.util.List;
 import javax.validation.Valid;
 
 import io.kyligence.kap.rest.request.DataSourceTypeRequest;
+import io.kyligence.kap.rest.request.GarbageCleanUpConfigRequest;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.rest.constant.Constant;
@@ -177,6 +178,18 @@ public class NProjectController extends NBasicController {
         projectService.updateStorageQuotaConfig(project, storageQuotaSize);
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, true, "");
     }
+
+    @RequestMapping(value = "/garbage_cleanup_config", method = { RequestMethod.PUT }, produces = {
+            "application/vnd.apache.kylin-v2+json" })
+    @ResponseBody
+    public EnvelopeResponse updateGarbageCleanupConfig(@RequestBody GarbageCleanUpConfigRequest garbageCleanUpConfigRequest)
+            throws Exception {
+        String project = garbageCleanUpConfigRequest.getProject();
+        checkProjectName(project);
+        projectService.updateGarbageCleanupConfig(project, garbageCleanUpConfigRequest);
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, true, "");
+    }
+
 
     @RequestMapping(value = "/job_notification_config", method = { RequestMethod.PUT }, produces = {
             "application/vnd.apache.kylin-v2+json" })
