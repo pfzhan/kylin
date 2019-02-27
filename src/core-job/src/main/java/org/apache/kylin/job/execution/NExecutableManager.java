@@ -46,7 +46,6 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.kylin.common.JobProcessContext;
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.util.ClassUtil;
 import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.kylin.common.util.JsonUtil;
@@ -163,23 +162,15 @@ public class NExecutableManager {
         executableDao.deleteJob(jobId);
     }
 
-    public AbstractExecutable getJobByPath(String path) {
-        ExecutablePO executablePO = executableDao.getJob(path);
+    public AbstractExecutable getJob(String id) {
+        if (id == null) {
+            return null;
+        }
+        ExecutablePO executablePO = executableDao.getJobByUuid(id);
         if (executablePO == null) {
             return null;
         }
         return fromPO(executablePO);
-    }
-
-    public AbstractExecutable getJob(String id) {
-        return getJobByPath("/" + project + ResourceStore.EXECUTE_RESOURCE_ROOT + "/" + id);
-    }
-
-    public Output getOutputByJobPath(String jobPath) {
-        String project = extractProject(jobPath);
-        Preconditions.checkState(Objects.equals(project, this.project));
-        String id = extractId(jobPath);
-        return getOutput(id);
     }
 
     public Output getOutput(String id) {
@@ -306,8 +297,8 @@ public class NExecutableManager {
         return ret;
     }
 
-    public List<String> getJobPaths() {
-        return Lists.newArrayList(executableDao.getJobPaths());
+    public List<String> getJobs() {
+        return Lists.newArrayList(executableDao.getJobIds());
     }
 
     public void resumeAllRunningJobs() {
@@ -396,7 +387,7 @@ public class NExecutableManager {
 
     ExecutableOutputPO getJobOutput(String taskOrJobId) {
         val jobId = extractJobId(taskOrJobId);
-        val executablePO = executableDao.getJob(pathOfJob(jobId, project));
+        val executablePO = executableDao.getJobByUuid(jobId);
         final ExecutableOutputPO jobOutput;
         if (executablePO == null) {
             jobOutput = new ExecutableOutputPO();
@@ -524,18 +515,6 @@ public class NExecutableManager {
         } catch (ReflectiveOperationException e) {
             throw new IllegalStateException("Cannot parse this job:" + executablePO.getId(), e);
         }
-    }
-
-    private String pathOfJob(String uuid, String project) {
-        return "/" + project + ResourceStore.EXECUTE_RESOURCE_ROOT + "/" + uuid;
-    }
-
-    private String extractProject(String path) {
-        return path.split("/")[1];
-    }
-
-    public static String extractId(String path) {
-        return path.substring(path.lastIndexOf("/") + 1);
     }
 
     private static String extractJobId(String taskOrJobId) {

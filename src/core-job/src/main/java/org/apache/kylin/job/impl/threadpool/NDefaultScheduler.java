@@ -123,17 +123,17 @@ public class NDefaultScheduler implements Scheduler<AbstractExecutable>, Connect
                 int nDiscarded = 0;
                 int nSucceed = 0;
                 int nSuicidal = 0;
-                for (final String path : executableManager.getJobPaths()) {
-                    if (runningJobs.containsKey(NExecutableManager.extractId(path))) {
+                for (final String id : executableManager.getJobs()) {
+                    if (runningJobs.containsKey(id)) {
                         nRunning++;
                         continue;
                     }
-                    final Output output = executableManager.getOutputByJobPath(path);
+                    final Output output = executableManager.getOutput(id);
                     switch (output.getState()) {
                     case READY:
                         nReady++;
                         if (!isJobPoolFull() && !reachStorageQuota()) {
-                            scheduleJob(path);
+                            scheduleJob(id);
                         }
                         break;
                     case DISCARDED:
@@ -193,12 +193,12 @@ public class NDefaultScheduler implements Scheduler<AbstractExecutable>, Connect
             return false;
         }
 
-        private void scheduleJob(String path) {
+        private void scheduleJob(String id) {
             AbstractExecutable executable = null;
             String jobDesc = null;
             try {
                 val executableManager = NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
-                executable = executableManager.getJobByPath(path);
+                executable = executableManager.getJob(id);
                 jobDesc = executable.toString();
                 logger.info("{} prepare to schedule", jobDesc);
                 context.addRunningJob(executable);

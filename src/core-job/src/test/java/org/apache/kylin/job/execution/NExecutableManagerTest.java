@@ -56,7 +56,7 @@ public class NExecutableManagerTest extends NLocalFileMetadataTestCase {
         createTestMetadata();
         manager = NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
 
-        for (String jobPath : manager.getJobPaths()) {
+        for (String jobPath : manager.getJobs()) {
             System.out.println("deleting " + jobPath);
             manager.deleteJob(jobPath);
         }

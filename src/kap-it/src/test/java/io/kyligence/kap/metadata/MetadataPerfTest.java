@@ -37,6 +37,7 @@ import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.atomic.AtomicLong;
@@ -122,7 +123,7 @@ public class MetadataPerfTest extends NLocalFileMetadataTestCase {
     public void setup() throws Exception {
         createTestMetadata();
         val config = getTestConfig();
-        config.setProperty("kylin.metadata.url", "kylin3_" + projectSize + "_" + modelSize
+        config.setProperty("kylin.metadata.url", "kylin2_" + projectSize + "_" + modelSize
                 + "@jdbc,url=jdbc:mysql://sandbox:3306/kylin?rewriteBatchedStatements=true");
     }
 
@@ -202,6 +203,17 @@ public class MetadataPerfTest extends NLocalFileMetadataTestCase {
 
         val allIds = IntStream.range(START_ID, projectSize + START_ID).parallel().boxed()
                 .collect(Collectors.toCollection(ConcurrentSkipListSet::new));
+        val projectParams = IntStream.range(START_ID, projectSize + START_ID).mapToObj(i -> {
+            val projectFile = new File(new File(TEMPLATE_FOLDER).getParentFile(),
+                    "tmp_" + i + "/project_" + i + "/project.json");
+            try {
+                return new Object[] { "/_global/project/project_" + i,
+                        IOUtils.toByteArray(new FileInputStream(projectFile)), projectFile.lastModified(), 0L };
+            } catch (IOException e) {
+                return null;
+            }
+        }).filter(Objects::nonNull).collect(Collectors.toList());
+        jdbcTemplate.batchUpdate(String.format(INSERT_SQL, table), projectParams);
         Runnable run = () -> IntStream.range(START_ID, projectSize + START_ID).forEach(i -> {
             try {
                 val dstFolder = new File(new File(TEMPLATE_FOLDER).getParentFile(), "tmp_" + i + "/project_" + i);
@@ -304,7 +316,8 @@ public class MetadataPerfTest extends NLocalFileMetadataTestCase {
 
         for (int i = 1; i < size; i++) {
             val projectName2 = "project_" + (startId + i);
-            val dstFolder2 = new File(new File(templateFolder).getParentFile(), "tmp_" + (startId + i) + "/" + projectName2);
+            val dstFolder2 = new File(new File(templateFolder).getParentFile(),
+                    "tmp_" + (startId + i) + "/" + projectName2);
             FileUtils.copyDirectory(dstFolder, dstFolder2);
             val sub = "execute";
             for (File file : FileUtils.listFiles(new File(dstFolder, sub), null, true)) {
