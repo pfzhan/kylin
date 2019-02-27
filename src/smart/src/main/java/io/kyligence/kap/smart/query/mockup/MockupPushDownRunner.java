@@ -37,12 +37,12 @@ public class MockupPushDownRunner implements IPushDownRunner {
     }
 
     @Override
-    public void executeQuery(String query, List<List<String>> returnRows, List<SelectedColumnMeta> returnColumnMeta) throws Exception {
+    public void executeQuery(String query, List<List<String>> returnRows, List<SelectedColumnMeta> returnColumnMeta) {
         throw new UnsupportedOperationException();
     }
 
     @Override
-    public void executeUpdate(String sql) throws Exception {
+    public void executeUpdate(String sql) {
         throw new UnsupportedOperationException();
     }
 

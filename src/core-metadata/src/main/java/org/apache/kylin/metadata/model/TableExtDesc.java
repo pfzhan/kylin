@@ -374,36 +374,27 @@ public class TableExtDesc extends RootPersistentEntity implements Serializable {
         }
 
         public static TableExtDesc.ColumnStats getColumnStats(NTableMetadataManager tableMetadataManager,
-                TblColRef colRef, final Map<String, TableExtDesc.ColumnStats> columnStatsCache) {
-            TableExtDesc.ColumnStats ret;
-            if (columnStatsCache != null) {
-                ret = columnStatsCache.get(colRef.getIdentity());
-                if (ret != null)
-                    return ret;
-            }
+                TblColRef colRef) {
+            TableExtDesc.ColumnStats ret = null;
 
-            TableExtDesc tableExtDesc = tableMetadataManager.getOrCreateTableExt(colRef.getTableRef().getTableDesc());
-            int colIndex = colRef.getColumnDesc().getZeroBasedIndex();
-            if (tableExtDesc != null && colIndex < tableExtDesc.getColumnStats().size()) {
-                ret = tableExtDesc.getColumnStats().get(colIndex);
-                if (columnStatsCache != null) {
-                    columnStatsCache.put(colRef.getIdentity(), ret);
+            TableExtDesc tableExtDesc = tableMetadataManager.getTableExtIfExists(colRef.getTableRef().getTableDesc());
+            if (tableExtDesc != null) {
+                int colIndex = colRef.getColumnDesc().getZeroBasedIndex();
+                if (colIndex < tableExtDesc.getColumnStats().size()) {
+                    ret = tableExtDesc.getColumnStats().get(colIndex);
                 }
-            } else {
-                ret = null;
             }
             return ret;
         }
 
-        public static Comparator<TblColRef> filterColComparator(KylinConfig config, String project,
-                final Map<String, TableExtDesc.ColumnStats> columnStatsCache) {
+        public static Comparator<TblColRef> filterColComparator(KylinConfig config, String project) {
             NTableMetadataManager tableMetadataManager = NTableMetadataManager.getInstance(config, project);
             return (col1, col2) -> {
                 // priority desc
                 int res = col2.getFilterLevel().getPriority() - col1.getFilterLevel().getPriority();
                 if (res == 0) {
-                    final ColumnStats ret1 = ColumnStats.getColumnStats(tableMetadataManager, col1, columnStatsCache);
-                    final ColumnStats ret2 = ColumnStats.getColumnStats(tableMetadataManager, col2, columnStatsCache);
+                    final ColumnStats ret1 = ColumnStats.getColumnStats(tableMetadataManager, col1);
+                    final ColumnStats ret2 = ColumnStats.getColumnStats(tableMetadataManager, col2);
 
                     //null last
                     if (ret2 == null && ret1 == null) {

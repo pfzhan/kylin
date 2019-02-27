@@ -40,6 +40,7 @@ import com.google.common.collect.Maps;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.NEncodingDesc;
 import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.smart.NSmartContext;
 import io.kyligence.kap.smart.common.SmartConfig;
 
@@ -99,9 +100,8 @@ class NDimensionProposer extends NAbstractCubeProposer {
 
         // select dict or fixlen for other type columns according to cardinality
         SmartConfig smartConfig = context.getSmartContext().getSmartConfig();
-        TableExtDesc.ColumnStats columnStats = TableExtDesc.ColumnStats.getColumnStats(
-                context.getSmartContext().getTableMetadataManager(), colRef,
-                context.getSmartContext().getColumnStatsCache());
+        final NTableMetadataManager tableMetadataManager = context.getSmartContext().getTableMetadataManager();
+        TableExtDesc.ColumnStats columnStats = TableExtDesc.ColumnStats.getColumnStats(tableMetadataManager, colRef);
         if (columnStats != null) {
             long cardinality = columnStats.getCardinality();
 

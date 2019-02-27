@@ -178,7 +178,7 @@ class CuboidSuggester {
         for (int dimId : dimIds) {
             TblColRef colRef = model.getEffectiveColsMap().get(dimId);
             TableExtDesc.ColumnStats colStats = TableExtDesc.ColumnStats
-                    .getColumnStats(smartContext.getTableMetadataManager(), colRef, smartContext.getColumnStatsCache());
+                    .getColumnStats(smartContext.getTableMetadataManager(), colRef);
             if (colStats != null
                     && colStats.getCardinality() > smartContext.getSmartConfig().getRowkeyUHCCardinalityMin()) {
                 shardBy.add(dimId);
@@ -284,8 +284,8 @@ class CuboidSuggester {
             colMap = model.getEffectiveDimenionsMap();
         }
         final List<TblColRef> orderedDimensions = Lists.newArrayList(allDimensions);
-        final Comparator<TblColRef> tblColRefComparator = TableExtDesc.ColumnStats.filterColComparator(
-                smartContext.getKylinConfig(), smartContext.getProject(), smartContext.getColumnStatsCache());
+        final Comparator<TblColRef> tblColRefComparator = TableExtDesc.ColumnStats
+                .filterColComparator(smartContext.getKylinConfig(), smartContext.getProject());
         orderedDimensions.sort(tblColRefComparator);
         final ImmutableBiMap<TblColRef, Integer> colIdMap = colMap.inverse();
         orderedDimensions.forEach(dimension -> {

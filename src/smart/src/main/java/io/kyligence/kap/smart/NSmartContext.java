@@ -30,7 +30,6 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.metadata.model.TableExtDesc;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
@@ -62,7 +61,6 @@ public class NSmartContext {
     @Setter
     private boolean skipEvaluateCC;
 
-
     // only used in auto-modeling
     private String draftVersion;
 
@@ -73,7 +71,6 @@ public class NSmartContext {
     private Map<String, ComputedColumnDesc> usedCC = Maps.newHashMap();
 
     private final NTableMetadataManager tableMetadataManager;
-    private final Map<String, TableExtDesc.ColumnStats> columnStatsCache = Maps.newConcurrentMap();
 
     /**
      * Erase the layout in accelerate info map

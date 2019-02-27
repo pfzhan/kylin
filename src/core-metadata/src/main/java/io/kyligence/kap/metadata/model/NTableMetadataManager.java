@@ -34,9 +34,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.google.common.annotations.VisibleForTesting;
-import com.google.common.io.ByteStreams;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.fs.FSDataInputStream;
@@ -61,8 +58,11 @@ import org.apache.kylin.metadata.model.TableExtDesc;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.google.common.io.ByteStreams;
 
 import io.kyligence.kap.metadata.project.NProjectManager;
 import lombok.val;
@@ -369,12 +369,11 @@ public class NTableMetadataManager {
         private final TableExtDesc tableExtDesc;
         private final KylinConfig config;
         @VisibleForTesting
-        FileSystem fs;
+        static FileSystem fs;
 
         private ColumnStatsStore(TableExtDesc tableExtDesc, KylinConfig config) {
             this.tableExtDesc = tableExtDesc;
             this.config = config;
-            fs = HadoopUtil.getWorkingFileSystem();
         }
 
         public static ColumnStatsStore getInstance(TableExtDesc tableExtDesc, KylinConfig config) {
@@ -391,6 +390,7 @@ public class NTableMetadataManager {
             }
             FSDataInputStream in = null;
             val colStatsPath = new Path(tableExtDesc.getColStatsPath());
+            prepareFS();
             try {
                 if (!fs.exists(colStatsPath)) {
                     logger.error("column stats file [{}] no exists in HDFS", colStatsPath);
@@ -427,6 +427,7 @@ public class NTableMetadataManager {
             final Map<String, Map<String, byte[]>> colStatsTable = Maps.newHashMap();
             FSDataOutputStream out = null;
             Path newColStatsPath = null;
+            prepareFS();
             try {
                 for (val colStats : tableExtDesc.getColumnStats()) {
                     val colName = colStats.getColumnName();
@@ -453,7 +454,7 @@ public class NTableMetadataManager {
                     logger.info("delete old column stats file [{}] in HDFS", oldColStatsPath);
                 }
 
-                // checking and warnning
+                // checking and warning
                 val size = fs.listStatus(new Path(getColumnStatsPath())).length;
                 if (size > 1) {
                     logger.warn(
@@ -470,6 +471,7 @@ public class NTableMetadataManager {
         }
 
         public void delete() {
+            prepareFS();
             try {
                 val colStatsPath = new Path(getColumnStatsPath());
                 if (fs.exists(colStatsPath)) {
@@ -488,6 +490,12 @@ public class NTableMetadataManager {
             return baseDir + Paths
                     .get(tableExtDesc.getProject(), ResourceStore.TABLE_EXD_RESOURCE_ROOT, tableExtDesc.getIdentity())
                     .toString();
+        }
+
+        private void prepareFS() {
+            if (fs == null) {
+                fs = HadoopUtil.getWorkingFileSystem();
+            }
         }
     }
 }
