@@ -24,17 +24,54 @@
 
 package io.kyligence.kap.rest.interceptor;
 
-import org.apache.kylin.rest.msg.MsgPicker;
-import org.springframework.web.servlet.handler.HandlerInterceptorAdapter;
+import java.io.IOException;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+
+import org.apache.commons.lang.StringUtils;
+import org.apache.kylin.common.util.JsonUtil;
+import org.apache.kylin.rest.msg.MsgPicker;
+import org.springframework.web.servlet.handler.HandlerInterceptorAdapter;
+
+import io.kyligence.kap.metadata.project.NProjectLoader;
+import io.kyligence.kap.rest.interceptor.RepeatableRequestBodyFilter.RepeatableBodyRequestWrapper;
+import lombok.Data;
+import lombok.val;
 
 public class KEInterceptor extends HandlerInterceptorAdapter {
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) {
         String lang = request.getHeader("Accept-Language");
         MsgPicker.setMsg(lang);
+
+        String project = request.getParameter("project");
+        if (StringUtils.isEmpty(project) && request instanceof RepeatableBodyRequestWrapper) {
+            try {
+                val projectRequest = JsonUtil.readValue(((RepeatableBodyRequestWrapper) request).getBody(),
+                        ProjectRequest.class);
+                if (projectRequest != null) {
+                    project = projectRequest.getProject();
+                }
+            } catch (IOException ignored) {
+                // ignore JSON exception
+            }
+        }
+        NProjectLoader.setCache(project);
         return true;
+    }
+
+    @Override
+    public void afterCompletion(HttpServletRequest request, HttpServletResponse response, Object handler, Exception ex)
+            throws Exception {
+        NProjectLoader.removeCache();
+        super.afterCompletion(request, response, handler, ex);
+    }
+
+    @Data
+    public static class ProjectRequest {
+
+        private String project;
+
     }
 }

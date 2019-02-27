@@ -30,6 +30,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import io.kyligence.kap.common.persistence.transaction.TransactionListenerRegistry;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.ExternalFilterDesc;
 import org.apache.kylin.metadata.model.FunctionDesc;
@@ -53,14 +56,43 @@ import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.model.util.ComputedColumnUtil;
 import lombok.val;
+import lombok.extern.slf4j.Slf4j;
 
-class NProjectLoader {
+import javax.annotation.Nullable;
+
+@Slf4j
+public class NProjectLoader {
 
     private static final Logger logger = LoggerFactory.getLogger(NProjectLoader.class);
 
     private NProjectManager mgr;
 
-    NProjectLoader(NProjectManager mgr) {
+    static  {
+        TransactionListenerRegistry.register(NProjectLoader::setCache, project -> NProjectLoader.removeCache());
+    }
+
+    private static ThreadLocal<ProjectBundle> cache = new ThreadLocal<>();
+
+    public static void setCache(@Nullable String project) {
+        if (StringUtils.isNotEmpty(project) && !project.startsWith("_")) {
+            val projectManager = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv());
+            val projectLoader = new NProjectLoader(projectManager);
+            if (projectManager.getProject(project) == null) {
+                log.debug("project {} not exist", project);
+                return;
+            }
+            val bundle = projectLoader.load(project);
+            log.debug("set project {} cache {}, prev is {}", project, bundle, cache.get());
+            cache.set(bundle);
+        }
+    }
+
+    public static void removeCache() {
+        log.debug("clear cache {}", cache.get());
+        cache.remove();
+    }
+
+    public NProjectLoader(NProjectManager mgr) {
         this.mgr = mgr;
     }
 
@@ -144,6 +176,9 @@ class NProjectLoader {
     // ----------------------------------------------------------------------------
 
     private ProjectBundle load(String project) {
+        if (cache.get() != null) {
+            return cache.get();
+        }
         ProjectBundle projectBundle = new ProjectBundle(project);
 
         ProjectInstance pi = mgr.getProject(project);

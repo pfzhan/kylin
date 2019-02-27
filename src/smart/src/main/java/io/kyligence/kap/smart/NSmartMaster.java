@@ -140,12 +140,8 @@ public class NSmartMaster {
         try {
             UnitOfWork.doInTransactionWithRetry(new UnitOfWork.Callback<Object>() {
                 @Override
-                public void preProcess() {
-                    selectAndOptimize();
-                }
-
-                @Override
                 public Object process() {
+                    selectAndOptimize();
                     save();
                     if (hook != null) {
                         hook.accept(getContext());

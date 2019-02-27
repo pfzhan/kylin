@@ -81,7 +81,6 @@ public class UnitOfWork {
                     "re-entry of UnitOfWork with different unit name? existing: %s, new: %s", unitOfWork.project,
                     unitName);
             try {
-                f.preProcess();
                 return f.process();
             } catch (Throwable throwable) {
                 f.onProcessError(throwable);
@@ -96,9 +95,8 @@ public class UnitOfWork {
             try {
                 T ret;
                 log.debug("start unit of work for project {}", unitName);
-
                 long startTime = System.currentTimeMillis();
-                f.preProcess();
+                TransactionListenerRegistry.onStart(unitName);
                 UnitOfWork.startTransaction(unitName, true);
                 ret = f.process();
                 UnitOfWork.endTransaction();
@@ -109,8 +107,6 @@ public class UnitOfWork {
                     log.debug("a UnitOfWork takes {}ms to complete", duration);
                 }
                 return ret;
-                //            } catch (MQPublishFailureException mqe) {
-                //                throw new TransactionException("transaction failed due to Message Queue problem", mqe);
             } catch (Throwable throwable) {
                 if (retry >= maxRetry) {
                     f.onProcessError(throwable);
@@ -137,6 +133,7 @@ public class UnitOfWork {
                         log.error("Failed to close UnitOfWork", e);
                     }
                     threadLocals.remove();
+                    TransactionListenerRegistry.onEnd(unitName);
                 }
             }
         }
@@ -288,12 +285,6 @@ public class UnitOfWork {
     }
 
     public interface Callback<T> {
-        /**
-         * Pre-process stage (before transaction)
-         */
-        default void preProcess() {
-        }
-
         /**
          * Process stage (within transaction)
          */

@@ -34,4 +34,5 @@ public @interface Transaction {
 
     int project() default -1;
 
+    int retry() default 10;
 }

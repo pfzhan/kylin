@@ -21,29 +21,39 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+package io.kyligence.kap.common.persistence.transaction;
 
-package io.kyligence.kap.smart.query;
+import com.google.common.collect.Sets;
 
-import org.apache.kylin.common.KylinConfig;
+import java.util.Set;
 
-public class DefaultQueryRunner extends AbstractQueryRunner {
+public class TransactionListenerRegistry {
 
-    public DefaultQueryRunner(KylinConfig kylinConfig, String projectName, String[] sqls) {
-        this(kylinConfig, projectName, sqls, 1);
+    private static Set<StartListener> startListeners = Sets.newHashSet();
+    private static Set<EndListener> endListeners = Sets.newHashSet();
+
+    public static void register(StartListener startListener, EndListener endListener) {
+        startListeners.add(startListener);
+        endListeners.add(endListener);
     }
 
-    public DefaultQueryRunner(KylinConfig kylinConfig, String projectName, String[] sqls, int threads) {
-        super(projectName, sqls, threads);
-        this.kylinConfig = kylinConfig;
+    public static void onStart(String project) {
+        for (StartListener listener : startListeners) {
+            listener.onStart(project);
+        }
     }
 
-    @Override
-    public KylinConfig prepareConfig() {
-        return this.kylinConfig;
+    public static void onEnd(String project) {
+        for (EndListener listener : endListeners) {
+            listener.onEnd(project);
+        }
     }
 
-    @Override
-    public void cleanupConfig(KylinConfig config) {
-        // Do nothing
+    public interface StartListener {
+        void onStart(String project);
+    }
+
+    public interface EndListener {
+        void onEnd(String project);
     }
 }

@@ -57,6 +57,6 @@ public class TransactionAspect {
             } catch (Throwable throwable) {
                 throw new RuntimeException(throwable);
             }
-        }, unitName);
+        }, unitName, transaction.retry());
     }
 }

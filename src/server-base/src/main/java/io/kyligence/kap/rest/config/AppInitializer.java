@@ -84,7 +84,6 @@ public class AppInitializer {
         }
         EventListenerRegistry.getInstance(kylinConfig).register(new FavoriteQueryUpdateListener(), "fq");
         event.getApplicationContext().publishEvent(new AppInitializedEvent(event.getApplicationContext()));
-
     }
 
     static void initProject(KylinConfig config, String project) {
