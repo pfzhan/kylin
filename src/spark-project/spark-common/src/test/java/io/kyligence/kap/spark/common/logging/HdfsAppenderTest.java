@@ -38,47 +38,50 @@ import org.junit.rules.TemporaryFolder;
 import org.mockito.Mockito;
 
 import java.io.IOException;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.Arrays;
 
 public class HdfsAppenderTest {
 
+    private SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
     @Rule
     public TemporaryFolder temporaryFolder = new TemporaryFolder();
 
     @Test
-    public void testIsTimeChanged() throws IllegalAccessException {
+    public void testIsTimeChanged() throws IllegalAccessException, ParseException {
         final HdfsAppender hdfsAppender = new HdfsAppender();
         final HdfsAppender.HdfsFlushService hdfsFlushService = hdfsAppender.new HdfsFlushService();
         final LoggingEvent mockEvent = Mockito.mock(LoggingEvent.class);
 
         // 2019-01-01 00:00:00
-        mockTimestamp(mockEvent, 1546272000000L);
+        mockTimestamp(mockEvent, "2019-01-01 00:00:00");
         Assert.assertTrue(hdfsFlushService.isTimeChanged(mockEvent));
         // 2019-01-01 01:00:00
-        mockTimestamp(mockEvent, 1546275600000L);
+        mockTimestamp(mockEvent, "2019-01-01 01:00:00");
         Assert.assertFalse(hdfsFlushService.isTimeChanged(mockEvent));
         // 2019-02-01 00:00:00
-        mockTimestamp(mockEvent, 1546358400000L);
+        mockTimestamp(mockEvent, "2019-02-01 00:00:00");
         Assert.assertTrue(hdfsFlushService.isTimeChanged(mockEvent));
 
         hdfsAppender.setRollingByHour(true);
         hdfsAppender.startTime = 0L;
         // 2019-01-01 00:00:00
-        mockTimestamp(mockEvent, 1546272000000L);
+        mockTimestamp(mockEvent, "2019-01-01 00:00:00");
         Assert.assertTrue(hdfsFlushService.isTimeChanged(mockEvent));
         // 2019-01-01 00:30:00
-        mockTimestamp(mockEvent, 1546273800000L);
+        mockTimestamp(mockEvent, "2019-01-01 00:30:00");
         Assert.assertFalse(hdfsFlushService.isTimeChanged(mockEvent));
         // 2019-01-01 01:00:00
-        mockTimestamp(mockEvent, 1546275600000L);
+        mockTimestamp(mockEvent, "2019-01-01 01:00:00");
         Assert.assertTrue(hdfsFlushService.isTimeChanged(mockEvent));
         // 2019-02-01 00:00:00
-        mockTimestamp(mockEvent, 1546358400000L);
+        mockTimestamp(mockEvent, "2019-02-01 00:00:00");
         Assert.assertTrue(hdfsFlushService.isTimeChanged(mockEvent));
     }
 
     @Test
-    public void testUpdateOutPutDir() {
+    public void testUpdateOutPutDir() throws ParseException, IllegalAccessException {
         final HdfsAppender hdfsAppender = new HdfsAppender();
         final HdfsAppender.HdfsFlushService hdfsFlushService = hdfsAppender.new HdfsFlushService();
         hdfsAppender.executorId = "94569abc-51aa-4f71-8ce5-f1e04835a848";
@@ -86,13 +89,14 @@ public class HdfsAppenderTest {
         hdfsAppender.setMetadataIdentifier("ut_metadata");
         hdfsAppender.setProject("default_project");
         final LoggingEvent mockEvent = Mockito.mock(LoggingEvent.class);
+        mockTimestamp(mockEvent, "2019-02-01 10:00:00");
 
         // sparder log with rolling by days
         hdfsAppender.setCategory("sparder");
         hdfsAppender.setIdentifier("sparder_app_id");
         hdfsFlushService.updateOutPutDir(mockEvent);
         Assert.assertEquals(
-                "/path/to/hdfs_working_dir/ut_metadata/_sparder_logs/1970-01-01/sparder_app_id/executor-94569abc-51aa-4f71-8ce5-f1e04835a848.log",
+                "/path/to/hdfs_working_dir/ut_metadata/_sparder_logs/2019-02-01/sparder_app_id/executor-94569abc-51aa-4f71-8ce5-f1e04835a848.log",
                 hdfsAppender.outPutPath);
 
         // job log with rolling by days
@@ -101,7 +105,7 @@ public class HdfsAppenderTest {
         hdfsAppender.setJobName("job_name");
         hdfsFlushService.updateOutPutDir(mockEvent);
         Assert.assertEquals(
-                "/path/to/hdfs_working_dir/ut_metadata/default_project/spark_logs/1970-01-01/job_id/job_name/executor-94569abc-51aa-4f71-8ce5-f1e04835a848.log",
+                "/path/to/hdfs_working_dir/ut_metadata/default_project/spark_logs/2019-02-01/job_id/job_name/executor-94569abc-51aa-4f71-8ce5-f1e04835a848.log",
                 hdfsAppender.outPutPath);
 
         hdfsAppender.setRollingByHour(true);
@@ -111,7 +115,7 @@ public class HdfsAppenderTest {
         hdfsAppender.setIdentifier("sparder_app_id");
         hdfsFlushService.updateOutPutDir(mockEvent);
         Assert.assertEquals(
-                "/path/to/hdfs_working_dir/ut_metadata/_sparder_logs/1970-01-01/08/sparder_app_id/executor-94569abc-51aa-4f71-8ce5-f1e04835a848.log",
+                "/path/to/hdfs_working_dir/ut_metadata/_sparder_logs/2019-02-01/10/sparder_app_id/executor-94569abc-51aa-4f71-8ce5-f1e04835a848.log",
                 hdfsAppender.outPutPath);
 
         // job log with rolling by hours
@@ -120,12 +124,12 @@ public class HdfsAppenderTest {
         hdfsAppender.setJobName("job_name");
         hdfsFlushService.updateOutPutDir(mockEvent);
         Assert.assertEquals(
-                "/path/to/hdfs_working_dir/ut_metadata/default_project/spark_logs/1970-01-01/08/job_id/job_name/executor-94569abc-51aa-4f71-8ce5-f1e04835a848.log",
+                "/path/to/hdfs_working_dir/ut_metadata/default_project/spark_logs/2019-02-01/10/job_id/job_name/executor-94569abc-51aa-4f71-8ce5-f1e04835a848.log",
                 hdfsAppender.outPutPath);
     }
 
     @Test
-    public void testRollingClean() throws IOException, IllegalAccessException {
+    public void testRollingClean() throws IOException, IllegalAccessException, ParseException {
         final String junitFolder = temporaryFolder.getRoot().getAbsolutePath();
         final HdfsAppender hdfsAppender = new HdfsAppender();
         final HdfsAppender.HdfsFlushService hdfsFlushService = Mockito.spy(hdfsAppender.new HdfsFlushService());
@@ -142,8 +146,8 @@ public class HdfsAppenderTest {
         Assert.assertEquals(5, hdfsAppender.fileSystem.listStatus(new Path(junitFolder)).length);
 
         final LoggingEvent mockEvent = Mockito.mock(LoggingEvent.class);
-        // 2019-01-05
-        mockTimestamp(mockEvent, 1546617600000L);
+        // 2019-01-05 00:00:00
+        mockTimestamp(mockEvent, "2019-01-05 00:00:00");
 
         hdfsFlushService.doRollingClean(mockEvent);
         final FileStatus[] actualFiles = hdfsAppender.fileSystem.listStatus(new Path(junitFolder));
@@ -155,7 +159,8 @@ public class HdfsAppenderTest {
         Assert.assertTrue(ArrayUtils.contains(actualFileNames, "2019-01-03"));
     }
 
-    private void mockTimestamp(LoggingEvent mockEvent, long timestamp) throws IllegalAccessException {
+    private void mockTimestamp(LoggingEvent mockEvent, String dateTime) throws IllegalAccessException, ParseException {
+        val timestamp = dateFormat.parse(dateTime).getTime();
         val field = FieldUtils.getField(LoggingEvent.class, "timeStamp");
         FieldUtils.removeFinalModifier(field);
         field.setLong(mockEvent, timestamp);
