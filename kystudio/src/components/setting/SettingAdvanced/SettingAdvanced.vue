@@ -13,13 +13,13 @@
           <span class="setting-value fixed">
             <el-switch
               class="ksd-switch"
-              v-model="form.batch_enabled"
+              v-model="form.auto_apply"
               :active-text="$t('kylinLang.common.OFF')"
               :inactive-text="$t('kylinLang.common.ON')">
             </el-switch>
           </span>
           <div class="setting-desc large"
-            :class="{'disabled': !form.batch_enabled }">
+            :class="{'disabled': !form.auto_apply }">
             {{$t('notifyLeftTips')}}
             <b class="setting-value">{{project.threshold}}</b>
             <el-form-item class="setting-input" :show-message="false" prop="threshold">
@@ -27,7 +27,7 @@
                 size="small"
                 class="acce-input"
                 v-number="form.threshold"
-                :disabled="!form.batch_enabled"
+                :disabled="!form.auto_apply"
                 v-model="form.threshold">
               </el-input>
             </el-form-item>
@@ -157,30 +157,6 @@ export default class SettingAdvanced extends Vue {
   initForm () {
     this.handleReset('accelerate-settings')
     this.handleReset('job-alert')
-  }
-  async handleSwitch (type, value) {
-    try {
-      switch (type) {
-        case 'auto-merge': {
-          const submitData = _getAccelerationSettings(this.project)
-          submitData.batch_enabled = value
-          await this.updateAccelerationSettings(submitData); break
-        }
-        case 'enable-empty-job-alert': {
-          const submitData = _getJobAlertSettings(this.project)
-          submitData.data_load_empty_notification_enabled = value
-          await this.updateJobAlertSettings(submitData); break
-        }
-        case 'enable-error-job-alert': {
-          const submitData = _getJobAlertSettings(this.project)
-          submitData.job_error_notification_enabled = value
-          await this.updateJobAlertSettings(submitData); break
-        }
-      }
-      this.$emit('reload-setting')
-    } catch (e) {
-      handleError(e)
-    }
   }
   handleReset (type) {
     switch (type) {

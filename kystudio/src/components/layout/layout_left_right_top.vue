@@ -170,8 +170,6 @@ let MessageBox = ElementUI.MessageBox
       getCurUserInfo: 'USER_AUTHENTICATION',
       // for newten
       // getEncoding: 'GET_ENCODINGS',
-      loadProjects: 'LOAD_PROJECT_LIST',
-      loadAllProjects: 'LOAD_ALL_PROJECT',
       resetPassword: 'RESET_PASSWORD',
       getAboutKap: 'GET_ABOUTKAP',
       applySpeedInfo: 'APPLY_SPEED_INFO',
@@ -184,7 +182,8 @@ let MessageBox = ElementUI.MessageBox
       resetMonitorState: 'RESET_MONITOR_STATE',
       toggleMenu: 'TOGGLE_MENU',
       cacheHistory: 'CACHE_HISTORY',
-      saveTabs: 'SET_QUERY_TABS'
+      saveTabs: 'SET_QUERY_TABS',
+      resetSpeedInfo: 'CACHE_SPEED_INFO'
     }),
     ...mapActions('UserEditModal', {
       callUserEditModal: 'CALL_MODAL'
@@ -333,6 +332,7 @@ export default class LayoutLeftRightTop extends Vue {
     this.btnLoadingCancel = true
     this.ignoreSpeedInfo(this.currentSelectedProject).then(() => {
       this.btnLoadingCancel = false
+      this.resetSpeedInfo({reachThreshold: false, queryCount: 0, modelCount: 0})
       this.loadSpeedInfo('btnLoadingCancel')
     }, (res) => {
       this.btnLoadingCancel = false
@@ -402,6 +402,8 @@ export default class LayoutLeftRightTop extends Vue {
   }
   _replaceRouter (currentPathName, currentPath) {
     this.$router.replace('/refresh')
+    // 切换项目时重置speedInfo，避免前后两个项目混淆
+    this.resetSpeedInfo({reachThreshold: false, queryCount: 0, modelCount: 0})
     this.$nextTick(() => {
       if (currentPathName === 'Job' && !this.hasPermissionWithoutQuery && !this.isAdmin) {
         this.$router.replace({name: 'Dashboard', params: { refresh: true }})
@@ -619,7 +621,8 @@ export default class LayoutLeftRightTop extends Vue {
   loadCircleSpeedInfo () {
     if (this.currentSelectedProject) {
       // 如果apply或者ignore接口或者立即加速的接口还在进行中，先暂停轮训的请求发送
-      if (!this.isAutoProject || this.applyBtnLoading || this.btnLoadingCancel || this.$store.state.model.circleSpeedInfoLock) {
+      // 加速配置关闭时暂停轮询
+      if (!this.isAutoProject || this.applyBtnLoading || this.btnLoadingCancel || this.$store.state.model.circleSpeedInfoLock || !this.$store.state.project.projectAutoApplyConfig) {
         return new Promise((resolve) => {
           resolve()
         })

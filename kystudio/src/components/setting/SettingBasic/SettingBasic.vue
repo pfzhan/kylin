@@ -52,7 +52,7 @@
             </el-option>
           </el-select>
           <span>{{$t('storageGarbageDesc2')}}</span>
-          <el-input size="small" style="width: 100px;" v-model.number="form.low_frequency_threshold"></el-input>
+          <el-input size="small" style="width: 100px;" v-number="form.low_frequency_threshold" v-model="form.low_frequency_threshold"></el-input>
           <span>{{$t('storageGarbageDesc3')}}</span>
         </div>
       </div>
@@ -127,7 +127,7 @@
               {{form.volatile_range.volatile_range_number}} {{$t(form.volatile_range.volatile_range_type.toLowerCase())}}
             </span>
             <el-form-item class="setting-input" :show-message="false" prop="volatile_range.volatile_range_number">
-              <el-input size="small" style="width: 100px;" v-model.number="form.volatile_range.volatile_range_number" :disabled="!form.auto_merge_enabled"></el-input>
+              <el-input size="small" style="width: 100px;" v-number="form.volatile_range.volatile_range_number" v-model="form.volatile_range.volatile_range_number" :disabled="!form.auto_merge_enabled"></el-input>
             </el-form-item>
             <el-select
               class="setting-input"
@@ -163,7 +163,7 @@
               {{form.retention_range.retention_range_number}} {{$t(form.retention_range.retention_range_type.toLowerCase())}}
             </span>
             <el-form-item class="setting-input" :show-message="false" prop="retention_range.retention_range_number">
-              <el-input size="small" style="width: 100px;" v-model.number="form.retention_range.retention_range_number" :disabled="!form.retention_range.retention_range_enabled"></el-input>
+              <el-input size="small" style="width: 100px;" v-number="form.retention_range.retention_range_number" v-model="form.retention_range.retention_range_number" :disabled="!form.retention_range.retention_range_enabled"></el-input>
             </el-form-item>
             <span class="setting-input">{{$t(retentionRangeScale)}}</span>
           </div>

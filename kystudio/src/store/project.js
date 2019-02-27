@@ -8,6 +8,7 @@ export default {
     projectList: [],
     allProject: [],
     projectTotalSize: 0,
+    projectAutoApplyConfig: false,
     selected_project: cacheSessionStorage('projectName') || cacheLocalStorage('projectName')
   },
   mutations: {
@@ -63,6 +64,9 @@ export default {
         project,
         ...state.allProject.slice(projectIdx + 1)
       ]
+    },
+    [types.CACHE_PROJECT_AUTO_APPLY_CONFIG]: function (state, { projectAutoApplyConfig }) {
+      state.projectAutoApplyConfig = projectAutoApplyConfig
     }
   },
   actions: {
@@ -78,7 +82,8 @@ export default {
           let pl = response.data.data.projects && response.data.data.projects.length || 0
           if (!((params && params.ignoreAccess) || pl === 0)) {
             let curProjectUserAccessPromise = dispatch(types.USER_ACCESS, {project: state.selected_project})
-            Promise.all([curProjectUserAccessPromise]).then(() => {
+            let curProjectConfigPromise = dispatch(types.FETCH_PROJECT_SETTINGS, {projectName: state.selected_project})
+            Promise.all([curProjectUserAccessPromise, curProjectConfigPromise]).then(() => {
               resolve(response.data.data.projects)
             }, () => {
               resolve(response.data.data.projects)
@@ -144,7 +149,10 @@ export default {
       return api.project.clearTrash(para)
     },
     [types.FETCH_PROJECT_SETTINGS]: function ({ commit }, para) {
-      return api.project.fetchProjectSettings(para.projectName)
+      return api.project.fetchProjectSettings(para.projectName).then((response) => {
+        commit(types.CACHE_PROJECT_AUTO_APPLY_CONFIG, {projectAutoApplyConfig: response.data.data.auto_apply})
+        return response
+      })
     },
     [types.UPDATE_PROJECT_GENERAL_INFO]: function ({ commit }, para) {
       return api.project.updateProjectGeneralInfo(para)
@@ -159,7 +167,10 @@ export default {
       return api.project.updateStorageQuota(para)
     },
     [types.UPDATE_ACCELERATION_SETTINGS]: function ({commit}, para) {
-      return api.project.updateAccelerationSettings(para)
+      return api.project.updateAccelerationSettings(para).then((response) => {
+        commit(types.CACHE_PROJECT_AUTO_APPLY_CONFIG, {projectAutoApplyConfig: para.auto_apply})
+        return response
+      })
     },
     [types.UPDATE_JOB_ALERT_SETTINGS]: function ({commit}, para) {
       return api.project.updateJobAlertSettings(para)

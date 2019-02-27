@@ -20,7 +20,7 @@
     </el-select>
 </template>
 <script>
-import { mapActions, mapMutations, mapGetters } from 'vuex'
+import { mapGetters } from 'vuex'
 export default {
   name: 'projectselect',
   data () {
@@ -29,13 +29,6 @@ export default {
     }
   },
   methods: {
-    ...mapActions({
-      loadAllProjects: 'LOAD_ALL_PROJECT',
-      getUserAccess: 'USER_ACCESS'
-    }),
-    ...mapMutations({
-      setProject: 'SET_PROJECT'
-    }),
     changeProject (val) {
       this.$emit('changePro', val)
     }
@@ -54,9 +47,7 @@ export default {
     }
   },
   created () {
-    // console.log(this.$store.state.project.selected_project, '0101')
     this.selected_project = this.$store.state.project.selected_project
-    // this.loadAllProjects()
   }
 }
 </script>
