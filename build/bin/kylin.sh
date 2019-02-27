@@ -140,7 +140,7 @@ then
     source ${KYLIN_HOME}/bin/replace-jars-under-spark.sh
 
     port=7070
-    used=`netstat -tpln | grep $port | awk '{print $7}' | sed "s/\// /g"`
+    used=`netstat -tpln | grep "\<$port\>" | awk '{print $7}' | sed "s/\// /g"`
     if [ ! -z "$used" ]; then
         echo "<$used> already listen on $port"
         exit -1
