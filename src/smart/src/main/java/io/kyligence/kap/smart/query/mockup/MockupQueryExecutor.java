@@ -67,7 +67,7 @@ public class MockupQueryExecutor extends AbstractQueryExecutor {
                         .executeQuery(QueryUtil.massageSql(sql, projectName, 0, 0, conn.getSchema()))) {
 
             sqlResult.setStatus(SQLResult.Status.SUCCESS);
-        } catch (Exception e) {
+        } catch (Throwable e) { // cannot replace with Exception, e may a instance of Error
             Throwable cause = e.getCause();
             boolean printException = true;
             if (cause instanceof InvalidCacheLoadException) {
