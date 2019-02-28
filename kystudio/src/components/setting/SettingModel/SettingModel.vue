@@ -1,5 +1,9 @@
 <template>
   <div class="setting-model">
+    <div  class="ksd-mb-10 ksd-fright">
+      <el-input :placeholder="$t('kylinLang.common.pleaseFilterByModelName')" style="width:200px" size="medium" prefix-icon="el-icon-search" v-model="filter.modelName"  @input="searchModels">
+      </el-input>
+    </div>
     <el-table
       :data="modelList"
       class="model-setting-table"
@@ -175,8 +179,10 @@ export default class SettingStorage extends Vue {
   modelListSize = 0
   filter = {
     pageOffset: 0,
-    pageSize: pageCount
+    pageSize: pageCount,
+    modelName: ''
   }
+  ST = null
   editModelSetting = false
   isLoading = false
   isEdit = false
@@ -365,6 +371,12 @@ export default class SettingStorage extends Vue {
     this.filter.pageOffset = size
     this.filter.pageSize = count
     this.getConfigList()
+  }
+  searchModels () {
+    clearTimeout(this.ST)
+    this.ST = setTimeout(() => {
+      this.getConfigList()
+    }, 500)
   }
   created () {
     this.getConfigList()

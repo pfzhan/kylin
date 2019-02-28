@@ -161,7 +161,7 @@
         </el-tooltip>
       </span>
       <el-row :gutter="20">
-        <el-col :span="16" v-if="blackSqlData&&blackSqlData.size">
+        <el-col :span="16" v-if="showSearchResult">
           <div class="clearfix ksd-mb-10">
             <span class="ksd-title-label ksd-fs-14 query-count">{{$t('blackList')}}
               <span v-if="blackSqlData.size">({{blackSqlData.size}})</span>
@@ -189,7 +189,7 @@
           </el-table>
           <kap-pager ref="sqlListsPager" class="ksd-center ksd-mt-20 ksd-mb-20" :totalSize="blackSqlData.size"  v-on:handleCurrentChange='blackSqlDatasPageChange' :perPageSize="10" v-if="blackSqlData.size"></kap-pager>
         </el-col>
-        <el-col :span="8" v-if="blackSqlData&&blackSqlData.size">
+        <el-col :span="8" v-if="showSearchResult">
           <div class="ky-list-title ksd-mt-12 ksd-fs-14">{{$t('sqlBox')}}</div>
           <div class="query_panel_box ksd-mt-10">
             <kap-editor ref="blackInputBox" :height="inputHeight" :readOnly="true" :isFormatter="true" lang="sql" theme="chrome" v-model="blackSql">
@@ -197,7 +197,7 @@
           </div>
         </el-col>
       </el-row>
-      <div class="ksd-null-pic-text" v-if="blackSqlData&&!blackSqlData.size">
+      <div class="ksd-null-pic-text" v-if="!showSearchResult">
         <img  src="../../../assets/img/no_data.png" />
         <p>{{$t('kylinLang.common.noData')}}</p>
       </div>
@@ -215,13 +215,12 @@
       <div class="conds">
         <div class="conds-title">
           <span>{{$t('queryFrequency')}}</span>
-          <el-switch class="ksd-switch" v-model="frequencyObj.enable" :active-text="$t('kylinLang.common.OFF')" :inactive-text="$t('kylinLang.common.ON')" @change="updateFre"></el-switch>
+          <el-switch class="ksd-switch" v-model="rulesObj.freqEnable" :active-text="$t('kylinLang.common.OFF')" :inactive-text="$t('kylinLang.common.ON')"></el-switch>
         </div>
         <div class="conds-content clearfix">
-          <!-- <div class="desc">{{$t('frequencyDesc')}}</div> -->
           <div class="ksd-mt-10 ksd-fs-14">
             <span>{{$t('AccQueryStart')}}</span>
-            <el-input v-model.trim="frequencyObj.freqValue" @input="handleInputChangeFre" size="small" class="rule-setting-input"></el-input> %
+            <el-input v-model.trim="rulesObj.freqValue" v-number="rulesObj.freqValue" size="small" class="rule-setting-input"></el-input> %
             <span>{{$t('AccQueryEnd')}}</span>
           </div>
         </div>
@@ -229,64 +228,41 @@
       <div class="conds">
         <div class="conds-title">
           <span>{{$t('querySubmitter')}}</span>
-          <el-switch class="ksd-switch" v-model="submitterObj.enable" :active-text="$t('kylinLang.common.OFF')" :inactive-text="$t('kylinLang.common.ON')" @change="updateSub"></el-switch>
+          <el-switch class="ksd-switch" v-model="rulesObj.submitterEnable" :active-text="$t('kylinLang.common.OFF')" :inactive-text="$t('kylinLang.common.ON')"></el-switch>
         </div>
         <div class="conds-content">
-          <!-- <div class="desc">{{$t('submitterDesc')}}</div> -->
         </div>
         <div class="conds-footer">
-          <el-select v-model="selectedUser" v-event-stop :popper-append-to-body="false" filterable size="medium" placeholder="VIP User" class="ksd-mt-10" @change="selectUserChange">
-            <el-option-group v-for="group in options" :key="group.label" :label="group.label">
-              <el-option v-for="item in group.options" :key="item" :label="item" :value="item"></el-option>
-            </el-option-group>
-          </el-select>
           <div class="vip-users-block ksd-mb-10">
-            <div class="ksd-mt-20 conds-title" v-if="submitterObj.users.length"><i class="el-icon-ksd-table_admin"></i> VIP User</div>
-            <div class="vip-users">
-              <el-tag
-                v-for="(user, index) in submitterObj.users"
-                :key="index"
-                closable
-                class="user-label"
-                size="small"
-                @close="removeUser(index)">
-                {{user}}
-              </el-tag>
-            </div>
-            <div class="ksd-mt-20 conds-title" v-if="submitterObj.groups.length"><i class="el-icon-ksd-table_group"></i> VIP Group</div>
-            <div class="vip-users">
-              <el-tag
-                v-for="(userGroup, index) in submitterObj.groups"
-                :key="index"
-                closable
-                class="user-label"
-                size="small"
-                @close="removeUserGroup(index)">
-                {{userGroup}}
-              </el-tag>
-            </div>
+            <div class="ksd-mt-10 conds-title"><i class="el-icon-ksd-table_admin"></i> VIP User</div>
+            <el-select v-model="rulesObj.users" v-event-stop :popper-append-to-body="false" filterable size="medium" placeholder="VIP User" class="ksd-mt-10" multiple style="width:100%">
+              <el-option v-for="item in allSubmittersOptions.user" :key="item" :label="item" :value="item"></el-option>
+            </el-select>
+            <div class="ksd-mt-10 conds-title"><i class="el-icon-ksd-table_group"></i> VIP Group</div>
+            <el-select v-model="rulesObj.userGroups" v-event-stop :popper-append-to-body="false" filterable size="medium" placeholder="VIP User Group" class="ksd-mt-10" multiple style="width:100%">
+              <el-option v-for="item in allSubmittersOptions.group" :key="item" :label="item" :value="item"></el-option>
+            </el-select>
           </div>
         </div>
       </div>
       <div class="conds">
         <div class="conds-title">
           <span>{{$t('queryDuration')}}</span>
-          <el-switch class="ksd-switch" v-model="durationObj.enable" :active-text="$t('kylinLang.common.OFF')" :inactive-text="$t('kylinLang.common.ON')" @change="updateDura"></el-switch>
+          <el-switch class="ksd-switch" v-model="rulesObj.durationEnable" :active-text="$t('kylinLang.common.OFF')" :inactive-text="$t('kylinLang.common.ON')"></el-switch>
         </div>
         <div class="conds-content clearfix">
-          <!-- <div class="desc">{{$t('durationDesc')}}</div> -->
-          <div class="ksd-mt-16 ksd-fs-12">
+          <div class="ksd-mt-10 ksd-fs-12">
             {{$t('from')}}
-            <el-input v-model.trim="durationObj.durationValue[0]" @input="handleInputChangeDur1" size="small" class="rule-setting-input"></el-input>
+            <el-input v-model.trim="rulesObj.minDuration" v-number="rulesObj.minDuration" size="small" class="rule-setting-input" :disabled="!rulesObj.durationEnable"></el-input>
             {{$t('to')}}
-            <el-input v-model.trim="durationObj.durationValue[1]" @input="handleInputChangeDur2" size="small" class="rule-setting-input"></el-input>
+            <el-input v-model.trim="rulesObj.maxDuration" v-number="rulesObj.maxDuration" size="small" class="rule-setting-input" :disabled="!rulesObj.durationEnable"></el-input>
             {{$t('secondes')}}
           </div>
         </div>
       </div>
       <span slot="footer" class="dialog-footer">
         <el-button @click="cancelRuleSetting" size="medium">{{$t('kylinLang.common.cancel')}}</el-button>
-        <el-button type="primary" plain @click="saveRuleSetting" size="medium">{{$t('kylinLang.common.save')}}</el-button>
+        <el-button type="primary" plain @click="saveRuleSetting" size="medium" :loadding="updateLoading">{{$t('kylinLang.common.save')}}</el-button>
       </span>
     </el-dialog>
   </div>
@@ -297,7 +273,7 @@ import Vue from 'vue'
 import { Component, Watch } from 'vue-property-decorator'
 import { mapActions, mapMutations, mapGetters } from 'vuex'
 import $ from 'jquery'
-import { handleSuccessAsync, handleError } from '../../../util/index'
+import { handleSuccessAsync, handleError, objectClone } from '../../../util/index'
 import { handleSuccess, transToGmtTime, kapConfirm } from '../../../util/business'
 import accelerationTable from './acceleration_table'
 @Component({
@@ -305,12 +281,9 @@ import accelerationTable from './acceleration_table'
     transToGmtTime: transToGmtTime,
     ...mapActions({
       getFavoriteList: 'GET_FAVORITE_LIST',
-      getFrequency: 'GET_FREQUENCY',
-      getSubmitter: 'GET_SUBMITTER',
-      getDuration: 'GET_DURATION',
-      updateFrequency: 'UPDATE_FREQUENCY',
-      updateSubmitter: 'UPDATE_SUBMITTER',
-      updateDuration: 'UPDATE_DURATION',
+      getRules: 'GET_RULES',
+      getUserAndGroups: 'GET_USER_AND_GROUPS',
+      updateRules: 'UPDATE_RULES',
       validateWhite: 'VALIDATE_WHITE_SQL',
       addTofavoriteList: 'ADD_TO_FAVORITE_LIST',
       loadBlackList: 'LOAD_BLACK_LIST',
@@ -466,27 +439,23 @@ export default class FavoriteQuery extends Vue {
     sortBy: 'last_query_time',
     reverse: true
   }
-  frequencyObj = {
-    enable: true,
-    freqValue: 0
-  }
-  submitterObj = {
-    enable: true,
+  updateLoading = false
+  ST = null
+  showSearchResult = false
+  rulesObj = {
+    freqEnable: true,
+    freqValue: 0,
+    submitterEnable: true,
     users: [],
-    groups: []
+    userGroups: [],
+    durationEnable: true,
+    minDuration: 0,
+    maxDuration: 0
   }
-  durationObj = {
-    enable: true,
-    durationValue: [0, 0]
+  allSubmittersOptions = {
+    user: [],
+    group: []
   }
-  selectedUser = ''
-  options = [{
-    label: this.$t('kylinLang.menu.user'),
-    options: ['ADMIN', 'ANALYST', 'MODELER']
-  }, {
-    label: this.$t('kylinLang.menu.group'),
-    options: ['ALL_USERS', 'ROLE_ADMIN', 'ROLE_ANALYST', 'ROLE_MODELER']
-  }]
   tableRowClassName ({row, rowIndex}) {
     if (this.activeSqlObj && row.id === this.activeSqlObj.id) {
       return 'active-row'
@@ -576,10 +545,37 @@ export default class FavoriteQuery extends Vue {
   }
 
   openRuleSetting () {
-    this.getFrequencyObj()
-    this.getSubmitterObj()
-    this.getDurationObj()
-    this.ruleSettingVisible = true
+    if (this.currentSelectedProject) {
+      const loadRulesData = new Promise((resolve, reject) => {
+        this.getRules({project: this.currentSelectedProject}).then((res) => {
+          handleSuccess(res, (data) => {
+            this.rulesObj = data
+            this.rulesObj.freqValue = this.rulesObj.freqValue * 100
+            resolve()
+          })
+        }, (res) => {
+          handleError(res)
+          reject()
+        })
+      })
+      const loadAllSubmittersData = new Promise((resolve, reject) => {
+        this.getUserAndGroups({project: this.currentSelectedProject}).then((res) => {
+          handleSuccess(res, (data) => {
+            this.allSubmittersOptions = data
+            resolve()
+          }, (res) => {
+            handleError(res)
+            reject()
+          })
+        })
+      })
+      Promise.all([loadRulesData, loadAllSubmittersData]).then((res) => {
+        this.ruleSettingVisible = true
+      }, (res) => {
+        this.ruleSettingVisible = false
+        handleError(res)
+      })
+    }
   }
 
   cancelRuleSetting () {
@@ -587,86 +583,20 @@ export default class FavoriteQuery extends Vue {
   }
 
   saveRuleSetting () {
-    this.updateFre()
-    this.updateFre()
-    this.updateDura()
-    this.ruleSettingVisible = false
-  }
-
-  updateFre () {
-    this.updateFrequency({
-      project: this.currentSelectedProject,
-      enable: this.frequencyObj.enable,
-      freqValue: this.frequencyObj.freqValue / 100
-    }).then((res) => {
+    this.updateLoading = true
+    const submitData = objectClone(this.rulesObj)
+    submitData.freqValue = submitData.freqValue / 100
+    this.updateRules({ ...submitData, ...{project: this.currentSelectedProject} }).then((res) => {
+      handleSuccess(res, (data) => {
+        this.updateLoading = false
+        this.ruleSettingVisible = false
+      })
     }, (res) => {
       handleError(res)
+      this.updateLoading = false
+      this.ruleSettingVisible = false
     })
   }
-
-  updateSub () {
-    this.updateSubmitter({
-      project: this.currentSelectedProject,
-      enable: this.submitterObj.enable,
-      users: this.submitterObj.users,
-      groups: null
-    }).then((res) => {
-    }, (res) => {
-      handleError(res)
-    })
-  }
-
-  selectUserChange (val) {
-    const index = this.options[0].options.indexOf(val)
-    if (index !== -1) {
-      this.submitterObj.users.push(val)
-      this.selectedUser = ''
-      this.options[0].options.splice(index, 1)
-    } else {
-      const groupIndex = this.options[1].options.indexOf(val)
-      this.submitterObj.groups.push(val)
-      this.selectedUser = ''
-      this.options[1].options.splice(groupIndex, 1)
-    }
-  }
-
-  removeUser (index) {
-    const user = this.submitterObj.users[index]
-    this.submitterObj.usres.splice(index, 1)
-    this.options[0].options.push(user)
-  }
-  removeUserGroup (index) {
-    const userGroups = this.submitterObj.groups[index]
-    this.submitterObj.groups.splice(index, 1)
-    this.options[1].options.push(userGroups)
-  }
-
-  updateDura () {
-    this.updateDuration({
-      project: this.currentSelectedProject,
-      enable: this.durationObj.enable,
-      durationValue: this.durationObj.durationValue
-    }).then((res) => {
-    }, (res) => {
-      handleError(res)
-    })
-  }
-  handleInputChangeFre (value) {
-    this.$nextTick(() => {
-      this.frequencyObj.freqValue = (isNaN(value) || value === '' || value < 0) ? 0 : Number(value)
-    })
-  }
-  handleInputChangeDur1 (value) {
-    this.$nextTick(() => {
-      this.durationObj.durationValue[0] = (isNaN(value) || value === '' || value < 0) ? 0 : Number(value)
-    })
-  }
-  handleInputChangeDur2 (value) {
-    this.$nextTick(() => {
-      this.durationObj.durationValue[1] = (isNaN(value) || value === '' || value < 0) ? 0 : Number(value)
-    })
-  }
-
   async loadFavoriteList (pageIndex, pageSize) {
     const res = await this.getFavoriteList({
       project: this.currentSelectedProject || null,
@@ -687,43 +617,6 @@ export default class FavoriteQuery extends Vue {
 
   openImportSql () {
     this.importSqlVisible = true
-  }
-
-  getFrequencyObj () {
-    if (this.currentSelectedProject) {
-      this.getFrequency({project: this.currentSelectedProject}).then((res) => {
-        handleSuccess(res, (data) => {
-          this.frequencyObj = data
-          this.frequencyObj.freqValue = data.freqValue * 100
-        })
-      }, (res) => {
-        handleError(res)
-      })
-    }
-  }
-
-  getSubmitterObj () {
-    if (this.currentSelectedProject) {
-      this.getSubmitter({project: this.currentSelectedProject}).then((res) => {
-        handleSuccess(res, (data) => {
-          this.submitterObj = data
-        })
-      }, (res) => {
-        handleError(res)
-      })
-    }
-  }
-
-  getDurationObj () {
-    if (this.currentSelectedProject) {
-      this.getDuration({project: this.currentSelectedProject}).then((res) => {
-        handleSuccess(res, (data) => {
-          this.durationObj = data
-        })
-      }, (res) => {
-        handleError(res)
-      })
-    }
   }
 
   async getWaitingSQLSize () {
@@ -778,12 +671,20 @@ export default class FavoriteQuery extends Vue {
     const res = await this.loadBlackList({
       project: this.currentSelectedProject,
       limit: pageSize || 10,
-      offset: pageIndex || 0
+      offset: pageIndex || 0,
+      sql: this.blackSqlFilter
     })
     const data = await handleSuccessAsync(res)
     this.blackSqlData = data
+    if (this.blackSqlFilter || this.blackSqlData.size) {
+      this.showSearchResult = true
+    } else {
+      this.showSearchResult = false
+    }
     if (this.blackSqlData.size > 0) {
-      this.viewBlackSql(this.blackSqlData.sqls[0])
+      this.$nextTick(() => {
+        this.viewBlackSql(this.blackSqlData.sqls[0])
+      })
     } else {
       this.blackSql = ''
       this.activeSqlObj = null
@@ -1118,7 +1019,12 @@ export default class FavoriteQuery extends Vue {
     })
   }
 
-  onblackSqlFilterChange () {}
+  onblackSqlFilterChange () {
+    clearTimeout(this.ST)
+    this.ST = setTimeout(() => {
+      this.getBlackList()
+    }, 500)
+  }
 
   blackSqlDatasPageChange (offset, pageSize) {
     this.getBlackList(offset, pageSize)
@@ -1301,13 +1207,6 @@ export default class FavoriteQuery extends Vue {
         margin-bottom: 20px;
         padding-bottom: 20px;
         border-bottom: 1px solid @line-border-color;
-      }
-      .vip-users {
-        .user-label {
-          font-size: 14px;
-          margin-right: 8px;
-          margin-top: 5px;
-        }
       }
     }
     .rule-setting-input {

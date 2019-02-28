@@ -52,29 +52,20 @@ export default {
   deleteQuery: (para) => {
     return Vue.resource(apiUrl + 'query/saved_queries/' + para.project + '/' + para.id).delete()
   },
-  getFrequency: (para) => {
-    return Vue.resource(apiUrl + 'query/favorite_queries/rules/frequency').get(para)
+  getRules: (para) => {
+    return Vue.resource(apiUrl + 'query/favorite_queries/rules').get(para)
   },
-  getSubmitter: (para) => {
-    return Vue.resource(apiUrl + 'query/favorite_queries/rules/submitter').get(para)
+  updateRules: (para) => {
+    return Vue.resource(apiUrl + 'query/favorite_queries/rules').update(para)
   },
-  getDuration: (para) => {
-    return Vue.resource(apiUrl + 'query/favorite_queries/rules/duration').get(para)
+  getUserAndGroups: (para) => {
+    return Vue.resource(apiUrl + 'user_group/users_and_groups').get(para)
   },
   getRulesImpact: (para) => {
     return Vue.resource(apiUrl + 'query/favorite_queries/accelerate_ratio').get(para)
   },
   getPreferrence: (para) => {
     return Vue.resource(apiUrl + 'projects/query_accelerate_threshold').get(para)
-  },
-  updateFrequency: (para) => {
-    return Vue.resource(apiUrl + 'query/favorite_queries/rules/frequency').update(para)
-  },
-  updateSubmitter: (para) => {
-    return Vue.resource(apiUrl + 'query/favorite_queries/rules/submitter').update(para)
-  },
-  updateDuration: (para) => {
-    return Vue.resource(apiUrl + 'query/favorite_queries/rules/duration').update(para)
   },
   updatePreferrence: (para) => {
     return Vue.resource(apiUrl + 'projects/query_accelerate_threshold').update(para)
