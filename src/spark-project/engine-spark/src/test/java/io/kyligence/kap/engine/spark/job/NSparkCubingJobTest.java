@@ -51,8 +51,6 @@ import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.job.impl.threadpool.DefaultContext;
 import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
 import org.apache.kylin.job.lock.MockJobLock;
-import org.apache.kylin.measure.percentile.PercentileCounter;
-import org.apache.kylin.measure.topn.TopNCounter;
 import org.apache.kylin.metadata.model.JoinTableDesc;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.TableDesc;
@@ -159,64 +157,6 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
         seg = builder.buildSnapshot();
 
         Assert.assertEquals(7, seg.getSnapshots().size());
-    }
-
-    @Test
-    @Ignore("should be covered by nencodingtest")
-    public void testBuildWithEncoding() throws Exception {
-        KylinConfig config = KylinConfig.getInstanceFromEnv();
-        config.setProperty("kylin.job.scheduler.provider.110",
-                "io.kyligence.kap.job.impl.threadpool.NDefaultScheduler");
-        config.setProperty("kylin.job.scheduler.default", "110");
-        NDataflowManager dsMgr = NDataflowManager.getInstance(config, "default");
-        NExecutableManager execMgr = NExecutableManager.getInstance(config, "default");
-
-        // ready dataflow, segment, cuboid layout
-        NDataflow df = dsMgr.getDataflow("test_encoding");
-        NDataSegment toBeBuild = dsMgr.appendSegment(df, SegmentRange.TimePartitionedSegmentRange.createInfinite());
-        List<LayoutEntity> layouts = df.getIndexPlan().getAllLayouts();
-
-        List<LayoutEntity> round1 = new ArrayList<>();
-        round1.add(layouts.get(0));
-
-        NSpanningTree nSpanningTree = NSpanningTreeFactory.fromLayouts(round1, df.getUuid());
-        for (IndexEntity rootCuboid : nSpanningTree.getRootIndexEntities()) {
-            LayoutEntity layout = NCuboidLayoutChooser.selectLayoutForBuild(toBeBuild,
-                    rootCuboid.getEffectiveDimCols().keySet(), nSpanningTree.retrieveAllMeasures(rootCuboid));
-            Assert.assertEquals(null, layout);
-        }
-
-        // Build new segment
-        NSparkCubingJob job = NSparkCubingJob.create(Sets.newHashSet(toBeBuild), Sets.newLinkedHashSet(round1),
-                "ADMIN");
-        // launch the job
-        execMgr.addJob(job);
-
-        // wait job done
-        ExecutableState status = wait(job);
-        Assert.assertEquals(ExecutableState.SUCCEED, status);
-
-        NDataflow ndf = dsMgr.getDataflow("test_encoding");
-        NDataSegment seg = ndf.getLastSegment();
-        List<String[]> resultFromLayout = Lists.newArrayList();
-        for (Object[] data : getCuboidDataAfterDecoding(seg, 1)) {
-            String[] res = new String[data.length];
-            for (int i = 0; i < data.length; i++)
-                res[i] = data[i] == null ? null : data[i].toString();
-
-            resultFromLayout.add(res);
-        }
-        String[] e1 = new String[] { "1", "1.1", "string_dict", "-62135769600000", "0", "T", "true", "1", "fix_length",
-                "FF00FF", "-32767", "-32767", "00010101", "-62135769600000", "-62135769600000", "-62135769600000", "0",
-                "1" };
-        String[] e2 = new String[] { "2", "2.2", "string_dict", "253402214400000", "2147483646000", "F", "false", "0",
-                "fix_length", "1A2BFF", "32767", "32767", "99991231", "253402214400000", "253402214400000",
-                "253402214400000", "2147483647000", "1" };
-        String[] e3 = new String[18];
-        e3[17] = "1";
-        Assert.assertArrayEquals(e3, resultFromLayout.get(0));
-        Assert.assertArrayEquals(e1, resultFromLayout.get(1));
-        Assert.assertArrayEquals(e2, resultFromLayout.get(2));
     }
 
     @Test
@@ -525,43 +465,6 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
         val df2 = dsMgr.getDataflow(df.getUuid());
         validateCube(df2.getSegments().getFirstSegment().getId());
         validateTableIndex(df2.getSegments().getFirstSegment().getId());
-    }
-
-    @Test
-    @Ignore("the build process is tested in NMeasuresTest, no need to build again")
-    public void testMeasuresFullBuild() throws Exception {
-        String cubeName = "ncube_full_measure_test";
-        NDataflowManager dsMgr = NDataflowManager.getInstance(config, getProject());
-        NDataflow df = dsMgr.getDataflow(cubeName);
-        buildCuboid(cubeName, SegmentRange.TimePartitionedSegmentRange.createInfinite(),
-                Sets.<LayoutEntity> newLinkedHashSet(df.getIndexPlan().getAllLayouts()), true);
-        List<Object[]> resultFromLayout = getCuboidDataAfterDecoding(
-                NDataflowManager.getInstance(config, getProject()).getDataflow(cubeName).getSegments().get(1), 1);
-        for (Object[] row : resultFromLayout) {
-            if (row[0].equals("10000000158")) {
-                Assert.assertEquals("4", row[1].toString());// COUNT(*)
-                Assert.assertEquals("40000000632", row[2].toString());// SUM(ID1)
-                Assert.assertEquals(Double.valueOf("2637.703"), Double.valueOf(row[3].toString()), 0.000001);// SUM(PRICE2)
-                Assert.assertEquals("10000000158", row[10].toString());// MIN(ID1)
-                Assert.assertEquals(10000000158.0, ((TopNCounter) row[11]).getCounters()[0], 0.000001);// TOPN(ID1)
-                Assert.assertEquals("3", row[15].toString());// HLL(NAME1)
-                Assert.assertEquals("4", row[16].toString());
-                Assert.assertEquals(4, ((PercentileCounter) row[21]).getRegisters().size());// percentile(PRICE1)
-                Assert.assertEquals("478.63", row[25].toString());// HLL(NAME1, PRICCE1)
-            }
-            // verify the all null value aggregate
-            if (row[0].equals("10000000162")) {
-                Assert.assertEquals("3", row[1].toString());// COUNT(*)
-                Assert.assertEquals(Double.valueOf("0"), Double.valueOf(row[3].toString()), 0.000001);// SUM(PRICE2)
-                Assert.assertEquals(Double.valueOf("0"), Double.valueOf(row[4].toString()), 0.000001);// SUM(PRICE3)
-                Assert.assertEquals("0", row[5].toString());// MAX(PRICE3)
-                Assert.assertEquals("10000000162", row[6].toString());// MIN(ID1)
-                Assert.assertEquals("0", row[15].toString());// HLL(NAME1)
-                Assert.assertEquals("0", row[16].toString());// HLL(NAME2)
-                Assert.assertEquals(0, ((PercentileCounter) row[21]).getRegisters().size());// percentile(PRICE1)
-                Assert.assertEquals("0.0", row[25].toString());// HLL(NAME1, PRICE1)
-            }
-        }
     }
 
     @Test

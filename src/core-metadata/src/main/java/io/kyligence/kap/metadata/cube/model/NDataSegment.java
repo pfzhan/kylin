@@ -24,7 +24,6 @@
 
 package io.kyligence.kap.metadata.cube.model;
 
-import java.io.IOException;
 import java.io.Serializable;
 import java.util.Collections;
 import java.util.HashMap;
@@ -32,9 +31,6 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.util.Dictionary;
-import org.apache.kylin.dict.NDictionaryInfo;
-import org.apache.kylin.dict.NDictionaryManager;
 import org.apache.kylin.metadata.model.ISegment;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
@@ -186,14 +182,6 @@ public class NDataSegment implements ISegment, Serializable, IKeep {
         // Do nothing
     }
 
-    public Map<TblColRef, Dictionary<String>> buildDictionaryMap() {
-        Map<TblColRef, Dictionary<String>> result = Maps.newHashMap();
-        for (TblColRef col : getIndexPlan().getAllColumnsHaveDictionary()) {
-            result.put(col, getDictionary(col));
-        }
-        return result;
-    }
-
     public String getDictResPath(TblColRef col) {
         String r;
         String dictKey = col.getIdentity();
@@ -206,26 +194,6 @@ public class NDataSegment implements ISegment, Serializable, IKeep {
         }
 
         return r;
-    }
-
-    public Dictionary<String> getDictionary(TblColRef col) {
-        IndexPlan indexPlan = getIndexPlan();
-        TblColRef reuseCol = indexPlan.getDictionaryReuseColumn(col);
-        NDictionaryInfo info = null;
-        try {
-            NDictionaryManager dictMgr = NDictionaryManager.getInstance(getConfig(), this.dataflow.getProject());
-            String dictResPath = this.getDictResPath(reuseCol);
-            if (dictResPath == null)
-                return null;
-
-            info = dictMgr.getDictionaryInfo(dictResPath);
-            if (info == null)
-                throw new IllegalStateException("No dictionary found by " + dictResPath
-                        + ", invalid cube state; cube segment" + this + ", col " + reuseCol);
-        } catch (IOException e) {
-            throw new IllegalStateException("Failed to get dictionary for cube segment" + this + ", col" + reuseCol, e);
-        }
-        return info.getDictionaryObject();
     }
 
     // ============================================================================

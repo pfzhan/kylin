@@ -24,7 +24,6 @@
 
 package io.kyligence.kap.engine.spark.builder;
 
-import org.apache.kylin.dict.global.AppendTrieDictionaryHashBuilder;
 import org.apache.spark.Partitioner;
 
 public class NHashPartitioner extends Partitioner {
@@ -44,6 +43,11 @@ public class NHashPartitioner extends Partitioner {
         // if key is null, dispatch to partition 1;
         if (o == null)
             return 1;
-        return AppendTrieDictionaryHashBuilder.getHashKey(o.toString(), partitions);
+        return getHashKey(o.toString(), partitions);
+    }
+
+    private int getHashKey(String value, int partitions) {
+        int hashcode = value.hashCode();
+        return Math.abs(hashcode % partitions);
     }
 }

@@ -24,21 +24,15 @@
 package io.kyligence.kap.engine.spark;
 
 import java.io.Serializable;
-import java.nio.ByteBuffer;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
-import io.kyligence.kap.metadata.cube.model.NDataLayout;
-import io.kyligence.kap.engine.spark.job.NSparkCubingUtil;
 import org.apache.hadoop.util.Shell;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.StorageURL;
-import org.apache.kylin.cube.kv.RowKeyColumnIO;
-import org.apache.kylin.dimension.IDimensionEncodingMap;
 import org.apache.kylin.job.engine.JobEngineConfig;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.ExecutableState;
@@ -46,12 +40,9 @@ import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
 import org.apache.kylin.job.lock.MockJobLock;
-import org.apache.kylin.measure.MeasureCodec;
 import org.apache.kylin.metadata.model.ColumnDesc;
-import org.apache.kylin.metadata.model.MeasureDesc;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.TableDesc;
-import org.apache.kylin.metadata.model.TblColRef;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.spark.SparkConf;
 import org.apache.spark.sql.Dataset;
@@ -73,8 +64,6 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
-import io.kyligence.kap.metadata.cube.kv.NCubeDimEncMap;
-import io.kyligence.kap.metadata.cube.model.NDataSegDetails;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
@@ -82,7 +71,6 @@ import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
 import io.kyligence.kap.engine.spark.job.NSparkCubingJob;
 import io.kyligence.kap.engine.spark.job.NSparkCubingStep;
 import io.kyligence.kap.engine.spark.merger.AfterBuildResourceMerger;
-import io.kyligence.kap.engine.spark.storage.ParquetStorage;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import lombok.val;
@@ -192,42 +180,6 @@ public class NLocalWithSparkSessionTest extends NLocalFileMetadataTestCase imple
             return DataTypes.BooleanType;
 
         throw new IllegalArgumentException("KAP data type: " + type + " can not be converted to spark's type.");
-    }
-
-    protected List<Object[]> getCuboidDataAfterDecoding(NDataSegment seg, long cuboidLayoutId) {
-        NDataSegDetails segCuboids = seg.getSegDetails();
-        NDataLayout dataCuboid = NDataLayout.newDataLayout(segCuboids, cuboidLayoutId);
-        List<Object[]> resultFromLayout = new ArrayList<>();
-        ParquetStorage storage = new ParquetStorage();
-        Dataset<Row> ret = storage.getFrom(NSparkCubingUtil.getStoragePath(dataCuboid), ss);
-        IDimensionEncodingMap dimEncoding = new NCubeDimEncMap(seg);
-
-        for (TblColRef colRef : seg.getIndexPlan().getEffectiveDimCols().values()) {
-            dimEncoding.get(colRef);
-        }
-
-        LayoutEntity layout = dataCuboid.getLayout();
-        RowKeyColumnIO colIO = new RowKeyColumnIO(dimEncoding);
-        MeasureCodec measureCodec = new MeasureCodec(layout.getOrderedMeasures().values().toArray(new MeasureDesc[0]));
-        int ms = layout.getOrderedMeasures().size();
-
-        for (Row row : ret.collectAsList()) {
-            List<Object> l = new ArrayList<>();
-            int i = 0;
-            for (TblColRef rowkey : layout.getOrderedDimensions().values()) {
-                byte[] bytes = (byte[]) row.get(i);
-                String value = colIO.readColumnString(rowkey, bytes, 0, bytes.length);
-                l.add(value);
-                i++;
-            }
-            for (int j = 0; j < ms; j++, i++) {
-                ByteBuffer buffer = ByteBuffer.wrap((byte[]) row.get(i));
-                l.add(measureCodec.decode(j, buffer));
-            }
-            resultFromLayout.add(l.toArray());
-        }
-        return resultFromLayout;
-
     }
 
     protected ExecutableState wait(AbstractExecutable job) throws InterruptedException {
