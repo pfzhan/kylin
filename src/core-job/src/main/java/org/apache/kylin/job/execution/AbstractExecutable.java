@@ -246,14 +246,11 @@ public abstract class AbstractExecutable implements Executable, Idempotent {
 
         suicideIfNecessary();
         checkJobPaused();
-        final long startTime = getStartTime();
-        if (startTime > 0) {
-            updateJobOutput(project, getId(), ExecutableState.RUNNING, null, null);
-        } else {
-            Map<String, String> info = Maps.newHashMap();
-            info.put(START_TIME, Long.toString(System.currentTimeMillis()));
-            updateJobOutput(project, getId(), ExecutableState.RUNNING, info, null);
-        }
+        Map<String, String> info = Maps.newHashMap();
+        //if start time exists, reset start time
+        info.put(START_TIME, Long.toString(System.currentTimeMillis()));
+        updateJobOutput(project, getId(), ExecutableState.RUNNING, info, null);
+
     }
 
     protected void onExecuteFinished(ExecuteResult result, ExecutableContext executableContext) {
