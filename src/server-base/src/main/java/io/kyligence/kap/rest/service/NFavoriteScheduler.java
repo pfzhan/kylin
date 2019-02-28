@@ -51,10 +51,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
-import io.kyligence.kap.metadata.cube.model.NDataflowManager;
-import lombok.AllArgsConstructor;
-import lombok.NoArgsConstructor;
-import lombok.val;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
@@ -70,6 +66,7 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Ordering;
 
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
+import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.favorite.FavoriteQuery;
 import io.kyligence.kap.metadata.favorite.FavoriteQueryManager;
 import io.kyligence.kap.metadata.favorite.FavoriteRule;
@@ -80,8 +77,11 @@ import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.metadata.query.AccelerateRatioManager;
 import io.kyligence.kap.metadata.query.QueryHistory;
 import io.kyligence.kap.metadata.query.QueryHistoryDAO;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
+import lombok.val;
 
 public class NFavoriteScheduler {
     private static final Logger logger = LoggerFactory.getLogger(NFavoriteScheduler.class);
@@ -334,13 +334,13 @@ public class NFavoriteScheduler {
             ProjectInstance projectInstance = NProjectManager.getInstance(config).getProject(project);
             if ((projectInstance.getConfig().getFavoriteQueryAccelerateThresholdBatchEnabled())
                     && projectInstance.getConfig().getFavoriteQueryAccelerateThresholdAutoApply()) {
-                List<String> unAcceeleratedSqlPattern = manager.getUnAcceleratedSqlPattern();
-                if (unAcceeleratedSqlPattern.size() < projectInstance.getConfig()
+                List<String> unAcceleratedSqlPattern = manager.getUnAcceleratedSqlPattern();
+                if (unAcceleratedSqlPattern.size() < projectInstance.getConfig()
                         .getFavoriteQueryAccelerateThreshold()) {
                     return;
                 }
                 // accelerate
-                FavoriteQueryService.accelerate(unAcceeleratedSqlPattern, project, config);
+                FavoriteQueryService.accelerate(unAcceleratedSqlPattern, project, config);
             }
         }
 
@@ -379,7 +379,8 @@ public class NFavoriteScheduler {
 
             for (int frequency : orderingResult) {
                 for (String sqlPattern : sqlPatternsMap.get(frequency)) {
-                    if (FavoriteQueryManager.getInstance(KylinConfig.getInstanceFromEnv(), project).contains(sqlPattern))
+                    if (FavoriteQueryManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
+                            .contains(sqlPattern))
                         continue;
                     FavoriteQuery favoriteQuery = new FavoriteQuery(sqlPattern);
                     favoriteQuery.setChannel(FavoriteQuery.CHANNEL_FROM_RULE);

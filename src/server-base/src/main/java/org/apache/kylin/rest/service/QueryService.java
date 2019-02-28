@@ -120,8 +120,8 @@ import org.apache.kylin.rest.request.SQLRequest;
 import org.apache.kylin.rest.response.SQLResponse;
 import org.apache.kylin.rest.util.AclEvaluate;
 import org.apache.kylin.rest.util.AclPermissionUtil;
-import org.apache.kylin.rest.util.QueryRequestLimits;
 import org.apache.kylin.rest.util.QueryCacheSignatureUtil;
+import org.apache.kylin.rest.util.QueryRequestLimits;
 import org.apache.kylin.rest.util.TableauInterceptor;
 import org.apache.kylin.shaded.htrace.org.apache.htrace.Sampler;
 import org.apache.kylin.shaded.htrace.org.apache.htrace.Trace;
@@ -314,8 +314,8 @@ public class QueryService extends BasicService {
 
         KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
         String serverMode = kylinConfig.getServerMode();
-        if (!(Constant.SERVER_MODE_QUERY.equals(serverMode.toLowerCase())
-                || Constant.SERVER_MODE_ALL.equals(serverMode.toLowerCase()))) {
+        if (!(Constant.SERVER_MODE_QUERY.equalsIgnoreCase(serverMode)
+                || Constant.SERVER_MODE_ALL.equalsIgnoreCase(serverMode))) {
             throw new BadRequestException(String.format(msg.getQUERY_NOT_ALLOWED(), serverMode));
         }
         if (StringUtils.isBlank(sqlRequest.getProject())) {
@@ -343,8 +343,8 @@ public class QueryService extends BasicService {
             String sql = sqlRequest.getSql();
             String project = sqlRequest.getProject();
             boolean isQueryCacheEnabled = isQueryCacheEnabled(kylinConfig);
-            logger.info("Using project: " + project);
-            logger.info("The original query:  " + sql);
+            logger.info("Using project: {}", project);
+            logger.info("The original query: {}", sql);
 
             sql = QueryUtil.removeCommentInSql(sql);
 
@@ -415,6 +415,7 @@ public class QueryService extends BasicService {
         }).collect(Collectors.toList()));
         return sqlResponse;
     }
+
     private SQLResponse queryAndUpdateCache(SQLRequest sqlRequest, long startTime, boolean queryCacheEnabled) {
         KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
         Message msg = MsgPicker.getMsg();
@@ -820,7 +821,8 @@ public class QueryService extends BasicService {
 
             // special case for prepare query.
             if (BackdoorToggles.getPrepareOnly()) {
-                return getPrepareOnlySqlResponse(correctedSql, conn, isPushDown, results, columnMetas, sqlRequest.getProject());
+                return getPrepareOnlySqlResponse(correctedSql, conn, isPushDown, results, columnMetas,
+                        sqlRequest.getProject());
             }
 
             if (isPrepareStatementWithParams(sqlRequest)) {

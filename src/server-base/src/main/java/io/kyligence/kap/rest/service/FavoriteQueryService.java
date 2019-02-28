@@ -36,6 +36,7 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.collections.MapUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.Pair;
@@ -221,12 +222,12 @@ public class FavoriteQueryService extends BasicService {
     }
 
     public Map<String, Object> getAccelerateTips(String project) {
-        Preconditions.checkArgument(project != null && StringUtils.isNotEmpty(project));
+        Preconditions.checkArgument(StringUtils.isNotEmpty(project));
         Map<String, Object> data = Maps.newHashMap();
-        List<String> unAcceleratedSqls = getUnAcceleratedSqlPattern(project);
+        List<String> waitingAcceleratedSqls = getWaitingAcceleratingSqlPattern(project);
         int optimizedModelNum = 0;
 
-        data.put("size", unAcceleratedSqls.size());
+        data.put("size", waitingAcceleratedSqls.size());
         data.put("reach_threshold", false);
 
         ProjectInstance projectInstance = getProjectManager().getProject(project);
@@ -236,12 +237,11 @@ public class FavoriteQueryService extends BasicService {
         else
             ignoreCountMap.put(project, 1);
 
-        if (unAcceleratedSqls.size() >= projectInstance.getConfig().getFavoriteQueryAccelerateThreshold()
+        if (waitingAcceleratedSqls.size() >= projectInstance.getConfig().getFavoriteQueryAccelerateThreshold()
                 * ignoreCount) {
             data.put("reach_threshold", true);
-            if (!unAcceleratedSqls.isEmpty()) {
-                optimizedModelNum = getOptimizedModelNum(project,
-                        unAcceleratedSqls.toArray(new String[unAcceleratedSqls.size()]));
+            if (!waitingAcceleratedSqls.isEmpty()) {
+                optimizedModelNum = getOptimizedModelNum(project, waitingAcceleratedSqls.toArray(new String[0]));
             }
         }
 
@@ -254,12 +254,20 @@ public class FavoriteQueryService extends BasicService {
         return getFavoriteQueryManager(project).getUnAcceleratedSqlPattern();
     }
 
+    private List<String> getWaitingAcceleratingSqlPattern(String project) {
+        return getFavoriteQueryManager(project).getWaitingAccelerateSqlPattern();
+    }
+
     @Transaction(project = 0)
     public void acceptAccelerate(String project, int accelerateSize) {
         List<String> unAcceleratedSqlPattern = getUnAcceleratedSqlPattern(project);
         if (accelerateSize > unAcceleratedSqlPattern.size()) {
             throw new IllegalArgumentException(
                     String.format(MsgPicker.getMsg().getUNACCELERATE_FAVORITE_QUERIES_NOT_ENOUGH(), accelerateSize));
+        }
+
+        if (accelerateSize < unAcceleratedSqlPattern.size()) {
+            accelerateSize = unAcceleratedSqlPattern.size();
         }
 
         accelerate(unAcceleratedSqlPattern.subList(0, accelerateSize), project, getConfig());
@@ -302,9 +310,7 @@ public class FavoriteQueryService extends BasicService {
     static void handleAccelerate(String project, List<String> sqlList, String user) {
 
         KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
-        if (CollectionUtils.isEmpty(sqlList)) {
-            return;
-        } else {
+        if (!CollectionUtils.isEmpty(sqlList)) {
             // need parse sql
             NSmartMaster master = new NSmartMaster(kylinConfig, project, sqlList.toArray(new String[0]));
 
@@ -359,7 +365,7 @@ public class FavoriteQueryService extends BasicService {
             return blockedSqlInfo;
         }
         Map<String, AccelerateInfo> accelerateInfoMap = context.getAccelerateInfoMap();
-        if (accelerateInfoMap == null || accelerateInfoMap.size() == 0) {
+        if (MapUtils.isEmpty(accelerateInfoMap)) {
             return blockedSqlInfo;
         }
         for (Map.Entry<String, AccelerateInfo> accelerateInfoEntry : accelerateInfoMap.entrySet()) {
@@ -371,11 +377,11 @@ public class FavoriteQueryService extends BasicService {
         return blockedSqlInfo;
     }
 
-    private static int BLOCKING_CAUSE_MAX_LENGTH = 500;
+    private static final int BLOCKING_CAUSE_MAX_LENGTH = 500;
 
     private static void updateBlockedSqlStatus(Map<String, AccelerateInfo> blockedSqlInfo, KylinConfig kylinConfig,
             String project) {
-        if (blockedSqlInfo == null || blockedSqlInfo.size() == 0) {
+        if (MapUtils.isEmpty(blockedSqlInfo)) {
             return;
         }
         FavoriteQuery favoriteQuery;
@@ -476,7 +482,7 @@ public class FavoriteQueryService extends BasicService {
 
     @Scheduled(cron = "${kylin.favorite.adjust-cron:0 0 2 * * *}")
     public void adjustFavoriteQuery() {
-        String oldTheadName = Thread.currentThread().getName();
+        String oldThreadName = Thread.currentThread().getName();
 
         try {
             Thread.currentThread().setName("FavoriteQueryAdjustWorker");
@@ -505,7 +511,7 @@ public class FavoriteQueryService extends BasicService {
                         sqlSize, endTime - startTime, project);
             }
         } finally {
-            Thread.currentThread().setName(oldTheadName);
+            Thread.currentThread().setName(oldThreadName);
         }
 
     }

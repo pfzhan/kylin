@@ -23,9 +23,17 @@
  */
 package io.kyligence.kap.metadata.favorite;
 
+import java.util.List;
+import java.util.NavigableMap;
+import java.util.TreeMap;
+
+import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.persistence.RootPersistentEntity;
+
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.Lists;
+
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.metadata.query.QueryHistory;
 import lombok.Getter;
@@ -33,12 +41,6 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
 import lombok.val;
-import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.persistence.RootPersistentEntity;
-
-import java.util.List;
-import java.util.NavigableMap;
-import java.util.TreeMap;
 
 @Getter
 @Setter
@@ -132,7 +134,8 @@ public class FavoriteQuery extends RootPersistentEntity {
         // merge two maps
         favoriteQuery.getFrequencyMap()
                 .forEach((k, v) -> this.frequencyMap.merge(k, v, (value1, value2) -> value1 + value2));
-        long frequencyInitialDate = getDateInMillis(this.lastQueryTime) - KylinConfig.getInstanceFromEnv().getFavoriteQueryFrequencyTimeWindow();
+        long frequencyInitialDate = getDateInMillis(this.lastQueryTime)
+                - KylinConfig.getInstanceFromEnv().getFavoriteQueryFrequencyTimeWindow();
 
         while (this.frequencyMap.size() != 0) {
             if (frequencyInitialDate <= this.frequencyMap.firstKey())

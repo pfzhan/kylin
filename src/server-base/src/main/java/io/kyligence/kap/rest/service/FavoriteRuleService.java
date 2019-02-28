@@ -31,10 +31,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import com.google.common.base.Joiner;
-import io.kyligence.kap.metadata.favorite.FavoriteQuery;
-import io.kyligence.kap.metadata.query.AccelerateRatio;
-import io.kyligence.kap.metadata.query.AccelerateRatioManager;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.query.util.QueryUtil;
 import org.apache.kylin.rest.exception.BadRequestException;
@@ -48,10 +44,15 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+
+import io.kyligence.kap.metadata.favorite.FavoriteQuery;
 import io.kyligence.kap.metadata.favorite.FavoriteRule;
+import io.kyligence.kap.metadata.query.AccelerateRatio;
+import io.kyligence.kap.metadata.query.AccelerateRatioManager;
 import io.kyligence.kap.rest.response.ImportSqlResponse;
 import io.kyligence.kap.rest.response.SQLValidateResponse;
 import io.kyligence.kap.rest.transaction.Transaction;
@@ -187,7 +188,7 @@ public class FavoriteRuleService extends BasicService {
         Map<String, SQLValidateResult> map;
         try {
             AbstractSQLValidator sqlValidator = new SqlSyntaxValidator(getConfig(), project, new MockupQueryExecutor());
-            map = sqlValidator.batchValidate(sqls.toArray(new String[sqls.size()]));
+            map = sqlValidator.batchValidate(sqls.toArray(new String[0]));
         } catch (IOException e) {
             throw new InternalErrorException(MsgPicker.getMsg().getFAIL_TO_VERIFY_SQL(), e);
         }
@@ -205,7 +206,8 @@ public class FavoriteRuleService extends BasicService {
             try {
                 sqls.addAll(transformFileToSqls(file));
             } catch (Exception ex) {
-                logger.error("Error caught when parsing file {} because {} ", file.getOriginalFilename(), ex.getMessage());
+                logger.error("Error caught when parsing file {} because {} ", file.getOriginalFilename(),
+                        ex.getMessage());
                 filesParseFailed.add(file.getOriginalFilename());
             }
         }
@@ -229,7 +231,7 @@ public class FavoriteRuleService extends BasicService {
             sqlResponse.setSqlAdvices(validateResult.getSqlAdvices());
             sqlData.add(sqlResponse);
 
-            id ++;
+            id++;
         }
 
         // make sql grammar failed sqls ordered first
@@ -267,7 +269,7 @@ public class FavoriteRuleService extends BasicService {
         }
         content = QueryUtil.removeCommentInSql(content);
         String[] sqlsArray = content.split(";");
-        if (sqlsArray == null || sqlsArray.length == 0) {
+        if (sqlsArray.length == 0) {
             return sqls;
         }
         for (String sql : sqlsArray) {

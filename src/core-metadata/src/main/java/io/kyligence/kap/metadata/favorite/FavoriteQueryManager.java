@@ -23,19 +23,21 @@
  */
 package io.kyligence.kap.metadata.favorite;
 
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-import io.kyligence.kap.common.obf.IKeepNames;
-import io.kyligence.kap.metadata.project.NProjectManager;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
+
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.metadata.cachesync.CachedCrudAssist;
 import org.apache.kylin.metadata.project.ProjectInstance;
 
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.stream.Collectors;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+
+import io.kyligence.kap.common.obf.IKeepNames;
+import io.kyligence.kap.metadata.project.NProjectManager;
 
 public class FavoriteQueryManager implements IKeepNames {
 
@@ -172,8 +174,15 @@ public class FavoriteQueryManager implements IKeepNames {
 
     public List<String> getUnAcceleratedSqlPattern() {
         List<FavoriteQuery> favoriteQueries = crud.listAll().stream()
-                .filter(input -> input.getStatus().equals(FavoriteQueryStatusEnum.WAITING))
+                .filter(input -> input.getStatus() == FavoriteQueryStatusEnum.WAITING
+                        || input.getStatus() == FavoriteQueryStatusEnum.BLOCKED)
                 .collect(Collectors.toList());
+        return favoriteQueries.stream().map(FavoriteQuery::getSqlPattern).collect(Collectors.toList());
+    }
+
+    public List<String> getWaitingAccelerateSqlPattern() {
+        List<FavoriteQuery> favoriteQueries = crud.listAll().stream()
+                .filter(input -> input.getStatus() == FavoriteQueryStatusEnum.WAITING).collect(Collectors.toList());
         return favoriteQueries.stream().map(FavoriteQuery::getSqlPattern).collect(Collectors.toList());
     }
 

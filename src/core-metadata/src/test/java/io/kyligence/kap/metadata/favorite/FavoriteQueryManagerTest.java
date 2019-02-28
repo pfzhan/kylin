@@ -23,20 +23,22 @@
  */
 package io.kyligence.kap.metadata.favorite;
 
-import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
-import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
-import lombok.val;
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
-
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.TreeMap;
+
+import org.junit.After;
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.Test;
+
+import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
+
+import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import lombok.val;
 
 public class FavoriteQueryManagerTest extends NLocalFileMetadataTestCase {
     private static final String PROJECT = "default";
@@ -89,7 +91,11 @@ public class FavoriteQueryManagerTest extends NLocalFileMetadataTestCase {
         Assert.assertFalse(favoriteQueryManager.contains("sql7"));
 
         // insert sql that is already in fq
-        favoriteQueryManager.create(new HashSet<FavoriteQuery>(){{add(new FavoriteQuery("sql1"));}});
+        favoriteQueryManager.create(new HashSet<FavoriteQuery>() {
+            {
+                add(new FavoriteQuery("sql1"));
+            }
+        });
         Assert.assertEquals(6, favoriteQueryManager.getAll().size());
 
         // case of map size is zero
@@ -149,7 +155,7 @@ public class FavoriteQueryManagerTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(FavoriteQueryStatusEnum.FULLY_ACCELERATED, favoriteQueryManager.get("sql3").getStatus());
 
         // get unaccelerated favorite queries
-        Assert.assertEquals(3, favoriteQueryManager.getUnAcceleratedSqlPattern().size());
+        Assert.assertEquals(4, favoriteQueryManager.getUnAcceleratedSqlPattern().size());
 
         // update not exist sql pattern status, no exception
         favoriteQueryManager.updateStatus("not_exist_sql_pattern", FavoriteQueryStatusEnum.FULLY_ACCELERATED, null);
