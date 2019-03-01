@@ -272,11 +272,18 @@ public class FavoriteQueryServiceTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testIgnoreAccelerateTips() {
-        Assert.assertFalse(favoriteQueryService.getIgnoreCountMap().containsKey(PROJECT));
-        favoriteQueryService.getAccelerateTips(PROJECT);
-        Assert.assertTrue(favoriteQueryService.getIgnoreCountMap().containsKey(PROJECT));
-        favoriteQueryService.ignoreAccelerate(PROJECT);
-        Assert.assertEquals(2, (int) favoriteQueryService.getIgnoreCountMap().get(PROJECT));
+        var sqlPatterns = Mockito.mock(List.class);
+        FavoriteQueryManager favoriteQueryManager = Mockito.mock(FavoriteQueryManager.class);
+        Mockito.doReturn(40).when(sqlPatterns).size();
+        Mockito.doReturn(true).when(sqlPatterns).isEmpty();
+        Mockito.doReturn(sqlPatterns).when(favoriteQueryManager).getWaitingAccelerateSqlPattern();
+        Mockito.doReturn(favoriteQueryManager).when(favoriteQueryService).getFavoriteQueryManager(PROJECT);
+
+        Assert.assertTrue((boolean) favoriteQueryService.getAccelerateTips(PROJECT).get("reach_threshold"));
+
+        // ignore tips
+        favoriteQueryService.ignoreAccelerate(PROJECT, 40);
+        Assert.assertFalse((boolean) favoriteQueryService.getAccelerateTips(PROJECT).get("reach_threshold"));
     }
 
     @Test

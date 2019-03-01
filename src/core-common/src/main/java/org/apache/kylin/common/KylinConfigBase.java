@@ -1379,12 +1379,8 @@ abstract public class KylinConfigBase implements Serializable {
         return Integer.valueOf(this.getOptional("kylin.favorite.query-accelerate-threshold", "20"));
     }
 
-    public boolean getFavoriteQueryAccelerateThresholdBatchEnabled() {
-        return Boolean.valueOf(this.getOptional("kylin.favorite.query-accelerate-threshold-batch-enable", "true"));
-    }
-
-    public boolean getFavoriteQueryAccelerateThresholdAutoApply() {
-        return Boolean.valueOf(this.getOptional("kylin.favorite.query-accelerate-threshold-auto-apply", "false"));
+    public boolean getFavoriteQueryAccelerateTipsEnabled() {
+        return Boolean.valueOf(this.getOptional("kylin.favorite.query-accelerate-tips-enable", "true"));
     }
 
     public int getAutoMarkFavoriteInterval() {

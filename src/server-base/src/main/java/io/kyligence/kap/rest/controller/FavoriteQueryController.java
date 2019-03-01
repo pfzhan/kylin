@@ -37,7 +37,6 @@ import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.response.ResponseCode;
 import org.apache.kylin.rest.util.PagingUtil;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
@@ -117,11 +116,12 @@ public class FavoriteQueryController extends NBasicController {
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, "", "");
     }
 
-    @RequestMapping(value = "/ignore/{project}", method = RequestMethod.PUT)
+    @RequestMapping(value = "/ignore", method = RequestMethod.PUT)
     @ResponseBody
-    public EnvelopeResponse ignoreAccelerate(@PathVariable(value = "project") String project) {
+    public EnvelopeResponse ignoreAccelerate(@RequestParam(value = "project") String project,
+                                             @RequestParam(value = "ignoreSize") int ignoreSize) {
         checkProjectName(project);
-        favoriteQueryService.ignoreAccelerate(project);
+        favoriteQueryService.ignoreAccelerate(project, ignoreSize);
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, "", "");
     }
 

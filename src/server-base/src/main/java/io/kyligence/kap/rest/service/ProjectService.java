@@ -165,12 +165,10 @@ public class ProjectService extends BasicService {
 
     @Transaction(project = 0)
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#project, 'ADMINISTRATION')")
-    public void updateQueryAccelerateThresholdConfig(String project, Integer threshold, boolean autoApply,
-                                                     boolean batchEnabled) {
+    public void updateQueryAccelerateThresholdConfig(String project, Integer threshold, boolean tipsEnabled) {
         Map<String, String> overrideKylinProps = Maps.newHashMap();
-        overrideKylinProps.put("kylin.favorite.query-accelerate-threshold", threshold.toString());
-        overrideKylinProps.put("kylin.favorite.query-accelerate-threshold-batch-enable", batchEnabled + "");
-        overrideKylinProps.put("kylin.favorite.query-accelerate-threshold-auto-apply", autoApply + "");
+        overrideKylinProps.put("kylin.favorite.query-accelerate-threshold", String.valueOf(threshold));
+        overrideKylinProps.put("kylin.favorite.query-accelerate-tips-enable", String.valueOf(tipsEnabled));
         updateProjectOverrideKylinProps(project, overrideKylinProps);
     }
 
@@ -179,8 +177,7 @@ public class ProjectService extends BasicService {
         val thresholdResponse = new FavoriteQueryThresholdResponse();
         val config = projectInstance.getConfig();
         thresholdResponse.setThreshold(config.getFavoriteQueryAccelerateThreshold());
-        thresholdResponse.setBatchEnabled(config.getFavoriteQueryAccelerateThresholdBatchEnabled());
-        thresholdResponse.setAutoApply(config.getFavoriteQueryAccelerateThresholdAutoApply());
+        thresholdResponse.setTipsEnabled(config.getFavoriteQueryAccelerateTipsEnabled());
         return thresholdResponse;
     }
 
@@ -313,8 +310,7 @@ public class ProjectService extends BasicService {
         response.setRetentionRange(projectInstance.getSegmentConfig().getRetentionRange());
 
         response.setFavoriteQueryThreshold(config.getFavoriteQueryAccelerateThreshold());
-        response.setFavoriteQueryBatchEnabled(config.getFavoriteQueryAccelerateThresholdBatchEnabled());
-        response.setFavoriteQueryAutoApply(config.getFavoriteQueryAccelerateThresholdAutoApply());
+        response.setFavoriteQueryTipsEnabled(config.getFavoriteQueryAccelerateTipsEnabled());
 
         response.setDataLoadEmptyNotificationEnabled(config.getJobDataLoadEmptyNotificationEnabled());
         response.setJobErrorNotificationEnabled(config.getJobErrorNotificationEnabled());

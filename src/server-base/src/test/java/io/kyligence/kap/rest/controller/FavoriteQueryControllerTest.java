@@ -133,12 +133,14 @@ public class FavoriteQueryControllerTest {
 
     @Test
     public void testIgnoreAccelerate() throws Exception {
-        mockMvc.perform(MockMvcRequestBuilders.put("/api/query/favorite_queries/ignore/{project}", PROJECT)
+        mockMvc.perform(MockMvcRequestBuilders.put("/api/query/favorite_queries/ignore/")
+                .param("project", PROJECT)
+                .param("ignoreSize", "20")
                 .contentType(MediaType.APPLICATION_JSON)
                 .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
                 .andExpect(MockMvcResultMatchers.status().isOk());
 
-        Mockito.verify(favoriteQueryController).ignoreAccelerate(PROJECT);
+        Mockito.verify(favoriteQueryController).ignoreAccelerate(PROJECT, 20);
     }
 
     @Test

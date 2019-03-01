@@ -34,9 +34,6 @@ public class FavoriteQueryThresholdRequest {
     private String project;
     @JsonProperty("threshold")
     private int threshold;
-    @JsonProperty("batch_enabled")
-    private boolean batchEnabled;
-
-    @JsonProperty("auto_apply")
-    private boolean autoApply;
+    @JsonProperty("tips_enabled")
+    private boolean tipsEnabled;
 }

@@ -258,9 +258,10 @@ public class NFavoriteScheduler {
 
             // update related metadata
             UnitOfWork.doInTransactionWithRetry(() -> {
-                internalFavorite(candidates);
-
                 KylinConfig config = KylinConfig.getInstanceFromEnv();
+                FavoriteQueryManager manager = FavoriteQueryManager.getInstance(config, project);
+                manager.create(candidates);
+
                 QueryHistoryTimeOffsetManager timeOffsetManager = QueryHistoryTimeOffsetManager.getInstance(config,
                         project);
                 AccelerateRatioManager accelerateRatioManager = AccelerateRatioManager.getInstance(config, project);
@@ -326,24 +327,6 @@ public class NFavoriteScheduler {
             }
 
             return new AutoFavoriteInfo(startTime, queryMarkedAsFavoriteNum, overallQueryNum);
-        }
-
-        private void internalFavorite(final Set<FavoriteQuery> favoriteQueries) {
-            KylinConfig config = KylinConfig.getInstanceFromEnv();
-            FavoriteQueryManager manager = FavoriteQueryManager.getInstance(config, project);
-            manager.create(favoriteQueries);
-
-            ProjectInstance projectInstance = NProjectManager.getInstance(config).getProject(project);
-            if ((projectInstance.getConfig().getFavoriteQueryAccelerateThresholdBatchEnabled())
-                    && projectInstance.getConfig().getFavoriteQueryAccelerateThresholdAutoApply()) {
-                List<String> unAcceleratedSqlPattern = manager.getUnAcceleratedSqlPattern();
-                if (unAcceleratedSqlPattern.size() < projectInstance.getConfig()
-                        .getFavoriteQueryAccelerateThreshold()) {
-                    return;
-                }
-                // accelerate
-                FavoriteQueryService.accelerate(unAcceleratedSqlPattern, project, config);
-            }
         }
 
         private void addCandidatesByFrequencyRule(Set<FavoriteQuery> candidates) {

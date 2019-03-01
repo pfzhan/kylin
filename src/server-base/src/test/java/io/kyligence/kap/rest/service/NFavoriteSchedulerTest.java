@@ -50,7 +50,6 @@ import com.google.common.collect.Maps;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.event.manager.EventDao;
-import io.kyligence.kap.event.model.Event;
 import io.kyligence.kap.metadata.favorite.FavoriteQuery;
 import io.kyligence.kap.metadata.favorite.FavoriteQueryManager;
 import io.kyligence.kap.metadata.favorite.FavoriteQueryStatusEnum;
@@ -608,62 +607,6 @@ public class NFavoriteSchedulerTest extends NLocalFileMetadataTestCase {
         //        //sql1,sql2,sql4,sql5,sql6
         //        Assert.assertEquals(5, accelerateEvent.getSqlPatterns().size());
 
-    }
-
-    @Test
-    public void testAutoMark_AutoApply_NotReachThreshold() throws IOException {
-        // load some unaccelerated favorite queries
-        createUnacceleratedFavoriteQueries();
-        NProjectManager projectManager = NProjectManager.getInstance(getTestConfig());
-        ProjectInstance projectInstance = projectManager.getProject(PROJECT);
-        ProjectInstance projectInstanceUpdate = projectManager.copyForWrite(projectInstance);
-        projectInstanceUpdate.getOverrideKylinProps().put("kylin.favorite.query-accelerate-threshold-auto-apply",
-                "true");
-        projectInstanceUpdate.getOverrideKylinProps().put("kylin.favorite.query-accelerate-threshold", "6");
-        projectInstanceUpdate.getOverrideKylinProps().put("kylin.favorite.query-accelerate-threshold-batch-enable",
-                "true");
-        projectManager.updateProject(projectInstanceUpdate);
-
-        MockedQueryHistoryDao mockedQueryHistoryDao = new MockedQueryHistoryDao(getTestConfig(), PROJECT);
-        Mockito.doReturn(mockedQueryHistoryDao).when(favoriteScheduler).getQueryHistoryDao();
-        Mockito.doReturn(new MockedQueryHistoryDao(getTestConfig(), PROJECT).getCurrentTime()).when(favoriteScheduler)
-                .getSystemTime();
-
-        NFavoriteScheduler.AutoFavoriteRunner autoMarkFavoriteRunner = favoriteScheduler.new AutoFavoriteRunner();
-
-        EventDao eventDao = EventDao.getInstance(getTestConfig(), PROJECT);
-        eventDao.deleteAllEvents();
-        autoMarkFavoriteRunner.run();
-        List<Event> events = eventDao.getEvents();
-        Assert.assertEquals(0, events.size());
-    }
-
-    @Test
-    public void testAutoMark_UserApply_ReachThreshold() throws IOException {
-        // load some unaccelerated favorite queries
-        createUnacceleratedFavoriteQueries();
-        NProjectManager projectManager = NProjectManager.getInstance(getTestConfig());
-        ProjectInstance projectInstance = projectManager.getProject(PROJECT);
-        ProjectInstance projectInstanceUpdate = projectManager.copyForWrite(projectInstance);
-        projectInstanceUpdate.getOverrideKylinProps().put("kylin.favorite.query-accelerate-threshold-auto-apply",
-                "false");
-        projectInstanceUpdate.getOverrideKylinProps().put("kylin.favorite.query-accelerate-threshold", "3");
-        projectInstanceUpdate.getOverrideKylinProps().put("kylin.favorite.query-accelerate-threshold-batch-enable",
-                "true");
-        projectManager.updateProject(projectInstanceUpdate);
-
-        MockedQueryHistoryDao mockedQueryHistoryDao = new MockedQueryHistoryDao(getTestConfig(), PROJECT);
-        Mockito.doReturn(mockedQueryHistoryDao).when(favoriteScheduler).getQueryHistoryDao();
-        Mockito.doReturn(new MockedQueryHistoryDao(getTestConfig(), PROJECT).getCurrentTime()).when(favoriteScheduler)
-                .getSystemTime();
-
-        NFavoriteScheduler.AutoFavoriteRunner autoMarkFavoriteRunner = favoriteScheduler.new AutoFavoriteRunner();
-
-        EventDao eventDao = EventDao.getInstance(getTestConfig(), PROJECT);
-        eventDao.deleteAllEvents();
-        autoMarkFavoriteRunner.run();
-        List<Event> events = eventDao.getEvents();
-        Assert.assertEquals(0, events.size());
     }
 
     @Test

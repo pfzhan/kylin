@@ -127,8 +127,7 @@ public class NProjectController extends NBasicController {
         checkProjectName(favoriteQueryThresholdRequest.getProject());
         checkRequiredArg("threshold", favoriteQueryThresholdRequest.getThreshold());
         projectService.updateQueryAccelerateThresholdConfig(favoriteQueryThresholdRequest.getProject(),
-                favoriteQueryThresholdRequest.getThreshold(), favoriteQueryThresholdRequest.isAutoApply(),
-                favoriteQueryThresholdRequest.isBatchEnabled());
+                favoriteQueryThresholdRequest.getThreshold(), favoriteQueryThresholdRequest.isTipsEnabled());
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, null, "");
 
     }

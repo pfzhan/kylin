@@ -205,18 +205,18 @@ public class ProjectServiceTest extends ServiceTestBase {
     @Test
     public void testUpdateThreshold() throws Exception {
         Mockito.doReturn(true).when(aclEvaluate).hasProjectAdminPermission(Mockito.any(ProjectInstance.class));
-        projectService.updateQueryAccelerateThresholdConfig(PROJECT, 30, false, true);
+        projectService.updateQueryAccelerateThresholdConfig(PROJECT, 30, false);
         List<ProjectInstance> projectInstances = projectService.getReadableProjects(PROJECT);
         Assert.assertEquals("30",
                 projectInstances.get(0).getOverrideKylinProps().get("kylin.favorite.query-accelerate-threshold"));
+        Assert.assertEquals("false", projectInstances.get(0).getOverrideKylinProps().get("kylin.favorite.query-accelerate-tips-enable"));
     }
 
     @Test
     public void testGetThreshold() throws Exception {
         val response = projectService.getQueryAccelerateThresholdConfig(PROJECT);
         Assert.assertEquals(20, response.getThreshold());
-        Assert.assertTrue(response.isBatchEnabled());
-        Assert.assertFalse(response.isAutoApply());
+        Assert.assertTrue(response.isTipsEnabled());
     }
 
     @Test

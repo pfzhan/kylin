@@ -73,10 +73,8 @@ public class ProjectConfigResponse {
 
     @JsonProperty("threshold")
     private int favoriteQueryThreshold;
-    @JsonProperty("batch_enabled")
-    private boolean favoriteQueryBatchEnabled;
-    @JsonProperty("auto_apply")
-    private boolean favoriteQueryAutoApply;
+    @JsonProperty("tips_enabled")
+    private boolean favoriteQueryTipsEnabled;
 
     @JsonProperty("frequency_time_window")
     private String frequencyTimeWindow = "MONTH";

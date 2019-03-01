@@ -170,9 +170,8 @@ public class NProjectControllerTest {
         FavoriteQueryThresholdRequest favoriteQueryThresholdRequest = new FavoriteQueryThresholdRequest();
         favoriteQueryThresholdRequest.setProject("default");
         favoriteQueryThresholdRequest.setThreshold(20);
-        favoriteQueryThresholdRequest.setAutoApply(false);
-        favoriteQueryThresholdRequest.setBatchEnabled(true);
-        Mockito.doNothing().when(projectService).updateQueryAccelerateThresholdConfig("default", 20, false, true);
+        favoriteQueryThresholdRequest.setTipsEnabled(true);
+        Mockito.doNothing().when(projectService).updateQueryAccelerateThresholdConfig("default", 20, true);
         mockMvc.perform(MockMvcRequestBuilders.put("/api/projects/query_accelerate_threshold")
                 .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(favoriteQueryThresholdRequest))
                 .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
@@ -185,9 +184,8 @@ public class NProjectControllerTest {
     @Test
     public void testGetQueryAccelerateThreshold() throws Exception {
         FavoriteQueryThresholdResponse favoriteQueryThresholdResponse = new FavoriteQueryThresholdResponse();
-        favoriteQueryThresholdResponse.setAutoApply(true);
+        favoriteQueryThresholdResponse.setTipsEnabled(true);
         favoriteQueryThresholdResponse.setThreshold(20);
-        favoriteQueryThresholdResponse.setBatchEnabled(false);
         Mockito.doReturn(favoriteQueryThresholdResponse).when(projectService).getQueryAccelerateThresholdConfig("default");
         mockMvc.perform(MockMvcRequestBuilders.get("/api/projects/query_accelerate_threshold")
                 .contentType(MediaType.APPLICATION_JSON).param("project", "default")

@@ -35,6 +35,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import lombok.var;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.collections.MapUtils;
 import org.apache.commons.lang.StringUtils;
@@ -234,8 +235,6 @@ public class FavoriteQueryService extends BasicService {
         int ignoreCount = 1;
         if (ignoreCountMap.containsKey(project))
             ignoreCount = ignoreCountMap.get(project);
-        else
-            ignoreCountMap.put(project, 1);
 
         if (waitingAcceleratedSqls.size() >= projectInstance.getConfig().getFavoriteQueryAccelerateThreshold()
                 * ignoreCount) {
@@ -276,7 +275,7 @@ public class FavoriteQueryService extends BasicService {
             ignoreCountMap.put(project, 1);
     }
 
-    public static void accelerate(List<String> unAcceleratedSqlPatterns, String project, KylinConfig config) {
+    public void accelerate(List<String> unAcceleratedSqlPatterns, String project, KylinConfig config) {
         List<String> sqlPatterns = Lists.newArrayList();
         int batchAccelerateSize = config.getFavoriteAccelerateBatchSize();
         int count = 1;
@@ -297,17 +296,15 @@ public class FavoriteQueryService extends BasicService {
         }
     }
 
-    public void ignoreAccelerate(String project) {
-        int ignoreCount = ignoreCountMap.get(project);
-        ignoreCount++;
+    public void ignoreAccelerate(String project, int ignoreSize) {
+        var projectInstance = getProjectManager().getProject(project);
+        int threshold = projectInstance.getConfig().getFavoriteQueryAccelerateThreshold();
+
+        int ignoreCount = ignoreSize / threshold + 1;
         ignoreCountMap.put(project, ignoreCount);
     }
 
-    Map<String, Integer> getIgnoreCountMap() {
-        return ignoreCountMap;
-    }
-
-    static void handleAccelerate(String project, List<String> sqlList, String user) {
+    private void handleAccelerate(String project, List<String> sqlList, String user) {
 
         KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
         if (!CollectionUtils.isEmpty(sqlList)) {
@@ -359,7 +356,7 @@ public class FavoriteQueryService extends BasicService {
         }
     }
 
-    private static Map<String, AccelerateInfo> getBlockedSqlInfo(NSmartContext context) {
+    private Map<String, AccelerateInfo> getBlockedSqlInfo(NSmartContext context) {
         Map<String, AccelerateInfo> blockedSqlInfo = Maps.newHashMap();
         if (context == null) {
             return blockedSqlInfo;
@@ -379,7 +376,7 @@ public class FavoriteQueryService extends BasicService {
 
     private static final int BLOCKING_CAUSE_MAX_LENGTH = 500;
 
-    private static void updateBlockedSqlStatus(Map<String, AccelerateInfo> blockedSqlInfo, KylinConfig kylinConfig,
+    private void updateBlockedSqlStatus(Map<String, AccelerateInfo> blockedSqlInfo, KylinConfig kylinConfig,
             String project) {
         if (MapUtils.isEmpty(blockedSqlInfo)) {
             return;
@@ -402,15 +399,14 @@ public class FavoriteQueryService extends BasicService {
         }
     }
 
-    private static void updateFavoriteQueryStatus(List<String> sqlPatterns, String project,
-            FavoriteQueryStatusEnum status) {
+    private void updateFavoriteQueryStatus(List<String> sqlPatterns, String project, FavoriteQueryStatusEnum status) {
         val favoriteQueryJDBCDao = FavoriteQueryManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
         for (String sqlPattern : sqlPatterns) {
             favoriteQueryJDBCDao.updateStatus(sqlPattern, status, null);
         }
     }
 
-    private static List<String> getRelatedSqlsFromModelContext(NSmartContext.NModelContext modelContext,
+    private List<String> getRelatedSqlsFromModelContext(NSmartContext.NModelContext modelContext,
             Map<String, AccelerateInfo> blockedSqlInfo) {
         List<String> sqls = Lists.newArrayList();
         if (modelContext == null) {
@@ -435,8 +431,7 @@ public class FavoriteQueryService extends BasicService {
         return sqls;
     }
 
-    private static Pair<List<Long>, List<Long>> calcUpdatedLayoutIds(IndexPlan origIndexPlan,
-            IndexPlan targetIndexPlan) {
+    private Pair<List<Long>, List<Long>> calcUpdatedLayoutIds(IndexPlan origIndexPlan, IndexPlan targetIndexPlan) {
         Pair<List<Long>, List<Long>> pair = new Pair<>();
         List<Long> currentLayoutIds = new ArrayList<>();
         List<Long> toBeLayoutIds = new ArrayList<>();
@@ -464,7 +459,7 @@ public class FavoriteQueryService extends BasicService {
         return pair;
     }
 
-    private static List<Long> getLayoutIds(IndexPlan indexPlan) {
+    private List<Long> getLayoutIds(IndexPlan indexPlan) {
         List<Long> layoutIds = Lists.newArrayList();
         if (indexPlan == null) {
             return layoutIds;
