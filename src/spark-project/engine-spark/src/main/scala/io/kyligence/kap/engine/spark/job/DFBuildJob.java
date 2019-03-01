@@ -47,6 +47,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.BiMap;
+import com.google.common.collect.ImmutableBiMap;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.engine.spark.NSparkCubingEngine;
@@ -108,10 +110,11 @@ public class DFBuildJob extends SparkApplication {
                     buildFromFlatTable.getDataset().cache();
                     buildFromFlatTable.setSegment(seg);
                     sources.add(buildFromFlatTable);
+
                     // build cuboids from flat table
                     for (IndexEntity cuboid : buildFromFlatTable.getToBuildCuboids()) {
                         recursiveBuildCuboid(seg, cuboid, buildFromFlatTable.getDataset(),
-                                indexPlan.getEffectiveMeasures(), nSpanningTree);
+                                getToBuildMeas(nSpanningTree, cuboid, indexPlan), nSpanningTree);
                     }
                 }
 
@@ -138,7 +141,7 @@ public class DFBuildJob extends SparkApplication {
             Map<Integer, NDataModel.Measure> measures, NSpanningTree nSpanningTree) throws IOException {
         if (cuboid.getId() >= IndexEntity.TABLE_INDEX_START_ID) {
             Preconditions.checkArgument(cuboid.getMeasures().isEmpty());
-            Set<Integer> dimIndexes = cuboid.getEffectiveDimCols().keySet();                                  
+            Set<Integer> dimIndexes = cuboid.getEffectiveDimCols().keySet();
             Dataset<Row> afterPrj = parent.select(NSparkCubingUtil.getColumns(dimIndexes));
             // TODO: shard number should respect the shard column defined in cuboid
             for (LayoutEntity layout : nSpanningTree.getLayouts(cuboid)) {
@@ -252,7 +255,7 @@ public class DFBuildJob extends SparkApplication {
             Path goalPath = new Path(path);
             if (readFileSystem.exists(goalPath)) {
                 logger.info("Path {} is exists, delete it.", goalPath);
-                 readFileSystem.delete(goalPath, true);
+                readFileSystem.delete(goalPath, true);
             }
             if (readFileSystem.rename(new Path(tempPath), goalPath)) {
                 logger.info("Rename temp path to target path successfully. Temp path: {}, target path: {}.", tempPath,
@@ -262,6 +265,19 @@ public class DFBuildJob extends SparkApplication {
                         "Rename temp path to target path wrong. Temp path: %s, target path: %s.", tempPath, path));
             }
         }
+    }
+
+    public static ImmutableBiMap<Integer, NDataModel.Measure> getToBuildMeas(NSpanningTree nSpanningTree,
+            IndexEntity indexEntity, IndexPlan indexPlan) {
+        ImmutableBiMap.Builder<Integer, NDataModel.Measure> measuresBuilder = ImmutableBiMap.builder();
+
+        Set<Integer> measures = nSpanningTree.retrieveAllMeasures(indexEntity);
+        BiMap<Integer, NDataModel.Measure> meaMap = indexPlan.getEffectiveMeasures();
+
+        for (Integer meaId : measures) {
+            measuresBuilder.put(meaId, meaMap.get(meaId));
+        }
+        return measuresBuilder.build();
     }
 
     public static void main(String[] args) {

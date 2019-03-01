@@ -25,8 +25,7 @@ import java.util
 
 import com.google.common.collect.Lists.newArrayList
 import com.google.common.collect.Sets
-import io.kyligence.kap.engine.spark.job.{CuboidAggregator, DFChooser, UdfManager}
-import io.kyligence.kap.engine.spark.job.{CuboidAggregator, UdfManager}
+import io.kyligence.kap.engine.spark.job.{CuboidAggregator, DFBuildJob, DFChooser, UdfManager}
 import io.kyligence.kap.metadata.cube.cuboid.NSpanningTreeFactory
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager.NIndexPlanUpdater
 import io.kyligence.kap.metadata.cube.model._
@@ -91,6 +90,39 @@ class TestDFChooser extends SparderBaseFunSuite with SharedSparkSession with Loc
     })
 
     checkFlatTableEncoding(dfCopy.getUuid, dfCopy.getLastSegment, 1)
+  }
+
+  test("[INDEX_BUILD] - Check if the number of columns in the encode matches the number of columns in agg") {
+    val dsMgr: NDataflowManager = NDataflowManager.getInstance(getTestConfig, DEFAULT_PROJECT)
+    val df: NDataflow = dsMgr.getDataflow(CUBE_ID1)
+    val indexMgr: NIndexPlanManager = NIndexPlanManager.getInstance(getTestConfig, DEFAULT_PROJECT)
+    val dfCopy = df.copy()
+
+    val indexPlan = indexMgr.getIndexPlan(CUBE_ID1)
+    val segment = dfCopy.getLastSegment
+
+    // Check for the presence of the encode column
+    checkEncodeAndAggIsMatch(segment, indexPlan, 0)
+
+    // Check for the absence of an encode column
+    checkEncodeAndAggIsMatch(segment, indexPlan, 1)
+  }
+
+  private def checkEncodeAndAggIsMatch(segment: NDataSegment, indexPlan: IndexPlan, indexId: Int): Unit = {
+    val nSpanningTree = NSpanningTreeFactory.fromLayouts(
+      segment.getIndexPlan.getAllIndexes.get(indexId).getLayouts, MODEL_ID)
+    val flatTableEncodeSet = DictionaryBuilder.extractGlobalEncodeColumns(segment, nSpanningTree)
+
+    val meas = DFBuildJob.getToBuildMeas(nSpanningTree, indexPlan.getAllIndexes.get(indexId), indexPlan)
+
+    val flatTableAggSet = new util.HashSet[TblColRef]()
+    for (mea <- meas.values().asScala) {
+      if (DictionaryBuilder.needGlobalDictionary(mea) != null) {
+        val col = mea.getFunction.getParameter.getColRef
+        flatTableAggSet.add(col)
+      }
+    }
+    Assert.assertEquals(flatTableEncodeSet.size(), flatTableAggSet.size())
   }
 
   test("[INC_BUILD] - check df chooser and cuboid agg") {
