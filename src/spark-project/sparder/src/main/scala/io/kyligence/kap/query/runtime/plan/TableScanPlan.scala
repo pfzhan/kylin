@@ -27,7 +27,7 @@ import com.github.lightcopy.implicits._
 import com.google.common.collect.Sets
 import io.kyligence.kap.metadata.cube.cuboid.NLayoutCandidate
 import io.kyligence.kap.metadata.cube.gridtable.NCuboidToGridTableMapping
-import io.kyligence.kap.metadata.cube.model.{NDataflow, NDataSegment}
+import io.kyligence.kap.metadata.cube.model.{NDataSegment, NDataflow}
 import io.kyligence.kap.query.exception.UnsupportedQueryException
 import io.kyligence.kap.query.relnode.KapRel
 import io.kyligence.kap.query.runtime.RuntimeHelper
@@ -50,7 +50,6 @@ import scala.collection.JavaConverters._
 
 // scalastyle:off
 object TableScanPlan extends Logging {
-  private var session: SparkSession = SparderEnv.getSparkSession
   private val kylinConfig: KapConfig = KapConfig.getInstanceFromEnv
 
   //
@@ -65,12 +64,9 @@ object TableScanPlan extends Logging {
   }
 
   def createOLAPTable(rel: KapRel, dataContext: DataContext): DataFrame = {
-    val start = System.currentTimeMillis()
-    if (session.sparkContext.isStopped) {
-      SparderEnv.initSpark()
-      session = SparderEnv.getSparkSession
-    }
 
+    val start = System.currentTimeMillis()
+    val session: SparkSession = SparderEnv.getSparkSession
     val olapContext = rel.getContext
     rel.getContext.bindVariable(dataContext)
     val realization = olapContext.realization
@@ -170,6 +166,21 @@ object TableScanPlan extends Logging {
       }
       .reduce(_.union(_))
     logInfo(s"Gen table scan cost Time :${System.currentTimeMillis() - start} ")
+
+    if (olapContext.isConstantQueryWithoutAggregation()) {
+      val countIndex = olapContext.returnTupleInfo.getFieldIndex("_KY_COUNT__");
+      var totalCount = 0
+      cuboidDF.rdd.collect.foreach {
+        row => {
+          if (row.length <= countIndex || row.get(countIndex) == null || !(row.get(countIndex).isInstanceOf[Long])) {
+            throw new IllegalArgumentException("Query without aggregation's result does not match olapContext's returnTupleInfo");
+          }
+          totalCount = totalCount + row.get(countIndex).asInstanceOf[Long].toInt
+        }
+      }
+      return createSimpleRowsDF(totalCount)
+    }
+
     cuboidDF
   }
 
@@ -294,10 +305,8 @@ object TableScanPlan extends Logging {
   }
 
   def createLookupTable(rel: KapRel, dataContext: DataContext): DataFrame = {
-    if (session.sparkContext.isStopped) {
-      SparderEnv.initSpark()
-      session = SparderEnv.getSparkSession
-    }
+
+    val session = SparderEnv.getSparkSession
     val olapContext = rel.getContext
     var instance: NDataflow = olapContext.realization.asInstanceOf[NDataflow]
 
@@ -309,6 +318,9 @@ object TableScanPlan extends Logging {
     val lookupDf = SparderLookupManager.getOrCreate(dataFrameTableName,
       snapshotResPath,
       config)
+    if (olapContext.isConstantQueryWithoutAggregation()) {
+      return createSimpleRowsDF(lookupDf.count().toInt)
+    }
     val olapTable = olapContext.firstTableScan.getOlapTable
     val alisTableName = olapContext.firstTableScan.getBackupAlias
     val newNames = lookupDf.schema.fieldNames.map { name =>
@@ -354,5 +366,19 @@ object TableScanPlan extends Logging {
       }
     )
     expanded
+  }
+  
+  def createSingleRow(rel: KapRel, dataContext: DataContext): DataFrame = {
+    createSimpleRowsDF(1)
+  }
+
+  def createSimpleRowsDF(rowCount: Int): DataFrame = {
+
+    val session = SparderEnv.getSparkSession
+    val fields = List[StructField]()
+    val row = Row.fromSeq(List[Object]())
+    val rows = List.fill(rowCount)(row)
+    val rdd = session.sparkContext.makeRDD(rows)
+    session.createDataFrame(rdd, StructType(fields))
   }
 }

@@ -118,7 +118,14 @@ public class KapAggregateRel extends OLAPAggregateRel implements KapRel {
             // only translate the innermost aggregation
             if (!this.afterAggregate) {
                 addToContextGroupBy(this.groups);
-                this.context.aggregations.addAll(this.aggregations);
+                for (FunctionDesc agg : aggregations) {
+                    if (agg.isAggregateOnConstant()) {
+                        this.context.constantAggregations.add(agg);
+                    } else {
+                        this.context.aggregations.add(agg);
+                    }
+                }
+
                 this.context.aggrOutCols.addAll(
                         columnRowType.getAllColumns().subList(groups.size(), columnRowType.getAllColumns().size()));
                 this.context.afterAggregate = true;
@@ -181,7 +188,11 @@ public class KapAggregateRel extends OLAPAggregateRel implements KapRel {
                     continue;
                 }
 
-                FunctionDesc cubeFunc = this.context.aggregations.get(i);
+                FunctionDesc cubeFunc = this.aggregations.get(i);
+                if (cubeFunc.isAggregateOnConstant()) {
+                    this.rewriteAggCalls.add(aggCall);
+                    continue;
+                }
                 aggCall = rewriteAggCall(aggCall, cubeFunc);
                 this.rewriteAggCalls.add(aggCall);
                 this.context.aggrSqlCalls.add(toSqlCall(aggCall));

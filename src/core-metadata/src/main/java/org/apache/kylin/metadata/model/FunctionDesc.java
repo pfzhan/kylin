@@ -276,6 +276,10 @@ public class FunctionDesc implements Serializable {
         return FUNC_COUNT.equalsIgnoreCase(expression) && parameter != null && parameter.isColumnType();
     }
 
+    public boolean isAggregateOnConstant() {
+        return !this.isCount() && parameter != null && parameter.isConstantParameterDesc();
+    }
+
     public boolean isCountConstant() {//count(*) and count(1)
         return FUNC_COUNT.equalsIgnoreCase(expression) && (parameter == null || parameter.isConstant());
     }

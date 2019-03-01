@@ -480,7 +480,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
 
             //make sure test_kylin_fact contains all computed columns
             factColumns = getFactColumns(tableMetas4default);
-            Assert.assertEquals(22, factColumns.size());
+            Assert.assertEquals(23, factColumns.size());
             Assert.assertTrue(getColumnNames(factColumns).containsAll(Arrays.asList("_CC_DEAL_YEAR", "_CC_DEAL_AMOUNT",
                     "_CC_LEFTJOIN_BUYER_ID_AND_COUNTRY_NAME", "_CC_LEFTJOIN_SELLER_ID_AND_COUNTRY_NAME",
                     "_CC_LEFTJOIN_BUYER_COUNTRY_ABBR", "_CC_LEFTJOIN_SELLER_COUNTRY_ABBR")));

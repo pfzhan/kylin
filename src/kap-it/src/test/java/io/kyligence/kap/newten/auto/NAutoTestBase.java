@@ -131,6 +131,7 @@ public class NAutoTestBase extends NLocalWithSparkSessionTest {
         final NSmartMaster smartMaster = proposeWithSmartMaster(testScenarios, getProject());
 
         final Map<String, CompareEntity> compareMap = collectCompareEntity(smartMaster);
+
         try (KapSparkSession kapSparkSession = new KapSparkSession(SparkContext.getOrCreate(sparkConf))) {
             // 2. execute cube building
             kapSparkSession.use(getProject());
@@ -149,14 +150,13 @@ public class NAutoTestBase extends NLocalWithSparkSessionTest {
                     NExecAndComp.execAndCompareNew(testScenario.queries, kapSparkSession, testScenario.compareLevel,
                             testScenario.joinType.name(), compareMap);
                 }
-
-                // 4. compare layout propose result and query cube result
-                RecAndQueryCompareUtil.computeCompareRank(kylinConfig, getProject(), compareMap);
             });
         } finally {
             FileUtils.deleteDirectory(new File("../kap-it/metastore_db"));
         }
 
+        // 4. compare layout propose result and query cube result
+        RecAndQueryCompareUtil.computeCompareRank(kylinConfig, getProject(), compareMap);
         // 5. check layout
         assertOrPrintCmpResult(compareMap, needCompareLayouts);
 
@@ -184,6 +184,7 @@ public class NAutoTestBase extends NLocalWithSparkSessionTest {
         // print details
         compareMap.forEach((key, value) -> {
             final String sqlPattern = QueryPatternUtil.normalizeSQLPattern(key);
+            log.debug("**start comparing the SQL: \n{} \n accelerate layout info**", key);
             if (!excludedSqlPatterns.contains(sqlPattern) && needCompareLayouts) {
                 Assert.assertEquals(value.getAccelerateLayouts(), value.getQueryUsedLayouts());
             } else {
@@ -196,8 +197,10 @@ public class NAutoTestBase extends NLocalWithSparkSessionTest {
 
         Set<String> result = Sets.newHashSet();
         final String folder = getFolder("unchecked_layout_list");
-        final File[] files = new File(folder).listFiles();
-        Preconditions.checkState(files != null && files.length != 0);
+        File[] files = new File(folder).listFiles();
+        if (files == null || files.length == 0) {
+            return result;
+        }
 
         String[] fileContentArr = new String(getFileBytes(files[0])).split(FILE_SEPARATOR);
         final List<String> fileNames = Arrays.stream(fileContentArr)

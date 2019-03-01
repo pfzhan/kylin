@@ -59,6 +59,7 @@ public class OLAPQuery extends AbstractEnumerable<Object[]> implements Enumerabl
     private static final Logger logger = LoggerFactory.getLogger(OLAPQuery.class);
 
     public enum EnumeratorTypeEnum {
+        SIMPLE_AGGREGATION, //probing query like select min(2) from table
         OLAP, //finish query with Cube or II, or a combination of both
         HIVE //using hive
     }
@@ -78,14 +79,17 @@ public class OLAPQuery extends AbstractEnumerable<Object[]> implements Enumerabl
     }
 
     public Enumerator<Object[]> enumerator() {
+        if (BackdoorToggles.getPrepareOnly())
+            return new EmptyEnumerator();
         OLAPContext olapContext = OLAPContext.getThreadLocalContextById(contextId);
         olapContext.setEnumeratorType(type);
         switch (type) {
+        case SIMPLE_AGGREGATION:
+            return new SingleRowEnumerator();
         case OLAP:
-            return BackdoorToggles.getPrepareOnly() ? new EmptyEnumerator()
-                    : new OLAPEnumerator(olapContext, optiqContext);
+            return new OLAPEnumerator(olapContext, optiqContext);
         case HIVE:
-            return BackdoorToggles.getPrepareOnly() ? new EmptyEnumerator() : new HiveEnumerator(olapContext);
+            return new HiveEnumerator(olapContext);
         default:
             throw new IllegalArgumentException("Wrong type " + type + "!");
         }
@@ -113,6 +117,47 @@ public class OLAPQuery extends AbstractEnumerable<Object[]> implements Enumerabl
 
         @Override
         public void reset() {
+        }
+    }
+
+    private abstract static class RowCountEnumerator implements Enumerator<Object[]> {
+        private int currentRowCount = 0;
+        protected int totalRowCount = 1;
+
+        public RowCountEnumerator() {
+            logger.debug("Using ColumnCount enumerator");
+        }
+
+         @Override
+        public void close() {
+        }
+
+         @Override
+        public Object[] current() {
+            return currentRowCount == totalRowCount ? null : new Object[0];
+        }
+
+         @Override
+        public boolean moveNext() {
+            if (currentRowCount == totalRowCount) {
+                return false;
+            }
+            currentRowCount++;
+            return true;
+        }
+
+         @Override
+        public void reset() {
+            currentRowCount = 0;
+        }
+    }
+
+     private static class SingleRowEnumerator extends RowCountEnumerator {
+
+         public SingleRowEnumerator() {
+            super();
+            logger.debug("Using SingleRow enumerator");
+            totalRowCount = 1;
         }
     }
 }

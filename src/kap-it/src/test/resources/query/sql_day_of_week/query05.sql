@@ -1,0 +1,4 @@
+SELECT dayofyear(CAL_DT) as doy1
+FROM TEST_KYLIN_FACT as TEST_KYLIN_FACT
+group by TEST_KYLIN_FACT.CAL_DT
+order by doy1

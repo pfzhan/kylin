@@ -150,7 +150,7 @@ public class CuboidSuggesterTest extends NTestBase {
         String[] sqls = new String[] { "select count(*) from kylin_sales", // count star
                 "select count(price) from kylin_sales", // measure with column
                 "select sum(price) from kylin_sales", //
-                "select 1 as ttt from kylin_sales" // no dimension and no measure
+                "select 1 as ttt from kylin_sales" // no dimension and no measure, but will suggest count(*)
         };
 
         NSmartMaster smartMaster = new NSmartMaster(getTestConfig(), proj, sqls);
@@ -165,7 +165,7 @@ public class CuboidSuggesterTest extends NTestBase {
 
         final IndexPlan targetIndexPlan = mdCtx.getTargetIndexPlan();
         final List<IndexEntity> allCuboids = targetIndexPlan.getAllIndexes();
-        Assert.assertEquals(4, allCuboids.size());
+        Assert.assertEquals(3, allCuboids.size());
 
         final IndexEntity indexEntity0 = allCuboids.get(0);
         Assert.assertEquals(1, indexEntity0.getLayouts().size());
@@ -181,11 +181,6 @@ public class CuboidSuggesterTest extends NTestBase {
         Assert.assertEquals(1, indexEntity2.getLayouts().size());
         Assert.assertEquals(IndexEntity.INDEX_ID_STEP * 2 + 1, indexEntity2.getLayouts().get(0).getId());
         Assert.assertEquals("[100000, 100002]", indexEntity2.getLayouts().get(0).getColOrder().toString());
-
-        final IndexEntity indexEntity3 = allCuboids.get(3);
-        Assert.assertEquals(1, indexEntity3.getLayouts().size());
-        Assert.assertEquals(20000000001L, indexEntity3.getLayouts().get(0).getId());
-        Assert.assertEquals("[0]", indexEntity3.getLayouts().get(0).getColOrder().toString());
     }
 
     @Test

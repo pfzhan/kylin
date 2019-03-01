@@ -1,0 +1,5 @@
+SELECT
+dayofmonth(CAL_DT) as d3
+FROM TEST_KYLIN_FACT as TEST_KYLIN_FACT
+group by TEST_KYLIN_FACT.CAL_DT
+order by d3

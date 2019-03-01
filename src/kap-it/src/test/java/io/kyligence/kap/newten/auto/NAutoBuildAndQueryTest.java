@@ -26,6 +26,7 @@ package io.kyligence.kap.newten.auto;
 
 import java.util.Set;
 
+import org.apache.kylin.common.KylinConfig;
 import org.junit.Ignore;
 import org.junit.Test;
 
@@ -41,55 +42,62 @@ public class NAutoBuildAndQueryTest extends NAutoTestBase {
         executeTestScenario(
                 /* CompareLevel = SAME */
                 new TestScenario(CompareLevel.SAME, "sql"), //
-                new TestScenario(CompareLevel.SAME, "sql_lookup"), //
-                new TestScenario(CompareLevel.SAME, "sql_like"), //
+                new TestScenario(CompareLevel.SAME, "sql_boolean"), //
                 new TestScenario(CompareLevel.SAME, "sql_cache"), //
-                new TestScenario(CompareLevel.SAME, "sql_derived"), //
+                new TestScenario(CompareLevel.SAME, "sql_casewhen"), //
+                new TestScenario(CompareLevel.SAME, "sql_cross_join"), //
                 new TestScenario(CompareLevel.SAME, "sql_datetime"), //
+                new TestScenario(CompareLevel.SAME, "sql_derived"), //
                 new TestScenario(CompareLevel.SAME, "sql_distinct"), //
                 new TestScenario(CompareLevel.SAME, "sql_distinct_dim"), //
-                new TestScenario(CompareLevel.SAME, "sql_multi_model"), //
-                new TestScenario(CompareLevel.SAME, "sql_orderby"), //
-                new TestScenario(CompareLevel.SAME, "sql_snowflake"), //
-                new TestScenario(CompareLevel.SAME, "sql_join"), //
-                new TestScenario(CompareLevel.SAME, "sql_union"), //
+                new TestScenario(CompareLevel.SAME, "sql_extended_column"), //
                 new TestScenario(CompareLevel.SAME, "sql_grouping"), //
                 new TestScenario(CompareLevel.SAME, "sql_hive"), //
-                new TestScenario(CompareLevel.SAME, "sql_raw"), //
-                new TestScenario(CompareLevel.SAME, "sql_rawtable"), //
-                new TestScenario(CompareLevel.SAME, "sql_subquery"), //
+                new TestScenario(CompareLevel.SAME, "sql_join"), //
+                new TestScenario(CompareLevel.SAME, "sql_like"), //
+                new TestScenario(CompareLevel.SAME, "sql_lookup"), //
                 new TestScenario(CompareLevel.SAME, "sql_magine"), //
                 new TestScenario(CompareLevel.SAME, "sql_magine_inner"), //
+                new TestScenario(CompareLevel.SAME, "sql_magine_left"), //
                 new TestScenario(CompareLevel.SAME, "sql_magine_window"), //
+                new TestScenario(CompareLevel.SAME, "sql_multi_model"), //
+                new TestScenario(CompareLevel.SAME, "sql_orderby"), //
+                new TestScenario(CompareLevel.SAME, "sql_ordinal"), //
+                new TestScenario(CompareLevel.SAME, "sql_probe"), //
+                new TestScenario(CompareLevel.SAME, "sql_raw"), //
+                new TestScenario(CompareLevel.SAME, "sql_rawtable"), //
+                new TestScenario(CompareLevel.SAME, "sql_should_work"), //
+                new TestScenario(CompareLevel.SAME, "sql_snowflake"), //
+                new TestScenario(CompareLevel.SAME, "sql_sparder_function"), //
+                new TestScenario(CompareLevel.SAME, "sql_subquery"), //
+                new TestScenario(CompareLevel.SAME, "sql_tableau"), //
+                new TestScenario(CompareLevel.SAME, "sql_udf"), //
+                new TestScenario(CompareLevel.SAME, "sql_value"), new TestScenario(CompareLevel.SAME, "sql_count_star"),
+                new TestScenario(CompareLevel.SAME, "sql_union"), //
+                new TestScenario(CompareLevel.SAME, "sql_noagg"),
 
                 /* CompareLevel = SAME, JoinType = LEFT */
                 new TestScenario(CompareLevel.SAME, JoinType.LEFT, "sql_distinct_precisely"), //
                 new TestScenario(CompareLevel.SAME, JoinType.LEFT, "sql_topn"), //
 
                 /* CompareLevel = SAME_ROWCOUNT */
-                new TestScenario(CompareLevel.SAME_ROWCOUNT, "sql_tableau"), //
 
                 /* CompareLevel = NONE */
+                new TestScenario(CompareLevel.NONE, "sql_sparder_only"), //
+                new TestScenario(CompareLevel.NONE, "sql_current_date"), //
+                new TestScenario(CompareLevel.NONE, "sql_h2_uncapable"), //
                 new TestScenario(CompareLevel.NONE, "sql_timestamp"), //
-                new TestScenario(CompareLevel.NONE, "sql_window"), //
-                new TestScenario(CompareLevel.NONE, "sql_h2_uncapable"));
+                new TestScenario(CompareLevel.NONE, "sql_window"));
 
-        // FIXME  https://github.com/Kyligence/KAP/issues/8090   percentile and sql_intersect_count do not support
-        // new TestScenario("sql_intersect_count", CompareLevel.NONE, "left")
-        // new TestScenario("sql_percentile", CompareLevel.NONE)//,
-        // new TestScenario("sql_powerbi", CompareLevel.SAME),
-    }
-
-    @Test
-    public void testCountStar() throws Exception {
-        new TestScenario(CompareLevel.SAME, "sql_count_star").execute();
     }
 
     @Test
     @Ignore("For development")
     public void testTemp() throws Exception {
+        KylinConfig.getInstanceFromEnv().setProperty("kylin.query.calcite.extras-props.conformance", "DEFAULT");
         Set<String> exclusionList = Sets.newHashSet();
-        new TestScenario(CompareLevel.SAME, "temp", exclusionList).execute();
+        overwriteSystemProp("calcite.debug", "true");
+        new TestScenario(CompareLevel.NONE, "temp", exclusionList).execute();
     }
 
     /***************
@@ -100,6 +108,11 @@ public class NAutoBuildAndQueryTest extends NAutoTestBase {
         overwriteSystemProp("kylin.query.pushdown.runner-class-name",
                 "io.kyligence.kap.query.pushdown.PushDownRunnerSparkImpl");
         new TestScenario(CompareLevel.SAME, "sql_powerbi").execute();
+    }
+
+    @Test
+    public void testLimit() throws Exception {
+        new TestScenario(CompareLevel.SAME_ROWCOUNT, "sql_limit").execute();
     }
 
     @Ignore("not storage query, skip")
@@ -114,30 +127,54 @@ public class NAutoBuildAndQueryTest extends NAutoTestBase {
     }
 
     /**
-     * Following cased are not in Newten M1 scope
+     * Following cased are not supported in auto-model test
      */
-    @Ignore("not in Newten M1 scope")
+    @Ignore("not supported")
     @Test
     public void testNotSupported() throws Exception {
 
+        // FIXME  https://github.com/Kyligence/KAP/issues/8090  
+        // percentile and sql_intersect_count do not support
+        // new TestScenario(CompareLevel.SAME, "sql_intersect_count")
+        // new TestScenario(CompareLevel.SAME, "sql_percentile")//,
+
         /* CompareLevel = SAME */
+
+        // different test method, already covered by SAME
         new TestScenario(CompareLevel.SAME, "sql_verifyContent").execute();
+
+        // Covered by manual test with fixed 
+        new TestScenario(CompareLevel.SAME, "sql_computedcolumn").execute();
+        new TestScenario(CompareLevel.SAME, "sql_computedcolumn_common").execute();
+        new TestScenario(CompareLevel.SAME, "sql_computedcolumn_leftjoin").execute();
+
+        // Use NONE, SparkSQL does not support udf TimestampAdd
         new TestScenario(CompareLevel.SAME, "sql_current_date").execute();
-        new TestScenario(CompareLevel.SAME, "sql_percentile").execute();
-        new TestScenario(CompareLevel.SAME, "sql_extended_column").execute();
 
         /* CompareLevel = NONE */
-        new TestScenario(CompareLevel.NONE, "sql_timeout").execute();
-        new TestScenario(CompareLevel.NONE, "sql_streaming").execute();
-        new TestScenario(CompareLevel.NONE, "sql_massin_distinct").execute();
-        new TestScenario(CompareLevel.NONE, "sql_massin").execute();
-        new TestScenario(CompareLevel.NONE, "sql_limit").execute();
-        new TestScenario(CompareLevel.NONE, "sql_invalid").execute();
-        new TestScenario(CompareLevel.NONE, "sql_dynamic").execute();
+
+        // test bad query detector
+        // see ITKapKylinQueryTest.runTimeoutQueries
         new TestScenario(CompareLevel.NONE, "sql_timeout").execute();
 
+        // stream not testable
+        new TestScenario(CompareLevel.NONE, "sql_streaming").execute();
+
+        // see ITMassInQueryTest
+        new TestScenario(CompareLevel.NONE, "sql_massin_distinct").execute();
+        new TestScenario(CompareLevel.NONE, "sql_massin").execute();
+
+        // see ITKylinQueryTest.testInvalidQuery
+        new TestScenario(CompareLevel.NONE, "sql_invalid").execute();
+
+        // see KylinTestBase.execAndCompDynamicQuery
+        new TestScenario(CompareLevel.NONE, "sql_dynamic").execute();
+
         /* CompareLevel = SAME_ROWCOUNT */
+
+        // different test method
         new TestScenario(CompareLevel.SAME_ROWCOUNT, "sql_verifyCount").execute();
+
     }
 
     @Override

@@ -4,7 +4,7 @@ FROM (
 	FROM test_kylin_fact t1
 	where leaf_categ_id > 80000
 	GROUP BY leaf_categ_id
-) t3
+)
 	CROSS JOIN (
 		SELECT SUM(price) AS sum_price_2
 		FROM test_kylin_fact

@@ -27,7 +27,7 @@ FROM
      (SELECT SELLER_ID,
              round(SUM(PRICE), 0) AS "X_measure__2"
       FROM TEST_KYLIN_FACT
-      GROUP BY SELLER_ID) "t0" HAVING (COUNT(1) > 0)) "t1"
+      GROUP BY SELLER_ID) "t0" WHERE "t0"."X_measure__2" > 0 HAVING (COUNT(1) > 0)) "t1"
 CROSS JOIN
   (SELECT round(SUM(PRICE), 0) AS "X_measure__1"
    FROM TEST_KYLIN_FACT HAVING (COUNT(1) > 0)) "t2"
@@ -37,4 +37,4 @@ CROSS JOIN
      (SELECT SELLER_ID,
              round(SUM(PRICE), 0) AS "X_measure__4"
       FROM TEST_KYLIN_FACT
-      GROUP BY SELLER_ID) "t3" HAVING (COUNT(1) > 0)) "t4"
+      GROUP BY SELLER_ID) "t3" WHERE "t3"."X_measure__4" > 0 HAVING (COUNT(1) > 0)) "t4"

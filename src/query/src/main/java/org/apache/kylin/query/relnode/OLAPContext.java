@@ -201,6 +201,7 @@ public class OLAPContext {
     private Set<TblColRef> subqueryJoinParticipants = new HashSet<TblColRef>();//subqueryJoinParticipants will be added to groupByColumns(only when other group by co-exists) and allColumns
     public Set<TblColRef> metricsColumns = new HashSet<>();
     public List<FunctionDesc> aggregations = new ArrayList<>(); // storage level measure type, on top of which various sql aggr function may apply
+    public List<FunctionDesc> constantAggregations = new ArrayList<>(); // agg like min(2),max(2),avg(2), not including count(1)
     public List<TblColRef> aggrOutCols = new ArrayList<>(); // aggregation output (inner) columns
     public List<SQLCall> aggrSqlCalls = new ArrayList<>(); // sql level aggregation function call
     public Set<TblColRef> filterColumns = new LinkedHashSet<>();
@@ -227,17 +228,38 @@ public class OLAPContext {
         return (joins.size() == 0) && (groupByColumns.size() == 0) && (aggregations.size() == 0);
     }
 
+    public boolean isConstantQuery() {
+        return allColumns.isEmpty() && aggregations.isEmpty();
+    }
+
+    public boolean isConstantQueryWithAggregations() {
+        // deal with probing query like select min(2+2), max(2) from Table
+        return allColumns.isEmpty() && aggregations.isEmpty() && !constantAggregations.isEmpty();
+    }
+
+    public boolean isConstantQueryWithoutAggregation() {
+        // deal with probing query like select 1,current_date from Table
+        return allColumns.isEmpty() && aggregations.isEmpty() && constantAggregations.isEmpty();
+    }
+
     SQLDigest sqlDigest;
 
     public SQLDigest getSQLDigest() {
-        if (sqlDigest == null)
+        if (sqlDigest == null) {
+            List<FunctionDesc> aggrs = Lists.newArrayList();
+            if (isConstantQueryWithoutAggregation()) {
+                aggrs.add(FunctionDesc.newInstance(FunctionDesc.FUNC_COUNT, null, null));
+            } else {
+                aggrs.addAll(aggregations);
+            }
             sqlDigest = new SQLDigest(firstTableScan.getTableName(), Sets.newHashSet(allColumns),
                     Lists.newLinkedList(joins), // model
                     Lists.newArrayList(groupByColumns), Sets.newHashSet(subqueryJoinParticipants), // group by
-                    Sets.newHashSet(metricsColumns), Lists.newArrayList(aggregations), Lists.newArrayList(aggrSqlCalls), // aggregation
+                    Sets.newHashSet(metricsColumns), aggrs, Lists.newArrayList(aggrSqlCalls), // aggregation
                     Sets.newLinkedHashSet(filterColumns), filter, havingFilter, // filter
                     Lists.newArrayList(sortColumns), Lists.newArrayList(sortOrders), limit, limitPrecedesAggr, // sort & limit
                     Sets.newHashSet(involvedMeasure));
+        }
         return sqlDigest;
     }
 

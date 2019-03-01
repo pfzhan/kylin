@@ -26,7 +26,7 @@ package io.kyligence.kap.query.runtime
 
 import java.lang.{Boolean, Byte, Double, Float, Long, Short}
 import java.math.BigDecimal
-import java.sql.Timestamp
+import java.sql.{Date, Timestamp}
 import java.util.GregorianCalendar
 
 import io.kyligence.kap.query.util.UnsupportedSparkFunctionException
@@ -473,7 +473,11 @@ class SparderRexVisitor(val df: DataFrame,
       case s: NlsString =>
         Some(s.getValue)
       case g: GregorianCalendar =>
-        Some(SparderTypeUtil.toSparkTimestamp(g.getTimeInMillis))
+        if (literal.getTypeName.getName.equals("DATE")) {
+          Some(new Date(g.getTimeInMillis))
+        } else {
+          Some(new Timestamp(g.getTimeInMillis))
+        }
       case range: TimeUnitRange =>
         // Extract(x from y) in where clause
         Some(range.name)

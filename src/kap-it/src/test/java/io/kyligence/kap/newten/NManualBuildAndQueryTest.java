@@ -377,22 +377,22 @@ public class NManualBuildAndQueryTest extends NLocalWithSparkSessionTest {
         long start = SegmentRange.dateToLong("2010-01-01");
         long end = SegmentRange.dateToLong("2012-06-01");
         buildCuboid(dfName, new SegmentRange.TimePartitionedSegmentRange(start, end), Sets.<LayoutEntity>newLinkedHashSet(layouts), true);
-        validateTableExt(df.getModel().getRootFactTableName(), 2054, 1, 11);
+        validateTableExt(df.getModel().getRootFactTableName(), 2054, 1, 12);
 
         start = SegmentRange.dateToLong("2012-06-01");
         end = SegmentRange.dateToLong("2013-01-01");
         buildCuboid(dfName, new SegmentRange.TimePartitionedSegmentRange(start, end), Sets.<LayoutEntity>newLinkedHashSet(layouts), true);
-        validateTableExt(df.getModel().getRootFactTableName(), 4903, 2, 11);
+        validateTableExt(df.getModel().getRootFactTableName(), 4903, 2, 12);
 
         start = SegmentRange.dateToLong("2013-01-01");
         end = SegmentRange.dateToLong("2013-06-01");
         buildCuboid(dfName, new SegmentRange.TimePartitionedSegmentRange(start, end), Sets.<LayoutEntity>newLinkedHashSet(layouts), true);
-        validateTableExt(df.getModel().getRootFactTableName(), 7075, 3, 11);
+        validateTableExt(df.getModel().getRootFactTableName(), 7075, 3, 12);
 
         start = SegmentRange.dateToLong("2013-06-01");
         end = SegmentRange.dateToLong("2015-01-01");
         buildCuboid(dfName, new SegmentRange.TimePartitionedSegmentRange(start, end), Sets.<LayoutEntity>newLinkedHashSet(layouts), true);
-        validateTableExt(df.getModel().getRootFactTableName(), 10000, 4, 11);
+        validateTableExt(df.getModel().getRootFactTableName(), 10000, 4, 12);
 
         /**
          * Round2. Merge two segments

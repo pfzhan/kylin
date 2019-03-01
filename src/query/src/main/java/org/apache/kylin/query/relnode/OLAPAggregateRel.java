@@ -78,6 +78,7 @@ import org.apache.calcite.sql.type.InferTypes;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlTypeFamily;
+import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.sql.validate.SqlUserDefinedAggFunction;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Util;
@@ -304,6 +305,9 @@ public class OLAPAggregateRel extends Aggregate implements OLAPRel {
                 }
                 for (Integer index : aggCall.getArgList().subList(0, columnsCount)) {
                     TblColRef column = inputColumnRowType.getColumnByIndex(index);
+                    if ("SUM".equals(funcName)) {
+                        column = rewriteCastInSumIfNecessary(aggCall, inputColumnRowType, index);
+                    }
                     columns.add(column);
                 }
                 if (!columns.isEmpty()) {
@@ -315,6 +319,22 @@ public class OLAPAggregateRel extends Aggregate implements OLAPRel {
             FunctionDesc aggFunc = FunctionDesc.newInstance(expression, parameter, null);
             this.aggregations.add(aggFunc);
         }
+    }
+
+    private TblColRef rewriteCastInSumIfNecessary(AggregateCall aggCall, ColumnRowType inputColumnRowType, Integer index) {
+        // ISSUE #7294, for case like sum({fn CONVERT(ITEM_COUNT, SQL_BIGINT)})
+        // remove the cast by rewriting input project, such that the sum can hit cube
+        TblColRef column = inputColumnRowType.getColumnByIndex(index);
+        if (getInput() instanceof OLAPProjectRel
+                && SqlTypeUtil.isBigint(aggCall.type)
+                && column.isCastInnerColumn()) {
+            TblColRef innerColumn = column.getOpreand().get(0);
+            if (!innerColumn.isInnerColumn() && innerColumn.getType().isIntegerFamily()) {
+                inputColumnRowType.getAllColumns().set(index, innerColumn);
+                column = inputColumnRowType.getColumnByIndex(index);
+            }
+        }
+        return column;
     }
 
     public boolean needRewrite() {
@@ -406,7 +426,10 @@ public class OLAPAggregateRel extends Aggregate implements OLAPRel {
             this.aggregations.clear();
             this.aggregations.addAll(newAggrs);
             this.context.aggregations.clear();
-            this.context.aggregations.addAll(newAggrs);
+            for (FunctionDesc agg : aggregations) {
+                if (!agg.isAggregateOnConstant())
+                    this.context.aggregations.add(agg);
+            }
         } else {
             //the realization is not contributing pre-calculated fields at all
         }

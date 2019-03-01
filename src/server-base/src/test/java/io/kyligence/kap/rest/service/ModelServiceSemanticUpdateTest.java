@@ -300,7 +300,7 @@ public class ModelServiceSemanticUpdateTest extends NLocalFileMetadataTestCase {
         val otherTombCount = model.getAllNamedColumns().stream()
                 .filter(n -> !n.getAliasDotColumn().startsWith("TEST_ORDER")).filter(nc -> !nc.isExist()).count();
         Assert.assertEquals(1, otherTombCount);
-        Assert.assertEquals(204, model.getAllNamedColumns().size());
+        Assert.assertEquals(205, model.getAllNamedColumns().size());
         val eventDao = EventDao.getInstance(KylinConfig.getInstanceFromEnv(), request.getProject());
         Assert.assertEquals(2, eventDao.getEvents().size());
     }

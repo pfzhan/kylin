@@ -208,10 +208,11 @@ object WindowPlan {
                   agg.operands.asScala.head.asInstanceOf[RexInputRef].getIndex))
           }
           windowCount = windowCount + 1
+          val alias = s"${System.identityHashCode(rel)}_window_" + windowCount
           if (windowDesc == null) {
-            func.over().alias("window_" + windowCount)
+            func.over().alias(alias)
           } else {
-            func.over(windowDesc).alias("window_" + windowCount)
+            func.over(windowDesc).alias(alias)
           }
         }
 

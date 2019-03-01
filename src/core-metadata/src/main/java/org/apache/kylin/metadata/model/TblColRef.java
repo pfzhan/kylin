@@ -46,7 +46,9 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 import java.io.Serializable;
 import java.util.List;
+import java.util.Set;
 
+import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.metadata.datatype.DataType;
@@ -341,5 +343,23 @@ public class TblColRef implements Serializable {
     // return DB.TABLE.COLUMN
     public String getColumnWithTableAndSchema() {
         return (getTableWithSchema() + "." + column.getName()).toUpperCase();
+    }
+
+    public boolean isCastInnerColumn() {
+        return isInnerColumn() && getOperator() != null && getOperator().kind == SqlKind.CAST;
+    }
+
+    public static void collectSourceColumns(TblColRef colRef, Set<TblColRef> collector) {
+        boolean innerColumn = colRef.isInnerColumn();
+        if (!innerColumn) {
+            collector.add(colRef);
+            return;
+        }
+        if (colRef.getOpreand() == null) {
+            return;
+        }
+        for (TblColRef child : colRef.getOpreand()) {
+            collectSourceColumns(child, collector);
+        }
     }
 }

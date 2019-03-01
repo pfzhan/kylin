@@ -50,7 +50,7 @@ object ProjectPlan {
         if (c._1._2) {
           lit(c._1._1)
         } else {
-          lit(c._1._1).as(s"${rel.hashCode()}_prj${c._2}")
+          lit(c._1._1).as(s"${System.identityHashCode(rel)}_prj${c._2}")
         }
       })
 

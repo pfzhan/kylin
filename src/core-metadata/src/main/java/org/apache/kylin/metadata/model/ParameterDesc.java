@@ -48,11 +48,13 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonAutoDetect.Visibility;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.google.common.collect.Sets;
 
 import lombok.Getter;
 import lombok.Setter;
@@ -144,6 +146,15 @@ public class ParameterDesc implements Serializable {
 
     public boolean isConstant() {
         return FunctionDesc.PARAMETER_TYPE_CONSTANT.equalsIgnoreCase(type);
+    }
+
+    public boolean isConstantParameterDesc() {
+        TblColRef colRef = this.getColRef();
+        if (colRef == null || isConstant())
+            return true;
+        Set<TblColRef> collector = Sets.newHashSet();
+        TblColRef.collectSourceColumns(colRef, collector);
+        return collector.isEmpty();
     }
 
     @Override

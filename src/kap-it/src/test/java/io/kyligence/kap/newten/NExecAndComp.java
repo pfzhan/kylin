@@ -50,7 +50,6 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.spark.KapSparkSession;
-import io.kyligence.kap.utils.RecAndQueryCompareUtil.AccelerationMatchedLevel;
 import io.kyligence.kap.utils.RecAndQueryCompareUtil.CompareEntity;
 
 public class NExecAndComp {
@@ -197,15 +196,10 @@ public class NExecAndComp {
         compareEntityMap.putIfAbsent(pair.getFirst(), new CompareEntity());
         final CompareEntity entity = compareEntityMap.get(pair.getFirst());
         entity.setSql(pair.getFirst());
-        Dataset<Row> rowDataset = null;
-        try {
-            rowDataset = kapSparkSession.queryFromCube(KylinTestBase.changeJoinType(pair.getSecond(), joinType));
-            entity.setOlapContexts(OLAPContext.getThreadLocalContexts());
-            OLAPContext.clearThreadLocalContexts();
-        } catch (Exception e) {
-            entity.setOlapContexts(null); // clean olapContexts if query failed
-            entity.setLevel(AccelerationMatchedLevel.FAILED_QUERY);
-        }
+        Dataset<Row> rowDataset = kapSparkSession
+                .queryFromCube(KylinTestBase.changeJoinType(pair.getSecond(), joinType));
+        entity.setOlapContexts(OLAPContext.getThreadLocalContexts());
+        OLAPContext.clearThreadLocalContexts();
         return rowDataset;
     }
 
@@ -217,25 +211,13 @@ public class NExecAndComp {
     private static Dataset<Row> queryWithSpark(KapSparkSession kapSparkSession, String sql) {
         String afterConvert = QueryUtil.massagePushDownSql(sql, kapSparkSession.project(), "default", false);
         // Table schema comes from csv and DATABASE.TABLE is not supported.
-        String sqlForSpark = afterConvert.replaceAll("edw\\.", "")
-                .replaceAll("`edw`\\.", "")
-                .replaceAll("\"EDW\"\\.", "")
-                .replaceAll("EDW\\.", "")
-                .replaceAll("`EDW`\\.", "")
-                .replaceAll("default\\.", "")
-                .replaceAll("`default`\\.", "")
-                .replaceAll("DEFAULT\\.", "")
-                .replaceAll("\"DEFAULT\"\\.", "")
-                .replaceAll("`DEFAULT`\\.", "")
-                .replaceAll("TPCH\\.", "")
-                .replaceAll("`TPCH`\\.", "")
-                .replaceAll("tpch\\.", "")
-                .replaceAll("`tpch`\\.", "")
-                .replaceAll("TDVT\\.", "")
-                .replaceAll("\"TDVT\"\\.", "")
-                .replaceAll("`TDVT`\\.", "")
-                .replaceAll("\"POPHEALTH_ANALYTICS\"\\.", "")
-                .replaceAll("`POPHEALTH_ANALYTICS`\\.", "");
+        String sqlForSpark = afterConvert.replaceAll("edw\\.", "").replaceAll("`edw`\\.", "")
+                .replaceAll("\"EDW\"\\.", "").replaceAll("EDW\\.", "").replaceAll("`EDW`\\.", "")
+                .replaceAll("default\\.", "").replaceAll("`default`\\.", "").replaceAll("DEFAULT\\.", "")
+                .replaceAll("\"DEFAULT\"\\.", "").replaceAll("`DEFAULT`\\.", "").replaceAll("TPCH\\.", "")
+                .replaceAll("`TPCH`\\.", "").replaceAll("tpch\\.", "").replaceAll("`tpch`\\.", "")
+                .replaceAll("TDVT\\.", "").replaceAll("\"TDVT\"\\.", "").replaceAll("`TDVT`\\.", "")
+                .replaceAll("\"POPHEALTH_ANALYTICS\"\\.", "").replaceAll("`POPHEALTH_ANALYTICS`\\.", "");
         return kapSparkSession.querySparkSql(sqlForSpark);
     }
 

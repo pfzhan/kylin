@@ -119,28 +119,26 @@ public class RecAndQueryCompareUtil {
             Set<Long> cuboidIds = Sets.newHashSet();
             Set<String> modelIds = Sets.newHashSet();
 
-            try {
-                olapContexts.forEach(olapContext -> {
-                    if (olapContext.storageContext.isUseSnapshot()) {
-                        entity.setLevel(AccelerationMatchedLevel.SNAPSHOT_QUERY);
-                        return;
-                    }
+            olapContexts.forEach(olapContext -> {
+                if (olapContext.allTableScans.isEmpty()) {
+                    entity.setLevel(AccelerationMatchedLevel.SIMPLE_QUERY);
+                    return;
+                }
+                if (olapContext.storageContext.isUseSnapshot()) {
+                    entity.setLevel(AccelerationMatchedLevel.SNAPSHOT_QUERY);
+                    return;
+                }
 
-                    final LayoutEntity cuboidLayout = olapContext.storageContext.getCandidate().getCuboidLayout();
-                    final String modelId = cuboidLayout.getModel().getUuid();
-                    final long layoutId = cuboidLayout.getId();
-                    final int semanticVersion = cuboidLayout.getModel().getSemanticVersion();
-
-                    QueryLayoutRelation relation = new QueryLayoutRelation(sql, modelId, layoutId, semanticVersion);
-                    layouts.add(relation);
-                    cuboidIds.add(cuboidLayout.getIndex().getId());
-                    modelIds.add(modelId);
-                });
-                entity.setQueryUsedLayouts(writeQueryLayoutRelationAsString(kylinConfig, project, layouts));
-            } catch (Exception e) {
-                entity.setLevel(AccelerationMatchedLevel.SIMPLE_QUERY);
-                return;
-            }
+                final LayoutEntity cuboidLayout = olapContext.storageContext.getCandidate().getCuboidLayout();
+                final String modelId = cuboidLayout.getModel().getUuid();
+                final long layoutId = cuboidLayout.getId();
+                final int semanticVersion = cuboidLayout.getModel().getSemanticVersion();
+                QueryLayoutRelation relation = new QueryLayoutRelation(sql, modelId, layoutId, semanticVersion);
+                layouts.add(relation);
+                cuboidIds.add(cuboidLayout.getIndex().getId());
+                modelIds.add(modelId);
+            });
+            entity.setQueryUsedLayouts(writeQueryLayoutRelationAsString(kylinConfig, project, layouts));
 
             if (entity.getLevel() == AccelerationMatchedLevel.SNAPSHOT_QUERY) {
                 return;

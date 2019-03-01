@@ -64,6 +64,8 @@ class CalciteToSparkPlaner(dataContext: DataContext) extends RelVisitor {
             TableScanPlan.createLookupTable(rel, dataContext)
           case "executeOLAPQuery" =>
             TableScanPlan.createOLAPTable(rel, dataContext);
+          case "executeSimpleAggregationQuery" =>
+            TableScanPlan.createSingleRow(rel, dataContext);
         }
       case rel: KapFilterRel =>
         FilterPlan.filter(Lists.newArrayList(stack.pop()), rel, dataContext)

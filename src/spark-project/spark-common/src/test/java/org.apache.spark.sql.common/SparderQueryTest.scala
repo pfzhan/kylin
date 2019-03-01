@@ -98,6 +98,7 @@ object SparderQueryTest {
     Row.fromSeq(row.toSeq.map {
       case null => null
       case d: java.math.BigDecimal => BigDecimal(d).setScale(2, BigDecimal.RoundingMode.HALF_UP)
+      case db: Double if db.isNaN || db.isInfinite => None
       case db: Double => BigDecimal.apply(db).setScale(2, BigDecimal.RoundingMode.HALF_UP).toString.toDouble
       // Convert array to Seq for easy equality check.
       case b: Array[_] => b.toSeq

@@ -235,11 +235,11 @@ public class OLAPProjectRel extends Project implements OLAPRel {
         int index = inputRef.getIndex();
         // check it for rewrite count
         if (index < inputColumnRowType.size()) {
-            TblColRef column = inputColumnRowType.getColumnByIndex(index);
-            if (!column.isInnerColumn() && !this.rewriting && !this.afterAggregate) {
-                sourceCollector.add(column);
+            if (!this.rewriting && !this.afterAggregate) {
+                Set<TblColRef> sourceColumns = inputColumnRowType.getSourceColumnsByIndex(index);
+                sourceColumns.stream().filter(col -> !col.isInnerColumn()).forEach(sourceCollector::add);
             }
-            return column;
+            return inputColumnRowType.getColumnByIndex(index);
         } else {
             throw new IllegalStateException("Can't find " + inputRef + " from child columnrowtype " + inputColumnRowType
                     + " with fieldname " + fieldName);

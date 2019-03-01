@@ -598,7 +598,7 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
         final TableExtDesc rootTableExt = tableMetadataManager.getTableExtIfExists(rootTableDesc);
         Assert.assertNotNull(rootTableExt);
         Assert.assertEquals(10000, rootTableExt.getTotalRows());
-        Assert.assertEquals(11, rootTableExt.getColumnStats().size());
+        Assert.assertEquals(12, rootTableExt.getColumnStats().size());
         Assert.assertEquals(1, rootTableExt.getLoadingRange().size());
         assertColumnStats(rootTableExt);
 

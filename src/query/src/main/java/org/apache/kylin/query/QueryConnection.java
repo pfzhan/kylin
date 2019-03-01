@@ -57,6 +57,7 @@ public class QueryConnection {
 
         File olapTmp = OLAPSchemaFactory.createTempOLAPJson(project, KylinConfig.getInstanceFromEnv());
         Properties info = new Properties();
+        info.putAll(KylinConfig.getInstanceFromEnv().getCalciteExtrasProperties());
         info.put("model", olapTmp.getAbsolutePath());
         info.put("typeSystem", "org.apache.kylin.query.calcite.KylinRelDataTypeSystem");
         info.put("DEFAULT_NULL_COLLATION", "LOW");

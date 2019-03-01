@@ -14,6 +14,7 @@ sql_tableau/query07.sql
 sql/query61.sql
 sql/query83.sql
 sql/query113.sql
+sql_noagg/query00.sql
 ---MODEL_NOT_MATCH
 sql/query14.sql
 sql/query16.sql

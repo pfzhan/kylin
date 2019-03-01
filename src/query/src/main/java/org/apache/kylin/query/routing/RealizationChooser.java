@@ -91,6 +91,8 @@ public class RealizationChooser {
     public static void selectLayoutCandidate(List<OLAPContext> contexts) {
         // try different model for different context
         for (OLAPContext ctx : contexts) {
+            if (ctx.isConstantQueryWithAggregations())
+                continue;
             ctx.realizationCheck = new RealizationCheck();
             attemptSelectCandidate(ctx);
             Preconditions.checkNotNull(ctx.realization);

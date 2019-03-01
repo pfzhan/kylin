@@ -63,7 +63,8 @@ object AggregatePlan {
           if binaryMeasureType.contains(
             OLAPAggregateRel.getAggrFuncName(call)) =>
         val dataType = call.getFunc.getReturnDataType
-        val funcName = OLAPAggregateRel.getAggrFuncName(call)
+        val isCount = call.getFunc.isCount
+        val funcName = if (isCount) FunctionDesc.FUNC_COUNT else OLAPAggregateRel.getAggrFuncName(call)
         val argNames = call.getArgList.asScala.map(schemaNames.apply(_))
         val columnName = argNames.map(col)
         var registeredFuncName =

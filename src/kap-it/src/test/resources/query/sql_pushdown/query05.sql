@@ -1,20 +1,23 @@
 SELECT
-    t1.leaf_categ_id, COUNT(*) AS nums
+    t1.leaf_categ_id, t1.CNT1, t2.CNT2
 FROM
     (SELECT
-        f.leaf_categ_id
+        f.leaf_categ_id, count(*) as CNT1
     FROM
         test_kylin_fact f inner join TEST_CATEGORY_GROUPINGS o on f.leaf_categ_id = o.leaf_categ_id and f.LSTG_SITE_ID = o.site_id
     WHERE
-        f.lstg_format_name = 'ABIN') t1
+        f.lstg_format_name = 'ABIN'
+    group by f.leaf_categ_id
+        ) t1
     INNER JOIN
     (SELECT
-        leaf_categ_id
+        leaf_categ_id, count(*) as CNT2
     FROM
         test_kylin_fact f
     INNER JOIN test_order o ON f.order_id = o.order_id
     WHERE
-        buyer_id > 100) t2 ON t1.leaf_categ_id = t2.leaf_categ_id
-GROUP BY t1.leaf_categ_id
-ORDER BY nums, leaf_categ_id
+        buyer_id > 100
+    group by leaf_categ_id
+    ) t2 ON t1.leaf_categ_id = t2.leaf_categ_id
+order by t1.leaf_categ_id, t1.CNT1, t2.CNT2
 limit 100

@@ -1278,6 +1278,13 @@ abstract public class KylinConfigBase implements Serializable {
         return getOptional("kylin.query.realization-filter", null);
     }
 
+    /**
+     * Extras calcite properties to config Calcite connection
+     */
+    public Map<String, String> getCalciteExtrasProperties() {
+        return getPropertiesByPrefix("kylin.query.calcite.extras-props.");
+    }
+
     // ============================================================================
     // SERVER
     // ============================================================================

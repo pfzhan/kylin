@@ -34,6 +34,7 @@ import org.apache.kylin.measure.dim.DimCountDistinctCounter
 import org.apache.kylin.measure.hllc.HLLCounter
 import org.apache.kylin.measure.percentile.PercentileCounter
 import org.apache.kylin.metadata.datatype.{DataTypeSerializer, DataType => KyDataType}
+import org.apache.kylin.metadata.model.FunctionDesc
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.Row
 import org.apache.spark.sql.expressions.{MutableAggregationBuffer, UserDefinedAggregateFunction}
@@ -84,18 +85,18 @@ class SparderAggFun(funcName: String, dataTp: KyDataType)
 
 
   override def initialize(buffer: MutableAggregationBuffer): Unit = {
-    val isSum0 = (funcName == "$SUM0")
+    val isCount = (funcName == FunctionDesc.FUNC_COUNT)
 
     measureAggregator = MeasureAggregator
-      .create(if (isSum0) "COUNT" else funcName, dataTp)
+      .create(funcName, dataTp)
       .asInstanceOf[MeasureAggregator[Any]]
     serializer = DataTypeSerializer.create(dataTp).asInstanceOf[DataTypeSerializer[Any]]
     if (byteBuffer == null) {
       byteBuffer = ByteBuffer.allocate(1024 * 1024)
     }
 
-    val initVal = if (isSum0) {
-      // $SUM0 is the rewritten form of COUNT, which should return 0 instead of null in case of no input
+     val initVal = if (isCount) {
+      // return 0 instead of null in case of no input
       measureAggregator.reset()
       byteBuffer.clear()
       serializer.serialize(measureAggregator.getState, byteBuffer)
