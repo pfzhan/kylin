@@ -26,6 +26,7 @@ package io.kyligence.kap.smart.model;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.kylin.metadata.model.PartitionDesc;
 import org.apache.kylin.metadata.model.SegmentRange;
@@ -37,6 +38,7 @@ import io.kyligence.kap.metadata.cube.model.NDataLoadingRangeManager;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.smart.NSmartContext;
 import io.kyligence.kap.smart.NSmartMaster;
+import io.kyligence.kap.smart.common.AccelerateInfo;
 import io.kyligence.kap.smart.common.NTestBase;
 import lombok.val;
 
@@ -158,6 +160,44 @@ public class NModelMasterTest extends NTestBase {
             Assert.assertEquals(2, dataModel.getAllMeasures().size());
             Assert.assertEquals(1, dataModel.getJoinTables().size());
         }
+    }
+
+    @Test
+    public void testErrorInNQueryScopeProposer() {
+        // we expect sqls can be accelerated will not blocked by its counterpart
+        String[] sqls = new String[] { //
+                " SELECT SUM((CASE WHEN 1.1000000000000001 = 0 THEN CAST(NULL AS DOUBLE) "
+                        + "ELSE \"TEST_KYLIN_FACT\".\"PRICE\" / 1.1000000000000001 END)) "
+                        + "AS \"sum_price\" FROM \"DEFAULT\".\"TEST_KYLIN_FACT\" \"TEST_KYLIN_FACT\"",
+
+                " SELECT SUM(\"TEST_KYLIN_FACT\".\"PRICE\" * 2 + 2) "
+                        + "AS \"double_price\" FROM \"DEFAULT\".\"TEST_KYLIN_FACT\" \"TEST_KYLIN_FACT\"",
+
+                "SELECT \"TEST_KYLIN_FACT\".\"LSTG_FORMAT_NAME\" AS \"LSTG_FORMAT_NAME\",\n"
+                        + "  SUM(\"TEST_KYLIN_FACT\".\"PRICE\") AS \"sum_price\"\n"
+                        + "FROM \"DEFAULT\".\"TEST_KYLIN_FACT\" \"TEST_KYLIN_FACT\"\n"
+                        + "GROUP BY \"TEST_KYLIN_FACT\".\"LSTG_FORMAT_NAME\"",
+
+        };
+
+        NSmartMaster smartMaster = new NSmartMaster(getTestConfig(), "newten", sqls);
+        smartMaster.runAll();
+
+        final NSmartContext smartContext = smartMaster.getContext();
+        final List<NSmartContext.NModelContext> modelContexts = smartContext.getModelContexts();
+        Assert.assertEquals(1, modelContexts.size());
+
+        final Map<String, AccelerateInfo> accelerateInfoMap = smartContext.getAccelerateInfoMap();
+        Assert.assertTrue(accelerateInfoMap.get(sqls[0]).isBlocked());
+        Assert.assertEquals("Table not found by UNKNOWN_ALIAS",
+                accelerateInfoMap.get(sqls[0]).getBlockingCause().getMessage());
+
+        Assert.assertTrue(accelerateInfoMap.get(sqls[1]).isBlocked());
+        Assert.assertEquals("Table not found by UNKNOWN_ALIAS",
+                accelerateInfoMap.get(sqls[1]).getBlockingCause().getMessage());
+
+        Assert.assertFalse(accelerateInfoMap.get(sqls[2]).isBlocked());
+        Assert.assertEquals(1, accelerateInfoMap.get(sqls[2]).getRelatedLayouts().size());
     }
 
     @Test

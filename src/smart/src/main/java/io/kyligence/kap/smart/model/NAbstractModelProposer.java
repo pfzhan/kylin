@@ -25,6 +25,7 @@
 package io.kyligence.kap.smart.model;
 
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.query.relnode.OLAPContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -33,6 +34,7 @@ import com.google.common.collect.Lists;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.smart.NSmartContext;
+import lombok.val;
 
 public abstract class NAbstractModelProposer {
 
@@ -67,4 +69,9 @@ public abstract class NAbstractModelProposer {
     }
 
     protected abstract void doPropose(NDataModel modelDesc);
+
+    boolean isValidOlapContext(OLAPContext context) {
+        val accelerateInfo = modelContext.getSmartContext().getAccelerateInfoMap().get(context.sql);
+        return accelerateInfo != null && !accelerateInfo.isBlocked();
+    }
 }

@@ -49,7 +49,9 @@ import io.kyligence.kap.metadata.model.NDataModel.ColumnStatus;
 import io.kyligence.kap.metadata.model.NDataModel.Measure;
 import io.kyligence.kap.metadata.model.NDataModel.NamedColumn;
 import io.kyligence.kap.smart.NSmartContext;
+import io.kyligence.kap.smart.common.AccelerateInfo;
 import io.kyligence.kap.smart.util.CubeUtils;
+import lombok.val;
 
 /**
  * Define Dimensions and Measures from SQLs
@@ -68,14 +70,26 @@ public class NQueryScopeProposer extends NAbstractModelProposer {
         ModelTree modelTree = modelContext.getModelTree();
         // Load from context
         for (OLAPContext ctx : modelTree.getOlapContexts()) {
-            Map<String, String> matchingAlias = RealizationChooser.matchJoins(dataModel, ctx);
-            ctx.fixModel(dataModel, matchingAlias);
+            if (!isValidOlapContext(ctx)) {
+                continue;
+            }
 
-            scopeBuilder.injectCandidateMeasure(ctx);
-            scopeBuilder.injectAllTableColumns(ctx);
-            scopeBuilder.injectCandidateColumns(ctx);
-
-            ctx.unfixModel();
+            // When injecting the columns and measures of OLAPContext into the scopeBuilder fails, 
+            // discard this OLAPContext and set blocking cause to the related SQL.
+            try {
+                Map<String, String> matchingAlias = RealizationChooser.matchJoins(dataModel, ctx);
+                ctx.fixModel(dataModel, matchingAlias);
+                scopeBuilder.injectCandidateMeasure(ctx);
+                scopeBuilder.injectAllTableColumns(ctx);
+                scopeBuilder.injectCandidateColumns(ctx);
+            } catch (Exception e) {
+                val accelerateInfoMap = modelContext.getSmartContext().getAccelerateInfoMap();
+                AccelerateInfo accelerateInfo = accelerateInfoMap.get(ctx.sql);
+                Preconditions.checkNotNull(accelerateInfo);
+                accelerateInfo.setBlockingCause(e);
+            } finally {
+                ctx.unfixModel();
+            }
         }
 
         scopeBuilder.build();
@@ -218,10 +232,10 @@ public class NQueryScopeProposer extends NAbstractModelProposer {
 
         private boolean canTblColRefTreatAsDimension(OLAPContext ctx, TblColRef tblColRef) {
 
-            return !ctx.getSQLDigest().isRawQuery && (ctx.filterColumns.contains(tblColRef)
-                    || ctx.getGroupByColumns().contains(tblColRef)
-                    || ctx.getSubqueryJoinParticipants().contains(tblColRef)
-                    || dimensionAsMeasureColumns.contains(tblColRef));
+            return !ctx.getSQLDigest().isRawQuery
+                    && (ctx.filterColumns.contains(tblColRef) || ctx.getGroupByColumns().contains(tblColRef)
+                            || ctx.getSubqueryJoinParticipants().contains(tblColRef)
+                            || dimensionAsMeasureColumns.contains(tblColRef));
         }
 
         private NamedColumn transferToNamedColumn(TblColRef colRef, ColumnStatus status) {
