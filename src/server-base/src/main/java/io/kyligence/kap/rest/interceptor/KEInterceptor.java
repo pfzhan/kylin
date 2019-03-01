@@ -57,7 +57,7 @@ public class KEInterceptor extends HandlerInterceptorAdapter {
                 // ignore JSON exception
             }
         }
-        NProjectLoader.setCache(project);
+        NProjectLoader.updateCache(project);
         return true;
     }
 

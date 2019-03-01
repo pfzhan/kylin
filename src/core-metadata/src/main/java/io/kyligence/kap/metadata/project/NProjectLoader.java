@@ -30,7 +30,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import io.kyligence.kap.common.persistence.transaction.TransactionListenerRegistry;
+import javax.annotation.Nullable;
+
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.model.ColumnDesc;
@@ -51,14 +52,13 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
+import io.kyligence.kap.common.persistence.transaction.TransactionListenerRegistry;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.model.util.ComputedColumnUtil;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
-
-import javax.annotation.Nullable;
 
 @Slf4j
 public class NProjectLoader {
@@ -67,13 +67,13 @@ public class NProjectLoader {
 
     private NProjectManager mgr;
 
-    static  {
-        TransactionListenerRegistry.register(NProjectLoader::setCache, project -> NProjectLoader.removeCache());
+    static {
+        TransactionListenerRegistry.register(NProjectLoader::updateCache, project -> NProjectLoader.removeCache());
     }
 
-    private static ThreadLocal<ProjectBundle> cache = new ThreadLocal<>();
+    private static ThreadLocal<ProjectBundle> cache = new InheritableThreadLocal<>();
 
-    public static void setCache(@Nullable String project) {
+    public static void updateCache(@Nullable String project) {
         if (StringUtils.isNotEmpty(project) && !project.startsWith("_")) {
             val projectManager = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv());
             val projectLoader = new NProjectLoader(projectManager);
@@ -81,6 +81,7 @@ public class NProjectLoader {
                 log.debug("project {} not exist", project);
                 return;
             }
+            removeCache();
             val bundle = projectLoader.load(project);
             log.debug("set project {} cache {}, prev is {}", project, bundle, cache.get());
             cache.set(bundle);
