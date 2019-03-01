@@ -46,10 +46,16 @@ import java.io.Serializable;
 import java.util.Map;
 
 import com.google.common.collect.Lists;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 /**
  * if you're adding/removing fields from SQLRequest, take a look at getCacheKey
  */
+@Getter
+@Setter
+@NoArgsConstructor
 public class SQLRequest implements Serializable {
     protected static final long serialVersionUID = 1L;
 
@@ -64,65 +70,6 @@ public class SQLRequest implements Serializable {
     private Map<String, String> backdoorToggles;
 
     protected volatile Object cacheKey = null;
-
-    public SQLRequest() {
-    }
-
-    public Map<String, String> getBackdoorToggles() {
-        return backdoorToggles;
-    }
-
-    public void setBackdoorToggles(Map<String, String> backdoorToggles) {
-        this.backdoorToggles = backdoorToggles;
-    }
-
-    public String getProject() {
-        return project;
-    }
-
-    public void setProject(String project) {
-        this.project = project;
-    }
-
-    public String getUsername() {
-        return username;
-    }
-
-    public void setUsername(String username) {
-        this.username = username;
-    }
-
-    public String getSql() {
-        return sql;
-    }
-
-    public void setSql(String sql) {
-        this.sql = sql;
-    }
-
-    public Integer getOffset() {
-        return offset == null ? 0 : offset;
-    }
-
-    public void setOffset(Integer offset) {
-        this.offset = offset;
-    }
-
-    public Integer getLimit() {
-        return limit == null ? 0 : limit;
-    }
-
-    public void setLimit(Integer limit) {
-        this.limit = limit;
-    }
-
-    public boolean isAcceptPartial() {
-        return acceptPartial;
-    }
-
-    public void setAcceptPartial(boolean acceptPartial) {
-        this.acceptPartial = acceptPartial;
-    }
 
     public Object getCacheKey() {
         if (cacheKey != null)

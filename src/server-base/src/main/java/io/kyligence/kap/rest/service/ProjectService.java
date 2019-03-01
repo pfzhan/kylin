@@ -132,6 +132,10 @@ public class ProjectService extends BasicService {
         FavoriteRule submitterRule = new FavoriteRule(Lists.newArrayList(submitterCond),
                 FavoriteRule.SUBMITTER_RULE_NAME, true);
         getFavoriteRuleManager(projectName).createRule(submitterRule);
+        // submitter group rule
+        FavoriteRule.Condition submitterGroupCond = new FavoriteRule.Condition();
+        submitterGroupCond.setRightThreshold("ROLE_ADMIN");
+        getFavoriteRuleManager(projectName).createRule(new FavoriteRule(Lists.newArrayList(submitterGroupCond), FavoriteRule.SUBMITTER_GROUP_RULE_NAME, true));
         // duration rule
         FavoriteRule.Condition durationCond = new FavoriteRule.Condition();
         durationCond.setLeftThreshold("0");

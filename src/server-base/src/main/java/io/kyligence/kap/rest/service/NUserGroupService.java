@@ -28,9 +28,12 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 import javax.annotation.PostConstruct;
 
+import com.google.common.collect.Maps;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.JsonSerializer;
@@ -190,11 +193,7 @@ public class NUserGroupService implements IUserGroupService {
 
     // add param project to check user's permission
     public List<String> listAllAuthorities(String project) throws IOException {
-        if (StringUtils.isEmpty(project)) {
-            aclEvaluate.checkIsGlobalAdmin();
-        } else {
-            aclEvaluate.checkProjectAdminPermission(project);
-        }
+        checkPermission(project);
         return getAllUserGroups();
     }
 
@@ -204,5 +203,25 @@ public class NUserGroupService implements IUserGroupService {
 
     public ResourceStore getStore() {
         return ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv());
+    }
+
+
+    private void checkPermission(String project) {
+        if (StringUtils.isEmpty(project)) {
+            aclEvaluate.checkIsGlobalAdmin();
+        } else {
+            aclEvaluate.checkProjectAdminPermission(project);
+        }
+    }
+
+    public Map<String, List<String>> getUserAndUserGroup() throws IOException {
+        Map result = Maps.newHashMap();
+
+        List<String> userNames = userService.getManagedUsersByFuzzMatching(null, false).stream().map(ManagedUser::getUsername).collect(Collectors.toList());
+        List<String> groupNames = getAllUserGroups();
+
+        result.put("user", userNames);
+        result.put("group", groupNames);
+        return result;
     }
 }

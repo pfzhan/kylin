@@ -47,7 +47,10 @@ import static org.apache.kylin.common.persistence.ResourceStore.USER_ROOT;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
+import com.google.common.collect.Sets;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.metadata.cachesync.CachedCrudAssist;
@@ -55,6 +58,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 
 public class KylinUserManager {
 
@@ -124,7 +128,11 @@ public class KylinUserManager {
         return crud.contains(username);
     }
 
-    public void reloadAll() {
-        crud.reloadAll();
+    public Set<String> getUserGroups(String userName) {
+        ManagedUser user = get(userName);
+        if (user == null)
+            return Sets.newHashSet();
+
+        return user.getAuthorities().stream().map(SimpleGrantedAuthority::getAuthority).collect(Collectors.toSet());
     }
 }

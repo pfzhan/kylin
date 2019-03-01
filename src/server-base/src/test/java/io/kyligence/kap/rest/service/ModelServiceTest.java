@@ -2236,7 +2236,7 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
         modelConfigRequest.setAutoMergeTimeRanges(Lists.newArrayList(AutoMergeTimeEnum.WEEK));
         modelService.updateModelConfig(project, model, modelConfigRequest);
 
-        val modelConfigResponses = modelService.getModelConfig(project);
+        var modelConfigResponses = modelService.getModelConfig(project, null);
         modelConfigResponses.forEach(modelConfigResponse -> {
             if (modelConfigResponse.getModel().equals(model)) {
                 Assert.assertEquals(false, modelConfigResponse.getAutoMergeEnabled());
@@ -2244,6 +2244,12 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
             }
         });
 
+        // get model config by fuzzy matching model alias
+        modelConfigResponses = modelService.getModelConfig(project, "nmodel");
+        Assert.assertEquals(3, modelConfigResponses.size());
+        modelConfigResponses.forEach(modelConfigResponse -> {
+            Assert.assertTrue(modelConfigResponse.getAlias().contains("nmodel"));
+        });
     }
 
     private List<AbstractExecutable> mockJobs() {

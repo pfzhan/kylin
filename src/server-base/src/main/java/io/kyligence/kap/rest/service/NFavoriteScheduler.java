@@ -51,12 +51,18 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
+import io.kyligence.kap.metadata.cube.model.NDataflowManager;
+import lombok.AllArgsConstructor;
+import lombok.NoArgsConstructor;
+import lombok.val;
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.ExecutorServiceUtil;
 import org.apache.kylin.common.util.NamedThreadFactory;
 import org.apache.kylin.metadata.project.ProjectInstance;
+import org.apache.kylin.rest.security.KylinUserManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -66,7 +72,6 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Ordering;
 
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
-import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.favorite.FavoriteQuery;
 import io.kyligence.kap.metadata.favorite.FavoriteQueryManager;
 import io.kyligence.kap.metadata.favorite.FavoriteRule;
@@ -77,11 +82,8 @@ import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.metadata.query.AccelerateRatioManager;
 import io.kyligence.kap.metadata.query.QueryHistory;
 import io.kyligence.kap.metadata.query.QueryHistoryDAO;
-import lombok.AllArgsConstructor;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
 import lombok.Setter;
-import lombok.val;
 
 public class NFavoriteScheduler {
     private static final Logger logger = LoggerFactory.getLogger(NFavoriteScheduler.class);
@@ -441,23 +443,42 @@ public class NFavoriteScheduler {
                 .getAllEnabled();
 
         for (FavoriteRule rule : rules) {
-            if (rule.getName().equals(FavoriteRule.SUBMITTER_RULE_NAME)) {
-                for (FavoriteRule.AbstractCondition submitterCond : rule.getConds()) {
-                    if (queryHistory.getQuerySubmitter()
-                            .equals(((FavoriteRule.Condition) submitterCond).getRightThreshold()))
-                        return true;
-                }
-            }
+            if (matchSingleRule(rule, queryHistory))
+                return true;
+        }
 
-            if (rule.getName().equals(FavoriteRule.DURATION_RULE_NAME)) {
-                FavoriteRule.Condition durationCond = (FavoriteRule.Condition) rule.getConds().get(0);
-                if (queryHistory.getDuration() >= Long.valueOf(durationCond.getLeftThreshold()) * 1000L
-                        && queryHistory.getDuration() <= Long.valueOf(durationCond.getRightThreshold()) * 1000L)
+        return false;
+    }
+
+    private boolean matchSingleRule(FavoriteRule rule, QueryHistory queryHistory) {
+        if (rule.getName().equals(FavoriteRule.SUBMITTER_RULE_NAME)) {
+            for (FavoriteRule.Condition submitterCond : (List<FavoriteRule.Condition>) (List<?>) rule.getConds()) {
+                if (queryHistory.getQuerySubmitter().equals(submitterCond.getRightThreshold()))
                     return true;
             }
         }
 
+        if (rule.getName().equals(FavoriteRule.SUBMITTER_GROUP_RULE_NAME)) {
+            Set<String> userGroups = getUserGroups(queryHistory.getQuerySubmitter());
+            for (FavoriteRule.Condition userGroupCond : (List<FavoriteRule.Condition>) (List<?>) rule.getConds()) {
+                if (userGroups.contains(userGroupCond.getRightThreshold()))
+                    return true;
+            }
+        }
+
+        if (rule.getName().equals(FavoriteRule.DURATION_RULE_NAME)) {
+            Preconditions.checkArgument(CollectionUtils.isNotEmpty(rule.getConds()));
+            FavoriteRule.Condition durationCond = (FavoriteRule.Condition) rule.getConds().get(0);
+            if (queryHistory.getDuration() >= Long.valueOf(durationCond.getLeftThreshold()) * 1000L
+                    && queryHistory.getDuration() <= Long.valueOf(durationCond.getRightThreshold()) * 1000L)
+                return true;
+        }
+
         return false;
+    }
+
+    private Set<String> getUserGroups(String userName) {
+        return KylinUserManager.getInstance(KylinConfig.getInstanceFromEnv()).getUserGroups(userName);
     }
 
     private boolean isInBlacklist(String sqlPattern, String project) {

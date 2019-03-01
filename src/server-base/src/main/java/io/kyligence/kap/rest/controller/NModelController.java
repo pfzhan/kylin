@@ -406,12 +406,12 @@ public class NModelController extends NBasicController {
     @RequestMapping(value = "config", method = { RequestMethod.GET }, produces = {
             "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public EnvelopeResponse getModelConfig(@RequestParam(value = "model", required = false) String modelId,
+    public EnvelopeResponse getModelConfig(@RequestParam(value = "modelName", required = false) String modelName,
             @RequestParam(value = "project", required = true) String project,
             @RequestParam(value = "pageOffset", required = false, defaultValue = "0") Integer offset,
             @RequestParam(value = "pageSize", required = false, defaultValue = "10") Integer limit) {
         checkProjectName(project);
-        val modelConfigs = modelService.getModelConfig(project);
+        val modelConfigs = modelService.getModelConfig(project, modelName);
         HashMap<String, Object> modelResponse = getDataResponse("model_config", modelConfigs, offset, limit);
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, modelResponse, "");
     }

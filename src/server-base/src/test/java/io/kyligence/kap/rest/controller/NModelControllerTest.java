@@ -491,8 +491,8 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testGetModelConfig() throws Exception {
-        Mockito.doReturn(new ArrayList<ModelConfigResponse>()).when(modelService).getModelConfig("default");
-        mockMvc.perform(MockMvcRequestBuilders.get("/api/models/config").param("project", "default").param("model", "")
+        Mockito.doReturn(new ArrayList<ModelConfigResponse>()).when(modelService).getModelConfig("default", null);
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/models/config").param("project", "default").param("modelName", "")
                 .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
                 .andExpect(MockMvcResultMatchers.status().isOk());
         Mockito.verify(nModelController).getModelConfig("", "default", 0, 10);

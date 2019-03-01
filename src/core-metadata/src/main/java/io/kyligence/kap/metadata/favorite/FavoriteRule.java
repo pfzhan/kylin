@@ -43,6 +43,7 @@ public class FavoriteRule extends RootPersistentEntity {
     public static final String FREQUENCY_RULE_NAME = "frequency";
     public static final String DURATION_RULE_NAME = "duration";
     public static final String SUBMITTER_RULE_NAME = "submitter";
+    public static final String SUBMITTER_GROUP_RULE_NAME = "submitter_group";
 
     public static final String BLACKLIST_NAME = "blacklist";
 

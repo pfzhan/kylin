@@ -26,6 +26,7 @@ package io.kyligence.kap.rest.service;
 import java.io.IOException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -34,6 +35,9 @@ import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import lombok.val;
 import lombok.var;
 import org.apache.kylin.metadata.project.ProjectInstance;
+import org.apache.kylin.rest.constant.Constant;
+import org.apache.kylin.rest.security.KylinUserManager;
+import org.apache.kylin.rest.security.ManagedUser;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -57,6 +61,7 @@ import io.kyligence.kap.metadata.query.AccelerateRatio;
 import io.kyligence.kap.metadata.query.AccelerateRatioManager;
 import io.kyligence.kap.metadata.query.QueryHistory;
 import io.kyligence.kap.metadata.query.QueryHistoryDAO;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 
 public class NFavoriteSchedulerTest extends NLocalFileMetadataTestCase {
     private static final String PROJECT = "default";
@@ -320,6 +325,15 @@ public class NFavoriteSchedulerTest extends NLocalFileMetadataTestCase {
         // matches no rules
         queryHistory.setDuration(0);
         Assert.assertFalse(favoriteScheduler.matchRuleBySingleRecord(queryHistory));
+
+        KylinUserManager userManager = KylinUserManager.getInstance(getTestConfig());
+        userManager.update(new ManagedUser("ADMIN", "KYLIN", false, Arrays.asList(//
+                new SimpleGrantedAuthority(Constant.ROLE_ADMIN), new SimpleGrantedAuthority(Constant.ROLE_ANALYST),
+                new SimpleGrantedAuthority(Constant.ROLE_MODELER))));
+
+        // matches user group
+        queryHistory.setQuerySubmitter("ADMIN");
+        Assert.assertTrue(favoriteScheduler.matchRuleBySingleRecord(queryHistory));
     }
 
     @Test

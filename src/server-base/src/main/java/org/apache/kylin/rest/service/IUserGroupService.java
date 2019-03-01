@@ -46,6 +46,7 @@ import org.apache.kylin.rest.security.ManagedUser;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 
 public interface IUserGroupService {
     //need project to indicate user's permission.only global admin and project admin can get.
@@ -62,4 +63,6 @@ public interface IUserGroupService {
     void deleteGroup(String name) throws IOException;
 
     void modifyGroupUsers(String groupName, List<String> users) throws IOException;
+
+    Map<String, List<String>> getUserAndUserGroup() throws IOException;
 }

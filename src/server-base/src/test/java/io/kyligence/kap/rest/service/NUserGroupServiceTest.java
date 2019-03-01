@@ -29,6 +29,7 @@ import static org.apache.kylin.rest.constant.Constant.GROUP_ALL_USERS;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.kylin.rest.security.ManagedUser;
 import org.apache.kylin.rest.service.IUserGroupService;
@@ -104,6 +105,13 @@ public class NUserGroupServiceTest extends ServiceTestBase {
                 userService.loadUserByUsername("u3").getAuthorities());
         Assert.assertEquals(Lists.newArrayList(new SimpleGrantedAuthority(GROUP_ALL_USERS)),
                 userService.loadUserByUsername("u5").getAuthorities());
+
+        Map<String, List<String>> result = userGroupService.getUserAndUserGroup();
+        Assert.assertEquals(2, result.size());
+        Assert.assertEquals(9, result.get("user").size());
+        Assert.assertEquals(2, result.get("group").size());
+        Assert.assertEquals("g2", result.get("group").get(0));
+        Assert.assertEquals("g3", result.get("group").get(1));
     }
 
     private List<String> getUsers(String groupName) throws IOException {

@@ -53,7 +53,7 @@ public class FavoriteRuleManagerTest extends NLocalFileMetadataTestCase {
     @Test
     public void testBasics() {
         List<FavoriteRule> rules = manager.getAll();
-        Assert.assertEquals(4, rules.size());
+        Assert.assertEquals(5, rules.size());
 
         FavoriteRule.Condition cond1 = new FavoriteRule.Condition();
         cond1.setRightThreshold("100");
@@ -65,14 +65,14 @@ public class FavoriteRuleManagerTest extends NLocalFileMetadataTestCase {
         FavoriteRule newRule = new FavoriteRule(conds, "new_rule", true);
 
         manager.createRule(newRule);
-        Assert.assertEquals(5, manager.getAll().size());
+        Assert.assertEquals(6, manager.getAll().size());
 
         cond1.setLeftThreshold("10");
         conds = Lists.newArrayList(cond1, cond2);
         newRule.setConds(conds);
-        manager.updateRule(conds, true, newRule.getName());
+        manager.updateRule((List<FavoriteRule.Condition>)(List<?>) conds, true, newRule.getName());
 
-        Assert.assertEquals(5, manager.getAll().size());
+        Assert.assertEquals(6, manager.getAll().size());
         FavoriteRule updatedNewRule = manager.getByName("new_rule");
         conds = updatedNewRule.getConds();
         Assert.assertEquals(2, conds.size());
@@ -81,7 +81,7 @@ public class FavoriteRuleManagerTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testGetEnabledRules() {
-        Assert.assertEquals(3, manager.getAllEnabled().size());
+        Assert.assertEquals(4, manager.getAllEnabled().size());
     }
 
     @Test

@@ -31,6 +31,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import com.google.common.base.Joiner;
+import io.kyligence.kap.metadata.favorite.FavoriteQuery;
+import io.kyligence.kap.metadata.query.AccelerateRatio;
+import io.kyligence.kap.metadata.query.AccelerateRatioManager;
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.query.util.QueryUtil;
 import org.apache.kylin.rest.exception.BadRequestException;
@@ -44,15 +49,11 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
 
-import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
-import io.kyligence.kap.metadata.favorite.FavoriteQuery;
 import io.kyligence.kap.metadata.favorite.FavoriteRule;
-import io.kyligence.kap.metadata.query.AccelerateRatio;
-import io.kyligence.kap.metadata.query.AccelerateRatioManager;
 import io.kyligence.kap.rest.response.ImportSqlResponse;
 import io.kyligence.kap.rest.response.SQLValidateResponse;
 import io.kyligence.kap.rest.transaction.Transaction;
@@ -64,42 +65,40 @@ import io.kyligence.kap.smart.query.validator.SqlSyntaxValidator;
 @Component("favoriteRuleService")
 public class FavoriteRuleService extends BasicService {
     private static final Logger logger = LoggerFactory.getLogger(FavoriteRuleService.class);
+    private static final List<String> favoriteRuleNames = Lists.newArrayList(FavoriteRule.FREQUENCY_RULE_NAME, FavoriteRule.DURATION_RULE_NAME, FavoriteRule.SUBMITTER_RULE_NAME, FavoriteRule.SUBMITTER_GROUP_RULE_NAME);
 
-    public Map<String, Object> getFrequencyRule(String project) {
-        FavoriteRule frequencyRule = getFavoriteRule(project, FavoriteRule.FREQUENCY_RULE_NAME);
-
+    public Map<String, Object> getFavoriteRules(String project) {
         Map<String, Object> result = Maps.newHashMap();
-        result.put(FavoriteRule.ENABLE, frequencyRule.isEnabled());
-        FavoriteRule.AbstractCondition condition = frequencyRule.getConds().get(0);
-        result.put("freqValue", Float.valueOf(((FavoriteRule.Condition) condition).getRightThreshold()));
 
-        return result;
-    }
+        for (String ruleName : favoriteRuleNames) {
+            FavoriteRule rule = getFavoriteRule(project, ruleName);
+            List<FavoriteRule.Condition> conds = (List<FavoriteRule.Condition>)(List<?>) rule.getConds();
 
-    public Map<String, Object> getSubmitterRule(String project) {
-        FavoriteRule submitterRule = getFavoriteRule(project, FavoriteRule.SUBMITTER_RULE_NAME);
-
-        Map<String, Object> result = Maps.newHashMap();
-        result.put(FavoriteRule.ENABLE, submitterRule.isEnabled());
-        List<String> users = Lists.newArrayList();
-        for (FavoriteRule.AbstractCondition cond : submitterRule.getConds()) {
-            users.add(((FavoriteRule.Condition) cond).getRightThreshold());
+            switch (ruleName) {
+                case FavoriteRule.FREQUENCY_RULE_NAME:
+                    result.put("freqEnable", rule.isEnabled());
+                    result.put("freqValue", Float.valueOf(conds.get(0).getRightThreshold()));
+                    break;
+                case FavoriteRule.SUBMITTER_RULE_NAME:
+                    List<String> users = Lists.newArrayList();
+                    conds.forEach(cond -> users.add(cond.getRightThreshold()));
+                    result.put("submitterEnable", rule.isEnabled());
+                    result.put("users", users);
+                    break;
+                case FavoriteRule.SUBMITTER_GROUP_RULE_NAME:
+                    List<String> userGroups = Lists.newArrayList();
+                    conds.forEach(cond -> userGroups.add(cond.getRightThreshold()));
+                    result.put("userGroups", userGroups);
+                    break;
+                case FavoriteRule.DURATION_RULE_NAME:
+                    result.put("durationEnable", rule.isEnabled());
+                    result.put("minDuration", Long.valueOf(conds.get(0).getLeftThreshold()));
+                    result.put("maxDuration", Long.valueOf(conds.get(0).getRightThreshold()));
+                    break;
+                default:
+                    break;
+            }
         }
-        result.put("users", users);
-        result.put("groups", Lists.newArrayList());
-
-        return result;
-    }
-
-    public Map<String, Object> getDurationRule(String project) {
-        FavoriteRule durationRule = getFavoriteRule(project, FavoriteRule.DURATION_RULE_NAME);
-
-        Map<String, Object> result = Maps.newHashMap();
-        result.put(FavoriteRule.ENABLE, durationRule.isEnabled());
-        FavoriteRule.AbstractCondition condition = durationRule.getConds().get(0);
-        result.put("durationValue",
-                Lists.newArrayList(Long.valueOf(((FavoriteRule.Condition) condition).getLeftThreshold()),
-                        Long.valueOf(((FavoriteRule.Condition) condition).getRightThreshold())));
 
         return result;
     }
@@ -117,42 +116,44 @@ public class FavoriteRuleService extends BasicService {
     }
 
     @Transaction(project = 0)
-    public void updateRegularRule(String project, FavoriteRuleUpdateRequest request, String ruleName) {
-        FavoriteRule rule = getFavoriteRule(project, ruleName);
-        rule.setEnabled(request.isEnable());
+    public void updateRegularRule(String project, FavoriteRuleUpdateRequest request) {
+        favoriteRuleNames.forEach(ruleName -> updateSingleRule(project, ruleName, request));
 
-        List<FavoriteRule.AbstractCondition> conds = Lists.newArrayList();
-
-        switch (ruleName) {
-        case FavoriteRule.FREQUENCY_RULE_NAME:
-            FavoriteRule.Condition freqCond = (FavoriteRule.Condition) rule.getConds().get(0);
-            freqCond.setRightThreshold(request.getFreqValue());
-            conds.add(freqCond);
-            break;
-        case FavoriteRule.SUBMITTER_RULE_NAME:
-            for (String user : request.getUsers()) {
-                conds.add(new FavoriteRule.Condition(null, user));
-            }
-            break;
-        case FavoriteRule.DURATION_RULE_NAME:
-            if (request.getDurationValue().length < 2)
-                throw new IllegalArgumentException("Duration rule should have both left threshold and right threshold");
-            FavoriteRule.Condition durationCond = (FavoriteRule.Condition) rule.getConds().get(0);
-            durationCond.setLeftThreshold(request.getDurationValue()[0]);
-            durationCond.setRightThreshold(request.getDurationValue()[1]);
-            conds.add(durationCond);
-            break;
-        default:
-            break;
-        }
-
-        rule.setConds(conds);
-        getFavoriteRuleManager(project).updateRule(conds, rule.isEnabled(), ruleName);
         NFavoriteScheduler favoriteScheduler = getFavoriteScheduler(project);
         if (!favoriteScheduler.hasStarted()) {
-            throw new RuntimeException("Auto favorite scheduler for " + project + " has not been started");
+            throw new IllegalStateException("Auto favorite scheduler for " + project + " has not been started");
         }
         favoriteScheduler.scheduleAutoFavorite();
+    }
+
+    private void updateSingleRule(String project, String ruleName, FavoriteRuleUpdateRequest request) {
+        List<FavoriteRule.Condition> conds = Lists.newArrayList();
+        boolean isEnabled = false;
+
+        switch (ruleName) {
+            case FavoriteRule.FREQUENCY_RULE_NAME:
+                isEnabled = request.isFreqEnable();
+                conds.add(new FavoriteRule.Condition(null, request.getFreqValue()));
+                break;
+            case FavoriteRule.SUBMITTER_RULE_NAME:
+                isEnabled = request.isSubmitterEnable();
+                if (CollectionUtils.isNotEmpty(request.getUsers()))
+                    request.getUsers().forEach(user -> conds.add(new FavoriteRule.Condition(null, user)));
+                break;
+            case FavoriteRule.SUBMITTER_GROUP_RULE_NAME:
+                isEnabled = request.isSubmitterEnable();
+                if (CollectionUtils.isNotEmpty(request.getUserGroups()))
+                    request.getUserGroups().forEach(userGroup -> conds.add(new FavoriteRule.Condition(null, userGroup)));
+                break;
+            case FavoriteRule.DURATION_RULE_NAME:
+                isEnabled = request.isDurationEnable();
+                conds.add(new FavoriteRule.Condition(request.getMinDuration(), request.getMaxDuration()));
+                break;
+            default:
+                break;
+        }
+
+        getFavoriteRuleManager(project).updateRule(conds, isEnabled, ruleName);
     }
 
     @Transaction(project = 0)
@@ -172,9 +173,10 @@ public class FavoriteRuleService extends BasicService {
         getFavoriteQueryManager(project).delete(favoriteQuery);
     }
 
-    public List<FavoriteRule.SQLCondition> getBlacklistSqls(String project) {
+    public List<FavoriteRule.SQLCondition> getBlacklistSqls(String project, String sql) {
         FavoriteRule blacklist = getFavoriteRuleManager(project).getByName(FavoriteRule.BLACKLIST_NAME);
         return blacklist.getConds().stream().map(cond -> (FavoriteRule.SQLCondition) cond)
+                .filter(sqlCondition -> StringUtils.isEmpty(sql) || sqlCondition.getSqlPattern().toUpperCase().contains(sql.toUpperCase()))
                 .sorted(Comparator.comparingLong(FavoriteRule.SQLCondition::getCreateTime).reversed())
                 .collect(Collectors.toList());
     }

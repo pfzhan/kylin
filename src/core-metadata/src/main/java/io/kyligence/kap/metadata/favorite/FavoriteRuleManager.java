@@ -109,8 +109,8 @@ public class FavoriteRuleManager {
         crud.save(rule);
     }
 
-    public void updateRule(List<FavoriteRule.AbstractCondition> conditions, boolean isEnabled, String ruleName) {
-        FavoriteRule copy = crud.copyBySerialization(getByName(ruleName));
+    public void updateRule(List<FavoriteRule.Condition> conditions, boolean isEnabled, String ruleName) {
+        FavoriteRule copy = crud.copyForWrite(getByName(ruleName));
         copy.setEnabled(isEnabled);
 
         List<FavoriteRule.AbstractCondition> newConditions = Lists.newArrayList();
@@ -128,8 +128,6 @@ public class FavoriteRuleManager {
         List<FavoriteRule> favoriteRules = Lists.newArrayList();
 
         favoriteRules.addAll(crud.listAll());
-
-        logger.trace("Loaded " + favoriteRules.size() + " rules");
         return favoriteRules;
     }
 

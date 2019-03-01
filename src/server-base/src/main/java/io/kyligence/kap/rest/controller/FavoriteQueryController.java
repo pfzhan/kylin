@@ -125,59 +125,30 @@ public class FavoriteQueryController extends NBasicController {
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, "", "");
     }
 
-    @RequestMapping(value = "/rules/frequency", method = RequestMethod.GET)
+    @RequestMapping(value = "/rules", method = RequestMethod.GET)
     @ResponseBody
-    public EnvelopeResponse getFrequencyRule(@RequestParam(value = "project") String project) {
+    public EnvelopeResponse getFavoriteRules(@RequestParam(value = "project") String project) {
         checkProjectName(project);
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, favoriteRuleService.getFrequencyRule(project), "");
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, favoriteRuleService.getFavoriteRules(project), "");
     }
 
-    @RequestMapping(value = "/rules/submitter", method = RequestMethod.GET)
+    @RequestMapping(value = "/rules", method = RequestMethod.PUT)
     @ResponseBody
-    public EnvelopeResponse getSubmitterRule(@RequestParam(value = "project") String project) {
-        checkProjectName(project);
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, favoriteRuleService.getSubmitterRule(project), "");
-    }
-
-    @RequestMapping(value = "/rules/duration", method = RequestMethod.GET)
-    @ResponseBody
-    public EnvelopeResponse getDurationRule(@RequestParam(value = "project") String project) {
-        checkProjectName(project);
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, favoriteRuleService.getDurationRule(project), "");
-    }
-
-    @RequestMapping(value = "/rules/frequency", method = RequestMethod.PUT)
-    @ResponseBody
-    public EnvelopeResponse updateFrequencyRule(@RequestBody FavoriteRuleUpdateRequest request) throws IOException {
+    public EnvelopeResponse updateFavoriteRules(@RequestBody FavoriteRuleUpdateRequest request) throws IOException {
         checkProjectName(request.getProject());
-        favoriteRuleService.updateRegularRule(request.getProject(), request, FavoriteRule.FREQUENCY_RULE_NAME);
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, "", "");
-    }
-
-    @RequestMapping(value = "/rules/submitter", method = RequestMethod.PUT)
-    @ResponseBody
-    public EnvelopeResponse updateSubmitterRule(@RequestBody FavoriteRuleUpdateRequest request) throws IOException {
-        checkProjectName(request.getProject());
-        favoriteRuleService.updateRegularRule(request.getProject(), request, FavoriteRule.SUBMITTER_RULE_NAME);
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, "", "");
-    }
-
-    @RequestMapping(value = "/rules/duration", method = RequestMethod.PUT)
-    @ResponseBody
-    public EnvelopeResponse updateDurationRule(@RequestBody FavoriteRuleUpdateRequest request) throws IOException {
-        checkProjectName(request.getProject());
-        favoriteRuleService.updateRegularRule(request.getProject(), request, FavoriteRule.DURATION_RULE_NAME);
+        favoriteRuleService.updateRegularRule(request.getProject(), request);
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, "", "");
     }
 
     @RequestMapping(value = "/blacklist", method = RequestMethod.GET)
     @ResponseBody
     public EnvelopeResponse getBlacklist(@RequestParam("project") String project,
+            @RequestParam(value = "sql", required = false) String sql,
             @RequestParam(value = "offset", required = false, defaultValue = "0") int offset,
             @RequestParam(value = "limit", required = false, defaultValue = "10") int limit) {
         checkProjectName(project);
         Map<String, Object> data = Maps.newHashMap();
-        List<FavoriteRule.SQLCondition> blacklistSqls = favoriteRuleService.getBlacklistSqls(project);
+        List<FavoriteRule.SQLCondition> blacklistSqls = favoriteRuleService.getBlacklistSqls(project, sql);
         data.put("sqls", PagingUtil.cutPage(blacklistSqls, offset, limit));
         data.put("size", blacklistSqls.size());
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, data, "");

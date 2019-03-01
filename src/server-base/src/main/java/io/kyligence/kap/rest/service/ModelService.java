@@ -850,7 +850,6 @@ public class ModelService extends BasicService {
         postAddCuboidEvent.setOwner(getUsername());
         eventManager.post(postAddCuboidEvent);
 
-
     }
 
     void syncPartitionDesc(String model, String project) {
@@ -1194,13 +1193,15 @@ public class ModelService extends BasicService {
         }
     }
 
-    public List<ModelInfoResponse> getModelInfo(String suite, String model, List<String> projects, long start, long end) {
+    public List<ModelInfoResponse> getModelInfo(String suite, String model, List<String> projects, long start,
+            long end) {
         List<ModelInfoResponse> modelInfoList = Lists.newArrayList();
         checkProjectWhenModelSelected(model, projects);
 
         val projectManager = getProjectManager();
         if (CollectionUtils.isEmpty(projects)) {
-            projects = projectManager.listAllProjects().stream().map(ProjectInstance::getName).collect(Collectors.toList());
+            projects = projectManager.listAllProjects().stream().map(ProjectInstance::getName)
+                    .collect(Collectors.toList());
         }
         if (isSelectAll(model)) {
             modelInfoList.addAll(getModelInfoByProject(projects));
@@ -1262,26 +1263,28 @@ public class ModelService extends BasicService {
         return "*".equals(field);
     }
 
-    public List<ModelConfigResponse> getModelConfig(String project) {
+    public List<ModelConfigResponse> getModelConfig(String project, String modelName) {
         val responseList = Lists.<ModelConfigResponse> newArrayList();
-        getDataflowManager(project).listUnderliningDataModels().forEach(dataModel -> {
-            val response = new ModelConfigResponse();
-            response.setModel(dataModel.getUuid());
-            response.setAlias(dataModel.getAlias());
-            val segmentConfig = dataModel.getSegmentConfig();
-            response.setAutoMergeEnabled(segmentConfig.getAutoMergeEnabled());
-            response.setAutoMergeTimeRanges(segmentConfig.getAutoMergeTimeRanges());
-            response.setVolatileRange(segmentConfig.getVolatileRange());
-            response.setRetentionRange(segmentConfig.getRetentionRange());
-            response.setConfigLastModified(dataModel.getConfigLastModified());
-            response.setConfigLastModifier(dataModel.getConfigLastModifier());
-            val indexPlan = getIndexPlan(dataModel.getUuid(), project);
-            if (indexPlan != null) {
-                val overrideProps = indexPlan.getOverrideProps();
-                response.getOverrideProps().putAll(overrideProps);
-            }
-            responseList.add(response);
-        });
+        getDataflowManager(project).listUnderliningDataModels().stream()
+                .filter(model -> StringUtils.isEmpty(modelName) || model.getAlias().contains(modelName))
+                .forEach(dataModel -> {
+                    val response = new ModelConfigResponse();
+                    response.setModel(dataModel.getUuid());
+                    response.setAlias(dataModel.getAlias());
+                    val segmentConfig = dataModel.getSegmentConfig();
+                    response.setAutoMergeEnabled(segmentConfig.getAutoMergeEnabled());
+                    response.setAutoMergeTimeRanges(segmentConfig.getAutoMergeTimeRanges());
+                    response.setVolatileRange(segmentConfig.getVolatileRange());
+                    response.setRetentionRange(segmentConfig.getRetentionRange());
+                    response.setConfigLastModified(dataModel.getConfigLastModified());
+                    response.setConfigLastModifier(dataModel.getConfigLastModifier());
+                    val indexPlan = getIndexPlan(dataModel.getUuid(), project);
+                    if (indexPlan != null) {
+                        val overrideProps = indexPlan.getOverrideProps();
+                        response.getOverrideProps().putAll(overrideProps);
+                    }
+                    responseList.add(response);
+                });
         return responseList;
     }
 

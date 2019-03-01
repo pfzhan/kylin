@@ -49,7 +49,6 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -81,19 +80,19 @@ public class FavoriteRuleServiceTest extends NLocalFileMetadataTestCase {
         favoriteQueryManager.create(new HashSet(){{add(favoriteQuery1);add(favoriteQuery2);}});
         List<FavoriteQuery> favoriteQueries = favoriteQueryManager.getAll();
         Assert.assertEquals(2, favoriteQueries.size());
-        List<FavoriteRule.SQLCondition> sqls = favoriteRuleService.getBlacklistSqls(PROJECT);
+        List<FavoriteRule.SQLCondition> sqls = favoriteRuleService.getBlacklistSqls(PROJECT, "");
         Assert.assertEquals(1, sqls.size());
 
         // append sql pattern1 to blacklist from rule-based channel and delete FQ
         favoriteRuleService.deleteFavoriteQuery(PROJECT, favoriteQueryManager.get(sqlPattern1).getUuid());
-        sqls = favoriteRuleService.getBlacklistSqls(PROJECT);
+        sqls = favoriteRuleService.getBlacklistSqls(PROJECT, "");
         Assert.assertEquals(2, sqls.size());
         favoriteQueries = favoriteQueryManager.getAll();
         Assert.assertEquals(1, favoriteQueries.size());
 
         // append sql pattern2 to blacklist from imported channel and delete FQ
         favoriteRuleService.deleteFavoriteQuery(PROJECT, favoriteQueryManager.get(sqlPattern2).getUuid());
-        sqls = favoriteRuleService.getBlacklistSqls(PROJECT);
+        sqls = favoriteRuleService.getBlacklistSqls(PROJECT, "");
         Assert.assertEquals(2, sqls.size());
         favoriteQueries = favoriteQueryManager.getAll();
         Assert.assertEquals(0, favoriteQueries.size());
@@ -103,7 +102,7 @@ public class FavoriteRuleServiceTest extends NLocalFileMetadataTestCase {
         sqlPattern1FQ.setChannel(FavoriteQuery.CHANNEL_FROM_RULE);
         favoriteQueryManager.create(new HashSet(){{add(sqlPattern1FQ);}});
         favoriteRuleService.deleteFavoriteQuery(PROJECT, favoriteQueryManager.get(sqlPattern1).getUuid());
-        sqls = favoriteRuleService.getBlacklistSqls(PROJECT);
+        sqls = favoriteRuleService.getBlacklistSqls(PROJECT, "");
         favoriteQueries = favoriteQueryManager.getAll();
         Assert.assertEquals(2, sqls.size());
         Assert.assertEquals(0, favoriteQueries.size());
@@ -121,9 +120,19 @@ public class FavoriteRuleServiceTest extends NLocalFileMetadataTestCase {
         FavoriteRule.SQLCondition sqlCondition2 = sqls.get(1);
         Assert.assertTrue(sqlCondition1.getCreateTime() > sqlCondition2.getCreateTime());
 
+        // test filter blacklist by sql
+        sqls = favoriteRuleService.getBlacklistSqls(PROJECT, "sql pattern 1");
+        Assert.assertEquals(1, sqls.size());
+
+        sqls = favoriteRuleService.getBlacklistSqls(PROJECT, "not_exist_sql");
+        Assert.assertEquals(0, sqls.size());
+
+        sqls = favoriteRuleService.getBlacklistSqls(PROJECT, "");
+        Assert.assertEquals(2, sqls.size());
+
         // remove sql pattern from blacklist
         favoriteRuleService.removeBlacklistSql(sqls.get(0).getId(), PROJECT);
-        sqls = favoriteRuleService.getBlacklistSqls(PROJECT);
+        sqls = favoriteRuleService.getBlacklistSqls(PROJECT, "");
         Assert.assertEquals(1, sqls.size());
     }
 
@@ -158,80 +167,77 @@ public class FavoriteRuleServiceTest extends NLocalFileMetadataTestCase {
     public void testGetRulesWithError() {
         // assert get rule error
         try {
-            favoriteRuleService.getFrequencyRule(PROJECT_NEWTEN);
+            favoriteRuleService.getFavoriteRules(PROJECT_NEWTEN);
         } catch (Throwable ex) {
             Assert.assertEquals(NotFoundException.class, ex.getClass());
             Assert.assertEquals(String.format(MsgPicker.getMsg().getFAVORITE_RULE_NOT_FOUND(),
                     FavoriteRule.FREQUENCY_RULE_NAME), ex.getMessage());
         }
-
-        try {
-            favoriteRuleService.getSubmitterRule(PROJECT_NEWTEN);
-        } catch (Throwable ex) {
-            Assert.assertEquals(NotFoundException.class, ex.getClass());
-            Assert.assertEquals(String.format(MsgPicker.getMsg().getFAVORITE_RULE_NOT_FOUND(),
-                    FavoriteRule.SUBMITTER_RULE_NAME), ex.getMessage());
-        }
-
-        try {
-            favoriteRuleService.getDurationRule(PROJECT_NEWTEN);
-        } catch (Throwable ex) {
-            Assert.assertEquals(NotFoundException.class, ex.getClass());
-            Assert.assertEquals(String.format(MsgPicker.getMsg().getFAVORITE_RULE_NOT_FOUND(),
-                    FavoriteRule.DURATION_RULE_NAME), ex.getMessage());
-        }
     }
 
     @Test
-    public void testGetFilterRulesAndUpdate() throws IOException {
+    public void testGetFilterRulesAndUpdate() {
         NFavoriteScheduler favoriteScheduler = Mockito.mock(NFavoriteScheduler.class);
         Mockito.doReturn(true).when(favoriteScheduler).hasStarted();
         Mockito.doReturn(favoriteScheduler).when(favoriteRuleService).getFavoriteScheduler(PROJECT);
-        Map<String, Object> frequencyRuleResult = favoriteRuleService.getFrequencyRule(PROJECT);
-        Assert.assertTrue((boolean) frequencyRuleResult.get(FavoriteRule.ENABLE));
-        Assert.assertEquals(0.1, (float) frequencyRuleResult.get("freqValue"), 0.1);
 
-        Map<String, Object> submitterRuleResult = favoriteRuleService.getSubmitterRule(PROJECT);
-        List<String> users = (ArrayList<String>) submitterRuleResult.get("users");
-        Assert.assertTrue((boolean) submitterRuleResult.get(FavoriteRule.ENABLE));
+        Map<String, Object> favoriteRuleResponse = favoriteRuleService.getFavoriteRules(PROJECT);
+
+        Assert.assertTrue((boolean) favoriteRuleResponse.get("freqEnable"));
+        Assert.assertEquals(0.1, (float) favoriteRuleResponse.get("freqValue"), 0.1);
+
+        List<String> users = (List<String>) favoriteRuleResponse.get("users");
+        List<String> userGroups = (List<String>) favoriteRuleResponse.get("userGroups");
+        Assert.assertTrue((boolean) favoriteRuleResponse.get("submitterEnable"));
         Assert.assertEquals(3, users.size());
+        Assert.assertEquals(1, userGroups.size());
 
-        Map<String, Object> durationRuleResult = favoriteRuleService.getDurationRule(PROJECT);
-        List<Long> durationValues = (ArrayList<Long>) durationRuleResult.get("durationValue");
-        Assert.assertTrue((boolean) durationRuleResult.get(FavoriteRule.ENABLE));
-        Assert.assertEquals(5, (long) durationValues.get(0));
-        Assert.assertEquals(8, (long) durationValues.get(1));
+        long minDuration = (Long) favoriteRuleResponse.get("minDuration");
+        long maxDuration = (Long) favoriteRuleResponse.get("maxDuration");
+        Assert.assertTrue((boolean) favoriteRuleResponse.get("durationEnable"));
+        Assert.assertEquals(5, minDuration);
+        Assert.assertEquals(8, maxDuration);
 
         // the request of updating frequency rule
         FavoriteRuleUpdateRequest request = new FavoriteRuleUpdateRequest();
         request.setProject(PROJECT);
-        request.setEnable(false);
+        request.setFreqEnable(false);
         request.setFreqValue("0.2");
-
-        favoriteRuleService.updateRegularRule(PROJECT, request, FavoriteRule.FREQUENCY_RULE_NAME);
-        frequencyRuleResult = favoriteRuleService.getFrequencyRule(PROJECT);
-        Assert.assertFalse((boolean) frequencyRuleResult.get(FavoriteRule.ENABLE));
-        Assert.assertEquals(0.2, (float) frequencyRuleResult.get("freqValue"), 0.1);
-        Mockito.verify(favoriteScheduler).scheduleAutoFavorite();
-
+        request.setDurationEnable(false);
+        request.setMinDuration("0");
+        request.setMaxDuration("10");
+        request.setSubmitterEnable(false);
         request.setUsers(Lists.newArrayList("userA", "userB", "userC", "ADMIN"));
 
-        // update submitter rule
-        favoriteRuleService.updateRegularRule(PROJECT, request, FavoriteRule.SUBMITTER_RULE_NAME);
-        submitterRuleResult = favoriteRuleService.getSubmitterRule(PROJECT);
-        users = (ArrayList<String>) submitterRuleResult.get("users");
-        Assert.assertFalse((boolean) submitterRuleResult.get(FavoriteRule.ENABLE));
+        favoriteRuleService.updateRegularRule(PROJECT, request);
+        Mockito.verify(favoriteScheduler).scheduleAutoFavorite();
+
+        // assert
+        favoriteRuleResponse = favoriteRuleService.getFavoriteRules(PROJECT);
+        Assert.assertFalse((boolean) favoriteRuleResponse.get("freqEnable"));
+        Assert.assertFalse((boolean) favoriteRuleResponse.get("durationEnable"));
+        Assert.assertFalse((boolean) favoriteRuleResponse.get("submitterEnable"));
+        Assert.assertEquals(0.2, (float) favoriteRuleResponse.get("freqValue"), 0.1);
+
+        users = (List<String>) favoriteRuleResponse.get("users");
         Assert.assertEquals(4, users.size());
+        userGroups = (List<String>) favoriteRuleResponse.get("userGroups");
+        Assert.assertEquals(0, userGroups.size());
 
-        request.setDurationValue(new String[]{"0", "10"});
+        minDuration = (Long) favoriteRuleResponse.get("minDuration");
+        maxDuration = (Long) favoriteRuleResponse.get("maxDuration");
+        Assert.assertEquals(0, minDuration);
+        Assert.assertEquals(10, maxDuration);
 
-        // update duration rule
-        favoriteRuleService.updateRegularRule(PROJECT, request, FavoriteRule.DURATION_RULE_NAME);
-        durationRuleResult = favoriteRuleService.getDurationRule(PROJECT);
-        durationValues = (ArrayList<Long>) durationRuleResult.get("durationValue");
-        Assert.assertFalse((boolean) durationRuleResult.get(FavoriteRule.ENABLE));
-        Assert.assertEquals(0, (long) durationValues.get(0));
-        Assert.assertEquals(10, (long) durationValues.get(1));
+        request.setUserGroups(Lists.newArrayList("ROLE_ADMIN", "USER_GROUP1"));
+
+        favoriteRuleService.updateRegularRule(PROJECT, request);
+        favoriteRuleResponse = favoriteRuleService.getFavoriteRules(PROJECT);
+        users = (List<String>) favoriteRuleResponse.get("users");
+        Assert.assertEquals(4, users.size());
+        userGroups = (List<String>) favoriteRuleResponse.get("userGroups");
+        Assert.assertEquals(2, userGroups.size());
+        Assert.assertEquals("ROLE_ADMIN", userGroups.get(0));
     }
 
     @Test
