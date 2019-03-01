@@ -79,8 +79,8 @@ export default {
     [types.APPLY_SPEED_INFO]: function ({ commit }, para) {
       return api.model.applySpeedModelInfo(para.project, para.size)
     },
-    [types.IGNORE_SPEED_INFO]: function ({ commit }, projectName) {
-      return api.model.ignoreSpeedModelInfo(projectName)
+    [types.IGNORE_SPEED_INFO]: function ({ commit }, para) {
+      return api.model.ignoreSpeedModelInfo(para)
     },
     [types.PURGE_MODEL]: function ({ commit }, para) {
       return api.model.purgeModel(para.project, para.modelId)

@@ -20,7 +20,7 @@
               <el-submenu :index="item.path" v-if="item.children && showMenuByRole(item.name)" :id="item.name" :key="index">
                 <template slot="title">
                   <i :class="item.icon" class="ksd-fs-16 menu-icon" ></i>
-                  <span>{{$t('kylinLang.menu.' + item.name)}}</span><div v-if="item.name === 'studio' && reachThreshold" class="dot-icon"></div>
+                  <span>{{$t('kylinLang.menu.' + item.name)}}</span><div v-if="item.name === 'studio' && reachThresholdVisible" class="dot-icon"></div>
                 </template>
                 <el-menu-item-group>
                   <el-menu-item :index="child.path" v-for="child in item.children" :key="child.path" v-if="showMenuByRole(child.name)">
@@ -34,7 +34,7 @@
                       <span style="position:relative;">
                         {{isAutoProject ? $t('kylinLang.menu.index') : $t('kylinLang.menu.model')}}
                       </span>
-                      <div class="number-icon" v-if="reachThreshold">1</div>
+                      <div class="number-icon" v-if="reachThresholdVisible">1</div>
                     </template>
                   </el-menu-item>
                 </el-menu-item-group>
@@ -215,7 +215,7 @@ let MessageBox = ElementUI.MessageBox
       return this.$store.state.model.reachThreshold
     },
     reachThresholdVisible () {
-      return this.$store.state.model.reachThreshold && this.manualClose
+      return this.$store.state.model.reachThreshold && this.$store.state.project.projectAutoApplyConfig && this.manualClose
     },
     modelSpeedModelsCount () {
       return this.$store.state.model.modelSpeedModelsCount
@@ -330,7 +330,7 @@ export default class LayoutLeftRightTop extends Vue {
   }
   ignoreSpeed () {
     this.btnLoadingCancel = true
-    this.ignoreSpeedInfo(this.currentSelectedProject).then(() => {
+    this.ignoreSpeedInfo({ignoreSize: this.modelSpeedEvents, project: this.currentSelectedProject}).then(() => {
       this.btnLoadingCancel = false
       this.resetSpeedInfo({reachThreshold: false, queryCount: 0, modelCount: 0})
       this.loadSpeedInfo('btnLoadingCancel')

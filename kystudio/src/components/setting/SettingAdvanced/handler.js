@@ -12,8 +12,7 @@ export function _getAccelerationSettings (data) {
   return {
     project: data.project,
     threshold: data.threshold,
-    batch_enabled: data.batch_enabled,
-    auto_apply: data.auto_apply
+    tips_enabled: data.tips_enabled
   }
 }
 

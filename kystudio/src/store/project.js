@@ -65,7 +65,7 @@ export default {
         ...state.allProject.slice(projectIdx + 1)
       ]
     },
-    [types.CACHE_PROJECT_AUTO_APPLY_CONFIG]: function (state, { projectAutoApplyConfig }) {
+    [types.CACHE_PROJECT_TIPS_CONFIG]: function (state, { projectAutoApplyConfig }) {
       state.projectAutoApplyConfig = projectAutoApplyConfig
     }
   },
@@ -150,7 +150,7 @@ export default {
     },
     [types.FETCH_PROJECT_SETTINGS]: function ({ commit }, para) {
       return api.project.fetchProjectSettings(para.projectName).then((response) => {
-        commit(types.CACHE_PROJECT_AUTO_APPLY_CONFIG, {projectAutoApplyConfig: response.data.data.auto_apply})
+        commit(types.CACHE_PROJECT_TIPS_CONFIG, {projectAutoApplyConfig: response.data.data.tips_enabled})
         return response
       })
     },
@@ -168,7 +168,7 @@ export default {
     },
     [types.UPDATE_ACCELERATION_SETTINGS]: function ({commit}, para) {
       return api.project.updateAccelerationSettings(para).then((response) => {
-        commit(types.CACHE_PROJECT_AUTO_APPLY_CONFIG, {projectAutoApplyConfig: para.auto_apply})
+        commit(types.CACHE_PROJECT_TIPS_CONFIG, {projectAutoApplyConfig: para.tips_enabled})
         return response
       })
     },

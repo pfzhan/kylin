@@ -289,7 +289,6 @@ import accelerationTable from './acceleration_table'
       loadBlackList: 'LOAD_BLACK_LIST',
       deleteBlack: 'DELETE_BLACK_SQL',
       applySpeedInfo: 'APPLY_SPEED_INFO',
-      getSpeedInfo: 'GET_SPEED_INFO',
       importSqlFiles: 'IMPORT_SQL_FILES',
       getWaitingAcceSize: 'GET_WAITING_ACCE_SIZE'
     }),
@@ -559,7 +558,7 @@ export default class FavoriteQuery extends Vue {
         })
       })
       const loadAllSubmittersData = new Promise((resolve, reject) => {
-        this.getUserAndGroups({project: this.currentSelectedProject}).then((res) => {
+        this.getUserAndGroups().then((res) => {
           handleSuccess(res, (data) => {
             this.allSubmittersOptions = data
             resolve()
@@ -640,9 +639,6 @@ export default class FavoriteQuery extends Vue {
     })
     const data = await handleSuccessAsync(res)
     this.patternNum = data.size
-    if (this.currentSelectedProject) {
-      this.getSpeedInfo(this.currentSelectedProject)
-    }
   }
 
   created () {

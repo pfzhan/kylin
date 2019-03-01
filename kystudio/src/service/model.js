@@ -14,8 +14,8 @@ export default {
   applySpeedModelInfo: (projectName, size) => {
     return Vue.resource(apiUrl + 'query/favorite_queries/accept?project=' + projectName + '&accelerateSize=' + size).update()
   },
-  ignoreSpeedModelInfo: (projectName) => {
-    return Vue.resource(apiUrl + 'query/favorite_queries/ignore/' + projectName).update()
+  ignoreSpeedModelInfo: (para) => {
+    return Vue.resource(apiUrl + 'query/favorite_queries/ignore?project=' + para.project + '&ignoreSize=' + para.ignoreSize).update()
   },
   // purge
   purgeModel: (project, modelId) => {

@@ -13,13 +13,13 @@
           <span class="setting-value fixed">
             <el-switch
               class="ksd-switch"
-              v-model="form.auto_apply"
+              v-model="form.tips_enabled"
               :active-text="$t('kylinLang.common.OFF')"
               :inactive-text="$t('kylinLang.common.ON')">
             </el-switch>
           </span>
           <div class="setting-desc large"
-            :class="{'disabled': !form.auto_apply }">
+            :class="{'disabled': !form.tips_enabled }">
             {{$t('notifyLeftTips')}}
             <b class="setting-value">{{project.threshold}}</b>
             <el-form-item class="setting-input" :show-message="false" prop="threshold">
@@ -27,7 +27,7 @@
                 size="small"
                 class="acce-input"
                 v-number="form.threshold"
-                :disabled="!form.auto_apply"
+                :disabled="!form.tips_enabled"
                 v-model="form.threshold">
               </el-input>
             </el-form-item>
@@ -127,8 +127,7 @@ import EditableBlock from '../../common/EditableBlock/EditableBlock.vue'
 export default class SettingAdvanced extends Vue {
   form = {
     project: '',
-    auto_apply: false,
-    batch_enabled: true,
+    tips_enabled: true,
     threshold: 20,
     job_error_notification_enabled: true,
     data_load_empty_notification_enabled: true,
