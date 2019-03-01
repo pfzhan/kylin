@@ -34,7 +34,7 @@ function extract_sql() {
         then
            sql=$(sed -n "${line}p" ${log_file} | awk -F ':' '{print $2}')
            #echo ${sql}
-           echo ${sql}";" >> ${sql_file_tmp}
+           echo "${sql};" >> ${sql_file_tmp}
         fi
     done
     sort -u ${sql_file_tmp} >> ${sql_file}
