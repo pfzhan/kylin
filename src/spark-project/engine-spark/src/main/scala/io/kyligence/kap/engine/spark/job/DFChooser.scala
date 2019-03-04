@@ -106,8 +106,9 @@ class DFChooser(toBuildTree: NSpanningTree,
 
     val colSet = DictionaryBuilder.extractGlobalDictColumns(seg, toBuildTree)
     val dictionaryBuilder = new DictionaryBuilder(seg, ss, colSet)
-    dictionaryBuilder.buildDictionary
-
+    if (needEncoding) {
+      dictionaryBuilder.buildDictionary
+    }
     val encodeColSet = if (needEncoding) DictionaryBuilder.extractGlobalEncodeColumns(seg, toBuildTree) else Sets.newHashSet[TblColRef]()
     val encodeColMap: util.Map[String, util.Set[TblColRef]] = DFChooser.convert(encodeColSet)
     val flatTable = new NCubeJoinedFlatTableDesc(seg.getIndexPlan, seg.getSegRange)
