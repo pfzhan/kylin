@@ -99,11 +99,11 @@ public class NTableMetadataManagerTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testTableSample() throws IOException {
-        NTableExtDesc tableExtDesc = mgrDefault.getOrCreateTableExt(tableKylinFact);
+        TableExtDesc tableExtDesc = mgrDefault.getOrCreateTableExt(tableKylinFact);
         Assert.assertNotNull(tableExtDesc);
 
         List<TableExtDesc.ColumnStats> columnStatsList = new ArrayList<>();
-        TableExtDesc.ColumnStats columnStats = new NTableExtDesc.ColumnStats();
+        TableExtDesc.ColumnStats columnStats = new TableExtDesc.ColumnStats();
         columnStats.setColumnName("test_col");
         columnStats.setColumnSamples("Max", "Min", "dfadsfdsfdsafds", "d");
         columnStatsList.add(columnStats);
@@ -123,10 +123,10 @@ public class NTableMetadataManagerTest extends NLocalFileMetadataTestCase {
     public void testGetTableExt() throws IOException {
         TableDesc tableDesc = mgrDefault.getTableDesc(tableKylinFact);
 
-        final NTableExtDesc t1 = mgrDefault.getTableExtIfExists(tableDesc);
+        final TableExtDesc t1 = mgrDefault.getTableExtIfExists(tableDesc);
         Assert.assertNull(t1);
 
-        final NTableExtDesc t2 = mgrDefault.getOrCreateTableExt(tableDesc);
+        final TableExtDesc t2 = mgrDefault.getOrCreateTableExt(tableDesc);
         Assert.assertNotNull(t2);
         Assert.assertEquals(0, t2.getColumnStats().size());
         Assert.assertEquals(0, t2.getTotalRows());
@@ -159,7 +159,7 @@ public class NTableMetadataManagerTest extends NLocalFileMetadataTestCase {
     @Test
     public void testColumnStatsStore() throws IOException {
         TableDesc tableDesc = mgrDefault.getTableDesc(tableKylinFact);
-        NTableExtDesc tableExtDesc = mgrDefault.getTableExtIfExists(tableDesc);
+        TableExtDesc tableExtDesc = mgrDefault.getTableExtIfExists(tableDesc);
         Assert.assertNull(tableExtDesc);
         tableExtDesc = mgrDefault.getOrCreateTableExt(tableDesc);
         Assert.assertNotNull(tableExtDesc);

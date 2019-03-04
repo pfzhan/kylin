@@ -84,7 +84,6 @@ import io.kyligence.kap.metadata.model.AutoMergeTimeEnum;
 import io.kyligence.kap.metadata.model.ManagementType;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
-import io.kyligence.kap.metadata.model.NTableExtDesc;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.model.VolatileRange;
 import io.kyligence.kap.rest.request.AutoMergeRequest;
@@ -173,7 +172,7 @@ public class TableService extends BasicService {
             tableMetaMgr.saveSourceTable(nTableDesc);
             if (extDesc != null) {
                 TableExtDesc origExt = tableMetaMgr.getTableExtIfExists(tableDesc);
-                NTableExtDesc nTableExtDesc = new NTableExtDesc(extDesc);
+                TableExtDesc nTableExtDesc = new TableExtDesc(extDesc);
                 if (origExt == null || origExt.getProject() == null) {
                     nTableExtDesc.setUuid(UUID.randomUUID().toString());
                     nTableExtDesc.setLastModified(0);

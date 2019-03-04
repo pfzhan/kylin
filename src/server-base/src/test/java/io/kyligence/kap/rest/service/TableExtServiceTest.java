@@ -43,11 +43,11 @@
 package io.kyligence.kap.rest.service;
 
 
-import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
-import io.kyligence.kap.metadata.model.NTableExtDesc;
-import io.kyligence.kap.metadata.model.NTableMetadataManager;
-import io.kyligence.kap.rest.response.LoadTableResponse;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
+
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.metadata.model.TableDesc;
@@ -64,12 +64,13 @@ import org.mockito.Mockito;
 import org.springframework.security.authentication.TestingAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.util.ReflectionTestUtils;
-import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.UUID;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
+
+import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.metadata.model.NTableMetadataManager;
+import io.kyligence.kap.rest.response.LoadTableResponse;
 
 public class TableExtServiceTest extends NLocalFileMetadataTestCase {
 
@@ -123,7 +124,7 @@ public class TableExtServiceTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testRemoveJobIdFromTableExt() throws Exception {
-        NTableExtDesc tableExtDesc = new NTableExtDesc();
+        TableExtDesc tableExtDesc = new TableExtDesc();
         tableExtDesc.setUuid(UUID.randomUUID().toString());
         tableExtDesc.setIdentity("DEFAULT.TEST_REMOVE");
         tableExtDesc.setJodID("test");

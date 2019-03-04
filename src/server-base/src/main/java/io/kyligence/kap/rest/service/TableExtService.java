@@ -40,7 +40,6 @@ import org.springframework.stereotype.Component;
 
 import com.google.common.collect.Sets;
 
-import io.kyligence.kap.metadata.model.NTableExtDesc;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.rest.response.LoadTableResponse;
 import io.kyligence.kap.rest.transaction.Transaction;
@@ -109,7 +108,7 @@ public class TableExtService extends BasicService {
     public void removeJobIdFromTableExt(String jobId, String project) {
         NTableMetadataManager tableMetadataManager = getTableManager(project);
         for (TableDesc desc : tableMetadataManager.listAllTables()) {
-            NTableExtDesc extDesc = tableMetadataManager.getTableExtIfExists(desc);
+            TableExtDesc extDesc = tableMetadataManager.getTableExtIfExists(desc);
             if (extDesc == null) {
                 continue;
             }

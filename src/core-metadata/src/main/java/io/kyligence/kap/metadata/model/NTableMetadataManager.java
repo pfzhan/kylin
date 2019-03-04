@@ -76,7 +76,7 @@ public class NTableMetadataManager {
 
     private static final HLLCSerializer HLLC_SERIALIZER = new HLLCSerializer(DataType.getType("hllc14"));
 
-    private static final Serializer<NTableExtDesc> TABLE_EXT_SERIALIZER = new JsonSerializer<>(NTableExtDesc.class);
+    private static final Serializer<TableExtDesc> TABLE_EXT_SERIALIZER = new JsonSerializer<>(TableExtDesc.class);
 
     public static NTableMetadataManager getInstance(KylinConfig config, String project) {
         return config.getManager(project, NTableMetadataManager.class);
@@ -94,7 +94,7 @@ public class NTableMetadataManager {
     private String project;
 
     private CachedCrudAssist<TableDesc> srcTableCrud;
-    private CachedCrudAssist<NTableExtDesc> srcExtCrud;
+    private CachedCrudAssist<TableExtDesc> srcExtCrud;
     private CachedCrudAssist<ExternalFilterDesc> extFilterCrud;
 
     private NTableMetadataManager(KylinConfig cfg, String project) {
@@ -168,7 +168,7 @@ public class NTableMetadataManager {
         return srcTableCrud.copyForWrite(tableDesc);
     }
 
-    public NTableExtDesc copyForWrite(NTableExtDesc tableExtDesc) {
+    public TableExtDesc copyForWrite(TableExtDesc tableExtDesc) {
         return srcExtCrud.copyForWrite(tableExtDesc);
     }
 
@@ -208,10 +208,10 @@ public class NTableMetadataManager {
     // ============================================================================
 
     private void initSrcExt() {
-        this.srcExtCrud = new CachedCrudAssist<NTableExtDesc>(getStore(),
-                "/" + project + ResourceStore.TABLE_EXD_RESOURCE_ROOT, NTableExtDesc.class) {
+        this.srcExtCrud = new CachedCrudAssist<TableExtDesc>(getStore(),
+                "/" + project + ResourceStore.TABLE_EXD_RESOURCE_ROOT, TableExtDesc.class) {
             @Override
-            protected NTableExtDesc initEntityAfterReload(NTableExtDesc t, String resourceName) {
+            protected TableExtDesc initEntityAfterReload(TableExtDesc t, String resourceName) {
                 // convert old tableExt json to new one
                 if (t.getIdentity() == null) {
                     t = convertOldTableExtToNewer(resourceName);
@@ -229,7 +229,7 @@ public class NTableMetadataManager {
      * @param tableName
      * @return
      */
-    public NTableExtDesc getOrCreateTableExt(String tableName) {
+    public TableExtDesc getOrCreateTableExt(String tableName) {
         TableDesc t = getTableDesc(tableName);
         if (t == null)
             return null;
@@ -237,12 +237,12 @@ public class NTableMetadataManager {
         return getOrCreateTableExt(t);
     }
 
-    public NTableExtDesc getOrCreateTableExt(TableDesc t) {
-        NTableExtDesc result = srcExtCrud.get(t.getIdentity());
+    public TableExtDesc getOrCreateTableExt(TableDesc t) {
+        TableExtDesc result = srcExtCrud.get(t.getIdentity());
 
         // avoid returning null, since the TableDesc exists
         if (null == result) {
-            result = new NTableExtDesc();
+            result = new TableExtDesc();
             result.setIdentity(t.getIdentity());
             result.setUuid(UUID.randomUUID().toString());
             result.setLastModified(0);
@@ -251,11 +251,11 @@ public class NTableMetadataManager {
         return result;
     }
 
-    public NTableExtDesc getTableExtIfExists(TableDesc t) {
+    public TableExtDesc getTableExtIfExists(TableDesc t) {
         return srcExtCrud.get(t.getIdentity());
     }
 
-    public void saveTableExt(NTableExtDesc tableExt) {
+    public void saveTableExt(TableExtDesc tableExt) {
         if (tableExt.getUuid() == null || tableExt.getIdentity() == null) {
             throw new IllegalArgumentException();
         }
@@ -263,7 +263,7 @@ public class NTableMetadataManager {
         // what is this doing??
         String path = tableExt.getResourcePath();
         ResourceStore store = getStore();
-        NTableExtDesc t = store.getResource(path, TABLE_EXT_SERIALIZER);
+        TableExtDesc t = store.getResource(path, TABLE_EXT_SERIALIZER);
         if (t != null && t.getIdentity() == null)
             store.deleteResource(path);
 
@@ -271,7 +271,7 @@ public class NTableMetadataManager {
         srcExtCrud.save(tableExt);
     }
 
-    public void mergeAndUpdateTableExt(NTableExtDesc origin, TableExtDesc other) {
+    public void mergeAndUpdateTableExt(TableExtDesc origin, TableExtDesc other) {
         val copyForWrite = srcExtCrud.copyForWrite(origin);
         final boolean isAppend = copyForWrite.getLoadingRange().size() < other.getLoadingRange().size();
         if (isAppend) {
@@ -287,7 +287,7 @@ public class NTableMetadataManager {
 
     public void removeTableExt(String tableName) {
         // note, here assume always delete TableExtDesc first, then TableDesc
-        NTableExtDesc t = getTableExtIfExists(getTableDesc(tableName));
+        TableExtDesc t = getTableExtIfExists(getTableDesc(tableName));
         if (t == null)
             return;
 
@@ -295,7 +295,7 @@ public class NTableMetadataManager {
         ColumnStatsStore.getInstance(t, config).delete();
     }
 
-    private NTableExtDesc convertOldTableExtToNewer(String resourceName) {
+    private TableExtDesc convertOldTableExtToNewer(String resourceName) {
         ResourceStore store = getStore();
         Map<String, String> attrs = Maps.newHashMap();
 
@@ -314,7 +314,7 @@ public class NTableMetadataManager {
 
         // parse table identity from file name
         String tableIdentity = TableDesc.parseResourcePath(resourceName).getFirst();
-        NTableExtDesc result = new NTableExtDesc();
+        TableExtDesc result = new TableExtDesc();
         result.setIdentity(tableIdentity);
         result.setUuid(UUID.randomUUID().toString());
         result.setLastModified(0);

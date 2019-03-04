@@ -68,6 +68,7 @@ import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import lombok.Data;
 import lombok.Getter;
 import lombok.Setter;
+import org.apache.kylin.metadata.MetadataConstants;
 
 @Getter
 @SuppressWarnings("serial")
@@ -151,6 +152,7 @@ public class TableExtDesc extends RootPersistentEntity implements Serializable {
         this.mapRecords = other.mapRecords;
         this.dataSourceProps = other.dataSourceProps;
         this.project = other.project;
+        setMvcc(other.getMvcc());
     }
 
     @Override
@@ -160,7 +162,8 @@ public class TableExtDesc extends RootPersistentEntity implements Serializable {
 
     @Override
     public String getResourcePath() {
-        return concatResourcePath(getIdentity(), getProject());
+        return new StringBuilder().append("/").append(getProject()).append(ResourceStore.TABLE_EXD_RESOURCE_ROOT).append("/")
+                .append(getIdentity()).append(MetadataConstants.FILE_SURFIX).toString();
     }
 
     public void updateLoadingRange(final SegmentRange segmentRange) {

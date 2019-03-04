@@ -59,7 +59,6 @@ import org.junit.Before;
 import org.junit.Test;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
-import io.kyligence.kap.metadata.model.NTableExtDesc;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 
 public class TableExtDescTest extends NLocalFileMetadataTestCase {
@@ -82,7 +81,7 @@ public class TableExtDescTest extends NLocalFileMetadataTestCase {
     @Test
     public void testBasic() throws IOException {
         final TableDesc tableDesc = tableMetadataManager.getTableDesc(tableName);
-        NTableExtDesc tableExtDesc = tableMetadataManager.getOrCreateTableExt(tableName);
+        TableExtDesc tableExtDesc = tableMetadataManager.getOrCreateTableExt(tableName);
         tableExtDesc = tableMetadataManager.copyForWrite(tableExtDesc);
 
         final List<TableExtDesc.ColumnStats> columnStatsList = new ArrayList<>(tableDesc.getColumnCount());
