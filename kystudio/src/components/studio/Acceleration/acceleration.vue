@@ -395,6 +395,7 @@ import accelerationTable from './acceleration_table'
 export default class FavoriteQuery extends Vue {
   favQueList = {}
   checkedStatus = ['WAITING', 'ACCELERATING', 'BLOCKED']
+  filterStatus = ['WAITING', 'ACCELERATING', 'BLOCKED']
   activeList = 'wartingAcce'
   showGif = false
   waitingSQLSize = 0
@@ -462,7 +463,7 @@ export default class FavoriteQuery extends Vue {
     return ''
   }
   handleClick () {
-    this.checkedStatus = this.activeList === 'wartingAcce' ? ['WAITING', 'ACCELERATING', 'BLOCKED'] : ['FULLY_ACCELERATED']
+    this.checkedStatus = this.activeList === 'wartingAcce' ? this.filterStatus : ['FULLY_ACCELERATED']
     this.loadFavoriteList()
   }
   applySpeed (event) {
@@ -526,6 +527,7 @@ export default class FavoriteQuery extends Vue {
 
   filterFav (checkedStatus) {
     this.checkedStatus = checkedStatus.length ? checkedStatus : this.activeList === 'wartingAcce' ? ['WAITING', 'ACCELERATING', 'BLOCKED'] : ['FULLY_ACCELERATED']
+    this.filterStatus = this.checkedStatus
     this.loadFavoriteList()
     this.getWaitingSQLSize()
   }
