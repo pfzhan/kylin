@@ -26,18 +26,39 @@ function extract_sql() {
 
     verbose "start to extract sql from [${log_file}] to [${sql_file}]"
 
-    for line in $(sed -n '/^SQL:/=' ${log_file}); do
-        check_line=$[$line + 2]
-        query_success=$(sed -n "${check_line}p" ${log_file} | awk '{print $2}')
-        #echo $query_success
-        if [ "${query_success}" == "true" ]
-        then
-           sql=$(sed -n "${line}p" ${log_file} | awk -F ':' '{print $2}')
-           #echo ${sql}
-           echo "${sql};" >> ${sql_file_tmp}
-        fi
-    done
+    sql=""
+    sql_start=0
+    sql_end=0
+    while read line
+    do
+
+    if [[ $line == SQL:* ]];then
+        sql_start=1
+        sql=${line:4}
+    elif [[ $line == User:* ]];then
+        sql_end=1
+    elif [ $sql_start == 1 ] && [ $sql_end == 0 ];then
+        sql="$sql $line"
+    elif [[ $line == "Success: true" ]];then
+        echo "$sql;" >> ${sql_file_tmp}
+        sql_start=0
+        sql_end=0
+        sql=""
+    else
+        sql_start=0
+        sql_end=0
+        sql=""
+    fi
+    done < ${log_file}
+
+    row_count=$(cat ${log_file} | wc -l)
+    verbose "file [${log_file}] total scan row count : ${row_count}"
+
     sort -u ${sql_file_tmp} >> ${sql_file}
+
+    sql_count=$(cat ${sql_file} | wc -l)
+    verbose "file [${log_file}] total extract sql num : ${sql_count}"
+
     rm -rf ${sql_file_tmp}
     sql_file_size=$(ls -lah ${sql_file} | awk '{ print $5}')
     verbose "extract sql succeed, the sql file size is ${sql_file_size}"
