@@ -62,7 +62,6 @@ public class NAutoBuildAndQueryTest extends NAutoTestBase {
                 new TestScenario(CompareLevel.SAME, "sql_magine_window"), //
                 new TestScenario(CompareLevel.SAME, "sql_multi_model"), //
                 new TestScenario(CompareLevel.SAME, "sql_orderby"), //
-                new TestScenario(CompareLevel.SAME, "sql_ordinal"), //
                 new TestScenario(CompareLevel.SAME, "sql_probe"), //
                 new TestScenario(CompareLevel.SAME, "sql_raw"), //
                 new TestScenario(CompareLevel.SAME, "sql_rawtable"), //
@@ -113,6 +112,12 @@ public class NAutoBuildAndQueryTest extends NAutoTestBase {
     @Test
     public void testLimit() throws Exception {
         new TestScenario(CompareLevel.SAME_ROWCOUNT, "sql_limit").execute();
+    }
+
+    @Test
+    public void testOrdinalQuery() throws Exception {
+        overwriteSystemProp("kylin.query.calcite.extras-props.conformance", "LENIENT");
+        new TestScenario(CompareLevel.SAME, "sql_ordinal").execute();
     }
 
     @Ignore("not storage query, skip")

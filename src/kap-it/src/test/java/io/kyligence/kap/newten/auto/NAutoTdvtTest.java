@@ -24,7 +24,6 @@
 
 package io.kyligence.kap.newten.auto;
 
-import org.apache.kylin.common.KylinConfig;
 import org.junit.Test;
 
 import io.kyligence.kap.newten.NExecAndComp.CompareLevel;
@@ -38,7 +37,6 @@ public class NAutoTdvtTest extends NAutoTestBase {
 
     @Test
     public void testTdvt() throws Exception {
-        KylinConfig.getInstanceFromEnv().setProperty("kylin.query.calcite.extras-props.conformance", "DEFAULT");
         new TestScenario(CompareLevel.NONE, "sql_tdvt").execute();
     }
 

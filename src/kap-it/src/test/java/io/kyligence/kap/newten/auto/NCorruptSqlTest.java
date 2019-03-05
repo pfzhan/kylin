@@ -28,6 +28,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Map;
 
+import org.apache.kylin.common.KylinConfig;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -93,6 +94,7 @@ public class NCorruptSqlTest extends NAutoTestBase {
     @Test
     public void testIssueRelatedSqlEndsNormally() {
 
+        KylinConfig.getInstanceFromEnv().setProperty("kylin.query.calcite.extras-props.conformance", "LENIENT");
         TestScenario[] testScenarios = new TestScenario[] { new TestScenario("issues-related-sql") };
         try {
             final NSmartMaster smartMaster = proposeWithSmartMaster(testScenarios, "newten");
