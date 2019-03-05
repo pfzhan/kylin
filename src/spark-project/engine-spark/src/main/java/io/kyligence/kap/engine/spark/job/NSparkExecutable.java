@@ -29,7 +29,9 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Properties;
 import java.util.Set;
 
@@ -170,25 +172,25 @@ public class NSparkExecutable extends AbstractExecutable {
     }
 
     String dumpArgs() throws ExecuteException {
-            File tmpDir = null;
-            try {
-                tmpDir = File.createTempFile(NBatchConstants.P_LAYOUT_IDS, "");
-                FileUtils.writeByteArrayToFile(tmpDir,
-                        JsonUtil.writeValueAsBytes(getParams()));
+        File tmpDir = null;
+        try {
+            tmpDir = File.createTempFile(NBatchConstants.P_LAYOUT_IDS, "");
+            FileUtils.writeByteArrayToFile(tmpDir,
+                    JsonUtil.writeValueAsBytes(getParams()));
 
-                logger.info("Spark job args json is : {}.", JsonUtil.writeValueAsString(getParams()));
-                return tmpDir.getCanonicalPath();
-            } catch (IOException e) {
-                if (tmpDir != null && tmpDir.exists()) {
-                    try {
-                        Files.delete(tmpDir.toPath());
-                    } catch (IOException e1) {
-                        throw new ExecuteException(
-                                "Write cuboidLayoutIds failed: Error for delete file " + tmpDir.getPath(), e1);
-                    }
+            logger.info("Spark job args json is : {}.", JsonUtil.writeValueAsString(getParams()));
+            return tmpDir.getCanonicalPath();
+        } catch (IOException e) {
+            if (tmpDir != null && tmpDir.exists()) {
+                try {
+                    Files.delete(tmpDir.toPath());
+                } catch (IOException e1) {
+                    throw new ExecuteException(
+                            "Write cuboidLayoutIds failed: Error for delete file " + tmpDir.getPath(), e1);
                 }
-                throw new ExecuteException("Write cuboidLayoutIds failed: ", e);
             }
+            throw new ExecuteException("Write cuboidLayoutIds failed: ", e);
+        }
     }
 
     protected KylinConfig wrapConfig(ExecutableContext context) {
@@ -197,9 +199,11 @@ public class NSparkExecutable extends AbstractExecutable {
         val project = getProject();
         Preconditions.checkState(StringUtils.isNotBlank(project), "job " + getId() + " project info is empty");
         val dataflow = getParam(NBatchConstants.P_DATAFLOW_ID);
+        boolean needCloseAutoConf = false;
         if (StringUtils.isNotBlank(dataflow)) {
             val dataflowManager = NDataflowManager.getInstance(originalConfig, project);
             kylinConfigExt = dataflowManager.getDataflow(dataflow).getConfig();
+            needCloseAutoConf = hasOverrideSparkConf(dataflow, dataflowManager);
         } else {
             val projectInstance = NProjectManager.getInstance(originalConfig).getProject(project);
             kylinConfigExt = projectInstance.getConfig();
@@ -212,12 +216,30 @@ public class NSparkExecutable extends AbstractExecutable {
         if (StringUtils.isNotBlank(parentId)) {
             jobOverrides.put("job.stepId", getId());
         }
+        if (needCloseAutoConf) {
+            jobOverrides.put("kylin.spark-conf.auto.prior", "false");
+        }
         jobOverrides.putAll(kylinConfigExt.getExtendedOverrides());
         return KylinConfigExt.createInstance(kylinConfigExt, jobOverrides);
     }
 
+    private boolean hasOverrideSparkConf(String dataflow, NDataflowManager dataflowManager) {
+        LinkedHashMap<String, String> overrideProps = dataflowManager.getDataflow(dataflow).getIndexPlan().getOverrideProps();
+        Optional<Map.Entry<String, String>> any = overrideProps.entrySet()
+                .stream()
+                .filter(entry -> entry.getKey().startsWith("kylin.engine.spark-conf."))
+                .findAny();
+        if (any.isPresent()) {
+            logger.info("Find override spark conf,set kylin.spark-conf.auto.prior=false");
+            overrideProps.entrySet()
+                    .forEach(entry -> logger.info("Override conf :{}={}", entry.getKey(), entry.getValue()));
+            return true;
+        }
+        return false;
+    }
+
     private ExecuteResult runSparkSubmit(KylinConfig config, String sparkHome, String hadoopConf, String jars,
-            String kylinJobJar, String appArgs, String jobId) {
+                                         String kylinJobJar, String appArgs, String jobId) {
 
         PatternedLogger patternedLogger = new PatternedLogger(logger);
         try {
@@ -237,7 +259,7 @@ public class NSparkExecutable extends AbstractExecutable {
     }
 
     protected String generateSparkCmd(KylinConfig config, String hadoopConf, String jars, String kylinJobJar,
-            String appArgs) {
+                                      String appArgs) {
         StringBuilder sb = new StringBuilder();
         sb.append("export HADOOP_CONF_DIR=%s && %s/bin/spark-submit --class io.kyligence.kap.engine.spark.application.SparkEntry ");
 
@@ -305,9 +327,9 @@ public class NSparkExecutable extends AbstractExecutable {
         return false;
     }
 
-     public void mergerMetadata(MetadataMerger merger){
+    public void mergerMetadata(MetadataMerger merger){
         throw new UnsupportedOperationException();
-     }
+    }
 
 
 }

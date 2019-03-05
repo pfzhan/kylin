@@ -135,8 +135,7 @@ public class NDataflow extends RootPersistentEntity implements Serializable, IRe
     }
 
     public KylinConfigExt getConfig() {
-        val indexPlan = NIndexPlanManager.getInstance(config, project).getIndexPlan(getUuid());
-        return (KylinConfigExt) indexPlan.getConfig();
+        return (KylinConfigExt) getIndexPlan().getConfig();
     }
 
     public NDataflow copy() {

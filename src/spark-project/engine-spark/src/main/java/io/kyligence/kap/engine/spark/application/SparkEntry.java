@@ -26,6 +26,7 @@ package io.kyligence.kap.engine.spark.application;
 
 import io.kyligence.kap.common.obf.IKeep;
 import org.apache.commons.lang.StringUtils;
+import org.apache.spark.utils.LOGUtils;
 
 /**
  */
@@ -34,29 +35,27 @@ public final class SparkEntry implements IKeep {
 
     public static void main(String[] args) {
         try {
-            System.out.println("SparkEntry args:" + StringUtils.join(args, " "));
-            if (!(args.length >= 2)) {
-                throw new IllegalArgumentException(String.valueOf("-className is required"));
+            LOGUtils.initLog();
+            LOGUtils.info("SparkEntry args:" + StringUtils.join(args, " "));
+            if (args.length < 2) {
+                throw new IllegalArgumentException("-className is required");
             }
             if (!(args[0].equals("-className"))) {
-                throw new IllegalArgumentException(String.valueOf("-className is required"));
+                throw new IllegalArgumentException("-className is required");
             }
             final String className = args[1];
-            final Object o = Class.<SparkApplication> forName(className).newInstance();
+            final Object o = Class.forName(className).newInstance();
             if (!(o instanceof SparkApplication)) {
-                System.out.println(String.valueOf(className + " is not a subClass of AbstractApplication"));
+                LOGUtils.info(className + " is not a subClass of AbstractApplication");
                 System.exit(1);
             }
             String[] appArgs = new String[args.length - 2];
-            for (int i = 2; i < args.length; i++) {
-                appArgs[i - 2] = args[i];
-            }
+            System.arraycopy(args, 2, appArgs, 0, args.length - 2);
             SparkApplication abstractApplication = (SparkApplication) o;
             abstractApplication.execute(appArgs);
             System.exit(0);
         } catch (Throwable th) {
-            System.err.println("SparkEntry exec error:");
-            th.printStackTrace(System.err);
+            LOGUtils.error("SparkEntry exec error:", th);
             System.exit(1);
         }
     }
