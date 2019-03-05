@@ -27,6 +27,7 @@ import java.io.DataInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 
+import io.kyligence.kap.common.metric.InfluxDBWriter;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.JsonSerializer;
 import org.apache.kylin.common.persistence.RawResource;
@@ -86,6 +87,14 @@ public class AppInitializer {
                 messageQueue.startConsumer(replayer::replay);
             }
         }
+
+        // init influxDB writer and create DB
+        try {
+            InfluxDBWriter.getInstance();
+        } catch (Exception ex) {
+            log.error("InfluxDB writer has not initialized");
+        }
+
         EventListenerRegistry.getInstance(kylinConfig).register(new FavoriteQueryUpdateListener(), "fq");
         event.getApplicationContext().publishEvent(new AppInitializedEvent(event.getApplicationContext()));
     }

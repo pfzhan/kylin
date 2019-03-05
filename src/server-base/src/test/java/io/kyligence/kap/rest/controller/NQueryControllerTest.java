@@ -314,10 +314,10 @@ public class NQueryControllerTest {
     public void testGetQueryHistories() throws Exception {
         QueryHistoryRequest request = new QueryHistoryRequest();
         request.setProject(PROJECT);
-        request.setStartTimeFrom(0);
-        request.setStartTimeTo(1000);
-        request.setLatencyFrom(0);
-        request.setLatencyTo(10);
+        request.setStartTimeFrom("0");
+        request.setStartTimeTo("1000");
+        request.setLatencyFrom("0");
+        request.setLatencyTo("10");
         HashMap<String, Object> data = Maps.newHashMap();
         data.put("query_histories", mockedQueryHistories());
         data.put("size", 6);
@@ -335,5 +335,18 @@ public class NQueryControllerTest {
 
         Mockito.verify(nQueryController).getQueryHistories(PROJECT, request.getStartTimeFrom(),
                 request.getStartTimeTo(), request.getLatencyFrom(), request.getLatencyTo(), null, null, null, 2, 3);
+
+        // check args
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/query/history_queries").contentType(MediaType.APPLICATION_JSON)
+                .param("project", PROJECT).param("startTimeFrom", "0")
+                .param("latencyFrom", "0").param("latencyTo", "10").param("offset", "2").param("limit", "3")
+                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .andExpect(MockMvcResultMatchers.status().is(500));
+
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/query/history_queries").contentType(MediaType.APPLICATION_JSON)
+                .param("project", PROJECT).param("startTimeFrom", "0").param("startTimeTo", "1000")
+                .param("latencyFrom", "0").param("offset", "2").param("limit", "3")
+                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .andExpect(MockMvcResultMatchers.status().is(500));
     }
 }

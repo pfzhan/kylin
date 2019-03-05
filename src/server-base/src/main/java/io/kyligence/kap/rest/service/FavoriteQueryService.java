@@ -66,8 +66,6 @@ import io.kyligence.kap.metadata.favorite.FavoriteQuery;
 import io.kyligence.kap.metadata.favorite.FavoriteQueryManager;
 import io.kyligence.kap.metadata.favorite.FavoriteQueryRealization;
 import io.kyligence.kap.metadata.favorite.FavoriteQueryStatusEnum;
-import io.kyligence.kap.metadata.favorite.FavoriteRule;
-import io.kyligence.kap.metadata.favorite.FavoriteRuleManager;
 import io.kyligence.kap.query.util.QueryPatternUtil;
 import io.kyligence.kap.rest.transaction.Transaction;
 import io.kyligence.kap.smart.NSmartContext;
@@ -96,28 +94,12 @@ public class FavoriteQueryService extends BasicService {
             String correctedSql = QueryUtil.massageSql(sql, project, 0, 0, DEFAULT_SCHEMA);
             String sqlPattern = QueryPatternUtil.normalizeSQLPattern(correctedSql);
 
-            if (getFavoriteQueryManager(project).contains(sqlPattern) || isInBlacklist(sqlPattern, project))
-                continue;
-
             FavoriteQuery favoriteQuery = new FavoriteQuery(sqlPattern);
             favoriteQuery.setChannel(FavoriteQuery.CHANNEL_FROM_IMPORTED);
             favoriteQueries.add(favoriteQuery);
         }
 
         getFavoriteQueryManager(project).create(favoriteQueries);
-    }
-
-    private boolean isInBlacklist(String sqlPattern, String project) {
-        FavoriteRule blacklist = FavoriteRuleManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
-                .getByName(FavoriteRule.BLACKLIST_NAME);
-        List<FavoriteRule.AbstractCondition> conditions = blacklist.getConds();
-
-        for (FavoriteRule.AbstractCondition condition : conditions) {
-            if (sqlPattern.equalsIgnoreCase(((FavoriteRule.SQLCondition) condition).getSqlPattern()))
-                return true;
-        }
-
-        return false;
     }
 
     public List<FavoriteQuery> filterAndSortFavoriteQueries(String project, String sortBy, boolean reverse,

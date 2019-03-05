@@ -175,10 +175,15 @@ public class FavoriteRuleService extends BasicService {
 
     public List<FavoriteRule.SQLCondition> getBlacklistSqls(String project, String sql) {
         FavoriteRule blacklist = getFavoriteRuleManager(project).getByName(FavoriteRule.BLACKLIST_NAME);
+        String formattedSql = formatSql(sql);
         return blacklist.getConds().stream().map(cond -> (FavoriteRule.SQLCondition) cond)
-                .filter(sqlCondition -> StringUtils.isEmpty(sql) || sqlCondition.getSqlPattern().toUpperCase().contains(sql.toUpperCase()))
+                .filter(sqlCondition -> StringUtils.isEmpty(sql) || formatSql(sqlCondition.getSqlPattern()).contains(formattedSql))
                 .sorted(Comparator.comparingLong(FavoriteRule.SQLCondition::getCreateTime).reversed())
                 .collect(Collectors.toList());
+    }
+
+    private String formatSql(String sql) {
+        return sql.trim().replaceAll("[\t|\n|\f|\r|\u001C|\u001D|\u001E|\u001F\" \"]+", " ").toUpperCase();
     }
 
     @Transaction(project = 1)

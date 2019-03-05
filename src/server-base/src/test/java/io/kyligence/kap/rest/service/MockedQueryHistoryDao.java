@@ -45,10 +45,13 @@ package io.kyligence.kap.rest.service;
 import com.google.common.collect.Lists;
 import io.kyligence.kap.metadata.query.QueryHistory;
 import io.kyligence.kap.metadata.query.QueryHistoryDAO;
+import io.kyligence.kap.metadata.query.QueryStatistics;
+import lombok.var;
 import org.apache.kylin.common.KylinConfig;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.time.Instant;
 import java.util.List;
 
 public class MockedQueryHistoryDao extends QueryHistoryDAO {
@@ -105,6 +108,13 @@ public class MockedQueryHistoryDao extends QueryHistoryDAO {
         }
 
         return queryHistories;
+    }
+
+    @Override
+    public List<QueryStatistics> getFirstQH(long minTime, long maxTime) {
+        var queryStatistics = new QueryStatistics();
+        queryStatistics.setTime(Instant.ofEpochMilli(minTime));
+        return Lists.newArrayList(queryStatistics);
     }
 
     public void insert(QueryHistory queryHistory) {

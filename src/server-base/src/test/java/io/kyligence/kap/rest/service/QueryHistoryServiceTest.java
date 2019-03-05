@@ -78,10 +78,10 @@ public class QueryHistoryServiceTest extends NLocalFileMetadataTestCase {
         QueryHistoryRequest request = new QueryHistoryRequest();
         request.setProject(PROJECT);
         // set default values
-        request.setStartTimeFrom(0);
-        request.setStartTimeTo(Long.MAX_VALUE);
-        request.setLatencyFrom(0);
-        request.setLatencyTo(Integer.MAX_VALUE);
+        request.setStartTimeFrom("0");
+        request.setStartTimeTo(String.valueOf(Long.MAX_VALUE));
+        request.setLatencyFrom("0");
+        request.setLatencyTo(String.valueOf(Integer.MAX_VALUE));
 
         // mock query history
         QueryHistory queryHistory1 = new QueryHistory();

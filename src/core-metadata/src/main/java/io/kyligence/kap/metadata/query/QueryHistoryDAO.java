@@ -33,8 +33,6 @@ import org.apache.kylin.common.KylinConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.collect.Lists;
-
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.shaded.influxdb.org.influxdb.InfluxDB;
@@ -54,9 +52,13 @@ public class QueryHistoryDAO {
     private static final String AVG_DURATION_BY_MODEL_SQL_FORMAT = "SELECT MEAN(query_duration) FROM (select mean(\"duration\") AS query_duration FROM %s WHERE time>=%dms AND time<=%dms GROUP BY model, query_id) GROUP BY model";
     private static final String QUERY_STATISTICS_BY_ENGINES_SQL_FORMAT = "SELECT COUNT(query_id), MEAN(\"duration\") FROM %s WHERE (time>=%dms AND time<=%dms) AND error_type = '' GROUP BY engine_type";
     private static final String QUERY_HISTORY_BY_TIME_SQL_FORMAT = "SELECT * FROM %s WHERE time >= %dms AND time < %dms";
+    private static final String FIRST_QUERY_HISTORY_SQL = "SELECT FIRST(query_id) FROM %s WHERE time >= %dms AND time < %dms";
 
     private static final String QUERY_COUNT_BY_TIME_SQL_PREFIX = "SELECT COUNT(query_id) FROM %s WHERE time>=%dms AND time<=%dms GROUP BY ";
     private static final String AVG_DURATION_BY_TIME_SQL_PREFIX = "SELECT MEAN(\"duration\") FROM %s WHERE time>=%dms AND time<=%dms GROUP BY ";
+
+    private static final int MAX_SIZE = 1000000;
+    private static final String QUERY_TIME_IN_MAX_SIZE = "SELECT time, query_id FROM %s ORDER BY time DESC OFFSET " + MAX_SIZE;
 
     public static QueryHistoryDAO getInstance(KylinConfig config, String project) {
         return config.getManager(project, QueryHistoryDAO.class);
@@ -108,12 +110,29 @@ public class QueryHistoryDAO {
     }
 
     protected <T> List<T> getResultBySql(String query, Class clazz, String tableName) {
-        if (!getInfluxDB().databaseExists(QueryHistory.DB_NAME))
-            return Lists.newArrayList();
+        long startTime = System.currentTimeMillis();
         final QueryResult result = getInfluxDB().query(new Query(query, QueryHistory.DB_NAME));
+        long duration = System.currentTimeMillis() - startTime;
+        if (duration > 3000) {
+            logger.warn("a InfluxDB query {} takes too long time {}ms to get result", query, duration);
+        } else
+            logger.info("a InfluxDB query takes {}ms", duration);
         final InfluxDBResultMapper mapper = new InfluxDBResultMapper();
 
         return mapper.toPOJO(result, clazz, tableName);
+    }
+
+    public void deleteQueryHistoriesIfMaxSizeReached() {
+        List<QueryStatistics> statistics = getResultBySql(String.format(QUERY_TIME_IN_MAX_SIZE, this.queryMetricMeasurement), QueryStatistics.class, this.queryMetricMeasurement);
+
+        if (CollectionUtils.isNotEmpty(statistics)) {
+            long time = statistics.get(0).getTime().toEpochMilli();
+            String deleteQueryMetricSql = "delete from " + this.queryMetricMeasurement + " where time < " + time + "ms";
+            getInfluxDB().query(new Query(deleteQueryMetricSql, QueryHistory.DB_NAME));
+
+            String deleteRealizationMetricSql = "delete from " + this.realizationMetricMeasurement + " where time < " + time + "ms";
+            getInfluxDB().query(new Query(deleteRealizationMetricSql, QueryHistory.DB_NAME));
+        }
     }
 
     public List<QueryHistory> getQueryHistoriesByTime(long startTime, long endTime) {
@@ -173,6 +192,11 @@ public class QueryHistoryDAO {
         return getResultBySql(sql, QueryStatistics.class, this.queryMetricMeasurement);
     }
 
+    public List<QueryStatistics> getFirstQH(long minTime, long maxTime) {
+        String sql = getFirstQHSql(minTime, maxTime);
+        return getResultBySql(sql, QueryStatistics.class, this.queryMetricMeasurement);
+    }
+
     /**
      *  format sqls to query Query History statistics
      */
@@ -189,12 +213,19 @@ public class QueryHistoryDAO {
     String getQueryHistoryFilterSql(QueryHistoryRequest request) {
         StringBuilder sb = new StringBuilder();
 
-        // filter by time
-        sb.append(String.format("WHERE (query_time >= %d AND query_time < %d) ", request.getStartTimeFrom(),
-                request.getStartTimeTo()));
-        // filter by duration
-        sb.append(String.format("AND (\"duration\" >= %d AND \"duration\" <= %d) ", request.getLatencyFrom() * 1000L,
-                request.getLatencyTo() * 1000L));
+        sb.append("WHERE 1 = 1 ");
+
+        if (StringUtils.isNotEmpty(request.getStartTimeFrom()) && StringUtils.isNotEmpty(request.getStartTimeTo())) {
+            // filter by time
+            sb.append(String.format("AND (query_time >= %s AND query_time < %s) ", request.getStartTimeFrom(),
+                    request.getStartTimeTo()));
+        }
+
+        if (StringUtils.isNotEmpty(request.getLatencyFrom()) && StringUtils.isNotEmpty(request.getLatencyTo())) {
+            // filter by duration
+            sb.append(String.format("AND (\"duration\" >= %d AND \"duration\" <= %d) ",
+                    Long.valueOf(request.getLatencyFrom()) * 1000L, Long.valueOf(request.getLatencyTo()) * 1000L));
+        }
 
         if (StringUtils.isNotEmpty(request.getSql())) {
             sb.append(String.format("AND sql_text =~ /%s/ ", request.getSql()));
@@ -207,19 +238,17 @@ public class QueryHistoryDAO {
                 case "pushdown":
                     sb.append("cube_hit = 'false' OR ");
                     break;
-                case "modelId":
+                case "modelName":
                     sb.append("cube_hit = 'true' OR ");
                     break;
                 default:
                     throw new IllegalArgumentException(
                             String.format("Illegal realization type %s", request.getRealizations().get(i)));
                 }
-
-                if (i == request.getRealizations().size() - 1) {
-                    sb.setLength(sb.length() - 4);
-                    sb.append(") ");
-                }
             }
+
+            sb.setLength(sb.length() - 4);
+            sb.append(") ");
         }
 
         if (request.getAccelerateStatuses() != null && !request.getAccelerateStatuses().isEmpty()) {
@@ -267,5 +296,9 @@ public class QueryHistoryDAO {
 
     private String getAvgDurationMeanByModelSql(long startTime, long endTime) {
         return String.format(AVG_DURATION_BY_MODEL_SQL_FORMAT, this.realizationMetricMeasurement, startTime, endTime);
+    }
+
+    private String getFirstQHSql(long minTime, long maxTime) {
+        return String.format(FIRST_QUERY_HISTORY_SQL, this.queryMetricMeasurement, minTime, maxTime);
     }
 }

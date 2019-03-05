@@ -39,6 +39,7 @@ import java.util.regex.Pattern;
 
 import javax.servlet.http.HttpServletResponse;
 
+import com.google.common.base.Preconditions;
 import io.kyligence.kap.metadata.query.QueryHistoryRequest;
 import io.kyligence.kap.rest.response.QueryEngineStatisticsResponse;
 import io.kyligence.kap.rest.service.QueryHistoryService;
@@ -165,10 +166,10 @@ public class NQueryController extends NBasicController {
             "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
     public EnvelopeResponse getQueryHistories(@RequestParam(value = "project") String project,
-            @RequestParam(value = "startTimeFrom", required = false, defaultValue = "0") long startTimeFrom,
-            @RequestParam(value = "startTimeTo", required = false, defaultValue = Long.MAX_VALUE + "") long startTimeTo,
-            @RequestParam(value = "latencyFrom", required = false, defaultValue = "0") long latencyFrom,
-            @RequestParam(value = "latencyTo", required = false, defaultValue = Integer.MAX_VALUE + "") long latencyTo,
+            @RequestParam(value = "startTimeFrom", required = false) String startTimeFrom,
+            @RequestParam(value = "startTimeTo", required = false) String startTimeTo,
+            @RequestParam(value = "latencyFrom", required = false) String latencyFrom,
+            @RequestParam(value = "latencyTo", required = false) String latencyTo,
             @RequestParam(value = "sql", required = false) String sql,
             @RequestParam(value = "realization", required = false) List<String> realizations,
             @RequestParam(value = "accelerateStatus", required = false) List<String> accelerateStatuses,
@@ -176,8 +177,25 @@ public class NQueryController extends NBasicController {
             @RequestParam(value = "limit", required = false, defaultValue = "10") Integer limit) {
         QueryHistoryRequest request = new QueryHistoryRequest(project, startTimeFrom, startTimeTo, latencyFrom,
                 latencyTo, sql, realizations, accelerateStatuses);
+        checkGetQueryHistoriesParam(request);
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS,
                 queryHistoryService.getQueryHistories(request, limit, offset), "");
+    }
+
+    private void checkGetQueryHistoriesParam(QueryHistoryRequest request) {
+        // check start time and end time
+        Preconditions.checkArgument(allEmptyOrNotAllEmpty(request.getStartTimeFrom(), request.getStartTimeTo()));
+        Preconditions.checkArgument(allEmptyOrNotAllEmpty(request.getLatencyFrom(), request.getLatencyTo()));
+    }
+
+    private boolean allEmptyOrNotAllEmpty(String param1, String param2) {
+        if (StringUtils.isEmpty(param1) && StringUtils.isEmpty(param2))
+            return true;
+
+        if (StringUtils.isNotEmpty(param1) && StringUtils.isNotEmpty(param2))
+            return true;
+
+        return false;
     }
 
     @RequestMapping(value = "/format/{format}", method = RequestMethod.POST, produces = {

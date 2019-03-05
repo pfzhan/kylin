@@ -97,11 +97,11 @@ public class FavoriteRuleServiceTest extends NLocalFileMetadataTestCase {
         favoriteQueries = favoriteQueryManager.getAll();
         Assert.assertEquals(0, favoriteQueries.size());
 
-        // append same sql to blacklist
+        // create fq whose sql pattern is in blacklist
         FavoriteQuery sqlPattern1FQ = new FavoriteQuery(sqlPattern1);
         sqlPattern1FQ.setChannel(FavoriteQuery.CHANNEL_FROM_RULE);
         favoriteQueryManager.create(new HashSet(){{add(sqlPattern1FQ);}});
-        favoriteRuleService.deleteFavoriteQuery(PROJECT, favoriteQueryManager.get(sqlPattern1).getUuid());
+        Assert.assertEquals(0, favoriteQueryManager.getAll().size());
         sqls = favoriteRuleService.getBlacklistSqls(PROJECT, "");
         favoriteQueries = favoriteQueryManager.getAll();
         Assert.assertEquals(2, sqls.size());
@@ -121,7 +121,7 @@ public class FavoriteRuleServiceTest extends NLocalFileMetadataTestCase {
         Assert.assertTrue(sqlCondition1.getCreateTime() > sqlCondition2.getCreateTime());
 
         // test filter blacklist by sql
-        sqls = favoriteRuleService.getBlacklistSqls(PROJECT, "sql pattern 1");
+        sqls = favoriteRuleService.getBlacklistSqls(PROJECT, "sql\n pattern\t 1");
         Assert.assertEquals(1, sqls.size());
 
         sqls = favoriteRuleService.getBlacklistSqls(PROJECT, "not_exist_sql");

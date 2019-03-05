@@ -98,6 +98,14 @@ public class FavoriteQueryManagerTest extends NLocalFileMetadataTestCase {
         });
         Assert.assertEquals(6, favoriteQueryManager.getAll().size());
 
+        // insert sql that is in blacklist
+        favoriteQueryManager.create(new HashSet<FavoriteQuery>() {
+            {
+                add(new FavoriteQuery("SELECT *\nFROM \"TEST_KYLIN_FACT\""));
+            }
+        });
+        Assert.assertEquals(6, favoriteQueryManager.getAll().size());
+
         // case of map size is zero
         favoriteQueryManager.clearFavoriteQueryMap();
         Assert.assertNull(favoriteQueryManager.getFavoriteQueryMap());

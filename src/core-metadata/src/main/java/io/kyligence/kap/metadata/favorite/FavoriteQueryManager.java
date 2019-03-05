@@ -92,7 +92,12 @@ public class FavoriteQueryManager implements IKeepNames {
     }
 
     public void create(final Set<FavoriteQuery> favoriteQueries) {
+        Set<String> blacklistSqls = FavoriteRuleManager.getInstance(kylinConfig, project).getBlacklistSqls();
+
         favoriteQueries.forEach(favoriteQuery -> {
+            if (blacklistSqls.contains(favoriteQuery.getSqlPattern()))
+                return;
+
             if (contains(favoriteQuery.getSqlPattern()))
                 return;
 

@@ -51,10 +51,13 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
+import com.google.common.collect.Sets;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
+import io.kyligence.kap.metadata.query.QueryStatistics;
 import lombok.AllArgsConstructor;
 import lombok.NoArgsConstructor;
 import lombok.val;
+import lombok.var;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KapConfig;
@@ -128,23 +131,30 @@ public class NFavoriteScheduler {
         updateFavoriteScheduler = Executors.newScheduledThreadPool(1,
                 new NamedThreadFactory("UpdateFQWorker(project:" + project + ")"));
 
+        // adjust time offset
+        adjustTimeOffset();
+
+        int initialDelay = new Random().nextInt(projectInstance.getConfig().getAutoMarkFavoriteInterval());
         // init frequency status
-        autoFavoriteScheduler.schedule(this::initFrequencyStatus, 0, TimeUnit.SECONDS);
+        autoFavoriteScheduler.schedule(this::initFrequencyStatus, initialDelay, TimeUnit.SECONDS);
+
+        // auto favorite and update favorite interval times should be at least 60s
+        long autoFavoriteIntervalTime = projectInstance.getConfig().getAutoMarkFavoriteInterval();
+        long updateFavoriteIntervalTime = projectInstance.getConfig().getFavoriteStatisticsCollectionInterval();
+        Preconditions.checkArgument(autoFavoriteIntervalTime * 1000L >= getFetchQueryHistoryGapTime());
+        Preconditions.checkArgument(updateFavoriteIntervalTime * 1000L >= getFetchQueryHistoryGapTime());
 
         // schedule runner at fixed interval
-        int initialDelay = new Random().nextInt(projectInstance.getConfig().getAutoMarkFavoriteInterval());
-        autoFavoriteScheduler.scheduleAtFixedRate(new AutoFavoriteRunner(), initialDelay,
-                projectInstance.getConfig().getAutoMarkFavoriteInterval(), TimeUnit.SECONDS);
+        autoFavoriteScheduler.scheduleAtFixedRate(new AutoFavoriteRunner(), initialDelay, autoFavoriteIntervalTime,
+                TimeUnit.SECONDS);
         updateFavoriteScheduler.scheduleAtFixedRate(new UpdateFavoriteStatisticsRunner(), initialDelay + 10L,
-                projectInstance.getConfig().getFavoriteStatisticsCollectionInterval(), TimeUnit.SECONDS);
+                updateFavoriteIntervalTime, TimeUnit.SECONDS);
 
         hasStarted = true;
         logger.info("Auto favorite scheduler is started for [{}] ", project);
     }
 
     void initFrequencyStatus() {
-        adjustTimeOffset();
-
         QueryHistoryTimeOffset queryHistoryTimeOffset = QueryHistoryTimeOffsetManager
                 .getInstance(KylinConfig.getInstanceFromEnv(), project).get();
         long fetchQueryHistoryGapTime = getFetchQueryHistoryGapTime();
@@ -158,13 +168,23 @@ public class NFavoriteScheduler {
         while (endTime <= lastAutoMarkTime) {
             List<QueryHistory> queryHistories = getQueryHistoryDao().getQueryHistoriesByTime(startTime, endTime);
 
+            if (CollectionUtils.isEmpty(queryHistories)) {
+                long firstQHTime = skipEmptyIntervals(endTime, lastAutoMarkTime);
+                startTime = firstQHTime - (firstQHTime - endTime) % fetchQueryHistoryGapTime;
+                endTime = startTime + fetchQueryHistoryGapTime;
+                continue;
+            }
+
             FrequencyStatus frequencyStatus = new FrequencyStatus(startTime);
 
             for (QueryHistory queryHistory : queryHistories) {
                 if (!isQualifiedCandidate(queryHistory))
                     continue;
 
-                frequencyStatus.updateFrequency(queryHistory.getSqlPattern());
+                // get string reference from OverallStatus to avoid a big waste of String object
+                String sqlPattern = overAllStatus.getSqlPatterns().getOrDefault(queryHistory.getSqlPattern(),
+                        queryHistory.getSqlPattern());
+                frequencyStatus.updateFrequency(sqlPattern);
             }
 
             updateOverallFrequencyStatus(frequencyStatus, frequencyStatuses, overAllStatus);
@@ -177,7 +197,9 @@ public class NFavoriteScheduler {
     private long getFetchQueryHistoryGapTime() {
         ProjectInstance projectInstance = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv())
                 .getProject(project);
-        return projectInstance.getConfig().getQueryHistoryScanPeriod();
+        long scanGapTime = projectInstance.getConfig().getQueryHistoryScanPeriod();
+        Preconditions.checkArgument(scanGapTime >= 60 * 1000L);
+        return scanGapTime;
     }
 
     void adjustTimeOffset() {
@@ -221,7 +243,8 @@ public class NFavoriteScheduler {
     }
 
     private FrequencyStatus copyFrequencyStatus(FrequencyStatus status) {
-        return new FrequencyStatus(Maps.newHashMap(status.getSqlPatternFreqMap()), status.getTime());
+        return new FrequencyStatus(Maps.newHashMap(status.getSqlPatternFreqMap()),
+                Maps.newHashMap(status.getSqlPatterns()), status.getTime());
     }
 
     public class AutoFavoriteRunner implements Runnable {
@@ -230,6 +253,7 @@ public class NFavoriteScheduler {
 
         @Override
         public void run() {
+            long startTime = System.currentTimeMillis();
             copiedFrequencyStatues = deepCopyFrequencyStatues();
             copiedOverallStatus = copyFrequencyStatus(overAllStatus);
 
@@ -245,17 +269,28 @@ public class NFavoriteScheduler {
 
             copiedFrequencyStatues = null;
             copiedOverallStatus = null;
+            logger.info("auto favorite runner takes {}ms", System.currentTimeMillis() - startTime);
         }
 
         private void autoFavorite() {
-            Set<FavoriteQuery> candidates = new HashSet<>();
-
             // scan query history
-            AutoFavoriteInfo autoFavoriteInfo = scanQueryHistoryByTime(candidates);
+            scanQueryHistoryByTime();
 
             // filter by frequency rule
-            addCandidatesByFrequencyRule(candidates);
+            Set<FavoriteQuery> candidates = getCandidatesByFrequencyRule();
 
+            if (CollectionUtils.isNotEmpty(candidates)) {
+                UnitOfWork.doInTransactionWithRetry(() -> {
+                    KylinConfig config = KylinConfig.getInstanceFromEnv();
+                    FavoriteQueryManager manager = FavoriteQueryManager.getInstance(config, project);
+                    manager.create(candidates);
+                    return 0;
+                }, project);
+            }
+        }
+
+        private void updateRelatedMetadata(Set<FavoriteQuery> candidates, long autoFavoriteTimeOffset,
+                int queryMarkedAsFavoriteNum, int overallQueryNum) {
             // update related metadata
             UnitOfWork.doInTransactionWithRetry(() -> {
                 KylinConfig config = KylinConfig.getInstanceFromEnv();
@@ -268,16 +303,15 @@ public class NFavoriteScheduler {
 
                 // update time offset
                 QueryHistoryTimeOffset timeOffset = timeOffsetManager.get();
-                timeOffset.setAutoMarkTimeOffset(autoFavoriteInfo.getScannedTimeOffset());
+                timeOffset.setAutoMarkTimeOffset(autoFavoriteTimeOffset);
                 timeOffsetManager.save(timeOffset);
                 // update accelerate ratio
-                accelerateRatioManager.increment(autoFavoriteInfo.getQueryMarkedAsFavoriteNum(),
-                        autoFavoriteInfo.getOverallQueryNum());
+                accelerateRatioManager.increment(queryMarkedAsFavoriteNum, overallQueryNum);
                 return 0;
             }, project);
         }
 
-        private AutoFavoriteInfo scanQueryHistoryByTime(Set<FavoriteQuery> candidates) {
+        private void scanQueryHistoryByTime() {
             QueryHistoryTimeOffset queryHistoryTimeOffset = QueryHistoryTimeOffsetManager
                     .getInstance(KylinConfig.getInstanceFromEnv(), project).get();
 
@@ -292,18 +326,26 @@ public class NFavoriteScheduler {
             while (endTime <= maxTime) {
                 List<QueryHistory> queryHistories = getQueryHistoryDao().getQueryHistoriesByTime(startTime, endTime);
 
+                if (CollectionUtils.isEmpty(queryHistories)) {
+                    long firstQHTime = skipEmptyIntervals(endTime, maxTime);
+                    startTime = firstQHTime - (firstQHTime - endTime) % fetchQueryHistoryGapTime;
+                    endTime = startTime + fetchQueryHistoryGapTime;
+                    updateRelatedMetadata(Sets.newHashSet(), startTime, 0, 0);
+                    continue;
+                }
+
                 FrequencyStatus newStatus = new FrequencyStatus(startTime);
+                Set<FavoriteQuery> candidates = Sets.newHashSet();
 
                 for (QueryHistory queryHistory : queryHistories) {
-                    // failed query
-                    if (queryHistory.isException())
-                        continue;
-
-                    overallQueryNum++;
                     if (!isQualifiedCandidate(queryHistory))
                         continue;
 
-                    String sqlPattern = queryHistory.getSqlPattern();
+                    overallQueryNum++;
+                    String sqlPatternFromQuery = queryHistory.getSqlPattern();
+                    // get string reference from OverallStatus to avoid a big waste of String object
+                    String sqlPattern = copiedOverallStatus.getSqlPatterns().getOrDefault(sqlPatternFromQuery,
+                            sqlPatternFromQuery);
                     newStatus.updateFrequency(sqlPattern);
 
                     if (FavoriteQueryManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
@@ -321,21 +363,20 @@ public class NFavoriteScheduler {
                 }
 
                 updateOverallFrequencyStatus(newStatus, copiedFrequencyStatues, copiedOverallStatus);
+                updateRelatedMetadata(candidates, endTime, queryMarkedAsFavoriteNum, overallQueryNum);
 
                 startTime = endTime;
                 endTime += fetchQueryHistoryGapTime;
             }
-
-            return new AutoFavoriteInfo(startTime, queryMarkedAsFavoriteNum, overallQueryNum);
         }
 
-        private void addCandidatesByFrequencyRule(Set<FavoriteQuery> candidates) {
+        private Set<FavoriteQuery> getCandidatesByFrequencyRule() {
             FavoriteRule freqRule = FavoriteRuleManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
                     .getByName(FavoriteRule.FREQUENCY_RULE_NAME);
             Preconditions.checkArgument(freqRule != null);
 
             if (!freqRule.isEnabled())
-                return;
+                return Sets.newHashSet();
             Map<Integer, Set<String>> distinctFreqMap = Maps.newHashMap();
 
             for (Map.Entry<String, Integer> entry : copiedOverallStatus.getSqlPatternFreqMap().entrySet()) {
@@ -353,39 +394,31 @@ public class NFavoriteScheduler {
             FavoriteRule.Condition condition = (FavoriteRule.Condition) freqRule.getConds().get(0);
 
             int topK = (int) Math.floor(distinctFreqMap.size() * Float.valueOf(condition.getRightThreshold()));
-            addCandidates(candidates, distinctFreqMap, topK);
+            return getCandidates(distinctFreqMap, topK);
         }
 
-        private void addCandidates(Set<FavoriteQuery> candidates, Map<Integer, Set<String>> sqlPatternsMap, int topK) {
+        private Set<FavoriteQuery> getCandidates(Map<Integer, Set<String>> sqlPatternsMap, int topK) {
+            Set<FavoriteQuery> candidates = Sets.newHashSet();
+
             if (topK < 1)
-                return;
+                return candidates;
 
             List<Integer> orderingResult = Ordering.natural().greatestOf(sqlPatternsMap.keySet(), topK);
 
             for (int frequency : orderingResult) {
                 for (String sqlPattern : sqlPatternsMap.get(frequency)) {
-                    if (FavoriteQueryManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
-                            .contains(sqlPattern))
-                        continue;
                     FavoriteQuery favoriteQuery = new FavoriteQuery(sqlPattern);
                     favoriteQuery.setChannel(FavoriteQuery.CHANNEL_FROM_RULE);
                     candidates.add(favoriteQuery);
                 }
             }
+
+            return candidates;
         }
     }
 
-    @Getter
-    @AllArgsConstructor
-    private class AutoFavoriteInfo {
-        private long scannedTimeOffset;
-        private int queryMarkedAsFavoriteNum;
-        private int overallQueryNum;
-    }
-
     private boolean isQualifiedCandidate(QueryHistory queryHistory) {
-        String sqlPattern = queryHistory.getSqlPattern();
-        if (isInBlacklist(sqlPattern, project))
+        if (queryHistory.isException())
             return false;
 
         // query with constants, 1 <> 1
@@ -464,21 +497,18 @@ public class NFavoriteScheduler {
         return KylinUserManager.getInstance(KylinConfig.getInstanceFromEnv()).getUserGroups(userName);
     }
 
-    private boolean isInBlacklist(String sqlPattern, String project) {
-        FavoriteRule blacklist = FavoriteRuleManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
-                .getByName(FavoriteRule.BLACKLIST_NAME);
-        List<FavoriteRule.AbstractCondition> conditions = blacklist.getConds();
-
-        for (FavoriteRule.AbstractCondition condition : conditions) {
-            if (sqlPattern.equalsIgnoreCase(((FavoriteRule.SQLCondition) condition).getSqlPattern()))
-                return true;
-        }
-
-        return false;
-    }
-
     public void scheduleAutoFavorite() {
         autoFavoriteScheduler.schedule(new AutoFavoriteRunner(), 0, TimeUnit.SECONDS);
+    }
+
+    private long skipEmptyIntervals(long minTime, long maxTime) {
+        List<QueryStatistics> results = getQueryHistoryDao().getFirstQH(minTime, maxTime);
+        if (CollectionUtils.isEmpty(results)) {
+            return maxTime;
+        } else {
+            QueryStatistics firstQH = results.get(0);
+            return firstQH.getTime().toEpochMilli();
+        }
     }
 
     public boolean hasStarted() {
@@ -490,7 +520,9 @@ public class NFavoriteScheduler {
         @Override
         public void run() {
             try {
+                long startTime = System.currentTimeMillis();
                 updateFavoriteStatistics();
+                logger.info("update favorite stats runner takes {}ms", System.currentTimeMillis() - startTime);
             } catch (Exception ex) {
                 logger.error("Error {} caught when updating favorite queries for project {}", ex.getMessage(), project);
             }
@@ -499,11 +531,27 @@ public class NFavoriteScheduler {
         private void updateFavoriteStatistics() {
             QueryHistoryTimeOffset timeOffset = QueryHistoryTimeOffsetManager
                     .getInstance(KylinConfig.getInstanceFromEnv(), project).get();
-            long endTime = getSystemTime() - backwardShiftTime;
-            List<QueryHistory> queryHistories = getQueryHistoryDao()
-                    .getQueryHistoriesByTime(timeOffset.getFavoriteQueryUpdateTimeOffset(), endTime);
+            long startTime = timeOffset.getFavoriteQueryUpdateTimeOffset();
+            long endTime = startTime + getFetchQueryHistoryGapTime();
+            long maxTime = getSystemTime() - backwardShiftTime;
 
-            updateRelatedMetadata(queryHistories, endTime);
+            while (endTime <= maxTime) {
+                var queryHistories = getQueryHistoryDao().getQueryHistoriesByTime(startTime, endTime);
+
+                if (CollectionUtils.isEmpty(queryHistories)) {
+                    endTime = skipEmptyIntervals(endTime, maxTime);
+                }
+
+                updateRelatedMetadata(queryHistories, endTime);
+
+                startTime = endTime;
+                endTime = startTime + getFetchQueryHistoryGapTime();
+            }
+
+            if (startTime < maxTime) {
+                var queryHistories = getQueryHistoryDao().getQueryHistoriesByTime(startTime, maxTime);
+                updateRelatedMetadata(queryHistories, maxTime);
+            }
         }
 
         private void updateRelatedMetadata(List<QueryHistory> queryHistories, long scannedOffset) {
@@ -597,6 +645,8 @@ public class NFavoriteScheduler {
     public class FrequencyStatus implements Comparable<FrequencyStatus> {
         // key is the sql pattern, value is the frequency
         private Map<String, Integer> sqlPatternFreqMap = Maps.newHashMap();
+        // duplicate sql pattern map, in order to avoid waste of String objects
+        private Map<String, String> sqlPatterns = Maps.newHashMap();
         private long time;
 
         public FrequencyStatus(long time) {
@@ -610,6 +660,7 @@ public class NFavoriteScheduler {
             else
                 frequency++;
             sqlPatternFreqMap.put(sqlPattern, frequency);
+            sqlPatterns.put(sqlPattern, sqlPattern);
         }
 
         public void addStatus(final FrequencyStatus newStatus) {
@@ -622,6 +673,7 @@ public class NFavoriteScheduler {
                     currentFreq += newFreqMap.getValue();
 
                 this.sqlPatternFreqMap.put(sqlPattern, currentFreq);
+                this.sqlPatterns.put(sqlPattern, sqlPattern);
             }
         }
 
@@ -634,11 +686,13 @@ public class NFavoriteScheduler {
                     currentFreq -= removedFreqMap.getValue();
                     if (currentFreq <= 0) {
                         this.sqlPatternFreqMap.remove(sqlPattern);
+                        this.sqlPatterns.remove(sqlPattern);
                         continue;
                     }
                 }
 
                 this.sqlPatternFreqMap.put(sqlPattern, currentFreq);
+                this.sqlPatterns.put(sqlPattern, sqlPattern);
             }
         }
 

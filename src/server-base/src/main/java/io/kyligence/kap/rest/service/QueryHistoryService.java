@@ -33,6 +33,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
+import io.kyligence.kap.metadata.project.NProjectManager;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.RootPersistentEntity;
@@ -42,6 +43,7 @@ import org.apache.kylin.rest.msg.MsgPicker;
 import org.apache.kylin.rest.service.BasicService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 import com.google.common.base.Preconditions;
@@ -191,5 +193,26 @@ public class QueryHistoryService extends BasicService {
         }
 
         return result;
+    }
+
+    @Scheduled(cron = "${kylin.metric.query-history.cleanup-cron:0 0 * * * *}")
+    public void cleanQueryHistories() {
+        String oldTheadName = Thread.currentThread().getName();
+
+        try {
+            Thread.currentThread().setName("QueryHistoryCleanWorker");
+            val config = KylinConfig.getInstanceFromEnv();
+            val projectManager = NProjectManager.getInstance(config);
+            for (ProjectInstance project : projectManager.listAllProjects()) {
+                long startTime = System.currentTimeMillis();
+                logger.info("Start to delete query histories that are beyond max size for project<{}>", project.getName());
+                getQueryHistoryDao(project.getName()).deleteQueryHistoriesIfMaxSizeReached();
+                logger.info("Query histories cleanup for project<{}> finished, it took {}ms", project.getName(), System.currentTimeMillis() - startTime);
+            }
+
+        } finally {
+            Thread.currentThread().setName(oldTheadName);
+        }
+
     }
 }

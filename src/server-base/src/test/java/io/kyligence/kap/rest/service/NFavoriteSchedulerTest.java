@@ -23,7 +23,6 @@
  */
 package io.kyligence.kap.rest.service;
 
-import java.io.IOException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Arrays;
@@ -32,9 +31,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
+import io.kyligence.kap.metadata.favorite.FavoriteRule;
+import io.kyligence.kap.metadata.favorite.FavoriteRuleManager;
 import lombok.val;
 import lombok.var;
-import org.apache.kylin.metadata.project.ProjectInstance;
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.security.KylinUserManager;
 import org.apache.kylin.rest.security.ManagedUser;
@@ -49,13 +50,11 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
-import io.kyligence.kap.event.manager.EventDao;
 import io.kyligence.kap.metadata.favorite.FavoriteQuery;
 import io.kyligence.kap.metadata.favorite.FavoriteQueryManager;
 import io.kyligence.kap.metadata.favorite.FavoriteQueryStatusEnum;
 import io.kyligence.kap.metadata.favorite.QueryHistoryTimeOffset;
 import io.kyligence.kap.metadata.favorite.QueryHistoryTimeOffsetManager;
-import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.metadata.query.AccelerateRatio;
 import io.kyligence.kap.metadata.query.AccelerateRatioManager;
 import io.kyligence.kap.metadata.query.QueryHistory;
@@ -161,35 +160,6 @@ public class NFavoriteSchedulerTest extends NLocalFileMetadataTestCase {
         });
     }
 
-    private void createUnacceleratedFavoriteQueries() {
-        FavoriteQueryManager favoriteQueryManager = FavoriteQueryManager.getInstance(getTestConfig(), PROJECT);
-        FavoriteQuery favoriteQuery1 = new FavoriteQuery("sql4");
-        favoriteQuery1.setTotalCount(1);
-        favoriteQuery1.setSuccessCount(1);
-        favoriteQuery1.setLastQueryTime(10001);
-        favoriteQuery1.setChannel(FavoriteQuery.CHANNEL_FROM_RULE);
-
-        FavoriteQuery favoriteQuery2 = new FavoriteQuery("sql5");
-        favoriteQuery2.setTotalCount(1);
-        favoriteQuery2.setSuccessCount(1);
-        favoriteQuery2.setLastQueryTime(10002);
-        favoriteQuery2.setChannel(FavoriteQuery.CHANNEL_FROM_RULE);
-
-        FavoriteQuery favoriteQuery3 = new FavoriteQuery("sql6");
-        favoriteQuery3.setTotalCount(1);
-        favoriteQuery3.setSuccessCount(1);
-        favoriteQuery3.setLastQueryTime(10003);
-        favoriteQuery3.setChannel(FavoriteQuery.CHANNEL_FROM_RULE);
-
-        favoriteQueryManager.create(new HashSet() {
-            {
-                add(favoriteQuery1);
-                add(favoriteQuery2);
-                add(favoriteQuery3);
-            }
-        });
-    }
-
     @Test
     public void testInitFrequencyStatus() {
         QueryHistoryDAO queryHistoryDAO = Mockito.mock(QueryHistoryDAO.class);
@@ -249,6 +219,17 @@ public class NFavoriteSchedulerTest extends NLocalFileMetadataTestCase {
             }
         }
 
+        String blacklistSql = "SELECT *\nFROM \"TEST_KYLIN_FACT\"";
+        for (int i = 0; i < 10; i++) {
+            QueryHistory queryHistory = Mockito.mock(QueryHistory.class);
+            Mockito.doReturn(false).when(queryHistory).isException();
+            Mockito.doReturn("HIVE").when(queryHistory).getAnsweredBy();
+            Mockito.doReturn("ADMIN").when(queryHistory).getQuerySubmitter();
+            // blacklist sql
+            Mockito.doReturn(blacklistSql).when(queryHistory).getSqlPattern();
+            queryHistories.add(queryHistory);
+        }
+
         Mockito.doReturn(queryHistories).when(queryHistoryDAO).getQueryHistoriesByTime(Mockito.anyLong(),
                 Mockito.anyLong());
         Mockito.doReturn(queryHistoryDAO).when(favoriteScheduler).getQueryHistoryDao();
@@ -263,6 +244,21 @@ public class NFavoriteSchedulerTest extends NLocalFileMetadataTestCase {
         favoriteQueryManager.reloadSqlPatternMap();
         Assert.assertTrue(favoriteQueryManager.contains("test_sql11"));
         Assert.assertTrue(favoriteQueryManager.contains("test_sql12"));
+        Assert.assertFalse(favoriteQueryManager.contains(blacklistSql));
+
+        // append a sql to blacklist
+        val favoriteRuleManager = FavoriteRuleManager.getInstance(getTestConfig(), PROJECT);
+        favoriteRuleManager.appendSqlPatternToBlacklist(new FavoriteRule.SQLCondition("test_sql9"));
+
+        // change frequency rule to 100%
+        List<FavoriteRule.Condition> conditions = Lists.newArrayList(new FavoriteRule.Condition(null, "1"));
+        favoriteRuleManager.updateRule(conditions, true, FavoriteRule.FREQUENCY_RULE_NAME);
+
+        // run
+        autoMarkFavoriteRunner.run();
+
+        favoriteQueryManager.reloadSqlPatternMap();
+        Assert.assertFalse(favoriteQueryManager.contains("test_sql9"));
     }
 
     @Test
@@ -537,7 +533,7 @@ public class NFavoriteSchedulerTest extends NLocalFileMetadataTestCase {
         queryHistory.setInsertTime(mockedQueryHistoryDao.getCurrentTime() + 59 * 1000L);
         queryHistory.setAnsweredBy("HIVE");
         mockedQueryHistoryDao.insert(queryHistory);
-        Assert.assertEquals(0, favoriteScheduler.getFrequencyStatuses().last().getSqlPatternFreqMap().size());
+        Assert.assertTrue(CollectionUtils.isEmpty(favoriteScheduler.getFrequencyStatuses()));
 
         // current time is 02-01 00:02:00, triggered next round, runner scanned from 2018-02-01 00:00:00 to 2018-02-01 00:01:00,
         // scanned three new queries, and inserted them into database
@@ -576,37 +572,6 @@ public class NFavoriteSchedulerTest extends NLocalFileMetadataTestCase {
         AccelerateRatio ratio = ratioManager.get();
         Assert.assertEquals(9, ratio.getOverallQueryNum());
         Assert.assertEquals(3, ratio.getQueryNumOfMarkedAsFavorite());
-    }
-
-    @Test
-    public void testAutoMark_AutoApply_AutoAccelerate() throws IOException {
-        // load some unacceleratd favorite queries
-        createUnacceleratedFavoriteQueries();
-        NProjectManager projectManager = NProjectManager.getInstance(getTestConfig());
-        ProjectInstance projectInstance = projectManager.getProject(PROJECT);
-        ProjectInstance projectInstanceUpdate = projectManager.copyForWrite(projectInstance);
-        projectInstanceUpdate.getOverrideKylinProps().put("kylin.favorite.query-accelerate-threshold-auto-apply",
-                "true");
-        projectInstanceUpdate.getOverrideKylinProps().put("kylin.favorite.query-accelerate-threshold", "2");
-        projectInstanceUpdate.getOverrideKylinProps().put("kylin.favorite.query-accelerate-threshold-batch-enable",
-                "true");
-        projectManager.updateProject(projectInstanceUpdate);
-
-        MockedQueryHistoryDao mockedQueryHistoryDao = new MockedQueryHistoryDao(getTestConfig(), PROJECT);
-        Mockito.doReturn(mockedQueryHistoryDao).when(favoriteScheduler).getQueryHistoryDao();
-        Mockito.doReturn(mockedQueryHistoryDao.getCurrentTime()).when(favoriteScheduler).getSystemTime();
-
-        NFavoriteScheduler.AutoFavoriteRunner autoMarkFavoriteRunner = favoriteScheduler.new AutoFavoriteRunner();
-
-        EventDao eventDao = EventDao.getInstance(getTestConfig(), PROJECT);
-        eventDao.deleteAllEvents();
-        autoMarkFavoriteRunner.run();
-        //        List<Event> events = eventDao.getEvents();
-        //        Assert.assertEquals(1, events.size());
-        //        AccelerateEvent accelerateEvent = (AccelerateEvent) events.get(0);
-        //        //sql1,sql2,sql4,sql5,sql6
-        //        Assert.assertEquals(5, accelerateEvent.getSqlPatterns().size());
-
     }
 
     @Test

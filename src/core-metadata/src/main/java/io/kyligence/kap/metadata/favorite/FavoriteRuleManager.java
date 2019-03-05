@@ -26,8 +26,11 @@ package io.kyligence.kap.metadata.favorite;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
+import lombok.val;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.metadata.cachesync.CachedCrudAssist;
@@ -150,5 +153,11 @@ public class FavoriteRuleManager {
         }
 
         return null;
+    }
+
+    public Set<String> getBlacklistSqls() {
+        val blacklist = getByName(FavoriteRule.BLACKLIST_NAME);
+        return blacklist.getConds().stream().map(cond -> ((FavoriteRule.SQLCondition) cond).getSqlPattern())
+                .collect(Collectors.toSet());
     }
 }

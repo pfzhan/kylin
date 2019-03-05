@@ -318,7 +318,15 @@ public class MetadataPerfTest extends NLocalFileMetadataTestCase {
             val projectName2 = "project_" + (startId + i);
             val dstFolder2 = new File(new File(templateFolder).getParentFile(),
                     "tmp_" + (startId + i) + "/" + projectName2);
+            if (dstFolder2.exists())
+                continue;
             FileUtils.copyDirectory(dstFolder, dstFolder2);
+
+            File projectJson = new File(dstFolder2 + File.separator, "project.json");
+            var projectJsonContent = new String(Files.readAllBytes(projectJson.toPath()));
+            projectJsonContent = projectJsonContent.replaceAll("958983a5-fad8-4057-9d70-cd6e5a2374af", UUID.randomUUID().toString());
+            Files.write(projectJson.toPath(), projectJsonContent.getBytes());
+
             val sub = "execute";
             for (File file : FileUtils.listFiles(new File(dstFolder, sub), null, true)) {
                 var content = new String(Files.readAllBytes(file.toPath()));

@@ -37,10 +37,10 @@ public class QueryHistoryRequest {
 
     private String project;
 
-    private long startTimeFrom;
-    private long startTimeTo;
-    private long latencyFrom;
-    private long latencyTo;
+    private String startTimeFrom;
+    private String startTimeTo;
+    private String latencyFrom;
+    private String latencyTo;
     private String sql;
 
     List<String> realizations;
@@ -50,7 +50,7 @@ public class QueryHistoryRequest {
 
     }
 
-    public QueryHistoryRequest(String project, long startTimeFrom, long startTimeTo, long latencyFrom, long latencyTo,
+    public QueryHistoryRequest(String project, String startTimeFrom, String startTimeTo, String latencyFrom, String latencyTo,
                                String sql, List<String> realizations, List<String> accelerateStatuses) {
         this.project = project;
         this.startTimeFrom = startTimeFrom;

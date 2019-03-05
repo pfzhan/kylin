@@ -158,10 +158,10 @@ public class QueryHistoryDAOTest extends NLocalFileMetadataTestCase {
         QueryHistoryRequest request = new QueryHistoryRequest();
         request.setProject(PROJECT);
         // set default values
-        request.setStartTimeFrom(0);
-        request.setStartTimeTo(Long.MAX_VALUE);
-        request.setLatencyFrom(0);
-        request.setLatencyTo(Integer.MAX_VALUE);
+        request.setStartTimeFrom("0");
+        request.setStartTimeTo(String.valueOf(Long.MAX_VALUE));
+        request.setLatencyFrom("0");
+        request.setLatencyTo(String.valueOf(Integer.MAX_VALUE));
 
         List<QueryHistory> queryHistories = queryHistoryDAO.getQueryHistoriesByConditions(request, limit, offset);
         Assert.assertEquals(2, queryHistories.size());
@@ -180,35 +180,32 @@ public class QueryHistoryDAOTest extends NLocalFileMetadataTestCase {
         QueryHistoryRequest request = new QueryHistoryRequest();
         request.setProject(PROJECT);
         // set default values
-        request.setStartTimeFrom(0);
-        request.setStartTimeTo(Long.MAX_VALUE);
-        request.setLatencyFrom(0);
-        request.setLatencyTo(Integer.MAX_VALUE);
+        request.setStartTimeFrom("");
+        request.setStartTimeTo("");
+        request.setLatencyFrom("");
+        request.setLatencyTo("");
 
         String filterSql = queryHistoryDAO.getQueryHistoryFilterSql(request);
         String getQueryHistoriesSql = queryHistoryDAO.getQueryHistoriesSql(filterSql, limit, offset);
         String getTotalSizeSql = queryHistoryDAO.getQueryHistoriesSizeSql(filterSql);
 
-        String expectedQueryHistoriesSql = String.format("SELECT * FROM %s WHERE (query_time >= %d AND query_time < %d) " +
-                        "AND (\"duration\" >= %d AND \"duration\" <= %d) ORDER BY time DESC LIMIT %d OFFSET %d", queryMeasurement,
-                0, Long.MAX_VALUE, 0, Integer.MAX_VALUE*1000L, limit, offset * limit);
-        String expectedGetTotalSizeSql = String.format("SELECT count(query_id) FROM %s WHERE (query_time >= %d AND query_time < %d) " +
-                "AND (\"duration\" >= %d AND \"duration\" <= %d) ", queryMeasurement, 0, Long.MAX_VALUE, 0, Integer.MAX_VALUE*1000L);
+        String expectedQueryHistoriesSql = String.format("SELECT * FROM %s WHERE 1 = 1 ORDER BY time DESC LIMIT %d OFFSET %d", queryMeasurement, limit, offset * limit);
+        String expectedGetTotalSizeSql = String.format("SELECT count(query_id) FROM %s WHERE 1 = 1 ", queryMeasurement);
 
         Assert.assertEquals(expectedQueryHistoriesSql, getQueryHistoriesSql);
         Assert.assertEquals(expectedGetTotalSizeSql, getTotalSizeSql);
 
-        request.setStartTimeFrom(0);
-        request.setStartTimeTo(1);
-        request.setLatencyFrom(0);
-        request.setLatencyTo(10);
+        request.setStartTimeFrom("0");
+        request.setStartTimeTo("1");
+        request.setLatencyFrom("0");
+        request.setLatencyTo("10");
 
         // when there is a filter condition for sql
         request.setSql("select * from test_table");
-        expectedQueryHistoriesSql = String.format("SELECT * FROM %s WHERE (query_time >= 0 AND query_time < 1) " +
+        expectedQueryHistoriesSql = String.format("SELECT * FROM %s WHERE 1 = 1 AND (query_time >= 0 AND query_time < 1) " +
                         "AND (\"duration\" >= 0 AND \"duration\" <= 10000) AND sql_text =~ /%s/ ORDER BY time DESC LIMIT %d OFFSET %d",
                 queryMeasurement, request.getSql(), limit, offset*limit);
-        expectedGetTotalSizeSql = String.format("SELECT count(query_id) FROM %s WHERE (query_time >= 0 AND query_time < 1) " +
+        expectedGetTotalSizeSql = String.format("SELECT count(query_id) FROM %s WHERE 1 = 1 AND (query_time >= 0 AND query_time < 1) " +
                 "AND (\"duration\" >= 0 AND \"duration\" <= 10000) AND sql_text =~ /%s/ ", queryMeasurement, request.getSql());
 
         filterSql = queryHistoryDAO.getQueryHistoryFilterSql(request);
@@ -220,10 +217,10 @@ public class QueryHistoryDAOTest extends NLocalFileMetadataTestCase {
 
         // when there is a filter condition for accelerate status
         request.setAccelerateStatuses(Lists.newArrayList(QueryHistory.QUERY_HISTORY_ACCELERATED, QueryHistory.QUERY_HISTORY_UNACCELERATED));
-        expectedQueryHistoriesSql = String.format("SELECT * FROM %s WHERE (query_time >= 0 AND query_time < 1) " +
+        expectedQueryHistoriesSql = String.format("SELECT * FROM %s WHERE 1 = 1 AND (query_time >= 0 AND query_time < 1) " +
                         "AND (\"duration\" >= 0 AND \"duration\" <= 10000) AND sql_text =~ /%s/ AND (accelerate_status = '%s' OR accelerate_status = '%s') ORDER BY time DESC LIMIT %d OFFSET %d", queryMeasurement,
                 request.getSql(), QueryHistory.QUERY_HISTORY_ACCELERATED, QueryHistory.QUERY_HISTORY_UNACCELERATED, limit, offset*limit);
-        expectedGetTotalSizeSql = String.format("SELECT count(query_id) FROM %s WHERE (query_time >= 0 AND query_time < 1) " +
+        expectedGetTotalSizeSql = String.format("SELECT count(query_id) FROM %s WHERE 1 = 1 AND (query_time >= 0 AND query_time < 1) " +
                         "AND (\"duration\" >= 0 AND \"duration\" <= 10000) AND sql_text =~ /%s/ AND (accelerate_status = '%s' OR accelerate_status = '%s') ", queryMeasurement,
                 request.getSql(), QueryHistory.QUERY_HISTORY_ACCELERATED, QueryHistory.QUERY_HISTORY_UNACCELERATED);
 
@@ -235,11 +232,11 @@ public class QueryHistoryDAOTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(expectedGetTotalSizeSql, getTotalSizeSql);
 
         // when there is a condition that filters answered by
-        request.setRealizations(Lists.newArrayList("pushdown", "modelId"));
-        expectedQueryHistoriesSql = String.format("SELECT * FROM %s WHERE (query_time >= 0 AND query_time < 1) " +
+        request.setRealizations(Lists.newArrayList("pushdown", "modelName"));
+        expectedQueryHistoriesSql = String.format("SELECT * FROM %s WHERE 1 = 1 AND (query_time >= 0 AND query_time < 1) " +
                         "AND (\"duration\" >= 0 AND \"duration\" <= 10000) AND sql_text =~ /%s/ AND (cube_hit = 'false' OR cube_hit = 'true') AND (accelerate_status = '%s' OR accelerate_status = '%s') ORDER BY time DESC LIMIT %d OFFSET %d", queryMeasurement,
                 request.getSql(), QueryHistory.QUERY_HISTORY_ACCELERATED, QueryHistory.QUERY_HISTORY_UNACCELERATED, limit, offset*limit);
-        expectedGetTotalSizeSql = String.format("SELECT count(query_id) FROM %s WHERE (query_time >= 0 AND query_time < 1) " +
+        expectedGetTotalSizeSql = String.format("SELECT count(query_id) FROM %s WHERE 1 = 1 AND (query_time >= 0 AND query_time < 1) " +
                         "AND (\"duration\" >= 0 AND \"duration\" <= 10000) AND sql_text =~ /%s/ AND (cube_hit = 'false' OR cube_hit = 'true') AND (accelerate_status = '%s' OR accelerate_status = '%s') ", queryMeasurement,
                 request.getSql(), QueryHistory.QUERY_HISTORY_ACCELERATED, QueryHistory.QUERY_HISTORY_UNACCELERATED);
 
