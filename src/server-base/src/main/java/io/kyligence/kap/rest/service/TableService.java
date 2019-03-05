@@ -179,6 +179,7 @@ public class TableService extends BasicService {
                 } else {
                     nTableExtDesc.setUuid(origExt.getUuid());
                     nTableExtDesc.setLastModified(origExt.getLastModified());
+                    nTableExtDesc.setMvcc(origExt.getMvcc());
                 }
                 nTableExtDesc.init(project);
 

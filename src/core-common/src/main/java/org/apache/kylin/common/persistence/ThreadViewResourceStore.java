@@ -122,7 +122,7 @@ public class ThreadViewResourceStore extends ResourceStore {
         if (r == null) {
             //TODO: should check meta's write footprint
             long resourceMvcc = underlying.getResourceMvcc(resPath);
-            Preconditions.checkState(resourceMvcc == oldMvcc);
+            Preconditions.checkState(resourceMvcc == oldMvcc, "Resource mvcc not equals old mvcc", resourceMvcc, oldMvcc);
             overlay.putResourceWithoutCheck(resPath, byteSource, oldMvcc + 1);
         } else {
             overlay.checkAndPutResource(resPath, byteSource, oldMvcc);

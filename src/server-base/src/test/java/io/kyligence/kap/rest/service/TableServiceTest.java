@@ -178,6 +178,12 @@ public class TableServiceTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
+    public void testReloadExistTable() throws IOException {
+        testLoadTableToProject();
+        testLoadTableToProject();
+    }
+
+    @Test
     public void testUnloadTable() throws IOException {
         TableDesc tableDesc = new TableDesc();
         List<ColumnDesc> columns = new ArrayList<>();

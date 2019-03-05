@@ -152,7 +152,6 @@ public class TableExtDesc extends RootPersistentEntity implements Serializable {
         this.mapRecords = other.mapRecords;
         this.dataSourceProps = other.dataSourceProps;
         this.project = other.project;
-        setMvcc(other.getMvcc());
     }
 
     @Override
