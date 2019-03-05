@@ -64,6 +64,7 @@ import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import lombok.val;
 
 /**
+ *
  */
 public class NExecutableManager {
 
@@ -175,15 +176,14 @@ public class NExecutableManager {
 
     public Output getOutput(String id) {
         val jobOutput = getJobOutput(id);
-        Preconditions.checkArgument(jobOutput != null, "there is no related output for job :" + id);
+        assertOutputNotNull(jobOutput, id);
         return parseOutput(jobOutput);
     }
 
     public Output getOutputFromHDFSByJobId(String jobId) {
         ExecutableOutputPO jobOutput = getJobOutputFromHDFS(
                 KylinConfig.getInstanceFromEnv().getJobTmpOutputStorePath(project, jobId));
-        Preconditions.checkArgument(jobOutput != null, "there is no related output for job :"
-                + KylinConfig.getInstanceFromEnv().getJobTmpOutputStorePath(project, jobId));
+        assertOutputNotNull(jobOutput, KylinConfig.getInstanceFromEnv().getJobTmpOutputStorePath(project, jobId));
         return parseOutput(jobOutput);
     }
 
@@ -397,11 +397,12 @@ public class NExecutableManager {
             jobOutput = executablePO.getTasks().stream().filter(po -> po.getId().equals(taskOrJobId)).findFirst()
                     .map(ExecutablePO::getOutput).orElse(null);
         }
-        Preconditions.checkArgument(jobOutput != null, "there is no related output for job :" + taskOrJobId);
+        assertOutputNotNull(jobOutput, taskOrJobId);
         return jobOutput;
     }
 
-    public void updateJobOutput(String taskOrJobId, ExecutableState newStatus, Map<String, String> info, String output) {
+    public void updateJobOutput(String taskOrJobId, ExecutableState newStatus, Map<String, String> info,
+            String output) {
         val jobId = extractJobId(taskOrJobId);
         executableDao.updateJob(jobId, job -> {
             ExecutableOutputPO jobOutput;
@@ -411,7 +412,7 @@ public class NExecutableManager {
                 jobOutput = job.getTasks().stream().filter(po -> po.getId().equals(taskOrJobId)).findFirst()
                         .map(ExecutablePO::getOutput).orElse(null);
             }
-            Preconditions.checkArgument(jobOutput != null, "there is no related output for job id:" + taskOrJobId);
+            assertOutputNotNull(jobOutput, taskOrJobId);
             ExecutableState oldStatus = ExecutableState.valueOf(jobOutput.getStatus());
             if (newStatus != null && oldStatus != newStatus) {
                 if (!ExecutableState.isValidStateTransfer(oldStatus, newStatus)) {
@@ -559,5 +560,9 @@ public class NExecutableManager {
         } finally {
             IOUtils.closeQuietly(din);
         }
+    }
+
+    private void assertOutputNotNull(ExecutableOutputPO output, String idOrPath) {
+        Preconditions.checkArgument(output != null, "there is no related output for job :" + idOrPath);
     }
 }
