@@ -48,7 +48,14 @@ public class IndexCleaner implements MetadataCleaner {
         for (val model : dataflowManager.listUnderliningDataModels()) {
             val dataflow = dataflowManager.getDataflow(model.getId());
             val autoLayouts = getAutoLayouts(dataflow);
-            // all referenced layouts
+            
+            // notice here we do not check whether model's semantic version matches fq's semantic version
+            // because model's semantic version could change either because 1: join changed or 2: partition column changed
+            // for case 1, the layout actually loses reference but for case 2, the layout is still being referenced.
+            // Since we make sure whether it's case 1 or case 2, we prefer to treat it as non garbage.
+
+            // For case 1, When the next time FavoriteQueryAdjustWorker starts, the FQ will adjust to a new model.
+            // before it happens, the FQ is actually not accelerated
             val referencedLayouts = favoriteQueryManager.getRealizationsByConditions(model.getId(), null).stream()
                     .map(FavoriteQueryRealization::getLayoutId).collect(Collectors.toSet());
             autoLayouts.removeAll(referencedLayouts);
