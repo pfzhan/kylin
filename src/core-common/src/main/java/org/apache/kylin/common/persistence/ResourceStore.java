@@ -162,7 +162,7 @@ public abstract class ResourceStore implements AutoCloseable {
         if (!store.exists(METASTORE_UUID_TAG)) {
             val output = ByteStreams.newDataOutput();
             output.writeUTF(store.createMetaStoreUUID());
-            store.putResourceWithoutCheck(METASTORE_UUID_TAG, ByteStreams.asByteSource(output.toByteArray()), 0);
+            store.putResourceWithoutCheck(METASTORE_UUID_TAG, ByteStreams.asByteSource(output.toByteArray()), System.currentTimeMillis(), 0);
         }
 
         return store;
@@ -391,7 +391,7 @@ public abstract class ResourceStore implements AutoCloseable {
         return resPath;
     }
 
-    public void putResourceWithoutCheck(String resPath, ByteSource bs, long newMvcc) {
+    public void putResourceWithoutCheck(String resPath, ByteSource bs, long timeStamp, long newMvcc) {
         throw new NotImplementedException("Only implemented in InMemoryResourceStore");
     }
 
@@ -478,7 +478,7 @@ public abstract class ResourceStore implements AutoCloseable {
         val resource = getResource(resPath);
         if (resource != null) {
             //res is a file
-            destRS.putResourceWithoutCheck(resPath, resource.getByteSource(), resource.getMvcc());
+            destRS.putResourceWithoutCheck(resPath, resource.getByteSource(), resource.getTimestamp(), resource.getMvcc());
         } else {
             NavigableSet<String> resources = listResourcesRecursively(resPath);
             if (resources == null || resources.isEmpty()) {
@@ -490,7 +490,7 @@ public abstract class ResourceStore implements AutoCloseable {
                     logger.warn("The resource {} doesn't exists,there may be transaction problems here", res);
                     continue;
                 }
-                destRS.putResourceWithoutCheck(res, rawResource.getByteSource(), rawResource.getMvcc());
+                destRS.putResourceWithoutCheck(res, rawResource.getByteSource(), rawResource.getTimestamp(), rawResource.getMvcc());
             }
         }
     }

@@ -101,7 +101,7 @@ public class NUserGroupService implements IUserGroupService {
                     return;
                 }
                 getStore().putResourceWithoutCheck(ResourceStore.USER_GROUP_ROOT,
-                        ByteStreams.asByteSource(JsonUtil.writeValueAsBytes(userGroup)), 0);
+                        ByteStreams.asByteSource(JsonUtil.writeValueAsBytes(userGroup)), System.currentTimeMillis(), 0);
                 return;
             } catch (WriteConflictException e) {
                 logger.info("Find WriteConflictException, sleep 100 ms.", e);
@@ -205,7 +205,6 @@ public class NUserGroupService implements IUserGroupService {
         return ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv());
     }
 
-
     private void checkPermission(String project) {
         if (StringUtils.isEmpty(project)) {
             aclEvaluate.checkIsGlobalAdmin();
@@ -217,7 +216,8 @@ public class NUserGroupService implements IUserGroupService {
     public Map<String, List<String>> getUserAndUserGroup() throws IOException {
         Map result = Maps.newHashMap();
 
-        List<String> userNames = userService.getManagedUsersByFuzzMatching(null, false).stream().map(ManagedUser::getUsername).collect(Collectors.toList());
+        List<String> userNames = userService.getManagedUsersByFuzzMatching(null, false).stream()
+                .map(ManagedUser::getUsername).collect(Collectors.toList());
         List<String> groupNames = getAllUserGroups();
 
         result.put("user", userNames);

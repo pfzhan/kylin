@@ -81,7 +81,7 @@ public abstract class MetadataStore {
         val all = list("/");
         for (String resPath : all) {
             val raw = load(resPath);
-            store.putResourceWithoutCheck(resPath, raw.getByteSource(), raw.getMvcc());
+            store.putResourceWithoutCheck(resPath, raw.getByteSource(), raw.getTimestamp(), raw.getMvcc());
         }
     }
 

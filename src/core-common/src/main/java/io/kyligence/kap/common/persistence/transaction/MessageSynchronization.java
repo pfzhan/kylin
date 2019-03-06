@@ -97,7 +97,7 @@ public class MessageSynchronization {
         val raw = event.getCreatedOrUpdated();
         val oldRaw = resourceStore.getResource(raw.getResPath());
         if (oldRaw == null) {
-            resourceStore.putResourceWithoutCheck(raw.getResPath(), raw.getByteSource(), raw.getMvcc());
+            resourceStore.putResourceWithoutCheck(raw.getResPath(), raw.getByteSource(), raw.getTimestamp(), raw.getMvcc());
         } else {
             resourceStore.checkAndPutResource(raw.getResPath(), raw.getByteSource(), raw.getMvcc() - 1);
         }

@@ -194,7 +194,7 @@ public class JdbcMetadataStore extends MetadataStore {
             val endKey = "/" + project + "/~";
             val resources = jdbcTemplate.query(String.format(SELECT_BY_RANGE_SQL, table, prevKey, endKey), rowMapper);
             for (RawResource resource : resources) {
-                store.putResourceWithoutCheck(resource.getResPath(), resource.getByteSource(), resource.getMvcc());
+                store.putResourceWithoutCheck(resource.getResPath(), resource.getByteSource(), resource.getTimestamp(), resource.getMvcc());
             }
             return null;
         });

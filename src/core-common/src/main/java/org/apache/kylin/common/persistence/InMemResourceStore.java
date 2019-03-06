@@ -157,13 +157,13 @@ public class InMemResourceStore extends ResourceStore {
     }
 
     @Override
-    public void putResourceWithoutCheck(String resPath, ByteSource bs, long newMvcc) {
+    public void putResourceWithoutCheck(String resPath, ByteSource bs, long timeStamp, long newMvcc) {
         synchronized (data) {
             if (data.containsKey(resPath) && data.get(resPath) != TombVersionedRawResource.getINSTANCE()) {
                 throw new IllegalStateException(
                         "resource " + resPath + " already exists, use check and put api instead");
             }
-            RawResource rawResource = new RawResource(resPath, bs, System.currentTimeMillis(), newMvcc);
+            RawResource rawResource = new RawResource(resPath, bs, timeStamp, newMvcc);
             data.put(resPath, new VersionedRawResource(rawResource));
         }
     }
