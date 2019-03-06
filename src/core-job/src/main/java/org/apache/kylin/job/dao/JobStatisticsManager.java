@@ -33,13 +33,13 @@ import org.apache.kylin.common.util.ClassUtil;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.metadata.cachesync.CachedCrudAssist;
 
-import java.text.SimpleDateFormat;
 import java.time.DayOfWeek;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.time.temporal.TemporalAdjusters;
-import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.TimeZone;
@@ -190,9 +190,12 @@ public class JobStatisticsManager {
         return result;
     }
 
+    // format epoch time to date string
     private String formatDateTime(long time) {
-        SimpleDateFormat dateFormat = new SimpleDateFormat("yyy-MM-dd");
-        return dateFormat.format(new Date(time));
+        ZoneId zoneId = TimeZone.getTimeZone(config.getTimeZone()).toZoneId();
+        LocalDateTime localDateTime = Instant.ofEpochMilli(time).atZone(zoneId).toLocalDateTime();
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+        return localDateTime.format(formatter);
     }
 
     private long nextDate(final long date, final String timeDimension) {

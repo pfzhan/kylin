@@ -33,13 +33,16 @@ import org.apache.kylin.job.dao.JobStatisticsManager;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Map;
+import java.util.TimeZone;
 
 public class JobStatisticsManagerTest extends NLocalFileMetadataTestCase {
     private static final String PROJECT = "default";
@@ -81,9 +84,12 @@ public class JobStatisticsManagerTest extends NLocalFileMetadataTestCase {
     private List<JobStatistics> getTestJobStats() throws ParseException {
         List<JobStatistics> jobStatistics = Lists.newArrayList();
 
-        SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd");
+        ZoneId zoneId = TimeZone.getTimeZone(getTestConfig().getTimeZone()).toZoneId();
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+
         String date = "2017-12-30";
-        long time = format.parse(date).getTime();
+        LocalDate localDate = LocalDate.parse(date, formatter);
+        long time = localDate.atStartOfDay(zoneId).toInstant().toEpochMilli();
         JobStatistics jobStatistics1 = new JobStatistics(time, "89af4ee2-2cdb-4b07-b39e-4c29856309aa", 2000, 1024);
         JobStatistics jobStatistics2 = new JobStatistics(time, "abe3bf1a-c4bc-458d-8278-7ea8b00f5e96", 2000, 1024);
         JobStatistics jobStatistics3 = new JobStatistics(time, "741ca86a-1f13-46da-a59f-95fb68615e3a", 2000, 1024);
@@ -94,7 +100,8 @@ public class JobStatisticsManagerTest extends NLocalFileMetadataTestCase {
         jobStatistics.add(jobStatistics4);
 
         date = "2018-01-02";
-        time = format.parse(date).getTime();
+        localDate = LocalDate.parse(date, formatter);
+        time = localDate.atStartOfDay(zoneId).toInstant().toEpochMilli();
         jobStatistics1 = new JobStatistics(time, "89af4ee2-2cdb-4b07-b39e-4c29856309aa", 2000, 1024);
         jobStatistics2 = new JobStatistics(time, "abe3bf1a-c4bc-458d-8278-7ea8b00f5e96", 1000, 1024);
         jobStatistics3 = new JobStatistics(time, "741ca86a-1f13-46da-a59f-95fb68615e3a", 1000, 1024);
@@ -103,14 +110,16 @@ public class JobStatisticsManagerTest extends NLocalFileMetadataTestCase {
         jobStatistics.add(jobStatistics3);
 
         date = "2018-01-03";
-        time = format.parse(date).getTime();
+        localDate = LocalDate.parse(date, formatter);
+        time = localDate.atStartOfDay(zoneId).toInstant().toEpochMilli();
         jobStatistics1 = new JobStatistics(time, "89af4ee2-2cdb-4b07-b39e-4c29856309aa", 2000, 1024);
         jobStatistics2 = new JobStatistics(time, "abe3bf1a-c4bc-458d-8278-7ea8b00f5e96", 1000, 1024);
         jobStatistics.add(jobStatistics1);
         jobStatistics.add(jobStatistics2);
 
         date = "2018-01-09";
-        time = format.parse(date).getTime();
+        localDate = LocalDate.parse(date, formatter);
+        time = localDate.atStartOfDay(zoneId).toInstant().toEpochMilli();
         jobStatistics1 = new JobStatistics(time, "89af4ee2-2cdb-4b07-b39e-4c29856309aa", 2000, 1024);
         jobStatistics2 = new JobStatistics(time, "abe3bf1a-c4bc-458d-8278-7ea8b00f5e96", 1000, 1024);
         jobStatistics3 = new JobStatistics(time, "741ca86a-1f13-46da-a59f-95fb68615e3a", 1000, 1024);
@@ -119,7 +128,8 @@ public class JobStatisticsManagerTest extends NLocalFileMetadataTestCase {
         jobStatistics.add(jobStatistics3);
 
         date = "2018-02-08";
-        time = format.parse(date).getTime();
+        localDate = LocalDate.parse(date, formatter);
+        time = localDate.atStartOfDay(zoneId).toInstant().toEpochMilli();
         jobStatistics1 = new JobStatistics(time, "89af4ee2-2cdb-4b07-b39e-4c29856309aa", 2000, 1024);
         jobStatistics2 = new JobStatistics(time, "abe3bf1a-c4bc-458d-8278-7ea8b00f5e96", 1000, 1024);
         jobStatistics3 = new JobStatistics(time, "741ca86a-1f13-46da-a59f-95fb68615e3a", 1000, 1024);
@@ -128,7 +138,8 @@ public class JobStatisticsManagerTest extends NLocalFileMetadataTestCase {
         jobStatistics.add(jobStatistics3);
 
         date = "2018-02-09";
-        time = format.parse(date).getTime();
+        localDate = LocalDate.parse(date, formatter);
+        time = localDate.atStartOfDay(zoneId).toInstant().toEpochMilli();
         jobStatistics1 = new JobStatistics(time, "89af4ee2-2cdb-4b07-b39e-4c29856309aa", 2000, 1024);
         jobStatistics2 = new JobStatistics(time, "abe3bf1a-c4bc-458d-8278-7ea8b00f5e96", 1000, 1024);
         jobStatistics3 = new JobStatistics(time, "741ca86a-1f13-46da-a59f-95fb68615e3a", 1000, 1024);
@@ -142,7 +153,6 @@ public class JobStatisticsManagerTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    @Ignore("await xinbei to fix")
     public void testGetJobStats() throws ParseException {
         JobStatisticsManager jobStatisticsManager = JobStatisticsManager.getInstance(getTestConfig(), PROJECT);
         List<JobStatistics> jobStatisticsForTest = getTestJobStats();
@@ -155,11 +165,15 @@ public class JobStatisticsManagerTest extends NLocalFileMetadataTestCase {
         List<JobStatistics> jobStatisticsSaved = jobStatisticsManager.getAll();
         Assert.assertEquals(6, jobStatisticsSaved.size());
 
-        SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd");
+        ZoneId zoneId = TimeZone.getTimeZone(getTestConfig().getTimeZone()).toZoneId();
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
         String date = "2017-12-30";
-        long startTime = format.parse(date).getTime();
+        LocalDate localDate = LocalDate.parse(date, formatter);
+
+        long startTime = localDate.atStartOfDay(zoneId).toInstant().toEpochMilli();
         date = "2018-03-01";
-        long endTime = format.parse(date).getTime();
+        localDate = LocalDate.parse(date, formatter);
+        long endTime = localDate.atStartOfDay(zoneId).toInstant().toEpochMilli();
         // get overall job stats
         Pair<Integer, JobStatistics> jobStats = jobStatisticsManager.getOverallJobStats(startTime, endTime);
         Assert.assertEquals(19, (int) jobStats.getFirst());
@@ -177,7 +191,8 @@ public class JobStatisticsManagerTest extends NLocalFileMetadataTestCase {
 
         // get job count by week
         date = "2018-02-01";
-        endTime = format.parse(date).getTime();
+        localDate = LocalDate.parse(date, formatter);
+        endTime = localDate.atStartOfDay(zoneId).toInstant().toEpochMilli();
         jobCountByTime = jobStatisticsManager.getJobCountByTime(startTime, endTime, "week");
         Assert.assertEquals(6, jobCountByTime.size());
         Assert.assertEquals(5, (int) jobCountByTime.get("2018-01-01"));
@@ -185,7 +200,9 @@ public class JobStatisticsManagerTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(0, (int) jobCountByTime.get("2018-01-15"));
 
         // get job count by month
-        endTime = format.parse("2018-03-01").getTime();
+        date = "2018-03-01";
+        localDate = LocalDate.parse(date, formatter);
+        endTime = localDate.atStartOfDay(zoneId).toInstant().toEpochMilli();
         jobCountByTime = jobStatisticsManager.getJobCountByTime(startTime, endTime, "month");
         Assert.assertEquals(4, jobCountByTime.size());
         Assert.assertEquals(4, (int) jobCountByTime.get("2017-12-30"));
@@ -211,7 +228,8 @@ public class JobStatisticsManagerTest extends NLocalFileMetadataTestCase {
 
         // get job duration per mb by day
         date = "2018-02-10";
-        endTime = format.parse(date).getTime();
+        localDate = LocalDate.parse(date, formatter);
+        endTime = localDate.atStartOfDay(zoneId).toInstant().toEpochMilli();
         Map<String, Double> jobDurationPerMbByTime = jobStatisticsManager.getDurationPerByteByTime(startTime, endTime, "day");
         Assert.assertEquals(43, jobDurationPerMbByTime.size());
         Assert.assertEquals(2.3, jobDurationPerMbByTime.get("2017-12-30"), 0.1);
@@ -222,7 +240,8 @@ public class JobStatisticsManagerTest extends NLocalFileMetadataTestCase {
 
         // get job duration per mb by week
         date = "2018-02-10";
-        endTime = format.parse(date).getTime();
+        localDate = LocalDate.parse(date, formatter);
+        endTime = localDate.atStartOfDay(zoneId).toInstant().toEpochMilli();
         jobDurationPerMbByTime = jobStatisticsManager.getDurationPerByteByTime(startTime, endTime, "week");
         Assert.assertEquals(7, jobDurationPerMbByTime.size());
         Assert.assertEquals(2.3, jobDurationPerMbByTime.get("2017-12-30"), 0.1);
@@ -233,7 +252,8 @@ public class JobStatisticsManagerTest extends NLocalFileMetadataTestCase {
 
         // get job duration per mb by month
         date = "2018-02-10";
-        endTime = format.parse(date).getTime();
+        localDate = LocalDate.parse(date, formatter);
+        endTime = localDate.atStartOfDay(zoneId).toInstant().toEpochMilli();
         jobDurationPerMbByTime = jobStatisticsManager.getDurationPerByteByTime(startTime, endTime, "month");
         Assert.assertEquals(3, jobDurationPerMbByTime.size());
         Assert.assertEquals(2.3, jobDurationPerMbByTime.get("2017-12-30"), 0.1);
