@@ -33,7 +33,7 @@ import org.apache.spark.sql.types.{StringType, StructType}
 import org.apache.spark.sql.{Dataset, Row}
 import org.junit.Assert
 
-import scala.collection.mutable.ListBuffer
+import scala.collection.mutable
 
 class TestGlobalDictBuild extends SparderBaseFunSuite with SharedSparkSession with LocalMetadata {
 
@@ -102,39 +102,38 @@ class TestGlobalDictBuild extends SparderBaseFunSuite with SharedSparkSession wi
     val ds = randomDataSet.select("26").distinct()
     val bucketPartitionSize = dictionaryBuilder.calculateBucketSize(col, ds)
     dictionaryBuilder.build(col, bucketPartitionSize, ds)
-    val dict = new NGlobalDictionaryV2(seg.getProject, col.getTable, col.getName, seg.getConfig.getHdfsWorkingDirectory)
+    val dict = new NGlobalDictionaryV2(seg.getProject, col.getTable, col.getName,
+      seg.getConfig.getHdfsWorkingDirectory)
     dict.getMetaInfo
   }
 
   def generateOriginData(count: Int, length: Int): Dataset[Row] = {
-    val range = Range(0, count)
     var schema = new StructType
     schema = schema.add("26", StringType)
-    var list = new ListBuffer[Row]
-    for (_ <- range) {
+    var set = new mutable.LinkedHashSet[Row]
+    while (set.size != count) {
       val objects = new Array[String](1)
       objects(0) = RandomStringUtils.randomAlphabetic(length)
-      list.+=(Row.fromSeq(objects.toSeq))
+      set.+=(Row.fromSeq(objects.toSeq))
     }
 
-    spark.createDataFrame(spark.sparkContext.parallelize(list), schema)
+    spark.createDataFrame(spark.sparkContext.parallelize(set.toSeq), schema)
   }
 
   def generateHotOriginData(threshold: Int, bucketSize: Int): Dataset[Row] = {
-    val range = Range(0, 30000)
     var schema = new StructType
     schema = schema.add("26", StringType)
-    var list = new ListBuffer[Row]
+    var set = new mutable.LinkedHashSet[Row]
     val partitioner = new NHashPartitioner(bucketSize)
-    for (_ <- range if list.length != threshold) {
+    while (set.size != threshold) {
       val objects = new Array[String](1)
       val randomValue = RandomStringUtils.randomAlphabetic(30)
       if (partitioner.getPartition(randomValue) == 1) {
         objects(0) = randomValue
-        list.+=(Row.fromSeq(objects.toSeq))
+        set.+=(Row.fromSeq(objects.toSeq))
       }
     }
 
-    spark.createDataFrame(spark.sparkContext.parallelize(list), schema)
+    spark.createDataFrame(spark.sparkContext.parallelize(set.toSeq), schema)
   }
 }
