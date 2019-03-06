@@ -494,18 +494,18 @@ public class FavoriteQueryService extends BasicService {
     }
 
     private void checkAccelerateStatus(String project, String[] sqls) {
-        KylinConfig config = KylinConfig.getInstanceFromEnv();
-        FavoriteQueryManager manager = FavoriteQueryManager.getInstance(config, project);
-        NSmartMaster master = new NSmartMaster(config, project, sqls);
-        master.selectAndOptimize();
-        String[] toUpdateSqls = Arrays.stream(sqls).filter(sql -> {
-            // only unmatched to handle
-            FavoriteQuery fq = manager.get(sql);
-            AccelerateInfo accInfo = master.getContext().getAccelerateInfoMap().get(sql);
-            return !matchAccelerateInfo(fq, accInfo);
-        }).toArray(String[]::new);
-
         UnitOfWork.doInTransactionWithRetry(() -> {
+            KylinConfig config = KylinConfig.getInstanceFromEnv();
+            FavoriteQueryManager manager = FavoriteQueryManager.getInstance(config, project);
+            NSmartMaster master = new NSmartMaster(config, project, sqls);
+            master.selectAndOptimize();
+            String[] toUpdateSqls = Arrays.stream(sqls).filter(sql -> {
+                // only unmatched to handle
+                FavoriteQuery fq = manager.get(sql);
+                AccelerateInfo accInfo = master.getContext().getAccelerateInfoMap().get(sql);
+                return !matchAccelerateInfo(fq, accInfo);
+            }).toArray(String[]::new);
+
             FavoriteQueryManager favoriteQueryManager = FavoriteQueryManager
                     .getInstance(KylinConfig.getInstanceFromEnv(), project);
             Arrays.stream(toUpdateSqls).forEach(sql -> {
