@@ -52,84 +52,6 @@ import lombok.val;
 
 public class NSmartMasterTest extends NTestBase {
 
-    // Test shrink model/cube_plan process may contaminate the original model/cube_plan or not
-    @Test
-    public void testShrinkIsolation() {
-        KylinConfig kylinConfig = getTestConfig();
-        String[] sqlStatements = new String[] {
-                "select lstg_format_name, sum(item_count), count(*) from kylin_sales group by lstg_format_name" };
-        NDataModel originalModel1, originalModel2, targetModel1, targetModel2, targetModel3;
-        IndexPlan originalIndexPlan1, originalIndexPlan2, targetIndexPlan1, targetIndexPlan2, targetIndexPlan3;
-        // select, optimize and save the model & cube_plan
-        {
-            NSmartMaster smartMaster = new NSmartMaster(kylinConfig, proj, sqlStatements);
-            smartMaster.analyzeSQLs();
-            smartMaster.selectModel();
-            smartMaster.optimizeModel();
-
-            NSmartContext ctx = smartMaster.getContext();
-            NSmartContext.NModelContext modelContext = ctx.getModelContexts().get(0);
-            targetModel1 = modelContext.getTargetModel();
-
-            smartMaster.selectIndexPlan();
-            smartMaster.optimizeIndexPlan();
-            targetIndexPlan1 = modelContext.getTargetIndexPlan();
-
-            smartMaster.saveModel();
-            smartMaster.saveIndexPlan();
-        }
-        // select, shrink the model & cube_plan without save
-        {
-            NSmartMaster smartMaster = new NSmartMaster(kylinConfig, proj, sqlStatements);
-            smartMaster.analyzeSQLs();
-            NSmartContext ctx = smartMaster.getContext();
-
-            smartMaster.selectModel();
-            NSmartContext.NModelContext modelContext = ctx.getModelContexts().get(0);
-            originalModel1 = modelContext.getOrigModel();
-            // Make sure the saveModel() is taken effect
-            Assert.assertEquals(originalModel1, targetModel1);
-
-            smartMaster.selectIndexPlan();
-            originalIndexPlan1 = modelContext.getOrigIndexPlan();
-            Assert.assertEquals(originalIndexPlan1, targetIndexPlan1);
-
-            smartMaster.shrinkIndexPlan();
-            targetIndexPlan2 = modelContext.getTargetIndexPlan();
-
-            smartMaster.shrinkModel();
-            targetModel2 = modelContext.getTargetModel();
-        }
-        // select, shrink and save the model & cube_plan
-        {
-            NSmartMaster smartMaster = new NSmartMaster(kylinConfig, proj, sqlStatements);
-
-            smartMaster.analyzeSQLs();
-            NSmartContext ctx = smartMaster.getContext();
-
-            smartMaster.selectModel();
-            NSmartContext.NModelContext modelContext = ctx.getModelContexts().get(0);
-            originalModel2 = modelContext.getOrigModel();
-            // Make sure shrinkModel() does not soil the originalModel
-            Assert.assertEquals(originalModel1, originalModel2);
-
-            smartMaster.selectIndexPlan();
-            originalIndexPlan2 = modelContext.getOrigIndexPlan();
-            Assert.assertEquals(originalIndexPlan1, originalIndexPlan2);
-
-            smartMaster.shrinkIndexPlan();
-            targetIndexPlan3 = modelContext.getTargetIndexPlan();
-            Assert.assertEquals(targetIndexPlan2, targetIndexPlan3);
-
-            smartMaster.shrinkModel();
-            targetModel3 = modelContext.getTargetModel();
-            Assert.assertEquals(targetModel2, targetModel3);
-
-            smartMaster.saveModel();
-            smartMaster.saveIndexPlan();
-        }
-    }
-
     @Test
     public void testRenameModel() {
         NDataModel model1, model2, model3;
@@ -179,12 +101,8 @@ public class NSmartMasterTest extends NTestBase {
                 .entrySet()) {
             Assert.assertFalse(accelerateInfoEntry.getValue().isBlocked());
         }
-        smartMaster.selectModel();
-        smartMaster.optimizeModel();
+        smartMaster.selectAndOptimize();
         smartMaster.saveModel();
-
-        smartMaster.selectIndexPlan();
-        smartMaster.optimizeIndexPlan();
         smartMaster.saveIndexPlan();
 
         final NSmartContext ctx = smartMaster.getContext();
@@ -306,39 +224,19 @@ public class NSmartMasterTest extends NTestBase {
 
         };
         NSmartMaster smartMaster = new NSmartMaster(kylinConfig, proj, sqls);
-        smartMaster.analyzeSQLs();
-        smartMaster.selectModel();
-        smartMaster.optimizeModel();
+        smartMaster.runAll();
 
-        {
-            final NDataModel targetModel = smartMaster.getContext().getModelContexts().get(0).getTargetModel();
-            smartMaster.renameModel();
-            Assert.assertNull(targetModel);
-        }
+        final NSmartContext.NModelContext modelContext = smartMaster.getContext().getModelContexts().get(0);
+        // null validation
+        final NDataModel originalModel = modelContext.getOrigModel();
+        final IndexPlan originalIndexPlan = modelContext.getOrigIndexPlan();
+        Assert.assertNull(originalModel);
+        Assert.assertNull(originalIndexPlan);
 
-        {
-            final NDataModel targetModel = smartMaster.getContext().getModelContexts().get(0).getTargetModel();
-            smartMaster.saveModel();
-            Assert.assertNull(targetModel);
-        }
-
-        smartMaster.selectIndexPlan();
-
-        {
-            smartMaster.optimizeIndexPlan();
-            final NDataModel targetModel = smartMaster.getContext().getModelContexts().get(0).getTargetModel();
-            Assert.assertNull(targetModel);
-            final IndexPlan targetIndexPlan = smartMaster.getContext().getModelContexts().get(0).getTargetIndexPlan();
-            Assert.assertNull(targetIndexPlan);
-        }
-
-        {
-            smartMaster.saveIndexPlan();
-            final NDataModel targetModel = smartMaster.getContext().getModelContexts().get(0).getTargetModel();
-            Assert.assertNull(targetModel);
-            final IndexPlan targetIndexPlan = smartMaster.getContext().getModelContexts().get(0).getTargetIndexPlan();
-            Assert.assertNull(targetIndexPlan);
-        }
+        final NDataModel targetModel = modelContext.getTargetModel();
+        final IndexPlan targetIndexPlan = modelContext.getTargetIndexPlan();
+        Assert.assertNull(targetModel);
+        Assert.assertNull(targetIndexPlan);
     }
 
     @Test
@@ -533,11 +431,7 @@ public class NSmartMasterTest extends NTestBase {
                 + "where part_dt = '2012-01-01' group by part_dt, lstg_format_name" };
 
         NSmartMaster smartMaster = new NSmartMaster(kylinConfig, proj, sqls);
-        smartMaster.analyzeSQLs();
-        smartMaster.selectModel();
-        smartMaster.optimizeModel();
-        smartMaster.selectIndexPlan();
-        smartMaster.optimizeIndexPlan();
+        smartMaster.selectAndOptimize();
 
         final Map<String, AccelerateInfo> accelerateInfoMap = smartMaster.getContext().getAccelerateInfoMap();
         Assert.assertEquals(1, accelerateInfoMap.values().size());
@@ -604,11 +498,7 @@ public class NSmartMasterTest extends NTestBase {
     private NDataModel proposeModel(String[] sqlStatements) {
         KylinConfig kylinConfig = getTestConfig();
         NSmartMaster smartMaster = new NSmartMaster(kylinConfig, proj, sqlStatements);
-        smartMaster.analyzeSQLs();
-        smartMaster.selectModel();
-        smartMaster.optimizeModel();
-        smartMaster.selectIndexPlan();
-        smartMaster.optimizeIndexPlan();
+        smartMaster.selectAndOptimize();
         NSmartContext ctx = smartMaster.getContext();
         NSmartContext.NModelContext modelContext = ctx.getModelContexts().get(0);
         smartMaster.renameModel();

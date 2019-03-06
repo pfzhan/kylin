@@ -494,7 +494,7 @@ public class NTableMetadataManager {
                     .toString();
         }
 
-        private void prepareFS() {
+        private static void prepareFS() {
             if (fs == null) {
                 fs = HadoopUtil.getWorkingFileSystem();
             }

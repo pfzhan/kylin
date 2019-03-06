@@ -29,6 +29,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 
 import com.google.common.base.Preconditions;
@@ -149,6 +150,11 @@ public class NSmartContext {
 
         public boolean withoutTargetModel() {
             return this.targetModel == null;
+        }
+
+        public boolean withoutAnyIndexes() {
+            // we can not modify rule_based_indexes
+            return this.targetIndexPlan == null || CollectionUtils.isEmpty(this.targetIndexPlan.getIndexes());
         }
     }
 

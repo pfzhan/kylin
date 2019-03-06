@@ -24,8 +24,9 @@
 
 package io.kyligence.kap.newten.auto;
 
+import java.util.Map;
+
 import org.junit.Assert;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
@@ -157,15 +158,15 @@ public class NAutoComputedColumnTest extends NAutoTestBase {
     }
 
     @Test
-    @Ignore("blocked by #10760")
     public void testComputedColumnFailOnSumExpr() {
         String query = "SELECT SUM(PRICE_TOTAL + 1), CAL_DT FROM (SELECT PRICE * ITEM_COUNT AS PRICE_TOTAL, CAL_DT FROM TEST_KYLIN_FACT) T GROUP BY CAL_DT";
         NSmartMaster smartMaster = new NSmartMaster(kylinConfig, getProject(), new String[] { query });
         smartMaster.runAll();
 
-        Assert.assertTrue(smartMaster.getContext().getModelContexts().get(0).withoutTargetModel());
+        final Map<String, AccelerateInfo> accelerateInfoMap = smartMaster.getContext().getAccelerateInfoMap();
+        Assert.assertTrue(accelerateInfoMap.get(query).isBlocked());
     }
-    
+
     @Test
     public void testComputedColumnFailOnRexOpt() {
         String query = "SELECT SUM(CASE WHEN 9 > 10 THEN 100 ELSE PRICE + 10 END), CAL_DT FROM TEST_KYLIN_FACT GROUP BY CAL_DT";
