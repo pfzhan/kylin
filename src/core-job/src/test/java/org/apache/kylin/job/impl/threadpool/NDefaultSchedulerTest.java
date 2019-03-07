@@ -661,7 +661,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
 
     @Test
     public void testKillProcess() throws ShellException, InterruptedException {
-        val cmd = "sleep 5s";
+        val cmd = "nohup sleep 5 & sleep 5";
         getTestConfig().setProperty("kylin.env", "DEV");
         val jobId = UUID.randomUUID().toString();
         Thread executorThread = new Thread(new Runnable() {
