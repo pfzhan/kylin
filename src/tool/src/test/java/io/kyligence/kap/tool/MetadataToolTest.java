@@ -72,19 +72,23 @@ public class MetadataToolTest extends NLocalFileMetadataTestCase {
         val archiveFolder = junitFolder.listFiles()[0];
         Assertions.assertThat(archiveFolder).exists();
 
-        Assertions.assertThat(archiveFolder.list()).isNotEmpty().containsOnly("default", "UUID");
+        Assertions.assertThat(archiveFolder.list()).isNotEmpty().containsOnly("default", "UUID", "_global");
 
         val projectFolder = findFile(archiveFolder.listFiles(), f -> f.getName().equals("default"));
-        assertProjectFolder(projectFolder);
+        assertProjectFolder(projectFolder, archiveFolder);
     }
 
-    private boolean assertProjectFolder(File projectFolder) {
+    private boolean assertProjectFolder(File projectFolder, File archiveFolder) {
         Assertions.assertThat(projectFolder.list()).containsAnyOf("dataflow", "dataflow_details", "cube_plan",
                 "model_desc", "table");
-        Assertions.assertThat(projectFolder.listFiles())
-                .filteredOn(f -> !f.getName().startsWith("."))
+        Assertions.assertThat(projectFolder.listFiles()).filteredOn(f -> !f.getName().startsWith("."))
                 .allMatch(f -> f.listFiles().length > 0);
 
+        val projectName = projectFolder.toPath().getFileName().toString();
+        val globalFolder = findFile(archiveFolder.listFiles(), f -> f.getName().equals("_global"));
+        val projects = findFile(globalFolder.listFiles(), f -> f.getName().equals("project"));
+        Assertions.assertThat(findFile(projects.listFiles(), f -> f.getName().startsWith(projectName))).exists()
+                .isFile();
         return true;
     }
 
@@ -100,8 +104,9 @@ public class MetadataToolTest extends NLocalFileMetadataTestCase {
 
         Assertions.assertThat(archiveFolder.list()).isNotEmpty().containsOnlyOnce("UUID").containsAnyOf("default",
                 "ssb", "tdvt");
-        Assertions.assertThat(archiveFolder.listFiles()).filteredOn(f -> !f.getName().equals("UUID") && !f.getName().startsWith("_"))
-                .allMatch(projectFolder -> assertProjectFolder(projectFolder));
+        Assertions.assertThat(archiveFolder.listFiles())
+                .filteredOn(f -> !f.getName().equals("UUID") && !f.getName().startsWith("_"))
+                .allMatch(projectFolder -> assertProjectFolder(projectFolder, archiveFolder));
 
     }
 

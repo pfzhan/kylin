@@ -52,6 +52,7 @@ import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import lombok.val;
 import lombok.var;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.kylin.metadata.project.ProjectInstance;
 
 @Slf4j
 public class MetadataTool extends ExecutableApplication {
@@ -170,14 +171,15 @@ public class MetadataTool extends ExecutableApplication {
                 if (projectPath.equals(ResourceStore.METASTORE_UUID_TAG)) {
                     continue;
                 }
-                copyResourceStore(projectPath, resourceStore, backupResourceStore);
+                // The "_global" directory is already included in the full backup
+                copyResourceStore(projectPath, resourceStore, backupResourceStore, false);
             }
 
             log.info("start to backup all projects");
 
         } else {
             log.info("start to copy project {} from ResourceStore.", project);
-            copyResourceStore("/" + project, resourceStore, backupResourceStore);
+            copyResourceStore("/" + project, resourceStore, backupResourceStore, true);
 
             log.info("start to backup project {}", project);
         }
@@ -186,13 +188,19 @@ public class MetadataTool extends ExecutableApplication {
         log.info("backup successfully");
     }
 
-    public void copyResourceStore(String projectPath, ResourceStore srcResourceStore, ResourceStore destResourceStore) {
+    public void copyResourceStore(String projectPath, ResourceStore srcResourceStore, ResourceStore destResourceStore,
+            boolean isProjectLevel) {
         val lock = UnitOfWork.getLock(Paths.get(projectPath).getName(0).toString());
 
         lock.lock();
         try {
             log.info("lock project: {}", Paths.get(projectPath).getName(0).toString());
             srcResourceStore.copy(projectPath, destResourceStore);
+            if (isProjectLevel) {
+                // The project-level backup needs to contain "/_global/project/*.json"
+                val projectName = Paths.get(projectPath).getFileName().toString();
+                srcResourceStore.copy(ProjectInstance.concatResourcePath(projectName), destResourceStore);
+            }
         } finally {
             lock.unlock();
             log.info("unlock project: {}", Paths.get(projectPath).getName(0).toString());
@@ -236,8 +244,10 @@ public class MetadataTool extends ExecutableApplication {
 
         } else {
             log.info("start to restore project {}", project);
-            val globalDestResources = resourceStore.listResourcesRecursively(ResourceStore.PROJECT_ROOT);
+            val globalDestResources = resourceStore.listResourcesRecursively(ResourceStore.PROJECT_ROOT).stream()
+                    .filter(x -> Paths.get(x).getFileName().toString().startsWith(project)).collect(Collectors.toSet());
             val globalSrcResources = restoreMetadataStore.list(ResourceStore.PROJECT_ROOT).stream()
+                    .filter(x -> Paths.get(x).getFileName().toString().startsWith(project))
                     .map(x -> ResourceStore.PROJECT_ROOT + x).collect(Collectors.toSet());
             UnitOfWork.doInTransactionWithRetry(
                     () -> doRestore(restoreMetadataStore, globalDestResources, globalSrcResources),
