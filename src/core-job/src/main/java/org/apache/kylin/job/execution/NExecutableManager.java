@@ -29,7 +29,9 @@ import static org.apache.kylin.job.execution.AbstractExecutable.RUNTIME_INFO;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
+import java.io.IOException;
 import java.lang.reflect.Constructor;
+import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -441,9 +443,26 @@ public class NExecutableManager {
         if (!config.isUTEnv()) {
             Process process = JobProcessContext.getProcess(jobId);
             if (process != null && process.isAlive()) {
-                process.destroyForcibly();
+                String cmd = "";
+                try {
+                    int pid = getPid(process);
+                    cmd = String.format("pkill -P %d", pid);
+                    logger.info("destroyProcess pid {} of job {} with cmd '{}'", pid, jobId, cmd);
+                    Process proc = Runtime.getRuntime().exec(cmd);
+                    int exitValue = proc.waitFor();
+                    logger.info("exec cmd '{}', exitValue : {}", cmd, exitValue);
+                } catch (IOException | NoSuchFieldException | IllegalAccessException | InterruptedException e) {
+                    logger.error("exec cmd : '{}', error : {}", cmd, e.getMessage(), e);
+                }
             }
         }
+    }
+
+    private int getPid(Process process) throws IllegalAccessException, NoSuchFieldException {
+        Preconditions.checkState(process.getClass().getName().equals("java.lang.UNIXProcess"));
+        Field f = process.getClass().getDeclaredField("pid");
+        f.setAccessible(true);
+        return f.getInt(process);
     }
 
     private AbstractExecutable fromPO(ExecutablePO executablePO) {
