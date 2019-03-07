@@ -212,57 +212,70 @@
       :close-on-click-modal="false"
       :title="$t('ruleSetting')"
       class="ruleSettingDialog">
-      <div class="conds">
-        <div class="conds-title">
-          <span>{{$t('queryFrequency')}}</span>
-          <el-switch class="ksd-switch" v-model="rulesObj.freqEnable" :active-text="$t('kylinLang.common.OFF')" :inactive-text="$t('kylinLang.common.ON')"></el-switch>
-        </div>
-        <div class="conds-content clearfix">
-          <div class="ksd-mt-10 ksd-fs-14">
-            <span>{{$t('AccQueryStart')}}</span>
-            <el-input v-model.trim="rulesObj.freqValue" v-number="rulesObj.freqValue" size="small" class="rule-setting-input"></el-input> %
-            <span>{{$t('AccQueryEnd')}}</span>
+      <el-form ref="rulesForm" :rules="rulesSettingRules" :show-message="false" :model="rulesObj" size="medium">
+        <div class="conds">
+          <div class="conds-title">
+            <span>{{$t('queryFrequency')}}</span>
+            <el-switch class="ksd-switch" v-model="rulesObj.freqEnable" :active-text="$t('kylinLang.common.OFF')" :inactive-text="$t('kylinLang.common.ON')"></el-switch>
+          </div>
+          <div class="conds-content clearfix">
+            <div class="ksd-mt-10 ksd-fs-14">
+              <el-form-item prop="freqValue">
+                <span>{{$t('AccQueryStart')}}</span>
+                <el-input v-model.trim="rulesObj.freqValue" v-number="rulesObj.freqValue" size="small" class="rule-setting-input" :disabled="!rulesObj.freqEnable"></el-input> %
+                <span>{{$t('AccQueryEnd')}}</span>
+              </el-form-item>
+            </div>
           </div>
         </div>
-      </div>
-      <div class="conds">
-        <div class="conds-title">
-          <span>{{$t('querySubmitter')}}</span>
-          <el-switch class="ksd-switch" v-model="rulesObj.submitterEnable" :active-text="$t('kylinLang.common.OFF')" :inactive-text="$t('kylinLang.common.ON')"></el-switch>
-        </div>
-        <div class="conds-content">
-        </div>
-        <div class="conds-footer">
-          <div class="vip-users-block ksd-mb-10">
-            <div class="ksd-mt-10 conds-title"><i class="el-icon-ksd-table_admin"></i> VIP User</div>
-            <el-select v-model="rulesObj.users" v-event-stop :popper-append-to-body="false" filterable size="medium" placeholder="VIP User" class="ksd-mt-10" multiple style="width:100%">
-              <el-option v-for="item in allSubmittersOptions.user" :key="item" :label="item" :value="item"></el-option>
-            </el-select>
-            <div class="ksd-mt-10 conds-title"><i class="el-icon-ksd-table_group"></i> VIP Group</div>
-            <el-select v-model="rulesObj.userGroups" v-event-stop :popper-append-to-body="false" filterable size="medium" placeholder="VIP User Group" class="ksd-mt-10" multiple style="width:100%">
-              <el-option v-for="item in allSubmittersOptions.group" :key="item" :label="item" :value="item"></el-option>
-            </el-select>
+
+        <div class="conds">
+          <div class="conds-title">
+            <span>{{$t('querySubmitter')}}</span>
+            <el-switch class="ksd-switch" v-model="rulesObj.submitterEnable" :active-text="$t('kylinLang.common.OFF')" :inactive-text="$t('kylinLang.common.ON')"></el-switch>
+          </div>
+          <div class="conds-content">
+            <div class="vip-users-block ksd-mb-10">
+              <el-form-item prop="users">
+                <div class="ksd-mt-10 conds-title"><i class="el-icon-ksd-table_admin"></i> VIP User</div>
+                <el-select v-model="rulesObj.users" v-event-stop :popper-append-to-body="false" filterable size="medium" placeholder="VIP User" class="ksd-mt-10" multiple style="width:100%">
+                  <el-option v-for="item in allSubmittersOptions.user" :key="item" :label="item" :value="item"></el-option>
+                </el-select>
+              </el-form-item>
+              <el-form-item prop="userGroups">
+              <div class="ksd-mt-10 conds-title"><i class="el-icon-ksd-table_group"></i> VIP Group</div>
+              <el-select v-model="rulesObj.userGroups" v-event-stop :popper-append-to-body="false" filterable size="medium" placeholder="VIP User Group" class="ksd-mt-10" multiple style="width:100%">
+                <el-option v-for="item in allSubmittersOptions.group" :key="item" :label="item" :value="item"></el-option>
+              </el-select>
+              </el-form-item>
+            </div>
           </div>
         </div>
-      </div>
-      <div class="conds">
-        <div class="conds-title">
-          <span>{{$t('queryDuration')}}</span>
-          <el-switch class="ksd-switch" v-model="rulesObj.durationEnable" :active-text="$t('kylinLang.common.OFF')" :inactive-text="$t('kylinLang.common.ON')"></el-switch>
-        </div>
-        <div class="conds-content clearfix">
-          <div class="ksd-mt-10 ksd-fs-12">
-            {{$t('from')}}
-            <el-input v-model.trim="rulesObj.minDuration" v-number="rulesObj.minDuration" size="small" class="rule-setting-input" :disabled="!rulesObj.durationEnable"></el-input>
-            {{$t('to')}}
-            <el-input v-model.trim="rulesObj.maxDuration" v-number="rulesObj.maxDuration" size="small" class="rule-setting-input" :disabled="!rulesObj.durationEnable"></el-input>
-            {{$t('secondes')}}
+        <el-form-item prop="latency">
+        <div class="conds">
+          <div class="conds-title">
+            <span>{{$t('queryDuration')}}</span>
+            <el-switch class="ksd-switch" v-model="rulesObj.durationEnable" :active-text="$t('kylinLang.common.OFF')" :inactive-text="$t('kylinLang.common.ON')"></el-switch>
+          </div>
+          <div class="conds-content clearfix">
+            <div class="ksd-mt-10 ksd-fs-12">
+              {{$t('from')}}
+              <el-form-item prop="minDuration" style="display: inline-block;">
+                <el-input v-model.trim="rulesObj.minDuration" v-number="rulesObj.minDuration" size="small" class="rule-setting-input" :disabled="!rulesObj.durationEnable"></el-input>
+              </el-form-item>
+              {{$t('to')}}
+              <el-form-item prop="maxDuration" style="display: inline-block;">
+              <el-input v-model.trim="rulesObj.maxDuration" v-number="rulesObj.maxDuration" size="small" class="rule-setting-input" :disabled="!rulesObj.durationEnable"></el-input>
+              </el-form-item>
+              {{$t('secondes')}}
+            </div>
           </div>
         </div>
-      </div>
+        </el-form-item>
+      </el-form>
       <span slot="footer" class="dialog-footer">
         <el-button @click="cancelRuleSetting" size="medium">{{$t('kylinLang.common.cancel')}}</el-button>
-        <el-button type="primary" plain @click="saveRuleSetting" size="medium" :loadding="updateLoading">{{$t('kylinLang.common.save')}}</el-button>
+        <el-button type="primary" plain @click="saveRuleSetting" size="medium" :loading="updateLoading">{{$t('kylinLang.common.save')}}</el-button>
       </span>
     </el-dialog>
   </div>
@@ -342,11 +355,11 @@ import accelerationTable from './acceleration_table'
       checkAll: 'Check All',
       cancelAll: 'Uncheck All',
       addTofavorite: 'Submit',
-      filesSizeError: 'Files cannot exceed 20M.',
+      filesSizeError: 'Files cannot exceed 5M.',
       fileTypeError: 'Invalid file format。',
       waitingList: 'Waiting List',
       accelerated: 'Accelerated',
-      uploadFileTips: 'Supported file formats are txt and sql. Supported file size is up to 20 MB.'
+      uploadFileTips: 'Supported file formats are txt and sql. Supported file size is up to 5 MB.'
     },
     'zh-cn': {
       acceleration: '加速引擎',
@@ -384,11 +397,11 @@ import accelerationTable from './acceleration_table'
       checkAll: '全选',
       cancelAll: '取消全选',
       addTofavorite: '提交',
-      filesSizeError: '文件大小不能超过20M!',
+      filesSizeError: '文件大小不能超过5M!',
       fileTypeError: '不支持的文件格式！',
       waitingList: '未加速',
       accelerated: '加速完毕',
-      uploadFileTips: '支持的文件格式为 txt 和 sql，文件最大支持20 MB。'
+      uploadFileTips: '支持的文件格式为 txt 和 sql，文件最大支持5MB。'
     }
   }
 })
@@ -448,13 +461,25 @@ export default class FavoriteQuery extends Vue {
     submitterEnable: true,
     users: [],
     userGroups: [],
-    durationEnable: true,
+    durationEnable: false,
     minDuration: 0,
     maxDuration: 0
   }
   allSubmittersOptions = {
     user: [],
     group: []
+  }
+  rulesSettingRules = {
+    freqValue: [{validator: this.validatePass, trigger: 'blur'}],
+    minDuration: [{validator: this.validatePass, trigger: 'blur'}],
+    maxDuration: [{validator: this.validatePass, trigger: 'blur'}]
+  }
+  validatePass (rule, value, callback) {
+    if ((!value && value !== 0) && (rule.field === 'freqValue' && this.rulesObj.freqEnable || rule.field.indexOf('Duration') !== -1 && this.rulesObj.durationEnable)) {
+      callback(new Error(null))
+    } else {
+      callback()
+    }
   }
   tableRowClassName ({row, rowIndex}) {
     if (this.activeSqlObj && row.id === this.activeSqlObj.id) {
@@ -584,18 +609,22 @@ export default class FavoriteQuery extends Vue {
   }
 
   saveRuleSetting () {
-    this.updateLoading = true
-    const submitData = objectClone(this.rulesObj)
-    submitData.freqValue = submitData.freqValue / 100
-    this.updateRules({ ...submitData, ...{project: this.currentSelectedProject} }).then((res) => {
-      handleSuccess(res, (data) => {
-        this.updateLoading = false
-        this.ruleSettingVisible = false
-      })
-    }, (res) => {
-      handleError(res)
-      this.updateLoading = false
-      this.ruleSettingVisible = false
+    this.$refs['rulesForm'].validate((valid) => {
+      if (valid) {
+        this.updateLoading = true
+        const submitData = objectClone(this.rulesObj)
+        submitData.freqValue = submitData.freqValue / 100
+        this.updateRules({ ...submitData, ...{project: this.currentSelectedProject} }).then((res) => {
+          handleSuccess(res, (data) => {
+            this.updateLoading = false
+            this.ruleSettingVisible = false
+          })
+        }, (res) => {
+          handleError(res)
+          this.updateLoading = false
+          this.ruleSettingVisible = false
+        })
+      }
     })
   }
   async loadFavoriteList (pageIndex, pageSize) {
@@ -733,7 +762,7 @@ export default class FavoriteQuery extends Vue {
       totalSize = totalSize + item.size
       return item.raw ? item.raw : item
     })
-    if (totalSize > 20 * 1024 * 1024) { // 附件不能大于20M
+    if (totalSize > 5 * 1024 * 1024) { // 后端限制不能大于5M
       this.$message.warning(this.$t('filesSizeError'))
       this.fileSizeError = true
     } else {
@@ -1200,6 +1229,12 @@ export default class FavoriteQuery extends Vue {
     .ruleSettingDialog {
       .conds-title {
         font-weight: 500;
+      }
+      .el-form-item--medium .el-form-item__content, .el-form-item--medium .el-form-item__label {
+        line-height: 1;
+      }
+      .el-form-item {
+        margin-bottom: 0;
       }
       .conds:not(:last-child) {
         margin-bottom: 20px;
