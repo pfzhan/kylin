@@ -169,6 +169,27 @@ public class FavoriteQueryControllerTest {
     }
 
     @Test
+    public void testUpdateFrequencyRuleWithWrongArgs() throws Exception {
+        FavoriteRuleUpdateRequest request = new FavoriteRuleUpdateRequest();
+        request.setProject(PROJECT);
+        request.setFreqEnable(true);
+        mockMvc.perform(MockMvcRequestBuilders.put("/api/query/favorite_queries/rules")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(JsonUtil.writeValueAsString(request))
+                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .andExpect(MockMvcResultMatchers.status().is(400));
+
+        request.setFreqEnable(false);
+        request.setDurationEnable(true);
+        request.setMinDuration("0");
+        mockMvc.perform(MockMvcRequestBuilders.put("/api/query/favorite_queries/rules")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(JsonUtil.writeValueAsString(request))
+                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .andExpect(MockMvcResultMatchers.status().is(400));
+    }
+
+    @Test
     public void testGetAccelerateRatio() throws Exception {
         mockMvc.perform(MockMvcRequestBuilders.get("/api/query/favorite_queries/accelerate_ratio")
                 .contentType(MediaType.APPLICATION_JSON)

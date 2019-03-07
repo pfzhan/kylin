@@ -71,36 +71,55 @@ public class FavoriteRuleService extends BasicService {
         Map<String, Object> result = Maps.newHashMap();
 
         for (String ruleName : favoriteRuleNames) {
-            FavoriteRule rule = getFavoriteRule(project, ruleName);
-            List<FavoriteRule.Condition> conds = (List<FavoriteRule.Condition>)(List<?>) rule.getConds();
-
-            switch (ruleName) {
-                case FavoriteRule.FREQUENCY_RULE_NAME:
-                    result.put("freqEnable", rule.isEnabled());
-                    result.put("freqValue", Float.valueOf(conds.get(0).getRightThreshold()));
-                    break;
-                case FavoriteRule.SUBMITTER_RULE_NAME:
-                    List<String> users = Lists.newArrayList();
-                    conds.forEach(cond -> users.add(cond.getRightThreshold()));
-                    result.put("submitterEnable", rule.isEnabled());
-                    result.put("users", users);
-                    break;
-                case FavoriteRule.SUBMITTER_GROUP_RULE_NAME:
-                    List<String> userGroups = Lists.newArrayList();
-                    conds.forEach(cond -> userGroups.add(cond.getRightThreshold()));
-                    result.put("userGroups", userGroups);
-                    break;
-                case FavoriteRule.DURATION_RULE_NAME:
-                    result.put("durationEnable", rule.isEnabled());
-                    result.put("minDuration", Long.valueOf(conds.get(0).getLeftThreshold()));
-                    result.put("maxDuration", Long.valueOf(conds.get(0).getRightThreshold()));
-                    break;
-                default:
-                    break;
-            }
+            getSingleRule(project, ruleName, result);
         }
 
         return result;
+    }
+
+    private void getSingleRule(String project, String ruleName, Map<String, Object> result) {
+        FavoriteRule rule = getFavoriteRule(project, ruleName);
+        List<FavoriteRule.Condition> conds = (List<FavoriteRule.Condition>)(List<?>) rule.getConds();
+
+        switch (ruleName) {
+            case FavoriteRule.FREQUENCY_RULE_NAME:
+                result.put("freqEnable", rule.isEnabled());
+                String frequency = conds.get(0).getRightThreshold();
+                if (StringUtils.isNotEmpty(frequency))
+                    result.put("freqValue", Float.valueOf(frequency));
+                else
+                    result.put("freqValue", null);
+                break;
+            case FavoriteRule.SUBMITTER_RULE_NAME:
+                List<String> users = Lists.newArrayList();
+                conds.forEach(cond -> users.add(cond.getRightThreshold()));
+                result.put("submitterEnable", rule.isEnabled());
+                result.put("users", users);
+                break;
+            case FavoriteRule.SUBMITTER_GROUP_RULE_NAME:
+                List<String> userGroups = Lists.newArrayList();
+                conds.forEach(cond -> userGroups.add(cond.getRightThreshold()));
+                result.put("userGroups", userGroups);
+                break;
+            case FavoriteRule.DURATION_RULE_NAME:
+                result.put("durationEnable", rule.isEnabled());
+                String minDuration = conds.get(0).getLeftThreshold();
+                String maxDuration = conds.get(0).getRightThreshold();
+
+                if (StringUtils.isNotEmpty(minDuration))
+                    result.put("minDuration", Long.valueOf(minDuration));
+                else
+                    result.put("minDuration", null);
+
+                if (StringUtils.isNotEmpty(maxDuration))
+                    result.put("maxDuration", Long.valueOf(maxDuration));
+                else
+                    result.put("maxDuration", null);
+
+                break;
+            default:
+                break;
+        }
     }
 
     FavoriteRule getFavoriteRule(String project, String ruleName) {

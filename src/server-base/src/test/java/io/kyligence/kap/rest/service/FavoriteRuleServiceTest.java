@@ -238,6 +238,19 @@ public class FavoriteRuleServiceTest extends NLocalFileMetadataTestCase {
         userGroups = (List<String>) favoriteRuleResponse.get("userGroups");
         Assert.assertEquals(2, userGroups.size());
         Assert.assertEquals("ROLE_ADMIN", userGroups.get(0));
+
+        // assert if favorite rules' values are empty
+        request.setFreqEnable(false);
+        request.setFreqValue(null);
+        request.setDurationEnable(false);
+        request.setMinDuration(null);
+        request.setMaxDuration(null);
+
+        favoriteRuleService.updateRegularRule(PROJECT, request);
+        favoriteRuleResponse = favoriteRuleService.getFavoriteRules(PROJECT);
+        Assert.assertNull(favoriteRuleResponse.get("freqValue"));
+        Assert.assertNull(favoriteRuleResponse.get("minDuration"));
+        Assert.assertNull(favoriteRuleResponse.get("maxDuration"));
     }
 
     @Test

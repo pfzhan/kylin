@@ -31,6 +31,8 @@ import java.util.Map;
 
 import io.kyligence.kap.metadata.favorite.FavoriteQuery;
 import io.kyligence.kap.rest.request.SQLValidateRequest;
+import org.apache.commons.lang.StringUtils;
+import org.apache.kylin.rest.exception.BadRequestException;
 import org.apache.kylin.rest.request.FavoriteRequest;
 import org.apache.kylin.rest.request.FavoriteRuleUpdateRequest;
 import org.apache.kylin.rest.response.EnvelopeResponse;
@@ -78,7 +80,8 @@ public class FavoriteQueryController extends NBasicController {
             @RequestParam(value = "offset", required = false, defaultValue = "0") Integer offset,
             @RequestParam(value = "limit", required = false, defaultValue = "10") Integer limit) {
         HashMap<String, Object> data = Maps.newHashMap();
-        List<FavoriteQuery> filteredAndSortedFQ = favoriteQueryService.filterAndSortFavoriteQueries(project, sortBy, reverse, status);
+        List<FavoriteQuery> filteredAndSortedFQ = favoriteQueryService.filterAndSortFavoriteQueries(project, sortBy,
+                reverse, status);
         data.put("favorite_queries", PagingUtil.cutPage(filteredAndSortedFQ, offset, limit));
         data.put("size", filteredAndSortedFQ.size());
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, data, "");
@@ -88,13 +91,14 @@ public class FavoriteQueryController extends NBasicController {
     @ResponseBody
     public EnvelopeResponse getWaitingFavoriteQuerySize(@RequestParam(value = "project") String project) {
         checkProjectName(project);
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, favoriteQueryService.getWaitingFavoriteQuerySize(project), "");
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS,
+                favoriteQueryService.getWaitingFavoriteQuerySize(project), "");
     }
 
     @RequestMapping(value = "", method = RequestMethod.DELETE)
     @ResponseBody
     public EnvelopeResponse deleteFavoriteQuery(@RequestParam(value = "project") String project,
-                                                @RequestParam(value = "uuid") String uuid) {
+            @RequestParam(value = "uuid") String uuid) {
         checkProjectName(project);
         checkId(uuid);
         favoriteRuleService.deleteFavoriteQuery(project, uuid);
@@ -119,7 +123,7 @@ public class FavoriteQueryController extends NBasicController {
     @RequestMapping(value = "/ignore", method = RequestMethod.PUT)
     @ResponseBody
     public EnvelopeResponse ignoreAccelerate(@RequestParam(value = "project") String project,
-                                             @RequestParam(value = "ignoreSize") int ignoreSize) {
+            @RequestParam(value = "ignoreSize") int ignoreSize) {
         checkProjectName(project);
         favoriteQueryService.ignoreAccelerate(project, ignoreSize);
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, "", "");
@@ -136,8 +140,19 @@ public class FavoriteQueryController extends NBasicController {
     @ResponseBody
     public EnvelopeResponse updateFavoriteRules(@RequestBody FavoriteRuleUpdateRequest request) throws IOException {
         checkProjectName(request.getProject());
+        checkUpdateFavoriteRuleArgs(request);
         favoriteRuleService.updateRegularRule(request.getProject(), request);
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, "", "");
+    }
+
+    private void checkUpdateFavoriteRuleArgs(FavoriteRuleUpdateRequest request) {
+        // either disabled or arguments not empty
+        if (request.isFreqEnable() && StringUtils.isEmpty(request.getFreqValue()))
+            throw new BadRequestException("Frequency rule value is empty");
+
+        if (request.isDurationEnable() && (StringUtils.isEmpty(request.getMinDuration())
+                || StringUtils.isEmpty(request.getMaxDuration())))
+            throw new BadRequestException("Duration rule values are empty");
     }
 
     @RequestMapping(value = "/blacklist", method = RequestMethod.GET)
@@ -165,7 +180,7 @@ public class FavoriteQueryController extends NBasicController {
     @RequestMapping(value = "/sql_files", method = RequestMethod.POST)
     @ResponseBody
     public EnvelopeResponse importSqls(@RequestParam("files") MultipartFile[] files,
-                                       @RequestParam("project") String project) {
+            @RequestParam("project") String project) {
         checkProjectName(project);
         Map<String, Object> data = favoriteRuleService.importSqls(files, project);
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, data, (String) data.get("msg"));
@@ -182,7 +197,6 @@ public class FavoriteQueryController extends NBasicController {
     @RequestMapping(value = "/accelerate_ratio", method = RequestMethod.GET)
     @ResponseBody
     public EnvelopeResponse getAccelerateRatio(@RequestParam("project") String project) {
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS,
-                favoriteRuleService.getAccelerateRatio(project), "");
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, favoriteRuleService.getAccelerateRatio(project), "");
     }
 }
