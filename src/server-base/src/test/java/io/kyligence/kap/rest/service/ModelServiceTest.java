@@ -1949,13 +1949,15 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testPreProcessBeforeModelSave() throws IOException {
-        Serializer<NDataModel> serializer = modelService.getDataModelManager("default").getDataModelSerializer();
+        NDataModelManager modelManager = modelService.getDataModelManager("default");
+        Serializer<NDataModel> serializer = modelManager.getDataModelSerializer();
         String contents = StringUtils.join(Files.readAllLines(
                 new File("src/test/resources/ut_meta/cc_test/default/model_desc/nmodel_cc_test.json").toPath(),
                 Charset.defaultCharset()), "\n");
         InputStream bais = IOUtils.toInputStream(contents, Charset.defaultCharset());
         NDataModel deserialized = serializer.deserialize(new DataInputStream(bais));
-        NDataModel updated = NDataModel.getCopyOf(deserialized);
+        deserialized.setCachedAndShared(true);
+        NDataModel updated = modelManager.copyForWrite(deserialized);
         List<ComputedColumnDesc> newCCs1 = Lists.newArrayList(deserialized.getComputedColumnDescs());
         ComputedColumnDesc ccDesc1 = new ComputedColumnDesc();
         ccDesc1.setTableIdentity("DEFAULT.TEST_KYLIN_FACT");

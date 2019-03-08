@@ -24,6 +24,7 @@
 
 package io.kyligence.kap.smart.model;
 
+import io.kyligence.kap.metadata.model.NDataModelManager;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.query.relnode.OLAPContext;
 import org.slf4j.Logger;
@@ -43,12 +44,15 @@ public abstract class NAbstractModelProposer {
     protected NSmartContext.NModelContext modelContext;
     final KylinConfig kylinConfig;
     final String project;
+    final NDataModelManager dataModelManager;
 
     NAbstractModelProposer(NSmartContext.NModelContext modelCtx) {
         this.modelContext = modelCtx;
 
         kylinConfig = modelCtx.getSmartContext().getKylinConfig();
         project = modelCtx.getSmartContext().getProject();
+
+        dataModelManager = NDataModelManager.getInstance(kylinConfig, project);
     }
 
     public NSmartContext.NModelContext getModelContext() {
@@ -56,7 +60,7 @@ public abstract class NAbstractModelProposer {
     }
 
     public NDataModel propose(NDataModel origModel) {
-        NDataModel modelDesc = NDataModel.getCopyOf(origModel);
+        NDataModel modelDesc = dataModelManager.copyForWrite(origModel);
         initModel(modelDesc);
         doPropose(modelDesc);
         initModel(modelDesc);

@@ -61,7 +61,6 @@ import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.util.SqlBasicVisitor;
 import org.apache.calcite.sql.util.SqlVisitor;
 import org.apache.commons.collections.CollectionUtils;
-import org.apache.commons.lang.SerializationUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
@@ -807,10 +806,6 @@ public class NDataModel extends RootPersistentEntity {
         return NProjectManager.getInstance(getConfig()).getProject(project);
     }
 
-    public NDataModel copy() {
-        return getCopyOf(this);
-    }
-
     public String getProject() {
         return project;
     }
@@ -1357,10 +1352,6 @@ public class NDataModel extends RootPersistentEntity {
                 return col.name;
         }
         return null;
-    }
-
-    public static NDataModel getCopyOf(NDataModel orig) {
-        return (NDataModel) SerializationUtils.clone(orig);
     }
 
     @Override

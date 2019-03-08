@@ -94,7 +94,7 @@ public class NDataModelTest {
 
         Assert.assertNotNull(model.findFirstTable("DEFAULT.TEST_KYLIN_FACT"));
 
-        NDataModel copyModel = NDataModel.getCopyOf(model);
+        NDataModel copyModel = mgr.copyForWrite(model);
         Assert.assertEquals(model.getProject(), copyModel.getProject());
         Assert.assertEquals(model.getAllNamedColumns(), copyModel.getAllNamedColumns());
         Assert.assertEquals(model.getAllMeasures(), copyModel.getAllMeasures());
@@ -129,19 +129,19 @@ public class NDataModelTest {
     public void testGetCopyOf() {
         NDataModel model = mgr.getDataModelDesc("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
 
-        NDataModel copyModel = NDataModel.getCopyOf(model);
+        NDataModel copyModel = mgr.copyForWrite(model);
         Assert.assertEquals(model, copyModel);
         Assert.assertEquals(model.getAllMeasures(), copyModel.getAllMeasures());
         copyModel.getAllMeasures().get(0).tomb = true;
         Assert.assertFalse(model.getAllMeasures().get(0).tomb);
         Assert.assertNotEquals(model, copyModel);
 
-        NDataModel copyModel2 = NDataModel.getCopyOf(model);
+        NDataModel copyModel2 = mgr.copyForWrite(model);
         Assert.assertEquals(model, copyModel2);
         copyModel2.getAllNamedColumns().remove(copyModel2.getAllNamedColumns().size() - 1);
         Assert.assertNotEquals(model, copyModel2);
 
-        NDataModel copyModel3 = NDataModel.getCopyOf(model);
+        NDataModel copyModel3 = mgr.copyForWrite(model);
         Assert.assertEquals(model, copyModel3);
         copyModel3.getColCorrs().remove(copyModel3.getColCorrs().size() - 1);
         Assert.assertNotEquals(model, copyModel3);

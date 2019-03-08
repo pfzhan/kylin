@@ -28,6 +28,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import io.kyligence.kap.metadata.model.NDataModelManager;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.metadata.model.JoinDesc;
 import org.apache.kylin.metadata.model.JoinsGraph;
@@ -50,11 +51,13 @@ public class NModelSelectProposer extends NAbstractProposer {
 
     private static final String EXCEPTION_MSG = "No model matches the SQL. Please add a model matches the SQL before attempting to accelerate this query.";
     private final NDataflowManager dataflowManager;
+    private final NDataModelManager dataModelManager;
 
     NModelSelectProposer(NSmartContext smartContext) {
         super(smartContext);
 
         dataflowManager = NDataflowManager.getInstance(kylinConfig, project);
+        dataModelManager = NDataModelManager.getInstance(kylinConfig, project);
     }
 
     @Override
@@ -75,7 +78,7 @@ public class NModelSelectProposer extends NAbstractProposer {
             // found matched, then use it
             modelContext.setOrigModel(model);
             selectedModel.add(model.getUuid());
-            NDataModel targetModel = NDataModel.getCopyOf(model);
+            NDataModel targetModel = dataModelManager.copyForWrite(model);
             initModel(targetModel);
             targetModel.getComputedColumnDescs().forEach(cc -> {
                 smartContext.getUsedCC().put(cc.getExpression(), cc);
