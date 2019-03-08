@@ -43,8 +43,10 @@ package io.kyligence.kap.query.util;
 
 import java.util.List;
 import java.util.Set;
+import java.util.regex.Pattern;
 
 import org.apache.calcite.avatica.util.TimeUnit;
+import org.apache.calcite.sql.SqlAbstractDateTimeLiteral;
 import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlBasicCall;
 import org.apache.calcite.sql.SqlCall;
@@ -53,6 +55,7 @@ import org.apache.calcite.sql.SqlDateLiteral;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlIntervalLiteral;
 import org.apache.calcite.sql.SqlIntervalQualifier;
+import org.apache.calcite.sql.SqlJdbcDataTypeName;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNode;
@@ -62,52 +65,57 @@ import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlOrderBy;
 import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.SqlSelectKeyword;
+import org.apache.calcite.sql.SqlTimeLiteral;
 import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.util.SqlBasicVisitor;
 import org.apache.calcite.util.DateString;
 import org.apache.calcite.util.ImmutableNullableList;
+import org.apache.calcite.util.TimeString;
+import org.apache.calcite.util.TimestampString;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.metadata.model.tool.CalciteParser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 
 public class QueryPatternUtil {
 
     /** See ref: RedshiftSqlDialect. */
     private static class KySqlDialect extends SqlDialect {
-        static final SqlDialect DEFAULT =
-                new KySqlDialect(EMPTY_CONTEXT
-                        .withIdentifierQuoteString("\""));
+        static final SqlDialect DEFAULT = new KySqlDialect(EMPTY_CONTEXT.withIdentifierQuoteString("\""));
 
         private KySqlDialect(Context context) {
             super(context);
         }
 
-        @Override protected boolean allowsAs() {
+        @Override
+        protected boolean allowsAs() {
             return false;
         }
 
-        @Override public void unparseOffsetFetch(SqlWriter writer, SqlNode offset,
-                                                 SqlNode fetch) {
+        @Override
+        public void unparseOffsetFetch(SqlWriter writer, SqlNode offset, SqlNode fetch) {
             unparseFetchUsingLimit(writer, offset, fetch);
         }
     }
 
     private static class SqlSelectForPattern extends SqlSelect {
         private SqlSelectForPattern(SqlSelect select) {
-            super(select.getParserPosition(), null,
-                    select.getSelectList(), select.getFrom(), select.getWhere(), select.getGroup(),
-                    select.getHaving(), select.getWindowList(), select.getOrderList(), select.getOffset(), select.getFetch());
+            super(select.getParserPosition(), null, select.getSelectList(), select.getFrom(), select.getWhere(),
+                    select.getGroup(), select.getHaving(), select.getWindowList(), select.getOrderList(),
+                    select.getOffset(), select.getFetch());
         }
 
         @Override
         public List<SqlNode> getOperandList() {
             // skip adding selectList, group, orderList into operand list
-            return ImmutableNullableList.of(getFrom(), getWhere(), getHaving(), getWindowList(), getOffset(), getFetch());
+            return ImmutableNullableList.of(getFrom(), getWhere(), getHaving(), getWindowList(), getOffset(),
+                    getFetch());
         }
     }
 
@@ -125,12 +133,21 @@ public class QueryPatternUtil {
 
     private static final Logger logger = LoggerFactory.getLogger(QueryPatternUtil.class);
     private static final SqlDialect DEFAULT_DIALECT = KySqlDialect.DEFAULT;
+
     private static final String DEFAULT_DATE = "2010-01-01";
     private static final String DEFAULT_DATE_GT = "2010-01-02";
-    // Value of default date string is "2010-01-01"
-    private static final DateString DEFAULT_DATE_STR = DateString.fromDaysSinceEpoch(14610);
-    // "2010-01-02"
-    private static final DateString DEFAULT_DATE_STR_GT = DateString.fromDaysSinceEpoch(14611);
+    private static final DateString DEFAULT_DATE_STR = new DateString(DEFAULT_DATE);
+    private static final DateString DEFAULT_DATE_STR_GT = new DateString(DEFAULT_DATE_GT);
+
+    private static final String DEFAULT_TIMESTAMP = "2010-01-01 00:00:00";
+    private static final String DEFAULT_TIMESTAMP_GT = "2010-01-02 00:00:00";
+    private static final TimestampString DEFAULT_TIMESTAMP_STR = new TimestampString(DEFAULT_TIMESTAMP);
+    private static final TimestampString DEFAULT_TIMESTAMP_STR_GT = new TimestampString(DEFAULT_TIMESTAMP_GT);
+
+    private static final String DEFAULT_TIME = "01:00:00";
+    private static final String DEFAULT_TIME_GT = "02:00:00";
+    private static final TimeString DEFAULT_TIME_STR = new TimeString(DEFAULT_TIME);
+    private static final TimeString DEFAULT_TIME_STR_GT = new TimeString(DEFAULT_TIME_GT);
 
     private QueryPatternUtil() {
         throw new IllegalStateException("Wrong usage for utility class.");
@@ -150,6 +167,8 @@ public class QueryPatternUtil {
      *      18 > A -> 2 > "A"
      *      A < 'Job' -> "A" < 'Z'
      *      A in (10, 20, 30) -> "A" in (1)
+     *      A in (TIMESTAMP '2012-01-01 00:00:00.000', ...) -> "A" in (TIMESTAMP '2010-01-01 00:00:00')
+     *      A in (Date '2018-03-08', ... ) -> "A" in (DATE '2010-01-01')
      *      A not in ('Bob', 'Sam') -> "A" NOT IN ('A')
      *      A like "%10" -> "A" LIKE ''
      *      A between 10 and 20 -> "A" BETWEEN ASYMMETRIC 1 AND 1
@@ -173,8 +192,10 @@ public class QueryPatternUtil {
         if (sqlNode instanceof SqlOrderBy) {
             SqlOrderBy sqlOrderBy = (SqlOrderBy) sqlNode;
             SqlParserPos pos = sqlOrderBy.getParserPosition();
-            SqlNode offset = sqlOrderBy.offset == null ? null : SqlLiteral.createExactNumeric("1", sqlOrderBy.offset.getParserPosition());
-            SqlNode fetch = sqlOrderBy.fetch == null ?  null : SqlLiteral.createExactNumeric("1", sqlOrderBy.fetch.getParserPosition());
+            SqlNode offset = sqlOrderBy.offset == null ? null
+                    : SqlLiteral.createExactNumeric("1", sqlOrderBy.offset.getParserPosition());
+            SqlNode fetch = sqlOrderBy.fetch == null ? null
+                    : SqlLiteral.createExactNumeric("1", sqlOrderBy.fetch.getParserPosition());
             sqlNode = new SqlOrderBy(pos, sqlOrderBy.query, sqlOrderBy.orderList, offset, fetch);
         }
         patternGenerator.visit((SqlCall) sqlNode);
@@ -204,34 +225,36 @@ public class QueryPatternUtil {
                 List<SqlNode> operandList = basicCall.getOperandList();
 
                 switch (operatorKind) {
-                    case IN:
-                    case NOT_IN:
-                        normalizeInClause(basicCall);
-                        break;
-                    case JDBC_FN: // select { fn CONVERT('2010-10-10 10:10:10.4', SQL_TIMESTAMP) } from A
-                    case AS:  // select 2 as column_2 from tableA
-                        break;
-                    case EQUALS:
-                    case NOT_EQUALS:
-                    case GREATER_THAN:
-                    case GREATER_THAN_OR_EQUAL:
-                    case LESS_THAN:
-                    case LESS_THAN_OR_EQUAL:
-                        normalizeComparisonClause(basicCall);
-                        break;
-                    default:
-                        // for SUM(1), COUNT(1), etc
-                        for (int i = 0; i < operandList.size(); i++) {
-                            SqlNode currentNode = operandList.get(i);
-                            if (currentNode instanceof SqlLiteral) {
-                                SqlLiteral sqlLiteral = (SqlLiteral) currentNode;
-                                if (shouldSkipNormalize(sqlLiteral)) {
-                                    continue;
-                                }
-                                SqlLiteral mockLiteral = mockLiteral(sqlLiteral, false);
-                                basicCall.setOperand(i, mockLiteral);
+                case IN:
+                case NOT_IN:
+                    normalizeInClause(basicCall);
+                    break;
+                case JDBC_FN: // select { fn CONVERT('2010-10-10 10:10:10.4', SQL_TIMESTAMP) } from A
+                    normalizeJdbcFunctionClause(basicCall);
+                    break;
+                case AS: // select 2 as column_2 from tableA
+                    break;
+                case EQUALS:
+                case NOT_EQUALS:
+                case GREATER_THAN:
+                case GREATER_THAN_OR_EQUAL:
+                case LESS_THAN:
+                case LESS_THAN_OR_EQUAL:
+                    normalizeComparisonClause(basicCall);
+                    break;
+                default:
+                    // for SUM(1), COUNT(1), etc
+                    for (int i = 0; i < operandList.size(); i++) {
+                        SqlNode currentNode = operandList.get(i);
+                        if (currentNode instanceof SqlLiteral) {
+                            SqlLiteral sqlLiteral = (SqlLiteral) currentNode;
+                            if (shouldSkipNormalize(sqlLiteral)) {
+                                continue;
                             }
+                            SqlLiteral mockLiteral = mockLiteral(sqlLiteral, false);
+                            basicCall.setOperand(i, mockLiteral);
                         }
+                    }
                 }
             }
             return call.getOperator().acceptCall(this, call);
@@ -265,19 +288,11 @@ public class QueryPatternUtil {
             }
 
             if (literal instanceof SqlCharStringLiteral) {
-
-                if (isValidDate(literal.toString())) {
-                    return useGreaterValue ? SqlLiteral.createCharString(DEFAULT_DATE_GT, position)
-                            : SqlLiteral.createCharString(DEFAULT_DATE, position);
-                }
-
-                return useGreaterValue ? SqlLiteral.createCharString("Z", position)
-                        : SqlLiteral.createCharString("A", position);
+                return mockSqlCharStringLiteral(literal, useGreaterValue, position);
             }
 
-            if (literal instanceof SqlDateLiteral) {
-                return useGreaterValue ? SqlLiteral.createDate(DEFAULT_DATE_STR_GT, position)
-                        : SqlLiteral.createDate(DEFAULT_DATE_STR, position);
+            if (literal instanceof SqlAbstractDateTimeLiteral) {
+                return mockDateTimeLiteral(literal, useGreaterValue, position);
             }
 
             if (literal instanceof SqlIntervalLiteral) {
@@ -288,6 +303,73 @@ public class QueryPatternUtil {
 
             logger.debug("Current SqlLiteral is not normalized, {}", literal);
             return literal;
+        }
+
+        private SqlLiteral mockSqlCharStringLiteral(SqlLiteral literal, boolean useGreaterValue,
+                SqlParserPos position) {
+            Preconditions.checkArgument(literal instanceof SqlCharStringLiteral);
+            final String value = literal.toValue();
+            if (DateTimeCheckUtil.isValidDate(value)) {
+                return useGreaterValue ? SqlLiteral.createCharString(DEFAULT_DATE_GT, position)
+                        : SqlLiteral.createCharString(DEFAULT_DATE, position);
+            } else if (DateTimeCheckUtil.isValidTime(value)) {
+                return useGreaterValue ? SqlLiteral.createCharString(DEFAULT_TIME_GT, position)
+                        : SqlLiteral.createCharString(DEFAULT_TIME, position);
+            } else if (DateTimeCheckUtil.isValidTimestamp(value)) {
+                return useGreaterValue ? SqlLiteral.createCharString(DEFAULT_TIMESTAMP_GT, position)
+                        : SqlLiteral.createCharString(DEFAULT_TIMESTAMP, position);
+            }
+            return useGreaterValue ? SqlLiteral.createCharString("Z", position)
+                    : SqlLiteral.createCharString("A", position);
+        }
+
+        private SqlLiteral mockNumericStringLiteral(SqlLiteral literal, SqlParserPos position) {
+            Preconditions.checkArgument(literal instanceof SqlCharStringLiteral);
+            final Pattern pattern = Pattern.compile("[+-]?\\d+(\\.\\d+)?");
+
+            if (pattern.matcher(literal.toValue()).matches()) {
+                return SqlLiteral.createCharString("1", position);
+            } else {
+                return SqlLiteral.createCharString("A", position);
+            }
+        }
+
+        private SqlLiteral mockDateTimeLiteral(SqlLiteral literal, boolean useGreaterValue, SqlParserPos position) {
+
+            Preconditions.checkArgument(literal instanceof SqlAbstractDateTimeLiteral);
+            if (literal instanceof SqlDateLiteral) {
+                return useGreaterValue ? SqlLiteral.createDate(DEFAULT_DATE_STR_GT, position)
+                        : SqlLiteral.createDate(DEFAULT_DATE_STR, position);
+            } else if (literal instanceof SqlTimeLiteral) {
+                return useGreaterValue ? SqlLiteral.createTime(DEFAULT_TIME_STR_GT, 0, position)
+                        : SqlLiteral.createTime(DEFAULT_TIME_STR, 0, position);
+            } else { // SqlTimestampLiteral
+                return useGreaterValue ? SqlLiteral.createTimestamp(DEFAULT_TIMESTAMP_STR_GT, 0, position)
+                        : SqlLiteral.createTimestamp(DEFAULT_TIMESTAMP_STR, 0, position);
+            }
+        }
+
+        private void normalizeJdbcFunctionClause(SqlBasicCall basicCall) {
+            if (basicCall.getOperands().length != 2) {
+                return;
+            }
+
+            // {fn CONVERT(value, type)} -> Cast value into type
+            if (basicCall.getOperator().getKind() == SqlKind.JDBC_FN
+                    && basicCall.operand(0) instanceof SqlCharStringLiteral
+                    && basicCall.operand(1) instanceof SqlLiteral) {
+
+                final SqlLiteral value = basicCall.operand(0);
+                final SqlLiteral type = basicCall.operand(1);
+
+                Preconditions.checkArgument(type.getValue() instanceof SqlJdbcDataTypeName);
+                SqlJdbcDataTypeName convertedType = (SqlJdbcDataTypeName) type.getValue();
+                if (JdbcDataTypeUtil.isDateTime(convertedType)) {
+                    basicCall.setOperand(0, mockSqlCharStringLiteral(value, false, value.getParserPosition()));
+                } else if (JdbcDataTypeUtil.isNumeric(convertedType)) {
+                    basicCall.setOperand(0, mockNumericStringLiteral(value, value.getParserPosition()));
+                }
+            }
         }
 
         private void normalizeInClause(SqlBasicCall basicCall) {
@@ -351,10 +433,80 @@ public class QueryPatternUtil {
             return (value instanceof SqlSelectKeyword) || (value instanceof TimeUnit);
         }
 
-        private boolean isValidDate(String date) {
-            date = date.replaceAll("'", "");
-            return date.matches("[12]\\d{3}-(0[1-9]|1[0-2])-(0[1-9]|[12]\\d|3[01])");
+    }
+
+    private static class JdbcDataTypeUtil {
+        // All used types are copied from enum of SqlJdbcDateTypeName in calcite.
+        private static final Set<SqlJdbcDataTypeName> datetimeTypes = ImmutableSet.of(//
+                SqlJdbcDataTypeName.SQL_DATE, SqlJdbcDataTypeName.SQL_TIME,
+                SqlJdbcDataTypeName.SQL_TIME_WITH_LOCAL_TIME_ZONE, SqlJdbcDataTypeName.SQL_TIMESTAMP,
+                SqlJdbcDataTypeName.SQL_TIMESTAMP_WITH_LOCAL_TIME_ZONE);
+
+        private static final Set<SqlJdbcDataTypeName> numericTypes = ImmutableSet.of(//
+                SqlJdbcDataTypeName.SQL_DECIMAL, SqlJdbcDataTypeName.SQL_NUMERIC, SqlJdbcDataTypeName.SQL_BOOLEAN,
+                SqlJdbcDataTypeName.SQL_INTEGER, SqlJdbcDataTypeName.SQL_BINARY, SqlJdbcDataTypeName.SQL_VARBINARY,
+                SqlJdbcDataTypeName.SQL_TINYINT, SqlJdbcDataTypeName.SQL_SMALLINT, SqlJdbcDataTypeName.SQL_BIGINT,
+                SqlJdbcDataTypeName.SQL_REAL, SqlJdbcDataTypeName.SQL_DOUBLE, SqlJdbcDataTypeName.SQL_FLOAT);
+
+        static boolean isDateTime(SqlJdbcDataTypeName typeName) {
+            return datetimeTypes.contains(typeName);
         }
 
+        static boolean isNumeric(SqlJdbcDataTypeName typeName) {
+            return numericTypes.contains(typeName);
+        }
+    }
+
+    /**
+     * copied from calcite: TimeString, DateString, TimestampString
+     */
+    private static class DateTimeCheckUtil {
+        private static final Pattern TIMESTAMP_PTN = Pattern.compile(
+                "[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9] [0-9][0-9]:[0-9][0-9]:[0-9][0-9](\\.[0-9]*[1-9])?");
+        private static final Pattern DATE_PTN = Pattern.compile("[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]");
+        private static final Pattern TIME_PTN = Pattern.compile("[0-9][0-9]:[0-9][0-9]:[0-9][0-9](\\.[0-9]*[1-9])?");
+
+        static boolean isValidDate(String value) {
+            boolean isMatch = DATE_PTN.matcher(value).matches();
+            if (!isMatch) {
+                return false;
+            }
+
+            int year = Integer.parseInt(value.substring(0, 4));
+            if (year < 1 || year > 9999) {
+                return false;
+            }
+
+            int month = Integer.parseInt(value.substring(5, 7));
+            if (month < 1 || month > 12) {
+                return false;
+            }
+
+            int day = Integer.parseInt(value.substring(8, 10));
+            return day >= 1 && day <= 31;
+        }
+
+        static boolean isValidTime(String value) {
+            boolean isMatch = TIME_PTN.matcher(value).matches();
+            if (!isMatch) {
+                return false;
+            }
+
+            int hour = Integer.parseInt(value.substring(0, 2));
+            if (hour < 0 || hour >= 24) {
+                return false;
+            }
+
+            int minute = Integer.parseInt(value.substring(3, 5));
+            if (minute < 0 || minute >= 60) {
+                return false;
+            }
+            int second = Integer.parseInt(value.substring(6, 8));
+            return second >= 0 && second < 60;
+        }
+
+        static boolean isValidTimestamp(String value) {
+            return TIMESTAMP_PTN.matcher(value).matches();
+        }
     }
 }

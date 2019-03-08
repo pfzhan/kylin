@@ -41,188 +41,258 @@
  */
 package io.kyligence.kap.query.util;
 
+import java.io.File;
+import java.io.IOException;
+
 import org.apache.commons.io.FileUtils;
 import org.junit.Assert;
 import org.junit.Test;
-
-import java.io.File;
-import java.io.IOException;
 
 public class QueryPatternUtilTest {
     private static final String SQL_DIR = "../query/src/test/resources/query_pattern";
 
     @Test
     public void testJdbcFn() {
-        String sql = "SELECT {fn SECOND({fn CONVERT({fn CONVERT('2010-10-10 10:10:10.4', SQL_TIMESTAMP) }, SQL_TIMESTAMP) }) } "
-                + "TEMP_TEST__2143701310__0_, 1 X__ALIAS__0\n"
-                + "FROM TDVT.CALCS CALCS\n"
-                + "GROUP BY 1";
-        String expected = "SELECT {fn SECOND({fn CONVERT({fn CONVERT('2010-10-10 10:10:10.4', SQL_TIMESTAMP) }, "
+        String expected1 = "SELECT {fn SECOND({fn CONVERT({fn CONVERT('2010-10-10 10:10:10.4', SQL_TIMESTAMP) }, "
                 + "SQL_TIMESTAMP) }) } \"TEMP_TEST__2143701310__0_\", 1 \"X__ALIAS__0\"\n"
-                + "FROM \"TDVT\".\"CALCS\" \"CALCS\"\n"
+                + "FROM \"TDVT\".\"CALCS\" \"CALCS\"\n" //
                 + "GROUP BY 1";
-        String actual = QueryPatternUtil.normalizeSQLPatternImpl(sql);
-        Assert.assertEquals(expected, actual);
+        String sql1 = "SELECT {fn SECOND({fn CONVERT({fn CONVERT('2010-10-10 10:10:10.4', SQL_TIMESTAMP) }, SQL_TIMESTAMP) }) } "
+                + "TEMP_TEST__2143701310__0_, 1 X__ALIAS__0\n" //
+                + "FROM TDVT.CALCS CALCS GROUP BY 1";
+        checkPattern(expected1, sql1);
+
+        String expected2 = "SELECT {fn CONVERT(1, SQL_DOUBLE) }\nFROM \"KYLIN_SALES\"";
+        String sql2 = "select {fn convert(1, double)} from kylin_sales";
+        checkPattern(expected2, sql2);
     }
 
     @Test
     public void testIdempotence() {
-        String sql = "SELECT \"Calcs\".\"KEY\" AS \"KEY\",\n"
-                + "  SUM(\"Calcs\".\"NUM2\")   AS \"sum_num2_ok\"\n"
-                + "FROM \"TDVT\".\"CALCS\" Calcs\n"
-                + "GROUP BY \"Calcs\".\"KEY\"\n\n"
-                + "ORDER BY SUM(\"Calcs\".\"NUM2\") DESC\n"
-                + "LIMIT 10 "
-                + "OFFSET 2";
-        String pattern1 = QueryPatternUtil.normalizeSQLPatternImpl(sql);
         String expected = "SELECT \"Calcs\".\"KEY\" \"KEY\", SUM(\"Calcs\".\"NUM2\") \"sum_num2_ok\"\n"
-                + "FROM \"TDVT\".\"CALCS\" \"CALCS\"\n"
-                + "GROUP BY \"Calcs\".\"KEY\"\n"
-                + "ORDER BY SUM(\"Calcs\".\"NUM2\") DESC\n"
-                + "LIMIT 1\n"
+                + "FROM \"TDVT\".\"CALCS\" \"CALCS\"\n" //
+                + "GROUP BY \"Calcs\".\"KEY\"\n" //
+                + "ORDER BY SUM(\"Calcs\".\"NUM2\") DESC\n" //
+                + "LIMIT 1\n" //
                 + "OFFSET 1";
-        Assert.assertEquals(expected, pattern1);
+        String sql = "SELECT \"Calcs\".\"KEY\" AS \"KEY\", SUM(\"Calcs\".\"NUM2\") AS \"sum_num2_ok\"\n"
+                + "FROM \"TDVT\".\"CALCS\" Calcs\n" //
+                + "GROUP BY \"Calcs\".\"KEY\"\n\n" //
+                + "ORDER BY SUM(\"Calcs\".\"NUM2\") DESC\n" //
+                + "LIMIT 10 " //
+                + "OFFSET 2";
+        checkPattern(expected, sql);
 
-        String pattern2 = QueryPatternUtil.normalizeSQLPatternImpl(pattern1);
-        Assert.assertEquals(pattern1, pattern2);
+        String normalizeSQLPattern = QueryPatternUtil.normalizeSQLPatternImpl(sql);
+        checkPattern(expected, normalizeSQLPattern);
     }
 
     @Test
     public void testComputedColumnCompatibility() throws IOException {
-        String sql = retrieveSql("query01.sql");
         String expected = retrieveSql("query01.sql.expected");
-        String actual = QueryPatternUtil.normalizeSQLPatternImpl(sql);
-        Assert.assertEquals(expected, actual);
+        String sql = retrieveSql("query01.sql");
+        checkPattern(expected, sql);
 
-        String sql2 = retrieveSql("query02.sql");
         String expected2 = retrieveSql("query02.sql.expected");
-        String actual2 = QueryPatternUtil.normalizeSQLPatternImpl(sql2);
-        Assert.assertEquals(expected2, actual2);
+        String sql2 = retrieveSql("query02.sql");
+        checkPattern(expected2, sql2);
 
-        String sql3 = retrieveSql("query03.sql");
         String expected3 = retrieveSql("query03.sql.expected");
-        String actual3 = QueryPatternUtil.normalizeSQLPatternImpl(sql3);
-        Assert.assertEquals(expected3, actual3);
+        String sql3 = retrieveSql("query03.sql");
+        checkPattern(expected3, sql3);
 
-        String sql4 = retrieveSql("query04.sql");
         String expected4 = retrieveSql("query04.sql.expected");
-        String actual4 = QueryPatternUtil.normalizeSQLPatternImpl(sql4);
-        Assert.assertEquals(expected4, actual4);
+        String sql4 = retrieveSql("query04.sql");
+        checkPattern(expected4, sql4);
     }
 
     @Test
     public void testGroupBy() {
-        String sql = "SELECT SUM(1) AS COL, \n"
-                + " 2 AS COL2 \n"
-                + " FROM ( \n"
-                + " select test_kylin_fact.lstg_format_name, test_cal_dt.week_beg_dt,sum(test_kylin_fact.price) as GMV \n"
-                + " , count(*) as TRANS_CNT \n"
-                + " from test_kylin_fact \n"
-                + " inner JOIN edw.test_cal_dt as test_cal_dt\n"
-                + " ON test_kylin_fact.cal_dt = test_cal_dt.cal_dt \n"
-                + " where test_cal_dt.week_beg_dt between DATE '2013-05-01' and DATE '2013-08-01' \n"
-                + " group by test_kylin_fact.lstg_format_name, test_cal_dt.week_beg_dt \n"
-                + " having sum(price+2*4) * 2>500 \n"
-                + " ) TableauSQL \n"
-                + " GROUP BY 2 \n"
-                + " HAVING COUNT(1)>0 ";
         String expected = "SELECT SUM(1) \"COL\", 2 \"COL2\"\n"
                 + "FROM (SELECT \"TEST_KYLIN_FACT\".\"LSTG_FORMAT_NAME\", \"TEST_CAL_DT\".\"WEEK_BEG_DT\", "
-                + "SUM(\"TEST_KYLIN_FACT\".\"PRICE\") \"GMV\", COUNT(*) \"TRANS_CNT\"\n"
+                + "SUM(\"TEST_KYLIN_FACT\".\"PRICE\") \"GMV\", COUNT(*) \"TRANS_CNT\"\n" //
                 + "FROM \"TEST_KYLIN_FACT\"\n"
                 + "INNER JOIN \"EDW\".\"TEST_CAL_DT\" \"TEST_CAL_DT\" ON \"TEST_KYLIN_FACT\".\"CAL_DT\" = \"TEST_CAL_DT\".\"CAL_DT\"\n"
                 + "WHERE \"TEST_CAL_DT\".\"WEEK_BEG_DT\" BETWEEN ASYMMETRIC DATE '2010-01-01' AND DATE '2010-01-01'\n"
                 + "GROUP BY \"TEST_KYLIN_FACT\".\"LSTG_FORMAT_NAME\", \"TEST_CAL_DT\".\"WEEK_BEG_DT\"\n"
-                + "HAVING SUM(\"PRICE\" + 2 * 4) * 1 > 1) \"TABLEAUSQL\"\n"
-                + "GROUP BY 2\n"
+                + "HAVING SUM(\"PRICE\" + 2 * 4) * 1 > 1) \"TABLEAUSQL\"\n" //
+                + "GROUP BY 2\n" //
                 + "HAVING COUNT(1) > 1";
-        String actual = QueryPatternUtil.normalizeSQLPatternImpl(sql);
-        Assert.assertEquals(expected, actual);
+        String sql = "select sum(1) as col, 2 as col2 \n" //
+                + " from ( \n" //
+                + "   select test_kylin_fact.lstg_format_name, test_cal_dt.week_beg_dt, "
+                + "     sum(test_kylin_fact.price) as gmv, count(*) as trans_cnt \n" //
+                + "   from test_kylin_fact \n"
+                + "   inner join edw.test_cal_dt as test_cal_dt on test_kylin_fact.cal_dt = test_cal_dt.cal_dt \n"
+                + "   where test_cal_dt.week_beg_dt between date '2013-05-01' and date '2013-08-01' \n"
+                + "   group by test_kylin_fact.lstg_format_name, test_cal_dt.week_beg_dt having sum(price+2*4) * 2>500 \n"
+                + " ) tableausql \n" //
+                + " group by 2 having count(1)>0 ";
+        checkPattern(expected, sql);
     }
 
     @Test
     public void testHaving() throws IOException {
-        String sql = retrieveSql("query05.sql");
         String expected = retrieveSql("query05.sql.expected");
-        String actual = QueryPatternUtil.normalizeSQLPatternImpl(sql);
-        Assert.assertEquals(expected, actual);
+        String sql = retrieveSql("query05.sql");
+        checkPattern(expected, sql);
     }
 
     @Test
-    public void testSelectNumericColumn() {
-        String sql1 = "SELECT 1, 2, 3\nFROM A";
-        String actual1 = QueryPatternUtil.normalizeSQLPatternImpl(sql1);
-        String expected1 = "SELECT 1, 2, 3\nFROM \"A\"";
-        Assert.assertEquals(expected1, actual1);
+    public void testSelectLiteral() {
 
-        String sql2 = "SELECT 97 AS TEMP_Test__415603459__0_,\n"
-                + "1 AS X__alias__0\n"
-                + "FROM TDVT.CALCS CALCS\n"
-                + "GROUP BY 1";
-        String expected2 = "SELECT 97 \"TEMP_TEST__415603459__0_\", 1 \"X__ALIAS__0\"\n"
-                + "FROM \"TDVT\".\"CALCS\" \"CALCS\"\n"
-                + "GROUP BY 1";
-        String actual2 = QueryPatternUtil.normalizeSQLPatternImpl(sql2);
-        Assert.assertEquals(expected2, actual2);
+        // test select SqlNumericLiteral
+        String expected1 = "SELECT 1, 2, 3\nFROM \"A\"";
+        String sql1 = "select 1, 2, 3 from a";
+        checkPattern(expected1, sql1);
+
+        // test select SqlCharStringLiteral
+        String expected2 = "SELECT 'text', 'test', 'task'\nFROM \"KYLIN_SALES\"";
+        String sql2 = "select 'text', 'test', 'task' from kylin_sales";
+        checkPattern(expected2, sql2);
+
+        // test select SqlAbstractDateTimeLiteral
+        String expected3 = "SELECT DATE '2012-01-01', TIMESTAMP '2012-02-01 00:00:00.456', TIME '00:00:01'\n"
+                + "FROM \"KYLIN_SALES\"";
+        String sql3 = "select date '2012-01-01', TIMESTAMP '2012-02-01 00:00:00.456', time '00:00:01' from kylin_sales";
+        checkPattern(expected3, sql3);
+        sql3 = "select {d '2012-01-01'}, {ts '2012-02-01 00:00:00.456'}, {t '00:00:01'} from kylin_sales";
+        checkPattern(expected3, sql3);
+
+        // test all
+        String expected4 = "SELECT 1 \"num_literal\", 'test' \"str_literal\", DATE '2012-01-01' \"datetime_literal\"\n"
+                + "FROM \"KYLIN_SALES\"";
+        String sql4 = "select 1 as \"num_literal\", 'test' as \"str_literal\", DATE '2012-01-01' as \"datetime_literal\""
+                + " \t from kylin_sales";
+        checkPattern(expected4, sql4);
     }
 
     @Test
     public void testLiteralComparison() {
-        String sql1 = "select ks.price as price, ks.part_dt as dt from kylin_sales as ks "
-                + "where NOT(ks.price <= 60.0) and ks.part_dt > '2012-02-05' and ks.name <> 'Baby'";
-        String actual1 = QueryPatternUtil.normalizeSQLPatternImpl(sql1);
 
-        String expected1 = "SELECT \"KS\".\"PRICE\" \"PRICE\", \"KS\".\"PART_DT\" \"DT\"\n"
-                + "FROM \"KYLIN_SALES\" \"KS\"\n"
-                + "WHERE NOT \"KS\".\"PRICE\" <= 2 AND \"KS\".\"PART_DT\" > '2010-01-01' AND \"KS\".\"NAME\" <> 'A'";
-        Assert.assertEquals(expected1, actual1);
+        // test with SqlNumericalLiteral
+        {
+            String expected1 = "SELECT \"KS\".\"PRICE\" \"PRICE\", \"KS\".\"PART_DT\" \"DT\"\n"
+                    + "FROM \"KYLIN_SALES\" \"KS\"\n"
+                    + "WHERE NOT \"KS\".\"PRICE\" <= 2 OR \"KS\".\"PRICE\" > 1 AND \"KS\".\"PRICE\" < 2 OR \"KS\".\"PRICE\" <= 2";
+            String sql1 = "select ks.price as price, ks.part_dt as dt from kylin_sales as ks "
+                    + "where not(ks.price <= 60.0) or (ks.price > 10 and ks.price < 20) or ks.price <= 5";
+            checkPattern(expected1, sql1);
 
-        String sql2 = "select ks.price > 50, ks.part_dt <= '2008-04-23' "
-                + "from kylin_sales as ks";
-        String actual2 = QueryPatternUtil.normalizeSQLPatternImpl(sql2);
-        String expected2 = "SELECT \"KS\".\"PRICE\" > 50, \"KS\".\"PART_DT\" <= '2008-04-23'\n" +
-                "FROM \"KYLIN_SALES\" \"KS\"";
-        Assert.assertEquals(expected2, actual2);
+            String expected2 = "SELECT \"SELLER_ID\", \"PRICE\" > 10, SUM(\"ITEM_COUNT\")\n"
+                    + "FROM \"TEST_KYLIN_FACT\"\n" //
+                    + "GROUP BY \"SELLER_ID\", \"PRICE\"";
+            String sql2 = "select seller_id, price > 10, sum(item_count) from test_kylin_fact group by seller_id, price";
+            checkPattern(expected2, sql2);
+
+            String expected3 = "SELECT {fn CONVERT('123', SQL_INTEGER) }\n" //
+                    + "FROM \"KYLIN_SALES\"\n" //
+                    + "WHERE {fn CONVERT('1', SQL_INTEGER) } = 1";
+            String sql3 = "select {fn convert('123', integer)} from kylin_sales where {fn convert('123', integer)} = 123";
+            checkPattern(expected3, sql3);
+
+            String expected4 = "SELECT {fn CONVERT('123.34', SQL_DOUBLE) }\n" //
+                    + "FROM \"KYLIN_SALES\"\n" //
+                    + "WHERE {fn CONVERT('1', SQL_DOUBLE) } = 1";
+            String sql4 = "select {fn convert('123.34', double)} from kylin_sales where {fn convert('123.34', double)} = 123.34";
+            checkPattern(expected4, sql4);
+        }
+
+        // test with SqlAbstractDateTimeLiteral
+        {
+            String expected1 = "SELECT \"KS\".\"PART_DT\" <= '2008-04-23'\n" //
+                    + "FROM \"KYLIN_SALES\" \"KS\"";
+            String sql1 = "select ks.part_dt <= '2008-04-23' from kylin_sales as ks";
+            checkPattern(expected1, sql1);
+
+            String expected2 = "SELECT \"PRICE\", \"DT\"\n" //
+                    + "FROM \"SALES\"\n" //
+                    + "WHERE \"DT\" <= '2010-01-02' AND \"DT\" > DATE '2010-01-01'";
+            String sql2 = "select price, dt from sales where dt <= '2020-08-08' and dt > date '2002-02-08'";
+            checkPattern(expected2, sql2);
+
+            String expected3 = "SELECT \"LDT\"\n" //
+                    + "FROM \"SALES\"\n" //
+                    + "WHERE \"LDT\" > TIMESTAMP '2010-01-01 00:00:00' OR \"LDT\" < TIMESTAMP '2010-01-02 00:00:00'";
+            String sql3 = "select ldt from sales where ldt > {ts '2012-01-01 00:00:00'} or ldt < TIMESTAMP '2008-02-12 23:59:59'";
+            checkPattern(expected3, sql3);
+
+            String expected4 = "SELECT 1\n" //
+                    + "FROM \"TDVT\".\"CALCS\" \"CALCS\"\n" //
+                    + "WHERE {fn SECOND({fn CONVERT({fn CONVERT('2010-01-01 00:00:00', SQL_TIMESTAMP) }, SQL_TIMESTAMP) }) } > 1";
+            String sql4 = "SELECT 1 FROM TDVT.CALCS CALCS "
+                    + "where {fn SECOND({fn CONVERT({fn CONVERT('2010-10-10 10:10:10.4', SQL_TIMESTAMP) }, SQL_TIMESTAMP) }) } > 10";
+            checkPattern(expected4, sql4);
+
+            String expected5 = "SELECT {fn CONVERT('2016-07-15 10:11:12.123', SQL_TIMESTAMP) } \"Calculation_958703807427547136\"\n"
+                    + "FROM \"TDVT\".\"CALCS\" \"Calcs\"\n"
+                    + "WHERE {fn CONVERT('2010-01-01 00:00:00', SQL_TIMESTAMP) } = TIMESTAMP '2010-01-01 00:00:00'\n"
+                    + "HAVING COUNT(1) > 1";
+            String sql5 = "SELECT {fn CONVERT('2016-07-15 10:11:12.123', SQL_TIMESTAMP)} AS \"Calculation_958703807427547136\"\n"
+                    + "FROM \"TDVT\".\"CALCS\" \"Calcs\"\n"
+                    + "WHERE ({fn CONVERT('2016-07-15 10:11:12.123', SQL_TIMESTAMP)} = {ts '2016-07-15 10:11:12.123'})\n"
+                    + "HAVING (COUNT(1) > 0)";
+            checkPattern(expected5, sql5);
+
+            String expected6 = "SELECT CAST('2013-01-01 00:00:00' AS TIMESTAMP), CAST('2013-01-01' AS DATE), CAST('10:00:00' AS TIME)\n"
+                    + "FROM \"TEST_KYLIN_FACT\"\n" //
+                    + "LIMIT 1";
+            String sql6 = "select CAST('2013-01-01 00:00:00' AS TIMESTAMP), CAST('2013-01-01' AS DATE), CAST('10:00:00' AS TIME)"
+                    + " from test_kylin_fact limit 10";
+            checkPattern(expected6, sql6);
+
+            String expected7 = "SELECT CAST('2013-01-01 00:00:00' AS TIMESTAMP), CAST('2013-01-01' AS DATE), CAST('10:00:00' AS TIME)\n"
+                    + "FROM \"TEST_KYLIN_FACT\"\n"
+                    + "WHERE CAST('2010-01-01 00:00:00' AS TIMESTAMP) = TIMESTAMP '2010-01-01 00:00:00'";
+            String sql7 = "select CAST('2013-01-01 00:00:00' AS TIMESTAMP), CAST('2013-01-01' AS DATE), CAST('10:00:00' AS TIME)"
+                    + " from test_kylin_fact "
+                    + " where (CAST('2013-01-01 00:00:00' AS TIMESTAMP) = {ts '2013-01-01 00:00:00'})";
+            checkPattern(expected7, sql7);
+        }
+
+        // test with SqlCharStringLiteral
+        {
+            String expected = "SELECT \"SELLER_NAME\" > 'abc', \"LSTG_FORMAT_NAME\"\n" + "FROM \"SALES\"\n"
+                    + "WHERE \"LSTG_FORMAT_NAME\" = 'A'";
+            String sql = "select seller_name > 'abc', lstg_format_name from sales where lstg_format_name = 'kylin'";
+            checkPattern(expected, sql);
+        }
     }
 
     @Test
     public void testColumnComparison() {
+        String expected = "SELECT \"B\".\"FIRSTNAME\" \"FIRSTNAME1\", \"B\".\"LASTNAME\" \"LASTNAME1\", "
+                + "\"A\".\"FIRSTNAME\" \"FIRSTNAME2\", \"A\".\"LASTNAME\" \"LASTNAME2\", \"B\".\"CITY\", \"B\".\"COUNTRY\"\n"
+                + "FROM \"SALES\".\"CUSTOMER\" \"A\",\n" //
+                + "\"SALES\".\"CUSTOMER\" \"B\"\n" //
+                + "WHERE \"A\".\"ID\" <> \"B\".\"ID\" AND \"A\".\"CITY\" = \"B\".\"CITY\" "
+                + "AND \"A\".\"COUNTRY\" = \"B\".\"COUNTRY\"";
         String sql = "select b.firstname as firstname1, b.lastname as lastname1,\n"
                 + "a.firstname as firstname2, a.lastname as lastname2, b.city, b.country\n"
                 + "from sales.customer a, sales.customer b\n"
                 + "where (a.id <> b.id and a.city = b.city and a.country = b.country)\n";
-
-        String actual = QueryPatternUtil.normalizeSQLPatternImpl(sql);
-        String expected = "SELECT \"B\".\"FIRSTNAME\" \"FIRSTNAME1\", \"B\".\"LASTNAME\" \"LASTNAME1\", "
-                + "\"A\".\"FIRSTNAME\" \"FIRSTNAME2\", \"A\".\"LASTNAME\" \"LASTNAME2\", \"B\".\"CITY\", \"B\".\"COUNTRY\"\n"
-                + "FROM \"SALES\".\"CUSTOMER\" \"A\",\n"
-                + "\"SALES\".\"CUSTOMER\" \"B\"\n"
-                + "WHERE \"A\".\"ID\" <> \"B\".\"ID\" AND \"A\".\"CITY\" = \"B\".\"CITY\" "
-                + "AND \"A\".\"COUNTRY\" = \"B\".\"COUNTRY\"";
         // SqlIdentifiers should remain unchanged
-        Assert.assertEquals(expected, actual);
+        checkPattern(expected, sql);
     }
 
     @Test
     public void testStringComparison() {
+        String expected = "SELECT \"KS\".\"PRICE\" \"PRICE\"\n" + "FROM \"KYLIN_SALES\" \"KS\"\n"
+                + "WHERE \"KS\".\"DT\" <= 'Z' AND \"KS\".\"DT\" > 'A'";
         String sql = "select ks.price as price from kylin_sales as ks \n"
                 + "where ks.dt <= '200310' and ks.dt > '2012-02'";
-        String actual = QueryPatternUtil.normalizeSQLPatternImpl(sql);
-        String expected = "SELECT \"KS\".\"PRICE\" \"PRICE\"\n"
-                + "FROM \"KYLIN_SALES\" \"KS\"\n"
-                + "WHERE \"KS\".\"DT\" <= 'Z' AND \"KS\".\"DT\" > 'A'";
-        Assert.assertEquals(expected, actual);
+        checkPattern(expected, sql);
     }
 
     @Test
     public void testQueryWithSamePattern() {
-        String sql1 = "select s.name, s.price "
-                + "from kylin_sales as s inner join kylin_account as a "
-                + "on s.name = a.name and s.price > 100"
+        String sql1 = "select s.name, s.price " //
+                + "from kylin_sales as s inner join kylin_account as a " //
+                + "on s.name = a.name and s.price > 100" //
                 + "where s.account is not null";
-        String sql2 = "select s.name, s.price "
-                + "from kylin_sales as s inner join kylin_account a "
-                + "on s.name = a.name and s.price > 8000"
+        String sql2 = "select s.name, s.price " //
+                + "from kylin_sales as s inner join kylin_account a " //
+                + "on s.name = a.name and s.price > 8000" //
                 + "where s.account is not null";
         String pattern1 = QueryPatternUtil.normalizeSQLPatternImpl(sql1);
         String pattern2 = QueryPatternUtil.normalizeSQLPatternImpl(sql2);
@@ -231,182 +301,217 @@ public class QueryPatternUtilTest {
 
     @Test
     public void testInAndNotIn() {
-        String sql0 = "select first_name, last_name from sales "
-                + "where phone_number not in (10, 20, 30) "
-                + "and last_name in ('Swift', 'Bloomberg')";
-        String actual0 = QueryPatternUtil.normalizeSQLPatternImpl(sql0);
-        String expected0 = "SELECT \"FIRST_NAME\", \"LAST_NAME\"\n"
-                + "FROM \"SALES\"\n"
-                + "WHERE \"PHONE_NUMBER\" NOT IN (1) AND \"LAST_NAME\" IN ('A')";
-        Assert.assertEquals(expected0, actual0);
-        String sql1 = "select first_name, last_name from sales "
-                + "where phone_number not in (103952, 202342, 422583) "
-                + "and last_name in ('Sam', 'Jobs')";
-        String actual1 = QueryPatternUtil.normalizeSQLPatternImpl(sql1);
-        Assert.assertEquals(actual0, actual1);
 
-        String sql2 = "select sum(PRICE) as GMV, LSTG_FORMAT_NAME as FORMAT_NAME\n"
-                + "from test_kylin_fact\n"
-                + "where (LSTG_FORMAT_NAME in ('ABIN')) or (LSTG_FORMAT_NAME >= 'FP-GTC' "
-                + "and LSTG_FORMAT_NAME <= 'Others')\n"
-                + "group by LSTG_FORMAT_NAME";
-        String expected2 = "SELECT SUM(\"PRICE\") \"GMV\", \"LSTG_FORMAT_NAME\" \"FORMAT_NAME\"\n"
-                + "FROM \"TEST_KYLIN_FACT\"\n"
-                + "WHERE \"LSTG_FORMAT_NAME\" IN ('A') OR \"LSTG_FORMAT_NAME\" >= 'A' AND \"LSTG_FORMAT_NAME\" <= 'Z'\n"
-                + "GROUP BY \"LSTG_FORMAT_NAME\"";
-        String actual2 = QueryPatternUtil.normalizeSQLPatternImpl(sql2);
-        Assert.assertEquals(expected2, actual2);
+        // test with SqlNumericLiteral
+        {
+            String expected = "SELECT \"FIRST_NAME\", \"LAST_NAME\"\n" //
+                    + "FROM \"SALES\"\n" //
+                    + "WHERE \"PHONE_NUMBER\" NOT IN (1)";
+            String sql1 = "select first_name, last_name from sales where phone_number not in (10, 20, 30)";
+            String sql2 = "select first_name, last_name from sales where phone_number not in (1000, 2000, 3000)";
+            checkPattern(expected, sql1);
+            checkPattern(expected, sql2);
 
-        String sql3 = "SELECT ProductName\n"
-                + "FROM Product \n"
-                + "WHERE Id IN (SELECT ProductId \n"
-                + "FROM OrderItem\n"
-                + "WHERE Quantity IN (100, 200))";
-        String expected3 = "SELECT \"PRODUCTNAME\"\n"
-                + "FROM \"PRODUCT\"\n"
-                + "WHERE \"ID\" IN (SELECT \"PRODUCTID\"\n"
-                + "FROM \"ORDERITEM\"\n"
-                + "WHERE \"QUANTITY\" IN (1))";
-        String actual3 = QueryPatternUtil.normalizeSQLPatternImpl(sql3);
-        Assert.assertEquals(expected3, actual3);
+            String expected3 = "SELECT \"PRODUCTNAME\"\n" //
+                    + "FROM \"PRODUCT\"\n" //
+                    + "WHERE \"ID\" IN (SELECT \"PRODUCTID\"\n" //
+                    + "FROM \"ORDERITEM\"\n" //
+                    + "WHERE \"QUANTITY\" IN (1))";
+            String sql3 = "SELECT ProductName FROM Product WHERE Id IN (SELECT ProductId \n"
+                    + "FROM OrderItem WHERE Quantity IN (100, 200))";
+            checkPattern(expected3, sql3);
+        }
 
-        String sql4 = "SELECT ProductName\n"
-                + "FROM Product \n"
-                + "WHERE Id IN ('a', 'b', (SELECT ProductId \n"
-                + "FROM OrderItem\n"
-                + "WHERE Quantity IN (100, 200)))";
-        String expected4 = "SELECT \"PRODUCTNAME\"\n"
-                + "FROM \"PRODUCT\"\n"
-                + "WHERE \"ID\" IN ('A', (SELECT \"PRODUCTID\"\n"
-                + "FROM \"ORDERITEM\"\n"
-                + "WHERE \"QUANTITY\" IN (1)))";
-        String actual4 = QueryPatternUtil.normalizeSQLPatternImpl(sql4);
-        Assert.assertEquals(expected4, actual4);
+        // test with SqlCharStringLiteral
+        {
+            String expected1 = "SELECT \"FIRST_NAME\", \"LAST_NAME\"\n" //
+                    + "FROM \"SALES\"\n" //
+                    + "WHERE \"FIRST_NAME\" IN ('A')";
+            String sql1 = "select first_name, last_name from sales where first_name in ('Sam', 'Jobs')";
+            checkPattern(expected1, sql1);
+
+            String expected2 = "SELECT SUM(\"PRICE\") \"GMV\", \"LSTG_FORMAT_NAME\" \"FORMAT_NAME\"\n"
+                    + "FROM \"TEST_KYLIN_FACT\"\n"
+                    + "WHERE \"LSTG_FORMAT_NAME\" IN ('A') OR \"LSTG_FORMAT_NAME\" >= 'A' AND \"LSTG_FORMAT_NAME\" <= 'Z'\n"
+                    + "GROUP BY \"LSTG_FORMAT_NAME\"";
+            String sql2 = "select sum(PRICE) as GMV, LSTG_FORMAT_NAME as FORMAT_NAME from test_kylin_fact "
+                    + "where (LSTG_FORMAT_NAME in ('ABIN')) or (LSTG_FORMAT_NAME >= 'FP-GTC' "
+                    + "and LSTG_FORMAT_NAME <= 'Others') group by LSTG_FORMAT_NAME";
+            checkPattern(expected2, sql2);
+
+            String expected3 = "SELECT \"PRODUCTNAME\"\n" //
+                    + "FROM \"PRODUCT\"\n" //
+                    + "WHERE \"ID\" IN ('A', (SELECT \"PRODUCTID\"\n" //
+                    + "FROM \"ORDERITEM\"\n" //
+                    + "WHERE \"QUANTITY\" IN (1)))";
+            String sql3 = "SELECT ProductName FROM Product WHERE Id IN ('a', 'b', (SELECT ProductId "
+                    + "FROM OrderItem WHERE Quantity IN (100, 200)))";
+            checkPattern(expected3, sql3);
+        }
+
+        // test with SqlAbstractDateTimeLiteral
+        {
+            String expected1 = "SELECT \"PART_DT\", SUM(\"PRICE\")\n" //
+                    + "FROM \"KYLIN_SALES\"\n" //
+                    + "WHERE \"PART_DT\" IN (DATE '2010-01-01')\n" //
+                    + "GROUP BY \"PART_DT\"";
+            String sql1 = "select part_dt, sum(price) from kylin_sales"
+                    + " where part_dt in ({d '2012-01-01'}, {d '2012-01-01'}, {d '2012-01-01'})" //
+                    + " group by part_dt";
+            checkPattern(expected1, sql1);
+            sql1 = "select part_dt, sum(price) from kylin_sales"
+                    + " where part_dt in (DATE '2012-01-01', DATE '2012-01-01', DATE '2012-01-01')" //
+                    + " group by part_dt";
+            checkPattern(expected1, sql1);
+
+            String expected2 = "SELECT \"T_COL\"\n" //
+                    + "FROM \"TBL\"\n" //
+                    + "WHERE \"T_COL\" IN (TIME '01:00:00')\n" //
+                    + "GROUP BY \"T_COL\"";
+            String sql2 = "select t_col from tbl "
+                    + "where t_col in ({t '21:07:32'}, {t '22:42:43'}, {t '04:57:51'}, {t '18:51:48'}) "
+                    + "group by t_col";
+            checkPattern(expected2, sql2);
+            sql2 = "select t_col from tbl "
+                    + "where t_col in (TIME '21:07:32', TIME '22:42:43', TIME '04:57:51', TIME '18:51:48') "
+                    + "group by t_col";
+            checkPattern(expected2, sql2);
+
+            String expected3 = "SELECT \"TS_COL\", COUNT(\"ITEM_ID\")\n" //
+                    + "FROM \"TBL\"\n" //
+                    + "WHERE \"PART_DT\" IN (TIMESTAMP '2010-01-01 00:00:00')\n" //
+                    + "GROUP BY \"PART_DT\"";
+            String sql3 = "select ts_col, count(item_id) from tbl"
+                    + " where part_dt in ({ts '1899-12-30 21:07:32'}, {ts '1900-01-01 04:57:51'}, {ts '1900-01-01 18:51:48'})"
+                    + " group by part_dt";
+            checkPattern(expected3, sql3);
+            sql3 = "select ts_col, count(item_id) from tbl"
+                    + " where part_dt in (timestamp '1899-12-30 21:07:32', timestamp '1900-01-01 04:57:51', timestamp '1900-01-01 18:51:48')"
+                    + " group by part_dt";
+            checkPattern(expected3, sql3);
+        }
     }
 
     @Test
     public void testLikeAndNotLike() {
-        String sql = "select META_CATEG_NAME, META_CATEG_ID, count(*) as cnt \n"
-                + "from test_kylin_fact \n"
-                + "inner JOIN edw.test_cal_dt as test_cal_dt\n"
-                + "ON test_kylin_fact.cal_dt = test_cal_dt.cal_dt\n"
-                + "where META_CATEG_NAME not like '%ab%'\n "
-                + "and META_CATE_ID like '%08'"
-                + "group by META_CATEG_NAME";
         String expected = "SELECT \"META_CATEG_NAME\", \"META_CATEG_ID\", COUNT(*) \"CNT\"\n"
-                + "FROM \"TEST_KYLIN_FACT\"\n"
+                + "FROM \"TEST_KYLIN_FACT\"\n" //
                 + "INNER JOIN \"EDW\".\"TEST_CAL_DT\" \"TEST_CAL_DT\" "
                 + "ON \"TEST_KYLIN_FACT\".\"CAL_DT\" = \"TEST_CAL_DT\".\"CAL_DT\"\n"
                 + "WHERE \"META_CATEG_NAME\" NOT LIKE 'A' AND \"META_CATE_ID\" LIKE 'A'\n"
                 + "GROUP BY \"META_CATEG_NAME\"";
+        String sql = "select META_CATEG_NAME, META_CATEG_ID, count(*) as cnt \n" //
+                + "from test_kylin_fact \n" //
+                + "inner JOIN edw.test_cal_dt as test_cal_dt\n" //
+                + "ON test_kylin_fact.cal_dt = test_cal_dt.cal_dt\n" //
+                + "where META_CATEG_NAME not like '%ab%'\n " //
+                + "and META_CATE_ID like '%08'" //
+                + "group by META_CATEG_NAME";
         String actual = QueryPatternUtil.normalizeSQLPatternImpl(sql);
         Assert.assertEquals(expected, actual);
     }
 
     @Test
     public void testBetweenAnd() {
-        String sql = "select sum(l_extendedprice) - sum(l_saleprice) as revenue\n"
-                + "from v_lineitem\n"
-                + "where l_shipdate >= date '1993-01-01'\n"
-                + "and l_shipdate < '1994-01-01'\n"
-                + "and l_discount between 0.05 and 0.07\n"
-                + "and l_quantity < 25";
-        String actual = QueryPatternUtil.normalizeSQLPatternImpl(sql);
         String expected = "SELECT SUM(\"L_EXTENDEDPRICE\") - SUM(\"L_SALEPRICE\") \"REVENUE\"\n"
                 + "FROM \"V_LINEITEM\"\n"
                 + "WHERE \"L_SHIPDATE\" >= DATE '2010-01-01' AND \"L_SHIPDATE\" < '2010-01-02' "
                 + "AND \"L_DISCOUNT\" BETWEEN ASYMMETRIC 1 AND 1 AND \"L_QUANTITY\" < 2";
-        Assert.assertEquals(expected, actual);
+        String sql = "select sum(l_extendedprice) - sum(l_saleprice) as revenue\n" //
+                + "from v_lineitem\n" //
+                + "where l_shipdate >= date '1993-01-01' and l_shipdate < '1994-01-01'\n"
+                + "   and l_discount between 0.05 and 0.07 and l_quantity < 25";
+        checkPattern(expected, sql);
     }
 
     @Test
     public void testDistinct() {
+        String expected = "SELECT DISTINCT \"LSTG_FORMAT_NAME\"\n" + "FROM \"TEST_KYLIN_FACT\"";
         String sql = "SELECT distinct LSTG_FORMAT_NAME from test_kylin_fact";
-        String actual = QueryPatternUtil.normalizeSQLPatternImpl(sql);
-        String expected = "SELECT DISTINCT \"LSTG_FORMAT_NAME\"\n"
-                + "FROM \"TEST_KYLIN_FACT\"";
-        Assert.assertEquals(expected, actual);
+        checkPattern(expected, sql);
     }
 
     @Test
     public void testH2Incapable() {
-        String sql = "SELECT timestampadd(DAY,1,WEEK_BEG_DT) as x ,WEEK_BEG_DT\n"
-                + " FROM TEST_KYLIN_FACT \n"
-                + " inner JOIN EDW.TEST_CAL_DT AS TEST_CAL_DT ON (TEST_KYLIN_FACT.CAL_DT = TEST_CAL_DT.CAL_DT) \n"
-                + " GROUP BY TEST_CAL_DT.WEEK_BEG_DT";
-        String actual = QueryPatternUtil.normalizeSQLPatternImpl(sql);
         String expected = "SELECT TIMESTAMPADD(DAY, 1, \"WEEK_BEG_DT\") \"X\", \"WEEK_BEG_DT\"\n"
-                + "FROM \"TEST_KYLIN_FACT\"\n"
+                + "FROM \"TEST_KYLIN_FACT\"\n" //
                 + "INNER JOIN \"EDW\".\"TEST_CAL_DT\" \"TEST_CAL_DT\" "
                 + "ON \"TEST_KYLIN_FACT\".\"CAL_DT\" = \"TEST_CAL_DT\".\"CAL_DT\"\n"
                 + "GROUP BY \"TEST_CAL_DT\".\"WEEK_BEG_DT\"";
-        Assert.assertEquals(expected, actual);
+        String sql = "SELECT timestampadd(DAY,1,WEEK_BEG_DT) as x ,WEEK_BEG_DT\n" //
+                + " FROM TEST_KYLIN_FACT \n"
+                + " inner JOIN EDW.TEST_CAL_DT AS TEST_CAL_DT ON (TEST_KYLIN_FACT.CAL_DT = TEST_CAL_DT.CAL_DT) \n"
+                + " GROUP BY TEST_CAL_DT.WEEK_BEG_DT";
+        checkPattern(expected, sql);
     }
 
     @Test
     public void testUnion() {
-        String unionSql = "select ks.price as price, ks.part_dt as dt "
-                + "from kylin_sales ks "
-                + "where ks.price > 50 and ks.part_dt > date '2012-08-23' "
-                + "union "
-                + "select ky.price as price, ky.part_dt as dt "
-                + "from kylin_sales ky "
-                + "where ky.price < 40 and ky.part_dt < date '2015-08-22'";
         String expected = "SELECT \"KS\".\"PRICE\" \"PRICE\", \"KS\".\"PART_DT\" \"DT\"\n"
                 + "FROM \"KYLIN_SALES\" \"KS\"\n"
-                + "WHERE \"KS\".\"PRICE\" > 1 AND \"KS\".\"PART_DT\" > DATE '2010-01-01'\n"
-                + "UNION\n"
-                + "SELECT \"KY\".\"PRICE\" \"PRICE\", \"KY\".\"PART_DT\" \"DT\"\n"
-                + "FROM \"KYLIN_SALES\" \"KY\"\n"
+                + "WHERE \"KS\".\"PRICE\" > 1 AND \"KS\".\"PART_DT\" > DATE '2010-01-01'\n" //
+                + "UNION\n" //
+                + "SELECT \"KY\".\"PRICE\" \"PRICE\", \"KY\".\"PART_DT\" \"DT\"\n" //
+                + "FROM \"KYLIN_SALES\" \"KY\"\n" //
                 + "WHERE \"KY\".\"PRICE\" < 2 AND \"KY\".\"PART_DT\" < DATE '2010-01-02'";
-        String actual = QueryPatternUtil.normalizeSQLPatternImpl(unionSql);
-        Assert.assertEquals(expected, actual);
+        String unionSql = "select ks.price as price, ks.part_dt as dt " //
+                + "from kylin_sales ks " //
+                + "where ks.price > 50 and ks.part_dt > date '2012-08-23' " + "union " //
+                + "select ky.price as price, ky.part_dt as dt " //
+                + "from kylin_sales ky " //
+                + "where ky.price < 40 and ky.part_dt < date '2015-08-22'";
+        checkPattern(expected, unionSql);
     }
 
     @Test
     public void testReverseComparison() {
-        String sql = "select ky.price as price, ky.part_dt as dt "
-                + "from kylin_sales ky "
-                + "where 40 >= ky.price and date '2015-08-22' < ky.part_dt "
-                + "and '2018-01-09' > ky.part_dt";
-
-        String actual = QueryPatternUtil.normalizeSQLPatternImpl(sql);
         String expected = "SELECT \"KY\".\"PRICE\" \"PRICE\", \"KY\".\"PART_DT\" \"DT\"\n"
                 + "FROM \"KYLIN_SALES\" \"KY\"\n"
                 + "WHERE 2 >= \"KY\".\"PRICE\" AND DATE '2010-01-01' < \"KY\".\"PART_DT\" "
                 + "AND '2010-01-02' > \"KY\".\"PART_DT\"";
-        Assert.assertEquals(actual, expected);
+        String sql = "select ky.price as price, ky.part_dt as dt " //
+                + "from kylin_sales ky "
+                + "where 40 >= ky.price and date '2015-08-22' < ky.part_dt and '2018-01-09' > ky.part_dt";
+        checkPattern(expected, sql);
     }
 
     @Test
     public void testFunction() {
-        String sql = "select upper(lstg_format_name) as lstg_format_name, "
-                + "count(*) as cnt from test_kylin_fact\n"
-                + "where lower(lstg_format_name)='abin' "
-                + "and substring(lstg_format_name,1,3) in ('ABI') "
-                + "and upper(lstg_format_name) > 'AAAA' "
-                + "and lower(lstg_format_name) like '%b%' "
-                + "and char_length(lstg_format_name) < 10 "
-                + "and char_length(lstg_format_name) > 3 "
-                + "and 'abc'||lstg_format_name||'a'||'b'||'c'='abcABINabc'\n"
-                + "group by lstg_format_name";
         String expected = "SELECT UPPER(\"LSTG_FORMAT_NAME\") \"LSTG_FORMAT_NAME\", COUNT(*) \"CNT\"\n"
-                + "FROM \"TEST_KYLIN_FACT\"\n"
-                + "WHERE LOWER(\"LSTG_FORMAT_NAME\") = 'A' "
+                + "FROM \"TEST_KYLIN_FACT\"\n" //
+                + "WHERE LOWER(\"LSTG_FORMAT_NAME\") = 'A' " //
                 + "AND SUBSTRING(\"LSTG_FORMAT_NAME\" "
                 + "FROM 1 FOR 1) IN ('A') AND UPPER(\"LSTG_FORMAT_NAME\") > 'A' "
-                + "AND LOWER(\"LSTG_FORMAT_NAME\") LIKE 'A' "
-                + "AND CHAR_LENGTH(\"LSTG_FORMAT_NAME\") < 2 "
-                + "AND CHAR_LENGTH(\"LSTG_FORMAT_NAME\") > 1 "
-                + "AND 'A' || \"LSTG_FORMAT_NAME\" || 'A' || 'A' || 'A' = 'A'\n"
+                + "AND LOWER(\"LSTG_FORMAT_NAME\") LIKE 'A' " //
+                + "AND CHAR_LENGTH(\"LSTG_FORMAT_NAME\") < 2 " //
+                + "AND CHAR_LENGTH(\"LSTG_FORMAT_NAME\") > 1 " //
+                + "AND 'A' || \"LSTG_FORMAT_NAME\" || 'A' || 'A' || 'A' = 'A'\n" //
                 + "GROUP BY \"LSTG_FORMAT_NAME\"";
-        String actual = QueryPatternUtil.normalizeSQLPatternImpl(sql);
-        Assert.assertEquals(expected, actual);
+        String sql = "select upper(lstg_format_name) as lstg_format_name, count(*) as cnt from test_kylin_fact\n"
+                + "where lower(lstg_format_name)='abin' and substring(lstg_format_name,1,3) in ('ABI') "
+                + "and upper(lstg_format_name) > 'AAAA' and lower(lstg_format_name) like '%b%' "
+                + "and char_length(lstg_format_name) < 10 and char_length(lstg_format_name) > 3 "
+                + "and 'abc'||lstg_format_name||'a'||'b'||'c'='abcABINabc'\n" //
+                + "group by lstg_format_name";
+        checkPattern(expected, sql);
     }
 
     @Test
     public void testWindowFunction() {
-        String sql = "select * from(\n"
+        String expected = "SELECT *\n" //
+                + "FROM (SELECT \"CAL_DT\", \"LSTG_FORMAT_NAME\", "
+                + "SUM(\"PRICE\") \"GMV\", 100 * SUM(\"PRICE\") / (FIRST_VALUE(SUM(\"PRICE\")) "
+                + "OVER (PARTITION BY \"LSTG_FORMAT_NAME\" ORDER BY CAST(\"CAL_DT\" AS TIMESTAMP) "
+                + "RANGE INTERVAL '2' DAY PRECEDING)) \"last_day\", FIRST_VALUE(SUM(\"PRICE\")) "
+                + "OVER (PARTITION BY \"LSTG_FORMAT_NAME\" ORDER BY CAST(\"CAL_DT\" AS TIMESTAMP) "
+                + "RANGE CAST(366 AS INTERVAL DAY) PRECEDING)\n" //
+                + "FROM \"TEST_KYLIN_FACT\" \"last_year\"\n" //
+                + "WHERE \"CAL_DT\" BETWEEN ASYMMETRIC '2010-01-01' AND '2010-01-01' OR \"CAL_DT\" "
+                + "BETWEEN ASYMMETRIC '2010-01-01' AND '2010-01-01' OR \"CAL_DT\" "
+                + "BETWEEN ASYMMETRIC '2010-01-01' AND '2010-01-01'\n"
+                + "GROUP BY \"CAL_DT\", \"LSTG_FORMAT_NAME\") \"T\"\n"
+                + "WHERE \"CAL_DT\" BETWEEN ASYMMETRIC '2010-01-01' AND '2010-01-01'";
+        String sql = "select * from(\n" //
                 + "select cal_dt, lstg_format_name, sum(price) as GMV,\n"
                 + "100 * sum(price) / first_value(sum(price)) over (partition by lstg_format_name "
                 + "order by cast(cal_dt as timestamp) range interval '2' day PRECEDING) as \"last_day\",\n"
@@ -415,75 +520,64 @@ public class QueryPatternUtilTest {
                 + "from test_kylin_fact as \"last_year\"\n"
                 + "where cal_dt between '2013-01-08' and '2013-01-15' or cal_dt "
                 + "between '2013-01-07' and '2013-01-15' or cal_dt between '2012-01-01' and '2012-01-15'\n"
-                + "group by cal_dt, lstg_format_name)t\n"
+                + "group by cal_dt, lstg_format_name)t\n" //
                 + "where cal_dt between '2013-01-06' and '2013-01-15'";
-        String actual = QueryPatternUtil.normalizeSQLPatternImpl(sql);
-        String expected = "SELECT *\n" +
-                "FROM (SELECT \"CAL_DT\", \"LSTG_FORMAT_NAME\", " +
-                "SUM(\"PRICE\") \"GMV\", 100 * SUM(\"PRICE\") / (FIRST_VALUE(SUM(\"PRICE\")) " +
-                "OVER (PARTITION BY \"LSTG_FORMAT_NAME\" ORDER BY CAST(\"CAL_DT\" AS TIMESTAMP) " +
-                "RANGE INTERVAL '2' DAY PRECEDING)) \"last_day\", FIRST_VALUE(SUM(\"PRICE\")) " +
-                "OVER (PARTITION BY \"LSTG_FORMAT_NAME\" ORDER BY CAST(\"CAL_DT\" AS TIMESTAMP) " +
-                "RANGE CAST(366 AS INTERVAL DAY) PRECEDING)\n" +
-                "FROM \"TEST_KYLIN_FACT\" \"last_year\"\n" +
-                "WHERE \"CAL_DT\" BETWEEN ASYMMETRIC '2010-01-01' AND '2010-01-01' OR \"CAL_DT\" " +
-                "BETWEEN ASYMMETRIC '2010-01-01' AND '2010-01-01' OR \"CAL_DT\" " +
-                "BETWEEN ASYMMETRIC '2010-01-01' AND '2010-01-01'\n" +
-                "GROUP BY \"CAL_DT\", \"LSTG_FORMAT_NAME\") \"T\"\n" +
-                "WHERE \"CAL_DT\" BETWEEN ASYMMETRIC '2010-01-01' AND '2010-01-01'";
-        Assert.assertEquals(expected, actual);
+        checkPattern(expected, sql);
     }
 
     @Test
     public void testWithSelect() {
-        String withSelect = "with a as ("
-                + "select ks.price as price, ks.part_dt as dt "
-                + "from kylin_sales ks "
+        String expected = "WITH \"A\" AS (SELECT \"KS\".\"PRICE\" \"PRICE\", \"KS\".\"PART_DT\" \"DT\"\n"
+                + "FROM \"KYLIN_SALES\" \"KS\"\n" + "WHERE \"KS\".\"PRICE\" > 1 AND \"KS\".\"PART_DT\" > '2010-01-01') "
+                + "(SELECT \"A\".\"PRICE\", \"A\".\"DT\"\n" + "FROM \"A\"\n" + "WHERE \"A\".\"DT\" < '2010-01-02')";
+        String withSelect = "with a as (" + "select ks.price as price, ks.part_dt as dt " + "from kylin_sales ks "
                 + "where ks.price > 50 and ks.part_dt > '2012-07-08') "
                 + "select a.price, a.dt from a where a.dt < '2015-08-09'";
-        String expected = "WITH \"A\" AS (SELECT \"KS\".\"PRICE\" \"PRICE\", \"KS\".\"PART_DT\" \"DT\"\n"
-                + "FROM \"KYLIN_SALES\" \"KS\"\n"
-                + "WHERE \"KS\".\"PRICE\" > 1 AND \"KS\".\"PART_DT\" > '2010-01-01') "
-                + "(SELECT \"A\".\"PRICE\", \"A\".\"DT\"\n"
-                + "FROM \"A\"\n"
-                + "WHERE \"A\".\"DT\" < '2010-01-02')";
-        String actual = QueryPatternUtil.normalizeSQLPatternImpl(withSelect);
-        Assert.assertEquals(expected, actual);
+        checkPattern(expected, withSelect);
     }
 
     @Test
     public void testSubQuery() {
-        String sql = "select a.price, a.dt from ( "
-                + "select ks.price as price, ks.part_dt as dt "
-                + "from kylin_sales ks "//
-                + "where ks.price > 50 and ks.part_dt > '2012-07-08' "
-                + ") a "
-                + "where a.dt < '2015-08-09'";
         String expected = "SELECT \"A\".\"PRICE\", \"A\".\"DT\"\n"
                 + "FROM (SELECT \"KS\".\"PRICE\" \"PRICE\", \"KS\".\"PART_DT\" \"DT\"\n"
                 + "FROM \"KYLIN_SALES\" \"KS\"\n"
                 + "WHERE \"KS\".\"PRICE\" > 1 AND \"KS\".\"PART_DT\" > '2010-01-01') \"A\"\n"
                 + "WHERE \"A\".\"DT\" < '2010-01-02'";
-        String actual = QueryPatternUtil.normalizeSQLPatternImpl(sql);
-        Assert.assertEquals(expected, actual);
-    }
-
-    @Test
-    public void testDate() {
-        String sql = "SELECT KS.PRICE PRICE, KS.PART_DT DT\n"
-                + "FROM KYLIN_SALES KS\n"
-                + "WHERE KS.PART_DT <= '2020-08-08' "
-                + "AND KS.PART_DT > date '2002-02-08'";
-        String actual = QueryPatternUtil.normalizeSQLPatternImpl(sql);
-        String expected = "SELECT \"KS\".\"PRICE\" \"PRICE\", \"KS\".\"PART_DT\" \"DT\"\n"
-                + "FROM \"KYLIN_SALES\" \"KS\"\n"
-                + "WHERE \"KS\".\"PART_DT\" <= '2010-01-02' "
-                + "AND \"KS\".\"PART_DT\" > DATE '2010-01-01'";
-        Assert.assertEquals(expected, actual);
+        String sql = "select a.price, a.dt from ( " //
+                + "select ks.price as price, ks.part_dt as dt " + "from kylin_sales ks "//
+                + "where ks.price > 50 and ks.part_dt > '2012-07-08') a " //
+                + "where a.dt < '2015-08-09'";
+        checkPattern(expected, sql);
     }
 
     @Test
     public void testComplicatedCase() {
+        String expected = "SELECT \"T1\".\"WEEK_BEG_DT\", \"T1\".\"SUM_PRICE\", \"T2\".\"CNT\"\n"
+                + "FROM (SELECT \"TEST_CAL_DT\".\"WEEK_BEG_DT\", SUM(\"TEST_KYLIN_FACT\".\"PRICE\") \"SUM_PRICE\"\n"
+                + "FROM \"DB1\".\"TEST_KYLIN_FACT\" \"TEST_KYLIN_FACT\"\n"
+                + "INNER JOIN \"EDW\".\"TEST_CAL_DT\" \"TEST_CAL_DT\" "
+                + "ON \"TEST_KYLIN_FACT\".\"CAL_DT\" = \"TEST_CAL_DT\".\"CAL_DT\"\n"
+                + "INNER JOIN \"EDW\".\"TEST_CATEGORY_GROUPINGS\" \"TEST_CATEGORY_GROUPINGS\" "
+                + "ON \"TEST_KYLIN_FACT\".\"LEAF_CATEG_ID\" = \"TEST_CATEGORY_GROUPINGS\".\"LEAF_CATEG_ID\" "
+                + "AND \"TEST_KYLIN_FACT\".\"LSTG_SITE_ID\" = \"TEST_CATEGORY_GROUPINGS\".\"SITE_ID\"\n"
+                + "INNER JOIN \"EDW\".\"TEST_SITES\" \"TEST_SITES\" "
+                + "ON \"TEST_KYLIN_FACT\".\"LSTG_SITE_ID\" = \"TEST_SITES\".\"SITE_ID\"\n"
+                + "WHERE \"TEST_KYLIN_FACT\".\"PRICE\" > 1\n" //
+                + "GROUP BY \"TEST_CAL_DT\".\"WEEK_BEG_DT\"\n" //
+                + "HAVING SUM(\"TEST_KYLIN_FACT\".\"PRICE\") > 1\n"
+                + "ORDER BY SUM(\"TEST_KYLIN_FACT\".\"PRICE\")) \"T1\"\n"
+                + "INNER JOIN (SELECT \"TEST_CAL_DT\".\"WEEK_BEG_DT\", COUNT(*) \"CNT\"\n"
+                + "FROM \"DB1\".\"TEST_KYLIN_FACT\" \"TEST_KYLIN_FACT\"\n"
+                + "INNER JOIN \"EDW\".\"TEST_CAL_DT\" \"TEST_CAL_DT\" "
+                + "ON \"TEST_KYLIN_FACT\".\"CAL_DT\" = \"TEST_CAL_DT\".\"CAL_DT\"\n"
+                + "INNER JOIN \"EDW\".\"TEST_CATEGORY_GROUPINGS\" \"TEST_CATEGORY_GROUPINGS\" "
+                + "ON \"TEST_KYLIN_FACT\".\"LEAF_CATEG_ID\" = \"TEST_CATEGORY_GROUPINGS\".\"LEAF_CATEG_ID\" "
+                + "AND \"TEST_KYLIN_FACT\".\"LSTG_SITE_ID\" = \"TEST_CATEGORY_GROUPINGS\".\"SITE_ID\"\n"
+                + "INNER JOIN \"EDW\".\"TEST_SITES\" \"TEST_SITES\" "
+                + "ON \"TEST_KYLIN_FACT\".\"LSTG_SITE_ID\" = \"TEST_SITES\".\"SITE_ID\"\n"
+                + "GROUP BY \"TEST_CAL_DT\".\"WEEK_BEG_DT\") \"T2\" "
+                + "ON \"T1\".\"WEEK_BEG_DT\" = \"T2\".\"WEEK_BEG_DT\"\n"
+                + "WHERE \"T1\".\"WEEK_BEG_DT\" > '2010-01-01'";
         String complexSql = "select t1.week_beg_dt, t1.sum_price, t2.cnt\n" //
                 + "from (\n"//
                 + "    select test_cal_dt.week_beg_dt, sum(test_kylin_fact.price) as sum_price\n"//
@@ -513,39 +607,16 @@ public class QueryPatternUtilTest {
                 + "    ) t2\n" //
                 + "    on t1.week_beg_dt = t2.week_beg_dt\n" //
                 + "where t1.week_beg_dt > '2012-08-23'";
-        String actual = QueryPatternUtil.normalizeSQLPatternImpl(complexSql);
-        String expected = "SELECT \"T1\".\"WEEK_BEG_DT\", \"T1\".\"SUM_PRICE\", \"T2\".\"CNT\"\n"
-                + "FROM (SELECT \"TEST_CAL_DT\".\"WEEK_BEG_DT\", SUM(\"TEST_KYLIN_FACT\".\"PRICE\") \"SUM_PRICE\"\n"
-                + "FROM \"DB1\".\"TEST_KYLIN_FACT\" \"TEST_KYLIN_FACT\"\n"
-                + "INNER JOIN \"EDW\".\"TEST_CAL_DT\" \"TEST_CAL_DT\" "
-                + "ON \"TEST_KYLIN_FACT\".\"CAL_DT\" = \"TEST_CAL_DT\".\"CAL_DT\"\n"
-                + "INNER JOIN \"EDW\".\"TEST_CATEGORY_GROUPINGS\" \"TEST_CATEGORY_GROUPINGS\" "
-                + "ON \"TEST_KYLIN_FACT\".\"LEAF_CATEG_ID\" = \"TEST_CATEGORY_GROUPINGS\".\"LEAF_CATEG_ID\" "
-                + "AND \"TEST_KYLIN_FACT\".\"LSTG_SITE_ID\" = \"TEST_CATEGORY_GROUPINGS\".\"SITE_ID\"\n"
-                + "INNER JOIN \"EDW\".\"TEST_SITES\" \"TEST_SITES\" "
-                + "ON \"TEST_KYLIN_FACT\".\"LSTG_SITE_ID\" = \"TEST_SITES\".\"SITE_ID\"\n"
-                + "WHERE \"TEST_KYLIN_FACT\".\"PRICE\" > 1\n"
-                + "GROUP BY \"TEST_CAL_DT\".\"WEEK_BEG_DT\"\n"
-                + "HAVING SUM(\"TEST_KYLIN_FACT\".\"PRICE\") > 1\n"
-                + "ORDER BY SUM(\"TEST_KYLIN_FACT\".\"PRICE\")) \"T1\"\n"
-                + "INNER JOIN (SELECT \"TEST_CAL_DT\".\"WEEK_BEG_DT\", COUNT(*) \"CNT\"\n"
-                + "FROM \"DB1\".\"TEST_KYLIN_FACT\" \"TEST_KYLIN_FACT\"\n"
-                + "INNER JOIN \"EDW\".\"TEST_CAL_DT\" \"TEST_CAL_DT\" "
-                + "ON \"TEST_KYLIN_FACT\".\"CAL_DT\" = \"TEST_CAL_DT\".\"CAL_DT\"\n"
-                + "INNER JOIN \"EDW\".\"TEST_CATEGORY_GROUPINGS\" \"TEST_CATEGORY_GROUPINGS\" "
-                + "ON \"TEST_KYLIN_FACT\".\"LEAF_CATEG_ID\" = \"TEST_CATEGORY_GROUPINGS\".\"LEAF_CATEG_ID\" "
-                + "AND \"TEST_KYLIN_FACT\".\"LSTG_SITE_ID\" = \"TEST_CATEGORY_GROUPINGS\".\"SITE_ID\"\n"
-                + "INNER JOIN \"EDW\".\"TEST_SITES\" \"TEST_SITES\" "
-                + "ON \"TEST_KYLIN_FACT\".\"LSTG_SITE_ID\" = \"TEST_SITES\".\"SITE_ID\"\n"
-                + "GROUP BY \"TEST_CAL_DT\".\"WEEK_BEG_DT\") \"T2\" "
-                + "ON \"T1\".\"WEEK_BEG_DT\" = \"T2\".\"WEEK_BEG_DT\"\n"
-                + "WHERE \"T1\".\"WEEK_BEG_DT\" > '2010-01-01'";
-        Assert.assertEquals(expected, actual);
+        checkPattern(expected, complexSql);
+    }
+
+    private void checkPattern(String expectedPattern, String originalInput) {
+        String actual = QueryPatternUtil.normalizeSQLPatternImpl(originalInput);
+        Assert.assertEquals(expectedPattern, actual);
     }
 
     private static String retrieveSql(String fileName) throws IOException {
         File file = new File(SQL_DIR + File.separator + fileName);
         return FileUtils.readFileToString(file);
     }
-
 }

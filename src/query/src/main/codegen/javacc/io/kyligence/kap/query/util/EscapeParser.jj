@@ -271,7 +271,7 @@ String EscapeTimestamp() :
         timestampExpr = QuotedString()
     )
     {
-        return "CAST(" + timestampExpr + " AS TIMESTAMP)";
+        return "TIMESTAMP " + timestampExpr;
     }
 }
 
@@ -286,7 +286,7 @@ String EscapeDate() :
         timestampExpr = QuotedString()
     )
     {
-        return "CAST(" + timestampExpr + " AS DATE)";
+        return "DATE " + timestampExpr;
     }
 }
 
@@ -301,6 +301,6 @@ String EscapeTime() :
         timestampExpr = QuotedString()
     )
     {
-        return "CAST(" + timestampExpr + " AS TIME)";
+        return "TIME " + timestampExpr;
     }
 }
