@@ -27,24 +27,22 @@ package io.kyligence.kap.newten;
 import java.util.ArrayList;
 import java.util.List;
 
-import io.kyligence.kap.metadata.cube.model.NDataflowManager;
-import lombok.val;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.job.engine.JobEngineConfig;
 import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
 import org.apache.kylin.job.lock.MockJobLock;
 import org.apache.kylin.metadata.realization.RealizationStatusEnum;
-import org.apache.spark.SparkContext;
-import org.apache.spark.sql.SparkSession;
+import org.apache.spark.sql.SparderEnv;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
 import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
+import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.newten.NExecAndComp.CompareLevel;
-import io.kyligence.kap.spark.KapSparkSession;
+import lombok.val;
 
 public class NMatchingTest extends NLocalWithSparkSessionTest {
 
@@ -65,7 +63,7 @@ public class NMatchingTest extends NLocalWithSparkSessionTest {
         cleanupTestMetadata();
         System.clearProperty("kylin.job.scheduler.poll-interval-second");
     }
-    
+
     @Override
     public String getProject() {
         return "match";
@@ -77,24 +75,16 @@ public class NMatchingTest extends NLocalWithSparkSessionTest {
         dfMgr.updateDataflow("073198da-ce0e-4a0c-af38-cc27ae31cc0e", copyForWrite -> {
             copyForWrite.setStatus(RealizationStatusEnum.OFFLINE);
         });
-        SparkContext existingCxt = SparkContext.getOrCreate(sparkConf);
-        existingCxt.stop();
-        ss = SparkSession.builder().config(sparkConf).getOrCreate();
-        ss.sparkContext().setLogLevel("ERROR");
-        KylinConfig config = KylinConfig.getInstanceFromEnv();
         fullBuildCube("83ade475-5b80-483a-ae4b-1144e4f04e81", getProject());
-        ss.close();
-
-        KapSparkSession kapSparkSession = new KapSparkSession(SparkContext.getOrCreate(sparkConf));
-        kapSparkSession.use(getProject());
 
         try {
-            populateSSWithCSVData(config, getProject(), kapSparkSession);
+            KylinConfig config = KylinConfig.getInstanceFromEnv();
+            populateSSWithCSVData(config, getProject(), SparderEnv.getSparkSession());
 
             List<Pair<String, String>> query = new ArrayList<>();
             query.add(
                     Pair.newPair("can_not_answer", "select sum(price) from TEST_KYLIN_FACT group by LSTG_FORMAT_NAME"));
-            NExecAndComp.execAndCompare(query, kapSparkSession, CompareLevel.SAME, "left");
+            NExecAndComp.execAndCompare(query, getProject(), CompareLevel.SAME, "left");
             Assert.fail();
         } catch (Exception e) {
             Assert.assertTrue(e.getCause().getCause().getMessage().contains("No realization found for OLAPContext"));
@@ -105,21 +95,14 @@ public class NMatchingTest extends NLocalWithSparkSessionTest {
     @Test
     public void testCanAnswer() throws Exception {
         ss.sparkContext().setLogLevel("ERROR");
-        SparkContext existingCxt = SparkContext.getOrCreate(sparkConf);
-        existingCxt.stop();
-        ss = SparkSession.builder().config(sparkConf).getOrCreate();
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         fullBuildCube("83ade475-5b80-483a-ae4b-1144e4f04e81", getProject());
         fullBuildCube("073198da-ce0e-4a0c-af38-cc27ae31cc0e", getProject());
-        ss.close();
 
-        KapSparkSession kapSparkSession = new KapSparkSession(SparkContext.getOrCreate(sparkConf));
-        kapSparkSession.use(getProject());
-
-        populateSSWithCSVData(config, getProject(), kapSparkSession);
+        populateSSWithCSVData(config, getProject(), SparderEnv.getSparkSession());
 
         List<Pair<String, String>> query = new ArrayList<>();
         query.add(Pair.newPair("can_not_answer", "select sum(price) from TEST_KYLIN_FACT group by LSTG_FORMAT_NAME"));
-        NExecAndComp.execAndCompare(query, kapSparkSession, CompareLevel.SAME, "left");
+        NExecAndComp.execAndCompare(query, getProject(), CompareLevel.SAME, "left");
     }
 }

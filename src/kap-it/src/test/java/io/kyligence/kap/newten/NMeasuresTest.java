@@ -55,9 +55,9 @@ import org.apache.kylin.metadata.model.FunctionDesc;
 import org.apache.kylin.metadata.model.ParameterDesc;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.TblColRef;
-import org.apache.spark.SparkContext;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
+import org.apache.spark.sql.SparderEnv;
 import org.apache.spark.sql.execution.utils.SchemaProcessor;
 import org.junit.After;
 import org.junit.Assert;
@@ -87,7 +87,6 @@ import io.kyligence.kap.metadata.model.ManagementType;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.smart.util.CubeUtils;
-import io.kyligence.kap.spark.KapSparkSession;
 import lombok.val;
 import scala.collection.mutable.WrappedArray;
 
@@ -120,19 +119,15 @@ public class NMeasuresTest extends NLocalWithSparkSessionTest {
         buildCuboid(generateTopnMeaLists());
 
         //build is done, validate Layout data
-        SparkContext existingCxt = SparkContext.getOrCreate(sparkConf);
-        existingCxt.stop();
-        KapSparkSession kapSparkSession = new KapSparkSession(SparkContext.getOrCreate(sparkConf));
 
-        kapSparkSession.use("default");
-        populateSSWithCSVData(config, "default", kapSparkSession);
-        SchemaProcessor.checkSchema(kapSparkSession, DF_NAME, getProject());
+        populateSSWithCSVData(config, "default", SparderEnv.getSparkSession());
+        SchemaProcessor.checkSchema(ss, DF_NAME, getProject());
 
         NDataSegment seg = NDataflowManager.getInstance(config, getProject()).getDataflow(DF_NAME)
                 .getLatestReadySegment();
         NDataLayout dataCuboid = NDataLayout.newDataLayout(seg.getDataflow(), seg.getId(), 1);
         ParquetStorage storage = new ParquetStorage();
-        Dataset<Row> ret = storage.getFrom(NSparkCubingUtil.getStoragePath(dataCuboid), kapSparkSession);
+        Dataset<Row> ret = storage.getFrom(NSparkCubingUtil.getStoragePath(dataCuboid), ss);
         for (Row row : ret.collectAsList()) {
             if (row.apply(0).toString().equals("10000000157")) {
                 WrappedArray topnArray = (WrappedArray) row.apply(6);
@@ -208,7 +203,7 @@ public class NMeasuresTest extends NLocalWithSparkSessionTest {
         }
 
         // Validate results between sparksql and cube
-        NExecAndComp.execAndCompare(fetchTopNQuerySql(), kapSparkSession, NExecAndComp.CompareLevel.SAME, "left");
+        NExecAndComp.execAndCompare(fetchTopNQuerySql(), getProject(), NExecAndComp.CompareLevel.SAME, "left");
     }
 
     @Test
@@ -220,21 +215,14 @@ public class NMeasuresTest extends NLocalWithSparkSessionTest {
 
         buildCuboid(generateMeasList());
         //build is done, start to test query
-        SparkContext existingCxt = SparkContext.getOrCreate(sparkConf);
-        existingCxt.stop();
-        // Validate results between sparksql and cube
-        KapSparkSession kapSparkSession = new KapSparkSession(SparkContext.getOrCreate(sparkConf));
-
-        kapSparkSession.use("default");
-        populateSSWithCSVData(config, "default", kapSparkSession);
-        SchemaProcessor.checkSchema(kapSparkSession, DF_NAME, getProject());
         String querySql = fetchQuerySql();
 
+        populateSSWithCSVData(config, "default", SparderEnv.getSparkSession());
         NDataSegment seg = NDataflowManager.getInstance(config, getProject()).getDataflow(DF_NAME)
                 .getLatestReadySegment();
         NDataLayout dataCuboid = NDataLayout.newDataLayout(seg.getDataflow(), seg.getId(), 1);
         ParquetStorage storage = new ParquetStorage();
-        Dataset<Row> ret = storage.getFrom(NSparkCubingUtil.getStoragePath(dataCuboid), kapSparkSession);
+        Dataset<Row> ret = storage.getFrom(NSparkCubingUtil.getStoragePath(dataCuboid), ss);
 
         double delta = 0.0001;
         for (Row row : ret.collectAsList()) {
@@ -286,7 +274,7 @@ public class NMeasuresTest extends NLocalWithSparkSessionTest {
                 querySql);
         Pair<String, String> pair = new Pair<>("sql", querySql);
 
-        NExecAndComp.execAndCompare(newArrayList(pair), kapSparkSession, NExecAndComp.CompareLevel.SAME, "left");
+        NExecAndComp.execAndCompare(newArrayList(pair), getProject(), NExecAndComp.CompareLevel.SAME, "left");
     }
 
     private Double decodePercentileCol(Row row, int index) {

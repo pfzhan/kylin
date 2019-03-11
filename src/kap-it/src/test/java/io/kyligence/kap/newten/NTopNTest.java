@@ -35,6 +35,7 @@ import org.apache.kylin.job.lock.MockJobLock;
 import org.apache.kylin.measure.topn.TopNCounter;
 import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 import org.apache.spark.SparkContext;
+import org.apache.spark.sql.SparderEnv;
 import org.apache.spark.sql.SparkSession;
 import org.junit.After;
 import org.junit.Assert;
@@ -44,7 +45,6 @@ import org.junit.Test;
 import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.newten.NExecAndComp.CompareLevel;
-import io.kyligence.kap.spark.KapSparkSession;
 import lombok.val;
 
 public class NTopNTest extends NLocalWithSparkSessionTest {
@@ -66,7 +66,7 @@ public class NTopNTest extends NLocalWithSparkSessionTest {
         cleanupTestMetadata();
         System.clearProperty("kylin.job.scheduler.poll-interval-second");
     }
-    
+
     @Override
     public String getProject() {
         return "top_n";
@@ -78,28 +78,20 @@ public class NTopNTest extends NLocalWithSparkSessionTest {
         dfMgr.updateDataflow("fb6ce800-43ee-4ef9-b100-39d523f36304", copyForWrite -> {
             copyForWrite.setStatus(RealizationStatusEnum.OFFLINE);
         });
-        SparkContext existingCxt = SparkContext.getOrCreate(sparkConf);
-        existingCxt.stop();
-        ss = SparkSession.builder().config(sparkConf).getOrCreate();
-        ss.sparkContext().setLogLevel("ERROR");
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         fullBuildCube("79547ec2-350e-4ba4-88f9-099048962ceb", getProject());
-        ss.close();
 
-        KapSparkSession kapSparkSession = new KapSparkSession(SparkContext.getOrCreate(sparkConf));
-        kapSparkSession.use(getProject());
-
-        populateSSWithCSVData(config, getProject(), kapSparkSession);
+        populateSSWithCSVData(config, getProject(), SparderEnv.getSparkSession());
         List<Pair<String, String>> query = new ArrayList<>();
         query.add(Pair.newPair("can_answer",
                 "select sum(PRICE) from TEST_TOP_N group by SELLER_ID order by sum(PRICE) desc limit 1"));
         // TopN will answer TopN style query.
-        NExecAndComp.execAndCompare(query, kapSparkSession, CompareLevel.NONE, "left");
+        NExecAndComp.execAndCompare(query, getProject(), CompareLevel.NONE, "left");
         try {
             query.clear();
             query.add(Pair.newPair("can_not_answer", "select sum(PRICE) from TEST_TOP_N group by SELLER_ID"));
             // TopN will not answer sum.
-            NExecAndComp.execAndCompare(query, kapSparkSession, CompareLevel.SAME, "left");
+            NExecAndComp.execAndCompare(query, getProject(), CompareLevel.SAME, "left");
             Assert.fail();
         } catch (Exception e) {
             Assert.assertTrue(e.getCause().getCause().getMessage().contains("No realization found for OLAPContext"));
@@ -120,10 +112,7 @@ public class NTopNTest extends NLocalWithSparkSessionTest {
 
         ss.close();
 
-        KapSparkSession kapSparkSession = new KapSparkSession(SparkContext.getOrCreate(sparkConf));
-        kapSparkSession.use(getProject());
-
-        populateSSWithCSVData(config, getProject(), kapSparkSession);
+        populateSSWithCSVData(config, getProject(), SparderEnv.getSparkSession());
 
         List<Pair<String, String>> query = new ArrayList<>();
 
@@ -136,7 +125,7 @@ public class NTopNTest extends NLocalWithSparkSessionTest {
 
         query.add(Pair.newPair("top_n_answer",
                 "select sum(PRICE) from TEST_TOP_N group by SELLER_ID order by sum(PRICE) desc limit 1"));
-        NExecAndComp.execAndCompare(query, kapSparkSession, CompareLevel.SAME, "left");
+        NExecAndComp.execAndCompare(query, getProject(), CompareLevel.SAME, "left");
 
         // let TopN measure answer TOP_N query, it is inaccurate. So the compare will fail
         dfMgr.updateDataflow("79547ec2-350e-4ba4-88f9-099048962ceb", copyForWrite -> {
@@ -147,7 +136,7 @@ public class NTopNTest extends NLocalWithSparkSessionTest {
         });
 
         try {
-            NExecAndComp.execAndCompare(query, kapSparkSession, CompareLevel.SAME, "left");
+            NExecAndComp.execAndCompare(query, getProject(), CompareLevel.SAME, "left");
             Assert.fail();
         } catch (Exception e) {
             Assert.assertTrue(e.getMessage().contains("result not match"));

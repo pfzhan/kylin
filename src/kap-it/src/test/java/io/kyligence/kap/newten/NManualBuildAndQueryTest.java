@@ -23,39 +23,6 @@
  */
 package io.kyligence.kap.newten;
 
-import com.google.common.collect.Maps;
-import io.kyligence.kap.metadata.cube.model.LayoutEntity;
-import io.kyligence.kap.metadata.cube.model.NDataLayout;
-import io.kyligence.kap.metadata.cube.model.NDataSegment;
-import io.kyligence.kap.metadata.cube.model.NDataflow;
-import io.kyligence.kap.metadata.cube.model.NDataflowManager;
-import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
-import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
-import io.kyligence.kap.engine.spark.job.NSparkMergingJob;
-import io.kyligence.kap.engine.spark.merger.AfterMergeOrRefreshResourceMerger;
-import io.kyligence.kap.metadata.model.NTableMetadataManager;
-import io.kyligence.kap.newten.NExecAndComp.CompareLevel;
-import io.kyligence.kap.spark.KapSparkSession;
-import lombok.val;
-import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.util.Pair;
-import org.apache.kylin.job.execution.ExecutableState;
-import org.apache.kylin.job.execution.NExecutableManager;
-import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
-import org.apache.kylin.metadata.model.SegmentRange;
-import org.apache.kylin.metadata.model.TableDesc;
-import org.apache.kylin.metadata.model.TableExtDesc;
-import org.apache.spark.SparkContext;
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Ignore;
-import org.junit.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.spark_project.guava.collect.Lists;
-import org.spark_project.guava.collect.Sets;
-
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
@@ -68,6 +35,39 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.util.Pair;
+import org.apache.kylin.job.execution.ExecutableState;
+import org.apache.kylin.job.execution.NExecutableManager;
+import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
+import org.apache.kylin.metadata.model.SegmentRange;
+import org.apache.kylin.metadata.model.TableDesc;
+import org.apache.kylin.metadata.model.TableExtDesc;
+import org.apache.spark.sql.SparderEnv;
+import org.junit.After;
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.Ignore;
+import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.spark_project.guava.collect.Lists;
+import org.spark_project.guava.collect.Sets;
+
+import com.google.common.collect.Maps;
+
+import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
+import io.kyligence.kap.engine.spark.job.NSparkMergingJob;
+import io.kyligence.kap.engine.spark.merger.AfterMergeOrRefreshResourceMerger;
+import io.kyligence.kap.metadata.cube.model.LayoutEntity;
+import io.kyligence.kap.metadata.cube.model.NDataLayout;
+import io.kyligence.kap.metadata.cube.model.NDataSegment;
+import io.kyligence.kap.metadata.cube.model.NDataflow;
+import io.kyligence.kap.metadata.cube.model.NDataflowManager;
+import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
+import io.kyligence.kap.metadata.model.NTableMetadataManager;
+import io.kyligence.kap.newten.NExecAndComp.CompareLevel;
+import lombok.val;
 
 @Ignore("see io.kyligence.kap.ut.TestQueryAndBuild")
 @SuppressWarnings("serial")
@@ -98,8 +98,8 @@ public class NManualBuildAndQueryTest extends NLocalWithSparkSessionTest {
         System.setProperty("noBuild", "true");
         System.setProperty("isDeveloperMode", "true");
         buildCubes();
-        KapSparkSession kapSparkSession = prepareSS(config);
-        List<Pair<String, Throwable>> results = execAndGetResults(Lists.newArrayList(new QueryCallable(kapSparkSession, CompareLevel.SAME, "left", "temp"))); //
+        populateSSWithCSVData(config, getProject(), SparderEnv.getSparkSession());
+        List<Pair<String, Throwable>> results = execAndGetResults(Lists.newArrayList(new QueryCallable(CompareLevel.SAME, "left", "temp"))); //
         report(results);
     }
 
@@ -111,6 +111,7 @@ public class NManualBuildAndQueryTest extends NLocalWithSparkSessionTest {
         buildCubes();
 
         // build is done, start to test query
+        populateSSWithCSVData(config, getProject(), SparderEnv.getSparkSession());
         List<QueryCallable> tasks = prepareAndGenQueryTasks(config);
         List<Pair<String, Throwable>> results = execAndGetResults(tasks);
         Assert.assertEquals(results.size(), tasks.size());
@@ -158,71 +159,57 @@ public class NManualBuildAndQueryTest extends NLocalWithSparkSessionTest {
     }
 
     private List<QueryCallable> prepareAndGenQueryTasks(KylinConfig config) throws Exception {
-        KapSparkSession kapSparkSession = prepareSS(config);
-
         String[] joinTypes = new String[]{"left", "inner"};
         List<QueryCallable> tasks = new ArrayList<>();
         for (String joinType : joinTypes) {
-            tasks.add(new QueryCallable(kapSparkSession, CompareLevel.SAME, joinType, "sql"));
-            tasks.add(new QueryCallable(kapSparkSession, CompareLevel.SAME, joinType, "sql_lookup"));
-            tasks.add(new QueryCallable(kapSparkSession, CompareLevel.SAME, joinType, "sql_casewhen"));
-            tasks.add(new QueryCallable(kapSparkSession, CompareLevel.SAME, joinType, "sql_like"));
-            tasks.add(new QueryCallable(kapSparkSession, CompareLevel.SAME, joinType, "sql_cache"));
-            tasks.add(new QueryCallable(kapSparkSession, CompareLevel.SAME, joinType, "sql_derived"));
-            tasks.add(new QueryCallable(kapSparkSession, CompareLevel.SAME, joinType, "sql_datetime"));
-            tasks.add(new QueryCallable(kapSparkSession, CompareLevel.SAME, joinType, "sql_subquery"));
-            tasks.add(new QueryCallable(kapSparkSession, CompareLevel.SAME, joinType, "sql_distinct_dim"));
-            tasks.add(new QueryCallable(kapSparkSession, CompareLevel.SAME, joinType, "sql_timestamp"));
-            tasks.add(new QueryCallable(kapSparkSession, CompareLevel.SAME, joinType, "sql_orderby"));
-            tasks.add(new QueryCallable(kapSparkSession, CompareLevel.SAME, joinType, "sql_snowflake"));
-            tasks.add(new QueryCallable(kapSparkSession, CompareLevel.SAME, joinType, "sql_topn"));
-            tasks.add(new QueryCallable(kapSparkSession, CompareLevel.SAME, joinType, "sql_join"));
-            tasks.add(new QueryCallable(kapSparkSession, CompareLevel.SAME, joinType, "sql_union"));
-            tasks.add(new QueryCallable(kapSparkSession, CompareLevel.SAME, joinType, "sql_hive"));
-            tasks.add(new QueryCallable(kapSparkSession, CompareLevel.SAME, joinType, "sql_distinct_precisely"));
-            tasks.add(new QueryCallable(kapSparkSession, CompareLevel.SAME, joinType, "sql_powerbi"));
-            tasks.add(new QueryCallable(kapSparkSession, CompareLevel.SAME, joinType, "sql_raw"));
-            tasks.add(new QueryCallable(kapSparkSession, CompareLevel.SAME, joinType, "sql_value"));
-            tasks.add(new QueryCallable(kapSparkSession, CompareLevel.SAME, joinType, "sql_magine"));
-            //            tasks.add(new QueryCallable(kapSparkSession, CompareLevel.SAME, joinType, "sql_cross_join"));
+            tasks.add(new QueryCallable(CompareLevel.SAME, joinType, "sql"));
+            tasks.add(new QueryCallable(CompareLevel.SAME, joinType, "sql_lookup"));
+            tasks.add(new QueryCallable(CompareLevel.SAME, joinType, "sql_casewhen"));
+            tasks.add(new QueryCallable(CompareLevel.SAME, joinType, "sql_like"));
+            tasks.add(new QueryCallable(CompareLevel.SAME, joinType, "sql_cache"));
+            tasks.add(new QueryCallable(CompareLevel.SAME, joinType, "sql_derived"));
+            tasks.add(new QueryCallable(CompareLevel.SAME, joinType, "sql_datetime"));
+            tasks.add(new QueryCallable(CompareLevel.SAME, joinType, "sql_subquery"));
+            tasks.add(new QueryCallable(CompareLevel.SAME, joinType, "sql_distinct_dim"));
+            tasks.add(new QueryCallable(CompareLevel.SAME, joinType, "sql_timestamp"));
+            tasks.add(new QueryCallable(CompareLevel.SAME, joinType, "sql_orderby"));
+            tasks.add(new QueryCallable(CompareLevel.SAME, joinType, "sql_snowflake"));
+            tasks.add(new QueryCallable(CompareLevel.SAME, joinType, "sql_topn"));
+            tasks.add(new QueryCallable(CompareLevel.SAME, joinType, "sql_join"));
+            tasks.add(new QueryCallable(CompareLevel.SAME, joinType, "sql_union"));
+            tasks.add(new QueryCallable(CompareLevel.SAME, joinType, "sql_hive"));
+            tasks.add(new QueryCallable(CompareLevel.SAME, joinType, "sql_distinct_precisely"));
+            tasks.add(new QueryCallable(CompareLevel.SAME, joinType, "sql_powerbi"));
+            tasks.add(new QueryCallable(CompareLevel.SAME, joinType, "sql_raw"));
+            tasks.add(new QueryCallable(CompareLevel.SAME, joinType, "sql_value"));
+            tasks.add(new QueryCallable(CompareLevel.SAME, joinType, "sql_magine"));
+            //            tasks.add(new QueryCallable(CompareLevel.SAME, joinType, "sql_cross_join"));
 
             // same row count
-            tasks.add(new QueryCallable(kapSparkSession, CompareLevel.SAME_ROWCOUNT, joinType, "sql_tableau"));
+            tasks.add(new QueryCallable(CompareLevel.SAME_ROWCOUNT, joinType, "sql_tableau"));
 
             // none
-            tasks.add(new QueryCallable(kapSparkSession, CompareLevel.NONE, joinType, "sql_window"));
-            tasks.add(new QueryCallable(kapSparkSession, CompareLevel.NONE, joinType, "sql_h2_uncapable"));
-            tasks.add(new QueryCallable(kapSparkSession, CompareLevel.NONE, joinType, "sql_grouping"));
-            tasks.add(new QueryCallable(kapSparkSession, CompareLevel.NONE, joinType, "sql_intersect_count"));
-            tasks.add(new QueryCallable(kapSparkSession, CompareLevel.NONE, joinType, "sql_percentile"));
-            tasks.add(new QueryCallable(kapSparkSession, CompareLevel.NONE, joinType, "sql_distinct"));
+            tasks.add(new QueryCallable(CompareLevel.NONE, joinType, "sql_window"));
+            tasks.add(new QueryCallable(CompareLevel.NONE, joinType, "sql_h2_uncapable"));
+            tasks.add(new QueryCallable(CompareLevel.NONE, joinType, "sql_grouping"));
+            tasks.add(new QueryCallable(CompareLevel.NONE, joinType, "sql_intersect_count"));
+            tasks.add(new QueryCallable(CompareLevel.NONE, joinType, "sql_percentile"));
+            tasks.add(new QueryCallable(CompareLevel.NONE, joinType, "sql_distinct"));
 
             //execLimitAndValidate
-            //            tasks.add(new QueryCallable(kapSparkSession, CompareLevel.SUBSET, joinType, "sql"));
+            //            tasks.add(new QueryCallable(CompareLevel.SUBSET, joinType, "sql"));
         }
 
         // cc tests
-        tasks.add(new QueryCallable(kapSparkSession, CompareLevel.SAME_SQL_COMPARE, "default", "sql_computedcolumn_common"));
-        tasks.add(new QueryCallable(kapSparkSession, CompareLevel.SAME_SQL_COMPARE, "default", "sql_computedcolumn_leftjoin"));
+        tasks.add(new QueryCallable(CompareLevel.SAME_SQL_COMPARE, "default", "sql_computedcolumn_common"));
+        tasks.add(new QueryCallable(CompareLevel.SAME_SQL_COMPARE, "default", "sql_computedcolumn_leftjoin"));
 
-        tasks.add(new QueryCallable(kapSparkSession, CompareLevel.SAME, "inner", "sql_magine_inner"));
-        tasks.add(new QueryCallable(kapSparkSession, CompareLevel.SAME, "inner", "sql_magine_window"));
-        tasks.add(new QueryCallable(kapSparkSession, CompareLevel.SAME, "default", "sql_rawtable"));
-        tasks.add(new QueryCallable(kapSparkSession, CompareLevel.SAME, "default", "sql_multi_model"));
+        tasks.add(new QueryCallable(CompareLevel.SAME, "inner", "sql_magine_inner"));
+        tasks.add(new QueryCallable(CompareLevel.SAME, "inner", "sql_magine_window"));
+        tasks.add(new QueryCallable(CompareLevel.SAME, "default", "sql_rawtable"));
+        tasks.add(new QueryCallable(CompareLevel.SAME, "default", "sql_multi_model"));
         logger.info("Total {} tasks.", tasks.size());
         return tasks;
-    }
-
-    private KapSparkSession prepareSS(KylinConfig config) throws Exception {
-        // build is done, start to test query
-        SparkContext existingCxt = SparkContext.getOrCreate(sparkConf);
-        existingCxt.stop();
-
-        KapSparkSession kapSparkSession = new KapSparkSession(SparkContext.getOrCreate(sparkConf));
-        kapSparkSession.use(getProject());
-        populateSSWithCSVData(config, getProject(), kapSparkSession);
-        kapSparkSession.sparkContext().setLogLevel("ERROR");
-        return kapSparkSession;
     }
 
     public void buildCubes() throws Exception {
@@ -237,15 +224,13 @@ public class NManualBuildAndQueryTest extends NLocalWithSparkSessionTest {
         }
     }
 
-    static class QueryCallable implements Callable<Pair<String, Throwable>> {
+    class QueryCallable implements Callable<Pair<String, Throwable>> {
 
-        private KapSparkSession kapSparkSession;
         private NExecAndComp.CompareLevel compareLevel;
         private String joinType;
         private String sqlFolder;
 
-        QueryCallable(KapSparkSession kapSparkSession, NExecAndComp.CompareLevel compareLevel, String joinType, String sqlFolder) {
-            this.kapSparkSession = kapSparkSession;
+        QueryCallable(NExecAndComp.CompareLevel compareLevel, String joinType, String sqlFolder) {
             this.compareLevel = compareLevel;
             this.joinType = joinType;
             this.sqlFolder = sqlFolder;
@@ -257,14 +242,14 @@ public class NManualBuildAndQueryTest extends NLocalWithSparkSessionTest {
             try {
                 if (NExecAndComp.CompareLevel.SUBSET.equals(compareLevel)) {
                     List<Pair<String, String>> queries = NExecAndComp.fetchQueries(KAP_SQL_BASE_DIR + File.separator + "sql");
-                    NExecAndComp.execLimitAndValidate(queries, kapSparkSession, joinType);
+                    NExecAndComp.execLimitAndValidate(queries, getProject(), joinType);
                 } else if (NExecAndComp.CompareLevel.SAME_SQL_COMPARE.equals(compareLevel)) {
                     List<Pair<String, String>> queries = NExecAndComp.fetchQueries(KAP_SQL_BASE_DIR + File.separator + sqlFolder);
-                    NExecAndComp.execCompareQueryAndCompare(queries, kapSparkSession, joinType);
+                    NExecAndComp.execCompareQueryAndCompare(queries, getProject(), joinType);
 
                 } else {
                     List<Pair<String, String>> queries = NExecAndComp.fetchQueries(KAP_SQL_BASE_DIR + File.separator + sqlFolder);
-                    NExecAndComp.execAndCompare(queries, kapSparkSession, compareLevel, joinType);
+                    NExecAndComp.execAndCompare(queries, getProject(), compareLevel, joinType);
                 }
             } catch (Throwable th) {
                 logger.error("Query fail on:", identity);

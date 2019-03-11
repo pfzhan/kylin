@@ -35,7 +35,6 @@ import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
 import org.apache.kylin.metadata.querymeta.SelectedColumnMeta;
 import org.apache.kylin.metadata.realization.NoRealizationFoundException;
 import org.apache.kylin.query.util.PushDownUtil;
-import org.apache.spark.SparkContext;
 import org.apache.spark.sql.SparderEnv;
 import org.apache.spark.sql.catalyst.analysis.NoSuchTableException;
 import org.junit.After;
@@ -43,7 +42,6 @@ import org.junit.Assert;
 import org.junit.Test;
 
 import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
-import io.kyligence.kap.spark.KapSparkSession;
 
 public class NBadQueryTest extends NLocalWithSparkSessionTest {
     private static final String PUSHDOWN_RUNNER_KEY = "kylin.query.pushdown.runner-class-name";
@@ -67,9 +65,8 @@ public class NBadQueryTest extends NLocalWithSparkSessionTest {
         final String sql = "select * from lineitem where l_orderkey = o.o_orderkey and l_commitdate < l_receiptdate";
         KylinConfig.getInstanceFromEnv().setProperty(PUSHDOWN_RUNNER_KEY,
                 "io.kyligence.kap.query.pushdown.PushDownRunnerSparkImpl");
-        try (KapSparkSession kapSparkSession = new KapSparkSession(SparkContext.getOrCreate(sparkConf))) {
-            kapSparkSession.use(getProject());
-            kapSparkSession.queryCube(sql);
+        try {
+            NExecAndComp.queryCube(getProject(), sql);
         } catch (Exception sqlException) {
             Assert.assertTrue(sqlException instanceof SQLException);
             Assert.assertTrue(ExceptionUtils.getRootCause(sqlException) instanceof SqlValidatorException);
@@ -98,9 +95,8 @@ public class NBadQueryTest extends NLocalWithSparkSessionTest {
         final String sql = "select max(price) from test_kylin_fact";
         KylinConfig.getInstanceFromEnv().setProperty(PUSHDOWN_RUNNER_KEY,
                 "io.kyligence.kap.query.pushdown.PushDownRunnerSparkImpl");
-        try (KapSparkSession kapSparkSession = new KapSparkSession(SparkContext.getOrCreate(sparkConf))) {
-            kapSparkSession.use(getProject());
-            kapSparkSession.queryCube(sql);
+        try {
+            NExecAndComp.queryCube(getProject(), sql);
         } catch (Exception sqlException) {
             if (sqlException instanceof SQLException) {
                 Assert.assertTrue(ExceptionUtils.getRootCauseMessage(sqlException).contains("Path does not exist"));

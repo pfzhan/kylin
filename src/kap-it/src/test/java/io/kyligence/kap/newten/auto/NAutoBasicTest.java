@@ -29,20 +29,19 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import org.apache.commons.io.FileUtils;
 import org.apache.kylin.common.util.Pair;
-import org.apache.spark.SparkContext;
+import org.apache.spark.sql.SparderEnv;
 import org.hamcrest.CoreMatchers;
 import org.junit.Assert;
 import org.junit.Test;
 
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
+import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.newten.NExecAndComp;
 import io.kyligence.kap.smart.NSmartContext;
 import io.kyligence.kap.smart.NSmartMaster;
-import io.kyligence.kap.spark.KapSparkSession;
 
 public class NAutoBasicTest extends NAutoTestBase {
 
@@ -51,11 +50,10 @@ public class NAutoBasicTest extends NAutoTestBase {
 
         // 1. Create simple model with one fact table
         String targetModelId;
-        try (KapSparkSession kapSparkSession = new KapSparkSession(SparkContext.getOrCreate(sparkConf))) {
+        {
             List<Pair<String, String>> queries = fetchQueries("auto/sql", 0, 1);
             NSmartMaster master = proposeWithSmartMaster(queries);
-            kapSparkSession.use(getProject());
-            kapSparkSession.buildAllCubes(kylinConfig, getProject());
+            buildAllCubes(kylinConfig, getProject());
 
             List<NSmartContext.NModelContext> modelContexts = master.getContext().getModelContexts();
             Assert.assertEquals(1, modelContexts.size());
@@ -69,11 +67,10 @@ public class NAutoBasicTest extends NAutoTestBase {
         }
 
         // 2. Feed query with left join using same fact table, should update same model
-        try (KapSparkSession kapSparkSession = new KapSparkSession(SparkContext.getOrCreate(sparkConf))) {
+        {
             List<Pair<String, String>> queries = fetchQueries("auto/sql", 1, 2);
             NSmartMaster master = proposeWithSmartMaster(queries);
-            kapSparkSession.use(getProject());
-            kapSparkSession.buildAllCubes(kylinConfig, getProject());
+            buildAllCubes(kylinConfig, getProject());
 
             List<NSmartContext.NModelContext> modelContexts = master.getContext().getModelContexts();
             Assert.assertEquals(1, modelContexts.size());
@@ -89,30 +86,27 @@ public class NAutoBasicTest extends NAutoTestBase {
         //FileUtils.deleteDirectory(new File("../kap-it/metastore_db"));
 
         // 3. Auto suggested model is able to serve related query
-        try (KapSparkSession kapSparkSession = new KapSparkSession(SparkContext.getOrCreate(sparkConf))) {
+        {
             List<Pair<String, String>> queries = fetchQueries("auto/sql", 0, 3);
-            kapSparkSession.use(getProject());
-            populateSSWithCSVData(kylinConfig, getProject(), kapSparkSession);
-            NExecAndComp.execAndCompare(queries, kapSparkSession, NExecAndComp.CompareLevel.SAME, "default");
+            populateSSWithCSVData(kylinConfig, getProject(), SparderEnv.getSparkSession());
+            NExecAndComp.execAndCompare(queries, getProject(), NExecAndComp.CompareLevel.SAME, "default");
         }
 
         // 4. Feed bad queries
-        try (KapSparkSession kapSparkSession = new KapSparkSession(SparkContext.getOrCreate(sparkConf))) {
+        {
             List<Pair<String, String>> queries = fetchQueries("auto/sql_bad", 0, 0);
             NSmartMaster master = proposeWithSmartMaster(queries);
-            kapSparkSession.use(getProject());
-            kapSparkSession.buildAllCubes(kylinConfig, getProject());
+            buildAllCubes(kylinConfig, getProject());
 
             List<NSmartContext.NModelContext> modelContexts = master.getContext().getModelContexts();
             Assert.assertEquals(0, modelContexts.size());
         }
 
         // 5. Feed query with inner join using same fact table, should create another model
-        try (KapSparkSession kapSparkSession = new KapSparkSession(SparkContext.getOrCreate(sparkConf))) {
+        {
             List<Pair<String, String>> queries = fetchQueries("auto/sql", 3, 4);
             NSmartMaster master = proposeWithSmartMaster(queries);
-            kapSparkSession.use(getProject());
-            kapSparkSession.buildAllCubes(kylinConfig, getProject());
+            buildAllCubes(kylinConfig, getProject());
 
             List<NSmartContext.NModelContext> modelContexts = master.getContext().getModelContexts();
             Assert.assertEquals(1, modelContexts.size());
@@ -126,11 +120,10 @@ public class NAutoBasicTest extends NAutoTestBase {
         }
 
         // 6. Finally, run all queries
-        try (KapSparkSession kapSparkSession = new KapSparkSession(SparkContext.getOrCreate(sparkConf))) {
+        {
             List<Pair<String, String>> queries = fetchQueries("auto/sql", 0, 4);
-            kapSparkSession.use(getProject());
-            populateSSWithCSVData(kylinConfig, getProject(), kapSparkSession);
-            NExecAndComp.execAndCompare(queries, kapSparkSession, NExecAndComp.CompareLevel.SAME, "default");
+            populateSSWithCSVData(kylinConfig, getProject(), SparderEnv.getSparkSession());
+            NExecAndComp.execAndCompare(queries, getProject(), NExecAndComp.CompareLevel.SAME, "default");
         }
 
         FileUtils.deleteDirectory(new File("../kap-it/metastore_db"));
@@ -143,11 +136,9 @@ public class NAutoBasicTest extends NAutoTestBase {
         Map<String, IndexPlan> indexPlanOfAll = new HashMap<>();
 
         // 1. Feed queries part1
-        try (KapSparkSession kapSparkSession = new KapSparkSession(SparkContext.getOrCreate(sparkConf))) {
+        {
             List<Pair<String, String>> queries = fetchQueries("auto/sql", 0, 2);
             NSmartMaster master = proposeWithSmartMaster(queries);
-            kapSparkSession.use(getProject());
-            kapSparkSession.buildAllCubes(kylinConfig, getProject());
 
             List<NSmartContext.NModelContext> modelContexts = master.getContext().getModelContexts();
             for (NSmartContext.NModelContext nModelContext : modelContexts) {
@@ -157,11 +148,9 @@ public class NAutoBasicTest extends NAutoTestBase {
         }
 
         // 2. Feed queries part2
-        try (KapSparkSession kapSparkSession = new KapSparkSession(SparkContext.getOrCreate(sparkConf))) {
+        {
             List<Pair<String, String>> queries = fetchQueries("auto/sql", 2, 4);
             NSmartMaster master = proposeWithSmartMaster(queries);
-            kapSparkSession.use(getProject());
-            kapSparkSession.buildAllCubes(kylinConfig, getProject());
 
             List<NSmartContext.NModelContext> modelContexts = master.getContext().getModelContexts();
             for (NSmartContext.NModelContext nModelContext : modelContexts) {
@@ -171,11 +160,9 @@ public class NAutoBasicTest extends NAutoTestBase {
         }
 
         // 3. Retry all queries
-        try (KapSparkSession kapSparkSession = new KapSparkSession(SparkContext.getOrCreate(sparkConf))) {
+        {
             List<Pair<String, String>> queries = fetchQueries("auto/sql", 0, 4);
             NSmartMaster master = proposeWithSmartMaster(queries);
-            kapSparkSession.use(getProject());
-            kapSparkSession.buildAllCubes(kylinConfig, getProject());
 
             List<NSmartContext.NModelContext> modelContexts = master.getContext().getModelContexts();
             for (NSmartContext.NModelContext nModelContext : modelContexts) {
@@ -210,5 +197,4 @@ public class NAutoBasicTest extends NAutoTestBase {
         master.runAll();
         return master;
     }
-
 }

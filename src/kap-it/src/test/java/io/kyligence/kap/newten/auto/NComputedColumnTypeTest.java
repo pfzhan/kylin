@@ -30,7 +30,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 import org.apache.kylin.common.KylinConfig;
-import org.apache.spark.SparkContext;
+import org.apache.spark.sql.SparderEnv;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -43,17 +43,14 @@ import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.query.util.KapQueryUtil;
 import io.kyligence.kap.smart.util.ComputedColumnEvalUtil;
-import io.kyligence.kap.spark.KapSparkSession;
 
 public class NComputedColumnTypeTest extends NLocalWithSparkSessionTest {
 
     @Test
     public void testDataTypeForNestedCC() throws Exception {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
-        KapSparkSession kapSparkSession = new KapSparkSession(SparkContext.getOrCreate(sparkConf));
         String project = getProject();
-        kapSparkSession.use(project);
-        populateSSWithCSVData(config, project, kapSparkSession);
+        populateSSWithCSVData(config, project, SparderEnv.getSparkSession());
         
         NDataModelManager manager = NDataModelManager.getInstance(config, project);
         NDataModel model = manager.getDataModelDescByAlias("nmodel_basic");
@@ -73,10 +70,8 @@ public class NComputedColumnTypeTest extends NLocalWithSparkSessionTest {
     @Test
     public void testAllDataTypesForCC() throws Exception {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
-        KapSparkSession kapSparkSession = new KapSparkSession(SparkContext.getOrCreate(sparkConf));
         String project = getProject();
-        kapSparkSession.use(project);
-        populateSSWithCSVData(config, project, kapSparkSession);
+        populateSSWithCSVData(config, project, SparderEnv.getSparkSession());
         
         NDataModelManager manager = NDataModelManager.getInstance(config, project);
         NDataModel model = manager.getDataModelDescByAlias("nmodel_full_measure_test");

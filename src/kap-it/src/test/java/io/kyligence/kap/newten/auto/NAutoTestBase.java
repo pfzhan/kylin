@@ -39,10 +39,18 @@ import org.apache.commons.io.FileUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.util.Pair;
+import org.apache.kylin.job.execution.ExecutableState;
+import org.apache.kylin.job.execution.JobTypeEnum;
+import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
+import org.apache.kylin.metadata.model.SegmentRange;
+import org.apache.kylin.metadata.model.SegmentStatusEnum;
+import org.apache.kylin.metadata.model.Segments;
+import org.apache.kylin.metadata.realization.IRealization;
 import org.apache.kylin.query.KylinTestBase;
 import org.apache.kylin.query.util.QueryUtil;
-import org.apache.spark.SparkContext;
+import org.apache.spark.sql.SparderEnv;
+import org.apache.spark.sql.execution.utils.SchemaProcessor;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -52,13 +60,20 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
+import io.kyligence.kap.engine.spark.ExecutableUtils;
 import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
+import io.kyligence.kap.engine.spark.job.NSparkCubingJob;
+import io.kyligence.kap.engine.spark.merger.AfterBuildResourceMerger;
+import io.kyligence.kap.metadata.cube.model.LayoutEntity;
+import io.kyligence.kap.metadata.cube.model.NDataSegment;
+import io.kyligence.kap.metadata.cube.model.NDataflow;
+import io.kyligence.kap.metadata.cube.model.NDataflowManager;
+import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.newten.NExecAndComp;
 import io.kyligence.kap.newten.NExecAndComp.CompareLevel;
 import io.kyligence.kap.query.util.QueryPatternUtil;
 import io.kyligence.kap.smart.NSmartMaster;
 import io.kyligence.kap.smart.common.AccelerateInfo;
-import io.kyligence.kap.spark.KapSparkSession;
 import io.kyligence.kap.utils.RecAndQueryCompareUtil;
 import io.kyligence.kap.utils.RecAndQueryCompareUtil.AccelerationMatchedLevel;
 import io.kyligence.kap.utils.RecAndQueryCompareUtil.CompareEntity;
@@ -132,22 +147,21 @@ public class NAutoTestBase extends NLocalWithSparkSessionTest {
 
         final Map<String, CompareEntity> compareMap = collectCompareEntity(smartMaster);
 
-        try (KapSparkSession kapSparkSession = new KapSparkSession(SparkContext.getOrCreate(sparkConf))) {
+        try {
             // 2. execute cube building
-            kapSparkSession.use(getProject());
-            kapSparkSession.buildAllCubes(kylinConfig, getProject());
+            buildAllCubes(kylinConfig, getProject());
 
             // dump metadata for debugging
             // dumpMetadata();
 
             // 3. validate results between SparkSQL and cube
             Arrays.stream(testScenarios).forEach(testScenario -> {
-                populateSSWithCSVData(kylinConfig, getProject(), kapSparkSession);
+                populateSSWithCSVData(kylinConfig, getProject(), SparderEnv.getSparkSession());
                 if (testScenario.isLimit) {
-                    NExecAndComp.execLimitAndValidateNew(testScenario.queries, kapSparkSession, JoinType.DEFAULT.name(),
+                    NExecAndComp.execLimitAndValidateNew(testScenario.queries, getProject(), JoinType.DEFAULT.name(),
                             compareMap);
                 } else {
-                    NExecAndComp.execAndCompareNew(testScenario.queries, kapSparkSession, testScenario.compareLevel,
+                    NExecAndComp.execAndCompareNew(testScenario.queries, getProject(), testScenario.compareLevel,
                             testScenario.joinType.name(), compareMap);
                 }
             });
@@ -293,6 +307,63 @@ public class NAutoTestBase extends NLocalWithSparkSessionTest {
             allQueries.addAll(test.queries.stream().map(Pair::getSecond).collect(Collectors.toList()));
         }
         return allQueries;
+    }
+
+    public void buildAllCubes(KylinConfig kylinConfig, String proj) throws InterruptedException {
+        kylinConfig.clearManagers();
+        NProjectManager projectManager = NProjectManager.getInstance(kylinConfig);
+        NExecutableManager execMgr = NExecutableManager.getInstance(kylinConfig, proj);
+        NDataflowManager dataflowManager = NDataflowManager.getInstance(kylinConfig, proj);
+
+        for (IRealization realization : projectManager.listAllRealizations(proj)) {
+            NDataflow df = (NDataflow) realization;
+            Segments<NDataSegment> readySegments = df.getSegments(SegmentStatusEnum.READY);
+            NDataSegment oneSeg;
+            List<LayoutEntity> layouts;
+            boolean isAppend = false;
+            if (readySegments.isEmpty()) {
+                oneSeg = dataflowManager.appendSegment(df, SegmentRange.TimePartitionedSegmentRange.createInfinite());
+                layouts = df.getIndexPlan().getAllLayouts();
+                isAppend = true;
+                readySegments.add(oneSeg);
+            } else {
+                oneSeg = readySegments.getFirstSegment();
+                layouts = df.getIndexPlan().getAllLayouts().stream()
+                        .filter(c -> !oneSeg.getLayoutsMap().containsKey(c.getId())).collect(Collectors.toList());
+            }
+
+            // create cubing job
+            if (!layouts.isEmpty()) {
+                NSparkCubingJob job = NSparkCubingJob.create(
+                        org.spark_project.guava.collect.Sets.newHashSet(readySegments),
+                        org.spark_project.guava.collect.Sets.newLinkedHashSet(layouts), "ADMIN");
+                execMgr.addJob(job);
+                while (true) {
+                    Thread.sleep(500);
+                    ExecutableState status = job.getStatus();
+                    if (!status.isReadyOrRunning()) {
+                        if (status == ExecutableState.ERROR) {
+                            throw new IllegalStateException("Failed to execute job. " + job);
+                        } else
+                            break;
+                    }
+                }
+                val analysisStore = ExecutableUtils.getRemoteStore(kylinConfig, job.getSparkAnalysisStep());
+                val buildStore = ExecutableUtils.getRemoteStore(kylinConfig, job.getSparkCubingStep());
+                AfterBuildResourceMerger merger = new AfterBuildResourceMerger(kylinConfig, proj,
+                        JobTypeEnum.INC_BUILD);
+                val layoutIds = layouts.stream().map(LayoutEntity::getId).collect(Collectors.toSet());
+                if (isAppend) {
+                    merger.mergeAfterIncrement(df.getUuid(), oneSeg.getId(), layoutIds, buildStore);
+                } else {
+                    val segIds = readySegments.stream().map(nDataSegment -> nDataSegment.getId())
+                            .collect(Collectors.toSet());
+                    merger.mergeAfterCatchup(df.getUuid(), segIds, layoutIds, buildStore);
+                }
+                merger.mergeAnalysis(job.getSparkAnalysisStep());
+                SchemaProcessor.checkSchema(SparderEnv.getSparkSession(), df.getUuid(), proj);
+            }
+        }
     }
 
     public class TestScenario {

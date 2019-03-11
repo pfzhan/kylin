@@ -26,23 +26,20 @@ package io.kyligence.kap.newten.auto;
 
 import java.util.List;
 
-import io.kyligence.kap.metadata.cube.model.NDataflowManager;
-import org.apache.spark.SparkContext;
 import org.junit.Assert;
 import org.junit.Ignore;
 import org.junit.Test;
 
+import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.newten.NExecAndComp;
 import io.kyligence.kap.smart.NSmartMaster;
-import io.kyligence.kap.spark.KapSparkSession;
 
 public class NAutoLookupTest extends NAutoTestBase {
 
     @Test
     @Ignore
     public void testLookup() throws Exception {
-        KapSparkSession kapSparkSession = new KapSparkSession(SparkContext.getOrCreate(sparkConf));
-        kapSparkSession.use(getProject());
         {
             String modelQuery = "select sum(ITEM_COUNT) as ITEM_CNT\n" //
                     + "FROM TEST_KYLIN_FACT as TEST_KYLIN_FACT\n" //
@@ -75,8 +72,8 @@ public class NAutoLookupTest extends NAutoTestBase {
             NDataModel model = models.get(0);
             Assert.assertTrue(model.isLookupTable("DEFAULT.TEST_CATEGORY_GROUPINGS"));
 
-            kapSparkSession.buildAllCubes(kylinConfig, getProject());
-            Assert.assertEquals(1, kapSparkSession.queryFromCube(modelQuery).toDF().count());
+            buildAllCubes(kylinConfig, getProject());
+            Assert.assertEquals(1, NExecAndComp.queryFromCube(getProject(), modelQuery).toDF().count());
         }
 
         {
@@ -93,9 +90,8 @@ public class NAutoLookupTest extends NAutoTestBase {
             Assert.assertTrue(model.isLookupTable("DEFAULT.TEST_CATEGORY_GROUPINGS"));
 
             // Use snapshot, no need to build
-            Assert.assertEquals(1, kapSparkSession.queryFromCube(lookupQuery).toDF().count());
+            Assert.assertEquals(1, NExecAndComp.queryFromCube(getProject(), lookupQuery).toDF().count());
         }
-        kapSparkSession.close();
     }
 
     @Test
@@ -181,11 +177,8 @@ public class NAutoLookupTest extends NAutoTestBase {
         List<NDataModel> models = NDataflowManager.getInstance(kylinConfig, getProject()).listUnderliningDataModels();
         Assert.assertEquals(2, models.size());
 
-        KapSparkSession kapSparkSession = new KapSparkSession(SparkContext.getOrCreate(sparkConf));
-        kapSparkSession.use(getProject());
-        kapSparkSession.buildAllCubes(kylinConfig, getProject());
-        Assert.assertEquals(1, kapSparkSession.queryFromCube(modelQuery).toDF().count());
-        Assert.assertEquals(1, kapSparkSession.queryFromCube(lookupQuery).toDF().count());
-        kapSparkSession.close();
+        buildAllCubes(kylinConfig, getProject());
+        Assert.assertEquals(1, NExecAndComp.queryFromCube(getProject(), modelQuery).toDF().count());
+        Assert.assertEquals(1, NExecAndComp.queryFromCube(getProject(), lookupQuery).toDF().count());
     }
 }

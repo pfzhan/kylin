@@ -21,16 +21,14 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package io.kyligence.kap.newten;
+package io.kyligence.kap.newten.auto;
 
-import java.io.File;
-import java.nio.file.Paths;
-
+import io.kyligence.kap.newten.NExecAndComp.CompareLevel;
 import org.junit.Assert;
 import org.junit.Test;
 
-import io.kyligence.kap.newten.NExecAndComp.CompareLevel;
-import io.kyligence.kap.newten.auto.NAutoTestBase;
+import java.io.File;
+import java.nio.file.Paths;
 
 public class NCleanWorkingDirTest extends NAutoTestBase {
 
