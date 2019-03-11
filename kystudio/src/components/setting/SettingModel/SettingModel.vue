@@ -169,7 +169,8 @@ const initialSettingForm = JSON.stringify({name: '', settingItem: '', autoMerge:
   },
   computed: {
     ...mapGetters([
-      'currentSelectedProject'
+      'currentSelectedProject',
+      'isAutoProject'
     ])
   },
   locales
@@ -187,11 +188,18 @@ export default class SettingStorage extends Vue {
   isLoading = false
   isEdit = false
   step = 'stepOne'
-  settingOption = ['Auto-merge', 'Volatile Range', 'Retention Threshold', 'spark.executor.cores', 'spark.executor.instances', 'spark.executor.memory', 'spark.sql.shuffle.partitions']
+  // settingOption = ['Auto-merge', 'Volatile Range', 'Retention Threshold', 'spark.executor.cores', 'spark.executor.instances', 'spark.executor.memory', 'spark.sql.shuffle.partitions']
   mergeGroups = ['HOUR', 'DAY', 'WEEK', 'MONTH', 'YEAR']
   units = [{label: 'day', value: 'DAY'}, {label: 'week', value: 'WEEK'}, {label: 'month', value: 'MONTH'}, {label: 'year', value: 'YEAR'}]
   modelSettingForm = JSON.parse(initialSettingForm)
   activeRow = null
+  get settingOption () {
+    if (this.isAutoProject) {
+      return ['spark.executor.cores', 'spark.executor.instances', 'spark.executor.memory', 'spark.sql.shuffle.partitions']
+    } else {
+      return ['Auto-merge', 'Volatile Range', 'Retention Threshold', 'spark.executor.cores', 'spark.executor.instances', 'spark.executor.memory', 'spark.sql.shuffle.partitions']
+    }
+  }
   get availableRetentionRange () {
     let largestRange = null
     const modelAutoMergeRanges = this.activeRow && this.activeRow.auto_merge_time_ranges || []

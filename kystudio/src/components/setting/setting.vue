@@ -11,7 +11,7 @@
         <el-tab-pane :label="$t('advanced')" :name="viewTypes.ADVANCED">
           <SettingAdvanced :project="projectSettings" @reload-setting="getCurrentSettings" @form-changed="handleFormChanged"></SettingAdvanced>
         </el-tab-pane>
-        <el-tab-pane :label="$t('model')" :name="viewTypes.MODEL" v-if="!isAutoProject">
+        <el-tab-pane :label="$t('model')" :name="viewTypes.MODEL">
           <SettingModel :project="currentProjectData"></SettingModel>
         </el-tab-pane>
       </el-tabs>
@@ -37,8 +37,7 @@ import SettingModel from './SettingModel/SettingModel.vue'
 @Component({
   computed: {
     ...mapGetters([
-      'currentProjectData',
-      'isAutoProject'
+      'currentProjectData'
     ])
   },
   methods: {
