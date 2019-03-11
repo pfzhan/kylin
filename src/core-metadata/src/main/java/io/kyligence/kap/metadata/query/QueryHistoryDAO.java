@@ -25,6 +25,7 @@
 package io.kyligence.kap.metadata.query;
 
 import java.util.List;
+import java.util.regex.Pattern;
 
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
@@ -228,7 +229,7 @@ public class QueryHistoryDAO {
         }
 
         if (StringUtils.isNotEmpty(request.getSql())) {
-            sb.append(String.format("AND sql_text =~ /%s/ ", request.getSql()));
+            sb.append(String.format("AND sql_text =~ /%s/ ", escapeExprSpecialWord(request.getSql())));
         }
 
         if (request.getRealizations() != null && !request.getRealizations().isEmpty()) {
@@ -300,5 +301,13 @@ public class QueryHistoryDAO {
 
     private String getFirstQHSql(long minTime, long maxTime) {
         return String.format(FIRST_QUERY_HISTORY_SQL, this.queryMetricMeasurement, minTime, maxTime);
+    }
+
+    private String escapeExprSpecialWord(String keyword) {
+        if (StringUtils.isNotBlank(keyword)) {
+            keyword = keyword.replaceAll("/", "\\\\/");
+            return Pattern.quote(keyword);
+        }
+        return keyword;
     }
 }
