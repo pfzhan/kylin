@@ -67,6 +67,10 @@ public class FavoriteRuleManagerTest extends NLocalFileMetadataTestCase {
         manager.createRule(newRule);
         Assert.assertEquals(6, manager.getAll().size());
 
+        // create duplicate rule
+        manager.createRule(new FavoriteRule(Lists.newArrayList(), "new_rule", true));
+        Assert.assertEquals(6, manager.getAll().size());
+
         cond1.setLeftThreshold("10");
         conds = Lists.newArrayList(cond1, cond2);
         newRule.setConds(conds);

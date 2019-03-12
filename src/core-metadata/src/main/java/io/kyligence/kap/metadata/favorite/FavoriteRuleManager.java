@@ -81,8 +81,11 @@ public class FavoriteRuleManager {
         crud.reloadAll();
     }
 
-    public FavoriteRule createRule(final FavoriteRule rule) {
-        return crud.save(rule);
+    public void createRule(final FavoriteRule rule) {
+        if (getByName(rule.getName()) != null)
+            return;
+
+        crud.save(rule);
     }
 
     public void appendSqlPatternToBlacklist(FavoriteRule.SQLCondition newCondition) {

@@ -115,13 +115,14 @@ public class AppInitializer {
                 throw new RuntimeException("Scheduler for " + project + " has not been started");
             }
 
+            createDefaultRules(project);
+
             NFavoriteScheduler favoriteScheduler = NFavoriteScheduler.getInstance(project);
             favoriteScheduler.init();
 
             if (!favoriteScheduler.hasStarted()) {
                 throw new RuntimeException("Auto favorite scheduler for " + project + " has not been started");
             }
-            createDefaultRules(project);
             return 0;
         }, project, 1);
         log.info("init project {} finished", project);
