@@ -42,8 +42,8 @@ export default {
   },
   'zh-cn': {
     capbility: '加速比例',
-    dataLoadTime: '模型更新时间',
-    status: '模型状态',
+    dataLoadTime: '最新加载时间',
+    status: '状态',
     modelPartitionSet: '分区设置',
     delModelTip: '你确认要删除该模型吗？',
     pergeModelTip: '你确定要清空该模型的数据吗？',

@@ -9,7 +9,7 @@
       class="model-setting-table"
       border
       style="width: 100%">
-      <el-table-column width="230px" header-align="center" show-overflow-tooltip prop="alias" :label="$t('kylinLang.model.modelNameGrid')"></el-table-column>
+      <el-table-column width="230px" header-align="center" show-overflow-tooltip prop="alias" :label="modelTableTitle"></el-table-column>
       <el-table-column prop="last_modified" header-align="center" show-overflow-tooltip width="207px" :label="$t('modifyTime')">
         <template slot-scope="scope">
           <span v-if="scope.row.config_last_modified>0">{{transToGmtTime(scope.row.config_last_modified)}}</span>
@@ -82,7 +82,7 @@
     <kap-pager :totalSize="modelListSize"  v-on:handleCurrentChange='currentChange' ref="modleConfigPager" class="ksd-mt-20 ksd-mb-20 ksd-center" ></kap-pager>
     <el-dialog :title="modelSettingTitle" :visible.sync="editModelSetting" width="440px" class="model-setting-dialog" @closed="handleClosed" :close-on-press-escape="false" :close-on-click-modal="false">
       <el-form ref="form" label-position="top" size="medium" label-width="80px" :model="modelSettingForm" :rules="rules">
-        <el-form-item :label="$t('modelName')">
+        <el-form-item :label="modelTableTitle">
           <el-input v-model.trim="modelSettingForm.name" disabled></el-input>
         </el-form-item>
         <el-form-item :label="$t('settingItem')" v-if="step=='stepOne'" prop="settingItem">
@@ -193,6 +193,9 @@ export default class SettingStorage extends Vue {
   units = [{label: 'day', value: 'DAY'}, {label: 'week', value: 'WEEK'}, {label: 'month', value: 'MONTH'}, {label: 'year', value: 'YEAR'}]
   modelSettingForm = JSON.parse(initialSettingForm)
   activeRow = null
+  get modelTableTitle () {
+    return this.isAutoProject ? this.$t('kylinLang.model.indexGroupName') : this.$t('kylinLang.model.modelNameGrid')
+  }
   get settingOption () {
     if (this.isAutoProject) {
       return ['spark.executor.cores', 'spark.executor.instances', 'spark.executor.memory', 'spark.sql.shuffle.partitions']

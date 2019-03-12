@@ -172,6 +172,7 @@ exports.default = {
     modelNameGrid: 'Model Name',
     modelList: 'Model List',
     indexGroup: 'Index Group',
+    indexGroupName: 'Index Group Name',
     modifiedGrid: 'Last Modified Time',
     statusGrid: 'Health Status',
     metaData: 'Metadata',

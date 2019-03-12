@@ -169,6 +169,7 @@ exports.default = {
     modelList: '模型列表',
     indexGroup: '索引组',
     modelNameGrid: '模型名称',
+    indexGroupName: '索引组名称',
     modifiedGrid: '上次更新时间',
     statusGrid: '健康状态',
     metaData: '元数据',

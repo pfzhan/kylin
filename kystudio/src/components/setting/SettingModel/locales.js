@@ -71,7 +71,7 @@ export default {
     week: '周',
     month: '月',
     year: '年',
-    addSettingItem: '添加模型设置项',
+    addSettingItem: '添加重写设置项',
     isDel_auto_merge_time_ranges: '确认删除自动合并设置项吗？',
     isDel_volatile_range: '确认删除动态区间设置项吗？',
     isDel_retention_range: '确认删除留存区间设置项吗？',

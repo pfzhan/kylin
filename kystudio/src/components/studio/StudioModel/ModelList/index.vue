@@ -47,7 +47,7 @@
         min-width="229px"
         show-overflow-tooltip
         prop="alias"
-          :label="$t('kylinLang.model.modelNameGrid')">
+          :label="modelTableTitle">
         </el-table-column>
         <el-table-column
           header-align="center"
@@ -262,6 +262,9 @@ export default class ModelList extends Vue {
   showSearchResult = false
   searchLoading = false
   modelArray = []
+  get modelTableTitle () {
+    return this.isAutoProject ? this.$t('kylinLang.model.indexGroupName') : this.$t('kylinLang.model.modelNameGrid')
+  }
   renderRowKey (row) {
     return row.alias
   }
