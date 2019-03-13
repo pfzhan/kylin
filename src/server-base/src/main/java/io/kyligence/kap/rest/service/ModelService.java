@@ -244,7 +244,7 @@ public class ModelService extends BasicService {
         return nDataModelResponse;
     }
 
-    private RealizationStatusEnum getModelStatus(String modelId, String projectName) {
+    protected RealizationStatusEnum getModelStatus(String modelId, String projectName) {
         val indexPlan = getIndexPlan(modelId, projectName);
         if (indexPlan != null) {
             return getDataflowManager(projectName).getDataflow(indexPlan.getUuid()).getStatus();
@@ -532,6 +532,27 @@ public class ModelService extends BasicService {
             modelUpdate.setManagementType(ManagementType.MODEL_BASED);
             dataModelManager.updateDataModelDesc(modelUpdate);
             return;
+        }
+    }
+
+    public Set<String> listAllModelIdsInProject(String project) {
+        NDataModelManager dataModelManager = getDataModelManager(project);
+        return dataModelManager.listAllModelIds();
+    }
+
+    @Transaction(project = 0)
+    public void offlineAllModelsInProject(String project) {
+        Set<String> ids = listAllModelIdsInProject(project);
+        for (String id : ids) {
+            updateDataModelStatus(id, project, "OFFLINE");
+        }
+    }
+
+    @Transaction(project = 0)
+    public void onlineAllModelsInProject(String project) {
+        Set<String> ids = listAllModelIdsInProject(project);
+        for (String id : ids) {
+            updateDataModelStatus(id, project, "ONLINE");
         }
     }
 

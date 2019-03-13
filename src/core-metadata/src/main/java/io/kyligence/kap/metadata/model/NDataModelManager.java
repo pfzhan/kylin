@@ -138,6 +138,10 @@ public class NDataModelManager {
         return crud.listAll().stream().map(NDataModel::getAlias).collect(Collectors.toSet());
     }
 
+    public Set<String> listAllModelIds() {
+        return crud.listAll().stream().map(NDataModel::getId).collect(Collectors.toSet());
+    }
+
     public NDataModel createDataModelDesc(NDataModel desc, String owner) {
         String name = desc.getAlias();
         for (NDataModel model : crud.listAll().stream().filter(model -> !model.isBroken())

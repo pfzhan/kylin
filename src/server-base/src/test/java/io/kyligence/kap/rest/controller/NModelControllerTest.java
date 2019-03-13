@@ -479,6 +479,24 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
+    public void testOfflineAllModelsInProject() throws Exception {
+        Mockito.doNothing().when(modelService).offlineAllModelsInProject("project");
+        mockMvc.perform(MockMvcRequestBuilders.put("/api/models/project/disable_all_models")
+                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .andExpect(MockMvcResultMatchers.status().isOk());
+        Mockito.verify(nModelController).offlineAllModelsInProject("project");
+    }
+
+    @Test
+    public void testOnlineAllModelsInProject() throws Exception {
+        Mockito.doNothing().when(modelService).onlineAllModelsInProject("project");
+        mockMvc.perform(MockMvcRequestBuilders.put("/api/models/project/enable_all_models")
+                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .andExpect(MockMvcResultMatchers.status().isOk());
+        Mockito.verify(nModelController).onlineAllModelsInProject("project");
+    }
+
+    @Test
     public void testGetModelInfo() throws Exception {
         List<String> projects = Lists.newArrayList();
         Mockito.doReturn(null).when(modelService).getModelInfo("*", "*", projects, 0, 0);

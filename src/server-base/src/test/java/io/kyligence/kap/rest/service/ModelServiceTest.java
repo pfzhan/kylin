@@ -58,6 +58,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -214,6 +215,34 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
                 "DISABLED", "last_modify", true);
         Assert.assertEquals(0, model5.size());
 
+    }
+
+    @Test
+    public void testOfflineAndOnlineAllModels() {
+        String projectName = "default";
+        Set<String> modelIds = modelService.listAllModelIdsInProject(projectName);
+
+        List<String> statusList = Lists.newArrayList();
+        for (String id : modelIds) {
+            String modelStatus = modelService.getModelStatus(id, projectName).toString();
+            statusList.add(modelStatus);
+        }
+
+        Assert.assertEquals("ONLINE", statusList.get(1));
+        Assert.assertEquals("ONLINE", statusList.get(2));
+        Assert.assertEquals("ONLINE", statusList.get(5));
+
+        modelService.offlineAllModelsInProject(projectName);
+        for (String id : modelIds) {
+            String modelStatus = modelService.getModelStatus(id, projectName).toString();
+            Assert.assertEquals("OFFLINE", modelStatus);
+        }
+
+        modelService.onlineAllModelsInProject(projectName);
+        for (String id : modelIds) {
+            String modelStatus = modelService.getModelStatus(id, projectName).toString();
+            Assert.assertEquals("ONLINE", modelStatus);
+        }
     }
 
     @Test
