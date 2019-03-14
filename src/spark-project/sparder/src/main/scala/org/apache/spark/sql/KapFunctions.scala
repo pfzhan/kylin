@@ -28,6 +28,7 @@ import org.apache.spark.sql.catalyst.analysis.FunctionRegistry.FunctionBuilder
 import org.apache.spark.sql.catalyst.expressions.ExpressionUtils.expression
 import org.apache.spark.sql.catalyst.expressions.aggregate.AggregateFunction
 import org.apache.spark.sql.catalyst.expressions.{ExpressionInfo, KapAddMonths, KapDayOfWeek, KapSubtractMonths, Literal, Sum0, TimestampAdd, TimestampDiff, Truncate}
+import org.apache.spark.sql.catalyst.expressions.{Expression, ImplicitCastInputTypes, KapAddMonths, KapDayOfWeek, KapSubtractMonths, Literal, RoundBase, Sum0}
 import org.apache.spark.sql.udf.{ApproxCountDistinct, PreciseCountDistinct}
 
 object KapFunctions {
@@ -36,8 +37,8 @@ object KapFunctions {
     Column(func.toAggregateExpression(isDistinct))
   }
 
-  def kap_add_months(startDate: Column, numMonths: Int): Column = {
-    Column(KapAddMonths(startDate.expr, Literal(numMonths)))
+  def kap_add_months(startDate: Column, numMonths: Column): Column = {
+    Column(KapAddMonths(startDate.expr, numMonths.expr))
   }
 
   def kap_subtract_months(date0: Column, date1: Column): Column = {
@@ -62,6 +63,17 @@ object KapFunctions {
 
   def approx_count_distinct(column: Column, precision: Int): Column =
     Column(ApproxCountDistinct(column.expr, precision).toAggregateExpression())
+
+  def kap_truncate(column: Column, scale: Int): Column = {
+    Column(TRUNCATE(column.expr, Literal(scale)))
+  }
+
+  case class TRUNCATE(child: Expression, scale: Expression)
+    extends RoundBase(child, scale, BigDecimal.RoundingMode.DOWN, "DOWN")
+      with Serializable with ImplicitCastInputTypes {
+    def this(child: Expression) = this(child, Literal(0))
+  }
+
 
   val builtin: Seq[FunctionEntity] = Seq(
     FunctionEntity(expression[TimestampAdd]("TIMESTAMPADD")),

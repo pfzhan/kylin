@@ -26,8 +26,7 @@ package io.kyligence.kap.query.runtime
 
 import java.lang.{Boolean, Byte, Double, Float, Long, Short}
 import java.math.BigDecimal
-import java.sql.{Date, Timestamp}
-import java.util.GregorianCalendar
+import java.sql.Timestamp
 
 import io.kyligence.kap.query.util.UnsupportedSparkFunctionException
 import org.apache.calcite.DataContext
@@ -35,11 +34,12 @@ import org.apache.calcite.avatica.util.TimeUnitRange
 import org.apache.calcite.rel.`type`.RelDataType
 import org.apache.calcite.rex._
 import org.apache.calcite.sql.SqlKind._
-import org.apache.calcite.sql.`type`.{IntervalSqlType, SqlTypeFamily, SqlTypeName}
+import org.apache.calcite.sql.`type`.{BasicSqlType, IntervalSqlType, SqlTypeFamily, SqlTypeName}
 import org.apache.calcite.sql.fun.SqlDatetimeSubtractionOperator
 import org.apache.calcite.util.NlsString
 import org.apache.kylin.common.util.DateFormat
 import org.apache.spark.sql.KapFunctions._
+import org.apache.spark.sql.catalyst.expressions.StringLocate
 import org.apache.spark.sql.catalyst.util.DateTimeUtils
 import org.apache.spark.sql.functions._
 import org.apache.spark.sql.types.{DateType, LongType, TimestampType}
@@ -189,18 +189,27 @@ class SparderRexVisitor(val df: DataFrame,
               .cast(DateType)
           case SqlTypeName.TIMESTAMP =>
             k_lit(children.head)
+              .cast(TimestampType)
               .cast(LongType)
               .plus(k_lit(children.last))
               .cast(TimestampType)
           case _ =>
             k_lit(children.head)
               .plus(k_lit(children.last))
-              .cast(LongType)
         }
       case MINUS =>
         assert(children.size == 2)
         if (op.isInstanceOf[SqlDatetimeSubtractionOperator]) {
-
+          call.getType.getSqlTypeName match {
+            case SqlTypeName.DATE =>
+              return k_lit(children.head).cast(TimestampType).cast(LongType).minus(lit(children.last)).cast(TimestampType).cast(DateType)
+            case SqlTypeName.TIMESTAMP =>
+              return k_lit(children.head)
+                .cast(LongType)
+                .minus(k_lit(children.last))
+                .cast(TimestampType)
+            case _ =>
+          }
           val timeUnitName = call.`type`
             .asInstanceOf[IntervalSqlType]
             .getIntervalQualifier
@@ -228,7 +237,7 @@ class SparderRexVisitor(val df: DataFrame,
             // so we need to multiply 1000 here
 
             val ts1 = k_lit(children.head).cast(TimestampType).cast(LongType) //col
-            val ts2 = k_lit(children.last).cast(LongType) //lit
+            val ts2 = k_lit(children.last).cast(TimestampType).cast(LongType) //lit
             ts1.minus(ts2).multiply(1000)
 
           } else if ("MONTH".equalsIgnoreCase(timeUnitName) || "YEAR"
@@ -260,7 +269,7 @@ class SparderRexVisitor(val df: DataFrame,
         children.head match {
           case num: MonthNum => {
             val ts = k_lit(children.apply(1)).cast(TimestampType).cast(LongType)
-            k_lit(ts).multiply(k_lit(num.num))
+            MonthNum(k_lit(ts).multiply(k_lit(num.num)))
           }
           case _ =>
             k_lit(children.head).multiply(k_lit(children.last))
@@ -347,10 +356,12 @@ class SparderRexVisitor(val df: DataFrame,
             abs(
               k_lit(children.head).cast(SparderTypeUtil
                 .convertSqlTypeNameToSparkType(call.getType)))
-          case "round" | "truncate" =>
+          case "round" =>
             round(
               k_lit(children.head),
-              children.apply(1).asInstanceOf[Int])
+              children.apply(1).asInstanceOf[java.math.BigDecimal].intValue())
+          case "truncate" =>
+            kap_truncate(k_lit(children.head), children.apply(1).asInstanceOf[java.math.BigDecimal].intValue())
           case "cot" =>
             k_lit(1).divide(tan(k_lit(children.head)))
 
@@ -374,8 +385,8 @@ class SparderRexVisitor(val df: DataFrame,
           case "position" =>
             val pos =
               if (children.length == 2) 0
-              else children.apply(2).asInstanceOf[Int]
-            locate(children.head.toString, k_lit(children.apply(1)), pos)
+              else children.apply(2).asInstanceOf[BigDecimal].intValue()
+            new Column(StringLocate(k_lit(children.head).expr, k_lit(children.apply(1)).expr, lit(pos).expr))
           case "concat" =>
             concat(k_lit(children.head), k_lit(children.apply(1)))
           // time_funcs
@@ -447,7 +458,7 @@ class SparderRexVisitor(val df: DataFrame,
     }
   }
 
-  case class MonthNum(num: Int)
+   case class MonthNum(num: Column)
 
   // as underlying schema types for cuboid table are all "string",
   // we rely spark to convert the cuboid col data from string to real type to finish comparing
@@ -461,7 +472,7 @@ class SparderRexVisitor(val df: DataFrame,
         if (Seq("MONTH", "YEAR", "QUARTER").contains(
               t.getIntervalQualifier.timeUnitRange.name)) {
           return Some(
-            MonthNum(literal.getValue.asInstanceOf[BigDecimal].intValue))
+            MonthNum(k_lit(literal.getValue.asInstanceOf[BigDecimal].intValue)))
         }
         if (literal.getType.getFamily
               .asInstanceOf[SqlTypeFamily] == SqlTypeFamily.INTERVAL_DAY_TIME) {
@@ -470,6 +481,17 @@ class SparderRexVisitor(val df: DataFrame,
               new java.math.BigDecimal(literal.getValue.toString).longValue()))
         }
       }
+
+      case literalSql: BasicSqlType => {
+        literalSql.getSqlTypeName match {
+          case SqlTypeName.DATE =>
+            return Some(DateTimeUtils.stringToTime(literal.toString))
+          case SqlTypeName.TIMESTAMP =>
+            return Some(DateTimeUtils.toJavaTimestamp(DateTimeUtils.stringToTimestamp(UTF8String.fromString(literal.toString)).head))
+          case _ =>
+        }
+      }
+
       case _ =>
     }
     literal.getValue match {
