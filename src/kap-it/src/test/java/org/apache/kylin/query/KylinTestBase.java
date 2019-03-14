@@ -74,8 +74,8 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.common.debug.BackdoorToggles;
-import org.apache.kylin.common.util.SandboxMetadataTestCase;
 import org.apache.kylin.common.util.Pair;
+import org.apache.kylin.common.util.SandboxMetadataTestCase;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.metadata.querymeta.SelectedColumnMeta;
 import org.apache.kylin.metadata.realization.NoRealizationFoundException;
@@ -292,7 +292,7 @@ public class KylinTestBase {
 
             return output(resultSet, needDisplay);
         } catch (SQLException sqlException) {
-            Pair<List<List<String>>, List<SelectedColumnMeta>> result = PushDownUtil.tryPushDownSelectQuery(
+            Pair<List<List<String>>, List<SelectedColumnMeta>> result = tryPushDownSelectQuery(
                     ProjectInstance.DEFAULT_PROJECT_NAME, sql, "DEFAULT", sqlException,
                     BackdoorToggles.getPrepareOnly());
             if (result == null) {
@@ -320,8 +320,13 @@ public class KylinTestBase {
     protected Pair<List<List<String>>, List<SelectedColumnMeta>> tryPushDownSelectQuery(String sql) throws Exception {
         SQLException mockException = new SQLException("", new NoRealizationFoundException(""));
 
-        return PushDownUtil.tryPushDownSelectQuery(ProjectInstance.DEFAULT_PROJECT_NAME, sql, "DEFAULT", mockException,
+        return tryPushDownSelectQuery(ProjectInstance.DEFAULT_PROJECT_NAME, sql, "DEFAULT", mockException,
                 BackdoorToggles.getPrepareOnly());
+    }
+
+    public Pair<List<List<String>>, List<SelectedColumnMeta>> tryPushDownSelectQuery(String project, String sql,
+            String defaultSchema, SQLException sqlException, boolean isPrepare) throws Exception {
+        return PushDownUtil.tryPushDownSelectQuery(project, sql, 0, 0, defaultSchema, sqlException, isPrepare);
     }
 
     protected Pair<List<List<String>>, List<SelectedColumnMeta>> tryPushDownNonSelectQuery(String sql,

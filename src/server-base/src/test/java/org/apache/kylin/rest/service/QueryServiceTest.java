@@ -174,7 +174,10 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         Mockito.when(queryService.getConnection(project)).thenReturn(connection);
 
         // mock PushDownUtil
-        Mockito.when(queryService.tryPushDownSelectQuery(project, sql, null, sqlException, false)).thenReturn(
+        SQLRequest sqlRequest = new SQLRequest();
+        sqlRequest.setSql(sql);
+        sqlRequest.setProject(project);
+        Mockito.when(queryService.tryPushDownSelectQuery(sqlRequest, null, sqlException, false)).thenReturn(
                 new Pair<List<List<String>>, List<SelectedColumnMeta>>(Collections.EMPTY_LIST, Collections.EMPTY_LIST));
 
     }

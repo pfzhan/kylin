@@ -80,7 +80,7 @@ public class NBadQueryTest extends NLocalWithSparkSessionTest {
             final String sql = "select * from lineitem where l_orderkey = o.o_orderkey and l_commitdate < l_receiptdate";
             KylinConfig.getInstanceFromEnv().setProperty(PUSHDOWN_RUNNER_KEY,
                     "io.kyligence.kap.query.pushdown.PushDownRunnerSparkImpl");
-            pushDownSql(getProject(), sql,
+            pushDownSql(getProject(), sql, 0, 0,
                     new SQLException(new NoRealizationFoundException("testPushDownToNonExistentDB")));
         } catch (Exception e) {
             Assert.assertTrue(
@@ -100,14 +100,31 @@ public class NBadQueryTest extends NLocalWithSparkSessionTest {
         } catch (Exception sqlException) {
             if (sqlException instanceof SQLException) {
                 Assert.assertTrue(ExceptionUtils.getRootCauseMessage(sqlException).contains("Path does not exist"));
-                pushDownSql(getProject(), sql, (SQLException) sqlException);
+                pushDownSql(getProject(), sql, 0, 0, (SQLException) sqlException);
             }
         }
     }
 
-    private void pushDownSql(String prjName, String sql, SQLException sqlException) throws Exception {
+    @Test
+    public void testPushDownWithSemicolonQuery() throws Exception {
+        final String sql = "select 1 from test_kylin_fact;";
+        KylinConfig.getInstanceFromEnv().setProperty(PUSHDOWN_RUNNER_KEY,
+                "io.kyligence.kap.query.pushdown.PushDownRunnerSparkImpl");
+        pushDownSql(getProject(), sql, 10, 0,
+                new SQLException(new NoRealizationFoundException("test for semicolon query push down")));
+        try {
+            pushDownSql(getProject(), sql, 10, 1,
+                    new SQLException(new NoRealizationFoundException("test for semicolon query push down")));
+        } catch (Exception sqlException) {
+            Assert.assertTrue(ExceptionUtils.getRootCauseMessage(sqlException).contains("input 'OFFSET'"));
+        }
+    }
+
+    private void pushDownSql(String prjName, String sql, int limit, int offset, SQLException sqlException)
+            throws Exception {
         populateSSWithCSVData(KylinConfig.getInstanceFromEnv(), prjName, SparderEnv.getSparkSession());
         Pair<List<List<String>>, List<SelectedColumnMeta>> result = PushDownUtil.tryPushDownSelectQuery(prjName, sql,
+                limit, offset,
                 "DEFAULT", sqlException, BackdoorToggles.getPrepareOnly());
         if (result == null) {
             throw sqlException;

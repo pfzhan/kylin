@@ -47,8 +47,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-import io.kyligence.kap.metadata.project.NProjectManager;
-import lombok.val;
 import javax.ws.rs.BadRequestException;
 
 import org.apache.calcite.sql.SqlBasicCall;
@@ -89,12 +87,20 @@ import org.slf4j.LoggerFactory;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 
+import io.kyligence.kap.metadata.project.NProjectManager;
+import lombok.val;
+
 public class PushDownUtil {
     private static final Logger logger = LoggerFactory.getLogger(PushDownUtil.class);
 
+    private PushDownUtil() {
+    }
+
     public static Pair<List<List<String>>, List<SelectedColumnMeta>> tryPushDownSelectQuery(String project, String sql,
-            String defaultSchema, SQLException sqlException, boolean isPrepare) throws Exception {
-        return tryPushDownQuery(project, sql, defaultSchema, sqlException, true, isPrepare);
+            int limit, int offset, String defaultSchema, SQLException sqlException, boolean isPrepare)
+            throws Exception {
+        String massagedSql = QueryUtil.normalMassageSql(KylinConfig.getInstanceFromEnv(), sql, limit, offset);
+        return tryPushDownQuery(project, massagedSql, defaultSchema, sqlException, true, isPrepare);
     }
 
     public static Pair<List<List<String>>, List<SelectedColumnMeta>> tryPushDownNonSelectQuery(String project,

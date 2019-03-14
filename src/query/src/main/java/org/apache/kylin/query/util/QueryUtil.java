@@ -84,6 +84,21 @@ public class QueryUtil {
 
     static String massageSql(KylinConfig kylinConfig, String sql, String project, int limit, int offset,
             String defaultSchema) {
+        String massagedSql = normalMassageSql(kylinConfig, sql, limit, offset);
+        return transformSql(kylinConfig, massagedSql, project, defaultSchema);
+    }
+
+    private static String transformSql(KylinConfig kylinConfig, String sql, String project,
+            String defaultSchema) {
+        // customizable SQL transformation
+        initQueryTransformersIfNeeded(kylinConfig);
+        for (IQueryTransformer t : queryTransformers) {
+            sql = t.transform(sql, project, defaultSchema);
+        }
+        return sql;
+    }
+
+    public static String normalMassageSql(KylinConfig kylinConfig, String sql, int limit, int offset) {
         sql = sql.trim();
         sql = sql.replace("\r", " ").replace("\n", System.getProperty("line.separator"));
 
@@ -102,12 +117,6 @@ public class QueryUtil {
         if (kylinConfig.getForceLimit() > 0 && !sql.toLowerCase().contains("limit")
                 && sql.toLowerCase().matches("^select\\s+\\*\\p{all}*")) {
             sql += ("\nLIMIT " + kylinConfig.getForceLimit());
-        }
-
-        // customizable SQL transformation
-        initQueryTransformersIfNeeded(kylinConfig);
-        for (IQueryTransformer t : queryTransformers) {
-            sql = t.transform(sql, project, defaultSchema);
         }
         return sql;
     }

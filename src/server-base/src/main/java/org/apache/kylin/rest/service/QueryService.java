@@ -68,9 +68,6 @@ import java.util.stream.Collectors;
 
 import javax.annotation.PostConstruct;
 
-import io.kyligence.kap.metadata.query.NativeQueryRealization;
-import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
-import io.kyligence.kap.common.persistence.transaction.UnitOfWorkParams;
 import org.apache.calcite.avatica.ColumnMetaData.Rep;
 import org.apache.calcite.config.CalciteConnectionConfig;
 import org.apache.calcite.jdbc.CalcitePrepare;
@@ -138,8 +135,11 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.Lists;
 
+import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
+import io.kyligence.kap.common.persistence.transaction.UnitOfWorkParams;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
+import io.kyligence.kap.metadata.query.NativeQueryRealization;
 import io.kyligence.kap.rest.metrics.QueryMetricsContext;
 import io.kyligence.kap.rest.transaction.Transaction;
 import lombok.AllArgsConstructor;
@@ -214,8 +214,7 @@ public class QueryService extends BasicService {
             columnMetas.add(new SelectedColumnMeta(false, false, false, false, 1, false, Integer.MAX_VALUE, "c0", "c0",
                     null, null, null, Integer.MAX_VALUE, 128, 1, "char", false, false, false));
 
-            SQLResponse sqlResponse = new SQLResponse(columnMetas, r.getFirst(), 0, false, null, false,
-                    true);
+            SQLResponse sqlResponse = new SQLResponse(columnMetas, r.getFirst(), 0, false, null, false, true);
             sqlResponse.setEngineType(QueryContext.current().getPushdownEngine());
             return sqlResponse;
         } catch (Exception e) {
@@ -264,8 +263,10 @@ public class QueryService extends BasicService {
         float duration = response.getDuration() / (float) 1000;
 
         if (CollectionUtils.isNotEmpty(response.getNativeRealizations())) {
-            modelNames = response.getNativeRealizations().stream().map(NativeQueryRealization::getModelAlias).collect(Collectors.toList());
-            layoutIds = Collections2.transform(response.getNativeRealizations(), realization -> String.valueOf(realization.getLayoutId()));
+            modelNames = response.getNativeRealizations().stream().map(NativeQueryRealization::getModelAlias)
+                    .collect(Collectors.toList());
+            layoutIds = Collections2.transform(response.getNativeRealizations(),
+                    realization -> String.valueOf(realization.getLayoutId()));
         }
 
         int resultRowCount = 0;
@@ -309,10 +310,9 @@ public class QueryService extends BasicService {
         aclEvaluate.checkProjectReadPermission(sqlRequest.getProject());
         logger.info("Check query permission in " + (System.currentTimeMillis() - t) + " ms.");
         sqlRequest.setUsername(getUsername());
-        return UnitOfWork.doInTransactionWithRetry(
-                UnitOfWorkParams.<SQLResponse>builder().unitName(sqlRequest.getProject()).readonly(true)
-                        .processor(() -> queryWithCache(sqlRequest, isQueryInspect)).build()
-        );
+        return UnitOfWork
+                .doInTransactionWithRetry(UnitOfWorkParams.<SQLResponse> builder().unitName(sqlRequest.getProject())
+                        .readonly(true).processor(() -> queryWithCache(sqlRequest, isQueryInspect)).build());
     }
 
     public SQLResponse queryWithCache(SQLRequest sqlRequest, boolean isQueryInspect) {
@@ -584,9 +584,10 @@ public class QueryService extends BasicService {
         return QueryConnection.getConnection(project);
     }
 
-    Pair<List<List<String>>, List<SelectedColumnMeta>> tryPushDownSelectQuery(String project, String sql,
+    Pair<List<List<String>>, List<SelectedColumnMeta>> tryPushDownSelectQuery(SQLRequest sqlRequest,
             String defaultSchema, SQLException sqlException, boolean isPrepare) throws Exception {
-        return PushDownUtil.tryPushDownSelectQuery(project, sql, defaultSchema, sqlException, isPrepare);
+        return PushDownUtil.tryPushDownSelectQuery(sqlRequest.getProject(), sqlRequest.getSql(), sqlRequest.getLimit(),
+                sqlRequest.getOffset(), defaultSchema, sqlException, isPrepare);
     }
 
     public List<TableMeta> getMetadata(String project) throws SQLException {
@@ -852,7 +853,7 @@ public class QueryService extends BasicService {
         } catch (SQLException sqlException) {
             Pair<List<List<String>>, List<SelectedColumnMeta>> r = null;
             try {
-                r = tryPushDownSelectQuery(sqlRequest.getProject(), sqlRequest.getSql(), conn.getSchema(), sqlException,
+                r = tryPushDownSelectQuery(sqlRequest, conn.getSchema(), sqlException,
                         BackdoorToggles.getPrepareOnly());
             } catch (Exception e2) {
                 logger.error("pushdown engine failed current query too", e2);
@@ -924,8 +925,7 @@ public class QueryService extends BasicService {
             DBUtils.closeQuietly(preparedStatement);
         }
 
-        return new SQLResponse(columnMetas, results, 0, false, null, false,
-                isPushDown);
+        return new SQLResponse(columnMetas, results, 0, false, null, false, isPushDown);
     }
 
     private boolean isPrepareStatementWithParams(SQLRequest sqlRequest) {
@@ -956,14 +956,14 @@ public class QueryService extends BasicService {
                     }
                     String modelId = ctx.realization.getModel().getUuid();
                     String modelAlias = ctx.realization.getModel().getAlias();
-                    realizations.add(new NativeQueryRealization(modelId, modelAlias, ctx.storageContext.getCuboidLayoutId(), realizationType));
+                    realizations.add(new NativeQueryRealization(modelId, modelAlias,
+                            ctx.storageContext.getCuboidLayoutId(), realizationType));
                 }
             }
         }
         logger.info(logSb.toString());
 
-        SQLResponse response = new SQLResponse(columnMetas, results, 0, false, null, isPartialResult,
-                isPushDown);
+        SQLResponse response = new SQLResponse(columnMetas, results, 0, false, null, isPartialResult, isPushDown);
         response.setQueryId(QueryContext.current().getQueryId());
         response.setTotalScanCount(QueryContext.current().getScannedRows());
         response.setTotalScanBytes(QueryContext.current().getScannedBytes());
