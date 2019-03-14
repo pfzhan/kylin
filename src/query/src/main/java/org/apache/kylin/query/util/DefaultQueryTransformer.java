@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -51,40 +50,47 @@ import org.apache.kylin.query.util.QueryUtil.IQueryTransformer;
 public class DefaultQueryTransformer implements IQueryTransformer {
 
     private static final String S0 = "\\s*";
-    private static final String S1 = "\\s";
     private static final String SM = "\\s+";
-    private static final Pattern PTN_GROUP_BY = Pattern.compile(S1 + "GROUP" + SM + "BY" + S1,
-            Pattern.CASE_INSENSITIVE);
-    private static final Pattern PTN_HAVING_COUNT_GREATER_THAN_ZERO = Pattern.compile(S1 + "HAVING" + SM + "[(]?" + S0
-            + "COUNT" + S0 + "[(]" + S0 + "1" + S0 + "[)]" + S0 + ">" + S0 + "0" + S0 + "[)]?",
-            Pattern.CASE_INSENSITIVE);
+    private static final String ONE = "1";
+
     private static final Pattern PTN_SUM = Pattern
-            .compile(S0 + "SUM" + S0 + "[(]" + S0 + "\\d+(\\.\\d+)?" + S0 + "[)]" + S0, Pattern.CASE_INSENSITIVE);
-    private static final Pattern PTN_SUM_1 = Pattern.compile(S0 + "SUM" + S0 + "[(]" + S0 + "[1]" + S0 + "[)]" + S0,
-            Pattern.CASE_INSENSITIVE);
-    private static final Pattern PTN_MIN_1 = Pattern.compile(S0 + "MIN" + S0 + "[(]" + S0 + "[1]" + S0 + "[)]" + S0,
-            Pattern.CASE_INSENSITIVE);
-    private static final Pattern PTN_MAX_1 = Pattern.compile(S0 + "MAX" + S0 + "[(]" + S0 + "[1]" + S0 + "[)]" + S0,
-            Pattern.CASE_INSENSITIVE);
+            .compile(S0 + "SUM" + S0 + "[(]" + S0 + "(-?\\d+(\\.\\d+)?)" + S0 + "[)]" + S0, Pattern.CASE_INSENSITIVE);
+    private static final Pattern PTN_MIN_MAX = Pattern.compile(
+            S0 + "(MIN|MAX)" + S0 + "[(]" + S0 + "([-]?\\d+(\\.\\d+)?)" + S0 + "[)]" + S0, Pattern.CASE_INSENSITIVE);
     private static final Pattern PTN_NOT_EQ = Pattern.compile(S0 + "!=" + S0, Pattern.CASE_INSENSITIVE);
     private static final Pattern PTN_INTERVAL = Pattern.compile(
-            "interval" + SM + "(floor\\()([\\d\\.]+)(\\))" + SM + "(second|minute|hour|day|month|year)",
+            "interval" + SM + "(floor\\()([\\d.]+)(\\))" + SM + "(second|minute|hour|day|month|year)",
             Pattern.CASE_INSENSITIVE);
-    private static final Pattern PTN_HAVING_ESCAPE_FUNCTION = Pattern.compile("\\{fn" + SM + "(EXTRACT\\(.*?\\))" + "\\}",
-            Pattern.CASE_INSENSITIVE);
+    private static final Pattern PTN_HAVING_ESCAPE_FUNCTION = Pattern
+            .compile("[{]" + S0 + "fn" + SM + "(EXTRACT\\(.*?\\))" + S0 + "[}]", Pattern.CASE_INSENSITIVE);
+
+    //TODO #11033
     private static final Pattern PIN_SUM_OF_CAST = Pattern.compile(S0 + "SUM" + S0 + "\\(" + S0 + "CAST" + S0 + "\\("
             + S0 + "([^\\s,]+)" + S0 + "AS" + SM + "DOUBLE" + S0 + "\\)" + S0 + "\\)", Pattern.CASE_INSENSITIVE);
-    private static final Pattern PIN_SUM_OF_FN_CONVERT = Pattern
-            .compile(S0 + "SUM" + S0 + "\\(" + S0 + "\\{\\s*fn" + SM + "convert" + S0 + "\\(" + S0 + "([^\\s,]+)" + S0
-                    + "," + S0 + "(SQL_DOUBLE|DOUBLE|SQL_BIGINT|BIGINT|INT|SMALLINT|SQL_SMALLINT" +
-                    "|TINYINT|SQL_TINYINT|INTEGER|SQL_INTEGER|FLOAT|SQL_FLOAT)" + S0 + "\\)"
-                    + S0 + "\\}" + S0 + "\\)", Pattern.CASE_INSENSITIVE);
+    private static final Pattern PIN_SUM_OF_FN_CONVERT = Pattern.compile(S0 + "SUM" + S0 + "\\(" + S0 + "[{]" + S0
+            + "fn" + SM + "convert" + S0 + "\\(" + S0 + "([^\\s,]+)" + S0 + "," + S0
+            + "(SQL_DOUBLE|DOUBLE|SQL_BIGINT|BIGINT|INT|SMALLINT|SQL_SMALLINT|TINYINT|SQL_TINYINT|INTEGER|SQL_INTEGER|FLOAT|SQL_FLOAT)"
+            + S0 + "\\)" + S0 + "[}]" + S0 + "\\)", Pattern.CASE_INSENSITIVE);
+    private static final Pattern PTN_DT_FUNCTION = Pattern.compile(
+            S0 + "(YEAR|QUARTER|MONTH|WEEK|DAY|DAYOFYEAR|DAYOFMONTH|DAYOFWEEK)" + "\\(([^()]+)\\)",
+            Pattern.CASE_INSENSITIVE);
 
     @Override
     public String transform(String sql, String project, String defaultSchema) {
-        Matcher m;
+        sql = transformSumOfCast(sql);
+        sql = transformSumOfFnConvert(sql);
+        sql = transformEscapeFunction(sql);
+        sql = transformSumOfNumericLiteral(sql);
+        sql = transformMinMaxNumericLiteral(sql);
+        sql = transformNotEqual(sql);
+        sql = transformIntervalFunc(sql);
+        sql = transformTypeOfArgInTimeUnitFunc(sql);
+        return sql;
+    }
 
-        // Case: SUM(CAST (column_name AS DOUBLE))
+    // Case: SUM(CAST (column_name AS DOUBLE))
+    private static String transformSumOfCast(String sql) {
+        Matcher m;
         while (true) {
             m = PIN_SUM_OF_CAST.matcher(sql);
             if (!m.find())
@@ -93,8 +99,12 @@ public class DefaultQueryTransformer implements IQueryTransformer {
             sql = sql.substring(0, m.start()) + " SUM(" + m.group(1).trim() + ")"
                     + sql.substring(m.end(), sql.length());
         }
+        return sql;
+    }
 
-        //Case: SUM({fn CONVERT(...)}) generated by PowerBI
+    //Case: SUM({fn CONVERT(...)}) generated by PowerBI
+    private static String transformSumOfFnConvert(String sql) {
+        Matcher m;
         while (true) {
             m = PIN_SUM_OF_FN_CONVERT.matcher(sql);
             if (!m.find())
@@ -103,71 +113,66 @@ public class DefaultQueryTransformer implements IQueryTransformer {
             sql = sql.substring(0, m.start()) + " SUM(" + m.group(1).trim() + ")"
                     + sql.substring(m.end(), sql.length());
         }
+        return sql;
+    }
 
-        // Case {fn EXTRACT(...) }
-        // Use non-greedy regex matching to remove escape functions
-        // Notice: Only unsupported escape function need to be handled
-        // Reference: https://calcite.apache.org/docs/reference.html#jdbc-function-escape
+    // Case {fn EXTRACT(...) }
+    // Use non-greedy regex matching to remove escape functions
+    // Notice: Only unsupported escape function need to be handled
+    // Reference: https://calcite.apache.org/docs/reference.html#jdbc-function-escape
+    private static String transformEscapeFunction(String sql) {
+        Matcher m;
         while (true) {
             m = PTN_HAVING_ESCAPE_FUNCTION.matcher(sql);
             if (!m.find())
                 break;
             sql = sql.substring(0, m.start()) + m.group(1) + sql.substring(m.end());
         }
+        return sql;
+    }
 
-        // Case: HAVING COUNT(1)>0 without Group By
-        // Tableau generates: SELECT SUM(1) AS "COL" FROM "VAC_SW" HAVING
-        // COUNT(1)>0
-        m = PTN_HAVING_COUNT_GREATER_THAN_ZERO.matcher(sql);
-        if (m.find() && PTN_GROUP_BY.matcher(sql).find() == false) {
-            sql = sql.substring(0, m.start()) + " " + sql.substring(m.end());
-        }
-
-        // Case: SUM(1)
-        // Replace it with COUNT(1)
-        while (true) {
-            m = PTN_SUM_1.matcher(sql);
-            if (!m.find())
-                break;
-            sql = sql.substring(0, m.start()) + " COUNT(1) " + sql.substring(m.end());
-        }
-
-        // Case: SUM(N)
-        // Replace it with N * COUNT(1)
+    // Case: SUM(numeric_literal) --> numeric_literal * COUNT(1)
+    private static String transformSumOfNumericLiteral(String sql) {
+        Matcher m;
         while (true) {
             m = PTN_SUM.matcher(sql);
             if (!m.find())
                 break;
-            String val = m.group().toUpperCase().replace("SUM(", "").replace(")", "");
-            sql = sql.substring(0, m.start()) + " " + val.trim() + " * COUNT(1) " + sql.substring(m.end());
+            String literal = m.group(1);
+            String replacedLiteral = ONE.equals(literal) ? " COUNT(1) " : " " + literal + " * COUNT(1) ";
+            sql = sql.substring(0, m.start()) + replacedLiteral + sql.substring(m.end());
         }
+        return sql;
+    }
 
-        // Case: MIN(1) or MAX(1)
-        // Replace it with 1
+    // Case: MIN(numeric_literal), MAX(numeric_literal) --> numeric_literal
+    private static String transformMinMaxNumericLiteral(String sql) {
+        Matcher m;
         while (true) {
-            m = PTN_MIN_1.matcher(sql);
+            m = PTN_MIN_MAX.matcher(sql);
             if (!m.find())
                 break;
-            sql = sql.substring(0, m.start()) + " 1 " + sql.substring(m.end());
+            sql = sql.substring(0, m.start()) + " " + m.group(2) + " " + sql.substring(m.end());
         }
-        while (true) {
-            m = PTN_MAX_1.matcher(sql);
-            if (!m.find())
-                break;
-            sql = sql.substring(0, m.start()) + " 1 " + sql.substring(m.end());
-        }
+        return sql;
+    }
 
-        // Case: !=
-        // Replace it with <>
+    // Case: !=    -->    <>
+    private static String transformNotEqual(String sql) {
+        Matcher m;
         while (true) {
             m = PTN_NOT_EQ.matcher(sql);
             if (!m.find())
                 break;
             sql = sql.substring(0, m.start()) + " <> " + sql.substring(m.end());
         }
+        return sql;
+    }
 
-        // ( date '2001-09-28' + interval floor(1) day ) generated by cognos
-        // calcite only recognizes date '2001-09-28' + interval '1' day
+    // ( date '2001-09-28' + interval floor(1) day ) generated by cognos
+    // calcite only recognizes date '2001-09-28' + interval '1' day
+    private static String transformIntervalFunc(String sql) {
+        Matcher m;
         while (true) {
             m = PTN_INTERVAL.matcher(sql);
             if (!m.find())
@@ -176,8 +181,40 @@ public class DefaultQueryTransformer implements IQueryTransformer {
             int value = (int) Math.floor(Double.valueOf(m.group(2)));
             sql = sql.substring(0, m.start(1)) + "'" + value + "'" + sql.substring(m.end(3));
         }
-
-        
         return sql;
+    }
+
+    /*
+     * Support these cases: the actual value of 'colName' is date, but the column type is string.
+     *    year('2012-01-01')      -> year(cast('2012-01-01' as date))
+     *    {fn year('2012-01-01')} -> {fn year(cast('2012-01-01' as date))}
+     *    year(colName)           -> year(cast(colName as date))
+     *
+     *    year(date '2012-01-01') -> ignored
+     *    year(cast('2012-01-01' as date)) -> ignored
+     *    year({fn convert('2012-01-01', date)}) -> ignored
+     *    year(cast(colName, date)) -> ignored
+     *    year({fn convert(colName, date)} -> ignored
+     */
+    private static String transformTypeOfArgInTimeUnitFunc(String sql) {
+        Matcher m = PTN_DT_FUNCTION.matcher(sql);
+
+        if (!m.find()) {
+            return sql;
+        }
+
+        String left = sql.substring(0, m.start());
+        String str = m.group();
+        String right = sql.substring(m.end());
+
+        String convertedStr = str;
+        if (!str.toUpperCase().contains(" AS ") && !str.toUpperCase().replaceAll(SM, " ").contains("DATE '")
+                && !str.toUpperCase().contains(" CONVERT(")) {
+            String functionName = m.group(1);
+            String functionParam = m.group(2);
+            convertedStr = " " + functionName + "(cast(" + functionParam.trim() + " as date))";
+        }
+
+        return left + convertedStr + transformTypeOfArgInTimeUnitFunc(right);
     }
 }

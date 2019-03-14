@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -51,9 +50,8 @@ import org.junit.Test;
 public class DefaultQueryTransformerTest {
 
     @Test
-    public void SumOfFnConvertTransform() throws Exception {
+    public void sumOfFnConvertTransform() {
         DefaultQueryTransformer transformer = new DefaultQueryTransformer();
-
         String fnConvertSumSql = "select sum({fn convert(\"LSTG_SITE_ID\", SQL_DOUBLE)}) from KYLIN_SALES group by LSTG_SITE_ID";
         String correctSql = transformer.transform(fnConvertSumSql, "", "");
         assertTrue("select sum(\"LSTG_SITE_ID\") from KYLIN_SALES group by LSTG_SITE_ID".equalsIgnoreCase(correctSql));
@@ -88,7 +86,35 @@ public class DefaultQueryTransformerTest {
     }
 
     @Test
-    public void SumOfCastTransform() throws Exception {
+    public void transformSumNumericLiteral() {
+        DefaultQueryTransformer transformer = new DefaultQueryTransformer();
+        String originSql = "select sum  (1) from kylin_sales";
+        String transformedSql = transformer.transform(originSql, "", "");
+        assertTrue("select COUNT(1) from kylin_sales".equalsIgnoreCase(transformedSql));
+
+        originSql = "select sum(-1.0  ) from kylin_sales";
+        transformedSql = transformer.transform(originSql, "", "");
+        assertTrue("select -1.0 * COUNT(1) from kylin_sales".equalsIgnoreCase(transformedSql));
+
+        originSql = "select sum( 3.14159   ) from kylin_sales";
+        transformedSql = transformer.transform(originSql, "", "");
+        assertTrue("select 3.14159 * COUNT(1) from kylin_sales".equalsIgnoreCase(transformedSql));
+    }
+
+    @Test
+    public void transformMinMaxNumericLiteral() {
+        DefaultQueryTransformer transformer = new DefaultQueryTransformer();
+        String originSql = "select max(1  ) from kylin_sales";
+        String transformedSql = transformer.transform(originSql, "", "");
+        assertTrue("select 1 from kylin_sales".equalsIgnoreCase(transformedSql));
+
+        originSql = "select min  (-273.15) as absolute_zero from kylin_sales";
+        transformedSql = transformer.transform(originSql, "", "");
+        assertTrue("select -273.15 as absolute_zero from kylin_sales".equalsIgnoreCase(transformedSql));
+    }
+
+    @Test
+    public void sumOfCastTransform() {
         DefaultQueryTransformer transformer = new DefaultQueryTransformer();
 
         String fnConvertSumSql = "select SUM(CAST(LSTG_SITE_ID AS DOUBLE)) from KYLIN_SALES group by LSTG_SITE_ID";
@@ -117,13 +143,60 @@ public class DefaultQueryTransformerTest {
         assertTrue("select sum(LSTG_SITE_ID), sum(price) from KYLIN_SALES group by LSTG_SITE_ID"
                 .equalsIgnoreCase(correctSql));
     }
-    
+
     @Test
-    public void functionEscapeTransform() throws Exception {
+    public void functionEscapeTransform() {
         DefaultQueryTransformer transformer = new DefaultQueryTransformer();
 
         String fnConvertSumSql = "select {fn EXTRACT(YEAR from PART_DT)} from KYLIN_SALES";
         String correctSql = transformer.transform(fnConvertSumSql, "", "");
         assertTrue("select EXTRACT(YEAR from PART_DT) from KYLIN_SALES".equalsIgnoreCase(correctSql));
+    }
+
+    @Test
+    public void testForceCastTimeUnitFunction() {
+        DefaultQueryTransformer transformer = new DefaultQueryTransformer();
+        String sql = "select year( cast('2012-01-01' as date)     ), month('2012-01-01' ) from kylin_sales";
+        String correctSql = transformer.transform(sql, "", "");
+        assertTrue("select year( cast('2012-01-01' as date)     ), month(cast('2012-01-01' as date)) from kylin_sales"
+                .equalsIgnoreCase(correctSql));
+
+        sql = "select {fn year('2012-01-01')} from kylin_sales";
+        correctSql = transformer.transform(sql, "", "");
+        assertTrue("select {fn year(cast('2012-01-01' as date))} from kylin_sales".equalsIgnoreCase(correctSql));
+
+        sql = "select day(  date   '2012-01-01') from kylin_sales";
+        correctSql = transformer.transform(sql, "", "");
+        assertTrue("select day(  date   '2012-01-01') from kylin_sales".equalsIgnoreCase(correctSql));
+
+        sql = "select year({fn convert('2012-01-01', date)}) from kylin_sales";
+        correctSql = transformer.transform(sql, "", "");
+        assertTrue("select year({fn convert('2012-01-01', date)}) from kylin_sales".equalsIgnoreCase(correctSql));
+
+        sql = "select year({fn convert('2012-01-01', sql_date)}) from kylin_sales";
+        correctSql = transformer.transform(sql, "", "");
+        assertTrue("select year({fn convert('2012-01-01', sql_date)}) from kylin_sales".equalsIgnoreCase(correctSql));
+
+        sql = "select year(shipdate) from tbl";
+        correctSql = transformer.transform(sql, "", "");
+        assertTrue("select year(cast(shipdate as date)) from tbl".equalsIgnoreCase(correctSql));
+        correctSql = transformer.transform(correctSql, "", "");
+        assertTrue("select year(cast(shipdate as date)) from tbl".equalsIgnoreCase(correctSql));
+
+        sql = "select year({fn convert(shipdate, date)}) from tbl";
+        correctSql = transformer.transform(sql, "", "");
+        assertTrue("select year({fn convert(shipdate, date)}) from tbl".equalsIgnoreCase(correctSql));
+    }
+
+    @Test
+    public void testTransformIntervalFunction() {
+        DefaultQueryTransformer transformer = new DefaultQueryTransformer();
+        String sql = "select ( date '2001-09-28' + interval floor(1.5) day ) from test_kylin_fact";
+        String correctSql = transformer.transform(sql, "", "");
+        assertTrue("select ( date '2001-09-28' + interval '1' day ) from test_kylin_fact".equalsIgnoreCase(correctSql));
+
+        sql = "select ( date '2001-09-28' + interval floor(3.) day ) from test_kylin_fact";
+        correctSql = transformer.transform(sql, "", "");
+        assertTrue("select ( date '2001-09-28' + interval '3' day ) from test_kylin_fact".equalsIgnoreCase(correctSql));
     }
 }
