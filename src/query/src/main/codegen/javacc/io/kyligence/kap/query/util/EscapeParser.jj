@@ -47,6 +47,12 @@ PARSER_END(EscapeParser)
 //| "\r"
 //}
 
+<ESCAPE, FUNCTION, TIMESTAMP >
+SKIP :
+{
+  < SKIP_SPACE : <SPACE> >
+}
+
 < DEFAULT >
 TOKEN :
 {
@@ -55,16 +61,10 @@ TOKEN :
 | < RPAREN : ")" >
 | < LPAREN : "(" >
 | < COMMA : "," >
-| < SPACE : [" ", "\t", "\n", "\r"] >
+| < SPACE : [" ", "\t","\n", "\r"] >
 | < QUOTE: "'" >
 | < QUOTED_STRING: <QUOTE> ( (~["'"]) | ("''"))* <QUOTE> >
 | < ANY : (~[ "{", "}", " ", "(", ")", ",", "\t", "\n", "\r" ])+ >
-}
-
-< ESCAPE, FUNCTION, TIMESTAMP >
-SKIP :
-{
-  < SKIP_SPACE : <SPACE> >
 }
 
 < ESCAPE >
@@ -73,7 +73,9 @@ TOKEN :
   < FN : "fn" > : FUNCTION
 | < TS : "ts" > : DEFAULT
 | < D : "d" > : DEFAULT
+| < DATE : "date" > : DEFAULT
 | < T : "t" > : DEFAULT
+| < TIME : "time" > : DEFAULT
 }
 
 < FUNCTION >
@@ -86,11 +88,19 @@ TOKEN :
 String Input() :
 {
     String innerString;
+    StringBuilder transformedStr = new StringBuilder();
 }
 {
+    (
+    LOOKAHEAD(2)
     innerString = Expression()
     {
-        return innerString;
+        transformedStr.append(innerString);
+    }
+    )+
+    <EOF>
+    {
+        return transformedStr.toString();
     }
 }
 
@@ -108,17 +118,7 @@ String Expression() :
     | innerString = Comma()
     | innerString = Space()
     | innerString = Any()
-    | (
-        < EOF >
-        {
-            return "";
-        }
-        )
     )
-    (
-        LOOKAHEAD(2)
-        nextString = Expression()
-    )?
     {
         return innerString + nextString;
     }
@@ -168,16 +168,20 @@ String Any() :
 
 String ParenExpress() :
 {
-    String innerString = "";
+    String innerString;
+    String transformed = "";
 }
 {
     < LPAREN >
     (
         innerString = Expression()
-    )?
+        {
+            transformed += innerString;
+        }
+    )+
     < RPAREN >
     {
-        return "(" + innerString + ")";
+        return "(" + transformed + ")";
     }
 }
 
@@ -187,6 +191,7 @@ String EscapeExpress() :
 }
 {
     < LBRACE >
+    (< SPACE >)*
     (
         innerString = EscapeFunction()
     |   innerString = EscapeTimestamp()
@@ -280,7 +285,7 @@ String EscapeDate() :
     String timestampExpr;
 }
 {
-    < D >
+    (< DATE > | <D>)
     (< SPACE >)*
     (
         timestampExpr = QuotedString()
@@ -295,7 +300,7 @@ String EscapeTime() :
     String timestampExpr;
 }
 {
-    < T >
+    (< T > | <TIME>)
     (< SPACE >)*
     (
         timestampExpr = QuotedString()

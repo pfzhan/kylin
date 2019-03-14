@@ -24,6 +24,10 @@
 
 package io.kyligence.kap.query.util;
 
+import java.io.File;
+import java.nio.charset.Charset;
+
+import org.apache.commons.io.FileUtils;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -59,6 +63,15 @@ public class EscapeTransformerTest {
     }
 
     @Test
+    public void testSqlwithComment() {
+        String originalSQL = "select --test comment will remove\n \"--won't remove in quote\", /* will remove multi line comment*/ { fn count(*) } from tbl";
+        String expectedSQL = "select  \"--won't remove in quote\",  count(*) from tbl";
+
+        String transformedSQL = transformer.transform(originalSQL);
+        Assert.assertEquals(expectedSQL, transformedSQL);
+    }
+
+    @Test
     public void normalFNTest() {
         String originalSQL = "select { fn count(*) }, avg(sales) from tbl";
         String expectedSQL = "select count(*), avg(sales) from tbl";
@@ -69,7 +82,7 @@ public class EscapeTransformerTest {
 
     @Test
     public void leftFNTest() {
-        String originalSQL = "select { fn LEFT(LSTG_FORMAT_NAME, 2) } from KYLIN_SALES";
+        String originalSQL = "select { fn \n LEFT(LSTG_FORMAT_NAME,\n 2) } from KYLIN_SALES";
         String expectedSQL = "select SUBSTRING(LSTG_FORMAT_NAME, 1, 2) from KYLIN_SALES";
 
         String transformedSQL = transformer.transform(originalSQL);
@@ -243,6 +256,38 @@ public class EscapeTransformerTest {
 
         String transformedSQL = transformer.transform(originalSQL);
         Assert.assertEquals(expectedSQL, transformedSQL);
+    }
+
+    @Test
+    public void testBigQuery() throws Exception {
+        //cpic query was caused StackOverFlow Error
+        String originSql = FileUtils.readFileToString(new File("src/test/resources/query/cpic/big_query1.sql"),
+                Charset.defaultCharset());
+        String expectedSql = FileUtils.readFileToString(
+                new File("src/test/resources/query/cpic/big_query1.sql.expected"), Charset.defaultCharset());
+
+        String transformedSQL = transformer.transform(originSql);
+        Assert.assertEquals(expectedSql, transformedSQL);
+
+    }
+
+    @Test
+    public void testRemoveCommentQuery() throws Exception {
+        String originalSQL = "select --test comment will remove\n \"--won't remove in quote, /*test*/\", /* will remove multi line comment*/ { fn count(*) } from tbl";
+        String transformedSQL = new CommentParser(originalSQL).Input();
+
+        String expectedSQL = "select  \"--won't remove in quote, \",  { fn count(*) } from tbl";
+        Assert.assertEquals(expectedSQL, transformedSQL);
+    }
+
+    @Test
+    public void testTransformJDBCFuncQuery() throws Exception {
+        String originSql = "SELECT \"CALCS\".\"DATETIME0\", {DATE '2004-07-01 00:00:00'}, {fn TIMESTAMPDIFF(SQL_TSI_DAY,{TIME '2004-07-01 00:00:00'},{fn CONVERT(\"CALCS\".\"DATETIME0\", DATE)})} AS \"TEMP_Test__2422160351__0_\"\n"
+                + "FROM \"TDVT\".\"CALCS\" \"CALCS\"\n" + "GROUP BY \"CALCS\".\"DATETIME0\"";
+        String expectedSql = "SELECT \"CALCS\".\"DATETIME0\", DATE '2004-07-01 00:00:00', TIMESTAMPDIFF('SQL_TSI_DAY', TIME '2004-07-01 00:00:00', CAST(\"CALCS\".\"DATETIME0\" AS DATE)) AS \"TEMP_Test__2422160351__0_\"\n"
+                + "FROM \"TDVT\".\"CALCS\" \"CALCS\"\n" + "GROUP BY \"CALCS\".\"DATETIME0\"";
+        String transformedSQL = transformer.transform(originSql);
+        Assert.assertEquals(expectedSql, transformedSQL);
     }
 
 }

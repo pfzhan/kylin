@@ -1,0 +1,142 @@
+options {
+    IGNORE_CASE = true;
+    STATIC = false;
+    UNICODE_INPUT=true;
+}
+
+PARSER_BEGIN(CommentParser)
+package io.kyligence.kap.query.util;
+import java.io.StringReader;
+import java.util.List;
+import java.util.ArrayList;
+import java.util.Scanner;
+import io.kyligence.kap.common.obf.IKeep;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+public class CommentParser implements IKeep {
+
+    private final static Logger logger = LoggerFactory.getLogger(CommentParser.class);
+
+
+    public static void main(String args[]) throws ParseException {
+        System.out.println("Input SQL:");
+        Scanner reader = new Scanner(System.in);
+        String sql = reader.nextLine();
+        reader.close();
+        CommentParser parser = new CommentParser(new StringReader(sql));
+        String parseResult = parser.Input();
+        System.out.println("Translated SQL:");
+        System.out.println(parseResult);
+    }
+
+    public CommentParser(String sql) {
+        this(new StringReader(sql));
+    }
+}
+
+PARSER_END(CommentParser)
+
+//< DEFAULT, ESCAPE, FUNCTION >
+//SKIP :
+//{
+//  "\t"
+//| "\n"
+//| "\r"
+//}
+
+<DEFAULT>
+SKIP : {
+    "/*" : WITHINCOMMENT
+    | <"--" (~["\n","\r"])* ("\n"|"\r"|"\r\n")>
+}
+
+< DEFAULT >
+TOKEN :
+{
+ < REMAIN_TOKEN : [" ", "\t","\n", "\r", ",", "/"] >
+| < QUOTE: "'" >
+| < QUOTED_STRING: <QUOTE> ( (~["'"]) | ("''"))* <QUOTE> >
+| < ANY : (~[" ", ",", "\t", "\n", "\r", "/" ])+ >
+}
+
+<WITHINCOMMENT>
+SKIP :
+{
+  "*/" : DEFAULT
+}
+
+<WITHINCOMMENT>
+MORE :
+{
+  < ~[] >
+}
+
+/** Root production. */
+String Input() :
+{
+    String innerString;
+    StringBuilder transformedStr = new StringBuilder();
+}
+{
+    (
+    LOOKAHEAD(2)
+    innerString = Expression()
+    {
+        transformedStr.append(innerString);
+    }
+    )+
+    <EOF>
+    {
+        return transformedStr.toString();
+    }
+}
+
+/** Brace counting production. */
+String Expression() :
+{
+    String innerString = "";
+    String nextString = "";
+}
+{
+    (
+     innerString = QuotedString()
+    | innerString = RemainToken()
+    | innerString = Any()
+    )
+    {
+        return innerString + nextString;
+    }
+}
+
+String RemainToken() :
+{}
+{
+    < REMAIN_TOKEN >
+    {
+        logger.trace("meet token <REMAIN_TOKEN>");
+        return getToken(0).image;
+    }
+}
+
+String QuotedString() :
+{
+    String s;
+}
+{
+    <QUOTED_STRING>
+    {
+        logger.trace("meet token in <QUOTED_STRING>: " + getToken(0).image);
+        return getToken(0).image;
+    }
+}
+
+String Any() :
+{}
+{
+    < ANY >
+    {
+        logger.trace("meet token in <ANY>: " + getToken(0).image);
+        return getToken(0).image;
+    }
+}

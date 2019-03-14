@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -61,6 +60,7 @@ import org.slf4j.LoggerFactory;
 import com.google.common.collect.Lists;
 
 import io.kyligence.kap.metadata.project.NProjectManager;
+import io.kyligence.kap.query.util.CommentParser;
 
 /**
  */
@@ -141,7 +141,8 @@ public class QueryUtil {
         return massagePushDownSql(kylinConfig, sql, project, defaultSchema, isPrepare);
     }
 
-    static String massagePushDownSql(KylinConfig kylinConfig, String sql, String project, String defaultSchema, boolean isPrepare) {
+    static String massagePushDownSql(KylinConfig kylinConfig, String sql, String project, String defaultSchema,
+            boolean isPrepare) {
         initPushDownConvertersIfNeeded(kylinConfig);
         for (IPushDownConverter converter : pushDownConverters) {
             sql = converter.convert(sql, project, defaultSchema, isPrepare);
@@ -218,26 +219,13 @@ public class QueryUtil {
                 || (sql1.startsWith("explain") && sql1.contains("select"));
     }
 
-    public static String removeCommentInSql(String sql1) {
+    public static String removeCommentInSql(String sql) {
         // match two patterns, one is "-- comment", the other is "/* comment */"
-        final String[] commentPatterns = new String[] { "--[^\r\n]*", "/\\*[^\\*/]*" };
-        final int[] endOffset = new int[] { 0, 2 };
-
-        for (int i = 0; i < commentPatterns.length; i++) {
-            String commentPattern = commentPatterns[i];
-            Pattern pattern = Pattern.compile(commentPattern);
-            Matcher matcher = pattern.matcher(sql1);
-
-            while (matcher.find()) {
-                if (matcher.start() == 0) {
-                    sql1 = sql1.substring(matcher.end() + endOffset[i]).trim();
-                } else if ((matcher.start() > 0 && sql1.charAt(matcher.start() - 1) != '\'')) {
-                    sql1 = (sql1.substring(0, matcher.start()) + sql1.substring(matcher.end() + endOffset[i])).trim();
-                }
-                matcher = pattern.matcher(sql1);
-            }
+        try {
+            return new CommentParser(sql).Input();
+        } catch (Exception ex) {
+            logger.error("Something unexpected while removing comments in the query, return original query", ex);
+            return sql;
         }
-
-        return sql1;
     }
 }
