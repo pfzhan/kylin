@@ -674,7 +674,7 @@ export default class FavoriteQuery extends Vue {
   }
 
   created () {
-    this.init()
+    this.currentSelectedProject && this.init()
   }
   mounted () {
     this.$nextTick(() => {

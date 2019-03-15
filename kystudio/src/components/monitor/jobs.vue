@@ -840,7 +840,7 @@ export default class JobsList extends Vue {
       this.filter.reverse = true
     }
     this.filter.sortBy = prop
-    this.getJobsList()
+    this.currentSelectedProject && this.getJobsList()
   }
   resume (jobIds, isBatch) {
     kapConfirm(this.$t('resumeJob')).then(() => {

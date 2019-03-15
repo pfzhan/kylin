@@ -46,7 +46,7 @@
           <i class="ksd-fs-14" :class="[!briefMenuGet ? 'el-icon-ksd-grid_01' : 'el-icon-ksd-grid_02']" @click="toggleLeftMenu"></i>
           <template v-if="!isAdminView">
             <project_select v-on:changePro="changeProject" ref="projectSelect"></project_select>
-            <el-button v-guide.addProjectBtn :title="$t('kylinLang.project.addProject')" @click="addProject" v-show="isAdmin" size="medium">
+            <el-button v-guide.addProjectBtn :type="highlightType" plain :title="$t('kylinLang.project.addProject')" @click="addProject" v-show="isAdmin" size="medium">
               <i class="el-icon-plus"></i>
             </el-button>
           </template>
@@ -222,8 +222,8 @@ let MessageBox = ElementUI.MessageBox
     }
   },
   locales: {
-    'en': {resetPassword: 'Reset Password', confirmLoginOut: 'Are you sure to exit?', validPeriod: 'Valid Period: ', overtip1: 'This License will be expired in ', overtip2: 'days. Please contact sales support to apply for the Enterprise License.', applayLisence: 'Apply for Enterprise License', 'continueUse': 'I Know', speedTip: 'System will accelerate <span class="ky-highlight-text">{queryCount}</span> queries: this will optimize <span class="ky-highlight-text">{modelCount}</span> models! Do you want to apply it?', ignore: 'Ignore', apply: 'Apply', hello: 'Hi {user},', leaveAdmin: 'Going to leave the administration mode.', enterAdmin: 'Hi {username}, welcome to the administration mode.', accelerateTips: 'Accelerating Tips'},
-    'zh-cn': {resetPassword: '重置密码', confirmLoginOut: '确认退出吗？', validPeriod: '使用期限: ', overtip1: '当前使用的许可证将在 ', overtip2: '天后过期。欢迎联系销售支持人员申请企业版许可证。', applayLisence: '申请企业版许可证', 'continueUse': '我知道了', speedTip: '系统即将加速 <span class="ky-highlight-text">{queryCount}</span> 条查询：需要优化的模型有 <span class="ky-highlight-text">{modelCount}</span> 个！同意此次加速吗？', ignore: '忽略建议', apply: '同意', hello: '{user} 你好，', leaveAdmin: '您即将离开系统管理。', enterAdmin: '{username} 你好，欢迎进入系统管理。', accelerateTips: '加速建议 '}
+    'en': {resetPassword: 'Reset Password', confirmLoginOut: 'Are you sure to exit?', validPeriod: 'Valid Period: ', overtip1: 'This License will be expired in ', overtip2: 'days. Please contact sales support to apply for the Enterprise License.', applayLisence: 'Apply for Enterprise License', 'continueUse': 'I Know', speedTip: 'System will accelerate <span class="ky-highlight-text">{queryCount}</span> queries: this will optimize <span class="ky-highlight-text">{modelCount}</span> models! Do you want to apply it?', ignore: 'Ignore', apply: 'Apply', hello: 'Hi {user},', leaveAdmin: 'Going to leave the administration mode.', enterAdmin: 'Hi {username}, welcome to the administration mode.', accelerateTips: 'Accelerating Tips', noProject: 'No project now. Please create one project via the top bar.'},
+    'zh-cn': {resetPassword: '重置密码', confirmLoginOut: '确认退出吗？', validPeriod: '使用期限: ', overtip1: '当前使用的许可证将在 ', overtip2: '天后过期。欢迎联系销售支持人员申请企业版许可证。', applayLisence: '申请企业版许可证', 'continueUse': '我知道了', speedTip: '系统即将加速 <span class="ky-highlight-text">{queryCount}</span> 条查询：需要优化的模型有 <span class="ky-highlight-text">{modelCount}</span> 个！同意此次加速吗？', ignore: '忽略建议', apply: '同意', hello: '{user} 你好，', leaveAdmin: '您即将离开系统管理。', enterAdmin: '{username} 你好，欢迎进入系统管理。', accelerateTips: '加速建议 ', noProject: '无项目。请在顶栏新建一个项目。'}
   }
 })
 export default class LayoutLeftRightTop extends Vue {
@@ -276,6 +276,7 @@ export default class LayoutLeftRightTop extends Vue {
     if (newVal !== val) {
       this.manualClose = true
     }
+    this.noProjectTips()
   }
   setGlobalMask (notifyContect) {
     this.isGlobalMaskShow = true
@@ -642,6 +643,17 @@ export default class LayoutLeftRightTop extends Vue {
       })
     }, speedInfoTimer)
   }
+  get highlightType () {
+    return !this.$store.state.project.selected_project && !this.$store.state.project.allProject.length ? 'primary' : ''
+  }
+  noProjectTips () {
+    if (this.highlightType) {
+      MessageBox.alert(this.$t('noProject'), this.$t('kylinLang.common.notice'), {
+        confirmButtonText: this.$t('kylinLang.common.ok'),
+        type: 'info'
+      })
+    }
+  }
   mounted () {
     // 接受cloud的参数
     var from = getQueryString('from')
@@ -657,6 +669,7 @@ export default class LayoutLeftRightTop extends Vue {
       this.loadSpeedInfo()
       this.circleLoadSpeedInfo()
     }
+    this.noProjectTips()
   }
   destroyed () {
     clearTimeout(this.ST)

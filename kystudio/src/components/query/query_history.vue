@@ -84,7 +84,7 @@ export default class QueryHistory extends Vue {
     this.loadHistoryList()
   }
   created () {
-    this.loadHistoryList()
+    this.currentSelectedProject && this.loadHistoryList()
   }
   pageCurrentChange (offset, pageSize) {
     this.queryCurrentPage = offset + 1
