@@ -29,7 +29,6 @@ import static org.apache.kylin.job.execution.AbstractExecutable.RUNTIME_INFO;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
-import java.io.IOException;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
@@ -451,7 +450,7 @@ public class NExecutableManager {
                     Process proc = Runtime.getRuntime().exec(cmd);
                     int exitValue = proc.waitFor();
                     logger.info("exec cmd '{}', exitValue : {}", cmd, exitValue);
-                } catch (IOException | NoSuchFieldException | IllegalAccessException | InterruptedException e) {
+                } catch (Exception e) {
                     logger.error("exec cmd : '{}', error : {}", cmd, e.getMessage(), e);
                 }
             }
@@ -459,7 +458,8 @@ public class NExecutableManager {
     }
 
     private int getPid(Process process) throws IllegalAccessException, NoSuchFieldException {
-        Preconditions.checkState(process.getClass().getName().equals("java.lang.UNIXProcess"));
+        String className = process.getClass().getName();
+        Preconditions.checkState(className.equals("java.lang.UNIXProcess"));
         Field f = process.getClass().getDeclaredField("pid");
         f.setAccessible(true);
         return f.getInt(process);
