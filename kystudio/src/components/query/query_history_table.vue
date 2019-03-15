@@ -36,10 +36,12 @@
                   </tr>
                   <tr class="ksd-tr">
                     <th class="label">{{$t('kylinLang.query.answered_by')}}</th>
-                    <td>
+                    <td style="padding: 5px 10px;">
                       <!-- {{props.row.model_alias_mapping[name]}} -->
-                      <div v-if="!props.row.realizations"><el-tag  type="warning" size="small" v-for="pushdown in getAnsweredByList(props.row.answered_by)" :key="pushdown">{{pushdown}}</el-tag></div>
-                      <div v-else><el-tag size="small" v-for="modelName in getAnsweredByList(props.row.answered_by)" :key="modelName" @click.native="openAgg(props.row.model_alias_mapping[modelName])">{{modelName}}</el-tag></div>
+                      <div v-if="!props.row.cube_hit" class="realization-tags"><el-tag  type="warning" size="small" v-for="pushdown in getAnsweredByList(props.row.answered_by)" :key="pushdown">{{pushdown}}</el-tag></div>
+                      <div v-if="props.row.cube_hit" class="realization-tags">
+                        <el-tag size="small" v-for="modelName in getAnsweredByList(props.row.answered_by)" :key="modelName" @click.native="openAgg(props.row.model_alias_mapping[modelName])">{{modelName}}</el-tag>
+                      </div>
                     </td>
                   </tr>
                   <tr class="ksd-tr">
@@ -82,7 +84,7 @@
         <template slot-scope="props">
           <div class="tag-ellipsis">
             <el-tag v-if="!props.row.cube_hit" type="warning" size="small" v-for="pushdown in getAnsweredByList(props.row.answered_by)" :key="pushdown">{{pushdown}}</el-tag>
-            <el-tag v-else v-for="modelName in getAnsweredByList(props.row.answered_by)" size="small" :key="modelName">{{modelName}}</el-tag>
+            <el-tag v-if="props.row.cube_hit" v-for="modelName in getAnsweredByList(props.row.answered_by)" size="small" :key="modelName">{{modelName}}</el-tag>
           </div>
         </template>
       </el-table-column>
@@ -439,16 +441,6 @@ export default class QueryHistoryTable extends Vue {
       .detail-content {
         padding: 10px 0;
         line-height: 1.8;
-        // .smyles_editor_wrap {
-        //   margin-left: 12px;
-        // }
-        // .ksd-table {
-        //   th {
-        //     border-right: 0px;
-        //     padding-right: 0px;
-        //     font-weight: 500;
-        //   }
-        // }
       }
     }
     .searchInput {
@@ -459,6 +451,18 @@ export default class QueryHistoryTable extends Vue {
         width: 100%;
         text-overflow: ellipsis;
         overflow: hidden;
+        font-size: 0;
+        line-height: 1;
+        .el-tag:not(:last-child) {
+          margin-right: 5px;
+        }
+      }
+      .realization-tags {
+        display: flex;
+        flex-wrap: wrap;
+        .el-tag {
+          margin: 2.5px 5px 2.5px 0;
+        }
       }
       .el-date-editor {
         line-height: inherit;

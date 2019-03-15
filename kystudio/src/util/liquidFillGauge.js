@@ -20,7 +20,7 @@ export function liquidFillGaugeDefaultSettings () {
     valueCountUp: true, // If true, the displayed value counts up from 0 to it's final value upon loading. If false, the final value is displayed.
     displayPercent: true, // If true, a % symbol is displayed after the value.
     textColor: '#045681', // The color of the value text when the wave does not overlap it.
-    waveTextColor: '#A4DBf8' // The color of the value text when the wave overlaps it.
+    waveTextColor: '#ffffff' // The color of the value text when the wave overlaps it.
   }
 }
 

@@ -23,7 +23,7 @@ export default {
       } else if (this.status === 'DISCARDED') {
         return 'el-icon-ksd-error_01'
       } else if (this.status === 'STOPPED') {
-        return 'el-icon-warning'
+        return 'el-icon-ksd-pause_02'
       }
     },
     progressClass () {

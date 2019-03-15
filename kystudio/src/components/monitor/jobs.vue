@@ -109,16 +109,16 @@
         width="83">
         <template slot-scope="scope">
           <common-tip :content="$t('jobDrop')" v-if="scope.row.job_status=='DISCARDED' || scope.row.job_status=='FINISHED'">
-            <i class="el-icon-ksd-table_delete ksd-fs-16" @click.stop="drop([scope.row.id])"></i>
+            <i class="el-icon-ksd-table_delete ksd-fs-14" @click.stop="drop([scope.row.id])"></i>
           </common-tip>
           <common-tip :content="$t('jobRestart')" v-if="scope.row.job_status=='ERROR'">
-            <i class="el-icon-ksd-restart ksd-fs-16" @click.stop="restart([scope.row.id])"></i>
+            <i class="el-icon-ksd-restart ksd-fs-14" @click.stop="restart([scope.row.id])"></i>
           </common-tip>
           <common-tip :content="$t('jobResume')" v-if="scope.row.job_status=='ERROR'|| scope.row.job_status=='STOPPED'">
-            <i class="el-icon-ksd-table_resume ksd-fs-16" @click.stop="resume([scope.row.id])"></i>
+            <i class="el-icon-ksd-table_resume ksd-fs-14" @click.stop="resume([scope.row.id])"></i>
           </common-tip>
           <common-tip :content="$t('jobPause')" v-if="scope.row.job_status=='RUNNING'|| scope.row.job_status=='PENDING'">
-            <i class="el-icon-ksd-pause ksd-fs-16" @click.stop="pause([scope.row.id])"></i>
+            <i class="el-icon-ksd-pause ksd-fs-14" @click.stop="pause([scope.row.id])"></i>
           </common-tip>
         </template>
       </el-table-column>
@@ -645,8 +645,8 @@ export default class JobsList extends Vue {
         var sTop = document.getElementById('scrollBox').scrollTop
         if (sTop < this.beforeScrollPos) {
           var result = sTop
-          if (sTop < 96) {
-            result = 96
+          if (sTop < 92) {
+            result = 92
           }
           document.getElementById('stepList').style.top = result + 'px'
         }
@@ -943,8 +943,8 @@ export default class JobsList extends Vue {
             var sTop = document.getElementById('scrollBox').scrollTop
             this.beforeScrollPos = sTop
             var result = sTop
-            if (sTop < 106) {
-              result = 106
+            if (sTop < 92) {
+              result = 92
             }
             document.getElementById('stepList').style.top = result + 'px'
           })
@@ -1087,7 +1087,7 @@ export default class JobsList extends Vue {
             }
           }
           td:first-child{
-            width: 30%;
+            width: 25%;
             text-align: right;
           }
         }

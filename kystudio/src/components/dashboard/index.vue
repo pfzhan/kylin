@@ -143,7 +143,7 @@
               <el-button plain size="mini" class="ksd-fright" @click.stop="gotoJoblist">{{$t('viewDetail')}}</el-button>
             </div>
             <div class="content" v-if="noEnoughData">
-              <span>{{$t('noEnoughData')}}</span>
+              <span class="no-data">{{$t('noEnoughData')}}</span>
             </div>
             <div class="content" v-else>
               <span class="num" v-if="avgBulidTime+''==='0.00'">&lt; 0.01</span>
@@ -645,6 +645,9 @@ export default class Dashboard extends Vue {
       padding: 15px;
       text-align: center;
       box-sizing: border-box;
+      .inner-card {
+        cursor: pointer;
+      }
       &:hover {
         box-shadow: 0px 0px 8px 0px @line-border-color;
       }
@@ -662,6 +665,9 @@ export default class Dashboard extends Vue {
           color: @base-color;
           font-size: 36px;
           line-height: 43px;
+        }
+        .no-data {
+          color: @text-secondary-color;
         }
       }
       .quota-row {
@@ -783,7 +789,7 @@ export default class Dashboard extends Vue {
           font-size: 16px;
           font-weight: 400;
           font-family: Helvetica Neue, Helvetica, PingFang SC, Hiragino Sans GB, Microsoft YaHei, SimSun, sans-serif;
-          fill: @text-normal-color;
+          fill: @text-secondary-color;
         }
         .nvd3 text {
           font: normal 10px Helvetica Neue;

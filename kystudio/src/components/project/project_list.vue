@@ -58,7 +58,7 @@
       show-overflow-tooltip
       :width="208"
       :label="$t('createTime')"
-      align="center"
+      header-align="center"
       prop="gmtTime">
     </el-table-column>
     <el-table-column

@@ -8,7 +8,7 @@
         v-model="serarchChar"
         class="show-search-btn"
         :suffix-icon="searchLoading ? 'el-icon-loading':'el-icon-search'"
-        size="medium">
+        size="small">
       </el-input>
     </div>
     <el-dialog
@@ -101,7 +101,7 @@
       :total="accessSize"
       :currentPage='currentPage'
       @current-change="pageCurrentChange"
-      class="ksd-right ksd-mt-10"
+      class="ksd-center ksd-mt-10"
       v-show="accessSize">
     </el-pagination>
    </div>

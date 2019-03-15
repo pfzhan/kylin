@@ -14,22 +14,23 @@
       </div>
       <div v-if="showGif">
         <img src="../../../assets/img/merge1.gif" width="735px" alt=""><img src="../../../assets/img/acc_light.png" class="ksd-ml-10" width="85px" alt="">
-        <!-- <img src="../../assets/img/acc_01.gif" width="245px" alt=""><img src="../../assets/img/acc_02.gif" width="245px" alt=""><img src="../../assets/img/acc_03.gif" width="245px" height="48px" alt=""> -->
       </div>
       <div v-else>
         <img src="../../../assets/img/bg1.jpg" width="735px" alt=""><img src="../../../assets/img/acc_light.png" class="ksd-ml-10" width="85px" alt="">
-        <!-- <img src="../../assets/img/acc_01.jpg" width="245px" alt=""><img src="../../assets/img/acc_02.jpg" width="245px" alt=""><img src="../../assets/img/acc_03.jpg" width="245px" height="48px" alt=""> -->
       </div>
       <div class="btn-groups ksd-mt-10">
         <span class="guide-checkData" v-if="!waitingSQLSize"></span>
-        <el-button size="mini" type="primary" plain @click="openImportSql">{{$t('importSql')}}</el-button>
-        <el-button size="mini" type="primary" v-guide.speedSqlNowBtn plain :disabled="!waitingSQLSize" :loading="isAcceSubmit" @click="applySpeed">{{$t('accelerateNow')}}</el-button>
+        <div class="btn-block">
+          <el-button size="mini" type="primary" plain @click="openImportSql">{{$t('importSql')}}</el-button>
+        </div>
+        <div class="btn-block">
+          <el-button size="mini" type="primary" v-guide.speedSqlNowBtn plain :disabled="!waitingSQLSize" :loading="isAcceSubmit" @click="applySpeed">{{$t('accelerateNow')}}</el-button>
+        </div>
       </div>
     </div>
     <div class="fav-tables ksd-mt-30">
       <div class="btn-group">
-        <el-button size="mini" type="primary" icon="el-icon-ksd-setting" plain @click="openRuleSetting">{{$t('ruleSetting')}}</el-button>
-        <el-button size="mini" type="primary" icon="el-icon-ksd-table_discard" plain @click="openBlackList">{{$t('blackList')}}</el-button>
+        <el-button size="mini" type="primary" icon="el-icon-ksd-setting" plain @click="openRuleSetting">{{$t('ruleSetting')}}</el-button><el-button size="mini" type="primary" icon="el-icon-ksd-table_discard" plain @click="openBlackList">{{$t('blackList')}}</el-button>
       </div>
       <el-tabs v-model="activeList" @tab-click="handleClick">
         <el-tab-pane name="wartingAcce">
@@ -1087,10 +1088,12 @@ export default class FavoriteQuery extends Vue {
         position: relative;
         margin-bottom: 5px;
         > span {
-          margin-left: 105px;
+          display: inline-block;
+          width: 245px;
+          text-align: center;
           line-height: 18px;
           &.ongoing-label {
-            margin-left: 175px;
+            // margin-left: 175px;
           }
         }
         .pattern-num {
@@ -1111,11 +1114,10 @@ export default class FavoriteQuery extends Vue {
         }
       }
       .btn-groups {
-        .el-button {
-          margin-left: 100px;
-          &:last-child {
-            margin-left: 160px;
-          }
+        .btn-block {
+          display: inline-block;
+          width: 245px;
+          text-align: center;
         }
       }
     }
@@ -1211,8 +1213,7 @@ export default class FavoriteQuery extends Vue {
             margin-left: -60px;
             .el-upload-list__item {
               .el-upload-list__item-name {
-                display: inline-block;
-                margin-right: 5px;
+                margin-right: 20px;
                 &:hover {
                   text-decoration: none;
                   color: inherit;
@@ -1227,6 +1228,9 @@ export default class FavoriteQuery extends Vue {
       }
     }
     .ruleSettingDialog {
+      .el-dialog__body {
+        color: @text-title-color;
+      }
       .conds-title {
         font-weight: 500;
       }

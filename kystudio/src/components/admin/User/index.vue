@@ -10,8 +10,8 @@
           v-if="currentGroup"
           @click="$router.push('/admin/group')">
           {{$t('back')}}
-        </el-button>
-        <el-button plain type="primary"
+        </el-button><el-button
+          plain type="primary"
           size="medium"
           icon="el-icon-ksd-add_2"
           v-if="userActions.includes('addUser')"
@@ -73,7 +73,7 @@
           </span><el-tooltip :content="$t('groupMembership')" effect="dark" placement="top">
             <i class="el-icon-ksd-table_group ksd-fs-14 ksd-mr-10" v-show="userActions.includes('assignGroup')" @click="editUser('group', scope.row)"></i>
           </el-tooltip><span>
-          </span><el-dropdown trigger="click">
+          </span><common-tip :content="$t('kylinLang.common.moreActions')"><el-dropdown trigger="click">
             <i class="el-icon-ksd-table_others" v-show="isMoreActionShow"></i>
             <el-dropdown-menu slot="dropdown">
               <el-dropdown-item v-if="userActions.includes('editUser')" @click.native="editUser('edit', scope.row)">{{$t('editRole')}}</el-dropdown-item>
@@ -82,6 +82,7 @@
               <el-dropdown-item v-if="userActions.includes('disableUser') && !scope.row.disabled" @click.native="changeStatus(scope.row)">{{$t('disable')}}</el-dropdown-item>
             </el-dropdown-menu>
           </el-dropdown>
+          </common-tip>
         </template>
       </el-table-column>
     </el-table>
