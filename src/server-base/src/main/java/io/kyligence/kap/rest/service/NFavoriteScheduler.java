@@ -421,10 +421,6 @@ public class NFavoriteScheduler {
         if (queryHistory.isException())
             return false;
 
-        // query with constants, 1 <> 1
-        if (queryHistory.getAnsweredBy().contains("CONSTANTS"))
-            return false;
-
         return true;
     }
 

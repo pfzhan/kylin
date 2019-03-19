@@ -35,7 +35,6 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-import lombok.var;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.collections.MapUtils;
 import org.apache.commons.lang.StringUtils;
@@ -55,6 +54,7 @@ import org.springframework.stereotype.Component;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.event.manager.EventManager;
@@ -73,6 +73,7 @@ import io.kyligence.kap.smart.NSmartMaster;
 import io.kyligence.kap.smart.common.AccelerateInfo;
 import io.kyligence.kap.smart.model.ModelTree;
 import lombok.val;
+import lombok.var;
 
 @Component("favoriteQueryService")
 public class FavoriteQueryService extends BasicService {
@@ -291,18 +292,25 @@ public class FavoriteQueryService extends BasicService {
         KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
         if (!CollectionUtils.isEmpty(sqlList)) {
             // need parse sql
+            Set<String> sqlSet = Sets.newHashSet(sqlList);
+
             NSmartMaster master = new NSmartMaster(kylinConfig, project, sqlList.toArray(new String[0]));
 
             master.runAllAndForContext(smartContext -> {
+                Map<String, AccelerateInfo> blockedSqlInfo = getBlockedSqlInfo(master.getContext());
+                if (blockedSqlInfo.size() > 0) {
+                    sqlSet.removeAll(blockedSqlInfo.keySet());
+                    updateBlockedSqlStatus(blockedSqlInfo, KylinConfig.getInstanceFromEnv(), project);
+                }
                 if (CollectionUtils.isEmpty(smartContext.getModelContexts())) {
+                    updateConstantSqlStatusFullyAccelerated(sqlSet, project);
                     return;
                 }
-                Map<String, AccelerateInfo> blockedSqlInfo = getBlockedSqlInfo(master.getContext());
                 EventManager eventManager = EventManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
                 for (NSmartContext.NModelContext modelContext : smartContext.getModelContexts()) {
 
                     List<String> sqls = getRelatedSqlsFromModelContext(modelContext, blockedSqlInfo);
-
+                    sqlSet.removeAll(sqls);
                     IndexPlan origIndexPlan = modelContext.getOrigIndexPlan();
                     IndexPlan targetIndexPlan = modelContext.getTargetIndexPlan();
                     Pair<List<Long>, List<Long>> updatedLayoutsPair = calcUpdatedLayoutIds(origIndexPlan,
@@ -330,11 +338,9 @@ public class FavoriteQueryService extends BasicService {
                         updateFavoriteQueryStatus(sqls, project, FavoriteQueryStatusEnum.FULLY_ACCELERATED);
                     }
                 }
-
-                if (blockedSqlInfo.size() > 0) {
-                    updateBlockedSqlStatus(blockedSqlInfo, KylinConfig.getInstanceFromEnv(), project);
-                }
+                updateConstantSqlStatusFullyAccelerated(sqlSet, project);
             });
+
         }
     }
 
@@ -379,6 +385,13 @@ public class FavoriteQueryService extends BasicService {
             }
             fqMgr.updateStatus(sqlPattern, FavoriteQueryStatusEnum.BLOCKED, favoriteQuery.getComment());
         }
+    }
+
+    private void updateConstantSqlStatusFullyAccelerated(Set<String> sqls, String project) {
+        if (CollectionUtils.isEmpty(sqls)) {
+            return;
+        }
+        updateFavoriteQueryStatus(Lists.newArrayList(sqls), project, FavoriteQueryStatusEnum.FULLY_ACCELERATED);
     }
 
     private void updateFavoriteQueryStatus(List<String> sqlPatterns, String project, FavoriteQueryStatusEnum status) {

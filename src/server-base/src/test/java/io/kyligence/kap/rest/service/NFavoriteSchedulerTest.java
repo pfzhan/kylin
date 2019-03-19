@@ -169,8 +169,8 @@ public class NFavoriteSchedulerTest extends NLocalFileMetadataTestCase {
 
         favoriteScheduler.initFrequencyStatus();
         Assert.assertEquals(24 * 60, favoriteScheduler.getFrequencyStatuses().size());
-        Assert.assertEquals(2, favoriteScheduler.getOverAllStatus().getSqlPatternFreqMap().size());
-        Assert.assertNull(favoriteScheduler.getOverAllStatus().getSqlPatternFreqMap().get("sql1"));
+        Assert.assertEquals(3, favoriteScheduler.getOverAllStatus().getSqlPatternFreqMap().size());
+        Assert.assertNotNull(favoriteScheduler.getOverAllStatus().getSqlPatternFreqMap().get("sql1"));
         Assert.assertEquals(24 * 60, (int) favoriteScheduler.getOverAllStatus().getSqlPatternFreqMap().get("sql2"));
 
         NFavoriteScheduler.FrequencyStatus firstStatus = favoriteScheduler.getFrequencyStatuses().pollFirst();
@@ -286,8 +286,10 @@ public class NFavoriteSchedulerTest extends NLocalFileMetadataTestCase {
 
         // queries with constants will not be recorded down
         QueryHistory queryWithConstants = new QueryHistory();
-        queryWithConstants.setQueryStatus(QueryHistory.QUERY_HISTORY_SUCCEEDED);
         queryWithConstants.setSqlPattern("select * from table where 1 <> 1");
+        queryWithConstants.setQueryStatus(QueryHistory.QUERY_HISTORY_SUCCEEDED);
+        queryWithConstants.setQueryTime(1001);
+        queryWithConstants.setQuerySubmitter("ADMIN");
         queryWithConstants.setAnsweredBy("CONSTANTS");
 
         QueryHistoryDAO queryHistoryDAO = Mockito.mock(QueryHistoryDAO.class);
@@ -300,7 +302,7 @@ public class NFavoriteSchedulerTest extends NLocalFileMetadataTestCase {
         NFavoriteScheduler.FrequencyStatus overallStatus = favoriteScheduler.getOverAllStatus();
         Map<String, Integer> sqlPatternFreqInProj = overallStatus.getSqlPatternFreqMap();
 
-        Assert.assertEquals(1, sqlPatternFreqInProj.size());
+        Assert.assertEquals(2, sqlPatternFreqInProj.size());
         Assert.assertEquals(1, (int) sqlPatternFreqInProj.get("succeeded_query"));
     }
 

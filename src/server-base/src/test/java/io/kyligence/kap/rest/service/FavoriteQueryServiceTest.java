@@ -73,6 +73,9 @@ public class FavoriteQueryServiceTest extends NLocalFileMetadataTestCase {
             "select lstg_format_name, sum(item_count), count(*) from test_kylin_fact group by lstg_format_name" //
     };
 
+    private final String constantSql = "select * from test_kylin_fact where 1 <> 1";
+    private final String blockedSql = "select sum(lstg_format_name) from test_kylin_fact";
+
     @InjectMocks
     private FavoriteQueryService favoriteQueryService = Mockito.spy(new FavoriteQueryService());
 
@@ -266,6 +269,48 @@ public class FavoriteQueryServiceTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(FavoriteQueryStatusEnum.FULLY_ACCELERATED, favoriteQueriesAfter.get(1).getStatus());
         Assert.assertEquals(FavoriteQueryStatusEnum.ACCELERATING, favoriteQueriesAfter.get(2).getStatus());
         Assert.assertEquals(FavoriteQueryStatusEnum.ACCELERATING, favoriteQueriesAfter.get(3).getStatus());
+
+        getTestConfig().setProperty("kylin.server.mode", "all");
+    }
+
+    @Test
+    public void testAcceptAccelerateWithConstantAndBlockedPattern() {
+
+        getTestConfig().setProperty("kylin.server.mode", "query");
+        List<String> sqlPatterns = Lists.newArrayList(constantSql);
+        sqlPatterns.add(blockedSql);
+        FavoriteRequest request = new FavoriteRequest(PROJECT, sqlPatterns);
+        favoriteQueryService.createFavoriteQuery(PROJECT, request);
+
+        FavoriteQueryManager favoriteQueryManager = favoriteQueryService.getFavoriteQueryManager(PROJECT);
+        favoriteQueryService.acceptAccelerate(PROJECT, 2);
+
+        final List<FavoriteQuery> favoriteQueriesAfter = favoriteQueryManager.getAll();
+        favoriteQueriesAfter.sort(Comparator.comparing(FavoriteQuery::getSqlPattern));
+
+        Assert.assertEquals(FavoriteQueryStatusEnum.FULLY_ACCELERATED, favoriteQueriesAfter.get(0).getStatus());
+        Assert.assertEquals(FavoriteQueryStatusEnum.BLOCKED, favoriteQueriesAfter.get(1).getStatus());
+
+        getTestConfig().setProperty("kylin.server.mode", "all");
+    }
+
+    @Test
+    public void testAcceptAccelerateWithNormalAndBlockedPattern() {
+
+        getTestConfig().setProperty("kylin.server.mode", "query");
+        List<String> sqlPatterns = Lists.newArrayList(sqls[0]);
+        sqlPatterns.add(blockedSql);
+        FavoriteRequest request = new FavoriteRequest(PROJECT, sqlPatterns);
+        favoriteQueryService.createFavoriteQuery(PROJECT, request);
+
+        FavoriteQueryManager favoriteQueryManager = favoriteQueryService.getFavoriteQueryManager(PROJECT);
+        favoriteQueryService.acceptAccelerate(PROJECT, 2);
+
+        final List<FavoriteQuery> favoriteQueriesAfter = favoriteQueryManager.getAll();
+        favoriteQueriesAfter.sort(Comparator.comparing(FavoriteQuery::getSqlPattern));
+
+        Assert.assertEquals(FavoriteQueryStatusEnum.ACCELERATING, favoriteQueriesAfter.get(0).getStatus());
+        Assert.assertEquals(FavoriteQueryStatusEnum.BLOCKED, favoriteQueriesAfter.get(1).getStatus());
 
         getTestConfig().setProperty("kylin.server.mode", "all");
     }
