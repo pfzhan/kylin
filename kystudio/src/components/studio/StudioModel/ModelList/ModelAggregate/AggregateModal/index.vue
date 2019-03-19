@@ -162,7 +162,7 @@ import vuex from '../../../../../../store'
 import locales from './locales'
 import store, { types, initialAggregateData } from './store'
 import { titleMaps, editTypes, getPlaintDimensions, findIncludeDimension } from './handler'
-import { handleError, get, set, push } from '../../../../../../util'
+import { handleError, get, set, push, kapConfirm } from '../../../../../../util'
 
 const { EDIT } = editTypes
 
@@ -277,10 +277,11 @@ export default class AggregateModal extends Vue {
     this.setModalForm({ aggregateArray: [copyedAggregate, ...aggregateArray] })
   }
   handleDeleteAggregate (aggregateIdx) {
-    const aggregateArray = get(this.form, 'aggregateArray')
-    aggregateArray.splice(aggregateIdx, 1)
-
-    this.setModalForm({ aggregateArray })
+    kapConfirm(this.$t('delAggregateTip', {aggId: aggregateIdx + 1}), {type: 'warning'}, this.$t('delAggregateTitle')).then(() => {
+      const aggregateArray = get(this.form, 'aggregateArray')
+      aggregateArray.splice(aggregateIdx, 1)
+      this.setModalForm({ aggregateArray })
+    })
   }
   handleAddDimensionRow (path) {
     const rootKey = path.split('.')[0]
@@ -339,14 +340,16 @@ export default class AggregateModal extends Vue {
     this.handleInput(`aggregateArray.${aggregateIdx}.includes`, allDimensions)
   }
   handleRemoveAllIncludes (aggregateIdx) {
-    const { aggregateArray = [] } = this.form
-    const currentAggregate = aggregateArray[aggregateIdx] || {}
-    const currentIncludes = currentAggregate.includes || []
+    kapConfirm(this.$t('delAllAggregateTip', {aggId: aggregateIdx + 1}), {type: 'warning'}, this.$t('delAggregateTitle')).then(() => {
+      const { aggregateArray = [] } = this.form
+      const currentAggregate = aggregateArray[aggregateIdx] || {}
+      const currentIncludes = currentAggregate.includes || []
 
-    for (const include of currentIncludes) {
-      this.handleRemoveIncludeRules(include, aggregateIdx)
-    }
-    this.handleInput(`aggregateArray.${aggregateIdx}.includes`, [])
+      for (const include of currentIncludes) {
+        this.handleRemoveIncludeRules(include, aggregateIdx)
+      }
+      this.handleInput(`aggregateArray.${aggregateIdx}.includes`, [])
+    })
   }
   async handleSubmit () {
     this.isSubmit = true

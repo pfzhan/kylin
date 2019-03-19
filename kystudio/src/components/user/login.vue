@@ -4,7 +4,7 @@
       <img src="../../assets/img/ky_logo.png">
       <ul class="ksd-fright">
         <!-- 在登录页不显示onoff -->
-        <li><kap-help isLogin="login"></kap-help></li>
+        <li></li>
         <li><kap-change-lang></kap-change-lang></li>
       </ul>
     </div>

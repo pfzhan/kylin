@@ -50,7 +50,7 @@
         </el-table-column>
         <el-table-column prop="id" header-align="center" label="Segment Id">
         </el-table-column>
-        <el-table-column prop="status" :label="$t('kylinLang.common.status')" width="94" align="center">
+        <el-table-column prop="status" :label="$t('kylinLang.common.status')" width="114" align="center">
         </el-table-column>
         <el-table-column :label="$t('storageSize')" width="145" header-align="center" align="right" prop="storage" sortable>
           <template slot-scope="scope">{{scope.row.bytes_size | dataSize}}</template>
@@ -75,7 +75,7 @@
     </div>
 
     <el-dialog :title="$t('segmentDetail')" append-to-body :close-on-press-escape="false" :close-on-click-modal="false" :visible.sync="isShowDetail" width="780px">
-      <table class="ksd-table" v-if="detailSegment">
+      <table class="ksd-table segment-detail" v-if="detailSegment">
         <tr class="ksd-tr">
           <th>{{$t('segmentID')}}</th>
           <td>{{detailSegment.id}}</td>
@@ -217,16 +217,16 @@ export default class ModelSegment extends Vue {
     try {
       const segmentIds = this.selectedSegmentIds
       if (segmentIds.length) {
-        const segmentNames = this.selectedSegments.map(segment => segment.name)
-        const segmentArray = `[${segmentNames.join('\r\n')}]`
+        // const segmentNames = this.selectedSegments.map(segment => segment.name)
+        // const segmentArray = `[${segmentNames.join('\r\n')}]`
         const projectName = this.currentSelectedProject
         const modelId = this.model.uuid
-        const confirmTitle = this.$t('kylinLang.common.notice')
-        const confirmMessage = this.$t('confirmRefreshSegments', { segmentArray })
+        const confirmTitle = this.$t('refreshSegmentsTitle')
+        const confirmMessage = this.$t('confirmRefreshSegments')
         const confirmButtonText = this.$t('kylinLang.common.ok')
         const cancelButtonText = this.$t('kylinLang.common.cancel')
         const customClass = 'pre'
-        await this.$confirm(confirmMessage, confirmTitle, { type: 'warning', confirmButtonText, cancelButtonText, customClass })
+        await this.$confirm(this._renderConfirmContent(confirmMessage), confirmTitle, { type: 'warning', confirmButtonText, cancelButtonText, customClass })
         const isSubmit = await this.refreshSegments({ projectName, modelId, segmentIds })
         if (isSubmit) {
           await this.loadSegments()
@@ -257,11 +257,11 @@ export default class ModelSegment extends Vue {
         const projectName = this.currentSelectedProject
         const modelId = this.model.uuid
         const segmentIdStr = this.selectedSegmentIds.join(',')
-        const confirmTitle = this.$t('kylinLang.common.notice')
-        const confirmMessage = this.$t('confirmDeleteSegments')
+        const confirmTitle = this.$t('deleteSegmentTip')
         const confirmButtonText = this.$t('kylinLang.common.ok')
         const cancelButtonText = this.$t('kylinLang.common.cancel')
-        await this.$confirm(confirmMessage, confirmTitle, { type: 'warning', confirmButtonText, cancelButtonText })
+        const confirmMessage = this.$t('confirmDeleteSegments')
+        await this.$confirm(this._renderConfirmContent(confirmMessage), confirmTitle, { type: 'warning', confirmButtonText, cancelButtonText })
         await this.deleteSegments({ projectName, modelId, segmentIds: segmentIdStr })
         this.$message({ type: 'success', message: this.$t('kylinLang.common.delSuccess') })
         await this.loadSegments()
@@ -269,6 +269,18 @@ export default class ModelSegment extends Vue {
     } catch (e) {
       e !== 'cancel' && handleError(e)
     }
+  }
+  _renderConfirmContent (confirmMessage) {
+    return (
+      <div>
+        <p class="break-all ksd-mb-4">{confirmMessage}</p>
+        {
+          this.selectedSegmentIds.map((sid) => {
+            return <p>[{sid}]</p>
+          })
+        }
+      </div>
+    )
   }
   handleShowDetail (segment) {
     this.detailSegment = segment
@@ -289,7 +301,15 @@ export default class ModelSegment extends Vue {
 
 <style lang="less">
 @import '../../../../../assets/styles/variables.less';
-
+.segment-detail.ksd-table {
+  &.ksd-table{
+    table-layout:fixed;
+    th {
+      width:130px;
+      
+    }
+  }
+}
 .model-segment {
   padding: 20px 0;
   .segment-actions {

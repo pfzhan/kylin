@@ -13,7 +13,7 @@ export default {
     disable: 'Disable',
     enable: 'Enable',
     groupMembership: 'Group Membership',
-    cofirmDelUser: 'Are you sure to delete this user?',
+    cofirmDelUser: 'Are you sure to delete the user {userName}?',
     delUserTitle: 'Delete User',
     userList: 'User List'
   },
@@ -31,7 +31,7 @@ export default {
     disable: '禁用',
     enable: '启用',
     groupMembership: '分组',
-    cofirmDelUser: '确认删除该用户吗？',
+    cofirmDelUser: '确认删除用户{userName}吗？',
     delUserTitle: '删除用户',
     userList: '用户列表'
   }

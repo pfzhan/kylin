@@ -342,11 +342,11 @@ export default class ModelList extends Vue {
       const isSubmit = await this.callRenameModelDialog(objectClone(modelDesc))
       isSubmit && this.loadModelsList()
     } else if (command === 'delete') {
-      kapConfirm(this.$t('delModelTip')).then(() => {
+      kapConfirm(this.$t('delModelTip', {modelName: modelDesc.alias})).then(() => {
         this.handleDrop(modelDesc)
       })
     } else if (command === 'purge') {
-      kapConfirm(this.$t('pergeModelTip')).then(() => {
+      kapConfirm(this.$t('pergeModelTip', {modelName: modelDesc.alias}), {type: 'warning'}, this.$t('pergeModelTitle')).then(() => {
         this.handlePurge(modelDesc)
       })
     } else if (command === 'clone') {

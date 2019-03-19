@@ -201,7 +201,7 @@ export default class SecurityUser extends Vue {
     try {
       const { username } = userDetail
 
-      await kapConfirm(this.$t('cofirmDelUser'), null, this.$t('delUserTitle'))
+      await kapConfirm(this.$t('cofirmDelUser', {userName: username}), null, this.$t('delUserTitle'))
       await this.removeUser(username)
 
       this.loadUsers()

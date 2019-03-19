@@ -29,7 +29,7 @@
                         <div>{{$t('tableIndexId')}}{{item.id}}</div>
                         <i class="el-icon-ksd-elapsed_time ksd-mr-4"></i>{{transToGmtTime(item.update_time)}}
                         <div class="actions ksd-fright">
-                          <span class="del-icon" v-if="item.manual" @click="delTableIndex(item.id)">{{$t('kylinLang.common.delete')}}</span>
+                          <span class="del-icon" v-if="item.manual" @click="delTableIndex(item.id, item.name)">{{$t('kylinLang.common.delete')}}</span>
                         </div>
                       </div>
                     </div>
@@ -218,9 +218,9 @@ export default class TableIndex extends Vue {
     this.currentPage = size
     this.currentCount = count
   }
-  delTableIndex (id) {
+  delTableIndex (id, name) {
     // 删除警告
-    kapConfirm(this.$t('kylinLang.common.confirmDel')).then(() => {
+    kapConfirm(this.$t('delTableIndexTip', {tableIndexName: name}), {type: 'warning'}, this.$t('delTableIndexTitle')).then(() => {
       this.deleteTableIndex({
         project: this.currentSelectedProject,
         model: this.modelDesc.uuid,

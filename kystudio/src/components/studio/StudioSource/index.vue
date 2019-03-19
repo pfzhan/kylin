@@ -121,7 +121,7 @@ export default class StudioSource extends Vue {
     const contentVal = { tableName, storageSize }
     const confirmTitle = this.$t('unloadTableTitle')
     const confirmMessage1 = modelSize ? this.$t('affactUnloadInfo', contentVal) : ''
-    const confirmMessage2 = this.$t('unloadTable')
+    const confirmMessage2 = this.$t('unloadTable', contentVal)
     const confirmMessage = _render(this.$createElement)
     const confirmButtonText = this.$t('kylinLang.common.ok')
     const cancelButtonText = this.$t('kylinLang.common.cancel')

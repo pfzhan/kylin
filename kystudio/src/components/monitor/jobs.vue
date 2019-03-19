@@ -324,11 +324,12 @@ import { transToGmtTime, kapConfirm, handleError, handleSuccess } from 'util/bus
       output: 'Output',
       load: 'Loading ... ',
       cmdOutput: 'cmd_output',
-      resumeJob: 'Are you sure to resume the job?',
-      restartJob: 'Are you sure to restart the job?',
-      pauseJob: 'Are you sure to pause the job?',
-      dropJob: 'Are you sure to drop the job?',
-      dropJobTitle: 'Delete Job',
+      resumeJob: 'Are you sure to resume the job(s) below?',
+      restartJob: 'Are you sure to restart the job(s) below?',
+      pauseJob: 'Are you sure to pause the job(s) below?',
+      pauseJobTitle: 'Pause Job',
+      dropJob: 'Are you sure to drop the job(s) below?',
+      dropJobTitle: 'Drop Job',
       jobName: 'Job Name',
       duration: 'Duration',
       waiting: 'Waiting',
@@ -381,10 +382,13 @@ import { transToGmtTime, kapConfirm, handleError, handleSuccess } from 'util/bus
       output: '输出',
       load: '下载中 ... ',
       cmdOutput: 'cmd_output',
-      resumeJob: '确定要恢复任务?',
-      restartJob: '确定要重启任务?',
-      pauseJob: '确定要暂停任务?',
-      dropJob: '确定要删除任务?',
+      resumeJob: '确定要恢复以下任务?',
+      resumeJobTitle: '恢复任务',
+      restartJob: '确定要重启以下任务?',
+      restartJobTitle: '重启任务',
+      pauseJob: '确定要暂停以下任务?',
+      pauseJobTitle: '暂停任务',
+      dropJob: '确定要删除以下任务？',
       dropJobTitle: '删除任务',
       jobName: '任务名',
       duration: '持续时间',
@@ -738,6 +742,12 @@ export default class JobsList extends Vue {
     })
     return jobIds
   }
+  getJobNames () {
+    const jobNames = this.multipleSelection.map((item) => {
+      return item.name
+    })
+    return jobNames
+  }
   batchResume () {
     if (!this.multipleSelection.length) {
       this.$message.warning(this.$t('noSelectJobs'))
@@ -843,7 +853,7 @@ export default class JobsList extends Vue {
     this.currentSelectedProject && this.getJobsList()
   }
   resume (jobIds, isBatch) {
-    kapConfirm(this.$t('resumeJob')).then(() => {
+    kapConfirm(this._renderConfirmContent(this.$t('resumeJob'), jobIds), null, this.$t('resumeJobTitle')).then(() => {
       this.resumeJob({jobIds: jobIds, project: this.currentSelectedProject, action: 'RESUME', status: this.filter.status}).then(() => {
         this.$message({
           type: 'success',
@@ -864,7 +874,7 @@ export default class JobsList extends Vue {
     })
   }
   restart (jobIds, isBatch) {
-    kapConfirm(this.$t('restartJob')).then(() => {
+    kapConfirm(this._renderConfirmContent(this.$t('restartJob'), jobIds), null, this.$t('restartJobTitle')).then(() => {
       this.restartJob({jobIds: jobIds, project: this.currentSelectedProject, action: 'RESTART', status: this.filter.status}).then(() => {
         this.$message({
           type: 'success',
@@ -885,7 +895,7 @@ export default class JobsList extends Vue {
     })
   }
   pause (jobIds, isBatch) {
-    kapConfirm(this.$t('pauseJob')).then(() => {
+    kapConfirm(this._renderConfirmContent(this.$t('pauseJob'), jobIds), null, this.$t('pauseJobTitle')).then(() => {
       this.pauseJob({jobIds: jobIds, project: this.currentSelectedProject, action: 'PAUSE', status: this.filter.status}).then(() => {
         this.$message({
           type: 'success',
@@ -905,8 +915,20 @@ export default class JobsList extends Vue {
       })
     })
   }
+  _renderConfirmContent (confirmMessage, jobIds) {
+    return (
+      <div>
+        <p class="break-all ksd-mb-4">{confirmMessage}</p>
+        {
+          jobIds.map((kId) => {
+            return <p>[{kId}]</p>
+          })
+        }
+      </div>
+    )
+  }
   drop (jobIds, isBatch) {
-    kapConfirm(this.$t('dropJob'), null, this.$t('dropJobTitle')).then(() => {
+    kapConfirm(this._renderConfirmContent(this.$t('dropJob'), jobIds), null, this.$t('dropJobTitle')).then(() => {
       this.removeJob({jobIds: jobIds, project: this.currentSelectedProject, status: this.filter.status}).then(() => {
         this.$message({
           type: 'success',

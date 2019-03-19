@@ -12,7 +12,7 @@
       <div class="ksd-mt-18 express-box">
         <p>{{$t('kylinLang.dataSource.expression')}}</p>
         <div class="ksd-mt-6">
-          <kap-editor ref="ccSql" height="100" lang="sql" theme="chrome" v-model="ccDetail.expression"></kap-editor>
+          <kap-editor ref="ccSql" height="100" lang="sql" theme="chrome" :readOnly="true" v-model="ccDetail.expression"></kap-editor>
         </div>
       </div>
     </div>

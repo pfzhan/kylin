@@ -90,7 +90,7 @@
           </i><span>
           </span><i class="el-icon-ksd-table_delete ksd-fs-14"
             v-if="projectActions.includes('deleteGrant')"
-            @click="removeAccess(scope.row.id, scope.row.roleOrName)">
+            @click="removeAccess(scope.row.id, scope.row.roleOrName, scope.row.promission)">
           </i>
 	      </template>
 	    </el-table-column>
@@ -258,8 +258,8 @@ export default {
         })
       })
     },
-    removeAccess (id, username) {
-      kapConfirm(this.$t('deleteAccess')).then(() => {
+    removeAccess (id, username, promission) {
+      kapConfirm(this.$t('deleteAccessTip', {userName: username, role: promission}), null, this.$t('deleteAccessTitle')).then(() => {
         var actionType = 'delProjectAccess'
         this[actionType]({id: this.accessId, aid: id, userName: username}).then((res) => {
           this.$message({
@@ -397,8 +397,8 @@ export default {
     })
   },
   locales: {
-    'en': {grant: 'Grant', type: 'Type', user: 'User', role: 'Role', name: 'User Name', nameAccount: 'user account', permission: 'Permission', cubeAdmin: 'ADMIN', cubeEdit: 'Edit', cubeOpera: 'Operation', cubeQuery: 'cubeQuery', principal: 'Name', access: 'Access', grantTitle: 'What permissions does Kyligence Enterprise provide?', grantDetail1: '*QUERY*: Permission to query tables/cubes in the project', grantDetail2: '*OPERATION*: Permission to rebuild, resume and cancel jobs. OPERATION permission includes QUERY.', grantDetail3: '*MANAGEMENT*: Permission to edit/delete cube. MANAGEMENT permission includes OPERATION and QUERY.', grantDetail4: '*ADMIN*: Full access to project. ADMIN permission includes MANAGEMENT, OPERATION and QUERY.', deleteAccess: 'the action will delete this access, still continue?', pleaseInput: 'Please input user name.'},
-    'zh-cn': {grant: '授权', type: '类型', user: '用户', role: '群组', name: '用户名', nameAccount: '用户账号', permission: '许可', cubeAdmin: '管理', cubeEdit: '编辑', cubeOpera: '操作', cubeQuery: '查询', principal: '名称', access: '权限', grantTitle: 'Kyligence Enterprise提供什么样的权限？', grantDetail1: '*QUERY*: 查询项目中的表或者cube的权限', grantDetail2: '*OPERATION*: 构建Cube的权限, 包括恢复和取消任务；OPERATION权限包含QUERY权限。', grantDetail3: '*MANAGEMENT*: 编辑和删除Cube的权限，MANAGEMENT权限包含了OPERATION权限和QUERY权限。', grantDetail4: '*ADMIN*: 对项目拥有所有权限，ADMIN权限包含了MANAGEMENT权限，OPERATION权限和QUERY权限。', deleteAccess: '此操作将删除该授权，是否继续', pleaseInput: '请填写用户名。'}
+    'en': {grant: 'Grant', type: 'Type', user: 'User', role: 'Role', name: 'User Name', nameAccount: 'user account', permission: 'Permission', cubeAdmin: 'ADMIN', cubeEdit: 'Edit', cubeOpera: 'Operation', cubeQuery: 'cubeQuery', principal: 'Name', access: 'Access', grantTitle: 'What permissions does Kyligence Enterprise provide?', grantDetail1: '*QUERY*: Permission to query tables/cubes in the project', grantDetail2: '*OPERATION*: Permission to rebuild, resume and cancel jobs. OPERATION permission includes QUERY.', grantDetail3: '*MANAGEMENT*: Permission to edit/delete cube. MANAGEMENT permission includes OPERATION and QUERY.', grantDetail4: '*ADMIN*: Full access to project. ADMIN permission includes MANAGEMENT, OPERATION and QUERY.', deleteAccessTip: 'the action will delete {userName}\'s {role} access, still continue?', pleaseInput: 'Please input user name.', deleteAccessTitle: 'Delete Access'},
+    'zh-cn': {grant: '授权', type: '类型', user: '用户', role: '群组', name: '用户名', nameAccount: '用户账号', permission: '许可', cubeAdmin: '管理', cubeEdit: '编辑', cubeOpera: '操作', cubeQuery: '查询', principal: '名称', access: '权限', grantTitle: 'Kyligence Enterprise提供什么样的权限？', grantDetail1: '*QUERY*: 查询项目中的表或者cube的权限', grantDetail2: '*OPERATION*: 构建Cube的权限, 包括恢复和取消任务；OPERATION权限包含QUERY权限。', grantDetail3: '*MANAGEMENT*: 编辑和删除Cube的权限，MANAGEMENT权限包含了OPERATION权限和QUERY权限。', grantDetail4: '*ADMIN*: 对项目拥有所有权限，ADMIN权限包含了MANAGEMENT权限，OPERATION权限和QUERY权限。', deleteAccessTip: '此操作将删除{userName}的{role}权限，是否继续？', pleaseInput: '请填写用户名。', deleteAccessTitle: '删除权限'}
   }
 }
 </script>

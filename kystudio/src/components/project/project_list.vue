@@ -137,11 +137,7 @@ export default {
       }
     },
     removeProject (project) {
-      this.$confirm(this.$t('deleteProject'), this.$t('tip'), {
-        confirmButtonText: this.$t('yes'),
-        cancelButtonText: this.$t('cancel'),
-        type: 'warning'
-      }).then(() => {
+      kapConfirm(this.$t('deleteProjectTip', {projectName: project.name}), null, this.$t('delProjectTitle')).then(() => {
         this.deleteProject(project.name).then((result) => {
           this.$message({
             type: 'success',
@@ -232,8 +228,8 @@ export default {
     this.loadProjects({pageOffset: this.currentPage, pageSize: this.pageCount})
   },
   locales: {
-    'en': {project: 'Project', name: 'Name', owner: 'Owner', description: 'Description', createTime: 'Create Time', actions: 'Actions', setting: 'Setting', access: 'Access', externalFilters: 'External Filters', edit: 'Configure', backup: 'Backup', delete: 'Delete', tip: 'Tip', cancel: 'Cancel', yes: 'Ok', saveSuccessful: 'Saved the project successful!', saveFailed: 'Save Failed!', deleteProject: 'Once it\'s deleted, your project\'s metadata and data will be cleaned up and can\'t be restored back.  ', projectConfig: 'Configuration', backupProject: 'Are you sure to backup this project ?', noProject: 'There is no Project.  You can click below button to add Project.', projectsList: 'Project List'},
-    'zh-cn': {project: '项目', name: '名称', owner: '所有者', description: '描述', createTime: '创建时间', actions: '操作', setting: '设置', access: '权限', externalFilters: '其他过滤', edit: '配置', backup: '备份', delete: '删除', tip: '提示', cancel: '取消', yes: '确定', saveSuccessful: '保存项目成功!', saveFailed: '保存失败!', deleteProject: '删除后, 项目定义及数据会被清除, 且不能恢复.', projectConfig: '项目配置', backupProject: '确认要备份此项目？', noProject: '您可以点击下面的按钮来添加项目。', projectsList: '项目列表'}
+    'en': {project: 'Project', name: 'Name', owner: 'Owner', description: 'Description', createTime: 'Create Time', actions: 'Actions', setting: 'Setting', access: 'Access', externalFilters: 'External Filters', edit: 'Configure', backup: 'Backup', delete: 'Delete', delProjectTitle: 'Delete Project', cancel: 'Cancel', yes: 'Ok', saveSuccessful: 'Saved the project successful!', saveFailed: 'Save Failed!', deleteProjectTip: 'Once it\'s deleted, the project {projectName}\'s metadata and data will be cleaned up and can\'t be restored back.  ', projectConfig: 'Configuration', backupProject: 'Are you sure to backup this project ?', noProject: 'There is no Project.  You can click below button to add Project.', projectsList: 'Project List'},
+    'zh-cn': {project: '项目', name: '名称', owner: '所有者', description: '描述', createTime: '创建时间', actions: '操作', setting: '设置', access: '权限', externalFilters: '其他过滤', edit: '配置', backup: '备份', delete: '删除', delProjectTitle: '删除项目', cancel: '取消', yes: '确定', saveSuccessful: '保存项目成功!', saveFailed: '保存失败!', deleteProjectTip: '删除后, 项目{projectName}的定义及数据会被清除, 且不能恢复.', projectConfig: '项目配置', backupProject: '确认要备份此项目？', noProject: '您可以点击下面的按钮来添加项目。', projectsList: '项目列表'}
   }
 }
 </script>

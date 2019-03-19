@@ -140,7 +140,7 @@
                 <li v-for="(d, i) in allDimension" :key="d.name" :class="{'is-checked':dimensionSelectedList.indexOf(d.name)>-1}">
                   <span class="ksd-nobr-text">
                     <el-checkbox v-model="dimensionSelectedList" v-if="isShowCheckbox" :label="d.name">{{d.name}}</el-checkbox>
-                    <span v-else>{{d.name}}</span>
+                    <span v-else :title="d.name">{{d.name}}</span>
                     <span class="icon-group">
                       <span class="icon-span"><i class="el-icon-ksd-table_delete" @click="deleteDimenison(d.name)"></i></span>
                       <span class="icon-span"><i class="el-icon-ksd-table_edit" @click="editDimension(d, i)"></i></span>
@@ -1079,7 +1079,7 @@ export default class ModelEdit extends Vue {
     $(this.$el).removeClass('drag-in').find('.drag-in').removeClass('drag-in')
   }
   _checkTableDropOver (className) {
-    return className.indexOf(modelRenderConfig.drawBox.substring(1)) >= 0
+    return className && className.indexOf(modelRenderConfig.drawBox.substring(1)) >= 0 || false
   }
   allowDrop (e, guid) {
     e.preventDefault()
@@ -1574,7 +1574,7 @@ export default class ModelEdit extends Vue {
   user-select:none;
   overflow:hidden;
   .box-css();
-  height: calc(~"100% - 54px");
+  height: 100%;
   .panel-box{
       box-shadow: @box-shadow;
       position:relative;

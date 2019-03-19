@@ -35,7 +35,9 @@ export default {
     available: 'Available',
     empty: 'Emtpy Index',
     manualAdvice: 'User-defined index',
-    autoAdvice: 'System-defined index'
+    autoAdvice: 'System-defined index',
+    delTableIndexTip: 'Are you sure to delete the table index {tableIndexName}?',
+    delTableIndexTitle: 'Delete Table Index'
   },
   'zh-cn': {
     noSupportRawTable: '只有KAP PLUS 提供Raw Table功能',
@@ -70,6 +72,8 @@ export default {
     available: '可用',
     empty: '空索引',
     manualAdvice: '用户定义的索引',
-    autoAdvice: '系统推荐的索引'
+    autoAdvice: '系统推荐的索引',
+    delTableIndexTip: '你确认删除表明细索引{tableIndexName}？',
+    delTableIndexTitle: '删除表明细索引'
   }
 }
