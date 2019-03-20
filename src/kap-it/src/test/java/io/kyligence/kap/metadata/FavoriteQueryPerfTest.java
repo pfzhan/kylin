@@ -28,6 +28,7 @@ import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import io.kyligence.kap.common.metric.MetricWriterStrategy;
+import io.kyligence.kap.common.persistence.metadata.MetadataStore;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.metadata.favorite.FavoriteQuery;
@@ -44,7 +45,6 @@ import lombok.var;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.JsonSerializer;
-import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.query.util.QueryUtil;
 import org.apache.kylin.rest.request.SQLRequest;
@@ -357,7 +357,7 @@ public class FavoriteQueryPerfTest extends NLocalFileMetadataTestCase {
     }
 
     private JdbcTemplate getJdbcTemplate() throws Exception {
-        val metaStore = ResourceStore.createMetadataStore(getTestConfig());
+        val metaStore = MetadataStore.createMetadataStore(getTestConfig());
         val field = metaStore.getClass().getDeclaredField("jdbcTemplate");
         field.setAccessible(true);
         return (JdbcTemplate) field.get(metaStore);

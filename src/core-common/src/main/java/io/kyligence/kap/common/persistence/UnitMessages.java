@@ -23,15 +23,18 @@
  */
 package io.kyligence.kap.common.persistence;
 
+import java.util.List;
+
+import org.apache.commons.collections.CollectionUtils;
+
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.google.common.collect.Lists;
+
 import io.kyligence.kap.common.persistence.event.Event;
+import io.kyligence.kap.common.persistence.event.StartUnit;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.apache.commons.collections.CollectionUtils;
-
-import java.util.List;
 
 @Data
 @AllArgsConstructor
@@ -42,9 +45,21 @@ public class UnitMessages {
 
     @JsonIgnore
     public String getKey() {
-        if (CollectionUtils.isEmpty(messages)) {
+        if (isEmpty()) {
             return null;
         }
         return messages.get(0).getKey();
+    }
+
+    @JsonIgnore
+    public String getUnitId() {
+        if (isEmpty() || !(messages.get(0) instanceof StartUnit)) {
+            return null;
+        }
+        return ((StartUnit) messages.get(0)).getUnitId();
+    }
+
+    public boolean isEmpty() {
+        return CollectionUtils.isEmpty(messages);
     }
 }

@@ -32,7 +32,6 @@ import java.util.Collections;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.common.persistence.transaction.TransactionLock;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.OptionBuilder;
 import org.apache.commons.cli.OptionGroup;
@@ -40,20 +39,27 @@ import org.apache.commons.cli.Options;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.fs.Path;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.persistence.RawResource;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.util.ExecutableApplication;
+import org.apache.kylin.common.util.HadoopUtil;
+import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.OptionsHelper;
+import org.apache.kylin.metadata.project.ProjectInstance;
 
 import com.google.common.collect.Sets;
+import com.google.common.io.ByteStreams;
 
 import io.kyligence.kap.common.cluster.LeaderInitiator;
 import io.kyligence.kap.common.cluster.NodeCandidate;
+import io.kyligence.kap.common.persistence.ImageDesc;
 import io.kyligence.kap.common.persistence.metadata.MetadataStore;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
+import io.kyligence.kap.common.persistence.transaction.UnitOfWorkParams;
+import io.kyligence.kap.metadata.project.UnitOfAllWorks;
 import lombok.val;
 import lombok.var;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.kylin.metadata.project.ProjectInstance;
 
 @Slf4j
 public class MetadataTool extends ExecutableApplication {
@@ -159,6 +165,8 @@ public class MetadataTool extends ExecutableApplication {
         val backupMetadataUrl = getMetadataUrl(backupPath);
         val backupConfig = KylinConfig.createKylinConfig(kylinConfig);
         backupConfig.setMetadataUrl(backupMetadataUrl);
+        val fs = HadoopUtil.getFileSystem(backupPath);
+        fs.delete(new Path(backupPath), true);
         log.info("The backup metadataUrl is {} and backup path is {}", backupMetadataUrl, backupPath);
 
         val backupResourceStore = ResourceStore.getKylinMetaStore(backupConfig);
@@ -167,20 +175,32 @@ public class MetadataTool extends ExecutableApplication {
         if (StringUtils.isBlank(project)) {
             log.info("start to copy all projects from ResourceStore.");
 
-            val projectFolders = resourceStore.listResources("/");
-            for (String projectPath : projectFolders) {
-                if (projectPath.equals(ResourceStore.METASTORE_UUID_TAG)) {
-                    continue;
+            UnitOfAllWorks.doInTransaction(() -> {
+                val projectFolders = resourceStore.listResources("/");
+                for (String projectPath : projectFolders) {
+                    if (projectPath.equals(ResourceStore.METASTORE_UUID_TAG)) {
+                        continue;
+                    }
+                    // The "_global" directory is already included in the full backup
+                    copyResourceStore(projectPath, resourceStore, backupResourceStore, false);
                 }
-                // The "_global" directory is already included in the full backup
-                copyResourceStore(projectPath, resourceStore, backupResourceStore, false);
-            }
-
+                val auditLogStore = resourceStore.getAuditLogStore();
+                val offset = auditLogStore.getMaxId();
+                backupMetadataStore.putResource(new RawResource(ResourceStore.METASTORE_IMAGE,
+                        ByteStreams.asByteSource(JsonUtil.writeValueAsBytes(new ImageDesc(offset))),
+                        System.currentTimeMillis(), -1));
+                auditLogStore.rotate();
+                return null;
+            }, true);
             log.info("start to backup all projects");
 
         } else {
             log.info("start to copy project {} from ResourceStore.", project);
-            copyResourceStore("/" + project, resourceStore, backupResourceStore, true);
+            UnitOfWork.doInTransactionWithRetry(
+                    UnitOfWorkParams.builder().readonly(true).unitName(project).processor(() -> {
+                        copyResourceStore("/" + project, resourceStore, backupResourceStore, true);
+                        return null;
+                    }).build());
 
             log.info("start to backup project {}", project);
         }
@@ -191,20 +211,11 @@ public class MetadataTool extends ExecutableApplication {
 
     public void copyResourceStore(String projectPath, ResourceStore srcResourceStore, ResourceStore destResourceStore,
             boolean isProjectLevel) {
-        val lock = TransactionLock.getLock(Paths.get(projectPath).getName(0).toString());
-
-        lock.lock();
-        try {
-            log.info("lock project: {}", Paths.get(projectPath).getName(0).toString());
-            srcResourceStore.copy(projectPath, destResourceStore);
-            if (isProjectLevel) {
-                // The project-level backup needs to contain "/_global/project/*.json"
-                val projectName = Paths.get(projectPath).getFileName().toString();
-                srcResourceStore.copy(ProjectInstance.concatResourcePath(projectName), destResourceStore);
-            }
-        } finally {
-            lock.unlock();
-            log.info("unlock project: {}", Paths.get(projectPath).getName(0).toString());
+        srcResourceStore.copy(projectPath, destResourceStore);
+        if (isProjectLevel) {
+            // The project-level backup needs to contain "/_global/project/*.json"
+            val projectName = Paths.get(projectPath).getFileName().toString();
+            srcResourceStore.copy(ProjectInstance.concatResourcePath(projectName), destResourceStore);
         }
     }
 
@@ -232,7 +243,7 @@ public class MetadataTool extends ExecutableApplication {
             val projectFolders = Sets.union(srcProjectFolders, destProjectFolders);
 
             for (String projectPath : projectFolders) {
-                if (projectPath.equals(ResourceStore.METASTORE_UUID_TAG)) {
+                if (projectPath.equals(ResourceStore.METASTORE_UUID_TAG) || projectPath.equals(ResourceStore.METASTORE_IMAGE)) {
                     continue;
                 }
                 val projectName = Paths.get(projectPath).getName(0).toString();
@@ -263,6 +274,11 @@ public class MetadataTool extends ExecutableApplication {
         }
 
         log.info("restore successfully");
+
+        HDFSMetadataTool.cleanBeforeBackup(kylinConfig);
+        String[] args = new String[] { "-backup", "-dir", HadoopUtil.getBackupFolder(kylinConfig) };
+        val backupTool = new MetadataTool();
+        backupTool.execute(args);
     }
 
     private int doRestore(MetadataStore restoreMetadataStore, Set<String> destResources, Set<String> srcResources)

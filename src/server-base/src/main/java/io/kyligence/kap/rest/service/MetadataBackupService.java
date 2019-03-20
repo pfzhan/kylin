@@ -23,14 +23,10 @@
  */
 package io.kyligence.kap.rest.service;
 
-import java.io.IOException;
 import java.time.LocalDateTime;
-import java.util.Comparator;
-import java.util.stream.Stream;
 
+import io.kyligence.kap.tool.HDFSMetadataTool;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.hadoop.fs.FileStatus;
-import org.apache.hadoop.fs.Path;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.HadoopUtil;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -58,7 +54,7 @@ public class MetadataBackupService {
 
     public void backup(String[] args) throws Exception {
         val kylinConfig = KylinConfig.getInstanceFromEnv();
-        cleanBeforeBackup(kylinConfig);
+        HDFSMetadataTool.cleanBeforeBackup(kylinConfig);
         val metadataTool = new MetadataTool(kylinConfig);
         metadataTool.execute(args);
     }
@@ -71,31 +67,7 @@ public class MetadataBackupService {
     }
 
     private String getBackupDir() {
-        val kylinConfig = KylinConfig.getInstanceFromEnv();
-        return StringUtils.appendIfMissing(kylinConfig.getHdfsWorkingDirectory(), "/") + "_backup";
-
-    }
-
-    public void cleanBeforeBackup(KylinConfig kylinConfig) throws IOException {
-        val rootMetadataBackupPath = new Path(getBackupDir());
-        val fs = HadoopUtil.getFileSystem(rootMetadataBackupPath);
-        if (!fs.exists(rootMetadataBackupPath)) {
-            fs.mkdirs(rootMetadataBackupPath);
-            return;
-        }
-
-        int childrenSize = fs.listStatus(rootMetadataBackupPath).length;
-
-        while (childrenSize >= kylinConfig.getMetadataBackupCountThreshold()) {
-            // remove the oldest backup metadata dir
-            val maybeOldest = Stream.of(fs.listStatus(rootMetadataBackupPath))
-                    .min(Comparator.comparing(FileStatus::getModificationTime));
-            if (maybeOldest.isPresent()) {
-                fs.delete(maybeOldest.get().getPath(), true);
-            }
-
-            childrenSize--;
-        }
+        return HadoopUtil.getBackupFolder(KylinConfig.getInstanceFromEnv());
 
     }
 

@@ -1,6 +1,9 @@
 #!/bin/bash
 # Kyligence Inc. License
 
+RESTORE='\033[0m'
+YELLOW='\033[00;33m'
+
 if [ -z $KYLIN_HOME ];then
     export KYLIN_HOME=$(cd -P -- "$(dirname -- "$0")"/../ && pwd -P)
 fi
@@ -14,6 +17,8 @@ function help {
 }
 
 metadata_tool="-cp ${KYLIN_HOME}/tool/kap-tool-*.jar -Dlog4j.configuration=file:${KYLIN_HOME}/conf/kylin-tools-log4j.properties io.kyligence.kap.tool.MetadataTool"
+
+echo -e "${YELLOW}Make sure all kylin processes have stopped!!${RESTORE}"
 
 if [ "$1" == "backup" ]
 then

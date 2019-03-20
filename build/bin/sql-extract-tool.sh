@@ -62,6 +62,7 @@ function extract_sql() {
     rm -rf ${sql_file_tmp}
     sql_file_size=$(ls -lah ${sql_file} | awk '{ print $5}')
     verbose "extract sql succeed, the sql file size is ${sql_file_size}"
+    split -d -C 4M ${sql_file} "${sql_file}-"
 }
 
 function main() {

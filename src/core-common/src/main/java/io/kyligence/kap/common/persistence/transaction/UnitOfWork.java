@@ -28,7 +28,6 @@ import java.util.Objects;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.KylinConfig.SetAndUnsetThreadLocalConfig;
 import org.apache.kylin.common.persistence.InMemResourceStore;
@@ -36,6 +35,7 @@ import org.apache.kylin.common.persistence.RawResource;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.persistence.ThreadViewResourceStore;
 import org.apache.kylin.common.persistence.TombRawResource;
+import org.apache.kylin.common.util.Pair;
 
 import com.google.common.base.Preconditions;
 
@@ -46,8 +46,6 @@ import io.kyligence.kap.common.persistence.event.ResourceCreateOrUpdateEvent;
 import io.kyligence.kap.common.persistence.event.ResourceDeleteEvent;
 import io.kyligence.kap.common.persistence.event.ResourceRelatedEvent;
 import io.kyligence.kap.common.persistence.event.StartUnit;
-import io.kyligence.kap.common.persistence.transaction.mq.MQPublishFailureException;
-import io.kyligence.kap.common.persistence.transaction.mq.MessageQueue;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.val;
@@ -58,13 +56,13 @@ import lombok.extern.slf4j.Slf4j;
 public class UnitOfWork {
     public static final String GLOBAL_UNIT = "_global";
 
-    private static ThreadLocal<Boolean> replaying = new ThreadLocal<>();
+    static ThreadLocal<Boolean> replaying = new ThreadLocal<>();
     private static ThreadLocal<UnitOfWork> threadLocals = new ThreadLocal<>();
 
     private SetAndUnsetThreadLocalConfig localConfig;
     private TransactionLock currentLock = null;
-    private boolean readOnly = false;
     private final String project;
+    private UnitOfWorkParams params;
 
     public static <T> T doInTransactionWithRetry(Callback<T> f, String unitName) {
         return doInTransactionWithRetry(f, unitName, 10);
@@ -85,6 +83,12 @@ public class UnitOfWork {
             Preconditions.checkState(unitOfWork.project.equals(unitName),
                     "re-entry of UnitOfWork with different unit name? existing: %s, new: %s", unitOfWork.project,
                     unitName);
+            Preconditions.checkState(params.isReadonly() == unitOfWork.params.isReadonly(),
+                    "re-entry of UnitOfWork with different lock type? existing: %s, new: %s", params.isReadonly(),
+                    unitOfWork.params.isReadonly());
+            Preconditions.checkState(params.isUseSandbox() == unitOfWork.params.isUseSandbox(),
+                    "re-entry of UnitOfWork with different sandbox? existing: %s, new: %s", params.isReadonly(),
+                    unitOfWork.params.isUseSandbox());
             try {
                 return f.process();
             } catch (Throwable throwable) {
@@ -97,68 +101,65 @@ public class UnitOfWork {
         int retry = 0;
         val traceId = UUID.randomUUID().toString();
         while (retry++ < maxRetry) {
-            try {
-                T ret;
-                log.debug("start unit of work for project {}", unitName);
-                long startTime = System.currentTimeMillis();
-                TransactionListenerRegistry.onStart(unitName);
-                UnitOfWork.startTransaction(params);
-                ret = f.process();
-                UnitOfWork.endTransaction();
-                long duration = System.currentTimeMillis() - startTime;
-                if (duration > 3000) {
-                    log.warn("a UnitOfWork takes too long time {}ms to complete", duration);
-                } else {
-                    log.debug("a UnitOfWork takes {}ms to complete", duration);
-                }
-                return ret;
-            } catch (Throwable throwable) {
-                if (retry >= maxRetry) {
-                    f.onProcessError(throwable);
-                    throw new TransactionException(
-                            "exhausted max retry times, transaction failed due to inconsistent state, traceId:"
-                                    + traceId,
-                            throwable);
-                }
-                if (retry == 1) {
-                    log.warn("transaction failed at first time, retry it. traceId:" + traceId, throwable);
-                }
-                //else proceed retry
-            } finally {
-                if (isAlreadyInTransaction()) {
-                    try {
-                        UnitOfWork unitOfWork = UnitOfWork.get();
-                        unitOfWork.unlock();
-                        unitOfWork.done();
-                        log.debug("leaving UnitOfWork for project {}", unitOfWork.project);
-                    } catch (IllegalStateException e) {
-                        //has not hold the lock yet, it's ok
-                        log.warn(e.getMessage());
-                    } catch (Exception e) {
-                        log.error("Failed to close UnitOfWork", e);
-                    }
-                    threadLocals.remove();
-                    TransactionListenerRegistry.onEnd(unitName);
-                }
+            val ret = doTransaction(params, retry, traceId);
+            if (ret.getSecond()) {
+                return ret.getFirst();
             }
         }
         throw new IllegalStateException("Unexpected doInTransactionWithRetry end");
     }
 
-    public static boolean isAlreadyInTransaction() {
-        return threadLocals.get() != null;
-    }
-
-    static UnitOfWork startTransaction(String project, boolean useSandboxStore, boolean readOnly) {
-        return startTransaction(UnitOfWorkParams.builder().unitName(project).maxRetry(10)
-                .readonly(readOnly).useSandboxStore(useSandboxStore).processor(Object::new).build());
+    private static <T> Pair<T, Boolean> doTransaction(UnitOfWorkParams<T> params, int retry, String traceId) {
+        try {
+            T ret;
+            log.debug("start unit of work for project {}", params.getUnitName());
+            long startTime = System.currentTimeMillis();
+            TransactionListenerRegistry.onStart(params.getUnitName());
+            UnitOfWork.startTransaction(params);
+            ret = params.getProcessor().process();
+            UnitOfWork.endTransaction();
+            long duration = System.currentTimeMillis() - startTime;
+            if (duration > 3000) {
+                log.warn("a UnitOfWork takes too long time {}ms to complete", duration);
+            } else {
+                log.debug("a UnitOfWork takes {}ms to complete", duration);
+            }
+            return Pair.newPair(ret, true);
+        } catch (Throwable throwable) {
+            if (retry >= params.getMaxRetry()) {
+                params.getProcessor().onProcessError(throwable);
+                throw new TransactionException(
+                        "exhausted max retry times, transaction failed due to inconsistent state, traceId:" + traceId,
+                        throwable);
+            }
+            if (retry == 1) {
+                log.warn("transaction failed at first time, retry it. traceId:" + traceId, throwable);
+            }
+            //else proceed retry
+        } finally {
+            if (isAlreadyInTransaction()) {
+                try {
+                    UnitOfWork unitOfWork = UnitOfWork.get();
+                    unitOfWork.currentLock.unlock();
+                    unitOfWork.done();
+                    log.debug("leaving UnitOfWork for project {}", unitOfWork.project);
+                } catch (IllegalStateException e) {
+                    //has not hold the lock yet, it's ok
+                    log.warn(e.getMessage());
+                } catch (Exception e) {
+                    log.error("Failed to close UnitOfWork", e);
+                }
+                threadLocals.remove();
+                TransactionListenerRegistry.onEnd(params.getUnitName());
+            }
+        }
+        return Pair.newPair(null, false);
     }
 
     static <T> UnitOfWork startTransaction(UnitOfWorkParams<T> params) {
         val project = params.getUnitName();
-        val readOnly = params.isReadonly();
-        val useSandboxStore = params.isUseSandboxStore();
-        val lock = TransactionLock.getLock(project, readOnly);
+        val readonly = params.isReadonly();
+        val lock = TransactionLock.getLock(project, readonly);
 
         log.trace("get lock for project {}, lock is held by current thread: {}", project, lock.isHeldByCurrentThread());
         //re-entry is not encouraged (because it indicates complex handling logic, bad smell), let's abandon it first
@@ -167,10 +168,10 @@ public class UnitOfWork {
 
         UnitOfWork unitOfWork = new UnitOfWork(project);
         unitOfWork.currentLock = lock;
-        unitOfWork.readOnly = readOnly;
+        unitOfWork.params = params;
         threadLocals.set(unitOfWork);
 
-        if (!useSandboxStore) {
+        if (readonly || !params.isUseSandbox()) {
             unitOfWork.localConfig = null;
             return unitOfWork;
         }
@@ -207,7 +208,7 @@ public class UnitOfWork {
         localConfig = null;
     }
 
-    public static UnitOfWork get() {
+    static UnitOfWork get() {
         val temp = threadLocals.get();
         Preconditions.checkNotNull(temp, "current thread is not accompanied by a UnitOfWork");
 
@@ -218,8 +219,12 @@ public class UnitOfWork {
     }
 
     static void endTransaction() throws Exception {
-
         KylinConfig config = KylinConfig.getInstanceFromEnv();
+        UnitOfWork work = get();
+        if (work.params.isReadonly() || !work.params.isUseSandbox()) {
+            work.done();
+            return;
+        }
         val threadViewRS = (ThreadViewResourceStore) ResourceStore.getKylinMetaStore(config);
         List<RawResource> data = threadViewRS.getResources();
         val eventList = data.stream().map(x -> {
@@ -231,10 +236,6 @@ public class UnitOfWork {
         }).collect(Collectors.<Event> toList());
 
         //clean rs and config
-        UnitOfWork work = get();
-        if (work.readOnly && !CollectionUtils.isEmpty(eventList)) {
-            throw new TransactionException("read transaction cannot modify resource store");
-        }
         work.done();
 
         val originConfig = KylinConfig.getInstanceFromEnv();
@@ -244,20 +245,9 @@ public class UnitOfWork {
         metadataStore.batchUpdate(unitMessages);
 
         try {
-            val messageQueue = MessageQueue.getInstance(originConfig);
-            if (messageQueue != null) {
-                messageQueue.getEventPublisher().publish(unitMessages);
-            }
-        } catch (MQPublishFailureException e) {
-            log.warn("mq publish failed", e);
-        }
-
-        try {
-            // replay in leader before release lock
-            replaying.set(true);
+            // replayInTransaction in leader before release lock
             val replayer = MessageSynchronization.getInstance(originConfig);
-            replayer.replay(unitMessages, true);
-            replaying.remove();
+            replayer.replayInTransaction(unitMessages);
         } catch (Exception e) {
             // in theory, this should not happen
             log.error("Unexpected error happened! Aborting right now.", e);
@@ -277,13 +267,17 @@ public class UnitOfWork {
         return new UnitMessages(events);
     }
 
-    public static boolean isReplaying() {
-        return Objects.equals(true, replaying.get())
-                || Thread.currentThread().getName().equals(MessageQueue.CONSUMER_THREAD_NAME);
+    public static boolean isAlreadyInTransaction() {
+        return threadLocals.get() != null;
     }
 
-    public void unlock() {
-        currentLock.unlock();
+    public static boolean isReplaying() {
+        return Objects.equals(true, replaying.get());
+
+    }
+
+    public static boolean isReadonly() {
+        return UnitOfWork.get().params.isReadonly();
     }
 
     public interface Callback<T> {

@@ -33,6 +33,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.common.persistence.metadata.MetadataStore;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.io.FileUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -190,7 +191,7 @@ public class NAutoTestBase extends NLocalWithSparkSessionTest {
         val resourceStore = ResourceStore.getKylinMetaStore(config);
         val outputConfig = KylinConfig.createKylinConfig(config);
         outputConfig.setMetadataUrl(metadataUrlPrefix);
-        ResourceStore.createMetadataStore(outputConfig).dump(resourceStore);
+        MetadataStore.createMetadataStore(outputConfig).dump(resourceStore);
     }
 
     private void assertOrPrintCmpResult(Map<String, CompareEntity> compareMap) {

@@ -26,11 +26,9 @@ package io.kyligence.kap.common.persistence.transaction;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
 
-import io.kyligence.kap.common.cluster.LeaderInitiator;
 import io.kyligence.kap.common.persistence.UnitMessages;
 import io.kyligence.kap.common.persistence.event.ResourceCreateOrUpdateEvent;
 import io.kyligence.kap.common.persistence.event.ResourceDeleteEvent;
-import lombok.Getter;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
@@ -38,10 +36,7 @@ import lombok.extern.slf4j.Slf4j;
 public class MessageSynchronization {
 
     private final KylinConfig config;
-    private final LeaderInitiator leaderInitiator;
     private final EventListenerRegistry eventListener;
-    @Getter
-    private long eventSize = 0;
 
     public static MessageSynchronization getInstance(KylinConfig config) {
         return config.getManager(MessageSynchronization.class);
@@ -53,22 +48,21 @@ public class MessageSynchronization {
 
     private MessageSynchronization(KylinConfig config) {
         this.config = config;
-        leaderInitiator = LeaderInitiator.getInstance(config);
         eventListener = EventListenerRegistry.getInstance(config);
     }
 
     public void replay(UnitMessages event) {
-        replay(event, false);
-    }
-
-    public void replay(UnitMessages messages, boolean locally) {
-        // No need to replay in leader
-        if (leaderInitiator.isLeader() && !locally) {
+        if (event.isEmpty()) {
             return;
         }
-        if (!locally) {
-            UnitOfWork.startTransaction(messages.getKey(), false, false);
-        }
+        UnitOfWork.doInTransactionWithRetry(UnitOfWorkParams.builder().processor(() -> {
+            replayInTransaction(event);
+            return null;
+        }).maxRetry(1).unitName(event.getKey()).useSandbox(false).build());
+    }
+
+    void replayInTransaction(UnitMessages messages) {
+        UnitOfWork.replaying.set(true);
         messages.getMessages().forEach(event -> {
             if (event instanceof ResourceCreateOrUpdateEvent) {
                 replayUpdate((ResourceCreateOrUpdateEvent) event);
@@ -77,12 +71,8 @@ public class MessageSynchronization {
                 replayDelete((ResourceDeleteEvent) event);
                 eventListener.onDelete((ResourceDeleteEvent) event);
             }
-            eventSize++;
         });
-
-        if (!locally) {
-            UnitOfWork.get().unlock();
-        }
+        UnitOfWork.replaying.remove();
     }
 
     private void replayDelete(ResourceDeleteEvent event) {
@@ -93,11 +83,13 @@ public class MessageSynchronization {
 
     private void replayUpdate(ResourceCreateOrUpdateEvent event) {
         val resourceStore = ResourceStore.getKylinMetaStore(config);
-        log.trace("replay update for res {}, with new version: {}", event.getResPath(), event.getCreatedOrUpdated().getMvcc());
+        log.trace("replay update for res {}, with new version: {}", event.getResPath(),
+                event.getCreatedOrUpdated().getMvcc());
         val raw = event.getCreatedOrUpdated();
         val oldRaw = resourceStore.getResource(raw.getResPath());
         if (oldRaw == null) {
-            resourceStore.putResourceWithoutCheck(raw.getResPath(), raw.getByteSource(), raw.getTimestamp(), raw.getMvcc());
+            resourceStore.putResourceWithoutCheck(raw.getResPath(), raw.getByteSource(), raw.getTimestamp(),
+                    raw.getMvcc());
         } else {
             resourceStore.checkAndPutResource(raw.getResPath(), raw.getByteSource(), raw.getMvcc() - 1);
         }

@@ -23,11 +23,21 @@
  */
 package io.kyligence.kap.rest.config;
 
-import lombok.val;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
+import org.springframework.cache.ehcache.EhCacheCacheManager;
+import org.springframework.cache.ehcache.EhCacheManagerFactoryBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.env.Environment;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.scheduling.TaskScheduler;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
+
+import io.kyligence.kap.rest.cluster.ClusterManager;
+import io.kyligence.kap.rest.cluster.DefaultClusterManager;
+import lombok.val;
 
 @Configuration
 public class AppConfig {
@@ -38,6 +48,37 @@ public class AppConfig {
         scheduler.setPoolSize(5);
         scheduler.setThreadNamePrefix("DefaultTaskScheduler-");
         return scheduler;
+    }
+
+    @Autowired
+    private Environment environment;
+
+    @Bean
+    public EhCacheManagerFactoryBean cacheFactoryBean() {
+        val factory = new EhCacheManagerFactoryBean();
+        factory.setShared(true);
+        if (environment.acceptsProfiles("ldap", "saml")) {
+            factory.setConfigLocation(new ClassPathResource("ehcache.xml"));
+        } else {
+            factory.setConfigLocation(new ClassPathResource("ehcache-test.xml"));
+        }
+        return factory;
+    }
+
+    @Bean
+    public EhCacheCacheManager cacheManager() {
+        val manager = new EhCacheCacheManager();
+        manager.setCacheManager(cacheFactoryBean().getObject());
+        return manager;
+    }
+
+    @Value("${server.port:7070}")
+    private int port;
+
+    @Bean
+    @ConditionalOnMissingBean(ClusterManager.class)
+    public ClusterManager clusterManager() {
+        return new DefaultClusterManager(port);
     }
 
 }

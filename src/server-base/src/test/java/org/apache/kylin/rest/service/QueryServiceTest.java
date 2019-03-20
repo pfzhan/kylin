@@ -59,7 +59,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.metadata.query.NativeQueryRealization;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.common.exceptions.ResourceLimitExceededException;
@@ -109,6 +108,9 @@ import io.kyligence.kap.metadata.model.ComputedColumnDesc;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
+import io.kyligence.kap.metadata.query.NativeQueryRealization;
+import io.kyligence.kap.rest.cluster.ClusterManager;
+import io.kyligence.kap.rest.cluster.DefaultClusterManager;
 import io.kyligence.kap.rest.metrics.QueryMetricsContext;
 import lombok.val;
 import net.sf.ehcache.CacheManager;
@@ -121,6 +123,8 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
     @Mock
     private CacheManager cacheManager = Mockito
             .spy(CacheManager.create(ClassLoader.getSystemResourceAsStream("ehcache-test.xml")));
+
+    private ClusterManager clusterManager = new DefaultClusterManager(8080);
 
     @InjectMocks
     private QueryService queryService = Mockito.spy(new QueryService());
@@ -140,6 +144,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
 
         ReflectionTestUtils.setField(queryService, "aclEvaluate", Mockito.mock(AclEvaluate.class));
         ReflectionTestUtils.setField(queryService, "cacheManager", cacheManager);
+        ReflectionTestUtils.setField(queryService, "clusterManager", clusterManager);
     }
 
     private void stubQueryConnection(final String sql, final String project) throws SQLException {
@@ -229,8 +234,11 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(expectedQueryID, firstSuccess.getQueryId());
         Assert.assertEquals(2, firstSuccess.getNativeRealizations().size());
         Assert.assertEquals(QueryMetricsContext.AGG_INDEX, firstSuccess.getNativeRealizations().get(0).getIndexType());
-        Assert.assertEquals(QueryMetricsContext.TABLE_INDEX, firstSuccess.getNativeRealizations().get(1).getIndexType());
-        Assert.assertEquals(Lists.newArrayList("mock_model_alias1", "mock_model_alias2"), firstSuccess.getNativeRealizations().stream().map(NativeQueryRealization::getModelAlias).collect(Collectors.toList()));
+        Assert.assertEquals(QueryMetricsContext.TABLE_INDEX,
+                firstSuccess.getNativeRealizations().get(1).getIndexType());
+        Assert.assertEquals(Lists.newArrayList("mock_model_alias1", "mock_model_alias2"),
+                firstSuccess.getNativeRealizations().stream().map(NativeQueryRealization::getModelAlias)
+                        .collect(Collectors.toList()));
         // assert log info
         String log = queryService.logQuery(request, firstSuccess);
         Assert.assertTrue(log.contains("mock_model_alias1"));
@@ -243,7 +251,8 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(expectedQueryID, secondSuccess.getQueryId());
         Assert.assertEquals(2, secondSuccess.getNativeRealizations().size());
         Assert.assertEquals(QueryMetricsContext.AGG_INDEX, secondSuccess.getNativeRealizations().get(0).getIndexType());
-        Assert.assertEquals(QueryMetricsContext.TABLE_INDEX, secondSuccess.getNativeRealizations().get(1).getIndexType());
+        Assert.assertEquals(QueryMetricsContext.TABLE_INDEX,
+                secondSuccess.getNativeRealizations().get(1).getIndexType());
         Assert.assertEquals("mock_model_alias1", secondSuccess.getNativeRealizations().get(0).getModelAlias());
         // assert log info
         log = queryService.logQuery(request, secondSuccess);
@@ -630,7 +639,8 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         val dataflowManager = NDataflowManager.getInstance(getTestConfig(), project);
 
         SQLResponse response = new SQLResponse();
-        response.setNativeRealizations(Lists.newArrayList(new NativeQueryRealization(modelId, layoutId, QueryMetricsContext.AGG_INDEX)));
+        response.setNativeRealizations(
+                Lists.newArrayList(new NativeQueryRealization(modelId, layoutId, QueryMetricsContext.AGG_INDEX)));
         String signature = QueryCacheSignatureUtil.createCacheSignature(response, project);
         Assert.assertEquals(String.valueOf(dataflowManager.getDataflow(modelId).getLastModified()), signature);
 
@@ -666,8 +676,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         final SQLResponse secondSuccess = queryService.doQueryWithCache(request, false);
         Assert.assertEquals(true, secondSuccess.isStorageCacheUsed());
         Assert.assertEquals(1, secondSuccess.getNativeRealizations().size());
-        Assert.assertEquals(QueryMetricsContext.AGG_INDEX,
-                secondSuccess.getNativeRealizations().get(0).getIndexType());
+        Assert.assertEquals(QueryMetricsContext.AGG_INDEX, secondSuccess.getNativeRealizations().get(0).getIndexType());
         Assert.assertEquals("nmodel_basic", secondSuccess.getNativeRealizations().get(0).getModelAlias());
 
         dataflowManager.updateDataflow(modelId, copyForWrite -> {
@@ -677,8 +686,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         final SQLResponse thirdSuccess = queryService.doQueryWithCache(request, false);
         Assert.assertEquals(false, thirdSuccess.isStorageCacheUsed());
         Assert.assertEquals(1, thirdSuccess.getNativeRealizations().size());
-        Assert.assertEquals(QueryMetricsContext.AGG_INDEX,
-                thirdSuccess.getNativeRealizations().get(0).getIndexType());
+        Assert.assertEquals(QueryMetricsContext.AGG_INDEX, thirdSuccess.getNativeRealizations().get(0).getIndexType());
         Assert.assertEquals(modelAlias, thirdSuccess.getNativeRealizations().get(0).getModelAlias());
     }
 

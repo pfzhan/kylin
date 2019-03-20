@@ -63,8 +63,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.NotImplementedException;
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.StorageURL;
-import org.apache.kylin.common.util.ClassUtil;
+import org.apache.kylin.common.util.JsonUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -74,6 +73,8 @@ import com.google.common.collect.Lists;
 import com.google.common.io.ByteSource;
 import com.google.common.io.ByteStreams;
 
+import io.kyligence.kap.common.persistence.ImageDesc;
+import io.kyligence.kap.common.persistence.metadata.AuditLogStore;
 import io.kyligence.kap.common.persistence.metadata.MetadataStore;
 import lombok.Getter;
 import lombok.val;
@@ -108,6 +109,7 @@ public abstract class ResourceStore implements AutoCloseable {
     public static final String FAVORITE_QUERY_RESOURCE_ROOT = "/favorite";
     public static final String JOB_STATISTICS = "/job_stats";
 
+    public static final String METASTORE_IMAGE = "/_image";
     public static final String METASTORE_UUID_TAG = "/UUID";
     public static final String QUERY_HISTORY_TIME_OFFSET = "/query_history_time_offset";
     public static final String ACCELERATE_RATIO_RESOURCE_ROOT = "/accelerate_ratio";
@@ -159,7 +161,8 @@ public abstract class ResourceStore implements AutoCloseable {
         if (!store.exists(METASTORE_UUID_TAG)) {
             val output = ByteStreams.newDataOutput();
             output.writeUTF(store.createMetaStoreUUID());
-            store.putResourceWithoutCheck(METASTORE_UUID_TAG, ByteStreams.asByteSource(output.toByteArray()), System.currentTimeMillis(), 0);
+            store.putResourceWithoutCheck(METASTORE_UUID_TAG, ByteStreams.asByteSource(output.toByteArray()),
+                    System.currentTimeMillis(), 0);
         }
 
         return store;
@@ -170,21 +173,9 @@ public abstract class ResourceStore implements AutoCloseable {
      */
     private static ResourceStore createResourceStore(KylinConfig config) {
         try (val resourceStore = new InMemResourceStore(config)) {
-            val snapshotStore = createMetadataStore(config);
+            val snapshotStore = MetadataStore.createMetadataStore(config);
             resourceStore.init(snapshotStore);
             return resourceStore;
-        } catch (Exception e) {
-            throw new IllegalArgumentException("Failed to create metadata store", e);
-        }
-    }
-
-    public static MetadataStore createMetadataStore(KylinConfig config) {
-        StorageURL url = config.getMetadataUrl();
-        logger.info("Creating resource store by KylinConfig {}", config);
-        String clsName = config.getMetadataStoreImpls().get(url.getScheme());
-        try {
-            Class<? extends MetadataStore> cls = ClassUtil.forName(clsName, MetadataStore.class);
-            return cls.getConstructor(KylinConfig.class).newInstance(config);
         } catch (Exception e) {
             throw new IllegalArgumentException("Failed to create metadata store", e);
         }
@@ -392,6 +383,20 @@ public abstract class ResourceStore implements AutoCloseable {
         throw new NotImplementedException("Only implemented in InMemoryResourceStore");
     }
 
+    public void catchup() {
+        val auditLogStore = getAuditLogStore();
+        val raw = getResource(METASTORE_IMAGE);
+        try {
+            long offset = 0;
+            if (raw != null) {
+                val imageDesc = JsonUtil.readValue(raw.getByteSource().read(), ImageDesc.class);
+                offset = imageDesc.getOffset();
+            }
+            auditLogStore.restore(this, offset);
+        } catch (IOException ignore) {
+        }
+    }
+
     public interface Visitor {
         void visit(String path);
     }
@@ -475,7 +480,8 @@ public abstract class ResourceStore implements AutoCloseable {
         val resource = getResource(resPath);
         if (resource != null) {
             //res is a file
-            destRS.putResourceWithoutCheck(resPath, resource.getByteSource(), resource.getTimestamp(), resource.getMvcc());
+            destRS.putResourceWithoutCheck(resPath, resource.getByteSource(), resource.getTimestamp(),
+                    resource.getMvcc());
         } else {
             NavigableSet<String> resources = listResourcesRecursively(resPath);
             if (resources == null || resources.isEmpty()) {
@@ -487,8 +493,13 @@ public abstract class ResourceStore implements AutoCloseable {
                     logger.warn("The resource {} doesn't exists,there may be transaction problems here", res);
                     continue;
                 }
-                destRS.putResourceWithoutCheck(res, rawResource.getByteSource(), rawResource.getTimestamp(), rawResource.getMvcc());
+                destRS.putResourceWithoutCheck(res, rawResource.getByteSource(), rawResource.getTimestamp(),
+                        rawResource.getMvcc());
             }
         }
+    }
+
+    public AuditLogStore getAuditLogStore() {
+        return getMetadataStore().getAuditLogStore();
     }
 }

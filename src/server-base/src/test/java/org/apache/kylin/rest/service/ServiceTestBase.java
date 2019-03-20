@@ -55,6 +55,9 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.context.annotation.ComponentScan;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.ImportResource;
 import org.springframework.security.authentication.TestingAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -66,8 +69,7 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 
 @RunWith(SpringJUnit4ClassRunner.class)
-@ContextConfiguration(locations = { "classpath:applicationContext.xml", "classpath:kylinSecurity.xml",
-        "classpath:kylinMetrics.xml" })
+@ContextConfiguration(classes = ServiceTestBase.SpringConfig.class)
 @ActiveProfiles("testing")
 public class ServiceTestBase extends NLocalFileMetadataTestCase {
 
@@ -122,5 +124,12 @@ public class ServiceTestBase extends NLocalFileMetadataTestCase {
      */
     @Test
     public void test() {
+    }
+
+    @Configuration
+    @ComponentScan("io.kyligence.kap.rest")
+    @ImportResource(locations = { "applicationContext.xml", "kylinSecurity.xml" })
+    public static class SpringConfig {
+
     }
 }

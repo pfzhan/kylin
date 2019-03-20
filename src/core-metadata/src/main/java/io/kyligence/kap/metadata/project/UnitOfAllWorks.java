@@ -27,36 +27,35 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.common.persistence.transaction.TransactionLock;
-import io.kyligence.kap.common.persistence.transaction.UnitOfWorkParams;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.RootPersistentEntity;
 import org.apache.kylin.metadata.project.ProjectInstance;
 
+import io.kyligence.kap.common.persistence.transaction.TransactionLock;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
+import io.kyligence.kap.common.persistence.transaction.UnitOfWorkParams;
 import lombok.val;
 
 public class UnitOfAllWorks {
 
     public static <T> T doInTransaction(UnitOfWork.Callback<T> f, boolean readonly) {
-        return UnitOfWork.doInTransactionWithRetry(UnitOfWorkParams.<T>builder().readonly(readonly).unitName(UnitOfWork.GLOBAL_UNIT).processor(
-            () -> {
-                val projectManager = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv());
-                val projects = projectManager.listAllProjects().stream()
-                        .sorted(Comparator.comparing(RootPersistentEntity::getUuid)).collect(Collectors.toList());
-                for (ProjectInstance project : projects) {
-                    TransactionLock.getLock(project.getName(), readonly).lock();
-                }
-                try {
-                    return f.process();
-                } finally {
-                    Collections.reverse(projects);
+        return UnitOfWork.doInTransactionWithRetry(
+                UnitOfWorkParams.<T> builder().readonly(readonly).unitName(UnitOfWork.GLOBAL_UNIT).processor(() -> {
+                    val projectManager = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv());
+                    val projects = projectManager.listAllProjects().stream()
+                            .sorted(Comparator.comparing(RootPersistentEntity::getUuid)).collect(Collectors.toList());
                     for (ProjectInstance project : projects) {
-                        TransactionLock.getLock(project.getName(), readonly).unlock();
+                        TransactionLock.getLock(project.getName(), readonly).lock();
                     }
-                }
-            }
-        ).build());
+                    try {
+                        return f.process();
+                    } finally {
+                        Collections.reverse(projects);
+                        for (ProjectInstance project : projects) {
+                            TransactionLock.getLock(project.getName(), readonly).unlock();
+                        }
+                    }
+                }).build());
     }
 
 }

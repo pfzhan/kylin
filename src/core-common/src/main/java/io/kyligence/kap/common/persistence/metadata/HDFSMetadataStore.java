@@ -23,12 +23,15 @@
  */
 package io.kyligence.kap.common.persistence.metadata;
 
-import java.io.IOException;
-import java.util.NavigableSet;
-import java.util.TreeSet;
-
+import com.google.common.base.Preconditions;
+import com.google.common.base.Throwables;
+import com.google.common.io.ByteSource;
+import com.google.common.io.ByteStreams;
+import lombok.extern.slf4j.Slf4j;
+import lombok.val;
 import org.apache.commons.io.IOUtils;
 import org.apache.hadoop.fs.FSDataOutputStream;
+import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.LocatedFileStatus;
 import org.apache.hadoop.fs.Path;
@@ -37,13 +40,11 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.RawResource;
 import org.apache.kylin.common.util.HadoopUtil;
 
-import com.google.common.base.Preconditions;
-import com.google.common.base.Throwables;
-import com.google.common.io.ByteSource;
-import com.google.common.io.ByteStreams;
-
-import lombok.val;
-import lombok.extern.slf4j.Slf4j;
+import java.io.IOException;
+import java.util.Comparator;
+import java.util.NavigableSet;
+import java.util.TreeSet;
+import java.util.stream.Stream;
 
 @Slf4j
 public class HDFSMetadataStore extends MetadataStore {
@@ -61,11 +62,22 @@ public class HDFSMetadataStore extends MetadataStore {
 
             String path = storageUrl.getParameter("path");
             if (path == null) {
-                path = HadoopUtil.getLatestImagePath(kylinConfig);
+                path = HadoopUtil.getBackupFolder(kylinConfig);
+                fs = HadoopUtil.getFileSystem(path);
+                if (!fs.exists(new Path(path))) {
+                    fs.mkdirs(new Path(path));
+                }
+                rootPath = Stream.of(fs.listStatus(new Path(path)))
+                        .max(Comparator.comparing(FileStatus::getModificationTime)).map(FileStatus::getPath)
+                        .orElse(new Path(path + "/backup_0/"));
+                if (!fs.exists(rootPath)) {
+                    fs.mkdirs(rootPath);
+                }
+            } else {
+                fs = HadoopUtil.getFileSystem(path);
+                rootPath = fs.makeQualified(new Path(path));
             }
 
-            fs = HadoopUtil.getFileSystem(path);
-            rootPath = fs.makeQualified(new Path(path));
             if (!fs.exists(rootPath)) {
                 log.warn("Path not exist in HDFS, create it: {}", path);
                 createMetaFolder(rootPath);

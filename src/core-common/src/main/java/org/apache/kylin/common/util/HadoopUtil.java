@@ -218,8 +218,8 @@ public class HadoopUtil {
         }
     }
 
-    public static String getLatestImagePath(KylinConfig kylinConfig) {
-        return kylinConfig.getHdfsWorkingDirectory() + "image/latest";
+    public static String getBackupFolder(KylinConfig kylinConfig) {
+        return kylinConfig.getHdfsWorkingDirectory() + "_backup";
     }
 
     public static String getPathWithoutScheme(String path) {

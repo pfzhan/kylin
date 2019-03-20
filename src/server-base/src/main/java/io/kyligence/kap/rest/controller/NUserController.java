@@ -98,8 +98,6 @@ public class NUserController extends NBasicController {
     @Autowired
     private Environment env;
 
-    private String activeProfile = PROFILE;
-
     private static final Pattern usernamePattern = Pattern.compile("^[a-zA-Z0-9_]*$");
     private static final Pattern passwordPattern = Pattern
             .compile("^(?=.*\\d)(?=.*[a-zA-Z])(?=.*[~!@#$%^&*(){}|:\"<>?\\[\\];',./`]).{8,}$");
@@ -111,9 +109,8 @@ public class NUserController extends NBasicController {
     @EventListener(AppInitializedEvent.class)
     public void init() throws IOException {
         List<ManagedUser> all = userService.listUsers();
-        activeProfile = env.getActiveProfiles()[0];
         logger.info("All {} users", all.size());
-        if (all.isEmpty() && PROFILE.equals(activeProfile)) {
+        if (all.isEmpty() && env.acceptsProfiles(PROFILE)) {
             createAdminUser(new ManagedUser("ADMIN", "KYLIN", true, Constant.ROLE_ADMIN, Constant.GROUP_ALL_USERS));
             createAdminUser(new ManagedUser("ANALYST", "ANALYST", true, Constant.GROUP_ALL_USERS));
             createAdminUser(new ManagedUser("MODELER", "MODELER", true, Constant.GROUP_ALL_USERS));
@@ -344,7 +341,7 @@ public class NUserController extends NBasicController {
 
     private void checkProfile() {
         val msg = MsgPicker.getMsg();
-        if (!PROFILE.equals(activeProfile)) {
+        if (!env.acceptsProfiles(PROFILE)) {
             throw new BadRequestException(msg.getUSER_EDIT_NOT_ALLOWED());
         }
     }

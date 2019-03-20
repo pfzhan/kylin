@@ -22,7 +22,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.rest.cliUtils;
+package io.kyligence.kap.rest.cli;
 
 
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;

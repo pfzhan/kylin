@@ -36,6 +36,7 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.tool.HDFSMetadataTool;
 import lombok.val;
 
 public class MetadataBackupServiceTest extends NLocalFileMetadataTestCase {
@@ -77,8 +78,10 @@ public class MetadataBackupServiceTest extends NLocalFileMetadataTestCase {
         Assertions.assertThat(rootMetadataFS.listStatus(rootMetadataPath)).hasSize(1);
 
         val rootMetadataChildrenPath = rootMetadataFS.listStatus(rootMetadataPath)[0].getPath();
-        Assertions.assertThat(rootMetadataFS.listStatus(rootMetadataChildrenPath)).hasSize(1).contains(rootMetadataFS
-                .getFileStatus(new Path(rootMetadataChildrenPath.toString() + File.separator + "UUID")));
+        Assertions.assertThat(rootMetadataFS.listStatus(rootMetadataChildrenPath)).hasSize(2).contains(
+                rootMetadataFS.getFileStatus(new Path(rootMetadataChildrenPath.toString() + File.separator + "UUID")),
+                rootMetadataFS
+                        .getFileStatus(new Path(rootMetadataChildrenPath.toString() + File.separator + "_image")));
 
     }
 
@@ -97,16 +100,16 @@ public class MetadataBackupServiceTest extends NLocalFileMetadataTestCase {
         }
         Assertions.assertThat(fs.listStatus(rootMetadataPath)).hasSize(6);
 
-        metadataBackupService.cleanBeforeBackup(kylinConfig);
+        HDFSMetadataTool.cleanBeforeBackup(kylinConfig);
         fs.mkdirs(new Path(rootMetadataPath.toString() + "/test" + (metadataBackupCountThreshold - 1)));
         Assertions.assertThat(fs.listStatus(rootMetadataPath)).hasSize(7);
 
-        metadataBackupService.cleanBeforeBackup(kylinConfig);
+        HDFSMetadataTool.cleanBeforeBackup(kylinConfig);
         fs.mkdirs(new Path(rootMetadataPath.toString() + "/test" + metadataBackupCountThreshold));
         Assertions.assertThat(fs.listStatus(rootMetadataPath)).hasSize(7);
 
         kylinConfig.setProperty("kylin.metadata.backup-count-threshold", "3");
-        metadataBackupService.cleanBeforeBackup(kylinConfig);
+        HDFSMetadataTool.cleanBeforeBackup(kylinConfig);
         Assertions.assertThat(fs.listStatus(rootMetadataPath)).hasSize(2);
     }
 

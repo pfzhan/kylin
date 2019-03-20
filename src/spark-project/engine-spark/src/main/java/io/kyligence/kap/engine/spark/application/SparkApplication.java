@@ -30,6 +30,7 @@ import java.nio.file.Paths;
 import java.util.List;
 import java.util.Map;
 
+import io.kyligence.kap.common.persistence.metadata.MetadataStore;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -137,7 +138,7 @@ public abstract class SparkApplication implements Application, IKeep {
             val resourceStore = ResourceStore.getKylinMetaStore(config);
             val outputConfig = KylinConfig.createKylinConfig(config);
             outputConfig.setMetadataUrl(getParam(NBatchConstants.P_OUTPUT_META_URL));
-            ResourceStore.createMetadataStore(outputConfig).dump(resourceStore);
+            MetadataStore.createMetadataStore(outputConfig).dump(resourceStore);
         } finally {
             if (ss != null && !ss.conf().get("spark.master").startsWith("local")) {
                 JobMetricsUtils.unRegisterListener(ss);

@@ -30,7 +30,6 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.persistence.ResourceTool;
 import org.assertj.core.api.Assertions;
 import org.junit.After;
@@ -67,7 +66,7 @@ public class MetadataStoreTest extends NLocalFileMetadataTestCase {
                 "/default");
 
         getTestConfig().setMetadataUrl(junitFolder.getAbsolutePath());
-        val metadataStore = ResourceStore.createMetadataStore(getTestConfig());
+        val metadataStore = MetadataStore.createMetadataStore(getTestConfig());
 
         //add illegal file,the verify result is not qualified
         Paths.get(junitFolder.getAbsolutePath(), "/IllegalFile").toFile().createNewFile();

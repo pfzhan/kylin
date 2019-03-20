@@ -35,38 +35,37 @@ import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.dbcp2.BasicDataSource;
 import org.apache.commons.dbcp2.BasicDataSourceFactory;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.StorageURL;
 import org.apache.kylin.common.persistence.RawResource;
 import org.apache.kylin.common.persistence.ResourceStore;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
-import org.springframework.transaction.TransactionDefinition;
-import org.springframework.transaction.support.DefaultTransactionDefinition;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.Sets;
 import com.google.common.io.ByteSource;
 
 import io.kyligence.kap.common.persistence.UnitMessages;
+import io.kyligence.kap.common.persistence.metadata.jdbc.JdbcTransactionMixin;
 import io.kyligence.kap.common.persistence.metadata.jdbc.RawResourceRowMapper;
+import lombok.Getter;
 import lombok.val;
 import lombok.var;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public class JdbcMetadataStore extends MetadataStore {
+public class JdbcMetadataStore extends MetadataStore implements JdbcTransactionMixin {
 
     private static final RowMapper<RawResource> RAW_RESOURCE_ROW_MAPPER = new RawResourceRowMapper();
 
-    private static final String META_TABLE_KEY = "META_TABLE_KEY";
-    private static final String META_TABLE_CONTENT = "META_TABLE_CONTENT";
-    private static final String META_TABLE_TS = "META_TABLE_TS";
-    private static final String META_TABLE_MVCC = "META_TABLE_MVCC";
+    static final String META_TABLE_KEY = "META_TABLE_KEY";
+    static final String META_TABLE_CONTENT = "META_TABLE_CONTENT";
+    static final String META_TABLE_TS = "META_TABLE_TS";
+    static final String META_TABLE_MVCC = "META_TABLE_MVCC";
 
     private static final String SELECT_TERM = "select ";
 
-    private static final String COUNT_ALL_SQL = "select count(1) from %s";
     private static final String SELECT_ALL_KEY_SQL = SELECT_TERM + META_TABLE_KEY + " from %s";
     private static final String SELECT_BY_RANGE_SQL = SELECT_TERM
             + Joiner.on(",").join(META_TABLE_KEY, META_TABLE_CONTENT, META_TABLE_TS, META_TABLE_MVCC)
@@ -85,6 +84,7 @@ public class JdbcMetadataStore extends MetadataStore {
             + META_TABLE_TS + "=? where " + META_TABLE_KEY + "=? and " + META_TABLE_MVCC + "=?";
     private static final String DELETE_SQL = "delete from %s where " + META_TABLE_KEY + "=?";
 
+    @Getter
     private final DataSourceTransactionManager transactionManager;
     private final JdbcTemplate jdbcTemplate;
     private final String table;
@@ -92,18 +92,14 @@ public class JdbcMetadataStore extends MetadataStore {
     public JdbcMetadataStore(KylinConfig config) throws Exception {
         super(config);
         val url = config.getMetadataUrl();
-        val props = new Properties();
-        props.put("driverClassName", "com.mysql.jdbc.Driver");
-        props.put("url", "jdbc:mysql://sandbox/kylin");
-        props.put("username", "root");
-        props.put("password", "");
-        props.put("maxTotal", "50");
-        props.putAll(url.getAllParameters());
+        val props = datasourceParameters(url);
         val dataSource = BasicDataSourceFactory.createDataSource(props);
         transactionManager = new DataSourceTransactionManager(dataSource);
         jdbcTemplate = new JdbcTemplate(dataSource);
         table = url.getIdentifier();
-
+        if (config.isMetadataAuditLogEnabled()) {
+            auditLogStore = new JdbcAuditLogStore(config, jdbcTemplate, transactionManager, table + JdbcAuditLogStore.AUDIT_LOG_SUFFIX);
+        }
         createIfNotExist();
     }
 
@@ -194,7 +190,8 @@ public class JdbcMetadataStore extends MetadataStore {
             val endKey = "/" + project + "/~";
             val resources = jdbcTemplate.query(String.format(SELECT_BY_RANGE_SQL, table, prevKey, endKey), rowMapper);
             for (RawResource resource : resources) {
-                store.putResourceWithoutCheck(resource.getResPath(), resource.getByteSource(), resource.getTimestamp(), resource.getMvcc());
+                store.putResourceWithoutCheck(resource.getResPath(), resource.getByteSource(), resource.getTimestamp(),
+                        resource.getMvcc());
             }
             return null;
         });
@@ -210,32 +207,14 @@ public class JdbcMetadataStore extends MetadataStore {
                 .execute(String.format(sql, table, META_TABLE_KEY, META_TABLE_CONTENT, META_TABLE_TS, META_TABLE_MVCC));
     }
 
-    private <T> T withTransaction(Callback<T> consumer) {
-        long start = System.currentTimeMillis();
-        val definition = new DefaultTransactionDefinition();
-        definition.setIsolationLevel(TransactionDefinition.ISOLATION_REPEATABLE_READ);
-        val status = transactionManager.getTransaction(definition);
-        try {
-            T result = consumer.handle();
-            transactionManager.commit(status);
-            log.info("current jdbc transaction takes {}ms to complete", System.currentTimeMillis() - start);
-            return result;
-        } catch (Exception e) {
-            transactionManager.rollback(status);
-            if (e instanceof DataIntegrityViolationException) {
-                consumer.onError();
-            }
-            log.info("current jdbc transaction takes {}ms to complete and rollback",
-                    System.currentTimeMillis() - start);
-            throw new PersistException("persist messages failed", e);
-        }
-    }
-
-    private interface Callback<T> {
-        T handle() throws Exception;
-
-        default void onError() {
-            // do nothing by default
-        }
+    public static Properties datasourceParameters(StorageURL url) {
+        val props = new Properties();
+        props.put("driverClassName", "com.mysql.jdbc.Driver");
+        props.put("url", "jdbc:mysql://sandbox/kylin");
+        props.put("username", "root");
+        props.put("password", "");
+        props.put("maxTotal", "50");
+        props.putAll(url.getAllParameters());
+        return props;
     }
 }

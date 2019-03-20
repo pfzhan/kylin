@@ -23,19 +23,20 @@
  */
 package io.kyligence.kap.rest.config;
 
+import io.kyligence.kap.common.persistence.metadata.JdbcAuditLogStore;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.persistence.ResourceStore;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.event.ContextRefreshedEvent;
+import org.springframework.boot.context.event.ApplicationPreparedEvent;
+import org.springframework.context.annotation.Configuration;
 import org.springframework.context.event.EventListener;
+import org.springframework.core.annotation.Order;
 import org.springframework.scheduling.TaskScheduler;
-import org.springframework.stereotype.Component;
 
 import io.kyligence.kap.common.cluster.LeaderInitiator;
 import io.kyligence.kap.common.cluster.NodeCandidate;
 import io.kyligence.kap.common.metric.InfluxDBWriter;
 import io.kyligence.kap.common.persistence.transaction.EventListenerRegistry;
-import io.kyligence.kap.common.persistence.transaction.MessageSynchronization;
-import io.kyligence.kap.common.persistence.transaction.mq.MessageQueue;
 import io.kyligence.kap.rest.config.initialize.AppInitializedEvent;
 import io.kyligence.kap.rest.config.initialize.BootstrapCommand;
 import io.kyligence.kap.rest.config.initialize.FavoriteQueryUpdateListener;
@@ -44,29 +45,34 @@ import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-@Component
+@Configuration
+@Order(1)
 public class AppInitializer {
 
     @Autowired
     TaskScheduler taskScheduler;
 
-    @EventListener(ContextRefreshedEvent.class)
-    public void init(ContextRefreshedEvent event) {
+    @EventListener(ApplicationPreparedEvent.class)
+    public void init(ApplicationPreparedEvent event) throws Exception {
         val kylinConfig = KylinConfig.getInstanceFromEnv();
-        kylinConfig.setProperty("kylin.metadata.url.identifier", kylinConfig.getMetadataUrlPrefix());
 
-        val candidate = new NodeCandidate(kylinConfig.getNodeId());
-        val leaderInitiator = LeaderInitiator.getInstance(kylinConfig);
-        leaderInitiator.start(candidate);
+        boolean isLeader = false;
+        if (!kylinConfig.getServerMode().equals("query")) {
+            val candidate = new NodeCandidate(kylinConfig.getNodeId());
+            val leaderInitiator = LeaderInitiator.getInstance(kylinConfig);
+            leaderInitiator.start(candidate);
+            isLeader = leaderInitiator.isLeader();
+        }
 
-        if (leaderInitiator.isLeader()) {
+        if (isLeader) {
             taskScheduler.scheduleWithFixedDelay(new BootstrapCommand(), 10000);
+            EventListenerRegistry.getInstance(kylinConfig).register(new ProjectDropListener(), "pd");
         } else {
-            val messageQueue = MessageQueue.getInstance(kylinConfig);
-            if (messageQueue != null) {
-                val replayer = MessageSynchronization.getInstance(kylinConfig);
-                messageQueue.startConsumer(replayer::replay);
-            }
+            val auditLogStore = new JdbcAuditLogStore(kylinConfig);
+            kylinConfig.setProperty("kylin.metadata.url", kylinConfig.getMetadataUrlPrefix() + "@hdfs");
+            val resourceStore = ResourceStore.getKylinMetaStore(kylinConfig);
+            resourceStore.getMetadataStore().setAuditLogStore(auditLogStore);
+            resourceStore.catchup();
         }
 
         // init influxDB writer and create DB
@@ -77,7 +83,6 @@ public class AppInitializer {
         }
 
         EventListenerRegistry.getInstance(kylinConfig).register(new FavoriteQueryUpdateListener(), "fq");
-        EventListenerRegistry.getInstance(kylinConfig).register(new ProjectDropListener(), "pd");
         event.getApplicationContext().publishEvent(new AppInitializedEvent(event.getApplicationContext()));
     }
 

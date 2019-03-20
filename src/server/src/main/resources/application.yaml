@@ -6,9 +6,20 @@ server:
 
 spring:
   profiles:
-    active: "testing"
+    active: "dev"
 
   http:
     multipart:
       max-file-size: "5MB"
       max-request-size: "5MB"
+  application:
+    name: ${kylin.server.mode}
+  cloud:
+    zookeeper:
+      connect-string: ${kylin.env.zookeeper-connect-string}
+      discovery:
+        root: /kylin/${kylin.metadata.url.identifier}/services
+  session:
+    store-type: jdbc
+    jdbc:
+      table-name: ${kylin.metadata.url.identifier}_session

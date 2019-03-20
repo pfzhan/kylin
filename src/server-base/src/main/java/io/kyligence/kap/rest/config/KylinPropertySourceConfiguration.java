@@ -26,20 +26,31 @@ package io.kyligence.kap.rest.config;
 import java.util.Properties;
 
 import org.apache.kylin.common.KylinConfig;
-import org.springframework.context.ApplicationContextInitializer;
-import org.springframework.context.ConfigurableApplicationContext;
-import org.springframework.context.annotation.Configuration;
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.env.EnvironmentPostProcessor;
+import org.springframework.core.Ordered;
+import org.springframework.core.env.ConfigurableEnvironment;
 import org.springframework.core.env.PropertySource;
 
+import io.kyligence.kap.common.persistence.metadata.JdbcMetadataStore;
 import lombok.val;
+import lombok.extern.slf4j.Slf4j;
 
-@Configuration
-public class KylinPropertySourceConfiguration implements ApplicationContextInitializer<ConfigurableApplicationContext> {
+@Slf4j
+public class KylinPropertySourceConfiguration implements EnvironmentPostProcessor, Ordered {
 
     @Override
-    public void initialize(ConfigurableApplicationContext applicationContext) {
-        val environment = applicationContext.getEnvironment();
+    public void postProcessEnvironment(ConfigurableEnvironment environment, SpringApplication application) {
+        log.debug("use kylinconfig as spring properties");
         val propertySources = environment.getPropertySources();
+        val kylinConfig = KylinConfig.getInstanceFromEnv();
+        kylinConfig.setProperty("kylin.metadata.url.identifier", kylinConfig.getMetadataUrlPrefix());
+        val storageURL = kylinConfig.getMetadataUrl();
+        if (storageURL.getScheme().equals("jdbc")) {
+            JdbcMetadataStore.datasourceParameters(storageURL).forEach((key, value) -> {
+                kylinConfig.setProperty("spring.datasource." + key, value.toString());
+            });
+        }
         PropertySource<String> source = new PropertySource<String>("kylin") {
             Properties properties = KylinConfig.getInstanceFromEnv().exportToProperties();
 
@@ -48,7 +59,12 @@ public class KylinPropertySourceConfiguration implements ApplicationContextIniti
                 return properties.getProperty(name);
             }
         };
-        propertySources.addFirst(source);
+        propertySources.addAfter("systemProperties", source);
+
     }
 
+    @Override
+    public int getOrder() {
+        return Ordered.HIGHEST_PRECEDENCE + 10;
+    }
 }

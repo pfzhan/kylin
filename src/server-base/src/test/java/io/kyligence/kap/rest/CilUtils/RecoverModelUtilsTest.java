@@ -57,7 +57,7 @@ import io.kyligence.kap.event.model.PostAddSegmentEvent;
 import io.kyligence.kap.metadata.model.ManagementType;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 
-import io.kyligence.kap.rest.cliUtils.RecoverModelUtil;
+import io.kyligence.kap.rest.cli.RecoverModelUtil;
 import lombok.val;
 import lombok.var;
 import org.apache.kylin.common.KylinConfig;

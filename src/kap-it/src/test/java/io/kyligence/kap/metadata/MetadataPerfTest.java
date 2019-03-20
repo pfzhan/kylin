@@ -45,9 +45,9 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
+import io.kyligence.kap.common.persistence.metadata.MetadataStore;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
-import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.metadata.model.SegmentRange;
@@ -192,7 +192,7 @@ public class MetadataPerfTest extends NLocalFileMetadataTestCase {
         log.debug("drop table if exists");
         val table = getTestConfig().getMetadataUrl().getIdentifier();
         jdbcTemplate.update("drop table if exists " + table);
-        val metaStore = ResourceStore.createMetadataStore(getTestConfig());
+        val metaStore = MetadataStore.createMetadataStore(getTestConfig());
         log.debug("create a new table");
         val method = metaStore.getClass().getDeclaredMethod("createIfNotExist");
         method.setAccessible(true);
@@ -345,14 +345,14 @@ public class MetadataPerfTest extends NLocalFileMetadataTestCase {
     }
 
     private JdbcTemplate getJdbcTemplate() throws Exception {
-        val metaStore = ResourceStore.createMetadataStore(getTestConfig());
+        val metaStore = MetadataStore.createMetadataStore(getTestConfig());
         val field = metaStore.getClass().getDeclaredField("jdbcTemplate");
         field.setAccessible(true);
         return (JdbcTemplate) field.get(metaStore);
     }
 
     private DataSourceTransactionManager getTransactionManager() throws Exception {
-        val metaStore = ResourceStore.createMetadataStore(getTestConfig());
+        val metaStore = MetadataStore.createMetadataStore(getTestConfig());
         val field = metaStore.getClass().getDeclaredField("transactionManager");
         field.setAccessible(true);
         return (DataSourceTransactionManager) field.get(metaStore);

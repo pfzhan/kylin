@@ -381,6 +381,15 @@ abstract public class KylinConfigBase implements Serializable {
         return StorageURL.valueOf(getOptional("kylin.metadata.url", "kylin_metadata@jdbc"));
     }
 
+    public boolean isMetadataAuditLogEnabled() {
+        return Boolean.parseBoolean(getOptional("kylin.metadata.audit-log.enabled", "true"));
+    }
+
+    public long getMetadataAuditLogMaxSize() {
+        return Long.valueOf(getOptional("kylin.metadata.audit-log.max-size", "1000000"));
+    }
+
+
     public StorageURL getMetadataMQUrl() {
         return StorageURL.valueOf(getOptional("kylin.metadata.mq-url", ""));
     }
@@ -406,6 +415,10 @@ abstract public class KylinConfigBase implements Serializable {
         r.put("jdbc", "io.kyligence.kap.common.persistence.metadata.JdbcMetadataStore");
         r.putAll(getPropertiesByPrefix("kylin.metadata.resource-store-provider.")); // note the naming convention -- http://kylin.apache.org/development/coding_naming_convention.html
         return r;
+    }
+
+    public String getSecurityProfile() {
+        return getOptional("kylin.security.profile", "testing");
     }
 
     public String[] getRealizationProviders() {

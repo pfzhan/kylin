@@ -260,6 +260,7 @@ public class UnitOfWorkTest extends NLocalFileMetadataTestCase {
     @Test
     public void testUpdateInReadTransaction() {
         try {
+            System.setProperty("kylin.env", "PROD");
             UnitOfWork.doInTransactionWithRetry(
                 UnitOfWorkParams.builder().unitName(UnitOfWork.GLOBAL_UNIT)
                         .readonly(true).maxRetry(1).processor(() -> {
@@ -270,6 +271,8 @@ public class UnitOfWorkTest extends NLocalFileMetadataTestCase {
             Assert.fail();
         } catch (Exception e) {
             Assert.assertEquals(TransactionException.class, e.getClass());
+        } finally {
+            System.clearProperty("kylin.env");
         }
     }
 

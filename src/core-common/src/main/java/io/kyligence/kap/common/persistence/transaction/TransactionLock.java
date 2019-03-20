@@ -36,10 +36,6 @@ public class TransactionLock {
 
     private static Map<String, ReentrantReadWriteLock> projectLocks = Maps.newConcurrentMap();
 
-    public static TransactionLock getLock(String project) {
-        return getLock(project, false);
-    }
-
     public static TransactionLock getLock(String project, boolean readonly) {
         ReentrantReadWriteLock lock = projectLocks.get(project);
         if (lock == null) {
@@ -65,7 +61,7 @@ public class TransactionLock {
         this.lock = lock;
     }
 
-    public boolean isHeldByCurrentThread() {
+    boolean isHeldByCurrentThread() {
         if (lock instanceof ReentrantReadWriteLock.ReadLock) {
             return rootLock.getReadHoldCount() > 0;
         } else {

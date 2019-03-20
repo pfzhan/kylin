@@ -33,6 +33,7 @@ import org.apache.kylin.common.util.FilePathUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Preconditions;
 import com.google.common.io.ByteSource;
 
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
@@ -173,6 +174,8 @@ public class InMemResourceStore extends ResourceStore {
         if (!kylinConfig.isSystemConfig() || kylinConfig.isUTEnv() || UnitOfWork.isReplaying()) {
             return;
         }
+        Preconditions.checkState(!UnitOfWork.isReadonly(),
+                "cannot update or delete resource in a readonly transaction");
         throw new IllegalStateException("cannot update or delete resource");
     }
 }

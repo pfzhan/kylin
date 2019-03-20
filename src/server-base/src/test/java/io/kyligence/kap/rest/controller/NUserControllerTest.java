@@ -66,6 +66,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
+import org.springframework.core.env.Environment;
 import org.springframework.http.MediaType;
 import org.springframework.security.authentication.TestingAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -91,6 +92,9 @@ public class NUserControllerTest extends NLocalFileMetadataTestCase {
     @Mock
     private UserService userService;
 
+    @Mock
+    Environment env;
+
     @Rule
     public ExpectedException thrown = ExpectedException.none();
 
@@ -107,6 +111,7 @@ public class NUserControllerTest extends NLocalFileMetadataTestCase {
     @Before
     public void setup() {
         MockitoAnnotations.initMocks(this);
+        Mockito.doReturn(true).when(env).acceptsProfiles("testing");
         mockMvc = MockMvcBuilders.standaloneSetup(nUserController)
                 .defaultRequest(MockMvcRequestBuilders.get("/").servletPath("/api")).build();
         List<GrantedAuthority> authorities = new ArrayList<GrantedAuthority>();

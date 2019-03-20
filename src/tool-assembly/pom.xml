@@ -129,6 +129,7 @@
                                     <include>org.springframework:*</include>
                                     <include>org.apache.calcite:*</include>
                                     <include>org.apache.calcite.avatica:*</include>
+                                    <include>org.springframework.security:*</include>
                                 </includes>
                             </artifactSet>
                             <relocations>

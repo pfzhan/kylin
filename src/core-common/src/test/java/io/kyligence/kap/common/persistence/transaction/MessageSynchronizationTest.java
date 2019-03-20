@@ -21,7 +21,7 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package io.kyligence.kap.common.persistence;
+package io.kyligence.kap.common.persistence.transaction;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -36,10 +36,10 @@ import org.junit.Test;
 import com.google.common.collect.Lists;
 import com.google.common.io.ByteStreams;
 
+import io.kyligence.kap.common.persistence.UnitMessages;
 import io.kyligence.kap.common.persistence.event.Event;
 import io.kyligence.kap.common.persistence.event.ResourceCreateOrUpdateEvent;
 import io.kyligence.kap.common.persistence.event.ResourceDeleteEvent;
-import io.kyligence.kap.common.persistence.transaction.MessageSynchronization;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import lombok.val;
 
@@ -59,7 +59,7 @@ public class MessageSynchronizationTest extends NLocalFileMetadataTestCase {
     public void replayTest() {
         val synchronize = MessageSynchronization.getInstance(getTestConfig());
         val events = createEvents();
-        synchronize.replay(new UnitMessages(events), true);
+        synchronize.replayInTransaction(new UnitMessages(events));
         val resourceStore = ResourceStore.getKylinMetaStore(getTestConfig());
         val raw = resourceStore.getResource("/default/abc.json");
         Assert.assertEquals(1, raw.getMvcc());

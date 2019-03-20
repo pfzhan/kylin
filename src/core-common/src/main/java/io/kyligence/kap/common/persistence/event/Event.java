@@ -26,9 +26,13 @@ package io.kyligence.kap.common.persistence.event;
 
 import java.io.Serializable;
 
+import org.apache.kylin.common.persistence.RawResource;
+import org.apache.kylin.common.persistence.ResourceStore;
+
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 
 import io.kyligence.kap.common.obf.IKeep;
+import io.kyligence.kap.common.persistence.AuditLog;
 import lombok.Data;
 
 @Data
@@ -36,5 +40,21 @@ import lombok.Data;
 public class Event implements Serializable, IKeep {
 
     private String key;
+
+    public static Event fromLog(AuditLog log) {
+        Event event;
+        if (log.getByteSource() == null) {
+            event = new ResourceDeleteEvent(log.getResPath());
+        } else {
+            event = new ResourceCreateOrUpdateEvent(
+                    new RawResource(log.getResPath(), log.getByteSource(), log.getTimestamp(), log.getMvcc()));
+        }
+        if (log.getResPath().startsWith(ResourceStore.PROJECT_ROOT)) {
+            event.setKey(log.getResPath().substring(ResourceStore.PROJECT_ROOT.length() + 1).replace(".json", ""));
+        } else {
+            event.setKey(log.getResPath().split("/")[1]);
+        }
+        return event;
+    }
 
 }

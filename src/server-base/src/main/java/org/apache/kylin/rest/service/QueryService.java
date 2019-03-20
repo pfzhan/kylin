@@ -68,6 +68,7 @@ import java.util.stream.Collectors;
 
 import javax.annotation.PostConstruct;
 
+import io.kyligence.kap.rest.cluster.ClusterManager;
 import org.apache.calcite.avatica.ColumnMetaData.Rep;
 import org.apache.calcite.config.CalciteConnectionConfig;
 import org.apache.calcite.jdbc.CalcitePrepare;
@@ -168,6 +169,9 @@ public class QueryService extends BasicService {
 
     @Autowired
     private AclEvaluate aclEvaluate;
+
+    @Autowired
+    private ClusterManager clusterManager;
 
     public QueryService() {
         slowQueryDetector.start();
@@ -381,6 +385,7 @@ public class QueryService extends BasicService {
             } else {
                 Trace.addTimelineAnnotation("response without real execution");
             }
+            sqlResponse.setServer(clusterManager.getLocalServer());
             sqlResponse.setQueryId(QueryContext.current().getQueryId());
             sqlResponse.setDuration(System.currentTimeMillis() - startTime);
             sqlResponse.setTraceUrl(traceUrl);

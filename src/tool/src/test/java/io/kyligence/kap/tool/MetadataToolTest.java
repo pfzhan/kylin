@@ -24,23 +24,39 @@
 
 package io.kyligence.kap.tool;
 
+import static io.kyligence.kap.common.persistence.metadata.JdbcMetadataStore.datasourceParameters;
+
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Paths;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.function.Predicate;
+import java.util.stream.Stream;
 
+import org.apache.commons.dbcp2.BasicDataSourceFactory;
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.IOUtils;
+import org.apache.hadoop.fs.FileStatus;
+import org.apache.hadoop.fs.Path;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.StorageURL;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.persistence.ResourceTool;
+import org.apache.kylin.common.util.HadoopUtil;
+import org.apache.kylin.common.util.JsonUtil;
 import org.assertj.core.api.Assertions;
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 
+import io.kyligence.kap.common.persistence.ImageDesc;
+import io.kyligence.kap.common.persistence.metadata.JdbcAuditLogStore;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
@@ -157,7 +173,11 @@ public class MetadataToolTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void testRestoreProject() throws IOException {
+    public void testRestoreProject() throws Exception {
+        val resourceStore = getStore();
+        val jdbcTemplate = getJdbcTemplate();
+        resourceStore.getMetadataStore().setAuditLogStore(new JdbcAuditLogStore(getTestConfig(), jdbcTemplate,
+                new DataSourceTransactionManager(jdbcTemplate.getDataSource()), "test_audit_log"));
         val junitFolder = temporaryFolder.getRoot();
         MetadataToolTestFixture.fixtureRestoreTest(getTestConfig(), junitFolder, "/");
 
@@ -165,6 +185,17 @@ public class MetadataToolTest extends NLocalFileMetadataTestCase {
         val tool = new MetadataTool();
         tool.execute(new String[] { "-restore", "-project", "default", "-dir", junitFolder.getAbsolutePath() });
         assertAfterRestoreTest();
+
+        val path = HadoopUtil.getBackupFolder(getTestConfig());
+        val fs = HadoopUtil.getFileSystem(path);
+        val rootPath = Stream.of(fs.listStatus(new Path(path)))
+                .max(Comparator.comparing(FileStatus::getModificationTime)).map(FileStatus::getPath)
+                .orElse(new Path(path + "/backup_0/"));
+        try (val in = fs.open(new Path(rootPath, "_image"))) {
+            val image = JsonUtil.readValue(IOUtils.toByteArray(in), ImageDesc.class);
+            Assert.assertEquals(resourceStore.listResourcesRecursively("/default").size() + 2,
+                    image.getOffset().longValue());
+        }
     }
 
     @Test
@@ -226,5 +257,13 @@ public class MetadataToolTest extends NLocalFileMetadataTestCase {
     private File findFile(File[] files, Predicate<File> predicate) {
         Assertions.assertThat(files).anyMatch(predicate);
         return Arrays.stream(files).filter(predicate).findFirst().get();
+    }
+
+    JdbcTemplate getJdbcTemplate() throws Exception {
+        val url = StorageURL.valueOf(
+                "test@jdbc,driverClassName=org.h2.Driver,url=jdbc:h2:mem:db_default;DB_CLOSE_DELAY=-1,username=sa,password=");
+        val props = datasourceParameters(url);
+        val dataSource = BasicDataSourceFactory.createDataSource(props);
+        return new JdbcTemplate(dataSource);
     }
 }

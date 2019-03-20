@@ -34,8 +34,10 @@ import java.util.function.Consumer;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.StorageURL;
 import org.apache.kylin.common.persistence.RawResource;
 import org.apache.kylin.common.persistence.ResourceStore;
+import org.apache.kylin.common.util.ClassUtil;
 import org.apache.kylin.common.util.JsonUtil;
 
 import com.google.common.annotations.VisibleForTesting;
@@ -48,6 +50,8 @@ import io.kyligence.kap.common.persistence.event.Event;
 import io.kyligence.kap.common.persistence.event.ResourceCreateOrUpdateEvent;
 import io.kyligence.kap.common.persistence.event.ResourceDeleteEvent;
 import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
@@ -56,8 +60,25 @@ public abstract class MetadataStore {
 
     static final Set<String> IMMUTABLE_PREFIX = Sets.newHashSet("/UUID");
 
+    public static MetadataStore createMetadataStore(KylinConfig config) {
+        StorageURL url = config.getMetadataUrl();
+        log.info("Creating metadata store by KylinConfig {}", config);
+        String clsName = config.getMetadataStoreImpls().get(url.getScheme());
+        try {
+            Class<? extends MetadataStore> cls = ClassUtil.forName(clsName, MetadataStore.class);
+            return cls.getConstructor(KylinConfig.class).newInstance(config);
+        } catch (Exception e) {
+            throw new IllegalArgumentException("Failed to create metadata store", e);
+        }
+    }
+
+    @Getter
+    @Setter
+    AuditLogStore auditLogStore;
+
     public MetadataStore(KylinConfig kylinConfig) {
         // for reflection
+        auditLogStore = new NoopAuditLogStore();
     }
 
     protected abstract void save(String path, ByteSource bs, long ts, long mvcc) throws Exception;
@@ -75,6 +96,7 @@ public abstract class MetadataStore {
                 deleteResource(((ResourceDeleteEvent) event).getResPath());
             }
         }
+        auditLogStore.save(unitMessages);
     }
 
     public void restore(ResourceStore store) throws IOException {
@@ -191,6 +213,11 @@ public abstract class MetadataStore {
                 continue;
             }
 
+            if (file.startsWith(ResourceStore.METASTORE_IMAGE)) {
+                verifyResult.existImageFile = true;
+                continue;
+            }
+
             //check illegal file which locates in metadata dir
             if (File.separator.equals(Paths.get(file).toFile().getParent())) {
                 verifyResult.illegalFiles.add(file);
@@ -215,6 +242,7 @@ public abstract class MetadataStore {
     public class VerifyResult {
         @VisibleForTesting
         boolean existUUIDFile = false;
+        boolean existImageFile = false;
         boolean existACLDir = false;
         boolean existUserDir = false;
         boolean existUserGroupFile = false;
@@ -229,6 +257,7 @@ public abstract class MetadataStore {
             StringBuilder resultMessage = new StringBuilder();
 
             resultMessage.append("the uuid file exists : " + existUUIDFile + "\n");
+            resultMessage.append("the image file exists : " + existImageFile + "\n");
             resultMessage.append("the user_group file exists : " + existUserGroupFile + "\n");
             resultMessage.append("the user dir exist : " + existUserDir + "\n");
             resultMessage.append("the acl dir exist : " + existACLDir + "\n");

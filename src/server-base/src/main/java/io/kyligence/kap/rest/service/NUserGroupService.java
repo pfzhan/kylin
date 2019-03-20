@@ -31,9 +31,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import javax.annotation.PostConstruct;
-
-import com.google.common.collect.Maps;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.JsonSerializer;
@@ -52,17 +49,20 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.context.ApplicationListener;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.stereotype.Component;
 
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import com.google.common.io.ByteStreams;
 
 import io.kyligence.kap.metadata.acl.UserGroup;
+import io.kyligence.kap.rest.config.initialize.AppInitializedEvent;
 import io.kyligence.kap.rest.transaction.Transaction;
 
 @Component("nUserGroupService")
-public class NUserGroupService implements IUserGroupService {
+public class NUserGroupService implements ApplicationListener<AppInitializedEvent>, IUserGroupService {
     public static final Logger logger = LoggerFactory.getLogger(NUserGroupService.class);
 
     private static final Serializer<UserGroup> USER_GROUP_SERIALIZER = new JsonSerializer<>(UserGroup.class);
@@ -78,11 +78,11 @@ public class NUserGroupService implements IUserGroupService {
     @Qualifier("userService")
     UserService userService;
 
-    @PostConstruct
-    public void init() throws IOException, InterruptedException {
-        int retry = 100;
-        while (retry > 0) {
-            UserGroup userGroup = getUserGroup();
+    @Override
+    public void onApplicationEvent(AppInitializedEvent event) {
+        UserGroup userGroup = null;
+        try {
+            userGroup = getUserGroup();
             if (!userGroup.exists(Constant.GROUP_ALL_USERS)) {
                 userGroup.add(Constant.GROUP_ALL_USERS);
             }
@@ -106,10 +106,11 @@ public class NUserGroupService implements IUserGroupService {
             } catch (WriteConflictException e) {
                 logger.info("Find WriteConflictException, sleep 100 ms.", e);
                 Thread.sleep(100L);
-                retry--;
             }
+            logger.error("Failed to update user group's metadata.");
+        } catch (Exception e) {
+            logger.warn("init failed", e);
         }
-        logger.error("Failed to update user group's metadata.");
     }
 
     private UserGroup getUserGroup() throws IOException {

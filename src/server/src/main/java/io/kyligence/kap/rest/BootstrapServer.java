@@ -24,20 +24,7 @@
 
 package io.kyligence.kap.rest;
 
-import java.io.File;
-import java.nio.file.Paths;
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.SQLException;
-
-import io.kyligence.kap.rest.init.KerberosLoginTask;
 import org.apache.catalina.Context;
-import org.apache.commons.io.FileUtils;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.util.ClassUtil;
-import org.apache.kylin.source.jdbc.H2Database;
-import org.apache.spark.sql.SparderEnv;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.SpringApplication;
@@ -45,113 +32,29 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.embedded.EmbeddedServletContainerFactory;
 import org.springframework.boot.context.embedded.tomcat.TomcatEmbeddedServletContainerFactory;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.cache.annotation.EnableCaching;
+import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
 import org.springframework.context.ApplicationListener;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ImportResource;
 import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.scheduling.annotation.EnableScheduling;
 
-import io.kyligence.kap.common.util.TempMetadataBuilder;
-
 @ImportResource(locations = { "applicationContext.xml", "kylinSecurity.xml" })
 @SpringBootApplication
 @EnableScheduling
 @EnableAsync
+@EnableCaching
+@EnableDiscoveryClient
 public class BootstrapServer implements ApplicationListener<ApplicationReadyEvent> {
 
     private static final Logger logger = LoggerFactory.getLogger(BootstrapServer.class);
 
     public static void main(String[] args) {
-        setEnvs(args);
-        KerberosLoginTask kerberosLoginTask = new KerberosLoginTask();
-        kerberosLoginTask.execute();
-        SpringApplication.run(BootstrapServer.class, args);
-        initSparkSession();
-    }
-
-    private static void setEnvs(String[] args) {
-        String runEnv = "";
-        if (args.length >= 1) {
-            runEnv = args[0];
-        }
-        if ("SANDBOX".equals(runEnv)) {
-            //remember to export HADOOP_USER_NAME and SPARK_HOME
-            //and you need to make sure both JDBC and InfluxDB runs on your sandbox
-            setSandboxEnvs();
-        } else if ("PROD".equals(runEnv)) {
-            setProdEnvs();
-        } else {
-            setLocalEnvs();
-        }
-        // enable CC check
-        System.setProperty("needCheckCC", "true");
         // set log4j logging system
         System.setProperty("org.springframework.boot.logging.LoggingSystem",
                 "io.kyligence.kap.rest.logging.Log4JLoggingSystem");
-    }
-
-    private static void setProdEnvs() {
-        //TODO prepare prod env if need
-    }
-
-    private static void setSandboxEnvs() {
-        File dir1 = new File("../examples/test_case_data/sandbox");
-        ClassUtil.addClasspath(dir1.getAbsolutePath());
-        System.setProperty(KylinConfig.KYLIN_CONF, dir1.getAbsolutePath());
-
-        System.setProperty("kylin.hadoop.conf.dir", "../examples/test_case_data/sandbox");
-        System.setProperty("hdp.version", "version");
-
-    }
-
-    private static void initSparkSession() {
-        SparderEnv.init();
-        if ("true".equalsIgnoreCase(System.getProperty("spark.local"))) {
-            logger.debug("spark.local=true");
-            return;
-        }
-        // write appid to ${KYLIN_HOME} or ${user.dir}
-        final String kylinHome = StringUtils.defaultIfBlank(KylinConfig.getKylinHome(), "./");
-        final File appidFile = Paths.get(kylinHome, "appid").toFile();
-        String appid = null;
-        try {
-            appid = SparderEnv.getSparkSession().sparkContext().applicationId();
-            FileUtils.writeStringToFile(appidFile, appid);
-            logger.info("spark context appid is {}", appid);
-        } catch (Exception e) {
-            logger.error("Failed to generate spark context appid[{}] file", StringUtils.defaultString(appid), e);
-        }
-    }
-
-    private static void setLocalEnvs() {
-        String tempMetadataDir = TempMetadataBuilder.prepareNLocalTempMetadata();
-        KylinConfig.setKylinConfigForLocalTest(tempMetadataDir);
-        File localMetadata = new File(tempMetadataDir);
-
-        // pass checkHadoopHome
-        System.setProperty("hadoop.home.dir", localMetadata.getAbsolutePath() + "/working-dir");
-        System.setProperty("spark.local", "true");
-
-        // enable push down
-        System.setProperty("kylin.query.pushdown.runner-class-name",
-                "io.kyligence.kap.query.pushdown.PushDownRunnerJdbcImpl");
-        System.setProperty("kylin.query.pushdown.converter-class-names",
-                "org.apache.kylin.source.adhocquery.HivePushDownConverter");
-
-        // set h2 configuration
-        System.setProperty("kylin.query.pushdown.jdbc.url", "jdbc:h2:mem:db_default;SCHEMA=DEFAULT");
-        System.setProperty("kylin.query.pushdown.jdbc.driver", "org.h2.Driver");
-        System.setProperty("kylin.query.pushdown.jdbc.username", "sa");
-        System.setProperty("kylin.query.pushdown.jdbc.password", "");
-
-        // Load H2 Tables (inner join)
-        try {
-            Connection h2Connection = DriverManager.getConnection("jdbc:h2:mem:db_default;DB_CLOSE_DELAY=-1", "sa", "");
-            H2Database h2DB = new H2Database(h2Connection, KylinConfig.getInstanceFromEnv(), "default");
-            h2DB.loadAllTables();
-        } catch (SQLException ex) {
-            logger.error(ex.getMessage(), ex);
-        }
+        SpringApplication.run(BootstrapServer.class, args);
     }
 
     @Bean

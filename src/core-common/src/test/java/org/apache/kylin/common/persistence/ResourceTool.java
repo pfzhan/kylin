@@ -51,7 +51,6 @@ import java.util.NavigableSet;
 import java.util.Set;
 
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.util.StringUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -64,58 +63,6 @@ public class ResourceTool {
     private static final Logger logger = LoggerFactory.getLogger(ResourceTool.class);
 
     private static final Set<String> IMMUTABLE_PREFIX = Sets.newHashSet("/UUID");
-
-    public static void main(String[] args) throws IOException {
-        args = StringUtil.filterSystemArgs(args);
-
-        if (args.length == 0) {
-            System.out.println("Usage: ResourceTool list  RESOURCE_PATH");
-            System.out.println("Usage: ResourceTool download  LOCAL_DIR");
-            System.out.println("Usage: ResourceTool upload    LOCAL_DIR");
-            System.out.println("Usage: ResourceTool reset");
-            System.out.println("Usage: ResourceTool remove RESOURCE_PATH");
-            System.out.println("Usage: ResourceTool cat RESOURCE_PATH");
-            return;
-        }
-
-        String include = System.getProperty("include");
-        if (include != null) {
-            addIncludes(include.split("\\s*,\\s*"));
-        }
-        String exclude = System.getProperty("exclude");
-        if (exclude != null) {
-            addExcludes(exclude.split("\\s*,\\s*"));
-        }
-
-        addExcludes(IMMUTABLE_PREFIX.toArray(new String[IMMUTABLE_PREFIX.size()]));
-
-        String cmd = args[0];
-        switch (cmd) {
-        case "reset":
-            reset(args.length == 1 ? KylinConfig.getInstanceFromEnv() : KylinConfig.createInstanceFromUri(args[1]));
-            break;
-        case "list":
-            list(KylinConfig.getInstanceFromEnv(), args[1]);
-            break;
-        case "download":
-            copy(KylinConfig.getInstanceFromEnv(), KylinConfig.createInstanceFromUri(args[1]), true);
-            break;
-        case "fetch":
-            copy(KylinConfig.getInstanceFromEnv(), KylinConfig.createInstanceFromUri(args[1]), args[2], true);
-            break;
-        case "upload":
-            copy(KylinConfig.createInstanceFromUri(args[1]), KylinConfig.getInstanceFromEnv());
-            break;
-        case "remove":
-            remove(KylinConfig.getInstanceFromEnv(), args[1]);
-            break;
-        case "cat":
-            cat(KylinConfig.getInstanceFromEnv(), args[1]);
-            break;
-        default:
-            System.out.println("Unknown cmd: " + cmd);
-        }
-    }
 
     public static String[] getIncludes() {
         return includes;

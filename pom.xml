@@ -89,7 +89,7 @@
         <xerces.version>2.11.0</xerces.version>
         <xalan.version>2.7.2</xalan.version>
         <ehcache.version>2.10.2.2.21</ehcache.version>
-        <apache-httpclient.version>4.2.5</apache-httpclient.version>
+        <apache-httpclient.version>4.3.5</apache-httpclient.version>
 
         <cglib.version>3.2.4</cglib.version>
         <supercsv.version>2.4.0</supercsv.version>
@@ -101,7 +101,9 @@
         <!--metric-->
         <dropwizard.version>3.1.2</dropwizard.version>
         <!-- REST Service, ref https://github.com/spring-projects/spring-boot/blob/v1.3.8.RELEASE/spring-boot-dependencies/pom.xml -->
+        <spring.cloud.version>Edgware.RELEASE</spring.cloud.version>
         <spring.boot.version>1.5.13.RELEASE</spring.boot.version>
+        <spring.session.version>1.3.5.RELEASE</spring.session.version>
         <spring.framework.version>4.3.17.RELEASE</spring.framework.version>
         <spring.framework.security.version>4.2.3.RELEASE</spring.framework.security.version>
         <spring.framework.security.extensions.version>1.0.2.RELEASE</spring.framework.security.extensions.version>
@@ -856,7 +858,22 @@
                     </exclusion>
                 </exclusions>
             </dependency>
+            <dependency>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-starter-jdbc</artifactId>
+                <version>${spring.boot.version}</version>
+            </dependency>
 
+            <!-- Spring Cloud -->
+            <dependency>
+                <groupId>org.springframework.cloud</groupId>
+                <artifactId>spring-cloud-dependencies</artifactId>
+                <version>${spring.cloud.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+
+            <!-- Spring framework -->
             <dependency>
                 <groupId>org.springframework</groupId>
                 <artifactId>spring-webmvc</artifactId>
@@ -882,6 +899,12 @@
                 <artifactId>spring-test</artifactId>
                 <version>${spring.framework.version}</version>
             </dependency>
+            <dependency>
+                <groupId>org.springframework.session</groupId>
+                <artifactId>spring-session</artifactId>
+                <version>${spring.session.version}</version>
+            </dependency>
+
             <!-- Spring Security -->
             <dependency>
                 <groupId>org.springframework.security</groupId>
