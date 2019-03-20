@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -211,6 +210,24 @@ public class DriverTest {
         printResultSetMetaData(resultSet);
         printResultSet(resultSet);
 
+        resultSet.close();
+        state.close();
+        conn.close();
+    }
+
+    @Ignore("require dev sandbox")
+    @Test
+    public void testJdbcWithNewten() throws SQLException {
+        Driver driver = new Driver();
+
+        Properties info = new Properties();
+        info.put("user", "ADMIN");
+        info.put("password", "KYLIN");
+        Connection conn = driver.connect("jdbc:kylin://localhost:8080/default", info);
+        Statement state = conn.createStatement();
+        ResultSet resultSet = state.executeQuery("select count(*) as count_star from test_kylin_fact");
+
+        printResultSet(resultSet);
         resultSet.close();
         state.close();
         conn.close();

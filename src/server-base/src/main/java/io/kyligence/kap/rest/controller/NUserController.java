@@ -24,10 +24,12 @@
 
 package io.kyligence.kap.rest.controller;
 
-import com.google.common.collect.Lists;
-import io.kyligence.kap.rest.config.AppInitializer;
-import io.kyligence.kap.rest.request.PasswordChangeRequest;
-import lombok.val;
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.List;
+import java.util.UUID;
+import java.util.regex.Pattern;
+
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.DateFormat;
@@ -58,18 +60,21 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
-import java.io.IOException;
-import java.util.HashMap;
-import java.util.List;
-import java.util.UUID;
-import java.util.regex.Pattern;
+import com.google.common.collect.Lists;
+
+import io.kyligence.kap.rest.config.AppInitializer;
+import io.kyligence.kap.rest.request.PasswordChangeRequest;
+import lombok.val;
 
 @Controller
 @RequestMapping(value = "/user")
@@ -116,7 +121,7 @@ public class NUserController extends NBasicController {
 
     }
 
-    @RequestMapping(value = "", method = { RequestMethod.POST }, produces = { "application/vnd.apache.kylin-v2+json" })
+    @PostMapping(value = "", produces = { "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
     //do not use aclEvaluate, if there's no users and will come into init() and will call save.
@@ -143,7 +148,7 @@ public class NUserController extends NBasicController {
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, null, "");
     }
 
-    @RequestMapping(value = "", method = { RequestMethod.PUT }, produces = { "application/vnd.apache.kylin-v2+json" })
+    @PutMapping(value = "", produces = { "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
     //do not use aclEvaluate, if there's no users and will come into init() and will call save.
@@ -181,11 +186,10 @@ public class NUserController extends NBasicController {
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, null, "");
     }
 
-    @RequestMapping(value = "/{username}", method = { RequestMethod.DELETE }, produces = {
-            "application/vnd.apache.kylin-v2+json" })
+    @DeleteMapping(value = "/{username}", produces = { "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
-    public EnvelopeResponse delete(@PathVariable("username") String username) throws IOException {
+    public EnvelopeResponse delete(@PathVariable("username") String username) {
         val msg = MsgPicker.getMsg();
 
         checkProfile();
@@ -199,7 +203,7 @@ public class NUserController extends NBasicController {
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, null, "");
     }
 
-    @RequestMapping(value = "", method = { RequestMethod.GET }, produces = { "application/vnd.apache.kylin-v2+json" })
+    @GetMapping(value = "", produces = { "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
     public EnvelopeResponse listAllUsers(@RequestParam(value = "project", required = false) String project,
             @RequestParam(value = "name", required = false) String nameSeg,
@@ -224,8 +228,7 @@ public class NUserController extends NBasicController {
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, data, "");
     }
 
-    @RequestMapping(value = "/password", method = { RequestMethod.PUT }, produces = {
-            "application/vnd.apache.kylin-v2+json" })
+    @PutMapping(value = "/password", produces = { "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
     //change passwd
     public EnvelopeResponse updateUserPassword(@RequestBody PasswordChangeRequest user) {
@@ -277,14 +280,21 @@ public class NUserController extends NBasicController {
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, null, "");
     }
 
-    @RequestMapping(value = "/authentication", method = RequestMethod.POST, produces = {
-            "application/vnd.apache.kylin-v2+json"})
+    @PostMapping(value = "/authentication", produces = { "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
     public EnvelopeResponse<UserDetails> authenticate() {
         checkLicense();
         EnvelopeResponse response = authenticatedUser();
         logger.debug("User login: {}", response.getData());
         return response;
+    }
+
+    @Deprecated
+    @PostMapping(value = "/authentication", produces = { "application/json" })
+    public UserDetails authenticate4JDBC() {
+        UserDetails userDetails = authenticatedUser().getData();
+        logger.debug("User login: {}", userDetails);
+        return userDetails;
     }
 
     private void checkLicense() {
@@ -302,8 +312,7 @@ public class NUserController extends NBasicController {
         }
     }
 
-    @RequestMapping(value = "/authentication", method = RequestMethod.GET, produces = {
-            "application/vnd.apache.kylin-v2+json" })
+    @GetMapping(value = "/authentication", produces = { "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
     public EnvelopeResponse<UserDetails> authenticatedUser() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
