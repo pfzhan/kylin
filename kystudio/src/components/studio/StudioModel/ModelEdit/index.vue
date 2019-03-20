@@ -926,7 +926,7 @@ export default class ModelEdit extends Vue {
     this.currentDragColumn = event.srcElement ? event.srcElement : event.target
     event.dataTransfer && (event.dataTransfer.effectAllowed = 'move')
     if (!isIE()) {
-      event.dataTransfer && event.dataTransfer.setData && event.dataTransfer.setData('text', this.currentDragColumn.innerHTML)
+      event.dataTransfer && event.dataTransfer.setData && event.dataTransfer.setData('text', '')
     }
     event.dataTransfer.setDragImage && event.dataTransfer.setDragImage(this.currentDragColumn, 0, 0)
     this.currentDragColumnData = {
