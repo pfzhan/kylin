@@ -47,6 +47,8 @@ import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 
+import com.fasterxml.jackson.annotation.JsonGetter;
+import com.fasterxml.jackson.annotation.JsonSetter;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.persistence.RootPersistentEntity;
 import org.apache.kylin.common.util.Pair;
@@ -110,7 +112,6 @@ public class TableDesc extends RootPersistentEntity implements Serializable, ISo
 
     // ============================================================================
 
-    @JsonProperty("name")
     private String name;
     @JsonProperty("columns")
     private ColumnDesc[] columns;
@@ -232,11 +233,16 @@ public class TableDesc extends RootPersistentEntity implements Serializable, ISo
     }
 
     public String getIdentity() {
+        String originIdentity = getCaseSensitiveIdentity();
+        return originIdentity.toUpperCase();
+    }
+
+    public String getCaseSensitiveIdentity() {
         if (identity == null) {
-            if (this.getDatabase().equals("null")) {
-                identity = String.format("%s", this.getName()).toUpperCase();
+            if (this.getCaseSensitiveDatabase().equals("null")) {
+                identity = String.format("%s", this.getCaseSensitiveName());
             } else {
-                identity = String.format("%s.%s", this.getDatabase().toUpperCase(), this.getName()).toUpperCase();
+                identity = String.format("%s.%s", this.getCaseSensitiveDatabase(), this.getCaseSensitiveName());
             }
         }
         return identity;
@@ -259,9 +265,18 @@ public class TableDesc extends RootPersistentEntity implements Serializable, ISo
     }
 
     public String getName() {
+        if (this.name == null) {
+            return null;
+        }
+        return this.name.toUpperCase();
+    }
+
+    @JsonGetter("name")
+    public String getCaseSensitiveName() {
         return this.name;
     }
 
+    @JsonSetter("name")
     public void setName(String name) {
         if (name != null) {
             String[] splits = StringSplitter.split(name, ".");
@@ -276,12 +291,16 @@ public class TableDesc extends RootPersistentEntity implements Serializable, ISo
         }
     }
 
-    @JsonProperty("database")
     public String getDatabase() {
+        return database.getName().toUpperCase();
+    }
+
+    @JsonGetter("database")
+    public String getCaseSensitiveDatabase() {
         return database.getName();
     }
 
-    @JsonProperty("database")
+    @JsonSetter("database")
     public void setDatabase(String database) {
         this.database.setName(database);
     }
@@ -334,12 +353,6 @@ public class TableDesc extends RootPersistentEntity implements Serializable, ISo
 
     public void init(String project) {
         this.project = project;
-
-        if (name != null)
-            name = name.toUpperCase();
-
-        if (getDatabase() != null)
-            setDatabase(getDatabase().toUpperCase());
 
         if (columns != null) {
             Arrays.sort(columns, new Comparator<ColumnDesc>() {

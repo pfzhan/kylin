@@ -254,6 +254,11 @@ public class NTableMetadataManager {
         return srcExtCrud.get(t.getIdentity());
     }
 
+    // for test mostly
+    public Serializer<TableDesc> getTableMetadataSerializer() {
+        return srcTableCrud.getSerializer();
+    }
+
     public void saveTableExt(TableExtDesc tableExt) {
         if (tableExt.getUuid() == null || tableExt.getIdentity() == null) {
             throw new IllegalArgumentException();

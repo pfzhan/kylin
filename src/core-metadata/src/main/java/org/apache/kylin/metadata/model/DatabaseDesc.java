@@ -60,7 +60,7 @@ public class DatabaseDesc implements Serializable {
      * @return the name
      */
     public String getName() {
-        return name == null ? "null" : name.toUpperCase();
+        return name == null ? "null" : name;
     }
 
     /**

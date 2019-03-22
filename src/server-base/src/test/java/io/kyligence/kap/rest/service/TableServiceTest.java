@@ -42,7 +42,12 @@
 
 package io.kyligence.kap.rest.service;
 
+import java.io.DataInputStream;
+import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.Charset;
+import java.nio.file.Files;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.util.ArrayList;
@@ -50,10 +55,14 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Set;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.kyligence.kap.rest.response.BatchLoadTableResponse;
 import io.kyligence.kap.rest.response.ExistedDataRangeResponse;
 import io.kyligence.kap.rest.response.TableDescResponse;
+import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.persistence.Serializer;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.SegmentRange;
@@ -175,6 +184,34 @@ public class TableServiceTest extends NLocalFileMetadataTestCase {
         TableExtDesc tableExtDesc = new TableExtDesc(tableExt);
         String[] result = tableService.loadTableToProject(nTableDesc, tableExtDesc, "default");
         Assert.assertTrue(result.length == 1);
+    }
+
+    @Test
+    public void testLoadCaseSensitiveTableToProject() throws IOException {
+        NTableMetadataManager tableManager = tableService.getTableManager("case_sensitive");
+        Serializer<TableDesc> serializer = tableManager.getTableMetadataSerializer();
+        String contents = StringUtils.join(Files.readAllLines(
+                new File("src/test/resources/ut_meta/case_sensitive/table_desc/CASE_SENSITIVE.TEST_KYLIN_FACT.json").toPath(),
+                Charset.defaultCharset()), "\n");
+        InputStream originStream = IOUtils.toInputStream(contents, Charset.defaultCharset());
+        TableDesc origin = serializer.deserialize(new DataInputStream(originStream));
+        TableExtDesc tableExt = new TableExtDesc();
+        tableExt.setIdentity("CASE_SENSITIVE.TEST_KYLIN_FACT");
+        TableExtDesc tableExtDesc = new TableExtDesc(tableExt);
+        String[] result = tableService.loadTableToProject(origin, tableExtDesc, "case_sensitive");
+        Assert.assertTrue(result.length == 1);
+        ObjectMapper mapper = new ObjectMapper();
+        String jsonContent = mapper.writeValueAsString(origin);
+        InputStream savedStream = IOUtils.toInputStream(jsonContent, Charset.defaultCharset());
+        TableDesc saved = serializer.deserialize(new DataInputStream(savedStream));
+
+        Assert.assertEquals("test_kylin_fact", saved.getCaseSensitiveName());
+        Assert.assertEquals("TEST_KYLIN_FACT", saved.getName());
+        Assert.assertEquals("case_sensitive", saved.getCaseSensitiveDatabase());
+        Assert.assertEquals("CASE_SENSITIVE", saved.getDatabase());
+        Assert.assertEquals("trans_id", saved.getColumns()[0].getCaseSensitiveName());
+        Assert.assertEquals("TRANS_ID", saved.getColumns()[0].getName());
+
     }
 
     @Test

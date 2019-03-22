@@ -45,6 +45,8 @@ package org.apache.kylin.metadata.model;
 
 import java.io.Serializable;
 
+import com.fasterxml.jackson.annotation.JsonGetter;
+import com.fasterxml.jackson.annotation.JsonSetter;
 import org.apache.kylin.metadata.datatype.DataType;
 
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
@@ -167,11 +169,17 @@ public class ColumnDesc implements Serializable {
     }
 
     public String getName() {
-        return name;
+        return (name == null) ? null : name.toUpperCase();
     }
 
+    @JsonSetter("name")
     public void setName(String name) {
         this.name = name;
+    }
+
+    @JsonGetter("name")
+    public String getCaseSensitiveName() {
+        return name;
     }
 
     public TableDesc getTable() {
@@ -234,9 +242,6 @@ public class ColumnDesc implements Serializable {
 
     public void init(TableDesc table) {
         this.table = table;
-
-        if (name != null)
-            name = name.toUpperCase();
 
         if (id != null)
             zeroBasedIndex = Integer.parseInt(id) - 1;
