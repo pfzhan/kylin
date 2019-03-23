@@ -72,7 +72,6 @@ public class NAutoBuildAndQueryTest extends NAutoTestBase {
                 new TestScenario(CompareLevel.SAME, "sql_tableau"), //
                 new TestScenario(CompareLevel.SAME, "sql_udf"), //
                 new TestScenario(CompareLevel.SAME, "sql_value"), //
-                new TestScenario(CompareLevel.SAME, "sql_count_star"), //
                 new TestScenario(CompareLevel.SAME, "sql_union"), //
                 new TestScenario(CompareLevel.SAME, "sql_noagg"), //
                 new TestScenario(CompareLevel.SAME, "sql_special_functions"), //
@@ -84,7 +83,6 @@ public class NAutoBuildAndQueryTest extends NAutoTestBase {
                 /* CompareLevel = SAME_ROWCOUNT */
 
                 /* CompareLevel = NONE */
-                new TestScenario(CompareLevel.NONE, "sql_sparder_only"), //
                 new TestScenario(CompareLevel.NONE, "sql_current_date"), //
                 new TestScenario(CompareLevel.NONE, "sql_h2_uncapable"), //
                 new TestScenario(CompareLevel.NONE, "sql_timestamp"), //
@@ -99,6 +97,15 @@ public class NAutoBuildAndQueryTest extends NAutoTestBase {
         Set<String> exclusionList = Sets.newHashSet();
         overwriteSystemProp("calcite.debug", "true");
         new TestScenario(CompareLevel.NONE, "temp", exclusionList).execute();
+    }
+
+    /**
+     * Test a query only only with count(*), can build and query from IndexPlan,
+     * don't move it.
+     */
+    @Test
+    public void testCountStar() {
+        new TestScenario(CompareLevel.SAME, "sql_count_star");
     }
 
     /***************

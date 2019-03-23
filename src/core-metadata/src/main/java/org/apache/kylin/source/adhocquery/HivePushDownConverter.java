@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -42,40 +41,20 @@
  */
 package org.apache.kylin.source.adhocquery;
 
-import static com.google.common.base.Predicates.equalTo;
-import static com.google.common.base.Predicates.not;
-
+import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
-import java.util.LinkedList;
 import java.util.Map;
-import java.util.Set;
-import java.util.Stack;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
-import org.apache.commons.lang3.StringUtils;
-import org.apache.kylin.common.util.Pair;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import com.google.common.collect.FluentIterable;
 
 //TODO: Some workaround ways to make sql readable by hive parser, should replaced it with a more well-designed way
 public class HivePushDownConverter implements IPushDownConverter {
 
-    @SuppressWarnings("unused")
-    private static final Logger logger = LoggerFactory.getLogger(HivePushDownConverter.class);
-
     private static final Pattern EXTRACT_PATTERN = Pattern.compile("extract\\s*(\\()\\s*(.*?)\\s*from(\\s+)",
             Pattern.CASE_INSENSITIVE);
-    private static final Pattern FROM_PATTERN = Pattern.compile("\\s+from\\s+(\\()\\s*select\\s",
-            Pattern.CASE_INSENSITIVE);
-    private static final Pattern ALIAS_PATTERN = Pattern.compile("\\s*([`'_a-z0-9A-Z]+)", Pattern.CASE_INSENSITIVE);
     private static final Pattern CAST_PATTERN = Pattern.compile("CAST\\((.*?) (?i)AS\\s*(.*?)\\s*\\)",
-            Pattern.CASE_INSENSITIVE);
-    private static final Pattern CONCAT_PATTERN = Pattern.compile("(['_a-z0-9A-Z()]*)\\s*\\|\\|\\s*(['_a-z0-9A-Z()]+)",
             Pattern.CASE_INSENSITIVE);
     private static final Pattern TIMESTAMP_ADD_DIFF_PATTERN = Pattern
             .compile("timestamp(add|diff)\\s*\\(\\s*(.*?)\\s*,", Pattern.CASE_INSENSITIVE);
@@ -84,10 +63,8 @@ public class HivePushDownConverter implements IPushDownConverter {
     private static final Pattern GROUPING_SETS_PATTERN = Pattern
             .compile("group\\s+by\\s+(grouping\\s+sets\\s*\\(([`_a-z0-9A-Z(),\\s]+)\\))", Pattern.CASE_INSENSITIVE);
     private static final Pattern COLUMN_NAME_PATTERN = Pattern.compile("[`_a-z0-9A-Z]+", Pattern.CASE_INSENSITIVE);
-    private static final Set<String> sqlKeyWordsExceptAS = FluentIterable //
-            .from(SqlSyntaxConstant.CALCITE_KEY_WORDS) //
-            .filter(not(equalTo("AS"))) //
-            .toSet(); //
+
+    private static final String NVARCHAR_PATTERN = "(?i)\\s+AS\\s+VARCHAR\\(\\d+\\)";
 
     public static String replaceString(String originString, String fromString, String toString) {
         return originString.replace(fromString, toString);
@@ -118,13 +95,14 @@ public class HivePushDownConverter implements IPushDownConverter {
     }
 
     public static String castReplace(String originString) {
+        originString = originString.replaceAll(NVARCHAR_PATTERN, " AS string");
         Matcher castMatcher = CAST_PATTERN.matcher(originString);
         String replacedString = originString;
 
         while (castMatcher.find()) {
             String castStr = castMatcher.group();
             String type = castMatcher.group(2);
-            String supportedType = "";
+            String supportedType;
             switch (type.toUpperCase()) {
             case "INTEGER":
                 supportedType = "int";
@@ -151,35 +129,6 @@ public class HivePushDownConverter implements IPushDownConverter {
         return replacedString;
     }
 
-    public static String subqueryReplace(String originString) {
-        Matcher subqueryMatcher = FROM_PATTERN.matcher(originString);
-        String replacedString = originString;
-        Map<Integer, Integer> parenthesesPairs = null;
-
-        while (subqueryMatcher.find()) {
-            if (parenthesesPairs == null) {
-                parenthesesPairs = findParenthesesPairs(originString);
-            }
-
-            int startIdx = subqueryMatcher.start(1);
-            int endIdx = parenthesesPairs.get(startIdx) + 1;
-
-            Matcher aliasMatcher = ALIAS_PATTERN.matcher(originString.substring(endIdx));
-            if (aliasMatcher.find()) {
-                String aliasCandidate = aliasMatcher.group(1);
-
-                if (aliasCandidate != null && !sqlKeyWordsExceptAS.contains(aliasCandidate.toUpperCase())) {
-                    continue;
-                }
-
-                replacedString = replaceString(replacedString, originString.substring(startIdx, endIdx),
-                        originString.substring(startIdx, endIdx) + " as alias");
-            }
-        }
-
-        return replacedString;
-    }
-
     public static String timestampAddDiffReplace(String originString) {
         Matcher timestampaddMatcher = TIMESTAMP_ADD_DIFF_PATTERN.matcher(originString);
         String replacedString = originString;
@@ -188,59 +137,6 @@ public class HivePushDownConverter implements IPushDownConverter {
             String interval = timestampaddMatcher.group(2);
             String timestampaddStr = replaceString(timestampaddMatcher.group(), interval, "'" + interval + "'");
             replacedString = replaceString(replacedString, timestampaddMatcher.group(), timestampaddStr);
-        }
-
-        return replacedString;
-    }
-
-    public static String concatReplace(String originString) {
-        Matcher concatMatcher = CONCAT_PATTERN.matcher(originString);
-        String replacedString = originString;
-        Deque<Pair<Integer, String>> concatQueue = new LinkedList<>();
-        String concatToBeReplaced = "";
-
-        while (concatMatcher.find()) {
-            if (concatQueue.size() > 0) {
-                int lastIdx = concatQueue.peekLast().getFirst();
-
-                if (concatMatcher.start() > lastIdx) {
-                    String replaceWithConcat = "concat(";
-                    while (concatQueue.size() > 0) {
-                        Pair<Integer, String> pair = concatQueue.pollFirst();
-                        replaceWithConcat += pair.getSecond();
-                        if (concatQueue.size() > 0) {
-                            replaceWithConcat += ",";
-                        }
-                    }
-                    replaceWithConcat += ")";
-                    replacedString = replaceString(replacedString, concatToBeReplaced, replaceWithConcat);
-                    concatToBeReplaced = "";
-                }
-            }
-
-            concatToBeReplaced += concatMatcher.group();
-            String leftString = concatMatcher.group(1);
-            String rightString = concatMatcher.group(2);
-            if (leftString.length() > 0) {
-                concatQueue.addLast(new Pair<>(concatMatcher.start(), StringUtils.removePattern(leftString, "[()]")));
-            }
-
-            if (rightString.length() > 0) {
-                concatQueue.addLast(new Pair<>(concatMatcher.end(), StringUtils.removePattern(rightString, "[()]")));
-            }
-        }
-
-        if (concatQueue.size() > 0 && concatToBeReplaced.length() > 0) {
-            String replaceWithConcat = "concat(";
-            while (concatQueue.size() > 0) {
-                Pair<Integer, String> pair = concatQueue.pollFirst();
-                replaceWithConcat += pair.getSecond();
-                if (concatQueue.size() > 0) {
-                    replaceWithConcat += ",";
-                }
-            }
-            replaceWithConcat += ")";
-            replacedString = replaceString(replacedString, concatToBeReplaced, replaceWithConcat);
         }
 
         return replacedString;
@@ -268,7 +164,6 @@ public class HivePushDownConverter implements IPushDownConverter {
 
         if (groupingSetsMatcher.find()) {
             String toBeReplaced = groupingSetsMatcher.group(1);
-            String allColumns = "";
             String columns = groupingSetsMatcher.group(2);
             Matcher columnMatcher = COLUMN_NAME_PATTERN.matcher(columns);
             LinkedHashSet<String> columnSet = new LinkedHashSet<>();
@@ -276,18 +171,14 @@ public class HivePushDownConverter implements IPushDownConverter {
             while (columnMatcher.find()) {
                 columnSet.add(columnMatcher.group());
             }
-            for (String column : columnSet) {
-                allColumns += (column + ",");
-            }
 
-            replacedString = replacedString.replace(toBeReplaced,
-                    StringUtils.substringBeforeLast(allColumns, ",") + " " + toBeReplaced);
+            replacedString = replacedString.replace(toBeReplaced, String.join(",", columnSet) + " " + toBeReplaced);
         }
 
         return replacedString;
     }
 
-    public static String doConvert(String originStr, boolean isPrepare) {
+    private static String doConvert(String originStr, boolean isPrepare) {
         // Step1.Replace " with `
         String convertedSql = replaceString(originStr, "\"", "`");
 
@@ -297,29 +188,23 @@ public class HivePushDownConverter implements IPushDownConverter {
         // Step3.Replace cast type string
         convertedSql = castReplace(convertedSql);
 
-        // Step4.Replace sub query
-        // Useless in SparkSQL: convertedSql = subqueryReplace(convertedSql);
-
-        // Step5.Replace char_length with length
+        // Step4.Replace char_length with length
         convertedSql = replaceString(convertedSql, "CHAR_LENGTH", "LENGTH");
         convertedSql = replaceString(convertedSql, "char_length", "length");
 
-        // Step6.Replace "||" with concat
-        convertedSql = concatReplace(convertedSql);
-
-        // Step7.Add quote for interval in timestampadd
+        // Step5.Add quote for interval in timestampadd
         convertedSql = timestampAddDiffReplace(convertedSql);
 
-        // Step8.Replace integer with int
+        // Step6.Replace integer with int
         convertedSql = replaceString(convertedSql, "INTEGER", "INT");
         convertedSql = replaceString(convertedSql, "integer", "int");
 
-        // Step9.Add limit 1 for prepare select sql to speed up
+        // Step7.Add limit 1 for prepare select sql to speed up
         if (isPrepare) {
             convertedSql = addLimit(convertedSql);
         }
 
-        // Step10.Support grouping sets with none group by
+        // Step8.Support grouping sets with none group by
         convertedSql = groupingSetsReplace(convertedSql);
 
         return convertedSql;
@@ -328,17 +213,14 @@ public class HivePushDownConverter implements IPushDownConverter {
     private static Map<Integer, Integer> findParenthesesPairs(String sql) {
         Map<Integer, Integer> result = new HashMap<>();
         if (sql.length() > 1) {
-            Stack<Integer> lStack = new Stack<>();
-            boolean inStrVal = false;
+            Deque<Integer> lStack = new ArrayDeque<>();
             for (int i = 0; i < sql.length(); i++) {
                 switch (sql.charAt(i)) {
                 case '(':
-                    if (!inStrVal) {
-                        lStack.push(i);
-                    }
+                    lStack.push(i);
                     break;
                 case ')':
-                    if (!inStrVal && !lStack.empty()) {
+                    if (!lStack.isEmpty()) {
                         result.put(lStack.pop(), i);
                     }
                     break;
