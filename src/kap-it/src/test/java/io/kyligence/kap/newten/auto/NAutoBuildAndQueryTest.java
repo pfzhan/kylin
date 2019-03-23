@@ -71,9 +71,11 @@ public class NAutoBuildAndQueryTest extends NAutoTestBase {
                 new TestScenario(CompareLevel.SAME, "sql_subquery"), //
                 new TestScenario(CompareLevel.SAME, "sql_tableau"), //
                 new TestScenario(CompareLevel.SAME, "sql_udf"), //
-                new TestScenario(CompareLevel.SAME, "sql_value"), new TestScenario(CompareLevel.SAME, "sql_count_star"),
+                new TestScenario(CompareLevel.SAME, "sql_value"), //
+                new TestScenario(CompareLevel.SAME, "sql_count_star"), //
                 new TestScenario(CompareLevel.SAME, "sql_union"), //
-                new TestScenario(CompareLevel.SAME, "sql_noagg"),
+                new TestScenario(CompareLevel.SAME, "sql_noagg"), //
+                new TestScenario(CompareLevel.SAME, "sql_special_functions"), //
 
                 /* CompareLevel = SAME, JoinType = LEFT */
                 new TestScenario(CompareLevel.SAME, JoinType.LEFT, "sql_distinct_precisely"), //
@@ -86,8 +88,8 @@ public class NAutoBuildAndQueryTest extends NAutoTestBase {
                 new TestScenario(CompareLevel.NONE, "sql_current_date"), //
                 new TestScenario(CompareLevel.NONE, "sql_h2_uncapable"), //
                 new TestScenario(CompareLevel.NONE, "sql_timestamp"), //
-                new TestScenario(CompareLevel.NONE, "sql_window"));
-
+                new TestScenario(CompareLevel.NONE, "sql_window")//
+        );
     }
 
     @Test

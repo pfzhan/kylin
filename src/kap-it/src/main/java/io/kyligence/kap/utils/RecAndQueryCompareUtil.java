@@ -124,6 +124,10 @@ public class RecAndQueryCompareUtil {
                     entity.setLevel(AccelerationMatchedLevel.SIMPLE_QUERY);
                     return;
                 }
+                if (olapContext.isConstantQuery()) {
+                    entity.setLevel(AccelerationMatchedLevel.CONSTANT_QUERY);
+                    return;
+                }
                 if (olapContext.storageContext.isUseSnapshot()) {
                     entity.setLevel(AccelerationMatchedLevel.SNAPSHOT_QUERY);
                     return;
@@ -140,7 +144,7 @@ public class RecAndQueryCompareUtil {
             });
             entity.setQueryUsedLayouts(writeQueryLayoutRelationAsString(kylinConfig, project, layouts));
 
-            if (entity.getLevel() == AccelerationMatchedLevel.SNAPSHOT_QUERY) {
+            if (entity.ignoredCompareLevel()) {
                 return;
             } else if (Objects.equals(entity.getAccelerateInfo().getRelatedLayouts(), layouts)) {
                 entity.setLevel(AccelerationMatchedLevel.ALL_MATCH);
@@ -200,6 +204,12 @@ public class RecAndQueryCompareUtil {
                     + accelerateLayouts + ",\n\tqueryUsedLayouts=" + queryUsedLayouts + "\n\tfilePath=" + filePath
                     + ",\n\tlevel=" + level + "\n}";
         }
+
+        public boolean ignoredCompareLevel() {
+            return getLevel() == AccelerationMatchedLevel.SNAPSHOT_QUERY
+                    || getLevel() == AccelerationMatchedLevel.SIMPLE_QUERY
+                    || getLevel() == AccelerationMatchedLevel.CONSTANT_QUERY;
+        }
     }
 
     /**
@@ -211,6 +221,11 @@ public class RecAndQueryCompareUtil {
          * simple query does not need realization
          */
         SIMPLE_QUERY,
+
+        /**
+         * constant query
+         */
+        CONSTANT_QUERY,
 
         /**
          * query blocked in stage of propose cuboids and layouts

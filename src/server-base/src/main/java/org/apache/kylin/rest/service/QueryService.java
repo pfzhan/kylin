@@ -867,7 +867,7 @@ public class QueryService extends BasicService {
         } catch (SQLException sqlException) {
             Pair<List<List<String>>, List<SelectedColumnMeta>> r = null;
             try {
-                r = tryPushDownSelectQuery(sqlRequest.getProject(), correctedSql, conn.getSchema(), sqlException,
+                r = tryPushDownSelectQuery(sqlRequest.getProject(), sqlRequest.getSql(), conn.getSchema(), sqlException,
                         BackdoorToggles.getPrepareOnly());
             } catch (Exception e2) {
                 logger.error("pushdown engine failed current query too", e2);

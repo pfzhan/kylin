@@ -47,6 +47,9 @@ import java.util.regex.Pattern;
 
 import org.apache.kylin.query.util.QueryUtil.IQueryTransformer;
 
+/**
+ * DefaultQueryTransformer only used for query from IndexPlan.
+ */
 public class DefaultQueryTransformer implements IQueryTransformer {
 
     private static final String S0 = "\\s*";
@@ -55,8 +58,6 @@ public class DefaultQueryTransformer implements IQueryTransformer {
 
     private static final Pattern PTN_SUM = Pattern
             .compile(S0 + "SUM" + S0 + "[(]" + S0 + "(-?\\d+(\\.\\d+)?)" + S0 + "[)]" + S0, Pattern.CASE_INSENSITIVE);
-    private static final Pattern PTN_MIN_MAX = Pattern.compile(
-            S0 + "(MIN|MAX)" + S0 + "[(]" + S0 + "([-]?\\d+(\\.\\d+)?)" + S0 + "[)]" + S0, Pattern.CASE_INSENSITIVE);
     private static final Pattern PTN_NOT_EQ = Pattern.compile(S0 + "!=" + S0, Pattern.CASE_INSENSITIVE);
     private static final Pattern PTN_INTERVAL = Pattern.compile(
             "interval" + SM + "(floor\\()([\\d.]+)(\\))" + SM + "(second|minute|hour|day|month|year)",
@@ -67,10 +68,10 @@ public class DefaultQueryTransformer implements IQueryTransformer {
     //TODO #11033
     private static final Pattern PIN_SUM_OF_CAST = Pattern.compile(S0 + "SUM" + S0 + "\\(" + S0 + "CAST" + S0 + "\\("
             + S0 + "([^\\s,]+)" + S0 + "AS" + SM + "DOUBLE" + S0 + "\\)" + S0 + "\\)", Pattern.CASE_INSENSITIVE);
-    private static final Pattern PIN_SUM_OF_FN_CONVERT = Pattern.compile(S0 + "SUM" + S0 + "\\(" + S0 + "[{]" + S0
-            + "fn" + SM + "convert" + S0 + "\\(" + S0 + "([^\\s,]+)" + S0 + "," + S0
-            + "(SQL_DOUBLE|DOUBLE|SQL_BIGINT|BIGINT|INT|SMALLINT|SQL_SMALLINT|TINYINT|SQL_TINYINT|INTEGER|SQL_INTEGER|FLOAT|SQL_FLOAT)"
-            + S0 + "\\)" + S0 + "[}]" + S0 + "\\)", Pattern.CASE_INSENSITIVE);
+    private static final Pattern PIN_SUM_OF_FN_CONVERT = Pattern.compile(
+            S0 + "SUM" + S0 + "\\(" + S0 + "[{]" + S0 + "fn" + SM + "convert" + S0 + "\\(" + S0 + "([^\\s,]+)" + S0
+                    + "," + S0 + "(SQL_DOUBLE|DOUBLE)" + S0 + "\\)" + S0 + "[}]" + S0 + "\\)",
+            Pattern.CASE_INSENSITIVE);
     private static final Pattern PTN_DT_FUNCTION = Pattern.compile(
             S0 + "(YEAR|QUARTER|MONTH|WEEK|DAY|DAYOFYEAR|DAYOFMONTH|DAYOFWEEK)" + "\\(([^()]+)\\)",
             Pattern.CASE_INSENSITIVE);
@@ -81,7 +82,6 @@ public class DefaultQueryTransformer implements IQueryTransformer {
         sql = transformSumOfFnConvert(sql);
         sql = transformEscapeFunction(sql);
         sql = transformSumOfNumericLiteral(sql);
-        sql = transformMinMaxNumericLiteral(sql);
         sql = transformNotEqual(sql);
         sql = transformIntervalFunc(sql);
         sql = transformTypeOfArgInTimeUnitFunc(sql);
@@ -141,18 +141,6 @@ public class DefaultQueryTransformer implements IQueryTransformer {
             String literal = m.group(1);
             String replacedLiteral = ONE.equals(literal) ? " COUNT(1) " : " " + literal + " * COUNT(1) ";
             sql = sql.substring(0, m.start()) + replacedLiteral + sql.substring(m.end());
-        }
-        return sql;
-    }
-
-    // Case: MIN(numeric_literal), MAX(numeric_literal) --> numeric_literal
-    private static String transformMinMaxNumericLiteral(String sql) {
-        Matcher m;
-        while (true) {
-            m = PTN_MIN_MAX.matcher(sql);
-            if (!m.find())
-                break;
-            sql = sql.substring(0, m.start()) + " " + m.group(2) + " " + sql.substring(m.end());
         }
         return sql;
     }

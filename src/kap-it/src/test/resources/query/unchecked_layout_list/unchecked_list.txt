@@ -1,5 +1,3 @@
----SIMPLE_QUERY
-sql/query54.sql
 ---LAYOUT_NOT_MATCH
 sql/query27.sql
 sql/query35.sql

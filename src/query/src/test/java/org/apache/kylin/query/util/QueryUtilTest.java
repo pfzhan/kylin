@@ -67,8 +67,7 @@ public class QueryUtilTest {
 
             String sql2 = "SELECT SUM({fn convert(0, INT)}) from TABLE";
             String newSql2 = QueryUtil.massageSql(config, sql2, "", 0, 0, "");
-            // SUM({fn convert(0, INT)}) -> SUM(0) -> 0 * COUNT(1)
-            Assert.assertEquals("SELECT 0 * COUNT(1) from TABLE", newSql2);
+            Assert.assertEquals("SELECT SUM({fn convert(0, INT)}) from TABLE", newSql2);
         }
     }
 

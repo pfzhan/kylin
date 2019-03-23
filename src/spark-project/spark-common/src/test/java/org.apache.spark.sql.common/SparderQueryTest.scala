@@ -25,7 +25,6 @@ import java.util.TimeZone
 
 import org.apache.kylin.common.{KapConfig, QueryContext}
 import org.apache.spark.sql.catalyst.util.sideBySide
-import org.apache.spark.sql.catalyst.util._
 import org.apache.spark.sql.functions._
 import org.apache.spark.sql.{DataFrame, Row, SparkSession}
 
@@ -169,7 +168,11 @@ object SparderQueryTest {
   }
 
   def castDataType(sparkResult: DataFrame, cubeResult: DataFrame): DataFrame = {
-    val columns = sparkResult.schema.zip(cubeResult.schema).map {
+    val newNames = sparkResult.schema.names
+      .zipWithIndex
+      .map(name => name._1.replaceAll("\\.", "_") + "_" + name._2).toSeq
+    val newDf = sparkResult.toDF(newNames: _*)
+    val columns = newDf.schema.zip(cubeResult.schema).map {
       case (sparkField, kylinField) =>
         if (!sparkField.dataType.sameType(kylinField.dataType)) {
           col(sparkField.name).cast(kylinField.dataType)
@@ -177,6 +180,6 @@ object SparderQueryTest {
           col(sparkField.name)
         }
     }
-    sparkResult.select(columns: _*)
+    newDf.select(columns: _*)
   }
 }

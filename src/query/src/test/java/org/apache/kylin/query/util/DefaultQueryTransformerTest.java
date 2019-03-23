@@ -102,18 +102,6 @@ public class DefaultQueryTransformerTest {
     }
 
     @Test
-    public void transformMinMaxNumericLiteral() {
-        DefaultQueryTransformer transformer = new DefaultQueryTransformer();
-        String originSql = "select max(1  ) from kylin_sales";
-        String transformedSql = transformer.transform(originSql, "", "");
-        assertTrue("select 1 from kylin_sales".equalsIgnoreCase(transformedSql));
-
-        originSql = "select min  (-273.15) as absolute_zero from kylin_sales";
-        transformedSql = transformer.transform(originSql, "", "");
-        assertTrue("select -273.15 as absolute_zero from kylin_sales".equalsIgnoreCase(transformedSql));
-    }
-
-    @Test
     public void sumOfCastTransform() {
         DefaultQueryTransformer transformer = new DefaultQueryTransformer();
 

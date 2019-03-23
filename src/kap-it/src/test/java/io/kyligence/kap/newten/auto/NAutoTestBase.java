@@ -199,7 +199,7 @@ public class NAutoTestBase extends NLocalWithSparkSessionTest {
         compareMap.forEach((key, value) -> {
             final String sqlPattern = QueryPatternUtil.normalizeSQLPattern(key);
             log.debug("**start comparing the SQL: \n{} \n accelerate layout info**", key);
-            if (!excludedSqlPatterns.contains(sqlPattern) && needCompareLayouts) {
+            if (!excludedSqlPatterns.contains(sqlPattern) && needCompareLayouts && !value.ignoredCompareLevel()) {
                 Assert.assertEquals(value.getAccelerateLayouts(), value.getQueryUsedLayouts());
             } else {
                 System.out.println(value.toString() + '\n');
@@ -290,8 +290,7 @@ public class NAutoTestBase extends NLocalWithSparkSessionTest {
 
     private void normalizeSql(JoinType joinType, List<Pair<String, String>> queries) {
         queries.forEach(pair -> {
-            String transformedQuery = QueryUtil.massageSql(pair.getSecond(), getProject(), 0, 0, "DEFAULT");
-            transformedQuery = QueryUtil.removeCommentInSql(transformedQuery);
+            String transformedQuery = QueryUtil.removeCommentInSql(pair.getSecond());
             String tmp = KylinTestBase.changeJoinType(transformedQuery, joinType.name());
             // tmp = QueryPatternUtil.normalizeSQLPattern(tmp); // something wrong with sqlPattern, skip this step
             pair.setSecond(tmp);

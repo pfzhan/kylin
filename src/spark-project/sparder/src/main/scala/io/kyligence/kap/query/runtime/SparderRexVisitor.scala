@@ -415,6 +415,8 @@ class SparderRexVisitor(val df: DataFrame,
             sin(lit(children.head))
           case "initcap" =>
             initcap(lit(children.head))
+          case "pi" =>
+            lit(Math.PI)
           case _ =>
             throw new UnsupportedOperationException(
               s"Unsupported function $funcName")
