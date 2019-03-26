@@ -31,7 +31,7 @@
         <h1 class="title font-medium">{{$t('aggregateGroupTitle', { id: form.aggregateArray.length - aggregateIdx })}}</h1>
         <div class="actions">
           <el-button size="mini" @click="() => handleCopyAggregate(aggregateIdx)">{{$t('kylinLang.common.copy')}}</el-button>
-          <el-button size="mini" @click="() => handleDeleteAggregate(aggregateIdx)">{{$t('kylinLang.common.delete')}}</el-button>
+          <el-button size="mini" @click="() => handleDeleteAggregate(aggregateIdx, form.aggregateArray.length - aggregateIdx)">{{$t('kylinLang.common.delete')}}</el-button>
         </div>
         <div class="body">
           <!-- Include聚合组 -->
@@ -276,8 +276,8 @@ export default class AggregateModal extends Vue {
 
     this.setModalForm({ aggregateArray: [copyedAggregate, ...aggregateArray] })
   }
-  handleDeleteAggregate (aggregateIdx) {
-    kapConfirm(this.$t('delAggregateTip', {aggId: aggregateIdx + 1}), {type: 'warning'}, this.$t('delAggregateTitle')).then(() => {
+  handleDeleteAggregate (aggregateIdx, titleId) {
+    kapConfirm(this.$t('delAggregateTip', {aggId: titleId}), {type: 'warning'}, this.$t('delAggregateTitle')).then(() => {
       const aggregateArray = get(this.form, 'aggregateArray')
       aggregateArray.splice(aggregateIdx, 1)
       this.setModalForm({ aggregateArray })
