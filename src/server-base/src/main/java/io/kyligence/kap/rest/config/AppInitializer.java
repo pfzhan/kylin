@@ -23,42 +23,23 @@
  */
 package io.kyligence.kap.rest.config;
 
-import java.io.DataInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-
-import io.kyligence.kap.common.metric.InfluxDBWriter;
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.persistence.JsonSerializer;
-import org.apache.kylin.common.persistence.RawResource;
-import org.apache.kylin.common.persistence.ResourceStore;
-import org.apache.kylin.job.engine.JobEngineConfig;
-import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
-import org.apache.kylin.job.lock.MockJobLock;
-import org.apache.kylin.metadata.project.ProjectInstance;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.ApplicationContext;
-import org.springframework.context.event.ApplicationContextEvent;
 import org.springframework.context.event.ContextRefreshedEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.TaskScheduler;
 import org.springframework.stereotype.Component;
 
-import com.google.common.collect.Lists;
-
 import io.kyligence.kap.common.cluster.LeaderInitiator;
 import io.kyligence.kap.common.cluster.NodeCandidate;
+import io.kyligence.kap.common.metric.InfluxDBWriter;
 import io.kyligence.kap.common.persistence.transaction.EventListenerRegistry;
 import io.kyligence.kap.common.persistence.transaction.MessageSynchronization;
-import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.common.persistence.transaction.mq.MessageQueue;
-import io.kyligence.kap.event.manager.EventOrchestratorManager;
-import io.kyligence.kap.metadata.favorite.FavoriteQuery;
-import io.kyligence.kap.metadata.favorite.FavoriteQueryManager;
-import io.kyligence.kap.metadata.favorite.FavoriteRule;
-import io.kyligence.kap.metadata.favorite.FavoriteRuleManager;
-import io.kyligence.kap.metadata.project.NProjectManager;
-import io.kyligence.kap.rest.service.NFavoriteScheduler;
+import io.kyligence.kap.rest.config.initialize.AppInitializedEvent;
+import io.kyligence.kap.rest.config.initialize.BootstrapCommand;
+import io.kyligence.kap.rest.config.initialize.FavoriteQueryUpdateListener;
+import io.kyligence.kap.rest.config.initialize.ProjectDropListener;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
@@ -96,142 +77,8 @@ public class AppInitializer {
         }
 
         EventListenerRegistry.getInstance(kylinConfig).register(new FavoriteQueryUpdateListener(), "fq");
+        EventListenerRegistry.getInstance(kylinConfig).register(new ProjectDropListener(), "pd");
         event.getApplicationContext().publishEvent(new AppInitializedEvent(event.getApplicationContext()));
     }
 
-    static void initProject(KylinConfig config, String project) {
-        val leaderInitiator = LeaderInitiator.getInstance(config);
-        if (!leaderInitiator.isLeader()) {
-            return;
-        }
-        if (NFavoriteScheduler.getInstance(project).hasStarted()) {
-            return;
-        }
-        UnitOfWork.doInTransactionWithRetry(() -> {
-            EventOrchestratorManager.getInstance(config).addProject(project);
-            NDefaultScheduler scheduler = NDefaultScheduler.getInstance(project);
-            scheduler.init(new JobEngineConfig(config), new MockJobLock());
-            if (!scheduler.hasStarted()) {
-                throw new RuntimeException("Scheduler for " + project + " has not been started");
-            }
-
-            createDefaultRules(project);
-
-            NFavoriteScheduler favoriteScheduler = NFavoriteScheduler.getInstance(project);
-            favoriteScheduler.init();
-
-            if (!favoriteScheduler.hasStarted()) {
-                throw new RuntimeException("Auto favorite scheduler for " + project + " has not been started");
-            }
-            return 0;
-        }, project, 1);
-        log.info("init project {} finished", project);
-    }
-
-    static void createDefaultRules(String projectName) {
-        // create default rules
-        // frequency rule
-        val favoriteRuleManager = FavoriteRuleManager.getInstance(KylinConfig.getInstanceFromEnv(), projectName);
-        FavoriteRule.Condition freqCond = new FavoriteRule.Condition();
-        freqCond.setRightThreshold("0.1");
-        FavoriteRule freqRule = new FavoriteRule(Lists.newArrayList(freqCond), FavoriteRule.FREQUENCY_RULE_NAME, true);
-        favoriteRuleManager.createRule(freqRule);
-        // submitter rule
-        FavoriteRule.Condition submitterCond = new FavoriteRule.Condition();
-        submitterCond.setRightThreshold("ADMIN");
-        FavoriteRule submitterRule = new FavoriteRule(Lists.newArrayList(submitterCond),
-                FavoriteRule.SUBMITTER_RULE_NAME, true);
-        favoriteRuleManager.createRule(submitterRule);
-        // submitter group rule
-        FavoriteRule.Condition submitterGroupCond = new FavoriteRule.Condition();
-        submitterGroupCond.setRightThreshold("ROLE_ADMIN");
-        favoriteRuleManager.createRule(new FavoriteRule(Lists.newArrayList(submitterGroupCond), FavoriteRule.SUBMITTER_GROUP_RULE_NAME, true));
-        // duration rule
-        FavoriteRule.Condition durationCond = new FavoriteRule.Condition();
-        durationCond.setLeftThreshold("0");
-        durationCond.setRightThreshold("180");
-        FavoriteRule durationRule = new FavoriteRule(Lists.newArrayList(durationCond), FavoriteRule.DURATION_RULE_NAME,
-                false);
-        favoriteRuleManager.createRule(durationRule);
-
-        // create blacklist
-        FavoriteRule blacklist = new FavoriteRule();
-        blacklist.setName(FavoriteRule.BLACKLIST_NAME);
-        favoriteRuleManager.createRule(blacklist);
-    }
-
-    public static class BootstrapCommand implements Runnable {
-
-        @Override
-        public void run() {
-            val kylinConfig = KylinConfig.getInstanceFromEnv();
-            val projectManager = NProjectManager.getInstance(kylinConfig);
-            for (ProjectInstance project : projectManager.listAllProjects()) {
-                initProject(kylinConfig, project.getName());
-            }
-            for (val scheduler : NDefaultScheduler.listAllSchedulers()) {
-                val project = scheduler.getProject();
-                if (projectManager.getProject(scheduler.getProject()) == null) {
-                    EventOrchestratorManager.getInstance(kylinConfig).shutdownByProject(project);
-                    NFavoriteScheduler.shutdownByProject(project);
-                    NDefaultScheduler.shutdownByProject(project);
-                }
-            }
-        }
-    }
-
-    static class FavoriteQueryUpdateListener implements EventListenerRegistry.ResourceEventListener {
-        @Override
-        public void onUpdate(KylinConfig config, RawResource rawResource) {
-            val term = rawResource.getResPath().split("\\/");
-            if (!isFavoriteQueryPath(term))
-                return;
-
-            // deserialize
-            FavoriteQuery favoriteQuery = deserialize(rawResource);
-            if (favoriteQuery == null)
-                return;
-
-            // update favorite query map
-            val project = term[1];
-            FavoriteQueryManager.getInstance(config, project).updateFavoriteQueryMap(favoriteQuery);
-        }
-
-        @Override
-        public void onDelete(KylinConfig config, String resPath) {
-            val term = resPath.split("\\/");
-            if (!isFavoriteQueryPath(term))
-                return;
-
-            val project = term[1];
-            FavoriteQueryManager favoriteQueryManager = FavoriteQueryManager.getInstance(config, project);
-            favoriteQueryManager.clearFavoriteQueryMap();
-        }
-
-        private boolean isFavoriteQueryPath(String[] term) {
-            if (term.length < 3 || !term[2].equals(ResourceStore.FAVORITE_QUERY_RESOURCE_ROOT.substring(1))) {
-                return false;
-            }
-
-            return true;
-        }
-
-        private FavoriteQuery deserialize(RawResource rawResource) {
-            FavoriteQuery favoriteQuery = null;
-            try (InputStream is = rawResource.getByteSource().openStream();
-                    DataInputStream din = new DataInputStream(is)) {
-                favoriteQuery = new JsonSerializer<>(FavoriteQuery.class).deserialize(din);
-            } catch (IOException e) {
-                log.warn("error when deserializing resource: {}", rawResource.getResPath());
-            }
-
-            return favoriteQuery;
-        }
-    }
-
-    public static class AppInitializedEvent extends ApplicationContextEvent {
-        public AppInitializedEvent(ApplicationContext source) {
-            super(source);
-        }
-    }
 }

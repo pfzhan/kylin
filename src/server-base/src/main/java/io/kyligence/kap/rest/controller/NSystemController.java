@@ -24,7 +24,12 @@
 
 package io.kyligence.kap.rest.controller;
 
-import io.kyligence.kap.rest.config.AppInitializer;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStreamReader;
+
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.rest.response.EnvelopeResponse;
@@ -41,11 +46,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseBody;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStreamReader;
+import io.kyligence.kap.rest.config.initialize.AppInitializedEvent;
 
 
 @Controller
@@ -59,7 +60,7 @@ public class NSystemController extends NBasicController {
     @Autowired
     private LicenseInfoService licenseInfoService;
 
-    @EventListener(AppInitializer.AppInitializedEvent.class)
+    @EventListener(AppInitializedEvent.class)
     public void init() throws IOException {
         if (KylinConfig.getInstanceFromEnv().isDevOrUT()) {
             return;

@@ -72,7 +72,7 @@ import org.springframework.web.bind.annotation.ResponseBody;
 
 import com.google.common.collect.Lists;
 
-import io.kyligence.kap.rest.config.AppInitializer;
+import io.kyligence.kap.rest.config.initialize.AppInitializedEvent;
 import io.kyligence.kap.rest.request.PasswordChangeRequest;
 import lombok.val;
 
@@ -108,7 +108,7 @@ public class NUserController extends NBasicController {
 
     private static final SimpleGrantedAuthority ALL_USERS_AUTH = new SimpleGrantedAuthority(Constant.GROUP_ALL_USERS);
 
-    @EventListener(AppInitializer.AppInitializedEvent.class)
+    @EventListener(AppInitializedEvent.class)
     public void init() throws IOException {
         List<ManagedUser> all = userService.listUsers();
         activeProfile = env.getActiveProfiles()[0];

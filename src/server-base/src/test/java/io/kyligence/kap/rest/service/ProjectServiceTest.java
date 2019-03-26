@@ -49,9 +49,6 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.rest.request.GarbageCleanUpConfigRequest;
-import io.kyligence.kap.source.file.S3KeyCredential;
-import io.kyligence.kap.source.file.S3KeyCredentialOperator;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.engine.JobEngineConfig;
 import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
@@ -91,12 +88,15 @@ import io.kyligence.kap.metadata.model.MaintainModelType;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
-import io.kyligence.kap.rest.config.AppInitializer;
+import io.kyligence.kap.rest.config.initialize.BootstrapCommand;
+import io.kyligence.kap.rest.request.GarbageCleanUpConfigRequest;
 import io.kyligence.kap.rest.request.JobNotificationConfigRequest;
 import io.kyligence.kap.rest.request.ProjectGeneralInfoRequest;
 import io.kyligence.kap.rest.request.PushDownConfigRequest;
 import io.kyligence.kap.rest.request.SegmentConfigRequest;
 import io.kyligence.kap.rest.response.StorageVolumeInfoResponse;
+import io.kyligence.kap.source.file.S3KeyCredential;
+import io.kyligence.kap.source.file.S3KeyCredentialOperator;
 import lombok.val;
 import lombok.var;
 
@@ -447,7 +447,7 @@ public class ProjectServiceTest extends ServiceTestBase {
         favoriteScheduler.init();
         Assert.assertTrue(favoriteScheduler.hasStarted());
         projectService.dropProject(project);
-        new AppInitializer.BootstrapCommand().run();
+        new BootstrapCommand().run();
         val prjManager = NProjectManager.getInstance(getTestConfig());
         Assert.assertNull(prjManager.getProject(project));
         Assert.assertNull(eventOrchestratorManager.getEventOrchestratorByProject(project));
