@@ -209,4 +209,18 @@ public class HadoopUtil {
     public static String getLatestImagePath(KylinConfig kylinConfig) {
         return kylinConfig.getHdfsWorkingDirectory() + "image/latest";
     }
+
+    public static String getPathWithoutScheme(String path) {
+        if (path.startsWith("file://") || path.startsWith("maprfs://"))
+            return path;
+
+        if (path.startsWith("file:")) {
+            path = path.replace("file:", "file://");
+        } else if (path.startsWith("maprfs:")) {
+            path = path.replace("maprfs:", "maprfs://");
+        } else {
+            path = Path.getPathWithoutSchemeAndAuthority(new Path(path)).toString() + "/";
+        }
+        return path;
+    }
 }

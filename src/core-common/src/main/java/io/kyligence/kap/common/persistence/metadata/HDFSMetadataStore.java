@@ -65,7 +65,7 @@ public class HDFSMetadataStore extends MetadataStore {
             }
 
             fs = HadoopUtil.getFileSystem(path);
-            rootPath = new Path(path);
+            rootPath = fs.makeQualified(new Path(path));
             if (!fs.exists(rootPath)) {
                 log.warn("Path not exist in HDFS, create it: {}", path);
                 createMetaFolder(rootPath);
@@ -102,6 +102,7 @@ public class HDFSMetadataStore extends MetadataStore {
         try {
             Path p = getRealHDFSPath(resPath);
             if (!fs.exists(p) || !fs.isDirectory(p)) {
+                log.warn("path {} does not exist in HDFS", resPath);
                 return new TreeSet<>();
             }
             TreeSet<String> r;

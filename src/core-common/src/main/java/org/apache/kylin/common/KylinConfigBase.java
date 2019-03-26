@@ -273,6 +273,10 @@ abstract public class KylinConfigBase implements Serializable {
 
     private String cachedHdfsWorkingDirectory;
 
+    public String getHdfsWorkingDirectoryWithoutScheme() {
+        return HadoopUtil.getPathWithoutScheme(getHdfsWorkingDirectory());
+    }
+
     public String getHdfsWorkingDirectory() {
         if (cachedHdfsWorkingDirectory != null)
             return cachedHdfsWorkingDirectory;
@@ -601,7 +605,7 @@ abstract public class KylinConfigBase implements Serializable {
     // ============================================================================
 
     public String getJobTmpDir(String project) {
-        return getHdfsWorkingDirectory() + project + "/job_tmp/";
+        return getHdfsWorkingDirectoryWithoutScheme() + project + "/job_tmp/";
     }
 
     public StorageURL getJobTmpMetaStoreUrl(String project, String jobId) {

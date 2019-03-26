@@ -34,6 +34,7 @@ import java.util.Map;
 import lombok.val;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.fs.Path;
+import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.kylin.measure.hllc.HLLCounter;
 import org.apache.kylin.metadata.model.TableDesc;
@@ -175,7 +176,7 @@ public class NTableMetadataManagerTest extends NLocalFileMetadataTestCase {
         hllc.add(2);
         hllc.add(3);
         colStats.addRangeHLLC("0_1", hllc);
-        val colStatsPath = new Path(colStatsStore.getColumnStatsPath());
+        val colStatsPath = new Path(KapConfig.wrap(getTestConfig()).getReadHdfsWorkingDirectory() + colStatsStore.getColumnStatsPath());
         val colStatsFS = HadoopUtil.getWorkingFileSystem();
 
         columnStatsList.add(colStats);
@@ -190,7 +191,8 @@ public class NTableMetadataManagerTest extends NLocalFileMetadataTestCase {
         val actualExt = mgrDefault.getTableExtIfExists(tableDesc);
         Assert.assertNotNull(actualExt);
         val actualColStatsPath = actualExt.getColStatsPath();
-        Assert.assertEquals(colStatsFS.listStatus(colStatsPath)[0].getPath().toString(), actualColStatsPath);
+        val actualFullColStatsPath = KapConfig.wrap(getTestConfig()).getReadHdfsWorkingDirectory() + actualColStatsPath;
+        Assert.assertEquals(colStatsFS.listStatus(colStatsPath)[0].getPath().toString().replace("file:", "file://"), actualFullColStatsPath);
         Assert.assertEquals(1, actualExt.getColumnStats().size());
         val actualColStats = actualExt.getColumnStats().get(0);
         Assert.assertEquals("col1", actualColStats.getColumnName());
@@ -212,9 +214,10 @@ public class NTableMetadataManagerTest extends NLocalFileMetadataTestCase {
         val actualExt2 = mgrDefault.getTableExtIfExists(tableDesc);
         Assert.assertNotNull(actualExt2);
         val actualColStatsPath2 = actualExt2.getColStatsPath();
+        val actualFullColStatsPath2 = KapConfig.wrap(getTestConfig()).getReadHdfsWorkingDirectory() + actualColStatsPath2;
         Assert.assertTrue(StringUtils.isNotBlank(actualColStatsPath2));
         Assert.assertNotEquals(actualColStatsPath, actualColStatsPath2);
-        Assert.assertEquals(colStatsFS.listStatus(colStatsPath)[0].getPath().toString(), actualColStatsPath2);
+        Assert.assertEquals(colStatsFS.listStatus(colStatsPath)[0].getPath().toString().replace("file:", "file://"), actualFullColStatsPath2);
         Assert.assertEquals(1, actualExt2.getColumnStats().size());
         val actualColStats2 = actualExt2.getColumnStats().get(0);
         Assert.assertEquals("col1", actualColStats2.getColumnName());

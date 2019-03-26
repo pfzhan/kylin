@@ -27,7 +27,6 @@ package io.kyligence.kap.metadata.model;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
-import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -371,9 +370,12 @@ public class NTableMetadataManager {
         @VisibleForTesting
         static FileSystem fs;
 
+        private String baseDir;
+
         private ColumnStatsStore(TableExtDesc tableExtDesc, KylinConfig config) {
             this.tableExtDesc = tableExtDesc;
             this.config = config;
+            baseDir = KapConfig.wrap(config).getReadHdfsWorkingDirectory();
         }
 
         public static ColumnStatsStore getInstance(TableExtDesc tableExtDesc, KylinConfig config) {
@@ -389,7 +391,7 @@ public class NTableMetadataManager {
                 return;
             }
             FSDataInputStream in = null;
-            val colStatsPath = new Path(tableExtDesc.getColStatsPath());
+            val colStatsPath = new Path(baseDir + tableExtDesc.getColStatsPath());
             prepareFS();
             try {
                 if (!fs.exists(colStatsPath)) {
@@ -429,7 +431,7 @@ public class NTableMetadataManager {
             }
             final Map<String, Map<String, byte[]>> colStatsTable = Maps.newHashMap();
             FSDataOutputStream out = null;
-            Path newColStatsPath = null;
+            Path newcolStatsResourcePath = null;
             prepareFS();
             try {
                 for (val colStats : tableExtDesc.getColumnStats()) {
@@ -443,29 +445,34 @@ public class NTableMetadataManager {
                         colStatsTable.get(colName).put(segRange, buffer.array());
                     }
                 }
-                newColStatsPath = new Path(getColumnStatsPath(), UUID.randomUUID().toString());
-                out = fs.create(newColStatsPath, true);
+                // new column stats path
+                val newColStatsPath = getColumnStatsPath() + "/" + UUID.randomUUID().toString();
+                newcolStatsResourcePath = new Path(baseDir + newColStatsPath);
+                out = fs.create(newcolStatsResourcePath, true);
                 IOUtils.copy(ByteStreams.asByteSource(JsonUtil.writeValueAsBytes(colStatsTable)).openStream(), out);
-                val oldColStatsPath = tableExtDesc.getColStatsPath();
-                tableExtDesc.setColStatsPath(newColStatsPath.toString());
-                logger.info("update column stats file from [{}] to [{}] in HDFS successful", oldColStatsPath,
-                        newColStatsPath);
 
+                // old column stats resource path
+                val oldColStatsPath = baseDir + tableExtDesc.getColStatsPath();
+                tableExtDesc.setColStatsPath(newColStatsPath);
+                logger.info("update column stats file from [{}] to [{}] in HDFS successful", oldColStatsPath,
+                        newcolStatsResourcePath.toString());
+
+                // delete old column stats if exists
                 if (StringUtils.isNotBlank(oldColStatsPath) && fs.exists(new Path(oldColStatsPath))) {
                     fs.delete(new Path(oldColStatsPath), true);
                     logger.info("delete old column stats file [{}] in HDFS", oldColStatsPath);
                 }
 
                 // checking and warning
-                val size = fs.listStatus(new Path(getColumnStatsPath())).length;
+                val size = fs.listStatus(new Path(baseDir + getColumnStatsPath())).length;
                 if (size > 1) {
                     logger.warn(
                             "found {} column stats files in [{}] on HDFS. This may be due to multiple parallel build tasks or a bug.",
-                            size, getColumnStatsPath());
+                            size, baseDir + getColumnStatsPath());
                 }
             } catch (Exception e) {
                 logger.error("save column stats file [{}] to HDFS occurred exception",
-                        newColStatsPath != null ? newColStatsPath : getColumnStatsPath(), e);
+                        newcolStatsResourcePath != null ? newcolStatsResourcePath : getColumnStatsPath(), e);
             } finally {
                 IOUtils.closeQuietly(out);
             }
@@ -475,23 +482,20 @@ public class NTableMetadataManager {
         public void delete() {
             prepareFS();
             try {
-                val colStatsPath = new Path(getColumnStatsPath());
+                val colStatsPath = new Path(baseDir + getColumnStatsPath());
                 if (fs.exists(colStatsPath)) {
                     fs.delete(colStatsPath, true);
                 }
             } catch (IOException e) {
                 logger.error("delete column stats file [{}] in HDFS failed, please exec garbage clean",
-                        getColumnStatsPath(), e);
+                        baseDir + getColumnStatsPath(), e);
             }
 
         }
 
         @VisibleForTesting
         public String getColumnStatsPath() {
-            val baseDir = KapConfig.wrap(this.config).getReadHdfsWorkingDirectory();
-            return baseDir + Paths
-                    .get(tableExtDesc.getProject(), ResourceStore.TABLE_EXD_RESOURCE_ROOT, tableExtDesc.getIdentity())
-                    .toString();
+            return tableExtDesc.getProject() + ResourceStore.TABLE_EXD_RESOURCE_ROOT + "/" + tableExtDesc.getIdentity();
         }
 
         private static void prepareFS() {
