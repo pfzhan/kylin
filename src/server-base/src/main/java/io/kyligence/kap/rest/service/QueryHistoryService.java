@@ -32,8 +32,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import com.google.common.collect.Lists;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
+import io.kyligence.kap.metadata.query.NativeQueryRealization;
+import io.kyligence.kap.metadata.query.QueryHistory;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.RootPersistentEntity;
@@ -48,14 +51,12 @@ import org.springframework.stereotype.Component;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
 
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.query.QueryHistoryDAO;
 import io.kyligence.kap.metadata.query.QueryHistoryRequest;
 import io.kyligence.kap.metadata.query.QueryStatistics;
-import io.kyligence.kap.rest.response.QueryHistoryResponse;
 import io.kyligence.kap.rest.response.QueryStatisticsResponse;
 import lombok.val;
 
@@ -73,23 +74,27 @@ public class QueryHistoryService extends BasicService {
                 .collect(Collectors.toMap(NDataModel::getAlias, RootPersistentEntity::getUuid));
 
         HashMap<String, Object> data = new HashMap<>();
-        data.put("query_histories",
-                queryHistoryDAO.getQueryHistoriesByConditions(request, limit, offset).stream().map(query -> {
-                    if (StringUtils.isEmpty(query.getAnsweredBy())) {
-                        return new QueryHistoryResponse(query, null);
-                    }
-                    val answers = Sets.newHashSet(query.getAnsweredBy().split(","));
-                    val subMap = Maps.filterValues(modelAliasMap, answers::contains);
-                    val answerBy = answers.stream().map(s -> {
-                        if (modelAliasMap.containsValue(s))
-                            return dataModelManager.getDataModelDesc(s).getAlias();
-                        else
-                            return s;
-                    }).collect(Collectors.joining(","));
-                    val response = new QueryHistoryResponse(query, subMap);
-                    response.getQueryHistory().setAnsweredBy(answerBy);
-                    return new QueryHistoryResponse(query, subMap);
-                }).collect(Collectors.toList()));
+        List<QueryHistory> queryHistories = Lists.newArrayList();
+
+        queryHistoryDAO.getQueryHistoriesByConditions(request, limit, offset).stream().forEach(query -> {
+            if (StringUtils.isEmpty(query.getQueryRealizations())) {
+                queryHistories.add(query);
+                return;
+            }
+
+            List<NativeQueryRealization> realizations = Lists.newArrayList();
+            query.transformRealizations().stream().forEach(realization -> {
+                if (modelAliasMap.containsValue(realization.getModelId())) {
+                    String alias = dataModelManager.getDataModelDesc(realization.getModelId()).getAlias();
+                    realization.setModelAlias(alias);
+                    realizations.add(realization);
+                }
+            });
+            query.setNativeQueryRealizations(realizations);
+            queryHistories.add(query);
+        });
+
+        data.put("query_histories", queryHistories);
         data.put("size", queryHistoryDAO.getQueryHistoriesSize(request));
 
         return data;
@@ -205,9 +210,11 @@ public class QueryHistoryService extends BasicService {
             val projectManager = NProjectManager.getInstance(config);
             for (ProjectInstance project : projectManager.listAllProjects()) {
                 long startTime = System.currentTimeMillis();
-                logger.info("Start to delete query histories that are beyond max size for project<{}>", project.getName());
+                logger.info("Start to delete query histories that are beyond max size for project<{}>",
+                        project.getName());
                 getQueryHistoryDao(project.getName()).deleteQueryHistoriesIfMaxSizeReached();
-                logger.info("Query histories cleanup for project<{}> finished, it took {}ms", project.getName(), System.currentTimeMillis() - startTime);
+                logger.info("Query histories cleanup for project<{}> finished, it took {}ms", project.getName(),
+                        System.currentTimeMillis() - startTime);
             }
 
         } finally {

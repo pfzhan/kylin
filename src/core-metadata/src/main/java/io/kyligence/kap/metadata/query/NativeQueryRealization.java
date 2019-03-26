@@ -21,27 +21,27 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package io.kyligence.kap.rest.response;
 
-import java.util.Map;
+package io.kyligence.kap.metadata.query;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.annotation.JsonUnwrapped;
-
-import io.kyligence.kap.metadata.query.QueryHistory;
 import lombok.AllArgsConstructor;
-import lombok.Data;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 
-@Data
-@AllArgsConstructor
+@Getter
+@Setter
 @NoArgsConstructor
-public class QueryHistoryResponse {
+@AllArgsConstructor
+public class NativeQueryRealization {
+    private String modelId;
+    private String modelAlias;
+    private Long layoutId;
+    private String indexType;
 
-    @JsonUnwrapped
-    private QueryHistory queryHistory;
-
-    @JsonProperty("model_alias_mapping")
-    private Map<String, String> modelAliasMapping;
-
+    public NativeQueryRealization(String modelId, long layoutId, String indexType) {
+        this.modelId = modelId;
+        this.layoutId = layoutId;
+        this.indexType = indexType;
+    }
 }

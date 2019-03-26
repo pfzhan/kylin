@@ -43,6 +43,7 @@ package org.apache.kylin.rest.util;
 
 import java.util.List;
 
+import io.kyligence.kap.metadata.query.NativeQueryRealization;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -53,17 +54,16 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
-import io.kyligence.kap.rest.metrics.QueryMetricsContext;
 import lombok.val;
 
 public class QueryCacheSignatureUtil {
 
     public static String createCacheSignature(SQLResponse response, String project) {
         List<String> signature = Lists.newArrayList();
-        val realizationMetrics = response.getRealizationMetrics();
-        Preconditions.checkState(CollectionUtils.isNotEmpty(realizationMetrics));
-        for (int i = 0; i < realizationMetrics.size(); i++) {
-            signature.add(generateSignature(realizationMetrics.get(i), project));
+        val realizations = response.getNativeRealizations();
+        Preconditions.checkState(CollectionUtils.isNotEmpty(realizations));
+        for (int i = 0; i < realizations.size(); i++) {
+            signature.add(generateSignature(realizations.get(i), project));
         }
         return Joiner.on(",").join(signature);
     }
@@ -77,8 +77,8 @@ public class QueryCacheSignatureUtil {
         return !signature.equals(lastSignature);
     }
 
-    private static String generateSignature(QueryMetricsContext.RealizationMetrics realizationMetrics, String project) {
-        val modelId = realizationMetrics.getModelId();
+    private static String generateSignature(NativeQueryRealization realization, String project) {
+        val modelId = realization.getModelId();
         Preconditions.checkState(StringUtils.isNotBlank(modelId));
         val dataflow = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project).getDataflow(modelId);
         return dataflow == null ? "" : String.valueOf(dataflow.getLastModified());

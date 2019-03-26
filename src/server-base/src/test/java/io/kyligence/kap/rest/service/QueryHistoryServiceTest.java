@@ -24,14 +24,17 @@
 
 package io.kyligence.kap.rest.service;
 
-import java.lang.reflect.InvocationTargetException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
+import io.kyligence.kap.metadata.query.NativeQueryRealization;
+import lombok.val;
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.rest.exception.BadRequestException;
 import org.junit.After;
 import org.junit.Assert;
@@ -48,7 +51,6 @@ import io.kyligence.kap.metadata.query.QueryHistory;
 import io.kyligence.kap.metadata.query.QueryHistoryDAO;
 import io.kyligence.kap.metadata.query.QueryHistoryRequest;
 import io.kyligence.kap.metadata.query.QueryStatistics;
-import io.kyligence.kap.rest.response.QueryHistoryResponse;
 import io.kyligence.kap.rest.response.QueryStatisticsResponse;
 
 public class QueryHistoryServiceTest extends NLocalFileMetadataTestCase {
@@ -73,7 +75,7 @@ public class QueryHistoryServiceTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void testGetFilteredQueryHistories() throws InvocationTargetException, IllegalAccessException {
+    public void testGetFilteredQueryHistories() {
         // when there is no filter conditions
         QueryHistoryRequest request = new QueryHistoryRequest();
         request.setProject(PROJECT);
@@ -83,29 +85,51 @@ public class QueryHistoryServiceTest extends NLocalFileMetadataTestCase {
         request.setLatencyFrom("0");
         request.setLatencyTo(String.valueOf(Integer.MAX_VALUE));
 
-        // mock query history
-        QueryHistory queryHistory1 = new QueryHistory();
-        queryHistory1.setSql("select * from test_table_1");
-        queryHistory1.setAnsweredBy("741ca86a-1f13-46da-a59f-95fb68615e3a,89af4ee2-2cdb-4b07-b39e-4c29856309aa");
-        QueryHistory queryHistory2 = new QueryHistory();
-        queryHistory2.setSql("select * from test_table_2");
+        // mock query histories
+        // pushdown query
+        QueryHistory pushdownQuery = new QueryHistory();
+        pushdownQuery.setSql("select * from test_table_1");
+        pushdownQuery.setEngineType("HIVE");
+
+        // failed query
+        QueryHistory failedQuery = new QueryHistory();
+        failedQuery.setSql("select * from test_table_2");
+
+        // accelerated query
+        QueryHistory acceleratedQuery = new QueryHistory();
+        acceleratedQuery.setSql("select * from test_table_3");
+        acceleratedQuery.setQueryRealizations("741ca86a-1f13-46da-a59f-95fb68615e3a#1#Agg Index,89af4ee2-2cdb-4b07-b39e-4c29856309aa#1#Agg Index");
 
         QueryHistoryDAO queryHistoryDAO = Mockito.mock(QueryHistoryDAO.class);
-        Mockito.doReturn(Lists.newArrayList(queryHistory1, queryHistory2)).when(queryHistoryDAO).getQueryHistoriesByConditions(Mockito.any(), Mockito.anyInt(), Mockito.anyInt());
+        Mockito.doReturn(Lists.newArrayList(pushdownQuery, failedQuery, acceleratedQuery)).when(queryHistoryDAO).getQueryHistoriesByConditions(Mockito.any(), Mockito.anyInt(), Mockito.anyInt());
         Mockito.doReturn(10).when(queryHistoryDAO).getQueryHistoriesSize(Mockito.any());
         Mockito.doReturn(queryHistoryDAO).when(queryHistoryService).getQueryHistoryDao(PROJECT);
 
         HashMap<String, Object> result = queryHistoryService.getQueryHistories(request, 10, 0);
-        List<QueryHistoryResponse> queryHistories = (List<QueryHistoryResponse>) result.get("query_histories");
+        List<QueryHistory> queryHistories = (List<QueryHistory>) result.get("query_histories");
         int size = (int) result.get("size");
 
-        Assert.assertEquals(2, queryHistories.size());
-        Assert.assertEquals(queryHistory1.getSql(), queryHistories.get(0).getQueryHistory().getSql());
-        Assert.assertEquals(queryHistory2.getSql(), queryHistories.get(1).getQueryHistory().getSql());
+        Assert.assertEquals(3, queryHistories.size());
         Assert.assertEquals(10, size);
-        Assert.assertEquals(2, queryHistories.get(0).getModelAliasMapping().size());
-        Assert.assertEquals("741ca86a-1f13-46da-a59f-95fb68615e3a", queryHistories.get(0).getModelAliasMapping().get("nmodel_basic_inner"));
-        Assert.assertEquals("89af4ee2-2cdb-4b07-b39e-4c29856309aa", queryHistories.get(0).getModelAliasMapping().get("nmodel_basic"));
+
+        // assert pushdown query
+        Assert.assertEquals(pushdownQuery.getSql(), queryHistories.get(0).getSql());
+        Assert.assertEquals(pushdownQuery.getEngineType(), queryHistories.get(0).getEngineType());
+        Assert.assertTrue(CollectionUtils.isEmpty(pushdownQuery.getNativeQueryRealizations()));
+        // assert failed query
+        Assert.assertEquals(failedQuery.getSql(), queryHistories.get(1).getSql());
+        Assert.assertTrue(CollectionUtils.isEmpty(queryHistories.get(1).getNativeQueryRealizations()));
+        Assert.assertNull(queryHistories.get(1).getEngineType());
+        // assert accelerated query
+        Assert.assertEquals(acceleratedQuery.getSql(), queryHistories.get(2).getSql());
+        val modelAlias = queryHistories.get(2).getNativeQueryRealizations().stream().map(NativeQueryRealization::getModelAlias).collect(Collectors.toSet());
+        Assert.assertEquals(2, modelAlias.size());
+        Assert.assertTrue(modelAlias.contains("nmodel_basic"));
+        Assert.assertTrue(modelAlias.contains("nmodel_basic_inner"));
+
+        val modelIds = queryHistories.get(2).getNativeQueryRealizations().stream().map(NativeQueryRealization::getModelId).collect(Collectors.toSet());
+        Assert.assertTrue(modelIds.contains("741ca86a-1f13-46da-a59f-95fb68615e3a"));
+        Assert.assertTrue(modelIds.contains("89af4ee2-2cdb-4b07-b39e-4c29856309aa"));
     }
 
     @Test

@@ -79,7 +79,8 @@ public class MockedQueryHistoryDao extends QueryHistoryDAO {
             QueryHistory queryHistory = new QueryHistory("sql_pattern" + i,
                     QueryHistory.QUERY_HISTORY_SUCCEEDED, "ADMIN", System.currentTimeMillis(), 6000L);
             queryHistory.setInsertTime(currentTime + 30 * i * 1000L);
-            queryHistory.setAnsweredBy("89af4ee2-2cdb-4b07-b39e-4c29856309aa,82fa7671-a935-45f5-8779-85703601f49a");
+            queryHistory.setEngineType("HIVE");
+            queryHistory.setQueryRealizations("89af4ee2-2cdb-4b07-b39e-4c29856309aa#1#Agg Index,82fa7671-a935-45f5-8779-85703601f49a#1#Agg Index");
             if (i == 4)
                 queryHistory.setSqlPattern("SELECT *\nFROM \"TEST_KYLIN_FACT\"");
             if (i == 5)
@@ -92,7 +93,7 @@ public class MockedQueryHistoryDao extends QueryHistoryDAO {
             QueryHistory queryHistoryForUpdate = new QueryHistory("sql" + (i+1),
                     QueryHistory.QUERY_HISTORY_SUCCEEDED, "ADMIN", System.currentTimeMillis(), 6000L);
             queryHistoryForUpdate.setInsertTime(currentTime + 30 * i * 1000L);
-            queryHistoryForUpdate.setAnsweredBy("HIVE");
+            queryHistoryForUpdate.setEngineType("HIVE");
             overallQueryHistories.add(queryHistoryForUpdate);
         }
     }

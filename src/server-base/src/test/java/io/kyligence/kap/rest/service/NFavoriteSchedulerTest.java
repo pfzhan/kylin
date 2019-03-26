@@ -86,28 +86,28 @@ public class NFavoriteSchedulerTest extends NLocalFileMetadataTestCase {
         queryHistory1.setQueryStatus(QueryHistory.QUERY_HISTORY_SUCCEEDED);
         queryHistory1.setDuration(1000L);
         queryHistory1.setQueryTime(1001);
-        queryHistory1.setAnsweredBy("CONSTANTS");
+        queryHistory1.setEngineType("CONSTANTS");
 
         QueryHistory queryHistory2 = new QueryHistory();
         queryHistory2.setSqlPattern("sql2");
         queryHistory2.setQueryStatus(QueryHistory.QUERY_HISTORY_SUCCEEDED);
         queryHistory2.setDuration(1000L);
         queryHistory2.setQueryTime(1002);
-        queryHistory2.setAnsweredBy("HIVE");
+        queryHistory2.setEngineType("HIVE");
 
         QueryHistory queryHistory3 = new QueryHistory();
         queryHistory3.setSqlPattern("sql3");
         queryHistory3.setQueryStatus(QueryHistory.QUERY_HISTORY_SUCCEEDED);
         queryHistory3.setDuration(1000L);
         queryHistory3.setQueryTime(1003);
-        queryHistory3.setAnsweredBy("HIVE");
+        queryHistory3.setEngineType("HIVE");
 
         QueryHistory queryHistory4 = new QueryHistory();
         queryHistory4.setSqlPattern("sql3");
         queryHistory4.setQueryStatus(QueryHistory.QUERY_HISTORY_FAILED);
         queryHistory4.setDuration(1000L);
         queryHistory4.setQueryTime(1004);
-        queryHistory4.setAnsweredBy("HIVE");
+        queryHistory4.setEngineType("HIVE");
 
         return Lists.newArrayList(queryHistory1, queryHistory2, queryHistory3, queryHistory4);
     }
@@ -212,7 +212,6 @@ public class NFavoriteSchedulerTest extends NLocalFileMetadataTestCase {
             for (int j = 0; j < freq; j++) {
                 QueryHistory queryHistory = Mockito.mock(QueryHistory.class);
                 Mockito.doReturn(false).when(queryHistory).isException();
-                Mockito.doReturn("HIVE").when(queryHistory).getAnsweredBy();
                 Mockito.doReturn("ADMIN").when(queryHistory).getQuerySubmitter();
                 Mockito.doReturn("test_sql" + i).when(queryHistory).getSqlPattern();
                 queryHistories.add(queryHistory);
@@ -223,7 +222,6 @@ public class NFavoriteSchedulerTest extends NLocalFileMetadataTestCase {
         for (int i = 0; i < 10; i++) {
             QueryHistory queryHistory = Mockito.mock(QueryHistory.class);
             Mockito.doReturn(false).when(queryHistory).isException();
-            Mockito.doReturn("HIVE").when(queryHistory).getAnsweredBy();
             Mockito.doReturn("ADMIN").when(queryHistory).getQuerySubmitter();
             // blacklist sql
             Mockito.doReturn(blacklistSql).when(queryHistory).getSqlPattern();
@@ -275,14 +273,12 @@ public class NFavoriteSchedulerTest extends NLocalFileMetadataTestCase {
         succeededQueryHistory.setQueryStatus(QueryHistory.QUERY_HISTORY_SUCCEEDED);
         succeededQueryHistory.setQueryTime(1001);
         succeededQueryHistory.setQuerySubmitter("ADMIN");
-        succeededQueryHistory.setAnsweredBy("Agg Index");
 
         QueryHistory failedQueryHistory = new QueryHistory();
         failedQueryHistory.setSqlPattern("failed_query");
         failedQueryHistory.setQueryStatus(QueryHistory.QUERY_HISTORY_FAILED);
         failedQueryHistory.setQueryTime(1001);
         failedQueryHistory.setQuerySubmitter("ADMIN");
-        failedQueryHistory.setAnsweredBy("Unknown");
 
         // queries with constants will not be recorded down
         QueryHistory queryWithConstants = new QueryHistory();
@@ -290,7 +286,7 @@ public class NFavoriteSchedulerTest extends NLocalFileMetadataTestCase {
         queryWithConstants.setQueryStatus(QueryHistory.QUERY_HISTORY_SUCCEEDED);
         queryWithConstants.setQueryTime(1001);
         queryWithConstants.setQuerySubmitter("ADMIN");
-        queryWithConstants.setAnsweredBy("CONSTANTS");
+        queryWithConstants.setEngineType("CONSTANTS");
 
         QueryHistoryDAO queryHistoryDAO = Mockito.mock(QueryHistoryDAO.class);
         Mockito.doReturn(Lists.newArrayList(succeededQueryHistory, failedQueryHistory, queryWithConstants))
@@ -533,7 +529,7 @@ public class NFavoriteSchedulerTest extends NLocalFileMetadataTestCase {
         QueryHistory queryHistory = new QueryHistory("sql_pattern7", QueryHistory.QUERY_HISTORY_SUCCEEDED, "ADMIN",
                 System.currentTimeMillis(), 6000L);
         queryHistory.setInsertTime(mockedQueryHistoryDao.getCurrentTime() + 59 * 1000L);
-        queryHistory.setAnsweredBy("HIVE");
+        queryHistory.setEngineType("HIVE");
         mockedQueryHistoryDao.insert(queryHistory);
         Assert.assertTrue(CollectionUtils.isEmpty(favoriteScheduler.getFrequencyStatuses()));
 

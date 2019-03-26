@@ -22,44 +22,24 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/*
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
 package io.kyligence.kap.metadata.query;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.google.common.collect.Lists;
 import io.kyligence.kap.common.metric.InfluxDBWriter;
 import io.kyligence.kap.shaded.influxdb.org.influxdb.annotation.Column;
-import io.kyligence.kap.shaded.influxdb.org.influxdb.annotation.Measurement;
 import lombok.Getter;
 import lombok.Setter;
+import org.apache.commons.lang3.StringUtils;
+import java.util.List;
 
 @SuppressWarnings("serial")
-@Measurement(name = "query_metric")
 @Getter
 @Setter
 public class QueryHistory {
     public static final String ADJ_SLOW = "Slow";
     public static final String QUERY_HISTORY_SUCCEEDED = "SUCCEEDED";
     public static final String QUERY_HISTORY_FAILED = "FAILED";
-    public static final String QUERY_HISTORY_UNACCELERATED = "UNACCELERATED";
-    public static final String QUERY_HISTORY_PARTLY_ACCELERATED = "PARTLY_ACCELERATED";
-    public static final String QUERY_HISTORY_ACCELERATED = "FULLY_ACCELERATED";
 
     // database name
     public static final String DB_NAME = InfluxDBWriter.DEFAULT_DATABASE;
@@ -76,21 +56,23 @@ public class QueryHistory {
     public static final String TOTAL_SCAN_COUNT = "total_scan_count";
     public static final String RESULT_ROW_COUNT = "result_row_count";
     public static final String SUBMITTER = "submitter";
-    public static final String MODEL = "model";
     public static final String REALIZATIONS = "realizations";
-    public static final String LAYOUT_ID = "layout_id";
-    public static final String REALIZATION_TYPE = "realization_type";
     public static final String QUERY_HOSTNAME = "hostname";
     public static final String SUITE = "suite";
     public static final String ERROR_TYPE = "error_type";
     public static final String ENGINE_TYPE = "engine_type";
     public static final String IS_CACHE_HIT = "cache_hit";
     public static final String QUERY_STATUS = "query_status";
-    public static final String ACCELERATE_STATUS = "accelerate_status";
-    public static final String ANSWERED_BY = "answered_by";
-    public static final String IS_CUBE_HIT = "cube_hit";
+    public static final String IS_INDEX_HIT = "index_hit";
     public static final String QUERY_TIME = "query_time";
     public static final String QUERY_MONTH = "month";
+    public static final String IS_TABLE_INDEX_USED = "is_table_index_used";
+    public static final String IS_AGG_INDEX_USED = "is_agg_index_used";
+    public static final String IS_TABLE_SNAPSHOT_USED = "is_table_snapshot_used";
+
+    public static final String MODEL = "model";
+    public static final String LAYOUT_ID = "layout_id";
+    public static final String INDEX_TYPE = "index_type";
 
     @JsonProperty(SQL_TEXT)
     @Column(name = SQL_TEXT)
@@ -108,9 +90,10 @@ public class QueryHistory {
     @Column(name = QUERY_DURATION)
     private long duration;
 
-    @JsonProperty(REALIZATIONS)
+    // this field is composed of modelId, layout id and index type
+    // it's written as modelId#layoutId#indexType
     @Column(name = REALIZATIONS)
-    private String realization;
+    private String queryRealizations;
 
     @JsonProperty(QUERY_HOSTNAME)
     @Column(name = QUERY_HOSTNAME, tag = true)
@@ -123,10 +106,6 @@ public class QueryHistory {
     @JsonProperty(QUERY_STATUS)
     @Column(name = QUERY_STATUS)
     private String queryStatus;
-
-    @JsonProperty(ACCELERATE_STATUS)
-    @Column(name = ACCELERATE_STATUS)
-    private String accelerateStatus;
 
     //query details
     @JsonProperty(QUERY_ID)
@@ -149,9 +128,16 @@ public class QueryHistory {
     @Column(name = IS_CACHE_HIT)
     private boolean cacheHit;
 
-    @JsonProperty(ANSWERED_BY)
-    @Column(name = ANSWERED_BY, tag = true)
-    private String answeredBy;
+    @JsonProperty(IS_INDEX_HIT)
+    @Column(name = IS_INDEX_HIT)
+    private boolean indexHit;
+
+    @JsonProperty(ENGINE_TYPE)
+    @Column(name = ENGINE_TYPE)
+    private String engineType;
+
+    @JsonProperty("realizations")
+    private List<NativeQueryRealization> nativeQueryRealizations;
 
     @Column(name = "count")
     private int count;
@@ -177,4 +163,20 @@ public class QueryHistory {
     public boolean isException() {
         return queryStatus.equals(QUERY_HISTORY_FAILED);
     }
+
+    public List<NativeQueryRealization> transformRealizations() {
+        List<NativeQueryRealization> realizations = Lists.newArrayList();
+
+        if (StringUtils.isEmpty(this.queryRealizations))
+            return realizations;
+
+        for (String realization : this.queryRealizations.split(",")) {
+            String[] info = realization.split("#");
+
+            realizations.add(new NativeQueryRealization(info[0], Long.valueOf(info[1]), info[2]));
+        }
+
+        return realizations;
+    }
+
 }

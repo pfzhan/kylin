@@ -303,9 +303,8 @@ public class FavoriteQueryPerfTest extends NLocalFileMetadataTestCase {
         final ImmutableMap.Builder<String, String> tagBuilder = ImmutableMap.<String, String> builder() //
                 .put(QueryHistory.SUBMITTER, sqlRequest.getUsername()) //
                 .put(QueryHistory.SUITE, "Unknown") //
-                .put(QueryHistory.ENGINE_TYPE, "HIVE").put(QueryHistory.ANSWERED_BY, "HIVE")
-                .put(QueryHistory.IS_CUBE_HIT, "false")
-                .put(QueryHistory.ACCELERATE_STATUS, QueryHistory.QUERY_HISTORY_UNACCELERATED)
+                .put(QueryHistory.ENGINE_TYPE, "HIVE")
+                .put(QueryHistory.IS_INDEX_HIT, "false")
                 .put(QueryHistory.QUERY_MONTH, "2019-02").put(QueryHistory.QUERY_HOSTNAME, "192.168.0.1");
 
         return tagBuilder.build();

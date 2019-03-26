@@ -30,13 +30,14 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.TimeZone;
 
+import io.kyligence.kap.metadata.query.NativeQueryRealization;
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.validate.SqlValidatorException;
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
@@ -48,10 +49,7 @@ import org.apache.kylin.rest.response.SQLResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Function;
-import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
-import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
@@ -73,6 +71,7 @@ public class QueryMetricsContext {
 
     private static final InheritableThreadLocal<QueryMetricsContext> contexts = new InheritableThreadLocal<>();
 
+    // fields below are columns in InfluxDB table which records down query history
     private final String queryId;
     private long queryTime;
 
@@ -88,17 +87,23 @@ public class QueryMetricsContext {
     private long totalScanCount;
     private long resultRowCount;
 
-    private String errorType;
-
     private String engineType;
 
     private boolean isCacheHit;
-    private boolean isCubeHit;
+    private boolean isIndexHit;
+
+    private String errorType;
     private String queryStatus;
-    private String accelerateStatus;
-    private String answeredBy;
+
     private String month;
 
+    private String realizations;
+
+    private boolean tableIndexUsed;
+    private boolean aggIndexUsed;
+    private boolean tableSnapshotUsed;
+
+    // not a column in InfluxDB table,
     private final List<RealizationMetrics> realizationMetrics = new ArrayList<>();
 
     private QueryMetricsContext(String queryId) {
@@ -107,8 +112,7 @@ public class QueryMetricsContext {
 
     public static void start(final String queryId) {
         if (!isCollectEnabled()) {
-            logger.warn(
-                    "Can't to start QueryMetricsContext, please set kap.metric.write-destination to 'INFLUX'");
+            logger.warn("Can't to start QueryMetricsContext, please set kap.metric.write-destination to 'INFLUX'");
             return;
         }
 
@@ -175,10 +179,9 @@ public class QueryMetricsContext {
         this.queryDuration = response.getDuration();
         this.totalScanBytes = response.getTotalScanBytes();
         this.totalScanCount = response.getTotalScanCount();
-        this.answeredBy = response.getAnsweredBy() == null ? UNKNOWN : Joiner.on(",").join(response.getAnsweredBy());
-        this.engineType = response.getEngineType() == null ? UNKNOWN : response.getEngineType();
+        this.engineType = response.getEngineType();
 
-        if (response.getIsException())
+        if (response.isException())
             this.queryStatus = QueryHistory.QUERY_HISTORY_FAILED;
         else
             this.queryStatus = QueryHistory.QUERY_HISTORY_SUCCEEDED;
@@ -190,21 +193,17 @@ public class QueryMetricsContext {
         if (response.getResults() != null)
             this.resultRowCount = response.getResults().size();
 
-        if (response.isPushDown())
-            this.isCubeHit = false;
-        else
-            this.isCubeHit = true;
-
-        if (response.getIsException() || response.isPushDown()) {
-            this.accelerateStatus = QueryHistory.QUERY_HISTORY_UNACCELERATED;
-        } else
-            this.accelerateStatus = QueryHistory.QUERY_HISTORY_ACCELERATED;
+        if (response.isException() || response.isQueryPushDown()) {
+            this.isIndexHit = false;
+        } else {
+            this.isIndexHit = true;
+        }
 
         collectErrorType(context);
         collectRealizationMetrics(response);
 
-        logger.debug("Query[{}] collect metrics {}, {}, {}, {}, {}, {}, {}, {}", queryId, sql, submitter, hostname,
-                suite, queryDuration, totalScanBytes, errorType, engineType);
+        logger.debug("Query[{}] collect metrics {}, {}, {}, {}, {}, {}, {}", queryId, sql, submitter, hostname,
+                suite, queryDuration, totalScanBytes, errorType);
     }
 
     private void collectErrorType(final QueryContext context) {
@@ -233,24 +232,43 @@ public class QueryMetricsContext {
     }
 
     private void collectRealizationMetrics(final SQLResponse response) {
-        if (response.getRealizationMetrics() == null)
+        if (CollectionUtils.isEmpty(response.getNativeRealizations())) {
             return;
-
-        for (RealizationMetrics singleMetric : response.getRealizationMetrics()) {
-            singleMetric.setQueryId(queryId);
-            singleMetric.setDuration(queryDuration);
-            singleMetric.setSuite(suite);
-            this.realizationMetrics.add(singleMetric);
         }
+
+        StringBuilder realizationSb = new StringBuilder();
+
+        for (NativeQueryRealization realization : response.getNativeRealizations()) {
+            RealizationMetrics realizationMetrics = new RealizationMetrics(String.valueOf(realization.getLayoutId()), realization.getIndexType(), realization.getModelId());
+            realizationMetrics.setQueryId(queryId);
+            realizationMetrics.setDuration(queryDuration);
+            realizationMetrics.setSuite(suite);
+            this.realizationMetrics.add(realizationMetrics);
+            // example: modelId#layoutid#indexType
+            realizationSb.append(realizationMetrics.getModelId() + "#" + realizationMetrics.getLayoutId() + "#" + realizationMetrics.getIndexType() + ",");
+
+            if (realization.getIndexType().equals(QueryMetricsContext.TABLE_INDEX))
+                tableIndexUsed = true;
+
+            if (realization.getIndexType().equals(QueryMetricsContext.AGG_INDEX))
+                aggIndexUsed = true;
+
+            if (realization.getIndexType().equals(QueryMetricsContext.TABLE_SNAPSHOT))
+                tableSnapshotUsed = true;
+        }
+
+        this.realizations = realizationSb.substring(0, realizationSb.length() - 1);
     }
 
     public Map<String, String> getInfluxdbTags() {
         final ImmutableMap.Builder<String, String> builder = ImmutableMap.<String, String> builder() //
                 .put(QueryHistory.SUBMITTER, submitter) //
                 .put(QueryHistory.SUITE, suite) //
-                .put(QueryHistory.ENGINE_TYPE, engineType).put(QueryHistory.ANSWERED_BY, answeredBy)
-                .put(QueryHistory.IS_CUBE_HIT, String.valueOf(isCubeHit))
-                .put(QueryHistory.ACCELERATE_STATUS, accelerateStatus).put(QueryHistory.QUERY_MONTH, month);
+                .put(QueryHistory.IS_INDEX_HIT, String.valueOf(isIndexHit))
+                .put(QueryHistory.QUERY_MONTH, month)
+                .put(QueryHistory.IS_TABLE_INDEX_USED, String.valueOf(tableIndexUsed))
+                .put(QueryHistory.IS_AGG_INDEX_USED, String.valueOf(aggIndexUsed))
+                .put(QueryHistory.IS_TABLE_SNAPSHOT_USED, String.valueOf(tableSnapshotUsed));
 
         if (StringUtils.isBlank(hostname)) {
             try {
@@ -265,6 +283,10 @@ public class QueryMetricsContext {
             builder.put(QueryHistory.ERROR_TYPE, errorType);
         }
 
+        if (StringUtils.isNotBlank(this.engineType)) {
+            builder.put(QueryHistory.ENGINE_TYPE, this.engineType);
+        }
+
         return builder.build();
     }
 
@@ -277,28 +299,16 @@ public class QueryMetricsContext {
                 .put(QueryHistory.IS_CACHE_HIT, isCacheHit).put(QueryHistory.QUERY_STATUS, queryStatus)
                 .put(QueryHistory.QUERY_TIME, queryTime).put(QueryHistory.SQL_PATTERN, sqlPattern);
 
-        if (!realizationMetrics.isEmpty()) {
-            final Collection<String> realizations = Collections2.transform(realizationMetrics,
-                    new Function<RealizationMetrics, String>() {
-                        @Override
-                        public String apply(RealizationMetrics input) {
-                            return input.cuboidLayoutId;
-                        }
-                    });
-
-            builder.put(QueryHistory.REALIZATIONS, Joiner.on(",").join(realizations));
+        if (StringUtils.isNotEmpty(this.realizations)) {
+            builder.put(QueryHistory.REALIZATIONS, this.realizations);
         }
 
         return builder.build();
     }
 
-    public static RealizationMetrics createRealizationMetrics(String cuboidLayoutId, String realizationType,
-            String modelId) {
-        return new RealizationMetrics(cuboidLayoutId, realizationType, modelId);
-    }
-
     @Getter
     @Setter
+    // fields in this class are columns in InfluxDB table which records down query history's realization info
     public static class RealizationMetrics implements Serializable {
 
         private String queryId;
@@ -307,15 +317,15 @@ public class QueryMetricsContext {
 
         private String suite;
 
-        private String cuboidLayoutId;
+        private String layoutId;
 
-        private String realizationType;
+        private String indexType;
 
         private String modelId;
 
-        public RealizationMetrics(String cuboidLayoutId, String realizationType, String modelId) {
-            this.cuboidLayoutId = cuboidLayoutId;
-            this.realizationType = realizationType;
+        public RealizationMetrics(String layoutId, String indexType, String modelId) {
+            this.layoutId = layoutId;
+            this.indexType = indexType;
             this.modelId = modelId;
         }
 
@@ -323,8 +333,8 @@ public class QueryMetricsContext {
             return ImmutableMap.<String, String> builder() //
                     .put(QueryHistory.SUITE, suite) //
                     .put(QueryHistory.MODEL, modelId) //
-                    .put(QueryHistory.LAYOUT_ID, cuboidLayoutId) //
-                    .put(QueryHistory.REALIZATION_TYPE, realizationType) //
+                    .put(QueryHistory.LAYOUT_ID, layoutId) //
+                    .put(QueryHistory.INDEX_TYPE, indexType) //
                     .build();
         }
 

@@ -237,10 +237,10 @@ public class QueryHistoryDAO {
             for (int i = 0; i < request.getRealizations().size(); i++) {
                 switch (request.getRealizations().get(i)) {
                 case "pushdown":
-                    sb.append("cube_hit = 'false' OR ");
+                    sb.append("index_hit = 'false' OR ");
                     break;
                 case "modelName":
-                    sb.append("cube_hit = 'true' OR ");
+                    sb.append("index_hit = 'true' OR ");
                     break;
                 default:
                     throw new IllegalArgumentException(
@@ -250,16 +250,6 @@ public class QueryHistoryDAO {
 
             sb.setLength(sb.length() - 4);
             sb.append(") ");
-        }
-
-        if (request.getAccelerateStatuses() != null && !request.getAccelerateStatuses().isEmpty()) {
-            sb.append("AND (");
-            for (int i = 0; i < request.getAccelerateStatuses().size(); i++) {
-                if (i == request.getAccelerateStatuses().size() - 1)
-                    sb.append(String.format("accelerate_status = '%s') ", request.getAccelerateStatuses().get(i)));
-                else
-                    sb.append(String.format("accelerate_status = '%s' OR ", request.getAccelerateStatuses().get(i)));
-            }
         }
 
         return sb.toString();

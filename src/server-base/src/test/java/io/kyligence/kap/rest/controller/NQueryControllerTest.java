@@ -334,7 +334,7 @@ public class NQueryControllerTest {
                 .andExpect(MockMvcResultMatchers.jsonPath("$.data.query_histories[2].sql_text").value("sql3"));
 
         Mockito.verify(nQueryController).getQueryHistories(PROJECT, request.getStartTimeFrom(),
-                request.getStartTimeTo(), request.getLatencyFrom(), request.getLatencyTo(), null, null, null, 2, 3);
+                request.getStartTimeTo(), request.getLatencyFrom(), request.getLatencyTo(), null, null, 2, 3);
 
         // check args
         mockMvc.perform(MockMvcRequestBuilders.get("/api/query/history_queries").contentType(MediaType.APPLICATION_JSON)

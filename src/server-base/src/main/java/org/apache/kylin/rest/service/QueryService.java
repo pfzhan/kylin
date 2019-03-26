@@ -61,15 +61,14 @@ import java.sql.Timestamp;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 import javax.annotation.PostConstruct;
 
+import io.kyligence.kap.metadata.query.NativeQueryRealization;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWorkParams;
 import org.apache.calcite.avatica.ColumnMetaData.Rep;
@@ -113,7 +112,6 @@ import org.apache.kylin.query.util.TempStatementUtil;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.exception.BadRequestException;
 import org.apache.kylin.rest.exception.InternalErrorException;
-import org.apache.kylin.rest.metrics.QueryMetrics2Facade;
 import org.apache.kylin.rest.model.Query;
 import org.apache.kylin.rest.msg.Message;
 import org.apache.kylin.rest.msg.MsgPicker;
@@ -136,7 +134,6 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.Lists;
@@ -217,8 +214,10 @@ public class QueryService extends BasicService {
             columnMetas.add(new SelectedColumnMeta(false, false, false, false, 1, false, Integer.MAX_VALUE, "c0", "c0",
                     null, null, null, Integer.MAX_VALUE, 128, 1, "char", false, false, false));
 
-            return buildSqlResponse(true, r.getFirst(), columnMetas, sqlRequest.getProject());
-
+            SQLResponse sqlResponse = new SQLResponse(columnMetas, r.getFirst(), 0, false, null, false,
+                    true);
+            sqlResponse.setEngineType(QueryContext.current().getPushdownEngine());
+            return sqlResponse;
         } catch (Exception e) {
             logger.info("pushdown engine failed to finish current non-select query");
             throw e;
@@ -260,18 +259,17 @@ public class QueryService extends BasicService {
 
     public String logQuery(final SQLRequest request, final SQLResponse response) {
         final String user = aclEvaluate.getCurrentUserName();
-        Collection<String> modelIds = Lists.newArrayList();
-        Collection<String> cuboidLayoutIds = Lists.newArrayList();
+        Collection<String> modelNames = Lists.newArrayList();
+        Collection<String> layoutIds = Lists.newArrayList();
         float duration = response.getDuration() / (float) 1000;
 
-        if (response.getRealizationMetrics() != null) {
-            modelIds = Collections2.transform(response.getRealizationMetrics(), input -> input.getModelId());
-            cuboidLayoutIds = Collections2.transform(response.getRealizationMetrics(),
-                    input -> input.getCuboidLayoutId());
+        if (CollectionUtils.isNotEmpty(response.getNativeRealizations())) {
+            modelNames = response.getNativeRealizations().stream().map(NativeQueryRealization::getModelAlias).collect(Collectors.toList());
+            layoutIds = Collections2.transform(response.getNativeRealizations(), realization -> String.valueOf(realization.getLayoutId()));
         }
 
         int resultRowCount = 0;
-        if (!response.getIsException() && response.getResults() != null) {
+        if (!response.isException() && response.getResults() != null) {
             resultRowCount = response.getResults().size();
         }
 
@@ -285,8 +283,8 @@ public class QueryService extends BasicService {
         stringBuilder.append("Success: ").append((null == response.getExceptionMessage())).append(newLine);
         stringBuilder.append("Duration: ").append(duration).append(newLine);
         stringBuilder.append("Project: ").append(request.getProject()).append(newLine);
-        stringBuilder.append("Realization Names: ").append(modelIds).append(newLine);
-        stringBuilder.append("Cuboid Layout Ids: ").append(cuboidLayoutIds).append(newLine);
+        stringBuilder.append("Realization Names: ").append(modelNames).append(newLine);
+        stringBuilder.append("Index Layout Ids: ").append(layoutIds).append(newLine);
         stringBuilder.append("Total Scan Count: ").append(response.getTotalScanCount()).append(newLine);
         stringBuilder.append("Total Scan Bytes: ").append(response.getTotalScanBytes()).append(newLine);
         stringBuilder.append("Result Row Count: ").append(resultRowCount).append(newLine);
@@ -294,7 +292,7 @@ public class QueryService extends BasicService {
         stringBuilder.append("Is Partial Result: ").append(response.isPartial()).append(newLine);
         stringBuilder.append("Hit Exception Cache: ").append(response.isHitExceptionCache()).append(newLine);
         stringBuilder.append("Storage Cache Used: ").append(response.isStorageCacheUsed()).append(newLine);
-        stringBuilder.append("Is Query Push-Down: ").append(response.isPushDown()).append(newLine);
+        stringBuilder.append("Is Query Push-Down: ").append(response.isQueryPushDown()).append(newLine);
         stringBuilder.append("Is Prepare: ").append(response.isPrepare()).append(newLine);
         stringBuilder.append("Trace URL: ").append(response.getTraceUrl()).append(newLine);
         stringBuilder.append("Message: ").append(response.getExceptionMessage()).append(newLine);
@@ -393,11 +391,6 @@ public class QueryService extends BasicService {
             } catch (Throwable th) {
                 logger.warn("Write metric error.", th);
             }
-            val modelManager = getDataModelManager(sqlRequest.getProject());
-            if (CollectionUtils.isNotEmpty(sqlResponse.getAnsweredBy())) {
-
-                sqlResponse = transferModelIdToAlias(modelManager, sqlResponse);
-            }
             return sqlResponse;
 
         } finally {
@@ -410,18 +403,6 @@ public class QueryService extends BasicService {
                 scope.close();
             }
         }
-    }
-
-    private SQLResponse transferModelIdToAlias(NDataModelManager modelManager, SQLResponse sqlResponse) {
-        sqlResponse.setAnsweredBy(sqlResponse.getAnsweredBy().stream().map(s -> {
-            val model = modelManager.getDataModelDesc(s);
-            if (model != null) {
-                return model.getAlias();
-            } else {
-                return s;
-            }
-        }).collect(Collectors.toList()));
-        return sqlResponse;
     }
 
     private SQLResponse queryAndUpdateCache(SQLRequest sqlRequest, long startTime, boolean queryCacheEnabled) {
@@ -447,12 +428,12 @@ public class QueryService extends BasicService {
             long scanBytesThreshold = kylinConfig.getQueryScanBytesCacheThreshold();
             sqlResponse.setDuration(System.currentTimeMillis() - startTime);
             logger.info("Stats of SQL response: isException: {}, duration: {}, total scan count {}", //
-                    String.valueOf(sqlResponse.getIsException()), String.valueOf(sqlResponse.getDuration()),
+                    String.valueOf(sqlResponse.isException()), String.valueOf(sqlResponse.getDuration()),
                     String.valueOf(sqlResponse.getTotalScanCount()));
             if (checkCondition(queryCacheEnabled, "query cache is disabled") //
-                    && checkCondition(!sqlResponse.getIsException(), "query has exception") //
+                    && checkCondition(!sqlResponse.isException(), "query has exception") //
                     && checkCondition(
-                            !(sqlResponse.isPushDown()
+                            !(sqlResponse.isQueryPushDown()
                                     && (isSelect == false || kylinConfig.isPushdownQueryCacheEnabled() == false)),
                             "query is executed with pushdown, but it is non-select, or the cache for pushdown is disabled") //
                     && checkCondition(
@@ -473,7 +454,7 @@ public class QueryService extends BasicService {
             logger.error("Exception while executing query", e);
             String errMsg = makeErrorMsgUserFriendly(e);
 
-            sqlResponse = new SQLResponse(null, null, null, 0, true, errMsg, false, false);
+            sqlResponse = new SQLResponse(null, null, 0, true, errMsg, false, false);
             QueryContext queryContext = QueryContext.current();
             queryContext.setErrorCause(e);
             sqlResponse.setQueryId(queryContext.getQueryId());
@@ -497,8 +478,6 @@ public class QueryService extends BasicService {
 
     protected void recordMetric(SQLRequest sqlRequest, SQLResponse sqlResponse) throws UnknownHostException {
         //TODO: enable QueryMetricsFacade
-        //QueryMetricsFacade.updateMetrics(sqlRequest, sqlResponse);
-        QueryMetrics2Facade.updateMetrics(sqlRequest, sqlResponse);
     }
 
     private String getTraceUrl(TraceScope scope) {
@@ -540,7 +519,6 @@ public class QueryService extends BasicService {
             if (QueryCacheSignatureUtil.checkCacheExpired(response, sqlRequest.getProject())) {
                 return null;
             }
-            response.setAnsweredBy(Lists.newArrayList("CACHE"));
             response.setStorageCacheUsed(true);
         }
 
@@ -566,7 +544,7 @@ public class QueryService extends BasicService {
 
             SQLResponse fakeResponse = TableauInterceptor.tableauIntercept(sqlRequest.getSql());
             if (null != fakeResponse) {
-                logger.debug("Return fake response, is exception? " + fakeResponse.getIsException());
+                logger.debug("Return fake response, is exception? " + fakeResponse.isException());
                 return fakeResponse;
             }
 
@@ -829,8 +807,7 @@ public class QueryService extends BasicService {
 
             // special case for prepare query.
             if (BackdoorToggles.getPrepareOnly()) {
-                return getPrepareOnlySqlResponse(correctedSql, conn, isPushDown, results, columnMetas,
-                        sqlRequest.getProject());
+                return getPrepareOnlySqlResponse(correctedSql, conn, isPushDown, results, columnMetas);
             }
 
             if (isPrepareStatementWithParams(sqlRequest)) {
@@ -902,7 +879,7 @@ public class QueryService extends BasicService {
     }
 
     private SQLResponse getPrepareOnlySqlResponse(String correctedSql, Connection conn, Boolean isPushDown,
-            List<List<String>> results, List<SelectedColumnMeta> columnMetas, String project) throws SQLException {
+            List<List<String>> results, List<SelectedColumnMeta> columnMetas) throws SQLException {
 
         CalcitePrepareImpl.KYLIN_ONLY_PREPARE.set(true);
 
@@ -947,7 +924,8 @@ public class QueryService extends BasicService {
             DBUtils.closeQuietly(preparedStatement);
         }
 
-        return buildSqlResponse(isPushDown, results, columnMetas, project);
+        return new SQLResponse(columnMetas, results, 0, false, null, false,
+                isPushDown);
     }
 
     private boolean isPrepareStatementWithParams(SQLRequest sqlRequest) {
@@ -960,22 +938,13 @@ public class QueryService extends BasicService {
     private SQLResponse buildSqlResponse(Boolean isPushDown, List<List<String>> results,
             List<SelectedColumnMeta> columnMetas, String project) {
         boolean isPartialResult = false;
-        List<String> models = Lists.newArrayList();
-        StringBuilder cubeSb = new StringBuilder();
         StringBuilder logSb = new StringBuilder("Processed rows for each storageContext: ");
-        List<QueryMetricsContext.RealizationMetrics> realizationMetrics = Lists.newArrayList();
-        Set<String> engineTypes = new HashSet<>();
-        boolean hasAtLeastOneRealization = false;
+        List<NativeQueryRealization> realizations = Lists.newArrayList();
+
         if (OLAPContext.getThreadLocalContexts() != null) { // contexts can be null in case of 'explain plan for'
             for (OLAPContext ctx : OLAPContext.getThreadLocalContexts()) {
                 if (ctx.realization != null) {
-                    hasAtLeastOneRealization = true;
-                    models.add(ctx.realization.getModel().getUuid());
                     isPartialResult |= ctx.storageContext.isPartialResultReturned();
-                    if (cubeSb.length() > 0) {
-                        cubeSb.append(",");
-                    }
-                    cubeSb.append(ctx.realization.getCanonicalName());
                     logSb.append(ctx.storageContext.getProcessedRowCount()).append(" ");
                     final String realizationType;
                     if (ctx.storageContext.isUseSnapshot()) {
@@ -985,37 +954,33 @@ public class QueryService extends BasicService {
                     } else {
                         realizationType = QueryMetricsContext.AGG_INDEX;
                     }
-                    realizationMetrics.add(QueryMetricsContext.createRealizationMetrics(
-                            String.valueOf(ctx.storageContext.getCuboidLayoutId()), realizationType,
-                            ctx.realization.getModel().getUuid()));
-                    engineTypes.add(realizationType);
+                    String modelId = ctx.realization.getModel().getUuid();
+                    String modelAlias = ctx.realization.getModel().getAlias();
+                    realizations.add(new NativeQueryRealization(modelId, modelAlias, ctx.storageContext.getCuboidLayoutId(), realizationType));
                 }
             }
         }
         logger.info(logSb.toString());
 
-        SQLResponse response = new SQLResponse(columnMetas, results, cubeSb.toString(), 0, false, null, isPartialResult,
+        SQLResponse response = new SQLResponse(columnMetas, results, 0, false, null, isPartialResult,
                 isPushDown);
         response.setQueryId(QueryContext.current().getQueryId());
         response.setTotalScanCount(QueryContext.current().getScannedRows());
         response.setTotalScanBytes(QueryContext.current().getScannedBytes());
-        response.setRealizationMetrics(realizationMetrics);
+        response.setNativeRealizations(realizations);
 
         if (isPushDown) {
             response.setEngineType(QueryContext.current().getPushdownEngine());
-            response.setAnsweredBy(Lists.newArrayList(QueryContext.current().getPushdownEngine()));
             return response;
         }
 
         // case of query like select * from table where 1 <> 1
-        if (!hasAtLeastOneRealization) {
+        if (CollectionUtils.isEmpty(realizations)) {
             response.setEngineType("CONSTANTS");
-            response.setAnsweredBy(Lists.newArrayList("CONSTANTS"));
             return response;
         }
 
-        response.setEngineType(Joiner.on(",").join(engineTypes));
-        response.setAnsweredBy(models);
+        response.setEngineType("NATIVE");
         response.setSignature(QueryCacheSignatureUtil.createCacheSignature(response, project));
 
         return response;

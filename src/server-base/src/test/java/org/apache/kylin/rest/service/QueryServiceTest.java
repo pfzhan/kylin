@@ -59,6 +59,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.metadata.query.NativeQueryRealization;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.common.exceptions.ResourceLimitExceededException;
@@ -201,7 +202,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         final String expectedQueryID = QueryContext.current().getQueryId();
 
         final SQLResponse response = queryService.doQueryWithCache(request, false);
-        Assert.assertEquals(true, response.isPushDown());
+        Assert.assertEquals(true, response.isQueryPushDown());
         Assert.assertEquals(expectedQueryID, response.getQueryId());
 
         Mockito.verify(queryService).recordMetric(request, response);
@@ -223,28 +224,28 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         String expectedQueryID = QueryContext.current().getQueryId();
         final SQLResponse firstSuccess = queryService.doQueryWithCache(request, false);
         Assert.assertEquals(expectedQueryID, firstSuccess.getQueryId());
-        Assert.assertEquals(2, firstSuccess.getRealizationMetrics().size());
-        Assert.assertEquals(QueryMetricsContext.AGG_INDEX, firstSuccess.getRealizationMetrics().get(0).getRealizationType());
-        Assert.assertEquals(QueryMetricsContext.TABLE_INDEX, firstSuccess.getRealizationMetrics().get(1).getRealizationType());
-        Assert.assertEquals(Lists.newArrayList("mock_model_alias1", "mock_model_alias2"), firstSuccess.getAnsweredBy());
+        Assert.assertEquals(2, firstSuccess.getNativeRealizations().size());
+        Assert.assertEquals(QueryMetricsContext.AGG_INDEX, firstSuccess.getNativeRealizations().get(0).getIndexType());
+        Assert.assertEquals(QueryMetricsContext.TABLE_INDEX, firstSuccess.getNativeRealizations().get(1).getIndexType());
+        Assert.assertEquals(Lists.newArrayList("mock_model_alias1", "mock_model_alias2"), firstSuccess.getNativeRealizations().stream().map(NativeQueryRealization::getModelAlias).collect(Collectors.toList()));
         // assert log info
         String log = queryService.logQuery(request, firstSuccess);
-        Assert.assertTrue(log.contains("mock_model1"));
-        Assert.assertTrue(log.contains("mock_model2"));
+        Assert.assertTrue(log.contains("mock_model_alias1"));
+        Assert.assertTrue(log.contains("mock_model_alias2"));
 
         // case of hitting cache
         expectedQueryID = QueryContext.current().getQueryId();
         final SQLResponse secondSuccess = queryService.doQueryWithCache(request, false);
         Assert.assertEquals(true, secondSuccess.isStorageCacheUsed());
         Assert.assertEquals(expectedQueryID, secondSuccess.getQueryId());
-        Assert.assertEquals(2, secondSuccess.getRealizationMetrics().size());
-        Assert.assertEquals(QueryMetricsContext.AGG_INDEX, secondSuccess.getRealizationMetrics().get(0).getRealizationType());
-        Assert.assertEquals(QueryMetricsContext.TABLE_INDEX, secondSuccess.getRealizationMetrics().get(1).getRealizationType());
-        Assert.assertEquals("CACHE", secondSuccess.getAnsweredBy().get(0));
+        Assert.assertEquals(2, secondSuccess.getNativeRealizations().size());
+        Assert.assertEquals(QueryMetricsContext.AGG_INDEX, secondSuccess.getNativeRealizations().get(0).getIndexType());
+        Assert.assertEquals(QueryMetricsContext.TABLE_INDEX, secondSuccess.getNativeRealizations().get(1).getIndexType());
+        Assert.assertEquals("mock_model_alias1", secondSuccess.getNativeRealizations().get(0).getModelAlias());
         // assert log info
         log = queryService.logQuery(request, secondSuccess);
-        Assert.assertTrue(log.contains("mock_model1"));
-        Assert.assertTrue(log.contains("mock_model2"));
+        Assert.assertTrue(log.contains("mock_model_alias1"));
+        Assert.assertTrue(log.contains("mock_model_alias2"));
     }
 
     private void mockOLAPContext() {
@@ -295,6 +296,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         final LayoutEntity mockLayout = new LayoutEntity();
         mockLayout.setIndex(mockIndexEntity);
         mock.storageContext.setCandidate(new NLayoutCandidate(mockLayout));
+        mock.storageContext.setCuboidLayoutId(layoutId);
 
         OLAPContext.registerContext(mock);
 
@@ -316,7 +318,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
             final String expectedQueryID = QueryContext.current().getQueryId();
             final SQLResponse response = queryService.doQueryWithCache(request, false);
             Assert.assertEquals(false, response.isHitExceptionCache());
-            Assert.assertEquals(true, response.getIsException());
+            Assert.assertEquals(true, response.isException());
             Assert.assertEquals(expectedQueryID, response.getQueryId());
             Mockito.verify(queryService).recordMetric(request, response);
         } catch (InternalErrorException ex) {
@@ -327,7 +329,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
             final String expectedQueryID = QueryContext.current().getQueryId();
             final SQLResponse response = queryService.doQueryWithCache(request, false);
             Assert.assertEquals(true, response.isHitExceptionCache());
-            Assert.assertEquals(true, response.getIsException());
+            Assert.assertEquals(true, response.isException());
             Assert.assertEquals(expectedQueryID, response.getQueryId());
         } catch (InternalErrorException ex) {
             // ignore
@@ -593,7 +595,6 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         request.setProject("default");
         request.setSql(sql);
         SQLResponse response = queryService.doQueryWithCache(request, false);
-        Assert.assertEquals("CONSTANTS", response.getAnsweredBy().get(0));
         Assert.assertEquals("CONSTANTS", response.getEngineType());
     }
 
@@ -622,14 +623,11 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
     public void testCacheSignature() {
         val project = "default";
         val modelId = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
-        val layoutId = "1000001L";
+        val layoutId = 1000001L;
         val dataflowManager = NDataflowManager.getInstance(getTestConfig(), project);
 
         SQLResponse response = new SQLResponse();
-        List<QueryMetricsContext.RealizationMetrics> realizationMetrics = Lists.newArrayList();
-        realizationMetrics
-                .add(QueryMetricsContext.createRealizationMetrics(layoutId, QueryMetricsContext.AGG_INDEX, modelId));
-        response.setRealizationMetrics(realizationMetrics);
+        response.setNativeRealizations(Lists.newArrayList(new NativeQueryRealization(modelId, layoutId, QueryMetricsContext.AGG_INDEX)));
         String signature = QueryCacheSignatureUtil.createCacheSignature(response, project);
         Assert.assertEquals(String.valueOf(dataflowManager.getDataflow(modelId).getLastModified()), signature);
 
@@ -664,10 +662,10 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         // case of hitting cache
         final SQLResponse secondSuccess = queryService.doQueryWithCache(request, false);
         Assert.assertEquals(true, secondSuccess.isStorageCacheUsed());
-        Assert.assertEquals(1, secondSuccess.getRealizationMetrics().size());
+        Assert.assertEquals(1, secondSuccess.getNativeRealizations().size());
         Assert.assertEquals(QueryMetricsContext.AGG_INDEX,
-                secondSuccess.getRealizationMetrics().get(0).getRealizationType());
-        Assert.assertEquals("CACHE", secondSuccess.getAnsweredBy().get(0));
+                secondSuccess.getNativeRealizations().get(0).getIndexType());
+        Assert.assertEquals("nmodel_basic", secondSuccess.getNativeRealizations().get(0).getModelAlias());
 
         dataflowManager.updateDataflow(modelId, copyForWrite -> {
             copyForWrite.setSegments(new Segments<>());
@@ -675,10 +673,10 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         // case of cache expired
         final SQLResponse thirdSuccess = queryService.doQueryWithCache(request, false);
         Assert.assertEquals(false, thirdSuccess.isStorageCacheUsed());
-        Assert.assertEquals(1, thirdSuccess.getRealizationMetrics().size());
+        Assert.assertEquals(1, thirdSuccess.getNativeRealizations().size());
         Assert.assertEquals(QueryMetricsContext.AGG_INDEX,
-                thirdSuccess.getRealizationMetrics().get(0).getRealizationType());
-        Assert.assertEquals(modelAlias, thirdSuccess.getAnsweredBy().get(0));
+                thirdSuccess.getNativeRealizations().get(0).getIndexType());
+        Assert.assertEquals(modelAlias, thirdSuccess.getNativeRealizations().get(0).getModelAlias());
     }
 
 }

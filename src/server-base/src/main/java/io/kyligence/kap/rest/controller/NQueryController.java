@@ -177,11 +177,10 @@ public class NQueryController extends NBasicController {
             @RequestParam(value = "latencyTo", required = false) String latencyTo,
             @RequestParam(value = "sql", required = false) String sql,
             @RequestParam(value = "realization", required = false) List<String> realizations,
-            @RequestParam(value = "accelerateStatus", required = false) List<String> accelerateStatuses,
             @RequestParam(value = "offset", required = false, defaultValue = "0") Integer offset,
             @RequestParam(value = "limit", required = false, defaultValue = "10") Integer limit) {
         QueryHistoryRequest request = new QueryHistoryRequest(project, startTimeFrom, startTimeTo, latencyFrom,
-                latencyTo, sql, realizations, accelerateStatuses);
+                latencyTo, sql, realizations);
         checkGetQueryHistoriesParam(request);
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS,
                 queryHistoryService.getQueryHistories(request, limit, offset), "");

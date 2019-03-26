@@ -101,7 +101,7 @@ public class NAsyncQueryController extends NBasicController {
                 asyncQueryService.updateStatus(queryId, AsyncQueryService.QueryStatus.RUNNING);
                 try {
                     SQLResponse response = queryService.doQueryWithCache(sqlRequest, false);
-                    if (response.getIsException()) {
+                    if (response.isException()) {
                         asyncQueryService.createErrorFlag(response.getExceptionMessage(), queryContext.getQueryId());
                     }
                     asyncQueryService.updateStatus(queryId, AsyncQueryService.QueryStatus.SUCCESS);

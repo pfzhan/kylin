@@ -228,30 +228,14 @@ public class QueryHistoryDAOTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(expectedQueryHistoriesSql, getQueryHistoriesSql);
         Assert.assertEquals(expectedGetTotalSizeSql, getTotalSizeSql);
 
-        // when there is a filter condition for accelerate status
-        request.setAccelerateStatuses(Lists.newArrayList(QueryHistory.QUERY_HISTORY_ACCELERATED, QueryHistory.QUERY_HISTORY_UNACCELERATED));
-        expectedQueryHistoriesSql = String.format("SELECT * FROM %s WHERE 1 = 1 AND (query_time >= 0 AND query_time < 1) " +
-                        "AND (\"duration\" >= 0 AND \"duration\" <= 10000) AND sql_text =~ /%s/ AND (accelerate_status = '%s' OR accelerate_status = '%s') ORDER BY time DESC LIMIT %d OFFSET %d", queryMeasurement,
-                querySqlEscaped, QueryHistory.QUERY_HISTORY_ACCELERATED, QueryHistory.QUERY_HISTORY_UNACCELERATED, limit, offset*limit);
-        expectedGetTotalSizeSql = String.format("SELECT count(query_id) FROM %s WHERE 1 = 1 AND (query_time >= 0 AND query_time < 1) " +
-                        "AND (\"duration\" >= 0 AND \"duration\" <= 10000) AND sql_text =~ /%s/ AND (accelerate_status = '%s' OR accelerate_status = '%s') ", queryMeasurement,
-                querySqlEscaped, QueryHistory.QUERY_HISTORY_ACCELERATED, QueryHistory.QUERY_HISTORY_UNACCELERATED);
-
-        filterSql = queryHistoryDAO.getQueryHistoryFilterSql(request);
-        getQueryHistoriesSql = queryHistoryDAO.getQueryHistoriesSql(filterSql, limit, offset);
-        getTotalSizeSql = queryHistoryDAO.getQueryHistoriesSizeSql(filterSql);
-
-        Assert.assertEquals(expectedQueryHistoriesSql, getQueryHistoriesSql);
-        Assert.assertEquals(expectedGetTotalSizeSql, getTotalSizeSql);
-
         // when there is a condition that filters answered by
         request.setRealizations(Lists.newArrayList("pushdown", "modelName"));
         expectedQueryHistoriesSql = String.format("SELECT * FROM %s WHERE 1 = 1 AND (query_time >= 0 AND query_time < 1) " +
-                        "AND (\"duration\" >= 0 AND \"duration\" <= 10000) AND sql_text =~ /%s/ AND (cube_hit = 'false' OR cube_hit = 'true') AND (accelerate_status = '%s' OR accelerate_status = '%s') ORDER BY time DESC LIMIT %d OFFSET %d", queryMeasurement,
-                querySqlEscaped, QueryHistory.QUERY_HISTORY_ACCELERATED, QueryHistory.QUERY_HISTORY_UNACCELERATED, limit, offset*limit);
+                        "AND (\"duration\" >= 0 AND \"duration\" <= 10000) AND sql_text =~ /%s/ AND (index_hit = 'false' OR index_hit = 'true') ORDER BY time DESC LIMIT %d OFFSET %d", queryMeasurement,
+                querySqlEscaped, limit, offset*limit);
         expectedGetTotalSizeSql = String.format("SELECT count(query_id) FROM %s WHERE 1 = 1 AND (query_time >= 0 AND query_time < 1) " +
-                        "AND (\"duration\" >= 0 AND \"duration\" <= 10000) AND sql_text =~ /%s/ AND (cube_hit = 'false' OR cube_hit = 'true') AND (accelerate_status = '%s' OR accelerate_status = '%s') ", queryMeasurement,
-                querySqlEscaped, QueryHistory.QUERY_HISTORY_ACCELERATED, QueryHistory.QUERY_HISTORY_UNACCELERATED);
+                        "AND (\"duration\" >= 0 AND \"duration\" <= 10000) AND sql_text =~ /%s/ AND (index_hit = 'false' OR index_hit = 'true') ", queryMeasurement,
+                querySqlEscaped);
 
         filterSql = queryHistoryDAO.getQueryHistoryFilterSql(request);
         getQueryHistoriesSql = queryHistoryDAO.getQueryHistoriesSql(filterSql, limit, offset);
@@ -392,7 +376,7 @@ public class QueryHistoryDAOTest extends NLocalFileMetadataTestCase {
         sb.append(String.format("{\"results\":[{\"series\":[{\"name\":\"%s\",", queryMeasurement));
         // columns
         sb.append(String.format("\"columns\":[\"%s\",\"%s\",\"%s\",\"%s\",\"%s\"],",
-                QueryHistory.SQL_TEXT, QueryHistory.SQL_PATTERN, QueryHistory.QUERY_HOSTNAME, QueryHistory.SUBMITTER, QueryHistory.ANSWERED_BY));
+                QueryHistory.SQL_TEXT, QueryHistory.SQL_PATTERN, QueryHistory.QUERY_HOSTNAME, QueryHistory.SUBMITTER, QueryHistory.REALIZATIONS));
         // row 1
         sb.append(String.format("\"values\":[[\"%s\",\"%s\",\"%s\",\"%s\",\"%s\"],",
                 mockedSql1, mockedSqlPattern1, mockedHostname, mockedSubmitter, mockedAnsweredBy));

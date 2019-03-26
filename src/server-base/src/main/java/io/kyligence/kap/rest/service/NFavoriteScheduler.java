@@ -59,7 +59,6 @@ import lombok.NoArgsConstructor;
 import lombok.val;
 import lombok.var;
 import org.apache.commons.collections.CollectionUtils;
-import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.ExecutorServiceUtil;
@@ -556,11 +555,11 @@ public class NFavoriteScheduler {
 
             Map<String, Integer> dfHitCountMap = Maps.newHashMap();
             for (QueryHistory queryHistory : queryHistories) {
-                if (StringUtils.isNotEmpty(queryHistory.getAnsweredBy())) {
-                    val answers = Lists.newArrayList(queryHistory.getAnsweredBy().split(","));
-                    for (val answer : answers) {
-                        if (dfManager.getDataflow(answer) != null) {
-                            dfHitCountMap.merge(answer, 1, Integer::sum);
+                val realizations = queryHistory.transformRealizations();
+                if (CollectionUtils.isNotEmpty(realizations)) {
+                    for (val realization : realizations) {
+                        if (dfManager.getDataflow(realization.getModelId()) != null) {
+                            dfHitCountMap.merge(realization.getModelId(), 1, Integer::sum);
                         }
                     }
                 }

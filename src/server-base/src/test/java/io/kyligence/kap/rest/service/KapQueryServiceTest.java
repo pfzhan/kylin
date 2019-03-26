@@ -83,17 +83,10 @@ public class KapQueryServiceTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(1108.71d, rdbms.getMeanDuration(), 0.1);
         Assert.assertEquals(1d, rdbms.getRatio(), 0.01);
 
-        final QueryStatistics aggIndex = actual.getAggIndex();
-        Assert.assertEquals("Agg Index", aggIndex.getEngineType());
-        Assert.assertEquals(0, aggIndex.getCount());
-        Assert.assertEquals(0d, aggIndex.getMeanDuration(), 0.1);
-        Assert.assertEquals(0d, aggIndex.getRatio(), 0.01);
-
-        final QueryStatistics tableIndex = actual.getTableIndex();
-        Assert.assertEquals("Table Index", tableIndex.getEngineType());
-        Assert.assertEquals(0, tableIndex.getCount());
-        Assert.assertEquals(0d, tableIndex.getMeanDuration(), 0.1);
-        Assert.assertEquals(0d, tableIndex.getRatio(), 0.01);
-
+        final QueryStatistics nativeQuery = actual.getNativeQuery();
+        Assert.assertEquals("NATIVE", nativeQuery.getEngineType());
+        Assert.assertEquals(0, nativeQuery.getCount());
+        Assert.assertEquals(0d, nativeQuery.getMeanDuration(), 0.1);
+        Assert.assertEquals(0d, nativeQuery.getRatio(), 0.01);
     }
 }

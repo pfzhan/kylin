@@ -45,7 +45,8 @@ package org.apache.kylin.rest.response;
 import java.io.Serializable;
 import java.util.List;
 
-import io.kyligence.kap.rest.metrics.QueryMetricsContext;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import io.kyligence.kap.metadata.query.NativeQueryRealization;
 
 import lombok.Getter;
 import lombok.Setter;
@@ -56,6 +57,8 @@ import org.slf4j.LoggerFactory;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
+@Getter
+@Setter
 public class SQLResponse implements Serializable {
     protected static final long serialVersionUID = 1L;
 
@@ -67,15 +70,11 @@ public class SQLResponse implements Serializable {
     // the results rows, each row contains several columns
     protected List<List<String>> results;
 
-    /**
-     * for historical reasons it is named "cube", however it might also refer to any realizations like hybrid, II or etc.
-     */
-    protected String cube;
-
     // if not select query, only return affected row count
     protected int affectedRowCount;
 
     // flag indicating whether an exception occurred
+    @JsonProperty("isException")
     protected boolean isException;
 
     // if isException, the detailed exception message
@@ -98,6 +97,7 @@ public class SQLResponse implements Serializable {
 
     protected boolean storageCacheUsed = false;
 
+    @JsonProperty("pushDown")
     protected boolean queryPushDown = false;
 
     private boolean isPrepare = false;
@@ -112,13 +112,12 @@ public class SQLResponse implements Serializable {
 
     private String suite;
 
-    private List<String> answeredBy;
-
     @Setter
     @Getter
     private String signature;
 
-    private transient List<QueryMetricsContext.RealizationMetrics> realizationMetrics;
+    @JsonProperty("realizations")
+    private List<NativeQueryRealization> nativeRealizations;
 
     private String engineType;
 
@@ -137,11 +136,10 @@ public class SQLResponse implements Serializable {
         }
     }
 
-    public SQLResponse(List<SelectedColumnMeta> columnMetas, List<List<String>> results, String cube,
+    public SQLResponse(List<SelectedColumnMeta> columnMetas, List<List<String>> results,
             int affectedRowCount, boolean isException, String exceptionMessage, boolean isPartial, boolean isPushDown) {
         this.columnMetas = columnMetas;
         this.results = results;
-        this.cube = cube;
         this.affectedRowCount = affectedRowCount;
         this.isException = isException;
         this.exceptionMessage = exceptionMessage;
@@ -153,169 +151,8 @@ public class SQLResponse implements Serializable {
         }
     }
 
-    public List<SelectedColumnMeta> getColumnMetas() {
-        return columnMetas;
-    }
-
-    public List<List<String>> getResults() {
-        return results;
-    }
-
-    public void setResults(List<List<String>> results) {
-        this.results = results;
-    }
-
-    public String getCube() {
-        return cube;
-    }
-
-    public void setCube(String cube) {
-        this.cube = cube;
-    }
-
-    public int getAffectedRowCount() {
-        return affectedRowCount;
-    }
-
-    public boolean getIsException() {
-        return isException;
-    }
-
-    public void setIsException(boolean v) {
-        isException = v;
-    }
-
-    public String getExceptionMessage() {
-        return exceptionMessage;
-    }
-
-    public void setExceptionMessage(String msg) {
-        exceptionMessage = msg;
-    }
-
     @JsonIgnore
     public Throwable getThrowable() {
         return throwable;
-    }
-
-    public void setThrowable(Throwable throwable) {
-        this.throwable = throwable;
-    }
-
-    public long getDuration() {
-        return duration;
-    }
-
-    public void setDuration(long duration) {
-        this.duration = duration;
-    }
-
-    public boolean isPartial() {
-
-        return isPartial;
-    }
-
-    public boolean isPushDown() {
-        return queryPushDown;
-    }
-
-    public boolean isPrepare() {
-        return isPrepare;
-    }
-
-    public long getTotalScanCount() {
-        return totalScanCount;
-    }
-
-    public void setTotalScanCount(long totalScanCount) {
-        this.totalScanCount = totalScanCount;
-    }
-
-    public long getTotalScanBytes() {
-        return totalScanBytes;
-    }
-
-    public void setTotalScanBytes(long totalScanBytes) {
-        this.totalScanBytes = totalScanBytes;
-    }
-
-    public boolean isHitExceptionCache() {
-        return hitExceptionCache;
-    }
-
-    public void setHitExceptionCache(boolean hitExceptionCache) {
-        this.hitExceptionCache = hitExceptionCache;
-    }
-
-    public boolean isStorageCacheUsed() {
-        return storageCacheUsed;
-    }
-
-    public void setStorageCacheUsed(boolean storageCacheUsed) {
-        this.storageCacheUsed = storageCacheUsed;
-    }
-
-    public String getTraceUrl() {
-        return traceUrl;
-    }
-
-    public void setTraceUrl(String traceUrl) {
-        this.traceUrl = traceUrl;
-    }
-
-    public String getQueryId() {
-        return queryId;
-    }
-
-    public void setQueryId(String queryId) {
-        this.queryId = queryId;
-    }
-
-    public List<String> getAnsweredBy() {
-        return answeredBy;
-    }
-
-    public void setAnsweredBy(List<String> answeredBy) {
-        this.answeredBy = answeredBy;
-    }
-
-    public long getResultRowCount() {
-        return resultRowCount;
-    }
-
-    public void setResultRowCount(long resultRowCount) {
-        this.resultRowCount = resultRowCount;
-    }
-
-    public String getServer() {
-        return server;
-    }
-
-    public void setServer(String server) {
-        this.server = server;
-    }
-
-    public String getSuite() {
-        return suite;
-    }
-
-    public void setSuite(String suite) {
-        this.suite = suite;
-    }
-
-    public List<QueryMetricsContext.RealizationMetrics> getRealizationMetrics() {
-        return realizationMetrics;
-    }
-
-    public void setRealizationMetrics(List<QueryMetricsContext.RealizationMetrics> realizationMetrics) {
-        this.realizationMetrics = realizationMetrics;
-    }
-
-    public String getEngineType() {
-        return engineType;
-    }
-
-    public void setEngineType(String engineType) {
-        this.engineType = engineType;
     }
 }

@@ -124,7 +124,7 @@ public class NQueryControllerTest extends AbstractMVCIntegrationTestCase {
                         .value(resultSet.getMetaData().getColumnCount()))
                 .andExpect(MockMvcResultMatchers.jsonPath("$.data.pushDown").value(true))
                 .andExpect(MockMvcResultMatchers.jsonPath("$.data.engineType").value(QueryContext.PUSHDOWN_RDBMS))
-                .andExpect(MockMvcResultMatchers.jsonPath("$.data.answeredBy").value("CACHE"))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.data.storageCacheUsed").value(true))
                 .andDo(MockMvcResultHandlers.print())
                 .andReturn();
 

@@ -40,11 +40,8 @@ public class QueryEngineStatisticsResponse {
     @JsonProperty("RDBMS")
     private QueryStatistics rdbms = new QueryStatistics("RDBMS");
 
-    @JsonProperty("Agg Index")
-    private QueryStatistics aggIndex = new QueryStatistics("Agg Index");
-
-    @JsonProperty("Table Index")
-    private QueryStatistics tableIndex = new QueryStatistics("Table Index");
+    @JsonProperty("NATIVE")
+    private QueryStatistics nativeQuery = new QueryStatistics("NATIVE");
 
     public static QueryEngineStatisticsResponse valueOf(List<QueryStatistics> statistics) {
         final QueryEngineStatisticsResponse response = new QueryEngineStatisticsResponse();
@@ -70,10 +67,8 @@ public class QueryEngineStatisticsResponse {
             return response.hive;
         case "RDBMS":
             return response.rdbms;
-        case "Agg Index":
-            return response.aggIndex;
-        case "Table Index":
-            return response.tableIndex;
+        case "NATIVE":
+            return response.nativeQuery;
         default:
             return null;
         }
@@ -91,11 +86,7 @@ public class QueryEngineStatisticsResponse {
         return rdbms;
     }
 
-    public QueryStatistics getAggIndex() {
-        return aggIndex;
-    }
-
-    public QueryStatistics getTableIndex() {
-        return tableIndex;
+    public QueryStatistics getNativeQuery() {
+        return nativeQuery;
     }
 }

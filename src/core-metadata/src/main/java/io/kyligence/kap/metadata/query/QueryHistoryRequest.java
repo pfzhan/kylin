@@ -44,14 +44,13 @@ public class QueryHistoryRequest {
     private String sql;
 
     List<String> realizations;
-    List<String> accelerateStatuses;
 
     public QueryHistoryRequest() {
 
     }
 
     public QueryHistoryRequest(String project, String startTimeFrom, String startTimeTo, String latencyFrom, String latencyTo,
-                               String sql, List<String> realizations, List<String> accelerateStatuses) {
+                               String sql, List<String> realizations) {
         this.project = project;
         this.startTimeFrom = startTimeFrom;
         this.startTimeTo = startTimeTo;
@@ -59,6 +58,5 @@ public class QueryHistoryRequest {
         this.latencyTo = latencyTo;
         this.sql = sql;
         this.realizations = realizations;
-        this.accelerateStatuses = accelerateStatuses;
     }
 }

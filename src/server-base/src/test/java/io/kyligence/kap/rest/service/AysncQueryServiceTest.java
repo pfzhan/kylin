@@ -109,12 +109,12 @@ public class AysncQueryServiceTest{
     @Test
     public void testFailedQuery() throws IOException {
         SQLResponse sqlResponse = mock(SQLResponse.class);
-        when(sqlResponse.getIsException()).thenReturn(true);
+        when(sqlResponse.isException()).thenReturn(true);
         when(sqlResponse.getExceptionMessage()).thenReturn("some error!!!");
 
         UUID uuid = UUID.randomUUID();
         String queryId = uuid.toString();
-        if (sqlResponse.getIsException()) {
+        if (sqlResponse.isException()) {
             asyncQueryService.createErrorFlag(sqlResponse.getExceptionMessage(), queryId);
         }
         assertTrue(asyncQueryService.queryStatus(queryId) == AsyncQueryService.QueryStatus.FAILED);
@@ -137,7 +137,7 @@ public class AysncQueryServiceTest{
     @Test
     public void testSuccessQuery() throws IOException, InterruptedException {
         SQLResponse sqlResponse = mock(SQLResponse.class);
-        when(sqlResponse.getIsException()).thenReturn(false);
+        when(sqlResponse.isException()).thenReturn(false);
         UUID uuid = UUID.randomUUID();
         String queryId = uuid.toString();
         mockResultFile(queryId, false);
