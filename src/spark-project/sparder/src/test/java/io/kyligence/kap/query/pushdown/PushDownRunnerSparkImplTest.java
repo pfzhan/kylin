@@ -95,7 +95,7 @@ public class PushDownRunnerSparkImplTest {
         List<SelectedColumnMeta> returnColumnMeta = Lists.newArrayList();
 
         String sql = "select * from TEST_KYLIN_FACT";
-        pushDownRunnerSpark.executeQuery(sql, returnRows, returnColumnMeta);
+        pushDownRunnerSpark.executeQuery(sql, returnRows, returnColumnMeta, null);
 
         Assert.assertEquals(10000, returnRows.size());
         Assert.assertEquals(11, returnColumnMeta.size());

@@ -29,6 +29,9 @@ import java.util.concurrent.atomic.AtomicReference
 
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.KylinSession._
+import org.apache.spark.sql.catalyst.expressions.Expression
+import org.apache.spark.sql.catalyst.parser.ParseException
+import org.apache.spark.sql.catalyst.plans.logical.LogicalPlan
 import org.apache.spark.sql.udf.UdfManager
 
 // fixme aron: to be same with old KE
@@ -114,6 +117,17 @@ object SparderEnv extends Logging {
         }
       }
     }
+  }
+
+  /**
+    * @param sqlText SQL to be validated
+    * @return The logical plan
+    * @throws ParseException if validate failed
+    */
+  @throws[ParseException]
+  def validateSql(sqlText: String): LogicalPlan = {
+    val logicalPlan: LogicalPlan = getSparkSession.sessionState.sqlParser.parsePlan(sqlText)
+    logicalPlan
   }
 
   /**

@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -61,9 +60,10 @@ public class PushDownRunnerSparkImpl implements IPushDownRunner {
     }
 
     @Override
-    public void executeQuery(String query, List<List<String>> results, List<SelectedColumnMeta> columnMetas) {
+    public void executeQuery(String query, List<List<String>> results, List<SelectedColumnMeta> columnMetas,
+            String project) {
 
-        PushdownResponse response = queryWithPushDown(query);
+        PushdownResponse response = queryWithPushDown(query, project);
 
         int columnCount = response.getColumns().size();
         List<StructField> fieldList = response.getColumns();
@@ -81,12 +81,12 @@ public class PushDownRunnerSparkImpl implements IPushDownRunner {
     }
 
     @Override
-    public void executeUpdate(String sql) {
-        queryWithPushDown(sql);
+    public void executeUpdate(String sql, String project) {
+        queryWithPushDown(sql, null);
     }
 
-    private PushdownResponse queryWithPushDown(String sql) {
-        return SparkSubmitter.submitPushDownTask(sql);
+    private PushdownResponse queryWithPushDown(String sql, String project) {
+        return SparkSubmitter.submitPushDownTask(sql, project);
     }
 
     @Override

@@ -31,6 +31,7 @@ import java.nio.file.Paths;
 import java.util.List;
 import java.util.Map;
 
+import io.kyligence.kap.spark.common.CredentialUtils;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -114,6 +115,9 @@ public abstract class SparkApplication implements Application, IKeep {
                     sparkConf = new SparkConf();
                 }
             }
+            // for wrapping credential
+            CredentialUtils.wrap(sparkConf, project);
+
             ss = SparkSession.builder().enableHiveSupport().config(sparkConf)
                     .config("mapreduce.fileoutputcommitter.marksuccessfuljobs", "false").getOrCreate();
 

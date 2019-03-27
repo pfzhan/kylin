@@ -766,7 +766,7 @@ public class ModelService extends BasicService {
             return;
         String partitionColumn = modelDesc.getPartitionDesc().getPartitionDateColumnRef().getExpressionInSourceDB();
 
-        val date = PushDownUtil.getFormatIfNotExist(modelDesc.getRootFactTableName(), partitionColumn);
+        val date = PushDownUtil.getFormatIfNotExist(modelDesc.getRootFactTableName(), partitionColumn, project);
         val format = DateFormat.proposeDateFormat(date);
         modelManager.updateDataModel(modelId, model -> {
             model.getPartitionDesc().setPartitionDateFormat(format);
@@ -780,7 +780,7 @@ public class ModelService extends BasicService {
         val table = modelDesc.getRootFactTableName();
 
         String partitionColumn = modelDesc.getPartitionDesc().getPartitionDateColumnRef().getExpressionInSourceDB();
-        val minAndMaxTime = PushDownUtil.getMaxAndMinTime(partitionColumn, table);
+        val minAndMaxTime = PushDownUtil.getMaxAndMinTime(partitionColumn, table, project);
 
         String dateFormat;
         if (StringUtils.isEmpty(modelDesc.getPartitionDesc().getPartitionDateFormat())) {
@@ -1343,7 +1343,7 @@ public class ModelService extends BasicService {
             pushdownResult = getMaxAndMinTimeInPartitionColumnByPushdown(project, modelId);
             pushdownResult.setFirst(PushDownUtil.calcStart(pushdownResult.getFirst(), df.getCoveredRange()));
         } else {
-            val maxAndMin = PushDownUtil.getMaxAndMinTime(column, table);
+            val maxAndMin = PushDownUtil.getMaxAndMinTime(column, table , project);
             val dateFormat = DateFormat.proposeDateFormat(maxAndMin.getFirst());
             pushdownResult.setFirst(DateFormat.getFormattedDate(maxAndMin.getFirst(), dateFormat));
             pushdownResult.setSecond(DateFormat.getFormattedDate(maxAndMin.getSecond(), dateFormat));

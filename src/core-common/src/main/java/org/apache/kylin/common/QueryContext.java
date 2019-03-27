@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -63,6 +62,7 @@ public class QueryContext {
     public static final String PUSHDOWN_RDBMS = "RDBMS";
     public static final String PUSHDOWN_HIVE = "HIVE";
     public static final String PUSHDOWN_MOCKUP = "MOCKUP";
+    public static final String PUSHDOWN_FILE = "FILE";
 
     private static final ThreadLocal<QueryContext> contexts = new ThreadLocal<QueryContext>() {
         @Override
@@ -89,13 +89,12 @@ public class QueryContext {
     private long queryStartMillis;
     private boolean isSparderUsed;
 
-    private ThreadLocal<Boolean> isAsyncQuery = new ThreadLocal<Boolean>(){
+    private ThreadLocal<Boolean> isAsyncQuery = new ThreadLocal<Boolean>() {
         @Override
         protected Boolean initialValue() {
             return false;
         }
     };
-
 
     private Throwable errorCause;
     private String pushdownEngine;

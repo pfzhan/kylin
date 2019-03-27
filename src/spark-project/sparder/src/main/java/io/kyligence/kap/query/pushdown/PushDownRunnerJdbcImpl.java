@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -71,8 +70,8 @@ public class PushDownRunnerJdbcImpl implements IPushDownRunner {
     }
 
     @Override
-    public void executeQuery(String query, List<List<String>> results, List<SelectedColumnMeta> columnMetas)
-            throws Exception {
+    public void executeQuery(String query, List<List<String>> results, List<SelectedColumnMeta> columnMetas,
+            String project) throws Exception {
         Statement statement = null;
         Connection connection = manager.getConnection();
         ResultSet resultSet = null;
@@ -103,7 +102,7 @@ public class PushDownRunnerJdbcImpl implements IPushDownRunner {
     }
 
     @Override
-    public void executeUpdate(String sql) throws Exception {
+    public void executeUpdate(String sql, String project) throws Exception {
         Statement statement = null;
         Connection connection = manager.getConnection();
 

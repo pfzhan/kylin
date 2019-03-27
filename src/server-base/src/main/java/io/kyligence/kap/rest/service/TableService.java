@@ -524,7 +524,7 @@ public class TableService extends BasicService {
         NDataLoadingRange dataLoadingRange = getDataLoadingRange(project, table);
         String partitionColumn = dataLoadingRange.getColumnName();
 
-        val maxAndMinTime = PushDownUtil.getMaxAndMinTime(partitionColumn, table);
+        val maxAndMinTime = PushDownUtil.getMaxAndMinTime(partitionColumn, table, project);
         String dateFormat;
         if (StringUtils.isEmpty(dataLoadingRange.getPartitionDateFormat()))
             dateFormat = setPartitionColumnFormat(maxAndMinTime.getFirst(), project, table);
@@ -566,7 +566,7 @@ public class TableService extends BasicService {
 
         String partitionColumn = dataLoadingRange.getColumnName();
 
-        val format = PushDownUtil.getFormatIfNotExist(table, partitionColumn);
+        val format = PushDownUtil.getFormatIfNotExist(table, partitionColumn, project);
 
         setPartitionColumnFormat(format, project, table);
     }

@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -58,10 +57,11 @@ public interface IPushDownRunner {
      * @param query                 the query statement
      * @param returnRows            an empty list to collect returning rows
      * @param returnColumnMeta      an empty list to collect metadata of returning columns
+     * @param project               the project name
      * @throws Exception if running pushdown query fails
      */
-    void executeQuery(String query, List<List<String>> returnRows, List<SelectedColumnMeta> returnColumnMeta) throws Exception;
-
+    void executeQuery(String query, List<List<String>> returnRows, List<SelectedColumnMeta> returnColumnMeta,
+            String project) throws Exception;
 
     /**
      * Run an pushdown non-query sql
@@ -72,7 +72,7 @@ public interface IPushDownRunner {
      *
      * @throws Exception if running pushdown fails
      */
-    void executeUpdate(String sql) throws Exception;
+    void executeUpdate(String sql, String project) throws Exception;
 
     String getName();
 

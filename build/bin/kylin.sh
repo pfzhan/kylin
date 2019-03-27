@@ -94,6 +94,10 @@ function fetchHadoopConf() {
         cp -rf /etc/hadoop/conf/ssl-client.xml ${KYLIN_HADOOP_CONF}
         cp -rf /etc/hadoop/conf/hadoop-env.sh ${KYLIN_HADOOP_CONF}
     fi
+    if [ -d ${KYLIN_HOME}/hadoop_conf_override ]
+    then
+        cp -rf ${KYLIN_HOME}/hadoop_conf_override/hive-site.xml ${KYLIN_HADOOP_CONF}
+    fi
 }
 
 function runTool() {

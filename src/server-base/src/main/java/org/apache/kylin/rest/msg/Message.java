@@ -625,4 +625,18 @@ public class Message {
     public String getLICENSE_OUT_OF_DATE() {
         return "This license has expired and the validity period is ['%s' - '%s']. Please contact the Kyligence sales staff.";
     }
+
+    // ICredential
+
+    public String getINVALID_CREDENTIAL(){
+        return "Invalid credential.Please check your credential";
+    }
+
+    public String getINVALID_URL(){
+        return "Invalid object url.Please check your object url";
+    }
+
+    public String getNoTableFound(){
+        return "Can not find any table.Please check your sql";
+    }
 }

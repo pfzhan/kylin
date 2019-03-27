@@ -21,34 +21,20 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package io.kyligence.kap.smart.query.mockup;
 
-import java.util.List;
+package io.kyligence.kap.rest.request;
 
-import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.QueryContext;
-import org.apache.kylin.metadata.querymeta.SelectedColumnMeta;
-import org.apache.kylin.source.adhocquery.IPushDownRunner;
+import lombok.Data;
 
-public class MockupPushDownRunner implements IPushDownRunner {
-    @Override
-    public void init(KylinConfig config) {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public void executeQuery(String query, List<List<String>> returnRows, List<SelectedColumnMeta> returnColumnMeta,
-            String project) throws Exception {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public void executeUpdate(String sql, String project) throws Exception {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public String getName() {
-        return QueryContext.PUSHDOWN_MOCKUP;
-    }
+@Data
+public class CSVRequest {
+    private String project;
+    private String credential;
+    private String type;
+    private String ddl;
+    private String tableData;
+    private String url;
+    private String separatorChar = ",";
+    private String quoteChar = "\"";
+    private String escapeChar = "\\";
 }

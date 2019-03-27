@@ -21,34 +21,14 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package io.kyligence.kap.smart.query.mockup;
+package io.kyligence.kap.source.file;
 
-import java.util.List;
-
-import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.QueryContext;
-import org.apache.kylin.metadata.querymeta.SelectedColumnMeta;
-import org.apache.kylin.source.adhocquery.IPushDownRunner;
-
-public class MockupPushDownRunner implements IPushDownRunner {
-    @Override
-    public void init(KylinConfig config) {
-        throw new UnsupportedOperationException();
+public class CheckObjectException extends RuntimeException {
+    public CheckObjectException(String message) {
+        super(message);
     }
 
-    @Override
-    public void executeQuery(String query, List<List<String>> returnRows, List<SelectedColumnMeta> returnColumnMeta,
-            String project) throws Exception {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public void executeUpdate(String sql, String project) throws Exception {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public String getName() {
-        return QueryContext.PUSHDOWN_MOCKUP;
+    public CheckObjectException(String message, Throwable cause) {
+        super(message, cause);
     }
 }

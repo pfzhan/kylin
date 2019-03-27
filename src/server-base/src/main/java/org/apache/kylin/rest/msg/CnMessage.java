@@ -559,7 +559,7 @@ public class CnMessage extends Message {
 
     // Query statistics
 
-    public String getNOT_SET_INFLUXDB(){
+    public String getNOT_SET_INFLUXDB() {
         return "未设置参数 kap.metric.write-destination 为 INFLUX";
     }
 
@@ -573,4 +573,17 @@ public class CnMessage extends Message {
         return "许可证已过期，当前有效期为 ['%s' - '%s']。请联系 Kyligence 销售人员。";
     }
 
+    // ICredential
+
+    public String getINVALID_CREDENTIAL() {
+        return "错误凭证,请检查您的凭证";
+    }
+
+    public String getINVALID_URL() {
+        return "错误文件地址，请检查您的文件地址";
+    }
+
+    public String getNoTableFound() {
+        return "找不到表。请检查您的SQL语句";
+    }
 }

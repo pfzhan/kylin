@@ -28,8 +28,10 @@ import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.Semaphore;
 
+import io.kyligence.kap.spark.common.CredentialUtils;
 import org.apache.kylin.common.util.Pair;
 import org.apache.spark.sql.SparderEnv;
+import org.apache.spark.sql.SparkSession;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -39,11 +41,12 @@ public class SparkSubmitter {
     public static final Logger logger = LoggerFactory.getLogger(SparkSubmitter.class);
     private static Semaphore semaphore = new Semaphore((int) (Runtime.getRuntime().totalMemory() / (1024 * 1024)));
 
-    public static PushdownResponse submitPushDownTask(String sql) {
+    public static PushdownResponse submitPushDownTask(String sql, String project) {
         Thread.currentThread().setContextClassLoader(ClassLoaderUtils.getSparkClassLoader());
         Pair<List<List<String>>, List<StructField>> pair = null;
-
-        pair = new SparkSqlClient(SparderEnv.getSparkSession(), semaphore).executeSql(sql, UUID.randomUUID());
+        SparkSession ss = SparderEnv.getSparkSession();
+        CredentialUtils.wrap(ss, project);
+        pair = new SparkSqlClient(ss, semaphore).executeSql(sql, UUID.randomUUID());
         return new PushdownResponse(pair.getSecond(), pair.getFirst());
     }
 

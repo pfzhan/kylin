@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -77,6 +76,7 @@ import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.common.exceptions.KylinTimeoutException;
 import org.apache.kylin.common.util.ClassUtil;
 import org.apache.kylin.common.util.Pair;
+import org.apache.kylin.metadata.model.ISourceAware;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.tool.CalciteParser;
 import org.apache.kylin.metadata.querymeta.SelectedColumnMeta;
@@ -149,21 +149,30 @@ public class PushDownUtil {
         List<SelectedColumnMeta> returnColumnMeta = Lists.newArrayList();
 
         if (isSelect) {
-            runner.executeQuery(sql, returnRows, returnColumnMeta);
+            runner.executeQuery(sql, returnRows, returnColumnMeta, project);
         }
         if (!isSelect && !isPrepare && kylinConfig.isPushDownUpdateEnabled()) {
-            runner.executeUpdate(sql);
+            runner.executeUpdate(sql, project);
         }
-
-        QueryContext.current().setPushdownEngine(runner.getName());
+        String pushdownEngine;
+        // for file source
+        int sourceType = KylinConfig.getInstanceFromEnv().getManager(NProjectManager.class).getProject(project)
+                .getSourceType();
+        if (sourceType == ISourceAware.ID_FILE) {
+            pushdownEngine = QueryContext.PUSHDOWN_FILE;
+        } else {
+            pushdownEngine = runner.getName();
+        }
+        QueryContext.current().setPushdownEngine(pushdownEngine);
         return Pair.newPair(returnRows, returnColumnMeta);
     }
 
-    public static Pair<String, String> getMaxAndMinTime(String partitionColumn, String table) throws Exception {
+    public static Pair<String, String> getMaxAndMinTime(String partitionColumn, String table, String project)
+            throws Exception {
         String sql = String.format("select min(%s), max(%s) from %s", partitionColumn, partitionColumn, table);
         Pair<String, String> result = new Pair<>();
         // pushdown
-        List<List<String>> returnRows = PushDownUtil.trySimplePushDownSelectQuery(sql).getFirst();
+        List<List<String>> returnRows = PushDownUtil.trySimplePushDownSelectQuery(sql, project).getFirst();
 
         if (returnRows.size() == 0 || returnRows.get(0).get(0) == null || returnRows.get(0).get(1) == null)
             throw new BadRequestException(String.format("There are no data in table %s", table));
@@ -181,8 +190,8 @@ public class PushDownUtil {
             return false;
     }
 
-    public static Pair<List<List<String>>, List<SelectedColumnMeta>> trySimplePushDownSelectQuery(String sql)
-            throws Exception {
+    public static Pair<List<List<String>>, List<SelectedColumnMeta>> trySimplePushDownSelectQuery(String sql,
+            String project) throws Exception {
         KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
         List<List<String>> returnRows = Lists.newArrayList();
         List<SelectedColumnMeta> returnColumnMeta = Lists.newArrayList();
@@ -190,18 +199,18 @@ public class PushDownUtil {
         // pushdown
         IPushDownRunner runner = (IPushDownRunner) ClassUtil.newInstance(kylinConfig.getPushDownRunnerClassName());
         runner.init(kylinConfig);
-        runner.executeQuery(sql, returnRows, returnColumnMeta);
+        runner.executeQuery(sql, returnRows, returnColumnMeta, project);
 
         return Pair.newPair(returnRows, returnColumnMeta);
     }
 
-    public static String getFormatIfNotExist(String table, String partitionColumn) throws Exception {
+    public static String getFormatIfNotExist(String table, String partitionColumn, String project) throws Exception {
 
         String sql = String.format("select %s from %s where %s is not null limit 1", partitionColumn, table,
                 partitionColumn);
 
         // push down
-        List<List<String>> returnRows = PushDownUtil.trySimplePushDownSelectQuery(sql).getFirst();
+        List<List<String>> returnRows = PushDownUtil.trySimplePushDownSelectQuery(sql, project).getFirst();
         if (returnRows.size() == 0)
             throw new BadRequestException(String.format("There are no data in table %s", table));
 

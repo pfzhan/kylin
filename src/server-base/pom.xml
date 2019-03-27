@@ -85,6 +85,10 @@
             <artifactId>kap-tool</artifactId>
         </dependency>
 
+        <dependency>
+            <groupId>io.kyligence.ke</groupId>
+            <artifactId>source-file</artifactId>
+        </dependency>
         <!-- these plug-in modules, should not have API dependencies -->
 
         <dependency>

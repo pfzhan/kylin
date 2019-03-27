@@ -31,11 +31,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.source.file.CredentialOperator;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.directory.api.util.Strings;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.JsonUtil;
+import org.apache.kylin.metadata.model.ISourceAware;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.exception.BadRequestException;
@@ -232,6 +234,16 @@ public class ProjectService extends BasicService {
         projectManager.updateProject(project, copyForWrite -> {
             copyForWrite.getOverrideKylinProps().putAll(overrideKylinProps);
         });
+    }
+
+    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#project, 'ADMINISTRATION')")
+    @Transaction
+    public void updateFileSourceCredential(String project, CredentialOperator credentialOperator) throws Exception {
+        Map<String, String> overrideKylinProps = Maps.newLinkedHashMap();
+        overrideKylinProps.put("kylin.source.credential.type", credentialOperator.getCredential().getType());
+        overrideKylinProps.put("kylin.source.credential.value", credentialOperator.encode());
+        overrideKylinProps.put("kylin.source.default", String.valueOf(ISourceAware.ID_FILE));
+        updateProjectOverrideKylinProps(project, overrideKylinProps);
     }
 
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#project, 'ADMINISTRATION')")
