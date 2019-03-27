@@ -69,7 +69,7 @@ public class FirstRoundContextCutStrategy implements ICutContextStrategy {
                             HepUtils.runRuleCollection(context.getTopNode().getInput(i), HepUtils.CUBOID_OPT_RULES));
                 }
                 ((KapRel) context.getTopNode()).setContext(context);
-                return;
+                continue;
             }
 
             for (int i = 0; i < parentOfTopNode.getInputs().size(); i++) {
