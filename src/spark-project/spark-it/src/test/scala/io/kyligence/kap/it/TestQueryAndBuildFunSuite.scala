@@ -105,6 +105,16 @@ class TestQueryAndBuildFunSuite
     SparderEnv.cleanCompute()
   }
 
+  ignore("temp") {
+    var result = tempQuery
+      .flatMap { folder =>
+        queryFolder(folder)
+      }
+      .filter(_ != null)
+
+    assert(result.isEmpty)
+  }
+
   test("buildKylinFact") {
     var result = queryFolders
       .flatMap { folder =>

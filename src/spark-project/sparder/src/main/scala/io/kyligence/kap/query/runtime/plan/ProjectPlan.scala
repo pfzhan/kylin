@@ -25,22 +25,25 @@ import io.kyligence.kap.query.relnode.KapProjectRel
 import io.kyligence.kap.query.runtime.SparderRexVisitor
 import org.apache.calcite.DataContext
 import org.apache.calcite.rex.RexInputRef
+import org.apache.spark.internal.Logging
 import org.apache.spark.sql.DataFrame
-import org.apache.spark.sql.functions._
+import org.apache.spark.sql.KapFunctions._
+
 import scala.collection.JavaConverters._
 
 
-object ProjectPlan {
+object ProjectPlan extends Logging {
   def select(inputs: java.util.List[DataFrame],
              rel: KapProjectRel,
              dataContext: DataContext): DataFrame = {
 
+    val start = System.currentTimeMillis()
     val df = inputs.get(0)
     val selectedColumns = rel.rewriteProjects.asScala
       .map(rex => {
         val visitor = new SparderRexVisitor(df,
-                                            rel.getInput.getRowType,
-                                            null)
+          rel.getInput.getRowType,
+          null)
         (rex.accept(visitor), rex.isInstanceOf[RexInputRef])
       })
       .zipWithIndex
@@ -48,12 +51,14 @@ object ProjectPlan {
         //  add p0,p1 suffix for window queries will generate
         // indicator columns like false,false,false
         if (c._1._2) {
-          lit(c._1._1)
+          k_lit(c._1._1)
         } else {
-          lit(c._1._1).as(s"${System.identityHashCode(rel)}_prj${c._2}")
+          k_lit(c._1._1).as(s"${System.identityHashCode(rel)}_prj${c._2}")
         }
       })
 
-    df.select(selectedColumns: _*)
+    val prj = df.select(selectedColumns: _*)
+    logInfo(s"Gen project cost Time :${System.currentTimeMillis() - start} ")
+    prj
   }
 }

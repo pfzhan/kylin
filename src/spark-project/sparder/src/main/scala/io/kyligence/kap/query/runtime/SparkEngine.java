@@ -41,7 +41,9 @@ public class SparkEngine implements QueryEngine {
     @Override
     public Enumerable<Object> computeSCALA(DataContext dataContext, RelNode relNode, RelDataType resultType) {
         CalciteToSparkPlaner calciteToSparkPlaner = new CalciteToSparkPlaner(dataContext);
+        long t = System.currentTimeMillis();
         calciteToSparkPlaner.go(relNode);
+        log.info("End to go CalciteToSparkPlaner, takes:{} ms.", System.currentTimeMillis() - t);
         return ResultPlan.getResult(calciteToSparkPlaner.getResult(), resultType, ResultType.SCALA()).right().get();
 
     }
@@ -49,7 +51,9 @@ public class SparkEngine implements QueryEngine {
     @Override
     public Enumerable<Object[]> compute(DataContext dataContext, RelNode relNode, RelDataType resultType) {
         CalciteToSparkPlaner calciteToSparkPlaner = new CalciteToSparkPlaner(dataContext);
+        long t = System.currentTimeMillis();
         calciteToSparkPlaner.go(relNode);
+        log.info("End to go CalciteToSparkPlaner, takes:{} ms.", System.currentTimeMillis() - t);
         return ResultPlan.getResult(calciteToSparkPlaner.getResult(), resultType, ResultType.NORMAL()).left().get();
     }
 }

@@ -82,8 +82,8 @@ class SparderRexVisitor(val df: DataFrame,
     }
 
     def getOperands: (Column, Column) = {
-      var left = lit(children.head)
-      var right = lit(children.last)
+      var left = k_lit(children.head)
+      var right = k_lit(children.last)
 
       // get the lit pos.
       // ($1, "2010-01-01 15:43:38") pos:1
@@ -153,16 +153,16 @@ class SparderRexVisitor(val df: DataFrame,
         left =!= right
       case IS_NULL =>
         assert(children.size == 1)
-        lit(children.head).isNull
+        k_lit(children.head).isNull
       case IS_NOT_NULL =>
         assert(children.size == 1)
-        lit(children.head).isNotNull
+        k_lit(children.head).isNotNull
       case LIKE =>
         assert(children.size == 2)
-        lit(children.head).like(children.last.asInstanceOf[String])
+        k_lit(children.head).like(children.last.asInstanceOf[String])
       case MINUS_PREFIX =>
         assert(children.size == 1)
-        negate(lit(children.head))
+        negate(k_lit(children.head))
 
       case PLUS =>
         assert(children.size == 2)
@@ -171,8 +171,8 @@ class SparderRexVisitor(val df: DataFrame,
           children.last match {
             case num: MonthNum => {
               // both add_month and add_year case
-              val ts = lit(children.head).cast(TimestampType).cast(LongType)
-              return lit(kap_add_months(lit(ts), num.num))
+              val ts = k_lit(children.head).cast(TimestampType).cast(LongType)
+              return k_lit(kap_add_months(k_lit(ts), num.num))
             }
             case _ =>
           }
@@ -180,20 +180,20 @@ class SparderRexVisitor(val df: DataFrame,
 
         call.getType.getSqlTypeName match {
           case SqlTypeName.DATE =>
-            lit(children.head)
+            k_lit(children.head)
               .cast(TimestampType)
               .cast(LongType)
-              .plus(lit(children.last))
+              .plus(k_lit(children.last))
               .cast(TimestampType)
               .cast(DateType)
           case SqlTypeName.TIMESTAMP =>
-            lit(children.head)
+            k_lit(children.head)
               .cast(LongType)
-              .plus(lit(children.last))
+              .plus(k_lit(children.last))
               .cast(TimestampType)
           case _ =>
-            lit(children.head)
-              .plus(lit(children.last))
+            k_lit(children.head)
+              .plus(k_lit(children.last))
               .cast(LongType)
         }
       case MINUS =>
@@ -226,8 +226,8 @@ class SparderRexVisitor(val df: DataFrame,
             // expecting ts instead of seconds
             // so we need to multiply 1000 here
 
-            val ts1 = lit(children.head).cast(TimestampType).cast(LongType) //col
-            val ts2 = lit(children.last).cast(LongType) //lit
+            val ts1 = k_lit(children.head).cast(TimestampType).cast(LongType) //col
+            val ts2 = k_lit(children.last).cast(LongType) //lit
             ts1.minus(ts2).multiply(1000)
 
           } else if ("MONTH".equalsIgnoreCase(timeUnitName) || "YEAR"
@@ -243,8 +243,8 @@ class SparderRexVisitor(val df: DataFrame,
 
             // for ADD_MONTH case
 
-            val ts1 = lit(children.head).cast(TimestampType)
-            val ts2 = lit(children.last).cast(TimestampType)
+            val ts1 = k_lit(children.head).cast(TimestampType)
+            val ts2 = k_lit(children.last).cast(TimestampType)
             kap_subtract_months(ts1, ts2)
 
           } else {
@@ -252,26 +252,26 @@ class SparderRexVisitor(val df: DataFrame,
               "Unsupported SqlInterval: " + timeUnitName)
           }
         } else {
-          lit(children.head).minus(lit(children.last))
+          k_lit(children.head).minus(k_lit(children.last))
         }
       case TIMES =>
         assert(children.size == 2)
         children.head match {
           case num: MonthNum => {
-            val ts = lit(children.apply(1)).cast(TimestampType).cast(LongType)
-            lit(ts).multiply(lit(num.num))
+            val ts = k_lit(children.apply(1)).cast(TimestampType).cast(LongType)
+            k_lit(ts).multiply(k_lit(num.num))
           }
           case _ =>
-            lit(children.head).multiply(lit(children.last))
+            k_lit(children.head).multiply(k_lit(children.last))
         }
       case DIVIDE =>
         assert(children.size == 2)
-        lit(children.head).divide(lit(children.last))
+        k_lit(children.head).divide(k_lit(children.last))
       case CASE =>
         val evens =
-          children.zipWithIndex.filter(p => p._2 % 2 == 0).map(p => lit(p._1))
+          children.zipWithIndex.filter(p => p._2 % 2 == 0).map(p => k_lit(p._1))
         val odds =
-          children.zipWithIndex.filter(p => p._2 % 2 == 1).map(p => lit(p._1))
+          children.zipWithIndex.filter(p => p._2 % 2 == 1).map(p => k_lit(p._1))
         assert(evens.length == odds.length + 1)
         val zip = evens zip odds
         var column: Column = null
@@ -289,41 +289,41 @@ class SparderRexVisitor(val df: DataFrame,
         val inputAsTS = children.apply(1)
 
         timeUnit match {
-          case "YEAR"    => year(lit(inputAsTS))
-          case "QUARTER" => quarter(lit(inputAsTS))
-          case "MONTH"   => month(lit(inputAsTS))
-          case "WEEK"    => weekofyear(lit(inputAsTS))
-          case "DOY"     => dayofyear(lit(inputAsTS))
-          case "DAY"     => dayofmonth(lit(inputAsTS))
-          case "DOW"     => kap_day_of_week(lit(inputAsTS))
-          case "HOUR"    => hour(lit(inputAsTS))
-          case "MINUTE"  => minute(lit(inputAsTS))
-          case "SECOND"  => second(lit(inputAsTS))
+          case "YEAR"    => year(k_lit(inputAsTS))
+          case "QUARTER" => quarter(k_lit(inputAsTS))
+          case "MONTH"   => month(k_lit(inputAsTS))
+          case "WEEK"    => weekofyear(k_lit(inputAsTS))
+          case "DOY"     => dayofyear(k_lit(inputAsTS))
+          case "DAY"     => dayofmonth(k_lit(inputAsTS))
+          case "DOW"     => kap_day_of_week(k_lit(inputAsTS))
+          case "HOUR"    => hour(k_lit(inputAsTS))
+          case "MINUTE"  => minute(k_lit(inputAsTS))
+          case "SECOND"  => second(k_lit(inputAsTS))
           case _ =>
             throw new UnsupportedSparkFunctionException(
               s"Unsupported function $timeUnit")
         }
       }
       case REINTERPRET =>
-        lit(children.head)
+        k_lit(children.head)
       case CAST =>
         // all date type is long,skip is
         val goalType = SparderTypeUtil.convertSqlTypeNameToSparkType(
           call.getType)
-        lit(children.head).cast(goalType)
+        k_lit(children.head).cast(goalType)
 
       case TRIM =>
         if (children.length == 3) {
           children.head match {
             case "TRAILING" =>
-              rtrim(lit(children.last))
+              rtrim(k_lit(children.last))
             case "LEADING" =>
-              ltrim(lit(children.last))
+              ltrim(k_lit(children.last))
             case "BOTH" =>
-              trim(lit(children.last))
+              trim(k_lit(children.last))
           }
         } else {
-          trim(lit(children.head))
+          trim(k_lit(children.head))
         }
       case MOD =>
         assert(children.size == 2)
@@ -333,7 +333,7 @@ class SparderRexVisitor(val df: DataFrame,
       case OTHER =>
         val funcName = call.getOperator.getName.toLowerCase
         funcName match {
-          case "||" => concat(lit(children.head), lit(children.apply(1)))
+          case "||" => concat(k_lit(children.head), k_lit(children.apply(1)))
           case _ =>
             throw new UnsupportedOperationException(
               s"Unsupported function $funcName")
@@ -344,28 +344,28 @@ class SparderRexVisitor(val df: DataFrame,
           //math_funcs
           case "abs" =>
             abs(
-              lit(children.head).cast(SparderTypeUtil
+              k_lit(children.head).cast(SparderTypeUtil
                 .convertSqlTypeNameToSparkType(call.getType)))
           case "round" | "truncate" =>
             round(
-              lit(children.head),
+              k_lit(children.head),
               children.apply(1).asInstanceOf[java.math.BigDecimal].intValue())
           case "cot" =>
-            lit(1).divide(tan(lit(children.head)))
+            k_lit(1).divide(tan(k_lit(children.head)))
 
           //string_funcs
-          case "lower"            => lower(lit(children.head))
-          case "upper"            => upper(lit(children.head))
-          case "char_length"      => length(lit(children.head))
-          case "character_length" => length(lit(children.head))
+          case "lower"            => lower(k_lit(children.head))
+          case "upper"            => upper(k_lit(children.head))
+          case "char_length"      => length(k_lit(children.head))
+          case "character_length" => length(k_lit(children.head))
           case "replace" =>
-            regexp_replace(lit(children.head),
+            regexp_replace(k_lit(children.head),
                            children.apply(1).asInstanceOf[String],
                            children.apply(2).asInstanceOf[String])
           case "substring" =>
             if (children.length == 3) {
-              lit(children.head)
-                .substr(lit(children.apply(1)), lit(children.apply(2)))
+              k_lit(children.head)
+                .substr(k_lit(children.apply(1)), k_lit(children.apply(2)))
             } else {
               throw new UnsupportedOperationException(
                 s"substring must provide three parameters under sparder")
@@ -374,59 +374,59 @@ class SparderRexVisitor(val df: DataFrame,
             val pos =
               if (children.length == 2) 0
               else children.apply(2).asInstanceOf[BigDecimal].intValue()
-            locate(children.head.toString, lit(children.apply(1)), pos)
+            locate(children.head.toString, k_lit(children.apply(1)), pos)
           case "concat" =>
-            concat(lit(children.head), lit(children.apply(1)))
+            concat(k_lit(children.head), k_lit(children.apply(1)))
           // time_funcs
           case "current_date" =>
-            lit(
+            k_lit(
               DateTimeUtils.dateToString(
                 DateTimeUtils.millisToDays(System.currentTimeMillis())))
           case "current_timestamp" =>
-            lit(SparderTypeUtil.toSparkTimestamp(System.currentTimeMillis()))
+            k_lit(SparderTypeUtil.toSparkTimestamp(System.currentTimeMillis()))
           case "power" =>
-            pow(lit(children.head), lit(children.apply(1)))
+            pow(k_lit(children.head), k_lit(children.apply(1)))
           case "log10" =>
-            log10(lit(children.head))
+            log10(k_lit(children.head))
           case "ln" =>
-            log(Math.E, lit(children.head))
+            log(Math.E, k_lit(children.head))
           case "exp" =>
-            exp(lit(children.head))
+            exp(k_lit(children.head))
           case "acos" =>
-            acos(lit(children.head))
+            acos(k_lit(children.head))
           case "asin" =>
-            asin(lit(children.head))
+            asin(k_lit(children.head))
           case "atan" =>
-            atan(lit(children.head))
+            atan(k_lit(children.head))
           case "atan2" =>
             assert(children.size == 2)
-            atan2(lit(children.head), lit(children.last))
+            atan2(k_lit(children.head), k_lit(children.last))
           case "cos" =>
-            cos(lit(children.head))
+            cos(k_lit(children.head))
           case "degrees" =>
-            degrees(lit(children.head))
+            degrees(k_lit(children.head))
           case "radians" =>
-            radians(lit(children.head))
+            radians(k_lit(children.head))
           case "sign" =>
-            signum(lit(children.head))
+            signum(k_lit(children.head))
           case "tan" =>
-            tan(lit(children.head))
+            tan(k_lit(children.head))
           case "sin" =>
-            sin(lit(children.head))
+            sin(k_lit(children.head))
           case "initcap" =>
-            initcap(lit(children.head))
+            initcap(k_lit(children.head))
           case "pi" =>
-            lit(Math.PI)
+            k_lit(Math.PI)
           case _ =>
             throw new UnsupportedOperationException(
               s"Unsupported function $funcName")
         }
       case CEIL =>
-        ceil(lit(children.head))
+        ceil(k_lit(children.head))
       case FLOOR =>
-        floor(lit(children.head))
+        floor(k_lit(children.head))
       case ARRAY_VALUE_CONSTRUCTOR =>
-        array(children.map(child => lit(child.toString)): _*)
+        array(children.map(child => k_lit(child.toString)): _*)
       case unsupportedFunc =>
         throw new UnsupportedOperationException(unsupportedFunc.toString)
     }

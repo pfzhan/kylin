@@ -24,13 +24,7 @@
 package org.apache.spark.sql
 
 import org.apache.spark.sql.catalyst.expressions.aggregate.AggregateFunction
-import org.apache.spark.sql.catalyst.expressions.{
-  KapAddMonths,
-  KapDayOfWeek,
-  KapSubtractMonths,
-  Literal,
-  Sum0
-}
+import org.apache.spark.sql.catalyst.expressions.{KapAddMonths, KapDayOfWeek, KapSubtractMonths, Literal, Sum0}
 import org.apache.spark.sql.udf.{ApproxCountDistinct, PreciseCountDistinct}
 
 object KapFunctions {
@@ -51,6 +45,13 @@ object KapFunctions {
 
   def sum0(e: Column): Column = withAggregateFunction {
     Sum0(e.expr)
+  }
+
+  // special lit for KE.
+  def k_lit(literal: Any): Column = literal match {
+    case c: Column => c
+    case s: Symbol => new ColumnName(s.name)
+    case _ => Column(Literal(literal))
   }
 
   def precise_count_distinct(column: Column): Column =

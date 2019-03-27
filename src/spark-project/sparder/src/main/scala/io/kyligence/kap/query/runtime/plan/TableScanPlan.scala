@@ -305,6 +305,7 @@ object TableScanPlan extends Logging {
   }
 
   def createLookupTable(rel: KapRel, dataContext: DataContext): DataFrame = {
+    val start = System.currentTimeMillis()
 
     val session = SparderEnv.getSparkSession
     val olapContext = rel.getContext
@@ -346,7 +347,9 @@ object TableScanPlan extends Logging {
                 .toString
             )
           })
-    newNameLookupDf.select(colIndex: _*)
+    val df = newNameLookupDf.select(colIndex: _*)
+    logInfo(s"Gen lookup table scan cost Time :${System.currentTimeMillis() - start} ")
+    df
   }
 
   private def expandDerived(

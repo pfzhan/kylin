@@ -23,12 +23,14 @@ package io.kyligence.kap.query.runtime.plan
 
 import io.kyligence.kap.query.relnode.KapAggregateRel
 import io.kyligence.kap.query.runtime.RuntimeHelper
+import io.kyligence.kap.query.runtime.plan.FilterPlan.logInfo
 import org.apache.calcite.DataContext
 import org.apache.calcite.rel.core.AggregateCall
 import org.apache.calcite.sql.SqlKind
 import org.apache.kylin.metadata.model.FunctionDesc
 import org.apache.kylin.query.relnode.{KylinAggregateCall, OLAPAggregateRel}
-import org.apache.spark.sql.KapFunctions.sum0
+import org.apache.spark.internal.Logging
+import org.apache.spark.sql.KapFunctions._
 import org.apache.spark.sql.execution.utils.SchemaProcessor
 import org.apache.spark.sql.functions._
 import org.apache.spark.sql.util.SparderTypeUtil
@@ -37,13 +39,14 @@ import org.apache.spark.sql.{AggArgc, Column, DataFrame, SparkOperation}
 import scala.collection.JavaConverters._
 
 // scalastyle:off
-object AggregatePlan {
+object AggregatePlan extends Logging {
   val binaryMeasureType =
     List("COUNT_DISTINCT", "PERCENTILE", "PERCENTILE_APPROX", "INTERSECT_COUNT")
 
   def agg(inputs: java.util.List[DataFrame],
           rel: KapAggregateRel,
           dataContext: DataContext): DataFrame = {
+    val start = System.currentTimeMillis()
     val dataFrame = inputs.get(0)
     val schemaNames = dataFrame.schema.fieldNames
     val groupList = rel.getGroupSet.asScala
@@ -51,6 +54,7 @@ object AggregatePlan {
       .toList
     val aggList = buildAgg(schemaNames, rel)
     val df = SparkOperation.agg(AggArgc(dataFrame, groupList, aggList))
+    logInfo(s"Gen aggregate cost Time :${System.currentTimeMillis() - start} ")
     df
   }
 
@@ -60,8 +64,8 @@ object AggregatePlan {
 
     rel.getRewriteAggCalls.asScala.zipWithIndex.map {
       case (call: KylinAggregateCall, index: Int)
-          if binaryMeasureType.contains(
-            OLAPAggregateRel.getAggrFuncName(call)) =>
+        if binaryMeasureType.contains(
+          OLAPAggregateRel.getAggrFuncName(call)) =>
         val dataType = call.getFunc.getReturnDataType
         val isCount = call.getFunc.isCount
         val funcName = if (isCount) FunctionDesc.FUNC_COUNT else OLAPAggregateRel.getAggrFuncName(call)
@@ -69,47 +73,19 @@ object AggregatePlan {
         val columnName = argNames.map(col)
         var registeredFuncName =
           RuntimeHelper.registerSingleByColName(funcName, dataType)
-        // fixme aron
-        /*
-        if (funcName.equalsIgnoreCase(FunctionDesc.FUNC_INTERSECT_COUNT_DISTINCT)) {
-          val dt = rel.getInput
-            .getRowType
-            .getFieldList.asScala
-            .zipWithIndex
-            .filter(call.getArgList.asScala.last == _._2)
-            .head._1.asInstanceOf[RelDataTypeFieldImpl].getType match {
-            case tp: ArraySqlType if tp.getComponentType.getSqlTypeName.getUuid.equals("TIMESTAMP") =>
-              "_timestamp"
-            case tp: ArraySqlType if tp.getComponentType.getSqlTypeName.getUuid.equals("DATE") =>
-              "_date"
-            case tp: ArraySqlType if tp.getComponentType.getSqlTypeName.getUuid.equals("CHAR") =>
-              ""
-            case tp => throw new UnsupportedOperationException(s"Unsupported type: $tp")
-          }
-          registeredFuncName = FunctionDesc.FUNC_INTERSECT_COUNT_DISTINCT.toLowerCase() + dt
-        }
-         */
         val aggName = SchemaProcessor.replaceToAggravateSchemaName(index,
-                                                                   funcName,
-                                                                   hash,
-                                                                   argNames: _*)
-        //        if (funcName == "COUNT_DISTINCT") {
-        //          if (dataType.getUuid == "hllc") {
-        //            org.apache.spark.sql.KapFunctions.approx_count_distinct(columnName.head, dataType.getPrecision).alias(aggName)
-        //          } else {
-        //            precise_count_distinct(columnName.head).alias(aggName)
-        //          }
-        //        } else {
+          funcName,
+          hash,
+          argNames: _*)
         callUDF(registeredFuncName, columnName.toList: _*).alias(aggName)
-      //        }
       case (call: Any, index: Int) =>
         val funcName = OLAPAggregateRel.getAggrFuncName(call)
         val argNames = call.getArgList.asScala.map(id => schemaNames.apply(id))
         val inputType = call.getType
         val aggName = SchemaProcessor.replaceToAggravateSchemaName(index,
-                                                                   funcName,
-                                                                   hash,
-                                                                   argNames: _*)
+          funcName,
+          hash,
+          argNames: _*)
         funcName match {
           case FunctionDesc.FUNC_SUM =>
             if (isSum0(call)) {
@@ -124,7 +100,7 @@ object AggregatePlan {
                 .alias(aggName)
             }
           case FunctionDesc.FUNC_COUNT =>
-            count(if (argNames.isEmpty) lit(1) else col(argNames.head))
+            count(if (argNames.isEmpty) k_lit(1) else col(argNames.head))
               .alias(aggName)
           case FunctionDesc.FUNC_MAX =>
             max(
@@ -144,9 +120,9 @@ object AggregatePlan {
             first(argNames.head).alias(aggName)
           case FunctionDesc.FUNC_GROUPING =>
             if (rel.getGroupSet.get(call.getArgList.get(0))) {
-              lit(0).alias(aggName)
+              k_lit(0).alias(aggName)
             } else {
-              lit(1).alias(aggName)
+              k_lit(1).alias(aggName)
             }
           case _ =>
             throw new IllegalArgumentException(

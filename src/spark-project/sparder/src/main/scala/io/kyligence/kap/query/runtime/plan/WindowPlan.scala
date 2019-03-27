@@ -28,7 +28,9 @@ import io.kyligence.kap.query.runtime.SparderRexVisitor
 import org.apache.calcite.DataContext
 import org.apache.calcite.rel.RelCollationImpl
 import org.apache.calcite.rex.RexInputRef
+import org.apache.spark.internal.Logging
 import org.apache.spark.sql.DataFrame
+import org.apache.spark.sql.KapFunctions._
 import org.apache.spark.sql.catalyst.expressions.Literal
 import org.apache.spark.sql.expressions.{Window, WindowSpec}
 import org.apache.spark.sql.functions._
@@ -37,7 +39,7 @@ import org.apache.spark.sql.util.SparderTypeUtil
 
 import scala.collection.JavaConverters._
 
-object WindowPlan {
+object WindowPlan extends Logging {
   // the function must have sort
   val sortSpecified =
     List("CUME_DIST", "LEAD", "RANK", "DENSE_RANK", "ROW_NUMBER", "NTILE")
@@ -54,6 +56,8 @@ object WindowPlan {
 
   def window(input: java.util.List[DataFrame],
              rel: KapWindowRel, datacontex: DataContext): DataFrame = {
+    val start = System.currentTimeMillis()
+
     var windowCount = 0
     rel.groups.asScala.head.upperBound
     val df = input.get(0)
@@ -73,7 +77,7 @@ object WindowPlan {
       datacontex)
     val constants = rel.getConstants.asScala
       .map { constant =>
-        lit(Literal.apply(constant.accept(visitor)))
+        k_lit(Literal.apply(constant.accept(visitor)))
       }
     val columnsAndConstants = columns ++ constants
     val windows = rel.groups.asScala
@@ -120,7 +124,7 @@ object WindowPlan {
             }
           } else {
             if (sortSpecified.contains(opName)) {
-              windowDesc = Window.orderBy(lit(1))
+              windowDesc = Window.orderBy(k_lit(1))
               if (!nonRangeSpecified.contains(opName)) {
                 if (group.isRows || rowSpecified.contains(opName)) {
                   windowDesc = windowDesc.rowsBetween(lowerBound, upperBound)
@@ -184,7 +188,7 @@ object WindowPlan {
             case "COUNT" =>
               count(
                 if (agg.operands.isEmpty) {
-                  lit(1)
+                  k_lit(1)
                 } else {
                   columnsAndConstants.apply(
                     agg.operands.asScala.head.asInstanceOf[RexInputRef].getIndex)
@@ -218,7 +222,9 @@ object WindowPlan {
 
       }
     val selectColumn = columns ++ windows
-    df.select(selectColumn: _*)
+    val window = df.select(selectColumn: _*)
+    logInfo(s"Gen window cost Time :${System.currentTimeMillis() - start} ")
+    window
   }
 
   def buildRange(group: org.apache.calcite.rel.core.Window.Group,

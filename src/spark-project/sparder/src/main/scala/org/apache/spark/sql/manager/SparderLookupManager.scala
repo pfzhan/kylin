@@ -25,22 +25,12 @@ package org.apache.spark.sql.manager
 
 import java.util.concurrent.TimeUnit
 
-import com.google.common.cache.{
-  Cache,
-  CacheBuilder,
-  RemovalListener,
-  RemovalNotification
-}
+import com.google.common.cache.{Cache, CacheBuilder, RemovalListener, RemovalNotification}
 import io.kyligence.kap.metadata.model.NTableMetadataManager
 import org.apache.kylin.common.{KapConfig, KylinConfig}
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.execution.utils.DeriveTableColumnInfo
-import org.apache.spark.sql.types.{
-  DateType,
-  StringType,
-  StructField,
-  StructType
-}
+import org.apache.spark.sql.types.{StructField, StructType}
 import org.apache.spark.sql.util.SparderTypeUtil
 import org.apache.spark.sql.{DataFrame, Dataset, Row, SparderEnv}
 
@@ -73,16 +63,14 @@ object SparderLookupManager extends Logging {
     val tableDesc = metaMgr.getTableDesc(tableName)
     val columns = tableDesc.getColumns
     val dfTableName = Integer.toHexString(System.identityHashCode(name))
-    val schema = StructType(Range(0, columns.size).map(index => {
-      val sparderType =
-        if (SparderTypeUtil.isDateTimeFamilyType(
-              columns(index).getType.getName)) DateType
-        else StringType
-      StructField(DeriveTableColumnInfo(dfTableName,
-                                        index,
-                                        columns(index).getName).toString,
-                  sparderType)
-    }))
+    val schema = StructType(Range(0, columns.size).map(
+      index => {
+        StructField(DeriveTableColumnInfo(dfTableName,
+          index,
+          columns(index).getName).toString,
+          SparderTypeUtil.toSparkType(columns(index).getType))
+      }))
+
     val rsourcePath = KapConfig.getInstanceFromEnv.getReadHdfsWorkingDirectory + sourcePath
     SparderEnv.getSparkSession.read
       .parquet(rsourcePath)
