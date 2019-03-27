@@ -487,6 +487,9 @@ import { NamedRegex } from '../../../../config'
     })
   },
   methods: {
+    ...mapMutations({
+      clearDatasourceCache: 'CLEAR_DATASOURCE_CACHE'
+    }),
     ...mapActions({
       getModelByModelName: 'LOAD_MODEL_INFO',
       loadDataSourceByProject: 'LOAD_DATASOURCE',
@@ -1320,6 +1323,7 @@ export default class ModelEdit extends Vue {
     this.$el.onselectstart = function (e) {
       return false
     }
+    this.clearDatasourceCache(this.currentSelectedProject) // 清空 当前project下的 datasource缓存
     this.loadDataSourceByProject({project: this.currentSelectedProject, isExt: true}).then((res) => { // 初始化project数据
       handleSuccess(res, (data) => {
         this.datasource = data

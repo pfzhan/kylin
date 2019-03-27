@@ -7,7 +7,8 @@ export default {
     encodingMatchs: null,
     encodingCache: {},
     currentShowTableData: null,
-    editableTabs: null
+    editableTabs: null,
+    mapHasTables: {}
   },
   getters: {
     getQueryTabs (state) {
@@ -15,14 +16,26 @@ export default {
     }
   },
   mutations: {
+    [types.CLEAR_DATASOURCE_CACHE]: function (state, { project }) {
+      state.mapHasTables = {}
+      state.dataSource[project] = []
+    },
     [types.CACHE_DATASOURCE]: function (state, { data, project, isReset = true }) {
-      if (isReset) {
-        state.dataSource[project] = data.tables
-      } else {
-        data.tables.forEach(table => {
-          state.dataSource[project].push(table)
-        })
-      }
+      state.dataSource[project] = state.dataSource[project] || []
+      data.tables.forEach((t) => {
+        let tableUid = project + t.database + t.name
+        if (!state.mapHasTables[tableUid]) {
+          state.dataSource[project].push(t)
+          state.mapHasTables[tableUid] = true
+        }
+      })
+      // if (isReset) {
+      //   state.dataSource[project] = data.tables
+      // } else {
+      //   data.tables.forEach(table => {
+      //     state.dataSource[project].push(table)
+      //   })
+      // }
     },
     [types.CACHE_ENCODINGS]: function (state, { data, project }) {
       state.encodings = data
