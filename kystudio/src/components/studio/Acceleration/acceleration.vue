@@ -116,22 +116,24 @@
         </el-col>
         <el-col :span="8">
           <div class="ky-list-title ksd-mt-12 ksd-fs-14">{{$t('sqlBox')}}</div>
-          <div class="query_panel_box ksd-mt-10">
-            <kap-editor ref="whiteInputBox" :height="inputHeight" :readOnly="this.isReadOnly" :isFormatter="true" lang="sql" theme="chrome" v-model="whiteSql">
-            </kap-editor>
-            <div class="operatorBox" v-show="isEditSql">
-              <div class="btn-group ksd-fright">
-                <el-button size="medium" @click="cancelEdit(isWhiteErrorMessage)">{{$t('kylinLang.common.cancel')}}</el-button>
-                <el-button type="primary" size="medium" plain :loading="validateLoading" @click="validateWhiteSql()">{{$t('kylinLang.common.submit')}}</el-button>
+          <div v-loading="sqlLoading" element-loading-spinner="el-icon-loading">
+            <div class="query_panel_box ksd-mt-10">
+              <kap-editor ref="whiteInputBox" :height="inputHeight" :readOnly="this.isReadOnly" lang="sql" theme="chrome" v-model="whiteSql">
+              </kap-editor>
+              <div class="operatorBox" v-show="isEditSql">
+                <div class="btn-group ksd-fright">
+                  <el-button size="medium" @click="cancelEdit(isWhiteErrorMessage)">{{$t('kylinLang.common.cancel')}}</el-button>
+                  <el-button type="primary" size="medium" plain :loading="validateLoading" @click="validateWhiteSql()">{{$t('kylinLang.common.submit')}}</el-button>
+                </div>
               </div>
             </div>
-          </div>
-          <div class="error_messages" v-if="isWhiteErrorMessage">
-            <div v-for="(mes, index) in whiteMessages" :key="index">
-              <div class="label">{{$t('messages')}}</div>
-              <p>{{mes.incapableReason}}</p>
-              <div class="label ksd-mt-10">{{$t('suggestion')}}</div>
-              <p>{{mes.suggestion}}</p>
+            <div class="error_messages" v-if="isWhiteErrorMessage">
+              <div v-for="(mes, index) in whiteMessages" :key="index">
+                <div class="label">{{$t('messages')}}</div>
+                <p>{{mes.incapableReason}}</p>
+                <div class="label ksd-mt-10">{{$t('suggestion')}}</div>
+                <p>{{mes.suggestion}}</p>
+              </div>
             </div>
           </div>
         </el-col>
@@ -154,6 +156,7 @@
       width="1180px"
       :close-on-press-escape="false"
       :close-on-click-modal="false"
+      @close="resetBlack"
       class="blackListDialog">
       <span slot="title" class="ky-list-title">{{$t('blackList')}}
         <el-tooltip placement="left">
@@ -192,8 +195,8 @@
         </el-col>
         <el-col :span="8" v-if="showSearchResult">
           <div class="ky-list-title ksd-mt-12 ksd-fs-14">{{$t('sqlBox')}}</div>
-          <div class="query_panel_box ksd-mt-10">
-            <kap-editor ref="blackInputBox" :height="inputHeight" :readOnly="true" :isFormatter="true" lang="sql" theme="chrome" v-model="blackSql">
+          <div class="query_panel_box ksd-mt-10" v-loading="sqlLoading" element-loading-spinner="el-icon-loading">
+            <kap-editor ref="blackInputBox" :height="inputHeight" :readOnly="true" lang="sql" theme="chrome" v-model="blackSql">
             </kap-editor>
           </div>
         </el-col>
@@ -290,6 +293,7 @@ import $ from 'jquery'
 import { handleSuccessAsync, handleError, objectClone } from '../../../util/index'
 import { handleSuccess, transToGmtTime, kapConfirm } from '../../../util/business'
 import accelerationTable from './acceleration_table'
+import sqlFormatter from 'sql-formatter'
 @Component({
   methods: {
     transToGmtTime: transToGmtTime,
@@ -425,9 +429,11 @@ export default class FavoriteQuery extends Vue {
   isEditSql = false
   blackSqlFilter = ''
   whiteSqlFilter = ''
+  sqlLoading = false
   activeIndex = 0
   activeSqlObj = null
   whiteSqlData = null
+  sqlFormatterObj = {}
   blackSqlData = null
   blackSql = ''
   whiteSql = ''
@@ -718,19 +724,36 @@ export default class FavoriteQuery extends Vue {
       this.activeSqlObj = null
     }
   }
-
+  showLoading () {
+    this.sqlLoading = true
+  }
+  hideLoading () {
+    this.sqlLoading = false
+  }
   activeSql (sqlObj) {
-    this.whiteSql = sqlObj.sql
-    this.activeSqlObj = sqlObj
-    this.isEditSql = false
-    if (sqlObj.capable) {
-      this.isWhiteErrorMessage = false
-      this.inputHeight = 574
-    } else {
-      this.isWhiteErrorMessage = true
-      this.inputHeight = 574 - 145
-      this.whiteMessages = sqlObj.sqlAdvices
-    }
+    // SQL很长时formatter会耗时过长
+    this.showLoading()
+    setTimeout(() => {
+      let formatterSql
+      if (this.sqlFormatterObj[sqlObj.id]) {
+        formatterSql = this.sqlFormatterObj[sqlObj.id]
+      } else {
+        formatterSql = sqlFormatter.format(sqlObj.sql)
+        this.sqlFormatterObj[sqlObj.id] = formatterSql
+      }
+      this.whiteSql = formatterSql
+      this.activeSqlObj = sqlObj
+      this.isEditSql = false
+      if (sqlObj.capable) {
+        this.isWhiteErrorMessage = false
+        this.inputHeight = 574
+      } else {
+        this.isWhiteErrorMessage = true
+        this.inputHeight = 574 - 145
+        this.whiteMessages = sqlObj.sqlAdvices
+      }
+      this.hideLoading()
+    }, 100)
   }
 
   editWhiteSql (sqlObj) {
@@ -743,8 +766,19 @@ export default class FavoriteQuery extends Vue {
       this.isWhiteErrorMessage = true
       this.inputHeight = 522 - 145
     }
-    this.whiteSql = sqlObj.sql
-    this.activeSqlObj = sqlObj
+    this.showLoading()
+    setTimeout(() => {
+      let formatterSql
+      if (this.sqlFormatterObj[sqlObj.id]) {
+        formatterSql = this.sqlFormatterObj[sqlObj.id]
+      } else {
+        formatterSql = sqlFormatter.format(sqlObj.sql)
+        this.sqlFormatterObj[sqlObj.id] = formatterSql
+      }
+      this.whiteSql = formatterSql
+      this.activeSqlObj = sqlObj
+      this.hideLoading()
+    }, 100)
     this.isReadOnly = false
   }
 
@@ -788,6 +822,10 @@ export default class FavoriteQuery extends Vue {
     this.pagerTableData = []
     this.whiteSqlFilter = ''
     this.importLoading = false
+    this.sqlFormatterObj = {}
+  }
+  resetBlack () {
+    this.sqlFormatterObj = {}
   }
 
   submitFiles () {
@@ -958,7 +996,7 @@ export default class FavoriteQuery extends Vue {
   cancelEdit (isErrorMes) {
     this.isEditSql = false
     this.inputHeight = isErrorMes ? 574 - 145 : 574
-    this.whiteSql = this.activeSqlObj.sql
+    this.whiteSql = this.sqlFormatterObj[this.activeSqlObj.id]
     this.activeSqlObj = null
     this.isReadOnly = true
   }
@@ -1027,8 +1065,19 @@ export default class FavoriteQuery extends Vue {
   }
 
   viewBlackSql (row) {
-    this.activeSqlObj = row
-    this.blackSql = row.sql_pattern
+    this.showLoading()
+    setTimeout(() => {
+      this.activeSqlObj = row
+      let formatterSql
+      if (this.blackSqlData[row.id]) {
+        formatterSql = this.sqlFormatterObj[row.id]
+      } else {
+        formatterSql = sqlFormatter.format(row.sql_pattern)
+        this.sqlFormatterObj[row.id] = formatterSql
+      }
+      this.blackSql = formatterSql
+    }, 100)
+    this.hideLoading()
   }
 
   delBlack (id) {

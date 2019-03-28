@@ -139,6 +139,12 @@
               </td>
             </tr>
             <tr>
+              <td>{{$t('TargetSubject')}}</td>
+              <td>
+                {{selectedJob.target_model_alias}}
+              </td>
+            </tr>
+            <tr>
               <td>{{$t('kylinLang.common.status')}}</td>
               <td>
                 <el-tag
@@ -810,6 +816,7 @@ export default class JobsList extends Vue {
     this.filter.pageSize = count
     this.resetSelection()
     this.getJobsList()
+    this.closeIt()
   }
   waitingJobsCurrentChange (size, count) {
     this.waittingJobsFilter.offset = size
