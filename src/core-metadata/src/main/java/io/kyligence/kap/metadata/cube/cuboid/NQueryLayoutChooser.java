@@ -31,8 +31,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
-import javax.annotation.Nullable;
+import java.util.stream.Collectors;
 
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.ArrayUtils;
@@ -51,9 +50,7 @@ import org.apache.kylin.metadata.realization.SQLDigest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
-import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
@@ -72,14 +69,17 @@ import io.kyligence.kap.metadata.model.NDataModel;
 public class NQueryLayoutChooser {
     private static final Logger logger = LoggerFactory.getLogger(NQueryLayoutChooser.class);
 
+    private NQueryLayoutChooser() {
+    }
+
     public static Pair<NLayoutCandidate, List<CapabilityResult.CapabilityInfluence>> selectCuboidLayout(
             NDataSegment segment, SQLDigest sqlDigest) {
         if (segment == null) {
             logger.info("Exclude this segments because there are no ready segments");
             return null;
         }
-        List<NLayoutCandidate> candidates = new ArrayList<>();
 
+        List<NLayoutCandidate> candidates = new ArrayList<>();
         Map<NLayoutCandidate, CapabilityResult> candidateCapabilityResultMap = Maps.newHashMap();
         for (NDataLayout cuboid : segment.getSegDetails().getLayouts()) {
             CapabilityResult tempResult = new CapabilityResult();
@@ -113,16 +113,27 @@ public class NQueryLayoutChooser {
             }
         }
 
-        if (candidates.isEmpty()) {
-            return null;
-        } else {
-            Ordering<NLayoutCandidate> ordering = Ordering.natural().onResultOf(L1Comparator())
-                    .compound(L2Comparator(ImmutableSet.copyOf(sqlDigest.filterColumns), segment.getConfig()))
-                    .compound(L3Comparator());
+        if (!candidates.isEmpty()) {
+            final KylinConfig config = segment.getConfig();
+            final Set<TblColRef> filterColumns = ImmutableSet.copyOf(sqlDigest.filterColumns);
+            final Set<TblColRef> nonFilterColumns = sqlDigest.isRawQuery
+                    ? sqlDigest.allColumns.stream()
+                            .filter(colRef -> colRef.getFilterLevel() == TblColRef.FilterColEnum.NONE)
+                            .collect(Collectors.toSet())
+                    : sqlDigest.groupbyColumns.stream()
+                            .filter(colRef -> colRef.getFilterLevel() == TblColRef.FilterColEnum.NONE)
+                            .collect(Collectors.toSet());
+
+            Ordering<NLayoutCandidate> ordering = Ordering.natural() //
+                    .onResultOf(NLayoutCandidate::getCost) // L1 comparator, compare cuboid rows
+                    .compound(filterColumnComparator(filterColumns, config)) // L2 comparator, order filter columns
+                    .compound(columnSizeComparator()) // L3 comparator, order size of cuboid columns
+                    .compound(nonFilterColumnComparator(nonFilterColumns, config)); // L4 comparator, order non-filter columns
             candidates.sort(ordering);
             NLayoutCandidate chosenCandidate = candidates.get(0);
             return new Pair<>(chosenCandidate, candidateCapabilityResultMap.get(chosenCandidate).influences);
         }
+        return null;
     }
 
     private static void unmatchedAggregations(Collection<FunctionDesc> aggregations, LayoutEntity cuboidLayout) {
@@ -206,35 +217,71 @@ public class NQueryLayoutChooser {
                 influencingMeasures.add(measure.getName() + "@" + measureType.getClass());
             }
         }
-        if (influencingMeasures.size() != 0)
+        if (!influencingMeasures.isEmpty()) {
             logger.info("NDataflow {} CapabilityInfluences: {}", indexEntity.getIndexPlan().getUuid(),
                     StringUtils.join(influencingMeasures, ","));
+        }
     }
 
-    private static Function<NLayoutCandidate, Comparable> L1Comparator() {
-        return new Function<NLayoutCandidate, Comparable>() {
-            //L1 comparator, compare cuboid rows
-            @Override
-            public Comparable apply(NLayoutCandidate input) {
-                return input.getCost();
-            }
-        };
+    private static Comparator<NLayoutCandidate> columnSizeComparator() {
+        return Comparator.comparingInt(candidate -> candidate.getCuboidLayout().getColOrder().size());
     }
 
-    private static Comparator<NLayoutCandidate> L3Comparator() {
-        //L3 comparator, compare cuboid columns
-        return new Comparator<NLayoutCandidate>() {
-            @Override
-            public int compare(NLayoutCandidate o1, NLayoutCandidate o2) {
-                return o1.getCuboidLayout().getColOrder().size() - o2.getCuboidLayout().getColOrder().size();
-            }
-        };
+    private static Comparator<NLayoutCandidate> filterColumnComparator(Set<TblColRef> filters, KylinConfig config) {
+        return l2Comparator(filters, config, true);
     }
 
-    private static Comparator<NLayoutCandidate> L2Comparator(ImmutableSet<TblColRef> filterColumns,
+    private static Comparator<NLayoutCandidate> nonFilterColumnComparator(Set<TblColRef> nonFilters,
             KylinConfig config) {
-        //L2 comparator, compare cuboid layout
-        return NLayoutCandidateComparators.matchQueryPattern(filterColumns, config);
+        return l2Comparator(nonFilters, config, false);
+    }
+
+    private static Comparator<NLayoutCandidate> l2Comparator(Set<TblColRef> columns, KylinConfig config,
+            boolean isFilterCol) {
+        return (layoutCandidate1, layoutCandidate2) -> {
+            List<Integer> position1 = getColumnsPos(layoutCandidate1, config, columns, isFilterCol);
+            List<Integer> position2 = getColumnsPos(layoutCandidate2, config, columns, isFilterCol);
+            Iterator<Integer> iter1 = position1.iterator();
+            Iterator<Integer> iter2 = position2.iterator();
+
+            while (iter1.hasNext() && iter2.hasNext()) {
+                int i1 = iter1.next();
+                int i2 = iter2.next();
+
+                int c = i1 - i2;
+                if (c != 0)
+                    return c;
+            }
+
+            return 0;
+        };
+    }
+
+    private static List<Integer> getColumnsPos(final NLayoutCandidate candidate, KylinConfig config,
+            Set<TblColRef> columns, boolean isFilterCol) {
+        List<Integer> positions = Lists.newArrayList();
+        List<TblColRef> sortedColumns = Lists.newArrayList(columns);
+        String project = candidate.getCuboidLayout().getModel().getProject();
+        if (isFilterCol) {
+            sortedColumns.sort(ComparatorUtils.filterColComparator(config, project));
+        } else {
+            sortedColumns.sort(ComparatorUtils.nonFilterColComparator());
+        }
+
+        for (TblColRef col : sortedColumns) {
+            DeriveInfo deriveInfo = candidate.getDerivedToHostMap().get(col);
+            if (deriveInfo == null) {
+                int id = candidate.getCuboidLayout().getDimensionPos(col);
+                positions.add(candidate.getCuboidLayout().getColOrder().indexOf(id));
+            } else {
+                TblColRef[] hostCols = deriveInfo.columns;
+                for (TblColRef hostCol : hostCols) {
+                    int id = candidate.getCuboidLayout().getDimensionPos(hostCol);
+                    positions.add(candidate.getCuboidLayout().getColOrder().indexOf(id));
+                }
+            }
+        }
+        return positions;
     }
 
     private static void goThruDerivedDims(final IndexEntity indexEntity, final NDataflow dataflow,
@@ -269,12 +316,7 @@ public class NQueryLayoutChooser {
 
             // in some rare cases, FK needs to be derived from PK
             ImmutableCollection<TblColRef> pks = model.getFk2Pk().get(unmatchedDim);
-            Iterable<TblColRef> pksOnCuboid = Iterables.filter(pks, new Predicate<TblColRef>() {
-                @Override
-                public boolean apply(@Nullable TblColRef input) {
-                    return indexEntity.dimensionsDerive(input);
-                }
-            });
+            Iterable<TblColRef> pksOnCuboid = Iterables.filter(pks, indexEntity::dimensionsDerive);
             TblColRef pk = Iterables.getFirst(pksOnCuboid, null);
             if (pk != null) {
                 JoinDesc joinByPKSide = model.getJoinByPKSide(pk.getTableRef());

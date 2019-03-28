@@ -71,7 +71,7 @@ public class NProjectLoader {
         TransactionListenerRegistry.register(NProjectLoader::updateCache, project -> NProjectLoader.removeCache());
     }
 
-    private static ThreadLocal<ProjectBundle> cache = new InheritableThreadLocal<>();
+    private static ThreadLocal<ProjectBundle> cache = new ThreadLocal<>();
 
     public static void updateCache(@Nullable String project) {
         if (StringUtils.isNotEmpty(project) && !project.startsWith("_")) {

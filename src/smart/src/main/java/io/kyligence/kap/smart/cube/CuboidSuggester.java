@@ -26,15 +26,12 @@ package io.kyligence.kap.smart.cube;
 
 import java.util.Collection;
 import java.util.Comparator;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.SortedSet;
 
 import org.apache.commons.collections.CollectionUtils;
-import org.apache.kylin.metadata.filter.CompareTupleFilter;
-import org.apache.kylin.metadata.filter.TupleFilter;
 import org.apache.kylin.metadata.model.FunctionDesc;
 import org.apache.kylin.metadata.model.TableExtDesc;
 import org.apache.kylin.metadata.model.TblColRef;
@@ -48,6 +45,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
+import io.kyligence.kap.metadata.cube.cuboid.ComparatorUtils;
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import io.kyligence.kap.metadata.cube.model.IndexEntity.IndexIdentifier;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
@@ -68,42 +66,6 @@ class CuboidSuggester {
     private static final String COLUMN_NOT_FOUND_PTN = "The model [%s] matches this query, but the dimension [%s] is missing. ";
     private static final String MEASURE_NOT_FOUND_PTN = "The model [%s] matches this query, but the measure [%s] is missing. ";
     private static final String TABLE_NOT_MATCHED = "The join of model [%s] has some difference with the joins of this query. ";
-
-    private class ColIndexSuggester {
-        OLAPContext olapContext;
-
-        private ColIndexSuggester(OLAPContext olapContext) {
-            this.olapContext = olapContext;
-        }
-
-        private String suggest(TblColRef colRef) {
-            TupleFilter filter = olapContext.filter;
-            LinkedList<TupleFilter> filters = Lists.newLinkedList();
-            filters.add(filter);
-            while (!filters.isEmpty()) {
-                TupleFilter f = filters.poll();
-                if (f == null)
-                    continue;
-                if (f instanceof CompareTupleFilter) {
-                    CompareTupleFilter cf = (CompareTupleFilter) f;
-                    if (cf.isEvaluable() && cf.getColumn().getIdentity().equals(colRef.getIdentity())) {
-                        switch (f.getOperator()) {
-                        case GT:
-                        case GTE:
-                        case LT:
-                        case LTE:
-                            return "all";
-                        default:
-                            break;
-                        }
-                    }
-                }
-                if (f.getChildren() != null)
-                    filters.addAll(f.getChildren());
-            }
-            return "eq";
-        }
-    }
 
     private NSmartContext smartContext;
     private IndexPlan indexPlan;
@@ -157,20 +119,6 @@ class CuboidSuggester {
                 ctx.unfixModel();
             }
         }
-    }
-
-    private Map<Integer, String> suggestIndexMap(OLAPContext ctx, final Map<Integer, Double> dimScores,
-            Map<Integer, TblColRef> colRefMap) {
-        ColIndexSuggester suggester = new ColIndexSuggester(ctx);
-        Map<Integer, String> ret = Maps.newHashMap();
-        for (Map.Entry<Integer, Double> dimEntry : dimScores.entrySet()) {
-            int dimId = dimEntry.getKey();
-            String index = suggester.suggest(colRefMap.get(dimId));
-            if (!"eq".equals(index)) {
-                ret.put(dimId, index);
-            }
-        }
-        return ret;
     }
 
     private List<Integer> suggestShardBy(Collection<Integer> dimIds) {
@@ -250,9 +198,11 @@ class CuboidSuggester {
     }
 
     private List<Integer> suggestDimensions(OLAPContext context) {
-        Set<TblColRef> allDimensions = Sets.newHashSet();
-        Set<TblColRef> nonFilterCols = Sets.newHashSet(context.allColumns);
-        nonFilterCols.removeAll(context.filterColumns);
+
+        // 1. determine filter columns and non-filter columns
+        List<TblColRef> filterColumns = Lists.newArrayList(context.filterColumns);
+        Set<TblColRef> nonFilterColumnSet = Sets.newHashSet(context.allColumns);
+        nonFilterColumnSet.removeAll(context.filterColumns);
         context.aggregations.forEach(functionDesc -> {
             if (CollectionUtils.isEmpty(functionDesc.getParameters())) {
                 return;
@@ -262,35 +212,39 @@ class CuboidSuggester {
             if (CollectionUtils.isNotEmpty(aggCols)) {
                 aggCols.removeAll(context.getGroupByColumns());
                 aggCols.removeAll(context.getSubqueryJoinParticipants());
-                nonFilterCols.removeAll(aggCols);
+                nonFilterColumnSet.removeAll(aggCols);
             }
         });
-        allDimensions.addAll(context.filterColumns);
-        allDimensions.addAll(nonFilterCols);
 
-        List<Integer> dimensions = Lists.newArrayList();
+        // 2. add extra non-filter column if necessary
         boolean isTableIndex = context.getSQLDigest().isRawQuery;
         final ImmutableBiMap<Integer, TblColRef> colMap;
         if (isTableIndex) {
             colMap = model.getEffectiveColsMap();
             // no column selected in raw query , select the first column of the model (i.e. select 1 from table1)
-            if (allDimensions.isEmpty()) {
+            if (nonFilterColumnSet.isEmpty() && filterColumns.isEmpty()) {
                 Preconditions.checkState(CollectionUtils.isNotEmpty(model.getAllNamedColumns()),
                         "Cannot suggest any columns in table index.");
                 final NDataModel.NamedColumn namedColumn = model.getAllNamedColumns().iterator().next();
-                allDimensions.add(colMap.get(namedColumn.getId()));
+                nonFilterColumnSet.add(colMap.get(namedColumn.getId()));
             }
         } else {
             colMap = model.getEffectiveDimenionsMap();
         }
-        final List<TblColRef> orderedDimensions = Lists.newArrayList(allDimensions);
-        final Comparator<TblColRef> tblColRefComparator = TableExtDesc.ColumnStats
+
+        // 3. sort filter columns and non-filter columns
+        final Comparator<TblColRef> filterColComparator = ComparatorUtils
                 .filterColComparator(smartContext.getKylinConfig(), smartContext.getProject());
-        orderedDimensions.sort(tblColRefComparator);
+        filterColumns.sort(filterColComparator);
+        final List<TblColRef> nonFilterColumns = Lists.newArrayList(nonFilterColumnSet);
+        nonFilterColumns.sort(ComparatorUtils.nonFilterColComparator());
+
+        // 4. generate dimension ids
+        final List<Integer> dimensions = Lists.newArrayList();
         final ImmutableBiMap<TblColRef, Integer> colIdMap = colMap.inverse();
-        orderedDimensions.forEach(dimension -> {
-            dimensions.add(Preconditions.checkNotNull(colIdMap.get(dimension)));
-        });
+        filterColumns.forEach(dimension -> dimensions.add(Preconditions.checkNotNull(colIdMap.get(dimension))));
+        nonFilterColumns.forEach(dimension -> dimensions.add(Preconditions.checkNotNull(colIdMap.get(dimension))));
+
         return dimensions;
     }
 

@@ -24,35 +24,24 @@
 
 package io.kyligence.kap.newten.auto;
 
-import org.junit.Ignore;
+import org.junit.Assert;
 import org.junit.Test;
 
 import io.kyligence.kap.newten.NExecAndComp.CompareLevel;
+import lombok.val;
 
-public class NAutoTpchTest extends NAutoTestBase {
-
-    //KAP#7892 fix this
+public class NAutoReproposeValidationTest extends NAutoTestBase {
     @Test
-    public void testTpch() throws Exception {
-        // split batch to verify KAP#9114
-        new TestScenario(CompareLevel.SAME, "sql_tpch", 0, 5).execute();
-        new TestScenario(CompareLevel.SAME, "sql_tpch", 5, 10).execute();
-        new TestScenario(CompareLevel.SAME, "sql_tpch", 10, 15).execute();
-        new TestScenario(CompareLevel.SAME, "sql_tpch", 15, 22).execute();
-    }
+    public void test() throws Exception {
+        val firstRoundProposed = new TestScenario(CompareLevel.SAME, "sql", 35, 36).execute(true);
 
-    @Test
-    public void testReProposeCase() throws Exception {
-        // run twice to verify KAP#7515
-        for (int i = 0; i < 2; ++i) {
-            new TestScenario(CompareLevel.SAME, "sql_tpch", 1, 2).execute();
-        }
-    }
+        // set 'kap.smart.conf.rowkey.uhc.min-cardinality' = 50 to test
+        getTestConfig().setProperty("kap.smart.conf.rowkey.uhc.min-cardinality", "50");
+        val secondRoundProposed = new TestScenario(CompareLevel.SAME, "sql", 35, 36).execute(true);
 
-    @Test
-    @Ignore
-    public void testTemp() throws Exception {
-        new TestScenario(CompareLevel.SAME, "temp").execute();
-
+        firstRoundProposed.forEach((sql, entity) -> {
+            Assert.assertFalse(entity.getAccelerateLayouts()
+                    .equalsIgnoreCase(secondRoundProposed.get(sql).getAccelerateLayouts()));
+        });
     }
 }

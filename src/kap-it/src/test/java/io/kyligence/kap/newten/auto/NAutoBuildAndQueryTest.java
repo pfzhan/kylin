@@ -104,8 +104,8 @@ public class NAutoBuildAndQueryTest extends NAutoTestBase {
      * don't move it.
      */
     @Test
-    public void testCountStar() {
-        new TestScenario(CompareLevel.SAME, "sql_count_star");
+    public void testCountStar() throws Exception {
+        new TestScenario(CompareLevel.SAME, "sql_count_star").execute();
     }
 
     /***************

@@ -60,21 +60,18 @@ import io.kyligence.kap.utils.RecAndQueryCompareUtil.CompareEntity;
 public class NExecAndComp {
     private static final Logger logger = LoggerFactory.getLogger(NExecAndComp.class);
 
-    private static final String CSV_TABLE_DIR = "../examples/test_metadata/data/%s.csv";
-
     public enum CompareLevel {
         SAME, // exec and compare
         SAME_ROWCOUNT, SUBSET, NONE, // batch execute
         SAME_SQL_COMPARE
     }
 
-    static void execLimitAndValidate(List<Pair<String, String>> queries, String prj,
-            String joinType) {
+    static void execLimitAndValidate(List<Pair<String, String>> queries, String prj, String joinType) {
         execLimitAndValidateNew(queries, prj, joinType, null);
     }
 
-    public static void execLimitAndValidateNew(List<Pair<String, String>> queries, String prj,
-            String joinType, Map<String, CompareEntity> recAndQueryResult) {
+    public static void execLimitAndValidateNew(List<Pair<String, String>> queries, String prj, String joinType,
+            Map<String, CompareEntity> recAndQueryResult) {
 
         int appendLimitQueries = 0;
         for (Pair<String, String> query : queries) {
@@ -87,8 +84,7 @@ public class NExecAndComp {
                 appendLimitQueries++;
             }
 
-            Dataset<Row> kapResult = (recAndQueryResult == null)
-                    ? queryWithKap(prj, joinType, sqlAndAddedLimitSql)
+            Dataset<Row> kapResult = (recAndQueryResult == null) ? queryWithKap(prj, joinType, sqlAndAddedLimitSql)
                     : queryWithKap(prj, joinType, sqlAndAddedLimitSql, recAndQueryResult);
             addQueryPath(recAndQueryResult, query, sql);
             Dataset<Row> sparkResult = queryWithSpark(prj, sql);
@@ -101,12 +97,13 @@ public class NExecAndComp {
         logger.info("Queries appended with limit: " + appendLimitQueries);
     }
 
-    public static void execAndCompare(List<Pair<String, String>> queries, String prj, CompareLevel compareLevel, String joinType) {
+    public static void execAndCompare(List<Pair<String, String>> queries, String prj, CompareLevel compareLevel,
+            String joinType) {
         execAndCompareNew(queries, prj, compareLevel, joinType, null);
     }
 
-    public static void execAndCompareNew(List<Pair<String, String>> queries, String prj,
-            CompareLevel compareLevel, String joinType, Map<String, CompareEntity> recAndQueryResult) {
+    public static void execAndCompareNew(List<Pair<String, String>> queries, String prj, CompareLevel compareLevel,
+            String joinType, Map<String, CompareEntity> recAndQueryResult) {
         for (Pair<String, String> query : queries) {
             logger.info("Exec and compare query ({}) :{}", joinType, query.getFirst());
 
@@ -114,8 +111,7 @@ public class NExecAndComp {
 
             // Query from Cube
             long startTime = System.currentTimeMillis();
-            Dataset<Row> cubeResult = (recAndQueryResult == null)
-                    ? queryWithKap(prj, joinType, Pair.newPair(sql, sql))
+            Dataset<Row> cubeResult = (recAndQueryResult == null) ? queryWithKap(prj, joinType, Pair.newPair(sql, sql))
                     : queryWithKap(prj, joinType, Pair.newPair(sql, sql), recAndQueryResult);
             addQueryPath(recAndQueryResult, query, sql);
             if (compareLevel != CompareLevel.NONE) {
@@ -155,8 +151,7 @@ public class NExecAndComp {
         recAndQueryResult.get(modifiedSql).setFilePath(query.getFirst());
     }
 
-    static void execCompareQueryAndCompare(List<Pair<String, String>> queries, String prj,
-            String joinType) {
+    static void execCompareQueryAndCompare(List<Pair<String, String>> queries, String prj, String joinType) {
         for (Pair<String, String> query : queries) {
 
             logger.info("Exec CompareQuery and compare on query: " + query.getFirst());
@@ -170,32 +165,8 @@ public class NExecAndComp {
         }
     }
 
-    static void execAndCompareOld(List<Pair<String, String>> queries, String prj,
-            CompareLevel compareLevel, String joinType) {
-
-        for (Pair<String, String> query : queries) {
-            logger.info("Exec and compare query (" + joinType + ") :" + query.getFirst());
-
-            String sql = KylinTestBase.changeJoinType(query.getSecond(), joinType);
-
-            // Query from Cube
-            Dataset<Row> cubeResult = queryWithKap(prj, joinType, new Pair<>(sql, sql));
-
-            if (compareLevel != CompareLevel.NONE) {
-                Dataset<Row> sparkResult = queryWithSpark(prj, sql);
-                compareResults(sparkResult, cubeResult, compareLevel);
-            } else {
-                cubeResult.persist();
-                System.out
-                        .println("result comparision is not available, part of the cube results:" + cubeResult.count());
-                cubeResult.show();
-                cubeResult.unpersist();
-            }
-        }
-    }
-
-    private static Dataset<Row> queryWithKap(String prj, String joinType,
-            Pair<String, String> pair, Map<String, CompareEntity> compareEntityMap) {
+    private static Dataset<Row> queryWithKap(String prj, String joinType, Pair<String, String> pair,
+            Map<String, CompareEntity> compareEntityMap) {
 
         compareEntityMap.putIfAbsent(pair.getFirst(), new CompareEntity());
         final CompareEntity entity = compareEntityMap.get(pair.getFirst());
@@ -206,8 +177,7 @@ public class NExecAndComp {
         return rowDataset;
     }
 
-    private static Dataset<Row> queryWithKap(String prj, String joinType,
-            Pair<String, String> sql) {
+    private static Dataset<Row> queryWithKap(String prj, String joinType, Pair<String, String> sql) {
         return queryFromCube(prj, KylinTestBase.changeJoinType(sql.getSecond(), joinType));
     }
 
@@ -261,7 +231,14 @@ public class NExecAndComp {
         }
         List<Pair<String, String>> ret = Lists.newArrayList();
         assert sqlFiles != null;
-        Arrays.sort(sqlFiles, (o1, o2) -> String.CASE_INSENSITIVE_ORDER.compare(o1.getName(), o2.getName()));
+        Arrays.sort(sqlFiles, (o1, o2) -> {
+            final String idxStr1 = o1.getName().replaceAll("\\D", "");
+            final String idxStr2 = o2.getName().replaceAll("\\D", "");
+            if (idxStr1.isEmpty() || idxStr2.isEmpty()) {
+                return String.CASE_INSENSITIVE_ORDER.compare(o1.getName(), o2.getName());
+            }
+            return Integer.parseInt(idxStr1) - Integer.parseInt(idxStr2);
+        });
         for (File sqlFile : sqlFiles) {
             String sqlStatement = FileUtils.readFileToString(sqlFile, "UTF-8").trim();
             int semicolonIndex = sqlStatement.lastIndexOf(";");

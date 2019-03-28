@@ -49,6 +49,7 @@ import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
+import io.kyligence.kap.metadata.project.NProjectLoader;
 import io.kyligence.kap.smart.query.SQLResult.Status;
 import io.kyligence.kap.smart.query.mockup.AbstractQueryExecutor;
 import io.kyligence.kap.smart.query.mockup.MockupQueryExecutor;
@@ -94,6 +95,7 @@ public abstract class AbstractQueryRunner implements Closeable {
                         NDataModelManager.getInstance(kylinConfig, project);
                         NDataflowManager.getInstance(kylinConfig, project);
                         NIndexPlanManager.getInstance(kylinConfig, project);
+                        NProjectLoader.updateCache(project);
                         record = executor.execute(project, sql);
                     }
                     queryCache.put(sql, record);

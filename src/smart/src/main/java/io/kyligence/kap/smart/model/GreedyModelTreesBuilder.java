@@ -73,20 +73,25 @@ public class GreedyModelTreesBuilder {
         for (int i = 0; i < sqls.size(); i++) {
             String sql = sqls.get(i);
             Collection<OLAPContext> sqlContexts = olapContexts.get(i);
-            sqlContexts.stream().filter(ctx -> ctx.firstTableScan != null)
-            .forEach(ctx -> {
-                TableDesc actualFactTbl = ctx.firstTableScan.getTableRef().getTableDesc();
-                if (expectTactTbl != null && !actualFactTbl.getIdentity().equals(expectTactTbl.getIdentity())) { // root fact not match
-                    return;
-                }
+            sqlContexts.stream() //
+                    .filter(ctx -> ctx.firstTableScan != null) //
+                    .forEach(ctx -> {
+                        TableDesc actualFactTbl = ctx.firstTableScan.getTableRef().getTableDesc();
+                        if (expectTactTbl != null && !actualFactTbl.getIdentity().equals(expectTactTbl.getIdentity())) {
+                            return; // root fact not match
+                        }
 
-                TreeBuilder builder = builders.computeIfAbsent(actualFactTbl, tbl -> new TreeBuilder(tbl, tableMap));
-                builder.addOLAPContext(sql, ctx);
-            });
+                        TreeBuilder builder = builders.computeIfAbsent(actualFactTbl,
+                                tbl -> new TreeBuilder(tbl, tableMap));
+                        builder.addOLAPContext(sql, ctx);
+                    });
         }
 
         // 2. each group generate multiple ModelTrees
-        List<ModelTree> results = builders.values().stream().map(TreeBuilder::build).flatMap(List::stream)
+        List<ModelTree> results = builders.values() //
+                .stream() //
+                .map(TreeBuilder::build) //
+                .flatMap(List::stream) //
                 .collect(Collectors.toList());
 
         // 3. enable current root_fact's model exists
@@ -110,9 +115,10 @@ public class GreedyModelTreesBuilder {
         }
         JoinsGraph graphA = new JoinsGraph(ctxA.firstTableScan.getTableRef(), Lists.newArrayList(ctxA.joins));
         JoinsGraph graphB = new JoinsGraph(ctxB.firstTableScan.getTableRef(), Lists.newArrayList(ctxB.joins));
-        return graphA.match(graphB, Maps.newHashMap()) || graphB.match(graphA, Maps.newHashMap())
+        return graphA.match(graphB, Maps.newHashMap()) //
+                || graphB.match(graphA, Maps.newHashMap())
                 || (graphA.unmatched(graphB).stream().allMatch(JoinsGraph.Edge::isLeftJoin)
-                && graphB.unmatched(graphA).stream().allMatch(JoinsGraph.Edge::isLeftJoin));
+                        && graphB.unmatched(graphA).stream().allMatch(JoinsGraph.Edge::isLeftJoin));
     }
 
     public static class TreeBuilder {
@@ -156,23 +162,25 @@ public class GreedyModelTreesBuilder {
             List<OLAPContext> usedCtxs = Lists.newArrayList();
             Map<String, TableRef> aliasRefMap = Maps.newHashMap();
             inputCtxs.removeIf(Objects::isNull);
-            inputCtxs.stream().filter(ctx -> matchContext(usedCtxs, ctx)).filter(ctx -> {
-                // Digest single table contexts(no joins)
-                if (ctx.joins.isEmpty()) {
-                    usedCtxs.add(ctx);
-                    return false;
-                }
-                return true;
-            }).forEach(ctx -> {
-                // Merge matching contexts' joins
-                mergeContext(ctx, joinTables, tableAliasMap, aliasRefMap);
-                usedCtxs.add(ctx);
-            });
+            inputCtxs.stream()//
+                    .filter(ctx -> matchContext(usedCtxs, ctx))//
+                    .filter(ctx -> { // Digest single table contexts(no joins)
+                        if (ctx.joins.isEmpty()) {
+                            usedCtxs.add(ctx);
+                            return false;
+                        }
+                        return true;
+                    })//
+                    .forEach(ctx -> {
+                        // Merge matching contexts' joins
+                        mergeContext(ctx, joinTables, tableAliasMap, aliasRefMap);
+                        usedCtxs.add(ctx);
+                    });
 
             inputCtxs.removeAll(usedCtxs);
             return new ModelTree(rootFact, usedCtxs, joinTables, correctedTableAlias);
         }
-        
+
         public static void mergeContext(OLAPContext ctx, Map<String, JoinTableDesc> alias2JoinTables,
                 Map<TableRef, String> tableRef2Alias, Map<String, TableRef> aliasRefMap) {
 

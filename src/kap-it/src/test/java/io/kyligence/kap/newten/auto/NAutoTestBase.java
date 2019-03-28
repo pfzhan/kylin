@@ -31,7 +31,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 import org.apache.commons.collections.CollectionUtils;
@@ -75,7 +74,6 @@ import io.kyligence.kap.query.util.QueryPatternUtil;
 import io.kyligence.kap.smart.NSmartMaster;
 import io.kyligence.kap.smart.common.AccelerateInfo;
 import io.kyligence.kap.utils.RecAndQueryCompareUtil;
-import io.kyligence.kap.utils.RecAndQueryCompareUtil.AccelerationMatchedLevel;
 import io.kyligence.kap.utils.RecAndQueryCompareUtil.CompareEntity;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
@@ -137,10 +135,11 @@ public class NAutoTestBase extends NLocalWithSparkSessionTest {
     }
 
     protected void executeTestScenario(TestScenario... testScenarios) throws Exception {
-        executeTestScenario(true, testScenarios);
+        executeTestScenario(false, testScenarios);
     }
 
-    private void executeTestScenario(boolean needCompareLayouts, TestScenario... testScenarios) throws Exception {
+    private Map<String, CompareEntity> executeTestScenario(boolean recordFQ, TestScenario... testScenarios)
+            throws Exception {
 
         // 1. execute auto-modeling propose
         final NSmartMaster smartMaster = proposeWithSmartMaster(testScenarios, getProject());
@@ -172,15 +171,15 @@ public class NAutoTestBase extends NLocalWithSparkSessionTest {
         // 4. compare layout propose result and query cube result
         RecAndQueryCompareUtil.computeCompareRank(kylinConfig, getProject(), compareMap);
         // 5. check layout
-        assertOrPrintCmpResult(compareMap, needCompareLayouts);
+        assertOrPrintCmpResult(compareMap);
 
         // 6. summary info
-        final Map<AccelerationMatchedLevel, AtomicInteger> rankInfoMap = RecAndQueryCompareUtil
-                .summarizeRankInfo(compareMap);
+        val rankInfoMap = RecAndQueryCompareUtil.summarizeRankInfo(compareMap);
         StringBuilder sb = new StringBuilder();
         sb.append("All used queries: ").append(compareMap.size()).append('\n');
         rankInfoMap.forEach((key, value) -> sb.append(key).append(": ").append(value).append("\n"));
         System.out.println(sb);
+        return compareMap;
     }
 
     private void dumpMetadata() throws Exception {
@@ -194,12 +193,12 @@ public class NAutoTestBase extends NLocalWithSparkSessionTest {
         ResourceStore.createMetadataStore(outputConfig).dump(resourceStore);
     }
 
-    private void assertOrPrintCmpResult(Map<String, CompareEntity> compareMap, boolean needCompareLayouts) {
+    private void assertOrPrintCmpResult(Map<String, CompareEntity> compareMap) {
         // print details
         compareMap.forEach((key, value) -> {
             final String sqlPattern = QueryPatternUtil.normalizeSQLPattern(key);
-            log.debug("**start comparing the SQL: \n{} \n accelerate layout info**", key);
-            if (!excludedSqlPatterns.contains(sqlPattern) && needCompareLayouts && !value.ignoredCompareLevel()) {
+            log.debug("** start comparing the SQL: {} **", value.getFilePath());
+            if (!excludedSqlPatterns.contains(sqlPattern) && !value.ignoredCompareLevel()) {
                 Assert.assertEquals(value.getAccelerateLayouts(), value.getQueryUsedLayouts());
             } else {
                 System.out.println(value.toString() + '\n');
@@ -267,7 +266,7 @@ public class NAutoTestBase extends NLocalWithSparkSessionTest {
         Preconditions.checkArgument(CollectionUtils.isNotEmpty(sqlList));
 
         String[] sqls = sqlList.toArray(new String[0]);
-        NSmartMaster smartMaster = new NSmartMaster(kylinConfig, project, sqls);
+        NSmartMaster smartMaster = new NSmartMaster(getTestConfig(), project, sqls);
         smartMaster.runAll();
         return smartMaster;
     }
@@ -417,8 +416,8 @@ public class NAutoTestBase extends NLocalWithSparkSessionTest {
             this.exclusionList = exclusionList;
         }
 
-        public void execute(boolean needCompareLayouts) throws Exception {
-            executeTestScenario(needCompareLayouts, this);
+        public Map<String, CompareEntity> execute(boolean recordFQ) throws Exception {
+            return executeTestScenario(recordFQ, this);
         }
 
         public void execute() throws Exception {

@@ -46,17 +46,16 @@ import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.persistence.RootPersistentEntity;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.measure.hllc.HLLCounter;
+import org.apache.kylin.metadata.MetadataConstants;
 
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonBackReference;
@@ -68,7 +67,6 @@ import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import lombok.Data;
 import lombok.Getter;
 import lombok.Setter;
-import org.apache.kylin.metadata.MetadataConstants;
 
 @Getter
 @SuppressWarnings("serial")
@@ -161,8 +159,8 @@ public class TableExtDesc extends RootPersistentEntity implements Serializable {
 
     @Override
     public String getResourcePath() {
-        return new StringBuilder().append("/").append(getProject()).append(ResourceStore.TABLE_EXD_RESOURCE_ROOT).append("/")
-                .append(getIdentity()).append(MetadataConstants.FILE_SURFIX).toString();
+        return new StringBuilder().append("/").append(getProject()).append(ResourceStore.TABLE_EXD_RESOURCE_ROOT)
+                .append("/").append(getIdentity()).append(MetadataConstants.FILE_SURFIX).toString();
     }
 
     public void updateLoadingRange(final SegmentRange segmentRange) {
@@ -387,37 +385,6 @@ public class TableExtDesc extends RootPersistentEntity implements Serializable {
                 }
             }
             return ret;
-        }
-
-        public static Comparator<TblColRef> filterColComparator(KylinConfig config, String project) {
-            NTableMetadataManager tableMetadataManager = NTableMetadataManager.getInstance(config, project);
-            return (col1, col2) -> {
-                // priority desc
-                int res = col2.getFilterLevel().getPriority() - col1.getFilterLevel().getPriority();
-                if (res == 0) {
-                    final ColumnStats ret1 = ColumnStats.getColumnStats(tableMetadataManager, col1);
-                    final ColumnStats ret2 = ColumnStats.getColumnStats(tableMetadataManager, col2);
-
-                    //null last
-                    if (ret2 == null && ret1 == null) {
-                        // column of incremental loading table ahead of its counterpart
-                        final TableDesc table1 = col1.getTableRef().getTableDesc();
-                        final TableDesc table2 = col2.getTableRef().getTableDesc();
-                        if (table1.isIncrementLoading() == table2.isIncrementLoading()) {
-                            return col1.getIdentity().compareToIgnoreCase(col2.getIdentity());
-                        } else {
-                            return table1.isIncrementLoading() ? -1 : 1;
-                        }
-                    } else if (ret2 == null) {
-                        return -1;
-                    } else if (ret1 == null) {
-                        return 1;
-                    }
-                    // getCardinality desc
-                    res = Long.compare(ret2.getCardinality(), ret1.getCardinality());
-                }
-                return res;
-            };
         }
     }
 }
