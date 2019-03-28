@@ -24,11 +24,18 @@
 
 package org.apache.kylin.job.impl.threadpool;
 
-import java.io.FileNotFoundException;
-import java.util.UUID;
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.stream.Collectors;
-
+import com.google.common.collect.Sets;
+import io.kyligence.kap.common.persistence.transaction.mq.MessageQueue;
+import io.kyligence.kap.metadata.cube.model.LayoutEntity;
+import io.kyligence.kap.metadata.cube.model.NBatchConstants;
+import io.kyligence.kap.metadata.cube.model.NDataSegment;
+import io.kyligence.kap.metadata.cube.model.NDataflowManager;
+import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
+import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
+import io.kyligence.kap.metadata.model.ManagementType;
+import io.kyligence.kap.metadata.model.NDataModelManager;
+import lombok.val;
+import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.JobProcessContext;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.CliCommandExecutor;
@@ -49,6 +56,7 @@ import org.apache.kylin.job.execution.SelfStopExecutable;
 import org.apache.kylin.job.execution.SucceedTestExecutable;
 import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 import org.assertj.core.api.Assertions;
+import org.awaitility.core.ConditionTimeoutException;
 import org.junit.Assert;
 import org.junit.Ignore;
 import org.junit.Rule;
@@ -57,18 +65,13 @@ import org.junit.rules.ExpectedException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.collect.Sets;
+import java.io.FileNotFoundException;
+import java.util.UUID;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
-import io.kyligence.kap.common.persistence.transaction.mq.MessageQueue;
-import io.kyligence.kap.metadata.cube.model.LayoutEntity;
-import io.kyligence.kap.metadata.cube.model.NBatchConstants;
-import io.kyligence.kap.metadata.cube.model.NDataSegment;
-import io.kyligence.kap.metadata.cube.model.NDataflowManager;
-import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
-import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
-import io.kyligence.kap.metadata.model.ManagementType;
-import io.kyligence.kap.metadata.model.NDataModelManager;
-import lombok.val;
+import static org.awaitility.Awaitility.await;
 
 public class NDefaultSchedulerTest extends BaseSchedulerTest {
     private static final Logger logger = LoggerFactory.getLogger(NDefaultSchedulerTest.class);
@@ -88,7 +91,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
     public ExpectedException thrown = ExpectedException.none();
 
     @Test
-    public void testSingleTaskJob() throws Exception {
+    public void testSingleTaskJob() {
         logger.info("testSingleTaskJob");
         val df = NDataflowManager.getInstance(getTestConfig(), project)
                 .getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
@@ -107,7 +110,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
     }
 
     @Test
-    public void testSucceed() throws Exception {
+    public void testSucceed() {
         logger.info("testSucceed");
         val df = NDataflowManager.getInstance(getTestConfig(), project)
                 .getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
@@ -128,15 +131,17 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         Assert.assertEquals(ExecutableState.SUCCEED, executableManager.getOutput(job.getId()).getState());
         Assert.assertEquals(ExecutableState.SUCCEED, executableManager.getOutput(task1.getId()).getState());
         Assert.assertEquals(ExecutableState.SUCCEED, executableManager.getOutput(task2.getId()).getState());
-        Thread.sleep(1000);//in case hdfs write is not finished yet
-        Assertions.assertThat(executableManager.getOutputFromHDFSByJobId(task1.getId()).getVerboseMsg())
-                .contains("succeed");
-        Assertions.assertThat(executableManager.getOutputFromHDFSByJobId(task2.getId()).getVerboseMsg())
-                .contains("succeed");
+        //in case hdfs write is not finished yet
+        await().atMost(1000, TimeUnit.MILLISECONDS).untilAsserted(() -> {
+            Assertions.assertThat(executableManager.getOutputFromHDFSByJobId(task1.getId()).getVerboseMsg())
+                    .contains("succeed");
+            Assertions.assertThat(executableManager.getOutputFromHDFSByJobId(task2.getId()).getVerboseMsg())
+                    .contains("succeed");
+        });
     }
 
     @Test
-    public void testSucceedAndFailed() throws Exception {
+    public void testSucceedAndFailed() {
         logger.info("testSucceedAndFailed");
         val df = NDataflowManager.getInstance(getTestConfig(), project)
                 .getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
@@ -157,17 +162,18 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         Assert.assertEquals(ExecutableState.ERROR, executableManager.getOutput(job.getId()).getState());
         Assert.assertEquals(ExecutableState.SUCCEED, executableManager.getOutput(task1.getId()).getState());
         Assert.assertEquals(ExecutableState.ERROR, executableManager.getOutput(task2.getId()).getState());
-        Thread.sleep(1000);//in case hdfs write is not finished yet
-        Assertions.assertThat(executableManager.getOutputFromHDFSByJobId(job.getId()).getVerboseMsg())
-                .contains("org.apache.kylin.job.execution.MockJobException");
-        Assertions.assertThat(executableManager.getOutputFromHDFSByJobId(task1.getId()).getVerboseMsg())
-                .contains("succeed");
-        Assertions.assertThat(executableManager.getOutputFromHDFSByJobId(task2.getId()).getVerboseMsg())
-                .contains("org.apache.kylin.job.execution.MockJobException");
+        await().atMost(1000, TimeUnit.MILLISECONDS).untilAsserted(() -> {
+            Assertions.assertThat(executableManager.getOutputFromHDFSByJobId(job.getId()).getVerboseMsg())
+                    .contains("org.apache.kylin.job.execution.MockJobException");
+            Assertions.assertThat(executableManager.getOutputFromHDFSByJobId(task1.getId()).getVerboseMsg())
+                    .contains("succeed");
+            Assertions.assertThat(executableManager.getOutputFromHDFSByJobId(task2.getId()).getVerboseMsg())
+                    .contains("org.apache.kylin.job.execution.MockJobException");
+        });
     }
 
     @Test
-    public void testSucceedAndError() throws Exception {
+    public void testSucceedAndError() {
         logger.info("testSucceedAndError");
         val df = NDataflowManager.getInstance(getTestConfig(), project)
                 .getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
@@ -188,15 +194,18 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         Assert.assertEquals(ExecutableState.ERROR, executableManager.getOutput(job.getId()).getState());
         Assert.assertEquals(ExecutableState.ERROR, executableManager.getOutput(task1.getId()).getState());
         Assert.assertEquals(ExecutableState.READY, executableManager.getOutput(task2.getId()).getState());
-        Thread.sleep(1000);//in case hdfs write is not finished yet
-        Assertions.assertThat(executableManager.getOutputFromHDFSByJobId(job.getId()).getVerboseMsg()).contains("test error");
-        Assertions.assertThat(executableManager.getOutputFromHDFSByJobId(task1.getId()).getVerboseMsg())
-                .contains("test error");
+        //in case hdfs write is not finished yet
+        await().atMost(1000, TimeUnit.MILLISECONDS).untilAsserted(() -> {
+            Assertions.assertThat(executableManager.getOutputFromHDFSByJobId(job.getId()).getVerboseMsg())
+                    .contains("test error");
+            Assertions.assertThat(executableManager.getOutputFromHDFSByJobId(task1.getId()).getVerboseMsg())
+                    .contains("test error");
+        });
 
     }
 
     @Test
-    public void testDiscard() throws Exception {
+    public void testDiscard() {
         logger.info("testDiscard");
         val df = NDataflowManager.getInstance(getTestConfig(), project)
                 .getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
@@ -209,8 +218,8 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         task1.setTargetSegments(df.getSegments().stream().map(NDataSegment::getId).collect(Collectors.toList()));
         job.addTask(task1);
         executableManager.addJob(job);
-        Thread.sleep(1100); // give time to launch job/task1 
-        waitForJobStatus(job.getId(), ExecutableState.RUNNING, 500);
+        // give time to launch job/task1
+        await().atMost(Long.MAX_VALUE, TimeUnit.MILLISECONDS).until(() -> job.getStatus() == ExecutableState.RUNNING);
         executableManager.discardJob(job.getId());
         waitForJobFinish(job.getId());
         Assert.assertEquals(ExecutableState.DISCARDED, executableManager.getOutput(job.getId()).getState());
@@ -219,7 +228,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
     }
 
     @Test
-    public void testIllegalState() throws Exception {
+    public void testIllegalState() {
         logger.info("testIllegalState");
         val df = NDataflowManager.getInstance(getTestConfig(), project)
                 .getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
@@ -245,14 +254,14 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
     }
 
     @Test
-    public void testSuicide_RemoveSegment() throws Exception {
+    public void testSuicide_RemoveSegment() {
         val dfMgr = NDataflowManager.getInstance(getTestConfig(), project);
         NoErrorStatusExecutable job = new NoErrorStatusExecutable();
         job.setProject("default");
         job.setTargetModel("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         val df = dfMgr.getDataflow(job.getTargetModel());
         job.setTargetSegments(df.getSegments().stream().map(NDataSegment::getId).collect(Collectors.toList()));
-        val task = new FiveSecondSucceedTestExecutable(2);
+        val task = new SucceedTestExecutable();
         task.setTargetModel("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         task.setTargetSegments(df.getSegments().stream().map(NDataSegment::getId).collect(Collectors.toList()));
         job.addTask(task);
@@ -263,11 +272,12 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         dfMgr.updateDataflow(update);
 
         waitForJobFinish(job.getId());
-        Thread.sleep(1000);//in case hdfs write is not finished yet
-        val output = executableManager.getOutputFromHDFSByJobId(job.getId());
-        Assert.assertEquals(ExecutableState.SUICIDAL, output.getState());
-        Assert.assertTrue(output.getVerboseMsg().contains("suicide"));
-
+        //in case hdfs write is not finished yet
+        await().atMost(1000, TimeUnit.MILLISECONDS).untilAsserted(() -> {
+            val output = executableManager.getOutputFromHDFSByJobId(job.getId());
+            Assert.assertEquals(ExecutableState.SUICIDAL, output.getState());
+            Assert.assertTrue(output.getVerboseMsg().contains("suicide"));
+        });
 
     }
 
@@ -316,7 +326,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
     }
 
     @Test
-    public void testSuicide_AfterSuccess() throws Exception {
+    public void testSuicide_AfterSuccess() {
         val dfMgr = NDataflowManager.getInstance(getTestConfig(), project);
         NoErrorStatusExecutable job = new NoErrorStatusExecutable();
         job.setProject("default");
@@ -329,7 +339,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         job.addTask(task);
         executableManager.addJob(job);
 
-        waitForJobStatus(job.getId(), ExecutableState.RUNNING, 100);
+        await().atMost(Long.MAX_VALUE, TimeUnit.MILLISECONDS).until(() -> job.getStatus() == ExecutableState.RUNNING);
         val update = new NDataflowUpdate(df.getUuid());
         update.setToRemoveSegs(df.getSegments().toArray(new NDataSegment[0]));
         dfMgr.updateDataflow(update);
@@ -349,7 +359,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         job.setJobType(JobTypeEnum.INDEX_BUILD);
         val df = dfMgr.getDataflow(job.getTargetModel());
         job.setTargetSegments(df.getSegments().stream().map(NDataSegment::getId).collect(Collectors.toList()));
-        val task = new FiveSecondSucceedTestExecutable();
+        val task = new SucceedTestExecutable();
         task.setTargetModel("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         task.setTargetSegments(df.getSegments().stream().map(NDataSegment::getId).collect(Collectors.toList()));
         job.addTask(task);
@@ -369,10 +379,12 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         executableManager.addJob(job2);
 
         waitForJobFinish(job.getId());
-        Thread.sleep(1000);//in case hdfs write is not finished yet
-        val output = executableManager.getOutputFromHDFSByJobId(job.getId());
-        Assert.assertEquals(ExecutableState.SUICIDAL, output.getState());
-        Assert.assertTrue(output.getVerboseMsg().contains("suicide"));
+        //in case hdfs write is not finished yet
+        await().atMost(1000, TimeUnit.MILLISECONDS).untilAsserted(() -> {
+            val output = executableManager.getOutputFromHDFSByJobId(job.getId());
+            Assert.assertEquals(ExecutableState.SUICIDAL, output.getState());
+            Assert.assertTrue(output.getVerboseMsg().contains("suicide"));
+        });
 
     }
 
@@ -440,7 +452,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
     }
 
     @Test
-    public void testCheckJobStopped_TaskSucceed() throws InterruptedException {
+    public void testCheckJobStopped_TaskSucceed() {
         val dfMgr = NDataflowManager.getInstance(getTestConfig(), project);
         val modelId = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
         val df = dfMgr.getDataflow(modelId);
@@ -449,26 +461,32 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         job.setProject("default");
         job.setTargetSegments(targetSegs);
         job.setTargetModel(modelId);
-        val task = new FiveSecondSucceedTestExecutable();
+        val task = new SucceedTestExecutable();
         task.setProject("default");
         task.setTargetModel(modelId);
         task.setTargetSegments(targetSegs);
         job.addTask(task);
 
         executableManager.addJob(job);
-        Thread.sleep(1500);
+        await().atMost(1500, TimeUnit.MILLISECONDS)
+                .until(() -> {
+                    val executeManager = NExecutableManager.getInstance(getTestConfig(), project);
+                    String runningStatus = executeManager.getOutput(task.getId()).getExtra().get("runningStatus");
+                    return job.getStatus() == ExecutableState.RUNNING && StringUtils.isNotEmpty(runningStatus) && runningStatus.equals("inRunning");
+                });
         executableManager.pauseJob(job.getId());
 
-        Thread.sleep(5000);
-        Assert.assertEquals(ExecutableState.STOPPED, job.getStatus());
-        Assert.assertEquals(ExecutableState.SUCCEED, task.getStatus());
+        await().atMost(3000, TimeUnit.MILLISECONDS).untilAsserted(() -> {
+            Assert.assertEquals(ExecutableState.STOPPED, job.getStatus());
+            Assert.assertEquals(ExecutableState.SUCCEED, task.getStatus());
+        });
 
         thrown.expect(JobStoppedException.class);
         task.checkJobPaused();
     }
 
     @Test
-    public void testCheckJobStopped_TaskError() throws InterruptedException {
+    public void testCheckJobStopped_TaskError() {
         val dfMgr = NDataflowManager.getInstance(getTestConfig(), project);
         val modelId = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
         val df = dfMgr.getDataflow(modelId);
@@ -484,13 +502,18 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         job.addTask(task);
 
         executableManager.addJob(job);
-        Thread.sleep(1100);
+        await().atMost(1500, TimeUnit.MILLISECONDS)
+                .until(() -> {
+                    val executeManager = NExecutableManager.getInstance(getTestConfig(), project);
+                    String runningStatus = executeManager.getOutput(task.getId()).getExtra().get("runningStatus");
+                    return job.getStatus() == ExecutableState.RUNNING && StringUtils.isNotEmpty(runningStatus) && runningStatus.equals("inRunning");
+                });
         executableManager.pauseJob(job.getId());
 
-        Thread.sleep(1000);
-        Assert.assertEquals(ExecutableState.STOPPED, job.getStatus());
-        Assert.assertEquals(ExecutableState.READY, task.getStatus());
-
+        await().atMost(3, TimeUnit.SECONDS).untilAsserted(() -> {
+            Assert.assertEquals(ExecutableState.STOPPED, job.getStatus());
+            Assert.assertEquals(ExecutableState.READY, task.getStatus());
+        });
     }
 
     @Test
@@ -508,7 +531,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         job.addTask(task);
         executableManager.addJob(job);
 
-        waitForJobStatus(job.getId(), ExecutableState.RUNNING, 100);
+        await().atMost(Long.MAX_VALUE, TimeUnit.MILLISECONDS).until(() -> job.getStatus() == ExecutableState.RUNNING);
 
         val mq = (MockMQ2) MessageQueue.getInstance(getTestConfig());
         val clazz = mq.getClass();
@@ -516,8 +539,9 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         field.setAccessible(true);
         field.set(mq, null);
 
-        Thread.sleep(3000);
-        Assert.assertEquals(ExecutableState.RUNNING, job.getStatus());
+        await().atMost(3000, TimeUnit.MILLISECONDS).untilAsserted(() -> {
+            Assert.assertEquals(ExecutableState.RUNNING, job.getStatus());
+        });
 
         field.set(mq, new ArrayBlockingQueue<>(100));
 
@@ -541,7 +565,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         job.addTask(task);
         executableManager.addJob(job);
 
-        waitForJobStatus(job.getId(), ExecutableState.RUNNING, 100);
+        await().atMost(Long.MAX_VALUE, TimeUnit.MILLISECONDS).until(() -> job.getStatus() == ExecutableState.RUNNING);
 
         val mq = (MockMQ2) MessageQueue.getInstance(getTestConfig());
         val clazz = mq.getClass();
@@ -549,12 +573,13 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         field.setAccessible(true);
         field.set(mq, null);
 
-        Thread.sleep(10000);
-        Assert.assertEquals(ExecutableState.RUNNING, job.getStatus());
+        await().atMost(10000, TimeUnit.MILLISECONDS).untilAsserted(() -> {
+            Assert.assertEquals(ExecutableState.RUNNING, job.getStatus());
+        });
     }
 
     @Test
-    public void testSchedulerStop() throws Exception {
+    public void testSchedulerStop() {
         logger.info("testSchedulerStop");
 
         val df = NDataflowManager.getInstance(getTestConfig(), project)
@@ -563,14 +588,14 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         job.setProject("default");
         job.setTargetModel(df.getModel().getUuid());
         job.setTargetSegments(df.getSegments().stream().map(NDataSegment::getId).collect(Collectors.toList()));
-        BaseTestExecutable task1 = new FiveSecondSucceedTestExecutable();
+        BaseTestExecutable task1 = new SucceedTestExecutable();
         task1.setTargetModel(df.getModel().getUuid());
         task1.setTargetSegments(df.getSegments().stream().map(NDataSegment::getId).collect(Collectors.toList()));
         job.addTask(task1);
         executableManager.addJob(job);
 
         // make sure the job is running
-        Thread.sleep(2 * 1000);
+        await().atMost(2 * 1000, TimeUnit.MILLISECONDS).until(() -> job.getStatus() == ExecutableState.RUNNING);
         //scheduler failed due to some reason
         scheduler.shutdown();
 
@@ -580,11 +605,10 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
     }
 
     @Test
-    public void testSchedulerStopCase2() throws Exception {
+    public void testSchedulerStopCase2() {
         logger.info("testSchedulerStop case 2");
 
-        thrown.expect(RuntimeException.class);
-        thrown.expectMessage("too long wait time");
+        thrown.expect(ConditionTimeoutException.class);
 
         // testSchedulerStopCase2 shutdown first, then the job added will not be scheduled
         scheduler.shutdown();
@@ -595,7 +619,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         job.setProject("default");
         job.setTargetModel(df.getModel().getUuid());
         job.setTargetSegments(df.getSegments().stream().map(NDataSegment::getId).collect(Collectors.toList()));
-        BaseTestExecutable task1 = new FiveSecondSucceedTestExecutable();
+        BaseTestExecutable task1 = new SucceedTestExecutable();
         task1.setTargetModel(df.getModel().getUuid());
         task1.setTargetSegments(df.getSegments().stream().map(NDataSegment::getId).collect(Collectors.toList()));
         job.addTask(task1);
@@ -605,7 +629,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
     }
 
     @Test
-    public void testSchedulerRestart() throws Exception {
+    public void testSchedulerRestart() {
         logger.info("testSchedulerRestart");
 
         val df = NDataflowManager.getInstance(getTestConfig(), project)
@@ -614,14 +638,15 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         job.setProject("default");
         job.setTargetModel(df.getModel().getUuid());
         job.setTargetSegments(df.getSegments().stream().map(NDataSegment::getId).collect(Collectors.toList()));
-        BaseTestExecutable task1 = new FiveSecondSucceedTestExecutable();
+        BaseTestExecutable task1 = new SucceedTestExecutable();
+        task1.setProject("default");
         task1.setTargetModel(df.getModel().getUuid());
         task1.setTargetSegments(df.getSegments().stream().map(NDataSegment::getId).collect(Collectors.toList()));
         job.addTask(task1);
         executableManager.addJob(job);
 
-        //sleep 3s to make sure SucceedTestExecutable is running 
-        Thread.sleep(3000);
+        //sleep 3s to make sure SucceedTestExecutable is running
+        await().atMost(3000, TimeUnit.MILLISECONDS).until(() -> task1.getStatus() == ExecutableState.RUNNING);
         //scheduler failed due to some reason
         scheduler.shutdown();
         //restart
@@ -633,7 +658,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
     }
 
     @Test
-    public void testRetryableException() throws Exception {
+    public void testRetryableException() {
         val df = NDataflowManager.getInstance(getTestConfig(), project)
                 .getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         DefaultChainedExecutable job = new DefaultChainedExecutable();
@@ -660,7 +685,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
     }
 
     @Test
-    public void testKillProcess() throws ShellException, InterruptedException {
+    public void testKillProcess() {
         val cmd = "nohup sleep 5 & sleep 5";
         getTestConfig().setProperty("kylin.env", "DEV");
         val jobId = UUID.randomUUID().toString();
@@ -677,16 +702,18 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
             }
         });
         executorThread.start();
-        Thread.sleep(1000);
-        Process process = JobProcessContext.getProcess(jobId);
+        await().atMost(1000, TimeUnit.MILLISECONDS).untilAsserted(() -> {
+            Process process = JobProcessContext.getProcess(jobId);
 
-        Assert.assertNotNull(process);
-        Assert.assertEquals(true, process.isAlive());
+            Assert.assertNotNull(process);
+            Assert.assertEquals(true, process.isAlive());
+        });
 
         executableManager.destroyProcess(jobId);
 
-        Thread.sleep(1000);
-        Assert.assertNull(JobProcessContext.getProcess(jobId));
+        await().atMost(1000, TimeUnit.MILLISECONDS).untilAsserted(() -> {
+            Assert.assertNull(JobProcessContext.getProcess(jobId));
+        });
 
         getTestConfig().setProperty("kylin.env", "UT");
     }

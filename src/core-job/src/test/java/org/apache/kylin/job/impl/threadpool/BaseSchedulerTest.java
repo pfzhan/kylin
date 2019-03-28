@@ -42,14 +42,12 @@
 
 package org.apache.kylin.job.impl.threadpool;
 
-import java.lang.reflect.Field;
-import java.lang.reflect.Modifier;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import io.kyligence.kap.common.persistence.transaction.mq.MessageQueue;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.engine.JobEngineConfig;
-import org.apache.kylin.job.exception.SchedulerException;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.NExecutableManager;
@@ -61,6 +59,8 @@ import org.slf4j.LoggerFactory;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import lombok.val;
+
+import static org.awaitility.Awaitility.await;
 
 public abstract class BaseSchedulerTest extends NLocalFileMetadataTestCase {
 
@@ -95,7 +95,7 @@ public abstract class BaseSchedulerTest extends NLocalFileMetadataTestCase {
         providers.put("mock", "org.apache.kylin.job.impl.threadpool.MockMQ2");
     }
 
-    void startScheduler() throws SchedulerException {
+    void startScheduler() {
         scheduler = NDefaultScheduler.getInstance(project);
         scheduler.init(new JobEngineConfig(KylinConfig.getInstanceFromEnv()), new MockJobLock());
         if (!scheduler.hasStarted()) {
@@ -111,83 +111,21 @@ public abstract class BaseSchedulerTest extends NLocalFileMetadataTestCase {
         System.clearProperty("kylin.metadata.mq-url");
     }
 
-    static void setFinalStatic(Field field, Object newValue) throws Exception {
-        field.setAccessible(true);
-
-        Field modifiersField = Field.class.getDeclaredField("modifiers");
-        modifiersField.setAccessible(true);
-        modifiersField.setInt(field, field.getModifiers() & ~Modifier.FINAL);
-
-        field.set(null, newValue);
-    }
-
     protected void waitForJobFinish(String jobId) {
         waitForJobFinish(jobId, 60000);
     }
 
     protected void waitForJobFinish(String jobId, int maxWaitTime) {
-        int error = 0;
-        long start = System.currentTimeMillis();
-        final int errorLimit = 3;
-        while (error < errorLimit && (System.currentTimeMillis() - start < maxWaitTime)) {
-            try {
-                Thread.sleep(1000);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-
-            try {
-                AbstractExecutable job = executableManager.getJob(jobId);
-                ExecutableState status = job.getStatus();
-                if (status == ExecutableState.SUCCEED || status == ExecutableState.ERROR
-                        || status == ExecutableState.STOPPED || status == ExecutableState.DISCARDED
-                        || status == ExecutableState.SUICIDAL) {
-                    break;
-                }
-            } catch (Exception ex) {
-                logger.error("", ex);
-                error++;
-            }
-        }
-
-        if (error >= errorLimit) {
-            throw new RuntimeException("too many exceptions");
-        }
-
-        if (System.currentTimeMillis() - start >= maxWaitTime) {
-            throw new RuntimeException("too long wait time");
-        }
-    }
-
-    protected void waitForJobStatus(String jobId, ExecutableState state, long interval) {
-        while (true) {
+        await().atMost(maxWaitTime, TimeUnit.MILLISECONDS).until(() -> {
             AbstractExecutable job = executableManager.getJob(jobId);
-            if (job.getStatus() == state) {
-                break;
-            } else {
-                try {
-                    Thread.sleep(interval);
-                } catch (InterruptedException e) {
-                    logger.error("waitForJobStatus error : " + e.getMessage(), e);
-                }
+            ExecutableState status = job.getStatus();
+            if (status == ExecutableState.SUCCEED || status == ExecutableState.ERROR
+                    || status == ExecutableState.STOPPED || status == ExecutableState.DISCARDED
+                    || status == ExecutableState.SUICIDAL) {
+                return true;
             }
-        }
-    }
-
-    protected void runningJobToError(String jobId) {
-        while (true) {
-            try {
-                AbstractExecutable job = executableManager.getJob(jobId);
-                ExecutableState status = job.getStatus();
-                if (status == ExecutableState.RUNNING || status.isFinalState()) {
-                    //                    scheduler.fetchFailed = true;
-                    break;
-                }
-                Thread.sleep(2000);
-            } catch (Exception ex) {
-                logger.error("runningJobToError :" + ex.getMessage(), ex);
-            }
-        }
+            return false;
+        });
     }
 
 }
