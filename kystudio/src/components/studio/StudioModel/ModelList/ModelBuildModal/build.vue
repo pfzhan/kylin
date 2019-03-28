@@ -175,8 +175,8 @@
         let start = null
         let end = null
         if (!this.modelBuildMeta.isLoadExisted) {
-          start = transToUTCMs(this.modelBuildMeta.dataRangeVal[0]) || null
-          end = transToUTCMs(this.modelBuildMeta.dataRangeVal[1]) || null
+          start = transToUTCMs(this.modelBuildMeta.dataRangeVal[0])
+          end = transToUTCMs(this.modelBuildMeta.dataRangeVal[1])
         }
         this._buildModel({start: start, end: end, modelId: this.modelDesc.uuid})
       })
