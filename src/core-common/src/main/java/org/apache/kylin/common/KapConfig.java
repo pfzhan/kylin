@@ -222,8 +222,16 @@ public class KapConfig {
     /**
      * parquet shard size, in MB
      */
-    public int getParquetStorageShardSize() {
-        return Integer.valueOf(config.getOptional("kap.storage.columnar.shard-size-mb", "256"));
+    public int getParquetStorageShardSizeMB() {
+        return Integer.valueOf(config.getOptional("kap.storage.columnar.shard-size-mb", "128"));
+    }
+
+    public long getParquetStorageShardSizeRowCount() {
+        return Long.valueOf(config.getOptional("kap.storage.columnar.shard-rowcount", "2500000"));
+    }
+
+    public long getParquetStorageCountDistinctShardSizeRowCount() {
+        return Long.valueOf(config.getOptional("kap.storage.columnar.shard-countdistinct-rowcount", "1000000"));
     }
 
     public int getParquetStorageRepartitionThresholdSize() {
@@ -239,7 +247,7 @@ public class KapConfig {
     }
 
     public int getParquetStorageBlockSize() {
-        int defaultBlockSize = 5 * getParquetStorageShardSize() * 1024 * 1024; //default (5 * shard_size)
+        int defaultBlockSize = 5 * getParquetStorageShardSizeMB() * 1024 * 1024; //default (5 * shard_size)
         return Integer.valueOf(config.getOptional("kap.storage.columnar.hdfs-blocksize-bytes",
                 String.valueOf(defaultBlockSize < 0 ? Integer.MAX_VALUE : defaultBlockSize)));
     }

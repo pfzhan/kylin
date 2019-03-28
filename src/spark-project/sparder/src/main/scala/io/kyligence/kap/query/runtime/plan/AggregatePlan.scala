@@ -23,7 +23,6 @@ package io.kyligence.kap.query.runtime.plan
 
 import io.kyligence.kap.query.relnode.KapAggregateRel
 import io.kyligence.kap.query.runtime.RuntimeHelper
-import io.kyligence.kap.query.runtime.plan.FilterPlan.logInfo
 import org.apache.calcite.DataContext
 import org.apache.calcite.rel.core.AggregateCall
 import org.apache.calcite.sql.SqlKind
@@ -34,7 +33,7 @@ import org.apache.spark.sql.KapFunctions._
 import org.apache.spark.sql.execution.utils.SchemaProcessor
 import org.apache.spark.sql.functions._
 import org.apache.spark.sql.util.SparderTypeUtil
-import org.apache.spark.sql.{AggArgc, Column, DataFrame, SparkOperation}
+import org.apache.spark.sql.{AggArgc, Column, DataFrame, KapFunctions, SparkOperation}
 
 import scala.collection.JavaConverters._
 
@@ -64,20 +63,28 @@ object AggregatePlan extends Logging {
 
     rel.getRewriteAggCalls.asScala.zipWithIndex.map {
       case (call: KylinAggregateCall, index: Int)
-        if binaryMeasureType.contains(
-          OLAPAggregateRel.getAggrFuncName(call)) =>
+          if binaryMeasureType.contains(OLAPAggregateRel.getAggrFuncName(call)) =>
         val dataType = call.getFunc.getReturnDataType
         val isCount = call.getFunc.isCount
-        val funcName = if (isCount) FunctionDesc.FUNC_COUNT else OLAPAggregateRel.getAggrFuncName(call)
+        val funcName =
+          if (isCount) FunctionDesc.FUNC_COUNT else OLAPAggregateRel.getAggrFuncName(call)
         val argNames = call.getArgList.asScala.map(schemaNames.apply(_))
         val columnName = argNames.map(col)
         var registeredFuncName =
           RuntimeHelper.registerSingleByColName(funcName, dataType)
-        val aggName = SchemaProcessor.replaceToAggravateSchemaName(index,
-          funcName,
-          hash,
-          argNames: _*)
-        callUDF(registeredFuncName, columnName.toList: _*).alias(aggName)
+        val aggName =
+          SchemaProcessor.replaceToAggravateSchemaName(index, funcName, hash, argNames: _*)
+        if (funcName == "COUNT_DISTINCT") {
+          if (dataType.getName == "hllc") {
+            org.apache.spark.sql.KapFunctions
+              .approx_count_distinct(columnName.head, dataType.getPrecision)
+              .alias(aggName)
+          } else {
+            KapFunctions.precise_count_distinct(columnName.head).alias(aggName)
+          }
+        } else {
+          callUDF(registeredFuncName, columnName.toList: _*).alias(aggName)
+        }
       case (call: Any, index: Int) =>
         val funcName = OLAPAggregateRel.getAggrFuncName(call)
         val argNames = call.getArgList.asScala.map(id => schemaNames.apply(id))

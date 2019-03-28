@@ -480,7 +480,7 @@ abstract public class KylinConfigBase implements Serializable {
     }
 
     public int getGlobalDictV2ThresholdBucketSize() {
-        return Integer.parseInt(getOptional("kylin.dictionary.globalV2-threshold-bucket-size", "1000000"));
+        return Integer.parseInt(getOptional("kylin.dictionary.globalV2-threshold-bucket-size", "500000"));
     }
 
     public double getGlobalDictV2InitLoadFactor() {

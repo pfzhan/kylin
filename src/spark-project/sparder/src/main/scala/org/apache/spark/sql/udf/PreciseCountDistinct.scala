@@ -52,13 +52,21 @@ case class PreciseCountDistinct(child: Expression,
 
   override def nullable: Boolean = false
 
-  override def createAggregationBuffer(): BitMapCounter.State = BitMapCounter.State(new BitmapAggregator)
+  override def createAggregationBuffer(): BitMapCounter.State = {
+    val aggregator = new BitmapAggregator
+    aggregator.aggregate(new RoaringBitmapCounter())
+    BitMapCounter.State(aggregator)
+  }
 
+  var counter2:RoaringBitmapCounter = _
   override def update(buffer: BitMapCounter.State, input: InternalRow): BitMapCounter.State = {
     val colValue = child.eval(input)
     if (colValue != null) {
-      val value = serializer.deserialize(ByteBuffer.wrap(colValue.asInstanceOf[Array[Byte]]))
-      buffer.bitmap.aggregate(value)
+      if(counter2 == null){
+        counter2 = new RoaringBitmapCounter()
+      }
+      counter2.readFields(ByteBuffer.wrap(colValue.asInstanceOf[Array[Byte]]))
+      buffer.bitmap.aggregate(counter2)
     }
     buffer
   }
@@ -79,21 +87,26 @@ case class PreciseCountDistinct(child: Expression,
       buffer.bitmap.getState.getCount
     }
   }
-
+  var bos:ByteArrayOutputStream = _
   override def serialize(buffer: BitMapCounter.State): Array[Byte] = {
     if (buffer.bitmap.getState != null) {
-      val bos = new ByteArrayOutputStream(1024)
+      if(bos == null) {
+        bos = new ByteArrayOutputStream(1024)
+      }
+      bos.reset()
       buffer.bitmap.getState.write(bos)
       bos.toByteArray
     } else {
       Array.empty[Byte]
     }
   }
-
+  var counter:RoaringBitmapCounter = _
   override def deserialize(storageFormat: Array[Byte]): BitMapCounter.State = {
     val aggregator = new BitmapAggregator
     if (storageFormat.nonEmpty) {
-      val counter = new RoaringBitmapCounter
+     if(counter == null){
+       counter = new RoaringBitmapCounter()
+     }
       counter.readFields(ByteBuffer.wrap(storageFormat))
       aggregator.aggregate(counter)
     }

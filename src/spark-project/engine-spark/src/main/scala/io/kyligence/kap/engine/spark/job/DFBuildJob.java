@@ -36,17 +36,12 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-import org.apache.hadoop.fs.ContentSummary;
-import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.util.StringUtils;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.kylin.storage.StorageFactory;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
-import org.apache.spark.sql.SparkSession;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -56,11 +51,11 @@ import com.google.common.collect.Sets;
 import io.kyligence.kap.engine.spark.NSparkCubingEngine;
 import io.kyligence.kap.engine.spark.application.SparkApplication;
 import io.kyligence.kap.engine.spark.builder.NBuildSourceInfo;
+import io.kyligence.kap.engine.spark.utils.BuildUtils;
 import io.kyligence.kap.engine.spark.utils.JobMetrics;
 import io.kyligence.kap.engine.spark.utils.JobMetricsUtils;
 import io.kyligence.kap.engine.spark.utils.Metrics;
 import io.kyligence.kap.engine.spark.utils.QueryExecutionCache;
-import io.kyligence.kap.engine.spark.utils.RepartitionHelper;
 import io.kyligence.kap.metadata.cube.cuboid.NSpanningTree;
 import io.kyligence.kap.metadata.cube.cuboid.NSpanningTreeFactory;
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
@@ -70,7 +65,6 @@ import io.kyligence.kap.metadata.cube.model.NBatchConstants;
 import io.kyligence.kap.metadata.cube.model.NDataLayout;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
-import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
 import lombok.val;
 
 public class DFBuildJob extends SparkApplication {
@@ -249,86 +243,15 @@ public class DFBuildJob extends SparkApplication {
         dataCuboid.setBuildJobId(jobId);
         dataCuboid.setRows(metrics.getMetrics(Metrics.CUBOID_ROWS_CNT()));
         dataCuboid.setSourceRows(metrics.getMetrics(Metrics.SOURCE_ROWS_CNT()));
-
-        FileSystem fs = HadoopUtil.getReadFileSystem();
-        if (fs.exists(new Path(tempPath))) {
-            ContentSummary summary = fs.getContentSummary(new Path(tempPath));
-            RepartitionHelper helper = new RepartitionHelper(KapConfig.wrap(config).getParquetStorageShardSize(),
-                    KapConfig.wrap(config).getParquetStorageRepartitionThresholdSize(), summary,
-                    layout.getShardByColumns());
-            repartition(storage, path, ss, helper);
-        } else {
-            throw new RuntimeException(
-                    String.format("Temp path does not exist before repartition. Temp path: %s.", tempPath));
-        }
-
+        BuildUtils.repartitionIfNeed(layout, dataCuboid, storage, path, tempPath, KapConfig.wrap(config), ss);
         ss.sparkContext().setLocalProperty(QueryExecutionCache.N_EXECUTION_ID_KEY(), null);
         QueryExecutionCache.removeQueryExecution(queryExecutionId);
-
-        fillCuboid(dataCuboid);
-
-        NDataflowUpdate update = new NDataflowUpdate(seg.getDataflow().getUuid());
-        update.setToAddOrUpdateCuboids(dataCuboid);
-        NDataflowManager.getInstance(config, project).updateDataflow(update);
+        BuildUtils.fillCuboidInfo(dataCuboid);
+        BuildUtils.updateDataFlow(seg, dataCuboid, config, project);
     }
 
     private NDataLayout getDataCuboid(NDataSegment seg, long layoutId) {
         return NDataLayout.newDataLayout(seg.getDataflow(), seg.getId(), layoutId);
-    }
-
-    public static void fillCuboid(NDataLayout cuboid) throws IOException {
-        String strPath = NSparkCubingUtil.getStoragePath(cuboid);
-        FileSystem fs = HadoopUtil.getReadFileSystem();
-        if (fs.exists(new Path(strPath))) {
-            ContentSummary cs = fs.getContentSummary(new Path(strPath));
-            cuboid.setFileCount(cs.getFileCount());
-            cuboid.setByteSize(cs.getLength());
-        } else {
-            cuboid.setFileCount(0);
-            cuboid.setByteSize(0);
-        }
-    }
-
-    public static void repartition(NSparkCubingEngine.NSparkCubingStorage storage, String path, SparkSession ss,
-                                   RepartitionHelper helper) throws IOException {
-        String tempPath = path + TEMP_DIR_SUFFIX;
-        Path tempResourcePath = new Path(tempPath);
-
-        FileSystem readFileSystem = HadoopUtil.getReadFileSystem();
-        if (helper.needRepartition()) {
-            // repartition and write to target path
-            logger.info("Start repartition and rewrite");
-            long start = System.currentTimeMillis();
-            Dataset<Row> data;
-            if (helper.needRepartitionForShardByColumns()) {
-                data = storage.getFrom(tempPath, ss).repartition(helper.getRepartitionNum(),
-                        NSparkCubingUtil.getColumns(helper.getShardByColumns()));
-            } else {
-                // repartition for single file size is too small
-                data = storage.getFrom(tempPath, ss).repartition(helper.getRepartitionNum());
-            }
-            storage.saveTo(path, data, ss);
-            if (readFileSystem.delete(tempResourcePath, true)) {
-                logger.info("Delete temp cuboid path successful. Temp path: {}.", tempPath);
-            } else {
-                logger.error("Delete temp cuboid path wrong, leave garbage. Temp path: {}.", tempPath);
-            }
-            long end = System.currentTimeMillis();
-            logger.info("Repartition and rewrite ends. Cost: {} ms.", end - start);
-        } else {
-            Path goalPath = new Path(path);
-            if (readFileSystem.exists(goalPath)) {
-                logger.info("Path {} is exists, delete it.", goalPath);
-                readFileSystem.delete(goalPath, true);
-            }
-            if (readFileSystem.rename(new Path(tempPath), goalPath)) {
-                logger.info("Rename temp path to target path successfully. Temp path: {}, target path: {}.", tempPath,
-                        path);
-            } else {
-                throw new RuntimeException(String.format(
-                        "Rename temp path to target path wrong. Temp path: %s, target path: %s.", tempPath, path));
-            }
-        }
     }
 
     public static void main(String[] args) {

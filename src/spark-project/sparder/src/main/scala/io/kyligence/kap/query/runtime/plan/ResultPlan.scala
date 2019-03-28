@@ -40,7 +40,7 @@ object ResultType extends Enumeration {
 }
 
 object ResultPlan extends Logging {
-  val PARTITION_SPLIT_BYTES: Long = 64 * 1000 * 1000 // 64MB
+  val PARTITION_SPLIT_BYTES: Long = 64 * 1024 * 1024 // 64MB
 
   def collectEnumerable(df: DataFrame,
                         rowType: RelDataType): Enumerable[Array[Any]] = {
@@ -63,7 +63,7 @@ object ResultPlan extends Logging {
     val kapConfig = KapConfig.getInstanceFromEnv
     val pool = "heavy_tasks"
     val partitionsNum = Math.min(QueryContext.current().getSourceScanBytes / PARTITION_SPLIT_BYTES + 1,
-      SparderEnv.getTotalCore * 10)
+      SparderEnv.getTotalCore)
     logInfo(s"partition is : $partitionsNum , bytes is ${QueryContext.current().getSourceScanBytes}"  )
     // set priority
     sparkContext.setLocalProperty("spark.scheduler.pool", pool)

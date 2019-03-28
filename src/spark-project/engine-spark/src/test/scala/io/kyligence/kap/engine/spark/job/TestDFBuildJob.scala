@@ -23,18 +23,25 @@
 package io.kyligence.kap.engine.spark.job
 
 import java.io.File
+import java.util
 
 import com.google.common.collect.Lists
 import io.kyligence.kap.engine.spark.storage.ParquetStorage
-import io.kyligence.kap.engine.spark.utils.RepartitionHelper
+import io.kyligence.kap.engine.spark.utils.{BuildUtils, Repartitioner}
+import io.kyligence.kap.metadata.cube.model.NIndexPlanManager
 import org.apache.commons.io.FileUtils
-import org.apache.hadoop.fs.{FSDataOutputStream, Path}
+import org.apache.hadoop.fs.{ContentSummary, FSDataOutputStream, Path}
 import org.apache.kylin.common.util.HadoopUtil
+import org.apache.kylin.common.KylinConfig
 import org.apache.spark.sql.common.{LocalMetadata, SharedSparkSession}
 import org.apache.spark.sql.types.{StringType, StructType}
 import org.apache.spark.sql.{Dataset, Row}
+import org.junit.Assert
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.WordSpec
+import org.mockito.Mockito.{when, mock => jmock}
+
+
 
 class TestDFBuildJob extends WordSpec with MockFactory with SharedSparkSession with LocalMetadata {
   private val path = "./test"
@@ -76,9 +83,7 @@ class TestDFBuildJob extends WordSpec with MockFactory with SharedSparkSession w
         val origin = generateOriginData()
         val repartitionNum = 2
         storage.saveTo(tempPath, origin, spark)
-        val mockHelper = genMockHelper(needRepartition = true, needRepartitionForFileSize = false,
-          needRepartitionForShardByColumns = true, repartitionNum, Lists.newArrayList(Integer.valueOf(2)))
-        DFBuildJob.repartition(storage, path, spark, mockHelper)
+        genMockHelper(2, Lists.newArrayList(Integer.valueOf(2))).doRepartition(storage, path, spark)
         val files = new File(path).listFiles().filter(_.getName.endsWith(".parquet")).sortBy(_.getName)
         assert(files.length == repartitionNum)
         storage.getFrom(files.apply(0).getPath, spark).collect().map(_.getString(1)).foreach {
@@ -96,11 +101,9 @@ class TestDFBuildJob extends WordSpec with MockFactory with SharedSparkSession w
     "average file size is too small" should {
       "repartition for file size" in {
         val origin = generateOriginData()
-        val repartitionNum = 2
         storage.saveTo(tempPath, origin, spark)
-        val mockHelper = genMockHelper(needRepartition = true, needRepartitionForFileSize = true,
-          needRepartitionForShardByColumns = false, repartitionNum, null)
-        DFBuildJob.repartition(storage, path, spark, mockHelper)
+        val repartitionNum = 3
+        genMockHelper(3).doRepartition(storage, path, spark)
         val files = new File(path).listFiles().filter(_.getName.endsWith(".parquet"))
         assert(files.length == repartitionNum)
       }
@@ -110,8 +113,7 @@ class TestDFBuildJob extends WordSpec with MockFactory with SharedSparkSession w
       "do not repartition" in {
         val origin = generateOriginData()
         storage.saveTo(tempPath, origin, spark)
-        val mockHelper = genMockHelper(needRepartition = false, needRepartitionForFileSize = false,
-          needRepartitionForShardByColumns = false, 1, null)
+        val mockHelper = genMockHelper(1)
 
         var stream: FSDataOutputStream = null
         try {
@@ -122,7 +124,7 @@ class TestDFBuildJob extends WordSpec with MockFactory with SharedSparkSession w
             stream.close()
           }
         }
-        DFBuildJob.repartition(storage, path, spark, mockHelper)
+        mockHelper.doRepartition(storage, path, spark)
         val files = new File(path).listFiles().filter(_.getName.endsWith(".parquet"))
         assert(files.length == spark.conf.get("spark.sql.shuffle.partitions").toInt)
       }
@@ -130,14 +132,20 @@ class TestDFBuildJob extends WordSpec with MockFactory with SharedSparkSession w
 
   }
 
-  def genMockHelper(needRepartition: Boolean, needRepartitionForFileSize: Boolean, needRepartitionForShardByColumns: Boolean,
-                    repartitionNum: Int, shardByColumns: java.util.List[Integer]): RepartitionHelper = {
-    val mockHelper = mock[RepartitionHelper]
-    (mockHelper.needRepartition _).expects().returning(needRepartition).anyNumberOfTimes()
-    (mockHelper.needRepartitionForFileSize _).expects().returning(needRepartitionForFileSize).anyNumberOfTimes()
-    (mockHelper.needRepartitionForShardByColumns _).expects().returning(needRepartitionForShardByColumns).anyNumberOfTimes()
-    (mockHelper.getRepartitionNum _).expects().returning(repartitionNum).anyNumberOfTimes()
-    (mockHelper.getShardByColumns _).expects().returning(shardByColumns).anyNumberOfTimes()
-    mockHelper
+  "layout" should{
+    "has countDistinct" in {
+         val manager = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv, "default")
+      val entity = manager.getIndexPlan("741ca86a-1f13-46da-a59f-95fb68615e3a").getIndexEntity(1000000).getLastLayout
+      Assert.assertTrue(BuildUtils.findCountDistinctMeasure(entity))
+    }
+  }
+
+  def genMockHelper(repartitionNum: Int, isShardByColumn: util.List[Integer] = null): Repartitioner = {
+    val sc = jmock(classOf[ContentSummary])
+    when(sc.getFileCount).thenReturn(1L)
+    when(sc.getLength).thenReturn(repartitionNum * 1024 * 1024L)
+    val helper = new Repartitioner(1, 1, repartitionNum * 100, 100, sc, isShardByColumn)
+    Assert.assertEquals(repartitionNum, helper.getRepartitionNum)
+    helper
   }
 }

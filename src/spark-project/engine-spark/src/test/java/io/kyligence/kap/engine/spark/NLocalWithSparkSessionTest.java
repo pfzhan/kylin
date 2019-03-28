@@ -96,6 +96,8 @@ public class NLocalWithSparkSessionTest extends NLocalFileMetadataTestCase imple
         sparkConf.set(StaticSQLConf.CATALOG_IMPLEMENTATION().key(), "in-memory");
         sparkConf.set("spark.sql.shuffle.partitions", "1");
         sparkConf.set("spark.memory.fraction", "0.1");
+        // opt memory
+        sparkConf.set("spark.shuffle.detectCorrupt", "false");
         // For sinai_poc/query03, enable implicit cross join conversion
         sparkConf.set("spark.sql.crossJoin.enabled", "true");
 

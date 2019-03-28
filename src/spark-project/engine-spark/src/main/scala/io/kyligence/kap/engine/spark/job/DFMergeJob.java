@@ -30,11 +30,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
-import org.apache.hadoop.fs.ContentSummary;
-import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.Path;
 import org.apache.kylin.common.KapConfig;
-import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.kylin.storage.StorageFactory;
 import org.apache.spark.sql.Column;
 import org.apache.spark.sql.Dataset;
@@ -48,11 +44,11 @@ import com.google.common.collect.Maps;
 import io.kyligence.kap.engine.spark.NSparkCubingEngine;
 import io.kyligence.kap.engine.spark.application.SparkApplication;
 import io.kyligence.kap.engine.spark.builder.DFLayoutMergeAssist;
+import io.kyligence.kap.engine.spark.utils.BuildUtils;
 import io.kyligence.kap.engine.spark.utils.JobMetrics;
 import io.kyligence.kap.engine.spark.utils.JobMetricsUtils;
 import io.kyligence.kap.engine.spark.utils.Metrics;
 import io.kyligence.kap.engine.spark.utils.QueryExecutionCache;
-import io.kyligence.kap.engine.spark.utils.RepartitionHelper;
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.model.NBatchConstants;
@@ -177,26 +173,14 @@ public class DFMergeJob extends SparkApplication {
         dataCuboid.setSourceRows(sourceCount);
         dataCuboid.setBuildJobId(jobId);
 
-        FileSystem fs = HadoopUtil.getReadFileSystem();
-        if (fs.exists(new Path(tempPath))) {
-            ContentSummary summary = fs.getContentSummary(new Path(tempPath));
-            RepartitionHelper helper = new RepartitionHelper(KapConfig.wrap(config).getParquetStorageShardSize(),
-                    KapConfig.wrap(config).getParquetStorageRepartitionThresholdSize(), summary,
-                    layout.getShardByColumns());
-            DFBuildJob.repartition(storage, path, ss, helper);
-        } else {
-            throw new RuntimeException(
-                    String.format("Temp path does not exist before repartition. Temp path: %s.", tempPath));
-        }
+        BuildUtils.repartitionIfNeed(layout, dataCuboid, storage, path, tempPath, KapConfig.wrap(config), ss);
 
         ss.sparkContext().setLocalProperty(QueryExecutionCache.N_EXECUTION_ID_KEY(), null);
         QueryExecutionCache.removeQueryExecution(queryExecutionId);
 
-        DFBuildJob.fillCuboid(dataCuboid);
+        BuildUtils.fillCuboidInfo(dataCuboid);
 
-        NDataflowUpdate update = new NDataflowUpdate(seg.getDataflow().getUuid());
-        update.setToAddOrUpdateCuboids(dataCuboid);
-        NDataflowManager.getInstance(config, project).updateDataflow(update);
+        BuildUtils.updateDataFlow(seg, dataCuboid, config, project);
     }
 
     public static void main(String[] args) {

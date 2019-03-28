@@ -87,11 +87,11 @@ class SparderAggFun(funcName: String, dataTp: KyDataType)
   override def initialize(buffer: MutableAggregationBuffer): Unit = {
     val isCount = (funcName == FunctionDesc.FUNC_COUNT)
 
-    measureAggregator = MeasureAggregator
-      .create(funcName, dataTp)
-      .asInstanceOf[MeasureAggregator[Any]]
-    serializer = DataTypeSerializer.create(dataTp).asInstanceOf[DataTypeSerializer[Any]]
     if (byteBuffer == null) {
+      measureAggregator = MeasureAggregator
+        .create(funcName, dataTp)
+        .asInstanceOf[MeasureAggregator[Any]]
+      serializer = DataTypeSerializer.create(dataTp).asInstanceOf[DataTypeSerializer[Any]]
       byteBuffer = ByteBuffer.allocate(1024 * 1024)
     }
 
@@ -112,7 +112,6 @@ class SparderAggFun(funcName: String, dataTp: KyDataType)
   override def update(buffer: MutableAggregationBuffer, input: Row): Unit = {
     merge(buffer, input)
   }
-
   override def merge(buffer: MutableAggregationBuffer, input: Row): Unit = {
     if (!input.isNullAt(0)) {
       measureAggregator.reset()
@@ -122,8 +121,6 @@ class SparderAggFun(funcName: String, dataTp: KyDataType)
         if (byteArray.length == 0) {
           return
         }
-        val newValue = serializer.deserialize(ByteBuffer.wrap(byteArray))
-        measureAggregator.aggregate(newValue)
         if (buffer.isNullAt(0)) {
           buffer.update(0, byteArray)
           if (inputSchema.length > 1) {
@@ -132,6 +129,8 @@ class SparderAggFun(funcName: String, dataTp: KyDataType)
             }
           }
         } else {
+          val newValue = serializer.deserialize(ByteBuffer.wrap(byteArray))
+          measureAggregator.aggregate(newValue)
           val bytes = buffer.apply(0).asInstanceOf[Array[Byte]]
           val oldValue = serializer.deserialize(ByteBuffer.wrap(bytes))
           measureAggregator.aggregate(oldValue)
@@ -174,7 +173,7 @@ class SparderAggFun(funcName: String, dataTp: KyDataType)
         case _ => null
       }
 
-      ret
+     ret
     }
   }
 

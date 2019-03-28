@@ -93,7 +93,8 @@ class TestQueryAndBuildFunSuite
     "left",
     "inner"
   )
-
+  // opt memory
+  conf.set("spark.shuffle.detectCorrupt", "false")
   override def beforeAll(): Unit = {
     super.beforeAll()
     KylinConfig.getInstanceFromEnv.setProperty("kylin.query.pushdown.runner-class-name", "")

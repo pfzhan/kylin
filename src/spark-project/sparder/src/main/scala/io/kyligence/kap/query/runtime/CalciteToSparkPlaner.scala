@@ -40,11 +40,12 @@ import io.kyligence.kap.query.runtime.plan.{
 }
 import org.apache.calcite.DataContext
 import org.apache.calcite.rel.{RelNode, RelVisitor}
+import org.apache.spark.internal.Logging
 import org.apache.spark.sql.DataFrame
 
 import scala.collection.JavaConverters._
 
-class CalciteToSparkPlaner(dataContext: DataContext) extends RelVisitor {
+class CalciteToSparkPlaner(dataContext: DataContext) extends RelVisitor with Logging {
   private val stack = new util.Stack[DataFrame]()
   private val unionStack = new util.Stack[Int]()
 
@@ -61,44 +62,51 @@ class CalciteToSparkPlaner(dataContext: DataContext) extends RelVisitor {
       case rel: KapTableScan =>
         rel.genExecFunc() match {
           case "executeLookupTableQuery" =>
-            TableScanPlan.createLookupTable(rel, dataContext)
+            logTime("executeLookupTableQuery") { TableScanPlan.createLookupTable(rel, dataContext) }
           case "executeOLAPQuery" =>
-            TableScanPlan.createOLAPTable(rel, dataContext);
+            logTime("executeOLAPQuery") { TableScanPlan.createOLAPTable(rel, dataContext) }
           case "executeSimpleAggregationQuery" =>
-            TableScanPlan.createSingleRow(rel, dataContext);
+            logTime("executeSimpleAggregationQuery") {
+              TableScanPlan.createSingleRow(rel, dataContext)
+            }
         }
       case rel: KapFilterRel =>
-        FilterPlan.filter(Lists.newArrayList(stack.pop()), rel, dataContext)
+        logTime("filter") { FilterPlan.filter(Lists.newArrayList(stack.pop()), rel, dataContext) }
       case rel: KapProjectRel =>
-        ProjectPlan.select(Lists.newArrayList(stack.pop()), rel, dataContext)
+        logTime("project") { ProjectPlan.select(Lists.newArrayList(stack.pop()), rel, dataContext) }
       case rel: KapLimitRel =>
-        LimitPlan.limit(Lists.newArrayList(stack.pop()), rel, dataContext)
+        logTime("limit") { LimitPlan.limit(Lists.newArrayList(stack.pop()), rel, dataContext) }
       case rel: KapSortRel =>
-        SortPlan.sort(Lists.newArrayList(stack.pop()), rel, dataContext)
+        logTime("sort") { SortPlan.sort(Lists.newArrayList(stack.pop()), rel, dataContext) }
       case rel: KapWindowRel =>
-        WindowPlan.window(Lists.newArrayList(stack.pop()), rel, dataContext)
+        logTime("window") { WindowPlan.window(Lists.newArrayList(stack.pop()), rel, dataContext) }
       case rel: KapAggregateRel =>
-        AggregatePlan.agg(Lists.newArrayList(stack.pop()), rel, dataContext)
-
+        logTime("agg") { AggregatePlan.agg(Lists.newArrayList(stack.pop()), rel, dataContext) }
       case rel: KapJoinRel =>
         if (!rel.isRuntimeJoin) {
-          TableScanPlan.createOLAPTable(rel, dataContext)
+          logTime("join with table scan") { TableScanPlan.createOLAPTable(rel, dataContext) }
         } else {
           val right = stack.pop()
           val left = stack.pop()
-          plan.JoinPlan.join(Lists.newArrayList(left, right), rel)
+          logTime("join") { plan.JoinPlan.join(Lists.newArrayList(left, right), rel) }
         }
-
       case rel: KapUnionRel =>
         val size = unionStack.pop()
         val java = Range(0, stack.size() - size).map(a => stack.pop()).asJava
-        plan.UnionPlan.union(Lists.newArrayList(java), rel, dataContext)
+        logTime("union") { plan.UnionPlan.union(Lists.newArrayList(java), rel, dataContext) }
       case rel: KapValuesRel =>
-        ValuesPlan.values(rel)
+        logTime("values") { ValuesPlan.values(rel) }
     })
   }
 
   def getResult(): DataFrame = {
     stack.pop()
+  }
+
+  def logTime[U](plan: String)(body: => U): U = {
+    val start = System.currentTimeMillis()
+    val result = body
+    logTrace(s"Run $plan take ${System.currentTimeMillis() - start}")
+    result
   }
 }

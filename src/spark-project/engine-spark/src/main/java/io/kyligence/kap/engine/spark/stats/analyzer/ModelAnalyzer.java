@@ -267,7 +267,7 @@ public class ModelAnalyzer implements Serializable {
 
     public static int estimatePartitions(Dataset<Row> ds, KylinConfig config) {
         int sizeMB = (int) (NSizeEstimator.estimate(ds, 0.1f) / (1024 * 1024));
-        int partition = sizeMB / KapConfig.wrap(config).getParquetStorageShardSize();
+        int partition = sizeMB / KapConfig.wrap(config).getParquetStorageShardSizeMB();
         if (partition == 0)
             partition = 1;
         return partition;

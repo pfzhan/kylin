@@ -28,6 +28,8 @@ import org.apache.calcite.DataContext;
 import org.apache.calcite.linq4j.Enumerable;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.type.RelDataType;
+import org.apache.spark.sql.Dataset;
+import org.apache.spark.sql.Row;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -40,20 +42,25 @@ public class SparkEngine implements QueryEngine {
 
     @Override
     public Enumerable<Object> computeSCALA(DataContext dataContext, RelNode relNode, RelDataType resultType) {
-        CalciteToSparkPlaner calciteToSparkPlaner = new CalciteToSparkPlaner(dataContext);
-        long t = System.currentTimeMillis();
-        calciteToSparkPlaner.go(relNode);
-        log.info("End to go CalciteToSparkPlaner, takes:{} ms.", System.currentTimeMillis() - t);
-        return ResultPlan.getResult(calciteToSparkPlaner.getResult(), resultType, ResultType.SCALA()).right().get();
+        Dataset<Row> sparkPlan = toSparkPlan(dataContext, relNode);
+        return ResultPlan.getResult(sparkPlan, resultType, ResultType.SCALA()).right().get();
 
     }
 
     @Override
     public Enumerable<Object[]> compute(DataContext dataContext, RelNode relNode, RelDataType resultType) {
+        Dataset<Row> sparkPlan = toSparkPlan(dataContext, relNode);
+        return ResultPlan.getResult(sparkPlan, resultType, ResultType.NORMAL()).left().get();
+    }
+
+    private Dataset<Row> toSparkPlan(DataContext dataContext, RelNode relNode) {
+        log.info("Begin planning spark plan.");
+        long start = System.currentTimeMillis();
         CalciteToSparkPlaner calciteToSparkPlaner = new CalciteToSparkPlaner(dataContext);
         long t = System.currentTimeMillis();
         calciteToSparkPlaner.go(relNode);
-        log.info("End to go CalciteToSparkPlaner, takes:{} ms.", System.currentTimeMillis() - t);
-        return ResultPlan.getResult(calciteToSparkPlaner.getResult(), resultType, ResultType.NORMAL()).left().get();
+        long takeTime = System.currentTimeMillis() - start;
+        log.info("Plan take {} ms", takeTime);
+        return calciteToSparkPlaner.getResult();
     }
 }
