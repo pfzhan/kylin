@@ -1,13 +1,19 @@
 <template>
   <div class="source-new">
-    <ul class="ksd-center">
-      <li class="datasouce" :class="getSourceClass([sourceTypes.HIVE])">
+    <ul>
+      <li class="datasouce ksd-center" :class="getSourceClass([sourceTypes.HIVE])">
         <div class="datasource-icon" @click="clickHandler(sourceTypes.HIVE)" v-guide.selectHive>
           <i class="el-icon-ksd-hive"></i>
         </div>
         <div class="datasource-name">Hive</div>
       </li>
-      <li class="datasouce disabled">
+      <li class="datasouce ksd-center" :class="getSourceClass([sourceTypes.CSV])">
+        <div class="datasource-icon" @click="clickHandler(sourceTypes.CSV)">
+          <i class="el-icon-ksd-csv"></i>
+        </div>
+        <div class="datasource-name">CSV</div>
+      </li>
+      <li class="datasouce disabled ksd-center">
         <div class="datasource-icon">
           <i class="el-icon-ksd-mysql"></i>
         </div>
@@ -16,7 +22,7 @@
           <span>{{$t('upcoming')}}</span>
         </div>
       </li>
-      <li class="datasouce disabled">
+      <li class="datasouce disabled ksd-center">
         <div class="datasource-icon">
           <i class="el-icon-ksd-kafka"></i>
         </div>
@@ -26,8 +32,8 @@
         </div>
       </li>
     </ul>
-    <ul class="ksd-center">
-      <li class="datasouce disabled">
+    <ul>
+      <li class="datasouce disabled ksd-center">
         <div class="datasource-icon">
           <i class="el-icon-ksd-greenplum"></i>
         </div>
@@ -36,20 +42,11 @@
           <span>{{$t('upcoming')}}</span>
         </div>
       </li>
-      <li class="datasouce disabled">
+      <li class="datasouce disabled ksd-center">
         <div class="datasource-icon">
           <i class="el-icon-ksd-sqlserver"></i>
         </div>
         <div class="datasource-name">SQL Server</div>
-        <div class="status">
-          <span>{{$t('upcoming')}}</span>
-        </div>
-      </li>
-      <li class="datasouce disabled">
-        <div class="datasource-icon">
-          <i class="el-icon-ksd-csv"></i>
-        </div>
-        <div class="datasource-name">CSV</div>
         <div class="status">
           <span>{{$t('upcoming')}}</span>
         </div>
@@ -101,7 +98,7 @@ export default class SourceSelect extends Vue {
 @import '../../../../assets/styles/variables.less';
 
 .source-new {
-  padding: 60px 0;
+  padding: 60px 154px;
   ul {
     margin-bottom: 35px;
     &:last-child {

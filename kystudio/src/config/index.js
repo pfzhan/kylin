@@ -630,7 +630,7 @@ export const sourceTypes = getFullMapping({
   RDBMS: 16,
   KAFKA: 1,
   RDBMS2: 8,
-  CSV: 99
+  CSV: 13
 })
 
 export const sourceNameMapping = {

@@ -28,10 +28,32 @@
         :selected-databases="form.selectedDatabases"
         @input="handleInputTableOrDatabase">
       </SourceHive>
+      <SourceCSVConnect
+        ref="source-csv-connection-form"
+        :form="form.csvSettings"
+        v-if="[editTypes.CSV].includes(editType)">
+      </SourceCSVConnect>
+      <SourceCSVSetting
+        @lockStep="lockStep"
+        ref="source-csv-setting-form"
+       :form="form.csvSettings"
+        v-if="[editTypes.CONFIG_CSV_SETTING].includes(editType) && [editTypes.CSV].includes(sourceType)">
+      </SourceCSVSetting>
+      <SourceCSVStructure
+        @lockStep="lockStep"
+        ref="source-csv-structure-form"
+        :form="form.csvSettings"
+        v-if="[editTypes.CONFIG_CSV_STRUCTURE].includes(editType) && [editTypes.CSV].includes(sourceType)">
+      </SourceCSVStructure>
+      <SourceCSVSql 
+        ref="source-csv-sql-form"
+        :form="form.csvSettings"
+        v-if="[editTypes.CONFIG_CSV_SQL].includes(editType) && [editTypes.CSV].includes(sourceType)">
+      </SourceCSVSql>
     </template>
     <div slot="footer" class="dialog-footer">
-      <el-button size="medium" @click="handleCancel" v-if="cancelText">{{cancelText}}</el-button>
-      <el-button size="medium" :key="editType" plain type="primary" @click="handleSubmit" v-guide.saveSourceType v-if="confirmText" :loading="isLoading">{{confirmText}}</el-button>
+      <el-button size="medium" :disabled="stepLocked || isLoading" @click="handleCancel" v-if="cancelText">{{cancelText}}</el-button>
+      <el-button size="medium" :disabled="stepLocked" :key="editType" plain type="primary" @click="handleSubmit" v-guide.saveSourceType v-if="confirmText" :loading="isLoading">{{confirmText}}</el-button>
     </div>
   </el-dialog>
 </template>
@@ -51,14 +73,21 @@ import { set } from '../../../util/object'
 import SourceSelect from './SourceSelect/SourceSelect.vue'
 import SourceHiveSetting from './SourceHiveSetting/SourceHiveSetting.vue'
 import SourceHive from './SourceHive/SourceHive.vue'
-
+import SourceCSVConnect from './SourceCSV/SourceConnect/connect.vue'
+import SourceCSVSetting from './SourceCSV/SourceSetting/setting.vue'
+import SourceCSVStructure from './SourceCSV/SourceStructure/structure.vue'
+import SourceCSVSql from './SourceCSV/SourceSql/sql.vue'
 vuex.registerModule(['modals', 'DataSourceModal'], store)
 
 @Component({
   components: {
     SourceSelect,
     SourceHiveSetting,
-    SourceHive
+    SourceHive,
+    SourceCSVConnect,
+    SourceCSVSetting,
+    SourceCSVStructure,
+    SourceCSVSql
   },
   computed: {
     ...mapState('DataSourceModal', {
@@ -80,6 +109,7 @@ vuex.registerModule(['modals', 'DataSourceModal'], store)
       loadAllProject: 'LOAD_ALL_PROJECT',
       updateProject: 'UPDATE_PROJECT',
       importTable: 'LOAD_HIVE_IN_PROJECT',
+      saveCsvDataSourceInfo: 'SAVE_CSV_INFO',
       saveSourceConfig: 'SAVE_SOURCE_CONFIG',
       updateProjectDatasource: 'UPDATE_PROJECT_DATASOURCE'
     })
@@ -91,10 +121,17 @@ export default class DataSourceModal extends Vue {
   isDisabled = false
   isFormShow = false
   editTypes = editTypes
+  prevSteps = []
+  stepLocked = false
+  lockStep (status) {
+    this.stepLocked = status
+  }
   get modalTitle () { return titleMaps[this.editType] }
   get modelWidth () { return this.editType === editTypes.HIVE ? '960px' : '780px' }
   get confirmText () { return this.$t(confirmMaps[this.editType]) }
-  get cancelText () { return ![editTypes.SELECT_SOURCE, editTypes.VIEW_SOURCE].includes(this.firstEditType) ? this.$t('kylinLang.common.cancel') : this.$t(cancelMaps[this.editType]) }
+  get cancelText () {
+    return this.firstEditType === this.editType ? this.$t('kylinLang.common.cancel') : this.$t(cancelMaps[this.editType])
+  }
   get sourceType () { return this.form.project.override_kylin_properties['kylin.source.default'] }
   handleInput (key, value) {
     this.setModalForm(set(this.form, key, value))
@@ -113,6 +150,7 @@ export default class DataSourceModal extends Vue {
   handleClose (isSubmit) {
     this._hideLoading()
     this.hideModal()
+    this.prevSteps = []
     this.callback && this.callback(isSubmit)
   }
   handleClosed () {
@@ -128,10 +166,11 @@ export default class DataSourceModal extends Vue {
     // } else {
     //   this.setModal({ editType: editTypes.CONFIG_SOURCE })
     // }
-    if (this.firstEditType !== editTypes.SELECT_SOURCE || this.editType === editTypes.SELECT_SOURCE) {
+
+    if (this.prevSteps.length === 0) {
       this.handleClose(false)
     } else {
-      this.setModal({ editType: editTypes.SELECT_SOURCE })
+      this.setModal({ editType: this.prevSteps.pop() })
     }
   }
   async handleSubmit () {
@@ -164,6 +203,7 @@ export default class DataSourceModal extends Vue {
   }
   async _submit () {
     const submitData = getSubmitData(this.form, this.editType)
+    this.prevSteps.push(this.editType)
     switch (this.editType) {
       // for datasource config
       // case editTypes.SELECT_SOURCE: {
@@ -181,6 +221,24 @@ export default class DataSourceModal extends Vue {
       }
       case editTypes.VIEW_SOURCE: {
         return this.handleClose(false)
+      }
+      case editTypes.CSV: {
+        if (this.form.csvSettings.addTableType === 0) {
+          return this.setModal({ editType: editTypes.CONFIG_CSV_SETTING })
+        } else {
+          return this.setModal({ editType: editTypes.CONFIG_CSV_SQL })
+        }
+      }
+      case editTypes.CONFIG_CSV_SETTING: {
+        return this.setModal({ editType: editTypes.CONFIG_CSV_STRUCTURE })
+      }
+      case editTypes.CONFIG_CSV_STRUCTURE: {
+        const response = await this.saveCsvDataSourceInfo({type: 'guide', data: submitData})
+        return await handleSuccessAsync(response)
+      }
+      case editTypes.CONFIG_CSV_SQL: {
+        const response = await this.saveCsvDataSourceInfo({type: 'expert', data: submitData})
+        return await handleSuccessAsync(response)
       }
       case editTypes.HIVE:
       case editTypes.RDBMS:
@@ -207,6 +265,18 @@ export default class DataSourceModal extends Vue {
         !isValid && this.$message(this.$t('pleaseSelectTableOrDatabase'))
         return isValid
       }
+      case editTypes.CSV: {
+        return await this.$refs['source-csv-connection-form'].$refs.form.validate()
+      }
+      case editTypes.CONFIG_CSV_SETTING: {
+        return await this.$refs['source-csv-setting-form'].$refs.form.validate()
+      }
+      case editTypes.CONFIG_CSV_STRUCTURE: {
+        return await this.$refs['source-csv-structure-form'].$refs.form.validate()
+      }
+      case editTypes.CONFIG_CSV_SQL: {
+        return await this.$refs['source-csv-sql-form'].$refs.form.validate()
+      }
       default:
         return true
     }
@@ -223,6 +293,9 @@ export default class DataSourceModal extends Vue {
   }
   .create-kafka {
     padding: 20px;
+  }
+  .source-csv {
+    padding: 20px 20px 0;
   }
 }
 </style>

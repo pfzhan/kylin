@@ -4,6 +4,19 @@ import { handleSuccess } from './business'
 export function isEmptyObject (obj) {
   return Object.keys(obj).length === 0
 }
+// 获取部分对象字断
+export function collectObject (obj, keys, needTransToString, ignoreNull) {
+  let newObj = {}
+  keys.forEach((k) => {
+    if (ignoreNull && obj[k] || !ignoreNull) {
+      newObj[k] = obj[k]
+    }
+  })
+  if (needTransToString) {
+    return JSON.stringify(newObj)
+  }
+  return newObj
+}
 export function fromObjToArr (obj) {
   let arr = []
   for (let key of Object.keys(obj)) {
@@ -568,6 +581,10 @@ export function delayMs (ms) {
       resolve()
     }, ms)
   })
+}
+// 过滤注入 （非严格过滤，谨慎使用）
+export function filterInjectScript (str) {
+  return str && str.replace(/</, '&lt;').replace(/>/, '&gt;') || ''
 }
 export { set, get, push } from './object'
 export { handleError, handleSuccess, hasRole, hasPermission, kapConfirm, transToGmtTime, isDatePartitionType, isTimePartitionType, transToUTCMs, getGmtDateFromUtcLike } from './business'

@@ -269,6 +269,22 @@ export default {
     },
     [types.SAVE_SOURCE_CONFIG]: function ({commit}, body) {
       return api.datasource.saveSourceConfig(body)
+    },
+    // csv
+    [types.VERIFY_CSV_CONN]: function ({commit}, data) {
+      return api.datasource.verifyCsvConnection(data)
+    },
+    [types.GET_CSV_SAMPLE]: function ({commit}, data) {
+      return api.datasource.getCsvSampleData(data)
+    },
+    [types.SAVE_CSV_INFO]: function ({commit}, para) {
+      return api.datasource.saveCsvInfo(para.type, para.data)
+    },
+    [types.LOAD_CSV_SCHEME]: function ({commit}, data) {
+      return api.datasource.loadCsvSchema(data)
+    },
+    [types.VERIFY_CSV_SQL]: function ({commit}, data) {
+      return api.datasource.verifyCSVSql(data)
     }
   }
 }

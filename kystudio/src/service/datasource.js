@@ -216,5 +216,24 @@ export default {
   },
   saveSourceConfig (body) {
     return new Promise((resolve) => setTimeout(() => resolve(), 1000))
+  },
+  // csv 数据源
+  // 联通性测试
+  verifyCsvConnection (para) {
+    return Vue.resource(apiUrl + `source/verify`).save(para)
+  },
+  // 样例数据
+  getCsvSampleData (para) {
+    return Vue.resource(apiUrl + `source/csv/samples`).save(para)
+  },
+  // 保存csv数据源（包含表）
+  saveCsvInfo (type, data) {
+    return Vue.resource(apiUrl + `source/csv/save?mode=` + type).save(data)
+  },
+  loadCsvSchema (data) {
+    return Vue.resource(apiUrl + `source/csv/schema`).save(data)
+  },
+  verifyCSVSql (data) {
+    return Vue.resource(apiUrl + `source/validate`).save(data)
   }
 }

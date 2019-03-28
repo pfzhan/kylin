@@ -1,5 +1,5 @@
 import { set } from '../../../util/object'
-
+import { sourceTypes } from '../../../config'
 export const types = {
   SHOW_MODAL: 'SHOW_MODAL',
   HIDE_MODAL: 'HIDE_MODAL',
@@ -15,6 +15,26 @@ const initialState = JSON.stringify({
   editType: '',
   firstEditType: '',
   form: {
+    csvSettings: {
+      url: '', // 路径
+      type: '', // 存储位置类型
+      accessKey: '',
+      secretKey: '',
+      addTableType: 0, // 添加csv的类型，0-向导模式 1-智能模式
+      credentailType: 'KEY',
+      separatorChar: ',', // 分隔符
+      quoteChar: '', // 文本标识符
+      name: '', // 表名
+      ddl: '', // sql语句
+      useFirstLine: false,
+      sampleData: [],
+      tableData: { // 表数据
+        name: '',
+        database: '',
+        source_type: sourceTypes.CSV,
+        columns: []
+      }
+    },
     project: null,
     selectedTables: [],
     selectedDatabases: [],

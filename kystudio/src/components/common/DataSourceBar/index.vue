@@ -13,7 +13,7 @@
 
     <section class="body" v-scroll>
       <div v-if="isShowLoadSource" class="btn-group">
-        <el-button plain size="medium" type="primary" v-guide.addDatasource icon="el-icon-ksd-add_data_source" @click="importDataSource('selectSource', currentProjectData)">
+        <el-button plain size="medium" v-if="databaseArray.length <= 0" type="primary" v-guide.addDatasource icon="el-icon-ksd-add_data_source" @click="importDataSource('selectSource', currentProjectData)">
           {{$t('addDatasource')}}
         </el-button>
       </div>
@@ -383,8 +383,8 @@ export default class DataSourceBar extends Vue {
     const result = await this.callDataSourceModal({ editType, project })
     if (result) {
       const { loaded, failed } = result
-      this.loadedTables = loaded
-      this.failedTables = failed
+      this.loadedTables = loaded || []
+      this.failedTables = failed || []
       this.isShowResultModal = true
     }
   }
