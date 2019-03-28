@@ -30,12 +30,15 @@ object JoinPlan {
   def join(inputs: java.util.List[DataFrame],
            rel: KapJoinRel): DataFrame = {
 
-    // val schema = statefulDF.indexSchema
     val lDataFrame = inputs.get(0)
-    val lSchemaNames = lDataFrame.schema.fieldNames
     val rDataFrame = inputs.get(1)
-    val rSchemaNames = rDataFrame.schema.fieldNames
+    val lSchemaNames = lDataFrame.schema.fieldNames.map("l_" + _)
+    val rSchemaNames = rDataFrame.schema.fieldNames.map("r_" + _)
+    // val schema = statefulDF.indexSchema
+    val newLDataFrame = inputs.get(0).toDF(lSchemaNames: _*)
+    val newRDataFrame = inputs.get(1).toDF(rSchemaNames: _*)
     var joinCol: Column = null
+
     //  todo   utils
     rel.getLeftKeys.asScala
       .zip(rel.getRightKeys.asScala)
@@ -50,9 +53,9 @@ object JoinPlan {
         }
       })
     if (joinCol == null) {
-      lDataFrame.crossJoin(rDataFrame)
+      newLDataFrame.crossJoin(newRDataFrame)
     } else {
-      lDataFrame.join(rDataFrame, joinCol, rel.getJoinType.lowerName)
+      newLDataFrame.join(newRDataFrame, joinCol, rel.getJoinType.lowerName)
     }
   }
 }

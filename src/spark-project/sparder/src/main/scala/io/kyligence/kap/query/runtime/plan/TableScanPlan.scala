@@ -22,12 +22,13 @@
 package io.kyligence.kap.query.runtime.plan
 
 import java.util
+import java.util.concurrent.ConcurrentHashMap
 
 import com.github.lightcopy.implicits._
 import com.google.common.collect.{Lists, Sets}
 import io.kyligence.kap.metadata.cube.cuboid.NLayoutCandidate
 import io.kyligence.kap.metadata.cube.gridtable.NCuboidToGridTableMapping
-import io.kyligence.kap.metadata.cube.model.{NDataSegment, NDataflow}
+import io.kyligence.kap.metadata.cube.model.{NDataflow, NDataSegment}
 import io.kyligence.kap.query.exception.UnsupportedQueryException
 import io.kyligence.kap.query.relnode.KapRel
 import io.kyligence.kap.query.runtime.RuntimeHelper
@@ -62,7 +63,11 @@ object TableScanPlan extends Logging {
     }
     r
   }
-
+  val cacheDf: ThreadLocal[ConcurrentHashMap[String, DataFrame]] = new ThreadLocal[ConcurrentHashMap[String, DataFrame]] {
+    override def initialValue: ConcurrentHashMap[String, DataFrame] = {
+      new ConcurrentHashMap[String, DataFrame]
+    }
+  }
   def createOLAPTable(rel: KapRel, dataContext: DataContext): DataFrame = {
 
     val start = System.currentTimeMillis()
@@ -101,17 +106,32 @@ object TableScanPlan extends Logging {
               toCuboidPath(dataflow, relation.cuboid.getId, basePath, seg)
           )
           cuboidLayout.getOrderedMeasures.asScala.map(entity => entity._2.getId)
-          var df = if (cuboidLayout.getShardByColumns == null || cuboidLayout.getShardByColumns.isEmpty) {
-            session.read.schema(relation.schema).parquet(fileList: _*).toDF(relation.columnNames: _*)
+          val path = fileList.mkString(",")
+          logInfo(s"path is $path")
+          logInfo(s"size is ${cacheDf.get().size()}")
+          var df = if (cacheDf.get().containsKey(path)) {
+            logInfo(s"Reuse df: $relation")
+            logInfo(s"${relation.schema}")
+            cacheDf.get().get(path)
           } else {
-            session.index
-              .shardBy(
-                cuboidLayout.getShardByColumns.asScala
-                  .map(column => column.toString)
-                  .toArray)
-              .schema(relation.schema)
-              .parquet(fileList.mkString(","))
-              .toDF(relation.columnNames: _*)
+            val d = if (cuboidLayout.getShardByColumns == null || cuboidLayout.getShardByColumns.isEmpty) {
+              session.read
+                .schema(relation.schema)
+                .parquet(fileList: _*)
+                .toDF(relation.columnNames: _*)
+            } else {
+              session.index
+                .shardBy(
+                  cuboidLayout.getShardByColumns.asScala
+                    .map(column => column.toString)
+                    .toArray)
+                .schema(relation.schema)
+                .parquet(path)
+                .toDF(relation.columnNames: _*)
+            }
+            logInfo(s"put path is $path")
+            cacheDf.get().put(path, d)
+            d
           }
           /////////////////////////////////////////////
           val groups: util.Collection[TblColRef] =
@@ -370,7 +390,7 @@ object TableScanPlan extends Logging {
     )
     expanded
   }
-  
+
   def createSingleRow(rel: KapRel, dataContext: DataContext): DataFrame = {
     createSimpleRowsDF(1)
   }
