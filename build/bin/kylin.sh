@@ -53,16 +53,16 @@ function verbose {
 function fetchHadoopConf() {
     export FI_ENV_PLATFORM=
 
-    ## FusionInsight platform C70.
-    if [ -n "$BIGDATA_CLIENT_HOME" ]
-    then
-        FI_ENV_PLATFORM=$BIGDATA_CLIENT_HOME
-    fi
-
     ## FusionInsight platform C60.
     if [ -n "$BIGDATA_HOME" ]
     then
         FI_ENV_PLATFORM=$BIGDATA_HOME
+    fi
+
+    ## FusionInsight platform C70.
+    if [ -n "$BIGDATA_CLIENT_HOME" ]
+    then
+        FI_ENV_PLATFORM=$BIGDATA_CLIENT_HOME
     fi
 
     if [ -n "$FI_ENV_PLATFORM" ]
