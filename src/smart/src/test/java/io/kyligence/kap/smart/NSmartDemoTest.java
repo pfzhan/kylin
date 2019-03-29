@@ -30,6 +30,7 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.util.List;
+import java.util.Properties;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -45,7 +46,6 @@ import com.google.common.io.Files;
 import io.kyligence.kap.common.util.KylinConfigUtils;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
-import io.kyligence.kap.smart.query.Utils;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -112,15 +112,17 @@ public class NSmartDemoTest {
             }
         }
 
-        String[] sqls = sqlList.toArray(new String[0]);
-
         File tmpMeta = Files.createTempDir();
         FileUtils.copyDirectory(new File(metaDir), tmpMeta);
-        KylinConfig kylinConfig = Utils.newKylinConfig(tmpMeta.getAbsolutePath());
+
+        Properties props = new Properties();
+        props.setProperty("kylin.metadata.url", tmpMeta.getCanonicalPath());
+
+        KylinConfig kylinConfig = KylinConfig.createKylinConfig(props);
         kylinConfig.setProperty("kylin.env", "UT");
         KylinConfigUtils.setH2DriverAsFavoriteQueryStorageDB(kylinConfig);
         try (SetAndUnsetThreadLocalConfig autoUnset = KylinConfig.setAndUnsetThreadLocalConfig(kylinConfig)) {
-            NSmartMaster smartMaster = new NSmartMaster(kylinConfig, projectName, sqls);
+            NSmartMaster smartMaster = new NSmartMaster(kylinConfig, projectName, sqlList.toArray(new String[0]));
             smartMaster.runAll();
 
             NDataflowManager dataflowManager = NDataflowManager.getInstance(kylinConfig, projectName);

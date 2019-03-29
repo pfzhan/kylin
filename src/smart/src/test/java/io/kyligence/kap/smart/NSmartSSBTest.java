@@ -32,8 +32,6 @@ import java.nio.file.Paths;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.metadata.cube.model.IndexEntity;
-import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -42,8 +40,10 @@ import org.junit.Test;
 import com.google.common.collect.Lists;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
-import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
+import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
+import io.kyligence.kap.metadata.cube.model.NDataflowManager;
+import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import lombok.val;
 import lombok.var;
@@ -51,19 +51,19 @@ import lombok.var;
 public class NSmartSSBTest extends NLocalFileMetadataTestCase {
 
     @Before
-    public void setUp() throws Exception {
+    public void setUp() {
         this.createTestMetadata();
     }
 
     @After
-    public void tearDown() throws Exception {
+    public void tearDown() {
         this.cleanupTestMetadata();
     }
 
     @Test
     public void testSSB() throws IOException {
         final String project = "ssb";
-        NProjectManager projectManager = NProjectManager.getInstance(getTestConfig());
+        NProjectManager projectManager;
 
         final String sqlsPath = "./src/test/resources/nsmart/ssb/sql";
         File fileFolder = new File(sqlsPath);

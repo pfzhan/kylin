@@ -24,7 +24,6 @@
 
 package io.kyligence.kap.smart.cube;
 
-import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
@@ -51,9 +50,8 @@ import lombok.val;
 public class CuboidSuggesterTest extends NTestBase {
 
     @Test
-    public void testAggIndexSuggesetColOrder() throws IOException {
+    public void testAggIndexSuggesetColOrder() {
 
-        hideTableExdInfo();
         String[] sqls = new String[] { "select lstg_format_name, buyer_id, seller_id, sum(price) from kylin_sales "
                 + "where part_dt = '2012-01-03' group by part_dt, lstg_format_name, buyer_id, seller_id" };
         NSmartMaster smartMaster = new NSmartMaster(getTestConfig(), proj, sqls);

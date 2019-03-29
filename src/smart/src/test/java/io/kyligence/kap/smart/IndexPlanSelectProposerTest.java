@@ -31,9 +31,9 @@ import org.junit.Test;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 
 public class IndexPlanSelectProposerTest extends NLocalFileMetadataTestCase {
-    KylinConfig kylinConfig;
-    static final String DEFAULT_PROJECT = "default";
-    String[] sqls = { // 
+    private KylinConfig kylinConfig;
+    private static final String DEFAULT_PROJECT = "default";
+    private String[] sqls = { // 
             "select test_kylin_fact.lstg_format_name,sum(test_kylin_fact.price) as GMV \n"
                     + " , count(*) as TRANS_CNT from test_kylin_fact \n"
                     + " where test_kylin_fact.lstg_format_name is not null \n"

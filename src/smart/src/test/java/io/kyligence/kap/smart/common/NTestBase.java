@@ -25,9 +25,9 @@
 package io.kyligence.kap.smart.common;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Properties;
 import java.util.Set;
 
 import org.apache.commons.io.FileUtils;
@@ -37,8 +37,6 @@ import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.query.relnode.OLAPContext;
 import org.junit.After;
 import org.junit.Before;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
@@ -51,12 +49,9 @@ import io.kyligence.kap.metadata.favorite.FavoriteQuery;
 import io.kyligence.kap.metadata.favorite.FavoriteQueryManager;
 import io.kyligence.kap.metadata.favorite.FavoriteQueryRealization;
 import io.kyligence.kap.smart.NSmartContext;
-import io.kyligence.kap.smart.query.Utils;
 import lombok.val;
 
 public abstract class NTestBase {
-
-    protected static final Logger logger = LoggerFactory.getLogger(NTestBase.class);
 
     protected String proj = "learn_kylin";
     private File tmpMeta;
@@ -69,7 +64,10 @@ public abstract class NTestBase {
         tmpMeta = Files.createTempDir();
         FileUtils.copyDirectory(new File(metaDir), tmpMeta);
 
-        KylinConfig kylinConfig = Utils.smartKylinConfig(tmpMeta.getCanonicalPath());
+        Properties props = new Properties();
+        props.setProperty("kylin.metadata.url", tmpMeta.getCanonicalPath());
+
+        KylinConfig kylinConfig = KylinConfig.createKylinConfig(props);
         kylinConfig.setProperty("kylin.env", "UT");
         localConfig = KylinConfig.setAndUnsetThreadLocalConfig(kylinConfig);
         favoriteQueryManager = FavoriteQueryManager.getInstance(kylinConfig, proj);
@@ -126,72 +124,4 @@ public abstract class NTestBase {
         favoriteQueryManager.create(favoriteQueries);
     }
 
-    protected void showTableExdInfo() throws IOException {
-        KylinConfig oldKylinConfig = localConfig.get();
-        val resourceStore = ResourceStore.getKylinMetaStore(oldKylinConfig);
-        ResourceStore.dumpResources(oldKylinConfig, tmpMeta, resourceStore.listResourcesRecursively("/"));
-
-        reAddMetadataTableExd();
-
-        KylinConfig kylinConfig = Utils.smartKylinConfig(tmpMeta.getCanonicalPath());
-        kylinConfig.setProperty("kylin.env", "UT");
-        localConfig.close();
-        localConfig = KylinConfig.setAndUnsetThreadLocalConfig(kylinConfig);
-        favoriteQueryManager = FavoriteQueryManager.getInstance(kylinConfig, proj);
-    }
-
-    protected void hideTableExdInfo() throws IOException {
-        deleteMetadataTableExd();
-
-        KylinConfig kylinConfig = Utils.smartKylinConfig(tmpMeta.getCanonicalPath());
-        kylinConfig.setProperty("kylin.env", "UT");
-        localConfig.close();
-        localConfig = KylinConfig.setAndUnsetThreadLocalConfig(kylinConfig);
-        favoriteQueryManager = FavoriteQueryManager.getInstance(kylinConfig, proj);
-    }
-
-    // ================== handle table exd ==============
-    private String tmpTableExdDir;
-
-    private void deleteMetadataTableExd() throws IOException {
-        Preconditions.checkNotNull(tmpMeta, "no valid metadata.");
-        val metaDir = tmpMeta;
-        final File[] files = metaDir.listFiles();
-        Preconditions.checkNotNull(files);
-        for (File file : files) {
-            if (!file.isDirectory() || !file.getName().equals(proj)) {
-                continue;
-            }
-
-            final File[] directories = file.listFiles();
-            Preconditions.checkNotNull(directories);
-            for (File item : directories) {
-                if (item.isDirectory() && item.getName().equals("table_exd")) {
-                    final File destTableExd = new File(metaDir.getParent(), "table_exd");
-                    tmpTableExdDir = destTableExd.getCanonicalPath();
-                    if (destTableExd.exists()) {
-                        FileUtils.forceDelete(destTableExd);
-                    }
-                    FileUtils.moveDirectory(new File(file.getCanonicalPath(), "table_exd"), destTableExd);
-                    return;
-                }
-            }
-        }
-    }
-
-    private void reAddMetadataTableExd() throws IOException {
-        Preconditions.checkNotNull(tmpMeta, "no valid metadata.");
-        val metaDir = tmpMeta;
-        final File[] files = metaDir.listFiles();
-        Preconditions.checkNotNull(files);
-        for (File file : files) {
-            if (file.isDirectory() && file.getName().equals(proj)) {
-                File srcTableExd = new File(tmpTableExdDir);
-                if (srcTableExd.exists()) {
-                    FileUtils.copyDirectory(srcTableExd, new File(file.getCanonicalPath(), "table_exd"));
-                }
-                break;
-            }
-        }
-    }
 }

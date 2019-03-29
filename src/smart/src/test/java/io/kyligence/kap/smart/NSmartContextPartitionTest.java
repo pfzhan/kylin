@@ -24,7 +24,6 @@
 
 package io.kyligence.kap.smart;
 
-import java.io.IOException;
 import java.util.Map;
 
 import org.apache.kylin.common.KylinConfig;
@@ -35,11 +34,13 @@ import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.smart.common.AccelerateInfo;
 import io.kyligence.kap.smart.common.NTestBase;
 import lombok.val;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 public class NSmartContextPartitionTest extends NTestBase {
 
     @Test
-    public void testAllFullLoadTableJoin() throws IOException {
+    public void testAllFullLoadTableJoin() {
         KylinConfig kylinConfig = getTestConfig();
         /*
          * case 1: both are full load tables, result have two contexts
@@ -170,10 +171,11 @@ public class NSmartContextPartitionTest extends NTestBase {
             final Map<String, AccelerateInfo> accelerateInfoMap = smartContext.getAccelerateInfoMap();
             Assert.assertEquals(1, accelerateInfoMap.get(sqls[0]).getRelatedLayouts().size());
         }
+        log.debug("ending testAllFullLoadTableJoin()");
     }
 
     @Test
-    public void testIsRightSideIncrementalLoadTable() throws IOException {
+    public void testIsRightSideIncrementalLoadTable() {
         KylinConfig kylinConfig = getTestConfig();
 
         /*
@@ -299,10 +301,11 @@ public class NSmartContextPartitionTest extends NTestBase {
         kylinSales.setIncrementLoading(false);
         tableManager.updateTableDesc(kylinCountry);
         tableManager.updateTableDesc(kylinSales);
+        log.debug("ending testIsRightSideIncrementalLoadTable()");
     }
 
     @Test
-    public void testCrossJoin() throws IOException {
+    public void testCrossJoin() {
         KylinConfig kylinConfig = getTestConfig();
         /*
          * -- case 1: inner join as cross join
@@ -342,10 +345,11 @@ public class NSmartContextPartitionTest extends NTestBase {
             final Map<String, AccelerateInfo> accelerateInfoMap = smartContext.getAccelerateInfoMap();
             Assert.assertEquals(2, accelerateInfoMap.get(sqls[0]).getRelatedLayouts().size());
         }
+        log.debug("ending testCrossJoin()");
     }
 
     @Test
-    public void testAllIncrementalLoadTableJoin() throws IOException {
+    public void testAllIncrementalLoadTableJoin() {
         KylinConfig kylinConfig = getTestConfig();
 
         /*
@@ -404,5 +408,6 @@ public class NSmartContextPartitionTest extends NTestBase {
         kylinCalDtTable.setIncrementLoading(false);
         tableManager.updateTableDesc(kylinSalesTable);
         tableManager.updateTableDesc(kylinCalDtTable);
+        log.debug("ending testAllIncrementalLoadTableJoin()");
     }
 }

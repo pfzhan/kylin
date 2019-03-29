@@ -38,6 +38,7 @@ import org.apache.kylin.common.util.JsonUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import io.kyligence.kap.smart.query.mockup.MockupPushDownRunner;
 import lombok.val;
 
 class NLocalQueryRunner extends AbstractQueryRunner {
@@ -60,6 +61,7 @@ class NLocalQueryRunner extends AbstractQueryRunner {
         File tmp = File.createTempFile("kylin_job_meta", "");
         FileUtils.forceDelete(tmp);
         val properties = KylinConfig.getInstanceFromEnv().exportToProperties();
+        properties.setProperty("kylin.metadata.url", tmp.getAbsolutePath());
         ResourceStore.dumpResources(KylinConfig.getInstanceFromEnv(), tmp, dumpResources, properties);
 
         for (Map.Entry<String, RootPersistentEntity> mockupResource : mockupResources.entrySet()) {
@@ -73,11 +75,8 @@ class NLocalQueryRunner extends AbstractQueryRunner {
             FileUtils.writeStringToFile(dumpFile, dumpJson, Charset.defaultCharset());
         }
 
-        KylinConfig config = Utils.newKylinConfig(tmp.getAbsolutePath());
-        Utils.exposeAllTableAndColumn(config);
-        Utils.setLargeCuboidCombinationConf(config);
-        Utils.setLargeRowkeySizeConf(config);
-        config.setProperty("kylin.query.disable-cube-noagg-sql", Boolean.toString(kylinConfig.isDisableCubeNoAggSQL()));
+        KylinConfig config = KylinConfig.createKylinConfig(properties);
+        config.setProperty("kylin.query.pushdown.runner-class-name", MockupPushDownRunner.class.getName());
         config.setProperty("kylin.query.transformers", StringUtils.join(kylinConfig.getQueryTransformers(), ','));
         config.setProperty("kap.query.security.row-acl-enabled", "false");
         config.setProperty("kap.query.security.column-acl-enabled", "false");
@@ -87,7 +86,6 @@ class NLocalQueryRunner extends AbstractQueryRunner {
 
     @Override
     public void cleanupConfig(KylinConfig config) throws IOException {
-        Utils.clearCacheForKylinConfig(config);
         File metaDir = new File(config.getMetadataUrl().getIdentifier());
         if (metaDir.exists() && metaDir.isDirectory()) {
             FileUtils.forceDelete(metaDir);

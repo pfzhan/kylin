@@ -24,12 +24,10 @@
 
 package io.kyligence.kap.smart.model;
 
-import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
 import org.apache.kylin.metadata.model.PartitionDesc;
-import org.apache.kylin.metadata.model.SegmentRange;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -44,7 +42,7 @@ import lombok.val;
 
 public class NModelMasterTest extends NTestBase {
     @Test
-    public void testNormal() throws IOException {
+    public void testNormal() {
         preparePartition();
 
         String[] sqls = new String[] { //
@@ -116,7 +114,7 @@ public class NModelMasterTest extends NTestBase {
     }
 
     @Test
-    public void testSqlWithoutPartition() throws IOException {
+    public void testSqlWithoutPartition() {
 
         String[] sqls = new String[] {
                 "SELECT kylin_category_groupings.meta_categ_name, kylin_category_groupings.categ_lvl2_name, "
@@ -201,7 +199,7 @@ public class NModelMasterTest extends NTestBase {
     }
 
     @Test
-    public void testSqlWithEmptyAllColsInContext() throws IOException {
+    public void testSqlWithEmptyAllColsInContext() {
         String[] sqls = new String[] { "SELECT count(*) as cnt from " + "KYLIN_SALES as KYLIN_SALES  \n"
                 + "INNER JOIN KYLIN_CAL_DT as KYLIN_CAL_DT ON KYLIN_SALES.PART_DT = KYLIN_CAL_DT.CAL_DT \n"
                 + "INNER JOIN KYLIN_CATEGORY_GROUPINGS as KYLIN_CATEGORY_GROUPINGS \n"
@@ -231,17 +229,14 @@ public class NModelMasterTest extends NTestBase {
         }
     }
 
-    private NDataLoadingRange preparePartition() throws IOException {
+    private void preparePartition() {
         String tableName = "DEFAULT.KYLIN_SALES";
         String columnName = "KYLIN_SALES.PART_DT";
         NDataLoadingRange dataLoadingRange = new NDataLoadingRange();
         dataLoadingRange.setTableName(tableName);
         dataLoadingRange.setColumnName(columnName);
-        long start = SegmentRange.dateToLong("2010-01-01");
-        long end = SegmentRange.dateToLong("2013-01-01");
 
         NDataLoadingRangeManager dataLoadingRangeManager = NDataLoadingRangeManager.getInstance(getTestConfig(), proj);
-        NDataLoadingRange savedDataLoadingRange = dataLoadingRangeManager.createDataLoadingRange(dataLoadingRange);
-        return savedDataLoadingRange;
+        dataLoadingRangeManager.createDataLoadingRange(dataLoadingRange);
     }
 }
