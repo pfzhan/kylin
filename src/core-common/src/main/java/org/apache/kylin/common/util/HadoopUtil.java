@@ -69,6 +69,9 @@ public class HadoopUtil {
         hadoopConfig.set(conf);
     }
 
+    private static final String FILE_PREFIX = "file://";
+    private static final String MAPR_FS_PREFIX = "maprfs://";
+
     public static Configuration getCurrentConfiguration() {
         if (hadoopConfig.get() == null) {
             Configuration conf = healSickConfig(new Configuration());
@@ -100,17 +103,17 @@ public class HadoopUtil {
         return getFileSystem(KylinConfig.getInstanceFromEnv().getHdfsWorkingDirectory(null));
     }
 
-    public static FileSystem getWorkingFileSystem(Configuration conf) throws IOException {
+    public static FileSystem getWorkingFileSystem(Configuration conf) {
         Path workingPath = new Path(KylinConfig.getInstanceFromEnv().getHdfsWorkingDirectory(null));
         return getFileSystem(workingPath, conf);
     }
 
-    public static FileSystem getReadFileSystem() throws IOException {
+    public static FileSystem getReadFileSystem() {
         Configuration conf = getCurrentConfiguration();
         return getReadFileSystem(conf);
     }
 
-    public static FileSystem getReadFileSystem(Configuration conf) throws IOException {
+    public static FileSystem getReadFileSystem(Configuration conf) {
         Path parquetReadPath = new Path(KylinConfig.getInstanceFromEnv().getReadHdfsWorkingDirectory(null));
         return getFileSystem(parquetReadPath, conf);
     }
@@ -145,8 +148,8 @@ public class HadoopUtil {
             path = "file:///" + path;
         } else if (path.startsWith("C:/") || path.startsWith("D:/")) {
             path = "file:///" + path;
-        } else if (path.startsWith("file://") && !path.startsWith("file:///") && path.contains(":\\")) {
-            path = path.replace("file://", "file:///");
+        } else if (path.startsWith(FILE_PREFIX) && !path.startsWith("file:///") && path.contains(":\\")) {
+            path = path.replace(FILE_PREFIX, "file:///");
         }
         
         if (path.startsWith("file:///")) {
@@ -211,13 +214,13 @@ public class HadoopUtil {
     }
 
     public static String getPathWithoutScheme(String path) {
-        if (path.startsWith("file://") || path.startsWith("maprfs://"))
+        if (path.startsWith(FILE_PREFIX) || path.startsWith(MAPR_FS_PREFIX))
             return path;
 
         if (path.startsWith("file:")) {
-            path = path.replace("file:", "file://");
+            path = path.replace("file:", FILE_PREFIX);
         } else if (path.startsWith("maprfs:")) {
-            path = path.replace("maprfs:", "maprfs://");
+            path = path.replace("maprfs:", MAPR_FS_PREFIX);
         } else {
             path = Path.getPathWithoutSchemeAndAuthority(new Path(path)).toString() + "/";
         }
