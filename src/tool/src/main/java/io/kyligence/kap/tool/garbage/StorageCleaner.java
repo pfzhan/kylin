@@ -23,10 +23,22 @@
  */
 package io.kyligence.kap.tool.garbage;
 
+import static org.apache.kylin.common.util.HadoopUtil.GLOBAL_DICT_STORAGE_ROOT;
+import static org.apache.kylin.common.util.HadoopUtil.JOB_TMP_ROOT;
+import static org.apache.kylin.common.util.HadoopUtil.PARQUET_STORAGE_ROOT;
+import static org.apache.kylin.common.util.HadoopUtil.SNAPSHOT_STORAGE_ROOT;
+import static org.apache.kylin.common.util.HadoopUtil.TABLE_EXD_STORAGE_ROOT;
+
+import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
@@ -36,10 +48,12 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.persistence.RootPersistentEntity;
 import org.apache.kylin.common.util.HadoopUtil;
-import org.apache.kylin.job.execution.AbstractExecutable;
+import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.metadata.project.ProjectInstance;
 
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.metadata.cube.model.NDataLayout;
@@ -48,9 +62,14 @@ import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
-import lombok.Builder;
+import io.kyligence.kap.metadata.project.UnitOfAllWorks;
+import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
+import lombok.NonNull;
+import lombok.RequiredArgsConstructor;
+import lombok.ToString;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
@@ -64,6 +83,7 @@ public class StorageCleaner {
 
     public void execute() throws IOException {
         val config = KylinConfig.getInstanceFromEnv();
+        long startTime = System.currentTimeMillis();
         val projects = NProjectManager.getInstance(config).listAllProjects();
         for (ProjectInstance project : projects) {
             val dataflows = NDataflowManager.getInstance(config, project.getName()).listAllDataflows();
@@ -77,209 +97,320 @@ public class StorageCleaner {
         allFileSystems.add(new StorageItem(HadoopUtil.getFileSystem(new Path(config.getHdfsWorkingDirectory())),
                 config.getHdfsWorkingDirectory()));
         log.info("all file systems are {}", allFileSystems);
-        collectDeletedProject();
-        for (ProjectInstance project : projects) {
-            collect(project.getName());
+        for (StorageItem allFileSystem : allFileSystems) {
+            collectFromHDFS(allFileSystem);
+        }
+        UnitOfAllWorks.doInTransaction(() -> {
+            collectDeletedProject();
+            for (ProjectInstance project : projects) {
+                collect(project.getName());
+            }
+            return null;
+        }, true);
+
+        long protectionTime = startTime - config.getCuboidLayoutSurvivalTimeThreshold();
+        for (StorageItem item : allFileSystems) {
+            for (FileTreeNode node : item.getAllNodes()) {
+                val path = new Path(item.getPath(), node.getRelativePath());
+                try {
+                    addItem(item.getFs(), path, protectionTime);
+                } catch (FileNotFoundException e) {
+                    log.warn("{} not found", path);
+                }
+            }
         }
 
         cleanup();
     }
 
-    public void collectDeletedProject() throws IOException {
+    public void collectDeletedProject() {
         val config = KylinConfig.getInstanceFromEnv();
         val projects = NProjectManager.getInstance(config).listAllProjects().stream().map(ProjectInstance::getName)
                 .collect(Collectors.toSet());
         for (StorageItem item : allFileSystems) {
-            for (FileStatus projectFile : listFileStatus(item.getFs(), new Path(item.getPath()))) {
-                val projectName = projectFile.getPath().getName();
-                if (projectName.startsWith("_") || projectName.startsWith(".")) {
-                    continue;
-                }
-                if (!projects.contains(projectName)) {
-                    addItem(item.getFs(), projectFile);
-                }
-            }
+            item.getProjectNodes().removeIf(node -> projects.contains(node.getName()));
         }
     }
 
-    public void collect(String project) throws IOException {
+    public void collect(String project) {
         log.info("collect garbage for {}", project);
-        collectJobTmp(project);
-        collectDeletedDataflow(project);
-        collectIndexData(project);
+        val projectCleaner = new ProjectStorageCleaner(project);
+        projectCleaner.execute();
     }
 
     public void cleanup() throws IOException {
         log.debug("start cleanup garbage on HDFS");
         for (StorageItem item : outdatedItems) {
             log.debug("try to delete {}", item.getPath());
-            item.getFs().delete(new Path(item.getPath()), true);
-        }
-    }
-
-    private void collectJobTmp(String project) throws IOException {
-        val config = KylinConfig.getInstanceFromEnv();
-        val executableManager = NExecutableManager.getInstance(config, project);
-        Set<String> activeJobs = executableManager.getAllExecutables().stream().map(AbstractExecutable::getId)
-                .collect(Collectors.toSet());
-        val fs = HadoopUtil.getWorkingFileSystem();
-        val jobTmpPath = new Path(config.getJobTmpDir(project));
-        for (FileStatus fileStatus : listFileStatus(fs, jobTmpPath)) {
-            String jobDir = fileStatus.getPath().getName();
-            if (activeJobs.contains(jobDir)) {
-                continue;
+            try {
+                item.getFs().delete(new Path(item.getPath()), true);
+            } catch (IOException e) {
+                log.warn("delete file " + item.getPath() + " failed", e);
             }
-            addItem(fs, fileStatus);
         }
     }
 
-    private void collectDeletedDataflow(String project) throws IOException {
-        val config = KylinConfig.getInstanceFromEnv();
-        for (StorageItem item : allFileSystems) {
+    private String getDataflowBaseDir(String project) {
+        return project + PARQUET_STORAGE_ROOT + "/";
+    }
+
+    private String getDataflowDir(String project, String dataflowId) {
+        return getDataflowBaseDir(project) + dataflowId;
+    }
+
+    class ProjectStorageCleaner {
+
+        private final String project;
+
+        private final Set<String> dependentFiles = Sets.newTreeSet();
+
+        ProjectStorageCleaner(String project) {
+            this.project = project;
+        }
+
+        public void execute() {
+            val manager = NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+            manager.getAllExecutables().stream().filter(e -> !e.getOutput().getState().isFinalState())
+                    .forEach(e -> dependentFiles.addAll(e.getDependentFiles()));
+            collectJobTmp(project);
+            collectDataflow(project);
+            collectTable(project);
+
+            removeDependentFiles();
+        }
+
+        private void removeDependentFiles() {
+            for (StorageItem item : allFileSystems) {
+                for (List<FileTreeNode> nodes : item.getProject(project).getAllCandidates()) {
+                    // protect parent folder and
+                    nodes.removeIf(
+                            node -> dependentFiles.stream().anyMatch(df -> ("/" + node.getRelativePath()).startsWith(df)
+                                    || df.startsWith("/" + node.getRelativePath())));
+                }
+            }
+        }
+
+        private void collectJobTmp(String project) {
+            val config = KylinConfig.getInstanceFromEnv();
+            val executableManager = NExecutableManager.getInstance(config, project);
+            Set<String> activeJobs = executableManager.getAllExecutables().stream()
+                    .map(e -> project + JOB_TMP_ROOT + "/" + e.getId()).collect(Collectors.toSet());
+            for (StorageItem item : allFileSystems) {
+                item.getProject(project).getJobTmps().removeIf(node -> activeJobs.contains(node.getRelativePath()));
+            }
+        }
+
+        private void collectDataflow(String project) {
+            val config = KylinConfig.getInstanceFromEnv();
+            val dataflowManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+            val activeIndexDataPath = Sets.<String> newHashSet();
             val dataflows = NDataflowManager.getInstance(config, project).listAllDataflows().stream()
                     .map(RootPersistentEntity::getId).collect(Collectors.toSet());
-            for (FileStatus dataflowFile : listFileStatus(item.getFs(),
-                    new Path(getDataflowBaseDir(item.getPath(), project)))) {
-                if (!dataflows.contains(dataflowFile.getPath().getName())) {
-                    addItem(item.getFs(), dataflowFile);
-                }
-            }
-        }
-    }
-
-    private void collectIndexData(String project) throws IOException {
-        val dataflowManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
-        val activeIndexDataPath = Sets.<Path> newHashSet();
-        val dataflowDirs = Sets.<String> newHashSet();
-        dataflowManager.listAllDataflows().forEach(dataflow -> {
-            KapConfig config = KapConfig.wrap(dataflow.getConfig());
-            String hdfsWorkingDir = config.getReadHdfsWorkingDirectory();
-            dataflowDirs.add(getDataflowDir(hdfsWorkingDir, project, dataflow.getUuid()));
-            dataflow.getSegments().stream() //
+            dataflowManager.listAllDataflows().forEach(dataflow -> dataflow.getSegments().stream() //
                     .flatMap(segment -> segment.getLayoutsMap().values().stream()) //
-                    .map(this::getDataLayoutDir).map(Path::new).forEach(activeIndexDataPath::add);
-        });
+                    .map(StorageCleaner.this::getDataLayoutDir).forEach(activeIndexDataPath::add));
 
-        val activeSegmentPath = activeIndexDataPath.stream().map(Path::getParent).collect(Collectors.toSet());
-
-        for (val dataflowDir : dataflowDirs) {
-            val fs = HadoopUtil.getFileSystem(dataflowDir);
-            for (FileStatus fileStatus : listFileStatus(fs, new Path(dataflowDir))) {
-                val segmentDir = fileStatus.getPath();
-                if (!activeSegmentPath.contains(segmentDir)) {
-                    addItem(fs, fileStatus);
-                    continue;
-                }
-                for (FileStatus status : listFileStatus(fs, segmentDir)) {
-                    val layoutDir = status.getPath();
-                    if (!activeIndexDataPath.contains(layoutDir)) {
-                        addItem(fs, status);
-                    }
-                }
+            val activeSegmentPath = activeIndexDataPath.stream().map(s -> new File(s).getParent())
+                    .collect(Collectors.toSet());
+            for (StorageCleaner.StorageItem item : allFileSystems) {
+                item.getProject(project).getDataflows().removeIf(node -> dataflows.contains(node.getName()));
+                item.getProject(project).getSegments()
+                        .removeIf(node -> activeSegmentPath.contains(node.getRelativePath()));
+                item.getProject(project).getLayouts()
+                        .removeIf(node -> activeIndexDataPath.contains(node.getRelativePath()));
             }
         }
 
-        for (StorageItem item : allFileSystems) {
-            collectDictAndSnapshot(item.getPath(), project);
-        }
-    }
+        private void collectTable(String project) {
+            val config = KylinConfig.getInstanceFromEnv();
+            val tableManager = NTableMetadataManager.getInstance(config, project);
+            val activeDictDir = Sets.<String> newHashSet();
+            val activeTableExdDir = Sets.<String> newHashSet();
+            val activeDictTableDir = Sets.<String> newHashSet();
+            val activeSnapshotTableDir = Sets.<String> newHashSet();
+            tableManager.listAllTables().forEach(table -> {
+                Arrays.stream(table.getColumns())
+                        .map(column -> getDictDir(project) + "/" + table.getIdentity() + "/" + column.getName())
+                        .forEach(activeDictDir::add);
+                activeTableExdDir.add(project + ResourceStore.TABLE_EXD_RESOURCE_ROOT + "/" + table.getIdentity());
+                activeSnapshotTableDir.add(project + SNAPSHOT_STORAGE_ROOT + "/" + table.getIdentity());
+                activeDictTableDir.add(getDictDir(project) + "/" + table.getIdentity());
+            });
 
-    private void collectDictAndSnapshot(String workingDir, String project) throws IOException {
-        val config = KylinConfig.getInstanceFromEnv();
-        val tableManager = NTableMetadataManager.getInstance(config, project);
-        val activeDictDir = Sets.<Path> newHashSet();
-        tableManager.listAllTables()
-                .forEach(table -> Arrays.stream(table.getColumns())
-                        .map(column -> new Path(
-                                getDictDir(workingDir, project) + "/" + table.getIdentity() + "/" + column.getName()))
-                        .forEach(activeDictDir::add));
-        val activeDictTableDir = activeDictDir.stream().map(Path::getParent).collect(Collectors.toSet());
+            val activeSnapshotDir = Sets.<String> newHashSet();
+            val dataflowManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+            dataflowManager.listAllDataflows().forEach(dataflow -> dataflow.getSegments().stream()
+                    .flatMap(segment -> segment.getSnapshots().values().stream()).forEach(activeSnapshotDir::add));
 
-        val fs = HadoopUtil.getFileSystem(workingDir);
-        for (FileStatus fileStatus : listFileStatus(fs, new Path(getDictDir(workingDir, project)))) {
-            if (!activeDictTableDir.contains(fileStatus.getPath())) {
-                addItem(fs, fileStatus);
-                continue;
-            }
-            for (FileStatus status : listFileStatus(fs, fileStatus.getPath())) {
-                val columnDictDir = status.getPath();
-                if (!activeDictDir.contains(columnDictDir)) {
-                    addItem(fs, status);
-                }
-            }
-        }
-
-        val activeSnapshotPath = Sets.<Path> newHashSet();
-        val dataflowManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
-        dataflowManager.listAllDataflows()
-                .forEach(dataflow -> dataflow.getSegments().stream()
-                        .flatMap(segment -> segment.getSnapshots().values().stream())
-                        .map(subPath -> new Path(workingDir, subPath)).forEach(activeSnapshotPath::add));
-        val activeSnapshotTablePath = activeSnapshotPath.stream().map(Path::getParent).collect(Collectors.toSet());
-
-        for (FileStatus fileStatus : listFileStatus(fs, new Path(getSnapshotDir(workingDir, project)))) {
-            if (!activeSnapshotTablePath.contains(fileStatus.getPath())) {
-                addItem(fs, fileStatus);
-                continue;
-            }
-            for (FileStatus status : listFileStatus(fs, fileStatus.getPath())) {
-                if (!activeSnapshotPath.contains(status.getPath())) {
-                    addItem(fs, status);
-                }
+            for (StorageCleaner.StorageItem item : allFileSystems) {
+                item.getProject(project).getGlobalDictTables()
+                        .removeIf(node -> activeDictTableDir.contains(node.getRelativePath()));
+                item.getProject(project).getGlobalDictColumns()
+                        .removeIf(node -> activeDictDir.contains(node.getRelativePath()));
+                item.getProject(project).getSnapshots()
+                        .removeIf(node -> activeSnapshotDir.contains(node.getRelativePath()));
+                item.getProject(project).getSnapshotTables()
+                        .removeIf(node -> activeSnapshotTableDir.contains(node.getRelativePath()));
+                item.getProject(project).getTableExds()
+                        .removeIf(node -> activeTableExdDir.contains(node.getRelativePath()));
             }
         }
     }
 
-    private void addItem(FileSystem fs, FileStatus status) {
-        val config = KylinConfig.getInstanceFromEnv();
+    private void addItem(FileSystem fs, Path itemPath, long protectionTime) throws IOException {
+        val status = fs.getFileStatus(itemPath);
         if (status.getPath().getName().startsWith(".")) {
             return;
         }
-        if (status.getModificationTime() + config.getCuboidLayoutSurvivalTimeThreshold() > System.currentTimeMillis()) {
+        if (status.getModificationTime() > protectionTime) {
             return;
         }
-        outdatedItems.add(new StorageItem(fs, status.getPath().toString()));
+        outdatedItems.add(new StorageCleaner.StorageItem(fs, status.getPath().toString()));
     }
 
-    private FileStatus[] listFileStatus(FileSystem fs, Path path) throws IOException {
-        if (!fs.exists(path)) {
-            return new FileStatus[0];
-        }
-        return fs.listStatus(path);
+    private String getDictDir(String project) {
+        return project + GLOBAL_DICT_STORAGE_ROOT;
     }
 
-    private String getDataflowBaseDir(String workingDir, String project) {
-        return workingDir + project + "/parquet/";
-    }
-
-    private String getDataflowDir(String workingDir, String project, String dataflowId) {
-        return getDataflowBaseDir(workingDir, project) + dataflowId;
-    }
-
-    private String getSnapshotDir(String workingDir, String project) {
-        return workingDir + project + ResourceStore.SNAPSHOT_RESOURCE_ROOT;
-    }
-
-    public String getDictDir(String workingDir, String project) {
-        return workingDir + project + ResourceStore.GLOBAL_DICT_RESOURCE_ROOT;
-    }
-
-    public String getDataLayoutDir(NDataLayout dataLayout) {
+    private String getDataLayoutDir(NDataLayout dataLayout) {
         NDataSegDetails segDetails = dataLayout.getSegDetails();
-        KapConfig config = KapConfig.wrap(dataLayout.getConfig());
-        String hdfsWorkingDir = config.getReadHdfsWorkingDirectory();
-        return getDataflowDir(hdfsWorkingDir, segDetails.getProject(),
-                segDetails.getDataSegment().getDataflow().getId()) + "/" + segDetails.getUuid() + "/"
-                + dataLayout.getLayoutId();
+        return getDataflowDir(segDetails.getProject(), segDetails.getDataSegment().getDataflow().getId()) + "/"
+                + segDetails.getUuid() + "/" + dataLayout.getLayoutId();
+    }
+
+    private void collectFromHDFS(StorageItem item) throws IOException {
+        val projectFolders = item.getFs().listStatus(new Path(item.getPath()), path -> !path.getName().startsWith("_"));
+        for (FileStatus projectFolder : projectFolders) {
+            List<FileTreeNode> tableSnapshotParents = Lists.newArrayList();
+            val projectNode = new ProjectFileTreeNode(projectFolder.getPath().getName());
+            for (Pair<String, List<FileTreeNode>> pair : Arrays.asList(
+                    Pair.newPair(JOB_TMP_ROOT.substring(1), projectNode.getJobTmps()),
+                    Pair.newPair(GLOBAL_DICT_STORAGE_ROOT.substring(1), projectNode.getGlobalDictTables()),
+                    Pair.newPair(PARQUET_STORAGE_ROOT.substring(1), projectNode.getDataflows()),
+                    Pair.newPair(TABLE_EXD_STORAGE_ROOT.substring(1), projectNode.getTableExds()),
+                    Pair.newPair(SNAPSHOT_STORAGE_ROOT.substring(1), tableSnapshotParents))) {
+                val treeNode = new FileTreeNode(pair.getFirst(), projectNode);
+                try {
+                    Stream.of(item.getFs().listStatus(new Path(item.getPath(), treeNode.getRelativePath())))
+                            .forEach(x -> pair.getSecond().add(new FileTreeNode(x.getPath().getName(), treeNode)));
+                } catch (FileNotFoundException e) {
+                    log.info("folder {} not found", new Path(item.getPath(), treeNode.getRelativePath()));
+                }
+            }
+            item.getProjectNodes().add(projectNode);
+            item.getProjects().put(projectNode.getName(), projectNode);
+            for (Pair<List<FileTreeNode>, List<FileTreeNode>> pair : Arrays.asList(
+                    Pair.newPair(tableSnapshotParents, projectNode.getSnapshots()), //
+                    Pair.newPair(projectNode.getGlobalDictTables(), projectNode.getGlobalDictColumns()), //
+                    Pair.newPair(projectNode.getDataflows(), projectNode.getSegments()), //
+                    Pair.newPair(projectNode.getSegments(), projectNode.getLayouts()))) {
+                val slot = pair.getSecond();
+                for (FileTreeNode node : pair.getFirst()) {
+                    Stream.of(item.getFs().listStatus(new Path(item.getPath(), node.getRelativePath())))
+                            .forEach(x -> slot.add(new FileTreeNode(x.getPath().getName(), node)));
+                }
+            }
+        }
+
     }
 
     @Data
-    @Builder
+    @RequiredArgsConstructor
+    @AllArgsConstructor
     public static class StorageItem {
 
+        @NonNull
         private FileSystem fs;
 
+        @NonNull
         private String path;
+
+        /**
+         * File hierarchy is
+         *
+         * /working_dir
+         * |--/${project_name}
+         *    |--/parquet
+         *    |  +--/${dataflow_id}
+         *    |     +--/${segment_id}
+         *    |        +--/${layout_id}
+         *    |--/job_tmp
+         *    |  +--/${job_id}
+         *    |--/table_exd
+         *    |  +--/${table_identity}
+         *    |--/dict/global_dict
+         *    |  +--/${table_identity}
+         *    |     +--/${column_name}
+         *    +--/table_snapshot
+         *       +--/${table_identity}
+         *          +--/${snapshot_version}
+         */
+
+        List<FileTreeNode> projectNodes = Lists.newArrayList();
+
+        Map<String, ProjectFileTreeNode> projects = Maps.newHashMap();
+
+        List<FileTreeNode> getAllNodes() {
+            val allNodes = projects.values().stream().flatMap(p -> p.getAllCandidates().stream())
+                    .flatMap(Collection::stream).collect(Collectors.toList());
+            allNodes.addAll(projectNodes);
+            return allNodes;
+        }
+
+        ProjectFileTreeNode getProject(String name) {
+            return projects.getOrDefault(name, new ProjectFileTreeNode(name));
+        }
+    }
+
+    @Data
+    @AllArgsConstructor
+    @RequiredArgsConstructor
+    public static class FileTreeNode {
+
+        @NonNull
+        String name;
+
+        FileTreeNode parent;
+
+        String getRelativePath() {
+            if (parent == null) {
+                return name;
+            }
+            return parent.getRelativePath() + "/" + name;
+        }
+    }
+
+    @Data
+    @EqualsAndHashCode(callSuper = true)
+    @ToString(onlyExplicitlyIncluded = true, callSuper = true)
+    public static class ProjectFileTreeNode extends FileTreeNode {
+
+        public ProjectFileTreeNode(String name) {
+            super(name);
+        }
+
+        List<FileTreeNode> jobTmps = Lists.newLinkedList();
+
+        List<FileTreeNode> tableExds = Lists.newLinkedList();
+
+        List<FileTreeNode> globalDictTables = Lists.newLinkedList();
+
+        List<FileTreeNode> globalDictColumns = Lists.newLinkedList();
+
+        List<FileTreeNode> snapshotTables = Lists.newLinkedList();
+
+        List<FileTreeNode> snapshots = Lists.newLinkedList();
+
+        List<FileTreeNode> dataflows = Lists.newLinkedList();
+
+        List<FileTreeNode> segments = Lists.newLinkedList();
+
+        List<FileTreeNode> layouts = Lists.newLinkedList();
+
+        Collection<List<FileTreeNode>> getAllCandidates() {
+            return Arrays.asList(jobTmps, tableExds, globalDictTables, globalDictColumns, snapshotTables, snapshots,
+                    dataflows, segments, layouts);
+        }
 
     }
 }

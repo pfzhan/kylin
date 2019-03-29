@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -47,16 +46,17 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import com.google.common.collect.Sets;
-import io.kyligence.kap.metadata.cube.model.NDataSegment;
-import lombok.Getter;
-import lombok.Setter;
 import org.apache.kylin.common.persistence.RootPersistentEntity;
+import org.apache.kylin.job.execution.JobTypeEnum;
 
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.Maps;
-import org.apache.kylin.job.execution.JobTypeEnum;
+import com.google.common.collect.Sets;
+
+import io.kyligence.kap.metadata.cube.model.NDataSegment;
+import lombok.Getter;
+import lombok.Setter;
 
 /**
  */

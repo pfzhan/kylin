@@ -95,8 +95,6 @@ public abstract class ResourceStore implements AutoCloseable {
     public static final String PROJECT_ROOT = GLOBAL_PROJECT + "/project";
 
     public static final String DATA_MODEL_DESC_RESOURCE_ROOT = "/model_desc";
-    public static final String DICT_RESOURCE_ROOT = "/dict";
-    public static final String SNAPSHOT_RESOURCE_ROOT = "/table_snapshot";
     public static final String TABLE_EXD_RESOURCE_ROOT = "/table_exd";
     public static final String TEMP_STATMENT_RESOURCE_ROOT = "/temp_statement";
     public static final String TABLE_RESOURCE_ROOT = "/table";
@@ -109,7 +107,6 @@ public abstract class ResourceStore implements AutoCloseable {
     public static final String QUERY_FILTER_RULE_RESOURCE_ROOT = "/rule";
     public static final String FAVORITE_QUERY_RESOURCE_ROOT = "/favorite";
     public static final String JOB_STATISTICS = "/job_stats";
-    public static final String GLOBAL_DICT_RESOURCE_ROOT = DICT_RESOURCE_ROOT + "/global_dict";
 
     public static final String METASTORE_UUID_TAG = "/UUID";
     public static final String QUERY_HISTORY_TIME_OFFSET = "/query_history_time_offset";

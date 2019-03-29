@@ -74,7 +74,7 @@ import io.kyligence.kap.metadata.model.NDataModel;
 public class DFBuildJob extends SparkApplication {
     public static final Long FLAT_TABLE_FLAG = -1L;
     protected static final Logger logger = LoggerFactory.getLogger(DFBuildJob.class);
-    protected static String tempDirSuffix = "_temp";
+    public static final String tempDirSuffix = "_temp";
     protected volatile NSpanningTree nSpanningTree;
     protected volatile List<NBuildSourceInfo> sources = new ArrayList<>();
 
@@ -92,8 +92,6 @@ public class DFBuildJob extends SparkApplication {
             Set<LayoutEntity> cuboids = NSparkCubingUtil.toLayouts(indexPlan, layoutIds).stream()
                     .filter(Objects::nonNull).collect(Collectors.toSet());
             nSpanningTree = NSpanningTreeFactory.fromLayouts(cuboids, dataflowId);
-
-            //TODO: what if a segment is deleted during building?
 
             for (String segId : segmentIds) {
                 NDataSegment seg = dfMgr.getDataflow(dataflowId).getSegment(segId);

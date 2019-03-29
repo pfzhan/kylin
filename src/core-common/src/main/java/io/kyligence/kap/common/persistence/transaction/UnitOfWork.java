@@ -24,10 +24,8 @@
 package io.kyligence.kap.common.persistence.transaction;
 
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
-import java.util.concurrent.locks.ReentrantLock;
 import java.util.stream.Collectors;
 
 import org.apache.kylin.common.KylinConfig;
@@ -39,7 +37,6 @@ import org.apache.kylin.common.persistence.ThreadViewResourceStore;
 import org.apache.kylin.common.persistence.TombRawResource;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.Maps;
 
 import io.kyligence.kap.common.persistence.UnitMessages;
 import io.kyligence.kap.common.persistence.event.EndUnit;
@@ -62,10 +59,9 @@ public class UnitOfWork {
 
     private static ThreadLocal<Boolean> replaying = new ThreadLocal<>();
     private static ThreadLocal<UnitOfWork> threadLocals = new ThreadLocal<>();
-    private static Map<String, ReentrantLock> projectLocks = Maps.newConcurrentMap();
 
     private SetAndUnsetThreadLocalConfig localConfig;
-    private ReentrantLock currentLock = null;
+    private TransactionLock currentLock = null;
     private final String project;
 
     public static <T> T doInTransactionWithRetry(Callback<T> f, String unitName) {
@@ -73,7 +69,14 @@ public class UnitOfWork {
     }
 
     public static <T> T doInTransactionWithRetry(Callback<T> f, String unitName, int maxRetry) {
+        return doInTransactionWithRetry(
+                UnitOfWorkParams.<T> builder().processor(f).unitName(unitName).maxRetry(maxRetry).build());
+    }
 
+    public static <T> T doInTransactionWithRetry(UnitOfWorkParams<T> params) {
+        val unitName = params.getUnitName();
+        val maxRetry = params.getMaxRetry();
+        val f = params.getProcessor();
         // reused transaction, won't retry
         if (isAlreadyInTransaction()) {
             UnitOfWork unitOfWork = UnitOfWork.get();
@@ -146,7 +149,7 @@ public class UnitOfWork {
 
     static UnitOfWork startTransaction(String project, boolean useSandboxStore) {
 
-        ReentrantLock lock = getLock(project);
+        val lock = TransactionLock.getLock(project);
 
         log.trace("get lock for project {}, lock is held by current thread: {}", project, lock.isHeldByCurrentThread());
         //re-entry is not encouraged (because it indicates complex handling logic, bad smell), let's abandon it first
@@ -264,20 +267,6 @@ public class UnitOfWork {
     public static boolean isReplaying() {
         return Objects.equals(true, replaying.get())
                 || Thread.currentThread().getName().equals(MessageQueue.CONSUMER_THREAD_NAME);
-    }
-
-    public static ReentrantLock getLock(String project) {
-        ReentrantLock lock = projectLocks.get(project);
-        if (lock == null) {
-            synchronized (UnitOfWork.class) {
-                val cacheLock = projectLocks.get(project);
-                if (cacheLock == null) {
-                    projectLocks.put(project, new ReentrantLock());
-                }
-            }
-        }
-
-        return projectLocks.get(project);
     }
 
     public void unlock() {

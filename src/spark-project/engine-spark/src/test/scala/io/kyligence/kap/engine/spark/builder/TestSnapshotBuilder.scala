@@ -53,7 +53,7 @@ class TestSnapshotBuilder extends SparderBaseFunSuite with SharedSparkSession wi
   test("snapshot -- check snapshot reuse") {
     val dsMgr: NDataflowManager = NDataflowManager.getInstance(getTestConfig, DEFAULT_PROJECT)
     val df: NDataflow = dsMgr.getDataflow(DF_NAME)
-    val snapPath = KapConfig.wrap(getTestConfig).getReadHdfsWorkingDirectory + df.getProject + ResourceStore.SNAPSHOT_RESOURCE_ROOT
+    val snapPath = KapConfig.wrap(getTestConfig).getReadHdfsWorkingDirectory + df.getProject + HadoopUtil.SNAPSHOT_STORAGE_ROOT
     val fs = HadoopUtil.getWorkingFileSystem
     fs.delete(new Path(snapPath), true)
 
@@ -65,7 +65,7 @@ class TestSnapshotBuilder extends SparderBaseFunSuite with SharedSparkSession wi
 
   test("snapshot -- check snapshot concurrent construction") {
     var dsMgr: NDataflowManager = NDataflowManager.getInstance(getTestConfig, DEFAULT_PROJECT)
-    val snapPath = KapConfig.wrap(getTestConfig).getReadHdfsWorkingDirectory + DEFAULT_PROJECT + ResourceStore.SNAPSHOT_RESOURCE_ROOT
+    val snapPath = KapConfig.wrap(getTestConfig).getReadHdfsWorkingDirectory + DEFAULT_PROJECT + HadoopUtil.SNAPSHOT_STORAGE_ROOT
     val fs = HadoopUtil.getWorkingFileSystem
     fs.delete(new Path(snapPath), true)
 
@@ -115,7 +115,7 @@ class TestSnapshotBuilder extends SparderBaseFunSuite with SharedSparkSession wi
   }
 
   private def buildSnapshot(df: NDataflow, isMock: Boolean, expectedSize: Int): Unit = {
-    val snapPath = KapConfig.wrap(getTestConfig).getReadHdfsWorkingDirectory + df.getProject + ResourceStore.SNAPSHOT_RESOURCE_ROOT
+    val snapPath = KapConfig.wrap(getTestConfig).getReadHdfsWorkingDirectory + df.getProject + HadoopUtil.SNAPSHOT_STORAGE_ROOT
     val fs = HadoopUtil.getWorkingFileSystem
 
     for (segment <- df.getSegments.asScala) {

@@ -51,6 +51,7 @@ import java.util.Collections;
 import java.util.IllegalFormatException;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
@@ -62,7 +63,6 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.MailService;
 import org.apache.kylin.common.util.StringUtil;
-import org.apache.kylin.job.constant.ExecutableConstants;
 import org.apache.kylin.job.constant.JobIssueEnum;
 import org.apache.kylin.job.dao.ExecutableOutputPO;
 import org.apache.kylin.job.exception.ExecuteException;
@@ -78,6 +78,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.persistence.transaction.TransactionException;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
@@ -107,48 +108,45 @@ public abstract class AbstractExecutable implements Executable, Idempotent {
     public static final String INTERRUPT_TIME = "interruptTime";
     protected static final String PARENT_ID = "parentId";
     public static final String RUNTIME_INFO = "runtimeInfo";
+    public static final String DEPENDENT_FILES = "dependentFiles";
 
     protected static final Logger logger = LoggerFactory.getLogger(AbstractExecutable.class);
     protected int retry = 0;
 
     private KylinConfig config;
+    @Getter
+    @Setter
     private String name;
     @Getter
     @Setter
     private JobTypeEnum jobType;
 
-    public long getDataRangeStart() {
-        return dataRangeStart;
-    }
-
-    public void setDataRangeStart(long dataRangeStart) {
-        this.dataRangeStart = dataRangeStart;
-    }
-
-    public long getDataRangeEnd() {
-        return dataRangeEnd;
-    }
-
-    public void setDataRangeEnd(long dataRangeEnd) {
-        this.dataRangeEnd = dataRangeEnd;
-    }
-
+    @Setter
+    @Getter
     private String targetModel;// uuid of the model
+
+    @Setter
+    @Getter
     private List<String> targetSegments = Lists.newArrayList();//uuid of related segments
+
+    @Getter
+    @Setter
     private String id;
+
+    @Getter
+    @Setter
     private long dataRangeStart;
+
+    @Getter
+    @Setter
     private long dataRangeEnd;
+
     private Map<String, String> params = Maps.newHashMap();
     private String project;
+
+    @Getter
+    @Setter
     private Map<String, Object> runTimeInfo = Maps.newHashMap();
-
-    public String getTargetModel() {
-        return targetModel;
-    }
-
-    public List<String> getTargetSegments() {
-        return targetSegments;
-    }
 
     public String getTargetModelAlias() {
         NDataModel dataModelDesc = NDataModelManager.getInstance(config, getProject()).getDataModelDesc(targetModel);
@@ -211,14 +209,6 @@ public abstract class AbstractExecutable implements Executable, Idempotent {
         }
         val model = parent.getTargetModel();
         return NExecutableManager.getInstance(config, getProject()).countCuttingInJobByModel(model, parent) > 0;
-    }
-
-    public void setTargetModel(String targetModel) {
-        this.targetModel = targetModel;
-    }
-
-    public void setTargetSegments(List<String> targetSegments) {
-        this.targetSegments = targetSegments;
     }
 
     public AbstractExecutable() {
@@ -387,6 +377,7 @@ public abstract class AbstractExecutable implements Executable, Idempotent {
             return result;
         }
     }
+
     public void checkJobPaused() {
         checkJobPaused(null);
     }
@@ -444,26 +435,8 @@ public abstract class AbstractExecutable implements Executable, Idempotent {
         return this.getStatus() == ExecutableState.READY;
     }
 
-    @Override
-    public String getName() {
-        return name;
-    }
-
-    public void setName(String name) {
-        this.name = name;
-    }
-
     public String getDisplayName() {
         return this.name + " (" + this.id + ")";
-    }
-
-    @Override
-    public final String getId() {
-        return this.id;
-    }
-
-    public final void setId(String id) {
-        this.id = id;
     }
 
     @Override
@@ -530,6 +503,7 @@ public abstract class AbstractExecutable implements Executable, Idempotent {
         String body = content.getEmailBody();
         return Pair.of(title, body);
     }
+
     public void notifyUserIfNecessary(NDataLayout[] addOrUpdateCuboids) {
         boolean hasEmptyLayout = false;
         for (NDataLayout dataCuboid : addOrUpdateCuboids) {
@@ -657,7 +631,7 @@ public abstract class AbstractExecutable implements Executable, Idempotent {
         }
 
         // post process
-        if (info.containsKey(MR_JOB_ID) && !info.containsKey(ExecutableConstants.YARN_APP_ID)) {
+        if (info.containsKey(MR_JOB_ID) && !info.containsKey(YARN_APP_ID)) {
             String jobId = info.get(MR_JOB_ID);
             if (jobId.startsWith("job_")) {
                 info.put(YARN_APP_ID, jobId.replace("job_", "application_"));
@@ -765,6 +739,14 @@ public abstract class AbstractExecutable implements Executable, Idempotent {
         return getDuration(getStartTime(), getEndTime(), getInterruptTime());
     }
 
+    public final Set<String> getDependentFiles() {
+        val value = getExtraInfo().getOrDefault(DEPENDENT_FILES, "");
+        if (StringUtils.isEmpty(value)) {
+            return Sets.newHashSet();
+        }
+        return Sets.newHashSet(value.split(","));
+    }
+
     /*
     * discarded is triggered by JobService, the Scheduler is not awake of that
     *
@@ -783,17 +765,14 @@ public abstract class AbstractExecutable implements Executable, Idempotent {
         return this.retry <= config.getJobRetry();
     }
 
+    public Set<String> getDependencies(KylinConfig config) {
+        return Sets.newHashSet();
+    }
+
     @Override
     public String toString() {
         return Objects.toStringHelper(this).add("id", getId()).add("name", getName()).add("state", getStatus())
                 .toString();
     }
 
-    public Map<String, Object> getRunTimeInfo() {
-        return runTimeInfo;
-    }
-
-    public void setRunTimeInfo(Map<String, Object> runTimeInfo) {
-        this.runTimeInfo = runTimeInfo;
-    }
 }

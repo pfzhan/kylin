@@ -24,7 +24,9 @@
 
 package io.kyligence.kap.engine.spark.job;
 
+import java.nio.file.Paths;
 import java.util.Arrays;
+import java.util.Map;
 import java.util.Set;
 
 import org.apache.kylin.common.KylinConfig;
@@ -32,16 +34,22 @@ import org.apache.kylin.job.constant.ExecutableConstants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
+
 import io.kyligence.kap.engine.spark.merger.MetadataMerger;
+import io.kyligence.kap.metadata.cube.model.LayoutEntity;
+import io.kyligence.kap.metadata.cube.model.NBatchConstants;
+import io.kyligence.kap.metadata.cube.model.NDataLayout;
+import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
+import lombok.NoArgsConstructor;
+import lombok.val;
 
+@NoArgsConstructor
 public class NSparkMergingStep extends NSparkExecutable {
     private static final Logger logger = LoggerFactory.getLogger(NSparkCubingStep.class);
-
-    public NSparkMergingStep() {
-
-    }
 
     public NSparkMergingStep(String sparkSubmitClassName) {
         this.setSparkSubmitClassName(sparkSubmitClassName);
@@ -70,4 +78,38 @@ public class NSparkMergingStep extends NSparkExecutable {
         return true;
     }
 
+    @Override
+    public Set<String> getDependencies(KylinConfig config) {
+        String dataflowId = getDataflowId();
+        String segmentId = getParam(NBatchConstants.P_SEGMENT_IDS);
+
+        val dfMgr = NDataflowManager.getInstance(config, getProject());
+        val dataflow = dfMgr.getDataflow(dataflowId);
+        val indexPlan = dataflow.getIndexPlan();
+        val mergedSeg = dataflow.getSegment(segmentId);
+        val mergingSegments = dataflow.getMergingSegments(mergedSeg);
+
+        Set<String> result = Sets.newHashSet();
+
+        val lastSeg = mergingSegments.get(mergingSegments.size() - 1);
+        for (Map.Entry<String, String> entry : lastSeg.getSnapshots().entrySet()) {
+            val path = Paths.get(entry.getValue()).getParent().toString();
+            result.add("/" + path);
+        }
+
+        val allSegments = Lists.newArrayList(mergingSegments);
+        allSegments.add(mergedSeg);
+        for (NDataSegment seg : allSegments) {
+            for (LayoutEntity layout : indexPlan.getAllLayouts()) {
+                val dataCuboid = NDataLayout.newDataLayout(seg.getDataflow(), seg.getId(), layout.getId());
+                String path = "/" + NSparkCubingUtil.getStoragePathWithoutPrefix(dataCuboid.getSegDetails(),
+                        dataCuboid.getLayoutId());
+                result.add(path);
+                result.add(path + DFBuildJob.tempDirSuffix);
+            }
+        }
+
+        return result;
+
+    }
 }

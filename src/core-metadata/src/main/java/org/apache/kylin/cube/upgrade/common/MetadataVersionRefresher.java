@@ -50,6 +50,7 @@ import java.util.NavigableSet;
 
 import com.google.common.io.ByteStreams;
 import org.apache.kylin.common.persistence.ResourceStore;
+import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.kylin.metadata.MetadataConstants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -84,8 +85,8 @@ public class MetadataVersionRefresher {
         collectFiles(this.store, "/", all);
 
         for (String path : all) {
-            if (path.endsWith(MetadataConstants.FILE_SURFIX) && !(path.startsWith(ResourceStore.DICT_RESOURCE_ROOT)
-                    || path.startsWith(ResourceStore.SNAPSHOT_RESOURCE_ROOT))) {
+            if (path.endsWith(MetadataConstants.FILE_SURFIX) && !(path.startsWith(HadoopUtil.DICT_STORAGE_ROOT)
+                    || path.startsWith(HadoopUtil.SNAPSHOT_STORAGE_ROOT))) {
                 logger.info("Updating metadata version of path {}", path);
                 ObjectNode objectNode;
                 try (InputStream is = this.store.getResource(path).getByteSource().openStream()) {

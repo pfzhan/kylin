@@ -83,7 +83,7 @@ class DFSnapshotBuilder extends Logging {
       val isLookupTable = model.isLookupTable(lookupDesc.getTableRef)
       if (isLookupTable && seg.getSnapshots.get(tableDesc.getIdentity) == null) {
         val sourceData = getSourceData(tableDesc)
-        val tablePath = tableDesc.getProject + ResourceStore.SNAPSHOT_RESOURCE_ROOT + "/" + tableDesc.getName
+        val tablePath = tableDesc.getProject + HadoopUtil.SNAPSHOT_STORAGE_ROOT + "/" + tableDesc.getName
         var snapshotTablePath = tablePath + "/" + UUID.randomUUID
         val resourcePath = baseDir + "/" + snapshotTablePath
         sourceData.coalesce(1).write.parquet(resourcePath)

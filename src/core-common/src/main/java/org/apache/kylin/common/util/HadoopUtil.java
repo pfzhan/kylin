@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -57,10 +56,19 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.PathFilter;
 import org.apache.hadoop.io.Writable;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.persistence.ResourceStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class HadoopUtil {
+
+    public static final String JOB_TMP_ROOT = "/job_tmp";
+    public static final String PARQUET_STORAGE_ROOT = "/parquet";
+    public static final String DICT_STORAGE_ROOT = "/dict";
+    public static final String GLOBAL_DICT_STORAGE_ROOT = DICT_STORAGE_ROOT + "/global_dict";
+    public static final String SNAPSHOT_STORAGE_ROOT = "/table_snapshot";
+    public static final String TABLE_EXD_STORAGE_ROOT = ResourceStore.TABLE_EXD_RESOURCE_ROOT;
+
     @SuppressWarnings("unused")
     private static final Logger logger = LoggerFactory.getLogger(HadoopUtil.class);
     private static final transient ThreadLocal<Configuration> hadoopConfig = new ThreadLocal<>();
@@ -117,6 +125,7 @@ public class HadoopUtil {
         Path parquetReadPath = new Path(KylinConfig.getInstanceFromEnv().getReadHdfsWorkingDirectory(null));
         return getFileSystem(parquetReadPath, conf);
     }
+
     public static FileSystem getFileSystem(String path) {
         return getFileSystem(new Path(makeURI(path)));
     }
@@ -151,7 +160,7 @@ public class HadoopUtil {
         } else if (path.startsWith(FILE_PREFIX) && !path.startsWith("file:///") && path.contains(":\\")) {
             path = path.replace(FILE_PREFIX, "file:///");
         }
-        
+
         if (path.startsWith("file:///")) {
             path = path.replace('\\', '/');
         }

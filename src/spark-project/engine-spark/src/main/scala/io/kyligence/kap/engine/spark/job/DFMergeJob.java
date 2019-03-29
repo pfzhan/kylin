@@ -108,8 +108,8 @@ public class DFMergeJob extends SparkApplication {
         final NDataSegment mergedSeg = dataflow.getSegment(segmentId);
         final List<NDataSegment> mergingSegments = dataflow.getMergingSegments(mergedSeg);
 
-        Map<Long, DFLayoutMergeAssist> mergeCuboidsAsssit = generateMergeAssist(mergingSegments, ss, mergedSeg);
-        for (DFLayoutMergeAssist assist : mergeCuboidsAsssit.values()) {
+        Map<Long, DFLayoutMergeAssist> mergeCuboidsAssist = generateMergeAssist(mergingSegments, ss, mergedSeg);
+        for (DFLayoutMergeAssist assist : mergeCuboidsAssist.values()) {
             Dataset<Row> afterMerge = assist.merge();
             LayoutEntity layout = assist.getLayout();
             if (layout.getIndex().getId() > IndexEntity.TABLE_INDEX_START_ID) {
@@ -129,12 +129,12 @@ public class DFMergeJob extends SparkApplication {
     public static Map<Long, DFLayoutMergeAssist> generateMergeAssist(List<NDataSegment> mergingSegments,
             SparkSession ss, NDataSegment mergedSeg) {
         // collect layouts need to merge
-        Map<Long, DFLayoutMergeAssist> mergeCuboidsAsssit = Maps.newConcurrentMap();
+        Map<Long, DFLayoutMergeAssist> mergeCuboidsAssist = Maps.newConcurrentMap();
         for (NDataSegment seg : mergingSegments) {
             for (NDataLayout cuboid : seg.getSegDetails().getLayouts()) {
                 long layoutId = cuboid.getLayoutId();
 
-                DFLayoutMergeAssist assist = mergeCuboidsAsssit.get(layoutId);
+                DFLayoutMergeAssist assist = mergeCuboidsAssist.get(layoutId);
                 if (assist == null) {
                     assist = new DFLayoutMergeAssist();
                     assist.addCuboid(cuboid);
@@ -142,12 +142,12 @@ public class DFMergeJob extends SparkApplication {
                     assist.setNewSegment(mergedSeg);
                     assist.setLayout(cuboid.getLayout());
                     assist.setToMergeSegments(mergingSegments);
-                    mergeCuboidsAsssit.put(layoutId, assist);
+                    mergeCuboidsAssist.put(layoutId, assist);
                 } else
                     assist.addCuboid(cuboid);
             }
         }
-        return mergeCuboidsAsssit;
+        return mergeCuboidsAssist;
     }
 
     private void saveAndUpdateCuboid(Dataset<Row> dataset, NDataSegment seg, LayoutEntity layout,

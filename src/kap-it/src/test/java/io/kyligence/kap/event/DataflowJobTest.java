@@ -23,13 +23,17 @@
  */
 package io.kyligence.kap.event;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.Comparator;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import org.apache.commons.io.FileUtils;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.job.engine.JobEngineConfig;
+import org.apache.kylin.job.execution.AbstractExecutable;
+import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
 import org.apache.kylin.job.lock.MockJobLock;
 import org.apache.kylin.metadata.model.SegmentRange;
@@ -41,15 +45,9 @@ import org.junit.Test;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
-import io.kyligence.kap.metadata.cube.cuboid.NAggregationGroup;
-import io.kyligence.kap.metadata.cube.model.LayoutEntity;
-import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
-import io.kyligence.kap.metadata.cube.model.NDataSegment;
-import io.kyligence.kap.metadata.cube.model.NDataflow;
-import io.kyligence.kap.metadata.cube.model.NDataflowManager;
-import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
-import io.kyligence.kap.metadata.cube.model.NRuleBasedIndex;
 import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
+import io.kyligence.kap.engine.spark.job.NSparkCubingStep;
+import io.kyligence.kap.engine.spark.job.NSparkMergingStep;
 import io.kyligence.kap.event.manager.EventDao;
 import io.kyligence.kap.event.manager.EventManager;
 import io.kyligence.kap.event.manager.EventOrchestratorManager;
@@ -59,6 +57,14 @@ import io.kyligence.kap.event.model.MergeSegmentEvent;
 import io.kyligence.kap.event.model.PostAddCuboidEvent;
 import io.kyligence.kap.event.model.PostAddSegmentEvent;
 import io.kyligence.kap.event.model.PostMergeOrRefreshSegmentEvent;
+import io.kyligence.kap.metadata.cube.cuboid.NAggregationGroup;
+import io.kyligence.kap.metadata.cube.model.LayoutEntity;
+import io.kyligence.kap.metadata.cube.model.NDataSegment;
+import io.kyligence.kap.metadata.cube.model.NDataflow;
+import io.kyligence.kap.metadata.cube.model.NDataflowManager;
+import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
+import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
+import io.kyligence.kap.metadata.cube.model.NRuleBasedIndex;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import lombok.val;
@@ -143,8 +149,8 @@ public class DataflowJobTest extends NLocalWithSparkSessionTest {
         val cuboidsMap3 = df3.getLastSegment().getLayoutsMap();
         Assert.assertEquals(df3.getIndexPlan().getAllLayouts().size(), cuboidsMap3.size());
         Assert.assertEquals(
-                df3.getIndexPlan().getAllLayouts().stream().map(LayoutEntity::getId)
-                        .sorted(Comparator.naturalOrder()).map(a -> a + "").collect(Collectors.joining(",")),
+                df3.getIndexPlan().getAllLayouts().stream().map(LayoutEntity::getId).sorted(Comparator.naturalOrder())
+                        .map(a -> a + "").collect(Collectors.joining(",")),
                 cuboidsMap3.keySet().stream().sorted(Comparator.naturalOrder()).map(a -> a + "")
                         .collect(Collectors.joining(",")));
     }
@@ -196,10 +202,14 @@ public class DataflowJobTest extends NLocalWithSparkSessionTest {
         val cuboidsMap2 = df2.getLastSegment().getLayoutsMap();
         Assert.assertEquals(df2.getIndexPlan().getAllLayouts().size(), cuboidsMap2.size());
         Assert.assertEquals(
-                df2.getIndexPlan().getAllLayouts().stream().map(LayoutEntity::getId)
-                        .sorted(Comparator.naturalOrder()).map(a -> a + "").collect(Collectors.joining(",")),
+                df2.getIndexPlan().getAllLayouts().stream().map(LayoutEntity::getId).sorted(Comparator.naturalOrder())
+                        .map(a -> a + "").collect(Collectors.joining(",")),
                 cuboidsMap2.keySet().stream().sorted(Comparator.naturalOrder()).map(a -> a + "")
                         .collect(Collectors.joining(",")));
+
+        val config = getTestConfig();
+        val job = NExecutableManager.getInstance(config, getProject()).getJob(event.getJobId());
+        validateDependentFiles(job, NSparkCubingStep.class, 0);
     }
 
     @Test
@@ -243,10 +253,33 @@ public class DataflowJobTest extends NLocalWithSparkSessionTest {
         val df2 = dataflowManager.getDataflow(df.getUuid());
         Assert.assertEquals(1, df2.getSegments().size());
         Assert.assertEquals(
-                df2.getIndexPlan().getAllLayouts().stream().map(LayoutEntity::getId)
-                        .sorted(Comparator.naturalOrder()).map(a -> a + "").collect(Collectors.joining(",")),
+                df2.getIndexPlan().getAllLayouts().stream().map(LayoutEntity::getId).sorted(Comparator.naturalOrder())
+                        .map(a -> a + "").collect(Collectors.joining(",")),
                 df2.getLastSegment().getLayoutsMap().keySet().stream().sorted(Comparator.naturalOrder())
                         .map(a -> a + "").collect(Collectors.joining(",")));
+
+        val config = getTestConfig();
+        val job = NExecutableManager.getInstance(config, getProject()).getJob(event.getJobId());
+        validateDependentFiles(job, NSparkMergingStep.class, 0);
+    }
+
+    private void validateDependentFiles(AbstractExecutable job, Class<? extends AbstractExecutable> clazz,
+            int expected) {
+        val config = getTestConfig();
+        val round1Deps = job.getDependentFiles();
+        val files = FileUtils.listFiles(new File(config.getHdfsWorkingDirectory().substring(7)), null, true).stream()
+                .map(File::getAbsolutePath).filter(f -> !f.contains("job_tmp") && !f.contains("table_exd"))
+                .collect(Collectors.toSet());
+
+        // check
+        for (String dep : round1Deps) {
+            try {
+                FileUtils.listFiles(new File(config.getHdfsWorkingDirectory().substring(7) + dep.substring(1)), null,
+                        true).forEach(f -> files.remove(f.getAbsolutePath()));
+            } catch (Exception ignore) {
+            }
+        }
+        Assert.assertEquals(expected, files.size());
     }
 
     private void prepareSegment(String dfName, String start, String end, boolean needRemoveExist)
@@ -284,8 +317,8 @@ public class DataflowJobTest extends NLocalWithSparkSessionTest {
         val cuboidsMap2 = df2.getLastSegment().getLayoutsMap();
         Assert.assertEquals(df2.getIndexPlan().getAllLayouts().size(), cuboidsMap2.size());
         Assert.assertEquals(
-                df.getIndexPlan().getAllLayouts().stream().map(LayoutEntity::getId)
-                        .sorted(Comparator.naturalOrder()).map(a -> a + "").collect(Collectors.joining(",")),
+                df.getIndexPlan().getAllLayouts().stream().map(LayoutEntity::getId).sorted(Comparator.naturalOrder())
+                        .map(a -> a + "").collect(Collectors.joining(",")),
                 cuboidsMap2.keySet().stream().sorted(Comparator.naturalOrder()).map(a -> a + "")
                         .collect(Collectors.joining(",")));
     }

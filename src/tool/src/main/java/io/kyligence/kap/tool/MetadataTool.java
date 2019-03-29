@@ -32,6 +32,7 @@ import java.util.Collections;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.common.persistence.transaction.TransactionLock;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.OptionBuilder;
 import org.apache.commons.cli.OptionGroup;
@@ -190,7 +191,7 @@ public class MetadataTool extends ExecutableApplication {
 
     public void copyResourceStore(String projectPath, ResourceStore srcResourceStore, ResourceStore destResourceStore,
             boolean isProjectLevel) {
-        val lock = UnitOfWork.getLock(Paths.get(projectPath).getName(0).toString());
+        val lock = TransactionLock.getLock(Paths.get(projectPath).getName(0).toString());
 
         lock.lock();
         try {

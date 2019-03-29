@@ -30,11 +30,11 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import io.kyligence.kap.metadata.cube.model.IndexPlan;
-import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import org.apache.kylin.common.KapConfig;
 import org.apache.spark.sql.Column;
 
+import io.kyligence.kap.metadata.cube.model.IndexPlan;
+import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.model.NDataLayout;
 import io.kyligence.kap.metadata.cube.model.NDataSegDetails;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
@@ -127,13 +127,16 @@ public class NSparkCubingUtil {
         NDataSegDetails segDetails = dataCuboid.getSegDetails();
         KapConfig config = KapConfig.wrap(dataCuboid.getConfig());
         String hdfsWorkingDir = config.getReadHdfsWorkingDirectory();
-        String path = hdfsWorkingDir + segDetails.getProject() + "/parquet/" + segDetails.getDataSegment().getDataflow().getUuid() + "/"
-                + segDetails.getUuid() + "/" + dataCuboid.getLayoutId();
-        return path;
+        return hdfsWorkingDir + getStoragePathWithoutPrefix(segDetails, dataCuboid.getLayoutId());
+    }
+
+    public static String getStoragePathWithoutPrefix(NDataSegDetails segDetails, long layoutId) {
+        return segDetails.getProject() + "/parquet/" + segDetails.getDataSegment().getDataflow().getUuid() + "/"
+                + segDetails.getUuid() + "/" + layoutId;
     }
 
     private static final Pattern DOT_PATTERN = Pattern.compile("(\\S+)\\.(\\D+)");
-    
+
     public static String convertFromDot(String withDot) {
         Matcher m = DOT_PATTERN.matcher(withDot);
         String withoutDot = withDot;

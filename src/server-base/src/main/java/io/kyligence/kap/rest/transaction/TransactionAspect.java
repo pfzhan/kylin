@@ -31,6 +31,7 @@ import org.springframework.stereotype.Component;
 
 import io.kyligence.kap.common.persistence.transaction.TransactionException;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
+import io.kyligence.kap.common.persistence.transaction.UnitOfWorkParams;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -51,12 +52,13 @@ public class TransactionAspect {
             unitName = pjp.getArgs()[transaction.project()].toString();
         }
         log.trace("start unit of work for project: {}", unitName);
-        return UnitOfWork.doInTransactionWithRetry(() -> {
-            try {
-                return pjp.proceed();
-            } catch (Throwable throwable) {
-                throw new RuntimeException(throwable);
-            }
-        }, unitName, transaction.retry());
+        return UnitOfWork.doInTransactionWithRetry(UnitOfWorkParams.builder().unitName(unitName)
+                .readonly(transaction.readonly()).maxRetry(transaction.retry()).processor(() -> {
+                    try {
+                        return pjp.proceed();
+                    } catch (Throwable throwable) {
+                        throw new RuntimeException(throwable);
+                    }
+                }).build());
     }
 }

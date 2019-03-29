@@ -23,11 +23,20 @@
  */
 package io.kyligence.kap.event.handle;
 
+import static org.apache.kylin.job.execution.AbstractExecutable.DEPENDENT_FILES;
+
+import java.util.Map;
+import java.util.stream.Collectors;
+
+import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.execution.AbstractExecutable;
+import org.apache.kylin.job.execution.ChainedExecutable;
 import org.apache.kylin.job.execution.NExecutableManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.collect.Maps;
 
 import io.kyligence.kap.event.model.Event;
 import io.kyligence.kap.event.model.EventContext;
@@ -53,10 +62,19 @@ abstract class AbstractEventWithJobHandler extends AbstractEventHandler {
         }
 
         job.initConfig(kylinConfig);
+
         val po = NExecutableManager.toPO(job, project);
 
         NExecutableManager executableManager = getExecutableManager(project, kylinConfig);
         executableManager.addJob(po);
+
+        if (job instanceof ChainedExecutable) {
+            val deps = ((ChainedExecutable) job).getTasks().stream()
+                    .flatMap(j -> j.getDependencies(kylinConfig).stream()).collect(Collectors.toSet());
+            Map<String, String> info = Maps.newHashMap();
+            info.put(DEPENDENT_FILES, StringUtils.join(deps, ","));
+            executableManager.updateJobOutput(po.getId(), null, info, null);
+        }
 
         finishEvent(project, eventId);
 

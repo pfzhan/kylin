@@ -26,7 +26,7 @@ package io.kyligence.kap.engine.spark.builder;
 import java.io.IOException;
 import java.io.Serializable;
 
-import org.apache.kylin.common.persistence.ResourceStore;
+import org.apache.kylin.common.util.HadoopUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -45,7 +45,7 @@ public class NGlobalDictionaryV2 implements Serializable {
     private boolean isFirst = true;
 
     public String getResourceDir() {
-        return "/" + project + ResourceStore.GLOBAL_DICT_RESOURCE_ROOT + "/" + sourceTable + "/" + sourceColumn + "/";
+        return "/" + project + HadoopUtil.GLOBAL_DICT_STORAGE_ROOT + "/" + sourceTable + "/" + sourceColumn + "/";
     }
 
     private String getWorkingDir() {

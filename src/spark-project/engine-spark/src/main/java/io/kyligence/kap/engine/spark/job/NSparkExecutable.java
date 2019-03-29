@@ -86,7 +86,7 @@ public class NSparkExecutable extends AbstractExecutable {
     }
 
     public Set<String> getSegmentIds() {
-        return Sets.newHashSet(StringUtils.split(this.getParam(NBatchConstants.P_SEGMENT_IDS)));
+        return Sets.newHashSet(StringUtils.split(this.getParam(NBatchConstants.P_SEGMENT_IDS), ","));
     }
 
     void setCuboidLayoutIds(Set<Long> clIds) {

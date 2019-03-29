@@ -25,14 +25,19 @@ package io.kyligence.kap.tool;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.metadata.cube.model.NDataflow;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
+import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.fs.Path;
-import org.apache.kylin.common.persistence.ResourceStore;
+import org.apache.kylin.common.util.HadoopUtil;
+import org.apache.kylin.job.common.ShellExecutable;
+import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.DefaultChainedExecutable;
+import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.junit.After;
@@ -43,6 +48,7 @@ import org.junit.Test;
 import com.google.common.collect.Maps;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
@@ -75,12 +81,11 @@ public class StorageCleanerTest extends NLocalFileMetadataTestCase {
                 .map(f -> FilenameUtils.normalize(f.getParentFile().getAbsolutePath())).collect(Collectors.toSet());
 
         cleaner.execute();
-        log.debug("outdated items are {}", cleaner.getOutdatedItems());
 
-        Assert.assertEquals(garbageFiles.size(), cleaner.getOutdatedItems().size());
-        for (StorageCleaner.StorageItem item : cleaner.getOutdatedItems()) {
-            Assert.assertTrue(item.getPath() + " not in garbageFiles",
-                    garbageFiles.contains(item.getPath().replace("file:", "")));
+        val outdatedItems = normalizeGarbages(cleaner.getOutdatedItems());
+        Assert.assertEquals(garbageFiles.size(), outdatedItems.size());
+        for (String item : outdatedItems) {
+            Assert.assertTrue(item + " not in garbageFiles", garbageFiles.contains(item));
         }
     }
 
@@ -112,9 +117,34 @@ public class StorageCleanerTest extends NLocalFileMetadataTestCase {
 
         cleaner.execute();
         val files = FileUtils.listFiles(new File(getTestConfig().getHdfsWorkingDirectory().replace("file://", "")
-                + "/default" + ResourceStore.GLOBAL_DICT_RESOURCE_ROOT), null, true);
+                + "/default" + HadoopUtil.GLOBAL_DICT_STORAGE_ROOT), null, true);
         Assert.assertEquals(0, files.size());
 
+    }
+
+    @Test
+    public void testCleanup_WithRunningJobs() throws IOException {
+        val jobMgr = NExecutableManager.getInstance(getTestConfig(), "default");
+        val job1 = new DefaultChainedExecutable();
+        val task1 = new ShellExecutable();
+        job1.addTask(task1);
+        jobMgr.addJob(job1);
+        Map<String, String> extra = Maps.newHashMap();
+        val dependFiles = new String[] { "/default/dict/global_dict/invalid", "/default/parquet/invalid",
+                "/default/parquet/abe3bf1a-c4bc-458d-8278-7ea8b00f5e96/invalid",
+                "/default/table_snapshot/DEFAULT.TEST_COUNTRY",
+                "/default/dict/global_dict/DEFAULT.TEST_KYLIN_FACT/invalid/keep" };
+
+        extra.put(AbstractExecutable.DEPENDENT_FILES, StringUtils.join(dependFiles, ","));
+        jobMgr.updateJobOutput(job1.getId(), ExecutableState.RUNNING, extra, null);
+
+        val cleaner = new StorageCleaner();
+        cleaner.execute();
+        val garbagePaths = normalizeGarbages(cleaner.getOutdatedItems());
+        for (String file : dependFiles) {
+            Assert.assertFalse(garbagePaths.stream().anyMatch(p -> p.startsWith(file)));
+            Assert.assertFalse(garbagePaths.stream().anyMatch(file::startsWith));
+        }
     }
 
     private void prepare() throws IOException {
@@ -150,4 +180,8 @@ public class StorageCleanerTest extends NLocalFileMetadataTestCase {
         execMgr.addJob(job2);
     }
 
+    private Set<String> normalizeGarbages(Set<StorageCleaner.StorageItem> items) {
+        return items.stream().map(i -> i.getPath().replaceAll("file:", "").replaceAll("/keep", ""))
+                .collect(Collectors.toSet());
+    }
 }

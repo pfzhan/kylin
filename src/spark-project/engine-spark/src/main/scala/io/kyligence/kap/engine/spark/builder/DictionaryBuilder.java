@@ -33,7 +33,7 @@ import java.util.Set;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.lock.DistributedLock;
-import org.apache.kylin.common.persistence.ResourceStore;
+import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.kylin.measure.bitmap.BitmapMeasureType;
 import org.apache.kylin.metadata.model.MeasureDesc;
 import org.apache.kylin.metadata.model.TableDesc;
@@ -271,7 +271,7 @@ public class DictionaryBuilder {
     }
 
     private String getLockPath(String pathName) {
-        return "/" + seg.getProject() + ResourceStore.GLOBAL_DICT_RESOURCE_ROOT + "/" + pathName + "/lock";
+        return "/" + seg.getProject() + HadoopUtil.GLOBAL_DICT_STORAGE_ROOT + "/" + pathName + "/lock";
     }
 
 }
