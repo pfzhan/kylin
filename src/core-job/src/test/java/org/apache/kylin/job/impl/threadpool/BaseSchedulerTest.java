@@ -120,7 +120,7 @@ public abstract class BaseSchedulerTest extends NLocalFileMetadataTestCase {
             AbstractExecutable job = executableManager.getJob(jobId);
             ExecutableState status = job.getStatus();
             if (status == ExecutableState.SUCCEED || status == ExecutableState.ERROR
-                    || status == ExecutableState.STOPPED || status == ExecutableState.DISCARDED
+                    || status == ExecutableState.PAUSED || status == ExecutableState.DISCARDED
                     || status == ExecutableState.SUICIDAL) {
                 return true;
             }

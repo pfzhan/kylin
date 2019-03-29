@@ -191,7 +191,7 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
         task.setProject(project);
         executable.addTask(task);
         manager.addJob(executable);
-        manager.updateJobOutput(executable.getId(), ExecutableState.STOPPED, null, null);
+        manager.updateJobOutput(executable.getId(), ExecutableState.PAUSED, null, null);
         manager.updateJobOutput(task.getId(), ExecutableState.RUNNING, null, null);
         manager.updateJobOutput(task.getId(), ExecutableState.SUCCEED, null, null);
 
@@ -206,7 +206,7 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
         SucceedTestExecutable executable = new SucceedTestExecutable();
         manager.addJob(executable);
         jobService.batchUpdateJobStatus(Lists.newArrayList(executable.getId()), "default", "PAUSE", "");
-        Assert.assertTrue(manager.getJob(executable.getId()).getStatus().equals(ExecutableState.STOPPED));
+        Assert.assertTrue(manager.getJob(executable.getId()).getStatus().equals(ExecutableState.PAUSED));
         jobService.batchUpdateJobStatus(Lists.newArrayList(executable.getId()), "default", "RESUME", "");
         Assert.assertTrue(manager.getJob(executable.getId()).getStatus().equals(ExecutableState.READY));
         jobService.batchUpdateJobStatus(Lists.newArrayList(executable.getId()), "default", "DISCARD", "");

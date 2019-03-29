@@ -390,7 +390,7 @@ public abstract class AbstractExecutable implements Executable, Idempotent {
         try {
             // doInTransaction for get latest status
             UnitOfWork.doInTransactionWithRetry(() -> {
-                if (ExecutableState.STOPPED.equals(parent.getStatus())) {
+                if (ExecutableState.PAUSED.equals(parent.getStatus())) {
                     throw new JobStoppedException();
                 }
                 return 0;
@@ -758,7 +758,7 @@ public abstract class AbstractExecutable implements Executable, Idempotent {
 
     protected final boolean isPaused() {
         final ExecutableState status = getOutput().getState();
-        return status == ExecutableState.STOPPED;
+        return status == ExecutableState.PAUSED;
     }
 
     protected boolean needRetry() {

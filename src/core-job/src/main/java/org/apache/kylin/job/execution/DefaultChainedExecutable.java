@@ -82,7 +82,7 @@ public class DefaultChainedExecutable extends AbstractExecutable implements Chai
             if (state == ExecutableState.RUNNING) {
                 // there is already running subtask, no need to start a new subtask
                 break;
-            } else if (state == ExecutableState.STOPPED) {
+            } else if (state == ExecutableState.PAUSED) {
                 // the job is paused
                 break;
             } else if (state == ExecutableState.ERROR) {
@@ -91,7 +91,7 @@ public class DefaultChainedExecutable extends AbstractExecutable implements Chai
             }
             if (subTask.isRunnable()) {
                 try {
-                    return subTask.execute(context);
+                    subTask.execute(context);
                 } catch (JobSuicideException e) {
                     return ExecuteResult.createSucceed();
                 } catch (JobStoppedException e) {

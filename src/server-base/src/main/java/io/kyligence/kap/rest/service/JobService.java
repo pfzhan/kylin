@@ -201,7 +201,7 @@ public class JobService extends BasicService {
         case RUNNING:
             return ExecutableState.RUNNING;
         case STOPPED:
-            return ExecutableState.STOPPED;
+            return ExecutableState.PAUSED;
         default:
             throw new BadRequestException(String.format(msg.getILLEGAL_EXECUTABLE_STATE(), status));
         }
@@ -217,7 +217,7 @@ public class JobService extends BasicService {
             return JobStatusEnum.ERROR;
         case SUCCEED:
             return JobStatusEnum.FINISHED;
-        case STOPPED:
+        case PAUSED:
             return JobStatusEnum.STOPPED;
         case SUICIDAL:
             return JobStatusEnum.DISCARDED;

@@ -176,7 +176,7 @@ public class PostAddSegmentHandler extends AbstractEventPostJobHandler {
         // 1. check the job status of the model
         val executableManager = getExecutableManager(model.getProject(), KylinConfig.getInstanceFromEnv());
         val count = executableManager.countByModelAndStatus(model.getId(),
-                Sets.newHashSet(ExecutableState.STOPPED, ExecutableState.ERROR), JobTypeEnum.INC_BUILD);
+                Sets.newHashSet(ExecutableState.PAUSED, ExecutableState.ERROR), JobTypeEnum.INC_BUILD);
         if (count > 0) {
             return false;
         }

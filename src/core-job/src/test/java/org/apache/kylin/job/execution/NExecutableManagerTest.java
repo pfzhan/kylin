@@ -197,7 +197,7 @@ public class NExecutableManagerTest extends NLocalFileMetadataTestCase {
         manager.addJob(job);
         manager.pauseJob(job.getId());
         AbstractExecutable anotherJob = manager.getJob(job.getId());
-        Assert.assertTrue(anotherJob.getStatus().equals(ExecutableState.STOPPED));
+        Assert.assertTrue(anotherJob.getStatus().equals(ExecutableState.PAUSED));
         manager.resumeJob(job.getId());
         Assert.assertTrue(anotherJob.getStatus().equals(ExecutableState.READY));
         manager.pauseJob(job.getId());
@@ -216,7 +216,7 @@ public class NExecutableManagerTest extends NLocalFileMetadataTestCase {
         SucceedTestExecutable job = new SucceedTestExecutable();
         manager.addJob(job);
         manager.updateJobOutput(job.getId(), ExecutableState.ERROR, null, null);
-        manager.updateJobOutput(job.getId(), ExecutableState.STOPPED, null, null);
+        manager.updateJobOutput(job.getId(), ExecutableState.PAUSED, null, null);
     }
 
     @Test
@@ -308,7 +308,7 @@ public class NExecutableManagerTest extends NLocalFileMetadataTestCase {
         manager.pauseJob(job.getId());
         manager.updateJobOutput(executable.getId(), ExecutableState.RUNNING, null, null);
         manager.updateJobOutput(executable.getId(), ExecutableState.SUCCEED, null, null);
-        manager.updateJobOutput(executable2.getId(), ExecutableState.STOPPED, null, null);
+        manager.updateJobOutput(executable2.getId(), ExecutableState.PAUSED, null, null);
 
         manager.resumeJob(job.getId(), true);
         DefaultChainedExecutable job1 = (DefaultChainedExecutable) manager.getJob(job.getId());
@@ -332,7 +332,7 @@ public class NExecutableManagerTest extends NLocalFileMetadataTestCase {
         manager.pauseJob(job.getId());
 
         DefaultChainedExecutable job1 = (DefaultChainedExecutable) manager.getJob(job.getId());
-        Assert.assertTrue(job1.getStatus().equals(ExecutableState.STOPPED));
+        Assert.assertTrue(job1.getStatus().equals(ExecutableState.PAUSED));
 
         val dataflow = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), "default")
                 .getDataflowByModelAlias("nmodel_basic");
@@ -352,7 +352,7 @@ public class NExecutableManagerTest extends NLocalFileMetadataTestCase {
         manager.pauseJob(job.getId());
 
         DefaultChainedExecutable job1 = (DefaultChainedExecutable) manager.getJob(job.getId());
-        Assert.assertTrue(job1.getStatus().equals(ExecutableState.STOPPED));
+        Assert.assertTrue(job1.getStatus().equals(ExecutableState.PAUSED));
 
         val dataflow = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), "default")
                 .getDataflowByModelAlias("nmodel_basic");

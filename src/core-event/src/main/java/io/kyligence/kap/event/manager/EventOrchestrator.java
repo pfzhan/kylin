@@ -181,7 +181,7 @@ public class EventOrchestrator {
 
             val execManager = NExecutableManager.getInstance(kylinConfig, project);
             val modelExecutables = execManager.getModelExecutables(modelEvents.keySet(),
-                    Sets.newHashSet(ExecutableState.STOPPED, ExecutableState.ERROR));
+                    Sets.newHashSet(ExecutableState.PAUSED, ExecutableState.ERROR));
 
             modelEvents.entrySet().forEach(entry -> {
                 val model = entry.getKey();

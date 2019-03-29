@@ -335,7 +335,7 @@ public class NExecutableManager {
             List<AbstractExecutable> tasks = ((DefaultChainedExecutable) job).getTasks();
             tasks.stream().filter(task -> task.getStatus() != ExecutableState.READY)
                     .filter(task -> (allStep || task.getStatus() == ExecutableState.ERROR
-                            || task.getStatus() == ExecutableState.STOPPED))
+                            || task.getStatus() == ExecutableState.PAUSED))
                     .forEach(task -> updateJobOutput(task.getId(), ExecutableState.READY, null, null));
 
             final long endTime = job.getEndTime();
@@ -380,7 +380,7 @@ public class NExecutableManager {
         }
         val info = Maps.newHashMap(getJobOutput(jobId).getInfo());
         info.put(AbstractExecutable.END_TIME, Long.toString(System.currentTimeMillis()));
-        updateJobOutput(jobId, ExecutableState.STOPPED, info, null);
+        updateJobOutput(jobId, ExecutableState.PAUSED, info, null);
         // pauseJob may happen when the job has not been scheduled
         // then call this hook after updateJobOutput
         job.onExecuteStopHook();
@@ -431,7 +431,7 @@ public class NExecutableManager {
             logger.info("Job id: {} from {} to {}", taskOrJobId, oldStatus, newStatus);
             return true;
         });
-        if (ExecutableState.STOPPED.equals(newStatus)) {
+        if (ExecutableState.PAUSED.equals(newStatus)) {
             // kill spark-submit process
             destroyProcess(taskOrJobId);
         }

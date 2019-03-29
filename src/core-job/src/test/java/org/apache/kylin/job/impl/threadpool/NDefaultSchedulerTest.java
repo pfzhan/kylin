@@ -477,7 +477,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         executableManager.pauseJob(job.getId());
 
         await().atMost(3000, TimeUnit.MILLISECONDS).untilAsserted(() -> {
-            Assert.assertEquals(ExecutableState.STOPPED, job.getStatus());
+            Assert.assertEquals(ExecutableState.PAUSED, job.getStatus());
             Assert.assertEquals(ExecutableState.SUCCEED, task.getStatus());
         });
 
@@ -511,7 +511,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         executableManager.pauseJob(job.getId());
 
         await().atMost(3, TimeUnit.SECONDS).untilAsserted(() -> {
-            Assert.assertEquals(ExecutableState.STOPPED, job.getStatus());
+            Assert.assertEquals(ExecutableState.PAUSED, job.getStatus());
             Assert.assertEquals(ExecutableState.READY, task.getStatus());
         });
     }

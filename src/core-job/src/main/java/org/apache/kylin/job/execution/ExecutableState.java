@@ -55,7 +55,7 @@ import com.google.common.collect.Multimaps;
  */
 public enum ExecutableState {
 
-    READY, RUNNING, ERROR, STOPPED, DISCARDED, SUCCEED, SUICIDAL;
+    READY, RUNNING, ERROR, PAUSED, DISCARDED, SUCCEED, SUICIDAL;
 
     private static Multimap<ExecutableState, ExecutableState> VALID_STATE_TRANSFER;
 
@@ -86,14 +86,14 @@ public enum ExecutableState {
         VALID_STATE_TRANSFER.put(ExecutableState.RUNNING, ExecutableState.ERROR);
         VALID_STATE_TRANSFER.put(ExecutableState.RUNNING, ExecutableState.SUICIDAL);
 
-        VALID_STATE_TRANSFER.put(ExecutableState.STOPPED, ExecutableState.DISCARDED);
-        VALID_STATE_TRANSFER.put(ExecutableState.STOPPED, ExecutableState.READY);
+        VALID_STATE_TRANSFER.put(ExecutableState.PAUSED, ExecutableState.DISCARDED);
+        VALID_STATE_TRANSFER.put(ExecutableState.PAUSED, ExecutableState.READY);
 
         VALID_STATE_TRANSFER.put(ExecutableState.ERROR, ExecutableState.DISCARDED);
         VALID_STATE_TRANSFER.put(ExecutableState.ERROR, ExecutableState.READY);
 
-        VALID_STATE_TRANSFER.put(ExecutableState.READY, ExecutableState.STOPPED);
-        VALID_STATE_TRANSFER.put(ExecutableState.RUNNING, ExecutableState.STOPPED);
+        VALID_STATE_TRANSFER.put(ExecutableState.READY, ExecutableState.PAUSED);
+        VALID_STATE_TRANSFER.put(ExecutableState.RUNNING, ExecutableState.PAUSED);
 
         //rollback
         VALID_STATE_TRANSFER.put(ExecutableState.SUCCEED, ExecutableState.READY);

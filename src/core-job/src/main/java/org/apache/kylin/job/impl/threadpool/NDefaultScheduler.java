@@ -145,7 +145,7 @@ public class NDefaultScheduler implements Scheduler<AbstractExecutable>, Connect
                     case SUCCEED:
                         nSucceed++;
                         break;
-                    case STOPPED:
+                    case PAUSED:
                         nStopped++;
                         break;
                     case SUICIDAL:
