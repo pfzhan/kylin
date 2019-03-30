@@ -86,7 +86,7 @@ public class ResourceDetectBeforeCubingJob extends SparkApplication {
 
             Map<String, List<String>> resourcePaths = Maps.newHashMap();
             for (NBuildSourceInfo source : sources) {
-                Dataset<Row> dataset = source.getDataset();
+                Dataset<Row> dataset = source.getParentDS();
                 List<Path> paths = JavaConversions
                         .seqAsJavaList(ResourceDetectUtils.getPaths(dataset.queryExecution().sparkPlan()));
                 List<String> pathList = paths.stream().map(Path::toString).collect(Collectors.toList());

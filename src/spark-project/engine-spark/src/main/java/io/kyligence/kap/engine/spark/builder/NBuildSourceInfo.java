@@ -24,22 +24,29 @@
 
 package io.kyligence.kap.engine.spark.builder;
 
+import java.util.Collection;
 import java.util.LinkedHashSet;
-import java.util.Set;
 
-import io.kyligence.kap.metadata.cube.model.NDataSegment;
+import org.apache.commons.lang.StringUtils;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
+import org.apache.spark.sql.SparkSession;
+
+import com.google.common.base.Preconditions;
 
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
 
 public class NBuildSourceInfo {
-    private Dataset<Row> dataset;
+    private Dataset<Row> flattableDS;
+    private SparkSession ss;
     private long byteSize;
     private long count;
     private long layoutId;
-    private Set<IndexEntity> toBuildCuboids = new LinkedHashSet<>();
-    private NDataSegment segment;
+    private String parentStoragePath;
+    private Collection<IndexEntity> toBuildCuboids = new LinkedHashSet<>();
+
+    public NBuildSourceInfo() {
+    }
 
     public long getByteSize() {
         return byteSize;
@@ -49,12 +56,22 @@ public class NBuildSourceInfo {
         this.byteSize = byteSize;
     }
 
-    public void setDataset(Dataset<Row> dataset) {
-        this.dataset = dataset;
+    public void setFlattableDS(Dataset<Row> flattableDS) {
+        this.flattableDS = flattableDS;
     }
 
-    public Dataset<Row> getDataset() {
-        return dataset;
+    public Dataset<Row> getParentDS() {
+        if (flattableDS != null) {
+            return flattableDS;
+        } else {
+            Preconditions.checkState(!StringUtils.isBlank(parentStoragePath), "Parent storage path is blank.");
+            Preconditions.checkNotNull(ss, "SparkSession is null is NBuildSourceInfo.");
+            return ss.read().parquet(parentStoragePath);
+        }
+    }
+
+    public void setSparkSession(SparkSession ss) {
+        this.ss = ss;
     }
 
     public void setCount(long count) {
@@ -73,11 +90,11 @@ public class NBuildSourceInfo {
         return layoutId;
     }
 
-    public void setToBuildCuboids(Set<IndexEntity> toBuildCuboids) {
+    public void setToBuildCuboids(Collection<IndexEntity> toBuildCuboids) {
         this.toBuildCuboids = toBuildCuboids;
     }
 
-    public Set<IndexEntity> getToBuildCuboids() {
+    public Collection<IndexEntity> getToBuildCuboids() {
         return this.toBuildCuboids;
     }
 
@@ -85,11 +102,7 @@ public class NBuildSourceInfo {
         this.toBuildCuboids.add(cuboid);
     }
 
-    public NDataSegment getSegment() {
-        return segment;
-    }
-
-    public void setSegment(NDataSegment segment) {
-        this.segment = segment;
+    public void setParentStoragePath(String parentStoragePath) {
+        this.parentStoragePath = parentStoragePath;
     }
 }

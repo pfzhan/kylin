@@ -114,6 +114,22 @@ public class NRuleBasedCuboidDescTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
+    public void testGenTooManyCuboids() throws IOException {
+        val indexPlanManager = NIndexPlanManager.getInstance(getTestConfig(), "default");
+        var newPlan = JsonUtil.readValue(getClass().getResourceAsStream("/enormous_rule_based_cube.json"), IndexPlan.class);
+        newPlan.setLastModified(0L);
+
+        CubeTestUtils.createTmpModel(getTestConfig(), newPlan);
+
+        try {
+            indexPlanManager.createIndexPlan(newPlan);
+            Assert.fail();
+        } catch (IllegalArgumentException e) {
+            Assert.assertEquals("Too many cuboids for the cube. Cuboid combination reached 41449 and limit is 40960. Abort calculation.", e.getMessage());
+        }
+    }
+
+    @Test
     public void testGenCuboidsWithAuto() throws Exception {
         val indexPlanManager = NIndexPlanManager.getInstance(getTestConfig(), "default");
         var newPlan = JsonUtil.readValue(getClass().getResourceAsStream("/ncude_mixed.json"), IndexPlan.class);

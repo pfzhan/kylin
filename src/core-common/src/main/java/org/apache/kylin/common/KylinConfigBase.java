@@ -990,6 +990,14 @@ abstract public class KylinConfigBase implements Serializable {
         System.setProperty("kylin.engine.spark.job-jar", path);
     }
 
+    public int getBuildingCacheThreshold() {
+        int threshold = Integer.parseInt(getOptional("kylin.engine.spark.cache-threshold", "100"));
+        if (threshold <= 0) {
+            threshold = Integer.MAX_VALUE;
+        }
+        return threshold;
+    }
+
     public String getKylinJobMRLibDir() {
         return getOptional("kylin.engine.mr.lib-dir", "");
     }

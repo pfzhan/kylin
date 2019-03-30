@@ -86,7 +86,6 @@ import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.exception.BadRequestException;
 import org.apache.kylin.source.jdbc.H2Database;
 import org.hamcrest.BaseMatcher;
-import org.hamcrest.CoreMatchers;
 import org.hamcrest.Description;
 import org.junit.After;
 import org.junit.Assert;
@@ -378,10 +377,6 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
 
         relations = modelService.getModelRelations("741ca86a-1f13-46da-a59f-95fb68615e3a", "default");
         Assert.assertEquals(1, relations.size());
-        Assert.assertEquals(6, relations.get(0).getBuildLevel());
-        Assert.assertThat(
-                relations.get(0).getCuboidsByLayer().stream().map(Collection::size).collect(Collectors.toList()),
-                CoreMatchers.is(Lists.newArrayList(1, 5, 4, 4, 1, 1, 1)));
 
         val indePlanManager = NIndexPlanManager.getInstance(getTestConfig(), "default");
         indePlanManager.updateIndexPlan("741ca86a-1f13-46da-a59f-95fb68615e3a", copyForWrite -> {
@@ -400,7 +395,6 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
         });
         relations = modelService.getModelRelations("741ca86a-1f13-46da-a59f-95fb68615e3a", "default");
         Assert.assertEquals(1, relations.size());
-        Assert.assertEquals(4, relations.get(0).getBuildLevel());
     }
 
     @Test

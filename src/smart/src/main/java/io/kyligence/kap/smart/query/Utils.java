@@ -73,11 +73,11 @@ public class Utils {
     }
 
     public static void setLargeCuboidCombinationConf(Properties props) {
-        props.setProperty("kylin.cube.aggrgroup.max-combination", Long.toString(Long.MAX_VALUE - 1));
+        props.setProperty("kylin.cube.aggrgroup.max-combination", Long.toString((Long.MAX_VALUE - 1) / 10));
     }
 
     public static void setLargeCuboidCombinationConf(Map<String, String> props) {
-        props.put("kylin.cube.aggrgroup.max-combination", Long.toString(Long.MAX_VALUE - 1));
+        props.put("kylin.cube.aggrgroup.max-combination", Long.toString((Long.MAX_VALUE - 1) / 10));
     }
 
     public static void removeCuboidCombinationConf(Map<String, String> props) {
@@ -85,7 +85,7 @@ public class Utils {
     }
 
     public static void setLargeCuboidCombinationConf(KylinConfig props) {
-        props.setProperty("kylin.cube.aggrgroup.max-combination", Long.toString(Long.MAX_VALUE - 1));
+        props.setProperty("kylin.cube.aggrgroup.max-combination", Long.toString((Long.MAX_VALUE - 1) / 10));
     }
 
     public static void setLargeRowkeySizeConf(KylinConfig kylinConfig) {

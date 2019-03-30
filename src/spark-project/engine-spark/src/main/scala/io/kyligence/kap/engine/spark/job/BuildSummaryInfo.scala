@@ -22,27 +22,12 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.metadata.cube.cuboid;
+package io.kyligence.kap.engine.spark.job
 
-import java.util.Comparator;
+import java.util
 
-import io.kyligence.kap.metadata.cube.model.IndexEntity;
-import io.kyligence.kap.metadata.cube.model.LayoutEntity;
-import io.kyligence.kap.metadata.cube.model.NDataSegment;
-import lombok.val;
+import io.kyligence.kap.metadata.cube.cuboid.NSpanningTree
 
-public class NCuboidLayoutChooser {
-
-    public static LayoutEntity selectLayoutForBuild(NDataSegment segment, IndexEntity entity) {
-        val candidate = segment.getIndexPlan().getAllIndexes().stream() //
-                .filter(index -> index.fullyDerive(entity)) //
-                .flatMap(index -> index.getLayouts().stream()) //
-                .filter(layout -> (segment.getLayout(layout.getId()) != null)) //
-                .min(Comparator.comparingLong(o -> getRows(o, segment))); //
-        return candidate.orElse(null);
-    }
-
-    private static long getRows(LayoutEntity o1, NDataSegment segment) {
-        return segment.getLayout(o1.getId()).getRows();
-    }
+object BuildSummaryInfo {
+  val seg2SpanningTree: java.util.Map[String, NSpanningTree] = new util.HashMap[String, NSpanningTree]
 }

@@ -217,8 +217,7 @@ public class DictionaryBuilder {
         List<LayoutEntity> toBuildCuboids = Lists.newArrayList();
         for (IndexEntity desc : toBuildIndexEntities) {
             if (isBuild) {
-                LayoutEntity layout = NCuboidLayoutChooser.selectLayoutForBuild(seg,
-                        desc.getEffectiveDimCols().keySet(), toBuildTree.retrieveAllMeasures(desc));
+                LayoutEntity layout = NCuboidLayoutChooser.selectLayoutForBuild(seg, desc);
                 if (layout == null) {
                     toBuildCuboids.addAll(desc.getLayouts());
                 }

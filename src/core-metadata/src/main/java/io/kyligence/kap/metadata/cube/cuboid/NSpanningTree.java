@@ -26,26 +26,34 @@ package io.kyligence.kap.metadata.cube.cuboid;
 
 import java.io.Serializable;
 import java.util.Collection;
-import java.util.List;
 import java.util.Map;
-import java.util.Set;
+
+import org.apache.kylin.common.KylinConfig;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.Lists;
 
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
+import io.kyligence.kap.metadata.cube.model.NDataSegment;
 
 public abstract class NSpanningTree implements Serializable {
     final protected Map<IndexEntity, Collection<LayoutEntity>> cuboids;
     final protected String cacheKey;
 
     public NSpanningTree(Map<IndexEntity, Collection<LayoutEntity>> cuboids, String cacheKey) {
+        long totalSize = 0L;
+        for (Collection<LayoutEntity> entities : cuboids.values()) {
+            totalSize += entities.size();
+        }
+        long maxCombination = KylinConfig.getInstanceFromEnv().getCubeAggrGroupMaxCombination() * 10;
+        Preconditions.checkState(totalSize <= maxCombination,
+                "Too many cuboids for the cube. Cuboid combination reached " + totalSize + " and limit is "
+                        + maxCombination + ". Abort calculation.");
         this.cuboids = cuboids;
         this.cacheKey = cacheKey;
     }
 
-    abstract public boolean isValid(int cuboidId);
+    abstract public boolean isValid(long cuboidId);
 
     abstract public int getCuboidCount();
 
@@ -53,67 +61,17 @@ public abstract class NSpanningTree implements Serializable {
 
     abstract public Collection<LayoutEntity> getLayouts(IndexEntity cuboidDesc);
 
-    abstract public Set<Integer> retrieveAllMeasures(IndexEntity root);
-
-    abstract public IndexEntity getRootIndexEntity(IndexEntity cuboidDesc);
-
     abstract public IndexEntity getIndexEntity(long cuboidId);
 
     abstract public LayoutEntity getCuboidLayout(long cuboidLayoutId);
 
-    abstract public IndexEntity getParentIndexEntity(IndexEntity cuboid);
+    abstract public void decideTheNextLayer(Collection<IndexEntity> currentLayer, NDataSegment segment);
 
-    abstract public Collection<IndexEntity> getSpanningIndexEntities(IndexEntity cuboid);
+    abstract public Collection<IndexEntity> getChildrenByIndexPlan(IndexEntity parent);
 
     abstract public Collection<IndexEntity> getAllIndexEntities();
 
-    abstract public void acceptVisitor(ISpanningTreeVisitor matcher);
-
-    public interface ISpanningTreeVisitor {
-        boolean visit(IndexEntity cuboidDesc);
-
-        NLayoutCandidate getBestLayoutCandidate();
-    }
-
-    public String getCuboidCacheKey() {
-        return cacheKey;
-    }
-
     public Map<IndexEntity, Collection<LayoutEntity>> getCuboids() {
         return cuboids;
-    }
-
-    private transient List<Collection<IndexEntity>> cuboidsByLayer;
-
-    public List<Collection<IndexEntity>> getCuboidsByLayer() {
-        if (cuboidsByLayer != null) {
-            return cuboidsByLayer;
-        }
-
-        int totalNum = 0;
-        cuboidsByLayer = Lists.newArrayList();
-        cuboidsByLayer.add(getRootIndexEntities());
-        Collection<IndexEntity> lastLayer = cuboidsByLayer.get(cuboidsByLayer.size() - 1);
-        totalNum += lastLayer.size();
-        while (!lastLayer.isEmpty()) {
-            List<IndexEntity> newLayer = Lists.newArrayList();
-            for (IndexEntity parent : lastLayer) {
-                newLayer.addAll(getSpanningIndexEntities(parent));
-            }
-            if (newLayer.isEmpty()) {
-                break;
-            }
-            cuboidsByLayer.add(newLayer);
-            totalNum += newLayer.size();
-            lastLayer = newLayer;
-        }
-
-        int size = getCuboidCount();
-        Preconditions.checkState(totalNum == size, "total Num: " + totalNum + " actual size: " + size);
-        return cuboidsByLayer;
-    }
-
-    public int getBuildLevel() {
-        return getCuboidsByLayer().size() - 1;
     }
 }

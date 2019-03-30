@@ -47,7 +47,7 @@ public class NSpanningTreeFactory {
         return newInstance(KapConfig.wrap(indexPlan.getConfig()), descLayouts, indexPlan.getUuid());
     }
 
-    public static NSpanningTree fromIndexes(Map<IndexEntity, Collection<LayoutEntity>> cuboids, String cacheKey) {
+    private static NSpanningTree fromIndexes(Map<IndexEntity, Collection<LayoutEntity>> cuboids, String cacheKey) {
         return newInstance(KapConfig.getInstanceFromEnv(), cuboids, cacheKey);
     }
 

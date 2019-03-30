@@ -124,13 +124,22 @@ public class IndexEntity implements Serializable, IKeep {
         return true;
     }
 
-    public boolean dimensionDerive(IndexEntity child) {
-        return child.getDimensionBitset().andNot(getDimensionBitset()).isEmpty();
-    }
-
     public boolean fullyDerive(IndexEntity child) {
+        // both table index or not.
+        if (!this.isTableIndex() == child.isTableIndex()) {
+            return false;
+        }
+
+        if (totalFieldSize(child) >= totalFieldSize(this)) {
+            return false;
+        }
+
         return child.getDimensionBitset().andNot(getDimensionBitset()).isEmpty()
                 && child.getMeasureBitset().andNot(getMeasureBitset()).isEmpty();
+    }
+
+    private int totalFieldSize(IndexEntity entity) {
+        return entity.getDimensions().size() + entity.getMeasures().size();
     }
 
     public LayoutEntity getLastLayout() {
@@ -228,10 +237,6 @@ public class IndexEntity implements Serializable, IKeep {
             indexPlan.checkIsNotCachedAndShared();
     }
 
-    public boolean bothTableIndexOrNot(IndexEntity another) {
-        return this.isTableIndex() == another.isTableIndex();
-    }
-
     public boolean isTableIndex() {
         return id >= TABLE_INDEX_START_ID;
     }
@@ -264,6 +269,11 @@ public class IndexEntity implements Serializable, IKeep {
     // ============================================================================
     // IndexIdentifier used for auto-modeling
     // ============================================================================
+
+    @Override
+    public String toString() {
+        return "IndexEntity{ Id=" + id + ", dimBitSet=" + dimensionBitset + ", measureBitSet=" + measureBitset + "}.";
+    }
 
     public static class IndexIdentifier {
         BitSet dimBitSet;

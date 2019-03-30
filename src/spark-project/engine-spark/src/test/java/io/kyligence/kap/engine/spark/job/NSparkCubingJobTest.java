@@ -62,11 +62,9 @@ import org.apache.spark.sql.Row;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.spark_project.guava.collect.Sets;
 
-import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
 import io.kyligence.kap.engine.spark.ExecutableUtils;
@@ -176,7 +174,6 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
 
         // ready dataflow, segment, cuboid layout
         NDataSegment oneSeg = dsMgr.appendSegment(df, SegmentRange.TimePartitionedSegmentRange.createInfinite());
-        List<LayoutEntity> layouts = df.getIndexPlan().getAllLayouts();
         List<LayoutEntity> round1 = new ArrayList<>();
         round1.add(df.getIndexPlan().getCuboidLayout(20_000_020_001L));
         round1.add(df.getIndexPlan().getCuboidLayout(1_000_001L));
@@ -185,9 +182,8 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
 
         NSpanningTree nSpanningTree = NSpanningTreeFactory.fromLayouts(round1, df.getUuid());
         for (IndexEntity rootCuboid : nSpanningTree.getRootIndexEntities()) {
-            LayoutEntity layout = NCuboidLayoutChooser.selectLayoutForBuild(oneSeg,
-                    rootCuboid.getEffectiveDimCols().keySet(), nSpanningTree.retrieveAllMeasures(rootCuboid));
-            Assert.assertEquals(null, layout);
+            LayoutEntity layout = NCuboidLayoutChooser.selectLayoutForBuild(oneSeg, rootCuboid);
+            Assert.assertNull(layout);
         }
 
         // Round1. Build new segment
@@ -227,9 +223,8 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
         oneSeg = df2.getSegment(oneSeg.getId());
         nSpanningTree = NSpanningTreeFactory.fromLayouts(round2, df.getUuid());
         for (IndexEntity rootCuboid : nSpanningTree.getRootIndexEntities()) {
-            LayoutEntity layout = NCuboidLayoutChooser.selectLayoutForBuild(oneSeg,
-                    rootCuboid.getEffectiveDimCols().keySet(), nSpanningTree.retrieveAllMeasures(rootCuboid));
-            Assert.assertTrue(layout != null);
+            LayoutEntity layout = NCuboidLayoutChooser.selectLayoutForBuild(oneSeg, rootCuboid);
+            Assert.assertNotNull(layout);
         }
 
         job = NSparkCubingJob.create(Sets.newHashSet(oneSeg), Sets.newLinkedHashSet(round2), "ADMIN");
@@ -383,163 +378,6 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
         execMgr.discardJob(firstMergeJob.getId());
     }
 
-    private void waitThreadInterrupt(Thread thread, int maxWaitTime) {
-        long start = System.currentTimeMillis();
-        while (System.currentTimeMillis() - start < maxWaitTime) {
-            if (thread.isInterrupted()) {
-                break;
-            }
-        }
-        if (System.currentTimeMillis() - start >= maxWaitTime) {
-            throw new RuntimeException("too long wait time");
-        }
-    }
-
-    @Ignore
-    @Test
-    //should it test merge case?
-    public void testRuleBasedCube() throws Exception {
-        NDataflowManager dsMgr = NDataflowManager.getInstance(config, getProject());
-        NExecutableManager execMgr = NExecutableManager.getInstance(config, getProject());
-
-        NDataflow df = dsMgr.getDataflow("rule_based_cube");
-        Assert.assertTrue(config.getHdfsWorkingDirectory().startsWith("file:"));
-
-        // cleanup all segments first
-        NDataflowUpdate update = new NDataflowUpdate(df.getUuid());
-        update.setToRemoveSegs(df.getSegments().toArray(new NDataSegment[0]));
-        dsMgr.updateDataflow(update);
-        df = dsMgr.getDataflow("rule_based_cube");
-
-        // ready dataflow, segment, cuboid layout
-        NDataSegment oneSeg = dsMgr.appendSegment(df, SegmentRange.TimePartitionedSegmentRange.createInfinite());
-        List<LayoutEntity> layouts = df.getIndexPlan().getAllLayouts();
-        List<LayoutEntity> round1 = Lists.newArrayList(layouts);
-
-        NSpanningTree nSpanningTree = NSpanningTreeFactory.fromLayouts(round1, df.getUuid());
-        for (IndexEntity rootCuboid : nSpanningTree.getRootIndexEntities()) {
-            LayoutEntity layout = NCuboidLayoutChooser.selectLayoutForBuild(oneSeg,
-                    rootCuboid.getEffectiveDimCols().keySet(), nSpanningTree.retrieveAllMeasures(rootCuboid));
-            Assert.assertEquals(null, layout);
-        }
-
-        // Round1. Build new segment
-        NSparkCubingJob job = NSparkCubingJob.create(Sets.newHashSet(oneSeg), Sets.newLinkedHashSet(round1), "ADMIN");
-        NSparkCubingStep sparkStep = (NSparkCubingStep) job.getSparkCubingStep();
-        StorageURL distMetaUrl = StorageURL.valueOf(sparkStep.getDistMetaUrl());
-        Assert.assertEquals("hdfs", distMetaUrl.getScheme());
-        Assert.assertTrue(distMetaUrl.getParameter("path").startsWith(config.getHdfsWorkingDirectory()));
-
-        // launch the job
-        execMgr.addJob(job);
-
-        // wait job done
-        ExecutableState status = wait(job);
-        Assert.assertEquals(ExecutableState.SUCCEED, status);
-
-        /**
-         * Round2. Build new layouts, should reuse the data from already existing cuboid.
-         * Notice: After round1 the segment has been updated, need to refresh the cache before use the old one.
-         */
-        List<LayoutEntity> round2 = new ArrayList<>();
-        round2.add(layouts.get(4));
-        round2.add(layouts.get(5));
-        round2.add(layouts.get(6));
-        round2.add(layouts.get(8));
-
-        //update seg
-        oneSeg = dsMgr.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa").getSegment(oneSeg.getId());
-        nSpanningTree = NSpanningTreeFactory.fromLayouts(round2, df.getUuid());
-        for (IndexEntity rootCuboid : nSpanningTree.getRootIndexEntities()) {
-            LayoutEntity layout = NCuboidLayoutChooser.selectLayoutForBuild(oneSeg,
-                    rootCuboid.getEffectiveDimCols().keySet(), nSpanningTree.retrieveAllMeasures(rootCuboid));
-            Assert.assertTrue(layout != null);
-        }
-
-        job = NSparkCubingJob.create(Sets.newHashSet(oneSeg), Sets.newLinkedHashSet(round2), "ADMIN");
-        execMgr.addJob(job);
-
-        // wait job done
-        status = wait(job);
-        Assert.assertEquals(ExecutableState.SUCCEED, status);
-
-        val df2 = dsMgr.getDataflow(df.getUuid());
-        validateCube(df2.getSegments().getFirstSegment().getId());
-        validateTableIndex(df2.getSegments().getFirstSegment().getId());
-    }
-
-    @Test
-    @Ignore("the build process is tested in manual & auto test, no need to build again")
-    public void testMergeJob() throws Exception {
-        KylinConfig config = KylinConfig.getInstanceFromEnv();
-        NDataflowManager dsMgr = NDataflowManager.getInstance(config, getProject());
-        NExecutableManager execMgr = NExecutableManager.getInstance(config, getProject());
-
-        NDataflow df = dsMgr.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
-        Assert.assertTrue(config.getHdfsWorkingDirectory().startsWith("file:"));
-
-        // cleanup all segments first
-        NDataflowUpdate update = new NDataflowUpdate(df.getUuid());
-        update.setToRemoveSegs(df.getSegments().toArray(new NDataSegment[0]));
-        dsMgr.updateDataflow(update);
-        /**
-         * Round1. Build 4 segment
-         */
-        List<LayoutEntity> layouts = df.getIndexPlan().getAllLayouts();
-        long start = SegmentRange.dateToLong("2011-01-01");
-        long end = SegmentRange.dateToLong("2012-06-01");
-        buildCuboid("89af4ee2-2cdb-4b07-b39e-4c29856309aa", new SegmentRange.TimePartitionedSegmentRange(start, end),
-                Sets.<LayoutEntity> newLinkedHashSet(layouts), true);
-        start = SegmentRange.dateToLong("2012-06-01");
-        end = SegmentRange.dateToLong("2013-01-01");
-        buildCuboid("89af4ee2-2cdb-4b07-b39e-4c29856309aa", new SegmentRange.TimePartitionedSegmentRange(start, end),
-                Sets.<LayoutEntity> newLinkedHashSet(layouts), true);
-        start = SegmentRange.dateToLong("2013-01-01");
-        end = SegmentRange.dateToLong("2013-06-01");
-        buildCuboid("89af4ee2-2cdb-4b07-b39e-4c29856309aa", new SegmentRange.TimePartitionedSegmentRange(start, end),
-                Sets.<LayoutEntity> newLinkedHashSet(layouts), true);
-        start = SegmentRange.dateToLong("2013-06-01");
-        end = SegmentRange.dateToLong("2015-01-01");
-        buildCuboid("89af4ee2-2cdb-4b07-b39e-4c29856309aa", new SegmentRange.TimePartitionedSegmentRange(start, end),
-                Sets.<LayoutEntity> newLinkedHashSet(layouts), true);
-
-        /**
-         * Round2. Merge two segments
-         */
-        df = dsMgr.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
-        NDataSegment firstMergeSeg = dsMgr.mergeSegments(df, new SegmentRange.TimePartitionedSegmentRange(
-                SegmentRange.dateToLong("2010-01-02"), SegmentRange.dateToLong("2013-01-01")), false);
-        NSparkMergingJob firstMergeJob = NSparkMergingJob.merge(firstMergeSeg, Sets.newLinkedHashSet(layouts), "ADMIN",
-                UUID.randomUUID().toString());
-        execMgr.addJob(firstMergeJob);
-        // wait job done
-
-        Assert.assertEquals(ExecutableState.SUCCEED, wait(firstMergeJob));
-
-        df = dsMgr.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
-        NDataSegment secondMergeSeg = dsMgr.mergeSegments(df, new SegmentRange.TimePartitionedSegmentRange(
-                SegmentRange.dateToLong("2013-01-01"), SegmentRange.dateToLong("2015-06-01")), false);
-        NSparkMergingJob secondMergeJob = NSparkMergingJob.merge(secondMergeSeg, Sets.newLinkedHashSet(layouts),
-                "ADMIN", UUID.randomUUID().toString());
-        execMgr.addJob(secondMergeJob);
-        // wait job done
-        Assert.assertEquals(ExecutableState.SUCCEED, wait(secondMergeJob));
-
-        /**
-         * validate cube segment info
-         */
-        NDataSegment firstSegment = dsMgr.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa").getSegments().get(4);
-        NDataSegment secondSegment = dsMgr.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa").getSegments().get(5);
-        Assert.assertEquals(new SegmentRange.TimePartitionedSegmentRange(SegmentRange.dateToLong("2011-01-01"),
-                SegmentRange.dateToLong("2013-01-01")), firstSegment.getSegRange());
-        Assert.assertEquals(new SegmentRange.TimePartitionedSegmentRange(SegmentRange.dateToLong("2013-01-01"),
-                SegmentRange.dateToLong("2015-01-01")), secondSegment.getSegRange());
-        Assert.assertEquals(19, firstSegment.getDictionaries().size());
-        Assert.assertEquals(19, secondSegment.getDictionaries().size());
-        Assert.assertEquals(7, firstSegment.getSnapshots().size());
-        Assert.assertEquals(7, secondSegment.getSnapshots().size());
-    }
-
     private void validateCube(String segmentId) {
         NDataflow df = NDataflowManager.getInstance(config, getProject())
                 .getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
@@ -549,29 +387,6 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
         Assert.assertEquals(10000, seg.getLayout(1).getRows());
         Assert.assertEquals(10000, seg.getLayout(10001).getRows());
         Assert.assertEquals(10000, seg.getLayout(10002).getRows());
-
-        /*List<String[]> resultFromLayout = getCuboidDataAfterDecoding(seg, 1);
-        long actualCount = 0L;
-        long actualMax = 0L;
-        for (String[] row : resultFromLayout) {
-            if (row[0].equals("402")) {
-                actualCount = Long.parseLong(row[2]);
-                actualMax = Long.parseLong(row[3]);
-            }
-        }
-        Assert.assertEquals(402, resultFromLayout.size());
-        Assert.assertEquals(402, resultFromLayout.size());
-        Assert.assertEquals(2, actualCount);
-        Assert.assertEquals(1, actualMax);*/
-
-        /* List<Object[]> resultFromLayout = getCuboidDataAfterDecoding(seg, 3001);
-        for (Object[] row : resultFromLayout) {
-            if (row[0].equals("402")) {
-                Assert.assertEquals("1", row[4].toString());
-                Assert.assertEquals("1", row[5].toString());
-                Assert.assertEquals(1, ((RoaringBitmapCounter) row[6]).getCount()); //COUNT DISTINCT bitmap
-            }
-        }*/
     }
 
     private void validateTableIndex(String segmentId) {
