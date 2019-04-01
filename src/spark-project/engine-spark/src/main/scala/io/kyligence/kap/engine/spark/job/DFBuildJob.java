@@ -76,7 +76,7 @@ import lombok.val;
 public class DFBuildJob extends SparkApplication {
     public static final Long FLAT_TABLE_FLAG = -1L;
     protected static final Logger logger = LoggerFactory.getLogger(DFBuildJob.class);
-    protected static String tempDirSuffix = "_temp";
+    protected static String TEMP_DIR_SUFFIX = "_temp";
 
     private NDataflowManager dfMgr;
 
@@ -241,7 +241,7 @@ public class DFBuildJob extends SparkApplication {
         NSparkCubingEngine.NSparkCubingStorage storage = StorageFactory.createEngineAdapter(layout,
                 NSparkCubingEngine.NSparkCubingStorage.class);
         String path = NSparkCubingUtil.getStoragePath(dataCuboid);
-        String tempPath = path + tempDirSuffix;
+        String tempPath = path + TEMP_DIR_SUFFIX;
         // save to temp path
         storage.saveTo(tempPath, dataset, ss);
 
@@ -291,7 +291,7 @@ public class DFBuildJob extends SparkApplication {
 
     public static void repartition(NSparkCubingEngine.NSparkCubingStorage storage, String path, SparkSession ss,
                                    RepartitionHelper helper) throws IOException {
-        String tempPath = path + tempDirSuffix;
+        String tempPath = path + TEMP_DIR_SUFFIX;
         Path tempResourcePath = new Path(tempPath);
 
         FileSystem readFileSystem = HadoopUtil.getReadFileSystem();

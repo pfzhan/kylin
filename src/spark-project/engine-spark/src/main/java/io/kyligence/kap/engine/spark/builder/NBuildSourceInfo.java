@@ -45,9 +45,6 @@ public class NBuildSourceInfo {
     private String parentStoragePath;
     private Collection<IndexEntity> toBuildCuboids = new LinkedHashSet<>();
 
-    public NBuildSourceInfo() {
-    }
-
     public long getByteSize() {
         return byteSize;
     }

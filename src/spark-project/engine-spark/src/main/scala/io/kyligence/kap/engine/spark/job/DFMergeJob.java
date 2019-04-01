@@ -168,7 +168,7 @@ public class DFMergeJob extends SparkApplication {
         NSparkCubingEngine.NSparkCubingStorage storage = StorageFactory.createEngineAdapter(layout,
                 NSparkCubingEngine.NSparkCubingStorage.class);
         String path = NSparkCubingUtil.getStoragePath(dataCuboid);
-        String tempPath = path + DFBuildJob.tempDirSuffix;
+        String tempPath = path + DFBuildJob.TEMP_DIR_SUFFIX;
         // save to temp path
         storage.saveTo(tempPath, dataset, ss);
 
