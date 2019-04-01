@@ -141,7 +141,7 @@
             <tr>
               <td>{{$t('TargetSubject')}}</td>
               <td>
-                {{selectedJob.target_model_alias}}
+                <a @click="gotoModelList(selectedJob.target_model_alias)">{{selectedJob.target_model_alias}}</a>
               </td>
             </tr>
             <tr>
@@ -497,6 +497,9 @@ export default class JobsList extends Vue {
       }
     }
     return true
+  }
+  gotoModelList (modelAlias) {
+    this.$router.push({name: 'ModelList', params: { modelAlias: modelAlias }})
   }
   renderColumn (h) {
     let items = []

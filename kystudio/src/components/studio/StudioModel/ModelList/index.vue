@@ -190,6 +190,10 @@ import '../../../../util/fly.js'
       if (to.params.addIndex) {
         vm.showFull = true
       }
+      if (to.params.modelAlias) {
+        vm.currentEditModel = to.params.modelAlias
+        vm.filterArgs.model = to.params.modelAlias
+      }
     })
   },
   computed: {

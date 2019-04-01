@@ -52,7 +52,7 @@ export const menusData = [
     children: [
       { name: 'source', path: '/studio/source' },
       {name: 'acceleration', path: '/studio/acceleration'},
-      { name: 'model', path: '/studio/model' }
+      { name: 'modelList', path: '/studio/model' }
     ]
   },
   {

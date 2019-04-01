@@ -388,7 +388,7 @@ exports.default = {
     group: '用户组',
     datasource: '数据源',
     source: '数据源',
-    model: '模型',
+    modelList: '模型',
     index: '索引',
     modeledit: '编辑模型',
     refresh: '刷新'

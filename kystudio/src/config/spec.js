@@ -13,7 +13,7 @@ export default {
       { "id": "studio", "value": "studio", "title": "Studio" },
       { "id": "setting", "value": "setting", "title": "setting" },
       { "id": "source", "value": "source", "title": "Source" },
-      { "id": "model", "value": "model", "title": "Model" },
+      { "id": "model", "value": "modelList", "title": "modelList" },
       { "id": "index", "value": "index", "title": "Index" },
       { "id": "modelEdit", "value": "modelEdit", "title": "Model Edit" },
       { "id": "monitor", "value": "monitor", "title": "Monitor" },

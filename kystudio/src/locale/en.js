@@ -392,7 +392,7 @@ exports.default = {
     group: 'Group',
     datasource: 'Data Source',
     source: 'Source',
-    model: 'Model',
+    modelList: 'Model',
     index: 'Index',
     modeledit: 'Model Edit',
     refresh: 'Refresh'

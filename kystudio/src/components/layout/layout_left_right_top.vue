@@ -10,8 +10,8 @@
             <template v-for="(item,index) in menus">
               <el-menu-item :index="item.path" v-if="!item.children && showMenuByRole(item.name)" :key="index">
                 <i :class="item.icon" class="ksd-fs-16"></i>
-                <span slot="title" v-if="item.name === 'model'">
-                  {{isAutoProject ? $t('kylinLang.menu.index') : $t('kylinLang.menu.model')}}
+                <span slot="title" v-if="item.name === 'modelList'">
+                  {{isAutoProject ? $t('kylinLang.menu.index') : $t('kylinLang.menu.modelList')}}
                 </span>
                 <span slot="title" v-else>
                   {{$t('kylinLang.menu.' + item.name)}}
@@ -24,7 +24,7 @@
                 </template>
                 <el-menu-item-group>
                   <el-menu-item :index="child.path" v-for="child in item.children" :key="child.path" v-if="showMenuByRole(child.name)">
-                    <template v-if="child.name !== 'model'">
+                    <template v-if="child.name !== 'modelList'">
                       <span style="position:relative;">
                         {{$t('kylinLang.menu.' + child.name)}}
                         <span id="favo-menu-item" v-if="item.name === 'query' && child.name === 'acceleration'"></span>
@@ -32,7 +32,7 @@
                     </template>
                     <template v-else>
                       <span style="position:relative;">
-                        {{isAutoProject ? $t('kylinLang.menu.index') : $t('kylinLang.menu.model')}}
+                        {{isAutoProject ? $t('kylinLang.menu.index') : $t('kylinLang.menu.modelList')}}
                       </span>
                       <div class="number-icon" v-if="reachThresholdVisible">1</div>
                     </template>
