@@ -24,14 +24,12 @@
 
 package io.kyligence.kap.engine.spark.application;
 
-import io.kyligence.kap.common.obf.IKeep;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.List;
 import java.util.Map;
 
-import io.kyligence.kap.spark.common.CredentialUtils;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -50,10 +48,13 @@ import org.slf4j.LoggerFactory;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
 
+import io.kyligence.kap.common.obf.IKeep;
+import io.kyligence.kap.engine.spark.job.BuildSummaryInfo;
 import io.kyligence.kap.engine.spark.job.UdfManager;
 import io.kyligence.kap.engine.spark.utils.JobMetricsUtils;
 import io.kyligence.kap.engine.spark.utils.SparkConfHelper;
 import io.kyligence.kap.metadata.cube.model.NBatchConstants;
+import io.kyligence.kap.spark.common.CredentialUtils;
 import lombok.val;
 
 public abstract class SparkApplication implements Application, IKeep {
@@ -106,13 +107,13 @@ public abstract class SparkApplication implements Application, IKeep {
         try (KylinConfig.SetAndUnsetThreadLocalConfig autoCloseConfig = KylinConfig
                 .setAndUnsetThreadLocalConfig(KylinConfig.loadKylinConfigFromHdfs(hdfsMetalUrl))) {
             config = autoCloseConfig.get();
-            SparkConf sparkConf = new SparkConf();
+            BuildSummaryInfo.setKylinConfig(config);
+            SparkConf sparkConf = BuildSummaryInfo.getSparkConf();
             if (config.isAutoSetSparkConf() && isAutoSetSparkConfEnabled()) {
                 try {
                     autoSetSparkConf(sparkConf);
                 } catch (Exception e) {
                     logger.warn("Auto set spark conf failed. Load spark conf from system properties", e);
-                    sparkConf = new SparkConf();
                 }
             }
             // for wrapping credential
@@ -167,7 +168,8 @@ public abstract class SparkApplication implements Application, IKeep {
 
     protected String chooseContentSize(Path shareDir) throws IOException {
         FileSystem fs = HadoopUtil.getFileSystem(shareDir);
-        FileStatus[] fileStatuses = fs.listStatus(shareDir, path -> path.toString().endsWith(ResourceDetectUtils.fileName()));
+        FileStatus[] fileStatuses = fs.listStatus(shareDir,
+                path -> path.toString().endsWith(ResourceDetectUtils.fileName()));
         Map<String, List<String>> resourcePaths = Maps.newHashMap();
         for (FileStatus file : fileStatuses) {
             String fileName = file.getPath().getName();

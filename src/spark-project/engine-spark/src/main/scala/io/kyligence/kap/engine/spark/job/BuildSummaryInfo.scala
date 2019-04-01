@@ -27,7 +27,32 @@ package io.kyligence.kap.engine.spark.job
 import java.util
 
 import io.kyligence.kap.metadata.cube.cuboid.NSpanningTree
+import org.apache.kylin.common.KylinConfig
+import org.apache.spark.SparkConf
 
 object BuildSummaryInfo {
   val seg2SpanningTree: java.util.Map[String, NSpanningTree] = new util.HashMap[String, NSpanningTree]
+
+ lazy val sparkConf: SparkConf = new SparkConf()
+
+  def getSparkConf(): SparkConf = {
+    sparkConf
+  }
+
+  var kylinConfig: KylinConfig = _
+
+  def setKylinConfig(config: KylinConfig): Unit = {
+    kylinConfig = config
+  }
+
+  var retryTimes: Int = 0
+
+  def increaseRetryTimes(): Unit = {
+    retryTimes = retryTimes + 1
+  }
+
+  // for test
+  def resetRetryTimes(): Unit = {
+    retryTimes = 0
+  }
 }

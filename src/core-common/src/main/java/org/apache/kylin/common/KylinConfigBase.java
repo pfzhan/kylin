@@ -1018,6 +1018,14 @@ abstract public class KylinConfigBase implements Serializable {
         return getPropertiesByPrefix("kylin.engine.spark-conf.");
     }
 
+    public int getSparkEngineMaxRetryTime() {
+        return Integer.parseInt(getOptional("kylin.engine.max-retry-time", "3"));
+    }
+
+    public double getSparkEngineRetryMemoryGradient() {
+        return Double.parseDouble(getOptional("kylin.engine.retry-memory-gradient", "1.5"));
+    }
+
     public boolean isAutoSetSparkConf() {
         return Boolean.parseBoolean(getOptional("kylin.spark-conf.auto.prior", "true"));
     }
@@ -1430,7 +1438,8 @@ abstract public class KylinConfigBase implements Serializable {
 
     // unit of month
     public long getQueryHistoryMaxScanInterval() {
-        return Integer.valueOf(this.getOptional("kylin.favorite.query-history-max-scan-interval", "1")) * 30 * 24 * 60 * 60 * 1000L;
+        return Integer.valueOf(this.getOptional("kylin.favorite.query-history-max-scan-interval", "1")) * 30 * 24 * 60
+                * 60 * 1000L;
     }
 
     public int getAutoCheckAccStatusBatchSize() {
