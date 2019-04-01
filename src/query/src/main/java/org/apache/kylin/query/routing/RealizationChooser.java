@@ -157,7 +157,7 @@ public class RealizationChooser {
             if (inf instanceof CapabilityResult.DimensionAsMeasure) {
                 FunctionDesc functionDesc = ((CapabilityResult.DimensionAsMeasure) inf).getMeasureFunction();
                 functionDesc.setDimensionAsMetric(true);
-                addToContextGroupBy(functionDesc.getParameter().getColRefs(), olapContext);
+                addToContextGroupBy(functionDesc.getColRefs(), olapContext);
                 olapContext.resetSQLDigest();
                 olapContext.getSQLDigest();
                 logger.info("Adjust DimensionAsMeasure for " + functionDesc);
@@ -187,7 +187,7 @@ public class RealizationChooser {
             if (FunctionDesc.FUNC_GROUPING.equalsIgnoreCase(func.getExpression())) {
                 it.remove();
             } else if (BitmapMeasureType.FUNC_INTERSECT_COUNT_DISTINCT.equalsIgnoreCase(func.getExpression())) {
-                TblColRef col = func.getParameter().getColRefs().get(1);
+                TblColRef col = func.getColRefs().get(1);
                 context.getGroupByColumns().add(col);
             }
         }
@@ -217,10 +217,10 @@ public class RealizationChooser {
                 metrics.add(aggrFuncFromDataflowDesc);
             } else if (func.isDimensionAsMetric()) {
                 FunctionDesc funcUsedDimenAsMetric = findAggrFuncFromDataflowDesc(func, dataflow);
-                dimensions.addAll(funcUsedDimenAsMetric.getParameter().getColRefs());
+                dimensions.addAll(funcUsedDimenAsMetric.getColRefs());
 
                 Set<TblColRef> groupbyCols = Sets.newLinkedHashSet(sqlDigest.groupbyColumns);
-                groupbyCols.addAll(funcUsedDimenAsMetric.getParameter().getColRefs());
+                groupbyCols.addAll(funcUsedDimenAsMetric.getColRefs());
                 sqlDigest.groupbyColumns = Lists.newArrayList(groupbyCols);
             }
         }

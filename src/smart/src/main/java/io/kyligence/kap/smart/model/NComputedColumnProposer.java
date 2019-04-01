@@ -32,6 +32,7 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.model.TableRef;
 import org.apache.kylin.metadata.model.TblColRef;
@@ -126,8 +127,8 @@ public class NComputedColumnProposer extends NAbstractModelProposer {
         Set<String> candidate = Sets.newHashSet();
         usedCols.addAll(context.allColumns);
 
-        context.aggregations.stream().filter(agg -> agg.getParameter() != null)
-                .forEach(agg -> usedCols.addAll(agg.getParameter().getColRefs()));
+        context.aggregations.stream().filter(agg -> CollectionUtils.isNotEmpty(agg.getParameters()))
+                .forEach(agg -> usedCols.addAll(agg.getColRefs()));
         for (TblColRef col : usedCols) {
             if (col.isInnerColumn()) {
                 String parserDesc = col.getParserDescription();

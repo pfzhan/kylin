@@ -136,7 +136,7 @@ public class BitmapMeasureType extends MeasureType<BitmapCounter> {
 
                 int id;
                 if (needDictionaryColumn(measureDesc.getFunction())) {
-                    TblColRef literalCol = measureDesc.getFunction().getParameter().getColRefs().get(0);
+                    TblColRef literalCol = measureDesc.getFunction().getColRefs().get(0);
                     Dictionary<String> dictionary = dictionaryMap.get(literalCol);
                     id = dictionary.getIdFromValue(values[0]);
                 } else {
@@ -168,7 +168,7 @@ public class BitmapMeasureType extends MeasureType<BitmapCounter> {
     @Override
     public List<TblColRef> getColumnsNeedDictionary(FunctionDesc functionDesc) {
         if (needDictionaryColumn(functionDesc)) {
-            return Collections.singletonList(functionDesc.getParameter().getColRefs().get(0));
+            return Collections.singletonList(functionDesc.getColRefs().get(0));
         } else {
             return Collections.emptyList();
         }
@@ -176,7 +176,7 @@ public class BitmapMeasureType extends MeasureType<BitmapCounter> {
 
     // In order to keep compatibility with old version, tinyint/smallint/int column use value directly, without dictionary
     private boolean needDictionaryColumn(FunctionDesc functionDesc) {
-        DataType dataType = functionDesc.getParameter().getColRefs().get(0).getType();
+        DataType dataType = functionDesc.getColRefs().get(0).getType();
         if (dataType.isIntegerFamily() && !dataType.isBigInt()) {
             return false;
         }

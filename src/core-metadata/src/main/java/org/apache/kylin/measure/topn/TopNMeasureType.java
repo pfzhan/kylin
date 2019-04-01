@@ -48,6 +48,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.util.ByteArray;
 import org.apache.kylin.common.util.Dictionary;
@@ -139,12 +140,10 @@ public class TopNMeasureType extends MeasureType<TopNCounter<ByteArray>> {
     }
 
     public static FunctionDesc getTopnInternalMeasure(FunctionDesc func) {
-        if (func.getParameter().isColumnType()) {
-            return FunctionDesc.newInstance(FunctionDesc.FUNC_SUM,
-                    ParameterDesc.newInstance(func.getParameter().getColRef()),
-                    null);
+        if (func.getParameters().get(0).isColumnType()) {
+            return FunctionDesc.newInstance(FunctionDesc.FUNC_SUM, Lists.newArrayList(ParameterDesc.newInstance(func.getParameters().get(0).getColRef())), null);
         } else {
-            return FunctionDesc.newInstance(FunctionDesc.FUNC_COUNT, ParameterDesc.newInstance("1"), null);
+            return FunctionDesc.newInstance(FunctionDesc.FUNC_COUNT, Lists.newArrayList(ParameterDesc.newInstance("1")), null);
         }
     }
 
@@ -262,8 +261,8 @@ public class TopNMeasureType extends MeasureType<TopNCounter<ByteArray>> {
     @Override
     public List<TblColRef> getColumnsNeedDictionary(FunctionDesc functionDesc) {
         List<TblColRef> columnsNeedDict = Lists.newArrayList();
-        List<TblColRef> allCols = functionDesc.getParameter().getColRefs();
-        int start = (functionDesc.getParameter().isColumnType() == true) ? 1 : 0;
+        List<TblColRef> allCols = functionDesc.getColRefs();
+        int start = (functionDesc.getParameters().get(0).isColumnType() == true) ? 1 : 0;
         for (int i = start; i < allCols.size(); i++) {
             TblColRef tblColRef = allCols.get(i);
             String encoding = getEncoding(functionDesc, tblColRef).getFirst();
@@ -334,7 +333,7 @@ public class TopNMeasureType extends MeasureType<TopNCounter<ByteArray>> {
         String database = sortCol.getColumnDesc().getTable().getDatabase();
 
         for (FunctionDesc agg : digest.aggregations) {
-            if (!agg.getParameter().getColRef().getColumnDesc().getTable().getDatabase().equals(database)) {
+            if (!agg.getParameters().get(0).getColRef().getColumnDesc().getTable().getDatabase().equals(database)) {
                 continue;
             }
             if (sortCol.getName().equals(agg.getRewriteFieldName())) {
@@ -364,11 +363,10 @@ public class TopNMeasureType extends MeasureType<TopNCounter<ByteArray>> {
         if (sum.isSum() == false)
             return false;
 
-        if (sum.getParameter() == null || sum.getParameter().getColRefs() == null
-                || sum.getParameter().getColRefs().size() == 0)
+        if (CollectionUtils.isEmpty(sum.getParameters()) || CollectionUtils.isEmpty(sum.getColRefs()))
             return false;
 
-        TblColRef sumCol = sum.getParameter().getColRefs().get(0);
+        TblColRef sumCol = sum.getColRefs().get(0);
         return sumCol.equals(topnNumCol);
     }
 
@@ -435,12 +433,12 @@ public class TopNMeasureType extends MeasureType<TopNCounter<ByteArray>> {
         final int numericTupleIdx;
         if (numericCol != null) {
             FunctionDesc sumFunc = FunctionDesc.newInstance(FunctionDesc.FUNC_SUM,
-                    ParameterDesc.newInstance(numericCol), numericCol.getType().toString());
+                    Lists.newArrayList(ParameterDesc.newInstance(numericCol)), numericCol.getType().toString());
             String sumFieldName = sumFunc.getRewriteFieldName();
             numericTupleIdx = tupleInfo.hasField(sumFieldName) ? tupleInfo.getFieldIndex(sumFieldName) : -1;
         } else {
             FunctionDesc countFunction = FunctionDesc.newInstance(FunctionDesc.FUNC_COUNT,
-                    ParameterDesc.newInstance("1"), "bigint");
+                    Lists.newArrayList(ParameterDesc.newInstance("1")), "bigint");
             numericTupleIdx = tupleInfo.getFieldIndex(countFunction.getRewriteFieldName());
         }
         return new IAdvMeasureFiller() {
@@ -515,15 +513,15 @@ public class TopNMeasureType extends MeasureType<TopNCounter<ByteArray>> {
     }
 
     private TblColRef getTopNNumericColumn(FunctionDesc functionDesc) {
-        if (functionDesc.getParameter().isColumnType() == true) {
-            return functionDesc.getParameter().getColRefs().get(0);
+        if (functionDesc.getParameters().get(0).isColumnType() == true) {
+            return functionDesc.getColRefs().get(0);
         }
         return null;
     }
 
     private List<TblColRef> getTopNLiteralColumn(FunctionDesc functionDesc) {
-        List<TblColRef> allColumns = functionDesc.getParameter().getColRefs();
-        if (functionDesc.getParameter().isColumnType() == false) {
+        List<TblColRef> allColumns = functionDesc.getColRefs();
+        if (functionDesc.getParameters().get(0).isColumnType() == false) {
             return allColumns;
         }
         return allColumns.subList(1, allColumns.size());
@@ -557,10 +555,10 @@ public class TopNMeasureType extends MeasureType<TopNCounter<ByteArray>> {
      */
     public static void fixMeasureReturnType(MeasureDesc measureDesc) {
         Map<String, String> configuration = measureDesc.getFunction().getConfiguration();
-        ParameterDesc parameter = measureDesc.getFunction().getParameter();
-        parameter = parameter.getNextParameter();
+        List<ParameterDesc> parameters = measureDesc.getFunction().getParameters();
         int keyLength = 0;
-        while (parameter != null) {
+
+        for (ParameterDesc parameter : parameters.subList(1, parameters.size())) {
             String encoding = configuration.get(TopNMeasureType.CONFIG_ENCODING_PREFIX + parameter.getValue());
             String encodingVersionStr = configuration
                     .get(TopNMeasureType.CONFIG_ENCODING_VERSION_PREFIX + parameter.getValue());
@@ -581,8 +579,6 @@ public class TopNMeasureType extends MeasureType<TopNCounter<ByteArray>> {
                         (String[]) encodingConf[1], encodingVersion);
                 keyLength += dimensionEncoding.getLengthOfEncoding();
             }
-
-            parameter = parameter.getNextParameter();
         }
 
         DataType returnType = DataType.getType(measureDesc.getFunction().getReturnType());

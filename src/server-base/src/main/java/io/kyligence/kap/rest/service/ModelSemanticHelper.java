@@ -167,7 +167,7 @@ public class ModelSemanticHelper extends BasicService {
         // move deleted CC's measure to TOMB
         List<Measure> currentMeasures = originModel.getEffectiveMeasures().values().asList();
         currentMeasures.stream().filter(measure -> {
-            List<TblColRef> params = measure.getFunction().getParameter().getColRefs();
+            List<TblColRef> params = measure.getFunction().getColRefs();
             if (CollectionUtils.isEmpty(params)) {
                 return false;
             }
@@ -270,7 +270,7 @@ public class ModelSemanticHelper extends BasicService {
             ParameterDesc parameterDesc = new ParameterDesc();
             parameterDesc.setType("constant");
             parameterDesc.setValue("1");
-            functionDesc.setParameter(parameterDesc);
+            functionDesc.setParameters(Lists.newArrayList(parameterDesc));
             functionDesc.setExpression("COUNT");
             functionDesc.setReturnType("bigint");
             NDataModel.Measure measure = CubeUtils.newMeasure(functionDesc, "COUNT_ALL", id);

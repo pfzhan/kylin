@@ -83,10 +83,10 @@
     "name" : "COUNT_ALL",
     "function" : {
       "expression" : "COUNT",
-      "parameter" : {
+      "parameters" : [{
         "type" : "constant",
         "value" : "1"
-      },
+      }],
       "returntype" : "bigint"
     },
     "id" : 100000
@@ -94,10 +94,10 @@
     "name" : "SUM_PRICE",
     "function" : {
       "expression" : "SUM",
-      "parameter" : {
+      "parameters" : [{
         "type" : "column",
         "value" : "TEST_KYLIN_FACT.PRICE"
-      },
+      }],
       "returntype" : "decimal(19,4)"
     },
     "id" : 100001

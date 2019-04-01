@@ -128,7 +128,7 @@ public class NDataModelManagerTest extends NLocalFileMetadataTestCase {
         Measure measure = new Measure();
         measure.setName("test_measure");
         measure.setFunction(
-                FunctionDesc.newInstance(FunctionDesc.FUNC_COUNT, ParameterDesc.newInstance("1"), "bigint"));
+                FunctionDesc.newInstance(FunctionDesc.FUNC_COUNT, Lists.newArrayList(ParameterDesc.newInstance("1")), "bigint"));
         model.setAllMeasures(Lists.newArrayList(measure));
 
         return model;

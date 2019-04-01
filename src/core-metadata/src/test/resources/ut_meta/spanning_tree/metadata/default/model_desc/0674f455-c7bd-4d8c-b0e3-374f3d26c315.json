@@ -65,10 +65,10 @@
       "name": "TRANS_CNT",
       "function": {
         "expression": "COUNT",
-        "parameter": {
+        "parameters": [{
           "type": "constant",
           "value": "1"
-        },
+        }],
         "returntype": "bigint"
       }
     },
@@ -77,10 +77,10 @@
       "name": "GMV_SUM",
       "function": {
         "expression": "SUM",
-        "parameter": {
+        "parameters": [{
           "type": "column",
           "value": "TEST_KYLIN_FACT.PRICE"
-        },
+        }],
         "returntype": "decimal(19,4)"
       }
     },
@@ -89,10 +89,10 @@
       "name": "GMV_MIN",
       "function": {
         "expression": "MIN",
-        "parameter": {
+        "parameters": [{
           "type": "column",
           "value": "TEST_KYLIN_FACT.PRICE"
-        },
+        }],
         "returntype": "decimal(19,4)"
       }
     },
@@ -101,10 +101,10 @@
       "name": "GMV_MAX",
       "function": {
         "expression": "MAX",
-        "parameter": {
+        "parameters": [{
           "type": "column",
           "value": "TEST_KYLIN_FACT.PRICE"
-        },
+        }],
         "returntype": "decimal(19,4)"
       }
     },
@@ -113,10 +113,10 @@
       "name": "ITEM_COUNT_SUM",
       "function": {
         "expression": "SUM",
-        "parameter": {
+        "parameters": [{
           "type": "column",
           "value": "TEST_KYLIN_FACT.ITEM_COUNT"
-        },
+        }],
         "returntype": "bigint"
       }
     },
@@ -125,10 +125,10 @@
       "name": "ITEM_COUNT_MAX",
       "function": {
         "expression": "MAX",
-        "parameter": {
+        "parameters": [{
           "type": "column",
           "value": "TEST_KYLIN_FACT.ITEM_COUNT"
-        },
+        }],
         "returntype": "bigint"
       }
     },
@@ -138,10 +138,10 @@
       "tomb": true,
       "function": {
         "expression": "MIN",
-        "parameter": {
+        "parameters": [{
           "type": "column",
           "value": "TEST_KYLIN_FACT.ITEM_COUNT"
-        },
+        }],
         "returntype": "bigint"
       }
     }

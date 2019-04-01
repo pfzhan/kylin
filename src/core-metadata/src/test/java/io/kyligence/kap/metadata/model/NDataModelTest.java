@@ -108,7 +108,7 @@ public class NDataModelTest {
         Assert.assertEquals(100001, m.id);
         Assert.assertEquals("GMV_SUM", m.getName());
         Assert.assertEquals("SUM", m.getFunction().getExpression());
-        Assert.assertEquals(model.findColumn("PRICE"), m.getFunction().getParameter().getColRef());
+        Assert.assertEquals(model.findColumn("PRICE"), m.getFunction().getParameters().get(0).getColRef());
         Assert.assertEquals("default", model.getProject());
     }
 

@@ -45,7 +45,6 @@ import org.apache.kylin.metadata.model.DeriveInfo;
 import org.apache.kylin.metadata.model.FunctionDesc;
 import org.apache.kylin.metadata.model.JoinDesc;
 import org.apache.kylin.metadata.model.MeasureDesc;
-import org.apache.kylin.metadata.model.ParameterDesc;
 import org.apache.kylin.metadata.model.TblColRef;
 import org.apache.kylin.metadata.realization.CapabilityResult;
 import org.apache.kylin.metadata.realization.SQLDigest;
@@ -179,10 +178,9 @@ public class NQueryLayoutChooser {
             }
 
             // calcite can do aggregation from columns on-the-fly
-            ParameterDesc parameterDesc = functionDesc.getParameter();
-            if (parameterDesc == null)
+            if (CollectionUtils.isEmpty(functionDesc.getParameters()))
                 continue;
-            List<TblColRef> neededCols = parameterDesc.getColRefs();
+            List<TblColRef> neededCols = functionDesc.getColRefs();
             if (!indexEntity.getDimensionSet().containsAll(neededCols))
                 continue;
 

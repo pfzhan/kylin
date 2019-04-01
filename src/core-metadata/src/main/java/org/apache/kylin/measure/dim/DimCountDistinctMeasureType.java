@@ -114,7 +114,7 @@ public class DimCountDistinctMeasureType extends MeasureType<Object> {
 
     public void adjustSqlDigest(List<MeasureDesc> measureDescs, SQLDigest sqlDigest) {
         for (MeasureDesc measureDesc : measureDescs) {
-            sqlDigest.groupbyColumns.addAll(measureDesc.getFunction().getParameter().getColRefs());
+            sqlDigest.groupbyColumns.addAll(measureDesc.getFunction().getColRefs());
             sqlDigest.aggregations.remove(measureDesc.getFunction());
         }
     }

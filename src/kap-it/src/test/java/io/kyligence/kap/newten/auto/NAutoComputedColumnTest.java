@@ -207,7 +207,7 @@ public class NAutoComputedColumnTest extends NAutoTestBase {
         Measure measure = model.getEffectiveMeasures().get(100001);
         Assert.assertNotNull(measure);
         Assert.assertTrue(measure.getFunction().isSum());
-        Assert.assertEquals("CC_AUTO_1", measure.getFunction().getParameter().getColRef().getName());
+        Assert.assertEquals("CC_AUTO_1", measure.getFunction().getParameters().get(0).getColRef().getName());
 
         IndexPlan indexPlan = smartMaster.getContext().getModelContexts().get(0).getTargetIndexPlan();
         Assert.assertEquals(1, indexPlan.getAllLayouts().size());
@@ -240,7 +240,7 @@ public class NAutoComputedColumnTest extends NAutoTestBase {
         Measure measure = model.getEffectiveMeasures().get(100001);
         Assert.assertNotNull(measure);
         Assert.assertTrue(measure.getFunction().isSum());
-        Assert.assertEquals("CC_AUTO_1", measure.getFunction().getParameter().getColRef().getName());
+        Assert.assertEquals("CC_AUTO_1", measure.getFunction().getParameters().get(0).getColRef().getName());
 
         IndexPlan indexPlan = smartMaster.getContext().getModelContexts().get(0).getTargetIndexPlan();
         Assert.assertEquals(1, indexPlan.getAllLayouts().size());

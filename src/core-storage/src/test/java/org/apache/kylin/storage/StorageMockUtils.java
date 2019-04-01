@@ -45,6 +45,7 @@ package org.apache.kylin.storage;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.google.common.collect.Lists;
 import io.kyligence.kap.metadata.model.NDataModel;
 import org.apache.kylin.metadata.filter.ColumnTupleFilter;
 import org.apache.kylin.metadata.filter.CompareTupleFilter;
@@ -104,7 +105,7 @@ public class StorageMockUtils {
         TblColRef priceCol = model.findColumn("DEFAULT.TEST_KYLIN_FACTPRICE");
 
         FunctionDesc f1 = FunctionDesc.newInstance("SUM", //
-                ParameterDesc.newInstance(priceCol), "decimal(19,4)");
+                Lists.newArrayList(ParameterDesc.newInstance(priceCol)), "decimal(19,4)");
         functions.add(f1);
 
         return functions;
@@ -117,11 +118,11 @@ public class StorageMockUtils {
         TblColRef sellerCol = model.findColumn("DEFAULT.TEST_KYLIN_FACT.SELLER_ID");
 
         FunctionDesc f1 = FunctionDesc.newInstance("SUM", //
-                ParameterDesc.newInstance(priceCol), "decimal(19,4)");
+                Lists.newArrayList(ParameterDesc.newInstance(priceCol)), "decimal(19,4)");
         functions.add(f1);
 
         FunctionDesc f2 = FunctionDesc.newInstance("COUNT_DISTINCT", //
-                ParameterDesc.newInstance(sellerCol), "hllc(10)");
+                Lists.newArrayList(ParameterDesc.newInstance(priceCol)), "hllc(10)");
         functions.add(f2);
 
         return functions;

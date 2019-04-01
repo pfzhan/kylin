@@ -23,6 +23,7 @@
  */
 package io.kyligence.kap.metadata.cube.model;
 
+import com.google.common.collect.Lists;
 import org.apache.kylin.common.debug.BackdoorToggles;
 import org.apache.kylin.metadata.model.FunctionDesc;
 import org.apache.kylin.metadata.model.MeasureDesc;
@@ -63,7 +64,7 @@ public class NRawQueryLastHacker {
             } else {
                 // For measure columns, take them as metric columns with aggregation function SUM().
                 ParameterDesc parameter = ParameterDesc.newInstance(col);
-                FunctionDesc sumFunc = FunctionDesc.newInstance("SUM", parameter, null);
+                FunctionDesc sumFunc = FunctionDesc.newInstance("SUM", Lists.newArrayList(parameter), null);
 
                 boolean measureHasSum = false;
                 for (MeasureDesc colMeasureDesc : nDataflow.getMeasures()) {

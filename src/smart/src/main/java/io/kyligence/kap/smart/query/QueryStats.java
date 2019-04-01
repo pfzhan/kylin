@@ -32,6 +32,8 @@ import java.util.Set;
 
 import javax.annotation.Nullable;
 
+import lombok.val;
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.metadata.model.FunctionDesc;
 import org.apache.kylin.metadata.model.ParameterDesc;
 import org.apache.kylin.metadata.model.TblColRef;
@@ -126,20 +128,24 @@ public class QueryStats implements Serializable {
 
         Collection<FunctionDesc> measures = Lists.newArrayList();
         for (FunctionDesc aggFunc : ctx.aggregations) {
-            ParameterDesc paramDesc = aggFunc.getParameter();
-            ParameterDesc copyParam = null;
-            if (paramDesc == null) {
-                copyParam = null;
-            } else if (paramDesc.isColumnType()) {
-                if (!paramDesc.getColRef().isQualified()) {
-                    continue;
+            val params = aggFunc.getParameters();
+            final List<ParameterDesc> copyParams = Lists.newArrayList();
+
+            if (CollectionUtils.isNotEmpty(params)) {
+                if (params.get(0).isColumnType()) {
+                    if (!params.get(0).getColRef().isQualified())
+                        continue;
+
+                    params.forEach(param -> {
+                        if (param.isColumnType())
+                            copyParams.add(ParameterDesc.newInstance(param.getColRef()));
+                    });
+                } else {
+                    copyParams.add(ParameterDesc.newInstance(params.get(0).getValue()));
                 }
-                copyParam = ParameterDesc.newInstance(paramDesc.getColRefs().toArray());
-            } else {
-                copyParam = ParameterDesc.newInstance(paramDesc.getValue());
             }
 
-            FunctionDesc copy = FunctionDesc.newInstance(aggFunc.getExpression(), copyParam, aggFunc.getReturnType());
+            FunctionDesc copy = FunctionDesc.newInstance(aggFunc.getExpression(), copyParams, aggFunc.getReturnType());
             if (copy.getReturnType() == null && copy.getExpression().equals("SUM")) {
                 copy.setReturnType("decimal(19,4)"); //TODO: need to figure out why return_type missing.
             }

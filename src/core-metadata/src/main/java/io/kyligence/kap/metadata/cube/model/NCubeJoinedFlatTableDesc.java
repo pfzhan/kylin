@@ -92,7 +92,7 @@ public class NCubeJoinedFlatTableDesc implements IJoinedFlatTableDesc, Serializa
 
         for (Map.Entry<Integer, NDataModel.Measure> measureEntry : indexPlan.getEffectiveMeasures().entrySet()) {
             FunctionDesc func = measureEntry.getValue().getFunction();
-            List<TblColRef> colRefs = func.getParameter().getColRefs();
+            List<TblColRef> colRefs = func.getColRefs();
             if (colRefs != null) {
                 for (TblColRef colRef : colRefs) {
                     initAddColumn(colRef);

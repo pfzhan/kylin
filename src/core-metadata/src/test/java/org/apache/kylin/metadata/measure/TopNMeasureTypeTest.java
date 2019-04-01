@@ -52,6 +52,7 @@ import java.lang.reflect.Field;
 import java.util.List;
 import java.util.Map;
 
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import org.apache.kylin.common.util.ByteArray;
 import org.apache.kylin.common.util.CleanMetadataHelper;
@@ -106,7 +107,7 @@ public class TopNMeasureTypeTest {
         assertTrue(measureDesc.getFunction().getReturnType().equals("topn(100,4)"));
         assertTrue(!measureDesc.getFunction().getReturnType().equals(returnType));
 
-        TblColRef sellerColRef = functionDesc.getParameter().getColRefs().get(1);
+        TblColRef sellerColRef = functionDesc.getColRefs().get(1);
         functionDesc.getConfiguration().put(TopNMeasureType.CONFIG_ENCODING_PREFIX + sellerColRef.getIdentity(),
                 "int:6");
         measureType.fixMeasureReturnType(measureDesc);
@@ -140,7 +141,7 @@ public class TopNMeasureTypeTest {
 
         assertTrue(colsNeedDict != null && colsNeedDict.size() == 1);
 
-        TblColRef sellerColRef = functionDesc.getParameter().getColRefs().get(1);
+        TblColRef sellerColRef = functionDesc.getColRefs().get(1);
         functionDesc.getConfiguration().put(TopNMeasureType.CONFIG_ENCODING_PREFIX + sellerColRef.getIdentity(),
                 "int:6");
         colsNeedDict = measureType.getColumnsNeedDictionary(functionDesc);
@@ -158,7 +159,7 @@ public class TopNMeasureTypeTest {
         TblColRef col2 = TblColRef.mockup(TableDesc.mockup("DEFAULT.TABLE_NAME"), 2, "TOTAL_PRICE", "double");
 
         FunctionDesc functionDesc = FunctionDesc.newInstance(TopNMeasureType.FUNC_TOP_N, //
-                ParameterDesc.newInstance(col1, col2), returnDataType.toString());
+                Lists.newArrayList(ParameterDesc.newInstance(col1), ParameterDesc.newInstance(col2)), returnDataType.toString());
 
         return functionDesc;
     }

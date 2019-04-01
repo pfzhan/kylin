@@ -53,10 +53,10 @@
     "name" : "COUNT_ALL",
     "function" : {
       "expression" : "COUNT",
-      "parameter" : {
-        "type" : "constant",
-        "value" : "1"
-      },
+      "parameters" : [{
+  "type" : "constant",
+  "value" : "1"
+  }],
       "returntype" : "bigint"
     },
     "id" : 100000

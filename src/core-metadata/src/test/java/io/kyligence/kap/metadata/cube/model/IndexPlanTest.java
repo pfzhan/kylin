@@ -99,7 +99,7 @@ public class IndexPlanTest extends NLocalFileMetadataTestCase {
         MeasureDesc m = effectiveMeasures.get(100000);
         Assert.assertEquals("TRANS_CNT", m.getName());
         Assert.assertEquals("COUNT", m.getFunction().getExpression());
-        Assert.assertEquals("1", m.getFunction().getParameter().getValue());
+        Assert.assertEquals("1", m.getFunction().getParameters().get(0).getValue());
 
         {
             IndexEntity first = Iterables.getFirst(cube.getAllIndexes(), null);

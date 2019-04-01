@@ -46,7 +46,11 @@ import java.io.Serializable;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.stream.Collectors;
 
+import lombok.Getter;
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.measure.MeasureType;
 import org.apache.kylin.measure.MeasureTypeFactory;
@@ -72,10 +76,10 @@ import lombok.Setter;
 @JsonAutoDetect(fieldVisibility = Visibility.NONE, getterVisibility = Visibility.NONE, isGetterVisibility = Visibility.NONE, setterVisibility = Visibility.NONE)
 public class FunctionDesc implements Serializable {
 
-    public static FunctionDesc newInstance(String expression, ParameterDesc param, String returnType) {
+    public static FunctionDesc newInstance(String expression, List<ParameterDesc> parameters, String returnType) {
         FunctionDesc r = new FunctionDesc();
         r.expression = (expression == null) ? null : expression.toUpperCase();
-        r.parameter = param;
+        r.parameters = parameters;
         r.returnType = returnType;
         r.returnDataType = DataType.getType(returnType);
         return r;
@@ -139,8 +143,10 @@ public class FunctionDesc implements Serializable {
 
     @JsonProperty("expression")
     private String expression;
-    @JsonProperty("parameter")
-    private ParameterDesc parameter;
+    @Getter
+    @Setter
+    @JsonProperty("parameters")
+    private List<ParameterDesc> parameters;
     @JsonProperty("returntype")
     private String returnType;
 
@@ -159,7 +165,7 @@ public class FunctionDesc implements Serializable {
             expression = PercentileMeasureType.FUNC_PERCENTILE_APPROX; // for backward compatibility
         }
 
-        for (ParameterDesc p = parameter; p != null; p = p.getNextParameter()) {
+        for (ParameterDesc p : getParameters()) {
             if (p.isColumnType()) {
                 TblColRef colRef = model.findColumn(p.getValue());
                 returnDataType = DataType.getType(proposeReturnType(expression, colRef.getDatatype()));
@@ -226,12 +232,12 @@ public class FunctionDesc implements Serializable {
     public DataType getRewriteFieldType() {
         if (getMeasureType() instanceof BasicMeasureType) {
             if (isMax() || isMin()) {
-                return parameter.getColRefs().get(0).getType();
+                return getColRefs().get(0).getType();
             } else if (isSum()) {
-                if (parameter.isConstant())
+                if (parameters.get(0).isConstant())
                     return returnDataType;
 
-                return parameter.getColRefs().get(0).getType();
+                return getColRefs().get(0).getType();
             } else if (isCount()) {
                 return DataType.getType(TYPE_BIGINT);
             } else {
@@ -240,6 +246,13 @@ public class FunctionDesc implements Serializable {
         } else {
             return DataType.ANY;
         }
+    }
+
+    public List<TblColRef> getColRefs() {
+        if (CollectionUtils.isEmpty(parameters))
+            return Lists.newArrayList();
+
+        return parameters.stream().filter(ParameterDesc::isColumnType).map(ParameterDesc::getColRef).collect(Collectors.toList());
     }
 
     public ColumnDesc newFakeRewriteColumn(String rewriteFiledName, TableDesc sourceTable) {
@@ -273,15 +286,15 @@ public class FunctionDesc implements Serializable {
     }
 
     public boolean isCountOnColumn() {
-        return FUNC_COUNT.equalsIgnoreCase(expression) && parameter != null && parameter.isColumnType();
+        return FUNC_COUNT.equalsIgnoreCase(expression) && CollectionUtils.isNotEmpty(parameters) && parameters.get(0).isColumnType();
     }
 
     public boolean isAggregateOnConstant() {
-        return !this.isCount() && parameter != null && parameter.isConstantParameterDesc();
+        return !this.isCount() && CollectionUtils.isNotEmpty(parameters) && parameters.get(0).isConstantParameterDesc();
     }
 
     public boolean isCountConstant() {//count(*) and count(1)
-        return FUNC_COUNT.equalsIgnoreCase(expression) && (parameter == null || parameter.isConstant());
+        return FUNC_COUNT.equalsIgnoreCase(expression) && (CollectionUtils.isEmpty(parameters) || parameters.get(0).isConstant());
     }
 
     public boolean isCountDistinct() {
@@ -298,13 +311,12 @@ public class FunctionDesc implements Serializable {
     public String getFullExpression() {
         StringBuilder sb = new StringBuilder(expression);
         sb.append("(");
-        ParameterDesc desc = parameter;
-        while (desc != null) {
+        for (ParameterDesc desc : parameters) {
             sb.append(desc.getValue());
-            desc = desc.getNextParameter();
-            if (desc != null)
-                sb.append(",");
+            sb.append(",");
         }
+        if (sb.length() > 0)
+            sb.setLength(sb.length() - 1);
 
         sb.append(")");
         return sb.toString();
@@ -317,12 +329,7 @@ public class FunctionDesc implements Serializable {
     public String getFullExpressionInAlphabetOrder() {
         StringBuilder sb = new StringBuilder(expression);
         sb.append("(");
-        ParameterDesc localParam = parameter;
-        List<String> flatParams = Lists.newArrayList();
-        while (localParam != null) {
-            flatParams.add(localParam.getValue());
-            localParam = localParam.getNextParameter();
-        }
+        List<String> flatParams = parameters.stream().map(ParameterDesc::getValue).collect(Collectors.toList());
         Collections.sort(flatParams);
         sb.append(Joiner.on(",").join(flatParams));
         sb.append(")");
@@ -348,20 +355,8 @@ public class FunctionDesc implements Serializable {
         this.expression = expression;
     }
 
-    public ParameterDesc getParameter() {
-        return parameter;
-    }
-
-    public void setParameter(ParameterDesc parameter) {
-        this.parameter = parameter;
-    }
-
     public int getParameterCount() {
-        int count = 0;
-        for (ParameterDesc p = parameter; p != null; p = p.getNextParameter()) {
-            count++;
-        }
-        return count;
+        return CollectionUtils.isEmpty(parameters) ? 0 : parameters.size();
     }
 
     public String getReturnType() {
@@ -385,7 +380,7 @@ public class FunctionDesc implements Serializable {
         final int prime = 31;
         int result = 1;
         result = prime * result + ((expression == null) ? 0 : expression.hashCode());
-        result = prime * result + ((isCount() || parameter == null) ? 0 : parameter.hashCode());
+        result = prime * result + ((isCount() || CollectionUtils.isEmpty(parameters)) ? 0 : parameters.hashCode());
         // NOTE: don't compare returnType, FunctionDesc created at query engine does not have a returnType
         return result;
     }
@@ -406,20 +401,20 @@ public class FunctionDesc implements Serializable {
             return false;
         if (isCountDistinct()) {
             // for count distinct func, param's order doesn't matter
-            if (parameter == null) {
-                if (other.parameter != null)
+            if (CollectionUtils.isEmpty(parameters)) {
+                if (CollectionUtils.isNotEmpty(other.getParameters()))
                     return false;
             } else {
-                return parameter.equalInArbitraryOrder(other.parameter);
+                return parametersEqualInArbitraryOrder(this.parameters, other.getParameters());
             }
         } else if (isCountConstant() && ((FunctionDesc) obj).isCountConstant()) { //count(*) and count(1) are equals
             return true;
         } else {
-            if (parameter == null) {
-                if (other.parameter != null)
+            if (CollectionUtils.isEmpty(parameters)) {
+                if (CollectionUtils.isNotEmpty(parameters))
                     return false;
             } else {
-                if (!parameter.equals(other.parameter))
+                if (!Objects.equals(this.parameters, other.getParameters()))
                     return false;
             }
         }
@@ -429,7 +424,18 @@ public class FunctionDesc implements Serializable {
 
     @Override
     public String toString() {
-        return "FunctionDesc [expression=" + expression + ", parameter=" + parameter + ", returnType=" + returnType
+        StringBuilder sb = new StringBuilder();
+        parameters.forEach(parameter -> {
+            sb.append(parameter.toString());
+            sb.append(",");
+        });
+        if (sb.length() > 0)
+            sb.setLength(sb.length() - 1);
+        return "FunctionDesc [expression=" + expression + ", parameter=" + sb.toString() + ", returnType=" + returnType
                 + "]";
+    }
+
+    private boolean parametersEqualInArbitraryOrder(List<ParameterDesc> parameters, List<ParameterDesc> otherParameters) {
+        return parameters.containsAll(otherParameters) && otherParameters.containsAll(parameters);
     }
 }

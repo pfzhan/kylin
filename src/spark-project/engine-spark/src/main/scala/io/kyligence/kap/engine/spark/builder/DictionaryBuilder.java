@@ -244,7 +244,7 @@ public class DictionaryBuilder {
             for (MeasureDesc measureDesc : layout.getIndex().getEffectiveMeasures().values()) {
                 if (needGlobalDictionary(measureDesc) == null)
                     continue;
-                TblColRef col = measureDesc.getFunction().getParameter().getColRef();
+                TblColRef col = measureDesc.getFunction().getParameters().get(0).getColRef();
                 dictColSet.add(col);
             }
         }
@@ -262,7 +262,7 @@ public class DictionaryBuilder {
     public static TblColRef needGlobalDictionary(MeasureDesc measure) {
         String returnDataTypeName = measure.getFunction().getReturnDataType().getName();
         if (returnDataTypeName.equalsIgnoreCase(BitmapMeasureType.DATATYPE_BITMAP)) {
-            List<TblColRef> cols = measure.getFunction().getParameter().getColRefs();
+            List<TblColRef> cols = measure.getFunction().getColRefs();
             Preconditions.checkArgument(cols.size() == 1);
             return cols.get(0);
         }

@@ -113,10 +113,10 @@
       "name": "CNT",
       "function": {
         "expression": "COUNT",
-        "parameter": {
+        "parameters": [{
           "type": "constant",
           "value": "1"
-        },
+        }],
         "returntype": "bigint"
       }
     }

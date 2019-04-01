@@ -254,11 +254,11 @@ class CuboidSuggester {
         Set<TblColRef> nonFilterCols = Sets.newHashSet(context.allColumns);
         nonFilterCols.removeAll(context.filterColumns);
         context.aggregations.forEach(functionDesc -> {
-            if (functionDesc.getParameter() == null) {
+            if (CollectionUtils.isEmpty(functionDesc.getParameters())) {
                 return;
             }
 
-            final List<TblColRef> aggCols = functionDesc.getParameter().getColRefs();
+            final List<TblColRef> aggCols = functionDesc.getColRefs();
             if (CollectionUtils.isNotEmpty(aggCols)) {
                 aggCols.removeAll(context.getGroupByColumns());
                 aggCols.removeAll(context.getSubqueryJoinParticipants());
@@ -304,9 +304,9 @@ class CuboidSuggester {
             Integer measureId = aggFuncIdMap.get(aggFunc);
             if (measureId != null) {
                 measureIds.add(measureId);
-            } else if (aggFunc.getParameter() != null) {
-                for (TblColRef tblColRef : aggFunc.getParameter().getColRefs()) {
-                    String measure = String.format("%s(%s)", aggFunc.getExpression(), aggFunc.getParameter());
+            } else if (CollectionUtils.isNotEmpty(aggFunc.getParameters())) {
+                String measure = String.format("%s(%s)", aggFunc.getExpression(), aggFunc.getParameters());
+                for (TblColRef tblColRef : aggFunc.getColRefs()) {
                     Preconditions.checkState(colIdMap.get(tblColRef) != null,
                             getMsgTemplateByModelMaintainType(MEASURE_NOT_FOUND_PTN, Type.MEASURE), model.getAlias(),
                             measure);

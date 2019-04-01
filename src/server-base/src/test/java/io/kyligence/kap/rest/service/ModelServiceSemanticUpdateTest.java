@@ -169,9 +169,7 @@ public class ModelServiceSemanticUpdateTest extends NLocalFileMetadataTestCase {
             newMeasure.setName("TEST_MEASURE_WITH_CC");
             newMeasure.setExpression("SUM");
             newMeasure.setReturnType("integer");
-            ParameterResponse param = new ParameterResponse();
-            param.setType("column");
-            param.setValue("TEST_KYLIN_FACT.TEST_CC_1");
+            ParameterResponse param = new ParameterResponse("column", "TEST_KYLIN_FACT.TEST_CC_1");
             newMeasure.setParameterValue(Lists.newArrayList(param));
             request.getSimplifiedMeasures().add(newMeasure);
             modelService.updateDataModelSemantic(request.getProject(), request);
@@ -182,7 +180,7 @@ public class ModelServiceSemanticUpdateTest extends NLocalFileMetadataTestCase {
             Assert.assertNotNull(measure);
             measureIdOfCC = measure.getId();
             Assert.assertTrue(measure.getFunction().isSum());
-            Assert.assertEquals("TEST_KYLIN_FACT.TEST_CC_1", measure.getFunction().getParameter().getValue());
+            Assert.assertEquals("TEST_KYLIN_FACT.TEST_CC_1", measure.getFunction().getParameters().get(0).getValue());
         }
 
         // Update TEST_CC_1's definition, named column and measure will be recreated
@@ -254,9 +252,7 @@ public class ModelServiceSemanticUpdateTest extends NLocalFileMetadataTestCase {
         newMeasure1.setName("GMV_AVG");
         newMeasure1.setExpression("AVG");
         newMeasure1.setReturnType("bitmap");
-        val param = new ParameterResponse();
-        param.setType("column");
-        param.setValue("TEST_KYLIN_FACT.PRICE");
+        val param = new ParameterResponse("column", "TEST_KYLIN_FACT.PRICE");
         newMeasure1.setParameterValue(Lists.newArrayList(param));
         request.getSimplifiedMeasures().add(newMeasure1);
         request.setSimplifiedMeasures(request.getSimplifiedMeasures().stream()

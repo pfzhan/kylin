@@ -26,12 +26,11 @@ package io.kyligence.kap.rest.response;
 
 import java.io.Serializable;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import com.google.common.collect.Maps;
-import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.FunctionDesc;
 import org.apache.kylin.metadata.model.ParameterDesc;
@@ -74,15 +73,9 @@ public class SimplifiedMeasure implements Serializable {
         measureResponse.setName(measure.getName());
         measureResponse.setExpression(measure.getFunction().getExpression());
         measureResponse.setReturnType(measure.getFunction().getReturnType());
-        List<ParameterResponse> parameters = new ArrayList<>();
-        List<ParameterDesc.PlainParameter> plainParameters = measure.getFunction().getParameter()
-                .getPlainParameters();
-        for (ParameterDesc.PlainParameter plainParameter : plainParameters) {
-            ParameterResponse parameterResponse = new ParameterResponse();
-            parameterResponse.setType(plainParameter.getType());
-            parameterResponse.setValue(plainParameter.getValue());
-            parameters.add(parameterResponse);
-        }
+        List<ParameterResponse> parameters = measure.getFunction().getParameters().stream()
+                .map(parameterDesc -> new ParameterResponse(parameterDesc.getType(), parameterDesc.getValue()))
+                .collect(Collectors.toList());
         measureResponse.setConfiguration(measure.getFunction().getConfiguration());
         measureResponse.setParameterValue(parameters);
         return measureResponse;
@@ -97,26 +90,16 @@ public class SimplifiedMeasure implements Serializable {
         functionDesc.setExpression(getExpression());
         functionDesc.setConfiguration(configuration);
         List<ParameterResponse> parameterResponseList = getParameterValue();
-        Collections.reverse(parameterResponseList);
-        functionDesc.setParameter(enrichParameterDesc(parameterResponseList, null));
+
+        // transform parameter response to parameter desc
+        List<ParameterDesc> parameterDescs = parameterResponseList.stream().map(parameterResponse -> {
+            ParameterDesc parameterDesc = new ParameterDesc();
+            parameterDesc.setType(parameterResponse.getType());
+            parameterDesc.setValue(parameterResponse.getValue());
+            return parameterDesc;
+        }).collect(Collectors.toList());
+        functionDesc.setParameters(parameterDescs);
         measure.setFunction(functionDesc);
         return measure;
-    }
-
-    private ParameterDesc enrichParameterDesc(List<ParameterResponse> parameterResponseList,
-                                              ParameterDesc nextParameterDesc) {
-        if (CollectionUtils.isEmpty(parameterResponseList)) {
-            return nextParameterDesc;
-        }
-        ParameterDesc parameterDesc = new ParameterDesc();
-        parameterDesc.setType(parameterResponseList.get(0).getType());
-        parameterDesc.setValue(parameterResponseList.get(0).getValue());
-        parameterDesc.setNextParameter(nextParameterDesc);
-        if (parameterResponseList.size() >= 1) {
-            return enrichParameterDesc(parameterResponseList.subList(1, parameterResponseList.size()), parameterDesc);
-        } else {
-            return parameterDesc;
-        }
-
     }
 }

@@ -44,15 +44,11 @@ package org.apache.kylin.metadata.model;
 
 import java.io.Serializable;
 import java.io.UnsupportedEncodingException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonAutoDetect.Visibility;
-import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.Sets;
 
@@ -65,27 +61,20 @@ import lombok.Setter;
 @JsonAutoDetect(fieldVisibility = Visibility.NONE, getterVisibility = Visibility.NONE, isGetterVisibility = Visibility.NONE, setterVisibility = Visibility.NONE)
 public class ParameterDesc implements Serializable {
 
-    public static ParameterDesc newInstance(Object... objs) {
-        if (objs.length == 0)
-            throw new IllegalArgumentException();
+    public static ParameterDesc newInstance(Object obj) {
+        ParameterDesc param = new ParameterDesc();
 
-        ParameterDesc r = new ParameterDesc();
-
-        Object obj = objs[0];
         if (obj instanceof TblColRef) {
             TblColRef col = (TblColRef) obj;
-            r.type = FunctionDesc.PARAMETER_TYPE_COLUMN;
-            r.value = col.getIdentity();
-            r.colRef = col;
+            param.type = FunctionDesc.PARAMETER_TYPE_COLUMN;
+            param.value = col.getIdentity();
+            param.colRef = col;
         } else {
-            r.type = FunctionDesc.PARAMETER_TYPE_CONSTANT;
-            r.value = (String) obj;
+            param.type = FunctionDesc.PARAMETER_TYPE_CONSTANT;
+            param.value = (String) obj;
         }
 
-        if (objs.length >= 2) {
-            r.nextParameter = newInstance(Arrays.copyOfRange(objs, 1, objs.length));
-        }
-        return r;
+        return param;
     }
 
     @Getter
@@ -98,23 +87,7 @@ public class ParameterDesc implements Serializable {
     private String value;
 
     @Getter
-    @Setter
-    @JsonProperty("next_parameter")
-    @JsonInclude(JsonInclude.Include.NON_NULL)
-    private ParameterDesc nextParameter;
-
-    @Getter
     private TblColRef colRef = null;
-    private transient List<TblColRef> allColRefsIncludingNexts = null;
-    private transient List<PlainParameter> plainParameters = null;
-
-    // Lazy evaluation
-    public List<PlainParameter> getPlainParameters() {
-        if (plainParameters == null) {
-            plainParameters = PlainParameter.createFromParameterDesc(this);
-        }
-        return plainParameters;
-    }
 
     public byte[] getBytes() throws UnsupportedEncodingException {
         return value.getBytes("UTF-8");
@@ -122,22 +95,6 @@ public class ParameterDesc implements Serializable {
 
     void setColRef(TblColRef colRef) {
         this.colRef = colRef;
-        this.allColRefsIncludingNexts = null;
-    }
-
-    public List<TblColRef> getColRefs() {
-        if (allColRefsIncludingNexts == null) {
-            List<TblColRef> all = new ArrayList<>(2);
-            ParameterDesc p = this;
-            while (p != null) {
-                if (p.isColumnType())
-                    all.add(p.getColRef());
-
-                p = p.nextParameter;
-            }
-            allColRefsIncludingNexts = all;
-        }
-        return allColRefsIncludingNexts;
     }
 
     public boolean isColumnType() {
@@ -171,35 +128,20 @@ public class ParameterDesc implements Serializable {
 
         ParameterDesc p = this;
         ParameterDesc q = that;
-        for (; p != null && q != null; p = p.nextParameter, q = q.nextParameter) {
-            if (p.isColumnType() != q.isColumnType()) {
-                return false;
-            }
 
-            if (p.isColumnType() && !Objects.equals(q.getColRef(), p.getColRef())) {
-                return false;
-            }
-
-            if (!p.isColumnType() && !p.value.equals(q.value)) {
-                return false;
-            }
+        if (p.isColumnType() != q.isColumnType()) {
+            return false;
         }
 
-        return p == q;
-    }
-
-    public boolean equalInArbitraryOrder(Object o) {
-        if (this == o)
-            return true;
-        if (o == null || getClass() != o.getClass())
+        if (p.isColumnType() && !Objects.equals(q.getColRef(), p.getColRef())) {
             return false;
+        }
 
-        ParameterDesc that = (ParameterDesc) o;
+        if (!p.isColumnType() && !p.value.equals(q.value)) {
+            return false;
+        }
 
-        List<PlainParameter> thisPlainParams = this.getPlainParameters();
-        List<PlainParameter> thatPlainParams = that.getPlainParameters();
-
-        return thisPlainParams.containsAll(thatPlainParams) && thatPlainParams.containsAll(thisPlainParams);
+        return true;
     }
 
     @Override
@@ -211,92 +153,6 @@ public class ParameterDesc implements Serializable {
 
     @Override
     public String toString() {
-        String thisStr = isColumnType() && colRef != null ? colRef.toString() : value;
-        return nextParameter == null ? thisStr : thisStr + "," + nextParameter.toString();
-    }
-
-    /**
-     * PlainParameter is created to present ParameterDesc in List style.
-     * Compared to ParameterDesc its advantage is:
-     * 1. easy to compare without considering order
-     * 2. easy to compare one by one
-     */
-    @Setter
-    @Getter
-    public static class PlainParameter implements Serializable {
-        private String type;
-        private String value;
-        private TblColRef colRef = null;
-
-        private PlainParameter() {
-        }
-
-        public boolean isColumnType() {
-            return FunctionDesc.PARAMETER_TYPE_COLUMN.equals(type);
-        }
-
-        static List<PlainParameter> createFromParameterDesc(ParameterDesc parameterDesc) {
-            List<PlainParameter> result = new ArrayList<>();
-            ParameterDesc local = parameterDesc;
-            while (local != null) {
-                if (local.isColumnType()) {
-                    result.add(createSingleColumnParameter(local));
-                } else {
-                    result.add(createSingleValueParameter(local));
-                }
-                local = local.nextParameter;
-            }
-            return result;
-        }
-
-        static PlainParameter createSingleValueParameter(ParameterDesc parameterDesc) {
-            PlainParameter single = new PlainParameter();
-            single.type = parameterDesc.type;
-            single.value = parameterDesc.value;
-            return single;
-        }
-
-        static PlainParameter createSingleColumnParameter(ParameterDesc parameterDesc) {
-            PlainParameter single = new PlainParameter();
-            single.type = parameterDesc.type;
-            single.value = parameterDesc.value;
-            single.colRef = parameterDesc.colRef;
-            return single;
-        }
-
-        @Override
-        public int hashCode() {
-            int result = type != null ? type.hashCode() : 0;
-            result = 31 * result + (colRef != null ? colRef.hashCode() : 0);
-            return result;
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o)
-                return true;
-            if (o == null || getClass() != o.getClass())
-                return false;
-
-            PlainParameter that = (PlainParameter) o;
-
-            if (type != null ? !type.equals(that.type) : that.type != null)
-                return false;
-
-            if (this.isColumnType()) {
-                if (!that.isColumnType())
-                    return false;
-                // check for ParameterDesc create from json
-                if (this.colRef == null && that.colRef == null)
-                    return Objects.equals(this.value, that.value);
-                // check for normal case
-                return Objects.equals(this.colRef, that.colRef);
-            } else {
-                if (that.isColumnType())
-                    return false;
-                return this.value.equals(that.value);
-            }
-
-        }
+        return isColumnType() && colRef != null ? colRef.toString() : value;
     }
 }

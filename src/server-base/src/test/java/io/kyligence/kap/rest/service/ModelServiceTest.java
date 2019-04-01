@@ -2378,9 +2378,7 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
         measure1.setName("illegal_measure_name@!");
         measure1.setExpression("COUNT_DISTINCT");
         measure1.setReturnType("hllc(10)");
-        ParameterResponse parameterResponse = new ParameterResponse();
-        parameterResponse.setType("column");
-        parameterResponse.setValue("TEST_KYLIN_FACT");
+        ParameterResponse parameterResponse = new ParameterResponse("column", "TEST_KYLIN_FACT");
         measure1.setParameterValue(Lists.newArrayList(parameterResponse));
         measures.add(measure1);
         modelRequest.setSimplifiedMeasures(measures);

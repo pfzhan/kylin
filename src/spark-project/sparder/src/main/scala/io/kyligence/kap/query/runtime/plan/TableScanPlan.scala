@@ -24,7 +24,7 @@ package io.kyligence.kap.query.runtime.plan
 import java.util
 
 import com.github.lightcopy.implicits._
-import com.google.common.collect.Sets
+import com.google.common.collect.{Lists, Sets}
 import io.kyligence.kap.metadata.cube.cuboid.NLayoutCandidate
 import io.kyligence.kap.metadata.cube.gridtable.NCuboidToGridTableMapping
 import io.kyligence.kap.metadata.cube.model.{NDataSegment, NDataflow}
@@ -221,11 +221,11 @@ object TableScanPlan extends Logging {
       if (numericCol != null) {
         // for TopN, the aggr must be SUM
         val sumFunc = FunctionDesc.newInstance(FunctionDesc.FUNC_SUM,
-          ParameterDesc.newInstance(numericCol), numericCol.getType.toString)
+          Lists.newArrayList(ParameterDesc.newInstance(numericCol)), numericCol.getType.toString)
         tupleInfo.getFieldIndex(sumFunc.getRewriteFieldName)
       } else {
         val countFunction = FunctionDesc.newInstance(FunctionDesc.FUNC_COUNT,
-          ParameterDesc.newInstance("1"), "bigint")
+          Lists.newArrayList(ParameterDesc.newInstance("1")), "bigint")
         tupleInfo.getFieldIndex(countFunction.getRewriteFieldName)
       }
 
@@ -254,16 +254,16 @@ object TableScanPlan extends Logging {
   }
 
   private def getTopNLiteralColumn(functionDesc: FunctionDesc): List[TblColRef] = {
-    val allCols = functionDesc.getParameter.getColRefs
-    if (!functionDesc.getParameter.isColumnType) {
+    val allCols = functionDesc.getColRefs
+    if (!functionDesc.getParameters.get(0).isColumnType) {
       return allCols.asScala.toList
     }
     allCols.asScala.drop(1).toList
   }
 
   private def getTopNNumericColumn(functionDesc: FunctionDesc): TblColRef = {
-    if (functionDesc.getParameter.isColumnType) {
-      return functionDesc.getParameter.getColRefs.get(0)
+    if (functionDesc.getParameters.get(0).isColumnType) {
+      return functionDesc.getColRefs.get(0)
     }
     null
   }
@@ -294,7 +294,7 @@ object TableScanPlan extends Logging {
               tupleInfo.getFieldIndex(rewriteFieldName)
             else -1
         } else { // a non-rewrite metrics (like sum, or dimension playing as metrics) is like a dimension column
-          val col = metric.getParameter.getColRefs.get(0)
+          val col = metric.getColRefs.get(0)
           tupleIdx(i) =
             if (tupleInfo.hasColumn(col)) tupleInfo.getColumnIndex(col) else -1
         }

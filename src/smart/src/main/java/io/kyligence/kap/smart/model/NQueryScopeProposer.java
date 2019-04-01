@@ -177,15 +177,15 @@ public class NQueryScopeProposer extends NAbstractModelProposer {
                 if (!candidateMeasures.containsKey(agg)) {
 
                     FunctionDesc fun = copyFunctionDesc(agg);
-                    String name = String.format("%s_%s", fun.getExpression(), fun.getParameter().getColRef().getName());
+                    String name = String.format("%s_%s", fun.getExpression(), fun.getParameters().get(0).getColRef().getName());
                     NDataModel.Measure measure = CubeUtils.newMeasure(fun, name, ++maxMeasureId);
                     if (CubeUtils.isValidMeasure(agg)) {
                         candidateMeasures.put(fun, measure);
                     } else {
-                        dimensionAsMeasureColumns.addAll(fun.getParameter().getColRefs());
+                        dimensionAsMeasureColumns.addAll(fun.getColRefs());
                     }
                 } else if (candidateMeasures.get(agg).tomb) {
-                    String name = String.format("%s_%s", agg.getExpression(), agg.getParameter().getColRef().getName());
+                    String name = String.format("%s_%s", agg.getExpression(), agg.getParameters().get(0).getColRef().getName());
                     Measure measure = CubeUtils.newMeasure(agg, name, ++maxMeasureId);
                     candidateMeasures.put(agg, measure);
                 }
@@ -217,16 +217,16 @@ public class NQueryScopeProposer extends NAbstractModelProposer {
             } else {
                 newParam.setValue(param.getValue());
             }
-
-            if (param.getNextParameter() != null)
-                newParam.setNextParameter(copyParameterDesc(param.getNextParameter()));
             return newParam;
         }
 
         private FunctionDesc copyFunctionDesc(FunctionDesc orig) {
-            TblColRef paramColRef = orig.getParameter().getColRef();
-            ParameterDesc newParam = copyParameterDesc(orig.getParameter());
-            return CubeUtils.newFunctionDesc(dataModel, orig.getExpression(), newParam,
+            TblColRef paramColRef = orig.getParameters().get(0).getColRef();
+            List<ParameterDesc> newParams = Lists.newArrayList();
+            orig.getParameters().forEach(parameterDesc -> {
+                newParams.add(copyParameterDesc(parameterDesc));
+            });
+            return CubeUtils.newFunctionDesc(dataModel, orig.getExpression(), newParams,
                     paramColRef == null ? null : paramColRef.getDatatype());
         }
 

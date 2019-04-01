@@ -297,13 +297,14 @@ public class NMeasuresTest extends NLocalWithSparkSessionTest {
                 continue;
             }
 
-            ParameterDesc parmeter = mea.getFunction().getParameter();
-            if (mea.getFunction().getParameter().isColumnType()) {
+            ParameterDesc parmeter = mea.getFunction().getParameters().get(0);
+            ParameterDesc nextParmeter = mea.getFunction().getParameters().get(1);
+            if (parmeter.isColumnType()) {
                 StringBuilder sqlBuilder = new StringBuilder("select ");
-                StringBuilder topnStr = new StringBuilder(parmeter.getNextParameter().getValue());
+                StringBuilder topnStr = new StringBuilder(nextParmeter.getValue());
                 topnStr.append(" ,sum(").append(parmeter.getValue()).append(") ").append(" from TEST_MEASURE ")
-                        .append(" group by ").append(parmeter.getNextParameter().getValue()).append(" order by ")
-                        .append(" sum(").append(parmeter.getValue()).append(") desc limit 15");
+                        .append(" group by ").append(nextParmeter.getValue()).append(" order by ").append(" sum(")
+                        .append(parmeter.getValue()).append(") desc limit 15");
                 sqlBuilder.append(topnStr);
                 sqlPair.add(new Pair<>(index + "_topn_sql", sqlBuilder.toString()));
             }
@@ -322,15 +323,15 @@ public class NMeasuresTest extends NLocalWithSparkSessionTest {
 
         for (NDataModel.Measure mea : indexPlan.getEffectiveMeasures().values()) {
             String exp = mea.getFunction().getExpression();
-            ParameterDesc parmeter = mea.getFunction().getParameter();
-            if (mea.getFunction().getParameter().isColumnType()) {
+            ParameterDesc parmeter = mea.getFunction().getParameters().get(0);
+            if (parmeter.isColumnType()) {
                 // issue: #10137
                 if (exp.equalsIgnoreCase(FUNC_PERCENTILE)) {
                     continue;
                 }
                 if (exp.equalsIgnoreCase(FUNC_COUNT_DISTINCT)) {
                     StringBuilder distinctStr = new StringBuilder("distinct");
-                    for (TblColRef col : parmeter.getColRefs()) {
+                    for (TblColRef col : mea.getFunction().getColRefs()) {
                         distinctStr.append(",").append(col.getName());
                     }
                     distinctStr = new StringBuilder(distinctStr.toString().replaceFirst(",", " "));
@@ -384,15 +385,17 @@ public class NMeasuresTest extends NLocalWithSparkSessionTest {
                 }
 
                 NDataModel.Measure measure = CubeUtils.newMeasure(
-                        FunctionDesc.newInstance(fun, ParameterDesc.newInstance(col), returnType), meaStart + "_" + fun,
-                        meaStart++);
+                        FunctionDesc.newInstance(fun, Lists.newArrayList(ParameterDesc.newInstance(col)), returnType),
+                        meaStart + "_" + fun, meaStart++);
                 measureList.add(measure);
             }
         }
 
-        NDataModel.Measure measure = CubeUtils.newMeasure(FunctionDesc.newInstance(FUNC_COUNT_DISTINCT,
-                ParameterDesc.newInstance(columnList.toArray()), "hllc(10)"), meaStart + "_" + FUNC_COUNT_DISTINCT,
-                meaStart++);
+        List<ParameterDesc> parameters = Lists.newArrayList();
+        columnList.stream().forEach(columnRef -> parameters.add(ParameterDesc.newInstance(columnRef)));
+        NDataModel.Measure measure = CubeUtils.newMeasure(
+                FunctionDesc.newInstance(FUNC_COUNT_DISTINCT, parameters, "hllc(10)"),
+                meaStart + "_" + FUNC_COUNT_DISTINCT, meaStart++);
         measureList.add(measure);
 
         return measureList;
@@ -416,16 +419,18 @@ public class NMeasuresTest extends NLocalWithSparkSessionTest {
                 }
                 if (!isFirstNumCol) {
                     NDataModel.Measure sumMeasure = CubeUtils.newMeasure(
-                            FunctionDesc.newInstance(FunctionDesc.FUNC_SUM, ParameterDesc.newInstance(col), null),
+                            FunctionDesc.newInstance(FunctionDesc.FUNC_SUM,
+                                    Lists.newArrayList(ParameterDesc.newInstance(col)), null),
                             meaStart + "_" + FunctionDesc.FUNC_SUM, meaStart++);
                     measureList.add(sumMeasure);
                     isFirstNumCol = true;
                 }
 
-                ParameterDesc parameterDesc = ParameterDesc.newInstance(col, groupByCol);
+                List<ParameterDesc> parameters = Lists.newArrayList(ParameterDesc.newInstance(col),
+                        ParameterDesc.newInstance(groupByCol));
                 NDataModel.Measure measure = CubeUtils.newMeasure(
-                        FunctionDesc.newInstance(FUNC_TOP_N, parameterDesc, "topn(10000, 4)"),
-                        meaStart + "_" + FUNC_TOP_N, meaStart++);
+                        FunctionDesc.newInstance(FUNC_TOP_N, parameters, "topn(10000, 4)"), meaStart + "_" + FUNC_TOP_N,
+                        meaStart++);
                 measureList.add(measure);
             }
         }

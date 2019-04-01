@@ -126,7 +126,7 @@ public class NModelShrinkProposer extends NAbstractProposer {
         usedMeasures.remove(null);
         for (Measure used : usedMeasures) {
             used.tomb = false;
-            for (TblColRef param : used.getFunction().getParameter().getColRefs()) {
+            for (TblColRef param : used.getFunction().getColRefs()) {
                 usedCols.add(colsByName.get(param.getIdentity()));
             }
         }

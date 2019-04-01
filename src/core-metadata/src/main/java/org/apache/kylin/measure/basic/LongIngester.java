@@ -55,7 +55,7 @@ public class LongIngester extends MeasureIngester<Long> {
 
     @Override
     public Long valueOf(String[] values, MeasureDesc measureDesc, Map<TblColRef, Dictionary<String>> dictionaryMap) {
-        ParameterDesc param = measureDesc.getFunction().getParameter();
+        ParameterDesc param = measureDesc.getFunction().getParameters().get(0);
         if (values.length > 1)
             throw new IllegalArgumentException();
 

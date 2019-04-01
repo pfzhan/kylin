@@ -105,7 +105,7 @@ public class ExtendedColumnMeasureType extends MeasureType<ByteArray> {
 
     public static List<TblColRef> getExtendedColumnHosts(FunctionDesc functionDesc) {
         List<TblColRef> ret = Lists.newArrayList();
-        List<TblColRef> params = functionDesc.getParameter().getColRefs();
+        List<TblColRef> params = functionDesc.getColRefs();
         for (int i = 0; i < params.size() - 1; i++) {
             ret.add(params.get(i));
         }
@@ -113,7 +113,7 @@ public class ExtendedColumnMeasureType extends MeasureType<ByteArray> {
     }
 
     public static TblColRef getExtendedColumn(FunctionDesc functionDesc) {
-        List<TblColRef> params = functionDesc.getParameter().getColRefs();
+        List<TblColRef> params = functionDesc.getColRefs();
         return params.get(params.size() - 1);
     }
 

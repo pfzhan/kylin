@@ -27,6 +27,8 @@ package io.kyligence.kap.smart.util;
 import java.util.Collections;
 import java.util.List;
 
+import com.google.common.collect.Lists;
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.model.FunctionDesc;
 import org.apache.kylin.metadata.model.ParameterDesc;
@@ -40,22 +42,22 @@ public class CubeUtils {
     private CubeUtils() {
     }
 
-    public static FunctionDesc newFunctionDesc(NDataModel modelDesc, String expression, ParameterDesc param,
+    public static FunctionDesc newFunctionDesc(NDataModel modelDesc, String expression, List<ParameterDesc> params,
             String colDataType) {
         String returnType = FunctionDesc.proposeReturnType(expression, colDataType,
                 Collections.singletonMap(FunctionDesc.FUNC_COUNT_DISTINCT,
                         SmartConfig.wrap(KylinConfig.getInstanceFromEnv()).getMeasureCountDistinctType()));
 
-        if (FunctionDesc.FUNC_COUNT_DISTINCT.equalsIgnoreCase(expression) && param.getNextParameter() != null) {
+        if (FunctionDesc.FUNC_COUNT_DISTINCT.equalsIgnoreCase(expression) && CollectionUtils.isNotEmpty(params) && params.size() > 1) {
             returnType = FunctionDesc.FUNC_COUNT_DISTINCT_HLLC10;
         }
-        FunctionDesc ret = FunctionDesc.newInstance(expression, param, returnType);
+        FunctionDesc ret = FunctionDesc.newInstance(expression, params, returnType);
         ret.init(modelDesc);
         return ret;
     }
 
     public static FunctionDesc newCountStarFuncDesc(NDataModel modelDesc) {
-        return newFunctionDesc(modelDesc, FunctionDesc.FUNC_COUNT, ParameterDesc.newInstance("1"),
+        return newFunctionDesc(modelDesc, FunctionDesc.FUNC_COUNT, Lists.newArrayList(ParameterDesc.newInstance("1")),
                 FunctionDesc.TYPE_BIGINT);
     }
 
@@ -68,7 +70,7 @@ public class CubeUtils {
     }
 
     public static boolean isValidMeasure(FunctionDesc functionDesc) {
-        List<TblColRef> colRefs = functionDesc.getParameter().getColRefs();
+        List<TblColRef> colRefs = functionDesc.getColRefs();
         if (colRefs == null || colRefs.isEmpty())
             return true;
 

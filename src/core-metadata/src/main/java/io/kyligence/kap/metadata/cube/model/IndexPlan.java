@@ -223,7 +223,7 @@ public class IndexPlan extends RootPersistentEntity implements Serializable, IEn
 
         allColumns.addAll(effectiveDimCols.values());
         for (NDataModel.Measure measure : effectiveMeasures.values()) {
-            allColumns.addAll(measure.getFunction().getParameter().getColRefs());
+            allColumns.addAll(measure.getFunction().getColRefs());
         }
         for (JoinTableDesc join : getModel().getJoinTables()) {
             CollectionUtils.addAll(allColumns, join.getJoin().getForeignKeyColumns());

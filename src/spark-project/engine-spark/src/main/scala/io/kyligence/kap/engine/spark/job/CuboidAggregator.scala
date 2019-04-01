@@ -72,7 +72,7 @@ object CuboidAggregator {
     val agg = measures.asScala.map { measureEntry =>
       val measure = measureEntry._2
       val function = measure.getFunction
-      val parameters = function.getParameter.getPlainParameters.asScala.toList
+      val parameters = function.getParameters.asScala.toList
       val columns = new mutable.ListBuffer[Column]
       if (parameters.head.isColumnType) {
         try {
@@ -134,7 +134,7 @@ object CuboidAggregator {
           }
         case "TOP_N" =>
 
-          val measure = function.getParameter.getColRef.getColumnDesc
+          val measure = function.getParameters.get(0).getColRef.getColumnDesc
 
           val schema = StructType(parameters.map(_.getColRef.getColumnDesc).map { col =>
             val dateType = toSparkType(col.getType)

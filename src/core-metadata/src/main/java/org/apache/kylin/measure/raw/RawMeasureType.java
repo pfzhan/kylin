@@ -50,6 +50,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
+import com.google.common.collect.Lists;
 import org.apache.kylin.common.util.ByteArray;
 import org.apache.kylin.common.util.BytesUtil;
 import org.apache.kylin.common.util.Dictionary;
@@ -188,7 +189,7 @@ public class RawMeasureType extends MeasureType<List<ByteArray>> {
 
     @Override
     public List<TblColRef> getColumnsNeedDictionary(FunctionDesc functionDesc) {
-        TblColRef literalCol = functionDesc.getParameter().getColRefs().get(0);
+        TblColRef literalCol = functionDesc.getColRefs().get(0);
         return Collections.singletonList(literalCol);
     }
 
@@ -232,11 +233,11 @@ public class RawMeasureType extends MeasureType<List<ByteArray>> {
                 }
                 TblColRef col = this.getRawColumn(measureDesc.getFunction());
                 ParameterDesc colParameter = ParameterDesc.newInstance(col);
-                FunctionDesc rawFunc = FunctionDesc.newInstance("RAW", colParameter, null);
+                FunctionDesc rawFunc = FunctionDesc.newInstance("RAW", Lists.newArrayList(colParameter), null);
 
                 if (sqlDigest.allColumns.contains(col)) {
                     if (measureDesc.getFunction().equals(rawFunc)) {
-                        FunctionDesc sumFunc = FunctionDesc.newInstance("SUM", colParameter, null);
+                        FunctionDesc sumFunc = FunctionDesc.newInstance("SUM", Lists.newArrayList(colParameter), null);
                         sqlDigest.aggregations.remove(sumFunc);
                         sqlDigest.aggregations.add(rawFunc);
                         logger.info("Add RAW measure on column " + col);
@@ -297,7 +298,7 @@ public class RawMeasureType extends MeasureType<List<ByteArray>> {
     }
 
     private TblColRef getRawColumn(FunctionDesc functionDesc) {
-        return functionDesc.getParameter().getColRefs().get(0);
+        return functionDesc.getColRefs().get(0);
     }
 
     @Override

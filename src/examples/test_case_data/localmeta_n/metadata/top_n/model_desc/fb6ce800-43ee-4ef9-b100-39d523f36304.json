@@ -25,10 +25,10 @@
       "name": "CNT",
       "function": {
         "expression": "COUNT",
-        "parameter": {
+        "parameters": [{
           "type": "constant",
           "value": "1"
-        },
+        }],
         "returntype": "bigint"
       }
     },
@@ -37,10 +37,10 @@
       "name": "GMV_SUM",
       "function": {
         "expression": "SUM",
-        "parameter": {
+        "parameters": [{
           "type": "column",
           "value": "TEST_TOP_N.PRICE"
-        },
+        }],
         "returntype": "decimal(19,4)"
       }
     },
@@ -49,14 +49,13 @@
       "name": "TOP_SELLER",
       "function": {
         "expression": "TOP_N",
-        "parameter": {
+        "parameters": [{
           "type": "column",
-          "value": "TEST_TOP_N.PRICE",
-          "next_parameter": {
-            "type": "column",
-            "value": "TEST_TOP_N.SELLER_ID"
-          }
-        },
+          "value": "TEST_TOP_N.PRICE"
+        }, {
+          "type": "column",
+          "value": "TEST_TOP_N.SELLER_ID"
+        }],
         "returntype": "topn(1, 4)",
         "configuration": {
           "topn.encoding.TEST_KYLIN_FACT.SELLER_ID": "int:4"

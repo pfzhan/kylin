@@ -290,7 +290,7 @@ public class OLAPAggregateRel extends Aggregate implements OLAPRel {
         ColumnRowType inputColumnRowType = ((OLAPRel) getInput()).getColumnRowType();
         this.aggregations = new ArrayList<>();
         for (AggregateCall aggCall : this.rewriteAggCalls) {
-            ParameterDesc parameter = null;
+            List<ParameterDesc> parameters = Lists.newArrayList();
             // By default all args are included, UDFs can define their own in getParamAsMeasureCount method.
             if (!aggCall.getArgList().isEmpty()) {
                 List<TblColRef> columns = Lists.newArrayList();
@@ -303,12 +303,12 @@ public class OLAPAggregateRel extends Aggregate implements OLAPRel {
                     columns.add(column);
                 }
                 if (!columns.isEmpty()) {
-                    parameter = ParameterDesc.newInstance(columns.toArray(new TblColRef[columns.size()]));
+                    columns.forEach(column -> parameters.add(ParameterDesc.newInstance(column)));
                 }
             }
 
             String expression = getAggrFuncName(aggCall);
-            FunctionDesc aggFunc = FunctionDesc.newInstance(expression, parameter, null);
+            FunctionDesc aggFunc = FunctionDesc.newInstance(expression, parameters, null);
             this.aggregations.add(aggFunc);
         }
     }
@@ -447,7 +447,7 @@ public class OLAPAggregateRel extends Aggregate implements OLAPRel {
         if (aggFunc.getExpression().equalsIgnoreCase("intersect_count")) {
             for (MeasureDesc m : measures) {
                 if (m.getFunction().getReturnType().equals("bitmap")
-                        && aggFunc.getParameter().equals(m.getFunction().getParameter()))
+                        && aggFunc.getParameters().equals(m.getFunction().getParameters()))
                     return m.getFunction();
             }
         }

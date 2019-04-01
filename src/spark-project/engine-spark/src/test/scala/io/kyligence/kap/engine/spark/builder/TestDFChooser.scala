@@ -24,7 +24,7 @@ package io.kyligence.kap.engine.spark.builder
 import java.util
 
 import com.google.common.collect.Lists.newArrayList
-import com.google.common.collect.Sets
+import com.google.common.collect.{Lists, Sets}
 import io.kyligence.kap.engine.spark.job.{CuboidAggregator, DFChooser, UdfManager}
 import io.kyligence.kap.metadata.cube.cuboid.NSpanningTreeFactory
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager.NIndexPlanUpdater
@@ -118,7 +118,7 @@ class TestDFChooser extends SparderBaseFunSuite with SharedSparkSession with Loc
     val flatTableAggSet = new util.HashSet[TblColRef]()
     for (mea <- meas.values().asScala) {
       if (DictionaryBuilder.needGlobalDictionary(mea) != null) {
-        val col = mea.getFunction.getParameter.getColRef
+        val col = mea.getFunction.getParameters.get(0).getColRef
         flatTableAggSet.add(col)
       }
     }
@@ -211,7 +211,7 @@ class TestDFChooser extends SparderBaseFunSuite with SharedSparkSession with Loc
     val measure = new NDataModel.Measure
     measure.setName("test_bitmap_add")
     val func = FunctionDesc.newInstance(FunctionDesc.FUNC_COUNT_DISTINCT,
-      ParameterDesc.newInstance(columnList.get(COLUMN_INDEX_BITMAP)), "bitmap")
+      Lists.newArrayList(ParameterDesc.newInstance(columnList.get(COLUMN_INDEX_BITMAP))), "bitmap")
     measure.setFunction(func)
     measure.id = 111000
     measure

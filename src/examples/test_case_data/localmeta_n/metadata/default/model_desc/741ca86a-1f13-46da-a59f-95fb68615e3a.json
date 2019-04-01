@@ -331,10 +331,10 @@
       "name": "TRANS_CNT",
       "function": {
         "expression": "COUNT",
-        "parameter": {
+        "parameters": [{
           "type": "constant",
           "value": "1"
-        },
+        }],
         "returntype": "bigint"
       }
     },
@@ -343,10 +343,10 @@
       "name": "GMV_SUM",
       "function": {
         "expression": "SUM",
-        "parameter": {
+        "parameters": [{
           "type": "column",
           "value": "TEST_KYLIN_FACT.PRICE"
-        },
+        }],
         "returntype": "decimal(19,4)"
       }
     },
@@ -355,10 +355,10 @@
       "name": "GMV_MIN",
       "function": {
         "expression": "MIN",
-        "parameter": {
+        "parameters": [{
           "type": "column",
           "value": "TEST_KYLIN_FACT.PRICE"
-        },
+        }],
         "returntype": "decimal(19,4)"
       }
     },
@@ -367,10 +367,10 @@
       "name": "GMV_MAX",
       "function": {
         "expression": "MAX",
-        "parameter": {
+        "parameters": [{
           "type": "column",
           "value": "TEST_KYLIN_FACT.PRICE"
-        },
+        }],
         "returntype": "decimal(19,4)"
       }
     },
@@ -379,10 +379,10 @@
       "name": "ITEM_COUNT_SUM",
       "function": {
         "expression": "SUM",
-        "parameter": {
+        "parameters": [{
           "type": "column",
           "value": "TEST_KYLIN_FACT.ITEM_COUNT"
-        },
+        }],
         "returntype": "bigint"
       }
     },
@@ -391,10 +391,10 @@
       "name": "ITEM_COUNT_MAX",
       "function": {
         "expression": "MAX",
-        "parameter": {
+        "parameters": [{
           "type": "column",
           "value": "TEST_KYLIN_FACT.ITEM_COUNT"
-        },
+        }],
         "returntype": "bigint"
       }
     },
@@ -404,10 +404,10 @@
       "tomb": true,
       "function": {
         "expression": "MIN",
-        "parameter": {
+        "parameters": [{
           "type": "column",
           "value": "TEST_KYLIN_FACT.ITEM_COUNT"
-        },
+        }],
         "returntype": "bigint"
       }
     },
@@ -416,10 +416,10 @@
       "name": "SELLER_HLL",
       "function": {
         "expression": "COUNT_DISTINCT",
-        "parameter": {
+        "parameters": [{
           "type": "column",
           "value": "TEST_KYLIN_FACT.SELLER_ID"
-        },
+        }],
         "returntype": "hllc(10)"
       }
     },
@@ -428,10 +428,10 @@
       "name": "COUNT_DISTINCT",
       "function": {
         "expression": "COUNT_DISTINCT",
-        "parameter": {
+        "parameters": [{
           "type": "column",
           "value": "TEST_KYLIN_FACT.LSTG_FORMAT_NAME"
-        },
+        }],
         "returntype": "hllc(10)"
       }
     },
@@ -440,14 +440,13 @@
       "name": "TOP_SELLER",
       "function": {
         "expression": "TOP_N",
-        "parameter": {
+        "parameters": [{
           "type": "column",
-          "value": "TEST_KYLIN_FACT.PRICE",
-          "next_parameter": {
-            "type": "column",
-            "value": "TEST_KYLIN_FACT.SELLER_ID"
-          }
-        },
+          "value": "TEST_KYLIN_FACT.PRICE"
+        }, {
+          "type": "column",
+          "value": "TEST_KYLIN_FACT.SELLER_ID"
+        }],
         "returntype": "topn(10000, 4)",
         "configuration": {
           "topn.encoding.TEST_KYLIN_FACT.SELLER_ID": "int:4"
@@ -459,10 +458,10 @@
       "name": "TEST_COUNT_DISTINCT_BITMAP",
       "function": {
         "expression": "COUNT_DISTINCT",
-        "parameter": {
+        "parameters": [{
           "type": "column",
           "value": "TEST_KYLIN_FACT.TEST_COUNT_DISTINCT_BITMAP"
-        },
+        }],
         "returntype": "bitmap"
       }
     },
@@ -471,10 +470,10 @@
       "name": "GVM_PERCENTILE",
       "function": {
         "expression": "PERCENTILE",
-        "parameter": {
+        "parameters": [{
           "type": "column",
           "value": "TEST_KYLIN_FACT.PRICE"
-        },
+        }],
         "returntype": "percentile(10000)"
       }
     },
@@ -483,10 +482,10 @@
       "name": "COUNT_SELLER_ID",
       "function": {
         "expression": "COUNT",
-        "parameter": {
+        "parameters": [{
           "type": "column",
           "value": "TEST_KYLIN_FACT.SELLER_ID"
-        },
+        }],
         "returntype": "bigint"
       }
     },
@@ -495,10 +494,10 @@
       "name": "COUNT_PRICE",
       "function": {
         "expression": "COUNT",
-        "parameter": {
+        "parameters": [{
           "type": "column",
           "value": "TEST_KYLIN_FACT.PRICE"
-        },
+        }],
         "returntype": "bigint"
       }
     },
@@ -507,10 +506,10 @@
       "name": "COUNT_CAL_DT",
       "function": {
         "expression": "COUNT",
-        "parameter": {
+        "parameters": [{
           "type": "column",
           "value": "TEST_CAL_DT.CAL_DT"
-        },
+        }],
         "returntype": "bigint"
       }
     },
@@ -519,10 +518,10 @@
       "name": "SUM_NEST4",
       "function": {
         "expression": "SUM",
-        "parameter": {
+        "parameters": [{
           "type": "column",
           "value": "TEST_KYLIN_FACT.NEST4"
-        },
+        }],
         "returntype": "decimal"
       }
     },
@@ -531,10 +530,10 @@
       "name": "SUM_DEAL_AMOUNT",
       "function": {
         "expression": "SUM",
-        "parameter": {
+        "parameters": [{
           "type": "column",
           "value": "TEST_KYLIN_FACT.DEAL_AMOUNT"
-        },
+        }],
         "returntype": "decimal"
       }
     }

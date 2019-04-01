@@ -94,24 +94,24 @@ object SchemaProcessor {
   def generateFunctionReturnDataType(function: FunctionDesc): DataType = {
     function.getExpression.toUpperCase match {
       case "SUM" =>
-        val parameter = function.getParameter
+        val parameter = function.getParameters.get(0)
         if (parameter.isColumnType) {
-          SparderTypeUtil.toSparkType(function.getParameter.getColRef.getType, true)
+          SparderTypeUtil.toSparkType(parameter.getColRef.getType, true)
         } else {
           SparderTypeUtil.toSparkType(function.getReturnDataType, true)
         }
       case "COUNT" => LongType
       case x if x.startsWith("TOP_N")  =>
-        val parameter = function.getParameter.getNextParameter
+        val parameter = function.getParameters.get(1)
         // only support 1 dim
         DataTypes.createArrayType(StructType(Seq(
           StructField("measure", DoubleType),
           StructField("dim", StructType(Seq(StructField(s"DIMENSION_${parameter.getColRef.getName}", SparderTypeUtil.toSparkType(parameter.getColRef.getType)))))
         )))
       case "MAX" | "MIN" =>
-        val parameter = function.getParameter
+        val parameter = function.getParameters.get(0)
         if (parameter.isColumnType) {
-          SparderTypeUtil.toSparkType(function.getParameter.getColRef.getType)
+          SparderTypeUtil.toSparkType(parameter.getColRef.getType)
         } else {
           SparderTypeUtil.toSparkType(function.getReturnDataType)
         }

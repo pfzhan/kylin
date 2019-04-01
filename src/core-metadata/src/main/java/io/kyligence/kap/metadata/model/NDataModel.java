@@ -934,7 +934,7 @@ public class NDataModel extends RootPersistentEntity {
 
         // check all measure columns are effective
         for (MeasureDesc m : effectiveMeasures.values()) {
-            List<TblColRef> mCols = m.getFunction().getParameter().getColRefs();
+            List<TblColRef> mCols = m.getFunction().getColRefs();
             if (effectiveCols.values().containsAll(mCols) == false) {
                 List<TblColRef> notEffective = new ArrayList<>(mCols);
                 notEffective.removeAll(effectiveCols.values());

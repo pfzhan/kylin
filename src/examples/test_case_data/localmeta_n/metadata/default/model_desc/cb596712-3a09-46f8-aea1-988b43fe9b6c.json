@@ -98,10 +98,10 @@
       "name": "COUNT_STAR",
       "function": {
         "expression": "COUNT",
-        "parameter": {
+        "parameters": [{
           "type": "constant",
           "value": "*"
-        },
+        }],
         "returntype": "bigint"
       }
     },
@@ -110,10 +110,10 @@
       "name": "SUM_1",
       "function": {
         "expression": "SUM",
-        "parameter": {
+        "parameters": [{
           "type": "constant",
           "value": "1"
-        },
+        }],
         "returntype": "bigint"
       }
     },
@@ -122,10 +122,10 @@
       "name": "SUM_2",
       "function": {
         "expression": "SUM",
-        "parameter": {
+        "parameters": [{
           "type": "constant",
           "value": "1.0"
-        },
+        }],
         "returntype": "double"
       }
     },
@@ -134,10 +134,10 @@
       "name": "SUM_3",
       "function": {
         "expression": "SUM",
-        "parameter": {
+        "parameters": [{
           "type": "constant",
           "value": "1.0"
-        },
+        }],
         "returntype": "decimal(19,4)"
       }
     }
