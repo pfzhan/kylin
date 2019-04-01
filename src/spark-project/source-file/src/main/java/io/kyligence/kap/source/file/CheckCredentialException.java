@@ -24,9 +24,6 @@
 package io.kyligence.kap.source.file;
 
 public class CheckCredentialException extends RuntimeException {
-    public CheckCredentialException(String message) {
-        super(message);
-    }
 
     public CheckCredentialException(String message, Throwable e) {
         super(message, e);

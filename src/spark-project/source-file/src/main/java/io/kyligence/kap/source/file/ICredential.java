@@ -24,8 +24,5 @@
 package io.kyligence.kap.source.file;
 
 public interface ICredential {
-    String AWS_S3_KEY = "AWS_S3_KEY";
-    String LOCAL = "LOCAL";
-
     String getType();
 }

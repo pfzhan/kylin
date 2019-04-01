@@ -44,11 +44,12 @@ public class S3KeyCredentialOperator extends CredentialOperator {
 
     private S3KeyCredential credential;
 
-    public ICredential getCredential() {
-        return credential;
+    public void setCredential(S3KeyCredential credential) {
+        this.credential = credential;
     }
 
-    public S3KeyCredentialOperator() {
+    public ICredential getCredential() {
+        return credential;
     }
 
     @Override

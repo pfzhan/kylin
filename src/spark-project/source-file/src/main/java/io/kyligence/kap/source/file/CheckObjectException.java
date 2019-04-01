@@ -27,8 +27,4 @@ public class CheckObjectException extends RuntimeException {
     public CheckObjectException(String message) {
         super(message);
     }
-
-    public CheckObjectException(String message, Throwable cause) {
-        super(message, cause);
-    }
 }

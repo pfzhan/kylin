@@ -238,7 +238,7 @@ public class ProjectService extends BasicService {
 
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#project, 'ADMINISTRATION')")
     @Transaction
-    public void updateFileSourceCredential(String project, CredentialOperator credentialOperator) throws Exception {
+    public void updateFileSourceCredential(String project, CredentialOperator credentialOperator) {
         Map<String, String> overrideKylinProps = Maps.newLinkedHashMap();
         overrideKylinProps.put("kylin.source.credential.type", credentialOperator.getCredential().getType());
         overrideKylinProps.put("kylin.source.credential.value", credentialOperator.encode());

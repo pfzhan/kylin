@@ -27,11 +27,12 @@ import lombok.Data;
 
 @Data
 public class S3KeyCredential implements ICredential {
+    public static final String AWS_S3_KEY = "AWS_S3_KEY";
     private String accessKey;
     private String secretKey;
 
     @Override
     public String getType() {
-        return ICredential.AWS_S3_KEY;
+        return AWS_S3_KEY;
     }
 }

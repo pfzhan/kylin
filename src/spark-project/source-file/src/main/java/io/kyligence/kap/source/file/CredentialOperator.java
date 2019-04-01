@@ -144,9 +144,9 @@ public abstract class CredentialOperator {
      */
     public static String chooseCredentialClassName(String type) {
         switch (type) {
-        case ICredential.AWS_S3_KEY:
+        case "AWS_S3_KEY":
             return S3KeyCredentialOperator.class.getCanonicalName();
-        case ICredential.LOCAL:
+        case "LOCAL":
             return LocalFileCredentialOperator.class.getCanonicalName();
         default:
             return null;
@@ -155,9 +155,9 @@ public abstract class CredentialOperator {
 
     public static CredentialOperator chooseCredential(String type) {
         switch (type) {
-        case ICredential.AWS_S3_KEY:
+        case "AWS_S3_KEY":
             return new S3KeyCredentialOperator();
-        case ICredential.LOCAL:
+        case "LOCAL":
             return new LocalFileCredentialOperator();
         default:
             return null;

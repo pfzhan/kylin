@@ -110,7 +110,7 @@ public class FileSourceService extends BasicService {
         return tableList;
     }
 
-    private String generateCSVSql(TableDesc tableDesc, CSVRequest csvRequest) {
+    public String generateCSVSql(TableDesc tableDesc, CSVRequest csvRequest) {
         CredentialOperator credentialOperator = CredentialOperator.chooseCredential(csvRequest.getType());
         Preconditions.checkNotNull(credentialOperator, "CredentialOperator can not be null");
         StringBuilder stringBuilder = new StringBuilder();
@@ -131,18 +131,18 @@ public class FileSourceService extends BasicService {
         return stringBuilder.toString();
     }
 
-    private String escape(String s) {
+    public String escape(String s) {
         if (s.contains("\"")) {
             s = s.replace("\"", "\\\"");
         }
         return s;
     }
 
-    private void addCredential(String project, CredentialOperator credentialOperator) throws Exception {
+    public void addCredential(String project, CredentialOperator credentialOperator) {
         projectService.updateFileSourceCredential(project, credentialOperator);
     }
 
-    private String findTableName(String sql) {
+    public String findTableName(String sql) {
         String ddlPrefix = "CREATEEXTERNALTABLE";
         sql = sql.trim().toUpperCase().replaceAll("\\s*", "");
         if (sql.startsWith(ddlPrefix)) {
@@ -151,7 +151,7 @@ public class FileSourceService extends BasicService {
         return null;
     }
 
-    public boolean verifyCredential(CSVRequest csvRequest) throws Exception {
+    public boolean verifyCredential(CSVRequest csvRequest) {
         CredentialOperator credentialOperator = CredentialOperator.chooseCredential(csvRequest.getType());
         Preconditions.checkNotNull(credentialOperator);
         credentialOperator = credentialOperator.decode(csvRequest.getCredential());

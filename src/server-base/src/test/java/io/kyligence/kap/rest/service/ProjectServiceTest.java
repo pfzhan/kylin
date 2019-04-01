@@ -50,6 +50,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 import io.kyligence.kap.rest.request.GarbageCleanUpConfigRequest;
+import io.kyligence.kap.source.file.S3KeyCredential;
+import io.kyligence.kap.source.file.S3KeyCredentialOperator;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.engine.JobEngineConfig;
 import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
@@ -497,6 +499,22 @@ public class ProjectServiceTest extends ServiceTestBase {
         val prj = prjMgr.getProject("default");
         Assert.assertEquals(604800000L, prj.getConfig().getFavoriteQueryFrequencyTimeWindow());
         Assert.assertEquals(12, prj.getConfig().getFavoriteQueryLowFrequency());
+    }
+
+    @Test
+    public void testUpdateFileSourceCredential() {
+        S3KeyCredentialOperator operator = new S3KeyCredentialOperator();
+        S3KeyCredential s3KeyCredential = new S3KeyCredential();
+        s3KeyCredential.setAccessKey("mockAccessKey");
+        s3KeyCredential.setSecretKey("mockSecretKey");
+        operator.setCredential(s3KeyCredential);
+        projectService.updateFileSourceCredential(PROJECT, operator);
+        Assert.assertEquals("AWS_S3_KEY",
+                projectManager.getProject(PROJECT).getOverrideKylinProps().get("kylin.source.credential.type"));
+        Assert.assertEquals("13",
+                projectManager.getProject(PROJECT).getOverrideKylinProps().get("kylin.source.default"));
+        Assert.assertEquals("{\"accessKey\":\"mockAccessKey\",\"secretKey\":\"mockSecretKey\",\"type\":\"AWS_S3_KEY\"}",
+                projectManager.getProject(PROJECT).getOverrideKylinProps().get("kylin.source.credential.value"));
     }
 
 }
