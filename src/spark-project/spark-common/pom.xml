@@ -29,7 +29,7 @@
     <url>http://kyligence.io</url>
     <description>Kyligence Job Engine - SPARK</description>
 
-    <artifactId>spark-common</artifactId>
+    <artifactId>kap-spark-common</artifactId>
 
 
     <parent>

@@ -9,7 +9,7 @@
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
-    <artifactId>source-file</artifactId>
+    <artifactId>kap-source-file</artifactId>
     <packaging>jar</packaging>
     <name>KAP - Source File</name>
     <url>http://kyligence.io</url>

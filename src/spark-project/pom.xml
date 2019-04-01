@@ -170,7 +170,7 @@
         <dependencies>
             <dependency>
                 <groupId>io.kyligence.kap</groupId>
-                <artifactId>spark-common</artifactId>
+                <artifactId>kap-spark-common</artifactId>
                 <version>${project.version}</version>
             </dependency>
         </dependencies>

@@ -215,7 +215,7 @@
             </dependency>
             <dependency>
                 <groupId>io.kyligence.ke</groupId>
-                <artifactId>source-file</artifactId>
+                <artifactId>kap-source-file</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
