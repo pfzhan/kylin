@@ -478,6 +478,10 @@ public class KapConfig {
         return Boolean.valueOf(config.getOptional("kap.query.engine.sparder-enabled", "true"));
     }
 
+    public boolean needReplaceAggWhenExactlyMatched() {
+        return Boolean.valueOf(config.getOptional("kap.query.engine.need-replace-agg", "true"));
+    }
+
     public String sparderFileFormat() {
         return config.getOptional("kap.query.engine.sparder-fileformat",
                 "org.apache.spark.sql.execution.datasources.sparder.batch.SparderBatchFileFormat");

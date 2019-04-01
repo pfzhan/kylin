@@ -616,4 +616,12 @@ public class OLAPAggregateRel extends Aggregate implements OLAPRel {
         }
         return argsCount;
     }
+
+    public List<TblColRef> getGroups() {
+        return groups;
+    }
+
+    public void setGroups(List<TblColRef> groups) {
+        this.groups = groups;
+    }
 }

@@ -26,6 +26,7 @@ import io.kyligence.kap.query.runtime.RuntimeHelper
 import org.apache.calcite.DataContext
 import org.apache.calcite.rel.core.AggregateCall
 import org.apache.calcite.sql.SqlKind
+import org.apache.kylin.common.KapConfig
 import org.apache.kylin.metadata.model.FunctionDesc
 import org.apache.kylin.query.relnode.{KylinAggregateCall, OLAPAggregateRel}
 import org.apache.spark.internal.Logging
@@ -51,10 +52,53 @@ object AggregatePlan extends Logging {
     val groupList = rel.getGroupSet.asScala
       .map(groupId => col(schemaNames.apply(groupId)))
       .toList
-    val aggList = buildAgg(schemaNames, rel)
-    val df = SparkOperation.agg(AggArgc(dataFrame, groupList, aggList))
+
+    val df = if (KapConfig.getInstanceFromEnv.needReplaceAggWhenExactlyMatched() && isExactlyMatched(rel)) {
+      // exactly match, skip agg, direct project.
+      val aggCols = rel.getRewriteAggCalls.asScala
+        .map(call => col(schemaNames.apply(call.getArgList.get(0)))).toList
+
+      val prjList = groupList ++ aggCols
+      logInfo(s"Query exactly match index, skip agg, project $prjList.")
+      dataFrame.select(prjList: _*)
+    } else {
+      val aggList = buildAgg(schemaNames, rel)
+      SparkOperation.agg(AggArgc(dataFrame, groupList, aggList))
+    }
     logInfo(s"Gen aggregate cost Time :${System.currentTimeMillis() - start} ")
     df
+  }
+
+  private def isExactlyMatched(rel: KapAggregateRel) :Boolean = {
+    val olapContext = rel.getContext
+
+    val rewrites = rel.getRewriteAggCalls.asScala
+    // only support simple measure type.
+    if (rewrites.exists(call => binaryMeasureType.contains(OLAPAggregateRel.getAggrFuncName(call)))
+      // do not support the case that more than one arg.
+      || rewrites.exists(_.getArgList.size() > 1)) {
+      return false
+    }
+
+    val cuboidDimSet =
+      if (olapContext == null || olapContext.storageContext.getCandidate == null) {
+        Set.empty[String]
+      } else {
+        olapContext.storageContext.getCandidate
+          .getCuboidLayout
+          .getOrderedDimensions.asScala
+          .map(_._2.getIdentity)
+          .toSet
+      }
+
+    val groupByCols = rel.getGroups
+      .asScala
+      .map(_.getIdentity)
+      .toSet
+
+    logDebug("group by cols:" + groupByCols)
+    logDebug("cuboid dimensions:" + cuboidDimSet)
+    groupByCols.nonEmpty && groupByCols.equals(cuboidDimSet)
   }
 
   def buildAgg(schemaNames: Array[String],
