@@ -50,15 +50,15 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import com.google.common.collect.Lists;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.event.manager.EventDao;
+import io.kyligence.kap.event.model.AddCuboidEvent;
+import io.kyligence.kap.event.model.Event;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.model.NDataLayout;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import io.kyligence.kap.metadata.cube.model.NRuleBasedIndex;
-import io.kyligence.kap.event.manager.EventDao;
-import io.kyligence.kap.event.model.AddCuboidEvent;
-import io.kyligence.kap.event.model.Event;
 import io.kyligence.kap.metadata.model.ComputedColumnDesc;
 import io.kyligence.kap.metadata.model.MaintainModelType;
 import io.kyligence.kap.metadata.model.ManagementType;
@@ -264,6 +264,23 @@ public class ModelServiceSemanticUpdateTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals("GMV_AVG", model.getEffectiveMeasureMap().get(100017).getName());
         Assert.assertNull(model.getEffectiveMeasureMap().get(100002));
         Assert.assertNull(model.getEffectiveMeasureMap().get(100003));
+    }
+
+    @Test
+    public void testUpdateMeasure_DuplicateParams_EmptyReturnType() throws Exception {
+        thrown.expect(IllegalArgumentException.class);
+        thrown.expectMessage("Duplicate measure definition 'TRANS_SUM2'");
+        val request = newSemanticRequest();
+        val newMeasure1 = new SimplifiedMeasure();
+        newMeasure1.setName("TRANS_SUM2");
+        newMeasure1.setExpression("SUM");
+        val param = new ParameterResponse();
+        param.setType("column");
+        param.setValue("TEST_KYLIN_FACT.PRICE");
+        newMeasure1.setParameterValue(Lists.newArrayList(param));
+        request.getSimplifiedMeasures().add(newMeasure1);
+        // add new measure without set return_type
+        modelService.updateDataModelSemantic("default", request);
     }
 
     @Test
