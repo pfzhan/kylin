@@ -67,7 +67,7 @@ public class MessageSynchronization {
             return;
         }
         if (!locally) {
-            UnitOfWork.startTransaction(messages.getKey(), false);
+            UnitOfWork.startTransaction(messages.getKey(), false, false);
         }
         messages.getMessages().forEach(event -> {
             if (event instanceof ResourceCreateOrUpdateEvent) {

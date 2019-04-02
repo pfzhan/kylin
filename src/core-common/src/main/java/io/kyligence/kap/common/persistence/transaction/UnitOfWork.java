@@ -28,6 +28,7 @@ import java.util.Objects;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.KylinConfig.SetAndUnsetThreadLocalConfig;
 import org.apache.kylin.common.persistence.InMemResourceStore;
@@ -62,6 +63,7 @@ public class UnitOfWork {
 
     private SetAndUnsetThreadLocalConfig localConfig;
     private TransactionLock currentLock = null;
+    private boolean readOnly = false;
     private final String project;
 
     public static <T> T doInTransactionWithRetry(Callback<T> f, String unitName) {
@@ -100,7 +102,7 @@ public class UnitOfWork {
                 log.debug("start unit of work for project {}", unitName);
                 long startTime = System.currentTimeMillis();
                 TransactionListenerRegistry.onStart(unitName);
-                UnitOfWork.startTransaction(unitName, true);
+                UnitOfWork.startTransaction(params);
                 ret = f.process();
                 UnitOfWork.endTransaction();
                 long duration = System.currentTimeMillis() - startTime;
@@ -147,9 +149,16 @@ public class UnitOfWork {
         return threadLocals.get() != null;
     }
 
-    static UnitOfWork startTransaction(String project, boolean useSandboxStore) {
+    static UnitOfWork startTransaction(String project, boolean useSandboxStore, boolean readOnly) {
+        return startTransaction(UnitOfWorkParams.builder().unitName(project).maxRetry(10)
+                .readonly(readOnly).useSandboxStore(useSandboxStore).processor(Object::new).build());
+    }
 
-        val lock = TransactionLock.getLock(project);
+    static <T> UnitOfWork startTransaction(UnitOfWorkParams<T> params) {
+        val project = params.getUnitName();
+        val readOnly = params.isReadonly();
+        val useSandboxStore = params.isUseSandboxStore();
+        val lock = TransactionLock.getLock(project, readOnly);
 
         log.trace("get lock for project {}, lock is held by current thread: {}", project, lock.isHeldByCurrentThread());
         //re-entry is not encouraged (because it indicates complex handling logic, bad smell), let's abandon it first
@@ -158,6 +167,7 @@ public class UnitOfWork {
 
         UnitOfWork unitOfWork = new UnitOfWork(project);
         unitOfWork.currentLock = lock;
+        unitOfWork.readOnly = readOnly;
         threadLocals.set(unitOfWork);
 
         if (!useSandboxStore) {
@@ -222,6 +232,9 @@ public class UnitOfWork {
 
         //clean rs and config
         UnitOfWork work = get();
+        if (work.readOnly && !CollectionUtils.isEmpty(eventList)) {
+            throw new TransactionException("read transaction cannot modify resource store");
+        }
         work.done();
 
         val originConfig = KylinConfig.getInstanceFromEnv();

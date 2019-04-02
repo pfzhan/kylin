@@ -52,18 +52,24 @@ public class TransactionLock {
         }
 
         lock = projectLocks.get(project);
-        return new TransactionLock(readonly ? lock.readLock() : lock.writeLock());
+        return new TransactionLock(lock, readonly ? lock.readLock() : lock.writeLock());
     }
+
+    private ReentrantReadWriteLock rootLock;
 
     @Delegate
     private Lock lock;
 
-    public TransactionLock(Lock lock) {
+    public TransactionLock(ReentrantReadWriteLock rootLock, Lock lock) {
+        this.rootLock = rootLock;
         this.lock = lock;
     }
 
     public boolean isHeldByCurrentThread() {
-        return lock instanceof ReentrantReadWriteLock.WriteLock
-                && ((ReentrantReadWriteLock.WriteLock) lock).isHeldByCurrentThread();
+        if (lock instanceof ReentrantReadWriteLock.ReadLock) {
+            return rootLock.getReadHoldCount() > 0;
+        } else {
+            return rootLock.getWriteHoldCount() > 0;
+        }
     }
 }

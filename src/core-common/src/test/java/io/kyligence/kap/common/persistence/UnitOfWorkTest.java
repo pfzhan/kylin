@@ -23,6 +23,8 @@
  */
 package io.kyligence.kap.common.persistence;
 
+import java.util.concurrent.atomic.AtomicBoolean;
+
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.junit.After;
@@ -32,7 +34,9 @@ import org.junit.Test;
 
 import com.google.common.io.ByteStreams;
 
+import io.kyligence.kap.common.persistence.transaction.TransactionException;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
+import io.kyligence.kap.common.persistence.transaction.UnitOfWorkParams;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import lombok.val;
 
@@ -111,4 +115,189 @@ public class UnitOfWorkTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(0, resourceStore.getResource("/_global/path/to/res3").getMvcc());
     }
 
+    @Test
+    public void testReadLockExclusive() {
+        val resourceStore = ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv());
+        resourceStore.checkAndPutResource("/_global/path/to/res1", ByteStreams.asByteSource("{}".getBytes()), -1L);
+        Object condition = new Object();
+        AtomicBoolean stop = new AtomicBoolean();
+        Thread readLockHelder = new Thread(
+            () -> {
+                UnitOfWork.doInTransactionWithRetry(UnitOfWorkParams.builder().unitName(UnitOfWork.GLOBAL_UNIT)
+                    .readonly(true).maxRetry(1).processor(
+                        () -> {
+                            synchronized (condition) {
+                              condition.notify();
+                            }
+                            boolean interrupted = false;
+                            while (!interrupted && !Thread.interrupted() && !stop.get()) {
+                                synchronized (condition) {
+                                    condition.notify();
+                                }
+                                try {
+                                    Thread.sleep(1000);
+                                } catch (InterruptedException e) {
+                                    interrupted = true;
+                                }
+                            }
+                            return 0;
+                        }).build());
+            }
+        );
+        readLockHelder.start();
+        synchronized (condition) {
+            try {
+                condition.wait();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+        long readStart = System.currentTimeMillis();
+        try {
+            UnitOfWork.doInTransactionWithRetry(UnitOfWorkParams.builder().unitName(UnitOfWork.GLOBAL_UNIT)
+                    .readonly(true).maxRetry(1).processor(() -> {
+                        long cost = System.currentTimeMillis() - readStart;
+                        Assert.assertTrue(cost < 500);
+                        Assert.assertEquals(0,
+                                ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv()).getResource("/_global/path/to/res1").getMvcc());
+                        return 0;
+                    }).build());
+        } catch (Exception e) {
+            Assert.fail();
+        }
+        new Thread(
+                () -> {
+                    try {
+                        Thread.sleep(2000);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                    stop.set(true);
+                }
+        ).start();
+        long writeStart = System.currentTimeMillis();
+        try {
+            UnitOfWork.doInTransactionWithRetry(UnitOfWorkParams.builder().unitName(UnitOfWork.GLOBAL_UNIT)
+                    .readonly(false).maxRetry(1).processor(() -> {
+                        long cost = System.currentTimeMillis() - writeStart;
+                        Assert.assertTrue(cost > 1500);
+                        Assert.assertEquals(0,
+                                ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv()).getResource("/_global/path/to/res1").getMvcc());
+                        return 0;
+                    }).build());
+        } catch (Exception e) {
+            Assert.fail();
+        }
+        stop.set(true);
+    }
+
+    @Test
+    public void testWriteLockExclusive() {
+        Object condition = new Object();
+        AtomicBoolean stop = new AtomicBoolean();
+        Thread writeLockHelder = new Thread(
+            () -> {
+                UnitOfWork.doInTransactionWithRetry(UnitOfWorkParams.builder().unitName(UnitOfWork.GLOBAL_UNIT)
+                    .readonly(false).maxRetry(1).processor(
+                        () -> {
+                            val resourceStoreInTransaction = ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv());
+                            resourceStoreInTransaction.checkAndPutResource("/_global/path/to/res1", ByteStreams.asByteSource("{}".getBytes()), -1L);
+                            synchronized (condition) {
+                                condition.notify();
+                            }
+                            boolean interrupted = false;
+                            while (!interrupted && !Thread.interrupted() && !stop.get()) {
+                                synchronized (condition) {
+                                    condition.notify();
+                                }
+                                try {
+                                    Thread.sleep(1000);
+                                } catch (InterruptedException e) {
+                                    interrupted = true;
+                                }
+                            }
+                            synchronized (condition) {
+                                condition.notify();
+                            }
+                            return 0;
+                        }).build());
+            }
+        );
+        writeLockHelder.start();
+        synchronized (condition) {
+            try {
+                condition.wait();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+        new Thread(
+            () -> {
+                try {
+                    Thread.sleep(2000);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+                stop.set(true);
+            }
+        ).start();
+        long start = System.currentTimeMillis();
+        try {
+            UnitOfWork.doInTransactionWithRetry(UnitOfWorkParams.builder().unitName(UnitOfWork.GLOBAL_UNIT)
+                .readonly(true).maxRetry(1).processor(() -> {
+                    long cost = System.currentTimeMillis() - start;
+                    Assert.assertTrue(cost > 1500);
+                    Assert.assertEquals(0,
+                            ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv()).getResource("/_global/path/to/res1").getMvcc());
+                    return 0;
+                }).build());
+        } catch (Exception e) {
+            Assert.fail();
+        }
+        stop.set(true);
+    }
+
+    @Test
+    public void testUpdateInReadTransaction() {
+        try {
+            UnitOfWork.doInTransactionWithRetry(
+                UnitOfWorkParams.builder().unitName(UnitOfWork.GLOBAL_UNIT)
+                        .readonly(true).maxRetry(1).processor(() -> {
+                    val resourceStore = ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv());
+                    resourceStore.checkAndPutResource("/_global/path/to/res1", ByteStreams.asByteSource("{}".getBytes()), -1L);
+                    return 0;
+                }).build());
+            Assert.fail();
+        } catch (Exception e) {
+            Assert.assertEquals(TransactionException.class, e.getClass());
+        }
+    }
+
+    @Test
+    public void testReadTransaction() {
+        ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv())
+                .checkAndPutResource("/_global/path/to/res1", ByteStreams.asByteSource("{}".getBytes()), -1L);
+        UnitOfWork.doInTransactionWithRetry(
+            UnitOfWorkParams.builder().unitName(UnitOfWork.GLOBAL_UNIT)
+                    .readonly(true).maxRetry(1).processor(() -> {
+                val resourceStore = ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv());
+                Assert.assertEquals(0, resourceStore.getResource("/_global/path/to/res1").getMvcc());
+                return 0;
+            }).build());
+    }
+
+    @Test
+    public void testWriteTransaction() {
+
+        UnitOfWork.doInTransactionWithRetry(
+                UnitOfWorkParams.builder().unitName(UnitOfWork.GLOBAL_UNIT)
+                        .readonly(false).maxRetry(1).processor(() -> {
+                    val resourceStore = ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv());
+                    resourceStore.checkAndPutResource("/_global/path/to/res1", ByteStreams.asByteSource("{}".getBytes()), -1L);
+                    return 0;
+                }).build());
+        Assert.assertEquals(0, ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv())
+                .getResource("/_global/path/to/res1").getMvcc());
+
+    }
 }

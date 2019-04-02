@@ -70,6 +70,8 @@ import java.util.stream.Collectors;
 
 import javax.annotation.PostConstruct;
 
+import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
+import io.kyligence.kap.common.persistence.transaction.UnitOfWorkParams;
 import org.apache.calcite.avatica.ColumnMetaData.Rep;
 import org.apache.calcite.config.CalciteConnectionConfig;
 import org.apache.calcite.jdbc.CalcitePrepare;
@@ -304,13 +306,19 @@ public class QueryService extends BasicService {
         return log;
     }
 
-    public SQLResponse doQueryWithCache(SQLRequest sqlRequest, boolean isQueryInspect) throws IOException {
+    public SQLResponse doQueryWithCache(SQLRequest sqlRequest, boolean isQueryInspect) {
         long t = System.currentTimeMillis();
         aclEvaluate.checkProjectReadPermission(sqlRequest.getProject());
         logger.info("Check query permission in " + (System.currentTimeMillis() - t) + " ms.");
-
-        Message msg = MsgPicker.getMsg();
         sqlRequest.setUsername(getUsername());
+        return UnitOfWork.doInTransactionWithRetry(
+                UnitOfWorkParams.<SQLResponse>builder().unitName(sqlRequest.getProject()).readonly(true)
+                        .processor(() -> queryWithCache(sqlRequest, isQueryInspect)).build()
+        );
+    }
+
+    public SQLResponse queryWithCache(SQLRequest sqlRequest, boolean isQueryInspect) {
+        Message msg = MsgPicker.getMsg();
 
         KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
         String serverMode = kylinConfig.getServerMode();

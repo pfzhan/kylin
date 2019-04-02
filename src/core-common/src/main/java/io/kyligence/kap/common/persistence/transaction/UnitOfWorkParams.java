@@ -41,4 +41,7 @@ public class UnitOfWorkParams<T> {
     @Builder.Default
     private boolean readonly = false;
 
+    @Builder.Default
+    private boolean useSandboxStore = true;
+
 }

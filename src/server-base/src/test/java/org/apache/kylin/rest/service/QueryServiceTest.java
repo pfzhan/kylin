@@ -85,6 +85,7 @@ import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
@@ -333,6 +334,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         }
     }
 
+    @Ignore("see issue 11326")
     @Test
     public void testCreateTableToWith() throws IOException {
         String create_table1 = " create table tableId as select * from some_table1;";
