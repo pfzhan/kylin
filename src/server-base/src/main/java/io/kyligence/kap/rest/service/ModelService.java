@@ -39,6 +39,7 @@ import java.util.stream.Collectors;
 import com.google.common.collect.Maps;
 import io.kyligence.kap.event.model.AddCuboidEvent;
 import io.kyligence.kap.event.model.PostAddCuboidEvent;
+import io.kyligence.kap.metadata.cube.cuboid.NSpanningTreeForWeb;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -83,8 +84,6 @@ import io.kyligence.kap.event.model.AddSegmentEvent;
 import io.kyligence.kap.event.model.PostAddSegmentEvent;
 import io.kyligence.kap.event.model.PostMergeOrRefreshSegmentEvent;
 import io.kyligence.kap.event.model.RefreshSegmentEvent;
-import io.kyligence.kap.metadata.cube.cuboid.NForestSpanningTree;
-import io.kyligence.kap.metadata.cube.cuboid.NSpanningTree;
 import io.kyligence.kap.metadata.cube.cuboid.NSpanningTreeFactory;
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
@@ -352,9 +351,9 @@ public class ModelService extends BasicService {
         return JsonUtil.writeValueAsIndentString(modelDesc);
     }
 
-    public List<NSpanningTree> getModelRelations(String modelId, String project) {
+    public List<NSpanningTreeForWeb> getModelRelations(String modelId, String project) {
         val indexPlan = getIndexPlan(modelId, project);
-        List<NSpanningTree> result = new ArrayList<>();
+        List<NSpanningTreeForWeb> result = new ArrayList<>();
         val allLayouts = Lists.<LayoutEntity> newArrayList();
         if (indexPlan.getRuleBasedIndex() != null) {
             val rule = indexPlan.getRuleBasedIndex();
@@ -363,7 +362,7 @@ public class ModelService extends BasicService {
         val autoLayouts = indexPlan.getWhitelistLayouts().stream()
                 .filter(layout -> layout.getId() < IndexEntity.TABLE_INDEX_START_ID).collect(Collectors.toList());
         allLayouts.addAll(autoLayouts);
-        val tree = NSpanningTreeFactory.fromLayouts(allLayouts, indexPlan.getUuid());
+        val tree = NSpanningTreeFactory.forWebDisplay(allLayouts, indexPlan.getUuid());
         result.add(tree);
         return result;
     }
@@ -371,8 +370,8 @@ public class ModelService extends BasicService {
     public List<NSpanningTreeResponse> getSimplifiedModelRelations(String modelId, String project) {
         val model = getDataModelManager(project).getDataModelDesc(modelId);
         List<NSpanningTreeResponse> result = Lists.newArrayList();
-        for (NSpanningTree spanningTree : getModelRelations(modelId, project)) {
-            result.add(new NSpanningTreeResponse((NForestSpanningTree) spanningTree, model));
+        for (NSpanningTreeForWeb spanningTree : getModelRelations(modelId, project)) {
+            result.add(new NSpanningTreeResponse(spanningTree, model));
         }
         return result;
     }

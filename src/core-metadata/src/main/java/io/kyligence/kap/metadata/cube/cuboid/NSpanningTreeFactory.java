@@ -52,6 +52,16 @@ public class NSpanningTreeFactory {
     }
 
     public static NSpanningTree fromLayouts(Collection<LayoutEntity> layoutEntities, String cacheKey) {
+        Map<IndexEntity, Collection<LayoutEntity>> descLayouts = getIndexEntity2Layouts(layoutEntities);
+        return fromIndexes(descLayouts, cacheKey);
+    }
+
+    public static NSpanningTreeForWeb forWebDisplay(Collection<LayoutEntity> layoutEntities, String cacheKey) {
+        Map<IndexEntity, Collection<LayoutEntity>> descLayouts = getIndexEntity2Layouts(layoutEntities);
+        return new NSpanningTreeForWeb(descLayouts, cacheKey);
+    }
+
+    private static Map<IndexEntity, Collection<LayoutEntity>> getIndexEntity2Layouts(Collection<LayoutEntity> layoutEntities) {
         Map<IndexEntity, Collection<LayoutEntity>> descLayouts = Maps.newHashMap();
         for (LayoutEntity layout : layoutEntities) {
             IndexEntity cuboidDesc = layout.getIndex();
@@ -63,7 +73,7 @@ public class NSpanningTreeFactory {
                 descLayouts.get(cuboidDesc).add(layout);
             }
         }
-        return fromIndexes(descLayouts, cacheKey);
+        return descLayouts;
     }
 
     private static NSpanningTree newInstance(KapConfig kapConfig, Map<IndexEntity, Collection<LayoutEntity>> cuboids,

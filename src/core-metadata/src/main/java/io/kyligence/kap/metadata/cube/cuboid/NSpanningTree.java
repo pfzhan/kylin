@@ -26,15 +26,19 @@ package io.kyligence.kap.metadata.cube.cuboid;
 
 import java.io.Serializable;
 import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 
 import org.apache.kylin.common.KylinConfig;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.Lists;
 
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
+import lombok.Getter;
 
 public abstract class NSpanningTree implements Serializable {
     final protected Map<IndexEntity, Collection<LayoutEntity>> cuboids;
@@ -73,5 +77,33 @@ public abstract class NSpanningTree implements Serializable {
 
     public Map<IndexEntity, Collection<LayoutEntity>> getCuboids() {
         return cuboids;
+    }
+
+    @Getter
+    public class TreeNode implements Serializable {
+        @JsonProperty("cuboid")
+        protected final IndexEntity indexEntity;
+
+        @JsonProperty("children")
+        protected final List<TreeNode> children = Lists.newLinkedList();
+
+        @JsonProperty("level")
+        protected int level;
+
+        protected TreeNode parent;
+        protected List<IndexEntity> parentCandidates;
+        protected boolean hasBeenDecided = false;
+
+        public TreeNode(IndexEntity indexEntity) {
+            this.indexEntity = indexEntity;
+        }
+
+        @Override
+        public String toString() {
+            return "level:" + level + ", node:" + indexEntity.getId() + //
+                    ", dim:" + indexEntity.getDimensionBitset().toString() + //
+                    ", measure:" + indexEntity.getMeasureBitset().toString() + //
+                    ", children:{" + children.toString() + "}";//
+        }
     }
 }

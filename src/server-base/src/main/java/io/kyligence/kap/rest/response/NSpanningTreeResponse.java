@@ -32,7 +32,8 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
-import io.kyligence.kap.metadata.cube.cuboid.NForestSpanningTree;
+import io.kyligence.kap.metadata.cube.cuboid.NSpanningTree;
+import io.kyligence.kap.metadata.cube.cuboid.NSpanningTreeForWeb;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import io.kyligence.kap.metadata.model.NDataModel;
@@ -53,18 +54,19 @@ public class NSpanningTreeResponse {
     public NSpanningTreeResponse() {
 
     }
-    public NSpanningTreeResponse(NForestSpanningTree tree, NDataModel model) {
+
+    public NSpanningTreeResponse(NSpanningTreeForWeb tree, NDataModel model) {
         val indexPlan = NIndexPlanManager.getInstance(model.getConfig(), model.getProject())
                 .getIndexPlan(model.getUuid());
-        for (NForestSpanningTree.TreeNode root : tree.getRoots()) {
+        for (NSpanningTree.TreeNode root : tree.getRoots()) {
             roots.add(simplifyTreeNodeResponse(root, indexPlan));
         }
-        for (HashMap.Entry<Long, NForestSpanningTree.TreeNode> entry : tree.getNodesMap().entrySet()) {
+        for (HashMap.Entry<Long, NSpanningTree.TreeNode> entry : tree.getNodesMap().entrySet()) {
             nodesMap.put(entry.getKey(), simplifyTreeNodeResponse(entry.getValue(), indexPlan));
         }
     }
 
-    private NSpanningTreeResponse.TreeNodeResponse simplifyTreeNodeResponse(NForestSpanningTree.TreeNode root,
+    private NSpanningTreeResponse.TreeNodeResponse simplifyTreeNodeResponse(NSpanningTree.TreeNode root,
             IndexPlan indexPlan) {
         NSpanningTreeResponse.TreeNodeResponse treeNodeResponse = new NSpanningTreeResponse.TreeNodeResponse();
         treeNodeResponse.setLevel(root.getLevel());
@@ -73,7 +75,7 @@ public class NSpanningTreeResponse {
             treeNodeResponse.setParent(root.getParent().getIndexEntity().getId());
         }
         List<Long> childrenIds = Lists.newArrayList();
-        for (NForestSpanningTree.TreeNode children : root.getChildren()) {
+        for (NSpanningTree.TreeNode children : root.getChildren()) {
             childrenIds.add(children.getIndexEntity().getId());
         }
         treeNodeResponse.setChildren(childrenIds);

@@ -111,7 +111,7 @@ import io.kyligence.kap.event.model.Event;
 import io.kyligence.kap.event.model.PostMergeOrRefreshSegmentEvent;
 import io.kyligence.kap.event.model.RefreshSegmentEvent;
 import io.kyligence.kap.metadata.cube.cuboid.NAggregationGroup;
-import io.kyligence.kap.metadata.cube.cuboid.NSpanningTree;
+import io.kyligence.kap.metadata.cube.cuboid.NSpanningTreeForWeb;
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import io.kyligence.kap.metadata.cube.model.NDataLoadingRange;
 import io.kyligence.kap.metadata.cube.model.NDataLoadingRangeManager;
@@ -371,9 +371,19 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testGetModelRelations() {
-        List<NSpanningTree> relations = modelService.getModelRelations("89af4ee2-2cdb-4b07-b39e-4c29856309aa",
+        List<NSpanningTreeForWeb> relations = modelService.getModelRelations("89af4ee2-2cdb-4b07-b39e-4c29856309aa",
                 "default");
         Assert.assertEquals(1, relations.size());
+        NSpanningTreeForWeb st = relations.get(0);
+        IndexEntity root = st.getIndexEntity(1000000L);
+
+        Assert.assertEquals(5, st.getCuboidCount());
+        Assert.assertEquals(5, st.getAllIndexEntities().size());
+        Assert.assertEquals(1, st.getRootIndexEntities().size());
+        Assert.assertEquals(1, st.getLayouts(root).size());
+        Assert.assertEquals(1, st.getChildrenByIndexPlan(root).size());
+        Assert.assertEquals(st.getNodesMap().get(30000L).getParent().getIndexEntity(), root);
+        Assert.assertTrue(st.isValid(0L));
 
         relations = modelService.getModelRelations("741ca86a-1f13-46da-a59f-95fb68615e3a", "default");
         Assert.assertEquals(1, relations.size());
