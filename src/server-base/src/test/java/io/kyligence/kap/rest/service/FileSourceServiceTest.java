@@ -32,7 +32,6 @@ import io.kyligence.kap.spark.common.CredentialUtils;
 import org.apache.hadoop.util.Shell;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.metadata.model.TableDesc;
-import org.apache.kylin.rest.msg.MsgPicker;
 import org.apache.spark.SparkConf;
 import org.apache.spark.sql.SparderEnv;
 import org.apache.spark.sql.SparkSession;
@@ -109,15 +108,6 @@ public class FileSourceServiceTest extends NLocalFileMetadataTestCase {
         return csvRequest;
     }
 
-    public CSVRequest mockS3CsvRequest() {
-        CSVRequest csvRequest = new CSVRequest();
-        csvRequest.setCredential(
-                "{\"type\":\"AWS_S3_KEY\",\"accessKey\":\"mockAccessKey\",\"secretKey\":\"mockSecretKey\"}");
-        csvRequest.setUrl("s3://kyligence/sales");
-        csvRequest.setType("AWS_S3_KEY");
-        return csvRequest;
-    }
-
     @Test
     public void testCsvSamples() {
         CSVRequest csvRequest = mockCsvRequest();
@@ -157,15 +147,10 @@ public class FileSourceServiceTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void testVerifyCredential() throws Exception {
+    public void testVerifyCredential() {
         CSVRequest csvRequest = mockCsvRequest();
         boolean success = fileSourceService.verifyCredential(csvRequest);
         Assert.assertTrue(success);
-
-        csvRequest = mockS3CsvRequest();
-        thrown.expect(IllegalStateException.class);
-        thrown.expectMessage(MsgPicker.getMsg().getINVALID_CREDENTIAL());
-        fileSourceService.verifyCredential(csvRequest);
     }
 
     @Test
