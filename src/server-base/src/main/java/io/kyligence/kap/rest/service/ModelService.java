@@ -37,6 +37,7 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 import com.google.common.collect.Maps;
+import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.event.model.AddCuboidEvent;
 import io.kyligence.kap.event.model.PostAddCuboidEvent;
 import io.kyligence.kap.metadata.cube.cuboid.NSpanningTreeForWeb;
@@ -649,7 +650,6 @@ public class ModelService extends BasicService {
         segmentHelper.refreshRelatedModelSegments(project, table, segmentRange);
     }
 
-    @Transaction(project = 0)
     public NDataModel createModel(String project, ModelRequest modelRequest) throws Exception {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication != null && authentication.getPrincipal() instanceof UserDetails) {
@@ -666,30 +666,31 @@ public class ModelService extends BasicService {
             throw new BadRequestException("Can not create model manually in SQL acceleration project!");
         }
         preProcessBeforeModelSave(dataModel, project);
-        val model = getDataModelManager(project).createDataModelDesc(dataModel, dataModel.getOwner());
-        val indexPlanManager = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), model.getProject());
-        val dataflowManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), model.getProject());
-        val indexPlan = new IndexPlan();
-        indexPlan.setUuid(model.getUuid());
-        indexPlanManager.createIndexPlan(indexPlan);
-        val df = dataflowManager.createDataflow(indexPlan, model.getOwner());
-        SegmentRange range = null;
-        if (model.getPartitionDesc() == null
-                || StringUtils.isEmpty(model.getPartitionDesc().getPartitionDateColumn())) {
-            range = SegmentRange.TimePartitionedSegmentRange.createInfinite();
-        } else if (PushDownUtil.needPushdown(modelRequest.getStart(), modelRequest.getEnd())) {
-            //load existing data
-            val pushDownResponse = getMaxAndMinTimeInPartitionColumnByPushdown(project, model.getUuid());
-            val start = PushDownUtil.calcStart(pushDownResponse.getFirst(), null);
-            range = getSegmentRangeByModel(project, model.getUuid(), start, pushDownResponse.getSecond());
-        } else {
-            range = getSegmentRangeByModel(project, model.getUuid(), modelRequest.getStart(), modelRequest.getEnd());
-        }
-        proposeAndSaveDateFormatIfNotExist(project, model.getUuid());
-        if (range != null) {
-            dataflowManager.fillDfManually(df, Lists.newArrayList(range));
-        }
-        return getDataModelManager(project).getDataModelDesc(model.getUuid());
+        val format = probeDateFormatIfNotExist(project, dataModel);
+        return UnitOfWork.doInTransactionWithRetry(() -> {
+            val model = getDataModelManager(project).createDataModelDesc(dataModel, dataModel.getOwner());
+            val indexPlanManager = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), model.getProject());
+            val dataflowManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), model.getProject());
+            val indexPlan = new IndexPlan();
+            indexPlan.setUuid(model.getUuid());
+            indexPlanManager.createIndexPlan(indexPlan);
+            val df = dataflowManager.createDataflow(indexPlan, model.getOwner());
+            SegmentRange range = null;
+            if (model.getPartitionDesc() == null
+                    || StringUtils.isEmpty(model.getPartitionDesc().getPartitionDateColumn())) {
+                range = SegmentRange.TimePartitionedSegmentRange.createInfinite();
+            } else {
+                Preconditions.checkArgument(!PushDownUtil.needPushdown(modelRequest.getStart(), modelRequest.getEnd()),
+                        "Load data must set start and end date");
+                range = getSegmentRangeByModel(project, model.getUuid(), modelRequest.getStart(), modelRequest.getEnd());
+            }
+
+            if (range != null) {
+                dataflowManager.fillDfManually(df, Lists.newArrayList(range));
+            }
+            saveDateFormatIfNotExist(project, model.getUuid(), format);
+            return getDataModelManager(project).getDataModelDesc(model.getUuid());
+        }, project);
     }
 
     private void checkModelRequest(ModelRequest request) {
@@ -772,6 +773,28 @@ public class ModelService extends BasicService {
         });
     }
 
+    private String probeDateFormatIfNotExist(String project, NDataModel modelDesc) throws Exception {
+        val partitionDesc = modelDesc.getPartitionDesc();
+        if (partitionDesc == null || StringUtils.isEmpty(partitionDesc.getPartitionDateColumn())
+                || StringUtils.isNotEmpty(partitionDesc.getPartitionDateFormat()))
+            return "";
+        String partitionColumn = modelDesc.getPartitionDesc().getPartitionDateColumnRef().getExpressionInSourceDB();
+
+        val date = PushDownUtil.getFormatIfNotExist(modelDesc.getRootFactTableName(), partitionColumn, project);
+        val format = DateFormat.proposeDateFormat(date);
+        return format;
+    }
+
+    private void saveDateFormatIfNotExist(String project, String modelId, String format) throws Exception {
+        if (StringUtils.isEmpty(format)) {
+            return;
+        }
+        getDataModelManager(project).updateDataModel(modelId, model -> {
+            model.getPartitionDesc().setPartitionDateFormat(format);
+        });
+
+    }
+
     private Pair<String, String> getMaxAndMinTimeInPartitionColumnByPushdown(String project, String model)
             throws Exception {
         val modelManager = getDataModelManager(project);
@@ -795,8 +818,26 @@ public class ModelService extends BasicService {
                 DateFormat.getFormattedDate(minAndMaxTime.getSecond(), dateFormat));
     }
 
-    @Transaction(project = 0)
     public void buildSegmentsManually(String project, String modelId, String start, String end) throws Exception {
+        NDataModel modelDesc = getDataModelManager(project).getDataModelDesc(modelId);
+        if (!modelDesc.getManagementType().equals(ManagementType.MODEL_BASED)) {
+            throw new BadRequestException(
+                    "Table oriented model '" + modelDesc.getAlias() + "' can not build segments manually!");
+        }
+        val indexPlan = getIndexPlan(modelId, project);
+        if (indexPlan == null) {
+            throw new BadRequestException(
+                    "Can not build segments, please define table index or aggregate index first!");
+        }
+        String format = probeDateFormatIfNotExist(project, modelDesc);
+        UnitOfWork.doInTransactionWithRetry(
+                () -> {
+                    buildSegmentsManually(project, modelId, format, start, end);
+                    return null;
+                }, project);
+    }
+
+    private void buildSegmentsManually(String project, String modelId, String format, String start, String end) throws Exception {
         NDataModel modelDesc = getDataModelManager(project).getDataModelDesc(modelId);
         if (!modelDesc.getManagementType().equals(ManagementType.MODEL_BASED)) {
             throw new BadRequestException(
@@ -825,18 +866,12 @@ public class ModelService extends BasicService {
             }
             //build Full seg
             segmentRangeToBuild = SegmentRange.TimePartitionedSegmentRange.createInfinite();
-        } else if (PushDownUtil.needPushdown(start, end)) {
-            val response = getMaxAndMinTimeInPartitionColumnByPushdown(project, modelId);
-            start = PushDownUtil.calcStart(response.getFirst(), df.getCoveredRange());
-            if (Long.parseLong(start) >= Long.parseLong(response.getSecond())) {
-                throw new BadRequestException("Entire existing data has already loaded!");
-            }
-            segmentRangeToBuild = SourceFactory.getSource(table).getSegmentRange(start, response.getSecond());
         } else {
+            Preconditions.checkArgument(!PushDownUtil.needPushdown(start, end),
+                    "Load data must set start and end date");
             segmentRangeToBuild = SourceFactory.getSource(table).getSegmentRange(start, end);
         }
-
-        proposeAndSaveDateFormatIfNotExist(project, modelId);
+        saveDateFormatIfNotExist(project, modelId, format);
 
         checkSegmentToBuildOverlapsBuilt(project, modelId, segmentRangeToBuild);
 
@@ -869,7 +904,6 @@ public class ModelService extends BasicService {
         postAddCuboidEvent.setJobId(addCuboidEvent.getJobId());
         postAddCuboidEvent.setOwner(getUsername());
         eventManager.post(postAddCuboidEvent);
-
     }
 
     void syncPartitionDesc(String model, String project) {

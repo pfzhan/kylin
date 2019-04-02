@@ -35,6 +35,7 @@ import org.apache.spark.sql.SparkSession;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.ext.classloader.ClassLoaderUtils;
 
 public class SparkSubmitter {
@@ -42,6 +43,9 @@ public class SparkSubmitter {
     private static Semaphore semaphore = new Semaphore((int) (Runtime.getRuntime().totalMemory() / (1024 * 1024)));
 
     public static PushdownResponse submitPushDownTask(String sql, String project) {
+        if (UnitOfWork.isAlreadyInTransaction()) {
+            logger.warn("execute spark job with transaction lock", new IllegalStateException());
+        }
         Thread.currentThread().setContextClassLoader(ClassLoaderUtils.getSparkClassLoader());
         Pair<List<List<String>>, List<StructField>> pair = null;
         SparkSession ss = SparderEnv.getSparkSession();

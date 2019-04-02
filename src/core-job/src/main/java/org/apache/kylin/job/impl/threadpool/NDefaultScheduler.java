@@ -324,7 +324,7 @@ public class NDefaultScheduler implements Scheduler<AbstractExecutable>, Connect
         int pollSecond = jobEngineConfig.getPollIntervalSecond();
         logger.info("Fetching jobs every {} seconds", pollSecond);
         fetcher = new FetcherRunner();
-        fetcherPool.scheduleAtFixedRate(fetcher, RandomUtils.nextInt(0, pollSecond), pollSecond, TimeUnit.SECONDS);
+        fetcherPool.scheduleWithFixedDelay(fetcher, RandomUtils.nextInt(0, pollSecond), pollSecond, TimeUnit.SECONDS);
         hasStarted = true;
     }
 

@@ -478,10 +478,8 @@ public class TableService extends BasicService {
         eventManager.post(postAddSegmentEvent);
     }
 
-    @Transaction(project = 0)
     public void setDataRange(String project, DateRangeRequest dateRangeRequest) throws Exception {
         String table = dateRangeRequest.getTable();
-        NDataLoadingRangeManager rangeManager = getDataLoadingRangeManager(project);
         NDataLoadingRange dataLoadingRange = getDataLoadingRange(project, table);
         SegmentRange allRange = dataLoadingRange.getCoveredRange();
 
@@ -498,17 +496,24 @@ public class TableService extends BasicService {
         if (allRange != null && allRange.getEnd().toString().equals(end))
             throw new IllegalStateException("There is no more new data to load");
 
-        // propose partition column date format if not exist
-        proposeAndSaveDateFormatIfNotExist(project, table);
+        String finalStart = start;
+        String finalEnd = end;
+        UnitOfWork.doInTransactionWithRetry(
+                () -> {
+                    saveDataRange(project, table, finalStart, finalEnd);
+                    return null;
+                }, project);
+    }
 
+    private void saveDataRange(String project, String  table, String start, String end) throws Exception {
+        proposeAndSaveDateFormatIfNotExist(project, table);
         NTableMetadataManager tableManager = getTableManager(project);
         TableDesc tableDesc = tableManager.getTableDesc(table);
         SegmentRange newSegmentRange = SourceFactory.getSource(tableDesc).getSegmentRange(start, end);
-
-        dataLoadingRange = getDataLoadingRange(project, table);
+        NDataLoadingRangeManager rangeManager = getDataLoadingRangeManager(project);
+        NDataLoadingRange dataLoadingRange = getDataLoadingRange(project, table);
         rangeManager.appendSegmentRange(dataLoadingRange, newSegmentRange);
         handleLoadingRangeUpdate(project, table, newSegmentRange);
-
     }
 
     public ExistedDataRangeResponse getLatestDataRange(String project, String table) throws Exception {

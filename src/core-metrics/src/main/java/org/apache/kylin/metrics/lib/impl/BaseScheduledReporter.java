@@ -81,7 +81,7 @@ public abstract class BaseScheduledReporter implements Closeable {
      * @param unit   the unit for {@code period}
      */
     public void start(long period, TimeUnit unit) {
-        executor.scheduleAtFixedRate(new Runnable() {
+        executor.scheduleWithFixedDelay(new Runnable() {
             @Override
             public void run() {
                 try {

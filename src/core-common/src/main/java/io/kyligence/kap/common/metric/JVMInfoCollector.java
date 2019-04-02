@@ -71,7 +71,7 @@ public class JVMInfoCollector {
 
     private static void collect(final String identifier) {
         logger.info("Start collect JVM Info");
-        Executors.newSingleThreadScheduledExecutor().scheduleAtFixedRate(new Runnable() {
+        Executors.newSingleThreadScheduledExecutor().scheduleWithFixedDelay(new Runnable() {
             @Override
             public void run() {
                 try {

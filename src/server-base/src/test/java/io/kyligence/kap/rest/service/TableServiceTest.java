@@ -56,6 +56,7 @@ import java.util.List;
 import java.util.Set;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.kyligence.kap.common.persistence.transaction.TransactionException;
 import io.kyligence.kap.rest.response.BatchLoadTableResponse;
 import io.kyligence.kap.rest.response.ExistedDataRangeResponse;
 import io.kyligence.kap.rest.response.TableDescResponse;
@@ -333,10 +334,11 @@ public class TableServiceTest extends NLocalFileMetadataTestCase {
         try {
             tableService.setDataRange("default", request);
         } catch (Exception ex) {
-            Assert.assertEquals(IllegalArgumentException.class, ex.getClass());
+            Assert.assertEquals(TransactionException.class, ex.getClass());
+            Assert.assertEquals(IllegalArgumentException.class, ex.getCause().getClass());
             Assert.assertEquals(
                     "NDataLoadingRange appendSegmentRange TimePartitionedSegmentRange[1328054400000,1330560000000) has overlaps/gap with existing segmentRanges TimePartitionedSegmentRange[0,1388534400000)",
-                    ex.getMessage());
+                    ex.getCause().getMessage());
         }
 
         // case of having gap with current loading range
@@ -345,10 +347,11 @@ public class TableServiceTest extends NLocalFileMetadataTestCase {
         try {
             tableService.setDataRange("default", request);
         } catch (Exception ex) {
-            Assert.assertEquals(IllegalArgumentException.class, ex.getClass());
+            Assert.assertEquals(TransactionException.class, ex.getClass());
+            Assert.assertEquals(IllegalArgumentException.class, ex.getCause().getClass());
             Assert.assertEquals(
                     "NDataLoadingRange appendSegmentRange TimePartitionedSegmentRange[1388534500000,1388534600000) has overlaps/gap with existing segmentRanges TimePartitionedSegmentRange[0,1388534400000)",
-                    ex.getMessage());
+                    ex.getCause().getMessage());
         }
     }
 

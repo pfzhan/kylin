@@ -145,9 +145,9 @@ public class NFavoriteScheduler {
         Preconditions.checkArgument(updateFavoriteIntervalTime * 1000L >= getFetchQueryHistoryGapTime());
 
         // schedule runner at fixed interval
-        autoFavoriteScheduler.scheduleAtFixedRate(new AutoFavoriteRunner(), initialDelay, autoFavoriteIntervalTime,
+        autoFavoriteScheduler.scheduleWithFixedDelay(new AutoFavoriteRunner(), initialDelay, autoFavoriteIntervalTime,
                 TimeUnit.SECONDS);
-        updateFavoriteScheduler.scheduleAtFixedRate(new UpdateFavoriteStatisticsRunner(), initialDelay + 10L,
+        updateFavoriteScheduler.scheduleWithFixedDelay(new UpdateFavoriteStatisticsRunner(), initialDelay + 10L,
                 updateFavoriteIntervalTime, TimeUnit.SECONDS);
 
         hasStarted = true;

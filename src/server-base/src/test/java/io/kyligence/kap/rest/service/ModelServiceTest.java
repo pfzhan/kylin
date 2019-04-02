@@ -70,6 +70,7 @@ import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.Serializer;
+import org.apache.kylin.common.util.DateFormat;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.ExecutableState;
@@ -82,6 +83,7 @@ import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.apache.kylin.metadata.model.Segments;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.realization.RealizationStatusEnum;
+import org.apache.kylin.query.util.PushDownUtil;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.exception.BadRequestException;
 import org.apache.kylin.source.jdbc.H2Database;
@@ -988,6 +990,10 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
         modelRequest.setAlias("new_model");
         modelRequest.setUuid(null);
         modelRequest.setLastModified(0L);
+        val minAndMaxTime = PushDownUtil.getMaxAndMinTime(model.getPartitionDesc().getPartitionDateColumn(), model.getRootFactTableName(), "default");
+        val dateFormat = DateFormat.proposeDateFormat(minAndMaxTime.getFirst());
+        modelRequest.setStart(DateFormat.getFormattedDate(minAndMaxTime.getFirst(), dateFormat));
+        modelRequest.setEnd(DateFormat.getFormattedDate(minAndMaxTime.getSecond(), dateFormat));
         val newModel = modelService.createModel(modelRequest.getProject(), modelRequest);
         Assert.assertEquals("new_model", newModel.getAlias());
         val dfManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
@@ -2089,7 +2095,10 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
         NDataflowUpdate dataflowUpdate = new NDataflowUpdate(dataflow.getUuid());
         dataflowUpdate.setToRemoveSegs(dataflow.getSegments().toArray(new NDataSegment[dataflow.getSegments().size()]));
         dataflowManager.updateDataflow(dataflowUpdate);
-        modelService.buildSegmentsManually("default", "89af4ee2-2cdb-4b07-b39e-4c29856309aa", "", "");
+        val minAndMaxTime = PushDownUtil.getMaxAndMinTime(modelUpdate.getPartitionDesc().getPartitionDateColumn(), modelUpdate.getRootFactTableName(), "default");
+        val dateFormat = DateFormat.proposeDateFormat(minAndMaxTime.getFirst());
+        modelService.buildSegmentsManually("default", "89af4ee2-2cdb-4b07-b39e-4c29856309aa", DateFormat.getFormattedDate(minAndMaxTime.getFirst(), dateFormat),
+                DateFormat.getFormattedDate(minAndMaxTime.getSecond(), dateFormat));
         EventDao eventDao = EventDao.getInstance(KylinConfig.getInstanceFromEnv(), "default");
 
         val events = eventDao.getEvents();

@@ -112,7 +112,7 @@ public class EventOrchestrator {
         EventChecker checker = new EventChecker();
         checkerPool = Executors.newScheduledThreadPool(1,
                 new NamedThreadFactory("EventChecker(project:" + project + ")"));
-        checkerPool.scheduleAtFixedRate(checker, RandomUtils.nextInt(0, pollSecond), pollSecond, TimeUnit.SECONDS);
+        checkerPool.scheduleWithFixedDelay(checker, RandomUtils.nextInt(0, pollSecond), pollSecond, TimeUnit.SECONDS);
     }
 
     protected class EventChecker implements Runnable {

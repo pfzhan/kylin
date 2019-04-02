@@ -99,7 +99,7 @@ public class InfluxDBWriter implements MetricWriter {
 
         logger.info("Start to monitor influxDB");
         scheduledExecutorService = Executors.newSingleThreadScheduledExecutor();
-        scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
+        scheduledExecutorService.scheduleWithFixedDelay(new Runnable() {
 
             @Override
             public void run() {
