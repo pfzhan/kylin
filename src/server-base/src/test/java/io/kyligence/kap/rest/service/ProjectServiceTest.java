@@ -233,7 +233,7 @@ public class ProjectServiceTest extends ServiceTestBase {
         prepareFQs();
         StorageVolumeInfoResponse storageVolumeInfoResponse = projectService.getStorageVolumeInfoResponse(PROJECT);
 
-        Assert.assertEquals(1000 * 1024 * 1024 * 1024L, storageVolumeInfoResponse.getStorageQuotaSize());
+        Assert.assertEquals(10240L * 1024 * 1024 * 1024, storageVolumeInfoResponse.getStorageQuotaSize());
 
         // layouts except 1 and 1000001 were all considered as garbage
         Assert.assertEquals(4178944L, storageVolumeInfoResponse.getGarbageStorageSize());

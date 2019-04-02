@@ -69,7 +69,7 @@ public class ProjectStorageInfoCollectorTest extends NLocalFileMetadataTestCase 
         val collector = new ProjectStorageInfoCollector(storageInfoEnumList);
         val storageVolumeInfo = collector.getStorageVolumeInfo(getTestConfig(), PROJECT);
 
-        Assert.assertEquals(1000 * 1024 * 1024 * 1024L, storageVolumeInfo.getStorageQuotaSize());
+        Assert.assertEquals(10240L * 1024 * 1024 * 1024, storageVolumeInfo.getStorageQuotaSize());
         Assert.assertEquals(5112832L, storageVolumeInfo.getGarbageStorageSize());
         Assert.assertEquals(5, storageVolumeInfo.getGarbageModelIndexMap().size());
         Assert.assertEquals(8, storageVolumeInfo.getGarbageModelIndexMap().get(MODEL_ID).size());
