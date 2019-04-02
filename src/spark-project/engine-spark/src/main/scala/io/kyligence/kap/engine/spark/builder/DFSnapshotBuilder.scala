@@ -26,21 +26,25 @@ package io.kyligence.kap.engine.spark.builder
 
 import java.io.IOException
 import java.util.UUID
+import java.util.concurrent.{Executors, TimeUnit}
 
 import com.google.common.collect.Maps
 import io.kyligence.kap.engine.spark.NSparkCubingEngine
-import io.kyligence.kap.metadata.cube.model.{NDataSegment, NDataflowManager, NDataflowUpdate}
+import io.kyligence.kap.metadata.cube.model.{NDataflowManager, NDataflowUpdate, NDataSegment}
+import io.kyligence.kap.metadata.model.NDataModel
 import org.apache.commons.codec.digest.DigestUtils
-import org.apache.hadoop.fs.{FileStatus, Path, PathFilter}
+import org.apache.hadoop.fs.{FileStatus, FileSystem, Path, PathFilter}
 import org.apache.kylin.common.KapConfig
-import org.apache.kylin.common.persistence.ResourceStore
 import org.apache.kylin.common.util.HadoopUtil
 import org.apache.kylin.metadata.model.TableDesc
 import org.apache.kylin.source.SourceFactory
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.{Dataset, Row, SparkSession}
+import org.apache.spark.utils.ProxyThreadUtils
 
 import scala.collection.JavaConverters._
+import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.duration._
 import scala.util.control.Breaks._
 import scala.util.{Failure, Success, Try}
 
@@ -77,58 +81,45 @@ class DFSnapshotBuilder extends Logging {
     val newSnapMap = Maps.newHashMap[String, String]
     val fs = HadoopUtil.getWorkingFileSystem
     val baseDir = KapConfig.wrap(seg.getConfig).getReadHdfsWorkingDirectory
-
-    model.getJoinTables.asScala.foreach(lookupDesc => {
-      val tableDesc = lookupDesc.getTableRef.getTableDesc
-      val isLookupTable = model.isLookupTable(lookupDesc.getTableRef)
-      if (isLookupTable && seg.getSnapshots.get(tableDesc.getIdentity) == null) {
-        val sourceData = getSourceData(tableDesc)
-        val tablePath = tableDesc.getProject + HadoopUtil.SNAPSHOT_STORAGE_ROOT + "/" + tableDesc.getName
-        var snapshotTablePath = tablePath + "/" + UUID.randomUUID
-        val resourcePath = baseDir + "/" + snapshotTablePath
-        sourceData.coalesce(1).write.parquet(resourcePath)
-
-        val currSnapFile = fs.listStatus(new Path(resourcePath), ParquetPathFilter).head
-        val currSnapMd5 = getFileMd5(currSnapFile)
-        val md5Path = resourcePath + "/" + "_" + currSnapMd5 + MD5_SUFFIX
-
-        var isReuseSnap = false
-        val existPath = baseDir + "/" + tablePath
-        val existSnaps = fs.listStatus(new Path(existPath))
-          .filterNot(_.getPath.getName == new Path(snapshotTablePath).getName)
-        breakable {
-          for (snap <- existSnaps) {
-            Try(fs.listStatus(snap.getPath, Md5PathFilter)) match {
-              case Success(list) =>
-                list.headOption match {
-                  case Some(file) =>
-                    val md5Snap = file.getPath.getName
-                      .replace(MD5_SUFFIX, "")
-                      .replace("_", "")
-                    if (currSnapMd5 == md5Snap) {
-                      snapshotTablePath = tablePath + "/" + snap.getPath.getName
-                      fs.delete(new Path(resourcePath), true)
-                      isReuseSnap = true
-                      break()
-                    }
-                  case None =>
-                    logInfo(s"Snapshot path: ${snap.getPath} not exists snapshot file")
-                }
-              case Failure(error) =>
-                logInfo(s"File not found", error)
+   val toBuildTableDesc = distinctTableDesc(model)
+    if (seg.getConfig.isSnapshotParallelBuildEnabled) {
+      val service = Executors.newCachedThreadPool()
+      implicit val executorContext = ExecutionContext.fromExecutorService(service)
+      val futures = toBuildTableDesc
+        .map {
+        tableDesc =>
+          Future[(String, String)] {
+            if (seg.getConfig.isUTEnv) {
+              Thread.sleep(1000L)
+            }
+            try {
+              buildSnapshotWithoutMd5(tableDesc, baseDir)
+            } catch {
+              case exception: Exception =>
+                logError(s"Error for build snapshot table with $tableDesc", exception)
+                throw exception
             }
           }
-        }
-
-        if (!isReuseSnap) {
-          fs.createNewFile(new Path(md5Path))
-          logInfo(s"Create md5 file: ${md5Path} for snap: ${currSnapFile}")
-        }
-
-        newSnapMap.put(tableDesc.getIdentity, snapshotTablePath)
       }
-    })
-
+      // scalastyle:off
+        try {
+          val eventualTuples = Future.sequence(futures.toList)
+          // only throw the first exception
+          val result = ProxyThreadUtils.awaitResult(eventualTuples, seg.getConfig.snapshotParallelBuildTimeoutSeconds seconds)
+          if (result.nonEmpty) {
+            newSnapMap.putAll(result.toMap.asJava)
+          }
+        } catch {
+          case e: Exception =>
+            ProxyThreadUtils.shutdown(service)
+            throw e
+        }
+    } else {
+       toBuildTableDesc.foreach{
+         tableDesc =>
+           val tuple = buildSingleSnapshot(tableDesc, baseDir, fs)
+           newSnapMap.put(tuple._1, tuple._2)}
+    }
     val dataflow = seg.getDataflow
     // make a copy of the changing segment, avoid changing the cached object
     val dfCopy = dataflow.copy
@@ -138,6 +129,17 @@ class DFSnapshotBuilder extends Logging {
     update.setToUpdateSegs(segCopy)
     val updatedDataflow = NDataflowManager.getInstance(seg.getConfig, seg.getProject).updateDataflow(update)
     updatedDataflow.getSegment(seg.getId)
+  }
+
+  def distinctTableDesc(model: NDataModel):Set[TableDesc] = {
+    model.getJoinTables.asScala
+      .filter(lookupDesc => {
+        val tableDesc = lookupDesc.getTableRef.getTableDesc
+        val isLookupTable = model.isLookupTable(lookupDesc.getTableRef)
+        isLookupTable && seg.getSnapshots.get(tableDesc.getIdentity) == null
+      })
+      .map(_.getTableRef.getTableDesc)
+      .toSet
   }
 
   def getSourceData(tableDesc: TableDesc): Dataset[Row] = {
@@ -160,4 +162,59 @@ class DFSnapshotBuilder extends Logging {
     }
   }
 
+  def buildSingleSnapshot(tableDesc: TableDesc, baseDir: String, fs: FileSystem): (String, String) = {
+    val sourceData = getSourceData(tableDesc)
+    val tablePath = tableDesc.getProject + HadoopUtil.SNAPSHOT_STORAGE_ROOT + "/" + tableDesc.getName
+    var snapshotTablePath = tablePath + "/" + UUID.randomUUID
+    val resourcePath = baseDir + "/" + snapshotTablePath
+    sourceData.coalesce(1).write.parquet(resourcePath)
+
+    val currSnapFile = fs.listStatus(new Path(resourcePath), ParquetPathFilter).head
+    val currSnapMd5 = getFileMd5(currSnapFile)
+    val md5Path = resourcePath + "/" + "_" + currSnapMd5 + MD5_SUFFIX
+
+    var isReuseSnap = false
+    val existPath = baseDir + "/" + tablePath
+    val existSnaps = fs.listStatus(new Path(existPath))
+      .filterNot(_.getPath.getName == new Path(snapshotTablePath).getName)
+    breakable {
+      for (snap <- existSnaps) {
+        Try(fs.listStatus(snap.getPath, Md5PathFilter)) match {
+          case Success(list) =>
+            list.headOption match {
+              case Some(file) =>
+                val md5Snap = file.getPath.getName
+                  .replace(MD5_SUFFIX, "")
+                  .replace("_", "")
+                if (currSnapMd5 == md5Snap) {
+                  snapshotTablePath = tablePath + "/" + snap.getPath.getName
+                  fs.delete(new Path(resourcePath), true)
+                  isReuseSnap = true
+                  break()
+                }
+              case None =>
+                logInfo(s"Snapshot path: ${snap.getPath} not exists snapshot file")
+            }
+          case Failure(error) =>
+            logInfo(s"File not found", error)
+        }
+      }
+    }
+
+    if (!isReuseSnap) {
+      fs.createNewFile(new Path(md5Path))
+      logInfo(s"Create md5 file: ${md5Path} for snap: ${currSnapFile}")
+    }
+
+    (tableDesc.getIdentity, snapshotTablePath)
+  }
+
+  def buildSnapshotWithoutMd5(tableDesc: TableDesc, baseDir: String): (String, String) = {
+    val sourceData = getSourceData(tableDesc)
+    val tablePath = tableDesc.getProject + HadoopUtil.SNAPSHOT_STORAGE_ROOT + "/" + tableDesc.getName
+    var snapshotTablePath = tablePath + "/" + UUID.randomUUID
+    val resourcePath = baseDir + "/" + snapshotTablePath
+    sourceData.write.parquet(resourcePath)
+    (tableDesc.getIdentity, snapshotTablePath)
+  }
 }

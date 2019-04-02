@@ -97,6 +97,7 @@ class TestQueryAndBuildFunSuite
   override def beforeAll(): Unit = {
     super.beforeAll()
     KylinConfig.getInstanceFromEnv.setProperty("kylin.query.pushdown.runner-class-name", "")
+    KylinConfig.getInstanceFromEnv.setProperty("kylin.snapshot.parallel-build-enabled", "true")
     SparderEnv.skipCompute()
     build()
   }

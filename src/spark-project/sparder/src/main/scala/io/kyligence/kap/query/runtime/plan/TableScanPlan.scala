@@ -133,7 +133,7 @@ object TableScanPlan extends Logging {
             .getMetricsIndices(context.getMetrics)
 
           val derived = SparderDerivedUtil(tableName,
-            dataflow.getFirstSegment,
+            dataflow.getLatestReadySegment,
             gtColIdx,
             olapContext.returnTupleInfo,
             context.getCandidate)

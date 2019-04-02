@@ -467,6 +467,14 @@ abstract public class KylinConfigBase implements Serializable {
         return Integer.parseInt(getOptional("kylin.dictionary.append-version-ttl", "259200000"));
     }
 
+    public boolean isSnapshotParallelBuildEnabled() {
+        return Boolean.parseBoolean(getOptional("kylin.snapshot.parallel-build-enabled", "true"));
+    }
+
+    public int snapshotParallelBuildTimeoutSeconds() {
+        return Integer.parseInt(getOptional("kylin.snapshot.parallel-build-timeout-seconds", "3600"));
+    }
+
     public int getGlobalDictV2MinHashPartitions() {
         return Integer.parseInt(getOptional("kylin.dictionary.globalV2-min-hash-partitions", "10"));
     }

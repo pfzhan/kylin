@@ -53,8 +53,12 @@ trait SharedSparkSession
     if (file.exists()) {
       FileUtils.deleteDirectory(file)
     }
+    initSpark()
+  }
+
+   def initSpark(): Unit = {
     _spark = SparkSession.builder
-    //      .enableHiveSupport()
+      //      .enableHiveSupport()
       .master(master)
       .appName(getClass.getSimpleName)
       .config("spark.sql.shuffle.partitions", "4")
