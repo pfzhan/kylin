@@ -306,8 +306,8 @@ export default class ModelPartitionModal extends Vue {
       this.modelDesc.start = null
       this.modelDesc.end = null
     } else {
-      this.modelDesc.start = (+transToUTCMs(this.modelBuildMeta.dataRangeVal[0])) || null
-      this.modelDesc.end = (+transToUTCMs(this.modelBuildMeta.dataRangeVal[1])) || null
+      this.modelDesc.start = (+transToUTCMs(this.modelBuildMeta.dataRangeVal[0]))
+      this.modelDesc.end = (+transToUTCMs(this.modelBuildMeta.dataRangeVal[1]))
     }
     this.handleClose(true)
   }

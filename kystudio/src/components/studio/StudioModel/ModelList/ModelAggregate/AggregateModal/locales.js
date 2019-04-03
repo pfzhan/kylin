@@ -15,7 +15,8 @@ export default {
     'tooManyDimensions': 'No more than 62 dimensions used in all aggregate groups.',
     'delAggregateTip': 'Are you sure to delete Aggregate-Group-{aggId}?',
     'delAggregateTitle': 'Delete Aggregate Group',
-    'delAllAggregateTip': 'Are you sure to delete all aggregate groups?'
+    'clearAggregateTitle': 'Clear Aggregate Group',
+    'clearAllAggregateTip': 'Are you sure to clear Aggregate-Group-{aggId}?'
   },
   'zh-cn': {
     'editAggregateGroup': '编辑聚合组',
@@ -33,6 +34,7 @@ export default {
     'tooManyDimensions': '在所有聚合组中，被使用的维度数量不能超过62个。',
     'delAggregateTip': '你确认要删除聚合组-{aggId}吗？',
     'delAggregateTitle': '删除聚合组',
-    'delAllAggregateTip': '你确认要删除所有的聚合组吗？'
+    'clearAggregateTitle': '清除聚合组',
+    'clearAllAggregateTip': '你确认要清除聚合组-{aggId}吗？'
   }
 }

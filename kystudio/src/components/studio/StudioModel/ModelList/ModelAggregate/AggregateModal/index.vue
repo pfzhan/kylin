@@ -37,7 +37,7 @@
           <!-- Include聚合组 -->
           <div class="row">
             <el-button plain size="mini" type="primary" v-guide.selectAllIncludesBtn @click="handleAddAllIncludes(aggregateIdx)">{{$t('selectAll')}}</el-button>
-            <el-button size="mini" @click="handleRemoveAllIncludes(aggregateIdx)">{{$t('cancelAll')}}</el-button>
+            <el-button size="mini" @click="handleRemoveAllIncludes(aggregateIdx, form.aggregateArray.length - aggregateIdx)">{{$t('cancelAll')}}</el-button>
           </div>
           <div class="row">
             <h2 class="title font-medium">{{$t('include')}}</h2>
@@ -339,8 +339,8 @@ export default class AggregateModal extends Vue {
     const allDimensions = this.dimensions.map(dimension => dimension.label)
     this.handleInput(`aggregateArray.${aggregateIdx}.includes`, allDimensions)
   }
-  handleRemoveAllIncludes (aggregateIdx) {
-    kapConfirm(this.$t('delAllAggregateTip', {aggId: aggregateIdx + 1}), {type: 'warning'}, this.$t('delAggregateTitle')).then(() => {
+  handleRemoveAllIncludes (aggregateIdx, titleId) {
+    kapConfirm(this.$t('clearAllAggregateTip', {aggId: titleId}), {type: 'warning'}, this.$t('clearAggregateTitle')).then(() => {
       const { aggregateArray = [] } = this.form
       const currentAggregate = aggregateArray[aggregateIdx] || {}
       const currentIncludes = currentAggregate.includes || []
