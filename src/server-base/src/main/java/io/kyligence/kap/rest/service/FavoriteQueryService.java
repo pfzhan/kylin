@@ -148,6 +148,11 @@ public class FavoriteQueryService extends BasicService {
         return favoriteQueries;
     }
 
+    // only used for test
+    public int getOptimizedModelNumForTest(String project, String[] sqls) {
+        return getOptimizedModelNum(project, sqls);
+    }
+
     private int getOptimizedModelNum(String project, String[] sqls) {
         int optimizedModelNum = 0;
         NSmartMaster smartMaster = new NSmartMaster(KylinConfig.getInstanceFromEnv(), project, sqls);

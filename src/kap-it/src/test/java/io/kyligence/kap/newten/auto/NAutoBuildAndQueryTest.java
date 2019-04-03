@@ -24,15 +24,23 @@
 
 package io.kyligence.kap.newten.auto;
 
+import java.io.File;
+import java.util.List;
 import java.util.Set;
 
+import org.apache.commons.io.FileUtils;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.metadata.model.FunctionDesc;
+import org.apache.kylin.metadata.model.MeasureDesc;
+import org.junit.Assert;
 import org.junit.Ignore;
 import org.junit.Test;
 
 import com.google.common.collect.Sets;
 
+import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.newten.NExecAndComp.CompareLevel;
+import io.kyligence.kap.rest.service.FavoriteQueryService;
 
 @SuppressWarnings("serial")
 public class NAutoBuildAndQueryTest extends NAutoTestBase {
@@ -116,6 +124,33 @@ public class NAutoBuildAndQueryTest extends NAutoTestBase {
         overwriteSystemProp("kylin.query.pushdown.runner-class-name",
                 "io.kyligence.kap.query.pushdown.PushDownRunnerSparkImpl");
         new TestScenario(CompareLevel.SAME, "sql_powerbi").execute();
+    }
+
+    @Test
+    public void testProposeSQLWontChangeOriginMetadata() throws Exception {
+        try {
+            // 1. create metadata
+            proposeWithSmartMaster(
+                    new TestScenario[] { new TestScenario(CompareLevel.SAME, "auto/sql_repropose", 0, 1) },
+                    getProject());
+            buildAllCubes(KylinConfig.getInstanceFromEnv(), getProject());
+
+            //2. get accelerate tip
+            List<String> waitingAccelerateSqls = collectQueries(
+                    new TestScenario(CompareLevel.SAME, "auto/sql_repropose", 0, 1));
+            new FavoriteQueryService().getOptimizedModelNumForTest(getProject(),
+                    waitingAccelerateSqls.toArray(new String[] {}));
+
+            //3. ensure metadata
+            List<MeasureDesc> measureDescs = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv())
+                    .listEffectiveRewriteMeasures(getProject(), "EDW.TEST_SITES");
+            measureDescs.stream().filter(measureDesc -> measureDesc.getFunction().isSum()).forEach(measureDesc -> {
+                FunctionDesc func = measureDesc.getFunction();
+                Assert.assertTrue(!func.getColRefs().isEmpty());
+            });
+        } finally {
+            FileUtils.deleteDirectory(new File("../kap-it/metastore_db"));
+        }
     }
 
     @Test

@@ -208,7 +208,7 @@ class CuboidSuggester {
                 return;
             }
 
-            final List<TblColRef> aggCols = functionDesc.getColRefs();
+            final List<TblColRef> aggCols = Lists.newArrayList(functionDesc.getColRefs());
             if (CollectionUtils.isNotEmpty(aggCols)) {
                 aggCols.removeAll(context.getGroupByColumns());
                 aggCols.removeAll(context.getSubqueryJoinParticipants());

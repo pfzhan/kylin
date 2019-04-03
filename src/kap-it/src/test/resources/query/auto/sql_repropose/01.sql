@@ -1,0 +1,1 @@
+select sum(SITE_ID) from edw.test_sites group by SITE_ID
