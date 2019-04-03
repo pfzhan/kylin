@@ -64,6 +64,21 @@ public class RecAndQueryCompareUtil {
     private RecAndQueryCompareUtil() {
     }
 
+    public static Set<String> collectAllColOrders(KylinConfig kylinConfig, String project,
+            Set<AccelerateInfo.QueryLayoutRelation> relatedLayouts) {
+        Set<String> sets = Sets.newHashSet();
+        if (CollectionUtils.isEmpty(relatedLayouts)) {
+            return sets;
+        }
+
+        relatedLayouts.forEach(layoutRelation -> {
+            final List<String> colOrderNames = findColOrderNames(kylinConfig, project, layoutRelation);
+            sets.add(String.join(",", colOrderNames));
+        });
+
+        return sets;
+    }
+
     public static String writeQueryLayoutRelationAsString(KylinConfig kylinConfig, String project,
             Set<AccelerateInfo.QueryLayoutRelation> relatedLayouts) {
         if (CollectionUtils.isEmpty(relatedLayouts)) {
@@ -78,29 +93,35 @@ public class RecAndQueryCompareUtil {
 
         List<String> list = Lists.newArrayList();
         orderedLayouts.forEach(queryLayoutRelation -> {
-            List<String> colOrderNames = Lists.newArrayList();
-
-            final IndexPlan indexPlan = NIndexPlanManager.getInstance(kylinConfig, project)
-                    .getIndexPlan(queryLayoutRelation.getModelId());
-            Preconditions.checkNotNull(indexPlan);
-            final LayoutEntity cuboidLayout = indexPlan.getCuboidLayout(queryLayoutRelation.getLayoutId());
-            final ImmutableList<Integer> colOrder = cuboidLayout.getColOrder();
-            final BiMap<Integer, TblColRef> effectiveDimCols = cuboidLayout.getIndex().getEffectiveDimCols();
-            final ImmutableBiMap<Integer, NDataModel.Measure> effectiveMeasures = cuboidLayout.getIndex()
-                    .getEffectiveMeasures();
-            colOrder.forEach(column -> {
-                if (column < NDataModel.MEASURE_ID_BASE) {
-                    colOrderNames.add(effectiveDimCols.get(column).getName());
-                } else {
-                    colOrderNames.add(effectiveMeasures.get(column).getName());
-                }
-            });
+            List<String> colOrderNames = findColOrderNames(kylinConfig, project, queryLayoutRelation);
             String tmp = String.format("{model=%s,layout=%s,colOrderName=[%s]}", queryLayoutRelation.getModelId(),
                     queryLayoutRelation.getLayoutId(), String.join(",", colOrderNames));
             list.add(tmp);
         });
 
         return "[" + String.join(",", list) + "]";
+    }
+
+    private static List<String> findColOrderNames(KylinConfig kylinConfig, String project,
+            QueryLayoutRelation queryLayoutRelation) {
+        List<String> colOrderNames = Lists.newArrayList();
+
+        final IndexPlan indexPlan = NIndexPlanManager.getInstance(kylinConfig, project)
+                .getIndexPlan(queryLayoutRelation.getModelId());
+        Preconditions.checkNotNull(indexPlan);
+        final LayoutEntity cuboidLayout = indexPlan.getCuboidLayout(queryLayoutRelation.getLayoutId());
+        final ImmutableList<Integer> colOrder = cuboidLayout.getColOrder();
+        final BiMap<Integer, TblColRef> effectiveDimCols = cuboidLayout.getIndex().getEffectiveDimCols();
+        final ImmutableBiMap<Integer, NDataModel.Measure> effectiveMeasures = cuboidLayout.getIndex()
+                .getEffectiveMeasures();
+        colOrder.forEach(column -> {
+            if (column < NDataModel.MEASURE_ID_BASE) {
+                colOrderNames.add(effectiveDimCols.get(column).getName());
+            } else {
+                colOrderNames.add(effectiveMeasures.get(column).getName());
+            }
+        });
+        return colOrderNames;
     }
 
     /**
