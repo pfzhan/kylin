@@ -25,7 +25,6 @@ package io.kyligence.kap.source;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import io.kyligence.kap.source.file.CheckCredentialException;
 import io.kyligence.kap.source.file.CredentialOperator;
 import io.kyligence.kap.source.file.LocalFileCredentialOperator;
 import io.kyligence.kap.source.file.S3KeyCredential;
@@ -169,12 +168,6 @@ public class CredentialOperatorTest {
     public void testS3MassageUrl() {
         Assert.assertEquals("s3a://kyligence/sales", s3KeyCredentialOperator.massageUrl("s3://kyligence/sales"));
         Assert.assertEquals("file://dir/file", localFileCredentialOperator.massageUrl("file://dir/file"));
-    }
-
-    @Test
-    public void testS3Verify() {
-        thrown.expect(CheckCredentialException.class);
-        s3KeyCredentialOperator.verify("s3://kyligence/sales");
     }
 
     @Test
