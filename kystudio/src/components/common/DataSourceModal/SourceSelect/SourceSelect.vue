@@ -7,11 +7,17 @@
         </div>
         <div class="datasource-name">Hive</div>
       </li>
-      <li class="datasouce ksd-center" :class="getSourceClass([sourceTypes.CSV])">
-        <div class="datasource-icon" @click="clickHandler(sourceTypes.CSV)">
+      <li class="datasouce ksd-center disabled">
+        <!-- 暂时屏蔽该功能 -->
+        <!-- <li class="datasouce ksd-center disabled" :class="getSourceClass([sourceTypes.CSV])"> -->
+        <!-- <div class="datasource-icon" @click="clickHandler(sourceTypes.CSV)"> -->
+        <div class="datasource-icon">
           <i class="el-icon-ksd-csv"></i>
         </div>
         <div class="datasource-name">CSV</div>
+        <div class="status">
+          <span>{{$t('upcoming')}}</span>
+        </div>
       </li>
       <li class="datasouce disabled ksd-center">
         <div class="datasource-icon">
