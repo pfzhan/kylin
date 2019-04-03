@@ -24,95 +24,174 @@ package io.kyligence.kap.engine.spark.builder
 
 import java.util
 
-import com.google.common.collect.Sets
+import com.google.common.collect.{Maps, Sets}
+import io.kyligence.kap.engine.spark.builder.CreateFlatTable.GlobalDictType
 import io.kyligence.kap.engine.spark.job.NSparkCubingUtil
 import io.kyligence.kap.engine.spark.utils.SparkDataSource._
+import io.kyligence.kap.metadata.cube.cuboid.NSpanningTree
 import io.kyligence.kap.metadata.cube.model.{NCubeJoinedFlatTableDesc, NDataSegment}
 import io.kyligence.kap.metadata.model.NDataModel
-import org.apache.commons.lang.StringUtils
+import org.apache.commons.lang3.StringUtils
 import org.apache.kylin.metadata.model._
 import org.apache.spark.internal.Logging
-import org.apache.spark.sql.functions._
+import org.apache.spark.sql.functions.{col, expr}
 import org.apache.spark.sql.{Dataset, Row, SparkSession}
 
 import scala.collection.JavaConverters._
 import scala.collection.mutable.ListBuffer
 
-object CreateFlatTable extends Logging {
-  def generateDataset(model: NDataModel,
-                      ss: SparkSession,
-                      encodeColMap: util.Map[String, util.Set[TblColRef]],
-                      seg: NDataSegment): Dataset[Row] = {
-    val rootFactDesc = model.getRootFactTable.getTableDesc
-    var ds = ss.table(rootFactDesc).alias(model.getRootFactTable.getAlias)
-    logInfo(s"Root table schema ${ds.schema.treeString}")
-    ds = changeSchemaToAliasDotName(ds, model.getRootFactTable.getAlias)
-    if (!encodeColMap.isEmpty) {
-      ds = encodeDataset(ds, model.getRootFactTable.getAlias, encodeColMap, seg)
-    }
-    for (lookupDesc <- model.getJoinTables.asScala) {
-      val join = lookupDesc.getJoin
-      if (join != null && !StringUtils.isEmpty(join.getType)) {
-        val joinType = join.getType.toUpperCase
-        val dimTable = lookupDesc.getTableRef
-        var lookupTable = ss.table(dimTable.getTableDesc)
-          .alias(dimTable.getAlias)
-        lookupTable = changeSchemaToAliasDotName(lookupTable, dimTable.getAlias)
-        val pk = join.getPrimaryKeyColumns
-        val fk = join.getForeignKeyColumns
-        if (pk.length != fk.length) {
-          throw new RuntimeException(
-            s"Invalid join condition of fact table: $rootFactDesc,fk: ${fk.mkString(",")}," +
-              s" lookup table:$lookupDesc, pk: ${pk.mkString(",")}")
-        }
-        val condition = fk.zip(pk).map(joinKey =>
-          col(NSparkCubingUtil.convertFromDot(joinKey._1.getIdentity))
-            .equalTo(col(NSparkCubingUtil.convertFromDot(joinKey._2.getIdentity))))
-          .reduce(_.and(_))
-        logInfo(s"Lookup table schema ${lookupTable.schema.treeString}")
-        logInfo(s"Root table ${rootFactDesc.getIdentity}, join table ${lookupDesc.getAlias}, condition: ${condition.toString()}")
-        if (!encodeColMap.isEmpty) {
-          lookupTable = encodeDataset(lookupTable, dimTable.getTableName, encodeColMap, seg)
-        }
-        ds = ds.join(lookupTable, condition, joinType)
-      }
-    }
-    ds
-  }
+class CreateFlatTable(val flatTable: IJoinedFlatTableDesc,
+                      val seg: NDataSegment,
+                      val toBuildTree: NSpanningTree,
+                      val ss: SparkSession) {
 
-  def generateDataset(flatTable: IJoinedFlatTableDesc,
-                      ss: SparkSession,
-                      encodeColMap: util.Map[String, util.Set[TblColRef]],
-                      seg: NDataSegment): Dataset[Row] = {
+  def generateDataset(needEncode: Boolean = false): Dataset[Row] = {
     val model = flatTable.getDataModel
-    var ds = generateDataset(model, ss, encodeColMap, seg)
-    logInfo(s"After join schema is ${ds.schema.treeString}")
-    logInfo(s"After join plan ${ds.queryExecution.toString()}")
-    if (StringUtils.isNotBlank(model.getFilterCondition)) {
-      val afterConvertCondition = replaceDot(model.getFilterCondition, model)
-      logInfo(s"Filter condition is $afterConvertCondition")
-      ds = ds.where(afterConvertCondition)
+
+    var rootFactDataset: Dataset[Row] = CreateFlatTable.generateFactTableDataset(model, ss)
+    rootFactDataset = CreateFlatTable.applyFilterCondition(flatTable, rootFactDataset)
+
+    var lookupTableDatasetMap: util.Map[JoinTableDesc, Dataset[Row]] = CreateFlatTable.generateLookupTableDataset(model.getJoinTables, ss)
+
+    if (needEncode) {
+      val globalDictTuple: GlobalDictType = CreateFlatTable.assemblyGlobalDictTuple(seg, toBuildTree)
+      rootFactDataset = applyEncodeOperation(rootFactDataset, model.getRootFactTable.getAlias, globalDictTuple)
+      lookupTableDatasetMap = applyEncodeOperation(lookupTableDatasetMap, globalDictTuple)
     }
-    val partDesc = model.getPartitionDesc
-    if (partDesc != null && partDesc.getPartitionDateColumn != null) {
-      @SuppressWarnings(Array("rawtypes"))
-      val segRange = flatTable.getSegRange
-      if (segRange != null && !segRange.isInfinite) {
-        val afterConvertPartition = replaceDot(
-          partDesc.getPartitionConditionBuilder
-            .buildDateRangeCondition(partDesc, null, segRange),
-          model)
-        logInfo(s"Partition filter $afterConvertPartition")
-        ds = ds.where(afterConvertPartition) // TODO: mp not supported right now
-      }
-    }
+
+    rootFactDataset = CreateFlatTable.joinFactTableWithLookupTables(rootFactDataset, lookupTableDatasetMap, model, ss)
+
     flatTable match {
       case joined: NCubeJoinedFlatTableDesc =>
-        selectNCubeJoinedFlatTable(ds, joined)
+        CreateFlatTable.selectNCubeJoinedFlatTable(rootFactDataset, joined)
       case unsupported =>
         throw new UnsupportedOperationException(
           s"Unsupported flat table desc type : ${unsupported.getClass}.")
     }
+  }
+
+  private def applyEncodeOperation(dataset: Dataset[Row], tableName: String, globalDictTuple: GlobalDictType): Dataset[Row] = {
+    buildDict(dataset, tableName, globalDictTuple)
+    encodeTable(dataset, tableName, globalDictTuple)
+  }
+
+  private def applyEncodeOperation(lookupTables: util.Map[JoinTableDesc, Dataset[Row]],
+                                   globalDictTuple: GlobalDictType): util.Map[JoinTableDesc, Dataset[Row]] = {
+    lookupTables.asScala.foreach(
+      tuple => {
+        lookupTables.put(tuple._1, applyEncodeOperation(tuple._2, tuple._1.getTableRef.getTableName, globalDictTuple))
+      }
+    )
+    lookupTables
+  }
+
+  private def buildDict(ds: Dataset[Row], tableName: String, globalDictTuple: GlobalDictType): Unit = {
+    globalDictTuple._1.asScala.get(tableName) match {
+      case Some(cols) =>
+        val dictionaryBuilder = new DictionaryBuilder(ds, seg, ss, cols)
+        dictionaryBuilder.buildDictionary()
+      case None => None
+    }
+  }
+
+  private def encodeTable(ds: Dataset[Row], tableName: String, globalDictTuple: GlobalDictType): Dataset[Row] = {
+    globalDictTuple._2.asScala.get(tableName) match {
+      case Some(cols) =>
+        DFTableEncoder.encode(ds, seg, cols)
+      case None => ds
+    }
+  }
+}
+
+
+object CreateFlatTable extends Logging {
+  type GlobalDictType = (util.Map[String, util.Set[TblColRef]], util.Map[String, util.Set[TblColRef]])
+
+  def generateFullFlatTable(model: NDataModel, ss: SparkSession): Dataset[Row] = {
+    val rootFactDataset: Dataset[Row] = generateFactTableDataset(model, ss)
+    val lookupTableDataset: util.Map[JoinTableDesc, Dataset[Row]] = generateLookupTableDataset(model.getJoinTables, ss)
+    joinFactTableWithLookupTables(rootFactDataset, lookupTableDataset, model, ss)
+  }
+
+  private def generateFactTableDataset(model: NDataModel, ss: SparkSession): Dataset[Row] = {
+    val rootFactDesc = model.getRootFactTable.getTableDesc
+    val rootFactDataset = ss.table(rootFactDesc).alias(model.getRootFactTable.getAlias)
+    changeSchemaToAliasDotName(rootFactDataset, model.getRootFactTable.getAlias)
+  }
+
+  private def generateLookupTableDataset(joinTableDesc: util.List[JoinTableDesc],
+                                         ss: SparkSession): util.Map[JoinTableDesc, Dataset[Row]] = {
+    val lookupTables = Maps.newLinkedHashMap[JoinTableDesc, Dataset[Row]]()
+    joinTableDesc.asScala.foreach(
+      joinDesc => {
+        var lookupTable = ss.table(joinDesc.getTableRef.getTableDesc).alias(joinDesc.getAlias)
+        logInfo(s"Table schema ${lookupTable.schema.treeString}")
+        lookupTable = changeSchemaToAliasDotName(lookupTable, joinDesc.getAlias)
+        lookupTables.put(joinDesc, lookupTable)
+      }
+    )
+    lookupTables
+  }
+
+  private def applyFilterCondition(flatTable: IJoinedFlatTableDesc, ds: Dataset[Row]): Dataset[Row] = {
+    var afterFilter = ds
+    val model = flatTable.getDataModel
+
+    if (StringUtils.isNotBlank(model.getFilterCondition)) {
+      var afterConvertCondition = model.getFilterCondition
+      afterConvertCondition = replaceDot(model.getFilterCondition, model)
+      logInfo(s"Filter condition is $afterConvertCondition")
+      afterFilter = afterFilter.where(afterConvertCondition)
+    }
+
+    val partDesc = model.getPartitionDesc
+    if (partDesc != null && partDesc.getPartitionDateColumn != null) {
+      val segRange = flatTable.getSegRange
+      if (segRange != null && !segRange.isInfinite) {
+        var afterConvertPartition = partDesc.getPartitionConditionBuilder
+          .buildDateRangeCondition(partDesc, null, segRange)
+        afterConvertPartition = replaceDot(afterConvertPartition, model)
+        logInfo(s"Partition filter $afterConvertPartition")
+        afterFilter = afterFilter.where(afterConvertPartition) // TODO: mp not supported right now
+      }
+    }
+    afterFilter
+  }
+
+  def joinFactTableWithLookupTables(rootFactDataset: Dataset[Row],
+                                    lookupTableDatasetMap: util.Map[JoinTableDesc, Dataset[Row]],
+                                    model: NDataModel,
+                                    ss: SparkSession): Dataset[Row] = {
+    lookupTableDatasetMap.asScala.foldLeft(rootFactDataset)(
+      (joinedDataset: Dataset[Row], tuple: (JoinTableDesc, Dataset[Row])) =>
+        joinTableDataset(model.getRootFactTable.getTableDesc, tuple._1, joinedDataset, tuple._2, ss))
+  }
+
+  def joinTableDataset(rootFactDesc: TableDesc,
+                       lookupDesc: JoinTableDesc,
+                       rootFactDataset: Dataset[Row],
+                       lookupDataset: Dataset[Row],
+                       ss: SparkSession): Dataset[Row] = {
+    var afterJoin = rootFactDataset
+    val join = lookupDesc.getJoin
+    if (join != null && !StringUtils.isEmpty(join.getType)) {
+      val joinType = join.getType.toUpperCase
+      val pk = join.getPrimaryKeyColumns
+      val fk = join.getForeignKeyColumns
+      if (pk.length != fk.length) {
+        throw new RuntimeException(
+          s"Invalid join condition of fact table: $rootFactDesc,fk: ${fk.mkString(",")}," +
+            s" lookup table:$lookupDesc, pk: ${pk.mkString(",")}")
+      }
+      val condition = fk.zip(pk).map(joinKey =>
+        col(NSparkCubingUtil.convertFromDot(joinKey._1.getIdentity))
+          .equalTo(col(NSparkCubingUtil.convertFromDot(joinKey._2.getIdentity))))
+        .reduce(_.and(_))
+      logInfo(s"Lookup table schema ${lookupDataset.schema.treeString}")
+      logInfo(s"Root table ${rootFactDesc.getIdentity}, join table ${lookupDesc.getAlias}, condition: ${condition.toString()}")
+      afterJoin = afterJoin.join(lookupDataset, condition, joinType)
+    }
+    afterJoin
   }
 
   def selectNCubeJoinedFlatTable(ds: Dataset[Row], flatTable: NCubeJoinedFlatTableDesc): Dataset[Row] = {
@@ -123,16 +202,16 @@ object CreateFlatTable extends Logging {
       .map(column => NSparkCubingUtil.convertFromDot(column.getExpressionInSourceDB))
       .zip(colIndices)
     val columnToIndexMap = columnNameToIndex.toMap
-    val encodeSeq = structType.filter(_.name.endsWith(DFTableEncoder.ENCODE_SUFFIX)).map{
+    val encodeSeq = structType.filter(_.name.endsWith(DFTableEncoder.ENCODE_SUFFIX)).map {
       tp =>
         val originNam = tp.name.replaceFirst(DFTableEncoder.ENCODE_SUFFIX, "")
         val index = columnToIndexMap.apply(originNam)
         col(tp.name).alias(index.toString + DFTableEncoder.ENCODE_SUFFIX)
     }
-    val columns = columnNameToIndex.map(tp => expr(tp._1).alias(tp._2.toString)).toSeq
+    val columns = columnNameToIndex.map(tp => expr(tp._1).alias(tp._2.toString))
     logInfo(s"Select model column is ${columns.mkString(",")}")
     logInfo(s"Select model encoding column is ${encodeSeq.mkString(",")}")
-    val selectedColumns = columns  ++ encodeSeq
+    val selectedColumns = columns ++ encodeSeq
     logInfo(s"Select model all column is ${selectedColumns.mkString(",")}")
     ds.select(selectedColumns: _*)
   }
@@ -154,6 +233,30 @@ object CreateFlatTable extends Logging {
     sb.toString()
   }
 
+  def assemblyGlobalDictTuple(seg: NDataSegment, toBuildTree: NSpanningTree): GlobalDictType = {
+    val toBuildDictSet = DictionaryBuilder.extractTreeRelatedGlobalDictToBuild(seg, toBuildTree)
+    val toBuildDictMap: util.Map[String, util.Set[TblColRef]] = convert(toBuildDictSet)
+
+    val globalDictSet = DictionaryBuilder.extractTreeRelatedGlobalDicts(seg, toBuildTree)
+    val globalDictMap: util.Map[String, util.Set[TblColRef]] = convert(globalDictSet)
+
+    (toBuildDictMap, globalDictMap)
+  }
+
+  def convert(colSet: util.Set[TblColRef]): util.Map[String, util.Set[TblColRef]] = {
+    val encodeColMap: util.Map[String, util.Set[TblColRef]] = Maps.newHashMap[String, util.Set[TblColRef]]()
+    colSet.asScala.foreach {
+      col =>
+        val tableName = col.getTableRef.getAlias
+        if (encodeColMap.containsKey(tableName)) {
+          encodeColMap.get(tableName).add(col)
+        } else {
+          encodeColMap.put(tableName, Sets.newHashSet(col))
+        }
+    }
+    encodeColMap
+  }
+
   def changeSchemaToAliasDotName(original: Dataset[Row],
                                  alias: String): Dataset[Row] = {
     val sf = original.schema.fields
@@ -163,17 +266,6 @@ object CreateFlatTable extends Logging {
     val newdf = original.toDF(newSchema: _*)
     logInfo(s"After change alias from ${original.schema.treeString} to ${newdf.schema.treeString}")
     newdf
-  }
-
-  def encodeDataset(ds: Dataset[Row], tableName: String, encodeColMap: util.Map[String, util.Set[TblColRef]],
-                    seg: NDataSegment): Dataset[Row] = {
-    var encodeDs = ds
-    encodeColMap.asScala.get(tableName).headOption match {
-      case Some(cols) =>
-        encodeDs = DFTableEncoder.encode(ds, seg, cols)
-      case None => None
-    }
-    encodeDs
   }
 
   /*
@@ -192,7 +284,6 @@ object CreateFlatTable extends Logging {
     }
     val sql: StringBuilder = new StringBuilder
     sql.append("SELECT" + sep)
-    var i: Int = 0
     for (i <- 0 until flatDesc.getAllColumns.size()) {
       val col: TblColRef = flatDesc.getAllColumns.get(i)
       sql.append(",")
@@ -244,7 +335,7 @@ object CreateFlatTable extends Logging {
               fk(i).getExpressionInSourceDB + " = " + pk(i).getExpressionInSourceDB)
 
             {
-              i += 1;
+              i += 1
               i - 1
             }
           }
@@ -273,7 +364,7 @@ object CreateFlatTable extends Logging {
     val partDesc: PartitionDesc = model.getPartitionDesc
     val segRange: SegmentRange[_ <: Comparable[_]] = flatDesc.getSegRange
     if (flatDesc.getSegment != null && partDesc != null
-      && partDesc.getPartitionDateColumn != null && segRange != null && !(segRange.isInfinite)) {
+      && partDesc.getPartitionDateColumn != null && segRange != null && !segRange.isInfinite) {
       val builder =
         flatDesc.getDataModel.getPartitionDesc.getPartitionConditionBuilder
       if (builder != null) {
@@ -289,6 +380,7 @@ object CreateFlatTable extends Logging {
   }
 
   def colName(col: TblColRef): String = {
-    return col.getTableAlias + "_" + col.getName
+    col.getTableAlias + "_" + col.getName
   }
+
 }

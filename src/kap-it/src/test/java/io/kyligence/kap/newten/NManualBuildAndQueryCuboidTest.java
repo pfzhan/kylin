@@ -24,7 +24,6 @@
 package io.kyligence.kap.newten;
 
 import java.nio.ByteBuffer;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -230,8 +229,9 @@ public class NManualBuildAndQueryCuboidTest extends NManualBuildAndQueryTest {
         NDataflow df = dsMgr.getDataflow(dfName);
         NDataModel model = df.getModel();
 
-        NCubeJoinedFlatTableDesc flatTable = new NCubeJoinedFlatTableDesc(df.getIndexPlan(), segmentRange);
-        Dataset<Row> ds = CreateFlatTable.generateDataset(flatTable, ss, new HashMap<>(), null);
+        NCubeJoinedFlatTableDesc flatTableDesc = new NCubeJoinedFlatTableDesc(df.getIndexPlan(), segmentRange);
+        CreateFlatTable flatTable = new CreateFlatTable(flatTableDesc, null, null, ss);
+        Dataset<Row> ds = flatTable.generateDataset(false);
 
         StructType schema = ds.schema();
         for (StructField field : schema.fields()) {

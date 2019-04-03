@@ -51,7 +51,7 @@ class TestGlobalDictBuild extends SparderBaseFunSuite with SharedSparkSession wi
     val df: NDataflow = dsMgr.getDataflow(CUBE_NAME)
     val seg = df.getLastSegment
     val nSpanningTree = NSpanningTreeFactory.fromLayouts(seg.getIndexPlan.getAllLayouts, df.getUuid)
-    val dictColSet = DictionaryBuilder.extractGlobalEncodeColumns(seg, nSpanningTree)
+    val dictColSet = DictionaryBuilder.extractTreeRelatedGlobalDicts(seg, nSpanningTree)
     seg.getConfig.setProperty("kylin.dictionary.globalV2-threshold-bucket-size", "100")
 
     // When to resize the dictionary, please refer to the description of DictionaryBuilder.calculateBucketSize
@@ -97,7 +97,7 @@ class TestGlobalDictBuild extends SparderBaseFunSuite with SharedSparkSession wi
   }
 
   def buildDict(seg: NDataSegment, randomDataSet: Dataset[Row], dictColSet: Set[TblColRef]): NGlobalDictMetaInfo = {
-    val dictionaryBuilder = new DictionaryBuilder(seg, randomDataSet.sparkSession, dictColSet)
+    val dictionaryBuilder = new DictionaryBuilder(randomDataSet, seg, randomDataSet.sparkSession, dictColSet)
     val col = dictColSet.iterator().next()
     val ds = randomDataSet.select("26").distinct()
     val bucketPartitionSize = dictionaryBuilder.calculateBucketSize(col, ds)

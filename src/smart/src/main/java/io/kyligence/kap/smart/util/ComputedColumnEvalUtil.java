@@ -24,7 +24,6 @@
 
 package io.kyligence.kap.smart.util;
 
-import java.util.HashMap;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -35,7 +34,7 @@ import org.apache.spark.sql.SparderEnv;
 import org.apache.spark.sql.SparkSession;
 import org.apache.spark.sql.util.SparderTypeUtil;
 
-import io.kyligence.kap.engine.spark.builder.CreateFlatTable;
+import io.kyligence.kap.engine.spark.builder.CreateFlatTable$;
 import io.kyligence.kap.engine.spark.job.NSparkCubingUtil;
 import io.kyligence.kap.metadata.model.ComputedColumnDesc;
 import io.kyligence.kap.metadata.model.NDataModel;
@@ -52,7 +51,7 @@ public class ComputedColumnEvalUtil {
         String cols = StringUtils.join(expressions, ",");
         try {
             SparkSession ss = SparderEnv.getSparkSession();
-            Dataset<Row> ds = CreateFlatTable.generateDataset(nDataModel, ss, new HashMap<>(), null)
+            Dataset<Row> ds = CreateFlatTable$.MODULE$.generateFullFlatTable(nDataModel, ss)
                     .selectExpr(expressions.stream().map(NSparkCubingUtil::convertFromDot).toArray(String[]::new));
             for (int i = 0; i < computedColumns.size(); i++) {
                 String dataType = SparderTypeUtil.convertSparkTypeToSqlType(ds.schema().fields()[i].dataType());

@@ -26,19 +26,17 @@ import static io.kyligence.kap.engine.spark.builder.NGlobalDictionaryBuilderAssi
 
 import java.io.IOException;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.lock.DistributedLock;
 import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.kylin.measure.bitmap.BitmapMeasureType;
 import org.apache.kylin.metadata.model.MeasureDesc;
-import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.TblColRef;
-import org.apache.kylin.source.SourceFactory;
 import org.apache.spark.api.java.JavaSparkContext;
 import org.apache.spark.api.java.function.Function2;
 import org.apache.spark.api.java.function.PairFunction;
@@ -53,23 +51,26 @@ import org.spark_project.guava.collect.Sets;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 
-import io.kyligence.kap.engine.spark.NSparkCubingEngine;
+import io.kyligence.kap.engine.spark.job.NSparkCubingUtil;
 import io.kyligence.kap.metadata.cube.cuboid.NCuboidLayoutChooser;
 import io.kyligence.kap.metadata.cube.cuboid.NSpanningTree;
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.model.NDataLayout;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
+import lombok.val;
 import scala.Tuple2;
 
 public class DictionaryBuilder {
     protected static final Logger logger = LoggerFactory.getLogger(DictionaryBuilder.class);
     private SparkSession ss;
+    private Dataset<Row> dataset;
     private NDataSegment seg;
     private Set<TblColRef> colRefSet;
     private DistributedLock lock;
 
-    public DictionaryBuilder(NDataSegment seg, SparkSession ss, Set<TblColRef> colRefSet) {
+    public DictionaryBuilder(Dataset<Row> dataset, NDataSegment seg, SparkSession ss, Set<TblColRef> colRefSet) {
+        this.dataset = dataset;
         this.seg = seg;
         this.ss = ss;
         this.colRefSet = colRefSet;
@@ -96,11 +97,9 @@ public class DictionaryBuilder {
         lock.lock(getLockPath(sourceColumn), Long.MAX_VALUE);
         try {
             if (lock.lock(getLockPath(sourceColumn))) {
-                TableDesc tableDesc = col.getTableRef().getTableDesc();
-                Dataset<Row> df = SourceFactory
-                        .createEngineAdapter(tableDesc, NSparkCubingEngine.NSparkCubingSource.class)
-                        .getSourceData(tableDesc, ss, new HashMap<>());
-                Dataset<Row> dictColDistinct = df.select(col.getName()).distinct();
+                val colName = NSparkCubingUtil
+                        .convertFromDot(col.getTableAlias() + "." + col.getColumnDesc().getName());
+                Dataset<Row> dictColDistinct = dataset.select(colName).distinct();
                 int bucketPartitionSize = calculateBucketSize(col, dictColDistinct);
                 build(col, bucketPartitionSize, dictColDistinct);
             }
@@ -211,33 +210,6 @@ public class DictionaryBuilder {
         logger.info("Build global dict V2 for column {} success.", col.getName());
     }
 
-    private static Set<TblColRef> extractGlobalColumns(NDataSegment seg, NSpanningTree toBuildTree, Boolean isBuild) {
-
-        Collection<IndexEntity> toBuildIndexEntities = toBuildTree.getAllIndexEntities();
-        List<LayoutEntity> toBuildCuboids = Lists.newArrayList();
-        for (IndexEntity desc : toBuildIndexEntities) {
-            if (isBuild) {
-                LayoutEntity layout = NCuboidLayoutChooser.selectLayoutForBuild(seg, desc);
-                if (layout == null) {
-                    toBuildCuboids.addAll(desc.getLayouts());
-                }
-            } else {
-                toBuildCuboids.addAll(desc.getLayouts());
-            }
-        }
-
-        List<LayoutEntity> buildedLayouts = Lists.newArrayList();
-        if (seg.getSegDetails() != null && isBuild) {
-            for (NDataLayout cuboid : seg.getSegDetails().getLayouts()) {
-                buildedLayouts.add(cuboid.getLayout());
-            }
-        }
-        Set<TblColRef> buildedColRefSet = findNeedDictCols(buildedLayouts);
-        Set<TblColRef> toBuildColRefSet = findNeedDictCols(toBuildCuboids);
-        toBuildColRefSet.removeIf(col -> buildedColRefSet.contains(col));
-        return toBuildColRefSet;
-    }
-
     private static Set<TblColRef> findNeedDictCols(List<LayoutEntity> layouts) {
         Set<TblColRef> dictColSet = Sets.newHashSet();
         for (LayoutEntity layout : layouts) {
@@ -251,12 +223,32 @@ public class DictionaryBuilder {
         return dictColSet;
     }
 
-    public static Set<TblColRef> extractGlobalDictColumns(NDataSegment seg, NSpanningTree toBuildTree) {
-        return extractGlobalColumns(seg, toBuildTree, true);
+    public static Set<TblColRef> extractTreeRelatedGlobalDictToBuild(NDataSegment seg, NSpanningTree toBuildTree) {
+        Collection<IndexEntity> toBuildIndexEntities = toBuildTree.getAllIndexEntities();
+        List<LayoutEntity> toBuildCuboids = Lists.newArrayList();
+        for (IndexEntity desc : toBuildIndexEntities) {
+            LayoutEntity layout = NCuboidLayoutChooser.selectLayoutForBuild(seg, desc);
+            if (layout == null) {
+                toBuildCuboids.addAll(desc.getLayouts());
+            }
+        }
+
+        List<LayoutEntity> buildedLayouts = Lists.newArrayList();
+        if (seg.getSegDetails() != null) {
+            for (NDataLayout cuboid : seg.getSegDetails().getLayouts()) {
+                buildedLayouts.add(cuboid.getLayout());
+            }
+        }
+        Set<TblColRef> buildedColRefSet = findNeedDictCols(buildedLayouts);
+        Set<TblColRef> toBuildColRefSet = findNeedDictCols(toBuildCuboids);
+        toBuildColRefSet.removeIf(col -> buildedColRefSet.contains(col));
+        return toBuildColRefSet;
     }
 
-    public static Set<TblColRef> extractGlobalEncodeColumns(NDataSegment seg, NSpanningTree toBuildTree) {
-        return extractGlobalColumns(seg, toBuildTree, false);
+    public static Set<TblColRef> extractTreeRelatedGlobalDicts(NDataSegment seg, NSpanningTree toBuildTree) {
+        List<LayoutEntity> toBuildCuboids = toBuildTree.getAllIndexEntities().stream()
+                .flatMap(entity -> entity.getLayouts().stream()).collect(Collectors.toList());
+        return findNeedDictCols(toBuildCuboids);
     }
 
     public static TblColRef needGlobalDictionary(MeasureDesc measure) {

@@ -22,19 +22,14 @@
 
 package io.kyligence.kap.engine.spark.job
 
-import java.util
-
 import com.google.common.base.Preconditions
-import com.google.common.collect.{Maps, Sets}
-import io.kyligence.kap.engine.spark.NSparkCubingEngine
+import com.google.common.collect.Maps
 import io.kyligence.kap.engine.spark.builder._
 import io.kyligence.kap.metadata.cube.cuboid.{NCuboidLayoutChooser, NSpanningTree}
 import io.kyligence.kap.metadata.cube.model._
 import org.apache.kylin.common.KylinConfig
-import org.apache.kylin.metadata.model.TblColRef
-import org.apache.kylin.storage.StorageFactory
 import org.apache.spark.internal.Logging
-import org.apache.spark.sql.SparkSession
+import org.apache.spark.sql.{Dataset, Row, SparkSession}
 
 import scala.collection.JavaConverters._
 
@@ -98,22 +93,15 @@ class DFChooser(toBuildTree: NSpanningTree,
   @throws[Exception]
   private def getFlatTable(): NBuildSourceInfo = {
 
-    val colSet = DictionaryBuilder.extractGlobalDictColumns(seg, toBuildTree)
-    val dictionaryBuilder = new DictionaryBuilder(seg, ss, colSet)
-    if (needEncoding) {
-      dictionaryBuilder.buildDictionary
-    }
-    val encodeColSet = if (needEncoding) DictionaryBuilder.extractGlobalEncodeColumns(seg, toBuildTree) else Sets.newHashSet[TblColRef]()
-    val encodeColMap: util.Map[String, util.Set[TblColRef]] = DFChooser.convert(encodeColSet)
-    val flatTable = new NCubeJoinedFlatTableDesc(seg.getIndexPlan, seg.getSegRange)
-    val afterJoin = CreateFlatTable.generateDataset(flatTable, ss, encodeColMap, seg)
+    val flatTableDesc = new NCubeJoinedFlatTableDesc(seg.getIndexPlan, seg.getSegRange)
+    val flatTable = new CreateFlatTable(flatTableDesc, seg, toBuildTree, ss);
+    val afterJoin: Dataset[Row] = flatTable.generateDataset(needEncoding)
 
     val sourceInfo = new NBuildSourceInfo
     sourceInfo.setSparkSession(ss)
     sourceInfo.setFlattableDS(afterJoin)
 
-    logInfo(
-      "No suitable ready layouts could be reused, generate dataset from flat table.")
+    logInfo("No suitable ready layouts could be reused, generate dataset from flat table.")
     sourceInfo
   }
 }
@@ -129,18 +117,4 @@ object DFChooser {
       ss: SparkSession,
       config: KylinConfig,
       needEncoding)
-
-  def convert(colSet: util.Set[TblColRef]): util.Map[String, util.Set[TblColRef]] = {
-    val encodeColMap: util.Map[String, util.Set[TblColRef]] = Maps.newHashMap[String, util.Set[TblColRef]]()
-    colSet.asScala.foreach {
-      col =>
-        val tableName = col.getTableRef.getAlias
-        if (encodeColMap.containsKey(tableName)) {
-          encodeColMap.get(tableName).add(col)
-        } else {
-          encodeColMap.put(tableName, Sets.newHashSet(col))
-        }
-    }
-    encodeColMap
-  }
 }

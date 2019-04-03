@@ -100,7 +100,7 @@ public class MockedDFBuildJob extends SparkApplication {
                 var structType = new StructType(collect);
                 val flatTableDesc = new NCubeJoinedFlatTableDesc(indexPlan, seg.getSegRange());
                 val nSpanningTree = NSpanningTreeFactory.fromLayouts(indexPlan.getAllLayouts(), dfName);
-                for (TblColRef ref : DictionaryBuilder.extractGlobalEncodeColumns(seg, nSpanningTree)) {
+                for (TblColRef ref : DictionaryBuilder.extractTreeRelatedGlobalDicts(seg, nSpanningTree)) {
                     int columnIndex = flatTableDesc.getColumnIndex(ref);
                     structType = structType.add(
                             structType.apply(columnIndex).name() + DFTableEncoder.ENCODE_SUFFIX(), IntegerType);

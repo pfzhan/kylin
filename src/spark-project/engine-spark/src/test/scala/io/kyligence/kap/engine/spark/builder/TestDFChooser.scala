@@ -25,7 +25,7 @@ import java.util
 
 import com.google.common.collect.Lists.newArrayList
 import com.google.common.collect.{Lists, Sets}
-import io.kyligence.kap.engine.spark.job.{CuboidAggregator, DFChooser, UdfManager}
+import io.kyligence.kap.engine.spark.job.{CuboidAggregator, UdfManager}
 import io.kyligence.kap.metadata.cube.cuboid.NSpanningTreeFactory
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager.NIndexPlanUpdater
 import io.kyligence.kap.metadata.cube.model._
@@ -111,7 +111,7 @@ class TestDFChooser extends SparderBaseFunSuite with SharedSparkSession with Loc
   private def checkEncodeAndAggIsMatch(segment: NDataSegment, indexPlan: IndexPlan, indexId: Int): Unit = {
     val indexEntity = segment.getIndexPlan.getAllIndexes.get(indexId)
     val nSpanningTree = NSpanningTreeFactory.fromLayouts(indexEntity.getLayouts, MODEL_ID)
-    val flatTableEncodeSet = DictionaryBuilder.extractGlobalEncodeColumns(segment, nSpanningTree)
+    val flatTableEncodeSet = DictionaryBuilder.extractTreeRelatedGlobalDicts(segment, nSpanningTree)
 
     val meas = indexEntity.getEffectiveMeasures
 
@@ -150,11 +150,13 @@ class TestDFChooser extends SparderBaseFunSuite with SharedSparkSession with Loc
     val dsMgr = NDataflowManager.getInstance(getTestConfig, DEFAULT_PROJECT)
     val df = dsMgr.getDataflow(dfName)
     val nSpanningTree = NSpanningTreeFactory.fromLayouts(seg.getIndexPlan.getAllLayouts, dfName)
-    val dictColSet = DictionaryBuilder.extractGlobalDictColumns(seg, nSpanningTree)
+    val dictColSet = DictionaryBuilder.extractTreeRelatedGlobalDictToBuild(seg, nSpanningTree)
     Assert.assertEquals(expectColSize, dictColSet.size())
 
-    val dictionaryBuilder = new DictionaryBuilder(seg, spark, dictColSet)
-    val segDict = dictionaryBuilder.buildDictionary
+    val flatTableDesc = new NCubeJoinedFlatTableDesc(df.getIndexPlan, seg.getSegRange)
+    val encodeColSet = DictionaryBuilder.extractTreeRelatedGlobalDicts(seg, nSpanningTree)
+    val flatTable = new CreateFlatTable(flatTableDesc, seg, nSpanningTree, spark)
+    val afterJoin = flatTable.generateDataset(true)
     dictColSet.asScala.foreach(
       col => {
         val dict1 = new NGlobalDictionaryV2(seg.getProject, col.getTable, col.getName, seg.getConfig.getHdfsWorkingDirectory)
@@ -166,12 +168,6 @@ class TestDFChooser extends SparderBaseFunSuite with SharedSparkSession with Loc
         Assert.assertEquals(meta1.getBucketSize + 10, dict2.getMetaInfo.getBucketSize)
       }
     )
-
-    val flatTable = new NCubeJoinedFlatTableDesc(df.getIndexPlan, seg.getSegRange)
-    val encodeColSet = DictionaryBuilder.extractGlobalEncodeColumns(seg, nSpanningTree)
-    val encodeColMap: util.Map[String, util.Set[TblColRef]] = DFChooser.convert(encodeColSet)
-    val afterJoin = CreateFlatTable.generateDataset(flatTable, spark, encodeColMap, seg)
-
     val dictSize = afterJoin.schema.count(_.name.endsWith(DFTableEncoder.ENCODE_SUFFIX))
     Assert.assertEquals(dictSize, encodeColSet.size())
     afterJoin
@@ -186,7 +182,7 @@ class TestDFChooser extends SparderBaseFunSuite with SharedSparkSession with Loc
         val afterAgg = CuboidAggregator.agg(spark, afterEncode, dimIndexes, measures, segment)
         val aggExp = afterAgg.queryExecution.logical.children.head.output
         val nSpanningTree = NSpanningTreeFactory.fromLayouts(segment.getIndexPlan.getAllLayouts, MODEL_ID)
-        val colRefSet = DictionaryBuilder.extractGlobalDictColumns(segment, nSpanningTree)
+        val colRefSet = DictionaryBuilder.extractTreeRelatedGlobalDictToBuild(segment, nSpanningTree)
         val needDictColIdSet = Sets.newHashSet[Integer]()
         for (col <- colRefSet.asScala) {
           needDictColIdSet.add(segment.getDataflow.getIndexPlan.getModel.getColumnIdByColumnName(col.getIdentity))

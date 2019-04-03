@@ -24,11 +24,11 @@
 
 package io.kyligence.kap.engine.spark.utils;
 
-import io.kyligence.kap.engine.spark.builder.CreateFlatTable;
 import org.junit.Assert;
 import org.junit.Test;
 
 import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
+import io.kyligence.kap.engine.spark.builder.CreateFlatTable;
 import io.kyligence.kap.engine.spark.job.NSparkCubingUtil;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
