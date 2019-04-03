@@ -25,6 +25,7 @@
 package io.kyligence.kap.metadata.cube.cuboid;
 
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -85,14 +86,14 @@ public abstract class NSpanningTree implements Serializable {
         protected final IndexEntity indexEntity;
 
         @JsonProperty("children")
-        protected final List<TreeNode> children = Lists.newLinkedList();
+        protected final ArrayList<TreeNode> children = Lists.newArrayList();
 
         @JsonProperty("level")
         protected int level;
 
-        protected TreeNode parent;
-        protected List<IndexEntity> parentCandidates;
-        protected boolean hasBeenDecided = false;
+        protected transient TreeNode parent;
+        protected transient List<IndexEntity> parentCandidates;
+        protected transient boolean hasBeenDecided = false;
 
         public TreeNode(IndexEntity indexEntity) {
             this.indexEntity = indexEntity;
