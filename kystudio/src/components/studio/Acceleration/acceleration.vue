@@ -443,6 +443,7 @@ export default class FavoriteQuery extends Vue {
   isWhiteErrorMessage = false
   whiteMessages = []
   importLoading = false
+  messageInstance = null
   uploadItems = []
   pagerTableData = []
   multipleSelection = []
@@ -798,7 +799,7 @@ export default class FavoriteQuery extends Vue {
       return item.raw ? item.raw : item
     })
     if (totalSize > 5 * 1024 * 1024) { // 后端限制不能大于5M
-      this.$message.warning(this.$t('filesSizeError'))
+      this.messageInstance = this.$message.warning(this.$t('filesSizeError'))
       this.fileSizeError = true
     } else {
       this.fileSizeError = false
@@ -808,7 +809,18 @@ export default class FavoriteQuery extends Vue {
     }
   }
   handleRemove (file, fileList) {
+    this.messageInstance.close()
     this.uploadItems = fileList
+    let totalSize = 0
+    this.uploadItems.forEach((item) => {
+      totalSize = totalSize + item.size
+    })
+    if (totalSize > 5 * 1024 * 1024) { // 后端限制不能大于5M
+      this.messageInstance = this.$message.warning(this.$t('filesSizeError'))
+      this.fileSizeError = true
+    } else {
+      this.fileSizeError = false
+    }
   }
   selectable (row) {
     return row.capable ? 1 : 0
@@ -823,6 +835,7 @@ export default class FavoriteQuery extends Vue {
     this.whiteSqlFilter = ''
     this.importLoading = false
     this.sqlFormatterObj = {}
+    this.messageInstance.close()
   }
   resetBlack () {
     this.sqlFormatterObj = {}
