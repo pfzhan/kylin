@@ -25,6 +25,7 @@ package org.apache.spark.sql
 import java.io.File
 import java.nio.file.Paths
 
+import org.apache.hadoop.security.UserGroupInformation
 import org.apache.kylin.common.{KapConfig, KylinConfig}
 import org.apache.spark.internal.Logging
 import org.apache.spark.scheduler.{SparkListener, SparkListenerApplicationEnd}
@@ -37,9 +38,9 @@ import org.apache.spark.{SparkConf, SparkContext}
 import scala.collection.JavaConverters._
 
 class KylinSession(
-    @transient val sc: SparkContext,
-    @transient private val existingSharedState: Option[SharedState])
-    extends SparkSession(sc) {
+                    @transient val sc: SparkContext,
+                    @transient private val existingSharedState: Option[SharedState])
+  extends SparkSession(sc) {
 
   def this(sc: SparkContext) {
     this(sc, None)
@@ -108,7 +109,7 @@ object KylinSession extends Logging {
         SparkSession.setDefaultSession(session)
         sparkContext.addSparkListener(new SparkListener {
           override def onApplicationEnd(
-              applicationEnd: SparkListenerApplicationEnd): Unit = {
+                                         applicationEnd: SparkListenerApplicationEnd): Unit = {
             SparkSession.setDefaultSession(null)
           }
         })
@@ -142,6 +143,10 @@ object KylinSession extends Logging {
         sparkConf.set("spark.yarn.security.credentials.hive.enabled", "false")
       }
 
+      if (UserGroupInformation.isSecurityEnabled) {
+        sparkConf.set("hive.metastore.sasl.enabled", "true")
+      }
+
       kapConfig.getSparkConf.asScala.foreach {
         case (k, v) =>
           sparkConf.set(k, v)
@@ -156,8 +161,8 @@ object KylinSession extends Logging {
       sparkConf.set("spark.debug.maxToStringFields", "1000")
       sparkConf.set("spark.scheduler.mode", "FAIR")
       if (new File(
-            KylinConfig.getKylinConfDir.getCanonicalPath + "/fairscheduler.xml")
-            .exists()) {
+        KylinConfig.getKylinConfDir.getCanonicalPath + "/fairscheduler.xml")
+        .exists()) {
         val fairScheduler = KylinConfig.getKylinConfDir.getCanonicalPath + "/fairscheduler.xml"
         sparkConf.set("spark.scheduler.allocation.file", fairScheduler)
       }
@@ -165,7 +170,7 @@ object KylinSession extends Logging {
       if (!"true".equalsIgnoreCase(System.getProperty("spark.local"))) {
         if (sparkConf.get("spark.master").startsWith("yarn")) {
           sparkConf.set("spark.yarn.dist.jars",
-                        KylinConfig.getInstanceFromEnv.getKylinJobJarPath)
+            KylinConfig.getInstanceFromEnv.getKylinJobJarPath)
           sparkConf.set("spark.yarn.dist.files", kapConfig.sparderFiles())
         } else {
           sparkConf.set("spark.jars", kapConfig.sparderJars)
