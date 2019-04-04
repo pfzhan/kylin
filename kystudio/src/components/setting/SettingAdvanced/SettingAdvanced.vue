@@ -81,7 +81,7 @@
               <span class="setting-label font-medium email-fix-top">{{$t('emails')}}</span>
               <el-form-item :prop="`job_notification_emails.${index}`" :rules="emailRules">
                 <el-input v-model="form.job_notification_emails[index]"></el-input>
-                <el-button icon="el-icon-plus" circle size="mini" @click="handleAddItem('job_notification_emails', index)"></el-button>
+                <el-button icon="el-icon-ksd-add_2" circle size="mini" @click="handleAddItem('job_notification_emails', index)"></el-button>
                 <el-button icon="el-icon-minus" circle size="mini" @click="handleRemoveItem('job_notification_emails', index)" :disabled="form.job_notification_emails.length < 2"></el-button>
               </el-form-item>
             </div>

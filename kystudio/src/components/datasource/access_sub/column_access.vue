@@ -1,6 +1,6 @@
 <template>
     <div class="accesscolumn">
-       <el-button type="primary" plain icon="el-icon-plus" @click="addGrant" v-show="hasSomeProjectPermission || isAdmin" size="medium">{{$t('restrict')}}</el-button>
+       <el-button type="primary" plain icon="el-icon-ksd-add_2" @click="addGrant" v-show="hasSomeProjectPermission || isAdmin" size="medium">{{$t('restrict')}}</el-button>
        <div style="width:200px;" class="ksd-mb-10 ksd-fright">
           <el-input :placeholder="$t('kylinLang.common.userOrGroup')" size="medium" @input="searchColumnAcl" v-model="serarchChar" class="show-search-btn" :prefix-icon="searchLoading? 'el-icon-loading':'el-icon-search'">
           </el-input>

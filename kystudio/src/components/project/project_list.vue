@@ -6,7 +6,7 @@
  <div v-if="!(projectList && projectList.length)" class="nodata">
     <div class="ksd-mb-10"><img src="../../assets/img/default_project.png"></div>
     <div class="ksd-mb-20">{{$t('noProject')}}</div>
-    <el-button type="primary" size="medium" class="ksd-mb-20 ksd-mt-20" v-if="isAdmin" icon="el-icon-plus" @click="newProject">{{$t('kylinLang.common.project')}}</el-button>
+    <el-button type="primary" size="medium" class="ksd-mb-20 ksd-mt-20" v-if="isAdmin" icon="el-icon-ksd-add_2" @click="newProject">{{$t('kylinLang.common.project')}}</el-button>
  </div>
   <el-table v-if="projectList && projectList.length"
     :data="projectList"

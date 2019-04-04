@@ -41,7 +41,7 @@
         </el-table>
         <el-row class='row_padding'>
           <el-col :span='24'>
-            <el-button  icon='el-icon-plus' @click='addBroker' type="primary" plain>Broker
+            <el-button  icon='el-icon-ksd-add_2' @click='addBroker' type="primary" plain>Broker
             </el-button>
              <el-button  icon='el-icon-search' :loading="loading" type="primary" v-if="showGetTopicBtn && topicBtnVisible" @click='loadTopicInfo'>{{$t('clusterInfo')}}
             </el-button>

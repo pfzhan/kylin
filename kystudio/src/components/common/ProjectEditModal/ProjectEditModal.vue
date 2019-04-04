@@ -76,7 +76,7 @@
             class="add-property"
             size="small"
             type="primary"
-            icon="el-icon-plus"
+            icon="el-icon-ksd-add_2"
             @click="addProperty">
             {{$t('property')}}
           </el-button>

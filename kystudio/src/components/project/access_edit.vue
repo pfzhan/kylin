@@ -1,6 +1,6 @@
 <template>
 <div class="access_edit">
-    <el-button class="ksd-mb-10" type="primary" plain size="small" @click="addAccess()" v-if="projectActions.includes('addGrant')" icon="el-icon-plus">{{$t('grant')}}</el-button>
+    <el-button class="ksd-mb-10" type="primary" plain size="small" @click="addAccess()" v-if="projectActions.includes('addGrant')" icon="el-icon-ksd-add_2">{{$t('grant')}}</el-button>
     <div style="width:200px;" class="ksd-mb-10 ksd-fright">
       <el-input
         :placeholder="$t('kylinLang.common.userOrGroup')"

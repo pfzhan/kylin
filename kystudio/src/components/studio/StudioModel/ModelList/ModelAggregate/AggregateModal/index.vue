@@ -24,7 +24,7 @@
       </div>
       <!-- 聚合组按钮 -->
       <div class="aggregate-buttons">
-        <el-button type="primary" icon="el-icon-plus" @click="handleAddAggregate">{{$t('addAggregateGroup')}}</el-button>
+        <el-button type="primary" icon="el-icon-ksd-add_2" @click="handleAddAggregate">{{$t('addAggregateGroup')}}</el-button>
       </div>
       <!-- 聚合组表单 -->
       <div class="aggregate-group" v-for="(aggregate, aggregateIdx) in form.aggregateArray" :key="aggregateIdx">
