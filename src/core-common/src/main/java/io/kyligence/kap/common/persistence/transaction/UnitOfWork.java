@@ -76,7 +76,7 @@ public class UnitOfWork {
     }
 
     public static <T> T doInTransactionWithRetry(UnitOfWorkParams<T> params) {
-        val unitName = params.getUnitName();
+        String unitName = params.getUnitName();
         val maxRetry = params.getMaxRetry();
         val f = params.getProcessor();
         // reused transaction, won't retry

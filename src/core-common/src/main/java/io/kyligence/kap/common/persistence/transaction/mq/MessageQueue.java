@@ -52,7 +52,6 @@ public abstract class MessageQueue implements Closeable {
 
     private static final Map<String, String> MQ_PROVIDERS = new HashMap<>();
     static {
-        MQ_PROVIDERS.put("kafka", "io.kyligence.kap.common.persistence.transaction.kafka.KafkaMessageQueue");
         MQ_PROVIDERS.put("mock", "io.kyligence.kap.common.persistence.transaction.mq.MockedMQ");
     }
 
