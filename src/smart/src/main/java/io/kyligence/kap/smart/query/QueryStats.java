@@ -136,10 +136,8 @@ public class QueryStats implements Serializable {
                     if (!params.get(0).getColRef().isQualified())
                         continue;
 
-                    params.forEach(param -> {
-                        if (param.isColumnType())
-                            copyParams.add(ParameterDesc.newInstance(param.getColRef()));
-                    });
+                    params.stream().filter(ParameterDesc::isColumnType)
+                            .forEach(param -> copyParams.add(ParameterDesc.newInstance(param.getColRef())));
                 } else {
                     copyParams.add(ParameterDesc.newInstance(params.get(0).getValue()));
                 }
