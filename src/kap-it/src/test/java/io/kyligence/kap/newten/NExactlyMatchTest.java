@@ -71,7 +71,7 @@ public class NExactlyMatchTest extends NLocalWithSparkSessionTest {
     }
 
     @Test
-    public void testBasic() throws Exception {
+    public void testSkipAgg() throws Exception {
         fullBuildCube("c9ddd37e-c870-4ccf-a131-5eef8fe6cb7e", getProject());
 
         KylinConfig config = KylinConfig.getInstanceFromEnv();

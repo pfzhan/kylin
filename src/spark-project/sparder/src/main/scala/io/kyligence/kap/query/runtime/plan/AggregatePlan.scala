@@ -21,6 +21,7 @@
  */
 package io.kyligence.kap.query.runtime.plan
 
+import io.kyligence.kap.metadata.cube.model.NDataflow
 import io.kyligence.kap.query.relnode.KapAggregateRel
 import io.kyligence.kap.query.runtime.RuntimeHelper
 import org.apache.calcite.DataContext
@@ -43,6 +44,9 @@ object AggregatePlan extends Logging {
   val binaryMeasureType =
     List("COUNT_DISTINCT", "PERCENTILE", "PERCENTILE_APPROX", "INTERSECT_COUNT")
 
+  val basicMeasureType =
+    List("SUM", "MIN", "MAX")
+
   def agg(inputs: java.util.List[DataFrame],
           rel: KapAggregateRel,
           dataContext: DataContext): DataFrame = {
@@ -53,7 +57,8 @@ object AggregatePlan extends Logging {
       .map(groupId => col(schemaNames.apply(groupId)))
       .toList
 
-    val df = if (KapConfig.getInstanceFromEnv.needReplaceAggWhenExactlyMatched() && isExactlyMatched(rel)) {
+    val df = if (KapConfig.getInstanceFromEnv.needReplaceAggWhenExactlyMatched() && isExactlyMatched(rel) && onlyHasOneSeg(rel)) {
+
       // exactly match, skip agg, direct project.
       val aggCols = rel.getRewriteAggCalls.asScala
         .map(call => col(schemaNames.apply(call.getArgList.get(0)))).toList
@@ -69,14 +74,20 @@ object AggregatePlan extends Logging {
     df
   }
 
+  private def onlyHasOneSeg(rel: KapAggregateRel): Boolean = {
+    rel.getContext.realization.asInstanceOf[NDataflow].getQueryableSegments.size() == 1
+  }
+
   private def isExactlyMatched(rel: KapAggregateRel) :Boolean = {
     val olapContext = rel.getContext
 
     val rewrites = rel.getRewriteAggCalls.asScala
     // only support simple measure type.
-    if (rewrites.exists(call => binaryMeasureType.contains(OLAPAggregateRel.getAggrFuncName(call)))
+    if (rewrites.exists(call => !basicMeasureType.contains(OLAPAggregateRel.getAggrFuncName(call)))
       // do not support the case that more than one arg.
-      || rewrites.exists(_.getArgList.size() > 1)) {
+      || rewrites.exists(_.getArgList.size() > 1)
+      // do not support agg that has sub-contexts.
+      || rel.getSubContext.size() > 1) {
       return false
     }
 
