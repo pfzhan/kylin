@@ -809,7 +809,7 @@ export default class FavoriteQuery extends Vue {
     }
   }
   handleRemove (file, fileList) {
-    this.messageInstance.close()
+    this.messageInstance && this.messageInstance.close()
     this.uploadItems = fileList
     let totalSize = 0
     this.uploadItems.forEach((item) => {
@@ -835,7 +835,7 @@ export default class FavoriteQuery extends Vue {
     this.whiteSqlFilter = ''
     this.importLoading = false
     this.sqlFormatterObj = {}
-    this.messageInstance.close()
+    this.messageInstance && this.messageInstance.close()
   }
   resetBlack () {
     this.sqlFormatterObj = {}

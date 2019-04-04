@@ -37,11 +37,10 @@
                   <tr class="ksd-tr">
                     <th class="label">{{$t('kylinLang.query.answered_by')}}</th>
                     <td style="padding: 5px 10px;">
-                      <!-- {{props.row.model_alias_mapping[name]}} -->
-                      <div v-if="!props.row.cube_hit" class="realization-tags"><el-tag  type="warning" size="small" v-for="pushdown in getAnsweredByList(props.row.answered_by)" :key="pushdown">{{pushdown}}</el-tag></div>
-                      <div v-if="props.row.cube_hit" class="realization-tags">
-                        <el-tag size="small" v-for="modelName in getAnsweredByList(props.row.answered_by)" :key="modelName" @click.native="openAgg(props.row.model_alias_mapping[modelName])">{{modelName}}</el-tag>
+                      <div v-if="props.row.index_hit" class="realization-tags">
+                        <el-tag size="small" style="cursor:pointer;" v-for="item in props.row.realizations" :key="item.modelId" @click.native="openAgg(item.modelId)">{{item.modelAlias}}</el-tag>
                       </div>
+                      <div v-else class="realization-tags"><el-tag type="warning" size="small">{{props.row.engine_type}}</el-tag></div>
                     </td>
                   </tr>
                   <tr class="ksd-tr">
@@ -80,38 +79,20 @@
       </el-table-column>
       <el-table-column :label="$t('kylinLang.query.sqlContent_th')" prop="sql_text" header-align="center" show-overflow-tooltip>
       </el-table-column>
-      <el-table-column :renderHeader="renderColumn3" prop="answered_by" header-align="center" width="250" show-overflow-tooltip>
+      <el-table-column :renderHeader="renderColumn3" prop="realizations" header-align="center" width="250" show-overflow-tooltip>
         <template slot-scope="props">
           <div class="tag-ellipsis">
-            <el-tag v-if="!props.row.cube_hit" type="warning" size="small" v-for="pushdown in getAnsweredByList(props.row.answered_by)" :key="pushdown">{{pushdown}}</el-tag>
-            <el-tag v-if="props.row.cube_hit" v-for="modelName in getAnsweredByList(props.row.answered_by)" size="small" :key="modelName">{{modelName}}</el-tag>
+            <template v-if="props.row.index_hit">
+              <el-tag v-for="item in props.row.realizations" size="small" :key="item.modelId">{{item.modelAlias}}</el-tag>
+            </template>
+            <template v-else>
+              <el-tag type="warning" size="small">{{props.row.engine_type}}</el-tag>
+            </template>
           </div>
         </template>
       </el-table-column>
       <el-table-column :label="$t('kylinLang.query.submitter')" prop="submitter" align="center" width="145">
       </el-table-column>
-      <!-- <el-table-column :renderHeader="renderColumn5" prop="accelerate_status" align="center" width="120">
-        <template slot-scope="props">
-          <el-popover
-            ref="popover"
-            placement="top"
-            width="160"
-            trigger="hover"
-            v-if="props.row.accelerate_status === 'UNACCELERATED'">
-            <p class="to_acce">{{$t('kylinLang.query.unAcce')}}</p>
-            <div style="text-align: right; margin: 0">
-              <el-button size="mini" type="primary" text @click="(event) => {toAcce(event, props.row)}">{{$t('kylinLang.common.ok')}}</el-button>
-            </div>
-          </el-popover>
-          <i class="el-icon-ksd-negative" v-if="props.row.accelerate_status === 'UNACCELERATED'" v-popover:popover></i>
-          <el-tooltip class="item" effect="dark" :content="$t('kylinLang.query.fullyAcce')" placement="top" v-if="props.row.accelerate_status === 'FULLY_ACCELERATED'">
-            <i class="status-icon el-icon-ksd-acclerate_all"></i>
-          </el-tooltip>
-          <el-tooltip class="item" effect="dark" :content="$t('kylinLang.query.partlyAcce')" placement="top" v-if="props.row.accelerate_status === 'PARTLY_ACCELERATED'">
-            <i class="status-icon el-icon-ksd-acclerate_portion"></i>
-          </el-tooltip>
-        </template>
-      </el-table-column> -->
     </el-table>
   </div>
 </template>
@@ -235,12 +216,6 @@ export default class QueryHistoryTable extends Vue {
     this.timer = setTimeout(() => {
       this.filterList()
     }, 500)
-  }
-
-  getQueryDetailData (row) {
-    return Object.entries(row)
-    .filter(([key]) => ['query_id', 'duration', 'answered_by', 'total_scan_count', 'total_scan_bytes', 'result_row_count', 'cache_hit'].includes(key))
-    .map(([key, value]) => ({ key, value }))
   }
 
   filterList () {
