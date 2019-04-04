@@ -47,7 +47,7 @@
           <template v-if="!isAdminView">
             <project_select v-on:changePro="changeProject" ref="projectSelect"></project_select>
             <el-button v-guide.addProjectBtn :type="highlightType" plain :title="$t('kylinLang.project.addProject')" @click="addProject" v-show="isAdmin" size="medium">
-              <i class="el-icon-plus"></i>
+              <i class="el-icon-ksd-add_2"></i>
             </el-button>
           </template>
 
