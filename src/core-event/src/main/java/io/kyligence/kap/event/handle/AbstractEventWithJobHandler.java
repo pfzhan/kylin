@@ -73,7 +73,7 @@ abstract class AbstractEventWithJobHandler extends AbstractEventHandler {
                     .flatMap(j -> j.getDependencies(kylinConfig).stream()).collect(Collectors.toSet());
             Map<String, String> info = Maps.newHashMap();
             info.put(DEPENDENT_FILES, StringUtils.join(deps, ","));
-            executableManager.updateJobOutput(po.getId(), null, info, null);
+            executableManager.updateJobOutput(po.getId(), null, info, null, null);
         }
 
         finishEvent(project, eventId);

@@ -136,7 +136,7 @@ public class StorageCleanerTest extends NLocalFileMetadataTestCase {
                 "/default/dict/global_dict/DEFAULT.TEST_KYLIN_FACT/invalid/keep" };
 
         extra.put(AbstractExecutable.DEPENDENT_FILES, StringUtils.join(dependFiles, ","));
-        jobMgr.updateJobOutput(job1.getId(), ExecutableState.RUNNING, extra, null);
+        jobMgr.updateJobOutput(job1.getId(), ExecutableState.RUNNING, extra, null, null);
 
         val cleaner = new StorageCleaner();
         cleaner.execute();

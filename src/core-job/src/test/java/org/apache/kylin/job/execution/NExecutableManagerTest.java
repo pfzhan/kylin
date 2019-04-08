@@ -82,7 +82,7 @@ public class NExecutableManagerTest extends NLocalFileMetadataTestCase {
         AbstractExecutable another = manager.getJob(executable.getId());
         assertJobEqual(executable, another);
 
-        manager.updateJobOutput(executable.getId(), ExecutableState.RUNNING, null, "test output");
+        manager.updateJobOutput(executable.getId(), ExecutableState.RUNNING, null, null, "test output");
         assertJobEqual(executable, manager.getJob(executable.getId()));
     }
 
@@ -114,13 +114,13 @@ public class NExecutableManagerTest extends NLocalFileMetadataTestCase {
         SucceedTestExecutable job = new SucceedTestExecutable();
         String id = job.getId();
         manager.addJob(job);
-        manager.updateJobOutput(id, ExecutableState.RUNNING, null, null);
-        manager.updateJobOutput(id, ExecutableState.ERROR, null, null);
-        manager.updateJobOutput(id, ExecutableState.READY, null, null);
-        manager.updateJobOutput(id, ExecutableState.RUNNING, null, null);
-        manager.updateJobOutput(id, ExecutableState.READY, null, null);
-        manager.updateJobOutput(id, ExecutableState.RUNNING, null, null);
-        manager.updateJobOutput(id, ExecutableState.SUCCEED, null, null);
+        manager.updateJobOutput(id, ExecutableState.RUNNING, null, null, null);
+        manager.updateJobOutput(id, ExecutableState.ERROR, null, null, null);
+        manager.updateJobOutput(id, ExecutableState.READY, null, null, null);
+        manager.updateJobOutput(id, ExecutableState.RUNNING, null, null, null);
+        manager.updateJobOutput(id, ExecutableState.READY, null, null, null);
+        manager.updateJobOutput(id, ExecutableState.RUNNING, null, null, null);
+        manager.updateJobOutput(id, ExecutableState.SUCCEED, null, null, null);
     }
 
     @Test(expected = IllegalStateException.class)
@@ -142,8 +142,8 @@ public class NExecutableManagerTest extends NLocalFileMetadataTestCase {
         executable.setParam("test3", "test3");
         executable.setProject("default");
         manager.addJob(executable);
-        manager.updateJobOutput(executable.getId(), ExecutableState.RUNNING, null, null);
-        manager.updateJobOutput(executable.getId(), ExecutableState.SUCCEED, null, null);
+        manager.updateJobOutput(executable.getId(), ExecutableState.RUNNING, null, null, null);
+        manager.updateJobOutput(executable.getId(), ExecutableState.SUCCEED, null, null, null);
         manager.deleteJob(executable.getId());
         List<AbstractExecutable> executables = manager.getAllExecutables();
         Assert.assertTrue(!executables.contains(executable));
@@ -157,8 +157,8 @@ public class NExecutableManagerTest extends NLocalFileMetadataTestCase {
         executable.setParam("test3", "test3");
         executable.setProject("default");
         manager.addJob(executable);
-        manager.updateJobOutput(executable.getId(), ExecutableState.RUNNING, null, null);
-        manager.updateJobOutput(executable.getId(), ExecutableState.SUICIDAL, null, null);
+        manager.updateJobOutput(executable.getId(), ExecutableState.RUNNING, null, null, null);
+        manager.updateJobOutput(executable.getId(), ExecutableState.SUICIDAL, null, null, null);
         manager.deleteJob(executable.getId());
         List<AbstractExecutable> executables = manager.getAllExecutables();
         Assert.assertTrue(!executables.contains(executable));
@@ -215,15 +215,15 @@ public class NExecutableManagerTest extends NLocalFileMetadataTestCase {
     public void testInvalidStateTransfer() {
         SucceedTestExecutable job = new SucceedTestExecutable();
         manager.addJob(job);
-        manager.updateJobOutput(job.getId(), ExecutableState.ERROR, null, null);
-        manager.updateJobOutput(job.getId(), ExecutableState.PAUSED, null, null);
+        manager.updateJobOutput(job.getId(), ExecutableState.ERROR, null, null, null);
+        manager.updateJobOutput(job.getId(), ExecutableState.PAUSED, null, null, null);
     }
 
     @Test
     public void testResumeAllRunningJobsHappyCase() {
         BaseTestExecutable executable = new SucceedTestExecutable();
         manager.addJob(executable);
-        manager.updateJobOutput(executable.getId(), ExecutableState.RUNNING, null, null);
+        manager.updateJobOutput(executable.getId(), ExecutableState.RUNNING, null, null, null);
 
         AbstractExecutable job = manager.getJob(executable.getId());
         Assert.assertEquals(job.getStatus(), ExecutableState.RUNNING);
@@ -238,7 +238,7 @@ public class NExecutableManagerTest extends NLocalFileMetadataTestCase {
     public void testResumeAllRunningJobsIsolationWithProject() {
         BaseTestExecutable executable = new SucceedTestExecutable();
         manager.addJob(executable);
-        manager.updateJobOutput(executable.getId(), ExecutableState.RUNNING, null, null);
+        manager.updateJobOutput(executable.getId(), ExecutableState.RUNNING, null, null, null);
         AbstractExecutable job = manager.getJob(executable.getId());
         Assert.assertEquals(job.getStatus(), ExecutableState.RUNNING);
 
@@ -246,7 +246,7 @@ public class NExecutableManagerTest extends NLocalFileMetadataTestCase {
         NExecutableManager ssbManager = NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), "ssb");
         BaseTestExecutable ssbExecutable = new SucceedTestExecutable();
         ssbManager.addJob(ssbExecutable);
-        ssbManager.updateJobOutput(ssbExecutable.getId(), ExecutableState.RUNNING, null, null);
+        ssbManager.updateJobOutput(ssbExecutable.getId(), ExecutableState.RUNNING, null, null, null);
 
         AbstractExecutable ssbJob = ssbManager.getJob(ssbExecutable.getId());
         Assert.assertEquals(ssbJob.getStatus(), ExecutableState.RUNNING);
@@ -306,9 +306,9 @@ public class NExecutableManagerTest extends NLocalFileMetadataTestCase {
         job.setProject("default");
         manager.addJob(job);
         manager.pauseJob(job.getId());
-        manager.updateJobOutput(executable.getId(), ExecutableState.RUNNING, null, null);
-        manager.updateJobOutput(executable.getId(), ExecutableState.SUCCEED, null, null);
-        manager.updateJobOutput(executable2.getId(), ExecutableState.PAUSED, null, null);
+        manager.updateJobOutput(executable.getId(), ExecutableState.RUNNING, null, null, null);
+        manager.updateJobOutput(executable.getId(), ExecutableState.SUCCEED, null, null, null);
+        manager.updateJobOutput(executable2.getId(), ExecutableState.PAUSED, null, null, null);
 
         manager.resumeJob(job.getId(), true);
         DefaultChainedExecutable job1 = (DefaultChainedExecutable) manager.getJob(job.getId());

@@ -246,7 +246,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         job.addTask(task2);
         executableManager.addJob(job);
         NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project).updateJobOutput(task2.getId(),
-                ExecutableState.RUNNING, null, null);
+                ExecutableState.RUNNING, null, null, null);
         waitForJobFinish(job.getId(), 10000);
         Assert.assertEquals(ExecutableState.ERROR, executableManager.getOutput(job.getId()).getState());
         Assert.assertEquals(ExecutableState.SUCCEED, executableManager.getOutput(task1.getId()).getState());

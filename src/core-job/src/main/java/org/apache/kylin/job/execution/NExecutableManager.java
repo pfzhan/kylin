@@ -40,6 +40,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import com.google.common.collect.Sets;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -330,23 +331,25 @@ public class NExecutableManager {
         if (job == null) {
             return;
         }
-        Map<String, String> info = null;
+        Map<String, String> updateInfo = null;
+        Set<String> removeInfo = null;
         if (job instanceof DefaultChainedExecutable) {
             List<AbstractExecutable> tasks = ((DefaultChainedExecutable) job).getTasks();
             tasks.stream().filter(task -> task.getStatus() != ExecutableState.READY)
                     .filter(task -> (allStep || task.getStatus() == ExecutableState.ERROR
                             || task.getStatus() == ExecutableState.PAUSED))
-                    .forEach(task -> updateJobOutput(task.getId(), ExecutableState.READY, null, null));
+                    .forEach(task -> updateJobOutput(task.getId(), ExecutableState.READY, null, null, null));
 
             final long endTime = job.getEndTime();
             if (endTime != 0) {
                 long interruptTime = System.currentTimeMillis() - endTime + job.getInterruptTime();
-                info = Maps.newHashMap(getJobOutput(jobId).getInfo());
-                info.put(AbstractExecutable.INTERRUPT_TIME, Long.toString(interruptTime));
-                info.remove(AbstractExecutable.END_TIME);
+                updateInfo = Maps.newHashMap();
+                removeInfo = Sets.newHashSet();
+                updateInfo.put(AbstractExecutable.INTERRUPT_TIME, Long.toString(interruptTime));
+                removeInfo.add(AbstractExecutable.END_TIME);
             }
         }
-        updateJobOutput(jobId, ExecutableState.READY, info, null);
+        updateJobOutput(jobId, ExecutableState.READY, updateInfo, removeInfo, null);
     }
 
     public long countCuttingInJobByModel(String model, AbstractExecutable job) {
@@ -364,13 +367,13 @@ public class NExecutableManager {
             List<AbstractExecutable> tasks = ((DefaultChainedExecutable) job).getTasks();
             for (AbstractExecutable task : tasks) {
                 if (!task.getStatus().isFinalState()) {
-                    updateJobOutput(task.getId(), ExecutableState.DISCARDED, null, null);
+                    updateJobOutput(task.getId(), ExecutableState.DISCARDED, null, null, null);
                 }
             }
         }
-        val info = Maps.newHashMap(getJobOutput(jobId).getInfo());
+        Map<String, String> info = Maps.newHashMap();
         info.put(AbstractExecutable.END_TIME, Long.toString(System.currentTimeMillis()));
-        updateJobOutput(jobId, ExecutableState.DISCARDED, info, null);
+        updateJobOutput(jobId, ExecutableState.DISCARDED, info, null, null);
     }
 
     public void pauseJob(String jobId) {
@@ -378,9 +381,9 @@ public class NExecutableManager {
         if (job == null) {
             return;
         }
-        val info = Maps.newHashMap(getJobOutput(jobId).getInfo());
+        Map<String, String> info = Maps.newHashMap();
         info.put(AbstractExecutable.END_TIME, Long.toString(System.currentTimeMillis()));
-        updateJobOutput(jobId, ExecutableState.PAUSED, info, null);
+        updateJobOutput(jobId, ExecutableState.PAUSED, info, null, null);
         // pauseJob may happen when the job has not been scheduled
         // then call this hook after updateJobOutput
         job.onExecuteStopHook();
@@ -402,7 +405,7 @@ public class NExecutableManager {
         return jobOutput;
     }
 
-    public void updateJobOutput(String taskOrJobId, ExecutableState newStatus, Map<String, String> info,
+    public void updateJobOutput(String taskOrJobId, ExecutableState newStatus, Map<String, String> updateInfo,  Set<String> removeInfo,
             String output) {
         val jobId = extractJobId(taskOrJobId);
         executableDao.updateJob(jobId, job -> {
@@ -422,9 +425,14 @@ public class NExecutableManager {
                 }
                 jobOutput.setStatus(newStatus.toString());
             }
-            if (info != null) {
-                jobOutput.setInfo(info);
+            Map<String, String> info = Maps.newHashMap(jobOutput.getInfo());
+            if (updateInfo != null) {
+                info.putAll(updateInfo);
             }
+            if (removeInfo != null) {
+                removeInfo.forEach(info::remove);
+            }
+            jobOutput.setInfo(info);
             if (output != null) {
                 jobOutput.setContent(output);
             }

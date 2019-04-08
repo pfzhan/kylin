@@ -191,9 +191,9 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
         task.setProject(project);
         executable.addTask(task);
         manager.addJob(executable);
-        manager.updateJobOutput(executable.getId(), ExecutableState.PAUSED, null, null);
-        manager.updateJobOutput(task.getId(), ExecutableState.RUNNING, null, null);
-        manager.updateJobOutput(task.getId(), ExecutableState.SUCCEED, null, null);
+        manager.updateJobOutput(executable.getId(), ExecutableState.PAUSED, null, null, null);
+        manager.updateJobOutput(task.getId(), ExecutableState.RUNNING, null, null, null);
+        manager.updateJobOutput(task.getId(), ExecutableState.SUCCEED, null, null, null);
 
         ExecutableResponse response = ExecutableResponse.create(executable);
         Assert.assertEquals(0.99F, response.getStepRatio(), 0.001);
@@ -225,8 +225,8 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
         SucceedTestExecutable executable = new SucceedTestExecutable();
         executable.setProject("default");
         manager.addJob(executable);
-        manager.updateJobOutput(executable.getId(), ExecutableState.RUNNING, null, null);
-        manager.updateJobOutput(executable.getId(), ExecutableState.SUCCEED, null, null);
+        manager.updateJobOutput(executable.getId(), ExecutableState.RUNNING, null, null, null);
+        manager.updateJobOutput(executable.getId(), ExecutableState.SUCCEED, null, null, null);
         Assert.assertEquals(ExecutableState.SUCCEED, executable.getStatus());
         thrown.expect(IllegalStateException.class);
         thrown.expectMessage("The job " + executable.getId() + " has already been succeed and cannot be discarded.");

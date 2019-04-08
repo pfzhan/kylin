@@ -315,7 +315,7 @@ public abstract class AbstractExecutable implements Executable, Idempotent {
             }
 
             //The output will be stored in HDFS,not in RS
-            executableManager.updateJobOutput(jobId, newStatus, existedInfo, null);
+            executableManager.updateJobOutput(jobId, newStatus, existedInfo, null, null);
             if (hook != null) {
                 hook.accept(jobId);
             }

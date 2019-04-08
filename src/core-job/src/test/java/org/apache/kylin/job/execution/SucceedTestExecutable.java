@@ -41,7 +41,7 @@ public class SucceedTestExecutable extends BaseTestExecutable {
     @Override
     protected ExecuteResult doWork(ExecutableContext context) {
         Map<String, String> info = new HashMap<String, String>(){{put("runningStatus", "inRunning");}};
-        NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), getProject()).updateJobOutput(getId(), ExecutableState.RUNNING, info, null);
+        NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), getProject()).updateJobOutput(getId(), ExecutableState.RUNNING, info, null, null);
         try {
             Thread.sleep(1000);
             this.retry++;
