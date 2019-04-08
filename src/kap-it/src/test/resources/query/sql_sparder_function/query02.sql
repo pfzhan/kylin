@@ -16,15 +16,8 @@
 -- limitations under the License.
 -- ISSUE #6152
 
-SELECT CAST(MOD(ITEM_COUNT, 2) AS BIGINT) AS "mod", LN(ITEM_COUNT) AS "ln"
-	, round(LOG10(ITEM_COUNT), 6) AS "log10"
-	, EXP(ITEM_COUNT) AS "exp", ACOS(ITEM_COUNT) AS "acos"
-	, ASIN(ITEM_COUNT) AS "asin", ATAN(ITEM_COUNT) AS "atan"
-	, ATAN2(ITEM_COUNT, 0.8) AS "atan2"
-	, COS(ITEM_COUNT) AS "cos", DEGREES(ITEM_COUNT) AS "degrees"
-	, RADIANS(ITEM_COUNT) AS "radians", SIGN(ITEM_COUNT) AS "sign"
-	, TAN(ITEM_COUNT) AS "tan", SIN(ITEM_COUNT) AS "sin"
-FROM TEST_KYLIN_FACT
-where ITEM_COUNT is not null and ITEM_COUNT > 10
-GROUP BY ITEM_COUNT
-ORDER BY "mod"
+select INITCAP(LSTG_FORMAT_NAME) as col
+from TEST_KYLIN_FACT
+group by LSTG_FORMAT_NAME
+order by col
+
