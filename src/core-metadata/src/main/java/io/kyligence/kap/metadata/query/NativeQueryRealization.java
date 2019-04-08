@@ -29,11 +29,13 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.io.Serializable;
+
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class NativeQueryRealization {
+public class NativeQueryRealization implements Serializable {
     private String modelId;
     private String modelAlias;
     private Long layoutId;
