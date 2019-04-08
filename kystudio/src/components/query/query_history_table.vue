@@ -37,10 +37,10 @@
                   <tr class="ksd-tr">
                     <th class="label">{{$t('kylinLang.query.answered_by')}}</th>
                     <td style="padding: 5px 10px;">
-                      <div v-if="props.row.index_hit" class="realization-tags">
+                      <div v-if="props.row.realizations && props.row.realizations.length" class="realization-tags">
                         <el-tag size="small" style="cursor:pointer;" v-for="item in props.row.realizations" :key="item.modelId" @click.native="openAgg(item.modelId)">{{item.modelAlias}}</el-tag>
                       </div>
-                      <div v-else class="realization-tags"><el-tag type="warning" size="small">{{props.row.engine_type}}</el-tag></div>
+                      <div v-else class="realization-tags"><el-tag type="warning" size="small" v-if="props.row.engine_type">{{props.row.engine_type}}</el-tag></div>
                     </td>
                   </tr>
                   <tr class="ksd-tr">
@@ -82,11 +82,11 @@
       <el-table-column :renderHeader="renderColumn3" prop="realizations" header-align="center" width="250" show-overflow-tooltip>
         <template slot-scope="props">
           <div class="tag-ellipsis">
-            <template v-if="props.row.index_hit">
+            <template v-if="props.row.realizations && props.row.realizations.length">
               <el-tag v-for="item in props.row.realizations" size="small" :key="item.modelId">{{item.modelAlias}}</el-tag>
             </template>
             <template v-else>
-              <el-tag type="warning" size="small">{{props.row.engine_type}}</el-tag>
+              <el-tag type="warning" size="small" v-if="props.row.engine_type">{{props.row.engine_type}}</el-tag>
             </template>
           </div>
         </template>

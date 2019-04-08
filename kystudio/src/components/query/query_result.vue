@@ -17,8 +17,7 @@
         </p>
         <p class="resultText" :class="{'guide-queryAnswerBy': isWorkspace}">
           <span class="label">{{$t('kylinLang.query. answered_by')}}</span>
-          <span class="text" v-if="extraoption.pushDown">{{extraoption.engineType}}</span>
-          <span class="text" v-else>{{answeredBy}}</span>
+          <span class="text">{{answeredBy}}</span>
         </p>
         <el-button plain size="mini" @click="toggleDetail" class="show-more-btn" v-if="!extraoption.pushDown">
           {{$t('kylinLang.common.seeDetail')}}
@@ -134,7 +133,7 @@ export default class queryResult extends Vue {
         return i.modelAlias
       }).join(',')
     } else {
-      return ''
+      return this.extraoption.engineType
     }
   }
   filterTableData () {
