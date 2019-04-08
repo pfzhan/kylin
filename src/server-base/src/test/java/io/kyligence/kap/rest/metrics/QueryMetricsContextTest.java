@@ -150,6 +150,7 @@ public class QueryMetricsContextTest extends NLocalFileMetadataTestCase {
 
             final SQLResponse response = new SQLResponse();
             response.setHitExceptionCache(true);
+            response.setEngineType("HIVE");
 
             final QueryMetricsContext metricsContext = QueryMetricsContext.collect(request, response, queryContext);
 
@@ -204,6 +205,49 @@ public class QueryMetricsContextTest extends NLocalFileMetadataTestCase {
             Assert.assertEquals("select * from test_with_pushdown", influxdbFields.get("sql_text"));
             Assert.assertEquals(100L, influxdbFields.get("duration"));
             Assert.assertEquals(999L, influxdbFields.get("total_scan_bytes"));
+
+            // assert realizations
+            final List<QueryMetricsContext.RealizationMetrics> realizationMetrics = metricsContext
+                    .getRealizationMetrics();
+            Assert.assertEquals(0, realizationMetrics.size());
+
+        } finally {
+            QueryContext.reset();
+            QueryMetricsContext.reset();
+        }
+    }
+
+    @Test
+    public void assertCollectWithConstantQuery() {
+        try {
+            final String sql = "select * from test_table where 1 <> 1";
+            final QueryContext queryContext = QueryContext.current();
+            queryContext.setCorrectedSql(sql);
+            QueryMetricsContext.start(queryContext.getQueryId());
+            Assert.assertEquals(true, QueryMetricsContext.isStarted());
+
+            final SQLRequest request = new SQLRequest();
+            request.setProject("default");
+            request.setSql(sql);
+            request.setUsername("ADMIN");
+
+            final SQLResponse response = new SQLResponse(null, null, 0, false, null, true, true);
+            response.setEngineType("CONSTANTS");
+
+            final QueryMetricsContext metricsContext = QueryMetricsContext.collect(request, response, queryContext);
+
+            // assert tags
+            final Map<String, String> influxdbTags = metricsContext.getInfluxdbTags();
+            Assert.assertEquals("ADMIN", influxdbTags.get("submitter"));
+            Assert.assertEquals("Unknown", influxdbTags.get("suite"));
+            Assert.assertEquals("CONSTANTS", influxdbTags.get("engine_type"));
+            Assert.assertNull(influxdbTags.get("realizations"));
+            Assert.assertEquals("false", influxdbTags.get("index_hit"));
+
+            // assert fields
+            final Map<String, Object> influxdbFields = metricsContext.getInfluxdbFields();
+            Assert.assertEquals(queryContext.getQueryId(), influxdbFields.get("query_id"));
+            Assert.assertEquals("select * from test_table where 1 <> 1", influxdbFields.get("sql_text"));
 
             // assert realizations
             final List<QueryMetricsContext.RealizationMetrics> realizationMetrics = metricsContext
@@ -293,6 +337,7 @@ public class QueryMetricsContextTest extends NLocalFileMetadataTestCase {
             response.setHitExceptionCache(true);
             response.setServer("localhost");
             response.setSuite("suite_1");
+            response.setEngineType("HIVE");
 
             final QueryMetricsContext metricsContext = QueryMetricsContext.collect(request, response, queryContext);
 
@@ -324,6 +369,7 @@ public class QueryMetricsContextTest extends NLocalFileMetadataTestCase {
             response.setHitExceptionCache(true);
             response.setServer("localhost");
             response.setSuite("suite_1");
+            response.setEngineType("HIVE");
 
             final QueryMetricsContext metricsContext = QueryMetricsContext.collect(request, response, queryContext);
 

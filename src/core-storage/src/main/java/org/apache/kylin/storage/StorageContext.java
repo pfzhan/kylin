@@ -105,7 +105,7 @@ public class StorageContext {
 
     @Getter
     @Setter
-    private Long cuboidLayoutId;
+    private Long cuboidLayoutId = -1L;
 
     private AtomicLong processedRowCount = new AtomicLong();
 

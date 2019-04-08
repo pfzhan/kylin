@@ -193,7 +193,7 @@ public class QueryMetricsContext {
         if (response.getResults() != null)
             this.resultRowCount = response.getResults().size();
 
-        if (response.isException() || response.isQueryPushDown()) {
+        if (response.isException() || response.isQueryPushDown() || response.getEngineType().equals("CONSTANTS")) {
             this.isIndexHit = false;
         } else {
             this.isIndexHit = true;
