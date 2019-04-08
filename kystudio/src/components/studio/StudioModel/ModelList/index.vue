@@ -18,7 +18,7 @@
         @sort-change="onSortChange"
         :cell-class-name="renderColumnClass"
         style="width: 100%">
-        <el-table-column  width="34" type="expand" >
+        <el-table-column  width="34" type="expand">
           <template slot-scope="props" v-if="props.row.status !== 'BROKEN'">
             <transition name="full-model-slide-fade">
               <div class="cell-content" v-if="props.row.showModelDetail">

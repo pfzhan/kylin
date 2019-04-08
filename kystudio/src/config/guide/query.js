@@ -138,7 +138,7 @@ export function queryDrama () {
         left join ssb.dates on lo_orderdate = d_datekey
         where d_year = 1993
         and lo_discount between 1 and 3
-        and lo_quantity < 25;`
+        and lo_quantity < 25`
       }
     },
     {
@@ -173,7 +173,7 @@ export function queryDrama () {
         and (s_city='UNITED KI1' or s_city='UNITED KI5')
         and d_year >= 1992 and d_year <= 1997
         group by c_city, s_city, d_year
-        order by d_year asc, lo_revenue desc;`
+        order by d_year asc, lo_revenue desc`
       },
       timer: verySlowGuideSpeed
     },

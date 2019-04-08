@@ -4,17 +4,17 @@
       <div>
         <el-form :model="modelBuildMeta" ref="buildForm" :rules="rules" label-position="top">
           <!-- <div class="ky-list-title ksd-mt-14">{{$t('buildRange')}}</div> -->
-          <el-form-item prop="isLoadExisted" class="ksd-mt-10 ksd-mb-2">
+          <!-- <el-form-item prop="isLoadExisted" class="ksd-mt-10 ksd-mb-2">
             <el-radio class="font-medium" v-model="modelBuildMeta.isLoadExisted" :label="true">
               {{$t('loadExistingData')}}
             </el-radio>
             <div class="item-desc">{{$t('loadExistingDataDesc')}}</div>
-          </el-form-item>
+          </el-form-item> -->
           <el-form-item class="ksd-mt-10" prop="dataRangeVal" :rule="modelBuildMeta.isLoadExisted ? [] : [{required: true, trigger: 'blur', message: this.$t('dataRangeValValid')}]">
-            <el-radio class="font-medium" v-model="modelBuildMeta.isLoadExisted" :label="false">
+            <!-- <el-radio class="font-medium" v-model="modelBuildMeta.isLoadExisted" :label="false">
               {{$t('customLoadRange')}}
             </el-radio>
-            <br/>
+            <br/> -->
           <el-date-picker
             type="datetime"
             v-model="modelBuildMeta.dataRangeVal[0]"
@@ -94,7 +94,7 @@
     isLoadingNewRange = false
     modelBuildMeta = {
       dataRangeVal: [],
-      isLoadExisted: true
+      isLoadExisted: false
     }
     rules = {
       dataRangeVal: [{

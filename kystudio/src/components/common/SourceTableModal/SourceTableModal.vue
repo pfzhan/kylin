@@ -8,16 +8,16 @@
     @close="() => handleClose()"
     @closed="handleClosed">
     <el-form :model="form" :rules="rules" ref="form" size="medium" v-if="isFormShow" label-position="top">
-      <el-form-item prop="isLoadExisted" v-if="_isFieldShow('isLoadExisted')">
+      <!-- <el-form-item prop="isLoadExisted" v-if="_isFieldShow('isLoadExisted')">
         <el-radio class="font-medium" :value="form.isLoadExisted" :label="true" @input="value => handleInput('isLoadExisted', value)">
           {{$t('loadExistingData')}}
         </el-radio>
         <div class="item-desc">{{$t('loadExistingDataDesc')}}</div>
-      </el-form-item>
+      </el-form-item> -->
       <el-form-item class="custom-load" prop="loadDataRange" v-if="_isFieldShow('loadDataRange')">
-        <el-radio class="font-medium" v-guide.checkloadDataRangeRaido :value="form.isLoadExisted" :label="false" @input="value => handleInput('isLoadExisted', value)">
+        <!-- <el-radio class="font-medium" v-guide.checkloadDataRangeRaido :value="form.isLoadExisted" :label="false" @input="value => handleInput('isLoadExisted', value)">
           {{$t('customLoadRange')}}
-        </el-radio>
+        </el-radio> -->
         <el-date-picker
           type="datetime"
           :value="form.loadDataRange[0]"
@@ -39,17 +39,19 @@
         </el-date-picker>
         <el-tooltip effect="dark" :content="$t('detectAvailableRange')" placement="top">
           <el-button
-            v-if="isShow"
+            v-if="isFormShow"
             size="small"
             class="ksd-ml-10"
             :disabled="isDisabled || form.isLoadExisted"
             :loading="isLoadingNewRange"
+            v-guide.getRangeDataBtn
             icon="el-icon-ksd-data_range_search"
             @click="handleLoadNewestRange">
           </el-button>
         </el-tooltip>
         <!-- for guide -->
-        <el-button v-guide.checkDataRangeBtn v-visible style="position:absolute" @click="handleLoadNewestRange"></el-button>
+        <span v-guide.getRangeData style="position:absolute;width:1px; height:0" @click="handleLoadNewestRange"></span>
+        <span v-guide.checkDataRangeHasData style="position:absolute;width:1px; height:0" v-if="form.loadDataRange[0] && form.loadDataRange[1]"></span>
       </el-form-item>
       <el-form-item class="custom-load" prop="freshDataRange" v-if="_isFieldShow('freshDataRange')">
         <div class="item-desc">{{$t('refreshRangeDesc')}}</div>

@@ -30,17 +30,17 @@
       </el-form-item>
     <template v-if="!(modelInstance && modelInstance.uuid) && partitionMeta.table && partitionMeta.column">
       <div class="ky-list-title ksd-mt-14">{{$t('loadRange')}}</div>
-      <el-form-item prop="isLoadExisted" class="ksd-mt-10 ksd-mb-2">
-        <el-radio class="font-medium" v-model="modelBuildMeta.isLoadExisted" :label="true">
+      <!-- <el-form-item prop="isLoadExisted" class="ksd-mt-10 ksd-mb-2"> -->
+        <!-- <el-radio class="font-medium" v-model="modelBuildMeta.isLoadExisted" :label="true">
           {{$t('loadExistingData')}}
         </el-radio>
         <div class="item-desc">{{$t('loadExistingDataDesc')}}</div>
-      </el-form-item>
+      </el-form-item> -->
       <el-form-item class="custom-load ksd-mt-10" prop="loadDataRange">
-        <el-radio class="font-medium" v-model="modelBuildMeta.isLoadExisted" :label="false">
+        <!-- <el-radio class="font-medium" v-model="modelBuildMeta.isLoadExisted" :label="false">
           {{$t('customLoadRange')}}
         </el-radio>
-        <br/>
+        <br/> -->
         <el-date-picker
             type="datetime"
             v-model="modelBuildMeta.dataRangeVal[0]"
@@ -156,7 +156,7 @@ export default class ModelPartitionModal extends Vue {
   }
   modelBuildMeta = {
     dataRangeVal: [],
-    isLoadExisted: true
+    isLoadExisted: false
   }
   async handleLoadNewestRange () {
     this.isLoadingNewRange = true

@@ -51,13 +51,22 @@ export function tableSettingDrama () {
     {
       eventID: 1,
       done: false,
-      target: 'checkloadDataRangeRaido'
+      target: 'getRangeDataBtn'
     },
     {
-      eventID: 31,
+      eventID: 2,
       done: false,
-      target: 'checkloadDataRangeRaido', // 点击选择输入范围
-      val: true
+      target: 'getRangeDataBtn' // 点击加载输入范围
+    },
+    {
+      eventID: 21,
+      done: false,
+      target: 'getRangeData' // 点击加载输入范围
+    },
+    {
+      eventID: 51,
+      done: false,
+      target: 'checkDataRangeHasData' // 点击选择输入范围
     },
     {
       eventID: 1,

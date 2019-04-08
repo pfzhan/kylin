@@ -14,7 +14,7 @@ const initialState = JSON.stringify({
   editType: '',
   callback: null,
   form: {
-    isLoadExisted: true,
+    isLoadExisted: false,
     loadDataRange: [new Date(), new Date()],
     freshDataRange: [new Date(), new Date()]
   },
@@ -42,7 +42,7 @@ export default {
     },
     [types.INIT_FORM]: (state, payload = {}) => {
       const { table } = state
-      state.form.isLoadExisted = table.isLoadExisted || true
+      state.form.isLoadExisted = table.isLoadExisted || false
       state.form.loadDataRange = [ getGmtDateFromUtcLike(table.endTime), null ]
       state.form.freshDataRange = [ getGmtDateFromUtcLike(table.startTime), getGmtDateFromUtcLike(table.endTime) ]
     }
