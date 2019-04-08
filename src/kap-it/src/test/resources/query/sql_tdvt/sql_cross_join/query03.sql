@@ -14,14 +14,18 @@
 -- WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 -- See the License for the specific language governing permissions and
 -- limitations under the License.
---
-
+-- copy from sql_cross_join/query03.sql
 -- ISSUE #5613
-SELECT cal_dt, SUM(price) AS PRI, count(*) AS COU
-FROM test_kylin_fact
-cross JOIN (
-SELECT '1970-01-01'
 
-) as a
-GROUP BY test_kylin_fact.cal_dt
-order by test_kylin_fact.cal_dt
+SELECT Sta.datetime0 AS DAT, sum(Sta.NUM4) AS PRI, COUNT(*) AS COU
+    FROM TDVT.CALCS CALCS
+    INNER JOIN
+        (    SELECT datetime0, NUM4
+             FROM TDVT.CALCS CALCS
+             CROSS JOIN
+             (SELECT 1)
+             as temp
+        ) as Sta
+    ON CALCS.datetime0 = Sta.datetime0
+GROUP BY Sta.datetime0
+ORDER BY Sta.datetime0
