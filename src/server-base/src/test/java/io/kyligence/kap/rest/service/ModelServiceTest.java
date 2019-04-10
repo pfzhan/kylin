@@ -881,12 +881,14 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
     }
 
     private void testGetLatestData() throws Exception {
-        ExistedDataRangeResponse response = modelService.getLatestDataRange("default", "", "", "89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+        ExistedDataRangeResponse response = modelService.getLatestDataRange("default", "", "",
+                "89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         Assert.assertEquals("1388534400000", response.getEndTime());
     }
 
     private void testGetLatestDataWhenCreateModel() throws Exception {
-        ExistedDataRangeResponse response = modelService.getLatestDataRange("default", "DEFAULT.TEST_KYLIN_FACT", "CAL_DT", "");
+        ExistedDataRangeResponse response = modelService.getLatestDataRange("default", "DEFAULT.TEST_KYLIN_FACT",
+                "CAL_DT", "");
         Assert.assertEquals("1388534400000", response.getEndTime());
     }
 
@@ -990,7 +992,8 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
         modelRequest.setAlias("new_model");
         modelRequest.setUuid(null);
         modelRequest.setLastModified(0L);
-        val minAndMaxTime = PushDownUtil.getMaxAndMinTime(model.getPartitionDesc().getPartitionDateColumn(), model.getRootFactTableName(), "default");
+        val minAndMaxTime = PushDownUtil.getMaxAndMinTime(model.getPartitionDesc().getPartitionDateColumn(),
+                model.getRootFactTableName(), "default");
         val dateFormat = DateFormat.proposeDateFormat(minAndMaxTime.getFirst());
         modelRequest.setStart(DateFormat.getFormattedDate(minAndMaxTime.getFirst(), dateFormat));
         modelRequest.setEnd(DateFormat.getFormattedDate(minAndMaxTime.getSecond(), dateFormat));
@@ -1224,13 +1227,13 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
                 }
                 BadModelException ccException = (BadModelException) item;
 
-                return ccException.getCauseType().equals(BadModelException.CauseType.WRONG_POSITION_DUE_TO_NAME)
+                return ccException.getCauseType().equals(BadModelException.CauseType.WRONG_POSITION_DUE_TO_EXPR)
                         && ccException.getAdvise().equals("TEST_KYLIN_FACT")
                         && ccException.getConflictingModel().equals("nmodel_basic")
                         && ccException.getBadCC().equals("SELLER_ACCOUNT.LEFTJOIN_SELLER_COUNTRY_ABBR")
                         && ccException.getMessage().equals(
-                                "Computed column LEFTJOIN_SELLER_COUNTRY_ABBR is already defined in model nmodel_basic,"
-                                        + " to reuse it you have to define it on alias table: TEST_KYLIN_FACT");
+                                "Computed column LEFTJOIN_SELLER_COUNTRY_ABBR's expression is already defined in model nmodel_basic, "
+                                        + "to reuse it you have to define it on alias table: TEST_KYLIN_FACT");
             }
         });
 
@@ -2079,7 +2082,6 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(0L, dataflow.getSegments().get(0).getSegRange().getStart());
         Assert.assertEquals(100L, dataflow.getSegments().get(0).getSegRange().getEnd());
 
-
         Assert.assertTrue(events.get(2) instanceof AddCuboidEvent);
     }
 
@@ -2095,9 +2097,11 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
         NDataflowUpdate dataflowUpdate = new NDataflowUpdate(dataflow.getUuid());
         dataflowUpdate.setToRemoveSegs(dataflow.getSegments().toArray(new NDataSegment[dataflow.getSegments().size()]));
         dataflowManager.updateDataflow(dataflowUpdate);
-        val minAndMaxTime = PushDownUtil.getMaxAndMinTime(modelUpdate.getPartitionDesc().getPartitionDateColumn(), modelUpdate.getRootFactTableName(), "default");
+        val minAndMaxTime = PushDownUtil.getMaxAndMinTime(modelUpdate.getPartitionDesc().getPartitionDateColumn(),
+                modelUpdate.getRootFactTableName(), "default");
         val dateFormat = DateFormat.proposeDateFormat(minAndMaxTime.getFirst());
-        modelService.buildSegmentsManually("default", "89af4ee2-2cdb-4b07-b39e-4c29856309aa", DateFormat.getFormattedDate(minAndMaxTime.getFirst(), dateFormat),
+        modelService.buildSegmentsManually("default", "89af4ee2-2cdb-4b07-b39e-4c29856309aa",
+                DateFormat.getFormattedDate(minAndMaxTime.getFirst(), dateFormat),
                 DateFormat.getFormattedDate(minAndMaxTime.getSecond(), dateFormat));
         EventDao eventDao = EventDao.getInstance(KylinConfig.getInstanceFromEnv(), "default");
 
@@ -2215,7 +2219,6 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(10, modelInfo2.get(0).getQueryTimes());
         Assert.assertEquals(0, modelInfo2.get(0).getModelStorageSize());
     }
-
 
     @Test
     public void testGetModelInfoByModel_ProjectNotSpecifiedOnly() throws IOException {
@@ -2343,8 +2346,7 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
     private void cleanPushdownEnv() throws Exception {
         getTestConfig().setProperty("kylin.query.pushdown.runner-class-name", "");
         // Load H2 Tables (inner join)
-        Connection h2Connection = DriverManager.getConnection("jdbc:h2:mem:db_default", "sa",
-                "");
+        Connection h2Connection = DriverManager.getConnection("jdbc:h2:mem:db_default", "sa", "");
         h2Connection.close();
         System.clearProperty("kylin.query.pushdown.jdbc.url");
         System.clearProperty("kylin.query.pushdown.jdbc.driver");
@@ -2385,7 +2387,8 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
             modelService.createModel(modelRequest.getProject(), modelRequest);
         } catch (Exception ex) {
             Assert.assertEquals(IllegalArgumentException.class, ex.getClass());
-            Assert.assertEquals("Invalid dimension name 'CAL_DT1@!', only letters, numbers and underlines are supported.",
+            Assert.assertEquals(
+                    "Invalid dimension name 'CAL_DT1@!', only letters, numbers and underlines are supported.",
                     ex.getMessage());
         }
 

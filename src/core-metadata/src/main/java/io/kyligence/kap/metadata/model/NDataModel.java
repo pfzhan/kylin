@@ -1100,7 +1100,9 @@ public class NDataModel extends RootPersistentEntity {
     private void singleCCConflictCheck(NDataModel existingModel, ComputedColumnDesc existingCC,
             ComputedColumnDesc newCC) {
         AliasMapping aliasMapping = getCCAliasMapping(existingModel, existingCC, newCC);
-        boolean sameName = StringUtils.equalsIgnoreCase(existingCC.getColumnName(), newCC.getColumnName());
+        boolean sameName = StringUtils.equalsIgnoreCase(
+                existingCC.getTableIdentity() + "." + existingCC.getColumnName(),
+                newCC.getTableIdentity() + "." + newCC.getColumnName());
         boolean sameCCExpr = isSameCCExpr(existingCC, newCC, aliasMapping);
 
         if (sameName) {
