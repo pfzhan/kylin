@@ -201,7 +201,7 @@ public class QueryHistoryDAOTest extends NLocalFileMetadataTestCase {
         request.setLatencyTo("10");
 
         // when there are some escaped characters in sql
-        String querySql = "select * from test_table where (test_table.test_column1='?' OR test_table.test_column1='.') AND test_table.test_column2!='/'";
+        String querySql = "select * from test_table where (test_table.test_column1='?' OR test_table.test_column1='.') AND test_table.test_column2!='/' ";
         String querySqlEscaped = "\\Qselect * from test_table where (test_table.test_column1='?' OR test_table.test_column1='.') AND test_table.test_column2!='\\/'\\E";
         request.setSql(querySql);
         expectedQueryHistoriesSql = String.format("SELECT * FROM %s WHERE 1 = 1 AND (query_time >= 0 AND query_time < 1) " +

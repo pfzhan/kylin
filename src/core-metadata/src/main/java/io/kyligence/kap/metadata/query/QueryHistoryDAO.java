@@ -229,7 +229,7 @@ public class QueryHistoryDAO {
         }
 
         if (StringUtils.isNotEmpty(request.getSql())) {
-            sb.append(String.format("AND sql_text =~ /%s/ ", escapeExprSpecialWord(request.getSql())));
+            sb.append(String.format("AND sql_text =~ /%s/ ", escapeExprSpecialWord(request.getSql().trim())));
         }
 
         if (request.getRealizations() != null && !request.getRealizations().isEmpty()) {
