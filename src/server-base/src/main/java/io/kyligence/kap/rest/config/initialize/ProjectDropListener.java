@@ -44,7 +44,7 @@ public class ProjectDropListener implements EventListenerRegistry.ResourceEventL
 
     @Override
     public void onUpdate(KylinConfig config, RawResource rawResource) {
-
+        // override for default
     }
 
     @Override
