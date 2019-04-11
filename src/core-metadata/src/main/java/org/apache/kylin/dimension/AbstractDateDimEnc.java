@@ -50,9 +50,11 @@ import java.io.Serializable;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 
+import lombok.NoArgsConstructor;
 import org.apache.kylin.common.util.BytesUtil;
 import org.apache.kylin.metadata.datatype.DataTypeSerializer;
 
+@NoArgsConstructor
 public class AbstractDateDimEnc extends DimensionEncoding {
     private static final long serialVersionUID = 1L;
 

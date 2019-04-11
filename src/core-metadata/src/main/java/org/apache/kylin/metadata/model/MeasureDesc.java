@@ -50,6 +50,7 @@ import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonAutoDetect.Visibility;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import org.apache.commons.lang.StringUtils;
 
 /**
  */
@@ -110,13 +111,7 @@ public class MeasureDesc implements Serializable {
         if (!function.equals(that.getFunction()))
             return false;
 
-        if (dependentMeasureRef != null && that.getDependentMeasureRef() == null || dependentMeasureRef == null && that.getDependentMeasureRef() != null)
-            return false;
-
-        if (dependentMeasureRef == null && that.getDependentMeasureRef() == null)
-            return true;
-
-        return dependentMeasureRef.equals(that.getDependentMeasureRef());
+        return StringUtils.equals(dependentMeasureRef, that.getDependentMeasureRef());
     }
 
     @Override
