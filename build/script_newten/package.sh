@@ -40,9 +40,9 @@ done
 
 # Make share commands exist in environment
 echo "BUILD STAGE 1 - Checking environment..."
-checkCommandExits mvn
-checkCommandExits git
-checkCommandExits npm
+checkCommandExists mvn
+checkCommandExists git
+checkCommandExists npm
 
 exportProjectVersions
 

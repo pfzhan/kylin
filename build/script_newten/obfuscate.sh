@@ -7,8 +7,8 @@ source build/script_newten/functions.sh
 exportProjectVersions
 
 #Make sure commands exist in environment
-checkCommandExits proguard
-checkCommandExits mvn
+checkCommandExists proguard
+checkCommandExists mvn
 
 BUILD_LIB_DIR=build/lib
 
@@ -101,9 +101,9 @@ done
 rm kap_jar.txt
 
 # obfuscate job(assembly) jar
-obfuscate src/assembly/ src/assembly/target 1 1 kap-assembly-${release_version}-job-obf kap-assembly-${release_version}-job.jar
-mv src/assembly/target/kap-assembly-${release_version}-job-obf.jar tmp/
+obfuscate src/assembly/ $BUILD_LIB_DIR 1 1 kap-assembly-${release_version}-job-obf newten-job.jar
+mv $BUILD_LIB_DIR/kap-assembly-${release_version}-job-obf.jar tmp/
 
 # obfuscate tool jar
-obfuscate src/tool-assembly/ src/tool-assembly/target/ 1 1 kap-tool-assembly-${release_version}-assembly-obf kap-tool-assembly-${release_version}-assembly.jar
-mv src/tool-assembly/target/kap-tool-assembly-${release_version}-assembly-obf.jar tmp/
+obfuscate src/tool-assembly/ $BUILD_LIB_DIR/../tool/ 1 1 kap-tool-assembly-${release_version}-assembly-obf kap-tool-${release_version}.jar
+mv $BUILD_LIB_DIR/../tool/kap-tool-assembly-${release_version}-assembly-obf.jar tmp/

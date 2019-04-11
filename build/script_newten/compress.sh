@@ -12,7 +12,8 @@ if [ "${current_branch}" = "" ]; then
     current_branch=$(git branch | sed -n -e 's/^\* \(.*\)/\1/p')
 fi
 
-package_name="KE-Newten-${release_version}"
+timestamp=`date '+%Y%m%d%H%M%S'`
+package_name="Kyligence-Enterprise-${release_version}.${timestamp}"
 # package as *.tar.gz
 echo "package name: ${package_name}"
 cd build/
@@ -60,7 +61,7 @@ cp -rf server/jars ${package_name}/server/
 rm -rf server/
 
 #add udf jar to lib
-cp ../src/udf/target/kap-udf-${release_version}.jar ${package_name}/lib/kylin-udf-${release_version}.jar
+cp ../src/udf/target/kap-udf-${kap_version}.jar ${package_name}/lib/kylin-udf-${release_version}.jar
 
 ## comment all default properties, and append them to the user visible kylin.properties
 ## first 16 lines are license, just skip them

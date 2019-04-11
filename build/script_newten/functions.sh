@@ -1,6 +1,6 @@
 #!/usr/bin/bash
 
-function checkCommandExits() {
+function checkCommandExists() {
     echo "Checking ${1}..."
     if [ -z "$(command -v ${1})" ]
     then

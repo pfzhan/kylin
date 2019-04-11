@@ -105,7 +105,7 @@ function runTool() {
     fetchHadoopConf
     source ${KYLIN_HOME}/bin/replace-jars-under-spark.sh
 
-    #retrive $KYLIN_EXTRA_START_OPTS
+    #retrieve $KYLIN_EXTRA_START_OPTS
     if [ -f "${KYLIN_HOME}/conf/setenv.sh" ]; then
         source ${KYLIN_HOME}/conf/setenv.sh
         export KYLIN_EXTRA_START_OPTS=`echo ${KYLIN_JVM_SETTINGS}|sed  "s/-XX:+PrintFlagsFinal//g"`

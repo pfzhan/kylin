@@ -2,7 +2,7 @@
 # Kyligence Inc. License
 
 
-BYPASS=${SPARK_HOME}/jars/repalce-jars-bypass
+BYPASS=${SPARK_HOME}/jars/replace-jars-bypass
 
 # only replace when has Kerberos
 if [[ -z "$(command -v klist)" || -f ${BYPASS} ]]
