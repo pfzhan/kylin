@@ -11,8 +11,8 @@
       <slot></slot>
     </div>
     <div class="block-foot" v-if="isEditing">
-      <el-button size="small" :disabled="isLoading || (!isEdited && isKeepEditing)" @click="handleCancel">{{cancelText}}</el-button>
-      <el-button plain size="small" type="primary" :loading="isLoading" :disabled="!isEdited && isKeepEditing" @click="handleSubmit">{{$t('kylinLang.common.save')}}</el-button>
+      <el-button size="small" :disabled="isLoading || (!isEdited && isKeepEditing)" @click="handleCancel">{{cancelText}}</el-button><el-button
+      plain size="small" type="primary" :loading="isLoading" :disabled="!isEdited && isKeepEditing" @click="handleSubmit">{{$t('kylinLang.common.save')}}</el-button>
     </div>
   </div>
 </template>
@@ -81,12 +81,12 @@ export default class EditableBlock extends Vue {
     border-top: 1px solid @line-border-color;
     border-right: 1px solid @line-border-color;
     border-left: 1px solid @line-border-color;
-    background: @grey-3;
+    background: @regular-background-color;
     color: @text-title-color;
-    font-size: 16px;
-    line-height: 22px;
+    font-size: 14px;
+    line-height: 18px;
     font-weight: 500;
-    padding: 8px 20px;
+    padding: 8px 15px;
     > * {
       vertical-align: middle;
     }
@@ -111,11 +111,11 @@ export default class EditableBlock extends Vue {
     border-bottom: 1px solid @line-border-color;
     border-right: 1px solid @line-border-color;
     border-left: 1px solid @line-border-color;
-    padding: 10px 20px;
+    padding: 10px 15px;
     background: @table-stripe-color;
     text-align: right;
     .el-button+.el-button {
-      margin-left: 7px;
+      margin-left: 10px;
     }
   }
 }

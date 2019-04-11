@@ -1,5 +1,5 @@
 <template>
-  <div class="model-aggregate" v-if="model">
+  <div class="model-aggregate ksd-mb-15" v-if="model">
     <div class="aggregate-actions" v-if="isShowAggregateAction">
       <!-- <el-button type="primary" icon="el-icon-ksd-table_refresh">
         {{$t('kylinLang.common.refresh')}}
@@ -7,19 +7,19 @@
       <el-button type="primary" icon="el-icon-ksd-table_delete">
         {{$t('kylinLang.common.delete')}}
       </el-button> -->
-      <el-button type="primary" v-guide.addAggBtn icon="el-icon-ksd-table_edit" @click="handleAggregateGroup" v-if="availableAggregateActions.includes('viewAggGroup')">
+      <el-button type="primary" size="small" v-guide.addAggBtn icon="el-icon-ksd-table_edit" @click="handleAggregateGroup" v-if="availableAggregateActions.includes('viewAggGroup')">
         {{$t('aggregateGroup')}}
       </el-button>
     </div>
     <div class="aggregate-view">
-      <el-row :gutter="20">
+      <el-row :gutter="15">
         <el-col :span="15">
           <el-card class="agg-detail-card agg_index">
             <div slot="header" class="clearfix">
               <div class="left font-medium">{{$t('aggregateIndexTree')}}</div>
               <div class="right">
-                <span>{{$t('aggregateAmount')}}</span>
-                <el-input v-model.trim="cuboidCount" :readonly="true" size="small"></el-input>
+                <span>{{$t('aggregateAmount')}}</span>{{cuboidCount}}
+                <!-- <el-input v-model.trim="cuboidCount" :readonly="true" size="small"></el-input> -->
               </div>
             </div>
             <div class="agg-counter">
@@ -46,13 +46,13 @@
             <div slot="header" class="clearfix">
               <div class="left font-medium fix">{{$t('aggregateDetail')}}</div>
               <div class="right fix">
-                <el-input class="search-input" v-model.trim="searchCuboidId" size="small" :placeholder="$t('searchAggregateID')" prefix-icon="el-icon-search"></el-input>
+                <el-input class="search-input" v-model.trim="searchCuboidId" size="mini" :placeholder="$t('searchAggregateID')" prefix-icon="el-icon-search"></el-input>
               </div>
             </div>
             <div class="detail-content">
               <template v-if="cuboidDetail.id !== ''">
-                <el-table class="cuboid-info" :data="cuboidInfo" border stripe :show-header="false">
-                  <el-table-column prop="key" align="right" width="166px">
+                <el-table class="cuboid-info" nested :data="cuboidInfo" border stripe :show-header="false">
+                  <el-table-column prop="key" class-name="font-medium" width="166px">
                     <template slot-scope="scope">
                       <div v-if="scope.row.key === 'dataRange'">
                         <div>{{$t(scope.row.key)}}</div>
@@ -75,10 +75,10 @@
                     </template>
                   </el-table-column>
                 </el-table>
-                <el-table class="cuboid-content" :data="cuboidContent" border max-height="335">
-                  <el-table-column type="index" :label="$t('order')" width="64" align="center">
+                <el-table class="cuboid-content"  size="medium" nested :data="cuboidContent" border max-height="335">
+                  <el-table-column type="index" :label="$t('order')" width="64">
                   </el-table-column>
-                  <el-table-column prop="content" :label="$t('content')" align="center">
+                  <el-table-column prop="content" :label="$t('content')">
                     <template slot-scope="scope">
                       <div class="align-left">{{scope.row.content}}</div>
                     </template>
@@ -211,9 +211,8 @@ export default class ModelAggregate extends Vue {
 @import '../../../../../assets/styles/variables.less';
 
 .model-aggregate {
-  padding: 20px 0;
   .aggregate-actions {
-    margin-bottom: 15px;
+    margin-bottom: 10px;
   }
   .agg-amount-block {
     position: absolute;
@@ -224,8 +223,8 @@ export default class ModelAggregate extends Vue {
   }
   .agg-counter {
     position: absolute;
-    top: 10px;
-    right: 10px;
+    top: 15px;
+    right: 20px;
     white-space: nowrap;
     font-size: 12px;
     * {
@@ -260,10 +259,8 @@ export default class ModelAggregate extends Vue {
   }
   .agg-detail-card {
     height: 638px;
-    box-shadow: none;
     .el-card__body {
       overflow: auto;
-      padding: 10px;
       height: 583px;
       width: 100%;
       position: relative;

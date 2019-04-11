@@ -1,5 +1,5 @@
 <template>
-  <el-dialog append-to-body width="440px" :title="$t(measureTitle)" :visible.sync="measureVisible" top="5%" :close-on-press-escape="false" :close-on-click-modal="false" @close="handleHide(false)">
+  <el-dialog append-to-body width="480px" :title="$t(measureTitle)" :visible.sync="measureVisible" top="5%" :close-on-press-escape="false" :close-on-click-modal="false" @close="handleHide(false)">
     <el-form :model="measure" class="add-measure" label-position="top" :rules="rules"  ref="measureForm">
       <el-form-item :label="$t('name')" prop="name">
         <div>
@@ -110,7 +110,7 @@
         </div>
       </el-form-item>
     </el-form>
-    <span slot="footer" class="dialog-footer">
+    <span slot="footer" class="dialog-footer ky-no-br-space">
       <el-button size="medium" @click="handleHide(false)">{{$t('kylinLang.common.cancel')}}</el-button>
       <el-button size="medium" type="primary" v-guide.saveMeasureBtn plain @click="checkMeasure">{{$t('kylinLang.common.submit')}}</el-button>
     </span>
@@ -516,7 +516,7 @@ export default class AddMeasure extends Vue {
       width: 100%;
     }
     .measures-addCC {
-      width: 88.5%;
+      width: 350px;
     }
     .del-margin-more {
       margin-left: 55px !important;

@@ -4,7 +4,7 @@
       <h1 class="ksd-title-label" v-if="currentProjectData">{{currentProjectData.name}}</h1>
     </header>
     <section class="setting-body" v-loading="isLoading">
-      <el-tabs v-model="viewType" v-if="projectSettings">
+      <el-tabs v-model="viewType" type="card" v-if="projectSettings">
         <el-tab-pane :label="$t('basic')" :name="viewTypes.BASIC">
           <SettingBasic :project="projectSettings" @reload-setting="getCurrentSettings" @form-changed="handleFormChanged"></SettingBasic>
         </el-tab-pane>
@@ -124,27 +124,24 @@ export default class Setting extends Vue {
   .setting-header h1 {
     font-size: 16px;
   }
-  .el-tabs__nav {
-    margin-left: 10px;
-  }
   .project-setting,
   .quota-setting,
   .snapshot-setting {
     background-color: @aceditor-bg-color;
-    border: 1px solid @line-border-color;
-    padding: 20px;
+    border: 1px solid @line-split-color;
+    padding: 15px;
   }
   .project-setting:not(:last-child) {
-    margin-bottom: 20px;
+    margin-bottom: 15px;
   }
   // editable-block style
   .editable-block {
-    margin-bottom: 20px;
+    margin-bottom: 15px;
   }
   // setting-item 通用style
   .setting-item {
-    border-bottom: 1px solid @line-border-color;
-    padding: 15px 20px;
+    border-bottom: 1px solid @line-split-color;
+    padding: 10px 15px;
     margin: 0;
   }
   .setting-item:last-child {
@@ -227,7 +224,7 @@ export default class Setting extends Vue {
     }
   }
   .setting-input+.setting-input {
-    margin-left: 7px;
+    margin-left: 10px;
   }
   .editable-block {
     .disabled,

@@ -1,31 +1,28 @@
 <template>
   <div class="model-segment">
     <div class="segment-actions clearfix">
-      <div class="left">
-        <el-button size="medium" type="primary" v-if="!isAutoProject" @click="handleRefreshSegment">{{$t('kylinLang.common.refresh')}}</el-button>
+      <div class="left ky-no-br-space">
+        <el-button size="small" type="primary" :disabled="!selectedSegments.length" v-if="!isAutoProject" @click="handleRefreshSegment">{{$t('kylinLang.common.refresh')}}</el-button>
         <!-- <el-button size="medium" type="primary" icon="el-icon-ksd-merge" @click="handleMergeSegment">{{$t('merge')}}</el-button> -->
-        <el-button size="medium" type="default" v-if="!isAutoProject" @click="handleDeleteSegment">{{$t('kylinLang.common.delete')}}</el-button>
-        <el-button size="medium" type="default" v-if="!isAutoProject" @click="handlePurgeModel">{{$t('kylinLang.common.purge')}}</el-button>
+        <el-button size="small" type="default" :disabled="!selectedSegments.length" v-if="!isAutoProject" @click="handleDeleteSegment">{{$t('kylinLang.common.delete')}}</el-button>
+        <el-button size="small" type="default" v-if="!isAutoProject" @click="handlePurgeModel">{{$t('kylinLang.common.purge')}}</el-button>
       </div>
       <div class="right">
-        <div class="segment-action">
-          <span class="input-label">
-            {{$t('segmentPeriod')}}
-          </span>
+        <div class="segment-action ky-no-br-space">
+          <span class="ksd-mr-5 ksd-fs-14">{{$t('segmentPeriod')}}</span>
           <el-date-picker
-            class="date-picker"
+            class="date-picker ksd-mr-5"
             type="datetime"
-            size="medium"
+            size="small"
             v-model="filter.startDate"
             :is-auto-complete="true"
             :picker-options="{ disabledDate: getStartDateLimit }"
             :placeholder="$t('chooseStartDate')">
           </el-date-picker>
-          <span class="input-split">-</span>
           <el-date-picker
             class="date-picker"
             type="datetime"
-            size="medium"
+            size="small"
             v-model="filter.endDate"
             :is-auto-complete="true"
             :picker-options="{ disabledDate: getEndDateLimit }"
@@ -33,8 +30,8 @@
           </el-date-picker>
         </div>
         <div class="segment-action" v-if="false">
-          <span class="input-label">{{$t('primaryPartition')}}</span>
-          <el-select v-model="filter.mpValues" size="medium" :placeholder="$t('pleaseChoose')">
+          <span class="input-label ksd-mr-5">{{$t('primaryPartition')}}</span>
+          <el-select v-model="filter.mpValues" size="small" :placeholder="$t('pleaseChoose')">
             <el-option
               label="Shanghai"
               value="Shanghai">
@@ -44,37 +41,41 @@
       </div>
     </div>
 
-    <div class="segment-views">
-      <el-table border :data="segments" @selection-change="handleSelectSegments" @sort-change="handleSortChange">
-        <el-table-column type="selection" width="40" align="center">
+    <div class="segment-views ksd-mb-15">
+      <el-table border nested  size="medium" :data="segments" @selection-change="handleSelectSegments" @sort-change="handleSortChange">
+        <el-table-column type="selection" width="40">
         </el-table-column>
-        <el-table-column prop="id" header-align="center" label="Segment Id">
+        <el-table-column prop="id" label="Segment Id">
         </el-table-column>
-        <el-table-column prop="status" :label="$t('kylinLang.common.status')" width="114" align="center">
+        <el-table-column prop="status" :label="$t('kylinLang.common.status')" width="114">
         </el-table-column>
-        <el-table-column :label="$t('storageSize')" width="145" header-align="center" align="right" prop="storage" sortable>
+        <el-table-column :label="$t('storageSize')" width="145" align="right" prop="storage" sortable>
           <template slot-scope="scope">{{scope.row.bytes_size | dataSize}}</template>
         </el-table-column>
-        <el-table-column :label="$t('kylinLang.common.startTime')" width="208" align="center" prop="start_time" sortable>
+        <el-table-column :label="$t('kylinLang.common.startTime')" width="208" prop="start_time" sortable>
           <template slot-scope="scope">{{scope.row.startTime | utcTime}}</template>
         </el-table-column>
-        <el-table-column :label="$t('kylinLang.common.endTime')" width="208" align="center" prop="end_time" sortable>
+        <el-table-column :label="$t('kylinLang.common.endTime')" width="208" prop="end_time" sortable>
           <template slot-scope="scope">{{scope.row.endTime | utcTime}}</template>
         </el-table-column>
-        <el-table-column :label="$t('kylinLang.common.action')" width="83" header-align="center">
+        <el-table-column class-name="ky-hover-icon" :label="$t('kylinLang.common.action')" width="83">
           <template slot-scope="scope">
-            <i class="el-icon-ksd-type_date" @click="handleShowDetail(scope.row)"></i>
+            <common-tip :content="$t('showDetail')" class="ksd-ml-10">
+              <i class="el-icon-ksd-type_date" @click="handleShowDetail(scope.row)"></i>
+            </common-tip>
           </template>
         </el-table-column>
       </el-table>
       <kap-pager
-        class="ksd-center ksd-mt-20"
+        class="ksd-center ksd-mtb-10"
+        layout="prev, pager, next"
+        :background="false"
         :totalSize="totalSegmentCount"
         @handleCurrentChange="handleCurrentChange">
       </kap-pager>
     </div>
 
-    <el-dialog :title="$t('segmentDetail')" append-to-body :close-on-press-escape="false" :close-on-click-modal="false" :visible.sync="isShowDetail" width="780px">
+    <el-dialog :title="$t('segmentDetail')" append-to-body :close-on-press-escape="false" :close-on-click-modal="false" :visible.sync="isShowDetail" width="720px">
       <table class="ksd-table segment-detail" v-if="detailSegment">
         <tr class="ksd-tr">
           <th>{{$t('segmentID')}}</th>
@@ -311,7 +312,6 @@ export default class ModelSegment extends Vue {
   }
 }
 .model-segment {
-  padding: 20px 0;
   .segment-actions {
     margin-bottom: 10px;
     .left {
@@ -333,9 +333,6 @@ export default class ModelSegment extends Vue {
     .el-select .el-input {
       width: 150px;
     }
-  }
-  .input-label {
-    margin-right: 6px;
   }
   .input-split {
     margin: 0 7px;

@@ -18,7 +18,9 @@
         <!-- <el-radio class="font-medium" v-guide.checkloadDataRangeRaido :value="form.isLoadExisted" :label="false" @input="value => handleInput('isLoadExisted', value)">
           {{$t('customLoadRange')}}
         </el-radio> -->
+        <div class="ky-no-br-space">
         <el-date-picker
+          class="ksd-mr-5"
           type="datetime"
           :value="form.loadDataRange[0]"
           :is-auto-complete="true"
@@ -27,7 +29,6 @@
           :placeholder="$t('kylinLang.common.startTime')"
           @input="value => handleInputDate('loadDataRange.0', value)">
         </el-date-picker>
-        <span>-</span>
         <el-date-picker
           type="datetime"
           :value="form.loadDataRange[1]"
@@ -40,7 +41,8 @@
         <el-tooltip effect="dark" :content="$t('detectAvailableRange')" placement="top">
           <el-button
             v-if="isFormShow"
-            size="small"
+            size="medium"
+            style="line-height:1"
             class="ksd-ml-10"
             :disabled="isDisabled || form.isLoadExisted"
             :loading="isLoadingNewRange"
@@ -49,34 +51,37 @@
             @click="handleLoadNewestRange">
           </el-button>
         </el-tooltip>
+        </div>
         <!-- for guide -->
         <span v-guide.getRangeData style="position:absolute;width:1px; height:0" @click="handleLoadNewestRange"></span>
         <span v-guide.checkDataRangeHasData style="position:absolute;width:1px; height:0" v-if="form.loadDataRange[0] && form.loadDataRange[1]"></span>
       </el-form-item>
       <el-form-item class="custom-load" prop="freshDataRange" v-if="_isFieldShow('freshDataRange')">
         <div class="item-desc">{{$t('refreshRangeDesc')}}</div>
-        <el-date-picker
-          type="datetime"
-          :value="form.freshDataRange[0]"
-          :is-auto-complete="true"
-          :disabled="isDisabled"
-          :picker-options="{ disabledDate: time => time.getTime() > form.freshDataRange[1] && form.loadDataRange[1] !== null }"
-          :placeholder="$t('kylinLang.common.startTime')"
-          @input="value => handleInputDate('freshDataRange.0', value)">
-        </el-date-picker>
-        <span>-</span>
-        <el-date-picker
-          type="datetime"
-          :value="form.freshDataRange[1]"
-          :is-auto-complete="true"
-          :disabled="isDisabled"
-          :picker-options="{ disabledDate: time => time.getTime() < form.freshDataRange[0] && form.loadDataRange[0] !== null }"
-          :placeholder="$t('kylinLang.common.endTime')"
-          @input="value => handleInputDate('freshDataRange.1', value)">
-        </el-date-picker>
+        <div class="ky-no-br-space">
+          <el-date-picker
+            type="datetime"
+            class="ksd-mr-5"
+            :value="form.freshDataRange[0]"
+            :is-auto-complete="true"
+            :disabled="isDisabled"
+            :picker-options="{ disabledDate: time => time.getTime() > form.freshDataRange[1] && form.loadDataRange[1] !== null }"
+            :placeholder="$t('kylinLang.common.startTime')"
+            @input="value => handleInputDate('freshDataRange.0', value)">
+          </el-date-picker>
+          <el-date-picker
+            type="datetime"
+            :value="form.freshDataRange[1]"
+            :is-auto-complete="true"
+            :disabled="isDisabled"
+            :picker-options="{ disabledDate: time => time.getTime() < form.freshDataRange[0] && form.loadDataRange[0] !== null }"
+            :placeholder="$t('kylinLang.common.endTime')"
+            @input="value => handleInputDate('freshDataRange.1', value)">
+          </el-date-picker>
+        </div>
       </el-form-item>
     </el-form>
-    <div slot="footer" class="dialog-footer" v-if="isShow">
+    <div slot="footer" class="dialog-footer ky-no-br-space" v-if="isShow">
       <!-- {{form.freshDataRange}} -->
       <!-- <el-button v-guide.hasFundData style="display:none" v-if="form.freshDataRange[0] && form.freshDataRange[1]"></el-button> -->
       <el-button size="medium" @click="() => handleClose()">{{$t('kylinLang.common.cancel')}}</el-button>
@@ -266,20 +271,14 @@ export default class SourceTableModal extends Vue {
     font-weight: 500;
     color: #263238;
   }
-  .el-form-item {
-    margin-bottom: 20px;
-  }
   .el-form-item:last-child {
     margin-bottom: 0;
   }
   .el-form-item--medium .el-form-item__content, .el-form-item__content * {
     line-height: initial;
   }
-  .item-desc {
-    font-size: 12px;
-  }
   .item-desc:first-child {
-    margin-bottom: 20px;
+    margin-bottom: 15px;
   }
   .item-desc:not(:first-child) {
     margin-top: 5px;

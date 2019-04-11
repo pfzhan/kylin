@@ -1,5 +1,5 @@
 <template>
-  <el-dialog append-to-body :title="$t('adddimension')" @close="isShow && handleClose(false)"  width="440px" :visible="isShow" class="add-dimension-dialog" :close-on-press-escape="false" :close-on-click-modal="false">
+  <el-dialog append-to-body :title="$t('adddimension')" @close="isShow && handleClose(false)"  width="480px" :visible="isShow" class="add-dimension-dialog" :close-on-press-escape="false" :close-on-click-modal="false">
     <div>
       <!-- <div class="ky-tips-box">
         <div class="tips-title">Reminder!</div>
@@ -33,7 +33,7 @@
         </el-form-item>
       </el-form>
     </div>
-    <span slot="footer" class="dialog-footer">
+    <span slot="footer" class="dialog-footer ky-no-br-space">
       <el-button @click="isShow && handleClose(false)" size="medium">{{$t('kylinLang.common.cancel')}}</el-button>
       <el-button type="primary" plain size="medium" @click="submit">{{$t('kylinLang.common.ok')}}</el-button>
     </span>

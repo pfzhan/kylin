@@ -12,10 +12,11 @@
     :data="projectList"
     tooltip-effect="dark"
     border
+    class="project-table"
     style="width: 100%">
-    <el-table-column type="expand" :width="34">
+    <el-table-column type="expand" :width="34" align="center">
       <template slot-scope="props">
-         <el-tabs activeName="first" class="el-tabs--default">
+         <el-tabs activeName="first" type="card" class="el-tabs--default">
           <!-- <el-tab-pane label="Models" name="first">
             <model_list :modelList="props.row.models"></model_list>
           </el-tab-pane>
@@ -38,32 +39,27 @@
       :label="$t('name')"
       show-overflow-tooltip
       :width="320"
-      header-align="center"
       prop="name">
     </el-table-column>
     <el-table-column
       :label="$t('owner')"
       :width="220"
       show-overflow-tooltip
-      header-align="center"
       prop="owner">
     </el-table-column>
     <el-table-column
       :label="$t('description')"
       show-overflow-tooltip
-      header-align="center"
       prop="description">
     </el-table-column>
     <el-table-column
       show-overflow-tooltip
-      :width="208"
+      :width="218"
       :label="$t('createTime')"
-      header-align="center"
       prop="gmtTime">
     </el-table-column>
     <el-table-column
       :width="83"
-      align="center"
       :label="$t('actions')">
       <template slot-scope="scope">
       <!--<span v-if="!(isAdmin || hasAdminProjectPermission(scope.row.uuid))">N/A</span> v-if="isAdmin || hasAdminProjectPermission(scope.row.uuid)"-->
@@ -82,7 +78,7 @@
     </el-table-column>
     </el-table>
     <kap-pager
-      class="ksd-center ksd-mt-20 ksd-mb-20" ref="pager"
+      class="ksd-center ksd-mtb-10" ref="pager"
       :totalSize="projectsTotal"
       @handleCurrentChange="handleCurrentChange">
     </kap-pager>
@@ -246,8 +242,14 @@ export default {
         height: 80px;
       }
     }
+    .project-table {
+      .el-icon-ksd-backup:hover,
+      .el-icon-ksd-table_delete:hover {
+        color: @base-color;
+      }
+    }
     .el-table__expanded-cell[class*=cell] {
-      padding: 20px 30px;
+      padding: 15px;
       background-color: @table-stripe-color;
       .el-pagination.is-background {
         button,
@@ -258,9 +260,6 @@ export default {
     }
     .el-tabs__nav {
       margin-left: 0;
-    }
-    .el-tabs__header{
-      border-color: @grey-color;
     }
     .el-tabs__item{
       transition: none;

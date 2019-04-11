@@ -1,14 +1,21 @@
 <template>
-  <el-dialog :title="$t('computedDetail')" append-to-body width="440px" :visible="isShow" :close-on-press-escape="false" :close-on-click-modal="false" @close="isShow && closeModal()">
+  <el-dialog :title="$t('computedDetail')" append-to-body width="480px" :visible="isShow" :close-on-press-escape="false" :close-on-click-modal="false" @close="isShow && closeModal()">
     <div class="cc-detail-box" v-if="ccDetail">
-      <el-row :gutter="4">
-        <el-col :span="7" class="ksd-right">{{$t('columnName')}}</el-col>
-        <el-col :span="17" class="ksd-left">{{ccDetail.columnName}}</el-col>
-      </el-row>
-      <el-row :gutter="4">
-        <el-col :span="7" class="ksd-right">{{$t('returnType')}}</el-col>
-        <el-col :span="17" class="ksd-left">{{ccDetail.datatype}}</el-col>
-      </el-row>
+      <el-table
+      :show-header="false"
+      border
+      :data="ccInfoData"
+      style="width: 100%">
+      <el-table-column
+        prop="ccKey"
+        label=""
+        width="120">
+      </el-table-column>
+      <el-table-column
+        prop="ccVal"
+        label="">
+      </el-table-column>
+    </el-table>
       <div class="ksd-mt-18 express-box">
         <p>{{$t('kylinLang.dataSource.expression')}}</p>
         <div class="ksd-mt-6">
@@ -53,6 +60,15 @@ export default class ShowCCDialogModal extends Vue {
       })
     }
   }
+  get ccInfoData () {
+    return [{
+      ccKey: this.$t('columnName'),
+      ccVal: this.ccDetail.columnName
+    }, {
+      ccKey: this.$t('returnType'),
+      ccVal: this.ccDetail.datatype
+    }]
+  }
   closeModal (isSubmit) {
     this.hideModal()
     setTimeout(() => {
@@ -66,24 +82,6 @@ export default class ShowCCDialogModal extends Vue {
 <style lang="less">
   @import '../../../../assets/styles/variables.less';
   .cc-detail-box {
-    margin-bottom:70px;
-    .el-row {
-      margin:0 auto;
-      width:400px;
-      height:46px;
-      background-color:@fff;
-      border:solid 1px @text-placeholder-color;
-      &:first-child{
-        border-bottom:none;
-        background-color: @table-stripe-color;
-      }
-      .el-col {
-        &:first-child {
-          font-weight: @font-medium;
-        }
-        line-height: 46px;
-      }
-    }
     .express-box {
       p {
         font-weight: @font-medium;

@@ -309,7 +309,7 @@
             </el-alert>
             <el-input @input="searchModelEverything"  clearable class="search-input" :placeholder="$t('searchInputPlaceHolder')" v-model="modelGlobalSearch" prefix-icon="el-icon-search"></el-input>
             <transition name="bounceleft">
-              <div v-scroll class="search-result-box" v-keyborad-select="{scope:'.search-content', searchKey: modelGlobalSearch}" v-show="modelGlobalSearch && showSearchResult" v-search-highlight="{scope:'.search-name', hightlight: modelGlobalSearch}">
+              <div v-scroll.reactive class="search-result-box" v-keyborad-select="{scope:'.search-content', searchKey: modelGlobalSearch}" v-show="modelGlobalSearch && showSearchResult" v-search-highlight="{scope:'.search-name', hightlight: modelGlobalSearch}">
                 <div>
                 <div class="search-group" v-for="(k,v) in searchResultData" :key="v">
                   <ul>
@@ -1580,7 +1580,7 @@ export default class ModelEdit extends Vue {
   .box-css();
   height: 100%;
   .panel-box{
-      box-shadow: @box-shadow;
+      box-shadow: 0 2px 4px 0 @color-text-placeholder;
       position:relative;
       width:250px;
       .panel-title {
@@ -1623,7 +1623,7 @@ export default class ModelEdit extends Vue {
             line-height:28px;
             height:28px;
             padding: 0 7px 0px 10px;
-            border-bottom: 1px solid @text-placeholder-color;
+            border-bottom: 1px solid @line-border-color;
             box-sizing: border-box;
             .li-type{
               position:absolute;
@@ -1640,25 +1640,25 @@ export default class ModelEdit extends Vue {
             }
             .icon-span {
               display:none;
-              margin-left:7px;
+              margin-left:5px;
               float:right;
               font-size:14px;
             }
             &.is-checked {
-              background-color:@base-color-10;
+              background-color:@base-color-9;
             }
             &:hover {
               .li-type{
                 display:none;
               }
-              background-color:@base-color-10;
+              background-color:@base-color-9;
               .icon-span{
                 .ky-square-box(22px,22px);
                 display:inline-block;
                 margin-top: 3px;
                 border-radius: 2px;
                 &:hover {
-                  background-color: @text-placeholder-color;
+                  background-color: @background-color-regular;
                   color: @base-color;
                 }
               }
@@ -1703,7 +1703,7 @@ export default class ModelEdit extends Vue {
             font-size: 14px;
             display: inline-block;
             border-right: 1px solid @fff;
-            background-color: @grey-3;
+            background-color: @base-color-9;
             color:  @base-color;
             text-align: center;
             cursor: pointer;
@@ -1729,7 +1729,7 @@ export default class ModelEdit extends Vue {
             }
             &.disabled,
             &.disabled:hover {
-              background-color: @line-border-color;
+              background-color: @background-disabled-color;
               color: @text-disabled-color;
               cursor: not-allowed;
               i {
@@ -1822,11 +1822,11 @@ export default class ModelEdit extends Vue {
       width:100%!important;
       height:100%!important;
       position:fixed;
-      top:112px!important;
+      top:102px!important;
       bottom:0!important;
       left:0!important;
       right:0!important;
-      opacity: 0.93;
+      background:rgba(255,255,255,.93);
       z-index: 120!important;
       .close {
         position: absolute;
@@ -1846,11 +1846,13 @@ export default class ModelEdit extends Vue {
         }
       } 
       .search-result-box {
-        max-height:calc(~"100% - 364px")!important;
+        box-shadow: 0 0px 2px 0 @color-text-placeholder;
+        background-color: rgba(255, 255, 255, 1);
+        height:calc(~'100vh - 464px')!important;
         min-height:250px;
-        overflow:auto;
+        // overflow:auto;
         .search-position();
-        box-shadow:@box-shadow;
+        // box-shadow:@box-shadow;
         .search-noresult {
           font-size:20px;
           text-align: center;
@@ -1863,7 +1865,7 @@ export default class ModelEdit extends Vue {
         }
         .search-content {
           &.active,&:hover{
-            background-color:@base-color-10;
+            background-color:@base-color-9;
           }
           cursor:pointer;
           height:32px;
@@ -2097,7 +2099,7 @@ export default class ModelEdit extends Vue {
             }
             padding-left:10px;
             cursor:move;
-            border-bottom:solid 1px @text-placeholder-color;
+            border-bottom:solid 1px @line-border-color;
             height:28px;
             line-height:28px;
             font-size:14px;

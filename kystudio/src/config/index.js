@@ -86,43 +86,6 @@ export const menusData = [
     icon: 'el-icon-ksd-table_group'
   }
 ]
-export const modelHealthStatus = {
-  'RUNNING': {
-    icon: '',
-    color: '',
-    message: 'Job Running'
-  },
-  'GOOD': {
-    icon: 'el-icon-success',
-    color: '#4cb050',
-    message: 'Good Health'
-  },
-  'WARN': {
-    icon: 'el-icon-warning',
-    color: '#f7ba2a',
-    message: ''
-  },
-  'BAD': {
-    icon: 'el-icon-error',
-    color: '#ff4159',
-    message: ''
-  },
-  'TERRIBLE': {
-    icon: 'el-icon-error',
-    color: '#ff4159',
-    message: ''
-  },
-  'NONE': {
-    icon: 'el-icon-question',
-    color: '#cfd8dc',
-    message: 'This model has no check result'
-  },
-  'ERROR': {
-    icon: 'circle-o-notch',
-    color: '#ff4159',
-    message: 'Check job failed'
-  }
-}
 export const needLengthMeasureType = ['fixed_length', 'fixed_length_hex', 'int', 'integer']
 export const permissions = {
   READ: {name: 'CUBE QUERY', value: 'READ', mask: 1},
@@ -626,7 +589,7 @@ export const insightKeyword = [
 
 export const assignTypes = [{value: 'user', label: 'user'}, {value: 'group', label: 'group'}]
 export const sourceTypes = getFullMapping({
-  HIVE: process.env.NODE_ENV === 'development' ? 11 : 9,
+  HIVE: 9,
   RDBMS: 16,
   KAFKA: 1,
   RDBMS2: 8,

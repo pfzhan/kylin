@@ -16,10 +16,10 @@
       <el-table-column type="expand" width="34">
         <template slot-scope="props">
           <div class="detail-title">
-            <span class="ksd-fleft ksd-fs-16">{{$t('queryDetails')}}</span>
+            <span class="ksd-fleft ksd-fs-14">{{$t('queryDetails')}}</span>
           </div>
           <div class="detail-content">
-            <el-row :gutter="30">
+            <el-row :gutter="15">
               <el-col :span="14">
                 <kap-editor height="320" width="100%" lang="sql" theme="chrome" ref="historySqlEditor" :readOnly="true" :isFormatter="true" v-model="props.row.sql_text" dragbar="#393e53">
                 </kap-editor>
@@ -36,7 +36,7 @@
                   </tr>
                   <tr class="ksd-tr">
                     <th class="label">{{$t('kylinLang.query.answered_by')}}</th>
-                    <td style="padding: 5px 10px;">
+                    <td style="padding: 3px 10px;">
                       <div v-if="props.row.realizations && props.row.realizations.length" class="realization-tags">
                         <el-tag size="small" style="cursor:pointer;" v-for="item in props.row.realizations" :key="item.modelId" @click.native="openAgg(item.modelId)">{{item.modelAlias}}</el-tag>
                       </div>
@@ -65,21 +65,21 @@
           </div>
         </template>
       </el-table-column>
-      <el-table-column :renderHeader="renderColumn" prop="query_time" header-align="center" width="207">
+      <el-table-column :renderHeader="renderColumn" prop="query_time" width="218">
         <template slot-scope="props">
           {{transToGmtTime(props.row.query_time)}}
         </template>
       </el-table-column>
-      <el-table-column :renderHeader="renderColumn2" prop="duration" header-align="center" align="right" width="133">
+      <el-table-column :renderHeader="renderColumn2" prop="duration" align="right" width="133">
         <template slot-scope="props">
           <span v-if="props.row.duration < 1000 && props.row.query_status === 'SUCCEEDED'">&lt; 1s</span>
           <span v-if="props.row.duration >= 1000 && props.row.query_status === 'SUCCEEDED'">{{props.row.duration / 1000 | fixed(2)}}s</span>
           <span v-if="props.row.query_status === 'FAILED'">Failed</span>
         </template>
       </el-table-column>
-      <el-table-column :label="$t('kylinLang.query.sqlContent_th')" prop="sql_text" header-align="center" show-overflow-tooltip>
+      <el-table-column :label="$t('kylinLang.query.sqlContent_th')" prop="sql_text" show-overflow-tooltip>
       </el-table-column>
-      <el-table-column :renderHeader="renderColumn3" prop="realizations" header-align="center" width="250" show-overflow-tooltip>
+      <el-table-column :renderHeader="renderColumn3" prop="realizations" width="250" show-overflow-tooltip>
         <template slot-scope="props">
           <div class="tag-ellipsis">
             <template v-if="props.row.realizations && props.row.realizations.length">
@@ -91,7 +91,7 @@
           </div>
         </template>
       </el-table-column>
-      <el-table-column :label="$t('kylinLang.query.submitter')" prop="submitter" align="center" width="145">
+      <el-table-column :label="$t('kylinLang.query.submitter')" prop="submitter" width="145">
       </el-table-column>
     </el-table>
   </div>
@@ -231,7 +231,7 @@ export default class QueryHistoryTable extends Vue {
       const endTime = transToUtcTimeFormat(this.filterData.startTimeTo)
       return (<span onClick={e => (e.stopPropagation())}>
         <span>{this.$t('kylinLang.query.startTime_th')}</span>
-        <el-tooltip placement="top" class="ksd-fright">
+        <el-tooltip placement="top">
           <div slot="content">
             <span>
               <i class='el-icon-time'></i>
@@ -243,7 +243,7 @@ export default class QueryHistoryTable extends Vue {
             onInput={val => (this.datetimerange = val)}
             type="datetimerange"
             popper-class="table-filter-datepicker"
-            toggle-icon="el-icon-ksd-data_range"
+            toggle-icon="el-icon-ksd-data_range isFilter"
             is-only-icon={true}>
           </el-date-picker>
         </el-tooltip>
@@ -279,8 +279,8 @@ export default class QueryHistoryTable extends Vue {
   renderColumn2 (h) {
     if (this.filterData.latencyFrom && this.filterData.latencyTo) {
       return (<span>
-        <span>{this.$t('kylinLang.query.latency_th')}</span>
-        <el-tooltip placement="top" class="ksd-fright">
+        <span style="margin-right:5px;">{this.$t('kylinLang.query.latency_th')}</span>
+        <el-tooltip placement="top">
           <div slot="content">
             <span>
               <i class='el-icon-time'></i>
@@ -290,17 +290,18 @@ export default class QueryHistoryTable extends Vue {
           <el-popover
             ref="latencyFilterPopover"
             placement="bottom"
-            width="320"
+            width="315"
             value={this.latencyFilterPopoverVisible}
             onInput={val => (this.latencyFilterPopoverVisible = val)}>
             <div class="latency-filter-pop">
               <el-input-number
-                size="medium"
+                size="small"
                 value={this.startSec}
                 onInput={val1 => (this.startSec = val1)}></el-input-number>
               <span>&nbsp;S&nbsp;&nbsp;To</span>
               <el-input-number
-                size="medium"
+                size="small"
+                class="ksd-ml-10"
                 value={this.endSec}
                 onInput={val2 => (this.endSec = val2)}></el-input-number>
               <span>&nbsp;S</span>
@@ -309,29 +310,29 @@ export default class QueryHistoryTable extends Vue {
               <el-button size="small" onClick={this.resetLatency}>{this.$t('kylinLang.query.clear')}</el-button>
               <el-button type="primary" onClick={this.saveLatencyRange} plain size="small">{this.$t('kylinLang.common.save')}</el-button>
             </div>
-            <i class="el-icon-ksd-data_range" onClick={e => (e.stopPropagation())} slot="reference"></i>
+            <i class="el-icon-ksd-data_range isFilter" onClick={e => (e.stopPropagation())} slot="reference"></i>
           </el-popover>
         </el-tooltip>
       </span>)
     } else {
       return (<span>
-        <span>{this.$t('kylinLang.query.latency_th')}</span>
+        <span style="margin-right:5px;">{this.$t('kylinLang.query.latency_th')}</span>
         <el-popover
           ref="latencyFilterPopover"
           placement="bottom"
-          width="320"
-          class="ksd-fright"
+          width="315"
           value={this.latencyFilterPopoverVisible}
           onInput={val => (this.latencyFilterPopoverVisible = val)}>
           <div class="latency-filter-pop">
             <el-input-number
-              size="medium"
+              size="small"
               value={this.startSec}
               min={0}
               onInput={val1 => (this.startSec = val1)}></el-input-number>
             <span>&nbsp;S&nbsp;&nbsp;To</span>
             <el-input-number
-              size="medium"
+              size="small"
+              class="ksd-ml-10"
               value={this.endSec}
               min={0}
               onInput={val2 => (this.endSec = val2)}></el-input-number>
@@ -356,11 +357,11 @@ export default class QueryHistoryTable extends Vue {
       <el-popover
         ref="realFilterPopover"
         placement="bottom"
-        width="200">
+        popperClass="history-filter">
         <el-checkbox-group class="filter-groups" value={this.filterData.realization} onInput={val => (this.filterData.realization = val)} onChange={this.filterList}>
           {items}
         </el-checkbox-group>
-        <i class="el-icon-ksd-filter" slot="reference"></i>
+        <i class={this.filterData.realization.length ? 'el-icon-ksd-filter isFilter' : 'el-icon-ksd-filter'} slot="reference"></i>
       </el-popover>
     </span>)
   }
@@ -390,7 +391,7 @@ export default class QueryHistoryTable extends Vue {
   #queryHistoryTable {
     margin-top: 20px;
     .el-table__expanded-cell {
-      padding: 20px;
+      padding: 15px;
       .copy-btn {
         margin-right: 9%;
         .copyStatusMsg {
@@ -404,9 +405,9 @@ export default class QueryHistoryTable extends Vue {
       .detail-title {
         border-bottom: 1px solid @line-border-color;
         overflow: hidden;
-        padding: 10px 0;
+        padding-bottom: 10px;
         span:first-child {
-          line-height: 24px;
+          line-height: 18px;
           font-weight: bold;
         }
         span:last-child {
@@ -414,7 +415,7 @@ export default class QueryHistoryTable extends Vue {
         }
       }
       .detail-content {
-        padding: 10px 0;
+        padding-top: 15px;
         line-height: 1.8;
       }
     }
@@ -422,6 +423,9 @@ export default class QueryHistoryTable extends Vue {
       width: 400px;
     }
     .history-table {
+      .ksd-table th {
+        width: 140px;
+      }
       .tag-ellipsis {
         width: 100%;
         text-overflow: ellipsis;
@@ -440,15 +444,25 @@ export default class QueryHistoryTable extends Vue {
         }
       }
       .el-date-editor {
-        line-height: inherit;
+        line-height: 1;
         padding: 0;
-        position: absolute;
-        right: 10px;
+        position: relative;
+        top: 2px;
+        left: 5px;
+      }
+      .el-icon-ksd-data_range {
+        &.isFilter,
+        &:hover {
+          color: @base-color;
+        }
       }
       .el-icon-ksd-filter {
-        float: right;
         position: relative;
-        top: 5px;
+        left: 5px;
+        &.isFilter,
+        &:hover {
+          color: @base-color;
+        }
       }
       .el-icon-ksd-negative {
         color: @text-normal-color;
@@ -478,7 +492,6 @@ export default class QueryHistoryTable extends Vue {
   .latency-filter-pop {
     display: inline-flex;
     align-items: center;
-    padding: 5px 20px;
     .el-input-number--medium {
       width: 120px;
       margin-left: 10px;
@@ -488,17 +501,21 @@ export default class QueryHistoryTable extends Vue {
     }
   }
   .latency-filter-footer {
-    border-top: 1px solid @line-border-color;
+    border-top: 1px solid @line-split-color;
     padding: 10px 10px 0;
-    text-align: right;
     margin: 10px -10px 0;
+    text-align: right;
   }
   .filter-groups .el-checkbox {
     display: block;
     margin-bottom: 8px;
-    margin-left: 5px !important;
+    margin-left: 0px !important;
     &:last-child {
       margin-bottom: 0;
     }
+  }
+  .el-popover.history-filter {
+    min-width: 130px;
+    box-sizing: border-box;
   }
 </style>

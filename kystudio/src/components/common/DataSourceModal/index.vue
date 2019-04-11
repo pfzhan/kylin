@@ -45,13 +45,13 @@
         :form="form.csvSettings"
         v-if="[editTypes.CONFIG_CSV_STRUCTURE].includes(editType) && [editTypes.CSV].includes(sourceType)">
       </SourceCSVStructure>
-      <SourceCSVSql 
+      <SourceCSVSql
         ref="source-csv-sql-form"
         :form="form.csvSettings"
         v-if="[editTypes.CONFIG_CSV_SQL].includes(editType) && [editTypes.CSV].includes(sourceType)">
       </SourceCSVSql>
     </template>
-    <div slot="footer" class="dialog-footer">
+    <div slot="footer" class="dialog-footer ky-no-br-space">
       <el-button size="medium" :disabled="stepLocked || isLoading" @click="handleCancel" v-if="cancelText">{{cancelText}}</el-button>
       <el-button size="medium" :disabled="stepLocked" :key="editType" plain type="primary" @click="handleSubmit" v-guide.saveSourceType v-if="confirmText" :loading="isLoading">{{confirmText}}</el-button>
     </div>
@@ -288,6 +288,9 @@ export default class DataSourceModal extends Vue {
 @import '../../../assets/styles/variables.less';
 
 .data-srouce-modal {
+  .el-dialog {
+    margin-top:2vh!important;
+  }
   .el-dialog__body {
     padding: 0;
   }

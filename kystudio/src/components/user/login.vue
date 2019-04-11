@@ -1,7 +1,7 @@
 <template>
   <div>
     <div class="login-header">
-      <img src="../../assets/img/ky_logo.png">
+      <img src="../../assets/img/logo/big_logo.png">
       <ul class="ksd-fright">
         <!-- 在登录页不显示onoff -->
         <li></li>
@@ -13,7 +13,7 @@
       <el-row :gutter="0">
         <el-col :span="12">
           <div class="grid-content login-msg">
-            <img src="../../assets/img/logo.png">
+            <img src="../../assets/img/logo/logo_login.png">
             <p>{{$t('welcome')}}</p>
             <p>{{$t('kapMsg')}}</p>
             <div class="ky-line"></div>
@@ -34,14 +34,14 @@
                 <el-form-item label="" prop="password" class="password">
                   <el-input  type="password" v-model="user.password" name="password" :placeholder="$t('password')"></el-input>
                 </el-form-item>
-                <p class="forget_pwd" v-show="user.username==='ADMIN'">
+                <p class="forget-pwd ksd-mt-5" v-show="user.username==='ADMIN'">
                   <common-tip :content="$t('adminTip')" >
                     {{$t('forgetPassword')}}
                   </common-tip>
                 </p>
               </div>
-              <el-form-item class="ksd-pt-14">
-                <kap-icon-button type="primary"  @keyup.native.enter="onLoginSubmit" @click.native="onLoginSubmit" :useload="false" ref="loginBtn">{{$t('loginIn')}}</kap-icon-button>
+              <el-form-item class="ksd-pt-40">
+                <kap-icon-button type="primary" class="ksd-mt-10"  @keyup.native.enter="onLoginSubmit" @click.native="onLoginSubmit" :useload="false" ref="loginBtn">{{$t('loginIn')}}</kap-icon-button>
               </el-form-item>
             </el-form>
 
@@ -52,7 +52,7 @@
 
     <p class="login-footer">&copy;2019 <a href="http://kyligence.io/" target="_blank">Kyligence Inc.</a> All rights reserved.</p>
 
-    <el-dialog class="updateKAPLicense" @close="closeDialog" :title="$t('license')" :visible.sync="hasLicense" :close-on-press-escape="false" :close-on-click-modal="false" width="660px">
+    <el-dialog class="updateKAPLicense" @close="closeDialog" :title="$t('license')" :visible.sync="hasLicense" :close-on-press-escape="false" :close-on-click-modal="false" width="720px">
       <div class="ksd-mb-40 license-pic">
         <img src="../../assets/img/license.png">
       </div>
@@ -64,7 +64,7 @@
       </div>
     </el-dialog>
 
-    <el-dialog class="applyLicense" @close="closeApplyLicense" :title="$t('applyLicense')" :visible.sync="applyLicense" :close-on-press-escape="false" :close-on-click-modal="false" width="440px">
+    <el-dialog class="applyLicense" @close="closeApplyLicense" :title="$t('applyLicense')" :visible.sync="applyLicense" :close-on-press-escape="false" :close-on-click-modal="false" width="480px">
       <el-form label-position="top" :model="userMessage" :rules="userRules" ref="applyLicenseForm">
         <el-form-item prop="email">
           <el-input v-model="userMessage.email" :placeholder="$t('businessEmail')"></el-input>
@@ -81,7 +81,7 @@
       </div>
     </el-dialog>
 
-    <el-dialog class="license-msg" width="440px"
+    <el-dialog class="license-msg" width="480px"
       :before-close="handleClose"
       :title="$t('kylinLang.common.license')"
       :close-on-click-modal="false"
@@ -428,20 +428,20 @@ export default {
     }
   }
   .login-header{
-    height: 60px;
-    background-color: @text-title-color;
+    height: 52px;
+    background-color: @color-menu-color1;
     ul {
-      margin-top: 17px;
+      margin-top: 14px;
       li{
         vertical-align: middle;
         display: inline-block;
-        margin-right: 30px;
+        margin-right: 20px;
       }
     }
     img {
       height: 28px;
       z-index: 999;
-      margin: 16px 20px;
+      margin: 12px 20px;
     }
     .help-box span{
       color: @fff;
@@ -455,42 +455,45 @@ export default {
     width: 100%;
     height: 22px;
     padding: 19px 0px;
-    background-color: @text-title-color;
+    background-color: @color-menu-color1;
   }
   .login-box{
     width: 840px;
     border: 1px solid @line-split-color;
     position: absolute;
-    top: 191px;
+    background:@fff;
+    top: 50%;
+    margin-top: -208px;
     left: 50%;
     margin-left: -420px;
     .grid-content {
       text-align: center;
-      height: 420px;
+      height: 416px;
     }
     .login-msg {
       border-right: 1px solid @line-split-color;
       img{
-        height: 59px;
-        margin: 47px 0px 25px 0px;
+        height: 71px;
+        margin: 40px 0 31px;
       }
       p:first-of-type {
         color: @text-title-color;
         font-size: 20px;
         margin-bottom: 11px;
+        font-weight: bold;
         height: 28px;
       }
       p:last-of-type {
-        color: @text-normal-color;
+        color: @text-title-color;
         height: 20px;
       }
       .ky-line{
         background: @line-split-color;
         width: 370px;
-        margin: 23px 24px 0;
+        margin: 20px 24px 0;
       }
       ul{
-        margin: 30px 0 0 130px;
+        margin: 20px 0 0 140px;
         li {
           list-style: none;
           text-align: left;
@@ -517,15 +520,15 @@ export default {
         width: 320px;
         padding: 116px 50px 0px;
       }
-      .forget_pwd{
+      .forget-pwd{
         text-align: right;
-        margin-top: -10px;
+        // margin-top: -10px;
         font-size: 12px;
-        color: @text-normal-color;
+        color: @text-disabled-color;
         height: 16px;
         cursor: pointer;
       }
-      .forget_pwd:hover{
+      .forget-pwd:hover{
         color:@base-color-2;
         text-decoration: underline;
       }

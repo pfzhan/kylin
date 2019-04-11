@@ -11,7 +11,7 @@ export default {
     errorJobDesc: 'Email to following email address if there is an error job.',
     emails: 'Emails:',
     noData: 'No Data',
-    pleaseInputEmail: 'Please input email.',
+    pleaseInputEmail: 'Please input email',
     pleaseInputVaildEmail: 'Please input vaild email.'
   },
   'zh-cn': {
@@ -26,7 +26,7 @@ export default {
     errorJobDesc: '如果有报错任务，请发邮件给以下邮箱提醒。',
     emails: '邮箱：',
     noData: '暂无数据',
-    pleaseInputEmail: '请输入邮箱地址。',
+    pleaseInputEmail: '请输入邮箱地址',
     pleaseInputVaildEmail: '请输入正确的邮箱地址。'
   }
 }

@@ -17,41 +17,33 @@
       <el-table-column
         type="index"
         label="ID"
-        align="center"
         width="64"
-        header-align="center"
         :index="startIndex">
       </el-table-column>
       <el-table-column
         prop="name"
         sortable
-        align="left"
         min-width="300"
-        header-align="center"
         :label="$t('kylinLang.dataSource.columnName')">
       </el-table-column>
       <el-table-column
         prop="dataType"
         sortable
-        align="left"
         width="120"
-        header-align="center"
         :label="$t('kylinLang.dataSource.dataType')">
       </el-table-column>
       <el-table-column
         prop="cardinality"
         sortable
-        align="left"
+        align="right"
+        header-align="right"
         min-width="105"
-        header-align="center"
         :label="$t('kylinLang.dataSource.cardinality')">
       </el-table-column>
       <el-table-column
         prop="comment"
         sortable
-        align="left"
         min-width="200"
-        header-align="center"
         :label="$t('kylinLang.dataSource.comment')">
         <template slot-scope="scope">
           <span :title="scope.row.comment">{{scope.row.comment}}</span>
@@ -59,7 +51,7 @@
       </el-table-column>
     </el-table>
     <kap-pager
-      class="ksd-center ksd-mt-20 ksd-mb-20" ref="pager"
+      class="ksd-center ksd-mt-10" ref="pager"
       :totalSize="columns.length"
       @handleCurrentChange="handleCurrentChange">
     </kap-pager>
@@ -118,7 +110,7 @@ export default class TableColumns extends Vue {
 .table-columns {
   padding: 0 0 20px 0;
   .columns-header {
-    margin-bottom: 6px;
+    margin-bottom: 10px;
     white-space: nowrap;
   }
   .columns-body {
@@ -126,7 +118,7 @@ export default class TableColumns extends Vue {
   }
   .left, .right {
     display: inline-block;
-    vertical-align: middle;
+    vertical-align: bottom;
     width: 49.79%;
   }
   .right {
@@ -137,9 +129,6 @@ export default class TableColumns extends Vue {
   }
   .cell {
     white-space: nowrap;
-  }
-  .el-pagination {
-    margin-top: 30px;
   }
 }
 </style>

@@ -1,9 +1,12 @@
 <template>
   <div class="help-box">
     <el-dropdown @visible-change="dropHelp" @command="handleCommand">
-      <span class="el-dropdown-link ky-a-like">
+      <!-- <span class="el-dropdown-link ky-a-like">
         {{$t('kylinLang.common.help')}} <i class="el-icon-caret-bottom"></i>
-      </span>
+      </span> -->
+      <el-button size="small" plain>
+         {{$t('kylinLang.common.help')}}<i class="el-icon-arrow-down el-icon--right"></i>
+      </el-button>
       <el-dropdown-menu slot="dropdown">
         <el-dropdown-item command="guide"><a class="ksd-block-a">{{$t('userGuide')}}</a></el-dropdown-item>
         <!-- <el-dropdown-item command="kapmanual"><a class="ksd-block-a" target="_blank" href="http://manual.kyligence.io/">{{$t('Manual')}}</a></el-dropdown-item>

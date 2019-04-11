@@ -2,7 +2,7 @@ export default {
   'en': {
     dataSourceTypeCheckTip: 'Please Select Data Source Type',
     singleSourceTip: 'You can choose one type of data source within the project and it cannot be modified after selection.',
-    upcoming: 'Upcoming'
+    upcoming: 'Coming soon'
   },
   'zh-cn': {
     dataSourceTypeCheckTip: '请选择数据源类型',

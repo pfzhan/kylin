@@ -1,5 +1,5 @@
 <template>
-  <el-dialog append-to-body :title="$t('addJoinCondition')" @close="isShow && handleClose(false)" width="660px" :visible="isShow" class="links-dialog" :close-on-press-escape="false" :close-on-click-modal="false">
+  <el-dialog append-to-body :title="$t('addJoinCondition')" @close="isShow && handleClose(false)" width="720px" :visible="isShow" class="links-dialog" :close-on-press-escape="false" :close-on-click-modal="false">
     <el-row :gutter="10">
       <el-col :span="10">
         <el-select :placeholder="$t('kylinLang.common.pleaseSelect')" @change="changeFTable"  size="medium" style="width:100%" filterable v-model="selectF">
@@ -18,7 +18,7 @@
       </el-col>
     </el-row>
     <!-- 列的关联 -->
-    <el-row :gutter="10"  class="ksd-mt-20" v-for="(key, val) in joinColumns.foreign_key" :key="val">
+    <el-row :gutter="10"  class="ksd-mt-15" v-for="(key, val) in joinColumns.foreign_key" :key="val">
       <el-col :span="10">
          <el-select size="medium"  style="width:100%" filterable v-model="joinColumns.foreign_key[val]" :placeholder="$t('kylinLang.common.pleaseSelect')">
             <el-option v-for="f in fColumns" :value="fTable.alias+'.'+f.name" :key="f.name" :label="f.name">
@@ -34,7 +34,7 @@
             </el-option>
           </el-select>
       </el-col>
-      <el-col :span="4" class="ksd-left ksd-pt-2">
+      <el-col :span="4" class="ksd-left ksd-pt-4">
         <el-button  type="primary" plain icon="el-icon-ksd-add_2" size="mini" @click="addJoinConditionColumns" circle></el-button><el-button  icon="el-icon-minus" size="mini" @click="removeJoinConditionColumn(val)" circle></el-button>
       </el-col>
     </el-row>

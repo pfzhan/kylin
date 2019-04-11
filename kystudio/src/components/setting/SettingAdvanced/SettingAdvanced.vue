@@ -9,10 +9,9 @@
       @cancel="() => handleReset('accelerate-settings')">
       <el-form ref="accelerate-setting-form" :model="form" :rules="accelerateRules">
         <div class="setting-item">
-          <div class="setting-label font-medium">{{$t('acceThreshold')}}</div>
-          <span class="setting-value fixed">
+          <div class="setting-label font-medium">{{$t('acceThreshold')}}</div><span class="setting-value fixed">
             <el-switch
-              class="ksd-switch"
+              size="small"
               v-model="form.tips_enabled"
               :active-text="$t('kylinLang.common.OFF')"
               :inactive-text="$t('kylinLang.common.ON')">
@@ -45,10 +44,9 @@
       @cancel="() => handleReset('job-alert')">
       <!-- 空任务邮件通知 -->
       <div class="setting-item">
-        <span class="setting-label font-medium">{{$t('emptyDataLoad')}}</span>
-        <span class="setting-value fixed">
+        <span class="setting-label font-medium">{{$t('emptyDataLoad')}}</span><span class="setting-value fixed">
           <el-switch
-            class="ksd-switch"
+            size="small"
             v-model="form.data_load_empty_notification_enabled"
             :active-text="$t('kylinLang.common.OFF')"
             :inactive-text="$t('kylinLang.common.ON')">
@@ -56,10 +54,9 @@
         </span>
         <div class="setting-desc">{{$t('emptyDataLoadDesc')}}</div>
         <div class="split"></div>
-        <span class="setting-label font-medium">{{$t('errorJob')}}</span>
-        <span class="setting-value fixed">
+        <span class="setting-label font-medium">{{$t('errorJob')}}</span><span class="setting-value fixed">
           <el-switch
-            class="ksd-switch"
+            size="small"
             v-model="form.job_error_notification_enabled"
             :active-text="$t('kylinLang.common.OFF')"
             :inactive-text="$t('kylinLang.common.ON')">
@@ -80,9 +77,9 @@
             <div class="item-value" v-for="(email, index) in form.job_notification_emails" :key="index">
               <span class="setting-label font-medium email-fix-top">{{$t('emails')}}</span>
               <el-form-item :prop="`job_notification_emails.${index}`" :rules="emailRules">
-                <el-input v-model="form.job_notification_emails[index]"></el-input>
-                <el-button icon="el-icon-ksd-add_2" circle size="mini" @click="handleAddItem('job_notification_emails', index)"></el-button>
-                <el-button icon="el-icon-minus" circle size="mini" @click="handleRemoveItem('job_notification_emails', index)" :disabled="form.job_notification_emails.length < 2"></el-button>
+                <el-input v-model="form.job_notification_emails[index]" :placeholder="$t('pleaseInputEmail')"></el-input><el-button
+                 icon="el-icon-ksd-add_2" circle size="mini" @click="handleAddItem('job_notification_emails', index)"></el-button><el-button
+                  icon="el-icon-minus" class="ksd-ml-5" circle size="mini" @click="handleRemoveItem('job_notification_emails', index)" :disabled="form.job_notification_emails.length < 2"></el-button>
               </el-form-item>
             </div>
           </el-form>
@@ -236,7 +233,7 @@ export default class SettingAdvanced extends Vue {
   .item-value .el-button+.el-button {
     margin-left: 2px;
   }
-  .item-value {
+  .item-value:not(:last-child) {
     margin-bottom: 5px;
   }
   .item-value:not(:first-child) .setting-label {

@@ -31,7 +31,8 @@ export default {
     confirmRefreshSegments: 'Confirm to refresh the segment(s) below?',
     segmentIsEmpty: 'There are no segments in this model, so it can\'t be purged.',
     refreshSegmentsTitle: 'Refresh Segment',
-    deleteSegmentTip: 'Delete Segment'
+    deleteSegmentTip: 'Delete Segment',
+    showDetail: 'Show Detail'
   },
   'zh-cn': {
     autoMerge: 'Auto-Merge',
@@ -65,6 +66,7 @@ export default {
     confirmRefreshSegments: '是否确认刷新以下segment(s)?',
     segmentIsEmpty: '模型中没有segments，无法被清空。',
     refreshSegmentsTitle: '刷新Segment',
-    deleteSegmentTip: '删除Segment'
+    deleteSegmentTip: '删除Segment',
+    showDetail: '查看详情'
   }
 }

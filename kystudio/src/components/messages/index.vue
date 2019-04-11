@@ -21,7 +21,7 @@
         </div>
       </div>
       <kap-pager
-        class="ksd-center ksd-mt-20 ksd-mb-20" ref="pager"
+        class="ksd-center ksd-mtb-10" ref="pager"
         :totalSize="messages.length"
         @handleCurrentChange="handleCurrentChange">
       </kap-pager>

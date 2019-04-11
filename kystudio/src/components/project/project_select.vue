@@ -1,6 +1,6 @@
 <template>
    <el-select
-    size="medium"
+    size="small"
     class="project_select"
     filterable
     :title="selected_project"

@@ -18,8 +18,8 @@
           <el-button plain size="medium" icon="el-icon-ksd-restart" :disabled="!batchBtnsEnabled.restart" @click="batchRestart">{{$t('jobRestart')}}</el-button>
           <el-button plain size="medium" icon="el-icon-ksd-pause" :disabled="!batchBtnsEnabled.pause" @click="batchPause">{{$t('jobPause')}}</el-button>
           <el-button plain size="medium" icon="el-icon-ksd-table_delete" :disabled="!batchBtnsEnabled.drop" @click="batchDrop">{{$t('jobDrop')}}</el-button>
-        </el-button-group>
-        <el-button plain size="medium" class="ksd-ml-20 ksd-fleft" icon="el-icon-refresh" @click="refreshJobs">{{$t('kylinLang.common.refresh')}}</el-button>
+        </el-button-group><el-button
+        plain size="medium" class="ksd-ml-10 ksd-fleft" icon="el-icon-refresh" @click="refreshJobs">{{$t('kylinLang.common.refresh')}}</el-button>
       </el-col>
       <el-col :span="6">
         <el-input :placeholder="$t('kylinLang.common.pleaseFilter')" v-model="filter.subjectAlias"  @input="filterChange" class="show-search-btn ksd-fright" size="medium" prefix-icon="el-icon-search">
@@ -49,25 +49,25 @@
       <el-table-column type="selection" align="center" width="40"></el-table-column>
       <el-table-column align="center" width="40" prop="icon">
         <template slot-scope="scope">
-          <i :class="{
-          'el-icon-ksd-dock_to_right_return': scope.row.id !== selectedJob.id || !showStep,
-          'el-icon-ksd-dock_to_right': scope.row.id == selectedJob.id && showStep}"
-          ></i>
+          <common-tip :content="$t('openJobSteps')">
+            <i :class="{
+            'el-icon-ksd-dock_to_right_return': scope.row.id !== selectedJob.id || !showStep,
+            'el-icon-ksd-dock_to_right': scope.row.id == selectedJob.id && showStep}"
+            ></i>
+          </common-tip>
         </template>
       </el-table-column>
-      <el-table-column :renderHeader="renderColumn" prop="job_name" header-align="center" width="140"></el-table-column>
+      <el-table-column :renderHeader="renderColumn" prop="job_name" width="140"></el-table-column>
       <el-table-column
         :label="$t('TargetSubject')"
         sortable
         min-width="140"
-        header-align="center"
         show-overflow-tooltip
         prop="target_model_alias">
       </el-table-column>
        <el-table-column
         :label="$t('dataRange')"
         min-width="180"
-        header-align="center"
         show-overflow-tooltip>
         <template slot-scope="scope">
           <span v-if="scope.row.data_range_end==9223372036854776000">{{$t('fullLoad')}}</span>
@@ -76,17 +76,15 @@
       </el-table-column>
       <el-table-column
         width="180"
-        header-align="center"
         :renderHeader="renderColumn2">
         <template slot-scope="scope">
           <kap-progress :percent="scope.row.step_ratio * 100 | number(0)" :status="scope.row.job_status"></kap-progress>
         </template>
       </el-table-column>
       <el-table-column
-        width="207"
+        width="218"
         :label="$t('startTime')"
         show-overflow-tooltip
-        header-align="center"
         prop="create_time"
         sortable>
         <template slot-scope="scope">
@@ -96,7 +94,6 @@
       <el-table-column
         width="105"
         sortable
-        header-align="center"
         prop="duration"
         :label="$t('Duration')">
         <template slot-scope="scope">
@@ -105,7 +102,6 @@
       </el-table-column>
       <el-table-column
         :label="$t('Actions')"
-        align="center"
         width="83">
         <template slot-scope="scope">
           <common-tip :content="$t('jobDrop')" v-if="scope.row.job_status=='DISCARDED' || scope.row.job_status=='FINISHED'">
@@ -125,7 +121,7 @@
     </el-table>
 
 
-    <kap-pager :totalSize="jobTotal"  v-on:handleCurrentChange='currentChange' ref="jobPager" class="ksd-mt-20 ksd-mb-20 ksd-center" ></kap-pager>
+    <kap-pager :totalSize="jobTotal"  v-on:handleCurrentChange='currentChange' ref="jobPager" class="ksd-mtb-10 ksd-center" ></kap-pager>
 
     <el-card v-show="showStep" class="card-width job-step" id="stepList">
 
@@ -231,19 +227,21 @@
       <div class='job-btn' @click='showStep=false'><i class='el-icon-d-arrow-right' aria-hidden='true'></i>
       </div>
     </el-card>
-    <el-dialog :title="$t('waitingJobList')" :close-on-press-escape="false" :close-on-click-modal="false" :visible.sync="waitingJobListVisibel" width="440px">
+    <el-dialog :title="$t('waitingJobList')" :close-on-press-escape="false" :close-on-click-modal="false" :visible.sync="waitingJobListVisibel" width="480px">
       <div v-if="waitingJob">
-        <span class="ksd-title-label ksd-fs-14">{{$t('jobTarget')}}</span><span class="ky-title-color">{{waitingJob.modelName}}</span>
+        <div style="height:14px;line-height:14px;">
+          <span class="ksd-title-label ksd-fs-14">{{$t('jobTarget')}}</span><span class="ky-title-color">{{waitingJob.modelName}}</span>
+        </div>
         <el-table :data="waitingJob.jobsList" border class="ksd-mt-10">
-          <el-table-column type="index" :label="$t('order')" width="60" :resizable="false" align="center"></el-table-column>
-          <el-table-column property="job_type" :label="$t('JobType')" show-overflow-tooltip :resizable="false" header-align="center"></el-table-column>
-          <el-table-column property="create_time" :label="$t('triggerTime')" width="207" header-align="center" :resizable="false">
+          <el-table-column type="index" :label="$t('order')" width="60" :resizable="false"></el-table-column>
+          <el-table-column property="job_type" :label="$t('JobType')" show-overflow-tooltip :resizable="false"></el-table-column>
+          <el-table-column property="create_time" :label="$t('triggerTime')" width="207" :resizable="false">
             <template slot-scope="scope">
               {{transToGmtTime(scope.row.create_time)}}
             </template>
           </el-table-column>
         </el-table>
-        <kap-pager :totalSize="waitingJob.jobsSize" v-if="waitingJob.jobsSize>10" v-on:handleCurrentChange='waitingJobsCurrentChange' ref="waitingJobPager" class="ksd-mt-20 ksd-mb-20 ksd-center" ></kap-pager>
+        <kap-pager :totalSize="waitingJob.jobsSize" v-if="waitingJob.jobsSize>10" v-on:handleCurrentChange='waitingJobsCurrentChange' ref="waitingJobPager" class="ksd-mtb-10 ksd-center" ></kap-pager>
       </div>
       <span slot="footer" class="dialog-footer">
         <el-button type="primary" plain size="medium" @click="waitingJobListVisibel = false">{{$t('kylinLang.common.ok')}}</el-button>
@@ -354,7 +352,8 @@ import { transToGmtTime, kapConfirm, handleError, handleSuccess } from 'util/bus
       jobTarget: 'Job Target:',
       jobsList: 'Jobs List',
       sparkJobTip: 'Spark Job',
-      logInfoTip: 'Log Output'
+      logInfoTip: 'Log Output',
+      openJobSteps: 'Open Job Steps'
     },
     'zh-cn': {
       dataRange: '数据范围',
@@ -414,7 +413,8 @@ import { transToGmtTime, kapConfirm, handleError, handleSuccess } from 'util/bus
       jobTarget: '任务目标：',
       jobsList: '任务列表',
       sparkJobTip: 'Spark任务详情',
-      logInfoTip: '日志详情'
+      logInfoTip: '日志详情',
+      openJobSteps: '展开任务详情'
     }
   }
 })
@@ -531,7 +531,7 @@ export default class JobsList extends Vue {
     return (<span>
       <span>{this.$t('ProgressStatus')}</span>
       <el-dropdown hide-on-click={false} trigger="click">
-        <i class={this.filter.status && this.filter.status !== 'ALL' ? 'el-icon-ksd-filter el-dropdown-link isFilter' : 'el-icon-ksd-filter el-dropdown-link'}></i>
+        <i class={(this.filter.status && this.filter.status !== 'ALL') ? 'el-icon-ksd-filter el-dropdown-link isFilter' : 'el-icon-ksd-filter el-dropdown-link'}></i>
         <template slot="dropdown">
           <el-dropdown-menu class="jobs-dropdown">
             {items}
@@ -660,8 +660,8 @@ export default class JobsList extends Vue {
         var sTop = document.getElementById('scrollBox').scrollTop
         if (sTop < this.beforeScrollPos) {
           var result = sTop
-          if (sTop < 92) {
-            result = 92
+          if (sTop < 90) {
+            result = 90
           }
           document.getElementById('stepList').style.top = result + 'px'
         }
@@ -840,7 +840,7 @@ export default class JobsList extends Vue {
     }, 1000)
   }
   filterChange2 (status) {
-    if (status) {
+    if (status.indexOf(this.allStatus) !== -1) {
       this.filter.status = status === 'ALL' ? '' : status
     }
     this.refreshJobs()
@@ -977,8 +977,8 @@ export default class JobsList extends Vue {
             var sTop = document.getElementById('scrollBox').scrollTop
             this.beforeScrollPos = sTop
             var result = sTop
-            if (sTop < 92) {
-              result = 92
+            if (sTop < 90) {
+              result = 90
             }
             document.getElementById('stepList').style.top = result + 'px'
           })
@@ -1052,7 +1052,7 @@ export default class JobsList extends Vue {
     }
     .action_groups {
       vertical-align: top;
-      .el-button {
+      .el-button.el-button--default {
         background: #fff;
         border-color: @base-color;
         color: @base-color;
@@ -1063,9 +1063,10 @@ export default class JobsList extends Vue {
         }
       }
       .el-button.is-disabled.is-plain, .el-button.is-disabled.is-plain:hover {
-        border-color: @text-secondary-color;
-        background-color: @grey-4;
+        border-color: @line-border-color;
+        background-color: @background-disabled-color;
         z-index: 0;
+        color: @text-disabled-color;
       }
     }
     .waiting-jobs {
@@ -1101,7 +1102,10 @@ export default class JobsList extends Vue {
       right: 0;
         &.el-card {
           border-radius: 0;
-          padding: 20px;
+          padding: 15px;
+          .el-card__body {
+            padding: 0;
+          }
         }
       .table-bordered {
         border: 1px solid @border-color-base;
@@ -1122,32 +1126,33 @@ export default class JobsList extends Vue {
           }
           td:first-child{
             width: 25%;
-            text-align: right;
+            font-weight: 500;
           }
         }
       }
       .time-hd {
-        height:40px;
-        line-height:40px;
-        margin:20px 0 16px 10px;
+        height:20px;
+        line-height:20px;
+        margin:15px 0 10px 0;
         font-size: 14px;
+        font-weight: 500;
       }
       .job-btn {
         position: absolute;
         left: 0px;
         top: 310px;
         height: 70px;
-        width: 18px;
+        width: 13px;
         line-height: 70px;
         padding-left: 0px;
         font-size: 12px;
         border-radius: 0;
-        background-color: @modeledit-bg-color;
+        background-color: @base-color-9;
         border: 1px solid @border-color-base;
         cursor: pointer;
         i {
           position: relative;
-          left: 3px;
+          left: 1px;
         }
       }
       .timeline {
@@ -1171,11 +1176,11 @@ export default class JobsList extends Vue {
         > li:before, > li:after {
           content: '';
           position: absolute;
-          top: 28px;
+          top: 23px;
           bottom: 0;
           width: 3px;
           background: @border-color-base;
-          left: 14px;
+          left: 8px;
           border-radius: 2px;
         }
         > li {
@@ -1189,10 +1194,10 @@ export default class JobsList extends Vue {
           }
           position: relative;
           margin-right: 10px;
-          padding-bottom: 15px;
+          padding-bottom: 10px;
           .timeline-item {
             position: relative;
-            margin-left: 45px;
+            margin-left: 30px;
             border-radius: 3px;
             .time {
               float: right;
@@ -1234,14 +1239,14 @@ export default class JobsList extends Vue {
             }
           }
           > span > .fa, > .fa {
-            width: 26px;
-            height: 26px;
+            width: 20px;
+            height: 20px;
             font-size: 10px;
-            line-height: 26px;
+            line-height: 23px;
             position: absolute;
             border-radius: 50%;
             text-align: center;
-            font-size: 30px;
+            font-size: 20px;
             color: @color-info;
             &.el-icon-ksd-good_health {
               color: @color-success;
@@ -1252,9 +1257,9 @@ export default class JobsList extends Vue {
             &.el-icon-loading {
               border: 1px solid @color-primary;
               color: @color-primary;
-              font-size: 20px;
-              width: 26px;
-              height: 26px;
+              font-size: 14px;
+              width: 20px;
+              height: 20px;
             }
           }
         }
@@ -1266,26 +1271,30 @@ export default class JobsList extends Vue {
     .jobs-table {
       .el-icon-ksd-filter {
         position: relative;
-        top: 5px;
-        float: right;
-        &.isFilter {
+        left: 5px;
+        &.isFilter,
+        &:hover {
           color: @base-color;
         }
       }
       th .el-dropdown {
         padding: 0;
         line-height: 0;
-        float: right;
         position: relative;
-        top: 5px;
+        left: 5px;
+        top: 2px;
         .el-icon-ksd-filter {
           float: none;
           position: relative;
-          top: 0px;
+          left: 0px;
         }
       }
       .el-icon-ksd-dock_to_right_return,
-      .el-icon-ksd-dock_to_right {
+      .el-icon-ksd-dock_to_right,
+      .el-icon-ksd-table_delete,
+      .el-icon-ksd-restart,
+      .el-icon-ksd-table_resume,
+      .el-icon-ksd-pause {
         &:hover {
           color: @base-color;
         }

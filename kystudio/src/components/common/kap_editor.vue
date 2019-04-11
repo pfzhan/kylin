@@ -149,7 +149,7 @@ export default {
   @import '../../assets/styles/variables.less';
   .smyles_editor_wrap {
     position: relative;
-    border: 1px solid @text-secondary-color;
+    border: 1px solid @line-border-color;
     background-color: @aceditor-bg-color;
     .smyles_editor {
       // width: calc(~'100% - 50px') !important;

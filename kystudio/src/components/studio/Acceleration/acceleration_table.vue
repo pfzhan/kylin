@@ -8,27 +8,27 @@
     @sort-change="sortFavoriteList"
     :row-class-name="tableRowClassName"
     style="width: 100%">
-    <el-table-column :label="$t('kylinLang.query.sqlContent_th')" prop="sql_pattern" header-align="center" show-overflow-tooltip></el-table-column>
-    <el-table-column :label="$t('kylinLang.query.lastModefied')" prop="last_query_time" sortable header-align="center" width="207">
+    <el-table-column :label="$t('kylinLang.query.sqlContent_th')" prop="sql_pattern" show-overflow-tooltip></el-table-column>
+    <el-table-column :label="$t('kylinLang.query.lastModefied')" prop="last_query_time" sortable width="218">
       <template slot-scope="props">
         {{transToGmtTime(props.row.last_query_time)}}
       </template>
     </el-table-column>
-    <el-table-column :label="$t('kylinLang.query.original')" prop="channel" align="center" width="98">
+    <el-table-column :label="$t('kylinLang.query.original')" prop="channel" width="98">
     </el-table-column>
-    <el-table-column :label="$t('kylinLang.query.rate')" prop="success_rate" sortable align="center" width="135" v-if="isAccelerated">
+    <el-table-column :label="$t('kylinLang.query.rate')" align="right" prop="success_rate" sortable width="135" v-if="isAccelerated">
       <template slot-scope="props">
         {{props.row.success_rate * 100 | number(2)}}%
       </template>
     </el-table-column>
-    <el-table-column :label="$t('kylinLang.query.frequency')" prop="total_count" sortable align="center" width="115" v-if="isAccelerated"></el-table-column>
-    <el-table-column :label="$t('kylinLang.query.avgDuration')" prop="average_duration" sortable align="center" width="155" v-if="isAccelerated">
+    <el-table-column :label="$t('kylinLang.query.frequency')" align="right" prop="total_count" sortable width="115" v-if="isAccelerated"></el-table-column>
+    <el-table-column :label="$t('kylinLang.query.avgDuration')" align="right" prop="average_duration" sortable width="155" v-if="isAccelerated">
       <template slot-scope="props">
         <span v-if="props.row.average_duration < 1000"> &lt; 1s</span>
         <span v-else>{{props.row.average_duration / 1000 | fixed(2)}}s</span>
       </template>
     </el-table-column>
-    <el-table-column :renderHeader="renderColumn" prop="status" header-align="center" width="165">
+    <el-table-column :renderHeader="renderColumn" prop="status" width="165">
       <template slot-scope="props">
         <div v-if="props.row.status === 'FULLY_ACCELERATED'">
           <i class="status-icon el-icon-ksd-acclerate_all"></i>
@@ -52,11 +52,15 @@
         </el-tooltip>
       </template>
     </el-table-column>
-    <el-table-column :label="$t('kylinLang.common.action')" align="center" width="83">
+    <el-table-column :label="$t('kylinLang.common.action')" width="83">
       <template slot-scope="props">
         <span @click="delFav(props.row.uuid, props.row.channel)">
-          <i class="el-icon-ksd-table_delete" v-if="props.row.channel==='Imported'"></i>
-          <i class="el-icon-ksd-table_discard" v-if="props.row.channel==='Rule-based'"></i>
+          <common-tip :content="$t('kylinLang.common.drop')">
+            <i class="el-icon-ksd-table_delete" v-if="props.row.channel==='Imported'"></i>
+          </common-tip>
+          <common-tip :content="$t('kylinLang.common.disable')">
+            <i class="el-icon-ksd-table_discard" v-if="props.row.channel==='Rule-based'"></i>
+          </common-tip>
         </span>
       </template>
     </el-table-column>
@@ -114,7 +118,7 @@ export default class FavoriteTable extends Vue {
           <el-checkbox-group class="filter-groups" value={this.checkedStatus} onInput={val => (this.checkedStatus = val)} onChange={this.filterFav}>
             {items}
           </el-checkbox-group>
-          <i class="el-icon-ksd-filter" slot="reference"></i>
+          <i class={this.checkedStatus.length > 0 && this.checkedStatus.length < 3 ? 'el-icon-ksd-filter isFilter' : 'el-icon-ksd-filter'} slot="reference"></i>
         </el-popover>
       </span>)
     } else {

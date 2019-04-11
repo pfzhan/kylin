@@ -7,13 +7,13 @@
         @change="searchAccess"
         v-model="serarchChar"
         class="show-search-btn"
-        :suffix-icon="searchLoading ? 'el-icon-loading':'el-icon-search'"
         size="small">
+        <i slot="prefix" class="el-input__icon" :class="{'el-icon-search': !searchLoading, 'el-icon-loading': searchLoading}"></i>
       </el-input>
     </div>
     <el-dialog
       :title="$t('grant')"
-      width="660px"
+      width="720px"
       :close-on-press-escape="false"
       :close-on-click-modal="false"
       :visible.sync="editAccessVisible">
@@ -27,20 +27,20 @@
         </ul>
       </div>
       <div>
-        <el-form :inline="true" :model="accessMeta" ref="accessForm" :rules="rules"  class="demo-form-inline" label-position="right" label-width="50px">
-         <el-form-item :label="$t('type')" prop="principal"  style="margin-bottom: 20px;">
+        <el-form :inline="true" :model="accessMeta" ref="accessForm" :rules="rules"  class="demo-form-inline" label-position="right" label-width="55px">
+         <el-form-item :label="$t('type')" prop="principal"  style="margin-bottom: 15px;">
             <el-select placeholder="Type" v-model="accessMeta.principal" :disabled="isEdit" @change="changeUserType" size="medium">
               <el-option label="user" :value="true"></el-option>
               <el-option label="group" :value="false"></el-option>
             </el-select>
+          </el-form-item><el-form-item
+          prop="sid" v-if="accessMeta.principal" style="margin-bottom: 15px;">
+            <kap-filter-select :asyn="true" @req="filterUser" v-model="accessMeta.sid" :disabled="isEdit"  :list="renderUserList" placeholder="kylinLang.common.pleaseInputUserName" :size="100"></kap-filter-select>
           </el-form-item>
-           <el-form-item prop="sid" v-if="accessMeta.principal" style="margin-bottom: 20px;">
-             <kap-filter-select :asyn="true" @req="filterUser" v-model="accessMeta.sid" :disabled="isEdit"  :list="renderUserList" placeholder="kylinLang.common.pleaseInputUserName" :size="100"></kap-filter-select>
-          </el-form-item>
-           <el-form-item prop="sid" v-if="!accessMeta.principal" style="margin-bottom: 20px;">
+           <el-form-item prop="sid" v-if="!accessMeta.principal" style="margin-bottom: 15px;">
             <kap-filter-select :asyn="true" @req="filterGroup" v-model="accessMeta.sid" :disabled="isEdit"  :list="renderGroupList"  placeholder="kylinLang.common.pleaseInputUserGroup" :size="100"></kap-filter-select>
           </el-form-item>
-          <el-form-item :label=" $t('access')" prop="permission">
+          <el-form-item :label=" $t('access')" prop="permission" style="margin-bottom: 0;">
             <el-select  :placeholder="$t('access')" v-model="accessMeta.permission" size="medium">
               <el-option :label="item.key" :value="item.value" :key="item.value" v-for="item in showMaskByOrder"></el-option>
             </el-select>
@@ -48,13 +48,15 @@
         </el-form>
       </div>
       <span slot="footer" class="dialog-footer">
-        <el-button size="medium" @click="resetAccessEdit">{{$t('kylinLang.common.cancel')}}</el-button>
-        <el-button type="primary" plain size="medium" :loading="btnLoad" @click="saveAccess">{{$t('kylinLang.common.submit')}}</el-button>
+        <el-button size="medium" @click="resetAccessEdit">{{$t('kylinLang.common.cancel')}}</el-button><el-button
+        type="primary" plain size="medium" :loading="btnLoad" @click="saveAccess">{{$t('kylinLang.common.submit')}}</el-button>
       </span>
     </el-dialog>
     <el-table
 	    :data="settleAccessList"
 	    border
+      size="medium"
+      nested
 	    style="width: 100%">
 	    <el-table-column
 	      prop="roleOrName"
@@ -69,18 +71,15 @@
 	    <el-table-column
 	      prop="type"
 	      :label="$t('type')"
-        header-align="center"
 	      >
 	    </el-table-column>
 	    <el-table-column
 	      prop="promission"
 	      :label="$t('access')"
-        header-align="center"
 	      >
 	    </el-table-column>
 	   <el-table-column
 	      :label="$t('kylinLang.common.action')"
-        header-align="center"
 	      width="83">
 	      <template slot-scope="scope">
           <span v-if="!projectActions.includes('editGrant') && !projectActions.includes('deleteGrant')">N/A</span>
@@ -95,15 +94,13 @@
 	      </template>
 	    </el-table-column>
 	  </el-table>
-    <el-pagination
-      background
+    <kap-pager
+      class="ksd-center ksd-mt-10" ref="pager"
       layout="prev, pager, next"
-      :total="accessSize"
-      :currentPage='currentPage'
-      @current-change="pageCurrentChange"
-      class="ksd-center ksd-mt-10"
-      v-show="accessSize">
-    </el-pagination>
+      :background="false"
+      :totalSize="accessSize"
+      @handleCurrentChange="pageCurrentChange">
+    </kap-pager>
    </div>
 </template>
 
@@ -122,6 +119,7 @@ export default {
       serarchChar: '',
       isEdit: false,
       currentPage: 1,
+      pageSize: 10,
       editAccessVisible: false,
       settleAccessList: [],
       accessSize: 0,
@@ -332,8 +330,9 @@ export default {
         })
       }, 500)
     },
-    pageCurrentChange (currentPage) {
+    pageCurrentChange (currentPage, pageSize) {
       this.currentPage = currentPage
+      this.pageSize = pageSize
       this.loadAccess()
     },
     reloadAvaliableUserAndGroup () {
@@ -421,7 +420,7 @@ export default {
   }
 }
 .grantTips {
-  margin-bottom: 20px;
+  margin-bottom: 15px;
   h4 {
     height:20px;
     line-height: 10px;

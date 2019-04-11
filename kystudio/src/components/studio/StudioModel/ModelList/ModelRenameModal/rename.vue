@@ -1,12 +1,12 @@
 <template>
   <!-- 模型重命名 -->
-  <el-dialog :title="$t('modelRename')" width="440px" :visible="isShow" :close-on-press-escape="false" :close-on-click-modal="false" @close="isShow && closeModal()">
+  <el-dialog :title="$t('modelRename')" width="480px" :visible="isShow" :close-on-press-escape="false" :close-on-click-modal="false" @close="isShow && closeModal()">
       <el-form :model="modelEdit" :rules="rules" ref="renameForm" label-width="100px">
         <el-form-item :label="$t('modelName')" prop="newName">
           <el-input v-focus="isShow" v-model="modelEdit.newName" auto-complete="off" size="medium"></el-input>
         </el-form-item>
       </el-form>
-      <div slot="footer" class="dialog-footer">
+      <div slot="footer" class="dialog-footer ky-no-br-space">
         <el-button @click="closeModal" size="medium">{{$t('kylinLang.common.cancel')}}</el-button>
         <el-button type="primary" plain :loading="btnLoading" size="medium" @click="submit">{{$t('kylinLang.common.save')}}</el-button>
       </div>

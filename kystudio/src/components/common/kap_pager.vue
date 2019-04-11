@@ -1,12 +1,12 @@
 <template>
   <div class="kap-pager" v-show="totalSize">
     <el-pagination
-      background
-      :layout="pagerLayout"
-      :page-size="pageSize"
+      :background="background"
+      :layout="layout"
+      :page-size="perPageSize"
       :page-sizes="pageSizes"
       :total="totalSize"
-      :current-page="currentPage"
+      :current-page="curPage"
       @current-change="pageChange"
       @size-change="sizeChange"
       >
@@ -17,13 +17,33 @@
 import { pageCount, pageSizes } from '../../config'
 export default {
   name: 'pager',
-  props: ['perPageSize', 'totalSize', 'curPage', 'totalSum', 'layout'],
+  props: {
+    perPageSize: {
+      type: Number,
+      default: pageCount
+    },
+    totalSize: {
+      type: Number,
+      default: 0
+    },
+    curPage: {
+      type: Number,
+      default: 1
+    },
+    layout: {
+      type: String,
+      default: 'total, sizes, prev, pager, next, jumper'
+    },
+    background: {
+      type: Boolean,
+      default: true
+    }
+  },
   data () {
     return {
-      pagerLayout: this.layout || 'total, sizes, prev, pager, next, jumper',
       pageSize: this.perPageSize || pageCount,
       pageSizes: pageSizes,
-      currentPage: this.curPage || 1
+      currentPage: this.curPage
     }
   },
   methods: {

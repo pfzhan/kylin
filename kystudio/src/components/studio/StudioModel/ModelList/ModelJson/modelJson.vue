@@ -1,5 +1,5 @@
 <template>
-  <div>
+  <div class="ksd-mb-15">
     <el-input
       class="model-json"
       :value="JSON.stringify(jsonInfo, '', 4)"
@@ -45,7 +45,6 @@ export default class modelJSON extends Vue {
 <style lang="less">
   @import '../../../../../assets/styles/variables.less';
   .model-json {
-    margin: 20px 0;
     .el-textarea__inner:focus {
       border-color: @line-border-color;
     }

@@ -3,11 +3,11 @@
     <div class="ksd-title-label ksd-mt-20" v-if="!isAutoProject">{{$t('kylinLang.model.modelList')}}</div>
     <div class="ksd-title-label ksd-mt-20" v-else>{{$t('kylinLang.model.indexGroup')}}</div>
     <div v-if="showSearchResult">
-      <div  class="ksd-mb-10 ksd-fright ksd-mt-10">
+      <div  class="ksd-mtb-10 ksd-fright">
         <el-input :placeholder="$t('kylinLang.common.pleaseFilterByModelName')" style="width:200px" size="medium" :prefix-icon="searchLoading? 'el-icon-loading':'el-icon-search'" v-model="filterArgs.model"  @input="searchModels" class="show-search-btn" >
         </el-input>
       </div>
-      <el-button v-guide.addModelBtn icon="el-icon-ksd-add_2" type="primary" size="medium" plain class="ksd-mb-10 ksd-mt-10" id="addModel" v-visible="!isAutoProject && (isAdmin || hasPermissionOfProject())" @click="showAddModelDialog"><span>{{$t('kylinLang.common.model')}}</span></el-button>
+      <el-button v-guide.addModelBtn icon="el-icon-ksd-add_2" type="primary" size="medium" plain class="ksd-mtb-10" id="addModel" v-visible="!isAutoProject && (isAdmin || hasPermissionOfProject())" @click="showAddModelDialog"><span>{{$t('kylinLang.common.model')}}</span></el-button>
       <el-table class="model_list_table"
         :data="modelArray"
         border
@@ -24,7 +24,7 @@
               <div class="cell-content" v-if="props.row.showModelDetail">
                 <div  v-if="!showFull" class="row-action" @click="toggleShowFull(props.$index, props.row)"><span class="tip-text">{{$t('fullScreen')}}</span><i class="el-icon-ksd-full_screen_1 full-model-box"></i></div>
                 <div v-else class="row-action"  @click="toggleShowFull(props.$index, props.row)"><span class="tip-text">{{$t('exitFullScreen')}}</span><i class="el-icon-ksd-collapse_1 full-model-box" ></i></div>
-                <el-tabs class="el-tabs--default model-detail-tabs" v-model="props.row.tabTypes">
+                <el-tabs class="el-tabs--default model-detail-tabs" type="card" v-model="props.row.tabTypes">
                   <el-tab-pane :label="$t('segment')" name="first">
                     <ModelSegment :model="props.row" v-if="props.row.tabTypes === 'first'" @purge-model="model => handleCommand('purge', model)" />
                   </el-tab-pane>
@@ -43,65 +43,62 @@
           </template>
         </el-table-column>
         <el-table-column
-        header-align="center"
         min-width="229px"
         show-overflow-tooltip
         prop="alias"
           :label="modelTableTitle">
         </el-table-column>
         <el-table-column
-          header-align="center"
           prop="fact_table"
           show-overflow-tooltip
           min-width="229px"
           :label="$t('kylinLang.common.fact')">
         </el-table-column>
         <el-table-column
-          header-align="center"
+          header-align="right"
+          align="right"
           prop="usage"
           show-overflow-tooltip
           width="80px"
           :label="$t('usage')">
         </el-table-column>
          <el-table-column
-          header-align="center"
+          header-align="right"
+          align="right"
           prop="storage"
           show-overflow-tooltip
-          width="77px"
+          width="120px"
           :label="$t('storage')">
           <template slot-scope="scope">
             {{scope.row.storage|dataSize}}
           </template>
         </el-table-column>
         <el-table-column
-          header-align="center"
           prop="gmtTime"
           show-overflow-tooltip
           sortable="custom"
-          width="150px"
+          width="154px"
           :label="$t('dataLoadTime')">
         </el-table-column>
         <el-table-column
-          header-align="center"
           prop="status"
           show-overflow-tooltip
           width="94"
           :label="$t('status')">
           <template slot-scope="scope">
-        <el-tag size="small" :type="scope.row.status === 'OFFLINE' ? 'info' : scope.row.status === 'BROKEN'? 'danger' : 'success'">{{scope.row.status}}</el-tag>
+        <el-tag size="mini" :type="scope.row.status === 'OFFLINE' ? 'info' : scope.row.status === 'BROKEN'? 'danger' : 'success'">{{scope.row.status}}</el-tag>
       </template>
         </el-table-column>
         <el-table-column
-          header-align="center"
           v-if="!isAutoProject"
           prop="owner"
           show-overflow-tooltip
           width="100"
           :label="$t('kylinLang.model.ownerGrid')">
         </el-table-column>
-        <el-table-column class="ksd-center"
-        header-align="center"
+        <el-table-column
         width="96px"
+        class-name="ky-hover-icon"
         v-if="!isAutoProject"
         :label="$t('kylinLang.common.action')">
           <template slot-scope="scope">
@@ -137,7 +134,7 @@
         </el-table-column>
       </el-table>
       <!-- 分页 -->
-      <kap-pager class="ksd-center ksd-mt-20 ksd-mb-20" ref="pager"  :totalSize="modelsPagerRenderData.totalSize"  v-on:handleCurrentChange='pageCurrentChange'></kap-pager>
+      <kap-pager class="ksd-center ksd-mtb-10" ref="pager"  :totalSize="modelsPagerRenderData.totalSize"  v-on:handleCurrentChange='pageCurrentChange'></kap-pager>
     </div>
     <div class="ksd-null-pic-text" v-if="!showSearchResult">
       <img src="../../../../assets/img/no_model.png">
@@ -512,15 +509,9 @@ export default class ModelList extends Vue {
     transform: translateY(10px);
     opacity: 0;
   }
-  .model-detail-tabs {
-    &>.el-tabs__header{
-      margin-bottom:0;
-    }
-  }
   .row-action {
     position: absolute;
     right:0;
-    top:8px;
     width:300px;
     text-align: right;
     z-index: 2;
@@ -553,8 +544,7 @@ export default class ModelList extends Vue {
     }
   }
   .model_list_table .el-table__expanded-cell {
-    background-color: @breadcrumbs-bg-color;
-    padding: 20px;
+    background-color: #fbfbfb;
     padding-bottom:0;
     &:hover {
       background-color: @breadcrumbs-bg-color;
@@ -574,7 +564,6 @@ export default class ModelList extends Vue {
   &.full-cell {
     .row-action {
       right:20px;
-      top:20px;
     }
     margin: 0 20px;
     position: relative;

@@ -77,7 +77,7 @@ export default class TableSamples extends Vue {
 .table-sample {
   padding: 0 0 20px 0;
   .columns-header {
-    margin-bottom: 6px;
+    margin-bottom: 10px;
     white-space: nowrap;
   }
   .columns-body {

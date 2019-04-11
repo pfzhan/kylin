@@ -30,7 +30,8 @@
       <el-table-column
         prop="cardinality"
         sortable
-        align="left"
+        align="right"
+        header-align="right"
         min-width="120px"
         :label="$t('kylinLang.dataSource.cardinality')">
       </el-table-column>
@@ -70,7 +71,7 @@
       </el-table-column>
     </el-table>
     <kap-pager
-      class="ksd-center ksd-mt-20 ksd-mb-20" ref="pager"
+      class="ksd-center ksd-mtb-10" ref="pager"
       :totalSize="columns.length"
       @handleCurrentChange="handleCurrentChange">
     </kap-pager>
@@ -122,7 +123,7 @@ export default class TableStatistics extends Vue {
 .table-statistics {
   padding: 0 0 20px 0;
   .columns-header {
-    margin-bottom: 6px;
+    margin-bottom: 10px;
     white-space: nowrap;
   }
   .columns-body {

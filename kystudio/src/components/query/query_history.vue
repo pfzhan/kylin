@@ -1,7 +1,7 @@
 <template>
   <div id="queryHistory">
     <query_history_table :queryHistoryData="queryHistoryData.query_histories" v-on:openAgg="openAgg" v-on:loadFilterList="loadFilterList"></query_history_table>
-    <kap-pager ref="queryHistoryPager" class="ksd-center ksd-mt-20 ksd-mb-20" :totalSize="queryHistoryData.size"  v-on:handleCurrentChange='pageCurrentChange'></kap-pager>
+    <kap-pager ref="queryHistoryPager" class="ksd-center ksd-mtb-10" :totalSize="queryHistoryData.size"  v-on:handleCurrentChange='pageCurrentChange'></kap-pager>
     <el-dialog
       title="Aggregate Index"
       :visible.sync="aggDetailVisible"

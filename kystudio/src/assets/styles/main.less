@@ -1,7 +1,7 @@
 @import './variables.less';
 
 body {
-  font-family: Helvetica Neue,Helvetica,PingFang SC,Hiragino Sans GB,Microsoft YaHei,SimSun,sans-serif;
+  // font-family: Helvetica Neue,Helvetica,PingFang SC,Hiragino Sans GB,Microsoft YaHei,SimSun,sans-serif;
   overflow: auto;
   font-weight: 400;
   -webkit-font-smoothing: antialiased;
@@ -28,6 +28,13 @@ ul,li {list-style:none;}
 }
 i[class^=el-icon-]{
   cursor: pointer;
+}
+.ky-hover-icon i[class^=el-icon-]{
+  &:not(.disabled){
+    &:hover {
+      color:@base-color;
+    }
+  }
 }
 .el-icon-ksd-what {
   color:@text-normal-color;
@@ -74,6 +81,23 @@ i[class^=el-icon-]{
   }
   .generate-attr2(@n,@attr, @attrName1, @attrName2, (@i + 1));
 }
+
+//通用样式3 start
+.generate-attr3(@n,@attr, @attrName, @i: 1,@k:@i*5) when (@i =< @n) {
+  .@{attr}-@{k} {
+    @{attrName}:@i*5px!important;
+  }
+  .generate-attr3(@n,@attr, @attrName,(@i + 1));
+}
+
+//通用样式4 start
+.generate-attr4(@n,@attr, @attrName1, @attrName2, @i: 1,@k:@i*5) when (@i =< @n) {
+  .@{attr}-@{k} {
+    @{attrName1}:@i*5px!important;
+    @{attrName2}:@i*5px!important;
+  }
+  .generate-attr4(@n,@attr, @attrName1, @attrName2, (@i + 1));
+}
 .generate-attr(20,ksd-pb,padding-bottom);
 .generate-attr(20,ksd-pr,padding-right);
 .generate-attr(20,ksd-pl,padding-left);
@@ -83,9 +107,15 @@ i[class^=el-icon-]{
 .generate-attr(20,ksd-ml,margin-left);
 .generate-attr(20,ksd-mr,margin-right);
 .generate-attr(20,ksd-mt,margin-top);
+.generate-attr(20,ksd-mb,margin-bottom);
 .generate-attr2(20,ksd-mtb,margin-top,margin-bottom);
 .generate-attr2(20,ksd-mrl,margin-right,margin-left);
-.generate-attr(20,ksd-mb,margin-bottom);
+.generate-attr3(20,ksd-ml,margin-left);
+.generate-attr3(20,ksd-mr,margin-right);
+.generate-attr3(20,ksd-mt,margin-top);
+.generate-attr3(20,ksd-mb,margin-bottom);
+.generate-attr4(20,ksd-mtb,margin-top,margin-bottom);
+.generate-attr4(20,ksd-mrl,margin-right,margin-left);
 .generate-attr(20,ksd-top,top);
 .generate-attr(20,ksd-left,left);
 .generate-attr(20,ksd-right,right);
@@ -100,7 +130,10 @@ i[class^=el-icon-]{
 .ksd-inline{display: inline-block!important;}
 .ksd_noshadow{box-shadow: none!important;}
 
-
+// 去除行内换行导致的额外间距，主要用于button之间的间距问题
+.ky-no-br-space {
+  font-size:0;
+}
 // 项目通用样式
 .ky-a-like {
   &:hover {
@@ -132,9 +165,15 @@ i[class^=el-icon-]{
   font-size: 16px;
   color: @text-title-color;
   font-weight: 500;
-  height: 20px;
-  line-height: 20px;
+  height: 22px;
+  line-height: 22px;
 }
+.ksd-title-label-small {
+  font-size: 14px;
+  color: @text-title-color;
+  font-weight: 500;
+}
+
 .ksd-btn-minwidth {
   min-width: 60px;
 }
@@ -220,11 +259,6 @@ i[class^=el-icon-]{
     color: @color-success;
   }
 }
-.ksd-switch {
-  transform: scale(0.91);
-  position: relative;
-  top: -2px;
-}
 .ky-tips-box {
   .tips-title {
     font-size: 13px;
@@ -244,7 +278,7 @@ i[class^=el-icon-]{
 }
 .ky-sql-check-msg {
   background: @fff;
-  border: solid 1px @text-placeholder-color;
+  border: solid 1px @line-border-color;
   padding:10px;
   font-size:12px;
   line-height: normal;
@@ -256,21 +290,22 @@ i[class^=el-icon-]{
     word-wrap: break-word;
   }
 }
+@sampe-table-row-height: 36px;
 .ky-simple-table {
   .table-header {
     .el-col {
       border-top: 1px solid @line-border-color;
-      background-color: @modeledit-bg-color;
+      background-color: @regular-background-color;
       font-weight:@font-medium;
     }
   }
   .table-row {
-    height:48px;
+    height:@sampe-table-row-height;
     .el-col {
-      height:48px;
+      height:@sampe-table-row-height;
       border-right: 1px solid @line-border-color;
       border-bottom: 1px solid @line-border-color;
-      line-height:48px;
+      line-height:@sampe-table-row-height;
       text-align:center;
       text-overflow: ellipsis;
       overflow:hidden;
@@ -278,6 +313,7 @@ i[class^=el-icon-]{
       padding: 0 10px;
       &:nth-child(1) {
         border-left: 1px solid @line-border-color;
+        text-align: left;
       }
     }
   }
@@ -315,18 +351,16 @@ i[class^=el-icon-]{
     }
     width: 100%;
     tr{
-      height: 46px;
+      height: 36px;
     }
     th{
       // padding: 10px;
-      text-align: right;
+      text-align: left;
       width: 150px;
       font-weight: 500;
-      border-right: none;
       background-color: inherit;
       line-height: 21px;
       border-bottom:solid 1px @line-border-color;
-      padding-right: 0px;
     }
     td{
       border-bottom:solid 1px @line-border-color;
@@ -371,40 +405,24 @@ i[class^=el-icon-]{
   }
   .operatorBox{
     display: flex;
-    padding: 10px;
+    padding: 10px 15px;
     background-color: @grey-4;
   }
 }
 // 带图标警告、成功、失败提示语样式覆盖
 
-.el-tabs__nav {
-  margin-left: 20px;
-}
-
-.el-button.is-disabled, .el-button.is-disabled:hover,
-.el-button--primary.is-plain.is-disabled,
-.el-button--primary.is-plain.is-disabled:active,
-.el-button--primary.is-plain.is-disabled:hover {
-  color: #909EA8;
-  background-color: @grey-4;
-  border-color: @line-border-color;
-}
-
-.el-card {
-  border-radius: 0;
-  box-shadow: none;
-  .el-card__header {
-    background: @grey-3;
-    color: @text-title-color;
-    font-size: 16px;
-    height: 42px;
-    line-height: 42px;
-    padding: 0 20px;
-  }
-  .el-card__body {
-    padding: 0;
-  }
-}
+// .el-card {
+//   border-radius: 0;
+//   box-shadow: none;
+//   .el-card__header {
+//     background: @grey-3;
+//     color: @text-title-color;
+//     font-size: 16px;
+//     height: 42px;
+//     line-height: 42px;
+//     padding: 0 20px;
+//   }
+// }
 
 // layout
 .ksd_left_bar{
@@ -492,7 +510,7 @@ i[class^=el-icon-]{
     }
   }
 }
-.el-tooltip__popper{max-width:40%;word-wrap:break-word;}
+.el-tooltip__popper{word-wrap:break-word;}
 // 通用样式end
 #nprogress div.bar{background-color: #58b7ff;}
 

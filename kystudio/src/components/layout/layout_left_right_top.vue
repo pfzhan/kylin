@@ -3,8 +3,8 @@
     <el-row class="panel" :class="{'brief_menu':briefMenuGet}">
       <el-col :span="24" class="panel-center">
         <aside class="left-menu">
-          <img v-show="!briefMenuGet" src="../../assets/img/big_logo.png" class="logo" @click="goHome">
-          <img v-show="briefMenuGet" src="../../assets/img/small_logo.png" class="logo" @click="goHome">
+          <img v-show="!briefMenuGet" src="../../assets/img/logo/big_logo.png" class="logo" @click="goHome">
+          <img v-show="briefMenuGet" src="../../assets/img/logo/small_logo.png" class="logo" @click="goHome">
           <div class="ky-line"></div>
           <el-menu :default-active="defaultActive" id="menu-list" @select="handleselect" @open="clearMenu" router :collapse="briefMenuGet">
             <template v-for="(item,index) in menus">
@@ -22,7 +22,7 @@
                   <i :class="item.icon" class="ksd-fs-16 menu-icon" ></i>
                   <span>{{$t('kylinLang.menu.' + item.name)}}</span><div v-if="item.name === 'studio' && reachThresholdVisible" class="dot-icon"></div>
                 </template>
-                <el-menu-item-group>
+                <!-- <el-menu-item-group> -->
                   <el-menu-item :index="child.path" v-for="child in item.children" :key="child.path" v-if="showMenuByRole(child.name)">
                     <template v-if="child.name !== 'modelList'">
                       <span style="position:relative;">
@@ -37,7 +37,7 @@
                       <div class="number-icon" v-if="reachThresholdVisible">1</div>
                     </template>
                   </el-menu-item>
-                </el-menu-item-group>
+                <!-- </el-menu-item-group> -->
               </el-submenu>
             </template>
           </el-menu>
@@ -46,7 +46,7 @@
           <i class="ksd-fs-14" :class="[!briefMenuGet ? 'el-icon-ksd-grid_01' : 'el-icon-ksd-grid_02']" @click="toggleLeftMenu"></i>
           <template v-if="!isAdminView">
             <project_select v-on:changePro="changeProject" ref="projectSelect"></project_select>
-            <el-button v-guide.addProjectBtn :type="highlightType" plain :title="$t('kylinLang.project.addProject')" @click="addProject" v-show="isAdmin" size="medium">
+            <el-button v-guide.addProjectBtn :type="highlightType" plain :title="$t('kylinLang.project.addProject')" @click="addProject" v-show="isAdmin" size="small">
               <i class="el-icon-ksd-add_2"></i>
             </el-button>
           </template>
@@ -55,7 +55,7 @@
             <li v-if="isAdmin"><canary></canary></li>
             <li v-if="showMenuByRole('admin')">
               <el-button
-                size="mini"
+                size="small"
                 class="entry-admin"
                 :class="isAdminView ? 'active' : null"
                 @click="handleSwitchAdmin">
@@ -66,10 +66,8 @@
             <li><change_lang ref="changeLangCom"></change_lang></li>
             <li>
               <el-dropdown @command="handleCommand">
-                <span class="el-dropdown-link ksd-ml-10">
-                  <i class="el-icon-ksd-user ksd-mr-10" style="transform:scale(1.7)"></i>
-                  {{currentUserInfo && currentUserInfo.username}}
-                  <i class="el-icon-caret-bottom"></i>
+                <span class="el-dropdown-link">
+                  <i class="el-icon-ksd-user ksd-mr-5 ksd-fs-16"></i><span class="ksd-fs-12">{{currentUserInfo && currentUserInfo.username}}</span><i class="el-icon-caret-bottom"></i>
                 </span>
                 <el-dropdown-menu slot="dropdown">
                   <el-dropdown-item command="setting">{{$t('kylinLang.common.setting')}}</el-dropdown-item>
@@ -110,7 +108,7 @@
     </el-row>
     <el-dialog class="linsencebox"
       :title="kapVersion"
-      width="440px"
+      width="480px"
       :visible.sync="lisenceDialogVisible"
       :close-on-press-escape="false"
       :close-on-click-modal="false"
@@ -123,7 +121,7 @@
       </span>
     </el-dialog>
     <!-- 全局apply favorite query -->
-    <el-dialog width="440px" :title="$t('accelerateTips')" class="speed_dialog" :visible="reachThresholdVisible" @close="manualClose = false" :close-on-click-modal="false">
+    <el-dialog width="480px" :title="$t('accelerateTips')" class="speed_dialog" :visible="reachThresholdVisible" @close="manualClose = false" :close-on-click-modal="false">
       <el-row>
         <el-col :span="14">
           {{$t('hello', {user: currentUser.username})}}<br/>
@@ -759,7 +757,7 @@ export default class LayoutLeftRightTop extends Vue {
         .logo{
           width: 30px;
           height: 27px;
-          margin: 18px 13px 14px 12px;
+          margin: 14px 12px 10px 12px;
         }
       }
       .topbar > i {
@@ -785,7 +783,7 @@ export default class LayoutLeftRightTop extends Vue {
         .panel-content {
           position: absolute;
           right: 0px;
-          top: 60px;
+          top: 52px;
           bottom: 0;
           left: 138px;
           overflow-y: auto;
@@ -796,51 +794,51 @@ export default class LayoutLeftRightTop extends Vue {
           height: 100%;
           position: relative;
           z-index: 999;
-          background-color: @text-title-color;
-          >ul {
-            height: 100%;
-            background-color: @text-title-color;
-            .el-menu-item {
-              color: @text-placeholder-color;
-              background-color: @text-title-color;
-              padding-left: 12px;
-            }
-            li.is-active {
-              color: @base-color-1;
-              background-color: @menu-active-bgcolor;
-            }
-            li:hover {
-              background-color: @menu-active-bgcolor;
-            }
-          }
-          .el-menu {
-            background: @text-title-color;
-            .el-submenu__title {
-              color: @text-placeholder-color;
-              background-color: @text-title-color;
-            }
-            .el-submenu__title:hover {
-              background-color: @menu-active-bgcolor;
-            }
-            .el-menu-item {
-              min-width: initial;
-            }
-            .el-menu-item-group__title {
-              padding: 0px;
-            }
-          }
-          .el-menu--collapse {
-            width: 56px;
-            .el-submenu .el-menu {
-              margin-left: 0px;
-            }
-          }
+          background-color: #102d41;
+          // >ul {
+          //   height: 100%;
+          //   background-color: @text-title-color;
+          //   .el-menu-item {
+          //     color: @text-placeholder-color;
+          //     background-color: @text-title-color;
+          //     padding-left: 12px;
+          //   }
+          //   li.is-active {
+          //     color: @base-color-1;
+          //     background-color: @menu-active-bgcolor;
+          //   }
+          //   li:hover {
+          //     background-color: @menu-active-bgcolor;
+          //   }
+          // }
+          // .el-menu {
+          //   // background: @text-title-color;
+          //   .el-submenu__title {
+          //     color: @text-placeholder-color;
+          //     background-color: @text-title-color;
+          //   }
+          //   .el-submenu__title:hover {
+          //     background-color: @menu-active-bgcolor;
+          //   }
+          //   .el-menu-item {
+          //     min-width: initial;
+          //   }
+          //   .el-menu-item-group__title {
+          //     padding: 0px;
+          //   }
+          // }
+          // .el-menu--collapse {
+          //   width: 56px;
+          //   .el-submenu .el-menu {
+          //     margin-left: 0px;
+          //   }
+          // }
           .logo {
             width:120px;
             height: 28px;
             vertical-align: middle;
             z-index:999;
-            margin: 16px 0px 15px 8px;
+            margin: 12px 0px 11px 9px;
             cursor: pointer;
           }
           .ky-line {
@@ -848,30 +846,35 @@ export default class LayoutLeftRightTop extends Vue {
           }
         }
         .topbar{
-          height: 60px;
+          height: 51px;
           width: 100%;
           background: @fff;
           position: absolute;
           top:0;
-          border-bottom: 1px solid @text-placeholder-color;
-          box-shadow: 0 1px 2px 0 #f7f7f7;
+          border-bottom: 1px solid @line-split-color;
+          box-shadow: 0 1px 2px 0 @line-split-color;
           z-index: 100;
           >i{
             margin-left: 158px;
-            margin-top: 22px;
+            margin-top: 20px;
             cursor: pointer;
             float: left;
           }
           >.el-button {
-            margin: 14px 0 0 8px;
+            margin: 14px 0 0 10px;
+            padding:5px;
           }
           .top-ul {
-            margin-top: 17px;
+            font-size:0;
+            margin-top: 14px;
             >li{
               vertical-align: middle;
               display: inline-block;
-              margin-right: 30px;
+              margin-right: 20px;
               cursor: pointer;
+            }
+            .el-dropdown-link {
+              font-size:12px;
             }
             .el-dropdown-link:hover {
               color: @base-color;
@@ -883,16 +886,16 @@ export default class LayoutLeftRightTop extends Vue {
         }
       }
     }
-    .entry-admin {
-      border-radius: 2px;
-      font-size: 14px;
-      padding: 6px 12px;
-      border-color: @text-disabled-color;
-      &:hover {
-        background: @fff;
-        border-color: @base-color;
-      }
-    }
+    // .entry-admin {
+    //   border-radius: 2px;
+    //   font-size: 14px;
+    //   padding: 6px 12px;
+    //   border-color: @text-disabled-color;
+    //   &:hover {
+    //     background: @fff;
+    //     border-color: @base-color;
+    //   }
+    // }
     .entry-admin.active {
       box-shadow: inset 1px 1px 2px 0 @grey-1;
       background-color: @line-border-color;
@@ -972,9 +975,9 @@ export default class LayoutLeftRightTop extends Vue {
       color: @text-placeholder-color;
       height: 32px;
       line-height: 32px;
-      &:not(:last-child) {
-        margin-bottom: 1px;
-      }
+      // &:not(:last-child) {
+      //   margin-bottom: 1px;
+      // }
     }
     .el-menu-item.is-active {
       color: @base-color-1;

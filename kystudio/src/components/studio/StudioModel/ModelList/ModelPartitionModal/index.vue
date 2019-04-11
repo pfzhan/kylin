@@ -1,32 +1,26 @@
 <template>
   <el-dialog 
     :title="$t('modelPartitionSet')"
-    width="660px"
+    width="560px"
     append-to-body
     :visible="isShow" 
     class="model-partition-dialog" 
     @close="isShow && handleClose(false)" 
     :close-on-press-escape="false" 
     :close-on-click-modal="false">     
-    <div class="ky-list-title" v-if="!(modelInstance && modelInstance.uuid) && partitionMeta.table && partitionMeta.column">{{$t('partitionSet')}}</div>
-    <el-form :model="partitionMeta" :rules="rules"  label-width="85px" class="ksd-mt-16" label-position="top"> 
-      <el-form-item :label="$t('partitionDateColumn')">
-        <el-col :span="12" style="width:258px">
-          <el-form-item prop="date1">
-             <el-select v-guide.partitionTable v-model="partitionMeta.table" @change="partitionTableChange" :placeholder="$t('kylinLang.common.pleaseSelect')" style="width:248px">
-               <el-option :label="$t('noPartition')" value=""></el-option>
-              <el-option :label="t.alias" :value="t.alias" v-for="t in partitionTables" :key="t.alias">{{t.alias}}</el-option>
-            </el-select>
-          </el-form-item>
-        </el-col>
-        <el-col :span="12">
-          <el-select v-guide.partitionColumn  v-model="partitionMeta.column" :placeholder="$t('kylinLang.common.pleaseSelect')" filterable style="width:248px">
+    <!-- <div class="ky-list-title" v-if="!(modelInstance && modelInstance.uuid) && partitionMeta.table && partitionMeta.column">{{$t('partitionSet')}}</div> -->
+    <el-form :model="partitionMeta" :rules="rules"  label-width="85px" label-position="top"> 
+      <el-form-item  :label="$t('partitionDateColumn')">
+        <el-select v-guide.partitionTable v-model="partitionMeta.table" @change="partitionTableChange" :placeholder="$t('kylinLang.common.pleaseSelect')" style="width:248px" class="ksd-mr-5">
+          <el-option :label="$t('noPartition')" value=""></el-option>
+          <el-option :label="t.alias" :value="t.alias" v-for="t in partitionTables" :key="t.alias">{{t.alias}}</el-option>
+        </el-select><el-select
+         v-guide.partitionColumn  v-model="partitionMeta.column" :placeholder="$t('kylinLang.common.pleaseSelect')" filterable style="width:248px">
           <el-option :label="t.name" :value="t.name" v-for="t in columns" :key="t.name">
             <span style="float: left">{{ t.name }}</span>
             <span class="ky-option-sub-info">{{ t.datatype }}</span>
           </el-option>
         </el-select>
-        </el-col>
       </el-form-item>
     <template v-if="!(modelInstance && modelInstance.uuid) && partitionMeta.table && partitionMeta.column">
       <div class="ky-list-title ksd-mt-14">{{$t('loadRange')}}</div>
@@ -41,38 +35,40 @@
           {{$t('customLoadRange')}}
         </el-radio>
         <br/> -->
-        <el-date-picker
-            type="datetime"
-            v-model="modelBuildMeta.dataRangeVal[0]"
-            :is-auto-complete="true"
-            :disabled="modelBuildMeta.isLoadExisted || isLoadingNewRange"
-            :picker-options="{ disabledDate: time => time.getTime() > modelBuildMeta.dataRangeVal[1] && modelBuildMeta.dataRangeVal[1] !== null }"
-            :placeholder="$t('kylinLang.common.startTime')">
-          </el-date-picker>
-          <span>-</span>
+        <div class="ky-no-br-space">
           <el-date-picker
-            type="datetime"
-            v-model="modelBuildMeta.dataRangeVal[1]"
-            :is-auto-complete="true"
-            :disabled="modelBuildMeta.isLoadExisted || isLoadingNewRange"
-            :picker-options="{ disabledDate: time => time.getTime() < modelBuildMeta.dataRangeVal[0] && modelBuildMeta.dataRangeVal[0] !== null }"
-            :placeholder="$t('kylinLang.common.endTime')">
-          </el-date-picker>
-          <el-tooltip effect="dark" :content="$t('detectAvailableRange')" placement="top">
-            <el-button
-              v-if="isShow"
-              size="small"
-              class="ksd-ml-10"
-              :disabled="modelBuildMeta.isLoadExisted"
-              :loading="isLoadingNewRange"
-              icon="el-icon-ksd-data_range_search"
-              @click="handleLoadNewestRange">
-            </el-button>
-          </el-tooltip>
+              type="datetime"
+              v-model="modelBuildMeta.dataRangeVal[0]"
+              :is-auto-complete="true"
+              class="ksd-mr-5"
+              :disabled="modelBuildMeta.isLoadExisted || isLoadingNewRange"
+              :picker-options="{ disabledDate: time => time.getTime() > modelBuildMeta.dataRangeVal[1] && modelBuildMeta.dataRangeVal[1] !== null }"
+              :placeholder="$t('kylinLang.common.startTime')">
+            </el-date-picker>
+            <el-date-picker
+              type="datetime"
+              v-model="modelBuildMeta.dataRangeVal[1]"
+              :is-auto-complete="true"
+              :disabled="modelBuildMeta.isLoadExisted || isLoadingNewRange"
+              :picker-options="{ disabledDate: time => time.getTime() < modelBuildMeta.dataRangeVal[0] && modelBuildMeta.dataRangeVal[0] !== null }"
+              :placeholder="$t('kylinLang.common.endTime')">
+            </el-date-picker>
+            <el-tooltip effect="dark" :content="$t('detectAvailableRange')" placement="top">
+              <el-button
+                v-if="isShow"
+                size="medium"
+                class="ksd-ml-10"
+                :disabled="modelBuildMeta.isLoadExisted"
+                :loading="isLoadingNewRange"
+                icon="el-icon-ksd-data_range_search"
+                @click="handleLoadNewestRange">
+              </el-button>
+            </el-tooltip>
+        </div>
       </el-form-item>
       </template>
     </el-form>
-    <div slot="footer" class="dialog-footer">
+    <div slot="footer" class="dialog-footer ky-no-br-space">
       <el-button plain  size="medium" @click="isShow && handleClose(false)">{{$t('kylinLang.common.cancel')}}</el-button>
       <el-button type="primary" v-if="isShow" v-guide.partitionSaveBtn plain @click="savePartition" size="medium">{{$t('kylinLang.common.ok')}}</el-button>
     </div>

@@ -1,11 +1,11 @@
 <template>
-   <div class="tableIndex-box ksd-mt-20">
+   <div class="tableIndex-box">
      <div class="left-part">
       <div class="ksd-mb-20">
-        <el-button type="primary" icon="el-icon-ksd-add_2" v-visible="!isAutoProject" @click="editTableIndex(true)">{{$t('tableIndex')}}</el-button>
+        <el-button type="primary" size="small" icon="el-icon-ksd-add_2" v-visible="!isAutoProject" @click="editTableIndex(true)">{{$t('tableIndex')}}</el-button>
         <!-- <el-button type="primary" disabled icon="el-icon-ksd-table_refresh">Refresh</el-button> -->
         <!-- <el-button icon="el-icon-ksd-table_delete">Delete</el-button> -->
-        <el-input style="width:200px" v-model="tableIndexFilter" :prefix-icon="searchLoading? 'el-icon-loading':'el-icon-search'" :placeholder="$t('searchTip')" class="ksd-fright ksd-mr-20"></el-input>
+        <el-input style="width:200px" size="small" v-model="tableIndexFilter" :prefix-icon="searchLoading? 'el-icon-loading':'el-icon-search'" :placeholder="$t('searchTip')" class="ksd-fright ksd-mr-15"></el-input>
       </div>
       <kap-nodata v-if="tableIndexBaseList.length === 0" class="ksd-mt-40"></kap-nodata>
       <el-steps direction="vertical">
@@ -26,7 +26,7 @@
                         <div v-if="item.status === 'EMPTY'" class="empty-icon">{{$t('empty')}}</div>
                       </div>
                       <div class="sub-info">
-                        <div>{{$t('tableIndexId')}}{{item.id}}</div>
+                        <div class="sub-title"><span>{{$t('tableIndexId')}}</span>{{item.id}}</div>
                         <i class="el-icon-ksd-elapsed_time ksd-mr-4"></i>{{transToGmtTime(item.update_time)}}
                         <div class="actions ksd-fright">
                           <span class="del-icon" v-if="item.manual" @click="delTableIndex(item.id, item.name)">{{$t('kylinLang.common.delete')}}</span>
@@ -52,46 +52,42 @@
           <span><i class="el-icon-ksd-index_handy" v-if="currentShowTableIndex && currentShowTableIndex.manual"></i><i v-if="currentShowTableIndex && !currentShowTableIndex.manual" class="el-icon-ksd-index_auto"></i> {{$t('tableIndexDetail')}}</span>
           <div class="ksd-fright ksd-fs-14"><span class="ksd-mr-4" v-if="currentShowTableIndex && currentShowTableIndex.manual">{{$t('manualAdvice')}}</span><span class="ksd-mr-4" v-if="currentShowTableIndex && !currentShowTableIndex.manual">{{$t('autoAdvice')}}</span><el-button size="mini" v-if="currentShowTableIndex && currentShowTableIndex.manual" @click="editTableIndex(false)"  icon="el-icon-ksd-table_edit">{{$t('kylinLang.common.edit')}}</el-button></div>
         </div>
-        <div class="ksd-prl-20 ksd-ptb-8">
+        <div>
           <el-table
+          nested
+          size="medium"
           :data="showTableIndexDetail"
           height="529px"
-          border class="ksd-mt-14 table-index-detail">
+          border class="table-index-detail">
           <el-table-column
             :label="$t('ID')"
-            header-align="center"
-            align="center"
             prop="id"
             width="64">
           </el-table-column>
           <el-table-column
             show-overflow-tooltip
             :label="$t('column')"
-            header-align="center"
-            prop="column"
-            align="center">
+            prop="column">
           </el-table-column> 
           <el-table-column
           label="Sort"
-          header-align="center"
+          header-align="right"
           prop="sort"
           width="60"
-          align="center">
+          align="right">
           <template slot-scope="scope">
             <span class="ky-dot-tag" v-show="scope.row.sort">{{scope.row.sort}}</span>
           </template>
             </el-table-column>
           <el-table-column
           label="Shard"
-          width="70"
-          header-align="center"
-          align="center">
+          width="70">
             <template slot-scope="scope">
                 <i class="el-icon-ksd-good_health ky-success" v-show="scope.row.shared"></i>
             </template>
             </el-table-column>         
           </el-table>
-          <kap-pager layout="total, prev, pager, next" class="ksd-mt-10 ksd-center" ref="pager" :perPageSize="currentCount" :totalSize="totalTableIndexColumnSize"  v-on:handleCurrentChange='currentChange'></kap-pager>
+          <kap-pager layout="prev, pager, next" :background="false" class="ksd-mt-10 ksd-center" ref="pager" :perPageSize="currentCount" :totalSize="totalTableIndexColumnSize"  v-on:handleCurrentChange='currentChange'></kap-pager>
         </div> 
       </el-card>
     </div>
@@ -331,7 +327,9 @@ export default class TableIndex extends Vue {
     top:0;
     .el-card {
       height:100%;
-      padding-bottom:20px;
+      .el-card__body {
+        padding:20px;
+      }
     }
   }
   .el-carousel__item{
@@ -346,11 +344,11 @@ export default class TableIndex extends Vue {
   .slider-content-below {
     height:40px;
     line-height:40px;
-    color:@text-normal-color;
+    color:@color-text-regular;
     .tableindex-user {
       float:left;
       margin-left:20px;
-      font-size:14px;
+      font-size:12px;
     }
     .tableindex-count {
       float:right;
@@ -360,22 +358,16 @@ export default class TableIndex extends Vue {
       }
     }
   }
-  .empty-table-index {
-    // background-color: @grey-4;
-    .slider-content-above {
-      .main-title {
-        color:@text-disabled-color;
-      }
-    }
-    .slider-content-below {
-      .tableindex-user {
-        color:@text-secondary-color;
-      }
-      .tableindex-count {
-        color:@text-secondary-color;
-      }
-    }
-  }
+  // .empty-table-index {
+  //   .slider-content-below {
+  //     .tableindex-user {
+  //       // color:@text-secondary-color;
+  //     }
+  //     .tableindex-count {
+  //       // color:@text-secondary-color;
+  //     }
+  //   }
+  // }
   .slider-content-above{
     .broken-icon {
       color:@error-color-1;
@@ -405,6 +397,7 @@ export default class TableIndex extends Vue {
       top:12px;
       height:34px;
       padding-top:10px;
+      cursor: default;
     }
     height:132px;
     padding:20px;
@@ -419,8 +412,12 @@ export default class TableIndex extends Vue {
     }
     .sub-info {
       font-size:12px;
-      color:@text-disabled-color;
       margin-top:5px;
+      .sub-title {
+        span{
+          font-weight:@font-medium;
+        }
+      }
       .actions {
         position: absolute;
         right: 11px;
@@ -429,7 +426,7 @@ export default class TableIndex extends Vue {
     }
     .main-title {
       font-size: 16px;
-      color:@text-title-color; 
+      font-weight:@font-medium;
       i {
         color:@warning-color-1;
       }

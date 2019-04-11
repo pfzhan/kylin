@@ -8,21 +8,18 @@
       </kap-editor>
       <div class="clearfix operatorBox">
         <p class="tips_box">
-          <el-button size="small" @click.native="openSaveQueryDialog" :disabled="!sourceSchema">{{$t('kylinLang.query.saveQuery')}}</el-button>
-          <el-button size="small" plain="plain" @click.native="resetQuery" v-if="isWorkspace" style="display:inline-block">{{$t('kylinLang.query.clear')}}</el-button>
+          <el-button size="small" @click.native="openSaveQueryDialog" :disabled="!sourceSchema">{{$t('kylinLang.query.saveQuery')}}</el-button><el-button
+          size="small" plain="plain" @click.native="resetQuery" v-if="isWorkspace" style="display:inline-block">{{$t('kylinLang.query.clear')}}</el-button>
         </p>
         <p class="operator" v-if="isWorkspace">
           <el-form :inline="true" class="demo-form-inline">
             <el-form-item v-show="showHtrace">
               <el-checkbox v-model="isHtrace" @change="changeTrace">{{$t('trace')}}</el-checkbox>
-            </el-form-item>
-            <el-form-item>
+            </el-form-item><el-form-item>
               <el-checkbox v-model="hasLimit" @change="changeLimit">Limit</el-checkbox>
-            </el-form-item>
-            <el-form-item>
+            </el-form-item><el-form-item>
               <el-input placeholder="" size="small" style="width:90px;" @input="handleInputChange" v-model="listRows" class="limit-input"></el-input>
-            </el-form-item>
-            <el-form-item>
+            </el-form-item><el-form-item>
               <el-button type="primary" v-guide.workSpaceSubmit  plain size="small" class="ksd-btn-minwidth" :loading="isLoading" @click="submitQuery(sourceSchema)">{{$t('kylinLang.common.submit')}}</el-button>
             </el-form-item>
           </el-form>
@@ -39,7 +36,7 @@
     <div id="queryPanelBox" v-if="extraoptionObj&&errinfo">
       <div class="resultTipsLine">
         <div class="resultTips">
-          <p class="resultText" v-if="extraoptionObj.queryId"><span class="label">{{$t('kylinLang.query.query_id')}}</span>
+          <p class="resultText" v-if="extraoptionObj.queryId"><span class="label">{{$t('kylinLang.query.query_id')}}: </span>
           <span class="text" v-if="extraoptionObj.queryId">{{extraoptionObj.queryId}}</span></p>
           <!-- <p class="resultText"><span class="label">{{$t('kylinLang.query.status')}}</span>
           <span class="ky-error">{{$t('kylinLang.common.error')}}</span></p> -->

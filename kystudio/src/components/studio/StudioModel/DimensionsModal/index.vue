@@ -16,7 +16,6 @@
               <span class="ksd-ml-2"><i class="el-icon-ksd-fact_table"></i></span><span class="table-title">{{table.alias}} <span>({{countTableSelectColumns(table)}})</span> </span>
             </div>
             <el-table
-              class="ksd-mt-10"
               v-if="table.show"
               border
               :data="table.columns"
@@ -27,11 +26,9 @@
               @select="selectionChange">
               <el-table-column
                 type="selection"
-                align="center"
                 width="40">
               </el-table-column>
               <el-table-column
-                header-align="center"
                 :label="$t('name')">
                 <template slot-scope="scope">
                   <div @click.stop>
@@ -43,27 +40,25 @@
                 </template>
               </el-table-column>
               <el-table-column
-                header-align="center"
                 show-overflow-tooltip
                 prop="name"
                 :label="$t('column')">
               </el-table-column>
               <el-table-column
-                header-align="center"
                 prop="datatype"
                 show-overflow-tooltip
                 :label="$t('datatype')"
                 width="110">
               </el-table-column>
               <el-table-column
-                header-align="center"
+                header-align="right"
+                align="right"
                 show-overflow-tooltip
                 prop="cardinality"
                 :label="$t('cardinality')"
                 width="100">
               </el-table-column>
               <el-table-column
-                header-align="center"
                 prop="comment"
                 :label="$t('comment')">
               </el-table-column>
@@ -78,7 +73,6 @@
             </div>
             <el-table
               v-if="table.show || isGuideMode"
-              class="ksd-mt-10"
               border
               :row-class-name="(para) => tableRowClassName(para, table)"
               :data="table.columns" :ref="table.guid"
@@ -126,7 +120,7 @@
         </div>
       </div>
     </template>
-    <div slot="footer" class="dialog-footer">
+    <div slot="footer" class="dialog-footer ky-no-br-space">
       <span class="ksd-fleft ksd-mt-10">{{$t('totalSelect')}}{{countAllTableSelectColumns()}}</span>
       <el-button size="medium" @click="handleClose(false)">{{$t('kylinLang.common.cancel')}}</el-button>
       <el-button size="medium" plain type="primary" v-guide.saveBatchDimensionBtn :disabled="countAllTableSelectColumns() <= 0" @click="submit">{{$t('kylinLang.common.submit')}}</el-button>

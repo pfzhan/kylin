@@ -1,6 +1,6 @@
 <template>
   <!-- 模型构建 -->
-    <el-dialog class="model-build" :title="$t('modelBuild')" width="660px" :visible="isShow" :close-on-press-escape="false" :close-on-click-modal="false" @close="isShow && closeModal()">
+    <el-dialog class="model-build" :title="$t('modelBuild')" width="560px" :visible="isShow" :close-on-press-escape="false" :close-on-click-modal="false" @close="isShow && closeModal()">
       <div>
         <el-form :model="modelBuildMeta" ref="buildForm" :rules="rules" label-position="top">
           <!-- <div class="ky-list-title ksd-mt-14">{{$t('buildRange')}}</div> -->
@@ -15,38 +15,40 @@
               {{$t('customLoadRange')}}
             </el-radio>
             <br/> -->
-          <el-date-picker
-            type="datetime"
-            v-model="modelBuildMeta.dataRangeVal[0]"
-            :is-auto-complete="true"
-            :disabled="modelBuildMeta.isLoadExisted || isLoadingNewRange"
-            :picker-options="{ disabledDate: time => time.getTime() > modelBuildMeta.dataRangeVal[1] && modelBuildMeta.dataRangeVal[1] !== null }"
-            :placeholder="$t('kylinLang.common.startTime')">
-          </el-date-picker>
-          <span>-</span>
-          <el-date-picker
-            type="datetime"
-            v-model="modelBuildMeta.dataRangeVal[1]"
-            :is-auto-complete="true"
-            :disabled="modelBuildMeta.isLoadExisted || isLoadingNewRange"
-            :picker-options="{ disabledDate: time => time.getTime() < modelBuildMeta.dataRangeVal[0] && modelBuildMeta.dataRangeVal[0] !== null }"
-            :placeholder="$t('kylinLang.common.endTime')">
-          </el-date-picker>
-          <el-tooltip effect="dark" :content="$t('detectAvailableRange')" placement="top">
-            <el-button
-              v-if="isShow"
-              size="small"
-              class="ksd-ml-10"
-              :disabled="modelBuildMeta.isLoadExisted"
-              :loading="isLoadingNewRange"
-              icon="el-icon-ksd-data_range_search"
-              @click="handleLoadNewestRange">
-            </el-button>
-          </el-tooltip>
+            <div class="ky-no-br-space">
+              <el-date-picker
+                type="datetime"
+                class="ksd-mr-5"
+                v-model="modelBuildMeta.dataRangeVal[0]"
+                :is-auto-complete="true"
+                :disabled="modelBuildMeta.isLoadExisted || isLoadingNewRange"
+                :picker-options="{ disabledDate: time => time.getTime() > modelBuildMeta.dataRangeVal[1] && modelBuildMeta.dataRangeVal[1] !== null }"
+                :placeholder="$t('kylinLang.common.startTime')">
+              </el-date-picker>
+              <el-date-picker
+                type="datetime"
+                v-model="modelBuildMeta.dataRangeVal[1]"
+                :is-auto-complete="true"
+                :disabled="modelBuildMeta.isLoadExisted || isLoadingNewRange"
+                :picker-options="{ disabledDate: time => time.getTime() < modelBuildMeta.dataRangeVal[0] && modelBuildMeta.dataRangeVal[0] !== null }"
+                :placeholder="$t('kylinLang.common.endTime')">
+              </el-date-picker>
+              <el-tooltip effect="dark" :content="$t('detectAvailableRange')" placement="top">
+                <el-button
+                  v-if="isShow"
+                  size="medium"
+                  class="ksd-ml-10"
+                  :disabled="modelBuildMeta.isLoadExisted"
+                  :loading="isLoadingNewRange"
+                  icon="el-icon-ksd-data_range_search"
+                  @click="handleLoadNewestRange">
+                </el-button>
+              </el-tooltip>
+            </div>
           </el-form-item>
         </el-form>
       </div>
-      <div slot="footer" class="dialog-footer">
+      <div slot="footer" class="dialog-footer ky-no-br-space">
         <el-button @click="closeModal" size="medium">{{$t('kylinLang.common.cancel')}}</el-button>
         <el-button type="primary" plain :loading="btnLoading" @click="setbuildModelRange" size="medium">{{$t('kylinLang.common.submit')}}</el-button>
       </div>
@@ -192,5 +194,5 @@
       font-size: 12px;
       line-height: 1;
     }
-  }  
+  }
 </style>

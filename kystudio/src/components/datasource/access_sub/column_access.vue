@@ -45,11 +45,11 @@
             </el-table-column>
           </el-table>
           <kap-pager
-            class="ksd-center ksd-mt-20 ksd-mb-20" ref="pager"
+            class="ksd-center ksd-mtb-10" ref="pager"
             :totalSize="aclColumnSize"
             @handleCurrentChange="handleCurrentChange">
           </kap-pager>
-          <el-dialog :title="$t('restrict')" width="660px" :visible.sync="addGrantDialog" @close="closeDialog" :close-on-press-escape="false" :close-on-click-modal="false">
+          <el-dialog :title="$t('restrict')" width="720px" :visible.sync="addGrantDialog" @close="closeDialog" :close-on-press-escape="false" :close-on-click-modal="false">
                <el-alert
                 :title="$t('columnAclDesc')"
                 show-icon

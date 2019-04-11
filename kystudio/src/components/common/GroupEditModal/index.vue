@@ -24,8 +24,8 @@
       </el-form-item>
     </el-form>
     <div slot="footer" class="dialog-footer">
-      <el-button size="medium" @click="closeHandler(false)">{{$t('kylinLang.common.cancel')}}</el-button>
-      <el-button size="medium" plain type="primary" @click="submit">{{$t('kylinLang.common.save')}}</el-button>
+      <el-button size="medium" @click="closeHandler(false)">{{$t('kylinLang.common.cancel')}}</el-button><el-button
+      size="medium" plain type="primary" @click="submit">{{$t('kylinLang.common.save')}}</el-button>
     </div>
   </el-dialog>
 </template>
@@ -191,9 +191,6 @@ export default class GroupEditModal extends Vue {
 
 <style lang="less">
 .group-edit-modal {
-  .el-transfer {
-    padding: 0 12px;
-  }
   .el-transfer-panel {
     width: 250px;
   }

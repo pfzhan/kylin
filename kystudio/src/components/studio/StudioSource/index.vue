@@ -31,7 +31,7 @@
             </div>
           </div>
           <!-- Source Table详细信息 -->
-          <el-tabs class="table-details" v-model="viewType">
+          <el-tabs class="table-details" type="card" v-model="viewType">
             <el-tab-pane :label="$t('general')" :name="viewTypes.DATA_LOAD" v-if="isAutoProject">
               <TableDataLoad :project="currentProjectData" :table="selectedTable" @fresh-tables="handleFreshTable"></TableDataLoad>
             </el-tab-pane>
@@ -220,9 +220,9 @@ export default class StudioSource extends Vue {
     position: relative;
   }
   .table-name {
-    font-size: 16px;
+    font-size: 14px;
     color: #263238;
-    margin-bottom: 10px;
+    margin-bottom: 5px;
     overflow: hidden;
     text-overflow: ellipsis;
   }
@@ -231,13 +231,13 @@ export default class StudioSource extends Vue {
   }
   .table-update-at {
     font-size: 12px;
-    color: #8E9FA8;
+    color: @text-disabled-color;
     font-weight: normal;
   }
   .table-header {
     padding-right: 300px;
     position: relative;
-    margin-bottom: 12px;
+    margin-bottom: 15px;
   }
   .table-actions {
     position: absolute;
@@ -263,12 +263,6 @@ export default class StudioSource extends Vue {
     &:first-child {
       margin-bottom: 20px;
     }
-  }
-  .el-tabs__header {
-    margin-bottom: 10px;
-  }
-  .el-tabs__content {
-    padding: 10px 0 20px 0;
   }
   .slide-enter-active, .slide-leave-active {
     transition: transform .5s;

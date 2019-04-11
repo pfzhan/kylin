@@ -62,7 +62,7 @@
     </div>
     </template>
     <div class="hr"></div>
-    <div class="ksd-mt-20">
+    <div class="ksd-mt-15 ky-no-br-space">
       <el-button type="primary" size="medium" v-if="~['incremental', 'full'].indexOf(table.storageType) || table.partitionColumn" @click="handleLoadData" v-guide.tableLoadDataBtn>{{$t('loadData')}}</el-button>
       <el-button v-if="~['incremental'].indexOf(table.storageType) || table.partitionColumn" size="medium" @click="handleRefreshData">{{$t('kylinLang.common.refresh')}}</el-button>
     </div>
@@ -221,14 +221,14 @@ export default class TableDataLoad extends Vue {
 
 .table-data-load {
   .info-group {
-    padding: 20px 0;
+    padding: 15px 0;
     &:first-child {
       padding-top: 0;
     }
   }
   .info-label {
     display: inline-block;
-    width: 110px;
+    width: 98px;
   }
   .info-value.empty {
     color: @text-disabled-color;
@@ -237,7 +237,7 @@ export default class TableDataLoad extends Vue {
     padding: 0 10px;
   }
   .info-row:not(:last-child) {
-    margin-bottom: 15px;
+    margin-bottom: 10px;
   }
   .hr.dashed {
     height: 1px;

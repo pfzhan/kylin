@@ -13,7 +13,8 @@ export default {
     cleanAll: 'Clean All',
     database: 'Database',
     tableName: 'Table Name',
-    synced: 'Synced'
+    synced: 'Synced',
+    filterTableName: 'Search Table'
   },
   'zh-cn': {
     dialogHiveTreeLoading: '加载中',
@@ -29,6 +30,7 @@ export default {
     cleanAll: '清除所有',
     database: '数据库',
     tableName: '数据源表',
-    synced: '已同步'
+    synced: '已同步',
+    filterTableName: '搜索表名'
   }
 }

@@ -36,7 +36,7 @@
       </div>
       <div class="setting-item">
         <span class="setting-label font-medium">{{$t('storageGarbage')}}</span>
-        <div class="setting-desc">
+        <div class="setting-desc large">
           <span>{{$t('storageGarbageDesc1')}}</span>
           <el-select
             class="setting-input"
@@ -62,10 +62,9 @@
       :header-content="$t('pushdownSettings')"
       :isEditable="false">
       <div class="setting-item">
-        <span class="setting-label font-medium">{{$t('pushdownEngine')}}</span>
-        <span class="setting-value fixed">
+        <span class="setting-label font-medium">{{$t('pushdownEngine')}}</span><span class="setting-value fixed">
           <el-switch
-            class="ksd-switch"
+            size="small"
             v-model="form.push_down_enabled"
             :active-text="$t('kylinLang.common.OFF')"
             :inactive-text="$t('kylinLang.common.ON')"
@@ -75,10 +74,9 @@
         <div class="setting-desc">{{$t('pushdownEngineDesc')}}</div>
       </div>
       <div class="setting-item">
-        <span class="setting-label font-medium">{{$t('pushdownRange')}}</span>
-        <span class="setting-value fixed">
+        <span class="setting-label font-medium">{{$t('pushdownRange')}}</span><span class="setting-value fixed">
           <el-switch
-            class="ksd-switch"
+            size="small"
             v-model="form.push_down_range_limited"
             :active-text="$t('kylinLang.common.OFF')"
             :inactive-text="$t('kylinLang.common.ON')"
@@ -97,10 +95,9 @@
       @cancel="() => handleReset('segment-settings')">
       <el-form ref="segment-setting-form" :model="form" :rules="rules">
         <div class="setting-item">
-          <span class="setting-label font-medium">{{$t('segmentMerge')}}</span>
-          <span class="setting-value fixed">
+          <span class="setting-label font-medium">{{$t('segmentMerge')}}</span><span class="setting-value fixed">
             <el-switch
-              class="ksd-switch"
+              size="small"
               v-model="form.auto_merge_enabled"
               :active-text="$t('kylinLang.common.OFF')"
               :inactive-text="$t('kylinLang.common.ON')">
@@ -128,8 +125,7 @@
             </span>
             <el-form-item class="setting-input" :show-message="false" prop="volatile_range.volatile_range_number">
               <el-input size="small" style="width: 100px;" v-number="form.volatile_range.volatile_range_number" v-model="form.volatile_range.volatile_range_number" :disabled="!form.auto_merge_enabled"></el-input>
-            </el-form-item>
-            <el-select
+            </el-form-item><el-select
               class="setting-input"
               size="small"
               style="width: 100px;"
@@ -147,10 +143,9 @@
           </div>
         </div>
         <div class="setting-item">
-          <span class="setting-label font-medium">{{$t('retentionThreshold')}}</span>
-          <span class="setting-value fixed">
+          <span class="setting-label font-medium">{{$t('retentionThreshold')}}</span><span class="setting-value fixed">
             <el-switch
-              class="ksd-switch"
+              size="small"
               v-model="form.retention_range.retention_range_enabled"
               :active-text="$t('kylinLang.common.OFF')"
               :inactive-text="$t('kylinLang.common.ON')">

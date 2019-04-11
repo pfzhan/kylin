@@ -42,6 +42,7 @@
       :close-on-press-escape="false"
       :close-on-click-modal="false"
       @closed="handleResultModalClosed">
+      <div>
       <el-alert
         show-icon
         type="success"
@@ -66,6 +67,7 @@
           <span class="desc">{{$t('loadFailed2')}}</span>
         </span>
       </el-alert>
+      </div>
       <div slot="footer" class="dialog-footer">
         <el-button size="medium" plain type="primary" v-guide.closeLoadResult @click="isShowResultModal = false">{{$t('kylinLang.common.ok')}}</el-button>
       </div>
@@ -427,7 +429,7 @@ export default class DataSourceBar extends Vue {
     border-bottom: 1px solid @line-split-color;
   }
   .body {
-    padding: 20px;
+    padding: 10px 20px 20px;
   }
   .header-text {
     float: left;
@@ -571,7 +573,7 @@ export default class DataSourceBar extends Vue {
       & > .el-tree-node__content {
         padding: 10px 9px !important; // important用来去掉el-tree的内联样式
         height: auto;
-        background: #E2ECF1;
+        background: @regular-background-color;
         &:hover > .tree-item > span {
           color: #263238;
         }
@@ -611,6 +613,13 @@ export default class DataSourceBar extends Vue {
   }
 }
 .datasource-result-modal {
+  .el-dialog__body {
+    overflow:hidden;
+    div{
+      max-height:60vh;
+      overflow-y:auto;
+    }
+  }
   .el-alert:not(:last-child) {
     margin-bottom: 10px;
   }

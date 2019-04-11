@@ -222,7 +222,7 @@
       </div>
       
 
-      <el-dialog class="load-datasource-dialog" :title="dataSourceLoadDialogTitle" width="780px" :visible.sync="loadDataSourceVisible" :close-on-press-escape="false" :close-on-click-modal="false">
+      <el-dialog class="load-datasource-dialog" :title="dataSourceLoadDialogTitle" width="720px" :visible.sync="loadDataSourceVisible" :close-on-press-escape="false" :close-on-click-modal="false">
         <div v-if="activeLoadFormIndex===-1">
           <p class="ksd-center ksd-mt-40 select-title">{{$t('dataSourceTypeCheckTip')}}{{initDefaultCheck}}</p>
          
@@ -269,7 +269,7 @@
                 <span slot="checkLabel">{{$t('sampling')}}</span>
                  <span slot="tipLabel">
                     <common-tip placement="right" :content="$t('kylinLang.dataSource.collectStatice')" >
-                       <i class="el-icon-question"></i>
+                       <i class="el-icon-ksd-what"></i>
                     </common-tip>
                  </span>
               </slider>
@@ -295,7 +295,7 @@
       </div>
       </el-dialog>
      <!-- reload table dialog -->
-     <el-dialog :title="$t('reload')" width="660px" :visible.sync="scanRatioDialogVisible" @close="cancelReloadTable" :close-on-press-escape="false" :close-on-click-modal="false">
+     <el-dialog :title="$t('reload')" width="720px" :visible.sync="scanRatioDialogVisible" @close="cancelReloadTable" :close-on-press-escape="false" :close-on-click-modal="false">
         <el-row :gutter="20">
           <el-col :span="24"><div class="grid-content bg-purple">
             <div class="tree_check_content ksd-mt-20">
@@ -306,7 +306,7 @@
                    </span>
                    <span slot="tipLabel">
                      <common-tip :content="$t('kylinLang.dataSource.collectStatice')" >
-                       <i  class="el-icon-question"></i>
+                       <i class="el-icon-ksd-what"></i>
                     </common-tip>
                    </span>
                  </slider>
@@ -322,9 +322,9 @@
         </div>
       </el-dialog>
       <!-- 单个采样dialog -->
-      <el-dialog :title="$t('setScanRange')" :visible.sync="scanSampleRatioDialogVisible" @close="cancelLoadSample" :close-on-press-escape="false" :close-on-click-modal="false" width="660px">
+      <el-dialog :title="$t('setScanRange')" :visible.sync="scanSampleRatioDialogVisible" @close="cancelLoadSample" :close-on-press-escape="false" :close-on-click-modal="false" width="720px">
         <span slot="title">{{$t('setScanRange')}} <common-tip placement="right" :content="$t('kylinLang.dataSource.collectStatice')" >
-                 <i class="el-icon-question"></i></common-tip></span>
+                 <i class="el-icon-ksd-what"></i></common-tip></span>
         <el-row :gutter="20">
           <el-col :span="24"><div class="grid-content bg-purple">
             <div class="tree_check_content ksd-mt-20">
@@ -349,7 +349,7 @@
           <el-button type="primary" plain @click="checkKafkaFormEdit" :loading="kafkaLoading">{{$t('kylinLang.common.submit')}}</el-button>
         </span>
       </el-dialog>
-      <el-dialog  :title="$t('kylinLang.common.tip')" width="780px"
+      <el-dialog  :title="$t('kylinLang.common.tip')" width="720px"
         :visible.sync="loadResultVisible" :close-on-press-escape="false" :close-on-click-modal="false">
          <el-alert v-for=" su in loadResult.success" :key="su"
             :title="currentAction + $t('kylinLang.common.success') + ' ! ' + '['+su+']'"

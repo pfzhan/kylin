@@ -6,8 +6,8 @@
           <el-input v-focus="isShow" v-model="tableIndexMeta.name" auto-complete="off" placeholder="" size="medium" style="width:500px"></el-input>
         </el-form-item>
       </el-form>
-      <div class="ky-line"></div>
-      <div class="ksd-mt-20">
+      <div class="ky-line ksd-mtb-10"></div>
+      <div>
         <el-button type="primary" plain size="medium" @click="selectAll">{{$t('selectAllColumns')}}</el-button><el-button plain size="medium" @click="clearAll">{{$t('clearAll')}}</el-button>
         <el-input v-model="searchColumn" size="medium" prefix-icon="el-icon-search" class="ksd-fright" style="width:200px" :placeholder="$t('kylinLang.common.pleaseFilter')"></el-input>
        <div class="ky-simple-table">
@@ -39,7 +39,7 @@
           </div>
        </div>
       </div>
-      <div slot="footer" class="dialog-footer">
+      <div slot="footer" class="dialog-footer ky-no-br-space">
         <el-checkbox v-model="tableIndexMeta.load_data" :label="true" class="ksd-fleft ksd-mt-8">{{$t('catchup')}}</el-checkbox>
         <el-button @click="closeModal" size="medium">{{$t('kylinLang.common.cancel')}}</el-button>
         <el-button type="primary" plain :loading="btnLoading" size="medium" @click="submit" :disabled="saveBtnDisable">{{$t('kylinLang.common.save')}}</el-button>
@@ -341,7 +341,7 @@
       }
     }
     .row-colorful {
-      background:@normal-color-2!important;
+      background:@lighter-color-tip!important;
     }
     .el-icon-success {
       cursor:pointer;

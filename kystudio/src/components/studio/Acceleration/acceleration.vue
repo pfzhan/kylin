@@ -1,6 +1,6 @@
 <template>
   <div id="favoriteQuery">
-    <div class="ksd-title-label ksd-mt-20 ksd-mb-20">
+    <div class="ksd-title-label ksd-mt-20 ksd-mb-10">
       <span>{{$t('acceleration')}}</span>
     </div>
     <div class="img-groups" v-guide.speedProcess>
@@ -12,43 +12,43 @@
           <p class="">{{$t('acceleratedSQL')}}</p>
         </div>
       </div>
-      <div v-if="showGif">
+      <div v-if="showGif" class="img-block">
         <img src="../../../assets/img/merge1.gif" width="735px" alt=""><img src="../../../assets/img/acc_light.png" class="ksd-ml-10" width="85px" alt="">
       </div>
-      <div v-else>
+      <div v-else class="img-block">
         <img src="../../../assets/img/bg1.jpg" width="735px" alt=""><img src="../../../assets/img/acc_light.png" class="ksd-ml-10" width="85px" alt="">
       </div>
       <div class="btn-groups ksd-mt-10">
         <span class="guide-checkData" v-if="!waitingSQLSize"></span>
         <div class="btn-block">
-          <el-button size="mini" type="primary" plain @click="openImportSql">{{$t('importSql')}}</el-button>
+          <el-button size="small" type="primary" plain @click="openImportSql">{{$t('importSql')}}</el-button>
         </div>
         <div class="btn-block">
-          <el-button size="mini" type="primary" v-guide.speedSqlNowBtn plain :disabled="!waitingSQLSize" :loading="isAcceSubmit" @click="applySpeed">{{$t('accelerateNow')}}</el-button>
+          <el-button size="small" type="primary" v-guide.speedSqlNowBtn plain :disabled="!waitingSQLSize" :loading="isAcceSubmit" @click="applySpeed">{{$t('accelerateNow')}}</el-button>
         </div>
       </div>
     </div>
-    <div class="fav-tables ksd-mt-30">
+    <div class="fav-tables ksd-mt-25">
       <div class="btn-group">
-        <el-button size="mini" type="primary" icon="el-icon-ksd-setting" plain @click="openRuleSetting">{{$t('ruleSetting')}}</el-button><el-button size="mini" type="primary" icon="el-icon-ksd-table_discard" plain @click="openBlackList">{{$t('blackList')}}</el-button>
+        <el-button size="small" type="primary" icon="el-icon-ksd-setting" plain @click="openRuleSetting">{{$t('ruleSetting')}}</el-button><el-button size="small" type="primary" icon="el-icon-ksd-table_discard" plain @click="openBlackList">{{$t('blackList')}}</el-button>
       </div>
-      <el-tabs v-model="activeList" @tab-click="handleClick">
+      <el-tabs v-model="activeList" type="card" @tab-click="handleClick">
         <el-tab-pane name="wartingAcce">
           <span slot="label">{{$t('waitingList')}}({{unAcceListSize}})</span>
           <acceleration_table :favoriteTableData="favQueList.favorite_queries" :sortTable="sortFavoriteList" v-on:filterFav="filterFav"></acceleration_table>
-          <kap-pager ref="favoriteQueryPager" class="ksd-center ksd-mt-20 ksd-mb-20" :totalSize="favQueList.size"  v-on:handleCurrentChange='pageCurrentChange'></kap-pager>
+          <kap-pager ref="favoriteQueryPager" class="ksd-center ksd-mtb-10" :totalSize="favQueList.size"  v-on:handleCurrentChange='pageCurrentChange'></kap-pager>
         </el-tab-pane>
         <el-tab-pane name="accelerated">
           <span slot="label">{{$t('accelerated')}}({{patternNum}})</span>
           <acceleration_table :favoriteTableData="favQueList.favorite_queries" :sortTable="sortFavoriteList" v-on:filterFav="filterFav" :isAccelerated="true"></acceleration_table>
-          <kap-pager ref="favoriteQueryPager" class="ksd-center ksd-mt-20 ksd-mb-20" :totalSize="favQueList.size"  v-on:handleCurrentChange='pageCurrentChange'></kap-pager>
+          <kap-pager ref="favoriteQueryPager" class="ksd-center ksd-mtb-10" :totalSize="favQueList.size"  v-on:handleCurrentChange='pageCurrentChange'></kap-pager>
         </el-tab-pane>
       </el-tabs>
     </div>
     <el-dialog
       :visible.sync="importSqlVisible"
       top="5vh"
-      width="1180px"
+      width="960px"
       :close-on-press-escape="false"
       :close-on-click-modal="false"
       @closed="resetImport"
@@ -70,13 +70,13 @@
           </el-button>
         </el-upload>
       </div>
-      <el-row :gutter="20" v-else>
+      <el-row :gutter="15" v-else>
         <el-col :span="16">
           <div class="clearfix ksd-mb-10">
             <div class="ksd-fleft">
               <div v-if="pagerTableData.length&&whiteSqlData.capable_sql_num" class="ksd-fleft ksd-mr-10">
-                <el-button type="primary" size="medium" plain @click="selectAll" v-if="selectSqls.length!==whiteSqlData.capable_sql_num">{{$t('checkAll')}}</el-button>
-                <el-button type="primary" size="medium" plain @click="cancelSelectAll" v-else>{{$t('cancelAll')}}</el-button>
+                <el-button type="primary" size="medium" plain @click="selectAll" v-if="selectSqls.length!==whiteSqlData.capable_sql_num">{{$t('checkAll')}}</el-button><el-button
+                type="primary" size="medium" plain @click="cancelSelectAll" v-else>{{$t('cancelAll')}}</el-button>
               </div>
               <el-button type="primary" size="medium" :disabled="!finalSelectSqls.length" :loading="submitSqlLoading" @click="addTofav">{{$t('addTofavorite')}}({{finalSelectSqls.length}})</el-button>
             </div>
@@ -94,34 +94,38 @@
             :row-class-name="tableRowClassName"
             class="import-table"
             style="width: 100%">
-            <el-table-column type="selection" align="center" width="40" :selectable="selectable"></el-table-column>
-            <el-table-column prop="sql" label="SQL" header-align="center" :resizable="false">
+            <el-table-column type="selection" width="40" align="center" :selectable="selectable"></el-table-column>
+            <el-table-column prop="sql" label="SQL" :resizable="false">
               <template slot-scope="props">
                 <span class="ksd-nobr-text">{{props.row.sql}}</span>
               </template>
             </el-table-column>
-            <el-table-column prop="capable" :label="$t('kylinLang.common.status')" align="center" width="80">
+            <el-table-column prop="capable" :label="$t('kylinLang.common.status')" width="80">
               <template slot-scope="props">
                 <i :class="{'el-icon-ksd-good_health': props.row.capable, 'el-icon-ksd-error_01': !props.row.capable}"></i>
               </template>
             </el-table-column>
-            <el-table-column :label="$t('kylinLang.common.action')" align="center" width="80">
+            <el-table-column :label="$t('kylinLang.common.action')" width="80">
               <template slot-scope="props">
-                <i class="el-icon-ksd-table_edit" @click.stop="editWhiteSql(props.row)"></i>
-                <i class="el-icon-ksd-table_delete ksd-ml-10" @click.stop="delWhiteComfirm(props.row.id)"></i>
+                <common-tip :content="$t('kylinLang.common.edit')">
+                  <i class="el-icon-ksd-table_edit" @click.stop="editWhiteSql(props.row)"></i>
+                </common-tip>
+                <common-tip :content="$t('kylinLang.common.drop')">
+                  <i class="el-icon-ksd-table_delete ksd-ml-10" @click.stop="delWhiteComfirm(props.row.id)"></i>
+                </common-tip>
                </template>
             </el-table-column>
           </el-table>
-          <kap-pager ref="sqlListsPager" class="ksd-center ksd-mt-20" :totalSize="filteredDataSize"  v-on:handleCurrentChange='whiteSqlDatasPageChange' :perPageSize="whitePageSize" v-if="filteredDataSize > 0"></kap-pager>
+          <kap-pager ref="sqlListsPager" class="ksd-center ksd-mt-10" :totalSize="filteredDataSize" layout="total, prev, pager, next, jumper" v-on:handleCurrentChange='whiteSqlDatasPageChange' :perPageSize="whitePageSize" v-if="filteredDataSize > 0"></kap-pager>
         </el-col>
         <el-col :span="8">
-          <div class="ky-list-title ksd-mt-12 ksd-fs-14">{{$t('sqlBox')}}</div>
+          <div class="ky-list-title ksd-mt-10 ksd-fs-14">{{$t('sqlBox')}}</div>
           <div v-loading="sqlLoading" element-loading-spinner="el-icon-loading">
             <div class="query_panel_box ksd-mt-10">
               <kap-editor ref="whiteInputBox" :height="inputHeight" :readOnly="this.isReadOnly" lang="sql" theme="chrome" v-model="whiteSql">
               </kap-editor>
               <div class="operatorBox" v-show="isEditSql">
-                <div class="btn-group ksd-fright">
+                <div class="btn-group ksd-fright ky-no-br-space">
                   <el-button size="medium" @click="cancelEdit(isWhiteErrorMessage)">{{$t('kylinLang.common.cancel')}}</el-button>
                   <el-button type="primary" size="medium" plain :loading="validateLoading" @click="validateWhiteSql()">{{$t('kylinLang.common.submit')}}</el-button>
                 </div>
@@ -146,14 +150,14 @@
             <i class="el-icon-warning ksd-fs-16"></i><span class="ksd-fs-12">{{$t('uploadFileTips')}}</span>
           </span>
         </div>
-        <el-button size="medium" @click="importSqlVisible = false">{{$t('kylinLang.common.close')}}</el-button>
-        <el-button type="primary" size="medium" plain v-if="!isUploaded" :loading="importLoading" :disabled="!uploadItems.length||fileSizeError"  @click="submitFiles">{{$t('kylinLang.common.submit')}}</el-button>
+        <el-button size="medium" @click="importSqlVisible = false">{{$t('kylinLang.common.close')}}</el-button><el-button
+        type="primary" size="medium" plain v-if="!isUploaded" :loading="importLoading" :disabled="!uploadItems.length||fileSizeError"  @click="submitFiles">{{$t('kylinLang.common.submit')}}</el-button>
       </span>
     </el-dialog>
     <el-dialog
       top="5vh"
       :visible.sync="blackListVisible"
-      width="1180px"
+      width="960px"
       :close-on-press-escape="false"
       :close-on-click-modal="false"
       @close="resetBlack"
@@ -164,7 +168,7 @@
           <i class="el-icon-ksd-what ksd-fs-12"></i>
         </el-tooltip>
       </span>
-      <el-row :gutter="20">
+      <el-row :gutter="15">
         <el-col :span="16" v-if="showSearchResult">
           <div class="clearfix ksd-mb-10">
             <span class="ksd-title-label ksd-fs-14 query-count">{{$t('blackList')}}
@@ -175,23 +179,25 @@
             </div>
           </div>
           <el-table :data="blackSqlData.sqls" border @row-click="viewBlackSql" :row-class-name="tableRowClassName" class="import-table" style="width: 100%">
-            <el-table-column prop="sql_pattern" label="SQL" :resizable="false" header-align="center">
+            <el-table-column prop="sql_pattern" label="SQL" :resizable="false">
               <template slot-scope="props">
                 <span class="ksd-nobr-text">{{props.row.sql_pattern}}</span>
               </template>
             </el-table-column>
-            <el-table-column prop="create_time" :label="$t('createdTime')" show-overflow-tooltip header-align="center" width="207">
+            <el-table-column prop="create_time" :label="$t('createdTime')" show-overflow-tooltip width="218">
               <template slot-scope="props">
                 {{transToGmtTime(props.row.create_time)}}
               </template>
             </el-table-column>
-            <el-table-column :label="$t('kylinLang.common.action')" align="center" width="80">
+            <el-table-column :label="$t('kylinLang.common.action')" width="80">
               <template slot-scope="props">
-                <i class="el-icon-ksd-table_delete ksd-ml-10" @click.stop="delBlack(props.row.id)"></i>
+                <common-tip :content="$t('kylinLang.common.drop')">
+                  <i class="el-icon-ksd-table_delete ksd-ml-10" @click.stop="delBlack(props.row.id)"></i>
+                </common-tip>
                </template>
             </el-table-column>
           </el-table>
-          <kap-pager ref="sqlListsPager" class="ksd-center ksd-mt-20 ksd-mb-20" :totalSize="blackSqlData.size"  v-on:handleCurrentChange='blackSqlDatasPageChange' :perPageSize="10" v-if="blackSqlData.size"></kap-pager>
+          <kap-pager ref="sqlListsPager" class="ksd-center ksd-mt-10" :totalSize="blackSqlData.size" layout="total, prev, pager, next, jumper" v-on:handleCurrentChange='blackSqlDatasPageChange' :perPageSize="10" v-if="blackSqlData.size"></kap-pager>
         </el-col>
         <el-col :span="8" v-if="showSearchResult">
           <div class="ky-list-title ksd-mt-12 ksd-fs-14">{{$t('sqlBox')}}</div>
@@ -211,7 +217,7 @@
     </el-dialog>
     <el-dialog
       :visible.sync="ruleSettingVisible"
-      width="780px"
+      width="720px"
       :close-on-press-escape="false"
       :close-on-click-modal="false"
       :title="$t('ruleSetting')"
@@ -220,7 +226,7 @@
         <div class="conds">
           <div class="conds-title">
             <span>{{$t('queryFrequency')}}</span>
-            <el-switch class="ksd-switch" v-model="rulesObj.freqEnable" :active-text="$t('kylinLang.common.OFF')" :inactive-text="$t('kylinLang.common.ON')"></el-switch>
+            <el-switch size="small" v-model="rulesObj.freqEnable" :active-text="$t('kylinLang.common.OFF')" :inactive-text="$t('kylinLang.common.ON')"></el-switch>
           </div>
           <div class="conds-content clearfix">
             <div class="ksd-mt-10 ksd-fs-14">
@@ -236,19 +242,19 @@
         <div class="conds">
           <div class="conds-title">
             <span>{{$t('querySubmitter')}}</span>
-            <el-switch class="ksd-switch" v-model="rulesObj.submitterEnable" :active-text="$t('kylinLang.common.OFF')" :inactive-text="$t('kylinLang.common.ON')"></el-switch>
+            <el-switch size="small" v-model="rulesObj.submitterEnable" :active-text="$t('kylinLang.common.OFF')" :inactive-text="$t('kylinLang.common.ON')"></el-switch>
           </div>
           <div class="conds-content">
-            <div class="vip-users-block ksd-mb-10">
+            <div class="vip-users-block">
               <el-form-item prop="users">
                 <div class="ksd-mt-10 conds-title"><i class="el-icon-ksd-table_admin"></i> VIP User</div>
-                <el-select v-model="rulesObj.users" v-event-stop :popper-append-to-body="false" filterable size="medium" placeholder="VIP User" class="ksd-mt-10" multiple style="width:100%">
+                <el-select v-model="rulesObj.users" v-event-stop :popper-append-to-body="false" filterable size="medium" placeholder="VIP User" class="ksd-mt-5" multiple style="width:100%">
                   <el-option v-for="item in allSubmittersOptions.user" :key="item" :label="item" :value="item"></el-option>
                 </el-select>
               </el-form-item>
               <el-form-item prop="userGroups">
               <div class="ksd-mt-10 conds-title"><i class="el-icon-ksd-table_group"></i> VIP Group</div>
-              <el-select v-model="rulesObj.userGroups" v-event-stop :popper-append-to-body="false" filterable size="medium" placeholder="VIP User Group" class="ksd-mt-10" multiple style="width:100%">
+              <el-select v-model="rulesObj.userGroups" v-event-stop :popper-append-to-body="false" filterable size="medium" placeholder="VIP User Group" class="ksd-mt-5" multiple style="width:100%">
                 <el-option v-for="item in allSubmittersOptions.group" :key="item" :label="item" :value="item"></el-option>
               </el-select>
               </el-form-item>
@@ -259,10 +265,10 @@
         <div class="conds">
           <div class="conds-title">
             <span>{{$t('queryDuration')}}</span>
-            <el-switch class="ksd-switch" v-model="rulesObj.durationEnable" :active-text="$t('kylinLang.common.OFF')" :inactive-text="$t('kylinLang.common.ON')"></el-switch>
+            <el-switch size="small" v-model="rulesObj.durationEnable" :active-text="$t('kylinLang.common.OFF')" :inactive-text="$t('kylinLang.common.ON')"></el-switch>
           </div>
           <div class="conds-content clearfix">
-            <div class="ksd-mt-10 ksd-fs-12">
+            <div class="ksd-mt-10 ksd-fs-14">
               {{$t('from')}}
               <el-form-item prop="minDuration" style="display: inline-block;">
                 <el-input v-model.trim="rulesObj.minDuration" v-number="rulesObj.minDuration" size="small" class="rule-setting-input" :disabled="!rulesObj.durationEnable"></el-input>
@@ -278,8 +284,8 @@
         </el-form-item>
       </el-form>
       <span slot="footer" class="dialog-footer">
-        <el-button @click="cancelRuleSetting" size="medium">{{$t('kylinLang.common.cancel')}}</el-button>
-        <el-button type="primary" plain @click="saveRuleSetting" size="medium" :loading="updateLoading">{{$t('kylinLang.common.save')}}</el-button>
+        <el-button @click="cancelRuleSetting" size="medium">{{$t('kylinLang.common.cancel')}}</el-button><el-button
+        type="primary" plain @click="saveRuleSetting" size="medium" :loading="updateLoading">{{$t('kylinLang.common.save')}}</el-button>
       </span>
     </el-dialog>
   </div>
@@ -425,7 +431,7 @@ export default class FavoriteQuery extends Vue {
   ruleSettingVisible = false
   blackListVisible = false
   isShowInput = false
-  inputHeight = 574
+  inputHeight = 434
   isEditSql = false
   blackSqlFilter = ''
   whiteSqlFilter = ''
@@ -696,7 +702,7 @@ export default class FavoriteQuery extends Vue {
 
   openBlackList () {
     this.blackListVisible = true
-    this.inputHeight = 574
+    this.inputHeight = 434
     this.blackSql = ''
     this.isEditSql = false
     this.getBlackList()
@@ -747,10 +753,10 @@ export default class FavoriteQuery extends Vue {
       this.isEditSql = false
       if (sqlObj.capable) {
         this.isWhiteErrorMessage = false
-        this.inputHeight = 574
+        this.inputHeight = 434
       } else {
         this.isWhiteErrorMessage = true
-        this.inputHeight = 574 - 145
+        this.inputHeight = 434 - 145
         this.whiteMessages = sqlObj.sqlAdvices
       }
       this.hideLoading()
@@ -759,13 +765,13 @@ export default class FavoriteQuery extends Vue {
 
   editWhiteSql (sqlObj) {
     this.isEditSql = true
-    this.inputHeight = 522
+    this.inputHeight = 382
     if (sqlObj.capable) {
       this.isWhiteErrorMessage = false
-      this.inputHeight = 522
+      this.inputHeight = 382
     } else {
       this.isWhiteErrorMessage = true
-      this.inputHeight = 522 - 145
+      this.inputHeight = 382 - 145
     }
     this.showLoading()
     setTimeout(() => {
@@ -947,7 +953,7 @@ export default class FavoriteQuery extends Vue {
       this.isEditSql = false
       this.whiteMessages = []
       this.isWhiteErrorMessage = false
-      this.inputHeight = 574
+      this.inputHeight = 434
     }
   }
   selectPagerSqls (isSelectAll) {
@@ -1008,7 +1014,7 @@ export default class FavoriteQuery extends Vue {
 
   cancelEdit (isErrorMes) {
     this.isEditSql = false
-    this.inputHeight = isErrorMes ? 574 - 145 : 574
+    this.inputHeight = isErrorMes ? 434 - 145 : 434
     this.whiteSql = this.sqlFormatterObj[this.activeSqlObj.id]
     this.activeSqlObj = null
     this.isReadOnly = true
@@ -1025,7 +1031,7 @@ export default class FavoriteQuery extends Vue {
             message: this.$t('kylinLang.common.actionSuccess')
           })
           this.whiteMessages = []
-          this.inputHeight = 522
+          this.inputHeight = 382
           this.isWhiteErrorMessage = false
           for (const key in this.whiteSqlData.data) {
             if (this.whiteSqlData.data[key].id === this.activeSqlObj.id) {
@@ -1041,7 +1047,7 @@ export default class FavoriteQuery extends Vue {
           }
         } else {
           this.whiteMessages = data.sqlAdvices
-          this.inputHeight = 522 - 145
+          this.inputHeight = 382 - 145
           this.isWhiteErrorMessage = true
         }
       })
@@ -1126,6 +1132,9 @@ export default class FavoriteQuery extends Vue {
   @import '../../../assets/styles/variables.less';
   #favoriteQuery {
     padding: 0px 20px 50px 20px;
+    .img-block {
+      height: 46px;
+    }
     .table-title {
       color: @text-title-color;
       font-size: 16px;
@@ -1139,7 +1148,7 @@ export default class FavoriteQuery extends Vue {
       .btn-group {
         position: absolute;
         right: 0;
-        top: 8px;
+        top: 2px;
         z-index: 999;
       }
     }
@@ -1185,6 +1194,9 @@ export default class FavoriteQuery extends Vue {
     }
     .importSqlDialog,
     .blackListDialog {
+      .ksd-null-pic-text {
+        margin: 122.5px 0;
+      }
       .query-count {
         color: @text-title-color;
         font-size: 16px;
@@ -1214,7 +1226,7 @@ export default class FavoriteQuery extends Vue {
         font-size: 14px;
       }
       .el-dialog__body {
-        min-height: 600px;
+        min-height: 460px;
         .import-table {
           .cell {
             height: 23px;
@@ -1224,6 +1236,12 @@ export default class FavoriteQuery extends Vue {
           }
           .el-table__row {
             cursor: pointer;
+          }
+          .el-icon-ksd-table_edit,
+          .el-icon-ksd-table_delete {
+            &:hover {
+              color: @base-color;
+            }
           }
         }
         .new_sql_status {
@@ -1244,7 +1262,7 @@ export default class FavoriteQuery extends Vue {
           border: 1px solid @line-border-color;
           border-radius: 2px;
           font-size: 12px;
-          margin-top: 15px;
+          margin-top: 10px;
           padding: 10px;
           box-sizing: border-box;
           overflow-y: auto;
@@ -1296,6 +1314,15 @@ export default class FavoriteQuery extends Vue {
       .conds-title {
         font-weight: 500;
       }
+      .conds > .conds-title {
+        height: 18px;
+        line-height: 18px;
+        display: flex;
+        align-items: flex-end;
+        .el-switch--small {
+          margin-left: 10px;
+        }
+      }
       .el-form-item--medium .el-form-item__content, .el-form-item--medium .el-form-item__label {
         line-height: 1;
       }
@@ -1303,14 +1330,14 @@ export default class FavoriteQuery extends Vue {
         margin-bottom: 0;
       }
       .conds:not(:last-child) {
-        margin-bottom: 20px;
-        padding-bottom: 20px;
-        border-bottom: 1px solid @line-border-color;
+        margin-bottom: 15px;
+        padding-bottom: 15px;
+        border-bottom: 1px solid @line-split-color;
       }
     }
     .rule-setting-input {
       display: inline-block;
-      width: 56px;
+      width: 60px;
     }
     .favorite-table {
       .impored-row {
@@ -1333,9 +1360,18 @@ export default class FavoriteQuery extends Vue {
         }
       }
       .el-icon-ksd-filter {
-        float: right;
         position: relative;
-        top: 5px;
+        left: 5px;
+        &.isFilter,
+        &:hover {
+          color: @base-color;
+        }
+      }
+      .el-icon-ksd-table_delete,
+      .el-icon-ksd-table_discard {
+        &:hover {
+          color: @base-color;
+        }
       }
     }
     .fav-dropdown {

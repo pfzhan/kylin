@@ -35,7 +35,7 @@
         </div>
         <div class="body">
           <!-- Include聚合组 -->
-          <div class="row">
+          <div class="row ksd-mb-15">
             <el-button plain size="mini" type="primary" v-guide.selectAllIncludesBtn @click="handleAddAllIncludes(aggregateIdx)">{{$t('selectAll')}}</el-button>
             <el-button size="mini" @click="handleRemoveAllIncludes(aggregateIdx, form.aggregateArray.length - aggregateIdx)">{{$t('cancelAll')}}</el-button>
           </div>
@@ -127,7 +127,7 @@
                   :value="dimension.value">
                 </el-option>
               </el-select>
-              <div class="list-actions clearfix">
+              <div class="list-actions clearfix ksd-no-br-space">
                 <el-button circle plain type="primary" size="mini" icon="el-icon-ksd-add_2"
                   @click="handleAddDimensionRow(`aggregateArray.${aggregateIdx}.jointArray`)">
                 </el-button>
@@ -440,7 +440,7 @@ export default class AggregateModal extends Vue {
 @import '../../../../../../assets/styles/variables.less';
 
 .aggregate-modal {
-  .el-button + .el-button { margin-left: 4px;}
+  .el-button + .el-button { margin-left: 3px;}
   .dimension {
     float: left;
     padding: 6px 13px;
@@ -454,14 +454,14 @@ export default class AggregateModal extends Vue {
   .dimension-buttons {
     text-align: center;
     margin: 0 -20px;
-    padding: 10px 0 20px 0;
-    border-bottom: 1px solid @text-placeholder-color;
+    padding: 0px 0 20px 0;
+    border-bottom: 1px solid @line-split-color;
   }
   .less {
     transform: rotate(180deg);
   }
   .aggregate-buttons {
-    margin: 20px 0;
+    margin: 15px 0;
   }
   .aggregate-group {
     position: relative;
@@ -473,16 +473,19 @@ export default class AggregateModal extends Vue {
       margin-bottom: 7px;
     }
     .body {
-      border: 1px solid @text-placeholder-color;
+      border: 1px solid @line-border-color;
       border-radius: 2px;
-      padding: 20px;
+      padding: 15px;
     }
     .row {
       margin-bottom: 17px;
+      &.joint {
+        margin-bottom: 0;
+      }
     }
     .actions {
       position: absolute;
-      top: -7px;
+      top: 2px;
       right: 0;
       font-size: 16px;
       .el-button+.el-button {
@@ -516,7 +519,7 @@ export default class AggregateModal extends Vue {
   }
   .list-actions {
     position: absolute;
-    right: 0;
+    right: 6px;
     top: 0;
     transform: translateY(2px);
     .is-text {

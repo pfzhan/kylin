@@ -15,10 +15,10 @@
         <div class="ksd_right_box">
           <div class="query_result_box ksd-border-tab">
             <div class="btn-group">
-              <el-button size="mini" plain="plain" @click.native="closeAllTabs" style="display:inline-block">{{$t('closeAll')}}</el-button>
-              <el-button size="mini" plain="plain" @click.native="openSaveQueryListDialog" style="display:inline-block">{{$t('kylinLang.query.reLoad')}}</el-button>
+              <el-button size="small" plain="plain" @click.native="closeAllTabs" style="display:inline-block">{{$t('closeAll')}}</el-button><el-button
+              size="small" plain="plain" @click.native="openSaveQueryListDialog" style="display:inline-block">{{$t('kylinLang.query.reLoad')}}</el-button>
             </div>
-            <tab class="insight_tab" :isedit="true" :tabslist="editableTabs" :active="activeSubMenu" v-on:clicktab="activeTab"  v-on:removetab="delTab">
+            <tab class="insight_tab" type="card" :isedit="true" :tabslist="editableTabs" :active="activeSubMenu" v-on:clicktab="activeTab"  v-on:removetab="delTab">
               <template slot-scope="props">
                 <queryTab
                   v-on:addTab="addTab"
@@ -32,9 +32,9 @@
           </div>
           <el-dialog
             :title="$t('savedQueries')"
-            width="660px"
+            width="720px"
             class="saved_query_dialog"
-            top="10vh"
+            top="5vh"
             :close-on-press-escape="false"
             :close-on-click-modal="false"
             :visible.sync="savedQueryListVisible">
@@ -46,12 +46,12 @@
               <div class="saved_query_content" v-else>
                 <div class="form_block" v-for="(savequery, index) in savedList" :key="savequery.name" >
                   <el-checkbox v-model="checkedQueryList" :label="index" class="query_check">
-                    <el-form class="narrowForm">
+                    <el-form class="narrowForm" label-position="left" label-width="105px">
                       <el-form-item :label="$t('kylinLang.query.name')+' :'" class="ksd-mb-2 narrowFormItem" >
                         <span>{{savequery.name}}</span>
                       </el-form-item>
                       <el-form-item :label="$t('kylinLang.query.desc')+' :'" class="ksd-mb-2 narrowFormItem" >
-                        <span>{{savequery.description}}</span>
+                        <span class="desc-block">{{savequery.description}}</span>
                       </el-form-item>
                       <el-form-item :label="$t('kylinLang.query.querySql')+' :'" prop="sql" class="ksd-mb-2 narrowFormItem">
                         <el-button plain size="mini" @click="toggleDetail(index)">
@@ -72,8 +72,8 @@
               </div>
             </div>
             <span slot="footer" class="dialog-footer">
-              <el-button @click="cancelResubmit" size="medium">{{$t('kylinLang.common.cancel')}}</el-button>
-              <el-button type="primary" plain @click="resubmit" size="medium" :disabled="!checkedQueryList.length">{{$t('kylinLang.common.submit')}}</el-button>
+              <el-button @click="cancelResubmit" size="medium">{{$t('kylinLang.common.cancel')}}</el-button><el-button
+              type="primary" plain @click="resubmit" size="medium" :disabled="!checkedQueryList.length">{{$t('kylinLang.common.submit')}}</el-button>
             </span>
           </el-dialog>
         </div>
@@ -334,6 +334,14 @@ export default class NewQuery extends Vue {
           }
         }
       }
+      .desc-block {
+        display: inline-block;
+        width: 535px;
+        word-break: break-word;
+        white-space: pre-wrap;
+        overflow: hidden;
+        line-height: 21px;
+      }
     }
     .nodata {
       text-align: center;
@@ -342,9 +350,6 @@ export default class NewQuery extends Vue {
     .form_block {
       .query_check {
         display: flex;
-        flex-grow: 1;
-        align-items: flex-start;
-        white-space: inherit;
         .el-checkbox__input {
           flex-grow: 0;
         }
@@ -353,12 +358,12 @@ export default class NewQuery extends Vue {
         }
         .narrowForm {
           border: 1px solid @line-border-color;
-          padding: 15px;
+          padding: 10px;
           margin-bottom: 10px;
           position: relative;
           background-color: @aceditor-bg-color;
           &:hover {
-            box-shadow: 0 0 6px 0 #cfd8dc, 0 2px 4px 0 #cfd8dc;
+            box-shadow: 0 0 2px 0 #ccc, 0 0px 2px 0 #ccc;
           }
           .narrowFormItem {
             .el-form-item__content, .el-form-item__label {
@@ -370,8 +375,8 @@ export default class NewQuery extends Vue {
           }
           .btn-group {
             position: absolute;
-            top: 65px;
-            right: 20px;
+            top: 5px;
+            right: 10px;
             .remove_query_btn {
               color: @text-normal-color;
               &:hover {
@@ -392,11 +397,11 @@ export default class NewQuery extends Vue {
         color: @text-normal-color;
         flex:1;
         display: flex;
-        align-items: flex-start;
+        align-items: center;
       }
       .operator{
-        height: 30px;
-        line-height: 30px;
+        height: 24px;
+        line-height: 24px;
         .el-form-item__label{
           padding:0 12px 0 0;
         }
@@ -407,7 +412,7 @@ export default class NewQuery extends Vue {
           }
         }
         .el-form-item__content{
-          line-height: 30px;
+          line-height: 24px;
         }
       }
     }
@@ -434,11 +439,11 @@ export default class NewQuery extends Vue {
     .query_result_box{
       border: 0;
       position: relative;
-      top: -16px;
+      top: -5px;
       > .btn-group {
         position: absolute;
         right: 10px;
-        top: 5px;
+        top: 2px;
         z-index: 99;
       }
       h3{
@@ -452,14 +457,10 @@ export default class NewQuery extends Vue {
             background-color: transparent;
           }
         }
-        .el-tabs__nav{
-          margin-left: 0px;
-        }
         .el-tabs__content{
           padding: 0px;
-          border-top: 1px solid @line-border-color;
           .el-tab-pane{
-            padding-top: 20px;
+            padding-top: 15px;
           }
         }
       }

@@ -1,10 +1,10 @@
 <template>
   <div class="result_box">
-    <div class="ksd-title-label ksd-mb-10">{{$t('extraoptionrmation')}}</div>
+    <div class="ksd-title-label-small ksd-mb-10">{{$t('extraoptionrmation')}}</div>
     <div class="resultTipsLine">
       <div class="resultTips">
         <p class="resultText">
-          <span class="label">{{$t('kylinLang.query.query_id')}}</span>
+          <span class="label">{{$t('kylinLang.query.query_id')}}: </span>
           <span class="text">{{extraoption.queryId}}</span>
         </p>
         <!-- <p class="resultText">
@@ -12,11 +12,11 @@
           <span>{{$t('kylinLang.common.success')}}</span>
         </p> -->
         <p class="resultText">
-          <span class="label">{{$t('kylinLang.query.duration')}}</span>
+          <span class="label">{{$t('kylinLang.query.duration')}}: </span>
           <span class="text">{{(extraoption.duration/1000)|fixed(2)||0.00}}s</span>
         </p>
         <p class="resultText" :class="{'guide-queryAnswerBy': isWorkspace}">
-          <span class="label">{{$t('kylinLang.query. answered_by')}}</span>
+          <span class="label">{{$t('kylinLang.query. answered_by')}}: </span>
           <span class="text">{{answeredBy}}</span>
         </p>
         <el-button plain size="mini" @click="toggleDetail" class="show-more-btn" v-if="!extraoption.pushDown">
@@ -27,18 +27,18 @@
       </div>
       <div class="resultTips" v-show="showDetail" v-if="!extraoption.pushDown">
         <p class="resultText">
-          <span class="label">{{$t('kylinLang.query. total_scan_count')}}</span>
+          <span class="label">{{$t('kylinLang.query.total_scan_count')}}: </span>
           <span class="text">{{extraoption.totalScanCount}}</span>
         </p>
         <p class="resultText">
-          <span class="label">{{$t('kylinLang.query.result_row_count')}}</span>
+          <span class="label">{{$t('kylinLang.query.result_row_count')}}: </span>
           <span class="text">{{extraoption.resultRowCount}}</span>
         </p>
       </div>
     </div>
     <div class="clearfix">
       <div class="ksd-fleft ksd-mt-10">
-        <div class="ksd-title-label result-title" :class="{'guide-queryResultBox':isWorkspace}">{{$t('queryResults')}}</div>
+        <div class="ksd-title-label-small result-title" :class="{'guide-queryResultBox':isWorkspace}">{{$t('queryResults')}}</div>
         <kap-icon-button v-if="showExportCondition" size="small" icon="el-icon-ksd-download" @click.native="exportData">
           {{$t('kylinLang.query.export')}}
         </kap-icon-button>
@@ -57,13 +57,12 @@
 		      :prop="''+index"
           :min-width="52+15*(value.label&&value.label.length || 0)"
 		      :label="value.label"
-          align="center"
           sortable
           >
 		    </el-table-column>
 		  </el-table>
 
-      <kap-pager v-on:handleCurrentChange='pageSizeChange' class="ksd-center ksd-mt-20 ksd-mb-20" ref="pager" :totalSize="modelsTotal"></kap-pager>
+      <kap-pager v-on:handleCurrentChange='pageSizeChange' class="ksd-center ksd-mtb-10" ref="pager" :totalSize="modelsTotal"></kap-pager>
   	</div>
     <form name="export" class="exportTool" action="/kylin/api/query/format/csv" method="post">
       <input type="hidden" name="sql" v-model="sql"/>
@@ -200,7 +199,7 @@ export default class queryResult extends Vue {
   }
   .result-title {
     position: relative;
-    top: 10px;
+    top: 6px;
   }
   .resultTipsLine{
     font-size: 14px;

@@ -10,7 +10,7 @@
                 <i class="el-icon-ksd-what ksd-fs-14"></i>
               </el-tooltip>
             </span>
-            <el-button plain size="mini" class="ksd-fright" @click="gotoSetting">{{$t('viewDetail')}}</el-button>
+            <el-button plain size="small" class="ksd-fright" @click="gotoSetting">{{$t('viewDetail')}}</el-button>
           </div>
           <el-row :gutter="35" class="quota-row">
             <el-col :span="12">
@@ -58,7 +58,7 @@
                 <div class="trash">
                   <span v-if="quotaInfo.garbage_storage_size>=0">{{quotaInfo.garbage_storage_size | dataSize}}</span>
                   <span v-else>--</span>
-                  <el-button type="primary" size="mini" class="ksd-ml-10" @click="clearStorage" v-if="quotaInfo.garbage_storage_size>0">{{$t('clear')}}</el-button>
+                  <el-button type="primary" size="small" class="ksd-ml-10" @click="clearStorage" v-if="quotaInfo.garbage_storage_size>0">{{$t('clear')}}</el-button>
                 </div>
               </div>
             </el-col>
@@ -74,14 +74,14 @@
                 <i class="el-icon-ksd-what ksd-fs-14"></i>
               </el-tooltip>
             </span>
-            <el-button plain size="mini" class="ksd-fright" @click="gotoFavorite">{{$t('viewDetail')}}</el-button>
+            <el-button plain size="small" class="ksd-fright" @click="gotoFavorite">{{$t('viewDetail')}}</el-button>
           </div>
           <svg id="ruleImpact" width="100%" height="168" class="ksd-mt-20"></svg>
         </div>
       </el-col>
     </el-row>
     <hr class="divider"/>
-    <div class="clearfix ksd-mb-16">
+    <div class="clearfix ksd-mb-15">
       <div class="ksd-fleft">
         <el-date-picker v-model="daterange"
           type="daterange"
@@ -100,7 +100,7 @@
           <div class="inner-card">
             <div class="cart-title">
               {{$t('queryCount')}}
-              <el-button plain size="mini" class="ksd-fright" @click.stop="gotoQueryHistory">{{$t('viewDetail')}}</el-button>
+              <el-button plain size="small" class="ksd-fright" @click.stop="gotoQueryHistory">{{$t('viewDetail')}}</el-button>
             </div>
             <div class="content">
               <span class="num">{{queryCount}}</span>
@@ -113,7 +113,7 @@
           <div class="inner-card">
             <div class="cart-title">
               {{$t('avgQueryLatency')}}
-              <el-button plain size="mini" class="ksd-fright" @click.stop="gotoQueryHistory">{{$t('viewDetail')}}</el-button>
+              <el-button plain size="small" class="ksd-fright" @click.stop="gotoQueryHistory">{{$t('viewDetail')}}</el-button>
             </div>
             <div class="content">
               <span class="num">{{queryMean}}</span>
@@ -127,7 +127,7 @@
           <div class="inner-card">
             <div class="cart-title">
               {{$t('jobCount')}}
-              <el-button plain size="mini" class="ksd-fright" @click.stop="gotoJoblist">{{$t('viewDetail')}}</el-button>
+              <el-button plain size="small" class="ksd-fright" @click.stop="gotoJoblist">{{$t('viewDetail')}}</el-button>
             </div>
             <div class="content">
               <span class="num">{{jobCount}}</span>
@@ -140,7 +140,7 @@
           <div class="inner-card">
             <div class="cart-title">
               {{$t('avgBulidTime')}}
-              <el-button plain size="mini" class="ksd-fright" @click.stop="gotoJoblist">{{$t('viewDetail')}}</el-button>
+              <el-button plain size="small" class="ksd-fright" @click.stop="gotoJoblist">{{$t('viewDetail')}}</el-button>
             </div>
             <div class="content" v-if="noEnoughData">
               <span class="no-data">{{$t('noEnoughData')}}</span>
@@ -170,7 +170,7 @@
       <el-col :span="12" class="chart-block">
         <div>
           <div class="cart-title">{{$t('queryByDay', {type: chartTitle})}}</div>
-          <el-select v-model="dateUnit" size="mini" class="line-chart-select" @change="loadLineChartData">
+          <el-select v-model="dateUnit" size="small" class="line-chart-select" @change="loadLineChartData">
             <el-option
               v-for="item in unitOptions"
               :key="item"
@@ -815,7 +815,7 @@ export default class Dashboard extends Vue {
        .line-chart-select {
          position: absolute;
          top: 0;
-         right: 15px;
+         right: 0;
          width: 80px;
        }
       }

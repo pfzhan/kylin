@@ -37,11 +37,11 @@
             </el-table-column>
           </el-table>
           <kap-pager
-            class="ksd-center ksd-mt-20 ksd-mb-20" ref="pager"
+            class="ksd-center ksd-mtb-10" ref="pager"
             :totalSize="aclTableTotalSize"
             @handleCurrentChange="handleCurrentChange">
           </kap-pager>
-          <el-dialog :title="$t('grant')" width="660px" :visible.sync="addGrantDialog" @close="closeDialog" :close-on-press-escape="false" :close-on-click-modal="false" :append-to-body="true">
+          <el-dialog :title="$t('grant')" width="720px" :visible.sync="addGrantDialog" @close="closeDialog" :close-on-press-escape="false" :close-on-click-modal="false" :append-to-body="true">
               <el-form :model="grantObj" ref="aclOfTableForm" :rules="aclTableRules" v-if="addGrantDialog">
                 <el-form-item :label="$t('kylinLang.common.userOrGroup')" label-width="90px" required>
                   <el-col :span="11">

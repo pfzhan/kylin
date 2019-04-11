@@ -9,45 +9,39 @@
       class="model-setting-table"
       border
       style="width: 100%">
-      <el-table-column width="230px" header-align="center" show-overflow-tooltip prop="alias" :label="modelTableTitle"></el-table-column>
-      <el-table-column prop="last_modified" header-align="center" show-overflow-tooltip width="207px" :label="$t('modifyTime')">
+      <el-table-column width="230px" show-overflow-tooltip prop="alias" :label="modelTableTitle"></el-table-column>
+      <el-table-column prop="last_modified" show-overflow-tooltip width="218px" :label="$t('modifyTime')">
         <template slot-scope="scope">
           <span v-if="scope.row.config_last_modified>0">{{transToGmtTime(scope.row.config_last_modified)}}</span>
         </template>
       </el-table-column>
-      <el-table-column prop="config_last_modifier" header-align="center" show-overflow-tooltip width="100" :label="$t('modifiedUser')"></el-table-column>
-      <el-table-column min-width="400px" header-align="center" :label="$t('modelSetting')">
+      <el-table-column prop="config_last_modifier" show-overflow-tooltip width="100" :label="$t('modifiedUser')"></el-table-column>
+      <el-table-column min-width="400px" :label="$t('modelSetting')">
         <template slot-scope="scope">
           <div v-if="scope.row.auto_merge_time_ranges">
             <span class="model-setting-item">
               {{$t('segmentMerge')}}<span v-for="item in scope.row.auto_merge_time_ranges" :key="item">{{$t(item)}}</span>
-            </span>
-            <common-tip :content="$t('kylinLang.common.edit')">
-              <i class="el-icon-ksd-table_edit ksd-mr-8 ksd-ml-10" @click="editMergeItem(scope.row)"></i>
-            </common-tip>
-            <common-tip :content="$t('kylinLang.common.delete')">
+            </span><common-tip :content="$t('kylinLang.common.edit')">
+              <i class="el-icon-ksd-table_edit ksd-mr-5 ksd-ml-10" @click="editMergeItem(scope.row)"></i>
+            </common-tip><common-tip :content="$t('kylinLang.common.delete')">
               <i class="el-icon-ksd-symbol_type" @click="removeAutoMerge(scope.row, 'auto_merge_time_ranges')"></i>
             </common-tip>
           </div>
           <div v-if="scope.row.volatile_range">
             <span class="model-setting-item" @click="editVolatileItem(scope.row)">
               {{$t('volatileRange')}}<span>{{scope.row.volatile_range.volatile_range_number}} {{$t(scope.row.volatile_range.volatile_range_type.toLowerCase())}}</span>
-            </span>
-            <common-tip :content="$t('kylinLang.common.edit')">
-              <i class="el-icon-ksd-table_edit ksd-mr-8 ksd-ml-10" @click="editVolatileItem(scope.row)"></i>
-            </common-tip>
-            <common-tip :content="$t('kylinLang.common.delete')">
+            </span><common-tip :content="$t('kylinLang.common.edit')">
+              <i class="el-icon-ksd-table_edit ksd-mr-5 ksd-ml-10" @click="editVolatileItem(scope.row)"></i>
+            </common-tip><common-tip :content="$t('kylinLang.common.delete')">
               <i class="el-icon-ksd-symbol_type" @click="removeAutoMerge(scope.row, 'volatile_range')"></i>
             </common-tip>
           </div>
           <div v-if="scope.row.retention_range">
             <span class="model-setting-item" @click="editRetentionItem(scope.row)">
               {{$t('retention')}}<span>{{scope.row.retention_range.retention_range_number}} {{$t(scope.row.retention_range.retention_range_type.toLowerCase())}}</span>
-            </span>
-            <common-tip :content="$t('kylinLang.common.edit')">
-              <i class="el-icon-ksd-table_edit ksd-mr-8 ksd-ml-10" @click="editRetentionItem(scope.row)"></i>
-            </common-tip>
-            <common-tip :content="$t('kylinLang.common.delete')">
+            </span><common-tip :content="$t('kylinLang.common.edit')">
+              <i class="el-icon-ksd-table_edit ksd-mr-5 ksd-ml-10" @click="editRetentionItem(scope.row)"></i>
+            </common-tip><common-tip :content="$t('kylinLang.common.delete')">
               <i class="el-icon-ksd-symbol_type" @click="removeAutoMerge(scope.row, 'retention_range')"></i>
             </common-tip>
           </div>
@@ -56,11 +50,9 @@
               <span class="model-setting-item" @click="editSparkItem(scope.row, key)">
                 <!-- 去掉前缀kylin.engine.spark-conf. -->
                 {{key.substring(24)}}:<span>{{propValue}}</span>
-              </span>
-              <common-tip :content="$t('kylinLang.common.edit')">
-                <i class="el-icon-ksd-table_edit ksd-mr-8 ksd-ml-10" @click="editSparkItem(scope.row, key)"></i>
-              </common-tip>
-              <common-tip :content="$t('kylinLang.common.delete')">
+              </span><common-tip :content="$t('kylinLang.common.edit')">
+                <i class="el-icon-ksd-table_edit ksd-mr-5 ksd-ml-10" @click="editSparkItem(scope.row, key)"></i>
+              </common-tip><common-tip :content="$t('kylinLang.common.delete')">
                 <i class="el-icon-ksd-symbol_type" @click="removeAutoMerge(scope.row, key)"></i>
               </common-tip>
             </div>
@@ -69,7 +61,6 @@
       </el-table-column>
       <el-table-column
         width="83px"
-        align="center"
         :label="$t('kylinLang.common.action')">
           <template slot-scope="scope">
             <common-tip>
@@ -79,8 +70,8 @@
           </template>
       </el-table-column>
     </el-table>
-    <kap-pager :totalSize="modelListSize"  v-on:handleCurrentChange='currentChange' ref="modleConfigPager" class="ksd-mt-20 ksd-mb-20 ksd-center" ></kap-pager>
-    <el-dialog :title="modelSettingTitle" :visible.sync="editModelSetting" width="440px" class="model-setting-dialog" @closed="handleClosed" :close-on-press-escape="false" :close-on-click-modal="false">
+    <kap-pager :totalSize="modelListSize"  v-on:handleCurrentChange='currentChange' ref="modleConfigPager" class="ksd-mtb-10 ksd-center" ></kap-pager>
+    <el-dialog :title="modelSettingTitle" :visible.sync="editModelSetting" width="480px" class="model-setting-dialog" @closed="handleClosed" :close-on-press-escape="false" :close-on-click-modal="false">
       <el-form ref="form" label-position="top" size="medium" label-width="80px" :model="modelSettingForm" :rules="rules">
         <el-form-item :label="modelTableTitle">
           <el-input v-model.trim="modelSettingForm.name" disabled></el-input>
@@ -103,7 +94,7 @@
           </el-checkbox-group>
         </el-form-item>
         <el-form-item :label="$t('volatileRangeItem')" v-if="step=='stepTwo'&&modelSettingForm.settingItem==='Volatile Range'">
-          <el-input v-model.trim="modelSettingForm.volatileRange.volatile_range_number" class="retention-input"></el-input>
+          <el-input v-model="modelSettingForm.volatileRange.volatile_range_number" v-number="modelSettingForm.volatileRange.volatile_range_number" class="retention-input"></el-input>
           <el-select v-model="modelSettingForm.volatileRange.volatile_range_type" class="ksd-ml-8" size="medium" :placeholder="$t('kylinLang.common.pleaseSelect')">
             <el-option
               v-for="item in units"
@@ -114,12 +105,12 @@
           </el-select>
         </el-form-item>
         <el-form-item :label="$t('retentionThreshold')" v-if="step=='stepTwo'&&modelSettingForm.settingItem==='Retention Threshold'">
-          <el-input v-model.trim.number="modelSettingForm.retentionThreshold.retention_range_number" class="retention-input"></el-input>
+          <el-input v-model="modelSettingForm.retentionThreshold.retention_range_number" v-number="modelSettingForm.retentionThreshold.retention_range_number" class="retention-input"></el-input>
           <span class="ksd-ml-10">{{$t(modelSettingForm.retentionThreshold.retention_range_type.toLowerCase())}}</span>
         </el-form-item>
         <el-form-item :label="modelSettingForm.settingItem" v-if="step=='stepTwo'&&modelSettingForm.settingItem.indexOf('spark.')!==-1">
-          <el-input v-model.trim.number="modelSettingForm[modelSettingForm.settingItem]" class="retention-input"></el-input>
-          <span class="ksd-ml-10" v-if="modelSettingForm.settingItem==='spark.executor.memory'">G</span>
+          <el-input v-model="modelSettingForm[modelSettingForm.settingItem]" v-number="modelSettingForm[modelSettingForm.settingItem]" class="retention-input"></el-input><span
+          class="ksd-ml-5" v-if="modelSettingForm.settingItem==='spark.executor.memory'">G</span>
         </el-form-item>
       </el-form>
       <span slot="footer" class="dialog-footer">
@@ -410,6 +401,7 @@ export default class SettingStorage extends Vue {
       color: @text-disabled-color;
       cursor: not-allowed;
     }
+    .el-icon-ksd-table_add,
     .el-icon-ksd-table_edit,
     .el-icon-ksd-symbol_type {
       &:hover {

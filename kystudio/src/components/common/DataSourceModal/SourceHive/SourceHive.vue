@@ -6,6 +6,7 @@
         ref="tree-list"
         class="table-tree"
         :data="treeData"
+        :placeholder="$t('filterTableName')"
         :is-show-filter="true"
         :is-show-resize-bar="false"
         :on-filter="handleFilter"
@@ -347,8 +348,8 @@ export default class SourceHive extends Vue {
     border: 1px solid @line-border-color;
   }
   .content {
-    margin-left: calc(480px + 25px + 20px);
-    padding: 62px 20px 20px 0;
+    margin-left: calc(480px + 25px + 10px);
+    padding: 62px 20px 10px 0;
     position: relative;
     height: 470px;
   }
@@ -370,7 +371,7 @@ export default class SourceHive extends Vue {
     padding: 15px;
     .header {
       color: @text-normal-color;
-      margin-bottom: 10px;
+      margin-bottom: 2px;
     }
     .names .el-select {
       width: 100%;
@@ -386,12 +387,13 @@ export default class SourceHive extends Vue {
     }
     .el-tag {
       position: relative;
-      margin-right: 10px;
+      margin-right: 5px;
       margin-left: 0px;
       padding-right: 25px;
       display: inline-block;
       text-overflow: ellipsis;
       overflow: hidden;
+      margin: 0 5px 2px 0;
     }
     .el-tag .el-tag__close {
       position: absolute;
@@ -420,14 +422,15 @@ export default class SourceHive extends Vue {
   .empty-text {
     font-size: 14px;
     line-height: 1.5;
-    color: @text-normal-color;
+    color: @text-disabled-color;
   }
   .tips {
     position: absolute;
     padding: 15px;
+    height: 108px;
     border-radius: 2px;
     background-color: @base-color-9;
-    bottom: 20px;
+    bottom: 10px;
     right: 20px;
     .header {
       color: @text-normal-color;
@@ -473,8 +476,8 @@ export default class SourceHive extends Vue {
     // 定制样式: database
     .el-tree > .el-tree-node > .el-tree-node__content {
       position: relative;
-      padding-top: 10px;
-      padding-bottom: 10px;
+      // padding-top: 10px;
+      // padding-bottom: 10px;
     }
     .el-tree > .el-tree-node {
       border-bottom: 1px solid @line-border-color;
@@ -500,9 +503,9 @@ export default class SourceHive extends Vue {
     }
     .el-tree-node__content {
       min-height: 16px;
-      height: auto;
-      padding-top: 12px;
-      padding-bottom: 12px;
+      // height: auto;
+      // padding-top: 12px;
+      // padding-bottom: 12px;
     }
     .el-tree-node__content:hover .select-all {
       display: block;

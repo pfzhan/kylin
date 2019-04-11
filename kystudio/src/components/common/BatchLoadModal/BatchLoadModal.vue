@@ -1,7 +1,7 @@
 <template>
   <el-dialog
     class="batch-load-modal"
-    width="780px"
+    width="720px"
     :visible="isShow"
     :title="$t('batchLoad')"
     :close-on-press-escape="false"
@@ -12,9 +12,9 @@
     <el-form class="form" v-loading="isDataLoading" ref="form" size="small" :inline="true" :model="tempForm">
       <el-table border :data="form.tables" @selection-change="value => selectedTables = value">
         <el-table-column type="selection" width="38"></el-table-column>
-        <el-table-column prop="fullName" :label="$t('table')" header-align="center"></el-table-column>
-        <el-table-column prop="refresh" :label="$t('refresh')" width="75" align="center"></el-table-column>
-        <el-table-column :label="$t('loadRange')" width="210" header-align="center">
+        <el-table-column prop="fullName" :label="$t('table')"></el-table-column>
+        <el-table-column prop="refresh" :label="$t('refresh')" width="75"></el-table-column>
+        <el-table-column :label="$t('loadRange')" width="210">
           <template slot-scope="scope">
             <el-popover
               width="338"
@@ -54,13 +54,13 @@
             </span><i class="edit-action el-icon-ksd-table_edit" v-popover="`popover${scope.$index}`" @click="handlePopperShow(scope)"></i>
           </template>
         </el-table-column>
-        <el-table-column prop="relatedIndex" :label="$t('relatedIndex')" width="115" header-align="center"></el-table-column>
+        <el-table-column prop="relatedIndex" :label="$t('relatedIndex')" width="115"></el-table-column>
       </el-table>
       <div class="error-mask" v-if="!isDataLoading && isDataError">
         <div>error! please refresh</div>
       </div>
     </el-form>
-    <div slot="footer" class="dialog-footer">
+    <div slot="footer" class="dialog-footer ky-no-br-space">
       <el-button size="medium" @click="() => handleClose()">{{$t('kylinLang.common.cancel')}}</el-button>
       <el-button size="medium" plain type="primary" @click="handleSubmit" :loading="isLoading">{{$t('kylinLang.common.save')}}</el-button>
     </div>

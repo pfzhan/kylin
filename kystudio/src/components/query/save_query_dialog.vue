@@ -1,6 +1,6 @@
 <template>
   <div>
-    <el-dialog :title="$t('kylinLang.common.save')" :visible.sync="saveQueryFormVisible" width="660px" append-to-body  @close="closeSaveQueryDialog" :close-on-press-escape="false" :close-on-click-modal="false">
+    <el-dialog :title="$t('kylinLang.common.save')" :visible.sync="saveQueryFormVisible" width="720px" append-to-body  @close="closeSaveQueryDialog" :close-on-press-escape="false" :close-on-click-modal="false">
       <el-form :model="saveQueryMeta" label-position="top" ref="saveQueryForm" :rules="rules" label-width="85px">
         <el-form-item :label="$t('kylinLang.query.querySql')" prop="sql">
           <kap-editor height="100" lang="sql" theme="chrome" :readOnly="true" v-model="saveQueryMeta.sql" dragbar="#393e53">
@@ -14,8 +14,8 @@
         </el-form-item>
       </el-form>
       <div slot="footer" class="dialog-footer">
-        <el-button size="medium" @click="closeSaveQueryDialog">{{$t('kylinLang.common.cancel')}}</el-button>
-        <el-button type="primary" plain size="medium" :loading="isSubmit" @click="saveQuery">{{$t('kylinLang.common.submit')}}</el-button>
+        <el-button size="medium" @click="closeSaveQueryDialog">{{$t('kylinLang.common.cancel')}}</el-button><el-button
+        type="primary" plain size="medium" :loading="isSubmit" @click="saveQuery">{{$t('kylinLang.common.submit')}}</el-button>
       </div>
     </el-dialog>
   </div>
@@ -67,6 +67,8 @@ export default class saveQueryDialog extends Vue {
     })
   }
   closeSaveQueryDialog () {
+    this.saveQueryMeta.name = ''
+    this.saveQueryMeta.description = ''
     this.saveQueryFormVisible = false
     this.$emit('closeModal')
   }

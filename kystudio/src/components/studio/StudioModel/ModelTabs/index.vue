@@ -4,7 +4,7 @@
     </kap-tab>
     <component :is="p.content" v-for="p in modelEditPanels" :key="p.name" v-on:saveRequestEnd="requestEnd" v-on:addtabs="addTab" v-on:reload="reloadTab" v-on:removetabs="delTab" :extraoption="p.extraoption" :ref="p.content" v-if="p.name === activeName"></component>
     <div class="footer">
-      <div class="btn-group">
+      <div class="btn-group ky-no-br-space">
         <el-button @click="goModelList" size="medium">{{$t('kylinLang.common.cancel')}}</el-button>
         <el-button size="medium" v-guide.saveModelBtn type="primary" icon="el-icon-ksd-table_save" @click="saveModel" :loading="saveBtnLoading">{{$t('kylinLang.common.save')}}</el-button>
       </div>
@@ -139,6 +139,9 @@ export default class ModelTabs extends Vue {
 <style lang="less">
 @import '../../../../assets/styles/variables.less';
 .mode-edit-tabs {
+  .el-tabs__item:first-of-type {
+    margin-left:10px;
+  }
   .studio-top-tab {
     .el-tabs__item.is-active {
       border:solid 1px @line-split-color;
@@ -149,7 +152,7 @@ export default class ModelTabs extends Vue {
       margin-bottom: 0;
     }
   }
-  height: calc(~'100% - 54px');
+  height: calc(~'100% - 52px');
   .footer {
     height:60px;
     background:transparent;

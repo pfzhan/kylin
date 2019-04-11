@@ -5,34 +5,35 @@
     <kap-loading v-show="$store.state.config.showLoadingBox"></kap-loading>
     <!-- 全局级别错误提示框 -->
     <el-dialog class="errMsgBox"
-       width="660px"
+       width="480px"
       :before-close="handleClose"
       :title="$t('kylinLang.common.notice')"
       :close-on-click-modal="false"
       :append-to-body="true"
       :visible.sync="$store.state.config.errorMsgBox.isShow"
       :close-on-press-escape="false">
-      <div class="el-message-box__status el-icon-error" style="display: inline-block"></div>
-      <span style="margin-left: 48px;display:inline-block;word-break: break-word;" v-html="$store.state.config.errorMsgBox.msg.replace(/</, '&lt;').replace(/>/, '&gt;').replace(/\r\n/g, '<br/><br/>')"></span>
-      <div slot="footer" class="dialog-footer" style="overflow: hidden">
-        <div class="ksd-mb-10">
-          <el-button type="default" size="medium" @click="handleClose">{{$t('kylinLang.common.ok')}}</el-button>
-          <el-button type="primary" plain size="medium" @click="toggleDetail">
-            {{$t('kylinLang.common.seeDetail')}} 
-            <i class="el-icon-arrow-down" v-show="!showDetail"></i>
-            <i class="el-icon-arrow-up" v-show="showDetail"></i>
-          </el-button>
+      <el-alert
+        type="error"
+        :show-background="false"
+        :closable="false"
+        show-icon>
+        <span style="display:inline-block;word-break: break-word;" v-html="$store.state.config.errorMsgBox.msg.replace(/</, '&lt;').replace(/>/, '&gt;').replace(/\r\n/g, '<br/><br/>')"></span>
+        <a href="javascript:;" style="display: inline-block;" @click="toggleDetail">{{$t('kylinLang.common.seeDetail')}}  
+          <i class="el-icon-arrow-down" v-show="!showDetail"></i>
+          <i class="el-icon-arrow-up" v-show="showDetail"></i>
+        </a>
+        <el-input :rows="4" ref="detailBox" readonly type="textarea" v-show="showDetail" class="ksd-mt-10" v-model="$store.state.config.errorMsgBox.detail"></el-input>
+        <div class="ksd-left">
+          <el-button size="small" v-clipboard:copy="$store.state.config.errorMsgBox.detail"
+          v-clipboard:success="onCopy" v-clipboard:error="onError" type="default" v-show="showDetail" class="ksd-fleft ksd-mt-10">{{$t('kylinLang.common.copy')}}</el-button>
+          <transition name="fade">
+            <div class="copy-status-msg" v-show="showCopyStatus && showDetail" ><i class="el-icon-circle-check"></i> <span>{{$t('kylinLang.common.copySuccess')}}</span></div>
+          </transition>
         </div>
-        <!-- <div @click="toggleDetail()" class="ksd-mb-10" v-html="$t('kylinLang.common.seeDetail')"></div> -->
-        <el-input :rows="4" ref="detailBox" readonly type="textarea" v-show="showDetail" id="errorDetail" v-model="$store.state.config.errorMsgBox.detail"></el-input>
-      <div class="ksd-left">
-        <el-button size="small" v-clipboard:copy="$store.state.config.errorMsgBox.detail"
-        v-clipboard:success="onCopy" v-clipboard:error="onError" type="default" v-show="showDetail" class="ksd-fleft ksd-mt-10 ksd-mb-20">{{$t('kylinLang.common.copy')}}</el-button>
-        <transition name="fade">
-          <div class="copyStatusMsg" v-show="showCopyStatus && showDetail" ><i class="el-icon-circle-check"></i> <span>{{$t('kylinLang.common.copySuccess')}}</span></div>
-        </transition>
+      </el-alert>    
+      <div slot="footer" class="dialog-footer">
+        <el-button type="default" size="medium" @click="handleClose">{{$t('kylinLang.common.close')}}</el-button>
       </div>
-    </div>
     </el-dialog>
     <Modal />
     <GuidType />
@@ -102,6 +103,13 @@ body{
 }
 .errMsgBox {
   .el-dialog__body{
+    .el-alert{
+      padding:0;
+    }
+    .el-alert__content {
+      width:100%;
+      padding-right: 0;
+    }
     // border-top: 1px solid #2b2d3c;
     // box-shadow: 0 -1px 0 0 #424860;
     position: relative;
@@ -109,10 +117,9 @@ body{
       font-size: 12px;
     }
   }
-  .copyStatusMsg{
+  .copy-status-msg{
     display: inline-block;
-    // float: left;
-    margin-top: 18px;
+    margin-top: 10px;
     margin-left: 10px;
     i{
       color:#28cd6b;

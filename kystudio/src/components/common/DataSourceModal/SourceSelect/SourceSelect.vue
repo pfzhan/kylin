@@ -142,12 +142,13 @@ export default class SourceSelect extends Vue {
   }
   .datasouce.disabled {
     .datasource-icon {
-      color: @text-secondary-color;
+      color: @text-disabled-color;
       cursor: not-allowed;
-      background: @grey-3;
+      background: @background-disabled-color;
     }
     .datasource-name {
-      color: @text-secondary-color;
+      color: @text-disabled-color;
+      font-weight: normal;
     }
     &:hover {
       .datasource-icon {
@@ -170,18 +171,20 @@ export default class SourceSelect extends Vue {
   }
   .datasource-name {
     color: @text-normal-color;
-    margin-bottom: 10px;
-    font-size: 16px;
+    margin-bottom: 5px;
+    font-size: 14px;
+    font-weight: bold;
   }
   .status {
-    background: @text-placeholder-color;
+    background: @background-disabled-color;
     border-radius: 12px;
     overflow: hidden;
-    color: @fff;
-    font-size: 14px;
+    color: @text-disabled-color;
+    font-size: 12px;
     width: 90px;
     display: inline-block;
-    line-height: 24px;
+    height: 22px;
+    line-height: 22px;
   }
 }
 </style>

@@ -35,16 +35,16 @@
       :closable="false">
     </el-alert>
 
-    <el-table :data="usersList" border>
+    <el-table :data="usersList" class="user-table" border>
       <!-- 表：username列 -->
-      <el-table-column sortable :label="$t('userName')" prop="username" :width="220" header-align="center">
+      <el-table-column sortable :label="$t('userName')" prop="username" :width="220">
         <template slot-scope="scope">
           <i class="el-icon-ksd-table_admin ksd-fs-14" style="cursor: default;"></i>
           <span>{{scope.row.username}}</span>
         </template>
       </el-table-column>
       <!-- 表：group列 -->
-      <el-table-column :label="$t('kylinLang.common.group')" header-align="center">
+      <el-table-column :label="$t('kylinLang.common.group')">
         <template slot-scope="scope">
           <common-tip :content="scope.row.groups && scope.row.groups.join('<br/>')" placement="top">
               <span>{{scope.row.groups && scope.row.groups.join(',')}}</span>
@@ -52,20 +52,20 @@
         </template>
       </el-table-column>
       <!-- 表：是否系统管理员列 -->
-      <el-table-column :label="$t('admin')" :width="120" align="center">
+      <el-table-column :label="$t('admin')" :width="120">
         <template slot-scope="scope">
           <i class="el-icon-ksd-good_health admin-svg" v-if="scope.row.admin"></i>
         </template>
       </el-table-column>
       <!-- 表：status列 -->
-      <el-table-column :label="$t('status')" :width="120" header-align="center">
+      <el-table-column :label="$t('status')" :width="120">
         <template slot-scope="scope">
           <el-tag size="small" type="primary" v-if="scope.row.disabled">Disabled</el-tag>
           <el-tag size="small" type="success" v-else>Enabled</el-tag>
         </template>
       </el-table-column>
       <!-- 表：action列 -->
-      <el-table-column v-if="isActionShow" :label="$t('action')" :width="87" header-align="center">
+      <el-table-column v-if="isActionShow" :label="$t('action')" :width="87">
         <template slot-scope="scope">
           <el-tooltip :content="$t('resetPassword')" effect="dark" placement="top">
             <i class="el-icon-ksd-table_reset_password ksd-fs-14 ksd-mr-10" v-show="userActions.includes('changePassword') || scope.row.uuid === currentUser.uuid" @click="editUser('password', scope.row)"></i>
@@ -88,7 +88,7 @@
     </el-table>
 
     <kap-pager
-      class="ksd-center ksd-mt-20 ksd-mb-20" ref="pager"
+      class="ksd-center ksd-mtb-10" ref="pager"
       :totalSize="totalSize"
       @handleCurrentChange="handleCurrentChange">
     </kap-pager>
@@ -238,6 +238,13 @@ export default class SecurityUser extends Vue {
   .el-icon-ksd-good_health {
     color: @btn-success-normal;
     cursor: default;
+  }
+  .user-table {
+    .el-icon-ksd-table_reset_password:hover,
+    .el-icon-ksd-table_group:hover,
+    .el-icon-ksd-table_others:hover {
+      color: @base-color;
+    }
   }
 }
 </style>

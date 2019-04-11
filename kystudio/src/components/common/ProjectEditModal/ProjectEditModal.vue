@@ -47,7 +47,6 @@
       <!-- 表单：项目名 -->
       <el-form-item :label="$t('projectName')" prop="name" v-if="isFieldShow('name')">
         <el-input v-guide.addProjectInput
-          size="small"
           :disabled="editType !== 'new'"
           auto-complete="off"
           :value="form.name"
@@ -58,7 +57,6 @@
       <!-- 表单：项目描述 -->
       <el-form-item :label="$t('description')" prop="description" v-if="isFieldShow('description')">
         <el-input v-guide.addProjectDesc
-          size="small"
           type="textarea"
           auto-complete="off"
           :value="form.description"
@@ -121,7 +119,7 @@
       </div>
     </el-form>
 
-    <div slot="footer" class="dialog-footer" v-if="isFormShow">
+    <div slot="footer" class="dialog-footer ky-no-br-space" v-if="isFormShow">
       <el-button size="medium" @click="closeHandler(false)">{{$t('cancel')}}</el-button>
       <el-button size="medium" :loading="saveLoading" plain type="primary" @click="submit" v-guide.saveProjectBtn>{{$t('kylinLang.common.submit')}}</el-button>
     </div>
@@ -321,9 +319,9 @@ export default class ProjectEditModal extends Vue {
 @import '../../../assets/styles/variables.less';
 
 .project-edit-modal {
-  .el-form-item {
-    margin-bottom: 20px;
-  }
+  // .el-form-item {
+  //   margin-bottom: 20px;
+  // }
   .project-config .add-property {
     margin: 3px 0 10px 0;
   }

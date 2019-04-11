@@ -3,6 +3,8 @@
     <el-table
       :data="convertedPropertiesItem"
       border
+      size="medium"
+      nested
       style="width: 100%">
       <el-table-column
         label="Key"
@@ -14,7 +16,9 @@
       </el-table-column>
     </el-table>
     <kap-pager
-      class="ksd-right ksd-mt-10" ref="pager"
+      class="ksd-center ksd-mt-10" ref="pager"
+      layout="prev, pager, next"
+      :background="false"
       :totalSize="convertedProperties.length"
       @handleCurrentChange="handleCurrentChange">
     </kap-pager>
