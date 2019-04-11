@@ -62,6 +62,7 @@ import java.security.SecureRandom;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
+import java.util.NoSuchElementException;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -96,7 +97,7 @@ public class Bytes {
     /**
      * Size of boolean in bytes
      */
-    public static final int SIZEOF_BOOLEAN = Byte.SIZE / Byte.SIZE;
+    public static final int SIZEOF_BOOLEAN = 1;
 
     /**
      * Size of byte in bytes
@@ -353,7 +354,7 @@ public class Bytes {
                     continue;
                 }
                 // turn hex ASCII digit -> number
-                byte d = (byte) ((toBinaryFromHex((byte) hd1) << 4) + (toBinaryFromHex((byte) hd2)) & 0xff);
+                byte d = (byte) ((toBinaryFromHex((byte) hd1) << 4) + (toBinaryFromHex((byte) hd2) & 0xff) & 0xff);
 
                 b[size++] = d;
                 i += 3; // skip 3
@@ -1502,6 +1503,9 @@ public class Bytes {
 
             @Override
             public byte[] next() {
+                if (!hasNext()) {
+                    throw new NoSuchElementException();
+                }
                 i++;
                 if (i == 0)
                     return a;

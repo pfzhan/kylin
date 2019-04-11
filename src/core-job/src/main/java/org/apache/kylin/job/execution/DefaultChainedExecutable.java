@@ -221,6 +221,7 @@ public class DefaultChainedExecutable extends AbstractExecutable implements Chai
                     Thread.sleep(100);
                 } catch (InterruptedException e) {
                     logger.error("Failed to Sleep: ", e);
+                    Thread.currentThread().interrupt();
                 }
                 hasRunning = true;
                 logger.error("With {} times retry, it's state is still RUNNING", retry);

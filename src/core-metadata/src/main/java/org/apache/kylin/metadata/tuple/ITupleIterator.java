@@ -44,6 +44,7 @@
 package org.apache.kylin.metadata.tuple;
 
 import java.util.Iterator;
+import java.util.NoSuchElementException;
 
 /**
  * @author xjiang
@@ -58,7 +59,7 @@ public interface ITupleIterator extends Iterator<ITuple> {
 
         @Override
         public ITuple next() {
-            return null;
+            throw new NoSuchElementException();
         }
 
         @Override

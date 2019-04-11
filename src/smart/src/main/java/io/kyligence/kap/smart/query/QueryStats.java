@@ -30,7 +30,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import javax.annotation.Nullable;
 
 import lombok.val;
 import org.apache.commons.collections.CollectionUtils;
@@ -41,8 +40,6 @@ import org.apache.kylin.query.relnode.OLAPContext;
 
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.google.common.base.Function;
-import com.google.common.base.Predicate;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
@@ -89,42 +86,21 @@ public class QueryStats implements Serializable {
 
         ctx.fixModel(model, aliasMatch);
         r.addTotalQueries();
-        r.addGroupBy(Collections2.transform(ctx.getGroupByColumns(), new Function<TblColRef, String>() {
-            @Nullable
-            @Override
-            public String apply(@Nullable TblColRef input) {
-                return input.getIdentity();
-            }
-        }));
+        r.addGroupBy(Collections2.transform(ctx.getGroupByColumns(), TblColRef::getIdentity));
 
-        r.addFilter(Collections2.transform(ctx.filterColumns, new Function<TblColRef, String>() {
-            @Nullable
-            @Override
-            public String apply(@Nullable TblColRef input) {
-                return input.getIdentity();
-            }
-        }));
+        r.addFilter(Collections2.transform(ctx.filterColumns, TblColRef::getIdentity));
 
         Collection<String> allCols = Collections2
-                .transform(Collections2.filter(ctx.allColumns, new Predicate<TblColRef>() {
-                    @Override
-                    public boolean apply(@Nullable TblColRef input) {
-                        if (!model.getAliasMap().containsKey(input.getTableAlias()))
-                            return false;
+                .transform(Collections2.filter(ctx.allColumns, input -> {
+                    if (input != null && (!model.getAliasMap().containsKey(input.getTableAlias())))
+                        return false;
 
-                        if (ctx.metricsColumns.contains(input) && !ctx.getGroupByColumns().contains(input)
-                                && !ctx.filterColumns.contains(input))
-                            return false;
+                    if (ctx.metricsColumns.contains(input) && !ctx.getGroupByColumns().contains(input)
+                            && !ctx.filterColumns.contains(input))
+                        return false;
 
-                        return true;
-                    }
-                }), new Function<TblColRef, String>() {
-                    @Nullable
-                    @Override
-                    public String apply(@Nullable TblColRef input) {
-                        return input.getIdentity();
-                    }
-                });
+                    return true;
+                }), TblColRef::getIdentity);
 
         Collection<FunctionDesc> measures = Lists.newArrayList();
         for (FunctionDesc aggFunc : ctx.aggregations) {
