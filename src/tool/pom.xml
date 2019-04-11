@@ -30,6 +30,10 @@
             <groupId>io.kyligence.ke</groupId>
             <artifactId>kap-core-job</artifactId>
         </dependency>
+        <dependency>
+            <groupId>io.kyligence.ke</groupId>
+            <artifactId>kap-core-event</artifactId>
+        </dependency>
 
         <!-- Test -->
         <dependency>

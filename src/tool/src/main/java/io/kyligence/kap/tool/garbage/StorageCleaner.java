@@ -36,6 +36,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -49,6 +50,7 @@ import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.persistence.RootPersistentEntity;
 import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.kylin.common.util.Pair;
+import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.metadata.project.ProjectInstance;
 
@@ -56,6 +58,8 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
+import io.kyligence.kap.event.manager.EventDao;
+import io.kyligence.kap.event.model.JobRelatedEvent;
 import io.kyligence.kap.metadata.cube.model.NDataLayout;
 import io.kyligence.kap.metadata.cube.model.NDataSegDetails;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
@@ -169,13 +173,25 @@ public class StorageCleaner {
         }
 
         public void execute() {
+            val eventDao = EventDao.getInstance(KylinConfig.getInstanceFromEnv(), project);
             val manager = NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
-            manager.getAllExecutables().stream().filter(e -> !e.getOutput().getState().isFinalState())
-                    .forEach(e -> dependentFiles.addAll(e.getDependentFiles()));
+            eventDao.getEvents().stream().filter(event -> event instanceof JobRelatedEvent)
+                    .map(event -> manager.getJob(((JobRelatedEvent) event).getJobId())).filter(Objects::nonNull)
+                    .map(AbstractExecutable::getDependentFiles).forEach(dependentFiles::addAll);
             collectJobTmp(project);
             collectDataflow(project);
             collectTable(project);
 
+            for (StorageItem item : allFileSystems) {
+                for (List<FileTreeNode> nodes : item.getProject(project).getAllCandidates()) {
+                    for (FileTreeNode node : nodes) {
+                        log.debug("find candidate /{}", node.getRelativePath());
+                    }
+                }
+            }
+            for (String dependentFile : dependentFiles) {
+                log.debug("remove candidate {}", dependentFile);
+            }
             removeDependentFiles();
         }
 

@@ -282,7 +282,7 @@ public class DataflowJobTest extends NLocalWithSparkSessionTest {
         Assert.assertEquals(expected, files.size());
     }
 
-    private void prepareSegment(String dfName, String start, String end, boolean needRemoveExist)
+    static void prepareSegment(String dfName, String start, String end, boolean needRemoveExist)
             throws InterruptedException {
         val eventManager = EventManager.getInstance(getTestConfig(), DEFAULT_PROJECT);
         val dataflowManager = NDataflowManager.getInstance(getTestConfig(), DEFAULT_PROJECT);
@@ -323,11 +323,11 @@ public class DataflowJobTest extends NLocalWithSparkSessionTest {
                         .collect(Collectors.joining(",")));
     }
 
-    private void prepareFirstSegment(String dfName) throws InterruptedException {
+    static void prepareFirstSegment(String dfName) throws InterruptedException {
         prepareSegment(dfName, "2012-01-01", "2012-06-01", true);
     }
 
-    private void waitEventFinish(String id, long maxMs) throws InterruptedException {
+    static void waitEventFinish(String id, long maxMs) throws InterruptedException {
         val eventDao = EventDao.getInstance(getTestConfig(), DEFAULT_PROJECT);
         val start = System.currentTimeMillis();
         while (eventDao.getEvent(id) != null && (System.currentTimeMillis() - start) < maxMs) {
