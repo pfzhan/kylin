@@ -9,12 +9,12 @@
     :close-on-press-escape="false" 
     :close-on-click-modal="false">     
     <!-- <div class="ky-list-title" v-if="!(modelInstance && modelInstance.uuid) && partitionMeta.table && partitionMeta.column">{{$t('partitionSet')}}</div> -->
-    <el-form :model="partitionMeta" :rules="rules"  label-width="85px" label-position="top"> 
+    <el-form :model="modelBuildMeta" ref="partitionForm" :rules="rules"  label-width="85px" label-position="top"> 
       <el-form-item  :label="$t('partitionDateColumn')">
-        <el-select v-guide.partitionTable v-model="partitionMeta.table" @change="partitionTableChange" :placeholder="$t('kylinLang.common.pleaseSelect')" style="width:248px" class="ksd-mr-5">
+        <el-select :disabled="isLoadingNewRange" v-guide.partitionTable v-model="partitionMeta.table" @change="partitionTableChange" :placeholder="$t('kylinLang.common.pleaseSelect')" style="width:248px" class="ksd-mr-5">
           <el-option :label="$t('noPartition')" value=""></el-option>
           <el-option :label="t.alias" :value="t.alias" v-for="t in partitionTables" :key="t.alias">{{t.alias}}</el-option>
-        </el-select><el-select
+        </el-select><el-select :disabled="isLoadingNewRange"
          v-guide.partitionColumn  v-model="partitionMeta.column" :placeholder="$t('kylinLang.common.pleaseSelect')" filterable style="width:248px">
           <el-option :label="t.name" :value="t.name" v-for="t in columns" :key="t.name">
             <span style="float: left">{{ t.name }}</span>
@@ -24,17 +24,9 @@
       </el-form-item>
     <template v-if="!(modelInstance && modelInstance.uuid) && partitionMeta.table && partitionMeta.column">
       <div class="ky-list-title ksd-mt-14">{{$t('loadRange')}}</div>
-      <!-- <el-form-item prop="isLoadExisted" class="ksd-mt-10 ksd-mb-2"> -->
-        <!-- <el-radio class="font-medium" v-model="modelBuildMeta.isLoadExisted" :label="true">
-          {{$t('loadExistingData')}}
-        </el-radio>
-        <div class="item-desc">{{$t('loadExistingDataDesc')}}</div>
-      </el-form-item> -->
-      <el-form-item class="custom-load ksd-mt-10" prop="loadDataRange">
-        <!-- <el-radio class="font-medium" v-model="modelBuildMeta.isLoadExisted" :label="false">
-          {{$t('customLoadRange')}}
-        </el-radio>
-        <br/> -->
+      <el-form-item class="custom-load ksd-mt-10"  prop="dataRangeVal" :rule="[{required: true, trigger: 'blur', message: this.$t('dataRangeValValid')}, {
+      validator: this.validateRange, trigger: 'blur'
+    }]">
         <div class="ky-no-br-space">
           <el-date-picker
               type="datetime"
@@ -69,8 +61,8 @@
       </template>
     </el-form>
     <div slot="footer" class="dialog-footer ky-no-br-space">
-      <el-button plain  size="medium" @click="isShow && handleClose(false)">{{$t('kylinLang.common.cancel')}}</el-button>
-      <el-button type="primary" v-if="isShow" v-guide.partitionSaveBtn plain @click="savePartition" size="medium">{{$t('kylinLang.common.ok')}}</el-button>
+      <el-button plain  size="medium" :disabled="isLoadingNewRange" @click="isShow && handleClose(false)">{{$t('kylinLang.common.cancel')}}</el-button>
+      <el-button type="primary" v-if="isShow" :disabled="isLoadingNewRange" v-guide.partitionSaveBtn plain @click="savePartition" size="medium">{{$t('kylinLang.common.ok')}}</el-button>
     </div>
   </el-dialog>
 </template>
@@ -288,24 +280,29 @@ export default class ModelPartitionModal extends Vue {
     this.filterCondition = ''
   }
   savePartition () {
-    this.modelDesc.partition_desc = this.modelDesc.partition_desc || {}
-    let hasSetDate = this.partitionMeta.table && this.partitionMeta.column
-    if (this.modelDesc && this.partitionMeta.table && this.partitionMeta.column) {
-      this.modelDesc.partition_desc.partition_date_column = hasSetDate ? this.partitionMeta.table + '.' + this.partitionMeta.column : ''
-    } else {
-      this.modelDesc.partition_desc.partition_date_column = ''
-    }
-    this.modelDesc.partition_desc.partition_date_format = this.partitionMeta.format
-    this.modelDesc.filter_condition = this.filterCondition
-    this.modelDesc.project = this.currentSelectedProject
-    if (this.modelBuildMeta.isLoadExisted) {
-      this.modelDesc.start = null
-      this.modelDesc.end = null
-    } else {
-      this.modelDesc.start = (+transToUTCMs(this.modelBuildMeta.dataRangeVal[0]))
-      this.modelDesc.end = (+transToUTCMs(this.modelBuildMeta.dataRangeVal[1]))
-    }
-    this.handleClose(true)
+    this.$refs.partitionForm.validate((valid) => {
+      if (!valid) { return }
+      this.modelDesc.partition_desc = this.modelDesc.partition_desc || {}
+      let hasSetDate = this.partitionMeta.table && this.partitionMeta.column
+      if (this.modelDesc && this.partitionMeta.table && this.partitionMeta.column) {
+        this.modelDesc.partition_desc.partition_date_column = hasSetDate ? this.partitionMeta.table + '.' + this.partitionMeta.column : ''
+      } else {
+        this.modelDesc.partition_desc.partition_date_column = ''
+      }
+      this.modelDesc.partition_desc.partition_date_format = this.partitionMeta.format
+      this.modelDesc.filter_condition = this.filterCondition
+      this.modelDesc.project = this.currentSelectedProject
+      if (!this.modelInstance.uuid) {
+        if (this.modelBuildMeta.isLoadExisted) {
+          this.modelDesc.start = null
+          this.modelDesc.end = null
+        } else {
+          this.modelDesc.start = (+transToUTCMs(this.modelBuildMeta.dataRangeVal[0]))
+          this.modelDesc.end = (+transToUTCMs(this.modelBuildMeta.dataRangeVal[1]))
+        }
+      }
+      this.handleClose(true)
+    })
   }
   handleClose (isSubmit) {
     this.hideModal()

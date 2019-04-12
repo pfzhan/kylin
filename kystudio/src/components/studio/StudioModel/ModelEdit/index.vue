@@ -2095,7 +2095,7 @@ export default class ModelEdit extends Vue {
         ul {
           li {
             &:hover{
-              background-color:@base-color-10;
+              background-color:@base-color-9;
             }
             padding-left:10px;
             cursor:move;
