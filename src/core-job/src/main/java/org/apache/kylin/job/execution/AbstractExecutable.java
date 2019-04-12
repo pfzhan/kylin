@@ -75,7 +75,6 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -102,10 +101,6 @@ public abstract class AbstractExecutable implements Executable, Idempotent {
 
     protected static final String SUBMITTER = "submitter";
     protected static final String NOTIFY_LIST = "notify_list";
-    protected static final String START_TIME = "startTime";
-    protected static final String CREATE_TIME = "createTime";
-    public static final String END_TIME = "endTime";
-    public static final String INTERRUPT_TIME = "interruptTime";
     protected static final String PARENT_ID = "parentId";
     public static final String RUNTIME_INFO = "runtimeInfo";
     public static final String DEPENDENT_FILES = "dependentFiles";
@@ -187,9 +182,7 @@ public abstract class AbstractExecutable implements Executable, Idempotent {
 
     private void suicideIfNecessary() {
         if (needSuicide()) {
-            Map<String, String> info = Maps.newHashMap();
-            info.put(END_TIME, Long.toString(System.currentTimeMillis()));
-            updateJobOutput(project, getId(), ExecutableState.SUICIDAL, info,
+            updateJobOutput(project, getId(), ExecutableState.SUICIDAL,
                     "suicide as its subject model/segment no longer exists");
             throw new JobSuicideException();
         }
@@ -235,10 +228,7 @@ public abstract class AbstractExecutable implements Executable, Idempotent {
 
         suicideIfNecessary();
         checkJobPaused();
-        Map<String, String> info = Maps.newHashMap();
-        //if start time exists, reset start time
-        info.put(START_TIME, Long.toString(System.currentTimeMillis()));
-        updateJobOutput(project, getId(), ExecutableState.RUNNING, info, null);
+        updateJobOutput(project, getId(), ExecutableState.RUNNING);
 
     }
 
@@ -247,8 +237,6 @@ public abstract class AbstractExecutable implements Executable, Idempotent {
 
         Preconditions.checkState(result.succeed());
         Preconditions.checkState(this.getStatus() == ExecutableState.RUNNING);
-
-        setEndTime(result);
         updateJobOutput(project, getId(), ExecutableState.SUCCEED, result.getExtraInfo(), result.output());
     }
 
@@ -258,8 +246,6 @@ public abstract class AbstractExecutable implements Executable, Idempotent {
 
         Preconditions.checkState(!result.succeed());
         Preconditions.checkState(this.getStatus() == ExecutableState.RUNNING);
-
-        setEndTime(result);
         updateJobOutput(project, getId(), ExecutableState.ERROR, result.getExtraInfo(), result.getErrorMsg(),
                 jobId -> onExecuteErrorHook(jobId));
     }
@@ -326,6 +312,18 @@ public abstract class AbstractExecutable implements Executable, Idempotent {
         updateJobOutputToHDFS(project, jobId, output);
     }
 
+    public static void updateJobOutput(String project, String jobId, ExecutableState newStatus) {
+        updateJobOutput(project, jobId, newStatus, null);
+    }
+
+    public static void updateJobOutput(String project, String jobId, ExecutableState newStatus, String output) {
+        updateJobOutput(project, jobId, newStatus, output, null);
+    }
+
+    public static void updateJobOutput(String project, String jobId, ExecutableState newStatus, String output, Consumer<String> hook) {
+        updateJobOutput(project, jobId, newStatus, null, output, hook);
+    }
+
     private static void updateJobOutputToHDFS(String project, String jobId, String output) {
         NExecutableManager nExecutableManager = getExecutableManager(project);
         ExecutableOutputPO jobOutput = nExecutableManager.getJobOutput(jobId);
@@ -346,7 +344,6 @@ public abstract class AbstractExecutable implements Executable, Idempotent {
     public final ExecuteResult execute(ExecutableContext executableContext) throws ExecuteException {
 
         logger.info("Executing AbstractExecutable {}", this.getDisplayName());
-
         Preconditions.checkArgument(executableContext instanceof DefaultContext);
         ExecuteResult result;
         onExecuteStart(executableContext);
@@ -397,9 +394,7 @@ public abstract class AbstractExecutable implements Executable, Idempotent {
             }, project, 1);
         } catch (TransactionException e) {
             if (e.getCause() instanceof JobStoppedException) {
-                Map<String, String> info = Maps.newHashMap();
-                info.put(END_TIME, Long.toString(System.currentTimeMillis()));
-                updateJobOutput(project, getId(), ExecutableState.READY, info, output);
+                updateJobOutput(project, getId(), ExecutableState.READY);
                 throw (JobStoppedException) e.getCause();
             } else {
                 throw e;
@@ -652,24 +647,40 @@ public abstract class AbstractExecutable implements Executable, Idempotent {
         return info;
     }
 
-    protected long getExtraInfoAsLong(String key, long defaultValue) {
-        return getExtraInfoAsLong(getOutput(), key, defaultValue);
-    }
-
     public static long getStartTime(Output output) {
-        return getExtraInfoAsLong(output, START_TIME, 0L);
-    }
-
-    public static long getCreateTime(Output output) {
-        return getExtraInfoAsLong(output, CREATE_TIME, 0L);
+        return output.getStartTime();
     }
 
     public static long getEndTime(Output output) {
-        return getExtraInfoAsLong(output, END_TIME, 0L);
+        return output.getEndTime();
     }
 
-    public static long getInterruptTime(Output output) {
-        return getExtraInfoAsLong(output, INTERRUPT_TIME, 0L);
+    protected final Map<String, String> getExtraInfo() {
+        return getOutput().getExtra();
+    }
+
+    public final long getStartTime() {
+        return getStartTime(getOutput());
+    }
+
+    public final long getCreateTime() {
+        return getManager().getCreateTime(getId());
+    }
+
+    public static final long getCreateTime(Output output) {
+        return output.getCreateTime();
+    }
+
+    public final long getEndTime() {
+        return getEndTime(getOutput());
+    }
+
+    public final long getDuration() {
+        return getDuration(getOutput());
+    }
+
+    public static final long getDuration(Output output) {
+        return getDuration(output.getStartTime(), output.getEndTime(), output.getWaitTime());
     }
 
     public static long getDuration(long startTime, long endTime, long interruptTime) {
@@ -683,60 +694,21 @@ public abstract class AbstractExecutable implements Executable, Idempotent {
         }
     }
 
-    public static long getDurationIncludingPendingTime(long createTime, long endTime, long interruptTime) {
-        if (endTime == 0) {
-            return System.currentTimeMillis() - createTime - interruptTime;
-        } else {
-            return endTime - createTime - interruptTime;
+    public final long getWaitTime() {
+        Output output = getOutput();
+        long pendingDuration = 0L;
+        if (this instanceof DefaultChainedExecutable) {
+            long startTime = output.getStartTime();
+            if (startTime == 0) {
+                return System.currentTimeMillis() - output.getCreateTime();
+            }
+            pendingDuration += (startTime - output.getCreateTime());
         }
-    }
-
-    public static long getExtraInfoAsLong(Output output, String key, long defaultValue) {
-        final String str = output.getExtra().get(key);
-        if (str != null) {
-            return Long.parseLong(str);
-        } else {
-            return defaultValue;
+        pendingDuration += output.getWaitTime();
+        if (output.getEndTime() > 0 && !output.getState().isFinalState()) {
+            pendingDuration += System.currentTimeMillis() - output.getEndTime();
         }
-    }
-
-    protected final Map<String, String> getExtraInfo() {
-        return getOutput().getExtra();
-    }
-
-    public final void setStartTime(ExecuteResult result) {
-        result.getExtraInfo()
-                .putAll(makeExtraInfo(ImmutableMap.of(START_TIME, Long.toString(System.currentTimeMillis()))));
-    }
-
-    public final void setEndTime(ExecuteResult result) {
-        result.getExtraInfo()
-                .putAll(makeExtraInfo(ImmutableMap.of(END_TIME, Long.toString(System.currentTimeMillis()))));
-    }
-
-    public final void setInterruptTime(ExecuteResult result) {
-        result.getExtraInfo()
-                .putAll(makeExtraInfo(ImmutableMap.of(INTERRUPT_TIME, Long.toString(System.currentTimeMillis()))));
-    }
-
-    public final long getStartTime() {
-        return getExtraInfoAsLong(START_TIME, 0L);
-    }
-
-    public final long getCreateTime() {
-        return getExtraInfoAsLong(CREATE_TIME, 0L);
-    }
-
-    public final long getEndTime() {
-        return getExtraInfoAsLong(END_TIME, 0L);
-    }
-
-    public final long getInterruptTime() {
-        return getExtraInfoAsLong(INTERRUPT_TIME, 0L);
-    }
-
-    public final long getDuration() {
-        return getDuration(getStartTime(), getEndTime(), getInterruptTime());
+        return pendingDuration;
     }
 
     public final Set<String> getDependentFiles() {

@@ -25,11 +25,15 @@
 package io.kyligence.kap.rest.response;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import lombok.Getter;
+import lombok.Setter;
 import org.apache.kylin.job.constant.JobStatusEnum;
 import org.apache.kylin.job.constant.JobStepCmdTypeEnum;
 
 import java.util.concurrent.ConcurrentHashMap;
 
+@Getter
+@Setter
 public class ExecutableStepResponse {
 
     @JsonProperty("id")
@@ -49,6 +53,12 @@ public class ExecutableStepResponse {
     @JsonProperty("exec_end_time")
     private long execEndTime;
 
+    @JsonProperty("duration")
+    private long duration;
+
+    @JsonProperty("wait_time")
+    private long waitTime;
+
     @JsonProperty("create_time")
     private long createTime;
 
@@ -65,83 +75,4 @@ public class ExecutableStepResponse {
         getInfo().put(key, value);
     }
 
-    public String getId() {
-        return id;
-    }
-
-    public void setId(String id) {
-        this.id = id;
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    public void setName(String name) {
-        this.name = name;
-    }
-
-    public int getSequenceID() {
-        return sequenceID;
-    }
-
-    public void setSequenceID(int sequenceID) {
-        this.sequenceID = sequenceID;
-    }
-
-    public String getExecCmd() {
-        return execCmd;
-    }
-
-    public void setExecCmd(String execCmd) {
-        this.execCmd = execCmd;
-    }
-
-    public long getExecStartTime() {
-        return execStartTime;
-    }
-
-    public void setExecStartTime(long execStartTime) {
-        this.execStartTime = execStartTime;
-    }
-
-    public long getExecEndTime() {
-        return execEndTime;
-    }
-
-    public void setExecEndTime(long execEndTime) {
-        this.execEndTime = execEndTime;
-    }
-
-    public JobStatusEnum getStatus() {
-        return status;
-    }
-
-    public void setStatus(JobStatusEnum status) {
-        this.status = status;
-    }
-
-    public JobStepCmdTypeEnum getCmdType() {
-        return cmdType;
-    }
-
-    public void setCmdType(JobStepCmdTypeEnum cmdType) {
-        this.cmdType = cmdType;
-    }
-
-    public ConcurrentHashMap<String, String> getInfo() {
-        return info;
-    }
-
-    public void setInfo(ConcurrentHashMap<String, String> info) {
-        this.info = info;
-    }
-
-    public long getCreateTime() {
-        return createTime;
-    }
-
-    public void setCreateTime(long createTime) {
-        this.createTime = createTime;
-    }
 }

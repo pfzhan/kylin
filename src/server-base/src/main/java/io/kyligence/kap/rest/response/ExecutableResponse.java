@@ -71,6 +71,8 @@ public class ExecutableResponse implements Comparable<ExecutableResponse> {
     private float stepRatio;
     @JsonProperty("create_time")
     private long createTime;
+    @JsonProperty("wait_time")
+    private long waitTime;
 
     public static ExecutableResponse create(AbstractExecutable abstractExecutable) {
         ExecutableResponse executableResponse = new ExecutableResponse();
@@ -81,12 +83,12 @@ public class ExecutableResponse implements Comparable<ExecutableResponse> {
         executableResponse.setExecStartTime(abstractExecutable.getStartTime());
         executableResponse.setCreateTime(abstractExecutable.getCreateTime());
         executableResponse
-                .setDuration((AbstractExecutable.getDurationIncludingPendingTime(abstractExecutable.getCreateTime(),
-                        abstractExecutable.getEndTime(), abstractExecutable.getInterruptTime()) / 1000));
+                .setDuration(abstractExecutable.getDuration() / 1000);
         executableResponse.setLastModified(abstractExecutable.getLastModified());
         executableResponse.setTargetModel(abstractExecutable.getTargetModel());
         executableResponse.setTargetSegments(abstractExecutable.getTargetSegments());
         executableResponse.setTargetModelAlias(abstractExecutable.getTargetModelAlias());
+        executableResponse.setWaitTime(abstractExecutable.getWaitTime());
         List<? extends AbstractExecutable> tasks = ((ChainedExecutable) abstractExecutable).getTasks();
         executableResponse.steps = tasks.size();
         int successSteps = 0;

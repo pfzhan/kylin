@@ -49,6 +49,14 @@ import java.util.Map;
  */
 public interface Output {
 
+    long getCreateTime();
+
+    long getStartTime();
+
+    long getEndTime();
+
+    long getWaitTime();
+
     Map<String, String> getExtra();
 
     String getVerboseMsg();

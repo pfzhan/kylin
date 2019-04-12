@@ -24,7 +24,6 @@
 
 package org.apache.kylin.job.execution;
 
-import static org.apache.kylin.job.execution.AbstractExecutable.CREATE_TIME;
 import static org.apache.kylin.job.execution.AbstractExecutable.RUNTIME_INFO;
 
 import java.io.DataInputStream;
@@ -40,7 +39,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import com.google.common.collect.Sets;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -143,7 +141,6 @@ public class NExecutableManager {
 
     private void addJobOutput(ExecutablePO executable) {
         ExecutableOutputPO executableOutputPO = new ExecutableOutputPO();
-        executableOutputPO.getInfo().put(CREATE_TIME, "" + System.currentTimeMillis());
         executable.setOutput(executableOutputPO);
         if (CollectionUtils.isEmpty(executable.getTasks())) {
             return;
@@ -176,6 +173,14 @@ public class NExecutableManager {
         return fromPO(executablePO);
     }
 
+    public long getCreateTime(String id) {
+        ExecutablePO executablePO = executableDao.getJobByUuid(extractJobId(id));
+        if (executablePO == null) {
+            return 0L;
+        }
+        return executablePO.getOutput().getCreateTime();
+    }
+
     public Output getOutput(String id) {
         val jobOutput = getJobOutput(id);
         assertOutputNotNull(jobOutput, id);
@@ -195,6 +200,10 @@ public class NExecutableManager {
         result.setState(ExecutableState.valueOf(jobOutput.getStatus()));
         result.setVerboseMsg(jobOutput.getContent());
         result.setLastModified(jobOutput.getLastModified());
+        result.setStartTime(jobOutput.getStartTime());
+        result.setEndTime(jobOutput.getEndTime());
+        result.setWaitTime(jobOutput.getWaitTime());
+        result.setCreateTime(jobOutput.getCreateTime());
         return result;
     }
 
@@ -314,42 +323,54 @@ public class NExecutableManager {
         boolean result = false;
         if (po.getOutput().getStatus().equalsIgnoreCase(ExecutableState.RUNNING.toString())) {
             po.getOutput().setStatus(ExecutableState.READY.toString());
+            po.getOutput().addEndTime(System.currentTimeMillis());
             result = true;
         }
         for (ExecutablePO task : Optional.ofNullable(po.getTasks()).orElse(Lists.newArrayList())) {
-            result = result || resumeRunningJob(task);
+            result = resumeRunningJob(task) || result;
         }
         return result;
     }
 
     public void resumeJob(String jobId) {
-        resumeJob(jobId, false);
-    }
-
-    public void resumeJob(String jobId, boolean allStep) {
         AbstractExecutable job = getJob(jobId);
         if (job == null) {
             return;
         }
-        Map<String, String> updateInfo = null;
-        Set<String> removeInfo = null;
         if (job instanceof DefaultChainedExecutable) {
             List<AbstractExecutable> tasks = ((DefaultChainedExecutable) job).getTasks();
             tasks.stream().filter(task -> task.getStatus() != ExecutableState.READY)
-                    .filter(task -> (allStep || task.getStatus() == ExecutableState.ERROR
+                    .filter(task -> (task.getStatus() == ExecutableState.ERROR
                             || task.getStatus() == ExecutableState.PAUSED))
-                    .forEach(task -> updateJobOutput(task.getId(), ExecutableState.READY, null, null, null));
-
-            final long endTime = job.getEndTime();
-            if (endTime != 0) {
-                long interruptTime = System.currentTimeMillis() - endTime + job.getInterruptTime();
-                updateInfo = Maps.newHashMap();
-                removeInfo = Sets.newHashSet();
-                updateInfo.put(AbstractExecutable.INTERRUPT_TIME, Long.toString(interruptTime));
-                removeInfo.add(AbstractExecutable.END_TIME);
-            }
+                    .forEach(task -> updateJobOutput(task.getId(), ExecutableState.READY));
         }
-        updateJobOutput(jobId, ExecutableState.READY, updateInfo, removeInfo, null);
+        updateJobOutput(jobId, ExecutableState.READY);
+    }
+
+    public void restartJob(String jobId) {
+        updateJobReady(jobId);
+        resetJobTime(jobId);
+    }
+
+    private void updateJobReady(String jobId) {
+        AbstractExecutable job = getJob(jobId);
+        if (job == null) {
+            return;
+        }
+        if (job instanceof DefaultChainedExecutable) {
+            List<AbstractExecutable> tasks = ((DefaultChainedExecutable) job).getTasks();
+            tasks.stream().filter(task -> task.getStatus() != ExecutableState.READY)
+                    .forEach(task -> updateJobOutput(task.getId(), ExecutableState.READY));
+        }
+        updateJobOutput(jobId, ExecutableState.READY);
+    }
+
+    private void resetJobTime(String jobId) {
+        executableDao.updateJob(jobId, job -> {
+            job.getOutput().resetTime();
+            job.getTasks().forEach(task -> task.getOutput().resetTime());
+            return true;
+        });
     }
 
     public long countCuttingInJobByModel(String model, AbstractExecutable job) {
@@ -367,13 +388,11 @@ public class NExecutableManager {
             List<AbstractExecutable> tasks = ((DefaultChainedExecutable) job).getTasks();
             for (AbstractExecutable task : tasks) {
                 if (!task.getStatus().isFinalState()) {
-                    updateJobOutput(task.getId(), ExecutableState.DISCARDED, null, null, null);
+                    updateJobOutput(task.getId(), ExecutableState.DISCARDED);
                 }
             }
         }
-        Map<String, String> info = Maps.newHashMap();
-        info.put(AbstractExecutable.END_TIME, Long.toString(System.currentTimeMillis()));
-        updateJobOutput(jobId, ExecutableState.DISCARDED, info, null, null);
+        updateJobOutput(jobId, ExecutableState.DISCARDED);
     }
 
     public void pauseJob(String jobId) {
@@ -381,9 +400,7 @@ public class NExecutableManager {
         if (job == null) {
             return;
         }
-        Map<String, String> info = Maps.newHashMap();
-        info.put(AbstractExecutable.END_TIME, Long.toString(System.currentTimeMillis()));
-        updateJobOutput(jobId, ExecutableState.PAUSED, info, null, null);
+        updateJobOutput(jobId, ExecutableState.PAUSED);
         // pauseJob may happen when the job has not been scheduled
         // then call this hook after updateJobOutput
         job.onExecuteStopHook();
@@ -423,7 +440,16 @@ public class NExecutableManager {
                     throw new IllegalStateTranferException("There is no valid state transfer from: " + oldStatus
                             + " to: " + newStatus + ", job id: " + taskOrJobId);
                 }
-                jobOutput.setStatus(newStatus.toString());
+                jobOutput.setStatus(String.valueOf(newStatus));
+                long time = System.currentTimeMillis();
+                if (oldStatus == ExecutableState.RUNNING) {
+                    jobOutput.addEndTime(time);
+                } else if (newStatus == ExecutableState.RUNNING) {
+                    jobOutput.addStartTime(time);
+                } else if (newStatus == ExecutableState.SUICIDAL || newStatus == ExecutableState.DISCARDED) {
+                    jobOutput.addStartTime(time);
+                    jobOutput.addEndTime(time);
+                }
             }
             Map<String, String> info = Maps.newHashMap(jobOutput.getInfo());
             if (updateInfo != null) {
@@ -443,6 +469,10 @@ public class NExecutableManager {
             // kill spark-submit process
             destroyProcess(taskOrJobId);
         }
+    }
+
+    public void updateJobOutput(String taskOrJobId, ExecutableState newStatus) {
+        updateJobOutput(taskOrJobId, newStatus, null, null, null);
     }
 
     public void destroyProcess(String jobId) {

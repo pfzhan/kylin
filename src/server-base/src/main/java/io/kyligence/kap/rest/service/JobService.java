@@ -239,7 +239,7 @@ public class JobService extends BasicService {
             executableManager.resumeJob(jobId);
             break;
         case RESTART:
-            executableManager.resumeJob(jobId, true);
+            executableManager.restartJob(jobId);
             break;
         case DISCARD:
             cancelJob(project, jobId);
@@ -301,6 +301,8 @@ public class JobService extends BasicService {
         result.setExecStartTime(AbstractExecutable.getStartTime(stepOutput));
         result.setExecEndTime(AbstractExecutable.getEndTime(stepOutput));
         result.setCreateTime(AbstractExecutable.getCreateTime(stepOutput));
+        result.setDuration(AbstractExecutable.getDuration(stepOutput));
+        result.setWaitTime(task.getWaitTime());
         if (task instanceof ShellExecutable) {
             result.setExecCmd(((ShellExecutable) task).getCmd());
         }

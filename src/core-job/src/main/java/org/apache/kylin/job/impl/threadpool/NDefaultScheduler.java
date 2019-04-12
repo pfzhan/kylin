@@ -133,6 +133,7 @@ public class NDefaultScheduler implements Scheduler<AbstractExecutable>, Connect
                     case READY:
                         nReady++;
                         if (!isJobPoolFull() && !reachStorageQuota()) {
+                            logger.info("fetcher schedule " + id);
                             scheduleJob(id);
                         }
                         break;

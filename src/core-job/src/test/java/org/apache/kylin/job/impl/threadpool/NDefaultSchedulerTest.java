@@ -41,6 +41,7 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.CliCommandExecutor;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.common.util.ShellException;
+import org.apache.kylin.job.dao.ExecutablePO;
 import org.apache.kylin.job.exception.JobStoppedException;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.BaseTestExecutable;
@@ -69,6 +70,7 @@ import java.io.FileNotFoundException;
 import java.util.UUID;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import static org.awaitility.Awaitility.await;
@@ -127,6 +129,8 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         job.addTask(task1);
         job.addTask(task2);
         executableManager.addJob(job);
+        long createTime = executableManager.getJob(job.getId()).getCreateTime();
+        assertTimeLegal(job.getId());
         waitForJobFinish(job.getId());
         Assert.assertEquals(ExecutableState.SUCCEED, executableManager.getOutput(job.getId()).getState());
         Assert.assertEquals(ExecutableState.SUCCEED, executableManager.getOutput(task1.getId()).getState());
@@ -138,7 +142,104 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
             Assertions.assertThat(executableManager.getOutputFromHDFSByJobId(task2.getId()).getVerboseMsg())
                     .contains("succeed");
         });
+        assertTimeSucceed(createTime, job.getId());
+        testJobStopped(job.getId());
+
     }
+
+    private void assertTimeSucceed(long createTime, String id) {
+        AbstractExecutable job = executableManager.getJob(id);
+        assertJobRun(createTime, job);
+        Assert.assertEquals(ExecutableState.SUCCEED, executableManager.getOutput(job.getId()).getState());
+        if (job instanceof DefaultChainedExecutable) {
+            DefaultChainedExecutable chainedExecutable = (DefaultChainedExecutable) job;
+            for (AbstractExecutable task : chainedExecutable.getTasks()) {
+                assertJobRun(createTime, job);
+                Assert.assertEquals(ExecutableState.SUCCEED, executableManager.getOutput(task.getId()).getState());
+            }
+        }
+    }
+
+    private void assertTimeError(long createTime, String id) {
+        AbstractExecutable job = executableManager.getJob(id);
+        assertJobRun(createTime, job);
+        Assert.assertEquals(ExecutableState.ERROR, executableManager.getOutput(job.getId()).getState());
+        boolean hasError = false;
+        if (job instanceof DefaultChainedExecutable) {
+            DefaultChainedExecutable chainedExecutable = (DefaultChainedExecutable) job;
+            for (AbstractExecutable task : chainedExecutable.getTasks()) {
+                Assert.assertEquals(createTime, task.getCreateTime());
+                Assert.assertTrue(task.getDuration() >= 0L);
+                Assert.assertTrue(task.getDuration() >= 0L);
+                if (task.getStatus() == ExecutableState.ERROR) {
+                    hasError = true;
+                }
+            }
+        }
+        Assert.assertTrue(hasError);
+    }
+
+    private void assertTimeSuicide(long createTime, String id) {
+        AbstractExecutable job = executableManager.getJob(id);
+        Assert.assertNotNull(job);
+        Assert.assertEquals(createTime, job.getCreateTime());
+        Assert.assertTrue(job.getStartTime() > 0L);
+        Assert.assertTrue(job.getEndTime() > 0L);
+        Assert.assertTrue(job.getDuration() >= 0L);
+        Assert.assertTrue(job.getWaitTime() >= 0L);
+        Assert.assertEquals(ExecutableState.SUICIDAL, executableManager.getOutput(job.getId()).getState());
+    }
+
+    private void assertTimeRunning(long createTime, String id) {
+        AbstractExecutable job = executableManager.getJob(id);
+        Assert.assertNotNull(job);
+        Assert.assertEquals(createTime, job.getCreateTime());
+        Assert.assertEquals(ExecutableState.RUNNING, job.getStatus());
+        Assert.assertTrue(job.getDuration() > 0L);
+        Assert.assertTrue(job.getWaitTime() >= 0L);
+        if (job instanceof DefaultChainedExecutable) {
+            DefaultChainedExecutable chainedExecutable = (DefaultChainedExecutable) job;
+            for (AbstractExecutable task : chainedExecutable.getTasks()) {
+                if (task.getStatus().isFinalState()) {
+                    Assert.assertTrue(task.getStartTime() > 0L);
+                    Assert.assertTrue(task.getEndTime() > 0L);
+                }
+                Assert.assertEquals(createTime, task.getCreateTime());
+                Assert.assertTrue(task.getDuration() >= 0L);
+                Assert.assertTrue(task.getWaitTime() >= 0L);
+            }
+        }
+    }
+
+    private void assertTimeLegal(String id) {
+        AbstractExecutable job = executableManager.getJob(id);
+        assertTimeLegal(job);
+        if (job instanceof DefaultChainedExecutable) {
+            DefaultChainedExecutable chainedExecutable = (DefaultChainedExecutable) job;
+            for (AbstractExecutable task : chainedExecutable.getTasks()) {
+                assertTimeLegal(task);
+            }
+        }
+    }
+
+    private void assertTimeLegal(AbstractExecutable job) {
+        Assert.assertNotNull(job);
+        Assert.assertTrue(job.getCreateTime() > 0L);
+        Assert.assertTrue(job.getStartTime() >= 0L);
+        Assert.assertTrue(job.getEndTime() >= 0L);
+        Assert.assertTrue(job.getDuration() >= 0L);
+        Assert.assertTrue(job.getWaitTime() >= 0L);
+    }
+
+    private void assertJobRun(long createTime, AbstractExecutable job) {
+        Assert.assertNotNull(job);
+        Assert.assertEquals(createTime, job.getCreateTime());
+        Assert.assertTrue(job.getStartTime() > 0L);
+        Assert.assertTrue(job.getEndTime() > 0L);
+        Assert.assertTrue(job.getDuration() > 0L);
+        Assert.assertTrue(job.getWaitTime() >= 0L);
+    }
+
 
     @Test
     public void testSucceedAndFailed() {
@@ -158,6 +259,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         job.addTask(task1);
         job.addTask(task2);
         executableManager.addJob(job);
+        long createTime = executableManager.getJob(job.getId()).getCreateTime();
         waitForJobFinish(job.getId());
         Assert.assertEquals(ExecutableState.ERROR, executableManager.getOutput(job.getId()).getState());
         Assert.assertEquals(ExecutableState.SUCCEED, executableManager.getOutput(task1.getId()).getState());
@@ -170,6 +272,8 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
             Assertions.assertThat(executableManager.getOutputFromHDFSByJobId(task2.getId()).getVerboseMsg())
                     .contains("org.apache.kylin.job.execution.MockJobException");
         });
+        assertTimeError(createTime, job.getId());
+        testJobPending(job.getId());
     }
 
     @Test
@@ -190,6 +294,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         job.addTask(task1);
         job.addTask(task2);
         executableManager.addJob(job);
+        long createTime = executableManager.getJob(job.getId()).getCreateTime();
         waitForJobFinish(job.getId());
         Assert.assertEquals(ExecutableState.ERROR, executableManager.getOutput(job.getId()).getState());
         Assert.assertEquals(ExecutableState.ERROR, executableManager.getOutput(task1.getId()).getState());
@@ -201,6 +306,8 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
             Assertions.assertThat(executableManager.getOutputFromHDFSByJobId(task1.getId()).getVerboseMsg())
                     .contains("test error");
         });
+        assertTimeError(createTime, job.getId());
+        testJobPending(job.getId());
 
     }
 
@@ -218,6 +325,8 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         task1.setTargetSegments(df.getSegments().stream().map(NDataSegment::getId).collect(Collectors.toList()));
         job.addTask(task1);
         executableManager.addJob(job);
+        long createTime = executableManager.getJob(job.getId()).getCreateTime();
+        Assert.assertTrue(createTime > 0L);
         // give time to launch job/task1
         await().atMost(Long.MAX_VALUE, TimeUnit.MILLISECONDS).until(() -> job.getStatus() == ExecutableState.RUNNING);
         executableManager.discardJob(job.getId());
@@ -225,6 +334,85 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         Assert.assertEquals(ExecutableState.DISCARDED, executableManager.getOutput(job.getId()).getState());
         Assert.assertEquals(ExecutableState.DISCARDED, executableManager.getOutput(task1.getId()).getState());
         task1.waitForDoWork();
+        testJobStopped(job.getId());
+
+    }
+
+    private void testJobStopped(String jobId) {
+        long[] durations = getAllDurations(jobId);
+
+        try {
+            Thread.sleep(1000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
+        long[] durations2 = getAllDurations(jobId);
+        Assert.assertArrayEquals(durations, durations2);
+    }
+
+    private long[] getAllDurations(String jobId) {
+        DefaultChainedExecutable stopJob = (DefaultChainedExecutable) executableManager.getJob(jobId);
+        int size = 2 * (stopJob.getTasks().size() + 1);
+        long[] durations = new long[size];
+        durations[0] = stopJob.getDuration();
+        durations[1] = stopJob.getWaitTime();
+        int i = 2;
+        for (AbstractExecutable task: stopJob.getTasks()) {
+            durations[i] = task.getDuration();
+            durations[i + 1] = task.getWaitTime();
+            i += 2;
+        }
+        return durations;
+    }
+
+    private void testJobPending(String jobId) {
+        long[] durations = getDurations(jobId);
+        double[] pendingDurations = getPendingDurations(jobId);
+        try {
+            Thread.sleep(1000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
+        long[] durations2 = getDurations(jobId);
+        double[] pendingDurations2 = getPendingDurations(jobId);
+        Assert.assertArrayEquals(durations, durations2);
+        DefaultChainedExecutable stopJob = (DefaultChainedExecutable) executableManager.getJob(jobId);
+        pendingDurations[0] = pendingDurations[0] + 1000;
+        for (int i = 1; i < pendingDurations.length; i++) {
+            ExecutableState state = stopJob.getTasks().get(i - 1).getStatus();
+            if (state == ExecutableState.ERROR || state == ExecutableState.PAUSED) {
+                pendingDurations[i] = pendingDurations[i] + 1000;
+            }
+        }
+        Assert.assertArrayEquals(pendingDurations, pendingDurations2, 10);
+    }
+
+    private long[] getDurations(String jobId) {
+        DefaultChainedExecutable stopJob = (DefaultChainedExecutable) executableManager.getJob(jobId);
+        int size = (stopJob.getTasks().size() + 1);
+        long[] durations = new long[size];
+        durations[0] = stopJob.getDuration();
+        int i = 1;
+        for (AbstractExecutable task: stopJob.getTasks()) {
+            durations[i] = task.getDuration();
+            i += 1;
+        }
+        return durations;
+    }
+
+    private double[] getPendingDurations(String jobId) {
+        DefaultChainedExecutable stopJob = (DefaultChainedExecutable) executableManager.getJob(jobId);
+        int size = (stopJob.getTasks().size() + 1);
+        double[] durations = new double[size];
+        durations[0] = stopJob.getWaitTime();
+        int i = 1;
+        for (AbstractExecutable task: stopJob.getTasks()) {
+            durations[i] = task.getWaitTime();
+            i += 1;
+        }
+        return durations;
     }
 
     @Test
@@ -246,7 +434,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         job.addTask(task2);
         executableManager.addJob(job);
         NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project).updateJobOutput(task2.getId(),
-                ExecutableState.RUNNING, null, null, null);
+                ExecutableState.RUNNING);
         waitForJobFinish(job.getId(), 10000);
         Assert.assertEquals(ExecutableState.ERROR, executableManager.getOutput(job.getId()).getState());
         Assert.assertEquals(ExecutableState.SUCCEED, executableManager.getOutput(task1.getId()).getState());
@@ -266,7 +454,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         task.setTargetSegments(df.getSegments().stream().map(NDataSegment::getId).collect(Collectors.toList()));
         job.addTask(task);
         executableManager.addJob(job);
-
+        long createTime = executableManager.getJob(job.getId()).getCreateTime();
         val update = new NDataflowUpdate(df.getUuid());
         update.setToRemoveSegs(df.getSegments().toArray(new NDataSegment[0]));
         dfMgr.updateDataflow(update);
@@ -278,7 +466,39 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
             Assert.assertEquals(ExecutableState.SUICIDAL, output.getState());
             Assert.assertTrue(output.getVerboseMsg().contains("suicide"));
         });
+        assertTimeSuicide(createTime, job.getId());
+        testJobStopped(job.getId());
+    }
 
+    @Test
+    public void testSuicide_RemoveSegmentAfterRunning() {
+        val dfMgr = NDataflowManager.getInstance(getTestConfig(), project);
+        NoErrorStatusExecutable job = new NoErrorStatusExecutable();
+        job.setProject("default");
+        job.setTargetModel("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+        val df = dfMgr.getDataflow(job.getTargetModel());
+        job.setTargetSegments(df.getSegments().stream().map(NDataSegment::getId).collect(Collectors.toList()));
+        val task = new FiveSecondSucceedTestExecutable();
+        task.setTargetModel("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+        task.setTargetSegments(df.getSegments().stream().map(NDataSegment::getId).collect(Collectors.toList()));
+        job.addTask(task);
+        val task2 = new SucceedTestExecutable();
+        task2.setTargetModel("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+        task2.setTargetSegments(df.getSegments().stream().map(NDataSegment::getId).collect(Collectors.toList()));
+        job.addTask(task2);
+        executableManager.addJob(job);
+        long createTime = executableManager.getJob(job.getId()).getCreateTime();
+        await().atMost(3000, TimeUnit.MILLISECONDS).until(() -> {
+            return ((DefaultChainedExecutable) executableManager.getJob(job.getId())).getTasks().get(0).getStatus() == ExecutableState.RUNNING;
+        });
+        val update = new NDataflowUpdate(df.getUuid());
+        update.setToRemoveSegs(df.getSegments().toArray(new NDataSegment[0]));
+        dfMgr.updateDataflow(update);
+
+        waitForJobFinish(job.getId());
+        //in case hdfs write is not finished yet
+        assertTimeSuicide(createTime, job.getId());
+        testJobStopped(job.getId());
     }
 
     @Test
@@ -601,7 +821,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
 
         AbstractExecutable job1 = executableManager.getJob(job.getId());
         ExecutableState status = job1.getStatus();
-        Assert.assertEquals(status, ExecutableState.SUCCEED);
+        Assert.assertEquals(ExecutableState.SUCCEED, status);
     }
 
     @Test
@@ -643,18 +863,510 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         task1.setTargetModel(df.getModel().getUuid());
         task1.setTargetSegments(df.getSegments().stream().map(NDataSegment::getId).collect(Collectors.toList()));
         job.addTask(task1);
+        BaseTestExecutable task2 = new FiveSecondSucceedTestExecutable();
+        task2.setProject("default");
+        task2.setTargetModel(df.getModel().getUuid());
+        task2.setTargetSegments(df.getSegments().stream().map(NDataSegment::getId).collect(Collectors.toList()));
+        job.addTask(task2);
         executableManager.addJob(job);
+        long createTime = executableManager.getJob(job.getId()).getCreateTime();
+        Assert.assertTrue(createTime > 0L);
 
-        //sleep 3s to make sure SucceedTestExecutable is running
-        await().atMost(3000, TimeUnit.MILLISECONDS).until(() -> task1.getStatus() == ExecutableState.RUNNING);
+        //sleep 2s to make sure SucceedTestExecutable is running
+        await().atMost(2000, TimeUnit.MILLISECONDS).until(() -> {
+            return ((DefaultChainedExecutable) executableManager.getJob(job.getId())).getTasks().get(0).getStatus() == ExecutableState.RUNNING;
+        });
         //scheduler failed due to some reason
-        scheduler.shutdown();
+        NDefaultScheduler.shutdownByProject("default");
+        //make sure the first scheduler has already stopped
+        try {
+            Thread.sleep(10000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        DefaultChainedExecutable stopJob = (DefaultChainedExecutable) executableManager.getJob(job.getId());
+        Predicate<ExecutablePO> updater = (po) -> {
+          po.getOutput().setStatus(ExecutableState.RUNNING.toString());
+          po.getOutput().setEndTime(0);
+          po.getTasks().get(0).getOutput().setStatus(ExecutableState.RUNNING.toString());
+          po.getTasks().get(0).getOutput().setEndTime(0);
+          po.getTasks().get(1).getOutput().setStatus(ExecutableState.READY.toString());
+          po.getTasks().get(1).getOutput().setStartTime(0);
+          po.getTasks().get(1).getOutput().setWaitTime(0);
+          po.getTasks().get(1).getOutput().setEndTime(0);
+          return true;
+        };
+        executableDao.updateJob(stopJob.getId(), updater);
+        Assert.assertEquals(ExecutableState.RUNNING, executableManager.getOutput(job.getId()).getState());
+        Assert.assertEquals(ExecutableState.RUNNING, executableManager.getOutput(task1.getId()).getState());
+        Assert.assertEquals(ExecutableState.READY, executableManager.getOutput(task2.getId()).getState());
         //restart
         startScheduler();
-
+        await().atMost(3000, TimeUnit.MILLISECONDS).until(() -> {
+            return ((DefaultChainedExecutable) executableManager.getJob(job.getId())).getTasks().get(1).getStatus() == ExecutableState.RUNNING;
+        });
+        assertTimeRunning(createTime, job.getId());
         waitForJobFinish(job.getId());
         Assert.assertEquals(ExecutableState.SUCCEED, executableManager.getOutput(job.getId()).getState());
         Assert.assertEquals(ExecutableState.SUCCEED, executableManager.getOutput(task1.getId()).getState());
+        Assert.assertEquals(ExecutableState.SUCCEED, executableManager.getOutput(task2.getId()).getState());
+        assertTimeSucceed(createTime, job.getId());
+    }
+
+    @Test
+    public void testJobPauseAndResume() {
+        val df = NDataflowManager.getInstance(getTestConfig(), project)
+                .getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+        DefaultChainedExecutable job = new DefaultChainedExecutable();
+        job.setProject("default");
+        job.setTargetModel(df.getModel().getUuid());
+        job.setTargetSegments(df.getSegments().stream().map(NDataSegment::getId).collect(Collectors.toList()));
+        BaseTestExecutable task1 = new FiveSecondSucceedTestExecutable();
+        task1.setProject("default");
+        task1.setTargetModel(df.getModel().getUuid());
+        task1.setTargetSegments(df.getSegments().stream().map(NDataSegment::getId).collect(Collectors.toList()));
+        job.addTask(task1);
+        BaseTestExecutable task2 = new SucceedTestExecutable();
+        task2.setProject("default");
+        task2.setTargetModel(df.getModel().getUuid());
+        task2.setTargetSegments(df.getSegments().stream().map(NDataSegment::getId).collect(Collectors.toList()));
+        job.addTask(task2);
+        executableManager.addJob(job);
+        long createTime = executableManager.getJob(job.getId()).getCreateTime();
+        Assert.assertTrue(createTime > 0L);
+
+        try {
+            Thread.sleep(2000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        //pause job due to some reason
+        executableManager.pauseJob(job.getId());
+        //sleep 5s to make sure DefaultChainedExecutable is paused
+        try {
+            Thread.sleep(5000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
+        DefaultChainedExecutable stopJob = (DefaultChainedExecutable) executableManager.getJob(job.getId());
+        Assert.assertEquals(ExecutableState.PAUSED, stopJob.getStatus());
+        Assert.assertEquals(ExecutableState.SUCCEED, stopJob.getTasks().get(0).getStatus());
+        Assert.assertEquals(ExecutableState.READY, stopJob.getTasks().get(1).getStatus());
+        long totalDuration = stopJob.getDuration();
+        long task1Duration = stopJob.getTasks().get(0).getDuration();
+        long task2Duration = stopJob.getTasks().get(1).getDuration();
+        long totalPendingDuration = stopJob.getWaitTime();
+        long task1PendingDuration = stopJob.getTasks().get(0).getWaitTime();
+        long task2PendingDuration = stopJob.getTasks().get(1).getWaitTime();
+
+        Assert.assertTrue(totalDuration > 0);
+        Assert.assertTrue(task1Duration > 0);
+        Assert.assertEquals(0, task2Duration);
+        Assert.assertTrue(totalPendingDuration >= 0);
+        Assert.assertEquals(0, task1PendingDuration);
+        Assert.assertEquals(0, task2PendingDuration);
+
+        try {
+            Thread.sleep(1000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
+        stopJob = (DefaultChainedExecutable) executableManager.getJob(job.getId());
+        long totalDuration2 = stopJob.getDuration();
+        long task1Duration2 = stopJob.getTasks().get(0).getDuration();
+        long task2Duration2 = stopJob.getTasks().get(1).getDuration();
+        long totalPendingDuration2 = stopJob.getWaitTime();
+        long task1PendingDuration2 = stopJob.getTasks().get(0).getWaitTime();
+        long task2PendingDuration2 = stopJob.getTasks().get(1).getWaitTime();
+
+        Assert.assertEquals(totalDuration, totalDuration2);
+        Assert.assertEquals(task1Duration, task1Duration2);
+        Assert.assertEquals(0, task2Duration2);
+        Assert.assertEquals(totalPendingDuration + 1000, totalPendingDuration2, 100);
+        Assert.assertEquals(0, task1PendingDuration2);
+        Assert.assertEquals(0, task2PendingDuration2);
+
+        //resume
+        executableManager.resumeJob(job.getId());
+        await().atMost(3000, TimeUnit.MILLISECONDS).until(() -> ((DefaultChainedExecutable) executableManager.getJob(job.getId()))
+                .getTasks().get(1).getStatus() == ExecutableState.RUNNING);
+        stopJob = (DefaultChainedExecutable) executableManager.getJob(job.getId());
+        long totalDuration3 = stopJob.getDuration();
+        long task1Duration3 = stopJob.getTasks().get(0).getDuration();
+        long task2Duration3 = stopJob.getTasks().get(1).getDuration();
+        long totalPendingDuration3 = stopJob.getWaitTime();
+        long task1PendingDuration3 = stopJob.getTasks().get(0).getWaitTime();
+        long task2PendingDuration3 = stopJob.getTasks().get(1).getWaitTime();
+
+        Assert.assertTrue(totalDuration < totalDuration3);
+        Assert.assertEquals(task1Duration, task1Duration3);
+        Assert.assertTrue(0 < task2Duration3);
+        Assert.assertTrue(totalPendingDuration2 <= totalPendingDuration3);
+        Assert.assertEquals(0, task1PendingDuration3);
+        Assert.assertEquals(0, task2PendingDuration3);
+
+        assertTimeRunning(createTime, job.getId());
+        waitForJobFinish(job.getId());
+
+        assertTimeSucceed(createTime, job.getId());
+    }
+
+    @Test
+    public void testJobRestart() {
+        val df = NDataflowManager.getInstance(getTestConfig(), project)
+                .getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+        DefaultChainedExecutable job = new DefaultChainedExecutable();
+        job.setProject("default");
+        job.setTargetModel(df.getModel().getUuid());
+        job.setTargetSegments(df.getSegments().stream().map(NDataSegment::getId).collect(Collectors.toList()));
+        BaseTestExecutable task1 = new FiveSecondSucceedTestExecutable();
+        task1.setProject("default");
+        task1.setTargetModel(df.getModel().getUuid());
+        task1.setTargetSegments(df.getSegments().stream().map(NDataSegment::getId).collect(Collectors.toList()));
+        job.addTask(task1);
+        BaseTestExecutable task2 = new SucceedTestExecutable();
+        task2.setProject("default");
+        task2.setTargetModel(df.getModel().getUuid());
+        task2.setTargetSegments(df.getSegments().stream().map(NDataSegment::getId).collect(Collectors.toList()));
+        job.addTask(task2);
+        executableManager.addJob(job);
+        long createTime = executableManager.getJob(job.getId()).getCreateTime();
+        Assert.assertTrue(createTime > 0L);
+
+        try {
+            Thread.sleep(2000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
+        DefaultChainedExecutable stopJob = (DefaultChainedExecutable) executableManager.getJob(job.getId());
+        Assert.assertEquals(ExecutableState.RUNNING, stopJob.getStatus());
+        Assert.assertEquals(ExecutableState.RUNNING, stopJob.getTasks().get(0).getStatus());
+        Assert.assertEquals(ExecutableState.READY, stopJob.getTasks().get(1).getStatus());
+        long totalDuration = stopJob.getDuration();
+        long task1Duration = stopJob.getTasks().get(0).getDuration();
+        long task2Duration = stopJob.getTasks().get(1).getDuration();
+        long totalPendingDuration = stopJob.getWaitTime();
+        long task1PendingDuration = stopJob.getTasks().get(0).getWaitTime();
+        long task2PendingDuration = stopJob.getTasks().get(1).getWaitTime();
+        Assert.assertTrue(totalDuration > 0);
+        Assert.assertTrue(task1Duration > 0);
+        Assert.assertEquals(0, task2Duration);
+        Assert.assertTrue(totalPendingDuration >= 0);
+        Assert.assertEquals(0, task1PendingDuration);
+        Assert.assertEquals(0, task2PendingDuration);
+
+        //restart
+        executableManager.restartJob(job.getId());
+        try {
+            Thread.sleep(100);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        stopJob = (DefaultChainedExecutable) executableManager.getJob(job.getId());
+        long newCreateTime = stopJob.getCreateTime();
+        Assert.assertTrue(newCreateTime > createTime);
+        assertTimeLegal(job.getId());
+        long totalDuration3 = stopJob.getDuration();
+        long task1Duration3 = stopJob.getTasks().get(0).getDuration();
+        long task2Duration3 = stopJob.getTasks().get(1).getDuration();
+        Assert.assertEquals(0, totalDuration3, 100);
+        Assert.assertEquals(0, task1Duration3, 100);
+        Assert.assertEquals(0, task2Duration3, 100);
+
+        await().atMost(8000, TimeUnit.MILLISECONDS).until(() -> executableManager.getJob(job.getId())
+                .getStatus() == ExecutableState.RUNNING);
+        assertTimeRunning(newCreateTime, job.getId());
+        waitForJobFinish(job.getId());
+        assertTimeSucceed(newCreateTime, job.getId());
+    }
+
+    @Test
+    public void testJobPauseAndRestart() {
+        val df = NDataflowManager.getInstance(getTestConfig(), project)
+                .getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+        DefaultChainedExecutable job = new DefaultChainedExecutable();
+        job.setProject("default");
+        job.setTargetModel(df.getModel().getUuid());
+        job.setTargetSegments(df.getSegments().stream().map(NDataSegment::getId).collect(Collectors.toList()));
+        BaseTestExecutable task1 = new FiveSecondSucceedTestExecutable();
+        task1.setProject("default");
+        task1.setTargetModel(df.getModel().getUuid());
+        task1.setTargetSegments(df.getSegments().stream().map(NDataSegment::getId).collect(Collectors.toList()));
+        job.addTask(task1);
+        BaseTestExecutable task2 = new SucceedTestExecutable();
+        task2.setProject("default");
+        task2.setTargetModel(df.getModel().getUuid());
+        task2.setTargetSegments(df.getSegments().stream().map(NDataSegment::getId).collect(Collectors.toList()));
+        job.addTask(task2);
+        executableManager.addJob(job);
+        long createTime = executableManager.getJob(job.getId()).getCreateTime();
+        Assert.assertTrue(createTime > 0L);
+
+        try {
+            Thread.sleep(2000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        //pause job due to some reason
+        executableManager.pauseJob(job.getId());
+        //sleep 5s to make sure DefaultChainedExecutable is paused
+        try {
+            Thread.sleep(5000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
+        DefaultChainedExecutable stopJob = (DefaultChainedExecutable) executableManager.getJob(job.getId());
+        Assert.assertEquals(ExecutableState.PAUSED, stopJob.getStatus());
+        Assert.assertEquals(ExecutableState.SUCCEED, stopJob.getTasks().get(0).getStatus());
+        Assert.assertEquals(ExecutableState.READY, stopJob.getTasks().get(1).getStatus());
+        long totalDuration = stopJob.getDuration();
+        long task1Duration = stopJob.getTasks().get(0).getDuration();
+        long task2Duration = stopJob.getTasks().get(1).getDuration();
+        long totalPendingDuration = stopJob.getWaitTime();
+        long task1PendingDuration = stopJob.getTasks().get(0).getWaitTime();
+        long task2PendingDuration = stopJob.getTasks().get(1).getWaitTime();
+        Assert.assertTrue(totalDuration > 0);
+        Assert.assertTrue(task1Duration > 0);
+        Assert.assertEquals(0, task2Duration);
+        Assert.assertTrue(totalPendingDuration >= 0);
+        Assert.assertEquals(0, task1PendingDuration);
+        Assert.assertEquals(0, task2PendingDuration);
+
+        try {
+            Thread.sleep(1000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
+        stopJob = (DefaultChainedExecutable) executableManager.getJob(job.getId());
+        long totalDuration2 = stopJob.getDuration();
+        long task1Duration2 = stopJob.getTasks().get(0).getDuration();
+        long task2Duration2 = stopJob.getTasks().get(1).getDuration();
+        long totalPendingDuration2 = stopJob.getWaitTime();
+        long task1PendingDuration2 = stopJob.getTasks().get(0).getWaitTime();
+        long task2PendingDuration2 = stopJob.getTasks().get(1).getWaitTime();
+
+        Assert.assertEquals(totalDuration, totalDuration2);
+        Assert.assertEquals(task1Duration, task1Duration2);
+        Assert.assertEquals(0, task2Duration2);
+        Assert.assertEquals(totalPendingDuration + 1000, totalPendingDuration2, 100);
+        Assert.assertEquals(0, task1PendingDuration2);
+        Assert.assertEquals(0, task2PendingDuration2);
+
+        //restart
+        executableManager.restartJob(job.getId());
+        try {
+            Thread.sleep(100);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        stopJob = (DefaultChainedExecutable) executableManager.getJob(job.getId());
+        long newCreateTime = stopJob.getCreateTime();
+        Assert.assertTrue(newCreateTime > createTime);
+        assertTimeLegal(job.getId());
+        long totalDuration3 = stopJob.getDuration();
+        long task1Duration3 = stopJob.getTasks().get(0).getDuration();
+        long task2Duration3 = stopJob.getTasks().get(1).getDuration();
+        Assert.assertEquals(0, totalDuration3, 100);
+        Assert.assertEquals(0, task1Duration3, 100);
+        Assert.assertEquals(0, task2Duration3, 100);
+
+        await().atMost(1000, TimeUnit.MILLISECONDS).until(() -> executableManager.getJob(job.getId())
+                .getStatus() == ExecutableState.RUNNING);
+        assertTimeRunning(newCreateTime, job.getId());
+        waitForJobFinish(job.getId());
+        assertTimeSucceed(newCreateTime, job.getId());
+    }
+
+    @Test
+    public void testJobErrorAndResume() {
+        val df = NDataflowManager.getInstance(getTestConfig(), project)
+                .getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+        DefaultChainedExecutable job = new DefaultChainedExecutable();
+        job.setProject("default");
+        job.setTargetModel(df.getModel().getUuid());
+        job.setTargetSegments(df.getSegments().stream().map(NDataSegment::getId).collect(Collectors.toList()));
+        BaseTestExecutable task1 = new ErrorTestExecutable();
+        task1.setProject("default");
+        task1.setTargetModel(df.getModel().getUuid());
+        task1.setTargetSegments(df.getSegments().stream().map(NDataSegment::getId).collect(Collectors.toList()));
+        job.addTask(task1);
+        BaseTestExecutable task2 = new SucceedTestExecutable();
+        task2.setProject("default");
+        task2.setTargetModel(df.getModel().getUuid());
+        task2.setTargetSegments(df.getSegments().stream().map(NDataSegment::getId).collect(Collectors.toList()));
+        job.addTask(task2);
+        executableManager.addJob(job);
+        long createTime = executableManager.getJob(job.getId()).getCreateTime();
+        Assert.assertTrue(createTime > 0L);
+
+        //sleep 3s to make sure SucceedTestExecutable is running
+        await().atMost(3000, TimeUnit.MILLISECONDS).until(() -> executableManager.getJob(job.getId())
+                .getStatus() == ExecutableState.ERROR);
+
+        DefaultChainedExecutable stopJob = (DefaultChainedExecutable) executableManager.getJob(job.getId());
+        Assert.assertEquals(ExecutableState.ERROR, stopJob.getStatus());
+        Assert.assertEquals(ExecutableState.ERROR, stopJob.getTasks().get(0).getStatus());
+        Assert.assertEquals(ExecutableState.READY, stopJob.getTasks().get(1).getStatus());
+        long totalDuration = stopJob.getDuration();
+        long task1Duration = stopJob.getTasks().get(0).getDuration();
+        long task2Duration = stopJob.getTasks().get(1).getDuration();
+        long totalPendingDuration = stopJob.getWaitTime();
+        long task1PendingDuration = stopJob.getTasks().get(0).getWaitTime();
+        long task2PendingDuration = stopJob.getTasks().get(1).getWaitTime();
+
+        Assert.assertTrue(totalDuration > 0);
+        Assert.assertTrue(task1Duration > 0);
+        Assert.assertEquals(0, task2Duration);
+        Assert.assertTrue(totalPendingDuration >= 0);
+        Assert.assertTrue(task1PendingDuration > 0);
+        Assert.assertEquals(0, task2PendingDuration);
+
+        try {
+            Thread.sleep(1000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
+        stopJob = (DefaultChainedExecutable) executableManager.getJob(job.getId());
+        long totalDuration2 = stopJob.getDuration();
+        long task1Duration2 = stopJob.getTasks().get(0).getDuration();
+        long task2Duration2 = stopJob.getTasks().get(1).getDuration();
+        long totalPendingDuration2 = stopJob.getWaitTime();
+        long task1PendingDuration2 = stopJob.getTasks().get(0).getWaitTime();
+        long task2PendingDuration2 = stopJob.getTasks().get(1).getWaitTime();
+
+        Assert.assertEquals(totalDuration, totalDuration2);
+        Assert.assertEquals(task1Duration, task1Duration2);
+        Assert.assertEquals(0, task2Duration2);
+        Assert.assertEquals(totalPendingDuration + 1000, totalPendingDuration2, 100);
+        Assert.assertEquals(task1PendingDuration + 1000, task1PendingDuration2, 100);
+        Assert.assertEquals(0, task2PendingDuration2);
+
+        //resume
+        executableManager.resumeJob(job.getId());
+        await().atMost(3000, TimeUnit.MILLISECONDS).until(() -> ((DefaultChainedExecutable) executableManager.getJob(job.getId()))
+                .getTasks().get(0).getStatus() == ExecutableState.RUNNING);
+        stopJob = (DefaultChainedExecutable) executableManager.getJob(job.getId());
+        long totalDuration3 = stopJob.getDuration();
+        long task1Duration3 = stopJob.getTasks().get(0).getDuration();
+        long task2Duration3 = stopJob.getTasks().get(1).getDuration();
+        long totalPendingDuration3 = stopJob.getWaitTime();
+        long task1PendingDuration3 = stopJob.getTasks().get(0).getWaitTime();
+        long task2PendingDuration3 = stopJob.getTasks().get(1).getWaitTime();
+
+        Assert.assertTrue(totalDuration < totalDuration3);
+        Assert.assertTrue(task1Duration < task1Duration3);
+        Assert.assertEquals(0, task2Duration3);
+        Assert.assertEquals(totalPendingDuration2, totalPendingDuration3, 1000);
+        Assert.assertEquals(task1PendingDuration2, task1PendingDuration3, 1000);
+        Assert.assertEquals(0, task2PendingDuration3);
+
+        assertTimeRunning(createTime, job.getId());
+        waitForJobFinish(job.getId());
+        assertTimeError(createTime, job.getId());
+    }
+
+    @Test
+    public void testJobErrorAndRestart() {
+        val df = NDataflowManager.getInstance(getTestConfig(), project)
+                .getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+        DefaultChainedExecutable job = new DefaultChainedExecutable();
+        job.setProject("default");
+        job.setTargetModel(df.getModel().getUuid());
+        job.setTargetSegments(df.getSegments().stream().map(NDataSegment::getId).collect(Collectors.toList()));
+        BaseTestExecutable task1 = new ErrorTestExecutable();
+        task1.setProject("default");
+        task1.setTargetModel(df.getModel().getUuid());
+        task1.setTargetSegments(df.getSegments().stream().map(NDataSegment::getId).collect(Collectors.toList()));
+        job.addTask(task1);
+        BaseTestExecutable task2 = new SucceedTestExecutable();
+        task2.setProject("default");
+        task2.setTargetModel(df.getModel().getUuid());
+        task2.setTargetSegments(df.getSegments().stream().map(NDataSegment::getId).collect(Collectors.toList()));
+        job.addTask(task2);
+        executableManager.addJob(job);
+        long createTime = executableManager.getJob(job.getId()).getCreateTime();
+        Assert.assertTrue(createTime > 0L);
+
+        //sleep 3s to make sure SucceedTestExecutable is running
+        await().atMost(3000, TimeUnit.MILLISECONDS).until(() -> executableManager.getJob(job.getId())
+                .getStatus() == ExecutableState.ERROR);
+
+        DefaultChainedExecutable stopJob = (DefaultChainedExecutable) executableManager.getJob(job.getId());
+        Assert.assertEquals(ExecutableState.ERROR, stopJob.getStatus());
+        Assert.assertEquals(ExecutableState.ERROR, stopJob.getTasks().get(0).getStatus());
+        Assert.assertEquals(ExecutableState.READY, stopJob.getTasks().get(1).getStatus());
+        long totalDuration = stopJob.getDuration();
+        long task1Duration = stopJob.getTasks().get(0).getDuration();
+        long task2Duration = stopJob.getTasks().get(1).getDuration();
+        long totalPendingDuration = stopJob.getWaitTime();
+        long task1PendingDuration = stopJob.getTasks().get(0).getWaitTime();
+        long task2PendingDuration = stopJob.getTasks().get(1).getWaitTime();
+
+        Assert.assertTrue(totalDuration > 0);
+        Assert.assertTrue(task1Duration > 0);
+        Assert.assertEquals(0, task2Duration);
+        Assert.assertTrue(totalPendingDuration >= 0);
+        Assert.assertTrue(task1PendingDuration > 0);
+        Assert.assertEquals(0, task2PendingDuration);
+
+        try {
+            Thread.sleep(1000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
+        stopJob = (DefaultChainedExecutable) executableManager.getJob(job.getId());
+        long totalDuration2 = stopJob.getDuration();
+        long task1Duration2 = stopJob.getTasks().get(0).getDuration();
+        long task2Duration2 = stopJob.getTasks().get(1).getDuration();
+        long totalPendingDuration2 = stopJob.getWaitTime();
+        long task1PendingDuration2 = stopJob.getTasks().get(0).getWaitTime();
+        long task2PendingDuration2 = stopJob.getTasks().get(1).getWaitTime();
+
+        Assert.assertEquals(totalDuration, totalDuration2);
+        Assert.assertEquals(task1Duration, task1Duration2);
+        Assert.assertEquals(0, task2Duration2);
+        Assert.assertEquals(totalPendingDuration + 1000, totalPendingDuration2, 100);
+        Assert.assertEquals(task1PendingDuration + 1000, task1PendingDuration2, 100);
+        Assert.assertEquals(0, task2PendingDuration2);
+
+        //restart
+        executableManager.restartJob(job.getId());
+        await().atMost(1000, TimeUnit.MILLISECONDS).until(() -> executableManager.getJob(job.getId())
+                .getStatus() == ExecutableState.READY);
+        stopJob = (DefaultChainedExecutable) executableManager.getJob(job.getId());
+        long newCreateTime = stopJob.getCreateTime();
+        Assert.assertTrue(newCreateTime > createTime);
+        assertTimeLegal(job.getId());
+        long totalDuration3 = stopJob.getDuration();
+        long task1Duration3 = stopJob.getTasks().get(0).getDuration();
+        long task2Duration3 = stopJob.getTasks().get(1).getDuration();
+        long totalPendingDuration3 = stopJob.getWaitTime();
+        long task1PendingDuration3 = stopJob.getTasks().get(0).getWaitTime();
+        long task2PendingDuration3 = stopJob.getTasks().get(1).getWaitTime();
+        Assert.assertEquals(ExecutableState.READY, stopJob.getStatus());
+        Assert.assertEquals(ExecutableState.READY, stopJob.getTasks().get(0).getStatus());
+        Assert.assertEquals(ExecutableState.READY, stopJob.getTasks().get(1).getStatus());
+        Assert.assertEquals(0, totalDuration3, 10);
+        Assert.assertEquals(0, task1Duration3, 10);
+        Assert.assertEquals(0, task2Duration3, 10);
+        Assert.assertEquals(0, totalPendingDuration3, 1000);
+        Assert.assertEquals(0, task1PendingDuration3);
+        Assert.assertEquals(0, task2PendingDuration3);
+
+
+        await().atMost(1000, TimeUnit.MILLISECONDS).until(() -> executableManager.getJob(job.getId())
+                .getStatus() == ExecutableState.RUNNING);
+        assertTimeRunning(newCreateTime, job.getId());
+        waitForJobFinish(job.getId());
+
+        assertTimeError(newCreateTime, job.getId());
     }
 
     @Test

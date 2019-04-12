@@ -43,7 +43,6 @@
 package org.apache.kylin.job.execution;
 
 import java.util.List;
-import java.util.Map;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.constant.JobIssueEnum;
@@ -52,7 +51,6 @@ import org.apache.kylin.job.exception.JobStoppedException;
 import org.apache.kylin.job.exception.JobSuicideException;
 
 import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 
 /**
  */
@@ -96,7 +94,7 @@ public class DefaultChainedExecutable extends AbstractExecutable implements Chai
                     return ExecuteResult.createSucceed();
                 } catch (JobStoppedException e) {
                     return ExecuteResult.createSucceed();
-                }catch (ExecuteException e) {
+                } catch (ExecuteException e) {
                     if (e.getCause() instanceof JobSuicideException) {
                         return ExecuteResult.createSucceed();
                     }
@@ -116,20 +114,21 @@ public class DefaultChainedExecutable extends AbstractExecutable implements Chai
 
     @Override
     protected void onExecuteFinished(ExecuteResult result, ExecutableContext executableContext) {
-        Map<String, String> info = Maps.newHashMap();
-
-        if (isDiscarded()) {
-            setEndTime(result);
-        } else if (isPaused()) {
-            setEndTime(result);
-        } else if (result.succeed()) {
-            List<? extends Executable> jobs = getTasks();
-            boolean allSucceed = true;
-            boolean hasError = false;
-            boolean hasDiscarded = false;
-            boolean hasSuicidal = false;
-            for (Executable task : jobs) {
-                switch (task.getStatus()) {
+        if (isDiscarded() || isPaused()) {
+            return;
+        }
+        if (!result.succeed()) {
+            updateJobOutput(getProject(), getId(), ExecutableState.ERROR, null, this::onExecuteErrorHook);
+            notifyUserJobIssue(JobIssueEnum.JOB_ERROR);
+            return;
+        }
+        List<? extends Executable> jobs = getTasks();
+        boolean allSucceed = true;
+        boolean hasError = false;
+        boolean hasDiscarded = false;
+        boolean hasSuicidal = false;
+        for (Executable task : jobs) {
+            switch (task.getStatus()) {
                 case RUNNING:
                     logger.error(
                             "There shouldn't be a running subtask[{}], \n"
@@ -148,38 +147,25 @@ public class DefaultChainedExecutable extends AbstractExecutable implements Chai
                     break;
                 default:
                     break;
-                }
-                final ExecutableState status = task.getStatus();
-                if (status != ExecutableState.SUCCEED) {
-                    allSucceed = false;
-                }
             }
-            if (allSucceed) {
-                setEndTime(info);
-                updateJobOutput(getProject(), getId(), ExecutableState.SUCCEED, info, null);
-            } else if (hasError) {
-                setEndTime(info);
-                updateJobOutput(getProject(), getId(), ExecutableState.ERROR, info, null, this::onExecuteErrorHook);
-                notifyUserJobIssue(JobIssueEnum.JOB_ERROR);
-            } else if (hasDiscarded) {
-                setEndTime(info);
-                updateJobOutput(getProject(), getId(), ExecutableState.DISCARDED, info, null);
-            } else if (hasSuicidal) {
-                setEndTime(info);
-                updateJobOutput(getProject(), getId(), ExecutableState.SUICIDAL, info, null);
-            } else {
-                //TODO: normal?
-                updateJobOutput(getProject(), getId(), ExecutableState.READY, null, null);
+            final ExecutableState status = task.getStatus();
+            if (status != ExecutableState.SUCCEED) {
+                allSucceed = false;
             }
-        } else {
-            setEndTime(info);
-            updateJobOutput(getProject(), getId(), ExecutableState.ERROR, info, null, this::onExecuteErrorHook);
-            notifyUserJobIssue(JobIssueEnum.JOB_ERROR);
         }
-    }
-
-    private void setEndTime(Map<String, String> info) {
-        info.put(AbstractExecutable.END_TIME, Long.toString(System.currentTimeMillis()));
+        if (allSucceed) {
+            updateJobOutput(getProject(), getId(), ExecutableState.SUCCEED, null);
+        } else if (hasError) {
+            updateJobOutput(getProject(), getId(), ExecutableState.ERROR, null, this::onExecuteErrorHook);
+            notifyUserJobIssue(JobIssueEnum.JOB_ERROR);
+        } else if (hasDiscarded) {
+            updateJobOutput(getProject(), getId(), ExecutableState.DISCARDED, null);
+        } else if (hasSuicidal) {
+            updateJobOutput(getProject(), getId(), ExecutableState.SUICIDAL, null);
+        } else {
+            //TODO: normal?
+            updateJobOutput(getProject(), getId(), ExecutableState.READY, null);
+        }
     }
 
     @Override

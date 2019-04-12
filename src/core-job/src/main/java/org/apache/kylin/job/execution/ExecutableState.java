@@ -111,5 +111,5 @@ public enum ExecutableState {
     public static boolean isValidStateTransfer(ExecutableState from, ExecutableState to) {
         return VALID_STATE_TRANSFER.containsEntry(from, to);
     }
-
 }
+

@@ -47,6 +47,7 @@ import java.util.concurrent.TimeUnit;
 
 import io.kyligence.kap.common.persistence.transaction.mq.MessageQueue;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.job.dao.NExecutableDao;
 import org.apache.kylin.job.engine.JobEngineConfig;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.ExecutableState;
@@ -69,6 +70,7 @@ public abstract class BaseSchedulerTest extends NLocalFileMetadataTestCase {
     protected NDefaultScheduler scheduler;
 
     protected static NExecutableManager executableManager;
+    protected static NExecutableDao executableDao;
 
     protected String project;
 
@@ -86,6 +88,7 @@ public abstract class BaseSchedulerTest extends NLocalFileMetadataTestCase {
         System.setProperty("kylin.metadata.mq-url", "topic@mock");
         staticCreateTestMetadata();
         executableManager = NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+        executableDao = NExecutableDao.getInstance(KylinConfig.getInstanceFromEnv(), project);
         startScheduler();
 
         val clazz = MessageQueue.class;

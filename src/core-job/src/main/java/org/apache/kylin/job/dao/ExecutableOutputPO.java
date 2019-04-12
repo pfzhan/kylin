@@ -47,6 +47,7 @@ import java.util.Map;
 
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
 
 import lombok.Getter;
@@ -72,4 +73,38 @@ public class ExecutableOutputPO implements Serializable {
 
     @JsonProperty("last_modified")
     private long lastModified;
+
+    @JsonProperty("createTime")
+    private long createTime = System.currentTimeMillis();
+
+    @JsonProperty("start_time")
+    private long startTime;
+
+    @JsonProperty("end_time")
+    private long endTime;
+
+    @JsonProperty("wait_time")
+    private long waitTime;
+
+    public void addStartTime(long time) {
+        if (startTime == 0) {
+            startTime = time;
+        }
+        if (endTime > 0) {
+            waitTime += time - endTime;
+            endTime = 0;
+        }
+    }
+
+    public void addEndTime(long time) {
+        Preconditions.checkArgument(startTime > 0L);
+        endTime = time;
+    }
+
+    public void resetTime() {
+        createTime = System.currentTimeMillis();
+        startTime = 0L;
+        endTime = 0L;
+        waitTime = 0L;
+    }
 }
