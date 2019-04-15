@@ -209,12 +209,11 @@ public class DFBuildJob extends SparkApplication {
             }
         } else {
             Dataset<Row> afterAgg = CuboidAggregator.agg(ss, parent, dimIndexes, cuboid.getEffectiveMeasures(), seg);
-            Set<Integer> meas = cuboid.getEffectiveMeasures().keySet();
-
             for (LayoutEntity layout : nSpanningTree.getLayouts(cuboid)) {
                 Set<Integer> rowKeys = layout.getOrderedDimensions().keySet();
 
-                Dataset<Row> afterSort = afterAgg.select(NSparkCubingUtil.getColumns(rowKeys, meas))
+                Dataset<Row> afterSort = afterAgg
+                        .select(NSparkCubingUtil.getColumns(rowKeys, layout.getOrderedMeasures().keySet()))
                         .sortWithinPartitions(NSparkCubingUtil.getColumns(rowKeys));
 
                 saveAndUpdateLayout(afterSort, seg, layout);

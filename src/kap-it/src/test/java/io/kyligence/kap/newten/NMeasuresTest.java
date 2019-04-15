@@ -34,6 +34,7 @@ import static org.apache.kylin.metadata.model.FunctionDesc.FUNC_TOP_N;
 
 import java.math.BigDecimal;
 import java.nio.ByteBuffer;
+import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -461,6 +462,18 @@ public class NMeasuresTest extends NLocalWithSparkSessionTest {
             List<Integer> colList = newArrayList(indexEntity.getDimensions());
             colList.addAll(indexEntity.getMeasures());
             layout.setColOrder(colList);
+
+            // add another simple layout
+            LayoutEntity layout1 = new LayoutEntity();
+            layout1.setAuto(true);
+            layout1.setId(layout.getId() + 1);
+            List<Integer> col1List = newArrayList(indexEntity.getDimensions());
+            List<Integer> meaList = Lists.newArrayList(finalModel.getEffectiveMeasureMap().inverse().values().asList());
+            Collections.reverse(meaList);
+            col1List.addAll(meaList);
+            layout1.setColOrder(col1List);
+
+            indexEntity.setLayouts(Lists.newArrayList(layout, layout1));
             copyForWrite.setIndexes(newArrayList(indexEntity));
         });
     }
@@ -480,7 +493,7 @@ public class NMeasuresTest extends NLocalWithSparkSessionTest {
 
         // ready dataflow, segment, cuboid layout
         NDataSegment oneSeg = dsMgr.appendSegment(df, SegmentRange.TimePartitionedSegmentRange.createInfinite());
-        List<LayoutEntity> toBuildLayouts = newArrayList(df.getIndexPlan().getAllLayouts().get(0));
+        List<LayoutEntity> toBuildLayouts = df.getIndexPlan().getAllLayouts().subList(0, 2);
 
         NSparkCubingJob job = NSparkCubingJob.create(Sets.newHashSet(oneSeg), Sets.newLinkedHashSet(toBuildLayouts),
                 "ADMIN");

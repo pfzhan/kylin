@@ -271,17 +271,21 @@ public class NQueryLayoutChooser {
         for (TblColRef col : sortedColumns) {
             DeriveInfo deriveInfo = candidate.getDerivedToHostMap().get(col);
             if (deriveInfo == null) {
-                int id = candidate.getCuboidLayout().getDimensionPos(col);
-                positions.add(candidate.getCuboidLayout().getColOrder().indexOf(id));
+                positions.add(getDimsIndexInLayout(col, candidate));
             } else {
                 TblColRef[] hostCols = deriveInfo.columns;
                 for (TblColRef hostCol : hostCols) {
-                    int id = candidate.getCuboidLayout().getDimensionPos(hostCol);
-                    positions.add(candidate.getCuboidLayout().getColOrder().indexOf(id));
+                    positions.add(getDimsIndexInLayout(hostCol, candidate));
                 }
             }
         }
         return positions;
+    }
+
+    private static int getDimsIndexInLayout(TblColRef tblColRef, final NLayoutCandidate candidate) {
+        //get dimension
+        Integer id = candidate.getCuboidLayout().getDimensionPos(tblColRef);
+        return id == null ? -1 : candidate.getCuboidLayout().getColOrder().indexOf(id);
     }
 
     private static void goThruDerivedDims(final IndexEntity indexEntity, final NDataflow dataflow,
