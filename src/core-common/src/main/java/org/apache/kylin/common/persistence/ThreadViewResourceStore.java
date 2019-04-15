@@ -125,6 +125,9 @@ public class ThreadViewResourceStore extends ResourceStore {
             Preconditions.checkState(resourceMvcc == oldMvcc, "Resource mvcc not equals old mvcc", resourceMvcc, oldMvcc);
             overlay.putResourceWithoutCheck(resPath, byteSource, System.currentTimeMillis(), oldMvcc + 1);
         } else {
+            if (!KylinConfig.getInstanceFromEnv().isUTEnv() && r instanceof TombRawResource) {
+                    throw new IllegalStateException(String.format("It's not allowed to create the same metadata in path {%s} after deleting it in one transaction", resPath));
+            }
             overlay.checkAndPutResource(resPath, byteSource, oldMvcc);
         }
 

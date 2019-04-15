@@ -33,19 +33,27 @@ import java.lang.reflect.Field;
 import java.util.NavigableSet;
 import java.util.concurrent.ConcurrentSkipListMap;
 
+import io.kyligence.kap.common.persistence.transaction.TransactionException;
+import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.CleanMetadataHelper;
+import org.hamcrest.core.IsInstanceOf;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
 
 import com.google.common.collect.Sets;
 
 import lombok.val;
+import org.junit.rules.ExpectedException;
 
 public class ThreadViewResourceStoreTest {
 
     private CleanMetadataHelper cleanMetadataHelper = null;
+
+    @Rule
+    public ExpectedException thrown = ExpectedException.none();
 
     @Before
     public void setUp() throws Exception {
@@ -64,6 +72,29 @@ public class ThreadViewResourceStoreTest {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         ResourceStore underlying = ResourceStore.getKylinMetaStore(config);
         return new ThreadViewResourceStore((InMemResourceStore) underlying, config);
+    }
+
+    @Test
+    public void testRecreateMetadataInOneTransaction() {
+        String dir = "/default/table_desc/TEST_KYLIN_FACT.json";
+        StringEntity table = new StringEntity("TEST_KYLIN_FACT");
+
+        thrown.expect(TransactionException.class);
+        thrown.expectCause(IsInstanceOf.instanceOf(IllegalStateException.class));
+
+        UnitOfWork.doInTransactionWithRetry(() -> {
+            System.setProperty("kylin.env", "DEV");
+            KylinConfig config = KylinConfig.getInstanceFromEnv();
+            ResourceStore underlying = ResourceStore.getKylinMetaStore(config);
+
+            // first delete resource
+            underlying.deleteResource(dir);
+
+            // then create a new one with the same res path
+            underlying.checkAndPutResource(dir, table, StringEntity.serializer);
+
+            return 0;
+        }, "default");
     }
 
     @Test
