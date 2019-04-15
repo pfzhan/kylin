@@ -126,7 +126,6 @@ public class GreedyModelTreesBuilder {
         private TableAliasGenerator.TableAliasDict dict;
 
         private Map<String, Collection<OLAPContext>> contexts = Maps.newLinkedHashMap();
-        private Map<TableRef, String> innerTableRefAlias = Maps.newHashMap();
         private Map<TableRef, String> correctedTableAlias = Maps.newHashMap();
 
         private TreeBuilder(TableDesc rootFact, Map<String, TableDesc> tableMap) {
@@ -140,8 +139,6 @@ public class GreedyModelTreesBuilder {
             }
             this.contexts.get(sql).add(ctx);
             ctx.sql = sql;
-            this.innerTableRefAlias.putAll(getTableAliasMap(ctx, dict));
-            correctTableAlias();
         }
 
         private List<ModelTree> build() {
@@ -156,16 +153,19 @@ public class GreedyModelTreesBuilder {
         }
 
         private ModelTree buildOne(List<OLAPContext> inputCtxs) {
+            this.correctedTableAlias.clear();
 
             Map<String, JoinTableDesc> joinTables = new LinkedHashMap<>();
-            Map<TableRef, String> tableAliasMap = correctedTableAlias;
             List<OLAPContext> usedCtxs = Lists.newArrayList();
             Map<String, TableRef> aliasRefMap = Maps.newHashMap();
             inputCtxs.removeIf(Objects::isNull);
+            Map<TableRef, String> innerTableRefAlias = Maps.newHashMap();
             inputCtxs.stream()//
                     .filter(ctx -> matchContext(usedCtxs, ctx))//
                     .filter(ctx -> { // Digest single table contexts(no joins)
                         if (ctx.joins.isEmpty()) {
+                            innerTableRefAlias.putAll(getTableAliasMap(ctx, dict));
+                            correctTableAlias(innerTableRefAlias);
                             usedCtxs.add(ctx);
                             return false;
                         }
@@ -173,12 +173,15 @@ public class GreedyModelTreesBuilder {
                     })//
                     .forEach(ctx -> {
                         // Merge matching contexts' joins
-                        mergeContext(ctx, joinTables, tableAliasMap, aliasRefMap);
+                        innerTableRefAlias.putAll(getTableAliasMap(ctx, dict));
+                        correctTableAlias(innerTableRefAlias);
+
+                        mergeContext(ctx, joinTables, correctedTableAlias, aliasRefMap);
                         usedCtxs.add(ctx);
                     });
 
             inputCtxs.removeAll(usedCtxs);
-            return new ModelTree(rootFact, usedCtxs, joinTables, correctedTableAlias);
+            return new ModelTree(rootFact, usedCtxs, joinTables, Maps.newHashMap(correctedTableAlias));
         }
 
         public static void mergeContext(OLAPContext ctx, Map<String, JoinTableDesc> alias2JoinTables,
@@ -229,7 +232,7 @@ public class GreedyModelTreesBuilder {
             tableRef2Alias.putAll(tableRef2AliasUpdates);
         }
 
-        private void correctTableAlias() {
+        private void correctTableAlias(Map<TableRef, String> innerTableRefAlias) {
             Map<String, TableDesc> classifiedAlias = new HashMap<>();
             for (Map.Entry<TableRef, String> entry : innerTableRefAlias.entrySet()) {
                 classifiedAlias.put(entry.getValue(), entry.getKey().getTableDesc());

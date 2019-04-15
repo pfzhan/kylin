@@ -24,10 +24,13 @@
 
 package io.kyligence.kap.newten.auto;
 
+import org.junit.Assert;
 import org.junit.Ignore;
 import org.junit.Test;
 
 import io.kyligence.kap.newten.NExecAndComp.CompareLevel;
+import io.kyligence.kap.smart.NSmartMaster;
+import io.kyligence.kap.smart.common.AccelerateInfo;
 
 public class NAutoTpchTest extends NAutoTestBase {
 
@@ -47,6 +50,29 @@ public class NAutoTpchTest extends NAutoTestBase {
         for (int i = 0; i < 2; ++i) {
             new TestScenario(CompareLevel.SAME, "sql_tpch", 1, 2).execute();
         }
+    }
+
+    @Test
+    public void testBatchProposeSQLAndReuseModel() throws Exception {
+        NSmartMaster smartMaster = proposeWithSmartMaster(
+                new TestScenario[] { new TestScenario(CompareLevel.SAME, "sql_tpch") }, getProject());
+        smartMaster.runAll();
+
+        String sql = "SELECT \"SN\".\"N_NAME\", SUM(l_extendedprice) \"REVENUE\"\n" + "FROM TPCH.\"LINEITEM\"\n"
+                + "INNER JOIN TPCH.\"ORDERS\" ON \"L_ORDERKEY\" = \"O_ORDERKEY\"\n"
+                + "INNER JOIN TPCH.\"CUSTOMER\" ON \"O_CUSTKEY\" = \"C_CUSTKEY\"\n"
+                + "INNER JOIN TPCH.\"NATION\" \"CN\" ON \"C_NATIONKEY\" = \"CN\".\"N_NATIONKEY\"\n"
+                + "INNER JOIN TPCH.\"SUPPLIER\" ON \"L_SUPPKEY\" = \"S_SUPPKEY\"\n"
+                + "INNER JOIN TPCH.\"NATION\" \"SN\" ON \"S_NATIONKEY\" = \"SN\".\"N_NATIONKEY\"\n"
+                + "INNER JOIN TPCH.\"REGION\" ON \"SN\".\"N_REGIONKEY\" = \"R_REGIONKEY\"\n"
+                + "WHERE \"R_NAME\" = 'A' AND \"CN\".\"N_NAME\" = \"SN\".\"N_NAME\" AND \"O_ORDERDATE\" >= '2010-01-01' AND \"O_ORDERDATE\" < '2010-01-02'\n"
+                + "GROUP BY \"SN\".\"N_NAME\"\n" + "ORDER BY \"REVENUE\" DESC";
+        NSmartMaster smartMaster1 = new NSmartMaster(getTestConfig(), getProject(), new String[] { sql });
+        smartMaster1.runAll();
+
+        AccelerateInfo accelerateInfo = smartMaster1.getContext().getAccelerateInfoMap().values()
+                .toArray(new AccelerateInfo[] {})[0];
+        Assert.assertFalse(accelerateInfo.isBlocked());
     }
 
     @Test
