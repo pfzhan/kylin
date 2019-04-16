@@ -107,7 +107,7 @@
           <common-tip :content="$t('jobDrop')" v-if="scope.row.job_status=='DISCARDED' || scope.row.job_status=='FINISHED'">
             <i class="el-icon-ksd-table_delete ksd-fs-14" @click.stop="drop([scope.row.id])"></i>
           </common-tip>
-          <common-tip :content="$t('jobRestart')" v-if="scope.row.job_status=='ERROR'">
+          <common-tip :content="$t('jobRestart')" v-if="scope.row.job_status=='ERROR'|| scope.row.job_status=='STOPPED'||scope.row.job_status=='RUNNING'">
             <i class="el-icon-ksd-restart ksd-fs-14" @click.stop="restart([scope.row.id])"></i>
           </common-tip>
           <common-tip :content="$t('jobResume')" v-if="scope.row.job_status=='ERROR'|| scope.row.job_status=='STOPPED'">
@@ -482,7 +482,7 @@ export default class JobsList extends Vue {
   getBatchBtnStatus (statusArr) {
     const batchBtns = {
       resume: ['ERROR', 'STOPPED'],
-      restart: ['ERROR'],
+      restart: ['ERROR', 'STOPPED', 'RUNNING'],
       pause: ['PENDING', 'RUNNING'],
       drop: ['DISCARDED', 'FINISHED']
     }
@@ -840,7 +840,7 @@ export default class JobsList extends Vue {
     }, 1000)
   }
   filterChange2 (status) {
-    if (status.indexOf(this.allStatus) !== -1) {
+    if (this.allStatus.indexOf(status) !== -1) {
       this.filter.status = status === 'ALL' ? '' : status
     }
     this.refreshJobs()
