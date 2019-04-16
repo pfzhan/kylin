@@ -831,81 +831,67 @@ public class ModelService extends BasicService {
         }
         String format = probeDateFormatIfNotExist(project, modelDesc);
         UnitOfWork.doInTransactionWithRetry(
-                () -> {
-                    buildSegmentsManually(project, modelId, format, start, end);
-                    return null;
-                }, project);
+            () -> {
+                NDataModel modelDescInTransaction = getDataModelManager(project).getDataModelDesc(modelId);
+                SegmentRange segmentRangeToBuild;
+
+                TableDesc table = getTableManager(project).getTableDesc(modelDescInTransaction.getRootFactTableName());
+
+                val df = getDataflowManager(project).getDataflow(modelId);
+
+                if (modelDescInTransaction.getPartitionDesc() == null
+                        || StringUtils.isEmpty(modelDescInTransaction.getPartitionDesc().getPartitionDateColumn())) {
+                    //if full seg exists,refresh it
+                    val segs = df.getSegments(SegmentStatusEnum.READY);
+                    if (segs.size() == 1 && segs.get(0).getSegRange().isInfinite()) {
+                        refreshSegmentById(modelId, project,
+                                Lists.newArrayList(df.getSegments().get(0).getId()).toArray(new String[0]));
+                        return null;
+                    }
+                    //build Full seg
+                    segmentRangeToBuild = SegmentRange.TimePartitionedSegmentRange.createInfinite();
+                } else {
+                    Preconditions.checkArgument(!PushDownUtil.needPushdown(start, end),
+                            "Load data must set start and end date");
+                    segmentRangeToBuild = SourceFactory.getSource(table).getSegmentRange(start, end);
+                }
+                saveDateFormatIfNotExist(project, modelId, format);
+
+                checkSegmentToBuildOverlapsBuilt(project, modelId, segmentRangeToBuild);
+
+                NDataSegment newSegment = getDataflowManager(project).appendSegment(df, segmentRangeToBuild);
+
+                EventManager eventManager = getEventManager(project);
+
+                AddSegmentEvent addSegmentEvent = new AddSegmentEvent();
+                addSegmentEvent.setSegmentId(newSegment.getId());
+                addSegmentEvent.setModelId(modelId);
+                addSegmentEvent.setJobId(UUID.randomUUID().toString());
+                addSegmentEvent.setOwner(getUsername());
+                eventManager.post(addSegmentEvent);
+
+                PostAddSegmentEvent postAddSegmentEvent = new PostAddSegmentEvent();
+                postAddSegmentEvent.setSegmentId(newSegment.getId());
+                postAddSegmentEvent.setModelId(modelId);
+                postAddSegmentEvent.setJobId(addSegmentEvent.getJobId());
+                postAddSegmentEvent.setOwner(getUsername());
+                eventManager.post(postAddSegmentEvent);
+
+                AddCuboidEvent addCuboidEvent = new AddCuboidEvent();
+                addCuboidEvent.setModelId(modelId);
+                addCuboidEvent.setJobId(UUID.randomUUID().toString());
+                addCuboidEvent.setOwner(getUsername());
+                eventManager.post(addCuboidEvent);
+
+                PostAddCuboidEvent postAddCuboidEvent = new PostAddCuboidEvent();
+                postAddCuboidEvent.setModelId(modelId);
+                postAddCuboidEvent.setJobId(addCuboidEvent.getJobId());
+                postAddCuboidEvent.setOwner(getUsername());
+                eventManager.post(postAddCuboidEvent);
+                return null;
+            }, project);
     }
-
-    private void buildSegmentsManually(String project, String modelId, String format, String start, String end) throws Exception {
-        NDataModel modelDesc = getDataModelManager(project).getDataModelDesc(modelId);
-        if (!modelDesc.getManagementType().equals(ManagementType.MODEL_BASED)) {
-            throw new BadRequestException(
-                    "Table oriented model '" + modelDesc.getAlias() + "' can not build segments manually!");
-        }
-        val indexPlan = getIndexPlan(modelId, project);
-        if (indexPlan == null) {
-            throw new BadRequestException(
-                    "Can not build segments, please define table index or aggregate index first!");
-        }
-
-        SegmentRange segmentRangeToBuild = null;
-
-        TableDesc table = getTableManager(project).getTableDesc(modelDesc.getRootFactTableName());
-
-        val df = getDataflowManager(project).getDataflow(modelId);
-
-        if (modelDesc.getPartitionDesc() == null
-                || StringUtils.isEmpty(modelDesc.getPartitionDesc().getPartitionDateColumn())) {
-            //if full seg exists,refresh it
-            val segs = df.getSegments(SegmentStatusEnum.READY);
-            if (segs.size() == 1 && segs.get(0).getSegRange().isInfinite()) {
-                refreshSegmentById(modelId, project,
-                        Lists.newArrayList(df.getSegments().get(0).getId()).toArray(new String[0]));
-                return;
-            }
-            //build Full seg
-            segmentRangeToBuild = SegmentRange.TimePartitionedSegmentRange.createInfinite();
-        } else {
-            Preconditions.checkArgument(!PushDownUtil.needPushdown(start, end),
-                    "Load data must set start and end date");
-            segmentRangeToBuild = SourceFactory.getSource(table).getSegmentRange(start, end);
-        }
-        saveDateFormatIfNotExist(project, modelId, format);
-
-        checkSegmentToBuildOverlapsBuilt(project, modelId, segmentRangeToBuild);
-
-        NDataSegment newSegment = getDataflowManager(project).appendSegment(df, segmentRangeToBuild);
-
-        EventManager eventManager = getEventManager(project);
-
-        AddSegmentEvent addSegmentEvent = new AddSegmentEvent();
-        addSegmentEvent.setSegmentId(newSegment.getId());
-        addSegmentEvent.setModelId(modelId);
-        addSegmentEvent.setJobId(UUID.randomUUID().toString());
-        addSegmentEvent.setOwner(getUsername());
-        eventManager.post(addSegmentEvent);
-
-        PostAddSegmentEvent postAddSegmentEvent = new PostAddSegmentEvent();
-        postAddSegmentEvent.setSegmentId(newSegment.getId());
-        postAddSegmentEvent.setModelId(modelId);
-        postAddSegmentEvent.setJobId(addSegmentEvent.getJobId());
-        postAddSegmentEvent.setOwner(getUsername());
-        eventManager.post(postAddSegmentEvent);
-
-        AddCuboidEvent addCuboidEvent = new AddCuboidEvent();
-        addCuboidEvent.setModelId(modelId);
-        addCuboidEvent.setJobId(UUID.randomUUID().toString());
-        addCuboidEvent.setOwner(getUsername());
-        eventManager.post(addCuboidEvent);
-
-        PostAddCuboidEvent postAddCuboidEvent = new PostAddCuboidEvent();
-        postAddCuboidEvent.setModelId(modelId);
-        postAddCuboidEvent.setJobId(addCuboidEvent.getJobId());
-        postAddCuboidEvent.setOwner(getUsername());
-        eventManager.post(postAddCuboidEvent);
-    }
-
+    
     void syncPartitionDesc(String model, String project) {
         val dataloadingManager = getDataLoadingRangeManager(project);
         val datamodelManager = getDataModelManager(project);
