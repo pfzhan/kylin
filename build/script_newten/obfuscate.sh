@@ -26,8 +26,8 @@ keepParam+=$(grep -hro --include="kylin-*-log4j.properties" "io\.kyligence\.kap\
 keepParam+=$(grep -hro --include="*.sh" "io\.kyligence\.kap\.[^\*\.]*\.[^ \`\"]*" src | sort -u | awk '{print "-keep class " $0 " {*;}"}')' '
 
 if [ -z $java_home ]; then
-	java_home_mess=`mvn -version | grep "Java home"`
-	java_home=`cut -d ':' -f 2- <<< "$java_home_mess"`
+	java_home_mess=`java -XshowSettings:properties -version 2>&1 > /dev/null | grep "java.home"`
+    	java_home=`cut -d '=' -f 2- <<< "$java_home_mess"`
 fi
 
 # directory tmp for output
