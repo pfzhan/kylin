@@ -293,12 +293,6 @@ export default class TableIndex extends Vue {
       }
     }
   }
-  
-  .table-index-detail {
-    th {
-      background-color:@base-color-9;
-    }
-  }
   float:left;
   width:100%;
   padding-bottom:20px;

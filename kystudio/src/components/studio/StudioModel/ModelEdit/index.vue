@@ -1817,7 +1817,7 @@ export default class ModelEdit extends Vue {
         }
       }
       &.full-screen {
-        top:88px!important;
+        top:51px!important;
       }
       width:100%!important;
       height:100%!important;
