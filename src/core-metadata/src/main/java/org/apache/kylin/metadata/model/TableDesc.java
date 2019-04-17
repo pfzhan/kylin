@@ -181,7 +181,7 @@ public class TableDesc extends RootPersistentEntity implements Serializable, ISo
                     if (!existingColumns[i].isComputedColumn()) {
                         throw new IllegalArgumentException(String.format(
                                 "There is already a column named %s on table %s, please change your computed column name",
-                                computedColumns[j].getName(), this.getIdentity()));
+                                new Object[] { computedColumns[j].getName(), this.getIdentity() }));
                     } else {
                         isFreshCC = false;
                     }

@@ -190,7 +190,7 @@ public class ByteArray implements Comparable<ByteArray>, Serializable {
     @Override
     public String toString() {
         if (data == null)
-            return "";
+            return null;
         else
             return Bytes.toStringBinary(data, offset, length);
     }

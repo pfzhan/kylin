@@ -250,32 +250,32 @@ abstract public class SegmentRange<T extends Comparable> implements Comparable<S
             return new TimePartitionedSegmentRange(0L, Long.MAX_VALUE);
         }
 
-        private TimePartitionedSegmentRange convertToTimePartitioned(SegmentRange o) {
+        private TimePartitionedSegmentRange convert(SegmentRange o) {
             Preconditions.checkState(o instanceof TimePartitionedSegmentRange);
             return (TimePartitionedSegmentRange) o;
         }
 
         @Override
         public SegmentRange coverWith(SegmentRange o) {
-            TimePartitionedSegmentRange other = convertToTimePartitioned(o);
+            TimePartitionedSegmentRange other = convert(o);
             return new TimePartitionedSegmentRange(this.start, other.end);
         }
 
         @Override
         public SegmentRange getStartDeviation(SegmentRange o) {
-            TimePartitionedSegmentRange other = convertToTimePartitioned(o);
+            TimePartitionedSegmentRange other = convert(o);
             return new TimePartitionedSegmentRange(this.start, other.start);
         }
 
         @Override
         public SegmentRange getEndDeviation(SegmentRange o) {
-            TimePartitionedSegmentRange other = convertToTimePartitioned(o);
+            TimePartitionedSegmentRange other = convert(o);
             return new TimePartitionedSegmentRange(this.end, other.end);
         }
 
         @Override
         public SegmentRange getOverlapRange(SegmentRange o) {
-            TimePartitionedSegmentRange other = convertToTimePartitioned(o);
+            TimePartitionedSegmentRange other = convert(o);
             if (!this.overlaps(o)) {
                 return null;
             }
@@ -286,7 +286,7 @@ abstract public class SegmentRange<T extends Comparable> implements Comparable<S
 
         @Override
         public SegmentRange gapTill(SegmentRange o) {
-            TimePartitionedSegmentRange other = convertToTimePartitioned(o);
+            TimePartitionedSegmentRange other = convert(o);
             return new TimePartitionedSegmentRange(this.end, other.start);
         }
 
@@ -337,42 +337,42 @@ abstract public class SegmentRange<T extends Comparable> implements Comparable<S
                     : sourcePartitionOffsetEnd;
         }
 
-        private KafkaOffsetPartitionedSegmentRange convertToKafkaOffset(SegmentRange o) {
+        private KafkaOffsetPartitionedSegmentRange convert(SegmentRange o) {
             Preconditions.checkState(o instanceof KafkaOffsetPartitionedSegmentRange);
             return (KafkaOffsetPartitionedSegmentRange) o;
         }
 
         @Override
         public SegmentRange coverWith(SegmentRange o) {
-            KafkaOffsetPartitionedSegmentRange other = convertToKafkaOffset(o);
+            KafkaOffsetPartitionedSegmentRange other = convert(o);
             return new KafkaOffsetPartitionedSegmentRange(this.start, other.end, this.getSourcePartitionOffsetStart(),
                     other.getSourcePartitionOffsetEnd());
         }
 
         @Override
         public SegmentRange gapTill(SegmentRange o) {
-            KafkaOffsetPartitionedSegmentRange other = convertToKafkaOffset(o);
+            KafkaOffsetPartitionedSegmentRange other = convert(o);
             return new KafkaOffsetPartitionedSegmentRange(this.end, other.start, this.getSourcePartitionOffsetEnd(),
                     other.getSourcePartitionOffsetStart());
         }
 
         @Override
         public SegmentRange getStartDeviation(SegmentRange o) {
-            KafkaOffsetPartitionedSegmentRange other = convertToKafkaOffset(o);
+            KafkaOffsetPartitionedSegmentRange other = convert(o);
             return new KafkaOffsetPartitionedSegmentRange(this.start, other.start, this.getSourcePartitionOffsetStart(),
                     other.getSourcePartitionOffsetStart());
         }
 
         @Override
         public SegmentRange getEndDeviation(SegmentRange o) {
-            KafkaOffsetPartitionedSegmentRange other = convertToKafkaOffset(o);
+            KafkaOffsetPartitionedSegmentRange other = convert(o);
             return new KafkaOffsetPartitionedSegmentRange(this.end, other.end, this.getSourcePartitionOffsetEnd(),
                     other.getSourcePartitionOffsetEnd());
         }
 
         @Override
         public SegmentRange getOverlapRange(SegmentRange o) {
-            KafkaOffsetPartitionedSegmentRange other = convertToKafkaOffset(o);
+            KafkaOffsetPartitionedSegmentRange other = convert(o);
             if (!this.overlaps(o)) {
                 return null;
             }

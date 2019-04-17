@@ -198,7 +198,7 @@ public class OLAPFilterRel extends Filter implements OLAPRel {
                     filter = inFilter;
                 }
             } else if (op.getKind() == SqlKind.NOT) {
-                assert (filter != null && filter.getChildren().size() == 1);
+                assert (filter.getChildren().size() == 1);
                 filter = filter.getChildren().get(0).reverse();
             }
             return filter;

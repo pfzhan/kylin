@@ -61,8 +61,8 @@ public class QuerACLTestUtil {
     }
 
     public static ResultSet mockQuery(String project, String sql) throws SQLException {
-        try (Connection conn = QueryConnection.getConnection(project); Statement statement = conn.createStatement()) {
-            return statement.executeQuery(sql);
-        }
+        Connection conn = QueryConnection.getConnection(project);
+        Statement statement = conn.createStatement();
+        return statement.executeQuery(sql);
     }
 }

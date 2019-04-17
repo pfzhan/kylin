@@ -47,19 +47,19 @@ public class KapOLAPSchema extends OLAPSchema {
         this.projectName = project;
         this.schemaName = schemaName;
         this.exposeMore = exposeMore;
-        setup();
+        init();
     }
 
-    private void setup() {
+    private void init() {
         this.config = KylinConfig.getInstanceFromEnv();
     }
 
     @Override
     public Map<String, Table> getTableMap() {
-        return createTableMap();
+        return buildTableMap();
     }
 
-    private Map<String, Table> createTableMap() {
+    private Map<String, Table> buildTableMap() {
         Map<String, Table> olapTables = new HashMap<String, Table>();
 
         Collection<TableDesc> projectTables = NProjectManager.getInstance(config).listExposedTables(projectName,

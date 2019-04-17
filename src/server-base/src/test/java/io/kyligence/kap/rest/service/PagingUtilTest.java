@@ -44,6 +44,10 @@
 package io.kyligence.kap.rest.service;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
+import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.rest.util.PagingUtil;
 import org.junit.Assert;
 import org.junit.Test;
@@ -57,6 +61,33 @@ public class PagingUtilTest {
         Assert.assertEquals(Lists.newArrayList("d"), PagingUtil.cutPage(list, 3, 1));
     }
 
+    @Test
+    public void cutPageWithTwoList() {
+        List<Integer> l1 = new ArrayList<>();
+        List<Integer> l2 = new ArrayList<>();
+        for (int i = 0; i < 9; i++) {
+            l1.add(i);
+        }
+        for (int i = 0; i < 25; i++) {
+            l2.add(i);
+        }
+        Pair<List<Integer>, List<Integer>> p0 = PagingUtil.cutPageWithTwoList(l1, l2, 0, 10);
+        Pair<List<Integer>, List<Integer>> p1 = PagingUtil.cutPageWithTwoList(l1, l2, 1, 10);
+        Pair<List<Integer>, List<Integer>> p2 = PagingUtil.cutPageWithTwoList(l1, l2, 2, 10);
+        Pair<List<Integer>, List<Integer>> p3 = PagingUtil.cutPageWithTwoList(l1, l2, 3, 10);
+
+        Assert.assertEquals(Lists.newArrayList(0, 1, 2, 3, 4, 5, 6, 7, 8), p0.getFirst());
+        Assert.assertEquals(Lists.newArrayList(0), p0.getSecond());
+
+        Assert.assertEquals(Collections.<Integer> emptyList(), p1.getFirst());
+        Assert.assertEquals(Lists.newArrayList(1, 2, 3, 4, 5, 6, 7, 8, 9, 10), p1.getSecond());
+
+        Assert.assertEquals(Collections.<Integer> emptyList(), p2.getFirst());
+        Assert.assertEquals(Lists.newArrayList(11, 12, 13, 14, 15, 16, 17, 18, 19, 20), p2.getSecond());
+
+        Assert.assertEquals(Collections.<Integer> emptyList(), p3.getFirst());
+        Assert.assertEquals(Lists.newArrayList(21, 22, 23, 24), p3.getSecond());
+    }
 
     @Test
     public void testFuzzyMatching() {

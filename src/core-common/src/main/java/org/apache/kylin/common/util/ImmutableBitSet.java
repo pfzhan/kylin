@@ -47,7 +47,6 @@ import java.nio.ByteBuffer;
 import java.util.BitSet;
 import java.util.Iterator;
 import java.util.List;
-import java.util.NoSuchElementException;
 
 public class ImmutableBitSet implements Iterable<Integer>, Serializable {
     private static final long serialVersionUID = 2670748367234738640L;
@@ -222,9 +221,6 @@ public class ImmutableBitSet implements Iterable<Integer>, Serializable {
 
             @Override
             public Integer next() {
-                if (!hasNext()) {
-                    throw new NoSuchElementException();
-                }
                 return arr[index++];
             }
 

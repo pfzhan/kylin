@@ -185,7 +185,7 @@ public class BlockingReservoir extends AbstractActiveReservoir {
 
         private void sleep() {
             try {
-                Thread.sleep(60 * 1000L);
+                Thread.sleep(60 * 1000);
             } catch (InterruptedException e) {
                 logger.warn("Interrupted during running");
                 Thread.currentThread().interrupt();

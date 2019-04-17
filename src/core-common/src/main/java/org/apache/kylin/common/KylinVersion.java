@@ -49,11 +49,13 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import javax.annotation.Nullable;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.StringUtils;
 
 import com.google.common.base.Preconditions;
+import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
 
 public class KylinVersion implements Comparable {
@@ -181,12 +183,19 @@ public class KylinVersion implements Comparable {
             return false;//for snapshot versions things are undetermined
         }
 
-        boolean signatureIncompatible = Iterables.any(
-                Iterables.filter(
+        boolean signatureIncompatible = Iterables.any(Iterables.filter(
 
-                    SIGNATURE_INCOMPATIBLE_REVISIONS,
-                    input -> input != null && v.major == input.major && v.minor == input.minor
-                ), input -> input != null && input.revision > v.revision);
+                SIGNATURE_INCOMPATIBLE_REVISIONS, new Predicate<KylinVersion>() {
+                    @Override
+                    public boolean apply(@Nullable KylinVersion input) {
+                        return v.major == input.major && v.minor == input.minor;
+                    }
+                }), new Predicate<KylinVersion>() {
+                    @Override
+                    public boolean apply(@Nullable KylinVersion input) {
+                        return input.revision > v.revision;
+                    }
+                });
 
         return !signatureIncompatible;
     }

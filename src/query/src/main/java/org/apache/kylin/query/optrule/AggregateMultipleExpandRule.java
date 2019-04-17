@@ -43,6 +43,7 @@
 
 package org.apache.kylin.query.optrule;
 
+import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableList;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
@@ -57,6 +58,7 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.util.ImmutableBitSet;
 
+import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -80,11 +82,12 @@ import java.util.List;
  */
 public class AggregateMultipleExpandRule extends RelOptRule {
     public static final AggregateMultipleExpandRule INSTANCE = new AggregateMultipleExpandRule(//
-            operand(LogicalAggregate.class,
-                    null,
-                    input -> input != null && input.getGroupType() != Aggregate.Group.SIMPLE,
-                    operand(RelNode.class, any())
-            ), "AggregateMultipleExpandRule");
+            operand(LogicalAggregate.class, null, new Predicate<Aggregate>() {
+                @Override
+                public boolean apply(@Nullable Aggregate input) {
+                    return input.getGroupType() != Aggregate.Group.SIMPLE;
+                }
+            }, operand(RelNode.class, any())), "AggregateMultipleExpandRule");
 
     private AggregateMultipleExpandRule(RelOptRuleOperand operand, String description) {
         super(operand, description);

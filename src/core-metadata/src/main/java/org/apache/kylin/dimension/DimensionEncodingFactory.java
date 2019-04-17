@@ -45,6 +45,7 @@ package org.apache.kylin.dimension;
 
 import java.util.Map;
 
+import javax.annotation.Nullable;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.ClassUtil;
@@ -52,6 +53,7 @@ import org.apache.kylin.common.util.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 
@@ -112,7 +114,12 @@ public abstract class DimensionEncodingFactory {
 
         // note dictionary is a special case
         return DictionaryDimEnc.ENCODING_NAME.equals(encodingName) || //
-                Iterables.any(factoryMap.keySet(), input -> input != null && input.getFirst().equals(encodingName));
+                Iterables.any(factoryMap.keySet(), new Predicate<Pair<String, Integer>>() {
+                    @Override
+                    public boolean apply(@Nullable Pair<String, Integer> input) {
+                        return input.getFirst().equals(encodingName);
+                    }
+                });
     }
 
     private synchronized static void initFactoryMap() {

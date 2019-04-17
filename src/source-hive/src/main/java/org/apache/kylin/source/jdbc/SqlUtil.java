@@ -122,10 +122,8 @@ public class SqlUtil {
                 logger.warn("while use:" + dbconf, e);
                 try {
                     int rt = r.nextInt(10);
-                    Thread.sleep(rt*1000L);
+                    Thread.sleep(rt*1000);
                 } catch (InterruptedException e1) {
-                    logger.error("Failed to Sleep: ", e1);
-                    Thread.currentThread().interrupt();
                 }
             }
         }

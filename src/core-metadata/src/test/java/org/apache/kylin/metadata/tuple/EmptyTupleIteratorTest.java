@@ -44,10 +44,9 @@
 package org.apache.kylin.metadata.tuple;
 
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
 
 import org.junit.Test;
-
-import java.util.NoSuchElementException;
 
 public class EmptyTupleIteratorTest {
 
@@ -55,13 +54,8 @@ public class EmptyTupleIteratorTest {
     public void testListAllTables() throws Exception {
         ITupleIterator it = ITupleIterator.EMPTY_TUPLE_ITERATOR;
         assertFalse(it.hasNext());
+        assertNull(it.next());
         it.close(); // for coverage
-    }
-
-    @Test(expected = NoSuchElementException.class)
-    public void testNext() {
-        ITupleIterator it = ITupleIterator.EMPTY_TUPLE_ITERATOR;
-        it.next();
     }
 
 }

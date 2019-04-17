@@ -51,7 +51,6 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
-import java.util.NoSuchElementException;
 import java.util.Random;
 import java.util.TreeSet;
 
@@ -208,7 +207,7 @@ public class ColumnGenerator {
                 // double
                 return formatNumber(randomDouble());
             } else {
-                throw new NoSuchElementException();
+                throw new IllegalStateException();
             }
         }
 
@@ -280,7 +279,7 @@ public class ColumnGenerator {
         @Override
         public String next() {
             if (values.isEmpty())
-                throw new NoSuchElementException();
+                return null;
             
             return values.get(rand.nextInt(values.size()));
         }
