@@ -153,6 +153,7 @@ public class CliCommandExecutor {
             cmd[2] = command;
 
             ProcessBuilder builder = new ProcessBuilder(cmd);
+            builder.environment().putAll(System.getenv());
             builder.redirectErrorStream(true);
             Process proc = builder.start();
 
