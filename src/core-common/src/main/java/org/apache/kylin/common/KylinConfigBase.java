@@ -1564,10 +1564,6 @@ abstract public class KylinConfigBase implements Serializable {
         return Integer.parseInt(getOptional("kylin.garbage.storage.query-times-threshold", "5"));
     }
 
-    public long getExecutableSurvivalTimeThreshold() {
-        return TimeUtil.timeStringAs(getOptional("kylin.garbage.storage.executable-survival-time-threshold", "30d"), TimeUnit.MILLISECONDS);
-    }
-
     public long getStorageQuotaSize() {
         return Long.parseLong(getOptional("kylin.storage.quota-in-giga-bytes", "10240")) * 1024 * 1024 * 1024;
     }

@@ -47,7 +47,6 @@ public class GarbageCleaner {
 
             new FavoriteQueryCleaner().cleanup(project);
             new IndexCleaner().cleanup(project);
-            new ExecutableCleaner().cleanup(project);
             return 0;
         }, project);
     }
@@ -62,7 +61,6 @@ public class GarbageCleaner {
                 new BrokenModelCleaner().cleanup(project);
 
             new IndexCleaner().cleanup(project);
-            new ExecutableCleaner().cleanup(project);
             return 0;
         }, project);
     }
