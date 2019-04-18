@@ -235,7 +235,7 @@
         <el-table :data="waitingJob.jobsList" border class="ksd-mt-10">
           <el-table-column type="index" :label="$t('order')" width="60" :resizable="false"></el-table-column>
           <el-table-column property="job_type" :label="$t('JobType')" show-overflow-tooltip :resizable="false"></el-table-column>
-          <el-table-column property="create_time" :label="$t('triggerTime')" width="207" :resizable="false">
+          <el-table-column property="create_time" :label="$t('triggerTime')" width="218" :resizable="false">
             <template slot-scope="scope">
               {{transToGmtTime(scope.row.create_time)}}
             </template>
