@@ -24,13 +24,14 @@
 
 package io.kyligence.kap.newten.auto;
 
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 
-import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import org.junit.Assert;
 import org.junit.Test;
 
+import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.model.ComputedColumnDesc;
 import io.kyligence.kap.metadata.model.NDataModel;
@@ -84,84 +85,237 @@ public class NAutoComputedColumnTest extends NAutoTestBase {
     }
 
     @Test
-    public void testReuseProposedCC() {
-        // initial propose, partially will fail
-        String query1 = "select price*item_count from test_kylin_fact"; // will propose a tableIndex
-        String query2 = "select sum(price*item_count) from test_kylin_fact";
-        String query3 = "select {fn left(lstg_format_name,-4)} as name, sum(price*item_count) "
-                + "from test_kylin_fact group by lstg_format_name";
-        NSmartMaster smartMaster = new NSmartMaster(kylinConfig, getProject(), new String[] { query1, query2, query3 });
+    public void testProposeMultiCCToOneModel() {
+        // The 'price*item_count' should be replaced by auto_cc_1, query2 will success, however query4 will fail
+        // (reason: the second param of left() cannot be a negative number, left() also support by spark2.3+).
+        // The 'price+item_count' will produce another cc expression auto_cc_2.
+        String query1 = "select price*item_count from test_kylin_fact";
+        String query2 = "select sum(price*item_count) from test_kylin_fact"; // one cc
+        String query3 = "select sum(price*item_count), price from test_kylin_fact group by price";
+        String query4 = "select sum(price+item_count) from test_kylin_fact"; // another cc
+        String query5 = "select {fn left(lstg_format_name,-4)} as name, sum(price*item_count) "
+                + "from test_kylin_fact group by lstg_format_name"; // blocked
+        NSmartMaster smartMaster = new NSmartMaster(kylinConfig, getProject(),
+                new String[] { query1, query2, query3, query4, query5 });
         smartMaster.runAll();
+
         val modelContexts = smartMaster.getContext().getModelContexts();
-        val suggestedCC = modelContexts.get(0).getTargetModel().getComputedColumnDescs().get(0);
-        Assert.assertEquals("CC_AUTO_1", suggestedCC.getColumnName());
-        Assert.assertEquals("TEST_KYLIN_FACT.PRICE * TEST_KYLIN_FACT.ITEM_COUNT", suggestedCC.getExpression());
+        Assert.assertEquals(1, modelContexts.size());
+        val computedColumns = modelContexts.get(0).getTargetModel().getComputedColumnDescs();
+        Assert.assertEquals(2, computedColumns.size());
+        val suggestedCC1 = computedColumns.get(0);
+        Assert.assertEquals("CC_AUTO_1", suggestedCC1.getColumnName());
+        Assert.assertEquals("TEST_KYLIN_FACT.PRICE + TEST_KYLIN_FACT.ITEM_COUNT", suggestedCC1.getExpression());
+        val suggestedCC2 = computedColumns.get(1);
+        Assert.assertEquals("CC_AUTO_2", suggestedCC2.getColumnName());
+        Assert.assertEquals("TEST_KYLIN_FACT.PRICE * TEST_KYLIN_FACT.ITEM_COUNT", suggestedCC2.getExpression());
+
         val accelerateInfoMap = smartMaster.getContext().getAccelerateInfoMap();
         Assert.assertFalse(accelerateInfoMap.get(query1).isBlocked());
         Assert.assertFalse(accelerateInfoMap.get(query2).isBlocked());
-        Assert.assertTrue(accelerateInfoMap.get(query3).isBlocked());
+        Assert.assertFalse(accelerateInfoMap.get(query3).isBlocked());
+        Assert.assertFalse(accelerateInfoMap.get(query4).isBlocked());
+        Assert.assertTrue(accelerateInfoMap.get(query5).isBlocked());
         Assert.assertEquals("Table not found by UNKNOWN_ALIAS",
-                accelerateInfoMap.get(query3).getBlockingCause().getMessage());
+                accelerateInfoMap.get(query5).getBlockingCause().getMessage());
 
         val targetIndexPlan = modelContexts.get(0).getTargetIndexPlan();
         final List<IndexEntity> indexes = targetIndexPlan.getIndexes();
-        Assert.assertEquals(20000000000L, indexes.get(0).getId());
-        Assert.assertEquals(0L, indexes.get(1).getId());
-
-        // case 1: incompatible with the proposed model, cannot reuse already existing model and index-plan
-        String query4 = "select sum(price*item_count), account_id from test_account "
-                + "left join test_kylin_fact on test_kylin_fact.seller_id = test_account.account_id "
-                + "group by account_id";
-        smartMaster = new NSmartMaster(kylinConfig, getProject(), new String[] { query4 });
-        smartMaster.runAll();
-        val modelContexts1 = smartMaster.getContext().getModelContexts();
-        val suggestedCC1 = modelContexts1.get(0).getTargetModel().getComputedColumnDescs().get(0);
-        Assert.assertEquals("CC_AUTO_1", suggestedCC1.getColumnName());
-        Assert.assertEquals("TEST_KYLIN_FACT.PRICE * TEST_KYLIN_FACT.ITEM_COUNT", suggestedCC1.getExpression());
-        val accelerationInfoMap1 = smartMaster.getContext().getAccelerateInfoMap();
-        Assert.assertFalse(accelerationInfoMap1.get(query4).isBlocked());
-
-        // case2: compatible but partially reused
-        // The 'price*item_count' should be replaced by auto_cc_1, query1 will success, however query2 will fail
-        // (reason: the second param of left() cannot be a negative number, left() also support by spark2.3+)
-        String query5 = "select sum(price*item_count), price from test_kylin_fact group by price";
-        String query6 = "select {fn left(lstg_format_name,-2)} as name, sum(price*item_count) "//
-                + " from test_kylin_fact group by lstg_format_name";
-        smartMaster = new NSmartMaster(kylinConfig, getProject(), new String[] { query5, query6 });
-        smartMaster.runAll();
-        val modelContexts2 = smartMaster.getContext().getModelContexts();
-        val suggestedCC2 = modelContexts2.get(0).getTargetModel().getComputedColumnDescs().get(0);
-        val accelerateInfoMap2 = smartMaster.getContext().getAccelerateInfoMap();
-        Assert.assertEquals("CC_AUTO_1", suggestedCC2.getColumnName());
-        Assert.assertEquals("TEST_KYLIN_FACT.PRICE * TEST_KYLIN_FACT.ITEM_COUNT", suggestedCC2.getExpression());
-        Assert.assertFalse(accelerateInfoMap2.get(query5).isBlocked());
-        Assert.assertTrue(accelerateInfoMap2.get(query6).isBlocked());
-        Assert.assertEquals("Table not found by UNKNOWN_ALIAS",
-                accelerateInfoMap2.get(query6).getBlockingCause().getMessage());
+        indexes.sort(Comparator.comparing(IndexEntity::getId));
+        Assert.assertEquals(0L, indexes.get(0).getId());
+        Assert.assertEquals(10000L, indexes.get(1).getId());
+        Assert.assertEquals(20000L, indexes.get(2).getId());
+        Assert.assertEquals(20000000000L, indexes.get(3).getId());
     }
 
     @Test
-    public void testReuseProposedCCInOtherModel() {
+    public void testProposeCCToDifferentModelWithSameRootFactTable() {
+        // different model share the same cc for having the same root fact table
+        String query1 = "select sum(price * item_count) from test_kylin_fact inner join test_account "
+                + "on test_kylin_fact.seller_id = test_account.account_id "
+                + "inner join test_country on test_account.account_country = test_country.country";
+        String query2 = "select sum(price * item_count) from test_kylin_fact inner join test_account "
+                + "on test_kylin_fact.seller_id = test_account.account_id "
+                + "left join test_country on test_account.account_country = test_country.country";
+        String query3 = "select sum(price + item_count) from test_kylin_fact inner join test_account "
+                + "on test_kylin_fact.seller_id = test_account.account_id "
+                + "inner join test_country on test_account.account_country = test_country.country";
+        NSmartMaster smartMaster = new NSmartMaster(kylinConfig, getProject(), new String[] { query1, query2, query3 });
+        smartMaster.runAll();
+        val modelContexts = smartMaster.getContext().getModelContexts();
+        Assert.assertEquals(2, modelContexts.size());
+
+        // case 1: different cc expression
+        val computedColumns = modelContexts.get(0).getTargetModel().getComputedColumnDescs();
+        Assert.assertEquals(2, computedColumns.size());
+        val suggestedCC1 = computedColumns.get(0);
+        Assert.assertEquals("CC_AUTO_1", suggestedCC1.getColumnName());
+        Assert.assertEquals("TEST_KYLIN_FACT.PRICE + TEST_KYLIN_FACT.ITEM_COUNT", suggestedCC1.getExpression());
+        val suggestedCC2 = computedColumns.get(1);
+        Assert.assertEquals("CC_AUTO_2", suggestedCC2.getColumnName());
+        Assert.assertEquals("TEST_KYLIN_FACT.PRICE * TEST_KYLIN_FACT.ITEM_COUNT", suggestedCC2.getExpression());
+
+        // case 2: same cc expression
+        val suggestedCC3 = modelContexts.get(1).getTargetModel().getComputedColumnDescs().get(0);
+        Assert.assertEquals("CC_AUTO_2", suggestedCC3.getColumnName());
+        Assert.assertEquals("TEST_KYLIN_FACT.PRICE * TEST_KYLIN_FACT.ITEM_COUNT", suggestedCC3.getExpression());
+    }
+
+    @Test
+    public void testProposedMultiCCToDifferentModelWithDifferentRootFactTable() {
         String query1 = "select sum(price*item_count) from test_kylin_fact";
         String query2 = "select sum(price*item_count), account_id from test_account "
                 + "left join test_kylin_fact on test_kylin_fact.seller_id = test_account.account_id "
                 + "group by account_id";
-
-        NSmartMaster smartMaster = new NSmartMaster(kylinConfig, getProject(), new String[] { query1, query2 });
+        String query3 = "select sum(price + item_count) from test_order inner join test_kylin_fact "
+                + "on test_kylin_fact.order_id = test_order.order_id ";
+        NSmartMaster smartMaster = new NSmartMaster(kylinConfig, getProject(), new String[] { query1, query2, query3 });
         smartMaster.runAll();
 
+        // suggestedCC1, suggestedCC2 and suggestedCC3  will be added to different root fact table
         val modelContexts = smartMaster.getContext().getModelContexts();
+        Assert.assertEquals(3, modelContexts.size());
         val suggestedCC1 = modelContexts.get(0).getTargetModel().getComputedColumnDescs().get(0);
         Assert.assertEquals("CC_AUTO_1", suggestedCC1.getColumnName());
+        Assert.assertEquals("DEFAULT.TEST_KYLIN_FACT", suggestedCC1.getTableIdentity());
         Assert.assertEquals("TEST_KYLIN_FACT.PRICE * TEST_KYLIN_FACT.ITEM_COUNT", suggestedCC1.getExpression());
-
         val suggestedCC2 = modelContexts.get(1).getTargetModel().getComputedColumnDescs().get(0);
         Assert.assertEquals("CC_AUTO_1", suggestedCC2.getColumnName());
+        Assert.assertEquals("DEFAULT.TEST_ACCOUNT", suggestedCC2.getTableIdentity());
         Assert.assertEquals("TEST_KYLIN_FACT.PRICE * TEST_KYLIN_FACT.ITEM_COUNT", suggestedCC2.getExpression());
+        val suggestedCC3 = modelContexts.get(2).getTargetModel().getComputedColumnDescs().get(0);
+        Assert.assertEquals("CC_AUTO_1", suggestedCC3.getColumnName());
+        Assert.assertEquals("DEFAULT.TEST_ORDER", suggestedCC3.getTableIdentity());
+        Assert.assertEquals("TEST_KYLIN_FACT.PRICE + TEST_KYLIN_FACT.ITEM_COUNT", suggestedCC3.getExpression());
+    }
 
-        smartMaster.getContext().getAccelerateInfoMap().forEach((sql, accelerationInfo) -> {
-            Assert.assertFalse(accelerationInfo.isBlocked());
-        });
+    @Test
+    public void testReproposeUseExistingModel() {
+        // init a model with cc
+        String query1 = "select sum(price*item_count), price from test_kylin_fact group by price";
+        NSmartMaster smartMaster = new NSmartMaster(kylinConfig, getProject(), new String[] { query1 });
+        smartMaster.runAll();
+        val modelContexts = smartMaster.getContext().getModelContexts();
+        Assert.assertEquals(1, modelContexts.size());
+        val modelContext = modelContexts.get(0);
+        val computedColumns = modelContext.getTargetModel().getComputedColumnDescs();
+        val suggestedCC = computedColumns.get(0);
+        Assert.assertEquals("CC_AUTO_1", suggestedCC.getColumnName());
+        Assert.assertEquals("DEFAULT.TEST_KYLIN_FACT", suggestedCC.getTableIdentity());
+        Assert.assertEquals("TEST_KYLIN_FACT.PRICE * TEST_KYLIN_FACT.ITEM_COUNT", suggestedCC.getExpression());
+
+        // case 1: cannot use existing cc for different cc expression
+        String query2 = "select sum(price+item_count) from test_kylin_fact"; // another cc
+        smartMaster = new NSmartMaster(kylinConfig, getProject(), new String[] { query2 });
+        smartMaster.runAll();
+        val modelContextsList1 = smartMaster.getContext().getModelContexts();
+        Assert.assertEquals(1, modelContextsList1.size());
+        val modelContext1 = modelContextsList1.get(0);
+        Assert.assertNotNull(modelContext1.getOrigModel());
+        val suggestCCList1 = modelContext1.getTargetModel().getComputedColumnDescs();
+        Assert.assertEquals(2, suggestCCList1.size());
+        val suggestedCC10 = suggestCCList1.get(0);
+        Assert.assertEquals("CC_AUTO_1", suggestedCC10.getColumnName());
+        Assert.assertEquals("DEFAULT.TEST_KYLIN_FACT", suggestedCC10.getTableIdentity());
+        Assert.assertEquals("TEST_KYLIN_FACT.PRICE * TEST_KYLIN_FACT.ITEM_COUNT", suggestedCC10.getExpression());
+        val suggestedCC11 = suggestCCList1.get(1);
+        Assert.assertEquals("CC_AUTO_2", suggestedCC11.getColumnName());
+        Assert.assertEquals("DEFAULT.TEST_KYLIN_FACT", suggestedCC11.getTableIdentity());
+        Assert.assertEquals("TEST_KYLIN_FACT.PRICE + TEST_KYLIN_FACT.ITEM_COUNT", suggestedCC11.getExpression());
+
+        // case 2: can use existing cc for the same cc expression
+        String query3 = "select sum(price*item_count) from test_kylin_fact";
+        String query4 = "select sum(price+item_count), lstg_format_name from test_kylin_fact group by lstg_format_name";
+        smartMaster = new NSmartMaster(kylinConfig, getProject(), new String[] { query3, query4 });
+        smartMaster.runAll();
+        val modelContextsList2 = smartMaster.getContext().getModelContexts();
+        val modelContext2 = modelContextsList2.get(0);
+        Assert.assertNotNull(modelContext2.getOrigModel());
+        val suggestCCList2 = modelContext2.getTargetModel().getComputedColumnDescs();
+        Assert.assertEquals(2, suggestCCList2.size());
+        Assert.assertEquals(suggestCCList2, suggestCCList1);
+    }
+
+    @Test
+    public void testReproposeNewModelWithSameRootFactTable() {
+        // init a model with cc
+        String query1 = "select sum(price*item_count), price from test_kylin_fact group by price";
+        NSmartMaster smartMaster = new NSmartMaster(kylinConfig, getProject(), new String[] { query1 });
+        smartMaster.runAll();
+        val modelContext = smartMaster.getContext().getModelContexts().get(0);
+        val computedCCList = modelContext.getTargetModel().getComputedColumnDescs();
+        val suggestedCC = computedCCList.get(0);
+        Assert.assertEquals("CC_AUTO_1", suggestedCC.getColumnName());
+        Assert.assertEquals("DEFAULT.TEST_KYLIN_FACT", suggestedCC.getTableIdentity());
+        Assert.assertEquals("TEST_KYLIN_FACT.PRICE * TEST_KYLIN_FACT.ITEM_COUNT", suggestedCC.getExpression());
+
+        // case 1: same cc expression on the same root fact table
+        String query2 = "select sum(price*item_count) from test_kylin_fact inner join test_account "
+                + "on test_kylin_fact.seller_id = test_account.account_id "
+                + "inner join test_country on test_account.account_country = test_country.country";
+        String query3 = "select sum(price+item_count) from test_kylin_fact inner join test_order "
+                + "on test_kylin_fact.order_id = test_order.order_id ";
+        smartMaster = new NSmartMaster(kylinConfig, getProject(), new String[] { query2, query3 });
+        smartMaster.runAll();
+        val modelContext1 = smartMaster.getContext().getModelContexts().get(0);
+        Assert.assertNull(modelContext1.getOrigModel());
+        val suggestedCCList1 = modelContext1.getTargetModel().getComputedColumnDescs();
+        Assert.assertEquals(1, suggestedCCList1.size());
+        val suggestedCC10 = suggestedCCList1.get(0);
+        Assert.assertEquals("CC_AUTO_1", suggestedCC10.getColumnName()); // share 
+        Assert.assertEquals("DEFAULT.TEST_KYLIN_FACT", suggestedCC10.getTableIdentity());
+        Assert.assertEquals("TEST_KYLIN_FACT.PRICE * TEST_KYLIN_FACT.ITEM_COUNT", suggestedCC10.getExpression());
+
+        // case 2: different cc expression on the same root fact table
+        val modelContext2 = smartMaster.getContext().getModelContexts().get(1);
+        Assert.assertNull(modelContext2.getOrigModel());
+        val suggestedCCList2 = modelContext2.getTargetModel().getComputedColumnDescs();
+        Assert.assertEquals(1, suggestedCCList2.size());
+        val suggestedCC20 = suggestedCCList2.get(0);
+        Assert.assertEquals("CC_AUTO_2", suggestedCC20.getColumnName()); // share
+        Assert.assertEquals("DEFAULT.TEST_KYLIN_FACT", suggestedCC20.getTableIdentity());
+        Assert.assertEquals("TEST_KYLIN_FACT.PRICE + TEST_KYLIN_FACT.ITEM_COUNT", suggestedCC20.getExpression());
+    }
+
+    @Test
+    public void testReproposeNewModelWithDifferentFactTable() {
+        // init a model with cc
+        String query1 = "select sum(price*item_count), price from test_kylin_fact group by price";
+        NSmartMaster smartMaster = new NSmartMaster(kylinConfig, getProject(), new String[] { query1 });
+        smartMaster.runAll();
+        val modelContext = smartMaster.getContext().getModelContexts().get(0);
+        val computedCCList = modelContext.getTargetModel().getComputedColumnDescs();
+        val suggestedCC = computedCCList.get(0);
+        Assert.assertEquals("CC_AUTO_1", suggestedCC.getColumnName());
+        Assert.assertEquals("DEFAULT.TEST_KYLIN_FACT", suggestedCC.getTableIdentity());
+        Assert.assertEquals("TEST_KYLIN_FACT.PRICE * TEST_KYLIN_FACT.ITEM_COUNT", suggestedCC.getExpression());
+
+        // case 3: same cc expression on different root fact table
+        String query4 = "select sum(price*item_count), account_id from test_account "
+                + "left join test_kylin_fact on test_kylin_fact.seller_id = test_account.account_id "
+                + "group by account_id";
+        String query5 = "select sum(price+item_count) from test_order left join test_kylin_fact "
+                + "on test_kylin_fact.order_id = test_order.order_id ";
+        smartMaster = new NSmartMaster(kylinConfig, getProject(), new String[] { query4, query5 });
+        smartMaster.runAll();
+        val modelContext3 = smartMaster.getContext().getModelContexts().get(0);
+        Assert.assertNull(modelContext3.getOrigModel());
+        val suggestedCCList3 = modelContext3.getTargetModel().getComputedColumnDescs();
+        Assert.assertEquals(1, suggestedCCList3.size());
+        val suggestedCC30 = suggestedCCList3.get(0);
+        Assert.assertEquals("CC_AUTO_1", suggestedCC30.getColumnName());
+        Assert.assertEquals("DEFAULT.TEST_ACCOUNT", suggestedCC30.getTableIdentity());
+        Assert.assertEquals("TEST_KYLIN_FACT.PRICE * TEST_KYLIN_FACT.ITEM_COUNT", suggestedCC30.getExpression());
+
+        // case 4: different cc expression on the different root fact table
+        val modelContext4 = smartMaster.getContext().getModelContexts().get(1);
+        Assert.assertNull(modelContext4.getOrigModel());
+        val suggestedCCList4 = modelContext4.getTargetModel().getComputedColumnDescs();
+        Assert.assertEquals(1, suggestedCCList4.size());
+        val suggestedCC40 = suggestedCCList4.get(0);
+        Assert.assertEquals("CC_AUTO_1", suggestedCC40.getColumnName());
+        Assert.assertEquals("DEFAULT.TEST_ORDER", suggestedCC40.getTableIdentity());
+        Assert.assertEquals("TEST_KYLIN_FACT.PRICE + TEST_KYLIN_FACT.ITEM_COUNT", suggestedCC40.getExpression());
     }
 
     @Test

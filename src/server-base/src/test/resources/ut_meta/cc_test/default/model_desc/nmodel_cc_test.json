@@ -306,7 +306,7 @@
   ],
   "all_measures": [
     {
-      "id": 1000,
+      "id": 100000,
       "name": "TRANS_CNT",
       "function": {
         "expression": "COUNT",
@@ -318,7 +318,7 @@
       }
     },
     {
-      "id": 1001,
+      "id": 100001,
       "name": "GMV_SUM",
       "function": {
         "expression": "SUM",
@@ -330,7 +330,7 @@
       }
     },
     {
-      "id": 1002,
+      "id": 100002,
       "name": "GMV_MIN",
       "function": {
         "expression": "MIN",
@@ -342,7 +342,7 @@
       }
     },
     {
-      "id": 1003,
+      "id": 100003,
       "name": "GMV_MAX",
       "function": {
         "expression": "MAX",
@@ -354,7 +354,7 @@
       }
     },
     {
-      "id": 1004,
+      "id": 100004,
       "name": "ITEM_COUNT_SUM",
       "function": {
         "expression": "SUM",
@@ -366,7 +366,7 @@
       }
     },
     {
-      "id": 1005,
+      "id": 100005,
       "name": "ITEM_COUNT_MAX",
       "function": {
         "expression": "MAX",
@@ -378,7 +378,7 @@
       }
     },
     {
-      "id": 1006,
+      "id": 100006,
       "name": "ITEM_COUNT_MIN",
       "tomb": true,
       "function": {
@@ -391,7 +391,7 @@
       }
     },
     {
-      "id": 1007,
+      "id": 100007,
       "name": "SELLER_HLL",
       "function": {
         "expression": "COUNT_DISTINCT",
@@ -403,7 +403,7 @@
       }
     },
     {
-      "id": 1008,
+      "id": 100008,
       "name": "COUNT_DISTINCT",
       "function": {
         "expression": "COUNT_DISTINCT",
@@ -415,7 +415,7 @@
       }
     },
     {
-      "id": 1009,
+      "id": 100009,
       "name": "TOP_SELLER",
       "function": {
         "expression": "TOP_N",
@@ -433,7 +433,7 @@
       }
     },
     {
-      "id": 1010,
+      "id": 100010,
       "name": "TEST_COUNT_DISTINCT_BITMAP",
       "function": {
         "expression": "COUNT_DISTINCT",
@@ -445,7 +445,7 @@
       }
     },
     {
-      "id":1011,
+      "id":100011,
       "name": "GVM_PERCENTILE",
       "function": {
         "expression": "PERCENTILE",
