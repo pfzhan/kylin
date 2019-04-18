@@ -18,6 +18,7 @@
         </el-button>
       </div>
       <TreeList
+        :show-overflow-tooltip="true"
         :data="datasources"
         :placeholder="$t('searchTable')"
         :default-expanded-keys="defaultExpandedKeys"

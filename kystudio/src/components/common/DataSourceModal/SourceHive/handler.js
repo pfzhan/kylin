@@ -63,8 +63,9 @@ export function getTableTree (database, res, isTableReset) {
           parentEl.style.cursor = null
         }
       })
+      const itemClassName = isLoaded ? 'is-synced' : ''
       return (
-        <div>
+        <div class={itemClassName}>
           <div class={tableClassNames} id={currentId}>
             { isChecked ? (
               <span class="el-icon-ksd-good_health"></span>

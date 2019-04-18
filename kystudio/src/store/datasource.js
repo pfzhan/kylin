@@ -20,6 +20,7 @@ export default {
       state.mapHasTables = {}
       state.dataSource[project] = []
     },
+    // 缓存数据源信息避免反复请求
     [types.CACHE_DATASOURCE]: function (state, { data, project, isReset = true }) {
       state.dataSource[project] = state.dataSource[project] || []
       data.tables.forEach((t) => {

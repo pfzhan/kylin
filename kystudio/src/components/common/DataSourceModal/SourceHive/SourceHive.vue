@@ -3,6 +3,7 @@
     <div class="list clearfix">
       <TreeList
         v-guide.hiveTree
+        :show-overflow-tooltip="true"
         ref="tree-list"
         class="table-tree"
         :data="treeData"
@@ -465,19 +466,9 @@ export default class SourceHive extends Vue {
   }
   // 定制化datasource tree样式
   .table-tree {
-    // 去掉默认样式
-    // .el-tree-node__content:hover {
-    //   background-color: inherit;
-    // }
-    // .el-tree-node:focus>.el-tree-node__content {
-    //   background-color: inherit;
-    //   color: inherit;
-    // }
     // 定制样式: database
     .el-tree > .el-tree-node > .el-tree-node__content {
       position: relative;
-      // padding-top: 10px;
-      // padding-bottom: 10px;
     }
     .el-tree > .el-tree-node {
       border-bottom: 1px solid @line-border-color;
@@ -503,9 +494,7 @@ export default class SourceHive extends Vue {
     }
     .el-tree-node__content {
       min-height: 16px;
-      // height: auto;
-      // padding-top: 12px;
-      // padding-bottom: 12px;
+      position:relative;
     }
     .el-tree-node__content:hover .select-all {
       display: block;
@@ -518,28 +507,32 @@ export default class SourceHive extends Vue {
       transform: translateY(-50%);
     }
     .tree-item {
-      position: relative;
+      &>div {
+        margin-right:34px;
+        &.is-synced {
+          margin-right:90px;
+        }
+        &.database {
+          margin-right:0;
+        }
+      }
       user-select: none;
       width: 100%;
       white-space: normal;
-      word-break: break-all;
     }
     .el-icon-ksd-good_health {
       color: @btn-success-normal;
     }
     .database {
+      margin-right: 0;
       .el-icon-ksd-good_health {
         margin-right: 5px;
       }
     }
     .table {
-      width: calc(~'100% - 24px');
-      &.synced {
-        width: calc(~'100% - 100px');
-      }
       .el-icon-ksd-good_health {
         position: absolute;
-        left: 0;
+        // left: 0;
         top: 50%;
         transform: translate(-20px, -50%);
       }
@@ -552,9 +545,18 @@ export default class SourceHive extends Vue {
           color: @text-title-color;
         }
       }
+      .table {
+        padding-left: 20px;
+        &.synced {
+          padding-left:0;
+        }
+      }
     }
     .database,
     .table {
+      position:relative;
+      overflow:hidden;
+      text-overflow:ellipsis;
       color: @text-normal-color;
     }
     .table.parent-selected .el-icon-ksd-good_health {

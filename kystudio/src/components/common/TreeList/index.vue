@@ -18,6 +18,7 @@
       :empty-text="emptyText"
       :data="data"
       :props="props"
+      :show-overflow-tooltip="showOverflowTooltip"
       :render-content="renderNode"
       :expand-on-click-node="isExpandOnClickNode"
       :default-expand-all="isExpandAll"
@@ -106,6 +107,10 @@ const filterDefaultWhiteList = ['isMore', 'isLoading']
     maxWidth: {
       type: Number,
       default: 440
+    },
+    showOverflowTooltip: {
+      type: Boolean,
+      default: false
     },
     props: {
       type: Object,

@@ -41,6 +41,7 @@ export const render = {
         class: [
           'frontground',
           'table',
+          'el-tree-tooltip-box',
           ...(dateRange ? ['has-range'] : [])
         ]
       }
