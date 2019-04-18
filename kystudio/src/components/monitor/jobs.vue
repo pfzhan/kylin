@@ -3,7 +3,7 @@
     <div class="ksd-title-label ksd-mt-20">{{$t('jobsList')}}</div>
     <el-row :gutter="20" class="jobs_tools_row ksd-mt-10 ksd-mb-10">
       <el-col :span="18">
-        <el-dropdown class="ksd-fleft waiting-jobs" placement="bottom-start" @command="handleCommand">
+        <el-dropdown class="ksd-fleft waiting-jobs" trigger="click" placement="bottom-start" @command="handleCommand">
           <el-button plain class="el-dropdown-link" size="medium" :disabled="!waittingJobModels.size">
             {{waittingJobModels.size}} {{$t('waitingjobs')}}<i class="el-icon-arrow-down el-icon--right"></i>
           </el-button>
