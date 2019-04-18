@@ -78,7 +78,7 @@
                 <el-button type="primary" size="medium" plain @click="selectAll" v-if="selectSqls.length!==whiteSqlData.capable_sql_num">{{$t('checkAll')}}</el-button><el-button
                 type="primary" size="medium" plain @click="cancelSelectAll" v-else>{{$t('cancelAll')}}</el-button>
               </div>
-              <el-button type="primary" size="medium" :disabled="!finalSelectSqls.length" :loading="submitSqlLoading" @click="addTofav">{{$t('addTofavorite')}}({{finalSelectSqls.length}})</el-button>
+
             </div>
             <div class="ksd-fright ksd-inline searchInput" v-if="whiteSqlData.size">
               <el-input v-model="whiteSqlFilter" @input="onWhiteSqlFilterChange" prefix-icon="el-icon-search" :placeholder="$t('kylinLang.common.search')" size="medium"></el-input>
@@ -124,7 +124,7 @@
             <div class="query_panel_box ksd-mt-10">
               <kap-editor ref="whiteInputBox" :height="inputHeight" :readOnly="this.isReadOnly" lang="sql" theme="chrome" v-model="whiteSql">
               </kap-editor>
-              <div class="operatorBox" v-show="isEditSql">
+              <div class="operatorBox" v-if="isEditSql">
                 <div class="btn-group ksd-fright ky-no-br-space">
                   <el-button size="medium" @click="cancelEdit(isWhiteErrorMessage)">{{$t('kylinLang.common.cancel')}}</el-button>
                   <el-button type="primary" size="medium" plain :loading="validateLoading" @click="validateWhiteSql()">{{$t('kylinLang.common.submit')}}</el-button>
@@ -151,7 +151,8 @@
           </span>
         </div>
         <el-button size="medium" @click="importSqlVisible = false">{{$t('kylinLang.common.close')}}</el-button><el-button
-        type="primary" size="medium" plain v-if="!isUploaded" :loading="importLoading" :disabled="!uploadItems.length||fileSizeError"  @click="submitFiles">{{$t('kylinLang.common.submit')}}</el-button>
+        type="primary" size="medium" plain v-if="!isUploaded" :loading="importLoading" :disabled="!uploadItems.length||fileSizeError"  @click="submitFiles">{{$t('kylinLang.common.submit')}}</el-button><el-button
+        type="primary" size="medium" v-if="isUploaded" :disabled="!finalSelectSqls.length" :loading="submitSqlLoading" @click="addTofav">{{$t('addTofavorite')}}</el-button>
       </span>
     </el-dialog>
     <el-dialog
@@ -370,7 +371,8 @@ import sqlFormatter from 'sql-formatter'
       fileTypeError: 'Invalid file format。',
       waitingList: 'Waiting List',
       accelerated: 'Accelerated',
-      uploadFileTips: 'Supported file formats are txt and sql. Supported file size is up to 5 MB.'
+      uploadFileTips: 'Supported file formats are txt and sql. Supported file size is up to 5 MB.',
+      submitConfirm: '{unCheckedSQL} validated SQL statements are not selected, do you want to ignore them and submit anyway?'
     },
     'zh-cn': {
       acceleration: '加速引擎',
@@ -412,7 +414,8 @@ import sqlFormatter from 'sql-formatter'
       fileTypeError: '不支持的文件格式！',
       waitingList: '未加速',
       accelerated: '加速完毕',
-      uploadFileTips: '支持的文件格式为 txt 和 sql，文件最大支持5MB。'
+      uploadFileTips: '支持的文件格式为 txt 和 sql，文件最大支持5MB。',
+      submitConfirm: '还有{unCheckedSQL}条正确的SQL未被选中，是否忽略并直接提交？'
     }
   }
 })
@@ -431,7 +434,7 @@ export default class FavoriteQuery extends Vue {
   ruleSettingVisible = false
   blackListVisible = false
   isShowInput = false
-  inputHeight = 434
+  inputHeight = 432
   isEditSql = false
   blackSqlFilter = ''
   whiteSqlFilter = ''
@@ -702,7 +705,7 @@ export default class FavoriteQuery extends Vue {
 
   openBlackList () {
     this.blackListVisible = true
-    this.inputHeight = 434
+    this.inputHeight = 432
     this.blackSql = ''
     this.isEditSql = false
     this.getBlackList()
@@ -753,10 +756,10 @@ export default class FavoriteQuery extends Vue {
       this.isEditSql = false
       if (sqlObj.capable) {
         this.isWhiteErrorMessage = false
-        this.inputHeight = 434
+        this.inputHeight = 432
       } else {
         this.isWhiteErrorMessage = true
-        this.inputHeight = 434 - 145
+        this.inputHeight = 432 - 140
         this.whiteMessages = sqlObj.sqlAdvices
       }
       this.hideLoading()
@@ -771,7 +774,7 @@ export default class FavoriteQuery extends Vue {
       this.inputHeight = 382
     } else {
       this.isWhiteErrorMessage = true
-      this.inputHeight = 382 - 145
+      this.inputHeight = 382 - 140
     }
     this.showLoading()
     setTimeout(() => {
@@ -953,7 +956,7 @@ export default class FavoriteQuery extends Vue {
       this.isEditSql = false
       this.whiteMessages = []
       this.isWhiteErrorMessage = false
-      this.inputHeight = 434
+      this.inputHeight = 432
     }
   }
   selectPagerSqls (isSelectAll) {
@@ -980,7 +983,7 @@ export default class FavoriteQuery extends Vue {
       this.$refs.multipleTable.clearSelection()
     }
   }
-  addTofav () {
+  submit () {
     this.submitSqlLoading = true
     const sqlsData = this.finalSelectSqls
     const sqls = sqlsData.map((item) => {
@@ -998,11 +1001,23 @@ export default class FavoriteQuery extends Vue {
         })
         this.loadFavoriteList()
         this.getWaitingSQLSize()
+        this.importSqlVisible = false
       })
     }, (res) => {
       handleError(res)
       this.submitSqlLoading = false
+      this.importSqlVisible = false
     })
+  }
+  addTofav () {
+    const unCheckedSQL = this.whiteSqlData.capable_sql_num - this.finalSelectSqls.length
+    if (unCheckedSQL) {
+      kapConfirm(this.$t('submitConfirm', {unCheckedSQL: unCheckedSQL}), {cancelButtonText: this.$t('kylinLang.common.cancel'), confirmButtonText: this.$t('kylinLang.common.submit'), type: 'warning'}).then(() => {
+        this.submit()
+      })
+    } else {
+      this.submit()
+    }
   }
 
   onWhiteSqlFilterChange () {
@@ -1014,7 +1029,7 @@ export default class FavoriteQuery extends Vue {
 
   cancelEdit (isErrorMes) {
     this.isEditSql = false
-    this.inputHeight = isErrorMes ? 434 - 145 : 434
+    this.inputHeight = isErrorMes ? 432 - 140 : 432
     this.whiteSql = this.sqlFormatterObj[this.activeSqlObj.id]
     this.activeSqlObj = null
     this.isReadOnly = true
@@ -1047,7 +1062,7 @@ export default class FavoriteQuery extends Vue {
           }
         } else {
           this.whiteMessages = data.sqlAdvices
-          this.inputHeight = 382 - 145
+          this.inputHeight = 382 - 140
           this.isWhiteErrorMessage = true
         }
       })

@@ -56,6 +56,7 @@
             <li v-if="showMenuByRole('admin')">
               <el-button
                 size="small"
+                plain
                 class="entry-admin"
                 :class="isAdminView ? 'active' : null"
                 @click="handleSwitchAdmin">
@@ -886,23 +887,10 @@ export default class LayoutLeftRightTop extends Vue {
         }
       }
     }
-    // .entry-admin {
-    //   border-radius: 2px;
-    //   font-size: 14px;
-    //   padding: 6px 12px;
-    //   border-color: @text-disabled-color;
-    //   &:hover {
-    //     background: @fff;
-    //     border-color: @base-color;
-    //   }
-    // }
     .entry-admin.active {
-      box-shadow: inset 1px 1px 2px 0 @grey-1;
-      background-color: @line-border-color;
-      &:hover {
-        border-color: @base-color;
-        background-color: @line-border-color;
-      }
+      box-shadow: inset 1px 1px 2px 0 #ADC2D0;
+      border-color: @btn-default-active;
+      color: @btn-default-active;
     }
     .global-mask {
       position: absolute;
