@@ -27,6 +27,7 @@ package io.kyligence.kap.rest.response;
 import java.util.ArrayList;
 import java.util.List;
 
+import io.kyligence.kap.metadata.cube.cuboid.CuboidStatus;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.metadata.model.Segments;

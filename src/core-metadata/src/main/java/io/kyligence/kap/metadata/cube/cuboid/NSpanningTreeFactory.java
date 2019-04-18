@@ -39,6 +39,7 @@ import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
 
 public class NSpanningTreeFactory {
+
     public static NSpanningTree fromIndexPlan(IndexPlan indexPlan) {
         Map<IndexEntity, Collection<LayoutEntity>> descLayouts = Maps.newHashMap();
         for (IndexEntity indexEntity : indexPlan.getAllIndexes()) {
@@ -56,9 +57,9 @@ public class NSpanningTreeFactory {
         return fromIndexes(descLayouts, cacheKey);
     }
 
-    public static NSpanningTreeForWeb forWebDisplay(Collection<LayoutEntity> layoutEntities, String cacheKey) {
+    public static NSpanningTreeForWeb forWebDisplay(Collection<LayoutEntity> layoutEntities, IndexPlan indexPlan) {
         Map<IndexEntity, Collection<LayoutEntity>> descLayouts = getIndexEntity2Layouts(layoutEntities);
-        return new NSpanningTreeForWeb(descLayouts, cacheKey);
+        return new NSpanningTreeForWeb(descLayouts, indexPlan);
     }
 
     private static Map<IndexEntity, Collection<LayoutEntity>> getIndexEntity2Layouts(Collection<LayoutEntity> layoutEntities) {

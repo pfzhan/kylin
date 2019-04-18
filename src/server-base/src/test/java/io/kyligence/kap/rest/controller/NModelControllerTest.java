@@ -47,7 +47,10 @@ import java.util.List;
 import java.util.UUID;
 
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import io.kyligence.kap.metadata.cube.cuboid.NSpanningTreeForWeb;
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
+import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.rest.request.BuildIndexRequest;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.JsonUtil;
@@ -87,7 +90,6 @@ import io.kyligence.kap.rest.response.IndexEntityResponse;
 import io.kyligence.kap.rest.response.ModelConfigResponse;
 import io.kyligence.kap.rest.response.NDataModelResponse;
 import io.kyligence.kap.rest.response.NDataSegmentResponse;
-import io.kyligence.kap.rest.response.NSpanningTreeResponse;
 import io.kyligence.kap.rest.response.RelatedModelResponse;
 import io.kyligence.kap.rest.service.ModelService;
 import lombok.val;
@@ -127,7 +129,7 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testGetModelRelations() throws Exception {
-        Mockito.when(modelService.getSimplifiedModelRelations("model1", "default")).thenReturn(mockRelations());
+        Mockito.when(modelService.getModelRelations("model1", "default")).thenReturn(mockRelations());
         MvcResult mvcResult = mockMvc
                 .perform(MockMvcRequestBuilders.get("/api/models/relations").contentType(MediaType.APPLICATION_JSON)
                         .param("model", "model1").param("project", "default")
@@ -530,9 +532,9 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
         Mockito.verify(nModelController).updateModelConfig("89af4ee2-2cdb-4b07-b39e-4c29856309aa", request);
     }
 
-    private List<NSpanningTreeResponse> mockRelations() {
-        final List<NSpanningTreeResponse> nSpanningTrees = new ArrayList<>();
-        NSpanningTreeResponse nSpanningTree = new NSpanningTreeResponse();
+    private List<NSpanningTreeForWeb> mockRelations() {
+        final List<NSpanningTreeForWeb> nSpanningTrees = new ArrayList<>();
+        NSpanningTreeForWeb nSpanningTree = new NSpanningTreeForWeb(Maps.newHashMap(), new IndexPlan());
         nSpanningTrees.add(nSpanningTree);
         return nSpanningTrees;
     }

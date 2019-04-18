@@ -22,7 +22,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.rest.response;
+package io.kyligence.kap.metadata.cube.cuboid;
 
 public enum CuboidStatus {
     AVAILABLE, EMPTY, BROKEN

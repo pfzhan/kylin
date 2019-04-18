@@ -115,7 +115,6 @@ import io.kyligence.kap.rest.response.ModelConfigResponse;
 import io.kyligence.kap.rest.response.ModelInfoResponse;
 import io.kyligence.kap.rest.response.NDataModelResponse;
 import io.kyligence.kap.rest.response.NDataSegmentResponse;
-import io.kyligence.kap.rest.response.NSpanningTreeResponse;
 import io.kyligence.kap.rest.response.RefreshAffectedSegmentsResponse;
 import io.kyligence.kap.rest.response.RelatedModelResponse;
 import io.kyligence.kap.rest.response.SimplifiedMeasure;
@@ -376,17 +375,8 @@ public class ModelService extends BasicService {
         val autoLayouts = indexPlan.getWhitelistLayouts().stream()
                 .filter(layout -> layout.getId() < IndexEntity.TABLE_INDEX_START_ID).collect(Collectors.toList());
         allLayouts.addAll(autoLayouts);
-        val tree = NSpanningTreeFactory.forWebDisplay(allLayouts, indexPlan.getUuid());
+        val tree = NSpanningTreeFactory.forWebDisplay(allLayouts, indexPlan);
         result.add(tree);
-        return result;
-    }
-
-    public List<NSpanningTreeResponse> getSimplifiedModelRelations(String modelId, String project) {
-        val model = getDataModelManager(project).getDataModelDesc(modelId);
-        List<NSpanningTreeResponse> result = Lists.newArrayList();
-        for (NSpanningTreeForWeb spanningTree : getModelRelations(modelId, project)) {
-            result.add(new NSpanningTreeResponse(spanningTree, model));
-        }
         return result;
     }
 

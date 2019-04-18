@@ -24,17 +24,18 @@
 
 package io.kyligence.kap.metadata.cube.cuboid;
 
+import java.io.Serializable;
 import java.util.Collection;
-import java.util.Collections;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.SortedSet;
+import java.util.TreeMap;
 import java.util.function.Function;
 
 import javax.annotation.Nullable;
 
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.Lists;
@@ -43,8 +44,18 @@ import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.obf.IKeepNames;
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
+import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
+import io.kyligence.kap.metadata.cube.model.NDataLayout;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
+import io.kyligence.kap.metadata.cube.model.NDataflowManager;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import lombok.val;
+import org.apache.commons.collections.CollectionUtils;
+import org.apache.kylin.metadata.model.Segments;
 
 @SuppressWarnings("serial")
 /*
@@ -54,11 +65,14 @@ import io.kyligence.kap.metadata.cube.model.NDataSegment;
 @JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.NONE, getterVisibility = JsonAutoDetect.Visibility.NONE, isGetterVisibility = JsonAutoDetect.Visibility.NONE, setterVisibility = JsonAutoDetect.Visibility.NONE)
 public class NSpanningTreeForWeb extends NSpanningTree implements IKeepNames {
     @JsonProperty("nodes")
-    private Map<Long, TreeNode> nodesMap = Maps.newTreeMap();
+    private Map<Long, TreeNodeForWeb> nodesMap = Maps.newTreeMap();
 
     /* If base cuboid exists, forest will become tree. */
     @JsonProperty("roots")
-    private final List<TreeNode> roots = Lists.newArrayList();
+    private final List<TreeNodeForWeb> roots = Lists.newArrayList();
+
+    @JsonIgnore
+    private IndexPlan indexPlan;
 
     private static final Function<TreeNode, IndexEntity> TRANSFORM_FUNC = new Function<TreeNode, IndexEntity>() {
         @Nullable
@@ -68,16 +82,17 @@ public class NSpanningTreeForWeb extends NSpanningTree implements IKeepNames {
         }
     };
 
-    NSpanningTreeForWeb(Map<IndexEntity, Collection<LayoutEntity>> cuboids, String cacheKey) {
-        super(cuboids, cacheKey);
+    public NSpanningTreeForWeb(Map<IndexEntity, Collection<LayoutEntity>> cuboids, IndexPlan indexPlan) {
+        super(cuboids, indexPlan.getUuid());
+        this.indexPlan = indexPlan;
         init();
     }
 
-    public Map<Long, TreeNode> getNodesMap() {
+    public Map<Long, TreeNodeForWeb> getNodesMap() {
         return nodesMap;
     }
 
-    public List<TreeNode> getRoots() {
+    public List<TreeNodeForWeb> getRoots() {
         return roots;
     }
 
@@ -144,6 +159,10 @@ public class NSpanningTreeForWeb extends NSpanningTree implements IKeepNames {
                 return Long.compare(o1.getId(), o2.getId());
         });
 
+        // map <root cuboid's id, map <dimension size, list of nodes having the same dimension size>>
+        // this map is convenient when finding the best parent for a cuboid from bottom up
+        private Map<Long, TreeMap<Integer, List<TreeNodeForWeb>>> dimensionSizeMap = Maps.newHashMap();
+
         private TreeBuilder(Collection<IndexEntity> cuboids) {
             if (cuboids != null)
                 this.sortedCuboids.addAll(cuboids);
@@ -156,47 +175,105 @@ public class NSpanningTreeForWeb extends NSpanningTree implements IKeepNames {
         }
 
         private void addCuboid(IndexEntity cuboid) {
-            TreeNode node = new TreeNode(cuboid);
-            TreeNode parent = findBestParent(cuboid);
+            TreeNodeForWeb node = new TreeNodeForWeb(cuboid);
+            node.setCuboid(getSimplifiedCuboidResponse(cuboid));
+            TreeNodeForWeb parent = findBestParent(cuboid);
             if (parent != null) {
                 parent.children.add(node);
+                parent.childrenIds.add(cuboid.getId());
                 node.parent = parent;
+                node.parentId = parent.getIndexEntity().getId();
                 node.level = parent.level + 1;
+                node.root = parent.root;
             } else {
                 node.level = 0;
+                node.root = node;
                 roots.add(node);
+                dimensionSizeMap.put(node.getIndexEntity().getId(), new TreeMap<>());
             }
+
+            Map<Integer, List<TreeNodeForWeb>> map = dimensionSizeMap.get(node.getRoot().getIndexEntity().getId());
+            List<TreeNodeForWeb> nodes = map.get(cuboid.getDimensions().size());
+
+            if (nodes == null)
+                map.put(cuboid.getDimensions().size(), Lists.newArrayList(node));
+            else
+                nodes.add(node);
+
             nodesMap.put(cuboid.getId(), node);
         }
 
-        private TreeNode findBestParent(IndexEntity cuboid) {
-            TreeNode parent = null;
+        private TreeNodeForWeb findBestParent(IndexEntity cuboid) {
             for (TreeNode root : roots) {
-                parent = doFindBestParent(cuboid, root);
-                if (parent != null)
-                    break;
-            }
-            return parent;
-        }
+                if (!root.getIndexEntity().fullyDerive(cuboid))
+                    continue;
 
-        private TreeNode doFindBestParent(IndexEntity cuboid, TreeNode parent) {
-            if (!parent.indexEntity.fullyDerive(cuboid)) {
-                return null;
-            }
+                for (int dimensionSize : dimensionSizeMap.get(root.indexEntity.getId()).keySet()) {
+                    if (dimensionSize <= cuboid.getDimensions().size())
+                        continue;
 
-            List<TreeNode> candidates = Lists.newArrayList();
-            for (TreeNode child : parent.children) {
-                TreeNode candidate = doFindBestParent(cuboid, child);
-                if (candidate != null) {
-                    candidates.add(candidate);
+                    for (TreeNodeForWeb node : dimensionSizeMap.get(root.indexEntity.getId()).get(dimensionSize)) {
+                        if (node.indexEntity.fullyDerive(cuboid)) {
+                            return node;
+                        }
+                    }
                 }
             }
-            if (candidates.isEmpty()) {
-                candidates.add(parent);
-            }
 
-            return Collections.min(candidates, Comparator.comparingInt(o -> o.indexEntity.getDimensions().size()));
+            return null;
         }
 
+        private SimplifiedCuboidResponse getSimplifiedCuboidResponse(IndexEntity cuboid) {
+            val dataflow = NDataflowManager.getInstance(indexPlan.getConfig(), indexPlan.getProject())
+                    .getDataflow(indexPlan.getUuid());
+            Segments<NDataSegment> segments = dataflow.getSegments().getSegmentsExcludeRefreshingAndMerging();
+
+            if (CollectionUtils.isEmpty(segments)) {
+                return new SimplifiedCuboidResponse(cuboid.getId(), CuboidStatus.EMPTY, 0L);
+            }
+
+            long storage = 0L;
+            for (NDataSegment segment : segments) {
+                for (LayoutEntity layout : cuboid.getLayouts()) {
+                    NDataLayout dataLayout = segment.getLayout(layout.getId());
+                    if (dataLayout == null) {
+                        return new SimplifiedCuboidResponse(cuboid.getId(), CuboidStatus.EMPTY, 0L);
+                    }
+                    storage += dataLayout.getByteSize();
+                }
+            }
+
+            return new SimplifiedCuboidResponse(cuboid.getId(), CuboidStatus.AVAILABLE, storage);
+        }
+    }
+
+    @Getter
+    @Setter
+    public static class TreeNodeForWeb extends TreeNode {
+
+        @JsonProperty("cuboid")
+        private SimplifiedCuboidResponse cuboid;
+        @JsonProperty("children")
+        private List<Long> childrenIds = Lists.newLinkedList();
+        @JsonProperty("parent")
+        private long parentId = -1;
+
+        public TreeNodeForWeb(IndexEntity indexEntity) {
+            super(indexEntity);
+            cuboid = new SimplifiedCuboidResponse();
+        }
+    }
+
+    @Getter
+    @Setter
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class SimplifiedCuboidResponse implements Serializable {
+        @JsonProperty("id")
+        private long id;
+        @JsonProperty("status")
+        private CuboidStatus status = CuboidStatus.AVAILABLE;
+        @JsonProperty("storage_size")
+        private long storageSize;
     }
 }

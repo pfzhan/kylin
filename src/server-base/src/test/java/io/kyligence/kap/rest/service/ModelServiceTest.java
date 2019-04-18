@@ -138,12 +138,11 @@ import io.kyligence.kap.rest.execution.SucceedTestExecutable;
 import io.kyligence.kap.rest.request.ModelConfigRequest;
 import io.kyligence.kap.rest.request.ModelRequest;
 import io.kyligence.kap.rest.response.ComputedColumnUsageResponse;
-import io.kyligence.kap.rest.response.CuboidStatus;
+import io.kyligence.kap.metadata.cube.cuboid.CuboidStatus;
 import io.kyligence.kap.rest.response.ExistedDataRangeResponse;
 import io.kyligence.kap.rest.response.IndexEntityResponse;
 import io.kyligence.kap.rest.response.NDataModelResponse;
 import io.kyligence.kap.rest.response.NDataSegmentResponse;
-import io.kyligence.kap.rest.response.NSpanningTreeResponse;
 import io.kyligence.kap.rest.response.ParameterResponse;
 import io.kyligence.kap.rest.response.RefreshAffectedSegmentsResponse;
 import io.kyligence.kap.rest.response.RelatedModelResponse;
@@ -431,8 +430,8 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testGetSimplifiedModelRelations() {
-        List<NSpanningTreeResponse> relations = modelService
-                .getSimplifiedModelRelations("89af4ee2-2cdb-4b07-b39e-4c29856309aa", "default");
+        List<NSpanningTreeForWeb> relations = modelService
+                .getModelRelations("89af4ee2-2cdb-4b07-b39e-4c29856309aa", "default");
         Assert.assertEquals(1, relations.size());
         Assert.assertEquals(1, relations.get(0).getRoots().size());
         Assert.assertEquals(5, relations.get(0).getNodesMap().size());

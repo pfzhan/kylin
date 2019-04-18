@@ -29,6 +29,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
+import io.kyligence.kap.metadata.cube.cuboid.NSpanningTreeForWeb;
 import io.kyligence.kap.rest.request.BuildIndexRequest;
 import io.kyligence.kap.rest.response.NDataSegmentResponse;
 import org.apache.commons.lang.ArrayUtils;
@@ -67,7 +68,6 @@ import io.kyligence.kap.rest.request.SegmentsRequest;
 import io.kyligence.kap.rest.request.UnlinkModelRequest;
 import io.kyligence.kap.rest.response.IndexEntityResponse;
 import io.kyligence.kap.rest.response.NDataModelResponse;
-import io.kyligence.kap.rest.response.NSpanningTreeResponse;
 import io.kyligence.kap.rest.service.ModelSemanticHelper;
 import io.kyligence.kap.rest.service.ModelService;
 import lombok.val;
@@ -258,7 +258,7 @@ public class NModelController extends NBasicController {
             @RequestParam(value = "project", required = true) String project) {
         checkProjectName(project);
         checkRequiredArg(MODEL_ID, modelId);
-        List<NSpanningTreeResponse> modelRelations = modelService.getSimplifiedModelRelations(modelId, project);
+        List<NSpanningTreeForWeb> modelRelations = modelService.getModelRelations(modelId, project);
 
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, modelRelations, "");
     }
