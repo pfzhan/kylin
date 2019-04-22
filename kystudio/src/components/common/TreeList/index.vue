@@ -6,6 +6,7 @@
         prefix-icon="el-icon-search"
         v-model="filterText"
         :placeholder="placeholder"
+        @clear="handleInput"
         @keyup.native="handleInput">
       </el-input>
     </div>
@@ -156,7 +157,7 @@ export default class TreeList extends Vue {
   }
   handleInput (event) {
     clearTimeout(this.timer)
-    if (event.which === 13) {
+    if (event && event.which === 13) {
       this.handleFilter()
     } else {
       this.timer = setTimeout(() => {

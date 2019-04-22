@@ -416,16 +416,17 @@
         <span class="alias-span name">{{currentEditTable.alias}}</span>
         <span class="setting-icon guide-setting" @click="cancelTableEdit"><i class="el-icon-ksd-table_setting"></i></span>
       </div>
+      <div class="column-search-box"><el-input prefix-icon="el-icon-search" @input="(val) => {filterColumns(val, currentEditTable.columns)}" size="small"></el-input></div>
       <div class="column-list-box"  v-scroll>
         <ul >
-          <li class="column-li" :class="{'column-li-cc': col.is_computed_column}"  v-for="col in currentEditTable.columns" :key="col.name">
-            <span class="col-type-icon"><i :class="columnTypeIconMap(col.datatype)"></i></span>
+          <li class="column-li" :class="{'column-li-cc': col.is_computed_column}"  v-for="col in getFilteredColumns(currentEditTable.columns)" :key="col.name">
+            <span class="col-type-icon"> <i class="el-icon-ksd-fkpk is-pfk" v-show="col.isPFK"></i><i :class="columnTypeIconMap(col.datatype)"></i></span>
             <span class="col-name">{{col.name|omit(14,'...')}}</span>
             <!-- <span class="li-type ky-option-sub-info">{{col.datatype}}</span> -->
           </li>
           <template v-if="currentEditTable.kind=== 'FACT'">
             <li class="column-li column-li-cc"  v-for="col in modelRender.computed_columns" :key="col.name">
-              <span class="col-type-icon"><i :class="columnTypeIconMap(col.datatype)"></i></span>
+              <span class="col-type-icon"><i class="el-icon-ksd-fkpk is-pfk" v-show="col.isPFK"></i><i :class="columnTypeIconMap(col.datatype)"></i></span>
               <span class="col-name">{{col.columnName|omit(14,'...')}}</span>
               <!-- <span class="li-type ky-option-sub-info">{{col.datatype}}</span> -->
             </li>
@@ -1500,10 +1501,14 @@ export default class ModelEdit extends Vue {
   transition: width 0.5s;
   .close {
     display: none;
-    .ky-square-box(14px, 14px);
-    line-height: 16px;
-    border-radius: 50%;
+    // .ky-square-box(14px, 14px);
+    // line-height: 14px;
+    // font-size:14px;
+    // float:right;
+    border-radius: 7px;
     margin-left:8px;
+    // vertical-align: text-bottom;
+    // margin-top:4px;
   }
   &:hover {
     .close {
@@ -1517,9 +1522,9 @@ export default class ModelEdit extends Vue {
         background: #4da9e7;
       }
     }
-    height: 20px;
-    line-height: 20px;
-    font-size:13px;
+    // height: 20px;
+    // line-height: 20px;
+    // font-size:13px;
     background-color:@grey-4;
     color:@fff;
     background-color: @base-color-11;
