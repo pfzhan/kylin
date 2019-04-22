@@ -38,7 +38,7 @@
                     <th class="label">{{$t('kylinLang.query.answered_by')}}</th>
                     <td style="padding: 3px 10px;">
                       <div v-if="props.row.realizations && props.row.realizations.length" class="realization-tags">
-                        <el-tag size="small" style="cursor:pointer;" v-for="item in props.row.realizations" :key="item.modelId" @click.native="openAgg(item.modelId)">{{item.modelAlias}}</el-tag>
+                        <el-tag size="small" class="model-tag" v-for="item in props.row.realizations" :key="item.modelId" @click.native="openAgg(item.modelId)">{{item.modelAlias}}</el-tag>
                       </div>
                       <div v-else class="realization-tags"><el-tag type="warning" size="small" v-if="props.row.engine_type">{{props.row.engine_type}}</el-tag></div>
                     </td>
@@ -440,7 +440,18 @@ export default class QueryHistoryTable extends Vue {
         display: flex;
         flex-wrap: wrap;
         .el-tag {
-          margin: 2.5px 5px 2.5px 0;
+          margin: 2.5px 10px 2.5px 0;
+          border: none;
+          background: none;
+          padding: 0;
+          height: 16px;
+          line-height: 16px;
+          &.model-tag {
+            cursor: pointer;
+            &:hover {
+              text-decoration: underline;
+            }
+          }
         }
       }
       .el-date-editor {

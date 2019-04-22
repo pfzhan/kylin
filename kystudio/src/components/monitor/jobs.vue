@@ -1113,6 +1113,9 @@ export default class JobsList extends Vue {
            td {
               border-bottom: 1px solid @border-color-base;
               word-break: break-word;
+              a {
+                color: @base-color;
+              }
             }
           &:last-child {
             td {

@@ -3,7 +3,7 @@ import * as d3 from 'd3'
 export default {
   props: {
     model: {type: Array},
-    height: {type: String, default: '325px'},
+    height: {type: String, default: '300px'},
     id: {type: String}
   },
   data () {

@@ -10,13 +10,13 @@
                 <i class="el-icon-ksd-what ksd-fs-14"></i>
               </el-tooltip>
             </span>
-            <el-button plain size="small" class="ksd-fright" @click="gotoSetting">{{$t('viewDetail')}}</el-button>
+            <el-button type="primary" text size="small" class="ksd-fright ksd-mt-6" @click="gotoSetting">{{$t('viewDetail')}}</el-button>
           </div>
-          <el-row :gutter="35" class="quota-row">
-            <el-col :span="12">
+          <div class="quota-row">
+            <div class="img-block ksd-fleft ksd-mr-15">
               <el-popover
                 ref="popover"
-                placement="left-end"
+                placement="right-end"
                 trigger="hover"
                 popper-class="quota-popover"
                 :disabled="!(trashRatio*quotaHeight<14 || useageRatio*quotaHeight<14)"
@@ -39,8 +39,8 @@
                 <div class="trash-block" :style="{'height': trashBlockHeight+'px'}">
                 </div>
               </div>
-            </el-col>
-            <el-col :span="12">
+            </div>
+            <div>
               <div class="quota-info">
                 <div class="info-title ksd-mt-10">{{$t('totalStorage')}}</div>
                 <div class="total-quota">
@@ -57,12 +57,12 @@
                 <div class="info-title ksd-mt-16">{{$t('trash')}}</div>
                 <div class="trash">
                   <span v-if="quotaInfo.garbage_storage_size>=0">{{quotaInfo.garbage_storage_size | dataSize}}</span>
-                  <span v-else>--</span>
-                  <el-button type="primary" size="small" class="ksd-ml-10" @click="clearStorage" v-if="quotaInfo.garbage_storage_size>0">{{$t('clear')}}</el-button>
+                  <span v-else>--</span><i class="el-icon-ksd-clear ksd-ml-10 clear-btn"
+                  @click="clearStorage" v-if="quotaInfo.garbage_storage_size>0"></i>
                 </div>
               </div>
-            </el-col>
-          </el-row>
+            </div>
+          </div>
         </div>
       </el-col>
       <el-col :span="8">
@@ -74,7 +74,7 @@
                 <i class="el-icon-ksd-what ksd-fs-14"></i>
               </el-tooltip>
             </span>
-            <el-button plain size="small" class="ksd-fright" @click="gotoFavorite">{{$t('viewDetail')}}</el-button>
+            <el-button type="primary" text size="small" class="ksd-fright ksd-mt-6" @click="gotoFavorite">{{$t('viewDetail')}}</el-button>
           </div>
           <svg id="ruleImpact" width="100%" height="168" class="ksd-mt-20"></svg>
         </div>
@@ -100,7 +100,7 @@
           <div class="inner-card">
             <div class="cart-title">
               {{$t('queryCount')}}
-              <el-button plain size="small" class="ksd-fright" @click.stop="gotoQueryHistory">{{$t('viewDetail')}}</el-button>
+              <el-button type="primary" text size="small" class="ksd-fright ksd-mt-6" @click.stop="gotoQueryHistory">{{$t('viewDetail')}}</el-button>
             </div>
             <div class="content">
               <span class="num">{{queryCount}}</span>
@@ -113,7 +113,7 @@
           <div class="inner-card">
             <div class="cart-title">
               {{$t('avgQueryLatency')}}
-              <el-button plain size="small" class="ksd-fright" @click.stop="gotoQueryHistory">{{$t('viewDetail')}}</el-button>
+              <el-button type="primary" text size="small" class="ksd-fright ksd-mt-6" @click.stop="gotoQueryHistory">{{$t('viewDetail')}}</el-button>
             </div>
             <div class="content">
               <span class="num">{{queryMean}}</span>
@@ -127,7 +127,7 @@
           <div class="inner-card">
             <div class="cart-title">
               {{$t('jobCount')}}
-              <el-button plain size="small" class="ksd-fright" @click.stop="gotoJoblist">{{$t('viewDetail')}}</el-button>
+              <el-button type="primary" text size="small" class="ksd-fright ksd-mt-6" @click.stop="gotoJoblist">{{$t('viewDetail')}}</el-button>
             </div>
             <div class="content">
               <span class="num">{{jobCount}}</span>
@@ -140,7 +140,7 @@
           <div class="inner-card">
             <div class="cart-title">
               {{$t('avgBulidTime')}}
-              <el-button plain size="small" class="ksd-fright" @click.stop="gotoJoblist">{{$t('viewDetail')}}</el-button>
+              <el-button type="primary" text size="small" class="ksd-fright ksd-mt-6" @click.stop="gotoJoblist">{{$t('viewDetail')}}</el-button>
             </div>
             <div class="content" v-if="noEnoughData">
               <span class="no-data">{{$t('noEnoughData')}}</span>
@@ -639,46 +639,51 @@ export default class Dashboard extends Vue {
       width: 230px;
     }
     .dash-card {
-      box-shadow: 0px 0px 4px 0px @line-border-color;
-      border: 1px solid @table-stripe-color;
+      border: 1px solid @line-border-color;
+      border-radius: 2px;
       background-color: @fff;
-      padding: 15px;
-      text-align: center;
       box-sizing: border-box;
+      &:hover {
+        box-shadow: 1px 1px 2px 0 @line-split-color;
+      }
       .inner-card {
         cursor: pointer;
-      }
-      &:hover {
-        box-shadow: 0px 0px 8px 0px @line-border-color;
       }
       .cart-title {
         color: @text-title-color;
         font-size: 14px;
         font-weight: 600;
-        line-height: 26px;
-        text-align: left;
+        height: 36px;
+        line-height: 36px;
+        padding: 0 15px;
+        background-color: @regular-background-color;
       }
       .content {
-        margin: 20px 0 20px auto;
-        color: @text-title-color;
+        margin: 15px;
+        color: @text-normal-color;
         .num {
-          color: @base-color;
-          font-size: 36px;
-          line-height: 43px;
+          color: @text-title-color;
+          font-size: 24px;
+          line-height: 24px;
+          font-weight: 500;
         }
         .no-data {
-          color: @text-secondary-color;
+          color: @text-disabled-color;
         }
       }
       .quota-row {
-        margin-top: 20px;
+        margin: 15px;
+        .img-block {
+          width: 33%;
+          min-width: 100px;
+        }
         .quota-chart {
+          margin: 0 auto;
           height: 170px;
           width: 90px;
           border-radius: 4px;
           border: 2px solid #15bdf1;
           box-shadow: 0px 0px 2px 0px #3AA0E5;
-          float: right;
           position: relative;
           .text {
             font-size: 12px;
@@ -726,9 +731,11 @@ export default class Dashboard extends Vue {
         .quota-info {
           float: left;
           text-align: left;
+          padding-left: 15px;
+          border-left: 1px solid @line-split-color;
           .info-title {
             color: @text-normal-color;
-            font-size: 12px;
+            font-size: 14px;
             line-height: 14px;
             font-weight: 500;
             &:first-child {
@@ -748,48 +755,55 @@ export default class Dashboard extends Vue {
             font-weight: 500;
             font-size: 18px;
             color: @warning-color-1;
+            .clear-btn {
+              font-size: 16px;
+              color: @base-color;
+            }
           }
         }
       }
     }
     .ratio-row .dash-card {
-      height: 253px;
+      height: 242px;
     }
     .count-row .el-col {
       position: relative;
-      height: 126px;
+      height: 93px;
       .dash-card {
         position: absolute;
-        height: 126px;
+        height: 93px;
         width: calc(~"100% - 10px");
         padding: 0;
-        .inner-card {
-          padding: 15px;
-        }
         &.isActive {
           height: 138px;
-          border-top: 2px solid @base-color-1;
+          box-shadow: 1px 1px 2px 0 @line-split-color;
           .inner-card {
-            height: 110px;
-            width: calc(~"100% - 28px");
+            height: 103px;
+            width: 100%;
+            border: 1px solid @line-border-color;
             border-bottom: none;
             position: absolute;
-            top: 0px;
+            top: -1px;
             left: -1px;
             z-index: 1;
-            background-color: @fff;
+            background-color: @bg-total;
           }
         }
       }
     }
     .chart-row.dash-card {
+      padding: 15px;
+      .cart-title {
+        padding: 0;
+        background-color: @bg-total;
+      }
       .chart-block {
         position: relative;
         .nvd3.nv-noData {
           font-size: 16px;
           font-weight: 400;
           font-family: Helvetica Neue, Helvetica, PingFang SC, Hiragino Sans GB, Microsoft YaHei, SimSun, sans-serif;
-          fill: @text-secondary-color;
+          fill: @text-disabled-color;
         }
         .nvd3 text {
           font: normal 10px Helvetica Neue;
@@ -800,10 +814,10 @@ export default class Dashboard extends Vue {
           fill-opacity: 1;
         }
         > div {
-          height: 325px;
+          height: 300px;
         }
        &:first-child {
-        border-right: 1px solid @line-border-color;
+        border-right: 1px solid @line-split-color;
         padding-right: 15px;
        }
        &:last-child {

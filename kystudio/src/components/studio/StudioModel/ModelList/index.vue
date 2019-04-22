@@ -190,6 +190,7 @@ import '../../../../util/fly.js'
       if (to.params.modelAlias) {
         vm.currentEditModel = to.params.modelAlias
         vm.filterArgs.model = to.params.modelAlias
+        vm.filterArgs.exact = true
       }
     })
   },
@@ -465,6 +466,9 @@ export default class ModelList extends Vue {
   // 搜索模型
   searchModels () {
     clearTimeout(this.ST)
+    if (this.filterArgs.exact) {
+      this.filterArgs.exact = false
+    }
     this.ST = setTimeout(() => {
       this.searchLoading = true
       this.loadModelsList().then(() => {
