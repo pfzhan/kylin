@@ -13,7 +13,6 @@ class NTable {
     // 添加一些筛选配置
     this.columns.forEach((col) => {
       col.isHidden = false
-      col.isUseAsPFKey = false
     })
     this.getOtherTableByGuid = options.getTableByGuid
     this.kind = options.kind ? options.kind : options.fact ? modelRenderConfig.tableKind.fact : modelRenderConfig.tableKind.lookup // table 类型

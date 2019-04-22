@@ -10,18 +10,18 @@
     <div class="loading" v-if="isLoading" v-loading="isLoading"></div>
     <template v-if="model">
       <!-- 维度列表展示 -->
-      <div class="dimension-list clearfix" v-if="isDimensionShow">
+      <!-- <div class="dimension-list clearfix" v-if="isDimensionShow">
         <div class="dimension disable" v-for="dimension in dimensions" :key="dimension.value">
           {{dimension.label}}
         </div>
-      </div>
+      </div> -->
       <!-- 维度按钮 -->
-      <div class="dimension-buttons">
+      <!-- <div class="dimension-buttons">
         <el-button @click="toggleDimensionShow">
           {{$t(isDimensionShow ? 'hideDimensions' : 'showDimensions')}}
           <i class="el-icon-ksd-more_01" :class="{ 'less': isDimensionShow }"></i>
         </el-button>
-      </div>
+      </div> -->
       <!-- 聚合组按钮 -->
       <div class="aggregate-buttons">
         <el-button type="primary" icon="el-icon-ksd-add_2" @click="handleAddAggregate">{{$t('addAggregateGroup')}}</el-button>
