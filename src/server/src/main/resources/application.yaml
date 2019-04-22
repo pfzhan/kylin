@@ -2,7 +2,10 @@ server:
   port: 7070
   servlet-path: "/api"
   context-path: "/kylin"
-
+  tomcat:
+    access-log-enabled: true
+    access-log-pattern: '%h %l %u %t "%r" %s %b %D'
+    basedir: "${KYLIN_HOME}"
 
 spring:
   profiles:
