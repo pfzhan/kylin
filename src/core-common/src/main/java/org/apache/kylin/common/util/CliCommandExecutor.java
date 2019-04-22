@@ -43,24 +43,36 @@
 package org.apache.kylin.common.util;
 
 import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.lang.reflect.Field;
+import java.util.List;
 
+import com.google.common.base.Preconditions;
+import com.google.common.collect.Lists;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.JobProcessContext;
+import org.apache.kylin.common.KapConfig;
+import org.slf4j.LoggerFactory;
 
 /**
  * @author yangli9
  */
 public class CliCommandExecutor {
+    private static final org.slf4j.Logger logger = LoggerFactory.getLogger(CliCommandExecutor.class);
 
     private String remoteHost;
     private int port;
     private String remoteUser;
     private String remotePwd;
     private int remoteTimeoutSeconds = 3600;
+
+    // records down child process ids
+    private static File childProcessFile = new File(KapConfig.getKylinHomeAtBestEffort(), "child_process");
 
     public CliCommandExecutor() {
     }
@@ -102,7 +114,6 @@ public class CliCommandExecutor {
         }
     }
 
-
     public Pair<Integer, String> execute(String command, Logger logAppender) throws ShellException {
         return execute(command, logAppender, null);
     }
@@ -138,7 +149,10 @@ public class CliCommandExecutor {
         }
     }
 
-    private Pair<Integer, String> runNativeCommand(String command, Logger logAppender, String jobId) throws ShellException {
+    private Pair<Integer, String> runNativeCommand(String command, Logger logAppender, String jobId)
+            throws ShellException {
+        String pid = "";
+
         try {
 
             String[] cmd = new String[3];
@@ -156,8 +170,10 @@ public class CliCommandExecutor {
             builder.environment().putAll(System.getenv());
             builder.redirectErrorStream(true);
             Process proc = builder.start();
+            pid = getPid(proc);
 
             if (StringUtils.isNotBlank(jobId)) {
+                persistJobChildProcess(pid);
                 JobProcessContext.registerProcess(jobId, proc);
             }
 
@@ -182,9 +198,54 @@ public class CliCommandExecutor {
             throw new ShellException(e);
         } finally {
             if (StringUtils.isNotBlank(jobId)) {
+                removeJobChildProcess(pid);
                 JobProcessContext.removeProcess(jobId);
             }
         }
     }
 
+    private void persistJobChildProcess(String pid) {
+        synchronized (childProcessFile) {
+            try (BufferedWriter writer = new BufferedWriter(new FileWriter(childProcessFile, true))) {
+                writer.write(pid + "\n");
+                writer.flush();
+            } catch (IOException ex) {
+                logger.error("write child job process {} from {} failed", pid, childProcessFile.getAbsolutePath());
+            }
+        }
+    }
+
+    private void removeJobChildProcess(String pid) {
+        synchronized (childProcessFile) {
+            if (!childProcessFile.exists())
+                return;
+
+            List<String> existChildPids = Lists.newArrayList();
+
+            try {
+                existChildPids = FileUtils.readLines(childProcessFile);
+            } catch (IOException e) {
+                logger.error("read child job process from {} failed", childProcessFile.getAbsolutePath());
+            }
+
+            if (!existChildPids.contains(pid))
+                return;
+
+            existChildPids.remove(pid);
+
+            try {
+                FileUtils.writeLines(childProcessFile, existChildPids);
+            } catch (IOException e) {
+                logger.error("remove child job process {} from {} failed", pid, childProcessFile.getAbsolutePath());
+            }
+        }
+    }
+
+    private String getPid(Process process) throws IllegalAccessException, NoSuchFieldException {
+        String className = process.getClass().getName();
+        Preconditions.checkState(className.equals("java.lang.UNIXProcess"));
+        Field f = process.getClass().getDeclaredField("pid");
+        f.setAccessible(true);
+        return String.valueOf(f.getInt(process));
+    }
 }

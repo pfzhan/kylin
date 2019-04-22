@@ -29,22 +29,34 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Collections;
+import java.util.EnumSet;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Properties;
 import java.util.Set;
 
+import org.apache.commons.collections.CollectionUtils;
 import io.kyligence.kap.common.persistence.metadata.MetadataStore;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.StringUtils;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.yarn.api.records.ApplicationReport;
+import org.apache.hadoop.yarn.api.records.YarnApplicationState;
+import org.apache.hadoop.yarn.client.api.YarnClient;
+import org.apache.hadoop.yarn.conf.YarnConfiguration;
+import org.apache.hadoop.yarn.exceptions.YarnException;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.KylinConfigExt;
+import org.apache.kylin.common.StorageURL;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.util.ClassUtil;
 import org.apache.kylin.common.util.CliCommandExecutor;
+import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.Pair;
+import org.apache.kylin.common.util.ShellException;
 import org.apache.kylin.job.common.PatternedLogger;
 import org.apache.kylin.job.exception.ExecuteException;
 import org.apache.kylin.job.execution.AbstractExecutable;
@@ -158,6 +170,8 @@ public class NSparkExecutable extends AbstractExecutable {
             jars = kylinJobJar;
         }
 
+        deleteJobTmpDirectoryOnExists();
+
         try {
             attachMetadataAndKylinProps(config);
         } catch (IOException e) {
@@ -167,6 +181,7 @@ public class NSparkExecutable extends AbstractExecutable {
         if (config.isUTEnv()) {
             return runLocalMode(filePath);
         } else {
+            killOrphanApplicationIfExists(config);
             return runSparkSubmit(config, sparkHome, hadoopConf, jars, kylinJobJar,
                     "-className " + getSparkSubmitClassName() + " " + filePath, getParent().getId());
         }
@@ -176,8 +191,7 @@ public class NSparkExecutable extends AbstractExecutable {
         File tmpDir = null;
         try {
             tmpDir = File.createTempFile(NBatchConstants.P_LAYOUT_IDS, "");
-            FileUtils.writeByteArrayToFile(tmpDir,
-                    JsonUtil.writeValueAsBytes(getParams()));
+            FileUtils.writeByteArrayToFile(tmpDir, JsonUtil.writeValueAsBytes(getParams()));
 
             logger.info("Spark job args json is : {}.", JsonUtil.writeValueAsString(getParams()));
             return tmpDir.getCanonicalPath();
@@ -225,11 +239,10 @@ public class NSparkExecutable extends AbstractExecutable {
     }
 
     private boolean hasOverrideSparkConf(String dataflow, NDataflowManager dataflowManager) {
-        LinkedHashMap<String, String> overrideProps = dataflowManager.getDataflow(dataflow).getIndexPlan().getOverrideProps();
-        Optional<Map.Entry<String, String>> any = overrideProps.entrySet()
-                .stream()
-                .filter(entry -> entry.getKey().startsWith("kylin.engine.spark-conf."))
-                .findAny();
+        LinkedHashMap<String, String> overrideProps = dataflowManager.getDataflow(dataflow).getIndexPlan()
+                .getOverrideProps();
+        Optional<Map.Entry<String, String>> any = overrideProps.entrySet().stream()
+                .filter(entry -> entry.getKey().startsWith("kylin.engine.spark-conf.")).findAny();
         if (any.isPresent()) {
             logger.info("Find override spark conf,set kylin.spark-conf.auto.prior=false");
             overrideProps.entrySet()
@@ -237,6 +250,40 @@ public class NSparkExecutable extends AbstractExecutable {
             return true;
         }
         return false;
+    }
+
+    private void killOrphanApplicationIfExists(KylinConfig config) {
+        PatternedLogger patternedLogger = new PatternedLogger(logger);
+        String orphanApplicationId = null;
+
+        try (YarnClient yarnClient = YarnClient.createYarnClient()) {
+            Configuration yarnConfiguration = new YarnConfiguration();
+            // bug of yarn : https://issues.apache.org/jira/browse/SPARK-15343
+            yarnConfiguration.set("yarn.timeline-service.enabled", "false");
+            yarnClient.init(yarnConfiguration);
+            yarnClient.start();
+
+            Set<String> types = Sets.newHashSet("SPARK");
+            EnumSet<YarnApplicationState> states = EnumSet.of(YarnApplicationState.NEW, YarnApplicationState.NEW_SAVING,
+                    YarnApplicationState.SUBMITTED, YarnApplicationState.ACCEPTED, YarnApplicationState.RUNNING);
+            val applicationReports = yarnClient.getApplications(types, states);
+
+            if (CollectionUtils.isEmpty(applicationReports))
+                return;
+
+            for (ApplicationReport report : applicationReports) {
+                if (report.getName().equalsIgnoreCase("job_step_" + getId())) {
+                    orphanApplicationId = report.getApplicationId().toString();
+                    // kill orphan application by command line
+                    String killApplicationCmd = "yarn application -kill " + orphanApplicationId;
+                    config.getCliCommandExecutor().execute(killApplicationCmd, patternedLogger);
+                }
+            }
+        } catch (ShellException ex1) {
+            logger.error("kill orphan yarn application {} failed.", orphanApplicationId);
+        } catch (YarnException | IOException ex2) {
+            logger.error("get yarn application failed");
+        }
     }
 
     private ExecuteResult runSparkSubmit(KylinConfig config, String sparkHome, String hadoopConf, String jars,
@@ -264,9 +311,10 @@ public class NSparkExecutable extends AbstractExecutable {
     }
 
     protected String generateSparkCmd(KylinConfig config, String hadoopConf, String jars, String kylinJobJar,
-                                      String appArgs) {
+            String appArgs) {
         StringBuilder sb = new StringBuilder();
-        sb.append("export HADOOP_CONF_DIR=%s && %s/bin/spark-submit --class io.kyligence.kap.engine.spark.application.SparkEntry ");
+        sb.append(
+                "export HADOOP_CONF_DIR=%s && %s/bin/spark-submit --class io.kyligence.kap.engine.spark.application.SparkEntry ");
 
         Map<String, String> sparkConfs = getSparkConfigOverride(config);
         for (Map.Entry<String, String> entry : sparkConfs.entrySet()) {
@@ -290,7 +338,7 @@ public class NSparkExecutable extends AbstractExecutable {
     private ExecuteResult runLocalMode(String appArgs) {
         try {
             Class<? extends Object> appClz = ClassUtil.forName(getSparkSubmitClassName(), Object.class);
-            appClz.getMethod("main", String[].class).invoke(null, (Object) new String[]{appArgs});
+            appClz.getMethod("main", String[].class).invoke(null, (Object) new String[] { appArgs });
             return ExecuteResult.createSucceed();
         } catch (Exception e) {
             return ExecuteResult.createError(e);
@@ -328,13 +376,27 @@ public class NSparkExecutable extends AbstractExecutable {
         FileUtils.forceDelete(tmpDir);
     }
 
-    public boolean needMergeMetadata(){
+    private void deleteJobTmpDirectoryOnExists() {
+        StorageURL storageURL = StorageURL.valueOf(getDistMetaUrl());
+        String metaPath = storageURL.getParameter("path");
+
+        String[] directories = metaPath.split("/");
+        String lastDirectory = directories[directories.length - 1];
+        String taskPath = metaPath.substring(0, metaPath.length() - 1 - lastDirectory.length());
+        try {
+            Path path = new Path(taskPath);
+            HadoopUtil.deletePath(HadoopUtil.getCurrentConfiguration(), path);
+        } catch (Exception e) {
+            logger.error("delete job tmp in path {} failed.", taskPath, e);
+        }
+    }
+
+    public boolean needMergeMetadata() {
         return false;
     }
 
-    public void mergerMetadata(MetadataMerger merger){
+    public void mergerMetadata(MetadataMerger merger) {
         throw new UnsupportedOperationException();
     }
-
 
 }

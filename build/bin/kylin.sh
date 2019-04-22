@@ -133,6 +133,19 @@ function runTool() {
     java ${KYLIN_EXTRA_START_OPTS} -Dlog4j.configuration=file:${KYLIN_HOME}/conf/kylin-tools-log4j.properties -Dkylin.hadoop.conf.dir=${KYLIN_HADOOP_CONF} -Dhdp.version=current -cp "${KYLIN_HADOOP_CONF}:${KYLIN_HOME}/tool/kap-tool-$version.jar:${SPARK_HOME}/jars/*" $@
 }
 
+function killChildProcess {
+    if [ -f "../child_process" ]
+    then
+        while childPid='' read -r line || [[ -n "$line" ]]; do
+            if ps -p $line > /dev/null
+            then
+                pkill -P $line
+            fi
+        done < "../child_process"
+        rm -f ../child_process
+    fi
+}
+
 # start command
 if [[ "$1" == io.kyligence.* ]]
 then
@@ -149,6 +162,8 @@ then
           quit "Kylin is running, stop it first, PID is $PID"
         fi
     fi
+
+    killChildProcess
 
     cd ${KYLIN_HOME}/server
 
@@ -174,7 +189,7 @@ then
         export KYLIN_EXTRA_START_OPTS=`echo ${KYLIN_JVM_SETTINGS}|sed  "s/-XX:+PrintFlagsFinal//g"`
     fi
 
-    java ${KYLIN_EXTRA_START_OPTS} -Dlogging.path=${KYLIN_HOME}/logs -Dspring.profiles.active=prod -Dlogging.config=file:${KYLIN_HOME}/conf/kylin-server-log4j.properties -Dkylin.hadoop.conf.dir=${KYLIN_HADOOP_CONF} -Dhdp.version=current -Dserver.port=$port -Dloader.path="${KYLIN_HADOOP_CONF},${KYLIN_HOME}/server/jars,${SPARK_HOME}/jars"  -jar newten.jar >> ../logs/kylin.out 2>&1 & echo $! > ../pid &
+    java ${KYLIN_EXTRA_START_OPTS} -Dlogging.path=${KYLIN_HOME}/logs -Dspring.profiles.active=prod -Dlogging.config=file:${KYLIN_HOME}/conf/kylin-server-log4j.properties -Dkylin.hadoop.conf.dir=${KYLIN_HADOOP_CONF} -Dhdp.version=current -Dserver.port=$port -Dloader.path="${KYLIN_HADOOP_CONF},${KYLIN_HOME}/server/jars,${SPARK_HOME}/jars" -XX:OnOutOfMemoryError="sh ${KYLIN_HOME}/bin/kylin.sh stop"  -jar newten.jar >> ../logs/kylin.out 2>&1 & echo $! > ../pid &
 
     echo "Kylin is starting, PID:`cat ../pid`. Please checkout http://`hostname`:$port/kylin/index.html"
 
@@ -204,6 +219,9 @@ then
               break
            done
            rm ../pid
+
+           killChildProcess
+
            exit 0
         else
            quit "Kylin is not running"
