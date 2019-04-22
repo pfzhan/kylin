@@ -58,8 +58,9 @@
           header-align="right"
           align="right"
           prop="usage"
+          sortable="custom"
           show-overflow-tooltip
-          width="80px"
+          width="110px"
           :label="$t('usage')">
         </el-table-column>
          <el-table-column
@@ -68,6 +69,7 @@
           prop="storage"
           show-overflow-tooltip
           width="120px"
+          sortable="custom"
           :label="$t('storage')">
           <template slot-scope="scope">
             {{scope.row.storage|dataSize}}
@@ -416,10 +418,11 @@ export default class ModelList extends Vue {
     })
   }
   onSortChange ({ column, prop, order }) {
+    this.filterArgs.sortBy = prop
     if (prop === 'gmtTime') {
       this.filterArgs.sortBy = 'last_modify'
-      this.filterArgs.reverse = !(order === 'ascending')
     }
+    this.filterArgs.reverse = !(order === 'ascending')
     this.loadModelsList()
   }
   // 全屏查看模型附属信息

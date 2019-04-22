@@ -11,6 +11,7 @@
   import zhLocale from 'kyligence-ui/lib/locale/lang/zh-CN'
   import enKylinLocale from '../../locale/en'
   import zhKylinLocale from '../../locale/zh-CN'
+  import { getQueryString } from 'util'
   Vue.use(VueI18n)
   enLocale.kylinLang = enKylinLocale.default
   zhLocale.kylinLang = zhKylinLocale.default
@@ -18,19 +19,10 @@
   Vue.locale('zh-cn', zhLocale)
   export default {
     name: 'changelang',
-    props: ['isLogin'],
-    watch: {
-      lang (val) {
-        Vue.config.lang = val
-        Vue.http.headers.common['Accept-Language'] = val === 'zh-cn' ? 'cn' : 'en'
-        localStorage.setItem('kystudio_lang', val)
-      }
-    },
     data () {
       return {
         defaultLang: 'en',
-        lang: localStorage.getItem('kystudio_lang') ? localStorage.getItem('kystudio_lang') : this.defaultLang,
-        options: [{label: '中文', value: 'zh-cn'}, {label: 'English', value: 'en'}]
+        lang: localStorage.getItem('kystudio_lang') ? localStorage.getItem('kystudio_lang') : this.defaultLang
       }
     },
     methods: {
@@ -38,31 +30,34 @@
         if (val === 'en') {
           this.lang = 'en'
           this.$store.state.system.lang = 'en'
-          document.documentElement.lang = 'en-us'
         } else {
           this.lang = 'zh-cn'
           this.$store.state.system.lang = 'zh-cn'
-          document.documentElement.lang = 'zh-cn'
         }
+        Vue.config.lang = this.lang
+        Vue.http.headers.common['Accept-Language'] = val === 'zh-cn' ? 'cn' : 'en'
+        localStorage.setItem('kystudio_lang', val)
+        document.documentElement.lang = this.lang === 'en' ? 'en-us' : this.lang
       }
     },
     created () {
-      // 外链传参数改变语言的逻辑
-      this.$on('changeLang', this.changeLang)
-      // end
-      let currentLang = navigator.language
-      // 判断除IE外其他浏览器使用语言
-      if (!currentLang) {
-      // 判断IE浏览器使用语言
-        currentLang = navigator.browserLanguage
+      // 外链传参数改变语言环境
+      var lang = getQueryString('lang')
+      if (lang) {
+        this.changeLang(lang)
+      } else {
+        let currentLang = navigator.language
+        // 判断除IE外其他浏览器使用语言
+        if (!currentLang) {
+        // 判断IE浏览器使用语言
+          currentLang = navigator.browserLanguage
+        }
+        if (currentLang.indexOf('zh') >= 0) {
+          this.defaultLang = 'zh-cn'
+        }
+        const finalLang = localStorage.getItem('kystudio_lang') ? localStorage.getItem('kystudio_lang') : this.defaultLang
+        this.changeLang(finalLang)
       }
-      if (currentLang.indexOf('zh') >= 0) {
-        this.defaultLang = 'zh-cn'
-      }
-      Vue.config.lang = localStorage.getItem('kystudio_lang') ? localStorage.getItem('kystudio_lang') : this.defaultLang
-      this.lang = localStorage.getItem('kystudio_lang') ? localStorage.getItem('kystudio_lang') : this.defaultLang
-      this.$store.state.system.lang = this.lang
-      document.documentElement.lang = this.lang === 'en' ? 'en-us' : this.lang
     }
   }
 </script>

@@ -66,26 +66,31 @@ if (process.env.NODE_ENV === 'development') {
   }
 }
 
+// 第三方参数控制
 // cloud 模式下弹窗通知父窗口
 Vue.prototype.__KY_DIALOG_OPEN_EVENT__ = () => {
-  if (store.state.config.platform === 'cloud') {
+  if (store.state.config.platform === 'cloud' || store.state.config.platform === 'iframe') {
     window.parent.postMessage('dialogOpen', '*')
   }
 }
 Vue.prototype.__KY_DIALOG_CLOSE_EVENT__ = () => {
-  if (store.state.config.platform === 'cloud') {
+  if (store.state.config.platform === 'cloud' || store.state.config.platform === 'iframe') {
     window.parent.postMessage('dialogClose', '*')
   }
 }
 var from = getQueryString('from')
 var token = getQueryString('token')
 store.state.config.platform = from
-if (from === 'cloud') {
-  var projectName = getQueryString('projectName')
-  cacheSessionStorage('projectName', projectName)
-  cacheLocalStorage('projectName', projectName)
+if (token) {
   Vue.http.headers.common['Authorization'] = token
 }
+var projectName = getQueryString('projectName') || getQueryString('project') // projectName 兼容老cloud的嵌套，新的请使用project
+if (projectName) {
+  cacheSessionStorage('projectName', projectName)
+  cacheLocalStorage('projectName', projectName)
+}
+
+// 第三方参数控制
 // end
 // Vue.prototype.introJs = introJs
 Vue.use(ElementUI)
@@ -101,14 +106,14 @@ Vue.http.interceptors.push(function (request, next) {
   } else {
     request.headers.set('Accept', 'application/vnd.apache.kylin-v2+json')
   }
-  if (store.state.config.platform === 'cloud') {
+  if (store.state.config.platform === 'cloud' || store.state.config.platform === 'iframe') { // 嵌套ifrme的平台
     nprogress.done()
     window.parent.postMessage('requestStart', '*')
   } else {
     isProgressVisiable && nprogress.start()
   }
   next(function (response) {
-    if (store.state.config.platform === 'cloud') {
+    if (store.state.config.platform === 'cloud' || store.state.config.platform === 'iframe') {
       window.parent.postMessage('requestEnd', '*')
     } else {
       isProgressVisiable && nprogress.done()

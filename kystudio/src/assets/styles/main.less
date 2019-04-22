@@ -760,7 +760,7 @@ i[class^=el-icon-]{
   }
 }
 
-// cloud 内嵌页面专用css
+// 其他网站嵌套，采用nomenu模式 内嵌页面专用css
 .cloud-frame-page{
   .el-breadcrumb{
     display: none;
@@ -789,6 +789,14 @@ i[class^=el-icon-]{
   }
   .btn_group{
     bottom:152px;
+  }
+  // 调节模型编辑界面的search模块的遮罩位置
+  .model-edit-outer .panel-search-box {
+    top:50px!important;
+  }
+  // 隐藏模型编辑全屏按钮
+  .model-edit-outer .sub-tool-icon-group .tool-icon.tool-full-screen{
+    display: none;
   }
 }
 

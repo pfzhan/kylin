@@ -656,11 +656,8 @@ export default class LayoutLeftRightTop extends Vue {
   mounted () {
     // 接受cloud的参数
     var from = getQueryString('from')
-    var lang = getQueryString('lang')
-    if (from === 'cloud') {
-      if (lang) {
-        this.$refs.changeLangCom.$emit('changeLang', lang)
-      }
+    var uimode = getQueryString('uimode') // 界面展示模式
+    if (from === 'cloud' || uimode === 'nomenu') { // 保留cloud，兼容云老参数
       $('#fullBox').addClass('cloud-frame-page')
     }
     if (this.isAutoProject) {
