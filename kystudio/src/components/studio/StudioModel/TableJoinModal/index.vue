@@ -17,6 +17,7 @@
         </el-select>
       </el-col>
     </el-row>
+    <div class="ky-line ksd-mt-15"></div>
     <!-- 列的关联 -->
     <el-row :gutter="10"  class="ksd-mt-15" v-for="(key, val) in joinColumns.foreign_key" :key="val">
       <el-col :span="10">
@@ -39,7 +40,7 @@
       </el-col>
     </el-row>
     <span slot="footer" class="dialog-footer">
-      <el-button @click="delConn" v-if="currentConnObj" size="medium" class="ksd-fleft">{{$t('delConn')}}</el-button>
+      <!-- <el-button @click="delConn" v-if="currentConnObj" size="medium" class="ksd-fleft">{{$t('delConn')}}</el-button> -->
       <el-button @click="isShow && handleClose(false)" size="medium">{{$t('kylinLang.common.cancel')}}</el-button>
       <el-button type="primary" v-guide.saveJoinBtn plain size="medium" @click="saveJoinCondition">{{$t('kylinLang.common.ok')}}</el-button>
     </span>

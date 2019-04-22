@@ -90,20 +90,30 @@ export function jsPlumbTool () {
       plumbInstance.setZoom(zoom)
     },
     connect (pid, fid, clickCb, otherProper) {
-      var defaultPata = {uuids: [fid, pid],
+      var defaultPata = {
+        uuids: [fid, pid],
         deleteEndpointsOnDetach: true,
         editable: true,
-        overlays: [['Label', {id: pid + (fid + 'label'),
-          // location: 0.1,
-          events: {
-            mousedown: function (_, e) {
-              stopPropagation(e)
-              return false
+        overlays: [
+          ['Custom', {
+            create: function () {
+              let overlays = document.createElement('div')
+              overlays.innerHTML = '<span class="label"></span><span class="close el-icon-ksd-close"></span>'
+              return overlays
             },
-            click: function (_, e) {
-              clickCb(pid, fid)
+            id: pid + (fid + 'label'),
+            events: {
+              mousedown: function (_, e) {
+                stopPropagation(e)
+                return false
+              },
+              click: function (_, e) {
+                clickCb(pid, fid, e)
+              }
             }
-          } }]]}
+          }]
+        ]
+      }
       defaultPata = Object.assign(defaultPata, otherProper)
       return plumbInstance.connect(defaultPata)
     },

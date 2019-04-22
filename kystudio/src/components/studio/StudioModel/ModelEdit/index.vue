@@ -11,22 +11,26 @@
           </common-tip>
           <span class="setting-icon" @click="editTable(t.guid)"><i class="el-icon-ksd-table_setting"></i></span>
         </div>
-        <div class="column-list-box" @dragover='($event) => {allowDropColumn($event, t.guid)}' @drop='(e) => {dropColumn(e, null, t)}' v-scroll>
+        <div class="column-search-box"><el-input prefix-icon="el-icon-search" @input="(val) => {filterColumns(val, t.columns)}" size="small"></el-input></div>
+        <div class="column-list-box" @dragover='($event) => {allowDropColumn($event, t.guid)}' @drop='(e) => {dropColumn(e, null, t)}' v-scroll.reactive>
           <ul >
-            <li v-guide="t.guid + col.name" v-on:dragover="(e) => {dragColumnEnter(e, t)}" v-on:dragleave="dragColumnLeave" class="column-li" :class="{'column-li-cc': col.is_computed_column}" @drop.stop='(e) => {dropColumn(e, col, t)}' @dragstart="(e) => {dragColumns(e, col, t)}"  draggable v-for="col in t.columns" :key="col.name">
+            <li v-guide="t.guid + col.name" v-on:dragover="(e) => {dragColumnEnter(e, t)}" v-on:dragleave="dragColumnLeave" class="column-li" :class="{'column-li-cc': col.is_computed_column}" @drop.stop='(e) => {dropColumn(e, col, t)}' @dragstart="(e) => {dragColumns(e, col, t)}"  draggable v-for="col in getFilteredColumns(t.columns)" :key="col.name">
               <span class="ksd-nobr-text">
-                <span class="col-type-icon"><i :class="columnTypeIconMap(col.datatype)"></i></span>
+                <span class="col-type-icon">
+                  <i class="el-icon-ksd-fkpk is-pfk" v-show="col.isPFK"></i><i :class="columnTypeIconMap(col.datatype)"></i>
+                </span>
                 <span class="col-name">{{col.name}}</span>
               </span>
-              <!-- <span class="li-type ky-option-sub-info">{{col.datatype}}</span> -->
             </li>
+            <!-- 渲染可计算列 -->
             <template v-if="t.kind=== 'FACT'">
               <li class="column-li column-li-cc" @drop='(e) => {dropColumn(e, {name: col.columnName }, t)}' @dragstart="(e) => {dragColumns(e, {name: col.columnName}, t)}"  draggable v-for="col in modelRender.computed_columns" :key="col.name">
                 <span class="ksd-nobr-text">
-                  <span class="col-type-icon"><i :class="columnTypeIconMap(col.datatype)"></i></span>
+                  <span class="col-type-icon">
+                    <i class="el-icon-ksd-fkpk is-pfk" v-show="col.isPFK"></i><i :class="columnTypeIconMap(col.datatype)"></i>
+                  </span>
                   <span class="col-name">{{col.columnName}}</span>
                 </span>
-                <!-- <span class="li-type ky-option-sub-info">{{col.datatype}}</span> -->
               </li>
             </template>
           </ul>
@@ -44,6 +48,7 @@
           <div class="panel-title" v-drag:change.left.top="panelAppear.datasource"><span class="title">{{$t('kylinLang.common.dataSource')}}</span><span class="close" @click="toggleMenu('datasource')"><i class="el-icon-ksd-close"></i></span></div>
           <div v-scroll v-guide.modelDataSourceTreeScrollBox style="height:calc(100% - 29px)" class="ksd-right-4">
             <DataSourceBar 
+              :ignore-node-types="['column']"
               v-guide.modelDataSourceTree
               class="tree-box"
               :project-name="currentSelectedProject"
@@ -456,7 +461,7 @@ import { mapActions, mapGetters, mapMutations, mapState } from 'vuex'
 import locales from './locales'
 import DataSourceBar from '../../../common/DataSourceBar'
 import { handleSuccess, handleError, loadingBox, kapMessage } from '../../../../util/business'
-import { isIE, groupData, objectClone } from '../../../../util'
+import { isIE, groupData, objectClone, filterObjectArray } from '../../../../util'
 import $ from 'jquery'
 import DimensionModal from '../DimensionsModal/index.vue'
 import AddMeasure from '../AddMeasure/index.vue'
@@ -912,6 +917,16 @@ export default class ModelEdit extends Vue {
   openEditAliasForm () {
     this.showEditAliasForm = true
     this.currentEditAlias = this.currentEditTable.alias
+  }
+  filterColumns (filterVal, columns, t) {
+    let reg = new RegExp(filterVal, 'gi')
+    columns.forEach((col) => {
+      this.$set(col, 'isHidden', filterVal ? !reg.test(col.name) : false)
+    })
+    // t.columns = filterObjectArray(columns, 'isfiltered', true)
+  }
+  getFilteredColumns (columns) {
+    return filterObjectArray(columns, 'isHidden', false)
   }
   // 拖动画布
   dragBox (x, y) {
@@ -1469,27 +1484,46 @@ export default class ModelEdit extends Vue {
 }
 .jtk-overlay {
   background-color: @base-color;
-  padding: 2px;
+  // padding: 0;
   font-size: 12px;
   z-index: 21;
-  font-weight: @font-medium;
-  border: 2px solid @base-color;
+  // font-weight: @font-medium;
+  // border: 2px solid @base-color;
   cursor: pointer;
-  min-width: 32px;
-  height: 15px;
+  min-width: 40px;
+  height: 20px;
   border-radius: 10px;
   text-align: center;
-  line-height: 15px;
+  line-height: 20px;
+  padding: 0 4px;
   color:@fff;
-
+  transition: width 0.5s;
+  .close {
+    display: none;
+    .ky-square-box(14px, 14px);
+    line-height: 16px;
+    border-radius: 50%;
+    margin-left:8px;
+  }
   &:hover {
-    height: 17px;
-    line-height: 17px;
+    .close {
+      display: inline-block;
+      color:#ccc;
+      // .ky-square-box(14px, 14px);
+      // border-radius: 50%;
+      // display: inline-block;
+      &:hover {
+        color:#fff;
+        background: #4da9e7;
+      }
+    }
+    height: 20px;
+    line-height: 20px;
     font-size:13px;
     background-color:@grey-4;
     color:@fff;
     background-color: @base-color-11;
-    border: 2px solid @base-color-11;
+    // border: 2px solid @base-color-11;
   }
 }
 .drag-column-in {
@@ -2012,6 +2046,11 @@ export default class ModelEdit extends Vue {
     }
     .box-css();
     .table-box {
+      &:hover{
+        .scrollbar-track-y{
+          opacity: 1;
+        }
+      }
       &.isLookup {
         box-shadow:@lookup-shadow;
         &:hover {
@@ -2084,10 +2123,16 @@ export default class ModelEdit extends Vue {
           margin: auto 6px 8px;
         }
       }
+      .column-search-box {
+        height: 30px;
+        line-height: 30px;
+        padding: 0 5px;
+      }
       .column-list-box {
         overflow:auto;
         position:absolute;
-        top:32px;
+        border-top: solid 1px @line-border-color;
+        top:62px;
         bottom:16px;
         right:0;
         left:0;
@@ -2097,7 +2142,7 @@ export default class ModelEdit extends Vue {
             &:hover{
               background-color:@base-color-9;
             }
-            padding-left:10px;
+            padding-left:5px;
             cursor:move;
             border-bottom:solid 1px @line-border-color;
             height:28px;
@@ -2106,6 +2151,9 @@ export default class ModelEdit extends Vue {
             .col-type-icon {
               color:@text-disabled-color;
               font-size:12px;
+              .is-pfk{
+                color: #f7ba2a;
+              }
             }
             &.column-li-cc {
               background-color:@warning-color-2;

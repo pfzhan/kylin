@@ -56,7 +56,8 @@ export default {
     editDimension: 'Edit dimension',
     editMeasure: 'Edit measure',
     searchTable: 'Search table',
-    searchInputPlaceHolder: 'Search table, dimension, measure, column name'
+    searchInputPlaceHolder: 'Search table, dimension, measure, column name',
+    delConnTip: 'Are you sure to delete this connection?'
   },
   'zh-cn': {
     'adddimension': '添加维度',
@@ -115,6 +116,7 @@ export default {
     editDimension: '编辑维度',
     editMeasure: '编辑度量',
     searchTable: '搜索表',
-    searchInputPlaceHolder: '搜索表名、维度、度量、列名'
+    searchInputPlaceHolder: '搜索表名、维度、度量、列名',
+    delConnTip: '确认删除该连接关系吗？'
   }
 }

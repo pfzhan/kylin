@@ -10,6 +10,12 @@ class NTable {
     this.columns = objectClone(options.columns).filter((col) => {
       return !col.is_computed_column
     }) // 所有列
+    // 添加一些筛选配置
+    this.columns.forEach((col) => {
+      col.isHidden = false
+      col.isUseAsPFKey = false
+    })
+    this.getOtherTableByGuid = options.getTableByGuid
     this.kind = options.kind ? options.kind : options.fact ? modelRenderConfig.tableKind.fact : modelRenderConfig.tableKind.lookup // table 类型
     this.joinInfo = {} // 链接对象
     this.guid = options.guid || sampleGuid() // identify id
@@ -49,7 +55,7 @@ class NTable {
       }
     }, options.drawSize)
   }
-  // 链接关系处理
+  // 链接关系处理 (链接数据都存储在主键表上)
   addLinkData (fTable, linkColumnF, linkColumnP, type) {
     // this.addFreeLinkData(fTable, linkColumnF, linkColumnP, type)
     let fguid = fTable.guid
@@ -75,6 +81,9 @@ class NTable {
       },
       kind: this.kind
     }
+  }
+  removeJoinInfo () {
+    this.joinInfo = {}
   }
   getColumnType (columnName) {
     let len = this.columns && this.columns.length || 0
@@ -161,6 +170,31 @@ class NTable {
   // 获取某个主键表相关的连接
   getLinks () {
     return this.joinInfo[this.guid] || {}
+  }
+  getColumnObj (columnName) {
+    for (let i = 0; i < this.columns.length; i++) {
+      const col = this.columns[i]
+      if (col.name === columnName) {
+        return col
+      }
+    }
+  }
+  changeColumnProperty (columnName, key, val, _) {
+    let col = this.getColumnObj(columnName)
+    if (_) {
+      _.$set(col, key, val)
+    } else {
+      col[key] = val
+    }
+  }
+  changeColumnsProperty (key, val, _) {
+    this.columns.forEach((col) => {
+      if (_) {
+        _.$set(col, key, val)
+      } else {
+        col[key] = val
+      }
+    })
   }
   // 可计算列处理
   // 维度处理

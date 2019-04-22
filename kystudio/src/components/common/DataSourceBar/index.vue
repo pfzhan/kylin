@@ -108,6 +108,10 @@ import { handleSuccessAsync, handleError } from '../../../util'
       type: Array,
       default: () => ['database', 'table', 'column']
     },
+    ignoreNodeTypes: {
+      type: Array,
+      default: () => []
+    },
     isShowActionGroup: {
       type: Boolean,
       default: true
@@ -196,7 +200,7 @@ export default class DataSourceBar extends Vue {
     return allData.filter(data => !['isMore', 'isLoading'].includes(data.type))
   }
   get columnArray () {
-    return this.tableArray.reduce((columns, table) => [...columns, ...table.children], [])
+    return this.ignoreNodeTypes.indexOf('column') >= 0 ? [] : this.tableArray.reduce((columns, table) => [...columns, ...table.children], [])
   }
   get currentSourceTypes () {
     const { override_kylin_properties: overrideKylinProperties } = this.currentProjectData || {}
@@ -292,10 +296,12 @@ export default class DataSourceBar extends Vue {
 
     currentDatabases.forEach((database, index) => {
       const { size, tables: resultTables } = results[index]
-      const tables = resultTables.map(resultTable => getTableObj(this, database, resultTable))
-      database.children = !isReset ? [...database.children, ...tables] : tables
-      database.isMore = size && size > this.getChildrenCount(database)
-      database.isHidden = !this.getChildrenCount(database)
+      const tables = resultTables.map(resultTable => getTableObj(this, database, resultTable, this.ignoreNodeTypes.indexOf('column') >= 0))
+      if (this.ignoreNodeTypes.indexOf('table') < 0) {
+        database.children = !isReset ? [...database.children, ...tables] : tables
+        database.isMore = size && size > this.getChildrenCount(database)
+        database.isHidden = !this.getChildrenCount(database)
+      }
       this.addPagination(database)
       this.hideLoading(database)
       this.cacheDatasourceInStore(index, resultTables, isReset)

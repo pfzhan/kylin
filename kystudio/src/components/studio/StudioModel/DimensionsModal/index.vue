@@ -1,6 +1,6 @@
 <template>
   <el-dialog class="dimension-modal" width="1000px"
-    :title="$t('editDimension')"
+    :title="$t('editDimension') + ' (' + allColumnsLen(true) + '/' + allColumnsLen() + ')'"
     :visible="isShow"
     :close-on-press-escape="false"
     :close-on-click-modal="false"
@@ -13,7 +13,11 @@
             <div @click="toggleTableShow(table)" class="table-header">
               <i class="el-icon-arrow-right ksd-fright ksd-mt-14 right-icon" v-if="!table.show"></i>
               <i class="el-icon-arrow-down  ksd-fright ksd-mt-14 right-icon" v-else></i>
-              <span class="ksd-ml-2"><i class="el-icon-ksd-fact_table"></i></span><span class="table-title">{{table.alias}} <span>({{countTableSelectColumns(table)}})</span> </span>
+              <el-checkbox v-model="table.checkedAll" :indeterminate="table.isIndeterminate" @click.native.stop  @change="(isAll) => {selectAllChange(isAll, table.guid)}"></el-checkbox>
+              <span class="ksd-ml-2">
+                 <i class="el-icon-ksd-fact_table"></i>
+              </span>
+              <span class="table-title">{{table.alias}} <span>({{countTableSelectColumns(table)}})</span></span>
             </div>
             <el-table
               v-if="table.show"
@@ -23,7 +27,7 @@
               :ref="table.guid"
               :row-class-name="(para) => tableRowClassName(para, table)"
               @select-all="(selection) => {selectionAllChange(selection, table.guid)}"
-              @select="selectionChange">
+              @select="(selection, row) => {selectionChange(selection, row, table.guid)}">
               <el-table-column
                 type="selection"
                 width="40">
@@ -69,7 +73,11 @@
             <div @click="toggleTableShow(table)" class="table-header">
               <i class="el-icon-arrow-right ksd-fright ksd-mt-14 right-icon" v-if="!table.show"></i>
               <i class="el-icon-arrow-down  ksd-fright ksd-mt-14 right-icon" v-else></i>
-              <span class="ksd-ml-2"><i class="el-icon-ksd-lookup_table"></i></span><span class="table-title">{{table.alias}} <span>({{countTableSelectColumns(table)}})</span></span>
+              <el-checkbox v-model="table.checkedAll" :indeterminate="table.isIndeterminate" @click.native.stop  @change="(isAll) => {selectAllChange(isAll, table.guid)}"></el-checkbox>
+              <span class="ksd-ml-2">
+                <i class="el-icon-ksd-lookup_table"></i>
+              </span>
+              <span class="table-title">{{table.alias}} <span>({{countTableSelectColumns(table)}})</span></span>
             </div>
             <el-table
               v-if="table.show || isGuideMode"
@@ -78,7 +86,7 @@
               :data="table.columns" :ref="table.guid"
               @row-click="(row) => {dimensionRowClick(row, table.guid)}"
               @select-all="(selection) => {selectionAllChange(selection, table.guid)}"
-              @select="selectionChange">
+              @select="(selection, row) => {selectionChange(selection, row, table.guid)}">
               <el-table-column
                 type="selection"
                 align="center"
@@ -187,24 +195,23 @@ export default class DimensionsModal extends Vue {
     this.lookupTable = []
     Object.values(this.tables).forEach((table) => {
       if (table.kind === 'FACT') {
-        this.$set(table, 'show', true)
         this.factTable.push(table)
       } else {
-        this.$set(table, 'show', false)
         this.lookupTable.push(table)
       }
+      this.$set(table, 'show', false)
+      this.$set(table, 'checkedAll', false)
+      this.$set(table, 'isIndeterminate', false)
       // 将已经选上的dimension回显到界面上
       table.columns && table.columns.forEach((col) => {
         this.$set(col, 'alias', table.alias + '_' + col.name)
         let len = this.usedColumns.length
         for (let i = 0; i < len; i++) {
           let d = this.usedColumns[i]
-          if (table.alias + '.' + col.name === d.column) {
-            if (d.status === 'DIMENSION') {
-              col.alias = d.name
-              this.$set(col, 'isSelected', true)
-              col.guid = d.guid
-            }
+          if (table.alias + '.' + col.name === d.column && d.status === 'DIMENSION') {
+            col.alias = d.name
+            this.$set(col, 'isSelected', true)
+            col.guid = d.guid
             break
           } else {
             this.$set(col, 'isSelected', false)
@@ -212,9 +219,7 @@ export default class DimensionsModal extends Vue {
           }
         }
       })
-      this.$nextTick(() => {
-        this.renerTableColumnSelected(table)
-      })
+      this.renderTableColumnSelected(table)
     })
   }
   checkHasSameNamedColumn () {
@@ -284,20 +289,37 @@ export default class DimensionsModal extends Vue {
       })
     }, 300)
   }
-  selectionChange (selection, row) {
+  // 获取header上checkbox的选中状态
+  getTableCheckedStatus (guid) {
+    let table = this.tables[guid]
+    let hasCheckedCount = 0
+    table.columns && table.columns.forEach((col) => {
+      if (col.isSelected) {
+        hasCheckedCount++
+      }
+    })
+    this.$set(table, 'checkedAll', hasCheckedCount === table.columns.length)
+    this.$set(table, 'isIndeterminate', hasCheckedCount > 0 && hasCheckedCount < table.columns.length)
+  }
+  // 点击行触发事件
+  selectionChange (selection, row, guid) {
     this.$set(row, 'isSelected', !row.isSelected)
+    this.getTableCheckedStatus(guid)
+  }
+  // 点击header上checkbox触发选择
+  selectAllChange (val, guid) {
+    let columns = this.tables[guid].columns
+    columns.forEach((row) => {
+      this.$set(row, 'isSelected', val)
+    })
+    this.renderTableColumnSelected(this.tables[guid])
   }
   selectionAllChange (selection, guid) {
-    if (!selection.length) {
-      let columns = this.tables[guid].columns
-      columns.forEach((row) => {
-        this.$set(row, 'isSelected', false)
-      })
-    } else {
-      selection.forEach((row) => {
-        this.$set(row, 'isSelected', true)
-      })
-    }
+    let columns = this.tables[guid].columns
+    columns.forEach((row) => {
+      this.$set(row, 'isSelected', !!selection.length)
+    })
+    this.getTableCheckedStatus(guid)
   }
   dimensionRowClick (row, guid) {
     this.$refs[guid][0].toggleRowSelection(row)
@@ -305,18 +327,17 @@ export default class DimensionsModal extends Vue {
   }
   toggleTableShow (table) {
     table.show = !table.show
-    this.renerTableColumnSelected(table)
+    this.renderTableColumnSelected(table)
   }
-  renerTableColumnSelected (table) {
-    if (table.show) {
-      this.$nextTick(() => {
+  renderTableColumnSelected (table) {
+    this.$nextTick(() => {
+      if (this.$refs[table.guid] && this.$refs[table.guid][0]) {
         table.columns && table.columns.forEach((col) => {
-          if (col.isSelected) {
-            this.$refs[table.guid][0].toggleRowSelection(col)
-          }
+          this.$refs[table.guid][0].toggleRowSelection(col, !!col.isSelected)
         })
-      })
-    }
+      }
+      this.getTableCheckedStatus(table.guid)
+    })
   }
   get countTableSelectColumns () {
     return (table) => {
@@ -360,6 +381,19 @@ export default class DimensionsModal extends Vue {
     })
     return result
   }
+  get allColumnsLen () {
+    return (isChecked) => {
+      let allLen = 0
+      this.tables && Object.values(this.tables).forEach((table) => {
+        table.columns && table.columns.forEach((col) => {
+          if (!isChecked || isChecked && col.isSelected) {
+            allLen++
+          }
+        })
+      })
+      return allLen
+    }
+  }
   submit () {
     this.checkDimensionForm()
     if (this.dimensionValidPass) {
@@ -385,7 +419,7 @@ export default class DimensionsModal extends Vue {
     font-weight:@font-medium;
   }
   .table-header {
-    padding-left:10px;
+    padding-left:15px;
     background-color: @grey-4;
     &:hover {
       color: @base-color;

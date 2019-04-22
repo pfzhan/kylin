@@ -145,7 +145,7 @@ export function getDatabaseObj (that, datasource, databaseItem) {
   }
 }
 
-export function getTableObj (that, database, table) {
+export function getTableObj (that, database, table, ignoreColumn) {
   const { datasource, label: databaseName } = database
   const tags = [
     ...(table.root_fact ? ['F'] : []),
@@ -170,7 +170,11 @@ export function getTableObj (that, database, table) {
     parent: database,
     __data: table
   }
-  tableObj.children = getColumnObjArray(that, tableObj)
+  if (!ignoreColumn) {
+    tableObj.children = getColumnObjArray(that, tableObj)
+  } else {
+    tableObj.children = null
+  }
   return tableObj
 }
 

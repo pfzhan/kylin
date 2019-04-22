@@ -3,6 +3,7 @@ import store from '../../../../store'
 import { jsPlumbTool } from '../../../../util/plumb'
 import { parsePath, sampleGuid, indexOfObjWithSomeKey, indexOfObjWithSomeKeys, objectClone } from '../../../../util'
 import { modelRenderConfig } from './config'
+import { kapConfirm } from 'util/business'
 import ModelTree from './layout'
 import $ from 'jquery'
 // model 对象
@@ -27,6 +28,7 @@ class NModel {
     this.column_correlations = options.column_correlations || []
     this.computed_columns = options.computed_columns || []
     this.last_modified = options.last_modified || 0
+    this.linkUsedColumns = {}
     this.partition_desc = options.partition_desc || {
       partition_date_column: null,
       partition_time_column: null,
@@ -87,6 +89,7 @@ class NModel {
       this.$set(this._mount, 'tableIndexColumns', this.tableIndexColumns)
       this.$set(this._mount, 'maintain_model_type', this.maintain_model_type)
       this.$set(this._mount, 'management_type', this.management_type)
+      this.$set(this._mount, 'linkUsedColumns', this.linkUsedColumns)
     }
     if (options.renderDom) {
       this.renderDom = this.vm.$el.querySelector(options.renderDom)
@@ -169,31 +172,75 @@ class NModel {
   getConn (pid, fid) {
     return this.allConnInfo[pid + '$' + fid]
   }
+  collectLinkedColumn (pid, pks, fks) {
+    this.clearPFMark() // 清除之前的标识
+    this.linkUsedColumns[pid] = [...pks, ...fks]
+    this.renderPFMark() // 重新标记主外键标识
+  }
+  clearPFMark () {
+    for (let i in this.linkUsedColumns) {
+      this.linkUsedColumns[i].forEach((col) => {
+        let nameList = col.split('.')
+        let alias = nameList[0]
+        let columnName = nameList[1]
+        let ntable = this.getTableByAlias(alias)
+        ntable.changeColumnProperty(columnName, 'isPFK', false, this)
+      })
+    }
+  }
+  renderPFMark () {
+    for (let i in this.linkUsedColumns) {
+      this.linkUsedColumns[i].forEach((col) => {
+        let nameList = col.split('.')
+        let alias = nameList[0]
+        let columnName = nameList[1]
+        let ntable = this.getTableByAlias(alias)
+        ntable.changeColumnProperty(columnName, 'isPFK', true, this)
+      })
+    }
+  }
   // 连线
   renderLink (pid, fid) {
     var hasConn = this.getConn(pid, fid)
+    let joinInfo = this.tables[pid].getJoinInfoByFGuid(fid)
+    var primaryKeys = joinInfo && joinInfo.join.primary_key
+    var foreignKeys = joinInfo && joinInfo.join.foreign_key
     if (hasConn) {
-      let joinInfo = this.tables[pid].getJoinInfoByFGuid(fid)
-      var primaryKeys = joinInfo && joinInfo.join.primary_key
-      // var primaryKeys = joinInfo && joinInfo.join && joinInfo.join.primary_key
       // 如果渲染的时候发现连接关系都没有了，直接删除
       if (!primaryKeys || primaryKeys && primaryKeys.length === 1 && primaryKeys[0] === '') {
         this.removeRenderLink(hasConn)
-        return null
+      } else {
+        this.setOverLayLabel(hasConn)
+        this.plumbTool.refreshPlumbInstance()
       }
-      this.setOverLayLabel(hasConn)
+    } else {
+      this.addPlumbPoints(pid, '', '', true)
+      this.addPlumbPoints(fid, '', '', true)
+      var conn = this.plumbTool.connect(pid, fid, (pid, fid, e) => {
+        if (e.target && /close/.test(e.target.className)) {
+          // 调用删除
+          kapConfirm(this.vm.$t('delConnTip')).then(() => {
+            this.removeRenderLink(conn)
+          })
+        } else {
+          this.connClick(pid, fid)
+        }
+      }, {})
+      this.setOverLayLabel(conn)
       this.plumbTool.refreshPlumbInstance()
-      return hasConn
+      this.allConnInfo[pid + '$' + fid] = conn
     }
-    this.addPlumbPoints(pid, '', '', true)
-    this.addPlumbPoints(fid, '', '', true)
-    var conn = this.plumbTool.connect(pid, fid, () => {
-      this.connClick(pid, fid)
-    }, {})
-    this.setOverLayLabel(conn)
-    this.plumbTool.refreshPlumbInstance()
-    this.allConnInfo[pid + '$' + fid] = conn
-    return conn
+    this.collectLinkedColumn(pid, primaryKeys, foreignKeys)
+  }
+  // 删除conn相关的主键的连接信息
+  removeRenderLink (conn) {
+    var fid = conn.sourceId
+    var pid = conn.targetId
+    delete this.allConnInfo[pid + '$' + fid]
+    delete this.linkUsedColumns[pid]
+    this.plumbTool.deleteConnect(conn)
+    this.tables[pid].removeJoinInfo()
+    // delete this.tables[pid].joinInfo[fid + '$' + [pid]]
   }
   // 生成供后台使用的数据结构
   generateMetadata () {
@@ -502,14 +549,6 @@ class NModel {
   // 别名修改
   changeAlias () {
     this._changeAliasRelation()
-  }
-  // 删除conn相关的主键的连接信息
-  removeRenderLink (conn) {
-    var fid = conn.sourceId
-    var pid = conn.targetId
-    delete this.allConnInfo[pid + '$' + fid]
-    this.plumbTool.deleteConnect(conn)
-    delete this.tables[pid].joinInfo[fid + '$' + [pid]]
   }
   _renderLabels () {
     for (var i in this.allConnInfo) {
@@ -1212,7 +1251,7 @@ class NModel {
     var joinType = joinInfo.join.type
     var labelCanvas = $(labelObj.canvas)
     labelCanvas.addClass(joinType === modelRenderConfig.joinKind.left ? 'label-left' : 'label-inner')
-    labelObj.setLabel(joinType)
+    labelCanvas && labelCanvas.find('.label').eq(0).text(joinType)
   }
 }
 
