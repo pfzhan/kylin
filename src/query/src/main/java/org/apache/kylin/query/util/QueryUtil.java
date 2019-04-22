@@ -88,8 +88,7 @@ public class QueryUtil {
         return transformSql(kylinConfig, massagedSql, project, defaultSchema);
     }
 
-    private static String transformSql(KylinConfig kylinConfig, String sql, String project,
-            String defaultSchema) {
+    private static String transformSql(KylinConfig kylinConfig, String sql, String project, String defaultSchema) {
         // customizable SQL transformation
         initQueryTransformersIfNeeded(kylinConfig);
         for (IQueryTransformer t : queryTransformers) {
@@ -205,8 +204,7 @@ public class QueryUtil {
 
     public static String makeErrorMsgUserFriendly(String errorMsg) {
         try {
-            // make one line
-            errorMsg = errorMsg.replaceAll("\\s", " ");
+            errorMsg = errorMsg.trim();
 
             // move cause to be ahead of sql, calcite creates the message pattern below
             Pattern pattern = Pattern.compile("Error while executing SQL \"(.*)\":(.*)");

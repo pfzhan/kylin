@@ -111,6 +111,12 @@ public class QueryUtilTest {
         Assert.assertTrue(
                 QueryUtil.makeErrorMsgUserFriendly(new SQLException(new NoSuchTableException("default", "test_ab")))
                         .contains("default"));
+
+        final Exception exception = new IllegalStateException("\tThere is no column\t'age' in table 'test_kylin_fact'.\n"
+                + "Please contact Kyligence Enterprise technical support for more details.\n");
+        final String errorMsg = QueryUtil.makeErrorMsgUserFriendly(exception);
+        Assert.assertEquals("There is no column\t'age' in table 'test_kylin_fact'.\n"
+                + "Please contact Kyligence Enterprise technical support for more details.", errorMsg);
     }
 
 }
