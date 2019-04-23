@@ -172,11 +172,16 @@ class NModel {
   getConn (pid, fid) {
     return this.allConnInfo[pid + '$' + fid]
   }
-  collectLinkedColumn (pid, pks, fks) {
+  collectLinkedColumn (pid, fid, pks, fks) {
     pks = pks || []
     fks = fks || []
     this.clearPFMark() // 清除之前的标识
-    this.linkUsedColumns[pid] = [...pks, ...fks]
+    // 删除连线的情况
+    if (pks.length === fks.length === 0) {
+      delete this.linkUsedColumns[pid + fid]
+    } else {
+      this.linkUsedColumns[pid + fid] = [...pks, ...fks]
+    }
     this.renderPFMark() // 重新标记主外键标识
   }
   clearPFMark () {
@@ -232,7 +237,7 @@ class NModel {
       this.plumbTool.refreshPlumbInstance()
       this.allConnInfo[pid + '$' + fid] = conn
     }
-    this.collectLinkedColumn(pid, primaryKeys, foreignKeys)
+    this.collectLinkedColumn(pid, fid, primaryKeys, foreignKeys)
   }
   // 删除conn相关的主键的连接信息
   removeRenderLink (conn) {
@@ -242,6 +247,7 @@ class NModel {
     delete this.linkUsedColumns[pid]
     this.plumbTool.deleteConnect(conn)
     this.tables[pid].removeJoinInfo(fid)
+    this.collectLinkedColumn(pid, fid, [], [])
     // delete this.tables[pid].joinInfo[fid + '$' + [pid]]
   }
   // 生成供后台使用的数据结构

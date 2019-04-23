@@ -560,7 +560,7 @@ export default class SourceHive extends Vue {
       color: @text-normal-color;
     }
     .table.parent-selected .el-icon-ksd-good_health {
-      transform: translate(-2px, -50%);
+      transform: translate(-16px, -50%);
     }
     .table.parent-selected {
       padding-left: 18px;
