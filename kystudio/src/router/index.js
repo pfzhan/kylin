@@ -9,7 +9,6 @@ import Insight from 'components/query/insight'
 import queryHistory from 'components/query/query_history'
 import Acceleration from 'components/studio/Acceleration/acceleration'
 import dashboard from 'components/dashboard'
-import messages from 'components/messages'
 import jobs from 'components/monitor/jobs'
 import { bindRouterGuard } from './routerGuard.js'
 
@@ -105,16 +104,6 @@ let routerOptions = {
         name: 'QueryHistory',
         path: 'query/queryhistory',
         component: queryHistory
-      },
-      // {
-      //   name: 'Dashboard',
-      //   path: 'dashboard',
-      //   component: dashboard
-      // },
-      {
-        name: 'Messages',
-        path: 'messages',
-        component: messages
       }]
     }
   ]
