@@ -17,7 +17,7 @@
             <li v-guide="t.guid + col.name" v-on:dragover="(e) => {dragColumnEnter(e, t)}" v-on:dragleave="dragColumnLeave" class="column-li" :class="{'column-li-cc': col.is_computed_column}" @drop.stop='(e) => {dropColumn(e, col, t)}' @dragstart="(e) => {dragColumns(e, col, t)}"  draggable v-for="col in getFilteredColumns(t.columns)" :key="col.name">
               <span class="ksd-nobr-text">
                 <span class="col-type-icon">
-                  <i class="el-icon-ksd-fkpk is-pfk" v-show="col.isPFK"></i><i :class="columnTypeIconMap(col.datatype)"></i>
+                  <i class="el-icon-ksd-fkpk_big is-pfk" v-show="col.isPFK"></i><i :class="columnTypeIconMap(col.datatype)"></i>
                 </span>
                 <span class="col-name">{{col.name}}</span>
               </span>
@@ -27,7 +27,7 @@
               <li class="column-li column-li-cc" @drop='(e) => {dropColumn(e, {name: col.columnName }, t)}' @dragstart="(e) => {dragColumns(e, {name: col.columnName}, t)}"  draggable v-for="col in modelRender.computed_columns" :key="col.name">
                 <span class="ksd-nobr-text">
                   <span class="col-type-icon">
-                    <i class="el-icon-ksd-fkpk is-pfk" v-show="col.isPFK"></i><i :class="columnTypeIconMap(col.datatype)"></i>
+                    <i class="el-icon-ksd-fkpk_big is-pfk" v-show="col.isPFK"></i><i :class="columnTypeIconMap(col.datatype)"></i>
                   </span>
                   <span class="col-name">{{col.columnName}}</span>
                 </span>
@@ -46,11 +46,16 @@
       <transition name="bounceleft">
         <div class="panel-box panel-datasource"  v-show="panelAppear.datasource.display" :style="panelStyle('datasource')" v-event-stop>
           <div class="panel-title" v-drag:change.left.top="panelAppear.datasource"><span class="title">{{$t('kylinLang.common.dataSource')}}</span><span class="close" @click="toggleMenu('datasource')"><i class="el-icon-ksd-close"></i></span></div>
-          <div v-scroll v-guide.modelDataSourceTreeScrollBox style="height:calc(100% - 29px)" class="ksd-right-4">
+          <div class="ksd-mrl-10 ksd-mt-10">
+            <el-input :placeholder="$t('searchTable')"  prefix-icon="el-icon-search" @keyup.native="(e) => filterDatasource(e)" @clear="filterDatasource"></el-input>
+          </div>
+          <div v-guide.modelDataSourceTreeScrollBox style="height:calc(100% - 29px)" class="ksd-right-4">
             <DataSourceBar 
               :ignore-node-types="['column']"
               v-guide.modelDataSourceTree
               class="tree-box"
+              ref="datasourceTree"
+              :is-show-filter="false"
               :project-name="currentSelectedProject"
               :is-show-load-source="true"
               :is-show-settings="false"
@@ -140,7 +145,7 @@
                 </span>
               </div>
             </div>
-            <div class="panel-main-content" @dragover='($event) => {allowDropColumnToPanle($event)}' v-event-stop @drop='(e) => {dropColumnToPanel(e, "dimension")}' v-scroll>
+            <div class="panel-main-content" @dragover='($event) => {allowDropColumnToPanle($event)}' @drop='(e) => {dropColumnToPanel(e, "dimension")}' v-scroll>
               <ul class="dimension-list">
                 <li v-for="(d, i) in allDimension" :key="d.name" :class="{'is-checked':dimensionSelectedList.indexOf(d.name)>-1}">
                   <span class="ksd-nobr-text">
@@ -210,7 +215,7 @@
                 </span>
               </div>
             </div>
-            <div class="panel-main-content"  @dragover='($event) => {allowDropColumnToPanle($event)}' v-event-stop @drop='(e) => {dropColumnToPanel(e, "measure")}' v-scroll>
+            <div class="panel-main-content"  @dragover='($event) => {allowDropColumnToPanle($event)}' @drop='(e) => {dropColumnToPanel(e, "measure")}' v-scroll>
               <ul class="measure-list">
                 <li v-for="m in allMeasure" :key="m.name" :class="{'is-checked':measureSelectedList.indexOf(m.name)>-1}">
                   <span class="ksd-nobr-text">
@@ -420,13 +425,13 @@
       <div class="column-list-box"  v-scroll>
         <ul >
           <li class="column-li" :class="{'column-li-cc': col.is_computed_column}"  v-for="col in getFilteredColumns(currentEditTable.columns)" :key="col.name">
-            <span class="col-type-icon"> <i class="el-icon-ksd-fkpk is-pfk" v-show="col.isPFK"></i><i :class="columnTypeIconMap(col.datatype)"></i></span>
+            <span class="col-type-icon"> <i class="el-icon-ksd-fkpk_big is-pfk" v-show="col.isPFK"></i><i :class="columnTypeIconMap(col.datatype)"></i></span>
             <span class="col-name">{{col.name|omit(14,'...')}}</span>
             <!-- <span class="li-type ky-option-sub-info">{{col.datatype}}</span> -->
           </li>
           <template v-if="currentEditTable.kind=== 'FACT'">
             <li class="column-li column-li-cc"  v-for="col in modelRender.computed_columns" :key="col.name">
-              <span class="col-type-icon"><i class="el-icon-ksd-fkpk is-pfk" v-show="col.isPFK"></i><i :class="columnTypeIconMap(col.datatype)"></i></span>
+              <span class="col-type-icon"><i class="el-icon-ksd-fkpk_big is-pfk" v-show="col.isPFK"></i><i :class="columnTypeIconMap(col.datatype)"></i></span>
               <span class="col-name">{{col.columnName|omit(14,'...')}}</span>
               <!-- <span class="li-type ky-option-sub-info">{{col.datatype}}</span> -->
             </li>
@@ -688,6 +693,9 @@ export default class ModelEdit extends Vue {
     } else {
       return 0
     }
+  }
+  filterDatasource (e) {
+    this.$refs.datasourceTree.$emit('filter', e)
   }
   delTable () {
     this.modelInstance.delTable(this.currentEditTable.guid).then(() => {
@@ -1501,18 +1509,18 @@ export default class ModelEdit extends Vue {
   transition: width 0.5s;
   .close {
     display: none;
-    // .ky-square-box(14px, 14px);
-    // line-height: 14px;
-    // font-size:14px;
-    // float:right;
+    .ky-square-box(14px, 14px);
+    line-height: 14px;
+    font-size:12px;
+    float:right;
     border-radius: 7px;
     margin-left:8px;
     // vertical-align: text-bottom;
-    // margin-top:4px;
+    margin-top:3px;
   }
   &:hover {
     .close {
-      display: inline-block;
+      display: block;
       color:#ccc;
       // .ky-square-box(14px, 14px);
       // border-radius: 50%;

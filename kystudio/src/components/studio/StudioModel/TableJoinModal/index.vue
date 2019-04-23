@@ -2,12 +2,12 @@
   <el-dialog append-to-body :title="$t('addJoinCondition')" @close="isShow && handleClose(false)" width="720px" :visible="isShow" class="links-dialog" :close-on-press-escape="false" :close-on-click-modal="false">
     <el-row :gutter="10">
       <el-col :span="10">
-        <el-select :placeholder="$t('kylinLang.common.pleaseSelect')" @change="changeFTable"  size="medium" style="width:100%" filterable v-model="selectF">
+        <el-select :placeholder="$t('kylinLang.common.pleaseSelect')" @change="changeFTable" style="width:100%" filterable v-model="selectF">
           <el-option  v-for="key in selectedFTables" :value="key.guid" :key="key.alias" :label="key.alias"></el-option>
         </el-select>
       </el-col>
       <el-col :span="4">
-        <el-select :placeholder="$t('kylinLang.common.pleaseSelect')"  size="medium" style="width:100%" v-model="joinType">
+        <el-select :placeholder="$t('kylinLang.common.pleaseSelect')" style="width:100%" v-model="joinType">
           <el-option :value="key" v-for="(key, i) in linkKind" :key="i">{{key}}</el-option>
         </el-select>
       </el-col>
@@ -19,9 +19,9 @@
     </el-row>
     <div class="ky-line ksd-mt-15"></div>
     <!-- 列的关联 -->
-    <el-row :gutter="10"  class="ksd-mt-15" v-for="(key, val) in joinColumns.foreign_key" :key="val">
+    <el-row :gutter="4"  class="ksd-mt-15" v-for="(key, val) in joinColumns.foreign_key" :key="val">
       <el-col :span="10">
-         <el-select size="medium"  style="width:100%" filterable v-model="joinColumns.foreign_key[val]" :placeholder="$t('kylinLang.common.pleaseSelect')">
+         <el-select size="small"  style="width:100%" filterable v-model="joinColumns.foreign_key[val]" :placeholder="$t('kylinLang.common.pleaseSelect')">
             <el-option v-for="f in fColumns" :value="fTable.alias+'.'+f.name" :key="f.name" :label="f.name">
             </el-option>
           </el-select>
@@ -29,13 +29,13 @@
       <el-col :span="1" class="ksd-center" style="font-size:20px;">
          =
       </el-col>
-      <el-col :span="9">
-        <el-select size="medium" style="width:100%" filterable v-model="joinColumns.primary_key[val]" :placeholder="$t('kylinLang.common.pleaseSelect')">
+      <el-col :span="11">
+        <el-select size="small" style="width:100%" filterable v-model="joinColumns.primary_key[val]" :placeholder="$t('kylinLang.common.pleaseSelect')">
             <el-option v-for="p in pColumns" :value="pTable.alias+'.'+p.name" :key="p.name" :label="p.name">
             </el-option>
           </el-select>
       </el-col>
-      <el-col :span="4" class="ksd-left ksd-pt-4">
+      <el-col :span="2" class="ksd-right">
         <el-button  type="primary" plain icon="el-icon-ksd-add_2" size="mini" @click="addJoinConditionColumns" circle></el-button><el-button  icon="el-icon-minus" size="mini" @click="removeJoinConditionColumn(val)" circle></el-button>
       </el-col>
     </el-row>

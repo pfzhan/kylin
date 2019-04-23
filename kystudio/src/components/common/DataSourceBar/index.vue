@@ -18,6 +18,7 @@
         </el-button>
       </div>
       <TreeList
+        ref="treeList"
         :show-overflow-tooltip="true"
         :data="datasources"
         :placeholder="$t('searchTable')"
@@ -108,10 +109,6 @@ import { handleSuccessAsync, handleError } from '../../../util'
       type: Array,
       default: () => ['database', 'table', 'column']
     },
-    ignoreNodeTypes: {
-      type: Array,
-      default: () => []
-    },
     isShowActionGroup: {
       type: Boolean,
       default: true
@@ -151,6 +148,10 @@ import { handleSuccessAsync, handleError } from '../../../util'
     isResizable: {
       type: Boolean,
       default: false
+    },
+    ignoreNodeTypes: {
+      type: Array,
+      default: () => []
     }
   },
   components: {
@@ -242,6 +243,9 @@ export default class DataSourceBar extends Vue {
     }
   }
   mounted () {
+    this.$on('filter', (event) => {
+      this.$refs.treeList && this.$refs.treeList.$emit('filter', event)
+    })
     this.initTree()
   }
   addPagination (data) {

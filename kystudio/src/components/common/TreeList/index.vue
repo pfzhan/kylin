@@ -12,6 +12,7 @@
     </div>
     <el-tree
       v-loading="isLoading"
+      element-loading-customClass="tree-filter-loading"
       ref="tree"
       class="filter-tree"
       node-key="id"
@@ -136,6 +137,11 @@ export default class TreeList extends Vue {
     this.treeStyle.width = this.$el.clientWidth
   }
   mounted () {
+    this.$on('filter', (event) => {
+      let val = event && event.target.value || ''
+      this.filterText = val
+      this.handleInput(event)
+    })
     const resizeBarEl = this.$refs['resize-bar']
     this.fixTreeWidth()
     resizeBarEl.addEventListener('mousedown', this.handleResizeStart)
