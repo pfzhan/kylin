@@ -125,14 +125,14 @@ public class NProjectControllerTest {
         ProjectInstance projectInstance = new ProjectInstance();
         projectInstance.setName("project1");
         projects.add(projectInstance);
-        Mockito.when(projectService.getReadableProjects("default")).thenReturn(projects);
+        Mockito.when(projectService.getReadableProjects("default", false)).thenReturn(projects);
         MvcResult mvcResult = mockMvc
                 .perform(MockMvcRequestBuilders.get("/api/projects").contentType(MediaType.APPLICATION_JSON)
                         .param("project", "default").param("pageOffset", "0").param("pageSize", "10")
                         .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
 
-        Mockito.verify(nProjectController).getProjects("default", 0, 10);
+        Mockito.verify(nProjectController).getProjects("default", 0, 10, false);
 
     }
 

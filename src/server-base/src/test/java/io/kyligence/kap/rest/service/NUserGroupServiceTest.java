@@ -64,6 +64,8 @@ public class NUserGroupServiceTest extends ServiceTestBase {
         userGroupService.addGroup("g2");
         userGroupService.addGroup("g3");
         Assert.assertEquals(Lists.newArrayList("g1", "g2", "g3"), userGroupService.getAllUserGroups());
+        Assert.assertEquals(Lists.newArrayList("g1", "g2", "g3"), userGroupService.getAuthoritiesFilterByGroupName("G"));
+        Assert.assertEquals(Lists.newArrayList("g1"), userGroupService.getAuthoritiesFilterByGroupName("g1"));
 
         // test add a existing user group
         try {

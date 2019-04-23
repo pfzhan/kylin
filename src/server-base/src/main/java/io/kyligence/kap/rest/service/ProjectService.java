@@ -25,7 +25,6 @@
 package io.kyligence.kap.rest.service;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -34,7 +33,6 @@ import java.util.stream.Collectors;
 import io.kyligence.kap.source.file.CredentialOperator;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
-import org.apache.directory.api.util.Strings;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.metadata.model.ISourceAware;
@@ -119,16 +117,17 @@ public class ProjectService extends BasicService {
         return createdProject;
     }
 
-    public List<ProjectInstance> getReadableProjects(final String projectName) {
-        List<ProjectInstance> projectInstances = new ArrayList<ProjectInstance>();
-        if (!Strings.isEmpty(projectName)) {
-            ProjectInstance projectInstance = getProjectManager().getProject(projectName);
-            projectInstances.add(projectInstance);
-        } else {
-            projectInstances.addAll(getProjectManager().listAllProjects());
+    public List<ProjectInstance> getReadableProjects(final String projectName, boolean exactMatch) {
+        val allProjects = getProjectManager().listAllProjects();
+
+        if (StringUtils.isNotEmpty(projectName)) {
+            return allProjects.stream()
+                    .filter(project -> (!exactMatch && project.getName().toUpperCase().contains(projectName.toUpperCase()))
+                            || (exactMatch && project.getName().equals(projectName)))
+                    .filter(project -> aclEvaluate.hasProjectAdminPermission(project)).collect(Collectors.toList());
         }
-        return projectInstances.stream()
-                .filter(projectInstance -> aclEvaluate.hasProjectAdminPermission(projectInstance))
+
+        return allProjects.stream().filter(project -> aclEvaluate.hasProjectAdminPermission(project))
                 .collect(Collectors.toList());
     }
 
@@ -199,7 +198,8 @@ public class ProjectService extends BasicService {
     private void cleanupAcl() {
         UnitOfWork.doInTransactionWithRetry(() -> {
             val prjManager = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv());
-            List<String> prjects = prjManager.listAllProjects().stream().map(ProjectInstance::getUuid).collect(Collectors.toList());
+            List<String> prjects = prjManager.listAllProjects().stream().map(ProjectInstance::getUuid)
+                    .collect(Collectors.toList());
             val aclManager = AclManager.getInstance(KylinConfig.getInstanceFromEnv());
             for (val acl : aclManager.listAll()) {
                 String id = acl.getDomainObjectInfo().getId();
@@ -352,6 +352,7 @@ public class ProjectService extends BasicService {
         config.clearManagersByProject(project);
         config.clearManagersByClz(NProjectManager.class);
     }
+
     @Transaction
     public void setDataSourceType(String project, String sourceType) {
         getProjectManager().updateProject(project, copyForWrite -> {
@@ -364,8 +365,10 @@ public class ProjectService extends BasicService {
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#project, 'ADMINISTRATION')")
     public void updateGarbageCleanupConfig(String project, GarbageCleanUpConfigRequest garbageCleanUpConfigRequest) {
         Map<String, String> overrideKylinProps = Maps.newHashMap();
-        overrideKylinProps.put("kylin.favorite.low-frequency-threshold", String.valueOf(garbageCleanUpConfigRequest.getLowFrequencyThreshold()));
-        overrideKylinProps.put("kylin.favorite.frequency-time-window", String.valueOf(garbageCleanUpConfigRequest.getFrequencyTimeWindow()));
+        overrideKylinProps.put("kylin.favorite.low-frequency-threshold",
+                String.valueOf(garbageCleanUpConfigRequest.getLowFrequencyThreshold()));
+        overrideKylinProps.put("kylin.favorite.frequency-time-window",
+                String.valueOf(garbageCleanUpConfigRequest.getFrequencyTimeWindow()));
         updateProjectOverrideKylinProps(project, overrideKylinProps);
     }
 

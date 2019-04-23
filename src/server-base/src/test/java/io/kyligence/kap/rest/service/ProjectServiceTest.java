@@ -175,15 +175,25 @@ public class ProjectServiceTest extends ServiceTestBase {
     @Test
     public void testGetReadableProjectsByName() throws Exception {
         Mockito.doReturn(true).when(aclEvaluate).hasProjectAdminPermission(Mockito.any(ProjectInstance.class));
-        List<ProjectInstance> projectInstances = projectService.getReadableProjects(PROJECT);
+        List<ProjectInstance> projectInstances = projectService.getReadableProjects(PROJECT, true);
         Assert.assertTrue(projectInstances.size() == 1 && projectInstances.get(0).getName().equals(PROJECT));
 
     }
 
     @Test
+    public void testGetReadableProjectsByFuzzyName() throws Exception {
+        Mockito.doReturn(true).when(aclEvaluate).hasProjectAdminPermission(Mockito.any(ProjectInstance.class));
+        List<ProjectInstance> projectInstances = projectService.getReadableProjects("TOP", false);
+        Assert.assertTrue(projectInstances.size() == 1 && projectInstances.get(0).getName().equals("top_n"));
+
+        projectInstances = projectService.getReadableProjects("not_exist_project", false);
+        Assert.assertEquals(0, projectInstances.size());
+    }
+
+    @Test
     public void testGetReadableProjects() throws Exception {
         Mockito.doReturn(true).when(aclEvaluate).hasProjectAdminPermission(Mockito.any(ProjectInstance.class));
-        List<ProjectInstance> projectInstances = projectService.getReadableProjects("");
+        List<ProjectInstance> projectInstances = projectService.getReadableProjects("", false);
         Assert.assertEquals(10, projectInstances.size());
 
     }
@@ -191,7 +201,7 @@ public class ProjectServiceTest extends ServiceTestBase {
     @Test
     public void testGetReadableProjects_NoPermission() throws Exception {
         Mockito.doReturn(false).when(aclEvaluate).hasProjectAdminPermission(Mockito.any(ProjectInstance.class));
-        List<ProjectInstance> projectInstances = projectService.getReadableProjects("");
+        List<ProjectInstance> projectInstances = projectService.getReadableProjects("", false);
         Assert.assertEquals(0, projectInstances.size());
 
     }
@@ -199,7 +209,7 @@ public class ProjectServiceTest extends ServiceTestBase {
     @Test
     public void testGetReadableProjects_hasNoPermissionProject() throws Exception {
         Mockito.doReturn(true).when(aclEvaluate).hasProjectAdminPermission(Mockito.any(ProjectInstance.class));
-        List<ProjectInstance> projectInstances = projectService.getReadableProjects("");
+        List<ProjectInstance> projectInstances = projectService.getReadableProjects("", false);
         Assert.assertEquals(10, projectInstances.size());
 
     }
@@ -208,7 +218,7 @@ public class ProjectServiceTest extends ServiceTestBase {
     public void testUpdateThreshold() throws Exception {
         Mockito.doReturn(true).when(aclEvaluate).hasProjectAdminPermission(Mockito.any(ProjectInstance.class));
         projectService.updateQueryAccelerateThresholdConfig(PROJECT, 30, false);
-        List<ProjectInstance> projectInstances = projectService.getReadableProjects(PROJECT);
+        List<ProjectInstance> projectInstances = projectService.getReadableProjects(PROJECT, false);
         Assert.assertEquals("30",
                 projectInstances.get(0).getOverrideKylinProps().get("kylin.favorite.query-accelerate-threshold"));
         Assert.assertEquals("false", projectInstances.get(0).getOverrideKylinProps().get("kylin.favorite.query-accelerate-tips-enable"));

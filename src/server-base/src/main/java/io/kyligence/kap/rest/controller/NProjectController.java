@@ -79,15 +79,17 @@ public class NProjectController extends NBasicController {
     @ResponseBody
     public EnvelopeResponse getProjects(@RequestParam(value = "project", required = false) String projectName,
             @RequestParam(value = "pageOffset", required = false, defaultValue = "0") Integer offset,
-            @RequestParam(value = "pageSize", required = false, defaultValue = "10") Integer size) {
+            @RequestParam(value = "pageSize", required = false, defaultValue = "10") Integer size,
+            @RequestParam(value = "exact", required = false, defaultValue = "false") boolean exactMatch) {
 
-        List<ProjectInstance> readableProjects = projectService.getReadableProjects(projectName);
+        List<ProjectInstance> readableProjects = projectService.getReadableProjects(projectName, exactMatch);
         HashMap<String, Object> projects = getDataResponse("projects", readableProjects, offset, size);
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, projects, "");
 
     }
 
-    @RequestMapping(value = "/{project}", method = {RequestMethod.DELETE}, produces = {"application/vnd.apache.kylin-v2+json"})
+    @RequestMapping(value = "/{project}", method = { RequestMethod.DELETE }, produces = {
+            "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
     public EnvelopeResponse dropProject(@PathVariable("project") String project) {
         projectService.dropProject(project);
@@ -96,7 +98,8 @@ public class NProjectController extends NBasicController {
 
     }
 
-    @RequestMapping(value = "/backup/{project}", method = {RequestMethod.POST}, produces = {"application/vnd.apache.kylin-v2+json"})
+    @RequestMapping(value = "/backup/{project}", method = { RequestMethod.POST }, produces = {
+            "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
     public EnvelopeResponse backupProject(@PathVariable("project") String project) throws Exception {
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, projectService.backupProject(project), "");
@@ -142,7 +145,6 @@ public class NProjectController extends NBasicController {
                 projectService.getQueryAccelerateThresholdConfig(project), "");
     }
 
-
     @RequestMapping(value = "/storage_volume_info", method = { RequestMethod.GET }, produces = {
             "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
@@ -181,14 +183,13 @@ public class NProjectController extends NBasicController {
     @RequestMapping(value = "/garbage_cleanup_config", method = { RequestMethod.PUT }, produces = {
             "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public EnvelopeResponse updateGarbageCleanupConfig(@RequestBody GarbageCleanUpConfigRequest garbageCleanUpConfigRequest)
-            throws Exception {
+    public EnvelopeResponse updateGarbageCleanupConfig(
+            @RequestBody GarbageCleanUpConfigRequest garbageCleanUpConfigRequest) throws Exception {
         String project = garbageCleanUpConfigRequest.getProject();
         checkProjectName(project);
         projectService.updateGarbageCleanupConfig(project, garbageCleanUpConfigRequest);
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, true, "");
     }
-
 
     @RequestMapping(value = "/job_notification_config", method = { RequestMethod.PUT }, produces = {
             "application/vnd.apache.kylin-v2+json" })
@@ -237,8 +238,8 @@ public class NProjectController extends NBasicController {
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, projectService.getProjectConfig(project), "");
     }
 
-    @RequestMapping(value = "/source_type", method = {RequestMethod.PUT}, produces = {
-            "application/vnd.apache.kylin-v2+json"})
+    @RequestMapping(value = "/source_type", method = { RequestMethod.PUT }, produces = {
+            "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
     public EnvelopeResponse setDataSourceType(@RequestBody DataSourceTypeRequest request) {
         checkProjectName(request.getProject());

@@ -104,10 +104,11 @@ public class NUserGroupController extends NBasicController {
     @ResponseBody
     public EnvelopeResponse<Map<String, Object>> getUsersWithGroup(
             @RequestParam(value = "pageOffset", required = false, defaultValue = "0") Integer pageOffset,
-            @RequestParam(value = "pageSize", required = false, defaultValue = "10") Integer pageSize)
+            @RequestParam(value = "pageSize", required = false, defaultValue = "10") Integer pageSize,
+            @RequestParam(value = "userGroupName", required = false, defaultValue = "") String userGroupName)
             throws IOException {
         List<Pair<String, Set<String>>> usersWithGroup = new ArrayList<>();
-        List<String> groups = userGroupService.listAllAuthorities(null);
+        List<String> groups = userGroupService.getAuthoritiesFilterByGroupName(userGroupName);
 
         List<String> subList = PagingUtil.cutPage(groups, pageOffset, pageSize);
         for (String group : subList) {

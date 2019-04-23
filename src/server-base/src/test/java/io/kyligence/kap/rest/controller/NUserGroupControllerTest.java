@@ -134,7 +134,7 @@ public class NUserGroupControllerTest {
                 .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
 
-        Mockito.verify(nUserGroupController).getUsersWithGroup(0, 10);
+        Mockito.verify(nUserGroupController).getUsersWithGroup(0, 10, "");
     }
 
     @Test

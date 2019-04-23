@@ -198,6 +198,14 @@ public class NUserGroupService implements ApplicationListener<AppInitializedEven
         return getAllUserGroups();
     }
 
+    @Override
+    public List<String> getAuthoritiesFilterByGroupName(String userGroupName) throws IOException {
+        checkPermission(null);
+        return StringUtils.isEmpty(userGroupName) ? getAllUserGroups()
+                : getAllUserGroups().stream().filter(userGroup -> userGroup.toUpperCase().contains(userGroupName.toUpperCase()))
+                        .collect(Collectors.toList());
+    }
+
     public boolean exists(String name) throws IOException {
         return getAllUserGroups().contains(name);
     }

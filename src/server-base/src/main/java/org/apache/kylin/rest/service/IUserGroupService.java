@@ -52,6 +52,8 @@ public interface IUserGroupService {
     //need project to indicate user's permission.only global admin and project admin can get.
     List<String> listAllAuthorities(String project) throws IOException;
 
+    List<String> getAuthoritiesFilterByGroupName(String userGroupName) throws IOException;
+
     boolean exists(String name) throws IOException;
 
     List<ManagedUser> getGroupMembersByName(String name) throws IOException;
