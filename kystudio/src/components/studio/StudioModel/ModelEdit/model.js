@@ -173,6 +173,8 @@ class NModel {
     return this.allConnInfo[pid + '$' + fid]
   }
   collectLinkedColumn (pid, pks, fks) {
+    pks = pks || []
+    fks = fks || []
     this.clearPFMark() // 清除之前的标识
     this.linkUsedColumns[pid] = [...pks, ...fks]
     this.renderPFMark() // 重新标记主外键标识
@@ -239,7 +241,7 @@ class NModel {
     delete this.allConnInfo[pid + '$' + fid]
     delete this.linkUsedColumns[pid]
     this.plumbTool.deleteConnect(conn)
-    this.tables[pid].removeJoinInfo()
+    this.tables[pid].removeJoinInfo(fid)
     // delete this.tables[pid].joinInfo[fid + '$' + [pid]]
   }
   // 生成供后台使用的数据结构

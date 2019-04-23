@@ -81,8 +81,8 @@ class NTable {
       kind: this.kind
     }
   }
-  removeJoinInfo () {
-    this.joinInfo = {}
+  removeJoinInfo (fid) {
+    delete this.joinInfo[fid + '$' + this.guid]
   }
   getColumnType (columnName) {
     let len = this.columns && this.columns.length || 0
