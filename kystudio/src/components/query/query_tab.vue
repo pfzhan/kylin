@@ -41,7 +41,7 @@
           <!-- <p class="resultText"><span class="label">{{$t('kylinLang.query.status')}}</span>
           <span class="ky-error">{{$t('kylinLang.common.error')}}</span></p> -->
         </div>
-        <div class="error-block">{{errinfo}}</div>
+        <pre class="error-block" v-html="errinfo"></pre>
       </div>
     </div>
     <queryresult :extraoption="extraoptionObj" :isWorkspace="isWorkspace" v-if="extraoptionObj&&!errinfo"></queryresult>
