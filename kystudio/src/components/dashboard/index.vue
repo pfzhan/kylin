@@ -42,23 +42,25 @@
             </div>
             <div>
               <div class="quota-info">
-                <div class="info-title ksd-mt-10">{{$t('totalStorage')}}</div>
+                <div class="info-title">{{$t('totalStorage')}}</div>
                 <div class="total-quota">
                   <span v-if="quotaInfo.storage_quota_size>=0">
                     <span class="ksd-fs-28">{{quotaTotalSize.size}}</span><span class="ksd-fs-18">{{quotaTotalSize.unit}}</span>
                   </span>
                   <span class="ksd-fs-28" v-else>--</span>
                 </div>
-                <div class="info-title ksd-mt-16">{{$t('useageMana')}}</div>
+                <div class="info-title ksd-mt-15">{{$t('useageMana')}}</div>
                 <div class="useage">
                   <span v-if="quotaInfo.total_storage_size>=0">{{quotaInfo.total_storage_size | dataSize}}</span>
                   <span v-else>--</span>
                 </div>
-                <div class="info-title ksd-mt-16">{{$t('trash')}}</div>
+                <div class="info-title ksd-mt-15">{{$t('trash')}}</div>
                 <div class="trash">
                   <span v-if="quotaInfo.garbage_storage_size>=0">{{quotaInfo.garbage_storage_size | dataSize}}</span>
-                  <span v-else>--</span><i class="el-icon-ksd-clear ksd-ml-10 clear-btn"
-                  @click="clearStorage" v-if="quotaInfo.garbage_storage_size>0"></i>
+                  <span v-else>--</span><common-tip :content="$t('clear')">
+                    <i class="el-icon-ksd-clear ksd-ml-10 clear-btn"
+                  @click="clearStorage" v-if="!quotaInfo.garbage_storage_size>0"></i>
+                  </common-tip>
                 </div>
               </div>
             </div>
@@ -673,6 +675,8 @@ export default class Dashboard extends Vue {
       }
       .quota-row {
         margin: 15px;
+        clear: both;
+        overflow: hidden;
         .img-block {
           width: 33%;
           min-width: 100px;
@@ -731,8 +735,10 @@ export default class Dashboard extends Vue {
         .quota-info {
           float: left;
           text-align: left;
-          padding-left: 15px;
+          padding: 5px 0px 0px 15px;
           border-left: 1px solid @line-split-color;
+          height: 174px;
+          box-sizing: border-box;
           .info-title {
             color: @text-normal-color;
             font-size: 14px;
@@ -744,20 +750,27 @@ export default class Dashboard extends Vue {
           }
           .total-quota {
             font-weight: 500;
+            height: 40px;
+            line-height: 40px;
             color: @text-title-color;
           }
           .useage {
             font-weight: 500;
             font-size: 18px;
+            line-height: 28px;
             color: #3bb477;
           }
           .trash {
             font-weight: 500;
             font-size: 18px;
+            line-height: 28px;
             color: @warning-color-1;
             .clear-btn {
               font-size: 16px;
               color: @base-color;
+              &:hover {
+                color: @base-color-2;
+              }
             }
           }
         }
@@ -800,7 +813,7 @@ export default class Dashboard extends Vue {
       .chart-block {
         position: relative;
         .nvd3.nv-noData {
-          font-size: 16px;
+          font-size: 14px;
           font-weight: 400;
           font-family: Helvetica Neue, Helvetica, PingFang SC, Hiragino Sans GB, Microsoft YaHei, SimSun, sans-serif;
           fill: @text-disabled-color;
