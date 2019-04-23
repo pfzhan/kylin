@@ -23,7 +23,9 @@
  */
 package io.kyligence.kap.rest.cluster;
 
-public interface ClusterManager {
+import io.kyligence.kap.common.obf.IKeep;
+
+public interface ClusterManager extends IKeep {
 
     String getLocalServer();
 }
