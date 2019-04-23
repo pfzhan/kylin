@@ -81,7 +81,9 @@ function fetchHadoopConf() {
         cp -rf $FI_ENV_PLATFORM/HDFS/hadoop/etc/hadoop/topology.py ${KYLIN_HADOOP_CONF}
         cp -rf $FI_ENV_PLATFORM/HDFS/hadoop/etc/hadoop/ssl-client.xml ${KYLIN_HADOOP_CONF}
         cp -rf $FI_ENV_PLATFORM/HDFS/hadoop/etc/hadoop/hadoop-env.sh ${KYLIN_HADOOP_CONF}
-    else
+
+    elif [ -d "/etc/hadoop/conf" ]
+    then
         # CDH/HDP platform
         cp -rf /etc/hadoop/conf/core-site.xml ${KYLIN_HADOOP_CONF}
         cp -rf /etc/hadoop/conf/hdfs-site.xml ${KYLIN_HADOOP_CONF}
@@ -93,7 +95,16 @@ function fetchHadoopConf() {
         cp -rf /etc/hadoop/conf/topology.map ${KYLIN_HADOOP_CONF}
         cp -rf /etc/hadoop/conf/ssl-client.xml ${KYLIN_HADOOP_CONF}
         cp -rf /etc/hadoop/conf/hadoop-env.sh ${KYLIN_HADOOP_CONF}
+    else
+        if [ -f "${KYLIN_HADOOP_CONF}/hdfs-site.xml" ]
+        then
+            echo "Hadoop conf directory currently generated based on manual mode."
+        else
+            echo "Missing hadoop conf files. Please contact Kyligence technical support for more details."
+            exit -1
+        fi
     fi
+
     if [ -d ${KYLIN_HOME}/hadoop_conf_override ]
     then
         cp -rf ${KYLIN_HOME}/hadoop_conf_override/hive-site.xml ${KYLIN_HADOOP_CONF}
@@ -121,7 +132,7 @@ function runTool() {
 }
 
 # start command
-if [[ "$1" == io.kyligence.* ]]
+if [[ "$1" == "io.kyligence.*" ]]
 then
     runTool "$@"
 elif [ "$1" == "start" ]

@@ -83,5 +83,15 @@ for dir in $jar_list
 do
     `cp $dir ${SPARK_HOME}/jars`
 done
-touch ${BYPASS}
+
+# Remove all spaces
+jar_list=${jar_list// /}
+
+if [ -z "${jar_list}" ]
+then
+    echo "Please confirm that the corresponding hadoop jars have been replaced. The automatic replacement program cannot be executed correctly."
+else
+    touch ${BYPASS}
+fi
+
 echo "Done hadoop jars replacement under ${SPARK_HOME}/jars."
