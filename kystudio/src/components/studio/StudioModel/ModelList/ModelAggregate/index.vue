@@ -42,7 +42,7 @@
           </el-card>
         </el-col>
         <el-col :span="9">
-          <el-card class="agg-detail-card">
+          <el-card class="agg-detail-card agg-detail">
             <div slot="header" class="clearfix">
               <div class="left font-medium fix">{{$t('aggregateDetail')}}</div>
               <div class="right fix">
@@ -259,6 +259,12 @@ export default class ModelAggregate extends Vue {
   }
   .agg-detail-card {
     height: 638px;
+    &.agg-detail {
+      .el-card__header {
+        padding-top:6px;
+        padding-bottom:6px;
+      }
+    }
     .el-card__body {
       overflow: auto;
       height: 583px;

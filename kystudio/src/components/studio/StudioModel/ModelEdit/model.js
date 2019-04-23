@@ -347,7 +347,9 @@ class NModel {
           // 删除
           this.removeRenderLink(conn)
           // 产生新的连接数据
-          newPrimaryTable.addLinkData(newFrieignTable, hisConnInfo.join.primary_key, hisConnInfo.join.foreign_key, hisConnInfo.join.type)
+          if (hisConnInfo) {
+            newPrimaryTable.addLinkData(newFrieignTable, hisConnInfo.join.primary_key, hisConnInfo.join.foreign_key, hisConnInfo.join.type)
+          }
           // 重新连接
           this.renderLink(newPrimaryTable.guid, newFrieignTable.guid)
         } else { // 连线方向正确

@@ -1,5 +1,5 @@
 <template>
-  <el-dialog class="aggregate-modal" width="960px"
+  <el-dialog class="aggregate-modal" limited-area width="960px"
     :title="$t(modalTitle)"
     :visible="isShow"
     top="5vh"

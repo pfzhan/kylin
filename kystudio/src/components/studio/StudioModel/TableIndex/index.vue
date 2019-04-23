@@ -274,6 +274,13 @@ export default class TableIndex extends Vue {
   }
 }
 .tableIndex-box {
+  .box-card {
+    .el-card__header {
+      padding: 0 15px;
+      height: 34px;
+      line-height:34px;
+    }
+  }
   .icon-tableindex-type {
     width:24px;
     height:28px;

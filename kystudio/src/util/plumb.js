@@ -98,7 +98,7 @@ export function jsPlumbTool () {
           ['Custom', {
             create: function () {
               let overlays = document.createElement('div')
-              overlays.innerHTML = '<span class="label"></span><i class="close el-icon-close"></i>'
+              overlays.innerHTML = '<span class="label"></span><i class="close el-icon-ksd-close"></i>'
               return overlays
             },
             id: pid + (fid + 'label'),

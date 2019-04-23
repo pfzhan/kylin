@@ -19,7 +19,6 @@
       </div>
       <TreeList
         ref="treeList"
-        :show-overflow-tooltip="true"
         :data="datasources"
         :placeholder="$t('searchTable')"
         :default-expanded-keys="defaultExpandedKeys"
@@ -582,7 +581,7 @@ export default class DataSourceBar extends Vue {
       overflow: hidden;
       margin-bottom: 10px;
       & > .el-tree-node__content {
-        padding: 10px 9px !important; // important用来去掉el-tree的内联样式
+        padding: 9px 9px 10px 9px !important; // important用来去掉el-tree的内联样式
         height: auto;
         background: @regular-background-color;
         &:hover > .tree-item > span {
