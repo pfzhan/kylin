@@ -42,6 +42,7 @@ export default {
   },
   methods: {
     handleCurrentChange (currentPage, pageSize) {
+      this.currentPage = currentPage
       this.pageSize = pageSize
       this.convertedPropertiesItem = this.convertedProperties.slice(this.pageSize * currentPage, this.pageSize * (currentPage + 1))
     }

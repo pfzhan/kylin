@@ -59,7 +59,7 @@
                   <span v-if="quotaInfo.garbage_storage_size>=0">{{quotaInfo.garbage_storage_size | dataSize}}</span>
                   <span v-else>--</span><common-tip :content="$t('clear')">
                     <i class="el-icon-ksd-clear ksd-ml-10 clear-btn"
-                  @click="clearStorage" v-if="!quotaInfo.garbage_storage_size>0"></i>
+                  @click="clearStorage" v-if="quotaInfo.garbage_storage_size>0"></i>
                   </common-tip>
                 </div>
               </div>

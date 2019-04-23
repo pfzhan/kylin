@@ -103,7 +103,6 @@ export default {
         name: '',
         access: 1
       },
-      currentPage: 1,
       searchLoading: false,
       serarchChar: '',
       aclTableUserData: [],
@@ -119,7 +118,11 @@ export default {
           required: true, message: this.$t('kylinLang.common.pleaseInputUserOrGroupName'), trigger: 'change'
         }]
       },
-      ST: null
+      ST: null,
+      pagination: {
+        pageSize: pageCount,
+        pageOffset: 0
+      }
     }
   },
   components: {
@@ -190,8 +193,9 @@ export default {
         }
       })
     },
-    handleCurrentChange (curpage) {
-      this.currentPage = curpage
+    handleCurrentChange (pager, pageSize) {
+      this.pagination.pageOffset = pager
+      this.pagination.pageSize = pageSize
       this.getAllAclSetOfTable()
     },
     searchTableAcl () {
@@ -207,10 +211,7 @@ export default {
     },
     getAllAclSetOfTable () {
       var para = {
-        pager: {
-          pageSize: pageCount,
-          pageOffset: this.currentPage - 1
-        },
+        ...this.pagination,
         tableName: this.tableName,
         project: this.$store.state.project.selected_project,
         type: this.assignType

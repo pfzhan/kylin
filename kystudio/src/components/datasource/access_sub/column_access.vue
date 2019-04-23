@@ -120,7 +120,6 @@ export default {
       },
       isEdit: false,
       titles: [this.$t('willcheck'), this.$t('haschecked')],
-      currentPage: 1,
       aclColumnSize: 0,
       serarchChar: '',
       aclColumnUserData: [],
@@ -138,7 +137,11 @@ export default {
         }]
       },
       searchLoading: false,
-      ST: null
+      ST: null,
+      pagination: {
+        pageSize: pageCount,
+        pageOffset: 0
+      }
     }
   },
   components: {
@@ -228,16 +231,14 @@ export default {
     closeDialog () {
       this.$refs.aclOfColumnForm.clearValidate()
     },
-    handleCurrentChange (curpage) {
-      this.currentPage = curpage
+    handleCurrentChange (pager, pageSize) {
+      this.pagination.pageOffset = pager
+      this.pagination.pageSize = pageSize
       this.getAllAclSetOfColumn()
     },
     getAllAclSetOfColumn () {
       var para = {
-        pager: {
-          pageSize: pageCount,
-          pageOffset: this.currentPage - 1
-        },
+        ...this.pagination,
         tableName: this.tableName,
         project: this.$store.state.project.selected_project,
         type: this.assignType

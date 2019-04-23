@@ -3,6 +3,14 @@
     <div class="ksd-title-label ksd-mt-20 ksd-mrl-20">{{$t('userGroupsList')}}</div>
     <el-row class="ksd-mb-10 ksd-mt-10 ksd-mrl-20">
       <el-button type="primary" plain size="medium" v-if="groupActions.includes('addGroup')" icon="el-icon-ksd-add_2" @click="editGroup('new')">{{$t('kylinLang.common.group')}}</el-button>
+      <div style="width:200px;" class="ksd-fright">
+        <el-input class="show-search-btn"
+          size="medium"
+          prefix-icon="el-icon-search"
+          :placeholder="$t('groupFilter')"
+          @input="inputFilter">
+        </el-input>
+      </div>
     </el-row>
     <el-row class="ksd-mrl-20">
       <el-table
@@ -94,6 +102,7 @@ export default class SecurityGroup extends Vue {
     pageSize: pageCount,
     pageOffset: 0
   }
+  filterTimer = null
 
   created () {
     this.loadGroupUsers()
@@ -105,6 +114,13 @@ export default class SecurityGroup extends Vue {
   async editGroup (editType, group) {
     const isSubmit = await this.callGroupEditModal({ editType, group })
     isSubmit && this.loadGroupUsers()
+  }
+
+  inputFilter (value) {
+    clearInterval(this.filterTimer)
+    this.filterTimer = setTimeout(() => {
+      this.loadGroupUsers(value)
+    }, 1500)
   }
 
   loadUsers (filterName) {
@@ -125,14 +141,16 @@ export default class SecurityGroup extends Vue {
     }
   }
 
-  loadGroupUsers () {
+  loadGroupUsers (filterGroupName) {
     this.loadGroupUsersList({
-      ...this.pagination
+      ...this.pagination,
+      userGroupName: filterGroupName
     })
   }
 
-  handleCurrentChange (pager) {
+  handleCurrentChange (pager, pageSize) {
     this.pagination.pageOffset = pager
+    this.pagination.pageSize = pageSize
     this.loadGroupUsers()
   }
 }

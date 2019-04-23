@@ -3,6 +3,14 @@
  <!-- <el-button type="primary" plain class="ksd-mb-20 ksd-mt-10" v-if="isAdmin && (projectList && projectList.length)" @click="addProject">+{{$t('kylinLang.common.project')}}</el-button> -->
  <div class="ksd-title-label ksd-mt-20">{{$t('projectsList')}}</div>
  <el-button type="primary" plain size="medium" class="ksd-mb-10 ksd-mt-10" icon="el-icon-ksd-add_2" v-if="isAdmin && (projectList && projectList.length)" @click="newProject">{{$t('kylinLang.common.project')}}</el-button>
+ <div style="width:200px;" class="ksd-fright ksd-mt-10">
+    <el-input class="show-search-btn"
+      size="medium"
+      prefix-icon="el-icon-search"
+      :placeholder="$t('projectFilter')"
+      @input="inputFilter">
+    </el-input>
+  </div>
  <div v-if="!(projectList && projectList.length)" class="nodata">
     <div class="ksd-mb-10"><img src="../../assets/img/default_project.png"></div>
     <div class="ksd-mb-20">{{$t('noProject')}}</div>
@@ -107,28 +115,30 @@ export default {
     ...mapActions('ProjectEditModal', {
       callProjectEditModal: 'CALL_MODAL'
     }),
-    // editProject (project) {
-    //   this.isEdit = true
-    //   this.projectWidth = '660px'
-    //   this.FormVisible = true
-    //   this.project = project
-    // },
+    inputFilter (value) {
+      clearInterval(this.filterTimer)
+      this.filterTimer = setTimeout(() => {
+        this.filterData.project = value
+        this.loadProjects(this.filterData)
+      }, 1500)
+    },
     checkProjectForm () {
       this.$refs.projectForm.$emit('projectFormValid')
     },
-    handleCurrentChange (currentPage) {
-      this.currentPage = currentPage
-      this.loadProjects({pageOffset: currentPage, pageSize: this.pageCount})
+    handleCurrentChange (currentPage, pageSize) {
+      this.filterData.pageOffset = currentPage
+      this.filterData.pageSize = pageSize
+      this.loadProjects(this.filterData)
     },
     async newProject () {
       const isSubmit = await this.callProjectEditModal({ editType: 'new' })
-      isSubmit && this.loadProjects({pageOffset: this.currentPage, pageSize: this.pageCount})
+      isSubmit && this.loadProjects(this.filterData)
       this.loadAllProjects()
     },
     async changeProject (project) {
       const isSubmit = await this.callProjectEditModal({ editType: 'edit', project })
       if (isSubmit) {
-        this.loadProjects({pageOffset: this.currentPage, pageSize: this.pageCount})
+        this.loadProjects(this.filterData)
         this.loadAllProjects()
       }
     },
@@ -139,7 +149,7 @@ export default {
             type: 'success',
             message: this.$t('kylinLang.common.delSuccess')
           })
-          this.loadProjects({pageOffset: this.currentPage, pageSize: this.pageCount})
+          this.loadProjects(this.filterData)
           this.loadAllProjects()
         }, (res) => {
           handleError(res)
@@ -175,8 +185,6 @@ export default {
   },
   data () {
     return {
-      pageCount: pageCount,
-      currentPage: 0,
       project: {},
       isEdit: false,
       FormVisible: false,
@@ -196,7 +204,9 @@ export default {
         editAccessVisible: false
       },
       selected_project: localStorage.getItem('selected_project'),
-      projectWidth: '440px'
+      projectWidth: '440px',
+      filterTimer: null,
+      filterData: {pageOffset: 0, pageSize: pageCount, exact: false, project: ''}
     }
   },
   components: {
@@ -221,11 +231,11 @@ export default {
     }
   },
   created () {
-    this.loadProjects({pageOffset: this.currentPage, pageSize: this.pageCount})
+    this.loadProjects(this.filterData)
   },
   locales: {
-    'en': {project: 'Project', name: 'Name', owner: 'Owner', description: 'Description', createTime: 'Create Time', actions: 'Actions', setting: 'Setting', access: 'Access', externalFilters: 'External Filters', edit: 'Configure', backup: 'Backup', delete: 'Delete', delProjectTitle: 'Delete Project', cancel: 'Cancel', yes: 'Ok', saveSuccessful: 'Saved the project successful!', saveFailed: 'Save Failed!', deleteProjectTip: 'Once it\'s deleted, the project {projectName}\'s metadata and data will be cleaned up and can\'t be restored back.  ', projectConfig: 'Configuration', backupProject: 'Are you sure to backup this project ?', noProject: 'There is no Project.  You can click below button to add Project.', projectsList: 'Project List'},
-    'zh-cn': {project: '项目', name: '名称', owner: '所有者', description: '描述', createTime: '创建时间', actions: '操作', setting: '设置', access: '权限', externalFilters: '其他过滤', edit: '配置', backup: '备份', delete: '删除', delProjectTitle: '删除项目', cancel: '取消', yes: '确定', saveSuccessful: '保存项目成功!', saveFailed: '保存失败!', deleteProjectTip: '删除后, 项目{projectName}的定义及数据会被清除, 且不能恢复.', projectConfig: '项目配置', backupProject: '确认要备份此项目？', noProject: '您可以点击下面的按钮来添加项目。', projectsList: '项目列表'}
+    'en': {project: 'Project', name: 'Name', owner: 'Owner', description: 'Description', createTime: 'Create Time', actions: 'Actions', setting: 'Setting', access: 'Access', externalFilters: 'External Filters', edit: 'Configure', backup: 'Backup', delete: 'Delete', delProjectTitle: 'Delete Project', cancel: 'Cancel', yes: 'Ok', saveSuccessful: 'Saved the project successful!', saveFailed: 'Save Failed!', deleteProjectTip: 'Once it\'s deleted, the project {projectName}\'s metadata and data will be cleaned up and can\'t be restored back.  ', projectConfig: 'Configuration', backupProject: 'Are you sure to backup this project ?', noProject: 'There is no Project.  You can click below button to add Project.', projectsList: 'Project List', projectFilter: 'Search Project'},
+    'zh-cn': {project: '项目', name: '名称', owner: '所有者', description: '描述', createTime: '创建时间', actions: '操作', setting: '设置', access: '权限', externalFilters: '其他过滤', edit: '配置', backup: '备份', delete: '删除', delProjectTitle: '删除项目', cancel: '取消', yes: '确定', saveSuccessful: '保存项目成功!', saveFailed: '保存失败!', deleteProjectTip: '删除后, 项目{projectName}的定义及数据会被清除, 且不能恢复.', projectConfig: '项目配置', backupProject: '确认要备份此项目？', noProject: '您可以点击下面的按钮来添加项目。', projectsList: '项目列表', projectFilter: '搜索项目'}
   }
 }
 </script>

@@ -142,7 +142,6 @@ export default {
       },
       addGrantDialog: false,
       columnList: [],
-      currentPage: 1,
       aclRowUserData: [],
       aclRowGroupData: [],
       aclRowTotalSize: 0,
@@ -167,6 +166,10 @@ export default {
         name: [{
           required: true, message: this.$t('kylinLang.common.pleaseInputUserOrGroupName'), trigger: 'change'
         }]
+      },
+      pagination: {
+        pageSize: pageCount,
+        pageOffset: 0
       }
     }
   },
@@ -386,16 +389,14 @@ export default {
         }
       })
     },
-    handleCurrentChange (curpage) {
-      this.currentPage = curpage
+    handleCurrentChange (pager, pageSize) {
+      this.pagination.pageOffset = pager
+      this.pagination.pageSize = pageSize
       this.getAllAclSetOfRow()
     },
     getAllAclSetOfRow () {
       var para = {
-        pager: {
-          pageSize: pageCount,
-          pageOffset: this.currentPage - 1
-        },
+        ...this.pagination,
         tableName: this.tableName,
         project: this.$store.state.project.selected_project,
         type: this.assignType

@@ -7,7 +7,8 @@ export default {
     confirmDelGroup: 'Are you sure to delete the group {groupName}?',
     usersCount: 'User Number',
     delGroupTitle: 'Delete Group',
-    userGroupsList: 'User Group List'
+    userGroupsList: 'User Group List',
+    groupFilter: 'User Group Search'
   },
   'zh-cn': {
     newGroup: '新建组',
@@ -17,6 +18,7 @@ export default {
     confirmDelGroup: '确认删除组{groupName}吗？',
     usersCount: '用户数',
     delGroupTitle: '删除用户组',
-    userGroupsList: '用户组列表'
+    userGroupsList: '用户组列表',
+    groupFilter: '搜索用户组'
   }
 }

@@ -167,8 +167,9 @@ export default class SecurityUser extends Vue {
     }, 1500)
   }
 
-  handleCurrentChange (pager) {
+  handleCurrentChange (pager, pageSize) {
     this.pagination.pageOffset = pager
+    this.pagination.pageSize = pageSize
     this.loadUsers(this.currentGroup)
   }
 
