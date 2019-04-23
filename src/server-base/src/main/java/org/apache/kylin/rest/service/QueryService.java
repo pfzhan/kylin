@@ -69,6 +69,7 @@ import java.util.stream.Collectors;
 import javax.annotation.PostConstruct;
 
 import io.kyligence.kap.rest.cluster.ClusterManager;
+import io.kyligence.kap.rest.config.AppConfig;
 import org.apache.calcite.avatica.ColumnMetaData.Rep;
 import org.apache.calcite.config.CalciteConnectionConfig;
 import org.apache.calcite.jdbc.CalcitePrepare;
@@ -161,6 +162,7 @@ public class QueryService extends BasicService {
     public static final String SUCCESS_QUERY_CACHE = "StorageCache";
     public static final String EXCEPTION_QUERY_CACHE = "ExceptionQueryCache";
     public static final String QUERY_STORE_PATH_PREFIX = "/query/";
+    public static final String UNKNOWN = "Unknown";
     private static final Logger logger = LoggerFactory.getLogger(QueryService.class);
     final SlowQueryDetector slowQueryDetector = new SlowQueryDetector();
 
@@ -172,6 +174,9 @@ public class QueryService extends BasicService {
 
     @Autowired
     private ClusterManager clusterManager;
+
+    @Autowired
+    private AppConfig appConfig;
 
     public QueryService() {
         slowQueryDetector.start();
@@ -336,7 +341,7 @@ public class QueryService extends BasicService {
             BackdoorToggles.addToggles(sqlRequest.getBackdoorToggles());
 
         final QueryContext queryContext = QueryContext.current();
-        QueryMetricsContext.start(queryContext.getQueryId());
+        QueryMetricsContext.start(queryContext.getQueryId(), getDefaultServer());
 
         TraceScope scope = null;
         if (kylinConfig.isHtraceTracingEveryQuery() || BackdoorToggles.getHtraceEnabled()) {
@@ -408,6 +413,15 @@ public class QueryService extends BasicService {
                 scope.close();
             }
         }
+    }
+
+    private String getDefaultServer() {
+        try {
+            return InetAddress.getLocalHost().getHostAddress() + ":" + appConfig.getPort();
+        } catch (UnknownHostException e) {
+            e.printStackTrace();
+        }
+        return UNKNOWN;
     }
 
     private SQLResponse queryAndUpdateCache(SQLRequest sqlRequest, long startTime, boolean queryCacheEnabled) {

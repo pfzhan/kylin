@@ -59,6 +59,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.rest.config.AppConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.common.exceptions.ResourceLimitExceededException;
@@ -129,6 +130,9 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
     @InjectMocks
     private QueryService queryService = Mockito.spy(new QueryService());
 
+    @InjectMocks
+    private AppConfig appConfig = Mockito.spy(new AppConfig());
+
     @BeforeClass
     public static void setupResource() throws Exception {
         System.setProperty("kylin.query.cache-threshold-duration", String.valueOf(-1));
@@ -145,6 +149,8 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         ReflectionTestUtils.setField(queryService, "aclEvaluate", Mockito.mock(AclEvaluate.class));
         ReflectionTestUtils.setField(queryService, "cacheManager", cacheManager);
         ReflectionTestUtils.setField(queryService, "clusterManager", clusterManager);
+        Mockito.when(appConfig.getPort()).thenReturn(7070);
+        ReflectionTestUtils.setField(queryService, "appConfig", appConfig);
     }
 
     private void stubQueryConnection(final String sql, final String project) throws SQLException {

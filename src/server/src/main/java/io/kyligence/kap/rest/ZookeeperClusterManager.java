@@ -23,10 +23,16 @@
  */
 package io.kyligence.kap.rest;
 
+import java.util.List;
+import java.util.stream.Collectors;
+
+import org.apache.commons.collections.CollectionUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cloud.zookeeper.ConditionalOnZookeeperEnabled;
 import org.springframework.cloud.zookeeper.discovery.ZookeeperDiscoveryClient;
 import org.springframework.stereotype.Component;
+
+import com.google.common.collect.Lists;
 
 import io.kyligence.kap.rest.cluster.ClusterManager;
 import lombok.val;
@@ -42,5 +48,15 @@ public class ZookeeperClusterManager implements ClusterManager {
     public String getLocalServer() {
         val instance = discoveryClient.getLocalServiceInstance();
         return instance.getHost() + ":" + instance.getPort();
+    }
+
+    @Override
+    public List<String> getQueryServers() {
+        val list = discoveryClient.getInstances("query");
+        if (CollectionUtils.isEmpty(list)) {
+            return Lists.newArrayList();
+        }
+        return list.stream().map(serviceInstance -> serviceInstance.getHost() + ":" + serviceInstance.getPort())
+                .collect(Collectors.toList());
     }
 }

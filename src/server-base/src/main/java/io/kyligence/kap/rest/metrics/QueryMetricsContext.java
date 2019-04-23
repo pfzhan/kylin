@@ -24,8 +24,6 @@
 package io.kyligence.kap.rest.metrics;
 
 import java.io.Serializable;
-import java.net.InetAddress;
-import java.net.UnknownHostException;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
@@ -34,7 +32,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.TimeZone;
 
-import io.kyligence.kap.metadata.query.NativeQueryRealization;
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.validate.SqlValidatorException;
 import org.apache.commons.collections.CollectionUtils;
@@ -53,6 +50,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
+import io.kyligence.kap.metadata.query.NativeQueryRealization;
 import io.kyligence.kap.metadata.query.QueryHistory;
 import io.kyligence.kap.query.util.QueryPatternUtil;
 import lombok.Getter;
@@ -79,7 +77,7 @@ public class QueryMetricsContext {
     private String sqlPattern;
 
     private String submitter;
-    private String hostname;
+    private String server;
     private String suite;
 
     private long queryDuration;
@@ -103,14 +101,17 @@ public class QueryMetricsContext {
     private boolean aggIndexUsed;
     private boolean tableSnapshotUsed;
 
+    private String defaultServer;
+
     // not a column in InfluxDB table,
     private final List<RealizationMetrics> realizationMetrics = new ArrayList<>();
 
-    private QueryMetricsContext(String queryId) {
+    private QueryMetricsContext(String queryId, String defaultServer) {
         this.queryId = queryId;
+        this.defaultServer = defaultServer;
     }
 
-    public static void start(final String queryId) {
+    public static void start(final String queryId, final String defaultServer) {
         if (!isCollectEnabled()) {
             logger.warn("Can't to start QueryMetricsContext, please set kap.metric.write-destination to 'INFLUX'");
             return;
@@ -120,7 +121,7 @@ public class QueryMetricsContext {
             logger.warn("Query metric context already started in thread named {}", Thread.currentThread().getName());
             return;
         }
-        contexts.set(new QueryMetricsContext(queryId));
+        contexts.set(new QueryMetricsContext(queryId, defaultServer));
     }
 
     private static boolean isCollectEnabled() {
@@ -173,7 +174,7 @@ public class QueryMetricsContext {
 
         this.submitter = request.getUsername();
 
-        this.hostname = response.getServer();
+        this.server = response.getServer();
         this.suite = response.getSuite() == null ? UNKNOWN : response.getSuite();
 
         this.queryDuration = response.getDuration();
@@ -202,7 +203,7 @@ public class QueryMetricsContext {
         collectErrorType(context);
         collectRealizationMetrics(response);
 
-        logger.debug("Query[{}] collect metrics {}, {}, {}, {}, {}, {}, {}", queryId, sql, submitter, hostname,
+        logger.debug("Query[{}] collect metrics {}, {}, {}, {}, {}, {}, {}", queryId, sql, submitter, server,
                 suite, queryDuration, totalScanBytes, errorType);
     }
 
@@ -270,14 +271,10 @@ public class QueryMetricsContext {
                 .put(QueryHistory.IS_AGG_INDEX_USED, String.valueOf(aggIndexUsed))
                 .put(QueryHistory.IS_TABLE_SNAPSHOT_USED, String.valueOf(tableSnapshotUsed));
 
-        if (StringUtils.isBlank(hostname)) {
-            try {
-                hostname = InetAddress.getLocalHost().getHostAddress();
-            } catch (UnknownHostException e) {
-                hostname = UNKNOWN;
-            }
+        if (StringUtils.isBlank(server)) {
+            server = defaultServer;
         }
-        builder.put(QueryHistory.QUERY_HOSTNAME, hostname);
+        builder.put(QueryHistory.QUERY_SERVER, server);
 
         if (StringUtils.isNotBlank(this.errorType)) {
             builder.put(QueryHistory.ERROR_TYPE, errorType);

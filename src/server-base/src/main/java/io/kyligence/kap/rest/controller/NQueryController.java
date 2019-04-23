@@ -39,6 +39,7 @@ import java.util.regex.Pattern;
 
 import javax.servlet.http.HttpServletResponse;
 
+import io.kyligence.kap.rest.cluster.ClusterManager;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -104,6 +105,9 @@ public class NQueryController extends NBasicController {
     @Autowired
     @Qualifier("queryHistoryService")
     private QueryHistoryService queryHistoryService;
+
+    @Autowired
+    private ClusterManager clusterManager;
 
     @PostMapping(value = "", produces = { "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
@@ -177,13 +181,21 @@ public class NQueryController extends NBasicController {
             @RequestParam(value = "latencyTo", required = false) String latencyTo,
             @RequestParam(value = "sql", required = false) String sql,
             @RequestParam(value = "realization", required = false) List<String> realizations,
+            @RequestParam(value = "server", required = false) String server,
             @RequestParam(value = "offset", required = false, defaultValue = "0") Integer offset,
             @RequestParam(value = "limit", required = false, defaultValue = "10") Integer limit) {
         QueryHistoryRequest request = new QueryHistoryRequest(project, startTimeFrom, startTimeTo, latencyFrom,
-                latencyTo, sql, realizations);
+                latencyTo, sql, server, realizations);
         checkGetQueryHistoriesParam(request);
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS,
                 queryHistoryService.getQueryHistories(request, limit, offset), "");
+    }
+
+    @GetMapping(value = "/servers", produces = { "application/vnd.apache.kylin-v2+json" })
+    @ResponseBody
+    public EnvelopeResponse getQueryServers() {
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS,
+                clusterManager.getQueryServers(), "");
     }
 
     private void checkGetQueryHistoriesParam(QueryHistoryRequest request) {

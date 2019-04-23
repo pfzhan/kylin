@@ -230,6 +230,12 @@ public class QueryHistoryDAO {
                     Long.valueOf(request.getLatencyFrom()) * 1000L, Long.valueOf(request.getLatencyTo()) * 1000L));
         }
 
+        if (StringUtils.isNotEmpty(request.getServer())) {
+            // filter by hostname
+            sb.append(String.format("AND (server = '%s') ",
+                    request.getServer()));
+        }
+
         if (StringUtils.isNotEmpty(request.getSql())) {
             sb.append(String.format("AND (sql_text =~ /%s/", escapeExprSpecialWord(request.getSql().trim())));
             if (Pattern.matches(queryIdReg, request.getSql())) {

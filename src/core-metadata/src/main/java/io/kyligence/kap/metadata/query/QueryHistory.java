@@ -57,7 +57,7 @@ public class QueryHistory {
     public static final String RESULT_ROW_COUNT = "result_row_count";
     public static final String SUBMITTER = "submitter";
     public static final String REALIZATIONS = "realizations";
-    public static final String QUERY_HOSTNAME = "hostname";
+    public static final String QUERY_SERVER = "server";
     public static final String SUITE = "suite";
     public static final String ERROR_TYPE = "error_type";
     public static final String ENGINE_TYPE = "engine_type";
@@ -95,8 +95,8 @@ public class QueryHistory {
     @Column(name = REALIZATIONS)
     private String queryRealizations;
 
-    @JsonProperty(QUERY_HOSTNAME)
-    @Column(name = QUERY_HOSTNAME, tag = true)
+    @JsonProperty(QUERY_SERVER)
+    @Column(name = QUERY_SERVER, tag = true)
     private String hostName;
 
     @JsonProperty(SUBMITTER)

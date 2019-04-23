@@ -83,7 +83,7 @@ public class QueryHistoryService extends BasicService {
             }
 
             List<NativeQueryRealization> realizations = Lists.newArrayList();
-            query.transformRealizations().stream().forEach(realization -> {
+            query.transformRealizations().forEach(realization -> {
                 if (modelAliasMap.containsValue(realization.getModelId())) {
                     String alias = dataModelManager.getDataModelDesc(realization.getModelId()).getAlias();
                     realization.setModelAlias(alias);

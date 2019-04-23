@@ -23,9 +23,14 @@
  */
 package io.kyligence.kap.rest.cluster;
 
+import java.util.List;
+
 import io.kyligence.kap.common.obf.IKeep;
+
 
 public interface ClusterManager extends IKeep {
 
     String getLocalServer();
+
+    List<String> getQueryServers();
 }

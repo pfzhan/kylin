@@ -36,6 +36,7 @@ import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
 
 import io.kyligence.kap.rest.cluster.ClusterManager;
 import io.kyligence.kap.rest.cluster.DefaultClusterManager;
+import lombok.Getter;
 import lombok.val;
 
 @Configuration
@@ -69,6 +70,7 @@ public class AppConfig {
     }
 
     @Value("${server.port:7070}")
+    @Getter
     private int port;
 
     @Bean

@@ -24,12 +24,9 @@
 
 package io.kyligence.kap.rest.metrics;
 
-import com.google.common.collect.Lists;
-import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
-import io.kyligence.kap.metadata.cube.model.IndexEntity;
-import io.kyligence.kap.metadata.query.QueryHistory;
-import io.kyligence.kap.metadata.query.NativeQueryRealization;
-import io.kyligence.kap.query.util.QueryPatternUtil;
+import java.util.List;
+import java.util.Map;
+
 import org.apache.calcite.sql.validate.SqlValidatorException;
 import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.metadata.realization.NoRealizationFoundException;
@@ -44,8 +41,13 @@ import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.mockito.Mockito;
 
-import java.util.List;
-import java.util.Map;
+import com.google.common.collect.Lists;
+
+import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.metadata.cube.model.IndexEntity;
+import io.kyligence.kap.metadata.query.NativeQueryRealization;
+import io.kyligence.kap.metadata.query.QueryHistory;
+import io.kyligence.kap.query.util.QueryPatternUtil;
 
 public class QueryMetricsContextTest extends NLocalFileMetadataTestCase {
 
@@ -72,16 +74,16 @@ public class QueryMetricsContextTest extends NLocalFileMetadataTestCase {
             QueryMetricsContext.kapConfig.getKylinConfig().setProperty("kap.metric.diagnosis.graph-writer-type",
                     "BLACK_HOLE");
 
-            QueryMetricsContext.start(QUERY_ID);
+            QueryMetricsContext.start(QUERY_ID, "localhost:7070");
             Assert.assertEquals(false, QueryMetricsContext.isStarted());
 
             QueryMetricsContext.kapConfig.getKylinConfig().setProperty("kap.metric.diagnosis.graph-writer-type",
                     "INFLUX");
 
-            QueryMetricsContext.start(QUERY_ID);
+            QueryMetricsContext.start(QUERY_ID, "localhost:7070");
             Assert.assertEquals(true, QueryMetricsContext.isStarted());
 
-            QueryMetricsContext.start(QUERY_ID);
+            QueryMetricsContext.start(QUERY_ID, "localhost:7070");
         } finally {
             QueryMetricsContext.reset();
         }
@@ -102,7 +104,7 @@ public class QueryMetricsContextTest extends NLocalFileMetadataTestCase {
             final String sql = "select * from test_with_otherError";
             final QueryContext queryContext = QueryContext.current();
             queryContext.setCorrectedSql(sql);
-            QueryMetricsContext.start(queryContext.getQueryId());
+            QueryMetricsContext.start(queryContext.getQueryId(), "localhost:7070");
             Assert.assertEquals(true, QueryMetricsContext.isStarted());
 
             queryContext.setErrorCause(new RuntimeException(new RuntimeException("other error")));
@@ -115,14 +117,14 @@ public class QueryMetricsContextTest extends NLocalFileMetadataTestCase {
             final SQLResponse response = new SQLResponse();
             response.setException(true);
             response.setHitExceptionCache(true);
-            response.setServer("localhost");
+            response.setServer("localhost:7070");
             response.setSuite("suite_1");
 
             final QueryMetricsContext metricsContext = QueryMetricsContext.collect(request, response, queryContext);
 
             final Map<String, String> influxdbTags = metricsContext.getInfluxdbTags();
             Assert.assertEquals("Other error", influxdbTags.get("error_type"));
-            Assert.assertEquals("localhost", influxdbTags.get("hostname"));
+            Assert.assertEquals("localhost:7070", influxdbTags.get("server"));
             Assert.assertEquals("suite_1", influxdbTags.get("suite"));
             Assert.assertNull(influxdbTags.get("realizations"));
 
@@ -140,7 +142,7 @@ public class QueryMetricsContextTest extends NLocalFileMetadataTestCase {
             // 2018-01-01
             queryContext.setQueryStartMillis(1514764800000L);
             queryContext.setCorrectedSql(sql);
-            QueryMetricsContext.start(queryContext.getQueryId());
+            QueryMetricsContext.start(queryContext.getQueryId(), "localhost:7070");
             Assert.assertEquals(true, QueryMetricsContext.isStarted());
 
             final SQLRequest request = new SQLRequest();
@@ -172,7 +174,7 @@ public class QueryMetricsContextTest extends NLocalFileMetadataTestCase {
             final String sql = "select * from test_with_pushdown";
             final QueryContext queryContext = QueryContext.current();
             queryContext.setCorrectedSql(sql);
-            QueryMetricsContext.start(queryContext.getQueryId());
+            QueryMetricsContext.start(queryContext.getQueryId(), "localhost:7070");
             Assert.assertEquals(true, QueryMetricsContext.isStarted());
 
             queryContext.setErrorCause(new SqlValidatorException("Syntax error", new RuntimeException()));
@@ -223,7 +225,7 @@ public class QueryMetricsContextTest extends NLocalFileMetadataTestCase {
             final String sql = "select * from test_table where 1 <> 1";
             final QueryContext queryContext = QueryContext.current();
             queryContext.setCorrectedSql(sql);
-            QueryMetricsContext.start(queryContext.getQueryId());
+            QueryMetricsContext.start(queryContext.getQueryId(), "localhost:7070");
             Assert.assertEquals(true, QueryMetricsContext.isStarted());
 
             final SQLRequest request = new SQLRequest();
@@ -266,7 +268,7 @@ public class QueryMetricsContextTest extends NLocalFileMetadataTestCase {
             final String sql = "select * from test_with_realization";
             final QueryContext queryContext = QueryContext.current();
             queryContext.setCorrectedSql(sql);
-            QueryMetricsContext.start(queryContext.getQueryId());
+            QueryMetricsContext.start(queryContext.getQueryId(), "localhost:7070");
             Assert.assertEquals(true, QueryMetricsContext.isStarted());
 
             queryContext
@@ -325,7 +327,7 @@ public class QueryMetricsContextTest extends NLocalFileMetadataTestCase {
             final String massagedSql = "select * from test_parse_sql_pattern_error limit 500;";
             final QueryContext queryContext = QueryContext.current();
             queryContext.setCorrectedSql(massagedSql);
-            QueryMetricsContext.start(queryContext.getQueryId());
+            QueryMetricsContext.start(queryContext.getQueryId(), "localhost:7070");
             Assert.assertEquals(true, QueryMetricsContext.isStarted());
 
             final SQLRequest request = new SQLRequest();
@@ -335,7 +337,7 @@ public class QueryMetricsContextTest extends NLocalFileMetadataTestCase {
 
             final SQLResponse response = new SQLResponse();
             response.setHitExceptionCache(true);
-            response.setServer("localhost");
+            response.setServer("localhost:7070");
             response.setSuite("suite_1");
             response.setEngineType("HIVE");
 
@@ -357,7 +359,7 @@ public class QueryMetricsContextTest extends NLocalFileMetadataTestCase {
             final String sqlPattern = QueryPatternUtil.normalizeSQLPattern(origSql);
             // massaged sql is not set, so it is null
             final QueryContext queryContext = QueryContext.current();
-            QueryMetricsContext.start(queryContext.getQueryId());
+            QueryMetricsContext.start(queryContext.getQueryId(), "localhost:7070");
             Assert.assertEquals(true, QueryMetricsContext.isStarted());
 
             final SQLRequest request = new SQLRequest();
@@ -367,7 +369,7 @@ public class QueryMetricsContextTest extends NLocalFileMetadataTestCase {
 
             final SQLResponse response = new SQLResponse();
             response.setHitExceptionCache(true);
-            response.setServer("localhost");
+            response.setServer("localhost:7070");
             response.setSuite("suite_1");
             response.setEngineType("HIVE");
 
