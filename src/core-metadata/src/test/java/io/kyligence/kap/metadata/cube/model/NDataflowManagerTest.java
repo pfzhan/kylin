@@ -34,8 +34,6 @@ import java.util.UUID;
 import java.util.Vector;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import io.kyligence.kap.metadata.cube.CubeTestUtils;
-import io.kyligence.kap.metadata.model.NDataModel;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
@@ -53,7 +51,9 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.metadata.cube.CubeTestUtils;
 import io.kyligence.kap.metadata.model.ManagementType;
+import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import lombok.val;
@@ -347,7 +347,6 @@ public class NDataflowManagerTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testConcurrentMergeAndMerge() throws Exception {
-        System.setProperty("kylin.cube.max-building-segments", "10");
         NDataflowManager mgr = NDataflowManager.getInstance(getTestConfig(), projectDefault);
         String dfName = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
         //get a empty dataflow
@@ -402,7 +401,6 @@ public class NDataflowManagerTest extends NLocalFileMetadataTestCase {
         final String owner = "test_owner";
         final int n = dataflowIds.length;
         final int updatesPerCube = 100;
-        testConfig.setProperty("kylin.cube.max-building-segments", String.valueOf(updatesPerCube));
 
         final ProjectInstance proj = projMgr.getProject(projectDefault);
         final IndexPlan cube = indePlanMgr.getIndexPlanByModelAlias("nmodel_basic");

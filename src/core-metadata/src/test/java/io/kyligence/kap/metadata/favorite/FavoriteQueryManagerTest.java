@@ -208,7 +208,7 @@ public class FavoriteQueryManagerTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(2, favoriteQueryManager.get("sql1").getRealizations().size());
 
         // get realizations by condition
-        List<FavoriteQueryRealization> realizations = favoriteQueryManager.getRealizationsByConditions("model1", 1L);
+        List<FavoriteQueryRealization> realizations = favoriteQueryManager.getFQRByConditions("model1", 1L);
         Assert.assertEquals(2, realizations.size());
         Assert.assertEquals("model1", realizations.get(0).getModelId());
         Assert.assertEquals(1, realizations.get(0).getLayoutId());

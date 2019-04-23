@@ -36,9 +36,9 @@ import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.model.NEncodingDesc;
 import io.kyligence.kap.smart.NSmartContext;
 import io.kyligence.kap.smart.NSmartMaster;
-import io.kyligence.kap.smart.common.NTestBase;
+import io.kyligence.kap.smart.common.NAutoTestOnLearnKylinData;
 
-public class NCubeMasterTest extends NTestBase {
+public class NCubeMasterTest extends NAutoTestOnLearnKylinData {
 
     @Test
     public void test() {

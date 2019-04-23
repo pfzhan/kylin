@@ -235,7 +235,7 @@ abstract public class KylinConfigBase implements Serializable {
      * Use with care, properties should be read-only. This is for testing only.
      */
     final public void setProperty(String key, String value) {
-        logger.info("Kylin Config was updated with " + key + "=" + value);
+        logger.trace("KylinConfig was updated with " + key + "=" + value);
         properties.setProperty(BCC.check(key), value);
     }
 
@@ -342,7 +342,7 @@ abstract public class KylinConfigBase implements Serializable {
      */
     public String getZookeeperConnectString() {
         String str = getOptional("kylin.env.zookeeper-connect-string");
-        if (str != null)
+        if (!StringUtils.isEmpty(str))
             return str;
 
         throw new RuntimeException("Please set 'kylin.env.zookeeper-connect-string' in kylin.properties");
@@ -512,28 +512,12 @@ abstract public class KylinConfigBase implements Serializable {
         return Integer.parseInt(getOptional("kylin.dictionary.globalV2-version-ttl", "259200000"));
     }
 
-    public int getCachedSnapshotMaxEntrySize() {
-        return Integer.parseInt(getOptional("kylin.snapshot.max-cache-entry", "500"));
-    }
-
-    public int getTableSnapshotMaxMB() {
-        return Integer.parseInt(getOptional("kylin.snapshot.max-mb", "300"));
-    }
-
     // ============================================================================
     // CUBE
     // ============================================================================
 
-    public String getCuboidScheduler() {
-        return getOptional("kylin.cube.cuboid-scheduler", "org.apache.kylin.cube.cuboid.DefaultCuboidScheduler");
-    }
-
     public String getSegmentAdvisor() {
         return getOptional("kylin.cube.segment-advisor", "org.apache.kylin.cube.CubeSegmentAdvisor");
-    }
-
-    public double getJobCuboidSizeRatio() {
-        return Double.parseDouble(getOptional("kylin.cube.size-estimate-ratio", "0.25"));
     }
 
     @Deprecated
@@ -541,52 +525,12 @@ abstract public class KylinConfigBase implements Serializable {
         return Double.parseDouble(getOptional("kylin.cube.size-estimate-memhungry-ratio", "0.05"));
     }
 
-    public double getJobCuboidSizeCountDistinctRatio() {
-        return Double.parseDouble(getOptional("kylin.cube.size-estimate-countdistinct-ratio", "0.05"));
-    }
-
-    public String getCubeAlgorithm() {
-        return getOptional("kylin.cube.algorithm", "auto");
-    }
-
-    public double getCubeAlgorithmAutoThreshold() {
-        return Double.parseDouble(getOptional("kylin.cube.algorithm.layer-or-inmem-threshold", "7"));
-    }
-
-    public int getCubeAlgorithmAutoMapperLimit() {
-        return Integer.parseInt(getOptional("kylin.cube.algorithm.inmem-split-limit", "500"));
-    }
-
-    public int getCubeAlgorithmInMemConcurrentThreads() {
-        return Integer.parseInt(getOptional("kylin.cube.algorithm.inmem-concurrent-threads", "1"));
-    }
-
-    public boolean isIgnoreCubeSignatureInconsistency() {
-        return Boolean.parseBoolean(getOptional("kylin.cube.ignore-signature-inconsistency", "false"));
-    }
-
     public long getCubeAggrGroupMaxCombination() {
         return Long.parseLong(getOptional("kylin.cube.aggrgroup.max-combination", "4096"));
     }
 
     public boolean getCubeAggrGroupIsMandatoryOnlyValid() {
-        return Boolean.parseBoolean(getOptional("kylin.cube.aggrgroup.is-mandatory-only-valid", "false"));
-    }
-
-    public int getCubeRowkeyMaxSize() {
-        return Integer.parseInt(getOptional("kylin.cube.rowkey.max-size", "63"));
-    }
-
-    public int getMaxBuildingSegments() {
-        return Integer.parseInt(getOptional("kylin.cube.max-building-segments", "10"));
-    }
-
-    public boolean allowCubeAppearInMultipleProjects() {
-        return Boolean.parseBoolean(getOptional("kylin.cube.allow-appear-in-multiple-projects", "false"));
-    }
-
-    public int getGTScanRequestSerializationLevel() {
-        return Integer.parseInt(getOptional("kylin.cube.gtscanrequest-serialization-level", "1"));
+        return Boolean.parseBoolean(getOptional("kylin.cube.aggrgroup.is-mandatory-only-valid", "true"));
     }
 
     // ============================================================================
@@ -759,19 +703,6 @@ abstract public class KylinConfigBase implements Serializable {
         return getOptional("kylin.job.lock", "org.apache.kylin.storage.hbase.util.ZookeeperJobLock");
     }
 
-    public Map<Integer, String> getSchedulers() {
-        Map<Integer, String> r = Maps.newLinkedHashMap();
-        r.put(0, "org.apache.kylin.job.impl.threadpool.DefaultScheduler");
-        r.put(2, "org.apache.kylin.job.impl.threadpool.DistributedScheduler");
-        r.put(77, "org.apache.kylin.job.impl.threadpool.NoopScheduler");
-        r.putAll(convertKeyToInteger(getPropertiesByPrefix("kylin.job.scheduler.provider.")));
-        return r;
-    }
-
-    public Integer getSchedulerType() {
-        return Integer.parseInt(getOptional("kylin.job.scheduler.default", "0"));
-    }
-
     public Integer getSchedulerPollIntervalSecond() {
         return Integer.parseInt(getOptional("kylin.job.scheduler.poll-interval-second", "30"));
     }
@@ -807,10 +738,15 @@ abstract public class KylinConfigBase implements Serializable {
     public Map<Integer, String> getSourceEngines() {
         Map<Integer, String> r = Maps.newLinkedHashMap();
         // ref constants in ISourceAware
-        r.put(0, "org.apache.kylin.source.hive.HiveSource");
-        r.put(1, "org.apache.kylin.source.kafka.KafkaSource");
-        r.put(8, "org.apache.kylin.source.jdbc.JdbcSource");
-        r.put(11, "io.kyligence.kap.engine.spark.mockup.CsvSource");
+
+        // these sources no longer exists in Newten
+        //        r.put(0, "org.apache.kylin.source.hive.HiveSource");
+        //        r.put(1, "org.apache.kylin.source.kafka.KafkaSource");
+        //        r.put(8, "org.apache.kylin.source.jdbc.JdbcSource");
+
+        r.put(9, "io.kyligence.kap.engine.spark.source.NSparkDataSource");
+        r.put(13, "io.kyligence.kap.source.file.FileSource");
+
         r.putAll(convertKeyToInteger(getPropertiesByPrefix("kylin.source.provider.")));
         return r;
     }
@@ -964,7 +900,7 @@ abstract public class KylinConfigBase implements Serializable {
         return Integer.parseInt(getOptional("kylin.storage.default", "20"));
     }
 
-    private static final Pattern JOB_JAR_NAME_PATTERN = Pattern.compile("kylin-job-(.+)\\.jar");
+    private static final Pattern JOB_JAR_NAME_PATTERN = Pattern.compile("newten-job(.?)\\.jar");
 
     private static String getFileName(String homePath, Pattern pattern) {
         File home = new File(homePath);
@@ -1041,43 +977,6 @@ abstract public class KylinConfigBase implements Serializable {
 
     public boolean isAutoSetSparkConf() {
         return Boolean.parseBoolean(getOptional("kylin.spark-conf.auto.prior", "true"));
-    }
-
-    public double getDefaultHadoopJobReducerInputMB() {
-        return Double.parseDouble(getOptional("kylin.engine.mr.reduce-input-mb", "500"));
-    }
-
-    public double getDefaultHadoopJobReducerCountRatio() {
-        return Double.parseDouble(getOptional("kylin.engine.mr.reduce-count-ratio", "1.0"));
-    }
-
-    public int getHadoopJobMinReducerNumber() {
-        return Integer.parseInt(getOptional("kylin.engine.mr.min-reducer-number", "1"));
-    }
-
-    public int getHadoopJobMaxReducerNumber() {
-        return Integer.parseInt(getOptional("kylin.engine.mr.max-reducer-number", "500"));
-    }
-
-    public int getHadoopJobMapperInputRows() {
-        return Integer.parseInt(getOptional("kylin.engine.mr.mapper-input-rows", "1000000"));
-    }
-
-    //UHC: ultra high cardinality columns, contain the ShardByColumns and the GlobalDictionaryColumns
-    public int getUHCReducerCount() {
-        return Integer.parseInt(getOptional("kylin.engine.mr.uhc-reducer-count", "1"));
-    }
-
-    public boolean isBuildDictInReducerEnabled() {
-        return Boolean.parseBoolean(getOptional("kylin.engine.mr.build-dict-in-reducer", "true"));
-    }
-
-    public String getYarnStatusCheckUrl() {
-        return getOptional("kylin.engine.mr.yarn-check-status-url", null);
-    }
-
-    public int getYarnStatusCheckIntervalSeconds() {
-        return Integer.parseInt(getOptional("kylin.engine.mr.yarn-check-interval-seconds", "10"));
     }
 
     // ============================================================================

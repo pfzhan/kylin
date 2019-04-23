@@ -32,12 +32,12 @@ import org.junit.Test;
 
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.smart.common.AccelerateInfo;
-import io.kyligence.kap.smart.common.NTestBase;
+import io.kyligence.kap.smart.common.NAutoTestOnLearnKylinData;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public class NSmartContextPartitionTest extends NTestBase {
+public class NSmartContextPartitionTest extends NAutoTestOnLearnKylinData {
 
     @Test
     public void testAllFullLoadTableJoin() {

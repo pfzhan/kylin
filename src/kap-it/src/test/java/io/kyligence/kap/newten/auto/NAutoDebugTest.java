@@ -22,16 +22,28 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.common.util;
+package io.kyligence.kap.newten.auto;
 
-import org.apache.kylin.common.KylinConfig;
+import org.junit.Ignore;
+import org.junit.Test;
 
-import com.google.common.base.Preconditions;
+import io.kyligence.kap.newten.NExecAndComp.CompareLevel;
 
-public class KylinConfigUtils {
-    public static void setH2DriverAsFavoriteQueryStorageDB(KylinConfig config) {
-        Preconditions.checkNotNull(config);
-        config.setProperty("kylin.favorite.storage-url",
-                "kylin_favorite@jdbc,url=jdbc:h2:mem:db_default;DB_CLOSE_DELAY=-1;MODE=MySQL,username=sa,password=,driverClassName=org.h2.Driver");
+/**
+ * copied from NAutoTdvtTest
+ * this test case is used to debug a customer's project
+ */
+@Ignore("this test case is for debug purpose")
+public class NAutoDebugTest extends NAutoTestBase {
+
+    @Override
+    public String getProject() {
+        return "tdvt";
     }
+
+    @Test
+    public void testTdvt() throws Exception {
+        new TestScenario(CompareLevel.NONE, "sql_tdvt").execute();
+    }
+
 }

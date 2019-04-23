@@ -39,10 +39,6 @@ trait YarnSupport
     checkSystem("kylin.env.hdfs-working-dir")
     super.beforeAll()
     val env = KylinConfig.getInstanceFromEnv
-    env.setProperty("kylin.source.provider.11",
-                    "io.kyligence.kap.engine.spark.source.NSparkDataSource")
-    env.setProperty("kylin.source.provider.9",
-                    "io.kyligence.kap.engine.spark.source.NSparkDataSource")
   }
 
   override def afterAll(): Unit = {

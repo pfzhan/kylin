@@ -38,6 +38,7 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.KylinConfig.SetAndUnsetThreadLocalConfig;
 import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.common.util.ExecutorServiceUtil;
+import org.apache.kylin.common.util.NamedThreadFactory;
 import org.apache.kylin.query.relnode.OLAPContext;
 
 import com.google.common.base.Preconditions;
@@ -72,7 +73,7 @@ public abstract class AbstractQueryRunner implements Closeable {
     AbstractQueryRunner(String projectName, String[] sqls, int threads) {
         this.projectName = projectName;
         this.sqls = sqls;
-        this.executorService = Executors.newFixedThreadPool(threads);
+        this.executorService = Executors.newFixedThreadPool(threads, new NamedThreadFactory("SuggestRunner"));
     }
 
     private void submitQueryExecute(final CountDownLatch counter, final AbstractQueryExecutor executor,

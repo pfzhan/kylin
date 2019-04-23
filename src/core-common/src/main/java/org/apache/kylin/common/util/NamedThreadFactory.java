@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -43,23 +42,24 @@
 package org.apache.kylin.common.util;
 
 import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  */
 public class NamedThreadFactory implements ThreadFactory {
     private final ThreadGroup group;
-    private final AtomicInteger threadNumber = new AtomicInteger(1);
+    private static final AtomicLong poolNumber = new AtomicLong(1);
+    private static final AtomicLong threadNumber = new AtomicLong(1);
     private String namePrefix;
 
     public NamedThreadFactory(String namePrefix) {
         SecurityManager s = System.getSecurityManager();
         group = (s != null) ? s.getThreadGroup() : Thread.currentThread().getThreadGroup();
-        this.namePrefix = namePrefix + "-thread-";
+        this.namePrefix = namePrefix + "-p-" + poolNumber.getAndIncrement() + "-t-" + threadNumber.getAndIncrement();
     }
 
     public Thread newThread(Runnable r) {
-        Thread t = new Thread(group, r, namePrefix + threadNumber.getAndIncrement(), 0);
+        Thread t = new Thread(group, r, namePrefix, 0);
         if (t.isDaemon())
             t.setDaemon(false);
         if (t.getPriority() != Thread.NORM_PRIORITY)

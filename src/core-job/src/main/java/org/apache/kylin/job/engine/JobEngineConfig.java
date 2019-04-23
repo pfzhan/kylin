@@ -155,13 +155,7 @@ public class JobEngineConfig {
         return config.getAdminDls();
     }
 
-    /**
-     * @return the asyncJobCheckInterval
-     */
-    public int getAsyncJobCheckInterval() {
-        return config.getYarnStatusCheckIntervalSeconds();
-    }
-    
+
     public int getPollIntervalSecond() {
         return config.getSchedulerPollIntervalSecond();
     }

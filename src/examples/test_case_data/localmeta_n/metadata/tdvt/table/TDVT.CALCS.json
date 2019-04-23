@@ -112,7 +112,7 @@
     "name" : "ZZZ",
     "datatype" : "varchar(255)"
   } ],
-  "source_type" : 11,
+  "source_type" : 9,
   "table_type" : "MANAGED_TABLE",
   "database" : "TDVT"
 }

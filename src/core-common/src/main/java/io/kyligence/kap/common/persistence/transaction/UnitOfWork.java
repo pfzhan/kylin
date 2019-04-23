@@ -112,7 +112,13 @@ public class UnitOfWork {
     private static <T> Pair<T, Boolean> doTransaction(UnitOfWorkParams<T> params, int retry, String traceId) {
         try {
             T ret;
-            log.debug("start unit of work for project {}", params.getUnitName());
+
+            if (retry != 1) {
+                log.debug("current unit of work in project {} is retrying for {}th time", params.getUnitName(), retry);
+            } else {
+                log.debug("start unit of work on project {}", params.getUnitName());
+            }
+
             long startTime = System.currentTimeMillis();
             TransactionListenerRegistry.onStart(params.getUnitName());
             UnitOfWork.startTransaction(params);
@@ -142,7 +148,7 @@ public class UnitOfWork {
                     UnitOfWork unitOfWork = UnitOfWork.get();
                     unitOfWork.currentLock.unlock();
                     unitOfWork.done();
-                    log.debug("leaving UnitOfWork for project {}", unitOfWork.project);
+                    //log.debug("leaving UnitOfWork for project {}", unitOfWork.project);
                 } catch (IllegalStateException e) {
                     //has not hold the lock yet, it's ok
                     log.warn(e.getMessage());

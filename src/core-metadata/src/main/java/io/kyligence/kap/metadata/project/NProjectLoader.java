@@ -81,15 +81,14 @@ public class NProjectLoader {
                 log.debug("project {} not exist", project);
                 return;
             }
-            removeCache();
             val bundle = projectLoader.load(project);
-            log.debug("set project {} cache {}, prev is {}", project, bundle, cache.get());
+            log.trace("set project {} cache {}, prev is {}", project, bundle, cache.get());
             cache.set(bundle);
         }
     }
 
     public static void removeCache() {
-        log.debug("clear cache {}", cache.get());
+        log.trace("clear cache {}", cache.get());
         cache.remove();
     }
 

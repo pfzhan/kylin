@@ -37,10 +37,10 @@ import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.smart.NSmartContext;
 import io.kyligence.kap.smart.NSmartMaster;
 import io.kyligence.kap.smart.common.AccelerateInfo;
-import io.kyligence.kap.smart.common.NTestBase;
+import io.kyligence.kap.smart.common.NAutoTestOnLearnKylinData;
 import lombok.val;
 
-public class NModelMasterTest extends NTestBase {
+public class NModelMasterTest extends NAutoTestOnLearnKylinData {
     @Test
     public void testNormal() {
         preparePartition();

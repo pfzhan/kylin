@@ -200,12 +200,9 @@ public class RealizationChooser {
         context.setDimensions(dimensions);
         context.setMetrics(metrics);
         context.setCuboidLayoutId(cuboidLayout.getId());
-        logger.info("Choose model name: {} joins: {}", cuboidLayout.getModel().getUuid(),
-                cuboidLayout.getModel().getJoinsGraph().toString());
-        logger.info("Choose indexPlan name: {} for context: {}", cuboidLayout.getIndex().getIndexPlan().getUuid(),
-                context.getCtxId());
-        logger.info("Choose cuboid layout ID: {} dimensions: {}, measures: {}", cuboidLayout.getId(),
-                cuboidLayout.getOrderedDimensions(), cuboidLayout.getOrderedMeasures());
+        logger.debug("for context {}, chosen model: {}, its join: {}, layout: {}, dimensions: {}, measures: {}",
+                context.getCtxId(), cuboidLayout.getModel().getAlias(), cuboidLayout.getModel().getJoinsGraph(),
+                cuboidLayout.getId(), cuboidLayout.getOrderedDimensions(), cuboidLayout.getOrderedMeasures());
     }
 
     private static void buildDimensionsAndMetrics(SQLDigest sqlDigest, Collection<TblColRef> dimensions,

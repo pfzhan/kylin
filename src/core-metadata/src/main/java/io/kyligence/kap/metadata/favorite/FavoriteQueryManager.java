@@ -202,7 +202,7 @@ public class FavoriteQueryManager implements IKeepNames {
         favoriteQueryMap = null;
     }
 
-    public List<FavoriteQueryRealization> getRealizationsByConditions(String modelId, Long cuboidLayoutId) {
+    public List<FavoriteQueryRealization> getFQRByConditions(String modelId, Long cuboidLayoutId) {
         List<FavoriteQueryRealization> realizations = Lists.newArrayList();
         List<FavoriteQuery> favoriteQueries = crud.listAll();
         favoriteQueries.stream().map(FavoriteQuery::getRealizations).flatMap(List::stream)

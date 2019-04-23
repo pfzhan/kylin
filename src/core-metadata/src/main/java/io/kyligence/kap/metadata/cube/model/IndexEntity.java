@@ -292,7 +292,7 @@ public class IndexEntity implements Serializable, IKeep {
 
         @Override
         public String toString() {
-            return "CuboidToken{" + "dimBitSet=" + dimBitSet + ", measureBitSet=" + measureBitSet + ", isTableIndex="
+            return "IndexEntity{" + "dimBitSet=" + dimBitSet + ", measureBitSet=" + measureBitSet + ", isTableIndex="
                     + isTableIndex + '}';
         }
 

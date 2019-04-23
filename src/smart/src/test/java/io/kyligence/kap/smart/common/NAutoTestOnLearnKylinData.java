@@ -51,7 +51,8 @@ import io.kyligence.kap.metadata.favorite.FavoriteQueryRealization;
 import io.kyligence.kap.smart.NSmartContext;
 import lombok.val;
 
-public abstract class NTestBase {
+public abstract class NAutoTestOnLearnKylinData {
+
 
     protected String proj = "learn_kylin";
     private File tmpMeta;
@@ -93,13 +94,13 @@ public abstract class NTestBase {
         return layouts;
     }
 
-    protected Set<FavoriteQueryRealization> collectFavoriteQueryRealizations(List<LayoutEntity> layouts) {
+    protected Set<FavoriteQueryRealization> collectFQR(List<LayoutEntity> layouts) {
         Set<FavoriteQueryRealization> realizations = Sets.newHashSet();
         layouts.forEach(layout -> {
             final long layoutId = layout.getId();
             final String modelId = layout.getModel().getId();
 
-            val tmp = favoriteQueryManager.getRealizationsByConditions(modelId, layoutId);
+            val tmp = favoriteQueryManager.getFQRByConditions(modelId, layoutId);
             realizations.addAll(tmp);
         });
         return realizations;

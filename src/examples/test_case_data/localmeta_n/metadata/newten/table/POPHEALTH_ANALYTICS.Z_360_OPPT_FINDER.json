@@ -216,7 +216,7 @@
     "name" : "LOOKBACK_TABLE",
     "datatype" : "char(7)"
   } ],
-  "source_type" : 11,
+  "source_type" : 9,
   "table_type" : "MANAGED_TABLE",
   "database" : "POPHEALTH_ANALYTICS"
 }

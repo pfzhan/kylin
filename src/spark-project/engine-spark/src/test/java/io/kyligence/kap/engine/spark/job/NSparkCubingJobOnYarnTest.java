@@ -78,7 +78,6 @@ public class NSparkCubingJobOnYarnTest extends NLocalFileMetadataTestCase {
     public void testSparkJobOnYarn() throws IOException, InterruptedException {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         config.setProperty("kylin.env.hdfs-working-dir", "hdfs://sandbox/kylin");
-        config.setProperty("kylin.source.provider.11", "io.kyligence.kap.engine.spark.source.NSparkDataSource");
         config.setProperty("kylin.env", "DEV");
         config.setProperty("kylin.engine.spark.job-jar",
                 "../assembly/target/ke-assembly-4.0.0-SNAPSHOT-job.jar");

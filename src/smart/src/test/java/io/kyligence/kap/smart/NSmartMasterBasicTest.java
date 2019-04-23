@@ -42,10 +42,10 @@ import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.smart.common.AccelerateInfo;
-import io.kyligence.kap.smart.common.NTestBase;
+import io.kyligence.kap.smart.common.NAutoTestOnLearnKylinData;
 import io.kyligence.kap.smart.model.ModelTree;
 
-public class NSmartMasterBasicTest extends NTestBase {
+public class NSmartMasterBasicTest extends NAutoTestOnLearnKylinData {
 
     private NTableMetadataManager tableMetadataManager;
     private NIndexPlanManager indexPlanManager;

@@ -27,11 +27,11 @@ package io.kyligence.kap.query.validator;
 import java.util.Arrays;
 import java.util.Map;
 
-import io.kyligence.kap.smart.common.NTestBase;
+import io.kyligence.kap.smart.common.NAutoTestOnLearnKylinData;
 import io.kyligence.kap.smart.query.ResultDetails;
 import io.kyligence.kap.smart.query.validator.SQLValidateResult;
 
-class SqlValidateTestBase extends NTestBase {
+class SqlValidateTestBase extends NAutoTestOnLearnKylinData {
     void printSqlValidateResults(Map<String, SQLValidateResult> validateStatsMap) {
         validateStatsMap.forEach((key, sqlValidateResult) -> {
             StringBuilder sb = new StringBuilder();

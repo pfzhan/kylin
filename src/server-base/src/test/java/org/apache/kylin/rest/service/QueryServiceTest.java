@@ -378,6 +378,8 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testExposedColumnsWhenPushdownDisabled() throws Exception {
+        getTestConfig().setProperty("kylin.query.pushdown.runner-class-name",
+                "");
 
         Pair<Set<String>, Set<String>> schemasAndTables;
         Set<String> tableSchemas, tableNames;
@@ -468,9 +470,6 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testExposedColumnsWhenPushdownEnabled() throws Exception {
-
-        getTestConfig().setProperty("kylin.query.pushdown.runner-class-name",
-                "io.kyligence.kap.query.pushdown.PushDownRunnerSparkImpl");
 
         Pair<Set<String>, Set<String>> schemasAndTables;
         Set<String> tableSchemas, tableNames;

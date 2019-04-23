@@ -44,7 +44,6 @@ import org.junit.rules.ExpectedException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-
 import jersey.repackaged.com.google.common.collect.Lists;
 
 /**
@@ -98,7 +97,6 @@ public class NKapQueryTest extends NKylinTestBase {
             KylinConfig.getInstanceFromEnv().setProperty("kylin.query.pushdown.runner-class-name", x);
         }
     }
-
 
     @Test
     public void testQuery_validSql_fail() throws Exception {

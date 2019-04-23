@@ -535,10 +535,6 @@ public class KapConfig {
         return Integer.parseInt(config.getOptional("kap.env.zookeeper-max-retries", "3"));
     }
 
-    public int getZKMonitorInterval() {
-        return Integer.parseInt(config.getOptional("kap.job.zookeeper-monitor-interval", "30"));
-    }
-
     public String sparderFiles() {
         try {
             File storageFile = FileUtils.findFile(KylinConfigBase.getKylinHome() + "/conf",

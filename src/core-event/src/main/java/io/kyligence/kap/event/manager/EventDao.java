@@ -55,6 +55,7 @@ import org.apache.kylin.common.util.JsonUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.event.model.AddCuboidEvent;
 import io.kyligence.kap.event.model.AddSegmentEvent;
 import io.kyligence.kap.event.model.Event;
@@ -94,9 +95,13 @@ public class EventDao {
     private String resourceRootPath;
 
     private EventDao(KylinConfig config, String project) {
-        logger.info("Using metadata url: " + config);
-        this.store = ResourceStore.getKylinMetaStore(config);
         this.project = project;
+
+        if (!UnitOfWork.isAlreadyInTransaction())
+            logger.info("Initializing EventDao with KylinConfig Id: {} for project {}", System.identityHashCode(config),
+                    project);
+
+        this.store = ResourceStore.getKylinMetaStore(config);
         this.resourceRootPath = "/" + project + ResourceStore.EVENT_RESOURCE_ROOT;
     }
 

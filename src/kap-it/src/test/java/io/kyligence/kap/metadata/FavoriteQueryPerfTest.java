@@ -227,7 +227,7 @@ public class FavoriteQueryPerfTest extends NLocalFileMetadataTestCase {
         log.info("filter accelerated fqs over {} fqs used {}ms", fqManager.getAll().size(), endTime - startTime);
 
         startTime = System.currentTimeMillis();
-        fqManager.getRealizationsByConditions("dc2efa94-76b5-4a82-b080-5c783ead85f8", 10001L);
+        fqManager.getFQRByConditions("dc2efa94-76b5-4a82-b080-5c783ead85f8", 10001L);
         endTime = System.currentTimeMillis();
         log.info("filter fq realizations over {} fqs used {}ms", fqManager.getAll().size(), endTime - startTime);
     }

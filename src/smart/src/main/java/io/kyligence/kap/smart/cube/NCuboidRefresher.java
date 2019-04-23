@@ -135,7 +135,7 @@ class NCuboidRefresher extends NAbstractCubeProposer {
             final long layoutId = layout.getId();
             final String modelId = layout.getModel().getId();
 
-            final List<FavoriteQueryRealization> byConditions = favoriteQueryManager.getRealizationsByConditions(modelId, layoutId);
+            final List<FavoriteQueryRealization> byConditions = favoriteQueryManager.getFQRByConditions(modelId, layoutId);
             favoriteQueryRealizations.addAll(byConditions);
         });
 

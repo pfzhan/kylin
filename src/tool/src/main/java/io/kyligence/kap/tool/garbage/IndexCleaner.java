@@ -56,7 +56,7 @@ public class IndexCleaner implements MetadataCleaner {
 
             // For case 1, When the next time FavoriteQueryAdjustWorker starts, the FQ will adjust to a new model.
             // before it happens, the FQ is actually not accelerated
-            val referencedLayouts = favoriteQueryManager.getRealizationsByConditions(model.getId(), null).stream()
+            val referencedLayouts = favoriteQueryManager.getFQRByConditions(model.getId(), null).stream()
                     .map(FavoriteQueryRealization::getLayoutId).collect(Collectors.toSet());
             autoLayouts.removeAll(referencedLayouts);
             if (CollectionUtils.isNotEmpty(autoLayouts)) {

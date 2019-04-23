@@ -31,12 +31,6 @@ for PARAM in $@; do
 done
 
 
-for PARAM in $@; do
-    if [ "$PARAM" == "cdh5.7" ]; then
-        export MVN_PROFILE="cdh5.7"
-        break
-    fi
-done
 
 # Make share commands exist in environment
 echo "BUILD STAGE 1 - Checking environment..."

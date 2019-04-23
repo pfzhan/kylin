@@ -29,15 +29,16 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
-import io.kyligence.kap.shaded.influxdb.org.influxdb.BatchOptions;
-import io.kyligence.kap.shaded.influxdb.org.influxdb.dto.Pong;
 import org.apache.kylin.common.KapConfig;
+import org.apache.kylin.common.util.NamedThreadFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import io.kyligence.kap.shaded.influxdb.org.influxdb.BatchOptions;
 import io.kyligence.kap.shaded.influxdb.org.influxdb.InfluxDB;
 import io.kyligence.kap.shaded.influxdb.org.influxdb.InfluxDBFactory;
 import io.kyligence.kap.shaded.influxdb.org.influxdb.dto.Point;
+import io.kyligence.kap.shaded.influxdb.org.influxdb.dto.Pong;
 
 public class InfluxDBWriter implements MetricWriter {
 
@@ -78,9 +79,8 @@ public class InfluxDBWriter implements MetricWriter {
 
         // enable async write. max batch size 1000, flush duration 3s.
         // when bufferLimit > actions，#RetryCapableBatchWriter will be used
-        getInfluxDB().enableBatch(
-                BatchOptions.DEFAULTS.actions(1000).bufferLimit(10000).
-                        flushDuration(KapConfig.getInstanceFromEnv().getInfluxDBFlushDuration()).jitterDuration(500));
+        getInfluxDB().enableBatch(BatchOptions.DEFAULTS.actions(1000).bufferLimit(10000)
+                .flushDuration(KapConfig.getInstanceFromEnv().getInfluxDBFlushDuration()).jitterDuration(500));
 
         if (!getInfluxDB().databaseExists(DEFAULT_DATABASE)) {
             logger.info("Create influxDB database {}", DEFAULT_DATABASE);
@@ -98,7 +98,7 @@ public class InfluxDBWriter implements MetricWriter {
         }
 
         logger.info("Start to monitor influxDB");
-        scheduledExecutorService = Executors.newSingleThreadScheduledExecutor();
+        scheduledExecutorService = Executors.newSingleThreadScheduledExecutor(new NamedThreadFactory("InfluxDBMon"));
         scheduledExecutorService.scheduleWithFixedDelay(new Runnable() {
 
             @Override

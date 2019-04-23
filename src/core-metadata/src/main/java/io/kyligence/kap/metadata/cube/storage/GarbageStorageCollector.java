@@ -62,7 +62,7 @@ public class GarbageStorageCollector implements StorageInfoCollector {
 
             val autoLayouts = getAutoLayouts(dataflow);
             // referenced layouts
-            val referencedlayouts = favoriteQueryManager.getRealizationsByConditions(model.getId(), null).stream().filter(fqr -> !lowFrequencyFqrs.contains(fqr))
+            val referencedlayouts = favoriteQueryManager.getFQRByConditions(model.getId(), null).stream().filter(fqr -> !lowFrequencyFqrs.contains(fqr))
                     .map(FavoriteQueryRealization::getLayoutId).collect(Collectors.toSet());
             autoLayouts.removeAll(referencedlayouts);
             if (CollectionUtils.isNotEmpty(autoLayouts)) {

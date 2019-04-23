@@ -43,7 +43,6 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.io.Files;
 
-import io.kyligence.kap.common.util.KylinConfigUtils;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import lombok.extern.slf4j.Slf4j;
@@ -120,7 +119,6 @@ public class NSmartDemoTest {
 
         KylinConfig kylinConfig = KylinConfig.createKylinConfig(props);
         kylinConfig.setProperty("kylin.env", "UT");
-        KylinConfigUtils.setH2DriverAsFavoriteQueryStorageDB(kylinConfig);
         try (SetAndUnsetThreadLocalConfig autoUnset = KylinConfig.setAndUnsetThreadLocalConfig(kylinConfig)) {
             NSmartMaster smartMaster = new NSmartMaster(kylinConfig, projectName, sqlList.toArray(new String[0]));
             smartMaster.runAll();

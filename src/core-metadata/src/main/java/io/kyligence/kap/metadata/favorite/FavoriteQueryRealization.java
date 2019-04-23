@@ -35,6 +35,9 @@ import lombok.ToString;
 import java.io.Serializable;
 
 
+/**
+ * a relation between A FavoriteQuery and A Realization ('s layout)
+ */
 @Getter
 @Setter
 @ToString(exclude = "favoriteQuery")

@@ -47,10 +47,10 @@ import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.smart.common.AccelerateInfo;
-import io.kyligence.kap.smart.common.NTestBase;
+import io.kyligence.kap.smart.common.NAutoTestOnLearnKylinData;
 import lombok.val;
 
-public class NSmartMasterTest extends NTestBase {
+public class NSmartMasterTest extends NAutoTestOnLearnKylinData {
 
     @Test
     public void testRenameModel() {
@@ -115,14 +115,14 @@ public class NSmartMasterTest extends NTestBase {
         IndexPlan indexPlan = mdCtx.getTargetIndexPlan();
         final List<IndexEntity> allCuboids = indexPlan.getAllIndexes();
         final List<LayoutEntity> layouts = collectAllLayouts(allCuboids);
-        Set<FavoriteQueryRealization> fqRealizationsBefore = collectFavoriteQueryRealizations(layouts);
+        Set<FavoriteQueryRealization> fqRealizationsBefore = collectFQR(layouts);
         Assert.assertTrue(fqRealizationsBefore.isEmpty());
 
         // do save accelerateInfo
         smartMaster.saveAccelerateInfo();
 
         // after saveAccelerateInfo
-        Set<FavoriteQueryRealization> fqRealizationsAfter = collectFavoriteQueryRealizations(layouts);
+        Set<FavoriteQueryRealization> fqRealizationsAfter = collectFQR(layouts);
         Assert.assertEquals(5, fqRealizationsAfter.size());
     }
 
@@ -203,7 +203,7 @@ public class NSmartMasterTest extends NTestBase {
         IndexPlan indexPlan = mdCtx.getTargetIndexPlan();
         final List<IndexEntity> allCuboids = indexPlan.getAllIndexes();
         final List<LayoutEntity> layouts = collectAllLayouts(allCuboids);
-        val fqRealizationsAfter = collectFavoriteQueryRealizations(layouts);
+        val fqRealizationsAfter = collectFQR(layouts);
         Assert.assertEquals(2, fqRealizationsAfter.size());
     }
 

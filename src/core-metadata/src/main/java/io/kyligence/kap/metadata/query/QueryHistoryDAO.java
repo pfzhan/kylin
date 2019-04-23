@@ -115,9 +115,9 @@ public class QueryHistoryDAO {
         final QueryResult result = getInfluxDB().query(new Query(query, QueryHistory.DB_NAME));
         long duration = System.currentTimeMillis() - startTime;
         if (duration > 3000) {
-            logger.warn("a InfluxDB query {} takes too long time {}ms to get result", query, duration);
+            logger.warn("current influxdb query {} takes too long time {}ms to get result", query, duration);
         } else
-            logger.info("a InfluxDB query takes {}ms", duration);
+            logger.debug("current influxdb query takes {}ms to complete", duration);
         final InfluxDBResultMapper mapper = new InfluxDBResultMapper();
 
         return mapper.toPOJO(result, clazz, tableName);

@@ -137,7 +137,7 @@ public class TableServiceTest extends NLocalFileMetadataTestCase {
         ProjectInstance projectInstance = projectManager.getProject("default");
         LinkedHashMap<String, String> overrideKylinProps = projectInstance.getOverrideKylinProps();
         overrideKylinProps.put("kylin.query.force-limit", "-1");
-        overrideKylinProps.put("kylin.source.default", "11");
+        overrideKylinProps.put("kylin.source.default", "9");
         ProjectInstance projectInstanceUpdate = ProjectInstance.create(projectInstance.getName(),
                 projectInstance.getOwner(), projectInstance.getDescription(), overrideKylinProps,
                 MaintainModelType.AUTO_MAINTAIN);

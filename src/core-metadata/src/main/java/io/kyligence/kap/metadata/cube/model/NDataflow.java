@@ -32,9 +32,6 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
-import io.kyligence.kap.metadata.model.NDataModelManager;
-import lombok.Getter;
-import lombok.Setter;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfigExt;
 import org.apache.kylin.common.persistence.RootPersistentEntity;
@@ -62,6 +59,9 @@ import com.google.common.collect.Lists;
 
 import io.kyligence.kap.common.obf.IKeep;
 import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.metadata.model.NDataModelManager;
+import lombok.Getter;
+import lombok.Setter;
 import lombok.val;
 
 @SuppressWarnings("serial")
@@ -459,16 +459,18 @@ public class NDataflow extends RootPersistentEntity implements Serializable, IRe
 
     @Override
     public String toString() {
-        return "NDataflow [" + uuid + "(" + getModelAlias() + ")]";
+        return "NDataflow [" + getModelAlias() + "]";
     }
 
     public Segments getSegmentsToRemoveByRetention() {
         val segmentConfig = NSegmentConfigHelper.getModelSegmentConfig(project, getModel().getUuid());
         val retentionRange = segmentConfig.getRetentionRange();
-        if (!retentionRange.isRetentionRangeEnabled() || retentionRange.getRetentionRangeNumber() <= 0 || retentionRange.getRetentionRangeType() == null) {
+        if (!retentionRange.isRetentionRangeEnabled() || retentionRange.getRetentionRangeNumber() <= 0
+                || retentionRange.getRetentionRangeType() == null) {
             return null;
         } else {
-            return segments.getSegmentsToRemoveByRetention(retentionRange.getRetentionRangeType(), retentionRange.getRetentionRangeNumber());
+            return segments.getSegmentsToRemoveByRetention(retentionRange.getRetentionRangeType(),
+                    retentionRange.getRetentionRangeNumber());
         }
     }
 

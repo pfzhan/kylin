@@ -69,7 +69,7 @@ public class QueryMetricsContext {
     public static final String TABLE_INDEX = "Table Index";
     public static final String TABLE_SNAPSHOT = "Table Snapshot";
 
-    private static final InheritableThreadLocal<QueryMetricsContext> contexts = new InheritableThreadLocal<>();
+    private static final ThreadLocal<QueryMetricsContext> contexts = new ThreadLocal<>();
 
     // fields below are columns in InfluxDB table which records down query history
     private final String queryId;
