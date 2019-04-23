@@ -24,12 +24,14 @@
 package io.kyligence.kap.rest;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cloud.zookeeper.ConditionalOnZookeeperEnabled;
 import org.springframework.cloud.zookeeper.discovery.ZookeeperDiscoveryClient;
 import org.springframework.stereotype.Component;
 
 import io.kyligence.kap.rest.cluster.ClusterManager;
 import lombok.val;
 
+@ConditionalOnZookeeperEnabled
 @Component
 public class ZookeeperClusterManager implements ClusterManager {
 

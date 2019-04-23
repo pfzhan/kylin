@@ -8,9 +8,6 @@ server:
     basedir: "${KYLIN_HOME}"
 
 spring:
-  profiles:
-    active: "dev"
-
   http:
     multipart:
       max-file-size: "5MB"
@@ -26,3 +23,12 @@ spring:
     store-type: jdbc
     jdbc:
       table-name: ${kylin.metadata.url.identifier}_session
+
+---
+spring:
+  profiles: dev
+  session:
+    store-type: HASH_MAP
+  cloud:
+    zookeeper:
+      enabled: false

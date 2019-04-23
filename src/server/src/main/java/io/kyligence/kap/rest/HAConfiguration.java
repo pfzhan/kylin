@@ -34,6 +34,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cloud.client.loadbalancer.LoadBalanced;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Profile;
 import org.springframework.jdbc.datasource.init.DatabasePopulatorUtils;
 import org.springframework.jdbc.datasource.init.ResourceDatabasePopulator;
 import org.springframework.security.util.InMemoryResource;
@@ -47,6 +48,7 @@ import lombok.val;
 import lombok.var;
 
 @Configuration
+@Profile("!dev")
 public class HAConfiguration extends AbstractHttpSessionApplicationInitializer {
 
     @Autowired
