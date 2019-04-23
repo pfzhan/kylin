@@ -7,6 +7,7 @@
   "mp_values" : null,
   "create_time_utc" : 1509791792901,
   "status" : "ONLINE",
+  "query_hit_count" : 3,
   "cost" : 50,
   "segments" : [ {
     "id" : "ef5e0663-feba-4ed2-b71c-21958122bbff",

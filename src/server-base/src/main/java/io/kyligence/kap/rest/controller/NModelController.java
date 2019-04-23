@@ -97,7 +97,7 @@ public class NModelController extends NBasicController {
             @RequestParam(value = "table", required = false) String table,
             @RequestParam(value = "pageOffset", required = false, defaultValue = "0") Integer offset,
             @RequestParam(value = "pageSize", required = false, defaultValue = "10") Integer limit,
-            @RequestParam(value = "sortby", required = false, defaultValue = "last_modify") String sortBy,
+            @RequestParam(value = "sortBy", required = false, defaultValue = "last_modify") String sortBy,
             @RequestParam(value = "reverse", required = false, defaultValue = "true") Boolean reverse) {
         checkProjectName(project);
         List<NDataModel> models = new ArrayList<>();

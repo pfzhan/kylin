@@ -148,6 +148,8 @@ public class ModelService extends BasicService {
 
     private static final String STORAGE = "storage";
 
+    private static final String USAGE = "usage";
+
     public static final String VALID_NAME_FOR_MODEL_DIMENSION_MEASURE = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890_";
 
     @Setter
@@ -214,15 +216,26 @@ public class ModelService extends BasicService {
                 || (!exactMatch && originValue.toLowerCase().contains(valueToMatch.toLowerCase()));
     }
 
+    private Comparator<NDataModelResponse> lastModifyComp = Comparator.comparingLong(r -> -r.getLastModified());
+    private Comparator<NDataModelResponse> usageComp = Comparator.comparingLong(r -> -r.getUsage());
+    private Comparator<NDataModelResponse> storageComp = Comparator.comparingLong(r -> -r.getStorage());
     private List<NDataModelResponse> sortModelResponses(String sortBy, boolean reverse,
             List<NDataModelResponse> filterModels) {
-        var comp = Comparator.<NDataModelResponse> comparingLong(r -> -r.getLastModified());
         if (sortBy.equals(LAST_MODIFY) && reverse) {
-            Collections.sort(filterModels, comp);
+            Collections.sort(filterModels, lastModifyComp);
         } else if (sortBy.equals(LAST_MODIFY) && !reverse) {
-            Collections.sort(filterModels, comp);
+            Collections.sort(filterModels, lastModifyComp);
             Collections.reverse(filterModels);
-
+        } else if (sortBy.equals(USAGE) && reverse) {
+            Collections.sort(filterModels, usageComp);
+        } else if (sortBy.equals(USAGE) && !reverse) {
+            Collections.sort(filterModels, usageComp);
+            Collections.reverse(filterModels);
+        } else if (sortBy.equals(STORAGE) && reverse) {
+            Collections.sort(filterModels, storageComp);
+        } else if (sortBy.equals(STORAGE) && !reverse) {
+            Collections.sort(filterModels, storageComp);
+            Collections.reverse(filterModels);
         }
         return filterModels;
     }

@@ -8,6 +8,7 @@
   "create_time_utc" : 1509791792901,
   "status" : "ONLINE",
   "cost" : 50,
+  "query_hit_count" : 4,
   "segments" : [ {
     "id" : "ef783e4d-e35f-4bd9-8afd-efd64336f04d",
     "name" : "FULL_BUILD",

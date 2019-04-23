@@ -219,6 +219,26 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
+    public void testSortModels() {
+
+        List<NDataModelResponse> models = modelService.getModels("", "default", false, "", "",
+                "usage", true);
+        Assert.assertEquals(6, models.size());
+        Assert.assertEquals("nmodel_basic_inner", models.get(0).getAlias());
+        models = modelService.getModels("", "default", false, "", "",
+                "usage", false);
+        Assert.assertEquals("nmodel_basic_inner", models.get(models.size() - 1).getAlias());
+        models = modelService.getModels("", "default", false, "", "",
+                "storage", true);
+        Assert.assertEquals("nmodel_basic", models.get(0).getAlias());
+        models = modelService.getModels("", "default", false, "", "",
+                "storage", false);
+        Assert.assertEquals("nmodel_basic", models.get(models.size() - 1).getAlias());
+
+
+    }
+
+    @Test
     public void testOfflineAndOnlineAllModels() {
         String projectName = "default";
         Set<String> modelIds = modelService.listAllModelIdsInProject(projectName);

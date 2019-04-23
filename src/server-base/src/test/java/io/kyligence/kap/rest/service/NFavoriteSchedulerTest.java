@@ -411,7 +411,7 @@ public class NFavoriteSchedulerTest extends NLocalFileMetadataTestCase {
         var df1 = dfMgr.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         var df2 = dfMgr.getDataflow("82fa7671-a935-45f5-8779-85703601f49a");
 
-        Assert.assertEquals(2, df1.getQueryHitCount());
+        Assert.assertEquals(5, df1.getQueryHitCount());
         Assert.assertEquals(2, df2.getQueryHitCount());
 
         currentFavoriteQueries = favoriteQueryManager.getAll();
@@ -454,7 +454,7 @@ public class NFavoriteSchedulerTest extends NLocalFileMetadataTestCase {
         df1 = dfMgr.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         df2 = dfMgr.getDataflow("82fa7671-a935-45f5-8779-85703601f49a");
 
-        Assert.assertEquals(4, df1.getQueryHitCount());
+        Assert.assertEquals(7, df1.getQueryHitCount());
         Assert.assertEquals(4, df2.getQueryHitCount());
 
         for (FavoriteQuery favoriteQuery : currentFavoriteQueries) {
