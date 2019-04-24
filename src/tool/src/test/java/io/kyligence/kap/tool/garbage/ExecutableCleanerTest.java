@@ -40,7 +40,7 @@ import io.kyligence.kap.event.manager.EventDao;
 
 public class ExecutableCleanerTest extends NLocalFileMetadataTestCase {
 
-    private static final String DEFALUT_PROJECT = "default";
+    private static final String DEFAULT_PROJECT = "default";
 
     private NExecutableManager manager;
     private NExecutableDao dao;
@@ -49,9 +49,9 @@ public class ExecutableCleanerTest extends NLocalFileMetadataTestCase {
     @Before
     public void init() {
         createTestMetadata();
-        manager = NExecutableManager.getInstance(getTestConfig(), DEFALUT_PROJECT);
-        dao = NExecutableDao.getInstance(getTestConfig(), DEFALUT_PROJECT);
-        eventDao = EventDao.getInstance(getTestConfig(), DEFALUT_PROJECT);
+        manager = NExecutableManager.getInstance(getTestConfig(), DEFAULT_PROJECT);
+        dao = NExecutableDao.getInstance(getTestConfig(), DEFAULT_PROJECT);
+        eventDao = EventDao.getInstance(getTestConfig(), DEFAULT_PROJECT);
     }
 
     @After
@@ -65,7 +65,7 @@ public class ExecutableCleanerTest extends NLocalFileMetadataTestCase {
         createUnexpiredJob(jobId);
         Assert.assertEquals(1, manager.getJobs().size());
         manager.discardJob(jobId);
-        new ExecutableCleaner().cleanup(DEFALUT_PROJECT);
+        new ExecutableCleaner().cleanup(DEFAULT_PROJECT);
         Assert.assertEquals(1, manager.getJobs().size());
     }
 
@@ -73,7 +73,7 @@ public class ExecutableCleanerTest extends NLocalFileMetadataTestCase {
     public void testCleanupWithRunningJob() {
         createExpiredJob(UUID.randomUUID().toString());
         Assert.assertEquals(1, manager.getJobs().size());
-        new ExecutableCleaner().cleanup(DEFALUT_PROJECT);
+        new ExecutableCleaner().cleanup(DEFAULT_PROJECT);
         Assert.assertEquals(1, manager.getJobs().size());
     }
 
@@ -87,12 +87,12 @@ public class ExecutableCleanerTest extends NLocalFileMetadataTestCase {
 
         manager.discardJob(event.getJobId());
 
-        new ExecutableCleaner().cleanup(DEFALUT_PROJECT);
+        new ExecutableCleaner().cleanup(DEFAULT_PROJECT);
         Assert.assertEquals(1, manager.getJobs().size());
 
         eventDao.deleteEvent(event.getId());
 
-        new ExecutableCleaner().cleanup(DEFALUT_PROJECT);
+        new ExecutableCleaner().cleanup(DEFAULT_PROJECT);
         Assert.assertEquals(0, manager.getJobs().size());
     }
 
@@ -102,7 +102,7 @@ public class ExecutableCleanerTest extends NLocalFileMetadataTestCase {
         createExpiredJob(jobId);
         manager.discardJob(jobId);
         Assert.assertEquals(1, manager.getJobs().size());
-        new ExecutableCleaner().cleanup(DEFALUT_PROJECT);
+        new ExecutableCleaner().cleanup(DEFAULT_PROJECT);
         Assert.assertEquals(0, manager.getJobs().size());
     }
 
@@ -120,11 +120,11 @@ public class ExecutableCleanerTest extends NLocalFileMetadataTestCase {
         MockCleanableExecutable executable = new MockCleanableExecutable();
         executable.setParam("test1", "test1");
         executable.setId(jobId);
-        executable.setProject(DEFALUT_PROJECT);
+        executable.setProject(DEFAULT_PROJECT);
         executable.initConfig(getTestConfig());
-        ExecutablePO po = NExecutableManager.toPO(executable, DEFALUT_PROJECT);
+        ExecutablePO po = NExecutableManager.toPO(executable, DEFAULT_PROJECT);
         ExecutableOutputPO executableOutputPO = new ExecutableOutputPO();
-        executableOutputPO.getInfo().put("createTime", String.valueOf(createTime));
+        executableOutputPO.setCreateTime(createTime);
         po.setOutput(executableOutputPO);
         dao.addJob(po);
     }
