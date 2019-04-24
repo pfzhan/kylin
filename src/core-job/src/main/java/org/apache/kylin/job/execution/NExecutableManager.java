@@ -427,12 +427,9 @@ public class NExecutableManager {
         val jobId = extractJobId(taskOrJobId);
         executableDao.updateJob(jobId, job -> {
             ExecutableOutputPO jobOutput;
-            if (Objects.equals(taskOrJobId, jobId)) {
-                jobOutput = job.getOutput();
-            } else {
-                jobOutput = job.getTasks().stream().filter(po -> po.getId().equals(taskOrJobId)).findFirst()
-                        .map(ExecutablePO::getOutput).orElse(null);
-            }
+            jobOutput = (Objects.equals(taskOrJobId, jobId)) ? job.getOutput() : job.getTasks()
+                    .stream().filter(po -> po.getId().equals(taskOrJobId)).findFirst()
+                    .map(ExecutablePO::getOutput).orElse(null);
             assertOutputNotNull(jobOutput, taskOrJobId);
             ExecutableState oldStatus = ExecutableState.valueOf(jobOutput.getStatus());
             if (newStatus != null && oldStatus != newStatus) {
@@ -441,33 +438,31 @@ public class NExecutableManager {
                             + " to: " + newStatus + ", job id: " + taskOrJobId);
                 }
                 jobOutput.setStatus(String.valueOf(newStatus));
-                long time = System.currentTimeMillis();
-                if (oldStatus == ExecutableState.RUNNING) {
-                    jobOutput.addEndTime(time);
-                } else if (newStatus == ExecutableState.RUNNING) {
-                    jobOutput.addStartTime(time);
-                } else if (newStatus == ExecutableState.SUICIDAL || newStatus == ExecutableState.DISCARDED) {
-                    jobOutput.addStartTime(time);
-                    jobOutput.addEndTime(time);
-                }
+                updateJobStatus(jobOutput, oldStatus, newStatus);
             }
             Map<String, String> info = Maps.newHashMap(jobOutput.getInfo());
-            if (updateInfo != null) {
-                info.putAll(updateInfo);
-            }
-            if (removeInfo != null) {
-                removeInfo.forEach(info::remove);
-            }
+            Optional.ofNullable(updateInfo).ifPresent(info::putAll);
+            Optional.ofNullable(removeInfo).ifPresent(set -> set.forEach(info::remove));
             jobOutput.setInfo(info);
-            if (output != null) {
-                jobOutput.setContent(output);
-            }
+            Optional.ofNullable(output).ifPresent(jobOutput::setContent);
             logger.info("Job id: {} from {} to {}", taskOrJobId, oldStatus, newStatus);
             return true;
         });
         if (ExecutableState.PAUSED.equals(newStatus)) {
             // kill spark-submit process
             destroyProcess(taskOrJobId);
+        }
+    }
+
+    private void updateJobStatus(ExecutableOutputPO jobOutput, ExecutableState oldStatus, ExecutableState newStatus) {
+        long time = System.currentTimeMillis();
+        if (oldStatus == ExecutableState.RUNNING) {
+            jobOutput.addEndTime(time);
+        } else if (newStatus == ExecutableState.RUNNING) {
+            jobOutput.addStartTime(time);
+        } else if (newStatus == ExecutableState.SUICIDAL || newStatus == ExecutableState.DISCARDED) {
+            jobOutput.addStartTime(time);
+            jobOutput.addEndTime(time);
         }
     }
 

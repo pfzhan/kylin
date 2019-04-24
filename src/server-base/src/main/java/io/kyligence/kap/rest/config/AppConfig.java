@@ -23,7 +23,6 @@
  */
 package io.kyligence.kap.rest.config;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.cache.ehcache.EhCacheCacheManager;
@@ -50,11 +49,8 @@ public class AppConfig {
         return scheduler;
     }
 
-    @Autowired
-    private Environment environment;
-
     @Bean
-    public EhCacheManagerFactoryBean cacheFactoryBean() {
+    public EhCacheManagerFactoryBean cacheFactoryBean(Environment environment) {
         val factory = new EhCacheManagerFactoryBean();
         factory.setShared(true);
         if (environment.acceptsProfiles("ldap", "saml")) {
@@ -66,9 +62,9 @@ public class AppConfig {
     }
 
     @Bean
-    public EhCacheCacheManager cacheManager() {
+    public EhCacheCacheManager cacheManager(Environment environment) {
         val manager = new EhCacheCacheManager();
-        manager.setCacheManager(cacheFactoryBean().getObject());
+        manager.setCacheManager(cacheFactoryBean(environment).getObject());
         return manager;
     }
 
