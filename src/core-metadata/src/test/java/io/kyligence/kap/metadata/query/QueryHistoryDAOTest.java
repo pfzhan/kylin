@@ -205,8 +205,19 @@ public class QueryHistoryDAOTest extends NLocalFileMetadataTestCase {
         String querySqlEscaped = "\\Qselect * from test_table where (test_table.test_column1='?' OR test_table.test_column1='.') AND test_table.test_column2!='\\/'\\E";
         request.setSql(querySql);
         expectedQueryHistoriesSql = String.format("SELECT * FROM %s WHERE 1 = 1 AND (query_time >= 0 AND query_time < 1) " +
-                        "AND (\"duration\" >= 0 AND \"duration\" <= 10000) AND sql_text =~ /%s/ ORDER BY time DESC LIMIT %d OFFSET %d",
+                        "AND (\"duration\" >= 0 AND \"duration\" <= 10000) AND (sql_text =~ /%s/) ORDER BY time DESC LIMIT %d OFFSET %d",
                 queryMeasurement, querySqlEscaped, limit, offset*limit);
+        filterSql = queryHistoryDAO.getQueryHistoryFilterSql(request);
+        getQueryHistoriesSql = queryHistoryDAO.getQueryHistoriesSql(filterSql, limit, offset);
+        Assert.assertEquals(expectedQueryHistoriesSql, getQueryHistoriesSql);
+
+        // when query with query_id
+        querySql = "aa5531ab-128e-4617-b88b-1cedb6d065ea";
+        querySqlEscaped = "\\Qaa5531ab-128e-4617-b88b-1cedb6d065ea\\E";
+        request.setSql(querySql);
+        expectedQueryHistoriesSql = String.format("SELECT * FROM %s WHERE 1 = 1 AND (query_time >= 0 AND query_time < 1) " +
+                        "AND (\"duration\" >= 0 AND \"duration\" <= 10000) AND (sql_text =~ /%s/ OR query_id = '%s') ORDER BY time DESC LIMIT %d OFFSET %d",
+                queryMeasurement, querySqlEscaped, querySql, limit, offset*limit);
         filterSql = queryHistoryDAO.getQueryHistoryFilterSql(request);
         getQueryHistoriesSql = queryHistoryDAO.getQueryHistoriesSql(filterSql, limit, offset);
         Assert.assertEquals(expectedQueryHistoriesSql, getQueryHistoriesSql);
@@ -216,10 +227,10 @@ public class QueryHistoryDAOTest extends NLocalFileMetadataTestCase {
         querySqlEscaped = "\\Qselect * from test_table\\E";
         request.setSql(querySql);
         expectedQueryHistoriesSql = String.format("SELECT * FROM %s WHERE 1 = 1 AND (query_time >= 0 AND query_time < 1) " +
-                        "AND (\"duration\" >= 0 AND \"duration\" <= 10000) AND sql_text =~ /%s/ ORDER BY time DESC LIMIT %d OFFSET %d",
+                        "AND (\"duration\" >= 0 AND \"duration\" <= 10000) AND (sql_text =~ /%s/) ORDER BY time DESC LIMIT %d OFFSET %d",
                 queryMeasurement, querySqlEscaped, limit, offset*limit);
         expectedGetTotalSizeSql = String.format("SELECT count(query_id) FROM %s WHERE 1 = 1 AND (query_time >= 0 AND query_time < 1) " +
-                "AND (\"duration\" >= 0 AND \"duration\" <= 10000) AND sql_text =~ /%s/ ", queryMeasurement, querySqlEscaped);
+                "AND (\"duration\" >= 0 AND \"duration\" <= 10000) AND (sql_text =~ /%s/) ", queryMeasurement, querySqlEscaped);
 
         filterSql = queryHistoryDAO.getQueryHistoryFilterSql(request);
         getQueryHistoriesSql = queryHistoryDAO.getQueryHistoriesSql(filterSql, limit, offset);
@@ -231,10 +242,10 @@ public class QueryHistoryDAOTest extends NLocalFileMetadataTestCase {
         // when there is a condition that filters answered by
         request.setRealizations(Lists.newArrayList("pushdown", "modelName"));
         expectedQueryHistoriesSql = String.format("SELECT * FROM %s WHERE 1 = 1 AND (query_time >= 0 AND query_time < 1) " +
-                        "AND (\"duration\" >= 0 AND \"duration\" <= 10000) AND sql_text =~ /%s/ AND (index_hit = 'false' OR index_hit = 'true') ORDER BY time DESC LIMIT %d OFFSET %d", queryMeasurement,
+                        "AND (\"duration\" >= 0 AND \"duration\" <= 10000) AND (sql_text =~ /%s/) AND (index_hit = 'false' OR index_hit = 'true') ORDER BY time DESC LIMIT %d OFFSET %d", queryMeasurement,
                 querySqlEscaped, limit, offset*limit);
         expectedGetTotalSizeSql = String.format("SELECT count(query_id) FROM %s WHERE 1 = 1 AND (query_time >= 0 AND query_time < 1) " +
-                        "AND (\"duration\" >= 0 AND \"duration\" <= 10000) AND sql_text =~ /%s/ AND (index_hit = 'false' OR index_hit = 'true') ", queryMeasurement,
+                        "AND (\"duration\" >= 0 AND \"duration\" <= 10000) AND (sql_text =~ /%s/) AND (index_hit = 'false' OR index_hit = 'true') ", queryMeasurement,
                 querySqlEscaped);
 
         filterSql = queryHistoryDAO.getQueryHistoryFilterSql(request);

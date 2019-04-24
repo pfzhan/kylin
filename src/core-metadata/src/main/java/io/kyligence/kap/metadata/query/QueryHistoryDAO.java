@@ -61,6 +61,8 @@ public class QueryHistoryDAO {
     private static final int MAX_SIZE = 1000000;
     private static final String QUERY_TIME_IN_MAX_SIZE = "SELECT time, query_id FROM %s ORDER BY time DESC OFFSET " + MAX_SIZE;
 
+    private final String queryIdReg = "[0-9a-z]{8}-[0-9a-z]{4}-[0-9a-z]{4}-[0-9a-z]{4}-[0-9a-z]{12}";
+
     public static QueryHistoryDAO getInstance(KylinConfig config, String project) {
         return config.getManager(project, QueryHistoryDAO.class);
     }
@@ -229,7 +231,11 @@ public class QueryHistoryDAO {
         }
 
         if (StringUtils.isNotEmpty(request.getSql())) {
-            sb.append(String.format("AND sql_text =~ /%s/ ", escapeExprSpecialWord(request.getSql().trim())));
+            sb.append(String.format("AND (sql_text =~ /%s/", escapeExprSpecialWord(request.getSql().trim())));
+            if (Pattern.matches(queryIdReg, request.getSql())) {
+                sb.append(String.format(" OR query_id = '%s'", request.getSql()));
+            }
+            sb.append(") ");
         }
 
         if (request.getRealizations() != null && !request.getRealizations().isEmpty()) {
