@@ -224,7 +224,7 @@ public class NDefaultScheduler implements Scheduler<AbstractExecutable>, Connect
         @Override
         public void run() {
             //only the first 8 chars of the job uuid
-            try (SetThreadName ignored = new SetThreadName("JobWorker(project:%s,jobidprefix:%s)", project,
+            try (SetThreadName ignored = new SetThreadName("JobWorker(prj:%s,jobid:%s)", project,
                     executable.getId().substring(0, 8))) {
                 threadToInterrupt.put(executable.getId(), Thread.currentThread());
                 executable.execute(context);

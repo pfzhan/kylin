@@ -21,7 +21,7 @@ function get_line_range() {
     local identifier=$3
 
     if [[ ${category} == '-job' ]]; then
-        local pattern="${log_time_regex}(.*JobWorker.*jobidprefix:${identifier:0:8}.*)"
+        local pattern="${log_time_regex}(.*JobWorker.*jobid:${identifier:0:8}.*)"
 
     elif [[ ${category} == '-query' ]]; then
         local pattern="${log_time_regex}(.*Query ${identifier}.*)"
@@ -60,7 +60,7 @@ function filter_log_context() {
 
     local thread_name=${log_context[3]}
     if [[ ${category} == '-job' ]]; then
-        local pattern="JobWorker.*jobidprefix:${identifier:0:8}"
+        local pattern="JobWorker.*jobid:${identifier:0:8}"
 
     elif [[ ${category} == '-query' ]]; then
         local pattern="Query ${identifier}"
