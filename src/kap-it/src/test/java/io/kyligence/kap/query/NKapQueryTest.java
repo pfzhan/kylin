@@ -70,13 +70,14 @@ public class NKapQueryTest extends NKylinTestBase {
     }
 
     @AfterClass
-    public static void tearDown() {
+    public static void tearDown() throws Exception {
         if (Shell.MAC)
             System.clearProperty("org.xerial.snappy.lib.name");//reset
 
         logger.info("tearDown in NKapQueryTest");
         System.clearProperty("kap.query.engine.sparder-enabled");
         NKylinTestBase.clean();
+        FileUtils.deleteDirectory(new File("../kap-it/metastore_db"));
     }
 
     @Test

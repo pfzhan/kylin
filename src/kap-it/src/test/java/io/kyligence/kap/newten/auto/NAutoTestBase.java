@@ -406,7 +406,7 @@ public class NAutoTestBase extends NLocalWithSparkSessionTest {
             this(compareLevel, JoinType.DEFAULT, isLimit, folder, 0, 0, null);
         }
 
-        private TestScenario(CompareLevel compareLevel, JoinType joinType, boolean isLimit, String folderName,
+        public TestScenario(CompareLevel compareLevel, JoinType joinType, boolean isLimit, String folderName,
                 int fromIndex, int toIndex, Set<String> exclusionList) {
             this.compareLevel = compareLevel;
             this.folderName = folderName;
