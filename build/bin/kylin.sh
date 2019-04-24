@@ -23,10 +23,12 @@ done
 
 function exportEnv {
     export KYLIN_HOME=`cd ../; pwd`
+    export KYLIN_CONFIG_FILE="${KYLIN_HOME}/conf/kylin.properties"
     export KYLIN_HADOOP_CONF=${KYLIN_HOME}/hadoop_conf
     export SPARK_HOME=${KYLIN_HOME}/spark
 
     verbose "KYLIN_HOME is:${KYLIN_HOME}"
+    verbose "KYLIN_CONFIG_FILE is:${KYLIN_CONFIG_FILE}"
     verbose "KYLIN_HADOOP_CONF is:${KYLIN_HADOOP_CONF}"
     verbose "SPARK_HOME is:${SPARK_HOME}"
 }
@@ -156,6 +158,8 @@ then
     source ${KYLIN_HOME}/bin/init-kerberos.sh
     initKerberosIfNeeded
     source ${KYLIN_HOME}/bin/replace-jars-under-spark.sh
+    source ${KYLIN_HOME}/bin/load-zookeeper-config.sh
+    fetchFIZkInfo
 
     port=7070
     used=`netstat -tpln | grep "\<$port\>" | awk '{print $7}' | sed "s/\// /g"`
