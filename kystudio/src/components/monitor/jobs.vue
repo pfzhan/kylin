@@ -97,7 +97,7 @@
         prop="duration"
         :label="$t('Duration')">
         <template slot-scope="scope">
-          {{scope.row.duration/60 | number(2) }}  mins
+          {{scope.row.duration/60/1000 | number(2) }}  mins
         </template>
       </el-table-column>
       <el-table-column
@@ -151,6 +151,10 @@
               </td>
             </tr>
             <tr>
+              <td>{{$t('waiting')}}</td>
+              <td>{{selectedJob.wait_time/60/1000 | number(2)}} mins</td>
+            </tr>
+            <tr>
               <td>{{$t('duration')}}</td>
               <td class="greyd0">{{selectedJob.duration/60 | number(2)}} mins</td>
             </tr>
@@ -177,11 +181,12 @@
             }">
             </i>
             <ul >
-              <li>SequenceID: {{step.sequence_id}}</li>
-              <li>Status: {{step.step_status}}</li>
-              <li>Duration: {{timerlineDuration(step)}}</li>
-              <li>Start At: {{transToGmtTime(step.exec_start_time !=0 ? step.exec_start_time:'')}}</li>
-              <li>End At: {{transToGmtTime(step.exec_end_time !=0 ? step.exec_end_time :'')}}</li>
+              <li>{{$t('sequenceId')}}: {{step.sequence_id}}</li>
+              <li>{{$t('kylinLang.common.status')}}: {{step.step_status}}</li>
+              <li>{{$t('waiting')}}: {{step.wait_time/60/1000 | number(2)}} mins</li>
+              <li>{{$t('duration')}}: {{step.duration/60/1000 | number(2)}} mins</li>
+              <li>{{$t('startTime')}}: {{transToGmtTime(step.exec_start_time !=0 ? step.exec_start_time:'')}}</li>
+              <li>{{$t('endTime')}}: {{transToGmtTime(step.exec_end_time !=0 ? step.exec_end_time :'')}}</li>
               <li v-if="step.info.hdfs_bytes_written">Data Size: <span>{{ step.info.hdfs_bytes_written | dataSize}}</span></li>
             </ul>
           </el-popover>
@@ -201,10 +206,15 @@
                 <span>{{step.info.hdfs_bytes_written|dataSize}}</span>
               </div>
               <div>
+                <span class="jobActivityLabel">{{$t('waiting')}}: </span>
+                <span v-if="step.wait_time">{{step.wait_time/60/1000 | number(2)}} mins</span>
+                <span v-else>0</span>
+              </div>
+              <div>
                 <span class="jobActivityLabel">{{$t('duration')}}: </span>
-                <span v-if="step.exec_start_time && step.exec_end_time">{{timerlineDuration(step)}}</span>
-                <span v-if="!step.exec_start_time || !step.exec_end_time">
-                  <img src="../../assets/img/dot.gif" height="12px" width="10px"/>
+                <span v-if="step.duration">{{step.duration/60/1000 | number(2)}} mins</span>
+                <span v-else>0
+                  <!-- <img src="../../assets/img/dot.gif" height="12px" width="10px"/> -->
                 </span>
                 <br />
               </div>
@@ -301,6 +311,7 @@ import { transToGmtTime, kapConfirm, handleError, handleSuccess } from 'util/bus
       TargetSubject: 'Target Subject',
       ProgressStatus: 'Job Status',
       startTime: 'Start Time',
+      endTime: 'End Time',
       Duration: 'Duration',
       Actions: 'Actions',
       jobResume: 'Resume',
@@ -353,7 +364,8 @@ import { transToGmtTime, kapConfirm, handleError, handleSuccess } from 'util/bus
       jobsList: 'Jobs List',
       sparkJobTip: 'Spark Job',
       logInfoTip: 'Log Output',
-      openJobSteps: 'Open Job Steps'
+      openJobSteps: 'Open Job Steps',
+      sequenceId: 'Sequence ID'
     },
     'zh-cn': {
       dataRange: '数据范围',
@@ -362,6 +374,7 @@ import { transToGmtTime, kapConfirm, handleError, handleSuccess } from 'util/bus
       TargetSubject: '任务对象',
       ProgressStatus: '任务状态',
       startTime: '任务开始时间',
+      endTime: '任务结束时间',
       Duration: '耗时',
       Actions: '操作',
       jobResume: '恢复',
@@ -414,7 +427,8 @@ import { transToGmtTime, kapConfirm, handleError, handleSuccess } from 'util/bus
       jobsList: '任务列表',
       sparkJobTip: 'Spark任务详情',
       logInfoTip: '日志详情',
-      openJobSteps: '展开任务详情'
+      openJobSteps: '展开任务详情',
+      sequenceId: '序列号'
     }
   }
 })
@@ -1005,15 +1019,15 @@ export default class JobsList extends Vue {
       this.outputDetail = this.$t('cmdOutput')
     })
   }
-  timerlineDuration (step) {
-    let min = 0
-    if (!step.exec_start_time || !step.exec_end_time) {
-      return '0 seconds'
-    } else {
-      min = (step.exec_end_time - step.exec_start_time) / 1000 / 60
-      return min.toFixed(2) + ' mins'
-    }
-  }
+  // timerlineDuration (step) {
+  //   let min = 0
+  //   if (!step.exec_start_time || !step.exec_end_time) {
+  //     return '0 seconds'
+  //   } else {
+  //     min = (step.exec_end_time - step.exec_start_time) / 1000 / 60
+  //     return min.toFixed(2) + ' mins'
+  //   }
+  // }
   closeLoginOpenKybot () {
     this.kyBotUploadVisible = false
     this.infoKybotVisible = true
