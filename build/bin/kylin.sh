@@ -132,7 +132,7 @@ function runTool() {
 }
 
 # start command
-if [[ "$1" == "io.kyligence.*" ]]
+if [[ "$1" == io.kyligence.* ]]
 then
     runTool "$@"
 elif [ "$1" == "start" ]
