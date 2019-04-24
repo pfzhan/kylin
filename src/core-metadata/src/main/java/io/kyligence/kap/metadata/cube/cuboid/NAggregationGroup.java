@@ -33,6 +33,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.TreeSet;
 
 import org.apache.kylin.cube.model.SelectRule;
 
@@ -44,6 +45,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.google.common.math.LongMath;
 
 import io.kyligence.kap.metadata.cube.model.NRuleBasedIndex;
 
@@ -333,6 +335,50 @@ public class NAggregationGroup implements Serializable {
         return cuboidID;
     }
 
+    public long calculateCuboidCombination() {
+        long combination = 1;
+        try {
+            if (this.getDimCap() > 0) {
+                NCuboidScheduler cuboidScheduler = ruleBasedAggIndex.getInitialCuboidScheduler();
+                combination = cuboidScheduler.calculateCuboidsForAggGroup(this).size();
+            } else {
+                Set<Integer> includeDims = new TreeSet<>(Arrays.asList(includes));
+                Set<Integer> mandatoryDims = new TreeSet<>(Arrays.asList(selectRule.mandatoryDims));
+
+                Set<Integer> hierarchyDims = new TreeSet<>();
+                for (Integer[] ss : selectRule.hierarchyDims) {
+                    hierarchyDims.addAll(Arrays.asList(ss));
+                    combination = LongMath.checkedMultiply(combination, (ss.length + 1));
+                }
+
+                Set<Integer> jointDims = new TreeSet<>();
+                for (Integer[] ss : selectRule.jointDims) {
+                    jointDims.addAll(Arrays.asList(ss));
+                }
+                combination = LongMath.checkedMultiply(combination, (1L << selectRule.jointDims.length));
+
+                Set<Integer> normalDims = new TreeSet<>(includeDims);
+                normalDims.removeAll(mandatoryDims);
+                normalDims.removeAll(hierarchyDims);
+                normalDims.removeAll(jointDims);
+
+                combination = LongMath.checkedMultiply(combination, (1L << normalDims.size()));
+
+                if (this.isMandatoryOnlyValid && !mandatoryDims.isEmpty()) {
+                    combination += 1;
+                }
+                combination -= 1; // not include cuboid 0
+            }
+        } catch (ArithmeticException e) {
+            combination = Long.MAX_VALUE;
+        }
+
+        if (combination < 0)
+            combination = Long.MAX_VALUE;
+
+        return combination;
+    }
+
     private long removeBits(long original, Collection<Long> toRemove) {
         long ret = original;
         for (Long joint : toRemove) {
@@ -416,6 +462,10 @@ public class NAggregationGroup implements Serializable {
     //used by test
     public SelectRule getSelectRule() {
         return selectRule;
+    }
+
+    public Integer[] getIncludes() {
+        return includes;
     }
 
     public boolean isMandatoryOnlyValid() {

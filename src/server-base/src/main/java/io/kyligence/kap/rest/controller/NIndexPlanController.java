@@ -70,6 +70,15 @@ public class NIndexPlanController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, rule, "");
     }
 
+    @PutMapping(value = "/agg_index_count", produces = { "application/vnd.apache.kylin-v2+json" })
+    public EnvelopeResponse calculateAggIndexCombination(@RequestBody UpdateRuleBasedCuboidRequest request) {
+        checkProjectName(request.getProject());
+        checkRequiredArg(MODEL_ID, request.getModelId());
+
+        val aggIndexCount = indexPlanService.calculateAggIndexCount(request);
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, aggIndexCount, "");
+    }
+
     @PostMapping(value = "/table_index", produces = { "application/vnd.apache.kylin-v2+json" })
     public EnvelopeResponse createTableIndex(@Valid @RequestBody CreateTableIndexRequest request) {
         checkProjectName(request.getProject());

@@ -30,6 +30,8 @@ import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.rest.constant.Constant;
+import org.apache.kylin.rest.response.AggIndexCombResult;
+import org.apache.kylin.rest.response.AggIndexResponse;
 import org.hamcrest.CoreMatchers;
 import org.junit.After;
 import org.junit.Assert;
@@ -303,5 +305,53 @@ public class IndexPlanServiceTest extends NLocalFileMetadataTestCase {
         });
         val rule2 = indexPlanService.getRule("default", "741ca86a-1f13-46da-a59f-95fb68615e3a");
         Assert.assertNotEquals(rule2, rule);
+    }
+
+    @Test
+    public void testCalculateAggIndexCount() throws Exception {
+        String aggGroupStr = "{\"includes\":[],\"select_rule\":{\"mandatory_dims\":[],\"hierarchy_dims\":[],\"joint_dims\":[]}}";
+        val aggGroup = JsonUtil.readValue(aggGroupStr, NAggregationGroup.class);
+        val ret = calculateCount(aggGroup);
+        AggIndexCombResult aggIndexCombResult = ret.getAggIndexCounts().get(0);
+        Assert.assertEquals(0L, aggIndexCombResult.getResult());
+        Assert.assertEquals(1L, ret.getTotalCount().getResult());
+    }
+
+    @Test
+    public void testCalculateAggIndexCountFail() throws Exception {
+        String aggGroupStr = "{\"includes\":[0,1,2,3,4,5,6,7,8,9,10,11,12],\"select_rule\":{\"mandatory_dims\":[],\"hierarchy_dims\":[],\"joint_dims\":[]}}";
+        val aggGroup = JsonUtil.readValue(aggGroupStr, NAggregationGroup.class);
+        val request = UpdateRuleBasedCuboidRequest.builder()
+                .project("default")
+                .modelId("741ca86a-1f13-46da-a59f-95fb68615e3a")
+                .dimensions(Lists.newArrayList(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13))
+                .aggregationGroups(Lists.newArrayList(aggGroup)).build();
+        AggIndexResponse response = indexPlanService.calculateAggIndexCount(request);
+        Assert.assertEquals(1, response.getAggIndexCounts().size());
+        Assert.assertEquals("FAIL", response.getAggIndexCounts().get(0).getStatus());
+        Assert.assertEquals("FAIL", response.getTotalCount().getStatus());
+    }
+
+
+    @Test
+    public void testCalculateAggIndexCountTwoGroups() throws Exception {
+        String aggGroupStr1 = "{\"includes\":[0,1,2,3,4,5],\"select_rule\":{\"mandatory_dims\":[0, 1, 2],\"hierarchy_dims\":[],\"joint_dims\":[]}}";
+        String aggGroupStr2 = "{\"includes\":[0,1,2,3,4,5],\"select_rule\":{\"mandatory_dims\":[1, 4],\"hierarchy_dims\":[],\"joint_dims\":[]}}";
+        val aggGroup1 = JsonUtil.readValue(aggGroupStr1, NAggregationGroup.class);
+        val aggGroup2 = JsonUtil.readValue(aggGroupStr2, NAggregationGroup.class);
+        val ret = calculateCount(aggGroup1, aggGroup2);
+        Assert.assertEquals(7L, ret.getAggIndexCounts().get(0).getResult());
+        Assert.assertEquals(15L, ret.getAggIndexCounts().get(1).getResult());
+        Assert.assertEquals(20L, ret.getTotalCount().getResult());
+    }
+
+    private AggIndexResponse calculateCount(NAggregationGroup... aggGroups) {
+        val request = UpdateRuleBasedCuboidRequest.builder()
+                .project("default")
+                .modelId("741ca86a-1f13-46da-a59f-95fb68615e3a")
+                .dimensions(Lists.newArrayList(0, 1, 2, 3, 4, 5))
+                .aggregationGroups(Lists.newArrayList(aggGroups)).build();
+
+        return indexPlanService.calculateAggIndexCount(request);
     }
 }
