@@ -24,10 +24,20 @@
 
 package io.kyligence.kap.newten.auto;
 
+import java.util.HashMap;
+import java.util.Set;
+
+import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.metadata.model.JoinsGraph;
 import org.junit.Assert;
 import org.junit.Ignore;
 import org.junit.Test;
 
+import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
+
+import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.newten.NExecAndComp.CompareLevel;
 import io.kyligence.kap.smart.NSmartMaster;
 import io.kyligence.kap.smart.common.AccelerateInfo;
@@ -53,26 +63,79 @@ public class NAutoTpchTest extends NAutoTestBase {
     }
 
     @Test
-    public void testBatchProposeSQLAndReuseModel() throws Exception {
+    public void testBatchProposeSQLAndReuseLeftJoinModel() throws Exception {
+        // 1st round, recommend model with a single fact table
+        NDataModelManager dataModelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(),
+                getProject());
+        NSmartMaster smartMaster1 = proposeWithSmartMaster(new TestScenario[] {
+                new TestScenario(CompareLevel.SAME, JoinType.LEFT, false, "sql_tpch/sql_tpch_reprosal/", 0, 1, null) },
+                getProject());
+        Assert.assertEquals(1, smartMaster1.getContext().getAccelerateInfoMap().size());
+        Set<NDataModel> selectedDataModels1 = Sets.newHashSet();
+        smartMaster1.getContext().getAccelerateInfoMap().forEach((s, accelerateInfo) -> {
+            Assert.assertFalse(accelerateInfo.isBlocked());
+            accelerateInfo.getRelatedLayouts()
+                    .forEach(layout -> selectedDataModels1.add(dataModelManager.getDataModelDesc(layout.getModelId())));
+        });
+        NDataModel proposedModel1 = selectedDataModels1.iterator().next();
+        Assert.assertEquals(0, proposedModel1.getJoinTables().size());
+        JoinsGraph graph1 = proposedModel1.getJoinsGraph();
+
+        // 2nd round, reuse the model and increase more Joins which is through accelerating 2 different olapCtx
+        NSmartMaster smartMaster2 = proposeWithSmartMaster(new TestScenario[] {
+                new TestScenario(CompareLevel.SAME, JoinType.LEFT, false, "sql_tpch/sql_tpch_reprosal/", 1, 3, null) },
+                getProject());
+        Set<NDataModel> selectedDataModels2 = Sets.newHashSet();
+        smartMaster2.getContext().getAccelerateInfoMap().forEach((s, accelerateInfo) -> {
+            Assert.assertFalse(accelerateInfo.isBlocked());
+            accelerateInfo.getRelatedLayouts()
+                    .forEach(layout -> selectedDataModels2.add(dataModelManager.getDataModelDesc(layout.getModelId())));
+        });
+        Assert.assertEquals(1, selectedDataModels2.size());
+        NDataModel proposedModel2 = selectedDataModels2.iterator().next();
+        Assert.assertEquals(6, proposedModel2.getJoinTables().size());
+        JoinsGraph graph2 = proposedModel2.getJoinsGraph();
+        Assert.assertTrue(graph1.match(graph2, new HashMap<String, String>()));
+
+        // 3rd round, accelerate a sql that its join info equaled with current model, so it won't change previous model
+        NSmartMaster smartMaster3 = proposeWithSmartMaster(new TestScenario[] {
+                new TestScenario(CompareLevel.SAME, JoinType.LEFT, false, "sql_tpch/sql_tpch_reprosal/", 3, 4, null) },
+                getProject());
+        Set<NDataModel> selectedDataModels3 = Sets.newHashSet();
+        smartMaster3.getContext().getAccelerateInfoMap().forEach((s, accelerateInfo) -> {
+            Assert.assertFalse(accelerateInfo.isBlocked());
+            accelerateInfo.getRelatedLayouts()
+                    .forEach(layout -> selectedDataModels3.add(dataModelManager.getDataModelDesc(layout.getModelId())));
+        });
+        Assert.assertEquals(1, selectedDataModels3.size());
+        NDataModel proposedModel3 = selectedDataModels3.iterator().next();
+        Assert.assertEquals(6, proposedModel3.getJoinTables().size());
+        JoinsGraph graph3 = proposedModel3.getJoinsGraph();
+        Assert.assertTrue(graph2.match(graph3, new HashMap<>()));
+        Assert.assertTrue(graph3.match(graph2, new HashMap<>()));
+    }
+
+    @Test
+    public void testBatchProposeSQLAndReuseInnerJoinModel() throws Exception {
+        //1st round, propose initial model
         NSmartMaster smartMaster = proposeWithSmartMaster(
                 new TestScenario[] { new TestScenario(CompareLevel.SAME, "sql_tpch") }, getProject());
-        smartMaster.runAll();
+        NDataModel originModel = smartMaster.getContext().getModelContexts().get(8).getTargetModel();
+        JoinsGraph originJoinGragh = originModel.getJoinsGraph();
 
-        String sql = "SELECT \"SN\".\"N_NAME\", SUM(l_extendedprice) \"REVENUE\"\n" + "FROM TPCH.\"LINEITEM\"\n"
-                + "INNER JOIN TPCH.\"ORDERS\" ON \"L_ORDERKEY\" = \"O_ORDERKEY\"\n"
-                + "INNER JOIN TPCH.\"CUSTOMER\" ON \"O_CUSTKEY\" = \"C_CUSTKEY\"\n"
-                + "INNER JOIN TPCH.\"NATION\" \"CN\" ON \"C_NATIONKEY\" = \"CN\".\"N_NATIONKEY\"\n"
-                + "INNER JOIN TPCH.\"SUPPLIER\" ON \"L_SUPPKEY\" = \"S_SUPPKEY\"\n"
-                + "INNER JOIN TPCH.\"NATION\" \"SN\" ON \"S_NATIONKEY\" = \"SN\".\"N_NATIONKEY\"\n"
-                + "INNER JOIN TPCH.\"REGION\" ON \"SN\".\"N_REGIONKEY\" = \"R_REGIONKEY\"\n"
-                + "WHERE \"R_NAME\" = 'A' AND \"CN\".\"N_NAME\" = \"SN\".\"N_NAME\" AND \"O_ORDERDATE\" >= '2010-01-01' AND \"O_ORDERDATE\" < '2010-01-02'\n"
-                + "GROUP BY \"SN\".\"N_NAME\"\n" + "ORDER BY \"REVENUE\" DESC";
-        NSmartMaster smartMaster1 = new NSmartMaster(getTestConfig(), getProject(), new String[] { sql });
-        smartMaster1.runAll();
-
+        NSmartMaster smartMaster1 = proposeWithSmartMaster(
+                new TestScenario[] { new TestScenario(CompareLevel.SAME, "sql_tpch/sql_tpch_reprosal/", 3, 4) },
+                getProject());
         AccelerateInfo accelerateInfo = smartMaster1.getContext().getAccelerateInfoMap().values()
                 .toArray(new AccelerateInfo[] {})[0];
         Assert.assertFalse(accelerateInfo.isBlocked());
+
+        NDataModelManager modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), getProject());
+        NDataModel dataModel = modelManager
+                .getDataModelDesc(Lists.newArrayList(accelerateInfo.getRelatedLayouts()).get(0).getModelId());
+        JoinsGraph accelerateJoinGragh = dataModel.getJoinsGraph();
+        Assert.assertTrue(originJoinGragh.match(accelerateJoinGragh, new HashMap<>()));
+        Assert.assertTrue(accelerateJoinGragh.match(originJoinGragh, new HashMap<>()));
     }
 
     @Test

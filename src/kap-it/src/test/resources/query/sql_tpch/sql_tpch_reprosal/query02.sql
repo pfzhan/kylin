@@ -1,0 +1,10 @@
+-- its join info is partly equals with sql_tpch/sql_tpch_reprosal/query04.sql
+
+SELECT "SN"."N_NAME", SUM(l_extendedprice) "REVENUE"
+FROM TPCH."LINEITEM"
+INNER JOIN TPCH."SUPPLIER" ON "L_SUPPKEY" = "S_SUPPKEY"
+INNER JOIN TPCH."NATION" "SN" ON "S_NATIONKEY" = "SN"."N_NATIONKEY"
+INNER JOIN TPCH."REGION" ON "SN"."N_REGIONKEY" = "R_REGIONKEY"
+WHERE "R_NAME" = 'A'
+GROUP BY "SN"."N_NAME"
+ORDER BY "REVENUE" DESC
