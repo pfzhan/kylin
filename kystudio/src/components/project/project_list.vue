@@ -2,94 +2,100 @@
   <div class="paddingbox" id="project-list">
  <!-- <el-button type="primary" plain class="ksd-mb-20 ksd-mt-10" v-if="isAdmin && (projectList && projectList.length)" @click="addProject">+{{$t('kylinLang.common.project')}}</el-button> -->
  <div class="ksd-title-label ksd-mt-20">{{$t('projectsList')}}</div>
- <el-button type="primary" plain size="medium" class="ksd-mb-10 ksd-mt-10" icon="el-icon-ksd-add_2" v-if="isAdmin && (projectList && projectList.length)" @click="newProject">{{$t('kylinLang.common.project')}}</el-button>
- <div style="width:200px;" class="ksd-fright ksd-mt-10">
-    <el-input class="show-search-btn"
-      size="medium"
-      prefix-icon="el-icon-search"
-      :placeholder="$t('projectFilter')"
-      @input="inputFilter">
-    </el-input>
-  </div>
- <div v-if="!(projectList && projectList.length)" class="nodata">
-    <div class="ksd-mb-10"><img src="../../assets/img/default_project.png"></div>
-    <div class="ksd-mb-20">{{$t('noProject')}}</div>
-    <el-button type="primary" size="medium" class="ksd-mb-20 ksd-mt-20" v-if="isAdmin" icon="el-icon-ksd-add_2" @click="newProject">{{$t('kylinLang.common.project')}}</el-button>
- </div>
-  <el-table v-if="projectList && projectList.length"
-    :data="projectList"
-    tooltip-effect="dark"
-    border
-    class="project-table"
-    style="width: 100%">
-    <el-table-column type="expand" :width="34" align="center">
-      <template slot-scope="props">
-         <el-tabs activeName="first" type="card" class="el-tabs--default">
-          <!-- <el-tab-pane label="Models" name="first">
-            <model_list :modelList="props.row.models"></model_list>
-          </el-tab-pane>
-          <el-tab-pane label="Cubes" name="second">
-            <cube_list :cubeList="props.row.realizations"></cube_list>
-          </el-tab-pane> -->
-          <el-tab-pane :label="$t('access')" name="first">
-            <access_edit :accessId="props.row.uuid" :projectName="props.row.name" own='project'></access_edit>
-          </el-tab-pane>
-          <el-tab-pane :label="$t('projectConfig')" name="second">
-            <project_config :override="props.row.override_kylin_properties"></project_config>
-          </el-tab-pane>
-           <!-- <el-tab-pane :label="$t('externalFilters')" name="fourth">
-             <filter_edit :project="props.row.name" :projectId="props.row.uuid"></filter_edit>
-           </el-tab-pane> -->
-        </el-tabs>
-      </template>
-    </el-table-column>
-    <el-table-column
-      :label="$t('name')"
-      show-overflow-tooltip
-      :width="320"
-      prop="name">
-    </el-table-column>
-    <el-table-column
-      :label="$t('owner')"
-      :width="220"
-      show-overflow-tooltip
-      prop="owner">
-    </el-table-column>
-    <el-table-column
-      :label="$t('description')"
-      show-overflow-tooltip
-      prop="description">
-    </el-table-column>
-    <el-table-column
-      show-overflow-tooltip
-      :width="218"
-      :label="$t('createTime')"
-      prop="gmtTime">
-    </el-table-column>
-    <el-table-column
-      :width="83"
-      :label="$t('actions')">
-      <template slot-scope="scope">
-      <!--<span v-if="!(isAdmin || hasAdminProjectPermission(scope.row.uuid))">N/A</span> v-if="isAdmin || hasAdminProjectPermission(scope.row.uuid)"-->
-      <!-- <i class="el-icon-ksd-setting ksd-fs-16" @click="editProject(scope.row)" v-if="isAdmin || hasAdminProjectPermission(scope.row.uuid)"></i> -->
-        <!-- <el-tooltip :content="$t('setting')" effect="dark" placement="top">
-          <i class="el-icon-ksd-setting ksd-mr-10 ksd-fs-14" @click="changeProject(scope.row)" v-if="isAdmin || hasAdminProjectPermission(scope.row.uuid)"></i>
-        </el-tooltip><span>
-        </span> -->
-        <el-tooltip :content="$t('backup')" effect="dark" placement="top">
-          <i class="el-icon-ksd-backup ksd-mr-10 ksd-fs-14" @click="backup(scope.row)"></i>
-        </el-tooltip><span>
-        </span><el-tooltip :content="$t('delete')" effect="dark" placement="top">
-          <i class="el-icon-ksd-table_delete ksd-fs-14" @click="removeProject(scope.row)" v-if="isAdmin"></i>
-        </el-tooltip>
-      </template>
-    </el-table-column>
-    </el-table>
-    <kap-pager
-      class="ksd-center ksd-mtb-10" ref="pager"
-      :totalSize="projectsTotal"
-      @handleCurrentChange="handleCurrentChange">
-    </kap-pager>
+  <div v-if="showSearchResult">
+    <el-button type="primary" plain size="medium" class="ksd-mb-10 ksd-mt-10" icon="el-icon-ksd-add_2" v-if="isAdmin && showSearchResult" @click="newProject">{{$t('kylinLang.common.project')}}</el-button>
+    <div style="width:200px;" class="ksd-fright ksd-mtb-10">
+      <el-input class="show-search-btn"
+        size="medium"
+        prefix-icon="el-icon-search"
+        :placeholder="$t('projectFilter')"
+        @input="inputFilter">
+      </el-input>
+    </div>
+    <el-table
+      :data="projectList"
+      tooltip-effect="dark"
+      border
+      class="project-table"
+      style="width: 100%">
+      <el-table-column type="expand" :width="34" align="center">
+        <template slot-scope="props">
+          <el-tabs activeName="first" type="card" class="el-tabs--default">
+            <!-- <el-tab-pane label="Models" name="first">
+              <model_list :modelList="props.row.models"></model_list>
+            </el-tab-pane>
+            <el-tab-pane label="Cubes" name="second">
+              <cube_list :cubeList="props.row.realizations"></cube_list>
+            </el-tab-pane> -->
+            <el-tab-pane :label="$t('access')" name="first">
+              <access_edit :accessId="props.row.uuid" :projectName="props.row.name" own='project'></access_edit>
+            </el-tab-pane>
+            <el-tab-pane :label="$t('projectConfig')" name="second">
+              <project_config :override="props.row.override_kylin_properties"></project_config>
+            </el-tab-pane>
+            <!-- <el-tab-pane :label="$t('externalFilters')" name="fourth">
+              <filter_edit :project="props.row.name" :projectId="props.row.uuid"></filter_edit>
+            </el-tab-pane> -->
+          </el-tabs>
+        </template>
+      </el-table-column>
+      <el-table-column
+        :label="$t('name')"
+        show-overflow-tooltip
+        :width="320"
+        prop="name">
+      </el-table-column>
+      <el-table-column
+        :label="$t('owner')"
+        :width="220"
+        show-overflow-tooltip
+        prop="owner">
+      </el-table-column>
+      <el-table-column
+        :label="$t('description')"
+        show-overflow-tooltip
+        prop="description">
+      </el-table-column>
+      <el-table-column
+        show-overflow-tooltip
+        :width="218"
+        :label="$t('createTime')"
+        prop="gmtTime">
+        <template slot-scope="scope">
+          {{transToGmtTime(scope.row.create_time_utc)}}
+        </template>
+      </el-table-column>
+      <el-table-column
+        :width="83"
+        :label="$t('actions')">
+        <template slot-scope="scope">
+        <!--<span v-if="!(isAdmin || hasAdminProjectPermission(scope.row.uuid))">N/A</span> v-if="isAdmin || hasAdminProjectPermission(scope.row.uuid)"-->
+        <!-- <i class="el-icon-ksd-setting ksd-fs-16" @click="editProject(scope.row)" v-if="isAdmin || hasAdminProjectPermission(scope.row.uuid)"></i> -->
+          <!-- <el-tooltip :content="$t('setting')" effect="dark" placement="top">
+            <i class="el-icon-ksd-setting ksd-mr-10 ksd-fs-14" @click="changeProject(scope.row)" v-if="isAdmin || hasAdminProjectPermission(scope.row.uuid)"></i>
+          </el-tooltip><span>
+          </span> -->
+          <el-tooltip :content="$t('backup')" effect="dark" placement="top">
+            <i class="el-icon-ksd-backup ksd-mr-10 ksd-fs-14" @click="backup(scope.row)"></i>
+          </el-tooltip><span>
+          </span><el-tooltip :content="$t('delete')" effect="dark" placement="top">
+            <i class="el-icon-ksd-table_delete ksd-fs-14" @click="removeProject(scope.row)" v-if="isAdmin"></i>
+          </el-tooltip>
+        </template>
+      </el-table-column>
+      </el-table>
+      <kap-pager
+        class="ksd-center ksd-mtb-10" ref="pager"
+        :totalSize="projectsTotal"
+        v-if="projectsTotal"
+        @handleCurrentChange="handleCurrentChange">
+      </kap-pager>
+    </div>
+    <div v-if="!showSearchResult" class="nodata">
+      <div class="ksd-mb-10"><img src="../../assets/img/default_project.png"></div>
+      <div class="ksd-mb-20">{{$t('noProject')}}</div>
+      <el-button type="primary" size="medium" class="ksd-mb-20 ksd-mt-20" v-if="isAdmin" icon="el-icon-ksd-add_2" @click="newProject">{{$t('kylinLang.common.project')}}</el-button>
+    </div>
  </div>
 </template>
 <script>
@@ -104,6 +110,7 @@ import { handleSuccess, handleError, transToGmtTime, hasPermission, hasRole, kap
 export default {
   name: 'projectlist',
   methods: {
+    transToGmtTime: transToGmtTime,
     ...mapActions({
       loadProjects: 'LOAD_PROJECT_LIST',
       loadAllProjects: 'LOAD_ALL_PROJECT',
@@ -217,11 +224,11 @@ export default {
     'project_config': projectConfig
   },
   computed: {
+    showSearchResult () {
+      return this.filterData.project || this.$store.state.project.projectList.length
+    },
     projectList () {
-      return this.$store.state.project.projectList.map((p) => {
-        p.gmtTime = transToGmtTime(p.create_time_utc, this)
-        return p
-      })
+      return this.$store.state.project.projectList
     },
     projectsTotal () {
       return this.$store.state.project.projectTotalSize
