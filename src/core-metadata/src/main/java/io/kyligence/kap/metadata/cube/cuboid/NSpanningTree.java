@@ -30,7 +30,6 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import org.apache.kylin.common.KylinConfig;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -92,8 +91,6 @@ public abstract class NSpanningTree implements Serializable {
         @JsonProperty("level")
         protected int level;
 
-        @JsonIgnore
-        protected transient TreeNode root;
         protected transient TreeNode parent;
         protected transient List<IndexEntity> parentCandidates;
         protected transient boolean hasBeenDecided = false;

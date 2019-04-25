@@ -184,15 +184,15 @@ public class NSpanningTreeForWeb extends NSpanningTree implements IKeepNames {
                 node.parent = parent;
                 node.parentId = parent.getIndexEntity().getId();
                 node.level = parent.level + 1;
-                node.root = parent.root;
+                node.rootIndexId = parent.rootIndexId;
             } else {
                 node.level = 0;
-                node.root = node;
+                node.rootIndexId = cuboid.getId();
                 roots.add(node);
                 dimensionSizeMap.put(node.getIndexEntity().getId(), new TreeMap<>());
             }
 
-            Map<Integer, List<TreeNodeForWeb>> map = dimensionSizeMap.get(node.getRoot().getIndexEntity().getId());
+            Map<Integer, List<TreeNodeForWeb>> map = dimensionSizeMap.get(node.rootIndexId);
             List<TreeNodeForWeb> nodes = map.get(cuboid.getDimensions().size());
 
             if (nodes == null)
@@ -257,6 +257,9 @@ public class NSpanningTreeForWeb extends NSpanningTree implements IKeepNames {
         private List<Long> childrenIds = Lists.newLinkedList();
         @JsonProperty("parent")
         private long parentId = -1;
+
+        @JsonIgnore
+        private long rootIndexId;
 
         public TreeNodeForWeb(IndexEntity indexEntity) {
             super(indexEntity);
