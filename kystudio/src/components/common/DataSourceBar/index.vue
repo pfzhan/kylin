@@ -227,7 +227,7 @@ export default class DataSourceBar extends Vue {
   onLanguageChange () {
     this.freshDatasourceTitle()
   }
-  @Watch('columnArray')
+  @Watch('tableArray')
   onTreeDataChange () {
     this.freshAutoCompleteWords()
     this.defaultExpandedKeys = this.allWords
