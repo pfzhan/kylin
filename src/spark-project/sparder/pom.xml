@@ -35,10 +35,6 @@
         </dependency>
         <dependency>
             <groupId>io.kyligence.ke</groupId>
-            <artifactId>kap-index</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>io.kyligence.ke</groupId>
             <artifactId>kap-tomcat-ext</artifactId>
         </dependency>
         <dependency>

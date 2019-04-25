@@ -24,11 +24,10 @@ package io.kyligence.kap.query.runtime.plan
 import java.util
 import java.util.concurrent.ConcurrentHashMap
 
-import com.github.lightcopy.implicits._
 import com.google.common.collect.{Lists, Sets}
 import io.kyligence.kap.metadata.cube.cuboid.NLayoutCandidate
 import io.kyligence.kap.metadata.cube.gridtable.NCuboidToGridTableMapping
-import io.kyligence.kap.metadata.cube.model.{NDataflow, NDataSegment}
+import io.kyligence.kap.metadata.cube.model.{NDataSegment, NDataflow}
 import io.kyligence.kap.query.exception.UnsupportedQueryException
 import io.kyligence.kap.query.relnode.KapRel
 import io.kyligence.kap.query.runtime.RuntimeHelper
@@ -39,7 +38,7 @@ import org.apache.kylin.metadata.model._
 import org.apache.kylin.metadata.realization.IRealization
 import org.apache.kylin.metadata.tuple.TupleInfo
 import org.apache.spark.internal.Logging
-import org.apache.spark.sql.execution.datasource.CubeRelation
+import org.apache.spark.sql.execution.datasource.KylinRelation
 import org.apache.spark.sql.execution.utils.SchemaProcessor
 import org.apache.spark.sql.functions.col
 import org.apache.spark.sql.manager.SparderLookupManager
@@ -53,8 +52,6 @@ import scala.collection.JavaConverters._
 object TableScanPlan extends Logging {
   private val kylinConfig: KapConfig = KapConfig.getInstanceFromEnv
 
-  //
-  //
   def listSegmentsForQuery(cube: NDataflow): util.List[NDataSegment] = {
     val r = new util.ArrayList[NDataSegment]
     import scala.collection.JavaConversions._
@@ -96,43 +93,36 @@ object TableScanPlan extends Logging {
 
           val tableName = olapContext.firstTableScan.getBackupAlias
           val mapping = new NCuboidToGridTableMapping(cuboidLayout)
-          val relation =
-            CubeRelation(tableName, dataflow, mapping, cuboidLayout, context.getMetrics)(session)
+          val (oriSchema, columnNames) = SchemaProcessor.buildGTSchema(cuboidLayout, mapping, tableName)
+          val relation = KylinRelation(oriSchema, dataflow, cuboidLayout)
           /////////////////////////////////////////////
           val kapConfig = KapConfig.wrap(dataflow.getConfig)
           val basePath = kapConfig.getReadParquetStoragePath(dataflow.getProject)
           val fileList = segments.asScala.map(
-            seg =>
-              toCuboidPath(dataflow, relation.cuboid.getId, basePath, seg)
+            seg => toCuboidPath(dataflow, relation.cuboid.getId, basePath, seg)
           )
           cuboidLayout.getOrderedMeasures.asScala.map(entity => entity._2.getId)
           val path = fileList.mkString(",")
           logInfo(s"path is $path")
           logInfo(s"size is ${cacheDf.get().size()}")
+
           var df = if (cacheDf.get().containsKey(path)) {
             logInfo(s"Reuse df: $relation")
             logInfo(s"${relation.schema}")
             cacheDf.get().get(path)
           } else {
-            val d = if (cuboidLayout.getShardByColumns == null || cuboidLayout.getShardByColumns.isEmpty) {
-              session.read
-                .schema(relation.schema)
-                .parquet(fileList: _*)
-                .toDF(relation.columnNames: _*)
-            } else {
-              session.index
-                .shardBy(
-                  cuboidLayout.getShardByColumns.asScala
-                    .map(column => column.toString)
-                    .toArray)
-                .schema(relation.schema)
-                .parquet(path)
-                .toDF(relation.columnNames: _*)
-            }
+            import io.kyligence.kap.query.implicits._
+
+            val d = session.kylin
+              .format("parquet")
+              .cuboidTable(relation)
+              .toDF(columnNames: _*)
+
             logInfo(s"put path is $path")
             cacheDf.get().put(path, d)
             d
           }
+
           /////////////////////////////////////////////
           val groups: util.Collection[TblColRef] =
             olapContext.getSQLDigest.groupbyColumns
@@ -166,7 +156,7 @@ object TableScanPlan extends Logging {
           val topNMetric = context.getMetrics.asScala.collectFirst { case x: FunctionDesc if x.getReturnType.startsWith("topn") => x }
           if (topNMetric.isDefined) {
             val topNFieldIndex = mapping.getMetricsIndices(List(topNMetric.get).asJava).head
-            val tp = processTopN(topNMetric.get, df, topNFieldIndex, olapContext.returnTupleInfo, tableName, relation)
+            val tp = processTopN(topNMetric.get, df, topNFieldIndex, olapContext.returnTupleInfo, tableName)
             df = tp._1
             topNMapping = tp._2
           }
@@ -188,7 +178,7 @@ object TableScanPlan extends Logging {
     logInfo(s"Gen table scan cost Time :${System.currentTimeMillis() - start} ")
 
     if (olapContext.isConstantQueryWithoutAggregation()) {
-      val countIndex = olapContext.returnTupleInfo.getFieldIndex("_KY_COUNT__");
+      val countIndex = olapContext.returnTupleInfo.getFieldIndex("_KY_COUNT__")
       var totalCount = 0
       cuboidDF.rdd.collect.foreach {
         row => {
@@ -208,7 +198,7 @@ object TableScanPlan extends Logging {
     s"$basePath${dataflow.getUuid}/${seg.getId}/$cuboidId"
   }
 
-  private def processTopN(topNMetric: FunctionDesc, df: DataFrame, topNFieldIndex: Int, tupleInfo: TupleInfo, tableName: String, relation: CubeRelation): (DataFrame, Map[Int, Column]) = {
+  private def processTopN(topNMetric: FunctionDesc, df: DataFrame, topNFieldIndex: Int, tupleInfo: TupleInfo, tableName: String): (DataFrame, Map[Int, Column]) = {
     // support TopN measure
     val topNField = df.schema.fields
       .zipWithIndex

@@ -44,7 +44,6 @@
         <module>sparder</module>
         <module>engine-spark</module>
         <module>spark-it</module>
-        <module>index</module>
         <module>source-file</module>
     </modules>
 

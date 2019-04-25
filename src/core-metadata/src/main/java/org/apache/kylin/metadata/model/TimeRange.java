@@ -46,6 +46,7 @@ import java.io.Serializable;
 import java.util.Objects;
 
 import com.google.common.base.Preconditions;
+import org.apache.kylin.common.util.DateFormat;
 
 public class TimeRange implements Serializable {
     long start;
@@ -86,5 +87,11 @@ public class TimeRange implements Serializable {
     @Override
     public int hashCode() {
         return Objects.hash(start, end);
+    }
+
+    @Override
+    public String toString() {
+        return "TimeRange[" + start + "," + end + ")"
+                + ".Time String[" + DateFormat.formatToTimeStr(start) + "," + DateFormat.formatToTimeStr(end) + "]";
     }
 }

@@ -29,8 +29,9 @@ import io.kyligence.kap.query.{QueryConstants, QueryFetcher}
 import io.netty.util.internal.ThrowableUtil
 import org.apache.kylin.common.KylinConfig
 import org.apache.spark.internal.Logging
-import org.apache.spark.sql.SparderEnv
+import org.apache.spark.sql.{DataFrame, SparderEnv}
 import org.apache.spark.sql.common.{LocalMetadata, SparderBaseFunSuite}
+import org.apache.spark.sql.execution.FileSourceScanExec
 import org.apache.spark.sql.execution.utils.SchemaProcessor
 
 import scala.concurrent.duration.Duration
@@ -137,6 +138,41 @@ class TestQueryAndBuildFunSuite
     assert(result.isEmpty)
   }
 
+  // for test scenario in timestamp type , see NSegPruningTest.testSegPruningWithTimeStamp()
+  test("segment pruning in date type") {
+    // two segs, ranges:
+    // [2010-01-01, 2013-01-01)
+    // [2013-01-01, 2015-01-01)
+    val no_pruning1 = "select count(*) from TEST_KYLIN_FACT"
+    val no_pruning2 = "select count(*) from TEST_KYLIN_FACT where CAL_DT > DATE '2010-01-01' and CAL_DT < DATE '2015-01-01'"
+
+    val seg_pruning1 = "select count(*) from TEST_KYLIN_FACT where CAL_DT < DATE '2013-01-01'"
+    val seg_pruning2 = "select count(*) from TEST_KYLIN_FACT where CAL_DT > DATE '2013-01-01'"
+    assertNumScanFile(no_pruning1, 2)
+    assertNumScanFile(no_pruning2, 2)
+    assertNumScanFile(seg_pruning1, 1)
+    assertNumScanFile(seg_pruning2, 1)
+  }
+
+  test("ensure spark split filter strategy") {
+    val sql1 = "select count(*) from TEST_KYLIN_FACT where (LSTG_SITE_ID=10 or LSTG_SITE_ID>0) and LSTG_SITE_ID<100"
+    val sql2 = "select count(*) from TEST_KYLIN_FACT where LSTG_SITE_ID=10 or (LSTG_SITE_ID>0 and LSTG_SITE_ID<100)"
+    assert(getFileSourceScanExec(singleQuery(sql1, DEFAULT_PROJECT)).dataFilters.size == 3)
+    assert(getFileSourceScanExec(singleQuery(sql2, DEFAULT_PROJECT)).dataFilters.size == 1)
+  }
+
+  private def assertNumScanFile(sql: String, numScanFiles: Long): Unit = {
+    val df = singleQuery(sql, DEFAULT_PROJECT)
+    df.collect()
+    val scanExec = getFileSourceScanExec(df)
+    val actualNumScanFiles = scanExec.metrics("numFiles").value
+    assert(actualNumScanFiles == numScanFiles)
+  }
+
+  private def getFileSourceScanExec(df: DataFrame) = {
+    df.queryExecution.sparkPlan.collectFirst { case p: FileSourceScanExec => p }.get
+  }
+
   private def queryFolder(floderInfo: FloderInfo): List[String] = {
     val futures = QueryFetcher
       .fetchQueries(QueryConstants.KAP_SQL_BASE_DIR + floderInfo.floder)
@@ -147,10 +183,9 @@ class TestQueryAndBuildFunSuite
         case (fileName: String, query: String) =>
           joinTypes.map { joinType =>
               val afterChangeJoin = changeJoinType(query, joinType)
-              val cleanedSql = cleanSql(afterChangeJoin)
 
               Future[String] {
-                runAndCompare(afterChangeJoin, cleanedSql, DEFAULT_PROJECT,
+                runAndCompare(afterChangeJoin, cleanSql(afterChangeJoin), DEFAULT_PROJECT,
                   s"$joinType\n$fileName\n $query\n")
               }
             }

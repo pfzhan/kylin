@@ -32,10 +32,10 @@ import org.apache.spark.memory.MonitorEnv
 import org.apache.spark.sql.KylinSession._
 import org.apache.spark.sql.catalyst.parser.ParseException
 import org.apache.spark.sql.catalyst.plans.logical.LogicalPlan
+import org.apache.spark.sql.execution.datasource.KylinSourceStrategy
 import org.apache.spark.sql.udf.UdfManager
 import org.apache.spark.{SparkConf, SparkEnv}
 
-// fixme aron: to be same with old KE
 // scalastyle:off
 object SparderEnv extends Logging {
   @volatile
@@ -96,11 +96,13 @@ object SparderEnv extends Logging {
               SparkSession.builder
                 .master("local")
                 .appName("sparder-test-sql-context")
+                .withExtensions(ext => ext.injectPlannerStrategy(_ => KylinSourceStrategy))
                 .enableHiveSupport()
                 .getOrCreateKylinSession()
             case _ =>
               SparkSession.builder
                 .appName("sparder-sql-context")
+                .withExtensions(ext => ext.injectPlannerStrategy(_ => KylinSourceStrategy))
                 .enableHiveSupport()
                 .getOrCreateKylinSession()
           }

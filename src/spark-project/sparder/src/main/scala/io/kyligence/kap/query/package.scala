@@ -20,9 +20,28 @@
  *
  */
 
-package org.apache.spark.sql.execution.datasource
+package io.kyligence.kap.query
 
-import io.kyligence.kap.metadata.cube.model.{LayoutEntity, NDataflow}
-import org.apache.spark.sql.types.StructType
+import org.apache.spark.sql.execution.datasource.KylinSourceStrategy
+import org.apache.spark.sql.{KylinDataFrameManager, SparkSession}
 
-case class KylinRelation(schema: StructType, dataflow: NDataflow, cuboid: LayoutEntity)
+import scala.language.implicitConversions
+
+class QueryContext(session: SparkSession) {
+  def kylin: KylinDataFrameManager = {
+    // check that index strategy is included
+    val strategies = session.experimental.extraStrategies
+    if (!strategies.contains(KylinSourceStrategy)) {
+      session.experimental.extraStrategies = strategies :+ KylinSourceStrategy
+    }
+
+    new KylinDataFrameManager(session)
+  }
+}
+
+/** Implicit methods */
+package object implicits {
+  implicit def sessionToQueryContext(session: SparkSession): QueryContext = {
+    new QueryContext(session)
+  }
+}

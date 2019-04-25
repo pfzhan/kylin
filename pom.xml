@@ -334,11 +334,6 @@
             </dependency>
             <dependency>
                 <groupId>io.kyligence.ke</groupId>
-                <artifactId>kap-index</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>io.kyligence.ke</groupId>
                 <artifactId>kap-tool</artifactId>
                 <version>${project.version}</version>
             </dependency>
