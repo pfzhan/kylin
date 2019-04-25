@@ -156,6 +156,9 @@ export default {
   updateAggregateGroups: (project, modelId, dimensions, aggregationGroups, isCatchUp) => {
     return Vue.resource(apiUrl + 'index_plans/rule').update({ project, modelId, dimensions, aggregation_groups: aggregationGroups, load_data: isCatchUp })
   },
+  getCalcCuboids: (project, modelId, dimensions, aggregationGroups) => {
+    return Vue.resource(apiUrl + 'index_plans/agg_index_count').update({ project, modelId, dimensions, aggregation_groups: aggregationGroups })
+  },
   fetchRelatedModelStatus: (project, uuids) => {
     const body = { project, uuids }
     const headers = { 'X-Progress-Invisiable': 'true' }

@@ -362,7 +362,7 @@ export default class SourceHive extends Vue {
     overflow: auto;
   }
   .content-body.has-tips {
-    height: 322px;
+    height: 365px;
   }
   .el-tag {
     margin-right: 10px;
@@ -428,7 +428,7 @@ export default class SourceHive extends Vue {
   .tips {
     position: absolute;
     padding: 15px;
-    height: 108px;
+    height: 65px;
     border-radius: 2px;
     background-color: @base-color-9;
     bottom: 10px;

@@ -1,12 +1,14 @@
 <template>
   <el-dialog class="aggregate-modal" limited-area width="960px"
-    :title="$t(modalTitle)"
     :visible="isShow"
     top="5vh"
     :append-to-body="true"
     :close-on-press-escape="false"
     :close-on-click-modal="false"
     @close="isShow && handleClose(false)">
+    <span slot="title">{{$t(modalTitle)}}
+      <span v-html="renderCoboidText(cuboidsInfo.total_count)"></span>
+    </span>
     <div class="loading" v-if="isLoading" v-loading="isLoading"></div>
     <template v-if="model">
       <!-- 维度列表展示 -->
@@ -28,7 +30,9 @@
       </div>
       <!-- 聚合组表单 -->
       <div class="aggregate-group" v-for="(aggregate, aggregateIdx) in form.aggregateArray" :key="aggregateIdx">
-        <h1 class="title font-medium">{{$t('aggregateGroupTitle', { id: form.aggregateArray.length - aggregateIdx })}}</h1>
+        <h1 class="title font-medium">{{$t('aggregateGroupTitle', { id: form.aggregateArray.length - aggregateIdx })}} 
+          <span v-html="renderCoboidText(cuboidsInfo.agg_index_counts && cuboidsInfo.agg_index_counts[aggregateIdx])"></span>
+        </h1>
         <div class="actions">
           <el-button size="mini" @click="() => handleCopyAggregate(aggregateIdx)">{{$t('kylinLang.common.copy')}}</el-button>
           <el-button size="mini" @click="() => handleDeleteAggregate(aggregateIdx, form.aggregateArray.length - aggregateIdx)">{{$t('kylinLang.common.delete')}}</el-button>
@@ -49,7 +53,7 @@
               :value="aggregate.includes"
               :placeholder="$t('kylinLang.common.pleaseSelect')"
               @input="value => handleInput(`aggregateArray.${aggregateIdx}.includes`, value)"
-              @remove-tag="value => handleRemoveIncludeRules(value, aggregateIdx)">
+              @remove-tag="value => handleRemoveIncludeRules(value, aggregateIdx)">  
               <el-option
                 v-for="dimension in dimensions"
                 :key="dimension.value"
@@ -163,6 +167,7 @@ import locales from './locales'
 import store, { types, initialAggregateData } from './store'
 import { titleMaps, editTypes, getPlaintDimensions, findIncludeDimension } from './handler'
 import { handleError, get, set, push, kapConfirm } from '../../../../../../util'
+import { handleSuccess } from 'util/business'
 
 const { EDIT } = editTypes
 
@@ -192,7 +197,8 @@ vuex.registerModule(['modals', 'AggregateModal'], store)
       resetModalForm: types.RESET_MODAL_FORM
     }),
     ...mapActions({
-      updateAggregateGroups: 'UPDATE_AGGREGATE_GROUPS'
+      updateAggregateGroups: 'UPDATE_AGGREGATE_GROUPS',
+      getCalcCuboids: 'GET_AGG_CUBOIDS'
     })
   },
   locales
@@ -238,10 +244,62 @@ export default class AggregateModal extends Vue {
       )
     })
   }
+  cuboidsInfo = {
+    total_count: {},
+    agg_index_counts: []
+  }
+  ST = null
+  calcLoading = false
+  calcCuboids () {
+    this.calcLoading = true
+    clearTimeout(this.ST)
+    this.ST = setTimeout(() => {
+      let data = this.getSubmitData()
+      if (data.dimensions.length <= 0) {
+        this.calcLoading = false
+        this.cuboidsInfo = {
+          total_count: {},
+          agg_index_counts: []
+        }
+        return
+      }
+      this.getCalcCuboids(data).then((res) => {
+        handleSuccess(res, (data) => {
+          if (!/^\d+$/.test(data.total_count.result)) {
+            this.$message.error(this.$t('maxCombinationTip'))
+          }
+          this.cuboidsInfo = data
+          this.calcLoading = false
+        })
+      }, (res) => {
+        this.calcLoading = false
+        handleError(res)
+      })
+    }, 1000)
+  }
+  renderCoboidText (cuboidsInfo) {
+    if (!(cuboidsInfo && cuboidsInfo.result !== undefined)) {
+      return ''
+    }
+    let cuboidText = ''
+    if (cuboidsInfo.status !== 'SUCCESS') {
+      cuboidText += '<span class="cuboid-error' + '">'
+    } else {
+      cuboidText += '<span>'
+    }
+    if (this.calcLoading) {
+      cuboidText += '<i class="el-icon-loading"></i>'
+    } else {
+      cuboidText += '(<span class="cuboid-result">' + cuboidsInfo.result + '</span>)'
+    }
+    cuboidText += '</span>'
+    return cuboidText
+  }
   @Watch('isShow')
   onModalShow (newVal, oldVal) {
     if (newVal) {
       this.isFormShow = true
+      this.calcCuboids()
     } else {
       setTimeout(() => {
         this.isFormShow = false
@@ -266,6 +324,7 @@ export default class AggregateModal extends Vue {
       id: aggregateArray.length
     }
     this.setModalForm({ aggregateArray: [ aggregateData, ...aggregateArray ] })
+    this.calcCuboids()
   }
   handleCopyAggregate (aggregateIdx) {
     const aggregateArray = get(this.form, 'aggregateArray')
@@ -273,14 +332,15 @@ export default class AggregateModal extends Vue {
       ...aggregateArray[aggregateIdx],
       id: aggregateArray.length
     }
-
     this.setModalForm({ aggregateArray: [copyedAggregate, ...aggregateArray] })
+    this.calcCuboids()
   }
   handleDeleteAggregate (aggregateIdx, titleId) {
     kapConfirm(this.$t('delAggregateTip', {aggId: titleId}), {type: 'warning'}, this.$t('delAggregateTitle')).then(() => {
       const aggregateArray = get(this.form, 'aggregateArray')
       aggregateArray.splice(aggregateIdx, 1)
       this.setModalForm({ aggregateArray })
+      this.calcCuboids()
     })
   }
   handleAddDimensionRow (path) {
@@ -288,27 +348,29 @@ export default class AggregateModal extends Vue {
     const dimensionRows = get(this.form, path)
     const newId = dimensionRows.length
     const newDimensionRow = { id: newId, items: [] }
-
     this.setModalForm({[rootKey]: push(this.form, path, newDimensionRow)[rootKey]})
+    this.calcCuboids()
   }
   handleRemoveDimensionRow (path, aggregateIdx, dimensionRowIndex) {
     const rootKey = path.split('.')[0]
     const dimensionRows = get(this.form, path)
-
     if (dimensionRows.length > 1) {
       dimensionRows.splice(dimensionRowIndex, 1)[0]
       this.setModalForm({[rootKey]: set(this.form, path, dimensionRows)[rootKey]})
     }
+    this.calcCuboids()
   }
   handleClose (isSubmit) {
     this.hideModal()
-
     setTimeout(() => {
       this.resetModalForm()
       this.callback && this.callback(isSubmit)
     }, 200)
   }
   handleInput (key, value) {
+    if (key !== 'isCatchUp') {
+      this.calcCuboids()
+    }
     const rootKey = key.split('.')[0]
     this.setModalForm({[rootKey]: set(this.form, key, value)[rootKey]})
   }
@@ -440,6 +502,11 @@ export default class AggregateModal extends Vue {
 @import '../../../../../../assets/styles/variables.less';
 
 .aggregate-modal {
+  .cuboid-error {
+    .cuboid-result {
+      color:@btn-danger-normal;
+    }
+  }
   .el-button + .el-button { margin-left: 3px;}
   .dimension {
     float: left;
@@ -485,7 +552,7 @@ export default class AggregateModal extends Vue {
     }
     .actions {
       position: absolute;
-      top: 2px;
+      top: -3px;
       right: 0;
       font-size: 16px;
       .el-button+.el-button {
@@ -497,7 +564,7 @@ export default class AggregateModal extends Vue {
     }
   }
   h1 {
-    font-size: 16px;
+    font-size: 14px;
   }
   h2 {
     font-size: 14px;
