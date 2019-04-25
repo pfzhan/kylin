@@ -17,7 +17,7 @@
         :show-background="false"
         :closable="false"
         show-icon>
-        <span style="display:inline-block;word-break: break-word;" v-html="$store.state.config.errorMsgBox.msg.replace(/</, '&lt;').replace(/>/, '&gt;').replace(/\r\n/g, '<br/><br/>')"></span>
+        <span style="display:inline-block;word-break: break-word;" v-html="filterInjectScript($store.state.config.errorMsgBox.msg).replace(/\r\n/g, '<br/><br/>')"></span>
         <a href="javascript:;" style="display: inline-block;" @click="toggleDetail">{{$t('kylinLang.common.seeDetail')}}  
           <i class="el-icon-arrow-down" v-show="!showDetail"></i>
           <i class="el-icon-arrow-up" v-show="showDetail"></i>
@@ -51,6 +51,7 @@ import { mapActions } from 'vuex'
 import GuidType from '../common/Guide/GuideType'
 import Modal from '../common/Modal/Modal'
 import GuidePanel from '../common/Guide/GuidePanel'
+import { filterInjectScript } from 'util'
 @Component({
   methods: {
     ...mapActions({
@@ -66,6 +67,7 @@ import GuidePanel from '../common/Guide/GuidePanel'
 export default class LayoutFull extends Vue {
   showDetail = false
   showCopyStatus = false
+  filterInjectScript = filterInjectScript
   toggleDetail () {
     this.showDetail = !this.showDetail
   }

@@ -6,7 +6,7 @@
           :project-name="currentSelectedProject"
           :is-show-load-source="false"
           :is-expand-on-click-node="false"
-          :expand-node-types="['datasource', 'database']"
+          :expand-node-types="['datasource']"
           @autoComplete="handleAutoComplete"
           @click="clickTable">
         </DataSourceBar>

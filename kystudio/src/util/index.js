@@ -584,7 +584,12 @@ export function delayMs (ms) {
 }
 // 过滤注入 （非严格过滤，谨慎使用）
 export function filterInjectScript (str) {
-  return str && str.replace(/</, '&lt;').replace(/>/, '&gt;') || ''
+  if (str) {
+    str = str.replace(/<style[\s\S]*?<\/style>/ig, '') // 屏蔽样式
+    str = str.replace(/<script[\s\S]*?<\/script>/ig, '') // 屏蔽脚本
+    return str && str.replace(/</g, '&lt;').replace(/>/g, '&gt;') // 屏蔽其他尖括号
+  }
+  return ''
 }
 export { set, get, push } from './object'
 export { handleError, handleSuccess, hasRole, hasPermission, kapConfirm, transToGmtTime, isDatePartitionType, isTimePartitionType, transToUTCMs, getGmtDateFromUtcLike } from './business'

@@ -144,7 +144,7 @@
       this.isLoadingNewRange = false
     }
     closeModal (isSubmit) {
-      this.$refs.buildForm.resetFields()
+      this.$refs.buildForm && this.$refs.buildForm.resetFields()
       this.hideModal()
       setTimeout(() => {
         this.callback && this.callback(isSubmit)

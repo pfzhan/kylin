@@ -12,7 +12,6 @@
     </div>
     <el-tree
       v-loading="isLoading"
-      element-loading-customClass="tree-filter-loading"
       ref="tree"
       class="filter-tree"
       node-key="id"

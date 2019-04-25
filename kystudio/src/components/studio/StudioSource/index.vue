@@ -3,6 +3,7 @@
     <div class="table-layout clearfix"> 
       <!-- 数据源导航栏 -->
       <DataSourceBar
+        :ignore-node-types="['column']"
         v-guide.datasourceTree
         class="layout-left"
         ref="datasource-bar"
