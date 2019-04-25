@@ -106,7 +106,7 @@ public class DFBuildJob extends SparkApplication {
 
                 // build cuboids from reused layouts
                 build(buildFromLayouts.values(), segId, nSpanningTree);
-                BuildSummaryInfo.seg2SpanningTree().put(segId, nSpanningTree);
+                KylinBuildEnv.get().seg2SpanningTree().put(segId, nSpanningTree);
             }
         } finally {
             logger.info("Finish build take" + (System.currentTimeMillis() - start) + " ms");

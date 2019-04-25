@@ -74,11 +74,6 @@ public class ResourceDetectBeforeMergingJob extends SparkApplication {
                 resourcePaths);
     }
 
-    @Override
-    public boolean isAutoSetSparkConfEnabled() {
-        return false;
-    }
-
     public static void main(String[] args) {
         ResourceDetectBeforeMergingJob resourceDetectJob = new ResourceDetectBeforeMergingJob();
         resourceDetectJob.execute(args);

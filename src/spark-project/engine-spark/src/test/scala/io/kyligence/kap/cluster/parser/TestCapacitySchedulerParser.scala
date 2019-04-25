@@ -20,29 +20,27 @@
  *
  */
 
-package io.kyligence.kap.engine.spark.scheduler
+package io.kyligence.kap.cluster.parser
 
-sealed trait KylinJobEvent
+import io.kyligence.kap.cluster.{AvailableResource, ResourceInfo, TestUtils}
+import org.apache.spark.sql.common.SparderBaseFunSuite
 
-sealed trait JobStatus extends KylinJobEvent
+class TestCapacitySchedulerParser extends SparderBaseFunSuite {
 
-case class JobSucceeded() extends JobStatus
+  /**
+    * value store in json:
+    * cluster, max: 100%, used: 13.541667%
+    * default, max: 20%, used: 0%, resourceUsed(0, 0)
+    * dev_test, max: 50.0%, used: 13.541667%, resourceUsed(19968, 5)
+    */
 
-case class JobFailed(reason: String, throwable: Throwable) extends JobStatus
-
-sealed trait JobEndReason extends KylinJobEvent
-
-sealed trait JobFailedReason extends JobEndReason
-
-case class ResourceLack(throwable: Throwable) extends JobFailedReason
-
-case class ExceedMaxRetry(throwable: Throwable) extends JobFailedReason
-
-case class UnknownThrowable(throwable: Throwable) extends JobFailedReason
-
-
-sealed trait JobCommand extends KylinJobEvent
-
-case class RunJob() extends JobCommand
-
-
+  test("availableResource return correct available resource in target queue") {
+    val content = TestUtils.getContent("schedulerInfo/capacitySchedulerInfo.json")
+    val parser = new CapacitySchedulerParser
+    parser.parse(content)
+    val defaultResource = parser.availableResource("default")
+    assert(defaultResource == AvailableResource(ResourceInfo(429496729, 429496729), ResourceInfo(429496729, 429496729)))
+    val devResource = parser.availableResource("dev_test")
+    assert(devResource == AvailableResource(ResourceInfo(53759, 13), ResourceInfo(73727, 18)))
+  }
+}

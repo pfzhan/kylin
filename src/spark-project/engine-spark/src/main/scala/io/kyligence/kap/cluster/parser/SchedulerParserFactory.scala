@@ -20,29 +20,28 @@
  *
  */
 
-package io.kyligence.kap.engine.spark.scheduler
+package io.kyligence.kap.cluster.parser
 
-sealed trait KylinJobEvent
+import org.apache.kylin.common.util.JsonUtil
+import org.apache.spark.internal.Logging
 
-sealed trait JobStatus extends KylinJobEvent
-
-case class JobSucceeded() extends JobStatus
-
-case class JobFailed(reason: String, throwable: Throwable) extends JobStatus
-
-sealed trait JobEndReason extends KylinJobEvent
-
-sealed trait JobFailedReason extends JobEndReason
-
-case class ResourceLack(throwable: Throwable) extends JobFailedReason
-
-case class ExceedMaxRetry(throwable: Throwable) extends JobFailedReason
-
-case class UnknownThrowable(throwable: Throwable) extends JobFailedReason
-
-
-sealed trait JobCommand extends KylinJobEvent
-
-case class RunJob() extends JobCommand
-
-
+object SchedulerParserFactory extends Logging{
+  def create(info: String): SchedulerParser = {
+    try {
+      val schedulerType = JsonUtil.readValueAsTree(info).findValue("type").toString
+      // call contains rather than equals cause of value is surrounded with ", for example: {"type":"fairScheduler"}
+      // do not support FifoScheduler for now
+      if (schedulerType.contains("capacityScheduler")) {
+        new CapacitySchedulerParser
+      } else if (schedulerType.contains("fairScheduler")) {
+        new FairSchedulerParser
+      } else {
+        throw new IllegalArgumentException(s"Unsupported scheduler type from scheduler info. $schedulerType")
+      }
+    } catch {
+      case throwable: Throwable =>
+        logError(s"Invalid scheduler info. $info")
+        throw throwable
+    }
+  }
+}

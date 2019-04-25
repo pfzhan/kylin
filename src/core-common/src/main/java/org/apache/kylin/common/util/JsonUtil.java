@@ -172,4 +172,12 @@ public class JsonUtil {
         return copy;
     }
 
+    public static boolean isJson(String content) {
+        try {
+            mapper.readTree(content);
+            return true;
+        } catch (IOException e) {
+            return false;
+        }
+    }
 }

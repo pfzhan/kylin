@@ -38,7 +38,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
-import io.kyligence.kap.engine.spark.job.BuildSummaryInfo;
+import io.kyligence.kap.engine.spark.job.KylinBuildEnv;
 import io.kyligence.kap.metadata.cube.cuboid.NForestSpanningTree;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
@@ -100,7 +100,7 @@ public class NSpanningTreeCubingJobTest extends NLocalWithSparkSessionTest {
 
         String segId = getSegId();
 
-        NForestSpanningTree st = (NForestSpanningTree) BuildSummaryInfo.seg2SpanningTree().get(segId);
+        NForestSpanningTree st = (NForestSpanningTree) KylinBuildEnv.get().seg2SpanningTree().get(segId);
         NForestSpanningTree.TreeNode leafNode = st.getNodesMap().get(0L);
         Assert.assertEquals(3, leafNode.getLevel());
         Assert.assertEquals(40000L, leafNode.getParent().getIndexEntity().getId());

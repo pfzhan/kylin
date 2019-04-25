@@ -20,29 +20,28 @@
  *
  */
 
-package io.kyligence.kap.engine.spark.scheduler
+package io.kyligence.kap.cluster.parser
 
-sealed trait KylinJobEvent
+import com.fasterxml.jackson.databind.{JsonNode, ObjectMapper}
+import io.kyligence.kap.cluster.AvailableResource
+import org.apache.spark.internal.Logging
 
-sealed trait JobStatus extends KylinJobEvent
+trait SchedulerParser extends Logging {
+  protected var root: JsonNode = _
+  protected lazy val mapper = new ObjectMapper
 
-case class JobSucceeded() extends JobStatus
+  def availableResource(queueName: String): AvailableResource
 
-case class JobFailed(reason: String, throwable: Throwable) extends JobStatus
+  def parse(schedulerInfo: String): Unit = {
+    this.root = mapper.readTree(schedulerInfo)
+  }
 
-sealed trait JobEndReason extends KylinJobEvent
-
-sealed trait JobFailedReason extends JobEndReason
-
-case class ResourceLack(throwable: Throwable) extends JobFailedReason
-
-case class ExceedMaxRetry(throwable: Throwable) extends JobFailedReason
-
-case class UnknownThrowable(throwable: Throwable) extends JobFailedReason
-
-
-sealed trait JobCommand extends KylinJobEvent
-
-case class RunJob() extends JobCommand
-
-
+  // value in some scheduler info format to "value"
+  protected def parseValue(node: JsonNode): String = {
+    if (node.toString.startsWith("\"")) {
+      node.toString.replace("\"", "")
+    } else {
+      node.toString
+    }
+  }
+}

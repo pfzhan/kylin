@@ -20,29 +20,21 @@
  *
  */
 
-package io.kyligence.kap.engine.spark.scheduler
+package io.kyligence.kap.cluster.parser
 
-sealed trait KylinJobEvent
+import io.kyligence.kap.cluster.TestUtils
+import org.apache.spark.sql.common.SparderBaseFunSuite
 
-sealed trait JobStatus extends KylinJobEvent
+class TestSchedulerParserFactory extends SparderBaseFunSuite {
+  test("create FairSchedulerParser when scheduler type is fairScheduler") {
+    val info = TestUtils.getContent("schedulerInfo/fairSchedulerInfo.json")
+    assert(SchedulerParserFactory.create(info).isInstanceOf[FairSchedulerParser])
+  }
 
-case class JobSucceeded() extends JobStatus
-
-case class JobFailed(reason: String, throwable: Throwable) extends JobStatus
-
-sealed trait JobEndReason extends KylinJobEvent
-
-sealed trait JobFailedReason extends JobEndReason
-
-case class ResourceLack(throwable: Throwable) extends JobFailedReason
-
-case class ExceedMaxRetry(throwable: Throwable) extends JobFailedReason
-
-case class UnknownThrowable(throwable: Throwable) extends JobFailedReason
+  test("create CapacitySchedulerParser when scheduler type is capacityScheduler") {
+    val info = TestUtils.getContent("schedulerInfo/capacitySchedulerInfo.json")
+    assert(SchedulerParserFactory.create(info).isInstanceOf[CapacitySchedulerParser])
+  }
 
 
-sealed trait JobCommand extends KylinJobEvent
-
-case class RunJob() extends JobCommand
-
-
+}

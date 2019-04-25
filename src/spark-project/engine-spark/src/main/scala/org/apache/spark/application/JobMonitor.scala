@@ -22,7 +22,7 @@
 
 package org.apache.spark.application
 
-import io.kyligence.kap.engine.spark.job.BuildSummaryInfo
+import io.kyligence.kap.engine.spark.job.KylinBuildEnv
 import io.kyligence.kap.engine.spark.scheduler._
 import io.kyligence.kap.engine.spark.utils.SparkConfHelper._
 import org.apache.spark.internal.Logging
@@ -46,17 +46,35 @@ class JobMonitor(eventLoop: KylinJobEventLoop) extends Logging {
 
   def handleResourceLack(rl: ResourceLack): Unit = {
     try {
-      BuildSummaryInfo.increaseRetryTimes()
-      val retry = BuildSummaryInfo.retryTimes
-      val maxRetry = BuildSummaryInfo.kylinConfig.getSparkEngineMaxRetryTime
-      val gradient = BuildSummaryInfo.kylinConfig.getSparkEngineRetryMemoryGradient
+      val buildEnv = KylinBuildEnv.get()
+      buildEnv.increaseRetryTimes()
+      val retry = buildEnv.retryTimes
+      val maxRetry = buildEnv.kylinConfig.getSparkEngineMaxRetryTime
+      val gradient = buildEnv.kylinConfig.getSparkEngineRetryMemoryGradient
       if (retry <= maxRetry) {
         logError(s"Job failed the $retry times.", rl.throwable)
-        val conf = BuildSummaryInfo.getSparkConf()
-        val retryMemory = s"${Math.ceil(Utils.byteStringAsMb(conf.get(EXECUTOR_MEMORY)) * gradient).toInt}MB"
-        conf.set(EXECUTOR_MEMORY, retryMemory)
+        val conf = buildEnv.sparkConf
+        val prevMemory = Utils.byteStringAsMb(conf.get(EXECUTOR_MEMORY))
+        val retryMemory = Math.ceil(prevMemory * gradient).toInt
+        val maxMemory =
+          buildEnv.clusterInfoFetcher.fetchMaximumResourceAllocation.memory - Utils.byteStringAsMb(conf.get(EXECUTOR_OVERHEAD))
+        if (prevMemory == maxMemory) {
+          val retryCore = conf.get(EXECUTOR_CORES).toInt - 1
+          if (retryCore > 0) {
+            conf.set(EXECUTOR_CORES, retryCore.toString)
+            logInfo(s"Reset $EXECUTOR_CORES=$retryCore when retry.")
+          } else {
+            eventLoop.post(JobFailed(s"Retry configuration is invalid." +
+              s" $EXECUTOR_CORES=$retryCore, $EXECUTOR_MEMORY=$prevMemory.", new RuntimeException))
+          }
+        } else if (retryMemory > maxMemory) {
+          conf.set(EXECUTOR_MEMORY, maxMemory + "MB")
+          logInfo(s"Reset $EXECUTOR_MEMORY=${conf.get(EXECUTOR_MEMORY)} when retry.")
+        } else {
+          conf.set(EXECUTOR_MEMORY, retryMemory + "MB")
+          logInfo(s"Reset $EXECUTOR_MEMORY=${conf.get(EXECUTOR_MEMORY)} when retry.")
+        }
         System.setProperty("kylin.spark-conf.auto.prior", "false")
-        logInfo(s"Reset $EXECUTOR_MEMORY=$retryMemory when retry.")
         eventLoop.post(RunJob())
       } else {
         eventLoop.post(ExceedMaxRetry(rl.throwable))

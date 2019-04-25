@@ -20,29 +20,14 @@
  *
  */
 
-package io.kyligence.kap.engine.spark.scheduler
-
-sealed trait KylinJobEvent
-
-sealed trait JobStatus extends KylinJobEvent
-
-case class JobSucceeded() extends JobStatus
-
-case class JobFailed(reason: String, throwable: Throwable) extends JobStatus
-
-sealed trait JobEndReason extends KylinJobEvent
-
-sealed trait JobFailedReason extends JobEndReason
-
-case class ResourceLack(throwable: Throwable) extends JobFailedReason
-
-case class ExceedMaxRetry(throwable: Throwable) extends JobFailedReason
-
-case class UnknownThrowable(throwable: Throwable) extends JobFailedReason
+package io.kyligence.kap.cluster
+import org.apache.kylin.common.KylinConfig
+import org.apache.spark.util.KylinReflectUtils
 
 
-sealed trait JobCommand extends KylinJobEvent
+object ClusterInfoFetcherFactory {
 
-case class RunJob() extends JobCommand
-
-
+  def create(kylinConfig: KylinConfig): ClusterInfoFetcher = {
+    KylinReflectUtils.createObject(kylinConfig.getClusterInfoFetcherClassName)._1.asInstanceOf[ClusterInfoFetcher]
+  }
+}

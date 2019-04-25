@@ -20,29 +20,22 @@
  *
  */
 
-package io.kyligence.kap.engine.spark.scheduler
+package io.kyligence.kap.cluster
 
-sealed trait KylinJobEvent
+import java.nio.file.{Files, Paths}
 
-sealed trait JobStatus extends KylinJobEvent
-
-case class JobSucceeded() extends JobStatus
-
-case class JobFailed(reason: String, throwable: Throwable) extends JobStatus
-
-sealed trait JobEndReason extends KylinJobEvent
-
-sealed trait JobFailedReason extends JobEndReason
-
-case class ResourceLack(throwable: Throwable) extends JobFailedReason
-
-case class ExceedMaxRetry(throwable: Throwable) extends JobFailedReason
-
-case class UnknownThrowable(throwable: Throwable) extends JobFailedReason
-
-
-sealed trait JobCommand extends KylinJobEvent
-
-case class RunJob() extends JobCommand
-
-
+object TestUtils {
+  def getContent(path: String): String = {
+    val url = Thread.currentThread().getContextClassLoader.getResource(path)
+    val builder = new StringBuilder
+    val reader = Files.newBufferedReader(Paths.get(url.toURI))
+    try {
+      var line = reader.readLine()
+      while (line != null) {
+        builder.append(line)
+        line = reader.readLine()
+      }
+    } finally reader.close()
+    builder.toString()
+  }
+}

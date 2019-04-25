@@ -20,29 +20,29 @@
  *
  */
 
-package io.kyligence.kap.engine.spark.scheduler
+package io.kyligence.kap.cluster
 
-sealed trait KylinJobEvent
+import org.apache.hadoop.yarn.api.records.Resource
 
-sealed trait JobStatus extends KylinJobEvent
+trait ClusterInfoFetcher {
+  def fetchMaximumResourceAllocation: ResourceInfo
 
-case class JobSucceeded() extends JobStatus
+  def fetchQueueAvailableResource(queueName: String): AvailableResource
+}
 
-case class JobFailed(reason: String, throwable: Throwable) extends JobStatus
+// memory unit is MB
+case class ResourceInfo(memory: Int, vCores: Int) {
+  def this(res: Resource) {
+    this(res.getMemory, res.getVirtualCores)
+  }
 
-sealed trait JobEndReason extends KylinJobEvent
+  def reduceMin(other: ResourceInfo): ResourceInfo = {
+    ResourceInfo(Math.min(this.memory, other.memory), Math.min(this.vCores, other.vCores))
+  }
 
-sealed trait JobFailedReason extends JobEndReason
+  def percentage(percentage: Double): ResourceInfo = {
+    ResourceInfo(Math.floor(this.memory * percentage).toInt, Math.floor(this.vCores * percentage).toInt)
+  }
+}
 
-case class ResourceLack(throwable: Throwable) extends JobFailedReason
-
-case class ExceedMaxRetry(throwable: Throwable) extends JobFailedReason
-
-case class UnknownThrowable(throwable: Throwable) extends JobFailedReason
-
-
-sealed trait JobCommand extends KylinJobEvent
-
-case class RunJob() extends JobCommand
-
-
+case class AvailableResource(available: ResourceInfo, max: ResourceInfo)

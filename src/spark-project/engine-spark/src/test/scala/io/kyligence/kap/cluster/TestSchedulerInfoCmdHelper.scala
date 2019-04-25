@@ -20,29 +20,31 @@
  *
  */
 
-package io.kyligence.kap.engine.spark.scheduler
+package io.kyligence.kap.cluster
 
-sealed trait KylinJobEvent
+import org.apache.spark.sql.common.SparderBaseFunSuite
 
-sealed trait JobStatus extends KylinJobEvent
+class TestSchedulerInfoCmdHelper extends SparderBaseFunSuite {
 
-case class JobSucceeded() extends JobStatus
+  test("getSocketAddress return correct socket address configured in yarn-site.xml") {
+    val address = SchedulerInfoCmdHelper.getSocketAddress
+    val expectAddress = Map("c70-host74" -> 26001, "c70-host76" -> 26001)
+    assert(address == expectAddress)
+  }
 
-case class JobFailed(reason: String, throwable: Throwable) extends JobStatus
+  test("genCmd return correct cmd") {
+    val hostName = "c70-host74"
+    val port = 26001
+    val targetCmd = s"""curl -k --negotiate -u : "https://$hostName:$port/ws/v1/cluster/scheduler""""
+    val cmd = SchedulerInfoCmdHelper.genCmd(hostName, port)
+    assert(cmd == targetCmd)
+  }
 
-sealed trait JobEndReason extends KylinJobEvent
-
-sealed trait JobFailedReason extends JobEndReason
-
-case class ResourceLack(throwable: Throwable) extends JobFailedReason
-
-case class ExceedMaxRetry(throwable: Throwable) extends JobFailedReason
-
-case class UnknownThrowable(throwable: Throwable) extends JobFailedReason
-
-
-sealed trait JobCommand extends KylinJobEvent
-
-case class RunJob() extends JobCommand
-
-
+  test("execute return std out when exec command") {
+    val stdErr = "2"
+    val stdOut = "1"
+    val tuple = SchedulerInfoCmdHelper.execute(s"(>&2 echo $stdErr;echo $stdOut)")
+    assert(tuple._1 == 0)
+    assert(tuple._2 == stdOut + "\n")
+  }
+}

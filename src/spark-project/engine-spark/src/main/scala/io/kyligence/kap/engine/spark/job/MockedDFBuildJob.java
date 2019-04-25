@@ -134,11 +134,6 @@ public class MockedDFBuildJob extends SparkApplication {
         }
     }
 
-    @Override
-    public boolean isAutoSetSparkConfEnabled() {
-        return false;
-    }
-
     public static void main(String[] args) {
         MockedDFBuildJob nDataflowBuildJob = new MockedDFBuildJob();
         nDataflowBuildJob.execute(args);

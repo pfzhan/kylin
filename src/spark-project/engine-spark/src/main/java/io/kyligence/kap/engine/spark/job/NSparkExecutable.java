@@ -259,12 +259,16 @@ public class NSparkExecutable extends AbstractExecutable {
         }
     }
 
+    protected Map<String, String> getSparkConfigOverride(KylinConfig config) {
+        return config.getSparkConfigOverride();
+    }
+
     protected String generateSparkCmd(KylinConfig config, String hadoopConf, String jars, String kylinJobJar,
                                       String appArgs) {
         StringBuilder sb = new StringBuilder();
         sb.append("export HADOOP_CONF_DIR=%s && %s/bin/spark-submit --class io.kyligence.kap.engine.spark.application.SparkEntry ");
 
-        Map<String, String> sparkConfs = config.getSparkConfigOverride();
+        Map<String, String> sparkConfs = getSparkConfigOverride(config);
         for (Map.Entry<String, String> entry : sparkConfs.entrySet()) {
             appendSparkConf(sb, entry.getKey(), entry.getValue());
         }

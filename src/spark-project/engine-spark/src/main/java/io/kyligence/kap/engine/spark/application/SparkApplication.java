@@ -30,7 +30,6 @@ import java.nio.file.Paths;
 import java.util.List;
 import java.util.Map;
 
-import io.kyligence.kap.common.persistence.metadata.MetadataStore;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -43,6 +42,8 @@ import org.apache.spark.SparkConf;
 import org.apache.spark.sql.SparderEnv;
 import org.apache.spark.sql.SparkSession;
 import org.apache.spark.sql.hive.utils.ResourceDetectUtils;
+import org.apache.spark.util.Utils;
+import org.apache.spark.utils.ResourceUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -50,7 +51,8 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
 
 import io.kyligence.kap.common.obf.IKeep;
-import io.kyligence.kap.engine.spark.job.BuildSummaryInfo;
+import io.kyligence.kap.common.persistence.metadata.MetadataStore;
+import io.kyligence.kap.engine.spark.job.KylinBuildEnv;
 import io.kyligence.kap.engine.spark.job.UdfManager;
 import io.kyligence.kap.engine.spark.utils.JobMetricsUtils;
 import io.kyligence.kap.engine.spark.utils.SparkConfHelper;
@@ -108,9 +110,11 @@ public abstract class SparkApplication implements Application, IKeep {
         try (KylinConfig.SetAndUnsetThreadLocalConfig autoCloseConfig = KylinConfig
                 .setAndUnsetThreadLocalConfig(KylinConfig.loadKylinConfigFromHdfs(hdfsMetalUrl))) {
             config = autoCloseConfig.get();
-            BuildSummaryInfo.setKylinConfig(config);
-            SparkConf sparkConf = BuildSummaryInfo.getSparkConf();
-            if (config.isAutoSetSparkConf() && isAutoSetSparkConfEnabled()) {
+            // init KylinBuildEnv
+            KylinBuildEnv buildEnv = KylinBuildEnv.getOrCreate(config);
+
+            SparkConf sparkConf = buildEnv.sparkConf();
+            if (config.isAutoSetSparkConf() && isJobOnCluster(sparkConf)) {
                 try {
                     autoSetSparkConf(sparkConf);
                 } catch (Exception e) {
@@ -119,6 +123,20 @@ public abstract class SparkApplication implements Application, IKeep {
             }
             // for wrapping credential
             CredentialUtils.wrap(sparkConf, project);
+
+            if (isJobOnCluster(sparkConf)) {
+                logger.info("Sleep for random seconds to avoid submitting too many spark job at the same time.");
+                Thread.sleep((long) (Math.random() * 60 * 1000));
+                try {
+                    while (!ResourceUtils.checkResource(sparkConf, buildEnv.clusterInfoFetcher())) {
+                        logger.info("Current available resource in cluster is not sufficient, wait for a period.");
+                        Thread.sleep((long) (Math.random() * 10 * 60 * 1000L));
+                    }
+                } catch (Throwable throwable) {
+                    logger.warn("Error occurred when check resource. Ignore it and try to submit this job. ",
+                            throwable);
+                }
+            }
 
             ss = SparkSession.builder().enableHiveSupport().config(sparkConf)
                     .config("mapreduce.fileoutputcommitter.marksuccessfuljobs", "false").getOrCreate();
@@ -147,8 +165,8 @@ public abstract class SparkApplication implements Application, IKeep {
         }
     }
 
-    public boolean isAutoSetSparkConfEnabled() {
-        return true;
+    public boolean isJobOnCluster(SparkConf conf) {
+        return !Utils.isLocalMaster(conf) && !config.isUTEnv();
     }
 
     protected abstract void doExecute() throws Exception;

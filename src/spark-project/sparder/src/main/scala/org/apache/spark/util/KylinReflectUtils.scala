@@ -53,4 +53,11 @@ object KylinReflectUtils {
     ctor.setAccessible(true)
     (ctor.newInstance(conArgs: _*), clazz)
   }
+
+  def createObject(className: String): (Any, Class[_]) = {
+    val clazz = Utils.classForName(className)
+    val ctor = clazz.getConstructors.head
+    ctor.setAccessible(true)
+    (ctor.newInstance(), clazz)
+  }
 }

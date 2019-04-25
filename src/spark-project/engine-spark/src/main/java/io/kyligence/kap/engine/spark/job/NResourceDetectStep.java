@@ -24,11 +24,9 @@
 
 package io.kyligence.kap.engine.spark.job;
 
-import java.nio.file.Paths;
 import java.util.Map;
 import java.util.Set;
 
-import lombok.val;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.constant.ExecutableConstants;
 import org.apache.kylin.job.execution.DefaultChainedExecutable;
@@ -61,25 +59,9 @@ public class NResourceDetectStep extends NSparkExecutable {
     }
 
     @Override
-    protected String generateSparkCmd(KylinConfig config, String hadoopConf, String jars, String kylinJobJar,
-            String appArgs) {
-        StringBuilder sb = new StringBuilder();
-        sb.append(
-                "export HADOOP_CONF_DIR=%s && %s/bin/spark-submit --class io.kyligence.kap.engine.spark.application.SparkEntry ");
-
-        // local spark also need to set spark.port.maxRetries
-        Map<String, String> sparkConfs = config.getSparkConfigOverride();
-        val maxRetriesKey = "spark.port.maxRetries";
-        if (sparkConfs.containsKey(maxRetriesKey)) {
-            appendSparkConf(sb, maxRetriesKey, sparkConfs.get(maxRetriesKey));
-        }
-        appendSparkConf(sb, "spark.master", "local");
-        appendSparkConf(sb, "spark.executor.extraClassPath", Paths.get(kylinJobJar).getFileName().toString());
-
-        sb.append("--jars %s %s %s");
-        String cmd = String.format(sb.toString(), hadoopConf, KylinConfig.getSparkHome(), jars, kylinJobJar, appArgs);
-        logger.info("spark submit cmd: {}", cmd);
-        return cmd;
+    protected Map<String, String> getSparkConfigOverride(KylinConfig config) {
+        Map<String, String> sparkConfigOverride = super.getSparkConfigOverride(config);
+        sparkConfigOverride.put("spark.master", "local");
+        return sparkConfigOverride;
     }
-
 }
