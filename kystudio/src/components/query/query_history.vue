@@ -1,6 +1,6 @@
 <template>
   <div id="queryHistory">
-    <query_history_table :queryHistoryData="queryHistoryData.query_histories" v-on:openAgg="openAgg" v-on:loadFilterList="loadFilterList"></query_history_table>
+    <query_history_table :queryHistoryData="queryHistoryData.query_histories" :queryNodes="queryNodes" v-on:openAgg="openAgg" v-on:loadFilterList="loadFilterList"></query_history_table>
     <kap-pager ref="queryHistoryPager" class="ksd-center ksd-mtb-10" :totalSize="queryHistoryData.size"  v-on:handleCurrentChange='pageCurrentChange'></kap-pager>
     <el-dialog
       title="Aggregate Index"
@@ -29,7 +29,8 @@ import ModelAggregate from '../studio/StudioModel/ModelList/ModelAggregate/index
 @Component({
   methods: {
     ...mapActions({
-      getHistoryList: 'GET_HISTORY_LIST'
+      getHistoryList: 'GET_HISTORY_LIST',
+      loadOnlineQueryNodes: 'LOAD_ONLINE_QUERY_NODES'
     })
   },
   computed: {
@@ -58,6 +59,7 @@ export default class QueryHistory extends Vue {
   model = {
     uuid: ''
   }
+  queryNodes = []
   async openAgg (modelId) {
     this.model.uuid = modelId
     this.aggDetailVisible = true
@@ -72,7 +74,7 @@ export default class QueryHistory extends Vue {
       latencyFrom: this.filterData.latencyFrom,
       latencyTo: this.filterData.latencyTo,
       realization: this.filterData.realization,
-      // accelerateStatus: this.filterData.accelerateStatus,
+      server: this.filterData.server,
       sql: this.filterData.sql
     }
     const res = await this.getHistoryList(resData)
@@ -83,8 +85,10 @@ export default class QueryHistory extends Vue {
     this.filterData = data
     this.loadHistoryList()
   }
-  created () {
+  async created () {
     this.currentSelectedProject && this.loadHistoryList()
+    const res = await this.loadOnlineQueryNodes()
+    this.queryNodes = await handleSuccessAsync(res)
   }
   pageCurrentChange (offset, pageSize) {
     this.queryCurrentPage = offset + 1

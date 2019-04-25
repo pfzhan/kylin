@@ -19,18 +19,22 @@
           <span class="label">{{$t('kylinLang.query. answered_by')}}: </span>
           <span class="text">{{answeredBy}}</span>
         </p>
-        <el-button plain size="mini" @click="toggleDetail" class="show-more-btn" v-if="!extraoption.pushDown">
+        <el-button plain size="mini" @click="toggleDetail" class="show-more-btn">
           {{$t('kylinLang.common.seeDetail')}}
           <i class="el-icon-arrow-down" v-show="!showDetail"></i>
           <i class="el-icon-arrow-up" v-show="showDetail"></i>
         </el-button>
       </div>
-      <div class="resultTips" v-show="showDetail" v-if="!extraoption.pushDown">
+      <div class="resultTips" v-show="showDetail">
         <p class="resultText">
+          <span class="label">{{$t('kylinLang.query.queryNode')}}: </span>
+          <span class="text">{{extraoption.server}}</span>
+        </p>
+        <p class="resultText" v-if="!extraoption.pushDown">
           <span class="label">{{$t('kylinLang.query.total_scan_count')}}: </span>
           <span class="text">{{extraoption.totalScanCount}}</span>
         </p>
-        <p class="resultText">
+        <p class="resultText" v-if="!extraoption.pushDown">
           <span class="label">{{$t('kylinLang.query.result_row_count')}}: </span>
           <span class="text">{{extraoption.resultRowCount}}</span>
         </p>

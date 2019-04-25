@@ -297,6 +297,7 @@ exports.default = {
     duration: 'Duration',
     sqlContent: 'SQL Statement:',
     answered_by: 'Answered By',
+    queryNode: 'Query Node',
     project: 'Project:',
     graphType: 'Graph Type:',
     dimension: 'Dimensions:',

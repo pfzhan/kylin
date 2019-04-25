@@ -294,6 +294,7 @@ exports.default = {
     duration: '查询执行时间',
     sqlContent: 'SQL语句：',
     answered_by: '查询对象',
+    queryNode: '查询节点',
     content: '内容：',
     project: '项目：',
     graphType: '图表类型：',

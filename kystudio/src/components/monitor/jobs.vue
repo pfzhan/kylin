@@ -156,7 +156,7 @@
             </tr>
             <tr>
               <td>{{$t('duration')}}</td>
-              <td class="greyd0">{{selectedJob.duration/60 | number(2)}} mins</td>
+              <td class="greyd0">{{selectedJob.duration/60/1000 | number(2)}} mins</td>
             </tr>
           </table>
         </div>
@@ -1330,9 +1330,15 @@ export default class JobsList extends Vue {
   }
   .jobs-dropdown {
     min-width: 80px;
-    .el-dropdown-menu__item.active {
-      background-color: @base-color-9;
-      color: @base-color-2;
+    .el-dropdown-menu__item {
+      &:focus {
+        background-color: inherit;
+        color: inherit;
+      }
+      &.active {
+        background-color: @base-color-9;
+        color: @base-color-2;
+      }
     }
   }
 </style>

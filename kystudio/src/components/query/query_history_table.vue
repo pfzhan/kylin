@@ -5,7 +5,7 @@
         <div class="ksd-title-label ksd-mt-10">{{$t('kylinLang.menu.queryhistory')}}</div>
       </div>
       <div class="ksd-fright ksd-inline searchInput ksd-ml-10">
-        <el-input v-model="filterData.sql" @input="onSqlFilterChange" prefix-icon="el-icon-search" :placeholder="$t('kylinLang.common.search')+$t('kylinLang.query.sqlContent_th')" size="medium"></el-input>
+        <el-input v-model="filterData.sql" @input="onSqlFilterChange" prefix-icon="el-icon-search" :placeholder="$t('searchSQL')" size="medium"></el-input>
       </div>
     </div>
     <el-table
@@ -91,6 +91,8 @@
           </div>
         </template>
       </el-table-column>
+      <el-table-column :renderHeader="renderColumn4" show-overflow-tooltip prop="server" width="145">
+      </el-table-column>
       <el-table-column :label="$t('kylinLang.query.submitter')" prop="submitter" width="145">
       </el-table-column>
     </el-table>
@@ -105,7 +107,7 @@ import { Component, Watch } from 'vue-property-decorator'
 import '../../util/fly.js'
 import $ from 'jquery'
 @Component({
-  props: ['queryHistoryData'],
+  props: ['queryHistoryData', 'queryNodes'],
   methods: {
     transToGmtTime: transToGmtTime,
     ...mapActions({
@@ -119,8 +121,8 @@ import $ from 'jquery'
     ])
   },
   locales: {
-    'en': {queryDetails: 'Query Details', ruleDesc: 'Favorite Condition:<br/>Query Frequency (default by daily);<br/>Query Duration;<br/>From user/ user group;<br/>Pushdown Query.', toAcce: 'Click to Accelerate'},
-    'zh-cn': {queryDetails: '查询执行详情', ruleDesc: '加速规则条件包括：<br/>查询频率(默认是每日的频率)；<br/>查询响应时间；<br/>特定用户(组)；<br/>所有下压查询。', toAcce: '去加速'}
+    'en': {queryDetails: 'Query Details', ruleDesc: 'Favorite Condition:<br/>Query Frequency (default by daily);<br/>Query Duration;<br/>From user/ user group;<br/>Pushdown Query.', toAcce: 'Click to Accelerate', searchSQL: 'Search key word or Query ID'},
+    'zh-cn': {queryDetails: '查询执行详情', ruleDesc: '加速规则条件包括：<br/>查询频率(默认是每日的频率)；<br/>查询响应时间；<br/>特定用户(组)；<br/>所有下压查询。', toAcce: '去加速', searchSQL: '搜索查询关键词或查询ID'}
   }
 })
 export default class QueryHistoryTable extends Vue {
@@ -136,7 +138,7 @@ export default class QueryHistoryTable extends Vue {
     latencyFrom: null,
     latencyTo: null,
     realization: [],
-    accelerateStatus: [],
+    server: null,
     sql: null
   }
   timer = null
@@ -218,6 +220,10 @@ export default class QueryHistoryTable extends Vue {
     }, 500)
   }
 
+  filterServer (server) {
+    this.filterData.server = this.filterData.server === server ? '' : server
+    this.filterList()
+  }
   filterList () {
     this.$emit('loadFilterList', this.filterData)
   }
@@ -365,22 +371,25 @@ export default class QueryHistoryTable extends Vue {
       </el-popover>
     </span>)
   }
-  renderColumn5 (h) {
+  renderColumn4 (h) {
     let items = []
-    for (let i = 0; i < this.statusFilteArr.length; i++) {
-      items.push(<el-checkbox label={this.statusFilteArr[i].value} key={this.statusFilteArr[i].value}><i class={this.statusFilteArr[i].name}></i> {this.$t('kylinLang.query.' + this.statusFilteArr[i].status)}</el-checkbox>)
+    for (let i = 0; i < this.queryNodes.length; i++) {
+      items.push(
+        <div onClick={() => { this.filterServer(this.queryNodes[i]) }}>
+          <el-dropdown-item class={this.queryNodes[i] === this.filterData.server ? 'active' : ''} key={i}>{this.queryNodes[i]}</el-dropdown-item>
+        </div>
+      )
     }
     return (<span>
-      <span>{this.$t('kylinLang.query.acceleration_th')}</span>
-      <el-popover
-        ref="ipFilterPopover"
-        placement="bottom"
-        popperClass="filter-popover">
-        <el-checkbox-group class="filter-groups" value={this.filterData.accelerateStatus} onInput={val => (this.filterData.accelerateStatus = val)} onChange={this.filterList}>
-          {items}
-        </el-checkbox-group>
-        <i class="el-icon-ksd-filter" slot="reference"></i>
-      </el-popover>
+      <span>{this.$t('kylinLang.query.queryNode')}</span>
+      <el-dropdown hide-on-click={false} trigger="click">
+        <i class={this.filterData.server ? 'el-icon-ksd-filter el-dropdown-link isFilter' : 'el-icon-ksd-filter el-dropdown-link'}></i>
+        <template slot="dropdown">
+          <el-dropdown-menu class="jobs-dropdown">
+            {items}
+          </el-dropdown-menu>
+        </template>
+      </el-dropdown>
     </span>)
   }
 }
@@ -423,6 +432,18 @@ export default class QueryHistoryTable extends Vue {
       width: 400px;
     }
     .history-table {
+      th .el-dropdown {
+        padding: 0;
+        line-height: 0;
+        position: relative;
+        left: 5px;
+        top: 2px;
+        .el-icon-ksd-filter {
+          float: none;
+          position: relative;
+          left: 0px;
+        }
+      }
       .ksd-table th {
         width: 140px;
       }
