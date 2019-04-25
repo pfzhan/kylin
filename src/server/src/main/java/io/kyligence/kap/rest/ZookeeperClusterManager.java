@@ -26,6 +26,7 @@ package io.kyligence.kap.rest;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import com.google.common.base.Preconditions;
 import org.apache.commons.collections.CollectionUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cloud.zookeeper.ConditionalOnZookeeperEnabled;
@@ -52,11 +53,23 @@ public class ZookeeperClusterManager implements ClusterManager {
 
     @Override
     public List<String> getQueryServers() {
-        val list = discoveryClient.getInstances("query");
+        val list = Lists.newArrayList(getQueryServers("query"));
+        list.addAll(getQueryServers("all"));
+        return list;
+    }
+
+    private List<String> getQueryServers(String serviceId) {
+        checkServiceId(serviceId);
+        val list = discoveryClient.getInstances(serviceId);
         if (CollectionUtils.isEmpty(list)) {
             return Lists.newArrayList();
         }
         return list.stream().map(serviceInstance -> serviceInstance.getHost() + ":" + serviceInstance.getPort())
                 .collect(Collectors.toList());
+    }
+
+    private void checkServiceId(String serviceId) {
+        Preconditions.checkArgument(serviceId.trim().equals("query") || serviceId.trim().equals("all")
+            || serviceId.trim().equals("job"));
     }
 }
