@@ -28,11 +28,12 @@ import java.lang.{Boolean => JBoolean, String => JString}
 import java.util.concurrent.atomic.AtomicReference
 
 import org.apache.spark.internal.Logging
+import org.apache.spark.memory.MonitorEnv
 import org.apache.spark.sql.KylinSession._
-import org.apache.spark.sql.catalyst.expressions.Expression
 import org.apache.spark.sql.catalyst.parser.ParseException
 import org.apache.spark.sql.catalyst.plans.logical.LogicalPlan
 import org.apache.spark.sql.udf.UdfManager
+import org.apache.spark.{SparkConf, SparkEnv}
 
 // fixme aron: to be same with old KE
 // scalastyle:off
@@ -111,12 +112,21 @@ object SparderEnv extends Logging {
               .currentThread()
               .getContextClassLoader
               .toString)
+          initMonitorEnv
         } catch {
           case throwable: Throwable =>
             logError("Error for init spark ", throwable)
         }
       }
     }
+  }
+
+  def initMonitorEnv(): Unit = {
+    val env = SparkEnv.get
+    val rpcEnv = env.rpcEnv
+    val sparkConf = new SparkConf
+    MonitorEnv.create(sparkConf, env.executorId, rpcEnv, null, isDriver = true)
+    logInfo("setup master endpoint finished." + "hostPort:" + rpcEnv.address.hostPort)
   }
 
   /**

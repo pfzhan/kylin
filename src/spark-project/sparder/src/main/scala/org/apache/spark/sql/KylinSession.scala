@@ -136,6 +136,8 @@ object KylinSession extends Logging {
     private lazy val kapConfig: KapConfig = KapConfig.getInstanceFromEnv
 
     def initSparkConf(sparkConf: SparkConf): SparkConf = {
+      sparkConf.set("spark.executor.plugins", "org.apache.spark.memory.MonitorExecutorExtension")
+
       // kerberos
       if (kapConfig.isKerberosEnabled) {
         sparkConf.set("spark.yarn.keytab", kapConfig.getKerberosKeytabPath)
