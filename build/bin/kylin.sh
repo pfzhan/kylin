@@ -137,7 +137,9 @@ function killChildProcess {
     if [ -f "../child_process" ]
     then
         while childPid='' read -r line || [[ -n "$line" ]]; do
-            if ps -p $line > /dev/null
+            # only kill orphan processes and spark-submit processes
+            parentId=`ps -o ppid=, "$line"`
+            if ps -p $line > /dev/null && [ "$parentId" -eq 1 ] && ps aux | grep $line | grep spark-submit > /dev/null
             then
                 pkill -P $line
             fi
