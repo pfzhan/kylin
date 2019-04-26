@@ -62,6 +62,13 @@ public class BuildAndQueryEmptySegmentsTest extends NLocalWithSparkSessionTest {
             " from test_kylin_fact \n" +
             " group by trans_id";
 
+    private static final String SQL_DERIVED = "SELECT \n" +
+            "test_cal_dt.season_beg_dt\n" +
+            "FROM test_kylin_fact LEFT JOIN edw.test_cal_dt as test_cal_dt \n" +
+            "ON test_kylin_fact.cal_dt=test_cal_dt.cal_dt \n" +
+            "WHERE test_kylin_fact.cal_dt>'2009-06-01' and test_kylin_fact.cal_dt<'2013-01-01' \n" +
+            "GROUP BY test_cal_dt.season_beg_dt";
+
     private KylinConfig config;
     private NDataflowManager dsMgr;
     private NExecutableManager execMgr;
@@ -77,7 +84,7 @@ public class BuildAndQueryEmptySegmentsTest extends NLocalWithSparkSessionTest {
         String cubeId = dsMgr.getDataflow(DF_NAME1).getIndexPlan().getUuid();
         IndexPlan cube = ipMgr.getIndexPlan(cubeId);
         Set<Long> tobeRemovedLayouts = cube.getAllLayouts().stream()
-                .filter(layout -> layout.getId() != 1L)
+                .filter(layout -> layout.getId() != 10001L)
                 .map(LayoutEntity::getId)
                 .collect(Collectors.toSet());
 
@@ -103,7 +110,8 @@ public class BuildAndQueryEmptySegmentsTest extends NLocalWithSparkSessionTest {
         buildCube(DF_NAME1, SegmentRange.dateToLong("2009-01-01"), SegmentRange.dateToLong("2009-06-01"));
         Assert.assertEquals(0, dsMgr.getDataflow(DF_NAME1).getSegments().get(0).getSegDetails().getTotalRowCount());
 
-        testQueryUnequal();
+        testQueryUnequal(SQL);
+        testQueryUnequal(SQL_DERIVED);
 
         buildCube(DF_NAME1, SegmentRange.dateToLong("2009-06-01"), SegmentRange.dateToLong("2010-01-01"));
         Assert.assertEquals(0, dsMgr.getDataflow(DF_NAME1).getSegments().get(1).getSegDetails().getTotalRowCount());
@@ -115,7 +123,8 @@ public class BuildAndQueryEmptySegmentsTest extends NLocalWithSparkSessionTest {
         mergeSegments("2009-01-01", "2010-01-01", true);
         mergeSegments("2010-01-01", "2015-01-01", true);
 
-        testQuery();
+        testQuery(SQL);
+        testQuery(SQL_DERIVED);
     }
 
     private void cleanupSegments(String dfName) {
@@ -142,19 +151,25 @@ public class BuildAndQueryEmptySegmentsTest extends NLocalWithSparkSessionTest {
         merger.merge(emptyMergeJob.getSparkMergingStep());
     }
 
-    private void testQuery() throws Exception {
-        Dataset dsFromCube = NExecAndComp.sql(getProject(), SQL);
+    private void testQuery(String sqlStr) {
+        Dataset dsFromCube = NExecAndComp.sql(getProject(), sqlStr);
         Assert.assertNotEquals(0L, dsFromCube.count());
-        Dataset dsFromSpark = NExecAndComp.querySparkSql(SQL);
+        String sql = convertToSparkSQL(sqlStr);
+        Dataset dsFromSpark = NExecAndComp.querySparkSql(sql);
         Assert.assertEquals(dsFromCube.count(), dsFromSpark.count());
     }
 
-    private void testQueryUnequal() {
+    private void testQueryUnequal(String sqlStr) {
 
-        Dataset dsFromCube = NExecAndComp.sql(getProject(), SQL);
+        Dataset dsFromCube = NExecAndComp.sql(getProject(), sqlStr);
         Assert.assertEquals(0L, dsFromCube.count());
-        Dataset dsFromSpark = NExecAndComp.querySparkSql(SQL);
+        String sql = convertToSparkSQL(sqlStr);
+        Dataset dsFromSpark = NExecAndComp.querySparkSql(sql);
         Assert.assertNotEquals(dsFromCube.count(), dsFromSpark.count());
+    }
+
+    private String convertToSparkSQL(String sqlStr) {
+        return sqlStr.replaceAll("edw\\.", "");
     }
 
 }

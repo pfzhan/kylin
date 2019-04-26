@@ -199,14 +199,30 @@ public class IndexPlanService extends BasicService {
     public AggIndexResponse calculateAggIndexCount(UpdateRuleBasedCuboidRequest request) {
         val maxCount = getConfig().getCubeAggrGroupMaxCombination();
         List<NAggregationGroup> aggregationGroups = request.getAggregationGroups();
+        val indexPlan = getIndexPlan(request.getProject(), request.getModelId()).copy();
+        AggIndexCombResult totalResult;
+        AggIndexCombResult aggIndexResult;
+
+        val aggregationGroupsCopy = aggregationGroups
+                .stream()
+                .filter(aggGroup -> aggGroup.getIncludes() != null && aggGroup.getIncludes().length != 0)
+                .collect(Collectors.toList());
+        request.setAggregationGroups(aggregationGroupsCopy);
+
+        try {
+            val newRuleBasedCuboid = new NRuleBasedIndex();
+            BeanUtils.copyProperties(request, newRuleBasedCuboid);
+            indexPlan.setRuleBasedIndex(newRuleBasedCuboid);
+        }catch (IllegalStateException e) {
+            log.error(e.getMessage());
+        }
 
         List<AggIndexCombResult> aggIndexCounts = Lists.newArrayList();
-        AggIndexCombResult aggIndexResult;
         boolean invalid = false;
         for (NAggregationGroup group: aggregationGroups) {
             long count = group.calculateCuboidCombination();
             if (count > maxCount) {
-                aggIndexResult = AggIndexCombResult.errorResult("invalid number");
+                aggIndexResult = AggIndexCombResult.errorResult();
                 invalid = true;
             }else {
                 aggIndexResult = AggIndexCombResult.successResult(count);
@@ -215,31 +231,17 @@ public class IndexPlanService extends BasicService {
         }
 
         if (invalid) {
-            aggIndexResult = AggIndexCombResult.errorResult("invalid number");
+            totalResult = AggIndexCombResult.errorResult();
         }else {
-            aggregationGroups = aggregationGroups
-                    .stream()
-                    .filter(aggGroup -> aggGroup.getIncludes() != null && aggGroup.getIncludes().length != 0)
-                    .collect(Collectors.toList());
-            request.setAggregationGroups(aggregationGroups);
+            long totalCount = indexPlan.getRuleBasedIndex().getInitialCuboidScheduler().getCuboidCount();
+            totalResult = AggIndexCombResult.successResult(totalCount);
 
-            try {
-                val indexPlan = getIndexPlan(request.getProject(), request.getModelId()).copy();
-                val newRuleBasedCuboid = new NRuleBasedIndex();
-                BeanUtils.copyProperties(request, newRuleBasedCuboid);
-                indexPlan.setRuleBasedIndex(newRuleBasedCuboid);
-                long totalCount = newRuleBasedCuboid.getInitialCuboidScheduler().getCuboidCount();
-                aggIndexResult = AggIndexCombResult.successResult(totalCount);
-            }catch (IllegalStateException e) {
-                log.error(e.getMessage());
-                aggIndexResult = AggIndexCombResult.errorResult("invalid number");
-            }
         }
-        return new AggIndexResponse(aggIndexCounts, aggIndexResult);
+        return new AggIndexResponse(aggIndexCounts, totalResult);
     }
 
     public void handleRemoveLayout(String project, String modelId, Set<Long> layoutIds, boolean includeAuto,
-            boolean includeManual) {
+                                   boolean includeManual) {
         val kylinConfig = KylinConfig.getInstanceFromEnv();
         val dfMgr = NDataflowManager.getInstance(kylinConfig, project);
         val df = dfMgr.getDataflow(modelId);

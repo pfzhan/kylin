@@ -317,7 +317,7 @@ public class QueryService extends BasicService {
     public SQLResponse doQueryWithCache(SQLRequest sqlRequest, boolean isQueryInspect) {
         long t = System.currentTimeMillis();
         aclEvaluate.checkProjectReadPermission(sqlRequest.getProject());
-        logger.info("Check query permission in " + (System.currentTimeMillis() - t) + " ms.");
+        logger.info("Check query permission in {} ms.", (System.currentTimeMillis() - t));
         sqlRequest.setUsername(getUsername());
         return UnitOfWork
                 .doInTransactionWithRetry(UnitOfWorkParams.<SQLResponse> builder().unitName(sqlRequest.getProject())
@@ -419,7 +419,7 @@ public class QueryService extends BasicService {
         try {
             return InetAddress.getLocalHost().getHostAddress() + ":" + appConfig.getPort();
         } catch (UnknownHostException e) {
-            e.printStackTrace();
+            logger.error("Exception happens when get the default server", e);
         }
         return UNKNOWN;
     }

@@ -30,23 +30,23 @@ import lombok.Getter;
 
 
 @Getter
-public class AggIndexCombResult implements Serializable {
+public class AggIndexCombResult<T extends Serializable> implements Serializable {
 
     @JsonProperty("status")
     private String status;
     @JsonProperty("result")
-    private Object result;
+    private T result;
 
-    private AggIndexCombResult(String status, Object result) {
+    private AggIndexCombResult(String status, T result) {
         this.status = status;
         this.result = result;
     }
 
-    public static <T extends Serializable> AggIndexCombResult successResult(T result) {
-        return new AggIndexCombResult("SUCCESS", result);
+    public static <E extends Serializable> AggIndexCombResult successResult(E result) {
+        return new AggIndexCombResult<>("SUCCESS", result);
     }
 
-    public static <T extends Serializable> AggIndexCombResult errorResult(T result) {
-        return new AggIndexCombResult("FAIL", result);
+    public static AggIndexCombResult errorResult() {
+        return new AggIndexCombResult<>("FAIL", "invalid number");
     }
 }
