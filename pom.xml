@@ -130,8 +130,8 @@
             **/io/kyligence/kap/engine/spark/builder/DFBuildJob.java,
             **/io/kyligence/kap/engine/spark/builder/DictionaryBuilder.java,
             **/io/kyligence/kap/rest/init/KerberosLoginUtil.java,
-            **/io/kyligence/kap/rest/init/KerberosLoginTask.java
-            **/io/kyligence/kap/spark/common/logging/HdfsAppender.java
+            **/io/kyligence/kap/rest/init/KerberosLoginTask.java,
+            **/io/kyligence/kap/spark/common/logging/HdfsAppender.java,
             **/io/kyligence/kap/spark/common/logging/QueryLoggerAdapter.java
         </sonar.coverage.exclusions>
         <sonar.jacoco.itReportPath>${project.basedir}/../../target/jacoco-it.exec</sonar.jacoco.itReportPath>
