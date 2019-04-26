@@ -20,7 +20,7 @@
               <span class="table-title">{{table.alias}} <span>({{countTableSelectColumns(table)}})</span></span>
             </div>
             <el-table
-              v-if="table.show"
+              v-if="table.show || isGuideMode"
               border
               :data="table.columns"
               @row-click="(row) => {dimensionRowClick(row, table.guid)}"

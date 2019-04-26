@@ -1164,7 +1164,7 @@ export default class FavoriteQuery extends Vue {
         position: absolute;
         right: 0;
         top: 2px;
-        z-index: 999;
+        z-index: 9;
       }
     }
     .img-groups {

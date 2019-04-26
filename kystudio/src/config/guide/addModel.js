@@ -154,17 +154,17 @@ export function addModelDrama () {
       target: 'actionTable', // 点击设置 去除蒙版
       search: '.guide-setting'
     },
-    {
-      eventID: 1,
-      done: false,
-      tip: 'addModelTip2',
-      target: 'dimensionPanelShowBtn' // 飞向dimension 面板触发按钮
-    },
-    {
-      eventID: 2,
-      done: false,
-      target: 'dimensionPanelShowBtn' // 飞向dimension 面板触发按钮
-    },
+    // {
+    //   eventID: 1,
+    //   done: false,
+    //   tip: 'addModelTip2',
+    //   target: 'dimensionPanelShowBtn' // 飞向dimension 面板触发按钮
+    // },
+    // {
+    //   eventID: 2,
+    //   done: false,
+    //   target: 'dimensionPanelShowBtn' // 飞向dimension 面板触发按钮
+    // },
     {
       eventID: 1,
       done: false,
@@ -204,16 +204,16 @@ export function addModelDrama () {
         top: 10
       }
     },
-    {
-      eventID: 1,
-      done: false,
-      target: 'measurePanelShowBtn' // 飞向打开measure面板的按钮
-    },
-    {
-      eventID: 2,
-      done: false,
-      target: 'measurePanelShowBtn' // 点击展开measure面板的按钮
-    },
+    // {
+    //   eventID: 1,
+    //   done: false,
+    //   target: 'measurePanelShowBtn' // 飞向打开measure面板的按钮
+    // },
+    // {
+    //   eventID: 2,
+    //   done: false,
+    //   target: 'measurePanelShowBtn' // 点击展开measure面板的按钮
+    // },
     ...renderMeasuresData([{
       expression: 'SUM(column)',
       parameter: 'P_LINEORDER.LO_REVENUE'
@@ -266,6 +266,26 @@ export function addModelDrama () {
       done: false,
       target: 'partitionColumn', // 输入partition column内容
       val: 'LO_ORDERDATE'
+    },
+    {
+      eventID: 1,
+      done: false,
+      target: 'getPartitionRangeDataBtn'
+    },
+    {
+      eventID: 2,
+      done: false,
+      target: 'getPartitionRangeDataBtn' // 点击加载输入范围
+    },
+    {
+      eventID: 21,
+      done: false,
+      target: 'getPartitionRangeData' // 点击加载输入范围
+    },
+    {
+      eventID: 51,
+      done: false,
+      target: 'checkPartitionDataRangeHasData'
     },
     {
       eventID: 1,

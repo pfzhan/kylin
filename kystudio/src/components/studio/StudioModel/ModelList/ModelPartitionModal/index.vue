@@ -52,10 +52,15 @@
                 class="ksd-ml-10"
                 :disabled="modelBuildMeta.isLoadExisted"
                 :loading="isLoadingNewRange"
+                v-guide.getPartitionRangeDataBtn
                 icon="el-icon-ksd-data_range_search"
                 @click="handleLoadNewestRange">
               </el-button>
             </el-tooltip>
+
+            <!-- for guide -->
+            <span v-guide.getPartitionRangeData style="position:absolute;width:1px; height:0" @click="handleLoadNewestRange"></span>
+            <span v-guide.checkPartitionDataRangeHasData style="position:absolute;width:1px; height:0" v-if="modelBuildMeta.dataRangeVal[0] && modelBuildMeta.dataRangeVal[1]"></span>
         </div>
       </el-form-item>
       </template>

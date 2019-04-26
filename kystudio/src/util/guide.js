@@ -215,7 +215,7 @@ class Guide {
   }
   _inView (dom, targetDom, stepInfo, resolve) {
     let scrollInstance = Scrollbar.get(targetDom)
-    scrollInstance.scrollIntoView(dom)
+    scrollInstance && scrollInstance.scrollIntoView(dom)
     let st = setTimeout(() => {
       if (targetDom) {
         targetDom = targetDom.$el ? targetDom.$el : targetDom
@@ -282,6 +282,7 @@ class Guide {
           resolve(stepInfo)
         }
       }).catch((e) => {
+        console.log(e)
         reject('timeout')
         console.log('guide timeout')
       })
