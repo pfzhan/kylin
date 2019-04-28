@@ -65,7 +65,7 @@ class SegmentPruner(val session: SparkSession,
     )
   }
 
-  val catalog = new InMemoryFileIndex(session, rootPaths, options, None)
+  lazy val catalog = new InMemoryFileIndex(session, rootPaths, options, userSpecifiedSchema, FileStatusCache.getOrCreate(session))
 
   override lazy val partitionSchema: StructType = {
     // we not use this.
