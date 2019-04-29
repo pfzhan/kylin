@@ -240,6 +240,22 @@ public class IndexPlanService extends BasicService {
         return new AggIndexResponse(aggIndexCounts, totalResult);
     }
 
+    public void checkIndexCountWithinLimit(UpdateRuleBasedCuboidRequest request) {
+        val indexPlan = getIndexPlan(request.getProject(), request.getModelId()).copy();
+        val newRuleBasedCuboid = new NRuleBasedIndex();
+        BeanUtils.copyProperties(request, newRuleBasedCuboid);
+        indexPlan.setRuleBasedIndex(newRuleBasedCuboid);
+
+        val maxCount = getConfig().getCubeAggrGroupMaxCombination();
+        List<NAggregationGroup> aggGroups = request.getAggregationGroups();
+        for (NAggregationGroup aggGroup : aggGroups) {
+            long count = aggGroup.calculateCuboidCombination();
+            if (count > maxCount) {
+                throw new IllegalArgumentException("The aggregate amount exceeds its limit per aggregate group, please optimize the group setting or reduce dimension amount.");
+            }
+        }
+    }
+
     public void handleRemoveLayout(String project, String modelId, Set<Long> layoutIds, boolean includeAuto,
                                    boolean includeManual) {
         val kylinConfig = KylinConfig.getInstanceFromEnv();

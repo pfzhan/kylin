@@ -58,6 +58,7 @@ public class NIndexPlanController extends NBasicController {
     public EnvelopeResponse updateRule(@RequestBody UpdateRuleBasedCuboidRequest request) {
         checkProjectName(request.getProject());
         checkRequiredArg(MODEL_ID, request.getModelId());
+        indexPlanService.checkIndexCountWithinLimit(request);
         indexPlanService.updateRuleBasedCuboid(request.getProject(), request);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, null, "");
     }

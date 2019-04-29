@@ -23,6 +23,7 @@
  */
 package io.kyligence.kap.rest.service;
 
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -58,9 +59,11 @@ import io.kyligence.kap.event.model.Event;
 import io.kyligence.kap.rest.request.CreateTableIndexRequest;
 import io.kyligence.kap.rest.request.UpdateRuleBasedCuboidRequest;
 import io.kyligence.kap.rest.response.TableIndexResponse;
+import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import lombok.var;
 
+@Slf4j
 public class IndexPlanServiceTest extends NLocalFileMetadataTestCase {
 
     @InjectMocks
@@ -349,6 +352,42 @@ public class IndexPlanServiceTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(8L, ret.getAggIndexCounts().get(0).getResult());
         Assert.assertEquals(16L, ret.getAggIndexCounts().get(1).getResult());
         Assert.assertEquals(25L, ret.getTotalCount().getResult());
+    }
+
+    @Test
+    public void testCheckIndexCountWithinLimit() {
+        String aggGroupStr = "{\"includes\":[0,1,2,3,4,5,6,7,8,9,10,11],\"select_rule\":{\"mandatory_dims\":[],\"hierarchy_dims\":[],\"joint_dims\":[]}}";
+        NAggregationGroup aggGroup = null;
+        try {
+            aggGroup = JsonUtil.readValue(aggGroupStr, NAggregationGroup.class);
+        } catch (IOException e) {
+            log.error("Read value fail ", e);
+        }
+        var request = UpdateRuleBasedCuboidRequest.builder()
+                .project("default")
+                .modelId("741ca86a-1f13-46da-a59f-95fb68615e3a")
+                .dimensions(Lists.newArrayList(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11))
+                .aggregationGroups(Lists.newArrayList(aggGroup))
+                .build();
+        indexPlanService.checkIndexCountWithinLimit(request);
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testCheckIndexCountWithinLimitFail() {
+        String aggGroupStr = "{\"includes\":[0,1,2,3,4,5,6,7,8,9,10,11,12],\"select_rule\":{\"mandatory_dims\":[],\"hierarchy_dims\":[],\"joint_dims\":[]}}";
+        NAggregationGroup aggGroup = null;
+        try {
+            aggGroup = JsonUtil.readValue(aggGroupStr, NAggregationGroup.class);
+        } catch (IOException e) {
+            log.error("Read value fail ", e);
+        }
+        var request = UpdateRuleBasedCuboidRequest.builder()
+                .project("default")
+                .modelId("741ca86a-1f13-46da-a59f-95fb68615e3a")
+                .dimensions(Lists.newArrayList(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12))
+                .aggregationGroups(Lists.newArrayList(aggGroup))
+                .build();
+        indexPlanService.checkIndexCountWithinLimit(request);
     }
 
     private AggIndexResponse calculateCount(List<NAggregationGroup> aggGroups, List<Integer> dimensions) {
