@@ -38,11 +38,8 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.RandomUtils;
-import org.apache.hadoop.fs.Path;
-import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.StorageURL;
-import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.kylin.job.engine.JobEngineConfig;
 import org.apache.kylin.job.exception.ExecuteException;
 import org.apache.kylin.job.execution.ExecutableContext;
@@ -239,7 +236,7 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
 
         validateCube(df2.getSegments().getFirstSegment().getId());
         validateTableIndex(df2.getSegments().getFirstSegment().getId());
-        validateTableExt(df.getModel());
+        //        validateTableExt(df.getModel());
     }
 
     @Test
@@ -427,17 +424,8 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
     }
 
     private void assertColumnStats(TableExtDesc tableExt) throws IOException {
-        val fs = HadoopUtil.getWorkingFileSystem();
-        val baseDir = KapConfig.wrap(config).getReadHdfsWorkingDirectory();
-        val colStatsHdfsPath = NTableMetadataManager.ColumnStatsStore.getInstance(tableExt, getTestConfig())
-                .getColumnStatsPath();
-        val fullColStatsHdfsPath = baseDir + colStatsHdfsPath;
-        val actualResult = fs.listStatus(new Path(fullColStatsHdfsPath));
-        Assert.assertEquals(1, actualResult.length);
-        Assert.assertEquals(baseDir + tableExt.getColStatsPath(), actualResult[0].getPath().toUri().toString());
-
         for (val colStats : tableExt.getColumnStats()) {
-            Assert.assertTrue(colStats.getRangeHLLC().size() > 0);
+            Assert.assertTrue(colStats.getCardinality() > 0);
         }
     }
 

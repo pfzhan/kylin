@@ -222,8 +222,6 @@ public class TableExtDesc extends RootPersistentEntity implements Serializable {
         this.project = project;
         if (this.identity != null)
             this.identity = this.identity.toUpperCase();
-
-        NTableMetadataManager.ColumnStatsStore.getInstance(this).load();
     }
 
     public boolean isPartitioned() {

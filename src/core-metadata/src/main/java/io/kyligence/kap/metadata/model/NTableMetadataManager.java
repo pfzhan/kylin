@@ -26,42 +26,28 @@ package io.kyligence.kap.metadata.model;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-import org.apache.commons.io.IOUtils;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.hadoop.fs.FSDataInputStream;
-import org.apache.hadoop.fs.FSDataOutputStream;
-import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.Path;
-import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.JsonSerializer;
 import org.apache.kylin.common.persistence.RawResource;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.persistence.Serializer;
-import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.kylin.common.util.JsonUtil;
-import org.apache.kylin.measure.hllc.HLLCSerializer;
 import org.apache.kylin.metadata.MetadataConstants;
 import org.apache.kylin.metadata.cachesync.CachedCrudAssist;
-import org.apache.kylin.metadata.datatype.DataType;
 import org.apache.kylin.metadata.model.ExternalFilterDesc;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.TableExtDesc;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import com.google.common.io.ByteStreams;
 
 import io.kyligence.kap.metadata.project.NProjectManager;
 import lombok.val;
@@ -72,8 +58,6 @@ public class NTableMetadataManager {
 
     @SuppressWarnings("unused")
     private static final Logger logger = LoggerFactory.getLogger(NTableMetadataManager.class);
-
-    private static final HLLCSerializer HLLC_SERIALIZER = new HLLCSerializer(DataType.getType("hllc14"));
 
     private static final Serializer<TableExtDesc> TABLE_EXT_SERIALIZER = new JsonSerializer<>(TableExtDesc.class);
 
@@ -271,32 +255,23 @@ public class NTableMetadataManager {
         if (t != null && t.getIdentity() == null)
             store.deleteResource(path);
 
-        ColumnStatsStore.getInstance(tableExt, config).save();
         srcExtCrud.save(tableExt);
     }
 
     public void mergeAndUpdateTableExt(TableExtDesc origin, TableExtDesc other) {
         val copyForWrite = srcExtCrud.copyForWrite(origin);
-        final boolean isAppend = copyForWrite.getLoadingRange().size() < other.getLoadingRange().size();
-        if (isAppend) {
-            // TODO merge new range if refresh
-            copyForWrite.setLoadingRange(other.getLoadingRange());
-            copyForWrite.setTotalRows(other.getTotalRows());
-        }
-
         copyForWrite.setColumnStats(other.getColumnStats());
-        copyForWrite.setColStatsPath(other.getColStatsPath());
+        copyForWrite.setSampleRows(other.getSampleRows());
+        copyForWrite.setTotalRows(other.getTotalRows());
         saveTableExt(copyForWrite);
     }
 
     public void removeTableExt(String tableName) {
-        // note, here assume always delete TableExtDesc first, then TableDesc
         TableExtDesc t = getTableExtIfExists(getTableDesc(tableName));
         if (t == null)
             return;
 
         srcExtCrud.delete(t);
-        ColumnStatsStore.getInstance(t, config).delete();
     }
 
     private TableExtDesc convertOldTableExtToNewer(String resourceName) {
@@ -367,146 +342,5 @@ public class NTableMetadataManager {
 
     private NProjectManager getProjectManager() {
         return NProjectManager.getInstance(config);
-    }
-
-    public static class ColumnStatsStore {
-        private final TableExtDesc tableExtDesc;
-        private final KylinConfig config;
-        @VisibleForTesting
-        static FileSystem fs;
-
-        private String baseDir;
-
-        private ColumnStatsStore(TableExtDesc tableExtDesc, KylinConfig config) {
-            this.tableExtDesc = tableExtDesc;
-            this.config = config;
-            baseDir = KapConfig.wrap(config).getReadHdfsWorkingDirectory();
-        }
-
-        public static ColumnStatsStore getInstance(TableExtDesc tableExtDesc, KylinConfig config) {
-            return new ColumnStatsStore(tableExtDesc, config);
-        }
-
-        public static ColumnStatsStore getInstance(TableExtDesc tableExtDesc) {
-            return new ColumnStatsStore(tableExtDesc, KylinConfig.getInstanceFromEnv());
-        }
-
-        public void load() {
-            if (StringUtils.isBlank(tableExtDesc.getColStatsPath())) {
-                return;
-            }
-            FSDataInputStream in = null;
-            val colStatsPath = new Path(baseDir + tableExtDesc.getColStatsPath());
-            prepareFS();
-            try {
-                if (!fs.exists(colStatsPath)) {
-                    logger.error("column stats file [{}] no exists in HDFS", colStatsPath);
-                    return;
-                }
-                in = fs.open(colStatsPath);
-                final Map<String, Map<String, byte[]>> colStatsTable = JsonUtil.readValue(IOUtils.toString(in),
-                        new TypeReference<Map<String, Map<String, byte[]>>>() {
-                        });
-                for (val colStats : tableExtDesc.getColumnStats()) {
-                    val colName = colStats.getColumnName();
-                    val rangeHLLC = colStatsTable.get(colName);
-                    if (rangeHLLC == null || rangeHLLC.isEmpty()) {
-                        continue;
-                    }
-                    for (val segRange : rangeHLLC.keySet()) {
-                        final byte[] hllcBytes = rangeHLLC.get(segRange);
-                        val hllc = HLLC_SERIALIZER.deserialize(ByteBuffer.wrap(hllcBytes));
-                        colStats.addRangeHLLC(segRange, hllc);
-                    }
-
-                    colStats.init();
-                }
-                logger.info("load column stats file [{}] from HDFS successful", colStatsPath);
-            } catch (Exception e) {
-                logger.error("load column stats file [{}] from HDFS failed, please refresh this segment", colStatsPath,
-                        e);
-            } finally {
-                IOUtils.closeQuietly(in);
-            }
-        }
-
-        public void save() {
-            if (tableExtDesc.getColumnStats().isEmpty()) {
-                return;
-            }
-            final Map<String, Map<String, byte[]>> colStatsTable = Maps.newHashMap();
-            FSDataOutputStream out = null;
-            Path newcolStatsResourcePath = null;
-            prepareFS();
-            try {
-                for (val colStats : tableExtDesc.getColumnStats()) {
-                    val colName = colStats.getColumnName();
-                    colStatsTable.put(colName, Maps.newHashMap());
-                    for (val rangeHLLC : colStats.getRangeHLLC().entrySet()) {
-                        val segRange = rangeHLLC.getKey();
-                        val hllc = rangeHLLC.getValue();
-                        final ByteBuffer buffer = ByteBuffer.allocate(hllc.maxLength());
-                        HLLC_SERIALIZER.serialize(hllc, buffer);
-                        colStatsTable.get(colName).put(segRange, buffer.array());
-                    }
-                }
-                // new column stats path
-                val newColStatsPath = getColumnStatsPath() + "/" + UUID.randomUUID().toString();
-                newcolStatsResourcePath = new Path(baseDir + newColStatsPath);
-                out = fs.create(newcolStatsResourcePath, true);
-                IOUtils.copy(ByteStreams.asByteSource(JsonUtil.writeValueAsBytes(colStatsTable)).openStream(), out);
-
-                // old column stats resource path
-                val oldColStatsPath = baseDir + tableExtDesc.getColStatsPath();
-                tableExtDesc.setColStatsPath(newColStatsPath);
-                logger.info("update column stats file from [{}] to [{}] in HDFS successful", oldColStatsPath,
-                        newcolStatsResourcePath.toString());
-
-                // delete old column stats if exists
-                if (StringUtils.isNotBlank(oldColStatsPath) && fs.exists(new Path(oldColStatsPath))) {
-                    fs.delete(new Path(oldColStatsPath), true);
-                    logger.info("delete old column stats file [{}] in HDFS", oldColStatsPath);
-                }
-
-                // checking and warning
-                val size = fs.listStatus(new Path(baseDir + getColumnStatsPath())).length;
-                if (size > 1) {
-                    logger.warn(
-                            "found {} column stats files in [{}] on HDFS. This may be due to multiple parallel build tasks or a bug.",
-                            size, baseDir + getColumnStatsPath());
-                }
-            } catch (Exception e) {
-                logger.error("save column stats file [{}] to HDFS occurred exception",
-                        newcolStatsResourcePath != null ? newcolStatsResourcePath : getColumnStatsPath(), e);
-            } finally {
-                IOUtils.closeQuietly(out);
-            }
-
-        }
-
-        public void delete() {
-            prepareFS();
-            try {
-                val colStatsPath = new Path(baseDir + getColumnStatsPath());
-                if (fs.exists(colStatsPath)) {
-                    fs.delete(colStatsPath, true);
-                }
-            } catch (IOException e) {
-                logger.error("delete column stats file [{}] in HDFS failed, please exec garbage clean",
-                        baseDir + getColumnStatsPath(), e);
-            }
-
-        }
-
-        @VisibleForTesting
-        public String getColumnStatsPath() {
-            return tableExtDesc.getProject() + ResourceStore.TABLE_EXD_RESOURCE_ROOT + "/" + tableExtDesc.getIdentity();
-        }
-
-        private static void prepareFS() {
-            if (fs == null) {
-                fs = HadoopUtil.getWorkingFileSystem();
-            }
-        }
     }
 }

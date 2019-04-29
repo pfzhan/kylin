@@ -24,22 +24,24 @@
 
 package io.kyligence.kap.engine.spark.stats.analyzer;
 
-import io.kyligence.kap.metadata.cube.model.NDataSegment;
-import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
-import io.kyligence.kap.metadata.model.NDataModel;
-import io.kyligence.kap.metadata.model.NDataModelManager;
-import io.kyligence.kap.metadata.model.NTableMetadataManager;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+
 import org.apache.kylin.measure.hllc.HLLCounter;
 import org.apache.kylin.metadata.model.PartitionDesc;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.TableExtDesc;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
+import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
+import io.kyligence.kap.metadata.cube.model.NDataSegment;
+import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.metadata.model.NDataModelManager;
+import io.kyligence.kap.metadata.model.NTableMetadataManager;
 
 public class ModelAnalyzerTest extends NLocalWithSparkSessionTest {
 
@@ -52,6 +54,7 @@ public class ModelAnalyzerTest extends NLocalWithSparkSessionTest {
     }
 
     @Test
+    @Ignore("Deprecated model Analyzer")
     public void testAnalyze() throws IOException {
         final NTableMetadataManager tableMetadataManager = NTableMetadataManager.getInstance(getTestConfig(),
                 "default");

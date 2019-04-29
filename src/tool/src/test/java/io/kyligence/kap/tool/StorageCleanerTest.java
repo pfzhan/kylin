@@ -43,6 +43,7 @@ import org.apache.kylin.metadata.project.ProjectInstance;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import com.google.common.collect.Maps;
@@ -72,6 +73,7 @@ public class StorageCleanerTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
+    @Ignore
     public void testCleanupGarbage() throws IOException {
         val cleaner = new StorageCleaner();
 

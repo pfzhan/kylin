@@ -36,4 +36,6 @@ public interface NBatchConstants {
     String P_DIST_META_URL = "distMetaUrl";
     String P_OUTPUT_META_URL = "outputMetaUrl";
     String P_PROJECT_NAME = "project";
+    String P_TABLE_NAME = "table";
+    String P_SAMPLING_ROWS = "samplingRows";
 }

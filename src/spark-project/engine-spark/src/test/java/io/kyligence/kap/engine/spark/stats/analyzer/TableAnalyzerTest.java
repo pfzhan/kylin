@@ -24,10 +24,8 @@
 
 package io.kyligence.kap.engine.spark.stats.analyzer;
 
-import com.google.common.collect.Maps;
-import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
-import io.kyligence.kap.engine.spark.NSparkCubingEngine;
-import io.kyligence.kap.metadata.model.NTableMetadataManager;
+import java.util.List;
+
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.source.SourceFactory;
 import org.apache.spark.sql.Dataset;
@@ -36,7 +34,13 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.util.List;
+import com.google.common.collect.Maps;
+
+import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
+import io.kyligence.kap.engine.spark.NSparkCubingEngine;
+import io.kyligence.kap.metadata.model.NTableMetadataManager;
+import lombok.val;
+import lombok.var;
 
 public class TableAnalyzerTest extends NLocalWithSparkSessionTest {
 
@@ -44,7 +48,7 @@ public class TableAnalyzerTest extends NLocalWithSparkSessionTest {
 
     @Before
     public void setup() {
-        NTableMetadataManager tableMgr = NTableMetadataManager.getInstance(getTestConfig(), "default");
+        NTableMetadataManager tableMgr = NTableMetadataManager.getInstance(getTestConfig(), getProject());
         tableDesc = tableMgr.getTableDesc("DEFAULT.TEST_KYLIN_FACT");
     }
 
@@ -111,5 +115,63 @@ public class TableAnalyzerTest extends NLocalWithSparkSessionTest {
             Assert.assertEquals(-99.79, result.getMinNumeral(PRICE), 0.0001d);
             Assert.assertEquals(9443, result.getCardinality(PRICE));
         }
+    }
+
+    @Test
+    public void testSampleFullTable() throws Exception {
+        new TableAnalyzerJob().analyzeTable(tableDesc, getProject(), 10000, getTestConfig(), ss);
+        NTableMetadataManager tableMetadataManager = NTableMetadataManager.getInstance(getTestConfig(), getProject());
+        val tableExt = tableMetadataManager.getTableExtIfExists(tableDesc);
+        Assert.assertEquals(10, tableExt.getSampleRows().size());
+
+        // column "TRANS_ID"
+        int TRANS_ID = 0;
+        var result = tableExt.getColumnStats().get(TRANS_ID);
+        {
+            Assert.assertEquals(0, result.getNullCount());
+            Assert.assertEquals(10000, result.getCardinality());
+            Assert.assertEquals("9999", result.getMaxValue());
+            Assert.assertEquals("0", result.getMinValue());
+        }
+
+        // column "CAL_DT"
+        int CAL_DT = 2;
+        result = tableExt.getColumnStats().get(CAL_DT);
+        {
+            Assert.assertEquals(0, result.getNullCount());
+            Assert.assertEquals(731, result.getCardinality());
+            Assert.assertEquals("2014-01-01", result.getMaxValue());
+            Assert.assertEquals("2012-01-01", result.getMinValue());
+        }
+
+        // column "LSTG_FORMAT_NAME"
+        int LSTG_FORMAT_NAME = 3;
+        result = tableExt.getColumnStats().get(LSTG_FORMAT_NAME);
+        {
+            Assert.assertEquals(0, result.getNullCount());
+            Assert.assertEquals(5, result.getCardinality());
+            Assert.assertEquals("Others", result.getMaxValue());
+            Assert.assertEquals("ABIN", result.getMinValue());
+        }
+
+        // column "PRICE"
+        int PRICE = 8;
+        result = tableExt.getColumnStats().get(PRICE);
+        {
+            Assert.assertEquals(0, result.getNullCount());
+            Assert.assertEquals(9506, result.getCardinality());
+            Assert.assertEquals("999.8400", result.getMaxValue());
+            Assert.assertEquals("-99.7900", result.getMinValue());
+        }
+    }
+
+    @Test
+    public void testSamplePartTable() throws Exception {
+        new TableAnalyzerJob().analyzeTable(tableDesc, getProject(), 100, getTestConfig(), ss);
+        NTableMetadataManager tableMetadataManager = NTableMetadataManager.getInstance(getTestConfig(), getProject());
+        val tableExt = tableMetadataManager.getTableExtIfExists(tableDesc);
+        Assert.assertEquals(10, tableExt.getSampleRows().size());
+        Assert.assertEquals(100.0 / 10000, tableExt.getTotalRows() / 10000.0, 0.1);
+
     }
 }

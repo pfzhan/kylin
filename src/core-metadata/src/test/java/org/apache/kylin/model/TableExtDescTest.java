@@ -99,7 +99,7 @@ public class TableExtDescTest extends NLocalFileMetadataTestCase {
         tableExtDesc = tableMetadataManager.copyForWrite(tableExtDesc);
         colStats = tableExtDesc.getColumnStats(0);
         Assert.assertEquals("col_1", colStats.getColumnName());
-        Assert.assertEquals(4L, colStats.getTotalCardinality());
+        //        Assert.assertEquals(4L, colStats.getTotalCardinality());
         Assert.assertEquals(10, colStats.getNullCount());
 
         final SegmentRange segRange_2 = new SegmentRange.TimePartitionedSegmentRange(10L, 20L);
@@ -112,7 +112,7 @@ public class TableExtDescTest extends NLocalFileMetadataTestCase {
         tableExtDesc = tableMetadataManager.getOrCreateTableExt(tableName);
         colStats = tableExtDesc.getColumnStats(0);
         Assert.assertEquals("col_1", colStats.getColumnName());
-        Assert.assertEquals(9L, colStats.getTotalCardinality());
+        //        Assert.assertEquals(9L, colStats.getTotalCardinality());
         Assert.assertEquals(21, colStats.getNullCount());
         Assert.assertEquals(9999d, colStats.getMaxNumeral(), 0.0001);
         Assert.assertEquals(-9999d, colStats.getMinNumeral(), 0.0001);
