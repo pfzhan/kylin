@@ -763,6 +763,16 @@ i[class^=el-icon-]{
   }
 }
 
+.ksd-drag-box{
+ *[draggable="true"]{
+    cursor: move;
+    &:hover{
+      border: dashed 1px @base-color!important;
+      background: @base-color-9;
+    }
+  }
+}
+
 // 其他网站嵌套，采用nomenu模式 内嵌页面专用css
 .cloud-frame-page{
   .el-breadcrumb{

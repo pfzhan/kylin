@@ -12,7 +12,7 @@
           <span class="setting-icon" @click="editTable(t.guid)"><i class="el-icon-ksd-table_setting"></i></span>
         </div>
         <div class="column-search-box"><el-input prefix-icon="el-icon-search" @input="(val) => {filterColumns(val, t.columns)}" size="small"></el-input></div>
-        <div class="column-list-box" @dragover='($event) => {allowDropColumn($event, t.guid)}' @drop='(e) => {dropColumn(e, null, t)}' v-scroll.reactive>
+        <div class="column-list-box ksd-drag-box" @dragover='($event) => {allowDropColumn($event, t.guid)}' @drop='(e) => {dropColumn(e, null, t)}' v-scroll.reactive>
           <ul >
             <li v-guide="t.guid + col.name" v-on:dragover="(e) => {dragColumnEnter(e, t)}" v-on:dragleave="dragColumnLeave" class="column-li" :class="{'column-li-cc': col.is_computed_column}" @drop.stop='(e) => {dropColumn(e, col, t)}' @dragstart="(e) => {dragColumns(e, col, t)}"  draggable v-for="col in getFilteredColumns(t.columns)" :key="col.name">
               <span class="ksd-nobr-text">
@@ -49,7 +49,7 @@
           <div class="ksd-mrl-10 ksd-mt-10">
             <el-input :placeholder="$t('searchTable')"  prefix-icon="el-icon-search" @keyup.native="(e) => filterDatasource(e)" @clear="filterDatasource"></el-input>
           </div>
-          <div v-scroll v-guide.modelDataSourceTreeScrollBox style="height:calc(100% - 29px)" class="ksd-right-4">
+          <div v-scroll v-guide.modelDataSourceTreeScrollBox style="height:calc(100% - 79px)" class="ksd-right-4">
             <DataSourceBar 
               :ignore-node-types="['column']"
               v-guide.modelDataSourceTree

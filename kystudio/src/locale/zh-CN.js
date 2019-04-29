@@ -221,7 +221,8 @@ exports.default = {
     ccWrongPosition: '该可计算列，应该定义在当前模型的表"',
     addModel: '添加模型',
     hasNoFact: '模型需要有一个事实表',
-    cycleLinkTip: '当前Join连接后，会导致表与表形成闭环。'
+    cycleLinkTip: '当前Join连接后，会导致表与表形成闭环。',
+    aloneTableTip: '表连接关系不完整。'
   },
   cube: {
     tableIndex: '表索引',

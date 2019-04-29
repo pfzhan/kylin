@@ -269,6 +269,10 @@ class NModel {
         } else {
           return reject('noFact')
         }
+        // 检查是否有脱离组织的table
+        if (this._checkHasAloneTable()) {
+          return reject('hasAloneTable')
+        }
         metaData.join_tables = this._generateLookups()
         metaData.all_named_columns = this._generateAllColumns()
         metaData.simplified_measures = this._generateAllMeasureColumns()
@@ -417,6 +421,16 @@ class NModel {
     }
     return guid
   }
+  _checkHasAloneTable () {
+    for (let key in this.tables) {
+      let t = this.tables[key]
+      let conns = this.getAllConnectsByGuid(t.guid)
+      if (conns.length === 0 && t.name !== this.fact_table) {
+        return true
+      }
+    }
+    return false
+  }
   _generateLookups () {
     let result = []
     for (let key in this.tables) {
@@ -479,9 +493,9 @@ class NModel {
     }
     return result
   }
-  getAllUsedAsPrimaryConn (guid) {
+  getConnByFKTableGuid (guid) {
     let result = []
-    var reg = new RegExp('^' + guid + '\\$')
+    var reg = new RegExp('\\$' + guid + '$')
     for (let i in this.allConnInfo) {
       if (reg.test(i)) {
         result.push(this.allConnInfo[i])

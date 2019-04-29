@@ -477,9 +477,6 @@ export default class DataSourceBar extends Vue {
   // datasource tree样式
   .el-tree {
     margin-bottom: 40px;
-    *[draggable="true"] {
-      cursor: move;
-    }
     .left {
       float: left;
       margin-right: 4px;
@@ -512,7 +509,7 @@ export default class DataSourceBar extends Vue {
       }
       .table {
         padding-right: 30px;
-        line-height: 36px;
+        line-height: 30px;
       }
       .table.has-range:hover {
         padding-right: 45px;

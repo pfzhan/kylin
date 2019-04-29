@@ -151,7 +151,7 @@
       </div>
       <div class="right">
         <el-button size="medium" @click="handleClose(false)">{{$t('kylinLang.common.cancel')}}</el-button>
-        <el-button size="medium" v-if="isShow" v-guide.saveAggBtn plain type="primary" :loading="isSubmit" @click="handleSubmit">{{$t('kylinLang.common.submit')}}</el-button>
+        <el-button size="medium" :disabled="isDisabledSaveBtn" v-if="isShow" v-guide.saveAggBtn plain type="primary" :loading="isSubmit" @click="handleSubmit">{{$t('kylinLang.common.submit')}}</el-button>
       </div>
     </div>
   </el-dialog>
@@ -248,6 +248,12 @@ export default class AggregateModal extends Vue {
     total_count: {},
     agg_index_counts: []
   }
+  resetCuboidInfo () {
+    this.cuboidsInfo = {
+      total_count: {},
+      agg_index_counts: []
+    }
+  }
   ST = null
   calcLoading = false
   calcCuboids () {
@@ -257,10 +263,7 @@ export default class AggregateModal extends Vue {
       let data = this.getSubmitData()
       if (data.dimensions.length <= 0) {
         this.calcLoading = false
-        this.cuboidsInfo = {
-          total_count: {},
-          agg_index_counts: []
-        }
+        this.resetCuboidInfo()
         return
       }
       this.getCalcCuboids(data).then((res) => {
@@ -272,10 +275,14 @@ export default class AggregateModal extends Vue {
           this.calcLoading = false
         })
       }, (res) => {
+        this.resetCuboidInfo()
         this.calcLoading = false
         handleError(res)
       })
     }, 1000)
+  }
+  get isDisabledSaveBtn () {
+    return this.calcLoading || !(this.cuboidsInfo.total_count && this.cuboidsInfo.total_count.result && /^\d+$/.test(this.cuboidsInfo.total_count.result))
   }
   renderCoboidText (cuboidsInfo) {
     if (!(cuboidsInfo && cuboidsInfo.result !== undefined)) {

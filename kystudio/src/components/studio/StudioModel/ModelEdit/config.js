@@ -128,7 +128,8 @@ export const modelRenderConfig = {
   }
 }
 export const modelErrorMsg = {
-  'noFact': 'kylinLang.model.hasNoFact'
+  'noFact': 'kylinLang.model.hasNoFact',
+  'hasAloneTable': 'kylinLang.model.aloneTableTip'
 }
 let columnTypeIconMap = {
   'boolean': 'el-icon-ksd-type_boolean',
