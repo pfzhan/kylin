@@ -282,4 +282,32 @@ public class FavoriteQueryManagerTest extends NLocalFileMetadataTestCase {
         List<FavoriteQuery> lowFrequencyFQs = favoriteQueryManager.getLowFrequencyFQs();
         Assert.assertEquals(2, lowFrequencyFQs.size());
     }
+
+    @Test
+    public void testRollBackFQToInitialStatus() {
+        FavoriteQueryManager favoriteQueryManager = FavoriteQueryManager.getInstance(getTestConfig(), PROJECT);
+
+        FavoriteQuery favoriteQuery1 = new FavoriteQuery("sql1", 1000, 10, 2000);
+        FavoriteQueryRealization realization1 = new FavoriteQueryRealization();
+        realization1.setModelId("model1");
+        realization1.setLayoutId(1);
+        FavoriteQueryRealization realization2 = new FavoriteQueryRealization();
+        realization2.setModelId("model1");
+        realization2.setLayoutId(2);
+        favoriteQuery1.setLastQueryTime(1000);
+        favoriteQuery1.setRealizations(Lists.newArrayList(realization1, realization2));
+        favoriteQuery1.setStatus(FavoriteQueryStatusEnum.ACCELERATED);
+
+        Set<FavoriteQuery> set = new HashSet<>();
+        set.add(favoriteQuery1);
+        favoriteQueryManager.create(set);
+
+        favoriteQueryManager.rollBackToInitialStatus("sql1", null);
+
+        val fqs = favoriteQueryManager.getAll();
+        fqs.sort(Comparator.comparing(FavoriteQuery::getLastQueryTime));
+
+        Assert.assertEquals(FavoriteQueryStatusEnum.TO_BE_ACCELERATED, fqs.get(0).getStatus());
+        Assert.assertEquals(0, fqs.get(0).getRealizations().size());
+    }
 }

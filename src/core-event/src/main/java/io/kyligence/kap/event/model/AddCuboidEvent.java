@@ -49,7 +49,7 @@ import io.kyligence.kap.event.handle.EventHandler;
 import lombok.Getter;
 import lombok.Setter;
 
-import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 @Setter
@@ -57,7 +57,7 @@ import java.util.UUID;
 public class AddCuboidEvent extends JobRelatedEvent {
 
     @JsonProperty("sql_patterns")
-    private List<String> sqlPatterns;
+    private Set<String> sqlPatterns;
 
     public AddCuboidEvent() {
         super();

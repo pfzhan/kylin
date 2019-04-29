@@ -235,6 +235,24 @@ public class FavoriteQueryServiceTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
+    public void testAccelerateWithNullJob() {
+        val fqManager = FavoriteQueryManager.getInstance(getTestConfig(), "newten");
+        val fq1 = new FavoriteQuery("select count(*) from test_kylin_fact");
+        fqManager.create(Sets.newHashSet(fq1));
+
+        favoriteQueryService.acceptAccelerate("newten", 1);
+
+        // no new index will be proposed
+        val fq2  = new FavoriteQuery("select count(*) from test_kylin_fact limit 500");
+        fqManager.create(Sets.newHashSet(fq2));
+        favoriteQueryService.acceptAccelerate("newten", 1);
+
+        EventDao eventDao = EventDao.getInstance(getTestConfig(), "newten");
+        Assert.assertEquals(4, eventDao.getEvents().size());
+        Assert.assertEquals(2, eventDao.getJobRelatedEvents().size());
+    }
+
+    @Test
     public void testAcceptAccelerateWithPendingSqlPattern() {
 
         getTestConfig().setProperty("kylin.server.mode", "query");

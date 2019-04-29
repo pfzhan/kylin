@@ -23,11 +23,9 @@
  */
 package io.kyligence.kap.rest.service;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Comparator;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -40,7 +38,6 @@ import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.collections.MapUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.query.relnode.OLAPContext;
 import org.apache.kylin.query.util.QueryUtil;
@@ -98,12 +95,11 @@ public class FavoriteQueryService extends BasicService {
 
     @Transaction(project = 0)
     public Map<String, Integer> createFavoriteQuery(String project, FavoriteRequest request) {
-        Map<String, Integer> result = new HashMap<String, Integer>(){{
-            put(BLACKLIST, 0);
-            put(WAITING_TAB, 0);
-            put(NOT_ACCELERATED_TAB, 0);
-            put(ACCELERATED_TAB, 0);
-        }};
+        Map<String, Integer> result = Maps.newHashMap();
+        result.put(BLACKLIST, 0);
+        result.put(WAITING_TAB, 0);
+        result.put(NOT_ACCELERATED_TAB, 0);
+        result.put(ACCELERATED_TAB, 0);
 
         int importedSqlSize = 0;
 
@@ -116,22 +112,22 @@ public class FavoriteQueryService extends BasicService {
             String sqlPattern = QueryPatternUtil.normalizeSQLPattern(correctedSql);
 
             if (blacklistSqls.contains(sqlPattern)) {
-                result.computeIfPresent(BLACKLIST, (k, v) -> v+1);
+                result.computeIfPresent(BLACKLIST, (k, v) -> v + 1);
                 continue;
             }
 
             val fq = fqManager.get(sqlPattern);
             if (fq != null) {
                 if (fq.isInWaitingList()) {
-                    result.computeIfPresent(WAITING_TAB, (k, v) -> v+1);
+                    result.computeIfPresent(WAITING_TAB, (k, v) -> v + 1);
                 }
 
                 if (fq.isNotAccelerated()) {
-                    result.computeIfPresent(NOT_ACCELERATED_TAB, (k, v) -> v+1);
+                    result.computeIfPresent(NOT_ACCELERATED_TAB, (k, v) -> v + 1);
                 }
 
                 if (fq.isAccelerated()) {
-                    result.computeIfPresent(ACCELERATED_TAB, (k, v) -> v+1);
+                    result.computeIfPresent(ACCELERATED_TAB, (k, v) -> v + 1);
                 }
 
                 continue;
@@ -347,7 +343,7 @@ public class FavoriteQueryService extends BasicService {
             sqlPatterns.add(sqlPattern);
 
             if (count % batchAccelerateSize == 0) {
-                handleAccelerate(project, sqlPatterns, getUsername());
+                handleAcceleration(project, sqlPatterns, getUsername());
                 sqlPatterns.clear();
             }
 
@@ -355,7 +351,7 @@ public class FavoriteQueryService extends BasicService {
         }
 
         if (!sqlPatterns.isEmpty()) {
-            handleAccelerate(project, sqlPatterns, getUsername());
+            handleAcceleration(project, sqlPatterns, getUsername());
         }
     }
 
@@ -367,61 +363,58 @@ public class FavoriteQueryService extends BasicService {
         ignoreCountMap.put(project, ignoreCount);
     }
 
-    private void handleAccelerate(String project, List<String> sqlList, String user) {
+    private void handleAcceleration(String project, List<String> sqlList, String user) {
+        if (CollectionUtils.isEmpty(sqlList))
+            return;
 
         KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
-        if (!CollectionUtils.isEmpty(sqlList)) {
-            // need parse sql
-            Set<String> sqlSet = Sets.newHashSet(sqlList);
+        Set<String> sqlSet = Sets.newHashSet(sqlList);
 
-            NSmartMaster master = new NSmartMaster(kylinConfig, project, sqlList.toArray(new String[0]));
+        // do auto-modeling
+        NSmartMaster master = new NSmartMaster(kylinConfig, project, sqlList.toArray(new String[0]));
+        master.runAllAndForContext(smartContext -> {
+            // handle blocked sql patterns
+            Map<String, AccelerateInfo> notAccelerated = getNotAcceleratedSqlInfo(master.getContext());
+            if (!notAccelerated.isEmpty()) {
+                sqlSet.removeAll(notAccelerated.keySet());
+                updateNotAcceleratedSqlStatus(notAccelerated, KylinConfig.getInstanceFromEnv(), project);
+            } // case of sqls with constants
+            if (CollectionUtils.isEmpty(smartContext.getModelContexts())) {
+                updateFavoriteQueryStatus(sqlSet, project, FavoriteQueryStatusEnum.ACCELERATED);
+                return;
+            }
 
-            master.runAllAndForContext(smartContext -> {
-                Map<String, AccelerateInfo> notAccelerated = getNotAcceleratedSqlInfo(master.getContext());
-                if (!notAccelerated.isEmpty()) {
-                    sqlSet.removeAll(notAccelerated.keySet());
-                    updateNotAcceleratedSqlStatus(notAccelerated, KylinConfig.getInstanceFromEnv(), project);
-                }
-                if (CollectionUtils.isEmpty(smartContext.getModelContexts())) {
-                    updateConstantSqlStatusFullyAccelerated(sqlSet, project);
+            EventManager eventManager = EventManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+            for (NSmartContext.NModelContext modelContext : smartContext.getModelContexts()) {
+
+                val sqls = getRelatedSqlsFromModelContext(modelContext, notAccelerated);
+                sqlSet.removeAll(sqls);
+                IndexPlan targetIndexPlan = modelContext.getTargetIndexPlan();
+
+                if (CollectionUtils.isEmpty(sqls)) {
                     return;
                 }
-                EventManager eventManager = EventManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
-                for (NSmartContext.NModelContext modelContext : smartContext.getModelContexts()) {
 
-                    List<String> sqls = getRelatedSqlsFromModelContext(modelContext, notAccelerated);
-                    sqlSet.removeAll(sqls);
-                    IndexPlan origIndexPlan = modelContext.getOrigIndexPlan();
-                    IndexPlan targetIndexPlan = modelContext.getTargetIndexPlan();
-                    Pair<List<Long>, List<Long>> updatedLayoutsPair = calcUpdatedLayoutIds(origIndexPlan,
-                            targetIndexPlan);
-                    List<Long> addedLayoutIds = updatedLayoutsPair.getFirst();
-                    if (CollectionUtils.isNotEmpty(addedLayoutIds)) {
-                        AddCuboidEvent addCuboidEvent = new AddCuboidEvent();
-                        addCuboidEvent.setModelId(targetIndexPlan.getUuid());
-                        addCuboidEvent.setSqlPatterns(sqls);
-                        addCuboidEvent.setOwner(user);
-                        addCuboidEvent.setJobId(UUID.randomUUID().toString());
-                        eventManager.post(addCuboidEvent);
+                AddCuboidEvent addCuboidEvent = new AddCuboidEvent();
+                addCuboidEvent.setModelId(targetIndexPlan.getUuid());
+                addCuboidEvent.setSqlPatterns(sqls);
+                addCuboidEvent.setOwner(user);
+                addCuboidEvent.setJobId(UUID.randomUUID().toString());
+                eventManager.post(addCuboidEvent);
 
-                        PostAddCuboidEvent postAddCuboidEvent = new PostAddCuboidEvent();
-                        postAddCuboidEvent.setJobId(addCuboidEvent.getJobId());
-                        postAddCuboidEvent.setModelId(targetIndexPlan.getUuid());
-                        postAddCuboidEvent.setOwner(user);
-                        postAddCuboidEvent.setJobId(addCuboidEvent.getJobId());
-                        postAddCuboidEvent.setSqlPatterns(sqls);
+                PostAddCuboidEvent postAddCuboidEvent = new PostAddCuboidEvent();
+                postAddCuboidEvent.setJobId(addCuboidEvent.getJobId());
+                postAddCuboidEvent.setModelId(targetIndexPlan.getUuid());
+                postAddCuboidEvent.setOwner(user);
+                postAddCuboidEvent.setJobId(addCuboidEvent.getJobId());
+                postAddCuboidEvent.setSqlPatterns(sqls);
 
-                        eventManager.post(postAddCuboidEvent);
+                eventManager.post(postAddCuboidEvent);
 
-                        updateFavoriteQueryStatus(sqls, project, FavoriteQueryStatusEnum.ACCELERATING);
-                    } else {
-                        updateFavoriteQueryStatus(sqls, project, FavoriteQueryStatusEnum.ACCELERATED);
-                    }
-                }
-                updateConstantSqlStatusFullyAccelerated(sqlSet, project);
-            });
-
-        }
+                updateFavoriteQueryStatus(sqls, project, FavoriteQueryStatusEnum.ACCELERATING);
+            }
+            updateFavoriteQueryStatus(sqlSet, project, FavoriteQueryStatusEnum.ACCELERATED);
+        });
     }
 
     // including pending and failed fqs
@@ -445,8 +438,8 @@ public class FavoriteQueryService extends BasicService {
 
     private static final int BLOCKING_CAUSE_MAX_LENGTH = 500;
 
-    private void updateNotAcceleratedSqlStatus(Map<String, AccelerateInfo> notAcceleratedSqlInfo, KylinConfig kylinConfig,
-                                               String project) {
+    private void updateNotAcceleratedSqlStatus(Map<String, AccelerateInfo> notAcceleratedSqlInfo,
+            KylinConfig kylinConfig, String project) {
         if (MapUtils.isEmpty(notAcceleratedSqlInfo)) {
             return;
         }
@@ -471,23 +464,19 @@ public class FavoriteQueryService extends BasicService {
         }
     }
 
-    private void updateConstantSqlStatusFullyAccelerated(Set<String> sqls, String project) {
-        if (CollectionUtils.isEmpty(sqls)) {
+    private void updateFavoriteQueryStatus(Set<String> sqlPatterns, String project, FavoriteQueryStatusEnum status) {
+        if (CollectionUtils.isEmpty(sqlPatterns))
             return;
-        }
-        updateFavoriteQueryStatus(Lists.newArrayList(sqls), project, FavoriteQueryStatusEnum.ACCELERATED);
-    }
 
-    private void updateFavoriteQueryStatus(List<String> sqlPatterns, String project, FavoriteQueryStatusEnum status) {
-        val favoriteQueryJDBCDao = FavoriteQueryManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+        val favoriteQueryManager = FavoriteQueryManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
         for (String sqlPattern : sqlPatterns) {
-            favoriteQueryJDBCDao.updateStatus(sqlPattern, status, null);
+            favoriteQueryManager.updateStatus(sqlPattern, status, null);
         }
     }
 
-    private List<String> getRelatedSqlsFromModelContext(NSmartContext.NModelContext modelContext,
+    private Set<String> getRelatedSqlsFromModelContext(NSmartContext.NModelContext modelContext,
             Map<String, AccelerateInfo> blockedSqlInfo) {
-        List<String> sqls = Lists.newArrayList();
+        Set<String> sqls = Sets.newHashSet();
         if (modelContext == null) {
             return sqls;
         }
@@ -508,50 +497,6 @@ public class FavoriteQueryService extends BasicService {
         }
 
         return sqls;
-    }
-
-    private Pair<List<Long>, List<Long>> calcUpdatedLayoutIds(IndexPlan origIndexPlan, IndexPlan targetIndexPlan) {
-        Pair<List<Long>, List<Long>> pair = new Pair<>();
-        List<Long> currentLayoutIds = new ArrayList<>();
-        List<Long> toBeLayoutIds = new ArrayList<>();
-
-        List<Long> addedLayoutIds = new ArrayList<>();
-        List<Long> removedLayoutIds = new ArrayList<>();
-        pair.setFirst(addedLayoutIds);
-        pair.setSecond(removedLayoutIds);
-
-        if (origIndexPlan == null && targetIndexPlan == null) {
-            return pair;
-        }
-
-        currentLayoutIds.addAll(getLayoutIds(origIndexPlan));
-        toBeLayoutIds.addAll(getLayoutIds(targetIndexPlan));
-
-        addedLayoutIds.addAll(currentLayoutIds);
-        addedLayoutIds.addAll(toBeLayoutIds);
-        addedLayoutIds.removeAll(currentLayoutIds);
-
-        removedLayoutIds.addAll(currentLayoutIds);
-        removedLayoutIds.addAll(toBeLayoutIds);
-        removedLayoutIds.removeAll(toBeLayoutIds);
-
-        return pair;
-    }
-
-    private List<Long> getLayoutIds(IndexPlan indexPlan) {
-        List<Long> layoutIds = Lists.newArrayList();
-        if (indexPlan == null) {
-            return layoutIds;
-        }
-        List<LayoutEntity> layoutList = indexPlan.getAllLayouts();
-        if (CollectionUtils.isEmpty(layoutList)) {
-            return layoutIds;
-        }
-
-        for (LayoutEntity layout : layoutList) {
-            layoutIds.add(layout.getId());
-        }
-        return layoutIds;
     }
 
     @Scheduled(cron = "${kylin.favorite.adjust-cron:0 0 2 * * *}")
@@ -605,12 +550,9 @@ public class FavoriteQueryService extends BasicService {
 
             FavoriteQueryManager favoriteQueryManager = FavoriteQueryManager
                     .getInstance(KylinConfig.getInstanceFromEnv(), project);
-            Arrays.stream(toUpdateSqls).forEach(sql -> {
-                favoriteQueryManager.updateStatus(sql, FavoriteQueryStatusEnum.TO_BE_ACCELERATED,
-                        "This query is not fully accelerated, move status to TO_BE_ACCELERATED");
-                favoriteQueryManager.removeRealizations(sql);
-            });
-            logger.info("There are {} favorite queries not fully accelerated, changed status to TO_BE_ACCELERATED",
+            Arrays.stream(toUpdateSqls).forEach(sql -> favoriteQueryManager.rollBackToInitialStatus(sql,
+                    "This query is not fully accelerated, move status to WAITING"));
+            logger.info("There are {} favorite queries not fully accelerated, changed status to WAITING",
                     toUpdateSqls.length);
             return null;
         }, project);

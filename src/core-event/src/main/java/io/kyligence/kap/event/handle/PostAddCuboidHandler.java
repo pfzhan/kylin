@@ -23,14 +23,16 @@
  */
 package io.kyligence.kap.event.handle;
 
-import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
+import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.execution.ChainedExecutable;
 import org.apache.kylin.job.execution.DefaultChainedExecutable;
 import org.apache.kylin.job.execution.JobTypeEnum;
+import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -50,7 +52,7 @@ import lombok.extern.slf4j.Slf4j;
 public class PostAddCuboidHandler extends AbstractEventPostJobHandler {
     private static final Logger logger = LoggerFactory.getLogger(PostAddCuboidHandler.class);
 
-    private static FavoriteQueryManager getFavoriteQueryDao(String project) {
+    private FavoriteQueryManager getFavoriteQueryManager(String project) {
         return FavoriteQueryManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
     }
 
@@ -59,7 +61,7 @@ public class PostAddCuboidHandler extends AbstractEventPostJobHandler {
         PostAddCuboidEvent event = (PostAddCuboidEvent) eventContext.getEvent();
         try {
             String project = eventContext.getProject();
-            List<String> sqlList = event.getSqlPatterns();
+            val sqlPatterns = event.getSqlPatterns();
             val jobId = event.getJobId();
             Preconditions.checkState(executable.getTasks().size() > 1, "job " + jobId + " steps is not enough");
             if (!checkSubjectExists(project, event.getModelId(), null, event)) {
@@ -72,7 +74,7 @@ public class PostAddCuboidHandler extends AbstractEventPostJobHandler {
                     .filter(task -> task instanceof  NSparkExecutable)
                     .filter(task -> ((NSparkExecutable)task).needMergeMetadata())
                     .forEach(task -> ((NSparkExecutable) task).mergerMetadata(merger));
-            handleFavoriteQuery(project, sqlList);
+            handleFavoriteQuery(project, sqlPatterns);
             finishEvent(project, event.getId());
         } catch (Throwable throwable) {
             logger.error("Process event " + event.toString() + " failed:", throwable);
@@ -108,7 +110,7 @@ public class PostAddCuboidHandler extends AbstractEventPostJobHandler {
 
         PostAddCuboidEvent event = (PostAddCuboidEvent) eventContext.getEvent();
         String project = eventContext.getProject();
-        List<String> sqlList = event.getSqlPatterns();
+        val sqlList = event.getSqlPatterns();
 
         if (!checkSubjectExists(project, event.getModelId(), null, event)) {
             finishEvent(project, event.getId());
@@ -120,13 +122,39 @@ public class PostAddCuboidHandler extends AbstractEventPostJobHandler {
         finishEvent(project, event.getId());
     }
 
-    private void handleFavoriteQuery(String project, List<String> sqlList) {
-        if (CollectionUtils.isNotEmpty(sqlList)) {
-            for (String sqlPattern : sqlList) {
-                getFavoriteQueryDao(project).updateStatus(sqlPattern, FavoriteQueryStatusEnum.ACCELERATED, null);
+    private void handleFavoriteQuery(String project, Set<String> sqlPatterns) {
+        if (CollectionUtils.isEmpty(sqlPatterns))
+            return;
+
+        val kylinConfig = KylinConfig.getInstanceFromEnv();
+        for (String sqlPattern : sqlPatterns) {
+            val fq = getFavoriteQueryManager(project).get(sqlPattern);
+            boolean allLayoutBuildFinished = true;
+
+            for (val fqr : fq.getRealizations()) {
+                String modelId = fqr.getModelId();
+                long layoutId = fqr.getLayoutId();
+                val df = NDataflowManager.getInstance(kylinConfig, project).getDataflow(modelId);
+
+                val readySegs = df.getSegments(SegmentStatusEnum.READY);
+                if (readySegs.isEmpty()) {
+                    logger.info("no ready segment exists in target index plan {}, gonna put Favorite Query {} status back to WAITING", modelId, fq.getId());
+                    allLayoutBuildFinished = false;
+                    getFavoriteQueryManager(project).rollBackToInitialStatus(sqlPattern, null);
+                    break;
+                }
+
+                val lastReadySeg = readySegs.getLatestReadySegment();
+                val dataLayout = lastReadySeg.getLayout(layoutId);
+
+                if (dataLayout == null) {
+                    allLayoutBuildFinished = false;
+                    break;
+                }
             }
+
+            if (allLayoutBuildFinished && fq.getStatus() == FavoriteQueryStatusEnum.ACCELERATING)
+                getFavoriteQueryManager(project).updateStatus(sqlPattern, FavoriteQueryStatusEnum.ACCELERATED, null);
         }
-
     }
-
 }

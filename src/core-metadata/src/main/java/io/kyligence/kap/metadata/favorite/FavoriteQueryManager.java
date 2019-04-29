@@ -160,6 +160,17 @@ public class FavoriteQueryManager implements IKeepNames {
         favoriteQueryMap.put(sqlPattern, crud.save(copyForWrite));
     }
 
+    public void rollBackToInitialStatus(String sqlPattern, String comment) {
+        FavoriteQuery cached = get(sqlPattern);
+        if (cached == null)
+            return;
+
+        FavoriteQuery copyForWrite = crud.copyForWrite(cached);
+        copyForWrite.updateStatus(FavoriteQueryStatusEnum.TO_BE_ACCELERATED, comment);
+        copyForWrite.setRealizations(Lists.newArrayList());
+        favoriteQueryMap.put(sqlPattern, crud.save(copyForWrite));
+    }
+
     // for ut
     public Map<String, FavoriteQuery> getFavoriteQueryMap() {
         return favoriteQueryMap;
