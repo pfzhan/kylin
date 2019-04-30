@@ -27,13 +27,10 @@ package io.kyligence.kap.rest.service;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.time.Instant;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.metadata.query.NativeQueryRealization;
-import lombok.val;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.rest.exception.BadRequestException;
 import org.junit.After;
@@ -47,11 +44,13 @@ import org.mockito.Mockito;
 import com.google.common.collect.Lists;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.metadata.query.NativeQueryRealization;
 import io.kyligence.kap.metadata.query.QueryHistory;
 import io.kyligence.kap.metadata.query.QueryHistoryDAO;
 import io.kyligence.kap.metadata.query.QueryHistoryRequest;
 import io.kyligence.kap.metadata.query.QueryStatistics;
 import io.kyligence.kap.rest.response.QueryStatisticsResponse;
+import lombok.val;
 
 public class QueryHistoryServiceTest extends NLocalFileMetadataTestCase {
     private static final String PROJECT = "default";
@@ -105,7 +104,7 @@ public class QueryHistoryServiceTest extends NLocalFileMetadataTestCase {
         Mockito.doReturn(10).when(queryHistoryDAO).getQueryHistoriesSize(Mockito.any());
         Mockito.doReturn(queryHistoryDAO).when(queryHistoryService).getQueryHistoryDao(PROJECT);
 
-        HashMap<String, Object> result = queryHistoryService.getQueryHistories(request, 10, 0);
+        Map<String, Object> result = queryHistoryService.getQueryHistories(request, 10, 0);
         List<QueryHistory> queryHistories = (List<QueryHistory>) result.get("query_histories");
         int size = (int) result.get("size");
 

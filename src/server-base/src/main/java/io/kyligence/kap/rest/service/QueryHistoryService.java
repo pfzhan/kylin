@@ -30,6 +30,8 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import com.google.common.collect.Lists;
@@ -64,7 +66,7 @@ import lombok.val;
 public class QueryHistoryService extends BasicService {
     private static final Logger logger = LoggerFactory.getLogger(QueryHistoryService.class);
 
-    public HashMap<String, Object> getQueryHistories(QueryHistoryRequest request, final int limit, final int offset) {
+    public Map<String, Object> getQueryHistories(QueryHistoryRequest request, final int limit, final int offset) {
         Preconditions.checkArgument(request.getProject() != null && StringUtils.isNotEmpty(request.getProject()));
         QueryHistoryDAO queryHistoryDAO = getQueryHistoryDao(request.getProject());
         val dataModelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), request.getProject());
@@ -75,6 +77,20 @@ public class QueryHistoryService extends BasicService {
 
         HashMap<String, Object> data = new HashMap<>();
         List<QueryHistory> queryHistories = Lists.newArrayList();
+
+        if (request.getSql() == null) {
+            request.setSql("");
+        }
+
+        if (request.getSql() != null) {
+            request.setSql(request.getSql().trim());
+        }
+
+        if (haveSpaces(request.getSql())) {
+            data.put("query_histories", queryHistories);
+            data.put("size", 0);
+            return data;
+        }
 
         queryHistoryDAO.getQueryHistoriesByConditions(request, limit, offset).stream().forEach(query -> {
             if (StringUtils.isEmpty(query.getQueryRealizations())) {
@@ -98,6 +114,16 @@ public class QueryHistoryService extends BasicService {
         data.put("size", queryHistoryDAO.getQueryHistoriesSize(request));
 
         return data;
+    }
+
+    private boolean haveSpaces(String text) {
+        if (text == null) {
+            return false;
+        }
+        String regex = "[\r|\n|\\s]+";
+        Pattern pattern = Pattern.compile(regex);
+        Matcher matcher = pattern.matcher(text);
+        return matcher.find();
     }
 
     public QueryStatisticsResponse getQueryStatistics(String project, long startTime, long endTime) {
@@ -184,7 +210,7 @@ public class QueryHistoryService extends BasicService {
 
     public Map<String, String> getQueryHistoryTableMap(List<String> projects) {
         if (projects == null) {
-            projects = getProjectManager().listAllProjects().stream().map(projectInstance -> projectInstance.getName())
+            projects = getProjectManager().listAllProjects().stream().map(ProjectInstance::getName)
                     .collect(Collectors.toList());
         }
 

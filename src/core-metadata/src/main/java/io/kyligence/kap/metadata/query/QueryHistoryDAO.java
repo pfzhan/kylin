@@ -237,7 +237,7 @@ public class QueryHistoryDAO {
         }
 
         if (StringUtils.isNotEmpty(request.getSql())) {
-            sb.append(String.format("AND (sql_text =~ /%s/", escapeExprSpecialWord(request.getSql().trim())));
+            sb.append(String.format("AND (sql_text =~ /%s/", escapeExprSpecialWord(request.getSql())));
             if (Pattern.matches(queryIdReg, request.getSql())) {
                 sb.append(String.format(" OR query_id = '%s'", request.getSql()));
             }
@@ -308,8 +308,8 @@ public class QueryHistoryDAO {
     private String escapeExprSpecialWord(String keyword) {
         if (StringUtils.isNotBlank(keyword)) {
             keyword = keyword.replaceAll("/", "\\\\/");
-            return Pattern.quote(keyword);
+            keyword = Pattern.quote(keyword);
         }
-        return keyword;
+        return "(?i)" + keyword;
     }
 }

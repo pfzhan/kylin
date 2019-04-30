@@ -210,8 +210,8 @@ public class QueryHistoryDAOTest extends NLocalFileMetadataTestCase {
         request.setLatencyTo("10");
 
         // when there are some escaped characters in sql
-        String querySql = "select * from test_table where (test_table.test_column1='?' OR test_table.test_column1='.') AND test_table.test_column2!='/' ";
-        String querySqlEscaped = "\\Qselect * from test_table where (test_table.test_column1='?' OR test_table.test_column1='.') AND test_table.test_column2!='\\/'\\E";
+        String querySql = "select * from test_table where (test_table.test_column1='?' OR test_table.test_column1='.') AND test_table.test_column2!='/'";
+        String querySqlEscaped = "(?i)\\Qselect * from test_table where (test_table.test_column1='?' OR test_table.test_column1='.') AND test_table.test_column2!='\\/'\\E";
         request.setSql(querySql);
         expectedQueryHistoriesSql = String.format("SELECT * FROM %s WHERE 1 = 1 AND (query_time >= 0 AND query_time < 1) " +
                         "AND (\"duration\" >= 0 AND \"duration\" <= 10000) AND (server = 'localhost:7070') AND (sql_text =~ /%s/) ORDER BY time DESC LIMIT %d OFFSET %d",
@@ -222,7 +222,7 @@ public class QueryHistoryDAOTest extends NLocalFileMetadataTestCase {
 
         // when query with query_id
         querySql = "aa5531ab-128e-4617-b88b-1cedb6d065ea";
-        querySqlEscaped = "\\Qaa5531ab-128e-4617-b88b-1cedb6d065ea\\E";
+        querySqlEscaped = "(?i)\\Qaa5531ab-128e-4617-b88b-1cedb6d065ea\\E";
         request.setSql(querySql);
         expectedQueryHistoriesSql = String.format("SELECT * FROM %s WHERE 1 = 1 AND (query_time >= 0 AND query_time < 1) " +
                         "AND (\"duration\" >= 0 AND \"duration\" <= 10000) AND (server = 'localhost:7070') AND (sql_text =~ /%s/ OR query_id = '%s') ORDER BY time DESC LIMIT %d OFFSET %d",
@@ -233,7 +233,7 @@ public class QueryHistoryDAOTest extends NLocalFileMetadataTestCase {
 
         // when there is a filter condition for sql
         querySql = "select * from test_table";
-        querySqlEscaped = "\\Qselect * from test_table\\E";
+        querySqlEscaped = "(?i)\\Qselect * from test_table\\E";
         request.setSql(querySql);
         expectedQueryHistoriesSql = String.format("SELECT * FROM %s WHERE 1 = 1 AND (query_time >= 0 AND query_time < 1) " +
                         "AND (\"duration\" >= 0 AND \"duration\" <= 10000) AND (server = 'localhost:7070') AND (sql_text =~ /%s/) ORDER BY time DESC LIMIT %d OFFSET %d",
