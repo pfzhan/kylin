@@ -252,8 +252,7 @@ public abstract class CachedCrudAssist<T extends RootPersistentEntity> {
     public List<T> listAll() {
         val all = Lists.<T> newArrayList();
         for (String path : store.collectResourceRecursively(resRootPath, resPathSuffix)) {
-            T value = get(resourceName(path));
-            all.add(value);
+            all.add(get(resourceName(path)));
         }
         return all;
     }

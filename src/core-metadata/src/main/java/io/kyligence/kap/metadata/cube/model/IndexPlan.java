@@ -83,7 +83,6 @@ import lombok.val;
 @SuppressWarnings("serial")
 public class IndexPlan extends RootPersistentEntity implements Serializable, IEngineAware, IKeep {
     public static final String INDEX_PLAN_RESOURCE_ROOT = "/index_plan";
-
     public static String concatResourcePath(String name) {
         return INDEX_PLAN_RESOURCE_ROOT + "/" + name + MetadataConstants.FILE_SURFIX;
     }
@@ -167,7 +166,6 @@ public class IndexPlan extends RootPersistentEntity implements Serializable, IEn
         initConfig4IndexPlan(config);
 
         checkNotNull(getModel(), "NDataModel(%s) not found", uuid);
-
         initAllCuboids();
         initDimensionAndMeasures();
         initAllColumns();
@@ -197,16 +195,21 @@ public class IndexPlan extends RootPersistentEntity implements Serializable, IEn
             ruleBasedIndex.init();
             ruleBasedLayouts.addAll(ruleBasedIndex.genCuboidLayouts());
         }
-        for (IndexEntity indexEntity : indexes) {
-            indexEntity.init();
-        }
-
     }
 
     private void initDimensionAndMeasures() {
-        final BitSet dimBitSet = new BitSet();
-        final BitSet measureBitSet = new BitSet();
-        for (IndexEntity cuboid : getAllIndexes()) {
+        val indexes = getAllIndexes();
+        int size1 = 1;
+        int size2 = 1;
+        for (IndexEntity cuboid : indexes) {
+            size1 = Math.max(cuboid.getDimensionBitset().size(), size1);
+            size2 = Math.max(cuboid.getMeasureBitset().size(), size2);
+        }
+
+        final BitSet dimBitSet = new BitSet(size1);
+        final BitSet measureBitSet = new BitSet(size2);
+
+        for (IndexEntity cuboid : indexes) {
             dimBitSet.or(cuboid.getDimensionBitset().mutable());
             measureBitSet.or(cuboid.getMeasureBitset().mutable());
         }
@@ -483,14 +486,9 @@ public class IndexPlan extends RootPersistentEntity implements Serializable, IEn
             }
             mergedCuboids.get(index).setLayouts(originLayouts);
         }
-        mergedCuboids.forEach(value -> {
-            value.setIndexPlan(this);
-            if (this.project != null) {
-                // project is null means this is not initialized
-                value.init();
-            }
-        });
+        mergedCuboids.forEach(value -> value.setIndexPlan(this));
         return mergedCuboids;
+
     }
 
     public List<LayoutEntity> getAllLayouts() {

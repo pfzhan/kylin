@@ -155,14 +155,19 @@ public class NKapCuboidScheduler243 extends NCuboidScheduler {
     }
 
     private long getOnTreeParent(long child) {
-        Collection<Long> candidates = getOnTreeParents(child);
+        Set<Long> candidates = getOnTreeParents(child);
         if (candidates == null || candidates.isEmpty()) {
             return -1;
         }
         return Collections.min(candidates, cuboidSelectComparator);
     }
 
+    private Map<Long, Set<Long>> childParents = Maps.newConcurrentMap();
+
     private Set<Long> getOnTreeParents(long child) {
+        if (childParents.containsKey(child)) {
+            return childParents.get(child);
+        }
         Set<Long> parentCandidate = new HashSet<>();
 
         if (child == ruleBasedAggIndex.getFullMask()) {
@@ -177,6 +182,7 @@ public class NKapCuboidScheduler243 extends NCuboidScheduler {
             }
         }
 
+        childParents.put(child, parentCandidate);
         return parentCandidate;
     }
 

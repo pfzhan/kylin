@@ -34,6 +34,7 @@ import java.util.Objects;
 import java.util.function.BiPredicate;
 import java.util.function.Predicate;
 
+import org.apache.kylin.common.util.BitSets;
 import org.apache.kylin.common.util.ImmutableBitSet;
 import org.apache.kylin.metadata.model.TblColRef;
 
@@ -51,6 +52,8 @@ import com.google.common.collect.Maps;
 import io.kyligence.kap.common.obf.IKeep;
 import io.kyligence.kap.metadata.model.NDataModel;
 import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.val;
 
 @SuppressWarnings("serial")
 @JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.NONE, getterVisibility = JsonAutoDetect.Visibility.NONE, isGetterVisibility = JsonAutoDetect.Visibility.NONE, setterVisibility = JsonAutoDetect.Visibility.NONE)
@@ -85,33 +88,53 @@ public class IndexEntity implements Serializable, IKeep {
     private List<LayoutEntity> layouts = Lists.newArrayList();
 
     // computed fields below
+    @Getter(lazy = true)
+    private final BiMap<Integer, TblColRef> effectiveDimCols = initEffectiveDimCols();
 
-    private transient BiMap<Integer, TblColRef> effectiveDimCols; // BiMap impl (com.google.common.collect.Maps$FilteredEntryBiMap) is not serializable
-    private ImmutableBiMap<Integer, Measure> effectiveMeasures;
-    private ImmutableBitSet dimensionBitset = null;
-    private ImmutableBitSet measureBitset = null;
-    private ImmutableSet<TblColRef> dimensionSet = null;
-    private ImmutableSet<Measure> measureSet = null;
+    private BiMap<Integer, TblColRef> initEffectiveDimCols() {
+        return Maps.filterKeys(getModel().getEffectiveColsMap(),
+                input -> input != null && getDimensionBitset().get(input));
+    }
 
-    void init() {
-        NDataModel model = getModel();
-        this.dimensionBitset = ImmutableBitSet.valueOf(dimensions);
-        this.measureBitset = ImmutableBitSet.valueOf(measures);
+    @Getter(lazy = true)
+    private final ImmutableBiMap<Integer, Measure> effectiveMeasures = initEffectiveMeasures() ;
 
-        this.effectiveDimCols = Maps.filterKeys(model.getEffectiveColsMap(),
-                input -> input != null && dimensionBitset.get(input));
-
-        this.dimensionSet = ImmutableSet.copyOf(this.effectiveDimCols.values());
-
-        // TODO: all layouts' measure order must follow cuboid_desc's define ?
+    private ImmutableBiMap<Integer, Measure> initEffectiveMeasures() {
+        val model = getModel();
         ImmutableBiMap.Builder<Integer, Measure> measuresBuilder = ImmutableBiMap.builder();
         for (int m : measures) {
             if (model.getEffectiveMeasureMap().containsKey(m)) {
                 measuresBuilder.put(m, model.getEffectiveMeasureMap().get(m));
             }
         }
-        this.effectiveMeasures = measuresBuilder.build();
-        this.measureSet = effectiveMeasures.values();
+        return measuresBuilder.build();
+    }
+    @Getter(lazy = true)
+    private final ImmutableBitSet dimensionBitset = initDimensionBitset();
+
+    private ImmutableBitSet initDimensionBitset() {
+        return ImmutableBitSet.valueOf(dimensions);
+    }
+
+    @Getter(lazy = true)
+    private final ImmutableBitSet measureBitset = initMeasureBitset();
+
+    private ImmutableBitSet initMeasureBitset() {
+         return ImmutableBitSet.valueOf(measures);
+    }
+
+    @Getter(lazy = true)
+    private final ImmutableSet<TblColRef> dimensionSet = initDimensionSet();
+
+    private ImmutableSet<TblColRef> initDimensionSet() {
+        return ImmutableSet.copyOf(getEffectiveDimCols().values());
+    }
+    @Getter(lazy = true)
+    private final ImmutableSet<Measure> measureSet = initMeasureSet();
+
+    private ImmutableSet<Measure> initMeasureSet() {
+        // TODO: all layouts' measure order must follow cuboid_desc's define ?
+        return getEffectiveMeasures().values();
     }
 
     public boolean dimensionsDerive(TblColRef... dimensions) {
@@ -149,30 +172,6 @@ public class IndexEntity implements Serializable, IKeep {
         } else {
             return existing.get(existing.size() - 1);
         }
-    }
-
-    public BiMap<Integer, TblColRef> getEffectiveDimCols() {
-        return effectiveDimCols;
-    }
-
-    public ImmutableBiMap<Integer, Measure> getEffectiveMeasures() {
-        return effectiveMeasures;
-    }
-
-    public ImmutableBitSet getDimensionBitset() {
-        return dimensionBitset;
-    }
-
-    public ImmutableBitSet getMeasureBitset() {
-        return measureBitset;
-    }
-
-    public ImmutableSet<TblColRef> getDimensionSet() {
-        return dimensionSet;
-    }
-
-    public ImmutableSet<Measure> getMeasureSet() {
-        return measureSet;
     }
 
     // ============================================================================
@@ -272,7 +271,7 @@ public class IndexEntity implements Serializable, IKeep {
 
     @Override
     public String toString() {
-        return "IndexEntity{ Id=" + id + ", dimBitSet=" + dimensionBitset + ", measureBitSet=" + measureBitset + "}.";
+        return "IndexEntity{ Id=" + id + ", dimBitSet=" + getDimensionBitset() + ", measureBitSet=" + getMeasureBitset() + "}.";
     }
 
     public static class IndexIdentifier {
@@ -315,8 +314,8 @@ public class IndexEntity implements Serializable, IKeep {
 
     public IndexIdentifier createCuboidIdentifier() {
         return new IndexIdentifier(//
-                ImmutableBitSet.valueOf(getDimensions()).mutable(), //
-                ImmutableBitSet.valueOf(getMeasures()).mutable(), //
+                BitSets.valueOf(getDimensions()), //
+                BitSets.valueOf(getMeasures()), //
                 isTableIndex()//
         );
     }

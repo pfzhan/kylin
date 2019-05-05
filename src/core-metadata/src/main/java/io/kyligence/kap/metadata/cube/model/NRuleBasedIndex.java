@@ -26,15 +26,13 @@ package io.kyligence.kap.metadata.cube.model;
 
 import java.io.Serializable;
 import java.util.Arrays;
+import java.util.BitSet;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.metadata.cube.cuboid.NAggregationGroup;
-import io.kyligence.kap.metadata.cube.cuboid.NCuboidScheduler;
-import lombok.NoArgsConstructor;
 import org.apache.kylin.common.util.ImmutableBitSet;
 import org.apache.kylin.metadata.model.IStorageAware;
 import org.apache.kylin.metadata.model.MeasureDesc;
@@ -52,8 +50,11 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.obf.IKeep;
+import io.kyligence.kap.metadata.cube.cuboid.NAggregationGroup;
+import io.kyligence.kap.metadata.cube.cuboid.NCuboidScheduler;
 import io.kyligence.kap.metadata.model.NDataModel;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.val;
 import lombok.var;
@@ -251,6 +252,13 @@ public class NRuleBasedIndex implements Serializable, IKeep {
         this.parentForward = parentForward;
     }
 
+    @Getter(lazy = true)
+    private final ImmutableBitSet measuresBitSet = initMeasuresBitSet();
+
+    private ImmutableBitSet initMeasuresBitSet() {
+        return ImmutableBitSet.valueOf(getMeasures());
+    }
+
     public boolean isBlackedIndex(long cuboidId) {
         return indexBlackSet.contains(cuboidId);
     }
@@ -258,7 +266,6 @@ public class NRuleBasedIndex implements Serializable, IKeep {
     void genCuboidLayouts(Set<LayoutEntity> result) {
         NCuboidScheduler initialCuboidScheduler = getInitialCuboidScheduler();
         List<Long> allCuboidIds = Lists.newArrayList(initialCuboidScheduler.getAllCuboidIds());
-
         Map<LayoutEntity, Long> layoutIdMap = Maps.newHashMap();
         for (LayoutEntity layout : result) {
             layoutIdMap.put(layout, layout.getId());
@@ -274,7 +281,8 @@ public class NRuleBasedIndex implements Serializable, IKeep {
         }
         val needAllocationId = layoutIdMapping.isEmpty();
         long proposalId = indexStartId + 1;
-
+        BitSet bitSet = new BitSet(1024);
+        val measures = getMeasuresBitSet().mutable();
         //convert all legacy cuboids generated from rules to LayoutEntity
         for (int i = 0; i < allCuboidIds.size(); i++) {
             long cuboidId = allCuboidIds.get(i);
@@ -289,10 +297,12 @@ public class NRuleBasedIndex implements Serializable, IKeep {
             layout.setStorageType(IStorageAware.ID_NDATA_STORAGE);
 
             val dimensionsInLayout = tailor(getDimensions(), cuboidId);
-
+            for (Integer integer : dimensionsInLayout) {
+                bitSet.set(integer);
+            }
             // if a cuboid is same as the layout's one, then reuse it
-            val cuboidIdentifier = new IndexEntity.IndexIdentifier(ImmutableBitSet.valueOf(dimensionsInLayout).mutable(),
-                    ImmutableBitSet.valueOf(getMeasures()).mutable(), false);
+            val cuboidIdentifier = new IndexEntity.IndexIdentifier(bitSet,
+                    measures, false);
             var maybeCuboid = identifierNCuboidDescMap.get(cuboidIdentifier);
             // if two layout is equal, the id should be same
             Long prevId = layoutIdMap.get(layout);
@@ -320,11 +330,11 @@ public class NRuleBasedIndex implements Serializable, IKeep {
                 maybeCuboid.setDimensions(dimensionsInLayout);
                 maybeCuboid.setMeasures(getMeasures());
                 maybeCuboid.setIndexPlan(indexPlan);
-                maybeCuboid.init();
             }
             layout.setIndex(maybeCuboid);
 
             result.add(layout);
+            bitSet.clear();
         }
     }
 
@@ -335,8 +345,9 @@ public class NRuleBasedIndex implements Serializable, IKeep {
         Integer[] ret = new Integer[bitCount];
 
         int next = 0;
-        for (int i = 0; i < complete.size(); i++) {
-            int shift = complete.size() - i - 1;
+        int size = complete.size();
+        for (int i = 0; i < size; i++) {
+            int shift = size - i - 1;
             if ((cuboidId & (1L << shift)) != 0) {
                 ret[next++] = complete.get(i);
             }

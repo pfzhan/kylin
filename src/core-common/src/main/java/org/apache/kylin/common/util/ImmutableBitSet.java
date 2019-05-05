@@ -55,17 +55,11 @@ public class ImmutableBitSet implements Iterable<Integer>, Serializable {
     public static final ImmutableBitSet EMPTY = new ImmutableBitSet(new BitSet());
 
     public static ImmutableBitSet valueOf(int... values) {
-        BitSet set = new BitSet();
-        for (int i : values)
-            set.set(i);
-        return new ImmutableBitSet(set);
+        return new ImmutableBitSet(BitSets.valueOf(values), false);
     }
 
     public static ImmutableBitSet valueOf(List<Integer> values) {
-        BitSet set = new BitSet();
-        for (int i : values)
-            set.set(i);
-        return new ImmutableBitSet(set);
+        return new ImmutableBitSet(BitSets.valueOf(values), false);
     }
 
     // ============================================================================
@@ -77,14 +71,22 @@ public class ImmutableBitSet implements Iterable<Integer>, Serializable {
         this(newBitSet(index));
     }
 
-    public ImmutableBitSet(BitSet set) {
-        this.set = (BitSet) set.clone();
+    private ImmutableBitSet(BitSet set, boolean needClone) {
+        if (needClone) {
+            this.set = (BitSet) set.clone();
+        } else {
+            this.set = set;
+        }
         this.arr = new int[set.cardinality()];
 
         int j = 0;
         for (int i = set.nextSetBit(0); i >= 0; i = set.nextSetBit(i + 1)) {
             arr[j++] = i;
         }
+    }
+
+    public ImmutableBitSet(BitSet set) {
+        this(set, true);
     }
 
     private static BitSet newBitSet(int index) {
@@ -233,5 +235,9 @@ public class ImmutableBitSet implements Iterable<Integer>, Serializable {
                 throw new UnsupportedOperationException();
             }
         };
+    }
+
+    public int size() {
+        return set.size();
     }
 }
