@@ -20,7 +20,7 @@ spring:
       discovery:
         root: /kylin/${kylin.metadata.url.identifier}/services
   session:
-    store-type: jdbc
+    store-type: HASH_MAP
     jdbc:
       table-name: ${kylin.metadata.url.identifier}_session
 
