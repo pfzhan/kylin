@@ -42,7 +42,11 @@ then
     -o -name "hadoop-yarn-server-web-proxy-*.jar" -not -name "*test*" \
     -o -name "hadoop-yarn-server-applicationhistoryservice-*.jar" -not -name "*test*")
 
-    other_jars=$(find $FI_ENV_PLATFORM/HDFS/hadoop/share/hadoop/common/lib/ -maxdepth 1 -name "dynalogger*")
+    other_jars1=$(find $FI_ENV_PLATFORM/HDFS/hadoop/share/hadoop/common/lib/ -maxdepth 1 -name "dynalogger*")
+    other_jars2=$(find $FI_ENV_PLATFORM/ZooKeeper/zookeeper/ -maxdepth 1 -name "zookeeper-*")
+    other_jars="${other_jars1} ${other_jars2}"
+
+    find ${SPARK_HOME}/jars -name "zookeeper-*" -exec rm -rf {} \;
 
 elif [ -d "/opt/cloudera/parcels/CDH" ]
 then

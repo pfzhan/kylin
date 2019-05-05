@@ -200,7 +200,8 @@
                                 org.apache.hive,
                                 org.apache.hive.hcatalog,
                                 org.apache.spark,
-                                org.apache.kafka
+                                org.apache.kafka,
+                                org.apache.zookeeper
                             </excludeGroupIds>
                         </configuration>
                     </execution>
