@@ -125,6 +125,62 @@
               </el-table-column>
             </el-table>
           </div>
+
+
+          <template v-if="ccTable.columns.length">
+            <div class="ksd-mb-10" v-for="ccTable in [ccTable]" :key="ccTable.guid">
+              <div @click="toggleTableShow(ccTable)" class="table-header">
+                <i class="el-icon-arrow-right ksd-fright ksd-mt-14 right-icon" v-if="!ccTable.show"></i>
+                <i class="el-icon-arrow-down  ksd-fright ksd-mt-14 right-icon" v-else></i>
+                <el-checkbox v-model="ccTable.checkedAll" :indeterminate="ccTable.isIndeterminate" @click.native.stop  @change="(isAll) => {selectAllChange(isAll, ccTable.guid)}"></el-checkbox>
+                <span class="ksd-ml-2">
+                  <i class="el-icon-ksd-auto_computed_column"></i>
+                </span>
+                <span class="table-title">{{$t('computedColumns')}} <span>({{countTableSelectColumns(ccTable)}})</span></span>
+              </div>
+              <el-table
+                v-if="ccTable.show || isGuideMode"
+                border
+                :row-class-name="(para) => tableRowClassName(para, ccTable)"
+                :data="ccTable.columns" :ref="ccTable.guid"
+                @row-click="(row) => {dimensionRowClick(row, ccTable.guid)}"
+                @select-all="(selection) => {selectionAllChange(selection, ccTable.guid)}"
+                @select="(selection, row) => {selectionChange(selection, row, ccTable.guid)}">
+                <el-table-column
+                  type="selection"
+                  align="center"
+                  width="40">
+                </el-table-column>
+                 <el-table-column
+                  prop="alias"
+                  :label="$t('name')">
+                  <template slot-scope="scope">
+                    <div @click.stop>
+                      <el-input size="small" v-model="scope.row.alias"   @change="checkDimensionForm" :disabled="!scope.row.isSelected">
+                      </el-input>
+                      <div v-if="scope.row.validateNameRule" class="ky-form-error">{{$t('kylinLang.common.nameFormatValidTip')}}</div>
+                      <div v-else-if="scope.row.validateSameName" class="ky-form-error">{{$t('kylinLang.common.sameName')}}</div>
+                    </div>
+                  </template>
+                </el-table-column>
+                <el-table-column
+                  prop="column"
+                  :label="$t('column')">
+                </el-table-column>
+                <el-table-column
+                  show-overflow-tooltip
+                  prop="expression"
+                  :label="$t('expression')">
+                </el-table-column>
+                <el-table-column
+                  show-overflow-tooltip
+                  :label="$t('datatype')"
+                  prop="datatype"
+                  width="110">
+                </el-table-column>
+              </el-table>
+            </div>
+          </template>
         </div>
       </div>
     </template>
@@ -189,8 +245,36 @@ export default class DimensionsModal extends Vue {
   isFormShow = false
   factTable = []
   lookupTable = []
+  ccTable = {columns: []}
+  getRenderCCData () {
+    this.ccTable = {}
+    this.$set(this.ccTable, 'show', false)
+    this.$set(this.ccTable, 'checkedAll', false)
+    this.$set(this.ccTable, 'isIndeterminate', false)
+    this.ccTable.columns = objectClone(this.modelDesc.computed_columns) || []
+    this.$set(this.ccTable, 'guid', sampleGuid())
+    this.ccTable.columns.forEach((col) => {
+      let len = this.usedColumns.length
+      this.$set(col, 'column', col.columnName)
+      this.$set(col, 'alias', col.tableAlias + '_' + col.columnName)
+      for (let i = 0; i < len; i++) {
+        let d = this.usedColumns[i]
+        if (col.tableAlias + '.' + col.columnName === d.column && d.status === 'DIMENSION') {
+          this.$set(col, 'isSelected', true)
+          col.alias = d.name
+          col.guid = d.guid
+          break
+        } else {
+          this.$set(col, 'isSelected', false)
+          col.guid = null
+        }
+      }
+    })
+    this.renderTableColumnSelected(this.ccTable)
+  }
   // 获取所有的table columns
   getRenderDimensionData () {
+    this.getRenderCCData()
     this.factTable = []
     this.lookupTable = []
     Object.values(this.tables).forEach((table) => {
@@ -230,6 +314,9 @@ export default class DimensionsModal extends Vue {
     let loopupTableLen = this.lookupTable.length
     for (let k = 0; k < loopupTableLen; k++) {
       columns = columns.concat(this.lookupTable[k].columns)
+    }
+    if (this.ccTable.columns) {
+      columns = columns.concat(this.ccTable.columns)
     }
     return () => {
       let hasPassValidate = true
@@ -289,17 +376,23 @@ export default class DimensionsModal extends Vue {
       })
     }, 300)
   }
+  getCurrentTable (guid) {
+    let table = this.ccTable.guid === guid ? this.ccTable : this.tables[guid]
+    return table
+  }
   // 获取header上checkbox的选中状态
   getTableCheckedStatus (guid) {
-    let table = this.tables[guid]
-    let hasCheckedCount = 0
-    table.columns && table.columns.forEach((col) => {
-      if (col.isSelected) {
-        hasCheckedCount++
-      }
-    })
-    this.$set(table, 'checkedAll', hasCheckedCount === table.columns.length)
-    this.$set(table, 'isIndeterminate', hasCheckedCount > 0 && hasCheckedCount < table.columns.length)
+    let table = this.getCurrentTable(guid)
+    if (table) {
+      let hasCheckedCount = 0
+      table.columns && table.columns.forEach((col) => {
+        if (col.isSelected) {
+          hasCheckedCount++
+        }
+      })
+      this.$set(table, 'checkedAll', hasCheckedCount === table.columns.length)
+      this.$set(table, 'isIndeterminate', hasCheckedCount > 0 && hasCheckedCount < table.columns.length)
+    }
   }
   // 点击行触发事件
   selectionChange (selection, row, guid) {
@@ -308,14 +401,16 @@ export default class DimensionsModal extends Vue {
   }
   // 点击header上checkbox触发选择
   selectAllChange (val, guid) {
-    let columns = this.tables[guid].columns
+    let table = this.getCurrentTable(guid)
+    let columns = table.columns
     columns.forEach((row) => {
       this.$set(row, 'isSelected', val)
     })
-    this.renderTableColumnSelected(this.tables[guid])
+    this.renderTableColumnSelected(table)
   }
   selectionAllChange (selection, guid) {
-    let columns = this.tables[guid].columns
+    let table = this.getCurrentTable(guid)
+    let columns = table.columns
     columns.forEach((row) => {
       this.$set(row, 'isSelected', !!selection.length)
     })
@@ -349,17 +444,23 @@ export default class DimensionsModal extends Vue {
   }
   get countAllTableSelectColumns () {
     return () => {
-      if (!this.tables) {
-        return
-      }
       let i = 0
-      Object.values(this.tables).forEach((table) => {
-        table.columns && table.columns.forEach((col) => {
+      if (this.tables && Object.keys(this.tables).length) {
+        Object.values(this.tables).forEach((table) => {
+          table.columns && table.columns.forEach((col) => {
+            if (col.isSelected) {
+              i++
+            }
+          })
+        })
+      }
+      if (this.ccTable.columns && this.ccTable.columns.length) {
+        this.ccTable.columns.forEach((col) => {
           if (col.isSelected) {
             i++
           }
         })
-      })
+      }
       return i
     }
   }
@@ -379,6 +480,18 @@ export default class DimensionsModal extends Vue {
         }
       })
     })
+    this.ccTable.columns.forEach((col) => {
+      if (col.isSelected) {
+        result.push({
+          guid: col.guid || sampleGuid(),
+          name: col.alias,
+          table_guid: col.guid,
+          column: col.tableAlias + '.' + col.columnName,
+          status: 'DIMENSION',
+          datatype: col.datatype
+        })
+      }
+    })
     return result
   }
   get allColumnsLen () {
@@ -391,6 +504,11 @@ export default class DimensionsModal extends Vue {
           }
         })
       })
+      this.ccTable.columns && this.ccTable.columns.forEach((col) => {
+        if (!isChecked || isChecked && col.isSelected) {
+          allLen++
+        }
+      })
       return allLen
     }
   }
@@ -398,11 +516,11 @@ export default class DimensionsModal extends Vue {
     this.checkDimensionForm()
     if (this.dimensionValidPass) {
       let result = this.getAllSelectedColumns()
-      let ccDimensionList = this.usedColumns.filter((x) => {
-        return x.isCC
-      })
+      // let ccDimensionList = this.usedColumns.filter((x) => {
+      //   return x.isCC
+      // })
       this.modelDesc.dimensions.splice(0, this.modelDesc.dimensions.length)
-      this.modelDesc.dimensions.push(...result, ...ccDimensionList)
+      this.modelDesc.dimensions.push(...result)
       this.handleClose(true)
     }
   }

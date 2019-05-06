@@ -101,7 +101,8 @@ export default class SingleDimensionModal extends Vue {
       {required: true, validator: this.checkName, trigger: 'blur'}
     ],
     column: [
-      { required: true, message: this.$t('kylinLang.common.pleaseSelect'), trigger: 'change' }
+      { required: true, message: this.$t('kylinLang.common.pleaseSelect'), trigger: 'change' },
+      { validator: this.checkColumn }
     ]
   }
   checkName (rule, value, callback) {
@@ -109,6 +110,13 @@ export default class SingleDimensionModal extends Vue {
       callback(new Error(this.$t('kylinLang.common.nameFormatValidTip')))
     } else if (!this.modelInstance.checkSameEditDimensionName(this.dimensionInfo)) {
       callback(new Error(this.$t('sameName')))
+    } else {
+      callback()
+    }
+  }
+  checkColumn (rule, value, callback) {
+    if (!this.modelInstance.checkSameEditDimensionColumn(this.dimensionInfo)) {
+      callback(new Error(this.$t('sameColumn')))
     } else {
       callback()
     }
@@ -127,6 +135,7 @@ export default class SingleDimensionModal extends Vue {
     this.showCC = false
     this.dimensionInfo.column = ''
     this.dimensionInfo.cc = null
+    this.dimensionInfo.isCC = false
   }
   get allColumnsGroup () {
     if (this.modelInstance) {

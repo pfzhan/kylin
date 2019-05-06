@@ -1342,6 +1342,49 @@ export default class ModelEdit extends Vue {
   get searchResultData () {
     return groupData(this.modelGlobalSearchResult, 'kind')
   }
+  // 判断是否添加分区列方法
+  addPartitionFunc (data) {
+    if (this.modelRender.management_type !== 'TABLE_ORIENTED') {
+      this.showPartitionDialog({
+        modelDesc: data
+      }).then((res) => {
+        if (res.isSubmit) {
+          this.handleSaveModel(data)
+        } else {
+          this.$emit('saveRequestEnd')
+        }
+      })
+    } else {
+      this.handleSaveModel(data)
+    }
+  }
+  // 解析校验保存模型数据
+  generateModelData (ignoreAloneTableCheck) {
+    this.modelInstance.generateMetadata(ignoreAloneTableCheck).then((data) => {
+      if (!(data.all_named_columns && data.all_named_columns.length)) {
+        this._tipNoDimension(data).then(() => {
+          this.addPartitionFunc(data)
+        }).catch(() => {
+          this.$emit('saveRequestEnd')
+        })
+      } else {
+        this.addPartitionFunc(data)
+      }
+    }, (err, t) => {
+      if (err.errorKey === 'hasAloneTable') {
+        this._tipHasAloneTable(err.aloneCount).then(() => {
+          this.generateModelData(true)
+        }).catch(() => {
+          this.$emit('saveRequestEnd')
+        })
+      } else {
+        kapMessage(this.$t(modelErrorMsg[err.errorKey], {tableName: err.tableName}), {type: 'warning'})
+      }
+      this.$emit('saveRequestEnd')
+    }).catch(() => {
+      this.$emit('saveRequestEnd')
+    })
+  }
   mounted () {
     this.globalLoading.show()
     this.$el.onselectstart = function (e) {
@@ -1372,37 +1415,7 @@ export default class ModelEdit extends Vue {
       this.globalLoading.hide()
     })
     this.$on('saveModel', () => {
-      this.modelInstance.generateMetadata().then((data) => {
-        let _saveFunc = () => {
-          if (this.modelRender.management_type !== 'TABLE_ORIENTED') {
-            this.showPartitionDialog({
-              modelDesc: data
-            }).then((res) => {
-              if (res.isSubmit) {
-                this.handleSaveModel(data)
-              } else {
-                this.$emit('saveRequestEnd')
-              }
-            })
-          } else {
-            this.handleSaveModel(data)
-          }
-        }
-        if (!(data.all_named_columns && data.all_named_columns.length)) {
-          this._tipNoDimension(data).then(() => {
-            _saveFunc()
-          }).catch(() => {
-            this.$emit('saveRequestEnd')
-          })
-        } else {
-          _saveFunc()
-        }
-      }, (errMsg) => {
-        kapMessage(this.$t(modelErrorMsg[errMsg]), {type: 'warning'})
-        this.$emit('saveRequestEnd')
-      }).catch(() => {
-        this.$emit('saveRequestEnd')
-      })
+      this.generateModelData()
     })
   }
   _tipNoDimension (data) {
@@ -1415,6 +1428,19 @@ export default class ModelEdit extends Vue {
     }
     let saveBtnWord = this.$t('noDimensionGoOnSave')
     let cancelBtnWord = this.$t('noDimensionBackEdit')
+    return this.$confirm(tipContent, tipTitle, {
+      confirmButtonText: saveBtnWord,
+      cancelButtonText: cancelBtnWord,
+      type: 'warning'
+    })
+  }
+  // 当有脱离树的节点存在的时候的提示框
+  _tipHasAloneTable (data) {
+    // 判断是 无dimension 和 measure 都无的情况 还是 只是没有dimension的情况
+    let tipContent = this.$t('kylinLang.model.aloneTableTip', {aloneCount: data})
+    let tipTitle = this.$t('kylinLang.model.aloneTableTipTitle')
+    let saveBtnWord = this.$t('kylinLang.common.save')
+    let cancelBtnWord = this.$t('kylinLang.common.cancel')
     return this.$confirm(tipContent, tipTitle, {
       confirmButtonText: saveBtnWord,
       cancelButtonText: cancelBtnWord,

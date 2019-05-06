@@ -225,7 +225,8 @@ exports.default = {
     addModel: 'Add Model',
     hasNoFact: 'Fact Table is mandatory for model',
     cycleLinkTip: 'The join may lead some tables joining in a circle.',
-    aloneTableTip: 'Incomplete connection.'
+    aloneTableTip: '{aloneCount} tables haven\'t been joined with the fact table directly or via other dimension tables. The model may lose them if you continue to save the model anyway.',
+    aloneTableTipTitle: 'Incomplete Table Join'
   },
   cube: {
     tableIndex: 'Table Index',

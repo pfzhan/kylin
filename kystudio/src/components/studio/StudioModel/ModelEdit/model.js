@@ -114,7 +114,7 @@ class NModel {
     })
     // renderDimension
     this.dimensions = this.dimensions.filter((x) => {
-      x.datatype = this.getColumnType(x.column)
+      x.datatype = x.isCC ? this.getCCColumnType(x.column) : this.getColumnType(x.column)
       let alias = x.column.split('.')[0]
       let guid = this._cacheAliasAndGuid(alias)
       x.table_guid = guid
@@ -251,7 +251,7 @@ class NModel {
     // delete this.tables[pid].joinInfo[fid + '$' + [pid]]
   }
   // 生成供后台使用的数据结构
-  generateMetadata () {
+  generateMetadata (ignoreAloneTableCheck) {
     this._arrangeLinks()
     return new Promise((resolve, reject) => {
       try {
@@ -267,11 +267,14 @@ class NModel {
         if (factTable) {
           metaData.fact_table = factTable.name
         } else {
-          return reject('noFact')
+          return reject({errorKey: 'noFact'})
         }
         // 检查是否有脱离组织的table
-        if (this._checkHasAloneTable()) {
-          return reject('hasAloneTable')
+        if (!ignoreAloneTableCheck) {
+          let aloneCount = this._getAloneTableCount()
+          if (aloneCount) {
+            return reject({errorKey: 'hasAloneTable', aloneCount: aloneCount})
+          }
         }
         metaData.join_tables = this._generateLookups()
         metaData.all_named_columns = this._generateAllColumns()
@@ -286,7 +289,7 @@ class NModel {
         // metaData = _filterData(metaData)
         resolve(metaData)
       } catch (e) {
-        reject(e)
+        reject({errorKey: e})
       }
     })
   }
@@ -421,27 +424,32 @@ class NModel {
     }
     return guid
   }
-  _checkHasAloneTable () {
-    for (let key in this.tables) {
-      let t = this.tables[key]
-      let conns = this.getAllConnectsByGuid(t.guid)
-      if (conns.length === 0 && t.name !== this.fact_table) {
-        return true
-      }
-    }
-    return false
+  // 获取非fact中未作为主键的表（据此可判断该表未最终连接到主树上）
+  _getAloneTableCount () {
+    let wholeConnect = this._generateLookups()
+    let wholeConnCount = wholeConnect.length
+    let tableCounts = Object.keys(this.tables).length
+    let aloneTablesCount = tableCounts - wholeConnCount - 1
+    return aloneTablesCount || 0
   }
   _generateLookups () {
     let result = []
-    for (let key in this.tables) {
-      let t = this.tables[key]
-      if (t.alias !== this.fact_table) {
-        var joinInfo = t.getMetaJoinInfo(this)
-        if (joinInfo) {
-          result.push(joinInfo)
-        }
+    let factTable = this.getFactTable()
+    let _recursionLookup = (guid) => {
+      if (guid) {
+        let conns = this.getConnByFKTableGuid(guid)
+        conns && conns.forEach((conn) => {
+          let pguid = conn.targetId
+          let t = this.getTableByGuid(pguid)
+          var joinInfo = t && t.getMetaJoinInfo(this)
+          if (joinInfo) {
+            result.push(joinInfo)
+          }
+          _recursionLookup(pguid)
+        })
       }
     }
+    _recursionLookup(factTable && factTable.guid)
     return result
   }
   _generateAllColumns () {
@@ -496,6 +504,16 @@ class NModel {
   getConnByFKTableGuid (guid) {
     let result = []
     var reg = new RegExp('\\$' + guid + '$')
+    for (let i in this.allConnInfo) {
+      if (reg.test(i)) {
+        result.push(this.allConnInfo[i])
+      }
+    }
+    return result
+  }
+  getConnByPKTableGuid (guid) {
+    let result = []
+    var reg = new RegExp('^' + guid + '\\$')
     for (let i in this.allConnInfo) {
       if (reg.test(i)) {
         result.push(this.allConnInfo[i])
@@ -1052,6 +1070,12 @@ class NModel {
       return ntable && ntable.getColumnType(tableName)
     }
   }
+  getCCColumnType (fullName) {
+    let cc = this.getCCObj(fullName)
+    if (cc) {
+      return cc.datatype
+    }
+  }
   getCCObj () {
     let column = ''
     let alias = ''
@@ -1092,6 +1116,15 @@ class NModel {
     let name = dimension.name
     for (let k = 0; k < this._mount.dimensions.length; k++) {
       if (this._mount.dimensions[k].guid !== dimension.guid && name === this._mount.dimensions[k].name) {
+        return false
+      }
+    }
+    return true
+  }
+  checkSameEditDimensionColumn (dimension) {
+    let column = dimension.column
+    for (let k = 0; k < this._mount.dimensions.length; k++) {
+      if (this._mount.dimensions[k].guid !== dimension.guid && column === this._mount.dimensions[k].column) {
         return false
       }
     }

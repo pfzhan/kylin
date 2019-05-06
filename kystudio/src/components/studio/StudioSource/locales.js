@@ -8,7 +8,7 @@ export default {
     unloadTableTitle: 'Delete Source Table',
     unloadTable: 'Do you need to delete the table {tableName}?',
     unloadSuccess: 'Delete Table successfully.',
-    affactUnloadInfo: 'Delete the source table {tableName} will lead to removing related models and indexes, whose total storage size is {storageSize} MB.',
+    affactUnloadInfo: 'Delete the source table {tableName} will lead to removing related models and indexes, whose total storage size is {storageSize}.',
     remindLoadRange: 'If you have tables which increase by day, it is suggested to select the corresponding date column as partition key. Especially, tables containing historical data, in which new data is added into the newest partition.',
     remindLoadRangeTitle: 'Add Partition'
   },

@@ -222,7 +222,8 @@ exports.default = {
     addModel: '添加模型',
     hasNoFact: '模型需要有一个事实表',
     cycleLinkTip: '当前Join连接后，会导致表与表形成闭环。',
-    aloneTableTip: '表连接关系不完整。'
+    aloneTableTip: '有 {aloneCount} 张表未与事实表直接或间接关联(A join B)，继续保存模型会丢失这些表。',
+    aloneTableTipTitle: '表关联不完整'
   },
   cube: {
     tableIndex: '表索引',

@@ -10,6 +10,7 @@ export default {
     expression: 'Expression',
     returnType: 'Return Type',
     sameName: 'Name has been used',
+    sameColumn: 'Column has been used',
     addCCTip: 'Create Computed Column'
   },
   'zh-cn': {
@@ -23,6 +24,7 @@ export default {
     expression: '表达式',
     returnType: '返回类型',
     sameName: '该名称已经被使用过',
+    sameColumn: '该列已被其他维度使用',
     addCCTip: '创建可计算列'
   }
 }
