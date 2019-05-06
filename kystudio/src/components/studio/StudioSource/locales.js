@@ -2,7 +2,7 @@ export default {
   'en': {
     updateAt: 'Last update :',
     delete: 'Delete',
-    general: 'General',
+    general: 'Storage',
     columns: 'Columns',
     sample: 'Sample',
     unloadTableTitle: 'Delete Source Table',
@@ -15,7 +15,7 @@ export default {
   'zh-cn': {
     updateAt: '上次更新时间 :',
     delete: '删除',
-    general: '基本信息',
+    general: '存储信息',
     columns: '所有列',
     sample: '样例数据',
     unloadTableTitle: '删除源数据表',

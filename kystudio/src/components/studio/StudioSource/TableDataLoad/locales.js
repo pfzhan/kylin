@@ -1,11 +1,11 @@
 export default {
   'en': {
     tableName: 'Table Name:',
-    partitionKey: 'Partition Key:',
+    partitionKey: 'Time Partition:',
     loadInterval: 'Load Interval:',
     storageType: 'Storage Type:',
     storageSize: 'Storage Size:',
-    totalRecords: 'Total Records:',
+    totalRecords: 'Loaded Records:',
     rows: 'Rows',
     noPartition: 'No Partition',
     changePartitionTitle: 'Change Partition',
@@ -19,15 +19,16 @@ export default {
     fullLoadDataContent4: 'Do you still need to reload its metadata and data?',
     loadRange: 'Loaded Range',
     loadData: 'Load Data',
+    refreshData: 'Refresh Data',
     notLoadYet: 'Not loaded yet'
   },
   'zh-cn': {
     tableName: '表名：',
-    partitionKey: '分区键：',
+    partitionKey: '时间分区：',
     loadInterval: '加载间隔：',
     storageType: '存储类型：',
     storageSize: '存储大小：',
-    totalRecords: '总记录数：',
+    totalRecords: '加载记录数：',
     rows: '行',
     noPartition: '无分区',
     changePartitionTitle: '修改分区',
@@ -41,6 +42,7 @@ export default {
     fullLoadDataContent4: '您确认需要继续加载数据吗？',
     loadRange: '已加载范围',
     loadData: '加载数据',
+    refreshData: '刷新数据',
     notLoadYet: '尚未载入'
   }
 }
