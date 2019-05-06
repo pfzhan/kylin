@@ -13,7 +13,7 @@
         </div>
         <div class="column-search-box"><el-input prefix-icon="el-icon-search" @input="(val) => {filterColumns(val, t.columns)}" size="small"></el-input></div>
         <div class="column-list-box ksd-drag-box" @dragover='($event) => {allowDropColumn($event, t.guid)}' @drop='(e) => {dropColumn(e, null, t)}' v-scroll.reactive>
-          <ul >
+          <ul>
             <li v-guide="t.guid + col.name" v-on:dragover="(e) => {dragColumnEnter(e, t)}" v-on:dragleave="dragColumnLeave" class="column-li" :class="{'column-li-cc': col.is_computed_column}" @drop.stop='(e) => {dropColumn(e, col, t)}' @dragstart="(e) => {dragColumns(e, col, t)}"  draggable v-for="col in getFilteredColumns(t.columns)" :key="col.name">
               <span class="ksd-nobr-text">
                 <span class="col-type-icon">

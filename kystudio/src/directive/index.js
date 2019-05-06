@@ -126,7 +126,6 @@ Vue.directive('focus', {
   }
 })
 
-let stScroll = null // scroll 指令定时器
 Vue.directive('scroll', {
   inserted: function (el, binding, vnode) {
     if (el) {
@@ -145,12 +144,10 @@ Vue.directive('scroll', {
   update: function (el, binding) {
     var isReactive = binding.modifiers.reactive
     if (isReactive) {
-      // 延迟防止频繁触发导致性能问题
-      clearTimeout(stScroll)
-      stScroll = setTimeout(() => {
+      Vue.nextTick(() => {
         let scrollBar = Scrollbar.get(el)
-        scrollBar.update(true)
-      }, 100)
+        scrollBar.update()
+      })
     }
   }
 })
