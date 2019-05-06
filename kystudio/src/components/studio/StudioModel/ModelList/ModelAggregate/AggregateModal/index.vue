@@ -25,7 +25,7 @@
         </el-button>
       </div> -->
       <!-- 聚合组按钮 -->
-      <div class="aggregate-buttons">
+      <div class="aggregate-buttons ksd-mb-15">
         <el-button type="primary" icon="el-icon-ksd-add_2" @click="handleAddAggregate">{{$t('addAggregateGroup')}}</el-button>
       </div>
       <!-- 聚合组表单 -->
@@ -512,6 +512,7 @@ export default class AggregateModal extends Vue {
   .cuboid-error {
     .cuboid-result {
       color:@btn-danger-normal;
+      font-weight: @font-regular;
     }
   }
   .el-button + .el-button { margin-left: 3px;}
@@ -533,9 +534,6 @@ export default class AggregateModal extends Vue {
   }
   .less {
     transform: rotate(180deg);
-  }
-  .aggregate-buttons {
-    margin: 15px 0;
   }
   .aggregate-group {
     position: relative;
