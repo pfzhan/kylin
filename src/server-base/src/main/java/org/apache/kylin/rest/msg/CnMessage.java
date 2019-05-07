@@ -586,4 +586,8 @@ public class CnMessage extends Message {
     public String getNoTableFound() {
         return "找不到表。请检查您的SQL语句";
     }
+
+    public String getNoJobNode() {
+        return "未发现执行任务的节点。请启动对应节点或配置一个任务节点（ 配置文件${KYLIN_HOME}/conf/kylin.properties，配置项 kylin.server.mode）。";
+    }
 }

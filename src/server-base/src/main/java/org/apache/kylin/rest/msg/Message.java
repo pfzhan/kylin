@@ -638,4 +638,8 @@ public class Message {
     public String getNoTableFound() {
         return "Can not find any table.Please check your sql";
     }
+
+    public String getNoJobNode() {
+        return "No job node(or all node) detected. Please start the node or configure a job node( or all node) via the property \"kylin.server.mode\" in the file ${KYLIN_HOME}/conf/kylin.properties.";
+    }
 }

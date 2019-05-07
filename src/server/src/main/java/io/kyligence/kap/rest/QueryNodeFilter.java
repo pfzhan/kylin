@@ -36,6 +36,11 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import org.apache.commons.io.IOUtils;
+import org.apache.kylin.common.util.JsonUtil;
+import org.apache.kylin.rest.exception.InternalErrorException;
+import org.apache.kylin.rest.msg.Message;
+import org.apache.kylin.rest.msg.MsgPicker;
+import org.apache.kylin.rest.response.ErrorResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.core.Ordered;
@@ -43,6 +48,7 @@ import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.HttpStatusCodeException;
 import org.springframework.web.client.RestTemplate;
@@ -88,6 +94,7 @@ public class QueryNodeFilter implements Filter {
             byte[] responseBody;
             int responseStatus;
             HttpHeaders responseHeaders;
+            MsgPicker.setMsg(servletRequest.getHeader(HttpHeaders.ACCEPT_LANGUAGE));
             try {
                 val exchange = restTemplate.exchange(
                         "http://job" + servletRequest.getRequestURI() + "?" + servletRequest.getQueryString(),
@@ -95,6 +102,15 @@ public class QueryNodeFilter implements Filter {
                 responseHeaders = exchange.getHeaders();
                 responseBody = exchange.getBody();
                 responseStatus = exchange.getStatusCodeValue();
+            } catch (IllegalStateException e) {
+                responseStatus = HttpServletResponse.SC_INTERNAL_SERVER_ERROR;
+                Message msg = MsgPicker.getMsg();
+                ErrorResponse errorResponse = new ErrorResponse(servletRequest.getRequestURL().toString(),
+                        new InternalErrorException(msg.getNoJobNode(), e));
+                responseBody = JsonUtil.writeValueAsBytes(errorResponse);
+                responseHeaders = new HttpHeaders();
+                responseHeaders.setContentType(MediaType.APPLICATION_JSON_UTF8);
+                log.error("no job node", e);
             } catch (HttpStatusCodeException e) {
                 responseStatus = e.getRawStatusCode();
                 responseBody = e.getResponseBodyAsByteArray();
