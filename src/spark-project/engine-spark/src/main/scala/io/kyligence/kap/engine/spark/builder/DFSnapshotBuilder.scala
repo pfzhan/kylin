@@ -30,6 +30,7 @@ import java.util.concurrent.{Executors, TimeUnit}
 
 import com.google.common.collect.Maps
 import io.kyligence.kap.engine.spark.NSparkCubingEngine
+import io.kyligence.kap.engine.spark.utils.FileNames
 import io.kyligence.kap.metadata.cube.model.{NDataflowManager, NDataflowUpdate, NDataSegment}
 import io.kyligence.kap.metadata.model.NDataModel
 import org.apache.commons.codec.digest.DigestUtils
@@ -211,7 +212,7 @@ class DFSnapshotBuilder extends Logging {
 
   def buildSnapshotWithoutMd5(tableDesc: TableDesc, baseDir: String): (String, String) = {
     val sourceData = getSourceData(tableDesc)
-    val tablePath = tableDesc.getProject + HadoopUtil.SNAPSHOT_STORAGE_ROOT + "/" + tableDesc.getName
+    val tablePath = FileNames.snapshotFile(tableDesc)
     var snapshotTablePath = tablePath + "/" + UUID.randomUUID
     val resourcePath = baseDir + "/" + snapshotTablePath
     sourceData.write.parquet(resourcePath)

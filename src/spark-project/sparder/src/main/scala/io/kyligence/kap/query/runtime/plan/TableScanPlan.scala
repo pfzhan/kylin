@@ -27,7 +27,8 @@ import java.util.concurrent.ConcurrentHashMap
 import com.google.common.collect.{Lists, Sets}
 import io.kyligence.kap.metadata.cube.cuboid.NLayoutCandidate
 import io.kyligence.kap.metadata.cube.gridtable.NCuboidToGridTableMapping
-import io.kyligence.kap.metadata.cube.model.{NDataSegment, NDataflow}
+import io.kyligence.kap.metadata.cube.model.{NDataflow, NDataSegment}
+import io.kyligence.kap.metadata.model.NTableMetadataManager
 import io.kyligence.kap.query.exception.UnsupportedQueryException
 import io.kyligence.kap.query.relnode.KapRel
 import io.kyligence.kap.query.runtime.RuntimeHelper
@@ -320,10 +321,9 @@ object TableScanPlan extends Logging {
     val session = SparderEnv.getSparkSession
     val olapContext = rel.getContext
     var instance: NDataflow = olapContext.realization.asInstanceOf[NDataflow]
-
+    val tableMetadataManager = NTableMetadataManager.getInstance(instance.getConfig, instance.getProject)
     val lookupTableName = olapContext.firstTableScan.getTableName
-    val snapshotResPath =
-      instance.getSegments().getLatestReadySegment.getSnapshots.get(lookupTableName)
+    val snapshotResPath = tableMetadataManager.getTableDesc(lookupTableName).getLastSnapshotPath
     val config = instance.getConfig
     val dataFrameTableName = instance.getProject + "@" + lookupTableName
     val lookupDf = SparderLookupManager.getOrCreate(dataFrameTableName,

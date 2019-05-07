@@ -129,6 +129,10 @@ public class TableDesc extends RootPersistentEntity implements Serializable, ISo
     @JsonProperty("increment_loading")
     private boolean incrementLoading;
 
+    @JsonProperty("last_snapshot_path")
+    private String lastSnapshotPath;
+
+
     protected String project;
     private DatabaseDesc database = new DatabaseDesc();
     private String identity = null;
@@ -430,4 +434,11 @@ public class TableDesc extends RootPersistentEntity implements Serializable, ISo
         this.tableType = tableType;
     }
 
+    public void setLastSnapshotPath(String lastSnapshotPath) {
+        this.lastSnapshotPath = lastSnapshotPath;
+    }
+
+    public String getLastSnapshotPath() {
+        return lastSnapshotPath;
+    }
 }

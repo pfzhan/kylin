@@ -166,7 +166,7 @@ case class SparderDerivedUtil(gtInfoTableName: String,
     val tableDesc = metaMgr.getTableDesc(derivedTableName)
     val pkIndex =
       pkCols.map(pkCol => tableDesc.findColumnByName(pkCol).getZeroBasedIndex)
-    val path = dataSeg.getSnapshots.get(derivedTableName)
+    val path = tableDesc.getLastSnapshotPath
     if (path == null && deriveInfo.`type` != DeriveType.PK_FK) {
       throw new IllegalStateException(
         "No snapshot for table '" + derivedTableName + "' found on cube segment"

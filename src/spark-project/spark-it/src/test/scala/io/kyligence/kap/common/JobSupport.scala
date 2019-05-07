@@ -30,11 +30,12 @@ import io.kyligence.kap.common.persistence.metadata.MetadataStore
 import io.kyligence.kap.engine.spark.ExecutableUtils
 import io.kyligence.kap.engine.spark.job.{NSparkCubingJob, NSparkCubingStep, NSparkMergingJob, NSparkMergingStep}
 import io.kyligence.kap.engine.spark.merger.{AfterBuildResourceMerger, AfterMergeOrRefreshResourceMerger}
+import io.kyligence.kap.engine.spark.utils.{FileNames, HDFSUtils}
 import io.kyligence.kap.metadata.cube.model._
+import io.kyligence.kap.metadata.model.NTableMetadataManager
 import org.apache.commons.io.FileUtils
 import org.apache.kylin.common.persistence.ResourceStore
-import org.apache.kylin.common.{KylinConfig, StorageURL}
-import org.apache.kylin.job.constant.JobStatusEnum
+import org.apache.kylin.common.{KapConfig, KylinConfig, StorageURL}
 import org.apache.kylin.job.engine.JobEngineConfig
 import org.apache.kylin.job.execution.{AbstractExecutable, ExecutableState, JobTypeEnum, NExecutableManager}
 import org.apache.kylin.job.impl.threadpool.NDefaultScheduler
@@ -118,6 +119,22 @@ trait JobSupport
                prj)
   }
 
+  def checkSnapshotTable(dfId: String, id: String, project: String): Unit = {
+    val conf = KylinConfig.getInstanceFromEnv
+    val manager = NDataflowManager.getInstance(conf, project)
+    val segment = manager.getDataflow(dfId).getSegment(id)
+    val snapShotManager = NTableMetadataManager.getInstance(conf, project)
+    val workingDirectory = KapConfig.wrap(conf).getReadHdfsWorkingDirectory
+    segment.getSnapshots.asScala.foreach {
+      tp =>
+        val desc = snapShotManager.getTableDesc(tp._1)
+        val parent = FileNames.snapshotFileWithWorkingDir(desc, workingDirectory)
+        Assert.assertTrue(s"$parent should ony one file, please check " +
+          s"io.kyligence.kap.engine.spark.merger.AfterBuildResourceMerger.updateSnapshotTableIfNeed ",
+          HDFSUtils.listSortedFileFrom(parent).size == 1)
+    }
+  }
+
   @throws[Exception]
   protected def builCuboid(cubeName: String,
                            segmentRange: SegmentRange[_ <: Comparable[_]],
@@ -150,6 +167,7 @@ trait JobSupport
     val layoutIds: java.util.Set[java.lang.Long] = toBuildLayouts.asScala.map(c => new java.lang.Long(c.getId)).asJava
     merger.mergeAfterIncrement(df.getUuid, oneSeg.getId, layoutIds, buildStore)
     merger.mergeAnalysis(job.getSparkAnalysisStep)
+    checkSnapshotTable(df.getId, oneSeg.getId, oneSeg.getProject)
   }
 
   @throws[InterruptedException]
@@ -210,6 +228,7 @@ trait JobSupport
       * Round2. Merge two segments
       */
     df = dsMgr.getDataflow(dfName)
+
     val firstMergeSeg = dsMgr.mergeSegments(
       df,
       new SegmentRange.TimePartitionedSegmentRange(
@@ -336,4 +355,5 @@ trait JobSupport
     outputConfig.setMetadataUrl(metadataUrlPrefix)
     MetadataStore.createMetadataStore(outputConfig).dump(resourceStore)
   }
+
 }

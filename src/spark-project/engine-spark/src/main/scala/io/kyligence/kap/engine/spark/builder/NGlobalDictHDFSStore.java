@@ -284,7 +284,7 @@ public class NGlobalDictHDFSStore extends NGlobalDictStore {
     }
 
     @Override
-    public void commit(String workingDir, int maxVersions, int versionTTL) throws IOException {
+    public void commit(String workingDir, int maxVersions, long versionTTL) throws IOException {
         Path workingPath = new Path(workingDir);
         // copy working dir to newVersion dir
         Path newVersionPath = new Path(basePath, VERSION_PREFIX + System.currentTimeMillis());
@@ -294,7 +294,7 @@ public class NGlobalDictHDFSStore extends NGlobalDictStore {
     }
 
     // Check versions count, delete expired versions
-    private void cleanUp(int maxVersions, int versionTTL) throws IOException {
+    private void cleanUp(int maxVersions, long versionTTL) throws IOException {
         long timestamp = System.currentTimeMillis();
         Long[] versions = listAllVersions();
         for (int i = 0; i < versions.length - maxVersions; i++) {

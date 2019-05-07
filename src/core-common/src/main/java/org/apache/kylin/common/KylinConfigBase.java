@@ -488,6 +488,14 @@ abstract public class KylinConfigBase implements Serializable {
         return Integer.parseInt(getOptional("kylin.snapshot.parallel-build-timeout-seconds", "3600"));
     }
 
+    public int getSnapshotMaxVersions() {
+        return Integer.parseInt(getOptional("kylin.snapshot.max-versions", "3"));
+    }
+
+    public long getSnapshotVersionTTL() {
+        return Long.parseLong(getOptional("kylin.snapshot.version-ttl", "259200000"));
+    }
+
     public int getGlobalDictV2MinHashPartitions() {
         return Integer.parseInt(getOptional("kylin.dictionary.globalV2-min-hash-partitions", "10"));
     }
@@ -508,8 +516,8 @@ abstract public class KylinConfigBase implements Serializable {
         return Integer.parseInt(getOptional("kylin.dictionary.globalV2-max-versions", "3"));
     }
 
-    public int getGlobalDictV2VersionTTL() {
-        return Integer.parseInt(getOptional("kylin.dictionary.globalV2-version-ttl", "259200000"));
+    public long getGlobalDictV2VersionTTL() {
+        return Long.parseLong(getOptional("kylin.dictionary.globalV2-version-ttl", "259200000"));
     }
 
     // ============================================================================

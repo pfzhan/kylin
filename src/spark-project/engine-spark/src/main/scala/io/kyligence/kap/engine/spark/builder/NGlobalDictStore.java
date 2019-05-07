@@ -75,5 +75,5 @@ public abstract class NGlobalDictStore {
 
     public abstract void writeMetaInfo(int bucketSize, String workingDir) throws IOException;
 
-    public abstract void commit(String workingDir, int maxVersions, int versionTTL) throws IOException;
+    public abstract void commit(String workingDir, int maxVersions, long versionTTL) throws IOException;
 }

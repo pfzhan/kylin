@@ -100,6 +100,9 @@ class TestQueryAndBuildFunSuite
     super.beforeAll()
     KylinConfig.getInstanceFromEnv.setProperty("kylin.query.pushdown.runner-class-name", "")
     KylinConfig.getInstanceFromEnv.setProperty("kylin.snapshot.parallel-build-enabled", "true")
+    // test for snapshot cleanup
+    KylinConfig.getInstanceFromEnv.setProperty("kylin.snapshot.version-ttl", "0")
+    KylinConfig.getInstanceFromEnv.setProperty("kylin.snapshot.max-versions", "1")
     SparderEnv.skipCompute()
     build()
   }

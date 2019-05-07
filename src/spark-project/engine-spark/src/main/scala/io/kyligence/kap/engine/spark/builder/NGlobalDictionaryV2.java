@@ -80,7 +80,7 @@ public class NGlobalDictionaryV2 implements Serializable {
         globalDictStore.prepareForWrite(getWorkingDir());
     }
 
-    public void writeMetaDict(int bucketSize, int maxVersions, int versionTTL) throws IOException {
+    public void writeMetaDict(int bucketSize, int maxVersions, long versionTTL) throws IOException {
         NGlobalDictStore globalDictStore = getResourceStore(baseDir);
         globalDictStore.writeMetaInfo(bucketSize, getWorkingDir());
         commit(maxVersions, versionTTL);
@@ -118,7 +118,7 @@ public class NGlobalDictionaryV2 implements Serializable {
         isFirst = first;
     }
 
-    private void commit(int maxVersions, int versionTTL) throws IOException {
+    private void commit(int maxVersions, long versionTTL) throws IOException {
         NGlobalDictStore globalDictStore = getResourceStore(baseDir);
         globalDictStore.commit(getWorkingDir(), maxVersions, versionTTL);
     }

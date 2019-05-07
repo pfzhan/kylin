@@ -154,7 +154,6 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
         Assert.assertEquals(0, seg.getSnapshots().size());
         DFSnapshotBuilder builder = new DFSnapshotBuilder(seg, ss);
         seg = builder.buildSnapshot();
-
         Assert.assertEquals(7, seg.getSnapshots().size());
     }
 

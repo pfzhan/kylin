@@ -24,31 +24,42 @@
 
 package io.kyligence.kap.engine.spark.merger;
 
+import com.google.common.base.Preconditions;
+import com.google.common.collect.Lists;
+import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
+import io.kyligence.kap.engine.spark.ExecutableUtils;
+import io.kyligence.kap.engine.spark.SegmentUtils;
+import io.kyligence.kap.engine.spark.cleanup.SnapshotChecker;
+import io.kyligence.kap.engine.spark.utils.FileNames;
+import io.kyligence.kap.engine.spark.utils.HDFSUtils;
+import io.kyligence.kap.metadata.cube.model.LayoutEntity;
+import io.kyligence.kap.metadata.cube.model.NDataLayout;
+import io.kyligence.kap.metadata.cube.model.NDataSegment;
+import io.kyligence.kap.metadata.cube.model.NDataflow;
+import io.kyligence.kap.metadata.cube.model.NDataflowManager;
+import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
+import io.kyligence.kap.metadata.model.NTableMetadataManager;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
-
+import lombok.extern.slf4j.Slf4j;
+import lombok.val;
+import org.apache.hadoop.fs.FileStatus;
+import org.apache.hadoop.fs.Path;
+import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
-
-import com.google.common.base.Preconditions;
-import com.google.common.collect.Lists;
-
-import io.kyligence.kap.engine.spark.ExecutableUtils;
-import io.kyligence.kap.engine.spark.SegmentUtils;
-import io.kyligence.kap.metadata.cube.model.LayoutEntity;
-import io.kyligence.kap.metadata.cube.model.NDataLayout;
-import io.kyligence.kap.metadata.cube.model.NDataflow;
-import io.kyligence.kap.metadata.cube.model.NDataflowManager;
-import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
-import lombok.val;
-import lombok.extern.slf4j.Slf4j;
+import org.apache.kylin.metadata.model.TableDesc;
 
 @Slf4j
-public class AfterBuildResourceMerger extends SparkJobMetadataMerger{
+public class AfterBuildResourceMerger extends SparkJobMetadataMerger {
 
     private JobTypeEnum jobTypeEnum;
 
@@ -60,13 +71,13 @@ public class AfterBuildResourceMerger extends SparkJobMetadataMerger{
     @Override
     public NDataLayout[] merge(String flowName, Set<String> segmentId, Set<Long> layoutIds, ResourceStore remoteStore) {
         switch (jobTypeEnum) {
-        case INDEX_BUILD:
-            return mergeAfterCatchup(flowName, segmentId, layoutIds, remoteStore);
-        case INC_BUILD:
-            Preconditions.checkArgument(segmentId.size() == 1);
-            return mergeAfterIncrement(flowName, segmentId.iterator().next(), layoutIds, remoteStore);
-        default:
-            throw new UnsupportedOperationException("Error job type: " + jobTypeEnum);
+            case INDEX_BUILD:
+                return mergeAfterCatchup(flowName, segmentId, layoutIds, remoteStore);
+            case INC_BUILD:
+                Preconditions.checkArgument(segmentId.size() == 1);
+                return mergeAfterIncrement(flowName, segmentId.iterator().next(), layoutIds, remoteStore);
+            default:
+                throw new UnsupportedOperationException("Error job type: " + jobTypeEnum);
         }
     }
 
@@ -83,7 +94,7 @@ public class AfterBuildResourceMerger extends SparkJobMetadataMerger{
     }
 
     public NDataLayout[] mergeAfterIncrement(String flowName, String segmentId, Set<Long> layoutIds,
-            ResourceStore remoteStore) {
+                                             ResourceStore remoteStore) {
         val localDataflowManager = NDataflowManager.getInstance(getConfig(), getProject());
         val localDataflow = localDataflowManager.getDataflow(flowName);
         val remoteDataflowManager = NDataflowManager.getInstance(remoteStore.getConfig(), getProject());
@@ -92,6 +103,7 @@ public class AfterBuildResourceMerger extends SparkJobMetadataMerger{
         val dfUpdate = new NDataflowUpdate(flowName);
         val availableLayoutIds = intersectionWithLastSegment(localDataflow, layoutIds);
         val theSeg = remoteDataflow.getSegment(segmentId);
+        updateSnapshotTableIfNeed(theSeg);
         theSeg.setStatus(SegmentStatusEnum.READY);
         dfUpdate.setToUpdateSegs(theSeg);
         dfUpdate.setToAddOrUpdateLayouts(theSeg.getSegDetails().getLayouts().stream()
@@ -102,8 +114,46 @@ public class AfterBuildResourceMerger extends SparkJobMetadataMerger{
         return dfUpdate.getToAddOrUpdateLayouts();
     }
 
+    private void updateSnapshotTableIfNeed(NDataSegment segment) {
+        try {
+            Map<Path, SnapshotChecker> snapshotCheckerMap = new HashMap<>();
+            List<TableDesc> needUpdateTableDescs = new ArrayList<>();
+            Map<String, String> snapshots = segment.getSnapshots();
+            NTableMetadataManager manager = NTableMetadataManager.getInstance(getConfig(), segment.getProject());
+            KylinConfig segmentConf = segment.getConfig();
+            String workingDirectory = KapConfig.wrap(segmentConf).getReadHdfsWorkingDirectory();
+            for (Map.Entry<String, String> entry : snapshots.entrySet()) {
+                TableDesc tableDesc = manager.getTableDesc(entry.getKey());
+                Path snapshotPath = FileNames.snapshotFileWithWorkingDir(tableDesc, workingDirectory);
+                FileStatus lastFile = HDFSUtils.findLastFile(snapshotPath);
+                FileStatus fileStatus = HDFSUtils.getFileStatus(new Path(workingDirectory + entry.getValue()));
+                if (lastFile.getModificationTime() <= fileStatus.getModificationTime()) {
+
+                    log.info("Update snapshot table " + entry.getKey() + " : " + "from" + lastFile.getModificationTime() + " to" + fileStatus.getModificationTime());
+                    log.info("Update snapshot table " + entry.getKey() + " : " + "from" + tableDesc.getLastSnapshotPath() + " to" + entry.getValue());
+                    TableDesc copyDesc = manager.copyForWrite(tableDesc);
+                    copyDesc.setLastSnapshotPath(entry.getValue());
+                    needUpdateTableDescs.add(copyDesc);
+                    snapshotCheckerMap.put(snapshotPath,
+                            new SnapshotChecker(segmentConf.getSnapshotMaxVersions(), segmentConf.getSnapshotVersionTTL(), fileStatus.getModificationTime()));
+                }
+            }
+            UnitOfWork.doInTransactionWithRetry(() -> {
+                for (TableDesc tableDesc : needUpdateTableDescs) {
+                    manager.updateTableDesc(tableDesc);
+                }
+                return null;
+            }, segment.getProject(), 1);
+            for (Map.Entry<Path, SnapshotChecker> entry : snapshotCheckerMap.entrySet()) {
+                HDFSUtils.deleteFilesWithCheck(entry.getKey(), entry.getValue());
+            }
+        } catch (Throwable th) {
+            log.error("Error for update snapshot table", th);
+        }
+    }
+
     public NDataLayout[] mergeAfterCatchup(String flowName, Set<String> segmentIds, Set<Long> layoutIds,
-            ResourceStore remoteStore) {
+                                           ResourceStore remoteStore) {
         val localDataflowManager = NDataflowManager.getInstance(getConfig(), getProject());
         val localDataflow = localDataflowManager.getDataflow(flowName);
         val remoteDataflowManager = NDataflowManager.getInstance(remoteStore.getConfig(), getProject());
@@ -111,7 +161,7 @@ public class AfterBuildResourceMerger extends SparkJobMetadataMerger{
 
         val dataflow = localDataflowManager.getDataflow(flowName);
         val dfUpdate = new NDataflowUpdate(flowName);
-        val addCuboids = Lists.<NDataLayout> newArrayList();
+        val addCuboids = Lists.<NDataLayout>newArrayList();
 
         val layoutInCubeIds = dataflow.getIndexPlan().getAllLayouts().stream().map(LayoutEntity::getId)
                 .collect(Collectors.toList());
@@ -145,3 +195,4 @@ public class AfterBuildResourceMerger extends SparkJobMetadataMerger{
     }
 
 }
+                                            
