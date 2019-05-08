@@ -496,7 +496,7 @@ public class NFavoriteSchedulerTest extends NLocalFileMetadataTestCase {
         /*
         There already have three favorite queries loaded in database, whose sql patterns are "sql1", "sql2", "sql3",
         so these three sql patterns will not be marked as favorite queries.
-        
+
         The mocked query history service will be generating test data from 2018-02-01 00:00:00 to 2018-02-01 00:02:30 every 30 seconds,
         and the last auto mark time is 2018-01-01 00:00:00
          */

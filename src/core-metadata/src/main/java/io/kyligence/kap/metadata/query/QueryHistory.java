@@ -142,6 +142,10 @@ public class QueryHistory {
     @Column(name = "count")
     private int count;
 
+    @JsonProperty(ERROR_TYPE)
+    @Column(name = ERROR_TYPE)
+    private String errorType;
+
     // only for test
     private transient long insertTime;
 

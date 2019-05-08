@@ -153,7 +153,7 @@ public class FavoriteRuleServiceTest extends NLocalFileMetadataTestCase {
         MockMultipartFile file2 = new MockMultipartFile("sqls2.txt", "sqls2.txt", "text/plain", new FileInputStream(new File("./src/test/resources/ut_sqls_file/sqls2.txt")));
         MockMultipartFile exceptionFile = new MockMultipartFile("exception_file.sql", "exception_file.sql", "text/plain", "".getBytes());
 
-        Mockito.when(favoriteRuleService.transformFileToSqls(exceptionFile)).thenThrow(IOException.class);
+        Mockito.when(favoriteRuleService.transformFileToSqls(exceptionFile, PROJECT)).thenThrow(IOException.class);
 
         Map<String, Object> result = favoriteRuleService.importSqls(new MultipartFile[]{file1, file2, exceptionFile}, PROJECT);
         List<ImportSqlResponse> responses = (List<ImportSqlResponse>) result.get("data");

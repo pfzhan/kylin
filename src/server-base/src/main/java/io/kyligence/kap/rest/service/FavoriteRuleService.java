@@ -67,6 +67,8 @@ public class FavoriteRuleService extends BasicService {
     private static final Logger logger = LoggerFactory.getLogger(FavoriteRuleService.class);
     private static final List<String> favoriteRuleNames = Lists.newArrayList(FavoriteRule.FREQUENCY_RULE_NAME, FavoriteRule.DURATION_RULE_NAME, FavoriteRule.SUBMITTER_RULE_NAME, FavoriteRule.SUBMITTER_GROUP_RULE_NAME);
 
+    private static final String DEFAULT_SCHEMA = "default";
+
     public Map<String, Object> getFavoriteRules(String project) {
         Map<String, Object> result = Maps.newHashMap();
 
@@ -231,7 +233,7 @@ public class FavoriteRuleService extends BasicService {
         // parse file to sqls
         for (MultipartFile file : files) {
             try {
-                sqls.addAll(transformFileToSqls(file));
+                sqls.addAll(transformFileToSqls(file, project));
             } catch (Exception ex) {
                 logger.error("Error caught when parsing file {} because {} ", file.getOriginalFilename(),
                         ex.getMessage());
@@ -286,7 +288,7 @@ public class FavoriteRuleService extends BasicService {
         return result;
     }
 
-    List<String> transformFileToSqls(MultipartFile file) throws IOException {
+    List<String> transformFileToSqls(MultipartFile file, String project) throws IOException {
         List<String> sqls = new ArrayList<>();
 
         String content = new String(file.getBytes(), "UTF-8");
@@ -303,15 +305,17 @@ public class FavoriteRuleService extends BasicService {
             if (sql == null || sql.length() == 0 || sql.replace('\n', ' ').trim().length() == 0) {
                 continue;
             }
-            sqls.add(sql.replace('\n', ' ').trim());
+            String correctedSql = QueryUtil.massageSql(sql, project, 0, 0, DEFAULT_SCHEMA);
+            sqls.add(correctedSql);
         }
 
         return sqls;
     }
 
     public SQLValidateResponse sqlValidate(String project, String sql) {
+        String correctedSql = QueryUtil.massageSql(sql, project, 0, 0, DEFAULT_SCHEMA);
         // sql validation
-        Map<String, SQLValidateResult> map = batchSqlValidate(Lists.newArrayList(sql), project);
+        Map<String, SQLValidateResult> map = batchSqlValidate(Lists.newArrayList(correctedSql), project);
         SQLValidateResult result = map.get(sql);
 
         return new SQLValidateResponse(result.isCapable(), result.getSqlAdvices());

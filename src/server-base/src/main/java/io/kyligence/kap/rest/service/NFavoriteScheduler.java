@@ -59,6 +59,7 @@ import lombok.NoArgsConstructor;
 import lombok.val;
 import lombok.var;
 import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.ExecutorServiceUtil;
@@ -230,7 +231,7 @@ public class NFavoriteScheduler {
         }, project);
     }
 
-    QueryHistoryDAO getQueryHistoryDao() {
+    public QueryHistoryDAO getQueryHistoryDao() {
         return QueryHistoryDAO.getInstance(KylinConfig.getInstanceFromEnv(), project);
     }
 
@@ -428,7 +429,8 @@ public class NFavoriteScheduler {
     }
 
     private boolean isQualifiedCandidate(QueryHistory queryHistory) {
-        if (queryHistory.isException())
+        if (queryHistory.isException() &&
+                ("Syntax error".equals(queryHistory.getErrorType()) || StringUtils.isEmpty(queryHistory.getErrorType())))
             return false;
 
         return true;

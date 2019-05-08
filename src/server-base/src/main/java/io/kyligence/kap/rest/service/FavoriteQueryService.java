@@ -42,7 +42,6 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.query.relnode.OLAPContext;
-import org.apache.kylin.query.util.QueryUtil;
 import org.apache.kylin.rest.msg.MsgPicker;
 import org.apache.kylin.rest.request.FavoriteRequest;
 import org.apache.kylin.rest.service.BasicService;
@@ -86,7 +85,6 @@ public class FavoriteQueryService extends BasicService {
     private static final String TOTAL_COUNT = "total_count";
     private static final String AVERAGE_DURATION = "average_duration";
 
-    private static final String DEFAULT_SCHEMA = "default";
 
     private static final String TO_BE_ACCELERATED = "to_be_accelerated";
     private static final String WAITING_TAB = "waiting";
@@ -111,8 +109,7 @@ public class FavoriteQueryService extends BasicService {
         val blacklistSqls = getFavoriteRuleManager(project).getBlacklistSqls();
 
         for (String sql : request.getSqls()) {
-            String correctedSql = QueryUtil.massageSql(sql, project, 0, 0, DEFAULT_SCHEMA);
-            String sqlPattern = QueryPatternUtil.normalizeSQLPattern(correctedSql);
+            String sqlPattern = QueryPatternUtil.normalizeSQLPattern(sql);
 
             if (blacklistSqls.contains(sqlPattern)) {
                 result.computeIfPresent(BLACKLIST, (k, v) -> v + 1);

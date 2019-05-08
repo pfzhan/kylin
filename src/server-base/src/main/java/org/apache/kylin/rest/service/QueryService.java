@@ -603,7 +603,7 @@ public class QueryService extends BasicService {
         return QueryConnection.getConnection(project);
     }
 
-    Pair<List<List<String>>, List<SelectedColumnMeta>> tryPushDownSelectQuery(SQLRequest sqlRequest,
+    public Pair<List<List<String>>, List<SelectedColumnMeta>> tryPushDownSelectQuery(SQLRequest sqlRequest,
             String defaultSchema, SQLException sqlException, boolean isPrepare) throws Exception {
         return PushDownUtil.tryPushDownSelectQuery(sqlRequest.getProject(), sqlRequest.getSql(), sqlRequest.getLimit(),
                 sqlRequest.getOffset(), defaultSchema, sqlException, isPrepare);
