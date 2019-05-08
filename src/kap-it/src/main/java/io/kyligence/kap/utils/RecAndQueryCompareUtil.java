@@ -184,7 +184,7 @@ public class RecAndQueryCompareUtil {
                 entity.setLevel(AccelerationMatchedLevel.LAYOUT_NOT_MATCH);
             } else if (Objects.equals(modelIds, proposedModelIds)) {
                 entity.setLevel(AccelerationMatchedLevel.INDEX_NOT_MATCH);
-            } else if (entity.getAccelerateInfo().isBlocked()) {
+            } else if (entity.getAccelerateInfo().isFailed()) {
                 entity.setLevel(AccelerationMatchedLevel.BLOCKED_QUERY);
             } else {
                 entity.setLevel(AccelerationMatchedLevel.MODEL_NOT_MATCH);

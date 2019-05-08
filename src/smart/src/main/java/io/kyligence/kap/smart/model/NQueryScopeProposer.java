@@ -86,7 +86,7 @@ public class NQueryScopeProposer extends NAbstractModelProposer {
                 val accelerateInfoMap = modelContext.getSmartContext().getAccelerateInfoMap();
                 AccelerateInfo accelerateInfo = accelerateInfoMap.get(ctx.sql);
                 Preconditions.checkNotNull(accelerateInfo);
-                accelerateInfo.setBlockingCause(e);
+                accelerateInfo.setFailedCause(e);
             } finally {
                 ctx.unfixModel();
             }

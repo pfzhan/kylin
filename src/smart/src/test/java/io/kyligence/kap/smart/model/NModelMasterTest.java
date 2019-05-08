@@ -186,15 +186,15 @@ public class NModelMasterTest extends NAutoTestOnLearnKylinData {
         Assert.assertEquals(1, modelContexts.size());
 
         final Map<String, AccelerateInfo> accelerateInfoMap = smartContext.getAccelerateInfoMap();
-        Assert.assertTrue(accelerateInfoMap.get(sqls[0]).isBlocked());
+        Assert.assertTrue(accelerateInfoMap.get(sqls[0]).isFailed());
         Assert.assertEquals("Table not found by UNKNOWN_ALIAS",
-                accelerateInfoMap.get(sqls[0]).getBlockingCause().getMessage());
+                accelerateInfoMap.get(sqls[0]).getFailedCause().getMessage());
 
-        Assert.assertTrue(accelerateInfoMap.get(sqls[1]).isBlocked());
+        Assert.assertTrue(accelerateInfoMap.get(sqls[1]).isFailed());
         Assert.assertEquals("Table not found by UNKNOWN_ALIAS",
-                accelerateInfoMap.get(sqls[1]).getBlockingCause().getMessage());
+                accelerateInfoMap.get(sqls[1]).getFailedCause().getMessage());
 
-        Assert.assertFalse(accelerateInfoMap.get(sqls[2]).isBlocked());
+        Assert.assertFalse(accelerateInfoMap.get(sqls[2]).isFailed());
         Assert.assertEquals(1, accelerateInfoMap.get(sqls[2]).getRelatedLayouts().size());
     }
 

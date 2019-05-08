@@ -71,7 +71,7 @@ public class NJoinProposer extends NAbstractModelProposer {
                 val accelerateInfoMap = modelContext.getSmartContext().getAccelerateInfoMap();
                 AccelerateInfo accelerateInfo = accelerateInfoMap.get(ctx.sql);
                 Preconditions.checkNotNull(accelerateInfo);
-                accelerateInfo.setBlockingCause(e);
+                accelerateInfo.setFailedCause(e);
             }
         }
 

@@ -46,7 +46,7 @@ public class NCorruptSqlTest extends NAutoTestBase {
         final NSmartMaster smartMaster = proposeWithSmartMaster(testScenarios, "newten");
         final Map<String, AccelerateInfo> accelerateInfoMap = smartMaster.getContext().getAccelerateInfoMap();
         accelerateInfoMap.forEach((key, value) -> {
-            final String blockMessage = value.getBlockingCause().getMessage();
+            final String blockMessage = value.getFailedCause().getMessage();
             Assert.assertTrue(blockMessage.contains("Not Supported SQL"));
         });
     }
@@ -60,7 +60,7 @@ public class NCorruptSqlTest extends NAutoTestBase {
         final NSmartMaster smartMaster = proposeWithSmartMaster(testScenarios, "newten");
         final Map<String, AccelerateInfo> accelerateInfoMap = smartMaster.getContext().getAccelerateInfoMap();
         accelerateInfoMap.forEach((key, value) -> {
-            Assert.assertNull(value.getBlockingCause());
+            Assert.assertNull(value.getFailedCause());
             Assert.assertEquals(0, value.getRelatedLayouts().size());
         });
     }
@@ -73,7 +73,7 @@ public class NCorruptSqlTest extends NAutoTestBase {
         TestScenario[] testScenarios = new TestScenario[] { new TestScenario("parse-error") };
         final NSmartMaster smartMaster = proposeWithSmartMaster(testScenarios, "newten");
         final Map<String, AccelerateInfo> accelerateInfoMap = smartMaster.getContext().getAccelerateInfoMap();
-        accelerateInfoMap.forEach((key, value) -> Assert.assertTrue(value.isBlocked()));
+        accelerateInfoMap.forEach((key, value) -> Assert.assertTrue(value.isFailed() || value.isPending()));
     }
 
     /**
@@ -86,8 +86,7 @@ public class NCorruptSqlTest extends NAutoTestBase {
         final NSmartMaster smartMaster = proposeWithSmartMaster(testScenarios, "newten");
         final Map<String, AccelerateInfo> accelerateInfoMap = smartMaster.getContext().getAccelerateInfoMap();
         accelerateInfoMap.forEach((key, value) -> {
-            final Throwable blockingCause = value.getBlockingCause();
-            Assert.assertTrue(blockingCause instanceof NullPointerException);
+            Assert.assertTrue(value.isPending() || value.isFailed());
         });
     }
 
@@ -99,7 +98,7 @@ public class NCorruptSqlTest extends NAutoTestBase {
         try {
             final NSmartMaster smartMaster = proposeWithSmartMaster(testScenarios, "newten");
             final Map<String, AccelerateInfo> accelerateInfoMap = smartMaster.getContext().getAccelerateInfoMap();
-            accelerateInfoMap.forEach((key, value) -> Assert.assertFalse(value.isBlocked()));
+            accelerateInfoMap.forEach((key, value) -> Assert.assertFalse(value.isFailed()));
         } catch (Exception e) {
             Assert.fail(e.getMessage());
         }

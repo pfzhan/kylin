@@ -57,7 +57,7 @@ public abstract class NAbstractProposer {
             String sql = olapCtx.sql;
             final AccelerateInfo accelerateInfo = accelerateInfoMap.get(sql);
             Preconditions.checkNotNull(accelerateInfo);
-            accelerateInfo.setBlockingCause(e);
+            accelerateInfo.setFailedCause(e);
         });
     }
 

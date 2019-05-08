@@ -151,22 +151,25 @@ public class FavoriteQueryManagerTest extends NLocalFileMetadataTestCase {
 
         // update status
         favoriteQueryManager.updateStatus("sql1", FavoriteQueryStatusEnum.ACCELERATING, null);
-        favoriteQueryManager.updateStatus("sql2", FavoriteQueryStatusEnum.BLOCKED, "test_comment");
-        favoriteQueryManager.updateStatus("sql3", FavoriteQueryStatusEnum.FULLY_ACCELERATED, null);
+        favoriteQueryManager.updateStatus("sql2", FavoriteQueryStatusEnum.FAILED, "test_comment");
+        favoriteQueryManager.updateStatus("sql3", FavoriteQueryStatusEnum.ACCELERATED, null);
+        favoriteQueryManager.updateStatus("sql4", FavoriteQueryStatusEnum.PENDING, "dimension missing");
 
         favoriteQueries = favoriteQueryManager.getAll();
         Assert.assertEquals(6, favoriteQueries.size());
 
         Assert.assertEquals(FavoriteQueryStatusEnum.ACCELERATING, favoriteQueryManager.get("sql1").getStatus());
-        Assert.assertEquals(FavoriteQueryStatusEnum.BLOCKED, favoriteQueryManager.get("sql2").getStatus());
+        Assert.assertEquals(FavoriteQueryStatusEnum.FAILED, favoriteQueryManager.get("sql2").getStatus());
         Assert.assertEquals("test_comment", favoriteQueryManager.get("sql2").getComment());
-        Assert.assertEquals(FavoriteQueryStatusEnum.FULLY_ACCELERATED, favoriteQueryManager.get("sql3").getStatus());
+        Assert.assertEquals(FavoriteQueryStatusEnum.ACCELERATED, favoriteQueryManager.get("sql3").getStatus());
+        Assert.assertEquals(FavoriteQueryStatusEnum.PENDING, favoriteQueryManager.get("sql4").getStatus());
+        Assert.assertEquals("dimension missing", favoriteQueryManager.get("sql4").getComment());
 
         // get unaccelerated favorite queries
-        Assert.assertEquals(4, favoriteQueryManager.getUnAcceleratedSqlPattern().size());
+        Assert.assertEquals(3, favoriteQueryManager.getAccelerableSqlPattern().size());
 
         // update not exist sql pattern status, no exception
-        favoriteQueryManager.updateStatus("not_exist_sql_pattern", FavoriteQueryStatusEnum.FULLY_ACCELERATED, null);
+        favoriteQueryManager.updateStatus("not_exist_sql_pattern", FavoriteQueryStatusEnum.ACCELERATED, null);
 
         // delete
         favoriteQueryManager.delete(favoriteQueryManager.get("sql1"));

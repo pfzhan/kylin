@@ -105,6 +105,11 @@ public class FavoriteQueryManager implements IKeepNames {
         });
     }
 
+    public void createWithoutCheck(final Set<FavoriteQuery> favoriteQueries) {
+        favoriteQueries.forEach(
+                favoriteQuery -> favoriteQueryMap.put(favoriteQuery.getSqlPattern(), crud.save(favoriteQuery)));
+    }
+
     public FavoriteQuery getByUuid(String uuid) {
         return crud.get(uuid);
     }
@@ -172,22 +177,23 @@ public class FavoriteQueryManager implements IKeepNames {
 
     public List<String> getAcceleratedSqlPattern() {
         List<FavoriteQuery> favoriteQueries = crud.listAll().stream()
-                .filter(input -> input.getStatus().equals(FavoriteQueryStatusEnum.FULLY_ACCELERATED))
+                .filter(input -> input.getStatus().equals(FavoriteQueryStatusEnum.ACCELERATED))
                 .collect(Collectors.toList());
         return favoriteQueries.stream().map(FavoriteQuery::getSqlPattern).collect(Collectors.toList());
     }
 
-    public List<String> getUnAcceleratedSqlPattern() {
+    public List<String> getAccelerableSqlPattern() {
         List<FavoriteQuery> favoriteQueries = crud.listAll().stream()
-                .filter(input -> input.getStatus() == FavoriteQueryStatusEnum.WAITING
-                        || input.getStatus() == FavoriteQueryStatusEnum.BLOCKED)
+                .filter(input -> input.getStatus() == FavoriteQueryStatusEnum.TO_BE_ACCELERATED
+                        || input.getStatus() == FavoriteQueryStatusEnum.PENDING)
                 .collect(Collectors.toList());
         return favoriteQueries.stream().map(FavoriteQuery::getSqlPattern).collect(Collectors.toList());
     }
 
-    public List<String> getWaitingAccelerateSqlPattern() {
+    public List<String> getToBeAcceleratedSqlPattern() {
         List<FavoriteQuery> favoriteQueries = crud.listAll().stream()
-                .filter(input -> input.getStatus() == FavoriteQueryStatusEnum.WAITING).collect(Collectors.toList());
+                .filter(input -> input.getStatus() == FavoriteQueryStatusEnum.TO_BE_ACCELERATED)
+                .collect(Collectors.toList());
         return favoriteQueries.stream().map(FavoriteQuery::getSqlPattern).collect(Collectors.toList());
     }
 

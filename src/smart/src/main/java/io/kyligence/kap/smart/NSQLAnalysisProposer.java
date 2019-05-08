@@ -30,6 +30,9 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
+import io.kyligence.kap.smart.query.advisor.ISqlAdvisor;
+import io.kyligence.kap.smart.query.advisor.SQLAdvice;
+import io.kyligence.kap.smart.query.advisor.SqlSyntaxAdvisor;
 import org.apache.kylin.metadata.realization.NoRealizationFoundException;
 
 import com.google.common.base.Preconditions;
@@ -87,6 +90,7 @@ class NSQLAnalysisProposer extends NAbstractProposer {
 
     private void logFailedQuery(AbstractQueryRunner extractor) {
         final Map<Integer, SQLResult> queryResultMap = extractor.getQueryResults();
+        ISqlAdvisor sqlAdvisor = new SqlSyntaxAdvisor();
 
         queryResultMap.forEach((index, sqlResult) -> {
             if (sqlResult.getStatus() == SQLResult.Status.FAILED) {
@@ -95,7 +99,12 @@ class NSQLAnalysisProposer extends NAbstractProposer {
                 Throwable throwable = sqlResult.getException();
                 if (!(throwable instanceof NoRealizationFoundException
                         || throwable.getCause() instanceof NoRealizationFoundException)) {
-                    accelerateInfo.setBlockingCause(sqlResult.getException());
+                    if (throwable.getMessage().contains("not found")) {
+                        SQLAdvice sqlAdvices = sqlAdvisor.propose(sqlResult);
+                        accelerateInfo.setPendingMsg(sqlAdvices.getIncapableReason());
+                    } else {
+                        accelerateInfo.setFailedCause(throwable);
+                    }
                 }
             }
         });

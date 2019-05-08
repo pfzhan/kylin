@@ -75,9 +75,13 @@ public class FavoriteQueryServiceTest extends NLocalFileMetadataTestCase {
 
     private final String constantSql = "select * from test_kylin_fact where 1 <> 1";
     private final String blockedSql = "select sum(lstg_format_name) from test_kylin_fact";
+    private final String tableMissingSql = "select count(*) from test_kylin_table";
 
     @InjectMocks
     private FavoriteQueryService favoriteQueryService = Mockito.spy(new FavoriteQueryService());
+
+    @InjectMocks
+    private TableService tableService = Mockito.spy(new TableService());
 
     private void createTestFavoriteQuery() {
         FavoriteQueryManager favoriteQueryManager = FavoriteQueryManager.getInstance(getTestConfig(), PROJECT);
@@ -128,13 +132,13 @@ public class FavoriteQueryServiceTest extends NLocalFileMetadataTestCase {
 
     private void stubUnAcceleratedSqlPatterns(List<String> sqls, String project) {
         FavoriteQueryManager favoriteQueryManager = Mockito.mock(FavoriteQueryManager.class);
-        Mockito.doReturn(sqls).when(favoriteQueryManager).getUnAcceleratedSqlPattern();
+        Mockito.doReturn(sqls).when(favoriteQueryManager).getAccelerableSqlPattern();
         Mockito.doReturn(favoriteQueryManager).when(favoriteQueryService).getFavoriteQueryManager(project);
     }
 
     private void stubWaitingAccelerateSqlPatterns(List<String> sqls, String project) {
         FavoriteQueryManager favoriteQueryManager = Mockito.mock(FavoriteQueryManager.class);
-        Mockito.doReturn(sqls).when(favoriteQueryManager).getWaitingAccelerateSqlPattern();
+        Mockito.doReturn(sqls).when(favoriteQueryManager).getToBeAcceleratedSqlPattern();
         Mockito.doReturn(favoriteQueryManager).when(favoriteQueryService).getFavoriteQueryManager(project);
     }
 
@@ -234,7 +238,7 @@ public class FavoriteQueryServiceTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void testAcceptAccelerateWithBlockedSqlPattern() {
+    public void testAcceptAccelerateWithPendingSqlPattern() {
 
         getTestConfig().setProperty("kylin.server.mode", "query");
 
@@ -242,32 +246,34 @@ public class FavoriteQueryServiceTest extends NLocalFileMetadataTestCase {
         FavoriteRequest request = new FavoriteRequest(PROJECT, Lists.newArrayList(sqls));
         favoriteQueryService.createFavoriteQuery(PROJECT, request);
 
-        // 3. change status of some favorite queries to BLOCKED
+        // 3. change status of some favorite queries to FAILED
         FavoriteQueryManager favoriteQueryManager = favoriteQueryService.getFavoriteQueryManager(PROJECT);
         List<FavoriteQuery> favoriteQueries = favoriteQueryManager.getAll();
-        favoriteQueries.get(0).setStatus(FavoriteQueryStatusEnum.BLOCKED);
-        favoriteQueries.get(1).setStatus(FavoriteQueryStatusEnum.FULLY_ACCELERATED);
+        favoriteQueries.get(0).setStatus(FavoriteQueryStatusEnum.PENDING);
+        favoriteQueries.get(1).setStatus(FavoriteQueryStatusEnum.FAILED);
+        favoriteQueries.get(2).setStatus(FavoriteQueryStatusEnum.ACCELERATED);
         favoriteQueryManager.updateFavoriteQueryMap(favoriteQueries.get(0));
         favoriteQueryManager.updateFavoriteQueryMap(favoriteQueries.get(1));
+        favoriteQueryManager.updateFavoriteQueryMap(favoriteQueries.get(2));
 
         favoriteQueries = favoriteQueryManager.getAll();
-        Assert.assertEquals(FavoriteQueryStatusEnum.BLOCKED, favoriteQueries.get(0).getStatus());
-        Assert.assertEquals(FavoriteQueryStatusEnum.FULLY_ACCELERATED, favoriteQueries.get(1).getStatus());
-        Assert.assertEquals(FavoriteQueryStatusEnum.WAITING, favoriteQueries.get(2).getStatus());
-        Assert.assertEquals(FavoriteQueryStatusEnum.WAITING, favoriteQueries.get(3).getStatus());
+        Assert.assertEquals(FavoriteQueryStatusEnum.PENDING, favoriteQueries.get(0).getStatus());
+        Assert.assertEquals(FavoriteQueryStatusEnum.FAILED, favoriteQueries.get(1).getStatus());
+        Assert.assertEquals(FavoriteQueryStatusEnum.ACCELERATED, favoriteQueries.get(2).getStatus());
+        Assert.assertEquals(FavoriteQueryStatusEnum.TO_BE_ACCELERATED, favoriteQueries.get(3).getStatus());
 
         // 4. accelerate and validate
-        favoriteQueryService.acceptAccelerate(PROJECT, 3);
+        favoriteQueryService.acceptAccelerate(PROJECT, 2);
         EventDao eventDaoOfDefaultProject = EventDao.getInstance(getTestConfig(), PROJECT);
         var events = eventDaoOfDefaultProject.getEvents();
         events.sort(Event::compareTo);
         Assert.assertEquals(2, events.size());
-        Assert.assertEquals(3, ((AddCuboidEvent) events.get(0)).getSqlPatterns().size());
+        Assert.assertEquals(2, ((AddCuboidEvent) events.get(0)).getSqlPatterns().size());
 
         final List<FavoriteQuery> favoriteQueriesAfter = favoriteQueryManager.getAll();
         Assert.assertEquals(FavoriteQueryStatusEnum.ACCELERATING, favoriteQueriesAfter.get(0).getStatus());
-        Assert.assertEquals(FavoriteQueryStatusEnum.FULLY_ACCELERATED, favoriteQueriesAfter.get(1).getStatus());
-        Assert.assertEquals(FavoriteQueryStatusEnum.ACCELERATING, favoriteQueriesAfter.get(2).getStatus());
+        Assert.assertEquals(FavoriteQueryStatusEnum.FAILED, favoriteQueriesAfter.get(1).getStatus());
+        Assert.assertEquals(FavoriteQueryStatusEnum.ACCELERATED, favoriteQueriesAfter.get(2).getStatus());
         Assert.assertEquals(FavoriteQueryStatusEnum.ACCELERATING, favoriteQueriesAfter.get(3).getStatus());
 
         getTestConfig().setProperty("kylin.server.mode", "all");
@@ -279,17 +285,19 @@ public class FavoriteQueryServiceTest extends NLocalFileMetadataTestCase {
         getTestConfig().setProperty("kylin.server.mode", "query");
         List<String> sqlPatterns = Lists.newArrayList(constantSql);
         sqlPatterns.add(blockedSql);
+        sqlPatterns.add(tableMissingSql);
         FavoriteRequest request = new FavoriteRequest(PROJECT, sqlPatterns);
         favoriteQueryService.createFavoriteQuery(PROJECT, request);
 
         FavoriteQueryManager favoriteQueryManager = favoriteQueryService.getFavoriteQueryManager(PROJECT);
-        favoriteQueryService.acceptAccelerate(PROJECT, 2);
+        favoriteQueryService.acceptAccelerate(PROJECT, 3);
 
         final List<FavoriteQuery> favoriteQueriesAfter = favoriteQueryManager.getAll();
         favoriteQueriesAfter.sort(Comparator.comparing(FavoriteQuery::getSqlPattern));
 
-        Assert.assertEquals(FavoriteQueryStatusEnum.FULLY_ACCELERATED, favoriteQueriesAfter.get(0).getStatus());
-        Assert.assertEquals(FavoriteQueryStatusEnum.BLOCKED, favoriteQueriesAfter.get(1).getStatus());
+        Assert.assertEquals(FavoriteQueryStatusEnum.ACCELERATED, favoriteQueriesAfter.get(0).getStatus());
+        Assert.assertEquals(FavoriteQueryStatusEnum.FAILED, favoriteQueriesAfter.get(2).getStatus());
+        Assert.assertEquals(FavoriteQueryStatusEnum.PENDING, favoriteQueriesAfter.get(1).getStatus());
 
         getTestConfig().setProperty("kylin.server.mode", "all");
     }
@@ -310,7 +318,7 @@ public class FavoriteQueryServiceTest extends NLocalFileMetadataTestCase {
         favoriteQueriesAfter.sort(Comparator.comparing(FavoriteQuery::getSqlPattern));
 
         Assert.assertEquals(FavoriteQueryStatusEnum.ACCELERATING, favoriteQueriesAfter.get(0).getStatus());
-        Assert.assertEquals(FavoriteQueryStatusEnum.BLOCKED, favoriteQueriesAfter.get(1).getStatus());
+        Assert.assertEquals(FavoriteQueryStatusEnum.FAILED, favoriteQueriesAfter.get(1).getStatus());
 
         getTestConfig().setProperty("kylin.server.mode", "all");
     }
@@ -321,7 +329,7 @@ public class FavoriteQueryServiceTest extends NLocalFileMetadataTestCase {
         FavoriteQueryManager favoriteQueryManager = Mockito.mock(FavoriteQueryManager.class);
         Mockito.doReturn(40).when(sqlPatterns).size();
         Mockito.doReturn(true).when(sqlPatterns).isEmpty();
-        Mockito.doReturn(sqlPatterns).when(favoriteQueryManager).getWaitingAccelerateSqlPattern();
+        Mockito.doReturn(sqlPatterns).when(favoriteQueryManager).getToBeAcceleratedSqlPattern();
         Mockito.doReturn(favoriteQueryManager).when(favoriteQueryService).getFavoriteQueryManager(PROJECT);
 
         Assert.assertTrue((boolean) favoriteQueryService.getAccelerateTips(PROJECT).get("reach_threshold"));
@@ -337,7 +345,12 @@ public class FavoriteQueryServiceTest extends NLocalFileMetadataTestCase {
         // when sql pattern not exists
         String sqlPattern = "select count(*) from test_kylin_fact";
         FavoriteRequest request = new FavoriteRequest(PROJECT, Lists.newArrayList(sqls[0], sqls[1], sqlPattern));
-        favoriteQueryService.createFavoriteQuery(PROJECT, request);
+        var result = favoriteQueryService.createFavoriteQuery(PROJECT, request);
+        Assert.assertEquals(1, (int) result.get("imported"));
+        Assert.assertEquals(2, (int) result.get("waiting"));
+        Assert.assertEquals(0, (int) result.get("not_accelerated"));
+        Assert.assertEquals(0, (int) result.get("accelerated"));
+        Assert.assertEquals(0, (int) result.get("blacklist"));
 
         FavoriteQueryManager favoriteQueryManager = FavoriteQueryManager.getInstance(getTestConfig(), PROJECT);
         List<FavoriteQuery> favoriteQueries = favoriteQueryManager.getAll();
@@ -346,14 +359,30 @@ public class FavoriteQueryServiceTest extends NLocalFileMetadataTestCase {
         FavoriteQuery newCreated = favoriteQueries.get(0);
         Assert.assertEquals(QueryPatternUtil.normalizeSQLPattern(sqlPattern), newCreated.getSqlPattern());
         Assert.assertEquals(FavoriteQuery.CHANNEL_FROM_IMPORTED, newCreated.getChannel());
-        Assert.assertEquals(FavoriteQueryStatusEnum.WAITING, newCreated.getStatus());
+        Assert.assertEquals(FavoriteQueryStatusEnum.TO_BE_ACCELERATED, newCreated.getStatus());
 
         // sql pattern in blaclist
         sqlPattern = "select * from test_kylin_fact";
         request.setSqls(Lists.newArrayList(sqlPattern));
-        favoriteQueryService.createFavoriteQuery(PROJECT, request);
+        result = favoriteQueryService.createFavoriteQuery(PROJECT, request);
+        Assert.assertEquals(1, (int) result.get("blacklist"));
+        Assert.assertEquals(0, (int) result.get("waiting"));
+        Assert.assertEquals(0, (int) result.get("not_accelerated"));
+        Assert.assertEquals(0, (int) result.get("accelerated"));
         favoriteQueries = favoriteQueryManager.getAll();
         Assert.assertEquals(4, favoriteQueries.size());
+
+        favoriteQueryManager.updateStatus(QueryPatternUtil.normalizeSQLPattern(sqls[0]), FavoriteQueryStatusEnum.ACCELERATING, "");
+        favoriteQueryManager.updateStatus(QueryPatternUtil.normalizeSQLPattern(sqls[1]), FavoriteQueryStatusEnum.PENDING, "");
+        favoriteQueryManager.updateStatus(QueryPatternUtil.normalizeSQLPattern(sqls[2]), FavoriteQueryStatusEnum.ACCELERATED, "");
+
+        // create fqs which are already in fq list
+        request.setSqls(Lists.newArrayList(sqls[0], sqls[1], sqls[2], "select count(*) from kylin_sales"));
+        result = favoriteQueryService.createFavoriteQuery(PROJECT, request);
+        Assert.assertEquals(1, (int) result.get("imported"));
+        Assert.assertEquals(1, (int) result.get("waiting"));
+        Assert.assertEquals(1, (int) result.get("not_accelerated"));
+        Assert.assertEquals(1, (int) result.get("accelerated"));
     }
 
     @Test
@@ -363,7 +392,7 @@ public class FavoriteQueryServiceTest extends NLocalFileMetadataTestCase {
 
         // filter status
         List<FavoriteQuery> filteredFavoriteQueries = favoriteQueryService.filterAndSortFavoriteQueries(PROJECT, null,
-                false, Lists.newArrayList(FavoriteQueryStatusEnum.WAITING.toString(),
+                false, Lists.newArrayList(FavoriteQueryStatusEnum.TO_BE_ACCELERATED.toString(),
                         FavoriteQueryStatusEnum.ACCELERATING.toString()));
         Assert.assertEquals(2, filteredFavoriteQueries.size());
         Assert.assertEquals("sql2", filteredFavoriteQueries.get(0).getSqlPattern());
@@ -371,7 +400,7 @@ public class FavoriteQueryServiceTest extends NLocalFileMetadataTestCase {
 
         // sort by frequency
         filteredFavoriteQueries = favoriteQueryService.filterAndSortFavoriteQueries(PROJECT, "total_count", true, null);
-        Assert.assertEquals(3, filteredFavoriteQueries.size());
+        Assert.assertEquals(5, filteredFavoriteQueries.size());
         Assert.assertEquals("sql1", filteredFavoriteQueries.get(0).getSqlPattern());
         Assert.assertEquals("sql2", filteredFavoriteQueries.get(1).getSqlPattern());
         Assert.assertEquals("sql3", filteredFavoriteQueries.get(2).getSqlPattern());
@@ -379,7 +408,7 @@ public class FavoriteQueryServiceTest extends NLocalFileMetadataTestCase {
         // sort by success rate
         filteredFavoriteQueries = favoriteQueryService.filterAndSortFavoriteQueries(PROJECT, "success_rate", true,
                 null);
-        Assert.assertEquals(3, filteredFavoriteQueries.size());
+        Assert.assertEquals(5, filteredFavoriteQueries.size());
         Assert.assertEquals("sql3", filteredFavoriteQueries.get(0).getSqlPattern());
         Assert.assertEquals("sql1", filteredFavoriteQueries.get(1).getSqlPattern());
         Assert.assertEquals("sql2", filteredFavoriteQueries.get(2).getSqlPattern());
@@ -387,7 +416,7 @@ public class FavoriteQueryServiceTest extends NLocalFileMetadataTestCase {
         // sort by average duration
         filteredFavoriteQueries = favoriteQueryService.filterAndSortFavoriteQueries(PROJECT, "average_duration", true,
                 null);
-        Assert.assertEquals(3, filteredFavoriteQueries.size());
+        Assert.assertEquals(5, filteredFavoriteQueries.size());
         Assert.assertEquals("sql3", filteredFavoriteQueries.get(0).getSqlPattern());
         Assert.assertEquals("sql2", filteredFavoriteQueries.get(1).getSqlPattern());
         Assert.assertEquals("sql1", filteredFavoriteQueries.get(2).getSqlPattern());
@@ -399,7 +428,7 @@ public class FavoriteQueryServiceTest extends NLocalFileMetadataTestCase {
         favoriteQuery1.setTotalCount(3);
         favoriteQuery1.setAverageDuration(100);
         favoriteQuery1.setSuccessRate(0.2f);
-        favoriteQuery1.setStatus(FavoriteQueryStatusEnum.WAITING);
+        favoriteQuery1.setStatus(FavoriteQueryStatusEnum.TO_BE_ACCELERATED);
 
         FavoriteQuery favoriteQuery2 = new FavoriteQuery("sql2");
         favoriteQuery2.setLastQueryTime(2000);
@@ -413,25 +442,39 @@ public class FavoriteQueryServiceTest extends NLocalFileMetadataTestCase {
         favoriteQuery3.setTotalCount(1);
         favoriteQuery3.setAverageDuration(300);
         favoriteQuery3.setSuccessRate(0.3f);
-        favoriteQuery3.setStatus(FavoriteQueryStatusEnum.FULLY_ACCELERATED);
+        favoriteQuery3.setStatus(FavoriteQueryStatusEnum.ACCELERATED);
+
+        FavoriteQuery favoriteQuery4 = new FavoriteQuery("sql4");
+        favoriteQuery4.setLastQueryTime(4000);
+        favoriteQuery4.setAverageDuration(50);
+        favoriteQuery4.setStatus(FavoriteQueryStatusEnum.PENDING);
+
+        FavoriteQuery favoriteQuery5 = new FavoriteQuery("sql5");
+        favoriteQuery5.setLastQueryTime(5000);
+        favoriteQuery5.setAverageDuration(80);
+        favoriteQuery5.setStatus(FavoriteQueryStatusEnum.FAILED);
 
         return new HashSet<FavoriteQuery>() {
             {
                 add(favoriteQuery1);
                 add(favoriteQuery2);
                 add(favoriteQuery3);
+                add(favoriteQuery4);
+                add(favoriteQuery5);
             }
         };
     }
 
     @Test
-    public void testGetWaitingFavoriteQuery() {
+    public void testGetFQSizeInDifferentStatus() {
         FavoriteQueryManager favoriteQueryManager = FavoriteQueryManager.getInstance(getTestConfig(), PROJECT);
         favoriteQueryManager.create(mockFavoriteQuery());
 
-        // get waiting favorite query
-        val size = favoriteQueryService.getWaitingFavoriteQuerySize(PROJECT);
-        Assert.assertEquals(1, size);
+        val result = favoriteQueryService.getFQSizeInDifferentStatus(PROJECT);
+        Assert.assertEquals(1, (int) result.get("to_be_accelerated"));
+        Assert.assertEquals(2, (int) result.get("waiting"));
+        Assert.assertEquals(2, (int) result.get("not_accelerated"));
+        Assert.assertEquals(1, (int) result.get("accelerated"));
     }
 
     @Test
@@ -455,10 +498,10 @@ public class FavoriteQueryServiceTest extends NLocalFileMetadataTestCase {
         NSmartMaster smartMaster = new NSmartMaster(getTestConfig(), PROJECT, new String[] { sql });
         smartMaster
                 .runAllAndForContext(ctx -> FavoriteQueryManager.getInstance(KylinConfig.getInstanceFromEnv(), PROJECT)
-                        .updateStatus(sql, FavoriteQueryStatusEnum.FULLY_ACCELERATED, ""));
+                        .updateStatus(sql, FavoriteQueryStatusEnum.ACCELERATED, ""));
         manager.reloadSqlPatternMap();
         Assert.assertFalse(manager.getAcceleratedSqlPattern().isEmpty());
-        Assert.assertEquals(FavoriteQueryStatusEnum.FULLY_ACCELERATED, manager.get(sql).getStatus());
+        Assert.assertEquals(FavoriteQueryStatusEnum.ACCELERATED, manager.get(sql).getStatus());
 
         // change model version
         NDataModelManager modelManager = NDataModelManager.getInstance(config, PROJECT);
@@ -470,20 +513,27 @@ public class FavoriteQueryServiceTest extends NLocalFileMetadataTestCase {
         favoriteQueryService.adjustFavoriteQuery();
         manager.reloadSqlPatternMap();
         Assert.assertTrue(manager.getAcceleratedSqlPattern().isEmpty());
-        Assert.assertEquals(FavoriteQueryStatusEnum.WAITING, manager.get(sql).getStatus());
+        Assert.assertEquals(FavoriteQueryStatusEnum.TO_BE_ACCELERATED, manager.get(sql).getStatus());
 
         // accelerate again
         NSmartMaster smartMasterAfter = new NSmartMaster(getTestConfig(), PROJECT, new String[] { sql });
         smartMasterAfter
                 .runAllAndForContext(ctx -> FavoriteQueryManager.getInstance(KylinConfig.getInstanceFromEnv(), PROJECT)
-                        .updateStatus(sql, FavoriteQueryStatusEnum.FULLY_ACCELERATED, ""));
+                        .updateStatus(sql, FavoriteQueryStatusEnum.ACCELERATED, ""));
         manager.reloadSqlPatternMap();
         Assert.assertFalse(manager.getAcceleratedSqlPattern().isEmpty());
-        Assert.assertEquals(FavoriteQueryStatusEnum.FULLY_ACCELERATED, manager.get(sql).getStatus());
+        Assert.assertEquals(FavoriteQueryStatusEnum.ACCELERATED, manager.get(sql).getStatus());
 
         // run check again, accelerated
         favoriteQueryService.adjustFavoriteQuery();
         Assert.assertFalse(manager.getAcceleratedSqlPattern().isEmpty());
-        Assert.assertEquals(FavoriteQueryStatusEnum.FULLY_ACCELERATED, manager.get(sql).getStatus());
+        Assert.assertEquals(FavoriteQueryStatusEnum.ACCELERATED, manager.get(sql).getStatus());
+
+        // ------------ case when table not loaded --------------
+        tableService.unloadTable(PROJECT, "DEFAULT.TEST_KYLIN_FACT");
+        favoriteQueryService.adjustFavoriteQuery();
+        manager.reloadSqlPatternMap();
+        Assert.assertTrue(manager.getAcceleratedSqlPattern().isEmpty());
+        Assert.assertEquals(FavoriteQueryStatusEnum.TO_BE_ACCELERATED, manager.get(sql).getStatus());
     }
 }

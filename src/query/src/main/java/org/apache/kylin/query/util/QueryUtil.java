@@ -207,10 +207,10 @@ public class QueryUtil {
             errorMsg = errorMsg.trim();
 
             // move cause to be ahead of sql, calcite creates the message pattern below
-            Pattern pattern = Pattern.compile("Error while executing SQL \"(.*)\":(.*)");
+            Pattern pattern = Pattern.compile("Error while executing SQL ([\\s\\S]*):(.*):(.*)");
             Matcher matcher = pattern.matcher(errorMsg);
             if (matcher.find()) {
-                return matcher.group(2).trim() + "\nwhile executing SQL: \"" + matcher.group(1).trim() + "\"";
+                return matcher.group(2).trim() + ": " + matcher.group(3).trim() + "\nwhile executing SQL: " + matcher.group(1).trim();
             } else
                 return errorMsg;
         } catch (Exception e) {

@@ -73,7 +73,7 @@ public class NAutoTpchTest extends NAutoTestBase {
         Assert.assertEquals(1, smartMaster1.getContext().getAccelerateInfoMap().size());
         Set<NDataModel> selectedDataModels1 = Sets.newHashSet();
         smartMaster1.getContext().getAccelerateInfoMap().forEach((s, accelerateInfo) -> {
-            Assert.assertFalse(accelerateInfo.isBlocked());
+            Assert.assertFalse(accelerateInfo.isFailed());
             accelerateInfo.getRelatedLayouts()
                     .forEach(layout -> selectedDataModels1.add(dataModelManager.getDataModelDesc(layout.getModelId())));
         });
@@ -87,7 +87,7 @@ public class NAutoTpchTest extends NAutoTestBase {
                 getProject());
         Set<NDataModel> selectedDataModels2 = Sets.newHashSet();
         smartMaster2.getContext().getAccelerateInfoMap().forEach((s, accelerateInfo) -> {
-            Assert.assertFalse(accelerateInfo.isBlocked());
+            Assert.assertFalse(accelerateInfo.isFailed());
             accelerateInfo.getRelatedLayouts()
                     .forEach(layout -> selectedDataModels2.add(dataModelManager.getDataModelDesc(layout.getModelId())));
         });
@@ -103,7 +103,7 @@ public class NAutoTpchTest extends NAutoTestBase {
                 getProject());
         Set<NDataModel> selectedDataModels3 = Sets.newHashSet();
         smartMaster3.getContext().getAccelerateInfoMap().forEach((s, accelerateInfo) -> {
-            Assert.assertFalse(accelerateInfo.isBlocked());
+            Assert.assertFalse(accelerateInfo.isFailed());
             accelerateInfo.getRelatedLayouts()
                     .forEach(layout -> selectedDataModels3.add(dataModelManager.getDataModelDesc(layout.getModelId())));
         });
@@ -128,7 +128,7 @@ public class NAutoTpchTest extends NAutoTestBase {
                 getProject());
         AccelerateInfo accelerateInfo = smartMaster1.getContext().getAccelerateInfoMap().values()
                 .toArray(new AccelerateInfo[] {})[0];
-        Assert.assertFalse(accelerateInfo.isBlocked());
+        Assert.assertFalse(accelerateInfo.isFailed());
 
         NDataModelManager modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), getProject());
         NDataModel dataModel = modelManager

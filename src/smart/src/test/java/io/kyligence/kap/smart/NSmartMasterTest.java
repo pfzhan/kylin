@@ -99,7 +99,7 @@ public class NSmartMasterTest extends NAutoTestOnLearnKylinData {
         Assert.assertEquals(5, smartMaster.getContext().getAccelerateInfoMap().size());
         for (Map.Entry<String, AccelerateInfo> accelerateInfoEntry : smartMaster.getContext().getAccelerateInfoMap()
                 .entrySet()) {
-            Assert.assertFalse(accelerateInfoEntry.getValue().isBlocked());
+            Assert.assertFalse(accelerateInfoEntry.getValue().isFailed());
         }
         smartMaster.selectAndOptimize();
         smartMaster.saveModel();
@@ -269,7 +269,7 @@ public class NSmartMasterTest extends NAutoTestOnLearnKylinData {
             final Map<String, AccelerateInfo> accelerateInfoMapCase0 = smartMaster.getContext().getAccelerateInfoMap();
             Assert.assertEquals(1, accelerateInfoMapCase0.get(sqls[0]).getRelatedLayouts().size());
 
-            final Throwable blockingCause0 = accelerateInfoMapCase0.get(sqls[0]).getBlockingCause();
+            final Throwable blockingCause0 = accelerateInfoMapCase0.get(sqls[0]).getFailedCause();
             Assert.assertNull(blockingCause0);
 
             final List<IndexEntity> allCuboids = smartMaster.getContext().getModelContexts().get(0).getTargetIndexPlan()
@@ -299,8 +299,8 @@ public class NSmartMasterTest extends NAutoTestOnLearnKylinData {
             String expectedMessage = "The model [AUTO_MODEL_KYLIN_SALES_1] matches this query, "
                     + "but the measure [COUNT_DISTINCT([DEFAULT.KYLIN_SALES.PRICE])] is missing. "
                     + "Please add the above measure before attempting to accelerate this query.";
-            final Throwable blockingCause1 = accelerateInfoMapCase1.get(sqls[0]).getBlockingCause();
-            Assert.assertEquals(expectedMessage, blockingCause1.getMessage());
+            final String pendingMsg1 = accelerateInfoMapCase1.get(sqls[0]).getPendingMsg();
+            Assert.assertEquals(expectedMessage, pendingMsg1);
 
             final List<IndexEntity> allCuboids = smartMaster.getContext().getModelContexts().get(0).getTargetIndexPlan()
                     .getAllIndexes();
@@ -329,9 +329,9 @@ public class NSmartMasterTest extends NAutoTestOnLearnKylinData {
             String expectedMessage = "The model [AUTO_MODEL_KYLIN_SALES_1] matches this query, "
                     + "but the measure [SUM([DEFAULT.KYLIN_SALES.ITEM_COUNT])] is missing. "
                     + "Please add the above measure before attempting to accelerate this query.";
-            final Throwable blockingCause2 = accelerateInfoMapCase2.get(sqls[0]).getBlockingCause();
-            Assert.assertNotNull(blockingCause2);
-            Assert.assertEquals(expectedMessage, blockingCause2.getMessage());
+            final String pendingMsg2 = accelerateInfoMapCase2.get(sqls[0]).getPendingMsg();
+            Assert.assertNotNull(pendingMsg2);
+            Assert.assertEquals(expectedMessage, pendingMsg2);
 
             final NDataModel targetModelCase2 = smartMaster.getContext().getModelContexts().get(0).getTargetModel();
             final List<NDataModel.Measure> allMeasuresCase2 = targetModelCase2.getAllMeasures();
@@ -355,9 +355,9 @@ public class NSmartMasterTest extends NAutoTestOnLearnKylinData {
 
             String expectedMessage = "The join of model [AUTO_MODEL_KYLIN_SALES_1] has some difference with the joins of this query. "
                     + "Please adjust model's join to match the query.";
-            final Throwable blockingCause3 = accelerateInfoMapCase3.get(sqls[0]).getBlockingCause();
-            Assert.assertNotNull(blockingCause3);
-            Assert.assertEquals(expectedMessage, blockingCause3.getMessage());
+            final String pendingMsg3 = accelerateInfoMapCase3.get(sqls[0]).getPendingMsg();
+            Assert.assertNotNull(pendingMsg3);
+            Assert.assertEquals(expectedMessage, pendingMsg3);
 
             final NDataModel targetModelCase3 = smartMaster.getContext().getModelContexts().get(0).getTargetModel();
             final List<NDataModel.Measure> allMeasuresCase3 = targetModelCase3.getAllMeasures();
@@ -366,6 +366,28 @@ public class NSmartMasterTest extends NAutoTestOnLearnKylinData {
             Assert.assertEquals("measures changed unexpected", allMeasures, allMeasuresCase3);
             Assert.assertEquals("named columns changed unexpected", allNamedColumns, allNamedColumnsCase3);
             Assert.assertEquals("join tables changed unexpected", joinTables, joinTablesCase3);
+        }
+        // -------------- case 4: add extra dimension -----------------------
+        {
+            sqls = new String[] { "select sum(price) from kylin_sales "
+                    + "where part_dt = '2012-01-01' group by part_dt, seller_id" };
+            smartMaster = new NSmartMaster(kylinConfig, proj, sqls);
+            smartMaster.runAll();
+
+            final Map<String, AccelerateInfo> accelerateInfoMapCase4 = smartMaster.getContext().getAccelerateInfoMap();
+            Assert.assertEquals(0, accelerateInfoMapCase4.get(sqls[0]).getRelatedLayouts().size());
+
+            String expectedMessage = "The model [AUTO_MODEL_KYLIN_SALES_1] matches this query, but the dimension [KYLIN_SALES.SELLER_ID] is missing. Please add the above dimension before attempting to accelerate this query.";
+            final String pendingMsg4 = accelerateInfoMapCase4.get(sqls[0]).getPendingMsg();
+            Assert.assertEquals(expectedMessage, pendingMsg4);
+
+            final NDataModel targetModelCase4 = smartMaster.getContext().getModelContexts().get(0).getTargetModel();
+            final List<NDataModel.Measure> allMeasuresCase4 = targetModelCase4.getAllMeasures();
+            final List<NDataModel.NamedColumn> allNamedColumnsCase4 = targetModelCase4.getAllNamedColumns();
+            final List<JoinTableDesc> joinTablesCase4 = targetModel.getJoinTables();
+            Assert.assertEquals("measures changed unexpected", allMeasures, allMeasuresCase4);
+            Assert.assertEquals("named columns changed unexpected", allNamedColumns, allNamedColumnsCase4);
+            Assert.assertEquals("join tables changed unexpected", joinTables, joinTablesCase4);
         }
     }
 
@@ -395,9 +417,9 @@ public class NSmartMasterTest extends NAutoTestOnLearnKylinData {
         final Map<String, AccelerateInfo> accelerateInfoMap = smartMaster.getContext().getAccelerateInfoMap();
         Assert.assertEquals(1, accelerateInfoMap.values().size());
         final AccelerateInfo accelerateInfo = Lists.newArrayList(accelerateInfoMap.values()).get(0);
-        Assert.assertTrue(accelerateInfo.isBlocked());
+        Assert.assertTrue(accelerateInfo.isFailed());
         Assert.assertEquals("Only one incremental loading table can be set in model!",
-                accelerateInfo.getBlockingCause().getMessage());
+                accelerateInfo.getFailedCause().getMessage());
     }
 
     @Test
@@ -419,8 +441,8 @@ public class NSmartMasterTest extends NAutoTestOnLearnKylinData {
         final Map<String, AccelerateInfo> accelerateInfoMap = smartMaster.getContext().getAccelerateInfoMap();
         Assert.assertEquals(1, accelerateInfoMap.values().size());
         final AccelerateInfo accelerateInfo = Lists.newArrayList(accelerateInfoMap.values()).get(0);
-        Assert.assertTrue(accelerateInfo.isBlocked());
-        Assert.assertTrue(accelerateInfo.getBlockingCause() instanceof NullPointerException);
+        Assert.assertTrue(accelerateInfo.isFailed());
+        Assert.assertTrue(accelerateInfo.getFailedCause() instanceof NullPointerException);
     }
 
     @Test
@@ -435,7 +457,7 @@ public class NSmartMasterTest extends NAutoTestOnLearnKylinData {
 
         final Map<String, AccelerateInfo> accelerateInfoMap = smartMaster.getContext().getAccelerateInfoMap();
         Assert.assertEquals(1, accelerateInfoMap.values().size());
-        Assert.assertFalse(Lists.newArrayList(accelerateInfoMap.values()).get(0).isBlocked());
+        Assert.assertFalse(Lists.newArrayList(accelerateInfoMap.values()).get(0).isFailed());
     }
 
     @Test
@@ -458,7 +480,7 @@ public class NSmartMasterTest extends NAutoTestOnLearnKylinData {
         final Map<String, AccelerateInfo> accelerateInfoMap = context.getAccelerateInfoMap();
 
         final AccelerateInfo accelerateInfo = accelerateInfoMap.get(sqls[0]);
-        Assert.assertFalse(accelerateInfo.isBlocked());
+        Assert.assertFalse(accelerateInfo.isFailed());
     }
 
     @Test

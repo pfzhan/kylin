@@ -301,7 +301,7 @@ public class CuboidSuggesterTest extends NAutoTestOnLearnKylinData {
         Assert.assertEquals(1, accelerateMap.get(sqls[2]).getRelatedLayouts().size());
         Assert.assertEquals(1, accelerateMap.get(sqls[3]).getRelatedLayouts().size());
         Assert.assertEquals(0, accelerateMap.get(sqls[4]).getRelatedLayouts().size());
-        Assert.assertTrue(accelerateMap.get(sqls[4]).isBlocked());
+        Assert.assertTrue(accelerateMap.get(sqls[4]).isPending());
 
         String cubePlan0 = Lists.newArrayList(accelerateMap.get(sqls[0]).getRelatedLayouts()).get(0).getModelId();
         String cubePlan1 = Lists.newArrayList(accelerateMap.get(sqls[1]).getRelatedLayouts()).get(0).getModelId();

@@ -123,7 +123,7 @@ public class PostAddCuboidHandler extends AbstractEventPostJobHandler {
     private void handleFavoriteQuery(String project, List<String> sqlList) {
         if (CollectionUtils.isNotEmpty(sqlList)) {
             for (String sqlPattern : sqlList) {
-                getFavoriteQueryDao(project).updateStatus(sqlPattern, FavoriteQueryStatusEnum.FULLY_ACCELERATED, null);
+                getFavoriteQueryDao(project).updateStatus(sqlPattern, FavoriteQueryStatusEnum.ACCELERATED, null);
             }
         }
 

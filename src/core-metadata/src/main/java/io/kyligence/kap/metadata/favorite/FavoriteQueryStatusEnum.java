@@ -25,5 +25,5 @@ package io.kyligence.kap.metadata.favorite;
 
 public enum FavoriteQueryStatusEnum {
 
-    WAITING, ACCELERATING, PARTLY_ACCELERATED, FULLY_ACCELERATED, BLOCKED
+    TO_BE_ACCELERATED, ACCELERATING, ACCELERATED, PENDING, FAILED
 }

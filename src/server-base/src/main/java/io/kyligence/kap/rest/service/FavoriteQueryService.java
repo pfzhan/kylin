@@ -27,6 +27,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -88,19 +89,65 @@ public class FavoriteQueryService extends BasicService {
 
     private static final String DEFAULT_SCHEMA = "default";
 
+    private static final String TO_BE_ACCELERATED = "to_be_accelerated";
+    private static final String WAITING_TAB = "waiting";
+    private static final String NOT_ACCELERATED_TAB = "not_accelerated";
+    private static final String ACCELERATED_TAB = "accelerated";
+
+    private static final String IMPORTED = "imported";
+    private static final String BLACKLIST = "blacklist";
+
     @Transaction(project = 0)
-    public void createFavoriteQuery(String project, FavoriteRequest request) {
+    public Map<String, Integer> createFavoriteQuery(String project, FavoriteRequest request) {
+        Map<String, Integer> result = new HashMap<String, Integer>(){{
+            put(BLACKLIST, 0);
+            put(WAITING_TAB, 0);
+            put(NOT_ACCELERATED_TAB, 0);
+            put(ACCELERATED_TAB, 0);
+        }};
+
+        int importedSqlSize = 0;
+
         Set<FavoriteQuery> favoriteQueries = new HashSet<>();
+        val fqManager = getFavoriteQueryManager(project);
+        val blacklistSqls = getFavoriteRuleManager(project).getBlacklistSqls();
+
         for (String sql : request.getSqls()) {
             String correctedSql = QueryUtil.massageSql(sql, project, 0, 0, DEFAULT_SCHEMA);
             String sqlPattern = QueryPatternUtil.normalizeSQLPattern(correctedSql);
 
-            FavoriteQuery favoriteQuery = new FavoriteQuery(sqlPattern);
-            favoriteQuery.setChannel(FavoriteQuery.CHANNEL_FROM_IMPORTED);
-            favoriteQueries.add(favoriteQuery);
+            if (blacklistSqls.contains(sqlPattern)) {
+                result.computeIfPresent(BLACKLIST, (k, v) -> v+1);
+                continue;
+            }
+
+            val fq = fqManager.get(sqlPattern);
+            if (fq != null) {
+                if (fq.isInWaitingList()) {
+                    result.computeIfPresent(WAITING_TAB, (k, v) -> v+1);
+                }
+
+                if (fq.isNotAccelerated()) {
+                    result.computeIfPresent(NOT_ACCELERATED_TAB, (k, v) -> v+1);
+                }
+
+                if (fq.isAccelerated()) {
+                    result.computeIfPresent(ACCELERATED_TAB, (k, v) -> v+1);
+                }
+
+                continue;
+            }
+
+            FavoriteQuery newFq = new FavoriteQuery(sqlPattern);
+            newFq.setChannel(FavoriteQuery.CHANNEL_FROM_IMPORTED);
+            favoriteQueries.add(newFq);
+            importedSqlSize++;
         }
 
-        getFavoriteQueryManager(project).create(favoriteQueries);
+        fqManager.createWithoutCheck(favoriteQueries);
+        result.put(IMPORTED, importedSqlSize);
+
+        return result;
     }
 
     public List<FavoriteQuery> filterAndSortFavoriteQueries(String project, String sortBy, boolean reverse,
@@ -146,6 +193,38 @@ public class FavoriteQueryService extends BasicService {
 
         favoriteQueries.sort(comparator);
         return favoriteQueries;
+    }
+
+    public Map<String, Integer> getFQSizeInDifferentStatus(String project) {
+        int toBeAcceleratedSize = 0;
+        int waitingSize = 0;
+        int notAcceleratedSize = 0;
+        int acceleratedSize = 0;
+
+        for (val fq : getFavoriteQueryManager(project).getAll()) {
+            if (fq.getStatus().equals(FavoriteQueryStatusEnum.TO_BE_ACCELERATED)) {
+                toBeAcceleratedSize++;
+                waitingSize++;
+                continue;
+            }
+
+            if (fq.isInWaitingList())
+                waitingSize++;
+
+            if (fq.isNotAccelerated())
+                notAcceleratedSize++;
+
+            if (fq.isAccelerated())
+                acceleratedSize++;
+        }
+
+        Map<String, Integer> result = Maps.newHashMap();
+        result.put(TO_BE_ACCELERATED, toBeAcceleratedSize);
+        result.put(WAITING_TAB, waitingSize);
+        result.put(NOT_ACCELERATED_TAB, notAcceleratedSize);
+        result.put(ACCELERATED_TAB, acceleratedSize);
+
+        return result;
     }
 
     // only used for test
@@ -238,11 +317,11 @@ public class FavoriteQueryService extends BasicService {
     }
 
     private List<String> getUnAcceleratedSqlPattern(String project) {
-        return getFavoriteQueryManager(project).getUnAcceleratedSqlPattern();
+        return getFavoriteQueryManager(project).getAccelerableSqlPattern();
     }
 
     private List<String> getWaitingAcceleratingSqlPattern(String project) {
-        return getFavoriteQueryManager(project).getWaitingAccelerateSqlPattern();
+        return getFavoriteQueryManager(project).getToBeAcceleratedSqlPattern();
     }
 
     @Transaction(project = 0)
@@ -302,10 +381,10 @@ public class FavoriteQueryService extends BasicService {
             NSmartMaster master = new NSmartMaster(kylinConfig, project, sqlList.toArray(new String[0]));
 
             master.runAllAndForContext(smartContext -> {
-                Map<String, AccelerateInfo> blockedSqlInfo = getBlockedSqlInfo(master.getContext());
-                if (blockedSqlInfo.size() > 0) {
-                    sqlSet.removeAll(blockedSqlInfo.keySet());
-                    updateBlockedSqlStatus(blockedSqlInfo, KylinConfig.getInstanceFromEnv(), project);
+                Map<String, AccelerateInfo> notAccelerated = getNotAcceleratedSqlInfo(master.getContext());
+                if (!notAccelerated.isEmpty()) {
+                    sqlSet.removeAll(notAccelerated.keySet());
+                    updateNotAcceleratedSqlStatus(notAccelerated, KylinConfig.getInstanceFromEnv(), project);
                 }
                 if (CollectionUtils.isEmpty(smartContext.getModelContexts())) {
                     updateConstantSqlStatusFullyAccelerated(sqlSet, project);
@@ -314,7 +393,7 @@ public class FavoriteQueryService extends BasicService {
                 EventManager eventManager = EventManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
                 for (NSmartContext.NModelContext modelContext : smartContext.getModelContexts()) {
 
-                    List<String> sqls = getRelatedSqlsFromModelContext(modelContext, blockedSqlInfo);
+                    List<String> sqls = getRelatedSqlsFromModelContext(modelContext, notAccelerated);
                     sqlSet.removeAll(sqls);
                     IndexPlan origIndexPlan = modelContext.getOrigIndexPlan();
                     IndexPlan targetIndexPlan = modelContext.getTargetIndexPlan();
@@ -340,7 +419,7 @@ public class FavoriteQueryService extends BasicService {
 
                         updateFavoriteQueryStatus(sqls, project, FavoriteQueryStatusEnum.ACCELERATING);
                     } else {
-                        updateFavoriteQueryStatus(sqls, project, FavoriteQueryStatusEnum.FULLY_ACCELERATED);
+                        updateFavoriteQueryStatus(sqls, project, FavoriteQueryStatusEnum.ACCELERATED);
                     }
                 }
                 updateConstantSqlStatusFullyAccelerated(sqlSet, project);
@@ -349,46 +428,50 @@ public class FavoriteQueryService extends BasicService {
         }
     }
 
-    private Map<String, AccelerateInfo> getBlockedSqlInfo(NSmartContext context) {
-        Map<String, AccelerateInfo> blockedSqlInfo = Maps.newHashMap();
+    // including pending and failed fqs
+    private Map<String, AccelerateInfo> getNotAcceleratedSqlInfo(NSmartContext context) {
+        Map<String, AccelerateInfo> notAcceleratedSqlInfo = Maps.newHashMap();
         if (context == null) {
-            return blockedSqlInfo;
+            return notAcceleratedSqlInfo;
         }
         Map<String, AccelerateInfo> accelerateInfoMap = context.getAccelerateInfoMap();
         if (MapUtils.isEmpty(accelerateInfoMap)) {
-            return blockedSqlInfo;
+            return notAcceleratedSqlInfo;
         }
         for (Map.Entry<String, AccelerateInfo> accelerateInfoEntry : accelerateInfoMap.entrySet()) {
             AccelerateInfo accelerateInfo = accelerateInfoEntry.getValue();
-            if (accelerateInfo.isBlocked()) {
-                blockedSqlInfo.put(accelerateInfoEntry.getKey(), accelerateInfo);
+            if (accelerateInfo.isFailed() || accelerateInfo.isPending()) {
+                notAcceleratedSqlInfo.put(accelerateInfoEntry.getKey(), accelerateInfo);
             }
         }
-        return blockedSqlInfo;
+        return notAcceleratedSqlInfo;
     }
 
     private static final int BLOCKING_CAUSE_MAX_LENGTH = 500;
 
-    private void updateBlockedSqlStatus(Map<String, AccelerateInfo> blockedSqlInfo, KylinConfig kylinConfig,
-            String project) {
-        if (MapUtils.isEmpty(blockedSqlInfo)) {
+    private void updateNotAcceleratedSqlStatus(Map<String, AccelerateInfo> notAcceleratedSqlInfo, KylinConfig kylinConfig,
+                                               String project) {
+        if (MapUtils.isEmpty(notAcceleratedSqlInfo)) {
             return;
         }
-        FavoriteQuery favoriteQuery;
         val fqMgr = FavoriteQueryManager.getInstance(kylinConfig, project);
-        for (Map.Entry<String, AccelerateInfo> accelerateInfoEntry : blockedSqlInfo.entrySet()) {
+        for (Map.Entry<String, AccelerateInfo> accelerateInfoEntry : notAcceleratedSqlInfo.entrySet()) {
             String sqlPattern = accelerateInfoEntry.getKey();
-            favoriteQuery = new FavoriteQuery(sqlPattern);
-            favoriteQuery.setStatus(FavoriteQueryStatusEnum.BLOCKED);
-            Throwable blockingCause = accelerateInfoEntry.getValue().getBlockingCause();
+
+            val accelerateInfo = accelerateInfoEntry.getValue();
+            if (accelerateInfo.isPending()) {
+                fqMgr.updateStatus(sqlPattern, FavoriteQueryStatusEnum.PENDING, accelerateInfo.getPendingMsg());
+                continue;
+            }
+
+            Throwable blockingCause = accelerateInfoEntry.getValue().getFailedCause();
             if (blockingCause != null) {
                 String blockingCauseStr = blockingCause.getMessage();
                 if (blockingCauseStr.length() > BLOCKING_CAUSE_MAX_LENGTH) {
                     blockingCauseStr = blockingCauseStr.substring(0, BLOCKING_CAUSE_MAX_LENGTH - 1);
                 }
-                favoriteQuery.setComment(blockingCauseStr);
+                fqMgr.updateStatus(sqlPattern, FavoriteQueryStatusEnum.FAILED, blockingCauseStr);
             }
-            fqMgr.updateStatus(sqlPattern, FavoriteQueryStatusEnum.BLOCKED, favoriteQuery.getComment());
         }
     }
 
@@ -396,7 +479,7 @@ public class FavoriteQueryService extends BasicService {
         if (CollectionUtils.isEmpty(sqls)) {
             return;
         }
-        updateFavoriteQueryStatus(Lists.newArrayList(sqls), project, FavoriteQueryStatusEnum.FULLY_ACCELERATED);
+        updateFavoriteQueryStatus(Lists.newArrayList(sqls), project, FavoriteQueryStatusEnum.ACCELERATED);
     }
 
     private void updateFavoriteQueryStatus(List<String> sqlPatterns, String project, FavoriteQueryStatusEnum status) {
@@ -527,11 +610,11 @@ public class FavoriteQueryService extends BasicService {
             FavoriteQueryManager favoriteQueryManager = FavoriteQueryManager
                     .getInstance(KylinConfig.getInstanceFromEnv(), project);
             Arrays.stream(toUpdateSqls).forEach(sql -> {
-                favoriteQueryManager.updateStatus(sql, FavoriteQueryStatusEnum.WAITING,
-                        "This query is not fully accelerated, move status to WAITING");
+                favoriteQueryManager.updateStatus(sql, FavoriteQueryStatusEnum.TO_BE_ACCELERATED,
+                        "This query is not fully accelerated, move status to TO_BE_ACCELERATED");
                 favoriteQueryManager.removeRealizations(sql);
             });
-            logger.info("There are {} favorite queries not fully accelerated, changed status to WAITING",
+            logger.info("There are {} favorite queries not fully accelerated, changed status to TO_BE_ACCELERATED",
                     toUpdateSqls.length);
             return null;
         }, project);
@@ -557,13 +640,5 @@ public class FavoriteQueryService extends BasicService {
                 .append('_').append(real.getSemanticVersion()).append('_').append(real.getLayoutId()).toString())
                 .sorted().collect(Collectors.toList());
         return fqrInfo.equals(sqrInfo);
-    }
-
-    public int getWaitingFavoriteQuerySize(String project) {
-        List<FavoriteQuery> favoriteQueries = getFavoriteQueryManager(project).getAll();
-        val waitingFavoriteQueries = favoriteQueries.stream()
-                .filter(favoriteQuery -> FavoriteQueryStatusEnum.WAITING.equals(favoriteQuery.getStatus()))
-                .collect(Collectors.toList());
-        return waitingFavoriteQueries.size();
     }
 }

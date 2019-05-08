@@ -176,7 +176,7 @@ public class NSmartMaster {
     private void recordError(Throwable throwable) {
         context.getAccelerateInfoMap().forEach((key, value) -> {
             value.getRelatedLayouts().clear();
-            value.setBlockingCause(throwable);
+            value.setFailedCause(throwable);
         });
     }
 
@@ -204,7 +204,7 @@ public class NSmartMaster {
                 project);
         val accelerateInfoMap = context.getAccelerateInfoMap();
         accelerateInfoMap.forEach((sqlPattern, accelerateInfo) -> {
-            if (accelerateInfo.isBlocked()) {
+            if (accelerateInfo.isFailed()) {
                 return;
             }
             List<FavoriteQueryRealization> favoriteQueryRealizations = Lists.newArrayList();

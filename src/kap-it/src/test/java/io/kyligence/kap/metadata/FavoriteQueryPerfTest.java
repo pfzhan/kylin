@@ -217,7 +217,7 @@ public class FavoriteQueryPerfTest extends NLocalFileMetadataTestCase {
         log.info("filter low frequency fqs over {} fqs used {}ms", fqManager.getAll().size(), endTime - startTime);
 
         startTime = System.currentTimeMillis();
-        fqManager.getUnAcceleratedSqlPattern();
+        fqManager.getAccelerableSqlPattern();
         endTime = System.currentTimeMillis();
         log.info("filter unAccelerated fqs over {} fqs used {}ms", fqManager.getAll().size(), endTime - startTime);
 

@@ -101,7 +101,7 @@ public class NAutoPerformanceTestBase extends NAutoTestBase {
 
         for (String sql : sqls) {
             // For simple query like "select 1 from table", will not be written in accelerateInfoMap
-            if (accelerateInfoMap.get(sql) == null || !accelerateInfoMap.get(sql).isBlocked()) {
+            if (accelerateInfoMap.get(sql) == null || !accelerateInfoMap.get(sql).isFailed()) {
                 successAccelerateCount++;
             }
         }

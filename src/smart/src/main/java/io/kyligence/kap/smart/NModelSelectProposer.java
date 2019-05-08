@@ -94,7 +94,7 @@ public class NModelSelectProposer extends NAbstractProposer {
                 if (modelCtx.withoutTargetModel()) {
                     modelCtx.getModelTree().getOlapContexts().forEach(olapContext -> {
                         AccelerateInfo accelerateInfo = accelerateInfoMap.get(olapContext.sql);
-                        accelerateInfo.setBlockingCause(new IllegalStateException(EXCEPTION_MSG));
+                        accelerateInfo.setPendingMsg(EXCEPTION_MSG);
                     });
                 }
             });

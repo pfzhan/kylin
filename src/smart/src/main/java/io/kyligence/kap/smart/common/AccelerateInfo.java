@@ -36,6 +36,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
+import org.apache.commons.lang.StringUtils;
 
 @Getter
 @NoArgsConstructor
@@ -44,10 +45,17 @@ public class AccelerateInfo {
 
     private Set<QueryLayoutRelation> relatedLayouts = Sets.newHashSet();
     @Setter
-    private Throwable blockingCause;
+    private Throwable failedCause;
 
-    public boolean isBlocked() {
-        return this.blockingCause != null;
+    @Setter
+    private String pendingMsg;
+
+    public boolean isFailed() {
+        return this.failedCause != null;
+    }
+
+    public boolean isPending() {
+        return StringUtils.isNotBlank(pendingMsg);
     }
 
     @Getter

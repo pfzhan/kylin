@@ -67,8 +67,8 @@ public class FavoriteQueryController extends NBasicController {
     @ResponseBody
     public EnvelopeResponse createFavoriteQuery(@RequestBody FavoriteRequest request) {
         checkProjectName(request.getProject());
-        favoriteQueryService.createFavoriteQuery(request.getProject(), request);
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, "", "");
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS,
+                favoriteQueryService.createFavoriteQuery(request.getProject(), request), "");
     }
 
     @RequestMapping(value = "", method = RequestMethod.GET)
@@ -87,12 +87,12 @@ public class FavoriteQueryController extends NBasicController {
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, data, "");
     }
 
-    @RequestMapping(value = "/waiting_fq_size", method = RequestMethod.GET)
+    @RequestMapping(value = "/size", method = RequestMethod.GET)
     @ResponseBody
-    public EnvelopeResponse getWaitingFavoriteQuerySize(@RequestParam(value = "project") String project) {
+    public EnvelopeResponse getFQSizeInDifferentStatus(@RequestParam(value = "project") String project) {
         checkProjectName(project);
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS,
-                favoriteQueryService.getWaitingFavoriteQuerySize(project), "");
+                favoriteQueryService.getFQSizeInDifferentStatus(project), "");
     }
 
     @RequestMapping(value = "", method = RequestMethod.DELETE)
@@ -150,8 +150,8 @@ public class FavoriteQueryController extends NBasicController {
         if (request.isFreqEnable() && StringUtils.isEmpty(request.getFreqValue()))
             throw new BadRequestException("Frequency rule value is empty");
 
-        if (request.isDurationEnable() && (StringUtils.isEmpty(request.getMinDuration())
-                || StringUtils.isEmpty(request.getMaxDuration())))
+        if (request.isDurationEnable()
+                && (StringUtils.isEmpty(request.getMinDuration()) || StringUtils.isEmpty(request.getMaxDuration())))
             throw new BadRequestException("Duration rule values are empty");
     }
 

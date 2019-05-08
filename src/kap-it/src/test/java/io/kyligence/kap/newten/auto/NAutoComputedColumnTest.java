@@ -111,13 +111,13 @@ public class NAutoComputedColumnTest extends NAutoTestBase {
         Assert.assertEquals("TEST_KYLIN_FACT.PRICE * TEST_KYLIN_FACT.ITEM_COUNT", suggestedCC2.getExpression());
 
         val accelerateInfoMap = smartMaster.getContext().getAccelerateInfoMap();
-        Assert.assertFalse(accelerateInfoMap.get(query1).isBlocked());
-        Assert.assertFalse(accelerateInfoMap.get(query2).isBlocked());
-        Assert.assertFalse(accelerateInfoMap.get(query3).isBlocked());
-        Assert.assertFalse(accelerateInfoMap.get(query4).isBlocked());
-        Assert.assertTrue(accelerateInfoMap.get(query5).isBlocked());
+        Assert.assertFalse(accelerateInfoMap.get(query1).isFailed());
+        Assert.assertFalse(accelerateInfoMap.get(query2).isFailed());
+        Assert.assertFalse(accelerateInfoMap.get(query3).isFailed());
+        Assert.assertFalse(accelerateInfoMap.get(query4).isFailed());
+        Assert.assertTrue(accelerateInfoMap.get(query5).isFailed());
         Assert.assertEquals("Table not found by UNKNOWN_ALIAS",
-                accelerateInfoMap.get(query5).getBlockingCause().getMessage());
+                accelerateInfoMap.get(query5).getFailedCause().getMessage());
 
         val targetIndexPlan = modelContexts.get(0).getTargetIndexPlan();
         final List<IndexEntity> indexes = targetIndexPlan.getIndexes();
@@ -401,7 +401,7 @@ public class NAutoComputedColumnTest extends NAutoTestBase {
         smartMaster.runAll();
 
         final Map<String, AccelerateInfo> accelerateInfoMap = smartMaster.getContext().getAccelerateInfoMap();
-        Assert.assertTrue(accelerateInfoMap.get(query).isBlocked());
+        Assert.assertTrue(accelerateInfoMap.get(query).isFailed());
     }
 
     @Test
@@ -452,7 +452,7 @@ public class NAutoComputedColumnTest extends NAutoTestBase {
         // Assert query info is updated
         AccelerateInfo accelerateInfo = smartMaster.getContext().getAccelerateInfoMap().get(query);
         Assert.assertNotNull(accelerateInfo);
-        Assert.assertFalse(accelerateInfo.isBlocked());
+        Assert.assertFalse(accelerateInfo.isFailed());
         Assert.assertEquals(1, accelerateInfo.getRelatedLayouts().size());
         Assert.assertEquals(1, accelerateInfo.getRelatedLayouts().iterator().next().getLayoutId());
     }
@@ -485,7 +485,7 @@ public class NAutoComputedColumnTest extends NAutoTestBase {
         // Assert query info is updated
         AccelerateInfo accelerateInfo = smartMaster.getContext().getAccelerateInfoMap().get(query);
         Assert.assertNotNull(accelerateInfo);
-        Assert.assertFalse(accelerateInfo.isBlocked());
+        Assert.assertFalse(accelerateInfo.isFailed());
         Assert.assertEquals(1, accelerateInfo.getRelatedLayouts().size());
         Assert.assertEquals(1, accelerateInfo.getRelatedLayouts().iterator().next().getLayoutId());
     }

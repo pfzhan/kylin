@@ -84,7 +84,7 @@ public class FavoriteQuery extends RootPersistentEntity {
     public FavoriteQuery(final String sqlPattern) {
         this.sqlPattern = sqlPattern;
         this.lastQueryTime = System.currentTimeMillis();
-        this.status = FavoriteQueryStatusEnum.WAITING;
+        this.status = FavoriteQueryStatusEnum.TO_BE_ACCELERATED;
     }
 
     public FavoriteQuery(final String sqlPattern, long lastQueryTime, int totalCount, long totalDuration) {
@@ -99,7 +99,7 @@ public class FavoriteQuery extends RootPersistentEntity {
             this.averageDuration = totalDuration / (float) totalCount;
             this.successRate = successCount / (float) totalCount;
         }
-        this.status = FavoriteQueryStatusEnum.WAITING;
+        this.status = FavoriteQueryStatusEnum.TO_BE_ACCELERATED;
     }
 
     public void incStats(QueryHistory queryHistory) {
@@ -165,6 +165,18 @@ public class FavoriteQuery extends RootPersistentEntity {
     public void updateStatus(FavoriteQueryStatusEnum status, String comment) {
         setStatus(status);
         setComment(comment);
+    }
+
+    public boolean isInWaitingList() {
+        return status.equals(FavoriteQueryStatusEnum.TO_BE_ACCELERATED) || status.equals(FavoriteQueryStatusEnum.ACCELERATING);
+    }
+
+    public boolean isNotAccelerated() {
+        return status.equals(FavoriteQueryStatusEnum.PENDING) || status.equals(FavoriteQueryStatusEnum.FAILED);
+    }
+
+    public boolean isAccelerated() {
+        return status.equals(FavoriteQueryStatusEnum.ACCELERATED);
     }
 
     @Override

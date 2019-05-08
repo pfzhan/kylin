@@ -100,7 +100,7 @@ class CuboidSuggester {
             // check keySet of sql2AccelerateInfo contains ctx.sql
             AccelerateInfo accelerateInfo = sql2AccelerateInfo.get(ctx.sql);
             Preconditions.checkNotNull(accelerateInfo);
-            if (accelerateInfo.isBlocked()) {
+            if (accelerateInfo.isFailed()) {
                 continue;
             }
 
@@ -113,7 +113,11 @@ class CuboidSuggester {
                 accelerateInfo.getRelatedLayouts().add(queryLayoutRelation);
             } catch (Exception e) {
                 log.error("Unable to suggest cuboid for IndexPlan", e);
-                accelerateInfo.setBlockingCause(e);
+                // under expert mode
+                if (e instanceof IllegalStateException && projectInstance.getMaintainModelType() == MaintainModelType.MANUAL_MAINTAIN)
+                    accelerateInfo.setPendingMsg(e.getMessage());
+                else
+                    accelerateInfo.setFailedCause(e);
                 accelerateInfo.getRelatedLayouts().clear();
             } finally {
                 ctx.unfixModel();
@@ -242,8 +246,18 @@ class CuboidSuggester {
         // 4. generate dimension ids
         final List<Integer> dimensions = Lists.newArrayList();
         final ImmutableBiMap<TblColRef, Integer> colIdMap = colMap.inverse();
-        filterColumns.forEach(dimension -> dimensions.add(Preconditions.checkNotNull(colIdMap.get(dimension))));
-        nonFilterColumns.forEach(dimension -> dimensions.add(Preconditions.checkNotNull(colIdMap.get(dimension))));
+        filterColumns.forEach(dimension -> {
+            Preconditions.checkState(colIdMap.get(dimension) != null,
+                    getMsgTemplateByModelMaintainType(COLUMN_NOT_FOUND_PTN, Type.COLUMN), model.getAlias(),
+                    dimension.getIdentity());
+            dimensions.add(colIdMap.get(dimension));
+        });
+        nonFilterColumns.forEach(dimension -> {
+            Preconditions.checkState(colIdMap.get(dimension) != null,
+                    getMsgTemplateByModelMaintainType(COLUMN_NOT_FOUND_PTN, Type.COLUMN), model.getAlias(),
+                    dimension.getIdentity());
+            dimensions.add(colIdMap.get(dimension));
+        });
 
         return dimensions;
     }

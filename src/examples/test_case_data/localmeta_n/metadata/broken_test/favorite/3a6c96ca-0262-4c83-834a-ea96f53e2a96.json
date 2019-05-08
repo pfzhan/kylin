@@ -6,7 +6,7 @@
   "sql_pattern" : "SELECT \"LSTG_FORMAT_NAME\", MAX(\"PRICE\") \"GMV\", COUNT(1) \"TRANS_CNT\"\nFROM \"TEST_KYLIN_FACT\"\nGROUP BY \"LSTG_FORMAT_NAME\"",
   "last_query_time" : 1546951944681,
   "total_count" : 0,
-  "status" : "FULLY_ACCELERATED",
+  "status" : "ACCELERATED",
   "success_count" : 0,
   "total_duration" : 0,
   "comment" : null,

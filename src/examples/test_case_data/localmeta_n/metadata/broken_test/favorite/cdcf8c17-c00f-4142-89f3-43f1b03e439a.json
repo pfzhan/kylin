@@ -6,7 +6,7 @@
   "sql_pattern" : "SELECT *\nFROM \"TEST_KYLIN_FACT\"",
   "last_query_time" : 1546951997026,
   "total_count" : 0,
-  "status" : "FULLY_ACCELERATED",
+  "status" : "ACCELERATED",
   "success_count" : 0,
   "total_duration" : 0,
   "comment" : null,
