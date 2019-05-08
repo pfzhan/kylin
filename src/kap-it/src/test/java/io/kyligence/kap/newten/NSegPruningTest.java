@@ -86,8 +86,6 @@ public class NSegPruningTest extends NLocalWithSparkSessionTest {
         String and_pruning0 = base
                 + "where TEST_TIME_ENC > TIMESTAMP '2011-01-01 00:00:00' and TEST_TIME_ENC < TIMESTAMP '2013-01-01 00:00:00'";
         String and_pruning1 = base
-                + "where TEST_TIME_ENC > TIMESTAMP '2011-01-01 00:00:00' and TEST_TIME_ENC <= TIMESTAMP '2013-01-01 00:00:00'";
-        String and_pruning2 = base
                 + "where TEST_TIME_ENC > TIMESTAMP '2011-01-01 00:00:00' and TEST_TIME_ENC = TIMESTAMP '2016-01-01 00:00:00'";
 
         String or_pruning0 = base
@@ -96,10 +94,10 @@ public class NSegPruningTest extends NLocalWithSparkSessionTest {
                 + "where TEST_TIME_ENC < TIMESTAMP '2009-01-01 00:00:00' or TEST_TIME_ENC > TIMESTAMP '2015-01-01 00:00:00'";
 
         String pruning0 = base + "where TEST_TIME_ENC < TIMESTAMP '2009-01-01 00:00:00'";
-        String pruning1 = base + "where TEST_TIME_ENC >= TIMESTAMP '2015-01-01 00:00:00'";
+        String pruning1 = base + "where TEST_TIME_ENC <= TIMESTAMP '2009-01-01 00:00:00'";
+        String pruning2 = base + "where TEST_TIME_ENC >= TIMESTAMP '2015-01-01 00:00:00'";
 
-        String not_pruning0 = base + "where not TEST_TIME_ENC < TIMESTAMP '2009-01-01 00:00:00'";
-        String not_pruning1 = base + "where not TEST_TIME_ENC >= TIMESTAMP '2015-01-01 00:00:00'";
+        String not0 = base + "where TEST_TIME_ENC <> TIMESTAMP '2012-01-01 00:00:00'";
 
         String in_pruning0 = base
                 + "where TEST_TIME_ENC in (TIMESTAMP '2009-01-01 00:00:00',TIMESTAMP '2008-01-01 00:00:00',TIMESTAMP '2016-01-01 00:00:00')";
@@ -109,17 +107,17 @@ public class NSegPruningTest extends NLocalWithSparkSessionTest {
         assertResultsAndScanFiles(base, 3);
 
         assertResultsAndScanFiles(and_pruning0, 1);
-        assertResultsAndScanFiles(and_pruning1, 2);
-        assertResultsAndScanFiles(and_pruning2, 0);
+        assertResultsAndScanFiles(and_pruning1, 0);
 
         assertResultsAndScanFiles(or_pruning0, 2);
         assertResultsAndScanFiles(or_pruning1, 0);
 
         assertResultsAndScanFiles(pruning0, 0);
-        assertResultsAndScanFiles(pruning1, 0);
+        assertResultsAndScanFiles(pruning1, 1);
+        assertResultsAndScanFiles(pruning2, 0);
 
-        assertResultsAndScanFiles(not_pruning0, 3);
-        assertResultsAndScanFiles(not_pruning1, 3);
+        // pruning with "not" is not supported
+        assertResultsAndScanFiles(not0, 3);
 
         assertResultsAndScanFiles(in_pruning0, 1);
         assertResultsAndScanFiles(in_pruning1, 0);

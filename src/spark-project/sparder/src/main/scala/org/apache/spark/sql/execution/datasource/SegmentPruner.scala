@@ -247,12 +247,6 @@ case class SegFilters(start: Long, end: Long) extends Logging {
           case Or(left, Trivial(false)) => left
           case other => other
         }
-      case Not(child: Filter) =>
-        Not(foldFilter(child)) match {
-          case Not(Trivial(false)) => Trivial(true)
-          case Not(Trivial(true)) => Trivial(false)
-          case other => other
-        }
       case trivial: Trivial =>
         trivial
       case unsupportedFilter =>
