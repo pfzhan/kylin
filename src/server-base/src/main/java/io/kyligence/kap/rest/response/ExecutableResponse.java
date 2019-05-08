@@ -26,7 +26,6 @@ package io.kyligence.kap.rest.response;
 
 import java.util.List;
 
-import lombok.var;
 import org.apache.kylin.job.constant.JobStatusEnum;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.ChainedExecutable;
@@ -35,8 +34,11 @@ import org.apache.kylin.job.execution.ExecutableState;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+import io.kyligence.kap.engine.spark.job.NTableSamplingJob;
+import io.kyligence.kap.metadata.cube.model.NBatchConstants;
 import lombok.Getter;
 import lombok.Setter;
+import lombok.var;
 
 @Setter
 @Getter
@@ -73,6 +75,8 @@ public class ExecutableResponse implements Comparable<ExecutableResponse> {
     private long createTime;
     @JsonProperty("wait_time")
     private long waitTime;
+    @JsonProperty("target_subject")
+    private String targetSubject;
 
     public static ExecutableResponse create(AbstractExecutable abstractExecutable) {
         ExecutableResponse executableResponse = new ExecutableResponse();
@@ -82,13 +86,19 @@ public class ExecutableResponse implements Comparable<ExecutableResponse> {
         executableResponse.setId(abstractExecutable.getId());
         executableResponse.setExecStartTime(abstractExecutable.getStartTime());
         executableResponse.setCreateTime(abstractExecutable.getCreateTime());
-        executableResponse
-                .setDuration(abstractExecutable.getDuration());
+        executableResponse.setDuration(abstractExecutable.getDuration());
         executableResponse.setLastModified(abstractExecutable.getLastModified());
         executableResponse.setTargetModel(abstractExecutable.getTargetModel());
         executableResponse.setTargetSegments(abstractExecutable.getTargetSegments());
         executableResponse.setTargetModelAlias(abstractExecutable.getTargetModelAlias());
         executableResponse.setWaitTime(abstractExecutable.getWaitTime());
+        if (abstractExecutable instanceof NTableSamplingJob) {
+            NTableSamplingJob job = (NTableSamplingJob) abstractExecutable;
+            executableResponse.setTargetSubject(job.getParam(NBatchConstants.P_TABLE_NAME));
+            executableResponse.setDataRangeEnd(Long.MAX_VALUE);
+        } else {
+            executableResponse.setTargetSubject(abstractExecutable.getTargetModelAlias());
+        }
         List<? extends AbstractExecutable> tasks = ((ChainedExecutable) abstractExecutable).getTasks();
         executableResponse.steps = tasks.size();
         int successSteps = 0;

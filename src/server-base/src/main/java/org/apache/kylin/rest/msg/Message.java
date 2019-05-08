@@ -301,7 +301,7 @@ public class Message {
     public String getINVALID_QUERY_NAME() {
         return "Query name should only contain alphanumerics and underscores.";
     }
-    
+
     //user
     public String getEMPTY_USER_NAME() {
         return "Username should not be empty.";
@@ -407,6 +407,26 @@ public class Message {
 
     public String getTABLE_IN_USE_BY_MODEL() {
         return "Table is already in use by models '%s'.";
+    }
+
+    public String getBEYOND_MIX_SAMPLING_ROWSHINT() {
+        return "Sampling range should not be less than the max limit(%s rows)!";
+    }
+
+    public String getBEYOND_MAX_SAMPLING_ROWS_HINT() {
+        return "Sampling range should not exceed the max limit(%s rows)!";
+    }
+
+    public String getSAMPLING_FAILED_FOR_ILLEGAL_TABLE_NAME() {
+        return "Illegal table name '%s', please input a qualified table name as database.table!";
+    }
+
+    public String getFAILED_FOR_IN_SAMPLING() {
+        return "The source table %s has a related sample job running. Please trigger another sample job later.";
+    }
+
+    public String getFAILED_FOR_NO_SAMPLING_TABLE() {
+        return "Please input at least one table(database.table) for sampling!";
     }
 
     // Cube Desc
@@ -609,10 +629,9 @@ public class Message {
         return "Favorite query '%s' does not exist";
     }
 
-
     // Query statistics
 
-    public String getNOT_SET_INFLUXDB(){
+    public String getNOT_SET_INFLUXDB() {
         return "Not set kap.metric.write-destination to 'INFLUX'";
     }
 
@@ -625,7 +644,6 @@ public class Message {
     public String getLICENSE_OUT_OF_DATE() {
         return "This license has expired and the validity period is ['%s' - '%s']. Please contact the Kyligence sales staff.";
     }
-
 
     public String getINVALID_CREDENTIAL() {
         return "Invalid credential.Please check your credential";

@@ -63,7 +63,7 @@ class TableAnalysisJob(tableDesc: TableDesc,
           case "COUNT" =>
             count(col(name))
           case "COUNT_DISTINCT" =>
-            countDistinct(col(name))
+            approx_count_distinct(col(name))
           case "MAX" =>
             max(col(name))
           case "MIN" =>

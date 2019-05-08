@@ -24,32 +24,35 @@
 
 package io.kyligence.kap.rest.response;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
-import lombok.Getter;
-import lombok.Setter;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.TableDesc;
 
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
+import lombok.Getter;
+import lombok.Setter;
 
 @Setter
 @Getter
 public class TableDescResponse extends TableDesc {
     @JsonProperty("exd")
-    Map<String, String> descExd = new HashMap<String, String>();
+    private Map<String, String> descExd = new HashMap<>();
     @JsonProperty("root_fact")
-    boolean rootFact;
+    private boolean rootFact;
     @JsonProperty("lookup")
-    boolean lookup;
+    private boolean lookup;
     @JsonProperty("cardinality")
-    Map<String, Long> cardinality = new HashMap<String, Long>();
+    private Map<String, Long> cardinality = new HashMap<>();
     @JsonProperty("primary_key")
-    Set<String> primaryKey = new HashSet<>();
+    private Set<String> primaryKey = new HashSet<>();
     @JsonProperty("foreign_key")
-    Set<String> foreignKey = new HashSet<>();
+    private Set<String> foreignKey = new HashSet<>();
     @JsonProperty("partitioned_column")
     private String partitionedColumn;
     @JsonProperty("segment_range")
@@ -58,10 +61,11 @@ public class TableDescResponse extends TableDesc {
     private long storageSize = -1;
     @JsonProperty("total_records")
     private long totalRecords;
+    @JsonProperty("sampling_rows")
+    private List<String[]> samplingRows;
 
     public TableDescResponse(TableDesc table) {
         super(table);
     }
-
 
 }

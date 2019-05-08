@@ -111,8 +111,8 @@ public class NSparkExecutable extends AbstractExecutable {
         return NSparkCubingUtil.str2Longs(this.getParam(NBatchConstants.P_LAYOUT_IDS));
     }
 
-    protected void setProjectParam() {
-        this.setParam(NBatchConstants.P_PROJECT_NAME, getProject());
+    protected void setProjectParam(String project) {
+        this.setParam(NBatchConstants.P_PROJECT_NAME, project);
     }
 
     protected void setSparkSubmitClassName(String className) {

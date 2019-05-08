@@ -22,18 +22,21 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.rest.request;
+package org.apache.kylin.rest.request;
 
+import java.io.Serializable;
+
+import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-@Setter
 @Getter
-public class TableLoadRequest {
-    private int datasourceType;
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+public class SamplingRequest implements Serializable {
     private String project;
-    private String[] tables;
-    private String[] databases;
-    private boolean needSampling;
-    private int samplingRows;
+    private String qualifiedTableName;
+    private int rows;
 }

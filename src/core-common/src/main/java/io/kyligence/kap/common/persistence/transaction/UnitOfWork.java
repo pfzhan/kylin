@@ -56,7 +56,7 @@ import lombok.extern.slf4j.Slf4j;
 public class UnitOfWork {
     public static final String GLOBAL_UNIT = "_global";
 
-    static ThreadLocal<Boolean> replaying = new ThreadLocal<>();
+    public static ThreadLocal<Boolean> replaying = new ThreadLocal<>();
     private static ThreadLocal<UnitOfWork> threadLocals = new ThreadLocal<>();
 
     private SetAndUnsetThreadLocalConfig localConfig;

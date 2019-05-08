@@ -30,28 +30,28 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.rest.request.ReloadTableRequest;
-import lombok.val;
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.rest.exception.BadRequestException;
 import org.apache.kylin.rest.msg.Message;
 import org.apache.kylin.rest.msg.MsgPicker;
+import org.apache.kylin.rest.request.SamplingRequest;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.response.ResponseCode;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
+
+import com.google.common.collect.Sets;
 
 import io.kyligence.kap.metadata.model.ManagementType;
 import io.kyligence.kap.metadata.model.NDataModel;
@@ -76,11 +76,9 @@ import io.kyligence.kap.rest.service.TableService;
 @Component("TableController")
 public class NTableController extends NBasicController {
 
-    private static final Logger logger = LoggerFactory.getLogger(NTableController.class);
-
-    private static final Message msg = MsgPicker.getMsg();
-
     private static final String TABLE = "table";
+    private static final int MAX_SAMPLING_ROWS = 20_000_000;
+    private static final int MIN_SAMPLING_ROWS = 10_000;
 
     @Autowired
     @Qualifier("tableService")
@@ -108,7 +106,7 @@ public class NTableController extends NBasicController {
         List<TableDesc> tableDescs = new ArrayList<>();
 
         tableDescs.addAll(tableService.getTableDesc(project, withExt, table, database, isFuzzy));
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, getDataResponse("tables", tableDescs, offset, limit),
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, getDataResponse("tables", tableDescs, offset, limit),
                 "");
     }
 
@@ -122,19 +120,16 @@ public class NTableController extends NBasicController {
         String tableName = database + "." + table;
         List<String> models = null;
         if (modelService.isModelsUsingTable(tableName, project)) {
-            models = modelService.getModelsUsingTable(tableName, project).stream()
-                    .map(NDataModel::getId).collect(Collectors.toList());
+            models = modelService.getModelsUsingTable(tableName, project).stream().map(NDataModel::getId)
+                    .collect(Collectors.toList());
         }
         tableService.unloadTable(project, tableName);
         modelService.reloadModels(models, project);
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, null, "");
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, null, "");
     }
 
     /**
      * set table partition key
-     *
-     * @return
-     * @throws IOException
      */
     @RequestMapping(value = "/partition_key", method = { RequestMethod.POST }, produces = {
             "application/vnd.apache.kylin-v2+json" })
@@ -144,7 +139,7 @@ public class NTableController extends NBasicController {
         checkProjectName(partitionKeyRequest.getProject());
         tableService.setPartitionKey(partitionKeyRequest.getTable(), partitionKeyRequest.getProject(),
                 partitionKeyRequest.getColumn());
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, null, "");
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, null, "");
     }
 
     @RequestMapping(value = "/top", method = { RequestMethod.POST }, produces = {
@@ -153,13 +148,13 @@ public class NTableController extends NBasicController {
     public EnvelopeResponse setTableTop(@RequestBody TopTableRequest topTableRequest) {
         checkProjectName(topTableRequest.getProject());
         tableService.setTop(topTableRequest.getTable(), topTableRequest.getProject(), topTableRequest.isTop());
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, null, "");
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, null, "");
     }
 
     @RequestMapping(value = "", method = { RequestMethod.POST }, produces = { "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
     public EnvelopeResponse loadTables(@RequestBody TableLoadRequest tableLoadRequest) throws Exception {
-
+        Message msg = MsgPicker.getMsg();
         checkProjectName(tableLoadRequest.getProject());
         if (ArrayUtils.isEmpty(tableLoadRequest.getTables()) && ArrayUtils.isEmpty(tableLoadRequest.getDatabases())) {
             throw new BadRequestException("You should select at least one table or database to load!!");
@@ -171,12 +166,19 @@ public class NTableController extends NBasicController {
             loadTableResponse.getFailed().addAll(loadByTable.getFailed());
             loadTableResponse.getLoaded().addAll(loadByTable.getLoaded());
         }
+
         if (ArrayUtils.isNotEmpty(tableLoadRequest.getDatabases())) {
 
             LoadTableResponse loadByDatabase = tableExtService.loadTablesByDatabase(tableLoadRequest.getProject(),
                     tableLoadRequest.getDatabases());
             loadTableResponse.getFailed().addAll(loadByDatabase.getFailed());
             loadTableResponse.getLoaded().addAll(loadByDatabase.getLoaded());
+        }
+
+        if (!loadTableResponse.getLoaded().isEmpty() && tableLoadRequest.isNeedSampling()) {
+            checkSamplingRows(tableLoadRequest.getSamplingRows());
+            tableSamplingService.sampling(loadTableResponse.getLoaded(), tableLoadRequest.getProject(),
+                    tableLoadRequest.getSamplingRows());
         }
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, loadTableResponse, "");
     }
@@ -348,7 +350,7 @@ public class NTableController extends NBasicController {
             response = tableService.getAutoMergeConfigByTable(project, tableName);
         }
 
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, response, "");
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, response, "");
     }
 
     @RequestMapping(value = "/auto_merge_config", method = { RequestMethod.PUT }, produces = {
@@ -367,9 +369,42 @@ public class NTableController extends NBasicController {
         } else {
             tableService.setAutoMergeConfigByTable(autoMergeRequest.getProject(), autoMergeRequest);
         }
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, null, "");
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, null, "");
     }
 
+    @PostMapping(value = "/sampling", produces = { "application/vnd.apache.kylin-v2+json" })
+    @ResponseBody
+    public EnvelopeResponse submitSampling(@RequestBody SamplingRequest request) {
+        checkProjectName(request.getProject());
+        checkSamplingRows(request.getRows());
+        checkSamplingTable(request.getQualifiedTableName());
+
+        tableSamplingService.sampling(Sets.newHashSet(request.getQualifiedTableName()), request.getProject(),
+                request.getRows());
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, null, "");
+    }
+
+    private void checkSamplingRows(int rows) {
+        Message msg = MsgPicker.getMsg();
+        if (rows > MAX_SAMPLING_ROWS) {
+            throw new BadRequestException(String.format(msg.getBEYOND_MAX_SAMPLING_ROWS_HINT(), MAX_SAMPLING_ROWS));
+        }
+
+        if (rows < MIN_SAMPLING_ROWS) {
+            throw new BadRequestException(String.format(msg.getBEYOND_MIX_SAMPLING_ROWSHINT(), MIN_SAMPLING_ROWS));
+        }
+    }
+
+    private void checkSamplingTable(String tableName) {
+        Message msg = MsgPicker.getMsg();
+        if (tableName == null || StringUtils.isEmpty(tableName.trim())) {
+            throw new BadRequestException(msg.getFAILED_FOR_NO_SAMPLING_TABLE());
+        }
+
+        if (tableName.contains(" ") || !tableName.contains(".") || tableName.split("\\.").length != 2) {
+            throw new BadRequestException(String.format(msg.getSAMPLING_FAILED_FOR_ILLEGAL_TABLE_NAME(), tableName));
+        }
+    }
     @RequestMapping(value = "/prepare_reload", method = { RequestMethod.GET }, produces = {
             "application/vnd.apache.kylin-v2+json" })
     @ResponseBody

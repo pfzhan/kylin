@@ -188,7 +188,7 @@ public abstract class AbstractExecutable implements Executable, Idempotent {
         }
     }
 
-    private boolean needSuicide() {
+    protected boolean needSuicide() {
         return !checkAnyTargetSegmentExists() || checkCuttingInJobByModel() || !checkAnyLayoutExists();
     }
 
@@ -320,7 +320,8 @@ public abstract class AbstractExecutable implements Executable, Idempotent {
         updateJobOutput(project, jobId, newStatus, output, null);
     }
 
-    public static void updateJobOutput(String project, String jobId, ExecutableState newStatus, String output, Consumer<String> hook) {
+    public static void updateJobOutput(String project, String jobId, ExecutableState newStatus, String output,
+            Consumer<String> hook) {
         updateJobOutput(project, jobId, newStatus, null, output, hook);
     }
 

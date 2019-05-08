@@ -315,6 +315,27 @@ public class CnMessage extends Message {
         return "表已被模型 '%s' 使用";
     }
 
+    // table sampling
+    public String getBEYOND_MIX_SAMPLING_ROWSHINT() {
+        return "采样的行数低于了最小采样行数（ %d 行）";
+    }
+
+    public String getBEYOND_MAX_SAMPLING_ROWS_HINT() {
+        return "采样的行数超过了最大采样行数（ %d 行）";
+    }
+
+    public String getSAMPLING_FAILED_FOR_ILLEGAL_TABLE_NAME() {
+        return "采样表的名称不符合规范，表名正确格式：database.table";
+    }
+
+    public String getFAILED_FOR_IN_SAMPLING() {
+        return "表 %s 有正在进行的抽样任务，暂时无法触发新一个抽样任务。";
+    }
+
+    public String getFAILED_FOR_NO_SAMPLING_TABLE() {
+        return "没有传入采样表名称（database.table），请至少提供一张表";
+    }
+
     // Cube Desc
     public String getCUBE_DESC_NOT_FOUND() {
         return "找不到 cube '%s'";

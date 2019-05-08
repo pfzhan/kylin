@@ -112,4 +112,3 @@ public enum ExecutableState {
         return VALID_STATE_TRANSFER.containsEntry(from, to);
     }
 }
-

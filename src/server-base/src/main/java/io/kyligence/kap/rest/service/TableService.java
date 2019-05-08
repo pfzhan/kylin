@@ -337,6 +337,7 @@ public class TableService extends BasicService {
             TableExtDesc tableExtDesc = getTableManager(project).getTableExtIfExists(table);
             if (tableExtDesc != null) {
                 rtableDesc.setTotalRecords(tableExtDesc.getTotalRows());
+                rtableDesc.setSamplingRows(tableExtDesc.getSampleRows());
             }
 
             if (CollectionUtils.isNotEmpty(models)) {

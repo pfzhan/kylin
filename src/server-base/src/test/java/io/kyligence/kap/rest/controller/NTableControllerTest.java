@@ -42,25 +42,16 @@
 
 package io.kyligence.kap.rest.controller;
 
-import com.google.common.collect.Lists;
-import io.kyligence.kap.metadata.model.ManagementType;
-import io.kyligence.kap.rest.request.AutoMergeRequest;
-import io.kyligence.kap.rest.request.DateRangeRequest;
-import io.kyligence.kap.rest.request.PartitionKeyRequest;
-import io.kyligence.kap.rest.request.PushDownModeRequest;
-import io.kyligence.kap.rest.request.RefreshSegmentsRequest;
-import io.kyligence.kap.rest.request.TableLoadRequest;
-import io.kyligence.kap.rest.request.TopTableRequest;
-import io.kyligence.kap.rest.response.LoadTableResponse;
-import io.kyligence.kap.rest.response.TableNameResponse;
-import io.kyligence.kap.rest.response.TablesAndColumnsResponse;
-import io.kyligence.kap.rest.service.ModelService;
-import io.kyligence.kap.rest.service.TableExtService;
-import io.kyligence.kap.rest.service.TableService;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
+
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.rest.constant.Constant;
+import org.apache.kylin.rest.request.SamplingRequest;
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -74,16 +65,35 @@ import org.springframework.security.authentication.TestingAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
+
+import io.kyligence.kap.metadata.model.ManagementType;
+import io.kyligence.kap.rest.request.AutoMergeRequest;
+import io.kyligence.kap.rest.request.DateRangeRequest;
+import io.kyligence.kap.rest.request.PartitionKeyRequest;
+import io.kyligence.kap.rest.request.PushDownModeRequest;
+import io.kyligence.kap.rest.request.RefreshSegmentsRequest;
+import io.kyligence.kap.rest.request.TableLoadRequest;
+import io.kyligence.kap.rest.request.TopTableRequest;
+import io.kyligence.kap.rest.response.LoadTableResponse;
+import io.kyligence.kap.rest.response.TableNameResponse;
+import io.kyligence.kap.rest.response.TablesAndColumnsResponse;
+import io.kyligence.kap.rest.service.ModelService;
+import io.kyligence.kap.rest.service.TableExtService;
+import io.kyligence.kap.rest.service.TableSamplingService;
+import io.kyligence.kap.rest.service.TableService;
+import lombok.val;
 
 public class NTableControllerTest {
+
+    private static final String APPLICATION_JSON = "application/vnd.apache.kylin-v2+json";
 
     private MockMvc mockMvc;
 
@@ -95,6 +105,9 @@ public class NTableControllerTest {
 
     @Mock
     private TableExtService tableExtService;
+
+    @Mock
+    private TableSamplingService tableSamplingService;
 
     @Rule
     public ExpectedException thrown = ExpectedException.none();
@@ -139,12 +152,18 @@ public class NTableControllerTest {
 
     @Test
     public void testGetTableDesc() throws Exception {
-        Mockito.when(tableService.getTableDesc("default", false, "", "DEFAULT", true)).thenReturn(mockTables());
-        mockMvc.perform(MockMvcRequestBuilders.get("/api/tables").contentType(MediaType.APPLICATION_JSON)
-                .param("withExt", "false").param("project", "default").param("table", "")
-                .param("database", "DEFAULT").param("pageOffset", "0").param("pageSize", "10")
-                .param("isFuzzy", "true")
-                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+        Mockito.when(tableService.getTableDesc("default", false, "", "DEFAULT", true)) //
+                .thenReturn(mockTables());
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/tables") //
+                .contentType(MediaType.APPLICATION_JSON) //
+                .param("withExt", "false") //
+                .param("project", "default") //
+                .param("table", "") //
+                .param("database", "DEFAULT") //
+                .param("pageOffset", "0") //
+                .param("pageSize", "10") //
+                .param("isFuzzy", "true") //
+                .accept(MediaType.parseMediaType(APPLICATION_JSON))) //
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
 
         Mockito.verify(nTableController).getTableDesc(false, "default", "", "DEFAULT", true, 0, 10);
@@ -152,11 +171,17 @@ public class NTableControllerTest {
 
     @Test
     public void testGetTableDescWithName() throws Exception {
-        Mockito.when(tableService.getTableDesc("default", true, "TEST_KYLIN_FACT", "DEFAULT", true)).thenReturn(mockTables());
-        mockMvc.perform(MockMvcRequestBuilders.get("/api/tables").contentType(MediaType.APPLICATION_JSON)
-                .param("withExt", "false").param("project", "default").param("table", "TEST_KYLIN_FACT")
-                .param("database", "DEFAULT").param("pageOffset", "0").param("pageSize", "10")
-                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+        Mockito.when(tableService.getTableDesc("default", true, "TEST_KYLIN_FACT", "DEFAULT", true))
+                .thenReturn(mockTables());
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/tables") //
+                .contentType(MediaType.APPLICATION_JSON) //
+                .param("withExt", "false") //
+                .param("project", "default") //
+                .param("table", "TEST_KYLIN_FACT") //
+                .param("database", "DEFAULT") //
+                .param("pageOffset", "0") //
+                .param("pageSize", "10") //
+                .accept(MediaType.parseMediaType(APPLICATION_JSON))) //
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
 
         Mockito.verify(nTableController).getTableDesc(false, "default", "TEST_KYLIN_FACT", "DEFAULT", true, 0, 10);
@@ -168,9 +193,11 @@ public class NTableControllerTest {
         list.add("ddd");
         list.add("fff");
         Mockito.when(tableService.getSourceDbNames("default")).thenReturn(list);
-        mockMvc.perform(MockMvcRequestBuilders.get("/api/tables/databases").contentType(MediaType.APPLICATION_JSON)
-                .param("project", "default").param("datasourceType", "11")
-                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/tables/databases") //
+                .contentType(MediaType.APPLICATION_JSON) //
+                .param("project", "default") //
+                .param("datasourceType", "11") //
+                .accept(MediaType.parseMediaType(APPLICATION_JSON))) //
                 .andExpect(MockMvcResultMatchers.status().isOk());
         Mockito.verify(nTableController).showDatabases("default");
     }
@@ -181,10 +208,15 @@ public class NTableControllerTest {
         list.add(new TableNameResponse());
         list.add(new TableNameResponse());
         Mockito.when(tableService.getTableNameResponses("default", "db1", "")).thenReturn(list);
-        mockMvc.perform(MockMvcRequestBuilders.get("/api/tables/names").contentType(MediaType.APPLICATION_JSON)
-                .param("project", "default").param("datasourceType", "11").param("database", "db1")
-                .param("pageOffset", "0").param("pageSize", "10").param("table", "")
-                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/tables/names") //
+                .contentType(MediaType.APPLICATION_JSON) //
+                .param("project", "default") //
+                .param("datasourceType", "11") //
+                .param("database", "db1") //
+                .param("pageOffset", "0") //
+                .param("pageSize", "10") //
+                .param("table", "") //
+                .accept(MediaType.parseMediaType(APPLICATION_JSON))) //
                 .andExpect(MockMvcResultMatchers.status().isOk());
         Mockito.verify(nTableController).showTables("default", 11, "", 0, 10, "db1");
     }
@@ -192,11 +224,13 @@ public class NTableControllerTest {
     @Test
     public void testSetPartitionKey() throws Exception {
         final PartitionKeyRequest partitionKeyRequest = mockFactTableRequest();
-        Mockito.doNothing().when(tableService).setPartitionKey(partitionKeyRequest.getProject(), partitionKeyRequest.getTable(), partitionKeyRequest.getColumn());
+        Mockito.doNothing().when(tableService).setPartitionKey(partitionKeyRequest.getProject(),
+                partitionKeyRequest.getTable(), partitionKeyRequest.getColumn());
 
-        mockMvc.perform(MockMvcRequestBuilders.post("/api/tables/partition_key").contentType(MediaType.APPLICATION_JSON)
-                .content(JsonUtil.writeValueAsString(partitionKeyRequest))
-                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/tables/partition_key") //
+                .contentType(MediaType.APPLICATION_JSON) //
+                .content(JsonUtil.writeValueAsString(partitionKeyRequest)) //
+                .accept(MediaType.parseMediaType(APPLICATION_JSON))) //
                 .andExpect(MockMvcResultMatchers.status().isOk());
         Mockito.verify(nTableController).setPartitionKey(Mockito.any(PartitionKeyRequest.class));
     }
@@ -205,12 +239,13 @@ public class NTableControllerTest {
     public void testSetNoPartitionKey() throws Exception {
         final PartitionKeyRequest partitionKeyRequest = mockFactTableRequest();
         partitionKeyRequest.setColumn("");
-        Mockito.doNothing().when(tableService).setPartitionKey(partitionKeyRequest.getProject(), partitionKeyRequest.getTable(),
-                partitionKeyRequest.getColumn());
+        Mockito.doNothing().when(tableService).setPartitionKey(partitionKeyRequest.getProject(),
+                partitionKeyRequest.getTable(), partitionKeyRequest.getColumn());
 
-        mockMvc.perform(MockMvcRequestBuilders.post("/api/tables/partition_key").contentType(MediaType.APPLICATION_JSON)
-                .content(JsonUtil.writeValueAsString(partitionKeyRequest))
-                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/tables/partition_key") //
+                .contentType(MediaType.APPLICATION_JSON) //
+                .content(JsonUtil.writeValueAsString(partitionKeyRequest)) //
+                .accept(MediaType.parseMediaType(APPLICATION_JSON))) //
                 .andExpect(MockMvcResultMatchers.status().isOk());
         Mockito.verify(nTableController).setPartitionKey(Mockito.any(PartitionKeyRequest.class));
     }
@@ -219,9 +254,10 @@ public class NTableControllerTest {
     public void testSetDateRangePass() throws Exception {
         final DateRangeRequest dateRangeRequest = mockDateRangeRequest();
         Mockito.doNothing().when(tableService).setDataRange("default", dateRangeRequest);
-        mockMvc.perform(MockMvcRequestBuilders.post("/api/tables/data_range").contentType(MediaType.APPLICATION_JSON)
-                .content(JsonUtil.writeValueAsString(dateRangeRequest))
-                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/tables/data_range") //
+                .contentType(MediaType.APPLICATION_JSON) //
+                .content(JsonUtil.writeValueAsString(dateRangeRequest)) //
+                .accept(MediaType.parseMediaType(APPLICATION_JSON))) //
                 .andExpect(MockMvcResultMatchers.status().isOk());
         Mockito.verify(nTableController).setDateRanges(Mockito.any(DateRangeRequest.class));
 
@@ -229,19 +265,21 @@ public class NTableControllerTest {
 
     @Test
     public void testGetLatestData() throws Exception {
-        mockMvc.perform(MockMvcRequestBuilders.get("/api/tables/data_range/latest_data").contentType(MediaType.APPLICATION_JSON)
-                .param("project", "default")
-                .param("table", "DEFAULT.TEST_KYLIN_FACT")
-                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/tables/data_range/latest_data") //
+                .contentType(MediaType.APPLICATION_JSON) //
+                .param("project", "default") //
+                .param("table", "DEFAULT.TEST_KYLIN_FACT") //
+                .accept(MediaType.parseMediaType(APPLICATION_JSON))) //
                 .andExpect(MockMvcResultMatchers.status().isOk());
         Mockito.verify(nTableController).getLatestData("default", "DEFAULT.TEST_KYLIN_FACT");
     }
 
     @Test
     public void getGetBatchLoadTables() throws Exception {
-        mockMvc.perform(MockMvcRequestBuilders.get("/api/tables/batch_load").contentType(MediaType.APPLICATION_JSON)
-                .param("project", "default")
-                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/tables/batch_load") //
+                .contentType(MediaType.APPLICATION_JSON) //
+                .param("project", "default") //
+                .accept(MediaType.parseMediaType(APPLICATION_JSON))) //
                 .andExpect(MockMvcResultMatchers.status().isOk());
         Mockito.verify(nTableController).getBatchLoadTables("default");
     }
@@ -249,85 +287,102 @@ public class NTableControllerTest {
     @Test
     public void batchLoadTablesWithEmptyRequest() throws Exception {
         List<DateRangeRequest> requests = Lists.newArrayList();
-        mockMvc.perform(MockMvcRequestBuilders.post("/api/tables/batch_load").contentType(MediaType.APPLICATION_JSON)
-                .content(JsonUtil.writeValueAsString(requests))
-                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/tables/batch_load") //
+                .contentType(MediaType.APPLICATION_JSON) //
+                .content(JsonUtil.writeValueAsString(requests)) //
+                .accept(MediaType.parseMediaType(APPLICATION_JSON))) //
                 .andExpect(MockMvcResultMatchers.status().isOk());
         Mockito.verify(nTableController).batchLoad(Mockito.anyList());
     }
 
     @Test
     public void batchLoadTables_DateRange_LessThan0_Exception() throws Exception {
+        String errorMsg = "Start or end of range must be greater than 0!";
         DateRangeRequest request = new DateRangeRequest();
         request.setProject("project");
         request.setTable("DEFAULT.TEST_KYLIN_FACT");
         request.setStart("-1");
         request.setEnd("-1");
         List<DateRangeRequest> requests = Lists.newArrayList(request);
-        mockMvc.perform(MockMvcRequestBuilders.post("/api/tables/batch_load").contentType(MediaType.APPLICATION_JSON)
-                .content(JsonUtil.writeValueAsString(requests))
-                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
-                .andExpect(MockMvcResultMatchers.status().isBadRequest());
+        final MvcResult mvcResult = mockMvc.perform(MockMvcRequestBuilders.post("/api/tables/batch_load") //
+                .contentType(MediaType.APPLICATION_JSON) //
+                .content(JsonUtil.writeValueAsString(requests)) //
+                .accept(MediaType.parseMediaType(APPLICATION_JSON))) //
+                .andExpect(MockMvcResultMatchers.status().isBadRequest()).andReturn();
         Mockito.verify(nTableController).batchLoad(Mockito.anyList());
+
+        final JsonNode jsonNode = JsonUtil.readValueAsTree(mvcResult.getResponse().getContentAsString());
+        Assert.assertEquals(errorMsg, jsonNode.get("exception").textValue());
     }
 
     @Test
     public void batchLoadTables_DateRange_EndLessThanStart_Exception() throws Exception {
+        String errorMsg = "End of range must be greater than start!";
         DateRangeRequest request = new DateRangeRequest();
         request.setProject("project");
         request.setTable("DEFAULT.TEST_KYLIN_FACT");
         request.setStart("100");
         request.setEnd("1");
         List<DateRangeRequest> requests = Lists.newArrayList(request);
-        mockMvc.perform(MockMvcRequestBuilders.post("/api/tables/batch_load").contentType(MediaType.APPLICATION_JSON)
-                .content(JsonUtil.writeValueAsString(requests))
-                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
-                .andExpect(MockMvcResultMatchers.status().isBadRequest());
+        final MvcResult mvcResult = mockMvc.perform(MockMvcRequestBuilders.post("/api/tables/batch_load") //
+                .contentType(MediaType.APPLICATION_JSON) //
+                .content(JsonUtil.writeValueAsString(requests)) //
+                .accept(MediaType.parseMediaType(APPLICATION_JSON))) //
+                .andExpect(MockMvcResultMatchers.status().isBadRequest()).andReturn();
         Mockito.verify(nTableController).batchLoad(Mockito.anyList());
-    }
 
+        final JsonNode jsonNode = JsonUtil.readValueAsTree(mvcResult.getResponse().getContentAsString());
+        Assert.assertEquals(errorMsg, jsonNode.get("exception").textValue());
+    }
 
     @Test
     public void testSetDateRang_lessThan0_exception() throws Exception {
+        String errorMsg = "Start of range must be greater than 0!";
         final DateRangeRequest dateRangeRequest = mockDateRangeRequest();
         dateRangeRequest.setStart("-1");
         Mockito.doNothing().when(tableService).setDataRange("default", dateRangeRequest);
-        mockMvc.perform(MockMvcRequestBuilders.post("/api/tables/data_range").contentType(MediaType.APPLICATION_JSON)
-                .content(JsonUtil.writeValueAsString(dateRangeRequest))
-                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
-                .andExpect(MockMvcResultMatchers.status().isBadRequest());
+        final MvcResult mvcResult = mockMvc.perform(MockMvcRequestBuilders.post("/api/tables/data_range") //
+                .contentType(MediaType.APPLICATION_JSON) //
+                .content(JsonUtil.writeValueAsString(dateRangeRequest)) //
+                .accept(MediaType.parseMediaType(APPLICATION_JSON))) //
+                .andExpect(MockMvcResultMatchers.status().isBadRequest()).andReturn();
         Mockito.verify(nTableController).setDateRanges(Mockito.any(DateRangeRequest.class));
 
+        final JsonNode jsonNode = JsonUtil.readValueAsTree(mvcResult.getResponse().getContentAsString());
+        Assert.assertEquals(errorMsg, jsonNode.get("exception").textValue());
     }
 
     @Test
     public void testSetDateRang_EndLessThanStart_exception() throws Exception {
+        String errorMsg = "End of range must be greater than start!";
         final DateRangeRequest dateRangeRequest = mockDateRangeRequest();
         dateRangeRequest.setStart("100");
         dateRangeRequest.setEnd("1");
         Mockito.doNothing().when(tableService).setDataRange("default", dateRangeRequest);
-        mockMvc.perform(MockMvcRequestBuilders.post("/api/tables/data_range").contentType(MediaType.APPLICATION_JSON)
-                .content(JsonUtil.writeValueAsString(dateRangeRequest))
-                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
-                .andExpect(MockMvcResultMatchers.status().isBadRequest());
+        final MvcResult mvcResult = mockMvc.perform(MockMvcRequestBuilders.post("/api/tables/data_range") //
+                .contentType(MediaType.APPLICATION_JSON) //
+                .content(JsonUtil.writeValueAsString(dateRangeRequest)) //
+                .accept(MediaType.parseMediaType(APPLICATION_JSON))) //
+                .andExpect(MockMvcResultMatchers.status().isBadRequest()).andReturn();
         Mockito.verify(nTableController).setDateRanges(Mockito.any(DateRangeRequest.class));
 
+        final JsonNode jsonNode = JsonUtil.readValueAsTree(mvcResult.getResponse().getContentAsString());
+        Assert.assertEquals(errorMsg, jsonNode.get("exception").textValue());
     }
 
     @Test
     public void testSetTop() throws Exception {
         final TopTableRequest topTableRequest = mockTopTableRequest();
-        Mockito.doNothing().when(tableService).setTop(topTableRequest.getTable(), topTableRequest.getProject(), topTableRequest.isTop());
-        mockMvc.perform(MockMvcRequestBuilders.post("/api/tables/top").contentType(MediaType.APPLICATION_JSON)
-                .content(JsonUtil.writeValueAsString(topTableRequest))
-                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+        Mockito.doNothing().when(tableService).setTop(topTableRequest.getTable(), topTableRequest.getProject(),
+                topTableRequest.isTop());
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/tables/top") //
+                .contentType(MediaType.APPLICATION_JSON) //
+                .content(JsonUtil.writeValueAsString(topTableRequest)) //
+                .accept(MediaType.parseMediaType(APPLICATION_JSON))) //
                 .andExpect(MockMvcResultMatchers.status().isOk());
         Mockito.verify(nTableController).setTableTop(Mockito.any(TopTableRequest.class));
 
     }
-
-
-
 
     private TopTableRequest mockTopTableRequest() {
         TopTableRequest topTableRequest = new TopTableRequest();
@@ -348,54 +403,58 @@ public class NTableControllerTest {
 
     @Test
     public void testLoadTables() throws Exception {
-        Set<String> loaded = new HashSet<String>();
-        loaded.add("table1");
-        Set<String> failed = new HashSet<String>();
-        loaded.add("table2");
-        Set<String> loading = new HashSet<String>();
-        loaded.add("table3");
+        Set<String> loaded = Sets.newHashSet("table1");
+        Set<String> failed = Sets.newHashSet("table2");
+        Set<String> loading = Sets.newHashSet("table3");
         LoadTableResponse loadTableResponse = new LoadTableResponse();
         loadTableResponse.setLoaded(loaded);
         loadTableResponse.setFailed(failed);
         final TableLoadRequest tableLoadRequest = mockLoadTableRequest();
-        Mockito.when(tableExtService.loadTables(tableLoadRequest.getTables(), "default")).thenReturn(loadTableResponse);
-        Mockito.when(tableExtService.loadTablesByDatabase("default", tableLoadRequest.getDatabases())).thenReturn(loadTableResponse);
-        mockMvc.perform(MockMvcRequestBuilders.post("/api/tables").contentType(MediaType.APPLICATION_JSON)
-                .content(JsonUtil.writeValueAsString(tableLoadRequest))
-                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
-                .andExpect(MockMvcResultMatchers.status().isOk());
+        Mockito.when(tableExtService.loadTables(tableLoadRequest.getTables(), "default"))
+                .thenReturn(loadTableResponse);
+        Mockito.when(tableExtService.loadTablesByDatabase("default", tableLoadRequest.getDatabases()))
+                .thenReturn(loadTableResponse);
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/tables") //
+                .contentType(MediaType.APPLICATION_JSON) //
+                .content(JsonUtil.writeValueAsString(tableLoadRequest)) //
+                .accept(MediaType.parseMediaType(APPLICATION_JSON))).andExpect(MockMvcResultMatchers.status().isOk());
         Mockito.verify(nTableController).loadTables(Mockito.any(TableLoadRequest.class));
     }
 
     @Test
     public void testLoadTablesException() throws Exception {
-        Set<String> loaded = new HashSet<String>();
-        loaded.add("table1");
-        Set<String> failed = new HashSet<String>();
-        loaded.add("table2");
-        Set<String> loading = new HashSet<String>();
-        loaded.add("table3");
+        String errorMsg = "You should select at least one table or database to load!!";
+        Set<String> loaded = Sets.newHashSet("table1");
+        Set<String> failed = Sets.newHashSet("table2");
+        Set<String> loading = Sets.newHashSet("table3");
         LoadTableResponse loadTableResponse = new LoadTableResponse();
         loadTableResponse.setLoaded(loaded);
         loadTableResponse.setFailed(failed);
         final TableLoadRequest tableLoadRequest = mockLoadTableRequest();
         tableLoadRequest.setTables(null);
         tableLoadRequest.setDatabases(null);
-        Mockito.when(tableExtService.loadTables(tableLoadRequest.getTables(), "default")).thenReturn(loadTableResponse);
-        Mockito.when(tableExtService.loadTablesByDatabase("default", tableLoadRequest.getDatabases())).thenReturn(loadTableResponse);
-        mockMvc.perform(MockMvcRequestBuilders.post("/api/tables").contentType(MediaType.APPLICATION_JSON)
-                .content(JsonUtil.writeValueAsString(tableLoadRequest))
-                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
-                .andExpect(MockMvcResultMatchers.status().isBadRequest());
+        Mockito.when(tableExtService.loadTables(tableLoadRequest.getTables(), "default"))
+                .thenReturn(loadTableResponse);
+        Mockito.when(tableExtService.loadTablesByDatabase("default", tableLoadRequest.getDatabases()))
+                .thenReturn(loadTableResponse);
+        final MvcResult mvcResult = mockMvc.perform(MockMvcRequestBuilders.post("/api/tables") //
+                .contentType(MediaType.APPLICATION_JSON) //
+                .content(JsonUtil.writeValueAsString(tableLoadRequest)) //
+                .accept(MediaType.parseMediaType(APPLICATION_JSON)))
+                .andExpect(MockMvcResultMatchers.status().isBadRequest()).andReturn();
         Mockito.verify(nTableController).loadTables(Mockito.any(TableLoadRequest.class));
+
+        final JsonNode jsonNode = JsonUtil.readValueAsTree(mvcResult.getResponse().getContentAsString());
+        Assert.assertEquals(errorMsg, jsonNode.get("exception").textValue());
     }
 
     @Test
     public void testUnloadTable() throws Exception {
         Mockito.doReturn(false).when(modelService).isModelsUsingTable("DEFAULT.TABLE", "default");
         Mockito.doNothing().when(tableService).unloadTable("default", "DEFAULT.TABLE");
-        mockMvc.perform(MockMvcRequestBuilders.delete("/api/tables/{project}/{database}/{table}", "default", "DEFAULT", "TABLE")
-                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+        mockMvc.perform(
+                MockMvcRequestBuilders.delete("/api/tables/{project}/{database}/{table}", "default", "DEFAULT", "TABLE")
+                        .accept(MediaType.parseMediaType(APPLICATION_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
         Mockito.verify(nTableController).unloadTable("default", "DEFAULT", "TABLE");
     }
@@ -404,17 +463,21 @@ public class NTableControllerTest {
     public void testUnloadTableException() throws Exception {
         Mockito.doReturn(true).when(modelService).isModelsUsingTable("DEFAULT.TABLE", "default");
         Mockito.doNothing().when(tableService).unloadTable("default", "DEFAULT.TABLE");
-        mockMvc.perform(MockMvcRequestBuilders.delete("/api/tables/{project}/{database}/{table}", "default", "DEFAULT", "TABLE")
-                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")));
+        mockMvc.perform(
+                MockMvcRequestBuilders.delete("/api/tables/{project}/{database}/{table}", "default", "DEFAULT", "TABLE")
+                        .accept(MediaType.parseMediaType(APPLICATION_JSON)));
         Mockito.verify(nTableController).unloadTable("default", "DEFAULT", "TABLE");
     }
 
     @Test
     public void testGetTablesAndColumns() throws Exception {
         Mockito.doReturn(mockTableAndColumns()).when(tableService).getTableAndColumns("default");
-        mockMvc.perform(MockMvcRequestBuilders.get("/api/tables/simple_table").contentType(MediaType.APPLICATION_JSON)
-                .param("project", "default").param("pageSize", "10").param("pageOffset", "0")
-                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/tables/simple_table") //
+                .contentType(MediaType.APPLICATION_JSON) //
+                .param("project", "default") //
+                .param("pageSize", "10") //
+                .param("pageOffset", "0") //
+                .accept(MediaType.parseMediaType(APPLICATION_JSON))) //
                 .andExpect(MockMvcResultMatchers.status().isOk());
         Mockito.verify(nTableController).getTablesAndColomns("default", 0, 10);
     }
@@ -422,31 +485,45 @@ public class NTableControllerTest {
     @Test
     public void testGetAutoMergeConfig() throws Exception {
         Mockito.doReturn(null).when(tableService).getAutoMergeConfigByTable("default", "DEFAULT.TEST_KYLIN_FACT");
-        mockMvc.perform(MockMvcRequestBuilders.get("/api/tables/auto_merge_config").contentType(MediaType.APPLICATION_JSON)
-                .param("project", "default").param("model", "").param("table", "DEFAULT.TEST_KYLIN_FACT")
-                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/tables/auto_merge_config") //
+                .contentType(MediaType.APPLICATION_JSON) //
+                .param("project", "default") //
+                .param("model", "") //
+                .param("table", "DEFAULT.TEST_KYLIN_FACT") //
+                .accept(MediaType.parseMediaType(APPLICATION_JSON))) //
                 .andExpect(MockMvcResultMatchers.status().isOk());
         Mockito.verify(nTableController).getAutoMergeConfig("", "DEFAULT.TEST_KYLIN_FACT", "default");
     }
 
     @Test
     public void testGetAutoMergeConfigException() throws Exception {
+        String errorMsg = "model name or table name must be specified!";
         Mockito.doReturn(null).when(tableService).getAutoMergeConfigByModel("default", "");
-        mockMvc.perform(MockMvcRequestBuilders.get("/api/tables/auto_merge_config").contentType(MediaType.APPLICATION_JSON)
-                .param("project", "default").param("model", "").param("table", "")
-                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
-                .andExpect(MockMvcResultMatchers.status().isBadRequest());
+        final MvcResult mvcResult = mockMvc.perform(MockMvcRequestBuilders.get("/api/tables/auto_merge_config") //
+                .contentType(MediaType.APPLICATION_JSON) //
+                .param("project", "default") //
+                .param("model", "") //
+                .param("table", "") //
+                .accept(MediaType.parseMediaType(APPLICATION_JSON))) //
+                .andExpect(MockMvcResultMatchers.status().isBadRequest()).andReturn();
         Mockito.verify(nTableController).getAutoMergeConfig("", "", "default");
+        final JsonNode jsonNode = JsonUtil.readValueAsTree(mvcResult.getResponse().getContentAsString());
+        Assert.assertEquals(errorMsg, jsonNode.get("exception").textValue());
     }
 
     @Test
     public void testGetRefreshDateRange() throws Exception {
-        Mockito.doNothing().when(tableService).checkRefreshDataRangeReadiness("default", "DEFAULT.TEST_KYLIN_FACT", "0", "100");
-        Mockito.doReturn(null).when(modelService).getAffectedSegmentsResponse("default", "DEFAULT.TEST_KYLIN_FACT", "0", "100", ManagementType.TABLE_ORIENTED);
-        mockMvc.perform(MockMvcRequestBuilders.get("/api/tables/affected_data_range").contentType(MediaType.APPLICATION_JSON)
-                .param("project", "default").param("start", "0").param("table", "DEFAULT.TEST_KYLIN_FACT")
-                .param("end", "100")
-                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+        Mockito.doNothing().when(tableService).checkRefreshDataRangeReadiness("default", "DEFAULT.TEST_KYLIN_FACT", "0",
+                "100");
+        Mockito.doReturn(null).when(modelService).getAffectedSegmentsResponse("default", "DEFAULT.TEST_KYLIN_FACT", "0",
+                "100", ManagementType.TABLE_ORIENTED);
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/tables/affected_data_range") //
+                .contentType(MediaType.APPLICATION_JSON) //
+                .param("project", "default") //
+                .param("start", "0") //
+                .param("table", "DEFAULT.TEST_KYLIN_FACT") //
+                .param("end", "100") //
+                .accept(MediaType.parseMediaType(APPLICATION_JSON))) //
                 .andExpect(MockMvcResultMatchers.status().isOk());
         Mockito.verify(nTableController).getRefreshAffectedDateRange("default", "DEFAULT.TEST_KYLIN_FACT", "0", "100");
     }
@@ -454,13 +531,14 @@ public class NTableControllerTest {
     @Test
     public void testGetPushdownMode() throws Exception {
         Mockito.doReturn(true).when(tableService).getPushDownMode("default", "DEFAULT.TEST_KYLIN_FACT");
-        mockMvc.perform(MockMvcRequestBuilders.get("/api/tables/pushdown_mode").contentType(MediaType.APPLICATION_JSON)
-                .param("project", "default").param("table", "DEFAULT.TEST_KYLIN_FACT")
-                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/tables/pushdown_mode") //
+                .contentType(MediaType.APPLICATION_JSON) //
+                .param("project", "default") //
+                .param("table", "DEFAULT.TEST_KYLIN_FACT") //
+                .accept(MediaType.parseMediaType(APPLICATION_JSON))) //
                 .andExpect(MockMvcResultMatchers.status().isOk());
         Mockito.verify(nTableController).getPushdownMode("default", "DEFAULT.TEST_KYLIN_FACT");
     }
-
 
     @Test
     public void testRefreshSegments() throws Exception {
@@ -472,43 +550,54 @@ public class NTableControllerTest {
         refreshSegmentsRequest.setRefreshEnd("100");
         refreshSegmentsRequest.setAffectedStart("0");
         refreshSegmentsRequest.setAffectedEnd("100");
-        mockMvc.perform(MockMvcRequestBuilders.put("/api/tables/data_range").contentType(MediaType.APPLICATION_JSON)
-                .content(JsonUtil.writeValueAsString(refreshSegmentsRequest))
-                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+        mockMvc.perform(MockMvcRequestBuilders.put("/api/tables/data_range") //
+                .contentType(MediaType.APPLICATION_JSON) //
+                .content(JsonUtil.writeValueAsString(refreshSegmentsRequest)) //
+                .accept(MediaType.parseMediaType(APPLICATION_JSON))) //
                 .andExpect(MockMvcResultMatchers.status().isOk());
         Mockito.verify(nTableController).refreshSegments(Mockito.any(RefreshSegmentsRequest.class));
     }
 
     @Test
     public void testUpdateAutoMergeConfigException() throws Exception {
+        String errorMsg = "You should specify at least one autoMerge range!";
         AutoMergeRequest autoMergeRequest = mockAutoMergeRequest();
         autoMergeRequest.setAutoMergeTimeRanges(null);
-        mockMvc.perform(MockMvcRequestBuilders.put("/api/tables/auto_merge_config").contentType(MediaType.APPLICATION_JSON)
-                .content(JsonUtil.writeValueAsString(autoMergeRequest))
-                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
-                .andExpect(MockMvcResultMatchers.status().isBadRequest());
+        final MvcResult mvcResult = mockMvc.perform(MockMvcRequestBuilders.put("/api/tables/auto_merge_config") //
+                .contentType(MediaType.APPLICATION_JSON) //
+                .content(JsonUtil.writeValueAsString(autoMergeRequest)) //
+                .accept(MediaType.parseMediaType(APPLICATION_JSON))) //
+                .andExpect(MockMvcResultMatchers.status().isBadRequest()).andReturn();
         Mockito.verify(nTableController).updateAutoMergeConfig(Mockito.any(AutoMergeRequest.class));
+        final JsonNode jsonNode = JsonUtil.readValueAsTree(mvcResult.getResponse().getContentAsString());
+        Assert.assertEquals(errorMsg, jsonNode.get("exception").textValue());
     }
 
     @Test
     public void testUpdateAutoMergeConfigException2() throws Exception {
+        String errorMsg = "model name or table name must be specified!";
         AutoMergeRequest autoMergeRequest = mockAutoMergeRequest();
         autoMergeRequest.setModel("");
         autoMergeRequest.setTable("");
-        mockMvc.perform(MockMvcRequestBuilders.put("/api/tables/auto_merge_config").contentType(MediaType.APPLICATION_JSON)
-                .content(JsonUtil.writeValueAsString(autoMergeRequest))
-                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
-                .andExpect(MockMvcResultMatchers.status().isBadRequest());
+        val mvcResult = mockMvc
+                .perform(MockMvcRequestBuilders.put("/api/tables/auto_merge_config")
+                        .contentType(MediaType.APPLICATION_JSON) //
+                        .content(JsonUtil.writeValueAsString(autoMergeRequest)) //
+                        .accept(MediaType.parseMediaType(APPLICATION_JSON))) //
+                .andExpect(MockMvcResultMatchers.status().isBadRequest()).andReturn();
         Mockito.verify(nTableController).updateAutoMergeConfig(Mockito.any(AutoMergeRequest.class));
+        final JsonNode jsonNode = JsonUtil.readValueAsTree(mvcResult.getResponse().getContentAsString());
+        Assert.assertEquals(errorMsg, jsonNode.get("exception").textValue());
     }
 
     @Test
     public void testUpdateAutoMergeConfig() throws Exception {
         AutoMergeRequest autoMergeRequest = mockAutoMergeRequest();
         Mockito.doNothing().when(tableService).setAutoMergeConfigByTable("default", autoMergeRequest);
-        mockMvc.perform(MockMvcRequestBuilders.put("/api/tables/auto_merge_config").contentType(MediaType.APPLICATION_JSON)
-                .content(JsonUtil.writeValueAsString(autoMergeRequest))
-                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+        mockMvc.perform(MockMvcRequestBuilders.put("/api/tables/auto_merge_config") //
+                .contentType(MediaType.APPLICATION_JSON) //
+                .content(JsonUtil.writeValueAsString(autoMergeRequest)) //
+                .accept(MediaType.parseMediaType(APPLICATION_JSON))) //
                 .andExpect(MockMvcResultMatchers.status().isOk());
         Mockito.verify(nTableController).updateAutoMergeConfig(Mockito.any(AutoMergeRequest.class));
     }
@@ -520,9 +609,10 @@ public class NTableControllerTest {
         config.setPushdownRangeLimited(true);
         config.setTable("DEFAULT.TEST_KYLIN_FACT");
         Mockito.doNothing().when(tableService).setPushDownMode("default", "DEFAULT.TEST_KYLIN_FACT", true);
-        mockMvc.perform(MockMvcRequestBuilders.put("/api/tables/pushdown_mode").contentType(MediaType.APPLICATION_JSON)
-                .content(JsonUtil.writeValueAsString(config))
-                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+        mockMvc.perform(MockMvcRequestBuilders.put("/api/tables/pushdown_mode") //
+                .contentType(MediaType.APPLICATION_JSON) //
+                .content(JsonUtil.writeValueAsString(config)) //
+                .accept(MediaType.parseMediaType(APPLICATION_JSON))) //
                 .andExpect(MockMvcResultMatchers.status().isOk());
         Mockito.verify(nTableController).setPushdownMode(Mockito.any(PushDownModeRequest.class));
     }
@@ -530,11 +620,140 @@ public class NTableControllerTest {
     @Test
     public void testGetLoadedDatabases() throws Exception {
         Mockito.doReturn(null).when(tableService).getLoadedDatabases("default");
-        mockMvc.perform(MockMvcRequestBuilders.get("/api/tables/loaded_databases")
-                .contentType(MediaType.APPLICATION_JSON).param("project", "default")
-                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/tables/loaded_databases") //
+                .contentType(MediaType.APPLICATION_JSON) //
+                .param("project", "default") //
+                .accept(MediaType.parseMediaType(APPLICATION_JSON))) //
                 .andExpect(MockMvcResultMatchers.status().isOk());
         Mockito.verify(nTableController).getLoadedDatabases("default");
+    }
+
+    @Test
+    public void testSubmitSampling() throws Exception {
+        final SamplingRequest request = new SamplingRequest();
+        request.setProject("default");
+        request.setRows(20000);
+        request.setQualifiedTableName("default.test_kylin_fact");
+        Mockito.doNothing().when(tableSamplingService) //
+                .sampling(Sets.newHashSet(request.getQualifiedTableName()), request.getProject(), request.getRows());
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/tables/sampling") //
+                .contentType(MediaType.APPLICATION_JSON) //
+                .content(JsonUtil.writeValueAsString(request)) //
+                .accept(MediaType.parseMediaType(APPLICATION_JSON))) //
+                .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
+        Mockito.verify(nTableController).submitSampling(Mockito.any(SamplingRequest.class));
+    }
+
+    @Test
+    public void testLoadTablesWithSampling() throws Exception {
+        Set<String> loaded = Sets.newHashSet("default.test_kylin_fact", "default.test_account");
+        Set<String> failed = Sets.newHashSet("default.test_country");
+        LoadTableResponse loadTableResponse = new LoadTableResponse();
+        loadTableResponse.setLoaded(loaded);
+        loadTableResponse.setFailed(failed);
+        final TableLoadRequest tableLoadRequest = mockLoadTableRequest();
+        tableLoadRequest.setNeedSampling(true);
+        tableLoadRequest.setSamplingRows(20000);
+
+        Mockito.when(tableExtService.loadTables(tableLoadRequest.getTables(), "default"))
+                .thenReturn(loadTableResponse);
+        Mockito.when(tableExtService.loadTablesByDatabase("default", tableLoadRequest.getDatabases()))
+                .thenReturn(loadTableResponse);
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/tables") //
+                .contentType(MediaType.APPLICATION_JSON) //
+                .content(JsonUtil.writeValueAsString(tableLoadRequest)) //
+                .accept(MediaType.parseMediaType(APPLICATION_JSON))) //
+                .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
+        Mockito.verify(nTableController).loadTables(Mockito.any(TableLoadRequest.class));
+    }
+
+    @Test
+    public void testLoadTablesExceptionForSamplingRowsTooSmall() throws Exception {
+        Set<String> loaded = Sets.newHashSet("default.test_kylin_fact");
+        LoadTableResponse loadTableResponse = new LoadTableResponse();
+        loadTableResponse.setLoaded(loaded);
+        final TableLoadRequest tableLoadRequest = mockLoadTableRequest();
+        tableLoadRequest.setNeedSampling(true);
+        tableLoadRequest.setSamplingRows(200);
+
+        String errorMsg = "Sampling range should not be less than the max limit(10000 rows)!";
+        Mockito.when(tableExtService.loadTables(tableLoadRequest.getTables(), "default"))
+                .thenReturn(loadTableResponse);
+
+        Mockito.when(tableExtService.loadTablesByDatabase("default", tableLoadRequest.getDatabases()))
+                .thenReturn(loadTableResponse);
+        final MvcResult mvcResult = mockMvc.perform(MockMvcRequestBuilders.post("/api/tables") //
+                .contentType(MediaType.APPLICATION_JSON) //
+                .content(JsonUtil.writeValueAsString(tableLoadRequest)) //
+                .accept(MediaType.parseMediaType(APPLICATION_JSON))) //
+                .andExpect(MockMvcResultMatchers.status().isBadRequest()).andReturn();
+        Mockito.verify(nTableController).loadTables(Mockito.any(TableLoadRequest.class));
+        final JsonNode jsonNode = JsonUtil.readValueAsTree(mvcResult.getResponse().getContentAsString());
+        Assert.assertEquals(errorMsg, jsonNode.get("exception").textValue());
+    }
+
+    @Test
+    public void testLoadTablesExceptionForSamplingRowsTooLarge() throws Exception {
+        Set<String> loaded = Sets.newHashSet("default.test_kylin_fact");
+        LoadTableResponse loadTableResponse = new LoadTableResponse();
+        loadTableResponse.setLoaded(loaded);
+        final TableLoadRequest tableLoadRequest = mockLoadTableRequest();
+        tableLoadRequest.setNeedSampling(true);
+        tableLoadRequest.setSamplingRows(30_000_000);
+
+        String errorMsg = "Sampling range should not exceed the max limit(20000000 rows)!";
+        Mockito.when(tableExtService.loadTables(tableLoadRequest.getTables(), "default"))
+                .thenReturn(loadTableResponse);
+        Mockito.when(tableExtService.loadTablesByDatabase("default", tableLoadRequest.getDatabases()))
+                .thenReturn(loadTableResponse);
+        final MvcResult mvcResult = mockMvc.perform(MockMvcRequestBuilders.post("/api/tables") //
+                .contentType(MediaType.APPLICATION_JSON) //
+                .content(JsonUtil.writeValueAsString(tableLoadRequest)) //
+                .accept(MediaType.parseMediaType(APPLICATION_JSON))) //
+                .andExpect(MockMvcResultMatchers.status().isBadRequest()).andReturn();
+
+        Mockito.verify(nTableController).loadTables(Mockito.any(TableLoadRequest.class));
+        final JsonNode jsonNode = JsonUtil.readValueAsTree(mvcResult.getResponse().getContentAsString());
+        Assert.assertEquals(errorMsg, jsonNode.get("exception").textValue());
+    }
+
+    @Test
+    public void testSubmitSamplingFailedForNoTable() throws Exception {
+        final SamplingRequest request = new SamplingRequest();
+        request.setProject("default");
+        request.setRows(20000);
+
+        String errorMsg = "Please input at least one table(database.table) for sampling!";
+        Mockito.doNothing().when(tableSamplingService) //
+                .sampling(Sets.newHashSet(request.getQualifiedTableName()), request.getProject(), request.getRows());
+        final MvcResult mvcResult = mockMvc.perform(MockMvcRequestBuilders.post("/api/tables/sampling") //
+                .contentType(MediaType.APPLICATION_JSON) //
+                .content(JsonUtil.writeValueAsString(request)) //
+                .accept(MediaType.parseMediaType(APPLICATION_JSON))) //
+                .andExpect(MockMvcResultMatchers.status().isBadRequest()).andReturn();
+        Mockito.verify(nTableController).submitSampling(Mockito.any(SamplingRequest.class));
+        final JsonNode jsonNode = JsonUtil.readValueAsTree(mvcResult.getResponse().getContentAsString());
+        Assert.assertEquals(errorMsg, jsonNode.get("exception").textValue());
+    }
+
+    @Test
+    public void testSubmitSamplingFailedForIllegalTableName() throws Exception {
+        final SamplingRequest request = new SamplingRequest();
+        request.setProject("default");
+        request.setRows(20000);
+        request.setQualifiedTableName("test_kylin_fact");
+
+        String errorMsg = "Illegal table name 'test_kylin_fact', please input a qualified table name as database.table!";
+        Mockito.doNothing().when(tableSamplingService) //
+                .sampling(Sets.newHashSet(request.getQualifiedTableName()), request.getProject(), request.getRows());
+        final MvcResult mvcResult = mockMvc.perform(MockMvcRequestBuilders.post("/api/tables/sampling") //
+                .contentType(MediaType.APPLICATION_JSON) //
+                .content(JsonUtil.writeValueAsString(request)) //
+                .accept(MediaType.parseMediaType(APPLICATION_JSON))) //
+                .andExpect(MockMvcResultMatchers.status().isBadRequest()).andReturn();
+        Mockito.verify(nTableController).submitSampling(Mockito.any(SamplingRequest.class));
+        final JsonNode jsonNode = JsonUtil.readValueAsTree(mvcResult.getResponse().getContentAsString());
+        Assert.assertEquals(errorMsg, jsonNode.get("exception").textValue());
     }
 
     private List<TablesAndColumnsResponse> mockTableAndColumns() {

@@ -70,7 +70,7 @@ public class JobStepFactory {
         step.setTargetModel(segments.iterator().next().getModel().getUuid());
         step.setJobId(parent.getId());
         step.setProject(parent.getProject());
-        step.setProjectParam();
+        step.setProjectParam(parent.getProject());
         step.setDataflowId(df.getUuid());
         step.setSegmentIds(segmentIds);
         step.setCuboidLayoutIds(NSparkCubingUtil.toCuboidLayoutIds(layouts));
