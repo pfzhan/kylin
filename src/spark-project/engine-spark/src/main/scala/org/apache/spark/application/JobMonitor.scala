@@ -56,8 +56,9 @@ class JobMonitor(eventLoop: KylinJobEventLoop) extends Logging {
         val conf = buildEnv.sparkConf
         val prevMemory = Utils.byteStringAsMb(conf.get(EXECUTOR_MEMORY))
         val retryMemory = Math.ceil(prevMemory * gradient).toInt
-        val maxMemory =
-          buildEnv.clusterInfoFetcher.fetchMaximumResourceAllocation.memory - Utils.byteStringAsMb(conf.get(EXECUTOR_OVERHEAD))
+        val proportion = KylinBuildEnv.get().kylinConfig.getMaxAllocationResourceProportion
+        val maxMemory = (buildEnv.clusterInfoFetcher.fetchMaximumResourceAllocation.memory * proportion).toInt -
+          Utils.byteStringAsMb(conf.get(EXECUTOR_OVERHEAD))
         if (prevMemory == maxMemory) {
           val retryCore = conf.get(EXECUTOR_CORES).toInt - 1
           if (retryCore > 0) {

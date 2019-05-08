@@ -41,6 +41,6 @@ class TestCapacitySchedulerParser extends SparderBaseFunSuite {
     val defaultResource = parser.availableResource("default")
     assert(defaultResource == AvailableResource(ResourceInfo(429496729, 429496729), ResourceInfo(429496729, 429496729)))
     val devResource = parser.availableResource("dev_test")
-    assert(devResource == AvailableResource(ResourceInfo(53759, 13), ResourceInfo(73727, 18)))
+    assert(devResource == AvailableResource(ResourceInfo(53759, 782936739), ResourceInfo(73727, 1073741823)))
   }
 }

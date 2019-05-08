@@ -983,6 +983,10 @@ abstract public class KylinConfigBase implements Serializable {
         return Boolean.parseBoolean(getOptional("kylin.spark-conf.auto.prior", "true"));
     }
 
+    public Double getMaxAllocationResourceProportion() {
+        return Double.parseDouble(getOptional("kylin.engine.max-allocation-proportion", "0.9"));
+    }
+
     // ============================================================================
     // ENGINE.SPARK
     // ============================================================================

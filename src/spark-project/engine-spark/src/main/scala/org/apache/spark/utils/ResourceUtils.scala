@@ -22,7 +22,7 @@
 
 package org.apache.spark.utils
 
-import io.kyligence.kap.cluster.{ClusterInfoFetcher, ResourceInfo}
+import io.kyligence.kap.cluster.{AvailableResource, ClusterInfoFetcher, ResourceInfo}
 import io.kyligence.kap.engine.spark.utils.SparkConfHelper._
 import org.apache.spark.SparkConf
 import org.apache.spark.internal.Logging
@@ -31,22 +31,37 @@ import org.apache.spark.util.Utils
 object ResourceUtils extends Logging {
   def checkResource(sparkConf: SparkConf, clusterInfo: ClusterInfoFetcher): Boolean = {
     val queue = sparkConf.get("spark.yarn.queue", "default")
-    val queueAvailable = clusterInfo.fetchQueueAvailableResource(queue)
+    val driverMemory = (Utils.byteStringAsMb(sparkConf.get(DRIVER_MEMORY)) + Utils.byteStringAsMb(sparkConf.get(DRIVER_OVERHEAD))).toInt
+    val driverCores = sparkConf.get(DRIVER_CORES).toInt
+    val queueAvailable = minusDriverResource(clusterInfo.fetchQueueAvailableResource(queue), driverMemory, driverCores)
     val instances = sparkConf.get(EXECUTOR_INSTANCES).toInt
-    val requireMemory = (Utils.byteStringAsMb(sparkConf.get(EXECUTOR_MEMORY))
+    val executorMemory = (Utils.byteStringAsMb(sparkConf.get(EXECUTOR_MEMORY))
       + Utils.byteStringAsMb(sparkConf.get(EXECUTOR_OVERHEAD))) * instances
-    val requireCores = sparkConf.get(EXECUTOR_CORES).toInt * instances
-    if (!verify(queueAvailable.max, requireMemory, requireCores)) {
-      logInfo(s"Require resource ($requireMemory MB, $requireCores vCores)," +
+    val executorCores = sparkConf.get(EXECUTOR_CORES).toInt * instances
+
+    if (!verify(queueAvailable.max, executorMemory, executorCores, instances)) {
+      logInfo(s"Require resource ($executorMemory MB, $executorCores vCores)," +
         s" queue max resource (${queueAvailable.max.memory} MB, ${queueAvailable.max.vCores} vCores)")
       throw new RuntimeException("Total queue resource does not meet requirement")
     }
-    logInfo(s"Require resource ($requireMemory MB, $requireCores vCores)," +
+    logInfo(s"Require resource ($executorMemory MB, $executorCores vCores)," +
       s" available resource (${queueAvailable.available.memory} MB, ${queueAvailable.available.vCores} vCores)")
-    verify(queueAvailable.available, requireMemory, requireCores)
+    verify(queueAvailable.available, executorMemory, executorCores, instances)
   }
 
-  private def verify(resource: ResourceInfo, memory: Long, vCores: Long): Boolean = {
-    resource.memory * 1.0 / memory >= 0.5 && resource.vCores * 1.0 / vCores >= 0.5
+  private def verify(resource: ResourceInfo, memory: Long, vCores: Long, instances: Int): Boolean = {
+    if (instances == 1) {
+      resource.memory >= memory && resource.vCores >= vCores
+    } else {
+      resource.memory * 1.0 / memory >= 0.5 && resource.vCores * 1.0 / vCores >= 0.5
+    }
+  }
+
+  private def minusDriverResource(queueAvailable: AvailableResource, memory: Int, vCores: Int): AvailableResource = {
+    val am = queueAvailable.available.memory - memory
+    val av = queueAvailable.available.vCores - vCores
+    val mm = queueAvailable.max.memory - memory
+    val mv = queueAvailable.max.vCores - vCores
+    AvailableResource(ResourceInfo(am, av), ResourceInfo(mm, mv))
   }
 }

@@ -63,10 +63,9 @@ class CapacitySchedulerParser extends SchedulerParser {
 
   private def calTotalResource(node: JsonNode): ResourceInfo = {
     val usedMemory = parseValue(node.get("resourcesUsed").get("memory")).toInt
-    val usedCores = parseValue(node.get("resourcesUsed").get("vCores")).toInt
     if (usedMemory != 0) {
       val usedCapacity = parseValue(node.get("absoluteUsedCapacity")).toDouble / 100
-      val resource = ResourceInfo(Math.floor(usedMemory / usedCapacity).toInt, Math.floor(usedCores / usedCapacity).toInt)
+      val resource = ResourceInfo(Math.floor(usedMemory / usedCapacity).toInt, Int.MaxValue)
       logInfo(s"Estimate total cluster resource is $resource.")
       resource
     } else {

@@ -31,42 +31,86 @@ import org.mockito.Mockito
 class TestResourceUtils extends SparderBaseFunSuite {
   private val fetcher: YarnInfoFetcher = Mockito.mock(classOf[YarnInfoFetcher])
 
+  // test case: available(10, 10)  executor(20, 10) driver(1, 1)
   test("checkResource return false when available memory does not meet acquirement") {
-    val conf = new SparkConf()
-    conf.set(EXECUTOR_INSTANCES, "5")
-    conf.set(EXECUTOR_MEMORY, "20MB")
-    conf.set(EXECUTOR_OVERHEAD, "10MB")
-    conf.set(EXECUTOR_CORES, "2")
-    Mockito.when(fetcher.fetchQueueAvailableResource("default")).thenReturn(AvailableResource(ResourceInfo(10, 10), ResourceInfo(100, 100)))
-    assert(!ResourceUtils.checkResource(conf, fetcher))
-  }
-
-  test("checkResource return false when available vCores does not meet acquirement") {
-    val conf = new SparkConf()
-    conf.set(EXECUTOR_INSTANCES, "5")
-    conf.set(EXECUTOR_MEMORY, "1MB")
-    conf.set(EXECUTOR_OVERHEAD, "1MB")
-    conf.set(EXECUTOR_CORES, "5")
-    Mockito.when(fetcher.fetchQueueAvailableResource("default")).thenReturn(AvailableResource(ResourceInfo(10, 10), ResourceInfo(100, 100)))
-    assert(!ResourceUtils.checkResource(conf, fetcher))
-  }
-
-  test("checkResource return true when available resource is sufficient") {
     val conf = new SparkConf()
     conf.set(EXECUTOR_INSTANCES, "5")
     conf.set(EXECUTOR_MEMORY, "2MB")
     conf.set(EXECUTOR_OVERHEAD, "2MB")
     conf.set(EXECUTOR_CORES, "2")
+    conf.set(DRIVER_MEMORY, "1MB")
+    conf.set(DRIVER_OVERHEAD, "0MB")
+    conf.set(DRIVER_CORES, "1")
     Mockito.when(fetcher.fetchQueueAvailableResource("default")).thenReturn(AvailableResource(ResourceInfo(10, 10), ResourceInfo(100, 100)))
+    assert(!ResourceUtils.checkResource(conf, fetcher))
+  }
+
+  // test case: available(10, 10)  executor(10, 20) driver(2, 1)
+  test("checkResource return false when available vCores does not meet acquirement") {
+    val conf = new SparkConf()
+    conf.set(EXECUTOR_INSTANCES, "5")
+    conf.set(EXECUTOR_MEMORY, "1MB")
+    conf.set(EXECUTOR_OVERHEAD, "1MB")
+    conf.set(EXECUTOR_CORES, "4")
+    conf.set(DRIVER_MEMORY, "1MB")
+    conf.set(DRIVER_OVERHEAD, "1MB")
+    conf.set(DRIVER_CORES, "1")
+    Mockito.when(fetcher.fetchQueueAvailableResource("default")).thenReturn(AvailableResource(ResourceInfo(10, 10), ResourceInfo(100, 100)))
+    assert(!ResourceUtils.checkResource(conf, fetcher))
+  }
+
+  // test case: available(12, 11)  executor(20, 20) driver(2, 1)
+  test("checkResource return true when available resource is sufficient") {
+    val conf = new SparkConf()
+    conf.set(EXECUTOR_INSTANCES, "5")
+    conf.set(EXECUTOR_MEMORY, "2MB")
+    conf.set(EXECUTOR_OVERHEAD, "2MB")
+    conf.set(EXECUTOR_CORES, "4")
+    conf.set(DRIVER_MEMORY, "1MB")
+    conf.set(DRIVER_OVERHEAD, "1MB")
+    conf.set(DRIVER_CORES, "1")
+    Mockito.when(fetcher.fetchQueueAvailableResource("default")).thenReturn(AvailableResource(ResourceInfo(12, 11), ResourceInfo(100, 100)))
     assert(ResourceUtils.checkResource(conf, fetcher))
   }
 
+  // test case: available(12, 11)  executor(20, 20) driver(2, 1) and instances is 1
+  test("checkResource return false when only 1 instance and available resource is sufficient for half") {
+    val conf = new SparkConf()
+    conf.set(EXECUTOR_INSTANCES, "1")
+    conf.set(EXECUTOR_MEMORY, "10MB")
+    conf.set(EXECUTOR_OVERHEAD, "10MB")
+    conf.set(EXECUTOR_CORES, "20")
+    conf.set(DRIVER_MEMORY, "1MB")
+    conf.set(DRIVER_OVERHEAD, "1MB")
+    conf.set(DRIVER_CORES, "1")
+    Mockito.when(fetcher.fetchQueueAvailableResource("default")).thenReturn(AvailableResource(ResourceInfo(12, 11), ResourceInfo(100, 100)))
+    assert(!ResourceUtils.checkResource(conf, fetcher))
+  }
+
+  // test case: available(22, 21)  executor(20, 20) driver(2, 1) and instances is 1
+  test("checkResource return true when instance is 1 and available resource is sufficient") {
+    val conf = new SparkConf()
+    conf.set(EXECUTOR_INSTANCES, "1")
+    conf.set(EXECUTOR_MEMORY, "10MB")
+    conf.set(EXECUTOR_OVERHEAD, "10MB")
+    conf.set(EXECUTOR_CORES, "20")
+    conf.set(DRIVER_MEMORY, "1MB")
+    conf.set(DRIVER_OVERHEAD, "1MB")
+    conf.set(DRIVER_CORES, "1")
+    Mockito.when(fetcher.fetchQueueAvailableResource("default")).thenReturn(AvailableResource(ResourceInfo(22, 21), ResourceInfo(100, 100)))
+    assert(ResourceUtils.checkResource(conf, fetcher))
+  }
+
+  // test case: max(100, 100)  executor(100, 100) driver(1, 1)
   test("checkResource throw Exception total resource is not sufficient") {
     val conf = new SparkConf()
-    conf.set(EXECUTOR_INSTANCES, "5")
-    conf.set(EXECUTOR_MEMORY, "100MB")
-    conf.set(EXECUTOR_OVERHEAD, "10MB")
+    conf.set(EXECUTOR_INSTANCES, "1")
+    conf.set(EXECUTOR_MEMORY, "50MB")
+    conf.set(EXECUTOR_OVERHEAD, "50MB")
     conf.set(EXECUTOR_CORES, "100")
+    conf.set(DRIVER_MEMORY, "1MB")
+    conf.set(DRIVER_OVERHEAD, "0MB")
+    conf.set(DRIVER_CORES, "1")
     Mockito.when(fetcher.fetchQueueAvailableResource("default")).thenReturn(AvailableResource(ResourceInfo(10, 10), ResourceInfo(100, 100)))
     try {
       ResourceUtils.checkResource(conf, fetcher)

@@ -40,6 +40,8 @@ class TestJobMonitor extends SparderBaseFunSuite with BeforeAndAfterEach {
   private val eventLoop = new KylinJobEventLoop
   private val config = Mockito.mock(classOf[KylinConfig])
   private val gradient = 1.5
+  private val proportion = 1.0
+  Mockito.when(config.getMaxAllocationResourceProportion).thenReturn(proportion)
   Mockito.when(config.getSparkEngineRetryMemoryGradient).thenReturn(gradient)
   Mockito.when(config.getClusterInfoFetcherClassName).thenReturn("org.apache.spark.application.MockFetcher")
 

@@ -57,6 +57,9 @@ public class SparkConfHelper {
     public static final String EXECUTOR_MEMORY = "spark.executor.memory";
     public static final String EXECUTOR_OVERHEAD = "spark.executor.memoryOverhead";
     public static final String SHUFFLE_PARTITIONS = "spark.sql.shuffle.partitions";
+    public static final String DRIVER_MEMORY = "spark.driver.memory";
+    public static final String DRIVER_OVERHEAD = "spark.driver.memoryOverhead";
+    public static final String DRIVER_CORES = "spark.driver.cores";
 
     private static final List<SparkConfRule> EXECUTOR_RULES = ImmutableList.of(
             new ExecutorMemoryRule(),
