@@ -902,7 +902,7 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
     private void testGetLatestData() throws Exception {
         ExistedDataRangeResponse response = modelService.getLatestDataRange("default", "", "",
                 "89af4ee2-2cdb-4b07-b39e-4c29856309aa");
-        Assert.assertEquals("1388534400000", response.getEndTime());
+        Assert.assertEquals(String.valueOf(Long.MAX_VALUE), response.getEndTime());
     }
 
     private void testGetLatestDataWhenCreateModel() throws Exception {

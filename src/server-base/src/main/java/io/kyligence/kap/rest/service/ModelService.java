@@ -1364,6 +1364,9 @@ public class ModelService extends BasicService {
             val df = getDataflowManager(project).getDataflow(modelId);
             pushdownResult = getMaxAndMinTimeInPartitionColumnByPushdown(project, modelId);
             pushdownResult.setFirst(PushDownUtil.calcStart(pushdownResult.getFirst(), df.getCoveredRange()));
+            if (pushdownResult.getFirst().compareTo(pushdownResult.getSecond()) > 0) {
+                pushdownResult.setSecond(pushdownResult.getFirst());
+            }
         } else {
             val maxAndMin = PushDownUtil.getMaxAndMinTime(column, table , project);
             val dateFormat = DateFormat.proposeDateFormat(maxAndMin.getFirst());
