@@ -119,7 +119,6 @@ public class NFavoriteSchedulerTest extends NLocalFileMetadataTestCase {
         FavoriteQueryManager favoriteQueryManager = FavoriteQueryManager.getInstance(getTestConfig(), PROJECT);
         FavoriteQuery favoriteQuery1 = new FavoriteQuery("sql1");
         favoriteQuery1.setTotalCount(1);
-        favoriteQuery1.setSuccessCount(1);
         favoriteQuery1.setLastQueryTime(10001);
         favoriteQuery1.setChannel(FavoriteQuery.CHANNEL_FROM_RULE);
         favoriteQuery1.setFrequencyMap(new TreeMap<Long, Integer>() {
@@ -130,7 +129,6 @@ public class NFavoriteSchedulerTest extends NLocalFileMetadataTestCase {
 
         FavoriteQuery favoriteQuery2 = new FavoriteQuery("sql2");
         favoriteQuery2.setTotalCount(1);
-        favoriteQuery2.setSuccessCount(1);
         favoriteQuery2.setLastQueryTime(10002);
         favoriteQuery2.setChannel(FavoriteQuery.CHANNEL_FROM_RULE);
         favoriteQuery2.setFrequencyMap(new TreeMap<Long, Integer>() {
@@ -141,7 +139,6 @@ public class NFavoriteSchedulerTest extends NLocalFileMetadataTestCase {
 
         FavoriteQuery favoriteQuery3 = new FavoriteQuery("sql3");
         favoriteQuery3.setTotalCount(1);
-        favoriteQuery3.setSuccessCount(1);
         favoriteQuery3.setLastQueryTime(10003);
         favoriteQuery3.setStatus(FavoriteQueryStatusEnum.ACCELERATING);
         favoriteQuery3.setChannel(FavoriteQuery.CHANNEL_FROM_RULE);
@@ -419,17 +416,14 @@ public class NFavoriteSchedulerTest extends NLocalFileMetadataTestCase {
             switch (favoriteQuery.getSqlPattern()) {
             case "sql1":
                 Assert.assertEquals(2, favoriteQuery.getTotalCount());
-                Assert.assertEquals(2, favoriteQuery.getSuccessCount());
                 Assert.assertEquals(2, favoriteQuery.getFrequency(PROJECT));
                 break;
             case "sql2":
                 Assert.assertEquals(2, favoriteQuery.getTotalCount());
-                Assert.assertEquals(2, favoriteQuery.getSuccessCount());
                 Assert.assertEquals(2, favoriteQuery.getFrequency(PROJECT));
                 break;
             case "sql3":
                 Assert.assertEquals(1, favoriteQuery.getTotalCount());
-                Assert.assertEquals(1, favoriteQuery.getSuccessCount());
                 Assert.assertEquals(0, favoriteQuery.getFrequency(PROJECT));
                 break;
             default:
@@ -461,17 +455,14 @@ public class NFavoriteSchedulerTest extends NLocalFileMetadataTestCase {
             switch (favoriteQuery.getSqlPattern()) {
             case "sql1":
                 Assert.assertEquals(2, favoriteQuery.getTotalCount());
-                Assert.assertEquals(2, favoriteQuery.getSuccessCount());
                 Assert.assertEquals(2, favoriteQuery.getFrequency(PROJECT));
                 break;
             case "sql2":
                 Assert.assertEquals(3, favoriteQuery.getTotalCount());
-                Assert.assertEquals(2, favoriteQuery.getSuccessCount());
                 Assert.assertEquals(3, favoriteQuery.getFrequency(PROJECT));
                 break;
             case "sql3":
                 Assert.assertEquals(2, favoriteQuery.getTotalCount());
-                Assert.assertEquals(2, favoriteQuery.getSuccessCount());
                 Assert.assertEquals(1, favoriteQuery.getFrequency(PROJECT));
                 break;
             default:

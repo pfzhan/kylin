@@ -87,19 +87,16 @@ public class FavoriteQueryServiceTest extends NLocalFileMetadataTestCase {
         FavoriteQueryManager favoriteQueryManager = FavoriteQueryManager.getInstance(getTestConfig(), PROJECT);
         FavoriteQuery favoriteQuery1 = new FavoriteQuery(QueryPatternUtil.normalizeSQLPattern(sqls[0]));
         favoriteQuery1.setTotalCount(1);
-        favoriteQuery1.setSuccessCount(1);
         favoriteQuery1.setLastQueryTime(10001);
         favoriteQuery1.setChannel(FavoriteQuery.CHANNEL_FROM_RULE);
 
         FavoriteQuery favoriteQuery2 = new FavoriteQuery(QueryPatternUtil.normalizeSQLPattern(sqls[1]));
         favoriteQuery2.setTotalCount(1);
-        favoriteQuery2.setSuccessCount(1);
         favoriteQuery2.setLastQueryTime(10002);
         favoriteQuery2.setChannel(FavoriteQuery.CHANNEL_FROM_RULE);
 
         FavoriteQuery favoriteQuery3 = new FavoriteQuery(QueryPatternUtil.normalizeSQLPattern(sqls[2]));
         favoriteQuery3.setTotalCount(1);
-        favoriteQuery3.setSuccessCount(1);
         favoriteQuery3.setLastQueryTime(10003);
         favoriteQuery3.setStatus(FavoriteQueryStatusEnum.ACCELERATING);
         favoriteQuery3.setChannel(FavoriteQuery.CHANNEL_FROM_RULE);
@@ -405,14 +402,6 @@ public class FavoriteQueryServiceTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals("sql2", filteredFavoriteQueries.get(1).getSqlPattern());
         Assert.assertEquals("sql3", filteredFavoriteQueries.get(2).getSqlPattern());
 
-        // sort by success rate
-        filteredFavoriteQueries = favoriteQueryService.filterAndSortFavoriteQueries(PROJECT, "success_rate", true,
-                null);
-        Assert.assertEquals(5, filteredFavoriteQueries.size());
-        Assert.assertEquals("sql3", filteredFavoriteQueries.get(0).getSqlPattern());
-        Assert.assertEquals("sql1", filteredFavoriteQueries.get(1).getSqlPattern());
-        Assert.assertEquals("sql2", filteredFavoriteQueries.get(2).getSqlPattern());
-
         // sort by average duration
         filteredFavoriteQueries = favoriteQueryService.filterAndSortFavoriteQueries(PROJECT, "average_duration", true,
                 null);
@@ -427,21 +416,18 @@ public class FavoriteQueryServiceTest extends NLocalFileMetadataTestCase {
         favoriteQuery1.setLastQueryTime(1000);
         favoriteQuery1.setTotalCount(3);
         favoriteQuery1.setAverageDuration(100);
-        favoriteQuery1.setSuccessRate(0.2f);
         favoriteQuery1.setStatus(FavoriteQueryStatusEnum.TO_BE_ACCELERATED);
 
         FavoriteQuery favoriteQuery2 = new FavoriteQuery("sql2");
         favoriteQuery2.setLastQueryTime(2000);
         favoriteQuery2.setTotalCount(2);
         favoriteQuery2.setAverageDuration(200);
-        favoriteQuery2.setSuccessRate(0.1f);
         favoriteQuery2.setStatus(FavoriteQueryStatusEnum.ACCELERATING);
 
         FavoriteQuery favoriteQuery3 = new FavoriteQuery("sql3");
         favoriteQuery3.setLastQueryTime(3000);
         favoriteQuery3.setTotalCount(1);
         favoriteQuery3.setAverageDuration(300);
-        favoriteQuery3.setSuccessRate(0.3f);
         favoriteQuery3.setStatus(FavoriteQueryStatusEnum.ACCELERATED);
 
         FavoriteQuery favoriteQuery4 = new FavoriteQuery("sql4");
@@ -485,7 +471,6 @@ public class FavoriteQueryServiceTest extends NLocalFileMetadataTestCase {
         FavoriteQueryManager favoriteQueryManager = FavoriteQueryManager.getInstance(config, PROJECT);
         FavoriteQuery favoriteQuery = new FavoriteQuery(sql);
         favoriteQuery.setTotalCount(1);
-        favoriteQuery.setSuccessCount(1);
         favoriteQuery.setLastQueryTime(10001);
         favoriteQuery.setChannel(FavoriteQuery.CHANNEL_FROM_RULE);
         favoriteQueryManager.create(Sets.newHashSet(favoriteQuery));

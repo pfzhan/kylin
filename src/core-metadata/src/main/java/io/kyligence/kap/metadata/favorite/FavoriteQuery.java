@@ -59,8 +59,6 @@ public class FavoriteQuery extends RootPersistentEntity {
     @JsonProperty("status")
     private FavoriteQueryStatusEnum status;
 
-    @JsonProperty("success_count")
-    private int successCount;
     @JsonProperty("total_duration")
     private long totalDuration;
     @JsonProperty("comment")
@@ -69,8 +67,6 @@ public class FavoriteQuery extends RootPersistentEntity {
     @JsonProperty("channel")
     private String channel;
 
-    @JsonProperty("success_rate")
-    private float successRate;
     @JsonProperty("average_duration")
     private float averageDuration;
 
@@ -94,18 +90,14 @@ public class FavoriteQuery extends RootPersistentEntity {
         this.totalDuration = totalDuration;
         if (totalCount == 0) {
             this.averageDuration = 0;
-            this.successCount = 0;
         } else {
             this.averageDuration = totalDuration / (float) totalCount;
-            this.successRate = successCount / (float) totalCount;
         }
         this.status = FavoriteQueryStatusEnum.TO_BE_ACCELERATED;
     }
 
     public void incStats(QueryHistory queryHistory) {
         this.totalCount++;
-        if (!queryHistory.isException())
-            this.successCount++;
         this.totalDuration += queryHistory.getDuration();
         this.lastQueryTime = queryHistory.getQueryTime();
 
@@ -127,10 +119,8 @@ public class FavoriteQuery extends RootPersistentEntity {
         this.lastQueryTime = favoriteQuery.getLastQueryTime();
         this.totalCount += favoriteQuery.getTotalCount();
         this.totalDuration += favoriteQuery.getTotalDuration();
-        this.successCount += favoriteQuery.getSuccessCount();
         // this.totalcount is at least 1
         this.averageDuration = totalDuration / (float) totalCount;
-        this.successRate = successCount / (float) totalCount;
         // merge two maps
         favoriteQuery.getFrequencyMap()
                 .forEach((k, v) -> this.frequencyMap.merge(k, v, (value1, value2) -> value1 + value2));

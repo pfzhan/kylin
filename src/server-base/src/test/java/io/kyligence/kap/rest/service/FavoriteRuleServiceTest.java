@@ -31,6 +31,7 @@ import io.kyligence.kap.metadata.favorite.FavoriteQueryManager;
 import io.kyligence.kap.metadata.favorite.FavoriteRule;
 import io.kyligence.kap.metadata.query.AccelerateRatioManager;
 import io.kyligence.kap.rest.response.ImportSqlResponse;
+import lombok.var;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.exception.BadRequestException;
 import org.apache.kylin.rest.exception.NotFoundException;
@@ -71,29 +72,38 @@ public class FavoriteRuleServiceTest extends NLocalFileMetadataTestCase {
     public void testBlacklistBasics() {
         final String sqlPattern1 = "test sql pattern 1";
         final String sqlPattern2 = "test sql pattern 2";
+        final String sqlPattern3 = "test sql pattern 3";
+        final String sqlPattern4 = "test sql pattern 4";
 
         FavoriteQueryManager favoriteQueryManager = FavoriteQueryManager.getInstance(getTestConfig(), PROJECT);
         FavoriteQuery favoriteQuery1 = new FavoriteQuery(sqlPattern1);
         favoriteQuery1.setChannel(FavoriteQuery.CHANNEL_FROM_RULE);
         FavoriteQuery favoriteQuery2 = new FavoriteQuery(sqlPattern2);
         favoriteQuery2.setChannel(FavoriteQuery.CHANNEL_FROM_IMPORTED);
-        favoriteQueryManager.create(new HashSet(){{add(favoriteQuery1);add(favoriteQuery2);}});
+        FavoriteQuery favoriteQuery3 = new FavoriteQuery(sqlPattern3);
+        favoriteQuery3.setChannel(FavoriteQuery.CHANNEL_FROM_IMPORTED);
+        FavoriteQuery favoriteQuery4 = new FavoriteQuery(sqlPattern4);
+        favoriteQuery4.setChannel(FavoriteQuery.CHANNEL_FROM_IMPORTED);
+
+        favoriteQueryManager.create(new HashSet(){{add(favoriteQuery1);add(favoriteQuery2);add(favoriteQuery3);add(favoriteQuery4);}});
         List<FavoriteQuery> favoriteQueries = favoriteQueryManager.getAll();
-        Assert.assertEquals(2, favoriteQueries.size());
-        List<FavoriteRule.SQLCondition> sqls = favoriteRuleService.getBlacklistSqls(PROJECT, "");
-        Assert.assertEquals(1, sqls.size());
+        Assert.assertEquals(4, favoriteQueries.size());
+        List<FavoriteRule.SQLCondition> blacklistSqls = favoriteRuleService.getBlacklistSqls(PROJECT, "");
+        Assert.assertEquals(1, blacklistSqls.size());
 
-        // append sql pattern1 to blacklist from rule-based channel and delete FQ
-        favoriteRuleService.deleteFavoriteQuery(PROJECT, favoriteQueryManager.get(sqlPattern1).getUuid());
-        sqls = favoriteRuleService.getBlacklistSqls(PROJECT, "");
-        Assert.assertEquals(2, sqls.size());
+        // append sql pattern1 to blacklist by batch
+        var fqUuids = Lists.newArrayList(favoriteQueryManager.get(sqlPattern1).getUuid(), favoriteQueryManager.get(sqlPattern2).getUuid());
+        favoriteRuleService.batchDeleteFQs(PROJECT, fqUuids, true);
+        blacklistSqls = favoriteRuleService.getBlacklistSqls(PROJECT, "");
+        Assert.assertEquals(3, blacklistSqls.size());
         favoriteQueries = favoriteQueryManager.getAll();
-        Assert.assertEquals(1, favoriteQueries.size());
+        Assert.assertEquals(2, favoriteQueries.size());
 
-        // append sql pattern2 to blacklist from imported channel and delete FQ
-        favoriteRuleService.deleteFavoriteQuery(PROJECT, favoriteQueryManager.get(sqlPattern2).getUuid());
-        sqls = favoriteRuleService.getBlacklistSqls(PROJECT, "");
-        Assert.assertEquals(2, sqls.size());
+        // delete fq by batch
+        fqUuids = Lists.newArrayList(favoriteQueryManager.get(sqlPattern3).getUuid(), favoriteQueryManager.get(sqlPattern4).getUuid());
+        favoriteRuleService.batchDeleteFQs(PROJECT, fqUuids, false);
+        blacklistSqls = favoriteRuleService.getBlacklistSqls(PROJECT, "");
+        Assert.assertEquals(3, blacklistSqls.size());
         favoriteQueries = favoriteQueryManager.getAll();
         Assert.assertEquals(0, favoriteQueries.size());
 
@@ -102,38 +112,38 @@ public class FavoriteRuleServiceTest extends NLocalFileMetadataTestCase {
         sqlPattern1FQ.setChannel(FavoriteQuery.CHANNEL_FROM_RULE);
         favoriteQueryManager.create(new HashSet(){{add(sqlPattern1FQ);}});
         Assert.assertEquals(0, favoriteQueryManager.getAll().size());
-        sqls = favoriteRuleService.getBlacklistSqls(PROJECT, "");
+        blacklistSqls = favoriteRuleService.getBlacklistSqls(PROJECT, "");
         favoriteQueries = favoriteQueryManager.getAll();
-        Assert.assertEquals(2, sqls.size());
+        Assert.assertEquals(3, blacklistSqls.size());
         Assert.assertEquals(0, favoriteQueries.size());
 
         // delete not exist favorite query
         try {
-            favoriteRuleService.deleteFavoriteQuery(PROJECT, "not_exist_uuid");
+            favoriteRuleService.batchDeleteFQs(PROJECT, Lists.newArrayList("not_exist_uuid", "not_exist_uuid2"), false);
         } catch (Exception ex) {
             Assert.assertEquals(BadRequestException.class, ex.getClass());
             Assert.assertEquals("Favorite query 'not_exist_uuid' does not exist", ex.getMessage());
         }
 
         // returned blacklist sql is sorted by create time
-        FavoriteRule.SQLCondition sqlCondition1 = sqls.get(0);
-        FavoriteRule.SQLCondition sqlCondition2 = sqls.get(1);
+        FavoriteRule.SQLCondition sqlCondition1 = blacklistSqls.get(0);
+        FavoriteRule.SQLCondition sqlCondition2 = blacklistSqls.get(1);
         Assert.assertTrue(sqlCondition1.getCreateTime() > sqlCondition2.getCreateTime());
 
         // test filter blacklist by sql
-        sqls = favoriteRuleService.getBlacklistSqls(PROJECT, "sql\n pattern\t 1");
-        Assert.assertEquals(1, sqls.size());
+        blacklistSqls = favoriteRuleService.getBlacklistSqls(PROJECT, "sql\n pattern\t 1");
+        Assert.assertEquals(1, blacklistSqls.size());
 
-        sqls = favoriteRuleService.getBlacklistSqls(PROJECT, "not_exist_sql");
-        Assert.assertEquals(0, sqls.size());
+        blacklistSqls = favoriteRuleService.getBlacklistSqls(PROJECT, "not_exist_sql");
+        Assert.assertEquals(0, blacklistSqls.size());
 
-        sqls = favoriteRuleService.getBlacklistSqls(PROJECT, "");
-        Assert.assertEquals(2, sqls.size());
+        blacklistSqls = favoriteRuleService.getBlacklistSqls(PROJECT, "");
+        Assert.assertEquals(3, blacklistSqls.size());
 
         // remove sql pattern from blacklist
-        favoriteRuleService.removeBlacklistSql(sqls.get(0).getId(), PROJECT);
-        sqls = favoriteRuleService.getBlacklistSqls(PROJECT, "");
-        Assert.assertEquals(1, sqls.size());
+        favoriteRuleService.removeBlacklistSql(blacklistSqls.get(0).getId(), PROJECT);
+        blacklistSqls = favoriteRuleService.getBlacklistSqls(PROJECT, "");
+        Assert.assertEquals(2, blacklistSqls.size());
     }
 
     @Test

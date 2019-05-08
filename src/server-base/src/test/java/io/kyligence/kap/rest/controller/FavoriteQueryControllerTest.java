@@ -236,11 +236,12 @@ public class FavoriteQueryControllerTest {
         mockMvc.perform(MockMvcRequestBuilders.delete("/api/query/favorite_queries")
                 .contentType(MediaType.APPLICATION_JSON)
                 .param("project", "default")
-                .param("uuid", "uuid")
+                .param("uuids", "uuid")
+                .param("block", "false")
                 .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
                 .andExpect(MockMvcResultMatchers.status().isOk());
 
-        Mockito.verify(favoriteQueryController).deleteFavoriteQuery("default", "uuid");
+        Mockito.verify(favoriteQueryController).batchDeleteFQs("default", Lists.newArrayList("uuid"), false);
     }
 
     @Test

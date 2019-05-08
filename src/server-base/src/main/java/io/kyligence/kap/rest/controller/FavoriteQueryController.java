@@ -29,8 +29,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import com.google.common.base.Preconditions;
 import io.kyligence.kap.metadata.favorite.FavoriteQuery;
 import io.kyligence.kap.rest.request.SQLValidateRequest;
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.rest.exception.BadRequestException;
 import org.apache.kylin.rest.request.FavoriteRequest;
@@ -97,11 +99,13 @@ public class FavoriteQueryController extends NBasicController {
 
     @RequestMapping(value = "", method = RequestMethod.DELETE)
     @ResponseBody
-    public EnvelopeResponse deleteFavoriteQuery(@RequestParam(value = "project") String project,
-            @RequestParam(value = "uuid") String uuid) {
+    public EnvelopeResponse batchDeleteFQs(@RequestParam(value = "project") String project,
+                                           @RequestParam(value = "uuids") List<String> uuids,
+                                           @RequestParam(value = "block", required = false, defaultValue = "false") boolean block) {
         checkProjectName(project);
-        checkId(uuid);
-        favoriteRuleService.deleteFavoriteQuery(project, uuid);
+        Preconditions.checkArgument(CollectionUtils.isNotEmpty(uuids), "Ids should not be empty");
+        uuids.forEach(uuid -> checkId(uuid));
+        favoriteRuleService.batchDeleteFQs(project, uuids, block);
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, "", "");
     }
 

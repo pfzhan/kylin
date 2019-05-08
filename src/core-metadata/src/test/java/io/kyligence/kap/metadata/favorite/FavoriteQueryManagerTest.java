@@ -121,12 +121,10 @@ public class FavoriteQueryManagerTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(6, favoriteQueries.size());
         Assert.assertEquals("sql6", favoriteQueries.get(0).getSqlPattern());
         Assert.assertEquals(200, favoriteQueries.get(0).getAverageDuration(), 0.1);
-        Assert.assertEquals(0, favoriteQueries.get(0).getSuccessRate(), 0.1);
 
         favoriteQuery4 = new FavoriteQuery("sql4");
         favoriteQuery4.setTotalCount(10);
         favoriteQuery4.setTotalDuration(1000);
-        favoriteQuery4.setSuccessCount(5);
 
         favoriteQuery5 = new FavoriteQuery("sql5");
         favoriteQuery5.setTotalDuration(0);
@@ -141,7 +139,6 @@ public class FavoriteQueryManagerTest extends NLocalFileMetadataTestCase {
         favoriteQueryManager.updateStatistics(Lists.newArrayList(favoriteQuery4, favoriteQuery5, favoriteQuery6));
         favoriteQueries = favoriteQueryManager.getAll();
         Assert.assertEquals(6, favoriteQueries.size());
-        Assert.assertEquals(0.25, favoriteQueryManager.get("sql4").getSuccessRate(), 0.01);
         Assert.assertEquals(100, favoriteQueryManager.get("sql5").getAverageDuration(), 0.1);
         Assert.assertEquals(1005, favoriteQueryManager.get("sql6").getLastQueryTime());
 

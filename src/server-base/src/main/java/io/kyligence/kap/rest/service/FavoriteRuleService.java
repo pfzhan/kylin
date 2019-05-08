@@ -32,9 +32,9 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 import com.google.common.base.Joiner;
-import io.kyligence.kap.metadata.favorite.FavoriteQuery;
 import io.kyligence.kap.metadata.query.AccelerateRatio;
 import io.kyligence.kap.metadata.query.AccelerateRatioManager;
+import lombok.val;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.query.util.QueryUtil;
@@ -176,20 +176,21 @@ public class FavoriteRuleService extends BasicService {
     }
 
     @Transaction(project = 0)
-    public void deleteFavoriteQuery(String project, String uuid) {
-        FavoriteQuery favoriteQuery = getFavoriteQueryManager(project).getByUuid(uuid);
-        if (favoriteQuery == null)
-            throw new BadRequestException(String.format(MsgPicker.getMsg().getFAVORITE_QUERY_NOT_EXIST(), uuid));
+    public void batchDeleteFQs(String project, List<String> uuids, boolean block) {
+        uuids.forEach(uuid -> {
+            val favoriteQuery = getFavoriteQueryManager(project).getByUuid(uuid);
+            if (favoriteQuery == null)
+                throw new BadRequestException(String.format(MsgPicker.getMsg().getFAVORITE_QUERY_NOT_EXIST(), uuid));
 
-        String channel = favoriteQuery.getChannel();
-        String sqlPattern = favoriteQuery.getSqlPattern();
-        // put to blacklist
-        if (channel.equals(FavoriteQuery.CHANNEL_FROM_RULE)) {
-            FavoriteRule.SQLCondition sqlCondition = new FavoriteRule.SQLCondition(sqlPattern);
-            getFavoriteRuleManager(project).appendSqlPatternToBlacklist(sqlCondition);
-        }
-        // delete favorite query
-        getFavoriteQueryManager(project).delete(favoriteQuery);
+            if (block) {
+                // put to blacklist
+                val sqlCondition = new FavoriteRule.SQLCondition(favoriteQuery.getSqlPattern());
+                getFavoriteRuleManager(project).appendSqlPatternToBlacklist(sqlCondition);
+            }
+
+            // delete favorite query
+            getFavoriteQueryManager(project).delete(favoriteQuery);
+        });
     }
 
     public List<FavoriteRule.SQLCondition> getBlacklistSqls(String project, String sql) {

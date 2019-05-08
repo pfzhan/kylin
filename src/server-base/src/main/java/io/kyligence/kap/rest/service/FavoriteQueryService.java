@@ -83,7 +83,6 @@ public class FavoriteQueryService extends BasicService {
     private Map<String, Integer> ignoreCountMap = Maps.newConcurrentMap();
 
     private static final String LAST_QUERY_TIME = "last_query_time";
-    private static final String SUCCESS_RATE = "success_rate";
     private static final String TOTAL_COUNT = "total_count";
     private static final String AVERAGE_DURATION = "average_duration";
 
@@ -172,9 +171,6 @@ public class FavoriteQueryService extends BasicService {
         switch (sortBy) {
         case LAST_QUERY_TIME:
             comparator = Comparator.comparingLong(FavoriteQuery::getLastQueryTime);
-            break;
-        case SUCCESS_RATE:
-            comparator = Comparator.comparing(FavoriteQuery::getSuccessRate);
             break;
         case TOTAL_COUNT:
             comparator = Comparator.comparingInt(FavoriteQuery::getTotalCount);
