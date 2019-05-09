@@ -121,8 +121,8 @@ import $ from 'jquery'
     ])
   },
   locales: {
-    'en': {queryDetails: 'Query Details', ruleDesc: 'Favorite Condition:<br/>Query Frequency (default by daily);<br/>Query Duration;<br/>From user/ user group;<br/>Pushdown Query.', toAcce: 'Click to Accelerate', searchSQL: 'Search key word or Query ID'},
-    'zh-cn': {queryDetails: '查询执行详情', ruleDesc: '加速规则条件包括：<br/>查询频率(默认是每日的频率)；<br/>查询响应时间；<br/>特定用户(组)；<br/>所有下压查询。', toAcce: '去加速', searchSQL: '搜索查询关键词或查询ID'}
+    'en': {queryDetails: 'Query Details', ruleDesc: 'Favorite Condition:<br/>Query Frequency (default by daily);<br/>Query Duration;<br/>From user/ user group;<br/>Pushdown Query.', toAcce: 'Click to Accelerate', searchSQL: 'Search one keyword or query ID', noSpaceTips: 'Invalide entering: cannot search space'},
+    'zh-cn': {queryDetails: '查询执行详情', ruleDesc: '加速规则条件包括：<br/>查询频率(默认是每日的频率)；<br/>查询响应时间；<br/>特定用户(组)；<br/>所有下压查询。', toAcce: '去加速', searchSQL: '搜索单个关键词或查询ID', noSpaceTips: '无法识别输入中的空格'}
   }
 })
 export default class QueryHistoryTable extends Vue {
@@ -216,6 +216,14 @@ export default class QueryHistoryTable extends Vue {
   onSqlFilterChange () {
     clearTimeout(this.timer)
     this.timer = setTimeout(() => {
+      if (this.filterData.sql.trim().match(/\s/)) {
+        this.$message({
+          message: this.$t('noSpaceTips'),
+          type: 'warning',
+          duration: 0,
+          showClose: true
+        })
+      }
       this.filterList()
     }, 500)
   }
