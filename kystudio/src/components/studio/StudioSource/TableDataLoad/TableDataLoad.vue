@@ -228,7 +228,7 @@ export default class TableDataLoad extends Vue {
   }
   .info-label {
     display: inline-block;
-    width: 104px;
+    width: 116px;
   }
   .info-value.empty {
     color: @text-disabled-color;
