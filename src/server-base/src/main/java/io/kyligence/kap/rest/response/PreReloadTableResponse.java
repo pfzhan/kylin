@@ -21,23 +21,34 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package io.kyligence.kap.rest.service;
+package io.kyligence.kap.rest.response;
 
-import java.io.IOException;
+import org.codehaus.jackson.annotate.JsonProperty;
 
-import org.springframework.scheduling.annotation.Async;
-import org.springframework.stereotype.Service;
+import lombok.Data;
 
-import io.kyligence.kap.tool.garbage.StorageCleaner;
-import lombok.val;
+@Data
+public class PreReloadTableResponse {
 
-@Service
-public class AsyncTaskService {
+    @JsonProperty("add_column_count")
+    private long addColumnCount;
 
-    @Async
-    public void cleanupStorage() throws IOException {
-        val storageCleaner = new StorageCleaner();
-        storageCleaner.execute();
-    }
+    @JsonProperty("remove_column_count")
+    private long removeColumnCount;
+
+    @JsonProperty("broken_favorite_query_count")
+    private long brokenFavoriteQueryCount;
+
+    @JsonProperty("remove_dimension_model_count")
+    private long removeDimModelCount;
+
+    @JsonProperty("remove_dimension_count")
+    private long removeDimCount;
+
+    @JsonProperty("remove_measure_model_count")
+    private long removeMeasureModelCount;
+
+    @JsonProperty("remove_measure_count")
+    private long removeMeasureCount;
 
 }

@@ -278,8 +278,8 @@ public class TblColRef implements Serializable {
     }
 
     public int hashCode() {
-        // NOTE: tableRef MUST NOT participate in hashCode().
-        // Because fixUnknownModel() can change tableRef while TblColRef is held as set/map keys.
+        // NOTE: tableDesc MUST NOT participate in hashCode().
+        // Because fixUnknownModel() can change tableDesc while TblColRef is held as set/map keys.
         final int prime = 31;
         int result = 1;
 

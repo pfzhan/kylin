@@ -103,10 +103,10 @@ public class TableExtServiceTest extends NLocalFileMetadataTestCase {
     public void testLoadTables() throws Exception {
         String[] tables = {"DEFAULT.TEST_KYLIN_FACT", "DEFAULT.TEST_ACCOUNT"};
         List<Pair<TableDesc, TableExtDesc>> result = mockTablePair();
-        Mockito.doReturn(result).when(tableService).extractTableMeta(tables, "default", 11);
+        Mockito.doReturn(result).when(tableService).extractTableMeta(tables, "default");
         Mockito.doNothing().when(tableExtService).loadTable(result.get(0).getFirst(), result.get(0).getSecond(), "default");
         Mockito.doNothing().when(tableExtService).loadTable(result.get(1).getFirst(), result.get(1).getSecond(), "default");
-        LoadTableResponse response = tableExtService.loadTables(tables, "default", 11);
+        LoadTableResponse response = tableExtService.loadTables(tables, "default");
         Assert.assertTrue(response.getLoaded().size() == 2);
     }
 
@@ -116,9 +116,9 @@ public class TableExtServiceTest extends NLocalFileMetadataTestCase {
         String[] tableNames = {"TEST_CAL_DT", "TEST_SELLER_TYPE_DIM", "TEST_SITES"};
         LoadTableResponse loadTableResponse = new LoadTableResponse();
         loadTableResponse.setLoaded(Sets.newHashSet(tableIdentities));
-        Mockito.doReturn(Lists.newArrayList(tableNames)).when(tableService).getSourceTableNames("default", "EDW", 11, "");
-        Mockito.doReturn(loadTableResponse).when(tableExtService).loadTables(tableIdentities, "default", 11);
-        LoadTableResponse response = tableExtService.loadTablesByDatabase("default", new String[]{"EDW"}, 11);
+        Mockito.doReturn(Lists.newArrayList(tableNames)).when(tableService).getSourceTableNames("default", "EDW", "");
+        Mockito.doReturn(loadTableResponse).when(tableExtService).loadTables(tableIdentities, "default");
+        LoadTableResponse response = tableExtService.loadTablesByDatabase("default", new String[]{"EDW"});
         Assert.assertTrue(response.getLoaded().size() == 3);
     }
 

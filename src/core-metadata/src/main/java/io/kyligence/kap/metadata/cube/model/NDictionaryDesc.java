@@ -24,6 +24,7 @@
 
 package io.kyligence.kap.metadata.cube.model;
 
+import lombok.Getter;
 import org.apache.kylin.metadata.model.TblColRef;
 
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
@@ -35,6 +36,7 @@ import io.kyligence.kap.metadata.model.NDataModel;
 @JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.NONE, getterVisibility = JsonAutoDetect.Visibility.NONE, isGetterVisibility = JsonAutoDetect.Visibility.NONE, setterVisibility = JsonAutoDetect.Visibility.NONE)
 public class NDictionaryDesc implements java.io.Serializable {
 
+    @Getter
     @JsonProperty("id")
     private int id = -1;
     @JsonProperty("reuse")

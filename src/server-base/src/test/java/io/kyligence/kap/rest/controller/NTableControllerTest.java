@@ -167,12 +167,12 @@ public class NTableControllerTest {
         List<String> list = new ArrayList<>();
         list.add("ddd");
         list.add("fff");
-        Mockito.when(tableService.getSourceDbNames("default", 11)).thenReturn(list);
+        Mockito.when(tableService.getSourceDbNames("default")).thenReturn(list);
         mockMvc.perform(MockMvcRequestBuilders.get("/api/tables/databases").contentType(MediaType.APPLICATION_JSON)
                 .param("project", "default").param("datasourceType", "11")
                 .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
                 .andExpect(MockMvcResultMatchers.status().isOk());
-        Mockito.verify(nTableController).showDatabases("default", 11);
+        Mockito.verify(nTableController).showDatabases("default");
     }
 
     @Test
@@ -180,7 +180,7 @@ public class NTableControllerTest {
         List<TableNameResponse> list = new ArrayList<>();
         list.add(new TableNameResponse());
         list.add(new TableNameResponse());
-        Mockito.when(tableService.getTableNameResponses("default", "db1", 11, "")).thenReturn(list);
+        Mockito.when(tableService.getTableNameResponses("default", "db1", "")).thenReturn(list);
         mockMvc.perform(MockMvcRequestBuilders.get("/api/tables/names").contentType(MediaType.APPLICATION_JSON)
                 .param("project", "default").param("datasourceType", "11").param("database", "db1")
                 .param("pageOffset", "0").param("pageSize", "10").param("table", "")
@@ -358,8 +358,8 @@ public class NTableControllerTest {
         loadTableResponse.setLoaded(loaded);
         loadTableResponse.setFailed(failed);
         final TableLoadRequest tableLoadRequest = mockLoadTableRequest();
-        Mockito.when(tableExtService.loadTables(tableLoadRequest.getTables(), "default", 11)).thenReturn(loadTableResponse);
-        Mockito.when(tableExtService.loadTablesByDatabase("default", tableLoadRequest.getDatabases(), 11)).thenReturn(loadTableResponse);
+        Mockito.when(tableExtService.loadTables(tableLoadRequest.getTables(), "default")).thenReturn(loadTableResponse);
+        Mockito.when(tableExtService.loadTablesByDatabase("default", tableLoadRequest.getDatabases())).thenReturn(loadTableResponse);
         mockMvc.perform(MockMvcRequestBuilders.post("/api/tables").contentType(MediaType.APPLICATION_JSON)
                 .content(JsonUtil.writeValueAsString(tableLoadRequest))
                 .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
@@ -381,8 +381,8 @@ public class NTableControllerTest {
         final TableLoadRequest tableLoadRequest = mockLoadTableRequest();
         tableLoadRequest.setTables(null);
         tableLoadRequest.setDatabases(null);
-        Mockito.when(tableExtService.loadTables(tableLoadRequest.getTables(), "default", 11)).thenReturn(loadTableResponse);
-        Mockito.when(tableExtService.loadTablesByDatabase("default", tableLoadRequest.getDatabases(), 11)).thenReturn(loadTableResponse);
+        Mockito.when(tableExtService.loadTables(tableLoadRequest.getTables(), "default")).thenReturn(loadTableResponse);
+        Mockito.when(tableExtService.loadTablesByDatabase("default", tableLoadRequest.getDatabases())).thenReturn(loadTableResponse);
         mockMvc.perform(MockMvcRequestBuilders.post("/api/tables").contentType(MediaType.APPLICATION_JSON)
                 .content(JsonUtil.writeValueAsString(tableLoadRequest))
                 .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))

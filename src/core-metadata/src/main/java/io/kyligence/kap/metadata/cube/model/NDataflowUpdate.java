@@ -34,8 +34,8 @@ public class NDataflowUpdate {
     private NDataSegment[] toRemoveSegs = null;
     private NDataSegment[] toUpdateSegs = null;
     
-    private NDataLayout[] toAddOrUpdateCuboids = null;
-    private NDataLayout[] toRemoveCuboids = null;
+    private NDataLayout[] toAddOrUpdateLayouts = null;
+    private NDataLayout[] toRemoveLayouts = null;
 
     private RealizationStatusEnum status;
     private String description;
@@ -88,23 +88,23 @@ public class NDataflowUpdate {
         return this;
     }
 
-    public NDataLayout[] getToAddOrUpdateCuboids() {
-        return toAddOrUpdateCuboids;
+    public NDataLayout[] getToAddOrUpdateLayouts() {
+        return toAddOrUpdateLayouts;
     }
 
-    public void setToAddOrUpdateCuboids(NDataLayout... toAddCuboids) {
+    public void setToAddOrUpdateLayouts(NDataLayout... toAddCuboids) {
         for (NDataLayout cuboid : toAddCuboids)
             cuboid.checkIsNotCachedAndShared();
         
-        this.toAddOrUpdateCuboids = toAddCuboids;
+        this.toAddOrUpdateLayouts = toAddCuboids;
     }
 
-    public NDataLayout[] getToRemoveCuboids() {
-        return toRemoveCuboids;
+    public NDataLayout[] getToRemoveLayouts() {
+        return toRemoveLayouts;
     }
 
-    public void setToRemoveCuboids(NDataLayout... toRemoveCuboids) {
-        this.toRemoveCuboids = toRemoveCuboids;
+    public void setToRemoveLayouts(NDataLayout... toRemoveLayouts) {
+        this.toRemoveLayouts = toRemoveLayouts;
     }
 
     public RealizationStatusEnum getStatus() {
