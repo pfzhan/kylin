@@ -245,6 +245,37 @@ public class TableServiceTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
+    public void testUnloadTable_RemoveNDataLoadingRange() throws Exception {
+        setupPushdownEnv();
+        String tableName = "DEFAULT.TEST_KYLIN_FACT";
+
+        NTableMetadataManager nTableMetadataManager = NTableMetadataManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
+        val originSize = nTableMetadataManager.listAllTables().size();
+
+        // Add partition_key and data_loading_range
+        DateRangeRequest request = mockDateRangeRequest();
+        tableService.setPartitionKey(tableName, "default", "CAL_DT");
+        tableService.setDataRange("default", request);
+        NDataLoadingRangeManager dataLoadingRangeManager = NDataLoadingRangeManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
+        NDataLoadingRange dataLoadingRange = dataLoadingRangeManager.getDataLoadingRange(tableName);
+        Assert.assertNotNull(dataLoadingRange);
+        Assert.assertEquals(1294364500000L, dataLoadingRange.getCoveredRange().getStart());
+        Assert.assertEquals(1294450900000L, dataLoadingRange.getCoveredRange().getEnd());
+
+        // unload table
+        tableService.unloadTable("default", tableName);
+        Assert.assertEquals(originSize - 1, nTableMetadataManager.listAllTables().size());
+
+        // reload table
+        String[] tables = { "DEFAULT.TEST_KYLIN_FACT" };
+        List<Pair<TableDesc, TableExtDesc>> extractTableMeta = tableService.extractTableMeta(tables, "default", 9);
+        tableService.loadTableToProject(extractTableMeta.get(0).getFirst(), extractTableMeta.get(0).getSecond(), "default");
+        Assert.assertEquals(originSize, nTableMetadataManager.listAllTables().size());
+        dataLoadingRange = dataLoadingRangeManager.getDataLoadingRange(tableName);
+        Assert.assertNull(dataLoadingRange);
+    }
+
+    @Test
     public void testGetSourceDbNames() throws Exception {
         List<String> dbNames = tableService.getSourceDbNames("default", 11);
         ArrayList<String> dbs = Lists.newArrayList(dbNames);

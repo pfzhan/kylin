@@ -660,6 +660,12 @@ public class TableService extends BasicService {
         NTableMetadataManager tableMetadataManager = getTableManager(project);
         tableMetadataManager.removeTableExt(table);
         tableMetadataManager.removeSourceTable(table);
+
+        NDataLoadingRangeManager dataLoadingRangeManager = getDataLoadingRangeManager(project);
+        NDataLoadingRange dataLoadingRange = dataLoadingRangeManager.getDataLoadingRange(table);
+        if (dataLoadingRange != null) {
+            dataLoadingRangeManager.removeDataLoadingRange(dataLoadingRange);
+        }
     }
 
     @Transaction(project = 1)
