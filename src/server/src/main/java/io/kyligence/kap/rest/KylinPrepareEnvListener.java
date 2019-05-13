@@ -51,10 +51,18 @@ public class KylinPrepareEnvListener implements EnvironmentPostProcessor, Ordere
 
     @Override
     public void postProcessEnvironment(ConfigurableEnvironment env, SpringApplication application) {
+
+        if (env.getPropertySources().contains("bootstrap")) {
+            return;
+        }
+
+        if (env.getActiveProfiles().length == 0) {
+            env.addActiveProfile("dev");
+        }
+
         if (env.acceptsProfiles("sandbox")) {
             setSandboxEnvs();
-        } else if (env.getActiveProfiles().length == 0) {
-            env.addActiveProfile("dev");
+        } else if (env.acceptsProfiles("dev")) {
             setLocalEnvs();
         }
         // enable CC check

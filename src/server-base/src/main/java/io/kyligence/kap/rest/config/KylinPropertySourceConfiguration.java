@@ -41,6 +41,11 @@ public class KylinPropertySourceConfiguration implements EnvironmentPostProcesso
 
     @Override
     public void postProcessEnvironment(ConfigurableEnvironment environment, SpringApplication application) {
+
+        if (environment.getPropertySources().contains("bootstrap")) {
+            return;
+        }
+
         log.debug("use kylinconfig as spring properties");
         val propertySources = environment.getPropertySources();
         val kylinConfig = KylinConfig.getInstanceFromEnv();
