@@ -13,7 +13,7 @@
             filterable
             size="medium"
             :value="table.partitionColumn"
-            @input="handleChangePartition">
+            @change="handleChangePartition">
             <el-option :label="$t('noPartition')" value=""></el-option>
             <el-option
               v-for="item in table.dateTypeColumns"

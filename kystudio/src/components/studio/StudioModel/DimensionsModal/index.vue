@@ -1,158 +1,43 @@
 <template>
   <el-dialog class="dimension-modal" width="1000px"
-    :title="$t('editDimension') + ' (' + allColumnsLen(true) + '/' + allColumnsLen() + ')'"
+    :title="$t('editDimension') + ' (' + allColumnsCount(true) + '/' + allColumnsCount() + ')'"
     :visible="isShow"
     :close-on-press-escape="false"
     :close-on-click-modal="false"
     v-event-stop
     @close="isShow && handleClose(false)">
     <template v-if="isFormShow">
-      <div v-scroll v-guide.dimensionScroll style="max-height:60vh; overflow:hidden">
+      <div class="ksd-mb-10 ksd-right">
+        <el-input :placeholder="$t('searchColumn')" style="width:230px;" @input="changeSearchVal" v-model="searchChar"></el-input>
+      </div>
+      <div v-scroll.reactive v-guide.dimensionScroll style="max-height:60vh; overflow:hidden">
         <div class="add_dimensions" v-guide.batchAddDimensionBox>
-          <div v-for="(table, index) in factTable" class="ksd-mb-10" :key="index">
-            <div @click="toggleTableShow(table)" class="table-header">
-              <i class="el-icon-arrow-right ksd-fright ksd-mt-14 right-icon" v-if="!table.show"></i>
-              <i class="el-icon-arrow-down  ksd-fright ksd-mt-14 right-icon" v-else></i>
-              <el-checkbox v-model="table.checkedAll" :indeterminate="table.isIndeterminate" @click.native.stop  @change="(isAll) => {selectAllChange(isAll, table.guid)}"></el-checkbox>
-              <span class="ksd-ml-2">
-                 <i class="el-icon-ksd-fact_table"></i>
-              </span>
-              <span class="table-title">{{table.alias}} <span>({{countTableSelectColumns(table)}})</span></span>
-            </div>
-            <el-table
-              v-if="table.show || isGuideMode"
-              border
-              :data="table.columns"
-              @row-click="(row) => {dimensionRowClick(row, table.guid)}"
-              :ref="table.guid"
-              :row-class-name="(para) => tableRowClassName(para, table)"
-              @select-all="(selection) => {selectionAllChange(selection, table.guid)}"
-              @select="(selection, row) => {selectionChange(selection, row, table.guid)}">
-              <el-table-column
-                type="selection"
-                width="40">
-              </el-table-column>
-              <el-table-column
-                :label="$t('name')">
-                <template slot-scope="scope">
-                  <div @click.stop>
-                    <el-input size="small" v-model="scope.row.alias"   @change="checkDimensionForm" :disabled="!scope.row.isSelected">
-                    </el-input>
-                    <div v-if="scope.row.validateNameRule" class="ky-form-error">{{$t('kylinLang.common.nameFormatValidTip')}}</div>
-                    <div v-else-if="scope.row.validateSameName" class="ky-form-error">{{$t('kylinLang.common.sameName')}}</div>
-                  </div>
-                </template>
-              </el-table-column>
-              <el-table-column
-                show-overflow-tooltip
-                prop="name"
-                :label="$t('column')">
-              </el-table-column>
-              <el-table-column
-                prop="datatype"
-                show-overflow-tooltip
-                :label="$t('datatype')"
-                width="110">
-              </el-table-column>
-              <el-table-column
-                header-align="right"
-                align="right"
-                show-overflow-tooltip
-                prop="cardinality"
-                :label="$t('cardinality')"
-                width="100">
-              </el-table-column>
-              <el-table-column
-                prop="comment"
-                :label="$t('comment')">
-              </el-table-column>
-            </el-table>
-          </div>
-
-          <div v-for="(table, index) in lookupTable" class="ksd-mb-10" :key="index">
-            <div @click="toggleTableShow(table)" class="table-header">
-              <i class="el-icon-arrow-right ksd-fright ksd-mt-14 right-icon" v-if="!table.show"></i>
-              <i class="el-icon-arrow-down  ksd-fright ksd-mt-14 right-icon" v-else></i>
-              <el-checkbox v-model="table.checkedAll" :indeterminate="table.isIndeterminate" @click.native.stop  @change="(isAll) => {selectAllChange(isAll, table.guid)}"></el-checkbox>
-              <span class="ksd-ml-2">
-                <i class="el-icon-ksd-lookup_table"></i>
-              </span>
-              <span class="table-title">{{table.alias}} <span>({{countTableSelectColumns(table)}})</span></span>
-            </div>
-            <el-table
-              v-if="table.show || isGuideMode"
-              border
-              :row-class-name="(para) => tableRowClassName(para, table)"
-              :data="table.columns" :ref="table.guid"
-              @row-click="(row) => {dimensionRowClick(row, table.guid)}"
-              @select-all="(selection) => {selectionAllChange(selection, table.guid)}"
-              @select="(selection, row) => {selectionChange(selection, row, table.guid)}">
-              <el-table-column
-                type="selection"
-                align="center"
-                width="40">
-              </el-table-column>
-               <el-table-column
-                :label="$t('name')">
-                <template slot-scope="scope">
-                  <div @click.stop>
-                    <el-input size="small" v-model="scope.row.alias"   @change="checkDimensionForm" :disabled="!scope.row.isSelected">
-                    </el-input>
-                    <div v-if="scope.row.validateNameRule" class="ky-form-error">{{$t('kylinLang.common.nameFormatValidTip')}}</div>
-                    <div v-else-if="scope.row.validateSameName" class="ky-form-error">{{$t('kylinLang.common.sameName')}}</div>
-                  </div>
-                </template>
-              </el-table-column>
-              <el-table-column
-                show-overflow-tooltip
-                prop="name"
-                :label="$t('column')">
-              </el-table-column>
-              <el-table-column
-                show-overflow-tooltip
-                :label="$t('datatype')"
-                prop="datatype"
-                width="110">
-              </el-table-column>
-              <el-table-column
-                prop="cardinality"
-                show-overflow-tooltip
-                :label="$t('cardinality')"
-                width="100">
-              </el-table-column>
-               <el-table-column
-              :label="$t('comment')">
-              </el-table-column>
-            </el-table>
-          </div>
-
-
-          <template v-if="ccTable.columns.length">
-            <div class="ksd-mb-10" v-for="ccTable in [ccTable]" :key="ccTable.guid">
-              <div @click="toggleTableShow(ccTable)" class="table-header">
-                <i class="el-icon-arrow-right ksd-fright ksd-mt-14 right-icon" v-if="!ccTable.show"></i>
+          <div v-show="!searchChar">
+            <!-- 事实表 -->
+            <div v-for="(table, index) in factTable" class="ksd-mb-10" :key="index">
+              <div @click="toggleTableShow(table)" class="table-header">
+                <i class="el-icon-arrow-right ksd-fright ksd-mt-14 right-icon" v-if="!table.show"></i>
                 <i class="el-icon-arrow-down  ksd-fright ksd-mt-14 right-icon" v-else></i>
-                <el-checkbox v-model="ccTable.checkedAll" :indeterminate="ccTable.isIndeterminate" @click.native.stop  @change="(isAll) => {selectAllChange(isAll, ccTable.guid)}"></el-checkbox>
+                <el-checkbox v-model="table.checkedAll" :indeterminate="table.isIndeterminate" @click.native.stop  @change="(isAll) => {selectAllChange(isAll, table.guid)}"></el-checkbox>
                 <span class="ksd-ml-2">
-                  <i class="el-icon-ksd-auto_computed_column"></i>
+                  <i class="el-icon-ksd-fact_table"></i>
                 </span>
-                <span class="table-title">{{$t('computedColumns')}} <span>({{countTableSelectColumns(ccTable)}})</span></span>
+                <span class="table-title">{{table.alias}} <span>({{countTableSelectColumns(table)}})</span></span>
               </div>
               <el-table
-                v-if="ccTable.show || isGuideMode"
+                v-if="table.show || isGuideMode"
                 border
-                :row-class-name="(para) => tableRowClassName(para, ccTable)"
-                :data="ccTable.columns" :ref="ccTable.guid"
-                @row-click="(row) => {dimensionRowClick(row, ccTable.guid)}"
-                @select-all="(selection) => {selectionAllChange(selection, ccTable.guid)}"
-                @select="(selection, row) => {selectionChange(selection, row, ccTable.guid)}">
+                :data="table.columns"
+                @row-click="(row) => {rowClick(row, table.guid)}"
+                :ref="table.guid"
+                :row-class-name="(para) => tableRowClassName(para, table)"
+                @select-all="(selection) => {selectionAllChange(selection, table.guid)}"
+                @select="(selection, row) => {selectionChange(selection, row, table.guid)}">
                 <el-table-column
                   type="selection"
-                  align="center"
                   width="40">
                 </el-table-column>
-                 <el-table-column
-                  prop="alias"
+                <el-table-column
                   :label="$t('name')">
                   <template slot-scope="scope">
                     <div @click.stop>
@@ -164,13 +49,69 @@
                   </template>
                 </el-table-column>
                 <el-table-column
-                  prop="column"
+                  show-overflow-tooltip
+                  prop="name"
                   :label="$t('column')">
                 </el-table-column>
                 <el-table-column
+                  prop="datatype"
                   show-overflow-tooltip
-                  prop="expression"
-                  :label="$t('expression')">
+                  :label="$t('datatype')"
+                  width="110">
+                </el-table-column>
+                <el-table-column
+                  header-align="right"
+                  align="right"
+                  show-overflow-tooltip
+                  prop="cardinality"
+                  :label="$t('cardinality')"
+                  width="100">
+                </el-table-column>
+                <el-table-column
+                  prop="comment"
+                  :label="$t('comment')">
+                </el-table-column>
+              </el-table>
+            </div>
+            <!-- 维度表 -->
+            <div v-for="(table, index) in lookupTable" class="ksd-mb-10" :key="index">
+              <div @click="toggleTableShow(table)" class="table-header">
+                <i class="el-icon-arrow-right ksd-fright ksd-mt-14 right-icon" v-if="!table.show"></i>
+                <i class="el-icon-arrow-down  ksd-fright ksd-mt-14 right-icon" v-else></i>
+                <el-checkbox v-model="table.checkedAll" :indeterminate="table.isIndeterminate" @click.native.stop  @change="(isAll) => {selectAllChange(isAll, table.guid)}"></el-checkbox>
+                <span class="ksd-ml-2">
+                  <i class="el-icon-ksd-lookup_table"></i>
+                </span>
+                <span class="table-title">{{table.alias}} <span>({{countTableSelectColumns(table)}})</span></span>
+              </div>
+              <el-table
+                v-if="table.show || isGuideMode"
+                border
+                :row-class-name="(para) => tableRowClassName(para, table)"
+                :data="table.columns" :ref="table.guid"
+                @row-click="(row) => {rowClick(row, table.guid)}"
+                @select-all="(selection) => {selectionAllChange(selection, table.guid)}"
+                @select="(selection, row) => {selectionChange(selection, row, table.guid)}">
+                <el-table-column
+                  type="selection"
+                  align="center"
+                  width="40">
+                </el-table-column>
+                <el-table-column
+                  :label="$t('name')">
+                  <template slot-scope="scope">
+                    <div @click.stop>
+                      <el-input size="small" v-model="scope.row.alias"   @change="checkDimensionForm" :disabled="!scope.row.isSelected">
+                      </el-input>
+                      <div v-if="scope.row.validateNameRule" class="ky-form-error">{{$t('kylinLang.common.nameFormatValidTip')}}</div>
+                      <div v-else-if="scope.row.validateSameName" class="ky-form-error">{{$t('kylinLang.common.sameName')}}</div>
+                    </div>
+                  </template>
+                </el-table-column>
+                <el-table-column
+                  show-overflow-tooltip
+                  prop="name"
+                  :label="$t('column')">
                 </el-table-column>
                 <el-table-column
                   show-overflow-tooltip
@@ -178,16 +119,123 @@
                   prop="datatype"
                   width="110">
                 </el-table-column>
+                <el-table-column
+                  prop="cardinality"
+                  show-overflow-tooltip
+                  :label="$t('cardinality')"
+                  width="100">
+                </el-table-column>
+                <el-table-column
+                :label="$t('comment')">
+                </el-table-column>
               </el-table>
             </div>
-          </template>
+            <!-- 可计算列 -->
+            <template v-if="ccTable.columns.length">
+              <div class="ksd-mb-10" v-for="ccTable in [ccTable]" :key="ccTable.guid">
+                <div @click="toggleTableShow(ccTable)" class="table-header">
+                  <i class="el-icon-arrow-right ksd-fright ksd-mt-14 right-icon" v-if="!ccTable.show"></i>
+                  <i class="el-icon-arrow-down  ksd-fright ksd-mt-14 right-icon" v-else></i>
+                  <el-checkbox v-model="ccTable.checkedAll" :indeterminate="ccTable.isIndeterminate" @click.native.stop  @change="(isAll) => {selectAllChange(isAll, ccTable.guid)}"></el-checkbox>
+                  <span class="ksd-ml-2">
+                    <i class="el-icon-ksd-auto_computed_column"></i>
+                  </span>
+                  <span class="table-title">{{$t('computedColumns')}} <span>({{countTableSelectColumns(ccTable)}})</span></span>
+                </div>
+                <el-table
+                  v-if="ccTable.show || isGuideMode"
+                  border
+                  :row-class-name="(para) => tableRowClassName(para, ccTable)"
+                  :data="ccTable.columns" :ref="ccTable.guid"
+                  @row-click="(row) => {rowClick(row, ccTable.guid)}"
+                  @select-all="(selection) => {selectionAllChange(selection, ccTable.guid)}"
+                  @select="(selection, row) => {selectionChange(selection, row, ccTable.guid)}">
+                  <el-table-column
+                    type="selection"
+                    align="center"
+                    width="40">
+                  </el-table-column>
+                  <el-table-column
+                    prop="alias"
+                    :label="$t('name')">
+                    <template slot-scope="scope">
+                      <div @click.stop>
+                        <el-input size="small" v-model="scope.row.alias"   @change="checkDimensionForm" :disabled="!scope.row.isSelected">
+                        </el-input>
+                        <div v-if="scope.row.validateNameRule" class="ky-form-error">{{$t('kylinLang.common.nameFormatValidTip')}}</div>
+                        <div v-else-if="scope.row.validateSameName" class="ky-form-error">{{$t('kylinLang.common.sameName')}}</div>
+                      </div>
+                    </template>
+                  </el-table-column>
+                  <el-table-column
+                    prop="column"
+                    :label="$t('column')">
+                  </el-table-column>
+                  <el-table-column
+                    show-overflow-tooltip
+                    prop="expression"
+                    :label="$t('expression')">
+                  </el-table-column>
+                  <el-table-column
+                    show-overflow-tooltip
+                    :label="$t('datatype')"
+                    prop="datatype"
+                    width="110">
+                  </el-table-column>
+                </el-table>
+              </div>
+            </template>
+          </div>
+          <div v-show="searchChar">
+            <el-table v-for="searchTable in pagerSearchTable" :key="searchTable.guid"
+                  border
+                  :row-class-name="(para) => tableRowClassName(para, searchTable)"
+                  :data="searchTable.columns" :ref="searchTable.guid"
+                  @row-click="(row) => {rowClick(row, searchTable.guid)}"
+                  @select-all="(selection) => {selectAllCurrentPager(selection, searchTable.guid)}"
+                  @select="(selection, row) => {selectionChange(selection, row, searchTable.guid)}">
+                  <el-table-column
+                    type="selection"
+                    align="center"
+                    width="40">
+                  </el-table-column>
+                  <el-table-column
+                    prop="alias"
+                    :label="$t('name')">
+                    <template slot-scope="scope">
+                      <div @click.stop>
+                        <el-input size="small" v-model="scope.row.alias"   @change="checkDimensionForm" :disabled="!scope.row.isSelected">
+                        </el-input>
+                        <div v-if="scope.row.validateNameRule" class="ky-form-error">{{$t('kylinLang.common.nameFormatValidTip')}}</div>
+                        <div v-else-if="scope.row.validateSameName" class="ky-form-error">{{$t('kylinLang.common.sameName')}}</div>
+                      </div>
+                    </template>
+                  </el-table-column>
+                  <el-table-column
+                    prop="column"
+                    :label="$t('column')">
+                    <template slot-scope="scope">{{scope.row.name || scope.row.column}}</template>
+                  </el-table-column>
+                  <el-table-column
+                    show-overflow-tooltip
+                    prop="expression"
+                    :label="$t('expression')">
+                  </el-table-column>
+                  <el-table-column
+                    show-overflow-tooltip
+                    :label="$t('datatype')"
+                    prop="datatype"
+                    width="110">
+                  </el-table-column>
+                </el-table>
+                <kap-pager class="ksd-center ksd-mtb-10" ref="pager"  :totalSize="searchTotalSize"  v-on:handleCurrentChange='pageCurrentChange'></kap-pager>
+          </div>
         </div>
       </div>
     </template>
     <div slot="footer" class="dialog-footer ky-no-br-space">
-      <span class="ksd-fleft ksd-mt-10">{{$t('totalSelect')}}{{countAllTableSelectColumns()}}</span>
       <el-button size="medium" @click="handleClose(false)">{{$t('kylinLang.common.cancel')}}</el-button>
-      <el-button size="medium" plain type="primary" v-guide.saveBatchDimensionBtn :disabled="countAllTableSelectColumns() <= 0" @click="submit">{{$t('kylinLang.common.submit')}}</el-button>
+      <el-button size="medium" plain type="primary" v-guide.saveBatchDimensionBtn :disabled="allColumnsCount(true) <= 0" @click="submit">{{$t('kylinLang.common.submit')}}</el-button>
     </div>
   </el-dialog>
 </template>
@@ -200,7 +248,7 @@ import { mapState, mapGetters, mapMutations, mapActions } from 'vuex'
 import vuex from '../../../../store'
 import locales from './locales'
 import store, { types } from './store'
-import { NamedRegex } from '../../../../config'
+import { NamedRegex, pageCount } from '../../../../config'
 import { objectClone, sampleGuid, filterObjectArray, countObjWithSomeKey } from '../../../../util'
 vuex.registerModule(['modals', 'DimensionsModal'], store)
 @Component({
@@ -245,7 +293,78 @@ export default class DimensionsModal extends Vue {
   isFormShow = false
   factTable = []
   lookupTable = []
+  searchChar = ''
+  ST = null
   ccTable = {columns: []}
+  filterArgs = {
+    pageOffset: 0,
+    pageSize: pageCount
+  }
+  changeSearchVal (val) {
+    clearTimeout(this.ST)
+    this.ST = setTimeout(() => {
+      this.searchChar = val && val.replace(/^\s+|\s+$/, '') || ''
+      this.filterArgs.pageOffset = 0
+      this.$nextTick(() => {
+        if (this.searchChar) {
+          this.renderTableColumnSelected(this.pagerSearchTable[0])
+        } else {
+          [...this.factTable, ...this.lookupTable, this.ccTable].forEach((t) => {
+            this.renderTableColumnSelected(t)
+          })
+        }
+      })
+    }, 100)
+  }
+  filterDimensionColumns (table) {
+    let columns
+    if (this.searchChar) {
+      let searchReg = new RegExp(this.searchChar, 'i')
+      columns = table.columns && table.columns.filter((col) => {
+        return searchReg.test(col.name) || searchReg.test(col.column) // column for cc list search
+      })
+    } else {
+      columns = table.columns
+    }
+    return columns
+  }
+  pageCurrentChange (size, count) {
+    this.filterArgs.pageOffset = size
+    this.filterArgs.pageSize = count
+    this.$nextTick(() => {
+      this.renderTableColumnSelected(this.pagerSearchTable[0])
+    })
+  }
+  filterTableGuid = sampleGuid()
+  // 全量获取搜索columns
+  get searchColumns () {
+    let columns = []
+    this.factTable.forEach((t) => {
+      columns.push(...this.filterDimensionColumns(t))
+    })
+    this.lookupTable.forEach((t) => {
+      columns.push(...this.filterDimensionColumns(t))
+    })
+    columns.push(...this.filterDimensionColumns(this.ccTable))
+    return columns
+  }
+  // 分页获取搜索columns
+  get pagerSearchDimensionList () {
+    return this.searchColumns.slice(this.filterArgs.pageOffset * this.filterArgs.pageSize, (this.filterArgs.pageOffset + 1) * this.filterArgs.pageSize)
+  }
+  // 分页搜索table渲染数据
+  get pagerSearchTable () {
+    return [{
+      guid: this.filterTableGuid,
+      columns: this.pagerSearchDimensionList,
+      show: true
+    }]
+  }
+  // 总搜索条数
+  get searchTotalSize () {
+    return this.searchColumns.length
+  }
+  // 渲染之前选过的可计算列dimension
   getRenderCCData () {
     this.ccTable = {}
     this.$set(this.ccTable, 'show', false)
@@ -257,22 +376,21 @@ export default class DimensionsModal extends Vue {
       let len = this.usedColumns.length
       this.$set(col, 'column', col.columnName)
       this.$set(col, 'alias', col.tableAlias + '_' + col.columnName)
+      this.$set(col, 'isSelected', false)
+      this.$set(col, 'guid', null)
       for (let i = 0; i < len; i++) {
         let d = this.usedColumns[i]
         if (col.tableAlias + '.' + col.columnName === d.column && d.status === 'DIMENSION') {
-          this.$set(col, 'isSelected', true)
+          col.isSelected = true
           col.alias = d.name
           col.guid = d.guid
           break
-        } else {
-          this.$set(col, 'isSelected', false)
-          col.guid = null
         }
       }
     })
     this.renderTableColumnSelected(this.ccTable)
   }
-  // 获取所有的table columns
+  // 获取所有的table columns，并渲染已经选择过的dimension
   getRenderDimensionData () {
     this.getRenderCCData()
     this.factTable = []
@@ -289,23 +407,23 @@ export default class DimensionsModal extends Vue {
       // 将已经选上的dimension回显到界面上
       table.columns && table.columns.forEach((col) => {
         this.$set(col, 'alias', table.alias + '_' + col.name)
+        this.$set(col, 'isSelected', false)
+        this.$set(col, 'guid', null)
         let len = this.usedColumns.length
         for (let i = 0; i < len; i++) {
           let d = this.usedColumns[i]
           if (table.alias + '.' + col.name === d.column && d.status === 'DIMENSION') {
             col.alias = d.name
-            this.$set(col, 'isSelected', true)
+            col.isSelected = true
             col.guid = d.guid
             break
-          } else {
-            this.$set(col, 'isSelected', false)
-            col.guid = null
           }
         }
       })
       this.renderTableColumnSelected(table)
     })
   }
+  // 检测是否有重名
   checkHasSameNamedColumn () {
     let columns = []
     for (let k = 0; k < this.factTable.length; k++) {
@@ -334,6 +452,7 @@ export default class DimensionsModal extends Vue {
       return hasPassValidate
     }
   }
+  // 检测name是否符合规范
   checkDimensionNameRegex (alias) {
     if (!NamedRegex.test(alias)) {
       return false
@@ -352,6 +471,7 @@ export default class DimensionsModal extends Vue {
   onModalShow (newVal, oldVal) {
     if (newVal) {
       this.isFormShow = true
+      this.searchChar = ''
       if (!this.currentSelectedProject) {
         this.$message(this.$t('kylinLang.project.mustSelectProject'))
         this.handleClose(false)
@@ -394,10 +514,15 @@ export default class DimensionsModal extends Vue {
       this.$set(table, 'isIndeterminate', hasCheckedCount > 0 && hasCheckedCount < table.columns.length)
     }
   }
-  // 点击行触发事件
+  // 点击行checkbox
   selectionChange (selection, row, guid) {
-    this.$set(row, 'isSelected', !row.isSelected)
+    row.isSelected = !row.isSelected
     this.getTableCheckedStatus(guid)
+  }
+  // 点击行触发事件
+  rowClick (row, guid) {
+    row.isSelected = !row.isSelected
+    this.$refs[guid][0].toggleRowSelection(row)
   }
   // 点击header上checkbox触发选择
   selectAllChange (val, guid) {
@@ -408,6 +533,7 @@ export default class DimensionsModal extends Vue {
     })
     this.renderTableColumnSelected(table)
   }
+  // 点击table 全选
   selectionAllChange (selection, guid) {
     let table = this.getCurrentTable(guid)
     let columns = table.columns
@@ -416,17 +542,25 @@ export default class DimensionsModal extends Vue {
     })
     this.getTableCheckedStatus(guid)
   }
-  dimensionRowClick (row, guid) {
-    this.$refs[guid][0].toggleRowSelection(row)
-    this.$set(row, 'isSelected', !row.isSelected)
+  // 点击搜索表格全选
+  selectAllCurrentPager (selection, guid) {
+    let columns = this.pagerSearchDimensionList
+    columns.forEach((row) => {
+      row.isSelected = !!selection.length
+    })
+    this.renderTableColumnSelected({
+      columns: columns,
+      guid: this.filterTableGuid
+    })
   }
   toggleTableShow (table) {
     table.show = !table.show
     this.renderTableColumnSelected(table)
   }
+  // 单个表渲染已选择的行
   renderTableColumnSelected (table) {
     this.$nextTick(() => {
-      if (this.$refs[table.guid] && this.$refs[table.guid][0]) {
+      if (this.$refs[table.guid] && this.$refs[table.guid][0] && table.show) {
         table.columns && table.columns.forEach((col) => {
           this.$refs[table.guid][0].toggleRowSelection(col, !!col.isSelected)
         })
@@ -442,28 +576,7 @@ export default class DimensionsModal extends Vue {
       return filterObjectArray(table.columns, 'isSelected', true).length
     }
   }
-  get countAllTableSelectColumns () {
-    return () => {
-      let i = 0
-      if (this.tables && Object.keys(this.tables).length) {
-        Object.values(this.tables).forEach((table) => {
-          table.columns && table.columns.forEach((col) => {
-            if (col.isSelected) {
-              i++
-            }
-          })
-        })
-      }
-      if (this.ccTable.columns && this.ccTable.columns.length) {
-        this.ccTable.columns.forEach((col) => {
-          if (col.isSelected) {
-            i++
-          }
-        })
-      }
-      return i
-    }
-  }
+  // 获取所有选中的column对象，并拼接成存储格式
   getAllSelectedColumns () {
     let result = []
     Object.values(this.tables).forEach((table) => {
@@ -494,7 +607,8 @@ export default class DimensionsModal extends Vue {
     })
     return result
   }
-  get allColumnsLen () {
+  // 统计总列数 或者 选中的总列数  isChecked：是否选中
+  get allColumnsCount () {
     return (isChecked) => {
       let allLen = 0
       this.tables && Object.values(this.tables).forEach((table) => {
@@ -516,11 +630,7 @@ export default class DimensionsModal extends Vue {
     this.checkDimensionForm()
     if (this.dimensionValidPass) {
       let result = this.getAllSelectedColumns()
-      // let ccDimensionList = this.usedColumns.filter((x) => {
-      //   return x.isCC
-      // })
-      this.modelDesc.dimensions.splice(0, this.modelDesc.dimensions.length)
-      this.modelDesc.dimensions.push(...result)
+      this.modelDesc.dimensions = [...result]
       this.handleClose(true)
     }
   }
@@ -546,7 +656,6 @@ export default class DimensionsModal extends Vue {
         cursor: pointer;
       }
     }
-    // border-bottom:solid 1px @line-border-color;
     height:40px;
     line-height:40px;
     cursor:pointer;

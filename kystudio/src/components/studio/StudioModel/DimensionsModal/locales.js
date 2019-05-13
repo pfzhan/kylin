@@ -18,7 +18,8 @@ export default {
     dataOriented: 'Data Oriented',
     mix: 'Mix',
     businessOriented: 'Business Oriented',
-    noCoincide: 'On the business oriented preference, you are suggested to use most dimensions from SQL patterns. Otherwise, optimizer can barely offer useful suggestion.'
+    noCoincide: 'On the business oriented preference, you are suggested to use most dimensions from SQL patterns. Otherwise, optimizer can barely offer useful suggestion.',
+    searchColumn: 'Search column name'
   },
   'zh-cn': {
     totalSelect: '已选择的维度：',
@@ -39,6 +40,7 @@ export default {
     dataOriented: '模型优先',
     mix: '综合',
     businessOriented: '业务优先',
-    noCoincide: '在业务优先的优化偏好下，您未选择输入的SQL中出现的维度。优化器将难以提供合适的优化建议。'
+    noCoincide: '在业务优先的优化偏好下，您未选择输入的SQL中出现的维度。优化器将难以提供合适的优化建议。',
+    searchColumn: '搜索列名'
   }
 }
