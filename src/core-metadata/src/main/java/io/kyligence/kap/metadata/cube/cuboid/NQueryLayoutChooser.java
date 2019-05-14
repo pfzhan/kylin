@@ -124,8 +124,8 @@ public class NQueryLayoutChooser {
                             .filter(colRef -> colRef.getFilterLevel() == TblColRef.FilterColEnum.NONE)
                             .collect(Collectors.toSet());
 
-            Ordering<NLayoutCandidate> ordering = Ordering.natural() //
-                    .onResultOf(NLayoutCandidate::getCost) // L1 comparator, compare cuboid rows
+            Ordering<NLayoutCandidate> ordering = Ordering //
+                    .from(derivedLayoutComparator()).compound(rowSizeComparator()) // L1 comparator, compare cuboid rows
                     .compound(filterColumnComparator(filterColumns, config)) // L2 comparator, order filter columns
                     .compound(columnSizeComparator()) // L3 comparator, order size of cuboid columns
                     .compound(nonFilterColumnComparator(nonFilterColumns, config)); // L4 comparator, order non-filter columns
@@ -221,6 +221,23 @@ public class NQueryLayoutChooser {
             logger.info("NDataflow {} CapabilityInfluences: {}", indexEntity.getIndexPlan().getUuid(),
                     StringUtils.join(influencingMeasures, ","));
         }
+    }
+
+    private static Comparator<NLayoutCandidate> derivedLayoutComparator() {
+        return (layoutCandidate1, layoutCandidate2) -> {
+            if (layoutCandidate1.getDerivedToHostMap().isEmpty() && !layoutCandidate2.getDerivedToHostMap().isEmpty()) {
+                return -1;
+            } else if (!layoutCandidate1.getDerivedToHostMap().isEmpty()
+                    && layoutCandidate2.getDerivedToHostMap().isEmpty()) {
+                return 1;
+            }
+
+            return 0;
+        };
+    }
+
+    private static Comparator<NLayoutCandidate> rowSizeComparator() {
+        return Comparator.comparingDouble(NLayoutCandidate::getCost);
     }
 
     private static Comparator<NLayoutCandidate> columnSizeComparator() {
