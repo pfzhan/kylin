@@ -29,6 +29,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.KylinConfigExt;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.metadata.model.MeasureDesc;
@@ -314,5 +315,20 @@ public class IndexPlanTest extends NLocalFileMetadataTestCase {
                     ((KylinConfigExt) indexPlan.getConfig()).getExtendedOverrides().get("testkey"));
         }
 
+    }
+
+    @Test
+    public void testGetAllIndexesWithRuleBasedAndAutoRecommendedLayout() throws IOException {
+        var newPlan = JsonUtil.readValue(getClass().getResourceAsStream("/rule_based_and_auto_cube.json"), IndexPlan.class);
+        newPlan.initAfterReload(KylinConfig.getInstanceFromEnv(), "default");
+        val layouts = newPlan.getAllLayouts();
+        Assert.assertEquals(9, layouts.size());
+        for (val layout: newPlan.getAllLayouts()) {
+            Assert.assertNotNull(layout.getIndex());
+            Assert.assertTrue(layout.getIndex().getLayouts().size() > 0);
+            for (val indexLayout: layout.getIndex().getLayouts()) {
+                Assert.assertSame(layout.getIndex(), indexLayout.getIndex());
+            }
+        }
     }
 }

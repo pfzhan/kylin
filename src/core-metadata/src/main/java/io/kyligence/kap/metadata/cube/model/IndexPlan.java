@@ -455,40 +455,47 @@ public class IndexPlan extends RootPersistentEntity implements Serializable, IEn
         List<IndexEntity> mergedCuboids = Lists.newArrayList();
         int retIndex = 0;
         for (IndexEntity cuboid : indexes) {
-            try {
-                val copy = JsonUtil.deepCopy(cuboid, IndexEntity.class);
-                retIndexMap.put(cuboid.getId(), retIndex);
-                mergedCuboids.add(copy);
-                retIndex++;
-            } catch (IOException e) {
-                throw new IllegalStateException("Copy cuboid " + uuid + ":" + cuboid.getId() + " failed", e);
-            }
+            val copy = deepCopy(cuboid);
+            retIndexMap.put(cuboid.getId(), retIndex);
+            mergedCuboids.add(copy);
+            retIndex++;
         }
         for (LayoutEntity ruleBasedLayout : ruleBasedLayouts) {
             val ruleRelatedCuboid = ruleBasedLayout.getIndex();
             if (!retIndexMap.containsKey(ruleRelatedCuboid.getId())) {
-                try {
-                    val copy = JsonUtil.deepCopy(ruleRelatedCuboid, IndexEntity.class);
-                    retIndexMap.put(ruleRelatedCuboid.getId(), retIndex);
-                    mergedCuboids.add(copy);
-                    retIndex++;
-                } catch (IOException e) {
-                    throw new IllegalStateException("Copy cuboid " + uuid + ":" + ruleRelatedCuboid.getId() + " failed",
-                            e);
-                }
+                val copy = deepCopy(ruleRelatedCuboid);
+                retIndexMap.put(ruleRelatedCuboid.getId(), retIndex);
+                mergedCuboids.add(copy);
+                retIndex++;
             }
             val index = retIndexMap.get(ruleRelatedCuboid.getId());
             val originLayouts = mergedCuboids.get(index).getLayouts();
             boolean isMatch = originLayouts.stream().filter(originLayout -> originLayout.equals(ruleBasedLayout))
                     .peek(originLayout -> originLayout.setManual(true)).count() > 0;
+            LayoutEntity copyRuleBasedLayout;
+            try {
+                copyRuleBasedLayout = JsonUtil.deepCopy(ruleBasedLayout, LayoutEntity.class);
+            } catch (IOException e) {
+                throw new IllegalStateException("Copy ruleBasedLayout " + uuid + ":" + ruleBasedLayout.getId() + " failed", e);
+            }
             if (!isMatch) {
-                originLayouts.add(ruleBasedLayout);
+                originLayouts.add(copyRuleBasedLayout);
             }
             mergedCuboids.get(index).setLayouts(originLayouts);
+            copyRuleBasedLayout.setIndex(mergedCuboids.get(index));
         }
         mergedCuboids.forEach(value -> value.setIndexPlan(this));
         return mergedCuboids;
 
+    }
+
+    private IndexEntity deepCopy(IndexEntity indexEntity) {
+        try {
+            return JsonUtil.deepCopy(indexEntity, IndexEntity.class);
+        } catch (IOException e) {
+            throw new IllegalStateException("Copy cuboid " + uuid + ":" + indexEntity.getId() + " failed",
+                    e);
+        }
     }
 
     public List<LayoutEntity> getAllLayouts() {
