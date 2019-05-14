@@ -152,8 +152,9 @@ public class RealizationChooser {
 
     private static void adjustForCapabilityInfluence(Candidate chosen, OLAPContext olapContext) {
         CapabilityResult capability = chosen.getCapability();
+
         for (CapabilityResult.CapabilityInfluence inf : capability.influences) {
-            // convert the metric to dimension
+
             if (inf instanceof CapabilityResult.DimensionAsMeasure) {
                 FunctionDesc functionDesc = ((CapabilityResult.DimensionAsMeasure) inf).getMeasureFunction();
                 functionDesc.setDimensionAsMetric(true);
@@ -162,9 +163,11 @@ public class RealizationChooser {
                 olapContext.getSQLDigest();
                 logger.info("Adjust DimensionAsMeasure for " + functionDesc);
             } else {
+
                 MeasureDesc involvedMeasure = inf.getInvolvedMeasure();
                 if (involvedMeasure == null)
                     continue;
+
                 involvedMeasure.getFunction().getMeasureType().adjustSqlDigest(involvedMeasure,
                         olapContext.getSQLDigest());
             }

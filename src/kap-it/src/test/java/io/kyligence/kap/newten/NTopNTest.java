@@ -26,6 +26,7 @@ package io.kyligence.kap.newten;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.Pair;
@@ -34,7 +35,10 @@ import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
 import org.apache.kylin.job.lock.MockJobLock;
 import org.apache.kylin.measure.topn.TopNCounter;
 import org.apache.kylin.metadata.model.SegmentRange.TimePartitionedSegmentRange;
+import org.apache.kylin.metadata.realization.CapabilityResult;
 import org.apache.kylin.metadata.realization.RealizationStatusEnum;
+import org.apache.kylin.query.relnode.OLAPContext;
+import org.apache.kylin.query.routing.RealizationChooser;
 import org.apache.spark.SparkContext;
 import org.apache.spark.sql.SparderEnv;
 import org.apache.spark.sql.SparkSession;
@@ -43,11 +47,15 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
+import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
+import io.kyligence.kap.metadata.cube.cuboid.NQueryLayoutChooser;
+import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.newten.NExecAndComp.CompareLevel;
+import io.kyligence.kap.smart.NSmartMaster;
 import lombok.val;
 
 public class NTopNTest extends NLocalWithSparkSessionTest {
@@ -82,14 +90,16 @@ public class NTopNTest extends NLocalWithSparkSessionTest {
     public void testTopNWithMultiDims() throws Exception {
         String dfID = "79547ec2-350e-4ba4-88f9-099048962ceb";
         buildCuboid(dfID, TimePartitionedSegmentRange.createInfinite(),
-                Sets.newHashSet(dfMgr.getDataflow(dfID).getIndexPlan().getCuboidLayout(100003L)), true);
+                Sets.newHashSet(dfMgr.getDataflow(dfID).getIndexPlan().getCuboidLayout(101001L)), true);
 
         populateSSWithCSVData(getTestConfig(), getProject(), SparderEnv.getSparkSession());
         List<Pair<String, String>> query = new ArrayList<>();
-        query.add(Pair.newPair("can_answer",
-                "select sum(PRICE) from TEST_TOP_N group by SELLER_ID,TRANS_ID order by sum(PRICE) desc limit 1"));
-
+        String sql1 = "select sum(PRICE) from TEST_TOP_N group by SELLER_ID,TRANS_ID order by sum(PRICE) desc limit 1";
+        String sql2 = "select sum(PRICE) from TEST_TOP_N group by SELLER_ID order by sum(PRICE) desc limit 1";
+        query.add(Pair.newPair("topn_with_multi_dim", sql1));
+        query.add(Pair.newPair("topn_with_one_dim", sql2));
         // TopN will answer TopN style query.
+        verifyTopnResult(query, dfMgr.getDataflow(dfID));
         NExecAndComp.execAndCompare(query, getProject(), CompareLevel.NONE, "left");
     }
 
@@ -99,18 +109,44 @@ public class NTopNTest extends NLocalWithSparkSessionTest {
                 copyForWrite -> copyForWrite.setStatus(RealizationStatusEnum.OFFLINE));
         String dfID = "79547ec2-350e-4ba4-88f9-099048962ceb";
         buildCuboid(dfID, TimePartitionedSegmentRange.createInfinite(),
-                Sets.newHashSet(dfMgr.getDataflow(dfID).getIndexPlan().getCuboidLayout(100001L)), true);
+                Sets.newHashSet(dfMgr.getDataflow(dfID).getIndexPlan().getCuboidLayout(100001L),
+                        dfMgr.getDataflow(dfID).getIndexPlan().getCuboidLayout(100003L)),
+                true);
 
         populateSSWithCSVData(getTestConfig(), getProject(), SparderEnv.getSparkSession());
         List<Pair<String, String>> query = new ArrayList<>();
-        query.add(Pair.newPair("can_answer",
+        query.add(Pair.newPair("can_answer_single_dim",
                 "select sum(PRICE) from TEST_TOP_N group by SELLER_ID order by sum(PRICE) desc limit 1"));
+        query.add(Pair.newPair("can_answer_multi_dim",
+                "select sum(PRICE) from TEST_TOP_N group by SELLER_ID,TRANS_ID order by sum(PRICE) desc limit 1"));
         // TopN will answer TopN style query.
+        verifyTopnResult(query, dfMgr.getDataflow(dfID));
         NExecAndComp.execAndCompare(query, getProject(), CompareLevel.NONE, "left");
         try {
             query.clear();
             query.add(Pair.newPair("can_not_answer", "select sum(PRICE) from TEST_TOP_N group by SELLER_ID"));
             // TopN will not answer sum.
+            NExecAndComp.execAndCompare(query, getProject(), CompareLevel.SAME, "left");
+            Assert.fail();
+        } catch (Exception e) {
+            Assert.assertTrue(e.getCause().getCause().getMessage().contains("No realization found for OLAPContext"));
+        }
+    }
+
+    @Test
+    public void testSingleDimLayoutCannotAnswerMultiTopnQuery() throws Exception {
+        dfMgr.updateDataflow("79547ec2-350e-4ba4-88f9-099048962ceb",
+                copyForWrite -> copyForWrite.setStatus(RealizationStatusEnum.OFFLINE));
+        String dfID = "fb6ce800-43ee-4ef9-b100-39d523f36304";
+        //  layout[ID, count(*), sum(price), Topn(price, SELLER_ID)]
+        buildCuboid(dfID, TimePartitionedSegmentRange.createInfinite(),
+                Sets.newHashSet(dfMgr.getDataflow(dfID).getIndexPlan().getCuboidLayout(1L)), true);
+        populateSSWithCSVData(getTestConfig(), getProject(), SparderEnv.getSparkSession());
+
+        List<Pair<String, String>> query = new ArrayList<>();
+        query.add(Pair.newPair("cannot_answer_multi_dim_in_single_dim_index",
+                "select sum(PRICE) from TEST_TOP_N group by SELLER_ID,ID order by sum(PRICE) desc limit 1"));
+        try {
             NExecAndComp.execAndCompare(query, getProject(), CompareLevel.SAME, "left");
             Assert.fail();
         } catch (Exception e) {
@@ -160,6 +196,30 @@ public class NTopNTest extends NLocalWithSparkSessionTest {
         } catch (Exception e) {
             Assert.assertTrue(e.getMessage().contains("result not match"));
         }
+    }
 
+    private void verifyTopnResult(List<Pair<String, String>> queries, NDataflow dataflow) {
+        //verify topN measure will answer the multi-Dimension query
+        for (Pair<String, String> nameAndQueryPair : queries) {
+            OLAPContext context = getOlapContext(nameAndQueryPair.getSecond()).get(0);
+            Map<String, String> sqlAlias2ModelName = RealizationChooser.matchJoins(dataflow.getModel(), context);
+            context.fixModel(dataflow.getModel(), sqlAlias2ModelName);
+            val pair = NQueryLayoutChooser.selectCuboidLayout(dataflow.getLatestReadySegment(), context.getSQLDigest());
+            Assert.assertNotNull(pair);
+            Assert.assertEquals(1, pair.getSecond().size());
+            Assert.assertFalse(pair.getSecond().get(0) instanceof CapabilityResult.DimensionAsMeasure);
+            Assert.assertEquals(context.allColumns,
+                    Sets.newHashSet(pair.getSecond().get(0).getInvolvedMeasure().getFunction().getColRefs()));
+        }
+    }
+
+    private List<OLAPContext> getOlapContext(String sql) {
+        NSmartMaster smartMaster = new NSmartMaster(KylinConfig.getInstanceFromEnv(), getProject(),
+                new String[] { sql });
+        smartMaster.analyzeSQLs();
+        List<OLAPContext> ctxs = Lists.newArrayList();
+        smartMaster.getContext().getModelContexts()
+                .forEach(nModelContext -> ctxs.addAll(nModelContext.getModelTree().getOlapContexts()));
+        return ctxs;
     }
 }

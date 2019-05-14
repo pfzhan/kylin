@@ -141,9 +141,11 @@ public class TopNMeasureType extends MeasureType<TopNCounter<ByteArray>> {
 
     public static FunctionDesc getTopnInternalMeasure(FunctionDesc func) {
         if (func.getParameters().get(0).isColumnType()) {
-            return FunctionDesc.newInstance(FunctionDesc.FUNC_SUM, Lists.newArrayList(ParameterDesc.newInstance(func.getParameters().get(0).getColRef())), null);
+            return FunctionDesc.newInstance(FunctionDesc.FUNC_SUM,
+                    Lists.newArrayList(ParameterDesc.newInstance(func.getParameters().get(0).getColRef())), null);
         } else {
-            return FunctionDesc.newInstance(FunctionDesc.FUNC_COUNT, Lists.newArrayList(ParameterDesc.newInstance("1")), null);
+            return FunctionDesc.newInstance(FunctionDesc.FUNC_COUNT, Lists.newArrayList(ParameterDesc.newInstance("1")),
+                    null);
         }
     }
 
@@ -288,7 +290,7 @@ public class TopNMeasureType extends MeasureType<TopNCounter<ByteArray>> {
             }
         }
 
-        if (!digest.groupbyColumns.containsAll(literalCol))
+        if (!digest.groupbyColumns.containsAll(literalCol) || !literalCol.containsAll(digest.groupbyColumns))
             return null;
 
         // check digest requires only one measure
@@ -384,11 +386,12 @@ public class TopNMeasureType extends MeasureType<TopNCounter<ByteArray>> {
         FunctionDesc topnFunc = involvedMeasure.getFunction();
         List<TblColRef> topnLiteralCol = getTopNLiteralColumn(topnFunc);
 
-        if (sqlDigest.groupbyColumns.containsAll(topnLiteralCol) == false) {
+        if (!sqlDigest.groupbyColumns.containsAll(topnLiteralCol)
+                || !topnLiteralCol.containsAll(sqlDigest.groupbyColumns)) {
             return;
         }
 
-        if (sqlDigest.aggregations.size() > 0) {
+        if (!sqlDigest.aggregations.isEmpty()) {
             FunctionDesc origFunc = sqlDigest.aggregations.iterator().next();
             if (origFunc.isSum() == false && origFunc.isCount() == false) {
                 logger.warn("When query with topN, only SUM/Count function is allowed.");
