@@ -97,7 +97,7 @@ public class QueryNodeFilter implements Filter {
             MsgPicker.setMsg(servletRequest.getHeader(HttpHeaders.ACCEPT_LANGUAGE));
             try {
                 val exchange = restTemplate.exchange(
-                        "http://job" + servletRequest.getRequestURI() + "?" + servletRequest.getQueryString(),
+                        "http://all" + servletRequest.getRequestURI() + "?" + servletRequest.getQueryString(),
                         HttpMethod.valueOf(servletRequest.getMethod()), new HttpEntity<>(body, headers), byte[].class);
                 responseHeaders = exchange.getHeaders();
                 responseBody = exchange.getBody();

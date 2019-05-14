@@ -108,6 +108,10 @@ public class NUserController extends NBasicController {
 
     @EventListener(AppInitializedEvent.class)
     public void init() throws IOException {
+        val config = KylinConfig.getInstanceFromEnv();
+        if ("query".equals(config.getServerMode())) {
+            return;
+        }
         List<ManagedUser> all = userService.listUsers();
         logger.info("All {} users", all.size());
         if (all.isEmpty() && env.acceptsProfiles(PROFILE)) {

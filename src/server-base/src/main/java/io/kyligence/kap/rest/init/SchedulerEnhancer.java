@@ -40,7 +40,7 @@ public class SchedulerEnhancer {
     @Around("@annotation(org.springframework.scheduling.annotation.Scheduled)")
     public void aroundScheduled(ProceedingJoinPoint pjp) throws Throwable {
         val config = KylinConfig.getInstanceFromEnv();
-        if (config.getServerMode().equals("job")) {
+        if (!"query".equals(config.getServerMode())) {
             log.info("schedule at job leader");
             pjp.proceed();
         }
