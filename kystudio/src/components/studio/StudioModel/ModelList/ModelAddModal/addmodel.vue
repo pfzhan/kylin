@@ -1,7 +1,7 @@
 <template>
    <el-dialog :title="$t('kylinLang.model.addModel')" width="480px" :visible="isShow" :close-on-press-escape="false" :close-on-click-modal="false" @close="closeModal()">
       <el-form :model="createModelMeta"  :rules="rules" ref="addModelForm" label-width="130px" label-position="top">
-        <el-form-item prop="newName" :label="$t('kylinLang.model.modelName')">
+        <el-form-item prop="newName">
           <span slot="label">{{$t('kylinLang.model.modelName')}}<common-tip :content="$t('kylinLang.model.modelNameTips')"><i class="el-icon-ksd-what ksd-ml-5"></i></common-tip></span>
           <el-input v-focus="isShow" v-guide.inputModelName  v-model="createModelMeta.newName" auto-complete="off" size="medium"></el-input>
         </el-form-item>

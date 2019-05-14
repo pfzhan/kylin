@@ -304,7 +304,7 @@ exports.default = {
     graphType: 'Graph Type:',
     dimension: 'Dimensions:',
     metrics: 'Metrics:',
-    modelName: 'Model Name:',
+    modelName: 'Model Name: ',
     content: 'Content:',
     result_row_count: 'Result Row Count',
     total_scan_bytes: 'Total Scan Bytes',

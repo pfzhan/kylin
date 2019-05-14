@@ -799,7 +799,7 @@ export default class Dashboard extends Vue {
             top: -1px;
             left: -1px;
             z-index: 1;
-            background-color: @bg-total;
+            background-color: @fff;
           }
         }
       }
@@ -808,7 +808,7 @@ export default class Dashboard extends Vue {
       padding: 15px;
       .cart-title {
         padding: 0;
-        background-color: @bg-total;
+        background-color: @fff;
       }
       .chart-block {
         position: relative;

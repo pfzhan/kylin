@@ -511,7 +511,7 @@ export default class AggregateModal extends Vue {
 .aggregate-modal {
   .cuboid-error {
     .cuboid-result {
-      color:@btn-danger-normal;
+      color:@error-color-1;
       font-weight: @font-regular;
     }
   }

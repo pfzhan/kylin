@@ -886,8 +886,8 @@ export default class LayoutLeftRightTop extends Vue {
     }
     .entry-admin.active {
       box-shadow: inset 1px 1px 2px 0 #ADC2D0;
-      border-color: @btn-default-active;
-      color: @btn-default-active;
+      border-color: @base-color-11;
+      color: @base-color-11;
     }
     .global-mask {
       position: absolute;

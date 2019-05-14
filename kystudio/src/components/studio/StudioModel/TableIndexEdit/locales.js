@@ -7,9 +7,10 @@ export default {
     selectColumns: 'Select Columns',
     selectAllColumns: 'Select All Columns',
     clearAll: 'Clear All',
-    tableIndex: 'Index',
+    tableIndex: 'Selected',
     catchup: 'Build index now',
-    sortLimitTip: 'At most nine \'sort\' column is allowed.'
+    sortLimitTip: 'At most nine \'sort\' column is allowed.',
+    sort: 'Order'
   },
   'zh-cn': {
     addTableIndexTitle: '添加表明细索引',
@@ -19,8 +20,9 @@ export default {
     selectColumns: '选择列',
     selectAllColumns: '选择所有列',
     clearAll: '清空选择',
-    tableIndex: '索引列',
+    tableIndex: '选中',
     catchup: '立即构建索引',
-    sortLimitTip: '最多只能加9个sort列'
+    sortLimitTip: '最多只能加9个sort列',
+    sort: '顺序'
   }
 }

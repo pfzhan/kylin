@@ -362,7 +362,7 @@ export default class SourceHive extends Vue {
     overflow: auto;
   }
   .content-body.has-tips {
-    height: 365px;
+    height: 355px;
   }
   .el-tag {
     margin-right: 10px;
@@ -428,7 +428,7 @@ export default class SourceHive extends Vue {
   .tips {
     position: absolute;
     padding: 15px;
-    height: 65px;
+    height: 75px;
     border-radius: 2px;
     background-color: @base-color-9;
     bottom: 10px;
@@ -521,7 +521,7 @@ export default class SourceHive extends Vue {
       white-space: normal;
     }
     .el-icon-ksd-good_health {
-      color: @btn-success-normal;
+      color: @color-success;
     }
     .database {
       margin-right: 0;

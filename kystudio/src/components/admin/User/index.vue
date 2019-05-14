@@ -237,7 +237,7 @@ export default class SecurityUser extends Vue {
 .security-user {
   padding: 0 20px;
   .el-icon-ksd-good_health {
-    color: @btn-success-normal;
+    color: @color-success;
     cursor: default;
   }
   .user-table {
