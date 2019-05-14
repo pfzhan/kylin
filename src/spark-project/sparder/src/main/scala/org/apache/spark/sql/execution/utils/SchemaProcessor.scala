@@ -102,11 +102,12 @@ object SchemaProcessor {
         }
       case "COUNT" => LongType
       case x if x.startsWith("TOP_N")  =>
-        val parameter = function.getParameters.get(1)
-        // only support 1 dim
+        val fields = function.getParameters.asScala.drop(1).map(p =>
+          StructField(s"DIMENSION_${p.getColRef.getName}", SparderTypeUtil.toSparkType(p.getColRef.getType))
+        )
         DataTypes.createArrayType(StructType(Seq(
           StructField("measure", DoubleType),
-          StructField("dim", StructType(Seq(StructField(s"DIMENSION_${parameter.getColRef.getName}", SparderTypeUtil.toSparkType(parameter.getColRef.getType)))))
+          StructField("dim", StructType(fields))
         )))
       case "MAX" | "MIN" =>
         val parameter = function.getParameters.get(0)

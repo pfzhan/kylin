@@ -19,6 +19,12 @@
       "name": "PRICE",
       "datatype": "decimal",
       "index": "T"
+    },
+    {
+      "id": "4",
+      "name": "TRANS_ID",
+      "datatype": "bigint",
+      "index": "T"
     }
   ],
   "database": "DEFAULT",

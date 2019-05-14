@@ -33,6 +33,7 @@ import org.apache.kylin.job.engine.JobEngineConfig;
 import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
 import org.apache.kylin.job.lock.MockJobLock;
 import org.apache.kylin.measure.topn.TopNCounter;
+import org.apache.kylin.metadata.model.SegmentRange.TimePartitionedSegmentRange;
 import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 import org.apache.spark.SparkContext;
 import org.apache.spark.sql.SparderEnv;
@@ -42,6 +43,8 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
+import com.google.common.collect.Sets;
+
 import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.newten.NExecAndComp.CompareLevel;
@@ -49,10 +52,13 @@ import lombok.val;
 
 public class NTopNTest extends NLocalWithSparkSessionTest {
 
+    private NDataflowManager dfMgr = null;
+
     @Before
     public void setup() throws Exception {
         System.setProperty("kylin.job.scheduler.poll-interval-second", "1");
         createTestMetadata();
+        dfMgr = NDataflowManager.getInstance(getTestConfig(), getProject());
         NDefaultScheduler scheduler = NDefaultScheduler.getInstance(getProject());
         scheduler.init(new JobEngineConfig(KylinConfig.getInstanceFromEnv()), new MockJobLock());
         if (!scheduler.hasStarted()) {
@@ -73,15 +79,29 @@ public class NTopNTest extends NLocalWithSparkSessionTest {
     }
 
     @Test
-    public void testTopNCanNotAnswerNonTopNStyleQuery() throws Exception {
-        val dfMgr = NDataflowManager.getInstance(getTestConfig(), getProject());
-        dfMgr.updateDataflow("fb6ce800-43ee-4ef9-b100-39d523f36304", copyForWrite -> {
-            copyForWrite.setStatus(RealizationStatusEnum.OFFLINE);
-        });
-        KylinConfig config = KylinConfig.getInstanceFromEnv();
-        fullBuildCube("79547ec2-350e-4ba4-88f9-099048962ceb", getProject());
+    public void testTopNWithMultiDims() throws Exception {
+        String dfID = "79547ec2-350e-4ba4-88f9-099048962ceb";
+        buildCuboid(dfID, TimePartitionedSegmentRange.createInfinite(),
+                Sets.newHashSet(dfMgr.getDataflow(dfID).getIndexPlan().getCuboidLayout(100003L)), true);
 
-        populateSSWithCSVData(config, getProject(), SparderEnv.getSparkSession());
+        populateSSWithCSVData(getTestConfig(), getProject(), SparderEnv.getSparkSession());
+        List<Pair<String, String>> query = new ArrayList<>();
+        query.add(Pair.newPair("can_answer",
+                "select sum(PRICE) from TEST_TOP_N group by SELLER_ID,TRANS_ID order by sum(PRICE) desc limit 1"));
+
+        // TopN will answer TopN style query.
+        NExecAndComp.execAndCompare(query, getProject(), CompareLevel.NONE, "left");
+    }
+
+    @Test
+    public void testTopNCanNotAnswerNonTopNStyleQuery() throws Exception {
+        dfMgr.updateDataflow("fb6ce800-43ee-4ef9-b100-39d523f36304",
+                copyForWrite -> copyForWrite.setStatus(RealizationStatusEnum.OFFLINE));
+        String dfID = "79547ec2-350e-4ba4-88f9-099048962ceb";
+        buildCuboid(dfID, TimePartitionedSegmentRange.createInfinite(),
+                Sets.newHashSet(dfMgr.getDataflow(dfID).getIndexPlan().getCuboidLayout(100001L)), true);
+
+        populateSSWithCSVData(getTestConfig(), getProject(), SparderEnv.getSparkSession());
         List<Pair<String, String>> query = new ArrayList<>();
         query.add(Pair.newPair("can_answer",
                 "select sum(PRICE) from TEST_TOP_N group by SELLER_ID order by sum(PRICE) desc limit 1"));
@@ -105,14 +125,13 @@ public class NTopNTest extends NLocalWithSparkSessionTest {
         existingCxt.stop();
         ss = SparkSession.builder().config(sparkConf).getOrCreate();
         ss.sparkContext().setLogLevel("ERROR");
-        KylinConfig config = KylinConfig.getInstanceFromEnv();
 
         fullBuildCube("79547ec2-350e-4ba4-88f9-099048962ceb", getProject());
         fullBuildCube("fb6ce800-43ee-4ef9-b100-39d523f36304", getProject());
 
         ss.close();
 
-        populateSSWithCSVData(config, getProject(), SparderEnv.getSparkSession());
+        populateSSWithCSVData(getTestConfig(), getProject(), SparderEnv.getSparkSession());
 
         List<Pair<String, String>> query = new ArrayList<>();
 

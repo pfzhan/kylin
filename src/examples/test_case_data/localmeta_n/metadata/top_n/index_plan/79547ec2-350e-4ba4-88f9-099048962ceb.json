@@ -6,7 +6,7 @@
   "index_plan_override_encodings": {},
   "indexes": [
     {
-      "id": 0,
+      "id": 100000,
       "dimensions": [
         0
       ],
@@ -16,7 +16,7 @@
       ],
       "layouts": [
         {
-          "id": 1,
+          "id": 100001,
           "col_order": [
             0,
             100000,
@@ -36,6 +36,44 @@
               "columns": [
                 100000,
                 100002
+              ]
+            }
+          ],
+          "storage_type": 20
+        }
+      ]
+    },
+    {
+      "id": 100002,
+      "dimensions": [
+        0
+      ],
+      "measures": [
+        100000,
+        100003
+      ],
+      "layouts": [
+        {
+          "id": 100003,
+          "col_order": [
+            0,
+            100000,
+            100003
+          ],
+          "dim_cf": [
+            {
+              "name": "D1",
+              "columns": [
+                0
+              ]
+            }
+          ],
+          "measure_cf": [
+            {
+              "name": "M1",
+              "columns": [
+                100000,
+                100003
               ]
             }
           ],

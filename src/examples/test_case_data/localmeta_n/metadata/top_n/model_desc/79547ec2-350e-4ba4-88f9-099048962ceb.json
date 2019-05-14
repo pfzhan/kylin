@@ -17,6 +17,11 @@
       "id": 2,
       "name": "PRICE",
       "column": "TEST_TOP_N.PRICE"
+    },
+    {
+      "id": 3,
+      "name": "TRANS_ID",
+      "column": "TEST_TOP_N.TRANS_ID"
     }
   ],
   "all_measures": [
@@ -61,7 +66,30 @@
           "topn.encoding.TEST_KYLIN_FACT.SELLER_ID": "int:4"
         }
       }
-    }  ],
+    },
+    {
+      "id": 100003,
+      "name": "MULTI_TOPN_DIMS",
+      "function": {
+        "expression": "TOP_N",
+        "parameters": [{
+          "type": "column",
+          "value": "TEST_TOP_N.PRICE"
+        }, {
+          "type": "column",
+          "value": "TEST_TOP_N.SELLER_ID"
+        }, {
+          "type": "column",
+          "value": "TEST_TOP_N.TRANS_ID"
+        }],
+        "returntype": "topn(1, 4)",
+        "configuration": {
+          "topn.encoding.TEST_KYLIN_FACT.SELLER_ID": "int:4"
+        }
+      }
+    }
+
+  ],
   "column_correlations": [],
   "computed_columns": [],
   "last_modified": 1422435345352,
