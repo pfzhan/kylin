@@ -279,7 +279,7 @@ import jobDialog from './job_dialog'
 import TWEEN from '@tweenjs/tween.js'
 import $ from 'jquery'
 import { pageCount } from '../../config'
-import { transToGmtTime, kapConfirm, handleError, handleSuccess } from 'util/business'
+import { transToGmtTime, handleError, handleSuccess } from 'util/business'
 @Component({
   methods: {
     transToGmtTime: transToGmtTime,
@@ -293,6 +293,9 @@ import { transToGmtTime, kapConfirm, handleError, handleSuccess } from 'util/bus
       resumeJob: 'RESUME_JOB',
       losdWaittingJobModels: 'LOAD_WAITTING_JOB_MODELS',
       laodWaittingJobsByModel: 'LOAD_WAITTING_JOBS_BY_MODEL'
+    }),
+    ...mapActions('DetailDialogModal', {
+      callGlobalDetailDialog: 'CALL_MODAL'
     })
   },
   computed: {
@@ -339,13 +342,13 @@ import { transToGmtTime, kapConfirm, handleError, handleSuccess } from 'util/bus
       output: 'Output',
       load: 'Loading ... ',
       cmdOutput: 'cmd_output',
-      resumeJob: 'Are you sure to resume the job(s) below?',
+      resumeJob: 'Do you really need to resume {count} job records?',
       resumeJobTitle: 'Resume Job',
-      restartJob: 'Are you sure to restart the job(s) below?',
+      restartJob: 'Do you really need to restart {count} job records?',
       restartJobTitle: 'Restart Job',
-      pauseJob: 'Are you sure to pause the job(s) below?',
+      pauseJob: 'Do you really need to pause {count} job records?',
       pauseJobTitle: 'Pause Job',
-      dropJob: 'Are you sure to drop the job(s) below?',
+      dropJob: 'Do you really need to delete {count} job records?',
       dropJobTitle: 'Drop Job',
       jobName: 'Job Name',
       duration: 'Duration',
@@ -402,13 +405,13 @@ import { transToGmtTime, kapConfirm, handleError, handleSuccess } from 'util/bus
       output: '输出',
       load: '下载中 ... ',
       cmdOutput: 'cmd_output',
-      resumeJob: '确定要恢复以下任务?',
+      resumeJob: '您确认要恢复 {count} 个任务记录？',
       resumeJobTitle: '恢复任务',
-      restartJob: '确定要重启以下任务?',
+      restartJob: '您确认要重启 {count} 个任务记录？',
       restartJobTitle: '重启任务',
-      pauseJob: '确定要暂停以下任务?',
+      pauseJob: '您确认要暂停 {count} 个任务记录？',
       pauseJobTitle: '暂停任务',
-      dropJob: '确定要删除以下任务？',
+      dropJob: '您确认要删除 {count} 个任务记录？',
       dropJobTitle: '删除任务',
       jobName: '任务名',
       duration: '持续时间',
@@ -878,100 +881,104 @@ export default class JobsList extends Vue {
     this.filter.sortBy = prop
     this.currentSelectedProject && this.getJobsList()
   }
-  resume (jobIds, isBatch) {
-    kapConfirm(this._renderConfirmContent(this.$t('resumeJob'), jobIds), null, this.$t('resumeJobTitle')).then(() => {
-      this.resumeJob({jobIds: jobIds, project: this.currentSelectedProject, action: 'RESUME', status: this.filter.status}).then(() => {
-        this.$message({
-          type: 'success',
-          message: this.$t('kylinLang.common.actionSuccess')
-        })
-        if (isBatch) {
-          if (isBatch === 'batchAll') {
-            this.filter.status = ''
-          }
-          this.reCallPolling()
-          this.resetSelection()
-        } else {
-          this.refreshJobs()
-        }
-      }).catch((res) => {
-        handleError(res)
+  async resume (jobIds, isBatch) {
+    await this.callGlobalDetailDialog({
+      msg: this.$t('resumeJob', {count: jobIds.length}),
+      title: this.$t('resumeJobTitle'),
+      details: jobIds,
+      dialogType: 'tip'
+    })
+    this.resumeJob({jobIds: jobIds, project: this.currentSelectedProject, action: 'RESUME', status: this.filter.status}).then(() => {
+      this.$message({
+        type: 'success',
+        message: this.$t('kylinLang.common.actionSuccess')
       })
+      if (isBatch) {
+        if (isBatch === 'batchAll') {
+          this.filter.status = ''
+        }
+        this.reCallPolling()
+        this.resetSelection()
+      } else {
+        this.refreshJobs()
+      }
+    }).catch((res) => {
+      handleError(res)
     })
   }
-  restart (jobIds, isBatch) {
-    kapConfirm(this._renderConfirmContent(this.$t('restartJob'), jobIds), null, this.$t('restartJobTitle')).then(() => {
-      this.restartJob({jobIds: jobIds, project: this.currentSelectedProject, action: 'RESTART', status: this.filter.status}).then(() => {
-        this.$message({
-          type: 'success',
-          message: this.$t('kylinLang.common.actionSuccess')
-        })
-        if (isBatch) {
-          if (isBatch === 'batchAll') {
-            this.filter.status = ''
-          }
-          this.reCallPolling()
-          this.resetSelection()
-        } else {
-          this.refreshJobs()
-        }
-      }).catch((res) => {
-        handleError(res)
+  async restart (jobIds, isBatch) {
+    await this.callGlobalDetailDialog({
+      msg: this.$t('restartJob', {count: jobIds.length}),
+      title: this.$t('restartJobTitle'),
+      details: jobIds,
+      dialogType: 'tip'
+    })
+    this.restartJob({jobIds: jobIds, project: this.currentSelectedProject, action: 'RESTART', status: this.filter.status}).then(() => {
+      this.$message({
+        type: 'success',
+        message: this.$t('kylinLang.common.actionSuccess')
       })
+      if (isBatch) {
+        if (isBatch === 'batchAll') {
+          this.filter.status = ''
+        }
+        this.reCallPolling()
+        this.resetSelection()
+      } else {
+        this.refreshJobs()
+      }
+    }).catch((res) => {
+      handleError(res)
     })
   }
-  pause (jobIds, isBatch) {
-    kapConfirm(this._renderConfirmContent(this.$t('pauseJob'), jobIds), null, this.$t('pauseJobTitle')).then(() => {
-      this.pauseJob({jobIds: jobIds, project: this.currentSelectedProject, action: 'PAUSE', status: this.filter.status}).then(() => {
-        this.$message({
-          type: 'success',
-          message: this.$t('kylinLang.common.actionSuccess')
-        })
-        if (isBatch) {
-          if (isBatch === 'batchAll') {
-            this.filter.status = ''
-          }
-          this.reCallPolling()
-          this.resetSelection()
-        } else {
-          this.refreshJobs()
-        }
-      }).catch((res) => {
-        handleError(res)
+  async pause (jobIds, isBatch) {
+    await this.callGlobalDetailDialog({
+      msg: this.$t('pauseJob', {count: jobIds.length}),
+      title: this.$t('pauseJobTitle'),
+      details: jobIds,
+      dialogType: 'tip'
+    })
+    this.pauseJob({jobIds: jobIds, project: this.currentSelectedProject, action: 'PAUSE', status: this.filter.status}).then(() => {
+      this.$message({
+        type: 'success',
+        message: this.$t('kylinLang.common.actionSuccess')
       })
+      if (isBatch) {
+        if (isBatch === 'batchAll') {
+          this.filter.status = ''
+        }
+        this.reCallPolling()
+        this.resetSelection()
+      } else {
+        this.refreshJobs()
+      }
+    }).catch((res) => {
+      handleError(res)
     })
   }
-  _renderConfirmContent (confirmMessage, jobIds) {
-    return (
-      <div>
-        <p class="break-all ksd-mb-4">{confirmMessage}</p>
-        {
-          jobIds.map((kId) => {
-            return <p>[{kId}]</p>
-          })
-        }
-      </div>
-    )
-  }
-  drop (jobIds, isBatch) {
-    kapConfirm(this._renderConfirmContent(this.$t('dropJob'), jobIds), null, this.$t('dropJobTitle')).then(() => {
-      this.removeJob({jobIds: jobIds, project: this.currentSelectedProject, status: this.filter.status}).then(() => {
-        this.$message({
-          type: 'success',
-          message: this.$t('kylinLang.common.delSuccess')
-        })
-        if (isBatch) {
-          if (isBatch === 'batchAll') {
-            this.filter.status = ''
-          }
-          this.reCallPolling()
-          this.resetSelection()
-        } else {
-          this.refreshJobs()
-        }
-      }).catch((res) => {
-        handleError(res)
+  async drop (jobIds, isBatch) {
+    await this.callGlobalDetailDialog({
+      msg: this.$t('dropJob', {count: jobIds.length}),
+      title: this.$t('dropJobTitle'),
+      details: jobIds,
+      dialogType: 'warning'
+    })
+    this.removeJob({jobIds: jobIds, project: this.currentSelectedProject, status: this.filter.status}).then(() => {
+      this.$message({
+        type: 'success',
+        message: this.$t('kylinLang.common.delSuccess')
       })
+      if (isBatch) {
+        if (isBatch === 'batchAll') {
+          this.filter.status = ''
+        }
+        this.reCallPolling()
+        this.resetSelection()
+      } else {
+        this.refreshJobs()
+      }
+    }).catch((res) => {
+      handleError(res)
     })
   }
   showLineSteps (row, column, cell) {

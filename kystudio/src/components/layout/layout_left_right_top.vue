@@ -52,7 +52,6 @@
           </template>
 
           <ul class="top-ul ksd-fright">
-            <li v-if="isAdmin"><canary></canary></li>
             <li v-if="showMenuByRole('admin')">
               <el-button
                 size="small"
@@ -139,6 +138,9 @@
         <el-button size="medium" type="primary" plain @click="applySpeed" :loading="applyBtnLoading">{{$t('apply')}}</el-button>
       </div>
     </el-dialog>
+
+    <!-- 全局弹窗 带detail -->
+    <kap-detail-dialog-modal></kap-detail-dialog-modal>
   </div>
 </template>
 
@@ -153,7 +155,7 @@ import { mapState, mapActions, mapMutations, mapGetters } from 'vuex'
 import projectSelect from '../project/project_select'
 import changeLang from '../common/change_lang'
 import help from '../common/help'
-import canary from '../security/canary'
+import KapDetailDialogModal from '../common/GlobalDialog/dialog/detail_dialog'
 import $ from 'jquery'
 import ElementUI from 'kyligence-ui'
 let MessageBox = ElementUI.MessageBox
@@ -192,7 +194,7 @@ let MessageBox = ElementUI.MessageBox
     'project_select': projectSelect,
     'change_lang': changeLang,
     help,
-    canary
+    KapDetailDialogModal
   },
   computed: {
     ...mapState({

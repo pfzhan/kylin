@@ -13,7 +13,9 @@ export default {
     loadFailed1: 'Add the table',
     loadFailed2: 'failed!',
     sourceManagement: 'Source Management',
-    loadTables: 'Load Tables'
+    loadTables: 'Load Tables',
+    loadTablesSuccess: 'Succeeded to sync all tables.',
+    loadTablesFail: 'Failed to sync {count} source table(s) metadata.'
   },
   'zh-cn': {
     searchTable: '搜索数据源',
@@ -29,6 +31,8 @@ export default {
     loadFailed1: '加载表',
     loadFailed2: '失败！',
     sourceManagement: '数据源管理',
-    loadTables: '加载源表'
+    loadTables: '加载源表',
+    loadTablesSuccess: '成功同步全部源表。',
+    loadTablesFail: '{count} 张源表（元数据）同步失败。'
   }
 }

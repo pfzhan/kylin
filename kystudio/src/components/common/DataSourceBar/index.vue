@@ -35,7 +35,7 @@
         @load-more="handleLoadMore">
       </TreeList>
     </section>
-    <el-dialog
+    <!-- <el-dialog
       class="datasource-result-modal"
       :title="$t('kylinLang.common.notice')"
       :visible.sync="isShowResultModal"
@@ -72,7 +72,7 @@
       <div slot="footer" class="dialog-footer">
         <el-button size="medium" plain type="primary" v-guide.closeLoadResult @click="isShowResultModal = false">{{$t('kylinLang.common.ok')}}</el-button>
       </div>
-    </el-dialog>
+    </el-dialog> -->
   </aside>
 </template>
 
@@ -167,6 +167,9 @@ import { handleSuccessAsync, handleError } from '../../../util'
     ...mapActions('DataSourceModal', {
       callDataSourceModal: 'CALL_MODAL'
     }),
+    ...mapActions('DetailDialogModal', {
+      callGlobalDetailDialog: 'CALL_MODAL'
+    }),
     ...mapActions({
       fetchDatabases: 'FETCH_DATABASES',
       fetchTables: 'FETCH_TABLES',
@@ -187,7 +190,6 @@ export default class DataSourceBar extends Vue {
   draggableNodeKeys = []
   timer = null
   isSwitchSource = false
-  isShowResultModal = false
   loadedTables = []
   failedTables = []
 
@@ -397,7 +399,19 @@ export default class DataSourceBar extends Vue {
       const { loaded, failed } = result
       this.loadedTables = loaded || []
       this.failedTables = failed || []
-      this.isShowResultModal = true
+      // 提示
+      if (failed && failed.length) {
+        this.callGlobalDetailDialog({
+          msg: this.$t('loadTablesFail', {count: failed.length}),
+          details: failed
+        })
+      } else {
+        this.$message({ type: 'success', message: this.$t('loadTablesSuccess') })
+      }
+      if (loaded.length > 0) {
+        await new Promise((resolve) => setTimeout(() => resolve(), 1000))
+        this.handleResultModalClosed()
+      }
     }
   }
   async handleResultModalClosed () {
@@ -617,36 +631,6 @@ export default class DataSourceBar extends Vue {
     transform: none;
     top: 0;
     left: 0;
-  }
-}
-.datasource-result-modal {
-  .el-dialog__body {
-    overflow:hidden;
-    div{
-      max-height:60vh;
-      overflow-y:auto;
-    }
-  }
-  .el-alert:not(:last-child) {
-    margin-bottom: 10px;
-  }
-  .el-alert .desc {
-    display: block;
-    float: left;
-    &:first-child {
-      margin-right: 3px;
-    }
-    &:last-child {
-      margin-left: 3px;
-    }
-  }
-  .el-alert .table-name {
-    display: block;
-    float: left;
-    overflow: hidden;
-    white-space: nowrap;
-    text-overflow: ellipsis;
-    max-width: 490px;
   }
 }
 </style>

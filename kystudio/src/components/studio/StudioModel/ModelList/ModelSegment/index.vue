@@ -140,6 +140,9 @@ import { formatSegments } from './handler'
     }),
     ...mapActions('SourceTableModal', {
       callSourceTableModal: 'CALL_MODAL'
+    }),
+    ...mapActions('DetailDialogModal', {
+      callGlobalDetailDialog: 'CALL_MODAL'
     })
   },
   locales
@@ -218,16 +221,14 @@ export default class ModelSegment extends Vue {
     try {
       const segmentIds = this.selectedSegmentIds
       if (segmentIds.length) {
-        // const segmentNames = this.selectedSegments.map(segment => segment.name)
-        // const segmentArray = `[${segmentNames.join('\r\n')}]`
         const projectName = this.currentSelectedProject
         const modelId = this.model.uuid
-        const confirmTitle = this.$t('refreshSegmentsTitle')
-        const confirmMessage = this.$t('confirmRefreshSegments')
-        const confirmButtonText = this.$t('kylinLang.common.ok')
-        const cancelButtonText = this.$t('kylinLang.common.cancel')
-        const customClass = 'pre'
-        await this.$confirm(this._renderConfirmContent(confirmMessage), confirmTitle, { type: 'warning', confirmButtonText, cancelButtonText, customClass })
+        await this.callGlobalDetailDialog({
+          msg: this.$t('confirmRefreshSegments', {count: segmentIds.length}),
+          title: this.$t('refreshSegmentsTitle'),
+          details: segmentIds,
+          dialogType: 'tip'
+        })
         const isSubmit = await this.refreshSegments({ projectName, modelId, segmentIds })
         if (isSubmit) {
           await this.loadSegments()
@@ -258,11 +259,12 @@ export default class ModelSegment extends Vue {
         const projectName = this.currentSelectedProject
         const modelId = this.model.uuid
         const segmentIdStr = this.selectedSegmentIds.join(',')
-        const confirmTitle = this.$t('deleteSegmentTip')
-        const confirmButtonText = this.$t('kylinLang.common.ok')
-        const cancelButtonText = this.$t('kylinLang.common.cancel')
-        const confirmMessage = this.$t('confirmDeleteSegments')
-        await this.$confirm(this._renderConfirmContent(confirmMessage), confirmTitle, { type: 'warning', confirmButtonText, cancelButtonText })
+        await this.callGlobalDetailDialog({
+          msg: this.$t('confirmDeleteSegments', {count: segmentIds.length}),
+          title: this.$t('deleteSegmentTip'),
+          details: segmentIds,
+          dialogType: 'warning'
+        })
         await this.deleteSegments({ projectName, modelId, segmentIds: segmentIdStr })
         this.$message({ type: 'success', message: this.$t('kylinLang.common.delSuccess') })
         await this.loadSegments()
@@ -270,18 +272,6 @@ export default class ModelSegment extends Vue {
     } catch (e) {
       e !== 'cancel' && handleError(e)
     }
-  }
-  _renderConfirmContent (confirmMessage) {
-    return (
-      <div>
-        <p class="break-all ksd-mb-4">{confirmMessage}</p>
-        {
-          this.selectedSegmentIds.map((sid) => {
-            return <p>[{sid}]</p>
-          })
-        }
-      </div>
-    )
   }
   handleShowDetail (segment) {
     this.detailSegment = segment
