@@ -24,6 +24,10 @@
 package io.kyligence.kap.rest.config;
 
 import io.kyligence.kap.common.persistence.metadata.JdbcAuditLogStore;
+import io.kyligence.kap.common.scheduler.SchedulerEventBusFactory;
+import io.kyligence.kap.rest.scheduler.EventSchedulerListener;
+import io.kyligence.kap.rest.scheduler.FavoriteSchedulerListener;
+import io.kyligence.kap.rest.scheduler.JobSchedulerListener;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -84,6 +88,11 @@ public class AppInitializer {
 
         EventListenerRegistry.getInstance(kylinConfig).register(new FavoriteQueryUpdateListener(), "fq");
         event.getApplicationContext().publishEvent(new AppInitializedEvent(event.getApplicationContext()));
+
+        // register scheduler listener
+        SchedulerEventBusFactory.getInstance(kylinConfig).register(new EventSchedulerListener());
+        SchedulerEventBusFactory.getInstance(kylinConfig).register(new FavoriteSchedulerListener());
+        SchedulerEventBusFactory.getInstance(kylinConfig).register(new JobSchedulerListener());
     }
 
 }

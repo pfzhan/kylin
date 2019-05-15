@@ -142,7 +142,7 @@ public class FavoriteRuleService extends BasicService {
         if (!favoriteScheduler.hasStarted()) {
             throw new IllegalStateException("Auto favorite scheduler for " + project + " has not been started");
         }
-        favoriteScheduler.scheduleAutoFavorite();
+        favoriteScheduler.scheduleImmediately();
     }
 
     private void updateSingleRule(String project, String ruleName, FavoriteRuleUpdateRequest request) {

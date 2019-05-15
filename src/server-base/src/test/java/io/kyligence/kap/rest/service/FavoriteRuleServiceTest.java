@@ -220,7 +220,7 @@ public class FavoriteRuleServiceTest extends NLocalFileMetadataTestCase {
         request.setUsers(Lists.newArrayList("userA", "userB", "userC", "ADMIN"));
 
         favoriteRuleService.updateRegularRule(PROJECT, request);
-        Mockito.verify(favoriteScheduler).scheduleAutoFavorite();
+        Mockito.verify(favoriteScheduler).scheduleImmediately();
 
         // assert
         favoriteRuleResponse = favoriteRuleService.getFavoriteRules(PROJECT);

@@ -268,7 +268,7 @@ public class TableServiceTest extends NLocalFileMetadataTestCase {
 
         // reload table
         String[] tables = { "DEFAULT.TEST_KYLIN_FACT" };
-        List<Pair<TableDesc, TableExtDesc>> extractTableMeta = tableService.extractTableMeta(tables, "default", 9);
+        List<Pair<TableDesc, TableExtDesc>> extractTableMeta = tableService.extractTableMeta(tables, "default");
         tableService.loadTableToProject(extractTableMeta.get(0).getFirst(), extractTableMeta.get(0).getSecond(), "default");
         Assert.assertEquals(originSize, nTableMetadataManager.listAllTables().size());
         dataLoadingRange = dataLoadingRangeManager.getDataLoadingRange(tableName);

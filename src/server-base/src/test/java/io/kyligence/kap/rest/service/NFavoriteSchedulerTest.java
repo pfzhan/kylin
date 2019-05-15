@@ -35,7 +35,6 @@ import io.kyligence.kap.metadata.favorite.FavoriteRule;
 import io.kyligence.kap.metadata.favorite.FavoriteRuleManager;
 import lombok.val;
 import lombok.var;
-import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.security.KylinUserManager;
 import org.apache.kylin.rest.security.ManagedUser;
@@ -73,11 +72,14 @@ public class NFavoriteSchedulerTest extends NLocalFileMetadataTestCase {
         createTestFavoriteQuery();
         setUpTimeOffset();
         favoriteScheduler = Mockito.spy(new NFavoriteScheduler(PROJECT));
+
+        System.setProperty("kylin.favorite.query-history-scan-period.minutes", "1");
     }
 
     @After
     public void cleanUp() {
         cleanupTestMetadata();
+        System.clearProperty("kylin.favorite.query-history-scan-period.minutes");
     }
 
     private List<QueryHistory> queriesForTest() {
@@ -262,7 +264,7 @@ public class NFavoriteSchedulerTest extends NLocalFileMetadataTestCase {
         QueryHistoryTimeOffsetManager timeOffsetManager = QueryHistoryTimeOffsetManager.getInstance(getTestConfig(),
                 PROJECT);
         long startTime = timeOffsetManager.get().getAutoMarkTimeOffset();
-        Mockito.doReturn(startTime + getTestConfig().getQueryHistoryScanPeriod() * 2).when(favoriteScheduler)
+        Mockito.doReturn(startTime + getTestConfig().getQueryHistoryScanPeriod()).when(favoriteScheduler)
                 .getSystemTime();
 
         QueryHistory succeededQueryHistory = new QueryHistory();
@@ -505,16 +507,22 @@ public class NFavoriteSchedulerTest extends NLocalFileMetadataTestCase {
         int originFavoriteQuerySize = favoriteQueryManager.getAll().size();
         NFavoriteScheduler.AutoFavoriteRunner autoMarkFavoriteRunner = favoriteScheduler.new AutoFavoriteRunner();
 
-        // when current time is 00:00, auto mark runner scanned from 2018-01-01 00:00 to 2018-01-31 23:59:00
+        // when current time is 00:00, auto mark runner scanned from 2018-01-01 00:00 to 2018-02-01 00:00:00
         Mockito.doReturn(systemTime).when(favoriteScheduler).getSystemTime();
         autoMarkFavoriteRunner.run();
         Assert.assertEquals(originFavoriteQuerySize, favoriteQueryManager.getAll().size());
+        Assert.assertEquals(0, favoriteScheduler.getFrequencyStatuses().last().getSqlPatterns().size());
 
-        // current time is 02-01 00:01:00, triggered next round, runner scanned from 2018-01-31 23:59:00 to 2018-02-01 00:00:00, still get nothing
+        // current time is 02-01 00:01:00, triggered next round, runner scanned from 2018-02-01 00:00:00 to 2018-02-01 00:01:00
+        // scanned two queries
         Mockito.doReturn(systemTime + getTestConfig().getQueryHistoryScanPeriod()).when(favoriteScheduler)
                 .getSystemTime();
         autoMarkFavoriteRunner.run();
-        Assert.assertEquals(originFavoriteQuerySize, favoriteQueryManager.getAll().size());
+        Assert.assertEquals(originFavoriteQuerySize + 2, favoriteQueryManager.getAll().size());
+        Assert.assertTrue(
+                favoriteScheduler.getFrequencyStatuses().last().getSqlPatternFreqMap().containsKey("sql_pattern0"));
+        Assert.assertTrue(
+                favoriteScheduler.getFrequencyStatuses().last().getSqlPatternFreqMap().containsKey("sql_pattern1"));
 
         // at time 02-01 00:01:03, a query history is inserted into influxdb but with insert time as 00:00:59
         QueryHistory queryHistory = new QueryHistory("sql_pattern7", QueryHistory.QUERY_HISTORY_SUCCEEDED, "ADMIN",
@@ -522,24 +530,10 @@ public class NFavoriteSchedulerTest extends NLocalFileMetadataTestCase {
         queryHistory.setInsertTime(mockedQueryHistoryDao.getCurrentTime() + 59 * 1000L);
         queryHistory.setEngineType("HIVE");
         mockedQueryHistoryDao.insert(queryHistory);
-        Assert.assertTrue(CollectionUtils.isEmpty(favoriteScheduler.getFrequencyStatuses()));
 
-        // current time is 02-01 00:02:00, triggered next round, runner scanned from 2018-02-01 00:00:00 to 2018-02-01 00:01:00,
+        // current time is 02-01 00:02:00, triggered next round, runner scanned from 2018-02-01 00:01:00 to 2018-02-01 00:02:00,
         // scanned three new queries, and inserted them into database
         Mockito.doReturn(systemTime + getTestConfig().getQueryHistoryScanPeriod() * 2).when(favoriteScheduler)
-                .getSystemTime();
-        autoMarkFavoriteRunner.run();
-        Assert.assertEquals(originFavoriteQuerySize + 3, favoriteQueryManager.getAll().size());
-        Assert.assertTrue(
-                favoriteScheduler.getFrequencyStatuses().last().getSqlPatternFreqMap().containsKey("sql_pattern0"));
-        Assert.assertTrue(
-                favoriteScheduler.getFrequencyStatuses().last().getSqlPatternFreqMap().containsKey("sql_pattern1"));
-        Assert.assertTrue(
-                favoriteScheduler.getFrequencyStatuses().last().getSqlPatternFreqMap().containsKey("sql_pattern7"));
-
-        // current time is 02-01 00:03:00, triggered next round, runner scanned from 2018-02-01 00:01:00 to 2018-02-01 00:02:00
-        // scanned two new queries
-        Mockito.doReturn(systemTime + getTestConfig().getQueryHistoryScanPeriod() * 3).when(favoriteScheduler)
                 .getSystemTime();
         autoMarkFavoriteRunner.run();
         Assert.assertEquals(originFavoriteQuerySize + 5, favoriteQueryManager.getAll().size());
@@ -547,12 +541,14 @@ public class NFavoriteSchedulerTest extends NLocalFileMetadataTestCase {
                 favoriteScheduler.getFrequencyStatuses().last().getSqlPatternFreqMap().containsKey("sql_pattern2"));
         Assert.assertTrue(
                 favoriteScheduler.getFrequencyStatuses().last().getSqlPatternFreqMap().containsKey("sql_pattern3"));
+        Assert.assertTrue(
+                favoriteScheduler.getFrequencyStatuses().last().getSqlPatternFreqMap().containsKey("sql_pattern7"));
         Assert.assertTrue(favoriteScheduler.getOverAllStatus().getSqlPatternFreqMap().size() > 0);
 
-        // current time is 02-01 00:04:00, runner scanned from 2018-02-01 00:02:00 to 2018-02-01 00:03:00
+        // current time is 02-01 00:03:00, runner scanned from 2018-02-01 00:02:00 to 2018-02-01 00:03:00
         // scanned two new queries, but one is failed, which is not expected to be marked as favorite query, and the other is in blacklist
         // so no new query will be inserted to database
-        Mockito.doReturn(systemTime + getTestConfig().getQueryHistoryScanPeriod() * 4).when(favoriteScheduler)
+        Mockito.doReturn(systemTime + getTestConfig().getQueryHistoryScanPeriod() * 3).when(favoriteScheduler)
                 .getSystemTime();
         autoMarkFavoriteRunner.run();
         Assert.assertEquals(originFavoriteQuerySize + 5, favoriteQueryManager.getAll().size());

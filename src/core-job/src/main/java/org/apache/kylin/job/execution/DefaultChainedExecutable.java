@@ -44,6 +44,8 @@ package org.apache.kylin.job.execution;
 
 import java.util.List;
 
+import io.kyligence.kap.common.scheduler.JobFinishedNotifier;
+import io.kyligence.kap.common.scheduler.SchedulerEventBusFactory;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.constant.JobIssueEnum;
 import org.apache.kylin.job.exception.ExecuteException;
@@ -114,6 +116,9 @@ public class DefaultChainedExecutable extends AbstractExecutable implements Chai
 
     @Override
     protected void onExecuteFinished(ExecuteResult result, ExecutableContext executableContext) {
+        // dispatch job-finished message out
+        SchedulerEventBusFactory.getInstance(KylinConfig.getInstanceFromEnv()).postWithLimit(new JobFinishedNotifier(getProject()));
+
         if (isDiscarded() || isPaused()) {
             return;
         }

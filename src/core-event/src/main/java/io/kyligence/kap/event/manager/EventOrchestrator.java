@@ -220,4 +220,7 @@ public class EventOrchestrator {
             ExecutorServiceUtil.forceShutdown(checkerPool);
     }
 
+    public void fetchEventsImmediately() {
+        checkerPool.schedule(new EventChecker(), 1, TimeUnit.SECONDS);
+    }
 }

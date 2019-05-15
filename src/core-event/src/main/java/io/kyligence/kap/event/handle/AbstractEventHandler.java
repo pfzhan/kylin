@@ -45,6 +45,8 @@ package io.kyligence.kap.event.handle;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
+import io.kyligence.kap.common.scheduler.EventFinishedNotifier;
+import io.kyligence.kap.common.scheduler.SchedulerEventBusFactory;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.job.execution.ExecutableState;
@@ -90,6 +92,10 @@ public abstract class AbstractEventHandler implements EventHandler {
                 doHandle(eventContext);
                 return null;
             }, eventContext.getProject());
+
+            // dispatch event-finished message out
+            SchedulerEventBusFactory.getInstance(KylinConfig.getInstanceFromEnv())
+                    .postWithLimit(new EventFinishedNotifier(eventContext.getProject()));
         } catch (Exception e) {
             //TODO: how to handle error? will there be errors?
             throw e;
@@ -104,7 +110,6 @@ public abstract class AbstractEventHandler implements EventHandler {
             return null;
         }, eventContext.getProject());
     }
-
 
     protected boolean checkBeforeHandle(EventContext eventContext) {
         Event event = eventContext.getEvent();

@@ -124,4 +124,11 @@ public class EventOrchestratorManager {
             INSTANCE_MAP.remove(project);
         }
     }
+
+    public void fetchEventsImmediately(String project) {
+        val eventOrchestrator = getEventOrchestratorByProject(project);
+        if (eventOrchestrator != null) {
+            eventOrchestrator.fetchEventsImmediately();
+        }
+    }
 }

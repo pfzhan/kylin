@@ -42,6 +42,8 @@
 
 package io.kyligence.kap.event.manager;
 
+import io.kyligence.kap.common.scheduler.EventCreatedNotifier;
+import io.kyligence.kap.common.scheduler.SchedulerEventBusFactory;
 import org.apache.kylin.common.KylinConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -88,6 +90,9 @@ public class EventManager {
         } else {
             eventDao.addEvent(event);
         }
+
+        // dispatch event-created message out
+        SchedulerEventBusFactory.getInstance(config).postWithLimit(new EventCreatedNotifier(project));
     }
 
 }

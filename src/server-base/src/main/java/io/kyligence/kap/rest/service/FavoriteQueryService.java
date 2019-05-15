@@ -34,6 +34,8 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.common.scheduler.FavoriteQueryListNotifier;
+import io.kyligence.kap.common.scheduler.SchedulerEventBusFactory;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.collections.MapUtils;
 import org.apache.commons.lang.StringUtils;
@@ -148,6 +150,10 @@ public class FavoriteQueryService extends BasicService {
 
     public List<FavoriteQuery> filterAndSortFavoriteQueries(String project, String sortBy, boolean reverse,
             List<String> status) {
+        // trigger favorite scheduler to fetch latest query histories
+        SchedulerEventBusFactory.getInstance(KylinConfig.getInstanceFromEnv())
+                .postWithLimit(new FavoriteQueryListNotifier(project));
+
         List<FavoriteQuery> favoriteQueries = getFavoriteQueryManager(project).getAll();
         if (CollectionUtils.isNotEmpty(status)) {
             favoriteQueries = favoriteQueries.stream()

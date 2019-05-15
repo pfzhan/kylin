@@ -260,6 +260,10 @@ public class NDefaultScheduler implements Scheduler<AbstractExecutable>, Connect
         return ret;
     }
 
+    public void fetchJobsImmediately() {
+        fetcherPool.schedule(new FetcherRunner(), 1, TimeUnit.SECONDS);
+    }
+
     public static List<NDefaultScheduler> listAllSchedulers() {
         return Lists.newArrayList(INSTANCE_MAP.values());
     }

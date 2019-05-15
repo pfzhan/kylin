@@ -39,6 +39,8 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.common.scheduler.JobCreatedNotifier;
+import io.kyligence.kap.common.scheduler.SchedulerEventBusFactory;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -137,6 +139,9 @@ public class NExecutableManager {
     public void addJob(ExecutablePO executablePO) {
         addJobOutput(executablePO);
         executableDao.addJob(executablePO);
+
+        // dispatch job-created message out
+        SchedulerEventBusFactory.getInstance(config).postWithLimit(new JobCreatedNotifier(project));
     }
 
     private void addJobOutput(ExecutablePO executable) {

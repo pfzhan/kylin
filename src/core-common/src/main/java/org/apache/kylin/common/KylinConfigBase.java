@@ -1339,21 +1339,20 @@ abstract public class KylinConfigBase implements Serializable {
     }
 
     public int getAutoMarkFavoriteInterval() {
-        return Integer.parseInt(this.getOptional("kylin.favorite.auto-mark-detection-interval.minutes", "1")) * 60;
+        return Integer.parseInt(this.getOptional("kylin.favorite.auto-mark-detection-interval.minutes", "60")) * 60;
     }
 
     public int getFavoriteStatisticsCollectionInterval() {
-        return Integer.parseInt(this.getOptional("kylin.favorite.statistics-collection-interval.minutes", "1")) * 60;
+        return Integer.parseInt(this.getOptional("kylin.favorite.statistics-collection-interval.minutes", "60")) * 60;
     }
 
     public int getFavoriteAccelerateBatchSize() {
         return Integer.valueOf(this.getOptional("kylin.favorite.batch-accelerate-size", "500"));
     }
 
-    // only for internal use
     // unit of minute
     public long getQueryHistoryScanPeriod() {
-        return Long.valueOf(this.getOptional("kylin.favorite.query-history-scan-period.minutes", "1")) * 60 * 1000L;
+        return Long.valueOf(this.getOptional("kylin.favorite.query-history-scan-period.minutes", "60")) * 60 * 1000L;
     }
 
     // unit of month
@@ -1511,6 +1510,10 @@ abstract public class KylinConfigBase implements Serializable {
 
     public int getMetadataBackupCountThreshold() {
         return Integer.parseInt(getOptional("kylin.metadata.backup-count-threshold", "7"));
+    }
+
+    public int getSchedulerLimitPerMinute() {
+        return Integer.parseInt(getOptional("kylin.scheduler.schedule-limit-per-minute", "10"));
     }
 
 }
