@@ -2,6 +2,7 @@
   <el-dialog class="dimension-modal" width="1000px"
     :title="$t('editDimension') + ' (' + allColumnsCount(true) + '/' + allColumnsCount() + ')'"
     :visible="isShow"
+    top="5vh"
     :close-on-press-escape="false"
     :close-on-click-modal="false"
     v-event-stop
@@ -22,7 +23,7 @@
                 <span class="ksd-ml-2">
                   <i class="el-icon-ksd-fact_table"></i>
                 </span>
-                <span class="table-title">{{table.alias}} <span>({{countTableSelectColumns(table)}})</span></span>
+                <span class="table-title">{{table.alias}} <span>({{countTableSelectColumns(table)}}/{{table.columns.length}})</span></span>
               </div>
               <el-table
                 v-if="table.show || isGuideMode"
@@ -82,7 +83,7 @@
                 <span class="ksd-ml-2">
                   <i class="el-icon-ksd-lookup_table"></i>
                 </span>
-                <span class="table-title">{{table.alias}} <span>({{countTableSelectColumns(table)}})</span></span>
+                <span class="table-title">{{table.alias}} <span>({{countTableSelectColumns(table)}}/{{table.columns.length}})</span></span>
               </div>
               <el-table
                 v-if="table.show || isGuideMode"
@@ -140,7 +141,7 @@
                   <span class="ksd-ml-2">
                     <i class="el-icon-ksd-auto_computed_column"></i>
                   </span>
-                  <span class="table-title">{{$t('computedColumns')}} <span>({{countTableSelectColumns(ccTable)}})</span></span>
+                  <span class="table-title">{{$t('computedColumns')}} <span>({{countTableSelectColumns(ccTable)}}/{{ccTable.columns.length}})</span></span>
                 </div>
                 <el-table
                   v-if="ccTable.show || isGuideMode"
