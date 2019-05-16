@@ -77,7 +77,7 @@ export default {
     return Vue.resource(apiUrl + 'query/servers').get()
   },
   getWaitingAcceSize: (para) => {
-    return Vue.resource(apiUrl + 'query/favorite_queries/waiting_fq_size').get(para)
+    return Vue.resource(apiUrl + 'query/favorite_queries/size').get(para)
   },
   getFavoriteList: (para) => {
     return Vue.resource(apiUrl + 'query/favorite_queries{?status}').get(para)
@@ -92,7 +92,7 @@ export default {
     return Vue.resource(apiUrl + 'query/favorite_queries').save(para)
   },
   removeFavSql: (para) => {
-    return Vue.resource(apiUrl + 'query/favorite_queries').delete(para)
+    return Vue.resource(apiUrl + 'query/favorite_queries{?uuids}').delete(para)
   },
   loadBlackList: (para) => {
     return Vue.resource(apiUrl + 'query/favorite_queries/blacklist').get(para)

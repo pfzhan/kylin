@@ -66,7 +66,7 @@ exports.default = {
     fk: 'Foreign key',
     dimension: 'Dimension',
     measure: 'Measure',
-    disable: 'Disable',
+    disable: 'Add to the blacklist',
     totalSize: 'Total Size :',
     manual: 'Documentation',
     tutorial: 'Tutorial',
@@ -334,7 +334,8 @@ exports.default = {
     partlyAcce: 'Partial accelerated',
     ongoingAcce: 'Accelerating',
     wartingAcce: 'To be accelerated',
-    blocked: 'Blocked',
+    failed: 'Blocked',
+    pending: 'Pending',
     unAcce1: 'Not accelerated',
     unAcce: 'Not accelerated yet, click to mark it as favorite query'
   },

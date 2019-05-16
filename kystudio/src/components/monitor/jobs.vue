@@ -9,7 +9,7 @@
           </el-button>
           <el-dropdown-menu slot="dropdown">
             <el-dropdown-item v-for="(item, uuid) in waittingJobModels.data" :key="item.model_alias" :command="uuid">
-              {{$t('kylinLang.common.model')}}{{item.model_alias}}: {{item.size}}{{$t('jobs')}}
+              {{$t('kylinLang.common.model')}} {{item.model_alias}}: {{item.size}} {{$t('jobs')}}
             </el-dropdown-item>
           </el-dropdown-menu>
         </el-dropdown>
@@ -658,7 +658,7 @@ export default class JobsList extends Vue {
       return 'gray'
     }
     if (this.selectedJob.job_status === 'RUNNING') {
-      return 'primary'
+      return ''
     }
     if (this.selectedJob.job_status === 'FINISHED') {
       return 'success'
@@ -667,6 +667,9 @@ export default class JobsList extends Vue {
       return 'danger'
     }
     if (this.selectedJob.job_status === 'DISCARDED') {
+      return 'info'
+    }
+    if (this.selectedJob.job_status === 'STOPPED') {
       return ''
     }
   }

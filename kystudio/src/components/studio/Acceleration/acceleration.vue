@@ -1,14 +1,19 @@
 <template>
   <div id="favoriteQuery">
-    <div class="ksd-title-label ksd-mt-20 ksd-mb-10">
+    <div class="ksd-title-label ksd-mtb-20">
       <span>{{$t('acceleration')}}</span>
+    </div>
+    <div class="btn-groups ky-no-br-space">
+      <span class="guide-checkData" v-if="!waitingSQLSize"></span>
+      <el-button size="small" type="primary" v-guide.speedSqlNowBtn plain :disabled="!waitingSQLSize" :loading="isAcceSubmit" @click="applySpeed">{{$t('accelerateNow')}}</el-button>
+      <el-button size="small" type="primary" plain @click="openImportSql">{{$t('importSql')}}</el-button>
     </div>
     <div class="img-groups" v-guide.speedProcess>
       <div class="label-groups">
         <span>{{$t('kylinLang.query.wartingAcce')}}: {{waitingSQLSize}}</span>
         <span v-if="showGif" class="ongoing-label">{{$t('kylinLang.query.ongoingAcce')}}</span>
         <div class="pattern-num">
-          <p>{{patternNum}}</p>
+          <p v-if="listSizes">{{listSizes.accelerated}}</p>
           <p class="">{{$t('acceleratedSQL')}}</p>
         </div>
       </div>
@@ -18,29 +23,34 @@
       <div v-else class="img-block">
         <img src="../../../assets/img/bg1.jpg" width="735px" alt=""><img src="../../../assets/img/acc_light.png" class="ksd-ml-10" width="85px" alt="">
       </div>
-      <div class="btn-groups ksd-mt-10">
-        <span class="guide-checkData" v-if="!waitingSQLSize"></span>
-        <div class="btn-block">
-          <el-button size="small" type="primary" plain @click="openImportSql">{{$t('importSql')}}</el-button>
-        </div>
-        <div class="btn-block">
-          <el-button size="small" type="primary" v-guide.speedSqlNowBtn plain :disabled="!waitingSQLSize" :loading="isAcceSubmit" @click="applySpeed">{{$t('accelerateNow')}}</el-button>
-        </div>
-      </div>
     </div>
     <div class="fav-tables ksd-mt-25">
       <div class="btn-group">
-        <el-button size="small" type="primary" icon="el-icon-ksd-setting" plain @click="openRuleSetting">{{$t('ruleSetting')}}</el-button><el-button size="small" type="primary" icon="el-icon-ksd-table_discard" plain @click="openBlackList">{{$t('blackList')}}</el-button>
+        <!-- <el-button size="small" type="primary" icon="el-icon-ksd-setting" plain @click="openRuleSetting">{{$t('ruleSetting')}}</el-button><el-button size="small" type="primary" icon="el-icon-ksd-table_discard" plain @click="openBlackList">{{$t('blackList')}}</el-button> -->
+        <el-dropdown @command="handleCommand">
+          <el-button size="small" type="primary" plain class="el-dropdown-link">
+            {{$t('more')}}<i class="el-icon-arrow-down el-icon--right"></i>
+          </el-button>
+          <el-dropdown-menu slot="dropdown">
+            <el-dropdown-item command="ruleSetting">{{$t('ruleSetting')}}</el-dropdown-item>
+            <el-dropdown-item command="blackList">{{$t('blackList')}}</el-dropdown-item>
+          </el-dropdown-menu>
+        </el-dropdown>
       </div>
       <el-tabs v-model="activeList" type="card" @tab-click="handleClick">
-        <el-tab-pane name="wartingAcce">
-          <span slot="label">{{$t('waitingList')}}({{unAcceListSize}})</span>
-          <acceleration_table :favoriteTableData="favQueList.favorite_queries" :sortTable="sortFavoriteList" v-on:filterFav="filterFav"></acceleration_table>
+        <el-tab-pane name="waiting">
+          <span slot="label">{{$t('waitingList')}}<span v-if="listSizes">({{listSizes.waiting}})</span></span>
+          <acceleration_table tab="waiting" v-if="activeList=='waiting'" :favoriteTableData="favQueList.favorite_queries" v-on:sortTable="sortFavoriteList" v-on:filterFav="filterFav"></acceleration_table>
+          <kap-pager ref="favoriteQueryPager" class="ksd-center ksd-mtb-10" :totalSize="favQueList.size"  v-on:handleCurrentChange='pageCurrentChange'></kap-pager>
+        </el-tab-pane>
+        <el-tab-pane name="not_accelerated">
+          <span slot="label">{{$t('not_accelerated')}}<span v-if="listSizes">({{listSizes.not_accelerated}})</span></span>
+          <acceleration_table v-if="activeList=='not_accelerated'" :favoriteTableData="favQueList.favorite_queries" v-on:sortTable="sortFavoriteList" v-on:filterFav="filterFav" tab="not_accelerated"></acceleration_table>
           <kap-pager ref="favoriteQueryPager" class="ksd-center ksd-mtb-10" :totalSize="favQueList.size"  v-on:handleCurrentChange='pageCurrentChange'></kap-pager>
         </el-tab-pane>
         <el-tab-pane name="accelerated">
-          <span slot="label">{{$t('accelerated')}}({{patternNum}})</span>
-          <acceleration_table :favoriteTableData="favQueList.favorite_queries" :sortTable="sortFavoriteList" v-on:filterFav="filterFav" :isAccelerated="true"></acceleration_table>
+          <span slot="label">{{$t('accelerated')}}<span v-if="listSizes">({{listSizes.accelerated}})</span></span>
+          <acceleration_table  v-if="activeList=='accelerated'" :favoriteTableData="favQueList.favorite_queries" v-on:sortTable="sortFavoriteList" v-on:filterFav="filterFav" tab="accelerated"></acceleration_table>
           <kap-pager ref="favoriteQueryPager" class="ksd-center ksd-mtb-10" :totalSize="favQueList.size"  v-on:handleCurrentChange='pageCurrentChange'></kap-pager>
         </el-tab-pane>
       </el-tabs>
@@ -331,6 +341,7 @@ import sqlFormatter from 'sql-formatter'
   },
   locales: {
     'en': {
+      more: 'More',
       acceleration: 'Acceleration',
       importSql: 'Import SQL',
       pleImport: 'Please Import Files',
@@ -370,11 +381,16 @@ import sqlFormatter from 'sql-formatter'
       filesSizeError: 'Files cannot exceed 5M.',
       fileTypeError: 'Invalid file format。',
       waitingList: 'Waiting List',
+      not_accelerated: 'Not Accelerated',
       accelerated: 'Accelerated',
       uploadFileTips: 'Supported file formats are txt and sql. Supported file size is up to 5 MB.',
-      submitConfirm: '{unCheckedSQL} validated SQL statements are not selected, do you want to ignore them and submit anyway?'
+      submitConfirm: '{unCheckedSQL} validated SQL statements are not selected, do you want to ignore them and submit anyway?',
+      addSuccess: 'Suceess to imported {importedNum} new SQL statements to the waiting list',
+      existedMsg: '({existedNum} SQL statements are duplicated)',
+      end: '.'
     },
     'zh-cn': {
+      more: '更多',
       acceleration: '加速引擎',
       importSql: '导入SQL文件',
       pleImport: '请导入文件',
@@ -413,21 +429,28 @@ import sqlFormatter from 'sql-formatter'
       filesSizeError: '文件大小不能超过5M!',
       fileTypeError: '不支持的文件格式！',
       waitingList: '未加速',
+      not_accelerated: '加速失败',
       accelerated: '加速完毕',
       uploadFileTips: '支持的文件格式为 txt 和 sql，文件最大支持5MB。',
-      submitConfirm: '还有{unCheckedSQL}条正确的SQL未被选中，是否忽略并直接提交？'
+      submitConfirm: '还有{unCheckedSQL}条正确的SQL未被选中，是否忽略并直接提交？',
+      addSuccess: '导入的查询中，新增 {importedNum} 条进入待加速列表',
+      existedMsg: '（{existedNum} 条已经存在）',
+      end: '。'
     }
   }
 })
 export default class FavoriteQuery extends Vue {
   favQueList = {}
-  checkedStatus = ['WAITING', 'ACCELERATING', 'BLOCKED']
-  filterStatus = ['WAITING', 'ACCELERATING', 'BLOCKED']
-  activeList = 'wartingAcce'
+  checkedStatus = []
+  activeList = 'waiting'
+  statusMap = {
+    'waiting': ['TO_BE_ACCELERATED', 'ACCELERATING'],
+    'not_accelerated': ['PENDING', 'FAILED'],
+    'accelerated': ['ACCELERATED']
+  }
   showGif = false
+  listSizes = null
   waitingSQLSize = 0
-  unAcceListSize = 0
-  patternNum = 0
   isAcceSubmit = false
   importSqlVisible = false
   isUploaded = false
@@ -505,8 +528,15 @@ export default class FavoriteQuery extends Vue {
     return ''
   }
   handleClick () {
-    this.checkedStatus = this.activeList === 'wartingAcce' ? this.filterStatus : ['FULLY_ACCELERATED']
+    this.checkedStatus = []
     this.loadFavoriteList()
+  }
+  handleCommand (command) {
+    if (command === 'ruleSetting') {
+      this.openRuleSetting()
+    } else if (command === 'blackList') {
+      this.openBlackList()
+    }
   }
   applySpeed (event) {
     this.isAcceSubmit = true
@@ -515,7 +545,7 @@ export default class FavoriteQuery extends Vue {
       handleSuccess(res, (data) => {
         this.isAcceSubmit = false
         this.flyEvent(event)
-        this.getWaitingSQLSize()
+        this.getSQLSizes()
         this.showGif = true
         this.lockSpeedInfo({isLock: false})
       })
@@ -568,10 +598,9 @@ export default class FavoriteQuery extends Vue {
   }
 
   filterFav (checkedStatus) {
-    this.checkedStatus = checkedStatus.length ? checkedStatus : this.activeList === 'wartingAcce' ? ['WAITING', 'ACCELERATING', 'BLOCKED'] : ['FULLY_ACCELERATED']
-    this.filterStatus = this.checkedStatus
+    this.checkedStatus = checkedStatus
     this.loadFavoriteList()
-    this.getWaitingSQLSize()
+    this.getSQLSizes()
   }
 
   get modelSpeedEvents () {
@@ -649,44 +678,30 @@ export default class FavoriteQuery extends Vue {
       project: this.currentSelectedProject || null,
       limit: pageSize || 10,
       offset: pageIndex || 0,
-      status: this.checkedStatus,
+      status: !this.checkedStatus.length ? this.statusMap[this.activeList] : this.checkedStatus,
       sortBy: this.filterData.sortBy,
       reverse: this.filterData.reverse
     })
     const data = await handleSuccessAsync(res)
     this.favQueList = data
-    if (this.activeList === 'wartingAcce') {
-      this.unAcceListSize = data.size
-    } else {
-      this.patternNum = data.size
-    }
   }
 
   openImportSql () {
     this.importSqlVisible = true
   }
 
-  async getWaitingSQLSize () {
+  async getSQLSizes () {
     if (this.currentSelectedProject) {
       const res = await this.getWaitingAcceSize({project: this.currentSelectedProject})
       const data = await handleSuccessAsync(res)
-      this.waitingSQLSize = data
+      this.listSizes = data
+      this.waitingSQLSize = data.to_be_accelerated
     }
   }
 
   async init () {
-    this.getWaitingSQLSize()
+    this.getSQLSizes()
     this.loadFavoriteList()
-    const res = await this.getFavoriteList({
-      project: this.currentSelectedProject || null,
-      limit: 10,
-      offset: 0,
-      status: ['FULLY_ACCELERATED'],
-      sortBy: this.filterData.sortBy,
-      reverse: this.filterData.reverse
-    })
-    const data = await handleSuccessAsync(res)
-    this.patternNum = data.size
   }
 
   created () {
@@ -992,15 +1007,19 @@ export default class FavoriteQuery extends Vue {
     this.addTofavoriteList({project: this.currentSelectedProject, sqls: sqls}).then((res) => {
       handleSuccess(res, (data) => {
         this.submitSqlLoading = false
+        const importedMsg = this.$t('addSuccess', {importedNum: data.imported})
+        const existedMsg = data.imported < sqls.length ? this.$t('existedMsg', {existedNum: sqls.length - data.imported}) : ''
         this.$message({
           type: 'success',
-          message: this.$t('kylinLang.common.actionSuccess')
+          message: importedMsg + existedMsg + this.$t('end'),
+          duration: 0,
+          showClose: true
         })
         sqlsData.forEach((item) => {
           this.delWhite(item.id)
         })
         this.loadFavoriteList()
-        this.getWaitingSQLSize()
+        this.getSQLSizes()
         this.importSqlVisible = false
       })
     }, (res) => {

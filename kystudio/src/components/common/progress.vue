@@ -78,10 +78,10 @@ export default {
     }
     &.lose {
       .el-progress-bar__inner {
-        background-color: @color-info;
+        background-color: @text-placeholder-color;
       }
       i {
-        color: @color-info;
+        color: @text-placeholder-color;
       }
     }
     &.pause {

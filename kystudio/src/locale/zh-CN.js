@@ -65,7 +65,7 @@ exports.default = {
     fk: '外键',
     dimension: '维度',
     measure: '度量',
-    disable: '禁用',
+    disable: '加入黑名单',
     totalSize: '总大小 ：',
     manual: '文档',
     tutorial: '使用教程',
@@ -331,7 +331,8 @@ exports.default = {
     partlyAcce: '部分加速',
     ongoingAcce: '正在加速',
     wartingAcce: '待加速',
-    blocked: '无法加速',
+    failed: '无法加速',
+    pending: '缺失状态',
     unAcce1: '未加速',
     unAcce: '尚未加速，点击成为加速查询'
   },
