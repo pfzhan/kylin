@@ -157,7 +157,7 @@ public class DFBuildJob extends SparkApplication {
             for (IndexEntity index : toBuildCuboids) {
                 Preconditions.checkNotNull(parentDS, "Parent dataset is null when building.");
                 buildIndex(seg, index, parentDS, st);
-                allIndexesInCurrentLayer .add(index);
+                allIndexesInCurrentLayer.add(index);
             }
 
             if (needCache) {
@@ -242,7 +242,8 @@ public class DFBuildJob extends SparkApplication {
         dataCuboid.setBuildJobId(jobId);
         dataCuboid.setRows(metrics.getMetrics(Metrics.CUBOID_ROWS_CNT()));
         dataCuboid.setSourceRows(metrics.getMetrics(Metrics.SOURCE_ROWS_CNT()));
-        BuildUtils.repartitionIfNeed(layout, dataCuboid, storage, path, tempPath, KapConfig.wrap(config), ss);
+        val partitionNum = BuildUtils.repartitionIfNeed(layout, dataCuboid, storage, path, tempPath, KapConfig.wrap(config), ss);
+        dataCuboid.setPartitionNum(partitionNum);
         ss.sparkContext().setLocalProperty(QueryExecutionCache.N_EXECUTION_ID_KEY(), null);
         QueryExecutionCache.removeQueryExecution(queryExecutionId);
         BuildUtils.fillCuboidInfo(dataCuboid);

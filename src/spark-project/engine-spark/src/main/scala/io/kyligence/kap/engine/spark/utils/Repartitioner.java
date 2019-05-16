@@ -149,13 +149,15 @@ public class Repartitioner {
             logger.info("Start repartition and rewrite");
             long start = System.currentTimeMillis();
             Dataset<Row> data;
+            int repartitionNum = getRepartitionNum();
+
             if (needRepartitionForShardByColumns()) {
-                data = storage.getFrom(tempPath, ss).repartition(getRepartitionNum(),
+                data = storage.getFrom(tempPath, ss).repartition(repartitionNum,
                         NSparkCubingUtil.getColumns(getShardByColumns()));
             } else {
                 // repartition for single file size is too small
-                logger.info("repartition to {}", getRepartitionNum());
-                data = storage.getFrom(tempPath, ss).repartition(getRepartitionNum());
+                logger.info("repartition to {}", repartitionNum);
+                data = storage.getFrom(tempPath, ss).repartition(repartitionNum);
             }
             storage.saveTo(path, data, ss);
             if (readFileSystem.delete(tempResourcePath, true)) {

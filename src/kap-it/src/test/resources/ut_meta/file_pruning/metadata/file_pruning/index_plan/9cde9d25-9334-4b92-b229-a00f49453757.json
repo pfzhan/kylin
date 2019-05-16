@@ -1,5 +1,5 @@
 {
-  "uuid": "cd45b976-b9eb-4c32-9f5d-13d3a13a7da3",
+  "uuid": "9cde9d25-9334-4b92-b229-a00f49453757",
   "last_modified": 1509531215483,
   "version": "2.3.0.20500",
   "description": "test_description",
@@ -20,6 +20,9 @@
           "col_order": [
             0,
             100000
+          ],
+          "shard_by_columns": [
+            0
           ],
           "storage_type": 20
         }

@@ -1,13 +1,13 @@
 {
-  "uuid": "cd45b976-b9eb-4c32-9f5d-13d3a13a7da3",
-  "alias": "seg_pruning",
-  "fact_table": "DEFAULT.TEST_ORDER",
+  "uuid": "9cde9d25-9334-4b92-b229-a00f49453757",
+  "alias": "shard_pruning_with_chinese",
+  "fact_table": "DEFAULT.TEST_MEASURE",
   "owner": "ADMIN",
   "all_named_columns": [
     {
       "id": 0,
-      "name": "TEST_TIME_ENC",
-      "column": "TEST_ORDER.TEST_TIME_ENC",
+      "name": "name1",
+      "column": "TEST_MEASURE.name1",
       "status": "DIMENSION"
     }
   ],
@@ -30,7 +30,7 @@
   "last_modified": 1422435345352,
   "filter_condition": null,
   "partition_desc": {
-    "partition_date_column": "DEFAULT.TEST_ORDER.TEST_TIME_ENC",
+    "partition_date_column": null,
     "partition_date_start": 0,
     "partition_date_format" : "yyyy-MM-dd",
     "partition_time_format" : "HH:mm:ss",

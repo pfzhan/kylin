@@ -138,7 +138,7 @@ object KylinSourceStrategy extends Strategy with Logging {
   def apply(plan: LogicalPlan): Seq[SparkPlan] = plan match {
     case PhysicalOperation(projects, filters,
     l@LogicalRelation(fsRelation: HadoopFsRelation, _, table, _))
-      if fsRelation.location.isInstanceOf[SegmentPruner] =>
+      if fsRelation.location.isInstanceOf[FilePruner] =>
       // Filters on this relation fall into four categories based on where we can use them to avoid
       // reading unneeded data:
       //  - partition keys only - used to prune directories to read
@@ -162,11 +162,11 @@ object KylinSourceStrategy extends Strategy with Logging {
       val partitionSet = AttributeSet(partitionColumns)
       val partitionKeyFilters =
         ExpressionSet(normalizedFilters
-          .filterNot(SubqueryExpression.hasSubquery(_))
+          .filterNot(SubqueryExpression.hasSubquery)
           .filter(_.references.subsetOf(partitionSet)))
 
       // inject segment pruning //
-      fsRelation.location.asInstanceOf[SegmentPruner].resolve(l, fsRelation.sparkSession.sessionState.analyzer.resolver)
+      fsRelation.location.asInstanceOf[FilePruner].resolve(l, fsRelation.sparkSession.sessionState.analyzer.resolver)
       //      inject end       //
 
       logInfo(s"Pruning directories with: ${partitionKeyFilters.mkString(",")}")

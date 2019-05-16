@@ -173,8 +173,8 @@ public class DFMergeJob extends SparkApplication {
         dataCuboid.setSourceRows(sourceCount);
         dataCuboid.setBuildJobId(jobId);
 
-        BuildUtils.repartitionIfNeed(layout, dataCuboid, storage, path, tempPath, KapConfig.wrap(config), ss);
-
+        int partitionNum = BuildUtils.repartitionIfNeed(layout, dataCuboid, storage, path, tempPath, KapConfig.wrap(config), ss);
+        dataCuboid.setPartitionNum(partitionNum);
         ss.sparkContext().setLocalProperty(QueryExecutionCache.N_EXECUTION_ID_KEY(), null);
         QueryExecutionCache.removeQueryExecution(queryExecutionId);
 

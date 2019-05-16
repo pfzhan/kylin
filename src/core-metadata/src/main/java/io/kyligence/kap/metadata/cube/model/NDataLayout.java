@@ -67,6 +67,9 @@ public class NDataLayout implements Serializable {
     private long sourceRows;
     @JsonProperty("source_byte_size")
     private long sourceByteSize;
+    // partition num may be diff with file num
+    @JsonProperty("partition_num")
+    private int partitionNum;
     @Getter
     @JsonProperty("create_time")
     private long createTime;
@@ -157,6 +160,15 @@ public class NDataLayout implements Serializable {
     public void setFileCount(long fileCount) {
         checkIsNotCachedAndShared();
         this.fileCount = fileCount;
+    }
+
+    public int getPartitionNum() {
+        return partitionNum;
+    }
+
+    public void setPartitionNum(int partitionNum) {
+        checkIsNotCachedAndShared();
+        this.partitionNum = partitionNum;
     }
 
     // ============================================================================

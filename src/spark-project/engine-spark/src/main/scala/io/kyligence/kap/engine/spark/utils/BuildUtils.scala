@@ -50,7 +50,7 @@ object BuildUtils extends Logging {
       path: String,
       tempPath: String,
       kapConfig: KapConfig,
-      sparkSession: SparkSession): Unit = {
+      sparkSession: SparkSession): Int = {
     val fs = HadoopUtil.getReadFileSystem
     if (fs.exists(new Path(tempPath))) {
       val summary = fs.getContentSummary(new Path(tempPath))
@@ -58,14 +58,16 @@ object BuildUtils extends Logging {
       if (findCountDistinctMeasure(layout)) {
         repartitionThresholdSize = kapConfig.getParquetStorageCountDistinctShardSizeRowCount
       }
-      new Repartitioner(
+      val repartitioner = new Repartitioner(
         kapConfig.getParquetStorageShardSizeMB,
         kapConfig.getParquetStorageRepartitionThresholdSize,
         dataCuboid.getRows,
         repartitionThresholdSize,
         summary,
         layout.getShardByColumns
-      ).doRepartition(storage, path, sparkSession)
+      )
+      repartitioner.doRepartition(storage, path, sparkSession)
+      repartitioner.getRepartitionNum
     } else {
       throw new RuntimeException(
         String.format("Temp path does not exist before repartition. Temp path: %s.", tempPath))

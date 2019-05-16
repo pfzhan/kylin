@@ -349,7 +349,7 @@ class SparderRexVisitor(val df: DataFrame,
           case "round" | "truncate" =>
             round(
               k_lit(children.head),
-              children.apply(1).asInstanceOf[java.math.BigDecimal].intValue())
+              children.apply(1).asInstanceOf[Int])
           case "cot" =>
             k_lit(1).divide(tan(k_lit(children.head)))
 
@@ -373,7 +373,7 @@ class SparderRexVisitor(val df: DataFrame,
           case "position" =>
             val pos =
               if (children.length == 2) 0
-              else children.apply(2).asInstanceOf[BigDecimal].intValue()
+              else children.apply(2).asInstanceOf[Int]
             locate(children.head.toString, k_lit(children.apply(1)), pos)
           case "concat" =>
             concat(k_lit(children.head), k_lit(children.apply(1)))
@@ -486,7 +486,20 @@ class SparderRexVisitor(val df: DataFrame,
       case b: Boolean =>
         Some(b)
       case b: BigDecimal =>
-        Some(b)
+        literal.getType.getSqlTypeName match {
+          case SqlTypeName.BIGINT =>
+            Some(b.longValue())
+          case SqlTypeName.INTEGER =>
+            Some(b.intValue())
+          case SqlTypeName.DOUBLE =>
+            Some(b.doubleValue())
+          case SqlTypeName.FLOAT =>
+            Some(b.floatValue())
+          case SqlTypeName.SMALLINT =>
+            Some(b.shortValue())
+          case _ =>
+            Some(b)
+        }
       case b: Float =>
         Some(b)
       case b: Double =>

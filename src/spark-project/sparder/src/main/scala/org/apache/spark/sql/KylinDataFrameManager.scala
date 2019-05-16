@@ -22,7 +22,7 @@
 
 package org.apache.spark.sql
 
-import org.apache.spark.sql.execution.datasource.{KylinRelation, SegmentPruner}
+import org.apache.spark.sql.execution.datasource.{KylinRelation, FilePruner}
 import org.apache.spark.sql.execution.datasources._
 import org.apache.spark.sql.types.StructType
 
@@ -68,8 +68,9 @@ class KylinDataFrameManager(sparkSession: SparkSession) {
     option("dataflowId", relation.dataflow.getUuid)
     option("cuboidId", relation.cuboid.getId)
 
+    require(userSpecifiedSchema.isDefined, "for query qps, must provide schema")
     val cls = DataSource.lookupDataSource(source, sparkSession.sessionState.conf)
-    val indexCatalog = new SegmentPruner(sparkSession, options = extraOptions.toMap, userSpecifiedSchema)
+    val indexCatalog = new FilePruner(sparkSession, options = extraOptions.toMap, userSpecifiedSchema.get)
     sparkSession.baseRelationToDataFrame(
       HadoopFsRelation(
         indexCatalog,
