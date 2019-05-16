@@ -62,8 +62,42 @@ public class QueryPatternUtilTest {
                 + "FROM TDVT.CALCS CALCS GROUP BY 1";
         checkPattern(expected1, sql1);
 
-        String expected2 = "SELECT {fn CONVERT(1, SQL_DOUBLE) }\nFROM \"KYLIN_SALES\"";
-        String sql2 = "select {fn convert(1, double)} from kylin_sales";
+        String expected2 = "SELECT {fn CONVERT(1, SQL_DOUBLE) }\n" + "FROM \"KYLIN_SALES\"\n"
+                + "WHERE {fn CONVERT('1', SQL_DOUBLE) } = 1";
+        String sql2 = "select {fn convert(1, double)} from kylin_sales where {fn convert('2', double)} = 2.0";
+        checkPattern(expected2, sql2);
+
+        String expected3 = "SELECT {fn CONVERT(1, SQL_CHAR) }\n" + "FROM \"KYLIN_SALES\"\n"
+                + "WHERE {fn CONVERT('A', SQL_CHAR) } = 'A'";
+        String sql3 = "select {fn convert(1, char)} from kylin_sales where {fn convert('abc', char)} = 'abc'";
+        checkPattern(expected3, sql3);
+
+        String expected4 = "SELECT {fn CONVERT('123.34', SQL_DOUBLE) }\nFROM \"KYLIN_SALES\"\n"
+                + "WHERE {fn CONVERT('A', SQL_VARCHAR) } = 'A'";
+        String sql4 = "select {fn convert('123.34', double)} from kylin_sales where {fn convert('apple', varchar)} = 'apple'";
+        checkPattern(expected4, sql4);
+    }
+
+    @Test
+    public void testCastClause() {
+        String sql1 = "SELECT period_code, period_name, premium_flag  FROM (SELECT DISTINCT dim_period_week_d.period_code AS period_code, dim_period_week_d.period_name AS period_name, '1060101' AS premium_flag  FROM frpdb. dim_period_week_d dim_period_week_d   UNION  SELECT DISTINCT dim_period_week_view.period_code AS period_code,  dim_period_week_view.period_name AS period_name, '1060102' AS premium_flag    FROM frpdb. dim_period_week_view dim_period_week_view) period_d  WHERE period_d.premium_flag = '1060101'  AND substring(period_d.period_code, 1,   6) || '01' BETWEEN   CAST(CAST('20190430' AS bigint) - 50000 AS  VARCHAR(10)) AND '20190430' AND period_d.period_code >= '200001-1'  AND CAST(substring(period_d.period_code, 1, 4) AS sql_bigint) > 2016  ORDER BY period_code DESC";
+        String expected1 = "SELECT \"PERIOD_CODE\", \"PERIOD_NAME\", \"PREMIUM_FLAG\"\n"
+                + "FROM (SELECT DISTINCT \"DIM_PERIOD_WEEK_D\".\"PERIOD_CODE\" \"PERIOD_CODE\", \"DIM_PERIOD_WEEK_D\".\"PERIOD_NAME\" \"PERIOD_NAME\", '1060101' \"PREMIUM_FLAG\"\n"
+                + "FROM \"FRPDB\".\"DIM_PERIOD_WEEK_D\" \"DIM_PERIOD_WEEK_D\"\n" + "UNION\n"
+                + "SELECT DISTINCT \"DIM_PERIOD_WEEK_VIEW\".\"PERIOD_CODE\" \"PERIOD_CODE\", \"DIM_PERIOD_WEEK_VIEW\".\"PERIOD_NAME\" \"PERIOD_NAME\", '1060102' \"PREMIUM_FLAG\"\n"
+                + "FROM \"FRPDB\".\"DIM_PERIOD_WEEK_VIEW\" \"DIM_PERIOD_WEEK_VIEW\") \"PERIOD_D\"\n"
+                + "WHERE \"PERIOD_D\".\"PREMIUM_FLAG\" = 'A' AND SUBSTRING(\"PERIOD_D\".\"PERIOD_CODE\" FROM 1 FOR 1) || 'A' BETWEEN ASYMMETRIC CAST(CAST('1' AS BIGINT) - 1 AS VARCHAR(10)) AND 'A' AND \"PERIOD_D\".\"PERIOD_CODE\" >= 'A' AND CAST(SUBSTRING(\"PERIOD_D\".\"PERIOD_CODE\" FROM 1 FOR 1) AS \"SQL_BIGINT\") > 1\n"
+                + "ORDER BY \"PERIOD_CODE\" DESC";
+        checkPattern(expected1, sql1);
+
+        String sql2 = "SELECT period_code, period_name, premium_flag  FROM (SELECT DISTINCT dim_period_week_d.period_code AS period_code, dim_period_week_d.period_name AS period_name, '1060101' AS premium_flag  FROM frpdb. dim_period_week_d dim_period_week_d   UNION  SELECT DISTINCT dim_period_week_view.period_code AS period_code,  dim_period_week_view.period_name AS period_name, '1060102' AS premium_flag    FROM frpdb. dim_period_week_view dim_period_week_view) period_d  WHERE period_d.premium_flag = '1060101'  AND substring(period_d.period_code, 1,   6) || '01' BETWEEN   CAST(CAST('2019-04-30' AS sql_date) - 50000 AS  VARCHAR(10)) AND '20190430' AND period_d.period_code >= '200001-1'  AND CAST('2048.0' AS sql_decimal) > 2016  ORDER BY period_code DESC";
+        String expected2 = "SELECT \"PERIOD_CODE\", \"PERIOD_NAME\", \"PREMIUM_FLAG\"\n"
+                + "FROM (SELECT DISTINCT \"DIM_PERIOD_WEEK_D\".\"PERIOD_CODE\" \"PERIOD_CODE\", \"DIM_PERIOD_WEEK_D\".\"PERIOD_NAME\" \"PERIOD_NAME\", '1060101' \"PREMIUM_FLAG\"\n"
+                + "FROM \"FRPDB\".\"DIM_PERIOD_WEEK_D\" \"DIM_PERIOD_WEEK_D\"\n" + "UNION\n"
+                + "SELECT DISTINCT \"DIM_PERIOD_WEEK_VIEW\".\"PERIOD_CODE\" \"PERIOD_CODE\", \"DIM_PERIOD_WEEK_VIEW\".\"PERIOD_NAME\" \"PERIOD_NAME\", '1060102' \"PREMIUM_FLAG\"\n"
+                + "FROM \"FRPDB\".\"DIM_PERIOD_WEEK_VIEW\" \"DIM_PERIOD_WEEK_VIEW\") \"PERIOD_D\"\n"
+                + "WHERE \"PERIOD_D\".\"PREMIUM_FLAG\" = 'A' AND SUBSTRING(\"PERIOD_D\".\"PERIOD_CODE\" FROM 1 FOR 1) || 'A' BETWEEN ASYMMETRIC CAST(CAST('2010-01-01' AS \"SQL_DATE\") - 1 AS VARCHAR(10)) AND 'A' AND \"PERIOD_D\".\"PERIOD_CODE\" >= 'A' AND CAST('1' AS \"SQL_DECIMAL\") > 1\n"
+                + "ORDER BY \"PERIOD_CODE\" DESC";
         checkPattern(expected2, sql2);
     }
 
@@ -257,6 +291,26 @@ public class QueryPatternUtilTest {
             String sql = "select seller_name > 'abc', lstg_format_name from sales where lstg_format_name = 'kylin'";
             checkPattern(expected, sql);
         }
+        // test two SqlCharStringLiterals
+        {
+            String expected1 = "SELECT DISTINCT '1103102' \"PREMIUM_CODE\", '否' \"PREMIUM_NAME\"\n"
+                    + "FROM \"FRPDB\".\"DIM_OPTIONAL_DIMENSION_D\" \"DIM_OPTIONAL_DIMENSION_D\"\n"
+                    + "WHERE 'A' = 'A' AND 'A' = 'Z'\n" + "UNION ALL\n"
+                    + "SELECT \"DIM_OPTIONAL_DIMENSION_D\".\"OPTIONAL_DIMENSION_CODE\" \"PREMIUM_CODE\", \"DIM_OPTIONAL_DIMENSION_D\".\"OPTIONAL_DIMENSION_NAME\" \"PREMIUM_NAME\"\n"
+                    + "FROM \"FRPDB\".\"DIM_OPTIONAL_DIMENSION_D\" \"DIM_OPTIONAL_DIMENSION_D\"\n"
+                    + "WHERE \"DIM_OPTIONAL_DIMENSION_D\".\"OPTIONAL_DIMENSION_CODE\" IN ('A') AND 'A' <> 'A'";
+            String sql1 = "SELECT DISTINCT '1103102' AS PREMIUM_CODE, '否' AS PREMIUM_NAME  FROM FRPDB.DIM_OPTIONAL_DIMENSION_D DIM_OPTIONAL_DIMENSION_D WHERE '1030101' = '1030101' AND '104292' = '392101' UNION ALL SELECT DIM_OPTIONAL_DIMENSION_D.OPTIONAL_DIMENSION_CODE AS PREMIUM_CODE,       DIM_OPTIONAL_DIMENSION_D.OPTIONAL_DIMENSION_NAME AS PREMIUM_NAME  FROM FRPDB.DIM_OPTIONAL_DIMENSION_D DIM_OPTIONAL_DIMENSION_D WHERE DIM_OPTIONAL_DIMENSION_D.OPTIONAL_DIMENSION_CODE IN       ('1103101', '1103102')   AND '1030101' <> '1030101'";
+            checkPattern(expected1, sql1);
+
+            String expected2 = "SELECT DISTINCT '1103102' \"PREMIUM_CODE\", '否' \"PREMIUM_NAME\"\n"
+                    + "FROM \"FRPDB\".\"DIM_OPTIONAL_DIMENSION_D\" \"DIM_OPTIONAL_DIMENSION_D\"\n"
+                    + "WHERE 'A' = 'A' AND 'A' = 'A' AND 'A' = 'Z'\n" + "UNION ALL\n"
+                    + "SELECT \"DIM_OPTIONAL_DIMENSION_D\".\"OPTIONAL_DIMENSION_CODE\" \"PREMIUM_CODE\", \"DIM_OPTIONAL_DIMENSION_D\".\"OPTIONAL_DIMENSION_NAME\" \"PREMIUM_NAME\"\n"
+                    + "FROM \"FRPDB\".\"DIM_OPTIONAL_DIMENSION_D\" \"DIM_OPTIONAL_DIMENSION_D\"\n"
+                    + "WHERE \"DIM_OPTIONAL_DIMENSION_D\".\"OPTIONAL_DIMENSION_CODE\" IN ('A') AND 'A' <> 'Z'";
+            String sql2 = "SELECT DISTINCT '1103102' AS PREMIUM_CODE, '否' AS PREMIUM_NAME  FROM FRPDB.DIM_OPTIONAL_DIMENSION_D DIM_OPTIONAL_DIMENSION_D WHERE 'kylin' = 'kylin' AND 2 = 2 AND 'table' = 'desk' UNION ALL SELECT DIM_OPTIONAL_DIMENSION_D.OPTIONAL_DIMENSION_CODE AS PREMIUM_CODE,       DIM_OPTIONAL_DIMENSION_D.OPTIONAL_DIMENSION_NAME AS PREMIUM_NAME  FROM FRPDB.DIM_OPTIONAL_DIMENSION_D DIM_OPTIONAL_DIMENSION_D WHERE DIM_OPTIONAL_DIMENSION_D.OPTIONAL_DIMENSION_CODE IN       ('1103101', '1103102')   AND 'dimension' <> 'measure'";
+            checkPattern(expected2, sql2);
+        }
     }
 
     @Test
@@ -389,6 +443,21 @@ public class QueryPatternUtilTest {
                     + " where part_dt in (timestamp '1899-12-30 21:07:32', timestamp '1900-01-01 04:57:51', timestamp '1900-01-01 18:51:48')"
                     + " group by part_dt";
             checkPattern(expected3, sql3);
+        }
+        // test SqlCharStringLiteral in ('blah', 'blah')
+        {
+            String sql = "SELECT distinct '1050101' AS TIER_CODE, '分公司' AS TIER_NAME FROM DIM_OPTIONAL_DIMENSION_D WHERE '54' not in ('52','62','63') and '56' in ('45', '56', '75') UNION ALL SELECT DIM_OPTIONAL_DIMENSION_D.OPTIONAL_DIMENSION_CODE AS TIER_CODE, DIM_OPTIONAL_DIMENSION_D.OPTIONAL_DIMENSION_NAME AS TIER_NAME FROM DIM_OPTIONAL_DIMENSION_D DIM_OPTIONAL_DIMENSION_D WHERE '54' in('52','63') and '36' not in ('36', '45') and case when '54'='52' then DIM_OPTIONAL_DIMENSION_D.OPTIONAL_DIMENSION_CODE IN ('1050101', '1050102', '1050103', '1050104', '1050105', '1050107') when '54'='63' then DIM_OPTIONAL_DIMENSION_D.OPTIONAL_DIMENSION_CODE IN ('1050101', '1050102', '1050103') end union all SELECT DIM_OPTIONAL_DIMENSION_D.OPTIONAL_DIMENSION_CODE AS TIER_CODE, DIM_OPTIONAL_DIMENSION_D.OPTIONAL_DIMENSION_NAME AS TIER_NAME FROM DIM_OPTIONAL_DIMENSION_D DIM_OPTIONAL_DIMENSION_D WHERE '54' = '62' and DIM_OPTIONAL_DIMENSION_D.OPTIONAL_DIMENSION_CODE IN ('1050106', '1050108', '1050109')";
+            String expected = "SELECT DISTINCT '1050101' \"TIER_CODE\", '分公司' \"TIER_NAME\"\n"
+                    + "FROM \"DIM_OPTIONAL_DIMENSION_D\"\n" + "WHERE 'Z' NOT IN ('A') AND 'A' IN ('A')\n"
+                    + "UNION ALL\n"
+                    + "SELECT \"DIM_OPTIONAL_DIMENSION_D\".\"OPTIONAL_DIMENSION_CODE\" \"TIER_CODE\", \"DIM_OPTIONAL_DIMENSION_D\".\"OPTIONAL_DIMENSION_NAME\" \"TIER_NAME\"\n"
+                    + "FROM \"DIM_OPTIONAL_DIMENSION_D\" \"DIM_OPTIONAL_DIMENSION_D\"\n"
+                    + "WHERE 'Z' IN ('A') AND 'A' NOT IN ('A') AND CASE WHEN 'A' = 'Z' THEN \"DIM_OPTIONAL_DIMENSION_D\".\"OPTIONAL_DIMENSION_CODE\" IN ('A') WHEN 'A' = 'Z' THEN \"DIM_OPTIONAL_DIMENSION_D\".\"OPTIONAL_DIMENSION_CODE\" IN ('A') ELSE NULL END\n"
+                    + "UNION ALL\n"
+                    + "SELECT \"DIM_OPTIONAL_DIMENSION_D\".\"OPTIONAL_DIMENSION_CODE\" \"TIER_CODE\", \"DIM_OPTIONAL_DIMENSION_D\".\"OPTIONAL_DIMENSION_NAME\" \"TIER_NAME\"\n"
+                    + "FROM \"DIM_OPTIONAL_DIMENSION_D\" \"DIM_OPTIONAL_DIMENSION_D\"\n"
+                    + "WHERE 'A' = 'Z' AND \"DIM_OPTIONAL_DIMENSION_D\".\"OPTIONAL_DIMENSION_CODE\" IN ('A')";
+            checkPattern(expected, sql);
         }
     }
 

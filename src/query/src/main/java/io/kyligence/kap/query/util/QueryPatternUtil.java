@@ -51,6 +51,7 @@ import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlBasicCall;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlCharStringLiteral;
+import org.apache.calcite.sql.SqlDataTypeSpec;
 import org.apache.calcite.sql.SqlDateLiteral;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlIntervalLiteral;
@@ -165,16 +166,28 @@ public class QueryPatternUtil {
      * e.g. A > 10 -> "A" > 1
      *      A <= 6 -> "A" <= 2
      *      18 > A -> 2 > "A"
+     *      100 = 1000 -> 'A' = 'Z'
+     *      2 = 2 -> 'A' = 'A'
+     *      'abc' = 'abc' -> 'A' = 'A'
+     *      'ABC' = 'XYZ' -> 'A' = 'Z'
      *      A < 'Job' -> "A" < 'Z'
+     *      '12' in ('12', '15') -> 'A' in ('A')
+     *      '12' in ('13', '16') -> 'Z' in ('A')
+     *      '12' not in ('12', '14') -> 'A' not in ('A')
+     *      '13' not in ('12', '14') -> 'Z' not in ('A')
      *      A in (10, 20, 30) -> "A" in (1)
      *      A in (TIMESTAMP '2012-01-01 00:00:00.000', ...) -> "A" in (TIMESTAMP '2010-01-01 00:00:00')
      *      A in (Date '2018-03-08', ... ) -> "A" in (DATE '2010-01-01')
      *      A not in ('Bob', 'Sam') -> "A" NOT IN ('A')
-     *      A like "%10" -> "A" LIKE ''
+     *      A like "%10" -> "A" LIKE 'A'
      *      A between 10 and 20 -> "A" BETWEEN ASYMMETRIC 1 AND 1
      *      A <= '1998-10-10' -> "A" <= '2010-01-02'
      *      A > date '1950-03-29' -> A > DATE '2010-01-01'
      *      interval '10' year -> INTERVAL '1' DAY
+     *      {fn convert('123.34', double)} -> {fn CONVERT('1', SQL_DOUBLE)}
+     *      {fn CONVERT('apple', VARCHAR)} -> {fn CONVERT('A', SQL_VARCHAR)}
+     *      CAST('20191210' AS bigint) -> CAST('1' AS BIGINT)
+     *      CAST('abc' AS VARCHAR) -> CAST('A' AS VARCHAR)
      *
      * @param sqlToNormalize input SQL statement which needs to normalize
      * @return normalized SQL statement in uppercase, if there is a parsing error, return original SQL statement
@@ -233,6 +246,9 @@ public class QueryPatternUtil {
                     normalizeJdbcFunctionClause(basicCall);
                     break;
                 case AS: // select 2 as column_2 from tableA
+                    break;
+                case CAST:
+                    normalizeCastClause(basicCall);
                     break;
                 case EQUALS:
                 case NOT_EQUALS:
@@ -307,7 +323,7 @@ public class QueryPatternUtil {
 
         private SqlLiteral mockSqlCharStringLiteral(SqlLiteral literal, boolean useGreaterValue,
                 SqlParserPos position) {
-            Preconditions.checkArgument(literal instanceof SqlCharStringLiteral);
+
             final String value = literal.toValue();
             if (DateTimeCheckUtil.isValidDate(value)) {
                 return useGreaterValue ? SqlLiteral.createCharString(DEFAULT_DATE_GT, position)
@@ -323,14 +339,17 @@ public class QueryPatternUtil {
                     : SqlLiteral.createCharString("A", position);
         }
 
-        private SqlLiteral mockNumericStringLiteral(SqlLiteral literal, SqlParserPos position) {
-            Preconditions.checkArgument(literal instanceof SqlCharStringLiteral);
+        private SqlLiteral mockNumericStringLiteral(SqlLiteral literal, boolean useGreaterValue,
+                SqlParserPos position) {
+
             final Pattern pattern = Pattern.compile("[+-]?\\d+(\\.\\d+)?");
 
             if (pattern.matcher(literal.toValue()).matches()) {
-                return SqlLiteral.createCharString("1", position);
+                return useGreaterValue ? SqlLiteral.createCharString("2", position)
+                        : SqlLiteral.createCharString("1", position);
             } else {
-                return SqlLiteral.createCharString("A", position);
+                return useGreaterValue ? SqlLiteral.createCharString("Z", position)
+                        : SqlLiteral.createCharString("A", position);
             }
         }
 
@@ -349,6 +368,28 @@ public class QueryPatternUtil {
             }
         }
 
+        private void normalizeCastClause(SqlBasicCall basicCall) {
+            if (basicCall.getOperands().length != 2) {
+                return;
+            }
+
+            if (basicCall.getOperator().getKind() == SqlKind.CAST
+                    && basicCall.operand(0) instanceof SqlCharStringLiteral
+                    && basicCall.operand(1) instanceof SqlDataTypeSpec) {
+
+                final SqlLiteral value = basicCall.operand(0);
+                final SqlDataTypeSpec type = basicCall.operand(1);
+                final SqlParserPos pos = value.getParserPosition();
+                String dataType = type.getTypeName().toString();
+
+                if (DataTypeUtil.isNumeric(dataType)) {
+                    basicCall.setOperand(0, mockNumericStringLiteral(value, false, pos));
+                } else if (DataTypeUtil.isDateTime(dataType) || DataTypeUtil.isCharType(dataType)) {
+                    basicCall.setOperand(0, mockSqlCharStringLiteral(value, false, pos));
+                }
+            }
+        }
+
         private void normalizeJdbcFunctionClause(SqlBasicCall basicCall) {
             if (basicCall.getOperands().length != 2) {
                 return;
@@ -364,10 +405,10 @@ public class QueryPatternUtil {
 
                 Preconditions.checkArgument(type.getValue() instanceof SqlJdbcDataTypeName);
                 SqlJdbcDataTypeName convertedType = (SqlJdbcDataTypeName) type.getValue();
-                if (JdbcDataTypeUtil.isDateTime(convertedType)) {
+                if (JdbcDataTypeUtil.isDateTime(convertedType) || JdbcDataTypeUtil.isCharType(convertedType)) {
                     basicCall.setOperand(0, mockSqlCharStringLiteral(value, false, value.getParserPosition()));
                 } else if (JdbcDataTypeUtil.isNumeric(convertedType)) {
-                    basicCall.setOperand(0, mockNumericStringLiteral(value, value.getParserPosition()));
+                    basicCall.setOperand(0, mockNumericStringLiteral(value, false, value.getParserPosition()));
                 }
             }
         }
@@ -378,14 +419,29 @@ public class QueryPatternUtil {
                 return;
             }
 
+            SqlNode operand1 = basicCall.operand(0);
             SqlNodeList operand2 = basicCall.operand(1);
             if (operand2 == null || operand2.size() == 0) {
                 return;
             }
 
+            // '54' in ('52','63')
+            if (operand1 instanceof SqlCharStringLiteral) {
+                String op1Value = operand1.toString();
+                boolean inNodeList = false;
+                for (SqlNode node : operand2) {
+                    if (node.toString().equals(op1Value)) {
+                        inNodeList = true;
+                        break;
+                    }
+                }
+                // if op1 is in the nodelist, then 'A' in ('A'), else 'Z' in ('A')
+                basicCall.setOperand(0, mockSqlCharStringLiteral((SqlCharStringLiteral) operand1, !inNodeList,
+                        operand1.getParserPosition()));
+            }
+
             Set<SqlNode> nodeSet = Sets.newLinkedHashSet();
-            for (int i = 0; i < operand2.size(); i++) {
-                SqlNode node = operand2.get(i);
+            for (SqlNode node : operand2) {
                 if (node instanceof SqlLiteral) {
                     node = mockLiteral((SqlLiteral) node, false);
                 }
@@ -407,8 +463,20 @@ public class QueryPatternUtil {
 
             SqlNode operand1 = basicCall.operand(0);
             SqlNode operand2 = basicCall.operand(1);
-            // for case 1 = 2
             if (operand1 instanceof SqlLiteral && operand2 instanceof SqlLiteral) {
+                if (operand1.equals(operand2)) {
+                    // for case 100 = 100 or 'abc' = 'abc' or '10' = '10'
+                    basicCall.setOperand(0,
+                            mockSqlCharStringLiteral((SqlLiteral) operand1, false, operand1.getParserPosition()));
+                    basicCall.setOperand(1,
+                            mockSqlCharStringLiteral((SqlLiteral) operand2, false, operand2.getParserPosition()));
+                } else {
+                    // for case 2 = 5 or 'abc' = 'xyz'
+                    basicCall.setOperand(0,
+                            mockSqlCharStringLiteral((SqlLiteral) operand1, false, operand1.getParserPosition()));
+                    basicCall.setOperand(1,
+                            mockSqlCharStringLiteral((SqlLiteral) operand2, true, operand2.getParserPosition()));
+                }
                 return;
             }
 
@@ -435,6 +503,31 @@ public class QueryPatternUtil {
 
     }
 
+    private static class DataTypeUtil {
+        private static final Set<String> numericTypes = ImmutableSet.of("BIGINT", "SMALLINT", "TINYINT", "DOUBLE",
+                "FLOAT", "NUMERIC", "DECIMAL", "BOOLEAN", "INTEGER", "BINARY", "VARBINARY", "REAL", "SQL_BIGINT",
+                "SQL_SMALLINT", "SQL_TINYINT", "SQL_DOUBLE", "SQL_FLOAT", "SQL_REAL", "SQL_NUMERIC", "SQL_DECIMAL",
+                "SQL_BOOLEAN", "SQL_INTEGER", "SQL_BINARY", "SQL_VARBINARY");
+
+        private static final Set<String> datetimeTypes = ImmutableSet.of("DATE", "TIME", "TIME_WITH_LOCAL_TIME_ZONE",
+                "TIMESTAMP", "TIMESTAMP_WITH_LOCAL_TIME_ZONE", "SQL_DATE", "SQL_TIME", "SQL_TIME_WITH_LOCAL_TIME_ZONE",
+                "SQL_TIMESTAMP", "SQL_TIMESTAMP_WITH_LOCAL_TIME_ZONE");
+
+        private static final Set<String> charTypes = ImmutableSet.of("CHAR", "VARCHAR", "SQL_CHAR", "SQL_VARCHAR");
+
+        static boolean isCharType(String typeName) {
+            return charTypes.contains(typeName);
+        }
+
+        static boolean isDateTime(String typeName) {
+            return datetimeTypes.contains(typeName);
+        }
+
+        static boolean isNumeric(String typeName) {
+            return numericTypes.contains(typeName);
+        }
+    }
+
     private static class JdbcDataTypeUtil {
         // All used types are copied from enum of SqlJdbcDateTypeName in calcite.
         private static final Set<SqlJdbcDataTypeName> datetimeTypes = ImmutableSet.of(//
@@ -447,6 +540,13 @@ public class QueryPatternUtil {
                 SqlJdbcDataTypeName.SQL_INTEGER, SqlJdbcDataTypeName.SQL_BINARY, SqlJdbcDataTypeName.SQL_VARBINARY,
                 SqlJdbcDataTypeName.SQL_TINYINT, SqlJdbcDataTypeName.SQL_SMALLINT, SqlJdbcDataTypeName.SQL_BIGINT,
                 SqlJdbcDataTypeName.SQL_REAL, SqlJdbcDataTypeName.SQL_DOUBLE, SqlJdbcDataTypeName.SQL_FLOAT);
+
+        private static final Set<SqlJdbcDataTypeName> charTypes = ImmutableSet.of(SqlJdbcDataTypeName.SQL_CHAR,
+                SqlJdbcDataTypeName.SQL_VARCHAR);
+
+        static boolean isCharType(SqlJdbcDataTypeName typeName) {
+            return charTypes.contains(typeName);
+        }
 
         static boolean isDateTime(SqlJdbcDataTypeName typeName) {
             return datetimeTypes.contains(typeName);
