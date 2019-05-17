@@ -61,7 +61,7 @@ import scala.runtime.AbstractFunction1;
 @RunWith(TimeZoneTestRunner.class)
 public class NFilePruningTest extends NLocalWithSparkSessionTest {
 
-    private String base = "select count(*) FROM TEST_ORDER LEFT JOIN TEST_KYLIN_FACT ON TEST_KYLIN_FACT.ORDER_ID = TEST_ORDER.ORDER_ID ";
+    private String base = "select count(*)  FROM TEST_ORDER LEFT JOIN TEST_KYLIN_FACT ON TEST_KYLIN_FACT.ORDER_ID = TEST_ORDER.ORDER_ID ";
 
     @BeforeClass
     public static void initSpark() {
@@ -166,6 +166,17 @@ public class NFilePruningTest extends NLocalWithSparkSessionTest {
 
         assertResultsAndScanFiles(in_pruning0, 1);
         assertResultsAndScanFiles(in_pruning1, 0);
+
+        List<Pair<String, String>> query = new ArrayList<>();
+        query.add(Pair.newPair("base", base));
+        query.add(Pair.newPair("and_pruning0", and_pruning0));
+        query.add(Pair.newPair("and_pruning1", and_pruning1));
+        query.add(Pair.newPair("or_pruning0", or_pruning0));
+        query.add(Pair.newPair("or_pruning1", or_pruning1));
+        query.add(Pair.newPair("pruning0", pruning0));
+        query.add(Pair.newPair("pruning1", pruning1));
+        query.add(Pair.newPair("pruning2", pruning2));
+        NExecAndComp.execAndCompare(query, getProject(), NExecAndComp.CompareLevel.SAME, "default");
     }
 
     @Test

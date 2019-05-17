@@ -26,7 +26,8 @@ package io.kyligence.kap.query.runtime
 
 import java.lang.{Boolean, Byte, Double, Float, Long, Short}
 import java.math.BigDecimal
-import java.sql.Timestamp
+import java.sql.{Date, Timestamp}
+import java.util.GregorianCalendar
 
 import io.kyligence.kap.query.util.UnsupportedSparkFunctionException
 import org.apache.calcite.DataContext
@@ -359,9 +360,9 @@ class SparderRexVisitor(val df: DataFrame,
           case "round" =>
             round(
               k_lit(children.head),
-              children.apply(1).asInstanceOf[java.math.BigDecimal].intValue())
+              children.apply(1).asInstanceOf[Int])
           case "truncate" =>
-            kap_truncate(k_lit(children.head), children.apply(1).asInstanceOf[java.math.BigDecimal].intValue())
+            kap_truncate(k_lit(children.head), children.apply(1).asInstanceOf[Int])
           case "cot" =>
             k_lit(1).divide(tan(k_lit(children.head)))
 
@@ -385,7 +386,7 @@ class SparderRexVisitor(val df: DataFrame,
           case "position" =>
             val pos =
               if (children.length == 2) 0
-              else children.apply(2).asInstanceOf[BigDecimal].intValue()
+              else children.apply(2).asInstanceOf[Int]
             new Column(StringLocate(k_lit(children.head).expr, k_lit(children.apply(1)).expr, lit(pos).expr))
           case "concat" =>
             concat(k_lit(children.head), k_lit(children.apply(1)))
