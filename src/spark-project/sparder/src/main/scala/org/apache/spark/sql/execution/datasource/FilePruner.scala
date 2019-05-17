@@ -178,7 +178,7 @@ class FilePruner(val session: SparkSession,
       selected
     }
 
-    logInfo(s"Selected files after $pruningType:" + filteredPartitions.flatMap(_.files).mkString(","))
+    logInfo(s"Selected files after $pruningType pruning:" + filteredPartitions.flatMap(_.files).map(_.getPath.toString).mkString(";"))
 
     filteredPartitions
   }
