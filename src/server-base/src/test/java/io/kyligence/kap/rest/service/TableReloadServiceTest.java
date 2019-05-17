@@ -120,9 +120,7 @@ public class TableReloadServiceTest extends ServiceTestBase {
         //     nmodel_basic: 21,25,29,30
         //     nmodel_basic_inner: 21,25
         //     all_fixed_length: 21,25
-        Assert.assertEquals(4, response.getRemoveDimModelCount());
         Assert.assertEquals(10, response.getRemoveDimCount());
-        Assert.assertEquals(0, response.getRemoveMeasureModelCount());
     }
 
     @Test
@@ -137,7 +135,6 @@ public class TableReloadServiceTest extends ServiceTestBase {
         //     nmodel_basic: 27,33,34,35,36,38
         //     nmodel_basic_inner: 27,29,30,31,32
         //     all_fixed_length: 11
-        Assert.assertEquals(3, response.getRemoveDimModelCount());
         Assert.assertEquals(12, response.getRemoveDimCount());
 
         // affect measure:
@@ -145,10 +142,7 @@ public class TableReloadServiceTest extends ServiceTestBase {
         //     nmodel_basic: 100001,100002,100003,100009,100011,100013,100016,100015
         //     nmodel_basic_inner: 100001,100002,100003,100009,100011,100013,100016,100015
         //     all_fixed_length: 100001,100002,100003,100009,100011
-        Assert.assertEquals(4, response.getRemoveMeasureModelCount());
         Assert.assertEquals(26, response.getRemoveMeasureCount());
-
-        Assert.assertEquals(2, response.getBrokenFavoriteQueryCount());
     }
 
     @Test

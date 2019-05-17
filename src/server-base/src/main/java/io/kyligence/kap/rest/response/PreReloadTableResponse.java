@@ -23,11 +23,13 @@
  */
 package io.kyligence.kap.rest.response;
 
-import org.codehaus.jackson.annotate.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
-import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
 
-@Data
+@Getter
+@Setter
 public class PreReloadTableResponse {
 
     @JsonProperty("add_column_count")
@@ -36,19 +38,19 @@ public class PreReloadTableResponse {
     @JsonProperty("remove_column_count")
     private long removeColumnCount;
 
-    @JsonProperty("broken_favorite_query_count")
-    private long brokenFavoriteQueryCount;
+    @JsonProperty("data_type_change_column_count")
+    private long dataTypeChangeColumnCount;
 
-    @JsonProperty("remove_dimension_model_count")
-    private long removeDimModelCount;
+    @JsonProperty("broken_model_count")
+    private long brokenModelCount;
 
-    @JsonProperty("remove_dimension_count")
+    @JsonProperty("remove_measures_count")
+    private long removeMeasureCount;
+
+    @JsonProperty("remove_dimensions_count")
     private long removeDimCount;
 
-    @JsonProperty("remove_measure_model_count")
-    private long removeMeasureModelCount;
-
-    @JsonProperty("remove_measure_count")
-    private long removeMeasureCount;
+    @JsonProperty("remove_indexes_count")
+    private long removeIndexesCount;
 
 }

@@ -848,19 +848,23 @@ public class TableService extends BasicService {
     @Transaction(project = 0, readonly = true)
     public PreReloadTableResponse preProcessBeforeReload(String project, String tableIdentity) throws Exception {
         val context = calcReloadContext(project, tableIdentity);
-
         val result = new PreReloadTableResponse();
         result.setAddColumnCount(context.getAddColumns().size());
         result.setRemoveColumnCount(context.getRemoveColumns().size());
         result.setRemoveDimCount(context.getRemoveAffectedModels().values().stream()
                 .map(ReloadTableAffectedModelContext::getDimensions).mapToLong(Set::size).sum());
-        result.setRemoveDimModelCount(
-                context.getRemoveAffectedModels().values().stream().filter(m -> !m.getDimensions().isEmpty()).count());
+        result.setDataTypeChangeColumnCount(context.getChangeTypeColumns().size());
+        val projectInstance = getProjectManager().getProject(project);
+        if (projectInstance.getMaintainModelType() == MaintainModelType.MANUAL_MAINTAIN) {
+            val affectedModels = Maps.newHashMap(context.getChangeTypeAffectedModels());
+            affectedModels.putAll(context.getRemoveAffectedModels());
+            result.setBrokenModelCount(
+                    affectedModels.values().stream().filter(ReloadTableAffectedModelContext::isBroken).count());
+        }
         result.setRemoveMeasureCount(context.getRemoveAffectedModels().values().stream()
                 .map(ReloadTableAffectedModelContext::getMeasures).mapToLong(Set::size).sum());
-        result.setRemoveMeasureModelCount(
-                context.getRemoveAffectedModels().values().stream().filter(m -> !m.getMeasures().isEmpty()).count());
-        result.setBrokenFavoriteQueryCount(context.getFavoriteQueries().size());
+        result.setRemoveIndexesCount(
+                context.getRemoveAffectedModels().values().stream().filter(m -> !m.getIndexes().isEmpty()).count());
 
         return result;
     }
@@ -1061,7 +1065,7 @@ public class TableService extends BasicService {
     ReloadTableContext calcReloadContext(String project, String tableIdentity) throws Exception {
         val context = new ReloadTableContext();
         val tableMeta = extractTableMeta(new String[] { tableIdentity }, project).get(0);
-        val newTableDesc = tableMeta.getFirst();
+        val newTableDesc = new TableDesc(tableMeta.getFirst());
         context.setTableDesc(newTableDesc);
         context.setTableExtDesc(tableMeta.getSecond());
 
@@ -1086,11 +1090,13 @@ public class TableService extends BasicService {
             val keyColumns = model.getJoinTables().stream().flatMap(join -> Stream
                     .concat(Stream.of(join.getJoin().getPrimaryKey()), Stream.of(join.getJoin().getForeignKey())))
                     .collect(Collectors.toSet());
-            if (model.getPartitionDesc().getPartitionDateColumnRef() != null) {
-                keyColumns.add(model.getPartitionDesc().getPartitionDateColumnRef().getIdentity());
-            }
-            if (model.getPartitionDesc().getPartitionTimeColumnRef() != null) {
-                keyColumns.add(model.getPartitionDesc().getPartitionTimeColumnRef().getIdentity());
+            if (model.getPartitionDesc() != null) {
+                if (model.getPartitionDesc().getPartitionDateColumnRef() != null) {
+                    keyColumns.add(model.getPartitionDesc().getPartitionDateColumnRef().getIdentity());
+                }
+                if (model.getPartitionDesc().getPartitionTimeColumnRef() != null) {
+                    keyColumns.add(model.getPartitionDesc().getPartitionTimeColumnRef().getIdentity());
+                }
             }
             affectedModel.setBroken(!Sets.intersection(affectedModel.getColumns(), keyColumns).isEmpty());
         }

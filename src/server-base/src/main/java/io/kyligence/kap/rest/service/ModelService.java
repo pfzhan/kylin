@@ -203,8 +203,7 @@ public class ModelService extends BasicService {
             }
         }
         val sortModelResponses = sortModelResponses(sortBy, reverse, filterModels);
-        if ((StringUtils.isBlank(status) || RealizationStatusEnum.BROKEN.toString().equalsIgnoreCase(status))
-                && StringUtils.isBlank(modelAlias) && StringUtils.isBlank(owner)) {
+        if ((StringUtils.isBlank(status) || RealizationStatusEnum.BROKEN.toString().equalsIgnoreCase(status))) {
             sortModelResponses.addAll(brokenModels);
         }
         return sortModelResponses;

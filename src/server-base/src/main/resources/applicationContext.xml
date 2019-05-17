@@ -36,7 +36,7 @@
     <description>Kylin Rest Service</description>
     <context:annotation-config/>
     <mvc:annotation-driven/>
-    <aop:aspectj-autoproxy/>
+    <aop:aspectj-autoproxy proxy-target-class="true" expose-proxy="true"/>
 
     <context:component-scan base-package="org.apache.kylin.rest"/>
     <context:component-scan base-package="io.kyligence"/>

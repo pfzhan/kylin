@@ -21,45 +21,22 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+
 package io.kyligence.kap.rest.request;
 
-import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
-import lombok.Data;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Getter;
-import lombok.ToString;
-import org.apache.kylin.metadata.model.TableDesc;
-import org.apache.kylin.metadata.model.TableExtDesc;
+import lombok.Setter;
 
-import java.util.Map;
-import java.util.Set;
-import java.util.stream.Collectors;
-
-@Data
-@ToString
-public class ReloadTableContext {
-
-    private Map<String, ReloadTableAffectedModelContext> removeAffectedModels = Maps.newHashMap();
-
-    private Map<String, ReloadTableAffectedModelContext> changeTypeAffectedModels = Maps.newHashMap();
-
-    private Set<String> favoriteQueries = Sets.newHashSet();
-
-    private Set<String> addColumns = Sets.newHashSet();
-
-    private Set<String> removeColumns = Sets.newHashSet();
-
-    private Set<String> changeTypeColumns = Sets.newHashSet();
-
-    private TableDesc tableDesc;
-
-    private TableExtDesc tableExtDesc;
-
-    @Getter(lazy = true)
-    private final Set<String> removeColumnFullnames = initRemoveColumnFullnames();
-
-    Set<String> initRemoveColumnFullnames() {
-        return removeColumns.stream().map(col -> tableDesc.getName() + "." + col).collect(Collectors.toSet());
-    }
-
+@Getter
+@Setter
+public class ReloadTableRequest {
+    @JsonProperty("project")
+    private String project;
+    @JsonProperty("table")
+    private String table;
+    @JsonProperty("need_sample")
+    private boolean needSample;
+    @JsonProperty("max_rows")
+    private int maxRows;
 }

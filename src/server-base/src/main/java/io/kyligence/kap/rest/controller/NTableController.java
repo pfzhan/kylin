@@ -30,6 +30,8 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.rest.request.ReloadTableRequest;
+import lombok.val;
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.metadata.model.TableDesc;
@@ -368,4 +370,33 @@ public class NTableController extends NBasicController {
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, null, "");
     }
 
+    @RequestMapping(value = "/prepare_reload", method = { RequestMethod.GET }, produces = {
+            "application/vnd.apache.kylin-v2+json" })
+    @ResponseBody
+    public EnvelopeResponse preReloadTable(@RequestParam(value = "project") String project,
+            @RequestParam(value = "table") String table) {
+        checkProjectName(project);
+        try {
+            val result = tableService.preProcessBeforeReload(project, table);
+            return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, result, "");
+        } catch (Exception e) {
+            throw new BadRequestException("prepare reload table error", ResponseCode.CODE_UNDEFINED, e);
+        }
+    }
+
+    @RequestMapping(value = "/reload", method = { RequestMethod.POST }, produces = {
+            "application/vnd.apache.kylin-v2+json" })
+    @ResponseBody
+    public EnvelopeResponse reloadTable(@RequestBody ReloadTableRequest request) {
+        checkProjectName(request.getProject());
+        if (StringUtils.isEmpty(request.getTable())) {
+            throw new BadRequestException("table name must be specified!");
+        }
+        try {
+            tableService.reloadTable(request.getProject(), request.getTable());
+            return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, null, "");
+        } catch (Exception e) {
+            throw new BadRequestException("reload table error", ResponseCode.CODE_UNDEFINED, e);
+        }
+    }
 }
