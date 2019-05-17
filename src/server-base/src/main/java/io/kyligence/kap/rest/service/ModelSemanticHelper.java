@@ -39,16 +39,17 @@ import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.JsonUtil;
-import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.FunctionDesc;
 import org.apache.kylin.metadata.model.JoinTableDesc;
 import org.apache.kylin.metadata.model.ParameterDesc;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.Segments;
+import org.apache.kylin.metadata.model.TableRef;
 import org.apache.kylin.metadata.model.TblColRef;
 import org.apache.kylin.rest.service.BasicService;
 import org.springframework.stereotype.Service;
 
+import com.google.common.base.Functions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -84,15 +85,14 @@ public class ModelSemanticHelper extends BasicService {
             NDataModel dataModel = JsonUtil.readValue(JsonUtil.writeValueAsString(modelRequest), NDataModel.class);
             dataModel.setUuid(modelRequest.getUuid() != null ? modelRequest.getUuid() : UUID.randomUUID().toString());
             dataModel.setAllMeasures(convertMeasure(simplifiedMeasures));
-            dataModel.setAllNamedColumns(convertNamedColumns(modelRequest.getProject(), dataModel, modelRequest));
+            dataModel.setAllNamedColumns(convertNamedColumns(modelRequest.getProject(), dataModel));
             return dataModel;
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
     }
 
-    private List<NDataModel.NamedColumn> convertNamedColumns(String project, NDataModel dataModel,
-            ModelRequest modelRequest) {
+    private List<NDataModel.NamedColumn> convertNamedColumns(String project, NDataModel dataModel) {
         NTableMetadataManager tableManager = NTableMetadataManager.getInstance(KylinConfig.getInstanceFromEnv(),
                 project);
         List<JoinTableDesc> allTables = Lists.newArrayList();
@@ -103,7 +103,7 @@ public class ModelSemanticHelper extends BasicService {
         allTables.add(rootFactTable);
         allTables.addAll(dataModel.getJoinTables());
 
-        List<NDataModel.NamedColumn> simplifiedColumns = modelRequest.getSimplifiedDimensions();
+        List<NDataModel.NamedColumn> simplifiedColumns = dataModel.getAllNamedColumns();
         Map<String, NDataModel.NamedColumn> dimensionNameMap = Maps.newHashMap();
         for (NDataModel.NamedColumn namedColumn : simplifiedColumns) {
             dimensionNameMap.put(namedColumn.getAliasDotColumn(), namedColumn);
@@ -115,7 +115,8 @@ public class ModelSemanticHelper extends BasicService {
             val tableDesc = tableManager.getTableDesc(joinTable.getTable());
             boolean isFact = joinTable.getKind() == NDataModel.TableKind.FACT;
             val alias = StringUtils.isEmpty(joinTable.getAlias()) ? tableDesc.getName() : joinTable.getAlias();
-            for (ColumnDesc column : modelRequest.getColumnsFetcher().apply(tableDesc, !isFact)) {
+            val tableRef = new TableRef(dataModel, alias, tableDesc, !isFact);
+            for (TblColRef column : tableRef.getColumns()) {
                 val namedColumn = new NDataModel.NamedColumn();
                 namedColumn.setId(id++);
                 namedColumn.setName(column.getName());
@@ -222,7 +223,7 @@ public class ModelSemanticHelper extends BasicService {
 
         //Move unused named column to EXIST status
         originModel.getAllNamedColumns().stream().filter(NDataModel.NamedColumn::isDimension)
-                .filter(column -> request.getSimplifiedDimensions().stream()
+                .filter(column -> request.getDimensions().stream()
                         .noneMatch(dimension -> dimension.getAliasDotColumn().equals(column.getAliasDotColumn())))
                 .forEach(c -> c.setStatus(NDataModel.ColumnStatus.EXIST));
     }
@@ -309,7 +310,7 @@ public class ModelSemanticHelper extends BasicService {
             val oldRule = indexPlan.getRuleBasedIndex();
             handleMeasuresChanged(indexPlan, newModel.getEffectiveMeasureMap().keySet(), (copyForWrite, rule) -> {
                 copyForWrite.setRuleBasedIndex(rule);
-                handleIndexPlanUpdateRule(project, model, oldRule, rule, false);
+                handleCubeUpdateRule(project, model, oldRule, rule);
             }, indePlanManager);
         }
         // dimension deleted: previous step is remove dimensions in rule,
@@ -406,19 +407,18 @@ public class ModelSemanticHelper extends BasicService {
         eventManager.post(postAddCuboidEvent);
     }
 
-    public void handleIndexPlanUpdateRule(String project, String model, NRuleBasedIndex oldRule,
-            NRuleBasedIndex newRule, boolean forceFireEvent) {
-        log.debug("handle indexPlan udpate rule {} {}", project, model);
+    public void handleCubeUpdateRule(String project, String model, NRuleBasedIndex oldRule, NRuleBasedIndex newRule) {
         val kylinConfig = KylinConfig.getInstanceFromEnv();
         val eventManager = EventManager.getInstance(kylinConfig, project);
 
         val originLayouts = oldRule == null ? Sets.<LayoutEntity> newHashSet() : oldRule.genCuboidLayouts();
         val targetLayouts = newRule.genCuboidLayouts();
 
-        val difference = Sets.difference(targetLayouts, originLayouts);
+        val difference = Maps.difference(Maps.asMap(originLayouts, Functions.identity()),
+                Maps.asMap(targetLayouts, Functions.identity()));
 
         // new cuboid
-        if (difference.size() > 0 || forceFireEvent) {
+        if (difference.entriesOnlyOnRight().size() > 0) {
             AddCuboidEvent addCuboidEvent = new AddCuboidEvent();
             addCuboidEvent.setModelId(model);
             addCuboidEvent.setJobId(UUID.randomUUID().toString());

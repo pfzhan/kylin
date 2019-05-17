@@ -275,7 +275,7 @@ public class ModelSemanticTest extends AbstractMVCIntegrationTestCase {
         request.setSimplifiedMeasures(model.getAllMeasures().stream().filter(m -> !m.tomb)
                 .map(SimplifiedMeasure::fromMeasure).collect(Collectors.toList()));
         request.setComputedColumnDescs(model.getComputedColumnDescs());
-        request.setSimplifiedDimensions(model.getAllNamedColumns().stream()
+        request.setAllNamedColumns(model.getAllNamedColumns().stream()
                 .filter(c -> c.getStatus() == NDataModel.ColumnStatus.DIMENSION).collect(Collectors.toList()));
         request.setJoinTables(
                 request.getJoinTables().stream().peek(j -> j.getJoin().setType("inner")).collect(Collectors.toList()));
@@ -300,7 +300,7 @@ public class ModelSemanticTest extends AbstractMVCIntegrationTestCase {
                     }
                 }).collect(Collectors.toList()));
         request.setComputedColumnDescs(model.getComputedColumnDescs());
-        request.setSimplifiedDimensions(model.getAllNamedColumns().stream()
+        request.setAllNamedColumns(model.getAllNamedColumns().stream()
                 .filter(c -> c.getStatus() == NDataModel.ColumnStatus.DIMENSION).collect(Collectors.toList()));
         request.setJoinTables(request.getJoinTables());
         mockMvc.perform(MockMvcRequestBuilders.put("/api/models/semantic").contentType(MediaType.APPLICATION_JSON)

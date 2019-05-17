@@ -144,17 +144,17 @@ public class ModelServiceSemanticUpdateTest extends NLocalFileMetadataTestCase {
         // Add dimension which uses TEST_CC_1, column will be renamed
         {
             ModelRequest request = newSemanticRequest();
-//            Assert.assertEquals(-1, request.getColumnIdByColumnName("TEST_KYLIN_FACT.TEST_CC_1"));
+            Assert.assertEquals(-1, request.getColumnIdByColumnName("TEST_KYLIN_FACT.TEST_CC_1"));
             NamedColumn newDimension = new NamedColumn();
             newDimension.setName("TEST_DIM_WITH_CC");
             newDimension.setAliasDotColumn("TEST_KYLIN_FACT.TEST_CC_1");
             newDimension.setStatus(ColumnStatus.DIMENSION);
-            request.getSimplifiedDimensions().add(newDimension);
+            request.getAllNamedColumns().add(newDimension);
             modelService.updateDataModelSemantic(request.getProject(), request);
 
             ModelRequest requestToVerify = newSemanticRequest();
             Assert.assertEquals(colIdOfCC, requestToVerify.getColumnIdByColumnName("TEST_KYLIN_FACT.TEST_CC_1"));
-            NamedColumn dimensionToVerify = requestToVerify.getSimplifiedDimensions().stream()
+            NamedColumn dimensionToVerify = requestToVerify.getAllNamedColumns().stream()
                     .filter(col -> col.getId() == colIdOfCC).findFirst().get();
             Assert.assertNotNull(dimensionToVerify);
             Assert.assertEquals("TEST_DIM_WITH_CC", dimensionToVerify.getName());
@@ -353,13 +353,13 @@ public class ModelServiceSemanticUpdateTest extends NLocalFileMetadataTestCase {
     @Test
     public void testModelUpdateDimensions() throws Exception {
         val request = newSemanticRequest();
-        request.setSimplifiedDimensions(request.getAllNamedColumns().stream().filter(c -> c.isDimension() && c.getId() != 25)
+        request.setAllNamedColumns(request.getAllNamedColumns().stream().filter(c -> c.isDimension() && c.getId() != 25)
                 .collect(Collectors.toList()));
         val newCol = new NDataModel.NamedColumn();
         newCol.setName("PRICE2");
         newCol.setAliasDotColumn("TEST_KYLIN_FACT.PRICE");
         newCol.setStatus(NDataModel.ColumnStatus.DIMENSION);
-        request.getSimplifiedDimensions().add(newCol);
+        request.getAllNamedColumns().add(newCol);
         ComputedColumnDesc ccDesc = request.getComputedColumnDescs().stream()
                 .filter(cc -> "DEAL_YEAR".equals(cc.getColumnName())).findFirst().orElse(null);
         Assert.assertNotNull(ccDesc);
@@ -420,7 +420,7 @@ public class ModelServiceSemanticUpdateTest extends NLocalFileMetadataTestCase {
             cubeBasic.setRuleBasedIndex(rule);
         });
         val request = newSemanticRequest();
-        request.setSimplifiedDimensions(
+        request.setAllNamedColumns(
                 request.getAllNamedColumns().stream().filter(c -> c.getId() != 26).collect(Collectors.toList()));
         modelService.updateDataModelSemantic("default", request);
     }
@@ -618,7 +618,7 @@ public class ModelServiceSemanticUpdateTest extends NLocalFileMetadataTestCase {
                 cube.getRuleBaseLayouts().get(1).getId());
         val nc3 = NDataLayout.newDataLayout(df, df.getSegments().get(0).getId(),
                 cube.getRuleBaseLayouts().get(2).getId());
-        update.setToAddOrUpdateLayouts(nc1, nc2, nc3);
+        update.setToAddOrUpdateCuboids(nc1, nc2, nc3);
         dfMgr.updateDataflow(update);
 
         val newCube = indexPlanManager.updateIndexPlan(cube.getUuid(), copyForWrite -> {
@@ -627,8 +627,8 @@ public class ModelServiceSemanticUpdateTest extends NLocalFileMetadataTestCase {
             newRule.setMeasures(Arrays.asList(100001, 100002));
             copyForWrite.setRuleBasedIndex(newRule);
         });
-        semanticService.handleIndexPlanUpdateRule("default", df.getModel().getUuid(), cube.getRuleBasedIndex(),
-                newCube.getRuleBasedIndex(), false);
+        semanticService.handleCubeUpdateRule("default", df.getModel().getUuid(), cube.getRuleBasedIndex(),
+                newCube.getRuleBasedIndex());
 
         val events = EventDao.getInstance(getTestConfig(), "default").getEvents();
         events.sort(Event::compareTo);
@@ -690,7 +690,7 @@ public class ModelServiceSemanticUpdateTest extends NLocalFileMetadataTestCase {
             join.getJoin().setPrimaryKey(
                     Stream.of(join.getJoin().getPrimaryKey()).map(replaceTableName).toArray(String[]::new));
         });
-        newRequest.setSimplifiedDimensions(request.getAllNamedColumns().stream().filter(NamedColumn::isDimension)
+        newRequest.setAllNamedColumns(request.getAllNamedColumns().stream().filter(NamedColumn::isDimension)
                 .peek(nc -> nc.setAliasDotColumn(replaceTableName.apply(nc.getAliasDotColumn())))
                 .collect(Collectors.toList()));
         return newRequest;
@@ -702,7 +702,7 @@ public class ModelServiceSemanticUpdateTest extends NLocalFileMetadataTestCase {
         val request = JsonUtil.readValue(JsonUtil.writeValueAsString(model), ModelRequest.class);
         request.setProject("default");
         request.setUuid("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
-        request.setSimplifiedDimensions(model.getAllNamedColumns().stream().filter(NDataModel.NamedColumn::isDimension)
+        request.setAllNamedColumns(model.getAllNamedColumns().stream().filter(NDataModel.NamedColumn::isDimension)
                 .collect(Collectors.toList()));
         request.setSimplifiedMeasures(model.getAllMeasures().stream().filter(m -> !m.tomb)
                 .map(SimplifiedMeasure::fromMeasure).collect(Collectors.toList()));

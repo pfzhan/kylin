@@ -138,14 +138,6 @@ public class JsonUtil {
         return mapper.readValue(s, valueType);
     }
 
-    public static <T> T deepCopyQuietly(T src, Class<T> valueType) {
-        try {
-            return deepCopy(src, valueType);
-        } catch (IOException e) {
-            throw new IllegalStateException("Cannot copy " + valueType.getName(), e);
-        }
-    }
-
     public static <T extends RootPersistentEntity> T copyForWrite(T entity, Serializer<T> serializer,
             @Nullable BiConsumer<T, String> initEntityAfterReload) {
         if (!entity.isCachedAndShared())

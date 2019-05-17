@@ -43,7 +43,7 @@ public class BrokenModelCleaner implements MetadataCleaner {
             val dataflow = dataflowManager.getDataflow(model.getId());
             if (dataflow.checkBrokenWithRelatedInfo()) {
                 dataflowManager.dropDataflow(model.getId());
-                indexPlanManager.dropIndexPlan(model.getId());
+                indexPlanManager.removeCubePlan(model.getId());
                 dataModelManager.dropModel(dataModelManager.getDataModelDesc(model.getId()));
             }
         }

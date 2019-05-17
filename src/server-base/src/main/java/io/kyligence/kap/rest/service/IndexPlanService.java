@@ -89,8 +89,8 @@ public class IndexPlanService extends BasicService {
             copyForWrite.setRuleBasedIndex(newRuleBasedCuboid);
         });
         if (request.isLoadData()) {
-            semanticUpater.handleIndexPlanUpdateRule(request.getProject(), model.getUuid(),
-                    originIndexPlan.getRuleBasedIndex(), indexPlan.getRuleBasedIndex(), false);
+            semanticUpater.handleCubeUpdateRule(request.getProject(), model.getUuid(),
+                    originIndexPlan.getRuleBasedIndex(), indexPlan.getRuleBasedIndex());
         }
         return indexPlanManager.getIndexPlan(originIndexPlan.getUuid());
     }

@@ -171,7 +171,7 @@ public class TableServiceTest extends NLocalFileMetadataTestCase {
     @Test
     public void testExtractTableMeta() throws Exception {
         String[] tables = { "DEFAULT.TEST_ACCOUNT", "DEFAULT.TEST_KYLIN_FACT" };
-        List<Pair<TableDesc, TableExtDesc>> result = tableService.extractTableMeta(tables, "default");
+        List<Pair<TableDesc, TableExtDesc>> result = tableService.extractTableMeta(tables, "default", 11);
         Assert.assertEquals(true, result.size() == 2);
 
     }
@@ -246,14 +246,14 @@ public class TableServiceTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testGetSourceDbNames() throws Exception {
-        List<String> dbNames = tableService.getSourceDbNames("default");
+        List<String> dbNames = tableService.getSourceDbNames("default", 11);
         ArrayList<String> dbs = Lists.newArrayList(dbNames);
         Assert.assertTrue(dbs.contains("DEFAULT"));
     }
 
     @Test
     public void testGetSourceTableNames() throws Exception {
-        List<String> tableNames = tableService.getSourceTableNames("default", "DEFAULT", "");
+        List<String> tableNames = tableService.getSourceTableNames("default", "DEFAULT", 11, "");
         Assert.assertTrue(tableNames.contains("TEST_ACCOUNT"));
     }
 
@@ -512,7 +512,7 @@ public class TableServiceTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testGetTableNameResponse_PASS() throws Exception {
-        List<TableNameResponse> result = tableService.getTableNameResponses("default", "DEFAULT", "");
+        List<TableNameResponse> result = tableService.getTableNameResponses("default", "DEFAULT", 11, "");
         Assert.assertEquals(8, result.size());
         Assert.assertTrue(result.get(0).isLoaded());
 

@@ -94,12 +94,12 @@ public class AfterBuildResourceMerger extends SparkJobMetadataMerger{
         val theSeg = remoteDataflow.getSegment(segmentId);
         theSeg.setStatus(SegmentStatusEnum.READY);
         dfUpdate.setToUpdateSegs(theSeg);
-        dfUpdate.setToAddOrUpdateLayouts(theSeg.getSegDetails().getLayouts().stream()
+        dfUpdate.setToAddOrUpdateCuboids(theSeg.getSegDetails().getLayouts().stream()
                 .filter(c -> availableLayoutIds.contains(c.getLayoutId())).toArray(NDataLayout[]::new));
 
         localDataflowManager.updateDataflow(dfUpdate);
 
-        return dfUpdate.getToAddOrUpdateLayouts();
+        return dfUpdate.getToAddOrUpdateCuboids();
     }
 
     public NDataLayout[] mergeAfterCatchup(String flowName, Set<String> segmentIds, Set<Long> layoutIds,
@@ -130,11 +130,11 @@ public class AfterBuildResourceMerger extends SparkJobMetadataMerger{
             }
             dfUpdate.setToUpdateSegs(remoteSeg);
         }
-        dfUpdate.setToAddOrUpdateLayouts(addCuboids.toArray(new NDataLayout[0]));
+        dfUpdate.setToAddOrUpdateCuboids(addCuboids.toArray(new NDataLayout[0]));
 
         localDataflowManager.updateDataflow(dfUpdate);
 
-        return dfUpdate.getToAddOrUpdateLayouts();
+        return dfUpdate.getToAddOrUpdateCuboids();
     }
 
 

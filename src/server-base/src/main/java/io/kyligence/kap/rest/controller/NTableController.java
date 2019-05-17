@@ -165,14 +165,14 @@ public class NTableController extends NBasicController {
         LoadTableResponse loadTableResponse = new LoadTableResponse();
         if (ArrayUtils.isNotEmpty(tableLoadRequest.getTables())) {
             LoadTableResponse loadByTable = tableExtService.loadTables(tableLoadRequest.getTables(),
-                    tableLoadRequest.getProject());
+                    tableLoadRequest.getProject(), tableLoadRequest.getDatasourceType());
             loadTableResponse.getFailed().addAll(loadByTable.getFailed());
             loadTableResponse.getLoaded().addAll(loadByTable.getLoaded());
         }
         if (ArrayUtils.isNotEmpty(tableLoadRequest.getDatabases())) {
 
             LoadTableResponse loadByDatabase = tableExtService.loadTablesByDatabase(tableLoadRequest.getProject(),
-                    tableLoadRequest.getDatabases());
+                    tableLoadRequest.getDatabases(), tableLoadRequest.getDatasourceType());
             loadTableResponse.getFailed().addAll(loadByDatabase.getFailed());
             loadTableResponse.getLoaded().addAll(loadByDatabase.getLoaded());
         }
@@ -224,10 +224,11 @@ public class NTableController extends NBasicController {
     @RequestMapping(value = "/databases", method = { RequestMethod.GET }, produces = {
             "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public EnvelopeResponse showDatabases(@RequestParam(value = "project", required = true) String project) throws Exception {
+    public EnvelopeResponse showDatabases(@RequestParam(value = "project", required = true) String project,
+            @RequestParam(value = "datasourceType", required = false) Integer datasourceType) throws Exception {
 
         checkProjectName(project);
-        List<String> databases = tableService.getSourceDbNames(project);
+        List<String> databases = tableService.getSourceDbNames(project, datasourceType);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, databases, "");
     }
 
@@ -256,7 +257,7 @@ public class NTableController extends NBasicController {
             @RequestParam(value = "pageSize", required = false, defaultValue = "10") Integer limit,
             @RequestParam(value = "database", required = true) String database) throws Exception {
         checkProjectName(project);
-        List<TableNameResponse> tables = tableService.getTableNameResponses(project, database, table);
+        List<TableNameResponse> tables = tableService.getTableNameResponses(project, database, dataSourceType, table);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, getDataResponse("tables", tables, offset, limit), "");
     }
 

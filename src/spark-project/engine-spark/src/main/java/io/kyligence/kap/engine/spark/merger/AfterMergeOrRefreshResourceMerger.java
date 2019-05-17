@@ -75,13 +75,13 @@ public class AfterMergeOrRefreshResourceMerger extends SparkJobMetadataMerger{
         toUpdateCuboids.addAll(mergedSegment.getSegDetails().getLayouts().stream()
                 .filter(c -> livedLayouts.contains(c.getLayoutId())).collect(Collectors.toList()));
 
-        update.setToAddOrUpdateLayouts(toUpdateCuboids.toArray(new NDataLayout[0]));
+        update.setToAddOrUpdateCuboids(toUpdateCuboids.toArray(new NDataLayout[0]));
         update.setToRemoveSegs(toRemoveSegments.toArray(new NDataSegment[0]));
         update.setToUpdateSegs(toUpdateSegments.toArray(new NDataSegment[0]));
 
         mgr.updateDataflow(update);
 
-        return update.getToAddOrUpdateLayouts();
+        return update.getToAddOrUpdateCuboids();
     }
 
     @Override

@@ -23,13 +23,12 @@
  */
 package io.kyligence.kap.rest.service;
 
-import java.io.IOException;
-
+import io.kyligence.kap.tool.garbage.StorageCleaner;
+import lombok.val;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
-import io.kyligence.kap.tool.garbage.StorageCleaner;
-import lombok.val;
+import java.io.IOException;
 
 @Service
 public class AsyncTaskService {
@@ -39,5 +38,4 @@ public class AsyncTaskService {
         val storageCleaner = new StorageCleaner();
         storageCleaner.execute();
     }
-
 }

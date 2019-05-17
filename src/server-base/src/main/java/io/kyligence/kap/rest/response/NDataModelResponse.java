@@ -49,6 +49,9 @@ public class NDataModelResponse extends NDataModel {
     @JsonProperty("last_build_end")
     private String lastBuildEnd;
 
+    @JsonProperty("simplified_measures")
+    private List<SimplifiedMeasure> simplifiedMeasures;
+
     @JsonProperty("storage")
     private long storage;
 
@@ -65,7 +68,7 @@ public class NDataModelResponse extends NDataModel {
         this.setProject(dataModel.getProject());
     }
 
-    @JsonProperty("simplified_dimensions")
+    @JsonProperty("all_named_columns")
     public List<NamedColumn> getNamedColumns() {
         return getAllNamedColumns().stream().filter(NamedColumn::isDimension).collect(Collectors.toList());
     }

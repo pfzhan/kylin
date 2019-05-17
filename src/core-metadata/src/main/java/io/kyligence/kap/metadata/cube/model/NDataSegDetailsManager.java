@@ -109,16 +109,16 @@ class NDataSegDetailsManager implements IKeepNames {
         Set<String> allSegIds = new TreeSet<>();
         Map<String, List<NDataLayout>> toUpsert = new TreeMap<>();
         Map<String, List<NDataLayout>> toRemove = new TreeMap<>();
-        if (update.getToAddOrUpdateLayouts() != null) {
-            Arrays.stream(update.getToAddOrUpdateLayouts()).forEach(c -> {
+        if (update.getToAddOrUpdateCuboids() != null) {
+            Arrays.stream(update.getToAddOrUpdateCuboids()).forEach(c -> {
                 val segId = c.getSegDetails().getUuid();
                 allSegIds.add(segId);
                 List<NDataLayout> list = toUpsert.computeIfAbsent(segId, k -> new ArrayList<>());
                 list.add(c);
             });
         }
-        if (update.getToRemoveLayouts() != null) {
-            Arrays.stream(update.getToRemoveLayouts()).forEach(c -> {
+        if (update.getToRemoveCuboids() != null) {
+            Arrays.stream(update.getToRemoveCuboids()).forEach(c -> {
                 val segId = c.getSegDetails().getUuid();
                 allSegIds.add(segId);
                 List<NDataLayout> list = toRemove.computeIfAbsent(segId, k -> new ArrayList<>());

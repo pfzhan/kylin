@@ -22,6 +22,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -47,13 +48,9 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Set;
-import java.util.stream.Collectors;
 
-import com.google.common.collect.Sets;
-
+import com.google.common.collect.Maps;
 import io.kyligence.kap.metadata.model.NDataModel;
-import lombok.val;
 
 @SuppressWarnings("serial")
 public class TableRef implements Serializable {
@@ -69,19 +66,13 @@ public class TableRef implements Serializable {
         this.modelId = model.getUuid();
         this.alias = alias;
         this.table = table;
-        this.columns = filterColumns(table, filterOutComputedColumns).stream()
-                .collect(Collectors.toMap(ColumnDesc::getName, k -> new TblColRef(this, k)));
-    }
-
-    public static Set<ColumnDesc> filterColumns(TableDesc table, boolean filterOutCC) {
-        val columns = Sets.<ColumnDesc> newHashSet();
+        this.columns = Maps.newLinkedHashMap();
 
         for (ColumnDesc col : table.getColumns()) {
-            if (!filterOutCC || !col.isComputedColumn()) {
-                columns.add(col);
+            if (!filterOutComputedColumns || !col.isComputedColumn()) {
+                columns.put(col.getName(), new TblColRef(this, col));
             }
         }
-        return columns;
     }
 
     public NDataModel getModel() {

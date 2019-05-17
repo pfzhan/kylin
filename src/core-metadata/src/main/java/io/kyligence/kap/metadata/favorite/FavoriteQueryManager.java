@@ -119,10 +119,6 @@ public class FavoriteQueryManager implements IKeepNames {
         favoriteQueryMap.remove(favoriteQuery.getSqlPattern());
     }
 
-    public void delete(String uuid) {
-        delete(getByUuid(uuid));
-    }
-
     public void updateStatistics(final List<FavoriteQuery> favoriteQueries) {
         favoriteQueries.forEach(favoriteQuery -> {
             FavoriteQuery cached = get(favoriteQuery.getSqlPattern());

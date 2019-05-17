@@ -25,7 +25,6 @@
 package io.kyligence.kap.metadata.model;
 
 import java.io.IOException;
-import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -101,6 +100,7 @@ public class NDataModelManager {
                 return model;
             }
         };
+
         NTableMetadataManager.getInstance(config, project);
     }
 
@@ -142,10 +142,6 @@ public class NDataModelManager {
         return crud.listAll().stream().map(NDataModel::getId).collect(Collectors.toSet());
     }
 
-    public List<NDataModel> listAllModels() {
-        return crud.listAll();
-    }
-
     public NDataModel createDataModelDesc(NDataModel desc, String owner) {
         String name = desc.getAlias();
         for (NDataModel model : crud.listAll().stream().filter(model -> !model.isBroken())
@@ -181,9 +177,6 @@ public class NDataModelManager {
         return saveDataModelDesc(desc);
     }
 
-    public void reloadAll() {
-        crud.reloadAll();
-    }
     private NDataModel saveDataModelDesc(NDataModel dataModelDesc) {
         dataModelDesc.checkSingleIncrementingLoadingTable();
         if (!dataModelDesc.isDraft())

@@ -24,17 +24,12 @@
 
 package io.kyligence.kap.rest.request;
 
-import java.util.Collection;
 import java.util.List;
-import java.util.function.BiFunction;
-
-import org.apache.kylin.metadata.model.ColumnDesc;
-import org.apache.kylin.metadata.model.TableDesc;
-import org.apache.kylin.metadata.model.TableRef;
+import java.util.stream.Collectors;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.google.common.collect.Lists;
 
+import com.google.common.collect.Lists;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.rest.response.SimplifiedMeasure;
 import lombok.Getter;
@@ -56,11 +51,6 @@ public class ModelRequest extends NDataModel {
     @JsonProperty("simplified_measures")
     private List<SimplifiedMeasure> simplifiedMeasures = Lists.newArrayList();
 
-    @JsonProperty("simplified_dimensions")
-    private List<NamedColumn> simplifiedDimensions = Lists.newArrayList();
-
-    private transient BiFunction<TableDesc, Boolean, Collection<ColumnDesc>> columnsFetcher = TableRef::filterColumns;
-
     public ModelRequest() {
         super();
     }
@@ -69,4 +59,7 @@ public class ModelRequest extends NDataModel {
         super(dataModel);
     }
 
+    public List<NDataModel.NamedColumn> getDimensions() {
+        return getAllNamedColumns().stream().filter(NDataModel.NamedColumn::isDimension).collect(Collectors.toList());
+    }
 }

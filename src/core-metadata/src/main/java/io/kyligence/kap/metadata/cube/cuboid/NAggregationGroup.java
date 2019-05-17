@@ -35,8 +35,6 @@ import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
 
-import lombok.Getter;
-import lombok.Setter;
 import org.apache.kylin.cube.model.SelectRule;
 
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
@@ -63,13 +61,8 @@ public class NAggregationGroup implements Serializable {
         public long[] dims; // 00000100,00000010,00000001
     }
 
-    @Getter
-    @Setter
     @JsonProperty("includes")
     private Integer[] includes;
-
-    @Getter
-    @Setter
     @JsonProperty("select_rule")
     private SelectRule selectRule;
 
@@ -464,6 +457,15 @@ public class NAggregationGroup implements Serializable {
 
     public long getPartialCubeFullMask() {
         return partialCubeFullMask;
+    }
+
+    //used by test
+    public SelectRule getSelectRule() {
+        return selectRule;
+    }
+
+    public Integer[] getIncludes() {
+        return includes;
     }
 
     public boolean isMandatoryOnlyValid() {

@@ -23,12 +23,18 @@
  */
 package io.kyligence.kap.rest.service;
 
-import java.util.List;
-import java.util.Map;
-
+import com.google.common.base.Preconditions;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import io.kyligence.kap.rest.request.CSVRequest;
+import io.kyligence.kap.rest.response.LoadTableResponse;
+import io.kyligence.kap.source.file.CheckCredentialException;
+import io.kyligence.kap.source.file.CheckObjectException;
+import io.kyligence.kap.source.file.CredentialOperator;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.metadata.model.ColumnDesc;
+import org.apache.kylin.metadata.model.ISourceAware;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.rest.msg.Message;
 import org.apache.kylin.rest.msg.MsgPicker;
@@ -40,15 +46,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import com.google.common.base.Preconditions;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-
-import io.kyligence.kap.rest.request.CSVRequest;
-import io.kyligence.kap.rest.response.LoadTableResponse;
-import io.kyligence.kap.source.file.CheckCredentialException;
-import io.kyligence.kap.source.file.CheckObjectException;
-import io.kyligence.kap.source.file.CredentialOperator;
+import java.util.List;
+import java.util.Map;
 
 @Component("fileSourceService")
 public class FileSourceService extends BasicService {
@@ -91,7 +90,8 @@ public class FileSourceService extends BasicService {
         addCredential(csvRequest.getProject(), credentialOperator);
         Preconditions.checkState(!tableList.isEmpty(), MsgPicker.getMsg().getNoTableFound());
         // load table
-        return tableExtService.loadTables(tableList.toArray(new String[tableList.size()]), csvRequest.getProject());
+        return tableExtService.loadTables(tableList.toArray(new String[tableList.size()]), csvRequest.getProject(),
+                ISourceAware.ID_FILE);
     }
 
     private List<String> createTable(CredentialOperator credentialOperator, String sql) {

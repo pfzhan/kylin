@@ -174,12 +174,6 @@ public class EventDao {
         return event;
     }
 
-    public List<Event> getEventsByModel(String modelId) {
-        return getEvents().stream().filter(event -> event.getModelId().equals(modelId)).sorted()
-                .collect(Collectors.toList());
-
-    }
-
     public List<Event> getJobRelatedEvents() {
         return getEvents().stream().filter(event -> buildJobRelatedEvent.contains(event.getClass()))
                 .collect(Collectors.toList());

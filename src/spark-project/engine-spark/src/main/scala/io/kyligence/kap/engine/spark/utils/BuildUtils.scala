@@ -90,7 +90,7 @@ object BuildUtils extends Logging {
 
   def updateDataFlow(seg: NDataSegment, dataCuboid: NDataLayout, conf: KylinConfig, project: String): Unit = {
     val update = new NDataflowUpdate(seg.getDataflow.getUuid)
-    update.setToAddOrUpdateLayouts(dataCuboid)
+    update.setToAddOrUpdateCuboids(dataCuboid)
     NDataflowManager.getInstance(conf, project).updateDataflow(update)
   }
 }

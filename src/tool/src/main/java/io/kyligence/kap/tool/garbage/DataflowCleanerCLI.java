@@ -52,7 +52,7 @@ public class DataflowCleanerCLI {
         for (ProjectInstance project : projectManager.listAllProjects()) {
             log.info("Start dataflow cleanup for project<{}>", project.getName());
             try {
-                cleanupRedundantIndex(project);
+                cleanupIndexNotInSegments(project);
             } catch (Exception e) {
                 log.warn("clean dataflow for project<" + project.getName() + "> failed", e);
             }
@@ -60,7 +60,7 @@ public class DataflowCleanerCLI {
         }
     }
 
-    private static void cleanupRedundantIndex(ProjectInstance project) {
+    private static void cleanupIndexNotInSegments(ProjectInstance project) {
         UnitOfWork.doInTransactionWithRetry(() -> {
             val models = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project.getName())
                     .listUnderliningDataModels();
