@@ -1032,11 +1032,9 @@ export default class FavoriteQuery extends Vue {
         this.submitSqlLoading = false
         const importedMsg = this.$t('addSuccess', {importedNum: data.imported})
         const existedMsg = data.imported < sqls.length ? this.$t('existedMsg', {existedNum: sqls.length - data.imported}) : ''
-        this.$message({
-          type: 'success',
-          message: importedMsg + existedMsg + this.$t('end'),
-          duration: 0,
-          showClose: true
+        this.$alert(importedMsg + existedMsg + this.$t('end'), this.$t('kylinLang.common.notice'), {
+          confirmButtonText: this.$t('kylinLang.common.ok'),
+          iconClass: 'el-icon-info primary'
         })
         sqlsData.forEach((item) => {
           this.delWhite(item.id)
@@ -1404,16 +1402,18 @@ export default class FavoriteQuery extends Vue {
         font-size: 20px;
         position: relative;
         top: 3px;
-        &.el-icon-ksd-acclerate_pendding,
-        &.el-icon-ksd-acclerate_ongoing {
+        &.el-icon-ksd-to_accelerated,
+        &.el-icon-ksd-acclerating {
           color: @base-color;
         }
-        &.el-icon-ksd-acclerate_portion,
-        &.el-icon-ksd-acclerate_all {
+        &.el-icon-ksd-acclerated {
           color: @normal-color-1;
         }
-        &.el-icon-ksd-table_discard {
-          color: @text-disabled-color;
+        &.el-icon-ksd-negative {
+          color: @warning-color-1;
+        }
+        &.el-icon-ksd-negative.failed {
+          color: @error-color-1;
         }
       }
       .el-icon-ksd-filter {
@@ -1436,5 +1436,8 @@ export default class FavoriteQuery extends Vue {
         color: inherit;
       }
     }
+  }
+  .el-message-box__status.el-icon-info.primary {
+    color: @base-color;
   }
 </style>

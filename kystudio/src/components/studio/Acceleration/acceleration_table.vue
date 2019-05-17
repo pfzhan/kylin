@@ -48,7 +48,7 @@
             <span><i class="status-icon el-icon-ksd-negative"></i> {{$t('kylinLang.query.pending')}}</span>
           </el-tooltip>
           <el-tooltip class="item" effect="dark" :content="props.row.comment" placement="top-end" v-if="props.row.status === 'FAILED'">
-            <span><i class="status-icon el-icon-ksd-negative"></i> {{$t('kylinLang.query.failed')}}</span>
+            <span><i class="status-icon el-icon-ksd-negative failed"></i> {{$t('kylinLang.query.failed')}}</span>
           </el-tooltip>
         </template>
       </el-table-column>
