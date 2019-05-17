@@ -30,7 +30,7 @@ import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.execution.ChainedExecutable;
-import org.apache.kylin.job.execution.DefaultChainedExecutable;
+import org.apache.kylin.job.execution.DefaultChainedExecutableOnModel;
 import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.slf4j.Logger;
@@ -70,9 +70,9 @@ public class PostAddCuboidHandler extends AbstractEventPostJobHandler {
             }
             val kylinConfig = KylinConfig.getInstanceFromEnv();
             val merger = new AfterBuildResourceMerger(kylinConfig, project, JobTypeEnum.INDEX_BUILD);
-            executable.getTasks().stream()
-                    .filter(task -> task instanceof  NSparkExecutable)
-                    .filter(task -> ((NSparkExecutable)task).needMergeMetadata())
+            executable.getTasks().stream() //
+                    .filter(task -> task instanceof NSparkExecutable) //
+                    .filter(task -> ((NSparkExecutable) task).needMergeMetadata())
                     .forEach(task -> ((NSparkExecutable) task).mergerMetadata(merger));
             handleFavoriteQuery(project, sqlPatterns);
             finishEvent(project, event.getId());
@@ -86,7 +86,7 @@ public class PostAddCuboidHandler extends AbstractEventPostJobHandler {
     protected void restartNewJobIfNecessary(EventContext eventContext, ChainedExecutable executable) {
         val project = eventContext.getProject();
         val postEvent = (PostAddCuboidEvent) eventContext.getEvent();
-        val job = (DefaultChainedExecutable) executable;
+        val job = (DefaultChainedExecutableOnModel) executable;
         // anyTargetSegmentExists && checkCuttingInJobByModel need restart job
         if (!(job.checkCuttingInJobByModel() && job.checkAnyTargetSegmentExists())) {
             return;

@@ -42,7 +42,9 @@
 
 package org.apache.kylin.job.execution;
 
+import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 
 import io.kyligence.kap.common.scheduler.JobFinishedNotifier;
 import io.kyligence.kap.common.scheduler.SchedulerEventBusFactory;
@@ -72,6 +74,10 @@ public class DefaultChainedExecutable extends AbstractExecutable implements Chai
         }
     }
 
+    public Set<String> getMetadataDumpList(KylinConfig config) {
+        return Collections.emptySet();
+    }
+
     @Override
     protected ExecuteResult doWork(ExecutableContext context) throws ExecuteException {
         List<? extends Executable> executables = getTasks();
@@ -86,8 +92,8 @@ public class DefaultChainedExecutable extends AbstractExecutable implements Chai
                 // the job is paused
                 break;
             } else if (state == ExecutableState.ERROR) {
-                throw new IllegalStateException(
-                        "invalid subtask state, subtask:" + subTask.getDisplayName() + ", state:" + subTask.getStatus());
+                throw new IllegalStateException("invalid subtask state, subtask:" + subTask.getDisplayName()
+                        + ", state:" + subTask.getStatus());
             }
             if (subTask.isRunnable()) {
                 try {
@@ -106,6 +112,11 @@ public class DefaultChainedExecutable extends AbstractExecutable implements Chai
         }
         return ExecuteResult.createSucceed();
 
+    }
+
+    @Override
+    protected boolean needCheckPaused() {
+        return false;
     }
 
     @Override
@@ -134,24 +145,24 @@ public class DefaultChainedExecutable extends AbstractExecutable implements Chai
         boolean hasSuicidal = false;
         for (Executable task : jobs) {
             switch (task.getStatus()) {
-                case RUNNING:
-                    logger.error(
-                            "There shouldn't be a running subtask[{}], \n"
-                                    + "it might cause endless state, will retry to fetch subtask's state.",
-                            task.getDisplayName());
-                    hasError = true;
-                    break;
-                case ERROR:
-                    hasError = true;
-                    break;
-                case DISCARDED:
-                    hasDiscarded = true;
-                    break;
-                case SUICIDAL:
-                    hasSuicidal = true;
-                    break;
-                default:
-                    break;
+            case RUNNING:
+                logger.error(
+                        "There shouldn't be a running subtask[{}], \n"
+                                + "it might cause endless state, will retry to fetch subtask's state.",
+                        task.getDisplayName());
+                hasError = true;
+                break;
+            case ERROR:
+                hasError = true;
+                break;
+            case DISCARDED:
+                hasDiscarded = true;
+                break;
+            case SUICIDAL:
+                hasSuicidal = true;
+                break;
+            default:
+                break;
             }
             final ExecutableState status = task.getStatus();
             if (status != ExecutableState.SUCCEED) {
@@ -200,7 +211,6 @@ public class DefaultChainedExecutable extends AbstractExecutable implements Chai
         }
         return null;
     }
-
 
     private boolean retryFetchTaskStatus(Executable task) {
         boolean hasRunning = false;

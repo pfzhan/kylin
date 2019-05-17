@@ -28,6 +28,7 @@ import com.google.common.collect.Maps
 import io.kyligence.kap.engine.spark.NSparkCubingEngine
 import io.kyligence.kap.engine.spark.builder.CreateFlatTable
 import io.kyligence.kap.engine.spark.stats.analyzer.TableAnalyzerJob
+import org.apache.kylin.common.KylinConfig
 import org.apache.kylin.metadata.model.TableDesc
 import org.apache.kylin.source.SourceFactory
 import org.apache.spark.sql.functions._
@@ -39,15 +40,22 @@ class TableAnalysisJob(tableDesc: TableDesc,
                        ss: SparkSession) {
 
   def analyzeTable(): Array[Row] = {
-    val dataset = SourceFactory.
-      createEngineAdapter(tableDesc, classOf[NSparkCubingEngine.NSparkCubingSource]).
-      getSourceData(tableDesc, ss, Maps.newHashMap[String, String])
+    val config = KylinConfig.getInstanceFromEnv
+    val map = config.getSparkConfigOverride
+
+    val instances = Integer.parseInt(map.get("spark.executor.instances"))
+    val cores = Integer.parseInt(map.get("spark.executor.cores"))
+    val numPartitions = instances * cores * 4
+
+    val dataset = SourceFactory
+      .createEngineAdapter(tableDesc, classOf[NSparkCubingEngine.NSparkCubingSource])
+      .getSourceData(tableDesc, ss, Maps.newHashMap[String, String])
+      .coalesce(numPartitions)
     val rowDataset = CreateFlatTable.changeSchemaToAliasDotName(dataset, tableDesc.getIdentity)
 
     // todo: use sample data to estimate total info
     val ratio = rowCount / rowDataset.count().toFloat
     val sampleDataSet = if (ratio > 1) rowDataset else rowDataset.sample(ratio)
-    sampleDataSet.cache()
 
     // calculate the stats info
     val statsMetrics = buildStatsMetric(sampleDataSet)

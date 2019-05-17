@@ -71,6 +71,6 @@ public class NSparkAnalysisStep extends NSparkExecutable {
 
     @Override
     public void mergerMetadata(MetadataMerger merger) {
-            merger.mergeAnalysis(this);
+        merger.mergeAnalysis(this);
     }
 }

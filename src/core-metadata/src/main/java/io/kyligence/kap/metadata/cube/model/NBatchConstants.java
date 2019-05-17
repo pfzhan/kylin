@@ -38,4 +38,7 @@ public interface NBatchConstants {
     String P_PROJECT_NAME = "project";
     String P_TABLE_NAME = "table";
     String P_SAMPLING_ROWS = "samplingRows";
+    String P_TARGET_MODEL = "targetModel";
+    String P_DATA_RANGE_START = "dataRangeStart";
+    String P_DATA_RANGE_END = "dataRangeEnd";
 }

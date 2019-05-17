@@ -29,16 +29,15 @@ import java.util.Set;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.constant.ExecutableConstants;
+import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.DefaultChainedExecutable;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-import io.kyligence.kap.metadata.cube.model.NDataflow;
-import io.kyligence.kap.metadata.cube.model.NDataflowManager;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 public class NResourceDetectStep extends NSparkExecutable {
-    private static final Logger logger = LoggerFactory.getLogger(NSparkExecutable.class);
 
+    // called by reflection
     public NResourceDetectStep() {
 
     }
@@ -46,16 +45,23 @@ public class NResourceDetectStep extends NSparkExecutable {
     public NResourceDetectStep(DefaultChainedExecutable parent) {
         if (parent instanceof NSparkCubingJob) {
             this.setSparkSubmitClassName(ResourceDetectBeforeCubingJob.class.getName());
-        } else {
+        } else if (parent instanceof NSparkMergingJob) {
             this.setSparkSubmitClassName(ResourceDetectBeforeMergingJob.class.getName());
+        } else if (parent instanceof NTableSamplingJob) {
+            this.setSparkSubmitClassName(ResourceDetectBeforeSampling.class.getName());
+        } else {
+            throw new IllegalArgumentException("Unsupported resource detect for " + parent.getName() + " job");
         }
         this.setName(ExecutableConstants.STEP_NAME_DETECT_RESOURCE);
     }
 
     @Override
     protected Set<String> getMetadataDumpList(KylinConfig config) {
-        NDataflow df = NDataflowManager.getInstance(config, getProject()).getDataflow(getDataflowId());
-        return df.collectPrecalculationResource();
+        final AbstractExecutable parent = getParent();
+        if (parent instanceof DefaultChainedExecutable) {
+            return ((DefaultChainedExecutable) parent).getMetadataDumpList(config);
+        }
+        throw new IllegalStateException("Unsupported resource detect for non chained executable!");
     }
 
     @Override

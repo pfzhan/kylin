@@ -24,26 +24,46 @@
 
 package io.kyligence.kap.engine.spark.job;
 
-import java.util.Collection;
 import java.util.Set;
 
+import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.KylinConfigExt;
 import org.apache.kylin.job.execution.DefaultChainedExecutable;
+import org.apache.kylin.metadata.model.Segments;
 
-import com.google.common.collect.Collections2;
-import com.google.common.collect.Sets;
-
-import io.kyligence.kap.metadata.cube.model.LayoutEntity;
+import io.kyligence.kap.metadata.cube.model.NBatchConstants;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 
 public class JobStepFactory {
+
+    private JobStepFactory() {
+    }
+
+    public static NSparkExecutable addStep(DefaultChainedExecutable parent, JobStepType type) {
+        NSparkExecutable step;
+        if (type == JobStepType.RESOURCE_DETECT) {
+            step = new NResourceDetectStep(parent);
+        } else {
+            KylinConfig config = KylinConfig.getInstanceFromEnv();
+            step = new NTableSamplingJob.SamplingStep(config.getSparkTableSamplingClassName());
+        }
+
+        step.setParams(parent.getParams());
+        step.setProject(parent.getProject());
+        parent.addTask(step);
+        //after addTask, step's id is changed
+
+        step.setDistMetaUrl(
+                KylinConfig.getInstanceFromEnv().getJobTmpMetaStoreUrl(parent.getProject(), step.getId()).toString());
+        return step;
+    }
+
     public static NSparkExecutable addStep(DefaultChainedExecutable parent, JobStepType type,
-            Set<NDataSegment> segments, Set<LayoutEntity> layouts) {
+            Set<NDataSegment> segments) {
         NSparkExecutable step;
         NDataflow df = segments.iterator().next().getDataflow();
         KylinConfigExt config = df.getConfig();
-        Set<String> segmentIds = NSparkCubingUtil.toSegmentIds(segments);
         switch (type) {
         case ANALYSIS:
             step = new NSparkAnalysisStep();
@@ -59,21 +79,19 @@ public class JobStepFactory {
             break;
         case CLEAN_UP_AFTER_MERGE:
             step = new NSparkCleanupAfterMergeStep();
-            Collection<String> ids = Collections2.transform(df.getMergingSegments(segments.iterator().next()),
-                    NDataSegment::getId);
-            segmentIds = Sets.newHashSet(ids);
             break;
         default:
             throw new IllegalArgumentException();
         }
 
-        step.setTargetModel(segments.iterator().next().getModel().getUuid());
-        step.setJobId(parent.getId());
+        step.setParams(parent.getParams());
         step.setProject(parent.getProject());
-        step.setProjectParam(parent.getProject());
-        step.setDataflowId(df.getUuid());
-        step.setSegmentIds(segmentIds);
-        step.setCuboidLayoutIds(NSparkCubingUtil.toCuboidLayoutIds(layouts));
+        step.setTargetModel(parent.getTargetModel());
+        if (step instanceof NSparkCleanupAfterMergeStep) {
+            final Segments<NDataSegment> mergingSegments = df.getMergingSegments(segments.iterator().next());
+            step.setParam(NBatchConstants.P_SEGMENT_IDS,
+                    String.join(",", NSparkCubingUtil.toSegmentIds(mergingSegments)));
+        }
         parent.addTask(step);
         //after addTask, step's id is changed
         step.setDistMetaUrl(config.getJobTmpMetaStoreUrl(parent.getProject(), step.getId()).toString());

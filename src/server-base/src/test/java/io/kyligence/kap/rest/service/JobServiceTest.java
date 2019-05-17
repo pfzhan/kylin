@@ -83,7 +83,7 @@ import io.kyligence.kap.event.model.MergeSegmentEvent;
 import io.kyligence.kap.event.model.PostAddCuboidEvent;
 import io.kyligence.kap.event.model.RefreshSegmentEvent;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
-import io.kyligence.kap.rest.execution.SucceedTestExecutable;
+import io.kyligence.kap.rest.execution.SucceedChainedTestExecutable;
 import io.kyligence.kap.rest.request.JobFilter;
 import io.kyligence.kap.rest.response.EventModelResponse;
 import io.kyligence.kap.rest.response.EventResponse;
@@ -185,9 +185,9 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
     public void testJobStepRatio() {
         val project = "default";
         NExecutableManager manager = NExecutableManager.getInstance(jobService.getConfig(), project);
-        SucceedTestExecutable executable = new SucceedTestExecutable();
+        SucceedChainedTestExecutable executable = new SucceedChainedTestExecutable();
         executable.setProject(project);
-        SucceedTestExecutable task = new SucceedTestExecutable();
+        SucceedChainedTestExecutable task = new SucceedChainedTestExecutable();
         task.setProject(project);
         executable.addTask(task);
         manager.addJob(executable);
@@ -203,7 +203,7 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
     public void testBasic() throws IOException {
         NExecutableManager manager = NExecutableManager.getInstance(jobService.getConfig(), "default");
         NDataflowManager dsMgr = NDataflowManager.getInstance(jobService.getConfig(), "default");
-        SucceedTestExecutable executable = new SucceedTestExecutable();
+        SucceedChainedTestExecutable executable = new SucceedChainedTestExecutable();
         manager.addJob(executable);
         jobService.batchUpdateJobStatus(Lists.newArrayList(executable.getId()), "default", "PAUSE", "");
         Assert.assertTrue(manager.getJob(executable.getId()).getStatus().equals(ExecutableState.PAUSED));
@@ -222,7 +222,7 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
     @Test
     public void testDiscardJobException() throws IOException {
         NExecutableManager manager = NExecutableManager.getInstance(jobService.getConfig(), "default");
-        SucceedTestExecutable executable = new SucceedTestExecutable();
+        SucceedChainedTestExecutable executable = new SucceedChainedTestExecutable();
         executable.setProject("default");
         manager.addJob(executable);
         manager.updateJobOutput(executable.getId(), ExecutableState.RUNNING, null, null, null);
@@ -236,7 +236,7 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
     @Test
     public void testUpdateException() throws IOException {
         NExecutableManager manager = NExecutableManager.getInstance(jobService.getConfig(), "default");
-        SucceedTestExecutable executable = new SucceedTestExecutable();
+        SucceedChainedTestExecutable executable = new SucceedChainedTestExecutable();
         executable.setParam("test1", "test1");
         executable.setParam("test2", "test2");
         executable.setParam("test3", "test3");
@@ -250,13 +250,13 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
     @Test
     public void testGetJobDetail() {
         NExecutableManager manager = NExecutableManager.getInstance(jobService.getConfig(), "default");
-        SucceedTestExecutable executable = new SucceedTestExecutable();
+        SucceedChainedTestExecutable executable = new SucceedChainedTestExecutable();
         executable.setParam("test1", "test1");
         executable.setParam("test2", "test2");
         executable.setParam("test3", "test3");
         executable.setProject("default");
         executable.setName("test");
-        executable.addTask(new SucceedTestExecutable());
+        executable.addTask(new SucceedChainedTestExecutable());
         manager.addJob(executable);
         List<ExecutableStepResponse> result = jobService.getJobDetail("default", executable.getId());
         Assert.assertTrue(result.size() == 1);
@@ -265,7 +265,7 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
     @Test
     public void testGetJobCreateTime() {
         NExecutableManager manager = NExecutableManager.getInstance(jobService.getConfig(), "default");
-        SucceedTestExecutable executable = new SucceedTestExecutable();
+        SucceedChainedTestExecutable executable = new SucceedChainedTestExecutable();
         executable.setParam("test1", "test1");
         executable.setParam("test2", "test2");
         executable.setParam("test3", "test3");
@@ -280,17 +280,17 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
 
     private List<AbstractExecutable> mockJobs() {
         List<AbstractExecutable> jobs = new ArrayList<>();
-        SucceedTestExecutable job1 = new SucceedTestExecutable();
+        SucceedChainedTestExecutable job1 = new SucceedChainedTestExecutable();
         job1.setProject("default");
         job1.initConfig(KylinConfig.getInstanceFromEnv());
         job1.setName("sparkjob1");
         job1.setTargetModel("model1");
-        SucceedTestExecutable job2 = new SucceedTestExecutable();
+        SucceedChainedTestExecutable job2 = new SucceedChainedTestExecutable();
         job2.setProject("default");
         job2.initConfig(KylinConfig.getInstanceFromEnv());
         job2.setName("sparkjob2");
         job2.setTargetModel("model2");
-        SucceedTestExecutable job3 = new SucceedTestExecutable();
+        SucceedChainedTestExecutable job3 = new SucceedChainedTestExecutable();
         job3.setProject("default");
         job3.initConfig(KylinConfig.getInstanceFromEnv());
         job3.setName("sparkjob3");

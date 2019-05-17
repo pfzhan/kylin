@@ -24,12 +24,12 @@
 
 package io.kyligence.kap.engine.spark.job;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
-import org.apache.kylin.job.execution.DefaultChainedExecutable;
+import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.job.execution.DefaultChainedExecutableOnModel;
 import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
@@ -41,12 +41,13 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
+import io.kyligence.kap.metadata.cube.model.NBatchConstants;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
 
-public class NSparkMergingJob extends DefaultChainedExecutable {
+public class NSparkMergingJob extends DefaultChainedExecutableOnModel {
     @SuppressWarnings("unused")
     private static final Logger logger = LoggerFactory.getLogger(NSparkMergingJob.class);
 
@@ -62,9 +63,11 @@ public class NSparkMergingJob extends DefaultChainedExecutable {
         Preconditions.checkArgument(mergedSegment != null);
         Preconditions.checkArgument(submitter != null);
 
+        NDataflow df = mergedSegment.getDataflow();
         if (layouts == null) {
-            layouts = Sets.newHashSet(mergedSegment.getDataflow().getIndexPlan().getAllLayouts());
+            layouts = Sets.newHashSet(df.getIndexPlan().getAllLayouts());
         }
+
         NSparkMergingJob job = new NSparkMergingJob();
         job.setName(JobTypeEnum.INDEX_MERGE.toString());
         job.setJobType(JobTypeEnum.INDEX_MERGE);
@@ -75,19 +78,45 @@ public class NSparkMergingJob extends DefaultChainedExecutable {
         job.setTargetSegments(Lists.newArrayList(String.valueOf(mergedSegment.getId())));
         job.setProject(mergedSegment.getProject());
         job.setSubmitter(submitter);
-        JobStepFactory.addStep(job, JobStepType.RESOURCE_DETECT, Sets.newHashSet(mergedSegment), layouts);
-        JobStepFactory.addStep(job, JobStepType.MERGING, Sets.newHashSet(mergedSegment), layouts);
-        JobStepFactory.addStep(job, JobStepType.CLEAN_UP_AFTER_MERGE, Sets.newHashSet(mergedSegment), layouts);
+
+        job.setParam(NBatchConstants.P_JOB_ID, jobId);
+        job.setParam(NBatchConstants.P_PROJECT_NAME, df.getProject());
+        job.setParam(NBatchConstants.P_TARGET_MODEL, job.getTargetModel());
+        job.setParam(NBatchConstants.P_DATAFLOW_ID, df.getId());
+        job.setParam(NBatchConstants.P_LAYOUT_IDS, NSparkCubingUtil.ids2Str(NSparkCubingUtil.toLayoutIds(layouts)));
+        job.setParam(NBatchConstants.P_SEGMENT_IDS, String.join(",", job.getTargetSegments()));
+        job.setParam(NBatchConstants.P_DATA_RANGE_START, String.valueOf(job.getDataRangeStart()));
+        job.setParam(NBatchConstants.P_DATA_RANGE_END, String.valueOf(job.getDataRangeEnd()));
+
+        JobStepFactory.addStep(job, JobStepType.RESOURCE_DETECT, Sets.newHashSet(mergedSegment));
+        JobStepFactory.addStep(job, JobStepType.MERGING, Sets.newHashSet(mergedSegment));
+        JobStepFactory.addStep(job, JobStepType.CLEAN_UP_AFTER_MERGE, Sets.newHashSet(mergedSegment));
 
         return job;
+    }
+
+    @Override
+    public Set<String> getMetadataDumpList(KylinConfig config) {
+        final String dataflowId = getParam(NBatchConstants.P_DATAFLOW_ID);
+        return NDataflowManager.getInstance(config, getProject()) //
+                .getDataflow(dataflowId) //
+                .collectPrecalculationResource();
     }
 
     public NSparkMergingStep getSparkMergingStep() {
         return getTask(NSparkMergingStep.class);
     }
 
+    public NResourceDetectStep getResourceDetectStep() {
+        return getTask(NResourceDetectStep.class);
+    }
+
+    public NSparkCleanupAfterMergeStep getCleanUpAfterMergeStep() {
+        return getTask(NSparkCleanupAfterMergeStep.class);
+    }
+
     @Override
-    public void cancelJob() throws IOException {
+    public void cancelJob() {
         NDataflowManager nDataflowManager = NDataflowManager.getInstance(getConfig(), getProject());
         NDataflow dataflow = nDataflowManager.getDataflow(getSparkMergingStep().getDataflowId());
         List<NDataSegment> segments = new ArrayList<>();

@@ -128,6 +128,7 @@ public class StorageCleanerTest extends NLocalFileMetadataTestCase {
     public void testCleanup_WithRunningJobs() throws IOException {
         val jobMgr = NExecutableManager.getInstance(getTestConfig(), "default");
         val job1 = new DefaultChainedExecutable();
+        job1.setProject("default");
         val task1 = new ShellExecutable();
         job1.addTask(task1);
         jobMgr.addJob(job1);

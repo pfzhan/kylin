@@ -99,7 +99,8 @@ public class NManualBuildAndQueryTest extends NLocalWithSparkSessionTest {
         System.setProperty("isDeveloperMode", "true");
         buildCubes();
         populateSSWithCSVData(config, getProject(), SparderEnv.getSparkSession());
-        List<Pair<String, Throwable>> results = execAndGetResults(Lists.newArrayList(new QueryCallable(CompareLevel.SAME, "left", "temp"))); //
+        List<Pair<String, Throwable>> results = execAndGetResults(
+                Lists.newArrayList(new QueryCallable(CompareLevel.SAME, "left", "temp"))); //
         report(results);
     }
 
@@ -118,7 +119,8 @@ public class NManualBuildAndQueryTest extends NLocalWithSparkSessionTest {
         report(results);
     }
 
-    private List<Pair<String, Throwable>> execAndGetResults(List<QueryCallable> tasks) throws InterruptedException, java.util.concurrent.ExecutionException {
+    private List<Pair<String, Throwable>> execAndGetResults(List<QueryCallable> tasks)
+            throws InterruptedException, java.util.concurrent.ExecutionException {
         ThreadPoolExecutor executor = new ThreadPoolExecutor(9//
                 , 9 //
                 , 1 //
@@ -159,7 +161,7 @@ public class NManualBuildAndQueryTest extends NLocalWithSparkSessionTest {
     }
 
     private List<QueryCallable> prepareAndGenQueryTasks(KylinConfig config) throws Exception {
-        String[] joinTypes = new String[]{"left", "inner"};
+        String[] joinTypes = new String[] { "left", "inner" };
         List<QueryCallable> tasks = new ArrayList<>();
         for (String joinType : joinTypes) {
             tasks.add(new QueryCallable(CompareLevel.SAME, joinType, "sql"));
@@ -241,14 +243,17 @@ public class NManualBuildAndQueryTest extends NLocalWithSparkSessionTest {
             String identity = "sqlFolder:" + sqlFolder + ", joinType:" + joinType + ", compareLevel:" + compareLevel;
             try {
                 if (NExecAndComp.CompareLevel.SUBSET.equals(compareLevel)) {
-                    List<Pair<String, String>> queries = NExecAndComp.fetchQueries(KAP_SQL_BASE_DIR + File.separator + "sql");
+                    List<Pair<String, String>> queries = NExecAndComp
+                            .fetchQueries(KAP_SQL_BASE_DIR + File.separator + "sql");
                     NExecAndComp.execLimitAndValidate(queries, getProject(), joinType);
                 } else if (NExecAndComp.CompareLevel.SAME_SQL_COMPARE.equals(compareLevel)) {
-                    List<Pair<String, String>> queries = NExecAndComp.fetchQueries(KAP_SQL_BASE_DIR + File.separator + sqlFolder);
+                    List<Pair<String, String>> queries = NExecAndComp
+                            .fetchQueries(KAP_SQL_BASE_DIR + File.separator + sqlFolder);
                     NExecAndComp.execCompareQueryAndCompare(queries, getProject(), joinType);
 
                 } else {
-                    List<Pair<String, String>> queries = NExecAndComp.fetchQueries(KAP_SQL_BASE_DIR + File.separator + sqlFolder);
+                    List<Pair<String, String>> queries = NExecAndComp
+                            .fetchQueries(KAP_SQL_BASE_DIR + File.separator + sqlFolder);
                     NExecAndComp.execAndCompare(queries, getProject(), compareLevel, joinType);
                 }
             } catch (Throwable th) {
@@ -288,23 +293,26 @@ public class NManualBuildAndQueryTest extends NLocalWithSparkSessionTest {
         List<LayoutEntity> layouts = df.getIndexPlan().getAllLayouts();
         long start = SegmentRange.dateToLong("2010-01-01");
         long end = SegmentRange.dateToLong("2013-01-01");
-        buildCuboid(dfName, new SegmentRange.TimePartitionedSegmentRange(start, end), Sets.<LayoutEntity>newLinkedHashSet(layouts), true);
+        buildCuboid(dfName, new SegmentRange.TimePartitionedSegmentRange(start, end), Sets.newLinkedHashSet(layouts),
+                true);
         start = SegmentRange.dateToLong("2013-01-01");
         end = SegmentRange.dateToLong("2015-01-01");
-        buildCuboid(dfName, new SegmentRange.TimePartitionedSegmentRange(start, end), Sets.<LayoutEntity>newLinkedHashSet(layouts), true);
+        buildCuboid(dfName, new SegmentRange.TimePartitionedSegmentRange(start, end), Sets.newLinkedHashSet(layouts),
+                true);
 
         /**
          * Round2. Merge two segments
          */
         df = dsMgr.getDataflow(dfName);
-        NDataSegment firstMergeSeg = dsMgr.mergeSegments(df, new SegmentRange.TimePartitionedSegmentRange(SegmentRange.dateToLong("2010-01-01"), SegmentRange.dateToLong("2015-01-01")), false);
-        NSparkMergingJob firstMergeJob = NSparkMergingJob.merge(firstMergeSeg, Sets.newLinkedHashSet(layouts), "ADMIN", UUID.randomUUID().toString());
+        NDataSegment firstMergeSeg = dsMgr.mergeSegments(df, new SegmentRange.TimePartitionedSegmentRange(
+                SegmentRange.dateToLong("2010-01-01"), SegmentRange.dateToLong("2015-01-01")), false);
+        NSparkMergingJob firstMergeJob = NSparkMergingJob.merge(firstMergeSeg, Sets.newLinkedHashSet(layouts), "ADMIN",
+                UUID.randomUUID().toString());
         execMgr.addJob(firstMergeJob);
         // wait job done
         Assert.assertEquals(ExecutableState.SUCCEED, wait(firstMergeJob));
         val merger = new AfterMergeOrRefreshResourceMerger(config, getProject());
         merger.merge(firstMergeJob.getSparkMergingStep());
-
 
         /**
          * validate cube segment info
@@ -314,31 +322,32 @@ public class NManualBuildAndQueryTest extends NLocalWithSparkSessionTest {
         if (getProject().equals("default") && dfName.equals("741ca86a-1f13-46da-a59f-95fb68615e3a")) {
             Map<Long, NDataLayout> cuboidsMap1 = firstSegment.getLayoutsMap();
             Map<Long, Long[]> compareTuples1 = Maps.newHashMap();
-            compareTuples1.put(1L, new Long[]{9896L, 9896L});
-            compareTuples1.put(10001L, new Long[]{9896L, 9896L});
-            compareTuples1.put(10002L, new Long[]{9896L, 9896L});
-            compareTuples1.put(20001L, new Long[]{9896L, 9896L});
-            compareTuples1.put(30001L, new Long[]{9896L, 9896L});
-            compareTuples1.put(1000001L, new Long[]{9896L, 9896L});
-            compareTuples1.put(1010001L, new Long[]{731L, 9163L});
-            compareTuples1.put(1020001L, new Long[]{302L, 6649L});
-            compareTuples1.put(1030001L, new Long[]{44L, 210L});
-            compareTuples1.put(1040001L, new Long[]{9163L, 9884L});
-            compareTuples1.put(1050001L, new Long[]{105L, 276L});
-            compareTuples1.put(1060001L, new Long[]{138L, 286L});
-            compareTuples1.put(1070001L, new Long[]{9880L, 9896L});
-            compareTuples1.put(1080001L, new Long[]{9833L, 9896L});
-            compareTuples1.put(1090001L, new Long[]{9421L, 9884L});
-            compareTuples1.put(1100001L, new Long[]{143L, 6649L});
-            compareTuples1.put(1110001L, new Long[]{4714L, 9884L});
-            compareTuples1.put(1120001L, new Long[]{9884L, 9896L});
-            compareTuples1.put(20000000001L, new Long[]{9896L, 9896L});
-            compareTuples1.put(20000010001L, new Long[]{9896L, 9896L});
-            compareTuples1.put(20000020001L, new Long[]{9896L, 9896L});
+            compareTuples1.put(1L, new Long[] { 9896L, 9896L });
+            compareTuples1.put(10001L, new Long[] { 9896L, 9896L });
+            compareTuples1.put(10002L, new Long[] { 9896L, 9896L });
+            compareTuples1.put(20001L, new Long[] { 9896L, 9896L });
+            compareTuples1.put(30001L, new Long[] { 9896L, 9896L });
+            compareTuples1.put(1000001L, new Long[] { 9896L, 9896L });
+            compareTuples1.put(1010001L, new Long[] { 731L, 9163L });
+            compareTuples1.put(1020001L, new Long[] { 302L, 6649L });
+            compareTuples1.put(1030001L, new Long[] { 44L, 210L });
+            compareTuples1.put(1040001L, new Long[] { 9163L, 9884L });
+            compareTuples1.put(1050001L, new Long[] { 105L, 276L });
+            compareTuples1.put(1060001L, new Long[] { 138L, 286L });
+            compareTuples1.put(1070001L, new Long[] { 9880L, 9896L });
+            compareTuples1.put(1080001L, new Long[] { 9833L, 9896L });
+            compareTuples1.put(1090001L, new Long[] { 9421L, 9884L });
+            compareTuples1.put(1100001L, new Long[] { 143L, 6649L });
+            compareTuples1.put(1110001L, new Long[] { 4714L, 9884L });
+            compareTuples1.put(1120001L, new Long[] { 9884L, 9896L });
+            compareTuples1.put(20000000001L, new Long[] { 9896L, 9896L });
+            compareTuples1.put(20000010001L, new Long[] { 9896L, 9896L });
+            compareTuples1.put(20000020001L, new Long[] { 9896L, 9896L });
             verifyCuboidMetrics(cuboidsMap1, compareTuples1);
         }
 
-        Assert.assertEquals(new SegmentRange.TimePartitionedSegmentRange(SegmentRange.dateToLong("2010-01-01"), SegmentRange.dateToLong("2015-01-01")), firstSegment.getSegRange());
+        Assert.assertEquals(new SegmentRange.TimePartitionedSegmentRange(SegmentRange.dateToLong("2010-01-01"),
+                SegmentRange.dateToLong("2015-01-01")), firstSegment.getSegRange());
         //Assert.assertEquals(27, firstSegment.getDictionaries().size());
         Assert.assertEquals(7, firstSegment.getSnapshots().size());
     }
@@ -361,30 +370,36 @@ public class NManualBuildAndQueryTest extends NLocalWithSparkSessionTest {
         List<LayoutEntity> layouts = df.getIndexPlan().getAllLayouts();
         long start = SegmentRange.dateToLong("2010-01-01");
         long end = SegmentRange.dateToLong("2012-06-01");
-        buildCuboid(dfName, new SegmentRange.TimePartitionedSegmentRange(start, end), Sets.<LayoutEntity>newLinkedHashSet(layouts), true);
+        buildCuboid(dfName, new SegmentRange.TimePartitionedSegmentRange(start, end), Sets.newLinkedHashSet(layouts),
+                true);
         validateTableExt(df.getModel().getRootFactTableName(), 2054, 1, 12);
 
         start = SegmentRange.dateToLong("2012-06-01");
         end = SegmentRange.dateToLong("2013-01-01");
-        buildCuboid(dfName, new SegmentRange.TimePartitionedSegmentRange(start, end), Sets.<LayoutEntity>newLinkedHashSet(layouts), true);
+        buildCuboid(dfName, new SegmentRange.TimePartitionedSegmentRange(start, end), Sets.newLinkedHashSet(layouts),
+                true);
         validateTableExt(df.getModel().getRootFactTableName(), 4903, 2, 12);
 
         start = SegmentRange.dateToLong("2013-01-01");
         end = SegmentRange.dateToLong("2013-06-01");
-        buildCuboid(dfName, new SegmentRange.TimePartitionedSegmentRange(start, end), Sets.<LayoutEntity>newLinkedHashSet(layouts), true);
+        buildCuboid(dfName, new SegmentRange.TimePartitionedSegmentRange(start, end), Sets.newLinkedHashSet(layouts),
+                true);
         validateTableExt(df.getModel().getRootFactTableName(), 7075, 3, 12);
 
         start = SegmentRange.dateToLong("2013-06-01");
         end = SegmentRange.dateToLong("2015-01-01");
-        buildCuboid(dfName, new SegmentRange.TimePartitionedSegmentRange(start, end), Sets.<LayoutEntity>newLinkedHashSet(layouts), true);
+        buildCuboid(dfName, new SegmentRange.TimePartitionedSegmentRange(start, end), Sets.newLinkedHashSet(layouts),
+                true);
         validateTableExt(df.getModel().getRootFactTableName(), 10000, 4, 12);
 
         /**
          * Round2. Merge two segments
          */
         df = dsMgr.getDataflow(dfName);
-        NDataSegment firstMergeSeg = dsMgr.mergeSegments(df, new SegmentRange.TimePartitionedSegmentRange(SegmentRange.dateToLong("2010-01-01"), SegmentRange.dateToLong("2013-01-01")), false);
-        NSparkMergingJob firstMergeJob = NSparkMergingJob.merge(firstMergeSeg, Sets.newLinkedHashSet(layouts), "ADMIN", UUID.randomUUID().toString());
+        NDataSegment firstMergeSeg = dsMgr.mergeSegments(df, new SegmentRange.TimePartitionedSegmentRange(
+                SegmentRange.dateToLong("2010-01-01"), SegmentRange.dateToLong("2013-01-01")), false);
+        NSparkMergingJob firstMergeJob = NSparkMergingJob.merge(firstMergeSeg, Sets.newLinkedHashSet(layouts), "ADMIN",
+                UUID.randomUUID().toString());
         execMgr.addJob(firstMergeJob);
         // wait job done
         Assert.assertEquals(ExecutableState.SUCCEED, wait(firstMergeJob));
@@ -393,8 +408,10 @@ public class NManualBuildAndQueryTest extends NLocalWithSparkSessionTest {
 
         df = dsMgr.getDataflow(dfName);
 
-        NDataSegment secondMergeSeg = dsMgr.mergeSegments(df, new SegmentRange.TimePartitionedSegmentRange(SegmentRange.dateToLong("2013-01-01"), SegmentRange.dateToLong("2015-06-01")), false);
-        NSparkMergingJob secondMergeJob = NSparkMergingJob.merge(secondMergeSeg, Sets.newLinkedHashSet(layouts), "ADMIN", UUID.randomUUID().toString());
+        NDataSegment secondMergeSeg = dsMgr.mergeSegments(df, new SegmentRange.TimePartitionedSegmentRange(
+                SegmentRange.dateToLong("2013-01-01"), SegmentRange.dateToLong("2015-06-01")), false);
+        NSparkMergingJob secondMergeJob = NSparkMergingJob.merge(secondMergeSeg, Sets.newLinkedHashSet(layouts),
+                "ADMIN", UUID.randomUUID().toString());
         execMgr.addJob(secondMergeJob);
         // wait job done
         Assert.assertEquals(ExecutableState.SUCCEED, wait(secondMergeJob));
@@ -409,33 +426,35 @@ public class NManualBuildAndQueryTest extends NLocalWithSparkSessionTest {
         if (getProject().equals("default") && dfName.equals("89af4ee2-2cdb-4b07-b39e-4c29856309aa")) {
             Map<Long, NDataLayout> cuboidsMap1 = firstSegment.getLayoutsMap();
             Map<Long, Long[]> compareTuples1 = Maps.newHashMap();
-            compareTuples1.put(1L, new Long[]{4903L, 4903L});
-            compareTuples1.put(10001L, new Long[]{4903L, 4903L});
-            compareTuples1.put(10002L, new Long[]{4903L, 4903L});
-            compareTuples1.put(20001L, new Long[]{4903L, 4903L});
-            compareTuples1.put(30001L, new Long[]{4903L, 4903L});
-            compareTuples1.put(1000001L, new Long[]{4903L, 4903L});
-            compareTuples1.put(20000000001L, new Long[]{4903L, 4903L});
-            compareTuples1.put(20000010001L, new Long[]{4903L, 4903L});
-            compareTuples1.put(20000020001L, new Long[]{4903L, 4903L});
+            compareTuples1.put(1L, new Long[] { 4903L, 4903L });
+            compareTuples1.put(10001L, new Long[] { 4903L, 4903L });
+            compareTuples1.put(10002L, new Long[] { 4903L, 4903L });
+            compareTuples1.put(20001L, new Long[] { 4903L, 4903L });
+            compareTuples1.put(30001L, new Long[] { 4903L, 4903L });
+            compareTuples1.put(1000001L, new Long[] { 4903L, 4903L });
+            compareTuples1.put(20000000001L, new Long[] { 4903L, 4903L });
+            compareTuples1.put(20000010001L, new Long[] { 4903L, 4903L });
+            compareTuples1.put(20000020001L, new Long[] { 4903L, 4903L });
             verifyCuboidMetrics(cuboidsMap1, compareTuples1);
 
             Map<Long, NDataLayout> cuboidsMap2 = secondSegment.getLayoutsMap();
             Map<Long, Long[]> compareTuples2 = Maps.newHashMap();
-            compareTuples2.put(1L, new Long[]{5097L, 5097L});
-            compareTuples2.put(10001L, new Long[]{5097L, 5097L});
-            compareTuples2.put(10002L, new Long[]{5097L, 5097L});
-            compareTuples2.put(20001L, new Long[]{5097L, 5097L});
-            compareTuples2.put(30001L, new Long[]{5097L, 5097L});
-            compareTuples2.put(1000001L, new Long[]{5097L, 5097L});
-            compareTuples2.put(20000000001L, new Long[]{5097L, 5097L});
-            compareTuples2.put(20000010001L, new Long[]{5097L, 5097L});
-            compareTuples2.put(20000020001L, new Long[]{5097L, 5097L});
+            compareTuples2.put(1L, new Long[] { 5097L, 5097L });
+            compareTuples2.put(10001L, new Long[] { 5097L, 5097L });
+            compareTuples2.put(10002L, new Long[] { 5097L, 5097L });
+            compareTuples2.put(20001L, new Long[] { 5097L, 5097L });
+            compareTuples2.put(30001L, new Long[] { 5097L, 5097L });
+            compareTuples2.put(1000001L, new Long[] { 5097L, 5097L });
+            compareTuples2.put(20000000001L, new Long[] { 5097L, 5097L });
+            compareTuples2.put(20000010001L, new Long[] { 5097L, 5097L });
+            compareTuples2.put(20000020001L, new Long[] { 5097L, 5097L });
             verifyCuboidMetrics(cuboidsMap2, compareTuples2);
         }
 
-        Assert.assertEquals(new SegmentRange.TimePartitionedSegmentRange(SegmentRange.dateToLong("2010-01-01"), SegmentRange.dateToLong("2013-01-01")), firstSegment.getSegRange());
-        Assert.assertEquals(new SegmentRange.TimePartitionedSegmentRange(SegmentRange.dateToLong("2013-01-01"), SegmentRange.dateToLong("2015-01-01")), secondSegment.getSegRange());
+        Assert.assertEquals(new SegmentRange.TimePartitionedSegmentRange(SegmentRange.dateToLong("2010-01-01"),
+                SegmentRange.dateToLong("2013-01-01")), firstSegment.getSegRange());
+        Assert.assertEquals(new SegmentRange.TimePartitionedSegmentRange(SegmentRange.dateToLong("2013-01-01"),
+                SegmentRange.dateToLong("2015-01-01")), secondSegment.getSegRange());
         //Assert.assertEquals(31, firstSegment.getDictionaries().size());
         //Assert.assertEquals(31, secondSegment.getDictionaries().size());
         Assert.assertEquals(7, firstSegment.getSnapshots().size());
@@ -450,12 +469,12 @@ public class NManualBuildAndQueryTest extends NLocalWithSparkSessionTest {
     }
 
     private void validateTableExt(String tableName, long rows, int segSize, int colStats) {
-        final NTableMetadataManager tableMetadataManager = NTableMetadataManager.getInstance(getTestConfig(), getProject());
+        final NTableMetadataManager tableMetadataManager = NTableMetadataManager.getInstance(getTestConfig(),
+                getProject());
         final TableDesc tableDesc = tableMetadataManager.getTableDesc(tableName);
         final TableExtDesc tableExt = tableMetadataManager.getTableExtIfExists(tableDesc);
         Assert.assertNotNull(tableExt);
         Assert.assertEquals(rows, tableExt.getTotalRows());
         Assert.assertEquals(colStats, tableExt.getColumnStats().size());
-        Assert.assertEquals(segSize, tableExt.getLoadingRange().size());
     }
 }

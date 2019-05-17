@@ -389,7 +389,6 @@ abstract public class KylinConfigBase implements Serializable {
         return Long.valueOf(getOptional("kylin.metadata.audit-log.max-size", "1000000"));
     }
 
-
     public StorageURL getMetadataMQUrl() {
         return StorageURL.valueOf(getOptional("kylin.metadata.mq-url", ""));
     }
@@ -947,12 +946,18 @@ abstract public class KylinConfigBase implements Serializable {
         return getOptional("kylin.engine.spark.build-class-name", "io.kyligence.kap.engine.spark.job.DFBuildJob");
     }
 
+    public String getSparkTableSamplingClassName() {
+        return getOptional("kylin.engine.spark.sampling-class-name",
+                "io.kyligence.kap.engine.spark.stats.analyzer.TableAnalyzerJob");
+    }
+
     public String getSparkMergeClassName() {
         return getOptional("kylin.engine.spark.merge-class-name", "io.kyligence.kap.engine.spark.job.DFMergeJob");
     }
 
     public String getClusterInfoFetcherClassName() {
-        return getOptional("kylin.engine.spark.cluster-info-fetcher-class-name", "io.kyligence.kap.cluster.YarnInfoFetcher");
+        return getOptional("kylin.engine.spark.cluster-info-fetcher-class-name",
+                "io.kyligence.kap.cluster.YarnInfoFetcher");
     }
 
     public void overrideSparkJobJarPath(String path) {
@@ -1492,7 +1497,8 @@ abstract public class KylinConfigBase implements Serializable {
     }
 
     public long getExecutableSurvivalTimeThreshold() {
-        return TimeUtil.timeStringAs(getOptional("kylin.garbage.storage.executable-survival-time-threshold", "30d"), TimeUnit.MILLISECONDS);
+        return TimeUtil.timeStringAs(getOptional("kylin.garbage.storage.executable-survival-time-threshold", "30d"),
+                TimeUnit.MILLISECONDS);
     }
 
     public long getStorageQuotaSize() {

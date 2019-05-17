@@ -24,14 +24,18 @@
 
 package io.kyligence.kap.engine.spark.job;
 
+import java.util.Arrays;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import org.apache.kylin.common.KapConfig;
+import org.apache.kylin.metadata.model.Segments;
 import org.apache.spark.sql.Column;
+import org.spark_project.guava.collect.Sets;
 
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
@@ -40,19 +44,17 @@ import io.kyligence.kap.metadata.cube.model.NDataSegDetails;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
 
 public class NSparkCubingUtil {
+
     public static final String SEPARATOR = "_0_DOT_0_";
 
-    public static String ids2Str(Set<? extends Number> ids) {
-        StringBuilder sb = new StringBuilder();
-        for (Number i : ids) {
-            if (sb.length() > 0)
-                sb.append(",");
-            sb.append(i);
-        }
-        return sb.toString();
+    private NSparkCubingUtil() {
     }
 
-    public static Set<Long> str2Longs(String str) {
+    static String ids2Str(Set<? extends Number> ids) {
+        return String.join(",", ids.stream().map(String::valueOf).collect(Collectors.toList()));
+    }
+
+    static Set<Long> str2Longs(String str) {
         Set<Long> r = new LinkedHashSet<>();
         for (String id : str.split(",")) {
             r.add(Long.parseLong(id));
@@ -68,7 +70,7 @@ public class NSparkCubingUtil {
         return r;
     }
 
-    public static Set<String> toSegmentIds(Set<NDataSegment> segments) {
+    static Set<String> toSegmentIds(Set<NDataSegment> segments) {
         Set<String> r = new LinkedHashSet<>();
         for (NDataSegment seg : segments) {
             r.add(seg.getId());
@@ -76,15 +78,33 @@ public class NSparkCubingUtil {
         return r;
     }
 
-    public static Set<Long> toCuboidLayoutIds(Set<LayoutEntity> cuboids) {
+    static Set<String> toSegmentIds(Segments<NDataSegment> segments) {
+        Set<String> s = Sets.newLinkedHashSet();
+        s.addAll(segments.stream().map(NDataSegment::getId).collect(Collectors.toList()));
+        return s;
+    }
+
+    static Set<String> toSegmentIds(String segmentsStr) {
+        Set<String> s = Sets.newLinkedHashSet();
+        s.addAll(Arrays.asList(segmentsStr.split(",")));
+        return s;
+    }
+
+    static Set<Long> toLayoutIds(Set<LayoutEntity> layouts) {
         Set<Long> r = new LinkedHashSet<>();
-        for (LayoutEntity cl : cuboids) {
-            r.add(cl.getId());
+        for (LayoutEntity layout : layouts) {
+            r.add(layout.getId());
         }
         return r;
     }
 
-    public static Set<LayoutEntity> toLayouts(IndexPlan indexPlan, Set<Long> ids) {
+    static Set<Long> toLayoutIds(String layoutIdStr) {
+        Set<Long> s = Sets.newLinkedHashSet();
+        s.addAll(Arrays.stream(layoutIdStr.split(",")).map(Long::parseLong).collect(Collectors.toList()));
+        return s;
+    }
+
+    static Set<LayoutEntity> toLayouts(IndexPlan indexPlan, Set<Long> ids) {
         Set<LayoutEntity> r = new LinkedHashSet<>();
         for (Long id : ids) {
             r.add(indexPlan.getCuboidLayout(id));

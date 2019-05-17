@@ -24,53 +24,88 @@
 
 package io.kyligence.kap.engine.spark.job;
 
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
-import lombok.val;
-import lombok.var;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.KylinConfigExt;
 import org.apache.kylin.job.constant.ExecutableConstants;
 import org.apache.kylin.job.execution.AbstractExecutable;
-import org.apache.kylin.job.execution.DefaultChainedExecutable;
 import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.apache.kylin.metadata.model.Segments;
+import org.apache.kylin.metadata.model.TableDesc;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.spark_project.guava.collect.Sets;
 
-import com.google.common.collect.Collections2;
-
 import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
 import io.kyligence.kap.engine.spark.builder.NModelAnalysisJob;
+import io.kyligence.kap.engine.spark.stats.analyzer.TableAnalyzerJob;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.model.NBatchConstants;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
+import io.kyligence.kap.metadata.model.NTableMetadataManager;
+import lombok.val;
+import lombok.var;
 
 public class JobStepFactoryTest extends NLocalWithSparkSessionTest {
     private KylinConfig config;
 
     @Before
-    public void setup() throws Exception {
+    public void setup() {
         config = getTestConfig();
     }
 
     @After
-    public void after() throws Exception {
+    public void after() {
         NDefaultScheduler.destroyInstance();
         cleanupTestMetadata();
+    }
+
+    @Test
+    public void testAddStepInSampling() {
+        String table = "DEFAULT.TEST_KYLIN_FACT";
+        NTableMetadataManager tableMetadataManager = NTableMetadataManager.getInstance(config, getProject());
+        final TableDesc tableDesc = tableMetadataManager.getTableDesc(table);
+        NTableSamplingJob job = NTableSamplingJob.create(tableDesc, getProject(), "ADMIN", 20000);
+        Assert.assertEquals(getProject(), job.getParam(NBatchConstants.P_PROJECT_NAME));
+        Assert.assertEquals(tableDesc.getIdentity(), job.getParam(NBatchConstants.P_TABLE_NAME));
+        Assert.assertEquals("20000", job.getParam(NBatchConstants.P_SAMPLING_ROWS));
+        Assert.assertEquals(JobTypeEnum.TABLE_SAMPLING, job.getJobType());
+
+        final NResourceDetectStep resourceDetectStep = job.getResourceDetectStep();
+        Assert.assertEquals(ResourceDetectBeforeSampling.class.getName(), resourceDetectStep.getSparkSubmitClassName());
+        job.getParams().forEach((key, value) -> Assert.assertEquals(value, resourceDetectStep.getParam(key)));
+        Assert.assertEquals(config.getJobTmpMetaStoreUrl(getProject(), resourceDetectStep.getId()).toString(),
+                resourceDetectStep.getDistMetaUrl());
+
+        final NTableSamplingJob.SamplingStep samplingStep = job.getSamplingStep();
+        Assert.assertEquals(TableAnalyzerJob.class.getName(), samplingStep.getSparkSubmitClassName());
+        job.getParams().forEach((key, value) -> Assert.assertEquals(value, samplingStep.getParam(key)));
+        Assert.assertEquals(config.getJobTmpMetaStoreUrl(getProject(), samplingStep.getId()).toString(),
+                samplingStep.getDistMetaUrl());
+    }
+
+    @Test
+    public void testAddStepInSamplingFailedForTableNotExist() {
+        final TableDesc tableDesc = NTableMetadataManager.getInstance(config, getProject()).getTableDesc("abc");
+        try {
+            NTableSamplingJob.create(tableDesc, getProject(), "ADMIN", 20000);
+            Assert.fail();
+        } catch (IllegalArgumentException ex) {
+            Assert.assertEquals("Create table sampling job failed for table not exist!", ex.getMessage());
+        }
     }
 
     @Test
@@ -81,25 +116,28 @@ public class JobStepFactoryTest extends NLocalWithSparkSessionTest {
         Set<NDataSegment> segments = Sets.newHashSet(oneSeg);
         Set<LayoutEntity> layouts = Sets.newHashSet(df.getIndexPlan().getAllLayouts());
         NSparkCubingJob job = NSparkCubingJob.create(segments, layouts, "ADMIN");
-        NSparkExecutable resourceDetectStep = JobStepFactory.addStep(job, JobStepType.RESOURCE_DETECT, segments,
-                layouts);
-        Assert.assertTrue(resourceDetectStep instanceof NResourceDetectStep);
+
+        NSparkExecutable resourceDetectStep = job.getResourceDetectStep();
         Assert.assertEquals(ResourceDetectBeforeCubingJob.class.getName(),
                 resourceDetectStep.getSparkSubmitClassName());
         Assert.assertEquals(ExecutableConstants.STEP_NAME_DETECT_RESOURCE, resourceDetectStep.getName());
-        compareParameter(resourceDetectStep, segments, layouts, job);
+        job.getParams().forEach((key, value) -> Assert.assertEquals(value, resourceDetectStep.getParam(key)));
+        Assert.assertEquals(config.getJobTmpMetaStoreUrl(getProject(), resourceDetectStep.getId()).toString(),
+                resourceDetectStep.getDistMetaUrl());
 
-        NSparkExecutable analysisStep = JobStepFactory.addStep(job, JobStepType.ANALYSIS, segments, layouts);
-        Assert.assertTrue(analysisStep instanceof NSparkAnalysisStep);
+        NSparkExecutable analysisStep = job.getSparkAnalysisStep();
         Assert.assertEquals(NModelAnalysisJob.class.getName(), analysisStep.getSparkSubmitClassName());
         Assert.assertEquals(ExecutableConstants.STEP_NAME_DATA_PROFILING, analysisStep.getName());
-        compareParameter(analysisStep, segments, layouts, job);
+        job.getParams().forEach((key, value) -> Assert.assertEquals(value, analysisStep.getParam(key)));
+        Assert.assertEquals(config.getJobTmpMetaStoreUrl(getProject(), analysisStep.getId()).toString(),
+                analysisStep.getDistMetaUrl());
 
-        NSparkExecutable cubeStep = JobStepFactory.addStep(job, JobStepType.CUBING, segments, layouts);
-        Assert.assertTrue(cubeStep instanceof NSparkCubingStep);
+        NSparkExecutable cubeStep = job.getSparkCubingStep();
         Assert.assertEquals(config.getSparkBuildClassName(), cubeStep.getSparkSubmitClassName());
         Assert.assertEquals(ExecutableConstants.STEP_NAME_BUILD_SPARK_CUBE, cubeStep.getName());
-        compareParameter(cubeStep, segments, layouts, job);
+        job.getParams().forEach((key, value) -> Assert.assertEquals(value, cubeStep.getParam(key)));
+        Assert.assertEquals(config.getJobTmpMetaStoreUrl(getProject(), cubeStep.getId()).toString(),
+                cubeStep.getDistMetaUrl());
     }
 
     @Test
@@ -129,51 +167,40 @@ public class JobStepFactoryTest extends NLocalWithSparkSessionTest {
         update.setToRemoveSegs(df.getSegments().toArray(new NDataSegment[0]));
         dsMgr.updateDataflow(update);
 
-        NDataSegment firstMergeSeg = dsMgr.mergeSegments(flowCopy, new SegmentRange.TimePartitionedSegmentRange(
+        NDataSegment mergedSegment = dsMgr.mergeSegments(flowCopy, new SegmentRange.TimePartitionedSegmentRange(
                 SegmentRange.dateToLong("2010-01-02"), SegmentRange.dateToLong("2013-01-01")), true);
-        Set<NDataSegment> segments = Sets.newHashSet(firstMergeSeg);
         Set<LayoutEntity> layouts = Sets.newHashSet(flowCopy.getIndexPlan().getAllLayouts());
-        NSparkMergingJob job = NSparkMergingJob.merge(firstMergeSeg, Sets.newLinkedHashSet(layouts), "ADMIN",
+        NSparkMergingJob job = NSparkMergingJob.merge(mergedSegment, Sets.newLinkedHashSet(layouts), "ADMIN",
                 UUID.randomUUID().toString());
 
-        NSparkExecutable resourceDetectStep = JobStepFactory.addStep(job, JobStepType.RESOURCE_DETECT, segments,
-                layouts);
-        Assert.assertTrue(resourceDetectStep instanceof NResourceDetectStep);
+        NSparkExecutable resourceDetectStep = job.getResourceDetectStep();
         Assert.assertEquals(ResourceDetectBeforeMergingJob.class.getName(),
                 resourceDetectStep.getSparkSubmitClassName());
         Assert.assertEquals(ExecutableConstants.STEP_NAME_DETECT_RESOURCE, resourceDetectStep.getName());
-        compareParameter(resourceDetectStep, segments, layouts, job);
+        job.getParams().forEach((key, value) -> Assert.assertEquals(value, resourceDetectStep.getParam(key)));
+        Assert.assertEquals(config.getJobTmpMetaStoreUrl(getProject(), resourceDetectStep.getId()).toString(),
+                resourceDetectStep.getDistMetaUrl());
 
-        NSparkExecutable mergeStep = JobStepFactory.addStep(job, JobStepType.MERGING, segments, layouts);
-        Assert.assertTrue(mergeStep instanceof NSparkMergingStep);
+        NSparkExecutable mergeStep = job.getSparkMergingStep();
         Assert.assertEquals(config.getSparkMergeClassName(), mergeStep.getSparkSubmitClassName());
         Assert.assertEquals(ExecutableConstants.STEP_NAME_MERGER_SPARK_SEGMENT, mergeStep.getName());
-        compareParameter(mergeStep, segments, layouts, job);
+        job.getParams().forEach((key, value) -> Assert.assertEquals(value, mergeStep.getParam(key)));
+        Assert.assertEquals(config.getJobTmpMetaStoreUrl(getProject(), mergeStep.getId()).toString(),
+                mergeStep.getDistMetaUrl());
 
-        NSparkExecutable cleanStep = JobStepFactory.addStep(job, JobStepType.CLEAN_UP_AFTER_MERGE, segments, layouts);
-        Assert.assertTrue(cleanStep instanceof NSparkCleanupAfterMergeStep);
-        Assert.assertEquals(ExecutableConstants.STEP_NAME_CLEANUP, cleanStep.getName());
-        Assert.assertEquals(segments.iterator().next().getModel().getUuid(), cleanStep.getTargetModel());
-        Assert.assertEquals(job.getId(), cleanStep.getParam(NBatchConstants.P_JOB_ID));
-        Assert.assertEquals(segments.iterator().next().getDataflow().getUuid(), cleanStep.getDataflowId());
-        Collection<String> ids = Collections2.transform(df.getMergingSegments(segments.iterator().next()),
-                NDataSegment::getId);
-        Assert.assertEquals(Sets.newHashSet(ids), cleanStep.getSegmentIds());
-        Assert.assertEquals(NSparkCubingUtil.toCuboidLayoutIds(layouts), cleanStep.getCuboidLayoutIds());
-        Assert.assertEquals(config.getJobTmpMetaStoreUrl(getProject(), cleanStep.getId()).toString(), cleanStep.getDistMetaUrl());
+        NSparkCleanupAfterMergeStep cleanStep = job.getCleanUpAfterMergeStep();
+        job.getParams().forEach((key, value) -> {
+            if (key.equalsIgnoreCase(NBatchConstants.P_SEGMENT_IDS)) {
+                final Set<String> needDeleteSegmentIds = df.getMergingSegments(mergedSegment).stream()
+                        .map(NDataSegment::getId).collect(Collectors.toSet());
+                Assert.assertEquals(needDeleteSegmentIds, cleanStep.getSegmentIds());
+            } else {
+                Assert.assertEquals(value, mergeStep.getParam(key));
+            }
+        });
+        Assert.assertEquals(config.getJobTmpMetaStoreUrl(getProject(), cleanStep.getId()).toString(),
+                cleanStep.getDistMetaUrl());
     }
-
-    private void compareParameter(NSparkExecutable step, Set<NDataSegment> segments, Set<LayoutEntity> layouts,
-            DefaultChainedExecutable job) {
-        Assert.assertEquals(segments.iterator().next().getModel().getUuid(), step.getTargetModel());
-        Assert.assertEquals(job.getId(), step.getParam(NBatchConstants.P_JOB_ID));
-        Assert.assertEquals(segments.iterator().next().getDataflow().getUuid(), step.getDataflowId());
-        Assert.assertEquals(NSparkCubingUtil.toSegmentIds(segments), step.getSegmentIds());
-        Assert.assertEquals(NSparkCubingUtil.toCuboidLayoutIds(layouts), step.getCuboidLayoutIds());
-        Assert.assertEquals(config.getJobTmpMetaStoreUrl(getProject(), step.getId()).toString(), step.getDistMetaUrl());
-    }
-
-
 
     @Test
     public void testModeAnalyzeStrategyAlaways() {

@@ -93,6 +93,7 @@ public class NExecutableManagerTest extends NLocalFileMetadataTestCase {
     @Test
     public void testDefaultChainedExecutable() throws Exception {
         DefaultChainedExecutable job = new DefaultChainedExecutable();
+        job.setProject("default");
         SucceedTestExecutable executable = new SucceedTestExecutable();
         job.addTask(executable);
         SucceedTestExecutable executable1 = new SucceedTestExecutable();
@@ -191,11 +192,11 @@ public class NExecutableManagerTest extends NLocalFileMetadataTestCase {
     @Test
     public void testResumeAndPauseJob() throws IOException, InterruptedException {
         DefaultChainedExecutable job = new DefaultChainedExecutable();
+        job.setProject("default");
         SucceedTestExecutable executable = new SucceedTestExecutable();
         job.addTask(executable);
         SucceedTestExecutable executable1 = new SucceedTestExecutable();
         job.addTask(executable1);
-        job.setProject("default");
         manager.addJob(job);
         manager.pauseJob(job.getId());
         AbstractExecutable anotherJob = manager.getJob(job.getId());
@@ -294,15 +295,15 @@ public class NExecutableManagerTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testResumeJob_AllStep() {
-        DefaultChainedExecutable job = new DefaultChainedExecutable();
+        DefaultChainedExecutable job = new DefaultChainedExecutableOnModel();
         job.setName(JobTypeEnum.INDEX_BUILD.toString());
         job.setJobType(JobTypeEnum.INDEX_BUILD);
         job.setTargetModel("test");
+        job.setProject("default");
         SucceedTestExecutable executable = new SucceedTestExecutable();
         job.addTask(executable);
         SucceedTestExecutable executable2 = new SucceedTestExecutable();
         job.addTask(executable2);
-        job.setProject("default");
         manager.addJob(job);
         manager.pauseJob(job.getId());
         manager.updateJobOutput(executable.getId(), ExecutableState.RUNNING);
@@ -320,13 +321,13 @@ public class NExecutableManagerTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testPauseJob_IncBuildJobDataFlowStatusChange() {
-        DefaultChainedExecutable job = new DefaultChainedExecutable();
+        DefaultChainedExecutable job = new DefaultChainedExecutableOnModel();
         job.setName(JobTypeEnum.INC_BUILD.toString());
         job.setJobType(JobTypeEnum.INC_BUILD);
         job.setTargetModel("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+        job.setProject("default");
         SucceedTestExecutable executable = new SucceedTestExecutable();
         job.addTask(executable);
-        job.setProject("default");
         manager.addJob(job);
         manager.pauseJob(job.getId());
 
@@ -340,13 +341,13 @@ public class NExecutableManagerTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testPauseJob_IndexBuildJobDataFlowStatusNotChange() {
-        DefaultChainedExecutable job = new DefaultChainedExecutable();
+        DefaultChainedExecutable job = new DefaultChainedExecutableOnModel();
         job.setName(JobTypeEnum.INDEX_BUILD.toString());
         job.setJobType(JobTypeEnum.INDEX_BUILD);
         job.setTargetModel("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+        job.setProject("default");
         SucceedTestExecutable executable = new SucceedTestExecutable();
         job.addTask(executable);
-        job.setProject("default");
         manager.addJob(job);
         manager.pauseJob(job.getId());
 
@@ -361,7 +362,7 @@ public class NExecutableManagerTest extends NLocalFileMetadataTestCase {
     @Test
     public void testEmailNotificationContent() {
         val project = "default";
-        DefaultChainedExecutable job = new DefaultChainedExecutable();
+        DefaultChainedExecutable job = new DefaultChainedExecutableOnModel();
         job.setName(JobTypeEnum.INDEX_BUILD.toString());
         job.setJobType(JobTypeEnum.INDEX_BUILD);
         job.setProject(project);

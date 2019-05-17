@@ -34,7 +34,7 @@ import io.kyligence.kap.event.model.EventContext;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.favorite.FavoriteQueryManager;
-import io.kyligence.kap.rest.execution.SucceedTestExecutable;
+import io.kyligence.kap.rest.execution.SucceedChainedTestExecutable;
 import io.kyligence.kap.rest.service.FavoriteQueryService;
 import lombok.val;
 import org.apache.kylin.job.engine.JobEngineConfig;
@@ -178,7 +178,7 @@ public class SchedulerEventBusTest extends NLocalFileMetadataTestCase {
         job.setProject(PROJECT);
         job.setTargetModel(df.getModel().getUuid());
         job.setTargetSegments(df.getSegments().stream().map(NDataSegment::getId).collect(Collectors.toList()));
-        SucceedTestExecutable task = new SucceedTestExecutable();
+        SucceedChainedTestExecutable task = new SucceedChainedTestExecutable();
         task.setTargetModel(df.getModel().getUuid());
         task.setTargetSegments(df.getSegments().stream().map(NDataSegment::getId).collect(Collectors.toList()));
         job.addTask(task);

@@ -54,22 +54,18 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.Consumer;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.MailService;
-import org.apache.kylin.common.util.StringUtil;
 import org.apache.kylin.job.constant.JobIssueEnum;
 import org.apache.kylin.job.dao.ExecutableOutputPO;
 import org.apache.kylin.job.exception.ExecuteException;
 import org.apache.kylin.job.exception.JobStoppedException;
 import org.apache.kylin.job.exception.JobSuicideException;
 import org.apache.kylin.job.impl.threadpool.DefaultContext;
-import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -81,13 +77,7 @@ import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.persistence.transaction.TransactionException;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
-import io.kyligence.kap.metadata.cube.model.NBatchConstants;
 import io.kyligence.kap.metadata.cube.model.NDataLayout;
-import io.kyligence.kap.metadata.cube.model.NDataSegment;
-import io.kyligence.kap.metadata.cube.model.NDataflow;
-import io.kyligence.kap.metadata.cube.model.NDataflowManager;
-import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
-import io.kyligence.kap.metadata.model.ManagementType;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
@@ -148,62 +138,6 @@ public abstract class AbstractExecutable implements Executable, Idempotent {
         return (dataModelDesc == null || dataModelDesc.isBroken()) ? null : dataModelDesc.getAlias();
     }
 
-    private boolean checkTargetSegmentExists(String segmentId) {
-        NDataflow dataflow = NDataflowManager.getInstance(config, getProject()).getDataflow(targetModel);
-        if (dataflow == null) {
-            return false;
-        }
-        NDataSegment segment = dataflow.getSegment(segmentId);
-        return segment != null;
-    }
-
-    public boolean checkAnyTargetSegmentExists() {
-        List<String> topJobTargetSegments = targetSegments;
-        AbstractExecutable parent = getParent();
-        if (parent != null) {
-            topJobTargetSegments = parent.targetSegments;
-        }
-
-        Preconditions.checkState(!topJobTargetSegments.isEmpty());
-
-        return topJobTargetSegments.stream().anyMatch(this::checkTargetSegmentExists);
-    }
-
-    private boolean checkAnyLayoutExists() {
-        val layouts = getParam(NBatchConstants.P_LAYOUT_IDS);
-        if (StringUtils.isEmpty(layouts)) {
-            return true;
-        }
-        val cubeManager = NIndexPlanManager.getInstance(config, getProject());
-        val cube = cubeManager.getIndexPlan(targetModel);
-        val allLayoutIds = cube.getAllLayouts().stream().map(l -> l.getId() + "").collect(Collectors.toSet());
-        return Stream.of(StringUtil.splitAndTrim(layouts, ",")).anyMatch(allLayoutIds::contains);
-    }
-
-    private void suicideIfNecessary() {
-        if (needSuicide()) {
-            updateJobOutput(project, getId(), ExecutableState.SUICIDAL,
-                    "suicide as its subject model/segment no longer exists");
-            throw new JobSuicideException();
-        }
-    }
-
-    protected boolean needSuicide() {
-        return !checkAnyTargetSegmentExists() || checkCuttingInJobByModel() || !checkAnyLayoutExists();
-    }
-
-    public boolean checkCuttingInJobByModel() {
-        AbstractExecutable parent = getParent();
-        if (parent == null) {
-            parent = this;
-        }
-        if (!JobTypeEnum.INDEX_BUILD.equals(parent.getJobType())) {
-            return false;
-        }
-        val model = parent.getTargetModel();
-        return NExecutableManager.getInstance(config, getProject()).countCuttingInJobByModel(model, parent) > 0;
-    }
-
     public AbstractExecutable() {
         setId(UUID.randomUUID().toString());
     }
@@ -255,35 +189,7 @@ public abstract class AbstractExecutable implements Executable, Idempotent {
     }
 
     protected void onExecuteErrorHook(String jobId) {
-        if (!(this instanceof DefaultChainedExecutable)) {
-            return;
-        }
-        markDFLagBehindIfNecessary(jobId);
-    }
-
-    private void markDFLagBehindIfNecessary(String jobId) {
-        if (!JobTypeEnum.INC_BUILD.equals(this.jobType)) {
-            return;
-        }
-        val dataflow = getDataflow(jobId);
-        if (dataflow == null || RealizationStatusEnum.LAG_BEHIND.equals(dataflow.getStatus())) {
-            return;
-        }
-        val model = dataflow.getModel();
-        if (ManagementType.MODEL_BASED.equals(model.getManagementType())) {
-            return;
-        }
-        val dfManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), getProject());
-        dfManager.updateDataflow(dataflow.getId(),
-                copyForWrite -> copyForWrite.setStatus(RealizationStatusEnum.LAG_BEHIND));
-    }
-
-    private NDataflow getDataflow(String jobId) {
-        val execManager = getExecutableManager(getProject());
-        val executable = (DefaultChainedExecutable) execManager.getJob(jobId);
-        val modelId = executable.getTargetModel();
-        val dfManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), getProject());
-        return dfManager.getDataflow(modelId);
+        // At present, only instance of DefaultChainedExecutableOnModel take full advantage of this method.
     }
 
     public static void updateJobOutput(String project, String jobId, ExecutableState newStatus,
@@ -376,12 +282,37 @@ public abstract class AbstractExecutable implements Executable, Idempotent {
         }
     }
 
+    private void suicideIfNecessary() {
+        if (checkSuicide()) {
+            updateJobOutput(project, getId(), ExecutableState.SUICIDAL,
+                    "suicide as its subject(model, segment or table) no longer exists");
+            throw new JobSuicideException();
+        }
+    }
+
+    /**
+     * For non-chained executable, depend on its parent(instance of DefaultChainedExecutable).
+     */
+    public boolean checkSuicide() {
+        final AbstractExecutable parent = getParent();
+        if (parent == null) {
+            return false;
+        } else {
+            return parent.checkSuicide();
+        }
+    }
+
+    // If job need check paused, override this method, by default return true.
+    protected boolean needCheckPaused() {
+        return true;
+    }
+
     public void checkJobPaused() {
         checkJobPaused(null);
     }
 
-    public void checkJobPaused(String output) {
-        if (this instanceof DefaultChainedExecutable) {
+    private void checkJobPaused(String output) {
+        if (!needCheckPaused()) {
             return;
         }
         val parent = this.getParent();

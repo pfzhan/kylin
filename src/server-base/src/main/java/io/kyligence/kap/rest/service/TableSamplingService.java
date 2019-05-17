@@ -71,7 +71,7 @@ public class TableSamplingService extends BasicService {
         for (AbstractExecutable executable : allExecutables) {
             if (executable instanceof NTableSamplingJob) {
                 NTableSamplingJob job = (NTableSamplingJob) executable;
-                if (job.getTableIdentity().equalsIgnoreCase(tableIdentity) && job.getStatus().isReadyOrRunning()) {
+                if (job.getTableIdentity().equalsIgnoreCase(tableIdentity) && !job.getStatus().isFinalState()) {
                     return true;
                 }
             }

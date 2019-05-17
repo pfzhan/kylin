@@ -27,8 +27,8 @@ package io.kyligence.kap.engine.spark.job;
 import java.util.Set;
 import java.util.UUID;
 
-import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.job.constant.ExecutableConstants;
 import org.apache.kylin.job.exception.ExecuteException;
 import org.apache.kylin.job.execution.DefaultChainedExecutable;
 import org.apache.kylin.job.execution.ExecutableContext;
@@ -43,7 +43,6 @@ import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.engine.spark.ExecutableUtils;
-import io.kyligence.kap.engine.spark.stats.analyzer.TableAnalyzerJob;
 import io.kyligence.kap.metadata.cube.model.NBatchConstants;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
@@ -51,45 +50,60 @@ import lombok.val;
 
 public class NTableSamplingJob extends DefaultChainedExecutable {
 
-    private void setTableIdentity(String tableIdentity) {
-        setParam(NBatchConstants.P_TABLE_NAME, tableIdentity);
-    }
-
     public String getTableIdentity() {
         return getParam(NBatchConstants.P_TABLE_NAME);
     }
 
     @Override
-    protected boolean needSuicide() {
-        //todo
-        return false;
+    public Set<String> getMetadataDumpList(KylinConfig config) {
+        final String table = getParam(NBatchConstants.P_TABLE_NAME);
+        final TableDesc tableDesc = NTableMetadataManager.getInstance(config, getProject()).getTableDesc(table);
+        final ProjectInstance projectInstance = NProjectManager.getInstance(config).getProject(this.getProject());
+        return Sets.newHashSet(tableDesc.getResourcePath(), projectInstance.getResourcePath());
     }
 
     public static NTableSamplingJob create(TableDesc tableDesc, String project, String submitter, int rows) {
+        Preconditions.checkArgument(tableDesc != null, //
+                "Create table sampling job failed for table not exist!");
+
         NTableSamplingJob job = new NTableSamplingJob();
         job.setId(UUID.randomUUID().toString());
-        job.setSubmitter(submitter);
-        job.setParam(NBatchConstants.P_PROJECT_NAME, project);
-        job.setParam(NBatchConstants.P_SAMPLING_ROWS, String.valueOf(rows));
-        job.setTableIdentity(tableDesc.getIdentity());
         job.setName(JobTypeEnum.TABLE_SAMPLING.toString());
         job.setProject(project);
         job.setJobType(JobTypeEnum.TABLE_SAMPLING);
-        job.addTask(SamplingStep.create(tableDesc, project, submitter, rows));
+
+        job.setSubmitter(submitter);
+        job.setParam(NBatchConstants.P_PROJECT_NAME, project);
+        job.setParam(NBatchConstants.P_JOB_ID, job.getId());
+        job.setParam(NBatchConstants.P_TABLE_NAME, tableDesc.getIdentity());
+        job.setParam(NBatchConstants.P_SAMPLING_ROWS, String.valueOf(rows));
+
+        JobStepFactory.addStep(job, JobStepType.RESOURCE_DETECT);
+        JobStepFactory.addStep(job, JobStepType.SAMPLING);
         return job;
     }
 
+    NResourceDetectStep getResourceDetectStep() {
+        return getTask(NResourceDetectStep.class);
+    }
+
+    SamplingStep getSamplingStep() {
+        return getTask(SamplingStep.class);
+    }
+
     public static class SamplingStep extends NSparkExecutable {
-        private void setTableIdentity(String tableIdentity) {
-            setParam(NBatchConstants.P_TABLE_NAME, tableIdentity);
+
+        // called by reflection
+        public SamplingStep() {
+        }
+
+        SamplingStep(String sparkSubmitClassName) {
+            this.setSparkSubmitClassName(sparkSubmitClassName);
+            this.setName(ExecutableConstants.STEP_NAME_TABLE_SAMPLING);
         }
 
         private String getTableIdentity() {
             return getParam(NBatchConstants.P_TABLE_NAME);
-        }
-
-        private void setSamplingRows(int rows) {
-            setParam(NBatchConstants.P_SAMPLING_ROWS, String.valueOf(rows));
         }
 
         @Override
@@ -122,12 +136,6 @@ public class NTableSamplingJob extends DefaultChainedExecutable {
         }
 
         @Override
-        protected boolean needSuicide() {
-            //todo
-            return false;
-        }
-
-        @Override
         protected Set<String> getMetadataDumpList(KylinConfig config) {
             final Set<String> dumpList = Sets.newHashSet();
 
@@ -149,27 +157,6 @@ public class NTableSamplingJob extends DefaultChainedExecutable {
 
             return dumpList;
         }
-
-        public static SamplingStep create(TableDesc tableDesc, String project, String submitter, int rows) {
-            Preconditions.checkArgument(StringUtils.isNotEmpty(submitter));
-            Preconditions.checkArgument(tableDesc != null);
-            Preconditions.checkArgument(StringUtils.isNotEmpty(project));
-
-            SamplingStep job = new SamplingStep();
-            job.setJobId(UUID.randomUUID().toString());
-            job.setSubmitter(submitter);
-            job.setProject(project);
-            job.setProjectParam(project);
-            job.setSamplingRows(rows);
-            job.setTableIdentity(tableDesc.getIdentity());
-            job.setDistMetaUrl(KylinConfig.getInstanceFromEnv().getJobTmpMetaStoreUrl(project, job.getId()).toString());
-            job.setName(JobTypeEnum.TABLE_SAMPLING.toString());
-            job.setJobType(JobTypeEnum.TABLE_SAMPLING);
-            job.setSparkSubmitClassName(TableAnalyzerJob.class.getName());
-
-            return job;
-        }
-
     }
 
 }

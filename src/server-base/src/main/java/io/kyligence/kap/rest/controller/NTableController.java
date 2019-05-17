@@ -60,6 +60,7 @@ import io.kyligence.kap.rest.request.DateRangeRequest;
 import io.kyligence.kap.rest.request.PartitionKeyRequest;
 import io.kyligence.kap.rest.request.PushDownModeRequest;
 import io.kyligence.kap.rest.request.RefreshSegmentsRequest;
+import io.kyligence.kap.rest.request.ReloadTableRequest;
 import io.kyligence.kap.rest.request.TableLoadRequest;
 import io.kyligence.kap.rest.request.TopTableRequest;
 import io.kyligence.kap.rest.response.AutoMergeConfigResponse;
@@ -69,7 +70,9 @@ import io.kyligence.kap.rest.response.TableNameResponse;
 import io.kyligence.kap.rest.response.TablesAndColumnsResponse;
 import io.kyligence.kap.rest.service.ModelService;
 import io.kyligence.kap.rest.service.TableExtService;
+import io.kyligence.kap.rest.service.TableSamplingService;
 import io.kyligence.kap.rest.service.TableService;
+import lombok.val;
 
 @Controller
 @RequestMapping(value = "/tables")
@@ -91,6 +94,10 @@ public class NTableController extends NBasicController {
     @Autowired
     @Qualifier("modelService")
     private ModelService modelService;
+
+    @Autowired
+    @Qualifier("tableSamplingService")
+    private TableSamplingService tableSamplingService;
 
     @RequestMapping(value = "", method = { RequestMethod.GET }, produces = { "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
@@ -228,7 +235,8 @@ public class NTableController extends NBasicController {
     @RequestMapping(value = "/databases", method = { RequestMethod.GET }, produces = {
             "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public EnvelopeResponse showDatabases(@RequestParam(value = "project", required = true) String project) throws Exception {
+    public EnvelopeResponse showDatabases(@RequestParam(value = "project", required = true) String project)
+            throws Exception {
 
         checkProjectName(project);
         List<String> databases = tableService.getSourceDbNames(project);
@@ -405,6 +413,7 @@ public class NTableController extends NBasicController {
             throw new BadRequestException(String.format(msg.getSAMPLING_FAILED_FOR_ILLEGAL_TABLE_NAME(), tableName));
         }
     }
+
     @RequestMapping(value = "/prepare_reload", method = { RequestMethod.GET }, produces = {
             "application/vnd.apache.kylin-v2+json" })
     @ResponseBody

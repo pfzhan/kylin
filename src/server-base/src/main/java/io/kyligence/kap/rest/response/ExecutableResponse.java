@@ -78,7 +78,7 @@ public class ExecutableResponse implements Comparable<ExecutableResponse> {
     @JsonProperty("target_subject")
     private String targetSubject;
 
-    public static ExecutableResponse create(AbstractExecutable abstractExecutable) {
+    private static ExecutableResponse newInstance(AbstractExecutable abstractExecutable) {
         ExecutableResponse executableResponse = new ExecutableResponse();
         executableResponse.setDataRangeEnd(abstractExecutable.getDataRangeEnd());
         executableResponse.setDataRangeStart(abstractExecutable.getDataRangeStart());
@@ -92,13 +92,17 @@ public class ExecutableResponse implements Comparable<ExecutableResponse> {
         executableResponse.setTargetSegments(abstractExecutable.getTargetSegments());
         executableResponse.setTargetModelAlias(abstractExecutable.getTargetModelAlias());
         executableResponse.setWaitTime(abstractExecutable.getWaitTime());
+        return executableResponse;
+    }
+
+    public static ExecutableResponse create(AbstractExecutable abstractExecutable) {
+        ExecutableResponse executableResponse = newInstance(abstractExecutable);
         if (abstractExecutable instanceof NTableSamplingJob) {
-            NTableSamplingJob job = (NTableSamplingJob) abstractExecutable;
-            executableResponse.setTargetSubject(job.getParam(NBatchConstants.P_TABLE_NAME));
+            NTableSamplingJob samplingJob = (NTableSamplingJob) abstractExecutable;
             executableResponse.setDataRangeEnd(Long.MAX_VALUE);
-        } else {
-            executableResponse.setTargetSubject(abstractExecutable.getTargetModelAlias());
+            executableResponse.setTargetSubject(samplingJob.getParam(NBatchConstants.P_TABLE_NAME));
         }
+
         List<? extends AbstractExecutable> tasks = ((ChainedExecutable) abstractExecutable).getTasks();
         executableResponse.steps = tasks.size();
         int successSteps = 0;

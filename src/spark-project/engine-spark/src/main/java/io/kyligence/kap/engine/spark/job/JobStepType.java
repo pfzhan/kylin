@@ -25,5 +25,7 @@
 package io.kyligence.kap.engine.spark.job;
 
 public enum JobStepType {
-    ANALYSIS, RESOURCE_DETECT, CLEAN_UP_AFTER_MERGE, CUBING, MERGING
+    ANALYSIS, RESOURCE_DETECT, CLEAN_UP_AFTER_MERGE, CUBING, MERGING,
+
+    SAMPLING
 }

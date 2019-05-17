@@ -112,6 +112,7 @@ import io.kyligence.kap.event.model.AddSegmentEvent;
 import io.kyligence.kap.event.model.Event;
 import io.kyligence.kap.event.model.PostMergeOrRefreshSegmentEvent;
 import io.kyligence.kap.event.model.RefreshSegmentEvent;
+import io.kyligence.kap.metadata.cube.cuboid.CuboidStatus;
 import io.kyligence.kap.metadata.cube.cuboid.NAggregationGroup;
 import io.kyligence.kap.metadata.cube.cuboid.NSpanningTreeForWeb;
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
@@ -134,11 +135,10 @@ import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.metadata.query.QueryHistoryDAO;
 import io.kyligence.kap.metadata.query.QueryTimesResponse;
-import io.kyligence.kap.rest.execution.SucceedTestExecutable;
+import io.kyligence.kap.rest.execution.SucceedChainedTestExecutable;
 import io.kyligence.kap.rest.request.ModelConfigRequest;
 import io.kyligence.kap.rest.request.ModelRequest;
 import io.kyligence.kap.rest.response.ComputedColumnUsageResponse;
-import io.kyligence.kap.metadata.cube.cuboid.CuboidStatus;
 import io.kyligence.kap.rest.response.ExistedDataRangeResponse;
 import io.kyligence.kap.rest.response.IndexEntityResponse;
 import io.kyligence.kap.rest.response.NDataModelResponse;
@@ -220,20 +220,15 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
     @Test
     public void testSortModels() {
 
-        List<NDataModelResponse> models = modelService.getModels("", "default", false, "", "",
-                "usage", true);
+        List<NDataModelResponse> models = modelService.getModels("", "default", false, "", "", "usage", true);
         Assert.assertEquals(6, models.size());
         Assert.assertEquals("nmodel_basic_inner", models.get(0).getAlias());
-        models = modelService.getModels("", "default", false, "", "",
-                "usage", false);
+        models = modelService.getModels("", "default", false, "", "", "usage", false);
         Assert.assertEquals("nmodel_basic_inner", models.get(models.size() - 1).getAlias());
-        models = modelService.getModels("", "default", false, "", "",
-                "storage", true);
+        models = modelService.getModels("", "default", false, "", "", "storage", true);
         Assert.assertEquals("nmodel_basic", models.get(0).getAlias());
-        models = modelService.getModels("", "default", false, "", "",
-                "storage", false);
+        models = modelService.getModels("", "default", false, "", "", "storage", false);
         Assert.assertEquals("nmodel_basic", models.get(models.size() - 1).getAlias());
-
 
     }
 
@@ -430,8 +425,8 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testGetSimplifiedModelRelations() {
-        List<NSpanningTreeForWeb> relations = modelService
-                .getModelRelations("89af4ee2-2cdb-4b07-b39e-4c29856309aa", "default");
+        List<NSpanningTreeForWeb> relations = modelService.getModelRelations("89af4ee2-2cdb-4b07-b39e-4c29856309aa",
+                "default");
         Assert.assertEquals(1, relations.size());
         Assert.assertEquals(1, relations.get(0).getRoots().size());
         Assert.assertEquals(5, relations.get(0).getNodesMap().size());
@@ -2327,17 +2322,17 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
 
     private List<AbstractExecutable> mockJobs() {
         List<AbstractExecutable> jobs = new ArrayList<>();
-        SucceedTestExecutable job1 = new SucceedTestExecutable();
+        SucceedChainedTestExecutable job1 = new SucceedChainedTestExecutable();
         job1.setProject("default");
         job1.initConfig(KylinConfig.getInstanceFromEnv());
         job1.setName("sparkjob1");
         job1.setTargetModel("741ca86a-1f13-46da-a59f-95fb68615e3a");
-        SucceedTestExecutable job2 = new SucceedTestExecutable();
+        SucceedChainedTestExecutable job2 = new SucceedChainedTestExecutable();
         job2.setProject("default");
         job2.initConfig(KylinConfig.getInstanceFromEnv());
         job2.setName("sparkjob2");
         job2.setTargetModel("model2");
-        SucceedTestExecutable job3 = new SucceedTestExecutable();
+        SucceedChainedTestExecutable job3 = new SucceedChainedTestExecutable();
         job3.setProject("default");
         job3.initConfig(KylinConfig.getInstanceFromEnv());
         job3.setName("sparkjob3");
