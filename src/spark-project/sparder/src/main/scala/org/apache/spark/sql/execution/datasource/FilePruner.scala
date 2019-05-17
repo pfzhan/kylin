@@ -113,8 +113,10 @@ class FilePruner(val session: SparkSession,
       if (shardByCols.isEmpty) {
         Seq.empty
       } else {
-        require(shardByCols.size() == 1, "Now we only support one shard by col.")
         val id = shardByCols.asScala.head
+        if(shardByCols.size() > 1) {
+         logDebug(s"Now we only support one shard by col, but curren shard by cols is ${shardByCols.size()}")
+        }
         dataSchema.filter(_.name == id.toString)
       })
   }

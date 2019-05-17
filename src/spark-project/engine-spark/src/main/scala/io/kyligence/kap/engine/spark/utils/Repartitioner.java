@@ -24,6 +24,8 @@
 
 package io.kyligence.kap.engine.spark.utils;
 
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.Lists;
 import java.io.IOException;
 import java.util.List;
 
@@ -41,7 +43,7 @@ import io.kyligence.kap.engine.spark.NSparkCubingEngine;
 import io.kyligence.kap.engine.spark.job.NSparkCubingUtil;
 
 public class Repartitioner {
-    protected static String tempDirSuffix = "_temp";
+    private static String tempDirSuffix = "_temp";
     protected static final Logger logger = LoggerFactory.getLogger(SparkConfHelper.class);
 
     private int MB = 1024 * 1024;
@@ -50,7 +52,8 @@ public class Repartitioner {
     private long totalRowCount;
     private long rowCountThreshold;
     private ContentSummary contentSummary;
-    private List<Integer> shardByColumns;
+    // only support 1 column
+    private Integer shardByColumns;
 
     public Repartitioner(int shardSize, int fileLengthThreshold, long totalRowCount, long rowCountThreshold,
             ContentSummary contentSummary, List<Integer> shardByColumns) {
@@ -59,23 +62,26 @@ public class Repartitioner {
         this.totalRowCount = totalRowCount;
         this.rowCountThreshold = rowCountThreshold;
         this.contentSummary = contentSummary;
-        this.shardByColumns = shardByColumns;
+        if (shardByColumns != null && !shardByColumns.isEmpty()) {
+            this.shardByColumns = shardByColumns.get(0);
+        }
     }
 
-    public boolean needRepartitionForFileSize() {
+    boolean needRepartitionForFileSize() {
         // per file size < threshold file size
         return (contentSummary.getLength() * 1.0 / MB / contentSummary.getFileCount()) < fileLengthThreshold
                 && contentSummary.getFileCount() > 1;
     }
 
-    public boolean needRepartitionForShardByColumns() {
-        return shardByColumns != null && !shardByColumns.isEmpty();
+    boolean needRepartitionForShardByColumns() {
+        return shardByColumns != null;
     }
 
-    public boolean needRepartitionForRowCount() {
+    private boolean needRepartitionForRowCount() {
         return contentSummary.getFileCount() < ((double) totalRowCount / rowCountThreshold) * 0.75;
     }
 
+    @VisibleForTesting
     public boolean needRepartition() {
         if (needRepartitionForShardByColumns()) {
             return true;
@@ -100,7 +106,7 @@ public class Repartitioner {
         return contentSummary;
     }
 
-    public List<Integer> getShardByColumns() {
+    private Integer getShardByColumns() {
         return shardByColumns;
     }
 
@@ -134,7 +140,7 @@ public class Repartitioner {
         this.contentSummary = contentSummary;
     }
 
-    public void setShardByColumns(List<Integer> shardByColumns) {
+    public void setShardByColumns(Integer shardByColumns) {
         this.shardByColumns = shardByColumns;
     }
 
@@ -153,7 +159,7 @@ public class Repartitioner {
 
             if (needRepartitionForShardByColumns()) {
                 data = storage.getFrom(tempPath, ss).repartition(repartitionNum,
-                        NSparkCubingUtil.getColumns(getShardByColumns()));
+                        NSparkCubingUtil.getColumns(Lists.newArrayList(getShardByColumns())));
             } else {
                 // repartition for single file size is too small
                 logger.info("repartition to {}", repartitionNum);

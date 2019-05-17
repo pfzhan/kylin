@@ -69,7 +69,8 @@
             100000
           ],
           "shard_by_columns": [
-            1
+            1,
+            7
           ],
           "storage_type": 20
         }
