@@ -40,4 +40,8 @@ public class NAutoTdvtTest extends NAutoTestBase {
         new TestScenario(CompareLevel.NONE, "sql_tdvt").execute();
     }
 
+    @Test
+    public void testSameLevelOfTdvt() throws Exception {
+        new TestScenario(CompareLevel.SAME, "sql_tdvt/same_level").execute();
+    }
 }

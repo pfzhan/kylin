@@ -85,6 +85,7 @@ import io.kyligence.kap.query.optrule.KapProjectRule;
 import io.kyligence.kap.query.optrule.KapSortRule;
 import io.kyligence.kap.query.optrule.KapUnionRule;
 import io.kyligence.kap.query.optrule.KapWindowRule;
+import io.kyligence.kap.query.optrule.SumConstantConvertRule;
 import io.kyligence.kap.query.util.ICutContextStrategy;
 
 /**
@@ -136,6 +137,7 @@ public class KapTableScan extends OLAPTableScan implements EnumerableRel, KapRel
             planner.addRule(AggregateMultipleExpandRule.INSTANCE);
         }
         planner.addRule(AggregateProjectReduceRule.INSTANCE);
+        planner.addRule(SumConstantConvertRule.INSTANCE);
 
         // CalcitePrepareImpl.CONSTANT_REDUCTION_RULES
         if (kylinConfig.isReduceExpressionsRulesEnabled()) {
