@@ -25,7 +25,7 @@
           </ul>
         </template>
         <template v-if="theme === 'sql'">
-          <kap-editor :readOnly="true" :isFormatter="true" class="list-editor" v-for="(s, index) in details" :key="index" height="96" lang="sql" theme="chrome" v-bind:value="s" width="99%"></kap-editor>
+          <kap-editor :readOnly="true" :isFormatter="true" class="list-editor" v-for="(s, index) in details" :key="index" height="96" lang="sql" theme="chrome" v-bind:value="s"></kap-editor>
         </template>
       </div>
     </el-alert>
@@ -115,6 +115,8 @@ export default class DetailDialogModal extends Vue {
   .list-editor {
     margin-bottom:10px;
     overflow: hidden;
+    margin: 10px auto;
+    width:calc(~'100% - 20px')!important;
   }
 }
 </style>
