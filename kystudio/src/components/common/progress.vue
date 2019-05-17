@@ -1,7 +1,7 @@
 <template>  
   <div class="kap_progress" :class="progressClass">
-     <el-progress :percentage="percent" :text-inside="true" :stroke-width="14"></el-progress>
-     <i v-if="icon" :class="icon"></i>
+     <el-progress :percentage="percent" :icon-class="icon"></el-progress>
+     <!-- <i v-if="icon" :class="icon"></i> -->
   </div>
 </template>
 <script>
@@ -49,17 +49,6 @@ export default {
 <style lang="less">
 @import '../../assets/styles/variables.less';
   .kap_progress{
-    position: relative;
-    .el-progress {
-      display: inline-block;
-      width: 90%;
-    }
-    i {
-      position: absolute;
-      right: 0;
-      top: 5px;
-      cursor: default !important;
-    }
     &.success {
       .el-progress-bar__inner {
         background-color: @color-success;

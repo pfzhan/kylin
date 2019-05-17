@@ -185,6 +185,10 @@
                   <i class="el-icon-ksd-project_add"></i>
                   <span>{{$t('add')}}</span>
                 </span>
+                <span class="action_btn" v-guide.batchAddDimension @click="batchSetMeasure">
+                  <i class="el-icon-ksd-backup"></i>
+                  <span>{{$t('batchAdd')}}</span>
+                </span>
                 <span class="action_btn" @click="toggleMeaCheckbox" :class="{'disabled': allMeasure.length==1}">
                   <i class="el-icon-ksd-batch_delete"></i>
                   <span>{{$t('batchDel')}}</span>
@@ -353,6 +357,7 @@
     </transition> 
     <PartitionModal/>
     <DimensionModal/>
+    <BatchMeasureModal/>
     <TableJoinModal/>
     <AddMeasure
       :isShow="measureVisible"
@@ -470,6 +475,7 @@ import { handleSuccess, handleError, loadingBox, kapMessage } from '../../../../
 import { isIE, groupData, objectClone, filterObjectArray } from '../../../../util'
 import $ from 'jquery'
 import DimensionModal from '../DimensionsModal/index.vue'
+import BatchMeasureModal from '../BatchMeasureModal/index.vue'
 import AddMeasure from '../AddMeasure/index.vue'
 import TableJoinModal from '../TableJoinModal/index.vue'
 import SingleDimensionModal from '../SingleDimensionModal/addDimension.vue'
@@ -495,6 +501,9 @@ import { NamedRegex } from '../../../../config'
     }),
     ...mapState('DimensionsModal', {
       dimensionDialogShow: state => state.isShow
+    }),
+    ...mapState('BatchMeasureModal', {
+      showBatchMeasureDialogShow: state => state.isShow
     })
   },
   methods: {
@@ -509,6 +518,9 @@ import { NamedRegex } from '../../../../config'
     }),
     ...mapActions('DimensionsModal', {
       showDimensionDialog: 'CALL_MODAL'
+    }),
+    ...mapActions('BatchMeasureModal', {
+      showBatchMeasureDialog: 'CALL_MODAL'
     }),
     ...mapActions('TableJoinModal', {
       showJoinDialog: 'CALL_MODAL'
@@ -534,6 +546,7 @@ import { NamedRegex } from '../../../../config'
     DragBar,
     AddMeasure,
     DimensionModal,
+    BatchMeasureModal,
     TableJoinModal,
     SingleDimensionModal,
     PartitionModal,
@@ -828,6 +841,11 @@ export default class ModelEdit extends Vue {
       convertedColumns: [],
       return_type: ''
     }
+  }
+  batchSetMeasure () {
+    this.showBatchMeasureDialog({
+      modelDesc: this.modelRender
+    })
   }
   editDimension (dimension, i) {
     dimension._id = i
