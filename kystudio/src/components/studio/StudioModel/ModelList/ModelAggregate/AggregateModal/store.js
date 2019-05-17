@@ -133,7 +133,7 @@ function getMapping (dimensions) {
 
 function getDimensions (model) {
   if (model) {
-    return model.all_named_columns
+    return model.simplified_dimensions
       .filter(column => column.status === 'DIMENSION')
       .map(dimension => ({
         label: dimension.column,

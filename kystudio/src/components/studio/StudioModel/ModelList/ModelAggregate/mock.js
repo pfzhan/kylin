@@ -481,7 +481,7 @@ export const mockModel = {
     }
   ],
   scale: 0,
-  all_named_columns: [
+  simplified_dimensions: [
     {
       id: 0,
       name: 'SITE_NAME',

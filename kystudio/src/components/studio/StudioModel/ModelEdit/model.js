@@ -35,14 +35,14 @@ class NModel {
       partition_date_start: 0,
       partition_type: 'APPEND'
     }
-    this.all_named_columns = options.all_named_columns || []
-    this.all_named_columns.forEach((col) => {
+    this.simplified_dimensions = options.simplified_dimensions || []
+    this.simplified_dimensions.forEach((col) => {
       col.guid = sampleGuid()
     })
     this.computed_columns.forEach((col) => {
       col.guid = sampleGuid()
     })
-    this.dimensions = this.all_named_columns.filter((x) => {
+    this.dimensions = this.simplified_dimensions.filter((x) => {
       if (x.status === 'DIMENSION') {
         let columnNamed = x.column.split('.')
         let k = indexOfObjWithSomeKeys(this.computed_columns, 'tableAlias', columnNamed[0], 'columnName', columnNamed[1])
@@ -54,7 +54,7 @@ class NModel {
       }
     })
     // 用在tableIndex上的列
-    this.tableIndexColumns = this.all_named_columns.filter((x) => {
+    this.tableIndexColumns = this.simplified_dimensions.filter((x) => {
       if (x.status !== 'DIMENSION') {
         return x
       }
@@ -80,7 +80,7 @@ class NModel {
     if (_mount) {
       this.$set(this._mount, 'computed_columns', this.computed_columns)
       this.$set(this._mount, 'tables', this.tables)
-      this.$set(this._mount, 'all_named_columns', this.all_named_columns)
+      this.$set(this._mount, 'simplified_dimensions', this.simplified_dimensions)
       this.$set(this._mount, 'all_measures', this.all_measures)
       this.$set(this._mount, 'dimensions', this.dimensions)
       this.$set(this._mount, 'zoom', this.canvas && this.canvas.zoom || modelRenderConfig.zoom)
@@ -277,7 +277,7 @@ class NModel {
           }
         }
         metaData.join_tables = this._generateLookups()
-        metaData.all_named_columns = this._generateAllColumns()
+        metaData.simplified_dimensions = this._generateAllColumns()
         metaData.simplified_measures = this._generateAllMeasureColumns()
         metaData.computed_columns = objectClone(this.computed_columns)
         metaData.last_modified = this.last_modified

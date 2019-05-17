@@ -1379,7 +1379,7 @@ export default class ModelEdit extends Vue {
   // 解析校验保存模型数据
   generateModelData (ignoreAloneTableCheck) {
     this.modelInstance.generateMetadata(ignoreAloneTableCheck).then((data) => {
-      if (!(data.all_named_columns && data.all_named_columns.length)) {
+      if (!(data.simplified_dimensions && data.simplified_dimensions.length)) {
         this._tipNoDimension(data).then(() => {
           this.addPartitionFunc(data)
         }).catch(() => {
@@ -1486,7 +1486,7 @@ export default class ModelEdit extends Vue {
     this[action](para).then((res) => {
       handleSuccess(res, () => {
         // kapMessage(this.$t('kylinLang.common.saveSuccess'))
-        if (!(data.all_named_columns && data.all_named_columns.length)) {
+        if (!(data.simplified_dimensions && data.simplified_dimensions.length)) {
           this.$router.replace({name: 'ModelList', params: { ignoreIntercept: true }})
           return
         }
