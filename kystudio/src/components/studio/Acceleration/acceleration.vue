@@ -494,6 +494,7 @@ export default class FavoriteQuery extends Vue {
   }
   updateLoading = false
   ST = null
+  stCycle = null
   showSearchResult = false
   rulesObj = {
     freqEnable: true,
@@ -674,16 +675,19 @@ export default class FavoriteQuery extends Vue {
     })
   }
   async loadFavoriteList (pageIndex, pageSize) {
-    const res = await this.getFavoriteList({
-      project: this.currentSelectedProject || null,
-      limit: pageSize || 10,
-      offset: pageIndex || 0,
-      status: !this.checkedStatus.length ? this.statusMap[this.activeList] : this.checkedStatus,
-      sortBy: this.filterData.sortBy,
-      reverse: this.filterData.reverse
+    return new Promise(async resolve => {
+      const res = await this.getFavoriteList({
+        project: this.currentSelectedProject || null,
+        limit: pageSize || 10,
+        offset: pageIndex || 0,
+        status: !this.checkedStatus.length ? this.statusMap[this.activeList] : this.checkedStatus,
+        sortBy: this.filterData.sortBy,
+        reverse: this.filterData.reverse
+      })
+      const data = await handleSuccessAsync(res)
+      this.favQueList = data
+      resolve()
     })
-    const data = await handleSuccessAsync(res)
-    this.favQueList = data
   }
 
   openImportSql () {
@@ -691,21 +695,40 @@ export default class FavoriteQuery extends Vue {
   }
 
   async getSQLSizes () {
-    if (this.currentSelectedProject) {
-      const res = await this.getWaitingAcceSize({project: this.currentSelectedProject})
-      const data = await handleSuccessAsync(res)
-      this.listSizes = data
-      this.waitingSQLSize = data.to_be_accelerated
-    }
+    return new Promise(async resolve => {
+      if (this.currentSelectedProject) {
+        const res = await this.getWaitingAcceSize({project: this.currentSelectedProject})
+        const data = await handleSuccessAsync(res)
+        this.listSizes = data
+        this.waitingSQLSize = data.to_be_accelerated
+      }
+      resolve()
+    })
   }
-
+  refreshLists () {
+    return Promise.all([this.loadFavoriteList(), this.getSQLSizes()])
+  }
   async init () {
-    this.getSQLSizes()
-    this.loadFavoriteList()
+    clearTimeout(this.stCycle)
+    this.stCycle = setTimeout(() => {
+      this.refreshLists().then((res) => {
+        handleSuccess(res, (data) => {
+          if (this._isDestroyed) {
+            return
+          }
+          this.init()
+        })
+      }, (res) => {
+        handleError(res)
+      })
+    }, 5000)
   }
 
   created () {
     this.currentSelectedProject && this.init()
+  }
+  destroyed () {
+    clearTimeout(this.stCycle)
   }
   mounted () {
     this.$nextTick(() => {

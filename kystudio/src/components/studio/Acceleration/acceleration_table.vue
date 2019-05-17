@@ -44,28 +44,14 @@
             <i class="status-icon el-icon-ksd-to_accelerated"></i>
             <span>{{$t('kylinLang.query.wartingAcce')}}</span>
           </div>
-          <div v-if="props.row.status === 'PENDING'">
-            <i class="status-icon el-icon-ksd-negative"></i>
-            <span>{{$t('kylinLang.query.pending')}}</span>
-          </div>
+          <el-tooltip class="item" effect="dark" :content="props.row.comment" placement="top-end" v-if="props.row.status === 'PENDING'">
+            <span><i class="status-icon el-icon-ksd-negative"></i> {{$t('kylinLang.query.pending')}}</span>
+          </el-tooltip>
           <el-tooltip class="item" effect="dark" :content="props.row.comment" placement="top-end" v-if="props.row.status === 'FAILED'">
-            <i class="status-icon el-icon-ksd-negative"></i>
-            <span>{{$t('kylinLang.query.failed')}}</span>
+            <span><i class="status-icon el-icon-ksd-negative"></i> {{$t('kylinLang.query.failed')}}</span>
           </el-tooltip>
         </template>
       </el-table-column>
-      <!-- <el-table-column :label="$t('kylinLang.common.action')" width="83">
-        <template slot-scope="props">
-          <span @click="delFav(props.row.uuid, props.row.channel)">
-            <common-tip :content="$t('kylinLang.common.drop')">
-              <i class="el-icon-ksd-table_delete" v-if="props.row.channel==='Imported'"></i>
-            </common-tip>
-            <common-tip :content="$t('kylinLang.common.disable')">
-              <i class="el-icon-ksd-table_discard" v-if="props.row.channel==='Rule-based'"></i>
-            </common-tip>
-          </span>
-        </template>
-      </el-table-column> -->
     </el-table>
   </div>
 </template>
@@ -74,7 +60,7 @@
 import Vue from 'vue'
 import { Component } from 'vue-property-decorator'
 import { mapActions, mapGetters } from 'vuex'
-import { handleSuccess, transToGmtTime, kapConfirm } from '../../../util/business'
+import { handleSuccess, transToGmtTime } from '../../../util/business'
 import { handleError } from '../../../util/index'
 @Component({
   props: ['favoriteTableData', 'tab'],
@@ -87,11 +73,14 @@ import { handleError } from '../../../util/index'
     transToGmtTime: transToGmtTime,
     ...mapActions({
       removeFavSql: 'REMOVE_FAVORITE_SQL'
+    }),
+    ...mapActions('DetailDialogModal', {
+      callGlobalDetailDialog: 'CALL_MODAL'
     })
   },
   locales: {
-    'en': {delSql: 'Are you sure to delete this sql?', addToBlackList: 'Are you sure add this sql to the Black List'},
-    'zh-cn': {delSql: '确定删除这条查询语句吗？', addToBlackList: '确定将这条查询语句加入禁用名单吗？'}
+    'en': {delSql: 'Do you really need to delete {numbers} sql(s)?', addToBlackList: 'Do you really need this {numbers} sql(s) to the Black List'},
+    'zh-cn': {delSql: '您确认要删除{numbers}查询语句吗？', addToBlackList: '确定将这{numbers}条查询语句加入禁用名单吗？'}
   }
 })
 export default class FavoriteTable extends Vue {
@@ -109,6 +98,7 @@ export default class FavoriteTable extends Vue {
     reverse: false
   }
   checkedList = []
+  checkedSqls = []
   dropLoading = false
 
   renderColumn (h) {
@@ -160,23 +150,31 @@ export default class FavoriteTable extends Vue {
     this.checkedList = val.map((i) => {
       return i.uuid
     })
+    this.checkedSqls = val.map((i) => {
+      return i.sql_pattern
+    })
   }
 
-  delFav (isBlock) {
+  async delFav (isBlock) {
     let confirmMsg = ''
     if (isBlock) {
-      confirmMsg = this.$t('addToBlackList')
+      confirmMsg = this.$t('addToBlackList', {numbers: this.checkedList.length})
     } else {
-      confirmMsg = this.$t('delSql')
+      confirmMsg = this.$t('delSql', {numbers: this.checkedList.length})
     }
-    kapConfirm(confirmMsg).then(() => {
-      this.removeFavSql({project: this.currentSelectedProject, uuids: this.checkedList, block: isBlock}).then((res) => {
-        handleSuccess(res, (data) => {
-          this.filterFav()
-        })
-      }, (res) => {
-        handleError(res)
+    await this.callGlobalDetailDialog({
+      msg: confirmMsg,
+      title: this.$t('kylinLang.common.notice'),
+      details: this.checkedSqls,
+      dialogType: 'warning',
+      theme: 'sql'
+    })
+    this.removeFavSql({project: this.currentSelectedProject, uuids: this.checkedList, block: isBlock}).then((res) => {
+      handleSuccess(res, (data) => {
+        this.filterFav()
       })
+    }, (res) => {
+      handleError(res)
     })
   }
 }
