@@ -103,6 +103,7 @@ public abstract class EscapeDialect {
                     , FnConversion.TIMESTAMPDIFF);
 
             register(FN_LENGTH_ALIAS, FnConversion.LENGTH);
+            register("TRUNCATE", FnConversion.TRUNCATE_NUM);
         }
 
         @Override

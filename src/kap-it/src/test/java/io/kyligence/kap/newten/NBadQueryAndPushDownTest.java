@@ -42,8 +42,9 @@ import org.junit.Assert;
 import org.junit.Test;
 
 import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
+import lombok.val;
 
-public class NBadQueryTest extends NLocalWithSparkSessionTest {
+public class NBadQueryAndPushDownTest extends NLocalWithSparkSessionTest {
     private static final String PUSHDOWN_RUNNER_KEY = "kylin.query.pushdown.runner-class-name";
     private final static String PROJECT_NAME = "bad_query_test";
 
@@ -83,8 +84,7 @@ public class NBadQueryTest extends NLocalWithSparkSessionTest {
             pushDownSql(getProject(), sql, 0, 0,
                     new SQLException(new NoRealizationFoundException("testPushDownToNonExistentDB")));
         } catch (Exception e) {
-            Assert.assertTrue(
-                    ExceptionUtils.getRootCause(e) instanceof NoSuchTableException);
+            Assert.assertTrue(ExceptionUtils.getRootCause(e) instanceof NoSuchTableException);
             Assert.assertTrue(ExceptionUtils.getRootCauseMessage(e)
                     .contains("Table or view 'lineitem' not found in database 'default'"));
         }
@@ -120,14 +120,47 @@ public class NBadQueryTest extends NLocalWithSparkSessionTest {
         }
     }
 
-    private void pushDownSql(String prjName, String sql, int limit, int offset, SQLException sqlException)
+    @Test
+    public void testPushDownUdf() throws Exception {
+        KylinConfig.getInstanceFromEnv().setProperty(PUSHDOWN_RUNNER_KEY,
+                "io.kyligence.kap.query.pushdown.PushDownRunnerSparkImpl");
+        KylinConfig.getInstanceFromEnv().setProperty("kylin.query.pushdown.converter-class-names",
+                "io.kyligence.kap.query.util.RestoreFromComputedColumn,io.kyligence.kap.query.util.SparkSQLFunctionConverter,org.apache.kylin.source.adhocquery.HivePushDownConverter");
+
+        String prjName = "tdvt";
+        // timstampDiff
+        String sql = "SELECT {fn TIMESTAMPDIFF(SQL_TSI_DAY,{d '1900-01-01'},\"CALCS\".\"DATE0\")} AS \"TEMP_Test__2048215813__0_\"\n"
+                + "FROM \"CALCS\" \"CALCS\"\n"
+                + "GROUP BY {fn TIMESTAMPDIFF(SQL_TSI_DAY,{d '1900-01-01'},\"CALCS\".\"DATE0\")}";
+        val result = pushDownSql(prjName, sql, 0, 0,
+                new SQLException(new NoRealizationFoundException("test for  query push down")));
+        Assert.assertNotNull(result);
+
+        //timestampAdd
+        sql = "  SELECT {fn TIMESTAMPADD(SQL_TSI_DAY,1,\"CALCS\".\"DATE2\")} AS \"TEMP_Test__3825428522__0_\"\n"
+                + "FROM \"CALCS\" \"CALCS\"\n" + "GROUP BY {fn TIMESTAMPADD(SQL_TSI_DAY,1,\"CALCS\".\"DATE2\")}";
+        val result1 = pushDownSql(prjName, sql, 0, 0,
+                new SQLException(new NoRealizationFoundException("test for  query push down")));
+        Assert.assertNotNull(result1);
+
+        // TRUNCATE
+        sql = "SELECT {fn CONVERT({fn TRUNCATE(\"CALCS\".\"NUM4\",0)}, SQL_BIGINT)} AS \"TEMP_Test__4269159351__0_\"\n"
+                + "FROM \"CALCS\" \"CALCS\"\n"
+                + "GROUP BY {fn CONVERT({fn TRUNCATE(\"CALCS\".\"NUM4\",0)}, SQL_BIGINT)}";
+        val result2 = pushDownSql(prjName, sql, 0, 0,
+                new SQLException(new NoRealizationFoundException("test for  query push down")));
+        Assert.assertNotNull(result2);
+    }
+
+    private Pair<List<List<String>>, List<SelectedColumnMeta>> pushDownSql(String prjName, String sql, int limit,
+            int offset, SQLException sqlException)
             throws Exception {
         populateSSWithCSVData(KylinConfig.getInstanceFromEnv(), prjName, SparderEnv.getSparkSession());
         Pair<List<List<String>>, List<SelectedColumnMeta>> result = PushDownUtil.tryPushDownSelectQuery(prjName, sql,
-                limit, offset,
-                "DEFAULT", sqlException, BackdoorToggles.getPrepareOnly());
+                limit, offset, "DEFAULT", sqlException, BackdoorToggles.getPrepareOnly());
         if (result == null) {
             throw sqlException;
         }
+        return result;
     }
 }

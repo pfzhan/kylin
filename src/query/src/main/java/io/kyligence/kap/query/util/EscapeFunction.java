@@ -124,6 +124,10 @@ public class EscapeFunction {
             checkArgs(args, 1);
             return normalFN("WEEKOFYEAR", args);
         }),
+        TRUNCATE_NUM(args -> {
+            checkArgs(args, 2);
+            return normalFN("TRUNCATE_NUM", args);
+        }),
         TIMESTAMPADD(args -> {
             checkArgs(args, 3);
             String[] newArgs = {"'" + args[0] + "'", args[1], args[2]};

@@ -26,7 +26,9 @@ package io.kyligence.kap.query.util;
 
 import org.apache.kylin.source.adhocquery.IPushDownConverter;
 
-public class SparkSQLFunctionConverter extends EscapeTransformer implements IPushDownConverter {
+import io.kyligence.kap.common.obf.IKeep;
+
+public class SparkSQLFunctionConverter extends EscapeTransformer implements IPushDownConverter, IKeep {
     
     public SparkSQLFunctionConverter() {
         super();

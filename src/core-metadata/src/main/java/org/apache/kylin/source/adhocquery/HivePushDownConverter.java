@@ -49,8 +49,15 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import io.kyligence.kap.common.obf.IKeep;
+
 //TODO: Some workaround ways to make sql readable by hive parser, should replaced it with a more well-designed way
-public class HivePushDownConverter implements IPushDownConverter {
+public class HivePushDownConverter implements IPushDownConverter, IKeep {
+
+    private static final Logger logger = LoggerFactory.getLogger(HivePushDownConverter.class);
 
     private static final Pattern EXTRACT_PATTERN = Pattern.compile("extract\\s*(\\()\\s*(.*?)\\s*from(\\s+)",
             Pattern.CASE_INSENSITIVE);
@@ -252,6 +259,8 @@ public class HivePushDownConverter implements IPushDownConverter {
 
     @Override
     public String convert(String originSql, String project, String defaultSchema, boolean isPrepare) {
-        return doConvert(originSql, isPrepare);
+        String sql = doConvert(originSql, isPrepare);
+        logger.info("After transformed by HivePushDownConverter, the corrected sql is :{}", sql);
+        return sql;
     }
 }
