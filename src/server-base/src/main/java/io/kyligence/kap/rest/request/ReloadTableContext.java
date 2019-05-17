@@ -21,52 +21,43 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-
 package io.kyligence.kap.rest.request;
 
-import java.util.Collection;
-import java.util.List;
-import java.util.function.BiFunction;
-
-import org.apache.kylin.metadata.model.ColumnDesc;
-import org.apache.kylin.metadata.model.TableDesc;
-import org.apache.kylin.metadata.model.TableRef;
-
-import com.fasterxml.jackson.annotation.JsonProperty;
-import com.google.common.collect.Lists;
-
-import io.kyligence.kap.metadata.model.NDataModel;
-import io.kyligence.kap.rest.response.SimplifiedMeasure;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
+import lombok.Data;
 import lombok.Getter;
-import lombok.Setter;
+import org.apache.kylin.metadata.model.TableDesc;
+import org.apache.kylin.metadata.model.TableExtDesc;
 
-@Getter
-@Setter
-public class ModelRequest extends NDataModel {
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
-    @JsonProperty("project")
-    private String project;
+@Data
+public class ReloadTableContext {
 
-    @JsonProperty("start")
-    private String start;
+    private Map<String, ReloadTableAffectedModelContext> removeAffectedModels = Maps.newHashMap();
 
-    @JsonProperty("end")
-    private String end;
+    private Map<String, ReloadTableAffectedModelContext> changeTypeAffectedModels = Maps.newHashMap();
 
-    @JsonProperty("simplified_measures")
-    private List<SimplifiedMeasure> simplifiedMeasures = Lists.newArrayList();
+    private Set<String> favoriteQueries = Sets.newHashSet();
 
-    @JsonProperty("simplified_dimensions")
-    private List<NamedColumn> simplifiedDimensions = Lists.newArrayList();
+    private Set<String> addColumns = Sets.newHashSet();
 
-    private transient BiFunction<TableDesc, Boolean, Collection<ColumnDesc>> columnsFetcher = TableRef::filterColumns;
+    private Set<String> removeColumns = Sets.newHashSet();
 
-    public ModelRequest() {
-        super();
-    }
+    private Set<String> changeTypeColumns = Sets.newHashSet();
 
-    public ModelRequest(NDataModel dataModel) {
-        super(dataModel);
+    private TableDesc tableDesc;
+
+    private TableExtDesc tableExtDesc;
+
+    @Getter(lazy = true)
+    private final Set<String> removeColumnFullnames = initRemoveColumnFullnames();
+
+    Set<String> initRemoveColumnFullnames() {
+        return removeColumns.stream().map(col -> tableDesc.getName() + "." + col).collect(Collectors.toSet());
     }
 
 }

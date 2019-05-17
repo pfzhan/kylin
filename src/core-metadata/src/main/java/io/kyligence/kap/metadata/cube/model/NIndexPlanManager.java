@@ -184,19 +184,22 @@ public class NIndexPlanManager implements IKeepNames {
     }
 
     // remove indexPlan
-    public void removeIndexPlan(IndexPlan indexPlan) {
+    public void dropIndexPlan(IndexPlan indexPlan) {
         crud.delete(indexPlan);
     }
 
-    public void removeCubePlan(String planId) {
+    public void dropIndexPlan(String planId) {
         val indexPlan = getIndexPlan(planId);
-        removeIndexPlan(indexPlan);
+        dropIndexPlan(indexPlan);
     }
 
     private ResourceStore getStore() {
         return ResourceStore.getKylinMetaStore(this.config);
     }
 
+    public void reloadAll() {
+        crud.reloadAll();
+    }
     private IndexPlan save(IndexPlan indexPlan) {
         validatePlan(indexPlan);
         indexPlan.setIndexes(indexPlan.getIndexes().stream()

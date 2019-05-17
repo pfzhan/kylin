@@ -123,7 +123,7 @@ public class MockedDFBuildJob extends SparkApplication {
                             .saveTo(NSparkCubingUtil.getStoragePath(dataCuboid), ds, ss);
 
                     NDataflowUpdate update = new NDataflowUpdate(seg.getDataflow().getUuid());
-                    update.setToAddOrUpdateCuboids(dataCuboid);
+                    update.setToAddOrUpdateLayouts(dataCuboid);
                     NDataflowManager.getInstance(config, project).updateDataflow(update);
 
                 });

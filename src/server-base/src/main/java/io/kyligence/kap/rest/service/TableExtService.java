@@ -63,9 +63,9 @@ public class TableExtService extends BasicService {
      * @throws Exception if reading hive metadata error
      */
     @Transaction(project = 1, retry = 1)
-    public LoadTableResponse loadTables(String[] tables, String project, Integer sourceType) throws Exception {
-        List<Pair<TableDesc, TableExtDesc>> extractTableMeta = tableService.extractTableMeta(tables, project,
-                sourceType);
+    public LoadTableResponse loadTables(String[] tables, String project) throws Exception {
+        List<Pair<TableDesc, TableExtDesc>> extractTableMeta = tableService.extractTableMeta(tables, project
+        );
         LoadTableResponse loadTableResponse = new LoadTableResponse();
         Set<String> loaded = Sets.newLinkedHashSet();
         Set<String> failed = Sets.newLinkedHashSet();
@@ -122,14 +122,14 @@ public class TableExtService extends BasicService {
     }
 
     @Transaction(project = 0, retry = 1)
-    public LoadTableResponse loadTablesByDatabase(String project, final String[] databases, int datasourceType)
+    public LoadTableResponse loadTablesByDatabase(String project, final String[] databases)
             throws Exception {
         LoadTableResponse loadTableByDatabaseResponse = new LoadTableResponse();
         for (final String database : databases) {
-            List<String> tables = tableService.getSourceTableNames(project, database, datasourceType, "");
+            List<String> tables = tableService.getSourceTableNames(project, database, "");
             List<String> identities = Lists.transform(tables, s -> database + "." + s);
             String[] tableToLoad = new String[identities.size()];
-            LoadTableResponse loadTableResponse = loadTables(identities.toArray(tableToLoad), project, datasourceType);
+            LoadTableResponse loadTableResponse = loadTables(identities.toArray(tableToLoad), project);
             loadTableByDatabaseResponse.getLoaded().addAll(loadTableResponse.getLoaded());
             loadTableByDatabaseResponse.getFailed().addAll(loadTableResponse.getFailed());
         }

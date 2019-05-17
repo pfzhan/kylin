@@ -21,52 +21,34 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-
 package io.kyligence.kap.rest.request;
 
-import java.util.Collection;
-import java.util.List;
-import java.util.function.BiFunction;
+import com.google.common.collect.Sets;
+import io.kyligence.kap.metadata.cube.model.IndexEntity;
+import lombok.Data;
 
-import org.apache.kylin.metadata.model.ColumnDesc;
-import org.apache.kylin.metadata.model.TableDesc;
-import org.apache.kylin.metadata.model.TableRef;
+import java.util.Set;
+import java.util.stream.Collectors;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
-import com.google.common.collect.Lists;
+@Data
+public class ReloadTableAffectedModelContext {
 
-import io.kyligence.kap.metadata.model.NDataModel;
-import io.kyligence.kap.rest.response.SimplifiedMeasure;
-import lombok.Getter;
-import lombok.Setter;
+    private boolean isBroken = false;
 
-@Getter
-@Setter
-public class ModelRequest extends NDataModel {
+    private Set<String> columns = Sets.newHashSet();
 
-    @JsonProperty("project")
-    private String project;
+    private Set<Integer> columnIds = Sets.newHashSet();
 
-    @JsonProperty("start")
-    private String start;
+    private Set<String> computedColumns = Sets.newHashSet();
 
-    @JsonProperty("end")
-    private String end;
+    private Set<Integer> dimensions = Sets.newHashSet();
 
-    @JsonProperty("simplified_measures")
-    private List<SimplifiedMeasure> simplifiedMeasures = Lists.newArrayList();
+    private Set<Integer> measures = Sets.newHashSet();
 
-    @JsonProperty("simplified_dimensions")
-    private List<NamedColumn> simplifiedDimensions = Lists.newArrayList();
+    private Set<Long> layouts = Sets.newHashSet();
 
-    private transient BiFunction<TableDesc, Boolean, Collection<ColumnDesc>> columnsFetcher = TableRef::filterColumns;
-
-    public ModelRequest() {
-        super();
+    public Set<Long> getIndexes() {
+        return layouts.stream().map(id -> id / IndexEntity.INDEX_ID_STEP * IndexEntity.INDEX_ID_STEP)
+                .collect(Collectors.toSet());
     }
-
-    public ModelRequest(NDataModel dataModel) {
-        super(dataModel);
-    }
-
 }

@@ -93,7 +93,7 @@ public class AddSegHandlerTest extends NLocalFileMetadataTestCase {
 
         dataSegment.setStatus(SegmentStatusEnum.READY);
         update.setToUpdateSegs(dataSegment);
-        update.setToAddOrUpdateCuboids(genCuboids(df, dataSegment.getId()));
+        update.setToAddOrUpdateLayouts(genCuboids(df, dataSegment.getId()));
         dataflowManager.updateDataflow(update);
 
         AddSegmentEvent event = new AddSegmentEvent();
@@ -113,7 +113,7 @@ public class AddSegHandlerTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(Joiner.on(",")
                 .join(Stream.of(((ChainedExecutable) job).getTask(NSparkCubingStep.class).getParam(NBatchConstants.P_LAYOUT_IDS).split(","))
                         .sorted(Comparator.comparing(a -> Long.parseLong(a))).collect(Collectors.toList())),
-                Joiner.on(",").join(Stream.of(update.getToAddOrUpdateCuboids()).map(c -> c.getLayoutId())
+                Joiner.on(",").join(Stream.of(update.getToAddOrUpdateLayouts()).map(c -> c.getLayoutId())
                         .sorted(Comparator.naturalOrder()).collect(Collectors.toList())));
         getTestConfig().setProperty("kylin.server.mode", "all");
     }

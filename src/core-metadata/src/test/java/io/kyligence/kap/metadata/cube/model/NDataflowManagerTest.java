@@ -296,7 +296,7 @@ public class NDataflowManagerTest extends NLocalFileMetadataTestCase {
                 df.getIndexPlan().getAllLayouts().get(0).getId());
         update = new NDataflowUpdate(df.getUuid());
         update.setToUpdateSegs(seg1);
-        update.setToAddOrUpdateCuboids(dataCuboid);
+        update.setToAddOrUpdateLayouts(dataCuboid);
         mgr.updateDataflow(update);
 
         try {
@@ -325,7 +325,7 @@ public class NDataflowManagerTest extends NLocalFileMetadataTestCase {
         // test cuboid remove
         Assert.assertEquals(8, df.getSegments().getFirstSegment().getLayoutsMap().size());
         NDataflowUpdate update = new NDataflowUpdate(df.getUuid());
-        update.setToRemoveCuboids(df.getSegments().getFirstSegment().getLayout(10001L));
+        update.setToRemoveLayouts(df.getSegments().getFirstSegment().getLayout(10001L));
         mgr.updateDataflow(update);
 
         // verify after remove
@@ -335,7 +335,7 @@ public class NDataflowManagerTest extends NLocalFileMetadataTestCase {
         // test cuboid add
         NDataSegment seg = df.getSegments().getFirstSegment();
         update = new NDataflowUpdate(df.getUuid());
-        update.setToAddOrUpdateCuboids(//
+        update.setToAddOrUpdateLayouts(//
                 NDataLayout.newDataLayout(df, seg.getId(), 10001L), // to add
                 NDataLayout.newDataLayout(df, seg.getId(), 10002L) // existing, will update with warning
         );

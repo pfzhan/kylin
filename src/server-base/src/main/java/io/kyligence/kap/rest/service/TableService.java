@@ -31,9 +31,13 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.Function;
+import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
@@ -43,6 +47,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.DateFormat;
 import org.apache.kylin.common.util.HadoopUtil;
+import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.JoinTableDesc;
@@ -50,7 +55,9 @@ import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.TableExtDesc;
+import org.apache.kylin.metadata.model.TableRef;
 import org.apache.kylin.metadata.project.ProjectInstance;
+import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 import org.apache.kylin.query.util.PushDownUtil;
 import org.apache.kylin.rest.exception.BadRequestException;
 import org.apache.kylin.rest.msg.Message;
@@ -60,27 +67,40 @@ import org.apache.kylin.source.ISourceMetadataExplorer;
 import org.apache.kylin.source.SourceFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.aop.framework.AopContext;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import com.google.common.collect.SetMultimap;
+import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.event.manager.EventManager;
+import io.kyligence.kap.event.model.AddCuboidEvent;
 import io.kyligence.kap.event.model.AddSegmentEvent;
+import io.kyligence.kap.event.model.Event;
+import io.kyligence.kap.event.model.PostAddCuboidEvent;
 import io.kyligence.kap.event.model.PostAddSegmentEvent;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
+import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.model.NDataLoadingRange;
 import io.kyligence.kap.metadata.cube.model.NDataLoadingRangeManager;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
+import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
+import io.kyligence.kap.metadata.cube.model.NRuleBasedIndex;
 import io.kyligence.kap.metadata.cube.model.NSegmentConfigHelper;
+import io.kyligence.kap.metadata.favorite.FavoriteQuery;
 import io.kyligence.kap.metadata.model.AutoMergeTimeEnum;
+import io.kyligence.kap.metadata.model.ComputedColumnDesc;
+import io.kyligence.kap.metadata.model.MaintainModelType;
 import io.kyligence.kap.metadata.model.ManagementType;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
@@ -88,9 +108,14 @@ import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.model.VolatileRange;
 import io.kyligence.kap.rest.request.AutoMergeRequest;
 import io.kyligence.kap.rest.request.DateRangeRequest;
+import io.kyligence.kap.rest.request.ModelRequest;
+import io.kyligence.kap.rest.request.ReloadTableAffectedModelContext;
+import io.kyligence.kap.rest.request.ReloadTableContext;
 import io.kyligence.kap.rest.response.AutoMergeConfigResponse;
 import io.kyligence.kap.rest.response.BatchLoadTableResponse;
 import io.kyligence.kap.rest.response.ExistedDataRangeResponse;
+import io.kyligence.kap.rest.response.PreReloadTableResponse;
+import io.kyligence.kap.rest.response.SimplifiedMeasure;
 import io.kyligence.kap.rest.response.TableDescResponse;
 import io.kyligence.kap.rest.response.TableNameResponse;
 import io.kyligence.kap.rest.response.TablesAndColumnsResponse;
@@ -108,6 +133,12 @@ public class TableService extends BasicService {
 
     @Autowired
     private ModelService modelService;
+
+    @Autowired
+    private ModelSemanticHelper semanticHelper;
+
+    @Autowired
+    private FavoriteQueryService favoriteQueryService;
 
     public List<TableDesc> getTableDesc(String project, boolean withExt, final String tableName, final String database,
             boolean isFuzzy) throws IOException {
@@ -193,8 +224,7 @@ public class TableService extends BasicService {
         return result;
     }
 
-    public List<Pair<TableDesc, TableExtDesc>> extractTableMeta(String[] tables, String project, int sourceType)
-            throws Exception {
+    public List<Pair<TableDesc, TableExtDesc>> extractTableMeta(String[] tables, String project) throws Exception {
         // de-dup
         SetMultimap<String, String> databaseTables = LinkedHashMultimap.create();
         for (String fullTableName : tables) {
@@ -220,27 +250,26 @@ public class TableService extends BasicService {
             }
         }).collect(Collectors.toList());
         List<Pair<Map.Entry<String, String>, Object>> errorList = results.stream()
-                .filter(pair -> pair.getSecond() instanceof Throwable)
-                .collect(Collectors.toList());
+                .filter(pair -> pair.getSecond() instanceof Throwable).collect(Collectors.toList());
         if (!errorList.isEmpty()) {
-           String errorMessage = StringUtils.join(errorList.stream()
-                   .map(error -> "table : " + error.getFirst().getKey() + "." + error.getFirst().getValue() + " load Metadata error for exception:" + ThrowableUtil.stackTraceToString((Throwable)error.getSecond()))
-                   .collect(Collectors.toList()), "\n");
-           throw new RuntimeException(errorMessage);
+            String errorMessage = StringUtils.join(errorList.stream()
+                    .map(error -> "table : " + error.getFirst().getKey() + "." + error.getFirst().getValue()
+                            + " load Metadata error for exception:"
+                            + ThrowableUtil.stackTraceToString((Throwable) error.getSecond()))
+                    .collect(Collectors.toList()), "\n");
+            throw new RuntimeException(errorMessage);
         }
-        return results.stream()
-                .map(pair -> (Pair<TableDesc, TableExtDesc>)pair.getSecond())
+        return results.stream().map(pair -> (Pair<TableDesc, TableExtDesc>) pair.getSecond())
                 .collect(Collectors.toList());
     }
 
-    public List<String> getSourceDbNames(String project, int dataSourceType) throws Exception {
+    public List<String> getSourceDbNames(String project) throws Exception {
         ISourceMetadataExplorer explr = SourceFactory.getSource(getProjectManager().getProject(project))
                 .getSourceMetadataExplorer();
         return explr.listDatabases().stream().map(s -> s.toUpperCase()).collect(Collectors.toList());
     }
 
-    public List<String> getSourceTableNames(String project, String database, int dataSourceType, final String table)
-            throws Exception {
+    public List<String> getSourceTableNames(String project, String database, final String table) throws Exception {
         ISourceMetadataExplorer explr = SourceFactory.getSource(getProjectManager().getProject(project))
                 .getSourceMetadataExplorer();
         return explr.listTables(database).stream().filter(s -> {
@@ -249,14 +278,14 @@ public class TableService extends BasicService {
             } else {
                 return s.toLowerCase().contains(table.toLowerCase());
             }
-        }).map(s -> s.toUpperCase()).collect(Collectors.toList());
+        }).map(String::toUpperCase).collect(Collectors.toList());
     }
 
-    public List<TableNameResponse> getTableNameResponses(String project, String database, int dataSourceType,
-            final String table) throws Exception {
+    public List<TableNameResponse> getTableNameResponses(String project, String database, final String table)
+            throws Exception {
         List<TableNameResponse> tableNameResponses = new ArrayList<>();
         NTableMetadataManager tableManager = getTableManager(project);
-        List<String> tables = getSourceTableNames(project, database, dataSourceType, table);
+        List<String> tables = getSourceTableNames(project, database, table);
         for (String tableName : tables) {
             TableNameResponse tableNameResponse = new TableNameResponse();
             tableNameResponse.setTableName(tableName);
@@ -498,14 +527,13 @@ public class TableService extends BasicService {
 
         String finalStart = start;
         String finalEnd = end;
-        UnitOfWork.doInTransactionWithRetry(
-                () -> {
-                    saveDataRange(project, table, finalStart, finalEnd);
-                    return null;
-                }, project);
+        UnitOfWork.doInTransactionWithRetry(() -> {
+            saveDataRange(project, table, finalStart, finalEnd);
+            return null;
+        }, project);
     }
 
-    private void saveDataRange(String project, String  table, String start, String end) throws Exception {
+    private void saveDataRange(String project, String table, String start, String end) throws Exception {
         proposeAndSaveDateFormatIfNotExist(project, table);
         NTableMetadataManager tableManager = getTableManager(project);
         TableDesc tableDesc = tableManager.getTableDesc(table);
@@ -817,6 +845,317 @@ public class TableService extends BasicService {
         dataLoadingRangeManager.updateDataLoadingRange(dataLoadingRangeUpdate);
     }
 
+    @Transaction(project = 0, readonly = true)
+    public PreReloadTableResponse preProcessBeforeReload(String project, String tableIdentity) throws Exception {
+        val context = calcReloadContext(project, tableIdentity);
+
+        val result = new PreReloadTableResponse();
+        result.setAddColumnCount(context.getAddColumns().size());
+        result.setRemoveColumnCount(context.getRemoveColumns().size());
+        result.setRemoveDimCount(context.getRemoveAffectedModels().values().stream()
+                .map(ReloadTableAffectedModelContext::getDimensions).mapToLong(Set::size).sum());
+        result.setRemoveDimModelCount(
+                context.getRemoveAffectedModels().values().stream().filter(m -> !m.getDimensions().isEmpty()).count());
+        result.setRemoveMeasureCount(context.getRemoveAffectedModels().values().stream()
+                .map(ReloadTableAffectedModelContext::getMeasures).mapToLong(Set::size).sum());
+        result.setRemoveMeasureModelCount(
+                context.getRemoveAffectedModels().values().stream().filter(m -> !m.getMeasures().isEmpty()).count());
+        result.setBrokenFavoriteQueryCount(context.getFavoriteQueries().size());
+
+        return result;
+    }
+
+    public void reloadTable(String projectName, String tableIdentity) throws Exception {
+        val self = (TableService) AopContext.currentProxy();
+        self.innerReloadTable(projectName, tableIdentity);
+        modelService.reloadCache(projectName);
+        favoriteQueryService.asyncAdjustFavoriteQuery();
+    }
+
+    @Transaction(project = 0)
+    void innerReloadTable(String projectName, String tableIdentity) throws Exception {
+        val dataflowManager = getDataflowManager(projectName);
+        val tableManager = getTableManager(projectName);
+        val originTable = tableManager.getTableDesc(tableIdentity);
+        Preconditions.checkNotNull(originTable);
+
+        val project = getProjectManager().getProject(projectName);
+        val context = calcReloadContext(projectName, tableIdentity);
+        mergeTable(projectName, context, true);
+        for (val model : dataflowManager.listUnderliningDataModels()) {
+            updateModelByReloadTable(project, model, context);
+        }
+
+        val fqManager = getFavoriteQueryManager(projectName);
+        context.getFavoriteQueries().forEach(fqManager::delete);
+        favoriteQueryService.asyncAdjustFavoriteQuery();
+
+        val loadingManager = getDataLoadingRangeManager(projectName);
+        val removeCols = context.getRemoveColumnFullnames();
+        loadingManager.getDataLoadingRanges().forEach(loadingRange -> {
+            if (removeCols.contains(loadingRange.getColumnName())) {
+                setPartitionKey(tableIdentity, projectName, null);
+            }
+        });
+
+        mergeTable(projectName, context, false);
+    }
+
+    void updateModelByReloadTable(ProjectInstance project, NDataModel model, ReloadTableContext context)
+            throws Exception {
+        val modelManager = getDataModelManager(project.getName());
+        val indexManager = getIndexPlanManager(project.getName());
+        val dataflowManager = getDataflowManager(project.getName());
+        val projectName = project.getName();
+
+        if (!context.getRemoveAffectedModels().containsKey(model.getId())
+                && !context.getChangeTypeAffectedModels().containsKey(model.getId())) {
+            return;
+        }
+        val removeAffectedModel = context.getRemoveAffectedModels().getOrDefault(model.getId(),
+                new ReloadTableAffectedModelContext());
+        val changeTypeAffectedModel = context.getChangeTypeAffectedModels().getOrDefault(model.getId(),
+                new ReloadTableAffectedModelContext());
+        val removeDims = removeAffectedModel.getDimensions();
+        if (removeAffectedModel.isBroken()) {
+            if (project.getMaintainModelType() == MaintainModelType.AUTO_MAINTAIN) {
+                modelManager.dropModel(model);
+                dataflowManager.dropDataflow(model.getId());
+                indexManager.dropIndexPlan(model.getId());
+            } else {
+                val df = dataflowManager.getDataflow(model.getId());
+                val dfUpdate = new NDataflowUpdate(df.getId());
+                dfUpdate.setStatus(RealizationStatusEnum.BROKEN);
+                dfUpdate.setToRemoveSegs(df.getSegments().toArray(new NDataSegment[0]));
+                dataflowManager.updateDataflow(dfUpdate);
+            }
+            return;
+        }
+
+        val eventDao = getEventDao(projectName);
+        val events = eventDao.getEventsByModel(model.getId());
+
+        cleanIndexPlan(projectName, model, removeAffectedModel);
+
+        val request = new ModelRequest(JsonUtil.deepCopy(model, NDataModel.class));
+        request.setSimplifiedMeasures(model.getEffectiveMeasures().values().stream()
+                .filter(m -> !removeAffectedModel.getMeasures().contains(m.getId())).map(SimplifiedMeasure::fromMeasure)
+                .collect(Collectors.toList()));
+        request.setSimplifiedDimensions(model.getAllNamedColumns().stream()
+                .filter(col -> !removeDims.contains(col.getId()) && col.isDimension()).collect(Collectors.toList()));
+        request.setComputedColumnDescs(model.getComputedColumnDescs().stream()
+                .filter(cc -> !removeAffectedModel.getComputedColumns().contains(cc.getFullName()))
+                .collect(Collectors.toList()));
+        request.setProject(projectName);
+        request.setColumnsFetcher((tableRef, isFilterCC) -> TableRef.filterColumns(
+                tableRef.getIdentity().equals(context.getTableDesc().getIdentity()) ? context.getTableDesc() : tableRef,
+                isFilterCC));
+
+        modelService.updateDataModelSemantic(projectName, request);
+
+        if (CollectionUtils.isNotEmpty(changeTypeAffectedModel.getLayouts())) {
+            val eventManager = getEventManager(projectName);
+            val df = dataflowManager.getDataflow(model.getId());
+            dataflowManager.removeLayouts(df, changeTypeAffectedModel.getLayouts());
+            AddCuboidEvent addCuboidEvent = new AddCuboidEvent();
+            addCuboidEvent.setModelId(model.getId());
+            addCuboidEvent.setJobId(UUID.randomUUID().toString());
+            addCuboidEvent.setOwner(getUsername());
+            eventManager.post(addCuboidEvent);
+
+            PostAddCuboidEvent postAddCuboidEvent = new PostAddCuboidEvent();
+            postAddCuboidEvent.setJobId(addCuboidEvent.getJobId());
+            postAddCuboidEvent.setModelId(model.getId());
+            postAddCuboidEvent.setOwner(getUsername());
+            eventManager.post(postAddCuboidEvent);
+        }
+
+        cleanRedundantEvents(projectName, model, events);
+    }
+
+    void cleanIndexPlan(String projectName, NDataModel model, ReloadTableAffectedModelContext removeAffectedModel) {
+        val indexManager = getIndexPlanManager(projectName);
+        val removeDims = removeAffectedModel.getDimensions();
+        val removeColumnIds = removeAffectedModel.getColumnIds();
+
+        UnaryOperator<Integer[]> dimFilter = input -> Stream.of(input).filter(i -> !removeDims.contains(i))
+                .toArray(Integer[]::new);
+        val indexPlan = indexManager.getIndexPlan(model.getId());
+        val removeIndexes = removeAffectedModel.getIndexes();
+        val newIndexPlan = indexManager.updateIndexPlan(model.getId(), copyForWrite -> {
+            copyForWrite.setIndexes(copyForWrite.getIndexes().stream()
+                    .filter(index -> !removeIndexes.contains(index.getId())).collect(Collectors.toList()));
+
+            val overrideEncodings = Maps.newHashMap(copyForWrite.getIndexPlanOverrideEncodings());
+            removeColumnIds.forEach(overrideEncodings::remove);
+            copyForWrite.setIndexPlanOverrideEncodings(overrideEncodings);
+
+            val overrideIndexes = Maps.newHashMap(copyForWrite.getIndexPlanOverrideIndexes());
+            removeColumnIds.forEach(overrideIndexes::remove);
+            copyForWrite.setIndexPlanOverrideIndexes(overrideIndexes);
+
+            if (copyForWrite.getDictionaries() != null) {
+                copyForWrite.setDictionaries(copyForWrite.getDictionaries().stream()
+                        .filter(d -> !removeColumnIds.contains(d.getId())).collect(Collectors.toList()));
+            }
+
+            if (copyForWrite.getRuleBasedIndex() == null) {
+                return;
+            }
+            val rule = JsonUtil.deepCopyQuietly(copyForWrite.getRuleBasedIndex(), NRuleBasedIndex.class);
+            rule.setLayoutIdMapping(Lists.newArrayList());
+            rule.setDimensions(
+                    rule.getDimensions().stream().filter(d -> !removeDims.contains(d)).collect(Collectors.toList()));
+            rule.setMeasures(rule.getMeasures().stream().filter(m -> !removeAffectedModel.getMeasures().contains(m))
+                    .collect(Collectors.toList()));
+            rule.getAggregationGroups().forEach(group -> {
+                group.setIncludes(dimFilter.apply(group.getIncludes()));
+                group.getSelectRule().mandatoryDims = dimFilter.apply(group.getSelectRule().mandatoryDims);
+                group.getSelectRule().hierarchyDims = Stream.of(group.getSelectRule().hierarchyDims).map(dimFilter)
+                        .filter(dims -> dims.length > 0).toArray(Integer[][]::new);
+                group.getSelectRule().jointDims = Stream.of(group.getSelectRule().jointDims).map(dimFilter)
+                        .filter(dims -> dims.length > 0).toArray(Integer[][]::new);
+            });
+            copyForWrite.setRuleBasedIndex(rule);
+        });
+        if (indexPlan.getRuleBasedIndex() != null) {
+            semanticHelper.handleIndexPlanUpdateRule(projectName, model.getId(), indexPlan.getRuleBasedIndex(),
+                    newIndexPlan.getRuleBasedIndex(), false);
+        }
+
+    }
+
+    void cleanRedundantEvents(String projectName, NDataModel model, List<Event> existEvents) {
+        val eventDao = getEventDao(projectName);
+        val events = eventDao.getEventsByModel(model.getId());
+        if (events.size() - existEvents.size() > 2) {
+            events.stream().skip(existEvents.size() + 2).forEach(event -> eventDao.deleteEvent(event.getId()));
+        }
+    }
+
+    void mergeTable(String projectName, ReloadTableContext context, boolean keepTomb) {
+        val tableManager = getTableManager(projectName);
+        val originTable = tableManager.getTableDesc(context.getTableDesc().getIdentity());
+        val originTableExt = tableManager.getTableExtIfExists(originTable);
+        context.getTableDesc().setMvcc(originTable.getMvcc());
+        Optional.ofNullable(originTableExt)
+                .ifPresent(ext -> context.getTableExtDesc().setMvcc(originTableExt.getMvcc()));
+
+        TableDesc loadDesc = context.getTableDesc();
+        if (keepTomb) {
+            val copy = tableManager.copyForWrite(originTable);
+            val originColMap = Stream.of(copy.getColumns())
+                    .collect(Collectors.toMap(ColumnDesc::getName, Function.identity()));
+            val newColMap = Stream.of(context.getTableDesc().getColumns())
+                    .collect(Collectors.toMap(ColumnDesc::getName, Function.identity()));
+            for (String addColumn : context.getAddColumns()) {
+                originColMap.put(addColumn, newColMap.get(addColumn));
+            }
+            copy.setColumns(originColMap.values().toArray(new ColumnDesc[0]));
+            loadDesc = copy;
+        }
+        loadTableToProject(loadDesc, context.getTableExtDesc(), projectName);
+    }
+
+    @VisibleForTesting
+    ReloadTableContext calcReloadContext(String project, String tableIdentity) throws Exception {
+        val context = new ReloadTableContext();
+        val tableMeta = extractTableMeta(new String[] { tableIdentity }, project).get(0);
+        val newTableDesc = tableMeta.getFirst();
+        context.setTableDesc(newTableDesc);
+        context.setTableExtDesc(tableMeta.getSecond());
+
+        val originTableDesc = getTableManager(project).getTableDesc(tableIdentity);
+        val collector = Collectors.toMap(ColumnDesc::getName, col -> Pair.newPair(col.getName(), col.getDatatype()));
+        val originCols = Stream.of(originTableDesc.getColumns()).collect(collector);
+        val newCols = Stream.of(newTableDesc.getColumns()).collect(collector);
+
+        val diff = Maps.difference(newCols, originCols);
+        context.setAddColumns(diff.entriesOnlyOnLeft().keySet());
+        context.setRemoveColumns(diff.entriesOnlyOnRight().keySet());
+        context.setChangeTypeColumns(diff.entriesDiffering().keySet());
+
+        val modelManager = getDataModelManager(project);
+        val dataflowManager = getDataflowManager(project);
+        for (NDataModel model : dataflowManager.listUnderliningDataModels()) {
+            val affectedModel = calcAffectedModel(project, model, context.getRemoveColumns(), tableIdentity);
+            if (affectedModel == null) {
+                continue;
+            }
+            context.getRemoveAffectedModels().put(model.getId(), affectedModel);
+            val keyColumns = model.getJoinTables().stream().flatMap(join -> Stream
+                    .concat(Stream.of(join.getJoin().getPrimaryKey()), Stream.of(join.getJoin().getForeignKey())))
+                    .collect(Collectors.toSet());
+            if (model.getPartitionDesc().getPartitionDateColumnRef() != null) {
+                keyColumns.add(model.getPartitionDesc().getPartitionDateColumnRef().getIdentity());
+            }
+            if (model.getPartitionDesc().getPartitionTimeColumnRef() != null) {
+                keyColumns.add(model.getPartitionDesc().getPartitionTimeColumnRef().getIdentity());
+            }
+            affectedModel.setBroken(!Sets.intersection(affectedModel.getColumns(), keyColumns).isEmpty());
+        }
+        for (NDataModel model : dataflowManager.listUnderliningDataModels()) {
+            val affectedModel = calcAffectedModel(project, model, context.getChangeTypeColumns(), tableIdentity);
+            if (affectedModel == null) {
+                continue;
+            }
+            context.getChangeTypeAffectedModels().put(model.getId(), affectedModel);
+        }
+        val fqManager = getFavoriteQueryManager(project);
+        context.setFavoriteQueries(fqManager.getAll().stream().filter(fq -> fq.getRealizations().stream()
+                .anyMatch(fqr -> context.getRemoveAffectedModels().containsKey(fqr.getModelId()) && context
+                        .getRemoveAffectedModels().get(fqr.getModelId()).getLayouts().contains(fqr.getLayoutId())))
+                .map(FavoriteQuery::getId).collect(Collectors.toSet()));
+
+        return context;
+    }
+
+    ReloadTableAffectedModelContext calcAffectedModel(String project, NDataModel model, Set<String> changedColumns,
+            String tableIdentity) {
+        if (model.getAllTables().stream().noneMatch(ref -> ref.getTableIdentity().equalsIgnoreCase(tableIdentity))) {
+            return null;
+        }
+
+        val modelAffectedColumns = model.getAliasMap().entrySet().stream()
+                .filter(entry -> entry.getValue().getTableIdentity().equals(tableIdentity)) //
+                .map(Map.Entry::getKey).flatMap(alias -> changedColumns.stream().map(col -> alias + "." + col)) //
+                .collect(Collectors.toSet());
+        val affectedComputedColumns = model.getComputedColumnDescs().stream()
+                .filter(cc -> modelAffectedColumns.stream().anyMatch(col -> cc.getInnerExpression().contains(col)))
+                .map(ComputedColumnDesc::getFullName).collect(Collectors.toSet());
+
+        modelAffectedColumns.addAll(affectedComputedColumns);
+
+        val affectedColIds = model.getAllNamedColumns().stream().filter(NDataModel.NamedColumn::isExist) //
+                .filter(nc -> modelAffectedColumns.contains(nc.getAliasDotColumn())).map(NDataModel.NamedColumn::getId)
+                .collect(Collectors.toSet());
+        val affectedDims = model.getAllNamedColumns().stream().filter(NDataModel.NamedColumn::isDimension) //
+                .filter(nc -> modelAffectedColumns.contains(nc.getAliasDotColumn())).map(NDataModel.NamedColumn::getId)
+                .collect(Collectors.toSet());
+        val affectedMeasures = model.getEffectiveMeasureMap().values().stream() //
+                .filter(m -> m.getFunction().getColRefs().stream()
+                        .anyMatch(colRef -> modelAffectedColumns.contains(colRef.getIdentity())))
+                .map(NDataModel.Measure::getId).collect(Collectors.toSet());
+        val affectedModel = new ReloadTableAffectedModelContext();
+
+        affectedModel.setColumnIds(affectedColIds);
+        affectedModel.setColumns(modelAffectedColumns);
+        affectedModel.setComputedColumns(affectedComputedColumns);
+        affectedModel.setDimensions(affectedDims);
+        affectedModel.setMeasures(affectedMeasures);
+
+        val indexManager = getIndexPlanManager(project);
+        val indexPlan = indexManager.getIndexPlan(model.getId());
+        val affectedLayouts = indexPlan.getAllIndexes().stream()
+                .filter(index -> !Sets.intersection(index.getEffectiveDimCols().keySet(), affectedDims).isEmpty()
+                        || !Sets.intersection(index.getEffectiveMeasures().keySet(), affectedMeasures).isEmpty())
+                .flatMap(index -> index.getLayouts().stream()).map(LayoutEntity::getId).collect(Collectors.toSet());
+
+        affectedModel.setLayouts(affectedLayouts);
+
+        return affectedModel;
+    }
+
     public Set<String> getLoadedDatabases(String project) {
         NTableMetadataManager tableManager = getTableManager(project);
         List<TableDesc> tables = tableManager.listAllTables();
@@ -826,4 +1165,5 @@ public class TableService extends BasicService {
         }
         return loadedDatabases;
     }
+
 }

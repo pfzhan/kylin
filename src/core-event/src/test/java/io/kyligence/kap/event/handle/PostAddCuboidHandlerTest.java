@@ -184,7 +184,7 @@ public class PostAddCuboidHandlerTest extends NLocalFileMetadataTestCase {
         long layoutId1 = fq.getRealizations().get(0).getLayoutId();
         val df1 = NDataflowManager.getInstance(getTestConfig(), project).getDataflow(fq.getRealizations().get(0).getModelId());
         NDataflowUpdate update1 = new NDataflowUpdate(df1.getUuid());
-        update1.setToAddOrUpdateCuboids(NDataLayout.newDataLayout(df1, df1.getSegments(SegmentStatusEnum.READY).getLatestReadySegment().getId(), layoutId1));
+        update1.setToAddOrUpdateLayouts(NDataLayout.newDataLayout(df1, df1.getSegments(SegmentStatusEnum.READY).getLatestReadySegment().getId(), layoutId1));
         NDataflowManager.getInstance(getTestConfig(), project).updateDataflow(update1);
 
         val postAddEvent1 = new PostAddCuboidEvent();
@@ -214,7 +214,7 @@ public class PostAddCuboidHandlerTest extends NLocalFileMetadataTestCase {
         long layoutId2 = fq.getRealizations().get(1).getLayoutId();
         val df2 = NDataflowManager.getInstance(getTestConfig(), project).getDataflow(fq.getRealizations().get(1).getModelId());
         NDataflowUpdate update2 = new NDataflowUpdate(df2.getUuid());
-        update2.setToAddOrUpdateCuboids(NDataLayout.newDataLayout(df2, df2.getSegments(SegmentStatusEnum.READY).getLatestReadySegment().getId(), layoutId2));
+        update2.setToAddOrUpdateLayouts(NDataLayout.newDataLayout(df2, df2.getSegments(SegmentStatusEnum.READY).getLatestReadySegment().getId(), layoutId2));
         NDataflowManager.getInstance(getTestConfig(), project).updateDataflow(update2);
 
         EventContext context2 = new EventContext(postAddEvent2, getTestConfig(), project);
@@ -267,7 +267,7 @@ public class PostAddCuboidHandlerTest extends NLocalFileMetadataTestCase {
         val df1 = NDataflowManager.getInstance(getTestConfig(), project).getDataflow(fq.getRealizations().get(0).getModelId());
         NDataflowUpdate update1 = new NDataflowUpdate(df1.getUuid());
         update1.setToRemoveSegs(df1.getSegments(SegmentStatusEnum.READY).getLatestReadySegment());
-        update1.setToAddOrUpdateCuboids(NDataLayout.newDataLayout(df1, df1.getSegments(SegmentStatusEnum.READY).getLatestReadySegment().getId(), layoutId1));
+        update1.setToAddOrUpdateLayouts(NDataLayout.newDataLayout(df1, df1.getSegments(SegmentStatusEnum.READY).getLatestReadySegment().getId(), layoutId1));
         NDataflowManager.getInstance(getTestConfig(), project).updateDataflow(update1);
 
         handler.doHandle(context1);

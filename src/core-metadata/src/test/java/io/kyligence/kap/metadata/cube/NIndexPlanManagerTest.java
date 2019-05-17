@@ -114,7 +114,7 @@ public class NIndexPlanManagerTest {
         Assert.assertEquals("new_description", cube.getDescription());
 
         // delete
-        manager.removeIndexPlan(cube);
+        manager.dropIndexPlan(cube);
         cube = manager.getIndexPlan(cubeName);
         Assert.assertNull(cube);
         Assert.assertEquals(cntBeforeCreate, manager.listAllIndexPlans().size());
@@ -140,7 +140,7 @@ public class NIndexPlanManagerTest {
         val update2 = new NDataflowUpdate(df.getUuid());
         seg1.setStatus(SegmentStatusEnum.READY);
         update2.setToUpdateSegs(seg1);
-        update2.setToAddOrUpdateCuboids(NDataLayout.newDataLayout(df, seg1.getId(), 1L),
+        update2.setToAddOrUpdateLayouts(NDataLayout.newDataLayout(df, seg1.getId(), 1L),
                 NDataLayout.newDataLayout(df, seg1.getId(), 10001L),
                 NDataLayout.newDataLayout(df, seg1.getId(), 10002L));
         dfManager.updateDataflow(update2);

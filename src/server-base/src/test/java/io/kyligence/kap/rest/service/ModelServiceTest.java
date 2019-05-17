@@ -2393,6 +2393,7 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
         dimension.setStatus(NDataModel.ColumnStatus.DIMENSION);
 
         namedColumns.add(dimension);
+        modelRequest.setSimplifiedDimensions(namedColumns);
         try {
             modelService.createModel(modelRequest.getProject(), modelRequest);
         } catch (Exception ex) {

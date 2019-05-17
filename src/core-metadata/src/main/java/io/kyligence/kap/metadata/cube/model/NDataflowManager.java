@@ -126,7 +126,7 @@ public class NDataflowManager implements IRealizationProvider, IKeepNames {
 
         if (CollectionUtils.isNotEmpty(tobeRemoveCuboidLayout)) {
             NDataflowUpdate update = new NDataflowUpdate(df.getUuid());
-            update.setToRemoveCuboids(tobeRemoveCuboidLayout.toArray(new NDataLayout[0]));
+            update.setToRemoveLayouts(tobeRemoveCuboidLayout.toArray(new NDataLayout[0]));
             return updateDataflow(update);
         }
         return df;
@@ -215,6 +215,10 @@ public class NDataflowManager implements IRealizationProvider, IKeepNames {
     public NDataflow getDataflowByModelAlias(String name) {
         return listAllDataflows(true).stream().filter(dataflow -> Objects.equals(dataflow.getModelAlias(), name))
                 .findFirst().orElse(null);
+    }
+
+    public void reloadAll() {
+        crud.reloadAll();
     }
 
     public NDataflow createDataflow(IndexPlan plan, String owner) {
