@@ -81,6 +81,9 @@ public class NDataflowCapabilityChecker {
 
     private static IRealizationCandidate tryMatchLookup(NDataflow dataflow, SQLDigest digest, CapabilityResult result) {
         // query from snapShot table
+        if (dataflow.getLatestReadySegment() == null)
+            return null;
+
         if (!dataflow.getLatestReadySegment().getSnapshots().containsKey(digest.factTable)) {
             logger.info("Exclude NDataflow {} because snapshot of table {} does not exist", dataflow, digest.factTable);
             result.incapableCause = CapabilityResult.IncapableCause

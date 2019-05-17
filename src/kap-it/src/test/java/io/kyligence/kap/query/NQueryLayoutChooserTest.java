@@ -41,11 +41,14 @@ import com.google.common.collect.Lists;
 
 import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
 import io.kyligence.kap.metadata.cube.cuboid.NLayoutCandidate;
+import io.kyligence.kap.metadata.cube.cuboid.NLookupCandidate;
 import io.kyligence.kap.metadata.cube.cuboid.NQueryLayoutChooser;
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.model.NDataLayout;
+import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
+import io.kyligence.kap.metadata.cube.model.NDataflowCapabilityChecker;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
@@ -75,7 +78,7 @@ public class NQueryLayoutChooserTest extends NLocalWithSparkSessionTest {
         NDataLayout lowestCostLayout = NDataLayout.newDataLayout(dataflow.getLatestReadySegment().getSegDetails(),
                 10001L);
         lowestCostLayout.setRows(1000L);
-        dataflowUpdate.setToAddOrUpdateCuboids(lowestCostLayout);
+        dataflowUpdate.setToAddOrUpdateLayouts(lowestCostLayout);
         NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), PROJECT).updateDataflow(dataflowUpdate);
 
         NDataflow newDf = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), PROJECT)
@@ -164,17 +167,24 @@ public class NQueryLayoutChooserTest extends NLocalWithSparkSessionTest {
     }
 
     @Test
-    public void testAdvancedMeasureSelection() {
-        // prepare metadata
+    public void testLookupMatch() {
         NDataflow dataflow = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), PROJECT)
                 .getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
-        mockDerivedIndex(dataflow);
 
-        // Topn test
-        String sql = "select sum(PRICE) from test_kylin_fact group by SELLER_ID order by sum(PRICE) desc limit 1";
+        String sql = "select SITE_ID from EDW.TEST_SITES";
         OLAPContext context = prepareOlapContext(sql).get(0);
         Map<String, String> sqlAlias2ModelName = RealizationChooser.matchJoins(dataflow.getModel(), context);
         context.fixModel(dataflow.getModel(), sqlAlias2ModelName);
+
+        val result = NDataflowCapabilityChecker.check(dataflow, context.getSQLDigest());
+        Assert.assertNotNull(result);
+        Assert.assertTrue(result.getSelectedCandidate() instanceof NLookupCandidate);
+
+        removeAllSegment(dataflow);
+        dataflow = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), PROJECT)
+                .getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+        val result1 = NDataflowCapabilityChecker.check(dataflow, context.getSQLDigest());
+        Assert.assertFalse(result1.capable);
 
     }
 
@@ -185,6 +195,14 @@ public class NQueryLayoutChooserTest extends NLocalWithSparkSessionTest {
         smartMaster.getContext().getModelContexts()
                 .forEach(nModelContext -> ctxs.addAll(nModelContext.getModelTree().getOlapContexts()));
         return ctxs;
+    }
+
+    private void removeAllSegment(NDataflow dataflow) {
+        val indexPlanManager = NIndexPlanManager.getInstance(getTestConfig(), PROJECT);
+        val indexPlan = indexPlanManager.getIndexPlanByModelAlias("nmodel_basic");
+        NDataflowUpdate dataflowUpdate = new NDataflowUpdate(dataflow.getUuid());
+        dataflowUpdate.setToRemoveSegs(dataflow.getSegments().toArray(new NDataSegment[0]));
+        NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), PROJECT).updateDataflow(dataflowUpdate);
     }
 
     private void addLayout(NDataflow dataflow) {
@@ -237,7 +255,7 @@ public class NQueryLayoutChooserTest extends NLocalWithSparkSessionTest {
         layout2.setRows(1000L);
         NDataLayout layout3 = NDataLayout.newDataLayout(dataflow.getLatestReadySegment().getSegDetails(), 1020001L);
         layout3.setRows(1000L);
-        dataflowUpdate.setToAddOrUpdateCuboids(layout1, layout2, layout3);
+        dataflowUpdate.setToAddOrUpdateLayouts(layout1, layout2, layout3);
         NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), PROJECT).updateDataflow(dataflowUpdate);
     }
 
@@ -282,7 +300,7 @@ public class NQueryLayoutChooserTest extends NLocalWithSparkSessionTest {
         layout1.setRows(1000L);
         NDataLayout layout2 = NDataLayout.newDataLayout(dataflow.getLatestReadySegment().getSegDetails(), 1020001L);
         layout2.setRows(1000L);
-        dataflowUpdate.setToAddOrUpdateCuboids(layout1, layout2);
+        dataflowUpdate.setToAddOrUpdateLayouts(layout1, layout2);
         NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), PROJECT).updateDataflow(dataflowUpdate);
     }
 
