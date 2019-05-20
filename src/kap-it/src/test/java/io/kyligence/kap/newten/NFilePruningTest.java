@@ -27,18 +27,24 @@ package io.kyligence.kap.newten;
 import java.util.ArrayList;
 import java.util.List;
 
+import java.util.UUID;
+import org.apache.hadoop.util.Shell;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.job.engine.JobEngineConfig;
 import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
 import org.apache.kylin.job.lock.MockJobLock;
 import org.apache.kylin.metadata.model.SegmentRange;
+import org.apache.spark.SparkConf;
 import org.apache.spark.sql.SparderEnv;
+import org.apache.spark.sql.SparkSession;
 import org.apache.spark.sql.execution.FileSourceScanExec;
 import org.apache.spark.sql.execution.SparkPlan;
+import org.apache.spark.sql.internal.StaticSQLConf;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.spark_project.guava.collect.Sets;
 
@@ -53,6 +59,31 @@ import scala.runtime.AbstractFunction1;
 public class NFilePruningTest extends NLocalWithSparkSessionTest {
 
     private String base = "select count(*) FROM TEST_ORDER LEFT JOIN TEST_KYLIN_FACT ON TEST_KYLIN_FACT.ORDER_ID = TEST_ORDER.ORDER_ID ";
+
+    @BeforeClass
+    public static void initSpark() {
+        if (Shell.MAC)
+            System.setProperty("org.xerial.snappy.lib.name", "libsnappyjava.jnilib");//for snappy
+        if(ss != null && !ss.sparkContext().isStopped()) {
+            ss.stop();
+        }
+        sparkConf = new SparkConf().setAppName(UUID.randomUUID().toString()).setMaster("local[4]");
+        sparkConf.set("spark.serializer", "org.apache.spark.serializer.JavaSerializer");
+        sparkConf.set(StaticSQLConf.CATALOG_IMPLEMENTATION().key(), "in-memory");
+        sparkConf.set("spark.sql.shuffle.partitions", "1");
+        sparkConf.set("spark.memory.fraction", "0.1");
+        // opt memory
+        sparkConf.set("spark.shuffle.detectCorrupt", "false");
+        // For sinai_poc/query03, enable implicit cross join conversion
+        sparkConf.set("spark.sql.crossJoin.enabled", "true");
+        sparkConf.set("spark.sql.adaptive.enabled", "true");
+        ss = SparkSession.builder().config(sparkConf).getOrCreate();
+        SparderEnv.setSparkSession(ss);
+
+        System.out.println("Check spark sql config [spark.sql.catalogImplementation = "
+                + ss.conf().get("spark.sql.catalogImplementation") + "]");
+    }
+
 
     @Before
     public void setup() throws Exception {
