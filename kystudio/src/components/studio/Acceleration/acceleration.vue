@@ -40,17 +40,38 @@
       <el-tabs v-model="activeList" type="card" @tab-click="handleClick">
         <el-tab-pane name="waiting">
           <span slot="label">{{$t('waitingList')}}<span v-if="listSizes">({{listSizes.waiting}})</span></span>
-          <acceleration_table tab="waiting" v-if="activeList=='waiting'" :favoriteTableData="favQueList.favorite_queries" v-on:sortTable="sortFavoriteList" v-on:filterFav="filterFav"></acceleration_table>
+          <acceleration_table
+            v-if="activeList=='waiting'"
+            :favoriteTableData="favQueList.favorite_queries"
+            v-on:sortTable="sortFavoriteList"
+            v-on:filterFav="filterFav"
+            v-on:pausePolling="pausePolling"
+            v-on:reCallPolling="reCallPolling"
+            tab="waiting"></acceleration_table>
           <kap-pager ref="favoriteQueryPager" class="ksd-center ksd-mtb-10" :totalSize="favQueList.size"  v-on:handleCurrentChange='pageCurrentChange'></kap-pager>
         </el-tab-pane>
         <el-tab-pane name="not_accelerated">
           <span slot="label">{{$t('not_accelerated')}}<span v-if="listSizes">({{listSizes.not_accelerated}})</span></span>
-          <acceleration_table v-if="activeList=='not_accelerated'" :favoriteTableData="favQueList.favorite_queries" v-on:sortTable="sortFavoriteList" v-on:filterFav="filterFav" tab="not_accelerated"></acceleration_table>
+          <acceleration_table
+            v-if="activeList=='not_accelerated'"
+            :favoriteTableData="favQueList.favorite_queries"
+            v-on:sortTable="sortFavoriteList"
+            v-on:filterFav="filterFav"
+            v-on:pausePolling="pausePolling"
+            v-on:reCallPolling="reCallPolling"
+            tab="not_accelerated"></acceleration_table>
           <kap-pager ref="favoriteQueryPager" class="ksd-center ksd-mtb-10" :totalSize="favQueList.size"  v-on:handleCurrentChange='pageCurrentChange'></kap-pager>
         </el-tab-pane>
         <el-tab-pane name="accelerated">
           <span slot="label">{{$t('accelerated')}}<span v-if="listSizes">({{listSizes.accelerated}})</span></span>
-          <acceleration_table  v-if="activeList=='accelerated'" :favoriteTableData="favQueList.favorite_queries" v-on:sortTable="sortFavoriteList" v-on:filterFav="filterFav" tab="accelerated"></acceleration_table>
+          <acceleration_table
+            v-if="activeList=='accelerated'"
+            :favoriteTableData="favQueList.favorite_queries"
+            v-on:sortTable="sortFavoriteList"
+            v-on:filterFav="filterFav"
+            v-on:pausePolling="pausePolling"
+            v-on:reCallPolling="reCallPolling"
+            tab="accelerated"></acceleration_table>
           <kap-pager ref="favoriteQueryPager" class="ksd-center ksd-mtb-10" :totalSize="favQueList.size"  v-on:handleCurrentChange='pageCurrentChange'></kap-pager>
         </el-tab-pane>
       </el-tabs>
@@ -496,6 +517,7 @@ export default class FavoriteQuery extends Vue {
   ST = null
   stCycle = null
   showSearchResult = false
+  isPausePolling = false
   rulesObj = {
     freqEnable: true,
     freqValue: 0,
@@ -530,7 +552,7 @@ export default class FavoriteQuery extends Vue {
   }
   handleClick () {
     this.checkedStatus = []
-    this.loadFavoriteList()
+    this.reCallPolling()
   }
   handleCommand (command) {
     if (command === 'ruleSetting') {
@@ -708,24 +730,37 @@ export default class FavoriteQuery extends Vue {
   refreshLists () {
     return Promise.all([this.loadFavoriteList(), this.getSQLSizes()])
   }
+  pausePolling () {
+    this.isPausePolling = true
+  }
+  reCallPolling () {
+    this.isPausePolling = false
+    this.init()
+  }
   async init () {
     clearTimeout(this.stCycle)
     this.stCycle = setTimeout(() => {
-      this.refreshLists().then((res) => {
-        handleSuccess(res, (data) => {
-          if (this._isDestroyed) {
-            return
-          }
-          this.init()
+      if (!this.isPausePolling) {
+        this.refreshLists().then((res) => {
+          handleSuccess(res, (data) => {
+            if (this._isDestroyed) {
+              return
+            }
+            this.init()
+          })
+        }, (res) => {
+          handleError(res)
         })
-      }, (res) => {
-        handleError(res)
-      })
+      }
     }, 5000)
   }
 
   created () {
-    this.currentSelectedProject && this.init()
+    if (this.currentSelectedProject) {
+      this.loadFavoriteList()
+      this.getSQLSizes()
+      this.init()
+    }
   }
   destroyed () {
     clearTimeout(this.stCycle)

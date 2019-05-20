@@ -147,12 +147,17 @@ export default class FavoriteTable extends Vue {
   }
 
   handleSelectionChange (val) {
-    this.checkedList = val.map((i) => {
-      return i.uuid
-    })
-    this.checkedSqls = val.map((i) => {
-      return i.sql_pattern
-    })
+    if (val && val.length) {
+      this.$emit('pausePolling')
+      this.checkedList = val.map((i) => {
+        return i.uuid
+      })
+      this.checkedSqls = val.map((i) => {
+        return i.sql_pattern
+      })
+    } else {
+      this.$emit('reCallPolling')
+    }
   }
 
   async delFav (isBlock) {
