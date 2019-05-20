@@ -27,11 +27,15 @@ package io.kyligence.kap.rest.scheduler;
 import com.google.common.eventbus.Subscribe;
 import io.kyligence.kap.common.scheduler.FavoriteQueryListNotifier;
 import io.kyligence.kap.rest.service.NFavoriteScheduler;
+import lombok.Getter;
+import lombok.Setter;
 import org.apache.kylin.common.KylinConfig;
 
 public class FavoriteSchedulerListener {
     // only for test usage
-    public static int notifiedCount;
+    @Getter
+    @Setter
+    private int notifiedCount;
 
     @Subscribe
     public void onFavoriteQueryListCalled(FavoriteQueryListNotifier notifier) {

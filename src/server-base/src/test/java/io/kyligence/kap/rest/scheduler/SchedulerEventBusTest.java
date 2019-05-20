@@ -100,11 +100,11 @@ public class SchedulerEventBusTest extends NLocalFileMetadataTestCase {
         SchedulerEventBusFactory.getInstance(getTestConfig()).unRegister(jobSchedulerListener);
         SchedulerEventBusFactory.getInstance(getTestConfig()).unRegister(eventSchedulerListener);
 
-        FavoriteSchedulerListener.notifiedCount = 0;
-        EventSchedulerListener.eventCreatedNotified = false;
-        EventSchedulerListener.eventFinishedNotified = false;
-        JobSchedulerListener.jobCreatedNotified = false;
-        JobSchedulerListener.jobFinishedNotified = false;
+        favoriteSchedulerListener.setNotifiedCount(0);
+        eventSchedulerListener.setEventCreatedNotified(false);
+        eventSchedulerListener.setEventFinishedNotified(false);
+        jobSchedulerListener.setJobCreatedNotified(false);
+        jobSchedulerListener.setJobFinishedNotified(false);
 
         cleanupTestMetadata();
     }
@@ -114,23 +114,23 @@ public class SchedulerEventBusTest extends NLocalFileMetadataTestCase {
         // only allow 10 permits per second
         System.setProperty("kylin.scheduler.schedule-limit-per-minute", "600");
 
-        Assert.assertEquals(0, FavoriteSchedulerListener.notifiedCount);
+        Assert.assertEquals(0, favoriteSchedulerListener.getNotifiedCount());
 
         // request 10 permits per second
         for (int i = 0; i < 10; i++) {
             Thread.sleep(100);
             favoriteQueryService.filterAndSortFavoriteQueries(PROJECT, "", false, null);
         }
-        Assert.assertEquals(10, FavoriteSchedulerListener.notifiedCount);
+        Assert.assertEquals(10, favoriteSchedulerListener.getNotifiedCount());
 
         // request 100 permits per second
-        FavoriteSchedulerListener.notifiedCount = 0;
+        favoriteSchedulerListener.setNotifiedCount(0);
         for (int i = 0; i < 10; i++) {
             Thread.sleep(10);
             favoriteQueryService.filterAndSortFavoriteQueries(PROJECT, "", false, null);
         }
 
-        Assert.assertTrue(FavoriteSchedulerListener.notifiedCount < 10);
+        Assert.assertTrue(favoriteSchedulerListener.getNotifiedCount() < 10);
 
         System.clearProperty("kylin.scheduler.schedule-limit-per-minute");
     }
@@ -146,11 +146,11 @@ public class SchedulerEventBusTest extends NLocalFileMetadataTestCase {
         // prepare favorite queries
         prepareFavoriteQuery();
 
-        Assert.assertFalse(EventSchedulerListener.eventCreatedNotified);
+        Assert.assertFalse(eventSchedulerListener.isEventCreatedNotified());
 
         // event created message got dispatched
         favoriteQueryService.acceptAccelerate(PROJECT_NEWTEN, 4);
-        Assert.assertTrue(EventSchedulerListener.eventCreatedNotified);
+        Assert.assertTrue(eventSchedulerListener.isEventCreatedNotified());
 
         AddCuboidEvent event = new AddCuboidEvent();
         event.setModelId("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
@@ -164,13 +164,13 @@ public class SchedulerEventBusTest extends NLocalFileMetadataTestCase {
         Assert.assertTrue(events.size() == 0);
 
         // got event-finished message
-        Assert.assertTrue(EventSchedulerListener.eventFinishedNotified);
+        Assert.assertTrue(eventSchedulerListener.isEventFinishedNotified());
     }
 
     @Test
     public void testJobSchedulerListener() throws InterruptedException {
-        Assert.assertFalse(JobSchedulerListener.jobCreatedNotified);
-        Assert.assertFalse(JobSchedulerListener.jobFinishedNotified);
+        Assert.assertFalse(jobSchedulerListener.isJobCreatedNotified());
+        Assert.assertFalse(jobSchedulerListener.isJobFinishedNotified());
 
         val df = NDataflowManager.getInstance(getTestConfig(), PROJECT)
                 .getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
@@ -189,8 +189,8 @@ public class SchedulerEventBusTest extends NLocalFileMetadataTestCase {
         Thread.sleep(100);
 
         // job created message got dispatched
-        Assert.assertTrue(JobSchedulerListener.jobCreatedNotified);
-        Assert.assertFalse(JobSchedulerListener.jobFinishedNotified);
+        Assert.assertTrue(jobSchedulerListener.isJobCreatedNotified());
+        Assert.assertFalse(jobSchedulerListener.isJobFinishedNotified());
 
         // wait for job finished
         await().atMost(60000, TimeUnit.MILLISECONDS).until(() -> {
@@ -201,6 +201,6 @@ public class SchedulerEventBusTest extends NLocalFileMetadataTestCase {
         });
         Assert.assertEquals(ExecutableState.SUCCEED, executableManager.getOutput(job.getId()).getState());
         Assert.assertEquals(ExecutableState.SUCCEED, executableManager.getOutput(task.getId()).getState());
-        Assert.assertTrue(JobSchedulerListener.jobFinishedNotified);
+        Assert.assertTrue(jobSchedulerListener.isJobFinishedNotified());
     }
 }

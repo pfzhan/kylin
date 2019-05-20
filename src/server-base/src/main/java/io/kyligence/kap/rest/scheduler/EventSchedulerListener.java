@@ -28,12 +28,18 @@ import com.google.common.eventbus.Subscribe;
 import io.kyligence.kap.common.scheduler.EventCreatedNotifier;
 import io.kyligence.kap.common.scheduler.EventFinishedNotifier;
 import io.kyligence.kap.event.manager.EventOrchestratorManager;
+import lombok.Getter;
+import lombok.Setter;
 import org.apache.kylin.common.KylinConfig;
 
 public class EventSchedulerListener {
     // only for test usage
-    public static boolean eventCreatedNotified = false;
-    public static boolean eventFinishedNotified = false;
+    @Getter
+    @Setter
+    private boolean eventCreatedNotified = false;
+    @Getter
+    @Setter
+    private boolean eventFinishedNotified = false;
 
     @Subscribe
     public void onEventCreated(EventCreatedNotifier notifier) {

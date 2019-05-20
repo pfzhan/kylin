@@ -28,13 +28,19 @@ import com.google.common.eventbus.Subscribe;
 import io.kyligence.kap.common.scheduler.JobCreatedNotifier;
 import io.kyligence.kap.common.scheduler.JobFinishedNotifier;
 import io.kyligence.kap.event.manager.EventOrchestratorManager;
+import lombok.Getter;
+import lombok.Setter;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
 
 public class JobSchedulerListener {
     // only for test usage
-    public static boolean jobCreatedNotified = false;
-    public static boolean jobFinishedNotified = false;
+    @Getter
+    @Setter
+    private boolean jobCreatedNotified = false;
+    @Getter
+    @Setter
+    private boolean jobFinishedNotified = false;
 
     @Subscribe
     public void onJobCreated(JobCreatedNotifier notifier) {
