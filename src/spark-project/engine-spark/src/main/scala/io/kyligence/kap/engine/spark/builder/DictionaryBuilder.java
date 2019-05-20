@@ -52,7 +52,6 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 
 import io.kyligence.kap.engine.spark.job.NSparkCubingUtil;
-import io.kyligence.kap.metadata.cube.cuboid.NCuboidLayoutChooser;
 import io.kyligence.kap.metadata.cube.cuboid.NSpanningTree;
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
@@ -227,10 +226,7 @@ public class DictionaryBuilder {
         Collection<IndexEntity> toBuildIndexEntities = toBuildTree.getAllIndexEntities();
         List<LayoutEntity> toBuildCuboids = Lists.newArrayList();
         for (IndexEntity desc : toBuildIndexEntities) {
-            LayoutEntity layout = NCuboidLayoutChooser.selectLayoutForBuild(seg, desc);
-            if (layout == null) {
-                toBuildCuboids.addAll(desc.getLayouts());
-            }
+            toBuildCuboids.addAll(desc.getLayouts());
         }
 
         List<LayoutEntity> buildedLayouts = Lists.newArrayList();
