@@ -53,6 +53,7 @@ import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
@@ -838,6 +839,9 @@ public class NDataModel extends RootPersistentEntity {
         initAllMeasures();
         initFk2Pk();
         checkSingleIncrementingLoadingTable();
+
+        setDependencies(getAllTables().stream().map(ref -> originalTables.get(ref.getTableIdentity()))
+                .collect(Collectors.toList()));
     }
 
     public void checkSingleIncrementingLoadingTable() {

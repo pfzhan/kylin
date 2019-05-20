@@ -171,6 +171,9 @@ public class IndexPlan extends RootPersistentEntity implements Serializable, IEn
         initAllColumns();
         initDimEncodings();
         initDictionaryDesc();
+
+        val manager = NDataModelManager.getInstance(config, project);
+        setDependencies(Lists.newArrayList(manager.getDataModelDesc(getId())));
     }
 
     private void initConfig4IndexPlan(KylinConfig config) {

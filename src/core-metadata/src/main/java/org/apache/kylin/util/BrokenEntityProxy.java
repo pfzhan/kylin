@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -46,28 +45,42 @@ package org.apache.kylin.util;
 import java.lang.reflect.Method;
 import java.util.Set;
 
+import org.apache.kylin.common.persistence.RootPersistentEntity;
 import org.springframework.cglib.proxy.Enhancer;
 import org.springframework.cglib.proxy.MethodInterceptor;
 import org.springframework.cglib.proxy.MethodProxy;
 
 import com.google.common.collect.Sets;
 
+import lombok.RequiredArgsConstructor;
+import lombok.val;
+
+@RequiredArgsConstructor
 public class BrokenEntityProxy implements MethodInterceptor {
 
     private static Set<String> methods = Sets.newHashSet("setBroken", "isBroken", "setProject", "getProject",
             "checkIsNotCachedAndShared", "setCachedAndShared", "resourceName", "getId", "getUuid", "setUuid",
-            "getAlias", "setAlias", "checkBrokenWithRelatedInfo", "toString", "getMvcc", "setMvcc", "setConfig", "getConfig",
-            "getModelAlias", "getModel");
+            "getAlias", "setAlias", "checkBrokenWithRelatedInfo", "toString", "getMvcc", "setMvcc", "setConfig",
+            "getConfig", "getModelAlias", "getModel");
 
-    public <T> T getProxy(Class<T> cls) {
-        return (T) Enhancer.create(cls, this);
+    private final String resourcePath;
+
+    public static <T extends RootPersistentEntity> T getProxy(Class<T> cls, String resourcePath) {
+        val proxy = new BrokenEntityProxy(resourcePath);
+        T brokenEntity = (T) Enhancer.create(cls, proxy);
+        brokenEntity.setBroken(true);
+        brokenEntity.setMvcc(-1L);
+        return brokenEntity;
     }
 
     public Object intercept(Object obj, Method method, Object[] args, MethodProxy proxy) throws Throwable {
         if (methods.contains(method.getName())) {
-            Object result = proxy.invokeSuper(obj, args);
-            return result;
+            return proxy.invokeSuper(obj, args);
+        }
+        if (method.getName().equals("getResourcePath")) {
+            return resourcePath;
         }
         throw new RuntimeException("Entity broken.");
     }
+
 }

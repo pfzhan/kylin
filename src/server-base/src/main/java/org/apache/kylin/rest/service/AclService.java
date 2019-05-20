@@ -42,8 +42,6 @@
 
 package org.apache.kylin.rest.service;
 
-import static org.apache.kylin.rest.security.AclManager.DIR_PREFIX;
-
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -53,8 +51,9 @@ import java.util.Map;
 
 import javax.annotation.Nullable;
 
+import lombok.val;
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.persistence.WriteConflictException;
+import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.rest.exception.BadRequestException;
 import org.apache.kylin.rest.msg.Message;
 import org.apache.kylin.rest.msg.MsgPicker;
@@ -179,7 +178,7 @@ public class AclService implements MutableAclService {
         logger.debug("ACL of " + objectIdentity + " deleted successfully.");
     }
 
-    // Try use the updateAclWithRetry() method family whenever possible
+    // Try use the updateAcl() method family whenever possible
     @Override
     public MutableAcl updateAcl(MutableAcl mutableAcl) throws NotFoundException {
         AclRecord record = ((MutableAclRecord) mutableAcl).getAclRecord();
@@ -190,31 +189,31 @@ public class AclService implements MutableAclService {
 
     // a NULL permission means to delete the ace
     MutableAclRecord upsertAce(MutableAclRecord acl, final Sid sid, final Permission perm) {
-        return updateAclWithRetry(acl, new AclRecordUpdater() {
+        return updateAcl(acl, new AclRecordUpdater() {
             @Override
-            public void update(AclRecord record) {
-                record.upsertAce(perm, sid);
+            public void update(AclRecord copyForWrite) {
+                copyForWrite.upsertAce(perm, sid);
             }
         });
     }
 
     void batchUpsertAce(MutableAclRecord acl, final Map<Sid, Permission> sidToPerm) {
-        updateAclWithRetry(acl, new AclRecordUpdater() {
+        updateAcl(acl, new AclRecordUpdater() {
             @Override
-            public void update(AclRecord record) {
+            public void update(AclRecord copyForWrite) {
                 for (Sid sid : sidToPerm.keySet()) {
-                    record.upsertAce(sidToPerm.get(sid), sid);
+                    copyForWrite.upsertAce(sidToPerm.get(sid), sid);
                 }
             }
         });
     }
 
     MutableAclRecord inherit(MutableAclRecord acl, final MutableAclRecord parentAcl) {
-        return updateAclWithRetry(acl, new AclRecordUpdater() {
+        return updateAcl(acl, new AclRecordUpdater() {
             @Override
-            public void update(AclRecord record) {
-                record.setEntriesInheriting(true);
-                record.setParent(parentAcl);
+            public void update(AclRecord copyForWrite) {
+                copyForWrite.setEntriesInheriting(true);
+                copyForWrite.setParent(parentAcl);
             }
         });
     }
@@ -239,32 +238,17 @@ public class AclService implements MutableAclService {
     }
 
     public interface AclRecordUpdater {
-        void update(AclRecord record);
+        void update(AclRecord copyForWrite);
     }
 
-    private MutableAclRecord updateAclWithRetry(MutableAclRecord acl, AclRecordUpdater updater) {
-        int retry = 7;
-        while (retry-- > 0) {
-            AclRecord record = acl.getAclRecord();
+    private MutableAclRecord updateAcl(MutableAclRecord acl, AclRecordUpdater updater) {
+        val manager = getAclManager();
+        AclRecord record = acl.getAclRecord();
 
-            updater.update(record);
-            try {
-                getAclManager().save(record);
-                return acl; // here we are done
-
-            } catch (WriteConflictException ise) {
-                if (retry <= 0) {
-                    logger.error("Retry is out, till got error, abandoning...", ise);
-                    throw ise;
-                }
-
-                logger.warn("Write conflict to update ACL " + resourceKey(record.getObjectIdentity())
-                        + " retry remaining " + retry + ", will retry...");
-                acl = readAcl(acl.getObjectIdentity());
-
-            }
-        }
-        throw new RuntimeException("should not reach here");
+        val copyForWrite = manager.copyForWrite(record);
+        updater.update(copyForWrite);
+        getAclManager().save(copyForWrite);
+        return readAcl(acl.getObjectIdentity()); // here we are done
     }
 
     private static String resourceKey(ObjectIdentity domainObjId) {
@@ -276,6 +260,6 @@ public class AclService implements MutableAclService {
     }
 
     static String resourceKey(String domainObjId) {
-        return DIR_PREFIX + domainObjId;
+        return ResourceStore.ACL_ROOT + domainObjId;
     }
 }

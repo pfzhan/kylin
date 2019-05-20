@@ -167,7 +167,6 @@ public class TableReloadServiceTest extends ServiceTestBase {
 
         removeColumn("DEFAULT.TEST_KYLIN_FACT", "ORDER_ID");
         tableService.innerReloadTable(PROJECT, "DEFAULT.TEST_KYLIN_FACT");
-        modelService.reloadCache(PROJECT);
         val modelManager = NDataModelManager.getInstance(getTestConfig(), PROJECT);
         Assert.assertEquals(4, modelManager.listAllModels().stream().filter(RootPersistentEntity::isBroken).count());
         val indexManager = NIndexPlanManager.getInstance(getTestConfig(), PROJECT);
@@ -194,7 +193,6 @@ public class TableReloadServiceTest extends ServiceTestBase {
         val originIndexPlan = indexManager.getIndexPlanByModelAlias("nmodel_basic");
         removeColumn("DEFAULT.TEST_ORDER", "TEST_TIME_ENC");
         tableService.innerReloadTable(PROJECT, "DEFAULT.TEST_ORDER");
-        modelService.reloadCache(PROJECT);
 
         // index_plan with rule
         val modelManager = NDataModelManager.getInstance(getTestConfig(), PROJECT);
@@ -240,7 +238,6 @@ public class TableReloadServiceTest extends ServiceTestBase {
     public void testReload_AddColumn() throws Exception {
         removeColumn("EDW.TEST_CAL_DT", "CAL_DT_UPD_USER");
         tableService.innerReloadTable(PROJECT, "EDW.TEST_CAL_DT");
-        modelService.reloadCache(PROJECT);
 
         val modelManager = NDataModelManager.getInstance(getTestConfig(), PROJECT);
         val model = modelManager.getDataModelDescByAlias("nmodel_basic_inner");
@@ -248,7 +245,6 @@ public class TableReloadServiceTest extends ServiceTestBase {
 
         addColumn("DEFAULT.TEST_COUNTRY", new ColumnDesc("", "tmp1", "bigint", "", "", "", null));
         tableService.innerReloadTable(PROJECT, "DEFAULT.TEST_COUNTRY");
-        modelService.reloadCache(PROJECT);
 
         val model2 = modelManager.getDataModelDescByAlias("nmodel_basic_inner");
         val maxId = model2.getAllNamedColumns().stream().mapToInt(NDataModel.NamedColumn::getId).max().getAsInt();
@@ -259,7 +255,6 @@ public class TableReloadServiceTest extends ServiceTestBase {
     public void testReload_ChangeColumn() throws Exception {
         removeColumn("EDW.TEST_CAL_DT", "CAL_DT_UPD_USER");
         tableService.innerReloadTable(PROJECT, "EDW.TEST_CAL_DT");
-        modelService.reloadCache(PROJECT);
 
         val dfManager = NDataflowManager.getInstance(getTestConfig(), PROJECT);
         val df = dfManager.getDataflowByModelAlias("nmodel_basic_inner");
@@ -278,7 +273,6 @@ public class TableReloadServiceTest extends ServiceTestBase {
         }, true);
 
         tableService.innerReloadTable(PROJECT, tableIdentity);
-        modelService.reloadCache(PROJECT);
 
         val df2 = dfManager.getDataflowByModelAlias("nmodel_basic_inner");
         val indexPlan2 = df2.getIndexPlan();
@@ -301,7 +295,6 @@ public class TableReloadServiceTest extends ServiceTestBase {
     public void testReload_ChangeTypeAndRemoveDimension() throws Exception {
         removeColumn("EDW.TEST_CAL_DT", "CAL_DT_UPD_USER");
         tableService.innerReloadTable(PROJECT, "EDW.TEST_CAL_DT");
-        modelService.reloadCache(PROJECT);
 
         val dfManager = NDataflowManager.getInstance(getTestConfig(), PROJECT);
         val originDF = dfManager.getDataflowByModelAlias("nmodel_basic_inner");
@@ -318,7 +311,6 @@ public class TableReloadServiceTest extends ServiceTestBase {
         }, false);
 
         tableService.innerReloadTable(PROJECT, tableIdentity);
-        modelService.reloadCache(PROJECT);
 
         val df = dfManager.getDataflowByModelAlias("nmodel_basic_inner");
         val indexPlan = df.getIndexPlan();
@@ -354,7 +346,6 @@ public class TableReloadServiceTest extends ServiceTestBase {
         removeColumn(tableIdentity, "ITEM_COUNT", "LSTG_FORMAT_NAME");
 
         tableService.innerReloadTable(PROJECT, tableIdentity);
-        modelService.reloadCache(PROJECT);
 
         val indexPlan2 = indexManager.getIndexPlan(indexPlan.getId());
         Assert.assertEquals(0, indexPlan2.getDictionaries().size());

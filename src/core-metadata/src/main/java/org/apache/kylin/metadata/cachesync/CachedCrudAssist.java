@@ -76,6 +76,8 @@ public abstract class CachedCrudAssist<T extends RootPersistentEntity> {
     @Getter(AccessLevel.PROTECTED)
     private final Cache<String, T> cache;
 
+    private final CacheReloadChecker<T> checker;
+
     private boolean checkCopyOnWrite;
 
     public CachedCrudAssist(ResourceStore store, String resourceRootPath, Class<T> entityType) {
@@ -90,6 +92,7 @@ public abstract class CachedCrudAssist<T extends RootPersistentEntity> {
         this.resPathSuffix = resourcePathSuffix;
         this.serializer = new JsonSerializer<>(entityType);
         this.cache = CacheBuilder.newBuilder().expireAfterAccess(10, TimeUnit.MINUTES).build();
+        this.checker = new CacheReloadChecker<>(store, this);
 
         this.checkCopyOnWrite = store.getConfig().isCheckCopyOnWrite();
 
@@ -115,7 +118,7 @@ public abstract class CachedCrudAssist<T extends RootPersistentEntity> {
         return JsonUtil.copyBySerialization(entity, serializer, this::initEntityAfterReload);
     }
 
-    private String resourcePath(String resourceName) {
+    String resourcePath(String resourceName) {
         return resRootPath + "/" + resourceName + resPathSuffix;
     }
 
@@ -184,16 +187,11 @@ public abstract class CachedCrudAssist<T extends RootPersistentEntity> {
 
     public T get(String resourceName) {
         val raw = store.getResource(resourcePath(resourceName));
-        val entity = cache.getIfPresent(resourceName);
         if (raw == null) {
+            cache.invalidate(resourceName);
             return null;
-        } else if (entity == null) {
-            reloadAt(resourcePath(resourceName));
-        } else if (raw.getMvcc() == entity.getMvcc()) {
-            return entity;
-            //        } else if (raw.getMvcc() < entity.getMvcc()) {
-            //            throw new IllegalStateException("resource " + raw.getResPath() + " version is less than cache");
-        } else {
+        }
+        if (checker.needReload(resourceName)) {
             reloadAt(resourcePath(resourceName));
         }
         return cache.getIfPresent(resourceName);
@@ -202,11 +200,8 @@ public abstract class CachedCrudAssist<T extends RootPersistentEntity> {
     abstract protected T initEntityAfterReload(T entity, String resourceName);
 
     protected T initBrokenEntity(T entity, String resourceName) {
-        BrokenEntityProxy brokenEntityProxy = new BrokenEntityProxy();
-        T brokenEntity = brokenEntityProxy.getProxy(entityType);
-        brokenEntity.setBroken(true);
+        val brokenEntity = BrokenEntityProxy.getProxy(entityType, resourcePath(resourceName));
         brokenEntity.setUuid(resourceName);
-        brokenEntity.setMvcc(-1L);
         return brokenEntity;
     }
 
@@ -252,19 +247,11 @@ public abstract class CachedCrudAssist<T extends RootPersistentEntity> {
     public List<T> listAll() {
         val all = Lists.<T> newArrayList();
         for (String path : store.collectResourceRecursively(resRootPath, resPathSuffix)) {
-            all.add(get(resourceName(path)));
-        }
-        return all;
-    }
-
-    /**
-     * some cache entries may be outdated, because deletion might not touch CachedCrudAssist
-     */
-    public List<T> listAllValidCache() {
-        val all = Lists.<T> newArrayList();
-        for (val e : cache.asMap().entrySet()) {
-            if (exists(e.getKey()))
-                all.add(e.getValue());
+            val entity = get(resourceName(path));
+            if (entity == null) {
+                continue;
+            }
+            all.add(entity);
         }
         return all;
     }

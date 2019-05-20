@@ -132,6 +132,9 @@ public class NDataflow extends RootPersistentEntity implements Serializable, IRe
         for (NDataSegment seg : segments) {
             seg.initAfterReload();
         }
+
+        val indexPlanManager = NIndexPlanManager.getInstance(config, project);
+        setDependencies(Lists.newArrayList(indexPlanManager.getIndexPlan(getId())));
     }
 
     public KylinConfigExt getConfig() {

@@ -47,6 +47,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.persistence.RootPersistentEntity;
 import org.springframework.security.acls.domain.PermissionFactory;
 import org.springframework.security.acls.model.AccessControlEntry;
@@ -302,4 +303,8 @@ public class AclRecord extends RootPersistentEntity implements Acl, OwnershipAcl
         return true;
     }
 
+    @Override
+    public String getResourcePath() {
+        return ResourceStore.ACL_ROOT + "/" + uuid;
+    }
 }

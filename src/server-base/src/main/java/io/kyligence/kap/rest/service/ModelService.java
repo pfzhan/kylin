@@ -1397,12 +1397,4 @@ public class ModelService extends BasicService {
         eventManager.post(postAddCuboidEvent);
     }
 
-    public void reloadCache(String projectName) {
-        val modelManager = getDataModelManager(projectName);
-        modelManager.reloadAll();
-        val indexManager = getIndexPlanManager(projectName);
-        indexManager.reloadAll();
-        val dataflowManager = getDataflowManager(projectName);
-        dataflowManager.reloadAll();
-    }
 }

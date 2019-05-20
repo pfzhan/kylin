@@ -80,13 +80,13 @@ public class NDataModelManager {
         this.config = cfg;
         this.project = project;
         String resourceRootPath = "/" + project + ResourceStore.DATA_MODEL_DESC_RESOURCE_ROOT;
+        val tableManager = NTableMetadataManager.getInstance(config, project);
         this.crud = new CachedCrudAssist<NDataModel>(getStore(), resourceRootPath, NDataModel.class) {
             @Override
             protected NDataModel initEntityAfterReload(NDataModel model, String resourceName) {
                 if (!model.isDraft()) {
-                    model.init(config, getAllTablesMap(),
-                            listAllValidCache().stream().filter(m -> !m.isBroken()).collect(Collectors.toList()),
-                            project);
+                    model.init(config, getAllTablesMap(), getCache().asMap().values().stream()
+                            .filter(m -> !m.isBroken()).collect(Collectors.toList()), project);
                 }
                 return model;
             }
@@ -101,7 +101,6 @@ public class NDataModelManager {
                 return model;
             }
         };
-        NTableMetadataManager.getInstance(config, project);
     }
 
     public KylinConfig getConfig() {
@@ -184,6 +183,7 @@ public class NDataModelManager {
     public void reloadAll() {
         crud.reloadAll();
     }
+
     private NDataModel saveDataModelDesc(NDataModel dataModelDesc) {
         dataModelDesc.checkSingleIncrementingLoadingTable();
         if (!dataModelDesc.isDraft())

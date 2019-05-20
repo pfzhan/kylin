@@ -69,6 +69,7 @@ public class FavoriteQueryManager implements IKeepNames {
         this.crud = new CachedCrudAssist<FavoriteQuery>(store, resourceRootPath, FavoriteQuery.class) {
             @Override
             protected FavoriteQuery initEntityAfterReload(FavoriteQuery entity, String resourceName) {
+                entity.initAfterReload(kylinConfig, project);
                 return entity;
             }
         };

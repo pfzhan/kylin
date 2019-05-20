@@ -880,7 +880,6 @@ public class TableService extends BasicService {
             }
             return null;
         }, projectName);
-        modelService.reloadCache(projectName);
         favoriteQueryService.asyncAdjustFavoriteQuery();
     }
 

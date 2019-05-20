@@ -52,8 +52,6 @@ public class AclManager {
         return new AclManager(config);
     }
 
-    public static final String DIR_PREFIX = "/acl/";
-
     // ============================================================================
 
     private KylinConfig config;
@@ -92,5 +90,9 @@ public class AclManager {
 
     public AclRecord get(String id) {
         return crud.get(id);
+    }
+
+    public AclRecord copyForWrite(AclRecord aclRecord) {
+        return crud.copyForWrite(aclRecord);
     }
 }

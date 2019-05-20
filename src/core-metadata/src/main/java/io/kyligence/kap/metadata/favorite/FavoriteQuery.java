@@ -28,7 +28,9 @@ import java.util.NavigableMap;
 import java.util.TreeMap;
 
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.persistence.RootPersistentEntity;
+import org.apache.kylin.metadata.MetadataConstants;
 
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -77,6 +79,8 @@ public class FavoriteQuery extends RootPersistentEntity {
     @JsonManagedReference
     private List<FavoriteQueryRealization> realizations = Lists.newArrayList();
 
+    private String project;
+
     public FavoriteQuery(final String sqlPattern) {
         this.sqlPattern = sqlPattern;
         this.lastQueryTime = System.currentTimeMillis();
@@ -94,6 +98,10 @@ public class FavoriteQuery extends RootPersistentEntity {
             this.averageDuration = totalDuration / (float) totalCount;
         }
         this.status = FavoriteQueryStatusEnum.TO_BE_ACCELERATED;
+    }
+
+    public void initAfterReload(KylinConfig config, String project) {
+        this.project = project;
     }
 
     public void incStats(QueryHistory queryHistory) {
@@ -158,7 +166,8 @@ public class FavoriteQuery extends RootPersistentEntity {
     }
 
     public boolean isInWaitingList() {
-        return status.equals(FavoriteQueryStatusEnum.TO_BE_ACCELERATED) || status.equals(FavoriteQueryStatusEnum.ACCELERATING);
+        return status.equals(FavoriteQueryStatusEnum.TO_BE_ACCELERATED)
+                || status.equals(FavoriteQueryStatusEnum.ACCELERATING);
     }
 
     public boolean isNotAccelerated() {
@@ -185,5 +194,10 @@ public class FavoriteQuery extends RootPersistentEntity {
     @Override
     public int hashCode() {
         return this.sqlPattern.hashCode();
+    }
+
+    @Override
+    public String getResourcePath() {
+        return "/" + project + ResourceStore.FAVORITE_QUERY_RESOURCE_ROOT + "/" + uuid + MetadataConstants.FILE_SURFIX;
     }
 }

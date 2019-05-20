@@ -43,9 +43,9 @@
 package org.apache.kylin.common.persistence;
 
 import java.io.Serializable;
+import java.util.List;
 import java.util.UUID;
 
-import lombok.Setter;
 import org.apache.commons.lang.time.FastDateFormat;
 import org.apache.kylin.common.KylinVersion;
 
@@ -53,7 +53,9 @@ import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonAutoDetect.Visibility;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+import lombok.AccessLevel;
 import lombok.Getter;
+import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 
 /**
@@ -108,6 +110,10 @@ abstract public class RootPersistentEntity implements AclEntity, Serializable {
     @Getter
     @Setter
     private boolean isBroken = false;
+
+    @Getter
+    @Setter(AccessLevel.PROTECTED)
+    private List<RootPersistentEntity> dependencies;
 
     public String getVersion() {
         return version;

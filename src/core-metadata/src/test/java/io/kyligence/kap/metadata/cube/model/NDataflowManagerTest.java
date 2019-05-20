@@ -55,6 +55,7 @@ import io.kyligence.kap.metadata.cube.CubeTestUtils;
 import io.kyligence.kap.metadata.model.ManagementType;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
+import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import lombok.val;
 import lombok.var;
@@ -625,6 +626,35 @@ public class NDataflowManagerTest extends NLocalFileMetadataTestCase {
 
         val df2 = dfManager.getDataflowByModelAlias("AUTO_MODEL_TEST_COUNTRY_1");
         Assert.assertNull(df2);
+    }
+
+    @Test
+    public void testCacheReload_TableChanged() {
+        val dfManager = NDataflowManager.getInstance(getTestConfig(), projectDefault);
+        val df1 = dfManager.getDataflowByModelAlias("nmodel_basic_inner");
+        val tableManager = NTableMetadataManager.getInstance(getTestConfig(), projectDefault);
+
+        val tb = tableManager.getTableDesc("DEFAULT.TEST_KYLIN_FACT");
+        val copy = tableManager.copyForWrite(tb);
+        copy.setTop(true);
+        tableManager.updateTableDesc(copy);
+
+        val df2 = dfManager.getDataflowByModelAlias("nmodel_basic_inner");
+
+        Assert.assertNotSame(df1, df2);
+    }
+
+    @Test
+    public void testCacheReload_TableRemoved() {
+        val dfManager = NDataflowManager.getInstance(getTestConfig(), projectDefault);
+        val df1 = dfManager.getDataflowByModelAlias("nmodel_basic_inner");
+        val tableManager = NTableMetadataManager.getInstance(getTestConfig(), projectDefault);
+
+        tableManager.removeSourceTable("DEFAULT.TEST_KYLIN_FACT");
+
+        val df2 = dfManager.getDataflowByModelAlias("nmodel_basic_inner");
+
+        Assert.assertNotSame(df1, df2);
     }
 
 }

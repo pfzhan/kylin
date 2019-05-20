@@ -200,6 +200,7 @@ public class NIndexPlanManager implements IKeepNames {
     public void reloadAll() {
         crud.reloadAll();
     }
+
     private IndexPlan save(IndexPlan indexPlan) {
         validatePlan(indexPlan);
         indexPlan.setIndexes(indexPlan.getIndexes().stream()
