@@ -328,7 +328,7 @@
       position:relative;
       .up-down {
         position: absolute;
-        right:0px;
+        right:-8px;
         display: none;
         i {
           color:@base-color;
