@@ -69,7 +69,10 @@ export default {
       return api.datasource.loadChildTablesOfDatabase(para.projectName, para.sourceType, para.databaseName, para.tableName, para.pageOffset, para.pageSize)
     },
     [types.LOAD_HIVE_IN_PROJECT]: function ({commit}, para) {
-      return api.datasource.loadHiveInProject(para.projectName, para.sourceType, para.tableNames, para.databaseNames)
+      return api.datasource.loadHiveInProject(para)
+    },
+    [types.SUBMIT_SAMPLING]: function ({commit}, para) {
+      return api.datasource.submitSampling(para)
     },
     [types.UN_LOAD_HIVE_IN_PROJECT]: function ({commit}, data) {
       return api.datasource.unLoadHiveInProject(data)

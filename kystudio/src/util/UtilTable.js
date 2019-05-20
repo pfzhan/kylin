@@ -22,6 +22,8 @@ export function getFormattedTable (originData = {}) {
     dateTypeColumns,
     startTime,
     endTime,
+    create_time: originData.create_time,
+    sampling_rows: originData.sampling_rows,
     __data: originData
   }
 }

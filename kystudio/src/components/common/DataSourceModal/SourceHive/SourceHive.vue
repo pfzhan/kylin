@@ -75,6 +75,20 @@
         </div>
       </transition>
     </div>
+    <div class="sample-block">
+      <span class="ksd-title-label-small ksd-mr-10">{{$t('samplingTitle')}}</span><el-switch
+        size="small"
+        @change="handleSampling"
+        :value="needSampling"
+        :active-text="$t('kylinLang.common.OFF')"
+        :inactive-text="$t('kylinLang.common.ON')">
+      </el-switch>
+      <div class="sample-desc ksd-mt-5">{{$t('sampleDesc')}}</div>
+      <div class="sample-desc">
+        {{$t('sampleDesc1')}}<el-input size="small" style="width: 110px;" class="ksd-mrl-5" v-number="samplingRows" :value="samplingRows" :disabled="!needSampling" :class="{'is-error': needSampling&&errorMsg}" @input="handleSamplingRows"></el-input>{{$t('sampleDesc2')}}
+        <div class="error-msg" v-if="needSampling&&errorMsg">{{errorMsg}}</div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -98,6 +112,8 @@ import arealabel from '../../area_label.vue'
     selectedDatabases: {
       default: () => []
     },
+    needSampling: Boolean,
+    samplingRows: Number,
     sourceType: Number
   },
   components: {
@@ -123,7 +139,8 @@ export default class SourceHive extends Vue {
   treeData = []
   contentStyle = {
     marginLeft: null,
-    width: null
+    width: null,
+    height: '470px'
   }
   sourceTypes = sourceTypes
   timer = null
@@ -131,6 +148,7 @@ export default class SourceHive extends Vue {
   isShowTips = true
   selectorWidth = 0
   filterText = ''
+  errorMsg = ''
 
   get databaseOptions () {
     return this.treeData.map(database => ({
@@ -294,6 +312,22 @@ export default class SourceHive extends Vue {
     })
     this.$emit('input', { selectedDatabases, selectedTables })
   }
+  handleSampling (needSampling) {
+    this.$emit('input', { needSampling })
+  }
+  handleSamplingRows (samplingRows) {
+    if (samplingRows < 10000) {
+      this.errorMsg = this.$t('minNumber')
+      this.contentStyle.height = '453px'
+    } else if (samplingRows > 20000000) {
+      this.errorMsg = this.$t('maxNumber')
+      this.contentStyle.height = '453px'
+    } else {
+      this.errorMsg = ''
+      this.contentStyle.height = '470px'
+    }
+    this.$emit('input', { samplingRows: +samplingRows })
+  }
   handleRemoveDatabase (removeDatabaseId) {
     const selectedDatabases = this.selectedDatabases.filter(databaseId => databaseId !== removeDatabaseId)
     this.$emit('input', { selectedDatabases })
@@ -344,7 +378,7 @@ export default class SourceHive extends Vue {
     width: 210px;
   }
   .filter-tree {
-    height: 470px;
+    height: 549px;
     overflow: auto;
     border: 1px solid @line-border-color;
   }
@@ -352,7 +386,21 @@ export default class SourceHive extends Vue {
     margin-left: calc(480px + 25px + 10px);
     padding: 62px 20px 10px 0;
     position: relative;
-    height: 470px;
+    // height: 453px;
+  }
+  .sample-block {
+    margin-left: calc(480px + 25px + 10px);
+    margin-bottom: 20px;
+    .sample-desc {
+      color: @text-normal-color;
+      .error-msg {
+        color: @color-danger;
+        font-size: 12px;
+      }
+      .is-error .el-input__inner{
+        border-color: @color-danger;
+      }
+    }
   }
   .content-body {
     position: relative;

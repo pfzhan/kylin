@@ -5,24 +5,38 @@ export default {
     general: 'Storage',
     columns: 'Columns',
     sample: 'Sample',
+    sampling: 'Sample Data',
     unloadTableTitle: 'Delete Source Table',
     unloadTable: 'Do you need to delete the table {tableName}?',
     unloadSuccess: 'Delete Table successfully.',
     affactUnloadInfo: 'Delete the source table {tableName} will lead to removing related models and indexes, whose total storage size is {storageSize}.',
     remindLoadRange: 'If you have tables which increase by day, it is suggested to select the corresponding date column as partition key. Especially, tables containing historical data, in which new data is added into the newest partition.',
-    remindLoadRangeTitle: 'Add Partition'
+    remindLoadRangeTitle: 'Add Partition',
+    sampleDesc: 'The system will sample the table {tableName}',
+    sampleDesc1: 'Sampling range should not exceed ',
+    sampleDesc2: ' rows',
+    sampleDialogTitle: 'Table Sampling',
+    minNumber: 'Input should be no less than 10,000 rows',
+    maxNumber: 'Input should be no larger than 20,000,000 rows'
   },
   'zh-cn': {
     updateAt: '上次更新时间 :',
     delete: '删除',
     general: '存储信息',
     columns: '所有列',
-    sample: '样例数据',
+    sample: '采样',
+    sampling: '采样数据',
     unloadTableTitle: '删除源数据表',
     unloadTable: '确定要删除源表{tableName}？',
     unloadSuccess: '删除成功',
     affactUnloadInfo: '删除源数据表 {tableName} 将删除所有依赖本表的模型和索引，总存储为 {storageSize}。',
     remindLoadRange: '如果有数据按时间递增的源表，建议选择一个合适的 日期列 作为源表的分区列。特别是那些包含历史数据的表，新的数据将会被加入最新的分区中。',
-    remindLoadRangeTitle: '添加分区列'
+    remindLoadRangeTitle: '添加分区列',
+    sampleDesc: '系统将对表 {tableName} 进行全表抽样',
+    sampleDesc1: '数据抽样范围不超过',
+    sampleDesc2: '行',
+    sampleDialogTitle: '表级数据抽样',
+    minNumber: '输入值应不小于10,000 行',
+    maxNumber: '输入值应 不大于20,000,000 行'
   }
 }

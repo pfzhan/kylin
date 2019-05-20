@@ -46,7 +46,7 @@
       :row-class-name="tableRowClassName"
       :style="{width:showStep?'70%':'100%'}"
     >
-      <el-table-column type="selection" align="center" width="40"></el-table-column>
+      <el-table-column type="selection" align="center" width="44"></el-table-column>
       <el-table-column align="center" width="40" prop="icon">
         <template slot-scope="scope">
           <common-tip :content="$t('openJobSteps')">
@@ -57,13 +57,13 @@
           </common-tip>
         </template>
       </el-table-column>
-      <el-table-column :renderHeader="renderColumn" prop="job_name" width="140"></el-table-column>
+      <el-table-column :renderHeader="renderColumn" prop="job_name" width="144"></el-table-column>
       <el-table-column
         :label="$t('TargetSubject')"
         sortable
         min-width="140"
         show-overflow-tooltip
-        prop="target_model_alias">
+        prop="target_subject">
       </el-table-column>
        <el-table-column
         :label="$t('dataRange')"
@@ -137,7 +137,8 @@
             <tr>
               <td>{{$t('TargetSubject')}}</td>
               <td>
-                <a @click="gotoModelList(selectedJob.target_model_alias)">{{selectedJob.target_model_alias}}</a>
+                <span v-if="selectedJob.job_name === 'TABLE_SAMPLING'">{{selectedJob.target_subject}}</span>
+                <a v-else @click="gotoModelList(selectedJob.target_subject)">{{selectedJob.target_subject}}</a>
               </td>
             </tr>
             <tr>

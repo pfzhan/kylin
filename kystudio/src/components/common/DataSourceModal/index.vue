@@ -26,6 +26,8 @@
         :source-type="sourceType"
         :selected-tables="form.selectedTables"
         :selected-databases="form.selectedDatabases"
+        :need-sampling="form.needSampling"
+        :sampling-rows="form.samplingRows"
         @input="handleInputTableOrDatabase">
       </SourceHive>
       <SourceCSVConnect
@@ -202,6 +204,9 @@ export default class DataSourceModal extends Vue {
     this.isDisabled = true
   }
   async _submit () {
+    if (this.form.needSampling && (this.form.samplingRows < 10000 || this.form.samplingRows > 20000000)) {
+      return
+    }
     const submitData = getSubmitData(this.form, this.editType)
     this.prevSteps.push(this.editType)
     switch (this.editType) {

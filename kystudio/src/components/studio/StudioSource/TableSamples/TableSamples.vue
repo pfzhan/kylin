@@ -1,30 +1,33 @@
 <template>
   <div class="table-sample">
-    <div class="columns-header">
-      <div class="left font-medium">
-        {{$t('total') + columnCount}}
+    <div v-if="headers.length">
+      <div class="columns-header">
+        <div class="left font-medium">
+          {{$t('version')}}{{table.create_time | gmtTime}}
+        </div>
+        <div class="right">
+          <el-input
+            class="filter-input"
+            prefix-icon="el-icon-search"
+            v-model="filterText"
+            :placeholder="$t('kylinLang.common.pleaseFilter')">
+          </el-input>
+        </div>
       </div>
-      <div class="right">
-        <el-input
-          class="filter-input"
-          prefix-icon="el-icon-search"
-          v-model="filterText"
-          :placeholder="$t('kylinLang.common.pleaseFilter')">
-        </el-input>
-      </div>
+      <el-table class="columns-body" :data="columns" border>
+        <el-table-column
+          sortable
+          align="left"
+          v-for="(headerText, index) in headers"
+          :key="headerText"
+          :prop="String(index)"
+          :min-width="getStringWidth(headerText)"
+          :label="headerText">
+        </el-table-column>
+      </el-table>
     </div>
-    <el-table class="columns-body" :data="columns" border>
-      <el-table-column
-        sortable
-        align="left"
-        v-if="headers.length"
-        v-for="(headerText, index) in headers"
-        :key="headerText"
-        :prop="String(index)"
-        :min-width="getStringWidth(headerText)"
-        :label="headerText">
-      </el-table-column>
-    </el-table>
+    <EmptyData v-else>
+    </EmptyData>
   </div>
 </template>
 
@@ -33,6 +36,7 @@ import Vue from 'vue'
 import { Component } from 'vue-property-decorator'
 
 import locales from './locales'
+import EmptyData from '../../../common/EmptyData/EmptyData.vue'
 import { changeDataAxis } from '../../../../util'
 
 @Component({
@@ -41,12 +45,15 @@ import { changeDataAxis } from '../../../../util'
       type: Object
     }
   },
-  locales
+  locales,
+  components: {
+    EmptyData
+  }
 })
 export default class TableSamples extends Vue {
   filterText = ''
   get headers () {
-    return this.table.sample_rows.length ? this.table.columns
+    return this.table.sampling_rows && this.table.sampling_rows.length ? this.table.__data.columns
       .map(column => column.name)
       .filter(column => column.toUpperCase().includes(this.filterText.toUpperCase())) : []
   }
@@ -54,10 +61,10 @@ export default class TableSamples extends Vue {
     return this.columns[0] ? this.columns[0].length : 0
   }
   get columns () {
-    const columns = changeDataAxis(this.table.sample_rows)
+    const columns = changeDataAxis(this.table.sampling_rows)
     const headerIdxs = []
 
-    this.table.columns.forEach((column, index) => {
+    this.table.__data.columns.forEach((column, index) => {
       if (this.headers.includes(column.name)) {
         headerIdxs.push(index)
       }
@@ -87,6 +94,13 @@ export default class TableSamples extends Vue {
     display: inline-block;
     vertical-align: middle;
     width: 49.79%;
+  }
+  .left {
+    vertical-align: bottom;
+    font-size: 12px;
+    font-weight: normal;
+    height: 14px;
+    line-height: 14px;
   }
   .right {
     text-align: right;

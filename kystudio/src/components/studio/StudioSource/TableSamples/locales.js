@@ -1,8 +1,8 @@
 export default {
   'en': {
-    total: 'Total Columns:'
+    version: 'Version:'
   },
   'zh-cn': {
-    total: '总列数：'
+    version: '版本：'
   }
 }

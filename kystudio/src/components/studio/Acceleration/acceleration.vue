@@ -125,7 +125,7 @@
             :row-class-name="tableRowClassName"
             class="import-table"
             style="width: 100%">
-            <el-table-column type="selection" width="40" align="center" :selectable="selectable"></el-table-column>
+            <el-table-column type="selection" width="44" align="center" :selectable="selectable"></el-table-column>
             <el-table-column prop="sql" label="SQL" :resizable="false">
               <template slot-scope="props">
                 <span class="ksd-nobr-text">{{props.row.sql}}</span>

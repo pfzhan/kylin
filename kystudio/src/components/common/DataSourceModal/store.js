@@ -38,6 +38,8 @@ const initialState = JSON.stringify({
     project: null,
     selectedTables: [],
     selectedDatabases: [],
+    needSampling: true,
+    samplingRows: 20000000,
     settings: {
       type: '',
       name: '',

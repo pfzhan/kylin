@@ -36,7 +36,7 @@
                 @select="(selection, row) => {selectionChange(selection, row, table.guid)}">
                 <el-table-column
                   type="selection"
-                  width="40">
+                  width="44">
                 </el-table-column>
                 <el-table-column
                   :label="$t('name')">
@@ -96,7 +96,7 @@
                 <el-table-column
                   type="selection"
                   align="center"
-                  width="40">
+                  width="44">
                 </el-table-column>
                 <el-table-column
                   :label="$t('name')">
@@ -154,7 +154,7 @@
                   <el-table-column
                     type="selection"
                     align="center"
-                    width="40">
+                    width="44">
                   </el-table-column>
                   <el-table-column
                     prop="alias"
@@ -198,7 +198,7 @@
                   <el-table-column
                     type="selection"
                     align="center"
-                    width="40">
+                    width="44">
                   </el-table-column>
                   <el-table-column
                     prop="alias"

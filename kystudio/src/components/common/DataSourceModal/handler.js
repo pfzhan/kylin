@@ -70,10 +70,12 @@ function _getSelectSourceSubmitData (form) {
 
 function _getLoadTableSubmitData (form) {
   return {
-    projectName: form.project.name,
-    sourceType: form.project.override_kylin_properties['kylin.source.default'],
-    tableNames: form.selectedTables,
-    databaseNames: form.selectedDatabases
+    project: form.project.name,
+    datasourceType: form.project.override_kylin_properties['kylin.source.default'],
+    tables: form.selectedTables,
+    databases: form.selectedDatabases,
+    needSampling: form.needSampling,
+    samplingRows: form.samplingRows
   }
 }
 

@@ -18,8 +18,11 @@ export default {
   loadChildTablesOfDatabase: (project, datasourceType, database, table, pageOffset, pageSize) => {
     return Vue.resource(apiUrl + 'tables/names').get({project, datasourceType, database, table, pageOffset, pageSize})
   },
-  loadHiveInProject: (project, datasourceType, tables, databases) => {
-    return Vue.resource(apiUrl + 'tables').save({project, datasourceType, tables, databases})
+  loadHiveInProject: (para) => {
+    return Vue.resource(apiUrl + 'tables').save(para)
+  },
+  submitSampling: (para) => {
+    return Vue.resource(apiUrl + 'tables/sampling').save(para)
   },
   unLoadHiveInProject: (data) => {
     return Vue.resource(apiUrl + 'table_ext/' + data.tables + '/' + data.project).delete()

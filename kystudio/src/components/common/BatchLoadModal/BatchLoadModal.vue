@@ -11,7 +11,7 @@
     @closed="handleClosed">
     <el-form class="form" v-loading="isDataLoading" ref="form" size="small" :inline="true" :model="tempForm">
       <el-table border :data="form.tables" @selection-change="value => selectedTables = value">
-        <el-table-column type="selection" width="38"></el-table-column>
+        <el-table-column type="selection" width="44"></el-table-column>
         <el-table-column prop="fullName" :label="$t('table')"></el-table-column>
         <el-table-column prop="refresh" :label="$t('refresh')" width="75"></el-table-column>
         <el-table-column :label="$t('loadRange')" width="210">

@@ -43,7 +43,7 @@
 
     <div class="segment-views ksd-mb-15">
       <el-table border nested  size="medium" :data="segments" @selection-change="handleSelectSegments" @sort-change="handleSortChange">
-        <el-table-column type="selection" width="40">
+        <el-table-column type="selection" width="44">
         </el-table-column>
         <el-table-column prop="id" label="Segment Id">
         </el-table-column>

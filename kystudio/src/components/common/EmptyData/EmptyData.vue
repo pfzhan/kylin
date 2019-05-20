@@ -39,15 +39,16 @@ export default class EmptyData extends Vue {
 
 <style lang="less">
 .empty-data {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  .center {
-    text-align: center;
-  }
-  .center:first-child {
-    margin-bottom: 20px;
-  }
+  margin: 220px 0;
+  // position: absolute;
+  // top: 50%;
+  // left: 50%;
+  // transform: translate(-50%, -50%);
+  // .center {
+  //   text-align: center;
+  // }
+  // .center:first-child {
+  //   margin-bottom: 20px;
+  // }
 }
 </style>

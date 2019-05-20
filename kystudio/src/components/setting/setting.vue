@@ -3,8 +3,8 @@
     <header class="setting-header">
       <h1 class="ksd-title-label" v-if="currentProjectData">{{currentProjectData.name}}</h1>
     </header>
-    <section class="setting-body" v-loading="isLoading">
-      <el-tabs v-model="viewType" type="card" v-if="projectSettings">
+    <section class="setting-body" v-loading="isLoading" v-if="projectSettings">
+      <el-tabs v-model="viewType" type="card">
         <el-tab-pane :label="$t('basic')" :name="viewTypes.BASIC">
           <SettingBasic :project="projectSettings" @reload-setting="getCurrentSettings" @form-changed="handleFormChanged"></SettingBasic>
         </el-tab-pane>
@@ -15,9 +15,9 @@
           <SettingModel :project="currentProjectData"></SettingModel>
         </el-tab-pane>
       </el-tabs>
-      <EmptyData v-else>
-      </EmptyData>
     </section>
+    <EmptyData v-else>
+    </EmptyData>
   </div>
 </template>
 
@@ -123,6 +123,9 @@ export default class Setting extends Vue {
   }
   .setting-header h1 {
     font-size: 16px;
+  }
+  .setting-body {
+    height: 100%;
   }
   .project-setting,
   .quota-setting,
