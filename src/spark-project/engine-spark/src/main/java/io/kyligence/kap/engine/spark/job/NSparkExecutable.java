@@ -32,12 +32,12 @@ import java.util.Collections;
 import java.util.EnumSet;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Properties;
 import java.util.Set;
 
 import org.apache.commons.collections.CollectionUtils;
-import io.kyligence.kap.common.persistence.metadata.MetadataStore;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.conf.Configuration;
@@ -70,6 +70,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
+import io.kyligence.kap.common.persistence.metadata.MetadataStore;
 import io.kyligence.kap.engine.spark.merger.MetadataMerger;
 import io.kyligence.kap.metadata.cube.model.NBatchConstants;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
@@ -241,10 +242,12 @@ public class NSparkExecutable extends AbstractExecutable {
     private boolean hasOverrideSparkConf(String dataflow, NDataflowManager dataflowManager) {
         LinkedHashMap<String, String> overrideProps = dataflowManager.getDataflow(dataflow).getIndexPlan()
                 .getOverrideProps();
-        Optional<Map.Entry<String, String>> any = overrideProps.entrySet().stream()
-                .filter(entry -> entry.getKey().startsWith("kylin.engine.spark-conf.")).findAny();
+        Optional<Entry<String, String>> any = overrideProps.entrySet().stream()
+                .filter(entry -> entry.getKey().startsWith("kylin.engine.spark-conf."))
+                .filter(entry -> !entry.getKey().equals("kylin.engine.spark-conf.spark.executor.instances")).findAny();
         if (any.isPresent()) {
-            logger.info("Find override spark conf,set kylin.spark-conf.auto.prior=false");
+            logger.info(
+                    "Find override spark conf except spark.executor.instances, set kylin.spark-conf.auto.prior=false");
             overrideProps.entrySet()
                     .forEach(entry -> logger.info("Override conf :{}={}", entry.getKey(), entry.getValue()));
             return true;
@@ -287,7 +290,7 @@ public class NSparkExecutable extends AbstractExecutable {
     }
 
     private ExecuteResult runSparkSubmit(KylinConfig config, String sparkHome, String hadoopConf, String jars,
-                                         String kylinJobJar, String appArgs, String jobId) {
+            String kylinJobJar, String appArgs, String jobId) {
 
         PatternedLogger patternedLogger = new PatternedLogger(logger);
         try {
@@ -317,7 +320,7 @@ public class NSparkExecutable extends AbstractExecutable {
                 "export HADOOP_CONF_DIR=%s && %s/bin/spark-submit --class io.kyligence.kap.engine.spark.application.SparkEntry ");
 
         Map<String, String> sparkConfs = getSparkConfigOverride(config);
-        for (Map.Entry<String, String> entry : sparkConfs.entrySet()) {
+        for (Entry<String, String> entry : sparkConfs.entrySet()) {
             appendSparkConf(sb, entry.getKey(), entry.getValue());
         }
         appendSparkConf(sb, "spark.executor.extraClassPath", Paths.get(kylinJobJar).getFileName().toString());

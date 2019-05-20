@@ -39,6 +39,7 @@ import org.apache.spark.sql.SparkSession;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
 import io.kyligence.kap.engine.spark.NSparkCubingEngine;
@@ -60,9 +61,11 @@ import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
 
 public class DFMergeJob extends SparkApplication {
     protected static final Logger logger = LoggerFactory.getLogger(DFMergeJob.class);
+    private BuildLayoutWithUpdate buildLayoutWithUpdate;
 
     @Override
     protected void doExecute() throws Exception {
+        buildLayoutWithUpdate = new BuildLayoutWithUpdate();
         String dataflowId = getParam(NBatchConstants.P_DATAFLOW_ID);
         String newSegmentId = getParam(NBatchConstants.P_SEGMENT_IDS);
         Set<Long> layoutIds = NSparkCubingUtil.str2Longs(getParam(NBatchConstants.P_LAYOUT_IDS));
@@ -106,19 +109,31 @@ public class DFMergeJob extends SparkApplication {
 
         Map<Long, DFLayoutMergeAssist> mergeCuboidsAssist = generateMergeAssist(mergingSegments, ss, mergedSeg);
         for (DFLayoutMergeAssist assist : mergeCuboidsAssist.values()) {
+
             Dataset<Row> afterMerge = assist.merge();
             LayoutEntity layout = assist.getLayout();
+            Dataset<Row> afterSort;
             if (layout.getIndex().getId() > IndexEntity.TABLE_INDEX_START_ID) {
-                Dataset<Row> afterSort = afterMerge
-                        .sortWithinPartitions(NSparkCubingUtil.getColumns(layout.getSortByColumns()));
-                saveAndUpdateCuboid(afterSort, mergedSeg, layout, assist);
+                afterSort = afterMerge.sortWithinPartitions(NSparkCubingUtil.getColumns(layout.getSortByColumns()));
             } else {
                 Column[] dimsCols = NSparkCubingUtil.getColumns(layout.getOrderedDimensions().keySet());
                 Dataset<Row> afterAgg = CuboidAggregator.agg(ss, afterMerge, layout.getOrderedDimensions().keySet(),
                         layout.getOrderedMeasures(), mergedSeg);
-                Dataset<Row> afterSort = afterAgg.sortWithinPartitions(dimsCols);
-                saveAndUpdateCuboid(afterSort, mergedSeg, layout, assist);
+                afterSort = afterAgg.sortWithinPartitions(dimsCols);
             }
+            buildLayoutWithUpdate.submit(new BuildLayoutWithUpdate.JobEntity() {
+                @Override
+                public String getName() {
+                    return "merge-layout-" + layout.getId();
+                }
+
+                @Override
+                public List<NDataLayout> build() throws IOException {
+                    return Lists.newArrayList(saveAndUpdateCuboid(afterSort, mergedSeg, layout, assist));
+                }
+            });
+
+            buildLayoutWithUpdate.updateLayout(mergedSeg, config, project);
         }
     }
 
@@ -146,7 +161,7 @@ public class DFMergeJob extends SparkApplication {
         return mergeCuboidsAssist;
     }
 
-    private void saveAndUpdateCuboid(Dataset<Row> dataset, NDataSegment seg, LayoutEntity layout,
+    private NDataLayout saveAndUpdateCuboid(Dataset<Row> dataset, NDataSegment seg, LayoutEntity layout,
             DFLayoutMergeAssist assist) throws IOException {
         long layoutId = layout.getId();
         long sourceCount = 0L;
@@ -169,18 +184,24 @@ public class DFMergeJob extends SparkApplication {
         storage.saveTo(tempPath, dataset, ss);
 
         JobMetrics metrics = JobMetricsUtils.collectMetrics(queryExecutionId);
-        dataCuboid.setRows(metrics.getMetrics(Metrics.CUBOID_ROWS_CNT()));
+        if( metrics.getMetrics(Metrics.CUBOID_ROWS_CNT()) == 0) {
+            logger.warn("Job metrics seems null, use count() to collect cuboid rows.");
+            dataCuboid.setRows(storage.getFrom(tempPath, ss).count());
+        } else {
+            dataCuboid.setRows(metrics.getMetrics(Metrics.CUBOID_ROWS_CNT()));
+        }
         dataCuboid.setSourceRows(sourceCount);
         dataCuboid.setBuildJobId(jobId);
 
-        int partitionNum = BuildUtils.repartitionIfNeed(layout, dataCuboid, storage, path, tempPath, KapConfig.wrap(config), ss);
+        int partitionNum = BuildUtils.repartitionIfNeed(layout, dataCuboid, storage, path, tempPath,
+                KapConfig.wrap(config), ss);
         dataCuboid.setPartitionNum(partitionNum);
         ss.sparkContext().setLocalProperty(QueryExecutionCache.N_EXECUTION_ID_KEY(), null);
         QueryExecutionCache.removeQueryExecution(queryExecutionId);
 
         BuildUtils.fillCuboidInfo(dataCuboid);
 
-        BuildUtils.updateDataFlow(seg, dataCuboid, config, project);
+        return dataCuboid;
     }
 
     public static void main(String[] args) {

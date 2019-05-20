@@ -38,7 +38,6 @@ import java.util.stream.Collectors;
 
 import org.apache.hadoop.util.StringUtils;
 import org.apache.kylin.common.KapConfig;
-import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.storage.StorageFactory;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
@@ -46,6 +45,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.engine.spark.NSparkCubingEngine;
@@ -73,11 +73,13 @@ public class DFBuildJob extends SparkApplication {
     protected static String TEMP_DIR_SUFFIX = "_temp";
 
     private NDataflowManager dfMgr;
+    private BuildLayoutWithUpdate buildLayoutWithUpdate;
 
     @Override
     protected void doExecute() throws Exception {
         long start = System.currentTimeMillis();
         logger.info("Start Build");
+        buildLayoutWithUpdate = new BuildLayoutWithUpdate();
         String dataflowId = getParam(NBatchConstants.P_DATAFLOW_ID);
         Set<String> segmentIds = Sets.newHashSet(StringUtils.split(getParam(NBatchConstants.P_SEGMENT_IDS)));
         Set<Long> layoutIds = NSparkCubingUtil.str2Longs(getParam(NBatchConstants.P_LAYOUT_IDS));
@@ -119,7 +121,8 @@ public class DFBuildJob extends SparkApplication {
         return dfMgr.getDataflow(dataflowId).getSegment(segId);
     }
 
-    private void build(Collection<NBuildSourceInfo> buildSourceInfos, String segId, NSpanningTree st) throws IOException {
+    private void build(Collection<NBuildSourceInfo> buildSourceInfos, String segId, NSpanningTree st)
+            throws IOException {
 
         val theFirstLevelBuildInfos = buildLayer(buildSourceInfos, segId, st);
         val queue = new LinkedList<List<NBuildSourceInfo>>();
@@ -139,7 +142,8 @@ public class DFBuildJob extends SparkApplication {
     }
 
     // build current layer and return the next layer to be built.
-    private List<NBuildSourceInfo> buildLayer(Collection<NBuildSourceInfo> buildSourceInfos, String segId, NSpanningTree st) throws IOException {
+    private List<NBuildSourceInfo> buildLayer(Collection<NBuildSourceInfo> buildSourceInfos, String segId,
+            NSpanningTree st) throws IOException {
         val seg = getSegment(segId);
 
         // build current layer
@@ -149,26 +153,28 @@ public class DFBuildJob extends SparkApplication {
             Preconditions.checkState(!toBuildCuboids.isEmpty(), "To be built cuboids is empty.");
             Dataset<Row> parentDS = info.getParentDS();
 
-            boolean needCache = toBuildCuboids.size() >= KylinConfig.getInstanceFromEnv().getBuildingCacheThreshold();
-            if (needCache) {
-                parentDS.cache();
-            }
-
             for (IndexEntity index : toBuildCuboids) {
                 Preconditions.checkNotNull(parentDS, "Parent dataset is null when building.");
-                buildIndex(seg, index, parentDS, st);
-                allIndexesInCurrentLayer.add(index);
-            }
+                buildLayoutWithUpdate.submit(new BuildLayoutWithUpdate.JobEntity() {
+                    @Override
+                    public String getName() {
+                        return "build-index-" + index.getId();
+                    }
 
-            if (needCache) {
-                parentDS.unpersist();
+                    @Override
+                    public List<NDataLayout> build() throws IOException {
+                        return buildIndex(seg, index, parentDS, st);
+                    }
+                });
+                allIndexesInCurrentLayer.add(index);
             }
         }
 
-        // decided the next layer by current layer's all indexes.
-        st.decideTheNextLayer(allIndexesInCurrentLayer , getSegment(segId));
+        buildLayoutWithUpdate.updateLayout(seg, config, project);
 
-        return constructTheNextLayerBuildInfos(st, seg, allIndexesInCurrentLayer );
+        // decided the next layer by current layer's all indexes.
+        st.decideTheNextLayer(allIndexesInCurrentLayer, getSegment(segId));
+        return constructTheNextLayerBuildInfos(st, seg, allIndexesInCurrentLayer);
     }
 
     // decided and construct the next layer.
@@ -194,35 +200,41 @@ public class DFBuildJob extends SparkApplication {
         return childrenBuildSourceInfos;
     }
 
-    private void buildIndex(NDataSegment seg, IndexEntity cuboid, Dataset<Row> parent, NSpanningTree nSpanningTree) throws IOException {
+    private List<NDataLayout> buildIndex(NDataSegment seg, IndexEntity cuboid, Dataset<Row> parent,
+            NSpanningTree nSpanningTree) throws IOException {
         logger.info("Build index:{}, in segment:{}", cuboid.getId(), seg.getId());
+        LinkedList<NDataLayout> layouts = Lists.newLinkedList();
         Set<Integer> dimIndexes = cuboid.getEffectiveDimCols().keySet();
         if (cuboid.getId() >= IndexEntity.TABLE_INDEX_START_ID) {
             Preconditions.checkArgument(cuboid.getMeasures().isEmpty());
             Dataset<Row> afterPrj = parent.select(NSparkCubingUtil.getColumns(dimIndexes));
             // TODO: shard number should respect the shard column defined in cuboid
             for (LayoutEntity layout : nSpanningTree.getLayouts(cuboid)) {
+                logger.info("Build layout:{}, in index:{}", layout.getId(), cuboid.getId());
                 Set<Integer> orderedDims = layout.getOrderedDimensions().keySet();
                 Dataset<Row> afterSort = afterPrj.select(NSparkCubingUtil.getColumns(orderedDims))
                         .sortWithinPartitions(NSparkCubingUtil.getColumns(layout.getSortByColumns()));
-                saveAndUpdateLayout(afterSort, seg, layout);
+                layouts.add(saveAndUpdateLayout(afterSort, seg, layout));
             }
         } else {
             Dataset<Row> afterAgg = CuboidAggregator.agg(ss, parent, dimIndexes, cuboid.getEffectiveMeasures(), seg);
             for (LayoutEntity layout : nSpanningTree.getLayouts(cuboid)) {
+                logger.info("Build layout:{}, in index:{}", layout.getId(), cuboid.getId());
                 Set<Integer> rowKeys = layout.getOrderedDimensions().keySet();
 
                 Dataset<Row> afterSort = afterAgg
                         .select(NSparkCubingUtil.getColumns(rowKeys, layout.getOrderedMeasures().keySet()))
                         .sortWithinPartitions(NSparkCubingUtil.getColumns(rowKeys));
 
-                saveAndUpdateLayout(afterSort, seg, layout);
+                layouts.add(saveAndUpdateLayout(afterSort, seg, layout));
             }
         }
-
+        logger.info("Finished Build index :{}, in segment:{}", cuboid.getId(), seg.getId());
+        return layouts;
     }
 
-    private void saveAndUpdateLayout(Dataset<Row> dataset, NDataSegment seg, LayoutEntity layout) throws IOException {
+    private NDataLayout saveAndUpdateLayout(Dataset<Row> dataset, NDataSegment seg, LayoutEntity layout)
+            throws IOException {
         long layoutId = layout.getId();
 
         NDataLayout dataCuboid = getDataCuboid(seg, layoutId);
@@ -240,14 +252,20 @@ public class DFBuildJob extends SparkApplication {
 
         JobMetrics metrics = JobMetricsUtils.collectMetrics(queryExecutionId);
         dataCuboid.setBuildJobId(jobId);
-        dataCuboid.setRows(metrics.getMetrics(Metrics.CUBOID_ROWS_CNT()));
+        if( metrics.getMetrics(Metrics.CUBOID_ROWS_CNT()) == 0) {
+            logger.warn("Job metrics seems null, use count() to collect cuboid rows.");
+            dataCuboid.setRows(storage.getFrom(tempPath, ss).count());
+        } else {
+            dataCuboid.setRows(metrics.getMetrics(Metrics.CUBOID_ROWS_CNT()));
+        }
         dataCuboid.setSourceRows(metrics.getMetrics(Metrics.SOURCE_ROWS_CNT()));
-        val partitionNum = BuildUtils.repartitionIfNeed(layout, dataCuboid, storage, path, tempPath, KapConfig.wrap(config), ss);
+        val partitionNum = BuildUtils.repartitionIfNeed(layout, dataCuboid, storage, path, tempPath,
+                KapConfig.wrap(config), ss);
         dataCuboid.setPartitionNum(partitionNum);
         ss.sparkContext().setLocalProperty(QueryExecutionCache.N_EXECUTION_ID_KEY(), null);
         QueryExecutionCache.removeQueryExecution(queryExecutionId);
         BuildUtils.fillCuboidInfo(dataCuboid);
-        BuildUtils.updateDataFlow(seg, dataCuboid, config, project);
+        return dataCuboid;
     }
 
     private NDataLayout getDataCuboid(NDataSegment seg, long layoutId) {

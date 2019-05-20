@@ -475,6 +475,7 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
         NSparkExecutable executable = new NSparkExecutable();
         executable.setProject(project);
 
+        Assert.assertTrue(getTestConfig().isAutoSetSparkConf());
         NProjectManager.getInstance(getTestConfig()).updateProject(project, copyForWrite -> {
             copyForWrite.getOverrideKylinProps().put("kylin.engine.spark-conf.spark.locality.wait", "10");
         });
@@ -483,8 +484,22 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
         Assert.assertEquals(getTestConfig(), config.base());
         Assert.assertNull(getTestConfig().getSparkConfigOverride().get("spark.locality.wait"));
         Assert.assertEquals("10", config.getSparkConfigOverride().get("spark.locality.wait"));
+        Assert.assertTrue(config.isAutoSetSparkConf());
 
         // get SparkConfigOverride from indexPlan overrideProps
+        executable.setParam(NBatchConstants.P_DATAFLOW_ID, "89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+        NIndexPlanManager.getInstance(getTestConfig(), project).updateIndexPlan("89af4ee2-2cdb-4b07-b39e-4c29856309aa",
+                copyForWrite -> {
+                    copyForWrite.getOverrideProps().put("kylin.engine.spark-conf.spark.executor.instances", "10");
+                });
+        config = executable.wrapConfig(context);
+        Assert.assertEquals(getTestConfig(), config.base());
+        // do not need close auto conf when only exists spark.executor.instances
+        Assert.assertTrue(config.isAutoSetSparkConf());
+        Assert.assertEquals("5", getTestConfig().getSparkConfigOverride().get("spark.executor.instances"));
+        Assert.assertEquals("10", config.getSparkConfigOverride().get("spark.executor.instances"));
+
+        // get SparkConfigOverride from indexPlan overrideProps,
         executable.setParam(NBatchConstants.P_DATAFLOW_ID, "89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         NIndexPlanManager.getInstance(getTestConfig(), project).updateIndexPlan("89af4ee2-2cdb-4b07-b39e-4c29856309aa",
                 copyForWrite -> {
@@ -492,6 +507,22 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
                 });
         config = executable.wrapConfig(context);
         Assert.assertEquals(getTestConfig(), config.base());
+        Assert.assertFalse(config.isAutoSetSparkConf());
+        Assert.assertNull(getTestConfig().getSparkConfigOverride().get("spark.locality.wait"));
+        Assert.assertEquals("20", config.getSparkConfigOverride().get("spark.locality.wait"));
+
+        // get SparkConfigOverride from indexPlan overrideProps
+        executable.setParam(NBatchConstants.P_DATAFLOW_ID, "89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+        NIndexPlanManager.getInstance(getTestConfig(), project).updateIndexPlan("89af4ee2-2cdb-4b07-b39e-4c29856309aa",
+                copyForWrite -> {
+                    copyForWrite.getOverrideProps().put("kylin.engine.spark-conf.spark.executor.instances", "10");
+                    copyForWrite.getOverrideProps().put("kylin.engine.spark-conf.spark.locality.wait", "20");
+                });
+        config = executable.wrapConfig(context);
+        Assert.assertEquals(getTestConfig(), config.base());
+        Assert.assertFalse(config.isAutoSetSparkConf());
+        Assert.assertEquals("5", getTestConfig().getSparkConfigOverride().get("spark.executor.instances"));
+        Assert.assertEquals("10", config.getSparkConfigOverride().get("spark.executor.instances"));
         Assert.assertNull(getTestConfig().getSparkConfigOverride().get("spark.locality.wait"));
         Assert.assertEquals("20", config.getSparkConfigOverride().get("spark.locality.wait"));
     }

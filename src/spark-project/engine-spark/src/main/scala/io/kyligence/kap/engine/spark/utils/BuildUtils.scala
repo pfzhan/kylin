@@ -89,6 +89,7 @@ object BuildUtils extends Logging {
   }
 
   def updateDataFlow(seg: NDataSegment, dataCuboid: NDataLayout, conf: KylinConfig, project: String): Unit = {
+    logInfo(s"Update layout ${dataCuboid.getLayoutId} in dataflow ${seg.getId}, segment ${seg.getId}")
     val update = new NDataflowUpdate(seg.getDataflow.getUuid)
     update.setToAddOrUpdateLayouts(dataCuboid)
     NDataflowManager.getInstance(conf, project).updateDataflow(update)
