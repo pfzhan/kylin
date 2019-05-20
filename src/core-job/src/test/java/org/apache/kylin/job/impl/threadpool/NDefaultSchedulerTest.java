@@ -105,10 +105,10 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
                 .getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         DefaultChainedExecutable job = new DefaultChainedExecutableOnModel();
         job.setProject("default");
-        job.setTargetModel(df.getModel().getUuid());
+        job.setTargetSubject(df.getModel().getUuid());
         job.setTargetSegments(df.getSegments().stream().map(NDataSegment::getId).collect(Collectors.toList()));
         BaseTestExecutable task1 = new SucceedTestExecutable();
-        task1.setTargetModel(df.getModel().getUuid());
+        task1.setTargetSubject(df.getModel().getUuid());
         task1.setTargetSegments(df.getSegments().stream().map(NDataSegment::getId).collect(Collectors.toList()));
         job.addTask(task1);
         executableManager.addJob(job);
@@ -124,13 +124,13 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
                 .getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         DefaultChainedExecutable job = new DefaultChainedExecutableOnModel();
         job.setProject("default");
-        job.setTargetModel(df.getModel().getUuid());
+        job.setTargetSubject(df.getModel().getUuid());
         job.setTargetSegments(df.getSegments().stream().map(NDataSegment::getId).collect(Collectors.toList()));
         BaseTestExecutable task1 = new SucceedTestExecutable();
-        task1.setTargetModel(df.getModel().getUuid());
+        task1.setTargetSubject(df.getModel().getUuid());
         task1.setTargetSegments(df.getSegments().stream().map(NDataSegment::getId).collect(Collectors.toList()));
         BaseTestExecutable task2 = new SucceedTestExecutable();
-        task2.setTargetModel(df.getModel().getUuid());
+        task2.setTargetSubject(df.getModel().getUuid());
         task2.setTargetSegments(df.getSegments().stream().map(NDataSegment::getId).collect(Collectors.toList()));
         job.addTask(task1);
         job.addTask(task2);
@@ -253,13 +253,13 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
                 .getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         DefaultChainedExecutable job = new DefaultChainedExecutableOnModel();
         job.setProject("default");
-        job.setTargetModel(df.getModel().getUuid());
+        job.setTargetSubject(df.getModel().getUuid());
         job.setTargetSegments(df.getSegments().stream().map(NDataSegment::getId).collect(Collectors.toList()));
         BaseTestExecutable task1 = new SucceedTestExecutable();
-        task1.setTargetModel(df.getModel().getUuid());
+        task1.setTargetSubject(df.getModel().getUuid());
         task1.setTargetSegments(df.getSegments().stream().map(NDataSegment::getId).collect(Collectors.toList()));
         BaseTestExecutable task2 = new FailedTestExecutable();
-        task2.setTargetModel(df.getModel().getUuid());
+        task2.setTargetSubject(df.getModel().getUuid());
         task2.setTargetSegments(df.getSegments().stream().map(NDataSegment::getId).collect(Collectors.toList()));
         job.addTask(task1);
         job.addTask(task2);
@@ -288,13 +288,13 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
                 .getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         DefaultChainedExecutable job = new DefaultChainedExecutableOnModel();
         job.setProject("default");
-        job.setTargetModel(df.getModel().getUuid());
+        job.setTargetSubject(df.getModel().getUuid());
         job.setTargetSegments(df.getSegments().stream().map(NDataSegment::getId).collect(Collectors.toList()));
         BaseTestExecutable task1 = new ErrorTestExecutable();
-        task1.setTargetModel(df.getModel().getUuid());
+        task1.setTargetSubject(df.getModel().getUuid());
         task1.setTargetSegments(df.getSegments().stream().map(NDataSegment::getId).collect(Collectors.toList()));
         BaseTestExecutable task2 = new SucceedTestExecutable();
-        task2.setTargetModel(df.getModel().getUuid());
+        task2.setTargetSubject(df.getModel().getUuid());
         task2.setTargetSegments(df.getSegments().stream().map(NDataSegment::getId).collect(Collectors.toList()));
         job.addTask(task1);
         job.addTask(task2);
@@ -323,10 +323,10 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
                 .getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         DefaultChainedExecutable job = new DefaultChainedExecutableOnModel();
         job.setProject("default");
-        job.setTargetModel(df.getModel().getUuid());
+        job.setTargetSubject(df.getModel().getUuid());
         job.setTargetSegments(df.getSegments().stream().map(NDataSegment::getId).collect(Collectors.toList()));
         SelfStopExecutable task1 = new SelfStopExecutable();
-        task1.setTargetModel(df.getModel().getUuid());
+        task1.setTargetSubject(df.getModel().getUuid());
         task1.setTargetSegments(df.getSegments().stream().map(NDataSegment::getId).collect(Collectors.toList()));
         job.addTask(task1);
         executableManager.addJob(job);
@@ -427,13 +427,13 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
                 .getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         DefaultChainedExecutable job = new DefaultChainedExecutableOnModel();
         job.setProject("default");
-        job.setTargetModel(df.getModel().getUuid());
+        job.setTargetSubject(df.getModel().getUuid());
         job.setTargetSegments(df.getSegments().stream().map(NDataSegment::getId).collect(Collectors.toList()));
         BaseTestExecutable task1 = new SucceedTestExecutable();
-        task1.setTargetModel(df.getModel().getUuid());
+        task1.setTargetSubject(df.getModel().getUuid());
         task1.setTargetSegments(df.getSegments().stream().map(NDataSegment::getId).collect(Collectors.toList()));
         BaseTestExecutable task2 = new SucceedTestExecutable();
-        task2.setTargetModel(df.getModel().getUuid());
+        task2.setTargetSubject(df.getModel().getUuid());
         task2.setTargetSegments(df.getSegments().stream().map(NDataSegment::getId).collect(Collectors.toList()));
         job.addTask(task1);
         job.addTask(task2);
@@ -451,11 +451,11 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         val dfMgr = NDataflowManager.getInstance(getTestConfig(), project);
         NoErrorStatusExecutableOnModel job = new NoErrorStatusExecutableOnModel();
         job.setProject("default");
-        job.setTargetModel("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
-        val df = dfMgr.getDataflow(job.getTargetModel());
+        job.setTargetSubject("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+        val df = dfMgr.getDataflow(job.getTargetSubject());
         job.setTargetSegments(df.getSegments().stream().map(NDataSegment::getId).collect(Collectors.toList()));
         val task = new SucceedTestExecutable();
-        task.setTargetModel("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+        task.setTargetSubject("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         task.setTargetSegments(df.getSegments().stream().map(NDataSegment::getId).collect(Collectors.toList()));
         job.addTask(task);
         executableManager.addJob(job);
@@ -480,15 +480,15 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         val dfMgr = NDataflowManager.getInstance(getTestConfig(), project);
         NoErrorStatusExecutableOnModel job = new NoErrorStatusExecutableOnModel();
         job.setProject("default");
-        job.setTargetModel("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
-        val df = dfMgr.getDataflow(job.getTargetModel());
+        job.setTargetSubject("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+        val df = dfMgr.getDataflow(job.getTargetSubject());
         job.setTargetSegments(df.getSegments().stream().map(NDataSegment::getId).collect(Collectors.toList()));
         val task = new FiveSecondSucceedTestExecutable();
-        task.setTargetModel("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+        task.setTargetSubject("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         task.setTargetSegments(df.getSegments().stream().map(NDataSegment::getId).collect(Collectors.toList()));
         job.addTask(task);
         val task2 = new SucceedTestExecutable();
-        task2.setTargetModel("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+        task2.setTargetSubject("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         task2.setTargetSegments(df.getSegments().stream().map(NDataSegment::getId).collect(Collectors.toList()));
         job.addTask(task2);
         executableManager.addJob(job);
@@ -538,13 +538,13 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         val dfMgr = NDataflowManager.getInstance(getTestConfig(), project);
         NoErrorStatusExecutableOnModel job = new NoErrorStatusExecutableOnModel();
         job.setProject("default");
-        job.setTargetModel(modelId);
+        job.setTargetSubject(modelId);
         job.setName("NO_ERROR_STATUS_EXECUTABLE");
         job.setParam(NBatchConstants.P_LAYOUT_IDS, "1,10001");
-        val df = dfMgr.getDataflow(job.getTargetModel());
+        val df = dfMgr.getDataflow(job.getTargetSubject());
         job.setTargetSegments(df.getSegments().stream().map(NDataSegment::getId).collect(Collectors.toList()));
         val task = new SucceedTestExecutable();
-        task.setTargetModel(modelId);
+        task.setTargetSubject(modelId);
         task.setTargetSegments(df.getSegments().stream().map(NDataSegment::getId).collect(Collectors.toList()));
         task.setParam(NBatchConstants.P_LAYOUT_IDS, "1,10001");
         job.addTask(task);
@@ -557,11 +557,11 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         val dfMgr = NDataflowManager.getInstance(getTestConfig(), project);
         NoErrorStatusExecutableOnModel job = new NoErrorStatusExecutableOnModel();
         job.setProject("default");
-        job.setTargetModel("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
-        val df = dfMgr.getDataflow(job.getTargetModel());
+        job.setTargetSubject("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+        val df = dfMgr.getDataflow(job.getTargetSubject());
         job.setTargetSegments(df.getSegments().stream().map(NDataSegment::getId).collect(Collectors.toList()));
         val task = new SucceedTestExecutable();
-        task.setTargetModel("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+        task.setTargetSubject("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         task.setTargetSegments(df.getSegments().stream().map(NDataSegment::getId).collect(Collectors.toList()));
         job.addTask(task);
         executableManager.addJob(job);
@@ -581,13 +581,13 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         val dfMgr = NDataflowManager.getInstance(getTestConfig(), project);
         NoErrorStatusExecutableOnModel job = new NoErrorStatusExecutableOnModel();
         job.setProject("default");
-        job.setTargetModel("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+        job.setTargetSubject("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         job.setName(JobTypeEnum.INDEX_BUILD.toString());
         job.setJobType(JobTypeEnum.INDEX_BUILD);
-        val df = dfMgr.getDataflow(job.getTargetModel());
+        val df = dfMgr.getDataflow(job.getTargetSubject());
         job.setTargetSegments(df.getSegments().stream().map(NDataSegment::getId).collect(Collectors.toList()));
         val task = new SucceedTestExecutable();
-        task.setTargetModel("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+        task.setTargetSubject("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         task.setTargetSegments(df.getSegments().stream().map(NDataSegment::getId).collect(Collectors.toList()));
         job.addTask(task);
 
@@ -596,10 +596,10 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         Thread.sleep(100);
         NoErrorStatusExecutableOnModel job2 = new NoErrorStatusExecutableOnModel();
         job2.setProject("default");
-        job2.setTargetModel("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+        job2.setTargetSubject("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         job2.setTargetSegments(df.getSegments().stream().map(NDataSegment::getId).collect(Collectors.toList()));
         val task2 = new SucceedTestExecutable();
-        task2.setTargetModel("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+        task2.setTargetSubject("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         task2.setTargetSegments(df.getSegments().stream().map(NDataSegment::getId).collect(Collectors.toList()));
 
         job2.addTask(task2);
@@ -621,7 +621,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         val job = testDataflowStatusWhenJobError(ManagementType.MODEL_BASED, JobTypeEnum.INC_BUILD);
 
         waitForJobFinish(job.getId());
-        val updateDf = dfMgr.getDataflow(job.getTargetModel());
+        val updateDf = dfMgr.getDataflow(job.getTargetSubject());
         Assert.assertEquals(RealizationStatusEnum.ONLINE, updateDf.getStatus());
     }
 
@@ -631,7 +631,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         val job = testDataflowStatusWhenJobError(ManagementType.TABLE_ORIENTED, JobTypeEnum.INC_BUILD);
 
         waitForJobFinish(job.getId());
-        val updateDf = dfMgr.getDataflow(job.getTargetModel());
+        val updateDf = dfMgr.getDataflow(job.getTargetSubject());
         Assert.assertEquals(RealizationStatusEnum.LAG_BEHIND, updateDf.getStatus());
     }
 
@@ -641,7 +641,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         val job = testDataflowStatusWhenJobError(ManagementType.TABLE_ORIENTED, JobTypeEnum.INDEX_BUILD);
 
         waitForJobFinish(job.getId());
-        val updateDf = dfMgr.getDataflow(job.getTargetModel());
+        val updateDf = dfMgr.getDataflow(job.getTargetSubject());
         Assert.assertEquals(RealizationStatusEnum.ONLINE, updateDf.getStatus());
     }
 
@@ -651,7 +651,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         val job = testDataflowStatusWhenJobError(ManagementType.MODEL_BASED, JobTypeEnum.INDEX_BUILD);
 
         waitForJobFinish(job.getId());
-        val updateDf = dfMgr.getDataflow(job.getTargetModel());
+        val updateDf = dfMgr.getDataflow(job.getTargetSubject());
         Assert.assertEquals(RealizationStatusEnum.ONLINE, updateDf.getStatus());
     }
 
@@ -664,13 +664,13 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         });
         NoErrorStatusExecutableOnModel job = new NoErrorStatusExecutableOnModel();
         job.setProject("default");
-        job.setTargetModel("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+        job.setTargetSubject("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         job.setName(indexBuild.toString());
         job.setJobType(indexBuild);
-        val df = dfMgr.getDataflow(job.getTargetModel());
+        val df = dfMgr.getDataflow(job.getTargetSubject());
         job.setTargetSegments(df.getSegments().stream().map(NDataSegment::getId).collect(Collectors.toList()));
         val task = new ErrorTestExecutable();
-        task.setTargetModel("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+        task.setTargetSubject("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         task.setTargetSegments(df.getSegments().stream().map(NDataSegment::getId).collect(Collectors.toList()));
         job.addTask(task);
 
@@ -687,10 +687,10 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         NoErrorStatusExecutableOnModel job = new NoErrorStatusExecutableOnModel();
         job.setProject("default");
         job.setTargetSegments(targetSegs);
-        job.setTargetModel(modelId);
+        job.setTargetSubject(modelId);
         val task = new SucceedTestExecutable();
         task.setProject("default");
-        task.setTargetModel(modelId);
+        task.setTargetSubject(modelId);
         task.setTargetSegments(targetSegs);
         job.addTask(task);
 
@@ -721,10 +721,10 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         NoErrorStatusExecutableOnModel job = new NoErrorStatusExecutableOnModel();
         job.setProject("default");
         job.setTargetSegments(targetSegs);
-        job.setTargetModel(modelId);
+        job.setTargetSubject(modelId);
         val task = new ErrorTestExecutable();
         task.setProject("default");
-        task.setTargetModel(modelId);
+        task.setTargetSubject(modelId);
         task.setTargetSegments(targetSegs);
         job.addTask(task);
 
@@ -749,11 +749,11 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         val dfMgr = NDataflowManager.getInstance(getTestConfig(), project);
         NoErrorStatusExecutableOnModel job = new NoErrorStatusExecutableOnModel();
         job.setProject("default");
-        job.setTargetModel("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
-        val df = dfMgr.getDataflow(job.getTargetModel());
+        job.setTargetSubject("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+        val df = dfMgr.getDataflow(job.getTargetSubject());
         job.setTargetSegments(df.getSegments().stream().map(NDataSegment::getId).collect(Collectors.toList()));
         val task = new FiveSecondSucceedTestExecutable(2);
-        task.setTargetModel("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+        task.setTargetSubject("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         task.setTargetSegments(df.getSegments().stream().map(NDataSegment::getId).collect(Collectors.toList()));
         job.addTask(task);
         executableManager.addJob(job);
@@ -783,11 +783,11 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         val dfMgr = NDataflowManager.getInstance(getTestConfig(), project);
         NoErrorStatusExecutableOnModel job = new NoErrorStatusExecutableOnModel();
         job.setProject("default");
-        job.setTargetModel("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
-        val df = dfMgr.getDataflow(job.getTargetModel());
+        job.setTargetSubject("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+        val df = dfMgr.getDataflow(job.getTargetSubject());
         job.setTargetSegments(df.getSegments().stream().map(NDataSegment::getId).collect(Collectors.toList()));
         val task = new FiveSecondSucceedTestExecutable(2);
-        task.setTargetModel("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+        task.setTargetSubject("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         task.setTargetSegments(df.getSegments().stream().map(NDataSegment::getId).collect(Collectors.toList()));
         job.addTask(task);
         executableManager.addJob(job);
@@ -813,10 +813,10 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
                 .getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         DefaultChainedExecutable job = new DefaultChainedExecutableOnModel();
         job.setProject("default");
-        job.setTargetModel(df.getModel().getUuid());
+        job.setTargetSubject(df.getModel().getUuid());
         job.setTargetSegments(df.getSegments().stream().map(NDataSegment::getId).collect(Collectors.toList()));
         BaseTestExecutable task1 = new SucceedTestExecutable();
-        task1.setTargetModel(df.getModel().getUuid());
+        task1.setTargetSubject(df.getModel().getUuid());
         task1.setTargetSegments(df.getSegments().stream().map(NDataSegment::getId).collect(Collectors.toList()));
         job.addTask(task1);
         executableManager.addJob(job);
@@ -844,10 +844,10 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
                 .getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         DefaultChainedExecutable job = new DefaultChainedExecutableOnModel();
         job.setProject("default");
-        job.setTargetModel(df.getModel().getUuid());
+        job.setTargetSubject(df.getModel().getUuid());
         job.setTargetSegments(df.getSegments().stream().map(NDataSegment::getId).collect(Collectors.toList()));
         BaseTestExecutable task1 = new SucceedTestExecutable();
-        task1.setTargetModel(df.getModel().getUuid());
+        task1.setTargetSubject(df.getModel().getUuid());
         task1.setTargetSegments(df.getSegments().stream().map(NDataSegment::getId).collect(Collectors.toList()));
         job.addTask(task1);
         executableManager.addJob(job);
@@ -863,16 +863,16 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
                 .getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         DefaultChainedExecutable job = new DefaultChainedExecutableOnModel();
         job.setProject("default");
-        job.setTargetModel(df.getModel().getUuid());
+        job.setTargetSubject(df.getModel().getUuid());
         job.setTargetSegments(df.getSegments().stream().map(NDataSegment::getId).collect(Collectors.toList()));
         BaseTestExecutable task1 = new SucceedTestExecutable();
         task1.setProject("default");
-        task1.setTargetModel(df.getModel().getUuid());
+        task1.setTargetSubject(df.getModel().getUuid());
         task1.setTargetSegments(df.getSegments().stream().map(NDataSegment::getId).collect(Collectors.toList()));
         job.addTask(task1);
         BaseTestExecutable task2 = new FiveSecondSucceedTestExecutable();
         task2.setProject("default");
-        task2.setTargetModel(df.getModel().getUuid());
+        task2.setTargetSubject(df.getModel().getUuid());
         task2.setTargetSegments(df.getSegments().stream().map(NDataSegment::getId).collect(Collectors.toList()));
         job.addTask(task2);
         executableManager.addJob(job);
@@ -928,16 +928,16 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
                 .getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         DefaultChainedExecutable job = new DefaultChainedExecutableOnModel();
         job.setProject("default");
-        job.setTargetModel(df.getModel().getUuid());
+        job.setTargetSubject(df.getModel().getUuid());
         job.setTargetSegments(df.getSegments().stream().map(NDataSegment::getId).collect(Collectors.toList()));
         BaseTestExecutable task1 = new FiveSecondSucceedTestExecutable();
         task1.setProject("default");
-        task1.setTargetModel(df.getModel().getUuid());
+        task1.setTargetSubject(df.getModel().getUuid());
         task1.setTargetSegments(df.getSegments().stream().map(NDataSegment::getId).collect(Collectors.toList()));
         job.addTask(task1);
         BaseTestExecutable task2 = new SucceedTestExecutable();
         task2.setProject("default");
-        task2.setTargetModel(df.getModel().getUuid());
+        task2.setTargetSubject(df.getModel().getUuid());
         task2.setTargetSegments(df.getSegments().stream().map(NDataSegment::getId).collect(Collectors.toList()));
         job.addTask(task2);
         executableManager.addJob(job);
@@ -1004,16 +1004,16 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
                 .getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         DefaultChainedExecutable job = new DefaultChainedExecutableOnModel();
         job.setProject("default");
-        job.setTargetModel(df.getModel().getUuid());
+        job.setTargetSubject(df.getModel().getUuid());
         job.setTargetSegments(df.getSegments().stream().map(NDataSegment::getId).collect(Collectors.toList()));
         BaseTestExecutable task1 = new FiveSecondSucceedTestExecutable();
         task1.setProject("default");
-        task1.setTargetModel(df.getModel().getUuid());
+        task1.setTargetSubject(df.getModel().getUuid());
         task1.setTargetSegments(df.getSegments().stream().map(NDataSegment::getId).collect(Collectors.toList()));
         job.addTask(task1);
         BaseTestExecutable task2 = new SucceedTestExecutable();
         task2.setProject("default");
-        task2.setTargetModel(df.getModel().getUuid());
+        task2.setTargetSubject(df.getModel().getUuid());
         task2.setTargetSegments(df.getSegments().stream().map(NDataSegment::getId).collect(Collectors.toList()));
         job.addTask(task2);
         executableManager.addJob(job);
@@ -1072,16 +1072,16 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
                 .getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         DefaultChainedExecutable job = new DefaultChainedExecutableOnModel();
         job.setProject("default");
-        job.setTargetModel(df.getModel().getUuid());
+        job.setTargetSubject(df.getModel().getUuid());
         job.setTargetSegments(df.getSegments().stream().map(NDataSegment::getId).collect(Collectors.toList()));
         BaseTestExecutable task1 = new FiveSecondSucceedTestExecutable();
         task1.setProject("default");
-        task1.setTargetModel(df.getModel().getUuid());
+        task1.setTargetSubject(df.getModel().getUuid());
         task1.setTargetSegments(df.getSegments().stream().map(NDataSegment::getId).collect(Collectors.toList()));
         job.addTask(task1);
         BaseTestExecutable task2 = new FiveSecondSucceedTestExecutable();
         task2.setProject("default");
-        task2.setTargetModel(df.getModel().getUuid());
+        task2.setTargetSubject(df.getModel().getUuid());
         task2.setTargetSegments(df.getSegments().stream().map(NDataSegment::getId).collect(Collectors.toList()));
         job.addTask(task2);
         executableManager.addJob(job);
@@ -1249,16 +1249,16 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
                 .getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         DefaultChainedExecutable job = new DefaultChainedExecutableOnModel();
         job.setProject("default");
-        job.setTargetModel(df.getModel().getUuid());
+        job.setTargetSubject(df.getModel().getUuid());
         job.setTargetSegments(df.getSegments().stream().map(NDataSegment::getId).collect(Collectors.toList()));
         BaseTestExecutable task1 = new ErrorTestExecutable();
         task1.setProject("default");
-        task1.setTargetModel(df.getModel().getUuid());
+        task1.setTargetSubject(df.getModel().getUuid());
         task1.setTargetSegments(df.getSegments().stream().map(NDataSegment::getId).collect(Collectors.toList()));
         job.addTask(task1);
         BaseTestExecutable task2 = new SucceedTestExecutable();
         task2.setProject("default");
-        task2.setTargetModel(df.getModel().getUuid());
+        task2.setTargetSubject(df.getModel().getUuid());
         task2.setTargetSegments(df.getSegments().stream().map(NDataSegment::getId).collect(Collectors.toList()));
         job.addTask(task2);
         executableManager.addJob(job);
@@ -1311,16 +1311,16 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
                 .getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         DefaultChainedExecutable job = new DefaultChainedExecutableOnModel();
         job.setProject("default");
-        job.setTargetModel(df.getModel().getUuid());
+        job.setTargetSubject(df.getModel().getUuid());
         job.setTargetSegments(df.getSegments().stream().map(NDataSegment::getId).collect(Collectors.toList()));
         BaseTestExecutable task1 = new FiveSecondErrorTestExecutable();
         task1.setProject("default");
-        task1.setTargetModel(df.getModel().getUuid());
+        task1.setTargetSubject(df.getModel().getUuid());
         task1.setTargetSegments(df.getSegments().stream().map(NDataSegment::getId).collect(Collectors.toList()));
         job.addTask(task1);
         BaseTestExecutable task2 = new SucceedTestExecutable();
         task2.setProject("default");
-        task2.setTargetModel(df.getModel().getUuid());
+        task2.setTargetSubject(df.getModel().getUuid());
         task2.setTargetSegments(df.getSegments().stream().map(NDataSegment::getId).collect(Collectors.toList()));
         job.addTask(task2);
         executableManager.addJob(job);
@@ -1388,10 +1388,10 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
                 .getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         DefaultChainedExecutable job = new DefaultChainedExecutable();
         job.setProject("default");
-        job.setTargetModel(df.getModel().getUuid());
+        job.setTargetSubject(df.getModel().getUuid());
         job.setTargetSegments(df.getSegments().stream().map(NDataSegment::getId).collect(Collectors.toList()));
         BaseTestExecutable task = new ErrorTestExecutable();
-        task.setTargetModel(df.getModel().getUuid());
+        task.setTargetSubject(df.getModel().getUuid());
         task.setTargetSegments(df.getSegments().stream().map(NDataSegment::getId).collect(Collectors.toList()));
         job.addTask(task);
 

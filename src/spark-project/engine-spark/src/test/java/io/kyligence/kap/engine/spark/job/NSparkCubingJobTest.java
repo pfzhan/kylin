@@ -452,7 +452,7 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
         List<LayoutEntity> layouts = df.getIndexPlan().getAllLayouts();
         NSparkCubingJob job = NSparkCubingJob.create(Sets.newHashSet(oneSeg), Sets.newLinkedHashSet(layouts), "ADMIN");
 
-        String targetSubject = job.getTargetModel();
+        String targetSubject = job.getTargetSubject();
         Assert.assertEquals(dataModel.getUuid(), targetSubject);
     }
 

@@ -71,6 +71,7 @@ public class NTableSamplingJob extends DefaultChainedExecutable {
         job.setName(JobTypeEnum.TABLE_SAMPLING.toString());
         job.setProject(project);
         job.setJobType(JobTypeEnum.TABLE_SAMPLING);
+        job.setTargetSubject(tableDesc.getIdentity());
 
         job.setSubmitter(submitter);
         job.setParam(NBatchConstants.P_PROJECT_NAME, project);

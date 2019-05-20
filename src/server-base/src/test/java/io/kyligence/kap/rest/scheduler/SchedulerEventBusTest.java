@@ -176,10 +176,10 @@ public class SchedulerEventBusTest extends NLocalFileMetadataTestCase {
                 .getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         DefaultChainedExecutable job = new DefaultChainedExecutable();
         job.setProject(PROJECT);
-        job.setTargetModel(df.getModel().getUuid());
+        job.setTargetSubject(df.getModel().getUuid());
         job.setTargetSegments(df.getSegments().stream().map(NDataSegment::getId).collect(Collectors.toList()));
         SucceedChainedTestExecutable task = new SucceedChainedTestExecutable();
-        task.setTargetModel(df.getModel().getUuid());
+        task.setTargetSubject(df.getModel().getUuid());
         task.setTargetSegments(df.getSegments().stream().map(NDataSegment::getId).collect(Collectors.toList()));
         job.addTask(task);
 

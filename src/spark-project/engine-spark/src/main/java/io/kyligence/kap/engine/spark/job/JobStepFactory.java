@@ -86,7 +86,7 @@ public class JobStepFactory {
 
         step.setParams(parent.getParams());
         step.setProject(parent.getProject());
-        step.setTargetModel(parent.getTargetModel());
+        step.setTargetSubject(parent.getTargetSubject());
         if (step instanceof NSparkCleanupAfterMergeStep) {
             final Segments<NDataSegment> mergingSegments = df.getMergingSegments(segments.iterator().next());
             step.setParam(NBatchConstants.P_SEGMENT_IDS,

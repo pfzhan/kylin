@@ -45,6 +45,10 @@ import lombok.val;
 
 public class DefaultChainedExecutableOnModel extends DefaultChainedExecutable {
 
+    private String getTargetModel() {
+        return getTargetSubject();
+    }
+
     @Override
     public void onExecuteErrorHook(String jobId) {
         markDFLagBehindIfNecessary(jobId);
@@ -69,7 +73,7 @@ public class DefaultChainedExecutableOnModel extends DefaultChainedExecutable {
 
     private NDataflow getDataflow(String jobId) {
         val execManager = getExecutableManager(getProject());
-        val executable = (DefaultChainedExecutable) execManager.getJob(jobId);
+        val executable = (DefaultChainedExecutableOnModel) execManager.getJob(jobId);
         val modelId = executable.getTargetModel();
         val dfManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), getProject());
         return dfManager.getDataflow(modelId);
@@ -120,7 +124,7 @@ public class DefaultChainedExecutableOnModel extends DefaultChainedExecutable {
         if (!JobTypeEnum.INDEX_BUILD.equals(parent.getJobType())) {
             return false;
         }
-        val model = parent.getTargetModel();
+        val model = ((DefaultChainedExecutableOnModel) parent).getTargetModel();
         return NExecutableManager.getInstance(getConfig(), getProject()).countCuttingInJobByModel(model, parent) > 0;
     }
 

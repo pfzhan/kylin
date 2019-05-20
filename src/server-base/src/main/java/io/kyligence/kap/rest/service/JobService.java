@@ -126,7 +126,7 @@ public class JobService extends BasicService {
                         return true;
                     }
                     //if filter on uuid, then it must be accurate
-                    return abstractExecutable.getTargetModel().equals(jobFilter.getSubject());
+                    return abstractExecutable.getTargetSubject().equals(jobFilter.getSubject());
                 })
 
         ).map(abstractExecutable -> {

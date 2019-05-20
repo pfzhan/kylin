@@ -39,8 +39,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.common.scheduler.JobCreatedNotifier;
-import io.kyligence.kap.common.scheduler.SchedulerEventBusFactory;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -62,6 +60,8 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
+import io.kyligence.kap.common.scheduler.JobCreatedNotifier;
+import io.kyligence.kap.common.scheduler.SchedulerEventBusFactory;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import lombok.val;
 
@@ -111,7 +111,7 @@ public class NExecutableManager {
         result.setJobType(executable.getJobType());
         result.setDataRangeStart(executable.getDataRangeStart());
         result.setDataRangeEnd(executable.getDataRangeEnd());
-        result.setTargetModel(executable.getTargetModel());
+        result.setTargetModel(executable.getTargetSubject());
         result.setTargetSegments(executable.getTargetSegments());
         Map<String, Object> runTimeInfo = executable.getRunTimeInfo();
         if (runTimeInfo != null && runTimeInfo.size() > 0) {
@@ -230,15 +230,19 @@ public class NExecutableManager {
     }
 
     public long countByModelAndStatus(String model, Set<ExecutableState> status, JobTypeEnum jobType) {
-        return getAllExecutables().stream().filter(e -> e.getTargetModel().equals(model))
+        return getAllExecutables().stream() //
+                .filter(e -> e.getTargetSubject() != null) //
+                .filter(e -> e.getTargetSubject().equals(model)) //
                 .filter(e -> status.contains(e.getStatus()))
                 .filter(e -> (jobType == null || jobType.equals(e.getJobType()))).count();
     }
 
     public Map<String, List<String>> getModelExecutables(Set<String> models, Set<ExecutableState> status) {
-        Map<String, List<String>> result = getAllExecutables().stream().filter(e -> models.contains(e.getTargetModel()))
+        Map<String, List<String>> result = getAllExecutables().stream() //
+                .filter(e -> e.getTargetSubject() != null) //
+                .filter(e -> models.contains(e.getTargetSubject())) //
                 .filter(e -> status.contains(e.getStatus()))
-                .collect(Collectors.toMap(AbstractExecutable::getTargetModel,
+                .collect(Collectors.toMap(AbstractExecutable::getTargetSubject,
                         executable -> Lists.newArrayList(executable.getId()), (one, other) -> {
                             one.addAll(other);
                             return one;
@@ -344,7 +348,7 @@ public class NExecutableManager {
         }
         if (job instanceof DefaultChainedExecutable) {
             List<AbstractExecutable> tasks = ((DefaultChainedExecutable) job).getTasks();
-            tasks.stream().filter(task -> task.getStatus() != ExecutableState.READY)
+            tasks.stream().filter(task -> task.getStatus() != ExecutableState.READY) //
                     .filter(task -> (task.getStatus() == ExecutableState.ERROR
                             || task.getStatus() == ExecutableState.PAUSED))
                     .forEach(task -> updateJobOutput(task.getId(), ExecutableState.READY));
@@ -379,7 +383,9 @@ public class NExecutableManager {
     }
 
     public long countCuttingInJobByModel(String model, AbstractExecutable job) {
-        return getAllExecutables().stream().filter(e -> e.getTargetModel().equals(model))
+        return getAllExecutables().stream() //
+                .filter(e -> e.getTargetSubject() != null) //
+                .filter(e -> e.getTargetSubject().equals(model))
                 .filter(executable -> executable.getCreateTime() > job.getCreateTime()).count();
     }
 
@@ -427,14 +433,14 @@ public class NExecutableManager {
         return jobOutput;
     }
 
-    public void updateJobOutput(String taskOrJobId, ExecutableState newStatus, Map<String, String> updateInfo,  Set<String> removeInfo,
-            String output) {
+    public void updateJobOutput(String taskOrJobId, ExecutableState newStatus, Map<String, String> updateInfo,
+            Set<String> removeInfo, String output) {
         val jobId = extractJobId(taskOrJobId);
         executableDao.updateJob(jobId, job -> {
             ExecutableOutputPO jobOutput;
-            jobOutput = (Objects.equals(taskOrJobId, jobId)) ? job.getOutput() : job.getTasks()
-                    .stream().filter(po -> po.getId().equals(taskOrJobId)).findFirst()
-                    .map(ExecutablePO::getOutput).orElse(null);
+            jobOutput = (Objects.equals(taskOrJobId, jobId)) ? job.getOutput()
+                    : job.getTasks().stream().filter(po -> po.getId().equals(taskOrJobId)).findFirst()
+                            .map(ExecutablePO::getOutput).orElse(null);
             assertOutputNotNull(jobOutput, taskOrJobId);
             ExecutableState oldStatus = ExecutableState.valueOf(jobOutput.getStatus());
             if (newStatus != null && oldStatus != newStatus) {
@@ -521,7 +527,7 @@ public class NExecutableManager {
             result.setJobType(executablePO.getJobType());
             result.setDataRangeStart(executablePO.getDataRangeStart());
             result.setDataRangeEnd(executablePO.getDataRangeEnd());
-            result.setTargetModel(executablePO.getTargetModel());
+            result.setTargetSubject(executablePO.getTargetModel());
             result.setTargetSegments(executablePO.getTargetSegments());
             List<ExecutablePO> tasks = executablePO.getTasks();
             if (tasks != null && !tasks.isEmpty()) {

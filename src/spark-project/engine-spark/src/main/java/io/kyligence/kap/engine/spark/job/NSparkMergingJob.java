@@ -74,14 +74,14 @@ public class NSparkMergingJob extends DefaultChainedExecutableOnModel {
         job.setId(jobId);
         job.setDataRangeStart(Long.parseLong(mergedSegment.getSegRange().getStart().toString()));
         job.setDataRangeEnd(Long.parseLong(mergedSegment.getSegRange().getEnd().toString()));
-        job.setTargetModel(mergedSegment.getModel().getUuid());
+        job.setTargetSubject(mergedSegment.getModel().getUuid());
         job.setTargetSegments(Lists.newArrayList(String.valueOf(mergedSegment.getId())));
         job.setProject(mergedSegment.getProject());
         job.setSubmitter(submitter);
 
         job.setParam(NBatchConstants.P_JOB_ID, jobId);
         job.setParam(NBatchConstants.P_PROJECT_NAME, df.getProject());
-        job.setParam(NBatchConstants.P_TARGET_MODEL, job.getTargetModel());
+        job.setParam(NBatchConstants.P_TARGET_MODEL, job.getTargetSubject());
         job.setParam(NBatchConstants.P_DATAFLOW_ID, df.getId());
         job.setParam(NBatchConstants.P_LAYOUT_IDS, NSparkCubingUtil.ids2Str(NSparkCubingUtil.toLayoutIds(layouts)));
         job.setParam(NBatchConstants.P_SEGMENT_IDS, String.join(",", job.getTargetSegments()));

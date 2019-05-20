@@ -108,7 +108,7 @@ public abstract class AbstractExecutable implements Executable, Idempotent {
 
     @Setter
     @Getter
-    private String targetModel;// uuid of the model
+    private String targetSubject; //uuid of the model or table identity if table sampling
 
     @Setter
     @Getter
@@ -134,7 +134,7 @@ public abstract class AbstractExecutable implements Executable, Idempotent {
     private Map<String, Object> runTimeInfo = Maps.newHashMap();
 
     public String getTargetModelAlias() {
-        NDataModel dataModelDesc = NDataModelManager.getInstance(config, getProject()).getDataModelDesc(targetModel);
+        NDataModel dataModelDesc = NDataModelManager.getInstance(config, getProject()).getDataModelDesc(targetSubject);
         return (dataModelDesc == null || dataModelDesc.isBroken()) ? null : dataModelDesc.getAlias();
     }
 

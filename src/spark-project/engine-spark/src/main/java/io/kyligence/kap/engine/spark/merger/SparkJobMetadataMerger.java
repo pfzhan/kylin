@@ -95,7 +95,7 @@ public abstract class SparkJobMetadataMerger extends MetadataMerger {
     }
 
     protected void recordDownJobStats(AbstractExecutable buildTask, NDataLayout[] addOrUpdateCuboids) {
-        String model = buildTask.getTargetModel();
+        String model = buildTask.getTargetSubject();
         long buildEndTime = buildTask.getParent().getEndTime();
         long duration = buildTask.getParent().getDuration();
         long byteSize = 0;

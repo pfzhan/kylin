@@ -298,7 +298,7 @@ public class NExecutableManagerTest extends NLocalFileMetadataTestCase {
         DefaultChainedExecutable job = new DefaultChainedExecutableOnModel();
         job.setName(JobTypeEnum.INDEX_BUILD.toString());
         job.setJobType(JobTypeEnum.INDEX_BUILD);
-        job.setTargetModel("test");
+        job.setTargetSubject("test");
         job.setProject("default");
         SucceedTestExecutable executable = new SucceedTestExecutable();
         job.addTask(executable);
@@ -324,7 +324,7 @@ public class NExecutableManagerTest extends NLocalFileMetadataTestCase {
         DefaultChainedExecutable job = new DefaultChainedExecutableOnModel();
         job.setName(JobTypeEnum.INC_BUILD.toString());
         job.setJobType(JobTypeEnum.INC_BUILD);
-        job.setTargetModel("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+        job.setTargetSubject("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         job.setProject("default");
         SucceedTestExecutable executable = new SucceedTestExecutable();
         job.addTask(executable);
@@ -344,7 +344,7 @@ public class NExecutableManagerTest extends NLocalFileMetadataTestCase {
         DefaultChainedExecutable job = new DefaultChainedExecutableOnModel();
         job.setName(JobTypeEnum.INDEX_BUILD.toString());
         job.setJobType(JobTypeEnum.INDEX_BUILD);
-        job.setTargetModel("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+        job.setTargetSubject("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         job.setProject("default");
         SucceedTestExecutable executable = new SucceedTestExecutable();
         job.addTask(executable);
@@ -371,7 +371,7 @@ public class NExecutableManagerTest extends NLocalFileMetadataTestCase {
         val end = "2015-02-01 00:00:00";
         job.setDataRangeStart(SegmentRange.dateToLong(start));
         job.setDataRangeEnd(SegmentRange.dateToLong(end));
-        job.setTargetModel("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+        job.setTargetSubject("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         EmailNotificationContent content = EmailNotificationContent.createContent(JobIssueEnum.JOB_ERROR, job);
         Assert.assertTrue(content.getEmailTitle().contains(JobIssueEnum.JOB_ERROR.getDisplayName()));
         Assert.assertTrue(!content.getEmailBody().contains("$"));

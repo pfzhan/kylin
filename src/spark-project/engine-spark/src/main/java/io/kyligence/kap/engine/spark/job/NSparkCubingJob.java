@@ -78,14 +78,14 @@ public class NSparkCubingJob extends DefaultChainedExecutableOnModel {
         job.setJobType(jobType);
         job.setDataRangeStart(startTime);
         job.setDataRangeEnd(endTime);
-        job.setTargetModel(segments.iterator().next().getModel().getUuid());
+        job.setTargetSubject(segments.iterator().next().getModel().getUuid());
         job.setTargetSegments(segments.stream().map(x -> String.valueOf(x.getId())).collect(Collectors.toList()));
         job.setProject(df.getProject());
         job.setSubmitter(submitter);
 
         job.setParam(NBatchConstants.P_JOB_ID, jobId);
         job.setParam(NBatchConstants.P_PROJECT_NAME, df.getProject());
-        job.setParam(NBatchConstants.P_TARGET_MODEL, job.getTargetModel());
+        job.setParam(NBatchConstants.P_TARGET_MODEL, job.getTargetSubject());
         job.setParam(NBatchConstants.P_DATAFLOW_ID, df.getId());
         job.setParam(NBatchConstants.P_LAYOUT_IDS, NSparkCubingUtil.ids2Str(NSparkCubingUtil.toLayoutIds(layouts)));
         job.setParam(NBatchConstants.P_SEGMENT_IDS, String.join(",", job.getTargetSegments()));
