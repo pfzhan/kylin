@@ -25,6 +25,7 @@
 package io.kyligence.kap.engine.spark.job;
 
 import java.util.Arrays;
+import java.util.Map;
 import java.util.Set;
 
 import org.apache.kylin.common.KylinConfig;
@@ -46,6 +47,7 @@ import lombok.val;
 /**
  */
 @NoArgsConstructor
+
 public class NSparkCubingStep extends NSparkExecutable {
 
     private static final Logger logger = LoggerFactory.getLogger(NSparkCubingStep.class);
@@ -109,5 +111,24 @@ public class NSparkCubingStep extends NSparkExecutable {
             }
         });
         return result;
+    }
+
+    @Override
+    protected Map<String, String> getSparkConfigOverride(KylinConfig config) {
+        Map<String, String> sparkConfigOverride = super.getSparkConfigOverride(config);
+        if (!sparkConfigOverride.containsKey("spark.driver.memory")) {
+            sparkConfigOverride.put("spark.driver.memory", computeDriverMemory(getCuboidLayoutIds().size()));
+        }
+        return sparkConfigOverride;
+    }
+
+    public static String computeDriverMemory(int cuboidNum) {
+        KylinConfig config = KylinConfig.getInstanceFromEnv();
+        int driverMemoryGrowth = config.getSparkEngineDriverMemoryGrowth();
+        int driverMemoryMaximum = config.getSparkEngineDriverMemoryMaximum();
+        Integer driverMem = 1024;
+        driverMem += (cuboidNum / 1000) * driverMemoryGrowth;
+        driverMem = Math.min(driverMem, driverMemoryMaximum);
+        return driverMem.toString() + "m";
     }
 }
