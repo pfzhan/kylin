@@ -437,7 +437,8 @@ public class NTableController extends NBasicController {
             throw new BadRequestException("table name must be specified!");
         }
         try {
-            tableService.reloadTable(request.getProject(), request.getTable());
+            tableService.reloadTable(request.getProject(), request.getTable(), request.isNeedSample(),
+                    request.getMaxRows());
             return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, null, "");
         } catch (Exception e) {
             throw new BadRequestException("reload table error", ResponseCode.CODE_UNDEFINED, e);

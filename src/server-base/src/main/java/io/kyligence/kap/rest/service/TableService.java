@@ -140,6 +140,9 @@ public class TableService extends BasicService {
     @Autowired
     private FavoriteQueryService favoriteQueryService;
 
+    @Autowired
+    private TableSamplingService tableSamplingService;
+
     public List<TableDesc> getTableDesc(String project, boolean withExt, final String tableName, final String database,
             boolean isFuzzy) throws IOException {
         NTableMetadataManager nTableMetadataManager = getTableManager(project);
@@ -870,9 +873,14 @@ public class TableService extends BasicService {
         return result;
     }
 
-    public void reloadTable(String projectName, String tableIdentity) throws Exception {
-        val self = (TableService) AopContext.currentProxy();
-        self.innerReloadTable(projectName, tableIdentity);
+    public void reloadTable(String projectName, String tableIdentity, boolean needSample, int maxRows) throws Exception {
+        UnitOfWork.doInTransactionWithRetry(()  -> {
+            innerReloadTable(projectName, tableIdentity);
+            if (needSample && maxRows > 0) {
+                tableSamplingService.sampling(Sets.newHashSet(tableIdentity), projectName, maxRows);
+            }
+            return null;
+        }, projectName);
         modelService.reloadCache(projectName);
         favoriteQueryService.asyncAdjustFavoriteQuery();
     }
