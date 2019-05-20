@@ -3,10 +3,10 @@
     <div class="ksd-title-label ksd-mtb-20">
       <span>{{$t('acceleration')}}</span>
     </div>
-    <div class="btn-groups ky-no-br-space">
+    <div class="btn-groups ky-no-br-space ksd-mb-15">
       <span class="guide-checkData" v-if="!waitingSQLSize"></span>
-      <el-button size="small" type="primary" v-guide.speedSqlNowBtn plain :disabled="!waitingSQLSize" :loading="isAcceSubmit" @click="applySpeed">{{$t('accelerateNow')}}</el-button>
-      <el-button size="small" type="primary" plain @click="openImportSql">{{$t('importSql')}}</el-button>
+      <el-button type="primary" v-guide.speedSqlNowBtn plain :disabled="!waitingSQLSize" :loading="isAcceSubmit" @click="applySpeed">{{$t('accelerateNow')}}</el-button>
+      <el-button type="primary" plain @click="openImportSql">{{$t('importSql')}}</el-button>
     </div>
     <div class="img-groups" v-guide.speedProcess>
       <div class="label-groups">
@@ -24,7 +24,7 @@
         <img src="../../../assets/img/bg1.jpg" width="735px" alt=""><img src="../../../assets/img/acc_light.png" class="ksd-ml-10" width="85px" alt="">
       </div>
     </div>
-    <div class="fav-tables ksd-mt-25">
+    <div class="fav-tables ksd-mt-40">
       <div class="btn-group">
         <!-- <el-button size="small" type="primary" icon="el-icon-ksd-setting" plain @click="openRuleSetting">{{$t('ruleSetting')}}</el-button><el-button size="small" type="primary" icon="el-icon-ksd-table_discard" plain @click="openBlackList">{{$t('blackList')}}</el-button> -->
         <el-dropdown @command="handleCommand">
@@ -1255,9 +1255,7 @@ export default class FavoriteQuery extends Vue {
           width: 245px;
           text-align: center;
           line-height: 18px;
-          &.ongoing-label {
-            // margin-left: 175px;
-          }
+          font-weight: 500;
         }
         .pattern-num {
           position: absolute;

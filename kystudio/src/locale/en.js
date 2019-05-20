@@ -334,7 +334,7 @@ exports.default = {
     partlyAcce: 'Partial accelerated',
     ongoingAcce: 'Accelerating',
     wartingAcce: 'To be accelerated',
-    failed: 'Blocked',
+    failed: 'Failed',
     pending: 'Pending',
     unAcce1: 'Not accelerated',
     unAcce: 'Not accelerated yet, click to mark it as favorite query'

@@ -1,8 +1,8 @@
 <template>
   <div>
     <div class="btn-groups ky-no-br-space ksd-mb-10">
-      <el-button size="small" type="primary" icon="el-icon-ksd-table_delete" plain :disabled="!checkedList.length" :loading="dropLoading" @click="delFav(false)">{{$t('kylinLang.common.drop')}}</el-button>
-      <el-button size="small" type="primary" icon="el-icon-ksd-table_discard" plain :disabled="!checkedList.length" @click="delFav(true)">{{$t('kylinLang.common.disable')}}</el-button>
+      <el-button type="primary" icon="el-icon-ksd-table_delete" plain :disabled="!checkedList.length" :loading="dropLoading" @click="delFav(false)">{{$t('kylinLang.common.drop')}}</el-button>
+      <el-button type="primary" icon="el-icon-ksd-table_discard" plain :disabled="!checkedList.length" @click="delFav(true)">{{$t('kylinLang.common.disable')}}</el-button>
     </div>
     <el-table
       :data="favoriteTableData"
