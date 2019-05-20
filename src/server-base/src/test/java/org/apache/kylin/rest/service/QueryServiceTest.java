@@ -193,6 +193,29 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
 
     }
 
+    private void stubPushDownException(final String sql, final String project) throws Exception {
+        final SQLException sqlException = new SQLException();
+
+        final PreparedStatement statement = Mockito.mock(PreparedStatement.class);
+        Mockito.when(statement.executeQuery()).thenThrow(sqlException);
+        Mockito.when(statement.executeQuery(sql)).thenThrow(sqlException);
+
+        final Connection connection = Mockito.mock(Connection.class);
+        Mockito.when(connection.createStatement()).thenReturn(statement);
+        Mockito.when(connection.prepareStatement(sql)).thenReturn(statement);
+
+        Mockito.when(queryService.getConnection(project)).thenReturn(connection);
+
+        QueryContext.current().setPushdownEngine("HIVE");
+
+        // mock PushDownUtil
+        SQLRequest sqlRequest = new SQLRequest();
+        sqlRequest.setSql(sql);
+        sqlRequest.setProject(project);
+        Mockito.when(queryService.tryPushDownSelectQuery(sqlRequest, null, sqlException, false))
+                .thenThrow(new SQLException("push down error"));
+    }
+
     private void stubQueryConnectionException(final String project) throws Exception {
         Mockito.when(queryService.getConnection(project))
                 .thenThrow(new RuntimeException(new ResourceLimitExceededException("")));
@@ -220,6 +243,21 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(expectedQueryID, response.getQueryId());
 
         Mockito.verify(queryService).recordMetric(request, response);
+    }
+
+    @Test
+    public void testQueryPushDownErrorMessage() throws Exception {
+        final String sql = "select * from success_table_2";
+        final String project = "default";
+        stubPushDownException(sql, project);
+
+        final SQLRequest request = new SQLRequest();
+        request.setProject(project);
+        request.setSql(sql);
+
+        final SQLResponse response = queryService.doQueryWithCache(request, false);
+        Assert.assertTrue(response.isException());
+        Assert.assertEquals("[HIVE Exception] push down error", response.getExceptionMessage());
     }
 
     @Test

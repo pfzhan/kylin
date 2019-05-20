@@ -133,6 +133,18 @@ public class PushDownUtil {
         runner.init(kylinConfig);
         logger.debug("Query Pushdown runner {}", runner);
 
+        // set pushdown engine in query context
+        String pushdownEngine;
+        // for file source
+        int sourceType = KylinConfig.getInstanceFromEnv().getManager(NProjectManager.class).getProject(project)
+                .getSourceType();
+        if (sourceType == ISourceAware.ID_FILE) {
+            pushdownEngine = QueryContext.PUSHDOWN_FILE;
+        } else {
+            pushdownEngine = runner.getName();
+        }
+        QueryContext.current().setPushdownEngine(pushdownEngine);
+
         // default schema in calcite does not apply to other engines.
         // since this is a universql requirement, it's not implemented as a converter
         if (defaultSchema != null && !defaultSchema.equals("DEFAULT")) {
@@ -160,16 +172,6 @@ public class PushDownUtil {
         if (!isSelect && !isPrepare && kylinConfig.isPushDownUpdateEnabled()) {
             runner.executeUpdate(sql, project);
         }
-        String pushdownEngine;
-        // for file source
-        int sourceType = KylinConfig.getInstanceFromEnv().getManager(NProjectManager.class).getProject(project)
-                .getSourceType();
-        if (sourceType == ISourceAware.ID_FILE) {
-            pushdownEngine = QueryContext.PUSHDOWN_FILE;
-        } else {
-            pushdownEngine = runner.getName();
-        }
-        QueryContext.current().setPushdownEngine(pushdownEngine);
         return Pair.newPair(returnRows, returnColumnMeta);
     }
 

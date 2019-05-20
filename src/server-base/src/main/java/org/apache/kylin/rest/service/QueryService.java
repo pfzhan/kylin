@@ -877,7 +877,7 @@ public class QueryService extends BasicService {
             } catch (Exception e2) {
                 logger.error("pushdown engine failed current query too", e2);
                 //exception in pushdown, throw it instead of exception in calcite
-                throw e2;
+                throw new RuntimeException("[" + QueryContext.current().getPushdownEngine() + " Exception] " + e2.getMessage(), e2);
             }
 
             if (r == null)
