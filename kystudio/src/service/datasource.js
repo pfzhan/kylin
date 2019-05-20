@@ -8,6 +8,12 @@ export default {
   loadDataSource: (ext, project, database) => {
     return Vue.resource(apiUrl + 'tables').get({ext, project, database})
   },
+  reloadDataSource: (data) => {
+    return Vue.resource(apiUrl + 'tables/reload').save(data)
+  },
+  getReloadInfluence: (para) => {
+    return Vue.resource(apiUrl + 'tables/prepare_reload').get(para)
+  },
   loadDataSourceExt: (para) => {
     return Vue.resource(apiUrl + 'tables').get(para)
   },

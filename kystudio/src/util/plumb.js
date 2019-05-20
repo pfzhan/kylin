@@ -4,6 +4,7 @@ import { stopPropagation } from './event'
 export function jsPlumbTool () {
   var plumbInstance = null
   let lineColor = '#0988de'
+  let strokeWidth = 1
   return {
     endpointConfig: {
       endpoint: 'Dot',
@@ -11,13 +12,13 @@ export function jsPlumbTool () {
         stroke: lineColor,
         fill: 'transparent',
         radius: 1,
-        strokeWidth: 1
+        strokeWidth: strokeWidth
       },
       isSource: true,
       isTarget: true,
       connector: [ 'Bezier', { curviness: 22 } ], // 设置连线为贝塞尔曲线
       connectorStyle: {
-        strokeWidth: 1,
+        strokeWidth: strokeWidth,
         stroke: lineColor,
         joinstyle: 'round'
       },
@@ -27,6 +28,14 @@ export function jsPlumbTool () {
       plumbInstance = this._getPlumbInstance(jsPlumb, dom)
       this.setZoom(zoom)
       return plumbInstance
+    },
+    setLineStyle (lineStyle) {
+      let color = lineStyle.color || lineColor
+      let strokeWith = lineStyle.strokeWidth || strokeWidth
+      this.endpointConfig.paintStyle.stroke = color
+      this.endpointConfig.paintStyle.strokeWidth = strokeWith
+      this.endpointConfig.connectorStyle.stroke = color
+      this.endpointConfig.connectorStyle.strokeWidth = strokeWith
     },
     lazyRender (cb) {
       jsPlumb.setSuspendDrawing(true)
@@ -50,7 +59,7 @@ export function jsPlumbTool () {
     _getPlumbInstance (jsPlumb, el) {
       return jsPlumb.getInstance({
         DragOptions: { cursor: 'pointer', zIndex: 2000 },
-        HoverPaintStyle: { stroke: lineColor },
+        HoverPaintStyle: this.endpointConfig.connectorStyle,
         ConnectionOverlays: [
           [ 'Arrow', {
             location: 1,

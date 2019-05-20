@@ -180,10 +180,12 @@ class NTable {
   }
   changeColumnProperty (columnName, key, val, _) {
     let col = this.getColumnObj(columnName)
-    if (_) {
-      _.$set(col, key, val)
-    } else {
-      col[key] = val
+    if (col) {
+      if (_) {
+        _.$set(col, key, val)
+      } else {
+        col[key] = val
+      }
     }
   }
   changeColumnsProperty (key, val, _) {

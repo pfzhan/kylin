@@ -1529,6 +1529,8 @@ export default class ModelEdit extends Vue {
 @lookup-shadow:0 0 4px 0 @base-color-12;
 @lookup-hover-shadow: 0 0 8px 0 @base-color-12;
 @--index-normal: 1;
+@broken-line-color: @color-danger;
+@broken-line-lable-close-hover-color: #F178A2;
 .drag-in {
   box-shadow: inset 0 0 14px 0 @base-color;
 }
@@ -1536,6 +1538,18 @@ export default class ModelEdit extends Vue {
   z-index:100001!important;
 }
 .jtk-overlay {
+  &.link-label-broken {
+    background-color: @broken-line-color;
+    &:hover {
+      background-color: @broken-line-color;
+      .close {
+        &:hover {
+          color:@fff;
+          background: @broken-line-lable-close-hover-color;
+        }
+      }
+    }
+  }
   background-color: @base-color;
   // padding: 0;
   font-size: 12px;
@@ -1577,7 +1591,6 @@ export default class ModelEdit extends Vue {
     // height: 20px;
     // line-height: 20px;
     // font-size:13px;
-    background-color:@grey-4;
     color:@fff;
     background-color: @base-color-11;
     // border: 2px solid @base-color-11;

@@ -162,7 +162,9 @@ exports.default = {
     null: '无',
     nan: 'NaN',
     purge: '清空',
-    reset: '重置'
+    reset: '重置',
+    comma: '，',
+    dot: '。'
   },
   model: {
     modelName: '模型名称：',

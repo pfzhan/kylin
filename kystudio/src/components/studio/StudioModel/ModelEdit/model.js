@@ -109,7 +109,7 @@ class NModel {
         this.renderPosition()
       }
       setTimeout(() => {
-        this._renderLabels()
+        // this._renderLabels()
       }, 1)
     })
     // renderDimension
@@ -212,17 +212,18 @@ class NModel {
     let joinInfo = this.tables[pid].getJoinInfoByFGuid(fid)
     var primaryKeys = joinInfo && joinInfo.join.primary_key
     var foreignKeys = joinInfo && joinInfo.join.foreign_key
+    let isBrokenLine = this.checkIsBrokenModelLink(pid, fid, primaryKeys, foreignKeys)
     if (hasConn) {
       // 如果渲染的时候发现连接关系都没有了，直接删除
       if (!primaryKeys || primaryKeys && primaryKeys.length === 1 && primaryKeys[0] === '') {
         this.removeRenderLink(hasConn)
       } else {
-        this.setOverLayLabel(hasConn)
+        this.setOverLayLabel(hasConn, isBrokenLine)
         this.plumbTool.refreshPlumbInstance()
       }
     } else {
-      this.addPlumbPoints(pid, '', '', true)
-      this.addPlumbPoints(fid, '', '', true)
+      this.addPlumbPoints(pid, '', '', isBrokenLine)
+      this.addPlumbPoints(fid, '', '', isBrokenLine)
       var conn = this.plumbTool.connect(pid, fid, (pid, fid, e) => {
         if (e.target && /close/.test(e.target.className)) {
           // 调用删除
@@ -233,11 +234,45 @@ class NModel {
           this.connClick(pid, fid)
         }
       }, {})
-      this.setOverLayLabel(conn)
+      this.setOverLayLabel(conn, isBrokenLine)
       this.plumbTool.refreshPlumbInstance()
       this.allConnInfo[pid + '$' + fid] = conn
     }
     this.collectLinkedColumn(pid, fid, primaryKeys, foreignKeys)
+  }
+  // 检测是否连接关系的列已经不在table里
+  checkIsBrokenModelLink (pid, fid, primaryKeys, foreignKeys) {
+    let ptable = this.getTableByGuid(pid)
+    let primaryKeysLen = primaryKeys.length
+    for (let i = 0; i < primaryKeysLen; i++) {
+      let column = primaryKeys[i] && primaryKeys[i].replace(/^.*?\./, '')
+      if (indexOfObjWithSomeKey(ptable.columns, 'name', column) < 0) {
+        return true
+      }
+    }
+    let ftable = this.getTableByGuid(fid)
+    let foreignKeysLen = foreignKeys.length
+    for (let i = 0; i < foreignKeysLen; i++) {
+      let column = foreignKeys[i] && foreignKeys[i].replace(/^.*?\./, '')
+      if (indexOfObjWithSomeKey(ftable.columns, 'name', column) < 0) {
+        return true
+      }
+    }
+    return false
+  }
+  getBrokenModelLinksKeys (guid, keys) {
+    let table = this.getTableByGuid(guid)
+    let keysLen = keys.length
+    let result = []
+    if (table) {
+      for (let i = 0; i < keysLen; i++) {
+        let column = keys[i] && keys[i].replace(/^.*?\./, '')
+        if (indexOfObjWithSomeKey(table.columns, 'name', column) < 0) {
+          result.push(keys[i])
+        }
+      }
+    }
+    return result
   }
   // 删除conn相关的主键的连接信息
   removeRenderLink (conn) {
@@ -1279,9 +1314,20 @@ class NModel {
     return tree.nodeDB.db
   }
   // 添加连接点
-  addPlumbPoints (guid, columnName, columnType) {
+  addPlumbPoints (guid, columnName, columnType, isBroken) {
     var anchor = modelRenderConfig.jsPlumbAnchor
     var scope = 'showlink'
+    if (isBroken) {
+      this.plumbTool.setLineStyle({
+        color: '#e73371',
+        strokeWidth: 2
+      })
+    } else {
+      this.plumbTool.setLineStyle({
+        color: '#0988de',
+        strokeWidth: 1
+      })
+    }
     var endPointConfig = Object.assign({}, this.plumbTool.endpointConfig, {
       scope: scope,
       parameters: {
@@ -1297,7 +1343,7 @@ class NModel {
     this.plumbTool.addEndpoint(guid, {anchor: anchor}, endPointConfig)
   }
   // 添加连线上的图标（连接类型Left/Inner）
-  setOverLayLabel (conn) {
+  setOverLayLabel (conn, isBroken) {
     var fid = conn.sourceId
     var pid = conn.targetId
     var labelObj = conn.getOverlay(pid + (fid + 'label'))
@@ -1307,7 +1353,8 @@ class NModel {
     }
     var joinType = joinInfo.join.type
     var labelCanvas = $(labelObj.canvas)
-    labelCanvas.addClass(joinType === modelRenderConfig.joinKind.left ? 'label-left' : 'label-inner')
+    labelCanvas.removeClass('link-label-broken')
+    labelCanvas.addClass(isBroken ? 'link-label link-label-broken' : 'link-label')
     labelCanvas && labelCanvas.find('.label').eq(0).text(joinType)
   }
 }

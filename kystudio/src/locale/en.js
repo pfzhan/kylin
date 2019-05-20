@@ -163,7 +163,9 @@ exports.default = {
     null: 'Null',
     nan: 'NaN',
     purge: 'Purge',
-    reset: 'Reset'
+    reset: 'Reset',
+    comma: ', ',
+    dot: '.'
   },
   model: {
     draft: 'Draft',

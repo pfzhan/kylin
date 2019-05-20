@@ -59,6 +59,12 @@ export default {
           return response
         })
     },
+    [types.RELOAD_DATASOURCE]: function ({commit}, para) {
+      return api.datasource.reloadDataSource(para)
+    },
+    [types.GET_RELOAD_INFLUENCE]: function ({commit}, para) {
+      return api.datasource.getReloadInfluence(para)
+    },
     [types.LOAD_DATASOURCE_EXT]: function ({commit}, para) {
       return api.datasource.loadDataSourceExt({ext: true, project: para.project, table: para.tableName})
     },

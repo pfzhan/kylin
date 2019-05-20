@@ -28,6 +28,7 @@
             <h1 class="table-name" :title="selectedTable.fullName">{{selectedTable.fullName}}</h1>
             <h2 class="table-update-at">{{$t('updateAt')}} {{selectedTable.updateAt | timestamp2GmtDate}}</h2>
             <div class="table-actions ky-no-br-space">
+              <el-button size="small" :loading="reloadBtnLoading" @click="handleReload">{{$t('reload')}}</el-button>
               <el-button size="small" @click="sampleTable">{{$t('sample')}}</el-button>
               <el-button size="small" @click="handleDelete">{{$t('delete')}}</el-button>
             </div>
@@ -68,6 +69,7 @@
         </span>
       </el-dialog>
     </div>
+    <ReloadTable></ReloadTable>
   </div>
 </template>
 
@@ -83,6 +85,7 @@ import TableDataLoad from './TableDataLoad/TableDataLoad.vue'
 import TableColumns from './TableColumns/TableColumns.vue'
 import TableSamples from './TableSamples/TableSamples.vue'
 import SourceManagement from './SourceManagement/SourceManagement.vue'
+import ReloadTable from './TableReload/reload.vue'
 import EmptyData from '../../common/EmptyData/EmptyData.vue'
 import { handleSuccessAsync, handleError } from '../../../util'
 import { getFormattedTable } from '../../../util/UtilTable'
@@ -94,7 +97,8 @@ import { getFormattedTable } from '../../../util/UtilTable'
     TableDataLoad,
     TableColumns,
     TableSamples,
-    SourceManagement
+    SourceManagement,
+    ReloadTable
   },
   computed: {
     ...mapGetters([
@@ -109,7 +113,11 @@ import { getFormattedTable } from '../../../util/UtilTable'
       importTable: 'LOAD_HIVE_IN_PROJECT',
       fetchChangeTypeInfo: 'FETCH_CHANGE_TYPE_INFO',
       deleteTable: 'DELETE_TABLE',
-      submitSampling: 'SUBMIT_SAMPLING'
+      submitSampling: 'SUBMIT_SAMPLING',
+      getReloadInfluence: 'GET_RELOAD_INFLUENCE'
+    }),
+    ...mapActions('ReloadTableModal', {
+      callReloadModal: 'CALL_MODAL'
     })
   },
   locales
@@ -119,6 +127,7 @@ export default class StudioSource extends Vue {
   viewType = viewTypes.DATA_LOAD
   viewTypes = viewTypes
   isShowSourcePage = false
+  reloadBtnLoading = false
   sampleVisible = false
   sampleLoading = false
   samplingRows = 20000000
@@ -148,7 +157,6 @@ export default class StudioSource extends Vue {
   }
   async handleClick (data = {}) {
     if (data.type !== 'table') return
-
     try {
       const tableName = data.label
       const databaseName = data.database
@@ -209,6 +217,31 @@ export default class StudioSource extends Vue {
       this.$message({ type: 'success', message: this.$t('unloadSuccess') })
       await this.handleFreshTable({ isSetToDefault: true })
     } catch (e) {
+      handleError(e)
+    }
+  }
+  async handleReload () {
+    try {
+      const projectName = this.currentSelectedProject
+      const databaseName = this.selectedTable.database
+      const tableName = this.selectedTable.name
+      let fullTableName = databaseName + '.' + tableName
+      this.reloadBtnLoading = true
+      const res = await this.getReloadInfluence({
+        project: projectName,
+        table: fullTableName
+      })
+      this.reloadBtnLoading = false
+      const influenceDetail = await handleSuccessAsync(res)
+      const isSubmit = await this.callReloadModal({
+        checkData: influenceDetail,
+        tableName: fullTableName
+      })
+      if (isSubmit) {
+        this.handleFreshTable()
+      }
+    } catch (e) {
+      this.reloadBtnLoading = false
       handleError(e)
     }
   }

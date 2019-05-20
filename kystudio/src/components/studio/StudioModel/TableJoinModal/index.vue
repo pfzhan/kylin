@@ -20,20 +20,22 @@
     <div class="ky-line ksd-mt-15"></div>
     <!-- 列的关联 -->
     <el-row :gutter="4"  class="ksd-mt-15" v-for="(key, val) in joinColumns.foreign_key" :key="val">
-      <el-col :span="10">
+      <el-col :span="10" :class="{'is-broken': checkIsBroken(brokenForeignKeys, joinColumns.foreign_key[val])}">
          <el-select size="small"  style="width:100%" filterable v-model="joinColumns.foreign_key[val]" :placeholder="$t('kylinLang.common.pleaseSelect')">
             <el-option v-for="f in fColumns" :value="fTable.alias+'.'+f.name" :key="f.name" :label="f.name">
             </el-option>
           </el-select>
+          <p class="error-msg">{{$t('noColumnFund')}}</p>
       </el-col>
       <el-col :span="1" class="ksd-center" style="font-size:20px;">
          =
       </el-col>
-      <el-col :span="11">
-        <el-select size="small" style="width:100%" filterable v-model="joinColumns.primary_key[val]" :placeholder="$t('kylinLang.common.pleaseSelect')">
-            <el-option v-for="p in pColumns" :value="pTable.alias+'.'+p.name" :key="p.name" :label="p.name">
-            </el-option>
-          </el-select>
+      <el-col :span="11" :class="{'is-broken': checkIsBroken(brokenPrimaryKeys,joinColumns.primary_key[val])}">
+        <el-select size="small"  style="width:100%" filterable v-model="joinColumns.primary_key[val]" :placeholder="$t('kylinLang.common.pleaseSelect')">
+          <el-option v-for="p in pColumns" :value="pTable.alias+'.'+p.name" :key="p.name" :label="p.name">
+          </el-option>
+        </el-select>
+        <p class="error-msg">{{$t('noColumnFund')}}</p>
       </el-col>
       <el-col :span="2" class="ksd-right">
         <el-button  type="primary" plain icon="el-icon-ksd-add_2" size="mini" @click="addJoinConditionColumns" circle></el-button><el-button  icon="el-icon-minus" size="mini" @click="removeJoinConditionColumn(val)" circle></el-button>
@@ -180,6 +182,26 @@ export default class TableJoinModal extends Vue {
   get pTable () {
     return this.form.tables && this.form.tables[this.selectP] || []
   }
+  checkIsBroken (brokenKeys, key) {
+    if (key) {
+      return ~brokenKeys.indexOf(key)
+    }
+    return false
+  }
+  get brokenPrimaryKeys () {
+    let ntable = this.pTable
+    if (ntable && this.isShow) {
+      return this.form.modelInstance.getBrokenModelLinksKeys(ntable.guid, this.joinColumns.primary_key)
+    }
+    return []
+  }
+  get brokenForeignKeys () {
+    let ntable = this.fTable
+    if (ntable && this.isShow) {
+      return this.form.modelInstance.getBrokenModelLinksKeys(ntable.guid, this.joinColumns.foreign_key)
+    }
+    return []
+  }
   // 添加condition关联列的框
   addJoinConditionColumns () {
     this.joinColumns.foreign_key.unshift('')
@@ -275,6 +297,16 @@ export default class TableJoinModal extends Vue {
 .links-dialog {
   .el-button+.el-button {
     margin-left:5px;
+  }
+  .error-msg {display:none}
+  .is-broken {
+    .el-input__inner{
+      border:solid 1px @color-danger;
+    }
+    .error-msg {
+      color:@color-danger;
+      display:block;
+    }
   }
 }
 

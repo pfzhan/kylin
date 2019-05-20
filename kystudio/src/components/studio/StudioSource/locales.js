@@ -2,6 +2,7 @@ export default {
   'en': {
     updateAt: 'Last update :',
     delete: 'Delete',
+    reload: 'Reload',
     general: 'Storage',
     columns: 'Columns',
     sample: 'Sample',
@@ -22,6 +23,7 @@ export default {
   'zh-cn': {
     updateAt: '上次更新时间 :',
     delete: '删除',
+    reload: '重载',
     general: '存储信息',
     columns: '所有列',
     sample: '采样',

@@ -21,7 +21,6 @@ export const validate = {
   [fieldTypes.LOAD_DATA_RANGE] (rule, value, callback) {
     const [ startValue, endValue ] = value
     const { isLoadExisted } = this.form
-
     if ((!startValue || !endValue || transToUTCMs(startValue) >= transToUTCMs(endValue)) && !isLoadExisted) {
       callback(new Error(this.$t('invaildDate')))
     } else {
