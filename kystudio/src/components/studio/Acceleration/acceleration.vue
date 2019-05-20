@@ -735,6 +735,8 @@ export default class FavoriteQuery extends Vue {
   }
   reCallPolling () {
     this.isPausePolling = false
+    this.loadFavoriteList()
+    this.getSQLSizes()
     this.init()
   }
   async init () {

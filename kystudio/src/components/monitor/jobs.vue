@@ -711,6 +711,8 @@ export default class JobsList extends Vue {
   }
   reCallPolling () {
     this.isPausePolling = false
+    this.getJobsList()
+    this.getWaittingJobModels()
     this.autoFilter()
   }
   handleSelectionChange (val) {
