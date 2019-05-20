@@ -5,6 +5,7 @@
     :close-on-press-escape="false"
     :close-on-click-modal="false"
     :limited-area="true"
+    top="5vh"
     v-event-stop
     @close="isShow && handleClose(false)">
     <template v-if="isFormShow">
