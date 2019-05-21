@@ -331,7 +331,7 @@ exports.default = {
     lastModefied: 'Last Executed',
     rate: 'Success Rate',
     frequency: 'Frequency',
-    avgDuration: 'Avg. Latency',
+    avgDuration: 'Avg. Duration',
     fullyAcce: 'Accelerated',
     partlyAcce: 'Partial accelerated',
     ongoingAcce: 'Accelerating',

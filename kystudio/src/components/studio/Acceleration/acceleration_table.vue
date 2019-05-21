@@ -1,7 +1,7 @@
 <template>
   <div>
     <div class="btn-groups ky-no-br-space ksd-mb-10">
-      <el-button type="primary" icon="el-icon-ksd-table_delete" plain :disabled="!checkedList.length" :loading="dropLoading" @click="delFav(false)">{{$t('kylinLang.common.drop')}}</el-button>
+      <el-button type="primary" icon="el-icon-ksd-table_delete" plain :disabled="!checkedList.length" :loading="dropLoading" @click="delFav(false)">{{$t('kylinLang.common.delete')}}</el-button>
       <el-button type="primary" icon="el-icon-ksd-table_discard" plain :disabled="!checkedList.length" @click="delFav(true)">{{$t('kylinLang.common.disable')}}</el-button>
     </div>
     <el-table
@@ -80,7 +80,7 @@ import { handleError } from '../../../util/index'
   },
   locales: {
     'en': {delSql: 'Do you really need to delete {numbers} sql(s)?', addToBlackList: 'Do you really need this {numbers} sql(s) to the Black List'},
-    'zh-cn': {delSql: '您确认要删除{numbers}查询语句吗？', addToBlackList: '确定将这{numbers}条查询语句加入禁用名单吗？'}
+    'zh-cn': {delSql: '您确认要删除 {numbers} 条查询语句吗？', addToBlackList: '确定将这 {numbers} 条查询语句加入禁用名单吗？'}
   }
 })
 export default class FavoriteTable extends Vue {

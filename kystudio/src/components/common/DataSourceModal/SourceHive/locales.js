@@ -16,9 +16,9 @@ export default {
     synced: 'Synced',
     filterTableName: 'Search Table',
     samplingTitle: 'Table Sampling ',
-    sampleDesc: 'The system will sample all loaded tables. ',
+    sampleDesc: 'The system will sample all loaded tables.',
     sampleDesc1: 'Sampling range should not exceed ',
-    sampleDesc2: ' rows',
+    sampleDesc2: ' rows.',
     minNumber: 'Input should be no less than 10,000 rows',
     maxNumber: 'Input should be no larger than 20,000,000 rows'
   },
@@ -41,7 +41,7 @@ export default {
     samplingTitle: '表级数据抽样',
     sampleDesc: '系统将对所有加载的表进行全表抽样。',
     sampleDesc1: '数据抽样范围不超过',
-    sampleDesc2: '行',
+    sampleDesc2: '行。',
     minNumber: '输入值应不小于10,000 行',
     maxNumber: '输入值应 不大于20,000,000 行'
   }

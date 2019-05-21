@@ -13,9 +13,9 @@ export default {
     affactUnloadInfo: 'Delete the source table {tableName} will lead to removing related models and indexes, whose total storage size is {storageSize}.',
     remindLoadRange: 'If you have tables which increase by day, it is suggested to select the corresponding date column as partition key. Especially, tables containing historical data, in which new data is added into the newest partition.',
     remindLoadRangeTitle: 'Add Partition',
-    sampleDesc: 'The system will sample the table {tableName}',
+    sampleDesc: 'The system will sample the table {tableName}.',
     sampleDesc1: 'Sampling range should not exceed ',
-    sampleDesc2: ' rows',
+    sampleDesc2: ' rows.',
     sampleDialogTitle: 'Table Sampling',
     minNumber: 'Input should be no less than 10,000 rows',
     maxNumber: 'Input should be no larger than 20,000,000 rows'
@@ -34,9 +34,9 @@ export default {
     affactUnloadInfo: '删除源数据表 {tableName} 将删除所有依赖本表的模型和索引，总存储为 {storageSize}。',
     remindLoadRange: '如果有数据按时间递增的源表，建议选择一个合适的 日期列 作为源表的分区列。特别是那些包含历史数据的表，新的数据将会被加入最新的分区中。',
     remindLoadRangeTitle: '添加分区列',
-    sampleDesc: '系统将对表 {tableName} 进行全表抽样',
+    sampleDesc: '系统将对表 {tableName} 进行全表抽样。',
     sampleDesc1: '数据抽样范围不超过',
-    sampleDesc2: '行',
+    sampleDesc2: '行。',
     sampleDialogTitle: '表级数据抽样',
     minNumber: '输入值应不小于10,000 行',
     maxNumber: '输入值应 不大于20,000,000 行'
