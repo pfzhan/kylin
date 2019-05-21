@@ -28,9 +28,9 @@
             <h1 class="table-name" :title="selectedTable.fullName">{{selectedTable.fullName}}</h1>
             <h2 class="table-update-at">{{$t('updateAt')}} {{selectedTable.updateAt | timestamp2GmtDate}}</h2>
             <div class="table-actions ky-no-br-space">
-              <el-button size="small" :loading="reloadBtnLoading" @click="handleReload">{{$t('reload')}}</el-button>
               <el-button size="small" @click="sampleTable">{{$t('sample')}}</el-button>
-              <el-button size="small" @click="handleDelete">{{$t('delete')}}</el-button>
+              <el-button size="small" :loading="reloadBtnLoading" plain @click="handleReload">{{$t('reload')}}</el-button>
+              <el-button size="small" @click="handleDelete" plain>{{$t('delete')}}</el-button>
             </div>
           </div>
           <!-- Source Table详细信息 -->

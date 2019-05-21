@@ -30,7 +30,7 @@ export default {
     loadHiveTipHeader: '加载源表元数据的方式',
     loadHiveTip1: '单表选择：展开左侧的数据树，点击选择单个数据表；',
     loadHiveTip2: '批量选择：点击数据库将批量选中下面所有的表，每一批加载表上限为1000张表；',
-    sampling: '表采样',
+    sampling: '表抽样',
     selectedHiveValidateFailText: '请输入完整表名\'database.table\'。',
     selectAll: '选中所有',
     cleanAll: '清除所有',

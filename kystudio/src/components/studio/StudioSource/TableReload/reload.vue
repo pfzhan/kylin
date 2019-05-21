@@ -133,10 +133,7 @@ export default class ReloadTableModal extends Vue {
   @Watch('openSample')
   onOpenSample (val) {
     if (!val) {
-      this.sampleOption.sampleCount = 0
       this.clearFormValidate()
-    } else {
-      this.sampleOption.sampleCount = this.maxSampleCount
     }
   }
   // 有列发生了变化
@@ -225,11 +222,11 @@ export default class ReloadTableModal extends Vue {
         project: this.currentSelectedProject,
         table: this.tableName,
         need_sample: this.openSample,
-        max_rows: +this.sampleOption.sampleCount
+        max_rows: this.openSample ? +this.sampleOption.sampleCount : 0
       })
       this.reloadLoading = false
       this.$message({
-        message: this.$t('reloadSuccess', {tableName: this.reloadSuccess}),
+        message: this.$t('reloadSuccess', {tableName: this.tableName}) + (this.openSample ? this.$t('sampleSuccess') : ''),
         type: 'success'
       })
       this.closeHandler(true)
@@ -254,7 +251,7 @@ export default class ReloadTableModal extends Vue {
     font-size:12px;
   }
   .samping-box {
-    margin-top:22px;
+    margin-top:18px;
     .lable-text {
       font-weight: bold;
       vertical-align: middle;

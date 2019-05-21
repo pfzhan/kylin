@@ -93,7 +93,17 @@ class NModel {
     }
     if (options.renderDom) {
       this.renderDom = this.vm.$el.querySelector(options.renderDom)
-      this.plumbTool.init(this.renderDom, this._mount.zoom / 10)
+      this.plumbInstance = this.plumbTool.init(this.renderDom, this._mount.zoom / 10)
+      this.plumbInstance.registerConnectionTypes({
+        'broken': {
+          paintStyle: { stroke: '#e73371', strokeWidth: 2 },
+          hoverPaintStyle: { stroke: '#e73371', strokeWidth: 2 }
+        },
+        'normal': {
+          paintStyle: { stroke: '#0988de', strokeWidth: 1 },
+          hoverPaintStyle: { stroke: '#0988de', strokeWidth: 1 }
+        }
+      })
     }
     this.allConnInfo = {}
     this.render()
@@ -165,7 +175,7 @@ class NModel {
         currentTable.drawSize.height = modelRenderConfig.tableBoxHeight
       }
       this.vm.$nextTick(() => {
-        this.plumbTool.refreshPlumbInstance(this.plumbInstance)
+        this.plumbTool.refreshPlumbInstance()
       })
     }
   }
@@ -1354,6 +1364,7 @@ class NModel {
     var joinType = joinInfo.join.type
     var labelCanvas = $(labelObj.canvas)
     labelCanvas.removeClass('link-label-broken')
+    conn.toggleType(isBroken ? 'broken' : 'normal')
     labelCanvas.addClass(isBroken ? 'link-label link-label-broken' : 'link-label')
     labelCanvas && labelCanvas.find('.label').eq(0).text(joinType)
   }
