@@ -13,8 +13,8 @@
       :show-background="false"
       :closable="false"
       show-icon>
-      <span style="display:inline-block;word-break: break-word;" v-html="filterInjectScript(msg).replace(/\r\n/g, '<br/><br/>')"></span>
-      <a href="javascript:;" style="display: inline-block;" @click="toggleDetail">{{$t('kylinLang.common.seeDetail')}}  
+      <span style="word-break: break-word;" v-html="filterInjectScript(msg).replace(/\r\n/g, '<br/><br/>')"></span>
+      <a href="javascript:;" @click="toggleDetail">{{$t('kylinLang.common.seeDetail')}}  
         <i class="el-icon-arrow-down" v-show="!showDetail"></i>
         <i class="el-icon-arrow-up" v-show="showDetail"></i>
       </a>

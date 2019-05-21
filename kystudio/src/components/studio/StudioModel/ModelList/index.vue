@@ -183,10 +183,8 @@ import '../../../../util/fly.js'
 @Component({
   beforeRouteEnter (to, from, next) {
     next(vm => {
-      if (from.params.modelName) {
-        vm.currentEditModel = from.params.modelName
-      }
       if (to.params.addIndex) {
+        vm.currentEditModel = from.params.modelName
         vm.showFull = true
       }
       if (to.params.modelAlias) {
@@ -204,7 +202,7 @@ import '../../../../util/fly.js'
       'isAutoProject'
     ]),
     currentExtandRow () {
-      return [this.currentEditModel]
+      return this.currentEditModel ? [this.currentEditModel] : []
     }
   },
   methods: {

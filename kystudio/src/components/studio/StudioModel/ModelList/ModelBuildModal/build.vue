@@ -35,7 +35,6 @@
               </el-date-picker>
               <el-tooltip effect="dark" :content="$t('detectAvailableRange')" placement="top">
                 <el-button
-                  v-if="isShow"
                   size="medium"
                   class="ksd-ml-10"
                   :disabled="modelBuildMeta.isLoadExisted"
