@@ -316,7 +316,7 @@ public class FavoriteRuleService extends BasicService {
         String correctedSql = QueryUtil.massageSql(sql, project, 0, 0, DEFAULT_SCHEMA);
         // sql validation
         Map<String, SQLValidateResult> map = batchSqlValidate(Lists.newArrayList(correctedSql), project);
-        SQLValidateResult result = map.get(sql);
+        SQLValidateResult result = map.get(correctedSql);
 
         return new SQLValidateResponse(result.isCapable(), result.getSqlAdvices());
     }

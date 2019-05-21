@@ -272,4 +272,19 @@ public class FavoriteRuleServiceTest extends NLocalFileMetadataTestCase {
         ratio = favoriteRuleService.getAccelerateRatio(PROJECT);
         Assert.assertEquals(0.1, ratio, 0.1);
     }
+
+    @Test
+    public void testSqlValidate() {
+        String sql = "select * from test_kylin_fact\n\n";
+        var response = favoriteRuleService.sqlValidate(PROJECT, sql);
+        Assert.assertTrue(response.isCapable());
+    }
+
+    @Test
+    public void testSqlValidateError() {
+        String sql = "select * from test_kylin\n\n";
+        var response = favoriteRuleService.sqlValidate(PROJECT, sql);
+        Assert.assertFalse(response.isCapable());
+        Assert.assertEquals("Table 'TEST_KYLIN' not found.", Lists.newArrayList(response.getSqlAdvices()).get(0).getIncapableReason());
+    }
 }
