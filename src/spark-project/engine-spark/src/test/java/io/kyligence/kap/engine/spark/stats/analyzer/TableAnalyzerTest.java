@@ -24,10 +24,15 @@
 
 package io.kyligence.kap.engine.spark.stats.analyzer;
 
+import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
 
+import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.TableDesc;
+import org.apache.kylin.metadata.model.TableExtDesc;
 import org.apache.kylin.source.SourceFactory;
+import org.apache.spark.sql.AnalysisException;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.junit.Assert;
@@ -44,16 +49,16 @@ import lombok.var;
 
 public class TableAnalyzerTest extends NLocalWithSparkSessionTest {
 
-    private TableDesc tableDesc;
+    private NTableMetadataManager tableMgr;
 
     @Before
     public void setup() {
-        NTableMetadataManager tableMgr = NTableMetadataManager.getInstance(getTestConfig(), getProject());
-        tableDesc = tableMgr.getTableDesc("DEFAULT.TEST_KYLIN_FACT");
+        tableMgr = NTableMetadataManager.getInstance(getTestConfig(), getProject());
     }
 
     @Test
     public void testAnalyze() {
+        TableDesc tableDesc = tableMgr.getTableDesc("DEFAULT.TEST_KYLIN_FACT");
         Dataset<Row> sourceData = SourceFactory
                 .createEngineAdapter(tableDesc, NSparkCubingEngine.NSparkCubingSource.class)
                 .getSourceData(tableDesc, ss, Maps.newHashMap());
@@ -119,9 +124,9 @@ public class TableAnalyzerTest extends NLocalWithSparkSessionTest {
 
     @Test
     public void testSampleFullTable() throws Exception {
+        TableDesc tableDesc = tableMgr.getTableDesc("DEFAULT.TEST_KYLIN_FACT");
         new TableAnalyzerJob().analyzeTable(tableDesc, getProject(), 10000, getTestConfig(), ss);
-        NTableMetadataManager tableMetadataManager = NTableMetadataManager.getInstance(getTestConfig(), getProject());
-        val tableExt = tableMetadataManager.getTableExtIfExists(tableDesc);
+        val tableExt = tableMgr.getTableExtIfExists(tableDesc);
         Assert.assertEquals(10, tableExt.getSampleRows().size());
 
         // column "TRANS_ID"
@@ -166,7 +171,54 @@ public class TableAnalyzerTest extends NLocalWithSparkSessionTest {
     }
 
     @Test
+    public void testSampleTableForColumnOrRowAlwaysNull() {
+        // case 1: this case test specified column always null, corresponding column is 'CATEG_BUSN_MGR'
+        TableDesc testCategoryGroupings = tableMgr.getTableDesc("DEFAULT.TEST_CATEGORY_GROUPINGS");
+        final ColumnDesc categBusnMgr = Arrays.stream(testCategoryGroupings.getColumns())
+                .filter(columnDesc -> columnDesc.getName().equalsIgnoreCase("CATEG_BUSN_MGR"))
+                .collect(Collectors.toList()).get(0);
+        new TableAnalyzerJob().analyzeTable(testCategoryGroupings, getProject(), 10000, getTestConfig(), ss);
+        val tableExt = tableMgr.getTableExtIfExists(testCategoryGroupings);
+        final TableExtDesc.ColumnStats columnStats = tableExt.getColumnStats()
+                .get(Integer.parseInt(categBusnMgr.getId()) - 1);
+        Assert.assertEquals(categBusnMgr.getName(), columnStats.getColumnName());
+        Assert.assertNull(columnStats.getMaxValue());
+        Assert.assertNull(columnStats.getMinValue());
+        Assert.assertEquals(144, columnStats.getNullCount());
+        Assert.assertEquals(0, columnStats.getCardinality());
+
+        // case 2: this case test sample data has a line always null in each column
+        TableDesc testEncodings = tableMgr.getTableDesc("DEFAULT.TEST_ENCODING");
+        new TableAnalyzerJob().analyzeTable(testEncodings, getProject(), 10000, getTestConfig(), ss);
+        final TableExtDesc testEncodingsExt = tableMgr.getTableExtIfExists(testEncodings);
+        final List<String[]> sampleRows = testEncodingsExt.getSampleRows();
+        final String[] rowValue = sampleRows.get(sampleRows.size() - 1);
+        Arrays.stream(rowValue).forEach(Assert::assertNull);
+    }
+
+    @Test
+    public void testSamplingTaskRunningFailedForTableNotExistAnyMore() {
+        String tableIdentity = "DEFAULT.NOT_EXIST_TABLE";
+        Assert.assertNull(tableMgr.getTableDesc(tableIdentity));
+
+        // mock a table desc without corresponding data exist
+        final TableDesc tableDesc = tableMgr.getTableDesc("DEFAULT.TEST_COUNTRY");
+        final TableDesc notExistTableDesc = tableMgr.copyForWrite(tableDesc);
+        notExistTableDesc.setName(tableIdentity);
+
+        try {
+            new TableAnalyzerJob().analyzeTable(notExistTableDesc, getProject(), 10000, getTestConfig(), ss);
+            Assert.fail();
+        } catch (Exception e) {
+            Assert.assertTrue(e instanceof AnalysisException);
+            Assert.assertTrue(e.getMessage().startsWith("Path does not exist:")
+                    && e.getMessage().endsWith("/test_metadata/data/DEFAULT.NOT_EXIST_TABLE.csv;"));
+        }
+    }
+
+    @Test
     public void testSamplePartTable() throws Exception {
+        TableDesc tableDesc = tableMgr.getTableDesc("DEFAULT.TEST_KYLIN_FACT");
         new TableAnalyzerJob().analyzeTable(tableDesc, getProject(), 100, getTestConfig(), ss);
         NTableMetadataManager tableMetadataManager = NTableMetadataManager.getInstance(getTestConfig(), getProject());
         val tableExt = tableMetadataManager.getTableExtIfExists(tableDesc);

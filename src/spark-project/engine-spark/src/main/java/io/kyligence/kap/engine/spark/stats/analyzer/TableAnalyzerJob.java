@@ -23,7 +23,6 @@
  */
 package io.kyligence.kap.engine.spark.stats.analyzer;
 
-import java.io.IOException;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
@@ -54,7 +53,7 @@ public class TableAnalyzerJob extends SparkApplication implements Serializable {
             .add("COUNT", "COUNT_DISTINCT", "MAX", "MIN").build();
 
     @Override
-    protected void doExecute() throws Exception {
+    protected void doExecute() {
         String prjName = getParam(NBatchConstants.P_PROJECT_NAME);
         String tableName = getParam(NBatchConstants.P_TABLE_NAME);
         Long rowCount = Long.valueOf(getParam(NBatchConstants.P_SAMPLING_ROWS));
@@ -64,8 +63,7 @@ public class TableAnalyzerJob extends SparkApplication implements Serializable {
         analyzeTable(tableDesc, prjName, rowCount.intValue(), config, ss);
     }
 
-    void analyzeTable(TableDesc tableDesc, String project, int rowCount, KylinConfig config, SparkSession ss)
-            throws IOException {
+    void analyzeTable(TableDesc tableDesc, String project, int rowCount, KylinConfig config, SparkSession ss) {
 
         Row[] row = new TableAnalysisJob(tableDesc, project, rowCount, ss).analyzeTable();
 
@@ -88,7 +86,9 @@ public class TableAnalyzerJob extends SparkApplication implements Serializable {
             }
             int metricLen = TABLE_STATS_METRICS.size();
             for (int i = 0; i < metricLen; i++) {
-                String value = row[0].get(i + 1 + metricLen * colIdx).toString();
+                String value = row[0].get(i + 1 + metricLen * colIdx) == null ? null
+                        : row[0].get(i + 1 + metricLen * colIdx).toString();
+
                 switch (TABLE_STATS_METRICS.get(i)) {
                 case "COUNT":
                     colStats.setNullCount(count_star - Long.parseLong(value));
@@ -115,7 +115,7 @@ public class TableAnalyzerJob extends SparkApplication implements Serializable {
         for (int i = 1; i < row.length; i++) {
             String[] data = new String[row[i].length()];
             for (int j = 0; j < row[i].length(); j++) {
-                data[j] = row[i].get(j).toString();
+                data[j] = row[i].get(j) == null ? null : row[i].get(j).toString();
             }
             sampleData.add(data);
         }

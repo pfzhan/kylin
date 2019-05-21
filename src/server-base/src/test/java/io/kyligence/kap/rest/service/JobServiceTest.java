@@ -55,6 +55,7 @@ import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.job.execution.NExecutableManager;
+import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.rest.constant.Constant;
 import org.assertj.core.api.Assertions;
 import org.junit.AfterClass;
@@ -75,6 +76,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 import com.google.common.collect.Lists;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.engine.spark.job.NTableSamplingJob;
 import io.kyligence.kap.event.manager.EventDao;
 import io.kyligence.kap.event.model.AddCuboidEvent;
 import io.kyligence.kap.event.model.AddSegmentEvent;
@@ -83,6 +85,7 @@ import io.kyligence.kap.event.model.MergeSegmentEvent;
 import io.kyligence.kap.event.model.PostAddCuboidEvent;
 import io.kyligence.kap.event.model.RefreshSegmentEvent;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
+import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.rest.execution.SucceedChainedTestExecutable;
 import io.kyligence.kap.rest.request.JobFilter;
 import io.kyligence.kap.rest.response.EventModelResponse;
@@ -123,58 +126,67 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
         staticCleanupTestMetadata();
     }
 
+    private String getProject() {
+        return "default";
+    }
+
     @Test
     public void testListJobs() throws Exception {
         NExecutableManager executableManager = Mockito.mock(NExecutableManager.class);
         Mockito.when(jobService.getExecutableManager("default")).thenReturn(executableManager);
         Mockito.when(executableManager.getAllExecutables(Mockito.anyLong(), Mockito.anyLong())).thenReturn(mockJobs());
+
+        // test size
         List<String> jobNames = Lists.newArrayList();
         JobFilter jobFilter = new JobFilter("", jobNames, 4, "", "", "default", "", true);
         List<ExecutableResponse> jobs = jobService.listJobs(jobFilter);
-        Assert.assertTrue(jobs.size() == 3);
+        Assert.assertEquals(3, jobs.size());
+
         jobFilter.setTimeFilter(0);
         jobNames.add("sparkjob1");
         jobFilter.setJobNames(jobNames);
         List<ExecutableResponse> jobs2 = jobService.listJobs(jobFilter);
         Assert.assertEquals(1, jobs2.size());
+
         jobFilter.setSubject("model1");
         jobNames.remove(0);
         jobFilter.setJobNames(jobNames);
         jobFilter.setTimeFilter(2);
         List<ExecutableResponse> jobs3 = jobService.listJobs(jobFilter);
         Assert.assertTrue(jobs3.size() == 1);
+
         jobFilter.setSubject("");
         jobFilter.setStatus("NEW");
         jobFilter.setTimeFilter(1);
         List<ExecutableResponse> jobs4 = jobService.listJobs(jobFilter);
         Assert.assertTrue(jobs4.size() == 3);
+
         jobFilter.setStatus("");
         jobFilter.setTimeFilter(3);
         jobFilter.setSortBy("job_name");
         List<ExecutableResponse> jobs5 = jobService.listJobs(jobFilter);
         Assert.assertTrue(jobs5.size() == 3 && jobs5.get(0).getJobName().equals("sparkjob3"));
+
         jobFilter.setTimeFilter(4);
         jobFilter.setReverse(false);
         List<ExecutableResponse> jobs6 = jobService.listJobs(jobFilter);
         Assert.assertTrue(jobs6.size() == 3 && jobs6.get(0).getJobName().equals("sparkjob1"));
+
         jobFilter.setSortBy("duration");
         jobFilter.setReverse(true);
         List<ExecutableResponse> jobs7 = jobService.listJobs(jobFilter);
         Assert.assertTrue(jobs7.size() == 3 && jobs7.get(0).getJobName().equals("sparkjob3"));
-        //        jobFilter.setSortBy("exec_start_time");
+
         jobFilter.setReverse(false);
-        //        List<ExecutableResponse> jobs8 = jobService.listJobs(jobFilter);
-        //        Assert.assertTrue(jobs8.size() == 3 && jobs8.get(0).getJobName().equals("sparkjob2"));
-        //        jobFilter.setSortBy("target_subject_alias");
-        //        List<ExecutableResponse> jobs9 = jobService.listJobs(jobFilter);
-        //        Assert.assertTrue(jobs9.size() == 3 && jobs9.get(0).getJobName().equals("sparkjob1"));
         jobFilter.setStatus("");
         jobFilter.setSortBy("");
         List<ExecutableResponse> jobs10 = jobService.listJobs(jobFilter);
         Assert.assertTrue(jobs10.size() == 3);
+
         jobFilter.setSortBy("job_status");
         List<ExecutableResponse> jobs11 = jobService.listJobs(jobFilter);
         Assert.assertTrue(jobs11.size() == 3 && jobs11.get(0).getJobName().equals("sparkjob1"));
+
         jobFilter.setSortBy("create_time");
         List<ExecutableResponse> jobs12 = jobService.listJobs(jobFilter);
         Assert.assertTrue(jobs12.size() == 3 && jobs12.get(0).getJobName().equals("sparkjob1"));
@@ -276,6 +288,32 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
         JobFilter jobFilter = new JobFilter("", jobNames, 4, "", "", "default", "", true);
         List<ExecutableResponse> jobs = jobService.listJobs(jobFilter);
         Assert.assertTrue(jobs.get(0).getCreateTime() > 0);
+    }
+
+    @Test
+    public void testGetTargetSubjectAndJobType() {
+        NExecutableManager manager = NExecutableManager.getInstance(jobService.getConfig(), "default");
+        SucceedChainedTestExecutable job1 = new SucceedChainedTestExecutable();
+        job1.setProject(getProject());
+        job1.initConfig(KylinConfig.getInstanceFromEnv());
+        job1.setName("mocked job");
+        job1.setTargetSubject("12345678");
+        final TableDesc tableDesc = NTableMetadataManager.getInstance(getTestConfig(), getProject())
+                .getTableDesc("DEFAULT.TEST_KYLIN_FACT");
+        NTableSamplingJob samplingJob = NTableSamplingJob.create(tableDesc, getProject(), "ADMIN", 20000);
+        samplingJob.initConfig(getTestConfig());
+        manager.addJob(job1);
+        manager.addJob(samplingJob);
+        List<String> jobNames = Lists.newArrayList();
+        JobFilter jobFilter = new JobFilter("", jobNames, 4, "", "", "default", "", true);
+        List<ExecutableResponse> jobs = jobService.listJobs(jobFilter);
+
+        jobFilter.setSortBy("job_name");
+        Assert.assertNull(jobs.get(0).getTargetSubject()); // no target model so it's null
+        Assert.assertEquals("mocked job", jobs.get(0).getJobName());
+        Assert.assertEquals(tableDesc.getIdentity(), jobs.get(1).getTargetSubject());
+        Assert.assertEquals("TABLE_SAMPLING", jobs.get(1).getJobName());
+
     }
 
     private List<AbstractExecutable> mockJobs() {

@@ -91,6 +91,7 @@ public class ExecutableResponse implements Comparable<ExecutableResponse> {
         executableResponse.setTargetModel(abstractExecutable.getTargetSubject());
         executableResponse.setTargetSegments(abstractExecutable.getTargetSegments());
         executableResponse.setTargetModelAlias(abstractExecutable.getTargetModelAlias());
+        executableResponse.setTargetSubject(abstractExecutable.getTargetModelAlias());
         executableResponse.setWaitTime(abstractExecutable.getWaitTime());
         return executableResponse;
     }

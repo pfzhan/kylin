@@ -79,6 +79,7 @@ public class JobStepFactoryTest extends NLocalWithSparkSessionTest {
         NTableMetadataManager tableMetadataManager = NTableMetadataManager.getInstance(config, getProject());
         final TableDesc tableDesc = tableMetadataManager.getTableDesc(table);
         NTableSamplingJob job = NTableSamplingJob.create(tableDesc, getProject(), "ADMIN", 20000);
+        Assert.assertEquals(table, job.getTargetSubject());
         Assert.assertEquals(getProject(), job.getParam(NBatchConstants.P_PROJECT_NAME));
         Assert.assertEquals(tableDesc.getIdentity(), job.getParam(NBatchConstants.P_TABLE_NAME));
         Assert.assertEquals("20000", job.getParam(NBatchConstants.P_SAMPLING_ROWS));
@@ -116,6 +117,7 @@ public class JobStepFactoryTest extends NLocalWithSparkSessionTest {
         Set<NDataSegment> segments = Sets.newHashSet(oneSeg);
         Set<LayoutEntity> layouts = Sets.newHashSet(df.getIndexPlan().getAllLayouts());
         NSparkCubingJob job = NSparkCubingJob.create(segments, layouts, "ADMIN");
+        Assert.assertEquals("89af4ee2-2cdb-4b07-b39e-4c29856309aa", job.getTargetSubject());
 
         NSparkExecutable resourceDetectStep = job.getResourceDetectStep();
         Assert.assertEquals(ResourceDetectBeforeCubingJob.class.getName(),
@@ -172,6 +174,7 @@ public class JobStepFactoryTest extends NLocalWithSparkSessionTest {
         Set<LayoutEntity> layouts = Sets.newHashSet(flowCopy.getIndexPlan().getAllLayouts());
         NSparkMergingJob job = NSparkMergingJob.merge(mergedSegment, Sets.newLinkedHashSet(layouts), "ADMIN",
                 UUID.randomUUID().toString());
+        Assert.assertEquals("89af4ee2-2cdb-4b07-b39e-4c29856309aa", job.getTargetSubject());
 
         NSparkExecutable resourceDetectStep = job.getResourceDetectStep();
         Assert.assertEquals(ResourceDetectBeforeMergingJob.class.getName(),
