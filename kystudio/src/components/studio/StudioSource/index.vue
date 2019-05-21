@@ -59,7 +59,7 @@
         @close="resetSampling"
         :title="$t('sampleDialogTitle')" width="480px" :visible.sync="sampleVisible" :close-on-press-escape="false" :close-on-click-modal="false">
         <div class="sample-desc">{{sampleDesc}}</div>
-        <div class="sample-desc">
+        <div class="sample-desc" style="margin-top: 3px;">
           {{$t('sampleDesc1')}}<el-input size="small" class="ksd-mrl-5" style="width: 110px;" :class="{'is-error': errorMsg}" v-number="samplingRows" v-model="samplingRows" @input="handleSamplingRows"></el-input>{{$t('sampleDesc2')}}
           <div class="error-msg" v-if="errorMsg">{{errorMsg}}</div>
         </div>
@@ -367,6 +367,10 @@ export default class StudioSource extends Vue {
   }
 }
 .sample-dialog {
+  .sample-desc {
+    color: @text-normal-color;
+    word-break: break-word;
+  }
   .error-msg {
     color: @color-danger;
     font-size: 12px;

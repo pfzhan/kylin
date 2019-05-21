@@ -22,7 +22,7 @@
       </div>
     </div>
     <div class="content" :style="contentStyle">
-      <div class="content-body" :class="{ 'has-tips': isShowTips }">
+      <div class="content-body" :class="{ 'has-tips': isShowTips, 'has-error-msg': needSampling&&errorMsg }">
         <template v-if="selectedDatabases.length || selectedTables.length || isGuideMode">
           <div class="category databases" v-if="selectedDatabases.length">
             <div class="header font-medium">
@@ -140,7 +140,7 @@ export default class SourceHive extends Vue {
   contentStyle = {
     marginLeft: null,
     width: null,
-    height: '470px'
+    height: '334px'
   }
   sourceTypes = sourceTypes
   timer = null
@@ -318,13 +318,13 @@ export default class SourceHive extends Vue {
   handleSamplingRows (samplingRows) {
     if (samplingRows < 10000) {
       this.errorMsg = this.$t('minNumber')
-      this.contentStyle.height = '453px'
+      this.contentStyle.height = '317px'
     } else if (samplingRows > 20000000) {
       this.errorMsg = this.$t('maxNumber')
-      this.contentStyle.height = '453px'
+      this.contentStyle.height = '317px'
     } else {
       this.errorMsg = ''
-      this.contentStyle.height = '470px'
+      this.contentStyle.height = '334px'
     }
     this.$emit('input', { samplingRows: +samplingRows })
   }
@@ -378,13 +378,13 @@ export default class SourceHive extends Vue {
     width: 210px;
   }
   .filter-tree {
-    height: 549px;
+    height: 418px;
     overflow: auto;
     border: 1px solid @line-border-color;
   }
   .content {
     margin-left: calc(480px + 25px + 10px);
-    padding: 62px 20px 10px 0;
+    padding: 60px 20px 15px 0;
     position: relative;
     // height: 453px;
   }
@@ -393,6 +393,7 @@ export default class SourceHive extends Vue {
     margin-bottom: 20px;
     .sample-desc {
       color: @text-normal-color;
+      word-break: break-word;
       .error-msg {
         color: @color-danger;
         font-size: 12px;
@@ -404,13 +405,19 @@ export default class SourceHive extends Vue {
   }
   .content-body {
     position: relative;
-    height: 470px;
+    height: 334px;
     border: 1px solid @line-border-color;
     transition: height .2s .2s;
     overflow: auto;
+    &.has-error-msg {
+      height: 317px;
+    }
   }
   .content-body.has-tips {
-    height: 355px;
+    height: 240px;
+    &.has-error-msg {
+      height: 223px;
+    }
   }
   .el-tag {
     margin-right: 10px;
@@ -475,11 +482,11 @@ export default class SourceHive extends Vue {
   }
   .tips {
     position: absolute;
-    padding: 15px;
-    height: 75px;
+    padding: 10px;
+    height: 65px;
     border-radius: 2px;
     background-color: @base-color-9;
-    bottom: 10px;
+    bottom: 15px;
     right: 20px;
     .header {
       color: @text-normal-color;

@@ -1125,9 +1125,13 @@ export default class FavoriteQuery extends Vue {
           this.whiteMessages = []
           this.inputHeight = 382
           this.isWhiteErrorMessage = false
+          this.isEditSql = false
+          this.isReadOnly = true
           for (const key in this.whiteSqlData.data) {
             if (this.whiteSqlData.data[key].id === this.activeSqlObj.id) {
               this.whiteSqlData.data[key].sql = this.whiteSql
+              const formatterSql = sqlFormatter.format(this.whiteSql)
+              this.sqlFormatterObj[this.activeSqlObj.id] = formatterSql
               this.whiteSqlDatasPageChange(this.whiteCurrentPage)
               if (!this.whiteSqlData.data[key].capable) {
                 this.whiteSqlData.data[key].capable = true
