@@ -325,6 +325,10 @@ public class NSparkExecutable extends AbstractExecutable {
         }
         appendSparkConf(sb, "spark.executor.extraClassPath", Paths.get(kylinJobJar).getFileName().toString());
 
+        if (sparkConfs.containsKey("spark.sql.hive.metastore.jars")) {
+            jars = jars + "," + sparkConfs.get("spark.sql.hive.metastore.jars");
+        }
+
         sb.append("--name job_step_%s ");
         sb.append("--jars %s %s %s");
         String cmd = String.format(sb.toString(), hadoopConf, KylinConfig.getSparkHome(), getId(), jars, kylinJobJar,
