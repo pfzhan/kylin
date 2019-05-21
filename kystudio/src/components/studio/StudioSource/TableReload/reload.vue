@@ -38,7 +38,7 @@
         </el-form>
       </div>
     </el-alert>  
-    <div slot="footer" class="dialog-footer">
+    <div slot="footer" class="dialog-footer ky-no-br-space">
       <el-button size="medium" @click="closeHandler(false)">{{$t('kylinLang.common.cancel')}}</el-button>
       <el-button size="medium" :loading="reloadLoading" plain type="primary" @click="submit">{{$t('kylinLang.common.submit')}}</el-button>
     </div>

@@ -54,16 +54,6 @@ export function loadTableDrama () {
       eventID: 5,
       done: false,
       target: 'selectHiveTables' // 鼠标点击加载数据源按钮
-    },
-    {
-      eventID: 1,
-      done: false,
-      target: 'closeLoadResult' // 飞向点击关闭结果
-    },
-    {
-      eventID: 2,
-      done: false,
-      target: 'closeLoadResult' // 点击关闭结果
     }
   ]
 }

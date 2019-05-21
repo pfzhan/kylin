@@ -43,7 +43,6 @@
       <el-table-column
         prop="comment"
         sortable
-        min-width="200"
         :label="$t('kylinLang.dataSource.comment')">
         <template slot-scope="scope">
           <span :title="scope.row.comment">{{scope.row.comment}}</span>

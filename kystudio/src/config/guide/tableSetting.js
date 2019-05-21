@@ -33,7 +33,7 @@ export function tableSettingDrama () {
       target: 'tablePartitionColumn'
     },
     {
-      eventID: 31,
+      eventID: 32,
       done: false,
       target: 'tablePartitionColumn',
       val: 'LO_ORDERDATE'

@@ -185,7 +185,7 @@
                   <i class="el-icon-ksd-project_add"></i>
                   <span>{{$t('add')}}</span>
                 </span>
-                <span class="action_btn" v-guide.batchAddDimension @click="batchSetMeasure">
+                <span class="action_btn" @click="batchSetMeasure">
                   <i class="el-icon-ksd-backup"></i>
                   <span>{{$t('batchAdd')}}</span>
                 </span>

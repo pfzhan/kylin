@@ -38,11 +38,11 @@
             <el-tab-pane :label="$t('general')" :name="viewTypes.DATA_LOAD" v-if="isAutoProject">
               <TableDataLoad :project="currentProjectData" :table="selectedTable" @fresh-tables="handleFreshTable"></TableDataLoad>
             </el-tab-pane>
-            <el-tab-pane :label="$t('columns')" :name="viewTypes.COLUMNS">
-              <TableColumns :table="selectedTable"></TableColumns>
+            <el-tab-pane :label="$t('columns')" :name="viewTypes.COLUMNS" >
+              <TableColumns :table="selectedTable" v-if="viewType === viewTypes.COLUMNS"></TableColumns>
             </el-tab-pane>
             <el-tab-pane :label="$t('sampling')" :name="viewTypes.SAMPLING">
-              <TableSamples :table="selectedTable"></TableSamples>
+              <TableSamples :table="selectedTable" v-if="viewType === viewTypes.SAMPLING"></TableSamples>
             </el-tab-pane>
           </el-tabs>
         </template>
