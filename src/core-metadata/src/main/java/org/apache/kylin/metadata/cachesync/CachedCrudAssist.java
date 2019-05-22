@@ -256,6 +256,15 @@ public abstract class CachedCrudAssist<T extends RootPersistentEntity> {
         return all;
     }
 
+    protected List<T> listAllValidCache() {
+        val all = Lists.<T> newArrayList();
+        for (val e : cache.asMap().entrySet()) {
+            if (exists(e.getKey()))
+                all.add(e.getValue());
+        }
+        return all;
+    }
+
     public boolean contains(String name) {
         return store.getResource(resourcePath(name)) != null;
     }

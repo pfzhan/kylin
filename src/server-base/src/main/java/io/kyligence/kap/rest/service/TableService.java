@@ -880,8 +880,9 @@ public class TableService extends BasicService {
         return result;
     }
 
-    public void reloadTable(String projectName, String tableIdentity, boolean needSample, int maxRows) throws Exception {
-        UnitOfWork.doInTransactionWithRetry(()  -> {
+    public void reloadTable(String projectName, String tableIdentity, boolean needSample, int maxRows)
+            throws Exception {
+        UnitOfWork.doInTransactionWithRetry(() -> {
             innerReloadTable(projectName, tableIdentity);
             if (needSample && maxRows > 0) {
                 tableSamplingService.sampling(Sets.newHashSet(tableIdentity), projectName, maxRows);
@@ -972,9 +973,9 @@ public class TableService extends BasicService {
 
         modelService.updateDataModelSemantic(projectName, request);
 
+        val df = dataflowManager.getDataflow(model.getId());
         if (CollectionUtils.isNotEmpty(changeTypeAffectedModel.getLayouts())) {
             val eventManager = getEventManager(projectName);
-            val df = dataflowManager.getDataflow(model.getId());
             dataflowManager.removeLayouts(df, changeTypeAffectedModel.getLayouts());
             AddCuboidEvent addCuboidEvent = new AddCuboidEvent();
             addCuboidEvent.setModelId(model.getId());
@@ -1073,6 +1074,7 @@ public class TableService extends BasicService {
             copy.setColumns(originColMap.values().toArray(new ColumnDesc[0]));
             loadDesc = copy;
         }
+        loadDesc.setLastSnapshotPath(null);
         loadTableToProject(loadDesc, context.getTableExtDesc(), projectName);
     }
 

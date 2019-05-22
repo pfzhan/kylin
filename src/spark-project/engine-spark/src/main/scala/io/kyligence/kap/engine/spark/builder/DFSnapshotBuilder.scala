@@ -82,7 +82,7 @@ class DFSnapshotBuilder extends Logging {
     val newSnapMap = Maps.newHashMap[String, String]
     val fs = HadoopUtil.getWorkingFileSystem
     val baseDir = KapConfig.wrap(seg.getConfig).getReadHdfsWorkingDirectory
-   val toBuildTableDesc = distinctTableDesc(model)
+    val toBuildTableDesc = distinctTableDesc(model)
     if (seg.getConfig.isSnapshotParallelBuildEnabled) {
       val service = Executors.newCachedThreadPool()
       implicit val executorContext = ExecutionContext.fromExecutorService(service)

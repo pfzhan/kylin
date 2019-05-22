@@ -26,44 +26,57 @@ package io.kyligence.kap.metadata.cube.model;
 
 import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 
+import lombok.Getter;
+import lombok.Setter;
+import lombok.experimental.Accessors;
+
 public class NDataflowUpdate {
 
+    @Getter
     private final String dataflowId;
-    
+
+    @Getter
     private NDataSegment[] toAddSegs = null;
+    @Getter
     private NDataSegment[] toRemoveSegs = null;
+    @Getter
     private NDataSegment[] toUpdateSegs = null;
-    
+
+    @Getter
     private NDataLayout[] toAddOrUpdateLayouts = null;
+    @Getter
     private NDataLayout[] toRemoveLayouts = null;
 
+    @Accessors(chain = true)
+    @Setter
+    @Getter
     private RealizationStatusEnum status;
+
+    @Accessors(chain = true)
+    @Setter
+    @Getter
     private String description;
+
+    @Accessors(chain = true)
+    @Setter
+    @Getter
     private String owner;
+
+    @Accessors(chain = true)
+    @Setter
+    @Getter
     private int cost = -1;
 
     public NDataflowUpdate(String dataflowId) {
         this.dataflowId = dataflowId;
     }
-    
-    public String getDataflowId() {
-        return dataflowId;
-    }
-
-    public NDataSegment[] getToAddSegs() {
-        return toAddSegs;
-    }
 
     public NDataflowUpdate setToAddSegs(NDataSegment... toAddSegs) {
         for (NDataSegment seg : toAddSegs)
             seg.checkIsNotCachedAndShared();
-        
+
         this.toAddSegs = toAddSegs;
         return this;
-    }
-
-    public NDataSegment[] getToRemoveSegs() {
-        return toRemoveSegs;
     }
 
     public NDataflowUpdate setToRemoveSegs(NDataSegment... toRemoveSegs) {
@@ -76,69 +89,23 @@ public class NDataflowUpdate {
         return this;
     }
 
-    public NDataSegment[] getToUpdateSegs() {
-        return toUpdateSegs;
-    }
-
     public NDataflowUpdate setToUpdateSegs(NDataSegment... toUpdateSegs) {
         for (NDataSegment seg : toUpdateSegs)
             seg.checkIsNotCachedAndShared();
-        
+
         this.toUpdateSegs = toUpdateSegs;
         return this;
-    }
-
-    public NDataLayout[] getToAddOrUpdateLayouts() {
-        return toAddOrUpdateLayouts;
     }
 
     public void setToAddOrUpdateLayouts(NDataLayout... toAddCuboids) {
         for (NDataLayout cuboid : toAddCuboids)
             cuboid.checkIsNotCachedAndShared();
-        
-        this.toAddOrUpdateLayouts = toAddCuboids;
-    }
 
-    public NDataLayout[] getToRemoveLayouts() {
-        return toRemoveLayouts;
+        this.toAddOrUpdateLayouts = toAddCuboids;
     }
 
     public void setToRemoveLayouts(NDataLayout... toRemoveLayouts) {
         this.toRemoveLayouts = toRemoveLayouts;
     }
 
-    public RealizationStatusEnum getStatus() {
-        return status;
-    }
-
-    public NDataflowUpdate setStatus(RealizationStatusEnum status) {
-        this.status = status;
-        return this;
-    }
-
-    public String getDescription() {
-        return description;
-    }
-
-    public void setDescription(String description) {
-        this.description = description;
-    }
-
-    public String getOwner() {
-        return owner;
-    }
-
-    public NDataflowUpdate setOwner(String owner) {
-        this.owner = owner;
-        return this;
-    }
-
-    public int getCost() {
-        return cost;
-    }
-
-    public NDataflowUpdate setCost(int cost) {
-        this.cost = cost;
-        return this;
-    }
 }

@@ -85,8 +85,9 @@ public class NDataModelManager {
             @Override
             protected NDataModel initEntityAfterReload(NDataModel model, String resourceName) {
                 if (!model.isDraft()) {
-                    model.init(config, getAllTablesMap(), getCache().asMap().values().stream()
-                            .filter(m -> !m.isBroken()).collect(Collectors.toList()), project);
+                    model.init(config, getAllTablesMap(),
+                            listAllValidCache().stream().filter(m -> !m.isBroken()).collect(Collectors.toList()),
+                            project);
                 }
                 return model;
             }
