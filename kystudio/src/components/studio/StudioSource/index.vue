@@ -30,7 +30,7 @@
             <div class="table-actions ky-no-br-space">
               <el-button size="small" @click="sampleTable">{{$t('sample')}}</el-button>
               <el-button size="small" :loading="reloadBtnLoading" plain @click="handleReload">{{$t('reload')}}</el-button>
-              <el-button size="small" @click="handleDelete" plain>{{$t('delete')}}</el-button>
+              <el-button size="small" :loading="delBtnLoading" @click="handleDelete" plain>{{$t('delete')}}</el-button>
             </div>
           </div>
           <!-- Source Table详细信息 -->
@@ -130,6 +130,7 @@ export default class StudioSource extends Vue {
   reloadBtnLoading = false
   sampleVisible = false
   sampleLoading = false
+  delBtnLoading = false
   samplingRows = 20000000
   errorMsg = ''
   get selectedTable () {
@@ -213,13 +214,15 @@ export default class StudioSource extends Vue {
       const databaseName = this.selectedTable.database
       const tableName = this.selectedTable.name
       const { modelCount, modelSize } = await this._getAffectedModelCountAndSize()
-
+      this.delBtnLoading = true
       await this.showDeleteTableConfirm(modelCount, modelSize)
       await this.deleteTable({ projectName, databaseName, tableName })
 
       this.$message({ type: 'success', message: this.$t('unloadSuccess') })
       await this.handleFreshTable({ isSetToDefault: true })
+      this.delBtnLoading = false
     } catch (e) {
+      this.delBtnLoading = false
       handleError(e)
     }
   }
