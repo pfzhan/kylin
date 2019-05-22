@@ -895,6 +895,9 @@ public class TableService extends BasicService {
 
         val project = getProjectManager().getProject(projectName);
         val context = calcReloadContext(projectName, tableIdentity);
+        for (val model : dataflowManager.listUnderliningDataModels()) {
+            updateBrokenModel(project, model, context);
+        }
         mergeTable(projectName, context, true);
         for (val model : dataflowManager.listUnderliningDataModels()) {
             updateModelByReloadTable(project, model, context);
@@ -915,6 +918,30 @@ public class TableService extends BasicService {
         mergeTable(projectName, context, false);
     }
 
+    void updateBrokenModel(ProjectInstance project, NDataModel model, ReloadTableContext context) throws Exception {
+        if (!context.getRemoveAffectedModels().containsKey(model.getId())
+                && !context.getChangeTypeAffectedModels().containsKey(model.getId())) {
+            return;
+        }
+
+        val removeAffectedModel = context.getRemoveAffectedModels().getOrDefault(model.getId(),
+                new ReloadTableAffectedModelContext());
+
+        if (!removeAffectedModel.isBroken()) {
+            return;
+        }
+        val projectName = project.getName();
+        if (project.getMaintainModelType() == MaintainModelType.AUTO_MAINTAIN) {
+            return;
+        }
+
+        cleanIndexPlan(projectName, model, removeAffectedModel);
+
+        val request = new ModelRequest(JsonUtil.deepCopy(model, NDataModel.class));
+        setRequest(request, model, removeAffectedModel, projectName);
+        modelService.updateBrokenModel(projectName, request, removeAffectedModel.getColumnIds());
+    }
+
     void updateModelByReloadTable(ProjectInstance project, NDataModel model, ReloadTableContext context)
             throws Exception {
         val modelManager = getDataModelManager(project.getName());
@@ -930,7 +957,6 @@ public class TableService extends BasicService {
                 new ReloadTableAffectedModelContext());
         val changeTypeAffectedModel = context.getChangeTypeAffectedModels().getOrDefault(model.getId(),
                 new ReloadTableAffectedModelContext());
-        val removeDims = removeAffectedModel.getDimensions();
         if (removeAffectedModel.isBroken()) {
             if (project.getMaintainModelType() == MaintainModelType.AUTO_MAINTAIN) {
                 modelManager.dropModel(model);
@@ -939,8 +965,8 @@ public class TableService extends BasicService {
             } else {
                 val df = dataflowManager.getDataflow(model.getId());
                 val dfUpdate = new NDataflowUpdate(df.getId());
-                dfUpdate.setStatus(RealizationStatusEnum.BROKEN);
                 dfUpdate.setToRemoveSegs(df.getSegments().toArray(new NDataSegment[0]));
+                dfUpdate.setStatus(RealizationStatusEnum.BROKEN);
                 dataflowManager.updateDataflow(dfUpdate);
             }
             return;
@@ -952,15 +978,7 @@ public class TableService extends BasicService {
         cleanIndexPlan(projectName, model, removeAffectedModel);
 
         val request = new ModelRequest(JsonUtil.deepCopy(model, NDataModel.class));
-        request.setSimplifiedMeasures(model.getEffectiveMeasures().values().stream()
-                .filter(m -> !removeAffectedModel.getMeasures().contains(m.getId())).map(SimplifiedMeasure::fromMeasure)
-                .collect(Collectors.toList()));
-        request.setSimplifiedDimensions(model.getAllNamedColumns().stream()
-                .filter(col -> !removeDims.contains(col.getId()) && col.isDimension()).collect(Collectors.toList()));
-        request.setComputedColumnDescs(model.getComputedColumnDescs().stream()
-                .filter(cc -> !removeAffectedModel.getComputedColumns().contains(cc.getFullName()))
-                .collect(Collectors.toList()));
-        request.setProject(projectName);
+        setRequest(request, model, removeAffectedModel, projectName);
         request.setColumnsFetcher((tableRef, isFilterCC) -> TableRef.filterColumns(
                 tableRef.getIdentity().equals(context.getTableDesc().getIdentity()) ? context.getTableDesc() : tableRef,
                 isFilterCC));
@@ -985,6 +1003,20 @@ public class TableService extends BasicService {
         }
 
         cleanRedundantEvents(projectName, model, events);
+    }
+
+    private void setRequest(ModelRequest request, NDataModel model, ReloadTableAffectedModelContext removeAffectedModel,
+            String projectName) {
+        request.setSimplifiedMeasures(model.getEffectiveMeasures().values().stream()
+                .filter(m -> !removeAffectedModel.getMeasures().contains(m.getId())).map(SimplifiedMeasure::fromMeasure)
+                .collect(Collectors.toList()));
+        request.setSimplifiedDimensions(model.getAllNamedColumns().stream()
+                .filter(col -> !removeAffectedModel.getDimensions().contains(col.getId()) && col.isDimension())
+                .collect(Collectors.toList()));
+        request.setComputedColumnDescs(model.getComputedColumnDescs().stream()
+                .filter(cc -> !removeAffectedModel.getComputedColumns().contains(cc.getFullName()))
+                .collect(Collectors.toList()));
+        request.setProject(projectName);
     }
 
     void cleanIndexPlan(String projectName, NDataModel model, ReloadTableAffectedModelContext removeAffectedModel) {

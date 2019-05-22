@@ -41,6 +41,8 @@ import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.project.ProjectInstance;
+import org.apache.kylin.metadata.realization.RealizationStatusEnum;
+import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.service.ServiceTestBase;
 import org.apache.kylin.source.jdbc.H2Database;
 import org.junit.After;
@@ -48,10 +50,13 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.authentication.TestingAuthenticationToken;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
+import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.event.manager.EventDao;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.model.NDataLayout;
@@ -64,10 +69,12 @@ import io.kyligence.kap.metadata.favorite.FavoriteQuery;
 import io.kyligence.kap.metadata.favorite.FavoriteQueryManager;
 import io.kyligence.kap.metadata.favorite.FavoriteQueryRealization;
 import io.kyligence.kap.metadata.model.MaintainModelType;
+import io.kyligence.kap.metadata.model.ManagementType;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
+import io.kyligence.kap.rest.request.ModelRequest;
 import lombok.val;
 import lombok.var;
 
@@ -177,6 +184,137 @@ public class TableReloadServiceTest extends ServiceTestBase {
         val dfManager = NDataflowManager.getInstance(getTestConfig(), PROJECT);
         Assert.assertEquals(4,
                 dfManager.listAllDataflows(true).stream().filter(NDataflow::checkBrokenWithRelatedInfo).count());
+    }
+
+    private void prepareReload() {
+        SecurityContextHolder.getContext()
+                .setAuthentication(new TestingAuthenticationToken("ADMIN", "ADMIN", Constant.ROLE_ADMIN));
+        val projectManager = NProjectManager.getInstance(getTestConfig());
+        ProjectInstance projectInstance = projectManager.getProject(PROJECT);
+        ProjectInstance projectInstanceUpdate = projectManager.copyForWrite(projectInstance);
+        projectInstanceUpdate.setMaintainModelType(MaintainModelType.MANUAL_MAINTAIN);
+        projectManager.updateProject(projectInstanceUpdate);
+        val modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), PROJECT);
+        var originModel = modelManager.getDataModelDescByAlias("nmodel_basic_inner");
+        val copyForUpdate = modelManager.copyForWrite(originModel);
+        copyForUpdate.setManagementType(ManagementType.MODEL_BASED);
+        modelManager.updateDataModelDesc(copyForUpdate);
+
+        var originModels = modelService.getModels("nmodel_basic_inner", PROJECT, false, "", "", "", false);
+        Assert.assertEquals(1, originModels.size());
+        originModel = originModels.get(0);
+        Assert.assertEquals(9, originModel.getJoinTables().size());
+        Assert.assertEquals(17, originModel.getAllMeasures().size());
+        Assert.assertEquals(34, originModel.getAllNamedColumns().size());
+    }
+
+    @Test
+    public void testReload_GetAndEditJoinBrokenModelInManualProject() throws Exception {
+        prepareReload();
+
+        changeColumnName("DEFAULT.TEST_KYLIN_FACT", "ORDER_ID", "ORDER_ID2");
+        tableService.innerReloadTable(PROJECT, "DEFAULT.TEST_KYLIN_FACT");
+
+        var brokenModels = modelService.getModels("nmodel_basic_inner", PROJECT, false, "", "", "", false);
+        Assert.assertEquals(1, brokenModels.size());
+        val brokenModel = brokenModels.get(0);
+        Assert.assertEquals(9, brokenModel.getJoinTables().size());
+        Assert.assertEquals(17, brokenModel.getAllMeasures().size());
+        Assert.assertEquals(197, brokenModel.getAllNamedColumns().size());
+        Assert.assertEquals("ORDER_ID", brokenModel.getAllNamedColumns().get(13).getName());
+        Assert.assertEquals(NDataModel.ColumnStatus.TOMB, brokenModel.getAllNamedColumns().get(13).getStatus());
+        val brokenDataflow = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), PROJECT)
+                .getDataflow(brokenModel.getId());
+        Assert.assertEquals(0, brokenDataflow.getSegments().size());
+        Assert.assertEquals(RealizationStatusEnum.BROKEN, brokenDataflow.getStatus());
+        Assert.assertTrue(NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), PROJECT)
+                .getIndexPlan(brokenModel.getId()).isBroken());
+
+        val copyModel = JsonUtil.deepCopy(brokenModel, NDataModel.class);
+        val updateJoinTables = copyModel.getJoinTables();
+        updateJoinTables.get(0).getJoin().setForeignKey(new String[] { "TEST_KYLIN_FACT.ORDER_ID2" });
+        copyModel.setJoinTables(updateJoinTables);
+        UnitOfWork.doInTransactionWithRetry(() -> {
+            modelService.repairBrokenModel(PROJECT, createModelRequest(copyModel));
+            return null;
+        }, PROJECT, 1);
+        val modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), PROJECT);
+        val reModel = modelManager.getDataModelDescByAlias("nmodel_basic_inner");
+        Assert.assertNotNull(reModel);
+        Assert.assertFalse(reModel.isBroken());
+        Assert.assertEquals(9, reModel.getJoinTables().size());
+        Assert.assertEquals(17, reModel.getAllMeasures().size());
+        Assert.assertEquals(197, reModel.getAllNamedColumns().size());
+        Assert.assertEquals("ORDER_ID", reModel.getAllNamedColumns().get(13).getName());
+        Assert.assertEquals(NDataModel.ColumnStatus.TOMB, reModel.getAllNamedColumns().get(13).getStatus());
+        val reDataflow = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), PROJECT)
+                .getDataflow(reModel.getId());
+        Assert.assertEquals(0, reDataflow.getSegments().size());
+        Assert.assertEquals(RealizationStatusEnum.ONLINE, reDataflow.getStatus());
+        Assert.assertFalse(NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), PROJECT)
+                .getIndexPlan(reModel.getId()).isBroken());
+    }
+
+    private ModelRequest createModelRequest(NDataModel copyModel) {
+        val updateRequest = new ModelRequest(copyModel);
+        updateRequest.setProject(PROJECT);
+        updateRequest.setStart("1262275200000");
+        updateRequest.setEnd("1388505600000");
+        updateRequest.setBrokenReason(NDataModel.BrokenReason.SCHEMA);
+        return updateRequest;
+    }
+
+    @Test
+    public void testReload_GetAndEditPartitionBrokenModelInManualProject() throws Exception {
+        prepareReload();
+
+        changeColumnName("DEFAULT.TEST_KYLIN_FACT", "CAL_DT", "CAL_DT2");
+        tableService.innerReloadTable(PROJECT, "DEFAULT.TEST_KYLIN_FACT");
+
+        var brokenModels = modelService.getModels("nmodel_basic_inner", PROJECT, false, "", "", "", false);
+        Assert.assertEquals(1, brokenModels.size());
+        val brokenModel = brokenModels.get(0);
+        Assert.assertEquals(9, brokenModel.getJoinTables().size());
+        Assert.assertEquals(17, brokenModel.getAllMeasures().size());
+        Assert.assertEquals(197, brokenModel.getAllNamedColumns().size());
+        Assert.assertEquals("CAL_DT", brokenModel.getAllNamedColumns().get(2).getName());
+        Assert.assertEquals("DEAL_YEAR", brokenModel.getAllNamedColumns().get(28).getName());
+        Assert.assertEquals(NDataModel.ColumnStatus.TOMB, brokenModel.getAllNamedColumns().get(2).getStatus());
+        Assert.assertEquals(NDataModel.ColumnStatus.TOMB, brokenModel.getAllNamedColumns().get(28).getStatus());
+        val brokenDataflow = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), PROJECT)
+                .getDataflow(brokenModel.getId());
+        Assert.assertEquals(0, brokenDataflow.getSegments().size());
+        Assert.assertEquals(RealizationStatusEnum.BROKEN, brokenDataflow.getStatus());
+        Assert.assertTrue(NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), PROJECT)
+                .getIndexPlan(brokenModel.getId()).isBroken());
+
+        val copyModel = JsonUtil.deepCopy(brokenModel, NDataModel.class);
+        copyModel.getPartitionDesc().setPartitionDateColumn("DEFAULT.TEST_KYLIN_FACT.CAL_DT2");
+        val updateJoinTables = copyModel.getJoinTables();
+        updateJoinTables.get(2).getJoin().setForeignKey(new String[] { "TEST_KYLIN_FACT.CAL_DT2" });
+        copyModel.setJoinTables(updateJoinTables);
+
+        UnitOfWork.doInTransactionWithRetry(() -> {
+            modelService.repairBrokenModel(PROJECT, createModelRequest(copyModel));
+            return null;
+        }, PROJECT, 1);
+        val modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), PROJECT);
+        val reModel = modelManager.getDataModelDescByAlias("nmodel_basic_inner");
+        Assert.assertNotNull(reModel);
+        Assert.assertFalse(reModel.isBroken());
+        Assert.assertEquals(9, reModel.getJoinTables().size());
+        Assert.assertEquals(17, reModel.getAllMeasures().size());
+        Assert.assertEquals(197, reModel.getAllNamedColumns().size());
+        Assert.assertEquals("CAL_DT", reModel.getAllNamedColumns().get(2).getName());
+        Assert.assertEquals("DEAL_YEAR", reModel.getAllNamedColumns().get(28).getName());
+        Assert.assertEquals(NDataModel.ColumnStatus.TOMB, reModel.getAllNamedColumns().get(2).getStatus());
+        Assert.assertEquals(NDataModel.ColumnStatus.TOMB, reModel.getAllNamedColumns().get(28).getStatus());
+        val reDataflow = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), PROJECT)
+                .getDataflow(reModel.getId());
+        Assert.assertEquals(0, reDataflow.getSegments().size());
+        Assert.assertEquals(RealizationStatusEnum.ONLINE, reDataflow.getStatus());
+        Assert.assertFalse(NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), PROJECT)
+                .getIndexPlan(reModel.getId()).isBroken());
     }
 
     @Test
@@ -340,8 +478,7 @@ public class TableReloadServiceTest extends ServiceTestBase {
         indexManager.updateIndexPlan(indexPlan.getId(), copyForWrite -> {
             copyForWrite.setDictionaries(Arrays.asList(
                     new NDictionaryDesc(12, 1, "org.apache.kylin.dict.NGlobalDictionaryBuilder2", null, null),
-                    new NDictionaryDesc(3, 1, "org.apache.kylin.dict.NGlobalDictionaryBuilder2", null, null)
-            ));
+                    new NDictionaryDesc(3, 1, "org.apache.kylin.dict.NGlobalDictionaryBuilder2", null, null)));
         });
 
         val tableIdentity = "DEFAULT.TEST_KYLIN_FACT";
@@ -396,6 +533,22 @@ public class TableReloadServiceTest extends ServiceTestBase {
         val columns = Sets.newHashSet(column);
         val newColumns = Stream.of(factTable.getColumns()).filter(col -> !columns.contains(col.getName()))
                 .toArray(ColumnDesc[]::new);
+        tableMeta.setColumns(newColumns);
+        JsonUtil.writeValueIndent(new FileOutputStream(new File(tablePath)), tableMeta);
+    }
+
+    private void changeColumnName(String tableIdentity, String oldName, String newName) throws IOException {
+        val tableManager = NTableMetadataManager.getInstance(getTestConfig(), PROJECT);
+        val factTable = tableManager.getTableDesc(tableIdentity);
+        String resPath = KylinConfig.getInstanceFromEnv().getMetadataUrl().getIdentifier();
+        String tablePath = resPath + "/../data/tableDesc/" + tableIdentity + ".json";
+        val tableMeta = JsonUtil.readValue(new File(tablePath), TableDesc.class);
+        val newColumns = Stream.of(factTable.getColumns()).map(columnDesc -> {
+            if (columnDesc.getName().equals(oldName)) {
+                columnDesc.setName(newName);
+            }
+            return columnDesc;
+        }).toArray(ColumnDesc[]::new);
         tableMeta.setColumns(newColumns);
         JsonUtil.writeValueIndent(new FileOutputStream(new File(tablePath)), tableMeta);
     }

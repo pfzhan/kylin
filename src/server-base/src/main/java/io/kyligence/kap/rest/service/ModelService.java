@@ -39,6 +39,7 @@ import java.util.stream.Collectors;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.persistence.RootPersistentEntity;
 import org.apache.kylin.common.util.DateFormat;
 import org.apache.kylin.common.util.JsonUtil;
@@ -175,26 +176,23 @@ public class ModelService extends BasicService {
         val dfManager = getDataflowManager(projectName);
 
         List<NDataModelResponse> filterModels = new ArrayList<>();
-        List<NDataModelResponse> brokenModels = new ArrayList<>();
         for (NDataflow dataflow : dataflowList) {
-            val modelDesc = dataflow.getModel();
-            if (dataflow.checkBrokenWithRelatedInfo()) {
-                val nDataModelResponse = new NDataModelResponse();
-                nDataModelResponse.setUuid(dataflow.getId());
-                nDataModelResponse.setStatus(RealizationStatusEnum.BROKEN);
-                nDataModelResponse.setAlias(modelDesc.getAlias());
-                brokenModels.add(nDataModelResponse);
-                continue;
+            var modelDesc = dataflow.getModel();
+            val isBroken = dataflow.checkBrokenWithRelatedInfo();
+            if (isBroken) {
+                modelDesc = getBrokenModel(projectName, modelDesc.getResourcePath());
             }
             boolean isModelNameMatch = isArgMatch(modelAlias, exactMatch, modelDesc.getAlias());
             boolean isModelOwnerMatch = isArgMatch(owner, exactMatch, modelDesc.getOwner());
             if (isModelNameMatch && isModelOwnerMatch) {
-                RealizationStatusEnum modelStatus = getModelStatus(modelDesc.getUuid(), projectName);
+                RealizationStatusEnum modelStatus = isBroken ? RealizationStatusEnum.BROKEN
+                        : getModelStatus(modelDesc.getUuid(), projectName);
                 boolean isModelStatusMatch = StringUtils.isEmpty(status)
                         || (modelStatus != null && modelStatus.name().equalsIgnoreCase(status));
 
                 if (isModelStatusMatch) {
                     NDataModelResponse nDataModelResponse = enrichModelResponse(modelDesc, projectName);
+                    nDataModelResponse.setModelBroken(isBroken);
                     nDataModelResponse.setStatus(modelStatus);
                     nDataModelResponse.setStorage(dfManager.getDataflowByteSize(modelDesc.getUuid()));
                     nDataModelResponse.setUsage(dataflow.getQueryHitCount());
@@ -202,11 +200,7 @@ public class ModelService extends BasicService {
                 }
             }
         }
-        val sortModelResponses = sortModelResponses(sortBy, reverse, filterModels);
-        if ((StringUtils.isBlank(status) || RealizationStatusEnum.BROKEN.toString().equalsIgnoreCase(status))) {
-            sortModelResponses.addAll(brokenModels);
-        }
-        return sortModelResponses;
+        return sortModelResponses(sortBy, reverse, filterModels);
     }
 
     private boolean isArgMatch(String valueToMatch, boolean exactMatch, String originValue) {
@@ -241,6 +235,9 @@ public class ModelService extends BasicService {
 
     private NDataModelResponse enrichModelResponse(NDataModel modelDesc, String projectName) {
         NDataModelResponse nDataModelResponse = new NDataModelResponse(modelDesc);
+        if (modelDesc.isBroken()) {
+            return nDataModelResponse;
+        }
         nDataModelResponse.setAllTableRefs(modelDesc.getAllTables());
         if (modelDesc.getManagementType().equals(ManagementType.MODEL_BASED)) {
             Segments<NDataSegment> segments = getSegmentsByRange(modelDesc.getUuid(), projectName, "0",
@@ -697,6 +694,18 @@ public class ModelService extends BasicService {
         }, project);
     }
 
+    private NDataModel getBrokenModel(String project, String resourcePath) {
+        try {
+            val modelDesc = JsonUtil.readValue(ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv())
+                    .getResource(resourcePath).getByteSource().read(), NDataModel.class);
+            modelDesc.setBroken(true);
+            modelDesc.setProject(project);
+            return modelDesc;
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     private void checkModelRequest(ModelRequest request) {
         checkModelDimensions(request);
         checkModelMeasures(request);
@@ -1009,7 +1018,6 @@ public class ModelService extends BasicService {
     }
 
     public void preProcessBeforeModelSave(NDataModel model, String project) {
-
         model.init(getConfig(), getTableManager(project).getAllTablesMap(),
                 getDataflowManager(project).listUnderliningDataModels(), project);
 
@@ -1141,10 +1149,10 @@ public class ModelService extends BasicService {
     public void updateDataModelSemantic(String project, ModelRequest request) throws Exception {
         checkModelRequest(request);
         val modelManager = getDataModelManager(project);
-        val cubeManager = getIndexPlanManager(project);
-        val dataflowManager = getDataflowManager(project);
         val originModel = modelManager.getDataModelDesc(request.getUuid());
 
+        val cubeManager = getIndexPlanManager(project);
+        val dataflowManager = getDataflowManager(project);
         val df = dataflowManager.getDataflow(request.getUuid());
         val copyModel = modelManager.copyForWrite(originModel);
         semanticUpdater.updateModelColumns(copyModel, request);
@@ -1178,6 +1186,49 @@ public class ModelService extends BasicService {
         }
         proposeAndSaveDateFormatIfNotExist(project, request.getId());
         semanticUpdater.handleSemanticUpdate(project, request.getId(), originModel);
+    }
+
+    public void updateBrokenModel(String project, ModelRequest modelRequest, Set<Integer> columnIds) {
+        val modelManager = getDataModelManager(project);
+        val origin = modelManager.getDataModelDesc(modelRequest.getUuid());
+        val copyModel = modelManager.copyForWrite(origin);
+        semanticUpdater.updateModelColumns(copyModel, modelRequest);
+        copyModel.setBrokenReason(NDataModel.BrokenReason.SCHEMA);
+        copyModel.getAllNamedColumns().forEach(namedColumn -> {
+            if (columnIds.contains(namedColumn.getId())) {
+                namedColumn.setStatus(NDataModel.ColumnStatus.TOMB);
+            }
+        });
+        modelManager.updateDataModelDesc(copyModel);
+    }
+
+    public NDataModel repairBrokenModel(String project, ModelRequest modelRequest) throws Exception {
+        val modelManager = getDataModelManager(project);
+        val origin = modelManager.getDataModelDesc(modelRequest.getId());
+        val broken = getBrokenModel(project, origin.getResourcePath());
+        val prjManager = getProjectManager();
+        val prj = prjManager.getProject(project);
+
+        if (prj.getMaintainModelType().equals(MaintainModelType.AUTO_MAINTAIN)
+                || broken.getManagementType().equals(ManagementType.TABLE_ORIENTED)) {
+            throw new BadRequestException("Can not repair model manually smart mode!");
+        }
+        if (modelRequest.getPartitionDesc() != null
+                && !modelRequest.getPartitionDesc().equals(broken.getPartitionDesc())) {
+            broken.setPartitionDesc(modelRequest.getPartitionDesc());
+        }
+        broken.setJoinTables(modelRequest.getJoinTables());
+        broken.init(getConfig(), getTableManager(project).getAllTablesMap(),
+                getDataflowManager(project).listUnderliningDataModels(), project);
+        broken.setBrokenReason(NDataModel.BrokenReason.NULL);
+        val format = probeDateFormatIfNotExist(project, broken);
+        return UnitOfWork.doInTransactionWithRetry(() -> {
+            val model = getDataModelManager(project).updateDataModelDesc(broken);
+            saveDateFormatIfNotExist(project, model.getUuid(), format);
+            getDataflowManager(project).updateDataflow(broken.getId(),
+                    copyForWrite -> copyForWrite.setStatus(RealizationStatusEnum.ONLINE));
+            return getDataModelManager(project).getDataModelDesc(model.getUuid());
+        }, project);
     }
 
     private boolean needChangeFormat(NDataModel oriModel, NDataModel newModel) {

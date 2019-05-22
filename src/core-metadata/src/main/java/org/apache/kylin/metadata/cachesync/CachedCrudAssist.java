@@ -174,7 +174,6 @@ public abstract class CachedCrudAssist<T extends RootPersistentEntity> {
 
         } catch (Exception e) {
             entity = initBrokenEntity(entity, resourceName(path));
-            entity.setCachedAndShared(false);
             logger.warn("Error loading " + entityType.getSimpleName() + " at " + path + " entity", e);
         }
         cache.put(entity.resourceName(), entity);

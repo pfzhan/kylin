@@ -55,6 +55,9 @@ public class NDataModelResponse extends NDataModel {
     @JsonProperty("usage")
     private long usage;
 
+    @JsonProperty("model_broken")
+    private boolean modelBroken;
+
     public NDataModelResponse() {
         super();
     }
@@ -79,9 +82,6 @@ public class NDataModelResponse extends NDataModel {
     @JsonProperty("simplified_tables")
     public List<SimplifiedTableResponse> getSimpleTables() {
         List<SimplifiedTableResponse> simpleTables = new ArrayList<>();
-        if (RealizationStatusEnum.BROKEN.equals(status)) {
-            return simpleTables;
-        }
         for (TableRef tableRef : getAllTables()) {
             SimplifiedTableResponse simpleTable = new SimplifiedTableResponse();
             simpleTable.setTable(tableRef.getTableIdentity());

@@ -283,7 +283,11 @@ public class NModelController extends NBasicController {
         checkProjectName(request.getProject());
         validatePartitionDesc(request);
         checkRequiredArg(MODEL_ID, request.getUuid());
-        modelService.updateDataModelSemantic(request.getProject(), request);
+        if (request.getBrokenReason() == NDataModel.BrokenReason.SCHEMA) {
+            modelService.repairBrokenModel(request.getProject(), request);
+        } else {
+            modelService.updateDataModelSemantic(request.getProject(), request);
+        }
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, null, "");
     }
 

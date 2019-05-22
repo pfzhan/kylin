@@ -217,6 +217,10 @@ public class NDataModel extends RootPersistentEntity {
     @JsonInclude(JsonInclude.Include.NON_NULL) // output to frontend
     private Canvas canvas;
 
+    @JsonProperty("broken_reason")
+    @JsonInclude(JsonInclude.Include.NON_DEFAULT)
+    private BrokenReason brokenReason = BrokenReason.NULL;
+
     // computed fields below
     private String project;
 
@@ -254,6 +258,10 @@ public class NDataModel extends RootPersistentEntity {
 
     public enum ColumnStatus {
         TOMB, EXIST, DIMENSION
+    }
+
+    public enum BrokenReason {
+        SCHEMA, NULL
     }
 
     @Data
@@ -339,6 +347,7 @@ public class NDataModel extends RootPersistentEntity {
         this.segmentConfig = other.segmentConfig;
         this.dataCheckDesc = other.dataCheckDesc;
         this.canvas = other.canvas;
+        this.brokenReason = other.brokenReason;
     }
 
     public KylinConfig getConfig() {
