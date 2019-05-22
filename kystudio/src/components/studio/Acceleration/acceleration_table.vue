@@ -156,6 +156,8 @@ export default class FavoriteTable extends Vue {
         return i.sql_pattern
       })
     } else {
+      this.checkedList = []
+      this.checkedSqls = []
       this.$emit('reCallPolling')
     }
   }
