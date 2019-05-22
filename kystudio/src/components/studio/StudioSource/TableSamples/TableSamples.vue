@@ -37,7 +37,6 @@ import { Component } from 'vue-property-decorator'
 
 import locales from './locales'
 import EmptyData from '../../../common/EmptyData/EmptyData.vue'
-import { changeDataAxis } from '../../../../util'
 
 @Component({
   props: {
@@ -61,7 +60,7 @@ export default class TableSamples extends Vue {
     return this.columns[0] ? this.columns[0].length : 0
   }
   get columns () {
-    const columns = changeDataAxis(this.table.sampling_rows)
+    const columns = this.table.sampling_rows
     const headerIdxs = []
 
     this.table.__data.columns.forEach((column, index) => {

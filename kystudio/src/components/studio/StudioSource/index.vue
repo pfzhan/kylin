@@ -41,8 +41,8 @@
             <el-tab-pane :label="$t('columns')" :name="viewTypes.COLUMNS" >
               <TableColumns :table="selectedTable" v-if="viewType === viewTypes.COLUMNS"></TableColumns>
             </el-tab-pane>
-            <el-tab-pane :label="$t('sampling')" :name="viewTypes.SAMPLING">
-              <TableSamples :table="selectedTable" v-if="viewType === viewTypes.SAMPLING"></TableSamples>
+            <el-tab-pane :label="$t('sampling')" :name="viewTypes.SAMPLE">
+              <TableSamples :table="selectedTable" v-if="viewType === viewTypes.SAMPLE"></TableSamples>
             </el-tab-pane>
           </el-tabs>
         </template>

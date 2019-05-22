@@ -355,7 +355,7 @@ import { transToGmtTime, handleError, handleSuccess } from 'util/business'
       duration: 'Duration',
       waiting: 'Waiting',
       noSelectJobs: 'Please check at least one job.',
-      selectedJobs: '{selectedNumber} jobs have been selected',
+      selectedJobs: '{selectedNumber} jobs have been selected. ',
       selectAll: 'All Select',
       fullLoad: 'Full Load',
       jobDetails: 'Job Details',
