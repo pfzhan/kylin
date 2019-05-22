@@ -45,8 +45,8 @@ public class QueryHistory {
     public static final String DB_NAME = InfluxDBWriter.DEFAULT_DATABASE;
 
     // table names
-    public static final String QUERY_MEASUREMENT_PREFIX = "query_metric";
-    public static final String REALIZATION_MEASUREMENT_PREFIX = "realization_metric";
+    public static final String QUERY_MEASUREMENT_SURFIX = "query_history";
+    public static final String REALIZATION_MEASUREMENT_SURFIX = "query_history_realization";
 
     public static final String QUERY_ID = "query_id";
     public static final String SQL_TEXT = "sql_text";

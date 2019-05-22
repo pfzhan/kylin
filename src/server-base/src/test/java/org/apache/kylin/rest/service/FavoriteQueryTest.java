@@ -90,7 +90,7 @@ import java.util.concurrent.CountDownLatch;
 public class FavoriteQueryTest extends NLocalFileMetadataTestCase {
 
     private static final String PROJECT = "default";
-    private final String SHOW_DATABASES = "{\"results\":[{\"statement_id\":0,\"series\":[{\"name\":\"databases\",\"columns\":[\"name\"],\"values\":[[\"_internal\"],[\"KE_METRIC\"]]}]}]}\n";
+    private final String SHOW_DATABASES = "{\"results\":[{\"statement_id\":0,\"series\":[{\"name\":\"databases\",\"columns\":[\"name\"],\"values\":[[\"_internal\"],[\"KE_HISTORY\"]]}]}]}\n";
 
     private KapQueryService queryService;
     private List<QueryHistory> queryHistories = new ArrayList<>();

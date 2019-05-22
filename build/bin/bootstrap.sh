@@ -1,37 +1,62 @@
 #!/bin/bash
 # Kyligence Inc. License
 
-alias cd='cd -P'
-dir=$(dirname ${0})
-cd "${dir}"
-version=`cat ../VERSION | awk '{print $2}'`
-./rotate-logs.sh $@
+source $(cd -P -- "$(dirname -- "$0")" && pwd -P)/header.sh $@
+version=`cat ${KYLIN_HOME}/VERSION | awk '{print $2}'`
+${KYLIN_HOME}/bin/rotate-logs.sh $@
 
-# setup verbose
-verbose=${verbose:-""}
-while getopts ":v" opt; do
-    case $opt in
-        v)
-            echo "Turn on verbose mode." >&2
-            export verbose=true
-            shift 1
-            ;;
-        \?)
-            echo "Invalid option: -$OPTARG" >&2
-            ;;
-    esac
-done
+if [ "$1" == "-v" ]; then
+    shift
+fi
 
-function exportEnv {
-    export KYLIN_HOME=`cd ../; pwd`
+function prepareEnv {
     export KYLIN_CONFIG_FILE="${KYLIN_HOME}/conf/kylin.properties"
-    export KYLIN_HADOOP_CONF=${KYLIN_HOME}/hadoop_conf
     export SPARK_HOME=${KYLIN_HOME}/spark
 
     verbose "KYLIN_HOME is:${KYLIN_HOME}"
     verbose "KYLIN_CONFIG_FILE is:${KYLIN_CONFIG_FILE}"
-    verbose "KYLIN_HADOOP_CONF is:${KYLIN_HADOOP_CONF}"
     verbose "SPARK_HOME is:${SPARK_HOME}"
+
+    retrieveDependency
+
+    mkdir -p ${KYLIN_HOME}/logs
+    source ${KYLIN_HOME}/bin/replace-jars-under-spark.sh
+
+    # init kerberos
+    if [ "$SKIP_KERB" != "1" ]; then
+        source ${KYLIN_HOME}/bin/init-kerberos.sh
+        initKerberosIfNeeded
+    fi
+}
+
+function retrieveDependency() {
+    # get kylin_hadoop_conf_dir
+    if [[ -z ${kylin_hadoop_conf_dir} ]]; then
+       source ${dir}/prepare-hadoop-conf-dir.sh
+    fi
+
+    #retrive $KYLIN_EXTRA_START_OPTS
+    if [ -f "${KYLIN_HOME}/conf/setenv.sh" ]; then
+        source ${KYLIN_HOME}/conf/setenv.sh
+        export KYLIN_EXTRA_START_OPTS=`echo ${KYLIN_EXTRA_START_OPTS}|sed  "s/-XX:+PrintFlagsFinal//g"`
+    fi
+}
+
+function checkRestPort() {
+    port=`$KYLIN_HOME/bin/get-properties.sh server.port`
+    used=`netstat -tpln | grep "\<$port\>" | awk '{print $7}' | sed "s/\// /g"`
+    if [ ! -z "$used" ]; then
+        echo "<$used> already listen on $port"
+        exit -1
+    fi
+}
+
+function checkZookeeperRole {
+    is_job=`${dir}/kylin.sh io.kyligence.kap.tool.CuratorOperator $1 2>/dev/null`
+
+    if [[ ${is_job} == "true" ]]; then
+        quit "Failed, only one job node is allowed"
+    fi
 }
 
 function quit {
@@ -46,73 +71,6 @@ function quit {
             exit 1
         fi
     }
-
-function verbose {
-    if [[ -n "$verbose" ]]; then
-        echo "$@"
-    fi
-}
-
-function fetchHadoopConf() {
-    export FI_ENV_PLATFORM=
-
-    ## FusionInsight platform C60.
-    if [ -n "$BIGDATA_HOME" ]
-    then
-        FI_ENV_PLATFORM=$BIGDATA_HOME
-    fi
-
-    ## FusionInsight platform C70.
-    if [ -n "$BIGDATA_CLIENT_HOME" ]
-    then
-        FI_ENV_PLATFORM=$BIGDATA_CLIENT_HOME
-    fi
-
-    if [ -n "$FI_ENV_PLATFORM" ]
-    then
-        # FI platform
-        cp -rf $FI_ENV_PLATFORM/HDFS/hadoop/etc/hadoop/core-site.xml ${KYLIN_HADOOP_CONF}
-        cp -rf $FI_ENV_PLATFORM/HDFS/hadoop/etc/hadoop/hdfs-site.xml ${KYLIN_HADOOP_CONF}
-        cp -rf $FI_ENV_PLATFORM/HDFS/hadoop/etc/hadoop/yarn-site.xml ${KYLIN_HADOOP_CONF}
-        cp -rf $FI_ENV_PLATFORM/Hive/config/hive-site.xml ${KYLIN_HADOOP_CONF}
-        cp -rf $FI_ENV_PLATFORM/HDFS/hadoop/etc/hadoop/mapred-site.xml ${KYLIN_HADOOP_CONF}
-
-        # Spark need hive-site.xml in FI
-        cp -rf $FI_ENV_PLATFORM/Hive/config/hive-site.xml ${SPARK_HOME}/conf
-
-        # don't find topology.map in FI
-        cp -rf $FI_ENV_PLATFORM/HDFS/hadoop/etc/hadoop/topology.py ${KYLIN_HADOOP_CONF}
-        cp -rf $FI_ENV_PLATFORM/HDFS/hadoop/etc/hadoop/ssl-client.xml ${KYLIN_HADOOP_CONF}
-        cp -rf $FI_ENV_PLATFORM/HDFS/hadoop/etc/hadoop/hadoop-env.sh ${KYLIN_HADOOP_CONF}
-
-    elif [ -d "/etc/hadoop/conf" ]
-    then
-        # CDH/HDP platform
-        cp -rf /etc/hadoop/conf/core-site.xml ${KYLIN_HADOOP_CONF}
-        cp -rf /etc/hadoop/conf/hdfs-site.xml ${KYLIN_HADOOP_CONF}
-        cp -rf /etc/hadoop/conf/yarn-site.xml ${KYLIN_HADOOP_CONF}
-        cp -rf /etc/hive/conf/hive-site.xml ${KYLIN_HADOOP_CONF}
-        cp -rf /etc/hadoop/conf/mapred-site.xml ${KYLIN_HADOOP_CONF}
-
-        cp -rf /etc/hadoop/conf/topology.py ${KYLIN_HADOOP_CONF}
-        cp -rf /etc/hadoop/conf/topology.map ${KYLIN_HADOOP_CONF}
-        cp -rf /etc/hadoop/conf/ssl-client.xml ${KYLIN_HADOOP_CONF}
-        cp -rf /etc/hadoop/conf/hadoop-env.sh ${KYLIN_HADOOP_CONF}
-    else
-        if [ -f "${KYLIN_HADOOP_CONF}/hdfs-site.xml" ]
-        then
-            echo "Hadoop conf directory currently generated based on manual mode."
-        else
-            echo "Missing hadoop conf files. Please contact Kyligence technical support for more details."
-            exit -1
-        fi
-    fi
-
-    if [ -d ${KYLIN_HOME}/hadoop_conf_override ]
-    then
-        cp -rf ${KYLIN_HOME}/hadoop_conf_override/hive-site.xml ${KYLIN_HADOOP_CONF}
-    fi
-}
 
 function prepareFairScheduler() {
     cat > ${KYLIN_HOME}/conf/fairscheduler.xml <<EOL
@@ -167,27 +125,13 @@ EOL
 }
 
 function runTool() {
-    exportEnv
+    prepareEnv
 
-    mkdir -p ${KYLIN_HOME}/logs
-    mkdir -p ${KYLIN_HOME}/hadoop_conf
-    fetchHadoopConf
-    source ${KYLIN_HOME}/bin/replace-jars-under-spark.sh
-
-    #retrieve $KYLIN_EXTRA_START_OPTS
-    if [ -f "${KYLIN_HOME}/conf/setenv.sh" ]; then
-        source ${KYLIN_HOME}/conf/setenv.sh
-        export KYLIN_EXTRA_START_OPTS=`echo ${KYLIN_EXTRA_START_OPTS}|sed  "s/-XX:+PrintFlagsFinal//g"`
-    fi
-    if [ "$SKIP_KERB" != "1" ]; then
-        source ${KYLIN_HOME}/bin/init-kerberos.sh
-        initKerberosIfNeeded
-    fi
-    java ${KYLIN_EXTRA_START_OPTS} -Dlog4j.configuration=file:${KYLIN_HOME}/conf/kylin-tools-log4j.properties -Dkylin.hadoop.conf.dir=${KYLIN_HADOOP_CONF} -Dhdp.version=current -cp "${KYLIN_HADOOP_CONF}:${KYLIN_HOME}/tool/kap-tool-$version.jar:${SPARK_HOME}/jars/*" $@
+    java ${KYLIN_EXTRA_START_OPTS} -Dlog4j.configuration=file:${KYLIN_HOME}/conf/kylin-tools-log4j.properties -Dkylin.hadoop.conf.dir=${kylin_hadoop_conf_dir} -Dhdp.version=current -cp "${kylin_hadoop_conf_dir}:${KYLIN_HOME}/tool/kap-tool-$version.jar:${SPARK_HOME}/jars/*" $@
 }
 
 function killChildProcess {
-    if [ -f "../child_process" ]
+    if [ -f "${KYLIN_HOME}/child_process" ]
     then
         while childPid='' read -r line || [[ -n "$line" ]]; do
             # only kill orphan processes and spark-submit processes
@@ -207,8 +151,8 @@ function killChildProcess {
               fi
               break
             done
-        done < "../child_process"
-        rm -f ../child_process
+        done < "${KYLIN_HOME}/child_process"
+        rm -f ${KYLIN_HOME}/child_process
     fi
 }
 
@@ -218,11 +162,9 @@ then
     runTool "$@"
 elif [ "$1" == "start" ]
 then
-    exportEnv
-
-    if [ -f "../pid" ]
+    if [ -f "${KYLIN_HOME}/pid" ]
     then
-        PID=`cat ../pid`
+        PID=`cat ${KYLIN_HOME}/pid`
     if ps -p $PID > /dev/null
         then
           quit "Kylin is running, stop it first, PID is $PID"
@@ -231,14 +173,9 @@ then
 
     killChildProcess
 
-    cd ${KYLIN_HOME}/server
+    prepareEnv
 
-    mkdir -p ${KYLIN_HOME}/logs
-    mkdir -p ${KYLIN_HOME}/hadoop_conf
-    fetchHadoopConf
-    source ${KYLIN_HOME}/bin/init-kerberos.sh
-    initKerberosIfNeeded
-    source ${KYLIN_HOME}/bin/replace-jars-under-spark.sh
+    cd ${KYLIN_HOME}/server
     source ${KYLIN_HOME}/bin/load-zookeeper-config.sh
     fetchFIZkInfo
     prepareFairScheduler
@@ -249,33 +186,25 @@ then
         exit -1
     fi
 
-    port=`$KYLIN_HOME/bin/get-properties.sh server.port`
-    used=`netstat -tpln | grep "\<$port\>" | awk '{print $7}' | sed "s/\// /g"`
-    if [ ! -z "$used" ]; then
-        echo "<$used> already listen on $port"
-        exit -1
-    fi
+    checkRestPort
+    checkZookeeperRole
 
-    #retrive $KYLIN_EXTRA_START_OPTS
-    if [ -f "${KYLIN_HOME}/conf/setenv.sh" ]; then
-        source ${KYLIN_HOME}/conf/setenv.sh
-        export KYLIN_EXTRA_START_OPTS=`echo ${KYLIN_EXTRA_START_OPTS}|sed  "s/-XX:+PrintFlagsFinal//g"`
-    fi
+    ${dir}/check-env.sh "if-not-yet" || exit 1
 
-    java ${KYLIN_EXTRA_START_OPTS} -Dlogging.path=${KYLIN_HOME}/logs -Dspring.profiles.active=prod -Dlogging.config=file:${KYLIN_HOME}/conf/kylin-server-log4j.properties -Dkylin.hadoop.conf.dir=${KYLIN_HADOOP_CONF} -Dhdp.version=current -Dloader.path="${KYLIN_HADOOP_CONF},${KYLIN_HOME}/server/jars,${SPARK_HOME}/jars" -XX:OnOutOfMemoryError="sh ${KYLIN_HOME}/bin/kylin.sh stop"  -jar newten.jar >> ../logs/kylin.out 2>&1 & echo $! > ../pid &
+    java ${KYLIN_EXTRA_START_OPTS} -Dlogging.path=${KYLIN_HOME}/logs -Dspring.profiles.active=prod -Dlogging.config=file:${KYLIN_HOME}/conf/kylin-server-log4j.properties -Dkylin.hadoop.conf.dir=${kylin_hadoop_conf_dir} -Dhdp.version=current -Dloader.path="${kylin_hadoop_conf_dir},${KYLIN_HOME}/server/jars,${SPARK_HOME}/jars" -XX:OnOutOfMemoryError="sh ${KYLIN_HOME}/bin/kylin.sh stop"  -jar newten.jar >> ${KYLIN_HOME}/logs/kylin.out 2>&1 & echo $! > ${KYLIN_HOME}/pid &
     PID=`cat ${KYLIN_HOME}/pid`
     CUR_DATE=$(date "+%Y-%m-%d %H:%M:%S")
     echo $CUR_DATE" new KE process pid is "$PID >> ${KYLIN_HOME}/logs/kylin.log
 
-    echo "Kylin is starting, PID:`cat ../pid`. Please checkout http://`hostname`:$port/kylin/index.html"
+    echo "Kylin is starting, PID:`cat ${KYLIN_HOME}/pid`. Please checkout http://`hostname`:$port/kylin/index.html"
 
 # stop command
 elif [ "$1" == "stop" ]
 then
 
-    if [ -f "../pid" ]
+    if [ -f "${KYLIN_HOME}/pid" ]
     then
-        PID=`cat ../pid`
+        PID=`cat ${KYLIN_HOME}/pid`
         if ps -p $PID > /dev/null
         then
            echo "Stopping Kylin: $PID"
@@ -294,7 +223,7 @@ then
               fi
               break
            done
-           rm ../pid
+           rm ${KYLIN_HOME}/pid
 
            killChildProcess
 
@@ -310,4 +239,3 @@ then
 else
     quit "Usage: 'kylin.sh [-v] start' or 'kylin.sh [-v] stop'"
 fi
-

@@ -20,8 +20,7 @@
 source $(cd -P -- "$(dirname -- "$0")" && pwd -P)/header.sh
 
 ## ${dir} assigned to $KYLIN_HOME/bin in header.sh
-source ${dir}/find-hadoop-conf-dir.sh
-source ${dir}/load-hive-conf.sh
+source ${dir}/prepare-hadoop-conf-dir.sh
 
 cd ${KYLIN_HOME}/tool/ssb/data
 

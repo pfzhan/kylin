@@ -35,7 +35,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
-import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.shaded.influxdb.org.influxdb.InfluxDB;
 import io.kyligence.kap.shaded.influxdb.org.influxdb.InfluxDBFactory;
 import io.kyligence.kap.shaded.influxdb.org.influxdb.dto.Query;
@@ -78,15 +77,9 @@ public class QueryHistoryDAO {
             logger.info("Initializing QueryHistoryDAO with KylinConfig Id: {} for project {}",
                     System.identityHashCode(config), project);
         this.kapConfig = KapConfig.wrap(config);
-        this.queryMetricMeasurement = getMeasurementName(config, project, QueryHistory.QUERY_MEASUREMENT_PREFIX);
-        this.realizationMetricMeasurement = getMeasurementName(config, project,
-                QueryHistory.REALIZATION_MEASUREMENT_PREFIX);
-    }
-
-    private String getMeasurementName(KylinConfig config, String projectName, String measurementPrefix) {
-        String projectId = NProjectManager.getInstance(config).getProject(projectName).getId().replace('-', '_');
-        return config.getMetadataUrl().getIdentifier().replaceAll("[^0-9|a-z|A-Z|_]{1,}", "_") + "_" + measurementPrefix
-                + "_" + projectId;
+        String metadataIdentifier = config.getMetadataUrl().getIdentifier().replaceAll("[^0-9|a-z|A-Z|_]{1,}", "_");
+        this.queryMetricMeasurement = metadataIdentifier + "_" + project + "_" + QueryHistory.QUERY_MEASUREMENT_SURFIX;
+        this.realizationMetricMeasurement = metadataIdentifier + "_" + project + "_" + QueryHistory.QUERY_MEASUREMENT_SURFIX;
     }
 
     public String getQueryMetricMeasurement() {

@@ -25,6 +25,7 @@ package io.kyligence.kap.tool;
 
 import java.util.List;
 
+import lombok.val;
 import org.apache.curator.RetryPolicy;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
@@ -69,6 +70,14 @@ public class CuratorOperator implements AutoCloseable {
     public void close() throws Exception {
         if (zkClient != null) {
             zkClient.close();
+        }
+    }
+
+    public static void main(String[] args) {
+        try (val curatorOperator = new CuratorOperator()) {
+            System.out.println(curatorOperator.isJobNodeExist());
+        } catch (Exception e) {
+            log.error("", e);
         }
     }
 }

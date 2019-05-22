@@ -66,7 +66,7 @@ import io.kyligence.kap.shaded.influxdb.org.influxdb.InfluxDB;
 import io.kyligence.kap.shaded.influxdb.org.influxdb.InfluxDBFactory;
 
 public class QueryHistoryDAOTest extends NLocalFileMetadataTestCase {
-    private final String SHOW_DATABASES = "{\"results\":[{\"statement_id\":0,\"series\":[{\"name\":\"databases\",\"columns\":[\"name\"],\"values\":[[\"_internal\"],[\"KE_METRIC\"]]}]}]}\n";
+    private final String SHOW_DATABASES = "{\"results\":[{\"statement_id\":0,\"series\":[{\"name\":\"databases\",\"columns\":[\"name\"],\"values\":[[\"_internal\"],[\"KE_HISTORY\"]]}]}]}\n";
     private final String SHOW_DATABASES_NOT_EXIST = "{\"results\":[{\"statement_id\":0,\"series\":[{\"name\":\"databases\",\"columns\":[\"name\"],\"values\":[[\"_internal\"]]}]}]}\n";
 
     private static final String PROJECT = "default";

@@ -115,12 +115,6 @@ abstract public class KylinConfigBase implements Serializable {
             return sparkHome;
         }
 
-        sparkHome = System.getProperty("SPARK_HOME");
-        if (StringUtils.isNotEmpty(sparkHome)) {
-            logger.info("SPARK_HOME was set to {}", sparkHome);
-            return sparkHome;
-        }
-
         return getKylinHome() + File.separator + "spark";
     }
 
@@ -358,6 +352,10 @@ abstract public class KylinConfigBase implements Serializable {
 
     public String getZKAcls() {
         return getOptional("kylin.env.zookeeper.zk-acl", "world:anyone:rwcda");
+    }
+
+    public String getYarnStatusCheckUrl() {
+        return getOptional("kylin.job.yarn.app.rest.check.status.url", null);
     }
 
     // ============================================================================

@@ -45,7 +45,7 @@ import java.util.Map;
 
 public class InfluxDBWriterTest extends NLocalFileMetadataTestCase {
 
-    private final String SHOW_DATABASES = "{\"results\":[{\"statement_id\":0,\"series\":[{\"name\":\"databases\",\"columns\":[\"name\"],\"values\":[[\"_internal\"],[\"KE_METRIC\"]]}]}]}\n";
+    private final String SHOW_DATABASES = "{\"results\":[{\"statement_id\":0,\"series\":[{\"name\":\"databases\",\"columns\":[\"name\"],\"values\":[[\"_internal\"],[\"KE_HISTORY\"]]}]}]}\n";
 
     private InfluxDBWriter influxDBWriter;
 
@@ -68,7 +68,7 @@ public class InfluxDBWriterTest extends NLocalFileMetadataTestCase {
             tags.put("project", "default");
             final Map<String, Object> fields = Maps.newHashMap();
             fields.put("sql", "selct * from test_table");
-            influxDBWriter.write("KE_METRIC", "query_metric", tags, fields, 0);
+            influxDBWriter.write("KE_HISTORY", "query_metric", tags, fields, 0);
         } catch (Throwable throwable) {
             throwable.printStackTrace();
         }

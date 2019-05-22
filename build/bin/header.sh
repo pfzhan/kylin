@@ -69,10 +69,10 @@ then
     if [[ "${JAVA}" == "" ]]; then
         if [[ -z "$JAVA_HOME" ]]; then
             JAVA_VERSION=`java -version 2>&1 | awk -F\" '/version/ {print $2}'`
-            if [[ $JAVA_VERSION ]] && [[ "$JAVA_VERSION" > "1.7" ]]; then
+            if [[ $JAVA_VERSION ]] && [[ "$JAVA_VERSION" > "1.8" ]]; then
                 JAVA_HOME=$(dirname $(dirname $(readlink -f $(which java))))
             else
-                quit "Java 1.7 or above is required."
+                quit "Java 1.8 or above is required."
             fi
             [[ -z "$JAVA_HOME" ]] && quit "Please set JAVA_HOME"
             export JAVA_HOME

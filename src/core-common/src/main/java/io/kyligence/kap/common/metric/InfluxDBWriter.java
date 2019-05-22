@@ -44,8 +44,8 @@ public class InfluxDBWriter implements MetricWriter {
 
     private static final Logger logger = LoggerFactory.getLogger(InfluxDBWriter.class);
 
-    public static final String DEFAULT_DATABASE = "KE_METRIC";
-    public static final String DEFAULT_RP = "KE_METRIC_RP";
+    public static final String DEFAULT_DATABASE = "KE_HISTORY";
+    public static final String DEFAULT_RP = "KE_HISTORY_RP";
 
     private static volatile ScheduledExecutorService scheduledExecutorService;
 
