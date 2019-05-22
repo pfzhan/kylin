@@ -46,6 +46,7 @@ import java.io.IOException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 
@@ -306,9 +307,9 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
         manager.addJob(samplingJob);
         List<String> jobNames = Lists.newArrayList();
         JobFilter jobFilter = new JobFilter("", jobNames, 4, "", "", "default", "", true);
+        jobFilter.setSortBy("job_name");
         List<ExecutableResponse> jobs = jobService.listJobs(jobFilter);
 
-        jobFilter.setSortBy("job_name");
         Assert.assertNull(jobs.get(0).getTargetSubject()); // no target model so it's null
         Assert.assertEquals("mocked job", jobs.get(0).getJobName());
         Assert.assertEquals(tableDesc.getIdentity(), jobs.get(1).getTargetSubject());
