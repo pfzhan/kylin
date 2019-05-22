@@ -113,7 +113,9 @@ import arealabel from '../../area_label.vue'
       default: () => []
     },
     needSampling: Boolean,
-    samplingRows: Number,
+    samplingRows: {
+      default: 20000000
+    },
     sourceType: Number
   },
   components: {
@@ -326,7 +328,7 @@ export default class SourceHive extends Vue {
       this.errorMsg = ''
       this.contentStyle.height = '334px'
     }
-    this.$emit('input', { samplingRows: +samplingRows })
+    this.$emit('input', { samplingRows })
   }
   handleRemoveDatabase (removeDatabaseId) {
     const selectedDatabases = this.selectedDatabases.filter(databaseId => databaseId !== removeDatabaseId)
