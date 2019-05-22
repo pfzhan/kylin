@@ -130,6 +130,7 @@ public class NExecutableManager {
         return result;
     }
 
+    // only for test
     public void addJob(AbstractExecutable executable) {
         executable.initConfig(config);
         val po = toPO(executable, project);

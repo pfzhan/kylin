@@ -27,6 +27,7 @@ package io.kyligence.kap.rest.service;
 import java.util.List;
 import java.util.Set;
 
+import org.apache.kylin.job.dao.ExecutablePO;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.metadata.model.TableDesc;
@@ -56,7 +57,9 @@ public class TableSamplingService extends BasicService {
                 processingIdentity.add(table);
             } else {
                 final TableDesc tableDesc = tableMgr.getTableDesc(table.toUpperCase());
-                execMgr.addJob(NTableSamplingJob.create(tableDesc, project, getUsername(), rows));
+                ExecutablePO po = NExecutableManager
+                        .toPO(NTableSamplingJob.create(tableDesc, project, getUsername(), rows), project);
+                execMgr.addJob(po);
             }
         });
 

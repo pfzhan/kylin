@@ -110,50 +110,43 @@ public class NTableSamplingJob extends DefaultChainedExecutable {
         @Override
         protected ExecuteResult doWork(ExecutableContext context) throws ExecuteException {
             ExecuteResult result = super.doWork(context);
-            UnitOfWork.replaying.set(true);
             UnitOfWork.doInTransactionWithRetry(() -> {
                 mergeRemoteMetaAfterSampling();
                 return null;
             }, getProject());
-            UnitOfWork.replaying.remove();
             return result;
         }
 
         private void mergeRemoteMetaAfterSampling() {
-            try (val remoteStore = ExecutableUtils.getRemoteStore(getConfig(), this)) {
-                val remoteConfig = remoteStore.getConfig();
-                final NTableMetadataManager remoteTblMgr = NTableMetadataManager.getInstance(remoteConfig,
+            try (val remoteStore = ExecutableUtils.getRemoteStore(KylinConfig.getInstanceFromEnv(), this)) {
+                final NTableMetadataManager remoteTblMgr = NTableMetadataManager.getInstance(remoteStore.getConfig(),
                         getProject());
-                final NTableMetadataManager localTblMgr = NTableMetadataManager.getInstance(getConfig(), getProject());
-                mergeAndUpdateTableExt(localTblMgr, remoteTblMgr, getTableIdentity());
-            }
-        }
+                final NTableMetadataManager localTblMgr = NTableMetadataManager
+                        .getInstance(KylinConfig.getInstanceFromEnv(), getProject());
 
-        private void mergeAndUpdateTableExt(NTableMetadataManager localTblMgr, NTableMetadataManager remoteTblMgr,
-                String tableName) {
-            val localFactTblExt = localTblMgr.getOrCreateTableExt(tableName);
-            val remoteFactTblExt = remoteTblMgr.getOrCreateTableExt(tableName);
-            localTblMgr.mergeAndUpdateTableExt(localFactTblExt, remoteFactTblExt);
+                localTblMgr.mergeAndUpdateTableExt(localTblMgr.getOrCreateTableExt(getTableIdentity()),
+                        remoteTblMgr.getOrCreateTableExt(getTableIdentity()));
+            }
         }
 
         @Override
         protected Set<String> getMetadataDumpList(KylinConfig config) {
-            final Set<String> dumpList = Sets.newHashSet();
 
+            final Set<String> dumpList = Sets.newHashSet();
             // dump project
             ProjectInstance instance = NProjectManager.getInstance(config).getProject(getProject());
             dumpList.add(instance.getResourcePath());
 
-            // dump model if exist
-            // dump raw table & table ext
+            // dump table & table ext
             final NTableMetadataManager tableMetadataManager = NTableMetadataManager.getInstance(config, getProject());
-            for (TableDesc table : tableMetadataManager.listAllTables()) {
+            final TableExtDesc tableExtDesc = tableMetadataManager
+                    .getTableExtIfExists(tableMetadataManager.getTableDesc(getTableIdentity()));
+            if (tableExtDesc != null) {
+                dumpList.add(tableExtDesc.getResourcePath());
+            }
+            final TableDesc table = tableMetadataManager.getTableDesc(getTableIdentity());
+            if (table != null) {
                 dumpList.add(table.getResourcePath());
-                final TableExtDesc tableExtDesc = tableMetadataManager
-                        .getTableExtIfExists(tableMetadataManager.getTableDesc(getTableIdentity()));
-                if (tableExtDesc != null) {
-                    dumpList.add(tableExtDesc.getResourcePath());
-                }
             }
 
             return dumpList;
