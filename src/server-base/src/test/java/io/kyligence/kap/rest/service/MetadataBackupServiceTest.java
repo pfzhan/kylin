@@ -23,21 +23,32 @@
  */
 package io.kyligence.kap.rest.service;
 
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.InputStreamReader;
+import java.util.concurrent.TimeUnit;
 
+import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.Path;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.util.HadoopUtil;
+import org.apache.kylin.common.util.JsonUtil;
 import org.assertj.core.api.Assertions;
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
+import io.kyligence.kap.common.persistence.ImageDesc;
+import io.kyligence.kap.common.persistence.metadata.JdbcAuditLogStoreTool;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.tool.HDFSMetadataTool;
 import lombok.val;
+
+import static org.awaitility.Awaitility.await;
 
 public class MetadataBackupServiceTest extends NLocalFileMetadataTestCase {
 
@@ -111,6 +122,49 @@ public class MetadataBackupServiceTest extends NLocalFileMetadataTestCase {
         kylinConfig.setProperty("kylin.metadata.backup-count-threshold", "3");
         HDFSMetadataTool.cleanBeforeBackup(kylinConfig);
         Assertions.assertThat(fs.listStatus(rootMetadataPath)).hasSize(2);
+    }
+
+    @Test
+    public void testAuditLogRotateWhenBackup() throws Exception {
+        val junitFolder = temporaryFolder.getRoot();
+        val kylinConfig = getTestConfig();
+
+        System.setProperty("kylin.metadata.audit-log.max-size", "20");
+        kylinConfig.setMetadataUrl(
+                "test@jdbc,driverClassName=org.h2.Driver,url=jdbc:h2:mem:db_default;DB_CLOSE_DELAY=-1,username=sa,password=");
+        kylinConfig.setProperty("kylin.env.hdfs-working-dir", junitFolder.getAbsolutePath());
+
+        val auditLogStore = JdbcAuditLogStoreTool.prepareJdbcAuditLogStore(kylinConfig);
+        ResourceStore.getKylinMetaStore(kylinConfig).getMetadataStore().setAuditLogStore(auditLogStore);
+
+        val jdbcTemplate = auditLogStore.getJdbcTemplate();
+        long count = jdbcTemplate.queryForObject("select count(1) from test_audit_Log", Long.class);
+
+        val rootPath = new Path(kylinConfig.getHdfsWorkingDirectory()).getParent();
+        val rootFS = HadoopUtil.getFileSystem(rootPath);
+        Assertions.assertThat(rootFS.listStatus(rootPath)).hasSize(0);
+
+        metadataBackupService.backupAll();
+
+        // make sure backup is successful
+        val rootMetadataPath = new Path(kylinConfig.getHdfsWorkingDirectory() + "/_backup");
+        val rootMetadataFS = HadoopUtil.getFileSystem(rootMetadataPath);
+        Assert.assertEquals(1, rootMetadataFS.listStatus(rootMetadataPath).length);
+        val path = rootMetadataFS.listStatus(rootMetadataPath)[0].getPath();
+        Assert.assertEquals(2, rootMetadataFS.listStatus(path).length);
+        FSDataInputStream fis = rootMetadataFS.open(new Path(path.toString() + File.separator + "_image"));
+        BufferedReader reader = new BufferedReader(new InputStreamReader(fis));
+        String image = reader.readLine();
+        ImageDesc imageDesc = JsonUtil.readValue(image, ImageDesc.class);
+        Assertions.assertThat(imageDesc.getOffset()).isEqualTo(count);
+
+        // assert delete audit_log
+        await().atMost(10, TimeUnit.SECONDS).until(() -> {
+            long newCount = jdbcTemplate.queryForObject("select count(1) from test_audit_Log", Long.class);
+            return newCount == 20;
+        });
+        System.clearProperty("kylin.metadata.audit-log.max-size");
+        jdbcTemplate.batchUpdate("DROP ALL OBJECTS");
     }
 
 }

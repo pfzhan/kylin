@@ -189,7 +189,6 @@ public class MetadataTool extends ExecutableApplication {
                 backupMetadataStore.putResource(new RawResource(ResourceStore.METASTORE_IMAGE,
                         ByteStreams.asByteSource(JsonUtil.writeValueAsBytes(new ImageDesc(offset))),
                         System.currentTimeMillis(), -1));
-                auditLogStore.rotate();
                 return null;
             }, true);
             log.info("start to backup all projects");

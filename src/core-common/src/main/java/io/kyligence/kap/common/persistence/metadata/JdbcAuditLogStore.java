@@ -83,6 +83,7 @@ public class JdbcAuditLogStore implements AuditLogStore, JdbcTransactionMixin {
     static final String DELETE_ID_LESSTHAN_SQL = "delete from %s where id < ?";
 
     private final KylinConfig config;
+    @Getter
     private final JdbcTemplate jdbcTemplate;
     private final String table;
     @Getter

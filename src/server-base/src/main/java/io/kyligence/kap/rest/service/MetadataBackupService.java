@@ -24,10 +24,13 @@
 package io.kyligence.kap.rest.service;
 
 import java.time.LocalDateTime;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import io.kyligence.kap.tool.HDFSMetadataTool;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.util.HadoopUtil;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -38,6 +41,8 @@ import lombok.val;
 @Service
 public class MetadataBackupService {
 
+    private ExecutorService executors = Executors.newSingleThreadExecutor();
+
     @Scheduled(cron = "${kylin.metadata.backup-cron:0 0 0 * * *}")
     public void backupAll() throws Exception {
 
@@ -47,6 +52,7 @@ public class MetadataBackupService {
 
             String[] args = new String[] { "-backup", "-dir", getBackupDir() };
             backup(args);
+            executors.submit(this::rotateAuditLog);
         } finally {
             Thread.currentThread().setName(oldTheadName);
         }
@@ -57,6 +63,13 @@ public class MetadataBackupService {
         HDFSMetadataTool.cleanBeforeBackup(kylinConfig);
         val metadataTool = new MetadataTool(kylinConfig);
         metadataTool.execute(args);
+    }
+
+    public void rotateAuditLog() {
+        val kylinConfig = KylinConfig.getInstanceFromEnv();
+        val resourceStore = ResourceStore.getKylinMetaStore(kylinConfig);
+        val auditLogStore = resourceStore.getAuditLogStore();
+        auditLogStore.rotate();
     }
 
     public String backupProject(String project) throws Exception {
