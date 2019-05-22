@@ -129,6 +129,9 @@ public class PostAddCuboidHandler extends AbstractEventPostJobHandler {
         val kylinConfig = KylinConfig.getInstanceFromEnv();
         for (String sqlPattern : sqlPatterns) {
             val fq = getFavoriteQueryManager(project).get(sqlPattern);
+            if (fq == null)
+                continue;
+
             boolean allLayoutBuildFinished = true;
 
             for (val fqr : fq.getRealizations()) {

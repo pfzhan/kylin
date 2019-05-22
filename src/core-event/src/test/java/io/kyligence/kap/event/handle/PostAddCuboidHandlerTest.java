@@ -191,7 +191,7 @@ public class PostAddCuboidHandlerTest extends NLocalFileMetadataTestCase {
         postAddEvent1.setModelId(fq.getRealizations().get(0).getModelId());
         postAddEvent1.setJobId(UUID.randomUUID().toString());
         postAddEvent1.setOwner("ADMIN");
-        postAddEvent1.setSqlPatterns(Sets.newHashSet(sqlProposesTwoModels));
+        postAddEvent1.setSqlPatterns(Sets.newHashSet(sqlProposesTwoModels, "sql_pattern_not_exists"));
 
         val postAddEvent2 = new PostAddCuboidEvent();
         postAddEvent2.setModelId(fq.getRealizations().get(1).getModelId());
