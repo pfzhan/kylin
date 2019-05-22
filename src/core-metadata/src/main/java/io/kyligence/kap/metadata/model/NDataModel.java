@@ -458,6 +458,9 @@ public class NDataModel extends RootPersistentEntity {
     }
 
     public boolean containsTable(TableDesc table) {
+        if (table == null)
+            return false;
+
         for (TableRef t : allTableRefs) {
             if (t.getTableIdentity().equals(table.getIdentity())
                     && StringUtil.equals(t.getTableDesc().getProject(), table.getProject()))

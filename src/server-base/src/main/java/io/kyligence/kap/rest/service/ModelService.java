@@ -1351,12 +1351,6 @@ public class ModelService extends BasicService {
         });
     }
 
-    public void reloadModels(List<String> models, String project) {
-        if (CollectionUtils.isNotEmpty(models)) {
-            models.forEach(modelId -> getDataModelManager(project).reload(modelId));
-        }
-    }
-
     public ExistedDataRangeResponse getLatestDataRange(String project, String table, String column, String modelId)
             throws Exception {
         Pair<String, String> pushdownResult = new Pair<>();

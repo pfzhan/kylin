@@ -148,7 +148,9 @@ public class TableService extends BasicService {
         List<TableDesc> tables = new ArrayList<>();
         //get table not fuzzy,can use getTableDesc(tableName)
         if (StringUtils.isNotEmpty(tableName) && !isFuzzy) {
-            tables.add(nTableMetadataManager.getTableDesc(database + "." + tableName));
+            val tableDesc = nTableMetadataManager.getTableDesc(database + "." + tableName);
+            if (tableDesc != null)
+                tables.add(tableDesc);
         } else {
             tables.addAll(nTableMetadataManager.listAllTables().stream().filter(tableDesc -> {
                 if (StringUtils.isEmpty(database)) {
@@ -689,6 +691,12 @@ public class TableService extends BasicService {
     @Transaction(project = 0)
     public void unloadTable(String project, String table) {
         NTableMetadataManager tableMetadataManager = getTableManager(project);
+        val tableDesc = tableMetadataManager.getTableDesc(table);
+        if (tableDesc == null) {
+            val msg = MsgPicker.getMsg();
+            throw new BadRequestException(String.format(msg.getTABLE_NOT_FOUND(), table));
+        }
+
         tableMetadataManager.removeTableExt(table);
         tableMetadataManager.removeSourceTable(table);
 

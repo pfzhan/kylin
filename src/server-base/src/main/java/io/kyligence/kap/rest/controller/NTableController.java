@@ -28,7 +28,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.StringUtils;
@@ -54,7 +53,6 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.metadata.model.ManagementType;
-import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.rest.request.AutoMergeRequest;
 import io.kyligence.kap.rest.request.DateRangeRequest;
 import io.kyligence.kap.rest.request.PartitionKeyRequest;
@@ -124,14 +122,7 @@ public class NTableController extends NBasicController {
             @PathVariable(value = "database") String database, @PathVariable(value = "table") String table) {
 
         checkProjectName(project);
-        String tableName = database + "." + table;
-        List<String> models = null;
-        if (modelService.isModelsUsingTable(tableName, project)) {
-            models = modelService.getModelsUsingTable(tableName, project).stream().map(NDataModel::getId)
-                    .collect(Collectors.toList());
-        }
-        tableService.unloadTable(project, tableName);
-        modelService.reloadModels(models, project);
+        tableService.unloadTable(project, database + "." + table);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, null, "");
     }
 

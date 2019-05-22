@@ -397,8 +397,8 @@ public class Message {
     }
 
     // Table
-    public String getHIVE_TABLE_NOT_FOUND() {
-        return "Cannot find Hive table '%s'.";
+    public String getTABLE_NOT_FOUND() {
+        return "Cannot find table '%s'.";
     }
 
     public String getTABLE_DESC_NOT_FOUND() {

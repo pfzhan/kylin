@@ -2480,20 +2480,6 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void testReloadModel() {
-        val project = "default";
-        val modelId = "abe3bf1a-c4bc-458d-8278-7ea8b00f5e96";
-        val modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
-        val model = modelManager.getDataModelDesc(modelId);
-        List<String> models = Lists.newArrayList();
-        models.add(modelId);
-        modelService.reloadModels(models, project);
-        val model2 = modelManager.getDataModelDesc(modelId);
-        Assert.assertEquals(modelId, model2.getId());
-        Assert.assertEquals(model, model2);
-    }
-
-    @Test
     public void testBuildIndexManually_TableOriented_exception() {
         val project = "default";
         val modelId = "abe3bf1a-c4bc-458d-8278-7ea8b00f5e96";

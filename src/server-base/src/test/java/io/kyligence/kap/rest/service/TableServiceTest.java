@@ -166,6 +166,10 @@ public class TableServiceTest extends NLocalFileMetadataTestCase {
 
         List<TableDesc> table2 = tableService.getTableDesc("default", true, "country", "DEFAULT", true);
         Assert.assertEquals(true, table2.get(0).getName().equals("TEST_COUNTRY"));
+
+        // get a not existing table desc
+        tableDesc = tableService.getTableDesc("default", true, "not_exist_table", "DEFAULT", false);
+        Assert.assertEquals(0, tableDesc.size());
     }
 
     @Test
@@ -242,6 +246,13 @@ public class TableServiceTest extends NLocalFileMetadataTestCase {
 
         Assert.assertEquals(null, nTableMetadataManager.getTableDesc("DEFAULT.TEST_UNLOAD"));
         Assert.assertEquals(size - 1, nTableMetadataManager.listAllTables().size());
+    }
+
+    @Test
+    public void testUnloadNotExistTable() {
+        thrown.expect(BadRequestException.class);
+        thrown.expectMessage("Cannot find table 'DEFAULT.not_exist_table'");
+        tableService.unloadTable("default", "DEFAULT.not_exist_table");
     }
 
     @Test
