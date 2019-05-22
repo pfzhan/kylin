@@ -20,24 +20,23 @@
         <p>{{detailMsg1}}</p>
         <p>{{detailMsg2}}</p>
       </div>
-
-      <div class="samping-box">
-        <span class="lable-text">{{$t('tableSample')}}</span><el-switch
-          class="ksd-ml-10"
-          size="small"
-          v-model="openSample"
-          :active-text="$t('kylinLang.common.OFF')"
-          :inactive-text="$t('kylinLang.common.ON')">
-        </el-switch>
-        <p v-if="!hasColumnInfluence" class="sample-sub-top">{{$t('noEffectSampingTip', {tableName: this.tableName})}}</p>
-        <p v-else class="sample-sub-top">{{$t('hasEffectSampingTip')}}</p>
-        <el-form ref="sample-form" :rules="rules" :model="sampleOption">
-          <el-form-item prop="sampleCount">
-            <p>{{$t('sampleCount')}}<el-input v-model="sampleOption.sampleCount" :disabled="!openSample" size="mini" style="width:100px" class="ksd-mrl-5"></el-input>{{$t('rows')}}</p>
-          </el-form-item>
-        </el-form>
-      </div>
-    </el-alert>  
+    </el-alert> 
+    <div class="samping-box">
+      <span class="lable-text">{{$t('tableSample')}}</span><el-switch
+        class="ksd-ml-10"
+        size="small"
+        v-model="openSample"
+        :active-text="$t('kylinLang.common.OFF')"
+        :inactive-text="$t('kylinLang.common.ON')">
+      </el-switch>
+      <p v-if="!hasColumnInfluence" class="sample-sub-top">{{$t('noEffectSampingTip', {tableName: this.tableName})}}</p>
+      <p v-else class="sample-sub-top">{{$t('hasEffectSampingTip')}}</p>
+      <el-form ref="sample-form" :rules="rules" :model="sampleOption">
+        <el-form-item prop="sampleCount">
+          <p>{{$t('sampleCount')}}<el-input v-model="sampleOption.sampleCount" :disabled="!openSample" size="mini" style="width:100px" class="ksd-mrl-5"></el-input>{{$t('rows')}}</p>
+        </el-form-item>
+      </el-form>
+    </div> 
     <div slot="footer" class="dialog-footer ky-no-br-space">
       <el-button size="medium" @click="closeHandler(false)">{{$t('kylinLang.common.cancel')}}</el-button>
       <el-button size="medium" :loading="reloadLoading" plain type="primary" @click="submit">{{$t('kylinLang.common.submit')}}</el-button>
@@ -249,6 +248,12 @@ export default class ReloadTableModal extends Vue {
     border: solid 1px @border-color-base;
     margin-top:10px;
     font-size:12px;
+  }
+  .el-alert {
+    padding: 0;
+    .el-alert__content {
+      width:100%;
+    }
   }
   .samping-box {
     margin-top:18px;

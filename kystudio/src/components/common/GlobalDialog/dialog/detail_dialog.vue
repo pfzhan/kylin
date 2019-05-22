@@ -104,6 +104,9 @@ export default class DetailDialogModal extends Vue {
     margin-top:10px;
     ul {
       margin:10px;
+      li {
+        font-size: 12px;
+      }
     }
   }
   .el-alert__content {
