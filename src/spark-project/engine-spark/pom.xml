@@ -130,11 +130,10 @@
                 <artifactId>scalatest-maven-plugin</artifactId>
                 <version>1.0</version>
                 <configuration>
-                    <reportsDirectory>
-                        ${project.build.directory}/surefire-reports
-                    </reportsDirectory>
+                    <reportsDirectory>${project.build.directory}/surefire-reports</reportsDirectory>
                     <junitxml>.</junitxml>
-                    <filereports>WDF TestSuite.txt</filereports>
+                    <filereports>SparkTestSuite.txt</filereports>
+                    <stdout>I</stdout>
                 </configuration>
                 <executions>
                     <execution>

@@ -146,6 +146,7 @@
                             <value>/tmp</value>
                         </property>
                     </systemProperties>
+                    <stdout>I</stdout>
                 </configuration>
                 <executions>
                     <execution>
