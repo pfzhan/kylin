@@ -1364,7 +1364,7 @@ class NModel {
     var joinType = joinInfo.join.type
     var labelCanvas = $(labelObj.canvas)
     labelCanvas.removeClass('link-label-broken')
-    conn.toggleType(isBroken ? 'broken' : 'normal')
+    conn.setType(isBroken ? 'broken' : 'normal')
     labelCanvas.addClass(isBroken ? 'link-label link-label-broken' : 'link-label')
     labelCanvas && labelCanvas.find('.label').eq(0).text(joinType)
   }

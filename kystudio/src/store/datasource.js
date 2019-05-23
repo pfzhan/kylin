@@ -1,4 +1,5 @@
 import api from './../service/api'
+import { indexOfObjWithSomeKey } from 'util'
 import * as types from './types'
 export default {
   state: {
@@ -16,27 +17,30 @@ export default {
     }
   },
   mutations: {
-    [types.CLEAR_DATASOURCE_CACHE]: function (state, { project }) {
+    [types.CLEAR_DATASOURCE_CACHE]: function (state, project) {
       state.mapHasTables = {}
       state.dataSource[project] = []
     },
-    // 缓存数据源信息避免反复请求
+    // 缓存数据源信息避免反复存储
     [types.CACHE_DATASOURCE]: function (state, { data, project, isReset = true }) {
-      state.dataSource[project] = state.dataSource[project] || []
-      data.tables.forEach((t) => {
-        let tableUid = project + t.database + t.name
-        if (!state.mapHasTables[tableUid]) {
-          state.dataSource[project].push(t)
-          state.mapHasTables[tableUid] = true
-        }
-      })
-      // if (isReset) {
-      //   state.dataSource[project] = data.tables
-      // } else {
-      //   data.tables.forEach(table => {
-      //     state.dataSource[project].push(table)
-      //   })
-      // }
+      if (project) {
+        state.dataSource[project] = state.dataSource[project] || []
+        data.tables.forEach((t) => {
+          let tableUid = project + t.database + t.name
+          if (!state.mapHasTables[tableUid]) {
+            state.dataSource[project].push(t)
+            state.mapHasTables[tableUid] = true
+          }
+        })
+      }
+    },
+    // 更新缓存
+    [types.REPLACE_TABLE_CACHE]: function (state, {data, project}) {
+      let databaseInfo = state.dataSource[project] || []
+      let i = indexOfObjWithSomeKey(databaseInfo, 'name', data.name)
+      databaseInfo.splice(i, 1)
+      let tableUid = project + data.database + data.name
+      state.mapHasTables[tableUid] = false
     },
     [types.CACHE_ENCODINGS]: function (state, { data, project }) {
       state.encodings = data
@@ -60,7 +64,16 @@ export default {
         })
     },
     [types.RELOAD_DATASOURCE]: function ({commit}, para) {
-      return api.datasource.reloadDataSource(para)
+      return api.datasource.reloadDataSource(para).then((response) => {
+        commit(types.REPLACE_TABLE_CACHE, {
+          data: {
+            database: para.table.split('.')[0],
+            name: para.table.split('.')[1]
+          },
+          project: para.project
+        })
+        return response
+      })
     },
     [types.GET_RELOAD_INFLUENCE]: function ({commit}, para) {
       return api.datasource.getReloadInfluence(para)

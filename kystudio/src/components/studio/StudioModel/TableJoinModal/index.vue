@@ -24,6 +24,7 @@
          <el-select size="small"  style="width:100%" filterable v-model="joinColumns.foreign_key[val]" :placeholder="$t('kylinLang.common.pleaseSelect')">
             <el-option v-for="f in fColumns" :value="fTable.alias+'.'+f.name" :key="f.name" :label="f.name">
             </el-option>
+            <el-option :disabled="true" v-if="checkIsBroken(brokenForeignKeys, joinColumns.foreign_key[val])" :value="joinColumns.foreign_key[val]" :label="joinColumns.foreign_key[val].split('.')[1]"></el-option>
           </el-select>
           <p class="error-msg">{{$t('noColumnFund')}}</p>
       </el-col>
@@ -34,6 +35,7 @@
         <el-select size="small"  style="width:100%" filterable v-model="joinColumns.primary_key[val]" :placeholder="$t('kylinLang.common.pleaseSelect')">
           <el-option v-for="p in pColumns" :value="pTable.alias+'.'+p.name" :key="p.name" :label="p.name">
           </el-option>
+          <el-option :disabled="true" v-if="checkIsBroken(brokenPrimaryKeys, joinColumns.primary_key[val])" :value="joinColumns.primary_key[val]" :label="joinColumns.primary_key[val].split('.')[1]"></el-option>
         </el-select>
         <p class="error-msg">{{$t('noColumnFund')}}</p>
       </el-col>
