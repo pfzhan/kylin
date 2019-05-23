@@ -46,7 +46,6 @@ import java.io.IOException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 
@@ -59,10 +58,9 @@ import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.rest.constant.Constant;
 import org.assertj.core.api.Assertions;
-import org.junit.AfterClass;
+import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
@@ -107,23 +105,19 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
     @Rule
     public ExpectedException thrown = ExpectedException.none();
 
-    @BeforeClass
-    public static void setupResource() throws Exception {
+    @Before
+    public void setup() {
         System.setProperty("HADOOP_USER_NAME", "root");
         staticCreateTestMetadata();
-
-    }
-
-    @Before
-    public void setup() throws IOException {
         SecurityContextHolder.getContext()
                 .setAuthentication(new TestingAuthenticationToken("ADMIN", "ADMIN", Constant.ROLE_ADMIN));
         ReflectionTestUtils.setField(jobService, "tableExtService", tableExtService);
 
     }
 
-    @AfterClass
-    public static void tearDown() {
+    @After
+    public void tearDown() {
+        System.clearProperty("HADOOP_USER_NAME");
         staticCleanupTestMetadata();
     }
 
