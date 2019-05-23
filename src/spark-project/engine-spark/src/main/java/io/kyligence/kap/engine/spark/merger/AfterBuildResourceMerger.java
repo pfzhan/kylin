@@ -126,21 +126,31 @@ public class AfterBuildResourceMerger extends SparkJobMetadataMerger {
                 TableDesc tableDesc = manager.getTableDesc(entry.getKey());
                 Path snapshotPath = FileNames.snapshotFileWithWorkingDir(tableDesc, workingDirectory);
                 FileStatus lastFile = HDFSUtils.findLastFile(snapshotPath);
-                FileStatus fileStatus = HDFSUtils.getFileStatus(new Path(workingDirectory + entry.getValue()));
-                if (lastFile.getModificationTime() <= fileStatus.getModificationTime()) {
+                FileStatus segmentFile = HDFSUtils.getFileStatus(new Path(workingDirectory + entry.getValue()));
 
-                    log.info("Update snapshot table " + entry.getKey() + " : " + "from" + lastFile.getModificationTime() + " to" + fileStatus.getModificationTime());
-                    log.info("Update snapshot table " + entry.getKey() + " : " + "from" + tableDesc.getLastSnapshotPath() + " to" + entry.getValue());
+                FileStatus currentFile = null;
+                if (tableDesc.getLastSnapshotPath() != null) {
+                    currentFile = HDFSUtils.getFileStatus(new Path(workingDirectory + tableDesc.getLastSnapshotPath()));
+                }
+
+                if (lastFile.getModificationTime() <= segmentFile.getModificationTime()) {
+
+                    log.info("Update snapshot table " + entry.getKey() + " : " + "from " + (currentFile == null ? 0L : currentFile.getModificationTime()) + " to " + lastFile.getModificationTime())
+                    ;
+                    log.info("Update snapshot table " + entry.getKey() + " : " + "from " + (currentFile == null ? "null" : currentFile.getPath().toString()) + " to " + segmentFile.getPath().toString());
                     TableDesc copyDesc = manager.copyForWrite(tableDesc);
                     copyDesc.setLastSnapshotPath(entry.getValue());
                     needUpdateTableDescs.add(copyDesc);
                     snapshotCheckerMap.put(snapshotPath,
-                            new SnapshotChecker(segmentConf.getSnapshotMaxVersions(), segmentConf.getSnapshotVersionTTL(), fileStatus.getModificationTime()));
+                            new SnapshotChecker(segmentConf.getSnapshotMaxVersions(), segmentConf.getSnapshotVersionTTL(), segmentFile.getModificationTime()));
+                } else {
+                    log.info("Skip update snapshot table because current segment snapshot table is to old. Current segment snapshot table ts is : " + segmentFile.getModificationTime());
                 }
             }
             UnitOfWork.doInTransactionWithRetry(() -> {
+                NTableMetadataManager updateManager = NTableMetadataManager.getInstance(KylinConfig.getInstanceFromEnv(), segment.getProject());
                 for (TableDesc tableDesc : needUpdateTableDescs) {
-                    manager.updateTableDesc(tableDesc);
+                    updateManager.updateTableDesc(tableDesc);
                 }
                 return null;
             }, segment.getProject(), 1);
