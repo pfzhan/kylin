@@ -110,6 +110,9 @@ public class NTableSamplingJob extends DefaultChainedExecutable {
         @Override
         protected ExecuteResult doWork(ExecutableContext context) throws ExecuteException {
             ExecuteResult result = super.doWork(context);
+            if (!result.succeed()) {
+                return result;
+            }
             UnitOfWork.doInTransactionWithRetry(() -> {
                 mergeRemoteMetaAfterSampling();
                 return null;

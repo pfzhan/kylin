@@ -106,5 +106,31 @@ public class NTableSamplingJobTest extends NLocalWithSparkSessionTest {
         Assert.assertEquals(10, tableExtAfter.getSampleRows().size());
         Assert.assertEquals(10_000, tableExtAfter.getTotalRows());
         Assert.assertEquals(tableName, tableExtAfter.getIdentity());
+
+        // assert table ext
+        final String metadataPath = config.getMetadataUrl().toString();
+        val buildConfig = KylinConfig.createKylinConfig(config);
+        buildConfig.setMetadataUrl(metadataPath);
+        final TableExtDesc tableExt = NTableMetadataManager.getInstance(buildConfig, PROJECT)
+                .getTableExtIfExists(tableDesc);
+        Assert.assertNotNull(tableExt);
+        Assert.assertEquals(12, tableExt.getColumnStats().size());
+        Assert.assertEquals(10, tableExt.getSampleRows().size());
+        Assert.assertEquals(10_000, tableExt.getTotalRows());
+    }
+
+    @Test
+    public void testPauseTableSamplingJob() {
+        KylinConfig config = KylinConfig.getInstanceFromEnv();
+        String tableName = "DEFAULT.TEST_KYLIN_FACT";
+        NTableMetadataManager tableMgr = NTableMetadataManager.getInstance(config, PROJECT);
+        final TableDesc tableDesc = tableMgr.getTableDesc(tableName);
+        NExecutableManager execMgr = NExecutableManager.getInstance(config, PROJECT);
+        val samplingJob = NTableSamplingJob.create(tableDesc, PROJECT, "ADMIN", 20000);
+        execMgr.addJob(samplingJob);
+        Assert.assertEquals(ExecutableState.READY, execMgr.getJob(samplingJob.getId()).getStatus());
+
+        execMgr.pauseJob(samplingJob.getId());
+        Assert.assertEquals(ExecutableState.PAUSED, execMgr.getJob(samplingJob.getId()).getStatus());
     }
 }
