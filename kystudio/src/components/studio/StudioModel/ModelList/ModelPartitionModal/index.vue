@@ -165,6 +165,7 @@ export default class ModelPartitionModal extends Vue {
       const startTime = +result.start_time
       const endTime = +result.end_time
       this.modelBuildMeta.dataRangeVal = [ getGmtDateFromUtcLike(startTime), getGmtDateFromUtcLike(endTime) ]
+      this.$refs.partitionForm.validate()
     } catch (e) {
       handleError(e)
     }
