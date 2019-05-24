@@ -45,6 +45,7 @@ import org.apache.spark.sql.functions._
 import org.apache.spark.sql.types.{DateType, LongType, TimestampType}
 import org.apache.spark.sql.util.SparderTypeUtil
 import org.apache.spark.sql.{Column, DataFrame}
+import org.apache.spark.unsafe.types.UTF8String
 
 import scala.collection.JavaConverters._
 import scala.collection.mutable.ListBuffer
@@ -476,9 +477,9 @@ class SparderRexVisitor(val df: DataFrame,
         Some(s.getValue)
       case g: GregorianCalendar =>
         if (literal.getTypeName.getName.equals("DATE")) {
-          Some(new Date(g.getTimeInMillis))
+          Some(new Date(DateTimeUtils.stringToTimestamp(UTF8String.fromString(literal.toString)).get / 1000))
         } else {
-          Some(new Timestamp(g.getTimeInMillis))
+          Some(new Timestamp(DateTimeUtils.stringToTimestamp(UTF8String.fromString(literal.toString)).get / 1000))
         }
       case range: TimeUnitRange =>
         // Extract(x from y) in where clause

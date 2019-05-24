@@ -23,26 +23,28 @@
  */
 package io.kyligence.kap.rest;
 
+import io.kyligence.kap.common.util.TempMetadataBuilder;
+import io.kyligence.kap.rest.init.KerberosLoginTask;
 import java.io.File;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
-
+import lombok.extern.slf4j.Slf4j;
+import lombok.val;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.ClassUtil;
+import org.apache.kylin.common.util.TimeZoneUtils;
 import org.apache.kylin.source.jdbc.H2Database;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.env.EnvironmentPostProcessor;
 import org.springframework.core.Ordered;
 import org.springframework.core.env.ConfigurableEnvironment;
 
-import io.kyligence.kap.common.util.TempMetadataBuilder;
-import io.kyligence.kap.rest.init.KerberosLoginTask;
-import lombok.val;
-import lombok.extern.slf4j.Slf4j;
-
 @Slf4j
 public class KylinPrepareEnvListener implements EnvironmentPostProcessor, Ordered {
+    private static final Logger logger = LoggerFactory.getLogger(KylinPrepareEnvListener.class);
 
     @Override
     public int getOrder() {
@@ -67,10 +69,10 @@ public class KylinPrepareEnvListener implements EnvironmentPostProcessor, Ordere
         }
         // enable CC check
         System.setProperty("needCheckCC", "true");
-
+        val config = KylinConfig.getInstanceFromEnv();
+        TimeZoneUtils.setDefaultTimeZone(config);
         KerberosLoginTask kerberosLoginTask = new KerberosLoginTask();
         kerberosLoginTask.execute();
-        val config = KylinConfig.getInstanceFromEnv();
         env.addActiveProfile(config.getSecurityProfile());
     }
 

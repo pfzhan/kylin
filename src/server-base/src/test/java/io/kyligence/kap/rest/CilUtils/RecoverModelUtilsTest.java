@@ -61,6 +61,7 @@ import io.kyligence.kap.rest.cli.RecoverModelUtil;
 import lombok.val;
 import lombok.var;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.util.DateFormat;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.apache.kylin.metadata.model.Segments;
@@ -228,7 +229,7 @@ public class RecoverModelUtilsTest extends NLocalFileMetadataTestCase {
         loadingRange.setTableName("DEFAULT.TEST_KYLIN_FACT");
         loadingRange.setColumnName("CAL_DT");
         //2012-01-03 2012-02-09  splited to 3 ranges
-        loadingRange.setCoveredRange(new SegmentRange.TimePartitionedSegmentRange(1325520000000L, 1328766266000L));
+        loadingRange.setCoveredRange(new SegmentRange.TimePartitionedSegmentRange(DateFormat.stringToMillis("2012-01-03 00:00:00"), DateFormat.stringToMillis("2012-02-09 13:44:26")));
         loadingRangeManager.createDataLoadingRange(loadingRange);
         var df = dfManager.getDataflowByModelAlias("nmodel_basic");
         dfManager.updateDataflow(df.getId(), copyForWrite -> {
@@ -246,7 +247,7 @@ public class RecoverModelUtilsTest extends NLocalFileMetadataTestCase {
         // 1 ready seg is useful,but cuboid is empty
         val seg1 = new NDataSegment();
         //1/03-2/01
-        seg1.setSegmentRange(new SegmentRange.TimePartitionedSegmentRange(1325520000000L, 1328054400000L));
+        seg1.setSegmentRange(new SegmentRange.TimePartitionedSegmentRange(DateFormat.stringToMillis("2012-01-03 00:00:00"), DateFormat.stringToMillis("2012-02-01 00:00:00")));
         seg1.setStatus(SegmentStatusEnum.READY);
         seg1.setId(UUID.randomUUID().toString());
         segs.add(seg1);
@@ -282,7 +283,7 @@ public class RecoverModelUtilsTest extends NLocalFileMetadataTestCase {
         loadingRange.setTableName("DEFAULT.TEST_KYLIN_FACT");
         loadingRange.setColumnName("CAL_DT");
         //2012-01-03 2012-02-09  splited to 3 ranges
-        loadingRange.setCoveredRange(new SegmentRange.TimePartitionedSegmentRange(1325520000000L, 1328766266000L));
+        loadingRange.setCoveredRange(new SegmentRange.TimePartitionedSegmentRange(DateFormat.stringToMillis("2012-01-03 00:00:00"), DateFormat.stringToMillis("2012-02-09 13:44:26")));
         loadingRangeManager.createDataLoadingRange(loadingRange);
         var df = dfManager.getDataflowByModelAlias("nmodel_basic");
         dfManager.updateDataflow(df.getId(), copyForWrite -> {
@@ -300,14 +301,14 @@ public class RecoverModelUtilsTest extends NLocalFileMetadataTestCase {
         // 1 ready seg is useful,but cuboid is empty
         val seg1 = new NDataSegment();
         //1/03-2/01
-        seg1.setSegmentRange(new SegmentRange.TimePartitionedSegmentRange(1325520000000L, 1328054400000L));
+        seg1.setSegmentRange(new SegmentRange.TimePartitionedSegmentRange(DateFormat.stringToMillis("2012-01-03 00:00:00"), DateFormat.stringToMillis("2012-02-01 00:00:00")));
         seg1.setStatus(SegmentStatusEnum.READY);
         seg1.setId(UUID.randomUUID().toString());
         segs.add(seg1);
 
         val seg2 = new NDataSegment();
         //2/06-02/09
-        seg2.setSegmentRange(new SegmentRange.TimePartitionedSegmentRange(1328486400000L, 1328766266000L));
+        seg2.setSegmentRange(new SegmentRange.TimePartitionedSegmentRange(DateFormat.stringToMillis("2012-02-06 00:00:00"), DateFormat.stringToMillis("2012-02-09 13:44:26")));
         seg2.setStatus(SegmentStatusEnum.READY);
         seg2.setId(UUID.randomUUID().toString());
         segs.add(seg2);
@@ -326,8 +327,8 @@ public class RecoverModelUtilsTest extends NLocalFileMetadataTestCase {
         //1 addsegmentevent, 1 addcuboid event
         Assert.assertEquals(4, events.size());
         Assert.assertTrue(events.get(0) instanceof AddSegmentEvent);
-        Assert.assertEquals("1328054400000", df.getSegment(((AddSegmentEvent) events.get(0)).getSegmentId()).getSegRange().getStart().toString());
-        Assert.assertEquals("1328486400000", df.getSegment(((AddSegmentEvent) events.get(0)).getSegmentId()).getSegRange().getEnd().toString());
+        Assert.assertEquals(DateFormat.stringToMillis("2012-02-01 00:00:00") + "", df.getSegment(((AddSegmentEvent) events.get(0)).getSegmentId()).getSegRange().getStart().toString());
+        Assert.assertEquals(DateFormat.stringToMillis("2012-02-06 00:00:00") + "", df.getSegment(((AddSegmentEvent) events.get(0)).getSegmentId()).getSegRange().getEnd().toString());
 
         Assert.assertTrue(events.get(2) instanceof AddCuboidEvent);
 

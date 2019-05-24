@@ -23,6 +23,10 @@
  */
 package io.kyligence.kap.newten;
 
+import com.google.common.base.Preconditions;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
+import io.kyligence.kap.utils.RecAndQueryCompareUtil.CompareEntity;
 import java.io.File;
 import java.io.IOException;
 import java.sql.Connection;
@@ -36,7 +40,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
-
 import org.apache.commons.io.FileUtils;
 import org.apache.kylin.common.util.DBUtils;
 import org.apache.kylin.common.util.Pair;
@@ -52,12 +55,6 @@ import org.apache.spark.sql.common.SparderQueryTest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Preconditions;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
-
-import io.kyligence.kap.utils.RecAndQueryCompareUtil.CompareEntity;
-
 public class NExecAndComp {
     private static final Logger logger = LoggerFactory.getLogger(NExecAndComp.class);
 
@@ -72,7 +69,7 @@ public class NExecAndComp {
     }
 
     public static void execLimitAndValidateNew(List<Pair<String, String>> queries, String prj, String joinType,
-            Map<String, CompareEntity> recAndQueryResult) {
+                                               Map<String, CompareEntity> recAndQueryResult) {
 
         int appendLimitQueries = 0;
         for (Pair<String, String> query : queries) {
@@ -99,12 +96,12 @@ public class NExecAndComp {
     }
 
     public static void execAndCompare(List<Pair<String, String>> queries, String prj, CompareLevel compareLevel,
-            String joinType) {
+                                      String joinType) {
         execAndCompareNew(queries, prj, compareLevel, joinType, null);
     }
 
     public static void execAndCompareNew(List<Pair<String, String>> queries, String prj, CompareLevel compareLevel,
-            String joinType, Map<String, CompareEntity> recAndQueryResult) {
+                                         String joinType, Map<String, CompareEntity> recAndQueryResult) {
         for (Pair<String, String> query : queries) {
             logger.info("Exec and compare query ({}) :{}", joinType, query.getFirst());
 
@@ -143,7 +140,7 @@ public class NExecAndComp {
     }
 
     private static void addQueryPath(Map<String, CompareEntity> recAndQueryResult, Pair<String, String> query,
-            String modifiedSql) {
+                                     String modifiedSql) {
         if (recAndQueryResult == null) {
             return;
         }
@@ -167,7 +164,7 @@ public class NExecAndComp {
     }
 
     private static Dataset<Row> queryWithKap(String prj, String joinType, Pair<String, String> pair,
-            Map<String, CompareEntity> compareEntityMap) {
+                                             Map<String, CompareEntity> compareEntityMap) {
 
         compareEntityMap.putIfAbsent(pair.getFirst(), new CompareEntity());
         final CompareEntity entity = compareEntityMap.get(pair.getFirst());
@@ -250,7 +247,7 @@ public class NExecAndComp {
         return ret;
     }
 
-    private static boolean compareResults(List<Row> expectedResult, List<Row> actualResult, CompareLevel compareLevel) {
+    public static boolean compareResults(List<Row> expectedResult, List<Row> actualResult, CompareLevel compareLevel) {
         boolean good = true;
         if (compareLevel == CompareLevel.SAME) {
             if (expectedResult.size() == actualResult.size()) {
@@ -300,7 +297,7 @@ public class NExecAndComp {
     }
 
     private static void compareResults(Dataset<Row> expectedResult, Dataset<Row> actualResult,
-            CompareLevel compareLevel) {
+                                       CompareLevel compareLevel) {
         Preconditions.checkArgument(expectedResult != null);
         Preconditions.checkArgument(actualResult != null);
 
@@ -342,7 +339,7 @@ public class NExecAndComp {
     }
 
     public static List<Pair<String, String>> doFilter(List<Pair<String, String>> sources,
-            final Set<String> exclusionList) {
+                                                      final Set<String> exclusionList) {
         Preconditions.checkArgument(sources != null);
         Set<String> excludes = Sets.newHashSet(exclusionList);
         return sources.stream().filter(pair -> {
@@ -365,8 +362,9 @@ public class NExecAndComp {
     }
 
     public static Dataset<Row> sql(String prj, String sqlText) {
-        if (sqlText == null)
+        if (sqlText == null) {
             throw new RuntimeException("Sorry your SQL is null...");
+        }
 
         try {
             logger.info("Try to query from cube....");
@@ -403,5 +401,32 @@ public class NExecAndComp {
             SparderEnv.cleanCompute();
         }
         return SparderEnv.getDF();
+    }
+
+    public static List<List<String>> queryCubeWithJDBC(String prj, String sql) throws Exception {
+//      SparderEnv.skipCompute();
+        Connection conn = null;
+        Statement stmt = null;
+        ResultSet rs = null;
+        List<List<String>> results = Lists.newArrayList();
+        try {
+            conn = QueryConnection.getConnection(prj);
+            stmt = conn.createStatement();
+            rs = stmt.executeQuery(sql);
+            int columnCount = rs.getMetaData().getColumnCount();
+            while (rs.next()) {
+                List<String> oneRow = Lists.newArrayListWithCapacity(columnCount);
+                for (int i = 0; i < columnCount; i++) {
+                    oneRow.add((rs.getString(i + 1)));
+                }
+
+                results.add(oneRow);
+            }
+        } finally {
+            DBUtils.closeQuietly(rs);
+            DBUtils.closeQuietly(stmt);
+            DBUtils.closeQuietly(conn);
+        }
+        return results;
     }
 }

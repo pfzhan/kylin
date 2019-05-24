@@ -50,12 +50,14 @@ import static org.junit.Assert.fail;
 import org.apache.kylin.common.util.BytesUtil;
 import org.apache.kylin.common.util.DateFormat;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 /**
  * Note the test must be consistent with DateStrDictionaryTest,
  * to ensure DateDimEnc is backward compatible with DateStrDictionary.
  */
+@Ignore("Unused now")
 public class DateDimEncTest {
 
     DateDimEnc enc;

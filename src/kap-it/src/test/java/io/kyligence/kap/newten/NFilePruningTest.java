@@ -24,6 +24,7 @@
 
 package io.kyligence.kap.newten;
 
+import io.kyligence.kap.junit.TimeZoneTestRunner;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -46,6 +47,7 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.junit.runner.RunWith;
 import org.spark_project.guava.collect.Sets;
 
 import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
@@ -56,6 +58,7 @@ import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import lombok.val;
 import scala.runtime.AbstractFunction1;
 
+@RunWith(TimeZoneTestRunner.class)
 public class NFilePruningTest extends NLocalWithSparkSessionTest {
 
     private String base = "select count(*) FROM TEST_ORDER LEFT JOIN TEST_KYLIN_FACT ON TEST_KYLIN_FACT.ORDER_ID = TEST_ORDER.ORDER_ID ";

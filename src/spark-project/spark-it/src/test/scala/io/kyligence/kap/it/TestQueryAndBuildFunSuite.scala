@@ -23,6 +23,7 @@
 package io.kyligence.kap.it
 
 import java.io.File
+import java.util.TimeZone
 
 import io.kyligence.kap.common.{CompareSupport, JobSupport, QuerySupport, SSSource}
 import io.kyligence.kap.query.{QueryConstants, QueryFetcher}
@@ -49,6 +50,8 @@ class TestQueryAndBuildFunSuite
   override val DEFAULT_PROJECT = "default"
 
   case class FloderInfo(floder: String, filter: List[String] = List())
+
+  val defaultTimeZone: TimeZone = TimeZone.getDefault
 
   implicit val ec: ExecutionContextExecutor = ExecutionContext.global
 
@@ -98,6 +101,11 @@ class TestQueryAndBuildFunSuite
   conf.set("spark.shuffle.detectCorrupt", "false")
 
   override def beforeAll(): Unit = {
+    val timeZones = Array("GMT", "GMT+8", "CST")
+    val timeZoneStr = timeZones.apply((System.currentTimeMillis() % 3).toInt)
+    TimeZone.setDefault(TimeZone.getTimeZone(timeZoneStr))
+    logInfo(s"Curren time zone set to $timeZoneStr")
+
     super.beforeAll()
     KylinConfig.getInstanceFromEnv.setProperty("kylin.job.analyze-strategy", "always")
     KylinConfig.getInstanceFromEnv.setProperty("kylin.query.pushdown.runner-class-name", "")
@@ -111,6 +119,7 @@ class TestQueryAndBuildFunSuite
 
   override def afterAll(): Unit = {
     SparderEnv.cleanCompute()
+    TimeZone.setDefault(defaultTimeZone)
   }
 
   ignore("temp") {

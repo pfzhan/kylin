@@ -159,7 +159,6 @@ object KylinSession extends Logging {
       if (sparkConf.get("spark.sql.shuffle.partitions", "").isEmpty) {
         sparkConf.set("spark.sql.shuffle.partitions", sparkCores.toString)
       }
-      sparkConf.set("spark.sql.session.timeZone", "UTC")
       sparkConf.set("spark.debug.maxToStringFields", "1000")
       sparkConf.set("spark.scheduler.mode", "FAIR")
       if (new File(

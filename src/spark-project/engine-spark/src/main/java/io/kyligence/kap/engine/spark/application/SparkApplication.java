@@ -38,6 +38,7 @@ import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.util.Application;
 import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.kylin.common.util.JsonUtil;
+import org.apache.kylin.common.util.TimeZoneUtils;
 import org.apache.spark.SparkConf;
 import org.apache.spark.sql.SparderEnv;
 import org.apache.spark.sql.SparkSession;
@@ -125,6 +126,7 @@ public abstract class SparkApplication implements Application, IKeep {
             CredentialUtils.wrap(sparkConf, project);
 
             if (isJobOnCluster(sparkConf)) {
+                TimeZoneUtils.setDefaultTimeZone(config);
                 logger.info("Sleep for random seconds to avoid submitting too many spark job at the same time.");
                 Thread.sleep((long) (Math.random() * 60 * 1000));
                 try {

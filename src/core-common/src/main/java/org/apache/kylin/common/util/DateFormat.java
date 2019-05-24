@@ -24,6 +24,7 @@
 
 package org.apache.kylin.common.util;
 
+import com.google.common.annotations.VisibleForTesting;
 import java.text.ParseException;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -95,7 +96,7 @@ public class DateFormat {
     public static FastDateFormat getDateFormat(String datePattern) {
         FastDateFormat r = formatMap.get(datePattern);
         if (r == null) {
-            r = FastDateFormat.getInstance(datePattern, TimeZone.getTimeZone("GMT")); // NOTE: this must be GMT to calculate epoch date correctly
+            r = FastDateFormat.getInstance(datePattern, TimeZone.getDefault());
             formatMap.put(datePattern, r);
         }
         return r;
@@ -187,5 +188,10 @@ public class DateFormat {
         LocalDateTime localDateTime = LocalDateTime.parse(date, formatter);
         ZonedDateTime zonedDateTime = ZonedDateTime.of(localDateTime, ZoneId.of("UTC"));
         return String.valueOf(zonedDateTime.toInstant().toEpochMilli());
+    }
+
+    @VisibleForTesting
+    public static void cleanCache(){
+        formatMap.clear();
     }
 }

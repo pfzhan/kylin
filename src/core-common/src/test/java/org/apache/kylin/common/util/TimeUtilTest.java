@@ -42,6 +42,7 @@
 
 package org.apache.kylin.common.util;
 
+import io.kyligence.kap.junit.TimeZoneTestRunner;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
@@ -50,9 +51,11 @@ import java.util.concurrent.TimeUnit;
 
 import org.junit.Assert;
 import org.junit.Test;
+import org.junit.runner.RunWith;
 
 /**
  */
+@RunWith(TimeZoneTestRunner.class)
 public class TimeUtilTest {
 
     public enum NormalizedTimeUnit {
@@ -78,7 +81,7 @@ public class TimeUtilTest {
     @Test
     public void basicTest() throws ParseException {
         java.text.DateFormat dateFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
-        dateFormat.setTimeZone(TimeZone.getTimeZone("GMT"));
+        dateFormat.setTimeZone(TimeZone.getDefault());
 
         long t1 = dateFormat.parse("2012/01/01 00:00:01").getTime();
         Assert.assertEquals(normalizeTime(t1, NormalizedTimeUnit.HOUR), TimeUtil.getHourStart(t1));
@@ -94,11 +97,17 @@ public class TimeUtilTest {
         Assert.assertEquals(dateFormat.parse("2012/1/1 00:00:00").getTime(), TimeUtil.getYearStart(t3));
         Assert.assertEquals(dateFormat.parse("2012/12/30 00:00:00").getTime(), TimeUtil.getWeekStart(t3));
 
-        long t4 = dateFormat.parse("2015/01/01 10:01:30").getTime();
-        Assert.assertEquals(dateFormat.parse("2015/1/1 00:00:00").getTime(), TimeUtil.getMonthStart(t4));
-        Assert.assertEquals(dateFormat.parse("2015/1/1 00:00:00").getTime(), TimeUtil.getQuarterStart(t4));
-        Assert.assertEquals(dateFormat.parse("2015/1/1 00:00:00").getTime(), TimeUtil.getYearStart(t4));
-        Assert.assertEquals(dateFormat.parse("2014/12/28 00:00:00").getTime(), TimeUtil.getWeekStart(t4));
+        long t4 = dateFormat.parse("2012/12/32 00:00:00").getTime();
+        Assert.assertEquals(dateFormat.parse("2012/12/32 00:00:00").getTime(), TimeUtil.getDayStart(t4));
+
+
+
+
+        long t5 = dateFormat.parse("2015/01/01 10:01:30").getTime();
+        Assert.assertEquals(dateFormat.parse("2015/1/1 00:00:00").getTime(), TimeUtil.getMonthStart(t5));
+        Assert.assertEquals(dateFormat.parse("2015/1/1 00:00:00").getTime(), TimeUtil.getQuarterStart(t5));
+        Assert.assertEquals(dateFormat.parse("2015/1/1 00:00:00").getTime(), TimeUtil.getYearStart(t5));
+        Assert.assertEquals(dateFormat.parse("2014/12/28 00:00:00").getTime(), TimeUtil.getWeekStart(t5));
 
         Assert.assertEquals(24 * 60 * 60 * 1000, TimeUtil.timeStringAs("1d", TimeUnit.MILLISECONDS));
     }

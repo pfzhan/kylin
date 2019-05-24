@@ -24,8 +24,16 @@
 
 package io.kyligence.kap.metadata.cube.model;
 
-import static org.junit.Assert.fail;
-
+import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
+import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.junit.TimeZoneTestRunner;
+import io.kyligence.kap.metadata.cube.CubeTestUtils;
+import io.kyligence.kap.metadata.model.ManagementType;
+import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.metadata.model.NDataModelManager;
+import io.kyligence.kap.metadata.model.NTableMetadataManager;
+import io.kyligence.kap.metadata.project.NProjectManager;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -33,7 +41,8 @@ import java.util.Random;
 import java.util.UUID;
 import java.util.Vector;
 import java.util.concurrent.atomic.AtomicInteger;
-
+import lombok.val;
+import lombok.var;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
@@ -46,20 +55,11 @@ import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
+import org.junit.runner.RunWith;
 
-import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
+import static org.junit.Assert.fail;
 
-import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
-import io.kyligence.kap.metadata.cube.CubeTestUtils;
-import io.kyligence.kap.metadata.model.ManagementType;
-import io.kyligence.kap.metadata.model.NDataModel;
-import io.kyligence.kap.metadata.model.NDataModelManager;
-import io.kyligence.kap.metadata.model.NTableMetadataManager;
-import io.kyligence.kap.metadata.project.NProjectManager;
-import lombok.val;
-import lombok.var;
-
+@RunWith(TimeZoneTestRunner.class)
 public class NDataflowManagerTest extends NLocalFileMetadataTestCase {
     private String projectDefault = "default";
 
@@ -79,7 +79,7 @@ public class NDataflowManagerTest extends NLocalFileMetadataTestCase {
     @Test
     public void testInvalidMerge() {
         thrown.expectMessage(
-                "Range TimePartitionedSegmentRange[1262304000000,1356998400000) must contain at least 2 segments, but there is 0");
+                "Range TimePartitionedSegmentRange[" + SegmentRange.dateToLong("2010-01-01") + "," + SegmentRange.dateToLong("2013-01-01") + ") must contain at least 2 segments, but there is 0");
 
         NDataflowManager dfMgr = NDataflowManager.getInstance(getTestConfig(), "default");
         NDataflow df = dfMgr.getDataflowByModelAlias("nmodel_basic");
@@ -398,7 +398,7 @@ public class NDataflowManagerTest extends NLocalFileMetadataTestCase {
         NIndexPlanManager indePlanMgr = NIndexPlanManager.getInstance(testConfig, projectDefault);
         NProjectManager projMgr = NProjectManager.getInstance(testConfig);
 
-        final String[] dataflowIds = { "df1", "df2", "df3", "df4" };
+        final String[] dataflowIds = {"df1", "df2", "df3", "df4"};
         final String owner = "test_owner";
         final int n = dataflowIds.length;
         final int updatesPerCube = 100;

@@ -352,7 +352,7 @@ public class Segments<T extends ISegment> extends ArrayList<T> implements Serial
 
     public static long getMergeEnd(long start, AutoMergeTimeEnum autoMergeTimeEnum) {
         Calendar calendar = Calendar.getInstance();
-        TimeZone zone = TimeZone.getTimeZone("GMT");
+        TimeZone zone = TimeZone.getDefault();
         calendar.setTimeZone(zone);
         calendar.setTimeInMillis(start);
         int month = calendar.get(Calendar.MONTH);
@@ -746,7 +746,7 @@ public class Segments<T extends ISegment> extends ArrayList<T> implements Serial
         if (segRange instanceof SegmentRange.TimePartitionedSegmentRange) {
             // using time
             SimpleDateFormat dateFormat = new SimpleDateFormat("yyyyMMddHHmmss");
-            dateFormat.setTimeZone(TimeZone.getTimeZone("GMT"));
+            dateFormat.setTimeZone(TimeZone.getDefault());
             return dateFormat.format(segRange.getStart()) + "_" + dateFormat.format(segRange.getEnd());
         } else {
             return segRange.getStart() + "_" + segRange.getEnd();
@@ -826,7 +826,7 @@ public class Segments<T extends ISegment> extends ArrayList<T> implements Serial
 
     public static long getRetentionEnd(long time, AutoMergeTimeEnum autoMergeTimeEnum, long offset) {
         Calendar calendar = Calendar.getInstance();
-        TimeZone zone = TimeZone.getTimeZone("GMT");
+        TimeZone zone = TimeZone.getDefault();
         calendar.setTimeZone(zone);
         calendar.setTimeInMillis(time);
         int plusNum = (int) offset;

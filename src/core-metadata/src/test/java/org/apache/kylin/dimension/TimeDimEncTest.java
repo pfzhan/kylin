@@ -49,12 +49,14 @@ import org.apache.kylin.common.util.BytesUtil;
 import org.apache.kylin.common.util.DateFormat;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 /**
  * Note the test must be consistent with TimeStrDictionaryTest,
  * to ensure TimeDimEnc is backward compatible with TimeStrDictionary.
  */
+@Ignore("Unused now")
 public class TimeDimEncTest {
     TimeDimEnc enc;
     byte[] buf;

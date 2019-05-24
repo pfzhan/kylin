@@ -27,6 +27,7 @@ package org.apache.spark.sql.util
 import java.math.BigDecimal
 import java.sql.{Timestamp, Types}
 import java.util.regex.Pattern
+import java.util.TimeZone
 
 import io.kyligence.kap.query.pushdown.StructField
 import org.apache.calcite.rel.`type`.RelDataType
@@ -36,8 +37,10 @@ import org.apache.kylin.metadata.datatype.DataType
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.Column
 import org.apache.spark.sql.catalyst.expressions.Cast
+import org.apache.spark.sql.catalyst.util.DateTimeUtils
 import org.apache.spark.sql.functions._
 import org.apache.spark.sql.types._
+import org.apache.spark.unsafe.types.UTF8String
 
 object SparderTypeUtil extends Logging {
   val DATETIME_FAMILY = List("time", "date", "timestamp", "datetime")
@@ -227,7 +230,8 @@ object SparderTypeUtil extends Logging {
             if (string.contains("-")) {
               val time = DateFormat.stringToDate(string).getTime
               if (toCalcite) {
-                (time / (3600 * 24 * 1000)).toInt
+                //current date is local timezone, org.apache.calcite.avatica.util.AbstractCursor.DateFromNumberAccessor need to utc
+                DateTimeUtils.stringToDate(UTF8String.fromString(string)).get
               } else {
                 // ms to s
                 time / 1000
@@ -242,12 +246,13 @@ object SparderTypeUtil extends Logging {
             }
           }
           case SqlTypeName.TIMESTAMP | SqlTypeName.TIME => {
-            var ts = s.asInstanceOf[Timestamp].getTime
+            var ts = s.asInstanceOf[Timestamp].toString
             if (toCalcite) {
-              ts
+              // current ts is local timezone ,org.apache.calcite.avatica.util.AbstractCursor.TimeFromNumberAccessor need to utc
+              DateTimeUtils.stringToTimestamp(UTF8String.fromString(ts),TimeZone.getTimeZone("UTC")).get / 1000
             } else {
               // ms to s
-              ts / 1000
+              s.asInstanceOf[Timestamp].getTime / 1000
             }
           }
           case SqlTypeName.BOOLEAN => s;

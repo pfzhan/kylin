@@ -23,34 +23,12 @@
  */
 package io.kyligence.kap.rest.service;
 
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.TreeMap;
-import java.util.stream.Collectors;
-
-import org.apache.kylin.common.util.JsonUtil;
-import org.apache.kylin.rest.constant.Constant;
-import org.apache.kylin.rest.security.KylinUserManager;
-import org.apache.kylin.rest.security.ManagedUser;
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
-import org.mockito.InjectMocks;
-import org.mockito.Mockito;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.test.util.ReflectionTestUtils;
-
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.junit.TimeZoneTestRunner;
 import io.kyligence.kap.metadata.cube.model.FrequencyMap;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.favorite.FavoriteQuery;
@@ -66,9 +44,33 @@ import io.kyligence.kap.metadata.query.QueryHistory;
 import io.kyligence.kap.metadata.query.QueryHistoryDAO;
 import io.kyligence.kap.rest.service.task.QueryHistoryAccessor;
 import io.kyligence.kap.rest.service.task.UpdateFavoriteStatisticsRunner;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.Arrays;
+import java.util.Calendar;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
+import java.util.stream.Collectors;
 import lombok.val;
 import lombok.var;
+import org.apache.kylin.common.util.DateFormat;
+import org.apache.kylin.common.util.JsonUtil;
+import org.apache.kylin.rest.constant.Constant;
+import org.apache.kylin.rest.security.KylinUserManager;
+import org.apache.kylin.rest.security.ManagedUser;
+import org.junit.After;
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mockito;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.test.util.ReflectionTestUtils;
 
+@RunWith(TimeZoneTestRunner.class)
 public class NFavoriteSchedulerTest extends NLocalFileMetadataTestCase {
     private static final String PROJECT = "default";
 
@@ -211,14 +213,17 @@ public class NFavoriteSchedulerTest extends NLocalFileMetadataTestCase {
         List<QueryHistory> queryHistories = Lists.newArrayList();
         for (int i = 1; i <= 12; i++) {
             int freq = i;
-            if (i == 10)
+            if (i == 10) {
                 freq = 9;
+            }
 
-            if (i == 11)
+            if (i == 11) {
                 freq = 10;
+            }
 
-            if (i == 12)
+            if (i == 12) {
                 freq = 10;
+            }
 
             for (int j = 0; j < freq; j++) {
                 QueryHistory queryHistory = Mockito.mock(QueryHistory.class);
@@ -452,17 +457,17 @@ public class NFavoriteSchedulerTest extends NLocalFileMetadataTestCase {
         currentFavoriteQueries = favoriteQueryManager.getAll();
         for (FavoriteQuery favoriteQuery : currentFavoriteQueries) {
             switch (favoriteQuery.getSqlPattern()) {
-            case "sql1":
-            case "sql2":
-                Assert.assertEquals(2, favoriteQuery.getTotalCount());
-                Assert.assertEquals(2, favoriteQuery.getFrequency(PROJECT));
-                break;
-            case "sql3":
-                Assert.assertEquals(1, favoriteQuery.getTotalCount());
-                Assert.assertEquals(0, favoriteQuery.getFrequency(PROJECT));
-                break;
-            default:
-                break;
+                case "sql1":
+                case "sql2":
+                    Assert.assertEquals(2, favoriteQuery.getTotalCount());
+                    Assert.assertEquals(2, favoriteQuery.getFrequency(PROJECT));
+                    break;
+                case "sql3":
+                    Assert.assertEquals(1, favoriteQuery.getTotalCount());
+                    Assert.assertEquals(0, favoriteQuery.getFrequency(PROJECT));
+                    break;
+                default:
+                    break;
             }
         }
 
@@ -488,20 +493,20 @@ public class NFavoriteSchedulerTest extends NLocalFileMetadataTestCase {
 
         for (FavoriteQuery favoriteQuery : currentFavoriteQueries) {
             switch (favoriteQuery.getSqlPattern()) {
-            case "sql1":
-                Assert.assertEquals(2, favoriteQuery.getTotalCount());
-                Assert.assertEquals(2, favoriteQuery.getFrequency(PROJECT));
-                break;
-            case "sql2":
-                Assert.assertEquals(3, favoriteQuery.getTotalCount());
-                Assert.assertEquals(3, favoriteQuery.getFrequency(PROJECT));
-                break;
-            case "sql3":
-                Assert.assertEquals(2, favoriteQuery.getTotalCount());
-                Assert.assertEquals(1, favoriteQuery.getFrequency(PROJECT));
-                break;
-            default:
-                break;
+                case "sql1":
+                    Assert.assertEquals(2, favoriteQuery.getTotalCount());
+                    Assert.assertEquals(2, favoriteQuery.getFrequency(PROJECT));
+                    break;
+                case "sql2":
+                    Assert.assertEquals(3, favoriteQuery.getTotalCount());
+                    Assert.assertEquals(3, favoriteQuery.getFrequency(PROJECT));
+                    break;
+                case "sql3":
+                    Assert.assertEquals(2, favoriteQuery.getTotalCount());
+                    Assert.assertEquals(1, favoriteQuery.getFrequency(PROJECT));
+                    break;
+                default:
+                    break;
             }
         }
     }
@@ -705,9 +710,12 @@ public class NFavoriteSchedulerTest extends NLocalFileMetadataTestCase {
         // first round
         val offsetManager = QueryHistoryTimeOffsetManager.getInstance(getTestConfig(), PROJECT);
         var offset = offsetManager.get();
+        Calendar instance = Calendar.getInstance();
+        instance.setTimeInMillis(systemTime);
+        instance.add(Calendar.DAY_OF_MONTH, 1);
         offset.setFavoriteQueryUpdateTimeOffset(systemTime);
         offsetManager.save(offset);
-        Mockito.doReturn(systemTime + 1 * 86400 * 1000L).when(queryHistoryAccessor).getSystemTime();
+        Mockito.doReturn(instance.getTimeInMillis()).when(queryHistoryAccessor).getSystemTime();
         mockedQueryHistoryDao.setOverallQueryHistories(Lists.newArrayList(Iterables.concat(//
                 mockHistory("2018-01-02", "2018-01-01", 1, 3, Arrays.asList(DF_ID1, DF_ID2)), //
                 mockHistory("2018-01-02", "2018-01-01", 100001, 4, Arrays.asList(DF_ID1)), //
@@ -721,33 +729,37 @@ public class NFavoriteSchedulerTest extends NLocalFileMetadataTestCase {
         var df2 = dfMgr.getDataflow(DF_ID2);
         Assert.assertEquals("{\n" +
                 "  \"100001\" : {\n" +
-                "    \"1514678400000\" : 4,\n" +
-                "    \"1514764800000\" : 7\n" +
+                "    \"" + DateFormat.stringToMillis("2018-01-01") + "\" : 4,\n" +
+                "    \"" + DateFormat.stringToMillis("2018-01-02") + "\" : 7\n" +
                 "  },\n" +
                 "  \"1\" : {\n" +
-                "    \"1514678400000\" : 3,\n" +
-                "    \"1514764800000\" : 6\n" +
+                "    \"" + DateFormat.stringToMillis("2018-01-01") + "\" : 3,\n" +
+                "    \"" + DateFormat.stringToMillis("2018-01-02") + "\" : 6\n" +
                 "  },\n" +
                 "  \"100002\" : {\n" +
-                "    \"1514764800000\" : 8\n" +
+                "    \"" + DateFormat.stringToMillis("2018-01-02") + "\" : 8\n" +
                 "  }\n" +
                 "}", JsonUtil.writeValueAsIndentString(df1.getLayoutHitCount()));
         Assert.assertEquals("{\n" +
                 "  \"1\" : {\n" +
-                "    \"1514678400000\" : 3,\n" +
-                "    \"1514764800000\" : 6\n" +
+                "    \"" + DateFormat.stringToMillis("2018-01-01") + "\" : 3,\n" +
+                "    \"" + DateFormat.stringToMillis("2018-01-02") + "\" : 6\n" +
                 "  },\n" +
                 "  \"100002\" : {\n" +
-                "    \"1514678400000\" : 5,\n" +
-                "    \"1514764800000\" : 8\n" +
+                "    \"" + DateFormat.stringToMillis("2018-01-01") + "\" : 5,\n" +
+                "    \"" + DateFormat.stringToMillis("2018-01-02") + "\" : 8\n" +
                 "  }\n" +
                 "}", JsonUtil.writeValueAsIndentString(df2.getLayoutHitCount()));
 
         // second round, merge frequency
         offset = offsetManager.get();
-        offset.setFavoriteQueryUpdateTimeOffset(systemTime + 24 * 3600 * 1000L);
+        instance.setTimeInMillis(systemTime);
+        instance.add(Calendar.DAY_OF_MONTH, 1);
+        offset.setFavoriteQueryUpdateTimeOffset(instance.getTimeInMillis());
         offsetManager.save(offset);
-        Mockito.doReturn(systemTime + 2 * 86400 * 1000L).when(queryHistoryAccessor).getSystemTime();
+        instance.setTimeInMillis(systemTime);
+        instance.add(Calendar.DAY_OF_MONTH, 2);
+        Mockito.doReturn(instance.getTimeInMillis()).when(queryHistoryAccessor).getSystemTime();
         mockedQueryHistoryDao.setOverallQueryHistories(Lists.newArrayList(Iterables.concat(//
                 mockHistory("2018-01-03", "2018-01-03", 1, 3, Arrays.asList(DF_ID1, DF_ID2)), //
                 mockHistory("2018-01-03", "2018-01-03", 100001, 4, Arrays.asList(DF_ID1)), //
@@ -764,49 +776,49 @@ public class NFavoriteSchedulerTest extends NLocalFileMetadataTestCase {
         df2 = dfMgr.getDataflow(DF_ID2);
         Assert.assertEquals("{\n" +
                 "  \"100001\" : {\n" +
-                "    \"1514678400000\" : 4,\n" +
-                "    \"1514764800000\" : 14,\n" +
-                "    \"1514851200000\" : 4\n" +
+                "    \"" + DateFormat.stringToMillis("2018-01-01") + "\" : 4,\n" +
+                "    \"" + DateFormat.stringToMillis("2018-01-02") + "\" : 14,\n" +
+                "    \"" + DateFormat.stringToMillis("2018-01-03") + "\" : 4\n" +
                 "  },\n" +
                 "  \"1\" : {\n" +
-                "    \"1514678400000\" : 3,\n" +
-                "    \"1514764800000\" : 12,\n" +
-                "    \"1514851200000\" : 3\n" +
+                "    \"" + DateFormat.stringToMillis("2018-01-01") + "\" : 3,\n" +
+                "    \"" + DateFormat.stringToMillis("2018-01-02") + "\" : 12,\n" +
+                "    \"" + DateFormat.stringToMillis("2018-01-03") + "\" : 3\n" +
                 "  },\n" +
                 "  \"100002\" : {\n" +
-                "    \"1514764800000\" : 16\n" +
+                "    \"" + DateFormat.stringToMillis("2018-01-02") + "\" : 16\n" +
                 "  },\n" +
                 "  \"100003\" : {\n" +
-                "    \"1514764800000\" : 2\n" +
+                "    \"" + DateFormat.stringToMillis("2018-01-02") + "\" : 2\n" +
                 "  },\n" +
                 "  \"100004\" : {\n" +
-                "    \"1514764800000\" : 3\n" +
+                "    \"" + DateFormat.stringToMillis("2018-01-02") + "\" : 3\n" +
                 "  }\n" +
                 "}", JsonUtil.writeValueAsIndentString(df1.getLayoutHitCount()));
         Assert.assertEquals("{\n" +
                 "  \"1\" : {\n" +
-                "    \"1514678400000\" : 3,\n" +
-                "    \"1514764800000\" : 12,\n" +
-                "    \"1514851200000\" : 3\n" +
+                "    \"" + DateFormat.stringToMillis("2018-01-01") + "\" : 3,\n" +
+                "    \"" + DateFormat.stringToMillis("2018-01-02") + "\" : 12,\n" +
+                "    \"" + DateFormat.stringToMillis("2018-01-03") + "\" : 3\n" +
                 "  },\n" +
                 "  \"100002\" : {\n" +
-                "    \"1514678400000\" : 5,\n" +
-                "    \"1514764800000\" : 16,\n" +
-                "    \"1514851200000\" : 5\n" +
+                "    \"" + DateFormat.stringToMillis("2018-01-01") + "\" : 5,\n" +
+                "    \"" + DateFormat.stringToMillis("2018-01-02") + "\" : 16,\n" +
+                "    \"" + DateFormat.stringToMillis("2018-01-03") + "\" : 5\n" +
                 "  },\n" +
                 "  \"2\" : {\n" +
-                "    \"1514764800000\" : 1\n" +
+                "    \"" + DateFormat.stringToMillis("2018-01-02") + "\" : 1\n" +
                 "  },\n" +
                 "  \"100004\" : {\n" +
-                "    \"1514764800000\" : 3\n" +
+                "    \"" + DateFormat.stringToMillis("2018-01-02") + "\" : 3\n" +
                 "  }\n" +
                 "}", JsonUtil.writeValueAsIndentString(df2.getLayoutHitCount()));
     }
 
     private List<QueryHistory> mockHistory(String currentDate, String queryDate, long layoutId, int size,
-            List<String> dfIds) throws ParseException {
+                                           List<String> dfIds) throws ParseException {
         SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd");
-        val result = Lists.<QueryHistory> newArrayList();
+        val result = Lists.<QueryHistory>newArrayList();
         long currentTime = format.parse(currentDate).getTime();
         long queryTime = format.parse(queryDate).getTime();
 

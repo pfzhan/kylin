@@ -42,6 +42,7 @@
 
 package org.apache.kylin.common.util;
 
+import com.google.common.collect.ImmutableMap;
 import java.util.Calendar;
 import java.util.Locale;
 import java.util.TimeZone;
@@ -49,13 +50,10 @@ import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import com.google.common.collect.ImmutableMap;
-
 /**
  */
 public class TimeUtil {
 
-    private static TimeZone gmt = TimeZone.getTimeZone("GMT");
     private static long ONE_MINUTE_TS = 60 * 1000L;
     private static long ONE_HOUR_TS = 60 * ONE_MINUTE_TS;
     private static long ONE_DAY_TS = 24 * ONE_HOUR_TS;
@@ -73,18 +71,18 @@ public class TimeUtil {
     }
 
     public static long getDayStart(long ts) {
-        return ts / ONE_DAY_TS * ONE_DAY_TS;
+        return millisToDays(ts) * ONE_DAY_TS - TimeZone.getDefault().getOffset(ts);
     }
 
     public static long getWeekStart(long ts) {
-        Calendar calendar = Calendar.getInstance(gmt);
+        Calendar calendar = Calendar.getInstance(TimeZone.getDefault());
         calendar.setTimeInMillis(getDayStart(ts));
         calendar.add(Calendar.DAY_OF_WEEK, calendar.getFirstDayOfWeek() - calendar.get(Calendar.DAY_OF_WEEK));
         return calendar.getTimeInMillis();
     }
 
     public static long getMonthStart(long ts) {
-        Calendar calendar = Calendar.getInstance(gmt);
+        Calendar calendar = Calendar.getInstance(TimeZone.getDefault());
         calendar.setTimeInMillis(ts);
         int year = calendar.get(Calendar.YEAR);
         int month = calendar.get(Calendar.MONTH);
@@ -94,7 +92,7 @@ public class TimeUtil {
     }
 
     public static long getQuarterStart(long ts) {
-        Calendar calendar = Calendar.getInstance(gmt);
+        Calendar calendar = Calendar.getInstance(TimeZone.getDefault());
         calendar.setTimeInMillis(ts);
         int year = calendar.get(Calendar.YEAR);
         int month = calendar.get(Calendar.MONTH);
@@ -104,12 +102,22 @@ public class TimeUtil {
     }
 
     public static long getYearStart(long ts) {
-        Calendar calendar = Calendar.getInstance(gmt);
+        Calendar calendar = Calendar.getInstance(TimeZone.getDefault());
         calendar.setTimeInMillis(ts);
         int year = calendar.get(Calendar.YEAR);
         calendar.clear();
         calendar.set(year, 0, 1);
         return calendar.getTimeInMillis();
+    }
+
+
+    public static int millisToDays(long millisUtc){
+        return  millisToDays(millisUtc, TimeZone.getDefault());
+    }
+
+    public static int millisToDays(long millisUtc, TimeZone timeZone){
+        long millisLocal = timeZone.getOffset(millisUtc) + millisUtc;
+        return  (int)(millisLocal/ONE_DAY_TS);
     }
 
     public static long timeStringAs(String str, TimeUnit unit) {
@@ -139,4 +147,5 @@ public class TimeUtil {
             throw new NumberFormatException(timeError + "\n" + e.getMessage());
         }
     }
+
 }

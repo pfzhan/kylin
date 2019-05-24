@@ -206,20 +206,20 @@ public class ColumnToConds extends CaseInsensitiveStringMap<List<ColumnToConds.C
             }
             if (type.equals("date")) {
                 SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
-                sdf.setTimeZone(TimeZone.getTimeZone("UTC"));
+                sdf.setTimeZone(TimeZone.getDefault());
                 expr = sdf.format(new Date(Long.valueOf(expr)));
                 expr = "DATE '" + expr + "'";
             }
             if (type.equals("timestamp") || type.equals("datetime")) {
                 SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-                sdf.setTimeZone(TimeZone.getTimeZone("UTC"));
+                sdf.setTimeZone(TimeZone.getDefault());
                 expr = sdf.format(new Date(Long.valueOf(expr)));
                 expr = "TIMESTAMP '" + expr + "'";
             }
             if (type.equals("time")) {
                 final int TIME_START_POS = 11; //"1970-01-01 ".length() = 11
                 SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-                sdf.setTimeZone(TimeZone.getTimeZone("UTC"));
+                sdf.setTimeZone(TimeZone.getDefault());
                 expr = sdf.format(new Date(Long.valueOf(expr)));
                 //transform "1970-01-01 00:00:59" into "00:00:59"
                 expr = "TIME '" + expr.substring(TIME_START_POS, expr.length()) + "'";

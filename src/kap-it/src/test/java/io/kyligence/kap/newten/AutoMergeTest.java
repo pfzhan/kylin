@@ -23,17 +23,34 @@
  */
 package io.kyligence.kap.newten;
 
+import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.event.handle.PostAddSegmentHandler;
+import io.kyligence.kap.event.manager.EventDao;
+import io.kyligence.kap.event.model.Event;
+import io.kyligence.kap.event.model.MergeSegmentEvent;
+import io.kyligence.kap.junit.TimeZoneTestRunner;
+import io.kyligence.kap.metadata.cube.model.NDataLoadingRange;
+import io.kyligence.kap.metadata.cube.model.NDataLoadingRangeManager;
+import io.kyligence.kap.metadata.cube.model.NDataSegment;
+import io.kyligence.kap.metadata.cube.model.NDataflow;
+import io.kyligence.kap.metadata.cube.model.NDataflowManager;
+import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
+import io.kyligence.kap.metadata.model.AutoMergeTimeEnum;
+import io.kyligence.kap.metadata.model.ManagementType;
+import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.metadata.model.NDataModelManager;
+import io.kyligence.kap.metadata.model.VolatileRange;
 import java.io.IOException;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.List;
-
-import io.kyligence.kap.event.handle.PostAddSegmentHandler;
 import lombok.val;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.RootPersistentEntity;
+import org.apache.kylin.common.util.DateFormat;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.apache.kylin.metadata.model.Segments;
@@ -42,23 +59,9 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
+import org.junit.runner.RunWith;
 
-import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
-import io.kyligence.kap.metadata.cube.model.NDataLoadingRange;
-import io.kyligence.kap.metadata.cube.model.NDataLoadingRangeManager;
-import io.kyligence.kap.metadata.cube.model.NDataSegment;
-import io.kyligence.kap.metadata.cube.model.NDataflow;
-import io.kyligence.kap.metadata.cube.model.NDataflowManager;
-import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
-import io.kyligence.kap.event.manager.EventDao;
-import io.kyligence.kap.event.model.Event;
-import io.kyligence.kap.event.model.MergeSegmentEvent;
-import io.kyligence.kap.metadata.model.AutoMergeTimeEnum;
-import io.kyligence.kap.metadata.model.ManagementType;
-import io.kyligence.kap.metadata.model.NDataModel;
-import io.kyligence.kap.metadata.model.NDataModelManager;
-import io.kyligence.kap.metadata.model.VolatileRange;
-
+@RunWith(TimeZoneTestRunner.class)
 public class AutoMergeTest extends NLocalFileMetadataTestCase {
 
     private static final String DEFAULT_PROJECT = "default";
@@ -111,8 +114,8 @@ public class AutoMergeTest extends NLocalFileMetadataTestCase {
         //two days,not enough for a week ,not merge
         for (int i = 0; i <= 1; i++) {
             //01-01 friday
-            start = SegmentRange.dateToLong("2010-01-01") + i * 86400000;
-            end = SegmentRange.dateToLong("2010-01-02") + i * 86400000;
+            start = addDay("2010-01-01", i);
+            end = addDay("2010-01-02", i);
             SegmentRange segmentRange = new SegmentRange.TimePartitionedSegmentRange(start, end);
             df = dataflowManager.getDataflowByModelAlias("nmodel_basic");
             NDataSegment dataSegment = dataflowManager.appendSegment(df, segmentRange);
@@ -143,8 +146,8 @@ public class AutoMergeTest extends NLocalFileMetadataTestCase {
         //two days,not enough for a week ,not merge
         for (int i = 0; i <= 1; i++) {
             //01-01 friday
-            start = SegmentRange.dateToLong("2010-01-01") + i * 86400000;
-            end = SegmentRange.dateToLong("2010-01-02") + i * 86400000;
+            start = addDay("2010-01-01", i);
+            end = addDay("2010-01-02", i);
             SegmentRange segmentRange = new SegmentRange.TimePartitionedSegmentRange(start, end);
             df = dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
             NDataSegment dataSegment = dataflowManager.appendSegment(df, segmentRange);
@@ -175,8 +178,8 @@ public class AutoMergeTest extends NLocalFileMetadataTestCase {
         //test 4 days ,2010/01/01 8:00 - 2010/01/04 8:00， friday to monday, merge
         for (int i = 0; i <= 3; i++) {
             //01-01 friday
-            start = SegmentRange.dateToLong("2010-01-01") + i * 86400000;
-            end = SegmentRange.dateToLong("2010-01-02") + i * 86400000;
+            start = addDay("2010-01-01", i);
+            end = addDay("2010-01-02", i);
             SegmentRange segmentRange = new SegmentRange.TimePartitionedSegmentRange(start, end);
             df = dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
             NDataSegment dataSegment = dataflowManager.appendSegment(df, segmentRange);
@@ -195,9 +198,9 @@ public class AutoMergeTest extends NLocalFileMetadataTestCase {
         for (val event : events) {
             if (event instanceof MergeSegmentEvent) {
                 //merge 2010/01/01 00:00 - 2010/01/04 00:00
-                Assert.assertEquals(1262304000000L, dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa")
+                Assert.assertEquals(DateFormat.stringToMillis("2010-01-01 00:00:00"), dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa")
                         .getSegment(((MergeSegmentEvent) event).getSegmentId()).getSegRange().getStart());
-                Assert.assertEquals(1262563200000L, dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa")
+                Assert.assertEquals(DateFormat.stringToMillis("2010-01-04 00:00:00"), dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa")
                         .getSegment(((MergeSegmentEvent) event).getSegmentId()).getSegRange().getEnd());
             }
         }
@@ -216,8 +219,8 @@ public class AutoMergeTest extends NLocalFileMetadataTestCase {
         //test 9 days ,2010/01/01 - 2010/01/10， volatileRange 3 days
         for (int i = 0; i <= 9; i++) {
             //01-01 friday
-            start = SegmentRange.dateToLong("2010-01-01") + i * 86400000;
-            end = SegmentRange.dateToLong("2010-01-02") + i * 86400000;
+            start = addDay("2010-01-01", i);
+            end = addDay("2010-01-02", i);
             SegmentRange segmentRange = new SegmentRange.TimePartitionedSegmentRange(start, end);
             df = dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
             NDataSegment dataSegment = dataflowManager.appendSegment(df, segmentRange);
@@ -246,9 +249,9 @@ public class AutoMergeTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(2, events.size());
         for (val event : events) {
             if (event instanceof MergeSegmentEvent) {
-                Assert.assertEquals(1262304000000L, dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa")
+                Assert.assertEquals(DateFormat.stringToMillis("2010-01-01 00:00:00"), dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa")
                         .getSegment(((MergeSegmentEvent) event).getSegmentId()).getSegRange().getStart());
-                Assert.assertEquals(1262563200000L, dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa")
+                Assert.assertEquals(DateFormat.stringToMillis("2010-01-04 00:00:00"), dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa")
                         .getSegment(((MergeSegmentEvent) event).getSegmentId()).getSegRange().getEnd());
             }
         }
@@ -267,8 +270,8 @@ public class AutoMergeTest extends NLocalFileMetadataTestCase {
         //test 8 days ,2010/01/04 - 2010/01/11， volatileRange 1 days
         for (int i = 0; i <= 7; i++) {
             //01-01 friday
-            start = SegmentRange.dateToLong("2010-01-04") + i * 86400000;
-            end = SegmentRange.dateToLong("2010-01-05") + i * 86400000;
+            start = addDay("2010-01-04", i);
+            end = addDay("2010-01-05", i);
             SegmentRange segmentRange = new SegmentRange.TimePartitionedSegmentRange(start, end);
             df = dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
             NDataSegment dataSegment = dataflowManager.appendSegment(df, segmentRange);
@@ -298,9 +301,9 @@ public class AutoMergeTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(2, events.size());
         for (val event : events) {
             if (event instanceof MergeSegmentEvent) {
-                Assert.assertEquals(1262563200000L, dataflowManager.getDataflowByModelAlias("nmodel_basic")
+                Assert.assertEquals(DateFormat.stringToMillis("2010-01-04 00:00:00"), dataflowManager.getDataflowByModelAlias("nmodel_basic")
                         .getSegment(((MergeSegmentEvent) event).getSegmentId()).getSegRange().getStart());
-                Assert.assertEquals(1263168000000L, dataflowManager.getDataflowByModelAlias("nmodel_basic")
+                Assert.assertEquals(DateFormat.stringToMillis("2010-01-11 00:00:00"), dataflowManager.getDataflowByModelAlias("nmodel_basic")
                         .getSegment(((MergeSegmentEvent) event).getSegmentId()).getSegRange().getEnd());
             }
         }
@@ -320,8 +323,8 @@ public class AutoMergeTest extends NLocalFileMetadataTestCase {
         //test 9 days ,2010/01/01 00:00 - 2010/01/10 00:00，remove 2010/01/02,merge the second week
         for (int i = 0; i <= 9; i++) {
             //01-01 friday
-            start = SegmentRange.dateToLong("2010-01-01") + i * 86400000;
-            end = SegmentRange.dateToLong("2010-01-02") + i * 86400000;
+            start = addDay("2010-01-01", i);
+            end = addDay("2010-01-02", i);
             SegmentRange segmentRange = new SegmentRange.TimePartitionedSegmentRange(start, end);
             df = dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
             NDataSegment dataSegment = dataflowManager.appendSegment(df, segmentRange);
@@ -336,7 +339,7 @@ public class AutoMergeTest extends NLocalFileMetadataTestCase {
         df = dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         update = new NDataflowUpdate(df.getUuid());
         //remove 2010-01-02
-        update.setToRemoveSegs(new NDataSegment[]{df.getSegments().get(1)});
+        update.setToRemoveSegs(new NDataSegment[] {df.getSegments().get(1)});
         dataflowManager.updateDataflow(update);
 
         EventDao eventDao = EventDao.getInstance(getTestConfig(), DEFAULT_PROJECT);
@@ -350,8 +353,8 @@ public class AutoMergeTest extends NLocalFileMetadataTestCase {
                         .getSegment(((MergeSegmentEvent) event).getSegmentId()).getSegRange().getStart().toString());
                 end = Long.parseLong(dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa")
                         .getSegment(((MergeSegmentEvent) event).getSegmentId()).getSegRange().getEnd().toString());
-                Assert.assertEquals(1262563200000L, start);
-                Assert.assertEquals(1263168000000L, end);
+                Assert.assertEquals(DateFormat.stringToMillis("2010-01-04 00:00:00"), start);
+                Assert.assertEquals(DateFormat.stringToMillis("2010-01-11 00:00:00"), end);
             }
         }
 
@@ -370,8 +373,8 @@ public class AutoMergeTest extends NLocalFileMetadataTestCase {
         //test 9 days ,2010/01/01 00:00 - 2010/01/10 00:00， 2010/01/02 building,merge the second week
         for (int i = 0; i <= 9; i++) {
             //01-01 friday
-            start = SegmentRange.dateToLong("2010-01-01") + i * 86400000;
-            end = SegmentRange.dateToLong("2010-01-02") + i * 86400000;
+            start = addDay("2010-01-01", i);
+            end = addDay("2010-01-02", i);
             SegmentRange segmentRange = new SegmentRange.TimePartitionedSegmentRange(start, end);
             df = dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
             NDataSegment dataSegment = dataflowManager.appendSegment(df, segmentRange);
@@ -396,8 +399,8 @@ public class AutoMergeTest extends NLocalFileMetadataTestCase {
                         .getSegment(((MergeSegmentEvent) event).getSegmentId()).getSegRange().getStart().toString());
                 end = Long.parseLong(dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa")
                         .getSegment(((MergeSegmentEvent) event).getSegmentId()).getSegRange().getEnd().toString());
-                Assert.assertEquals(1262563200000L, start);
-                Assert.assertEquals(1263168000000L, end);
+                Assert.assertEquals(DateFormat.stringToMillis("2010-01-04 00:00:00"), start);
+                Assert.assertEquals(DateFormat.stringToMillis("2010-01-11 00:00:00"), end);
             }
         }
     }
@@ -413,8 +416,8 @@ public class AutoMergeTest extends NLocalFileMetadataTestCase {
         //test 2 days and a big segment,merge the first week
         for (int i = 0; i <= 1; i++) {
             //01-01 friday
-            start = SegmentRange.dateToLong("2010-01-01") + i * 86400000;
-            end = SegmentRange.dateToLong("2010-01-02") + i * 86400000;
+            start = addDay("2010-01-01", i);
+            end = addDay("2010-01-02", i);
             SegmentRange segmentRange = new SegmentRange.TimePartitionedSegmentRange(start, end);
             NDataflow df = dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
             NDataSegment dataSegment = dataflowManager.appendSegment(df, segmentRange);
@@ -423,8 +426,8 @@ public class AutoMergeTest extends NLocalFileMetadataTestCase {
         }
 
         //a big segment
-        start = 1262476800000L;
-        end = 1262476800000L + 86400000 * 8;
+        start = DateFormat.stringToMillis("2010-01-03 00:00:00");
+        end = DateFormat.stringToMillis("2010-01-11 00:00:00");
         SegmentRange segmentRange = new SegmentRange.TimePartitionedSegmentRange(start, end);
         NDataflow df = dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         NDataSegment dataSegment = dataflowManager.appendSegment(df, segmentRange);
@@ -446,8 +449,8 @@ public class AutoMergeTest extends NLocalFileMetadataTestCase {
                         .getSegment(((MergeSegmentEvent) event).getSegmentId()).getSegRange().getStart().toString());
                 end = Long.parseLong(dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa")
                         .getSegment(((MergeSegmentEvent) event).getSegmentId()).getSegRange().getEnd().toString());
-                Assert.assertEquals(1262304000000L, start);
-                Assert.assertEquals(1262476800000L, end);
+                Assert.assertEquals(DateFormat.stringToMillis("2010-01-01 00:00:00"), start);
+                Assert.assertEquals(DateFormat.stringToMillis("2010-01-03 00:00:00"), end);
             }
         }
     }
@@ -465,8 +468,8 @@ public class AutoMergeTest extends NLocalFileMetadataTestCase {
         //test 2 days and a big segment,merge the first week
         for (int i = 0; i <= 9; i++) {
             //01-01 friday
-            start = SegmentRange.dateToLong("2010-01-03") + i * 86400000;
-            end = SegmentRange.dateToLong("2010-01-04") + i * 86400000;
+            start = addDay("2010-01-03", i);
+            end = addDay("2010-01-04", i);
             SegmentRange segmentRange = new SegmentRange.TimePartitionedSegmentRange(start, end);
             df = dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
             NDataSegment dataSegment = dataflowManager.appendSegment(df, segmentRange);
@@ -490,8 +493,8 @@ public class AutoMergeTest extends NLocalFileMetadataTestCase {
                 end = Long.parseLong(dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa")
                         .getSegment(((MergeSegmentEvent) event).getSegmentId()).getSegRange().getEnd().toString());
                 //2010/1/3 sunday - 2010/1/10 sunday
-                Assert.assertEquals(1262476800000L, start);
-                Assert.assertEquals(1263081600000L, end);
+                Assert.assertEquals(DateFormat.stringToMillis("2010-01-03 00:00:00"), start);
+                Assert.assertEquals(DateFormat.stringToMillis("2010-01-10 00:00:00"), end);
             }
         }
     }
@@ -536,9 +539,9 @@ public class AutoMergeTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(2, events.size());
         for (val event : events) {
             if (event instanceof MergeSegmentEvent) {
-                Assert.assertEquals(1262304000000L, Long.parseLong(dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa")
+                Assert.assertEquals(DateFormat.stringToMillis("2010-01-01 00:00:00"), Long.parseLong(dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa")
                         .getSegment(((MergeSegmentEvent) event).getSegmentId()).getSegRange().getStart().toString()));
-                Assert.assertEquals(1262307120000L, Long.parseLong(dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa")
+                Assert.assertEquals(DateFormat.stringToMillis("2010-01-01 00:52:00"), Long.parseLong(dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa")
                         .getSegment(((MergeSegmentEvent) event).getSegmentId()).getSegRange().getEnd().toString()));
             }
         }
@@ -567,8 +570,8 @@ public class AutoMergeTest extends NLocalFileMetadataTestCase {
 
         //4week segment ,and four one day segment ,2010/12/01 - 2011/1/02
         for (int i = 0; i <= 3; i++) {
-            start = SegmentRange.dateToLong("2010-12-01") + i * 604800000;
-            end = SegmentRange.dateToLong("2010-12-08") + i * 604800000;
+            start = addDay("2010-12-01", 7 * i);
+            end = addDay("2010-12-08", 7 * i);
             SegmentRange segmentRange = new SegmentRange.TimePartitionedSegmentRange(start, end);
             df = dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
             NDataSegment dataSegment = dataflowManager.appendSegment(df, segmentRange);
@@ -577,8 +580,8 @@ public class AutoMergeTest extends NLocalFileMetadataTestCase {
         }
 
         for (int i = 0; i <= 3; i++) {
-            start = SegmentRange.dateToLong("2010-12-29") + i * 86400000;
-            end = SegmentRange.dateToLong("2010-12-30") + i * 86400000;
+            start = addDay("2010-12-29", i);
+            end = addDay("2010-12-30", i);
             SegmentRange segmentRange = new SegmentRange.TimePartitionedSegmentRange(start, end);
             df = dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
             NDataSegment dataSegment = dataflowManager.appendSegment(df, segmentRange);
@@ -596,9 +599,9 @@ public class AutoMergeTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(2, events.size());
         for (val event : events) {
             if (event instanceof MergeSegmentEvent) {
-                Assert.assertEquals(1291161600000L, Long.parseLong(dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa")
+                Assert.assertEquals(DateFormat.stringToMillis("2010-12-01 00:00:00"), Long.parseLong(dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa")
                         .getSegment(((MergeSegmentEvent) event).getSegmentId()).getSegRange().getStart().toString()));
-                Assert.assertEquals(1293840000000L, Long.parseLong(dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa")
+                Assert.assertEquals(DateFormat.stringToMillis("2011-01-01 00:00:00"), Long.parseLong(dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa")
                         .getSegment(((MergeSegmentEvent) event).getSegmentId()).getSegRange().getEnd().toString()));
             }
         }
@@ -615,10 +618,11 @@ public class AutoMergeTest extends NLocalFileMetadataTestCase {
         List<NDataSegment> segments = new ArrayList<>();
         long start;
         long end;
-        //2010/10月 -2011/2月 merge 2010/10-2010/12
+        // 2010/10月 -2011/2月 merge 2010/10-2010/12
+        // use calendar to void Daylight Saving Time problem
         for (int i = 0; i <= 4; i++) {
-            start = SegmentRange.dateToLong("2010-10-01") + i * 2592000000L;
-            end = SegmentRange.dateToLong("2010-10-31") + i * 2592000000L;
+            start = addDay("2010-10-01", 30 * i);
+            end = addDay("2010-10-31", 30 * i);
             SegmentRange segmentRange = new SegmentRange.TimePartitionedSegmentRange(start, end);
             df = dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
             NDataSegment dataSegment = dataflowManager.appendSegment(df, segmentRange);
@@ -643,9 +647,9 @@ public class AutoMergeTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(2, events.size());
         for (val event : events) {
             if (event instanceof MergeSegmentEvent) {
-                Assert.assertEquals(1285891200000L, Long.parseLong(dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa")
+                Assert.assertEquals(DateFormat.stringToMillis("2010-10-01 00:00:00"), Long.parseLong(dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa")
                         .getSegment(((MergeSegmentEvent) event).getSegmentId()).getSegRange().getStart().toString()));
-                Assert.assertEquals(1293667200000L, Long.parseLong(dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa")
+                Assert.assertEquals(DateFormat.stringToMillis("2010-12-30 00:00:00"), Long.parseLong(dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa")
                         .getSegment(((MergeSegmentEvent) event).getSegmentId()).getSegRange().getEnd().toString()));
             }
         }
@@ -691,9 +695,9 @@ public class AutoMergeTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(2, events.size());
         for (val event : events) {
             if (event instanceof MergeSegmentEvent) {
-                Assert.assertEquals(1285920000000L, Long.parseLong(dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa")
+                Assert.assertEquals(DateFormat.stringToMillis("2010-10-01 08:00:00"), Long.parseLong(dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa")
                         .getSegment(((MergeSegmentEvent) event).getSegmentId()).getSegRange().getStart().toString()));
-                Assert.assertEquals(1285976700000L, Long.parseLong(dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa")
+                Assert.assertEquals(DateFormat.stringToMillis("2010-10-01 23:45:00"), Long.parseLong(dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa")
                         .getSegment(((MergeSegmentEvent) event).getSegmentId()).getSegRange().getEnd().toString()));
             }
         }
@@ -713,8 +717,8 @@ public class AutoMergeTest extends NLocalFileMetadataTestCase {
         //2010/10/04 2010/10/05
         for (int i = 0; i <= 1; i++) {
             //01-01 friday
-            start = SegmentRange.dateToLong("2010-01-04") + i * 86400000;
-            end = SegmentRange.dateToLong("2010-01-05") + i * 86400000;
+            start = addDay("2010-01-04", i);
+            end = addDay("2010-01-05", i);
             SegmentRange segmentRange = new SegmentRange.TimePartitionedSegmentRange(start, end);
             df = dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
             NDataSegment dataSegment = dataflowManager.appendSegment(df, segmentRange);
@@ -725,8 +729,8 @@ public class AutoMergeTest extends NLocalFileMetadataTestCase {
         //2010/10/11 2010/10/12
         for (int i = 2; i <= 3; i++) {
             //01-01 friday
-            start = SegmentRange.dateToLong("2010-01-09") + i * 86400000;
-            end = SegmentRange.dateToLong("2010-01-10") + i * 86400000;
+            start = addDay("2010-01-09", i);
+            end = addDay("2010-01-10", i);
             SegmentRange segmentRange = new SegmentRange.TimePartitionedSegmentRange(start, end);
             df = dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
             NDataSegment dataSegment = dataflowManager.appendSegment(df, segmentRange);
@@ -767,8 +771,8 @@ public class AutoMergeTest extends NLocalFileMetadataTestCase {
         //2010/10/04 2010/10/05
         for (int i = 0; i <= 1; i++) {
             //01-01 friday
-            start = SegmentRange.dateToLong("2010-01-03") + i * 86400000 * 2;
-            end = SegmentRange.dateToLong("2010-01-05") + i * 86400000 * 2;
+            start = addDay("2010-01-03", 2 * i);
+            end = addDay("2010-01-05", 2 * i);
             SegmentRange segmentRange = new SegmentRange.TimePartitionedSegmentRange(start, end);
             df = dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
             NDataSegment dataSegment = dataflowManager.appendSegment(df, segmentRange);
@@ -925,4 +929,11 @@ public class AutoMergeTest extends NLocalFileMetadataTestCase {
 
     }
 
+
+    public long addDay(String base, int inc) {
+        Calendar calendar = Calendar.getInstance();
+        calendar.setTimeInMillis(SegmentRange.dateToLong(base));
+        calendar.add(Calendar.DAY_OF_MONTH, inc);
+        return calendar.getTimeInMillis();
+    }
 }

@@ -23,6 +23,7 @@
  */
 package io.kyligence.kap.tool;
 
+import io.kyligence.kap.junit.TimeZoneTestRunner;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
@@ -56,7 +57,9 @@ import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.tool.garbage.GarbageCleaner;
 import lombok.val;
 import lombok.var;
+import org.junit.runner.RunWith;
 
+@RunWith(TimeZoneTestRunner.class)
 public class GarbageCleanerTest extends NLocalFileMetadataTestCase {
     private String PROJECT = "default";
     private static final String MODEL_ID = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
@@ -90,7 +93,7 @@ public class GarbageCleanerTest extends NLocalFileMetadataTestCase {
 
         val favoriteQueryManager = FavoriteQueryManager.getInstance(getTestConfig(), PROJECT);
         long currentTime = System.currentTimeMillis();
-        ZoneId zoneId = TimeZone.getTimeZone("GMT").toZoneId();
+        ZoneId zoneId = TimeZone.getDefault().toZoneId();
         LocalDate localDate = Instant.ofEpochMilli(currentTime).atZone(zoneId).toLocalDate();
         long currentDate = localDate.atStartOfDay().atZone(zoneId).toInstant().toEpochMilli();
         long dayInMillis = 24 * 60 * 60 * 1000L;
@@ -230,7 +233,7 @@ public class GarbageCleanerTest extends NLocalFileMetadataTestCase {
     @Test
     public void testcleanupMetadataManually_ChangeConfig() {
         long currentTime = System.currentTimeMillis();
-        ZoneId zoneId = TimeZone.getTimeZone("GMT").toZoneId();
+        ZoneId zoneId = TimeZone.getDefault().toZoneId();
         LocalDate localDate = Instant.ofEpochMilli(currentTime).atZone(zoneId).toLocalDate();
         long currentDate = localDate.atStartOfDay().atZone(zoneId).toInstant().toEpochMilli();
         val newFq = new FavoriteQuery("sql");

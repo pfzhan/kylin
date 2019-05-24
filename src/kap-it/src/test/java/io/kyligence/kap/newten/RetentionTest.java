@@ -24,6 +24,7 @@
 package io.kyligence.kap.newten;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.junit.TimeZoneTestRunner;
 import io.kyligence.kap.metadata.cube.model.NDataLoadingRange;
 import io.kyligence.kap.metadata.cube.model.NDataLoadingRangeManager;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
@@ -39,6 +40,7 @@ import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.RetentionRange;
 import lombok.val;
 
+import org.apache.kylin.common.util.DateFormat;
 import org.apache.kylin.metadata.model.SegmentRange;
 
 import org.junit.After;
@@ -49,8 +51,9 @@ import org.junit.Test;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import org.junit.runner.RunWith;
 
-
+@RunWith(TimeZoneTestRunner.class)
 public class RetentionTest extends NLocalFileMetadataTestCase {
 
     private static final String DEFAULT_PROJECT = "default";
@@ -166,15 +169,15 @@ public class RetentionTest extends NLocalFileMetadataTestCase {
         df = dataflowManager.getDataflowByModelAlias("nmodel_basic");
         Assert.assertEquals(2, df.getSegments().size());
         //01-11
-        Assert.assertEquals("1263168000000", df.getSegments().get(0).getSegRange().getStart().toString());
+        Assert.assertEquals(DateFormat.stringToMillis("2010-01-11 00:00:00"), df.getSegments().get(0).getSegRange().getStart());
         //01-18
-        Assert.assertEquals("1264377600000", df.getSegments().get(1).getSegRange().getEnd().toString());
+        Assert.assertEquals(DateFormat.stringToMillis("2010-01-25 00:00:00"), df.getSegments().get(1).getSegRange().getEnd());
 
         val dataLoadingRange = dataLoadingRangeManager.getDataLoadingRange(loadingRange.getTableName());
 
-        Assert.assertEquals("1263168000000", dataLoadingRange.getCoveredRange().getStart().toString());
+        Assert.assertEquals(DateFormat.stringToMillis("2010-01-11 00:00:00"), dataLoadingRange.getCoveredRange().getStart());
 
-        Assert.assertEquals("1264377600000", dataLoadingRange.getCoveredRange().getEnd().toString());
+        Assert.assertEquals(DateFormat.stringToMillis("2010-01-25 00:00:00"), dataLoadingRange.getCoveredRange().getEnd());
 
 
     }
@@ -222,9 +225,9 @@ public class RetentionTest extends NLocalFileMetadataTestCase {
 
         Assert.assertEquals(3, df.getSegments().size());
         //01/11
-        Assert.assertEquals("1263168000000", df.getSegments().get(0).getSegRange().getStart().toString());
+        Assert.assertEquals(DateFormat.stringToMillis("2010-01-11 00:00:00"), df.getSegments().get(0).getSegRange().getStart());
         //01/26
-        Assert.assertEquals("1264464000000", df.getSegments().getLastSegment().getSegRange().getEnd().toString());
+        Assert.assertEquals(DateFormat.stringToMillis("2010-01-26 00:00:00"), df.getSegments().getLastSegment().getSegRange().getEnd());
     }
 
 
@@ -264,9 +267,9 @@ public class RetentionTest extends NLocalFileMetadataTestCase {
         //retention
         Assert.assertEquals(4, df.getSegments().size());
         //02/08
-        Assert.assertEquals("1265587200000", df.getSegments().get(0).getSegRange().getStart().toString());
+        Assert.assertEquals(DateFormat.stringToMillis("2010-02-08 00:00:00"), df.getSegments().get(0).getSegRange().getStart());
         //03/08
-        Assert.assertEquals("1268006400000", df.getSegments().getLastSegment().getSegRange().getEnd().toString());
+        Assert.assertEquals(DateFormat.stringToMillis("2010-03-08 00:00:00"), df.getSegments().getLastSegment().getSegRange().getEnd());
 
 
     }
@@ -305,9 +308,9 @@ public class RetentionTest extends NLocalFileMetadataTestCase {
         df = dataflowManager.getDataflowByModelAlias("nmodel_basic");
         Assert.assertEquals(5, df.getSegments().size());
         //01/04
-        Assert.assertEquals("1262563200000", df.getSegments().get(0).getSegRange().getStart().toString());
+        Assert.assertEquals(DateFormat.stringToMillis("2010-01-04 00:00:00"), df.getSegments().get(0).getSegRange().getStart());
         //02/08
-        Assert.assertEquals("1265587200000", df.getSegments().getLastSegment().getSegRange().getEnd().toString());
+        Assert.assertEquals(DateFormat.stringToMillis("2010-02-08 00:00:00"), df.getSegments().getLastSegment().getSegRange().getEnd());
     }
 
 

@@ -42,7 +42,7 @@ class TestCreateFlatTable extends SparderBaseFunSuite with SharedSparkSession wi
   private val MODEL_NAME = "89af4ee2-2cdb-4b07-b39e-4c29856309aa"
 
   val dateFormat = new SimpleDateFormat("yyyy-MM-dd")
-  dateFormat.setTimeZone(TimeZone.getTimeZone("GMT"))
+  dateFormat.setTimeZone(TimeZone.getDefault)
 
   def getTestConfig: KylinConfig = {
     val config = KylinConfig.getInstanceFromEnv
