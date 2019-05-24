@@ -31,7 +31,6 @@
 import Vue from 'vue'
 import { Component, Watch } from 'vue-property-decorator'
 import { mapActions, mapGetters } from 'vuex'
-import { computedDataType } from 'config/index'
 import { handleError, kapMessage, handleSuccess } from 'util/business'
 import { objectClone } from 'util/index'
 import { modelErrorMsg } from '../ModelEdit/config'
@@ -56,7 +55,6 @@ import { NamedRegex } from 'config'
   }
 })
 export default class CCForm extends Vue {
-  computedRetrunType = computedDataType
   checkBtnLoading = false
   ccRules = {
     columnName: [

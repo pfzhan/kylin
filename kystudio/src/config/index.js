@@ -139,13 +139,13 @@ export const personalEmail = {
   'foxmail.com': 'http://www.foxmail.com'
 }
 
-export const computedDataType = [
-  'tinyint', 'smallint', 'integer', 'bigint', 'float', 'double', 'decimal', 'timestamp', 'date', 'varchar', 'boolean'
+export const measuresDataType = [
+  'tinyint', 'smallint', 'integer', 'bigint', 'float', 'double', 'decimal', 'timestamp', 'date', 'char', 'varchar', 'boolean'
 ]
 
-export const measuresDataType = [
-  'tinyint', 'smallint', 'integer', 'int', 'bigint', 'float', 'double', 'decimal', 'timestamp', 'date', 'varchar', 'boolean'
-]
+export const measureSumDataType = ['tinyint', 'smallint', 'integer', 'bigint', 'float', 'double', 'decimal']
+
+export const measurePercenAndTopNDataType = ['tinyint', 'smallint', 'integer', 'bigint']
 
 export const timeDataType = [
   'timestamp', 'date', 'time', 'datetime'

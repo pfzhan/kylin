@@ -30,24 +30,25 @@
             :data="table.columns"
             :ref="table.guid">
             <el-table-column show-overflow-tooltip prop="name" :label="$t('column')"></el-table-column>
+            <el-table-column show-overflow-tooltip prop="datatype" :label="$t('dataType')"></el-table-column>
             <el-table-column prop="SUM" :renderHeader="(h, obj) => {return renderColumn(h, obj, table)}" align="center">
               <template slot-scope="scope">
-                <el-checkbox v-model="scope.row.SUM.value" @change="handleChange(scope.row, table, 'SUM')" :disabled="scope.row.SUM.isExist"></el-checkbox>
+                <el-checkbox v-model="scope.row.SUM.value" @change="handleChange(scope.row, table, 'SUM')" :disabled="scope.row.SUM.isShouldDisable"></el-checkbox>
               </template>
             </el-table-column>
             <el-table-column prop="MIN" :renderHeader="(h, obj) => {return renderColumn(h, obj, table)}" align="center">
               <template slot-scope="scope">
-                <el-checkbox v-model="scope.row.MIN.value" @change="handleChange(scope.row, table, 'MIN')" :disabled="scope.row.MIN.isExist"></el-checkbox>
+                <el-checkbox v-model="scope.row.MIN.value" @change="handleChange(scope.row, table, 'MIN')" :disabled="scope.row.MIN.isShouldDisable"></el-checkbox>
               </template>
             </el-table-column>
             <el-table-column prop="MAX" :renderHeader="(h, obj) => {return renderColumn(h, obj, table)}" align="center">
               <template slot-scope="scope">
-                <el-checkbox v-model="scope.row.MAX.value" @change="handleChange(scope.row, table, 'MAX')" :disabled="scope.row.MAX.isExist"></el-checkbox>
+                <el-checkbox v-model="scope.row.MAX.value" @change="handleChange(scope.row, table, 'MAX')" :disabled="scope.row.MAX.isShouldDisable"></el-checkbox>
               </template>
             </el-table-column>
             <el-table-column prop="COUNT" :renderHeader="(h, obj) => {return renderColumn(h, obj, table)}" align="center">
               <template slot-scope="scope">
-                <el-checkbox v-model="scope.row.COUNT.value" @change="handleChange(scope.row, table, 'COUNT')" :disabled="scope.row.COUNT.isExist"></el-checkbox>
+                <el-checkbox v-model="scope.row.COUNT.value" @change="handleChange(scope.row, table, 'COUNT')" :disabled="scope.row.COUNT.isShouldDisable"></el-checkbox>
               </template>
             </el-table-column>
           </el-table>
@@ -68,24 +69,25 @@
             :data="table.columns"
             :ref="table.guid">
             <el-table-column show-overflow-tooltip prop="name" :label="$t('column')"></el-table-column>
+            <el-table-column show-overflow-tooltip prop="datatype" :label="$t('dataType')"></el-table-column>
             <el-table-column prop="SUM" :renderHeader="(h, obj) => {return renderColumn(h, obj, table)}" align="center">
               <template slot-scope="scope">
-                <el-checkbox v-model="scope.row.SUM.value" @change="handleChange(scope.row, table, 'SUM')" :disabled="scope.row.SUM.isExist"></el-checkbox>
+                <el-checkbox v-model="scope.row.SUM.value" @change="handleChange(scope.row, table, 'SUM')" :disabled="scope.row.SUM.isShouldDisable"></el-checkbox>
               </template>
             </el-table-column>
             <el-table-column prop="MIN" :renderHeader="(h, obj) => {return renderColumn(h, obj, table)}" align="center">
               <template slot-scope="scope">
-                <el-checkbox v-model="scope.row.MIN.value" @change="handleChange(scope.row, table, 'MIN')" :disabled="scope.row.MIN.isExist"></el-checkbox>
+                <el-checkbox v-model="scope.row.MIN.value" @change="handleChange(scope.row, table, 'MIN')" :disabled="scope.row.MIN.isShouldDisable"></el-checkbox>
               </template>
             </el-table-column>
             <el-table-column prop="MAX" :renderHeader="(h, obj) => {return renderColumn(h, obj, table)}" align="center">
               <template slot-scope="scope">
-                <el-checkbox v-model="scope.row.MAX.value" @change="handleChange(scope.row, table, 'MAX')" :disabled="scope.row.MAX.isExist"></el-checkbox>
+                <el-checkbox v-model="scope.row.MAX.value" @change="handleChange(scope.row, table, 'MAX')" :disabled="scope.row.MAX.isShouldDisable"></el-checkbox>
               </template>
             </el-table-column>
             <el-table-column prop="COUNT" :renderHeader="(h, obj) => {return renderColumn(h, obj, table)}" align="center">
               <template slot-scope="scope">
-                <el-checkbox v-model="scope.row.COUNT.value" @change="handleChange(scope.row, table, 'COUNT')" :disabled="scope.row.COUNT.isExist"></el-checkbox>
+                <el-checkbox v-model="scope.row.COUNT.value" @change="handleChange(scope.row, table, 'COUNT')" :disabled="scope.row.COUNT.isShouldDisable"></el-checkbox>
               </template>
             </el-table-column>
           </el-table>
@@ -107,24 +109,25 @@
               :data="ccTable.columns"
               :ref="ccTable.guid">
               <el-table-column show-overflow-tooltip prop="name" :label="$t('column')"></el-table-column>
+              <el-table-column show-overflow-tooltip prop="datatype" :label="$t('dataType')"></el-table-column>
               <el-table-column prop="SUM" :renderHeader="(h, obj) => {return renderColumn(h, obj, ccTable)}" align="center">
                 <template slot-scope="scope">
-                  <el-checkbox v-model="scope.row.SUM.value" @change="handleChange(scope.row, ccTable, 'SUM')" :disabled="scope.row.SUM.isExist"></el-checkbox>
+                  <el-checkbox v-model="scope.row.SUM.value" @change="handleChange(scope.row, ccTable, 'SUM')" :disabled="scope.row.SUM.isShouldDisable"></el-checkbox>
                 </template>
               </el-table-column>
               <el-table-column prop="MIN" :renderHeader="(h, obj) => {return renderColumn(h, obj, ccTable)}" align="center">
                 <template slot-scope="scope">
-                  <el-checkbox v-model="scope.row.MIN.value" @change="handleChange(scope.row, ccTable, 'MIN')" :disabled="scope.row.MIN.isExist"></el-checkbox>
+                  <el-checkbox v-model="scope.row.MIN.value" @change="handleChange(scope.row, ccTable, 'MIN')" :disabled="scope.row.MIN.isShouldDisable"></el-checkbox>
                 </template>
               </el-table-column>
               <el-table-column prop="MAX" :renderHeader="(h, obj) => {return renderColumn(h, obj, ccTable)}" align="center">
                 <template slot-scope="scope">
-                  <el-checkbox v-model="scope.row.MAX.value" @change="handleChange(scope.row, ccTable, 'MAX')" :disabled="scope.row.MAX.isExist"></el-checkbox>
+                  <el-checkbox v-model="scope.row.MAX.value" @change="handleChange(scope.row, ccTable, 'MAX')" :disabled="scope.row.MAX.isShouldDisable"></el-checkbox>
                 </template>
               </el-table-column>
               <el-table-column prop="COUNT" :renderHeader="(h, obj) => {return renderColumn(h, obj, ccTable)}" align="center">
                 <template slot-scope="scope">
-                  <el-checkbox v-model="scope.row.COUNT.value" @change="handleChange(scope.row, ccTable, 'COUNT')" :disabled="scope.row.COUNT.isExist"></el-checkbox>
+                  <el-checkbox v-model="scope.row.COUNT.value" @change="handleChange(scope.row, ccTable, 'COUNT')" :disabled="scope.row.COUNT.isShouldDisable"></el-checkbox>
                 </template>
               </el-table-column>
             </el-table>
@@ -140,22 +143,22 @@
             <el-table-column show-overflow-tooltip prop="name" :label="$t('column')"></el-table-column>
             <el-table-column prop="SUM" :renderHeader="(h, obj) => {return renderColumn(h, obj, searchTable)}" align="center">
               <template slot-scope="scope">
-                <el-checkbox v-model="scope.row.SUM.value" @change="handleChange(scope.row, searchTable, 'SUM')" :disabled="scope.row.SUM.isExist"></el-checkbox>
+                <el-checkbox v-model="scope.row.SUM.value" @change="handleChange(scope.row, searchTable, 'SUM')" :disabled="scope.row.SUM.isShouldDisable"></el-checkbox>
               </template>
             </el-table-column>
             <el-table-column prop="MIN" :renderHeader="(h, obj) => {return renderColumn(h, obj, searchTable)}" align="center">
               <template slot-scope="scope">
-                <el-checkbox v-model="scope.row.MIN.value" @change="handleChange(scope.row, searchTable, 'MIN')" :disabled="scope.row.MIN.isExist"></el-checkbox>
+                <el-checkbox v-model="scope.row.MIN.value" @change="handleChange(scope.row, searchTable, 'MIN')" :disabled="scope.row.MIN.isShouldDisable"></el-checkbox>
               </template>
             </el-table-column>
             <el-table-column prop="MAX" :renderHeader="(h, obj) => {return renderColumn(h, obj, searchTable)}" align="center">
               <template slot-scope="scope">
-                <el-checkbox v-model="scope.row.MAX.value" @change="handleChange(scope.row, searchTable, 'MAX')" :disabled="scope.row.MAX.isExist"></el-checkbox>
+                <el-checkbox v-model="scope.row.MAX.value" @change="handleChange(scope.row, searchTable, 'MAX')" :disabled="scope.row.MAX.isShouldDisable"></el-checkbox>
               </template>
             </el-table-column>
             <el-table-column prop="COUNT" :renderHeader="(h, obj) => {return renderColumn(h, obj, searchTable)}" align="center">
               <template slot-scope="scope">
-                <el-checkbox v-model="scope.row.COUNT.value" @change="handleChange(scope.row, searchTable, 'COUNT')" :disabled="scope.row.COUNT.isExist"></el-checkbox>
+                <el-checkbox v-model="scope.row.COUNT.value" @change="handleChange(scope.row, searchTable, 'COUNT')" :disabled="scope.row.COUNT.isShouldDisable"></el-checkbox>
               </template>
             </el-table-column>
           </el-table>
@@ -179,7 +182,7 @@ import vuex from '../../../../store'
 import locales from './locales'
 import store, { types } from './store'
 import { objectClone, sampleGuid } from '../../../../util'
-import { pageCount } from '../../../../config'
+import { pageCount, measuresDataType, measureSumDataType } from '../../../../config'
 vuex.registerModule(['modals', 'BatchMeasureModal'], store)
 @Component({
   computed: {
@@ -225,7 +228,7 @@ export default class BatchMeasureModal extends Vue {
     let allMeasureArr = []
     this.searchColumns.forEach((column) => {
       if (column.isMeasureCol) {
-        if (column.SUM.value && !column.SUM.isExist) {
+        if (column.SUM.value && !column.SUM.isShouldDisable) {
           const measure = {
             name: column.table_alias + '_' + column.name + '_SUM',
             expression: 'SUM',
@@ -234,7 +237,7 @@ export default class BatchMeasureModal extends Vue {
           }
           allMeasureArr.push(measure)
         }
-        if (column.MIN.value && !column.MIN.isExist) {
+        if (column.MIN.value && !column.MIN.isShouldDisable) {
           const measure = {
             name: column.table_alias + '_' + column.name + '_MIN',
             expression: 'MIN',
@@ -243,7 +246,7 @@ export default class BatchMeasureModal extends Vue {
           }
           allMeasureArr.push(measure)
         }
-        if (column.MAX.value && !column.MAX.isExist) {
+        if (column.MAX.value && !column.MAX.isShouldDisable) {
           const measure = {
             name: column.table_alias + '_' + column.name + '_MAX',
             expression: 'MAX',
@@ -252,7 +255,7 @@ export default class BatchMeasureModal extends Vue {
           }
           allMeasureArr.push(measure)
         }
-        if (column.COUNT.value && !column.COUNT.isExist) {
+        if (column.COUNT.value && !column.COUNT.isShouldDisable) {
           const measure = {
             name: column.table_alias + '_' + column.name + '_COUNT',
             expression: 'COUNT',
@@ -352,28 +355,38 @@ export default class BatchMeasureModal extends Vue {
     this.ccTable.columns = objectClone(this.modelDesc.computed_columns) || []
     let meaColNum = 0
     const nums = {sumNum: 0, minNum: 0, maxNum: 0, countNum: 0}
+    let filterColumns = []
     this.ccTable.columns.forEach((col) => {
-      this.$set(col, 'SUM', {isExist: false, value: false})
-      this.$set(col, 'MIN', {isExist: false, value: false})
-      this.$set(col, 'MAX', {isExist: false, value: false})
-      this.$set(col, 'COUNT', {isExist: false, value: false})
-      this.$set(col, 'isMeasureCol', false)
-      this.$set(col, 'table_guid', this.factTable[0].guid)
-      this.$set(col, 'table_alias', this.factTable[0].alias)
-      const len = this.usedColumns.length
-      for (let i = 0; i < len; i++) {
-        let d = this.usedColumns[i]
-        if (this.expressions.indexOf(d.expression) !== -1 && d.parameter_value[0].value === col.name) {
-          col[d.expression].value = true
-          col[d.expression].isExist = true
-          this.$set(col, 'isMeasureCol', true)
-          nums[d.expression.toLowerCase() + 'Num']++
+      const returnRegex = new RegExp('(\\w+)(?:\\((\\w+?)(?:\\,(\\w+?))?\\))?')
+      const returnValue = returnRegex.exec(col.datatype)
+      if (measuresDataType.indexOf(returnValue[1]) >= 0) {
+        this.$set(col, 'SUM', {isShouldDisable: false, value: false})
+        this.$set(col, 'MIN', {isShouldDisable: false, value: false})
+        this.$set(col, 'MAX', {isShouldDisable: false, value: false})
+        this.$set(col, 'COUNT', {isShouldDisable: false, value: false})
+        this.$set(col, 'isMeasureCol', false)
+        this.$set(col, 'table_guid', this.factTable[0].guid)
+        this.$set(col, 'table_alias', this.factTable[0].alias)
+        const len = this.usedColumns.length
+        for (let i = 0; i < len; i++) {
+          let d = this.usedColumns[i]
+          if (this.expressions.indexOf(d.expression) !== -1 && d.parameter_value[0].value === col.name) {
+            col[d.expression].value = true
+            col[d.expression].isShouldDisable = true
+            this.$set(col, 'isMeasureCol', true)
+            nums[d.expression.toLowerCase() + 'Num']++
+          }
+        }
+        if (measureSumDataType.indexOf(returnValue[1]) === -1) {
+          col.SUM.isShouldDisable = true
         }
         if (col.isMeasureCol) {
           meaColNum++
         }
+        filterColumns.push(col)
       }
     })
+    this.ccTable.columns = filterColumns
     this.$set(this.ccTable, 'nums', nums)
     this.$set(this.ccTable, 'meaColNum', meaColNum)
   }
@@ -391,28 +404,38 @@ export default class BatchMeasureModal extends Vue {
       let meaColNum = 0
       const nums = {sumNum: 0, minNum: 0, maxNum: 0, countNum: 0}
       // 将已经选上的measure回显到界面上
+      let filterColumns = []
       table.columns && table.columns.forEach((col) => {
-        this.$set(col, 'SUM', {isExist: false, value: false})
-        this.$set(col, 'MIN', {isExist: false, value: false})
-        this.$set(col, 'MAX', {isExist: false, value: false})
-        this.$set(col, 'COUNT', {isExist: false, value: false})
-        this.$set(col, 'isMeasureCol', false)
-        this.$set(col, 'table_guid', table.guid)
-        this.$set(col, 'table_alias', table.alias)
-        const len = this.usedColumns.length
-        for (let i = 0; i < len; i++) {
-          let d = this.usedColumns[i]
-          if (this.expressions.indexOf(d.expression) !== -1 && d.parameter_value[0].value === table.alias + '.' + col.name) {
-            col[d.expression].value = true
-            col[d.expression].isExist = true
-            this.$set(col, 'isMeasureCol', true)
-            nums[d.expression.toLowerCase() + 'Num']++
+        const returnRegex = new RegExp('(\\w+)(?:\\((\\w+?)(?:\\,(\\w+?))?\\))?')
+        const returnValue = returnRegex.exec(col.datatype)
+        if (measuresDataType.indexOf(returnValue[1]) >= 0) {
+          this.$set(col, 'SUM', {isShouldDisable: false, value: false})
+          this.$set(col, 'MIN', {isShouldDisable: false, value: false})
+          this.$set(col, 'MAX', {isShouldDisable: false, value: false})
+          this.$set(col, 'COUNT', {isShouldDisable: false, value: false})
+          this.$set(col, 'isMeasureCol', false)
+          this.$set(col, 'table_guid', table.guid)
+          this.$set(col, 'table_alias', table.alias)
+          const len = this.usedColumns.length
+          for (let i = 0; i < len; i++) {
+            let d = this.usedColumns[i]
+            if (this.expressions.indexOf(d.expression) !== -1 && d.parameter_value[0].value === table.alias + '.' + col.name) {
+              col[d.expression].value = true
+              col[d.expression].isShouldDisable = true
+              this.$set(col, 'isMeasureCol', true)
+              nums[d.expression.toLowerCase() + 'Num']++
+            }
           }
-        }
-        if (col.isMeasureCol) {
-          meaColNum++
+          if (measureSumDataType.indexOf(returnValue[1]) === -1) {
+            col.SUM.isShouldDisable = true
+          }
+          if (col.isMeasureCol) {
+            meaColNum++
+          }
+          filterColumns.push(col)
         }
       })
+      table.columns = filterColumns
       this.$set(table, 'nums', nums)
       this.$set(table, 'meaColNum', meaColNum)
     })
@@ -422,11 +445,10 @@ export default class BatchMeasureModal extends Vue {
     table.show = !table.show
   }
   handleChange (row, table, property) {
-    if (!(row.SUM.isExist && row.MIN.isExist && row.MAX.isExist && row.COUNT.isExist)) {
+    if (!(row.SUM.isShouldDisable && row.MIN.isShouldDisable && row.MAX.isShouldDisable && row.COUNT.isShouldDisable)) {
       if (row[property].value) {
         const cloneRow = objectClone(row)
         cloneRow[property].value = !cloneRow[property].value
-        // debugger
         if (!(cloneRow.SUM.value || cloneRow.MIN.value || cloneRow.MAX.value || cloneRow.COUNT.value)) {
           table.meaColNum++
           row.isMeasureCol = true
@@ -453,12 +475,14 @@ export default class BatchMeasureModal extends Vue {
     const toggleAllMeasures = (val) => {
       table.columns.forEach((d) => {
         if (val) {
-          d[column.property] = {value: val, isExist: d[column.property].isExist}
-          !d[column.property].isExist && table.nums[column.property.toLowerCase() + 'Num']++
-          d.isMeasureCol = true
+          if (!d[column.property].isShouldDisable) {
+            d[column.property] = {value: val, isShouldDisable: d[column.property].isShouldDisable}
+            !d[column.property].isShouldDisable && table.nums[column.property.toLowerCase() + 'Num']++
+            d.isMeasureCol = true
+          }
         } else {
-          if (!d[column.property].isExist) {
-            d[column.property] = {value: val, isExist: d[column.property].isExist}
+          if (!d[column.property].isShouldDisable) {
+            d[column.property] = {value: val, isShouldDisable: d[column.property].isShouldDisable}
             table.nums[column.property.toLowerCase() + 'Num']--
           }
           if (!(d.SUM.value || d.MIN.value || d.MAX.value || d.COUNT.value)) {

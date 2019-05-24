@@ -120,7 +120,7 @@
 <script>
 import Vue from 'vue'
 import { Component, Watch } from 'vue-property-decorator'
-import { measuresDataType } from '../../../../config'
+import { measuresDataType, measureSumDataType, measurePercenAndTopNDataType } from '../../../../config'
 import { objectClone } from '../../../../util/index'
 import { NamedRegex } from 'config'
 import CCEditForm from '../ComputedColumnForm/ccform.vue'
@@ -412,11 +412,19 @@ export default class AddMeasure extends Vue {
 
   get getParameterValue () {
     let targetColumns = []
+    let filterType = []
     if (this.allTableColumns) {
+      if (this.measure.expression === 'SUM(column)') {
+        filterType = measureSumDataType
+      } else if (this.measure.expression === 'TOP_N' || this.measure.expression === 'PERCENTILE_APPROX') {
+        filterType = measurePercenAndTopNDataType
+      } else {
+        filterType = measuresDataType
+      }
       $.each(this.allTableColumns, (index, column) => {
         const returnRegex = new RegExp('(\\w+)(?:\\((\\w+?)(?:\\,(\\w+?))?\\))?')
         const returnValue = returnRegex.exec(column.datatype)
-        if (measuresDataType.indexOf(returnValue[1]) >= 0) {
+        if (filterType.indexOf(returnValue[1]) >= 0) {
           const columnObj = {name: column.table_alias + '.' + column.name, datatype: column.datatype}
           targetColumns.push(columnObj)
         }
