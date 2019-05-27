@@ -30,7 +30,7 @@
             :data="table.columns"
             :ref="table.guid">
             <el-table-column show-overflow-tooltip prop="name" :label="$t('column')"></el-table-column>
-            <el-table-column show-overflow-tooltip prop="datatype" :label="$t('dataType')"></el-table-column>
+            <el-table-column show-overflow-tooltip prop="datatype" width="110px" :label="$t('dataType')"></el-table-column>
             <el-table-column prop="SUM" :renderHeader="(h, obj) => {return renderColumn(h, obj, table)}" align="center">
               <template slot-scope="scope">
                 <el-checkbox v-model="scope.row.SUM.value" @change="handleChange(scope.row, table, 'SUM')" :disabled="scope.row.SUM.isShouldDisable"></el-checkbox>
@@ -69,7 +69,7 @@
             :data="table.columns"
             :ref="table.guid">
             <el-table-column show-overflow-tooltip prop="name" :label="$t('column')"></el-table-column>
-            <el-table-column show-overflow-tooltip prop="datatype" :label="$t('dataType')"></el-table-column>
+            <el-table-column show-overflow-tooltip prop="datatype" width="110px" :label="$t('dataType')"></el-table-column>
             <el-table-column prop="SUM" :renderHeader="(h, obj) => {return renderColumn(h, obj, table)}" align="center">
               <template slot-scope="scope">
                 <el-checkbox v-model="scope.row.SUM.value" @change="handleChange(scope.row, table, 'SUM')" :disabled="scope.row.SUM.isShouldDisable"></el-checkbox>
@@ -109,7 +109,7 @@
               :data="ccTable.columns"
               :ref="ccTable.guid">
               <el-table-column show-overflow-tooltip prop="name" :label="$t('column')"></el-table-column>
-              <el-table-column show-overflow-tooltip prop="datatype" :label="$t('dataType')"></el-table-column>
+              <el-table-column show-overflow-tooltip prop="datatype" width="110px" :label="$t('dataType')"></el-table-column>
               <el-table-column prop="SUM" :renderHeader="(h, obj) => {return renderColumn(h, obj, ccTable)}" align="center">
                 <template slot-scope="scope">
                   <el-checkbox v-model="scope.row.SUM.value" @change="handleChange(scope.row, ccTable, 'SUM')" :disabled="scope.row.SUM.isShouldDisable"></el-checkbox>
