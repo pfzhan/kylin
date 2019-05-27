@@ -54,12 +54,12 @@ class UdfManager(sparkSession: SparkSession) extends Logging {
     val name = genKey(dataType, funcName, isFirst, schema)
     val cacheFunc = udfCache.getIfPresent(name)
     if (cacheFunc == null) {
-      udfCache.put(name, "")
       if (funcName == "TOP_N") {
         sparkSession.udf.register(name, new TopNUDAF(dataType, schema, isFirst))
       } else {
         sparkSession.udf.register(name, new FirstUDAF(funcName, dataType, isFirst))
       }
+      udfCache.put(name, "")
     }
     name
   }

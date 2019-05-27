@@ -49,10 +49,11 @@ public class BuildLayoutWithUpdate {
     private CompletionService<JobResult> completionService = new ExecutorCompletionService<>(pool);
     private int currentLayoutsNum = 0;
 
-    public void submit(JobEntity job) {
+    public void submit(JobEntity job, KylinConfig config) {
         completionService.submit(new Callable<JobResult>() {
             @Override
             public JobResult call() throws Exception {
+                KylinConfig.setAndUnsetThreadLocalConfig(config);
                 Thread.currentThread().setName("thread-" + job.getName());
                 List<NDataLayout> nDataLayouts = new LinkedList<>();
                 Throwable throwable = null;

@@ -165,7 +165,7 @@ public class DFBuildJob extends SparkApplication {
                     public List<NDataLayout> build() throws IOException {
                         return buildIndex(seg, index, parentDS, st);
                     }
-                });
+                }, config);
                 allIndexesInCurrentLayer.add(index);
             }
         }

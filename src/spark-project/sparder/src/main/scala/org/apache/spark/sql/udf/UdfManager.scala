@@ -55,8 +55,8 @@ class UdfManager(sparkSession: SparkSession) extends Logging {
     val name = genKey(dataType, funcName)
     val cacheFunc = udfCache.getIfPresent(name)
     if (cacheFunc == null) {
-      udfCache.put(name, "")
       sparkSession.udf.register(name, new SparderAggFun(funcName, dataType))
+      udfCache.put(name, "")
     }
     name
   }

@@ -131,7 +131,7 @@ public class DFMergeJob extends SparkApplication {
                 public List<NDataLayout> build() throws IOException {
                     return Lists.newArrayList(saveAndUpdateCuboid(afterSort, mergedSeg, layout, assist));
                 }
-            });
+            }, config);
 
             buildLayoutWithUpdate.updateLayout(mergedSeg, config, project);
         }
