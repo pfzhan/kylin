@@ -24,8 +24,6 @@
 
 package io.kyligence.kap.smart;
 
-import java.util.Map;
-
 import org.apache.kylin.common.KylinConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -38,7 +36,6 @@ public abstract class NAbstractProposer {
 
     protected static Logger logger = LoggerFactory.getLogger(NAbstractProposer.class);
 
-    final Map<String, AccelerateInfo> accelerateInfoMap;
     final NSmartContext smartContext;
     final KylinConfig kylinConfig;
 
@@ -48,14 +45,12 @@ public abstract class NAbstractProposer {
         this.smartContext = smartContext;
         this.kylinConfig = smartContext.getKylinConfig();
         this.project = smartContext.getProject();
-
-        this.accelerateInfoMap = smartContext.getAccelerateInfoMap();
     }
 
     void recordException(NSmartContext.NModelContext modelCtx, Exception e) {
         modelCtx.getModelTree().getOlapContexts().forEach(olapCtx -> {
             String sql = olapCtx.sql;
-            final AccelerateInfo accelerateInfo = accelerateInfoMap.get(sql);
+            final AccelerateInfo accelerateInfo = smartContext.getAccelerateInfoMap().get(sql);
             Preconditions.checkNotNull(accelerateInfo);
             accelerateInfo.setFailedCause(e);
         });

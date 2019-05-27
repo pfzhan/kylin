@@ -144,7 +144,8 @@ public class NModelMaster {
         try (AbstractQueryRunner extractor = NQueryRunnerFactory.createForModelSuggestion(kylinConfig,
                 project, newQueries.toArray(new String[0]), Lists.newArrayList(dataModel), 1)) {
             extractor.execute();
-            List<ModelTree> modelTrees = new GreedyModelTreesBuilder(kylinConfig, project) //
+            List<ModelTree> modelTrees = new GreedyModelTreesBuilder(kylinConfig, project,
+                    modelContext.getSmartContext()) //
                     .build(oldQueries, extractor.getAllOLAPContexts(), null);
             ModelTree updatedModelTree = null;
             for (ModelTree modelTree : modelTrees) {

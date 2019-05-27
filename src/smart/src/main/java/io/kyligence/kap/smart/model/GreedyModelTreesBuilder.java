@@ -44,6 +44,8 @@ import org.apache.kylin.metadata.model.JoinsGraph;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.TableRef;
 import org.apache.kylin.query.relnode.OLAPContext;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
@@ -52,17 +54,25 @@ import com.google.common.collect.Maps;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModel.TableKind;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
+import io.kyligence.kap.smart.NSmartContext;
+import io.kyligence.kap.smart.common.AccelerateInfo;
 import io.kyligence.kap.smart.util.JoinDescUtil;
 import io.kyligence.kap.smart.util.OLAPContextUtil;
 import io.kyligence.kap.smart.util.TableAliasGenerator;
+import lombok.val;
 
 public class GreedyModelTreesBuilder {
+
+    private static final Logger logger = LoggerFactory.getLogger(GreedyModelTreesBuilder.class);
+
     private final Map<String, TableDesc> tableMap;
     KylinConfig kylinConfig;
+    NSmartContext smartContext;
 
-    public GreedyModelTreesBuilder(KylinConfig kylinConfig, String project) {
+    public GreedyModelTreesBuilder(KylinConfig kylinConfig, String project, NSmartContext smartContext) {
         this.kylinConfig = kylinConfig;
         this.tableMap = NTableMetadataManager.getInstance(kylinConfig, project).getAllTablesMap();
+        this.smartContext = smartContext;
     }
 
     @SuppressWarnings("unchecked")
@@ -82,7 +92,7 @@ public class GreedyModelTreesBuilder {
                         }
 
                         TreeBuilder builder = builders.computeIfAbsent(actualFactTbl,
-                                tbl -> new TreeBuilder(tbl, tableMap));
+                                tbl -> new TreeBuilder(tbl, tableMap, smartContext));
                         builder.addOLAPContext(sql, ctx);
                     });
         }
@@ -124,12 +134,14 @@ public class GreedyModelTreesBuilder {
     public static class TreeBuilder {
         private TableDesc rootFact;
         private TableAliasGenerator.TableAliasDict dict;
+        private NSmartContext smartContext;
 
         private Map<String, Collection<OLAPContext>> contexts = Maps.newLinkedHashMap();
 
-        private TreeBuilder(TableDesc rootFact, Map<String, TableDesc> tableMap) {
+        private TreeBuilder(TableDesc rootFact, Map<String, TableDesc> tableMap, NSmartContext smartContext) {
             this.rootFact = rootFact;
             this.dict = TableAliasGenerator.generateNewDict(tableMap.keySet().toArray(new String[0]));
+            this.smartContext = smartContext;
         }
 
         private void addOLAPContext(String sql, OLAPContext ctx) {
@@ -175,10 +187,26 @@ public class GreedyModelTreesBuilder {
 
             Map<String, TableRef> aliasRefMap = Maps.newHashMap();
             Map<String, JoinTableDesc> joinTables = new LinkedHashMap<>();
-            ctxsNeedMerge.forEach(ctx -> {
-                // Merge matching contexts' joins
-                mergeContext(ctx, joinTables, correctedTableAlias, aliasRefMap);
-            });
+
+            // Merge matching contexts' joins
+            for (OLAPContext ctx : ctxsNeedMerge) {
+                val accelerateInfoMap = smartContext.getAccelerateInfoMap();
+                AccelerateInfo accelerateInfo = accelerateInfoMap.get(ctx.sql);
+                if (accelerateInfo.isNotSucceed()) {
+                    inputCtxs.remove(ctx);
+                    usedCtxs.remove(ctx);
+                    continue;
+                }
+
+                try {
+                    mergeContext(ctx, joinTables, correctedTableAlias, aliasRefMap);
+                } catch (Exception e) {
+                    logger.debug("the sql \n" + ctx.sql + "\n cannot be accelerated for meeting error", e);
+                    inputCtxs.remove(ctx);
+                    usedCtxs.remove(ctx);
+                    accelerateInfo.setFailedCause(e);
+                }
+            }
 
             inputCtxs.removeAll(usedCtxs);
             return new ModelTree(rootFact, usedCtxs, joinTables, correctedTableAlias);

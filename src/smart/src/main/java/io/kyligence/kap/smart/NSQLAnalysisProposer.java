@@ -29,14 +29,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.metadata.cube.model.NDataflowManager;
-import io.kyligence.kap.smart.query.advisor.ISqlAdvisor;
-import io.kyligence.kap.smart.query.advisor.SQLAdvice;
-import io.kyligence.kap.smart.query.advisor.SqlSyntaxAdvisor;
 import org.apache.kylin.metadata.realization.NoRealizationFoundException;
 
 import com.google.common.base.Preconditions;
 
+import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.smart.NSmartContext.NModelContext;
 import io.kyligence.kap.smart.common.AccelerateInfo;
@@ -44,6 +41,9 @@ import io.kyligence.kap.smart.model.GreedyModelTreesBuilder;
 import io.kyligence.kap.smart.query.AbstractQueryRunner;
 import io.kyligence.kap.smart.query.NQueryRunnerFactory;
 import io.kyligence.kap.smart.query.SQLResult;
+import io.kyligence.kap.smart.query.advisor.ISqlAdvisor;
+import io.kyligence.kap.smart.query.advisor.SQLAdvice;
+import io.kyligence.kap.smart.query.advisor.SqlSyntaxAdvisor;
 
 class NSQLAnalysisProposer extends NAbstractProposer {
 
@@ -66,8 +66,9 @@ class NSQLAnalysisProposer extends NAbstractProposer {
             extractor.execute();
             logFailedQuery(extractor);
 
-            final List<NModelContext> modelContexts = new GreedyModelTreesBuilder(kylinConfig, project)
+            final List<NModelContext> modelContexts = new GreedyModelTreesBuilder(kylinConfig, project, smartContext)
                     .build(Arrays.asList(sqls), extractor.getAllOLAPContexts(), null).stream()
+                    .filter(modelTree -> !modelTree.getOlapContexts().isEmpty())
                     .map(smartContext::createModelContext).collect(Collectors.toList());
 
             smartContext.setModelContexts(modelContexts);
@@ -82,8 +83,8 @@ class NSQLAnalysisProposer extends NAbstractProposer {
     private void initAccelerationInfo(String[] sqls) {
         Arrays.stream(sqls).forEach(sql -> {
             AccelerateInfo accelerateInfo = new AccelerateInfo();
-            if (!this.accelerateInfoMap.containsKey(sql)) {
-                this.accelerateInfoMap.put(sql, accelerateInfo);
+            if (!smartContext.getAccelerateInfoMap().containsKey(sql)) {
+                smartContext.getAccelerateInfoMap().put(sql, accelerateInfo);
             }
         });
     }
@@ -94,7 +95,7 @@ class NSQLAnalysisProposer extends NAbstractProposer {
 
         queryResultMap.forEach((index, sqlResult) -> {
             if (sqlResult.getStatus() == SQLResult.Status.FAILED) {
-                AccelerateInfo accelerateInfo = accelerateInfoMap.get(sqls[index]);
+                AccelerateInfo accelerateInfo = smartContext.getAccelerateInfoMap().get(sqls[index]);
                 Preconditions.checkNotNull(accelerateInfo);
                 Throwable throwable = sqlResult.getException();
                 if (!(throwable instanceof NoRealizationFoundException

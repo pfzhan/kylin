@@ -93,7 +93,7 @@ public class NModelSelectProposer extends NAbstractProposer {
             smartContext.getModelContexts().forEach(modelCtx -> {
                 if (modelCtx.withoutTargetModel()) {
                     modelCtx.getModelTree().getOlapContexts().forEach(olapContext -> {
-                        AccelerateInfo accelerateInfo = accelerateInfoMap.get(olapContext.sql);
+                        AccelerateInfo accelerateInfo = smartContext.getAccelerateInfoMap().get(olapContext.sql);
                         accelerateInfo.setPendingMsg(EXCEPTION_MSG);
                     });
                 }

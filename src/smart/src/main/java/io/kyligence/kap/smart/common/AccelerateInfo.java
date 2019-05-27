@@ -26,6 +26,8 @@ package io.kyligence.kap.smart.common;
 
 import java.util.Set;
 
+import org.apache.commons.lang.StringUtils;
+
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Sets;
 
@@ -36,7 +38,6 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
-import org.apache.commons.lang.StringUtils;
 
 @Getter
 @NoArgsConstructor
@@ -56,6 +57,10 @@ public class AccelerateInfo {
 
     public boolean isPending() {
         return StringUtils.isNotBlank(pendingMsg);
+    }
+
+    public boolean isNotSucceed() {
+        return isPending() || isFailed();
     }
 
     @Getter
