@@ -189,7 +189,6 @@ then
     source ${KYLIN_HOME}/bin/load-zookeeper-config.sh
     fetchFIZkInfo
 
-    port=7070
     used=`netstat -tpln | grep "\<$port\>" | awk '{print $7}' | sed "s/\// /g"`
     if [ ! -z "$used" ]; then
         echo "<$used> already listen on $port"
@@ -202,7 +201,7 @@ then
         export KYLIN_EXTRA_START_OPTS=`echo ${KYLIN_JVM_SETTINGS}|sed  "s/-XX:+PrintFlagsFinal//g"`
     fi
 
-    java ${KYLIN_EXTRA_START_OPTS} -Dlogging.path=${KYLIN_HOME}/logs -Dspring.profiles.active=prod -Dlogging.config=file:${KYLIN_HOME}/conf/kylin-server-log4j.properties -Dkylin.hadoop.conf.dir=${KYLIN_HADOOP_CONF} -Dhdp.version=current -Dserver.port=$port -Dloader.path="${KYLIN_HADOOP_CONF},${KYLIN_HOME}/server/jars,${SPARK_HOME}/jars" -XX:OnOutOfMemoryError="sh ${KYLIN_HOME}/bin/kylin.sh stop"  -jar newten.jar >> ../logs/kylin.out 2>&1 & echo $! > ../pid &
+    java ${KYLIN_EXTRA_START_OPTS} -Dlogging.path=${KYLIN_HOME}/logs -Dspring.profiles.active=prod -Dlogging.config=file:${KYLIN_HOME}/conf/kylin-server-log4j.properties -Dkylin.hadoop.conf.dir=${KYLIN_HADOOP_CONF} -Dhdp.version=current -Dloader.path="${KYLIN_HADOOP_CONF},${KYLIN_HOME}/server/jars,${SPARK_HOME}/jars" -XX:OnOutOfMemoryError="sh ${KYLIN_HOME}/bin/kylin.sh stop"  -jar newten.jar >> ../logs/kylin.out 2>&1 & echo $! > ../pid &
 
     echo "Kylin is starting, PID:`cat ../pid`. Please checkout http://`hostname`:$port/kylin/index.html"
 
