@@ -875,7 +875,7 @@ public class TableService extends BasicService {
         result.setRemoveMeasureCount(context.getRemoveAffectedModels().values().stream()
                 .map(ReloadTableAffectedModelContext::getMeasures).mapToLong(Set::size).sum());
         result.setRemoveIndexesCount(
-                context.getRemoveAffectedModels().values().stream().filter(m -> !m.getIndexes().isEmpty()).count());
+                context.getRemoveAffectedModels().values().stream().mapToLong(m -> m.getIndexes().size()).sum());
 
         return result;
     }

@@ -121,6 +121,7 @@ public class TableReloadServiceTest extends ServiceTestBase {
         //     nmodel_basic_inner: 21,25
         //     all_fixed_length: 21,25
         Assert.assertEquals(10, response.getRemoveDimCount());
+        Assert.assertEquals(18, response.getRemoveIndexesCount());
     }
 
     @Test
@@ -143,6 +144,7 @@ public class TableReloadServiceTest extends ServiceTestBase {
         //     nmodel_basic_inner: 100001,100002,100003,100009,100011,100013,100016,100015
         //     all_fixed_length: 100001,100002,100003,100009,100011
         Assert.assertEquals(26, response.getRemoveMeasureCount());
+        Assert.assertEquals(25, response.getRemoveIndexesCount());
     }
 
     @Test
