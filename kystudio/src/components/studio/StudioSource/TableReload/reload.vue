@@ -178,7 +178,7 @@ export default class ReloadTableModal extends Vue {
   }
   get detailMsg1 () {
     if (!this.isAutoProject) {
-      let delModelCount = this.checkData.broken_model_count
+      let delModelCount = this.checkData && this.checkData.broken_model_count || 0
       return delModelCount ? this.$t('modelchangeTip', {modelCount: delModelCount}) : ''
     }
     return ''
@@ -193,11 +193,11 @@ export default class ReloadTableModal extends Vue {
         if (delMeasureCount + delDimensionCount + delIndexCount === 0) {
           return ''
         }
-        if (delMeasureCount) {
-          tipList.push(this.$t('dimChangeTip', { dimensionCount: delMeasureCount }))
-        }
         if (delDimensionCount) {
-          tipList.push(this.$t('measureChangeTip', { measureCount: delDimensionCount }))
+          tipList.push(this.$t('dimChangeTip', { dimensionCount: delDimensionCount }))
+        }
+        if (delMeasureCount) {
+          tipList.push(this.$t('measureChangeTip', { measureCount: delMeasureCount }))
         }
         if (delIndexCount) {
           tipList.push(this.$t('indexChangeTip', { indexCount: delIndexCount }))
