@@ -552,11 +552,6 @@ public class NFavoriteSchedulerTest extends NLocalFileMetadataTestCase {
                 .getSystemTime();
         autoMarkFavoriteRunner.run();
         Assert.assertEquals(originFavoriteQuerySize + 5, favoriteQueryManager.getAll().size());
-
-        AccelerateRatioManager ratioManager = AccelerateRatioManager.getInstance(getTestConfig(), PROJECT);
-        AccelerateRatio ratio = ratioManager.get();
-        Assert.assertEquals(9, ratio.getOverallQueryNum());
-        Assert.assertEquals(3, ratio.getQueryNumOfMarkedAsFavorite());
     }
 
     @Test
@@ -605,5 +600,56 @@ public class NFavoriteSchedulerTest extends NLocalFileMetadataTestCase {
         Assert.assertFalse(favoriteScheduler.getOverAllStatus().getSqlPatternFreqMap().isEmpty());
         // frequency is still 1
         Assert.assertEquals(1, (int) favoriteScheduler.getOverAllStatus().getSqlPatternFreqMap().get("sql_pattern0"));
+    }
+
+    private List<QueryHistory> queryHistories() {
+        QueryHistory queryHistory1 = new QueryHistory();
+        queryHistory1.setSqlPattern("sql1");
+        queryHistory1.setQueryStatus(QueryHistory.QUERY_HISTORY_SUCCEEDED);
+        queryHistory1.setDuration(1000L);
+        queryHistory1.setQueryTime(1001);
+        queryHistory1.setEngineType("CONSTANTS");
+
+        QueryHistory queryHistory2 = new QueryHistory();
+        queryHistory2.setSqlPattern("sql2");
+        queryHistory2.setQueryStatus(QueryHistory.QUERY_HISTORY_SUCCEEDED);
+        queryHistory2.setDuration(1000L);
+        queryHistory2.setQueryTime(1002);
+        queryHistory2.setEngineType("HIVE");
+
+        QueryHistory queryHistory3 = new QueryHistory();
+        queryHistory3.setSqlPattern("sql3");
+        queryHistory3.setQueryStatus(QueryHistory.QUERY_HISTORY_SUCCEEDED);
+        queryHistory3.setDuration(1000L);
+        queryHistory3.setQueryTime(1003);
+        queryHistory3.setEngineType("NATIVE");
+
+        QueryHistory queryHistory4 = new QueryHistory();
+        queryHistory4.setSqlPattern("sql3");
+        queryHistory4.setQueryStatus(QueryHistory.QUERY_HISTORY_FAILED);
+        queryHistory4.setDuration(1000L);
+        queryHistory4.setQueryTime(1004);
+        queryHistory4.setEngineType("HIVE");
+
+        return Lists.newArrayList(queryHistory1, queryHistory2, queryHistory3, queryHistory4);
+    }
+
+    @Test
+    public void testAccelerateRatio() {
+        QueryHistoryDAO queryHistoryDAO = Mockito.mock(QueryHistoryDAO.class);
+        Mockito.when(queryHistoryDAO.getQueryHistoriesByTime(Mockito.anyLong(), Mockito.anyLong()))
+                .thenReturn(queryHistories())
+                .thenReturn(null);
+
+        Mockito.doReturn(queryHistoryDAO).when(favoriteScheduler).getQueryHistoryDao();
+        Mockito.when(favoriteScheduler.getQueryHistoryDao()).thenReturn(queryHistoryDAO);
+
+        NFavoriteScheduler.AutoFavoriteRunner autoMarkFavoriteRunner = favoriteScheduler.new AutoFavoriteRunner();
+        autoMarkFavoriteRunner.run();
+
+        AccelerateRatioManager accelerateRatioManager = AccelerateRatioManager.getInstance(getTestConfig(), PROJECT);
+        AccelerateRatio accelerateRatio = accelerateRatioManager.get();
+        Assert.assertEquals(1, accelerateRatio.getNumOfQueryHitIndex());
+        Assert.assertEquals(4, accelerateRatio.getOverallQueryNum());
     }
 }

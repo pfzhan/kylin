@@ -74,7 +74,7 @@ public class AccelerateRatioManager {
         return accelerateRatios.get(0);
     }
 
-    public void increment(int queryMarkedAsFQSize, int overallQuerySize) {
+    public void increment(int numOfQueryHitIndex, int overallQuerySize) {
         AccelerateRatio ratioToUpdate;
         AccelerateRatio cached = get();
         if (cached == null)
@@ -82,7 +82,7 @@ public class AccelerateRatioManager {
         else
             ratioToUpdate = crud.copyForWrite(cached);
 
-        ratioToUpdate.increase(queryMarkedAsFQSize, overallQuerySize);
+        ratioToUpdate.increase(numOfQueryHitIndex, overallQuerySize);
         crud.save(ratioToUpdate);
     }
 }

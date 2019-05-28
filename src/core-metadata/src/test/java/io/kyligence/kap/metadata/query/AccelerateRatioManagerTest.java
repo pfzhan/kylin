@@ -54,12 +54,12 @@ public class AccelerateRatioManagerTest extends NLocalFileMetadataTestCase {
         accelerateRatioManager.increment(100, 1000);
         ratio = accelerateRatioManager.get();
         Assert.assertNotNull(ratio);
-        Assert.assertEquals(100, ratio.getQueryNumOfMarkedAsFavorite());
+        Assert.assertEquals(100, ratio.getNumOfQueryHitIndex());
         Assert.assertEquals(1000, ratio.getOverallQueryNum());
         
         accelerateRatioManager.increment(100, 3000);
         ratio = accelerateRatioManager.get();
-        Assert.assertEquals(200, ratio.getQueryNumOfMarkedAsFavorite());
+        Assert.assertEquals(200, ratio.getNumOfQueryHitIndex());
         Assert.assertEquals(4000, ratio.getOverallQueryNum());
     }
 }

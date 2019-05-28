@@ -290,7 +290,7 @@ public class NFavoriteScheduler {
         }
 
         private void updateRelatedMetadata(Set<FavoriteQuery> candidates, long autoFavoriteTimeOffset,
-                int queryMarkedAsFavoriteNum, int overallQueryNum) {
+                                           int numOfQueryHitIndex, int overallQueryNum) {
             // update related metadata
             UnitOfWork.doInTransactionWithRetry(() -> {
                 KylinConfig config = KylinConfig.getInstanceFromEnv();
@@ -299,14 +299,17 @@ public class NFavoriteScheduler {
 
                 QueryHistoryTimeOffsetManager timeOffsetManager = QueryHistoryTimeOffsetManager.getInstance(config,
                         project);
-                AccelerateRatioManager accelerateRatioManager = AccelerateRatioManager.getInstance(config, project);
 
                 // update time offset
                 QueryHistoryTimeOffset timeOffset = timeOffsetManager.get();
                 timeOffset.setAutoMarkTimeOffset(autoFavoriteTimeOffset);
                 timeOffsetManager.save(timeOffset);
+
                 // update accelerate ratio
-                accelerateRatioManager.increment(queryMarkedAsFavoriteNum, overallQueryNum);
+                if (numOfQueryHitIndex != 0 || overallQueryNum != 0) {
+                    AccelerateRatioManager accelerateRatioManager = AccelerateRatioManager.getInstance(config, project);
+                    accelerateRatioManager.increment(numOfQueryHitIndex, overallQueryNum);
+                }
                 return 0;
             }, project);
         }
@@ -346,17 +349,20 @@ public class NFavoriteScheduler {
         }
         
         private void findAllCandidates(List<QueryHistory> queryHistories, long startTime, long endTime) {
-            int queryMarkedAsFavoriteNum = 0;
+            int numOfQueryHitIndex = 0;
             int overallQueryNum = 0;
-            
+
             FrequencyStatus newStatus = new FrequencyStatus(startTime);
             Set<FavoriteQuery> candidates = Sets.newHashSet();
 
             for (QueryHistory queryHistory : queryHistories) {
+                overallQueryNum++;
                 if (!isQualifiedCandidate(queryHistory))
                     continue;
 
-                overallQueryNum++;
+                if ("NATIVE".equals(queryHistory.getEngineType())) {
+                    numOfQueryHitIndex++;
+                }
                 String sqlPatternFromQuery = queryHistory.getSqlPattern();
                 // get string reference from OverallStatus to avoid a big waste of String object
                 String sqlPattern = copiedOverallStatus.getSqlPatterns().getOrDefault(sqlPatternFromQuery,
@@ -365,7 +371,6 @@ public class NFavoriteScheduler {
 
                 if (FavoriteQueryManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
                         .contains(sqlPattern)) {
-                    queryMarkedAsFavoriteNum++;
                     continue;
                 }
 
@@ -378,7 +383,7 @@ public class NFavoriteScheduler {
             }
 
             updateOverallFrequencyStatus(newStatus, copiedFrequencyStatues, copiedOverallStatus);
-            updateRelatedMetadata(candidates, endTime, queryMarkedAsFavoriteNum, overallQueryNum);
+            updateRelatedMetadata(candidates, endTime, numOfQueryHitIndex, overallQueryNum);
         }
 
         private Set<FavoriteQuery> getCandidatesByFrequencyRule() {

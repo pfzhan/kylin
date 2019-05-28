@@ -327,6 +327,6 @@ public class FavoriteRuleService extends BasicService {
         if (accelerateRatio == null || accelerateRatio.getOverallQueryNum() == 0)
             return 0;
 
-        return accelerateRatio.getQueryNumOfMarkedAsFavorite() / (double) accelerateRatio.getOverallQueryNum();
+        return accelerateRatio.getNumOfQueryHitIndex() / (double) accelerateRatio.getOverallQueryNum();
     }
 }

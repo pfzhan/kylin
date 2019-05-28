@@ -35,14 +35,14 @@ import org.apache.kylin.common.persistence.RootPersistentEntity;
 @NoArgsConstructor
 public class AccelerateRatio extends RootPersistentEntity {
 
-    @JsonProperty("query_num_of_marked_as_favorite")
-    private int queryNumOfMarkedAsFavorite;
+    @JsonProperty("num_of_query_hit_index")
+    private int numOfQueryHitIndex;
 
     @JsonProperty("overall_query_num")
     private int overallQueryNum;
 
     public void increase(int acceleratedQuerySize, int overallQuerySize) {
-        this.queryNumOfMarkedAsFavorite += acceleratedQuerySize;
+        this.numOfQueryHitIndex += acceleratedQuerySize;
         this.overallQueryNum += overallQuerySize;
     }
 }
