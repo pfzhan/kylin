@@ -2,7 +2,7 @@
   <div class="table-columns">
     <div class="columns-header">
       <div class="left font-medium">
-        {{$t('total') + columns.length}}
+        <span v-if="totalDataRows">{{$t('total') + totalDataRows}}</span>
       </div>
       <div class="right">
         <el-input
@@ -81,6 +81,9 @@ export default class TableColumns extends Vue {
   get startIndex () {
     const { pageOffset, pageSize } = this.pagination
     return pageOffset * pageSize + 1
+  }
+  get totalDataRows () {
+    return this.table.totalRecords
   }
   get columns () {
     return this.table.columns
