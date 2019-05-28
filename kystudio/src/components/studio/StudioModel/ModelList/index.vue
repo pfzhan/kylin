@@ -106,8 +106,8 @@
           <template slot-scope="scope">
             <span v-if="!(isAdmin || hasPermissionOfProject())"> N/A</span>
              <div v-show="isAdmin || hasPermissionOfProject()">
-              <common-tip :content="$t('kylinLang.common.edit')"><i class="el-icon-ksd-table_edit ksd-fs-14" @click="handleEditModel(scope.row.alias)"></i></common-tip>
-              <common-tip :content="$t('build')" v-if="scope.row.management_type!=='TABLE_ORIENTED' && scope.row.status !== 'BROKEN'" class="ksd-ml-10"><i class="el-icon-ksd-data_range ksd-fs-14" @click="setModelBuldRange(scope.row)"></i></common-tip>
+              <common-tip :content="$t('kylinLang.common.edit')" v-if="scope.row.status !== 'BROKEN'"><i class="el-icon-ksd-table_edit ksd-fs-14" @click="handleEditModel(scope.row.alias)"></i></common-tip>
+              <common-tip :content="$t('build')" v-if="scope.row.status !== 'BROKEN'" class="ksd-ml-10"><i class="el-icon-ksd-data_range ksd-fs-14" @click="setModelBuldRange(scope.row)"></i></common-tip>
               <common-tip :content="$t('kylinLang.common.moreActions')" class="ksd-ml-10">
                 <el-dropdown @command="(command) => {handleCommand(command, scope.row)}" :id="scope.row.name" trigger="click" >
                   <span class="el-dropdown-link" >
