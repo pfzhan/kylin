@@ -503,7 +503,6 @@ export default class FavoriteQuery extends Vue {
   selectSqls = []
   submitSqlLoading = false
   filteredDataSize = 0
-  favoriteCurrentPage = 1
   whiteCurrentPage = 0
   timer = null
   initTimer = null
@@ -511,7 +510,9 @@ export default class FavoriteQuery extends Vue {
   activeNames = ['rules']
   filterData = {
     sortBy: 'last_query_time',
-    reverse: true
+    reverse: true,
+    pageSize: 10,
+    offset: 0
   }
   updateLoading = false
   ST = null
@@ -552,6 +553,12 @@ export default class FavoriteQuery extends Vue {
   }
   handleClick () {
     this.checkedStatus = []
+    this.filterData = {
+      sortBy: 'last_query_time',
+      reverse: true,
+      pageSize: 10,
+      offset: 0
+    }
     this.reCallPolling()
   }
   handleCommand (command) {
@@ -616,7 +623,8 @@ export default class FavoriteQuery extends Vue {
   }
 
   sortFavoriteList (filterData) {
-    this.filterData = filterData
+    this.filterData.reverse = filterData.reverse
+    this.filterData.sortBy = filterData.sortBy
     this.loadFavoriteList()
   }
 
@@ -696,12 +704,12 @@ export default class FavoriteQuery extends Vue {
       }
     })
   }
-  async loadFavoriteList (pageIndex, pageSize) {
+  async loadFavoriteList () {
     return new Promise(async resolve => {
       const res = await this.getFavoriteList({
         project: this.currentSelectedProject || null,
-        limit: pageSize || 10,
-        offset: pageIndex || 0,
+        limit: this.filterData.pageSize,
+        offset: this.filterData.offset,
         status: !this.checkedStatus.length ? this.statusMap[this.activeList] : this.checkedStatus,
         sortBy: this.filterData.sortBy,
         reverse: this.filterData.reverse
@@ -774,8 +782,9 @@ export default class FavoriteQuery extends Vue {
   }
 
   pageCurrentChange (offset, pageSize) {
-    this.favoriteCurrentPage = offset + 1
-    this.loadFavoriteList(offset, pageSize)
+    this.filterData.offset = offset
+    this.filterData.pageSize = pageSize
+    this.loadFavoriteList()
   }
 
   openBlackList () {

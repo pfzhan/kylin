@@ -182,7 +182,7 @@ import vuex from '../../../../store'
 import locales from './locales'
 import store, { types } from './store'
 import { objectClone, sampleGuid } from '../../../../util'
-import { pageCount, measuresDataType, measureSumDataType } from '../../../../config'
+import { pageCount, measuresDataType, measureSumAndTopNDataType } from '../../../../config'
 vuex.registerModule(['modals', 'BatchMeasureModal'], store)
 @Component({
   computed: {
@@ -377,7 +377,7 @@ export default class BatchMeasureModal extends Vue {
             nums[d.expression.toLowerCase() + 'Num']++
           }
         }
-        if (measureSumDataType.indexOf(returnValue[1]) === -1) {
+        if (measureSumAndTopNDataType.indexOf(returnValue[1]) === -1) {
           col.SUM.isShouldDisable = true
         }
         if (col.isMeasureCol) {
@@ -426,7 +426,7 @@ export default class BatchMeasureModal extends Vue {
               nums[d.expression.toLowerCase() + 'Num']++
             }
           }
-          if (measureSumDataType.indexOf(returnValue[1]) === -1) {
+          if (measureSumAndTopNDataType.indexOf(returnValue[1]) === -1) {
             col.SUM.isShouldDisable = true
           }
           if (col.isMeasureCol) {

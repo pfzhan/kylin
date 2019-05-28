@@ -143,9 +143,9 @@ export const measuresDataType = [
   'tinyint', 'smallint', 'integer', 'bigint', 'float', 'double', 'decimal', 'timestamp', 'date', 'char', 'varchar', 'boolean'
 ]
 
-export const measureSumDataType = ['tinyint', 'smallint', 'integer', 'bigint', 'float', 'double', 'decimal']
+export const measureSumAndTopNDataType = ['tinyint', 'smallint', 'integer', 'bigint', 'float', 'double', 'decimal']
 
-export const measurePercenAndTopNDataType = ['tinyint', 'smallint', 'integer', 'bigint']
+export const measurePercenDataType = ['tinyint', 'smallint', 'integer', 'bigint']
 
 export const timeDataType = [
   'timestamp', 'date', 'time', 'datetime'

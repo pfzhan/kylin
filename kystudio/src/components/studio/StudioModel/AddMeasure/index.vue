@@ -68,7 +68,7 @@
           <div class="flex-item">
             <el-select class="measures-width" size="medium" v-model="column.value" :placeholder="$t('kylinLang.common.pleaseSelect')" filterable @change="changeConColParamValue(column.value, index)">
               <el-option
-                v-for="(item, index) in getParameterValue"
+                v-for="(item, index) in getParameterValue2"
                 :key="index"
                 :label="item.name"
                 :value="item.name">
@@ -120,7 +120,7 @@
 <script>
 import Vue from 'vue'
 import { Component, Watch } from 'vue-property-decorator'
-import { measuresDataType, measureSumDataType, measurePercenAndTopNDataType } from '../../../../config'
+import { measuresDataType, measureSumAndTopNDataType, measurePercenDataType } from '../../../../config'
 import { objectClone } from '../../../../util/index'
 import { NamedRegex } from 'config'
 import CCEditForm from '../ComputedColumnForm/ccform.vue'
@@ -414,10 +414,10 @@ export default class AddMeasure extends Vue {
     let targetColumns = []
     let filterType = []
     if (this.allTableColumns) {
-      if (this.measure.expression === 'SUM(column)') {
-        filterType = measureSumDataType
-      } else if (this.measure.expression === 'TOP_N' || this.measure.expression === 'PERCENTILE_APPROX') {
-        filterType = measurePercenAndTopNDataType
+      if (this.measure.expression === 'SUM(column)' || this.measure.expression === 'TOP_N') {
+        filterType = measureSumAndTopNDataType
+      } else if (this.measure.expression === 'PERCENTILE_APPROX') {
+        filterType = measurePercenDataType
       } else {
         filterType = measuresDataType
       }
@@ -430,6 +430,20 @@ export default class AddMeasure extends Vue {
         }
       })
     }
+    return targetColumns
+  }
+
+  // 支持measure的任意类型
+  get getParameterValue2 () {
+    let targetColumns = []
+    $.each(this.allTableColumns, (index, column) => {
+      const returnRegex = new RegExp('(\\w+)(?:\\((\\w+?)(?:\\,(\\w+?))?\\))?')
+      const returnValue = returnRegex.exec(column.datatype)
+      if (measuresDataType.indexOf(returnValue[1]) >= 0) {
+        const columnObj = {name: column.table_alias + '.' + column.name, datatype: column.datatype}
+        targetColumns.push(columnObj)
+      }
+    })
     return targetColumns
   }
 
