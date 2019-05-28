@@ -442,6 +442,12 @@ public class FavoriteQueryService extends BasicService {
 
     private static final int BLOCKING_CAUSE_MAX_LENGTH = 500;
 
+    // only for test
+    public void updateNotAcceleratedSqlStatusForTest(Map<String, AccelerateInfo> notAcceleratedSqlInfo,
+            KylinConfig kylinConfig, String project) {
+        updateNotAcceleratedSqlStatus(notAcceleratedSqlInfo, kylinConfig, project);
+    }
+
     private void updateNotAcceleratedSqlStatus(Map<String, AccelerateInfo> notAcceleratedSqlInfo,
             KylinConfig kylinConfig, String project) {
         if (MapUtils.isEmpty(notAcceleratedSqlInfo)) {

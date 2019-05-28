@@ -44,6 +44,7 @@ import org.springframework.security.authentication.TestingAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
@@ -59,6 +60,7 @@ import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.query.util.QueryPatternUtil;
 import io.kyligence.kap.smart.NSmartMaster;
+import io.kyligence.kap.smart.common.AccelerateInfo;
 import lombok.val;
 import lombok.var;
 
@@ -76,6 +78,13 @@ public class FavoriteQueryServiceTest extends NLocalFileMetadataTestCase {
     private final String constantSql = "select * from test_kylin_fact where 1 <> 1";
     private final String blockedSql = "select sum(lstg_format_name) from test_kylin_fact";
     private final String tableMissingSql = "select count(*) from test_kylin_table";
+    private final String blockedSqlForCircleJoin = "SELECT \"TEST_KYLIN_FACT\".\"LSTG_FORMAT_NAME\" AS \"LSTG_FORMAT_NAME\",\n"
+            + "  SUM(\"TEST_KYLIN_FACT\".\"PRICE\") AS \"sum_price\"\n"
+            + "FROM \"DEFAULT\".\"TEST_KYLIN_FACT\" \"TEST_KYLIN_FACT\"\n" + "INNER JOIN TEST_ORDER as TEST_ORDER\n"
+            + "ON TEST_KYLIN_FACT.ORDER_ID = TEST_ORDER.ORDER_ID\n" + "INNER JOIN TEST_ACCOUNT as BUYER_ACCOUNT\n"
+            + "ON TEST_ORDER.BUYER_ID = BUYER_ACCOUNT.ACCOUNT_ID\n" + "INNER JOIN TEST_ACCOUNT as SELLER_ACCOUNT\n"
+            + "ON TEST_KYLIN_FACT.SELLER_ID = SELLER_ACCOUNT.ACCOUNT_ID AND SELLER_ACCOUNT.ACCOUNT_ID = BUYER_ACCOUNT.ACCOUNT_ID\n"
+            + "GROUP BY \"TEST_KYLIN_FACT\".\"LSTG_FORMAT_NAME\"";
 
     @InjectMocks
     private FavoriteQueryService favoriteQueryService = Mockito.spy(new FavoriteQueryService());
@@ -243,7 +252,7 @@ public class FavoriteQueryServiceTest extends NLocalFileMetadataTestCase {
         favoriteQueryService.acceptAccelerate("newten", 1);
 
         // no new index will be proposed
-        val fq2  = new FavoriteQuery("select count(*) from test_kylin_fact limit 500");
+        val fq2 = new FavoriteQuery("select count(*) from test_kylin_fact limit 500");
         fqManager.create(Sets.newHashSet(fq2));
         favoriteQueryService.acceptAccelerate("newten", 1);
 
@@ -301,18 +310,20 @@ public class FavoriteQueryServiceTest extends NLocalFileMetadataTestCase {
         List<String> sqlPatterns = Lists.newArrayList(constantSql);
         sqlPatterns.add(blockedSql);
         sqlPatterns.add(tableMissingSql);
+        sqlPatterns.add(blockedSqlForCircleJoin);
         FavoriteRequest request = new FavoriteRequest(PROJECT, sqlPatterns);
         favoriteQueryService.createFavoriteQuery(PROJECT, request);
 
         FavoriteQueryManager favoriteQueryManager = favoriteQueryService.getFavoriteQueryManager(PROJECT);
-        favoriteQueryService.acceptAccelerate(PROJECT, 3);
+        favoriteQueryService.acceptAccelerate(PROJECT, 4);
 
         final List<FavoriteQuery> favoriteQueriesAfter = favoriteQueryManager.getAll();
         favoriteQueriesAfter.sort(Comparator.comparing(FavoriteQuery::getSqlPattern));
 
-        Assert.assertEquals(FavoriteQueryStatusEnum.ACCELERATED, favoriteQueriesAfter.get(0).getStatus());
-        Assert.assertEquals(FavoriteQueryStatusEnum.FAILED, favoriteQueriesAfter.get(2).getStatus());
-        Assert.assertEquals(FavoriteQueryStatusEnum.PENDING, favoriteQueriesAfter.get(1).getStatus());
+        Assert.assertEquals(FavoriteQueryStatusEnum.ACCELERATED, favoriteQueriesAfter.get(1).getStatus());
+        Assert.assertEquals(FavoriteQueryStatusEnum.FAILED, favoriteQueriesAfter.get(3).getStatus());
+        Assert.assertEquals(FavoriteQueryStatusEnum.PENDING, favoriteQueriesAfter.get(2).getStatus());
+        Assert.assertEquals(FavoriteQueryStatusEnum.FAILED, favoriteQueriesAfter.get(0).getStatus());
 
         getTestConfig().setProperty("kylin.server.mode", "all");
     }
@@ -387,9 +398,12 @@ public class FavoriteQueryServiceTest extends NLocalFileMetadataTestCase {
         favoriteQueries = favoriteQueryManager.getAll();
         Assert.assertEquals(4, favoriteQueries.size());
 
-        favoriteQueryManager.updateStatus(QueryPatternUtil.normalizeSQLPattern(sqls[0]), FavoriteQueryStatusEnum.ACCELERATING, "");
-        favoriteQueryManager.updateStatus(QueryPatternUtil.normalizeSQLPattern(sqls[1]), FavoriteQueryStatusEnum.PENDING, "");
-        favoriteQueryManager.updateStatus(QueryPatternUtil.normalizeSQLPattern(sqls[2]), FavoriteQueryStatusEnum.ACCELERATED, "");
+        favoriteQueryManager.updateStatus(QueryPatternUtil.normalizeSQLPattern(sqls[0]),
+                FavoriteQueryStatusEnum.ACCELERATING, "");
+        favoriteQueryManager.updateStatus(QueryPatternUtil.normalizeSQLPattern(sqls[1]),
+                FavoriteQueryStatusEnum.PENDING, "");
+        favoriteQueryManager.updateStatus(QueryPatternUtil.normalizeSQLPattern(sqls[2]),
+                FavoriteQueryStatusEnum.ACCELERATED, "");
 
         // create fqs which are already in fq list
         request.setSqls(Lists.newArrayList(sqls[0], sqls[1], sqls[2], "select count(*) from kylin_sales"));
@@ -538,5 +552,35 @@ public class FavoriteQueryServiceTest extends NLocalFileMetadataTestCase {
         manager.reloadSqlPatternMap();
         Assert.assertTrue(manager.getAcceleratedSqlPattern().isEmpty());
         Assert.assertEquals(FavoriteQueryStatusEnum.TO_BE_ACCELERATED, manager.get(sql).getStatus());
+    }
+
+    @Test
+    public void testUpdateNotAcceleratedSqlStatus() {
+
+        KylinConfig mockConfig = KylinConfig.createKylinConfig(getTestConfig());
+        val fqMgr = FavoriteQueryManager.getInstance(mockConfig, PROJECT_NEWTEN);
+        Map<String, AccelerateInfo> accelerateInfoMap = Maps.newHashMap();
+        Set<FavoriteQuery> fqs = Sets.newHashSet();
+        for (int i = 0; i < 2; i++) {
+            final String sql = "sql_" + i;
+            FavoriteQuery fq = new FavoriteQuery();
+            fq.setSqlPattern(sql);
+            fqs.add(fq);
+
+            AccelerateInfo accelerateInfo = new AccelerateInfo();
+            if (i % 2 == 0) {
+                accelerateInfo.setFailedCause(new IllegalArgumentException());
+            } else {
+                accelerateInfo.setPendingMsg(new IllegalStateException().toString());
+            }
+            accelerateInfoMap.put(sql, accelerateInfo);
+        }
+        fqMgr.create(fqs);
+
+        favoriteQueryService.updateNotAcceleratedSqlStatusForTest(accelerateInfoMap, mockConfig, PROJECT_NEWTEN);
+        List<FavoriteQuery> fqList = fqMgr.getAll();
+        fqList.sort(Comparator.comparing(FavoriteQuery::getSqlPattern));
+        Assert.assertEquals(FavoriteQueryStatusEnum.FAILED, fqList.get(0).getStatus());
+        Assert.assertEquals(FavoriteQueryStatusEnum.PENDING, fqList.get(1).getStatus());
     }
 }
