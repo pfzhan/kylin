@@ -34,8 +34,6 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.common.scheduler.FavoriteQueryListNotifier;
-import io.kyligence.kap.common.scheduler.SchedulerEventBusFactory;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.collections.MapUtils;
 import org.apache.commons.lang.StringUtils;
@@ -57,6 +55,8 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
+import io.kyligence.kap.common.scheduler.FavoriteQueryListNotifier;
+import io.kyligence.kap.common.scheduler.SchedulerEventBusFactory;
 import io.kyligence.kap.event.manager.EventManager;
 import io.kyligence.kap.event.model.AddCuboidEvent;
 import io.kyligence.kap.event.model.PostAddCuboidEvent;
@@ -460,7 +460,7 @@ public class FavoriteQueryService extends BasicService {
             Throwable blockingCause = accelerateInfoEntry.getValue().getFailedCause();
             if (blockingCause != null) {
                 String blockingCauseStr = blockingCause.getMessage();
-                if (blockingCauseStr.length() > BLOCKING_CAUSE_MAX_LENGTH) {
+                if (blockingCauseStr != null && blockingCauseStr.length() > BLOCKING_CAUSE_MAX_LENGTH) {
                     blockingCauseStr = blockingCauseStr.substring(0, BLOCKING_CAUSE_MAX_LENGTH - 1);
                 }
                 fqMgr.updateStatus(sqlPattern, FavoriteQueryStatusEnum.FAILED, blockingCauseStr);
