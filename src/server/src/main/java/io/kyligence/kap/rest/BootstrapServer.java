@@ -25,6 +25,7 @@
 package io.kyligence.kap.rest;
 
 import org.apache.catalina.Context;
+import org.apache.kylin.common.KylinConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.SpringApplication;
@@ -39,6 +40,10 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ImportResource;
 import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.scheduling.annotation.EnableScheduling;
+import org.springframework.session.web.http.CookieSerializer;
+import org.springframework.session.web.http.DefaultCookieSerializer;
+
+import lombok.val;
 
 @ImportResource(locations = { "applicationContext.xml", "kylinSecurity.xml" })
 @SpringBootApplication
@@ -67,6 +72,17 @@ public class BootstrapServer implements ApplicationListener<ApplicationReadyEven
         };
 
         return tomcatFactory;
+    }
+
+    @Bean
+    public CookieSerializer cookieSerializer() {
+        val serializer = new DefaultCookieSerializer();
+        val url = KylinConfig.getInstanceFromEnv().getMetadataUrl();
+        String cookieName = url.getIdentifier()
+                + (url.getParameter("url") == null ? "" : "_" + url.getParameter("url"));
+        cookieName = cookieName.replaceAll("\\W", "_");
+        serializer.setCookieName(cookieName);
+        return serializer;
     }
 
     @Override
