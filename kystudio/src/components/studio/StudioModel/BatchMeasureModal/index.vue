@@ -138,7 +138,7 @@
         <div v-for="searchTable in pagerSearchTable" :key="searchTable.guid">
           <el-table
             border
-            v-if="isShowTest || isGuideMode"
+            v-if="isShowSearchTable || isGuideMode"
             :data="searchTable.columns">
             <el-table-column show-overflow-tooltip prop="name" :label="$t('column')"></el-table-column>
             <el-table-column prop="SUM" :renderHeader="(h, obj) => {return renderColumn(h, obj, searchTable)}" align="center">
@@ -223,7 +223,7 @@ export default class BatchMeasureModal extends Vue {
     pageOffset: 0,
     pageSize: pageCount
   }
-  isShowTest = false
+  isShowSearchTable = false
   submit () {
     let allMeasureArr = []
     this.searchColumns.forEach((column) => {
@@ -280,9 +280,9 @@ export default class BatchMeasureModal extends Vue {
     }, 300)
   }
   changeSearchVal (val) {
-    this.isShowTest = false
+    this.isShowSearchTable = false
     this.$nextTick(() => {
-      this.isShowTest = true
+      this.isShowSearchTable = true
       this.searchChar = val && val.replace(/^\s+|\s+$/, '') || ''
     })
   }
@@ -342,6 +342,10 @@ export default class BatchMeasureModal extends Vue {
   pageCurrentChange (size, count) {
     this.filterArgs.pageOffset = size
     this.filterArgs.pageSize = count
+    this.isShowSearchTable = false
+    this.$nextTick(() => {
+      this.isShowSearchTable = true
+    })
   }
   // 总搜索条数
   get searchTotalSize () {
@@ -364,6 +368,7 @@ export default class BatchMeasureModal extends Vue {
         this.$set(col, 'MIN', {isShouldDisable: false, value: false})
         this.$set(col, 'MAX', {isShouldDisable: false, value: false})
         this.$set(col, 'COUNT', {isShouldDisable: false, value: false})
+        this.$set(col, 'isAllSelected', false)
         this.$set(col, 'isMeasureCol', false)
         this.$set(col, 'table_guid', this.factTable[0].guid)
         this.$set(col, 'table_alias', this.factTable[0].alias)
@@ -413,6 +418,7 @@ export default class BatchMeasureModal extends Vue {
           this.$set(col, 'MIN', {isShouldDisable: false, value: false})
           this.$set(col, 'MAX', {isShouldDisable: false, value: false})
           this.$set(col, 'COUNT', {isShouldDisable: false, value: false})
+          this.$set(col, 'isAllSelected', false)
           this.$set(col, 'isMeasureCol', false)
           this.$set(col, 'table_guid', table.guid)
           this.$set(col, 'table_alias', table.alias)
@@ -472,6 +478,9 @@ export default class BatchMeasureModal extends Vue {
       }
     }
     this.$set(column, 'totalNums', totalNums)
+    if (totalNums === len) {
+      column.isAllSelected = true
+    }
     const toggleAllMeasures = (val) => {
       table.columns.forEach((d) => {
         if (val) {
@@ -490,7 +499,7 @@ export default class BatchMeasureModal extends Vue {
           }
         }
       })
-      this.$set(column, 'isAllSelected', !column.isAllSelected)
+      column.isAllSelected = !column.isAllSelected
       const numArr = table.nums && Object.values(table.nums)
       this.$set(table, 'meaColNum', Math.max.apply(null, numArr))
     }
