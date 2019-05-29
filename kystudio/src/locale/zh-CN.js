@@ -167,7 +167,7 @@ exports.default = {
     dot: '。'
   },
   model: {
-    modelName: '模型名称：',
+    modelName: '模型名称',
     modelList: '模型列表',
     indexGroup: '索引组',
     modelNameGrid: '模型名称',
@@ -181,7 +181,7 @@ exports.default = {
     factTableSampling: '事实表采样',
     lookupTableSampling: '维度表采样',
     ownerGrid: '所有者',
-    modelDesc: '描述：',
+    modelDesc: '描述',
     primaryPartitionColumn: '一级分区列',
     samplingSetting: '检测设置：',
     checkOption: '检测选项：',

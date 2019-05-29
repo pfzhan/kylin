@@ -169,7 +169,7 @@ exports.default = {
   },
   model: {
     draft: 'Draft',
-    modelName: 'Model Name:',
+    modelName: 'Model Name',
     computedColumn: 'Computed Column',
     modelNameGrid: 'Model Name',
     modelList: 'Model List',
