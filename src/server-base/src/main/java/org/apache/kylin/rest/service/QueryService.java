@@ -1111,14 +1111,12 @@ public class QueryService extends BasicService {
 
         @Override
         public void serialize(QueryRecord record, DataOutputStream out) throws IOException {
-            String jsonStr = JsonUtil.writeValueAsString(record);
-            out.writeUTF(jsonStr);
+            JsonUtil.writeValueIndent(out, record);
         }
 
         @Override
         public QueryRecord deserialize(DataInputStream in) throws IOException {
-            String jsonStr = in.readUTF();
-            return JsonUtil.readValue(jsonStr, QueryRecord.class);
+            return JsonUtil.readValue(in, QueryRecord.class);
         }
     }
 

@@ -59,7 +59,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.rest.config.AppConfig;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.common.exceptions.ResourceLimitExceededException;
@@ -112,6 +112,7 @@ import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.query.NativeQueryRealization;
 import io.kyligence.kap.rest.cluster.ClusterManager;
 import io.kyligence.kap.rest.cluster.DefaultClusterManager;
+import io.kyligence.kap.rest.config.AppConfig;
 import io.kyligence.kap.rest.metrics.QueryMetricsContext;
 import lombok.val;
 import net.sf.ehcache.CacheManager;
@@ -422,8 +423,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testExposedColumnsWhenPushdownDisabled() throws Exception {
-        getTestConfig().setProperty("kylin.query.pushdown.runner-class-name",
-                "");
+        getTestConfig().setProperty("kylin.query.pushdown.runner-class-name", "");
 
         Pair<Set<String>, Set<String>> schemasAndTables;
         Set<String> tableSchemas, tableNames;
@@ -672,6 +672,19 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         queryRecord = queryService.getSavedQueries("admin", "default");
         Assert.assertEquals(1, queryRecord.getQueries().size());
         Assert.assertEquals("test", queryRecord.getQueries().get(0).getName());
+    }
+
+    @Test
+    public void testSaveLargeQuery() throws IOException {
+        for (int i = 0; i < 10; i++) {
+            Query query = new Query("test-" + i, "default", StringUtils.repeat("abc", 10000), "test_description");
+            queryService.saveQuery("admin", "default", query);
+        }
+        QueryService.QueryRecord queryRecord = queryService.getSavedQueries("admin", "default");
+        Assert.assertEquals(10, queryRecord.getQueries().size());
+        for (Query query : queryRecord.getQueries()) {
+            Assert.assertEquals(StringUtils.repeat("abc", 10000), query.getSql());
+        }
     }
 
     @Test
