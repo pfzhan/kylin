@@ -10,7 +10,7 @@
                 <i class="el-icon-ksd-what ksd-fs-14"></i>
               </el-tooltip>
             </span>
-            <el-button type="primary" text size="small" class="ksd-fright ksd-mt-6" @click="gotoSetting">{{$t('viewDetail')}}</el-button>
+            <a class="ky-a-like ksd-fright ksd-fs-12" @click="gotoSetting">{{$t('viewDetail')}}</a>
           </div>
           <div class="quota-row">
             <div class="img-block ksd-fleft ksd-mr-15">
@@ -45,7 +45,7 @@
                 <div class="info-title">{{$t('totalStorage')}}</div>
                 <div class="total-quota">
                   <span v-if="quotaInfo.storage_quota_size>=0">
-                    <span class="ksd-fs-28">{{quotaTotalSize.size}}</span><span class="ksd-fs-18">{{quotaTotalSize.unit}}</span>
+                    <span class="ksd-fs-28">{{quotaTotalSize.size}}</span> <span class="ksd-fs-18">{{quotaTotalSize.unit}}</span>
                   </span>
                   <span class="ksd-fs-28" v-else>--</span>
                 </div>
@@ -76,7 +76,7 @@
                 <i class="el-icon-ksd-what ksd-fs-14"></i>
               </el-tooltip>
             </span>
-            <el-button type="primary" text size="small" class="ksd-fright ksd-mt-6" @click="gotoFavorite">{{$t('viewDetail')}}</el-button>
+            <a class="ky-a-like ksd-fright ksd-fs-12" @click="gotoFavorite">{{$t('viewDetail')}}</a>
           </div>
           <svg id="ruleImpact" width="100%" height="168" class="ksd-mt-20"></svg>
         </div>
@@ -102,7 +102,7 @@
           <div class="inner-card">
             <div class="cart-title">
               {{$t('queryCount')}}
-              <el-button type="primary" text size="small" class="ksd-fright ksd-mt-6" @click.stop="gotoQueryHistory">{{$t('viewDetail')}}</el-button>
+              <a class="ky-a-like ksd-fright ksd-fs-12" @click.stop="gotoQueryHistory">{{$t('viewDetail')}}</a>
             </div>
             <div class="content">
               <span class="num">{{queryCount}}</span>
@@ -115,7 +115,7 @@
           <div class="inner-card">
             <div class="cart-title">
               {{$t('avgQueryLatency')}}
-              <el-button type="primary" text size="small" class="ksd-fright ksd-mt-6" @click.stop="gotoQueryHistory">{{$t('viewDetail')}}</el-button>
+              <a class="ky-a-like ksd-fright ksd-fs-12" @click.stop="gotoQueryHistory">{{$t('viewDetail')}}</a>
             </div>
             <div class="content">
               <span class="num">{{queryMean}}</span>
@@ -129,7 +129,7 @@
           <div class="inner-card">
             <div class="cart-title">
               {{$t('jobCount')}}
-              <el-button type="primary" text size="small" class="ksd-fright ksd-mt-6" @click.stop="gotoJoblist">{{$t('viewDetail')}}</el-button>
+              <a class="ky-a-like ksd-fright ksd-fs-12" @click.stop="gotoJoblist">{{$t('viewDetail')}}</a>
             </div>
             <div class="content">
               <span class="num">{{jobCount}}</span>
@@ -142,7 +142,7 @@
           <div class="inner-card">
             <div class="cart-title">
               {{$t('avgBulidTime')}}
-              <el-button type="primary" text size="small" class="ksd-fright ksd-mt-6" @click.stop="gotoJoblist">{{$t('viewDetail')}}</el-button>
+              <a class="ky-a-like ksd-fright ksd-fs-12" @click.stop="gotoJoblist">{{$t('viewDetail')}}</a>
             </div>
             <div class="content" v-if="noEnoughData">
               <span class="no-data">{{$t('noEnoughData')}}</span>
@@ -670,6 +670,7 @@ export default class Dashboard extends Vue {
           font-weight: @font-medium;
         }
         .no-data {
+          font-size: 14px;
           color: @text-disabled-color;
         }
       }
@@ -813,7 +814,7 @@ export default class Dashboard extends Vue {
       .chart-block {
         position: relative;
         .nvd3.nv-noData {
-          font-size: 14px;
+          font-size: 16px;
           font-weight: normal;
           font-family: Helvetica Neue, Helvetica, PingFang SC, Hiragino Sans GB, Microsoft YaHei, SimSun, sans-serif;
           fill: @text-disabled-color;

@@ -63,7 +63,7 @@
                         </kap-editor>
                       </el-form-item>
                       <div class="btn-group">
-                        <el-button size="small" type="info" class="remove_query_btn" text @click="removeQuery(savequery.id)">{{$t('kylinLang.common.delete')}}</el-button>
+                        <el-button size="small" type="info" class="remove_query_btn" text @click="removeQuery(savequery)">{{$t('kylinLang.common.delete')}}</el-button>
                       </div>
                     </el-form>
                   </el-checkbox>
@@ -115,8 +115,8 @@ import { insightKeyword } from '../../config'
     ])
   },
   locales: {
-    'en': {dialogHiveTreeNoData: 'Please click data source to load source tables', trace: 'Trace', savedQueries: 'Save Queries', queryBox: 'Query Box', more: 'More', closeAll: 'Close All', delSqlTitle: 'Delete SQL'},
-    'zh-cn': {dialogHiveTreeNoData: '请点击数据源来加载源表', trace: '追踪', savedQueries: '保存的查询', queryBox: '查询窗口', more: '更多', closeAll: '关闭全部', delSqlTitle: '删除查询语句'}
+    'en': {dialogHiveTreeNoData: 'Please click data source to load source tables', trace: 'Trace', savedQueries: 'Save Queries', queryBox: 'Query Box', more: 'More', closeAll: 'Close All', delSqlTitle: 'Delete SQL', confirmDel: 'Are you sure to delete {queryName}?'},
+    'zh-cn': {dialogHiveTreeNoData: '请点击数据源来加载源表', trace: '追踪', savedQueries: '保存的查询', queryBox: '查询窗口', more: '更多', closeAll: '关闭全部', delSqlTitle: '删除查询语句', confirmDel: '确认删除 {queryName} 吗？'}
   }
 })
 export default class NewQuery extends Vue {
@@ -220,9 +220,9 @@ export default class NewQuery extends Vue {
     this.queryCurrentPage++
     this.loadSavedQuery(this.queryCurrentPage - 1)
   }
-  removeQuery (queryId) {
-    kapConfirm(this.$t('kylinLang.common.confirmDel'), null, this.$t('delSqlTitle')).then(() => {
-      this.delQuery({project: this.currentSelectedProject, id: queryId}).then((response) => {
+  removeQuery (query) {
+    kapConfirm(this.$t('confirmDel', {queryName: query.name}), null, this.$t('delSqlTitle')).then(() => {
+      this.delQuery({project: this.currentSelectedProject, id: query.id}).then((response) => {
         this.$message({
           type: 'success',
           message: this.$t('kylinLang.common.delSuccess')
@@ -409,6 +409,10 @@ export default class NewQuery extends Vue {
           margin-bottom:0;
           &:last-child {
             margin-right: 0;
+            .el-form-item__content {
+              position: relative;
+              top: -1px;
+            }
           }
         }
         .el-form-item__content{
@@ -442,7 +446,7 @@ export default class NewQuery extends Vue {
       top: -5px;
       > .btn-group {
         position: absolute;
-        right: 10px;
+        right: 0px;
         top: 2px;
         z-index: 99;
       }
