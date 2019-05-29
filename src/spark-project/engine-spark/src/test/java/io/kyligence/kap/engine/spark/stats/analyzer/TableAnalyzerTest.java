@@ -53,6 +53,8 @@ public class TableAnalyzerTest extends NLocalWithSparkSessionTest {
 
     @Before
     public void setup() {
+        getTestConfig().setProperty("kylin.engine.spark-conf.spark.executor.instances", "1");
+        getTestConfig().setProperty("kylin.engine.spark-conf.spark.executor.cores", "1");
         tableMgr = NTableMetadataManager.getInstance(getTestConfig(), getProject());
     }
 
@@ -123,9 +125,9 @@ public class TableAnalyzerTest extends NLocalWithSparkSessionTest {
     }
 
     @Test
-    public void testSampleFullTable() throws Exception {
+    public void testSampleFullTable() {
         TableDesc tableDesc = tableMgr.getTableDesc("DEFAULT.TEST_KYLIN_FACT");
-        new TableAnalyzerJob().analyzeTable(tableDesc, getProject(), 10000, getTestConfig(), ss);
+        new TableAnalyzerJob().analyzeTable(tableDesc, getProject(), 20_000_000, getTestConfig(), ss);
         val tableExt = tableMgr.getTableExtIfExists(tableDesc);
         Assert.assertEquals(10, tableExt.getSampleRows().size());
 
@@ -217,7 +219,7 @@ public class TableAnalyzerTest extends NLocalWithSparkSessionTest {
     }
 
     @Test
-    public void testSamplePartTable() throws Exception {
+    public void testSamplePartTable() {
         TableDesc tableDesc = tableMgr.getTableDesc("DEFAULT.TEST_KYLIN_FACT");
         new TableAnalyzerJob().analyzeTable(tableDesc, getProject(), 100, getTestConfig(), ss);
         NTableMetadataManager tableMetadataManager = NTableMetadataManager.getInstance(getTestConfig(), getProject());

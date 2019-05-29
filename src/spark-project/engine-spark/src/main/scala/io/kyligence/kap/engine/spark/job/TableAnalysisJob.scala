@@ -37,7 +37,11 @@ import org.apache.spark.sql.{Column, _}
 class TableAnalysisJob(tableDesc: TableDesc,
                        project: String,
                        rowCount: Long,
-                       ss: SparkSession) {
+                       ss: SparkSession) extends Serializable {
+
+  // it's a experimental value recommended by Spark,
+  // which used for controlling the TableSampling tasks' count.
+  val taskFactor = 4
 
   def analyzeTable(): Array[Row] = {
     val config = KylinConfig.getInstanceFromEnv
@@ -45,23 +49,28 @@ class TableAnalysisJob(tableDesc: TableDesc,
 
     val instances = Integer.parseInt(map.get("spark.executor.instances"))
     val cores = Integer.parseInt(map.get("spark.executor.cores"))
-    val numPartitions = instances * cores * 4
+    val numPartitions = instances * taskFactor * cores
+    val rowsTakenInEachPartition = rowCount / numPartitions
 
     val dataset = SourceFactory
       .createEngineAdapter(tableDesc, classOf[NSparkCubingEngine.NSparkCubingSource])
       .getSourceData(tableDesc, ss, Maps.newHashMap[String, String])
       .coalesce(numPartitions)
-    val rowDataset = CreateFlatTable.changeSchemaToAliasDotName(dataset, tableDesc.getIdentity)
+
+    // sampling
+    def sample(iterator: Iterator[Row]): Iterator[Row] = {
+      iterator.take(rowsTakenInEachPartition.toInt)
+    }
+
+    val dat = ss.createDataFrame(dataset.rdd.mapPartitions(partition => sample(partition)), dataset.schema)
+    val sampledDataset = CreateFlatTable.changeSchemaToAliasDotName(dat, tableDesc.getIdentity)
 
     // todo: use sample data to estimate total info
-    val ratio = rowCount / rowDataset.count().toFloat
-    val sampleDataSet = if (ratio > 1) rowDataset else rowDataset.sample(ratio)
-
     // calculate the stats info
-    val statsMetrics = buildStatsMetric(sampleDataSet)
-    val aggData = sampleDataSet.agg(count(lit(1)), statsMetrics: _*).collect()
+    val statsMetrics = buildStatsMetric(sampledDataset)
+    val aggData = sampledDataset.agg(count(lit(1)), statsMetrics: _*).collect()
 
-    aggData ++ sampleDataSet.limit(10).collect()
+    aggData ++ sampledDataset.limit(10).collect()
   }
 
   def buildStatsMetric(sourceTable: Dataset[Row]): List[Column] = {

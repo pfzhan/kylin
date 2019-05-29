@@ -92,7 +92,7 @@ public class NTableSamplingJobTest extends NLocalWithSparkSessionTest {
         Assert.assertNull(tableExtBefore);
 
         NExecutableManager execMgr = NExecutableManager.getInstance(config, PROJECT);
-        val samplingJob = NTableSamplingJob.create(tableDesc, PROJECT, "ADMIN", 20000);
+        val samplingJob = NTableSamplingJob.create(tableDesc, PROJECT, "ADMIN", 20_000_000);
         execMgr.addJob(samplingJob);
 
         Assert.assertEquals(ExecutableState.READY, samplingJob.getStatus());

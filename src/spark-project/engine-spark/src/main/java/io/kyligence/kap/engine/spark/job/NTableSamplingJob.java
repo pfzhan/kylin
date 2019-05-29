@@ -47,7 +47,9 @@ import io.kyligence.kap.metadata.cube.model.NBatchConstants;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import lombok.val;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 public class NTableSamplingJob extends DefaultChainedExecutable {
 
     public String getTableIdentity() {
@@ -66,6 +68,7 @@ public class NTableSamplingJob extends DefaultChainedExecutable {
         Preconditions.checkArgument(tableDesc != null, //
                 "Create table sampling job failed for table not exist!");
 
+        log.info("start creating a table sampling job on table {}", tableDesc.getIdentity());
         NTableSamplingJob job = new NTableSamplingJob();
         job.setId(UUID.randomUUID().toString());
         job.setName(JobTypeEnum.TABLE_SAMPLING.toString());
@@ -81,6 +84,7 @@ public class NTableSamplingJob extends DefaultChainedExecutable {
 
         JobStepFactory.addStep(job, JobStepType.RESOURCE_DETECT);
         JobStepFactory.addStep(job, JobStepType.SAMPLING);
+        log.info("sampling job create success on table {}", tableDesc.getIdentity());
         return job;
     }
 
