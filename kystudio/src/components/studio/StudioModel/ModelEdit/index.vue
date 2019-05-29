@@ -385,9 +385,9 @@
         </div>
         <div v-show="showEditAliasForm">
           <div class="alias-form" v-event-stop:click>
-            <el-form :model="this" :rules="aliasRules" ref="aliasForm" @submit.native="()=> {return false}">
+            <el-form :model="formTableAlias" :rules="aliasRules" ref="aliasForm" @submit.native="()=> {return false}">
               <el-form-item prop="currentEditAlias">
-              <el-input v-model="currentEditAlias" size="mini" @click.stop @keyup.enter.native="saveEditTableAlias"></el-input>
+              <el-input v-model="formTableAlias.currentEditAlias" size="mini" @click.stop @keyup.enter.native="saveEditTableAlias"></el-input>
               <input type="text" style="display:none" />
               <el-button type="primary" size="mini" icon="el-icon-check" @click.stop="saveEditTableAlias"></el-button><el-button size="mini" @click.stop="cancelEditAlias" icon="el-icon-close" plain></el-button>
               </el-form-item>
@@ -622,7 +622,9 @@ export default class ModelEdit extends Vue {
   showTableCoverDiv = false
   currentEditTable = null
   showEditAliasForm = false
-  currentEditAlias = ''
+  formTableAlias = {
+    currentEditAlias: ''
+  }
   delTipVisible = false
   guideActions (obj) {
     let data = obj.data
@@ -656,7 +658,7 @@ export default class ModelEdit extends Vue {
     this.showTableCoverDiv = false
     this.currentEditTable = null
     this.showEditAliasForm = false
-    this.currentEditAlias = ''
+    this.formTableAlias.currentEditAlias = ''
     this.delTipVisible = false
   }
   showDelTableTip () {
@@ -722,7 +724,7 @@ export default class ModelEdit extends Vue {
   editTable (guid) {
     this._hisZoom = this.modelRender.zoom
     this.currentEditTable = this.modelInstance.getTableByGuid(guid)
-    this.currentEditAlias = this.currentEditTable.alias
+    this.formTableAlias.currentEditAlias = this.currentEditTable.alias
     this.showTableCoverDiv = true
     this.showEditAliasForm = false
     this.delTipVisible = false
@@ -731,7 +733,7 @@ export default class ModelEdit extends Vue {
   saveEditTableAlias () {
     this.$refs.aliasForm.validate((valid) => {
       if (valid) {
-        this.currentEditTable.alias = this.currentEditAlias
+        this.currentEditTable.alias = this.formTableAlias.currentEditAlias
         this.saveNewAlias(this.currentEditTable)
         this.showEditAliasForm = false
       }
@@ -943,7 +945,7 @@ export default class ModelEdit extends Vue {
   }
   openEditAliasForm () {
     this.showEditAliasForm = true
-    this.currentEditAlias = this.currentEditTable.alias
+    this.formTableAlias.currentEditAlias = this.currentEditTable.alias
   }
   filterColumns (filterVal, columns, t) {
     let reg = new RegExp(filterVal, 'gi')
@@ -1000,13 +1002,16 @@ export default class ModelEdit extends Vue {
     if (!this.currentDragTable) {
       return
     }
+    // 优化缩放时候的table位置算法 （鼠标相对文档位置 - drawbox相对于文档位置）* (10-缩放的倍数）保证缩放的时候拖入table位置精准
+    let drawBoxDom = document.querySelector(modelRenderConfig.drawBox)
+    let domPos = drawBoxDom && drawBoxDom.getBoundingClientRect() || {}
     if (target.className.indexOf(modelRenderConfig.drawBox.substring(1)) >= 0) {
       this.modelInstance.addTable({
         table: this.currentDragTable,
         alias: this.currentDragTable.split('.')[1],
         drawSize: {
-          left: e.offsetX - this.modelRender.zoomXSpace,
-          top: e.offsetY - this.modelRender.zoomYSpace
+          left: (e.clientX - domPos.left) * (10 / this.modelRender.zoom),
+          top: (e.clientY - domPos.top) * (10 / this.modelRender.zoom)
         }
       })
     }
