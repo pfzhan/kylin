@@ -1551,11 +1551,8 @@ export default class ModelEdit extends Vue {
     }
   }
   background-color: @base-color;
-  // padding: 0;
   font-size: 12px;
   z-index: 21;
-  // font-weight: @font-medium;
-  // border: 2px solid @base-color;
   cursor: pointer;
   min-width: 40px;
   height: 20px;
@@ -1696,7 +1693,7 @@ export default class ModelEdit extends Vue {
         padding-left: 10px;
         .title{
           margin-left:4px;
-          font-weight:@font-medium;
+          font-weight: @font-medium;
         }
         .close{
           float: right;
@@ -1913,7 +1910,7 @@ export default class ModelEdit extends Vue {
             margin-left:26px;
             word-break: break-all;
             i {
-              font-weight:@font-medium;
+              font-weight: @font-medium;
               font-style: normal;
             }
             
@@ -2049,7 +2046,7 @@ export default class ModelEdit extends Vue {
         color:#fff;
         position:relative;
         margin-bottom: 10px;
-        font-weight: bold;
+        font-weight: @font-medium;
         font-size: 16px;
         &.active{
           background:@base-color;

@@ -67,7 +67,7 @@
         prop="action"
         :label="$t('kylinLang.common.action')"
         width="100">
-        <template slot-scope="scope">
+        <template>
           <el-tooltip :content="$t('kylinLang.common.refresh')" effect="dark" placement="top">
             <i class="el-icon-ksd-table_assign" @click="refreshServiceList">
             </i>
@@ -282,7 +282,7 @@ export default class Admin extends Vue {
     .admin-title {
       font-size: 16px;
       color: @000;
-      font-weight: 600;
+      font-weight: @font-medium;
       line-height: 24px;
     }
     .el-table__expanded-cell{
@@ -315,7 +315,7 @@ export default class Admin extends Vue {
         .el-progress__text {
           font-size: 30px!important;
           color: @text-title-color;
-          font-weight: 600;
+          font-weight: @font-medium;
           top: 40%;
         }
         .manage-file {
@@ -331,7 +331,7 @@ export default class Admin extends Vue {
         }
         .manage-title {
           font-size: 16px;
-          font-weight: 600;
+          font-weight: @font-medium;
           color: @text-title-color;
           margin-top: 14px;
         }

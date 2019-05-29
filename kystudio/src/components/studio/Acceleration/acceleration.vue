@@ -1268,7 +1268,7 @@ export default class FavoriteQuery extends Vue {
           width: 245px;
           text-align: center;
           line-height: 18px;
-          font-weight: 500;
+          font-weight: @font-medium;
         }
         .pattern-num {
           position: absolute;
@@ -1280,7 +1280,7 @@ export default class FavoriteQuery extends Vue {
           line-height: 18px;
           p {
             font-size: 18px;
-            font-weight: 500;
+            font-weight: @font-medium;
             &:last-child {
               font-size: 12px;
             }
@@ -1415,7 +1415,7 @@ export default class FavoriteQuery extends Vue {
         color: @text-title-color;
       }
       .conds-title {
-        font-weight: 500;
+        font-weight: @font-medium;
       }
       .conds > .conds-title {
         height: 18px;

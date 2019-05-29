@@ -1156,7 +1156,7 @@ export default class JobsList extends Vue {
           }
           td:first-child{
             width: 25%;
-            font-weight: 500;
+            font-weight: @font-medium;
           }
         }
       }
@@ -1165,7 +1165,7 @@ export default class JobsList extends Vue {
         line-height:20px;
         margin:15px 0 10px 0;
         font-size: 14px;
-        font-weight: 500;
+        font-weight: @font-medium;
       }
       .job-btn {
         position: absolute;
@@ -1243,7 +1243,7 @@ export default class JobsList extends Vue {
                 word-wrap: break-word;
                 word-break: normal;
                 font-size:14px;
-                font-weight: 500;
+                font-weight: @font-medium;
               }
             }
             .timeline-footer {

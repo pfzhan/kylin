@@ -425,7 +425,7 @@ export default class QueryHistoryTable extends Vue {
         padding-bottom: 10px;
         span:first-child {
           line-height: 18px;
-          font-weight: bold;
+          font-weight: @font-medium;
         }
         span:last-child {
           color: @text-normal-color;

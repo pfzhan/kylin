@@ -480,7 +480,7 @@ export default {
         color: @text-title-color;
         font-size: 20px;
         margin-bottom: 11px;
-        font-weight: bold;
+        font-weight: @font-medium;
         height: 28px;
       }
       p:last-of-type {

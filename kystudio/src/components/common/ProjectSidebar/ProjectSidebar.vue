@@ -283,7 +283,7 @@ export default class ProjectSidebar extends Vue {
     }
   }
   .el-popover__title {
-    font-weight: 500;
+    font-weight: @font-medium;
   }
 }
 </style>

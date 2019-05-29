@@ -156,7 +156,7 @@ export default class SourceHiveSetting extends Vue {
   .el-form-item__label,
   .form-item-title {
     color: @text-title-color;
-    font-weight: 500;
+    font-weight: @font-medium;
   }
   .form-item-title {
     margin-bottom: 10px;

@@ -49,7 +49,7 @@ export default {
     .collapse-title {
       color: @text-title-color;
       font-size: 16px;
-      font-weight: bold;
+      font-weight: @font-medium;
     }
     .show-but {
       width: 100%;

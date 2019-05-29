@@ -173,7 +173,7 @@ export default class SourceSelect extends Vue {
     color: @text-normal-color;
     margin-bottom: 5px;
     font-size: 14px;
-    font-weight: bold;
+    font-weight: @font-medium;
   }
   .status {
     background: @background-disabled-color;

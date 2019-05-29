@@ -217,7 +217,7 @@ export default class Overview extends Vue {
   #overview{
 	  margin: 40px 30px;
     .el-card__header {
-      font-weight: 500;
+      font-weight: @font-medium;
     }
     .statistics {
       height: 843px;
@@ -249,7 +249,7 @@ export default class Overview extends Vue {
               position: absolute;
               left: 55%;
               top: 20px;
-              font-weight: bold;
+              font-weight: @font-medium;
               color: @base-color;
               span:first-child {
                 font-size: 24px;
@@ -266,7 +266,7 @@ export default class Overview extends Vue {
             height: 55px;
             line-height: 55px;
             font-size: 16px;
-            font-weight: bold;
+            font-weight: @font-medium;
             color: @base-color;
             border: 1px solid @base-color;
             background-color: @base-color-9;
@@ -280,7 +280,7 @@ export default class Overview extends Vue {
               height: 40px;
               span:first-child {
                 font-size: 24px;
-                font-weight: bold;
+                font-weight: @font-medium;
               }
               span:last-child {
                 font-size: 16px;
@@ -290,10 +290,10 @@ export default class Overview extends Vue {
               font-size: 16px;
               height: 20px;
               margin-bottom: 15px;
-              font-weight: bold;
+              font-weight: @font-medium;
             }
             .cost-time {
-              font-weight: bold;
+              font-weight: @font-medium;
               border: 2px solid @line-border-color;
               border-radius: 15px;
               height: 30px;

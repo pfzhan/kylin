@@ -85,7 +85,7 @@ export default class EditableBlock extends Vue {
     color: @text-title-color;
     font-size: 14px;
     line-height: 18px;
-    font-weight: 500;
+    font-weight: @font-medium;
     padding: 8px 15px;
     > * {
       vertical-align: middle;

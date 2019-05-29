@@ -654,7 +654,7 @@ export default class Dashboard extends Vue {
       .cart-title {
         color: @text-title-color;
         font-size: 14px;
-        font-weight: 600;
+        font-weight: @font-medium;
         height: 36px;
         line-height: 36px;
         padding: 0 15px;
@@ -667,7 +667,7 @@ export default class Dashboard extends Vue {
           color: @text-title-color;
           font-size: 24px;
           line-height: 24px;
-          font-weight: 500;
+          font-weight: @font-medium;
         }
         .no-data {
           color: @text-disabled-color;
@@ -743,25 +743,25 @@ export default class Dashboard extends Vue {
             color: @text-normal-color;
             font-size: 14px;
             line-height: 14px;
-            font-weight: 500;
+            font-weight: @font-medium;
             &:first-child {
-              font-weight: 600;
+              font-weight: @font-medium;
             }
           }
           .total-quota {
-            font-weight: 500;
+            font-weight: @font-medium;
             height: 40px;
             line-height: 40px;
             color: @text-title-color;
           }
           .useage {
-            font-weight: 500;
+            font-weight: @font-medium;
             font-size: 18px;
             line-height: 28px;
             color: #3bb477;
           }
           .trash {
-            font-weight: 500;
+            font-weight: @font-medium;
             font-size: 18px;
             line-height: 28px;
             color: @warning-color-1;
@@ -814,7 +814,7 @@ export default class Dashboard extends Vue {
         position: relative;
         .nvd3.nv-noData {
           font-size: 14px;
-          font-weight: 400;
+          font-weight: normal;
           font-family: Helvetica Neue, Helvetica, PingFang SC, Hiragino Sans GB, Microsoft YaHei, SimSun, sans-serif;
           fill: @text-disabled-color;
         }
@@ -856,7 +856,7 @@ export default class Dashboard extends Vue {
     min-width: 130px !important;
     .info-block {
       display: table-row;
-      font-weight: 500;
+      font-weight: @font-medium;
       font-size: 12px;
       line-height: 18px;
       span {

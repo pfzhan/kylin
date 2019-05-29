@@ -258,7 +258,7 @@ export default class ReloadTableModal extends Vue {
   .samping-box {
     margin-top:18px;
     .lable-text {
-      font-weight: bold;
+      font-weight: @font-medium;
       vertical-align: middle;
     }
     .sample-sub-top{

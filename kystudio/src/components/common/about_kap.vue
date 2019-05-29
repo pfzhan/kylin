@@ -156,7 +156,7 @@ export default {
 	font-size:14px;
 	text-align: left;
 	img {width: 88px;}
-	label {font-weight:bold;}
+	label {font-weight: @font-medium;}
 	// .header, 
 	// .container {padding-bottom:20px;border-bottom:1px solid #424860;}
 	h3 {margin-top:20px;font-size:14px;}

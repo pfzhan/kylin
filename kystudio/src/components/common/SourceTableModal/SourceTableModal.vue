@@ -268,7 +268,7 @@ export default class SourceTableModal extends Vue {
 .source-table-modal {
   .el-dialog__title {
     font-size: 16px;
-    font-weight: 500;
+    font-weight: @font-medium;
     color: #263238;
   }
   .el-form-item:last-child {

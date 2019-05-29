@@ -516,7 +516,7 @@ export default class BatchMeasureModal extends Vue {
     .table-title {
       font-size: 14px;
       margin-left: 5px;
-      font-weight:@font-medium;
+      font-weight: @font-medium;
     }
     .table-header {
       padding-left:15px;

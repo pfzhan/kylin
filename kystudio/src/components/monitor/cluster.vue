@@ -43,7 +43,7 @@
         :label="$t('kylinLang.common.action')"
         align="left"
         width="100">
-        <template slot-scope="scope">
+        <template>
           <el-tooltip :content="$t('kylinLang.common.refresh')" effect="dark" placement="top">
             <i class="el-icon-ksd-table_assign" @click="refreshServiceList">
             </i>
@@ -118,7 +118,7 @@ export default class Cluster extends Vue {
     .cluster-title {
       font-size: 16px;
       color: @000;
-      font-weight: 600;
+      font-weight: @font-medium;
       line-height: 24px;
     }
     .bg-active {

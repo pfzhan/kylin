@@ -328,6 +328,7 @@ export default class TreeList extends Vue {
 </script>
 
 <style lang="less">
+@import '../../../assets/styles/variables.less';
 .tree-list {
   position: relative;
   width: 100%;
@@ -361,7 +362,7 @@ export default class TreeList extends Vue {
     box-sizing: border-box;
   }
   .load-more-img {
-    font-weight: bolder;
+    font-weight: @font-medium;
     width: 20px;
     height: 6px;
     margin-left: 10px;

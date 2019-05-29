@@ -552,7 +552,7 @@
       }
     .select-title{
       color:@text-title-color;
-      font-weight: 600;
+      font-weight: @font-medium;
     }
     .checksource-warn-msg {
       margin-bottom: 240px;
