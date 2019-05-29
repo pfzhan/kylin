@@ -20,6 +20,8 @@
               :key="item.name"
               :label="item.name"
               :value="item.name">
+              <span style="float: left">{{ item.name }}</span>
+              <span class="ky-option-sub-info">{{ item.dataType }}</span>
             </el-option>
           </el-select>
         </span>

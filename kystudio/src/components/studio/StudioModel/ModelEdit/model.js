@@ -963,9 +963,11 @@ class NModel {
     }
   }
   setUniqueAlias (table) {
-    // fact 情况的特殊处理
-    if (table.kind === modelRenderConfig.tableKind.fact && table.name.split('.')[1] !== table.alias) {
-      let sameTable = this.getTables('name', table.name)
+    // fact情况的特殊处理
+    // fact的别名只能使用默认的自己的 table 名
+    let pureTableName = table.name.split('.')[1]
+    if (table.kind === modelRenderConfig.tableKind.fact && pureTableName !== table.alias) {
+      let sameTable = this.getTables('alias', pureTableName)
       for (let i = 0; i < sameTable.length; i++) {
         const t = sameTable[i]
         if (t.guid !== table.guid) {
@@ -973,7 +975,7 @@ class NModel {
           break
         }
       }
-      table.alias = table.name.split('.')[1]
+      table.alias = pureTableName
     } else {
       var uniqueName = this._createUniqueName(table.guid, table.alias)
       this.$set(table, 'alias', uniqueName)
