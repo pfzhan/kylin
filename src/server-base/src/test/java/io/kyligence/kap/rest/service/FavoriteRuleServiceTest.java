@@ -128,7 +128,7 @@ public class FavoriteRuleServiceTest extends NLocalFileMetadataTestCase {
         // returned blacklist sql is sorted by create time
         FavoriteRule.SQLCondition sqlCondition1 = blacklistSqls.get(0);
         FavoriteRule.SQLCondition sqlCondition2 = blacklistSqls.get(1);
-        Assert.assertTrue(sqlCondition1.getCreateTime() > sqlCondition2.getCreateTime());
+        Assert.assertTrue(sqlCondition1.getCreateTime() >= sqlCondition2.getCreateTime());
 
         // test filter blacklist by sql
         blacklistSqls = favoriteRuleService.getBlacklistSqls(PROJECT, "sql\n pattern\t 1");
