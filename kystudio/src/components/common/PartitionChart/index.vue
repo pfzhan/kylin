@@ -238,7 +238,7 @@ export default class PartitionChart extends Vue {
 
 .partition-chart {
   width: calc(~'100% - 20px');
-  height: 563px;
+  height: 440px;
   .operator {
     position: absolute;
     right: 0;

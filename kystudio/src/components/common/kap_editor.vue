@@ -1,5 +1,5 @@
 <template>
-  <div class="smyles_editor_wrap" :style="{width: width? width: '100%'}">
+  <div class="smyles_editor_wrap" :style="{width: width? width: '100%', height: height ? height : '100%'}">
     <editor class="smyles_editor" v-model="editorData" ref="kapEditor" :height="height? height: '100%'" :lang="lang" :theme="theme" @change="changeInput" @input="changeInput"></editor>
     <div class="smyles_dragbar"></div>
     <el-popover

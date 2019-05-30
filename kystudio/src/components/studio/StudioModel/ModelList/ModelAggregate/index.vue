@@ -238,12 +238,6 @@ export default class ModelAggregate extends Vue {
       margin-bottom: 5px;
     }
   }
-  .cubois-chart-block {
-    border: 1px solid @line-border-color;
-    height: 638px;
-    position: relative;
-    overflow: hidden;
-  }
   .cuboid-info {
     margin-bottom: 10px;
     .is-right {
@@ -258,7 +252,10 @@ export default class ModelAggregate extends Vue {
     padding-left: 10px;
   }
   .agg-detail-card {
-    height: 638px;
+    height: 496px;
+    &.agg_index .el-card__body {
+      overflow: hidden;
+    }
     &.agg-detail {
       .el-card__header {
         padding-top:6px;
@@ -267,7 +264,7 @@ export default class ModelAggregate extends Vue {
     }
     .el-card__body {
       overflow: auto;
-      height: 583px;
+      height: 460px;
       width: 100%;
       position: relative;
       box-sizing: border-box;

@@ -19,9 +19,9 @@
             <span class="ksd-fleft ksd-fs-14">{{$t('queryDetails')}}</span>
           </div>
           <div class="detail-content">
-            <el-row :gutter="15">
+            <el-row :gutter="15" type="flex">
               <el-col :span="14">
-                <kap-editor height="320" width="100%" lang="sql" theme="chrome" ref="historySqlEditor" :readOnly="true" :isFormatter="true" v-model="props.row.sql_text" dragbar="#393e53">
+                <kap-editor width="100%" lang="sql" theme="chrome" ref="historySqlEditor" :readOnly="true" :isFormatter="true" v-model="props.row.sql_text" dragbar="#393e53">
                 </kap-editor>
               </el-col>
               <el-col :span="10">
@@ -477,9 +477,6 @@ export default class QueryHistoryTable extends Vue {
           line-height: 16px;
           &.model-tag {
             cursor: pointer;
-            &:hover {
-              text-decoration: underline;
-            }
           }
         }
       }
