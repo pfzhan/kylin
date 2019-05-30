@@ -825,6 +825,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         await().atMost(2 * 1000, TimeUnit.MILLISECONDS).until(() -> job.getStatus() == ExecutableState.RUNNING);
         //scheduler failed due to some reason
         scheduler.shutdown();
+        Assert.assertFalse(scheduler.hasStarted());
 
         AbstractExecutable job1 = executableManager.getJob(job.getId());
         ExecutableState status = job1.getStatus();

@@ -336,16 +336,22 @@ public class NDefaultScheduler implements Scheduler<AbstractExecutable>, Connect
     @Override
     public void shutdown() {
         logger.info("Shutting down DefaultScheduler for project {} ....", project);
-        jobLock.unlockJobEngine();
+        releaseResources();
         ExecutorServiceUtil.shutdownGracefully(fetcherPool, 60);
         ExecutorServiceUtil.shutdownGracefully(jobPool, 60);
     }
 
     public void forceShutdown() {
         logger.info("Shutting down DefaultScheduler ....");
-        jobLock.unlockJobEngine();
+        releaseResources();
         ExecutorServiceUtil.forceShutdown(fetcherPool);
         ExecutorServiceUtil.forceShutdown(jobPool);
+    }
+
+    private void releaseResources() {
+        initialized = false;
+        hasStarted = false;
+        jobLock.unlockJobEngine();
     }
 
     @Override
