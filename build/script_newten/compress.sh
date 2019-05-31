@@ -27,6 +27,7 @@ if [ "${PACKAGE_SPARK}" = "1" ]; then
 fi
 
 cp -rf influxdb ${package_name}/
+cp -rf postgresql ${package_name}/
 
 # Add ssb data preparation files
 mkdir -p ${package_name}/tool/ssb
@@ -73,6 +74,7 @@ find ${package_name} -type f -exec chmod 644 {} \;
 find ${package_name} -type f -name "*.sh" -exec chmod 755 {} \;
 find ${package_name}/spark -type f -exec chmod 755 {} \;
 find ${package_name}/influxdb -type f -exec chmod 755 {} \;
+find ${package_name}/postgresql -type f -exec chmod 755 {} \;
 
 rm -rf ../dist
 mkdir -p ../dist

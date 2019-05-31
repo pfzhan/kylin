@@ -25,6 +25,8 @@ package io.kyligence.kap.common.persistence.metadata;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
+import java.sql.SQLException;
 import java.util.NavigableSet;
 import java.util.Optional;
 import java.util.Properties;
@@ -69,7 +71,7 @@ public class JdbcMetadataStore extends MetadataStore implements JdbcTransactionM
     private static final String SELECT_ALL_KEY_SQL = SELECT_TERM + META_TABLE_KEY + " from %s";
     private static final String SELECT_BY_RANGE_SQL = SELECT_TERM
             + Joiner.on(",").join(META_TABLE_KEY, META_TABLE_CONTENT, META_TABLE_TS, META_TABLE_MVCC)
-            + " from %s where + " + META_TABLE_KEY + " > '%s' and " + META_TABLE_KEY + " < '%s'";
+            + " from %s where " + META_TABLE_KEY + " > '%s' and " + META_TABLE_KEY + " < '%s'";
     private static final String SELECT_BY_KEY_MVCC_SQL = SELECT_TERM
             + Joiner.on(",").join(META_TABLE_KEY, META_TABLE_CONTENT, META_TABLE_TS, META_TABLE_MVCC)
             + " from %s where " + META_TABLE_KEY + "='%s' and " + META_TABLE_MVCC + "=%d";
@@ -86,6 +88,7 @@ public class JdbcMetadataStore extends MetadataStore implements JdbcTransactionM
 
     @Getter
     private final DataSourceTransactionManager transactionManager;
+    @Getter
     private final JdbcTemplate jdbcTemplate;
     private final String table;
 
@@ -112,9 +115,9 @@ public class JdbcMetadataStore extends MetadataStore implements JdbcTransactionM
                     val result = jdbcTemplate.query(String.format(SELECT_BY_KEY_MVCC_SQL, table, path, mvcc - 1),
                             RAW_RESOURCE_ROW_MAPPER);
                     if (CollectionUtils.isEmpty(result)) {
-                        jdbcTemplate.update(String.format(INSERT_SQL, table), path, bs.read(), ts, mvcc);
+                        insert(String.format(INSERT_SQL, table), path, bs, ts, mvcc);
                     } else {
-                        jdbcTemplate.update(String.format(UPDATE_SQL, table), bs.read(), mvcc, ts, path, mvcc - 1);
+                        update(String.format(UPDATE_SQL, table), bs, mvcc, ts, path, mvcc - 1);
                     }
                 } else {
                     jdbcTemplate.update(String.format(DELETE_SQL, table), path);
@@ -129,6 +132,35 @@ public class JdbcMetadataStore extends MetadataStore implements JdbcTransactionM
                 } catch (IOException ignore) {
                 }
             }
+        });
+    }
+
+    private void insert(String sql, String path, ByteSource bs, long ts, long mvcc) {
+        jdbcTemplate.update(sql, ps -> {
+            ps.setString(1, path);
+            try {
+                ps.setBytes(2, bs.read());
+            }catch (IOException e) {
+                log.error("exception: ", e);
+                throw new SQLException(e);
+            }
+            ps.setLong(3, ts);
+            ps.setLong(4, mvcc);
+        });
+    }
+
+    private void update(String sql, ByteSource bs, long ts, long mvcc, String path, long oldMvcc) {
+        jdbcTemplate.update(sql, ps -> {
+            try {
+                ps.setBytes(1, bs.read());
+            }catch (IOException e) {
+                log.error("exception: ", e);
+                throw new SQLException(e);
+            }
+            ps.setLong(2, ts);
+            ps.setLong(3, mvcc);
+            ps.setString(4, path);
+            ps.setLong(5, oldMvcc);
         });
     }
 
@@ -197,21 +229,26 @@ public class JdbcMetadataStore extends MetadataStore implements JdbcTransactionM
         });
     }
 
-    private void createIfNotExist() {
-        var sql = "create table if not exists %s ( %s varchar(255) primary key";
-        if (((BasicDataSource) jdbcTemplate.getDataSource()).getDriverClassName().equals("com.mysql.jdbc.Driver")) {
-            sql += " COLLATE utf8_bin";
+    private void createIfNotExist() throws IOException {
+        String fileName = "metadata-jdbc-default.properties";
+        if (((BasicDataSource)jdbcTemplate.getDataSource()).getDriverClassName().equals("org.postgresql.Driver")) {
+            fileName = "metadata-jdbc-postgresql.properties";
+        }else if (((BasicDataSource) jdbcTemplate.getDataSource()).getDriverClassName().equals("com.mysql.jdbc.Driver")) {
+            fileName = "metadata-jdbc-mysql.properties";
         }
-        sql += ", %s longblob, %s bigint, %s bigint)";
+        InputStream is = Thread.currentThread().getContextClassLoader().getResourceAsStream(fileName);
+        Properties properties = new Properties();
+        properties.load(is);
+        var sql = properties.getProperty("create.metadata.store.table");
         jdbcTemplate
                 .execute(String.format(sql, table, META_TABLE_KEY, META_TABLE_CONTENT, META_TABLE_TS, META_TABLE_MVCC));
     }
 
     public static Properties datasourceParameters(StorageURL url) {
         val props = new Properties();
-        props.put("driverClassName", "com.mysql.jdbc.Driver");
-        props.put("url", "jdbc:mysql://sandbox/kylin");
-        props.put("username", "root");
+        props.put("driverClassName", "org.postgresql.Driver");
+        props.put("url", "jdbc:postgresql://sandbox:5432/kylin");
+        props.put("username", "postgres");
         props.put("password", "");
         props.put("maxTotal", "50");
         props.putAll(url.getAllParameters());

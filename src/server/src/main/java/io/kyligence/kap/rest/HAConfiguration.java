@@ -57,8 +57,14 @@ public class HAConfiguration extends AbstractHttpSessionApplicationInitializer {
     @PostConstruct
     public void initSessionTables() throws IOException {
         ResourceDatabasePopulator populator = new ResourceDatabasePopulator();
+
+        String sqlFile = "script/schema-session-pg.sql";
+        if (dataSource instanceof org.apache.tomcat.jdbc.pool.DataSource &&
+                ((org.apache.tomcat.jdbc.pool.DataSource)dataSource).getPoolProperties().getDriverClassName().equals("com.mysql.jdbc.Driver")) {
+            sqlFile = "script/schema-session-mysql.sql";
+        }
         var sessionScript = IOUtils
-                .toString(getClass().getClassLoader().getResourceAsStream("script/schema-session.sql"));
+                .toString(getClass().getClassLoader().getResourceAsStream(sqlFile));
         val tableName = KylinConfig.getInstanceFromEnv().getMetadataUrlPrefix() + "_session";
         sessionScript = sessionScript.replaceAll("SPRING_SESSION", tableName);
         populator.addScript(new InMemoryResource(sessionScript));

@@ -26,10 +26,12 @@ package io.kyligence.kap.common.persistence.metadata;
 import static io.kyligence.kap.common.persistence.metadata.JdbcMetadataStore.datasourceParameters;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.security.Principal;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Properties;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
@@ -103,7 +105,7 @@ public class JdbcAuditLogStore implements AuditLogStore, JdbcTransactionMixin {
     }
 
     public JdbcAuditLogStore(KylinConfig config, JdbcTemplate jdbcTemplate,
-            DataSourceTransactionManager transactionManager, String table) {
+            DataSourceTransactionManager transactionManager, String table) throws Exception {
         this.config = config;
         this.jdbcTemplate = jdbcTemplate;
         this.transactionManager = transactionManager;
@@ -230,12 +232,18 @@ public class JdbcAuditLogStore implements AuditLogStore, JdbcTransactionMixin {
         return messages;
     }
 
-    void createIfNotExist() {
-        var sql = "create table if not exists %s ( id bigint auto_increment primary key, %s varchar(255)";
-        if (((BasicDataSource) jdbcTemplate.getDataSource()).getDriverClassName().equals("com.mysql.jdbc.Driver")) {
-            sql += " COLLATE utf8_bin";
+    void createIfNotExist() throws IOException {
+        String fileName = "metadata-jdbc-default.properties";
+        if (((BasicDataSource)jdbcTemplate.getDataSource()).getDriverClassName().equals("org.postgresql.Driver")) {
+            fileName = "metadata-jdbc-postgresql.properties";
+        }else if (((BasicDataSource) jdbcTemplate.getDataSource()).getDriverClassName().equals("com.mysql.jdbc.Driver")) {
+            fileName = "metadata-jdbc-mysql.properties";
         }
-        sql += ", %s longblob, %s bigint, %s bigint, unit_id varchar(50), operator varchar(100))";
+        InputStream is = Thread.currentThread().getContextClassLoader().getResourceAsStream(fileName);
+        Properties properties = new Properties();
+        properties.load(is);
+        var sql = properties.getProperty("create.auditlog.store.table");
+
         jdbcTemplate.execute(String.format(sql, table, AUDIT_LOG_TABLE_KEY, AUDIT_LOG_TABLE_CONTENT, AUDIT_LOG_TABLE_TS,
                 AUDIT_LOG_TABLE_MVCC));
     }
