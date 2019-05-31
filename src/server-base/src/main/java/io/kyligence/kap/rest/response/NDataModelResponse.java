@@ -115,13 +115,12 @@ public class NDataModelResponse extends NDataModel {
             simplifiedColumnResponse.setComment(columnDesc.getComment());
             simplifiedColumnResponse.setDataType(columnDesc.getDatatype());
             simplifiedColumnResponse.setComputedColumn(columnDesc.isComputedColumn());
-            //get column cardinality
-            List<TableExtDesc.ColumnStats> columnStats = tableExtDesc.getColumnStats();
-            for (TableExtDesc.ColumnStats columnStat : columnStats) {
-                if (columnStat.getColumnName().equals(columnDesc.getName())) {
-                    simplifiedColumnResponse.setCardinality(columnStat.getCardinality());
-                }
+            // get column cardinality
+            final TableExtDesc.ColumnStats columnStats = tableExtDesc.getColumnStatsByName(columnDesc.getName());
+            if (columnStats != null) {
+                simplifiedColumnResponse.setCardinality(columnStats.getCardinality());
             }
+
             columns.add(simplifiedColumnResponse);
         }
         return columns;

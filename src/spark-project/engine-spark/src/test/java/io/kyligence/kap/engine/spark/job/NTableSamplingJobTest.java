@@ -102,7 +102,7 @@ public class NTableSamplingJobTest extends NLocalWithSparkSessionTest {
 
         final TableExtDesc tableExtAfter = tableMgr.getTableExtIfExists(tableDesc);
         Assert.assertNotNull(tableExtAfter);
-        Assert.assertEquals(12, tableExtAfter.getColumnStats().size());
+        Assert.assertEquals(12, tableExtAfter.getAllColumnStats().size());
         Assert.assertEquals(10, tableExtAfter.getSampleRows().size());
         Assert.assertEquals(10_000, tableExtAfter.getTotalRows());
         Assert.assertEquals(tableName, tableExtAfter.getIdentity());
@@ -114,7 +114,7 @@ public class NTableSamplingJobTest extends NLocalWithSparkSessionTest {
         final TableExtDesc tableExt = NTableMetadataManager.getInstance(buildConfig, PROJECT)
                 .getTableExtIfExists(tableDesc);
         Assert.assertNotNull(tableExt);
-        Assert.assertEquals(12, tableExt.getColumnStats().size());
+        Assert.assertEquals(12, tableExt.getAllColumnStats().size());
         Assert.assertEquals(10, tableExt.getSampleRows().size());
         Assert.assertEquals(10_000, tableExt.getTotalRows());
     }

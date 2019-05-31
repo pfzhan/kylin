@@ -44,7 +44,6 @@ package org.apache.kylin.model;
 
 import static io.kyligence.kap.metadata.model.NTableMetadataManager.getInstance;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -63,8 +62,7 @@ import io.kyligence.kap.metadata.model.NTableMetadataManager;
 
 public class TableExtDescTest extends NLocalFileMetadataTestCase {
 
-    private String project = "default";
-    private String tableName = "DEFAULT.TEST_KYLIN_FACT";
+    private final String project = "default";
     private NTableMetadataManager tableMetadataManager;
 
     @Before
@@ -79,15 +77,17 @@ public class TableExtDescTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void testBasic() throws IOException {
+    public void testBasic() {
+        final String tableName = "DEFAULT.TEST_KYLIN_FACT";
         final TableDesc tableDesc = tableMetadataManager.getTableDesc(tableName);
         TableExtDesc tableExtDesc = tableMetadataManager.getOrCreateTableExt(tableName);
         tableExtDesc = tableMetadataManager.copyForWrite(tableExtDesc);
 
+        final String colName = "col_1";
         final List<TableExtDesc.ColumnStats> columnStatsList = new ArrayList<>(tableDesc.getColumnCount());
         final SegmentRange segRange_1 = new SegmentRange.TimePartitionedSegmentRange(0L, 10L);
         TableExtDesc.ColumnStats colStats = new TableExtDesc.ColumnStats();
-        colStats.setColumnName("col_1");
+        colStats.setColumnName(colName);
         HLLCounter col_hllc = mockHLLCounter(2, 5);
         columnStatsList.add(updateColStats(colStats, 10, segRange_1, col_hllc, 1000d, -1000d, 4, 2, "9999", "99"));
 
@@ -97,9 +97,8 @@ public class TableExtDescTest extends NLocalFileMetadataTestCase {
         columnStatsList.clear();
         tableExtDesc = tableMetadataManager.getOrCreateTableExt(tableName);
         tableExtDesc = tableMetadataManager.copyForWrite(tableExtDesc);
-        colStats = tableExtDesc.getColumnStats(0);
-        Assert.assertEquals("col_1", colStats.getColumnName());
-        //        Assert.assertEquals(4L, colStats.getTotalCardinality());
+        colStats = tableExtDesc.getColumnStatsByName(colName);
+        Assert.assertEquals(colName, colStats.getColumnName());
         Assert.assertEquals(10, colStats.getNullCount());
 
         final SegmentRange segRange_2 = new SegmentRange.TimePartitionedSegmentRange(10L, 20L);
@@ -110,9 +109,8 @@ public class TableExtDescTest extends NLocalFileMetadataTestCase {
         tableMetadataManager.saveTableExt(tableExtDesc);
 
         tableExtDesc = tableMetadataManager.getOrCreateTableExt(tableName);
-        colStats = tableExtDesc.getColumnStats(0);
-        Assert.assertEquals("col_1", colStats.getColumnName());
-        //        Assert.assertEquals(9L, colStats.getTotalCardinality());
+        colStats = tableExtDesc.getColumnStatsByName(colName);
+        Assert.assertEquals(colName, colStats.getColumnName());
         Assert.assertEquals(21, colStats.getNullCount());
         Assert.assertEquals(9999d, colStats.getMaxNumeral(), 0.0001);
         Assert.assertEquals(-9999d, colStats.getMinNumeral(), 0.0001);

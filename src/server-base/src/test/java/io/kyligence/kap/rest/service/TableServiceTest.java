@@ -55,11 +55,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Set;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import io.kyligence.kap.common.persistence.transaction.TransactionException;
-import io.kyligence.kap.rest.response.BatchLoadTableResponse;
-import io.kyligence.kap.rest.response.ExistedDataRangeResponse;
-import io.kyligence.kap.rest.response.TableDescResponse;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -87,12 +82,14 @@ import org.springframework.security.authentication.TestingAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.Lists;
 
+import io.kyligence.kap.common.persistence.transaction.TransactionException;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.event.manager.EventDao;
 import io.kyligence.kap.metadata.cube.model.NDataLoadingRange;
 import io.kyligence.kap.metadata.cube.model.NDataLoadingRangeManager;
-import io.kyligence.kap.event.manager.EventDao;
 import io.kyligence.kap.metadata.model.MaintainModelType;
 import io.kyligence.kap.metadata.model.ManagementType;
 import io.kyligence.kap.metadata.model.NDataModel;
@@ -103,6 +100,9 @@ import io.kyligence.kap.rest.request.AutoMergeRequest;
 import io.kyligence.kap.rest.request.DateRangeRequest;
 import io.kyligence.kap.rest.request.TopTableRequest;
 import io.kyligence.kap.rest.response.AutoMergeConfigResponse;
+import io.kyligence.kap.rest.response.BatchLoadTableResponse;
+import io.kyligence.kap.rest.response.ExistedDataRangeResponse;
+import io.kyligence.kap.rest.response.TableDescResponse;
 import io.kyligence.kap.rest.response.TableNameResponse;
 import io.kyligence.kap.rest.response.TablesAndColumnsResponse;
 import lombok.val;
@@ -173,6 +173,126 @@ public class TableServiceTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
+    public void testGetTableDescAndVerifyColumnsInfo() throws IOException {
+        final String tableIdentity = "DEFAULT.TEST_COUNTRY";
+        final NTableMetadataManager tableMgr = NTableMetadataManager.getInstance(getTestConfig(), "newten");
+        final TableDesc tableDesc = tableMgr.getTableDesc(tableIdentity);
+        final TableExtDesc oldExtDesc = tableMgr.getOrCreateTableExt(tableDesc);
+
+        // mock table ext desc
+        TableExtDesc tableExt = new TableExtDesc(oldExtDesc);
+        tableExt.setIdentity(tableIdentity);
+        TableExtDesc.ColumnStats col1 = new TableExtDesc.ColumnStats();
+        col1.setCardinality(100);
+        col1.setTableExtDesc(tableExt);
+        col1.setColumnName(tableDesc.getColumns()[0].getName());
+        col1.setMinValue("America");
+        col1.setMaxValue("Zimbabwe");
+        col1.setNullCount(0);
+        tableExt.setColumnStats(Lists.newArrayList(col1));
+        tableMgr.mergeAndUpdateTableExt(oldExtDesc, tableExt);
+
+        // verify the column stats update successfully
+        final TableExtDesc newTableExt = tableMgr.getTableExtIfExists(tableDesc);
+        Assert.assertEquals(1, newTableExt.getAllColumnStats().size());
+
+        // call api to check tableDescResponse has the correct value
+        final List<TableDesc> tables = tableService.getTableDesc("newten", true, "TEST_COUNTRY", "DEFAULT", true);
+        Assert.assertEquals(1, tables.size());
+        Assert.assertTrue(tables.get(0) instanceof TableDescResponse);
+        TableDescResponse t = (TableDescResponse) tables.get(0);
+        final TableDescResponse.ColumnDescResponse[] extColumns = t.getExtColumns();
+        Assert.assertEquals(100L, extColumns[0].getCardinality().longValue());
+        Assert.assertEquals("America", extColumns[0].getMinValue());
+        Assert.assertEquals("Zimbabwe", extColumns[0].getMaxValue());
+        Assert.assertEquals(0L, extColumns[0].getNullCount().longValue());
+    }
+
+    @Test
+    public void testGetTableDescWithSchemaChange() throws IOException {
+        final String tableIdentity = "DEFAULT.TEST_COUNTRY";
+        final NTableMetadataManager tableMgr = NTableMetadataManager.getInstance(getTestConfig(), "newten");
+        final TableDesc tableDesc = tableMgr.getTableDesc(tableIdentity);
+        final TableExtDesc oldExtDesc = tableMgr.getOrCreateTableExt(tableDesc);
+
+        // mock table ext desc
+        TableExtDesc tableExt = new TableExtDesc(oldExtDesc);
+        tableExt.setIdentity(tableIdentity);
+        TableExtDesc.ColumnStats col1 = new TableExtDesc.ColumnStats();
+        col1.setCardinality(100);
+        col1.setTableExtDesc(tableExt);
+        col1.setColumnName(tableDesc.getColumns()[0].getName());
+        col1.setMinValue("America");
+        col1.setMaxValue("Zimbabwe");
+        col1.setNullCount(0);
+        TableExtDesc.ColumnStats col2 = new TableExtDesc.ColumnStats();
+        col2.setCardinality(1000);
+        col2.setTableExtDesc(tableExt);
+        col2.setColumnName(tableDesc.getColumns()[1].getName());
+        col2.setMinValue("2300.0");
+        col2.setMaxValue("2600.0");
+        col2.setNullCount(0);
+        TableExtDesc.ColumnStats col3 = new TableExtDesc.ColumnStats();
+        col3.setCardinality(10000);
+        col3.setTableExtDesc(tableExt);
+        col3.setColumnName(tableDesc.getColumns()[2].getName());
+        col3.setMinValue("3300.0");
+        col3.setMaxValue("3600.0");
+        col3.setNullCount(0);
+        TableExtDesc.ColumnStats col4 = new TableExtDesc.ColumnStats();
+        col4.setCardinality(40000);
+        col4.setTableExtDesc(tableExt);
+        col4.setColumnName(tableDesc.getColumns()[3].getName());
+        col4.setMinValue("AAAA");
+        col4.setMaxValue("ZZZZ");
+        col4.setNullCount(10);
+        tableExt.setColumnStats(Lists.newArrayList(col1, col2, col3, col4));
+        tableMgr.mergeAndUpdateTableExt(oldExtDesc, tableExt);
+
+        // verify the column stats update successfully
+        final TableExtDesc newTableExt = tableMgr.getTableExtIfExists(tableDesc);
+        Assert.assertEquals(4, newTableExt.getAllColumnStats().size());
+
+        // table desc schema change
+        TableDesc changedTable = new TableDesc(tableDesc);
+        final ColumnDesc[] columns = changedTable.getColumns();
+        Assert.assertEquals(4, columns.length);
+        columns[0].setName("COUNTRY_NEW");
+        columns[1].setName(columns[3].getName());
+        columns[2].setDatatype("float");
+        ColumnDesc[] newColumns = new ColumnDesc[3];
+        System.arraycopy(columns, 0, newColumns, 0, 3);
+        changedTable.setColumns(newColumns);
+        tableMgr.updateTableDesc(changedTable);
+
+        // verify update table desc changed successfully
+        final TableDesc confirmedTableDesc = tableMgr.getTableDesc(tableIdentity);
+        Assert.assertEquals(3, confirmedTableDesc.getColumnCount());
+        Assert.assertEquals("COUNTRY_NEW", confirmedTableDesc.getColumns()[0].getName());
+        Assert.assertEquals("NAME", confirmedTableDesc.getColumns()[1].getName());
+        Assert.assertEquals("float", confirmedTableDesc.getColumns()[2].getDatatype());
+
+        // call api to check tableDescResponse has the correct value
+        final List<TableDesc> tables = tableService.getTableDesc("newten", true, "TEST_COUNTRY", "DEFAULT", true);
+        Assert.assertEquals(1, tables.size());
+        Assert.assertTrue(tables.get(0) instanceof TableDescResponse);
+        TableDescResponse t = (TableDescResponse) tables.get(0);
+        final TableDescResponse.ColumnDescResponse[] extColumns = t.getExtColumns();
+        Assert.assertNull(extColumns[0].getCardinality());
+        Assert.assertNull(extColumns[0].getMinValue());
+        Assert.assertNull(extColumns[0].getMaxValue());
+        Assert.assertNull(extColumns[0].getNullCount());
+        Assert.assertEquals(40000L, extColumns[1].getCardinality().longValue());
+        Assert.assertEquals("AAAA", extColumns[1].getMinValue());
+        Assert.assertEquals("ZZZZ", extColumns[1].getMaxValue());
+        Assert.assertEquals(10L, extColumns[1].getNullCount().longValue());
+        Assert.assertEquals(10000L, extColumns[2].getCardinality().longValue());
+        Assert.assertEquals("3300.0", extColumns[2].getMinValue());
+        Assert.assertEquals("3600.0", extColumns[2].getMaxValue());
+        Assert.assertEquals("float", extColumns[2].getDatatype());
+    }
+
+    @Test
     public void testExtractTableMeta() throws Exception {
         String[] tables = { "DEFAULT.TEST_ACCOUNT", "DEFAULT.TEST_KYLIN_FACT" };
         List<Pair<TableDesc, TableExtDesc>> result = tableService.extractTableMeta(tables, "default");
@@ -196,7 +316,8 @@ public class TableServiceTest extends NLocalFileMetadataTestCase {
         NTableMetadataManager tableManager = tableService.getTableManager("case_sensitive");
         Serializer<TableDesc> serializer = tableManager.getTableMetadataSerializer();
         String contents = StringUtils.join(Files.readAllLines(
-                new File("src/test/resources/ut_meta/case_sensitive/table_desc/CASE_SENSITIVE.TEST_KYLIN_FACT.json").toPath(),
+                new File("src/test/resources/ut_meta/case_sensitive/table_desc/CASE_SENSITIVE.TEST_KYLIN_FACT.json")
+                        .toPath(),
                 Charset.defaultCharset()), "\n");
         InputStream originStream = IOUtils.toInputStream(contents, Charset.defaultCharset());
         TableDesc origin = serializer.deserialize(new DataInputStream(originStream));
@@ -260,14 +381,16 @@ public class TableServiceTest extends NLocalFileMetadataTestCase {
         setupPushdownEnv();
         String tableName = "DEFAULT.TEST_KYLIN_FACT";
 
-        NTableMetadataManager nTableMetadataManager = NTableMetadataManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
+        NTableMetadataManager nTableMetadataManager = NTableMetadataManager
+                .getInstance(KylinConfig.getInstanceFromEnv(), "default");
         val originSize = nTableMetadataManager.listAllTables().size();
 
         // Add partition_key and data_loading_range
         DateRangeRequest request = mockDateRangeRequest();
         tableService.setPartitionKey(tableName, "default", "CAL_DT");
         tableService.setDataRange("default", request);
-        NDataLoadingRangeManager dataLoadingRangeManager = NDataLoadingRangeManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
+        NDataLoadingRangeManager dataLoadingRangeManager = NDataLoadingRangeManager
+                .getInstance(KylinConfig.getInstanceFromEnv(), "default");
         NDataLoadingRange dataLoadingRange = dataLoadingRangeManager.getDataLoadingRange(tableName);
         Assert.assertNotNull(dataLoadingRange);
         Assert.assertEquals(1294364500000L, dataLoadingRange.getCoveredRange().getStart());
@@ -280,7 +403,8 @@ public class TableServiceTest extends NLocalFileMetadataTestCase {
         // reload table
         String[] tables = { "DEFAULT.TEST_KYLIN_FACT" };
         List<Pair<TableDesc, TableExtDesc>> extractTableMeta = tableService.extractTableMeta(tables, "default");
-        tableService.loadTableToProject(extractTableMeta.get(0).getFirst(), extractTableMeta.get(0).getSecond(), "default");
+        tableService.loadTableToProject(extractTableMeta.get(0).getFirst(), extractTableMeta.get(0).getSecond(),
+                "default");
         Assert.assertEquals(originSize, nTableMetadataManager.listAllTables().size());
         dataLoadingRange = dataLoadingRangeManager.getDataLoadingRange(tableName);
         Assert.assertNull(dataLoadingRange);
@@ -534,7 +658,8 @@ public class TableServiceTest extends NLocalFileMetadataTestCase {
         autoMergeRequest.setTable("");
         autoMergeRequest.setModel("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         tableService.setAutoMergeConfigByModel("default", autoMergeRequest);
-        AutoMergeConfigResponse respone = tableService.getAutoMergeConfigByModel("default", "89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+        AutoMergeConfigResponse respone = tableService.getAutoMergeConfigByModel("default",
+                "89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         Assert.assertEquals(respone.isAutoMergeEnabled(), autoMergeRequest.isAutoMergeEnabled());
         Assert.assertEquals(respone.getAutoMergeTimeRanges().size(), autoMergeRequest.getAutoMergeTimeRanges().length);
         Assert.assertEquals(respone.getVolatileRange().getVolatileRangeNumber(),
@@ -603,8 +728,8 @@ public class TableServiceTest extends NLocalFileMetadataTestCase {
 
         tableService.setPartitionKey("DEFAULT.TEST_KYLIN_FACT", "default", "CAL_DT");
         Assert.assertTrue(tableManager.getTableDesc("DEFAULT.TEST_KYLIN_FACT").isIncrementLoading());
-        Assert.assertEquals(modelManager.getDataModelDesc("89af4ee2-2cdb-4b07-b39e-4c29856309aa").getPartitionDesc().getPartitionDateColumn(),
-                "TEST_KYLIN_FACT.CAL_DT");
+        Assert.assertEquals(modelManager.getDataModelDesc("89af4ee2-2cdb-4b07-b39e-4c29856309aa").getPartitionDesc()
+                .getPartitionDateColumn(), "TEST_KYLIN_FACT.CAL_DT");
 
         Assert.assertTrue(tableManager.getTableDesc("DEFAULT.TEST_KYLIN_FACT").isIncrementLoading());
         Assert.assertNotNull(dataloadingManager.getDataLoadingRange("DEFAULT.TEST_KYLIN_FACT"));
@@ -668,8 +793,7 @@ public class TableServiceTest extends NLocalFileMetadataTestCase {
     private void cleanPushdownEnv() throws Exception {
         getTestConfig().setProperty("kylin.query.pushdown.runner-class-name", "");
         // Load H2 Tables (inner join)
-        Connection h2Connection = DriverManager.getConnection("jdbc:h2:mem:db_default", "sa",
-                "");
+        Connection h2Connection = DriverManager.getConnection("jdbc:h2:mem:db_default", "sa", "");
         h2Connection.close();
         System.clearProperty("kylin.query.pushdown.jdbc.url");
         System.clearProperty("kylin.query.pushdown.jdbc.driver");

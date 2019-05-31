@@ -91,7 +91,7 @@ public class ModelAnalyzer implements Serializable {
         for (final JoinTableDesc lookupDesc : dataModel.getJoinTables()) {
             final TableRef lookupTableRef = lookupDesc.getTableRef();
             final TableExtDesc tableExt = tableMetadataManager.getTableExtIfExists(lookupTableRef.getTableDesc());
-            if (tableExt == null || CollectionUtils.isEmpty(tableExt.getColumnStats())
+            if (tableExt == null || CollectionUtils.isEmpty(tableExt.getAllColumnStats())
                     || checkDesc.checkForceAnalysisLookup()) {
 
                 final Dataset<Row> lookupTableData = getTableData(lookupTableRef, ss);
@@ -230,7 +230,7 @@ public class ModelAnalyzer implements Serializable {
             if (columnDesc.isComputedColumn()) {
                 continue;
             }
-            TableExtDesc.ColumnStats colStats = tableExt.getColumnStats(colIdx);
+            TableExtDesc.ColumnStats colStats = tableExt.getColumnStatsByName(columnDesc.getName());
             if (colStats == null) {
                 colStats = new TableExtDesc.ColumnStats();
                 colStats.setColumnName(columnDesc.getName());

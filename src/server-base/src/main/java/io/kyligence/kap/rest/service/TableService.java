@@ -27,7 +27,6 @@ package io.kyligence.kap.rest.service;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -305,22 +304,17 @@ public class TableService extends BasicService {
         if (tableExtDesc == null) {
             return tableDescResponse;
         }
-        // get TableDescResponse
-        Map<String, Long> cardinality = new HashMap<>();
-        Map<String, String> dataSourceProp = new HashMap<>();
-        String cardinalityString = tableExtDesc.getCardinality();
-        if (!StringUtils.isEmpty(cardinalityString)) {
-            String[] cardinalities = StringUtils.split(cardinalityString, ",");
-            ColumnDesc[] columnDescs = tableDescResponse.getColumns();
-            for (int i = 0; i < columnDescs.length; i++) {
-                ColumnDesc columnDesc = columnDescs[i];
-                long card = i < cardinalities.length ? Long.parseLong(cardinalities[i]) : 0L;
-                cardinality.put(columnDesc.getName(), card);
+
+        for (TableDescResponse.ColumnDescResponse colDescRes : tableDescResponse.getExtColumns()) {
+            final TableExtDesc.ColumnStats columnStats = tableExtDesc.getColumnStatsByName(colDescRes.getName());
+            if (columnStats != null) {
+                colDescRes.setCardinality(columnStats.getCardinality());
+                colDescRes.setMaxValue(columnStats.getMaxValue());
+                colDescRes.setMinValue(columnStats.getMinValue());
+                colDescRes.setNullCount(columnStats.getNullCount());
             }
-            tableDescResponse.setCardinality(cardinality);
         }
-        dataSourceProp.putAll(tableExtDesc.getDataSourceProps());
-        tableDescResponse.setDescExd(dataSourceProp);
+        tableDescResponse.setDescExd(tableExtDesc.getDataSourceProps());
         return tableDescResponse;
     }
 

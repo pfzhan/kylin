@@ -468,13 +468,13 @@ public class NManualBuildAndQueryTest extends NLocalWithSparkSessionTest {
         });
     }
 
-    private void validateTableExt(String tableName, long rows, int segSize, int colStats) {
+    private void validateTableExt(String tableName, long rows, int segSize, int colStatsSize) {
         final NTableMetadataManager tableMetadataManager = NTableMetadataManager.getInstance(getTestConfig(),
                 getProject());
         final TableDesc tableDesc = tableMetadataManager.getTableDesc(tableName);
         final TableExtDesc tableExt = tableMetadataManager.getTableExtIfExists(tableDesc);
         Assert.assertNotNull(tableExt);
         Assert.assertEquals(rows, tableExt.getTotalRows());
-        Assert.assertEquals(colStats, tableExt.getColumnStats().size());
+        Assert.assertEquals(colStatsSize, tableExt.getAllColumnStats().size());
     }
 }

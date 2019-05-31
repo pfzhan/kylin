@@ -26,7 +26,6 @@ package io.kyligence.kap.metadata.model;
 
 import static io.kyligence.kap.metadata.model.NTableMetadataManager.getInstance;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -43,8 +42,8 @@ import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 /**
  */
 public class NTableMetadataManagerTest extends NLocalFileMetadataTestCase {
-    private String projectDefault = "default";
-    private String tableKylinFact = "DEFAULT.TEST_KYLIN_FACT";
+    private final String projectDefault = "default";
+    private final String tableKylinFact = "DEFAULT.TEST_KYLIN_FACT";
     private NTableMetadataManager mgrDefault;
 
     @Before
@@ -59,7 +58,7 @@ public class NTableMetadataManagerTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void testListAllTables() throws Exception {
+    public void testListAllTables() {
         List<TableDesc> tables = mgrDefault.listAllTables();
         Assert.assertNotNull(tables);
         Assert.assertTrue(tables.size() > 0);
@@ -79,21 +78,21 @@ public class NTableMetadataManagerTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void testFindTableByName() throws Exception {
+    public void testFindTableByName() {
         TableDesc table = mgrDefault.getTableDesc("EDW.TEST_CAL_DT");
         Assert.assertNotNull(table);
         Assert.assertEquals("EDW.TEST_CAL_DT", table.getIdentity());
     }
 
     @Test
-    public void testGetInstance() throws Exception {
+    public void testGetInstance() {
         Assert.assertNotNull(mgrDefault);
         Assert.assertNotNull(mgrDefault.listAllTables());
         Assert.assertTrue(mgrDefault.listAllTables().size() > 0);
     }
 
     @Test
-    public void testTableSample() throws IOException {
+    public void testTableSample() {
         TableExtDesc tableExtDesc = mgrDefault.getOrCreateTableExt(tableKylinFact);
         Assert.assertNotNull(tableExtDesc);
 
@@ -107,15 +106,12 @@ public class NTableMetadataManagerTest extends NLocalFileMetadataTestCase {
 
         TableExtDesc tableExtDesc1 = mgrDefault.getOrCreateTableExt(tableKylinFact);
         Assert.assertNotNull(tableExtDesc1);
-
-        List<TableExtDesc.ColumnStats> columnStatsList1 = tableExtDesc1.getColumnStats();
-        Assert.assertEquals(1, columnStatsList1.size());
-
+        Assert.assertEquals(1, tableExtDesc1.getAllColumnStats().size());
         mgrDefault.removeTableExt(tableKylinFact);
     }
 
     @Test
-    public void testGetTableExt() throws IOException {
+    public void testGetTableExt() {
         TableDesc tableDesc = mgrDefault.getTableDesc(tableKylinFact);
 
         final TableExtDesc t1 = mgrDefault.getTableExtIfExists(tableDesc);
@@ -123,7 +119,7 @@ public class NTableMetadataManagerTest extends NLocalFileMetadataTestCase {
 
         final TableExtDesc t2 = mgrDefault.getOrCreateTableExt(tableDesc);
         Assert.assertNotNull(t2);
-        Assert.assertEquals(0, t2.getColumnStats().size());
+        Assert.assertEquals(0, t2.getAllColumnStats().size());
         Assert.assertEquals(0, t2.getTotalRows());
 
         final TableExtDesc t3 = mgrDefault.getTableExtIfExists(tableDesc);

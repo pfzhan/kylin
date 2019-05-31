@@ -30,6 +30,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.TableDesc;
 
@@ -47,8 +48,6 @@ public class TableDescResponse extends TableDesc {
     private boolean rootFact;
     @JsonProperty("lookup")
     private boolean lookup;
-    @JsonProperty("cardinality")
-    private Map<String, Long> cardinality = new HashMap<>();
     @JsonProperty("primary_key")
     private Set<String> primaryKey = new HashSet<>();
     @JsonProperty("foreign_key")
@@ -63,9 +62,32 @@ public class TableDescResponse extends TableDesc {
     private long totalRecords;
     @JsonProperty("sampling_rows")
     private List<String[]> samplingRows;
+    @JsonProperty("columns")
+    private ColumnDescResponse[] extColumns;
 
     public TableDescResponse(TableDesc table) {
         super(table);
+        extColumns = new ColumnDescResponse[getColumns().length];
+        for (int i = 0; i < getColumns().length; i++) {
+            extColumns[i] = new ColumnDescResponse(getColumns()[i]);
+        }
+    }
+
+    @Getter
+    @Setter
+    public class ColumnDescResponse extends ColumnDesc {
+        @JsonProperty("cardinality")
+        private Long cardinality;
+        @JsonProperty("min_value")
+        private String minValue;
+        @JsonProperty("max_value")
+        private String maxValue;
+        @JsonProperty("null_count")
+        private Long nullCount;
+
+        ColumnDescResponse(ColumnDesc col) {
+            super(col);
+        }
     }
 
 }

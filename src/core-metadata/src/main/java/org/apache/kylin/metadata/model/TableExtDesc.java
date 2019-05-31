@@ -62,13 +62,13 @@ import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.google.common.collect.Maps;
 
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import lombok.Data;
 import lombok.Getter;
 import lombok.Setter;
 
-@Getter
 @SuppressWarnings("serial")
 @JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.NONE, getterVisibility = JsonAutoDetect.Visibility.NONE, isGetterVisibility = JsonAutoDetect.Visibility.NONE, setterVisibility = JsonAutoDetect.Visibility.NONE)
 public class TableExtDesc extends RootPersistentEntity implements Serializable {
@@ -88,30 +88,36 @@ public class TableExtDesc extends RootPersistentEntity implements Serializable {
 
     // ============================================================================
 
+    @Getter
     @Setter
     @JsonProperty("table_name")
     private String identity;
 
+    @Getter
     @Setter
     @JsonProperty("last_build_job_id")
     private String jodID;
 
+    @Getter
     @Setter
     @JsonProperty("frequency")
     private int frequency;
 
     @Setter
     @JsonProperty("columns_stats")
-    private List<ColumnStats> columnStats = new ArrayList<>();
+    private List<ColumnStats> columnStats = new ArrayList<>(); // should not expose getter
 
+    @Getter
     @Setter
     @JsonProperty("sample_rows")
     private List<String[]> sampleRows = new ArrayList<>();
 
+    @Getter
     @Setter
     @JsonProperty("last_modified_time")
     private long lastModifiedTime;
 
+    @Getter
     @Setter
     @JsonProperty("total_rows")
     private long totalRows;
@@ -120,11 +126,14 @@ public class TableExtDesc extends RootPersistentEntity implements Serializable {
     @JsonProperty("mapper_rows")
     private List<Long> mapRecords = new ArrayList<>();
 
+    @Getter
     @JsonProperty("data_source_properties")
     private Map<String, String> dataSourceProps = new HashMap<>();
 
+    @Getter
     private String project;
 
+    @Getter
     @Setter
     @JsonProperty("loading_range")
     private List<SegmentRange> loadingRange = new ArrayList<>();
@@ -211,11 +220,26 @@ public class TableExtDesc extends RootPersistentEntity implements Serializable {
         }
     }
 
-    public ColumnStats getColumnStats(final int colIdx) {
-        if (getColumnStats().size() > colIdx) {
-            return getColumnStats().get(colIdx);
+    /**
+     * Get all column stats info of a table. Owing to the side effect of schema change,
+     * it may get an error result when making use of this method to get stats info of
+     * a specified column indirectly. Instead, you can use {@link #getColumnStatsByName(java.lang.String)}
+     * directly to get column stats info.
+     */
+    public List<ColumnStats> getAllColumnStats() {
+        return columnStats;
+    }
+
+    /**
+     * Get stats info of specified column by column name.
+     */
+    public ColumnStats getColumnStatsByName(String colName) {
+        Map<String, ColumnStats> columnStatsMap = Maps.newHashMap();
+        for (ColumnStats col : columnStats) {
+            columnStatsMap.putIfAbsent(col.getColumnName(), col);
         }
-        return null;
+
+        return columnStatsMap.getOrDefault(colName, null);
     }
 
     public void init(String project) {
@@ -377,10 +401,7 @@ public class TableExtDesc extends RootPersistentEntity implements Serializable {
 
             TableExtDesc tableExtDesc = tableMetadataManager.getTableExtIfExists(colRef.getTableRef().getTableDesc());
             if (tableExtDesc != null) {
-                int colIndex = colRef.getColumnDesc().getZeroBasedIndex();
-                if (colIndex < tableExtDesc.getColumnStats().size()) {
-                    ret = tableExtDesc.getColumnStats().get(colIndex);
-                }
+                ret = tableExtDesc.getColumnStatsByName(colRef.getColumnDesc().getName());
             }
             return ret;
         }

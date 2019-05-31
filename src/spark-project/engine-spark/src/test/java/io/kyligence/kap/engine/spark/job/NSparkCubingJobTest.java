@@ -49,11 +49,7 @@ import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.job.impl.threadpool.DefaultContext;
 import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
 import org.apache.kylin.job.lock.MockJobLock;
-import org.apache.kylin.metadata.model.JoinTableDesc;
 import org.apache.kylin.metadata.model.SegmentRange;
-import org.apache.kylin.metadata.model.TableDesc;
-import org.apache.kylin.metadata.model.TableExtDesc;
-import org.apache.kylin.metadata.model.TableRef;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.junit.After;
@@ -84,7 +80,6 @@ import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
-import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import lombok.val;
 
@@ -401,32 +396,6 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
         Assert.assertEquals("Australia", ret.collectAsList().get(1).apply(1).toString());
         Assert.assertEquals("英国", ret.collectAsList().get(9998).apply(1).toString());
         Assert.assertEquals("英国", ret.collectAsList().get(9999).apply(1).toString());
-    }
-
-    private void validateTableExt(NDataModel dataModel) throws IOException {
-        val rootFactTbl = dataModel.getRootFactTableName();
-        final NTableMetadataManager tableMetadataManager = NTableMetadataManager.getInstance(config, getProject());
-        final TableDesc rootTableDesc = tableMetadataManager.getTableDesc(rootFactTbl);
-        final TableExtDesc rootTableExt = tableMetadataManager.getTableExtIfExists(rootTableDesc);
-        Assert.assertNotNull(rootTableExt);
-        Assert.assertEquals(10000, rootTableExt.getTotalRows());
-        Assert.assertEquals(12, rootTableExt.getColumnStats().size());
-        Assert.assertEquals(1, rootTableExt.getLoadingRange().size());
-        assertColumnStats(rootTableExt);
-
-        for (final JoinTableDesc lookupDesc : dataModel.getJoinTables()) {
-            final TableRef lookupTableRef = lookupDesc.getTableRef();
-            final TableExtDesc lookupTableExt = tableMetadataManager.getTableExtIfExists(lookupTableRef.getTableDesc());
-            Assert.assertNotNull(lookupTableExt);
-            assertColumnStats(lookupTableExt);
-        }
-
-    }
-
-    private void assertColumnStats(TableExtDesc tableExt) throws IOException {
-        for (val colStats : tableExt.getColumnStats()) {
-            Assert.assertTrue(colStats.getCardinality() > 0);
-        }
     }
 
     @Test

@@ -304,22 +304,18 @@ public class NQueryLayoutChooserTest extends NLocalWithSparkSessionTest {
         NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), PROJECT).updateDataflow(dataflowUpdate);
     }
 
-    private void mockTopnIndex() {
-
-    }
-
     private void mockTableStats() {
         val tableMetadataManager = NTableMetadataManager.getInstance(KylinConfig.getInstanceFromEnv(), getProject());
         TableDesc tableDesc = tableMetadataManager.getTableDesc("DEFAULT.TEST_KYLIN_FACT");
         var tableExt = tableMetadataManager.getOrCreateTableExt(tableDesc);
         tableExt = tableMetadataManager.copyForWrite(tableExt);
         List<TableExtDesc.ColumnStats> columnStats = Lists.newArrayList();
-        for (int colIdx = 0; colIdx < tableDesc.getColumnCount(); colIdx++) {
-            final ColumnDesc columnDesc = tableDesc.getColumns()[colIdx];
+
+        for (ColumnDesc columnDesc : tableDesc.getColumns()) {
             if (columnDesc.isComputedColumn()) {
                 continue;
             }
-            TableExtDesc.ColumnStats colStats = tableExt.getColumnStats(colIdx);
+            TableExtDesc.ColumnStats colStats = tableExt.getColumnStatsByName(columnDesc.getName());
             if (colStats == null) {
                 colStats = new TableExtDesc.ColumnStats();
                 colStats.setColumnName(columnDesc.getName());

@@ -260,7 +260,7 @@ public class NTableMetadataManager {
 
     public void mergeAndUpdateTableExt(TableExtDesc origin, TableExtDesc other) {
         val copyForWrite = srcExtCrud.copyForWrite(origin);
-        copyForWrite.setColumnStats(other.getColumnStats());
+        copyForWrite.setColumnStats(other.getAllColumnStats());
         copyForWrite.setSampleRows(other.getSampleRows());
         copyForWrite.setTotalRows(other.getTotalRows());
         saveTableExt(copyForWrite);

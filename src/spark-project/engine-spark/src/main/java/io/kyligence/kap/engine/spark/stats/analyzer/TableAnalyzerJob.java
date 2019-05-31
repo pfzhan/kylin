@@ -82,7 +82,7 @@ public class TableAnalyzerJob extends SparkApplication implements Serializable {
             if (columnDesc.isComputedColumn()) {
                 continue;
             }
-            TableExtDesc.ColumnStats colStats = tableExt.getColumnStats(colIdx);
+            TableExtDesc.ColumnStats colStats = tableExt.getColumnStatsByName(columnDesc.getName());
             if (colStats == null) {
                 colStats = new TableExtDesc.ColumnStats();
                 colStats.setColumnName(columnDesc.getName());
