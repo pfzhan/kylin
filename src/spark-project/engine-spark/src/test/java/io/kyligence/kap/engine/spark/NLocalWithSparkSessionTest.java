@@ -122,6 +122,8 @@ public class NLocalWithSparkSessionTest extends NLocalFileMetadataTestCase imple
     @Before
     public void setUp() throws Exception {
         this.createTestMetadata();
+        // todo We will remove old sampling code completely in a subsequent issue #12336
+        getTestConfig().setProperty("kylin.job.analyze-strategy", "always");
     }
 
     @After
@@ -136,6 +138,7 @@ public class NLocalWithSparkSessionTest extends NLocalFileMetadataTestCase imple
     protected void init() throws Exception {
         System.setProperty("kylin.job.scheduler.poll-interval-second", "1");
         this.createTestMetadata();
+        getTestConfig().setProperty("kylin.job.analyze-strategy", "always");
         NDefaultScheduler scheduler = NDefaultScheduler.getInstance(getProject());
         scheduler.init(new JobEngineConfig(KylinConfig.getInstanceFromEnv()), new MockJobLock());
         if (!scheduler.hasStarted()) {
@@ -214,13 +217,13 @@ public class NLocalWithSparkSessionTest extends NLocalFileMetadataTestCase imple
                 prj, true);
     }
 
-    protected void buildCuboid(String cubeName, SegmentRange segmentRange, Set<LayoutEntity> toBuildLayouts, boolean isAppend)
-            throws Exception {
+    protected void buildCuboid(String cubeName, SegmentRange segmentRange, Set<LayoutEntity> toBuildLayouts,
+            boolean isAppend) throws Exception {
         buildCuboid(cubeName, segmentRange, toBuildLayouts, getProject(), isAppend);
     }
 
-    protected void buildCuboid(String cubeName, SegmentRange segmentRange, Set<LayoutEntity> toBuildLayouts,
-            String prj, boolean isAppend) throws Exception {
+    protected void buildCuboid(String cubeName, SegmentRange segmentRange, Set<LayoutEntity> toBuildLayouts, String prj,
+            boolean isAppend) throws Exception {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         NDataflowManager dsMgr = NDataflowManager.getInstance(config, prj);
         NExecutableManager execMgr = NExecutableManager.getInstance(config, prj);
@@ -249,8 +252,9 @@ public class NLocalWithSparkSessionTest extends NLocalFileMetadataTestCase imple
             merger.mergeAfterCatchup(df.getUuid(), Sets.newHashSet(oneSeg.getId()),
                     ExecutableUtils.getLayoutIds(sparkStep), ExecutableUtils.getRemoteStore(config, sparkStep));
         }
-        merger.mergeAnalysis(job.getSparkAnalysisStep());
 
-        //Assert.assertEquals(ExecutableState.SUCCEED, wait(job));
+        if (job.getSparkAnalysisStep() != null) {
+            merger.mergeAnalysis(job.getSparkAnalysisStep());
+        }
     }
 }

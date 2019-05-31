@@ -65,7 +65,6 @@ public class NTopNTest extends NLocalWithSparkSessionTest {
     @Before
     public void setup() throws Exception {
         System.setProperty("kylin.job.scheduler.poll-interval-second", "1");
-        createTestMetadata();
         dfMgr = NDataflowManager.getInstance(getTestConfig(), getProject());
         NDefaultScheduler scheduler = NDefaultScheduler.getInstance(getProject());
         scheduler.init(new JobEngineConfig(KylinConfig.getInstanceFromEnv()), new MockJobLock());

@@ -29,10 +29,10 @@ import io.kyligence.kap.query.{QueryConstants, QueryFetcher}
 import io.netty.util.internal.ThrowableUtil
 import org.apache.kylin.common.KylinConfig
 import org.apache.spark.internal.Logging
-import org.apache.spark.sql.{DataFrame, SparderEnv}
 import org.apache.spark.sql.common.{LocalMetadata, SparderBaseFunSuite}
 import org.apache.spark.sql.execution.FileSourceScanExec
 import org.apache.spark.sql.execution.utils.SchemaProcessor
+import org.apache.spark.sql.{DataFrame, SparderEnv}
 
 import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, ExecutionContext, ExecutionContextExecutor, Future}
@@ -86,7 +86,7 @@ class TestQueryAndBuildFunSuite
     FloderInfo("sql_distinct")
   )
   val tempQuery = List(
-//    FloderInfo("sql_tableau", List("query00.sql", "query24.sql", "query25.sql")),
+    //    FloderInfo("sql_tableau", List("query00.sql", "query24.sql", "query25.sql")),
     FloderInfo("temp")
   )
 
@@ -96,8 +96,10 @@ class TestQueryAndBuildFunSuite
   )
   // opt memory
   conf.set("spark.shuffle.detectCorrupt", "false")
+
   override def beforeAll(): Unit = {
     super.beforeAll()
+    KylinConfig.getInstanceFromEnv.setProperty("kylin.job.analyze-strategy", "always")
     KylinConfig.getInstanceFromEnv.setProperty("kylin.query.pushdown.runner-class-name", "")
     KylinConfig.getInstanceFromEnv.setProperty("kylin.snapshot.parallel-build-enabled", "true")
     // test for snapshot cleanup
@@ -106,7 +108,7 @@ class TestQueryAndBuildFunSuite
     SparderEnv.skipCompute()
     build()
   }
-  
+
   override def afterAll(): Unit = {
     SparderEnv.cleanCompute()
   }

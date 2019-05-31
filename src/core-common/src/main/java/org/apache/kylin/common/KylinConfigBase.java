@@ -731,7 +731,7 @@ abstract public class KylinConfigBase implements Serializable {
     }
 
     public String getAnalyzeStrategy() {
-        return getOptional("kylin.job.analyze-strategy", "always");
+        return getOptional("kylin.job.analyze-strategy", "never");
     }
 
     // ============================================================================
