@@ -289,10 +289,9 @@ public class ModelSemanticHelper extends BasicService {
         val newModel = modelMgr.getDataModelDesc(model);
 
         if (isSignificantChange(originModel, newModel)) {
-            handleMeasuresChanged(indexPlan, newModel.getEffectiveMeasureMap().keySet(), IndexPlan::setRuleBasedIndex,
+            val savedIndexPlan = handleMeasuresChanged(indexPlan, newModel.getEffectiveMeasureMap().keySet(),
                     indePlanManager);
-            // do not need to fire this event, the follow logic will clear all segments
-            removeUselessDimensions(indexPlan, newModel.getEffectiveDimenionsMap().keySet(), false, config);
+            removeUselessDimensions(savedIndexPlan, newModel.getEffectiveDimenionsMap().keySet(), false, config);
             modelMgr.updateDataModel(newModel.getUuid(),
                     copyForWrite -> copyForWrite.setSemanticVersion(copyForWrite.getSemanticVersion() + 1));
             handleReloadData(newModel, originModel, dataflowManager, config, project);
@@ -308,10 +307,11 @@ public class ModelSemanticHelper extends BasicService {
         // measure changed: does not matter to auto created cuboids' data, need refresh rule based cuboids
         if (!measuresNotChanged) {
             val oldRule = indexPlan.getRuleBasedIndex();
-            handleMeasuresChanged(indexPlan, newModel.getEffectiveMeasureMap().keySet(), (copyForWrite, rule) -> {
-                copyForWrite.setRuleBasedIndex(rule);
-                handleIndexPlanUpdateRule(project, model, oldRule, rule, false);
-            }, indePlanManager);
+            handleMeasuresChanged(indexPlan, newModel.getEffectiveMeasureMap().keySet(), indePlanManager);
+            val newIndexPlan = indePlanManager.getIndexPlan(indexPlan.getId());
+            if (newIndexPlan.getRuleBasedIndex() != null) {
+                handleIndexPlanUpdateRule(project, model, oldRule, newIndexPlan.getRuleBasedIndex(), false);
+            }
         }
         // dimension deleted: previous step is remove dimensions in rule,
         //   so we only remove the auto created cuboids
@@ -327,49 +327,37 @@ public class ModelSemanticHelper extends BasicService {
                 || !Objects.equals(originModel.getJoinTables(), newModel.getJoinTables());
     }
 
-    private boolean handleMeasuresChanged(IndexPlan cube, Set<Integer> measures,
-            BiConsumer<IndexPlan, NRuleBasedIndex> descConsumer, NIndexPlanManager indexPlanManager) {
-        val savedCube = indexPlanManager.updateIndexPlan(cube.getUuid(), copyForWrite -> {
-            copyForWrite.setIndexes(copyForWrite.getIndexes().stream().filter(cuboid -> {
-                val allMeasures = cuboid.getMeasures();
-                return measures.containsAll(allMeasures);
-            }).collect(Collectors.toList()));
+    private IndexPlan handleMeasuresChanged(IndexPlan indexPlan, Set<Integer> measures,
+            NIndexPlanManager indexPlanManager) {
+        return indexPlanManager.updateIndexPlan(indexPlan.getUuid(), copyForWrite -> {
+            copyForWrite.setIndexes(copyForWrite.getIndexes().stream()
+                    .filter(index -> measures.containsAll(index.getMeasures())).collect(Collectors.toList()));
             if (copyForWrite.getRuleBasedIndex() == null) {
                 return;
             }
-            try {
-                val newRule = JsonUtil.deepCopy(copyForWrite.getRuleBasedIndex(), NRuleBasedIndex.class);
-                newRule.setMeasures(Lists.newArrayList(measures));
-                newRule.setLayoutIdMapping(Lists.newArrayList());
-                descConsumer.accept(copyForWrite, newRule);
-            } catch (IOException e) {
-                log.warn("copy rule failed ", e);
-            }
+            val newRule = JsonUtil.deepCopyQuietly(copyForWrite.getRuleBasedIndex(), NRuleBasedIndex.class);
+            newRule.setMeasures(Lists.newArrayList(measures));
+            newRule.setLayoutIdMapping(Lists.newArrayList());
+            copyForWrite.setRuleBasedIndex(newRule);
         });
-        return savedCube.getRuleBasedIndex() != null;
     }
 
-    private void removeUselessDimensions(IndexPlan cube, Set<Integer> availableDimensions, boolean triggerEvent,
+    private void removeUselessDimensions(IndexPlan indexPlan, Set<Integer> availableDimensions, boolean onlyDataflow,
             KylinConfig config) {
-        val indexPlanManager = NIndexPlanManager.getInstance(config, cube.getProject());
-        val dataflowManager = NDataflowManager.getInstance(config, cube.getProject());
-        val layoutIds = cube.getWhitelistLayouts().stream().filter(layout -> !layout.getIndex().isTableIndex())
-                .filter(layout -> layout.getColOrder().stream()
-                        .anyMatch(col -> col < NDataModel.MEASURE_ID_BASE && !availableDimensions.contains(col)))
-                .map(LayoutEntity::getId).collect(Collectors.toSet());
-        if (layoutIds.isEmpty()) {
+        val dataflowManager = NDataflowManager.getInstance(config, indexPlan.getProject());
+        val deprecatedLayoutIds = indexPlan.getIndexes().stream().filter(index -> !index.isTableIndex())
+                .filter(index -> !availableDimensions.containsAll(index.getDimensions()))
+                .flatMap(index -> index.getLayouts().stream().map(LayoutEntity::getId)).collect(Collectors.toSet());
+        if (deprecatedLayoutIds.isEmpty()) {
             return;
         }
-        if (triggerEvent) {
-            indexPlanManager.updateIndexPlan(cube.getUuid(),
-                    copyForWrite -> copyForWrite.removeLayouts(layoutIds, LayoutEntity::equals, false, true));
-            val df = dataflowManager.getDataflow(cube.getUuid());
-            dataflowManager.removeLayouts(df, layoutIds);
+        if (onlyDataflow) {
+            val df = dataflowManager.getDataflow(indexPlan.getUuid());
+            dataflowManager.removeLayouts(df, deprecatedLayoutIds);
         } else {
-            indexPlanManager.updateIndexPlan(cube.getUuid(),
-                    copy -> copy.setIndexes(copy.getIndexes().stream()
-                            .filter(cuboid -> availableDimensions.containsAll(cuboid.getDimensions()))
-                            .collect(Collectors.toList())));
+            val indexPlanManager = NIndexPlanManager.getInstance(config, indexPlan.getProject());
+            indexPlanManager.updateIndexPlan(indexPlan.getUuid(),
+                    copyForWrite -> copyForWrite.removeLayouts(deprecatedLayoutIds, LayoutEntity::equals, true, true));
         }
     }
 

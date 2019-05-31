@@ -36,6 +36,7 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import org.apache.hadoop.util.Shell;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.JsonUtil;
@@ -187,6 +188,15 @@ public class SchemaChangeTest extends AbstractMVCIntegrationTestCase {
         val merger = new AfterBuildResourceMerger(config, PROJECT);
         val layoutIds = toBuildLayouts.stream().map(LayoutEntity::getId).collect(Collectors.toSet());
         merger.mergeAfterIncrement(df.getUuid(), oneSeg.getId(), layoutIds, buildStore);
+
+        val indexManager = NIndexPlanManager.getInstance(getTestConfig(), PROJECT);
+        indexManager.updateIndexPlan("abe3bf1a-c4bc-458d-8278-7ea8b00f5e96", copyForWrite -> {
+            copyForWrite.setIndexes(copyForWrite.getIndexes().stream().peek(i -> {
+                if (i.getId() == 0) {
+                    i.setLayouts(Lists.newArrayList(i.getLayouts().get(0)));
+                }
+            }).collect(Collectors.toList()));
+        });
     }
 
     @After

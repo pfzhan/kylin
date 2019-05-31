@@ -27,6 +27,7 @@ package io.kyligence.kap.metadata.cube.model;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -226,14 +227,31 @@ public class NIndexPlanManager implements IKeepNames {
         for (IndexEntity index : indexPlan.getIndexes()) {
             val layouts = index.getLayouts();
             for (LayoutEntity layout : layouts) {
-                Preconditions.checkState(CollectionUtils.isEqualCollection(layout.getColOrder().stream()
-                        .filter(col -> col >= NDataModel.MEASURE_ID_BASE).collect(Collectors.toSet()),
-                        index.getMeasures()), "layout " + layout.getId() + "'s measure is illegal");
+                Preconditions.checkState(
+                        CollectionUtils.isEqualCollection(layout.getColOrder().stream()
+                                .filter(col -> col >= NDataModel.MEASURE_ID_BASE).collect(Collectors.toSet()),
+                                index.getMeasures()),
+                        "layout " + layout.getId() + "'s measure is illegal " + layout.getColOrder() + ", "
+                                + index.getMeasures());
                 Preconditions.checkState(CollectionUtils.isEqualCollection(layout.getColOrder().stream()
                         .filter(col -> col < NDataModel.MEASURE_ID_BASE).collect(Collectors.toSet()),
                         index.getDimensions()), "layout " + layout.getId() + "'s dimension is illegal");
             }
         }
+
+        // make sure no layouts have same id
+        val seen = Maps.<LayoutEntity, Long> newHashMap();
+        val allDistinct = Stream
+                .concat(indexPlan.getRuleBaseLayouts().stream(), indexPlan.getWhitelistLayouts().stream())
+                .allMatch(layout -> {
+                    if (seen.containsKey(layout)) {
+                        return seen.get(layout) == layout.getId();
+                    } else {
+                        seen.put(layout, layout.getId());
+                        return true;
+                    }
+                });
+        Preconditions.checkState(allDistinct, "there are layouts have same id");
 
         // make sure cube_plan does not have duplicate indexes, duplicate index means two indexes have same dimensions and measures
         val allIndexes = indexPlan.getAllIndexes();
@@ -242,7 +260,7 @@ public class NIndexPlanManager implements IKeepNames {
         val aggIndexSize = allIndexes.stream().filter(i -> !i.isTableIndex())
                 .map(index -> index.getMeasureBitset().or(index.getDimensionBitset())).distinct().count();
         Preconditions.checkState(tableIndexSize + aggIndexSize == allIndexes.size(),
-                "there are duplicate indexes in cube_plan");
+                "there are duplicate indexes in index_plan");
     }
 
 }

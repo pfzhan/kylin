@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -44,6 +43,7 @@
 package org.apache.kylin.common.util;
 
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.persistence.ResourceStore;
 
 /**
  * @author ysong1
@@ -64,6 +64,10 @@ public abstract class AbstractKylinTestCase {
     }
 
     public static void clearTestConfig() {
+        try {
+            ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv()).close();
+        } catch (Exception ignore) {
+        }
         System.clearProperty(KylinConfig.KYLIN_CONF);
         KylinConfig.destroyInstance();
     }

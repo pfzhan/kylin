@@ -28,6 +28,7 @@ import java.io.Serializable;
 import java.util.Map;
 import java.util.Set;
 
+import lombok.EqualsAndHashCode;
 import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlAsOperator;
 import org.apache.calcite.sql.SqlBasicCall;
@@ -50,6 +51,7 @@ import com.google.common.base.Preconditions;
 import lombok.Data;
 
 @Data
+@EqualsAndHashCode(exclude = "comment")
 @SuppressWarnings("serial")
 @JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.NONE, getterVisibility = JsonAutoDetect.Visibility.NONE, isGetterVisibility = JsonAutoDetect.Visibility.NONE, setterVisibility = JsonAutoDetect.Visibility.NONE)
 public class ComputedColumnDesc implements Serializable {

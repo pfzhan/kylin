@@ -170,7 +170,7 @@ class CuboidSuggester {
         SortedSet<Integer> measureIds = isTableIndex ? Sets.newTreeSet() : suggestMeasures(ctx);
         IndexEntity indexEntity = createIndexEntity(dimIds, measureIds, isTableIndex);
 
-        final IndexIdentifier cuboidIdentifier = indexEntity.createCuboidIdentifier();
+        final IndexIdentifier cuboidIdentifier = indexEntity.createIndexIdentifier();
         if (collector.containsKey(cuboidIdentifier)) {
             indexEntity = collector.get(cuboidIdentifier);
         } else {
@@ -359,8 +359,7 @@ class CuboidSuggester {
     }
 
     private long suggestLayoutId(IndexEntity indexEntity) {
-        long s = indexEntity.getLastLayout() == null ? indexEntity.getId() + 1
-                : indexEntity.getLastLayout().getId() + 1;
+        long s = indexEntity.getId() + indexEntity.getNextLayoutOffset();
         while (cuboidLayoutIds.contains(s)) {
             s++;
         }

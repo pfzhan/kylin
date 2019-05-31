@@ -25,8 +25,8 @@
 package io.kyligence.kap.metadata.cube.model;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static io.kyligence.kap.metadata.cube.model.IndexEntity.INDEX_ID_STEP;
 
-import java.io.IOException;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -39,6 +39,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.BiPredicate;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -83,6 +84,7 @@ import lombok.val;
 @SuppressWarnings("serial")
 public class IndexPlan extends RootPersistentEntity implements Serializable, IEngineAware, IKeep {
     public static final String INDEX_PLAN_RESOURCE_ROOT = "/index_plan";
+
     public static String concatResourcePath(String name) {
         return INDEX_PLAN_RESOURCE_ROOT + "/" + name + MetadataConstants.FILE_SURFIX;
     }
@@ -454,51 +456,41 @@ public class IndexPlan extends RootPersistentEntity implements Serializable, IEn
     }
 
     public List<IndexEntity> getAllIndexes() {
-        Map<Long, Integer> retIndexMap = Maps.newHashMap();
-        List<IndexEntity> mergedCuboids = Lists.newArrayList();
-        int retIndex = 0;
-        for (IndexEntity cuboid : indexes) {
-            val copy = deepCopy(cuboid);
-            retIndexMap.put(cuboid.getId(), retIndex);
-            mergedCuboids.add(copy);
-            retIndex++;
+        Map<Long, Integer> retSubscriptMap = Maps.newHashMap();
+        List<IndexEntity> mergedIndexes = Lists.newArrayList();
+        int retSubscript = 0;
+        for (IndexEntity indexEntity : indexes) {
+            val copy = JsonUtil.deepCopyQuietly(indexEntity, IndexEntity.class);
+            retSubscriptMap.put(indexEntity.getId(), retSubscript);
+            mergedIndexes.add(copy);
+            retSubscript++;
         }
         for (LayoutEntity ruleBasedLayout : ruleBasedLayouts) {
-            val ruleRelatedCuboid = ruleBasedLayout.getIndex();
-            if (!retIndexMap.containsKey(ruleRelatedCuboid.getId())) {
-                val copy = deepCopy(ruleRelatedCuboid);
-                retIndexMap.put(ruleRelatedCuboid.getId(), retIndex);
-                mergedCuboids.add(copy);
-                retIndex++;
+            val ruleRelatedIndex = ruleBasedLayout.getIndex();
+            if (!retSubscriptMap.containsKey(ruleRelatedIndex.getId())) {
+                val copy = JsonUtil.deepCopyQuietly(ruleRelatedIndex, IndexEntity.class);
+                retSubscriptMap.put(ruleRelatedIndex.getId(), retSubscript);
+                mergedIndexes.add(copy);
+                retSubscript++;
             }
-            val index = retIndexMap.get(ruleRelatedCuboid.getId());
-            val originLayouts = mergedCuboids.get(index).getLayouts();
+            val subscript = retSubscriptMap.get(ruleRelatedIndex.getId());
+            val targetIndex = mergedIndexes.get(subscript);
+            val originLayouts = targetIndex.getLayouts();
             boolean isMatch = originLayouts.stream().filter(originLayout -> originLayout.equals(ruleBasedLayout))
                     .peek(originLayout -> originLayout.setManual(true)).count() > 0;
             LayoutEntity copyRuleBasedLayout;
-            try {
-                copyRuleBasedLayout = JsonUtil.deepCopy(ruleBasedLayout, LayoutEntity.class);
-            } catch (IOException e) {
-                throw new IllegalStateException("Copy ruleBasedLayout " + uuid + ":" + ruleBasedLayout.getId() + " failed", e);
-            }
+            copyRuleBasedLayout = JsonUtil.deepCopyQuietly(ruleBasedLayout, LayoutEntity.class);
             if (!isMatch) {
                 originLayouts.add(copyRuleBasedLayout);
             }
-            mergedCuboids.get(index).setLayouts(originLayouts);
-            copyRuleBasedLayout.setIndex(mergedCuboids.get(index));
+            targetIndex.setLayouts(originLayouts);
+            targetIndex.setNextLayoutOffset(Math.max(targetIndex.getNextLayoutOffset(),
+                    originLayouts.stream().mapToLong(LayoutEntity::getId).max().orElse(0) % INDEX_ID_STEP + 1));
+            copyRuleBasedLayout.setIndex(targetIndex);
         }
-        mergedCuboids.forEach(value -> value.setIndexPlan(this));
-        return mergedCuboids;
+        mergedIndexes.forEach(value -> value.setIndexPlan(this));
+        return mergedIndexes;
 
-    }
-
-    private IndexEntity deepCopy(IndexEntity indexEntity) {
-        try {
-            return JsonUtil.deepCopy(indexEntity, IndexEntity.class);
-        } catch (IOException e) {
-            throw new IllegalStateException("Copy cuboid " + uuid + ":" + indexEntity.getId() + " failed",
-                    e);
-        }
     }
 
     public List<LayoutEntity> getAllLayouts() {
@@ -590,13 +582,17 @@ public class IndexPlan extends RootPersistentEntity implements Serializable, IEn
     }
 
     private void updateNextId() {
-        nextAggregationIndexId = Math.max(getAllIndexes().stream().filter(c -> !c.isTableIndex())
-                .mapToLong(IndexEntity::getId).max().orElse(-IndexEntity.INDEX_ID_STEP) + IndexEntity.INDEX_ID_STEP,
-                nextAggregationIndexId);
-        nextTableIndexId = Math.max(
-                getAllIndexes().stream().filter(IndexEntity::isTableIndex).mapToLong(IndexEntity::getId).max().orElse(
-                        IndexEntity.TABLE_INDEX_START_ID - IndexEntity.INDEX_ID_STEP) + IndexEntity.INDEX_ID_STEP,
-                nextTableIndexId);
+        val allIndexes = getAllIndexes();
+        nextAggregationIndexId = Math.max(allIndexes.stream().filter(c -> !c.isTableIndex())
+                .mapToLong(IndexEntity::getId).max().orElse(-INDEX_ID_STEP) + INDEX_ID_STEP, nextAggregationIndexId);
+        nextTableIndexId = Math.max(allIndexes.stream().filter(IndexEntity::isTableIndex).mapToLong(IndexEntity::getId)
+                .max().orElse(IndexEntity.TABLE_INDEX_START_ID - INDEX_ID_STEP) + INDEX_ID_STEP, nextTableIndexId);
+        val indexNextIdMap = allIndexes.stream().collect(Collectors.toMap(IndexEntity::getId,
+                k -> k.getLayouts().stream().mapToLong(LayoutEntity::getId).max().orElse(0) % INDEX_ID_STEP + 1));
+        for (IndexEntity index : indexes) {
+            long nextLayoutId = indexNextIdMap.getOrDefault(index.getId(), 1L);
+            index.setNextLayoutOffset(Math.max(nextLayoutId, index.getNextLayoutOffset()));
+        }
     }
 
     public void setDescription(String description) {
@@ -685,7 +681,7 @@ public class IndexPlan extends RootPersistentEntity implements Serializable, IEn
     private Map<IndexEntity.IndexIdentifier, IndexEntity> getIndexesMap(List<IndexEntity> indexEntities) {
         Map<IndexEntity.IndexIdentifier, IndexEntity> originalCuboidsMap = Maps.newLinkedHashMap();
         for (IndexEntity cuboidDesc : indexEntities) {
-            IndexEntity.IndexIdentifier identifier = cuboidDesc.createCuboidIdentifier();
+            IndexEntity.IndexIdentifier identifier = cuboidDesc.createIndexIdentifier();
             if (!originalCuboidsMap.containsKey(identifier)) {
                 originalCuboidsMap.put(identifier, cuboidDesc);
             } else {

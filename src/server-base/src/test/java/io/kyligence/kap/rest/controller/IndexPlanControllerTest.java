@@ -25,8 +25,6 @@ package io.kyligence.kap.rest.controller;
 
 import java.util.Arrays;
 
-import io.kyligence.kap.metadata.cube.model.IndexPlan;
-import io.kyligence.kap.rest.response.BuildIndexResponse;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.rest.constant.Constant;
@@ -47,10 +45,11 @@ import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
 
 import io.kyligence.kap.metadata.cube.cuboid.NAggregationGroup;
+import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.rest.request.UpdateRuleBasedCuboidRequest;
+import io.kyligence.kap.rest.response.BuildIndexResponse;
 import io.kyligence.kap.rest.service.IndexPlanService;
 import lombok.val;
 
@@ -84,9 +83,9 @@ public class IndexPlanControllerTest {
     public void testUpdateRule() throws Exception {
         val request = UpdateRuleBasedCuboidRequest.builder().dimensions(Arrays.asList(1, 2, 3, 4, 5, 6))
                 .project("default").modelId("89af4ee2-2cdb-4b07-b39e-4c29856309aa")
-                .parentForward(3).aggregationGroups(Lists.<NAggregationGroup> newArrayList())
-                .indexBlackSet(Sets.newHashSet(1L, 2L, 3L)).build();
-        Mockito.when(indexPlanService.updateRuleBasedCuboid(Mockito.anyString(), Mockito.any(UpdateRuleBasedCuboidRequest.class)))
+                .aggregationGroups(Lists.<NAggregationGroup> newArrayList()).build();
+        Mockito.when(indexPlanService.updateRuleBasedCuboid(Mockito.anyString(),
+                Mockito.any(UpdateRuleBasedCuboidRequest.class)))
                 .thenReturn(new Pair<>(new IndexPlan(), new BuildIndexResponse()));
         mockMvc.perform(MockMvcRequestBuilders.put("/api/index_plans/rule").contentType(MediaType.APPLICATION_JSON)
                 .content(JsonUtil.writeValueAsString(request))

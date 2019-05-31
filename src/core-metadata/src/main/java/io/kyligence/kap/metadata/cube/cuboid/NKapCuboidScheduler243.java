@@ -36,7 +36,6 @@ import java.util.Set;
 
 import javax.annotation.Nullable;
 
-import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.Pair;
@@ -49,6 +48,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
+import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.NRuleBasedIndex;
 
 public class NKapCuboidScheduler243 extends NCuboidScheduler {
@@ -60,7 +60,6 @@ public class NKapCuboidScheduler243 extends NCuboidScheduler {
             return ComparisonChain.start().compare(Long.bitCount(o1), Long.bitCount(o2)).compare(o1, o2).result();
         }
     };
-
 
     private final long max;
     private final Set<Long> allCuboidIds;
@@ -218,14 +217,6 @@ public class NKapCuboidScheduler243 extends NCuboidScheduler {
         }
         cuboidHolder.add(ruleBasedAggIndex.getFullMask());
 
-        // kick off blacked
-        cuboidHolder = Sets.newHashSet(Iterators.filter(cuboidHolder.iterator(), new Predicate<Long>() {
-            @Override
-            public boolean apply(@Nullable Long cuboidId) {
-                return !ruleBasedAggIndex.isBlackedIndex(cuboidId);
-            }
-        }));
-
         // fill padding cuboids
         Map<Long, List<Long>> parent2Child = Maps.newHashMap();
         Queue<Long> cuboidScan = new ArrayDeque<>();
@@ -304,7 +295,6 @@ public class NKapCuboidScheduler243 extends NCuboidScheduler {
             System.out.println(getDisplayName(c, 25));
     }
 
-
     private static String getDisplayName(long cuboidID, int dimensionCount) {
         StringBuilder sb = new StringBuilder();
         for (int i = 0; i < dimensionCount; ++i) {
@@ -337,12 +327,7 @@ public class NKapCuboidScheduler243 extends NCuboidScheduler {
             children = getOnTreeParentsByLayer(children, agg);
         }
 
-        return Sets.newHashSet(Iterators.filter(cuboidHolder.iterator(), new Predicate<Long>() {
-            @Override
-            public boolean apply(@Nullable Long cuboidId) {
-                return !ruleBasedAggIndex.isBlackedIndex(cuboidId);
-            }
-        }));
+        return cuboidHolder;
     }
 
     private Set<Long> getOnTreeParentsByLayer(Collection<Long> children, final NAggregationGroup agg) {

@@ -34,6 +34,7 @@ import java.util.Objects;
 import java.util.function.BiPredicate;
 import java.util.function.Predicate;
 
+import lombok.Setter;
 import org.apache.kylin.common.util.BitSets;
 import org.apache.kylin.common.util.ImmutableBitSet;
 import org.apache.kylin.metadata.model.TblColRef;
@@ -86,6 +87,11 @@ public class IndexEntity implements Serializable, IKeep {
     @JsonManagedReference
     @JsonProperty("layouts")
     private List<LayoutEntity> layouts = Lists.newArrayList();
+
+    @Setter
+    @Getter
+    @JsonProperty("next_layout_offset")
+    private long nextLayoutOffset = 1;
 
     // computed fields below
     @Getter(lazy = true)
@@ -312,7 +318,7 @@ public class IndexEntity implements Serializable, IKeep {
         }
     }
 
-    public IndexIdentifier createCuboidIdentifier() {
+    public IndexIdentifier createIndexIdentifier() {
         return new IndexIdentifier(//
                 BitSets.valueOf(getDimensions()), //
                 BitSets.valueOf(getMeasures()), //

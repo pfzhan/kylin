@@ -24,11 +24,9 @@
 package io.kyligence.kap.rest.request;
 
 import java.util.List;
-import java.util.Set;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
 
 import io.kyligence.kap.metadata.cube.cuboid.NAggregationGroup;
 import lombok.AllArgsConstructor;
@@ -49,15 +47,8 @@ public class UpdateRuleBasedCuboidRequest {
     @Builder.Default
     private List<Integer> dimensions = Lists.newArrayList();
 
-    @Builder.Default
-    @JsonProperty("index_start_id")
-    private Set<Long> indexBlackSet = Sets.newHashSet();
-
     @JsonProperty("aggregation_groups")
     private List<NAggregationGroup> aggregationGroups;
-
-    @Builder.Default
-    private int parentForward = 3;
 
     @Builder.Default
     @JsonProperty("load_data")

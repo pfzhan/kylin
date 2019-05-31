@@ -177,9 +177,9 @@ public class NRuleBasedCuboidDescTest extends NLocalFileMetadataTestCase {
         logLayouts(indexPlan.getAllLayouts());
 
         Assert.assertEquals(14, indexPlan.getAllLayouts().size());
-        checkIntersection(oldRule, indexPlan, Lists.newArrayList(13001L, 15001L, 16001L, 20001L));
+        checkIntersection(oldRule, indexPlan, Lists.newArrayList(130001L, 150001L, 160001L, 200001L));
         Assert.assertThat(indexPlan.getRuleBasedIndex().getLayoutIdMapping(),
-                CoreMatchers.is(Arrays.asList(13001L, 30001L, 15001L, 16001L, 20001L, 40001L, 50001L, 60001L, 2004L, 70001L, 80001L, 90001L)));
+                CoreMatchers.is(Arrays.asList(130001L, 230001L, 150001L, 160001L, 200001L, 240001L, 250001L, 260001L, 20004L, 270001L, 280001L, 290001L)));
     }
 
     @Test

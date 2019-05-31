@@ -130,7 +130,7 @@ public class NCuboidSchedulerTest extends NLocalFileMetadataTestCase {
         {
             Set<Long> set = cube.getRuleBasedIndex().getInitialCuboidScheduler().getAllCuboidIds();
             //KapCuboidScheduler2403.debugPrint(set, "all result");
-            Assert.assertEquals(11, set.size());
+            Assert.assertEquals(13, set.size());
         }
     }
 
@@ -156,7 +156,6 @@ public class NCuboidSchedulerTest extends NLocalFileMetadataTestCase {
         IndexPlan cube = mgr.getIndexPlan("82fa7671-a935-45f5-8779-85703601f49a");
         cube = JsonUtil.deepCopy(cube, IndexPlan.class);
         cube.setVersion(resetVer);
-        cube.getRuleBasedIndex().setParentForward(256); // disable parent forward
 
         if (resetDimCap != null) {
             for (NAggregationGroup g : cube.getRuleBasedIndex().getAggregationGroups())

@@ -167,8 +167,9 @@ public class NSpanningTreeTest extends NLocalFileMetadataTestCase {
             Assert.fail();
         } catch (Exception e) {
             Assert.assertEquals("Too many cuboids for the cube. Cuboid combination reached 21 and limit is 10. Abort calculation.", e.getCause().getCause().getMessage());
+        } finally {
+            System.clearProperty("kylin.cube.aggrgroup.max-combination");
         }
-        System.clearProperty("kylin.cube.aggrgroup.max-combination");
     }
 
     @Test

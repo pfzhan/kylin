@@ -33,6 +33,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import org.apache.kylin.common.util.ImmutableBitSet;
 import org.apache.kylin.metadata.model.IStorageAware;
 import org.apache.kylin.metadata.model.MeasureDesc;
@@ -40,7 +41,6 @@ import org.apache.kylin.metadata.model.TblColRef;
 
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonBackReference;
-import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.ImmutableBiMap;
@@ -77,19 +77,15 @@ public class NRuleBasedIndex implements Serializable, IKeep {
     @JsonProperty("aggregation_groups")
     private List<NAggregationGroup> aggregationGroups = Lists.newArrayList();
 
-    @JsonProperty("index_black_list")
-    @JsonInclude(JsonInclude.Include.NON_NULL)
-    private Set<Long> indexBlackSet = Sets.newHashSet();
+    @Setter
+    @Getter
+    @JsonProperty("layout_id_mapping")
+    private List<Long> layoutIdMapping = Lists.newArrayList();
 
     @Getter
     @JsonProperty("parent_forward")
     @JsonInclude(JsonInclude.Include.NON_NULL)
     private int parentForward = 3;
-
-    @Setter
-    @Getter
-    @JsonProperty("layout_id_mapping")
-    private List<Long> layoutIdMapping = Lists.newArrayList();
 
     @Setter
     @Getter
@@ -264,10 +260,6 @@ public class NRuleBasedIndex implements Serializable, IKeep {
         return ImmutableBitSet.valueOf(getMeasures());
     }
 
-    public boolean isBlackedIndex(long cuboidId) {
-        return indexBlackSet.contains(cuboidId);
-    }
-
     void genCuboidLayouts(Set<LayoutEntity> result) {
         NCuboidScheduler initialCuboidScheduler = getInitialCuboidScheduler();
         List<Long> allCuboidIds = Lists.newArrayList(initialCuboidScheduler.getAllCuboidIds());
@@ -278,12 +270,8 @@ public class NRuleBasedIndex implements Serializable, IKeep {
         for (LayoutEntity layout : indexPlan.getWhitelistLayouts()) {
             layoutIdMap.put(layout, layout.getId());
         }
-        val identifierNCuboidDescMap = layoutIdMap.keySet().stream().map(LayoutEntity::getIndex).collect(
-                Collectors.groupingBy(IndexEntity::createCuboidIdentifier, Collectors.reducing(null, (l, r) -> r)));
-        Map<Long, IndexEntity> cuboidDescMap = Maps.newHashMap();
-        for (IndexEntity cuboid : indexPlan.getIndexes()) {
-            cuboidDescMap.put(cuboid.getId(), cuboid);
-        }
+        val identifierIndexMap = layoutIdMap.keySet().stream().map(LayoutEntity::getIndex).collect(
+                Collectors.groupingBy(IndexEntity::createIndexIdentifier, Collectors.reducing(null, (l, r) -> r)));
         val needAllocationId = layoutIdMapping.isEmpty();
         long proposalId = indexStartId + 1;
         BitSet bitSet = new BitSet(1024);
@@ -306,19 +294,17 @@ public class NRuleBasedIndex implements Serializable, IKeep {
                 bitSet.set(integer);
             }
             // if a cuboid is same as the layout's one, then reuse it
-            val cuboidIdentifier = new IndexEntity.IndexIdentifier(bitSet,
-                    measures, false);
-            var maybeCuboid = identifierNCuboidDescMap.get(cuboidIdentifier);
+            val indexIdentifier = new IndexEntity.IndexIdentifier(bitSet, measures, false);
+            var maybeIndex = identifierIndexMap.get(indexIdentifier);
             // if two layout is equal, the id should be same
             Long prevId = layoutIdMap.get(layout);
             if (!needAllocationId) {
                 layout.setId(layoutIdMapping.get(i));
             } else if (prevId != null) {
                 layout.setId(layoutIdMap.get(layout));
-            } else if (maybeCuboid != null) {
-                val id = maybeCuboid.getLayouts().stream().map(LayoutEntity::getId).mapToLong(l -> l).max()
-                        .orElse(maybeCuboid.getId());
-                layout.setId(id + 1);
+            } else if (maybeIndex != null) {
+                val id = maybeIndex.getId() + maybeIndex.getNextLayoutOffset();
+                layout.setId(id);
             } else {
                 layout.setId(proposalId);
                 proposalId += IndexEntity.INDEX_ID_STEP;
@@ -327,17 +313,19 @@ public class NRuleBasedIndex implements Serializable, IKeep {
                 layoutIdMapping.add(layout.getId());
             }
 
-            if (maybeCuboid == null) {
-                long cuboidDescId = layout.getId() / IndexEntity.INDEX_ID_STEP * IndexEntity.INDEX_ID_STEP;
-                maybeCuboid = new IndexEntity();
-                maybeCuboid.setId(cuboidDescId);
-                maybeCuboid.setLayouts(Lists.newArrayList(layout));
-                maybeCuboid.setDimensions(dimensionsInLayout);
-                maybeCuboid.setMeasures(getMeasures());
-                maybeCuboid.setIndexPlan(indexPlan);
+            if (maybeIndex == null) {
+                long indexId = layout.getId() / IndexEntity.INDEX_ID_STEP * IndexEntity.INDEX_ID_STEP;
+                maybeIndex = new IndexEntity();
+                maybeIndex.setId(indexId);
+                maybeIndex.setLayouts(Lists.newArrayList(layout));
+                maybeIndex.setDimensions(dimensionsInLayout);
+                maybeIndex.setMeasures(getMeasures());
+                maybeIndex.setIndexPlan(indexPlan);
+                maybeIndex.setNextLayoutOffset(2);
             }
             layout.setUpdateTime(lastModifiedTime);
-            layout.setIndex(maybeCuboid);
+            layout.setIndex(maybeIndex);
+
             result.add(layout);
             bitSet.clear();
         }

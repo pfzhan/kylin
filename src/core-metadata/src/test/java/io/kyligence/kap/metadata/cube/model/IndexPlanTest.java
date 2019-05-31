@@ -25,10 +25,15 @@
 package io.kyligence.kap.metadata.cube.model;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
+import io.kyligence.kap.metadata.cube.CubeTestUtils;
+import org.apache.commons.collections.ListUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.KylinConfigExt;
 import org.apache.kylin.common.util.JsonUtil;
@@ -48,6 +53,7 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.metadata.cube.cuboid.NAggregationGroup;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import lombok.val;
@@ -117,7 +123,7 @@ public class IndexPlanTest extends NLocalFileMetadataTestCase {
         }
 
         {
-            IndexEntity last = Iterables.get(cube.getAllIndexes(), cube.getAllIndexes().size() -2);
+            IndexEntity last = Iterables.get(cube.getAllIndexes(), cube.getAllIndexes().size() - 2);
             Assert.assertNotNull(last);
             Assert.assertEquals(20000020000L, last.getId());
             Assert.assertEquals(1, last.getLayouts().size());
@@ -242,6 +248,74 @@ public class IndexPlanTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
+    public void testNeverReuseId_AfterDelete() {
+        val indePlanManager = NIndexPlanManager.getInstance(getTestConfig(), projectDefault);
+        var indexPlan = indePlanManager.getIndexPlanByModelAlias("nmodel_basic");
+        val measures = Lists.newArrayList(indexPlan.getModel().getEffectiveMeasures().keySet());
+        val nexAggId = indexPlan.getNextAggregationIndexId();
+        NIndexPlanManager.NIndexPlanUpdater updater = copyForWrite -> {
+            val indexes = copyForWrite.getIndexes();
+
+            val newAggIndex = new IndexEntity();
+            newAggIndex.setId(copyForWrite.getNextAggregationIndexId());
+            newAggIndex.setDimensions(Lists.newArrayList(1, 2, 3));
+            newAggIndex.setMeasures(measures);
+            val newLayout1 = new LayoutEntity();
+            newLayout1.setId(newAggIndex.getId() + 1);
+            newLayout1.setAuto(true);
+            newLayout1.setShardByColumns(Lists.newArrayList(1));
+            newLayout1.setColOrder(ListUtils.union(Lists.newArrayList(1, 2, 3), measures));
+
+            val newLayout2 = new LayoutEntity();
+            newLayout2.setId(newAggIndex.getId() + 2);
+            newLayout2.setAuto(true);
+            newLayout2.setColOrder(ListUtils.union(Lists.newArrayList(1, 3, 2), measures));
+            newAggIndex.setLayouts(Lists.newArrayList(newLayout1, newLayout2));
+
+            indexes.add(newAggIndex);
+            copyForWrite.setIndexes(indexes);
+        };
+
+        indexPlan = indePlanManager.updateIndexPlan(indexPlan.getId(), updater);
+        Assert.assertEquals(3, indexPlan.getIndexEntity(nexAggId).getNextLayoutOffset());
+
+        indePlanManager.updateIndexPlan(indexPlan.getId(), copyForWrite -> {
+            copyForWrite.removeLayouts(Sets.newHashSet(nexAggId + 2), LayoutEntity::equals, true, true);
+        });
+
+        indexPlan = indePlanManager.updateIndexPlan(indexPlan.getId(), copyForWrite -> {
+            copyForWrite.setIndexes(copyForWrite.getIndexes().stream().peek(index -> {
+                if (index.getId() == nexAggId) {
+                    val newLayout1 = new LayoutEntity();
+                    newLayout1.setId(index.getId() + index.getNextLayoutOffset());
+                    newLayout1.setAuto(true);
+                    newLayout1.setColOrder(ListUtils.union(Lists.newArrayList(2, 1, 3), measures));
+                    index.getLayouts().add(newLayout1);
+                }
+            }).collect(Collectors.toList()));
+        });
+        Assert.assertEquals(4, indexPlan.getIndexEntity(nexAggId).getNextLayoutOffset());
+
+        indexPlan = indePlanManager.updateIndexPlan(indexPlan.getId(), copyForWrite -> {
+            try {
+                val newRule = new NRuleBasedIndex();
+                newRule.setDimensions(Arrays.asList(1, 2, 3, 4));
+                val group1 = JsonUtil
+                        .readValue(
+                                "{\n" + "        \"includes\": [3,2,1],\n" + "        \"select_rule\": {\n"
+                                        + "          \"hierarchy_dims\": [],\n" + "          \"mandatory_dims\": [],\n"
+                                        + "          \"joint_dims\": []\n" + "        }\n" + "}",
+                                NAggregationGroup.class);
+                newRule.setAggregationGroups(Lists.newArrayList(group1));
+                copyForWrite.setRuleBasedIndex(newRule);
+            } catch (IOException ignore) {
+            }
+        });
+
+        Assert.assertEquals(5, indexPlan.getIndexEntity(nexAggId).getNextLayoutOffset());
+    }
+
+    @Test
     public void testGetAllColumnsHaveDictionary() {
         NIndexPlanManager cubeDefaultMgr = NIndexPlanManager.getInstance(getTestConfig(), projectDefault);
         IndexPlan indexPlan = cubeDefaultMgr.getIndexPlanByModelAlias("nmodel_basic");
@@ -319,14 +393,15 @@ public class IndexPlanTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testGetAllIndexesWithRuleBasedAndAutoRecommendedLayout() throws IOException {
-        var newPlan = JsonUtil.readValue(getClass().getResourceAsStream("/rule_based_and_auto_cube.json"), IndexPlan.class);
+        var newPlan = JsonUtil.readValue(getClass().getResourceAsStream("/rule_based_and_auto_cube.json"),
+                IndexPlan.class);
         newPlan.initAfterReload(KylinConfig.getInstanceFromEnv(), "default");
         val layouts = newPlan.getAllLayouts();
         Assert.assertEquals(9, layouts.size());
-        for (val layout: newPlan.getAllLayouts()) {
+        for (val layout : newPlan.getAllLayouts()) {
             Assert.assertNotNull(layout.getIndex());
             Assert.assertTrue(layout.getIndex().getLayouts().size() > 0);
-            for (val indexLayout: layout.getIndex().getLayouts()) {
+            for (val indexLayout : layout.getIndex().getLayouts()) {
                 Assert.assertSame(layout.getIndex(), indexLayout.getIndex());
             }
         }
@@ -338,13 +413,47 @@ public class IndexPlanTest extends NLocalFileMetadataTestCase {
         newPlan.initAfterReload(KylinConfig.getInstanceFromEnv(), "default");
         val layouts = newPlan.getRuleBaseLayouts();
         Assert.assertEquals(7, layouts.size());
-        for (val layout: layouts) {
+        for (val layout : layouts) {
             Assert.assertNotNull(layout.getIndex());
             Assert.assertTrue(layout.getUpdateTime() > 0);
             Assert.assertTrue(layout.getIndex().getLayouts().size() > 0);
-            for (val indexLayout: layout.getIndex().getLayouts()) {
+            for (val indexLayout : layout.getIndex().getLayouts()) {
                 Assert.assertSame(layout.getIndex(), indexLayout.getIndex());
             }
         }
+    }
+
+    @Test
+    public void testAddLayout_BasedOnRule() throws Exception {
+        val indexPlanManager = NIndexPlanManager.getInstance(getTestConfig(), "default");
+        var newPlan = JsonUtil.readValue(getClass().getResourceAsStream("/ncude_rule_based.json"), IndexPlan.class);
+
+        CubeTestUtils.createTmpModel(getTestConfig(), newPlan);
+
+        newPlan = indexPlanManager.createIndexPlan(newPlan);
+        val measures = Lists.newArrayList(newPlan.getModel().getEffectiveMeasures().keySet());
+        val identifierIdMap = newPlan.getAllIndexes().stream()
+                .collect(Collectors.toMap(IndexEntity::createIndexIdentifier, Function.identity()));
+        newPlan = indexPlanManager.updateIndexPlan(newPlan.getId(), copyForWrite -> {
+            val newAggIndex = new IndexEntity();
+            newAggIndex.setDimensions(Lists.newArrayList(0, 1, 2, 3, 4));
+            newAggIndex.setMeasures(measures);
+            newAggIndex.setId(identifierIdMap.get(newAggIndex.createIndexIdentifier()).getId());
+
+            val newLayout1 = new LayoutEntity();
+            newLayout1.setId(identifierIdMap.get(newAggIndex.createIndexIdentifier()).getNextLayoutOffset()
+                    + newAggIndex.getId());
+            newLayout1.setAuto(true);
+            newLayout1.setColOrder(ListUtils.union(Lists.newArrayList(4, 1, 3, 2, 0), measures));
+            val newLayout2 = new LayoutEntity();
+            newLayout2.setId(identifierIdMap.get(newAggIndex.createIndexIdentifier()).getNextLayoutOffset()
+                    + newAggIndex.getId());
+            newLayout2.setAuto(true);
+            newLayout2.setColOrder(ListUtils.union(Lists.newArrayList(1, 4, 3, 2, 0), measures));
+            newAggIndex.setLayouts(Lists.newArrayList(newLayout1, newLayout2));
+            copyForWrite.setIndexes(Lists.newArrayList(newAggIndex));
+        });
+
+        Assert.assertEquals(3, newPlan.getIndexEntity(100000).getNextLayoutOffset());
     }
 }

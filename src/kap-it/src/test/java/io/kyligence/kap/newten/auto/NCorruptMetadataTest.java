@@ -29,6 +29,7 @@ import java.util.Map;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.project.ProjectInstance;
+import org.hamcrest.core.StringContains;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -397,7 +398,7 @@ public class NCorruptMetadataTest extends NAutoTestBase {
         Assert.assertTrue(e instanceof TransactionException);
         Assert.assertTrue(e.getCause() instanceof IllegalStateException);
         Assert.assertTrue(e.getMessage().startsWith(expectedMessage));
-        Assert.assertEquals(expectedCauseMessage, e.getCause().getMessage());
+        Assert.assertThat(e.getCause().getMessage(), new StringContains(expectedCauseMessage));
     }
 
     private void setModelMaintainTypeToManual(KylinConfig kylinConfig, String projectName) {

@@ -121,6 +121,27 @@ public class ModelServiceSemanticUpdateTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
+    public void testUpdateCC_DontNeedReload() throws Exception {
+        ModelRequest request = newSemanticRequest();
+        for (ComputedColumnDesc cc : request.getComputedColumnDescs()) {
+            if (cc.getColumnName().equalsIgnoreCase("DEAL_AMOUNT")) {
+                cc.setComment("comment1");
+            }
+        }
+        modelService.updateDataModelSemantic(request.getProject(), request);
+
+        NDataModel model = getTestModel();
+        for (ComputedColumnDesc cc : model.getComputedColumnDescs()) {
+            if (cc.getColumnName().equalsIgnoreCase("DEAL_AMOUNT")) {
+                Assert.assertEquals("comment1", cc.getComment());
+            }
+        }
+
+        val colIdOfCC = model.getColumnIdByColumnName("TEST_KYLIN_FACT.DEAL_AMOUNT");
+        Assert.assertEquals(27, colIdOfCC);
+    }
+
+    @Test
     public void testModelUpdateComputedColumn() throws Exception {
         val dfMgr = NDataflowManager.getInstance(getTestConfig(), "default");
 
@@ -147,7 +168,7 @@ public class ModelServiceSemanticUpdateTest extends NLocalFileMetadataTestCase {
         // Add dimension which uses TEST_CC_1, column will be renamed
         {
             ModelRequest request = newSemanticRequest();
-//            Assert.assertEquals(-1, request.getColumnIdByColumnName("TEST_KYLIN_FACT.TEST_CC_1"));
+            //            Assert.assertEquals(-1, request.getColumnIdByColumnName("TEST_KYLIN_FACT.TEST_CC_1"));
             NamedColumn newDimension = new NamedColumn();
             newDimension.setName("TEST_DIM_WITH_CC");
             newDimension.setAliasDotColumn("TEST_KYLIN_FACT.TEST_CC_1");
@@ -356,8 +377,8 @@ public class ModelServiceSemanticUpdateTest extends NLocalFileMetadataTestCase {
     @Test
     public void testModelUpdateDimensions() throws Exception {
         val request = newSemanticRequest();
-        request.setSimplifiedDimensions(request.getAllNamedColumns().stream().filter(c -> c.isDimension() && c.getId() != 25)
-                .collect(Collectors.toList()));
+        request.setSimplifiedDimensions(request.getAllNamedColumns().stream()
+                .filter(c -> c.isDimension() && c.getId() != 25).collect(Collectors.toList()));
         val newCol = new NDataModel.NamedColumn();
         newCol.setName("PRICE2");
         newCol.setAliasDotColumn("TEST_KYLIN_FACT.PRICE");
