@@ -1177,6 +1177,15 @@ class NModel {
     }
     return true
   }
+  checkSameEditMeasureColumn (measure) {
+    let column = measure.parameterValue
+    for (let k = 0; k < this._mount.all_measures.length; k++) {
+      if (this._mount.all_measures[k].name !== measure.name && column.value === this._mount.all_measures[k].parameter_value[0].value) {
+        return false
+      }
+    }
+    return true
+  }
   // 添加度量
   editDimension (dimension) {
     return new Promise((resolve, reject) => {

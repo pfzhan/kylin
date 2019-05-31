@@ -146,7 +146,8 @@ import $ from 'jquery'
       requiredParamValue: 'The column is Required.',
       addCCTip: 'Create Computed Column',
       editMeasureTitle: 'Edit Measure',
-      addMeasureTitle: 'Add Measure'
+      addMeasureTitle: 'Add Measure',
+      sameColumn: 'Column has been used'
     },
     'zh-cn': {
       requiredName: '请输入度量名称',
@@ -163,7 +164,8 @@ import $ from 'jquery'
       requiredParamValue: '请选择列。',
       addCCTip: '创建可计算列',
       editMeasureTitle: '编辑度量',
-      addMeasureTitle: '添加度量'
+      addMeasureTitle: '添加度量',
+      sameColumn: '该列已被其他度量使用'
     }
   }
 })
@@ -184,7 +186,10 @@ export default class AddMeasure extends Vue {
       { validator: this.validateName, trigger: 'blur' }
     ],
     expression: [{ required: true, message: this.$t('requiredExpress'), trigger: 'change' }],
-    'parameterValue.value': [{ required: true, message: this.$t('requiredParamValue'), trigger: 'change' }],
+    'parameterValue.value': [
+      { required: true, message: this.$t('requiredParamValue'), trigger: 'change' },
+      { validator: this.checkColumn }
+    ],
     convertedColValidate: [{ required: true, message: this.$t('requiredParamValue'), trigger: 'blur, change' }]
   }
   ccRules = {
@@ -257,6 +262,14 @@ export default class AddMeasure extends Vue {
       } else {
         callback()
       }
+    }
+  }
+
+  checkColumn (rule, value, callback) {
+    if (!this.modelInstance.checkSameEditMeasureColumn(this.measure)) {
+      callback(new Error(this.$t('sameColumn')))
+    } else {
+      callback()
     }
   }
 
@@ -455,6 +468,7 @@ export default class AddMeasure extends Vue {
       data: measure,
       isSubmit: isSubmit
     })
+    this.$refs['measureForm'].resetFields()
   }
   checkMeasure () {
     this.$refs.measureForm.validate((valid) => {
