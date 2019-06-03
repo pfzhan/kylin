@@ -438,6 +438,11 @@ public class KapConfig {
         return Integer.valueOf(config.getOptional("kap.query.engine.spark-blocknum-busy-threshold", "5000"));
     }
 
+    // in general, users should not set this, cuz we will auto calculate this num.
+    public int getSparkSqlShufflePartitions() {
+        return Integer.valueOf(config.getOptional("kap.query.engine.spark-sql-shuffle-partitions", "-1"));
+    }
+
     /**
      * LDAP filter
      */

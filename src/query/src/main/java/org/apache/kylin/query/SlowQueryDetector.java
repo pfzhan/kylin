@@ -65,7 +65,7 @@ public class SlowQueryDetector extends Thread {
     }
 
     // just for test.
-    SlowQueryDetector(int detectionIntervalMs, int queryTimeoutMs) {
+    public SlowQueryDetector(int detectionIntervalMs, int queryTimeoutMs) {
         super("SlowQueryDetector");
         this.setDaemon(true);
         this.detectionIntervalMs = detectionIntervalMs;

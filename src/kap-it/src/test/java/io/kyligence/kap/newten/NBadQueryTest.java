@@ -66,7 +66,7 @@ public class NBadQueryTest extends NLocalWithSparkSessionTest {
         KylinConfig.getInstanceFromEnv().setProperty(PUSHDOWN_RUNNER_KEY,
                 "io.kyligence.kap.query.pushdown.PushDownRunnerSparkImpl");
         try {
-            NExecAndComp.queryCube(getProject(), sql);
+            NExecAndComp.queryCubeAndSkipCompute(getProject(), sql);
         } catch (Exception sqlException) {
             Assert.assertTrue(sqlException instanceof SQLException);
             Assert.assertTrue(ExceptionUtils.getRootCause(sqlException) instanceof SqlValidatorException);
@@ -96,7 +96,7 @@ public class NBadQueryTest extends NLocalWithSparkSessionTest {
         KylinConfig.getInstanceFromEnv().setProperty(PUSHDOWN_RUNNER_KEY,
                 "io.kyligence.kap.query.pushdown.PushDownRunnerSparkImpl");
         try {
-            NExecAndComp.queryCube(getProject(), sql);
+            NExecAndComp.queryCubeAndSkipCompute(getProject(), sql);
         } catch (Exception sqlException) {
             if (sqlException instanceof SQLException) {
                 Assert.assertTrue(ExceptionUtils.getRootCauseMessage(sqlException).contains("Path does not exist"));

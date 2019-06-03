@@ -62,8 +62,14 @@ object ResultPlan extends Logging {
     val sparkContext = SparderEnv.getSparkSession.sparkContext
     val kapConfig = KapConfig.getInstanceFromEnv
     val pool = "heavy_tasks"
-    val partitionsNum = Math.min(QueryContext.current().getSourceScanBytes / PARTITION_SPLIT_BYTES + 1,
-      SparderEnv.getTotalCore)
+
+    val partitionsNum =
+      if (kapConfig.getSparkSqlShufflePartitions != -1) {
+        kapConfig.getSparkSqlShufflePartitions
+      } else {
+        Math.min(QueryContext.current().getSourceScanBytes / PARTITION_SPLIT_BYTES + 1,
+          SparderEnv.getTotalCore).toInt
+      }
     logInfo(s"partition is : $partitionsNum , bytes is ${QueryContext.current().getSourceScanBytes}"  )
     // set priority
     sparkContext.setLocalProperty("spark.scheduler.pool", pool)

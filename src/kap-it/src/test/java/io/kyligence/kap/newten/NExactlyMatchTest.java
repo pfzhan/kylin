@@ -78,15 +78,15 @@ public class NExactlyMatchTest extends NLocalWithSparkSessionTest {
         populateSSWithCSVData(config, getProject(), SparderEnv.getSparkSession());
 
         String exactly_match1 = "select sum(price) from TEST_KYLIN_FACT group by TRANS_ID, CAL_DT, LSTG_FORMAT_NAME";
-        Dataset<Row> m1 = NExecAndComp.queryCube(getProject(), exactly_match1);
+        Dataset<Row> m1 = NExecAndComp.queryCubeAndSkipCompute(getProject(), exactly_match1);
         Assert.assertFalse(existsAgg(m1));
 
         String exactly_match2 = "select count(*) from TEST_KYLIN_FACT group by TRANS_ID, CAL_DT, LSTG_FORMAT_NAME";
-        Dataset<Row> m2 = NExecAndComp.queryCube(getProject(), exactly_match2);
+        Dataset<Row> m2 = NExecAndComp.queryCubeAndSkipCompute(getProject(), exactly_match2);
         Assert.assertFalse(existsAgg(m2));
 
         String exactly_match3 = "select LSTG_FORMAT_NAME,sum(price),CAL_DT from TEST_KYLIN_FACT group by TRANS_ID, CAL_DT, LSTG_FORMAT_NAME";
-        Dataset<Row> m3 = NExecAndComp.queryCube(getProject(), exactly_match3);
+        Dataset<Row> m3 = NExecAndComp.queryCubeAndSkipCompute(getProject(), exactly_match3);
         String[] fieldNames = m3.schema().fieldNames();
         Assert.assertFalse(existsAgg(m3));
         Assert.assertTrue(fieldNames[0].contains("LSTG_FORMAT_NAME"));
@@ -100,7 +100,7 @@ public class NExactlyMatchTest extends NLocalWithSparkSessionTest {
 
 
         String not_match1 = "select count(*) from TEST_KYLIN_FACT";
-        Dataset<Row> n1 = NExecAndComp.queryCube(getProject(), not_match1);
+        Dataset<Row> n1 = NExecAndComp.queryCubeAndSkipCompute(getProject(), not_match1);
         Assert.assertTrue(existsAgg(n1));
     }
 

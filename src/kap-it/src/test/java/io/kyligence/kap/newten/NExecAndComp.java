@@ -27,6 +27,7 @@ import java.io.File;
 import java.io.IOException;
 import java.sql.Connection;
 import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -370,7 +371,7 @@ public class NExecAndComp {
         try {
             logger.info("Try to query from cube....");
             long startTs = System.currentTimeMillis();
-            Dataset<Row> dataset = queryCube(prj, sqlText);
+            Dataset<Row> dataset = queryCubeAndSkipCompute(prj, sqlText);
             logger.info("Cool! This sql hits cube...");
             logger.info("Duration(ms): {}", (System.currentTimeMillis() - startTs));
             return dataset;
@@ -381,8 +382,14 @@ public class NExecAndComp {
         }
     }
 
-    public static Dataset<Row> queryCube(String prj, String sql) throws Exception {
+    static Dataset<Row> queryCubeAndSkipCompute(String prj, String sql) throws Exception {
         SparderEnv.skipCompute();
+        Dataset<Row> df = queryCube(prj, sql);
+        SparderEnv.cleanCompute();
+        return df;
+    }
+
+    public static Dataset<Row> queryCube(String prj, String sql) throws SQLException {
         Connection conn = null;
         Statement stmt = null;
         ResultSet rs = null;
@@ -395,8 +402,6 @@ public class NExecAndComp {
             DBUtils.closeQuietly(stmt);
             DBUtils.closeQuietly(conn);
         }
-
-        SparderEnv.cleanCompute();
         return SparderEnv.getDF();
     }
 }

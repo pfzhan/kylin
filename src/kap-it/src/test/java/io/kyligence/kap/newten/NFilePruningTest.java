@@ -308,7 +308,7 @@ public class NFilePruningTest extends NLocalWithSparkSessionTest {
     }
 
     private long assertResultsAndScanFiles(String sql, long numScanFiles) throws Exception {
-        val df = NExecAndComp.queryCube(getProject(), sql);
+        val df = NExecAndComp.queryCubeAndSkipCompute(getProject(), sql);
         df.collect();
         val actualNum = findFileSourceScanExec(df.queryExecution().sparkPlan()).metrics().get("numFiles").get().value();
         Assert.assertEquals(numScanFiles, actualNum);
