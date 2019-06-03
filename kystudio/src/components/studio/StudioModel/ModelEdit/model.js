@@ -1179,8 +1179,15 @@ class NModel {
   }
   checkSameEditMeasureColumn (measure) {
     let column = measure.parameterValue
+    let expression = measure.expression
+    if (measure.expression.indexOf('SUM') !== -1) {
+      expression = 'SUM'
+    }
+    if (measure.expression.indexOf('COUNT(constant)') !== -1 || measure.expression.indexOf('COUNT(column)') !== -1) {
+      expression = 'COUNT'
+    }
     for (let k = 0; k < this._mount.all_measures.length; k++) {
-      if (this._mount.all_measures[k].name !== measure.name && column.value === this._mount.all_measures[k].parameter_value[0].value) {
+      if (this._mount.all_measures[k].name !== measure.name && this._mount.all_measures[k].expression === expression && column.value === this._mount.all_measures[k].parameter_value[0].value) {
         return false
       }
     }
