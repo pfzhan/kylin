@@ -137,7 +137,7 @@ export default class TableDataLoad extends Vue {
     submitData.affected_end = result.affected_end
     await this.freshDataRange(submitData)
     this.$emit('fresh-tables')
-    this.$message({ type: 'success', message: this.$t('kylinLang.common.saveSuccess') })
+    this.$message({ type: 'success', message: this.$t('loadSuccessTip') })
   }
   async handleChangePartition (value) {
     try {
@@ -158,10 +158,8 @@ export default class TableDataLoad extends Vue {
     const confirmTitle = this.$t('fullLoadDataTitle')
     const confirmMessage1 = this.$t('fullLoadDataContent1', contentVal)
     const confirmMessage2 = this.$t('fullLoadDataContent2', contentVal)
-    const confirmMessage3 = this.$t('fullLoadDataContent3', contentVal)
-    const confirmMessage4 = this.$t('fullLoadDataContent4', contentVal)
     const confirmMessage = _render(this.$createElement)
-    const confirmButtonText = this.$t('kylinLang.common.ok')
+    const confirmButtonText = this.$t('kylinLang.common.submit')
     const cancelButtonText = this.$t('kylinLang.common.cancel')
     const type = 'warning'
     return this.$confirm(confirmMessage, confirmTitle, { confirmButtonText, cancelButtonText, type })
@@ -171,8 +169,6 @@ export default class TableDataLoad extends Vue {
         <div>
           <p class="break-all">{confirmMessage1}</p>
           <p>{confirmMessage2}</p>
-          <p>{confirmMessage3}</p>
-          <p>{confirmMessage4}</p>
         </div>
       )
     }
