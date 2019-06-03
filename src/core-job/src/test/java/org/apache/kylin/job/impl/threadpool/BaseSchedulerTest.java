@@ -44,6 +44,7 @@ package org.apache.kylin.job.impl.threadpool;
 
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import io.kyligence.kap.common.persistence.transaction.mq.MessageQueue;
 import org.apache.kylin.common.KylinConfig;
@@ -55,6 +56,7 @@ import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.job.lock.MockJobLock;
 import org.junit.After;
 import org.junit.Before;
+import org.mockito.Mockito;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -74,6 +76,8 @@ public abstract class BaseSchedulerTest extends NLocalFileMetadataTestCase {
 
     protected String project;
 
+    protected AtomicInteger killProcessCount;
+
     public BaseSchedulerTest() {
 
     }
@@ -87,7 +91,15 @@ public abstract class BaseSchedulerTest extends NLocalFileMetadataTestCase {
         System.setProperty("kylin.job.scheduler.poll-interval-second", "1");
         System.setProperty("kylin.metadata.mq-url", "topic@mock");
         staticCreateTestMetadata();
-        executableManager = NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+        killProcessCount = new AtomicInteger();
+        val originExecutableManager = NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+        executableManager = Mockito.spy(originExecutableManager);
+        Mockito.doAnswer(invocation -> {
+            String jobId = invocation.getArgument(0);
+            originExecutableManager.destroyProcess(jobId);
+            killProcessCount.incrementAndGet();
+            return null;
+        }).when(executableManager).destroyProcess(Mockito.anyString());
         executableDao = NExecutableDao.getInstance(KylinConfig.getInstanceFromEnv(), project);
         startScheduler();
 

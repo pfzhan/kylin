@@ -121,6 +121,11 @@ public class DefaultChainedExecutable extends AbstractExecutable implements Chai
     }
 
     @Override
+    protected boolean needCheckDiscarded() {
+        return false;
+    }
+
+    @Override
     protected void onExecuteError(ExecuteResult result, ExecutableContext executableContext) {
         super.onExecuteError(result, executableContext);
         notifyUserJobIssue(JobIssueEnum.JOB_ERROR);
@@ -132,9 +137,10 @@ public class DefaultChainedExecutable extends AbstractExecutable implements Chai
         SchedulerEventBusFactory.getInstance(KylinConfig.getInstanceFromEnv())
                 .postWithLimit(new JobFinishedNotifier(getProject()));
 
-        if (isDiscarded() || isPaused()) {
+        if (isPaused() || isDiscarded()) {
             return;
         }
+
         if (!result.succeed()) {
             updateJobOutput(getProject(), getId(), ExecutableState.ERROR, null, this::onExecuteErrorHook);
             notifyUserJobIssue(JobIssueEnum.JOB_ERROR);

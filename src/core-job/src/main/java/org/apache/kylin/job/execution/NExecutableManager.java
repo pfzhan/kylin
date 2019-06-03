@@ -395,15 +395,6 @@ public class NExecutableManager {
         if (job == null) {
             return;
         }
-
-        if (job instanceof DefaultChainedExecutable) {
-            List<AbstractExecutable> tasks = ((DefaultChainedExecutable) job).getTasks();
-            for (AbstractExecutable task : tasks) {
-                if (!task.getStatus().isFinalState()) {
-                    updateJobOutput(task.getId(), ExecutableState.DISCARDED);
-                }
-            }
-        }
         updateJobOutput(jobId, ExecutableState.DISCARDED);
     }
 
@@ -460,7 +451,8 @@ public class NExecutableManager {
             logger.info("Job id: {} from {} to {}", taskOrJobId, oldStatus, newStatus);
             return true;
         });
-        if (ExecutableState.PAUSED.equals(newStatus)) {
+        if (taskOrJobId.equals(jobId)
+                && (ExecutableState.PAUSED.equals(newStatus) || ExecutableState.DISCARDED.equals(newStatus))) {
             // kill spark-submit process
             destroyProcess(taskOrJobId);
         }

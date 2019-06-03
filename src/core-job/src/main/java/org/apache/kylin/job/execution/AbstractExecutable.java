@@ -76,7 +76,6 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
-import io.kyligence.kap.common.persistence.transaction.TransactionException;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.metadata.cube.model.NBatchConstants;
 import io.kyligence.kap.metadata.cube.model.NDataLayout;
@@ -162,24 +161,20 @@ public abstract class AbstractExecutable implements Executable, Idempotent {
 
     protected void onExecuteStart(ExecutableContext executableContext) {
 
-        suicideIfNecessary();
-        checkJobPaused();
+        checkJobStateChange();
         updateJobOutput(project, getId(), ExecutableState.RUNNING);
 
     }
 
     protected void onExecuteFinished(ExecuteResult result, ExecutableContext executableContext) {
-        suicideIfNecessary();
-
+        checkJobStateChange();
         Preconditions.checkState(result.succeed());
         Preconditions.checkState(this.getStatus() == ExecutableState.RUNNING);
         updateJobOutput(project, getId(), ExecutableState.SUCCEED, result.getExtraInfo(), result.output());
     }
 
     protected void onExecuteError(ExecuteResult result, ExecutableContext executableContext) {
-        suicideIfNecessary();
-        checkJobPaused(result.getErrorMsg());
-
+        checkJobStateChange(result.getErrorMsg());
         Preconditions.checkState(!result.succeed());
         Preconditions.checkState(this.getStatus() == ExecutableState.RUNNING);
         updateJobOutput(project, getId(), ExecutableState.ERROR, result.getExtraInfo(), result.getErrorMsg(),
@@ -262,8 +257,7 @@ public abstract class AbstractExecutable implements Executable, Idempotent {
                 logger.info("Retrying for the {}th time ", retry);
             }
 
-            suicideIfNecessary();
-            checkJobPaused();
+            checkJobStateChange();
             try {
                 result = doWork(executableContext);
             } catch (Throwable e) {
@@ -282,6 +276,16 @@ public abstract class AbstractExecutable implements Executable, Idempotent {
             onExecuteFinished(result, executableContext);
             return result;
         }
+    }
+
+    private void checkJobStateChange() {
+        checkJobStateChange(null);
+    }
+
+    private void checkJobStateChange(String output) {
+        suicideIfNecessary();
+        checkJobPaused(output);
+        checkJobDiscarded(output);
     }
 
     private void suicideIfNecessary() {
@@ -318,21 +322,34 @@ public abstract class AbstractExecutable implements Executable, Idempotent {
             return;
         }
         val parent = this.getParent();
-        try {
-            // doInTransaction for get latest status
+        if (ExecutableState.PAUSED.equals(parent.getStatus())) {
             UnitOfWork.doInTransactionWithRetry(() -> {
-                if (ExecutableState.PAUSED.equals(parent.getStatus())) {
-                    throw new JobStoppedException();
-                }
-                return 0;
-            }, project, 1);
-        } catch (TransactionException e) {
-            if (e.getCause() instanceof JobStoppedException) {
                 updateJobOutput(project, getId(), ExecutableState.READY);
-                throw (JobStoppedException) e.getCause();
-            } else {
-                throw e;
-            }
+                return null;
+            }, project);
+            throw new JobStoppedException();
+        }
+    }
+
+    protected boolean needCheckDiscarded() {
+        return true;
+    }
+
+    public void checkJobDiscarded() {
+        checkJobDiscarded(null);
+    }
+
+    private void checkJobDiscarded(String output) {
+        if (!needCheckDiscarded()) {
+            return;
+        }
+        val parent = this.getParent();
+        if (ExecutableState.DISCARDED.equals(parent.getStatus())) {
+            UnitOfWork.doInTransactionWithRetry(() -> {
+                updateJobOutput(project, getId(), ExecutableState.DISCARDED);
+                return null;
+            }, project);
+            throw new JobStoppedException();
         }
     }
 

@@ -54,7 +54,6 @@ import org.apache.kylin.job.execution.FiveSecondSucceedTestExecutable;
 import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.job.execution.NoErrorStatusExecutableOnModel;
-import org.apache.kylin.job.execution.SelfStopExecutable;
 import org.apache.kylin.job.execution.SucceedTestExecutable;
 import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 import org.assertj.core.api.Assertions;
@@ -64,6 +63,7 @@ import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
+import org.mockito.Mockito;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -356,23 +356,29 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         job.setParam(NBatchConstants.P_LAYOUT_IDS, "1,2,3,4,5");
         job.setTargetSubject(df.getModel().getUuid());
         job.setTargetSegments(df.getSegments().stream().map(NDataSegment::getId).collect(Collectors.toList()));
-        SelfStopExecutable task1 = new SelfStopExecutable();
+        SucceedTestExecutable task1 = new SucceedTestExecutable();
         task1.setTargetSubject(df.getModel().getUuid());
         task1.setTargetSegments(df.getSegments().stream().map(NDataSegment::getId).collect(Collectors.toList()));
+        SucceedTestExecutable task2 = new SucceedTestExecutable();
+        task2.setTargetSubject(df.getModel().getUuid());
+        task2.setTargetSegments(df.getSegments().stream().map(NDataSegment::getId).collect(Collectors.toList()));
         job.addTask(task1);
+        job.addTask(task2);
         executableManager.addJob(job);
         long createTime = executableManager.getJob(job.getId()).getCreateTime();
         Assert.assertTrue(createTime > 0L);
         // give time to launch job/task1
-        await().atMost(Long.MAX_VALUE, TimeUnit.MILLISECONDS).until(() -> job.getStatus() == ExecutableState.RUNNING);
+        await().atMost(60000, TimeUnit.MILLISECONDS).until(() -> job.getStatus() == ExecutableState.RUNNING);
         discardJobWithLock(job.getId());
         waitForJobFinish(job.getId());
         assertMemoryRestore(currMem);
         Assert.assertEquals(ExecutableState.DISCARDED, executableManager.getOutput(job.getId()).getState());
-        Assert.assertEquals(ExecutableState.DISCARDED, executableManager.getOutput(task1.getId()).getState());
-        task1.waitForDoWork();
+        await().atMost(60000, TimeUnit.MILLISECONDS)
+                .until(() -> ((DefaultChainedExecutable) getManager().getJob(job.getId())).getTasks().get(0).getStatus()
+                        .isFinalState());
         testJobStopped(job.getId());
         assertMemoryRestore(currMem);
+        Assert.assertEquals(1, killProcessCount.get());
     }
 
     private void testJobStopped(String jobId) {
@@ -772,7 +778,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
 
         await().atMost(3000, TimeUnit.MILLISECONDS).untilAsserted(() -> {
             Assert.assertEquals(ExecutableState.PAUSED, job.getStatus());
-            Assert.assertEquals(ExecutableState.SUCCEED, task.getStatus());
+            Assert.assertEquals(ExecutableState.READY, task.getStatus());
         });
 
         thrown.expect(JobStoppedException.class);
@@ -805,13 +811,14 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
             return job.getStatus() == ExecutableState.RUNNING && StringUtils.isNotEmpty(runningStatus)
                     && runningStatus.equals("inRunning");
         });
-        executableManager.pauseJob(job.getId());
+        pauseJobWithLock(job.getId());
 
         await().atMost(3, TimeUnit.SECONDS).untilAsserted(() -> {
             Assert.assertEquals(ExecutableState.PAUSED, job.getStatus());
             Assert.assertEquals(ExecutableState.READY, task.getStatus());
         });
         assertMemoryRestore(currMem);
+        Assert.assertEquals(1, killProcessCount.get());
     }
 
     @Test
@@ -1033,10 +1040,15 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         await().atMost(60000, TimeUnit.MILLISECONDS)
                 .until(() -> ((DefaultChainedExecutable) executableManager.getJob(job.getId())).getTasks().get(0)
                         .getStatus() == ExecutableState.RUNNING);
+        try {
+            Thread.sleep(1000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
         //pause job due to some reason
         pauseJobWithLock(job.getId());
-        assertMemoryRestore(currMem);
-        //sleep 5s to make sure DefaultChainedExecutable is paused
+        //sleep 7s to make sure DefaultChainedExecutable is paused
         try {
             Thread.sleep(7000);
         } catch (InterruptedException e) {
@@ -1044,7 +1056,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         }
 
         val context1 = new ExecutableDurationContext(project, job.getId());
-        assertPausedState(context1, 7000);
+        assertPausedState(context1, 3000);
 
         try {
             Thread.sleep(1000);
@@ -1053,6 +1065,8 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         }
         val context2 = new ExecutableDurationContext(project, job.getId());
         assertPausedPending(context1, context2, 1000);
+
+        assertMemoryRestore(currMem);
 
         //resume
         resumeJobWithLock(job.getId());
@@ -1084,6 +1098,8 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         waitForJobFinish(job.getId());
         assertMemoryRestore(currMem);
         assertTimeSucceed(createTime, job.getId());
+        Assert.assertEquals(1, killProcessCount.get());
+
     }
 
     @Test
@@ -1185,9 +1201,13 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         await().atMost(60000, TimeUnit.MILLISECONDS)
                 .until(() -> ((DefaultChainedExecutable) executableManager.getJob(job.getId())).getTasks().get(0)
                         .getStatus() == ExecutableState.RUNNING);
+        try {
+            Thread.sleep(1000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
         //pause job due to some reason
         pauseJobWithLock(job.getId());
-        assertMemoryRestore(currMem);
         //sleep 7s to make sure DefaultChainedExecutable is paused
         try {
             Thread.sleep(7000);
@@ -1195,7 +1215,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
             e.printStackTrace();
         }
         val context1 = new ExecutableDurationContext(project, job.getId());
-        assertPausedState(context1, 7000);
+        assertPausedState(context1, 3000);
         try {
             Thread.sleep(1000);
         } catch (InterruptedException e) {
@@ -1203,6 +1223,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         }
         val context2 = new ExecutableDurationContext(project, job.getId());
         assertPausedPending(context1, context2, 1000);
+        assertMemoryRestore(currMem);
 
         restartJobWithLock(job.getId());
         assertMemoryRestore(currMem - SPARK_DRIVER_BASE_MEMORY);
@@ -1235,6 +1256,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         waitForJobFinish(job.getId());
         assertTimeSucceed(newCreateTime, job.getId());
         assertMemoryRestore(currMem);
+        Assert.assertEquals(1, killProcessCount.get());
     }
 
     private void assertPausedState(ExecutableDurationContext context, long interval) {
@@ -1336,7 +1358,15 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
     }
 
     private NExecutableManager getManager() {
-        return NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+        val originExecutableManager = NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+        val executableManager = Mockito.spy(originExecutableManager);
+        Mockito.doAnswer(invocation -> {
+            String jobId = invocation.getArgument(0);
+            originExecutableManager.destroyProcess(jobId);
+            killProcessCount.incrementAndGet();
+            return null;
+        }).when(executableManager).destroyProcess(Mockito.anyString());
+        return executableManager;
     }
 
     @Test

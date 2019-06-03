@@ -220,6 +220,7 @@ public class JobService extends BasicService {
         case PAUSED:
             return JobStatusEnum.STOPPED;
         case SUICIDAL:
+        case DISCARDED:
             return JobStatusEnum.DISCARDED;
         default:
             throw new RuntimeException("invalid state:" + state);
@@ -277,6 +278,10 @@ public class JobService extends BasicService {
             executableStepList
                     .add(parseToExecutableStep(task, i, getExecutableManager(project).getOutput(task.getId())));
         }
+        if (executable.getStatus() == ExecutableState.DISCARDED) {
+            executableStepList
+                    .forEach(executableStepResponse -> executableStepResponse.setStatus(JobStatusEnum.DISCARDED));
+        }
         return executableStepList;
 
     }
@@ -332,7 +337,8 @@ public class JobService extends BasicService {
         JobStatisticsManager manager = getJobStatisticsManager(project);
         Pair<Integer, JobStatistics> stats = manager.getOverallJobStats(startTime, endTime);
         JobStatistics jobStatistics = stats.getSecond();
-        return new JobStatisticsResponse(stats.getFirst(), jobStatistics.getTotalDuration(), jobStatistics.getTotalByteSize());
+        return new JobStatisticsResponse(stats.getFirst(), jobStatistics.getTotalDuration(),
+                jobStatistics.getTotalByteSize());
     }
 
     public Map<String, Integer> getJobCount(String project, long startTime, long endTime, String dimension) {
