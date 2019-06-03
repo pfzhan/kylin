@@ -74,6 +74,11 @@ public class QueryHistory {
     public static final String LAYOUT_ID = "layout_id";
     public static final String INDEX_TYPE = "index_type";
 
+    // error types
+    public static final String SYNTAX_ERROR = "Syntax error";
+    public static final String NO_REALIZATION_FOUND_ERROR = "No realization found";
+    public static final String OTHER_ERROR = "Other error";
+
     @JsonProperty(SQL_TEXT)
     @Column(name = SQL_TEXT)
     private String sql;

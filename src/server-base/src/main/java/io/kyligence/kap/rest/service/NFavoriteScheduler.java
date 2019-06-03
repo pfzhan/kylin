@@ -59,12 +59,12 @@ import lombok.NoArgsConstructor;
 import lombok.val;
 import lombok.var;
 import org.apache.commons.collections.CollectionUtils;
-import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.ExecutorServiceUtil;
 import org.apache.kylin.common.util.NamedThreadFactory;
 import org.apache.kylin.metadata.project.ProjectInstance;
+import org.apache.kylin.query.util.QueryUtil;
 import org.apache.kylin.rest.security.KylinUserManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -324,7 +324,7 @@ public class NFavoriteScheduler {
             long maxTime = getSystemTime() - backwardShiftTime;
 
             List<QueryHistory> queryHistories;
-            
+
             while (endTime <= maxTime) {
                 queryHistories = getQueryHistoryDao().getQueryHistoriesByTime(startTime, endTime);
 
@@ -341,13 +341,13 @@ public class NFavoriteScheduler {
                 startTime = endTime;
                 endTime += fetchQueryHistoryGapTime;
             }
-            
+
             if (startTime < maxTime) {
                 queryHistories = getQueryHistoryDao().getQueryHistoriesByTime(startTime, maxTime);
                 findAllCandidates(queryHistories, startTime, maxTime);
             }
         }
-        
+
         private void findAllCandidates(List<QueryHistory> queryHistories, long startTime, long endTime) {
             int numOfQueryHitIndex = 0;
             int overallQueryNum = 0;
@@ -434,11 +434,10 @@ public class NFavoriteScheduler {
     }
 
     private boolean isQualifiedCandidate(QueryHistory queryHistory) {
-        if (queryHistory.isException() &&
-                ("Syntax error".equals(queryHistory.getErrorType()) || StringUtils.isEmpty(queryHistory.getErrorType())))
+        if (!QueryUtil.isSelectStatement(queryHistory.getSqlPattern()))
             return false;
 
-        return true;
+        return !queryHistory.isException() || QueryHistory.NO_REALIZATION_FOUND_ERROR.equals(queryHistory.getErrorType());
     }
 
     long getSystemTime() {

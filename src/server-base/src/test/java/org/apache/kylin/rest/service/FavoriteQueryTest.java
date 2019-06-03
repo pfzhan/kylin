@@ -206,6 +206,7 @@ public class FavoriteQueryTest extends NLocalFileMetadataTestCase {
             if (prop.startsWith("sql_text")) {
                 String sqlText = prop.substring(prop.indexOf('"') + 1, prop.length() - 1);
                 queryHistory.setSql(sqlText);
+                queryHistory.setSqlPattern(sqlText);
             }
         }
         queryHistories.add(queryHistory);
@@ -237,8 +238,8 @@ public class FavoriteQueryTest extends NLocalFileMetadataTestCase {
 
 
         Assert.assertEquals(2, queryHistories.size());
-        Assert.assertEquals("Syntax error", queryHistories.get(0).getErrorType());
-        Assert.assertEquals("Other error", queryHistories.get(1).getErrorType());
+        Assert.assertEquals(QueryHistory.SYNTAX_ERROR, queryHistories.get(0).getErrorType());
+        Assert.assertEquals(QueryHistory.NO_REALIZATION_FOUND_ERROR, queryHistories.get(1).getErrorType());
 
 
         NFavoriteScheduler favoriteScheduler = Mockito.spy(new NFavoriteScheduler(PROJECT));

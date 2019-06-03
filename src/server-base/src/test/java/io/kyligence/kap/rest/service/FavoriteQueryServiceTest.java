@@ -412,6 +412,17 @@ public class FavoriteQueryServiceTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(1, (int) result.get("waiting"));
         Assert.assertEquals(1, (int) result.get("not_accelerated"));
         Assert.assertEquals(1, (int) result.get("accelerated"));
+
+        favoriteQueries = favoriteQueryManager.getAll();
+        Assert.assertEquals(5, favoriteQueries.size());
+
+        String updateSql = "update test_table set columnA='1' where columnB='1'";
+        request.setSqls(Lists.newArrayList(updateSql));
+        result = favoriteQueryService.createFavoriteQuery(PROJECT, request);
+        Assert.assertEquals(1, (int) result.get("not_supported_sql"));
+
+        favoriteQueries = favoriteQueryManager.getAll();
+        Assert.assertEquals(5, favoriteQueries.size());
     }
 
     @Test

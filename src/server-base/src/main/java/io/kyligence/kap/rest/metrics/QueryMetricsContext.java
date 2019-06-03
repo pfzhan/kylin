@@ -40,6 +40,7 @@ import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.metadata.realization.NoRealizationFoundException;
+import org.apache.kylin.metadata.realization.RoutingIndicatorException;
 import org.apache.kylin.query.util.QueryUtil;
 import org.apache.kylin.rest.request.SQLRequest;
 import org.apache.kylin.rest.response.SQLResponse;
@@ -203,28 +204,35 @@ public class QueryMetricsContext {
         collectErrorType(context);
         collectRealizationMetrics(response);
 
-        logger.debug("Query[{}] collect metrics {}, {}, {}, {}, {}, {}, {}", queryId, sql, submitter, server,
-                suite, queryDuration, totalScanBytes, errorType);
+        logger.debug("Query[{}] collect metrics {}, {}, {}, {}, {}, {}, {}", queryId, sql, submitter, server, suite,
+                queryDuration, totalScanBytes, errorType);
     }
 
     private void collectErrorType(final QueryContext context) {
-        Throwable cause = context.getErrorCause();
+        Throwable olapErrorCause = context.getOlapCause();
+        while (olapErrorCause != null) {
+            if (olapErrorCause instanceof NoRealizationFoundException
+                    || olapErrorCause instanceof RoutingIndicatorException) {
+                this.errorType = QueryHistory.NO_REALIZATION_FOUND_ERROR;
+                return;
+            }
+
+            olapErrorCause = olapErrorCause.getCause();
+        }
+
+        Throwable cause = context.getFinalCause();
         while (cause != null) {
             if (cause instanceof SqlValidatorException || cause instanceof SqlParseException
                     || cause.getClass().getName().contains("ParseException")) {
-                this.errorType = "Syntax error";
-                return;
-
-            } else if (cause instanceof NoRealizationFoundException) {
-                this.errorType = "No realization found";
+                this.errorType = QueryHistory.SYNTAX_ERROR;
                 return;
             }
 
             cause = cause.getCause();
         }
 
-        if (context.getErrorCause() != null) {
-            this.errorType = "Other error";
+        if (context.getFinalCause() != null) {
+            this.errorType = QueryHistory.OTHER_ERROR;
         }
     }
 
@@ -240,13 +248,15 @@ public class QueryMetricsContext {
         StringBuilder realizationSb = new StringBuilder();
 
         for (NativeQueryRealization realization : response.getNativeRealizations()) {
-            RealizationMetrics realizationMetrics = new RealizationMetrics(String.valueOf(realization.getLayoutId()), realization.getIndexType(), realization.getModelId());
+            RealizationMetrics realizationMetrics = new RealizationMetrics(String.valueOf(realization.getLayoutId()),
+                    realization.getIndexType(), realization.getModelId());
             realizationMetrics.setQueryId(queryId);
             realizationMetrics.setDuration(queryDuration);
             realizationMetrics.setSuite(suite);
             this.realizationMetrics.add(realizationMetrics);
             // example: modelId#layoutid#indexType
-            realizationSb.append(realizationMetrics.getModelId() + "#" + realizationMetrics.getLayoutId() + "#" + realizationMetrics.getIndexType() + ",");
+            realizationSb.append(realizationMetrics.getModelId() + "#" + realizationMetrics.getLayoutId() + "#"
+                    + realizationMetrics.getIndexType() + ",");
 
             if (realization.getIndexType().equals(QueryMetricsContext.TABLE_INDEX))
                 tableIndexUsed = true;
@@ -265,8 +275,7 @@ public class QueryMetricsContext {
         final ImmutableMap.Builder<String, String> builder = ImmutableMap.<String, String> builder() //
                 .put(QueryHistory.SUBMITTER, submitter) //
                 .put(QueryHistory.SUITE, suite) //
-                .put(QueryHistory.IS_INDEX_HIT, String.valueOf(isIndexHit))
-                .put(QueryHistory.QUERY_MONTH, month)
+                .put(QueryHistory.IS_INDEX_HIT, String.valueOf(isIndexHit)).put(QueryHistory.QUERY_MONTH, month)
                 .put(QueryHistory.IS_TABLE_INDEX_USED, String.valueOf(tableIndexUsed))
                 .put(QueryHistory.IS_AGG_INDEX_USED, String.valueOf(aggIndexUsed))
                 .put(QueryHistory.IS_TABLE_SNAPSHOT_USED, String.valueOf(tableSnapshotUsed));

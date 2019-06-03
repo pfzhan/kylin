@@ -107,7 +107,7 @@ public class QueryMetricsContextTest extends NLocalFileMetadataTestCase {
             QueryMetricsContext.start(queryContext.getQueryId(), "localhost:7070");
             Assert.assertEquals(true, QueryMetricsContext.isStarted());
 
-            queryContext.setErrorCause(new RuntimeException(new RuntimeException("other error")));
+            queryContext.setFinalCause(new RuntimeException(new RuntimeException("other error")));
 
             final SQLRequest request = new SQLRequest();
             request.setProject("default");
@@ -126,6 +126,40 @@ public class QueryMetricsContextTest extends NLocalFileMetadataTestCase {
             Assert.assertEquals("Other error", influxdbTags.get("error_type"));
             Assert.assertEquals("localhost:7070", influxdbTags.get("server"));
             Assert.assertEquals("suite_1", influxdbTags.get("suite"));
+            Assert.assertNull(influxdbTags.get("realizations"));
+
+        } finally {
+            QueryContext.reset();
+            QueryMetricsContext.reset();
+        }
+    }
+
+    @Test
+    public void assertCollectNoRealizationFoundError() {
+        try {
+            final String sql = "select * from test_with_otherError";
+            final QueryContext queryContext = QueryContext.current();
+            queryContext.setCorrectedSql(sql);
+            QueryMetricsContext.start(queryContext.getQueryId(), "localhost:7070");
+            Assert.assertEquals(true, QueryMetricsContext.isStarted());
+
+            queryContext.setOlapCause(new NoRealizationFoundException("no realization found"));
+            queryContext.setWithoutSyntaxError(true);
+            queryContext.setFinalCause(new RuntimeException(new RuntimeException("other error")));
+
+            final SQLRequest request = new SQLRequest();
+            request.setProject("default");
+            request.setSql(sql);
+            request.setUsername("ADMIN");
+
+            final SQLResponse response = new SQLResponse();
+            response.setException(true);
+            response.setHitExceptionCache(true);
+
+            final QueryMetricsContext metricsContext = QueryMetricsContext.collect(request, response, queryContext);
+
+            final Map<String, String> influxdbTags = metricsContext.getInfluxdbTags();
+            Assert.assertEquals(QueryHistory.NO_REALIZATION_FOUND_ERROR, influxdbTags.get("error_type"));
             Assert.assertNull(influxdbTags.get("realizations"));
 
         } finally {
@@ -177,7 +211,7 @@ public class QueryMetricsContextTest extends NLocalFileMetadataTestCase {
             QueryMetricsContext.start(queryContext.getQueryId(), "localhost:7070");
             Assert.assertEquals(true, QueryMetricsContext.isStarted());
 
-            queryContext.setErrorCause(new SqlValidatorException("Syntax error", new RuntimeException()));
+            queryContext.setFinalCause(new SqlValidatorException("Syntax error", new RuntimeException()));
 
             final SQLRequest request = new SQLRequest();
             request.setProject("default");
@@ -272,7 +306,7 @@ public class QueryMetricsContextTest extends NLocalFileMetadataTestCase {
             Assert.assertEquals(true, QueryMetricsContext.isStarted());
 
             queryContext
-                    .setErrorCause(new NoRealizationFoundException("realization not found", new RuntimeException()));
+                    .setFinalCause(new RuntimeException("realization not found", new RuntimeException()));
 
             final SQLRequest request = new SQLRequest();
             request.setProject("default");
@@ -290,7 +324,7 @@ public class QueryMetricsContextTest extends NLocalFileMetadataTestCase {
             // assert query metric tags
             final Map<String, String> influxdbTags = metricsContext.getInfluxdbTags();
             Assert.assertEquals("NATIVE", influxdbTags.get("engine_type"));
-            Assert.assertEquals("No realization found", influxdbTags.get("error_type"));
+            Assert.assertEquals(QueryHistory.OTHER_ERROR, influxdbTags.get("error_type"));
             Assert.assertEquals("true", influxdbTags.get("index_hit"));
 
             // assert query metric fields

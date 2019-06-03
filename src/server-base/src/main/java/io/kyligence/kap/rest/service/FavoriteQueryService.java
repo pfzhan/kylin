@@ -40,6 +40,7 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.query.relnode.OLAPContext;
+import org.apache.kylin.query.util.QueryUtil;
 import org.apache.kylin.rest.msg.MsgPicker;
 import org.apache.kylin.rest.request.FavoriteRequest;
 import org.apache.kylin.rest.service.BasicService;
@@ -90,6 +91,7 @@ public class FavoriteQueryService extends BasicService {
     private static final String WAITING_TAB = "waiting";
     private static final String NOT_ACCELERATED_TAB = "not_accelerated";
     private static final String ACCELERATED_TAB = "accelerated";
+    private static final String NOT_SUPPORTED_SQL = "not_supported_sql";
 
     private static final String IMPORTED = "imported";
     private static final String BLACKLIST = "blacklist";
@@ -101,6 +103,7 @@ public class FavoriteQueryService extends BasicService {
         result.put(WAITING_TAB, 0);
         result.put(NOT_ACCELERATED_TAB, 0);
         result.put(ACCELERATED_TAB, 0);
+        result.put(NOT_SUPPORTED_SQL, 0);
 
         int importedSqlSize = 0;
 
@@ -109,6 +112,11 @@ public class FavoriteQueryService extends BasicService {
         val blacklistSqls = getFavoriteRuleManager(project).getBlacklistSqls();
 
         for (String sql : request.getSqls()) {
+            if (!QueryUtil.isSelectStatement(sql)) {
+                result.computeIfPresent(NOT_SUPPORTED_SQL, (k, v) -> v + 1);
+                continue;
+            }
+
             String sqlPattern = QueryPatternUtil.normalizeSQLPattern(sql);
 
             if (blacklistSqls.contains(sqlPattern)) {

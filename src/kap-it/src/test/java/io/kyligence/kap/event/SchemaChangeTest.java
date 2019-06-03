@@ -188,7 +188,6 @@ public class SchemaChangeTest extends AbstractMVCIntegrationTestCase {
         val merger = new AfterBuildResourceMerger(config, PROJECT, JobTypeEnum.INC_BUILD);
         val layoutIds = toBuildLayouts.stream().map(LayoutEntity::getId).collect(Collectors.toSet());
         merger.mergeAfterIncrement(df.getUuid(), oneSeg.getId(), layoutIds, buildStore);
-        merger.mergeAnalysis(job.getSparkAnalysisStep());
     }
 
     @After

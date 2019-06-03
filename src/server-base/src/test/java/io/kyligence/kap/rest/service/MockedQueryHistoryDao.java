@@ -76,7 +76,7 @@ public class MockedQueryHistoryDao extends QueryHistoryDAO {
 
         // these are expected to be marked as favorite queries
         for (int i = 0; i < 6; i++) {
-            QueryHistory queryHistory = new QueryHistory("sql_pattern" + i,
+            QueryHistory queryHistory = new QueryHistory("select * from sql_pattern" + i,
                     QueryHistory.QUERY_HISTORY_SUCCEEDED, "ADMIN", System.currentTimeMillis(), 6000L);
             queryHistory.setInsertTime(currentTime + 30 * i * 1000L);
             queryHistory.setEngineType("HIVE");
@@ -90,7 +90,7 @@ public class MockedQueryHistoryDao extends QueryHistoryDAO {
 
         // These are three sql patterns that are already loaded in database
         for (int i = 0; i < 3; i++) {
-            QueryHistory queryHistoryForUpdate = new QueryHistory("sql" + (i+1),
+            QueryHistory queryHistoryForUpdate = new QueryHistory("select * from sql" + (i+1),
                     QueryHistory.QUERY_HISTORY_SUCCEEDED, "ADMIN", System.currentTimeMillis(), 6000L);
             queryHistoryForUpdate.setInsertTime(currentTime + 30 * i * 1000L);
             queryHistoryForUpdate.setEngineType("HIVE");

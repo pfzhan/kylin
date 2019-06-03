@@ -475,7 +475,7 @@ public class QueryService extends BasicService {
 
             sqlResponse = new SQLResponse(null, null, 0, true, errMsg, false, false);
             QueryContext queryContext = QueryContext.current();
-            queryContext.setErrorCause(e);
+            queryContext.setFinalCause(e);
             sqlResponse.setQueryId(queryContext.getQueryId());
             sqlResponse.setTotalScanCount(queryContext.getScannedRows());
             sqlResponse.setTotalScanBytes(queryContext.getScannedBytes());
@@ -870,6 +870,7 @@ public class QueryService extends BasicService {
             }
 
         } catch (SQLException sqlException) {
+            QueryContext.current().setOlapCause(sqlException);
             Pair<List<List<String>>, List<SelectedColumnMeta>> r = null;
             try {
                 r = tryPushDownSelectQuery(sqlRequest, conn.getSchema(), sqlException,

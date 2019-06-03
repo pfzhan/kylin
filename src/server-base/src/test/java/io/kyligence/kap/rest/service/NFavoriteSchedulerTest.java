@@ -84,28 +84,28 @@ public class NFavoriteSchedulerTest extends NLocalFileMetadataTestCase {
 
     private List<QueryHistory> queriesForTest() {
         QueryHistory queryHistory1 = new QueryHistory();
-        queryHistory1.setSqlPattern("sql1");
+        queryHistory1.setSqlPattern("select * from sql1");
         queryHistory1.setQueryStatus(QueryHistory.QUERY_HISTORY_SUCCEEDED);
         queryHistory1.setDuration(1000L);
         queryHistory1.setQueryTime(1001);
         queryHistory1.setEngineType("CONSTANTS");
 
         QueryHistory queryHistory2 = new QueryHistory();
-        queryHistory2.setSqlPattern("sql2");
+        queryHistory2.setSqlPattern("select * from sql2");
         queryHistory2.setQueryStatus(QueryHistory.QUERY_HISTORY_SUCCEEDED);
         queryHistory2.setDuration(1000L);
         queryHistory2.setQueryTime(1002);
         queryHistory2.setEngineType("HIVE");
 
         QueryHistory queryHistory3 = new QueryHistory();
-        queryHistory3.setSqlPattern("sql3");
+        queryHistory3.setSqlPattern("select * from sql3");
         queryHistory3.setQueryStatus(QueryHistory.QUERY_HISTORY_SUCCEEDED);
         queryHistory3.setDuration(1000L);
         queryHistory3.setQueryTime(1003);
         queryHistory3.setEngineType("HIVE");
 
         QueryHistory queryHistory4 = new QueryHistory();
-        queryHistory4.setSqlPattern("sql3");
+        queryHistory4.setSqlPattern("select * from sql3");
         queryHistory4.setQueryStatus(QueryHistory.QUERY_HISTORY_FAILED);
         queryHistory4.setDuration(1000L);
         queryHistory4.setQueryTime(1004);
@@ -119,7 +119,7 @@ public class NFavoriteSchedulerTest extends NLocalFileMetadataTestCase {
         long currentDate = currentTime - currentTime % (24 * 60 * 60 * 1000L);
 
         FavoriteQueryManager favoriteQueryManager = FavoriteQueryManager.getInstance(getTestConfig(), PROJECT);
-        FavoriteQuery favoriteQuery1 = new FavoriteQuery("sql1");
+        FavoriteQuery favoriteQuery1 = new FavoriteQuery("select * from sql1");
         favoriteQuery1.setTotalCount(1);
         favoriteQuery1.setLastQueryTime(10001);
         favoriteQuery1.setChannel(FavoriteQuery.CHANNEL_FROM_RULE);
@@ -129,7 +129,7 @@ public class NFavoriteSchedulerTest extends NLocalFileMetadataTestCase {
             }
         });
 
-        FavoriteQuery favoriteQuery2 = new FavoriteQuery("sql2");
+        FavoriteQuery favoriteQuery2 = new FavoriteQuery("select * from sql2");
         favoriteQuery2.setTotalCount(1);
         favoriteQuery2.setLastQueryTime(10002);
         favoriteQuery2.setChannel(FavoriteQuery.CHANNEL_FROM_RULE);
@@ -139,7 +139,7 @@ public class NFavoriteSchedulerTest extends NLocalFileMetadataTestCase {
             }
         });
 
-        FavoriteQuery favoriteQuery3 = new FavoriteQuery("sql3");
+        FavoriteQuery favoriteQuery3 = new FavoriteQuery("select * from sql3");
         favoriteQuery3.setTotalCount(1);
         favoriteQuery3.setLastQueryTime(10003);
         favoriteQuery3.setStatus(FavoriteQueryStatusEnum.ACCELERATING);
@@ -169,8 +169,8 @@ public class NFavoriteSchedulerTest extends NLocalFileMetadataTestCase {
         favoriteScheduler.initFrequencyStatus();
         Assert.assertEquals(24 * 60, favoriteScheduler.getFrequencyStatuses().size());
         Assert.assertEquals(3, favoriteScheduler.getOverAllStatus().getSqlPatternFreqMap().size());
-        Assert.assertNotNull(favoriteScheduler.getOverAllStatus().getSqlPatternFreqMap().get("sql1"));
-        Assert.assertEquals(24 * 60, (int) favoriteScheduler.getOverAllStatus().getSqlPatternFreqMap().get("sql2"));
+        Assert.assertNotNull(favoriteScheduler.getOverAllStatus().getSqlPatternFreqMap().get("select * from sql1"));
+        Assert.assertEquals(24 * 60, (int) favoriteScheduler.getOverAllStatus().getSqlPatternFreqMap().get("select * from sql2"));
 
         NFavoriteScheduler.FrequencyStatus firstStatus = favoriteScheduler.getFrequencyStatuses().pollFirst();
         NFavoriteScheduler.FrequencyStatus lastStatus = favoriteScheduler.getFrequencyStatuses().pollLast();
@@ -212,7 +212,7 @@ public class NFavoriteSchedulerTest extends NLocalFileMetadataTestCase {
                 QueryHistory queryHistory = Mockito.mock(QueryHistory.class);
                 Mockito.doReturn(false).when(queryHistory).isException();
                 Mockito.doReturn("ADMIN").when(queryHistory).getQuerySubmitter();
-                Mockito.doReturn("test_sql" + i).when(queryHistory).getSqlPattern();
+                Mockito.doReturn("select * from test_sql" + i).when(queryHistory).getSqlPattern();
                 queryHistories.add(queryHistory);
             }
         }
@@ -239,13 +239,13 @@ public class NFavoriteSchedulerTest extends NLocalFileMetadataTestCase {
 
         FavoriteQueryManager favoriteQueryManager = FavoriteQueryManager.getInstance(getTestConfig(), PROJECT);
         favoriteQueryManager.reloadSqlPatternMap();
-        Assert.assertTrue(favoriteQueryManager.contains("test_sql11"));
-        Assert.assertTrue(favoriteQueryManager.contains("test_sql12"));
+        Assert.assertTrue(favoriteQueryManager.contains("select * from test_sql11"));
+        Assert.assertTrue(favoriteQueryManager.contains("select * from test_sql12"));
         Assert.assertFalse(favoriteQueryManager.contains(blacklistSql));
 
         // append a sql to blacklist
         val favoriteRuleManager = FavoriteRuleManager.getInstance(getTestConfig(), PROJECT);
-        favoriteRuleManager.appendSqlPatternToBlacklist(new FavoriteRule.SQLCondition("test_sql9"));
+        favoriteRuleManager.appendSqlPatternToBlacklist(new FavoriteRule.SQLCondition("select * from test_sql9"));
 
         // change frequency rule to 100%
         List<FavoriteRule.Condition> conditions = Lists.newArrayList(new FavoriteRule.Condition(null, "1"));
@@ -255,11 +255,11 @@ public class NFavoriteSchedulerTest extends NLocalFileMetadataTestCase {
         autoMarkFavoriteRunner.run();
 
         favoriteQueryManager.reloadSqlPatternMap();
-        Assert.assertFalse(favoriteQueryManager.contains("test_sql9"));
+        Assert.assertFalse(favoriteQueryManager.contains("select * from test_sql9"));
     }
 
     @Test
-    public void testFailedQueryHistoryNotAutoMarkedByFrequencyRule() {
+    public void testNotQualifiedQueryHistoryNotPutToFQ() {
         NFavoriteScheduler.AutoFavoriteRunner autoMarkRunner = favoriteScheduler.new AutoFavoriteRunner();
         QueryHistoryTimeOffsetManager timeOffsetManager = QueryHistoryTimeOffsetManager.getInstance(getTestConfig(),
                 PROJECT);
@@ -268,14 +268,15 @@ public class NFavoriteSchedulerTest extends NLocalFileMetadataTestCase {
                 .getSystemTime();
 
         QueryHistory succeededQueryHistory = new QueryHistory();
-        succeededQueryHistory.setSqlPattern("succeeded_query");
+        succeededQueryHistory.setSqlPattern("select * from succeeded_table");
         succeededQueryHistory.setQueryStatus(QueryHistory.QUERY_HISTORY_SUCCEEDED);
         succeededQueryHistory.setQueryTime(1001);
         succeededQueryHistory.setQuerySubmitter("ADMIN");
 
         QueryHistory failedQueryHistory = new QueryHistory();
-        failedQueryHistory.setSqlPattern("failed_query");
+        failedQueryHistory.setSqlPattern("select * from failed_table");
         failedQueryHistory.setQueryStatus(QueryHistory.QUERY_HISTORY_FAILED);
+        failedQueryHistory.setErrorType(QueryHistory.SYNTAX_ERROR);
         failedQueryHistory.setQueryTime(1001);
         failedQueryHistory.setQuerySubmitter("ADMIN");
 
@@ -287,8 +288,23 @@ public class NFavoriteSchedulerTest extends NLocalFileMetadataTestCase {
         queryWithConstants.setQuerySubmitter("ADMIN");
         queryWithConstants.setEngineType("CONSTANTS");
 
+        // failed query but syntax is valid
+        QueryHistory syntaxValidQuery = new QueryHistory();
+        syntaxValidQuery.setSqlPattern("select * from syntax_valid");
+        syntaxValidQuery.setQueryStatus(QueryHistory.QUERY_HISTORY_FAILED);
+        syntaxValidQuery.setErrorType(QueryHistory.NO_REALIZATION_FOUND_ERROR);
+        syntaxValidQuery.setQueryTime(1001);
+        syntaxValidQuery.setQuerySubmitter("ADMIN");
+
+        // update query
+        QueryHistory updateQuery = new QueryHistory();
+        updateQuery.setSqlPattern("update test_table set columnA='1' where columnB='1'");
+        updateQuery.setQueryStatus(QueryHistory.QUERY_HISTORY_SUCCEEDED);
+        updateQuery.setQueryTime(1001);
+        updateQuery.setQuerySubmitter("ADMIN");
+
         QueryHistoryDAO queryHistoryDAO = Mockito.mock(QueryHistoryDAO.class);
-        Mockito.doReturn(Lists.newArrayList(succeededQueryHistory, failedQueryHistory, queryWithConstants))
+        Mockito.doReturn(Lists.newArrayList(succeededQueryHistory, failedQueryHistory, queryWithConstants, syntaxValidQuery, updateQuery))
                 .when(queryHistoryDAO).getQueryHistoriesByTime(Mockito.anyLong(), Mockito.anyLong());
         Mockito.doReturn(queryHistoryDAO).when(favoriteScheduler).getQueryHistoryDao();
 
@@ -297,8 +313,9 @@ public class NFavoriteSchedulerTest extends NLocalFileMetadataTestCase {
         NFavoriteScheduler.FrequencyStatus overallStatus = favoriteScheduler.getOverAllStatus();
         Map<String, Integer> sqlPatternFreqInProj = overallStatus.getSqlPatternFreqMap();
 
-        Assert.assertEquals(2, sqlPatternFreqInProj.size());
-        Assert.assertEquals(1, (int) sqlPatternFreqInProj.get("succeeded_query"));
+        Assert.assertEquals(3, sqlPatternFreqInProj.size());
+        Assert.assertEquals(1, (int) sqlPatternFreqInProj.get(succeededQueryHistory.getSqlPattern()));
+        Assert.assertEquals(1, (int) sqlPatternFreqInProj.get(syntaxValidQuery.getSqlPattern()));
     }
 
     @Test
@@ -520,12 +537,12 @@ public class NFavoriteSchedulerTest extends NLocalFileMetadataTestCase {
         autoMarkFavoriteRunner.run();
         Assert.assertEquals(originFavoriteQuerySize + 2, favoriteQueryManager.getAll().size());
         Assert.assertTrue(
-                favoriteScheduler.getFrequencyStatuses().last().getSqlPatternFreqMap().containsKey("sql_pattern0"));
+                favoriteScheduler.getFrequencyStatuses().last().getSqlPatternFreqMap().containsKey("select * from sql_pattern0"));
         Assert.assertTrue(
-                favoriteScheduler.getFrequencyStatuses().last().getSqlPatternFreqMap().containsKey("sql_pattern1"));
+                favoriteScheduler.getFrequencyStatuses().last().getSqlPatternFreqMap().containsKey("select * from sql_pattern1"));
 
         // at time 02-01 00:01:03, a query history is inserted into influxdb but with insert time as 00:00:59
-        QueryHistory queryHistory = new QueryHistory("sql_pattern7", QueryHistory.QUERY_HISTORY_SUCCEEDED, "ADMIN",
+        QueryHistory queryHistory = new QueryHistory("select * from sql_pattern7", QueryHistory.QUERY_HISTORY_SUCCEEDED, "ADMIN",
                 System.currentTimeMillis(), 6000L);
         queryHistory.setInsertTime(mockedQueryHistoryDao.getCurrentTime() + 59 * 1000L);
         queryHistory.setEngineType("HIVE");
@@ -538,11 +555,11 @@ public class NFavoriteSchedulerTest extends NLocalFileMetadataTestCase {
         autoMarkFavoriteRunner.run();
         Assert.assertEquals(originFavoriteQuerySize + 5, favoriteQueryManager.getAll().size());
         Assert.assertTrue(
-                favoriteScheduler.getFrequencyStatuses().last().getSqlPatternFreqMap().containsKey("sql_pattern2"));
+                favoriteScheduler.getFrequencyStatuses().last().getSqlPatternFreqMap().containsKey("select * from sql_pattern2"));
         Assert.assertTrue(
-                favoriteScheduler.getFrequencyStatuses().last().getSqlPatternFreqMap().containsKey("sql_pattern3"));
+                favoriteScheduler.getFrequencyStatuses().last().getSqlPatternFreqMap().containsKey("select * from sql_pattern3"));
         Assert.assertTrue(
-                favoriteScheduler.getFrequencyStatuses().last().getSqlPatternFreqMap().containsKey("sql_pattern7"));
+                favoriteScheduler.getFrequencyStatuses().last().getSqlPatternFreqMap().containsKey("select * from sql_pattern7"));
         Assert.assertTrue(favoriteScheduler.getOverAllStatus().getSqlPatternFreqMap().size() > 0);
 
         // current time is 02-01 00:03:00, runner scanned from 2018-02-01 00:02:00 to 2018-02-01 00:03:00
@@ -582,7 +599,7 @@ public class NFavoriteSchedulerTest extends NLocalFileMetadataTestCase {
 
         Assert.assertTrue(favoriteScheduler.getFrequencyStatuses().size() > 1);
         Assert.assertFalse(favoriteScheduler.getOverAllStatus().getSqlPatternFreqMap().isEmpty());
-        Assert.assertEquals(1, (int) favoriteScheduler.getOverAllStatus().getSqlPatternFreqMap().get("sql_pattern0"));
+        Assert.assertEquals(1, (int) favoriteScheduler.getOverAllStatus().getSqlPatternFreqMap().get("select * from sql_pattern0"));
 
         setUpTimeOffset();
 
@@ -599,33 +616,33 @@ public class NFavoriteSchedulerTest extends NLocalFileMetadataTestCase {
 
         Assert.assertFalse(favoriteScheduler.getOverAllStatus().getSqlPatternFreqMap().isEmpty());
         // frequency is still 1
-        Assert.assertEquals(1, (int) favoriteScheduler.getOverAllStatus().getSqlPatternFreqMap().get("sql_pattern0"));
+        Assert.assertEquals(1, (int) favoriteScheduler.getOverAllStatus().getSqlPatternFreqMap().get("select * from sql_pattern0"));
     }
 
     private List<QueryHistory> queryHistories() {
         QueryHistory queryHistory1 = new QueryHistory();
-        queryHistory1.setSqlPattern("sql1");
+        queryHistory1.setSqlPattern("select * from sql1");
         queryHistory1.setQueryStatus(QueryHistory.QUERY_HISTORY_SUCCEEDED);
         queryHistory1.setDuration(1000L);
         queryHistory1.setQueryTime(1001);
         queryHistory1.setEngineType("CONSTANTS");
 
         QueryHistory queryHistory2 = new QueryHistory();
-        queryHistory2.setSqlPattern("sql2");
+        queryHistory2.setSqlPattern("select * from sql2");
         queryHistory2.setQueryStatus(QueryHistory.QUERY_HISTORY_SUCCEEDED);
         queryHistory2.setDuration(1000L);
         queryHistory2.setQueryTime(1002);
         queryHistory2.setEngineType("HIVE");
 
         QueryHistory queryHistory3 = new QueryHistory();
-        queryHistory3.setSqlPattern("sql3");
+        queryHistory3.setSqlPattern("select * from sql3");
         queryHistory3.setQueryStatus(QueryHistory.QUERY_HISTORY_SUCCEEDED);
         queryHistory3.setDuration(1000L);
         queryHistory3.setQueryTime(1003);
         queryHistory3.setEngineType("NATIVE");
 
         QueryHistory queryHistory4 = new QueryHistory();
-        queryHistory4.setSqlPattern("sql3");
+        queryHistory4.setSqlPattern("select * from sql3");
         queryHistory4.setQueryStatus(QueryHistory.QUERY_HISTORY_FAILED);
         queryHistory4.setDuration(1000L);
         queryHistory4.setQueryTime(1004);

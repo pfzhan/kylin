@@ -96,7 +96,8 @@ public class QueryContext {
         }
     };
 
-    private Throwable errorCause;
+    private Throwable finalCause;
+    private Throwable olapCause;
     private String pushdownEngine;
     @Getter
     @Setter
@@ -218,12 +219,20 @@ public class QueryContext {
         return scannedRows.addAndGet(deltaRows);
     }
 
-    public Throwable getErrorCause() {
-        return errorCause;
+    public Throwable getFinalCause() {
+        return finalCause;
     }
 
-    public void setErrorCause(Throwable errorCause) {
-        this.errorCause = errorCause;
+    public void setFinalCause(Throwable finalCause) {
+        this.finalCause = finalCause;
+    }
+
+    public Throwable getOlapCause() {
+        return olapCause;
+    }
+
+    public void setOlapCause(Throwable olapCause) {
+        this.olapCause = olapCause;
     }
 
     public boolean hasRuntimeAgg() {
