@@ -66,6 +66,12 @@ public class HivePushDownConverterTest {
         String originString = "ignore EXTRACT(YEAR FROM CAST(KYLIN_CAL_DT.CAL_DT AS INTEGER)) ignore";
         String replacedString = HivePushDownConverter.castReplace(originString);
         Assert.assertEquals("ignore EXTRACT(YEAR FROM CAST(KYLIN_CAL_DT.CAL_DT AS int)) ignore", replacedString);
+
+        HivePushDownConverter converter = new HivePushDownConverter();
+        originString = "SELECT CAST(YEAR(KYLIN_CAL_DT.CAL_DT) AS INTEGER) AS Y FROM KYLIN_CAL_DT LIMIT 10;";
+        replacedString = converter.convert(originString, "", "", false);
+        Assert.assertEquals("SELECT CAST(YEAR(KYLIN_CAL_DT.CAL_DT) AS int) AS Y FROM KYLIN_CAL_DT LIMIT 10;",
+                replacedString);
     }
 
     @Test
@@ -85,6 +91,29 @@ public class HivePushDownConverterTest {
         String replacedString = HivePushDownConverter.groupingSetsReplace(originString);
         Assert.assertEquals("select sum(price) as GMV group by \n"
                 + "lstg_format_name,cal_dt,slr_segment_cd grouping sets((lstg_format_name, cal_dt, slr_segment_cd), (cal_dt, slr_segment_cd), (lstg_format_name, slr_segment_cd));\n",
+                replacedString);
+    }
+
+    @Test
+    public void testCastVariantSubstringGrammar() {
+        HivePushDownConverter converter = new HivePushDownConverter();
+        String originString = "select substring( lstg_format_name   from   1  for   4 ) from test_kylin_fact limit 10;";
+        String replacedString = converter.convert(originString, "", "", false);
+        Assert.assertEquals("select substring(lstg_format_name, 1, 4) from test_kylin_fact limit 10;", replacedString);
+
+        originString = "select distinct " //
+                + "substring (\"ZB_POLICY_T_VIEW\".\"DIMENSION1\" " //
+                + "\nfrom position ('|1|' in \"ZB_POLICY_T_VIEW\".\"DIMENSION1\") + 3 " //
+                + "\nfor (position ('|2|' in \"ZB_POLICY_T_VIEW\".\"DIMENSION1\") - position ('|1|' in \"ZB_POLICY_T_VIEW\".\"DIMENSION1\")) - 3"
+                + ") as \"memberUniqueName\"  " //
+                + "from \"FRPDB0322\".\"ZB_POLICY_T_VIEW\" \"ZB_POLICY_T_VIEW\" limit10;";
+        replacedString = converter.convert(originString, "", "", false);
+        Assert.assertEquals("select distinct " //
+                + "substring(`ZB_POLICY_T_VIEW`.`DIMENSION1`, " //
+                + "position ('|1|' in `ZB_POLICY_T_VIEW`.`DIMENSION1`) + 3, " //
+                + "(position ('|2|' in `ZB_POLICY_T_VIEW`.`DIMENSION1`) - position ('|1|' in `ZB_POLICY_T_VIEW`.`DIMENSION1`)) - 3"
+                + ") as `memberUniqueName`  " //
+                + "from `FRPDB0322`.`ZB_POLICY_T_VIEW` `ZB_POLICY_T_VIEW` limit10;", //
                 replacedString);
     }
 

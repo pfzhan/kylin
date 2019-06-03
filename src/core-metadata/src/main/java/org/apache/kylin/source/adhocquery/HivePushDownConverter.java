@@ -63,6 +63,8 @@ public class HivePushDownConverter implements IPushDownConverter {
     private static final Pattern GROUPING_SETS_PATTERN = Pattern
             .compile("group\\s+by\\s+(grouping\\s+sets\\s*\\(([`_a-z0-9A-Z(),\\s]+)\\))", Pattern.CASE_INSENSITIVE);
     private static final Pattern COLUMN_NAME_PATTERN = Pattern.compile("[`_a-z0-9A-Z]+", Pattern.CASE_INSENSITIVE);
+    private static final Pattern VAR_SUBSTRING_PATTERN = Pattern
+            .compile("\\bsubstring\\s*\\(\\s*(.*?)\\s+from\\s+(.*?)\\s+for\\s+(.*?)\\s*\\)", Pattern.CASE_INSENSITIVE);
 
     private static final String NVARCHAR_PATTERN = "(?i)\\s+AS\\s+VARCHAR\\(\\d+\\)";
 
@@ -127,6 +129,19 @@ public class HivePushDownConverter implements IPushDownConverter {
         }
 
         return replacedString;
+    }
+
+    public static String castVariantSubstringGrammar(String originStr) {
+        Matcher matcher = VAR_SUBSTRING_PATTERN.matcher(originStr);
+        String replacedStr = originStr;
+        while (matcher.find()) {
+            String colName = matcher.group(1);
+            String begin = matcher.group(2);
+            String len = matcher.group(3);
+            String replaced = "substring(" + colName + ", " + begin + ", " + len + ")";
+            replacedStr = replaceString(replacedStr, matcher.group(), replaced);
+        }
+        return replacedStr;
     }
 
     public static String timestampAddDiffReplace(String originString) {
@@ -206,6 +221,9 @@ public class HivePushDownConverter implements IPushDownConverter {
 
         // Step8.Support grouping sets with none group by
         convertedSql = groupingSetsReplace(convertedSql);
+
+        // Step9. Support variant substring grammar
+        convertedSql = castVariantSubstringGrammar(convertedSql);
 
         return convertedSql;
     }
