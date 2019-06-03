@@ -24,6 +24,7 @@ class NModel {
     this.tables = {}
     this.owner = options.owner || ''
     this.canvas = options.canvas // 模型布局坐标
+    this.broken_reason = options.broken_reason // 破损原因
     this.filter_condition = options.filter_condition || null
     this.column_correlations = options.column_correlations || []
     this.computed_columns = options.computed_columns || []
@@ -306,7 +307,8 @@ class NModel {
           owner: this.owner,
           project: this.project,
           description: this.description,
-          alias: this.alias
+          alias: this.alias,
+          broken_reason: this.broken_reason
         }
         let factTable = this.getFactTable()
         if (factTable) {

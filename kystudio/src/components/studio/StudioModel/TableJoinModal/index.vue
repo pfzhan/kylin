@@ -19,30 +19,34 @@
     </el-row>
     <div class="ky-line ksd-mt-15"></div>
     <!-- 列的关联 -->
-    <el-row :gutter="4"  class="ksd-mt-15" v-for="(key, val) in joinColumns.foreign_key" :key="val">
-      <el-col :span="10" :class="{'is-broken': checkIsBroken(brokenForeignKeys, joinColumns.foreign_key[val])}">
-         <el-select size="small"  style="width:100%" filterable v-model="joinColumns.foreign_key[val]" :placeholder="$t('kylinLang.common.pleaseSelect')">
-            <el-option v-for="f in fColumns" :value="fTable.alias+'.'+f.name" :key="f.name" :label="f.name">
-            </el-option>
-            <el-option :disabled="true" v-if="checkIsBroken(brokenForeignKeys, joinColumns.foreign_key[val])" :value="joinColumns.foreign_key[val]" :label="joinColumns.foreign_key[val].split('.')[1]"></el-option>
-          </el-select>
-          <p class="error-msg">{{$t('noColumnFund')}}</p>
-      </el-col>
-      <el-col :span="1" class="ksd-center" style="font-size:20px;">
-         =
-      </el-col>
-      <el-col :span="11" :class="{'is-broken': checkIsBroken(brokenPrimaryKeys,joinColumns.primary_key[val])}">
-        <el-select size="small"  style="width:100%" filterable v-model="joinColumns.primary_key[val]" :placeholder="$t('kylinLang.common.pleaseSelect')">
-          <el-option v-for="p in pColumns" :value="pTable.alias+'.'+p.name" :key="p.name" :label="p.name">
-          </el-option>
-          <el-option :disabled="true" v-if="checkIsBroken(brokenPrimaryKeys, joinColumns.primary_key[val])" :value="joinColumns.primary_key[val]" :label="joinColumns.primary_key[val].split('.')[1]"></el-option>
-        </el-select>
-        <p class="error-msg">{{$t('noColumnFund')}}</p>
-      </el-col>
-      <el-col :span="2" class="ksd-right">
-        <el-button  type="primary" plain icon="el-icon-ksd-add_2" size="mini" @click="addJoinConditionColumns" circle></el-button><el-button  icon="el-icon-minus" size="mini" @click="removeJoinConditionColumn(val)" circle></el-button>
-      </el-col>
-    </el-row>
+    <el-form class="ksd-mt-10" ref="conditionForm" :model="joinColumns">
+      <el-form-item v-for="(key, val) in joinColumns.foreign_key" :key="val" class="ksd-mb-6">
+          <el-col :span="10">
+            <el-form-item :prop="'foreign_key.' + val" :rules="[{validator: checkIsBrokenForeignKey, trigger: 'change'}]">
+              <el-select size="small"  style="width:100%" filterable v-model="joinColumns.foreign_key[val]" :placeholder="$t('kylinLang.common.pleaseSelect')">
+                <el-option v-for="f in fColumns" :value="fTable.alias+'.'+f.name" :key="f.name" :label="f.name">
+                </el-option>
+                <el-option :disabled="true" v-if="checkIsBroken(brokenForeignKeys, joinColumns.foreign_key[val])" :value="joinColumns.foreign_key[val]" :label="joinColumns.foreign_key[val].split('.')[1]"></el-option>
+              </el-select>
+            </el-form-item>
+          </el-col>
+          <el-col :span="1" class="ksd-center" style="font-size:20px;">
+            =
+          </el-col>
+          <el-col :span="11">
+            <el-form-item :prop="'primary_key.' + val" :rules="[{validator: checkIsBrokenPrimaryKey, trigger: 'change'}]">
+              <el-select size="small" style="width:100%" filterable v-model="joinColumns.primary_key[val]" :placeholder="$t('kylinLang.common.pleaseSelect')">
+                <el-option v-for="p in pColumns" :value="pTable.alias+'.'+p.name" :key="p.name" :label="p.name">
+                </el-option>
+                <el-option :disabled="true" v-if="checkIsBroken(brokenPrimaryKeys, joinColumns.primary_key[val])" :value="joinColumns.primary_key[val]" :label="joinColumns.primary_key[val].split('.')[1]"></el-option>
+              </el-select>
+            </el-form-item>
+          </el-col>
+          <el-col :span="2" class="ksd-right">
+            <el-button  type="primary" plain icon="el-icon-ksd-add_2" size="mini" @click="addJoinConditionColumns" circle></el-button><el-button  icon="el-icon-minus" size="mini" @click="removeJoinConditionColumn(val)" circle></el-button>
+          </el-col>
+      </el-form-item>
+    </el-form>
     <span slot="footer" class="dialog-footer">
       <!-- <el-button @click="delConn" v-if="currentConnObj" size="medium" class="ksd-fleft">{{$t('delConn')}}</el-button> -->
       <el-button @click="isShow && handleClose(false)" size="medium">{{$t('kylinLang.common.cancel')}}</el-button>
@@ -104,6 +108,9 @@ export default class TableJoinModal extends Vue {
         this.$message(this.$t('kylinLang.project.mustSelectProject'))
         this.handleClose(false)
       }
+      this.$nextTick(() => {
+        this.$refs.conditionForm && this.$refs.conditionForm.validate()
+      })
       this.selectP = this.form.pid || ''
       this.selectF = this.form.fid || ''
       this.joinType = this.form.joinType || 'INNER'
@@ -184,9 +191,25 @@ export default class TableJoinModal extends Vue {
   get pTable () {
     return this.form.tables && this.form.tables[this.selectP] || []
   }
-  checkIsBroken (brokenKeys, key) {
+  checkIsBrokenPrimaryKey (rule, value, callback) {
+    if (value) {
+      if (this.checkIsBroken(this.brokenPrimaryKeys, value)) {
+        return callback(new Error(this.$t('noColumnFund')))
+      }
+    }
+    callback()
+  }
+  checkIsBrokenForeignKey (rule, value, callback) {
+    if (value) {
+      if (this.checkIsBroken(this.brokenForeignKeys, value)) {
+        return callback(new Error(this.$t('noColumnFund')))
+      }
+    }
+    callback()
+  }
+  checkIsBroken (brokenList, key) {
     if (key) {
-      return ~brokenKeys.indexOf(key)
+      return ~brokenList.indexOf(key)
     }
     return false
   }
@@ -252,7 +275,8 @@ export default class TableJoinModal extends Vue {
       }
     })
   }
-  saveJoinCondition () {
+  async saveJoinCondition () {
+    await this.$refs.conditionForm.validate()
     var joinData = this.joinColumns // 修改后的连接关系
     var selectF = this.selectF // 外键表名
     var selectP = this.selectP // 主键表名

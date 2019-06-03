@@ -9,21 +9,30 @@
     :close-on-press-escape="false" 
     :close-on-click-modal="false">     
     <!-- <div class="ky-list-title" v-if="!(modelInstance && modelInstance.uuid) && partitionMeta.table && partitionMeta.column">{{$t('partitionSet')}}</div> -->
-    <el-form :model="modelBuildMeta" ref="partitionForm" :rules="rules"  label-width="85px" label-position="top"> 
+    <el-form :model="partitionMeta" ref="partitionForm" :rules="partitionRules"  label-width="85px" label-position="top"> 
       <el-form-item  :label="$t('partitionDateColumn')">
-        <el-select :disabled="isLoadingNewRange" v-guide.partitionTable v-model="partitionMeta.table" @change="partitionTableChange" :placeholder="$t('kylinLang.common.pleaseSelect')" style="width:248px" class="ksd-mr-5">
-          <el-option :label="$t('noPartition')" value=""></el-option>
-          <el-option :label="t.alias" :value="t.alias" v-for="t in partitionTables" :key="t.alias">{{t.alias}}</el-option>
-        </el-select><el-select :disabled="isLoadingNewRange"
-         v-guide.partitionColumn  v-model="partitionMeta.column" :placeholder="$t('kylinLang.common.pleaseSelect')" filterable style="width:248px">
-          <el-option :label="t.name" :value="t.name" v-for="t in columns" :key="t.name">
-            <span style="float: left">{{ t.name }}</span>
-            <span class="ky-option-sub-info">{{ t.datatype }}</span>
-          </el-option>
-        </el-select>
+        <el-col :span="12">
+          <el-select :disabled="isLoadingNewRange" v-guide.partitionTable v-model="partitionMeta.table" @change="partitionTableChange" :placeholder="$t('kylinLang.common.pleaseSelect')" style="width:100%" class="ksd-mr-5">
+            <el-option :label="$t('noPartition')" value=""></el-option>
+            <el-option :label="t.alias" :value="t.alias" v-for="t in partitionTables" :key="t.alias">{{t.alias}}</el-option>
+          </el-select>
+        </el-col>
+        <el-col :span="12" class="ksd-pl-5">
+          <el-form-item prop="column">
+            <el-select :disabled="isLoadingNewRange"
+            v-guide.partitionColumn  v-model="partitionMeta.column" :placeholder="$t('kylinLang.common.pleaseSelect')" filterable style="width:248px">
+              <el-option :label="t.name" :value="t.name" v-for="t in columns" :key="t.name">
+                <span style="float: left">{{ t.name }}</span>
+                <span class="ky-option-sub-info">{{ t.datatype }}</span>
+              </el-option>
+            </el-select>
+          </el-form-item>
+        </el-col>
       </el-form-item>
+    </el-form> 
     <template v-if="!(modelInstance && modelInstance.uuid) && partitionMeta.table && partitionMeta.column">
       <div class="ky-list-title ksd-mt-14">{{$t('loadRange')}}</div>
+    <el-form :model="modelBuildMeta" ref="rangeForm" :rules="rules"  label-width="85px" label-position="top"> 
       <el-form-item class="custom-load ksd-mt-10"  prop="dataRangeVal" :rule="[{required: true, trigger: 'blur', message: this.$t('dataRangeValValid')}, {
       validator: this.validateRange, trigger: 'blur'
     }]">
@@ -63,8 +72,8 @@
             <span v-guide.checkPartitionDataRangeHasData style="position:absolute;width:1px; height:0" v-if="modelBuildMeta.dataRangeVal[0] && modelBuildMeta.dataRangeVal[1]"></span>
         </div>
       </el-form-item>
-      </template>
-    </el-form>
+      </el-form>
+    </template>
     <div slot="footer" class="dialog-footer ky-no-br-space">
       <el-button plain  size="medium" :disabled="isLoadingNewRange" @click="isShow && handleClose(false)">{{$t('kylinLang.common.cancel')}}</el-button>
       <el-button type="primary" v-if="isShow" :disabled="isLoadingNewRange" v-guide.partitionSaveBtn plain @click="savePartition" size="medium">{{$t('kylinLang.common.ok')}}</el-button>
@@ -126,8 +135,6 @@ export default class ModelPartitionModal extends Vue {
   isLoading = false
   isFormShow = false
   isLoadingNewRange = false
-  factTableColumns = [{tableName: 'DEFAULT.KYLIN_SALES', column: 'PRICE'}]
-  lookupTableColumns = [{tableName: 'DEFAULT.KYLIN_CAL_DT', column: 'CAL_DT'}]
   partitionMeta = {
     table: '',
     column: '',
@@ -138,6 +145,9 @@ export default class ModelPartitionModal extends Vue {
       validator: this.validateRange, trigger: 'blur'
     }]
   }
+  partitionRules = {
+    column: [{validator: this.validateBrokenColumn, trigger: 'change'}]
+  }
   validateRange (rule, value, callback) {
     const [ startValue, endValue ] = value
     const isLoadExisted = this.modelBuildMeta.isLoadExisted
@@ -147,9 +157,23 @@ export default class ModelPartitionModal extends Vue {
       callback()
     }
   }
+  validateBrokenColumn (rule, value, callback) {
+    if (value) {
+      if (this.checkIsBroken(this.brokenPartitionColumns, value)) {
+        return callback(new Error(this.$t('noColumnFund')))
+      }
+    }
+    callback()
+  }
   modelBuildMeta = {
     dataRangeVal: [],
     isLoadExisted: false
+  }
+  checkIsBroken (brokenKeys, key) {
+    if (key) {
+      return ~brokenKeys.indexOf(key)
+    }
+    return false
   }
   async handleLoadNewestRange () {
     this.isLoadingNewRange = true
@@ -170,12 +194,6 @@ export default class ModelPartitionModal extends Vue {
       handleError(e)
     }
     this.isLoadingNewRange = false
-  }
-  @Watch('isShow')
-  initModelBuldRange () {
-    if (this.isShow) {
-      this.modelBuildMeta.dataRangeVal = []
-    }
   }
   filterCondition = ''
   dateFormat = [
@@ -201,6 +219,14 @@ export default class ModelPartitionModal extends Vue {
       })
     }
     return result
+  }
+  // 获取破损的partition keys
+  get brokenPartitionColumns () {
+    if (this.partitionMeta.table) {
+      let ntable = this.modelInstance.getTableByAlias(this.partitionMeta.table)
+      return this.modelInstance.getBrokenModelLinksKeys(ntable.guid, [this.partitionMeta.column])
+    }
+    return []
   }
   get selectedTable () {
     if (this.partitionMeta.table) {
@@ -263,12 +289,18 @@ export default class ModelPartitionModal extends Vue {
   }
   @Watch('isShow')
   initModeDesc () {
-    if (this.isShow && this.modelDesc && this.modelDesc.partition_desc && this.modelDesc.partition_desc.partition_date_column) {
-      let named = this.modelDesc.partition_desc.partition_date_column.split('.')
-      this.partitionMeta.table = named[0]
-      this.partitionMeta.column = named[1]
-      this.partitionMeta.format = this.modelDesc.partition_desc.partition_date_format
-      this.partitionMeta.filter_condition = this.modelDesc.filter_condition
+    if (this.isShow) {
+      this.modelBuildMeta.dataRangeVal = []
+      this.$nextTick(() => {
+        this.$refs.partitionForm && this.$refs.partitionForm.validate()
+      })
+      if (this.modelDesc && this.modelDesc.partition_desc && this.modelDesc.partition_desc.partition_date_column) {
+        let named = this.modelDesc.partition_desc.partition_date_column.split('.')
+        this.partitionMeta.table = named[0]
+        this.partitionMeta.column = named[1]
+        this.partitionMeta.format = this.modelDesc.partition_desc.partition_date_format
+        this.partitionMeta.filter_condition = this.modelDesc.filter_condition
+      }
     } else {
       this.resetForm()
     }
@@ -285,30 +317,29 @@ export default class ModelPartitionModal extends Vue {
     }
     this.filterCondition = ''
   }
-  savePartition () {
-    this.$refs.partitionForm.validate((valid) => {
-      if (!valid) { return }
-      this.modelDesc.partition_desc = this.modelDesc.partition_desc || {}
-      let hasSetDate = this.partitionMeta.table && this.partitionMeta.column
-      if (this.modelDesc && this.partitionMeta.table && this.partitionMeta.column) {
-        this.modelDesc.partition_desc.partition_date_column = hasSetDate ? this.partitionMeta.table + '.' + this.partitionMeta.column : ''
+  async savePartition () {
+    await (this.$refs.rangeForm && this.$refs.rangeForm.validate()) || Promise.resolve()
+    await (this.$refs.partitionForm && this.$refs.partitionForm.validate()) || Promise.resolve()
+    this.modelDesc.partition_desc = this.modelDesc.partition_desc || {}
+    let hasSetDate = this.partitionMeta.table && this.partitionMeta.column
+    if (this.modelDesc && this.partitionMeta.table && this.partitionMeta.column) {
+      this.modelDesc.partition_desc.partition_date_column = hasSetDate ? this.partitionMeta.table + '.' + this.partitionMeta.column : ''
+    } else {
+      this.modelDesc.partition_desc.partition_date_column = ''
+    }
+    this.modelDesc.partition_desc.partition_date_format = this.partitionMeta.format
+    this.modelDesc.filter_condition = this.filterCondition
+    this.modelDesc.project = this.currentSelectedProject
+    if (!this.modelInstance.uuid) {
+      if (this.modelBuildMeta.isLoadExisted) {
+        this.modelDesc.start = null
+        this.modelDesc.end = null
       } else {
-        this.modelDesc.partition_desc.partition_date_column = ''
+        this.modelDesc.start = (+transToUTCMs(this.modelBuildMeta.dataRangeVal[0]))
+        this.modelDesc.end = (+transToUTCMs(this.modelBuildMeta.dataRangeVal[1]))
       }
-      this.modelDesc.partition_desc.partition_date_format = this.partitionMeta.format
-      this.modelDesc.filter_condition = this.filterCondition
-      this.modelDesc.project = this.currentSelectedProject
-      if (!this.modelInstance.uuid) {
-        if (this.modelBuildMeta.isLoadExisted) {
-          this.modelDesc.start = null
-          this.modelDesc.end = null
-        } else {
-          this.modelDesc.start = (+transToUTCMs(this.modelBuildMeta.dataRangeVal[0]))
-          this.modelDesc.end = (+transToUTCMs(this.modelBuildMeta.dataRangeVal[1]))
-        }
-      }
-      this.handleClose(true)
-    })
+    }
+    this.handleClose(true)
   }
   handleClose (isSubmit) {
     this.hideModal()
@@ -333,6 +364,16 @@ export default class ModelPartitionModal extends Vue {
   .where-area {
     margin-top:20px;
   }
+  // .error-msg {display:none}
+  // .is-broken {
+  //   .el-input__inner{
+  //     border:solid 1px @color-danger;
+  //   }
+  //   .error-msg {
+  //     color:@color-danger;
+  //     display:block;
+  //   }
+  // }
   .up-performance{
     i {
       color:@normal-color-1;

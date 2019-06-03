@@ -66,62 +66,65 @@ i[class^=el-icon-]{
 }
 
 //通用样式1 start
-.generate-attr(@n,@attr, @attrName, @i: 1,@k:@i*2) when (@i =< @n) {
+.generate-attr-ratio-2(@n,@attr, @attrName, @i: 1,@k:@i*2) when (@i =< @n) {
   .@{attr}-@{k} {
     @{attrName}:@i*2px!important;
   }
-  .generate-attr(@n,@attr, @attrName,(@i + 1));
+  .generate-attr-ratio-2(@n,@attr, @attrName,(@i + 1));
 }
 
 //通用样式2 start
-.generate-attr2(@n,@attr, @attrName1, @attrName2, @i: 1,@k:@i*2) when (@i =< @n) {
+.generate-attrs-ratio-2(@n,@attr, @attrName1, @attrName2, @i: 1,@k:@i*2) when (@i =< @n) {
   .@{attr}-@{k} {
     @{attrName1}:@i*2px!important;
     @{attrName2}:@i*2px!important;
   }
-  .generate-attr2(@n,@attr, @attrName1, @attrName2, (@i + 1));
+  .generate-attrs-ratio-2(@n,@attr, @attrName1, @attrName2, (@i + 1));
 }
 
 //通用样式3 start
-.generate-attr3(@n,@attr, @attrName, @i: 1,@k:@i*5) when (@i =< @n) {
+.generate-attr-ratio-5(@n,@attr, @attrName, @i: 1,@k:@i*5) when (@i =< @n) {
   .@{attr}-@{k} {
     @{attrName}:@i*5px!important;
   }
-  .generate-attr3(@n,@attr, @attrName,(@i + 1));
+  .generate-attr-ratio-5(@n,@attr, @attrName,(@i + 1));
 }
 
 //通用样式4 start
-.generate-attr4(@n,@attr, @attrName1, @attrName2, @i: 1,@k:@i*5) when (@i =< @n) {
+.generate-attrs-ratio-5(@n,@attr, @attrName1, @attrName2, @i: 1,@k:@i*5) when (@i =< @n) {
   .@{attr}-@{k} {
     @{attrName1}:@i*5px!important;
     @{attrName2}:@i*5px!important;
   }
-  .generate-attr4(@n,@attr, @attrName1, @attrName2, (@i + 1));
+  .generate-attrs-ratio-5(@n,@attr, @attrName1, @attrName2, (@i + 1));
 }
-.generate-attr(20,ksd-pb,padding-bottom);
-.generate-attr(20,ksd-pr,padding-right);
-.generate-attr(20,ksd-pl,padding-left);
-.generate-attr(20,ksd-pt,padding-top);
-.generate-attr2(20,ksd-ptb,padding-top,padding-bottom);
-.generate-attr2(20,ksd-prl,padding-right,padding-left);
-.generate-attr(20,ksd-ml,margin-left);
-.generate-attr(20,ksd-mr,margin-right);
-.generate-attr(20,ksd-mt,margin-top);
-.generate-attr(20,ksd-mb,margin-bottom);
-.generate-attr2(20,ksd-mtb,margin-top,margin-bottom);
-.generate-attr2(20,ksd-mrl,margin-right,margin-left);
-.generate-attr3(20,ksd-ml,margin-left);
-.generate-attr3(20,ksd-mr,margin-right);
-.generate-attr3(20,ksd-mt,margin-top);
-.generate-attr3(20,ksd-mb,margin-bottom);
-.generate-attr4(20,ksd-mtb,margin-top,margin-bottom);
-.generate-attr4(20,ksd-mrl,margin-right,margin-left);
-.generate-attr(20,ksd-top,top);
-.generate-attr(20,ksd-left,left);
-.generate-attr(20,ksd-right,right);
-.generate-attr(20,ksd-bottom,bottom);
-.generate-attr(20,ksd-lineheight,line-height);
-.generate-attr(20,ksd-fs,font-size);
+.generate-attr-ratio-2(20,ksd-pb,padding-bottom);
+.generate-attr-ratio-2(20,ksd-pr,padding-right);
+.generate-attr-ratio-2(20,ksd-pl,padding-left);
+.generate-attr-ratio-2(20,ksd-pt,padding-top);
+.generate-attr-ratio-2(20,ksd-ml,margin-left);
+.generate-attr-ratio-2(20,ksd-mr,margin-right);
+.generate-attr-ratio-2(20,ksd-mt,margin-top);
+.generate-attr-ratio-2(20,ksd-mb,margin-bottom);
+.generate-attr-ratio-2(20,ksd-top,top);
+.generate-attr-ratio-2(20,ksd-left,left);
+.generate-attr-ratio-2(20,ksd-right,right);
+.generate-attr-ratio-2(20,ksd-bottom,bottom);
+.generate-attr-ratio-2(20,ksd-lineheight,line-height);
+.generate-attr-ratio-2(20,ksd-fs,font-size);
+.generate-attrs-ratio-2(20,ksd-ptb,padding-top,padding-bottom);
+.generate-attrs-ratio-2(20,ksd-prl,padding-right,padding-left);
+.generate-attrs-ratio-2(20,ksd-mtb,margin-top,margin-bottom);
+.generate-attrs-ratio-2(20,ksd-mrl,margin-right,margin-left);
+
+.generate-attr-ratio-5(20,ksd-ml,margin-left);
+.generate-attr-ratio-5(20,ksd-mr,margin-right);
+.generate-attr-ratio-5(20,ksd-mt,margin-top);
+.generate-attr-ratio-5(20,ksd-mb,margin-bottom);
+.generate-attr-ratio-5(20,ksd-pl,padding-left);
+.generate-attrs-ratio-5(20,ksd-mtb,margin-top,margin-bottom);
+.generate-attrs-ratio-5(20,ksd-mrl,margin-right,margin-left);
+
 .ksd-fright{float: right!important;}
 .ksd-fleft{float: left!important;}
 .ksd-center{text-align: center!important;}

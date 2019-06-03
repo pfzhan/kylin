@@ -85,7 +85,7 @@
       <!-- {{form.freshDataRange}} -->
       <!-- <el-button v-guide.hasFundData style="display:none" v-if="form.freshDataRange[0] && form.freshDataRange[1]"></el-button> -->
       <el-button size="medium" @click="() => handleClose()">{{$t('kylinLang.common.cancel')}}</el-button>
-      <el-button size="medium" plain type="primary" v-guide.saveRangeBtn @click="handleSubmit" :loading="isLoading">{{$t('kylinLang.common.save')}}</el-button>
+      <el-button size="medium" plain type="primary" v-guide.saveRangeBtn @click="handleSubmit" :loading="isLoading">{{$t('kylinLang.common.submit')}}</el-button>
     </div>
   </el-dialog>
 </template>
@@ -220,9 +220,8 @@ export default class SourceTableModal extends Vue {
     const confirmTitle = this.$t('refreshTitle')
     const confirmMessage1 = this.$t('refreshContent1', contentVal)
     const confirmMessage2 = this.$t('refreshContent2', contentVal)
-    const confirmMessage3 = this.$t('refreshContent3', contentVal)
     const confirmMessage = _render(this.$createElement)
-    const confirmButtonText = this.$t('kylinLang.common.ok')
+    const confirmButtonText = this.$t('kylinLang.common.submit')
     const cancelButtonText = this.$t('kylinLang.common.cancel')
     const type = 'warning'
     return this.$confirm(confirmMessage, confirmTitle, { confirmButtonText, cancelButtonText, type })
@@ -232,7 +231,6 @@ export default class SourceTableModal extends Vue {
         <div>
           <p class="break-all">{confirmMessage1}</p>
           <p>{confirmMessage2}</p>
-          <p>{confirmMessage3}</p>
         </div>
       )
     }
