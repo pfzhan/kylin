@@ -49,6 +49,10 @@ public class SparderConfiguration {
             log.debug("spark.local=true");
             return;
         }
+
+        // monitor Spark
+        SparkContextCanary.init();
+
         // write appid to ${KYLIN_HOME} or ${user.dir}
         final String kylinHome = StringUtils.defaultIfBlank(KylinConfig.getKylinHome(), "./");
         final File appidFile = Paths.get(kylinHome, "appid").toFile();

@@ -645,4 +645,16 @@ public class KapConfig {
         return config.getOptional("kap.kerberos.principal");
     }
 
+    public int getThresholdToRestartSpark() {
+        return Integer.parseInt(config.getOptional("kap.canary.sqlcontext-threshold-to-restart-spark", "2"));
+    }
+
+    public int getSparkCanaryErrorResponseMs() {
+        return Integer.parseInt(config.getOptional("kap.canary.sqlcontext-error-response-ms", "30000"));
+    }
+
+    public int getSparkCanaryPeriodMinutes() {
+        return Integer.parseInt(config.getOptional("kap.canary.sqlcontext-period-min", "5"));
+    }
+
 }
