@@ -251,6 +251,9 @@ Vue.directive('drag', {
     } else {
       el.className += ' ky-move'
     }
+    el.onselectstart = function () {
+      return false
+    }
     regainBox()
     // 盒子碰撞检测
     function checkBoxCollision (changeType, size, rectifyVal) {
@@ -369,6 +372,7 @@ Vue.directive('drag', {
     oDiv.onmousedown = function (ev) {
       let zoom = el.getAttribute('data-zoom') || 10
       ev.stopPropagation()
+      ev.preventDefault()
       var offsetX = ev.clientX
       var offsetY = ev.clientY
       regainBox()
@@ -378,6 +382,8 @@ Vue.directive('drag', {
         el.className += ' ky-move-ing'
       }
       document.onmousemove = function (e) {
+        ev.stopPropagation()
+        ev.preventDefault()
         var x = e.clientX - offsetX
         var y = e.clientY - offsetY
         x /= zoom / 10

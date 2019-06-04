@@ -166,6 +166,23 @@ i[class^=el-icon-]{
 .ky-cursor {
   cursor: pointer;
 }
+.ky-drag-layout-bar {
+  width: 10px;
+  height: 50px;
+  background: @background-disabled-color;
+  border: solid 1px @line-border-color;
+  line-height: 50px;
+  text-align: center;
+  color:@line-border-color;
+  position: absolute;
+  user-select: none;
+  cursor:ew-resize;
+  &:hover {
+    background: @base-color-9;
+    border: solid 1px @base-color;
+    color: @base-color;
+  }
+}
 .ksd-title-label {
   font-size: 16px;
   color: @text-title-color;
@@ -823,7 +840,14 @@ i[class^=el-icon-]{
 }
 
 .layout-left {
-  width: 250px;
+  .data-source-bar {
+    .header, .body {
+      min-width:250px;
+      width: auto!important;
+    }
+  }
+  width: auto;
+  min-width:250px;
   float: left;
   border-right: solid 1px #cfd8dc;
   box-sizing: border-box;

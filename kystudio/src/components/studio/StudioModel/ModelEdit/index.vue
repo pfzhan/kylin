@@ -49,7 +49,7 @@
           <div class="ksd-mrl-10 ksd-mt-10">
             <el-input :placeholder="$t('searchTable')"  prefix-icon="el-icon-search" @keyup.native="(e) => filterDatasource(e)" @clear="filterDatasource"></el-input>
           </div>
-          <div v-scroll v-guide.modelDataSourceTreeScrollBox style="height:calc(100% - 79px)" class="ksd-right-4">
+          <div v-scroll v-guide.modelDataSourceTreeScrollBox style="height:calc(100% - 79px)">
             <DataSourceBar 
               :ignore-node-types="['column']"
               v-guide.modelDataSourceTree

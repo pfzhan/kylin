@@ -1,5 +1,5 @@
 <template>
-  <aside class="data-source-bar">
+  <aside class="data-source-bar" :style="dataSourceStyle">
     <section class="header clearfix" v-if="isShowActionGroup">
       <div class="header-text font-medium">
         <span>{{$t('kylinLang.common.dataSource')}}</span>
@@ -73,6 +73,7 @@
         <el-button size="medium" plain type="primary" v-guide.closeLoadResult @click="isShowResultModal = false">{{$t('kylinLang.common.ok')}}</el-button>
       </div>
     </el-dialog> -->
+    <div class="ky-drag-layout-bar" unselectable="on" v-if="isShowDragWidthBar" v-drag:change.width="dataSourceDragData">||</div>
   </aside>
 </template>
 
@@ -151,6 +152,10 @@ import { handleSuccessAsync, handleError } from '../../../util'
     ignoreNodeTypes: {
       type: Array,
       default: () => []
+    },
+    isShowDragWidthBar: {
+      type: Boolean,
+      default: false
     }
   },
   components: {
@@ -192,7 +197,17 @@ export default class DataSourceBar extends Vue {
   isSwitchSource = false
   loadedTables = []
   failedTables = []
-
+  dataSourceDragData = {
+    width: 250,
+    limit: {
+      width: [250]
+    }
+  }
+  get dataSourceStyle () {
+    return this.isShowDragWidthBar ? {
+      width: this.dataSourceDragData.width + 'px'
+    } : {}
+  }
   get databaseArray () {
     const allData = this.datasources.reduce((databases, datasource) => [...databases, ...datasource.children], [])
     return allData.filter(data => !['isMore', 'isLoading'].includes(data.type))
@@ -440,6 +455,11 @@ export default class DataSourceBar extends Vue {
 @import '../../../assets/styles/variables.less';
 
 .data-source-bar {
+  .ky-drag-layout-bar {
+    right:-7px;
+    top:200px;
+  }
+  position:relative;
   height: 100%;
   .header,
   .body {

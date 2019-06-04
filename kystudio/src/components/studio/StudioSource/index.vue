@@ -2,24 +2,27 @@
   <div class="studio-source">
     <div class="table-layout clearfix"> 
       <!-- 数据源导航栏 -->
-      <DataSourceBar
-        :ignore-node-types="['column']"
-        v-guide.datasourceTree
-        class="layout-left"
-        ref="datasource-bar"
-        :project-name="currentSelectedProject"
-        :is-show-load-source="true"
-        :is-show-settings="false"
-        :is-show-selected="true"
-        :is-expand-on-click-node="false"
-        :is-first-select="true"
-        :is-show-source-switch="true"
-        :expand-node-types="['datasource', 'database']"
-        :searchable-node-types="['table', 'column']"
-        @click="handleClick"
-        @show-source="handleShowSourcePage"
-        @tables-loaded="handleTablesLoaded">
-      </DataSourceBar>
+      <div class="layout-left">
+        <DataSourceBar
+          :ignore-node-types="['column']"
+          v-guide.datasourceTree
+          ref="datasource-bar"
+          :project-name="currentSelectedProject"
+          :is-show-load-source="true"
+          :is-show-settings="false"
+          :is-show-selected="true"
+          :is-expand-on-click-node="false"
+          :is-first-select="true"
+          :is-show-source-switch="true"
+          :is-show-drag-width-bar="true"
+          :expand-node-types="['datasource', 'database']"
+          :searchable-node-types="['table', 'column']"
+          @click="handleClick"
+          @show-source="handleShowSourcePage"
+          @tables-loaded="handleTablesLoaded">
+        </DataSourceBar>
+      </div>
+      
       <!-- Source Table展示 -->
       <div class="layout-right">
         <template v-if="selectedTable">
@@ -310,6 +313,9 @@ export default class StudioSource extends Vue {
 .studio-source {
   height: 100%;
   background: white;
+  .layout-left {
+    z-index:8;
+  }
   .layout-right {
     padding: 20px 20px 0 20px;
     min-height: 100%;
