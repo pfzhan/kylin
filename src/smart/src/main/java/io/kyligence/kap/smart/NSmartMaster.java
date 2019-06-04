@@ -204,7 +204,7 @@ public class NSmartMaster {
                 project);
         val accelerateInfoMap = context.getAccelerateInfoMap();
         accelerateInfoMap.forEach((sqlPattern, accelerateInfo) -> {
-            if (accelerateInfo.isFailed()) {
+            if (accelerateInfo.isNotSucceed()) {
                 return;
             }
             List<FavoriteQueryRealization> favoriteQueryRealizations = Lists.newArrayList();

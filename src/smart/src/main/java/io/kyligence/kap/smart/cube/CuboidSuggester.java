@@ -31,6 +31,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.SortedSet;
 
+import io.kyligence.kap.smart.exception.PendingException;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.metadata.model.FunctionDesc;
 import org.apache.kylin.metadata.model.TableExtDesc;
@@ -65,7 +66,7 @@ class CuboidSuggester {
 
     private static final String COLUMN_NOT_FOUND_PTN = "The model [%s] matches this query, but the dimension [%s] is missing. ";
     private static final String MEASURE_NOT_FOUND_PTN = "The model [%s] matches this query, but the measure [%s] is missing. ";
-    private static final String TABLE_NOT_MATCHED = "The join of model [%s] has some difference with the joins of this query. ";
+    private static final String JOIN_NOT_MATCHED = "The join of model [%s] has some difference with the joins of this query. ";
 
     private NSmartContext smartContext;
     private IndexPlan indexPlan;
@@ -100,21 +101,24 @@ class CuboidSuggester {
             // check keySet of sql2AccelerateInfo contains ctx.sql
             AccelerateInfo accelerateInfo = sql2AccelerateInfo.get(ctx.sql);
             Preconditions.checkNotNull(accelerateInfo);
-            if (accelerateInfo.isFailed()) {
+            if (accelerateInfo.isNotSucceed()) {
                 continue;
             }
 
             try {
                 Map<String, String> aliasMap = RealizationChooser.matchJoins(model, ctx);
-                Preconditions.checkState(aliasMap != null,
-                        getMsgTemplateByModelMaintainType(TABLE_NOT_MATCHED, Type.TABLE), model.getAlias());
+                if (aliasMap == null) {
+                    throw new PendingException(String.format(
+                            getMsgTemplateByModelMaintainType(JOIN_NOT_MATCHED, Type.TABLE), model.getAlias()));
+                }
                 ctx.fixModel(model, aliasMap);
                 QueryLayoutRelation queryLayoutRelation = ingest(ctx, model);
                 accelerateInfo.getRelatedLayouts().add(queryLayoutRelation);
             } catch (Exception e) {
                 log.error("Unable to suggest cuboid for IndexPlan", e);
                 // under expert mode
-                if (e instanceof IllegalStateException && projectInstance.getMaintainModelType() == MaintainModelType.MANUAL_MAINTAIN)
+                if (e instanceof PendingException
+                        && projectInstance.getMaintainModelType() == MaintainModelType.MANUAL_MAINTAIN)
                     accelerateInfo.setPendingMsg(e.getMessage());
                 else
                     accelerateInfo.setFailedCause(e);
@@ -149,8 +153,11 @@ class CuboidSuggester {
         List<Integer> ret = Lists.newArrayList();
         for (TblColRef col : ctx.getSortColumns()) {
             final Integer id = colIdMap.get(col);
-            Preconditions.checkState(id != null, getMsgTemplateByModelMaintainType(COLUMN_NOT_FOUND_PTN, Type.COLUMN),
-                    model.getAlias(), col.getIdentity());
+            if (id == null) {
+                throw new PendingException(
+                        String.format(getMsgTemplateByModelMaintainType(COLUMN_NOT_FOUND_PTN, Type.COLUMN),
+                                model.getAlias(), col.getIdentity()));
+            }
             ret.add(id);
         }
         return ret;
@@ -247,15 +254,19 @@ class CuboidSuggester {
         final List<Integer> dimensions = Lists.newArrayList();
         final ImmutableBiMap<TblColRef, Integer> colIdMap = colMap.inverse();
         filterColumns.forEach(dimension -> {
-            Preconditions.checkState(colIdMap.get(dimension) != null,
-                    getMsgTemplateByModelMaintainType(COLUMN_NOT_FOUND_PTN, Type.COLUMN), model.getAlias(),
-                    dimension.getIdentity());
+            if (colIdMap.get(dimension) == null) {
+                throw new PendingException(
+                        String.format(getMsgTemplateByModelMaintainType(COLUMN_NOT_FOUND_PTN, Type.COLUMN),
+                                model.getAlias(), dimension.getIdentity()));
+            }
             dimensions.add(colIdMap.get(dimension));
         });
         nonFilterColumns.forEach(dimension -> {
-            Preconditions.checkState(colIdMap.get(dimension) != null,
-                    getMsgTemplateByModelMaintainType(COLUMN_NOT_FOUND_PTN, Type.COLUMN), model.getAlias(),
-                    dimension.getIdentity());
+            if (colIdMap.get(dimension) == null) {
+                throw new PendingException(
+                        String.format(getMsgTemplateByModelMaintainType(COLUMN_NOT_FOUND_PTN, Type.COLUMN),
+                                model.getAlias(), dimension.getIdentity()));
+            }
             dimensions.add(colIdMap.get(dimension));
         });
 
@@ -275,9 +286,11 @@ class CuboidSuggester {
             } else if (CollectionUtils.isNotEmpty(aggFunc.getParameters())) {
                 String measure = String.format("%s(%s)", aggFunc.getExpression(), aggFunc.getParameters());
                 for (TblColRef tblColRef : aggFunc.getColRefs()) {
-                    Preconditions.checkState(colIdMap.get(tblColRef) != null,
-                            getMsgTemplateByModelMaintainType(MEASURE_NOT_FOUND_PTN, Type.MEASURE), model.getAlias(),
-                            measure);
+                    if (colIdMap.get(tblColRef) == null) {
+                        throw new PendingException(
+                                String.format(getMsgTemplateByModelMaintainType(MEASURE_NOT_FOUND_PTN, Type.MEASURE),
+                                        model.getAlias(), measure));
+                    }
                 }
             }
         });

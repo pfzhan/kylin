@@ -76,6 +76,6 @@ public abstract class NAbstractModelProposer {
 
     boolean isValidOlapContext(OLAPContext context) {
         val accelerateInfo = modelContext.getSmartContext().getAccelerateInfoMap().get(context.sql);
-        return accelerateInfo != null && !accelerateInfo.isFailed();
+        return accelerateInfo != null && !accelerateInfo.isNotSucceed();
     }
 }

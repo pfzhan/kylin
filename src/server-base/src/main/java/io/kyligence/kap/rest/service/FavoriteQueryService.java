@@ -440,7 +440,7 @@ public class FavoriteQueryService extends BasicService {
         }
         for (Map.Entry<String, AccelerateInfo> accelerateInfoEntry : accelerateInfoMap.entrySet()) {
             AccelerateInfo accelerateInfo = accelerateInfoEntry.getValue();
-            if (accelerateInfo.isFailed() || accelerateInfo.isPending()) {
+            if (accelerateInfo.isNotSucceed()) {
                 notAcceleratedSqlInfo.put(accelerateInfoEntry.getKey(), accelerateInfo);
             }
         }
