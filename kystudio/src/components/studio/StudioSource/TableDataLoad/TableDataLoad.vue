@@ -106,12 +106,19 @@ import { handleSuccessAsync, handleError } from '../../../../util'
   locales
 })
 export default class TableDataLoad extends Vue {
-  async handleLoadData () {
+  async handleLoadData (isChangePartition) {
     try {
       const { project, table } = this
       if (table.partitionColumn) {
         const isSubmit = await this.callSourceTableModal({ editType: 'loadData', project, table })
         isSubmit && this.$emit('fresh-tables')
+        // 如果是改变partition拉起的渲染range弹窗，关闭的时候给提示
+        if (!isSubmit && isChangePartition === true) {
+          this.$message({
+            message: this.$t('suggestSetLoadRangeTip'),
+            type: 'warning'
+          })
+        }
       } else {
         await this.handleLoadFullData()
         this.$emit('fresh-tables')
@@ -146,6 +153,9 @@ export default class TableDataLoad extends Vue {
         await this._showPartitionConfirm({ modelSize, partitionKey: value })
       }
       await this._changePartitionKey(value)
+      if (value) {
+        await this.handleLoadData(true)
+      }
       this.$emit('fresh-tables')
     } catch (e) {
       handleError(e)

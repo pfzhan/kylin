@@ -19,7 +19,8 @@ export default {
     loadRange: 'Loaded Range',
     loadData: 'Load Data',
     refreshData: 'Refresh Data',
-    notLoadYet: 'Not loaded yet'
+    notLoadYet: 'Not loaded yet',
+    suggestSetLoadRangeTip: 'Please input a load range after the partition set, or the system wouldn\'t accelerate queries automatically.'
   },
   'zh-cn': {
     tableName: '表名：',
@@ -41,6 +42,7 @@ export default {
     loadRange: '已加载范围',
     loadData: '加载数据',
     refreshData: '刷新数据',
-    notLoadYet: '尚未载入'
+    notLoadYet: '尚未载入',
+    suggestSetLoadRangeTip: '系统建议设置分区列后及时设置加载范围，否则系统将无法自动加速查询。'
   }
 }
