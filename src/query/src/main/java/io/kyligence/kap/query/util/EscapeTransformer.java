@@ -55,7 +55,7 @@ public class EscapeTransformer implements QueryUtil.IQueryTransformer, IKeep {
 
             EscapeParser parser = new EscapeParser(dialect, sql);
             return parser.Input();
-        } catch (Exception ex) {
+        } catch (Throwable ex) {
             logger.error("Something unexpected while EscapeTransformer transforming the query, return original query",
                     ex);
             return sql;

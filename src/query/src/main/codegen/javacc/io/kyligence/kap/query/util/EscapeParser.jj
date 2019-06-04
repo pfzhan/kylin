@@ -64,7 +64,7 @@ TOKEN :
 | < SPACE : [" ", "\t","\n", "\r"] >
 | < QUOTE: "'" >
 | < QUOTED_STRING: <QUOTE> ( (~["'"]) | ("''"))* <QUOTE> >
-| < ANY : (~[ "{", "}", " ", "(", ")", ",", "\t", "\n", "\r" ])+ >
+| < ANY : (~[ "{", "}", " ", "(", ")", ",", "'", "\t", "\n", "\r" ])+ >
 }
 
 < ESCAPE >
@@ -108,7 +108,6 @@ String Input() :
 String Expression() :
 {
     String innerString = "";
-    String nextString = "";
 }
 {
     (
@@ -120,7 +119,7 @@ String Expression() :
     | innerString = Any()
     )
     {
-        return innerString + nextString;
+        return innerString;
     }
 }
 

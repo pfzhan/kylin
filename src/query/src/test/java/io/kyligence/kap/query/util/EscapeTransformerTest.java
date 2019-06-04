@@ -64,8 +64,19 @@ public class EscapeTransformerTest {
 
     @Test
     public void testSqlwithComment() {
-        String originalSQL = "select --test comment will remove\n \"--won't remove in quote\", /* will remove multi line comment*/ { fn count(*) } from tbl";
-        String expectedSQL = "select  \"--won't remove in quote\",  count(*) from tbl";
+        String originalSQL = "select --test comment will remove\n \"--wont remove in quote\", /* will remove multi line comment*/ { fn count(*) } from tbl";
+        String expectedSQL = "select  \"--wont remove in quote\",  count(*) from tbl";
+
+        String transformedSQL = transformer.transform(originalSQL);
+        Assert.assertEquals(expectedSQL, transformedSQL);
+    }
+
+    @Test
+    public void notEscapeQuoteTest() {
+
+        String originalSQL = "select 'do not escape {fn CURRENT_TIME()}' name from table_2 "
+                + "where address='qwerty(1123)' or address='qwerty(1123' or address='qwerty1123)'";
+        String expectedSQL = originalSQL;
 
         String transformedSQL = transformer.transform(originalSQL);
         Assert.assertEquals(expectedSQL, transformedSQL);
@@ -220,6 +231,16 @@ public class EscapeTransformerTest {
 
         String transformedSQL = transformer.transform(originalSQL);
         Assert.assertEquals(expectedSQL, transformedSQL);
+    }
+
+    @Test
+    public void testAnyWithJavaCCSignature() {
+
+        String originSql = "select {ts '2013-01-01 00:00:00'} from test_kylin_fact where '1'='1' and'{{KYLIN_ACCOUNT.ACCOUNT_ID}}' ='2'";
+        String expectedSql = "select TIMESTAMP '2013-01-01 00:00:00' from test_kylin_fact where '1'='1' and'{{KYLIN_ACCOUNT.ACCOUNT_ID}}' ='2'";
+
+        String transformedSQL = transformer.transform(originSql);
+        Assert.assertEquals(expectedSql, transformedSQL);
     }
 
     @Test
