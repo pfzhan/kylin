@@ -218,6 +218,17 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
+    public void testGetModelsMvcc() {
+        List<NDataModelResponse> models = modelService.getModels("nmodel_full_measure_test", "default", false, "", "", "last_modify", true);
+        var model = models.get(0);
+        modelService.renameDataModel(model.getProject(), model.getUuid(), "new_alias");
+        models = modelService.getModels("new_alias", "default", false, "", "", "last_modify", true);
+        Assert.assertEquals(1, models.size());
+        model = models.get(0);
+        Assert.assertEquals(1, model.getMvcc());
+    }
+
+    @Test
     public void testSortModels() {
 
         List<NDataModelResponse> models = modelService.getModels("", "default", false, "", "", "usage", true);

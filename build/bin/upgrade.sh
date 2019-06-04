@@ -4,8 +4,8 @@
 function help() {
     echo "Usage: upgrade.sh <OLD_KYLIN_HOME> [--silent]"
     echo
-    echo "<OLD_KYLIN_HOME>   Specify the old version of the Kyligence Enterprise"
-    echo "                   installation directory. If not specified, use KYLIN_HOME by default."
+    echo "<OLD_KYLIN_HOME>    Specify the old version of the Kyligence Enterprise"
+    echo "                    installation directory."
     echo
     echo "--silent            Optional, don't enter interactive mode, automatically complete the upgrade."
     exit 1

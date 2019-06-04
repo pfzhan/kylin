@@ -63,6 +63,7 @@ public class NDataModelResponse extends NDataModel {
         super(dataModel);
         this.setConfig(dataModel.getConfig());
         this.setProject(dataModel.getProject());
+        this.setMvcc(dataModel.getMvcc());
     }
 
     @JsonProperty("simplified_dimensions")

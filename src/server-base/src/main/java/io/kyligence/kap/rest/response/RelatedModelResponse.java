@@ -52,6 +52,7 @@ public class RelatedModelResponse extends NDataModel {
 
     public RelatedModelResponse(NDataModel dataModel) {
         super(dataModel);
+        this.setMvcc(dataModel.getMvcc());
     }
 
 
