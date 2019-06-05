@@ -30,7 +30,9 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.Pair;
+import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.spark.sql.SparderEnv;
 import org.hamcrest.CoreMatchers;
 import org.junit.Assert;
@@ -38,10 +40,13 @@ import org.junit.Test;
 
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
+import io.kyligence.kap.metadata.model.MaintainModelType;
 import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.newten.NExecAndComp;
 import io.kyligence.kap.smart.NSmartContext;
 import io.kyligence.kap.smart.NSmartMaster;
+import lombok.val;
 
 public class NAutoBasicTest extends NAutoTestBase {
 
@@ -189,6 +194,120 @@ public class NAutoBasicTest extends NAutoTestBase {
         }
 
         FileUtils.deleteDirectory(new File("../kap-it/metastore_db"));
+    }
+
+    /**
+     * (auto-modeling) one sql generates many OLAPContexts but it failed to accelerate.
+     * The second OLAPContext failed to propose cc when proposing target model.
+     */
+    @Test
+    public void testPartialFailedWhenProposingWhenOneSqlAccelerating() {
+        KylinConfig kylinConfig = getTestConfig();
+        final String project = "newten";
+        String sql = "select l.cal_dt, sum(left_join_gvm) as left_join_sum, sum(inner_join_gvm) as inner_join_sum\n" //
+                + "from (\n" //
+                + "    select test_kylin_fact.cal_dt, sum(price) as left_join_gvm\n" //
+                + "    from test_kylin_fact " //
+                + "       left JOIN edw.test_cal_dt as test_cal_dt ON test_kylin_fact.cal_dt = test_cal_dt.cal_dt\n" //
+                + "       left JOIN test_category_groupings ON test_kylin_fact.leaf_categ_id = test_category_groupings.leaf_categ_id " //
+                + "         AND test_kylin_fact.lstg_site_id = test_category_groupings.site_id\n" //
+                + "    group by test_kylin_fact.cal_dt\n" //
+                + "  ) l inner join (\n" //
+                + "    select t2.cal_dt, SUM(PRICE_TOTAL + 1) as inner_join_gvm\n" //
+                + "    from (select price*item_count as price_total, cal_dt, leaf_categ_id, lstg_site_id from test_kylin_fact) t2 \n" //
+                + "        inner JOIN edw.test_cal_dt as test_cal_dt ON t2.cal_dt = test_cal_dt.cal_dt\n" //
+                + "        inner JOIN test_category_groupings ON t2.leaf_categ_id = test_category_groupings.leaf_categ_id " //
+                + "          AND t2.lstg_site_id = test_category_groupings.site_id\n" //
+                + "    group by t2.cal_dt\n" //
+                + "  ) i on l.cal_dt = i.cal_dt\n" //
+                + "group by l.cal_dt";
+
+        NSmartMaster smartMaster = new NSmartMaster(kylinConfig, project, new String[] { sql });
+        smartMaster.analyzeSQLs();
+        smartMaster.selectModel();
+
+        // assert everything is ok after select model
+        val accelerateInfoMap = smartMaster.getContext().getAccelerateInfoMap();
+        Assert.assertFalse(accelerateInfoMap.get(sql).isNotSucceed());
+        Assert.assertTrue(accelerateInfoMap.get(sql).getRelatedLayouts().isEmpty());
+        smartMaster.optimizeModel();
+
+        // assert it failed in the step of optimize model
+        final List<NSmartContext.NModelContext> modelContexts = smartMaster.getContext().getModelContexts();
+        val accelerateInfoMapAfterOpt = smartMaster.getContext().getAccelerateInfoMap();
+        Assert.assertEquals(2, modelContexts.size());
+        Assert.assertTrue(accelerateInfoMapAfterOpt.get(sql).isNotSucceed());
+        Assert.assertTrue(accelerateInfoMapAfterOpt.get(sql).getRelatedLayouts().isEmpty());
+    }
+
+    /**
+     * (manual maintain type) one sql generates many OLAPContexts but it failed to accelerate.
+     * The second OLAPContext failed to reuse an existing model when proposing layouts.
+     */
+    @Test
+    public void testPartialFailedWhenProposingWhenOneSqlAcceleratingWithManualMaintainType() {
+        KylinConfig kylinConfig = getTestConfig();
+        final String project = "newten";
+        String sql = "select test_kylin_fact.cal_dt, sum(price) as left_join_gvm\n" //
+                + "    from test_kylin_fact "
+                + "       left JOIN edw.test_cal_dt as test_cal_dt ON test_kylin_fact.cal_dt = test_cal_dt.cal_dt\n" //
+                + "       left JOIN test_category_groupings ON test_kylin_fact.leaf_categ_id = test_category_groupings.leaf_categ_id "
+                + "         AND test_kylin_fact.lstg_site_id = test_category_groupings.site_id\n"
+                + "    group by test_kylin_fact.cal_dt";
+        NSmartMaster smartMaster = new NSmartMaster(kylinConfig, project, new String[] { sql });
+        smartMaster.runAll();
+
+        // confirm auto-modeling is ok
+        val accelerateInfoMap = smartMaster.getContext().getAccelerateInfoMap();
+        val modelContexts = smartMaster.getContext().getModelContexts();
+        Assert.assertFalse(accelerateInfoMap.get(sql).isNotSucceed());
+        Assert.assertEquals(1, modelContexts.size());
+
+        //set maintain model type to manual
+        final NProjectManager projectManager = NProjectManager.getInstance(kylinConfig);
+        final ProjectInstance projectUpdate = projectManager.copyForWrite(projectManager.getProject(project));
+        projectUpdate.setMaintainModelType(MaintainModelType.MANUAL_MAINTAIN);
+        projectManager.updateProject(projectUpdate);
+
+        // propose model under the scene of manual maintain type
+        sql = "select l.cal_dt, sum(left_join_gvm) as left_join_sum, sum(inner_join_gvm) as inner_join_sum\n"
+                + "from (\n" //
+                + "    select test_kylin_fact.cal_dt, sum(price) as left_join_gvm\n" //
+                + "    from test_kylin_fact "
+                + "       left JOIN edw.test_cal_dt as test_cal_dt ON test_kylin_fact.cal_dt = test_cal_dt.cal_dt\n" //
+                + "       left JOIN test_category_groupings ON test_kylin_fact.leaf_categ_id = test_category_groupings.leaf_categ_id "
+                + "         AND test_kylin_fact.lstg_site_id = test_category_groupings.site_id\n"
+                + "    group by test_kylin_fact.cal_dt\n" //
+                + "  ) l inner join (\n" //
+                + "    select test_kylin_fact.cal_dt, sum(price+1) as inner_join_gvm\n" //
+                + "    from test_kylin_fact\n" //
+                + "        left JOIN edw.test_cal_dt as test_cal_dt ON test_kylin_fact.cal_dt = test_cal_dt.cal_dt\n"
+                + "        left JOIN test_category_groupings ON test_kylin_fact.leaf_categ_id = test_category_groupings.leaf_categ_id "
+                + "          AND test_kylin_fact.lstg_site_id = test_category_groupings.site_id\n"
+                + "    group by test_kylin_fact.cal_dt\n" //
+                + "  ) i on l.cal_dt = i.cal_dt\n" //
+                + "group by l.cal_dt";
+        smartMaster = new NSmartMaster(kylinConfig, project, new String[] { sql });
+        smartMaster.analyzeSQLs();
+        smartMaster.selectModel();
+        smartMaster.optimizeModel();
+
+        // assert everything is ok after optimize model
+        val accelerationMapAfterOptModel = smartMaster.getContext().getAccelerateInfoMap();
+        Assert.assertFalse(accelerationMapAfterOptModel.get(sql).isNotSucceed());
+        Assert.assertTrue(accelerationMapAfterOptModel.get(sql).getRelatedLayouts().isEmpty());
+
+        // assert everything is ok after select index plan
+        smartMaster.selectIndexPlan();
+        val accelerationMapAfterSelectIndexPlan = smartMaster.getContext().getAccelerateInfoMap();
+        Assert.assertFalse(accelerationMapAfterSelectIndexPlan.get(sql).isNotSucceed());
+        Assert.assertTrue(accelerationMapAfterSelectIndexPlan.get(sql).getRelatedLayouts().isEmpty());
+
+        // assert it failed at optimize index plan
+        smartMaster.optimizeIndexPlan();
+        val accelerateInfoAfterOptIndexPlan = smartMaster.getContext().getAccelerateInfoMap();
+        Assert.assertTrue(accelerateInfoAfterOptIndexPlan.get(sql).isNotSucceed());
+        Assert.assertTrue(accelerateInfoAfterOptIndexPlan.get(sql).getRelatedLayouts().isEmpty());
     }
 
     private NSmartMaster proposeWithSmartMaster(List<Pair<String, String>> queries) {
