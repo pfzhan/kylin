@@ -385,7 +385,6 @@ public class NExecAndComp {
     static Dataset<Row> queryCubeAndSkipCompute(String prj, String sql) throws Exception {
         SparderEnv.skipCompute();
         Dataset<Row> df = queryCube(prj, sql);
-        SparderEnv.cleanCompute();
         return df;
     }
 
@@ -401,6 +400,7 @@ public class NExecAndComp {
             DBUtils.closeQuietly(rs);
             DBUtils.closeQuietly(stmt);
             DBUtils.closeQuietly(conn);
+            SparderEnv.cleanCompute();
         }
         return SparderEnv.getDF();
     }

@@ -59,12 +59,16 @@ import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
 import io.kyligence.kap.query.pushdown.SparkSqlClient;
 
 public class SlowQueryDetectorTest extends NLocalWithSparkSessionTest {
     private SlowQueryDetector slowQueryDetector = null;
+
+    private static final Logger logger = LoggerFactory.getLogger(SlowQueryDetectorTest.class);
 
     @Before
     public void setup() {
@@ -115,8 +119,13 @@ public class SlowQueryDetectorTest extends NLocalWithSparkSessionTest {
         System.setProperty("kap.query.engine.spark-sql-shuffle-partitions", "10000");
         slowQueryDetector.queryStart();
         try {
+            SparderEnv.cleanCompute();
+            long t = System.currentTimeMillis();
             NExecAndComp.queryCube(getProject(), "select sum(price) from TEST_KYLIN_FACT group by LSTG_FORMAT_NAME");
-            Assert.fail();
+            String error = "TestSparderTimeoutCancelJob fail, query cost:" + (System.currentTimeMillis() - t)
+                    + " ms, need compute:" + SparderEnv.needCompute();
+            logger.error(error);
+            Assert.fail(error);
         } catch (Exception e) {
             Throwable cause = e.getCause().getCause();
             Assert.assertTrue(cause instanceof KylinTimeoutException);
