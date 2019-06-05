@@ -26,8 +26,8 @@ package io.kyligence.kap.tool.garbage;
 
 import org.apache.kylin.job.exception.ExecuteException;
 import org.apache.kylin.job.execution.AbstractExecutable;
-import org.apache.kylin.job.execution.ExecutableContext;
 import org.apache.kylin.job.execution.ExecuteResult;
+import org.apache.kylin.job.execution.ExecutableContext;
 
 public class MockCleanableExecutable extends AbstractExecutable {
     @Override

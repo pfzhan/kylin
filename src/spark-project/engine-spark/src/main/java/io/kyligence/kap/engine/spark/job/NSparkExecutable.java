@@ -69,6 +69,8 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.persistence.metadata.MetadataStore;
+import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
+import io.kyligence.kap.common.persistence.transaction.UnitOfWorkParams;
 import io.kyligence.kap.engine.spark.merger.MetadataMerger;
 import io.kyligence.kap.metadata.cube.model.NBatchConstants;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
@@ -338,7 +340,8 @@ public class NSparkExecutable extends AbstractExecutable {
     }
 
     private void attachMetadataAndKylinProps(KylinConfig config) throws IOException {
-        Set<String> dumpList = getMetadataDumpList(config);
+        Set<String> dumpList = UnitOfWork.doInTransactionWithRetry(UnitOfWorkParams.<Set<String>> builder()
+                .readonly(true).processor(() -> getMetadataDumpList(KylinConfig.getInstanceFromEnv())).build());
         if (dumpList.isEmpty()) {
             return;
         }

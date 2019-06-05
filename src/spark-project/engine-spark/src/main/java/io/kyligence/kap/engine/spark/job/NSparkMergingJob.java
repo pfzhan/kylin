@@ -72,8 +72,6 @@ public class NSparkMergingJob extends DefaultChainedExecutableOnModel {
         job.setName(JobTypeEnum.INDEX_MERGE.toString());
         job.setJobType(JobTypeEnum.INDEX_MERGE);
         job.setId(jobId);
-        job.setDataRangeStart(Long.parseLong(mergedSegment.getSegRange().getStart().toString()));
-        job.setDataRangeEnd(Long.parseLong(mergedSegment.getSegRange().getEnd().toString()));
         job.setTargetSubject(mergedSegment.getModel().getUuid());
         job.setTargetSegments(Lists.newArrayList(String.valueOf(mergedSegment.getId())));
         job.setProject(mergedSegment.getProject());
@@ -85,8 +83,8 @@ public class NSparkMergingJob extends DefaultChainedExecutableOnModel {
         job.setParam(NBatchConstants.P_DATAFLOW_ID, df.getId());
         job.setParam(NBatchConstants.P_LAYOUT_IDS, NSparkCubingUtil.ids2Str(NSparkCubingUtil.toLayoutIds(layouts)));
         job.setParam(NBatchConstants.P_SEGMENT_IDS, String.join(",", job.getTargetSegments()));
-        job.setParam(NBatchConstants.P_DATA_RANGE_START, String.valueOf(job.getDataRangeStart()));
-        job.setParam(NBatchConstants.P_DATA_RANGE_END, String.valueOf(job.getDataRangeEnd()));
+        job.setParam(NBatchConstants.P_DATA_RANGE_START, mergedSegment.getSegRange().getStart().toString());
+        job.setParam(NBatchConstants.P_DATA_RANGE_END, mergedSegment.getSegRange().getEnd().toString());
 
         JobStepFactory.addStep(job, JobStepType.RESOURCE_DETECT, Sets.newHashSet(mergedSegment));
         JobStepFactory.addStep(job, JobStepType.MERGING, Sets.newHashSet(mergedSegment));

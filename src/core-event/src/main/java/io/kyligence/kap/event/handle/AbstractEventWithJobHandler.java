@@ -61,8 +61,6 @@ abstract class AbstractEventWithJobHandler extends AbstractEventHandler {
             return;
         }
 
-        job.initConfig(kylinConfig);
-
         val po = NExecutableManager.toPO(job, project);
 
         NExecutableManager executableManager = getExecutableManager(project, kylinConfig);

@@ -24,8 +24,6 @@
 
 package org.apache.kylin.job.execution;
 
-import org.apache.kylin.common.KylinConfig;
-
 import java.util.HashMap;
 import java.util.Map;
 
@@ -35,13 +33,12 @@ public class SucceedTestExecutable extends BaseTestExecutable {
 
     public SucceedTestExecutable() {
         super();
-        this.initConfig(KylinConfig.getInstanceFromEnv());
     }
 
     @Override
     protected ExecuteResult doWork(ExecutableContext context) {
         Map<String, String> info = new HashMap<String, String>(){{put("runningStatus", "inRunning");}};
-        NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), getProject()).updateJobOutput(getId(), ExecutableState.RUNNING, info, null, null);
+        updateJobOutput(getProject(), getId(), ExecutableState.RUNNING, info, null, null);
         try {
             Thread.sleep(1000);
             this.retry++;

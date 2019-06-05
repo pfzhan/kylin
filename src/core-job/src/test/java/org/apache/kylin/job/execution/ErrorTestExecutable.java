@@ -43,11 +43,10 @@
 
 package org.apache.kylin.job.execution;
 
-import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.job.exception.ExecuteException;
-
 import java.util.HashMap;
 import java.util.Map;
+
+import org.apache.kylin.job.exception.ExecuteException;
 
 /**
  */
@@ -60,7 +59,7 @@ public class ErrorTestExecutable extends BaseTestExecutable {
     @Override
     protected ExecuteResult doWork(ExecutableContext context) throws ExecuteException {
         Map<String, String> info = new HashMap<String, String>(){{put("runningStatus", "inRunning");}};
-        NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), getProject()).updateJobOutput(getId(), ExecutableState.RUNNING, info, null, null);
+        updateJobOutput(getProject(), getId(), ExecutableState.RUNNING, info, null, null);
         try {
             Thread.sleep(1000);
         } catch (InterruptedException e) {

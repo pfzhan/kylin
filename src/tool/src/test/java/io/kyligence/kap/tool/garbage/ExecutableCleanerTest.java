@@ -121,7 +121,6 @@ public class ExecutableCleanerTest extends NLocalFileMetadataTestCase {
         executable.setParam("test1", "test1");
         executable.setId(jobId);
         executable.setProject(DEFAULT_PROJECT);
-        executable.initConfig(getTestConfig());
         ExecutablePO po = NExecutableManager.toPO(executable, DEFAULT_PROJECT);
         ExecutableOutputPO executableOutputPO = new ExecutableOutputPO();
         executableOutputPO.setCreateTime(createTime);

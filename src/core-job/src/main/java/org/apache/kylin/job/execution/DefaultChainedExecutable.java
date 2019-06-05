@@ -67,14 +67,6 @@ public class DefaultChainedExecutable extends AbstractExecutable implements Chai
         super();
     }
 
-    @Override
-    public void initConfig(KylinConfig config) {
-        super.initConfig(config);
-        for (AbstractExecutable sub : subTasks) {
-            sub.initConfig(config);
-        }
-    }
-
     public Set<String> getMetadataDumpList(KylinConfig config) {
         return Collections.emptySet();
     }
@@ -82,9 +74,7 @@ public class DefaultChainedExecutable extends AbstractExecutable implements Chai
     @Override
     protected ExecuteResult doWork(ExecutableContext context) throws ExecuteException {
         List<? extends Executable> executables = getTasks();
-        final int size = executables.size();
-        for (int i = 0; i < size; ++i) {
-            Executable subTask = executables.get(i);
+        for (Executable subTask : executables) {
             ExecutableState state = subTask.getStatus();
             if (state == ExecutableState.RUNNING) {
                 // there is already running subtask, no need to start a new subtask
@@ -102,6 +92,7 @@ public class DefaultChainedExecutable extends AbstractExecutable implements Chai
                 } catch (JobSuicideException e) {
                     return ExecuteResult.createSucceed();
                 } catch (JobStoppedException e) {
+                    logger.debug("stopped unexpected", e);
                     return ExecuteResult.createSucceed();
                 } catch (ExecuteException e) {
                     if (e.getCause() instanceof JobSuicideException) {
@@ -116,23 +107,17 @@ public class DefaultChainedExecutable extends AbstractExecutable implements Chai
     }
 
     @Override
-    protected boolean needCheckPaused() {
+    protected boolean needCheckState(ExecutableState parentState) {
         return false;
     }
 
-    @Override
-    protected boolean needCheckDiscarded() {
-        return false;
-    }
-
-    @Override
-    protected void onExecuteError(ExecuteResult result, ExecutableContext executableContext) {
-        super.onExecuteError(result, executableContext);
+    protected void onExecuteError(ExecuteResult result) {
+        super.onExecuteError(result);
         notifyUserJobIssue(JobIssueEnum.JOB_ERROR);
     }
 
     @Override
-    protected void onExecuteFinished(ExecuteResult result, ExecutableContext executableContext) {
+    protected void onExecuteFinished(ExecuteResult result) {
         // dispatch job-finished message out
         SchedulerEventBusFactory.getInstance(KylinConfig.getInstanceFromEnv())
                 .postWithLimit(new JobFinishedNotifier(getProject()));
@@ -142,7 +127,7 @@ public class DefaultChainedExecutable extends AbstractExecutable implements Chai
         }
 
         if (!result.succeed()) {
-            updateJobOutput(getProject(), getId(), ExecutableState.ERROR, null, this::onExecuteErrorHook);
+            updateJobOutput(getProject(), getId(), ExecutableState.ERROR, null, null, this::onExecuteErrorHook);
             notifyUserJobIssue(JobIssueEnum.JOB_ERROR);
             return;
         }
@@ -180,7 +165,7 @@ public class DefaultChainedExecutable extends AbstractExecutable implements Chai
         if (allSucceed) {
             updateJobOutput(getProject(), getId(), ExecutableState.SUCCEED, null);
         } else if (hasError) {
-            updateJobOutput(getProject(), getId(), ExecutableState.ERROR, null, this::onExecuteErrorHook);
+            updateJobOutput(getProject(), getId(), ExecutableState.ERROR, null, null, this::onExecuteErrorHook);
             notifyUserJobIssue(JobIssueEnum.JOB_ERROR);
         } else if (hasDiscarded) {
             updateJobOutput(getProject(), getId(), ExecutableState.DISCARDED, null);
@@ -219,35 +204,6 @@ public class DefaultChainedExecutable extends AbstractExecutable implements Chai
             }
         }
         return null;
-    }
-
-    private boolean retryFetchTaskStatus(Executable task) {
-        boolean hasRunning = false;
-        int retry = 1;
-        while (retry <= 10) {
-            ExecutableState retryState = task.getStatus();
-            if (retryState == ExecutableState.RUNNING) {
-                try {
-                    Thread.sleep(100);
-                } catch (InterruptedException e) {
-                    logger.error("Failed to Sleep: ", e);
-                    Thread.currentThread().interrupt();
-                }
-                hasRunning = true;
-                logger.error("With {} times retry, it's state is still RUNNING", retry);
-            } else {
-                logger.info("With {} times retry, status is changed to: {}", retry, retryState);
-                hasRunning = false;
-                break;
-            }
-            retry++;
-        }
-        if (hasRunning) {
-            logger.error("Parent task: {} is finished, but it's subtask: {}'s state is still RUNNING \n"
-                    + ", mark parent task failed.", getDisplayName(), task.getDisplayName());
-            return false;
-        }
-        return true;
     }
 
 }

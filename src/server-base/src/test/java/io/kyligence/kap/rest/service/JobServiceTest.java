@@ -290,13 +290,11 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
         NExecutableManager manager = NExecutableManager.getInstance(jobService.getConfig(), "default");
         SucceedChainedTestExecutable job1 = new SucceedChainedTestExecutable();
         job1.setProject(getProject());
-        job1.initConfig(KylinConfig.getInstanceFromEnv());
         job1.setName("mocked job");
         job1.setTargetSubject("12345678");
         final TableDesc tableDesc = NTableMetadataManager.getInstance(getTestConfig(), getProject())
                 .getTableDesc("DEFAULT.TEST_KYLIN_FACT");
         NTableSamplingJob samplingJob = NTableSamplingJob.create(tableDesc, getProject(), "ADMIN", 20000);
-        samplingJob.initConfig(getTestConfig());
         manager.addJob(job1);
         manager.addJob(samplingJob);
         List<String> jobNames = Lists.newArrayList();
@@ -315,17 +313,14 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
         List<AbstractExecutable> jobs = new ArrayList<>();
         SucceedChainedTestExecutable job1 = new SucceedChainedTestExecutable();
         job1.setProject("default");
-        job1.initConfig(KylinConfig.getInstanceFromEnv());
         job1.setName("sparkjob1");
         job1.setTargetSubject("model1");
         SucceedChainedTestExecutable job2 = new SucceedChainedTestExecutable();
         job2.setProject("default");
-        job2.initConfig(KylinConfig.getInstanceFromEnv());
         job2.setName("sparkjob2");
         job2.setTargetSubject("model2");
         SucceedChainedTestExecutable job3 = new SucceedChainedTestExecutable();
         job3.setProject("default");
-        job3.initConfig(KylinConfig.getInstanceFromEnv());
         job3.setName("sparkjob3");
         job3.setTargetSubject("model3");
         jobs.add(job1);

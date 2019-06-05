@@ -29,7 +29,6 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.KylinConfig.SetAndUnsetThreadLocalConfig;
 import org.apache.kylin.common.persistence.InMemResourceStore;
 import org.apache.kylin.common.persistence.RawResource;
 import org.apache.kylin.common.persistence.ResourceStore;
@@ -57,12 +56,7 @@ public class UnitOfWork {
     public static final String GLOBAL_UNIT = "_global";
 
     static ThreadLocal<Boolean> replaying = new ThreadLocal<>();
-    private static ThreadLocal<UnitOfWork> threadLocals = new ThreadLocal<>();
-
-    private SetAndUnsetThreadLocalConfig localConfig;
-    private TransactionLock currentLock = null;
-    private final String project;
-    private UnitOfWorkParams params;
+    private static ThreadLocal<UnitOfWorkContext> threadLocals = new ThreadLocal<>();
 
     public static <T> T doInTransactionWithRetry(Callback<T> f, String unitName) {
         return doInTransactionWithRetry(f, unitName, 10);
@@ -74,21 +68,12 @@ public class UnitOfWork {
     }
 
     public static <T> T doInTransactionWithRetry(UnitOfWorkParams<T> params) {
-        String unitName = params.getUnitName();
         val maxRetry = params.getMaxRetry();
         val f = params.getProcessor();
         // reused transaction, won't retry
         if (isAlreadyInTransaction()) {
-            UnitOfWork unitOfWork = UnitOfWork.get();
-            Preconditions.checkState(unitOfWork.project.equals(unitName),
-                    "re-entry of UnitOfWork with different unit name? existing: %s, new: %s", unitOfWork.project,
-                    unitName);
-            Preconditions.checkState(params.isReadonly() == unitOfWork.params.isReadonly(),
-                    "re-entry of UnitOfWork with different lock type? existing: %s, new: %s", params.isReadonly(),
-                    unitOfWork.params.isReadonly());
-            Preconditions.checkState(params.isUseSandbox() == unitOfWork.params.isUseSandbox(),
-                    "re-entry of UnitOfWork with different sandbox? existing: %s, new: %s", params.isReadonly(),
-                    unitOfWork.params.isUseSandbox());
+            val unitOfWork = UnitOfWork.get();
+            unitOfWork.checkReentrant(params);
             try {
                 return f.process();
             } catch (Throwable throwable) {
@@ -110,6 +95,8 @@ public class UnitOfWork {
     }
 
     private static <T> Pair<T, Boolean> doTransaction(UnitOfWorkParams<T> params, int retry, String traceId) {
+        Pair<T, Boolean> result = Pair.newPair(null, false);
+        UnitOfWorkContext context = null;
         try {
             T ret;
 
@@ -121,7 +108,7 @@ public class UnitOfWork {
 
             long startTime = System.currentTimeMillis();
             TransactionListenerRegistry.onStart(params.getUnitName());
-            UnitOfWork.startTransaction(params);
+            context = UnitOfWork.startTransaction(params);
             ret = params.getProcessor().process();
             UnitOfWork.endTransaction();
             long duration = System.currentTimeMillis() - startTime;
@@ -130,7 +117,7 @@ public class UnitOfWork {
             } else {
                 log.debug("a UnitOfWork takes {}ms to complete", duration);
             }
-            return Pair.newPair(ret, true);
+            result = Pair.newPair(ret, true);
         } catch (Throwable throwable) {
             if (retry >= params.getMaxRetry()) {
                 params.getProcessor().onProcessError(throwable);
@@ -141,13 +128,12 @@ public class UnitOfWork {
             if (retry == 1) {
                 log.warn("transaction failed at first time, retry it. traceId:" + traceId, throwable);
             }
-            //else proceed retry
         } finally {
             if (isAlreadyInTransaction()) {
                 try {
-                    UnitOfWork unitOfWork = UnitOfWork.get();
-                    unitOfWork.currentLock.unlock();
-                    unitOfWork.done();
+                    val unitOfWork = UnitOfWork.get();
+                    unitOfWork.getCurrentLock().unlock();
+                    unitOfWork.cleanResource();
                     //log.debug("leaving UnitOfWork for project {}", unitOfWork.project);
                 } catch (IllegalStateException e) {
                     //has not hold the lock yet, it's ok
@@ -159,10 +145,13 @@ public class UnitOfWork {
                 TransactionListenerRegistry.onEnd(params.getUnitName());
             }
         }
-        return Pair.newPair(null, false);
+        if (result.getSecond() && context != null) {
+            context.runTasks();
+        }
+        return result;
     }
 
-    static <T> UnitOfWork startTransaction(UnitOfWorkParams<T> params) {
+    static <T> UnitOfWorkContext startTransaction(UnitOfWorkParams<T> params) {
         val project = params.getUnitName();
         val readonly = params.isReadonly();
         val lock = TransactionLock.getLock(project, readonly);
@@ -172,13 +161,13 @@ public class UnitOfWork {
         Preconditions.checkState(!lock.isHeldByCurrentThread());
         lock.lock();
 
-        UnitOfWork unitOfWork = new UnitOfWork(project);
-        unitOfWork.currentLock = lock;
-        unitOfWork.params = params;
+        val unitOfWork = new UnitOfWorkContext(project);
+        unitOfWork.setCurrentLock(lock);
+        unitOfWork.setParams(params);
         threadLocals.set(unitOfWork);
 
         if (readonly || !params.isUseSandbox()) {
-            unitOfWork.localConfig = null;
+            unitOfWork.setLocalConfig(null);
             return unitOfWork;
         }
 
@@ -196,39 +185,25 @@ public class UnitOfWork {
         //TODO check underlying rs is never changed since here
         ThreadViewResourceStore rs = new ThreadViewResourceStore((InMemResourceStore) underlying, configCopy);
         ResourceStore.setRS(configCopy, rs);
-        unitOfWork.localConfig = KylinConfig.setAndUnsetThreadLocalConfig(configCopy);
+        unitOfWork.setLocalConfig(KylinConfig.setAndUnsetThreadLocalConfig(configCopy));
 
         log.trace("sandbox RS {} now takes place for main RS {}", rs, underlying);
 
         return unitOfWork;
     }
 
-    private void done() {
-        if (localConfig == null) {
-            return;
-        }
-
-        KylinConfig config = localConfig.get();
-        ResourceStore.clearCache(config);
-        localConfig.close();
-        localConfig = null;
-    }
-
-    static UnitOfWork get() {
+    public static UnitOfWorkContext get() {
         val temp = threadLocals.get();
         Preconditions.checkNotNull(temp, "current thread is not accompanied by a UnitOfWork");
-
-        Preconditions.checkNotNull(temp.currentLock);
-        Preconditions.checkState(temp.currentLock.isHeldByCurrentThread());
-
+        temp.checkLockStatus();
         return temp;
     }
 
     static void endTransaction() throws Exception {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
-        UnitOfWork work = get();
-        if (work.params.isReadonly() || !work.params.isUseSandbox()) {
-            work.done();
+        val work = get();
+        if (work.isReadonly() || !work.isUseSandbox()) {
+            work.cleanResource();
             return;
         }
         val threadViewRS = (ThreadViewResourceStore) ResourceStore.getKylinMetaStore(config);
@@ -242,11 +217,11 @@ public class UnitOfWork {
         }).collect(Collectors.<Event> toList());
 
         //clean rs and config
-        work.done();
+        work.cleanResource();
 
         val originConfig = KylinConfig.getInstanceFromEnv();
         // publish events here
-        val unitMessages = packageEvents(eventList, get().project);
+        val unitMessages = packageEvents(eventList, get().getProject());
         val metadataStore = ResourceStore.getKylinMetaStore(originConfig).getMetadataStore();
         metadataStore.batchUpdate(unitMessages);
 
@@ -269,7 +244,7 @@ public class UnitOfWork {
         val uuid = UUID.randomUUID().toString();
         events.add(0, new StartUnit(uuid));
         events.add(new EndUnit(uuid));
-        events.forEach(e -> e.setKey(get().project));
+        events.forEach(e -> e.setKey(get().getProject()));
         return new UnitMessages(events);
     }
 
@@ -283,7 +258,7 @@ public class UnitOfWork {
     }
 
     public static boolean isReadonly() {
-        return UnitOfWork.get().params.isReadonly();
+        return UnitOfWork.get().isReadonly();
     }
 
     public interface Callback<T> {

@@ -85,7 +85,7 @@ public class DefaultChainedExecutableOnModel extends DefaultChainedExecutable {
     }
 
     private boolean checkAnyLayoutExists() {
-        val layouts = getParam(NBatchConstants.P_LAYOUT_IDS);
+        String layouts = getParam(NBatchConstants.P_LAYOUT_IDS);
         if (StringUtils.isEmpty(layouts)) {
             return true;
         }

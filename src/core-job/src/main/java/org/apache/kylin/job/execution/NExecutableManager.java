@@ -60,6 +60,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
+import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.common.scheduler.JobCreatedNotifier;
 import io.kyligence.kap.common.scheduler.SchedulerEventBusFactory;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
@@ -109,8 +110,6 @@ public class NExecutableManager {
         result.setType(executable.getClass().getName());
         result.setParams(executable.getParams());
         result.setJobType(executable.getJobType());
-        result.setDataRangeStart(executable.getDataRangeStart());
-        result.setDataRangeEnd(executable.getDataRangeEnd());
         result.setTargetModel(executable.getTargetSubject());
         result.setTargetSegments(executable.getTargetSegments());
         Map<String, Object> runTimeInfo = executable.getRunTimeInfo();
@@ -132,7 +131,6 @@ public class NExecutableManager {
 
     // only for test
     public void addJob(AbstractExecutable executable) {
-        executable.initConfig(config);
         val po = toPO(executable, project);
         addJob(po);
     }
@@ -328,7 +326,7 @@ public class NExecutableManager {
             return;
         }
         if (job instanceof DefaultChainedExecutable) {
-            List<AbstractExecutable> tasks = ((DefaultChainedExecutable) job).getTasks();
+            List<? extends AbstractExecutable> tasks = ((DefaultChainedExecutable) job).getTasks();
             tasks.stream().filter(task -> task.getStatus() != ExecutableState.READY) //
                     .filter(task -> (task.getStatus() == ExecutableState.ERROR
                             || task.getStatus() == ExecutableState.PAUSED))
@@ -348,7 +346,7 @@ public class NExecutableManager {
             return;
         }
         if (job instanceof DefaultChainedExecutable) {
-            List<AbstractExecutable> tasks = ((DefaultChainedExecutable) job).getTasks();
+            List<? extends AbstractExecutable> tasks = ((DefaultChainedExecutable) job).getTasks();
             tasks.stream().filter(task -> task.getStatus() != ExecutableState.READY)
                     .forEach(task -> updateJobOutput(task.getId(), ExecutableState.READY));
         }
@@ -429,13 +427,15 @@ public class NExecutableManager {
             jobOutput.setInfo(info);
             Optional.ofNullable(output).ifPresent(jobOutput::setContent);
             logger.info("Job id: {} from {} to {}", taskOrJobId, oldStatus, newStatus);
+
+            if (needDestroyProcess(oldStatus, newStatus)) {
+                logger.debug("need kill {}, from {} to {}", taskOrJobId, oldStatus, newStatus);
+                // kill spark-submit process
+                val context = UnitOfWork.get();
+                context.doAfterUnit(() -> destroyProcess(taskOrJobId));
+            }
             return true;
         });
-        if (taskOrJobId.equals(jobId)
-                && (ExecutableState.PAUSED.equals(newStatus) || ExecutableState.DISCARDED.equals(newStatus))) {
-            // kill spark-submit process
-            destroyProcess(taskOrJobId);
-        }
     }
 
     private void updateJobStatus(ExecutableOutputPO jobOutput, ExecutableState oldStatus, ExecutableState newStatus) {
@@ -455,21 +455,18 @@ public class NExecutableManager {
     }
 
     public void destroyProcess(String jobId) {
-        // in ut env, there is no process for job, just do nothing
-        if (!config.isUTEnv()) {
-            Process process = JobProcessContext.getProcess(jobId);
-            if (process != null && process.isAlive()) {
-                String cmd = "";
-                try {
-                    int pid = getPid(process);
-                    cmd = String.format("pkill -P %d", pid);
-                    logger.info("destroyProcess pid {} of job {} with cmd '{}'", pid, jobId, cmd);
-                    Process proc = Runtime.getRuntime().exec(cmd);
-                    int exitValue = proc.waitFor();
-                    logger.info("exec cmd '{}', exitValue : {}", cmd, exitValue);
-                } catch (Exception e) {
-                    logger.error("exec cmd : '{}', error : {}", cmd, e.getMessage(), e);
-                }
+        Process process = JobProcessContext.getProcess(jobId);
+        if (process != null && process.isAlive()) {
+            String cmd = "";
+            try {
+                int pid = getPid(process);
+                cmd = String.format("pkill -P %d", pid);
+                logger.info("destroyProcess pid {} of job {} with cmd '{}'", pid, jobId, cmd);
+                Process proc = Runtime.getRuntime().exec(cmd);
+                int exitValue = proc.waitFor();
+                logger.info("exec cmd '{}', exitValue : {}", cmd, exitValue);
+            } catch (Exception e) {
+                logger.error("exec cmd : '{}', error : {}", cmd, e.getMessage(), e);
             }
         }
     }
@@ -494,14 +491,11 @@ public class NExecutableManager {
             Class<? extends AbstractExecutable> clazz = ClassUtil.forName(type, AbstractExecutable.class);
             Constructor<? extends AbstractExecutable> constructor = clazz.getConstructor();
             AbstractExecutable result = constructor.newInstance();
-            result.initConfig(config);
             result.setId(executablePO.getUuid());
             result.setName(executablePO.getName());
             result.setProject(project);
             result.setParams(executablePO.getParams());
             result.setJobType(executablePO.getJobType());
-            result.setDataRangeStart(executablePO.getDataRangeStart());
-            result.setDataRangeEnd(executablePO.getDataRangeEnd());
             result.setTargetSubject(executablePO.getTargetModel());
             result.setTargetSegments(executablePO.getTargetSegments());
             List<ExecutablePO> tasks = executablePO.getTasks();
@@ -517,9 +511,16 @@ public class NExecutableManager {
         }
     }
 
-    private static String extractJobId(String taskOrJobId) {
+    static String extractJobId(String taskOrJobId) {
         val jobIdPair = taskOrJobId.split("_");
         return jobIdPair[0];
+    }
+
+    private boolean needDestroyProcess(ExecutableState from, ExecutableState to) {
+        if (from != ExecutableState.RUNNING || to == null) {
+            return false;
+        }
+        return to == ExecutableState.PAUSED || to == ExecutableState.READY || to == ExecutableState.DISCARDED;
     }
 
     public void updateJobOutputToHDFS(String resPath, ExecutableOutputPO obj) {

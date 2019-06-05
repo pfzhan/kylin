@@ -46,7 +46,6 @@ import org.apache.kylin.job.execution.ExecutableContext;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.job.execution.NExecutableManager;
-import org.apache.kylin.job.impl.threadpool.DefaultContext;
 import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
 import org.apache.kylin.job.lock.MockJobLock;
 import org.apache.kylin.metadata.model.SegmentRange;
@@ -60,6 +59,7 @@ import org.spark_project.guava.collect.Sets;
 
 import com.google.common.collect.Maps;
 
+import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.engine.spark.ExecutableUtils;
 import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
 import io.kyligence.kap.engine.spark.builder.DFSnapshotBuilder;
@@ -316,7 +316,10 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
         //        Assert.assertEquals(true, thread.isInterrupted());
         df = dsMgr.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         Assert.assertEquals(0, df.getSegments().size());
-        execMgr.discardJob(job.getId());
+        UnitOfWork.doInTransactionWithRetry(() -> {
+            execMgr.discardJob(job.getId());
+            return null;
+        }, getProject());
     }
 
     @Test
@@ -366,7 +369,10 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
         //Assert.assertEquals(true, thread.isInterrupted());
         df = dsMgr.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         Assert.assertEquals(df.getSegment(firstMergeJob.getSparkMergingStep().getSegmentIds().iterator().next()), null);
-        execMgr.discardJob(firstMergeJob.getId());
+        UnitOfWork.doInTransactionWithRetry(() -> {
+            execMgr.discardJob(firstMergeJob.getId());
+            return null;
+        }, getProject());
     }
 
     private void validateCube(String segmentId) {
@@ -428,7 +434,7 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
     @Test
     public void testSparkExecutable_WrapConfig() {
         val project = "default";
-        ExecutableContext context = new DefaultContext(Maps.newConcurrentMap(), getTestConfig());
+        ExecutableContext context = new ExecutableContext(Maps.newConcurrentMap(), getTestConfig());
         NSparkExecutable executable = new NSparkExecutable();
         executable.setProject(project);
 

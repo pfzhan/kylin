@@ -47,7 +47,6 @@ import static org.apache.kylin.job.constant.ExecutableConstants.YARN_APP_ID;
 import static org.apache.kylin.job.constant.ExecutableConstants.YARN_APP_URL;
 
 import java.io.IOException;
-import java.util.Collections;
 import java.util.IllegalFormatException;
 import java.util.List;
 import java.util.Map;
@@ -56,19 +55,17 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
-import io.kyligence.kap.common.util.ThrowableUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang3.ArrayUtils;
-import org.apache.commons.lang3.tuple.Pair;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.MailService;
+import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.common.util.StringUtil;
 import org.apache.kylin.job.constant.JobIssueEnum;
 import org.apache.kylin.job.dao.ExecutableOutputPO;
 import org.apache.kylin.job.exception.ExecuteException;
 import org.apache.kylin.job.exception.JobStoppedException;
 import org.apache.kylin.job.exception.JobSuicideException;
-import org.apache.kylin.job.impl.threadpool.DefaultContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -79,6 +76,7 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
+import io.kyligence.kap.common.util.ThrowableUtils;
 import io.kyligence.kap.metadata.cube.model.NBatchConstants;
 import io.kyligence.kap.metadata.cube.model.NDataLayout;
 import io.kyligence.kap.metadata.model.NDataModel;
@@ -87,10 +85,11 @@ import io.kyligence.kap.metadata.project.NProjectManager;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.val;
+import lombok.experimental.Delegate;
 
 /**
  */
-public abstract class AbstractExecutable implements Executable, Idempotent {
+public abstract class AbstractExecutable implements Executable {
 
     protected static final String SUBMITTER = "submitter";
     protected static final String NOTIFY_LIST = "notify_list";
@@ -99,9 +98,9 @@ public abstract class AbstractExecutable implements Executable, Idempotent {
     public static final String DEPENDENT_FILES = "dependentFiles";
 
     protected static final Logger logger = LoggerFactory.getLogger(AbstractExecutable.class);
+
     protected int retry = 0;
 
-    private KylinConfig config;
     @Getter
     @Setter
     private String name;
@@ -121,23 +120,18 @@ public abstract class AbstractExecutable implements Executable, Idempotent {
     @Setter
     private String id;
 
-    @Getter
-    @Setter
-    private long dataRangeStart;
-
-    @Getter
-    @Setter
-    private long dataRangeEnd;
-
-    private Map<String, String> params = Maps.newHashMap();
+    @Delegate
+    private ExecutableParams executableParams = new ExecutableParams();
     private String project;
+    private ExecutableContext context;
 
     @Getter
     @Setter
     private Map<String, Object> runTimeInfo = Maps.newHashMap();
 
     public String getTargetModelAlias() {
-        NDataModel dataModelDesc = NDataModelManager.getInstance(config, getProject()).getDataModelDesc(targetSubject);
+        NDataModel dataModelDesc = NDataModelManager.getInstance(getConfig(), getProject())
+                .getDataModelDesc(targetSubject);
         return (dataModelDesc == null || dataModelDesc.isBroken()) ? null : dataModelDesc.getAlias();
     }
 
@@ -145,42 +139,35 @@ public abstract class AbstractExecutable implements Executable, Idempotent {
         setId(UUID.randomUUID().toString());
     }
 
-    public void initConfig(KylinConfig config) {
-        Preconditions.checkState(this.config == null || this.config == config);
-        this.config = config;
-    }
-
     public void cancelJob() throws IOException {
     }
 
     protected KylinConfig getConfig() {
-        return config;
+        return KylinConfig.getInstanceFromEnv();
     }
 
     protected NExecutableManager getManager() {
         return getExecutableManager(project);
     }
 
-    protected void onExecuteStart(ExecutableContext executableContext) {
+    protected void onExecuteStart() {
 
         checkJobStateChange();
         updateJobOutput(project, getId(), ExecutableState.RUNNING);
 
     }
 
-    protected void onExecuteFinished(ExecuteResult result, ExecutableContext executableContext) {
+    protected void onExecuteFinished(ExecuteResult result) {
         checkJobStateChange();
         Preconditions.checkState(result.succeed());
-        Preconditions.checkState(this.getStatus() == ExecutableState.RUNNING);
-        updateJobOutput(project, getId(), ExecutableState.SUCCEED, result.getExtraInfo(), result.output());
+        updateJobOutput(project, getId(), ExecutableState.SUCCEED, result.getExtraInfo(), result.output(), null);
     }
 
-    protected void onExecuteError(ExecuteResult result, ExecutableContext executableContext) {
-        checkJobStateChange(result.getErrorMsg());
+    protected void onExecuteError(ExecuteResult result) {
+        checkJobStateChange();
         Preconditions.checkState(!result.succeed());
-        Preconditions.checkState(this.getStatus() == ExecutableState.RUNNING);
         updateJobOutput(project, getId(), ExecutableState.ERROR, result.getExtraInfo(), result.getErrorMsg(),
-                jobId -> onExecuteErrorHook(jobId));
+                this::onExecuteErrorHook);
     }
 
     protected void onExecuteStopHook() {
@@ -191,13 +178,16 @@ public abstract class AbstractExecutable implements Executable, Idempotent {
         // At present, only instance of DefaultChainedExecutableOnModel take full advantage of this method.
     }
 
-    public static void updateJobOutput(String project, String jobId, ExecutableState newStatus,
-            Map<String, String> info, String output) {
-        updateJobOutput(project, jobId, newStatus, info, output, null);
+    public void updateJobOutput(String project, String jobId, ExecutableState newStatus) {
+        updateJobOutput(project, jobId, newStatus, null, null, null);
     }
 
-    public static void updateJobOutput(String project, String jobId, ExecutableState newStatus,
-            Map<String, String> info, String output, Consumer<String> hook) {
+    public void updateJobOutput(String project, String jobId, ExecutableState newStatus, String output) {
+        updateJobOutput(project, jobId, newStatus, null, output, null);
+    }
+
+    public void updateJobOutput(String project, String jobId, ExecutableState newStatus, Map<String, String> info,
+            String output, Consumer<String> hook) {
         UnitOfWork.doInTransactionWithRetry(() -> {
             NExecutableManager executableManager = getExecutableManager(project);
             val existedInfo = executableManager.getOutput(jobId).getExtra();
@@ -215,19 +205,6 @@ public abstract class AbstractExecutable implements Executable, Idempotent {
 
         //write output to HDFS
         updateJobOutputToHDFS(project, jobId, output);
-    }
-
-    public static void updateJobOutput(String project, String jobId, ExecutableState newStatus) {
-        updateJobOutput(project, jobId, newStatus, null);
-    }
-
-    public static void updateJobOutput(String project, String jobId, ExecutableState newStatus, String output) {
-        updateJobOutput(project, jobId, newStatus, output, null);
-    }
-
-    public static void updateJobOutput(String project, String jobId, ExecutableState newStatus, String output,
-            Consumer<String> hook) {
-        updateJobOutput(project, jobId, newStatus, null, output, hook);
     }
 
     private static void updateJobOutputToHDFS(String project, String jobId, String output) {
@@ -250,9 +227,10 @@ public abstract class AbstractExecutable implements Executable, Idempotent {
     public final ExecuteResult execute(ExecutableContext executableContext) throws ExecuteException {
 
         logger.info("Executing AbstractExecutable {}", this.getDisplayName());
-        Preconditions.checkArgument(executableContext instanceof DefaultContext);
+        this.context = executableContext;
         ExecuteResult result;
-        onExecuteStart(executableContext);
+
+        onExecuteStart();
 
         do {
             if (retry > 0) {
@@ -273,22 +251,19 @@ public abstract class AbstractExecutable implements Executable, Idempotent {
         //check exception in result to avoid retry on ChainedExecutable(only need retry on subtask actually)
 
         if (!result.succeed()) {
-            onExecuteError(result, executableContext);
+            onExecuteError(result);
             throw new ExecuteException(result.getThrowable());
         } else {
-            onExecuteFinished(result, executableContext);
+            onExecuteFinished(result);
             return result;
         }
     }
 
     private void checkJobStateChange() {
-        checkJobStateChange(null);
-    }
-
-    private void checkJobStateChange(String output) {
         suicideIfNecessary();
-        checkJobPaused(output);
-        checkJobDiscarded(output);
+        checkJob(ExecutableState.READY, ExecutableState.READY);
+        checkJob(ExecutableState.PAUSED, ExecutableState.READY);
+        checkJob(ExecutableState.DISCARDED, ExecutableState.DISCARDED);
     }
 
     private void suicideIfNecessary() {
@@ -312,44 +287,18 @@ public abstract class AbstractExecutable implements Executable, Idempotent {
     }
 
     // If job need check paused, override this method, by default return true.
-    protected boolean needCheckPaused() {
+    protected boolean needCheckState(ExecutableState parentState) {
         return true;
     }
 
-    public void checkJobPaused() {
-        checkJobPaused(null);
-    }
-
-    private void checkJobPaused(String output) {
-        if (!needCheckPaused()) {
+    public void checkJob(ExecutableState parentState, ExecutableState newState) {
+        if (!needCheckState(parentState)) {
             return;
         }
         val parent = this.getParent();
-        if (ExecutableState.PAUSED.equals(parent.getStatus())) {
+        if (parentState.equals(parent.getStatus())) {
             UnitOfWork.doInTransactionWithRetry(() -> {
-                updateJobOutput(project, getId(), ExecutableState.READY);
-                return null;
-            }, project);
-            throw new JobStoppedException();
-        }
-    }
-
-    protected boolean needCheckDiscarded() {
-        return true;
-    }
-
-    public void checkJobDiscarded() {
-        checkJobDiscarded(null);
-    }
-
-    private void checkJobDiscarded(String output) {
-        if (!needCheckDiscarded()) {
-            return;
-        }
-        val parent = this.getParent();
-        if (ExecutableState.DISCARDED.equals(parent.getStatus())) {
-            UnitOfWork.doInTransactionWithRetry(() -> {
-                updateJobOutput(project, getId(), ExecutableState.DISCARDED);
+                updateJobOutput(project, getId(), newState);
                 return null;
             }, project);
             throw new JobStoppedException();
@@ -392,10 +341,6 @@ public abstract class AbstractExecutable implements Executable, Idempotent {
     protected abstract ExecuteResult doWork(ExecutableContext context) throws ExecuteException;
 
     @Override
-    public void cleanup() {
-    }
-
-    @Override
     public boolean isRunnable() {
         return this.getStatus() == ExecutableState.READY;
     }
@@ -410,63 +355,8 @@ public abstract class AbstractExecutable implements Executable, Idempotent {
         return manager.getOutput(this.getId()).getState();
     }
 
-    @Override
-    public final Map<String, String> getParams() {
-        return this.params;
-    }
-
-    public final String getParam(String key) {
-        return this.params.get(key);
-    }
-
-    public final void setParam(String key, String value) {
-        this.params.put(key, value);
-    }
-
-    public final void setParams(Map<String, String> params) {
-        this.params.putAll(params);
-    }
-
     public final long getLastModified() {
         return getOutput().getLastModified();
-    }
-
-    public final void setParent(AbstractExecutable parent) {
-        setParentId(parent.getId());
-    }
-
-    public final void setParentId(String parentId) {
-        setParam(PARENT_ID, parentId);
-    }
-
-    public final void setSubmitter(String submitter) {
-        setParam(SUBMITTER, submitter);
-    }
-
-    public final List<String> getNotifyList() {
-        final String str = getParam(NOTIFY_LIST);
-        if (str != null) {
-            return Lists.newArrayList(StringUtils.split(str, ","));
-        } else {
-            return Collections.emptyList();
-        }
-    }
-
-    public final void setNotifyList(String notifications) {
-        setParam(NOTIFY_LIST, notifications);
-    }
-
-    public final void setNotifyList(List<String> notifications) {
-        setNotifyList(StringUtils.join(notifications, ","));
-    }
-
-    protected Pair<String, String> formatNotifications(KylinConfig kylinConfig, EmailNotificationContent content) {
-        if (content == null) {
-            return null;
-        }
-        String title = content.getEmailTitle();
-        String body = content.getEmailBody();
-        return Pair.of(title, body);
     }
 
     public void notifyUserIfNecessary(NDataLayout[] addOrUpdateCuboids) {
@@ -485,7 +375,7 @@ public abstract class AbstractExecutable implements Executable, Idempotent {
     public final void notifyUserJobIssue(JobIssueEnum jobIssue) {
         Preconditions.checkState(
                 (this instanceof DefaultChainedExecutable) || this.getParent() instanceof DefaultChainedExecutable);
-        val projectConfig = NProjectManager.getInstance(config).getProject(project).getConfig();
+        val projectConfig = NProjectManager.getInstance(getConfig()).getProject(project).getConfig();
         boolean needNotification = true;
         switch (jobIssue) {
         case JOB_ERROR:
@@ -510,67 +400,8 @@ public abstract class AbstractExecutable implements Executable, Idempotent {
         }
     }
 
-    private final void notifyUser(KylinConfig kylinConfig, EmailNotificationContent content) {
-        try {
-            List<String> users = getAllNofifyUsers(kylinConfig);
-            if (users.isEmpty()) {
-                logger.debug("no need to send email, user list is empty.");
-                return;
-            }
-            final Pair<String, String> email = formatNotifications(kylinConfig, content);
-            doSendMail(kylinConfig, users, email);
-        } catch (Exception e) {
-            logger.error("error send email", e);
-        }
-    }
-
-    private List<String> getAllNofifyUsers(KylinConfig kylinConfig) {
-        List<String> users = Lists.newArrayList();
-        users.addAll(getNotifyList());
-        final String[] adminDls = kylinConfig.getAdminDls();
-        if (null != adminDls) {
-            for (String adminDl : adminDls) {
-                users.add(adminDl);
-            }
-        }
-        return users;
-    }
-
-    private void doSendMail(KylinConfig kylinConfig, List<String> users, Pair<String, String> email) {
-        if (email == null) {
-            logger.warn("no need to send email, content is null");
-            return;
-        }
-        logger.info("prepare to send email to:" + users);
-        logger.info("job name:" + getDisplayName());
-        logger.info("submitter:" + getSubmitter());
-        logger.info("notify list:" + users);
-        new MailService(kylinConfig).sendMail(users, email.getLeft(), email.getRight());
-    }
-
-    protected void sendMail(Pair<String, String> email) {
-        try {
-            List<String> users = getAllNofifyUsers(config);
-            if (users.isEmpty()) {
-                logger.debug("no need to send email, user list is empty");
-                return;
-            }
-            doSendMail(config, users, email);
-        } catch (Exception e) {
-            logger.error("error send email", e);
-        }
-    }
-
-    public final String getParentId() {
-        return getParam(PARENT_ID);
-    }
-
     public final AbstractExecutable getParent() {
         return getManager().getJob(getParam(PARENT_ID));
-    }
-
-    public final String getSubmitter() {
-        return getParam(SUBMITTER);
     }
 
     public final String getProject() {
@@ -604,13 +435,13 @@ public abstract class AbstractExecutable implements Executable, Idempotent {
         }
 
         if (info.containsKey(YARN_APP_ID)
-                && !org.apache.commons.lang3.StringUtils.isEmpty(config.getJobTrackingURLPattern())) {
-            String pattern = config.getJobTrackingURLPattern();
+                && !org.apache.commons.lang3.StringUtils.isEmpty(getConfig().getJobTrackingURLPattern())) {
+            String pattern = getConfig().getJobTrackingURLPattern();
             try {
                 String newTrackingURL = String.format(pattern, info.get(YARN_APP_ID));
                 info.put(YARN_APP_URL, newTrackingURL);
             } catch (IllegalFormatException ife) {
-                logger.error("Illegal tracking url pattern: {}", config.getJobTrackingURLPattern());
+                logger.error("Illegal tracking url pattern: {}", getConfig().getJobTrackingURLPattern());
             }
         }
 
@@ -637,7 +468,7 @@ public abstract class AbstractExecutable implements Executable, Idempotent {
         return getManager().getCreateTime(getId());
     }
 
-    public static final long getCreateTime(Output output) {
+    public static long getCreateTime(Output output) {
         return output.getCreateTime();
     }
 
@@ -649,7 +480,7 @@ public abstract class AbstractExecutable implements Executable, Idempotent {
         return getDuration(getOutput());
     }
 
-    public static final long getDuration(Output output) {
+    public static long getDuration(Output output) {
         return getDuration(output.getStartTime(), output.getEndTime(), output.getWaitTime());
     }
 
@@ -704,7 +535,7 @@ public abstract class AbstractExecutable implements Executable, Idempotent {
     }
 
     protected boolean needRetry() {
-        return this.retry <= config.getJobRetry();
+        return this.retry <= getConfig().getJobRetry();
     }
 
     public Set<String> getDependencies(KylinConfig config) {
@@ -721,7 +552,7 @@ public abstract class AbstractExecutable implements Executable, Idempotent {
             return computeTableAnalyzeMemory();
         }
 
-        val layouts = getParam(NBatchConstants.P_LAYOUT_IDS);
+        String layouts = getParam(NBatchConstants.P_LAYOUT_IDS);
         if (layouts != null) {
             return computeDriverMemory(StringUtil.splitAndTrim(layouts, ",").length);
         }
@@ -741,6 +572,45 @@ public abstract class AbstractExecutable implements Executable, Idempotent {
     public String toString() {
         return Objects.toStringHelper(this).add("id", getId()).add("name", getName()).add("state", getStatus())
                 .toString();
+    }
+
+    private final void notifyUser(KylinConfig kylinConfig, EmailNotificationContent content) {
+        try {
+            List<String> users = getAllNofifyUsers(kylinConfig);
+            if (users.isEmpty()) {
+                logger.debug("no need to send email, user list is empty.");
+                return;
+            }
+            final Pair<String, String> email = formatNotifications(content);
+            doSendMail(kylinConfig, users, email);
+        } catch (Exception e) {
+            logger.error("error send email", e);
+        }
+    }
+
+    private void doSendMail(KylinConfig kylinConfig, List<String> users, Pair<String, String> email) {
+        if (email == null) {
+            logger.warn("no need to send email, content is null");
+            return;
+        }
+        logger.info("prepare to send email to:{}", users);
+        logger.info("job name:{}", getDisplayName());
+        logger.info("submitter:{}", getSubmitter());
+        logger.info("notify list:{}", users);
+        new MailService(kylinConfig).sendMail(users, email.getFirst(), email.getSecond());
+    }
+
+    protected void sendMail(Pair<String, String> email) {
+        try {
+            List<String> users = getAllNofifyUsers(getConfig());
+            if (users.isEmpty()) {
+                logger.debug("no need to send email, user list is empty");
+                return;
+            }
+            doSendMail(getConfig(), users, email);
+        } catch (Exception e) {
+            logger.error("error send email", e);
+        }
     }
 
 }

@@ -221,6 +221,7 @@ public abstract class CachedCrudAssist<T extends RootPersistentEntity> {
 
         String path = resourcePath(resName);
         logger.debug("Saving {} at {}", entityType.getSimpleName(), path);
+//        new RuntimeException().printStackTrace();
 
         store.checkAndPutResource(path, entity, serializer);
 

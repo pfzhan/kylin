@@ -28,16 +28,15 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.exception.ExecuteException;
 import org.apache.kylin.job.execution.DefaultChainedExecutable;
-import org.apache.kylin.job.execution.ExecutableContext;
 import org.apache.kylin.job.execution.ExecuteResult;
 
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
+import org.apache.kylin.job.execution.ExecutableContext;
 
 /**
  */
@@ -45,7 +44,6 @@ public class SucceedChainedTestExecutable extends DefaultChainedExecutable {
 
     public SucceedChainedTestExecutable() {
         super();
-        this.initConfig(KylinConfig.getInstanceFromEnv());
     }
 
     @Override

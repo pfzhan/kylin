@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -43,13 +42,40 @@
 
 package org.apache.kylin.job.execution;
 
+import java.util.Collections;
+import java.util.Map;
+import java.util.concurrent.ConcurrentMap;
+
 import org.apache.kylin.common.KylinConfig;
+
+import lombok.extern.slf4j.Slf4j;
 
 /**
  */
-public interface ExecutableContext {
+@Slf4j
+public class ExecutableContext {
 
-    Object getSchedulerContext();
+    private final ConcurrentMap<String, Executable> runningJobs;
+    private final KylinConfig kylinConfig;
 
-    KylinConfig getConfig();
+    public ExecutableContext(ConcurrentMap<String, Executable> runningJobs, KylinConfig kylinConfig) {
+        this.runningJobs = runningJobs;
+        this.kylinConfig = kylinConfig;
+    }
+
+    public KylinConfig getConfig() {
+        return kylinConfig;
+    }
+
+    public void addRunningJob(Executable executable) {
+        runningJobs.put(executable.getId(), executable);
+    }
+
+    public void removeRunningJob(Executable executable) {
+        runningJobs.remove(executable.getId());
+    }
+
+    public Map<String, Executable> getRunningJobs() {
+        return Collections.unmodifiableMap(runningJobs);
+    }
 }

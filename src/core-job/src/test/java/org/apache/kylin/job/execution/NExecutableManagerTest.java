@@ -31,6 +31,8 @@ import static org.junit.Assert.assertTrue;
 import java.io.IOException;
 import java.util.List;
 
+import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
+import io.kyligence.kap.metadata.cube.model.NBatchConstants;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.constant.JobIssueEnum;
 import org.apache.kylin.job.dao.NExecutableDao;
@@ -124,14 +126,17 @@ public class NExecutableManagerTest extends NLocalFileMetadataTestCase {
     public void testValidStateTransfer() throws Exception {
         SucceedTestExecutable job = new SucceedTestExecutable();
         String id = job.getId();
-        manager.addJob(job);
-        manager.updateJobOutput(id, ExecutableState.RUNNING);
-        manager.updateJobOutput(id, ExecutableState.ERROR);
-        manager.updateJobOutput(id, ExecutableState.READY);
-        manager.updateJobOutput(id, ExecutableState.RUNNING);
-        manager.updateJobOutput(id, ExecutableState.READY);
-        manager.updateJobOutput(id, ExecutableState.RUNNING);
-        manager.updateJobOutput(id, ExecutableState.SUCCEED);
+        UnitOfWork.doInTransactionWithRetry(() -> {
+            manager.addJob(job);
+            manager.updateJobOutput(id, ExecutableState.RUNNING);
+            manager.updateJobOutput(id, ExecutableState.ERROR);
+            manager.updateJobOutput(id, ExecutableState.READY);
+            manager.updateJobOutput(id, ExecutableState.RUNNING);
+            manager.updateJobOutput(id, ExecutableState.READY);
+            manager.updateJobOutput(id, ExecutableState.RUNNING);
+            manager.updateJobOutput(id, ExecutableState.SUCCEED);
+            return null;
+        }, "default");
     }
 
     @Test(expected = IllegalStateException.class)
@@ -390,11 +395,10 @@ public class NExecutableManagerTest extends NLocalFileMetadataTestCase {
         job.setName(JobTypeEnum.INDEX_BUILD.toString());
         job.setJobType(JobTypeEnum.INDEX_BUILD);
         job.setProject(project);
-        job.initConfig(getTestConfig());
         val start = "2015-01-01 00:00:00";
         val end = "2015-02-01 00:00:00";
-        job.setDataRangeStart(SegmentRange.dateToLong(start));
-        job.setDataRangeEnd(SegmentRange.dateToLong(end));
+        job.setParam(NBatchConstants.P_DATA_RANGE_START, SegmentRange.dateToLong(start) + "");
+        job.setParam(NBatchConstants.P_DATA_RANGE_END, SegmentRange.dateToLong(end) + "");
         job.setTargetSubject("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         EmailNotificationContent content = EmailNotificationContent.createContent(JobIssueEnum.JOB_ERROR, job);
         Assert.assertTrue(content.getEmailTitle().contains(JobIssueEnum.JOB_ERROR.getDisplayName()));

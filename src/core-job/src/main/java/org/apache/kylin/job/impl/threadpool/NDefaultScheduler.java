@@ -48,6 +48,7 @@ import org.apache.kylin.job.exception.ExecuteException;
 import org.apache.kylin.job.exception.JobSuicideException;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.Executable;
+import org.apache.kylin.job.execution.ExecutableContext;
 import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.job.execution.Output;
 import org.apache.kylin.job.lock.JobLock;
@@ -75,7 +76,7 @@ public class NDefaultScheduler implements Scheduler<AbstractExecutable>, Connect
     private FetcherRunner fetcher;
     private ScheduledExecutorService fetcherPool;
     private ExecutorService jobPool;
-    private DefaultContext context;
+    private ExecutableContext context;
     private static ConcurrentHashMap<String, Thread> threadToInterrupt = new ConcurrentHashMap<>();
     private static final Logger logger = LoggerFactory.getLogger(NDefaultScheduler.class);
     private volatile boolean initialized = false;
@@ -354,7 +355,7 @@ public class NDefaultScheduler implements Scheduler<AbstractExecutable>, Connect
         }
         jobPool = new ThreadPoolExecutor(corePoolSize, corePoolSize, Long.MAX_VALUE, TimeUnit.DAYS,
                 new SynchronousQueue<>(), new NamedThreadFactory("RunJobWorker(project:" + project + ")"));
-        context = new DefaultContext(Maps.newConcurrentMap(), jobEngineConfig.getConfig());
+        context = new ExecutableContext(Maps.newConcurrentMap(), jobEngineConfig.getConfig());
 
         val executableManager = NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
         executableManager.resumeAllRunningJobs();

@@ -2380,17 +2380,14 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
         List<AbstractExecutable> jobs = new ArrayList<>();
         SucceedChainedTestExecutable job1 = new SucceedChainedTestExecutable();
         job1.setProject("default");
-        job1.initConfig(KylinConfig.getInstanceFromEnv());
         job1.setName("sparkjob1");
         job1.setTargetSubject("741ca86a-1f13-46da-a59f-95fb68615e3a");
         SucceedChainedTestExecutable job2 = new SucceedChainedTestExecutable();
         job2.setProject("default");
-        job2.initConfig(KylinConfig.getInstanceFromEnv());
         job2.setName("sparkjob2");
         job2.setTargetSubject("model2");
         SucceedChainedTestExecutable job3 = new SucceedChainedTestExecutable();
         job3.setProject("default");
-        job3.initConfig(KylinConfig.getInstanceFromEnv());
         job3.setName("sparkjob3");
         job3.setTargetSubject("model3");
         jobs.add(job1);

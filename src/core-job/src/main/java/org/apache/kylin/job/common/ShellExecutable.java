@@ -46,8 +46,8 @@ import java.util.Map;
 
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.job.execution.AbstractExecutable;
-import org.apache.kylin.job.execution.ExecutableContext;
 import org.apache.kylin.job.execution.ExecuteResult;
+import org.apache.kylin.job.execution.ExecutableContext;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;

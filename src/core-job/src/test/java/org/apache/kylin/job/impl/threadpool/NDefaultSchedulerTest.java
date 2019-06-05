@@ -774,7 +774,10 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
                     && runningStatus.equals("inRunning");
         });
         assertMemoryRestore(currMem - SPARK_DRIVER_BASE_MEMORY);
-        executableManager.pauseJob(job.getId());
+        UnitOfWork.doInTransactionWithRetry(() -> {
+            executableManager.pauseJob(job.getId());
+            return null;
+        }, "default");
 
         await().atMost(3000, TimeUnit.MILLISECONDS).untilAsserted(() -> {
             Assert.assertEquals(ExecutableState.PAUSED, job.getStatus());
@@ -782,7 +785,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         });
 
         thrown.expect(JobStoppedException.class);
-        task.checkJobPaused();
+        task.checkJob(ExecutableState.PAUSED, ExecutableState.READY);
         assertMemoryRestore(currMem);
     }
 
