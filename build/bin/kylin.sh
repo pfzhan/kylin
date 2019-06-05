@@ -188,7 +188,7 @@ then
     source ${KYLIN_HOME}/bin/replace-jars-under-spark.sh
     source ${KYLIN_HOME}/bin/load-zookeeper-config.sh
     fetchFIZkInfo
-
+    port=`$KYLIN_HOME/bin/get-properties.sh server.port`
     used=`netstat -tpln | grep "\<$port\>" | awk '{print $7}' | sed "s/\// /g"`
     if [ ! -z "$used" ]; then
         echo "<$used> already listen on $port"
