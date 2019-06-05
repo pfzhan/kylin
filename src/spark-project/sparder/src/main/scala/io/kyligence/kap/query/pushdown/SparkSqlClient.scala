@@ -26,7 +26,7 @@ package io.kyligence.kap.query.pushdown
 
 import java.util.{UUID, List => JList}
 
-import org.apache.kylin.common.KylinConfig
+import org.apache.kylin.common.{KylinConfig, QueryContext}
 import org.apache.kylin.common.exceptions.KylinTimeoutException
 import org.apache.kylin.common.util.Pair
 import org.apache.kylin.shaded.htrace.org.apache.htrace.Trace
@@ -68,6 +68,7 @@ object SparkSqlClient {
       case e: Throwable =>
         if (e.isInstanceOf[InterruptedException]) {
           ss.sparkContext.cancelJobGroup(jobGroup)
+          QueryContext.current.setTimeout(true)
           logger.info("Query timeout ", e)
           Thread.currentThread.interrupt()
           throw new KylinTimeoutException("Query timeout after: " + KylinConfig.getInstanceFromEnv.getQueryTimeoutSeconds + "s")

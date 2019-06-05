@@ -62,6 +62,7 @@ import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.QueryContext;
+import org.apache.kylin.common.exceptions.KylinTimeoutException;
 import org.apache.kylin.common.exceptions.ResourceLimitExceededException;
 import org.apache.kylin.common.persistence.Serializer;
 import org.apache.kylin.common.util.JsonUtil;
@@ -358,6 +359,24 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         OLAPContext.registerContext(mock);
 
         Mockito.doNothing().when(queryService).clearThreadLocalContexts();
+    }
+
+    @Test
+    public void testQueryWithTimeOutException() throws Exception {
+        final String sql = "select * from exception_table";
+        final String project = "newten";
+
+        Mockito.when(queryService.getConnection(project))
+                .thenThrow(new RuntimeException(new KylinTimeoutException("calcite timeout exception")));
+
+        final SQLRequest request = new SQLRequest();
+        request.setProject(project);
+        request.setSql(sql);
+
+        final SQLResponse sqlResponse = queryService.doQueryWithCache(request, false);
+        Assert.assertTrue(sqlResponse.isException());
+        String log = queryService.logQuery(request, sqlResponse);
+        Assert.assertTrue(log.contains("Is Timeout: true"));
     }
 
     @Test

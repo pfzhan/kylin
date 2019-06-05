@@ -102,6 +102,8 @@ public class SQLResponse implements Serializable {
 
     private boolean isPrepare = false;
 
+    private boolean isTimeout;
+
     protected byte[] queryStatistics;
 
     protected String traceUrl = null;

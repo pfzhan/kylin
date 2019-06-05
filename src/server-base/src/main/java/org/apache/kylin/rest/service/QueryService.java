@@ -81,6 +81,7 @@ import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.common.debug.BackdoorToggles;
+import org.apache.kylin.common.exceptions.KylinTimeoutException;
 import org.apache.kylin.common.exceptions.ResourceLimitExceededException;
 import org.apache.kylin.common.htrace.HtraceInit;
 import org.apache.kylin.common.persistence.ResourceStore;
@@ -316,6 +317,7 @@ public class QueryService extends BasicService {
         stringBuilder.append("Storage Cache Used: ").append(response.isStorageCacheUsed()).append(newLine);
         stringBuilder.append("Is Query Push-Down: ").append(response.isQueryPushDown()).append(newLine);
         stringBuilder.append("Is Prepare: ").append(response.isPrepare()).append(newLine);
+        stringBuilder.append("Is Timeout: ").append(response.isTimeout()).append(newLine);
         stringBuilder.append("Trace URL: ").append(response.getTraceUrl()).append(newLine);
         stringBuilder.append("Message: ").append(response.getExceptionMessage()).append(newLine);
         stringBuilder.append("==========================[QUERY]===============================").append(newLine);
@@ -488,9 +490,15 @@ public class QueryService extends BasicService {
             sqlResponse = new SQLResponse(null, null, 0, true, errMsg, false, false);
             QueryContext queryContext = QueryContext.current();
             queryContext.setFinalCause(e);
+
+            if (e.getCause() != null && ExceptionUtils.getRootCause(e) instanceof KylinTimeoutException) {
+                queryContext.setTimeout(true);
+            }
+
             sqlResponse.setQueryId(queryContext.getQueryId());
             sqlResponse.setTotalScanCount(queryContext.getScannedRows());
             sqlResponse.setTotalScanBytes(queryContext.getScannedBytes());
+            sqlResponse.setTimeout(queryContext.isTimeout());
 
             if (queryCacheEnabled && e.getCause() != null
                     && ExceptionUtils.getRootCause(e) instanceof ResourceLimitExceededException) {

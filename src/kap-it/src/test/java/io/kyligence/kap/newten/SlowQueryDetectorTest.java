@@ -45,6 +45,7 @@ package io.kyligence.kap.newten;
 import java.util.UUID;
 
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.common.exceptions.KylinTimeoutException;
 import org.apache.kylin.job.engine.JobEngineConfig;
 import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
@@ -126,6 +127,7 @@ public class SlowQueryDetectorTest extends NLocalWithSparkSessionTest {
             logger.error(error);
             Assert.fail(error);
         } catch (Exception e) {
+            Assert.assertTrue(QueryContext.current().isTimeout());
             Throwable cause = e.getCause().getCause();
             Assert.assertTrue(cause instanceof KylinTimeoutException);
             Assert.assertTrue(cause.getMessage().contains("Query timeout after:"));
@@ -154,6 +156,7 @@ public class SlowQueryDetectorTest extends NLocalWithSparkSessionTest {
             SparkSqlClient.executeSql(ss, sql, UUID.randomUUID());
             Assert.fail();
         } catch (Exception e) {
+            Assert.assertTrue(QueryContext.current().isTimeout());
             Assert.assertTrue(e instanceof KylinTimeoutException);
             Assert.assertTrue(e.getMessage().contains("Query timeout after:"));
 
