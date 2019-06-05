@@ -44,13 +44,13 @@ package io.kyligence.kap.rest.service;
 
 import java.io.IOException;
 import java.lang.reflect.Field;
+import java.util.HashMap;
 import java.util.List;
 import java.util.TreeMap;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.metadata.cube.model.FrequencyMap;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.engine.JobEngineConfig;
 import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
@@ -77,15 +77,12 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
 
 import io.kyligence.kap.event.manager.EventOrchestratorManager;
+import io.kyligence.kap.metadata.cube.model.FrequencyMap;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
-import io.kyligence.kap.metadata.favorite.FavoriteQuery;
-import io.kyligence.kap.metadata.favorite.FavoriteQueryManager;
-import io.kyligence.kap.metadata.favorite.FavoriteQueryRealization;
 import io.kyligence.kap.metadata.model.MaintainModelType;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
@@ -223,7 +220,8 @@ public class ProjectServiceTest extends ServiceTestBase {
         List<ProjectInstance> projectInstances = projectService.getReadableProjects(PROJECT, false);
         Assert.assertEquals("30",
                 projectInstances.get(0).getOverrideKylinProps().get("kylin.favorite.query-accelerate-threshold"));
-        Assert.assertEquals("false", projectInstances.get(0).getOverrideKylinProps().get("kylin.favorite.query-accelerate-tips-enable"));
+        Assert.assertEquals("false",
+                projectInstances.get(0).getOverrideKylinProps().get("kylin.favorite.query-accelerate-tips-enable"));
     }
 
     @Test
@@ -242,7 +240,7 @@ public class ProjectServiceTest extends ServiceTestBase {
 
     @Test
     public void testGetStorageVolumeInfoResponse() {
-        prepareFQs();
+        prepareLayoutHitCount();
         StorageVolumeInfoResponse storageVolumeInfoResponse = projectService.getStorageVolumeInfoResponse(PROJECT);
 
         Assert.assertEquals(10240L * 1024 * 1024 * 1024, storageVolumeInfoResponse.getStorageQuotaSize());
@@ -253,7 +251,8 @@ public class ProjectServiceTest extends ServiceTestBase {
 
     @Test
     public void testCleanupProjectGarbage() throws IOException {
-        prepareFQs();
+        prepareLayoutHitCount();
+        Mockito.doNothing().when(asyncTaskService).cleanupStorage();
         projectService.cleanupGarbage(PROJECT);
         val indexPlan = NIndexPlanManager.getInstance(getTestConfig(), PROJECT).getIndexPlan(MODEL_ID);
         Assert.assertEquals(2, indexPlan.getAllLayouts().size());
@@ -269,7 +268,7 @@ public class ProjectServiceTest extends ServiceTestBase {
 
     @Test
     public void testScheduledGarbageCleanup() {
-        prepareFQs();
+        prepareLayoutHitCount();
         val aclManager = AclManager.getInstance(getTestConfig());
         val record = new AclRecord();
         record.setUuid(UUID.randomUUID().toString());
@@ -299,9 +298,8 @@ public class ProjectServiceTest extends ServiceTestBase {
                 if (model.getId().equals(MODEL_ID)) {
                     val layouts = indexPlan.getAllLayouts().stream().map(LayoutEntity::getId)
                             .collect(Collectors.toSet());
-                    Assert.assertEquals(3, layouts.size());
+                    Assert.assertEquals(2, layouts.size());
                     Assert.assertTrue(layouts.contains(1L));
-                    Assert.assertTrue(layouts.contains(10001L));
                     Assert.assertTrue(layouts.contains(1000001L));
                     continue;
                 }
@@ -318,63 +316,36 @@ public class ProjectServiceTest extends ServiceTestBase {
         Assert.assertNull(acl);
     }
 
-    /**
-     * Here prepared two favorite query
-     * fq1 -> low frequency fq, connects to layout 1, 10001
-     * fq2 -> high frequency fq, connects to layout 1000001
-     */
-    private void prepareFQs() {
-        val modelMgr = NDataModelManager.getInstance(getTestConfig(), PROJECT);
-        val model = modelMgr.getDataModelDesc(MODEL_ID);
+    private void prepareLayoutHitCount() {
+        val dataflowManager = NDataflowManager.getInstance(getTestConfig(), PROJECT);
 
-        val favoriteQueryManager = FavoriteQueryManager.getInstance(getTestConfig(), PROJECT);
         long currentTime = System.currentTimeMillis();
         long currentDate = currentTime - currentTime % (24 * 60 * 60 * 1000L);
         long dayInMillis = 24 * 60 * 60 * 1000L;
 
-        // low frequency favorite query
-        val fq1 = new FavoriteQuery("test_sql_1");
-        fq1.setCreateTime(currentTime - 30 * dayInMillis);
-        fq1.setFrequencyMap(new FrequencyMap(new TreeMap<Long, Integer>() {
-            {
-                put(currentDate - 7 * dayInMillis, 1);
-                put(currentDate - 30 * dayInMillis, 2);
-            }
-        }));
-
-        val fqr1 = new FavoriteQueryRealization();
-        fqr1.setModelId(model.getId());
-        fqr1.setSemanticVersion(model.getSemanticVersion());
-        fqr1.setLayoutId(1);
-
-        val fqr2 = new FavoriteQueryRealization();
-        fqr2.setModelId(model.getId());
-        fqr2.setSemanticVersion(model.getSemanticVersion());
-        fqr2.setLayoutId(10001L);
-
-        fq1.setRealizations(Lists.newArrayList(fqr1, fqr2));
-
-        // high frequency favorite query
-        val fq2 = new FavoriteQuery("test_sql_2");
-        fq2.setCreateTime(currentTime - 30 * dayInMillis);
-        fq2.setFrequencyMap(new FrequencyMap(new TreeMap<Long, Integer>() {
-            {
-                put(currentDate - 30 * dayInMillis, 10);
-            }
-        }));
-
-        val fqr3 = new FavoriteQueryRealization();
-        fqr3.setModelId(model.getId());
-        fqr3.setSemanticVersion(model.getSemanticVersion());
-        fqr3.setLayoutId(1);
-
-        val fqr4 = new FavoriteQueryRealization();
-        fqr4.setModelId(model.getId());
-        fqr4.setSemanticVersion(model.getSemanticVersion());
-        fqr4.setLayoutId(1000001L);
-
-        fq2.setRealizations(Lists.newArrayList(fqr3, fqr4));
-        favoriteQueryManager.create(Sets.newHashSet(fq1, fq2));
+        dataflowManager.updateDataflow(MODEL_ID, copyForWrite -> {
+            copyForWrite.setLayoutHitCount(new HashMap<Long, FrequencyMap>() {
+                {
+                    put(1L, new FrequencyMap(new TreeMap<Long, Integer>() {
+                        {
+                            put(currentDate - 7 * dayInMillis, 1);
+                            put(currentDate - 30 * dayInMillis, 12);
+                        }
+                    }));
+                    put(10001L, new FrequencyMap(new TreeMap<Long, Integer>() {
+                        {
+                            put(currentDate - 7 * dayInMillis, 1);
+                            put(currentDate - 30 * dayInMillis, 2);
+                        }
+                    }));
+                    put(1000001L, new FrequencyMap(new TreeMap<Long, Integer>() {
+                        {
+                            put(currentDate - 30 * dayInMillis, 10);
+                        }
+                    }));
+                }
+            });
+        });
     }
 
     @Test

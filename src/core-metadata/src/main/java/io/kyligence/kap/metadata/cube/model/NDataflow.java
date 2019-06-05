@@ -34,7 +34,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import com.google.common.collect.Maps;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfigExt;
 import org.apache.kylin.common.persistence.RootPersistentEntity;
@@ -59,10 +58,12 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 
 import io.kyligence.kap.common.obf.IKeep;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
+import io.kyligence.kap.metadata.project.NProjectManager;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.val;
@@ -505,7 +506,10 @@ public class NDataflow extends RootPersistentEntity implements Serializable, IRe
     public Set<Long> findLowFrequencyLayout() {
         val indexPlan = getIndexPlan();
         val hitFrequencyMap = getLayoutHitCount();
+        val projectInstance = NProjectManager.getInstance(config).getProject(project);
+        long frequencyTimeWindow = projectInstance.getConfig().getFavoriteQueryFrequencyTimeWindow();
         return indexPlan.getWhitelistLayouts().stream().filter(layoutEntity -> !layoutEntity.isManual())
+                .filter(layout -> System.currentTimeMillis() - layout.getUpdateTime() >= frequencyTimeWindow)
                 .map(LayoutEntity::getId).filter(layoutId -> {
                     val frequencyMap = hitFrequencyMap.get(layoutId);
                     if (frequencyMap == null) {

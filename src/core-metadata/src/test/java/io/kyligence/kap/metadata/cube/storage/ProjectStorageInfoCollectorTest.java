@@ -25,14 +25,10 @@
 package io.kyligence.kap.metadata.cube.storage;
 
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.List;
 import java.util.TreeMap;
-import com.google.common.collect.Sets;
-import io.kyligence.kap.metadata.cube.model.FrequencyMap;
-import io.kyligence.kap.metadata.favorite.FavoriteQuery;
-import io.kyligence.kap.metadata.favorite.FavoriteQueryManager;
-import io.kyligence.kap.metadata.favorite.FavoriteQueryRealization;
-import io.kyligence.kap.metadata.model.NDataModelManager;
+
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -42,9 +38,12 @@ import org.mockito.Mockito;
 import com.google.common.collect.Lists;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.metadata.cube.model.FrequencyMap;
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
+import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
+import io.kyligence.kap.metadata.model.NDataModelManager;
 import lombok.val;
 
 public class ProjectStorageInfoCollectorTest extends NLocalFileMetadataTestCase {
@@ -65,8 +64,8 @@ public class ProjectStorageInfoCollectorTest extends NLocalFileMetadataTestCase 
     @Test
     public void testGetStorageVolumeInfo() {
         initTestData();
-        val storageInfoEnumList = Lists.newArrayList(StorageInfoEnum.GARBAGE_STORAGE,
-                StorageInfoEnum.STORAGE_QUOTA, StorageInfoEnum.TOTAL_STORAGE);
+        val storageInfoEnumList = Lists.newArrayList(StorageInfoEnum.GARBAGE_STORAGE, StorageInfoEnum.STORAGE_QUOTA,
+                StorageInfoEnum.TOTAL_STORAGE);
         val collector = new ProjectStorageInfoCollector(storageInfoEnumList);
         val storageVolumeInfo = collector.getStorageVolumeInfo(getTestConfig(), PROJECT);
 
@@ -80,89 +79,60 @@ public class ProjectStorageInfoCollectorTest extends NLocalFileMetadataTestCase 
         Assert.assertFalse(storageVolumeInfo.getGarbageModelIndexMap().get(MODEL_ID).contains(40001L));
         Assert.assertFalse(storageVolumeInfo.getGarbageModelIndexMap().get(MODEL_ID).contains(40002L));
         // manually built layout was not considered as garbage
-        Assert.assertFalse(storageVolumeInfo.getGarbageModelIndexMap().get(MODEL_ID).contains(IndexEntity.TABLE_INDEX_START_ID + 40001));
+        Assert.assertFalse(storageVolumeInfo.getGarbageModelIndexMap().get(MODEL_ID)
+                .contains(IndexEntity.TABLE_INDEX_START_ID + 40001));
 
         // layout 1 is only related to low frequency fq
         Assert.assertTrue(storageVolumeInfo.getGarbageModelIndexMap().get(MODEL_ID).contains(1L));
-        Assert.assertFalse(storageVolumeInfo.getGarbageModelIndexMap().get(MODEL_ID).contains(IndexEntity.TABLE_INDEX_START_ID + 40001));
+        Assert.assertFalse(storageVolumeInfo.getGarbageModelIndexMap().get(MODEL_ID)
+                .contains(IndexEntity.TABLE_INDEX_START_ID + 40001));
     }
 
     private void initTestData() {
         val modelMgr = NDataModelManager.getInstance(getTestConfig(), PROJECT);
         val indePlanManager = NIndexPlanManager.getInstance(getTestConfig(), PROJECT);
+        val dataflowManager = NDataflowManager.getInstance(getTestConfig(), PROJECT);
         val model = modelMgr.getDataModelDesc(MODEL_ID);
         val cube = indePlanManager.getIndexPlan(MODEL_ID);
 
-        val favoriteQueryManager = FavoriteQueryManager.getInstance(getTestConfig(), PROJECT);
         long currentTime = System.currentTimeMillis();
         long currentDate = currentTime - currentTime % (24 * 60 * 60 * 1000L);
         long dayInMillis = 24 * 60 * 60 * 1000L;
 
-        // a low frequency favorite query, related layout 1 will be considered as garbage
-        val fq1 = new FavoriteQuery("sql1");
-        fq1.setCreateTime(currentTime - 32 * dayInMillis);
-        fq1.setFrequencyMap(new FrequencyMap(new TreeMap<Long, Integer>() {
-            {
-                put(currentDate - 7 * dayInMillis, 1);
-                put(currentDate - 31 * dayInMillis, 100);
-            }
-        }));
-
-        val fqr1 = new FavoriteQueryRealization();
-        fqr1.setModelId(model.getId());
-        fqr1.setSemanticVersion(model.getSemanticVersion());
-        fqr1.setLayoutId(40001);
-
-        val fqr2 = new FavoriteQueryRealization();
-        fqr2.setModelId(model.getId());
-        fqr2.setSemanticVersion(model.getSemanticVersion());
-        fqr2.setLayoutId(1);
-
-        fq1.setRealizations(Lists.newArrayList(fqr1, fqr2));
-
-        // not reached low frequency threshold, related layouts are 40001 and 40002
-        val fq2 = new FavoriteQuery("sql2");
-        fq2.setCreateTime(currentTime - 8 * dayInMillis);
-        fq2.setFrequencyMap(new FrequencyMap(new TreeMap<Long, Integer>() {
-            {
-                put(currentDate - 7 * 24 * 60 * 60 * 1000L, 1);
-                put(currentDate, 2);
-            }
-        }));
-
-        val fqr3 = new FavoriteQueryRealization();
-        fqr3.setModelId(model.getId());
-        fqr3.setSemanticVersion(model.getSemanticVersion());
-        fqr3.setLayoutId(40001);
-
-        val fqr4 = new FavoriteQueryRealization();
-        fqr4.setModelId(model.getId());
-        fqr4.setSemanticVersion(model.getSemanticVersion());
-        fqr4.setLayoutId(40002);
-        fq2.setRealizations(Lists.newArrayList(fqr3, fqr4));
-
-        // not a low frequency fq, related layouts are 10001 and 10002
-        val fq3 = new FavoriteQuery("sql3");
-        fq3.setCreateTime(currentDate - 31 * dayInMillis);
-        fq3.setFrequencyMap(new FrequencyMap(new TreeMap<Long, Integer>() {
-            {
-                put(currentDate - 30 * 24 * 60 * 60 * 1000L, 10);
-            }
-        }));
-
-        val fqr5 = new FavoriteQueryRealization();
-        fqr5.setModelId(model.getId());
-        fqr5.setSemanticVersion(model.getSemanticVersion());
-        fqr5.setLayoutId(10001);
-
-        val fqr6 = new FavoriteQueryRealization();
-        fqr6.setModelId(model.getId());
-        fqr6.setSemanticVersion(model.getSemanticVersion());
-        fqr6.setLayoutId(10002);
-        fq3.setRealizations(Lists.newArrayList(fqr5, fqr6));
-
-        favoriteQueryManager.create(Sets.newHashSet(fq1, fq2, fq3));
-
+        dataflowManager.updateDataflow(MODEL_ID, copyForWrite -> {
+            copyForWrite.setLayoutHitCount(new HashMap<Long, FrequencyMap>() {
+                {
+                    put(1L, new FrequencyMap(new TreeMap<Long, Integer>() {
+                        {
+                            put(currentDate - 7 * dayInMillis, 1);
+                            put(currentDate - 31 * dayInMillis, 100);
+                        }
+                    }));
+                    put(40001L, new FrequencyMap(new TreeMap<Long, Integer>() {
+                        {
+                            put(currentDate - 7 * 24 * 60 * 60 * 1000L, 1);
+                            put(currentDate, 2);
+                        }
+                    }));
+                    put(40002L, new FrequencyMap(new TreeMap<Long, Integer>() {
+                        {
+                            put(currentDate - 7 * 24 * 60 * 60 * 1000L, 1);
+                            put(currentDate, 2);
+                        }
+                    }));
+                    put(10001L, new FrequencyMap(new TreeMap<Long, Integer>() {
+                        {
+                            put(currentDate - 30 * 24 * 60 * 60 * 1000L, 10);
+                        }
+                    }));
+                    put(10002L, new FrequencyMap(new TreeMap<Long, Integer>() {
+                        {
+                            put(currentDate - 30 * 24 * 60 * 60 * 1000L, 10);
+                        }
+                    }));
+                }
+            });
+        });
         // add some new layouts for cube
         indePlanManager.updateIndexPlan(cube.getUuid(), copyForWrite -> {
             val newDesc = new IndexEntity();
@@ -173,10 +143,12 @@ public class ProjectStorageInfoCollectorTest extends NLocalFileMetadataTestCase 
             layout.setId(40001);
             layout.setColOrder(Lists.newArrayList(2, 1, 3, 4, 100000, 100001, 100005));
             layout.setAuto(true);
+            layout.setUpdateTime(currentTime - 8 * dayInMillis);
             val layout3 = new LayoutEntity();
             layout3.setId(40002);
             layout3.setColOrder(Lists.newArrayList(3, 2, 1, 4, 100000, 100001, 100005));
             layout3.setAuto(true);
+            layout3.setUpdateTime(currentTime - 8 * dayInMillis);
             newDesc.setLayouts(Lists.newArrayList(layout, layout3));
 
             val newDesc2 = new IndexEntity();
