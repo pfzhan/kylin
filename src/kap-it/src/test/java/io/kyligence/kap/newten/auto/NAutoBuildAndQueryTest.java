@@ -50,6 +50,7 @@ public class NAutoBuildAndQueryTest extends NAutoTestBase {
         executeTestScenario(
                 /* CompareLevel = SAME */
                 new TestScenario(CompareLevel.SAME, "sql"), //
+                new TestScenario(CompareLevel.SAME, "sql_kap"), //
                 new TestScenario(CompareLevel.SAME, "sql_boolean"), //
                 new TestScenario(CompareLevel.SAME, "sql_cache"), //
                 new TestScenario(CompareLevel.SAME, "sql_casewhen"), //

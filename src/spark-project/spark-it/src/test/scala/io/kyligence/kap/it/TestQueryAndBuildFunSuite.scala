@@ -57,6 +57,7 @@ class TestQueryAndBuildFunSuite
 
   val queryFolders = List(
     FloderInfo("sql", List("query105.sql")),
+    FloderInfo("sql_kap", List("query03.sql")),
     FloderInfo("sql_lookup"),
     FloderInfo("sql_casewhen"),
     FloderInfo("sql_like"),
