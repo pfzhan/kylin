@@ -96,6 +96,11 @@ public class NRuleBasedIndex implements Serializable, IKeep {
     @JsonProperty("index_start_id")
     private long indexStartId;
 
+    @Getter
+    @Setter
+    @JsonProperty("last_modify_time")
+    private long lastModifiedTime = System.currentTimeMillis();
+
     // computed fields below
 
     @Getter
@@ -331,8 +336,8 @@ public class NRuleBasedIndex implements Serializable, IKeep {
                 maybeCuboid.setMeasures(getMeasures());
                 maybeCuboid.setIndexPlan(indexPlan);
             }
+            layout.setUpdateTime(lastModifiedTime);
             layout.setIndex(maybeCuboid);
-
             result.add(layout);
             bitSet.clear();
         }

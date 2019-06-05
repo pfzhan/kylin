@@ -331,4 +331,20 @@ public class IndexPlanTest extends NLocalFileMetadataTestCase {
             }
         }
     }
+
+    @Test
+    public void testGetRuleBasedLayout() throws IOException {
+        var newPlan = JsonUtil.readValue(getClass().getResourceAsStream("/rule_based_and_auto_cube.json"), IndexPlan.class);
+        newPlan.initAfterReload(KylinConfig.getInstanceFromEnv(), "default");
+        val layouts = newPlan.getRuleBaseLayouts();
+        Assert.assertEquals(7, layouts.size());
+        for (val layout: layouts) {
+            Assert.assertNotNull(layout.getIndex());
+            Assert.assertTrue(layout.getUpdateTime() > 0);
+            Assert.assertTrue(layout.getIndex().getLayouts().size() > 0);
+            for (val indexLayout: layout.getIndex().getLayouts()) {
+                Assert.assertSame(layout.getIndex(), indexLayout.getIndex());
+            }
+        }
+    }
 }

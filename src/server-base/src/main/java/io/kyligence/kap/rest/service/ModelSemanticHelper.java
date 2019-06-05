@@ -35,6 +35,7 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.rest.response.BuildIndexResponse;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -406,10 +407,15 @@ public class ModelSemanticHelper extends BasicService {
         eventManager.post(postAddCuboidEvent);
     }
 
-    public void handleIndexPlanUpdateRule(String project, String model, NRuleBasedIndex oldRule,
+    public BuildIndexResponse handleIndexPlanUpdateRule(String project, String model, NRuleBasedIndex oldRule,
             NRuleBasedIndex newRule, boolean forceFireEvent) {
         log.debug("handle indexPlan udpate rule {} {}", project, model);
         val kylinConfig = KylinConfig.getInstanceFromEnv();
+        val df = NDataflowManager.getInstance(kylinConfig, project).getDataflow(model);
+        val readySegs = df.getSegments();
+        if (readySegs.isEmpty()) {
+            return new BuildIndexResponse(BuildIndexResponse.BuildIndexType.NO_SEGMENT);
+        }
         val eventManager = EventManager.getInstance(kylinConfig, project);
 
         val originLayouts = oldRule == null ? Sets.<LayoutEntity> newHashSet() : oldRule.genCuboidLayouts();
@@ -430,7 +436,10 @@ public class ModelSemanticHelper extends BasicService {
             postAddCuboidEvent.setModelId(model);
             postAddCuboidEvent.setOwner(getUsername());
             eventManager.post(postAddCuboidEvent);
+            return new BuildIndexResponse(BuildIndexResponse.BuildIndexType.NORM_BUILD);
         }
+
+        return new BuildIndexResponse(BuildIndexResponse.BuildIndexType.NO_LAYOUT);
 
     }
 

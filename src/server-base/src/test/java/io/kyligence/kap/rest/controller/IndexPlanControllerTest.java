@@ -25,7 +25,10 @@ package io.kyligence.kap.rest.controller;
 
 import java.util.Arrays;
 
+import io.kyligence.kap.metadata.cube.model.IndexPlan;
+import io.kyligence.kap.rest.response.BuildIndexResponse;
 import org.apache.kylin.common.util.JsonUtil;
+import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.rest.constant.Constant;
 import org.junit.After;
 import org.junit.Before;
@@ -84,7 +87,7 @@ public class IndexPlanControllerTest {
                 .parentForward(3).aggregationGroups(Lists.<NAggregationGroup> newArrayList())
                 .indexBlackSet(Sets.newHashSet(1L, 2L, 3L)).build();
         Mockito.when(indexPlanService.updateRuleBasedCuboid(Mockito.anyString(), Mockito.any(UpdateRuleBasedCuboidRequest.class)))
-                .thenReturn(null);
+                .thenReturn(new Pair<>(new IndexPlan(), new BuildIndexResponse()));
         mockMvc.perform(MockMvcRequestBuilders.put("/api/index_plans/rule").contentType(MediaType.APPLICATION_JSON)
                 .content(JsonUtil.writeValueAsString(request))
                 .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))

@@ -36,6 +36,8 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.metadata.cube.model.NDataLayout;
+import io.kyligence.kap.rest.response.BuildIndexResponse;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -1422,12 +1424,35 @@ public class ModelService extends BasicService {
     }
 
     @Transaction(project = 1)
-    public void buildIndicesManually(String modelId, String project) {
+    public BuildIndexResponse buildIndicesManually(String modelId, String project) {
         NDataModel modelDesc = getDataModelManager(project).getDataModelDesc(modelId);
         if (!modelDesc.getManagementType().equals(ManagementType.MODEL_BASED)) {
             throw new BadRequestException(
                     "Table oriented model '" + modelDesc.getAlias() + "' can not build indices manually!");
         }
+
+        NDataflow df = getDataflowManager(project).getDataflow(modelId);
+        IndexPlan indexPlan = getIndexPlanManager(project).getIndexPlan(modelId);
+
+        val segments = df.getSegments();
+        if (segments.isEmpty()) {
+            return new BuildIndexResponse(BuildIndexResponse.BuildIndexType.NO_SEGMENT);
+        }
+
+        // be process layouts = all layouts - ready layouts
+        val lastSeg = segments.getLastSegment();
+        Set<LayoutEntity> toBeProcessedLayouts = Sets.newLinkedHashSet();
+        for (LayoutEntity layout : indexPlan.getAllLayouts()) {
+            NDataLayout nc = lastSeg.getLayout(layout.getId());
+            if (nc == null) {
+                toBeProcessedLayouts.add(layout);
+            }
+        }
+
+        if (CollectionUtils.isEmpty(toBeProcessedLayouts)) {
+            return new BuildIndexResponse(BuildIndexResponse.BuildIndexType.NO_LAYOUT);
+        }
+
         val eventManager = getEventManager(project);
         AddCuboidEvent addCuboidEvent = new AddCuboidEvent();
         addCuboidEvent.setModelId(modelId);
@@ -1440,6 +1465,8 @@ public class ModelService extends BasicService {
         postAddCuboidEvent.setJobId(addCuboidEvent.getJobId());
         postAddCuboidEvent.setOwner(getUsername());
         eventManager.post(postAddCuboidEvent);
+
+        return new BuildIndexResponse(BuildIndexResponse.BuildIndexType.NORM_BUILD);
     }
 
 }

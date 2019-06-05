@@ -25,11 +25,13 @@
 package io.kyligence.kap.rest.response;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
-import io.kyligence.kap.metadata.cube.cuboid.CuboidStatus;
-import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import org.apache.commons.collections.CollectionUtils;
+import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.model.Segments;
 import org.apache.kylin.metadata.model.TblColRef;
 
@@ -39,8 +41,10 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 
-import io.kyligence.kap.metadata.cube.model.IndexPlan;
+import io.kyligence.kap.metadata.cube.cuboid.CuboidStatus;
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
+import io.kyligence.kap.metadata.cube.model.IndexPlan;
+import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.model.NDataLayout;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
@@ -68,6 +72,10 @@ public class IndexEntityResponse {
     private long endTime;
     @JsonProperty("status")
     private CuboidStatus status = CuboidStatus.AVAILABLE;
+    @JsonProperty("last_modify_time")
+    private long lastModifiedTime;
+    @JsonProperty("query_hit_count")
+    private long queryHitCount;
     @JsonManagedReference
     @JsonProperty("layouts")
     private List<LayoutEntity> layouts = Lists.newArrayList();
@@ -108,6 +116,16 @@ public class IndexEntityResponse {
         this.startTime = startTime;
         this.endTime = endTime;
         this.storageSize = storage;
+
+        this.lastModifiedTime = layouts.stream().map(LayoutEntity::getUpdateTime).max(Comparator.naturalOrder())
+                .orElse(0L);
+        val df = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(),
+                indexEntity.getIndexPlan().getProject());
+        val layoutSet = layouts.stream().map(LayoutEntity::getId).collect(Collectors.toSet());
+        this.queryHitCount = df.getDataflow(indexEntity.getIndexPlan().getId()).getLayoutHitCount().entrySet().stream()
+                .filter(entry -> layoutSet.contains(entry.getKey())).map(Map.Entry::getValue)
+                .flatMap(hit -> hit.getDateFrequency().values().stream()).mapToInt(Integer::intValue).sum();
+
     }
 
     private void setDimensionsAndMeasures(IndexEntity indexEntity) {

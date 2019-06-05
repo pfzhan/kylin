@@ -4,6 +4,7 @@
   "version": "2.3.0.20500",
   "description": "test_description",
   "rule_based_index": {
+    "last_modify_time": 1559787747000,
     "dimensions": [
       0,
       1,

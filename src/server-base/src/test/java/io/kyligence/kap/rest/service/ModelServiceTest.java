@@ -65,6 +65,8 @@ import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
+import io.kyligence.kap.metadata.cube.model.NDataLayout;
+import io.kyligence.kap.rest.response.BuildIndexResponse;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
@@ -219,7 +221,8 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testGetModelsMvcc() {
-        List<NDataModelResponse> models = modelService.getModels("nmodel_full_measure_test", "default", false, "", "", "last_modify", true);
+        List<NDataModelResponse> models = modelService.getModels("nmodel_full_measure_test", "default", false, "", "",
+                "last_modify", true);
         var model = models.get(0);
         modelService.renameDataModel(model.getProject(), model.getUuid(), "new_alias");
         models = modelService.getModels("new_alias", "default", false, "", "", "last_modify", true);
@@ -2503,15 +2506,60 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
     public void testBuildIndexManually() {
         val project = "default";
         val modelId = "abe3bf1a-c4bc-458d-8278-7ea8b00f5e96";
+        val dataflowManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+        val df = dataflowManager.getDataflow(modelId);
+        val dfUpdate = new NDataflowUpdate(df.getId());
+        List<NDataLayout> tobeRemoveCuboidLayouts = Lists.newArrayList();
+        Segments<NDataSegment> segments = df.getSegments();
+        for (NDataSegment segment : segments) {
+            tobeRemoveCuboidLayouts.addAll(segment.getLayoutsMap().values());
+        }
+        dfUpdate.setToRemoveLayouts(tobeRemoveCuboidLayouts.toArray(new NDataLayout[0]));
+        dataflowManager.updateDataflow(dfUpdate);
         val modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
-        modelManager.updateDataModel(modelId, copyForWrite -> {
-            copyForWrite.setManagementType(ManagementType.MODEL_BASED);
-        });
-        modelService.buildIndicesManually(modelId, project);
+        modelManager.updateDataModel(modelId,
+                copyForWrite -> copyForWrite.setManagementType(ManagementType.MODEL_BASED));
+        val response = modelService.buildIndicesManually(modelId, project);
+        Assert.assertEquals(BuildIndexResponse.BuildIndexType.NORM_BUILD, response.getType());
         val eventDao = EventDao.getInstance(KylinConfig.getInstanceFromEnv(), project);
         val events = eventDao.getEventsOrdered();
         Assert.assertEquals(2, events.size());
         Assert.assertTrue(events.get(0) instanceof AddCuboidEvent);
+
+    }
+
+    @Test
+    public void testBuildIndexManuallyWithoutLayout() {
+        val project = "default";
+        val modelId = "abe3bf1a-c4bc-458d-8278-7ea8b00f5e96";
+        val modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+        modelManager.updateDataModel(modelId,
+                copyForWrite -> copyForWrite.setManagementType(ManagementType.MODEL_BASED));
+        val response = modelService.buildIndicesManually(modelId, project);
+        Assert.assertEquals(BuildIndexResponse.BuildIndexType.NO_LAYOUT, response.getType());
+        val eventDao = EventDao.getInstance(KylinConfig.getInstanceFromEnv(), project);
+        val events = eventDao.getEventsOrdered();
+        Assert.assertEquals(0, events.size());
+
+    }
+
+    @Test
+    public void testBuildIndexManuallyWithoutSegment() {
+        val project = "default";
+        val modelId = "abe3bf1a-c4bc-458d-8278-7ea8b00f5e96";
+        val dataflowManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+        val df = dataflowManager.getDataflow(modelId);
+        val dfUpdate = new NDataflowUpdate(df.getId());
+        dfUpdate.setToRemoveSegs(df.getSegments().toArray(new NDataSegment[0]));
+        dataflowManager.updateDataflow(dfUpdate);
+        val modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+        modelManager.updateDataModel(modelId,
+                copyForWrite -> copyForWrite.setManagementType(ManagementType.MODEL_BASED));
+        val response = modelService.buildIndicesManually(modelId, project);
+        Assert.assertEquals(BuildIndexResponse.BuildIndexType.NO_SEGMENT, response.getType());
+        val eventDao = EventDao.getInstance(KylinConfig.getInstanceFromEnv(), project);
+        val events = eventDao.getEventsOrdered();
+        Assert.assertEquals(0, events.size());
 
     }
 }

@@ -35,8 +35,10 @@ import io.kyligence.kap.metadata.cube.cuboid.NAggregationGroup;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
+import io.kyligence.kap.rest.response.BuildIndexResponse;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.rest.response.AggIndexCombResult;
 import org.apache.kylin.rest.response.AggIndexResponse;
 import org.apache.kylin.rest.service.BasicService;
@@ -74,7 +76,8 @@ public class IndexPlanService extends BasicService {
     private ModelSemanticHelper semanticUpater;
 
     @Transaction(project = 0)
-    public IndexPlan updateRuleBasedCuboid(String project, final UpdateRuleBasedCuboidRequest request) {
+    public Pair<IndexPlan, BuildIndexResponse> updateRuleBasedCuboid(String project,
+            final UpdateRuleBasedCuboidRequest request) {
         val kylinConfig = KylinConfig.getInstanceFromEnv();
         val indexPlanManager = getIndexPlanManager(project);
         val modelManager = NDataModelManager.getInstance(kylinConfig, request.getProject());
@@ -86,26 +89,31 @@ public class IndexPlanService extends BasicService {
         val indexPlan = indexPlanManager.updateIndexPlan(originIndexPlan.getUuid(), copyForWrite -> {
             val newRuleBasedCuboid = new NRuleBasedIndex();
             BeanUtils.copyProperties(request, newRuleBasedCuboid);
+            newRuleBasedCuboid.setLastModifiedTime(System.currentTimeMillis());
             copyForWrite.setRuleBasedIndex(newRuleBasedCuboid);
         });
+        BuildIndexResponse response = new BuildIndexResponse();
         if (request.isLoadData()) {
-            semanticUpater.handleIndexPlanUpdateRule(request.getProject(), model.getUuid(),
+            response = semanticUpater.handleIndexPlanUpdateRule(request.getProject(), model.getUuid(),
                     originIndexPlan.getRuleBasedIndex(), indexPlan.getRuleBasedIndex(), false);
         }
-        return indexPlanManager.getIndexPlan(originIndexPlan.getUuid());
+        return new Pair<>(indexPlanManager.getIndexPlan(originIndexPlan.getUuid()), response);
     }
 
     @Transaction(project = 0)
-    public void updateTableIndex(String project, CreateTableIndexRequest request) {
+    public BuildIndexResponse updateTableIndex(String project, CreateTableIndexRequest request) {
+        val indexPlan = getIndexPlan(request.getProject(), request.getModelId());
+        val layout = parseToLayout(project, request);
+        for (LayoutEntity cuboidLayout : indexPlan.getAllLayouts()) {
+            if (cuboidLayout.equals(layout) && cuboidLayout.isManual()) {
+                return new BuildIndexResponse(BuildIndexResponse.BuildIndexType.NO_LAYOUT);
+            }
+        }
         removeTableIndex(project, request.getModelId(), request.getId());
-        createTableIndex(project, request);
+        return createTableIndex(project, request);
     }
 
-    @Transaction(project = 0)
-    public void createTableIndex(String project, CreateTableIndexRequest request) {
-        val indexPlanManager = getIndexPlanManager(project);
-        val eventManager = getEventManager(project);
-
+    private LayoutEntity parseToLayout(String project, CreateTableIndexRequest request) {
         val indexPlan = getIndexPlan(request.getProject(), request.getModelId());
         NDataModel model = indexPlan.getModel();
 
@@ -132,13 +140,21 @@ public class IndexPlanService extends BasicService {
             }
         }
         newLayout.setLayoutOverrideIndexes(layoutOverride);
+        return newLayout;
+    }
+
+    @Transaction(project = 0)
+    public BuildIndexResponse createTableIndex(String project, CreateTableIndexRequest request) {
+        val indexPlanManager = getIndexPlanManager(project);
+        val eventManager = getEventManager(project);
+        val indexPlan = getIndexPlan(request.getProject(), request.getModelId());
+        val newLayout = parseToLayout(project, request);
         for (LayoutEntity cuboidLayout : indexPlan.getAllLayouts()) {
             if (cuboidLayout.equals(newLayout) && cuboidLayout.isManual()) {
                 throw new IllegalStateException("Already exists same layout");
 
             }
         }
-
         int layoutIndex = indexPlan.getWhitelistLayouts().indexOf(newLayout);
         if (layoutIndex != -1) {
             indexPlanManager.updateIndexPlan(indexPlan.getUuid(), copyForWrite -> {
@@ -148,6 +164,7 @@ public class IndexPlanService extends BasicService {
                 oldLayout.setOwner(getUsername());
                 oldLayout.setUpdateTime(System.currentTimeMillis());
             });
+            return new BuildIndexResponse(BuildIndexResponse.BuildIndexType.NO_LAYOUT);
         } else {
             indexPlanManager.updateIndexPlan(indexPlan.getUuid(), copyForWrite -> {
                 val newCuboid = new IndexEntity();
@@ -158,6 +175,12 @@ public class IndexPlanService extends BasicService {
                 copyForWrite.getIndexes().add(newCuboid);
             });
             if (request.isLoadData()) {
+                val df = getDataflowManager(project).getDataflow(request.getModelId());
+                val readySegs = df.getSegments();
+                if (readySegs.isEmpty()) {
+                    return new BuildIndexResponse(BuildIndexResponse.BuildIndexType.NO_SEGMENT);
+                }
+
                 val addEvent = new AddCuboidEvent();
                 addEvent.setModelId(indexPlan.getUuid());
                 addEvent.setOwner(getUsername());
@@ -169,8 +192,11 @@ public class IndexPlanService extends BasicService {
                 postAddEvent.setJobId(addEvent.getJobId());
                 postAddEvent.setOwner(getUsername());
                 eventManager.post(postAddEvent);
+                return new BuildIndexResponse(BuildIndexResponse.BuildIndexType.NORM_BUILD);
             }
         }
+
+        return new BuildIndexResponse();
     }
 
     @Transaction(project = 0)
@@ -203,8 +229,7 @@ public class IndexPlanService extends BasicService {
         AggIndexCombResult totalResult;
         AggIndexCombResult aggIndexResult;
 
-        val aggregationGroupsCopy = aggregationGroups
-                .stream()
+        val aggregationGroupsCopy = aggregationGroups.stream()
                 .filter(aggGroup -> aggGroup.getIncludes() != null && aggGroup.getIncludes().length != 0)
                 .collect(Collectors.toList());
         request.setAggregationGroups(aggregationGroupsCopy);
@@ -213,18 +238,18 @@ public class IndexPlanService extends BasicService {
             val newRuleBasedCuboid = new NRuleBasedIndex();
             BeanUtils.copyProperties(request, newRuleBasedCuboid);
             indexPlan.setRuleBasedIndex(newRuleBasedCuboid);
-        }catch (IllegalStateException e) {
+        } catch (IllegalStateException e) {
             log.error(e.getMessage());
         }
 
         List<AggIndexCombResult> aggIndexCounts = Lists.newArrayList();
         boolean invalid = false;
-        for (NAggregationGroup group: aggregationGroups) {
+        for (NAggregationGroup group : aggregationGroups) {
             long count = group.calculateCuboidCombination();
             if (count > maxCount) {
                 aggIndexResult = AggIndexCombResult.errorResult();
                 invalid = true;
-            }else {
+            } else {
                 aggIndexResult = AggIndexCombResult.successResult(count);
             }
             aggIndexCounts.add(aggIndexResult);
@@ -232,7 +257,7 @@ public class IndexPlanService extends BasicService {
 
         if (invalid) {
             totalResult = AggIndexCombResult.errorResult();
-        }else {
+        } else {
             long totalCount = indexPlan.getRuleBasedIndex().getInitialCuboidScheduler().getCuboidCount();
             totalResult = AggIndexCombResult.successResult(totalCount);
 
@@ -251,13 +276,14 @@ public class IndexPlanService extends BasicService {
         for (NAggregationGroup aggGroup : aggGroups) {
             long count = aggGroup.calculateCuboidCombination();
             if (count > maxCount) {
-                throw new IllegalArgumentException("The aggregate amount exceeds its limit per aggregate group, please optimize the group setting or reduce dimension amount.");
+                throw new IllegalArgumentException(
+                        "The aggregate amount exceeds its limit per aggregate group, please optimize the group setting or reduce dimension amount.");
             }
         }
     }
 
     public void handleRemoveLayout(String project, String modelId, Set<Long> layoutIds, boolean includeAuto,
-                                   boolean includeManual) {
+            boolean includeManual) {
         val kylinConfig = KylinConfig.getInstanceFromEnv();
         val dfMgr = NDataflowManager.getInstance(kylinConfig, project);
         val df = dfMgr.getDataflow(modelId);

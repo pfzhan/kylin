@@ -231,8 +231,8 @@ public class NModelController extends NBasicController {
     public EnvelopeResponse buildIndicesManually(@RequestBody BuildIndexRequest request) {
         checkProjectName(request.getProject());
         checkRequiredArg(MODEL_ID, request.getModelId());
-        modelService.buildIndicesManually(request.getModelId(), request.getProject());
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, null, "");
+        val response = modelService.buildIndicesManually(request.getModelId(), request.getProject());
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, response, "");
     }
 
     @RequestMapping(value = "/json", method = RequestMethod.GET, produces = { "application/vnd.apache.kylin-v2+json" })

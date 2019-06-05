@@ -59,8 +59,8 @@ public class NIndexPlanController extends NBasicController {
         checkProjectName(request.getProject());
         checkRequiredArg(MODEL_ID, request.getModelId());
         indexPlanService.checkIndexCountWithinLimit(request);
-        indexPlanService.updateRuleBasedCuboid(request.getProject(), request);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, null, "");
+        val response = indexPlanService.updateRuleBasedCuboid(request.getProject(), request).getSecond();
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, response, "");
     }
 
     @GetMapping(value = "/rule", produces = { "application/vnd.apache.kylin-v2+json" })
@@ -84,8 +84,8 @@ public class NIndexPlanController extends NBasicController {
     public EnvelopeResponse createTableIndex(@Valid @RequestBody CreateTableIndexRequest request) {
         checkProjectName(request.getProject());
         checkRequiredArg(MODEL_ID, request.getModelId());
-        indexPlanService.createTableIndex(request.getProject(), request);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, null, "");
+        val response = indexPlanService.createTableIndex(request.getProject(), request);
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, response, "");
     }
 
     @PutMapping(value = "/table_index", produces = { "application/vnd.apache.kylin-v2+json" })
@@ -93,8 +93,8 @@ public class NIndexPlanController extends NBasicController {
         checkProjectName(request.getProject());
         checkRequiredArg(MODEL_ID, request.getModelId());
         checkRequiredArg("id", request.getId());
-        indexPlanService.updateTableIndex(request.getProject(), request);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, null, "");
+        val response = indexPlanService.updateTableIndex(request.getProject(), request);
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, response, "");
     }
 
     @DeleteMapping(value = "/table_index/{project}/{model}/{id}", produces = { "application/vnd.apache.kylin-v2+json" })

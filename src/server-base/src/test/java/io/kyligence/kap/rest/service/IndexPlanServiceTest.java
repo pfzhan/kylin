@@ -28,7 +28,6 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 
-import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.rest.constant.Constant;
@@ -49,19 +48,24 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import com.google.common.collect.Lists;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
-import io.kyligence.kap.metadata.cube.cuboid.NAggregationGroup;
-import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
-import io.kyligence.kap.metadata.cube.model.LayoutEntity;
-import io.kyligence.kap.metadata.cube.model.NRuleBasedIndex;
 import io.kyligence.kap.event.manager.EventDao;
 import io.kyligence.kap.event.model.AddCuboidEvent;
 import io.kyligence.kap.event.model.Event;
+import io.kyligence.kap.metadata.cube.cuboid.NAggregationGroup;
+import io.kyligence.kap.metadata.cube.model.IndexEntity;
+import io.kyligence.kap.metadata.cube.model.LayoutEntity;
+import io.kyligence.kap.metadata.cube.model.NDataSegment;
+import io.kyligence.kap.metadata.cube.model.NDataflowManager;
+import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
+import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
+import io.kyligence.kap.metadata.cube.model.NRuleBasedIndex;
 import io.kyligence.kap.rest.request.CreateTableIndexRequest;
 import io.kyligence.kap.rest.request.UpdateRuleBasedCuboidRequest;
+import io.kyligence.kap.rest.response.BuildIndexResponse;
 import io.kyligence.kap.rest.response.TableIndexResponse;
-import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import lombok.var;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class IndexPlanServiceTest extends NLocalFileMetadataTestCase {
@@ -101,7 +105,7 @@ public class IndexPlanServiceTest extends NLocalFileMetadataTestCase {
         val saved = indexPlanService.updateRuleBasedCuboid("default",
                 UpdateRuleBasedCuboidRequest.builder().project("default").modelId("89af4ee2-2cdb-4b07-b39e-4c29856309aa")
                         .dimensions(Arrays.asList(1, 2, 3, 4))
-                        .aggregationGroups(Lists.<NAggregationGroup> newArrayList()).build());
+                        .aggregationGroups(Lists.<NAggregationGroup> newArrayList()).build()).getFirst();
         Assert.assertNotNull(saved.getRuleBasedIndex());
         Assert.assertEquals(4, saved.getRuleBasedIndex().getDimensions().size());
         Assert.assertEquals(origin.getAllLayouts().size() + 1, saved.getAllLayouts().size());
@@ -114,7 +118,51 @@ public class IndexPlanServiceTest extends NLocalFileMetadataTestCase {
         val saved = indexPlanService.updateRuleBasedCuboid("default",
                 UpdateRuleBasedCuboidRequest.builder().project("default").modelId("89af4ee2-2cdb-4b07-b39e-4c29856309aa")
                         .dimensions(Arrays.asList(1, 2, 3, 4))
+                        .aggregationGroups(Lists.<NAggregationGroup> newArrayList()).build()).getFirst();
+        Assert.assertNotNull(saved.getRuleBasedIndex());
+        Assert.assertEquals(4, saved.getRuleBasedIndex().getDimensions().size());
+        Assert.assertEquals(origin.getAllLayouts().size() + 1, saved.getAllLayouts().size());
+    }
+
+    @Test
+    public void testUpdateIndexPlanDuplicate() {
+        val indexPlanManager = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
+        val origin = indexPlanManager.getIndexPlan("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+        val saved = indexPlanService.updateRuleBasedCuboid("default",
+                UpdateRuleBasedCuboidRequest.builder().project("default").modelId("89af4ee2-2cdb-4b07-b39e-4c29856309aa")
+                        .dimensions(Arrays.asList(1, 2, 3, 4)).isLoadData(true)
+                        .aggregationGroups(Lists.<NAggregationGroup> newArrayList()).build()).getFirst();
+        Assert.assertNotNull(saved.getRuleBasedIndex());
+        Assert.assertEquals(4, saved.getRuleBasedIndex().getDimensions().size());
+        Assert.assertEquals(origin.getAllLayouts().size() + 1, saved.getAllLayouts().size());
+
+        long lastModifiedTime = saved.getRuleBasedIndex().getLastModifiedTime();
+
+        val res = indexPlanService.updateRuleBasedCuboid("default",
+                UpdateRuleBasedCuboidRequest.builder().project("default").modelId("89af4ee2-2cdb-4b07-b39e-4c29856309aa")
+                        .dimensions(Arrays.asList(1, 2, 3, 4)).isLoadData(true)
                         .aggregationGroups(Lists.<NAggregationGroup> newArrayList()).build());
+        long lastModifiedTime2 = res.getFirst().getRuleBasedIndex().getLastModifiedTime();
+        Assert.assertEquals(BuildIndexResponse.BuildIndexType.NO_LAYOUT, res.getSecond().getType());
+        Assert.assertTrue(lastModifiedTime2 > lastModifiedTime);
+    }
+
+    @Test
+    public void testUpdateIndexPlanWithNoSegment() {
+        val dataflowManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
+        val df = dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+        val dfUpdate = new NDataflowUpdate(df.getId());
+        dfUpdate.setToRemoveSegs(df.getSegments().toArray(new NDataSegment[0]));
+        dataflowManager.updateDataflow(dfUpdate);
+        val indexPlanManager = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
+        val origin = indexPlanManager.getIndexPlan("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+        val res = indexPlanService.updateRuleBasedCuboid("default",
+                UpdateRuleBasedCuboidRequest.builder().project("default").modelId("89af4ee2-2cdb-4b07-b39e-4c29856309aa")
+                        .dimensions(Arrays.asList(1, 2, 3, 4)).isLoadData(true)
+                        .aggregationGroups(Lists.<NAggregationGroup> newArrayList()).build());
+        val saved = res.getFirst();
+        val response = res.getSecond();
+        Assert.assertEquals(BuildIndexResponse.BuildIndexType.NO_SEGMENT, response.getType());
         Assert.assertNotNull(saved.getRuleBasedIndex());
         Assert.assertEquals(4, saved.getRuleBasedIndex().getDimensions().size());
         Assert.assertEquals(origin.getAllLayouts().size() + 1, saved.getAllLayouts().size());
@@ -125,16 +173,17 @@ public class IndexPlanServiceTest extends NLocalFileMetadataTestCase {
         val indexPlanManager = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
         val origin = indexPlanManager.getIndexPlan("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         val originLayoutSize = origin.getAllLayouts().size();
-        indexPlanService.createTableIndex("default",
+        val response = indexPlanService.createTableIndex("default",
                 CreateTableIndexRequest.builder().project("default").modelId("89af4ee2-2cdb-4b07-b39e-4c29856309aa")
                         .colOrder(Arrays.asList("TEST_KYLIN_FACT.TRANS_ID", "TEST_KYLIN_FACT.CAL_DT",
                                 "TEST_KYLIN_FACT.LSTG_FORMAT_NAME", "TEST_KYLIN_FACT.LSTG_SITE_ID"))
-                        .shardByColumns(Arrays.asList("TEST_KYLIN_FACT.TRANS_ID"))
+                        .shardByColumns(Arrays.asList("TEST_KYLIN_FACT.TRANS_ID")).isLoadData(true)
                         .layoutOverrideIndexes(new HashMap<String, String>() {
                             {
                                 put("TEST_KYLIN_FACT.LSTG_FORMAT_NAME", "eq");
                             }
                         }).sortByColumns(Arrays.asList("TEST_KYLIN_FACT.CAL_DT")).build());
+        Assert.assertEquals(BuildIndexResponse.BuildIndexType.NORM_BUILD, response.getType());
         val saved = indexPlanManager.getIndexPlan("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         Assert.assertEquals(originLayoutSize + 1, saved.getAllLayouts().size());
         LayoutEntity newLayout = null;
@@ -196,14 +245,16 @@ public class IndexPlanServiceTest extends NLocalFileMetadataTestCase {
                 CreateTableIndexRequest.builder().project("default").modelId("89af4ee2-2cdb-4b07-b39e-4c29856309aa")
                         .colOrder(Arrays.asList("TEST_KYLIN_FACT.TRANS_ID", "TEST_KYLIN_FACT.CAL_DT",
                                 "TEST_KYLIN_FACT.LSTG_FORMAT_NAME", "TEST_KYLIN_FACT.LSTG_SITE_ID"))
-                        .shardByColumns(Arrays.asList("TEST_KYLIN_FACT.TRANS_ID"))
+                        .shardByColumns(Arrays.asList("TEST_KYLIN_FACT.TRANS_ID")).isLoadData(true)
                         .sortByColumns(Arrays.asList("TEST_KYLIN_FACT.CAL_DT")).build());
-        indexPlanService.createTableIndex("default",
+        val response = indexPlanService.createTableIndex("default",
                 CreateTableIndexRequest.builder().project("default").modelId("89af4ee2-2cdb-4b07-b39e-4c29856309aa")
                         .colOrder(Arrays.asList("TEST_KYLIN_FACT.TRANS_ID", "TEST_KYLIN_FACT.CAL_DT",
                                 "TEST_KYLIN_FACT.LSTG_FORMAT_NAME", "TEST_KYLIN_FACT.LSTG_SITE_ID"))
-                        .shardByColumns(Arrays.asList("TEST_KYLIN_FACT.TRANS_ID"))
+                        .shardByColumns(Arrays.asList("TEST_KYLIN_FACT.TRANS_ID")).isLoadData(true)
                         .sortByColumns(Arrays.asList("TEST_KYLIN_FACT.CAL_DT")).build());
+
+        Assert.assertEquals(BuildIndexResponse.BuildIndexType.NO_LAYOUT, response.getType());
     }
 
     @Test
@@ -235,12 +286,12 @@ public class IndexPlanServiceTest extends NLocalFileMetadataTestCase {
                                 "TEST_KYLIN_FACT.LSTG_FORMAT_NAME", "TEST_KYLIN_FACT.LSTG_SITE_ID"))
                         .shardByColumns(Arrays.asList("TEST_KYLIN_FACT.TRANS_ID"))
                         .sortByColumns(Arrays.asList("TEST_KYLIN_FACT.CAL_DT")).build());
-        indexPlanService.updateTableIndex("default",
+        val response = indexPlanService.updateTableIndex("default",
                 CreateTableIndexRequest.builder().id(prevMaxId).project("default").modelId("89af4ee2-2cdb-4b07-b39e-4c29856309aa")
                         .colOrder(Arrays.asList("TEST_KYLIN_FACT.TRANS_ID", "TEST_KYLIN_FACT.CAL_DT",
                                 "TEST_KYLIN_FACT.LSTG_FORMAT_NAME", "TEST_KYLIN_FACT.LSTG_SITE_ID"))
-                        .shardByColumns(Arrays.asList("TEST_KYLIN_FACT.TRANS_ID"))
-                        .sortByColumns(Arrays.asList("TEST_KYLIN_FACT.CAL_DT")).build());
+                        .shardByColumns(Arrays.asList("TEST_KYLIN_FACT.CAL_DT"))
+                        .sortByColumns(Arrays.asList("TEST_KYLIN_FACT.TRANS_ID")).build());
 
         Assert.assertFalse(indexPlanService.getIndexPlanManager("default").getIndexPlan("89af4ee2-2cdb-4b07-b39e-4c29856309aa")
                 .getAllLayouts().stream().anyMatch(l -> l.getId() == prevMaxId));
