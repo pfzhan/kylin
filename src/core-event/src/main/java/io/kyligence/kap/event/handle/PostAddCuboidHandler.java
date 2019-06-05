@@ -31,6 +31,7 @@ import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.execution.ChainedExecutable;
 import org.apache.kylin.job.execution.DefaultChainedExecutableOnModel;
+import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.slf4j.Logger;
@@ -65,6 +66,7 @@ public class PostAddCuboidHandler extends AbstractEventPostJobHandler {
             val jobId = event.getJobId();
             Preconditions.checkState(executable.getTasks().size() > 1, "job " + jobId + " steps is not enough");
             if (!checkSubjectExists(project, event.getModelId(), null, event)) {
+                rollFQBackToInitialStatus(project, sqlPatterns, "build subject does not exist or broken, roll back to to-be-accelerated status");
                 finishEvent(project, event.getId());
                 return;
             }
@@ -74,7 +76,7 @@ public class PostAddCuboidHandler extends AbstractEventPostJobHandler {
                     .filter(task -> task instanceof NSparkExecutable) //
                     .filter(task -> ((NSparkExecutable) task).needMergeMetadata())
                     .forEach(task -> ((NSparkExecutable) task).mergerMetadata(merger));
-            handleFavoriteQuery(project, sqlPatterns);
+            handleFavoriteQuery(project, sqlPatterns, executable);
             finishEvent(project, event.getId());
         } catch (Throwable throwable) {
             logger.error("Process event " + event.toString() + " failed:", throwable);
@@ -112,19 +114,34 @@ public class PostAddCuboidHandler extends AbstractEventPostJobHandler {
         String project = eventContext.getProject();
         val sqlList = event.getSqlPatterns();
 
+        rollFQBackToInitialStatus(project, sqlList, "job is null, roll back to to-be-accelerated status");
+
         if (!checkSubjectExists(project, event.getModelId(), null, event)) {
             finishEvent(project, event.getId());
             return;
         }
 
-        handleFavoriteQuery(project, sqlList);
-
         finishEvent(project, event.getId());
     }
 
-    private void handleFavoriteQuery(String project, Set<String> sqlPatterns) {
+    private void rollFQBackToInitialStatus(String project, Set<String> sqlPatterns, String comment) {
         if (CollectionUtils.isEmpty(sqlPatterns))
             return;
+
+        sqlPatterns.forEach(sqlPattern -> {
+            getFavoriteQueryManager(project).rollBackToInitialStatus(sqlPattern, comment);
+        });
+    }
+
+    void handleFavoriteQuery(String project, Set<String> sqlPatterns, ChainedExecutable executable) {
+        if (CollectionUtils.isEmpty(sqlPatterns))
+            return;
+
+        if (executable.getStatus().equals(ExecutableState.DISCARDED)
+                || executable.getStatus().equals(ExecutableState.SUICIDAL)) {
+            rollFQBackToInitialStatus(project, sqlPatterns, "job is discarded or suicidal, roll back to to-be-accelerated status");
+            return;
+        }
 
         val kylinConfig = KylinConfig.getInstanceFromEnv();
         for (String sqlPattern : sqlPatterns) {
@@ -141,7 +158,9 @@ public class PostAddCuboidHandler extends AbstractEventPostJobHandler {
 
                 val readySegs = df.getSegments(SegmentStatusEnum.READY);
                 if (readySegs.isEmpty()) {
-                    logger.info("no ready segment exists in target index plan {}, gonna put Favorite Query {} status back to WAITING", modelId, fq.getId());
+                    logger.info(
+                            "no ready segment exists in target index plan {}, gonna put Favorite Query {} status back to WAITING",
+                            modelId, fq.getId());
                     allLayoutBuildFinished = false;
                     getFavoriteQueryManager(project).rollBackToInitialStatus(sqlPattern, null);
                     break;

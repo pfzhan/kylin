@@ -136,8 +136,8 @@ public abstract class AbstractEventHandler implements EventHandler {
         KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
 
         NDataflow df = NDataflowManager.getInstance(kylinConfig, project).getDataflow(indexPlanId);
-        if (df == null) {
-            log.info("event {} is no longer valid because its target index_plan {} does not exist", event, indexPlanId);
+        if (df == null || df.checkBrokenWithRelatedInfo()) {
+            log.info("event {} is no longer valid because its target index_plan {} does not exist or broken", event, indexPlanId);
             return false;
         }
 

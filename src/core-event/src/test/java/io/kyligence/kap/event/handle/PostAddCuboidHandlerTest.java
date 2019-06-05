@@ -25,14 +25,16 @@
 package io.kyligence.kap.event.handle;
 
 import java.util.UUID;
-
 import io.kyligence.kap.metadata.cube.model.NDataLayout;
 import io.kyligence.kap.metadata.favorite.FavoriteQuery;
 import io.kyligence.kap.metadata.favorite.FavoriteQueryManager;
 import io.kyligence.kap.metadata.favorite.FavoriteQueryStatusEnum;
+import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.smart.NSmartMaster;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.ChainedExecutable;
+import org.apache.kylin.job.execution.DefaultChainedExecutable;
+import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.metadata.model.SegmentRange;
@@ -202,8 +204,9 @@ public class PostAddCuboidHandlerTest extends NLocalFileMetadataTestCase {
         EventManager.getInstance(getTestConfig(), project).post(postAddEvent1);
         EventManager.getInstance(getTestConfig(), project).post(postAddEvent2);
         PostAddCuboidHandler handler = new PostAddCuboidHandler();
-        EventContext context1 = new EventContext(postAddEvent1, getTestConfig(), project);
-        handler.doHandle(context1);
+        val job1 = new DefaultChainedExecutable();
+        job1.setProject(project);
+        handler.handleFavoriteQuery(project, Sets.newHashSet(sqlProposesTwoModels), job1);
 
         fq = fqManager.get(sqlProposesTwoModels);
         fqManager.reloadSqlPatternMap();
@@ -217,8 +220,9 @@ public class PostAddCuboidHandlerTest extends NLocalFileMetadataTestCase {
         update2.setToAddOrUpdateLayouts(NDataLayout.newDataLayout(df2, df2.getSegments(SegmentStatusEnum.READY).getLatestReadySegment().getId(), layoutId2));
         NDataflowManager.getInstance(getTestConfig(), project).updateDataflow(update2);
 
-        EventContext context2 = new EventContext(postAddEvent2, getTestConfig(), project);
-        handler.doHandle(context2);
+        val job2 = new DefaultChainedExecutable();
+        job2.setProject(project);
+        handler.handleFavoriteQuery(project, Sets.newHashSet(sqlProposesTwoModels), job2);
 
         fq = fqManager.get(sqlProposesTwoModels);
         fqManager.reloadSqlPatternMap();
@@ -260,7 +264,6 @@ public class PostAddCuboidHandlerTest extends NLocalFileMetadataTestCase {
         EventManager.getInstance(getTestConfig(), project).post(postAddEvent1);
         EventManager.getInstance(getTestConfig(), project).post(postAddEvent2);
         PostAddCuboidHandler handler = new PostAddCuboidHandler();
-        EventContext context1 = new EventContext(postAddEvent1, getTestConfig(), project);
 
         // case when ready segments are empty
         long layoutId1 = fq.getRealizations().get(0).getLayoutId();
@@ -270,7 +273,9 @@ public class PostAddCuboidHandlerTest extends NLocalFileMetadataTestCase {
         update1.setToAddOrUpdateLayouts(NDataLayout.newDataLayout(df1, df1.getSegments(SegmentStatusEnum.READY).getLatestReadySegment().getId(), layoutId1));
         NDataflowManager.getInstance(getTestConfig(), project).updateDataflow(update1);
 
-        handler.doHandle(context1);
+        val job1 = new DefaultChainedExecutable();
+        job1.setProject(project);
+        handler.handleFavoriteQuery(project, Sets.newHashSet(sqlProposesTwoModels), job1);
 
         fq = fqManager.get(sqlProposesTwoModels);
         fqManager.reloadSqlPatternMap();
@@ -279,12 +284,116 @@ public class PostAddCuboidHandlerTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(FavoriteQueryStatusEnum.TO_BE_ACCELERATED, fq.getStatus());
         Assert.assertEquals(0, fq.getRealizations().size());
 
-        EventContext context2 = new EventContext(postAddEvent2, getTestConfig(), project);
-        handler.doHandle(context2);
+        val job2 = new DefaultChainedExecutable();
+        job2.setProject(project);
+        handler.handleFavoriteQuery(project, Sets.newHashSet(sqlProposesTwoModels), job2);
 
         fq = fqManager.get(sqlProposesTwoModels);
         fqManager.reloadSqlPatternMap();
         Assert.assertEquals(FavoriteQueryStatusEnum.TO_BE_ACCELERATED, fq.getStatus());
+    }
+
+    @Test
+    public void testHandleFavoriteQueryWhenJobIsNull() {
+        val project = "default";
+        val sql = "select * from test_kylin_fact";
+        val fqManager = FavoriteQueryManager.getInstance(getTestConfig(), project);
+        var fq = new FavoriteQuery(sql);
+        fqManager.create(Sets.newHashSet(fq));
+        fqManager.updateStatus(sql, FavoriteQueryStatusEnum.ACCELERATING, null);
+
+        val postEvent = mockEvent(sql);
+        EventContext context = new EventContext(postEvent, getTestConfig(), project);
+        PostAddCuboidHandler handler = new PostAddCuboidHandler();
+        handler.doHandle(context);
+
+        fqManager.reloadSqlPatternMap();
+        fq = fqManager.get(sql);
+
+        Assert.assertEquals(FavoriteQueryStatusEnum.TO_BE_ACCELERATED, fq.getStatus());
+        Assert.assertEquals("job is null, roll back to to-be-accelerated status", fq.getComment());
+    }
+
+    @Test
+    public void testHandleFavoriteQueryWhenSubjectNotExist() {
+        val project = "default";
+        val sql = "select * from test_kylin_fact";
+        val modelId = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
+        val fqManager = FavoriteQueryManager.getInstance(getTestConfig(), project);
+        var fq = new FavoriteQuery(sql);
+        fqManager.create(Sets.newHashSet(fq));
+        fqManager.updateStatus(sql, FavoriteQueryStatusEnum.ACCELERATING, null);
+
+        val postEvent = mockEvent(sql);
+        cleanModel(modelId);
+        val job = mockJob(postEvent.getJobId(), SegmentRange.dateToLong("2012-01-01"),
+                SegmentRange.dateToLong("2012-09-01"));
+
+        val dfManager = NDataflowManager.getInstance(getTestConfig(), project);
+        dfManager.dropDataflow(modelId);
+
+        EventContext context = new EventContext(postEvent, getTestConfig(), project);
+        PostAddCuboidHandler handler = new PostAddCuboidHandler();
+        handler.doHandle(context);
+
+        fqManager.reloadSqlPatternMap();
+        fq = fqManager.get(fq.getSqlPattern());
+        Assert.assertEquals(FavoriteQueryStatusEnum.TO_BE_ACCELERATED, fq.getStatus());
+        Assert.assertEquals("build subject does not exist or broken, roll back to to-be-accelerated status", fq.getComment());
+    }
+
+    @Test
+    public void testHandleFavoriteQueryWhenDataflowBroken() {
+        val project = "default";
+        val sql = "select * from test_kylin_fact";
+        val modelId = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
+        val fqManager = FavoriteQueryManager.getInstance(getTestConfig(), project);
+        var fq = new FavoriteQuery(sql);
+        fqManager.create(Sets.newHashSet(fq));
+        fqManager.updateStatus(sql, FavoriteQueryStatusEnum.ACCELERATING, null);
+
+        val postEvent = mockEvent(sql);
+        cleanModel(modelId);
+        val job = mockJob(postEvent.getJobId(), SegmentRange.dateToLong("2012-01-01"),
+                SegmentRange.dateToLong("2012-09-01"));
+
+        val tableManager = NTableMetadataManager.getInstance(getTestConfig(), project);
+        tableManager.removeSourceTable("DEFAULT.TEST_KYLIN_FACT");
+
+        EventContext context = new EventContext(postEvent, getTestConfig(), project);
+        PostAddCuboidHandler handler = new PostAddCuboidHandler();
+        handler.doHandle(context);
+
+        fqManager.reloadSqlPatternMap();
+        fq = fqManager.get(fq.getSqlPattern());
+        Assert.assertEquals(FavoriteQueryStatusEnum.TO_BE_ACCELERATED, fq.getStatus());
+        Assert.assertEquals("build subject does not exist or broken, roll back to to-be-accelerated status", fq.getComment());
+    }
+
+    @Test
+    public void testHandleFavoriteQueryWhenJobDiscarded() {
+        val project = "default";
+        val sql = "select * from test_kylin_fact";
+        val modelId = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
+        val fqManager = FavoriteQueryManager.getInstance(getTestConfig(), project);
+        var fq = new FavoriteQuery(sql);
+        fqManager.create(Sets.newHashSet(fq));
+        val executableManager = NExecutableManager.getInstance(getTestConfig(), project);
+
+        val postAddEvent = mockEvent(sql);
+        cleanModel(modelId);
+        val job = mockJob(postAddEvent.getJobId(), SegmentRange.dateToLong("2012-01-01"),
+                SegmentRange.dateToLong("2012-09-01"));
+        cleanModel(modelId);
+
+        executableManager.updateJobOutput(job.getId(), ExecutableState.DISCARDED);
+
+        PostAddCuboidHandler handler = new PostAddCuboidHandler();
+        handler.handleFavoriteQuery(project, Sets.newHashSet(sql), (ChainedExecutable) job);
+
+        fqManager.reloadSqlPatternMap();
+        val handledFq = fqManager.get(fq.getSqlPattern());
+        Assert.assertEquals(FavoriteQueryStatusEnum.TO_BE_ACCELERATED, handledFq.getStatus());
     }
 
 }
