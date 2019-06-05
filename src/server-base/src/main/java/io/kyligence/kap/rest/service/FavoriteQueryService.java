@@ -47,7 +47,6 @@ import org.apache.kylin.rest.service.BasicService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Async;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 import com.google.common.base.Preconditions;
@@ -522,7 +521,6 @@ public class FavoriteQueryService extends BasicService {
         adjustFavoriteQuery();
     }
 
-    @Scheduled(cron = "${kylin.favorite.adjust-cron:0 0 2 * * *}")
     public void adjustFavoriteQuery() {
         String oldThreadName = Thread.currentThread().getName();
 

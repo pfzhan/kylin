@@ -32,17 +32,17 @@ import java.util.TimeZone;
 import java.util.TreeMap;
 import java.util.stream.Collectors;
 
-import com.google.common.collect.Maps;
-import io.kyligence.kap.tool.garbage.GarbageCleaner;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.metadata.cube.model.FrequencyMap;
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
@@ -53,6 +53,7 @@ import io.kyligence.kap.metadata.favorite.FavoriteQueryRealization;
 import io.kyligence.kap.metadata.model.MaintainModelType;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
+import io.kyligence.kap.tool.garbage.GarbageCleaner;
 import lombok.val;
 import lombok.var;
 
@@ -85,7 +86,7 @@ public class GarbageCleanerTest extends NLocalFileMetadataTestCase {
         val modelMgr = NDataModelManager.getInstance(getTestConfig(), PROJECT);
         val indePlanManager = NIndexPlanManager.getInstance(getTestConfig(), PROJECT);
         val model = modelMgr.getDataModelDesc(MODEL_ID);
-        val cube = indePlanManager.getIndexPlan(MODEL_ID);
+        val indexPlan = indePlanManager.getIndexPlan(MODEL_ID);
 
         val favoriteQueryManager = FavoriteQueryManager.getInstance(getTestConfig(), PROJECT);
         long currentTime = System.currentTimeMillis();
@@ -97,12 +98,12 @@ public class GarbageCleanerTest extends NLocalFileMetadataTestCase {
         // a low frequency favorite query, related layout 1 will be considered as garbage
         val fq1 = new FavoriteQuery("sql1");
         fq1.setCreateTime(currentTime - 32 * dayInMillis);
-        fq1.setFrequencyMap(new TreeMap<Long, Integer>() {
+        fq1.setFrequencyMap(new FrequencyMap(new TreeMap<Long, Integer>() {
             {
                 put(currentDate - 7 * dayInMillis, 1);
                 put(currentDate - 31 * dayInMillis, 100);
             }
-        });
+        }));
 
         val fqr1 = new FavoriteQueryRealization();
         fqr1.setModelId(model.getId());
@@ -119,12 +120,12 @@ public class GarbageCleanerTest extends NLocalFileMetadataTestCase {
         // not reached low frequency threshold, related layouts are 40001 and 40002
         val fq2 = new FavoriteQuery("sql2");
         fq2.setCreateTime(currentTime - 8 * dayInMillis);
-        fq2.setFrequencyMap(new TreeMap<Long, Integer>() {
+        fq2.setFrequencyMap(new FrequencyMap(new TreeMap<Long, Integer>() {
             {
                 put(currentDate - 7 * 24 * 60 * 60 * 1000L, 1);
                 put(currentDate, 2);
             }
-        });
+        }));
 
         val fqr3 = new FavoriteQueryRealization();
         fqr3.setModelId(model.getId());
@@ -140,11 +141,11 @@ public class GarbageCleanerTest extends NLocalFileMetadataTestCase {
         // not a low frequency fq, related layouts are 10001 and 10002
         val fq3 = new FavoriteQuery("sql3");
         fq3.setCreateTime(currentTime - 31 * dayInMillis);
-        fq3.setFrequencyMap(new TreeMap<Long, Integer>() {
+        fq3.setFrequencyMap(new FrequencyMap(new TreeMap<Long, Integer>() {
             {
                 put(currentDate - 30 * 24 * 60 * 60 * 1000L, 10);
             }
-        });
+        }));
 
         val fqr5 = new FavoriteQueryRealization();
         fqr5.setModelId(model.getId());
@@ -159,8 +160,44 @@ public class GarbageCleanerTest extends NLocalFileMetadataTestCase {
 
         favoriteQueryManager.create(Sets.newHashSet(fq1, fq2, fq3));
 
-        // add some new layouts for cube
-        indePlanManager.updateIndexPlan(cube.getUuid(), copyForWrite -> {
+        // add some new layouts for indexPlan
+        val dfMgr = NDataflowManager.getInstance(getTestConfig(), PROJECT);
+        dfMgr.updateDataflow(indexPlan.getId(), copyForWrite -> {
+            copyForWrite.setLayoutHitCount(new HashMap<Long, FrequencyMap>() {
+                {
+                    put(1L, new FrequencyMap(new TreeMap<Long, Integer>() {
+                        {
+                            put(currentDate - 7 * dayInMillis, 1);
+                            put(currentDate - 31 * dayInMillis, 100);
+                        }
+                    }));
+                    put(40001L, new FrequencyMap(new TreeMap<Long, Integer>() {
+                        {
+                            put(currentDate, 2);
+                            put(currentDate - 7 * dayInMillis, 2);
+                            put(currentDate - 31 * dayInMillis, 100);
+                        }
+                    }));
+                    put(40002L, new FrequencyMap(new TreeMap<Long, Integer>() {
+                        {
+                            put(currentDate, 2);
+                            put(currentDate - 7 * dayInMillis, 1);
+                        }
+                    }));
+                    put(10001L, new FrequencyMap(new TreeMap<Long, Integer>() {
+                        {
+                            put(currentDate - 30 * dayInMillis, 10);
+                        }
+                    }));
+                    put(10002L, new FrequencyMap(new TreeMap<Long, Integer>() {
+                        {
+                            put(currentDate - 30 * dayInMillis, 10);
+                        }
+                    }));
+                }
+            });
+        });
+        indePlanManager.updateIndexPlan(indexPlan.getUuid(), copyForWrite -> {
             val newDesc = new IndexEntity();
             newDesc.setId(40000);
             newDesc.setDimensions(Lists.newArrayList(1, 2, 3, 4));
@@ -197,13 +234,14 @@ public class GarbageCleanerTest extends NLocalFileMetadataTestCase {
         LocalDate localDate = Instant.ofEpochMilli(currentTime).atZone(zoneId).toLocalDate();
         long currentDate = localDate.atStartOfDay().atZone(zoneId).toInstant().toEpochMilli();
         val newFq = new FavoriteQuery("sql");
+        newFq.initAfterReload(getTestConfig(), PROJECT);
         newFq.setCreateTime(System.currentTimeMillis() - 31 * 24 * 60 * 60 * 1000L);
-        newFq.setFrequencyMap(new TreeMap<Long, Integer>() {
+        newFq.setFrequencyMap(new FrequencyMap(new TreeMap<Long, Integer>() {
             {
                 put(currentDate - 7 * 24 * 60 * 60 * 1000L, 10);
                 put(currentDate - 30 * 24 * 60 * 60 * 1000L, 10);
             }
-        });
+        }));
 
         val favoriteQueryManager = FavoriteQueryManager.getInstance(getTestConfig(), PROJECT);
 
@@ -224,7 +262,6 @@ public class GarbageCleanerTest extends NLocalFileMetadataTestCase {
         //only fq1 cleaned
         Assert.assertEquals(3, favoriteQueryManager.getAll().size());
 
-
         overrideKylinProps.put("kylin.favorite.low-frequency-threshold", "9");
         overrideKylinProps.put("kylin.favorite.frequency-time-window", "7");
         prjManager.updateProject(PROJECT, copyForWrite -> {
@@ -236,7 +273,8 @@ public class GarbageCleanerTest extends NLocalFileMetadataTestCase {
         //update fqmap
         newFq.update(newFq);
         //newFq remian 30 days fqmap
-        val remainSize = favoriteQueryManager.getFavoriteQueryMap().get("sql").getFrequencyMap().size();
+        int remainSize = favoriteQueryManager.getFavoriteQueryMap().get("sql").getFrequencyMap().getDateFrequency()
+                .size();
         Assert.assertEquals(2, remainSize);
 
         //only newFq remain
@@ -252,7 +290,6 @@ public class GarbageCleanerTest extends NLocalFileMetadataTestCase {
         //all fqs cleaned
         Assert.assertEquals(0, favoriteQueryManager.getAll().size());
     }
-
 
     @Test
     public void testcleanupMetadataManually() {
@@ -295,13 +332,10 @@ public class GarbageCleanerTest extends NLocalFileMetadataTestCase {
 
         indexPlan = indexPlanManager.getIndexPlan(MODEL_ID);
         layouts = indexPlan.getAllLayouts().stream().map(LayoutEntity::getId).collect(Collectors.toSet());
-        Assert.assertEquals(5, layouts.size());
-        Assert.assertTrue(layouts.contains(40001L));
-        Assert.assertTrue(layouts.contains(40002L));
+        Assert.assertEquals(3, layouts.size());
         Assert.assertTrue(layouts.contains(10001L));
         Assert.assertTrue(layouts.contains(10002L));
         Assert.assertTrue(layouts.contains(IndexEntity.TABLE_INDEX_START_ID + 40001));
-        Assert.assertFalse(layouts.contains(1L));
 
         Assert.assertEquals(2, favoriteQueryManager.getAll().size());
         val sqls = favoriteQueryManager.getAll().stream().map(FavoriteQuery::getSqlPattern).collect(Collectors.toSet());
@@ -342,12 +376,9 @@ public class GarbageCleanerTest extends NLocalFileMetadataTestCase {
         GarbageCleaner.cleanupMetadataAtScheduledTime(PROJECT);
         indexPlan = indexPlanManager.getIndexPlan(MODEL_ID);
         autoLayouts = indexPlan.getAllLayouts().stream().map(LayoutEntity::getId).collect(Collectors.toSet());
-        Assert.assertEquals(6, autoLayouts.size());
-        Assert.assertTrue(autoLayouts.contains(1L));
+        Assert.assertEquals(3, autoLayouts.size());
         Assert.assertTrue(autoLayouts.contains(10001L));
         Assert.assertTrue(autoLayouts.contains(10002L));
-        Assert.assertTrue(autoLayouts.contains(40001L));
-        Assert.assertTrue(autoLayouts.contains(40002L));
         // manual created index
         Assert.assertTrue(autoLayouts.contains(20000040001L));
 

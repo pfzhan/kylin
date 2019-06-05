@@ -42,6 +42,7 @@
 
 package io.kyligence.kap.rest.service;
 
+import java.io.IOException;
 import java.lang.reflect.Field;
 import java.util.List;
 import java.util.TreeMap;
@@ -49,6 +50,7 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.metadata.cube.model.FrequencyMap;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.engine.JobEngineConfig;
 import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
@@ -250,7 +252,7 @@ public class ProjectServiceTest extends ServiceTestBase {
     }
 
     @Test
-    public void testCleanupProjectGarbage() {
+    public void testCleanupProjectGarbage() throws IOException {
         prepareFQs();
         projectService.cleanupGarbage(PROJECT);
         val indexPlan = NIndexPlanManager.getInstance(getTestConfig(), PROJECT).getIndexPlan(MODEL_ID);
@@ -285,7 +287,7 @@ public class ProjectServiceTest extends ServiceTestBase {
         Assert.assertEquals(3, dataflowManager.listUnderliningDataModels(true).size());
 
         // there are no any favorite queries
-        projectService.scheduledGarbageCleanup();
+        projectService.garbageCleanup();
         for (ProjectInstance projectInstance : projectManager.listAllProjects()) {
             dataflowManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), projectInstance.getName());
             if (projectInstance.getName().equals("broken_test")) {
@@ -333,12 +335,12 @@ public class ProjectServiceTest extends ServiceTestBase {
         // low frequency favorite query
         val fq1 = new FavoriteQuery("test_sql_1");
         fq1.setCreateTime(currentTime - 30 * dayInMillis);
-        fq1.setFrequencyMap(new TreeMap<Long, Integer>() {
+        fq1.setFrequencyMap(new FrequencyMap(new TreeMap<Long, Integer>() {
             {
                 put(currentDate - 7 * dayInMillis, 1);
                 put(currentDate - 30 * dayInMillis, 2);
             }
-        });
+        }));
 
         val fqr1 = new FavoriteQueryRealization();
         fqr1.setModelId(model.getId());
@@ -355,11 +357,11 @@ public class ProjectServiceTest extends ServiceTestBase {
         // high frequency favorite query
         val fq2 = new FavoriteQuery("test_sql_2");
         fq2.setCreateTime(currentTime - 30 * dayInMillis);
-        fq2.setFrequencyMap(new TreeMap<Long, Integer>() {
+        fq2.setFrequencyMap(new FrequencyMap(new TreeMap<Long, Integer>() {
             {
                 put(currentDate - 30 * dayInMillis, 10);
             }
-        });
+        }));
 
         val fqr3 = new FavoriteQueryRealization();
         fqr3.setModelId(model.getId());

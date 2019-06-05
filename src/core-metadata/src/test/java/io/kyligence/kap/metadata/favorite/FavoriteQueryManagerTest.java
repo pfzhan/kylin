@@ -29,6 +29,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.TreeMap;
 
+import io.kyligence.kap.metadata.cube.model.FrequencyMap;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -243,39 +244,39 @@ public class FavoriteQueryManagerTest extends NLocalFileMetadataTestCase {
         // a low frequency favorite query, related layout 1 will be considered as garbage
         val fq1 = new FavoriteQuery("sql1");
         fq1.setCreateTime(currentTime - 32 * dayInMillis);
-        fq1.setFrequencyMap(new TreeMap<Long, Integer>() {
+        fq1.setFrequencyMap(new FrequencyMap(new TreeMap<Long, Integer>() {
             {
                 put(currentDate - 7 * dayInMillis, 1);
                 put(currentDate - 31 * dayInMillis, 100);
             }
-        });
+        }));
 
         val fqCreatedLongAgo = new FavoriteQuery("sql_long_ago");
         fqCreatedLongAgo.setCreateTime(currentTime - 60 * dayInMillis);
-        fqCreatedLongAgo.setFrequencyMap(new TreeMap<Long, Integer>() {
+        fqCreatedLongAgo.setFrequencyMap(new FrequencyMap(new TreeMap<Long, Integer>() {
             {
                 put(currentDate, 2);
             }
-        });
+        }));
 
         // not reached low frequency threshold, related layouts are 40001 and 40002
         val fq2 = new FavoriteQuery("sql2");
         fq2.setCreateTime(currentTime - 8 * dayInMillis);
-        fq2.setFrequencyMap(new TreeMap<Long, Integer>() {
+        fq2.setFrequencyMap(new FrequencyMap(new TreeMap<Long, Integer>() {
             {
                 put(currentDate - 7 * dayInMillis, 1);
                 put(currentDate, 2);
             }
-        });
+        }));
 
         // not a low frequency fq, related layouts are 10001 and 10002
         val fq3 = new FavoriteQuery("sql3");
         fq3.setCreateTime(currentTime - 31 * dayInMillis);
-        fq3.setFrequencyMap(new TreeMap<Long, Integer>() {
+        fq3.setFrequencyMap(new FrequencyMap(new TreeMap<Long, Integer>() {
             {
                 put(currentDate - 30 * dayInMillis, 10);
             }
-        });
+        }));
 
         favoriteQueryManager.create(Sets.newHashSet(fq1, fq2, fq3, fqCreatedLongAgo));
 

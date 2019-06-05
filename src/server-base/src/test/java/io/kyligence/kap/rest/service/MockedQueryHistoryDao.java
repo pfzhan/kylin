@@ -46,6 +46,7 @@ import com.google.common.collect.Lists;
 import io.kyligence.kap.metadata.query.QueryHistory;
 import io.kyligence.kap.metadata.query.QueryHistoryDAO;
 import io.kyligence.kap.metadata.query.QueryStatistics;
+import lombok.Setter;
 import lombok.var;
 import org.apache.kylin.common.KylinConfig;
 
@@ -58,6 +59,7 @@ public class MockedQueryHistoryDao extends QueryHistoryDAO {
     // current time is 2018-02-01 00:00:00
     private long currentTime;
 
+    @Setter
     private List<QueryHistory> overallQueryHistories = Lists.newArrayList();
 
     public MockedQueryHistoryDao(KylinConfig config, String project) {

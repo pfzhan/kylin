@@ -30,8 +30,11 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
+import com.google.common.collect.Maps;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfigExt;
 import org.apache.kylin.common.persistence.RootPersistentEntity;
@@ -108,6 +111,11 @@ public class NDataflow extends RootPersistentEntity implements Serializable, IRe
     @Setter
     @JsonProperty("query_hit_count")
     private int queryHitCount = 0;
+
+    @Getter
+    @Setter
+    @JsonProperty("layout_query_hit_count")
+    private Map<Long, FrequencyMap> layoutHitCount = Maps.newHashMap();
 
     @Getter
     @Setter
@@ -492,5 +500,19 @@ public class NDataflow extends RootPersistentEntity implements Serializable, IRe
         val model = modelManager.getDataModelDesc(uuid);
         val modelBroken = model == null || model.isBroken();
         return modelBroken;
+    }
+
+    public Set<Long> findLowFrequencyLayout() {
+        val indexPlan = getIndexPlan();
+        val hitFrequencyMap = getLayoutHitCount();
+        return indexPlan.getWhitelistLayouts().stream().filter(layoutEntity -> !layoutEntity.isManual())
+                .map(LayoutEntity::getId).filter(layoutId -> {
+                    val frequencyMap = hitFrequencyMap.get(layoutId);
+                    if (frequencyMap == null) {
+                        return true;
+                    }
+                    return frequencyMap.isLowFrequency(getProject());
+                }).collect(Collectors.toSet());
+
     }
 }

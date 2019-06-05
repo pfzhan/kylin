@@ -25,17 +25,13 @@
 package io.kyligence.kap.tool.garbage;
 
 import java.util.Set;
-import java.util.stream.Collectors;
 
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
-import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
-import io.kyligence.kap.metadata.favorite.FavoriteQueryManager;
-import io.kyligence.kap.metadata.favorite.FavoriteQueryRealization;
 import lombok.val;
 
 public class IndexCleaner implements MetadataCleaner {
@@ -43,32 +39,16 @@ public class IndexCleaner implements MetadataCleaner {
     public void cleanup(String project) {
         val config = KylinConfig.getInstanceFromEnv();
         val dataflowManager = NDataflowManager.getInstance(config, project);
-        val favoriteQueryManager = FavoriteQueryManager.getInstance(config, project);
 
         for (val model : dataflowManager.listUnderliningDataModels()) {
             val dataflow = dataflowManager.getDataflow(model.getId());
-            val autoLayouts = getAutoLayouts(dataflow);
-            
-            // notice here we do not check whether model's semantic version matches fq's semantic version
-            // because model's semantic version could change either because 1: join changed or 2: partition column changed
-            // for case 1, the layout actually loses reference but for case 2, the layout is still being referenced.
-            // Since we make sure whether it's case 1 or case 2, we prefer to treat it as non garbage.
 
-            // For case 1, When the next time FavoriteQueryAdjustWorker starts, the FQ will adjust to a new model.
-            // before it happens, the FQ is actually not accelerated
-            val referencedLayouts = favoriteQueryManager.getFQRByConditions(model.getId(), null).stream()
-                    .map(FavoriteQueryRealization::getLayoutId).collect(Collectors.toSet());
-            autoLayouts.removeAll(referencedLayouts);
-            if (CollectionUtils.isNotEmpty(autoLayouts)) {
-                cleanupIsolatedIndex(project, model.getId(), autoLayouts);
+            val garbageLayouts = dataflow.findLowFrequencyLayout();
+
+            if (CollectionUtils.isNotEmpty(garbageLayouts)) {
+                cleanupIsolatedIndex(project, model.getId(), garbageLayouts);
             }
         }
-    }
-
-    private Set<Long> getAutoLayouts(NDataflow dataflow) {
-        val cube = dataflow.getIndexPlan();
-        return cube.getWhitelistLayouts().stream().filter(layoutEntity -> !layoutEntity.isManual())
-                .map(LayoutEntity::getId).collect(Collectors.toSet());
     }
 
     private void cleanupIsolatedIndex(String project, String modelId, Set<Long> garbageLayouts) {

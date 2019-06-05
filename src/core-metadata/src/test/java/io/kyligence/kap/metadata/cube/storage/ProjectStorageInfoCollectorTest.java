@@ -28,6 +28,7 @@ import java.io.IOException;
 import java.util.List;
 import java.util.TreeMap;
 import com.google.common.collect.Sets;
+import io.kyligence.kap.metadata.cube.model.FrequencyMap;
 import io.kyligence.kap.metadata.favorite.FavoriteQuery;
 import io.kyligence.kap.metadata.favorite.FavoriteQueryManager;
 import io.kyligence.kap.metadata.favorite.FavoriteQueryRealization;
@@ -100,12 +101,12 @@ public class ProjectStorageInfoCollectorTest extends NLocalFileMetadataTestCase 
         // a low frequency favorite query, related layout 1 will be considered as garbage
         val fq1 = new FavoriteQuery("sql1");
         fq1.setCreateTime(currentTime - 32 * dayInMillis);
-        fq1.setFrequencyMap(new TreeMap<Long, Integer>() {
+        fq1.setFrequencyMap(new FrequencyMap(new TreeMap<Long, Integer>() {
             {
                 put(currentDate - 7 * dayInMillis, 1);
                 put(currentDate - 31 * dayInMillis, 100);
             }
-        });
+        }));
 
         val fqr1 = new FavoriteQueryRealization();
         fqr1.setModelId(model.getId());
@@ -122,12 +123,12 @@ public class ProjectStorageInfoCollectorTest extends NLocalFileMetadataTestCase 
         // not reached low frequency threshold, related layouts are 40001 and 40002
         val fq2 = new FavoriteQuery("sql2");
         fq2.setCreateTime(currentTime - 8 * dayInMillis);
-        fq2.setFrequencyMap(new TreeMap<Long, Integer>() {
+        fq2.setFrequencyMap(new FrequencyMap(new TreeMap<Long, Integer>() {
             {
                 put(currentDate - 7 * 24 * 60 * 60 * 1000L, 1);
                 put(currentDate, 2);
             }
-        });
+        }));
 
         val fqr3 = new FavoriteQueryRealization();
         fqr3.setModelId(model.getId());
@@ -143,11 +144,11 @@ public class ProjectStorageInfoCollectorTest extends NLocalFileMetadataTestCase 
         // not a low frequency fq, related layouts are 10001 and 10002
         val fq3 = new FavoriteQuery("sql3");
         fq3.setCreateTime(currentDate - 31 * dayInMillis);
-        fq3.setFrequencyMap(new TreeMap<Long, Integer>() {
+        fq3.setFrequencyMap(new FrequencyMap(new TreeMap<Long, Integer>() {
             {
                 put(currentDate - 30 * 24 * 60 * 60 * 1000L, 10);
             }
-        });
+        }));
 
         val fqr5 = new FavoriteQueryRealization();
         fqr5.setModelId(model.getId());

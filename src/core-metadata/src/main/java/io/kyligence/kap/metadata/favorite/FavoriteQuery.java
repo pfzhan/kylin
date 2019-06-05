@@ -24,8 +24,6 @@
 package io.kyligence.kap.metadata.favorite;
 
 import java.util.List;
-import java.util.NavigableMap;
-import java.util.TreeMap;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
@@ -36,13 +34,12 @@ import com.fasterxml.jackson.annotation.JsonManagedReference;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.Lists;
 
-import io.kyligence.kap.metadata.project.NProjectManager;
+import io.kyligence.kap.metadata.cube.model.FrequencyMap;
 import io.kyligence.kap.metadata.query.QueryHistory;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
-import lombok.val;
 
 @Getter
 @Setter
@@ -73,7 +70,7 @@ public class FavoriteQuery extends RootPersistentEntity {
     private float averageDuration;
 
     @JsonProperty("frequency_map")
-    private NavigableMap<Long, Integer> frequencyMap = new TreeMap<>();
+    private FrequencyMap frequencyMap = new FrequencyMap();
 
     @JsonProperty("realization")
     @JsonManagedReference
@@ -109,18 +106,7 @@ public class FavoriteQuery extends RootPersistentEntity {
         this.totalDuration += queryHistory.getDuration();
         this.lastQueryTime = queryHistory.getQueryTime();
 
-        long date = getDateInMillis(queryHistory.getQueryTime());
-        Integer freq = frequencyMap.get(date);
-        if (freq != null) {
-            freq++;
-            frequencyMap.put(date, freq);
-        } else {
-            frequencyMap.put(date, 1);
-        }
-    }
-
-    private long getDateInMillis(final long queryTime) {
-        return queryTime - queryTime % (24 * 60 * 60 * 1000L);
+        frequencyMap.incFrequency(queryHistory.getQueryTime());
     }
 
     public void update(FavoriteQuery favoriteQuery) {
@@ -130,34 +116,12 @@ public class FavoriteQuery extends RootPersistentEntity {
         // this.totalcount is at least 1
         this.averageDuration = totalDuration / (float) totalCount;
         // merge two maps
-        favoriteQuery.getFrequencyMap()
-                .forEach((k, v) -> this.frequencyMap.merge(k, v, (value1, value2) -> value1 + value2));
-        long frequencyInitialDate = getDateInMillis(this.lastQueryTime)
-                - KylinConfig.getInstanceFromEnv().getFavoriteQueryFrequencyTimeWindow();
-
-        while (this.frequencyMap.size() != 0) {
-            if (frequencyInitialDate <= this.frequencyMap.firstKey())
-                break;
-            this.frequencyMap.pollFirstEntry();
-        }
+        frequencyMap.merge(favoriteQuery.frequencyMap);
+        frequencyMap.rotate(lastQueryTime, project);
     }
 
     public int getFrequency(String project) {
-        long frequencyInitialCollectDate = getDateBeforeFrequencyTimeWindow(project);
-        while (frequencyMap.size() != 0) {
-            long date = frequencyMap.firstKey();
-            if (frequencyInitialCollectDate <= date)
-                break;
-            frequencyMap.pollFirstEntry();
-        }
-
-        return frequencyMap.values().stream().reduce((x, y) -> x + y).orElse(0);
-    }
-
-    private long getDateBeforeFrequencyTimeWindow(String project) {
-        val prjMgr = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv());
-        long daysInMillis = prjMgr.getProject(project).getConfig().getFavoriteQueryFrequencyTimeWindow();
-        return getDateInMillis(System.currentTimeMillis()) - daysInMillis;
+        return frequencyMap.getFrequency(project);
     }
 
     public void updateStatus(FavoriteQueryStatusEnum status, String comment) {

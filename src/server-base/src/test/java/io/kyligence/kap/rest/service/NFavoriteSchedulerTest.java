@@ -30,11 +30,9 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
-import io.kyligence.kap.metadata.cube.model.NDataflowManager;
-import io.kyligence.kap.metadata.favorite.FavoriteRule;
-import io.kyligence.kap.metadata.favorite.FavoriteRuleManager;
-import lombok.val;
-import lombok.var;
+import java.util.stream.Collectors;
+
+import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.security.KylinUserManager;
 import org.apache.kylin.rest.security.ManagedUser;
@@ -44,21 +42,32 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mockito;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.test.util.ReflectionTestUtils;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.metadata.cube.model.FrequencyMap;
+import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.favorite.FavoriteQuery;
 import io.kyligence.kap.metadata.favorite.FavoriteQueryManager;
 import io.kyligence.kap.metadata.favorite.FavoriteQueryStatusEnum;
+import io.kyligence.kap.metadata.favorite.FavoriteRule;
+import io.kyligence.kap.metadata.favorite.FavoriteRuleManager;
 import io.kyligence.kap.metadata.favorite.QueryHistoryTimeOffset;
 import io.kyligence.kap.metadata.favorite.QueryHistoryTimeOffsetManager;
 import io.kyligence.kap.metadata.query.AccelerateRatio;
 import io.kyligence.kap.metadata.query.AccelerateRatioManager;
 import io.kyligence.kap.metadata.query.QueryHistory;
 import io.kyligence.kap.metadata.query.QueryHistoryDAO;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import io.kyligence.kap.rest.service.task.QueryHistoryAccessor;
+import io.kyligence.kap.rest.service.task.UpdateFavoriteStatisticsRunner;
+import lombok.val;
+import lombok.var;
 
 public class NFavoriteSchedulerTest extends NLocalFileMetadataTestCase {
     private static final String PROJECT = "default";
@@ -66,12 +75,15 @@ public class NFavoriteSchedulerTest extends NLocalFileMetadataTestCase {
     @InjectMocks
     private NFavoriteScheduler favoriteScheduler;
 
+    private QueryHistoryAccessor queryHistoryAccessor = Mockito.spy(new QueryHistoryAccessor(PROJECT));
+
     @Before
     public void setUp() {
         createTestMetadata();
         createTestFavoriteQuery();
         setUpTimeOffset();
         favoriteScheduler = Mockito.spy(new NFavoriteScheduler(PROJECT));
+        ReflectionTestUtils.setField(favoriteScheduler, "queryHistoryAccessor", queryHistoryAccessor);
 
         System.setProperty("kylin.favorite.query-history-scan-period.minutes", "1");
     }
@@ -123,32 +135,32 @@ public class NFavoriteSchedulerTest extends NLocalFileMetadataTestCase {
         favoriteQuery1.setTotalCount(1);
         favoriteQuery1.setLastQueryTime(10001);
         favoriteQuery1.setChannel(FavoriteQuery.CHANNEL_FROM_RULE);
-        favoriteQuery1.setFrequencyMap(new TreeMap<Long, Integer>() {
+        favoriteQuery1.setFrequencyMap(new FrequencyMap(new TreeMap<Long, Integer>() {
             {
                 put(currentDate, 1);
             }
-        });
+        }));
 
         FavoriteQuery favoriteQuery2 = new FavoriteQuery("select * from sql2");
         favoriteQuery2.setTotalCount(1);
         favoriteQuery2.setLastQueryTime(10002);
         favoriteQuery2.setChannel(FavoriteQuery.CHANNEL_FROM_RULE);
-        favoriteQuery2.setFrequencyMap(new TreeMap<Long, Integer>() {
+        favoriteQuery2.setFrequencyMap(new FrequencyMap(new TreeMap<Long, Integer>() {
             {
                 put(currentDate, 1);
             }
-        });
+        }));
 
         FavoriteQuery favoriteQuery3 = new FavoriteQuery("select * from sql3");
         favoriteQuery3.setTotalCount(1);
         favoriteQuery3.setLastQueryTime(10003);
         favoriteQuery3.setStatus(FavoriteQueryStatusEnum.ACCELERATING);
         favoriteQuery3.setChannel(FavoriteQuery.CHANNEL_FROM_RULE);
-        favoriteQuery3.setFrequencyMap(new TreeMap<Long, Integer>() {
+        favoriteQuery3.setFrequencyMap(new FrequencyMap(new TreeMap<Long, Integer>() {
             {
                 put(currentDate - 60 * 24 * 60 * 60 * 1000L, 1);
             }
-        });
+        }));
 
         favoriteQueryManager.create(new HashSet() {
             {
@@ -232,7 +244,9 @@ public class NFavoriteSchedulerTest extends NLocalFileMetadataTestCase {
         Mockito.doReturn(queryHistoryDAO).when(favoriteScheduler).getQueryHistoryDao();
         QueryHistoryTimeOffsetManager timeOffsetManager = QueryHistoryTimeOffsetManager.getInstance(getTestConfig(),
                 PROJECT);
-        Mockito.doReturn(timeOffsetManager.get().getAutoMarkTimeOffset() + getTestConfig().getQueryHistoryScanPeriod() * 2).when(favoriteScheduler).getSystemTime();
+        Mockito.doReturn(
+                timeOffsetManager.get().getAutoMarkTimeOffset() + getTestConfig().getQueryHistoryScanPeriod() * 2)
+                .when(queryHistoryAccessor).getSystemTime();
 
         NFavoriteScheduler.AutoFavoriteRunner autoMarkFavoriteRunner = favoriteScheduler.new AutoFavoriteRunner();
         autoMarkFavoriteRunner.run();
@@ -264,7 +278,7 @@ public class NFavoriteSchedulerTest extends NLocalFileMetadataTestCase {
         QueryHistoryTimeOffsetManager timeOffsetManager = QueryHistoryTimeOffsetManager.getInstance(getTestConfig(),
                 PROJECT);
         long startTime = timeOffsetManager.get().getAutoMarkTimeOffset();
-        Mockito.doReturn(startTime + getTestConfig().getQueryHistoryScanPeriod()).when(favoriteScheduler)
+        Mockito.doReturn(startTime + getTestConfig().getQueryHistoryScanPeriod()).when(queryHistoryAccessor)
                 .getSystemTime();
 
         QueryHistory succeededQueryHistory = new QueryHistory();
@@ -405,22 +419,23 @@ public class NFavoriteSchedulerTest extends NLocalFileMetadataTestCase {
     @Test
     public void testUpdateFavoriteQueryStatistics() {
         MockedQueryHistoryDao mockedQueryHistoryDao = new MockedQueryHistoryDao(getTestConfig(), PROJECT);
-        Mockito.doReturn(mockedQueryHistoryDao).when(favoriteScheduler).getQueryHistoryDao();
+        Mockito.doReturn(mockedQueryHistoryDao).when(queryHistoryAccessor).getQueryHistoryDao();
         // already loaded three favorite queries whose sql patterns are "sql1", "sql2", "sql3"
         long systemTime = mockedQueryHistoryDao.getCurrentTime();
         FavoriteQueryManager favoriteQueryManager = FavoriteQueryManager.getInstance(getTestConfig(), PROJECT);
         int originFavoriteQuerySize = favoriteQueryManager.getAll().size();
-        NFavoriteScheduler.UpdateFavoriteStatisticsRunner updateRunner = favoriteScheduler.new UpdateFavoriteStatisticsRunner();
+        UpdateFavoriteStatisticsRunner updateRunner = Mockito.spy(new UpdateFavoriteStatisticsRunner(PROJECT));
+        ReflectionTestUtils.setField(updateRunner, "queryHistoryAccessor", queryHistoryAccessor);
 
         // first round, updated no favorite query
-        Mockito.doReturn(systemTime).when(favoriteScheduler).getSystemTime();
+        Mockito.doReturn(systemTime).when(queryHistoryAccessor).getSystemTime();
         updateRunner.run();
 
         List<FavoriteQuery> currentFavoriteQueries = favoriteQueryManager.getAll();
         Assert.assertEquals(originFavoriteQuerySize, currentFavoriteQueries.size());
 
         // second round, updated two query histories
-        Mockito.doReturn(systemTime + getTestConfig().getQueryHistoryScanPeriod()).when(favoriteScheduler)
+        Mockito.doReturn(systemTime + getTestConfig().getQueryHistoryScanPeriod()).when(queryHistoryAccessor)
                 .getSystemTime();
         updateRunner.run();
         val dfMgr = NDataflowManager.getInstance(getTestConfig(), PROJECT);
@@ -428,15 +443,16 @@ public class NFavoriteSchedulerTest extends NLocalFileMetadataTestCase {
         var df2 = dfMgr.getDataflow("82fa7671-a935-45f5-8779-85703601f49a");
 
         Assert.assertEquals(5, df1.getQueryHitCount());
+        Assert.assertEquals(2, df1.getLayoutHitCount().get(1L).getFrequency(PROJECT));
+        Assert.assertEquals(1, df1.getLayoutHitCount().size());
         Assert.assertEquals(2, df2.getQueryHitCount());
+        Assert.assertEquals(2, df2.getLayoutHitCount().get(1L).getFrequency(PROJECT));
+        Assert.assertEquals(1, df2.getLayoutHitCount().size());
 
         currentFavoriteQueries = favoriteQueryManager.getAll();
         for (FavoriteQuery favoriteQuery : currentFavoriteQueries) {
             switch (favoriteQuery.getSqlPattern()) {
             case "sql1":
-                Assert.assertEquals(2, favoriteQuery.getTotalCount());
-                Assert.assertEquals(2, favoriteQuery.getFrequency(PROJECT));
-                break;
             case "sql2":
                 Assert.assertEquals(2, favoriteQuery.getTotalCount());
                 Assert.assertEquals(2, favoriteQuery.getFrequency(PROJECT));
@@ -451,7 +467,7 @@ public class NFavoriteSchedulerTest extends NLocalFileMetadataTestCase {
         }
 
         // third round, insert a query at 59s, so we get three query histories
-        Mockito.doReturn(systemTime + getTestConfig().getQueryHistoryScanPeriod() * 2).when(favoriteScheduler)
+        Mockito.doReturn(systemTime + getTestConfig().getQueryHistoryScanPeriod() * 2).when(queryHistoryAccessor)
                 .getSystemTime();
 
         QueryHistory queryHistory = new QueryHistory();
@@ -513,26 +529,26 @@ public class NFavoriteSchedulerTest extends NLocalFileMetadataTestCase {
         /*
         There already have three favorite queries loaded in database, whose sql patterns are "sql1", "sql2", "sql3",
         so these three sql patterns will not be marked as favorite queries.
-
+        
         The mocked query history service will be generating test data from 2018-02-01 00:00:00 to 2018-02-01 00:02:30 every 30 seconds,
         and the last auto mark time is 2018-01-01 00:00:00
          */
         MockedQueryHistoryDao mockedQueryHistoryDao = new MockedQueryHistoryDao(getTestConfig(), PROJECT);
-        Mockito.doReturn(mockedQueryHistoryDao).when(favoriteScheduler).getQueryHistoryDao();
+        Mockito.doReturn(mockedQueryHistoryDao).when(queryHistoryAccessor).getQueryHistoryDao();
         long systemTime = mockedQueryHistoryDao.getCurrentTime();
         FavoriteQueryManager favoriteQueryManager = FavoriteQueryManager.getInstance(getTestConfig(), PROJECT);
         int originFavoriteQuerySize = favoriteQueryManager.getAll().size();
         NFavoriteScheduler.AutoFavoriteRunner autoMarkFavoriteRunner = favoriteScheduler.new AutoFavoriteRunner();
 
         // when current time is 00:00, auto mark runner scanned from 2018-01-01 00:00 to 2018-02-01 00:00:00
-        Mockito.doReturn(systemTime).when(favoriteScheduler).getSystemTime();
+        Mockito.doReturn(systemTime).when(queryHistoryAccessor).getSystemTime();
         autoMarkFavoriteRunner.run();
         Assert.assertEquals(originFavoriteQuerySize, favoriteQueryManager.getAll().size());
         Assert.assertEquals(0, favoriteScheduler.getFrequencyStatuses().last().getSqlPatterns().size());
 
         // current time is 02-01 00:01:00, triggered next round, runner scanned from 2018-02-01 00:00:00 to 2018-02-01 00:01:00
         // scanned two queries
-        Mockito.doReturn(systemTime + getTestConfig().getQueryHistoryScanPeriod()).when(favoriteScheduler)
+        Mockito.doReturn(systemTime + getTestConfig().getQueryHistoryScanPeriod()).when(queryHistoryAccessor)
                 .getSystemTime();
         autoMarkFavoriteRunner.run();
         Assert.assertEquals(originFavoriteQuerySize + 2, favoriteQueryManager.getAll().size());
@@ -550,7 +566,7 @@ public class NFavoriteSchedulerTest extends NLocalFileMetadataTestCase {
 
         // current time is 02-01 00:02:00, triggered next round, runner scanned from 2018-02-01 00:01:00 to 2018-02-01 00:02:00,
         // scanned three new queries, and inserted them into database
-        Mockito.doReturn(systemTime + getTestConfig().getQueryHistoryScanPeriod() * 2).when(favoriteScheduler)
+        Mockito.doReturn(systemTime + getTestConfig().getQueryHistoryScanPeriod() * 2).when(queryHistoryAccessor)
                 .getSystemTime();
         autoMarkFavoriteRunner.run();
         Assert.assertEquals(originFavoriteQuerySize + 5, favoriteQueryManager.getAll().size());
@@ -565,7 +581,7 @@ public class NFavoriteSchedulerTest extends NLocalFileMetadataTestCase {
         // current time is 02-01 00:03:00, runner scanned from 2018-02-01 00:02:00 to 2018-02-01 00:03:00
         // scanned two new queries, but one is failed, which is not expected to be marked as favorite query, and the other is in blacklist
         // so no new query will be inserted to database
-        Mockito.doReturn(systemTime + getTestConfig().getQueryHistoryScanPeriod() * 3).when(favoriteScheduler)
+        Mockito.doReturn(systemTime + getTestConfig().getQueryHistoryScanPeriod() * 3).when(queryHistoryAccessor)
                 .getSystemTime();
         autoMarkFavoriteRunner.run();
         Assert.assertEquals(originFavoriteQuerySize + 5, favoriteQueryManager.getAll().size());
@@ -576,7 +592,7 @@ public class NFavoriteSchedulerTest extends NLocalFileMetadataTestCase {
         MockedQueryHistoryDao mockedQueryHistoryDao = new MockedQueryHistoryDao(getTestConfig(), PROJECT);
         Mockito.doReturn(mockedQueryHistoryDao).when(favoriteScheduler).getQueryHistoryDao();
         // suppose current time is 2019-01-01
-        Mockito.doReturn(1546272000000L).when(favoriteScheduler).getSystemTime();
+        Mockito.doReturn(1546272000000L).when(queryHistoryAccessor).getSystemTime();
 
         favoriteScheduler.adjustTimeOffset();
 
@@ -590,8 +606,8 @@ public class NFavoriteSchedulerTest extends NLocalFileMetadataTestCase {
         MockedQueryHistoryDao queryHistoryDAO = Mockito.spy(new MockedQueryHistoryDao(getTestConfig(), PROJECT));
         long mockedCurrentTime = queryHistoryDAO.getCurrentTime();
         long scanGapTime = getTestConfig().getQueryHistoryScanPeriod();
-        Mockito.doReturn(mockedCurrentTime + scanGapTime * 4).when(favoriteScheduler).getSystemTime();
-        Mockito.doReturn(queryHistoryDAO).when(favoriteScheduler).getQueryHistoryDao();
+        Mockito.doReturn(mockedCurrentTime + scanGapTime * 4).when(queryHistoryAccessor).getSystemTime();
+        Mockito.doReturn(queryHistoryDAO).when(queryHistoryAccessor).getQueryHistoryDao();
 
         // this runner will be scanning 7 query histories
         NFavoriteScheduler.AutoFavoriteRunner autoMarkFavoriteRunner = favoriteScheduler.new AutoFavoriteRunner();
@@ -608,7 +624,7 @@ public class NFavoriteSchedulerTest extends NLocalFileMetadataTestCase {
         // at last minute, a RuntimeException will be thrown out, all frequency status will be rolled back to the last status
         MockedQueryHistoryDao queryHistoryDaoWithException = Mockito
                 .spy(new MockedQueryHistoryDao(getTestConfig(), PROJECT));
-        Mockito.doReturn(mockedCurrentTime + scanGapTime * 4).when(favoriteScheduler).getSystemTime();
+        Mockito.doReturn(mockedCurrentTime + scanGapTime * 4).when(queryHistoryAccessor).getSystemTime();
         Mockito.doThrow(RuntimeException.class).when(queryHistoryDaoWithException)
                 .getQueryHistoriesByTime(mockedCurrentTime + scanGapTime * 2, mockedCurrentTime + scanGapTime * 3);
         Mockito.doReturn(queryHistoryDaoWithException).when(favoriteScheduler).getQueryHistoryDao();
@@ -669,4 +685,143 @@ public class NFavoriteSchedulerTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(1, accelerateRatio.getNumOfQueryHitIndex());
         Assert.assertEquals(4, accelerateRatio.getOverallQueryNum());
     }
+
+    @Test
+    public void testMergeLayoutFrequency() throws ParseException, JsonProcessingException {
+        System.setProperty("kylin.favorite.query-history-scan-period.minutes", "30");
+
+        MockedQueryHistoryDao mockedQueryHistoryDao = new MockedQueryHistoryDao(getTestConfig(), PROJECT);
+        Mockito.doReturn(mockedQueryHistoryDao).when(queryHistoryAccessor).getQueryHistoryDao();
+        // already loaded three favorite queries whose sql patterns are "sql1", "sql2", "sql3"
+        long systemTime = mockedQueryHistoryDao.getCurrentTime();
+        FavoriteQueryManager favoriteQueryManager = FavoriteQueryManager.getInstance(getTestConfig(), PROJECT);
+        int originFavoriteQuerySize = favoriteQueryManager.getAll().size();
+        UpdateFavoriteStatisticsRunner updateRunner = Mockito.spy(new UpdateFavoriteStatisticsRunner(PROJECT));
+        ReflectionTestUtils.setField(updateRunner, "queryHistoryAccessor", queryHistoryAccessor);
+
+        val dfMgr = NDataflowManager.getInstance(getTestConfig(), PROJECT);
+        val DF_ID1 = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
+        val DF_ID2 = "82fa7671-a935-45f5-8779-85703601f49a";
+        // first round
+        val offsetManager = QueryHistoryTimeOffsetManager.getInstance(getTestConfig(), PROJECT);
+        var offset = offsetManager.get();
+        offset.setFavoriteQueryUpdateTimeOffset(systemTime);
+        offsetManager.save(offset);
+        Mockito.doReturn(systemTime + 1 * 86400 * 1000L).when(queryHistoryAccessor).getSystemTime();
+        mockedQueryHistoryDao.setOverallQueryHistories(Lists.newArrayList(Iterables.concat(//
+                mockHistory("2018-01-02", "2018-01-01", 1, 3, Arrays.asList(DF_ID1, DF_ID2)), //
+                mockHistory("2018-01-02", "2018-01-01", 100001, 4, Arrays.asList(DF_ID1)), //
+                mockHistory("2018-01-02", "2018-01-01", 100002, 5, Arrays.asList(DF_ID2)), //
+                mockHistory("2018-01-02", "2018-01-02", 1, 6, Arrays.asList(DF_ID1, DF_ID2)), //
+                mockHistory("2018-01-02", "2018-01-02", 100001, 7, Arrays.asList(DF_ID1)), //
+                mockHistory("2018-01-02", "2018-01-02", 100002, 8, Arrays.asList(DF_ID1, DF_ID2)) //
+        )));
+        updateRunner.run();
+        var df1 = dfMgr.getDataflow(DF_ID1);
+        var df2 = dfMgr.getDataflow(DF_ID2);
+        Assert.assertEquals("{\n" +
+                "  \"100001\" : {\n" +
+                "    \"1514678400000\" : 4,\n" +
+                "    \"1514764800000\" : 7\n" +
+                "  },\n" +
+                "  \"1\" : {\n" +
+                "    \"1514678400000\" : 3,\n" +
+                "    \"1514764800000\" : 6\n" +
+                "  },\n" +
+                "  \"100002\" : {\n" +
+                "    \"1514764800000\" : 8\n" +
+                "  }\n" +
+                "}", JsonUtil.writeValueAsIndentString(df1.getLayoutHitCount()));
+        Assert.assertEquals("{\n" +
+                "  \"1\" : {\n" +
+                "    \"1514678400000\" : 3,\n" +
+                "    \"1514764800000\" : 6\n" +
+                "  },\n" +
+                "  \"100002\" : {\n" +
+                "    \"1514678400000\" : 5,\n" +
+                "    \"1514764800000\" : 8\n" +
+                "  }\n" +
+                "}", JsonUtil.writeValueAsIndentString(df2.getLayoutHitCount()));
+
+        // second round, merge frequency
+        offset = offsetManager.get();
+        offset.setFavoriteQueryUpdateTimeOffset(systemTime + 24 * 3600 * 1000L);
+        offsetManager.save(offset);
+        Mockito.doReturn(systemTime + 2 * 86400 * 1000L).when(queryHistoryAccessor).getSystemTime();
+        mockedQueryHistoryDao.setOverallQueryHistories(Lists.newArrayList(Iterables.concat(//
+                mockHistory("2018-01-03", "2018-01-03", 1, 3, Arrays.asList(DF_ID1, DF_ID2)), //
+                mockHistory("2018-01-03", "2018-01-03", 100001, 4, Arrays.asList(DF_ID1)), //
+                mockHistory("2018-01-03", "2018-01-03", 100002, 5, Arrays.asList(DF_ID2)), //
+                mockHistory("2018-01-03", "2018-01-02", 1, 6, Arrays.asList(DF_ID1, DF_ID2)), //
+                mockHistory("2018-01-03", "2018-01-02", 100001, 7, Arrays.asList(DF_ID1)), //
+                mockHistory("2018-01-03", "2018-01-02", 100002, 8, Arrays.asList(DF_ID1, DF_ID2)), //
+                mockHistory("2018-01-03", "2018-01-02", 2, 1, Arrays.asList(DF_ID2)), //
+                mockHistory("2018-01-03", "2018-01-02", 100003, 2, Arrays.asList(DF_ID1)), //
+                mockHistory("2018-01-03", "2018-01-02", 100004, 3, Arrays.asList(DF_ID1, DF_ID2)) //
+        )));
+        updateRunner.run();
+        df1 = dfMgr.getDataflow(DF_ID1);
+        df2 = dfMgr.getDataflow(DF_ID2);
+        Assert.assertEquals("{\n" +
+                "  \"100001\" : {\n" +
+                "    \"1514678400000\" : 4,\n" +
+                "    \"1514764800000\" : 14,\n" +
+                "    \"1514851200000\" : 4\n" +
+                "  },\n" +
+                "  \"1\" : {\n" +
+                "    \"1514678400000\" : 3,\n" +
+                "    \"1514764800000\" : 12,\n" +
+                "    \"1514851200000\" : 3\n" +
+                "  },\n" +
+                "  \"100002\" : {\n" +
+                "    \"1514764800000\" : 16\n" +
+                "  },\n" +
+                "  \"100003\" : {\n" +
+                "    \"1514764800000\" : 2\n" +
+                "  },\n" +
+                "  \"100004\" : {\n" +
+                "    \"1514764800000\" : 3\n" +
+                "  }\n" +
+                "}", JsonUtil.writeValueAsIndentString(df1.getLayoutHitCount()));
+        Assert.assertEquals("{\n" +
+                "  \"1\" : {\n" +
+                "    \"1514678400000\" : 3,\n" +
+                "    \"1514764800000\" : 12,\n" +
+                "    \"1514851200000\" : 3\n" +
+                "  },\n" +
+                "  \"100002\" : {\n" +
+                "    \"1514678400000\" : 5,\n" +
+                "    \"1514764800000\" : 16,\n" +
+                "    \"1514851200000\" : 5\n" +
+                "  },\n" +
+                "  \"2\" : {\n" +
+                "    \"1514764800000\" : 1\n" +
+                "  },\n" +
+                "  \"100004\" : {\n" +
+                "    \"1514764800000\" : 3\n" +
+                "  }\n" +
+                "}", JsonUtil.writeValueAsIndentString(df2.getLayoutHitCount()));
+    }
+
+    private List<QueryHistory> mockHistory(String currentDate, String queryDate, long layoutId, int size,
+            List<String> dfIds) throws ParseException {
+        SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd");
+        val result = Lists.<QueryHistory> newArrayList();
+        long currentTime = format.parse(currentDate).getTime();
+        long queryTime = format.parse(queryDate).getTime();
+
+        // these are expected to be marked as favorite queries
+        for (int i = 0; i < size; i++) {
+            QueryHistory queryHistory = new QueryHistory("sql_pattern" + i, QueryHistory.QUERY_HISTORY_SUCCEEDED,
+                    "ADMIN", System.currentTimeMillis(), 6000L);
+            queryHistory.setInsertTime(currentTime + 30 * i * 1000L);
+            queryHistory.setQueryTime(queryTime + 30 * i * 1000L);
+            queryHistory.setEngineType("HIVE");
+            val reals = dfIds.stream().map(id -> id + "#" + layoutId + "#Agg Index").collect(Collectors.joining(","));
+            queryHistory.setQueryRealizations(reals);
+            result.add(queryHistory);
+        }
+        return result;
+    }
+
 }

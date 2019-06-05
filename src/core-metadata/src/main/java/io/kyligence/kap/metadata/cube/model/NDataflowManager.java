@@ -492,19 +492,15 @@ public class NDataflowManager implements IRealizationProvider, IKeepNames {
             NDataflow df = copyForWrite;
             Segments<NDataSegment> newSegs = (Segments<NDataSegment>) df.getSegments().clone();
 
-            if (update.getToAddSegs() != null) {
-                Arrays.stream(update.getToAddSegs()).forEach(seg -> {
-                    seg.setDataflow(df);
-                    newSegs.add(seg);
-                });
-            }
+            Arrays.stream(Optional.ofNullable(update.getToAddSegs()).orElse(new NDataSegment[0])).forEach(seg -> {
+                seg.setDataflow(df);
+                newSegs.add(seg);
+            });
 
-            if (update.getToUpdateSegs() != null) {
-                Arrays.stream(update.getToUpdateSegs()).forEach(seg -> {
-                    seg.setDataflow(df);
-                    newSegs.replace(Comparator.comparing(NDataSegment::getId), seg);
-                });
-            }
+            Arrays.stream(Optional.ofNullable(update.getToUpdateSegs()).orElse(new NDataSegment[0])).forEach(seg -> {
+                seg.setDataflow(df);
+                newSegs.replace(Comparator.comparing(NDataSegment::getId), seg);
+            });
 
             if (update.getToRemoveSegs() != null) {
                 Iterator<NDataSegment> iterator = newSegs.iterator();
@@ -518,6 +514,9 @@ public class NDataflowManager implements IRealizationProvider, IKeepNames {
                     }
                 }
             }
+
+            Arrays.stream(Optional.ofNullable(update.getToRemoveLayouts()).orElse(new NDataLayout[0]))
+                    .forEach(removeLayout -> df.getLayoutHitCount().remove(removeLayout.getLayoutId()));
 
             df.setSegments(newSegs);
 

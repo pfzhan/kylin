@@ -27,21 +27,17 @@ package io.kyligence.kap.metadata.cube.storage;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
 
-import io.kyligence.kap.metadata.cube.model.LayoutEntity;
-import io.kyligence.kap.metadata.cube.model.NDataLayout;
-import io.kyligence.kap.metadata.cube.model.NDataSegment;
-import io.kyligence.kap.metadata.cube.model.NDataflow;
-import io.kyligence.kap.metadata.cube.model.NDataflowManager;
-import io.kyligence.kap.metadata.favorite.FavoriteQueryManager;
-import io.kyligence.kap.metadata.favorite.FavoriteQueryRealization;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
 
 import com.google.common.collect.Maps;
 
+import io.kyligence.kap.metadata.cube.model.NDataLayout;
+import io.kyligence.kap.metadata.cube.model.NDataSegment;
+import io.kyligence.kap.metadata.cube.model.NDataflow;
+import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.model.NDataModel;
 import lombok.val;
 
@@ -49,22 +45,13 @@ public class GarbageStorageCollector implements StorageInfoCollector {
 
     @Override
     public void collect(KylinConfig config, String project, StorageVolumeInfo storageVolumeInfo) {
-        val favoriteQueryManager = FavoriteQueryManager.getInstance(config, project);
-        val lowFrequencyFqs = favoriteQueryManager.getLowFrequencyFQs();
-        Set<FavoriteQueryRealization> lowFrequencyFqrs = lowFrequencyFqs.stream()
-                .flatMap(fq -> fq.getRealizations().stream()).collect(Collectors.toSet());
-
         Map<String, Set<Long>> garbageIndexMap = Maps.newHashMap();
         long storageSize = 0L;
 
         for (val model : getModels(project)) {
             val dataflow = getDataflow(model);
 
-            val autoLayouts = getAutoLayouts(dataflow);
-            // referenced layouts
-            val referencedlayouts = favoriteQueryManager.getFQRByConditions(model.getId(), null).stream().filter(fqr -> !lowFrequencyFqrs.contains(fqr))
-                    .map(FavoriteQueryRealization::getLayoutId).collect(Collectors.toSet());
-            autoLayouts.removeAll(referencedlayouts);
+            val autoLayouts = dataflow.findLowFrequencyLayout();
             if (CollectionUtils.isNotEmpty(autoLayouts)) {
                 storageSize += calculateLayoutSize(autoLayouts, dataflow);
                 garbageIndexMap.put(model.getId(), autoLayouts);
@@ -83,12 +70,6 @@ public class GarbageStorageCollector implements StorageInfoCollector {
     private NDataflow getDataflow(NDataModel model) {
         val dataflowManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), model.getProject());
         return dataflowManager.getDataflow(model.getUuid());
-    }
-
-    private Set<Long> getAutoLayouts(NDataflow dataflow) {
-        val cube = dataflow.getIndexPlan();
-        return cube.getWhitelistLayouts().stream().filter(layoutEntity -> !layoutEntity.isManual())
-                .map(LayoutEntity::getId).collect(Collectors.toSet());
     }
 
     private long calculateLayoutSize(Set<Long> cuboidLayoutIdSet, NDataflow dataflow) {

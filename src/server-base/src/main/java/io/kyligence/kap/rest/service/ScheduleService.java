@@ -23,22 +23,30 @@
  */
 package io.kyligence.kap.rest.service;
 
-import java.io.IOException;
-
-import org.springframework.scheduling.annotation.Async;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
-import io.kyligence.kap.tool.garbage.StorageCleaner;
-import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Service
-public class AsyncTaskService {
+public class ScheduleService {
 
-    @Async
-    public void cleanupStorage() throws IOException {
-        val storageCleaner = new StorageCleaner();
-        storageCleaner.execute();
+    @Autowired
+    MetadataBackupService backupService;
+
+    @Autowired
+    FavoriteQueryService favoriteQueryService;
+
+    @Autowired
+    ProjectService projectService;
+
+    @Scheduled(cron = "${kylin.metadata.ops-cron:0 0 0 * * *}")
+    public void dailyTask() throws Exception {
+        backupService.backupAll();
+        projectService.garbageCleanup();
+        favoriteQueryService.adjustFavoriteQuery();
     }
+
 }

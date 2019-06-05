@@ -30,7 +30,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.source.file.CredentialOperator;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -47,7 +46,6 @@ import org.apache.kylin.rest.util.AclEvaluate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
@@ -71,6 +69,7 @@ import io.kyligence.kap.rest.response.FavoriteQueryThresholdResponse;
 import io.kyligence.kap.rest.response.ProjectConfigResponse;
 import io.kyligence.kap.rest.response.StorageVolumeInfoResponse;
 import io.kyligence.kap.rest.transaction.Transaction;
+import io.kyligence.kap.source.file.CredentialOperator;
 import io.kyligence.kap.tool.garbage.GarbageCleaner;
 import lombok.val;
 import lombok.var;
@@ -161,9 +160,7 @@ public class ProjectService extends BasicService {
         return response;
     }
 
-    // a 24hrs scheduler to clean up auto indices that are not referenced by any favorite queries
-    @Scheduled(cron = "${kylin.garbage.cleanup-cron:0 0 1 * * *}")
-    public void scheduledGarbageCleanup() {
+    public void garbageCleanup() {
         String oldTheadName = Thread.currentThread().getName();
 
         try {
@@ -212,8 +209,9 @@ public class ProjectService extends BasicService {
     }
 
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#project, 'ADMINISTRATION')")
-    public void cleanupGarbage(String project) {
+    public void cleanupGarbage(String project) throws IOException {
         GarbageCleaner.cleanupMetadataManually(project);
+        asyncTaskService.cleanupStorage();
     }
 
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#project, 'ADMINISTRATION')")

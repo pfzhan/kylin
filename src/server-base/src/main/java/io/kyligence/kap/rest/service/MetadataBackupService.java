@@ -27,14 +27,13 @@ import java.time.LocalDateTime;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-import io.kyligence.kap.tool.HDFSMetadataTool;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.util.HadoopUtil;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
+import io.kyligence.kap.tool.HDFSMetadataTool;
 import io.kyligence.kap.tool.MetadataTool;
 import lombok.val;
 
@@ -43,7 +42,6 @@ public class MetadataBackupService {
 
     private ExecutorService executors = Executors.newSingleThreadExecutor();
 
-    @Scheduled(cron = "${kylin.metadata.backup-cron:0 0 0 * * *}")
     public void backupAll() throws Exception {
 
         String oldTheadName = Thread.currentThread().getName();
