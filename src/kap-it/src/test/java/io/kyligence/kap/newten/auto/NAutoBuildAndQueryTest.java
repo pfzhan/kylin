@@ -54,12 +54,14 @@ public class NAutoBuildAndQueryTest extends NAutoTestBase {
                 new TestScenario(CompareLevel.SAME, "sql_cache"), //
                 new TestScenario(CompareLevel.SAME, "sql_casewhen"), //
                 new TestScenario(CompareLevel.SAME, "sql_cross_join"), //
+                new TestScenario(CompareLevel.SAME, "sql_current_date"), //
                 new TestScenario(CompareLevel.SAME, "sql_datetime"), //
                 new TestScenario(CompareLevel.SAME, "sql_derived"), //
                 new TestScenario(CompareLevel.SAME, "sql_distinct"), //
                 new TestScenario(CompareLevel.SAME, "sql_distinct_dim"), //
                 new TestScenario(CompareLevel.SAME, "sql_extended_column"), //
                 new TestScenario(CompareLevel.SAME, "sql_grouping"), //
+                new TestScenario(CompareLevel.SAME, "sql_h2_uncapable"), //
                 new TestScenario(CompareLevel.SAME, "sql_hive"), //
                 new TestScenario(CompareLevel.SAME, "sql_join"), //
                 new TestScenario(CompareLevel.SAME, "sql_like"), //
@@ -78,6 +80,7 @@ public class NAutoBuildAndQueryTest extends NAutoTestBase {
                 new TestScenario(CompareLevel.SAME, "sql_sparder_function"), //
                 new TestScenario(CompareLevel.SAME, "sql_subquery"), //
                 new TestScenario(CompareLevel.SAME, "sql_tableau"), //
+                new TestScenario(CompareLevel.SAME, "sql_timestamp"), //
                 new TestScenario(CompareLevel.SAME, "sql_udf"), //
                 new TestScenario(CompareLevel.SAME, "sql_value"), //
                 new TestScenario(CompareLevel.SAME, "sql_union"), //
@@ -91,9 +94,6 @@ public class NAutoBuildAndQueryTest extends NAutoTestBase {
                 /* CompareLevel = SAME_ROWCOUNT */
 
                 /* CompareLevel = NONE */
-                new TestScenario(CompareLevel.NONE, "sql_current_date"), //
-                new TestScenario(CompareLevel.NONE, "sql_h2_uncapable"), //
-                new TestScenario(CompareLevel.NONE, "sql_timestamp"), //
                 new TestScenario(CompareLevel.NONE, "sql_window")//
         );
     }

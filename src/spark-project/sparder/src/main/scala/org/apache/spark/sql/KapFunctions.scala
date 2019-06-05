@@ -23,8 +23,11 @@
  */
 package org.apache.spark.sql
 
+import org.apache.spark.sql.catalyst.FunctionIdentifier
+import org.apache.spark.sql.catalyst.analysis.FunctionRegistry.FunctionBuilder
+import org.apache.spark.sql.catalyst.expressions.ExpressionUtils.expression
 import org.apache.spark.sql.catalyst.expressions.aggregate.AggregateFunction
-import org.apache.spark.sql.catalyst.expressions.{KapAddMonths, KapDayOfWeek, KapSubtractMonths, Literal, Sum0}
+import org.apache.spark.sql.catalyst.expressions.{ExpressionInfo, KapAddMonths, KapDayOfWeek, KapSubtractMonths, Literal, Sum0, TimestampAdd, TimestampDiff, Truncate}
 import org.apache.spark.sql.udf.{ApproxCountDistinct, PreciseCountDistinct}
 
 object KapFunctions {
@@ -59,4 +62,19 @@ object KapFunctions {
 
   def approx_count_distinct(column: Column, precision: Int): Column =
     Column(ApproxCountDistinct(column.expr, precision).toAggregateExpression())
+
+  val builtin: Seq[FunctionEntity] = Seq(
+    FunctionEntity(expression[TimestampAdd]("TIMESTAMPADD")),
+    FunctionEntity(expression[TimestampDiff]("TIMESTAMPDIFF")),
+    FunctionEntity(expression[Truncate]("TRUNCATE")))
+}
+
+case class FunctionEntity(name: FunctionIdentifier,
+                          info: ExpressionInfo,
+                          builder: FunctionBuilder)
+
+object FunctionEntity {
+  def apply(tuple: (String, (ExpressionInfo, FunctionBuilder))): FunctionEntity = {
+    new FunctionEntity(FunctionIdentifier.apply(tuple._1), tuple._2._1, tuple._2._2)
+  }
 }

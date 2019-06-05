@@ -25,17 +25,19 @@
 package org.apache.spark.sql.util
 
 import java.math.BigDecimal
-import java.sql.Timestamp
+import java.sql.{Timestamp, Types}
+import java.util.regex.Pattern
 
+import io.kyligence.kap.query.pushdown.StructField
 import org.apache.calcite.rel.`type`.RelDataType
 import org.apache.calcite.sql.`type`.SqlTypeName
 import org.apache.kylin.common.util.DateFormat
 import org.apache.kylin.metadata.datatype.DataType
 import org.apache.spark.internal.Logging
-import org.apache.spark.sql.types._
 import org.apache.spark.sql.Column
 import org.apache.spark.sql.catalyst.expressions.Cast
 import org.apache.spark.sql.functions._
+import org.apache.spark.sql.types._
 
 object SparderTypeUtil extends Logging {
   val DATETIME_FAMILY = List("time", "date", "timestamp", "datetime")
@@ -102,12 +104,12 @@ object SparderTypeUtil extends Logging {
   // scalastyle:off
   def toSparkType(dataTp: DataType, isSum: Boolean = false): org.apache.spark.sql.types.DataType = {
     dataTp.getName match {
-    // org.apache.spark.sql.catalyst.expressions.aggregate.Sum#resultType
+      // org.apache.spark.sql.catalyst.expressions.aggregate.Sum#resultType
       case "decimal" =>
         if (isSum) {
-        val i = dataTp.getPrecision + 10
-        DecimalType(Math.min(DecimalType.MAX_PRECISION, i), dataTp.getScale)
-      }
+          val i = dataTp.getPrecision + 10
+          DecimalType(Math.min(DecimalType.MAX_PRECISION, i), dataTp.getScale)
+        }
         else DecimalType(dataTp.getPrecision, dataTp.getScale)
       case "date" => DateType
       case "time" => DateType
@@ -119,7 +121,7 @@ object SparderTypeUtil extends Logging {
       case "int4" => if (isSum) LongType else IntegerType
       case "bigint" => LongType
       case "long8" => LongType
-      case "float" => if (isSum)DoubleType else FloatType
+      case "float" => if (isSum) DoubleType else FloatType
       case "double" => DoubleType
       case tp if tp.startsWith("varchar") => StringType
       case tp if tp.startsWith("char") => StringType
@@ -182,25 +184,25 @@ object SparderTypeUtil extends Logging {
     if (s == null) {
       null
     } else if (s.toString.isEmpty) {
-    sqlTypeName match {
-      case SqlTypeName.DECIMAL => new java.math.BigDecimal(0)
-      case SqlTypeName.CHAR => s.toString
-      case SqlTypeName.VARCHAR => s.toString
-      case SqlTypeName.INTEGER => 0
-      case SqlTypeName.TINYINT => 0.toByte
-      case SqlTypeName.SMALLINT => 0.toShort
-      case SqlTypeName.BIGINT => 0L
-      case SqlTypeName.FLOAT => 0f
-      case SqlTypeName.REAL => 0f
-      case SqlTypeName.DOUBLE => 0d
-      case SqlTypeName.DATE => 0
-      case SqlTypeName.TIMESTAMP => 0L
-      case SqlTypeName.TIME => 0L
-      case SqlTypeName.BOOLEAN => null;
-      case null => null
-      case _ => null
-    }
-  } else {
+      sqlTypeName match {
+        case SqlTypeName.DECIMAL => new java.math.BigDecimal(0)
+        case SqlTypeName.CHAR => s.toString
+        case SqlTypeName.VARCHAR => s.toString
+        case SqlTypeName.INTEGER => 0
+        case SqlTypeName.TINYINT => 0.toByte
+        case SqlTypeName.SMALLINT => 0.toShort
+        case SqlTypeName.BIGINT => 0L
+        case SqlTypeName.FLOAT => 0f
+        case SqlTypeName.REAL => 0f
+        case SqlTypeName.DOUBLE => 0d
+        case SqlTypeName.DATE => 0
+        case SqlTypeName.TIMESTAMP => 0L
+        case SqlTypeName.TIME => 0L
+        case SqlTypeName.BOOLEAN => null;
+        case null => null
+        case _ => null
+      }
+    } else {
       try {
         val a: Any = sqlTypeName match {
           case SqlTypeName.DECIMAL =>
@@ -364,7 +366,7 @@ object SparderTypeUtil extends Logging {
   }
 
   def alignDataType(origin: StructType, goal: StructType): Array[Column] = {
-   val columns = origin.zip(goal).map {
+    val columns = origin.zip(goal).map {
       case (sparkField, goalField) =>
         val sparkDataType = sparkField.dataType
         val goalDataType = goalField.dataType
@@ -381,5 +383,50 @@ object SparderTypeUtil extends Logging {
     }.toArray
     logInfo(s"Align data type is ${columns.mkString(",")}")
     columns
+  }
+
+  def convertSparkFieldToJavaField(field: org.apache.spark.sql.types.StructField): StructField = {
+    val builder = new StructField.StructFieldBuilder
+    builder.setName(field.name)
+    val typeName = if (field.dataType.sql.startsWith("DECIMAL")) {
+      "DECIMAL"
+    } else {
+      field.dataType.sql
+    }
+    val javaType = typeName match {
+      case "BINARY" => Types.BINARY
+      case "BOOLEAN" => Types.BOOLEAN
+      case "DATE" => Types.DATE
+      case "DOUBLE" => Types.DOUBLE
+      case "FLOAT" => Types.FLOAT
+      case "INT" => Types.INTEGER
+      case "BIGINT" => Types.BIGINT
+      case "NUMERIC" => Types.NUMERIC
+      case "SMALLINT" => Types.SMALLINT
+      case "TIMESTAMP" => Types.TIMESTAMP
+      case "STRING" => Types.VARCHAR
+      case "DECIMAL" =>
+        val precisionAndScalePair = getDecimalPrecisionAndScale(typeName)
+        if (precisionAndScalePair != null) {
+          builder.setPrecision(precisionAndScalePair._1)
+          builder.setScale(precisionAndScalePair._2)
+        }
+        Types.DECIMAL
+      case _ => Types.OTHER
+    }
+
+    builder.setDataType(javaType)
+    builder.setDataTypeName(typeName)
+    builder.setNullable(field.nullable)
+    builder.createStructField()
+  }
+
+  private def getDecimalPrecisionAndScale(javaType: String): (Int, Int) = {
+    val DECIMAL_PATTERN = Pattern.compile("DECIMAL\\(([0-9]+),([0-9]+)\\)", Pattern.CASE_INSENSITIVE)
+    val decimalMatcher = DECIMAL_PATTERN.matcher(javaType)
+    if (decimalMatcher.find) {
+      (Integer.valueOf(decimalMatcher.group(1)), Integer.valueOf(decimalMatcher.group(2)))
+    }
+    else null
   }
 }

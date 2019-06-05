@@ -43,7 +43,6 @@
 package io.kyligence.kap.newten;
 
 import java.util.UUID;
-import java.util.concurrent.Semaphore;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exceptions.KylinTimeoutException;
@@ -151,9 +150,8 @@ public class SlowQueryDetectorTest extends NLocalWithSparkSessionTest {
 
         slowQueryDetector.queryStart();
         try {
-            Semaphore semaphore = new Semaphore(1);
             String sql = "select sum(price) from TEST_KYLIN_FACT group by LSTG_FORMAT_NAME";
-            new SparkSqlClient(ss, semaphore).executeSql(sql, UUID.randomUUID());
+            SparkSqlClient.executeSql(ss, sql, UUID.randomUUID());
             Assert.fail();
         } catch (Exception e) {
             Assert.assertTrue(e instanceof KylinTimeoutException);

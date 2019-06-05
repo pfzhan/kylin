@@ -47,10 +47,9 @@ public class SparkSubmitter {
             logger.warn("execute spark job with transaction lock", new IllegalStateException());
         }
         Thread.currentThread().setContextClassLoader(ClassLoaderUtils.getSparkClassLoader());
-        Pair<List<List<String>>, List<StructField>> pair = null;
         SparkSession ss = SparderEnv.getSparkSession();
         CredentialUtils.wrap(ss, project);
-        pair = new SparkSqlClient(ss, semaphore).executeSql(sql, UUID.randomUUID());
+        Pair<List<List<String>>, List<StructField>> pair = SparkSqlClient.executeSql(ss, sql, UUID.randomUUID());
         return new PushdownResponse(pair.getSecond(), pair.getFirst());
     }
 

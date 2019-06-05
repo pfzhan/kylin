@@ -22,40 +22,33 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package org.apache.spark.sql.udf;
+package org.apache.spark.sql.udf
 
-import java.math.BigDecimal;
-import java.math.RoundingMode;
+import java.math.{BigDecimal, RoundingMode}
 
-import org.apache.hadoop.hive.ql.exec.UDF;
+import org.apache.spark.sql.types.Decimal
 
-public class Truncate extends UDF {
+object TruncateImpl {
 
-    public Integer evaluate(Integer b0, Integer b1) {
-        if (b0 == null || b1 == null) {
-            return b0;
-        }
-        return evaluate(BigDecimal.valueOf(b0), b1).intValue();
-    }
+  @inline
+  def evaluate(value: Long, scale: Int): Long = {
+    value
+  }
 
-    public Long evaluate(Long b0, Integer b1) {
-        if (b0 == null || b1 == null) {
-            return b0;
-        }
-        return evaluate(BigDecimal.valueOf(b0), b1).longValue();
-    }
+  @inline
+  def evaluate(value: Int, scale: Int): Int = {
+    value
+  }
 
-    public Double evaluate(Double b0, Integer b1) {
-        if (b0 == null || b1 == null) {
-            return b0;
-        }
-        return evaluate(BigDecimal.valueOf(b0), b1).doubleValue();
-    }
+  def evaluate(value: Double, scale: Int): Double = {
+    evaluate(BigDecimal.valueOf(value), scale).doubleValue()
+  }
 
-    public BigDecimal evaluate(BigDecimal b0, Integer b1) {
-        if (b0 == null || b1 == null) {
-            return b0;
-        }
-        return b0.movePointRight(b1).setScale(0, RoundingMode.DOWN).movePointLeft(b1);
-    }
+  def evaluate(value: Decimal, scale: Int): Decimal = {
+    Decimal.apply(evaluate(value.toJavaBigDecimal, scale))
+  }
+
+  private def evaluate(value: BigDecimal, scale: Int): BigDecimal = {
+    value.setScale(scale, RoundingMode.DOWN)
+  }
 }

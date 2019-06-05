@@ -27,7 +27,14 @@ package org.apache.spark.sql.catalyst.util
 import org.apache.calcite.avatica.util.TimeUnitRange
 
 object KapDateTimeUtils {
-  val MILLIS_PER_DAY = 86400000L
+  val MICROS_PER_MILLIS: Long = 1000L
+  val MILLIS_PER_SECOND: Long = 1000L
+  val MILLIS_PER_MINUTE: Long = MILLIS_PER_SECOND * 60L
+  val MILLIS_PER_HOUR: Long = MILLIS_PER_MINUTE * 60L
+  val MILLIS_PER_DAY: Long = MILLIS_PER_HOUR * 24L
+  val DAYS_PER_WEEK: Long = 7L
+  val MONTHS_PER_QUARTER: Long = 3L
+  val QUARTERS_PER_YEAR: Long = 4L
 
   def addMonths(timestamp: Long, m: Int): Long = {
     var ms = timestamp * 1000
@@ -56,6 +63,18 @@ object KapDateTimeUtils {
 
     // will never reach here
     -1
+  }
+
+  def subtractMonths(t0: Long, t1: Long): Int = {
+    val millis0 = floorMod(t0, MILLIS_PER_DAY)
+    val d0 = DateTimeUtils.millisToDays(t0)
+    val millis1 = floorMod(t1, MILLIS_PER_DAY)
+    val d1 = DateTimeUtils.millisToDays(t1)
+    var x = dateSubtractMonths(d0, d1)
+    val d2 = dateAddMonths(d1, x)
+    if (x > 0 && d2 == d0 && millis0 < millis1) x -= 1
+    if (x < 0 && d2 == d0 && millis0 > millis1) x += 1
+    x
   }
 
   def dayOfWeek(date: Int): Int = {
