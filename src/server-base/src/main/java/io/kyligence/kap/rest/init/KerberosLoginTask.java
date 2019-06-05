@@ -50,24 +50,91 @@ public class KerberosLoginTask extends InitialTask implements IKeep {
 
     private static Configuration KRB_CONF = new Configuration();
 
+    private KapConfig kapConfig;
+
     @Override
     public void execute() {
-        KapConfig kapConfig = KapConfig.getInstanceFromEnv();
-        try {
-            if (kapConfig.isKerberosEnabled()) {
-                Preconditions.checkState(KerberosLoginUtil.checkKeyTabIsExist(kapConfig.getKerberosKeytabPath()),
-                        "The key tab is not exist : " + kapConfig.getKerberosKeytabPath());
-                Preconditions.checkState(KerberosLoginUtil.checkKeyTabIsValid(kapConfig.getKerberosKeytabPath()),
-                        "The key tab is invalid : " + kapConfig.getKerberosKeytabPath());
+        kapConfig = KapConfig.getInstanceFromEnv();
+
+        if (kapConfig.isKerberosEnabled()) {
+            Preconditions.checkState(KerberosLoginUtil.checkKeyTabIsExist(kapConfig.getKerberosKeytabPath()),
+                    "The key tab is not exist : " + kapConfig.getKerberosKeytabPath());
+            Preconditions.checkState(KerberosLoginUtil.checkKeyTabIsValid(kapConfig.getKerberosKeytabPath()),
+                    "The key tab is invalid : " + kapConfig.getKerberosKeytabPath());
+            try {
                 reInitTGT();
+            } catch (IOException e) {
+                throw new RuntimeException(e);
             }
-        } catch (IOException e) {
-            logger.error("Kerberos login faild.", e);
         }
     }
 
-    private static void loginFIKerberos() throws IOException {
-        KapConfig kapConfig = KapConfig.getInstanceFromEnv();
+    private void reInitTGT() throws IOException {
+
+        // init kerberos ticket first
+        renewKerberosTicketQuietly();
+
+        Thread t = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    while (true) {
+                        sleepQuietly(kapConfig.getKerberosTicketRefreshInterval() * 60 * 1000);
+                        renewKerberosTicketQuietly();
+                    }
+                } catch (Exception e) {
+                    logger.error("unexpected exception", e);
+                }
+            }
+        });
+        t.setDaemon(true);
+        t.setName("TGT Reinit for " + UserGroupInformation.getLoginUser().getUserName());
+        t.start();
+
+        Thread kerberosMonitor = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    while (true) {
+                        lookKerberosTicketQuietly();
+                        sleepQuietly(kapConfig.getKerberosMonitorInterval() * 60 * 1000);
+                    }
+                } catch (Exception e) {
+                    logger.error("unexpected exception", e);
+                }
+            }
+        });
+        kerberosMonitor.setDaemon(true);
+        kerberosMonitor.setName("Kerberos monitor for " + UserGroupInformation.getLoginUser().getUserName());
+        kerberosMonitor.start();
+
+    }
+
+    private void sleepQuietly(long millis) {
+        try {
+            Thread.sleep(millis);
+        } catch (InterruptedException e) {
+            logger.warn("sleep interrupted", e);
+        }
+    }
+
+    private void renewKerberosTicketQuietly() {
+        try {
+            logger.info("kinit -kt " + kapConfig.getKerberosKeytabPath() + " " + kapConfig.getKerberosPrincipal());
+            Shell.execCommand("kinit", "-kt", kapConfig.getKerberosKeytabPath(), kapConfig.getKerberosPrincipal());
+            logger.info("Login " + kapConfig.getKerberosPrincipal() + " from keytab: "
+                    + kapConfig.getKerberosKeytabPath() + ".");
+            if (kapConfig.getKerberosPlatform().equals("Standard")) {
+                loginStandardKerberos();
+            } else if (kapConfig.getKerberosPlatform().equals("FI")) {
+                loginFIKerberos();
+            }
+        } catch (Exception e) {
+            logger.error("Error renew kerberos ticket", e);
+        }
+    }
+
+    private void loginFIKerberos() throws IOException {
         String zkServerPrincipal = kapConfig.getKerberosZKPrincipal();
 
         System.setProperty("zookeeper.sasl.client", "true");
@@ -82,85 +149,33 @@ public class KerberosLoginTask extends InitialTask implements IKeep {
                 kapConfig.getKerberosKrb5ConfPath(), KRB_CONF);
     }
 
-    private static void loginStandardKerberos() throws IOException {
-        KapConfig kapConfig = KapConfig.getInstanceFromEnv();
-
+    private void loginStandardKerberos() throws IOException {
         UserGroupInformation.loginUserFromKeytab(kapConfig.getKerberosPrincipal(), kapConfig.getKerberosKeytabPath());
         logger.info("Login kerberos success.");
     }
 
-    private void reInitTGT() throws IOException {
-        final KapConfig kapConfig = KapConfig.getInstanceFromEnv();
-
-        Thread t = new Thread(new Runnable() {
-
-            @Override
-            public void run() {
-                while (true) {
-                    try {
-                        logger.info("kinit -kt " + kapConfig.getKerberosKeytabPath() + " "
-                                + kapConfig.getKerberosPrincipal());
-                        Shell.execCommand("kinit", "-kt", kapConfig.getKerberosKeytabPath(),
-                                kapConfig.getKerberosPrincipal());
-                        logger.info("Login " + kapConfig.getKerberosPrincipal() + " from keytab: "
-                                + kapConfig.getKerberosKeytabPath() + ".");
-                        if (kapConfig.getKerberosPlatform().equals("Standard")) {
-                            loginStandardKerberos();
-                        } else if (kapConfig.getKerberosPlatform().equals("FI")) {
-                            loginFIKerberos();
-                        }
-                        Long krbRefreshTgtTime = kapConfig.getKerberosTicketRefreshInterval();
-                        Thread.sleep(krbRefreshTgtTime * 60 * 1000);
-                    } catch (InterruptedException ie) {
-                        logger.warn("Terminating renewal thread");
-                        return;
-                    } catch (IOException ie) {
-                        logger.warn("Exception encountered while running the"
-                                + " renewal command. Aborting renew thread. " + ie);
-                        return;
-                    }
+    private void lookKerberosTicketQuietly() {
+        try {
+            UserGroupInformation currentUser = UserGroupInformation.getCurrentUser();
+            logger.info("current user :" + currentUser);
+            Credentials credentials = currentUser.getCredentials();
+            logger.info("Current user has " + credentials.getAllTokens().size() + " token.");
+            Collection<Token<? extends TokenIdentifier>> allTokens = credentials.getAllTokens();
+            for (Token token : allTokens) {
+                TokenIdentifier tokenIdentifier = token.decodeIdentifier();
+                if (tokenIdentifier instanceof DelegationTokenIdentifier) {
+                    logger.info(((DelegationTokenIdentifier) tokenIdentifier).toString());
+                } else {
+                    logger.info(tokenIdentifier.toString());
                 }
             }
-        });
-        t.setDaemon(true);
-        t.setName("TGT Reinit for " + UserGroupInformation.getLoginUser().getUserName());
-        t.start();
-
-        Thread kerberosMonitor = new Thread(new Runnable() {
-            Long krbMonitorTgtTime = kapConfig.getKerberosMonitorInterval();
-            @Override
-            public void run() {
-                while (true) {
-                    try {
-                        UserGroupInformation currentUser = UserGroupInformation.getCurrentUser();
-                        logger.info("current user :" + currentUser);
-                        Credentials credentials = currentUser.getCredentials();
-                        logger.info("Current use has " + credentials.getAllTokens().size() + " token.");
-                        Collection<Token<? extends TokenIdentifier>> allTokens = credentials.getAllTokens();
-                        for (Token token : allTokens) {
-                            TokenIdentifier tokenIdentifier = token.decodeIdentifier();
-                            if (tokenIdentifier instanceof DelegationTokenIdentifier) {
-                                logger.info(((DelegationTokenIdentifier) tokenIdentifier).toString());
-                            } else {
-                                logger.info(tokenIdentifier.toString());
-                            }
-                        }
-                        Thread.sleep(krbMonitorTgtTime * 60 * 1000);
-                    } catch (Throwable th) {
-                        logger.warn("Error for show delegation :", th);
-                        try {
-                            Thread.sleep(krbMonitorTgtTime * 60 * 1000);
-                        } catch (InterruptedException e) {
-                            logger.warn("Sleep interrupted");
-                        }
-                    }
-                }
+            if (!allTokens.isEmpty()) {
+                logger.info("Current user should have 0 token but there are non-zero. ReLogin current user: "
+                        + currentUser.getUserName());
+                renewKerberosTicketQuietly();
             }
-        });
-        kerberosMonitor.setDaemon(true);
-        kerberosMonitor
-                .setName("Kerberos monitor Thread for user :" + UserGroupInformation.getLoginUser().getUserName());
-        kerberosMonitor.start();
-
+        } catch (Exception e) {
+            logger.error("Error showing kerberos tokens", e);
+        }
     }
 }
