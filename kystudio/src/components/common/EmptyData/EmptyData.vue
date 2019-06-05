@@ -1,7 +1,7 @@
 <template>
   <div class="empty-data">
     <div class="center">
-      <img :src="emptyImageUrl" />
+      <img :src="emptyImageUrl" style="height: 120px;" />
     </div>
     <div class="center">
       <span>{{emptyContent}}</span>
@@ -38,17 +38,20 @@ export default class EmptyData extends Vue {
 </script>
 
 <style lang="less">
+@import '../../../assets/styles/variables.less';
 .empty-data {
-  margin: 220px 0;
-  // position: absolute;
-  // top: 50%;
-  // left: 50%;
-  // transform: translate(-50%, -50%);
-  // .center {
-  //   text-align: center;
-  // }
-  // .center:first-child {
-  //   margin-bottom: 20px;
-  // }
+  // margin: 220px 0;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: @text-disabled-color;
+  font-size: 16px;
+  .center {
+    text-align: center;
+  }
+  .center:first-child {
+    margin-bottom: 20px;
+  }
 }
 </style>

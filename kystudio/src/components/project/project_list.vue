@@ -2,8 +2,8 @@
   <div class="paddingbox" id="project-list">
  <!-- <el-button type="primary" plain class="ksd-mb-20 ksd-mt-10" v-if="isAdmin && (projectList && projectList.length)" @click="addProject">+{{$t('kylinLang.common.project')}}</el-button> -->
  <div class="ksd-title-label ksd-mt-20">{{$t('projectsList')}}</div>
-  <div v-if="showSearchResult">
-    <el-button type="primary" plain size="medium" class="ksd-mb-10 ksd-mt-10" icon="el-icon-ksd-add_2" v-if="isAdmin && showSearchResult" @click="newProject">{{$t('kylinLang.common.project')}}</el-button>
+  <div>
+    <el-button type="primary" plain size="medium" class="ksd-mb-10 ksd-mt-10" icon="el-icon-ksd-add_2" v-if="isAdmin" @click="newProject">{{$t('kylinLang.common.project')}}</el-button>
     <div style="width:200px;" class="ksd-fright ksd-mtb-10">
       <el-input class="show-search-btn"
         size="medium"
@@ -99,11 +99,6 @@
         v-if="projectsTotal"
         @handleCurrentChange="handleCurrentChange">
       </kap-pager>
-    </div>
-    <div v-if="!showSearchResult" class="nodata">
-      <div class="ksd-mb-10"><img src="../../assets/img/default_project.png"></div>
-      <div class="ksd-mb-20">{{$t('noProject')}}</div>
-      <el-button type="primary" size="medium" class="ksd-mb-20 ksd-mt-20" v-if="isAdmin" icon="el-icon-ksd-add_2" @click="newProject">{{$t('kylinLang.common.project')}}</el-button>
     </div>
  </div>
 </template>
@@ -234,9 +229,6 @@ export default {
     'project_config': projectConfig
   },
   computed: {
-    showSearchResult () {
-      return this.filterData.project || this.$store.state.project.projectList.length
-    },
     projectList () {
       return this.$store.state.project.projectList
     },

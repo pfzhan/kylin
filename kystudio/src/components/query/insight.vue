@@ -39,12 +39,12 @@
             :close-on-press-escape="false"
             :close-on-click-modal="false"
             :visible.sync="savedQueryListVisible">
-            <div class="list_block" v-scroll>
-              <div v-if="!savedSize" class="nodata">
-                <div class="ksd-mb-20"><img src="../../assets/img/save_query.png" style="height:80px;"></div>
-                <span>{{$t('kylinLang.common.noData')}}</span>
-              </div>
-              <div class="saved_query_content" v-else>
+            <div v-if="!savedSize" class="ky-nodata-small">
+              <div><img src="../../assets/img/save_query.png"></div>
+              <span>{{$t('kylinLang.common.noData')}}</span>
+            </div>
+            <div class="list_block" v-scroll v-else>
+              <div class="saved_query_content">
                 <div class="form_block" v-for="(savequery, index) in savedList" :key="savequery.name" >
                   <el-checkbox v-model="checkedQueryList" :label="index" class="query_check">
                     <el-form class="narrowForm" label-position="left" label-width="105px">
@@ -327,9 +327,11 @@ export default class NewQuery extends Vue {
     .saved_query_dialog {
       .el-dialog__body {
         padding: 0;
+        height: 503px;
+        position: relative;
         .list_block {
           width: 100%;
-          height: 480px;
+          height: 503px;
           .saved_query_content {
             margin: 20px;
           }
@@ -344,10 +346,14 @@ export default class NewQuery extends Vue {
         line-height: 21px;
       }
     }
-    .nodata {
-      text-align: center;
-      margin: 80px 0;
-    }
+    // .nodata {
+    //   text-align: center;
+    //   color: @text-disabled-color;
+    //   position: absolute;
+    //   top: 50%;
+    //   left: 50%;
+    //   transform: translate(-50%, -50%);
+    // }
     .form_block {
       .query_check {
         display: flex;

@@ -201,7 +201,7 @@
         </el-tooltip>
       </span>
       <el-row :gutter="15">
-        <el-col :span="16" v-if="showSearchResult">
+        <el-col :span="16">
           <div class="clearfix ksd-mb-10">
             <span class="ksd-title-label ksd-fs-14 query-count">{{$t('blackList')}}
               <span v-if="blackSqlData.size">({{blackSqlData.size}})</span>
@@ -231,7 +231,7 @@
           </el-table>
           <kap-pager ref="sqlListsPager" class="ksd-center ksd-mt-10" :totalSize="blackSqlData.size" layout="total, prev, pager, next, jumper" v-on:handleCurrentChange='blackSqlDatasPageChange' :perPageSize="10" v-if="blackSqlData.size"></kap-pager>
         </el-col>
-        <el-col :span="8" v-if="showSearchResult">
+        <el-col :span="8">
           <div class="ky-list-title ksd-mt-12 ksd-fs-14">{{$t('sqlBox')}}</div>
           <div class="query_panel_box ksd-mt-10" v-loading="sqlLoading" element-loading-spinner="el-icon-loading">
             <kap-editor ref="blackInputBox" :height="inputHeight" :readOnly="true" lang="sql" theme="chrome" v-model="blackSql">
@@ -239,10 +239,6 @@
           </div>
         </el-col>
       </el-row>
-      <div class="ksd-null-pic-text" v-if="!showSearchResult">
-        <img  src="../../../assets/img/no_data.png" />
-        <p>{{$t('kylinLang.common.noData')}}</p>
-      </div>
       <span slot="footer" class="dialog-footer">
         <el-button size="medium" @click="blackListVisible = false">{{$t('kylinLang.common.cancel')}}</el-button>
       </span>
@@ -487,7 +483,7 @@ export default class FavoriteQuery extends Vue {
   activeSqlObj = null
   whiteSqlData = null
   sqlFormatterObj = {}
-  blackSqlData = null
+  blackSqlData = {size: 0, sqls: []}
   blackSql = ''
   whiteSql = ''
   isReadOnly = true
@@ -517,7 +513,6 @@ export default class FavoriteQuery extends Vue {
   updateLoading = false
   ST = null
   stCycle = null
-  showSearchResult = false
   isPausePolling = false
   rulesObj = {
     freqEnable: true,
@@ -803,17 +798,13 @@ export default class FavoriteQuery extends Vue {
       sql: this.blackSqlFilter
     })
     const data = await handleSuccessAsync(res)
-    this.blackSqlData = data
-    if (this.blackSqlFilter || this.blackSqlData.size) {
-      this.showSearchResult = true
-    } else {
-      this.showSearchResult = false
-    }
-    if (this.blackSqlData.size > 0) {
+    if (data && data.size > 0) {
+      this.blackSqlData = data
       this.$nextTick(() => {
         this.viewBlackSql(this.blackSqlData.sqls[0])
       })
     } else {
+      this.blackSqlData = {size: 0, sqls: []}
       this.blackSql = ''
       this.activeSqlObj = null
     }
