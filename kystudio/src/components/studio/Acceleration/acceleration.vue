@@ -1173,7 +1173,9 @@ export default class FavoriteQuery extends Vue {
       if (this.whiteSqlData.data[key].id === id) {
         this.whiteSqlData.data.splice(key, 1)
         this.whiteSqlData.size--
-        this.whiteSqlData.capable_sql_num--
+        if (this.whiteSqlData.data[key].capable) {
+          this.whiteSqlData.capable_sql_num--
+        }
         this.$nextTick(() => {
           this.whiteSqlDatasPageChange(this.whiteCurrentPage)
         })
