@@ -31,8 +31,9 @@ import org.apache.spark.sql.{DataFrame, Row, SparkSession}
 object SparderQueryTest {
 
   def checkAnswer(sparkDF: DataFrame,
-                  kylinAnswer: DataFrame): String = {
-    checkAnswer(castDataType(sparkDF, kylinAnswer), kylinAnswer.collect()) match {
+                  kylinAnswer: DataFrame,
+                  checkOrder: Boolean = false): String = {
+    checkAnswerBySeq(castDataType(sparkDF, kylinAnswer), kylinAnswer.collect(), checkOrder) match {
       case Some(errorMessage) => errorMessage
       case None => null
     }
@@ -48,10 +49,10 @@ object SparderQueryTest {
     * @param kylinAnswer the expected result in a [[Seq]] of [[org.apache.spark.sql.Row]]s.
     * @param checkToRDD  whether to verify deserialization to an RDD. This runs the query twice.
     */
-  def checkAnswer(sparkDF: DataFrame,
+  def checkAnswerBySeq(sparkDF: DataFrame,
                   kylinAnswer: Seq[Row],
+                  checkOrder: Boolean = false,
                   checkToRDD: Boolean = true): Option[String] = {
-    val isSorted = false
     if (checkToRDD) {
       sparkDF.rdd.count() // Also attempt to deserialize as an RDD [SPARK-15791]
     }
@@ -69,7 +70,7 @@ object SparderQueryTest {
         return Some(errorMessage)
     }
 
-    sameRows(sparkAnswer, kylinAnswer, isSorted).map { results =>
+    sameRows(sparkAnswer, kylinAnswer, checkOrder).map { results =>
       s"""
          |Results do not match for query:
          |Timezone: ${TimeZone.getDefault}
@@ -162,7 +163,6 @@ object SparderQueryTest {
     val rows = sparkSession.read
       .format("org.apache.spark.sql.execution.datasources.csv.CSVFileFormat")
       .load(path)
-      .collect()
     val maybeString = checkAnswer(dataFrame, rows)
 
   }

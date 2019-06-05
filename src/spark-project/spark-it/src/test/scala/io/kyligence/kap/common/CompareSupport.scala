@@ -32,11 +32,13 @@ trait CompareSupport extends QuerySupport {
   def runAndCompare(querySql: String,
                     sparkSql: String,
                     project: String,
+                    checkOrder: Boolean,
                     errorMsg: String): String = {
     try {
       val maybeString = SparderQueryTest.checkAnswer(
         sql(sparkSql),
-        singleQuery(querySql, project))
+        singleQuery(querySql, project),
+        checkOrder)
       if (maybeString != null) {
         val queryErrorMsg = errorMsg + maybeString
         if ("true".equals(System.getProperty("Failfast"))) {

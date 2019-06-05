@@ -71,7 +71,7 @@ public class NAutoBuildAndQueryTest extends NAutoTestBase {
                 new TestScenario(CompareLevel.SAME, "sql_magine_left"), //
                 new TestScenario(CompareLevel.SAME, "sql_magine_window"), //
                 new TestScenario(CompareLevel.SAME, "sql_multi_model"), //
-                new TestScenario(CompareLevel.SAME, "sql_orderby"), //
+                new TestScenario(CompareLevel.SAME_ORDER, "sql_orderby"), //
                 new TestScenario(CompareLevel.SAME, "sql_probe"), //
                 new TestScenario(CompareLevel.SAME, "sql_raw"), //
                 new TestScenario(CompareLevel.SAME, "sql_rawtable"), //

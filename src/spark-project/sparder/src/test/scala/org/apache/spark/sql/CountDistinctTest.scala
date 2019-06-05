@@ -121,7 +121,7 @@ class CountDistinctTest extends SparderBaseFunSuite with SharedSparkSession {
         }
     }
 
-    SparderQueryTest.checkAnswer(analyzedDF, expectedAnswer) match {
+    SparderQueryTest.checkAnswerBySeq(analyzedDF, expectedAnswer) match {
       case Some(errorMessage) => fail(errorMessage)
       case None               =>
     }

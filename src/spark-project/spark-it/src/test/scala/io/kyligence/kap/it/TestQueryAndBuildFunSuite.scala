@@ -49,7 +49,7 @@ class TestQueryAndBuildFunSuite
 
   override val DEFAULT_PROJECT = "default"
 
-  case class FloderInfo(floder: String, filter: List[String] = List())
+  case class FloderInfo(floder: String, filter: List[String] = List(), checkOrder: Boolean = false)
 
   val defaultTimeZone: TimeZone = TimeZone.getDefault
 
@@ -66,7 +66,7 @@ class TestQueryAndBuildFunSuite
     FloderInfo("sql_subquery", List("query19.sql", "query25.sql")),
     FloderInfo("sql_distinct_dim"),
     //    "sql_timestamp", no exist dir
-    FloderInfo("sql_orderby"),
+    FloderInfo("sql_orderby", List(), checkOrder = true),
     FloderInfo("sql_snowflake"),
     FloderInfo("sql_topn"),
     FloderInfo("sql_join"),
@@ -199,7 +199,7 @@ class TestQueryAndBuildFunSuite
               val afterChangeJoin = changeJoinType(query, joinType)
 
               Future[String] {
-                runAndCompare(afterChangeJoin, cleanSql(afterChangeJoin), DEFAULT_PROJECT,
+                runAndCompare(afterChangeJoin, cleanSql(afterChangeJoin), DEFAULT_PROJECT, floderInfo.checkOrder,
                   s"$joinType\n$fileName\n $query\n")
               }
             }
