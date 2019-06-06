@@ -15,7 +15,7 @@
           <span v-if="scope.row.config_last_modified>0">{{transToGmtTime(scope.row.config_last_modified)}}</span>
         </template>
       </el-table-column>
-      <el-table-column prop="config_last_modifier" show-overflow-tooltip width="100" :label="$t('modifiedUser')"></el-table-column>
+      <el-table-column prop="config_last_modifier" show-overflow-tooltip width="105" :label="$t('modifiedUser')"></el-table-column>
       <el-table-column min-width="400px" :label="$t('modelSetting')">
         <template slot-scope="scope">
           <div v-if="scope.row.auto_merge_time_ranges">
