@@ -2,6 +2,8 @@
   <div class="model-edit-outer" @drop='dropTable($event)' @dragover='allowDrop($event)' v-drag="{sizeChangeCb:dragBox}" @dragleave="dragLeave">
     <div class="model-edit">
       <el-button v-guide.modelEditAction v-visible @click="guideActions"></el-button>
+
+      <kap-empty-data :content="$t('noTableTip')" v-if="!modelRender.tables.length"></kap-empty-data>
       <!-- table box -->
       <div v-guide="t.guid" class="table-box" @click="activeTablePanel(t)" v-visible="!currentEditTable || currentEditTable.guid !== t.guid" :id="t.guid" v-event-stop :class="{isLookup:t.kind==='LOOKUP'}" v-for="t in modelRender && modelRender.tables || []" :key="t.guid" :style="tableBoxStyle(t.drawSize)">
         <div class="table-title" :data-zoom="modelRender.zoom"  v-drag:change.left.top="t.drawSize">
@@ -146,7 +148,7 @@
               </div>
             </div>
             <div class="panel-main-content" @dragover='($event) => {allowDropColumnToPanle($event)}' @drop='(e) => {dropColumnToPanel(e, "dimension")}' v-scroll>
-              <ul class="dimension-list">
+              <ul class="dimension-list" v-if="allDimension.length">
                 <li v-for="(d, i) in allDimension" :key="d.name" :class="{'is-checked':dimensionSelectedList.indexOf(d.name)>-1}">
                   <span class="ksd-nobr-text">
                     <el-checkbox v-model="dimensionSelectedList" v-if="isShowCheckbox" :label="d.name">{{d.name}}</el-checkbox>
@@ -160,6 +162,7 @@
                 </li>
               </ul>
             </div>
+            <kap-nodata v-if="!allDimension.length"></kap-nodata>
             <!-- 拖动操纵 -->
             <DragBar :dragData="panelAppear.dimension"/>
             <!-- 拖动操纵 -->
@@ -220,7 +223,7 @@
               </div>
             </div>
             <div class="panel-main-content"  @dragover='($event) => {allowDropColumnToPanle($event)}' @drop='(e) => {dropColumnToPanel(e, "measure")}' v-scroll>
-              <ul class="measure-list">
+              <ul class="measure-list" v-if="allMeasure.length">
                 <li v-for="m in allMeasure" :key="m.name" :class="{'is-checked':measureSelectedList.indexOf(m.name)>-1}">
                   <span class="ksd-nobr-text">
                     <el-checkbox v-model="measureSelectedList" v-if="isShowMeaCheckbox" :disabled="m.name=='COUNT_ALL'" :label="m.name">{{m.name}}</el-checkbox>
@@ -234,6 +237,7 @@
                 </li>
               </ul>
             </div>
+            <kap-nodata v-if="!allMeasure.length"></kap-nodata>
             <!-- 拖动操纵 -->
             <DragBar :dragData="panelAppear.measure"/>
             <!-- 拖动操纵 -->
@@ -290,7 +294,7 @@
               </div>
             </div>
             <div class="panel-main-content" v-scroll>
-              <ul class="cc-list">
+              <ul class="cc-list" v-if="modelRender.computed_columns.length">
                 <li v-for="m in modelRender.computed_columns" :key="m.name" :class="{'is-checked':ccSelectedList.indexOf(m.columnName)>-1}">
                   <span class="ksd-nobr-text">
                     <el-checkbox v-model="ccSelectedList" v-if="isShowCCCheckbox" :label="m.columnName">{{m.columnName}}</el-checkbox>
@@ -304,6 +308,7 @@
                 </li>
               </ul>
             </div>
+            <kap-nodata v-if="!modelRender.computed_columns.length"></kap-nodata>
             <!-- 拖动操纵 -->
             <DragBar :dragData="panelAppear.cc"/>
             <!-- 拖动操纵 -->
@@ -1862,6 +1867,9 @@ export default class ModelEdit extends Vue {
         .body{
           width:100%;
           padding:10px;
+        }
+        .empty-data {
+          top:120%;
         }
       }
     }

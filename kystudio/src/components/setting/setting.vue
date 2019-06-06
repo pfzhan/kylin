@@ -16,8 +16,8 @@
         </el-tab-pane>
       </el-tabs>
     </section>
-    <EmptyData v-else>
-    </EmptyData>
+    <kap-empty-data v-else>
+    </kap-empty-data>
   </div>
 </template>
 
@@ -29,7 +29,6 @@ import { Component } from 'vue-property-decorator'
 import locales from './locales'
 import { viewTypes } from './handler'
 import { handleError, handleSuccessAsync } from '../../util'
-import EmptyData from '../common/EmptyData/EmptyData.vue'
 import SettingBasic from './SettingBasic/SettingBasic.vue'
 import SettingAdvanced from './SettingAdvanced/SettingAdvanced.vue'
 import SettingModel from './SettingModel/SettingModel.vue'
@@ -47,7 +46,6 @@ import SettingModel from './SettingModel/SettingModel.vue'
     })
   },
   components: {
-    EmptyData,
     SettingBasic,
     SettingAdvanced,
     SettingModel

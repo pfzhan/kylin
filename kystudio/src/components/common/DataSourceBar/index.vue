@@ -29,12 +29,12 @@
         :is-resizable="isResizable"
         :on-filter="handleFilter"
         :filter-white-list-types="['column']"
-        :empty-text="$t('emptyText')"
         @click="handleClick"
         @drag="handleDrag"
         @load-more="handleLoadMore">
       </TreeList>
     </section>
+    <kap-empty-data v-if="databaseArray.length <= 0" size="small"></kap-empty-data>
     <!-- <el-dialog
       class="datasource-result-modal"
       :title="$t('kylinLang.common.notice')"

@@ -51,7 +51,7 @@
         </template>
         <!-- Table空页 -->
         <div class="empty-page" v-if="!selectedTable">
-          <EmptyData />
+          <kap-empty-data />
         </div>
         <transition name="slide">
           <SourceManagement v-if="isShowSourcePage" :project="currentProjectData" @fresh-tables="handleFreshTable"></SourceManagement>
@@ -89,13 +89,11 @@ import TableColumns from './TableColumns/TableColumns.vue'
 import TableSamples from './TableSamples/TableSamples.vue'
 import SourceManagement from './SourceManagement/SourceManagement.vue'
 import ReloadTable from './TableReload/reload.vue'
-import EmptyData from '../../common/EmptyData/EmptyData.vue'
 import { handleSuccessAsync, handleError } from '../../../util'
 import { getFormattedTable } from '../../../util/UtilTable'
 
 @Component({
   components: {
-    EmptyData,
     DataSourceBar,
     TableDataLoad,
     TableColumns,

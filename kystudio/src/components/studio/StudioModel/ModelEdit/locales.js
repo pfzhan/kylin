@@ -57,7 +57,8 @@ export default {
     editMeasure: 'Edit measure',
     searchTable: 'Search table',
     searchInputPlaceHolder: 'Search table, dimension, measure, column name',
-    delConnTip: 'Are you sure to delete this connection?'
+    delConnTip: 'Are you sure to delete this connection?',
+    noTableTip: '<p>Add Table: drag the table from the left source tree and drop it to the central zone.</p><p>Add Join: drag the column from one table and drop it on another table.</p>'
   },
   'zh-cn': {
     'adddimension': '添加维度',
@@ -117,6 +118,7 @@ export default {
     editMeasure: '编辑度量',
     searchTable: '搜索表',
     searchInputPlaceHolder: '搜索表名、维度、度量、列名',
-    delConnTip: '确认删除该连接关系吗？'
+    delConnTip: '确认删除该连接关系吗？',
+    noTableTip: '<p>添加表：从左侧数据源模块将表拖入中间区域。</p><p>建立关联：从一张表拖拽列到另一张表上。</p>'
   }
 }

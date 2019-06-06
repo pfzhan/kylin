@@ -1,10 +1,10 @@
 <template>
-  <div class="empty-data">
+  <div class="empty-data" :class="emptyClass">
     <div class="center">
-      <img :src="emptyImageUrl" style="height: 120px;" />
+      <img :src="emptyImageUrl" :class="{'large-icon': size === 'large'}"/>
     </div>
     <div class="center">
-      <span>{{emptyContent}}</span>
+      <div v-html="emptyContent"></div>
     </div>
   </div>
 </template>
@@ -23,6 +23,9 @@ import defaultImage from '../../../assets/img/no_data.png'
     },
     content: {
       type: String
+    },
+    size: {
+      type: String
     }
   },
   locales
@@ -34,19 +37,32 @@ export default class EmptyData extends Vue {
   get emptyContent () {
     return this.content || this.$t('content')
   }
+  get emptyClass () {
+    return this.size ? 'empty-data-' + this.size : 'empty-data-normal'
+  }
 }
 </script>
 
 <style lang="less">
 @import '../../../assets/styles/variables.less';
 .empty-data {
-  // margin: 220px 0;
+  &.empty-data-normal {
+    img {
+      height: 120px;
+    }
+    font-size: 16px;
+  }
+  &.empty-data-small {
+    img {
+      height: 60px;
+    }
+    font-size: 14px;
+  }
   position: absolute;
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
   color: @text-disabled-color;
-  font-size: 16px;
   .center {
     text-align: center;
   }

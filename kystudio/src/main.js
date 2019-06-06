@@ -22,6 +22,7 @@ import pager from 'components/common/pager'// 弃用
 import kapPager from 'components/common/kap_pager'
 import slider from 'components/common/slider'
 import nodata from 'components/common/nodata'
+import emptyData from 'components/common/EmptyData/EmptyData.vue'
 import progressbar from 'components/common/progress'
 import commonPopover from 'components/common/common_popover'
 import fakeProgress from 'components/common/fake_progress'
@@ -55,6 +56,7 @@ Vue.component('kap-filter-select', pagerSelect)
 Vue.component('kap-editor', kapEditor)
 Vue.component('kap-tab', tab)
 Vue.component('kap-loading', kapLoading)
+Vue.component('kap-empty-data', emptyData)
 import { getQueryString, cacheSessionStorage, cacheLocalStorage } from './util'
 // Vue.component('draggable', draggable)
 // Vue.component('introJs', introJs)

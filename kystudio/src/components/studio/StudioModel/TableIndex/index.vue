@@ -1,5 +1,6 @@
 <template>
    <div class="tableIndex-box">
+     <kap-empty-data v-if="tableIndexBaseList.length === 0" size="small"></kap-empty-data>
      <div class="left-part">
       <div class="ksd-mb-20">
         <el-button type="primary" size="small" icon="el-icon-ksd-add_2" v-visible="!isAutoProject" @click="editTableIndex(true)">{{$t('tableIndex')}}</el-button>
@@ -7,7 +8,6 @@
         <!-- <el-button icon="el-icon-ksd-table_delete">Delete</el-button> -->
         <el-input style="width:200px" size="small" v-model="tableIndexFilter" :prefix-icon="searchLoading? 'el-icon-loading':'el-icon-search'" :placeholder="$t('searchTip')" class="ksd-fright ksd-mr-15"></el-input>
       </div>
-      <kap-nodata v-if="tableIndexBaseList.length === 0" class="ksd-mt-40"></kap-nodata>
       <el-steps direction="vertical">
         <template v-for="(tableIndex, key) in tableIndexGroup">
           <el-step :title="$t(key) + '(' + tableIndex.length + ')'" status="finish" v-if="tableIndex.length"  :key="key">
@@ -312,16 +312,21 @@ export default class TableIndex extends Vue {
     padding-right:20px!important;
     padding-left:20px!important;
   }
+  @right-width:489px;
   position: relative;
+  .empty-data {
+    left: calc(~"50% - @{right-width}/2");
+  }
   .left-part {
     min-height:200px;
     float:left;
-    width:calc(~"100% - 489px");
+    width:calc(~"100% - @{right-width}");
+    position: relative;
     // padding-right:489px;
     // width:100%
    }
   .right-part {
-    width:489px;
+    width:@right-width;
     float: right;
     bottom:0;
     right:0;

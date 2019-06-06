@@ -26,8 +26,8 @@
         </el-table-column>
       </el-table>
     </div>
-    <EmptyData v-else>
-    </EmptyData>
+    <kap-empty-data v-else>
+    </kap-empty-data>
   </div>
 </template>
 
@@ -36,7 +36,6 @@ import Vue from 'vue'
 import { Component } from 'vue-property-decorator'
 
 import locales from './locales'
-import EmptyData from '../../../common/EmptyData/EmptyData.vue'
 
 @Component({
   props: {
@@ -44,10 +43,7 @@ import EmptyData from '../../../common/EmptyData/EmptyData.vue'
       type: Object
     }
   },
-  locales,
-  components: {
-    EmptyData
-  }
+  locales
 })
 export default class TableSamples extends Vue {
   filterText = ''

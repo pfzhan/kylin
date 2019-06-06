@@ -2,7 +2,7 @@
   <div class="mode-list" :class="{'full-cell': showFull}">
     <div class="ksd-title-label ksd-mt-20" v-if="!isAutoProject">{{$t('kylinLang.model.modelList')}}</div>
     <div class="ksd-title-label ksd-mt-20" v-else>{{$t('kylinLang.model.indexGroup')}}</div>
-    <div v-if="showSearchResult">
+    <div>
       <div  class="ksd-mtb-10 ksd-fright">
         <el-input :placeholder="$t('kylinLang.common.pleaseFilterByModelName')" style="width:200px" size="medium" :prefix-icon="searchLoading? 'el-icon-loading':'el-icon-search'" v-model="filterArgs.model"  @input="searchModels" class="show-search-btn" >
         </el-input>
@@ -88,8 +88,8 @@
           width="94"
           :label="$t('status')">
           <template slot-scope="scope">
-        <el-tag size="mini" :type="scope.row.status === 'OFFLINE' ? 'info' : scope.row.status === 'BROKEN'? 'danger' : 'success'">{{scope.row.status}}</el-tag>
-      </template>
+            <el-tag size="mini" :type="scope.row.status === 'OFFLINE' ? 'info' : scope.row.status === 'BROKEN'? 'danger' : 'success'">{{scope.row.status}}</el-tag>
+          </template>
         </el-table-column>
         <el-table-column
           v-if="!isAutoProject"
@@ -138,13 +138,13 @@
       <!-- 分页 -->
       <kap-pager class="ksd-center ksd-mtb-10" ref="pager"  :totalSize="modelsPagerRenderData.totalSize"  v-on:handleCurrentChange='pageCurrentChange'></kap-pager>
     </div>
-    <div class="ksd-null-pic-text" v-if="!showSearchResult">
+    <!-- <div class="ksd-null-pic-text" v-if="!showSearchResult">
       <img src="../../../../assets/img/no_model.png">
       <p v-if="!isAutoProject && (isAdmin || hasPermissionOfProject())">{{$t('noModel')}}</p>
       <div>
       <el-button v-guide.addModelBtn size="medium" type="primary" icon="el-icon-ksd-add_2"  v-if="!isAutoProject && (isAdmin || hasPermissionOfProject())" @click="showAddModelDialog">{{$t('kylinLang.common.model')}}</el-button>
        </div>
-    </div>
+    </div> -->
 
     <!-- 模型检查 -->
     <ModelCheckDataModal/>

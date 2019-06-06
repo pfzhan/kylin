@@ -34,6 +34,7 @@
                 <span>{{brokenCuboidCount}}</span>
               </div>
             </div>
+            <kap-empty-data v-if="cuboidCount === 0" size="small"></kap-empty-data>
             <PartitionChart
               :data="cuboids"
               :search-id="searchCuboidId"
