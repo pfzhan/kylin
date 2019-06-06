@@ -100,7 +100,7 @@ object WindowPlan extends Logging {
           .asScala
           .map { fieldIndex =>
             var column = columns.apply(fieldIndex.getFieldIndex)
-            if (!group.isRows && !fieldsNameToType(fieldIndex.getFieldIndex).equalsIgnoreCase("date")) {
+            if (!group.isRows && fieldsNameToType(fieldIndex.getFieldIndex).equalsIgnoreCase("timestamp")) {
               column = column.cast(LongType)
             }
             fieldIndex.direction match {
