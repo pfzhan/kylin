@@ -118,8 +118,8 @@ public class SchedulerEventBusTest extends NLocalFileMetadataTestCase {
 
         // request 10 permits per second
         for (int i = 0; i < 10; i++) {
-            Thread.sleep(100);
             favoriteQueryService.filterAndSortFavoriteQueries(PROJECT, "", false, null);
+            Thread.sleep(100);
         }
         Assert.assertEquals(10, favoriteSchedulerListener.getNotifiedCount());
 
@@ -164,7 +164,7 @@ public class SchedulerEventBusTest extends NLocalFileMetadataTestCase {
         Assert.assertTrue(events.size() == 0);
 
         // got event-finished message
-        Assert.assertTrue(eventSchedulerListener.isEventFinishedNotified());
+        await().atMost(1000, TimeUnit.MILLISECONDS).until(() -> eventSchedulerListener.isEventFinishedNotified());
     }
 
     @Test
