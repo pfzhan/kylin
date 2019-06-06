@@ -692,12 +692,12 @@ public abstract class AbstractExecutable implements Executable, Idempotent {
         return Sets.newHashSet();
     }
 
-    private static double computeTableAnalyzeMemory() {
+    private static int computeTableAnalyzeMemory() {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         return config.getSparkEngineDriverMemoryTableSampling();
     }
 
-    public double computeStepDriverMemory() {
+    public int computeStepDriverMemory() {
         if (getJobType() == JobTypeEnum.TABLE_SAMPLING) {
             return computeTableAnalyzeMemory();
         }
