@@ -1198,6 +1198,10 @@ abstract public class KylinConfigBase implements Serializable {
         return time;
     }
 
+    public String getQueryVIPRole() {
+        return String.valueOf(getOptional("kap.query.vip-role", ""));
+    }
+
     public boolean isPushDownEnabled() {
         return StringUtils.isNotEmpty(getPushDownRunnerClassName());
     }

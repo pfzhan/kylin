@@ -113,6 +113,58 @@ function fetchHadoopConf() {
     fi
 }
 
+function prepareFairScheduler() {
+    cat > ${KYLIN_HOME}/conf/fairscheduler.xml <<EOL
+<?xml version="1.0"?>
+
+<!--
+   Licensed to the Apache Software Foundation (ASF) under one or more
+   contributor license agreements.  See the NOTICE file distributed with
+   this work for additional information regarding copyright ownership.
+   The ASF licenses this file to You under the Apache License, Version 2.0
+   (the "License"); you may not use this file except in compliance with
+   the License.  You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+-->
+
+<allocations>
+  <pool name="query_pushdown">
+    <schedulingMode>FAIR</schedulingMode>
+    <weight>1</weight>
+    <minShare>1</minShare>
+  </pool>
+  <pool name="extreme_heavy_tasks">
+    <schedulingMode>FAIR</schedulingMode>
+    <weight>3</weight>
+    <minShare>1</minShare>
+  </pool>
+  <pool name="heavy_tasks">
+    <schedulingMode>FAIR</schedulingMode>
+    <weight>5</weight>
+    <minShare>1</minShare>
+  </pool>
+  <pool name="lightweight_tasks">
+    <schedulingMode>FAIR</schedulingMode>
+    <weight>10</weight>
+    <minShare>1</minShare>
+  </pool>
+  <pool name="vip_tasks">
+    <schedulingMode>FAIR</schedulingMode>
+    <weight>15</weight>
+    <minShare>1</minShare>
+  </pool>
+</allocations>
+
+EOL
+}
+
 function runTool() {
     exportEnv
 
@@ -188,6 +240,8 @@ then
     source ${KYLIN_HOME}/bin/replace-jars-under-spark.sh
     source ${KYLIN_HOME}/bin/load-zookeeper-config.sh
     fetchFIZkInfo
+    prepareFairScheduler
+
     port=`$KYLIN_HOME/bin/get-properties.sh server.port`
     used=`netstat -tpln | grep "\<$port\>" | awk '{print $7}' | sed "s/\// /g"`
     if [ ! -z "$used" ]; then

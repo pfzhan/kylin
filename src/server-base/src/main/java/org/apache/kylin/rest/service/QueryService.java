@@ -68,8 +68,6 @@ import java.util.stream.Collectors;
 
 import javax.annotation.PostConstruct;
 
-import io.kyligence.kap.rest.cluster.ClusterManager;
-import io.kyligence.kap.rest.config.AppConfig;
 import org.apache.calcite.avatica.ColumnMetaData.Rep;
 import org.apache.calcite.config.CalciteConnectionConfig;
 import org.apache.calcite.jdbc.CalcitePrepare;
@@ -129,6 +127,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 
@@ -142,6 +141,8 @@ import io.kyligence.kap.common.persistence.transaction.UnitOfWorkParams;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.query.NativeQueryRealization;
+import io.kyligence.kap.rest.cluster.ClusterManager;
+import io.kyligence.kap.rest.config.AppConfig;
 import io.kyligence.kap.rest.metrics.QueryMetricsContext;
 import io.kyligence.kap.rest.transaction.Transaction;
 import lombok.AllArgsConstructor;
@@ -202,11 +203,22 @@ public class QueryService extends BasicService {
         SQLResponse ret;
         try {
             slowQueryDetector.queryStart();
+            markHighPriorityQueryIfNeeded();
             ret = queryWithSqlMassage(sqlRequest);
             return ret;
         } finally {
             slowQueryDetector.queryEnd();
             Thread.interrupted(); //reset if interrupted
+        }
+    }
+
+    private void markHighPriorityQueryIfNeeded() {
+        String vipRoleName = KylinConfig.getInstanceFromEnv().getQueryVIPRole();
+        if (!StringUtils.isBlank(vipRoleName) && SecurityContextHolder.getContext() //
+                .getAuthentication() //
+                .getAuthorities() //
+                .contains(new SimpleGrantedAuthority(vipRoleName))) { //
+            QueryContext.current().markHighPriorityQuery();
         }
     }
 
@@ -878,7 +890,8 @@ public class QueryService extends BasicService {
             } catch (Exception e2) {
                 logger.error("pushdown engine failed current query too", e2);
                 //exception in pushdown, throw it instead of exception in calcite
-                throw new RuntimeException("[" + QueryContext.current().getPushdownEngine() + " Exception] " + e2.getMessage(), e2);
+                throw new RuntimeException(
+                        "[" + QueryContext.current().getPushdownEngine() + " Exception] " + e2.getMessage(), e2);
             }
 
             if (r == null)

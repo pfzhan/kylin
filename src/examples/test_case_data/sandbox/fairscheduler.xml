@@ -18,19 +18,29 @@
 -->
 
 <allocations>
-  <pool name="table_index">
+  <pool name="query_pushdown">
     <schedulingMode>FAIR</schedulingMode>
     <weight>1</weight>
     <minShare>1</minShare>
   </pool>
-  <pool name="cube">
+  <pool name="extreme_heavy_tasks">
+    <schedulingMode>FAIR</schedulingMode>
+    <weight>3</weight>
+    <minShare>1</minShare>
+  </pool>
+  <pool name="heavy_tasks">
+    <schedulingMode>FAIR</schedulingMode>
+    <weight>5</weight>
+    <minShare>1</minShare>
+  </pool>
+  <pool name="lightweight_tasks">
     <schedulingMode>FAIR</schedulingMode>
     <weight>10</weight>
     <minShare>1</minShare>
   </pool>
-    <pool name="query_pushdown">
+  <pool name="vip_tasks">
     <schedulingMode>FAIR</schedulingMode>
-    <weight>1</weight>
+    <weight>15</weight>
     <minShare>1</minShare>
   </pool>
 </allocations>

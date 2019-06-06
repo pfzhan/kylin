@@ -44,9 +44,9 @@ object ResultPlan extends Logging {
 
   def collectEnumerable(df: DataFrame,
                         rowType: RelDataType): Enumerable[Array[Any]] = {
-      val rowsItr: Array[Array[Any]] = collectInternal(df, rowType)
-      Linq4j.asEnumerable(rowsItr.array)
-    }
+    val rowsItr: Array[Array[Any]] = collectInternal(df, rowType)
+    Linq4j.asEnumerable(rowsItr.array)
+  }
 
   def collectScalarEnumerable(df: DataFrame,
                               rowType: RelDataType): Enumerable[Any] = {
@@ -61,8 +61,7 @@ object ResultPlan extends Logging {
     val jobGroup = Thread.currentThread().getName
     val sparkContext = SparderEnv.getSparkSession.sparkContext
     val kapConfig = KapConfig.getInstanceFromEnv
-    val pool = "heavy_tasks"
-
+    var pool = "heavy_tasks"
     val partitionsNum =
       if (kapConfig.getSparkSqlShufflePartitions != -1) {
         kapConfig.getSparkSqlShufflePartitions
@@ -70,7 +69,15 @@ object ResultPlan extends Logging {
         Math.min(QueryContext.current().getSourceScanBytes / PARTITION_SPLIT_BYTES + 1,
           SparderEnv.getTotalCore).toInt
       }
-    logInfo(s"partition is : $partitionsNum , bytes is ${QueryContext.current().getSourceScanBytes}"  )
+    logInfo(s"partition is : $partitionsNum , bytes is ${QueryContext.current().getSourceScanBytes}")
+    if (QueryContext.current().isHighPriorityQuery) {
+      pool = "vip_tasks"
+    } else if (QueryContext.current().isTableIndex) {
+      pool = "extreme_heavy_tasks"
+    } else if (partitionsNum <= SparderEnv.getTotalCore) {
+      pool = "lightweight_tasks"
+    }
+
     // set priority
     sparkContext.setLocalProperty("spark.scheduler.pool", pool)
     df.sparkSession.sessionState.conf.setLocalProperty("spark.sql.shuffle.partitions", partitionsNum.toString)

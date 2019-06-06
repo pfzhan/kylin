@@ -88,6 +88,9 @@ public class QueryContext {
 
     private long queryStartMillis;
     private boolean isSparderUsed;
+    private boolean isTableIndex;
+
+    private boolean isHighPriorityQuery = false;
 
     private ThreadLocal<Boolean> isAsyncQuery = new ThreadLocal<Boolean>() {
         @Override
@@ -151,7 +154,7 @@ public class QueryContext {
         this.groups = groups;
     }
 
-    public void setHasLike(boolean hasLike){
+    public void setHasLike(boolean hasLike) {
         this.hasLike = hasLike;
     }
 
@@ -191,12 +194,20 @@ public class QueryContext {
         this.isSparderUsed = isSparderUsed;
     }
 
-    public void setIsAsyncQuery(){
+    public boolean isTableIndex() {
+        return isTableIndex;
+    }
+
+    public void setTableIndex(boolean tableIndex) {
+        isTableIndex = tableIndex;
+    }
+
+    public void setIsAsyncQuery() {
         isAsyncQuery.set(true);
     }
 
-    public Boolean isAsyncQuery(){
-       return isAsyncQuery.get();
+    public Boolean isAsyncQuery() {
+        return isAsyncQuery.get();
     }
 
     public Object getCalcitePlan() {
@@ -242,19 +253,6 @@ public class QueryContext {
     public void setHasRuntimeAgg(Boolean hasRuntimeAgg) {
         this.hasRuntimeAgg = hasRuntimeAgg;
     }
-/*
-
-    public Set<Future> getAllRunningTasks() {
-        return allRunningTasks;
-    }
-
-    public void addRunningTasks(Future task) {
-        this.allRunningTasks.add(task);
-    }
-
-    public void removeRunningTask(Future task) {
-        this.allRunningTasks.remove(task);
-    }
 
     public boolean isHighPriorityQuery() {
         return isHighPriorityQuery;
@@ -264,77 +262,93 @@ public class QueryContext {
         isHighPriorityQuery = true;
     }
 
+    /*
+    
+    public Set<Future> getAllRunningTasks() {
+        return allRunningTasks;
+    }
+    
+    public void addRunningTasks(Future task) {
+        this.allRunningTasks.add(task);
+    }
+    
+    public void removeRunningTask(Future task) {
+        this.allRunningTasks.remove(task);
+    }
+    
+    
+    
     public long getQueryStartMillis() {
         return queryStartMillis;
     }
-
+    
     public void checkMillisBeforeDeadline() {
         if (Thread.interrupted()) {
             throw new KylinTimeoutException("Query timeout");
         }
     }
-
+    
     public int getScannedShards() {
         return scannedShards.get();
     }
-
+    
     public void addScannedShards(int deltaFiles) {
         scannedShards.addAndGet(deltaFiles);
     }
-
+    
     public long addAndGetScannedRows(long deltaRows) {
         return scannedRows.addAndGet(deltaRows);
     }
-
+    
     public long addAndGetScannedBytes(long deltaBytes) {
         return scannedBytes.addAndGet(deltaBytes);
     }
-
+    
     public Object getCalcitePlan() {
         return calcitePlan;
     }
-
+    
     public void setCalcitePlan(Object calcitePlan) {
         this.calcitePlan = calcitePlan;
     }
-
-
+    
+    
     public boolean isSparderAppliable() {
         return isSparderAppliable;
     }
-
+    
     public void setSparderAppliable(boolean isSparderAppliable) {
         this.isSparderAppliable = isSparderAppliable;
     }
-
+    
     public boolean isSparderUsed() {
         return isSparderUsed;
     }
-
+    
     public boolean isLateDecodeEnabled() {
         return isLateDecodeEnabled;
     }
-
+    
     public void setLateDecodeEnabled(boolean lateDecodeEnabled) {
         isLateDecodeEnabled = lateDecodeEnabled;
     }
-
+    
     public boolean isHasLike() {
         return hasLike;
     }
-
+    
     public void setHasLike(boolean hasLike) {
         this.hasLike = hasLike;
     }
-
+    
     public boolean isHasAdvance() {
         return hasAdvance;
     }
-
+    
     public void setHasAdvance(boolean hasAdvance) {
         this.hasAdvance = hasAdvance;
     }
-*/
+    */
 
     public String getCorrectedSql() {
         return correctedSql;

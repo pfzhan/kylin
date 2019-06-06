@@ -88,6 +88,9 @@ object TableScanPlan extends Logging {
           olapContext.resetSQLDigest()
           val context = olapContext.storageContext
           val cuboidLayout = context.getCandidate.getCuboidLayout
+          if (cuboidLayout.getIndex.isTableIndex) {
+            QueryContext.current().setTableIndex(true)
+          }
 
           val sourceBytes = segments.asScala.map(_.getLayout(cuboidLayout.getId).getByteSize).sum
           QueryContext.current().addAndGetSourceScanBytes(sourceBytes)
