@@ -171,7 +171,7 @@
       </el-col>
       <el-col :span="12" class="chart-block">
         <div>
-          <div class="cart-title">{{$t('queryByDay', {type: chartTitle})}}</div>
+          <div class="cart-title">{{$t('queryByDay', {type: chartTitle, zone: getLocalTimezone()})}}</div>
           <el-select v-model="dateUnit" size="small" class="line-chart-select" @change="loadLineChartData">
             <el-option
               v-for="item in unitOptions"
@@ -196,7 +196,7 @@
 import Vue from 'vue'
 import { Component, Watch } from 'vue-property-decorator'
 import { mapActions, mapGetters } from 'vuex'
-import { handleSuccess } from '../../util/business'
+import { handleSuccess, getLocalTimezone } from '../../util/business'
 import { handleSuccessAsync, handleError } from '../../util/index'
 import { loadLiquidFillGauge, liquidFillGaugeDefaultSettings } from '../../util/liquidFillGauge'
 import $ from 'jquery'
@@ -206,6 +206,7 @@ import BarChart from './BarChart'
 import LineChart from './LineChart'
 @Component({
   methods: {
+    getLocalTimezone: getLocalTimezone,
     ...mapActions({
       getRulesImpact: 'GET_RULES_IMPACT',
       getQuotaInfo: 'GET_QUOTA_INFO',
@@ -244,7 +245,7 @@ import LineChart from './LineChart'
       avgBulidTime: 'Avg. Job Duration per MB',
       jobDuration: 'Job Duration',
       queryByModel: '{type} by Model',
-      queryByDay: '{type} by Time',
+      queryByDay: '{type} by Time ({zone})',
       queryByIndex: '{type} by Index Group',
       lastWeek: 'Last Week',
       lastMonth: 'Last Month',
@@ -272,7 +273,7 @@ import LineChart from './LineChart'
       avgBulidTime: '构建1MB数据的平均时间',
       jobDuration: '任务时间',
       queryByModel: '按模型统计{type}',
-      queryByDay: '按时间统计{type}',
+      queryByDay: '按时间({zone})统计{type}',
       queryByIndex: '按索引组统计{type}',
       lastWeek: '最近一周',
       lastMonth: '上个月',

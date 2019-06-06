@@ -1,6 +1,7 @@
 import { utcToConfigTimeZone } from './index'
 import { permissionsMaps, NamedRegex, DatePartitionRule, TimePartitionRule } from 'config/index'
 import { MessageBox, Message } from 'kyligence-ui'
+import moment from 'moment-timezone'
 // 成功回调入口
 export function handleSuccess (res, callback, errorcallback) {
   var responseData = res && res.data || null
@@ -151,14 +152,27 @@ export function getProperty (name, kylinConfig) {
   return result && result[1] || ''
 }
 
-// utc时间格式转换为gmt格式
+// utc时间格式转换为本地时区的gmt格式
 export function transToGmtTime (t, _vue) {
+  let d = moment(new Date(t))
+  if (d) {
+    return d.format().replace(/T/, ' ').replace(/([+-])(\d+):\d+$/, ' GMT$1$2').replace(/0(\d)$/, '$1')
+  }
+  return ''
+}
+
+export function getLocalTimezone () {
+  var d = new Date()
+  var localOffset = -d.getTimezoneOffset() / 60
+  return 'GMT' + (localOffset > 0 ? '+' + localOffset : localOffset)
+}
+// utc时间格式转换为服务端时区的gmt格式
+export function transToServerGmtTime (t, _vue) {
   var v = _vue || window.kapVm
   if (v) {
     return utcToConfigTimeZone(t, v.$store.state.system.timeZone)
   }
 }
-
 // utc时间格式转换为gmt格式(by ajax)
 export function transToGmtTimeAfterAjax (t, timeZone, _vue) {
   var v = _vue || window.kapVm
@@ -269,14 +283,7 @@ export function transToUtcDateFormat (ms, isSlash) {
   return result
 }
 export function transToUTCMs (date) {
-  date = new Date(date)
-  var y = date.getFullYear()
-  var m = date.getMonth()
-  var d = date.getDate()
-  var h = date.getHours()
-  var M = date.getMinutes()
-  var s = date.getSeconds()
-  return Date.UTC(y, m, d, h, M, s)
+  return +moment(date).utc()
 }
 
 export function msTransDate (ms, limitWeeks) {
@@ -343,13 +350,6 @@ export function isTimePartitionType (type) {
 export function getGmtDateFromUtcLike (value) {
   if (value !== undefined) {
     const isDate = value instanceof Date
-    const dateObj = isDate ? value : new Date(value)
-    const year = dateObj.getUTCFullYear()
-    const month = dateObj.getUTCMonth()
-    const date = dateObj.getUTCDate()
-    const hour = dateObj.getUTCHours()
-    const mins = dateObj.getUTCMinutes()
-    const seconds = dateObj.getUTCSeconds()
-    return new Date(year, month, date, hour, mins, seconds)
+    return isDate ? value : new Date(value)
   }
 }

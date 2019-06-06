@@ -53,12 +53,12 @@
       </div>
       <div class="info-row">
         <span class="info-label font-medium">{{$t('kylinLang.common.startTime1')}}</span>
-        <span class="info-value" v-if="table.startTime !== undefined">{{table.startTime | utcTime}}</span>
+        <span class="info-value" v-if="table.startTime !== undefined">{{table.startTime | toServerGMTDate}}</span>
         <span class="info-value empty" v-else>{{$t('notLoadYet')}}</span>
       </div>
       <div class="info-row">
         <span class="info-label font-medium">{{$t('kylinLang.common.endTime1')}}</span>
-        <span class="info-value" v-if="table.endTime !== undefined">{{table.endTime | utcTime}}</span>
+        <span class="info-value" v-if="table.endTime !== undefined">{{table.endTime | toServerGMTDate}}</span>
         <span class="info-value empty" v-else>{{$t('notLoadYet')}}</span>
       </div>
     </div>

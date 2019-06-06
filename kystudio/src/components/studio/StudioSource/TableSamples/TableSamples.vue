@@ -3,7 +3,7 @@
     <div v-if="headers.length">
       <div class="columns-header">
         <div class="left font-medium">
-          {{$t('version')}}{{table.create_time | timestamp2GmtDate}}
+          {{$t('version')}}{{table.create_time | toGMTDate}}
         </div>
         <div class="right">
           <el-input

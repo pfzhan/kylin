@@ -403,6 +403,9 @@ export function isLastWeek (ms) {
   let lastWeekDateTimeStamp = getNextOrPrevDate(-7)
   return isThisWeek(ms, lastWeekDateTimeStamp)
 }
+function isValidDate (date) {
+  return date instanceof Date && !isNaN(date.getTime())
+}
 // 时间转换工具
 import moment from 'moment-timezone'
 export function utcToConfigTimeZone (item, zone, formatSet) {
@@ -410,6 +413,9 @@ export function utcToConfigTimeZone (item, zone, formatSet) {
   var gmttimezone = ''
   if (item === '' || item === null || item === undefined) {
     return ''
+  }
+  if (!isValidDate(new Date(item))) {
+    return item
   }
   var format = formatSet || 'YYYY-MM-DD HH:mm:ss z'
   switch (timezone) {
@@ -592,5 +598,5 @@ export function filterInjectScript (str) {
   return ''
 }
 export { set, get, push } from './object'
-export { handleError, handleSuccess, hasRole, hasPermission, kapConfirm, transToGmtTime, isDatePartitionType, isTimePartitionType, transToUTCMs, getGmtDateFromUtcLike } from './business'
+export { handleError, handleSuccess, hasRole, hasPermission, kapConfirm, transToGmtTime, transToServerGmtTime, isDatePartitionType, isTimePartitionType, transToUTCMs, getGmtDateFromUtcLike } from './business'
 export { validate, validateTypes }

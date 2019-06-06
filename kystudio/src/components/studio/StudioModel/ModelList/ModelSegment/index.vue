@@ -53,10 +53,10 @@
           <template slot-scope="scope">{{scope.row.bytes_size | dataSize}}</template>
         </el-table-column>
         <el-table-column :label="$t('kylinLang.common.startTime')" width="208" prop="start_time" sortable>
-          <template slot-scope="scope">{{scope.row.startTime | utcTime}}</template>
+          <template slot-scope="scope">{{scope.row.startTime | toServerGMTDate}}</template>
         </el-table-column>
         <el-table-column :label="$t('kylinLang.common.endTime')" width="208" prop="end_time" sortable>
-          <template slot-scope="scope">{{scope.row.endTime | utcTime}}</template>
+          <template slot-scope="scope">{{scope.row.endTime | toServerGMTDate}}</template>
         </el-table-column>
         <el-table-column class-name="ky-hover-icon" :label="$t('kylinLang.common.action')" width="83">
           <template slot-scope="scope">
@@ -99,11 +99,11 @@
         </tr>
         <tr class="ksd-tr">
           <th>{{$t('startTime')}}</th>
-          <td>{{detailSegment.startTime | utcTime}}</td>
+          <td>{{detailSegment.startTime | toServerGMTDate}}</td>
         </tr>
         <tr class="ksd-tr">
           <th>{{$t('endTime')}}</th>
-          <td>{{detailSegment.endTime | utcTime}}</td>
+          <td>{{detailSegment.endTime | toServerGMTDate}}</td>
         </tr>
       </table>
     </el-dialog>

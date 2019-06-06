@@ -1,6 +1,6 @@
 import dayjs from 'dayjs'
 import { sourceTypes, sourceNameMapping, pageSizeMapping } from '../../../config'
-import { getGmtDateFromUtcLike } from '../../../util'
+import { transToServerGmtTime } from '../../../util'
 export const render = {
   datasource: {
     render (h, { node, data, store }) {
@@ -255,8 +255,8 @@ export function freshTreeOrder (that) {
 function _getDateRangeStr (that, userRange) {
   const [ startTime, endTime ] = userRange
   if (startTime !== undefined && endTime !== undefined) {
-    const startStr = dayjs(getGmtDateFromUtcLike(startTime)).format('YYYY-MM-DD')
-    const endStr = dayjs(getGmtDateFromUtcLike(endTime)).format('YYYY-MM-DD')
+    const startStr = dayjs(transToServerGmtTime(startTime)).format('YYYY-MM-DD')
+    const endStr = dayjs(transToServerGmtTime(endTime)).format('YYYY-MM-DD')
     return `${startStr} ${that.$t('to')} ${endStr}`
   } else {
     return ''

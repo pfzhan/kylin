@@ -15,14 +15,6 @@
 </template>
 <script>
 import { mapActions } from 'vuex'
-// import { handleSuccess, handleError, hasRole, kapWarn, transToGmtTime, hasPermission } from '../../util/business'
-// import { permissions } from '../../config'
-// import { changeDataAxis, isFireFox } from '../../util/index'
-// import createKafka from '../kafka/create_kafka'
-// import editKafka from '../kafka/edit_kafka'
-// import viewKafka from '../kafka/view_kafka'
-// import arealabel from 'components/common/area_label'
-// import Scrollbar from 'smooth-scrollbar'
 import tableAccess from './access_sub/table_access'
 import columnAccess from './access_sub/column_access'
 import rowAccess from './access_sub/row_access'

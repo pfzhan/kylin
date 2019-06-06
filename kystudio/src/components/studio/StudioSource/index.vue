@@ -29,7 +29,7 @@
           <!-- Source Table标题信息 -->
           <div class="table-header">
             <h1 class="table-name" :title="selectedTable.fullName">{{selectedTable.fullName}}</h1>
-            <h2 class="table-update-at">{{$t('updateAt')}} {{selectedTable.updateAt | timestamp2GmtDate}}</h2>
+            <h2 class="table-update-at">{{$t('updateAt')}} {{selectedTable.updateAt | toGMTDate}}</h2>
             <div class="table-actions ky-no-br-space">
               <el-button size="small" @click="sampleTable">{{$t('sample')}}</el-button>
               <el-button size="small" :loading="reloadBtnLoading" plain @click="handleReload">{{$t('reload')}}</el-button>
