@@ -125,7 +125,14 @@ public abstract class SparkApplication implements Application, IKeep {
                 } catch (Exception e) {
                     logger.warn("Auto set spark conf failed. Load spark conf from system properties", e);
                 }
+                if (config.getSparkConfigOverride().size() > 0) {
+                    for (Map.Entry<String, String> entry : config.getSparkConfigOverride().entrySet()) {
+                        logger.info("Override user-defined spark conf, set {}={}.", entry.getKey(), entry.getValue());
+                        sparkConf.set(entry.getKey(), entry.getValue());
+                    }
+                }
             }
+
             // for wrapping credential
             CredentialUtils.wrap(sparkConf, project);
 

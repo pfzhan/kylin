@@ -30,10 +30,8 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Collections;
 import java.util.EnumSet;
-import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Optional;
 import java.util.Properties;
 import java.util.Set;
 
@@ -215,11 +213,9 @@ public class NSparkExecutable extends AbstractExecutable {
         val project = getProject();
         Preconditions.checkState(StringUtils.isNotBlank(project), "job " + getId() + " project info is empty");
         val dataflow = getParam(NBatchConstants.P_DATAFLOW_ID);
-        boolean needCloseAutoConf = false;
         if (StringUtils.isNotBlank(dataflow)) {
             val dataflowManager = NDataflowManager.getInstance(originalConfig, project);
             kylinConfigExt = dataflowManager.getDataflow(dataflow).getConfig();
-            needCloseAutoConf = hasOverrideSparkConf(dataflow, dataflowManager);
         } else {
             val projectInstance = NProjectManager.getInstance(originalConfig).getProject(project);
             kylinConfigExt = projectInstance.getConfig();
@@ -232,27 +228,8 @@ public class NSparkExecutable extends AbstractExecutable {
         if (StringUtils.isNotBlank(parentId)) {
             jobOverrides.put("job.stepId", getId());
         }
-        if (needCloseAutoConf) {
-            jobOverrides.put("kylin.spark-conf.auto.prior", "false");
-        }
         jobOverrides.putAll(kylinConfigExt.getExtendedOverrides());
         return KylinConfigExt.createInstance(kylinConfigExt, jobOverrides);
-    }
-
-    private boolean hasOverrideSparkConf(String dataflow, NDataflowManager dataflowManager) {
-        LinkedHashMap<String, String> overrideProps = dataflowManager.getDataflow(dataflow).getIndexPlan()
-                .getOverrideProps();
-        Optional<Entry<String, String>> any = overrideProps.entrySet().stream()
-                .filter(entry -> entry.getKey().startsWith("kylin.engine.spark-conf."))
-                .filter(entry -> !entry.getKey().equals("kylin.engine.spark-conf.spark.executor.instances")).findAny();
-        if (any.isPresent()) {
-            logger.info(
-                    "Find override spark conf except spark.executor.instances, set kylin.spark-conf.auto.prior=false");
-            overrideProps.entrySet()
-                    .forEach(entry -> logger.info("Override conf :{}={}", entry.getKey(), entry.getValue()));
-            return true;
-        }
-        return false;
     }
 
     private void killOrphanApplicationIfExists(KylinConfig config) {
