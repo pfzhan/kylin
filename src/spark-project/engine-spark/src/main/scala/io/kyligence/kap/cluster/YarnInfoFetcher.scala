@@ -23,8 +23,8 @@
 package io.kyligence.kap.cluster
 
 import io.kyligence.kap.cluster.parser.SchedulerParserFactory
+import io.kyligence.kap.engine.spark.utils.BuildUtils
 import org.apache.hadoop.yarn.client.api.YarnClient
-import org.apache.hadoop.yarn.conf.YarnConfiguration
 import org.apache.spark.internal.Logging
 
 class YarnInfoFetcher extends ClusterInfoFetcher with Logging {
@@ -32,7 +32,7 @@ class YarnInfoFetcher extends ClusterInfoFetcher with Logging {
     val yarnClient = YarnClient.createYarnClient
     var resourceInfo: ResourceInfo = null
     try {
-      yarnClient.init(new YarnConfiguration())
+      yarnClient.init(BuildUtils.getCurrentYarnConfiguration)
       yarnClient.start()
       val response = yarnClient.createApplication().getNewApplicationResponse
       resourceInfo = new ResourceInfo(response.getMaximumResourceCapability)

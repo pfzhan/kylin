@@ -24,13 +24,14 @@ package io.kyligence.kap.cluster
 
 import java.io.{BufferedReader, InputStreamReader}
 
+import io.kyligence.kap.engine.spark.utils.BuildUtils
 import io.netty.util.internal.ThrowableUtil
 import org.apache.hadoop.yarn.conf.YarnConfiguration
 import org.apache.kylin.common.util.{JsonUtil, ShellException}
 import org.apache.spark.internal.Logging
 
 object SchedulerInfoCmdHelper extends Logging {
-  private val useHttps: Boolean = YarnConfiguration.useHttps(new YarnConfiguration())
+  private val useHttps: Boolean = YarnConfiguration.useHttps(BuildUtils.getCurrentYarnConfiguration)
 
   def schedulerInfo: String = {
     val cmds = getSocketAddress.map(address => genCmd(address._1, address._2))
@@ -53,7 +54,7 @@ object SchedulerInfoCmdHelper extends Logging {
   }
 
   private[cluster] def getSocketAddress: Map[String, Int] = {
-    val conf = new YarnConfiguration()
+    val conf = BuildUtils.getCurrentYarnConfiguration
     val haIds = conf.getInts(YarnConfiguration.RM_HA_IDS)
     val addresses = if (haIds.isEmpty) {
       if (useHttps) {

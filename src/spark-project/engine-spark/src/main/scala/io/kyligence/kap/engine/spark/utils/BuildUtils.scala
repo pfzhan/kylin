@@ -21,13 +21,15 @@
  */
 
 package io.kyligence.kap.engine.spark.utils
+
 import java.io.IOException
 
 import io.kyligence.kap.engine.spark.NSparkCubingEngine
 import io.kyligence.kap.engine.spark.job.NSparkCubingUtil
-import io.kyligence.kap.metadata.cube.model.{LayoutEntity, NDataflowManager, NDataflowUpdate, NDataLayout, NDataSegment}
+import io.kyligence.kap.metadata.cube.model._
 import io.kyligence.kap.metadata.model.NDataModel
 import org.apache.hadoop.fs.Path
+import org.apache.hadoop.yarn.conf.YarnConfiguration
 import org.apache.kylin.common.util.HadoopUtil
 import org.apache.kylin.common.{KapConfig, KylinConfig}
 import org.apache.kylin.measure.bitmap.BitmapMeasureType
@@ -44,13 +46,13 @@ object BuildUtils extends Logging {
 
   @throws[IOException]
   def repartitionIfNeed(
-      layout: LayoutEntity,
-      dataCuboid: NDataLayout,
-      storage: NSparkCubingEngine.NSparkCubingStorage,
-      path: String,
-      tempPath: String,
-      kapConfig: KapConfig,
-      sparkSession: SparkSession): Int = {
+                         layout: LayoutEntity,
+                         dataCuboid: NDataLayout,
+                         storage: NSparkCubingEngine.NSparkCubingStorage,
+                         path: String,
+                         tempPath: String,
+                         kapConfig: KapConfig,
+                         sparkSession: SparkSession): Int = {
     val fs = HadoopUtil.getReadFileSystem
     if (fs.exists(new Path(tempPath))) {
       val summary = fs.getContentSummary(new Path(tempPath))
@@ -93,5 +95,15 @@ object BuildUtils extends Logging {
     val update = new NDataflowUpdate(seg.getDataflow.getUuid)
     update.setToAddOrUpdateLayouts(dataCuboid)
     NDataflowManager.getInstance(conf, project).updateDataflow(update)
+  }
+
+  def getCurrentYarnConfiguration: YarnConfiguration = {
+    val conf = new YarnConfiguration()
+    System.getProperties.entrySet()
+      .asScala
+      .filter(_.getKey.asInstanceOf[String].startsWith("spark.hadoop."))
+      .map(entry => (entry.getKey.asInstanceOf[String].substring("spark.hadoop.".length), entry.getValue.asInstanceOf[String]))
+      .foreach(tp => conf.set(tp._1, tp._2))
+    conf
   }
 }
