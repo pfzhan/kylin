@@ -46,6 +46,17 @@ export default class EmptyData extends Vue {
 <style lang="less">
 @import '../../../assets/styles/variables.less';
 .empty-data {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: @text-disabled-color;
+  .center {
+    text-align: center;
+  }
+  .center:first-child {
+    margin-bottom: 20px;
+  }
   &.empty-data-normal {
     img {
       height: 120px;
@@ -57,17 +68,9 @@ export default class EmptyData extends Vue {
       height: 60px;
     }
     font-size: 14px;
-  }
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  color: @text-disabled-color;
-  .center {
-    text-align: center;
-  }
-  .center:first-child {
-    margin-bottom: 20px;
+    .center:first-child {
+      margin-bottom: 10px;
+    }
   }
 }
 </style>

@@ -39,10 +39,8 @@
             :close-on-press-escape="false"
             :close-on-click-modal="false"
             :visible.sync="savedQueryListVisible">
-            <div v-if="!savedSize" class="ky-nodata-small">
-              <div><img src="../../assets/img/save_query.png"></div>
-              <span>{{$t('kylinLang.common.noData')}}</span>
-            </div>
+            <kap-empty-data v-if="!savedSize" size="small">
+            </kap-empty-data>
             <div class="list_block" v-scroll v-else>
               <div class="saved_query_content">
                 <div class="form_block" v-for="(savequery, index) in savedList" :key="savequery.name" >
