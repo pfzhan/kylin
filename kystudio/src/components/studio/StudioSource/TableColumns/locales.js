@@ -1,8 +1,8 @@
 export default {
   'en': {
-    total: 'Total Rows:'
+    total: 'Sampling Records: '
   },
   'zh-cn': {
-    total: '总行数：'
+    total: '抽样行数：'
   }
 }

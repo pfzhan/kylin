@@ -1,9 +1,8 @@
 import { isDatePartitionType } from './'
 
 export function getFormattedTable (originData = {}) {
-  const columns = originData.columns.map(getFormattedColumn)
   const partitionColumn = originData.partitioned_column && originData.partitioned_column.split('.')[1] || ''
-  const dateTypeColumns = columns.filter(column => isDatePartitionType(column.dataType))
+  const dateTypeColumns = originData.columns.filter(column => isDatePartitionType(column.datatype))
   const storageType = getStorageType(originData)
   const [ startTime, endTime ] = _getSegmentRange(originData)
   return {
@@ -18,7 +17,7 @@ export function getFormattedTable (originData = {}) {
     storageType,
     storageSize: ~originData.storage_size ? originData.storage_size : null,
     totalRecords: ~originData.total_records ? originData.total_records : null,
-    columns,
+    columns: originData.columns,
     dateTypeColumns,
     startTime,
     endTime,
@@ -41,16 +40,6 @@ function getStorageType (originData = {}) {
     return 'snapshot'
   } else {
     return null
-  }
-}
-
-function getFormattedColumn (originData = {}) {
-  return {
-    id: originData.id,
-    name: originData.name,
-    dataType: originData.datatype,
-    comment: originData.comment,
-    __data: originData
   }
 }
 

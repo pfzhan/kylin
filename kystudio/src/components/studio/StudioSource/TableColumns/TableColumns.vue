@@ -27,7 +27,7 @@
         :label="$t('kylinLang.dataSource.columnName')">
       </el-table-column>
       <el-table-column
-        prop="dataType"
+        prop="datatype"
         sortable
         width="120"
         :label="$t('kylinLang.dataSource.dataType')">
@@ -39,6 +39,22 @@
         header-align="right"
         min-width="105"
         :label="$t('kylinLang.dataSource.cardinality')">
+      </el-table-column>
+      <el-table-column
+        prop="min_value"
+        sortable
+        align="right"
+        header-align="right"
+        min-width="105"
+        :label="$t('kylinLang.dataSource.minimal')">
+      </el-table-column>
+      <el-table-column
+        prop="max_value"
+        sortable
+        align="right"
+        header-align="right"
+        min-width="105"
+        :label="$t('kylinLang.dataSource.maximum')">
       </el-table-column>
       <el-table-column
         prop="comment"
@@ -91,10 +107,7 @@ export default class TableColumns extends Vue {
   }
   get currentColumns () {
     const { pageOffset, pageSize } = this.pagination
-    return this.columns.slice(pageOffset * pageSize, pageOffset * pageSize + pageSize).map(column => {
-      const cardinality = this.getCardinality(column.name)
-      return { ...column, cardinality }
-    })
+    return this.columns.slice(pageOffset * pageSize, pageOffset * pageSize + pageSize)
   }
   getCardinality (columnName) {
     return this.table.cardinality[columnName]
