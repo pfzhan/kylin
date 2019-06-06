@@ -190,6 +190,7 @@ export const GET_TABLE_INDEX = 'GET_TABLE_INDEX'
 export const EDIT_TABLE_INDEX = 'EDIT_TABLE_INDEX'
 export const DELETE_TABLE_INDEX = 'DELETE_TABLE_INDEX'
 export const ADD_TABLE_INDEX = 'ADD_TABLE_INDEX'
+export const BUILD_INDEX = 'BUILD_INDEX'
 
 // cube actions mutations
 export const GET_CUBES_LIST = 'GET_CUBES_LIST'

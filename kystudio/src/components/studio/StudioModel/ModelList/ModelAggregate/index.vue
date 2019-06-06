@@ -9,6 +9,9 @@
       </el-button> -->
       <el-button type="primary" size="small" v-guide.addAggBtn icon="el-icon-ksd-table_edit" @click="handleAggregateGroup" v-if="availableAggregateActions.includes('viewAggGroup')">
         {{$t('aggregateGroup')}}
+      </el-button><el-button
+        type="primary" size="small" :loading="buildIndexLoading" @click="buildAggIndex" v-if="availableAggregateActions.includes('viewAggGroup')">
+        {{$t('buildIndex')}}
       </el-button>
     </div>
     <div class="aggregate-view">
@@ -59,6 +62,12 @@
                         <div>{{$t(scope.row.key)}}</div>
                         <div class="slot" v-if="scope.row.value">slot</div>
                       </div>
+                      <div v-else-if="scope.row.key === 'queryCount'" class="ky-hover-icon">
+                        {{$t(scope.row.key)}}
+                        <el-tooltip placement="top" :content="$t('usageTip')">
+                          <i class='el-icon-ksd-what'></i>
+                        </el-tooltip>
+                      </div>
                       <div v-else>{{$t(scope.row.key)}}</div>
                     </template>
                   </el-table-column>
@@ -105,7 +114,9 @@ import locales from './locales'
 import FlowerChart from '../../../../common/FlowerChart'
 import PartitionChart from '../../../../common/PartitionChart'
 import { handleSuccessAsync } from '../../../../../util'
+import { handleError, transToGmtTime } from '../../../../../util/business'
 import { speedProjectTypes } from '../../../../../config'
+import { BuildIndexStatus } from '../../../../../config/model'
 import AggregateModal from './AggregateModal/index.vue'
 import { formatFlowerJson, getCuboidCounts, getStatusCuboidCounts, backgroundMaps } from './handler'
 
@@ -135,7 +146,8 @@ import { formatFlowerJson, getCuboidCounts, getStatusCuboidCounts, backgroundMap
     ...mapActions({
       fetchModelAggregates: 'FETCH_AGGREGATES',
       fetchCuboids: 'FETCH_CUBOIDS',
-      fetchCuboid: 'FETCH_CUBOID'
+      fetchCuboid: 'FETCH_CUBOID',
+      buildIndex: 'BUILD_INDEX'
     })
   },
   components: {
@@ -153,6 +165,36 @@ export default class ModelAggregate extends Vue {
   cuboidData = {}
   searchCuboidId = ''
   backgroundMaps = backgroundMaps
+  buildIndexLoading = false
+  handleBuildIndexTip (data) {
+    let tipMsg = ''
+    if (data.type === BuildIndexStatus.NORM_BUILD) {
+      tipMsg = this.$t('kylinLang.model.buildIndexSuccess')
+      this.$message({message: tipMsg, type: 'success'})
+      return
+    }
+    if (data.type === BuildIndexStatus.NO_LAYOUT) {
+      tipMsg = this.$t('kylinLang.model.buildIndexFail2', {indexType: this.$t('kylinLang.model.aggregateGroupIndex')})
+    } else if (data.type === BuildIndexStatus.NO_SEGMENT) {
+      tipMsg += this.$t('kylinLang.model.buildIndexFail1', {modelName: this.model.name})
+    }
+    this.$confirm(tipMsg, this.$t('kylinLang.common.notice'), {showCancelButton: false, type: 'warning', dangerouslyUseHTMLString: true})
+  }
+  async buildAggIndex () {
+    try {
+      this.buildIndexLoading = true
+      let res = await this.buildIndex({
+        project: this.projectName,
+        model_id: this.model.uuid
+      })
+      let data = await handleSuccessAsync(res)
+      this.handleBuildIndexTip(data)
+    } catch (e) {
+      handleError(e)
+    } finally {
+      this.buildIndexLoading = false
+    }
+  }
   get cuboidInfo () {
     return Object.entries(this.cuboidDetail)
       .filter(([key]) => !['dimensions', 'measures'].includes(key))
@@ -174,9 +216,10 @@ export default class ModelAggregate extends Vue {
     const startDate = dayjs(this.cuboidData.start_time).format('YYYY-MM-DD HH:mm:ss')
     const endDate = dayjs(this.cuboidData.end_time).format('YYYY-MM-DD HH:mm:ss')
     const storage = this.cuboidData.storage_size
-    const queryCount = this.cuboidData.amount || undefined
+    const queryCount = this.cuboidData.query_hit_count || 0
+    const modifiedTime = transToGmtTime(this.cuboidData.last_modify_time)
     const dataRange = (this.cuboidData.start_time && this.cuboidData.end_time) ? { startDate, to: this.$t('to'), endDate } : undefined
-    return { id, dimensions, measures, dataRange, storage, queryCount }
+    return { modifiedTime, storage, dimensions, measures, id, dataRange, queryCount }
   }
   async handleClickNode (node) {
     const res = await this.fetchCuboid({

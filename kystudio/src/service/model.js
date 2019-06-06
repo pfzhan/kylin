@@ -175,5 +175,8 @@ export default {
   },
   getModelJSON: (para) => {
     return Vue.resource(apiUrl + 'models/json').get(para)
+  },
+  buildIndex: (para) => {
+    return Vue.resource(apiUrl + 'models/indices').save(para)
   }
 }

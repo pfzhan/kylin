@@ -39,7 +39,10 @@ export default {
     fullLoadDataContent2: 'The load data job may reload its all data, which including {storageSize} storage.',
     fullLoadDataContent3: 'Do you still need to reload its data?',
     fullScreen: 'Full Screen',
-    exitFullScreen: 'Exit Full Screen'
+    exitFullScreen: 'Exit Full Screen',
+    usageTip: 'Times of the {mode} used by queries',
+    model: 'model',
+    indexGroup: 'index group'
   },
   'zh-cn': {
     capbility: '加速比例',
@@ -81,6 +84,9 @@ export default {
     fullLoadDataContent2: '本次数据加载将包括本模型下所有的数据，总存储为 {storageSize}。',
     fullLoadDataContent3: '您确认需要继续加载数据吗？',
     fullScreen: '全屏',
-    exitFullScreen: '退出全屏'
+    exitFullScreen: '退出全屏',
+    usageTip: '查询击中该{mode}的次数',
+    model: '模型',
+    indexGroup: '索引组'
   }
 }

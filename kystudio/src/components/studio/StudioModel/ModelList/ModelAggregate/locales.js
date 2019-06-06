@@ -7,13 +7,16 @@ export default {
     content: 'Content',
     order: 'Order',
     storage: 'Data Size',
-    queryCount: 'Served Query Amount',
+    modifiedTime: 'Last Modify Time',
+    queryCount: 'Usage',
+    usageTip: 'Times of the index used by queries',
     dataRange: 'Data Range',
     searchAggregateID: 'Search Aggregate ID',
     to: 'to',
-    id: 'ID',
+    id: 'Index ID',
     emptyAggregate: 'Empty Aggregate:',
-    brokenAggregate: 'Broken Aggregate:'
+    brokenAggregate: 'Broken Aggregate:',
+    buildIndex: 'Build Index'
   },
   'zh-cn': {
     aggregateGroup: '编辑聚合组',
@@ -22,13 +25,16 @@ export default {
     aggregateDetail: '聚合索引详情',
     content: '内容',
     order: '顺序',
-    storage: 'Data Size',
-    queryCount: 'Served Query Amount',
-    dataRange: 'Data Range',
+    storage: '数据大小',
+    modifiedTime: '上次更新时间',
+    queryCount: '使用次数',
+    usageTip: '查询使用该索引的次数',
+    dataRange: '数据范围',
     searchAggregateID: '搜索聚合索引ID',
     to: '至',
-    id: 'ID',
+    id: 'Index ID',
     emptyAggregate: '空的聚合索引：',
-    brokenAggregate: '破损聚合索引：'
+    brokenAggregate: '破损聚合索引：',
+    buildIndex: '构建索引'
   }
 }

@@ -3,7 +3,11 @@
      <kap-empty-data v-if="tableIndexBaseList.length === 0" size="small"></kap-empty-data>
      <div class="left-part">
       <div class="ksd-mb-20">
-        <el-button type="primary" size="small" icon="el-icon-ksd-add_2" v-visible="!isAutoProject" @click="editTableIndex(true)">{{$t('tableIndex')}}</el-button>
+        <el-button type="primary" size="small" icon="el-icon-ksd-add_2" v-visible="!isAutoProject" @click="editTableIndex(true)">{{$t('tableIndex')}}
+        </el-button><el-button :loading="buildIndexLoading"
+          type="primary" size="small"  @click="buildTableIndex" v-visible="!isAutoProject">
+        {{$t('buildIndex')}}
+       </el-button>
         <!-- <el-button type="primary" disabled icon="el-icon-ksd-table_refresh">Refresh</el-button> -->
         <!-- <el-button icon="el-icon-ksd-table_delete">Delete</el-button> -->
         <el-input style="width:200px" size="small" v-model="tableIndexFilter" :prefix-icon="searchLoading? 'el-icon-loading':'el-icon-search'" :placeholder="$t('searchTip')" class="ksd-fright ksd-mr-15"></el-input>
@@ -102,6 +106,7 @@ import { mapActions, mapGetters } from 'vuex'
 import locales from './locales'
 import { handleSuccess, handleError, transToGmtTime, kapConfirm } from 'util/business'
 import { isToday, isThisWeek, isLastWeek } from 'util/index'
+import { BuildIndexStatus } from 'config/model'
 import TableIndexEdit from '../TableIndexEdit/tableindex_edit'
 import NModel from '../ModelEdit/model.js'
 @Component({
@@ -181,7 +186,8 @@ import NModel from '../ModelEdit/model.js'
     }),
     ...mapActions({
       'loadAllTableIndex': 'GET_TABLE_INDEX',
-      'deleteTableIndex': 'DELETE_TABLE_INDEX'
+      'deleteTableIndex': 'DELETE_TABLE_INDEX',
+      'buildIndex': 'BUILD_INDEX'
     })
   },
   components: {
@@ -204,8 +210,38 @@ export default class TableIndex extends Vue {
   tableIndexFilter = ''
   currentShowTableIndex = null
   tableIndexBaseList = []
+  buildIndexLoading = false
   mounted () {
     this.getAllTableIndex()
+  }
+  handleBuildIndexTip (data) {
+    let tipMsg = ''
+    if (data.type === BuildIndexStatus.NORM_BUILD) {
+      tipMsg = this.$t('kylinLang.model.buildIndexSuccess')
+      this.$message({message: tipMsg, type: 'success'})
+      return
+    }
+    if (data.type === BuildIndexStatus.NO_LAYOUT) {
+      tipMsg = this.$t('kylinLang.model.buildIndexFail2', {indexType: this.$t('kylinLang.model.tableIndex')})
+    } else if (data.type === BuildIndexStatus.NO_SEGMENT) {
+      tipMsg += this.$t('kylinLang.model.buildIndexFail1', {modelName: this.modelInstance.name})
+    }
+    this.$confirm(tipMsg, this.$t('kylinLang.common.notice'), {showCancelButton: false, type: 'warning', dangerouslyUseHTMLString: true})
+  }
+  buildTableIndex () {
+    this.buildIndexLoading = true
+    this.buildIndex({
+      project: this.currentSelectedProject,
+      model_id: this.modelDesc.uuid
+    }).then((res) => {
+      this.buildIndexLoading = false
+      handleSuccess(res, (data) => {
+        this.handleBuildIndexTip(data)
+      })
+    }, (res) => {
+      this.buildIndexLoading = false
+      handleError(res)
+    })
   }
   showTableIndexDetal (item) {
     this.currentShowTableIndex = item

@@ -157,7 +157,7 @@ export default class PartitionChart extends Vue {
       this.addEventListener('mousemove', (event) => {
         self.tipX = event.offsetX
         self.tipY = event.offsetY
-        self.tip = d.name
+        self.tip = Vue.filter('dataSize')(d.cuboid.storage_size)
       })
     })
 

@@ -38,7 +38,8 @@ export default {
     manualAdvice: 'User-defined index',
     autoAdvice: 'System-defined index',
     delTableIndexTip: 'Are you sure to delete the table index {tableIndexName}?',
-    delTableIndexTitle: 'Delete Table Index'
+    delTableIndexTitle: 'Delete Table Index',
+    buildIndex: 'Build Index'
   },
   'zh-cn': {
     noSupportRawTable: '只有KAP PLUS 提供Raw Table功能',
@@ -76,6 +77,7 @@ export default {
     manualAdvice: '用户定义的索引',
     autoAdvice: '系统推荐的索引',
     delTableIndexTip: '你确认删除表明细索引{tableIndexName}？',
-    delTableIndexTitle: '删除表明细索引'
+    delTableIndexTitle: '删除表明细索引',
+    buildIndex: '构建索引'
   }
 }

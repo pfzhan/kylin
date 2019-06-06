@@ -13,7 +13,7 @@
        <div class="ky-simple-table">
           <el-row class="table-header table-row ksd-mt-10">
             <el-col style="width:590px">{{$t('kylinLang.model.columnName')}}</el-col>
-            <el-col style="width:90px">{{$t('tableIndex')}}</el-col>
+            <el-col style="width:90px">{{$t('select')}}</el-col>
             <el-col style="width:90px">{{$t('sort')}}</el-col>
             <el-col style="width:70px">Shard</el-col>
           </el-row>
@@ -52,7 +52,8 @@
   import { mapState, mapMutations, mapActions, mapGetters } from 'vuex'
   import vuex from '../../../../store'
   import { NamedRegex } from 'config'
-  import { handleError, kapMessage } from 'util/business'
+  import { BuildIndexStatus } from 'config/model'
+  import { handleError, kapMessage, handleSuccess } from 'util/business'
   import { objectClone, changeObjectArrProperty, indexOfObjWithSomeKey, filterObjectArray, topArrByArr } from 'util/index'
   import locales from './locales'
   import store, { types } from './store'
@@ -96,7 +97,7 @@
       col_order: [],
       sort_by_columns: [],
       shard_by_columns: [],
-      load_data: false
+      load_data: true
     })
     tableIndexMeta = JSON.parse(this.tableIndexMetaStr)
     rules = {
@@ -268,6 +269,7 @@
     }
     closeModal (isSubmit) {
       this.hideModal()
+      this.btnLoading = false
       this.tableIndexMeta.name = ''
       this.$refs.tableIndexForm.resetFields()
       setTimeout(() => {
@@ -280,11 +282,33 @@
     get tableIndexModalTitle () {
       return this.tableIndexMeta.id !== '' ? this.$t('editTableIndexTitle') : this.$t('addTableIndexTitle')
     }
+    handleBuildIndexTip (data) {
+      let tipMsg = this.$t('kylinLang.model.saveIndexSuccess', {indexType: this.$t('kylinLang.model.tableIndex')})
+      if (this.tableIndexMeta.load_data) {
+        if (data.type === BuildIndexStatus.NORM_BUILD) {
+          tipMsg += ' ' + this.$t('kylinLang.model.buildIndexSuccess1')
+          this.$message({message: tipMsg, type: 'success'})
+          return
+        }
+        if (data.type === BuildIndexStatus.NO_LAYOUT) {
+          tipMsg = this.$t('kylinLang.model.buildIndexFail2', {indexType: this.$t('kylinLang.model.tableIndex')})
+          this.$confirm(tipMsg, this.$t('kylinLang.common.notice'), {showCancelButton: false, type: 'warning', dangerouslyUseHTMLString: true})
+        } else if (data.type === BuildIndexStatus.NO_SEGMENT) {
+          tipMsg += '<br/>' + this.$t('kylinLang.model.buildIndexFail1', {modelName: this.modelInstance.name})
+          this.$confirm(tipMsg, this.$t('kylinLang.common.notice'), {showCancelButton: false, type: 'success', dangerouslyUseHTMLString: true})
+        }
+      } else {
+        this.$message({message: tipMsg, type: 'success'})
+      }
+    }
     async submit () {
       this.$refs.tableIndexForm.validate((valid) => {
         if (!valid) { return }
         this.btnLoading = true
-        let successCb = () => {
+        let successCb = (res) => {
+          handleSuccess(res, (data) => {
+            this.handleBuildIndexTip(data)
+          })
           this.closeModal(true)
           this.btnLoading = false
         }

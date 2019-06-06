@@ -164,9 +164,10 @@ import { mapState, mapGetters, mapMutations, mapActions } from 'vuex'
 
 import vuex from '../../../../../../store'
 import locales from './locales'
+import { BuildIndexStatus } from 'config/model'
 import store, { types, initialAggregateData } from './store'
 import { titleMaps, editTypes, getPlaintDimensions, findIncludeDimension } from './handler'
-import { handleError, get, set, push, kapConfirm } from '../../../../../../util'
+import { handleError, get, set, push, kapConfirm, handleSuccessAsync } from '../../../../../../util'
 import { handleSuccess } from 'util/business'
 
 const { EDIT } = editTypes
@@ -420,16 +421,33 @@ export default class AggregateModal extends Vue {
       this.handleInput(`aggregateArray.${aggregateIdx}.includes`, [])
     })
   }
+  handleBuildIndexTip (data) {
+    let tipMsg = this.$t('kylinLang.model.saveIndexSuccess', {indexType: this.$t('kylinLang.model.aggregateGroupIndex')})
+    if (this.form.isCatchUp) {
+      if (data.type === BuildIndexStatus.NORM_BUILD) {
+        tipMsg += ' ' + this.$t('kylinLang.model.buildIndexSuccess1')
+        this.$message({message: tipMsg, type: 'success'})
+        return
+      }
+      if (data.type === BuildIndexStatus.NO_LAYOUT) {
+        tipMsg = this.$t('kylinLang.model.buildIndexFail2', {indexType: this.$t('kylinLang.model.aggregateGroupIndex')})
+        this.$confirm(tipMsg, this.$t('kylinLang.common.notice'), {showCancelButton: false, type: 'warning', dangerouslyUseHTMLString: true})
+      } else if (data.type === BuildIndexStatus.NO_SEGMENT) {
+        tipMsg += '<br/>' + this.$t('kylinLang.model.buildIndexFail1', {modelName: this.model.name})
+        this.$confirm(tipMsg, this.$t('kylinLang.common.notice'), {showCancelButton: false, type: 'success', dangerouslyUseHTMLString: true})
+      }
+    } else {
+      this.$message({message: tipMsg, type: 'success'})
+    }
+  }
   async handleSubmit () {
     this.isSubmit = true
     try {
       if (this.checkFormVaild()) {
         const data = this.getSubmitData()
-        await this.submit(data)
-        this.$message({
-          type: 'success',
-          message: this.$t('kylinLang.common.saveSuccess')
-        })
+        let res = await this.submit(data)
+        let result = await handleSuccessAsync(res)
+        this.handleBuildIndexTip(result)
         this.isSubmit = false
         this.handleClose(true)
       } else {

@@ -242,6 +242,9 @@ export default {
     },
     [types.GET_MODEL_JSON] ({ commit }, paras) {
       return api.model.getModelJSON(paras)
+    },
+    [types.BUILD_INDEX] ({ commit }, paras) {
+      return api.model.buildIndex(paras)
     }
   },
   getters: {

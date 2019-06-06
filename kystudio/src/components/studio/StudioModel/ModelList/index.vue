@@ -60,7 +60,8 @@
           prop="usage"
           sortable="custom"
           show-overflow-tooltip
-          width="110px"
+          width="120px"
+          :render-header="renderUsageHeader"
           :label="$t('usage')">
         </el-table-column>
          <el-table-column
@@ -266,6 +267,15 @@ export default class ModelList extends Vue {
   modelArray = []
   get modelTableTitle () {
     return this.isAutoProject ? this.$t('kylinLang.model.indexGroupName') : this.$t('kylinLang.model.modelNameGrid')
+  }
+  renderUsageHeader (h, { column, $index }) {
+    let modelMode = this.isAutoProject ? 'indexGroup' : 'model'
+    return (<span class="ky-hover-icon" onClick={e => (e.stopPropagation())}>
+      <span>{this.$t('usage')}</span>&nbsp;
+      <common-tip placement="top" content={this.$t('usageTip', {mode: this.$t(modelMode)})}>
+       <i class='el-icon-ksd-what'></i>
+      </common-tip>
+    </span>)
   }
   renderRowKey (row) {
     return row.alias
