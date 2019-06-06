@@ -22,20 +22,18 @@
 
 package io.kyligence.kap.engine.spark.job
 
-import org.apache.hadoop.fs.ContentSummary
-import org.apache.kylin.common.KylinConfig
+import org.apache.kylin.job.execution.AbstractExecutable
 import org.apache.spark.sql.common.{LocalMetadata, SharedSparkSession, SparderBaseFunSuite}
-import org.mockito.Mockito.{when, mock => jmock}
 
 class TestSparkCubingStep extends SparderBaseFunSuite with SharedSparkSession with LocalMetadata {
 
   test("auto set driver memory by cuboid num") {
-    assert(NSparkCubingStep.computeDriverMemory(10) == "1024m")
-    assert(NSparkCubingStep.computeDriverMemory(100) == "1024m")
-    assert(NSparkCubingStep.computeDriverMemory(1000) == "1152m")
-    assert(NSparkCubingStep.computeDriverMemory(5000) == "1664m")
-    assert(NSparkCubingStep.computeDriverMemory(10000) == "2304m")
-    assert(NSparkCubingStep.computeDriverMemory(50000) == "4096m")
-    assert(NSparkCubingStep.computeDriverMemory(100000) == "4096m")
+    assert(AbstractExecutable.computeDriverMemory(10) == 1024)
+    assert(AbstractExecutable.computeDriverMemory(100) == 1024)
+    assert(AbstractExecutable.computeDriverMemory(1000) == 1280)
+    assert(AbstractExecutable.computeDriverMemory(5000) == 2304)
+    assert(AbstractExecutable.computeDriverMemory(10000) == 3584)
+    assert(AbstractExecutable.computeDriverMemory(50000) == 4096)
+    assert(AbstractExecutable.computeDriverMemory(100000) == 4096)
   }
 }

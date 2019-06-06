@@ -60,6 +60,7 @@ import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.MailService;
+import org.apache.kylin.common.util.StringUtil;
 import org.apache.kylin.job.constant.JobIssueEnum;
 import org.apache.kylin.job.dao.ExecutableOutputPO;
 import org.apache.kylin.job.exception.ExecuteException;
@@ -77,6 +78,7 @@ import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.persistence.transaction.TransactionException;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
+import io.kyligence.kap.metadata.cube.model.NBatchConstants;
 import io.kyligence.kap.metadata.cube.model.NDataLayout;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
@@ -671,6 +673,32 @@ public abstract class AbstractExecutable implements Executable, Idempotent {
 
     public Set<String> getDependencies(KylinConfig config) {
         return Sets.newHashSet();
+    }
+
+    private static double computeTableAnalyzeMemory() {
+        KylinConfig config = KylinConfig.getInstanceFromEnv();
+        return config.getSparkEngineDriverMemoryTableSampling();
+    }
+
+    public double computeStepDriverMemory() {
+        if (getJobType() == JobTypeEnum.TABLE_SAMPLING) {
+            return computeTableAnalyzeMemory();
+        }
+
+        val layouts = getParam(NBatchConstants.P_LAYOUT_IDS);
+        if (layouts != null) {
+            return computeDriverMemory(StringUtil.splitAndTrim(layouts, ",").length);
+        }
+        return 0;
+    }
+
+    public static Integer computeDriverMemory(int cuboidNum) {
+        KylinConfig config = KylinConfig.getInstanceFromEnv();
+        int driverMemoryGrowth = config.getSparkEngineDriverMemoryGrowth();
+        int driverMemoryMaximum = config.getSparkEngineDriverMemoryMaximum();
+        int driverMemoryBase = config.getSparkEngineDriverMemoryBase();
+        driverMemoryBase += (cuboidNum / 1000) * driverMemoryGrowth;
+        return Math.min(driverMemoryBase, driverMemoryMaximum);
     }
 
     @Override

@@ -310,7 +310,11 @@ public class NSparkExecutable extends AbstractExecutable {
     }
 
     protected Map<String, String> getSparkConfigOverride(KylinConfig config) {
-        return config.getSparkConfigOverride();
+        Map<String, String> sparkConfigOverride = config.getSparkConfigOverride();
+        if (!sparkConfigOverride.containsKey("spark.driver.memory")) {
+            sparkConfigOverride.put("spark.driver.memory", computeStepDriverMemory() + "m");
+        }
+        return sparkConfigOverride;
     }
 
     protected String generateSparkCmd(KylinConfig config, String hadoopConf, String jars, String kylinJobJar,
@@ -405,5 +409,4 @@ public class NSparkExecutable extends AbstractExecutable {
     public void mergerMetadata(MetadataMerger merger) {
         throw new UnsupportedOperationException();
     }
-
 }

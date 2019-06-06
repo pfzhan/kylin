@@ -650,6 +650,14 @@ abstract public class KylinConfigBase implements Serializable {
         return Integer.parseInt(getOptional("kylin.job.max-concurrent-jobs", "10"));
     }
 
+    public Boolean getAutoSetConcurrentJob() {
+        return Boolean.parseBoolean(getOptional("kylin.job.auto-set-concurrent-jobs", "true"));
+    }
+
+    public double getMaxLocalConsumptionRatio() {
+        return Double.parseDouble(getOptional("kylin.job.max-local-consumption-ratio", "0.5"));
+    }
+
     public int getCubingInMemSamplingPercent() {
         int percent = Integer.parseInt(this.getOptional("kylin.job.sampling-percentage", "100"));
         percent = Math.max(percent, 1);
@@ -1000,8 +1008,16 @@ abstract public class KylinConfigBase implements Serializable {
         return Double.parseDouble(getOptional("kylin.engine.max-allocation-proportion", "0.9"));
     }
 
+    public int getSparkEngineDriverMemoryTableSampling() {
+        return Integer.parseInt(getOptional("kylin.engine.driver-memory-table-sampling", "512"));
+    }
+
+    public int getSparkEngineDriverMemoryBase() {
+        return Integer.parseInt(getOptional("kylin.engine.driver-memory-base", "1024"));
+    }
+
     public int getSparkEngineDriverMemoryGrowth() {
-        return Integer.parseInt(getOptional("kylin.engine.driver-memory-growth", "128"));
+        return Integer.parseInt(getOptional("kylin.engine.driver-memory-growth", "256"));
     }
 
     public int getSparkEngineDriverMemoryMaximum() {

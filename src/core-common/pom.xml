@@ -68,6 +68,11 @@
             <version>0.1.2</version>
         </dependency>
 
+        <dependency>
+            <groupId>com.github.oshi</groupId>
+            <artifactId>oshi-core</artifactId>
+        </dependency>
+
         <!--<dependency>-->
             <!--<groupId>io.kyligence.ke</groupId>-->
             <!--<artifactId>kap-external</artifactId>-->

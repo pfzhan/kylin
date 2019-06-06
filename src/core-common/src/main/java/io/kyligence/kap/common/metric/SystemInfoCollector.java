@@ -21,25 +21,41 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+package io.kyligence.kap.common.metric;
 
-package io.kyligence.kap.metadata.cube.model;
+import lombok.val;
+import oshi.SystemInfo;
+import oshi.hardware.HardwareAbstractionLayer;
+import oshi.software.os.OperatingSystem;
 
-public interface NBatchConstants {
-    String P_CUBOID_AGG_UDF = "newtenCuboidAggUDF";
-    String P_DATAFLOW_ID = "dataflowId";
-    String P_SEGMENT_IDS = "segmentIds";
-    String P_JOB_ID = "jobId";
-    String P_JOB_TYPE = "jobType";
-    String P_LAYOUT_IDS = "layoutIds";
-    String P_LAYOUT_ID_PATH = "layoutIdPath";
-    String P_CLASS_NAME = "className";
-    String P_JARS = "jars";
-    String P_DIST_META_URL = "distMetaUrl";
-    String P_OUTPUT_META_URL = "outputMetaUrl";
-    String P_PROJECT_NAME = "project";
-    String P_TABLE_NAME = "table";
-    String P_SAMPLING_ROWS = "samplingRows";
-    String P_TARGET_MODEL = "targetModel";
-    String P_DATA_RANGE_START = "dataRangeStart";
-    String P_DATA_RANGE_END = "dataRangeEnd";
+public final class SystemInfoCollector {
+
+    private static final long KIBI = 1L << 10;
+    private static final long MEBI = 1L << 20;
+    private static final long GIBI = 1L << 30;
+    private static final long TEBI = 1L << 40;
+    private static final long PEBI = 1L << 50;
+    private static final long EXBI = 1L << 60;
+
+    private static HardwareAbstractionLayer hal = null;
+
+    private static OperatingSystem os = null;
+
+    static {
+        init();
+    }
+
+    public static void init() {
+        SystemInfo si = new SystemInfo();
+        hal = si.getHardware();
+        os = si.getOperatingSystem();
+    }
+
+    public static Integer getAvailableMemoryInfo() {
+        val mem = hal.getMemory();
+        if (mem.getAvailable() % MEBI == 0) {
+            return Integer.parseInt(String.format("%d", mem.getAvailable() / MEBI));
+        }
+        return Integer.parseInt(String.format("%.0f", (double) mem.getAvailable() / MEBI));
+    }
 }

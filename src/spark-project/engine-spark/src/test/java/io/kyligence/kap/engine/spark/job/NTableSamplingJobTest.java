@@ -84,6 +84,7 @@ public class NTableSamplingJobTest extends NLocalWithSparkSessionTest {
     public void testTableSamplingJob() {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
 
+        val currMem = NDefaultScheduler.currentAvailableMem();
         String tableName = "DEFAULT.TEST_KYLIN_FACT";
         NTableMetadataManager tableMgr = NTableMetadataManager.getInstance(config, PROJECT);
         final TableDesc tableDesc = tableMgr.getTableDesc(tableName);
@@ -94,7 +95,10 @@ public class NTableSamplingJobTest extends NLocalWithSparkSessionTest {
         NExecutableManager execMgr = NExecutableManager.getInstance(config, PROJECT);
         val samplingJob = NTableSamplingJob.create(tableDesc, PROJECT, "ADMIN", 20_000_000);
         execMgr.addJob(samplingJob);
-
+        val tableSamplingMem = config.getSparkEngineDriverMemoryTableSampling();
+        await().atMost(60000, TimeUnit.MILLISECONDS).untilAsserted(() -> {
+            Assert.assertEquals(currMem - tableSamplingMem, NDefaultScheduler.currentAvailableMem(), 0.1);
+        });
         Assert.assertEquals(ExecutableState.READY, samplingJob.getStatus());
         final String jobId = samplingJob.getId();
         await().atMost(3, TimeUnit.MINUTES).until(() -> !execMgr.getJob(jobId).getStatus().isReadyOrRunning());
@@ -106,6 +110,10 @@ public class NTableSamplingJobTest extends NLocalWithSparkSessionTest {
         Assert.assertEquals(10, tableExtAfter.getSampleRows().size());
         Assert.assertEquals(10_000, tableExtAfter.getTotalRows());
         Assert.assertEquals(tableName, tableExtAfter.getIdentity());
+
+        await().atMost(60000, TimeUnit.MILLISECONDS).untilAsserted(() -> {
+            Assert.assertEquals(currMem, NDefaultScheduler.currentAvailableMem(), 0.1);
+        });
 
         // assert table ext
         final String metadataPath = config.getMetadataUrl().toString();
@@ -122,6 +130,7 @@ public class NTableSamplingJobTest extends NLocalWithSparkSessionTest {
     @Test
     public void testPauseTableSamplingJob() {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
+        val currMem = NDefaultScheduler.currentAvailableMem();
         String tableName = "DEFAULT.TEST_KYLIN_FACT";
         NTableMetadataManager tableMgr = NTableMetadataManager.getInstance(config, PROJECT);
         final TableDesc tableDesc = tableMgr.getTableDesc(tableName);
@@ -132,5 +141,8 @@ public class NTableSamplingJobTest extends NLocalWithSparkSessionTest {
 
         execMgr.pauseJob(samplingJob.getId());
         Assert.assertEquals(ExecutableState.PAUSED, execMgr.getJob(samplingJob.getId()).getStatus());
+        await().atMost(60000, TimeUnit.MILLISECONDS).untilAsserted(() -> {
+            Assert.assertEquals(currMem, NDefaultScheduler.currentAvailableMem(), 0.1);
+        });
     }
 }

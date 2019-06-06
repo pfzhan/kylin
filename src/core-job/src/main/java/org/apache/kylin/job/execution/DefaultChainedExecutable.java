@@ -46,8 +46,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 
-import io.kyligence.kap.common.scheduler.JobFinishedNotifier;
-import io.kyligence.kap.common.scheduler.SchedulerEventBusFactory;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.constant.JobIssueEnum;
 import org.apache.kylin.job.exception.ExecuteException;
@@ -55,6 +53,9 @@ import org.apache.kylin.job.exception.JobStoppedException;
 import org.apache.kylin.job.exception.JobSuicideException;
 
 import com.google.common.collect.Lists;
+
+import io.kyligence.kap.common.scheduler.JobFinishedNotifier;
+import io.kyligence.kap.common.scheduler.SchedulerEventBusFactory;
 
 /**
  */
@@ -128,7 +129,8 @@ public class DefaultChainedExecutable extends AbstractExecutable implements Chai
     @Override
     protected void onExecuteFinished(ExecuteResult result, ExecutableContext executableContext) {
         // dispatch job-finished message out
-        SchedulerEventBusFactory.getInstance(KylinConfig.getInstanceFromEnv()).postWithLimit(new JobFinishedNotifier(getProject()));
+        SchedulerEventBusFactory.getInstance(KylinConfig.getInstanceFromEnv())
+                .postWithLimit(new JobFinishedNotifier(getProject()));
 
         if (isDiscarded() || isPaused()) {
             return;
@@ -182,6 +184,7 @@ public class DefaultChainedExecutable extends AbstractExecutable implements Chai
             //TODO: normal?
             updateJobOutput(getProject(), getId(), ExecutableState.READY, null);
         }
+
     }
 
     @Override
@@ -240,4 +243,5 @@ public class DefaultChainedExecutable extends AbstractExecutable implements Chai
         }
         return true;
     }
+
 }

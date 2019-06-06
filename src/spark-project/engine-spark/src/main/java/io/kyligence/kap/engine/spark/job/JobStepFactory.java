@@ -51,6 +51,7 @@ public class JobStepFactory {
 
         step.setParams(parent.getParams());
         step.setProject(parent.getProject());
+        step.setJobType(parent.getJobType());
         parent.addTask(step);
         //after addTask, step's id is changed
 
@@ -87,6 +88,7 @@ public class JobStepFactory {
         step.setParams(parent.getParams());
         step.setProject(parent.getProject());
         step.setTargetSubject(parent.getTargetSubject());
+        step.setJobType(parent.getJobType());
         if (step instanceof NSparkCleanupAfterMergeStep) {
             final Segments<NDataSegment> mergingSegments = df.getMergingSegments(segments.iterator().next());
             step.setParam(NBatchConstants.P_SEGMENT_IDS,

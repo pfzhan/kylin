@@ -58,6 +58,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
+import io.kyligence.kap.common.metric.SystemInfoCollector;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.metadata.cube.storage.ProjectStorageInfoCollector;
 import io.kyligence.kap.metadata.cube.storage.StorageInfoEnum;
@@ -81,6 +82,7 @@ public class NDefaultScheduler implements Scheduler<AbstractExecutable>, Connect
     private volatile boolean hasStarted = false;
     private JobEngineConfig jobEngineConfig;
     private ProjectStorageInfoCollector collector;
+    private static volatile double availableMemory = Double.MAX_VALUE;
 
     private static final Map<String, NDefaultScheduler> INSTANCE_MAP = Maps.newConcurrentMap();
 
@@ -132,8 +134,9 @@ public class NDefaultScheduler implements Scheduler<AbstractExecutable>, Connect
                     switch (output.getState()) {
                     case READY:
                         nReady++;
-                        if (!isJobPoolFull() && !reachStorageQuota()) {
+                        if (!isJobPoolFull() && !reachStorageQuota() && !reachMemoryQuota(id)) {
                             logger.info("fetcher schedule " + id);
+
                             scheduleJob(id);
                         }
                         break;
@@ -167,6 +170,22 @@ public class NDefaultScheduler implements Scheduler<AbstractExecutable>, Connect
             }
         }
 
+        private boolean reachMemoryQuota(String id) {
+            KylinConfig config = KylinConfig.getInstanceFromEnv();
+            if (!config.getAutoSetConcurrentJob()) {
+                return false;
+            }
+            logger.info("System available memory is {} when schedule job {}", availableMemory, id);
+
+            if (availableMemory < 1024) {
+                logger.info(String.format(
+                        "Reach memory quota limit, [quota = os available memory * kylin.job.max-local-consumption-ratio], no job will be scheduled!!!"));
+                return true;
+            }
+
+            return false;
+        }
+
         private boolean reachStorageQuota() {
             val storageVolumeInfo = collector.getStorageVolumeInfo(KylinConfig.getInstanceFromEnv(), project);
             val totalSize = storageVolumeInfo.getTotalStorageSize();
@@ -198,8 +217,10 @@ public class NDefaultScheduler implements Scheduler<AbstractExecutable>, Connect
             AbstractExecutable executable = null;
             String jobDesc = null;
             try {
-                val executableManager = NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+                val config = KylinConfig.getInstanceFromEnv();
+                val executableManager = NExecutableManager.getInstance(config, project);
                 executable = executableManager.getJob(id);
+                allocateMemoryQuotaIfNeeded(executable.computeStepDriverMemory(), project, id);
                 jobDesc = executable.toString();
                 logger.info("{} prepare to schedule", jobDesc);
                 context.addRunningJob(executable);
@@ -208,9 +229,12 @@ public class NDefaultScheduler implements Scheduler<AbstractExecutable>, Connect
             } catch (Exception ex) {
                 if (executable != null)
                     context.removeRunningJob(executable);
+                releaseMemoryQuotaIfNeeded(executable.computeStepDriverMemory(), executable.getProject(),
+                        executable.getId());
                 logger.warn(jobDesc + " fail to schedule", ex);
             }
         }
+
     }
 
     private class JobRunner implements Runnable {
@@ -239,6 +263,8 @@ public class NDefaultScheduler implements Scheduler<AbstractExecutable>, Connect
             } finally {
                 threadToInterrupt.remove(executable.getId());
                 context.removeRunningJob(executable);
+                releaseMemoryQuotaIfNeeded(executable.computeStepDriverMemory(), executable.getProject(),
+                        executable.getId());
             }
         }
     }
@@ -291,6 +317,7 @@ public class NDefaultScheduler implements Scheduler<AbstractExecutable>, Connect
 
     @Override
     public synchronized void init(JobEngineConfig jobEngineConfig, JobLock lock) {
+        KylinConfig config = KylinConfig.getInstanceFromEnv();
         jobLock = lock;
 
         String serverMode = jobEngineConfig.getServerMode();
@@ -319,6 +346,12 @@ public class NDefaultScheduler implements Scheduler<AbstractExecutable>, Connect
         fetcherPool = Executors.newScheduledThreadPool(1,
                 new NamedThreadFactory("FetchJobWorker(project:" + project + ")"));
         int corePoolSize = jobEngineConfig.getMaxConcurrentJobLimit();
+        if (config.getAutoSetConcurrentJob()) {
+            corePoolSize = Integer.MAX_VALUE;
+            val availableMemoryRate = config.getMaxLocalConsumptionRatio();
+            availableMemory = SystemInfoCollector.getAvailableMemoryInfo() * availableMemoryRate;
+            logger.info("Scheduler can use memory {}", availableMemory);
+        }
         jobPool = new ThreadPoolExecutor(corePoolSize, corePoolSize, Long.MAX_VALUE, TimeUnit.DAYS,
                 new SynchronousQueue<>(), new NamedThreadFactory("RunJobWorker(project:" + project + ")"));
         context = new DefaultContext(Maps.newConcurrentMap(), jobEngineConfig.getConfig());
@@ -357,6 +390,28 @@ public class NDefaultScheduler implements Scheduler<AbstractExecutable>, Connect
     @Override
     public boolean hasStarted() {
         return this.hasStarted;
+    }
+
+    public static synchronized void allocateMemoryQuotaIfNeeded(double mem, String project, String jobId) {
+        KylinConfig config = KylinConfig.getInstanceFromEnv();
+        if (config.getAutoSetConcurrentJob()) {
+            availableMemory -= mem;
+            logger.info("Project {} job {} allocate memory quota {}, scheduler available memory {}", project, jobId,
+                    mem, availableMemory);
+        }
+    }
+
+    public static synchronized void releaseMemoryQuotaIfNeeded(double mem, String project, String jobId) {
+        KylinConfig config = KylinConfig.getInstanceFromEnv();
+        if (config.getAutoSetConcurrentJob()) {
+            availableMemory += mem;
+            logger.info("Project {} job {} release memory quota {}, scheduler available memory {}", project, jobId, mem,
+                    availableMemory);
+        }
+    }
+
+    public static double currentAvailableMem() {
+        return availableMemory;
     }
 
 }
