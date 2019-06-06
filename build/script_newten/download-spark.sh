@@ -25,7 +25,7 @@ else
     fi
 fi
 
-tar -zxvf build/${spark_pkg_file_name} -C build/   || { exit 1; }
+tar -xvf build/${spark_pkg_file_name} -C build/   || { exit 1; }
 mv build/${spark_pkg_name} build/spark
 
 # Remove unused components in Spark
