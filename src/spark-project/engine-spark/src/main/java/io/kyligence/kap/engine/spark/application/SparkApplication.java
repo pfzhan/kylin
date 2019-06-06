@@ -30,6 +30,7 @@ import java.nio.file.Paths;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -48,7 +49,6 @@ import org.apache.spark.utils.ResourceUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
 
 import io.kyligence.kap.common.obf.IKeep;
@@ -68,6 +68,7 @@ public abstract class SparkApplication implements Application, IKeep {
     protected volatile String jobId;
     protected SparkSession ss;
     protected String project;
+    protected int layoutSize = -1;
 
     public void execute(String[] args) {
         try {
@@ -108,6 +109,9 @@ public abstract class SparkApplication implements Application, IKeep {
         String hdfsMetalUrl = getParam(NBatchConstants.P_DIST_META_URL);
         jobId = getParam(NBatchConstants.P_JOB_ID);
         project = getParam(NBatchConstants.P_PROJECT_NAME);
+        if (getParam(NBatchConstants.P_LAYOUT_IDS) != null) {
+            layoutSize = StringUtils.split(getParam(NBatchConstants.P_LAYOUT_IDS), ",").length;
+        }
         try (KylinConfig.SetAndUnsetThreadLocalConfig autoCloseConfig = KylinConfig
                 .setAndUnsetThreadLocalConfig(KylinConfig.loadKylinConfigFromHdfs(hdfsMetalUrl))) {
             config = autoCloseConfig.get();
@@ -176,13 +180,14 @@ public abstract class SparkApplication implements Application, IKeep {
     private void autoSetSparkConf(SparkConf sparkConf) throws Exception {
         logger.info("Start set spark conf automatically.");
         SparkConfHelper helper = new SparkConfHelper();
+        helper.setFetcher(KylinBuildEnv.get().clusterInfoFetcher());
         Path shareDir = config.getJobTmpShareDir(project, jobId);
         String contentSize = chooseContentSize(shareDir);
         // add content size with unit
         helper.setOption(SparkConfHelper.SOURCE_TABLE_SIZE, contentSize);
+        helper.setOption(SparkConfHelper.LAYOUT_SIZE, Integer.toString(layoutSize));
         Map<String, String> configOverride = config.getSparkConfigOverride();
-        Preconditions.checkState(configOverride.containsKey(SparkConfHelper.EXECUTOR_INSTANCES));
-        helper.setConf(SparkConfHelper.EXECUTOR_INSTANCES, configOverride.get(SparkConfHelper.EXECUTOR_INSTANCES));
+        helper.setConf(SparkConfHelper.DEFAULT_QUEUE, configOverride.get(SparkConfHelper.DEFAULT_QUEUE));
         helper.generateSparkConf();
         helper.applySparkConf(sparkConf);
     }

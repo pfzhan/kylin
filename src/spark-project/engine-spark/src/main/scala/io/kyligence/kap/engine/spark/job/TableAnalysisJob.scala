@@ -28,7 +28,7 @@ import com.google.common.collect.Maps
 import io.kyligence.kap.engine.spark.NSparkCubingEngine
 import io.kyligence.kap.engine.spark.builder.CreateFlatTable
 import io.kyligence.kap.engine.spark.stats.analyzer.TableAnalyzerJob
-import org.apache.kylin.common.KylinConfig
+import io.kyligence.kap.engine.spark.utils.SparkConfHelper
 import org.apache.kylin.metadata.model.TableDesc
 import org.apache.kylin.source.SourceFactory
 import org.apache.spark.sql.functions._
@@ -44,11 +44,10 @@ class TableAnalysisJob(tableDesc: TableDesc,
   val taskFactor = 4
 
   def analyzeTable(): Array[Row] = {
-    val config = KylinConfig.getInstanceFromEnv
-    val map = config.getSparkConfigOverride
+    val sparkConf = ss.sparkContext.getConf
 
-    val instances = Integer.parseInt(map.get("spark.executor.instances"))
-    val cores = Integer.parseInt(map.get("spark.executor.cores"))
+    val instances = sparkConf.get(SparkConfHelper.EXECUTOR_INSTANCES).toInt
+    val cores = sparkConf.get(SparkConfHelper.EXECUTOR_CORES).toInt
     val numPartitions = instances * taskFactor * cores
     val rowsTakenInEachPartition = rowCount / numPartitions
 

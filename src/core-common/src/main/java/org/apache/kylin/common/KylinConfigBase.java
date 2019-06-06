@@ -1024,6 +1024,14 @@ abstract public class KylinConfigBase implements Serializable {
         return Integer.parseInt(getOptional("kylin.engine.driver-memory-maximum", "4096"));
     }
 
+    public int getSparkEngineBaseExuctorInstances() {
+        return Integer.parseInt(getOptional("kylin.engine.base-executor-instance", "5"));
+    }
+
+    public String getSparkEngineExuctorInstanceStrategy() {
+        return getOptional("kylin.engine.executor-instance-strategy", "100,2,500,3,1000,4");
+    }
+
     // ============================================================================
     // ENGINE.SPARK
     // ============================================================================

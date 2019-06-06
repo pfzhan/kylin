@@ -24,6 +24,7 @@ package org.apache.spark.conf.rule
 
 
 import io.kyligence.kap.engine.spark.utils.SparkConfHelper
+import org.apache.kylin.common.KylinConfig
 import org.apache.spark.internal.Logging
 import org.apache.spark.util.Utils
 
@@ -75,12 +76,48 @@ class ExecutorOverheadRule extends SparkConfRule {
   }
 }
 
-
 class ExecutorInstancesRule extends SparkConfRule {
   override def apply(helper: SparkConfHelper): Unit = {
-    require(helper.getConf(SparkConfHelper.EXECUTOR_INSTANCES) != null)
-    val instances = helper.getConf(SparkConfHelper.EXECUTOR_INSTANCES)
-    helper.setConf(SparkConfHelper.EXECUTOR_INSTANCES, instances)
+    val queue = helper.getConf(SparkConfHelper.DEFAULT_QUEUE)
+    val layoutSize = helper.getOption(SparkConfHelper.LAYOUT_SIZE)
+    val baseExecutorInstances = KylinConfig.getInstanceFromEnv.getSparkEngineBaseExuctorInstances
+    val calculateExecutorInsByLayoutSize = calculateExecutorInstanceSizeByLayoutSize(Integer.parseInt(layoutSize))
+
+    val availableMem = helper.getFetcher.fetchQueueAvailableResource(queue).available.memory
+    val executorMem = Utils.byteStringAsMb(helper.getConf(SparkConfHelper.EXECUTOR_MEMORY))
+    +Utils.byteStringAsMb(helper.getConf(SparkConfHelper.EXECUTOR_OVERHEAD))
+    val queueAvailableInstance = availableMem / executorMem
+    val instance = Math.min(calculateExecutorInsByLayoutSize.toLong, queueAvailableInstance)
+    logInfo(s"Maximum instance that the current queue can set: $queueAvailableInstance")
+    val executorInstance = Math.max(instance.toLong, baseExecutorInstances.toLong).toString
+
+    helper.setConf(SparkConfHelper.EXECUTOR_INSTANCES, executorInstance)
+  }
+
+  def calculateExecutorInstanceSizeByLayoutSize(layoutSize: Int): Int = {
+    logInfo(s"Calculate the number of executor instance size based on the number of layouts: $layoutSize")
+    val config: KylinConfig = KylinConfig.getInstanceFromEnv
+    val baseInstances: Integer = config.getSparkEngineBaseExuctorInstances
+    var instanceMultiple = 1
+
+    if (layoutSize != -1) {
+      val instanceStrategy: String = config.getSparkEngineExuctorInstanceStrategy
+      val tuple = instanceStrategy.split(",")
+        .zipWithIndex
+        .partition(tp => tp._2 % 2 == 0)
+
+      val choosen = tuple._1
+        .map(_._1.toInt)
+        .zip(tuple._2.map(_._1.toInt))
+        .filter(tp => tp._1 <= layoutSize)
+        .lastOption
+
+      if (choosen != None) {
+        instanceMultiple = choosen.last._2.toInt
+      }
+    }
+
+    baseInstances * instanceMultiple
   }
 }
 
@@ -91,4 +128,3 @@ class ShufflePartitionsRule extends SparkConfRule {
     helper.setConf(SparkConfHelper.SHUFFLE_PARTITIONS, partitions)
   }
 }
-

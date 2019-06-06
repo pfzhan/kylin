@@ -41,6 +41,8 @@ import org.slf4j.LoggerFactory;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Maps;
 
+import io.kyligence.kap.cluster.ClusterInfoFetcher;
+
 public class SparkConfHelper {
     protected static final Logger logger = LoggerFactory.getLogger(SparkConfHelper.class);
 
@@ -49,9 +51,13 @@ public class SparkConfHelper {
     // spark configurations
     private HashMap<String, String> confs = Maps.newHashMap();
 
+    private ClusterInfoFetcher fetcher;
+
     // options key
     public static final String SOURCE_TABLE_SIZE = "source_table_size";
+    public static final String LAYOUT_SIZE = "layout_size";
     // configurations key
+    public static final String DEFAULT_QUEUE = "spark.yarn.queue";
     public static final String EXECUTOR_INSTANCES = "spark.executor.instances";
     public static final String EXECUTOR_CORES = "spark.executor.cores";
     public static final String EXECUTOR_MEMORY = "spark.executor.memory";
@@ -61,11 +67,8 @@ public class SparkConfHelper {
     public static final String DRIVER_OVERHEAD = "spark.driver.memoryOverhead";
     public static final String DRIVER_CORES = "spark.driver.cores";
 
-    private static final List<SparkConfRule> EXECUTOR_RULES = ImmutableList.of(
-            new ExecutorMemoryRule(),
-            new ExecutorCoreRule(),
-            new ExecutorOverheadRule(),
-            new ExecutorInstancesRule(),
+    private static final List<SparkConfRule> EXECUTOR_RULES = ImmutableList.of(new ExecutorMemoryRule(),
+            new ExecutorCoreRule(), new ExecutorOverheadRule(), new ExecutorInstancesRule(),
             new ShufflePartitionsRule());
 
     public void generateSparkConf() {
@@ -86,6 +89,14 @@ public class SparkConfHelper {
 
     public String getConf(String key) {
         return confs.getOrDefault(key, null);
+    }
+
+    public ClusterInfoFetcher getFetcher() {
+        return fetcher;
+    }
+
+    public void setFetcher(ClusterInfoFetcher fetcher) {
+        this.fetcher = fetcher;
     }
 
     public void applySparkConf(SparkConf sparkConf) {

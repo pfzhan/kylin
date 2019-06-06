@@ -24,23 +24,51 @@
 
 package io.kyligence.kap.engine.spark.utils;
 
+import static org.mockito.Mockito.mock;
+
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.kylin.common.KylinConfig;
 import org.apache.spark.SparkConf;
+import org.apache.spark.conf.rule.ExecutorInstancesRule;
+import org.junit.After;
 import org.junit.Assert;
+import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Mockito;
 
 import com.google.common.collect.Lists;
 
-public class SparkConfHelperTest {
+import io.kyligence.kap.cluster.AvailableResource;
+import io.kyligence.kap.cluster.ResourceInfo;
+import io.kyligence.kap.cluster.YarnInfoFetcher;
+import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.engine.spark.job.KylinBuildEnv;
+
+public class SparkConfHelperTest extends NLocalFileMetadataTestCase {
+    private YarnInfoFetcher fetcher = mock(YarnInfoFetcher.class);
+
+    @Before
+    public void setup() throws Exception {
+        staticCreateTestMetadata();
+        KylinBuildEnv.getOrCreate(KylinConfig.getInstanceFromEnv());
+        Mockito.when(fetcher.fetchQueueAvailableResource("default"))
+                .thenReturn(new AvailableResource(new ResourceInfo(100, 100), new ResourceInfo(60480, 100)));
+    }
+
+    @After
+    public void cleanUp() {
+        cleanupTestMetadata();
+    }
 
     @Test
     public void testOneGradeWhenLessTHan1GB() {
         SparkConfHelper helper = new SparkConfHelper();
-        String instances = "10";
+        helper.setFetcher(fetcher);
         helper.setOption(SparkConfHelper.SOURCE_TABLE_SIZE, "1b");
-        helper.setConf(SparkConfHelper.EXECUTOR_INSTANCES, instances);
+        helper.setOption(SparkConfHelper.LAYOUT_SIZE, "10");
+        helper.setConf(SparkConfHelper.DEFAULT_QUEUE, "default");
         SparkConf sparkConf = new SparkConf();
         helper.generateSparkConf();
         helper.applySparkConf(sparkConf);
@@ -48,7 +76,7 @@ public class SparkConfHelperTest {
                 new CompareTuple("1GB", SparkConfHelper.EXECUTOR_MEMORY),
                 new CompareTuple("1", SparkConfHelper.EXECUTOR_CORES),
                 new CompareTuple("512MB", SparkConfHelper.EXECUTOR_OVERHEAD),
-                new CompareTuple(instances, SparkConfHelper.EXECUTOR_INSTANCES),
+                new CompareTuple("5", SparkConfHelper.EXECUTOR_INSTANCES),
                 new CompareTuple("1", SparkConfHelper.SHUFFLE_PARTITIONS));
         compareConf(compareTuples, sparkConf);
     }
@@ -56,9 +84,10 @@ public class SparkConfHelperTest {
     @Test
     public void testTwoGradeWhenLessTHan10GB() {
         SparkConfHelper helper = new SparkConfHelper();
-        String instances = "10";
+        helper.setFetcher(fetcher);
         helper.setOption(SparkConfHelper.SOURCE_TABLE_SIZE, 8L * 1024 * 1024 * 1024 + "b");
-        helper.setConf(SparkConfHelper.EXECUTOR_INSTANCES, instances);
+        helper.setOption(SparkConfHelper.LAYOUT_SIZE, "10");
+        helper.setConf(SparkConfHelper.DEFAULT_QUEUE, "default");
         SparkConf sparkConf = new SparkConf();
         helper.generateSparkConf();
         helper.applySparkConf(sparkConf);
@@ -66,7 +95,7 @@ public class SparkConfHelperTest {
                 new CompareTuple("4GB", SparkConfHelper.EXECUTOR_MEMORY),
                 new CompareTuple("5", SparkConfHelper.EXECUTOR_CORES),
                 new CompareTuple("1GB", SparkConfHelper.EXECUTOR_OVERHEAD),
-                new CompareTuple(instances, SparkConfHelper.EXECUTOR_INSTANCES),
+                new CompareTuple("5", SparkConfHelper.EXECUTOR_INSTANCES),
                 new CompareTuple("256", SparkConfHelper.SHUFFLE_PARTITIONS));
         compareConf(compareTuples, sparkConf);
     }
@@ -74,9 +103,10 @@ public class SparkConfHelperTest {
     @Test
     public void testThreeGradeWhenLessHan100GB() {
         SparkConfHelper helper = new SparkConfHelper();
-        String instances = "10";
+        helper.setFetcher(fetcher);
         helper.setOption(SparkConfHelper.SOURCE_TABLE_SIZE, 50L * 1024 * 1024 * 1024 + "b");
-        helper.setConf(SparkConfHelper.EXECUTOR_INSTANCES, instances);
+        helper.setOption(SparkConfHelper.LAYOUT_SIZE, "10");
+        helper.setConf(SparkConfHelper.DEFAULT_QUEUE, "default");
         SparkConf sparkConf = new SparkConf();
         helper.generateSparkConf();
         helper.applySparkConf(sparkConf);
@@ -84,7 +114,7 @@ public class SparkConfHelperTest {
                 new CompareTuple("10GB", SparkConfHelper.EXECUTOR_MEMORY),
                 new CompareTuple("5", SparkConfHelper.EXECUTOR_CORES),
                 new CompareTuple("2GB", SparkConfHelper.EXECUTOR_OVERHEAD),
-                new CompareTuple(instances, SparkConfHelper.EXECUTOR_INSTANCES),
+                new CompareTuple("5", SparkConfHelper.EXECUTOR_INSTANCES),
                 new CompareTuple("1600", SparkConfHelper.SHUFFLE_PARTITIONS));
         compareConf(compareTuples, sparkConf);
     }
@@ -92,9 +122,10 @@ public class SparkConfHelperTest {
     @Test
     public void testFourGradeWhenGreaterThanOrEqual100GB() {
         SparkConfHelper helper = new SparkConfHelper();
-        String instances = "10";
+        helper.setFetcher(fetcher);
         helper.setOption(SparkConfHelper.SOURCE_TABLE_SIZE, 100L * 1024 * 1024 * 1024 + "b");
-        helper.setConf(SparkConfHelper.EXECUTOR_INSTANCES, instances);
+        helper.setOption(SparkConfHelper.LAYOUT_SIZE, "10");
+        helper.setConf(SparkConfHelper.DEFAULT_QUEUE, "default");
         SparkConf sparkConf = new SparkConf();
         helper.generateSparkConf();
         helper.applySparkConf(sparkConf);
@@ -102,7 +133,7 @@ public class SparkConfHelperTest {
                 new CompareTuple("16GB", SparkConfHelper.EXECUTOR_MEMORY),
                 new CompareTuple("5", SparkConfHelper.EXECUTOR_CORES),
                 new CompareTuple("4GB", SparkConfHelper.EXECUTOR_OVERHEAD),
-                new CompareTuple(instances, SparkConfHelper.EXECUTOR_INSTANCES),
+                new CompareTuple("5", SparkConfHelper.EXECUTOR_INSTANCES),
                 new CompareTuple("3200", SparkConfHelper.SHUFFLE_PARTITIONS));
         compareConf(compareTuples, sparkConf);
     }
@@ -122,4 +153,80 @@ public class SparkConfHelperTest {
             this.key = key;
         }
     }
+
+    @Test
+    public void testComputeExecutorInstanceSize() {
+        ExecutorInstancesRule executorInstancesRule = new ExecutorInstancesRule();
+        Assert.assertEquals(5, executorInstancesRule.calculateExecutorInstanceSizeByLayoutSize(10));
+        Assert.assertEquals(10, executorInstancesRule.calculateExecutorInstanceSizeByLayoutSize(100));
+        Assert.assertEquals(10, executorInstancesRule.calculateExecutorInstanceSizeByLayoutSize(300));
+        Assert.assertEquals(15, executorInstancesRule.calculateExecutorInstanceSizeByLayoutSize(600));
+        Assert.assertEquals(20, executorInstancesRule.calculateExecutorInstanceSizeByLayoutSize(1000));
+        Assert.assertEquals(20, executorInstancesRule.calculateExecutorInstanceSizeByLayoutSize(1200));
+    }
+
+    /**
+     *  v1 = kylin.engine.base-executor-instance
+     *  v2 = Calculate the number of instances based on layout size. See the calculation rules.
+     *     kylin.engine.executor-instance-strategy = "100,2,500,3,1000,4"
+     *     if SparkConfHelper.LAYOUT_SIZE is -1,then v2 = v1
+     *  v3 = Calculate the number of instances based on the available resources of the queue.
+     *  rule --> spark.executor.instances = max(v1, min(v2, v3))
+     */
+    @Test
+    public void testExecutorInstancesRule() {
+        ExecutorInstancesRule instancesRule = new ExecutorInstancesRule();
+        SparkConfHelper helper = new SparkConfHelper();
+        helper.setFetcher(fetcher);
+        // case: v1 == v2 > v3, spark.executor.instances = v1
+        resetSparkConfHelper(helper);
+        Mockito.when(fetcher.fetchQueueAvailableResource("default"))
+                .thenReturn(new AvailableResource(new ResourceInfo(100, 100), new ResourceInfo(60480, 100)));
+        instancesRule.apply(helper);
+        Assert.assertEquals("5", helper.getConf(SparkConfHelper.EXECUTOR_INSTANCES));
+
+        // case: v1 == v2 < v3, spark.executor.instances = v1
+        resetSparkConfHelper(helper);
+        Mockito.when(fetcher.fetchQueueAvailableResource("default"))
+                .thenReturn(new AvailableResource(new ResourceInfo(20480, 100), new ResourceInfo(60480, 100)));
+        instancesRule.apply(helper);
+        Assert.assertEquals("5", helper.getConf(SparkConfHelper.EXECUTOR_INSTANCES));
+
+        // case: v1 < v2 < v3, spark.executor.instances = v2
+        resetSparkConfHelper(helper);
+        helper.setOption(SparkConfHelper.LAYOUT_SIZE, "200");
+        instancesRule.apply(helper);
+        Assert.assertEquals("10", helper.getConf(SparkConfHelper.EXECUTOR_INSTANCES));
+
+        // case: v2 < v3 < v1, spark.executor.instances = v1
+        resetSparkConfHelper(helper);
+        System.setProperty("kylin.engine.base-executor-instance", "30");
+        instancesRule.apply(helper);
+        Assert.assertEquals("30", helper.getConf(SparkConfHelper.EXECUTOR_INSTANCES));
+
+        // case: v1 < v2 < v3, spark.executor.instances = v2
+        resetSparkConfHelper(helper);
+        Mockito.when(fetcher.fetchQueueAvailableResource("default"))
+                .thenReturn(new AvailableResource(new ResourceInfo(60480, 100), new ResourceInfo(60480, 100)));
+        helper.setOption(SparkConfHelper.LAYOUT_SIZE, "1200");
+        instancesRule.apply(helper);
+        Assert.assertEquals("20", helper.getConf(SparkConfHelper.EXECUTOR_INSTANCES));
+
+        // case: SparkConfHelper.LAYOUT_SIZE=-1, v1 = v2 < v3, spark.executor.instances = v1
+        resetSparkConfHelper(helper);
+        helper.setOption(SparkConfHelper.LAYOUT_SIZE, "-1");
+        instancesRule.apply(helper);
+        Assert.assertEquals("5", helper.getConf(SparkConfHelper.EXECUTOR_INSTANCES));
+    }
+
+    private void resetSparkConfHelper(SparkConfHelper helper) {
+        helper.setOption(SparkConfHelper.SOURCE_TABLE_SIZE, "1b");
+        helper.setOption(SparkConfHelper.LAYOUT_SIZE, "10");
+        helper.setConf(SparkConfHelper.DEFAULT_QUEUE, "default");
+        helper.setConf(SparkConfHelper.EXECUTOR_MEMORY, "1GB");
+        helper.setConf(SparkConfHelper.EXECUTOR_OVERHEAD, "512MB");
+
+        System.clearProperty("kylin.engine.base-executor-instance");
+    }
+
 }
