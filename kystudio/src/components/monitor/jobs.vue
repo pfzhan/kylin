@@ -473,7 +473,7 @@ export default class JobsList extends Vue {
   jobsList = []
   jobTotal = 0
   allStatus = ['ALL', 'PENDING', 'RUNNING', 'FINISHED', 'ERROR', 'DISCARDED', 'STOPPED']
-  jobTypeFilteArr = ['INDEX_REFRESH', 'INDEX_MERGE', 'INDEX_BUILD', 'INDEX_RECONSTRUCT', 'TABLE_SAMPLING']
+  jobTypeFilteArr = ['INDEX_REFRESH', 'INDEX_MERGE', 'INDEX_BUILD', 'TABLE_SAMPLING']
   targetId = ''
   searchLoading = false
   batchBtnsEnabled = {
