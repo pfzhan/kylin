@@ -22,7 +22,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- 
+
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -55,19 +55,32 @@ public class KylinRelDataTypeSystem extends RelDataTypeSystemImpl {
     public RelDataType deriveSumType(RelDataTypeFactory typeFactory, RelDataType argumentType) {
         if (argumentType instanceof BasicSqlType) {
             switch (argumentType.getSqlTypeName()) {
-            case INTEGER:
-            case SMALLINT:
-            case TINYINT:
-                return typeFactory.createTypeWithNullability(typeFactory.createSqlType(SqlTypeName.BIGINT),
-                        argumentType.isNullable());
-            case DECIMAL:
-                return typeFactory.createTypeWithNullability(
-                        typeFactory.createSqlType(SqlTypeName.DECIMAL, 19, argumentType.getScale()),
-                        argumentType.isNullable());
-            default:
-                break;
+                case INTEGER:
+                case SMALLINT:
+                case TINYINT:
+                    return typeFactory.createTypeWithNullability(typeFactory.createSqlType(SqlTypeName.BIGINT),
+                            argumentType.isNullable());
+                case DECIMAL:
+                    return typeFactory.createTypeWithNullability(
+                            typeFactory.createSqlType(SqlTypeName.DECIMAL,
+                                    Math.max(19, argumentType.getPrecision()),
+                                    argumentType.getScale()),
+                            argumentType.isNullable());
+                default:
+                    break;
             }
         }
         return argumentType;
+    }
+
+    /**
+     * Hive support decimal with 38 digits, kylin should align
+     *
+     * @see org.apache.calcite.rel.type.RelDataTypeSystem
+     * @see <a href="https://cwiki.apache.org/confluence/display/Hive/LanguageManual+Types#LanguageManualTypes-DecimalsdecimalDecimals">Hive/LanguageManualTypes-Decimals</a>
+     */
+    @Override
+    public int getMaxNumericPrecision() {
+        return 38;
     }
 }
