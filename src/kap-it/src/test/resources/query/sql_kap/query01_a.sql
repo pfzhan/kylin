@@ -14,9 +14,11 @@
 -- WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 -- See the License for the specific language governing permissions and
 -- limitations under the License.
--- ISSUE #5171
+--
 
-select seller_id, {fn SUBSTRING({fn RTRIM(case when price > 100 then null else 'test' end)},1,{fn LENGTH(case when price > 150 then null else 'een' end)})}
-from "DEFAULT".TEST_KYLIN_FACT
-where CAL_DT>=date'2014-01-01'
-group by seller_id, price
+-- It's converted from: SELECT LSTG_FORMAT_NAME, {fn RIGHT(LSTG_FORMAT_NAME, {fn CONVERT(1, SQL_BIGINT)})}
+-- #5170 handle complex expression in {fn RIGHT(...)}
+SELECT LSTG_FORMAT_NAME, {fn RIGHT(LSTG_FORMAT_NAME, {fn CONVERT(1, SQL_BIGINT)})} as LAST,
+ {fn LEFT(LSTG_FORMAT_NAME, {fn CONVERT(1, SQL_BIGINT)})} as FIRST
+FROM TEST_KYLIN_FACT
+GROUP BY LSTG_FORMAT_NAME

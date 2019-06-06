@@ -58,6 +58,10 @@ class TestQueryAndBuildFunSuite
   val queryFolders = List(
     FloderInfo("sql", List("query105.sql")),
     FloderInfo("sql_kap", List("query03.sql")),
+    FloderInfo("sql_should_work"),
+    FloderInfo("sql_magine"),
+    FloderInfo("sql_magine_left"),
+    FloderInfo("sql_magine_window"),
     FloderInfo("sql_lookup"),
     FloderInfo("sql_casewhen"),
     FloderInfo("sql_like"),
@@ -84,6 +88,8 @@ class TestQueryAndBuildFunSuite
   )
 
   val noneCompare = List(
+    FloderInfo("sql_current_date"),
+//    FloderInfo("sql_timestamp"),
     FloderInfo("sql_window"),
     FloderInfo("sql_h2_uncapable"),
     FloderInfo("sql_grouping"),

@@ -84,9 +84,11 @@ public class NAutoBuildAndQueryTest extends NAutoTestBase {
                 new TestScenario(CompareLevel.SAME, "sql_timestamp"), //
                 new TestScenario(CompareLevel.SAME, "sql_udf"), //
                 new TestScenario(CompareLevel.SAME, "sql_value"), //
+                new TestScenario(CompareLevel.SAME, "sql_verifyContent"), //
                 new TestScenario(CompareLevel.SAME, "sql_union"), //
                 new TestScenario(CompareLevel.SAME, "sql_noagg"), //
                 new TestScenario(CompareLevel.SAME, "sql_special_functions"), //
+                new TestScenario(CompareLevel.SAME, "sql_day_of_week"), //
 
                 /* CompareLevel = SAME, JoinType = LEFT */
                 new TestScenario(CompareLevel.SAME, JoinType.LEFT, "sql_distinct_precisely"), //
@@ -221,6 +223,7 @@ public class NAutoBuildAndQueryTest extends NAutoTestBase {
 
         // see KylinTestBase.execAndCompDynamicQuery
         new TestScenario(CompareLevel.NONE, "sql_dynamic").execute();
+        new TestScenario(CompareLevel.NONE, "sql_dynamic_sparder").execute();
 
         /* CompareLevel = SAME_ROWCOUNT */
 

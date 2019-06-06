@@ -14,9 +14,23 @@
 -- WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 -- See the License for the specific language governing permissions and
 -- limitations under the License.
--- ISSUE #5171
+-- ISSUE #5054
 
-select seller_id, {fn SUBSTRING({fn RTRIM(case when price > 100 then null else 'test' end)},1,{fn LENGTH(case when price > 150 then null else 'een' end)})}
-from "DEFAULT".TEST_KYLIN_FACT
-where CAL_DT>=date'2014-01-01'
-group by seller_id, price
+-- Test "is null" condition on raw table
+-- Note some "meta_categ_name" will become null after left join test_category_groupings
+
+SELECT
+ test_cal_dt.week_beg_dt
+ ,test_category_groupings.meta_categ_name
+ ,test_kylin_fact.lstg_format_name
+ ,test_sites.site_name
+ ,test_kylin_fact.price
+FROM test_kylin_fact
+ inner JOIN edw.test_cal_dt as test_cal_dt
+ ON test_kylin_fact.cal_dt = test_cal_dt.cal_dt
+ inner JOIN test_category_groupings
+ ON test_kylin_fact.leaf_categ_id = test_category_groupings.leaf_categ_id AND test_kylin_fact.lstg_site_id = test_category_groupings.site_id
+ inner JOIN edw.test_sites as test_sites
+ ON test_kylin_fact.lstg_site_id = test_sites.site_id
+where
+ test_category_groupings.meta_categ_name is null

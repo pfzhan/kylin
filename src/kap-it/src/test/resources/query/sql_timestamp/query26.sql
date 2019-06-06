@@ -14,7 +14,7 @@
 -- WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 -- See the License for the specific language governing permissions and
 -- limitations under the License.
---
+-- ISSUE #6027
 
 SELECT count(*) as cnt
  FROM TEST_KYLIN_FACT as TEST_KYLIN_FACT

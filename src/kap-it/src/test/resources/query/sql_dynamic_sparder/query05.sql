@@ -14,9 +14,12 @@
 -- WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 -- See the License for the specific language governing permissions and
 -- limitations under the License.
--- ISSUE #5171
+-- ISSUE #5839, fix and add a test case to cover dynamic query on date and ts.
+SELECT count(*) as cnt
 
-select seller_id, {fn SUBSTRING({fn RTRIM(case when price > 100 then null else 'test' end)},1,{fn LENGTH(case when price > 150 then null else 'een' end)})}
-from "DEFAULT".TEST_KYLIN_FACT
-where CAL_DT>=date'2014-01-01'
-group by seller_id, price
+ FROM TEST_KYLIN_FACT as TEST_KYLIN_FACT
+ INNER JOIN TEST_ORDER as TEST_ORDER
+ ON TEST_KYLIN_FACT.ORDER_ID = TEST_ORDER.ORDER_ID
+ INNER JOIN TEST_CATEGORY_GROUPINGS as TEST_CATEGORY_GROUPINGS
+ ON TEST_KYLIN_FACT.LEAF_CATEG_ID = TEST_CATEGORY_GROUPINGS.LEAF_CATEG_ID AND TEST_KYLIN_FACT.LSTG_SITE_ID = TEST_CATEGORY_GROUPINGS.SITE_ID
+ WHERE TEST_ORDER.TEST_TIME_ENC >= ? AND TEST_ORDER.TEST_DATE_ENC >= ?

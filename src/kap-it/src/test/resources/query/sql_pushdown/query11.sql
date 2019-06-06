@@ -1,3 +1,4 @@
+--ISSUE #6666 support non-equi join router to pushdown
 select test_cal_dt.week_beg_dt, sum(test_kylin_fact.price) as GMV
  , count(*) as TRANS_CNT , sum(test_kylin_fact.item_count) as total_items
  from test_kylin_fact
