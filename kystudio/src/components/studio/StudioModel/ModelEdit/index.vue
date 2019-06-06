@@ -11,7 +11,7 @@
             <span slot="content">{{t.alias}}</span>
             <span class="alias-span ksd-ml-4">{{t.alias}}</span>
           </common-tip>
-          <span class="setting-icon" @click="editTable(t.guid)"><i class="el-icon-ksd-table_setting"></i></span>
+          <span class="setting-icon" v-if="!isSchemaBrokenModel" @click="editTable(t.guid)"><i class="el-icon-ksd-table_setting"></i></span>
         </div>
         <div class="column-search-box"><el-input prefix-icon="el-icon-search" @input="(val) => {filterColumns(val, t.columns)}" size="small"></el-input></div>
         <div class="column-list-box ksd-drag-box" @dragover='($event) => {allowDropColumn($event, t.guid)}' @drop='(e) => {dropColumn(e, null, t)}' v-scroll.reactive>
@@ -44,7 +44,7 @@
       <!-- table box end -->
     </div>
     <!-- datasource面板  index 3-->
-    <div class="tool-icon icon-ds" :class="{active: panelAppear.datasource.display}" v-event-stop @click="toggleMenu('datasource')"><i class="el-icon-ksd-data_source"></i></div>
+    <div class="tool-icon icon-ds" v-if="panelAppear.datasource.icon_display" :class="{active: panelAppear.datasource.display}" v-event-stop @click="toggleMenu('datasource')"><i class="el-icon-ksd-data_source"></i></div>
       <transition name="bounceleft">
         <div class="panel-box panel-datasource"  v-show="panelAppear.datasource.display" :style="panelStyle('datasource')" v-event-stop>
           <div class="panel-title" v-drag:change.left.top="panelAppear.datasource"><span class="title">{{$t('kylinLang.common.dataSource')}}</span><span class="close" @click="toggleMenu('datasource')"><i class="el-icon-ksd-close"></i></span></div>
@@ -76,14 +76,18 @@
       </transition>
       <!-- datasource面板  end-->
       <div class="tool-icon-group" v-event-stop>
-        <div class="tool-icon" v-guide.dimensionPanelShowBtn :class="{active: panelAppear.dimension.display}" @click="toggleMenu('dimension')">D</div>
-        <div class="tool-icon" v-guide.measurePanelShowBtn :class="{active: panelAppear.measure.display}" @click="toggleMenu('measure')">M</div>
-        <div class="tool-icon" :class="{active: panelAppear.cc.display}" @click="toggleMenu('cc')"><i class="el-icon-ksd-computed_column"></i></div>
-        <div class="tool-icon" :class="{active: panelAppear.search.display}" @click="toggleMenu('search')">
+        <div class="tool-icon broken-icon" v-if="panelAppear.brokenFocus.icon_display" @click="focusBrokenLinkedTable">
+          <i class="el-icon-ksd-broken_disconnect"></i>
+        </div>
+        <div class="tool-icon" v-if="panelAppear.dimension.icon_display" v-guide.dimensionPanelShowBtn :class="{active: panelAppear.dimension.display}" @click="toggleMenu('dimension')">D</div>
+        <div class="tool-icon" v-if="panelAppear.measure.icon_display" v-guide.measurePanelShowBtn :class="{active: panelAppear.measure.display}" @click="toggleMenu('measure')">M</div>
+        <div class="tool-icon" v-if="panelAppear.cc.icon_display" :class="{active: panelAppear.cc.display}" @click="toggleMenu('cc')"><i class="el-icon-ksd-computed_column"></i></div>
+        <div class="tool-icon" v-if="panelAppear.search.icon_display" :class="{active: panelAppear.search.display}" @click="toggleMenu('search')">
           <i class="el-icon-ksd-search"></i>
           <span class="new-icon">New</span>
         </div>
       </div>
+      <!-- 快捷操作 -->
       <div class="sub-tool-icon-group" v-event-stop>
         <div class="tool-icon" @click="reduceZoom"><i class="el-icon-ksd-shrink" ></i></div>
         <div class="tool-icon" @click="addZoom"><i class="el-icon-ksd-enlarge"></i></div>
@@ -147,8 +151,8 @@
                 </span>
               </div>
             </div>
-            <div class="panel-main-content" @dragover='($event) => {allowDropColumnToPanle($event)}' @drop='(e) => {dropColumnToPanel(e, "dimension")}' v-scroll>
-              <ul class="dimension-list" v-if="allDimension.length">
+            <div class="panel-main-content" v-if="allDimension.length" @dragover='($event) => {allowDropColumnToPanle($event)}' @drop='(e) => {dropColumnToPanel(e, "dimension")}' v-scroll.observe>
+              <ul class="dimension-list">
                 <li v-for="(d, i) in allDimension" :key="d.name" :class="{'is-checked':dimensionSelectedList.indexOf(d.name)>-1}">
                   <span class="ksd-nobr-text">
                     <el-checkbox v-model="dimensionSelectedList" v-if="isShowCheckbox" :label="d.name">{{d.name}}</el-checkbox>
@@ -222,8 +226,8 @@
                 </span>
               </div>
             </div>
-            <div class="panel-main-content"  @dragover='($event) => {allowDropColumnToPanle($event)}' @drop='(e) => {dropColumnToPanel(e, "measure")}' v-scroll>
-              <ul class="measure-list" v-if="allMeasure.length">
+            <div class="panel-main-content" v-if="allMeasure.length"  @dragover='($event) => {allowDropColumnToPanle($event)}' @drop='(e) => {dropColumnToPanel(e, "measure")}' v-scroll.obverse>
+              <ul class="measure-list" >
                 <li v-for="m in allMeasure" :key="m.name" :class="{'is-checked':measureSelectedList.indexOf(m.name)>-1}">
                   <span class="ksd-nobr-text">
                     <el-checkbox v-model="measureSelectedList" v-if="isShowMeaCheckbox" :disabled="m.name=='COUNT_ALL'" :label="m.name">{{m.name}}</el-checkbox>
@@ -293,8 +297,8 @@
                 </span>
               </div>
             </div>
-            <div class="panel-main-content" v-scroll>
-              <ul class="cc-list" v-if="modelRender.computed_columns.length">
+            <div class="panel-main-content" v-scroll.obverse  v-if="modelRender.computed_columns.length">
+              <ul class="cc-list">
                 <li v-for="m in modelRender.computed_columns" :key="m.name" :class="{'is-checked':ccSelectedList.indexOf(m.columnName)>-1}">
                   <span class="ksd-nobr-text">
                     <el-checkbox v-model="ccSelectedList" v-if="isShowCCCheckbox" :label="m.columnName">{{m.columnName}}</el-checkbox>
@@ -360,6 +364,8 @@
         </div>
       </div>
     </transition> 
+   
+     
     <PartitionModal/>
     <DimensionModal/>
     <BatchMeasureModal/>
@@ -476,7 +482,7 @@ import { Component, Watch } from 'vue-property-decorator'
 import { mapActions, mapGetters, mapMutations, mapState } from 'vuex'
 import locales from './locales'
 import DataSourceBar from '../../../common/DataSourceBar'
-import { handleSuccess, handleError, loadingBox, kapMessage } from '../../../../util/business'
+import { handleSuccess, handleError, loadingBox, kapMessage, kapConfirm } from '../../../../util/business'
 import { isIE, groupData, objectClone, filterObjectArray } from '../../../../util'
 import $ from 'jquery'
 import DimensionModal from '../DimensionsModal/index.vue'
@@ -614,6 +620,24 @@ export default class ModelEdit extends Vue {
   isShowCheckbox = false
   isShowMeaCheckbox = false
   isShowCCCheckbox = false
+  initAllPanels () {
+    if (!this.isSchemaBrokenModel) {
+      this.panelAppear.dimension.display = true
+      this.panelAppear.measure.display = true
+      this.panelAppear.datasource.display = true
+    }
+  }
+  hiddenAllPanels () {
+    for (let i in this.panelAppear) {
+      this.panelAppear[i].display = false
+    }
+  }
+  hiddenAllPanelIconsInBroken () {
+    for (let i in this.panelAppear) {
+      this.panelAppear[i].icon_display = false
+    }
+    this.panelAppear.brokenFocus.icon_display = true
+  }
   get allDimension () {
     return this.modelRender.dimensions || []
   }
@@ -623,6 +647,9 @@ export default class ModelEdit extends Vue {
   query (className) {
     return $(this.$el.querySelector(className))
   }
+  get isSchemaBrokenModel () {
+    return this.modelRender.broken_reason === 'SCHEMA'
+  }
   // 快捷编辑table操作 start
   showTableCoverDiv = false
   currentEditTable = null
@@ -631,6 +658,28 @@ export default class ModelEdit extends Vue {
     currentEditAlias: ''
   }
   delTipVisible = false
+  // 定位含有broken连线的table
+  focusBrokenLinkedTable () {
+    if (this.modelInstance) {
+      let tables = this.modelInstance.getBrokenLinkedTable()
+      if (tables) {
+        this.modelInstance.setLinkInView(tables[0], tables[1])
+        let ptable = this.modelInstance.getTableByGuid(tables[0])
+        let ftable = this.modelInstance.getTableByGuid(tables[1])
+        this.callJoinDialog({
+          pid: ptable.guid,
+          fid: ftable.guid,
+          primaryTable: ptable,
+          tables: this.modelRender.tables
+        })
+      } else {
+        this.$message({
+          message: this.$t('noBrokenLink'),
+          type: 'warning'
+        })
+      }
+    }
+  }
   guideActions (obj) {
     let data = obj.data
     if (obj.action === 'addTable') {
@@ -1208,8 +1257,7 @@ export default class ModelEdit extends Vue {
     if (select.action === 'showtable') {
       if (select.more) {
         let nTable = select.more
-        let offset = nTable.getTableInViewOffset()
-        this.modelInstance.moveModelPosition(offset.x, offset.y)
+        this.modelInstance.setTableInView(nTable.guid)
         this._collectSearchActionRecords(nTable, select.action)
       }
     }
@@ -1427,6 +1475,16 @@ export default class ModelEdit extends Vue {
             project: this.currentSelectedProject,
             renderDom: this.renderBox
           }), this.modelRender, this)
+          if (this.isSchemaBrokenModel) {
+            kapConfirm(this.$t('brokenEditTip'), {
+              showCancelButton: false,
+              type: 'warning'
+            })
+            this.hiddenAllPanels()
+            this.hiddenAllPanelIconsInBroken()
+          } else {
+            this.initAllPanels()
+          }
           this.modelInstance.bindConnClickEvent((ptable, ftable) => {
             // 设置连接弹出框数据
             this.callJoinDialog({
@@ -2072,6 +2130,9 @@ export default class ModelEdit extends Vue {
       top:258px;
       width:32px;
       .tool-icon{
+        &.broken-location i{
+          color:@error-color-1;
+        }
         position:relative;
         height:30px;
         line-height:30px;

@@ -58,7 +58,9 @@ export default {
     searchTable: 'Search table',
     searchInputPlaceHolder: 'Search table, dimension, measure, column name',
     delConnTip: 'Are you sure to delete this connection?',
-    noTableTip: '<p>Add Table: drag the table from the left source tree and drop it to the central zone.</p><p>Add Join: drag the column from one table and drop it on another table.</p>'
+    brokenEditTip: 'Please adjust the condition of error join(s) or partition column.',
+    noTableTip: '<p>Add Table: drag the table from the left source tree and drop it to the central zone.</p><p>Add Join: drag the column from one table and drop it on another table.</p>',
+    noBrokenLink: 'No error join(s).'
   },
   'zh-cn': {
     'adddimension': '添加维度',
@@ -118,7 +120,9 @@ export default {
     editMeasure: '编辑度量',
     searchTable: '搜索表',
     searchInputPlaceHolder: '搜索表名、维度、度量、列名',
+    brokenEditTip: '请调整报错的关联条件或分区列。',
     delConnTip: '确认删除该连接关系吗？',
-    noTableTip: '<p>添加表：从左侧数据源模块将表拖入中间区域。</p><p>建立关联：从一张表拖拽列到另一张表上。</p>'
+    noTableTip: '<p>添加表：从左侧数据源模块将表拖入中间区域。</p><p>建立关联：从一张表拖拽列到另一张表上。</p>',
+    noBrokenLink: '没有需要修改的错误连线关系。'
   }
 }

@@ -53,7 +53,8 @@ export const modelRenderConfig = {
         width: 250,
         height: 316,
         zIndex: baseIndex - 2,
-        display: true,
+        display: false,
+        icon_display: true,
         limit: {
           height: [80],
           width: [250]
@@ -70,7 +71,8 @@ export const modelRenderConfig = {
           width: [250]
         },
         zIndex: baseIndex - 1,
-        display: true,
+        display: false,
+        icon_display: true,
         box: rootBox
       },
       setting: {
@@ -84,6 +86,7 @@ export const modelRenderConfig = {
         },
         zIndex: baseIndex,
         display: false,
+        icon_display: true,
         box: rootBox
       },
       cc: {
@@ -97,6 +100,7 @@ export const modelRenderConfig = {
         },
         zIndex: baseIndex - 1,
         display: false,
+        icon_display: true,
         box: rootBox
       },
       datasource: {
@@ -109,7 +113,8 @@ export const modelRenderConfig = {
           width: [250]
         },
         zIndex: baseIndex,
-        display: true,
+        display: false,
+        icon_display: true,
         box: rootBox
       },
       search: {
@@ -122,7 +127,11 @@ export const modelRenderConfig = {
         },
         zIndex: baseIndex,
         display: false,
+        icon_display: true,
         box: rootBox
+      },
+      brokenFocus: {
+        icon_display: false
       }
     }
   }

@@ -86,7 +86,7 @@
         <el-table-column
           prop="status"
           show-overflow-tooltip
-          width="94"
+          width="110"
           :label="$t('status')">
           <template slot-scope="scope">
             <el-tag size="mini" :type="scope.row.status === 'OFFLINE' ? 'info' : scope.row.status === 'BROKEN'? 'danger' : 'success'">{{scope.row.status}}</el-tag>
@@ -107,7 +107,8 @@
           <template slot-scope="scope">
             <span v-if="!(isAdmin || hasPermissionOfProject())"> N/A</span>
              <div v-show="isAdmin || hasPermissionOfProject()">
-              <common-tip :content="$t('kylinLang.common.edit')"><i class="el-icon-ksd-table_edit ksd-fs-14" @click="handleEditModel(scope.row.alias)"></i></common-tip>
+              <common-tip :content="$t('kylinLang.common.edit')"><i class="el-icon-ksd-table_edit ksd-fs-14" v-if="scope.row.status !== 'BROKEN'" @click="handleEditModel(scope.row.alias)"></i></common-tip>
+              <common-tip :content="$t('kylinLang.common.repair')"><i class="el-icon-ksd-fix_tool ksd-fs-14" v-if="scope.row.broken_reason === 'SCHEMA'" @click="handleEditModel(scope.row.alias)"></i></common-tip>
               <common-tip :content="$t('build')" v-if="scope.row.status !== 'BROKEN'" class="ksd-ml-10"><i class="el-icon-ksd-data_range ksd-fs-14" @click="setModelBuldRange(scope.row)"></i></common-tip>
               <common-tip :content="$t('kylinLang.common.moreActions')" class="ksd-ml-10">
                 <el-dropdown @command="(command) => {handleCommand(command, scope.row)}" :id="scope.row.name" trigger="click" >

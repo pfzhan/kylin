@@ -11,6 +11,7 @@ exports.default = {
     edit: '编辑',
     delete: '删除',
     drop: '删除',
+    repair: '修复',
     cancel: '取消',
     close: '关闭',
     update: '更新',

@@ -91,6 +91,8 @@ class NModel {
       this.$set(this._mount, 'maintain_model_type', this.maintain_model_type)
       this.$set(this._mount, 'management_type', this.management_type)
       this.$set(this._mount, 'linkUsedColumns', this.linkUsedColumns)
+      this.$set(this._mount, 'hasBrokenLinkedTable', false)
+      this.$set(this._mount, 'broken_reason', options.broken_reason)
     }
     if (options.renderDom) {
       this.renderDom = this.vm.$el.querySelector(options.renderDom)
@@ -120,6 +122,7 @@ class NModel {
         this.renderPosition()
       }
       setTimeout(() => {
+        this.getBrokenLinkedTable()
         // this._renderLabels()
       }, 1)
     })
@@ -1039,6 +1042,23 @@ class NModel {
       this.plumbTool.refreshPlumbInstance()
     })
   }
+  // 将某个table移动到可视区域
+  setTableInView (guid) {
+    let nTable = this.getTableByGuid(guid)
+    if (nTable) {
+      let offset = nTable.getTableInViewOffset()
+      this.moveModelPosition(offset.x, offset.y)
+    }
+  }
+  // 将连接移动到可视区域
+  setLinkInView (pid, fid) {
+    let ptable = this.getTableByGuid(pid)
+    let ftable = this.getTableByGuid(fid)
+    let offsetLeft = ptable.drawSize.left - ftable.drawSize.left
+    let offsetTop = ptable.drawSize.top - ftable.drawSize.top
+    this.setTableInView(pid)
+    this.moveModelPosition(offsetLeft / 2, offsetTop / 2)
+  }
   addTable (options) {
     if (!this.tables[options.alias]) {
       let tableInfo = this._getTableOriginInfo(options.table)
@@ -1385,8 +1405,20 @@ class NModel {
     var labelCanvas = $(labelObj.canvas)
     labelCanvas.removeClass('link-label-broken')
     conn.setType(isBroken ? 'broken' : 'normal')
+    conn.isBroken = isBroken
+    this.getBrokenLinkedTable()
     labelCanvas.addClass(isBroken ? 'link-label link-label-broken' : 'link-label')
     labelCanvas && labelCanvas.find('.label').eq(0).text(joinType)
+  }
+  getBrokenLinkedTable () {
+    for (let i in this.allConnInfo) {
+      if (this.allConnInfo[i].isBroken) {
+        this._mount.hasBrokenLinkedTable = true
+        return i.split('$')
+      }
+    }
+    this._mount.hasBrokenLinkedTable = false
+    return null
   }
 }
 

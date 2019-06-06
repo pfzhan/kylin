@@ -11,6 +11,7 @@ exports.default = {
     edit: 'Edit',
     delete: 'Delete',
     drop: 'Drop',
+    repair: 'Repair',
     cancel: 'Cancel',
     close: 'Close',
     update: 'Update',
