@@ -540,6 +540,14 @@ public class KapConfig {
         return Integer.parseInt(config.getOptional("kap.env.zookeeper-max-retries", "3"));
     }
 
+    public int getMaxKeepLogFileNumber() {
+        return Integer.parseInt(config.getOptional("kap.env.max-keep-log-file-number", "10"));
+    }
+
+    public int getMaxKeepLogFileThresholdMB() {
+        return Integer.parseInt(config.getOptional("kap.env.max-keep-log-file-threshold-mb", "256"));
+    }
+
     public String sparderFiles() {
         try {
             File storageFile = FileUtils.findFile(KylinConfigBase.getKylinHome() + "/conf",

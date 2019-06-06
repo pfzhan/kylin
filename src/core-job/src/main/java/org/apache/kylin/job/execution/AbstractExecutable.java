@@ -53,8 +53,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
+import io.kyligence.kap.common.util.ThrowableUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.tuple.Pair;
@@ -254,6 +256,7 @@ public abstract class AbstractExecutable implements Executable, Idempotent {
 
         do {
             if (retry > 0) {
+                pauseOnRetry();
                 logger.info("Retrying for the {}th time ", retry);
             }
 
@@ -357,11 +360,27 @@ public abstract class AbstractExecutable implements Executable, Idempotent {
     // 1) if property "kylin.job.retry-exception-classes" is not set or is null, all jobs with exceptions will retry according to the retry times.
     // 2) if property "kylin.job.retry-exception-classes" is set and is not null, only jobs with the specified exceptions will retry according to the retry times.
     public boolean needRetry(int retry, Throwable t) {
-        if (retry > KylinConfig.getInstanceFromEnv().getJobRetry() || t == null
-                || (this instanceof DefaultChainedExecutable)) {
+        if (t == null || this instanceof DefaultChainedExecutable)
             return false;
-        } else {
-            return isRetryableException(t.getClass().getName());
+
+        if (retry > KylinConfig.getInstanceFromEnv().getJobRetry())
+            return false;
+
+        if (ThrowableUtils.isInterruptedException(t))
+            return false;
+
+        return isRetryableException(t.getClass().getName());
+    }
+
+    // pauseOnRetry should only works when retry has been triggered
+    private void pauseOnRetry() {
+        int interval = KylinConfig.getInstanceFromEnv().getJobRetryInterval();
+        logger.info("Pause {} milliseconds before retry", interval);
+        try {
+            TimeUnit.MILLISECONDS.sleep(interval);
+        } catch (InterruptedException e) {
+            logger.error("Job retry was interrupted, details: {}", e);
+            Thread.currentThread().interrupt();
         }
     }
 

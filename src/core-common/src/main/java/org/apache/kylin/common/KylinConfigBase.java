@@ -111,13 +111,13 @@ abstract public class KylinConfigBase implements Serializable {
     public static String getSparkHome() {
         String sparkHome = System.getenv("SPARK_HOME");
         if (StringUtils.isNotEmpty(sparkHome)) {
-            logger.info("SPARK_HOME was set to " + sparkHome);
+            logger.info("SPARK_HOME was set to {}", sparkHome);
             return sparkHome;
         }
 
         sparkHome = System.getProperty("SPARK_HOME");
         if (StringUtils.isNotEmpty(sparkHome)) {
-            logger.info("SPARK_HOME was set to " + sparkHome);
+            logger.info("SPARK_HOME was set to {}", sparkHome);
             return sparkHome;
         }
 
@@ -703,9 +703,13 @@ abstract public class KylinConfigBase implements Serializable {
     }
 
     public int getJobRetry() {
-        return Integer.parseInt(this.getOptional("kylin.job.retry", "0"));
+        return Integer.parseInt(getOptional("kylin.job.retry", "0"));
     }
 
+    // retry interval in milliseconds
+    public int getJobRetryInterval(){
+        return Integer.parseInt(getOptional("kylin.job.retry-interval", "30000"));
+    }
     public String[] getJobRetryExceptions() {
         return getOptionalStringArray("kylin.job.retry-exception-classes", new String[0]);
     }

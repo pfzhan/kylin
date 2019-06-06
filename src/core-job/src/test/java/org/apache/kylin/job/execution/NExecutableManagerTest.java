@@ -33,13 +33,16 @@ import java.util.List;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.constant.JobIssueEnum;
+import org.apache.kylin.job.dao.NExecutableDao;
 import org.apache.kylin.job.exception.IllegalStateTranferException;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
@@ -48,6 +51,9 @@ import lombok.val;
 /**
  */
 public class NExecutableManagerTest extends NLocalFileMetadataTestCase {
+
+    @Rule
+    public ExpectedException thrown = ExpectedException.none();
 
     private NExecutableManager manager;
 
@@ -357,6 +363,24 @@ public class NExecutableManagerTest extends NLocalFileMetadataTestCase {
         val dataflow = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), "default")
                 .getDataflowByModelAlias("nmodel_basic");
         Assert.assertEquals(RealizationStatusEnum.ONLINE, dataflow.getStatus());
+    }
+
+    @Test
+    public void testEmptyType_ThrowException() {
+        DefaultChainedExecutable job = new DefaultChainedExecutableOnModel();
+        job.setName(JobTypeEnum.INDEX_BUILD.toString());
+        job.setJobType(JobTypeEnum.INDEX_BUILD);
+        job.setTargetSubject("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+        job.setProject("default");
+        SucceedTestExecutable executable = new SucceedTestExecutable();
+        job.addTask(executable);
+        val po = NExecutableManager.toPO(job, "default");
+        po.setType(null);
+
+        val executableDao = NExecutableDao.getInstance(getTestConfig(), "default");
+        val savedPO = executableDao.addJob(po);
+
+        Assert.assertNull(manager.getJob(savedPO.getId()));
     }
 
     @Test
