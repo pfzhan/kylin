@@ -128,7 +128,7 @@
             <el-table-column type="selection" width="44" align="center" :selectable="selectable"></el-table-column>
             <el-table-column prop="sql" label="SQL" :resizable="false">
               <template slot-scope="props">
-                <span class="ksd-nobr-text">{{props.row.sql}}</span>
+                <span class="ksd-nobr-text" style="width: 382px;">{{props.row.sql}}</span>
               </template>
             </el-table-column>
             <el-table-column prop="capable" :label="$t('kylinLang.common.status')" width="80">
@@ -213,7 +213,7 @@
           <el-table :data="blackSqlData.sqls" border @row-click="viewBlackSql" :row-class-name="tableRowClassName" class="import-table" style="width: 100%">
             <el-table-column prop="sql_pattern" label="SQL" :resizable="false">
               <template slot-scope="props">
-                <span class="ksd-nobr-text">{{props.row.sql_pattern}}</span>
+                <span class="ksd-nobr-text" style="width: 289px;">{{props.row.sql_pattern}}</span>
               </template>
             </el-table-column>
             <el-table-column prop="create_time" :label="$t('createdTime')" show-overflow-tooltip width="218">
@@ -1162,11 +1162,11 @@ export default class FavoriteQuery extends Vue {
   delWhite (id) {
     for (const key in this.whiteSqlData.data) {
       if (this.whiteSqlData.data[key].id === id) {
-        this.whiteSqlData.data.splice(key, 1)
-        this.whiteSqlData.size--
         if (this.whiteSqlData.data[key].capable) {
           this.whiteSqlData.capable_sql_num--
         }
+        this.whiteSqlData.size--
+        this.whiteSqlData.data.splice(key, 1)
         this.$nextTick(() => {
           this.whiteSqlDatasPageChange(this.whiteCurrentPage)
         })
