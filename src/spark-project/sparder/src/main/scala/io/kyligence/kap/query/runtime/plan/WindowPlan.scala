@@ -27,6 +27,7 @@ import io.kyligence.kap.query.relnode.KapWindowRel
 import io.kyligence.kap.query.runtime.SparderRexVisitor
 import org.apache.calcite.DataContext
 import org.apache.calcite.rel.RelCollationImpl
+import org.apache.calcite.rel.RelFieldCollation.Direction
 import org.apache.calcite.rex.RexInputRef
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.DataFrame
@@ -101,6 +102,17 @@ object WindowPlan extends Logging {
             var column = columns.apply(fieldIndex.getFieldIndex)
             if (!group.isRows && !fieldsNameToType(fieldIndex.getFieldIndex).equalsIgnoreCase("date")) {
               column = column.cast(LongType)
+            }
+            fieldIndex.direction match {
+              case Direction.DESCENDING =>
+                column = column.desc
+              case Direction.STRICTLY_DESCENDING =>
+                column = column.desc
+              case Direction.ASCENDING =>
+                column = column.asc
+              case Direction.STRICTLY_ASCENDING =>
+                column = column.asc
+              case _ =>
             }
             column
           }

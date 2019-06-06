@@ -60,6 +60,7 @@ public class NExecAndComp {
 
     public enum CompareLevel {
         SAME, // exec and compare
+        SAME_ORDER, // exec and compare order
         SAME_ROWCOUNT, SUBSET, NONE, // batch execute
         SAME_SQL_COMPARE
     }
@@ -249,6 +250,9 @@ public class NExecAndComp {
 
     public static boolean compareResults(List<Row> expectedResult, List<Row> actualResult, CompareLevel compareLevel) {
         boolean good = true;
+        if (compareLevel == CompareLevel.SAME_ORDER) {
+            good = expectedResult.equals(actualResult);
+        }
         if (compareLevel == CompareLevel.SAME) {
             if (expectedResult.size() == actualResult.size()) {
                 if (expectedResult.size() > 15000) {

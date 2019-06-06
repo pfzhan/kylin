@@ -14,11 +14,12 @@
 -- WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 -- See the License for the specific language governing permissions and
 -- limitations under the License.
---
-select lstg_format_name,cal_dt,
-round( sum(round(sum(price),0)) over(partition by lstg_format_name,cal_dt), 0),
-round( max(round(sum(price),0)) over(partition by lstg_format_name,cal_dt), 0),
-round( min(round(sum(price),0)) over(partition by lstg_format_name), 0)
-from test_kylin_fact
-group by cal_dt, lstg_format_name
-order by cal_dt, lstg_format_name
+-- ISSUE #9248
+
+SELECT ROW_NUMBER() OVER(PARTITION BY SELLER_ID ORDER BY CAL_DT desc) AS ROW_NUM,
+ROW_NUMBER() OVER(PARTITION BY SELLER_ID ORDER BY CAL_DT asc) AS ROW_NUM2,
+SELLER_ID,CAL_DT
+FROM test_kylin_fact
+where SELLER_ID<10000010
+GROUP BY SELLER_ID,CAL_DT
+ORDER BY SELLER_ID,CAL_DT

@@ -94,6 +94,8 @@ public class NAutoBuildAndQueryTest extends NAutoTestBase {
                 /* CompareLevel = SAME_ROWCOUNT */
 
                 /* CompareLevel = NONE */
+                new TestScenario(CompareLevel.SAME_ORDER,  "sql_window",
+                        Sets.newHashSet("query08.sql", "query09.sql", "query12.sql")),
                 new TestScenario(CompareLevel.NONE, "sql_window")//
         );
     }
