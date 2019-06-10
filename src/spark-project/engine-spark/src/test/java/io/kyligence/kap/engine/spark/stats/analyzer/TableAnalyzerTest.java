@@ -53,8 +53,6 @@ public class TableAnalyzerTest extends NLocalWithSparkSessionTest {
 
     @Before
     public void setup() {
-        getTestConfig().setProperty("kylin.engine.spark-conf.spark.executor.instances", "1");
-        getTestConfig().setProperty("kylin.engine.spark-conf.spark.executor.cores", "1");
         tableMgr = NTableMetadataManager.getInstance(getTestConfig(), getProject());
     }
 

@@ -46,8 +46,8 @@ class TableAnalysisJob(tableDesc: TableDesc,
   def analyzeTable(): Array[Row] = {
     val sparkConf = ss.sparkContext.getConf
 
-    val instances = sparkConf.get(SparkConfHelper.EXECUTOR_INSTANCES).toInt
-    val cores = sparkConf.get(SparkConfHelper.EXECUTOR_CORES).toInt
+    val instances = sparkConf.get(SparkConfHelper.EXECUTOR_INSTANCES, "1").toInt
+    val cores = sparkConf.get(SparkConfHelper.EXECUTOR_CORES, "1").toInt
     val numPartitions = instances * taskFactor * cores
     val rowsTakenInEachPartition = rowCount / numPartitions
 
