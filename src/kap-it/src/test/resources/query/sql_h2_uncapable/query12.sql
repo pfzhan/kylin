@@ -14,7 +14,8 @@
 -- WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 -- See the License for the specific language governing permissions and
 -- limitations under the License.
---
+-- copy from query/sql_h2_uncapable/query03.sql
+-- ISSUE #6531 fix window function like count(1) over()
 select CAL_DT, avg(PRICE), count(0) over() COU, SUM(-1.1) over() SU,
 --AVG(-2) over() AV,
 max(-1.1) over() MA, min(-3) over() MI, FIRST_VALUE(-2) over() FI, LAST_VALUE(-2) over() LA,

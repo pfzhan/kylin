@@ -14,7 +14,8 @@
 -- WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 -- See the License for the specific language governing permissions and
 -- limitations under the License.
---
+-- copy from query/sql_h2_uncapable/query04.sql
+-- ISSUE #6531 fix window function like count(1) over()
 select CAL_DT,
 count('aaa') COUNT0, max('aaa') MAX0,
 count('aaa') over() COUNT1, max('aaa') over() MAX1, first_value('fff') over() FFF0,
