@@ -1268,7 +1268,7 @@ export default class FavoriteQuery extends Vue {
           right: 12px;
           top: 18px;
           display: inline-block;
-          width: 96px;
+          width: 98px;
           text-align: center;
           line-height: 18px;
           p {
