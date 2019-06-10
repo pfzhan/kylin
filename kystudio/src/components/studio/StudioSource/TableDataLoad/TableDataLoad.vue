@@ -12,7 +12,7 @@
             v-guide.tablePartitionColumn
             filterable
             size="medium"
-            :value="table.partitionColumn"
+            v-model="table.partitionColumn"
             @change="handleChangePartition">
             <el-option :label="$t('noPartition')" value=""></el-option>
             <el-option
@@ -65,7 +65,7 @@
     </template>
     <div class="hr"></div>
     <div class="ksd-mt-15 ky-no-br-space">
-      <el-button type="primary" size="medium" v-if="~['incremental', 'full'].indexOf(table.storageType) || table.partitionColumn" @click="handleLoadData" v-guide.tableLoadDataBtn>{{$t('loadData')}}</el-button>
+      <el-button type="primary" size="medium" v-if="~['incremental', 'full'].indexOf(table.storageType) || table.partitionColumn" @click="handleLoadData()" v-guide.tableLoadDataBtn>{{$t('loadData')}}</el-button>
       <el-button v-if="~['incremental'].indexOf(table.storageType) || table.partitionColumn" size="medium" @click="handleRefreshData">{{$t('refreshData')}}</el-button>
     </div>
   </div>
