@@ -15,7 +15,7 @@
 -- See the License for the specific language governing permissions and
 -- limitations under the License.
 --
--- ISSUE #3269
+-- ISSUE #6223 order by null should be lowest, null value is created by left join
 select NAME, tmp.NAME2 from TEST_COUNTRY
 left join (select 'Panama' as NAME2 union select COUNTRY from TEST_COUNTRY) as tmp
 on TEST_COUNTRY.NAME = tmp.NAME2
