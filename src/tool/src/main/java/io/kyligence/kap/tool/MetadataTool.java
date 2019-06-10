@@ -119,13 +119,20 @@ public class MetadataTool extends ExecutableApplication {
 
     public static void main(String[] args) {
         val tool = new MetadataTool();
-        try {
-            tool.execute(args);
-            System.exit(0);
+
+        int retFlag = 0;
+        try (val curatorOperator = new CuratorOperator()) {
+            if (!curatorOperator.isJobNodeExist()) {
+                tool.execute(args);
+            }else {
+                log.warn("Fail to backup/restore, please stop all job nodes first");
+            }
+
         } catch (Exception e) {
             log.error("", e);
-            System.exit(1);
+            retFlag = 1;
         }
+        System.exit(retFlag);
     }
 
     @Override

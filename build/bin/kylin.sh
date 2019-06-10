@@ -243,6 +243,12 @@ then
     fetchFIZkInfo
     prepareFairScheduler
 
+    serverPort=`$KYLIN_HOME/bin/get-properties.sh kylin.server.mode`
+    if [ "$serverPort" == "job" ]; then
+        echo "kylin.server.mode should be \"all\" or \"query\""
+        exit -1
+    fi
+
     port=`$KYLIN_HOME/bin/get-properties.sh server.port`
     used=`netstat -tpln | grep "\<$port\>" | awk '{print $7}' | sed "s/\// /g"`
     if [ ! -z "$used" ]; then
