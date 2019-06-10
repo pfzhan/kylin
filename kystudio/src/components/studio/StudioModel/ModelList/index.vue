@@ -168,7 +168,7 @@ import { Component, Watch } from 'vue-property-decorator'
 import { mapActions, mapGetters } from 'vuex'
 import { permissions, NamedRegex } from '../../../../config'
 import locales from './locales'
-import { handleError, hasRole, hasPermission, kapConfirm, kapMessage } from 'util/business'
+import { handleError, hasRole, hasPermission, kapConfirm, kapMessage, handleSuccess } from 'util/business'
 import { objectClone } from 'util'
 import TableIndex from '../TableIndex/index.vue'
 import ModelSegment from './ModelSegment/index.vue'
@@ -216,7 +216,8 @@ import '../../../../util/fly.js'
       disableModel: 'DISABLE_MODEL',
       enableModel: 'ENABLE_MODEL',
       updataModel: 'UPDATE_MODEL',
-      getModelJson: 'GET_MODEL_JSON'
+      getModelJson: 'GET_MODEL_JSON',
+      getModelByModelName: 'LOAD_MODEL_INFO'
     }),
     ...mapActions('ModelRenameModal', {
       callRenameModelDialog: 'CALL_MODAL'
@@ -342,14 +343,24 @@ export default class ModelList extends Vue {
         }
       })
     } else if (command === 'dataLoad') {
-      let cloneModelDesc = objectClone(modelDesc)
-      this.callModelPartitionDialog({
-        modelDesc: cloneModelDesc
-      }).then((res) => {
-        if (res.isSubmit) {
-          modelDesc.project = this.currentSelectedProject
-          this.handleSaveModel(cloneModelDesc)
-        }
+      this.getModelByModelName({model: modelDesc.alias, project: this.currentSelectedProject}).then((response) => {
+        handleSuccess(response, (data) => {
+          if (data.models && data.models.length) {
+            this.modelData = data.models[0]
+            this.modelData.project = this.currentSelectedProject
+            let cloneModelDesc = objectClone(this.modelData)
+            this.callModelPartitionDialog({
+              modelDesc: cloneModelDesc
+            }).then((res) => {
+              if (res.isSubmit) {
+                modelDesc.project = this.currentSelectedProject
+                this.handleSaveModel(cloneModelDesc)
+              }
+            })
+          }
+        })
+      }, (res) => {
+        handleError(res)
       })
     } else if (command === 'rename') {
       const isSubmit = await this.callRenameModelDialog(objectClone(modelDesc))
