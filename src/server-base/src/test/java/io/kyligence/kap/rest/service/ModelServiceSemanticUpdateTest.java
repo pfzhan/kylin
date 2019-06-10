@@ -103,6 +103,9 @@ public class ModelServiceSemanticUpdateTest extends NLocalFileMetadataTestCase {
         modelMgr.updateDataModel(MODEL_ID, model -> {
             model.setManagementType(ManagementType.MODEL_BASED);
         });
+        modelMgr.updateDataModel("741ca86a-1f13-46da-a59f-95fb68615e3a", model -> {
+            model.setManagementType(ManagementType.MODEL_BASED);
+        });
     }
 
     @Before
