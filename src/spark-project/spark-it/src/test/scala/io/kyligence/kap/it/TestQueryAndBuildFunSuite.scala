@@ -59,7 +59,7 @@ class TestQueryAndBuildFunSuite
     FloderInfo("sql", List("query105.sql")),
     FloderInfo("sql_kap", List("query03.sql")),
     FloderInfo("sql_should_work"),
-    FloderInfo("sql_magine"),
+    FloderInfo("sql_magine", List("query13.sql")),
     FloderInfo("sql_magine_left"),
     FloderInfo("sql_magine_window"),
     FloderInfo("sql_lookup"),

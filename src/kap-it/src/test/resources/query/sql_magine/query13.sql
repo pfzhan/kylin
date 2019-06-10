@@ -14,9 +14,9 @@
 -- WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 -- See the License for the specific language governing permissions and
 -- limitations under the License.
---ISSUE https://github.com/Kyligence/KAP/issues/10013
-
-select cal_dt, avg(ITEM_COUNT) item
+--ISSUE #6652
+-- not test in TestQueryAndBuildFunSuite for no model has both sum(ITEM_COUNT) and count(ITEM_COUNT)
+select cal_dt, cast(avg(ITEM_COUNT) as bigint) item
 ,sum(PRICE)  as avg_price
 from TEST_KYLIN_FACT
 where cal_dt>DATE'2013-07-01'
