@@ -145,8 +145,9 @@ public class ContextUtil {
             return derivedFromSameContext(indexOfInputCols, ((KapFilterRel) currentNode).getInput(), subContext, hasCountConstant);
 
         } else {
-            return currentNode.getInputs().size() > 0
-                    && derivedFromSameContext(indexOfInputCols, currentNode.getInput(0), subContext, hasCountConstant);
+            //https://github.com/Kyligence/KAP/issues/9952
+            //do not support agg pushdown if WindowRel, SortRel, LimitRel, ValueRel is met
+            return false;
         }
     }
 
