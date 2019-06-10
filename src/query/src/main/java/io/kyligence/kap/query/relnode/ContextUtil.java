@@ -39,6 +39,7 @@ import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlExplainFormat;
 import org.apache.calcite.sql.SqlExplainLevel;
+import org.apache.calcite.sql.fun.SqlCountAggFunction;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.query.relnode.OLAPContext;
 
@@ -103,7 +104,7 @@ public class ContextUtil {
         // 3. all aggregate is derived from the same subContext
         return subContext.getParentOfTopNode() instanceof KapJoinRel
                 && areSubJoinRelsSameType(currentRel, subContext, null, null)
-                && derivedFromSameContext(new HashSet<Integer>(), currentRel, subContext);
+                && derivedFromSameContext(new HashSet<>(), currentRel, subContext, false);
     }
 
     public static void dumpCalcitePlan(String msg, RelNode relNode) {
@@ -121,31 +122,38 @@ public class ContextUtil {
     }
 
     private static boolean derivedFromSameContext(Collection<Integer> indexOfInputCols, RelNode currentNode,
-            OLAPContext subContext) {
+            OLAPContext subContext, boolean hasCountConstant) {
         if (currentNode instanceof KapAggregateRel) {
+            hasCountConstant = hasCountConstant((KapAggregateRel) currentNode);
             Set<Integer> inputColsIndex = collectAggInputIndex(((KapAggregateRel) currentNode));
-            return derivedFromSameContext(inputColsIndex, ((KapAggregateRel) currentNode).getInput(), subContext);
+            return derivedFromSameContext(inputColsIndex, ((KapAggregateRel) currentNode).getInput(), subContext, hasCountConstant);
 
         } else if (currentNode instanceof KapProjectRel) {
             Set<Integer> indexOfInputRel = Sets.newHashSet();
             indexOfInputCols.stream().map(index -> ((KapProjectRel) currentNode).rewriteProjects.get(index))
                     .filter(inputRef -> inputRef instanceof RexInputRef)
                     .forEach(inputRef -> indexOfInputRel.add(((RexInputRef) inputRef).getIndex()));
-            return derivedFromSameContext(indexOfInputRel, ((KapProjectRel) currentNode).getInput(), subContext);
+            return derivedFromSameContext(indexOfInputRel, ((KapProjectRel) currentNode).getInput(), subContext, hasCountConstant);
 
         } else if (currentNode instanceof KapJoinRel) {
-            return isJoinFromSameContext(indexOfInputCols, (KapJoinRel) currentNode, subContext);
+            return isJoinFromSameContext(indexOfInputCols, (KapJoinRel) currentNode, subContext, hasCountConstant);
 
         } else if (currentNode instanceof KapFilterRel) {
             RexNode condition = ((KapFilterRel) currentNode).getCondition();
             if (condition instanceof RexCall)
                 indexOfInputCols.addAll(collectColsFromFilterRel((RexCall) condition));
-            return derivedFromSameContext(indexOfInputCols, ((KapFilterRel) currentNode).getInput(), subContext);
+            return derivedFromSameContext(indexOfInputCols, ((KapFilterRel) currentNode).getInput(), subContext, hasCountConstant);
 
         } else {
             return currentNode.getInputs().size() > 0
-                    && derivedFromSameContext(indexOfInputCols, currentNode.getInput(0), subContext);
+                    && derivedFromSameContext(indexOfInputCols, currentNode.getInput(0), subContext, hasCountConstant);
         }
+    }
+
+    private static boolean hasCountConstant(KapAggregateRel aggRel) {
+        return aggRel.aggCalls.stream().anyMatch(func ->
+                !func.isDistinct() && func.getArgList().isEmpty()
+                        && func.getAggregation() instanceof SqlCountAggFunction);
     }
 
     private static Set<Integer> collectAggInputIndex(KapAggregateRel aggRel) {
@@ -162,7 +170,7 @@ public class ContextUtil {
     }
 
     private static boolean isJoinFromSameContext(Collection<Integer> indexOfInputCols, KapJoinRel joinRel,
-            OLAPContext subContext) {
+            OLAPContext subContext, boolean hasCountConstant) {
         // now support Cartesian Join if children are from different contexts
         if (indexOfInputCols.isEmpty())
             return true;
@@ -176,9 +184,10 @@ public class ContextUtil {
             if (potentialSubRel.getContext() != null) {
                 return false;
             }
-            return derivedFromSameContext(indexOfInputCols, potentialSubRel, subContext);
+            return derivedFromSameContext(indexOfInputCols, potentialSubRel, subContext, hasCountConstant);
         }
-
+        if (joinRel.getJoinType() == JoinRelType.LEFT && hasCountConstant)
+            return false;
         int minIndex = Collections.min(indexOfInputCols);
         if (minIndex >= leftLength) {
             KapRel potentialSubRel = (KapRel) joinRel.getRight();
@@ -192,7 +201,7 @@ public class ContextUtil {
             for (Integer indexOfInputCol : indexOfInputCols) {
                 indexOfInputRel.add(indexOfInputCol - leftLength);
             }
-            return derivedFromSameContext(indexOfInputRel, potentialSubRel, subContext);
+            return derivedFromSameContext(indexOfInputRel, potentialSubRel, subContext, hasCountConstant);
         }
         return false;
     }
