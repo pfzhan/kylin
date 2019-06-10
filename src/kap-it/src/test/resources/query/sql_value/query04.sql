@@ -47,5 +47,5 @@ SELECT *
  		FROM test_kylin_fact
  		GROUP BY leaf_categ_id
  	)
-ORDER BY 1
+ORDER BY 1,2,3
 LIMIT 15000
