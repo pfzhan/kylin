@@ -243,8 +243,8 @@ then
     fetchFIZkInfo
     prepareFairScheduler
 
-    serverPort=`$KYLIN_HOME/bin/get-properties.sh kylin.server.mode`
-    if [ "$serverPort" == "job" ]; then
+    serverMode=`$KYLIN_HOME/bin/get-properties.sh kylin.server.mode`
+    if [ "$serverMode" == "job" ]; then
         echo "kylin.server.mode should be \"all\" or \"query\""
         exit -1
     fi
