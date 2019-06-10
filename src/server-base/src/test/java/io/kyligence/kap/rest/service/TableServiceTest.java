@@ -55,6 +55,13 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Set;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import io.kyligence.kap.common.persistence.transaction.TransactionException;
+import io.kyligence.kap.metadata.cube.model.NDataflowManager;
+import io.kyligence.kap.rest.response.BatchLoadTableResponse;
+import io.kyligence.kap.rest.response.ExistedDataRangeResponse;
+import io.kyligence.kap.rest.response.TableDescResponse;
+import lombok.var;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -65,6 +72,7 @@ import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.TableExtDesc;
 import org.apache.kylin.metadata.project.ProjectInstance;
+import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.exception.BadRequestException;
 import org.apache.kylin.source.jdbc.H2Database;
@@ -82,10 +90,8 @@ import org.springframework.security.authentication.TestingAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.util.ReflectionTestUtils;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.Lists;
 
-import io.kyligence.kap.common.persistence.transaction.TransactionException;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.event.manager.EventDao;
 import io.kyligence.kap.metadata.cube.model.NDataLoadingRange;
@@ -100,9 +106,6 @@ import io.kyligence.kap.rest.request.AutoMergeRequest;
 import io.kyligence.kap.rest.request.DateRangeRequest;
 import io.kyligence.kap.rest.request.TopTableRequest;
 import io.kyligence.kap.rest.response.AutoMergeConfigResponse;
-import io.kyligence.kap.rest.response.BatchLoadTableResponse;
-import io.kyligence.kap.rest.response.ExistedDataRangeResponse;
-import io.kyligence.kap.rest.response.TableDescResponse;
 import io.kyligence.kap.rest.response.TableNameResponse;
 import io.kyligence.kap.rest.response.TablesAndColumnsResponse;
 import lombok.val;
@@ -294,7 +297,7 @@ public class TableServiceTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testExtractTableMeta() throws Exception {
-        String[] tables = { "DEFAULT.TEST_ACCOUNT", "DEFAULT.TEST_KYLIN_FACT" };
+        String[] tables = {"DEFAULT.TEST_ACCOUNT", "DEFAULT.TEST_KYLIN_FACT"};
         List<Pair<TableDesc, TableExtDesc>> result = tableService.extractTableMeta(tables, "default");
         Assert.assertEquals(true, result.size() == 2);
 
@@ -401,7 +404,7 @@ public class TableServiceTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(originSize - 1, nTableMetadataManager.listAllTables().size());
 
         // reload table
-        String[] tables = { "DEFAULT.TEST_KYLIN_FACT" };
+        String[] tables = {"DEFAULT.TEST_KYLIN_FACT"};
         List<Pair<TableDesc, TableExtDesc>> extractTableMeta = tableService.extractTableMeta(tables, "default");
         tableService.loadTableToProject(extractTableMeta.get(0).getFirst(), extractTableMeta.get(0).getSecond(),
                 "default");
@@ -476,6 +479,92 @@ public class TableServiceTest extends NLocalFileMetadataTestCase {
         // 2014-01-01
         String latestDateInEpoch = "1388534400000";
         Assert.assertEquals(latestDateInEpoch, dataLoadingRange.getCoveredRange().getEnd().toString());
+    }
+
+    //test toggle partition Key,A to null, null to A ,A to B with model:with lag behind, without lag behind
+    @Test
+    public void testTogglePartitionKey_NullToNotNull() throws Exception {
+        val dfMgr = NDataflowManager.getInstance(getTestConfig(), "default");
+        val loadingRangeMgr = NDataLoadingRangeManager.getInstance(getTestConfig(), "default");
+
+        var df = dfMgr.getDataflowByModelAlias("nmodel_basic");
+        Assert.assertTrue(df.getSegments().size() == 1);
+        Assert.assertTrue(loadingRangeMgr.getDataLoadingRange("DEFAULT.TEST_KYLIN_FACT") == null);
+        tableService.setPartitionKey("DEFAULT.TEST_KYLIN_FACT", "default", "CAL_DT");
+        df = dfMgr.getDataflowByModelAlias("nmodel_basic");
+        Assert.assertTrue(df.getSegments().size() == 0);
+        val loadingRange = loadingRangeMgr.getDataLoadingRange("DEFAULT.TEST_KYLIN_FACT");
+        Assert.assertTrue(loadingRange != null);
+        Assert.assertTrue(loadingRange.getColumnName().equals("TEST_KYLIN_FACT.CAL_DT"));
+
+    }
+
+    @Test
+    public void testTogglePartitionKey_OneToAnother() {
+        val dfMgr = NDataflowManager.getInstance(getTestConfig(), "default");
+        var df = dfMgr.getDataflowByModelAlias("nmodel_basic");
+        Assert.assertTrue(df.getSegments().size() == 1);
+        tableService.setPartitionKey("DEFAULT.TEST_KYLIN_FACT", "default", "CAL_DT");
+        df = dfMgr.getDataflowByModelAlias("nmodel_basic");
+        Assert.assertTrue(df.getSegments().size() == 0);
+
+        val loadingRangeMgr = NDataLoadingRangeManager.getInstance(getTestConfig(), "default");
+        var loadingRange = loadingRangeMgr.getDataLoadingRange("DEFAULT.TEST_KYLIN_FACT");
+        val copy = loadingRangeMgr.copyForWrite(loadingRange);
+        copy.setCoveredRange(new SegmentRange.TimePartitionedSegmentRange(0L, 100000L));
+        loadingRangeMgr.updateDataLoadingRange(copy);
+
+        //change partition
+
+        tableService.setPartitionKey("DEFAULT.TEST_KYLIN_FACT", "default", "ORDER_ID");
+        loadingRange = loadingRangeMgr.getDataLoadingRange("DEFAULT.TEST_KYLIN_FACT");
+        Assert.assertTrue(loadingRange.getCoveredRange() == null);
+        Assert.assertEquals(loadingRange.getColumnName(), "TEST_KYLIN_FACT.ORDER_ID");
+
+    }
+
+    @Test
+    public void testTogglePartitionKey_OneToNull() throws Exception {
+        val dfMgr = NDataflowManager.getInstance(getTestConfig(), "default");
+        var df = dfMgr.getDataflowByModelAlias("nmodel_basic");
+        Assert.assertTrue(df.getSegments().size() == 1);
+        val loadingRangeMgr = NDataLoadingRangeManager.getInstance(getTestConfig(), "default");
+        var loadingRange = new NDataLoadingRange();
+        loadingRange.setTableName("DEFAULT.TEST_KYLIN_FACT");
+        loadingRange.setColumnName("TEST_KYLIN_FACT.CAL_DT");
+        loadingRangeMgr.createDataLoadingRange(loadingRange);
+
+        loadingRange = loadingRangeMgr.getDataLoadingRange("DEFAULT.TEST_KYLIN_FACT");
+        Assert.assertNull(loadingRange.getCoveredRange());
+        Assert.assertEquals(loadingRange.getColumnName(), "TEST_KYLIN_FACT.CAL_DT");
+
+        //set null
+        tableService.setPartitionKey("DEFAULT.TEST_KYLIN_FACT", "default", "");
+        df = dfMgr.getDataflowByModelAlias("nmodel_basic");
+        Assert.assertEquals(df.getSegments().size(), 0);
+
+        loadingRange = loadingRangeMgr.getDataLoadingRange("DEFAULT.TEST_KYLIN_FACT");
+        Assert.assertNull(loadingRange);
+    }
+
+    @Test
+    public void testTogglePartitionKey_NullToOneWithLagBehindModel() throws Exception {
+        val dfMgr = NDataflowManager.getInstance(getTestConfig(), "default");
+        var df = dfMgr.getDataflowByModelAlias("nmodel_basic");
+        Assert.assertTrue(df.getStatus().equals(RealizationStatusEnum.ONLINE));
+        dfMgr.updateDataflow(df.getId(), copyForWrite -> {
+            copyForWrite.setStatus(RealizationStatusEnum.LAG_BEHIND);
+        });
+        val loadingRangeMgr = NDataLoadingRangeManager.getInstance(getTestConfig(), "default");
+        var loadingRange = loadingRangeMgr.getDataLoadingRange("DEFAULT.TEST_KYLIN_FACT");
+        Assert.assertNull(loadingRange);
+        tableService.setPartitionKey("DEFAULT.TEST_KYLIN_FACT", "default", "CAL_DT");
+        df = dfMgr.getDataflowByModelAlias("nmodel_basic");
+        loadingRange = loadingRangeMgr.getDataLoadingRange("DEFAULT.TEST_KYLIN_FACT");
+        Assert.assertNotNull(loadingRange);
+        Assert.assertEquals(loadingRange.getColumnName(), "TEST_KYLIN_FACT.CAL_DT");
+        Assert.assertTrue(df.getStatus().equals(RealizationStatusEnum.ONLINE));
+
     }
 
     private void testSetDataRangeWhenNoNewData() {
@@ -705,8 +794,7 @@ public class TableServiceTest extends NLocalFileMetadataTestCase {
         Assert.assertFalse(tableManager.getTableDesc("DEFAULT.TEST_KYLIN_FACT").isIncrementLoading());
         Assert.assertNull(dataloadingManager.getDataLoadingRange("DEFAULT.TEST_KYLIN_FACT"));
         thrown.expect(BadRequestException.class);
-        thrown.expectMessage(
-                "Can not set table 'DEFAULT.TEST_ACCOUNT' incremental loading, due to another incremental loading table existed in model 'nmodel_basic_inner'!");
+        thrown.expectMessage("Can not set table 'DEFAULT.TEST_ACCOUNT' incremental loading, as another model 'nmodel_basic_inner' uses it as a lookup table");
         tableService.setPartitionKey("DEFAULT.TEST_ACCOUNT", "default", "CAL_DT");
     }
 
@@ -714,8 +802,7 @@ public class TableServiceTest extends NLocalFileMetadataTestCase {
     public void testSetFact_IncrementingExists_Exception() {
         tableService.setPartitionKey("DEFAULT.TEST_KYLIN_FACT", "default", "CAL_DT");
         thrown.expect(BadRequestException.class);
-        thrown.expectMessage(
-                "Can not set table 'DEFAULT.TEST_ACCOUNT' incremental loading, due to another incremental loading table existed in model 'nmodel_basic_inner'!");
+        thrown.expectMessage("Can not set table 'DEFAULT.TEST_ACCOUNT' incremental loading, as another model 'nmodel_basic_inner' uses it as a lookup table");
         tableService.setPartitionKey("DEFAULT.TEST_ACCOUNT", "default", "CAL_DT");
     }
 
@@ -742,7 +829,8 @@ public class TableServiceTest extends NLocalFileMetadataTestCase {
         Assert.assertNull(dataloadingManager.getDataLoadingRange("DEFAULT.TEST_KYLIN_FACT"));
         Assert.assertNull(modelManager.getDataModelDesc("89af4ee2-2cdb-4b07-b39e-4c29856309aa").getPartitionDesc());
         val events = eventDao.getEvents();
-        Assert.assertEquals(8, events.size());
+        //do not build immediately
+        Assert.assertEquals(0, events.size());
         // TODO check other events
         //        Assert.assertEquals(0L, Long.parseLong(events.get(0).getSegmentRange().getStart().toString()));
         //        Assert.assertEquals(Long.MAX_VALUE, Long.parseLong(events.get(0).getSegmentRange().getEnd().toString()));
@@ -767,7 +855,7 @@ public class TableServiceTest extends NLocalFileMetadataTestCase {
         autoMergeRequest.setProject("default");
         autoMergeRequest.setTable("DEFAULT.TEST_KYLIN_FACT");
         autoMergeRequest.setAutoMergeEnabled(true);
-        autoMergeRequest.setAutoMergeTimeRanges(new String[] { "HOUR" });
+        autoMergeRequest.setAutoMergeTimeRanges(new String[]{"HOUR"});
         autoMergeRequest.setVolatileRangeEnabled(true);
         autoMergeRequest.setVolatileRangeNumber(7);
         autoMergeRequest.setVolatileRangeType("HOUR");

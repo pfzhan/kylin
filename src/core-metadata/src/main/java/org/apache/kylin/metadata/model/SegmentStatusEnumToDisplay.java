@@ -48,5 +48,5 @@ import java.io.Serializable;
  * @author xduo
  */
 public enum SegmentStatusEnumToDisplay implements Serializable {
-    ONLINE, LOCKED, REFRESHING, MERGING
+    ONLINE, LOCKED, REFRESHING, MERGING, LOADING
 }

@@ -350,6 +350,15 @@ public class NModelController extends NBasicController {
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, null, "");
     }
 
+    @RequestMapping(value = "/purgeEffect", method = { RequestMethod.GET }, produces = {
+            "application/vnd.apache.kylin-v2+json" })
+    @ResponseBody
+    public EnvelopeResponse getPurgeModelAffectedResponse(@RequestParam(value = "project", required = true) String project, @RequestParam(value = "model", required = true) String model) {
+        checkProjectName(project);
+        checkRequiredArg(MODEL_ID, model);
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, modelService.getPurgeModelAffectedResponse(project, model), "");
+    }
+
     @RequestMapping(value = "/clone", method = { RequestMethod.POST }, produces = {
             "application/vnd.apache.kylin-v2+json" })
     @ResponseBody

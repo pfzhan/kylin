@@ -462,40 +462,12 @@ public class ModelServiceSemanticUpdateTest extends NLocalFileMetadataTestCase {
         semanticService.handleSemanticUpdate("default", originModel.getUuid(), originModel);
 
         val events = EventDao.getInstance(getTestConfig(), "default").getEvents();
-        events.sort(Event::compareTo);
-
-        Assert.assertTrue(events.get(0) instanceof AddCuboidEvent);
+        Assert.assertTrue(events.size() == 0);
         val df = dfMgr.getDataflow(MODEL_ID);
 
         Assert.assertEquals(0, df.getSegments().size());
         Assert.assertEquals(tableIndexCount,
                 df.getIndexPlan().getAllLayouts().stream().filter(l -> l.getIndex().isTableIndex()).count());
-    }
-
-    @Test
-    public void testChangePartitionDesc_SetNULL() {
-        val modelMgr = NDataModelManager.getInstance(getTestConfig(), "default");
-        val dfMgr = NDataflowManager.getInstance(getTestConfig(), "default");
-        val originModel = getTestBasicModel();
-        val cube = dfMgr.getDataflow(originModel.getUuid()).getIndexPlan();
-        val tableIndexCount = cube.getAllLayouts().stream().filter(l -> l.getIndex().isTableIndex()).count();
-        val ids = cube.getAllLayouts().stream().map(LayoutEntity::getId).collect(Collectors.toList());
-
-        modelMgr.updateDataModel(MODEL_ID, model -> {
-            model.setPartitionDesc(null);
-        });
-        semanticService.handleSemanticUpdate("default", originModel.getUuid(), originModel);
-
-        val events = EventDao.getInstance(getTestConfig(), "default").getEvents();
-        events.sort(Event::compareTo);
-
-        val df = dfMgr.getDataflow(MODEL_ID);
-        Assert.assertTrue(events.get(0) instanceof AddCuboidEvent);
-        Assert.assertEquals(1, df.getSegments().size());
-        Assert.assertEquals(true, df.getSegments().get(0).getSegRange().isInfinite());
-        Assert.assertEquals(tableIndexCount,
-                df.getIndexPlan().getAllLayouts().stream().filter(l -> l.getIndex().isTableIndex()).count());
-
     }
 
     @Test

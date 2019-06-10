@@ -74,7 +74,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
-import io.kyligence.kap.metadata.model.ManagementType;
 import io.kyligence.kap.rest.request.AutoMergeRequest;
 import io.kyligence.kap.rest.request.DateRangeRequest;
 import io.kyligence.kap.rest.request.PartitionKeyRequest;
@@ -516,7 +515,7 @@ public class NTableControllerTest {
         Mockito.doNothing().when(tableService).checkRefreshDataRangeReadiness("default", "DEFAULT.TEST_KYLIN_FACT", "0",
                 "100");
         Mockito.doReturn(null).when(modelService).getAffectedSegmentsResponse("default", "DEFAULT.TEST_KYLIN_FACT", "0",
-                "100", ManagementType.TABLE_ORIENTED);
+                "100");
         mockMvc.perform(MockMvcRequestBuilders.get("/api/tables/affected_data_range") //
                 .contentType(MediaType.APPLICATION_JSON) //
                 .param("project", "default") //

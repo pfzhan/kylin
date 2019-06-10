@@ -65,6 +65,7 @@ import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
+import io.kyligence.kap.event.model.PostAddSegmentEvent;
 import io.kyligence.kap.metadata.cube.model.NDataLayout;
 import io.kyligence.kap.rest.response.BuildIndexResponse;
 import org.apache.commons.collections.CollectionUtils;
@@ -311,7 +312,7 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
         segments = modelService.getSegmentsResponse("89af4ee2-2cdb-4b07-b39e-4c29856309aa", "default", "0",
                 "" + Long.MAX_VALUE, "start_time", false, "");
         Assert.assertEquals(1, segments.size());
-        Assert.assertEquals("LOCKED", segments.get(0).getStatusToDisplay().toString());
+        Assert.assertEquals("LOADING", segments.get(0).getStatusToDisplay().toString());
 
         seg.setStatus(SegmentStatusEnum.READY);
         segs.add(seg);
@@ -487,15 +488,49 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
         modelService.purgeModelManually("a8ba3ff1-83bd-4066-ad54-d2fb3d1f0e94", "default");
     }
 
+
+
+
     @Test
-    public void testGetAffectedSegmentsResponse_NoSegments_Exception() {
-        thrown.expect(BadRequestException.class);
-        thrown.expectMessage("No segments to refresh, please select new range and try again!");
-        List<NDataSegment> segments = modelService.getSegmentsByRange("a8ba3ff1-83bd-4066-ad54-d2fb3d1f0e94", "default",
+    public void testGetAffectedSegmentsResponse_FullBuildAndEmptyModel() {
+
+        List<NDataSegment> segments = modelService.getSegmentsByRange("89af4ee2-2cdb-4b07-b39e-4c29856309aa", "default",
                 "0", "" + Long.MAX_VALUE);
-        Assert.assertTrue(CollectionUtils.isEmpty(segments));
+        Assert.assertTrue(segments.size() == 1);
+        val dfMgr = NDataflowManager.getInstance(getTestConfig(), "default");
+        dfMgr.updateDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa", copyForWrite -> {
+            copyForWrite.setSegments(new Segments());
+        });
         RefreshAffectedSegmentsResponse response = modelService.getAffectedSegmentsResponse("default",
-                "DEFAULT.TEST_ENCODING", "0", "12223334", ManagementType.TABLE_ORIENTED);
+                "DEFAULT.TEST_KYLIN_FACT", "0", "" + Long.MAX_VALUE);
+        Assert.assertTrue(response.getByteSize() == 0L);
+    }
+
+    @Test
+    public void testGetAffectedSegmentsResponse_TwoModelWithDiffSegment() {
+        prepareTwoOnlineModels();
+        val dfMgr = NDataflowManager.getInstance(getTestConfig(), "default");
+        var df1 = dfMgr.getDataflowByModelAlias("nmodel_basic");
+        var df2 = dfMgr.getDataflowByModelAlias("nmodel_basic_inner");
+        //purge segments first
+        NDataflowUpdate update1 = new NDataflowUpdate(df1.getUuid());
+        update1.setToRemoveSegs(df1.getSegments().toArray(new NDataSegment[0]));
+        df1 = dfMgr.updateDataflow(update1);
+        dfMgr.appendSegment(df1, new SegmentRange.TimePartitionedSegmentRange(10L, 30L));
+        dfMgr.updateDataflow(df1.getId(), copyForWrite -> {
+            copyForWrite.getSegments().get(0).setStatus(SegmentStatusEnum.READY);
+        });
+        NDataflowUpdate update2 = new NDataflowUpdate(df2.getUuid());
+        update2.setToRemoveSegs(df2.getSegments().toArray(new NDataSegment[0]));
+        dfMgr.updateDataflow(update2);
+        dfMgr.appendSegment(df2, new SegmentRange.TimePartitionedSegmentRange(0L, 20L));
+        dfMgr.updateDataflow(df2.getId(), copyForWrite -> {
+            copyForWrite.getSegments().get(0).setStatus(SegmentStatusEnum.READY);
+        });
+
+        val response = modelService.getAffectedSegmentsResponse("default", "DEFAULT.TEST_KYLIN_FACT", "0", "50");
+        Assert.assertTrue(response.getAffectedStart().equals("0"));
+        Assert.assertTrue(response.getAffectedEnd().equals("30"));
     }
 
     @Test
@@ -656,39 +691,41 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(4, result.size());
     }
 
-    @Test
-    @Ignore("useless")
-    public void testRefreshSegmentsByDataRange() {
-        modelService.refreshSegments("default", "DEFAULT.TEST_KYLIN_FACT", "0", "12223334", "0", "9223372036854775807");
-        EventDao eventDao = EventDao.getInstance(KylinConfig.getInstanceFromEnv(), "default");
-        List<Event> events = eventDao.getEvents();
-        boolean flag = false;
-        // TODO check other events
-        //        for (Event event : events) {
-        //            if (event instanceof LoadingRangeRefreshEvent) {
-        //                if (event.getSegmentRange().getStart().toString().equals("0")
-        //                        && event.getSegmentRange().getEnd().toString().equals("12223334")) {
-        //                    flag = true;
-        //                }
-        //            }
-        //        }
-        //        Assert.assertTrue(flag);
+    private void prepareTwoOnlineModels(){
+        modelService.dropModel("82fa7671-a935-45f5-8779-85703601f49a", "default");
+        modelService.dropModel("abe3bf1a-c4bc-458d-8278-7ea8b00f5e96", "default");
     }
 
-    @Test
-    public void testRefreshSegments_AffectedSegmentRangeChanged_Exception() {
-        thrown.expect(BadRequestException.class);
-        thrown.expectMessage("Can not refresh, please try again and confirm affected storage!");
-        RefreshAffectedSegmentsResponse response = new RefreshAffectedSegmentsResponse();
-        response.setAffectedStart("12");
-        response.setAffectedEnd("120");
-        Mockito.doReturn(response).when(modelService).getAffectedSegmentsResponse("default", "DEFAULT.TEST_KYLIN_FACT",
-                "0", "12223334", ManagementType.TABLE_ORIENTED);
-        modelService.refreshSegments("default", "DEFAULT.TEST_KYLIN_FACT", "0", "12223334", "0", "12223334");
+    private void prepareTwoLagBehindModels(){
+        //all lag behind
+        modelService.dropModel("82fa7671-a935-45f5-8779-85703601f49a", "default");
+        modelService.dropModel("abe3bf1a-c4bc-458d-8278-7ea8b00f5e96", "default");
+        val dfMgr = NDataflowManager.getInstance(getTestConfig(), "default");
+        var df_basic = dfMgr.getDataflowByModelAlias("nmodel_basic");
+        val df_basic_inner = dfMgr.getDataflowByModelAlias("nmodel_basic_inner");
+        NDataflowUpdate update1 = new NDataflowUpdate(df_basic.getUuid());
+        update1.setStatus(RealizationStatusEnum.LAG_BEHIND);
+        dfMgr.updateDataflow(update1);
+
+        NDataflowUpdate update2 = new NDataflowUpdate(df_basic_inner.getUuid());
+        update2.setStatus(RealizationStatusEnum.LAG_BEHIND);
+        dfMgr.updateDataflow(update2);
     }
 
+    private void prepareOneLagBehindAndOneOnlineModels(){
+        //one ONLINE one Lag_behind
+        modelService.dropModel("82fa7671-a935-45f5-8779-85703601f49a", "default");
+        modelService.dropModel("abe3bf1a-c4bc-458d-8278-7ea8b00f5e96", "default");
+        val dfMgr = NDataflowManager.getInstance(getTestConfig(), "default");
+        var df_basic = dfMgr.getDataflowByModelAlias("nmodel_basic");
+        NDataflowUpdate update1 = new NDataflowUpdate(df_basic.getUuid());
+        update1.setStatus(RealizationStatusEnum.LAG_BEHIND);
+        dfMgr.updateDataflow(update1);
+    }
+
+
     @Test
-    public void testDeleteSegmentById_SegmentToDeleteOverlapsBuilding_Exception() {
+    public void testDeleteSegmentById_SegmentIsLocked() {
         NDataflowManager dataflowManager = NDataflowManager.getInstance(getTestConfig(), "default");
         NDataModelManager dataModelManager = NDataModelManager.getInstance(getTestConfig(), "default");
         NDataModel dataModel = dataModelManager.getDataModelDesc("741ca86a-1f13-46da-a59f-95fb68615e3a");
@@ -707,17 +744,22 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
         df = dataflowManager.getDataflow("741ca86a-1f13-46da-a59f-95fb68615e3a");
         NDataSegment dataSegment = dataflowManager.appendSegment(df, segmentRange);
 
-        dataSegment.setStatus(SegmentStatusEnum.NEW);
+        dataSegment.setStatus(SegmentStatusEnum.READY);
         dataSegment.setSegmentRange(segmentRange);
         segments.add(dataSegment);
         update = new NDataflowUpdate(df.getUuid());
         update.setToUpdateSegs(segments.toArray(new NDataSegment[segments.size()]));
         dataflowManager.updateDataflow(update);
+
+        df = dataflowManager.getDataflow("741ca86a-1f13-46da-a59f-95fb68615e3a");
+        dataflowManager.refreshSegment(df, segmentRange);
+
         thrown.expect(BadRequestException.class);
-        thrown.expectMessage("Can not remove segment (ID:" + dataSegment.getId()
-                + "), because this segment overlaps building segments!");
+        thrown.expectMessage("Can not remove or refresh segment (ID:" + dataSegment.getId()
+                + "), because the segment is LOCKED.");
+
         modelService.deleteSegmentById("741ca86a-1f13-46da-a59f-95fb68615e3a", "default",
-                new String[] { dataSegment.getId() });
+                new String[]{dataSegment.getId()});
     }
 
     @Test
@@ -748,7 +790,7 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void testDeleteSegmentById_SegmentToRefreshOverlapsBuilding_Exception() {
+    public void testRefreshSegmentById_SegmentToRefreshIsLocked_Exception() {
         NDataflowManager dataflowManager = NDataflowManager.getInstance(getTestConfig(), "default");
         NDataflow df = dataflowManager.getDataflow("741ca86a-1f13-46da-a59f-95fb68615e3a");
         // remove the existed seg
@@ -788,11 +830,11 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
         //        Assert.assertEquals(SegmentRange.dateToLong("2010-01-03"), events.get(0).getSegmentRange().getEnd());
 
         thrown.expect(BadRequestException.class);
-        thrown.expectMessage("Can not remove segment (ID:" + dataSegment.getId()
-                + "), because this segment overlaps building segments!");
+        thrown.expectMessage("Can not remove or refresh segment (ID:" + dataSegment2.getId()
+                + "), because the segment is LOCKED.");
         //refresh exception
         modelService.refreshSegmentById("741ca86a-1f13-46da-a59f-95fb68615e3a", "default",
-                new String[] { dataSegment.getId() });
+                new String[] { dataSegment2.getId() });
     }
 
     @Test
@@ -2205,7 +2247,7 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void testGetAffectedModelsByToogleTableType() {
+    public void testGetAffectedModelsByToggleTableType() {
         val response = modelService.getAffectedModelsByToggleTableType("DEFAULT.TEST_KYLIN_FACT", "default", true);
         Assert.assertEquals(4, response.getModels().size());
         Assert.assertEquals(5633024L, response.getByteSize());
@@ -2562,4 +2604,236 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(0, events.size());
 
     }
+
+
+    //test refreshSegments:all Online model, all lag beghind model, One Online One lag behind model
+    //first test exception
+    @Test
+    public void testRefreshSegments_AffectedSegmentRangeChanged_Exception() throws IOException {
+        thrown.expect(BadRequestException.class);
+        thrown.expectMessage("Ready segments range has changed, can not refresh, please try again.");
+        RefreshAffectedSegmentsResponse response = new RefreshAffectedSegmentsResponse();
+        response.setAffectedStart("12");
+        response.setAffectedEnd("120");
+        Mockito.doReturn(response).when(modelService).getAffectedSegmentsResponse("default", "DEFAULT.TEST_KYLIN_FACT",
+                "0", "12223334");
+        modelService.refreshSegments("default", "DEFAULT.TEST_KYLIN_FACT", "0", "12223334", "0", "12223334");
+    }
+
+
+    @Test
+    public void testGetAffectedSegmentsResponse_NoSegments_Exception() throws IOException {
+        thrown.expect(BadRequestException.class);
+        thrown.expectMessage("No segments to refresh, please select new range and try again!");
+        List<NDataSegment> segments = modelService.getSegmentsByRange("a8ba3ff1-83bd-4066-ad54-d2fb3d1f0e94", "default",
+                "0", "" + Long.MAX_VALUE);
+        Assert.assertTrue(CollectionUtils.isEmpty(segments));
+
+        val loadingRangeMgr = NDataLoadingRangeManager.getInstance(getTestConfig(), "default");
+        val loadingRange = new NDataLoadingRange();
+        loadingRange.setTableName("DEFAULT.TEST_ENCODING");
+        loadingRange.setColumnName("TEST_ENCODING.int_dict");
+        loadingRange.setCoveredRange(new SegmentRange.TimePartitionedSegmentRange(0L, 12223334L));
+        loadingRangeMgr.createDataLoadingRange(loadingRange);
+        modelService.refreshSegments("default", "DEFAULT.TEST_ENCODING", "0", "12223334", "0", "12223334");
+    }
+
+    @Test
+    public void testGetAffectedSegmentsResponse_TwoOnlineModelHasNewSegment_Exception() throws IOException {
+        prepareTwoOnlineModels();
+        val dfMgr = NDataflowManager.getInstance(getTestConfig(), "default");
+        val df = dfMgr.getDataflowByModelAlias("nmodel_basic");
+        dfMgr.refreshSegment(df, df.getSegments().get(0).getSegRange());
+
+        thrown.expect(BadRequestException.class);
+        thrown.expectMessage("Can not refresh, some segments is building within the range you want to refresh!");
+        val loadingRangeMgr = NDataLoadingRangeManager.getInstance(getTestConfig(), "default");
+        val loadingRange = new NDataLoadingRange();
+        loadingRange.setTableName("DEFAULT.TEST_KYLIN_FACT");
+        loadingRange.setColumnName("TEST_KYLIN_FACT.CAL_DT");
+        loadingRange.setCoveredRange(new SegmentRange.TimePartitionedSegmentRange(0L, Long.MAX_VALUE));
+        loadingRangeMgr.createDataLoadingRange(loadingRange);
+        modelService.refreshSegments("default", "DEFAULT.TEST_KYLIN_FACT", "0", "12223334", "0", "12223334");
+    }
+
+    @Test
+    public void testGetAffectedSegmentsResponse_OneLagBehindAndOneOnlineModel_LagBehindHasRefreshingException() throws IOException {
+        prepareOneLagBehindAndOneOnlineModels();
+        val dfMgr = NDataflowManager.getInstance(getTestConfig(), "default");
+
+        val df = dfMgr.getDataflowByModelAlias("nmodel_basic_inner");
+        dfMgr.refreshSegment(df, df.getSegments().get(0).getSegRange());
+
+        thrown.expect(BadRequestException.class);
+        thrown.expectMessage("Can not refresh, some segments is building within the range you want to refresh!");
+        val loadingRangeMgr = NDataLoadingRangeManager.getInstance(getTestConfig(), "default");
+        val loadingRange = new NDataLoadingRange();
+        loadingRange.setTableName("DEFAULT.TEST_KYLIN_FACT");
+        loadingRange.setColumnName("TEST_KYLIN_FACT.CAL_DT");
+        loadingRange.setCoveredRange(new SegmentRange.TimePartitionedSegmentRange(0L, Long.MAX_VALUE));
+        loadingRangeMgr.createDataLoadingRange(loadingRange);
+        modelService.refreshSegments("default", "DEFAULT.TEST_KYLIN_FACT", "0", "12223334", "0", "12223334");
+    }
+
+
+    //now test cases without exception
+    @Test
+    public void testRefreshSegmentsByDataRange_TwoOnlineModelAndHasReadySegs() throws IOException {
+        prepareTwoOnlineModels();
+        modelService.refreshSegments("default", "DEFAULT.TEST_KYLIN_FACT", "0", "9223372036854775807", "0", "9223372036854775807");
+        EventDao eventDao = EventDao.getInstance(KylinConfig.getInstanceFromEnv(), "default");
+        List<Event> events = eventDao.getEventsOrdered();
+        Assert.assertTrue(events.size() == 4);
+        Assert.assertTrue(events.get(0) instanceof RefreshSegmentEvent);
+        Assert.assertTrue(events.get(1) instanceof PostMergeOrRefreshSegmentEvent);
+    }
+
+
+    @Test
+    public void testRefreshSegmentsByDataRange_TwoOnlineModelNoExistedSegmentAndFullBuild() throws IOException {
+        prepareTwoOnlineModels();
+        val dfMgr = NDataflowManager.getInstance(getTestConfig(), "default");
+        val df1 = dfMgr.getDataflowByModelAlias("nmodel_basic");
+        val df2 = dfMgr.getDataflowByModelAlias("nmodel_basic_inner");
+
+        //purge segments first
+        NDataflowUpdate update1 = new NDataflowUpdate(df1.getUuid());
+        update1.setToRemoveSegs(df1.getSegments().toArray(new NDataSegment[0]));
+        dfMgr.updateDataflow(update1);
+
+        NDataflowUpdate update2 = new NDataflowUpdate(df2.getUuid());
+        update2.setToRemoveSegs(df2.getSegments().toArray(new NDataSegment[0]));
+        dfMgr.updateDataflow(update2);
+
+        modelService.refreshSegments("default", "DEFAULT.TEST_KYLIN_FACT", "0", "9223372036854775807", "0", "9223372036854775807");
+        EventDao eventDao = EventDao.getInstance(KylinConfig.getInstanceFromEnv(), "default");
+        List<Event> events = eventDao.getEventsOrdered();
+        Assert.assertTrue(events.size() == 4);
+        Assert.assertTrue(events.get(0) instanceof AddSegmentEvent);
+        Assert.assertTrue(events.get(1) instanceof PostAddSegmentEvent);
+    }
+
+
+    @Test
+    public void testRefreshSegmentsByDataRange_TwoLagBehindModelAndNoReadySegs() throws IOException {
+        prepareTwoLagBehindModels();
+        val dfMgr = NDataflowManager.getInstance(getTestConfig(), "default");
+        var df_basic = dfMgr.getDataflowByModelAlias("nmodel_basic");
+        var df_basic_inner = dfMgr.getDataflowByModelAlias("nmodel_basic_inner");
+
+        NDataflowUpdate update1 = new NDataflowUpdate(df_basic.getUuid());
+        update1.setToRemoveSegs(df_basic.getSegments().toArray(new NDataSegment[0]));
+        dfMgr.updateDataflow(update1);
+        df_basic = dfMgr.getDataflowByModelAlias("nmodel_basic");
+        dfMgr.appendSegment(df_basic, SegmentRange.TimePartitionedSegmentRange.createInfinite());
+
+        NDataflowUpdate update2 = new NDataflowUpdate(df_basic_inner.getUuid());
+        update2.setToRemoveSegs(df_basic_inner.getSegments().toArray(new NDataSegment[0]));
+        dfMgr.updateDataflow(update2);
+        df_basic_inner = dfMgr.getDataflowByModelAlias("nmodel_basic_inner");
+        val oldSeg = dfMgr.appendSegment(df_basic_inner, SegmentRange.TimePartitionedSegmentRange.createInfinite());
+
+        modelService.refreshSegments("default", "DEFAULT.TEST_KYLIN_FACT", "0", "9223372036854775807", "0", "9223372036854775807");
+        EventDao eventDao = EventDao.getInstance(KylinConfig.getInstanceFromEnv(), "default");
+        df_basic_inner = dfMgr.getDataflowByModelAlias("nmodel_basic_inner");
+        Assert.assertTrue(df_basic_inner.getSegments().get(0).getId() != oldSeg.getId());
+        List<Event> events = eventDao.getEventsOrdered();
+        Assert.assertTrue(events.size() == 4);
+        Assert.assertTrue(events.get(0) instanceof AddSegmentEvent);
+        Assert.assertTrue(events.get(1) instanceof PostAddSegmentEvent);
+        Assert.assertTrue(events.get(2) instanceof AddSegmentEvent);
+        Assert.assertTrue(events.get(3) instanceof PostAddSegmentEvent);
+    }
+
+    @Test
+    public void testRefreshSegmentsByDataRange_TwoLagBehindModelAndHasReadySegs() throws IOException {
+        prepareTwoLagBehindModels();
+        val dfMgr = NDataflowManager.getInstance(getTestConfig(), "default");
+        var df_basic = dfMgr.getDataflowByModelAlias("nmodel_basic");
+        var df_basic_inner = dfMgr.getDataflowByModelAlias("nmodel_basic_inner");
+
+        NDataflowUpdate update1 = new NDataflowUpdate(df_basic.getUuid());
+        update1.setToRemoveSegs(df_basic.getSegments().toArray(new NDataSegment[0]));
+        dfMgr.updateDataflow(update1);
+        df_basic = dfMgr.getDataflowByModelAlias("nmodel_basic");
+        var firstSegment = dfMgr.appendSegment(df_basic, new SegmentRange.TimePartitionedSegmentRange(0L, 10L));
+        dfMgr.appendSegment(df_basic, new SegmentRange.TimePartitionedSegmentRange(10L, 20L));
+        update1 = new NDataflowUpdate(df_basic.getUuid());
+        firstSegment.setStatus(SegmentStatusEnum.READY);
+        update1.setToUpdateSegs(firstSegment);
+        dfMgr.updateDataflow(update1);
+
+        NDataflowUpdate update2 = new NDataflowUpdate(df_basic_inner.getUuid());
+        update2.setToRemoveSegs(df_basic_inner.getSegments().toArray(new NDataSegment[0]));
+        dfMgr.updateDataflow(update2);
+        df_basic_inner = dfMgr.getDataflowByModelAlias("nmodel_basic_inner");
+        firstSegment = dfMgr.appendSegment(df_basic_inner, new SegmentRange.TimePartitionedSegmentRange(0L, 10L));
+        dfMgr.appendSegment(df_basic_inner, new SegmentRange.TimePartitionedSegmentRange(10L, 20L));
+        update2 = new NDataflowUpdate(df_basic_inner.getUuid());
+        firstSegment.setStatus(SegmentStatusEnum.READY);
+        update2.setToUpdateSegs(firstSegment);
+        dfMgr.updateDataflow(update2);
+
+        modelService.refreshSegments("default", "DEFAULT.TEST_KYLIN_FACT", "0", "20", "0", "20");
+        EventDao eventDao = EventDao.getInstance(KylinConfig.getInstanceFromEnv(), "default");
+        List<Event> events = eventDao.getEventsOrdered();
+        //refresh 2 ready segs and rebuild two new segs
+        Assert.assertTrue(events.size() == 8);
+        Assert.assertTrue(events.get(0) instanceof RefreshSegmentEvent);
+        Assert.assertTrue(events.get(1) instanceof PostMergeOrRefreshSegmentEvent);
+        Assert.assertTrue(events.get(2) instanceof AddSegmentEvent);
+        Assert.assertTrue(events.get(3) instanceof PostAddSegmentEvent);
+        Assert.assertTrue(events.get(4) instanceof RefreshSegmentEvent);
+        Assert.assertTrue(events.get(5) instanceof PostMergeOrRefreshSegmentEvent);
+        Assert.assertTrue(events.get(6) instanceof AddSegmentEvent);
+        Assert.assertTrue(events.get(7) instanceof PostAddSegmentEvent);
+    }
+
+
+    @Test
+    public void testRefreshSegmentsByDataRange_OneLagBehindOneOnlineModelAndHasReadySegs() throws IOException {
+        prepareOneLagBehindAndOneOnlineModels();
+        val dfMgr = NDataflowManager.getInstance(getTestConfig(), "default");
+        var df_basic = dfMgr.getDataflowByModelAlias("nmodel_basic");
+        var df_basic_inner = dfMgr.getDataflowByModelAlias("nmodel_basic_inner");
+
+        NDataflowUpdate update1 = new NDataflowUpdate(df_basic.getUuid());
+        update1.setToRemoveSegs(df_basic.getSegments().toArray(new NDataSegment[0]));
+        dfMgr.updateDataflow(update1);
+        df_basic = dfMgr.getDataflowByModelAlias("nmodel_basic");
+        var firstSegment = dfMgr.appendSegment(df_basic, new SegmentRange.TimePartitionedSegmentRange(0L, 10L));
+        dfMgr.appendSegment(df_basic, new SegmentRange.TimePartitionedSegmentRange(10L, 20L));
+        update1 = new NDataflowUpdate(df_basic.getUuid());
+        firstSegment.setStatus(SegmentStatusEnum.READY);
+        update1.setToUpdateSegs(firstSegment);
+        dfMgr.updateDataflow(update1);
+
+        NDataflowUpdate update2 = new NDataflowUpdate(df_basic_inner.getUuid());
+        update2.setToRemoveSegs(df_basic_inner.getSegments().toArray(new NDataSegment[0]));
+        dfMgr.updateDataflow(update2);
+        df_basic_inner = dfMgr.getDataflowByModelAlias("nmodel_basic_inner");
+        firstSegment = dfMgr.appendSegment(df_basic_inner, new SegmentRange.TimePartitionedSegmentRange(0L, 10L));
+        val secondSeg = dfMgr.appendSegment(df_basic_inner, new SegmentRange.TimePartitionedSegmentRange(10L, 20L));
+        update2 = new NDataflowUpdate(df_basic_inner.getUuid());
+        firstSegment.setStatus(SegmentStatusEnum.READY);
+        secondSeg.setStatus(SegmentStatusEnum.READY);
+        update2.setToUpdateSegs(firstSegment, secondSeg);
+        dfMgr.updateDataflow(update2);
+
+        modelService.refreshSegments("default", "DEFAULT.TEST_KYLIN_FACT", "0", "20", "0", "20");
+        EventDao eventDao = EventDao.getInstance(KylinConfig.getInstanceFromEnv(), "default");
+        List<Event> events = eventDao.getEventsOrdered();
+        //refresh 2 ready segs in online model and one ready seg in lag behind and rebuild one new seg in lag behind
+        Assert.assertTrue(events.size() == 8);
+        Assert.assertTrue(events.get(0) instanceof RefreshSegmentEvent);
+        Assert.assertTrue(events.get(1) instanceof PostMergeOrRefreshSegmentEvent);
+        Assert.assertTrue(events.get(2) instanceof RefreshSegmentEvent);
+        Assert.assertTrue(events.get(3) instanceof PostMergeOrRefreshSegmentEvent);
+        Assert.assertTrue(events.get(4) instanceof RefreshSegmentEvent);
+        Assert.assertTrue(events.get(5) instanceof PostMergeOrRefreshSegmentEvent);
+        Assert.assertTrue(events.get(6) instanceof AddSegmentEvent);
+        Assert.assertTrue(events.get(7) instanceof PostAddSegmentEvent);
+    }
+
+
 }

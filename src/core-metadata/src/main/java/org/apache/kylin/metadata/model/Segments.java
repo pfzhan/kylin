@@ -765,18 +765,24 @@ public class Segments<T extends ISegment> extends ArrayList<T> implements Serial
     }
 
     public SegmentStatusEnumToDisplay getSegmentStatusToDisplay(T segment) {
-        if (segment.getStatus().equals(SegmentStatusEnum.READY)) {
-            return SegmentStatusEnumToDisplay.ONLINE;
-        }
         Segments<T> overlapSegs = getSegmentsByRange(segment.getSegRange());
         overlapSegs.remove(segment);
-        if (CollectionUtils.isEmpty(overlapSegs)) {
-            return SegmentStatusEnumToDisplay.LOCKED;
-        } else {
-            if (overlapSegs.get(0).getSegRange().entireOverlaps(segment.getSegRange())) {
-                return SegmentStatusEnumToDisplay.REFRESHING;
+        if (segment.getStatus().equals(SegmentStatusEnum.READY)) {
+            if (CollectionUtils.isEmpty(overlapSegs)) {
+                return SegmentStatusEnumToDisplay.ONLINE;
             } else {
-                return SegmentStatusEnumToDisplay.MERGING;
+                Preconditions.checkState(CollectionUtils.isNotEmpty(overlapSegs.getSegments(SegmentStatusEnum.NEW)));
+                return SegmentStatusEnumToDisplay.LOCKED;
+            }
+        } else {
+            if (CollectionUtils.isEmpty(overlapSegs)) {
+                return SegmentStatusEnumToDisplay.LOADING;
+            } else {
+                if (overlapSegs.get(0).getSegRange().entireOverlaps(segment.getSegRange())) {
+                    return SegmentStatusEnumToDisplay.REFRESHING;
+                } else {
+                    return SegmentStatusEnumToDisplay.MERGING;
+                }
             }
         }
     }

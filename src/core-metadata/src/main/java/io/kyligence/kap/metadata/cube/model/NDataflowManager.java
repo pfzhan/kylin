@@ -424,9 +424,7 @@ public class NDataflowManager implements IRealizationProvider, IKeepNames {
     }
 
     public void fillDfManually(NDataflow df, List<SegmentRange> ranges) {
-        if (df.getModel().getManagementType() == ManagementType.TABLE_ORIENTED) {
-            return;
-        }
+        Preconditions.checkState(df.getModel().getManagementType() == ManagementType.MODEL_BASED);
         if (CollectionUtils.isEmpty(ranges)) {
             return;
         }

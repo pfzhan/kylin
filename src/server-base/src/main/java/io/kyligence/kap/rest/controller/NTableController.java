@@ -52,7 +52,6 @@ import org.springframework.web.bind.annotation.ResponseBody;
 
 import com.google.common.collect.Sets;
 
-import io.kyligence.kap.metadata.model.ManagementType;
 import io.kyligence.kap.rest.request.AutoMergeRequest;
 import io.kyligence.kap.rest.request.DateRangeRequest;
 import io.kyligence.kap.rest.request.PartitionKeyRequest;
@@ -289,15 +288,14 @@ public class NTableController extends NBasicController {
         checkRequiredArg("end", end);
         validateRange(start, end);
         tableService.checkRefreshDataRangeReadiness(project, table, start, end);
-        RefreshAffectedSegmentsResponse response = modelService.getAffectedSegmentsResponse(project, table, start, end,
-                ManagementType.TABLE_ORIENTED);
+        RefreshAffectedSegmentsResponse response = modelService.getAffectedSegmentsResponse(project, table, start, end);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, response, "");
     }
 
     @RequestMapping(value = "/data_range", method = { RequestMethod.PUT }, produces = {
             "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public EnvelopeResponse refreshSegments(@RequestBody RefreshSegmentsRequest request) {
+    public EnvelopeResponse refreshSegments(@RequestBody RefreshSegmentsRequest request) throws IOException {
         checkProjectName(request.getProject());
         checkRequiredArg(TABLE, request.getTable());
         checkRequiredArg("refresh start", request.getRefreshStart());
@@ -435,4 +433,5 @@ public class NTableController extends NBasicController {
             throw new BadRequestException("reload table error", ResponseCode.CODE_UNDEFINED, e);
         }
     }
+
 }

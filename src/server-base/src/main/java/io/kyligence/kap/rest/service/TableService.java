@@ -433,78 +433,66 @@ public class TableService extends BasicService {
 
     @Transaction(project = 1)
     public void setPartitionKey(String table, String project, String column) {
-        NTableMetadataManager tableManager = getTableManager(project);
-
-        val dataflowManager = getDataflowManager(project);
-        TableDesc tableDesc = tableManager.getTableDesc(table);
-        tableDesc = tableManager.copyForWrite(tableDesc);
         NDataLoadingRangeManager dataLoadingRangeManager = getDataLoadingRangeManager(project);
-        NDataLoadingRange dataLoadingRange = dataLoadingRangeManager.getDataLoadingRange(table);
-        if (StringUtils.isEmpty(column)) {
-            if (dataLoadingRange == null) {
-                return;
-            }
-            dataLoadingRangeManager.removeDataLoadingRange(dataLoadingRange);
-            tableDesc.setIncrementLoading(false);
-            tableManager.updateTableDesc(tableDesc);
-        } else {
-            String tableName = table.substring(table.lastIndexOf('.') + 1);
-            String columnIdentity = tableName + "." + column;
-            modelService.checkSingleIncrementingLoadingTable(project, table);
-            if (dataLoadingRange != null && dataLoadingRange.getColumnName().equals(columnIdentity))
-                return;
-
-            if (dataLoadingRange == null) {
-                dataLoadingRange = new NDataLoadingRange(table, columnIdentity);
-                dataLoadingRangeManager.createDataLoadingRange(dataLoadingRange);
-            } else {
-                val copy = dataLoadingRangeManager.copyForWrite(dataLoadingRange);
-                copy.setPartitionDateFormat(null);
-                copy.setColumnName(columnIdentity);
-                dataLoadingRangeManager.updateDataLoadingRange(copy);
-            }
-
-            tableDesc.setIncrementLoading(true);
-            tableManager.updateTableDesc(tableDesc);
+        val dataLoadingRange = dataLoadingRangeManager.getDataLoadingRange(table);
+        String tableName = table.substring(table.lastIndexOf('.') + 1);
+        String columnIdentity = tableName + "." + column;
+        if ((dataLoadingRange == null && StringUtils.isEmpty(column))
+                || (dataLoadingRange != null && StringUtils.equalsIgnoreCase(columnIdentity, dataLoadingRange.getColumnName()))) {
+            logger.info("Partition column {} does not change", column);
+            return;
         }
+        handlePartitionColumnChanged(dataLoadingRange, columnIdentity, column, project, table);
+    }
 
+    private void purgeRelatedModel(String modelId, String table, String project) {
+        val dfManager = getDataflowManager(project);
         // toggle table type, remove all segments in related models
-        val models = dataflowManager.getTableOrientedModelsUsingRootTable(tableDesc);
-        for (val model : models) {
-            //follow semanticVersion,#8196
-            modelService.purgeModel(model.getUuid(), project);
-            modelService.syncPartitionDesc(model.getUuid(), project);
-            if (StringUtils.isEmpty(column)) {
-                buildFullSegment(model.getUuid(), project);
-            } else {
-                //await table's range being set in next REST call
-            }
+        //follow semanticVersion,#8196
+        modelService.purgeModel(modelId, project);
+        val dataflow = dfManager.getDataflow(modelId);
+        if (dataflow.getStatus().equals(RealizationStatusEnum.LAG_BEHIND)) {
+            dfManager.updateDataflow(dataflow.getId(), copyForWrite -> {
+                copyForWrite.setStatus(RealizationStatusEnum.ONLINE);
+            });
+
         }
     }
 
-    private void buildFullSegment(String model, String project) {
-        val eventManager = getEventManager(project);
-        val dataflowManager = getDataflowManager(project);
-        val indexPlanManager = getIndexPlanManager(project);
-        val indexPlan = indexPlanManager.getIndexPlan(model);
-        val dataflow = dataflowManager.getDataflow(indexPlan.getUuid());
-        val newSegment = dataflowManager.appendSegment(dataflow,
-                new SegmentRange.TimePartitionedSegmentRange(0L, Long.MAX_VALUE));
 
-        val addSegmentEvent = new AddSegmentEvent();
-        addSegmentEvent.setSegmentId(newSegment.getId());
-        addSegmentEvent.setModelId(model);
-        addSegmentEvent.setJobId(UUID.randomUUID().toString());
-        addSegmentEvent.setOwner(getUsername());
-        eventManager.post(addSegmentEvent);
-
-        PostAddSegmentEvent postAddSegmentEvent = new PostAddSegmentEvent();
-        postAddSegmentEvent.setSegmentId(newSegment.getId());
-        postAddSegmentEvent.setModelId(model);
-        postAddSegmentEvent.setJobId(addSegmentEvent.getJobId());
-        postAddSegmentEvent.setOwner(getUsername());
-        eventManager.post(postAddSegmentEvent);
+    private void handlePartitionColumnChanged(NDataLoadingRange dataLoadingRange, String columnIdentity, String column, String project, String table) {
+        val dataLoadingRangeManager = getDataLoadingRangeManager(project);
+        val tableManager = getTableManager(project);
+        val tableDesc = tableManager.getTableDesc(table);
+        val copy = tableManager.copyForWrite(tableDesc);
+        if (StringUtils.isEmpty(column)) {
+            dataLoadingRangeManager.removeDataLoadingRange(dataLoadingRange);
+            copy.setIncrementLoading(false);
+            tableManager.updateTableDesc(copy);
+        } else {
+            modelService.checkSingleIncrementingLoadingTable(project, table);
+            if (dataLoadingRange != null) {
+                val loadingRangeCopy = dataLoadingRangeManager.copyForWrite(dataLoadingRange);
+                loadingRangeCopy.setColumnName(columnIdentity);
+                loadingRangeCopy.setPartitionDateFormat(null);
+                loadingRangeCopy.setCoveredRange(null);
+                dataLoadingRangeManager.updateDataLoadingRange(loadingRangeCopy);
+            } else {
+                dataLoadingRange = new NDataLoadingRange(table, columnIdentity);
+                logger.info("Create DataLoadingRange {}", dataLoadingRange.getTableName());
+                dataLoadingRangeManager.createDataLoadingRange(dataLoadingRange);
+            }
+            copy.setIncrementLoading(true);
+            tableManager.updateTableDesc(copy);
+        }
+        val dfManager = getDataflowManager(project);
+        val models = dfManager.getTableOrientedModelsUsingRootTable(tableDesc);
+        for (val model : models) {
+            purgeRelatedModel(model.getUuid(), table, project);
+            modelService.syncPartitionDesc(model.getUuid(), project);
+        }
     }
+
 
     public void setDataRange(String project, DateRangeRequest dateRangeRequest) throws Exception {
         String table = dateRangeRequest.getTable();

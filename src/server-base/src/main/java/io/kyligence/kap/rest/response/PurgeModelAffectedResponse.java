@@ -24,28 +24,17 @@
 
 package io.kyligence.kap.rest.response;
 
+
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Getter;
 import lombok.Setter;
 
-@Setter
 @Getter
-public class RefreshAffectedSegmentsResponse {
+@Setter
+public class PurgeModelAffectedResponse {
+
+    @JsonProperty("related_job_size")
+    private long relatedJobSize;
     @JsonProperty("byte_size")
     private long byteSize;
-
-    @JsonProperty("affected_start")
-    private String affectedStart;
-
-    @JsonProperty("affected_end")
-    private String affectedEnd;
-
-    public RefreshAffectedSegmentsResponse(long byteSize, String affectedStart, String affectedEnd) {
-        this.byteSize = byteSize;
-        this.affectedStart = affectedStart;
-        this.affectedEnd = affectedEnd;
-    }
-
-    public RefreshAffectedSegmentsResponse() {
-    }
 }

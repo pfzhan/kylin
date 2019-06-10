@@ -36,6 +36,12 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import com.google.common.collect.Maps;
+import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
+import io.kyligence.kap.event.model.AddCuboidEvent;
+import io.kyligence.kap.event.model.PostAddCuboidEvent;
+import io.kyligence.kap.metadata.cube.cuboid.NSpanningTreeForWeb;
+import io.kyligence.kap.rest.response.PurgeModelAffectedResponse;
 import io.kyligence.kap.metadata.cube.model.NDataLayout;
 import io.kyligence.kap.rest.response.BuildIndexResponse;
 import org.apache.commons.collections.CollectionUtils;
@@ -53,6 +59,7 @@ import org.apache.kylin.metadata.model.JoinTableDesc;
 import org.apache.kylin.metadata.model.PartitionDesc;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
+import org.apache.kylin.metadata.model.SegmentStatusEnumToDisplay;
 import org.apache.kylin.metadata.model.Segments;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.TableRef;
@@ -76,19 +83,14 @@ import org.springframework.stereotype.Component;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
-import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.event.manager.EventManager;
-import io.kyligence.kap.event.model.AddCuboidEvent;
 import io.kyligence.kap.event.model.AddSegmentEvent;
-import io.kyligence.kap.event.model.PostAddCuboidEvent;
 import io.kyligence.kap.event.model.PostAddSegmentEvent;
 import io.kyligence.kap.event.model.PostMergeOrRefreshSegmentEvent;
 import io.kyligence.kap.event.model.RefreshSegmentEvent;
 import io.kyligence.kap.metadata.cube.cuboid.NSpanningTreeFactory;
-import io.kyligence.kap.metadata.cube.cuboid.NSpanningTreeForWeb;
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
@@ -601,52 +603,80 @@ public class ModelService extends BasicService {
     }
 
     public RefreshAffectedSegmentsResponse getAffectedSegmentsResponse(String project, String table, String start,
-            String end, ManagementType managementType) {
-        Segments<NDataSegment> segments = new Segments<>();
+                                                                       String end) {
         val dfManager = getDataflowManager(project);
-        RefreshAffectedSegmentsResponse response = new RefreshAffectedSegmentsResponse();
         long byteSize = 0L;
-        List<RelatedModelResponse> models = getRelateModels(project, table, "");
-        for (NDataModel model : models) {
-            if (model.getManagementType().equals(managementType)) {
-                segments.addAll(getSegmentsByRange(model.getUuid(), project, start, end));
-            }
+        List<RelatedModelResponse> models = getRelateModels(project, table, "").stream().filter(relatedModelResponse -> relatedModelResponse.getManagementType().equals(ManagementType.TABLE_ORIENTED)).collect(Collectors.toList());
+
+        TableDesc tableDesc = getTableManager(project).getTableDesc(table);
+        SegmentRange toBeRefreshSegmentRange = SourceFactory.getSource(tableDesc).getSegmentRange(start, end);
+
+        val loadingRangeMgr = getDataLoadingRangeManager(project);
+        val loadingRange = loadingRangeMgr.getDataLoadingRange(table);
+
+        if (loadingRange != null) {
+            // check if toBeRefreshSegmentRange is within covered ready segment range
+            checkRefreshRangeWithinCoveredRange(loadingRange, project, table, toBeRefreshSegmentRange);
         }
 
-        if (CollectionUtils.isEmpty(segments)) {
-            throw new BadRequestException("No segments to refresh, please select new range and try again!");
-        } else {
-            String affectedStart = segments.getFirstSegment().getSegRange().getStart().toString();
-            String affectedEnd = segments.getLatestReadySegment().getSegRange().getEnd().toString();
-            for (NDataSegment segment : segments) {
-                byteSize += dfManager.getSegmentSize(segment);
+        Segments<NDataSegment> affetedSegments = new Segments<NDataSegment>();
+
+        for (NDataModel model : models) {
+            val dataflow = dfManager.getDataflow(model.getId());
+            Segments<NDataSegment> segments = getSegmentsByRange(model.getUuid(), project, start, end);
+            if (!dataflow.getStatus().equals(RealizationStatusEnum.LAG_BEHIND)) {
+                if (CollectionUtils.isEmpty(segments.getSegments(SegmentStatusEnum.READY))) {
+                    if (loadingRange == null) {
+                        //full build
+                        logger.info("No segment to refresh, full build.");
+                        return new RefreshAffectedSegmentsResponse(0, start, end);
+                    } else {
+                        throw new BadRequestException("No segments to refresh, please select new range and try again!");
+                    }
+                }
+
+                if (CollectionUtils.isNotEmpty(segments.getBuildingSegments())) {
+                    throw new BadRequestException(
+                            "Can not refresh, some segments is building within the range you want to refresh!");
+                }
+            } else {
+                for (val seg : segments) {
+                    if (segments.getSegmentStatusToDisplay(seg).equals(SegmentStatusEnumToDisplay.REFRESHING)) {
+                        throw new BadRequestException(
+                                "Can not refresh, some segments is building within the range you want to refresh!");
+                    }
+                }
             }
-            response.setAffectedStart(affectedStart);
-            response.setAffectedEnd(affectedEnd);
-            response.setByteSize(byteSize);
+            affetedSegments.addAll(segments);
         }
-        return response;
+        Preconditions.checkState(CollectionUtils.isNotEmpty(affetedSegments));
+        Collections.sort(affetedSegments);
+        String affectedStart = affetedSegments.getFirstSegment().getSegRange().getStart().toString();
+        String affectedEnd = affetedSegments.getLastSegment().getSegRange().getEnd().toString();
+        for (NDataSegment segment : affetedSegments) {
+            byteSize += dfManager.getSegmentSize(segment);
+        }
+        return new RefreshAffectedSegmentsResponse(byteSize, affectedStart, affectedEnd);
+
+    }
+
+    private void checkRefreshRangeWithinCoveredRange(NDataLoadingRange dataLoadingRange, String project, String table, SegmentRange toBeRefreshSegmentRange) {
+        SegmentRange coveredReadySegmentRange = dataLoadingRange.getCoveredRange();
+        if (coveredReadySegmentRange == null || !coveredReadySegmentRange.contains(toBeRefreshSegmentRange)) {
+            throw new IllegalArgumentException("ToBeRefreshSegmentRange " + toBeRefreshSegmentRange
+                    + " is out of range the coveredReadySegmentRange of dataLoadingRange, the coveredReadySegmentRange is "
+                    + coveredReadySegmentRange);
+        }
     }
 
     @Transaction(project = 0)
     public void refreshSegments(String project, String table, String refreshStart, String refreshEnd,
-            String affectedStart, String affectedEnd) {
+                                String affectedStart, String affectedEnd) throws IOException {
 
-        RefreshAffectedSegmentsResponse response = getAffectedSegmentsResponse(project, table, refreshStart, refreshEnd,
-                ManagementType.TABLE_ORIENTED);
+        RefreshAffectedSegmentsResponse response = getAffectedSegmentsResponse(project, table, refreshStart, refreshEnd);
         if (!response.getAffectedStart().equals(affectedStart) || !response.getAffectedEnd().equals(affectedEnd)) {
-            throw new BadRequestException("Can not refresh, please try again and confirm affected storage!");
+            throw new BadRequestException("Ready segments range has changed, can not refresh, please try again.");
         }
-
-        List<RelatedModelResponse> models = getRelateModels(project, table, "");
-        for (NDataModel model : models) {
-            Segments<NDataSegment> segments = getSegmentsByRange(model.getUuid(), project, refreshStart, refreshEnd);
-            if (segments.getBuildingSegments().size() > 0) {
-                throw new BadRequestException(
-                        "Can not refresh, some segments is building within the range you want to refresh!");
-            }
-        }
-
         TableDesc tableDesc = getTableManager(project).getTableDesc(table);
         SegmentRange segmentRange = SourceFactory.getSource(tableDesc).getSegmentRange(refreshStart, refreshEnd);
         segmentHelper.refreshRelatedModelSegments(project, table, segmentRange);
@@ -1051,7 +1081,7 @@ public class ModelService extends BasicService {
                     MODEL + dataModel.getAlias() + "' is table oriented, can not remove segments manually!");
         }
         NDataflowManager dataflowManager = getDataflowManager(project);
-        checkSegmentsOverlapWithBuilding(model, project, ids);
+        checkSegmentsLocked(model, project, ids);
         checkDeleteSegmentLegally(model, project, ids);
         val indexPlan = getIndexPlan(model, project);
         NDataflow dataflow = dataflowManager.getDataflow(indexPlan.getUuid());
@@ -1067,21 +1097,16 @@ public class ModelService extends BasicService {
         segmentHelper.removeSegment(project, dataflow.getUuid(), idsToDelete);
     }
 
-    private void checkSegmentsOverlapWithBuilding(String model, String project, String[] ids) {
+    private void checkSegmentsLocked(String model, String project, String[] ids) {
         NDataflowManager dataflowManager = getDataflowManager(project);
         IndexPlan indexPlan = getIndexPlan(model, project);
         NDataflow dataflow = dataflowManager.getDataflow(indexPlan.getUuid());
-        Segments<NDataSegment> buildingSegments = dataflow.getSegments().getBuildingSegments();
-        if (buildingSegments.size() > 0) {
-            for (NDataSegment segment : buildingSegments) {
-                for (String id : ids) {
-                    if (segment.getSegRange().overlaps(dataflow.getSegment(id).getSegRange())) {
-                        throw new BadRequestException("Can not remove segment (ID:" + id
-                                + "), because this segment overlaps building segments!");
-                    }
-                }
+        Segments<NDataSegment> segments = dataflow.getSegments();
+        for (String id : ids) {
+            if (segments.getSegmentStatusToDisplay(dataflow.getSegment(id)).equals(SegmentStatusEnumToDisplay.LOCKED)) {
+                throw new BadRequestException("Can not remove or refresh segment (ID:" + id
+                        + "), because the segment is LOCKED.");
             }
-
         }
     }
 
@@ -1119,7 +1144,7 @@ public class ModelService extends BasicService {
         IndexPlan indexPlan = getIndexPlan(modelId, project);
         NDataflow df = dfMgr.getDataflow(indexPlan.getUuid());
 
-        checkSegmentsOverlapWithBuilding(modelId, project, ids);
+        checkSegmentsLocked(modelId, project, ids);
 
         for (String id : ids) {
             NDataSegment segment = df.getSegment(id);
@@ -1276,9 +1301,7 @@ public class ModelService extends BasicService {
         for (val modelDesc : modelsUsingTable) {
             if (!modelDesc.getRootFactTable().getTableDesc().getIdentity().equals(tableName)
                     || modelDesc.isJoinTable(tableName)) {
-                throw new BadRequestException("Can not set table '" + tableName
-                        + "' incremental loading, due to another incremental loading table existed in model '"
-                        + modelDesc.getAlias() + "'!");
+                throw new BadRequestException(String.format("Can not set table '%s' incremental loading, as another model '%s' uses it as a lookup table", tableName, modelDesc.getAlias()));
             }
         }
     }
@@ -1469,4 +1492,15 @@ public class ModelService extends BasicService {
         return new BuildIndexResponse(BuildIndexResponse.BuildIndexType.NORM_BUILD);
     }
 
+    public PurgeModelAffectedResponse getPurgeModelAffectedResponse(String project, String model) {
+        val response = new PurgeModelAffectedResponse();
+        val byteSize = getDataflowManager(project).getDataflowByteSize(model);
+        response.setByteSize(byteSize);
+        Set<ExecutableState> states = Sets.newHashSet();
+        states.add(ExecutableState.RUNNING);
+        states.add(ExecutableState.READY);
+        long jobSize = getExecutableManager(project).countByModelAndStatus(model, states);
+        response.setRelatedJobSize(jobSize);
+        return response;
+    }
 }

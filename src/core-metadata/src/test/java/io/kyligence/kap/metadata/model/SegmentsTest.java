@@ -26,13 +26,20 @@ package io.kyligence.kap.metadata.model;
 
 import io.kyligence.kap.common.util.TempMetadataBuilder;
 import io.kyligence.kap.junit.TimeZoneTestRunner;
+import io.kyligence.kap.metadata.cube.model.NDataSegment;
+import lombok.val;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.DateFormat;
+import org.apache.kylin.metadata.model.SegmentRange;
+import org.apache.kylin.metadata.model.SegmentStatusEnum;
+import org.apache.kylin.metadata.model.SegmentStatusEnumToDisplay;
 import org.apache.kylin.metadata.model.Segments;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+
+import java.util.UUID;
 
 @RunWith(TimeZoneTestRunner.class)
 public class SegmentsTest {
@@ -164,5 +171,80 @@ public class SegmentsTest {
         Segments segments = new Segments();
         long start = segments.getRetentionEnd(DateFormat.stringToMillis("2012-02-28 00:00:00"), AutoMergeTimeEnum.YEAR, -1);
         Assert.assertEquals(DateFormat.stringToMillis("2011-02-28 00:00:00"), start);
+    }
+
+    @Test
+    public void testGetSegmentStatusToDisplay_Building() {
+        Segments segments = new Segments();
+        val seg = new NDataSegment();
+        seg.setSegmentRange(new SegmentRange.TimePartitionedSegmentRange(0L, 10L));
+        seg.setStatus(SegmentStatusEnum.NEW);
+        segments.add(seg);
+        SegmentStatusEnumToDisplay status = segments.getSegmentStatusToDisplay(seg);
+        Assert.assertEquals(status, SegmentStatusEnumToDisplay.LOADING);
+    }
+
+    @Test
+    public void testGetSegmentStatusToDisplay_Ready() {
+        Segments segments = new Segments();
+        val seg = new NDataSegment();
+        seg.setSegmentRange(new SegmentRange.TimePartitionedSegmentRange(0L, 10L));
+        seg.setStatus(SegmentStatusEnum.READY);
+        segments.add(seg);
+        SegmentStatusEnumToDisplay status = segments.getSegmentStatusToDisplay(seg);
+        Assert.assertEquals(status, SegmentStatusEnumToDisplay.ONLINE);
+    }
+
+    @Test
+    public void testGetSegmentStatusToDisplay_Refreshing() {
+        Segments segments = new Segments();
+        val seg = new NDataSegment();
+        seg.setId(UUID.randomUUID().toString());
+        seg.setSegmentRange(new SegmentRange.TimePartitionedSegmentRange(0L, 10L));
+        seg.setStatus(SegmentStatusEnum.READY);
+        segments.add(seg);
+
+        val newSeg = new NDataSegment();
+        newSeg.setId(UUID.randomUUID().toString());
+        newSeg.setSegmentRange(new SegmentRange.TimePartitionedSegmentRange(0L, 10L));
+        newSeg.setStatus(SegmentStatusEnum.NEW);
+        segments.add(newSeg);
+        SegmentStatusEnumToDisplay status = segments.getSegmentStatusToDisplay(newSeg);
+        Assert.assertEquals(status, SegmentStatusEnumToDisplay.REFRESHING);
+
+        SegmentStatusEnumToDisplay status2 = segments.getSegmentStatusToDisplay(seg);
+        Assert.assertEquals(status2, SegmentStatusEnumToDisplay.LOCKED);
+    }
+
+    @Test
+    public void testGetSegmentStatusToDisplay_Merging() {
+        Segments segments = new Segments();
+        val seg = new NDataSegment();
+        seg.setId(UUID.randomUUID().toString());
+        seg.setSegmentRange(new SegmentRange.TimePartitionedSegmentRange(0L, 10L));
+        seg.setStatus(SegmentStatusEnum.READY);
+        segments.add(seg);
+
+        val seg2 = new NDataSegment();
+        seg2.setId(UUID.randomUUID().toString());
+        seg2.setSegmentRange(new SegmentRange.TimePartitionedSegmentRange(0L, 20L));
+        seg2.setStatus(SegmentStatusEnum.READY);
+        segments.add(seg2);
+
+        val newSeg = new NDataSegment();
+        newSeg.setId(UUID.randomUUID().toString());
+        newSeg.setSegmentRange(new SegmentRange.TimePartitionedSegmentRange(0L, 20L));
+        newSeg.setStatus(SegmentStatusEnum.NEW);
+        segments.add(newSeg);
+
+        SegmentStatusEnumToDisplay status = segments.getSegmentStatusToDisplay(newSeg);
+        Assert.assertEquals(status, SegmentStatusEnumToDisplay.MERGING);
+
+        SegmentStatusEnumToDisplay status2 = segments.getSegmentStatusToDisplay(seg);
+        Assert.assertEquals(status2, SegmentStatusEnumToDisplay.LOCKED);
+
+        SegmentStatusEnumToDisplay status3 = segments.getSegmentStatusToDisplay(seg2);
+        Assert.assertEquals(status3, SegmentStatusEnumToDisplay.LOCKED);
+
     }
 }

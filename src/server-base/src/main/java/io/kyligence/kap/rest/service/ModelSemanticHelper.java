@@ -374,37 +374,37 @@ public class ModelSemanticHelper extends BasicService {
     }
 
     private void handleReloadData(NDataModel model, NDataModel oriModel, NDataflowManager dataflowManager,
-            KylinConfig config, String project) {
+                                  KylinConfig config, String project) {
         var df = dataflowManager.getDataflow(model.getUuid());
         val segments = df.getFlatSegments();
         df = dataflowManager.updateDataflow(df.getUuid(), copyForWrite -> {
             copyForWrite.setSegments(new Segments<>());
         });
+        val isPartitionChanged = !Objects.equals(model.getPartitionDesc(), oriModel.getPartitionDesc());
         List<SegmentRange> ranges = Lists.newArrayList();
-        if (model.getPartitionDesc() == null) {
-            //full load
-            ranges.add(SegmentRange.TimePartitionedSegmentRange.createInfinite());
-        } else if (Objects.equals(model.getPartitionDesc(), oriModel.getPartitionDesc())) {
+         if (isPartitionChanged) {
+            //partition column changed, build next time manually
+            return;
+        } else {
             for (val seg : segments) {
                 ranges.add(seg.getSegRange());
             }
+            dataflowManager.fillDfManually(df, ranges);
+
+            EventManager eventManager = EventManager.getInstance(config, project);
+
+            AddCuboidEvent addCuboidEvent = new AddCuboidEvent();
+            addCuboidEvent.setModelId(model.getUuid());
+            addCuboidEvent.setJobId(UUID.randomUUID().toString());
+            addCuboidEvent.setOwner(getUsername());
+            eventManager.post(addCuboidEvent);
+
+            PostAddCuboidEvent postAddCuboidEvent = new PostAddCuboidEvent();
+            postAddCuboidEvent.setModelId(model.getUuid());
+            postAddCuboidEvent.setJobId(addCuboidEvent.getJobId());
+            postAddCuboidEvent.setOwner(getUsername());
+            eventManager.post(postAddCuboidEvent);
         }
-
-        dataflowManager.fillDfManually(df, ranges);
-
-        EventManager eventManager = EventManager.getInstance(config, project);
-
-        AddCuboidEvent addCuboidEvent = new AddCuboidEvent();
-        addCuboidEvent.setModelId(model.getUuid());
-        addCuboidEvent.setJobId(UUID.randomUUID().toString());
-        addCuboidEvent.setOwner(getUsername());
-        eventManager.post(addCuboidEvent);
-
-        PostAddCuboidEvent postAddCuboidEvent = new PostAddCuboidEvent();
-        postAddCuboidEvent.setModelId(model.getUuid());
-        postAddCuboidEvent.setJobId(addCuboidEvent.getJobId());
-        postAddCuboidEvent.setOwner(getUsername());
-        eventManager.post(postAddCuboidEvent);
     }
 
     public BuildIndexResponse handleIndexPlanUpdateRule(String project, String model, NRuleBasedIndex oldRule,
