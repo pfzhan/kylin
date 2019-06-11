@@ -84,7 +84,7 @@
     },
     locales: {
       'en': {agreeAndOpen: 'Enable Auto Upload', kybotAgreement: 'KyBot User Agreement', hasAgree: 'I have read and agree《KyBot Term of Service》', protocol: 'By analyzing your diagnostic package, KyBot can provide online diagnostic, tuning and support service for KAP. After starting auto upload service, it will automatically upload packages everyday regularly.', openSuccess: 'open successfully'},
-      'zh-cn': {agreeAndOpen: '开启自动上传', kybotAgreement: 'KyBot用户协议', hasAgree: '我已阅读并同意《KyBot用户协议》', protocol: '通过分析生产的诊断包，提供KAP在线诊断、优化及服务，启动自动上传服务后，每天定时自动上传，无需自行打包和上传。', openSuccess: '开启成功'}
+      'zh-cn': {agreeAndOpen: '开启自动上传', kybotAgreement: 'KyBot用户协议', hasAgree: '我已阅读并同意《KyBot 用户协议》', protocol: '通过分析生产的诊断包，提供KAP在线诊断、优化及服务，启动自动上传服务后，每天定时自动上传，无需自行打包和上传。', openSuccess: '开启成功'}
     }
   }
 

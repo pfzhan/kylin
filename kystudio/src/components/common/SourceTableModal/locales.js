@@ -55,7 +55,7 @@ export default {
     incrementalLoading: '增量加载',
     refreshData: '刷新数据',
     refreshRange: '刷新范围',
-    refreshRangeDesc: '刷新数据范围不能大于已加载的数据范围。如果刷新的范围包含多个segments，系统将会提示工作量。',
+    refreshRangeDesc: '刷新数据范围不能大于已加载的数据范围。如果刷新的范围包含多个 segments，系统将会提示工作量。',
     dataMerge: '合并数据',
     loadingRange: '加载范围',
     dataRange: 'Data Range',

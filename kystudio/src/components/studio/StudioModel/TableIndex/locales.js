@@ -58,10 +58,10 @@ export default {
     checkRowkeyInt: '编码为 integer 的列的长度应该在1至8之间。',
     fixedLengthTip: 'Fixed Length 编码时需要长度参数。',
     fixedLengthHexTip: 'Fixed Length Hex 编码时需要长度参数。',
-    fuzzyTip: '模糊(fuzzy)索引只支持应用于 string（varchar）类型数据。',
+    fuzzyTip: '模糊 (fuzzy) 索引只支持应用于 string（varchar）类型数据。',
     rawtableSortedWidthDate:
       '第一个 sorted 列应为编码为 integer、date 或 time 的列。',
-    rawtableSetSorted: '至少设置一个列的Sort By值为\'true\'。',
+    rawtableSetSorted: '至少设置一个列的 Sort By 值为\'true\'。',
     sortByNull: 'sorted 列不应为 null',
     tableIndexDetail: '表明细索引详情',
     today: '今日',
