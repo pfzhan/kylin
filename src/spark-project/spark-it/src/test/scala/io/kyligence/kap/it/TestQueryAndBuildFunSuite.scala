@@ -67,8 +67,6 @@ class TestQueryAndBuildFunSuite
     FloderInfo("sql_like"),
     FloderInfo("sql_cache"),
     FloderInfo("sql_derived"),
-    FloderInfo("sql_magine"),
-    FloderInfo("sql_magine_left"),
     FloderInfo("sql_datetime"),
     FloderInfo("sql_subquery", List("query19.sql", "query25.sql")),
     FloderInfo("sql_distinct_dim"),
