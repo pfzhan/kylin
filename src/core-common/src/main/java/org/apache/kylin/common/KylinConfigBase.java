@@ -1203,9 +1203,9 @@ abstract public class KylinConfigBase implements Serializable {
 
     public int getQueryTimeoutSeconds() {
         int time = Integer.parseInt(this.getOptional("kylin.query.timeout-seconds", "300"));
-        if (time <= 3) {
-            logger.warn("Query timeout seconds less than 3 sec, set to 3 sec.");
-            time = 3;
+        if (time <= 30) {
+            logger.warn("Query timeout seconds less than 30 sec, set to 30 sec.");
+            time = 30;
         }
         return time;
     }
