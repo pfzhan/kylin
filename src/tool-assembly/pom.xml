@@ -70,11 +70,6 @@
             <scope>compile</scope>
         </dependency>
         <dependency>
-            <groupId>mysql</groupId>
-            <artifactId>mysql-connector-java</artifactId>
-            <scope>compile</scope>
-        </dependency>
-        <dependency>
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-dbcp2</artifactId>
             <scope>compile</scope>
@@ -124,7 +119,6 @@
                                     <include>org.apache.commons:commons-lang3</include>
                                     <include>org.apache.commons:commons-pool2</include>
                                     <include>com.google.guava:guava</include>
-                                    <include>mysql:mysql-connector-java</include>
                                     <include>org.postgresql:postgresql</include>
                                     <include>com.fasterxml.jackson.core:*</include>
                                     <include>org.springframework:*</include>

@@ -48,6 +48,7 @@ import org.apache.hadoop.yarn.exceptions.YarnException;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.KylinConfigExt;
 import org.apache.kylin.common.StorageURL;
+import org.apache.kylin.common.persistence.RawResource;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.util.ClassUtil;
 import org.apache.kylin.common.util.CliCommandExecutor;
@@ -339,13 +340,25 @@ public class NSparkExecutable extends AbstractExecutable {
         return Collections.emptySet();
     }
 
-    private void attachMetadataAndKylinProps(KylinConfig config) throws IOException {
-        Set<String> dumpList = UnitOfWork.doInTransactionWithRetry(UnitOfWorkParams.<Set<String>> builder()
-                .readonly(true).processor(() -> getMetadataDumpList(KylinConfig.getInstanceFromEnv())).build());
-        if (dumpList.isEmpty()) {
+    void attachMetadataAndKylinProps(KylinConfig config) throws IOException {
+
+        // The way of Updating metadata is CopyOnWrite. So it is safe to use Reference in the value.
+        Map dumpMap = UnitOfWork.doInTransactionWithRetry(UnitOfWorkParams.<Map>builder()
+            .readonly(true)
+            .unitName(getProject())
+            .processor(() -> {
+                Map<String, RawResource> retMap = Maps.newHashMap();
+                for (String resPath: getMetadataDumpList(config)) {
+                    ResourceStore resourceStore = ResourceStore.getKylinMetaStore(config);
+                    RawResource rawResource = resourceStore.getResource(resPath);
+                    retMap.put(resPath, rawResource);
+                }
+                return retMap;
+            }).build());
+
+        if (dumpMap.isEmpty()) {
             return;
         }
-
         String metaDumpUrl = getDistMetaUrl();
         if (StringUtils.isEmpty(metaDumpUrl)) {
             throw new RuntimeException("Missing metaUrl");
@@ -357,7 +370,7 @@ public class NSparkExecutable extends AbstractExecutable {
         Properties props = config.exportToProperties();
         props.setProperty("kylin.metadata.url", metaDumpUrl);
         // dump metadata
-        ResourceStore.dumpResources(config, tmpDir, dumpList, props);
+        ResourceStore.dumpResourceMaps(config, tmpDir, dumpMap, props);
 
         // copy metadata to target metaUrl
         KylinConfig dstConfig = KylinConfig.createKylinConfig(props);

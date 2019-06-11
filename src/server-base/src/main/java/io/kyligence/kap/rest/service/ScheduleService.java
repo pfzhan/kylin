@@ -61,7 +61,7 @@ public class ScheduleService {
 
             backupService.backupAll();
             projectService.garbageCleanup();
-            favoriteQueryService.adjustFavoriteQuery();
+            favoriteQueryService.adjustFalseAcceleratedFQ();
             queryHistoryService.cleanQueryHistories();
 
             logger.info("Finish to work");

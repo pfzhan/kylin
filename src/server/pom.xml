@@ -208,7 +208,8 @@
                                 org.apache.hive.hcatalog,
                                 org.apache.spark,
                                 org.apache.kafka,
-                                org.apache.zookeeper
+                                org.apache.zookeeper,
+                                mysql
                             </excludeGroupIds>
                         </configuration>
                     </execution>

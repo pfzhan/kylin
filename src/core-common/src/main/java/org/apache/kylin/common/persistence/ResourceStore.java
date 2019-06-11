@@ -426,6 +426,40 @@ public abstract class ResourceStore implements AutoCloseable {
         clearCache(this.getConfig());
     }
 
+    public static void dumpResourceMaps(KylinConfig kylinConfig, File metaDir, Map<String, RawResource> dumpMap, Properties properties) {
+        long startTime = System.currentTimeMillis();
+        metaDir.mkdirs();
+        for (Map.Entry<String, RawResource> entry: dumpMap.entrySet()) {
+            RawResource res = entry.getValue();
+            if (res == null) {
+                throw new IllegalStateException("No resource found at -- " + entry.getKey());
+            }
+            try {
+                File f = Paths.get(metaDir.getAbsolutePath(), res.getResPath()).toFile();
+                f.getParentFile().mkdirs();
+                try (FileOutputStream out = new FileOutputStream(f)) {
+                    IOUtils.copy(res.getByteSource().openStream(), out);
+                    if (!f.setLastModified(res.getTimestamp())) {
+                        logger.info("{} modified time change failed", f);
+                    }
+                }
+            } catch (IOException e) {
+                throw new IllegalStateException("dump " + res.getResPath() + " failed", e);
+            }
+        }
+        if (properties != null) {
+            File kylinPropsFile = new File(metaDir, "kylin.properties");
+            try (FileOutputStream os = new FileOutputStream(kylinPropsFile)) {
+                properties.store(os, kylinPropsFile.getAbsolutePath());
+            } catch (Exception e) {
+                throw new IllegalStateException("save kylin.properties failed", e);
+            }
+
+        }
+
+        logger.debug("Dump resources to {} took {} ms", metaDir, System.currentTimeMillis() - startTime);
+    }
+
     public static void dumpResources(KylinConfig kylinConfig, File metaDir, Set<String> dumpList,
             Properties properties) {
         long startTime = System.currentTimeMillis();

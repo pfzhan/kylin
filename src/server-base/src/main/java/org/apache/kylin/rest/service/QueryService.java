@@ -337,9 +337,14 @@ public class QueryService extends BasicService {
         aclEvaluate.checkProjectReadPermission(sqlRequest.getProject());
         logger.info("Check query permission in {} ms.", (System.currentTimeMillis() - t));
         sqlRequest.setUsername(getUsername());
-        return UnitOfWork
-                .doInTransactionWithRetry(UnitOfWorkParams.<SQLResponse> builder().unitName(sqlRequest.getProject())
-                        .readonly(true).processor(() -> queryWithCache(sqlRequest, isQueryInspect)).build());
+        val kylinConfig = getConfig();
+        if (kylinConfig.isTransactionEnabledInQuery()) {
+            return UnitOfWork
+                    .doInTransactionWithRetry(UnitOfWorkParams.<SQLResponse> builder().unitName(sqlRequest.getProject())
+                            .readonly(true).processor(() -> queryWithCache(sqlRequest, isQueryInspect)).build());
+        }else {
+            return queryWithCache(sqlRequest, isQueryInspect);
+        }
     }
 
     public SQLResponse queryWithCache(SQLRequest sqlRequest, boolean isQueryInspect) {

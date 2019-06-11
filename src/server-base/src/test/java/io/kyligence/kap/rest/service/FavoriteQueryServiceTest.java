@@ -534,7 +534,7 @@ public class FavoriteQueryServiceTest extends NLocalFileMetadataTestCase {
         modelManager.updateDataModelDesc(model);
 
         // run check, not accelerated
-        favoriteQueryService.adjustFavoriteQuery();
+        favoriteQueryService.adjustFalseAcceleratedFQ();
         manager.reloadSqlPatternMap();
         Assert.assertTrue(manager.getAcceleratedSqlPattern().isEmpty());
         Assert.assertEquals(FavoriteQueryStatusEnum.TO_BE_ACCELERATED, manager.get(sql).getStatus());
@@ -549,13 +549,13 @@ public class FavoriteQueryServiceTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(FavoriteQueryStatusEnum.ACCELERATED, manager.get(sql).getStatus());
 
         // run check again, accelerated
-        favoriteQueryService.adjustFavoriteQuery();
+        favoriteQueryService.adjustFalseAcceleratedFQ();
         Assert.assertFalse(manager.getAcceleratedSqlPattern().isEmpty());
         Assert.assertEquals(FavoriteQueryStatusEnum.ACCELERATED, manager.get(sql).getStatus());
 
         // ------------ case when table not loaded --------------
         tableService.unloadTable(PROJECT, "DEFAULT.TEST_KYLIN_FACT");
-        favoriteQueryService.adjustFavoriteQuery();
+        favoriteQueryService.adjustFalseAcceleratedFQ();
         manager.reloadSqlPatternMap();
         Assert.assertTrue(manager.getAcceleratedSqlPattern().isEmpty());
         Assert.assertEquals(FavoriteQueryStatusEnum.TO_BE_ACCELERATED, manager.get(sql).getStatus());

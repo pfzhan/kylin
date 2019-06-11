@@ -34,6 +34,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.rest.annotation.EnableRateLimit;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.collections.MapUtils;
 import org.apache.commons.lang.StringUtils;
@@ -513,43 +514,53 @@ public class FavoriteQueryService extends BasicService {
     }
 
     @Async
-    public void asyncAdjustFavoriteQuery() {
-        adjustFavoriteQuery();
+    @EnableRateLimit
+    public void asyncAdjustFavoriteQuery(String projectName) {
+        String oldThreadName = Thread.currentThread().getName();
+
+        try {
+            Thread.currentThread().setName("FavoriteQueryAdjustWorker");
+            adjustFQForProject(projectName);
+        } finally {
+            Thread.currentThread().setName(oldThreadName);
+        }
     }
 
-    public void adjustFavoriteQuery() {
+    public void adjustFalseAcceleratedFQ() {
         String oldThreadName = Thread.currentThread().getName();
 
         try {
             Thread.currentThread().setName("FavoriteQueryAdjustWorker");
 
             for (ProjectInstance project : getProjectManager().listAllProjects()) {
-                logger.trace("Start checking favorite query accelerate status adjustment for project {}.",
-                        project.getName());
-                long startTime = System.currentTimeMillis();
-                KylinConfig config = KylinConfig.getInstanceFromEnv();
-                List<String> sqlPatterns = FavoriteQueryManager.getInstance(config, project.getName())
-                        .getAcceleratedSqlPattern();
-                // split sqlPatterns into batches to avoid
-                int batchOffset = 0;
-                int batchSize = config.getAutoCheckAccStatusBatchSize();
-                Preconditions.checkArgument(batchSize > 0, "Illegal batch size: " + batchSize
-                        + ". Please check config: kylin.favorite.auto-check-accelerate-batch-size");
-                int sqlSize = sqlPatterns.size();
-                while (batchOffset < sqlSize) {
-                    int batchStart = batchOffset;
-                    batchOffset = Math.min(batchOffset + batchSize, sqlSize);
-                    String[] sqls = sqlPatterns.subList(batchStart, batchOffset).toArray(new String[0]);
-                    checkAccelerateStatus(project.getName(), sqls);
-                }
-                long endTime = System.currentTimeMillis();
-                logger.trace("End favorite query adjustment. Processed {} queries and took {}ms for project {}",
-                        sqlSize, endTime - startTime, project);
+                adjustFQForProject(project.getName());
             }
         } finally {
             Thread.currentThread().setName(oldThreadName);
         }
+    }
 
+    private void adjustFQForProject(String project) {
+        logger.trace("Start checking favorite query accelerate status adjustment for project {}.", project);
+        long startTime = System.currentTimeMillis();
+        KylinConfig config = KylinConfig.getInstanceFromEnv();
+        List<String> sqlPatterns = FavoriteQueryManager.getInstance(config, project)
+                .getAcceleratedSqlPattern();
+        // split sqlPatterns into batches to avoid
+        int batchOffset = 0;
+        int batchSize = config.getAutoCheckAccStatusBatchSize();
+        Preconditions.checkArgument(batchSize > 0, "Illegal batch size: " + batchSize
+                + ". Please check config: kylin.favorite.auto-check-accelerate-batch-size");
+        int sqlSize = sqlPatterns.size();
+        while (batchOffset < sqlSize) {
+            int batchStart = batchOffset;
+            batchOffset = Math.min(batchOffset + batchSize, sqlSize);
+            String[] sqls = sqlPatterns.subList(batchStart, batchOffset).toArray(new String[0]);
+            checkAccelerateStatus(project, sqls);
+        }
+        long endTime = System.currentTimeMillis();
+        logger.trace("End favorite query adjustment. Processed {} queries and took {}ms for project {}",
+                sqlSize, endTime - startTime, project);
     }
 
     private void checkAccelerateStatus(String project, String[] sqls) {

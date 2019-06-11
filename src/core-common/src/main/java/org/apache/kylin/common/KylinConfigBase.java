@@ -1067,6 +1067,10 @@ abstract public class KylinConfigBase implements Serializable {
     // QUERY
     // ============================================================================
 
+    public boolean isTransactionEnabledInQuery() {
+        return Boolean.valueOf(getOptional("kylin.query.transaction-enable", "false"));
+    }
+
     public boolean isConvertCreateTableToWith() {
         return Boolean.valueOf(getOptional("kylin.query.convert-create-table-to-with", "false"));
     }
@@ -1576,6 +1580,10 @@ abstract public class KylinConfigBase implements Serializable {
 
     public int getSchedulerLimitPerMinute() {
         return Integer.parseInt(getOptional("kylin.scheduler.schedule-limit-per-minute", "10"));
+    }
+
+    public Long getRateLimitPermitsPerMinute() {
+        return Long.valueOf(this.getOptional("kylin.ratelimit.permits-per-minutes", "10"));
     }
 
 }
