@@ -51,7 +51,7 @@ import { NamedRegex } from 'config'
   },
   locales: {
     'en': {conditionExpress: 'Note that select one column should contain its table name(or alias table name).', numberNameFormatValidTip: 'Invalid computed column name', sameName: 'Has same computed column name', columnName: 'Column Name', name: 'Name', expression: 'Expression', returnType: 'Return Type', paramValue: 'Param Value', nameReuse: 'The measure name is reused.', requiredCCName: 'The column name is required.', requiredReturnType: 'The return type is required.', requiredExpress: 'The expression is required.'},
-    'zh-cn': {conditionExpress: '请注意，表达式中选用某列时，格式为“表名.列名”。', numberNameFormatValidTip: '无效的可计算列列名', sameName: '有同名的可计算列', columnName: '列名', name: '名称', expression: '表达式', returnType: '返回类型', paramValue: '参数值', nameReuse: 'Measure名称已被使用', requiredCCName: '请输入名称', requiredReturnType: '请选择返回类型', requiredExpress: '请输入表达式。'}
+    'zh-cn': {conditionExpress: '请注意，表达式中选用某列时，格式为“表名.列名”。', numberNameFormatValidTip: '无效的可计算列列名', sameName: '有同名的可计算列', columnName: '列名', name: '名称', expression: '表达式', returnType: '返回类型', paramValue: '参数值', nameReuse: 'Measure 名称已被使用', requiredCCName: '请输入名称', requiredReturnType: '请选择返回类型', requiredExpress: '请输入表达式。'}
   }
 })
 export default class CCForm extends Vue {

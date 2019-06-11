@@ -32,7 +32,7 @@ export default {
     'includesEmpty': '任意聚合组不能为空。',
     'selectAll': '选择所有列',
     'cancelAll': '清除所有',
-    'tooManyDimensions': '在所有聚合组中，被使用的维度数量不能超过62个。',
+    'tooManyDimensions': '在所有聚合组中，被使用的维度数量不能超过 62 个。',
     'delAggregateTip': '你确认要删除聚合组-{aggId}吗？',
     'delAggregateTitle': '删除聚合组',
     'clearAggregateTitle': '清除聚合组',

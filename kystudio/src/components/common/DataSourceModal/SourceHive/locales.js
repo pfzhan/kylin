@@ -26,10 +26,10 @@ export default {
     dialogHiveTreeLoading: '加载中',
     loadTipHeader: '加载源表元数据的方式',
     loadTip1: '单表选择：展开左侧的数据树，点击选择单个数据表；',
-    loadTip2: '批量选择：点击数据库将批量选中下面所有的表，每一批加载表上限为1000张表；',
+    loadTip2: '批量选择：点击数据库将批量选中下面所有的表，每一批加载表上限为 1000 张表；',
     loadHiveTipHeader: '加载源表元数据的方式',
     loadHiveTip1: '单表选择：展开左侧的数据树，点击选择单个数据表；',
-    loadHiveTip2: '批量选择：点击数据库将批量选中下面所有的表，每一批加载表上限为1000张表；',
+    loadHiveTip2: '批量选择：点击数据库将批量选中下面所有的表，每一批加载表上限为 1000 张表；',
     sampling: '表抽样',
     selectedHiveValidateFailText: '请输入完整表名\'database.table\'。',
     selectAll: '选中所有',
@@ -42,7 +42,7 @@ export default {
     sampleDesc: '系统将对所有加载的表进行全表抽样。',
     sampleDesc1: '数据抽样范围不超过',
     sampleDesc2: '行。',
-    minNumber: '输入值应不小于10,000 行',
-    maxNumber: '输入值应 不大于20,000,000 行'
+    minNumber: '输入值应不小于 10,000 行',
+    maxNumber: '输入值应 不大于 20,000,000 行'
   }
 }

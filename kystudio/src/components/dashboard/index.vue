@@ -273,7 +273,7 @@ import LineChart from './LineChart'
       avgBulidTime: '构建 1MB 数据的平均时间',
       jobDuration: '任务时间',
       queryByModel: '按模型统计{type}',
-      queryByDay: '按时间({zone})统计{type}',
+      queryByDay: '按时间 ({zone}) 统计{type}',
       queryByIndex: '按索引组统计{type}',
       lastWeek: '最近一周',
       lastMonth: '上个月',

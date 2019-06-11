@@ -155,7 +155,7 @@ import $ from 'jquery'
       expression: '函数',
       return_type: '函数参数',
       paramValue: '列',
-      nameReuse: 'Measure名称已被使用',
+      nameReuse: 'Measure 名称已被使用',
       requiredCCName: '请输入列表名称',
       requiredreturn_type: '请选择度量函数参数',
       requiredExpress: '请选择函数。',

@@ -65,7 +65,7 @@
         smartMode: '智能模式',
         switchModeTitle: '请选择你想探索的模式',
         exportModeDesc: '专家模式适用于对多维建模进行分析。',
-        smartModeDesc: '智能模式适用于直接通过BI探索数据，系统将透明地加速BI发出的SQL语句。'
+        smartModeDesc: '智能模式适用于直接通过 BI 探索数据，系统将透明地加速 BI 发出的 SQL 语句。'
       }
     }
   })

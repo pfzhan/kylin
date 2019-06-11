@@ -15,7 +15,7 @@ export default {
     assignUsers: '分配用户',
     willcheck: '未分配的用户',
     haschecked: '已分配组用户',
-    confirmDelGroup: '确认删除组{groupName}吗？',
+    confirmDelGroup: '确认删除组 {groupName} 吗？',
     usersCount: '用户数',
     delGroupTitle: '删除用户组',
     userGroupsList: '用户组列表',
