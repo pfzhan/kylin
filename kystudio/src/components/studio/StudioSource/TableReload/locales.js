@@ -25,9 +25,9 @@ export default {
   },
   'zh-cn': {
     dialogTitle: '重载表',
-    reloadNoEffectTip: '源表{tableName}元数据无变化。',
+    reloadNoEffectTip: '源表 {tableName} 元数据无变化。',
     reloadEffectTip: '重载的表 {tableName} {changeChar}',
-    reloadEffectTip1: '系统将自动地从{modelMode}删除缺失列, 并刷新变化的{modelMode}。影响范围的细节如下。',
+    reloadEffectTip1: '系统将自动地从 {modelMode} 删除缺失列, 并刷新变化的 {modelMode}。影响范围的细节如下。',
     addColumnsTip: '增加了 {addedColumnsCount} 列',
     reducedColumnsTip: '减少了 {reducedColumnsCount} 列',
     changedColumnsTip: '{changedColumnsCount} 列数据类型发生变化',
@@ -39,12 +39,12 @@ export default {
     reloadSuccess: '成功重载表 {tableName}。',
     sampleSuccess: '抽样任务提交成功，可以在任务监控页面查看。',
     invalidType: '请输入一个整数',
-    invalidLarger: '输入的值应不大于20,000,000行 ',
-    invalidSmaller: '输入的值不小于10,000行',
+    invalidLarger: '输入的值应不大于 20,000,000 行 ',
+    invalidSmaller: '输入的值不小于 10,000 行',
     modelchangeTip: '{modelCount} 个模型元数据破损，请编辑模型尝试修复；',
     measureChangeTip: '{measureCount} 个度量',
     dimChangeTip: '{dimensionCount} 个维度',
     indexChangeTip: '{indexCount} 个索引',
-    dimAndMeasureAndIndexChangeTip: '共有 {changeChar}被删除;'
+    dimAndMeasureAndIndexChangeTip: '共有 {changeChar} 被删除;'
   }
 }

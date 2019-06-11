@@ -17,6 +17,6 @@ export default {
     description: '描述：',
     empty: '无内容',
     MANUAL_MAINTAIN: '手动设计模型',
-    AUTO_MAINTAIN: 'SQL加速项目'
+    AUTO_MAINTAIN: 'SQL 加速项目'
   }
 }

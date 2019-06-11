@@ -270,7 +270,7 @@ import LineChart from './LineChart'
       avgQueryLatency: '平均查询延迟',
       queryLatency: '查询延迟',
       jobCount: '任务数',
-      avgBulidTime: '构建1MB数据的平均时间',
+      avgBulidTime: '构建 1MB 数据的平均时间',
       jobDuration: '任务时间',
       queryByModel: '按模型统计{type}',
       queryByDay: '按时间({zone})统计{type}',

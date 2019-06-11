@@ -108,7 +108,7 @@ export default {
     noDimensionGoOnSave: '继续保存',
     noDimensionBackEdit: '回到编辑',
     searchHistory: '搜索历史',
-    searchActionSaveSuccess: '{saveObj}保存成功',
+    searchActionSaveSuccess: '{saveObj} 保存成功',
     measure: '度量',
     dimension: '维度',
     tableJoin: '表连接条件',

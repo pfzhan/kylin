@@ -23,7 +23,7 @@ export default {
     clearAll: '清空选择',
     select: '选中',
     catchup: '立即构建索引',
-    sortLimitTip: '最多只能加9个sort列',
+    sortLimitTip: '最多只能加 9 个 sort 列',
     sort: '顺序',
     tableIndex: '表明细索引'
   }

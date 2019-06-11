@@ -30,7 +30,7 @@ export default {
     queryCount: '使用次数',
     usageTip: '查询使用该索引的次数',
     dataRange: '数据范围',
-    searchAggregateID: '搜索聚合索引ID',
+    searchAggregateID: '搜索聚合索引 ID',
     to: '至',
     id: 'Index ID',
     emptyAggregate: '空的聚合索引：',

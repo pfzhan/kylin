@@ -36,7 +36,7 @@ export default {
     checkedGroup: '已选择组',
     usernameEmpty: '用户名不能为空',
     passwordEmpty: '密码不能为空',
-    passwordLength: '密码长度至少8位',
+    passwordLength: '密码长度至少 8 位',
     passwordConfirm: '两次密码不一致, 请检查',
     ok: '确定',
     cancel: '取消'

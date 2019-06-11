@@ -6,8 +6,8 @@ export default {
     errorInfo: 'Error Info:'
   },
   'zh-cn': {
-    pleaseInputSql: '请输入建表的SQL语句',
-    checkSuccess: 'SQL语法校验通过',
+    pleaseInputSql: '请输入建表的 SQL 语句',
+    checkSuccess: 'SQL 语法校验通过',
     verify: '校验',
     errorInfo: '错误信息：'
   }

@@ -35,12 +35,12 @@ export default {
     computedColumns: '可计算列',
     expression: '表达式',
     sqlOutput: '推荐维度',
-    outputTipOne: '系统将根据您输入的SQL语句推荐对应维度。',
+    outputTipOne: '系统将根据您输入的 SQL 语句推荐对应维度。',
     resetTip: '重置操作会返回上一次保存过的维度列表，并覆盖现有的纬度，请确认是否继续此操作？',
     dataOriented: '模型优先',
     mix: '综合',
     businessOriented: '业务优先',
-    noCoincide: '在业务优先的优化偏好下，您未选择输入的SQL中出现的维度。优化器将难以提供合适的优化建议。',
+    noCoincide: '在业务优先的优化偏好下，您未选择输入的 SQL 中出现的维度。优化器将难以提供合适的优化建议。',
     searchColumn: '搜索列名'
   }
 }

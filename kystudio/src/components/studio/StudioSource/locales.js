@@ -29,7 +29,7 @@ export default {
     sample: '抽样',
     sampling: '抽样数据',
     unloadTableTitle: '删除源数据表',
-    unloadTable: '确定要删除源表{tableName}？',
+    unloadTable: '确定要删除源表 {tableName}？',
     unloadSuccess: '删除成功',
     affactUnloadInfo: '删除源数据表 {tableName} 将删除所有依赖本表的模型和索引，总存储为 {storageSize}。',
     remindLoadRange: '如果有数据按时间递增的源表，建议选择一个合适的日期列作为源表的分区列。特别是那些包含历史数据的表，新的数据将会被加入最新的分区中。',
@@ -38,7 +38,7 @@ export default {
     sampleDesc1: '数据抽样范围不超过',
     sampleDesc2: '行。',
     sampleDialogTitle: '表级数据抽样',
-    minNumber: '输入值应不小于10,000 行',
-    maxNumber: '输入值应 不大于20,000,000 行'
+    minNumber: '输入值应不小于 10,000 行',
+    maxNumber: '输入值应 不大于 20,000,000 行'
   }
 }
