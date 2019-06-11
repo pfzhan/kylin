@@ -43,21 +43,16 @@
 
 package io.kyligence.kap.event.model;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
 import io.kyligence.kap.event.handle.AddCuboidHandler;
 import io.kyligence.kap.event.handle.EventHandler;
 import lombok.Getter;
 import lombok.Setter;
 
-import java.util.Set;
 import java.util.UUID;
 
 @Setter
 @Getter
 public class AddCuboidEvent extends JobRelatedEvent {
-
-    @JsonProperty("sql_patterns")
-    private Set<String> sqlPatterns;
 
     public AddCuboidEvent() {
         super();

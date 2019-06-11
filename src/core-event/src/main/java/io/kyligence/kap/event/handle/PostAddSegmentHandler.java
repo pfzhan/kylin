@@ -70,6 +70,7 @@ public class PostAddSegmentHandler extends AbstractEventPostJobHandler {
         val jobId = event.getJobId();
         Preconditions.checkState(executable.getTasks().size() > 1, "job " + jobId + " steps is not enough");
         if (!checkSubjectExists(project, event.getModelId(), event.getSegmentId(), event)) {
+            rollFQBackToInitialStatus(eventContext, SUBJECT_NOT_EXIST_COMMENT);
             finishEvent(project, event.getId());
             return;
         }
@@ -87,6 +88,7 @@ public class PostAddSegmentHandler extends AbstractEventPostJobHandler {
             handleRetention(project, event.getModelId());
             //TODO: take care of this
             autoMergeSegments(project, event.getModelId(), event.getOwner());
+            handleFavoriteQuery(eventContext);
             finishEvent(project, event.getId());
         } catch (Throwable throwable) {
             logger.error("Process event " + event.toString() + " failed:", throwable);
@@ -99,6 +101,7 @@ public class PostAddSegmentHandler extends AbstractEventPostJobHandler {
         String project = eventContext.getProject();
 
         if (!checkSubjectExists(project, event.getModelId(), event.getSegmentId(), event)) {
+            rollFQBackToInitialStatus(eventContext, SUBJECT_NOT_EXIST_COMMENT);
             finishEvent(project, event.getId());
             return;
         }
@@ -122,6 +125,7 @@ public class PostAddSegmentHandler extends AbstractEventPostJobHandler {
         handleRetention(project, event.getModelId());
         autoMergeSegments(project, event.getModelId(), event.getOwner());
 
+        handleFavoriteQuery(eventContext);
         finishEvent(project, event.getId());
     }
 

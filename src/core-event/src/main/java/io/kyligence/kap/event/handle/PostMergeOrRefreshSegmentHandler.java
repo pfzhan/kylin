@@ -62,7 +62,7 @@ public class PostMergeOrRefreshSegmentHandler extends AbstractEventPostJobHandle
                     .filter(task -> ((NSparkExecutable)task).needMergeMetadata())
                     .forEach(task -> ((NSparkExecutable) task).mergerMetadata(merger));
 
-
+            
             finishEvent(project, event.getId());
         }  catch (Throwable throwable) {
             logger.error("Process event " + event.toString() + " failed:", throwable);

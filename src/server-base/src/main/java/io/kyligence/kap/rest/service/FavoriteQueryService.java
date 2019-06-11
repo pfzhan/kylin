@@ -408,7 +408,6 @@ public class FavoriteQueryService extends BasicService {
 
                 AddCuboidEvent addCuboidEvent = new AddCuboidEvent();
                 addCuboidEvent.setModelId(targetIndexPlan.getUuid());
-                addCuboidEvent.setSqlPatterns(sqls);
                 addCuboidEvent.setOwner(user);
                 addCuboidEvent.setJobId(UUID.randomUUID().toString());
                 eventManager.post(addCuboidEvent);
@@ -418,7 +417,6 @@ public class FavoriteQueryService extends BasicService {
                 postAddCuboidEvent.setModelId(targetIndexPlan.getUuid());
                 postAddCuboidEvent.setOwner(user);
                 postAddCuboidEvent.setJobId(addCuboidEvent.getJobId());
-                postAddCuboidEvent.setSqlPatterns(sqls);
 
                 eventManager.post(postAddCuboidEvent);
 

@@ -49,7 +49,6 @@ import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.event.manager.EventDao;
-import io.kyligence.kap.event.model.AddCuboidEvent;
 import io.kyligence.kap.event.model.Event;
 import io.kyligence.kap.metadata.favorite.FavoriteQuery;
 import io.kyligence.kap.metadata.favorite.FavoriteQueryManager;
@@ -221,7 +220,6 @@ public class FavoriteQueryServiceTest extends NLocalFileMetadataTestCase {
         var events = eventDaoOfNewtenProj.getEvents();
         events.sort(Event::compareTo);
         Assert.assertEquals(2, events.size());
-        Assert.assertEquals(4, ((AddCuboidEvent) events.get(0)).getSqlPatterns().size());
 
         // when there is origin model
         stubUnAcceleratedSqlPatterns(Lists.newArrayList(sqls), PROJECT);
@@ -230,7 +228,6 @@ public class FavoriteQueryServiceTest extends NLocalFileMetadataTestCase {
         events = eventDaoOfDefaultProj.getEvents();
         events.sort(Event::compareTo);
         Assert.assertEquals(2, events.size());
-        Assert.assertEquals(4, ((AddCuboidEvent) events.get(0)).getSqlPatterns().size());
 
         try {
             favoriteQueryService.acceptAccelerate(PROJECT, 10);
@@ -292,7 +289,6 @@ public class FavoriteQueryServiceTest extends NLocalFileMetadataTestCase {
         var events = eventDaoOfDefaultProject.getEvents();
         events.sort(Event::compareTo);
         Assert.assertEquals(2, events.size());
-        Assert.assertEquals(2, ((AddCuboidEvent) events.get(0)).getSqlPatterns().size());
 
         final List<FavoriteQuery> favoriteQueriesAfter = favoriteQueryManager.getAll();
         Assert.assertEquals(FavoriteQueryStatusEnum.ACCELERATING, favoriteQueriesAfter.get(0).getStatus());

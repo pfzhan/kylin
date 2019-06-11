@@ -23,16 +23,27 @@
  */
 package io.kyligence.kap.event.handle;
 
+import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
+import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.execution.ChainedExecutable;
 import org.apache.kylin.job.execution.ExecutableState;
 
+import io.kyligence.kap.metadata.cube.model.NDataflowManager;
+import io.kyligence.kap.metadata.favorite.FavoriteQueryManager;
+import io.kyligence.kap.metadata.favorite.FavoriteQueryStatusEnum;
 import io.kyligence.kap.event.model.EventContext;
 import io.kyligence.kap.event.model.JobRelatedEvent;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.kylin.metadata.model.SegmentStatusEnum;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Slf4j
 public abstract class AbstractEventPostJobHandler extends AbstractEventHandler {
+    private static final Logger logger = LoggerFactory.getLogger(AbstractEventPostJobHandler.class);
+    protected static final String SUBJECT_NOT_EXIST_COMMENT = "subject does not exist or is broken, roll back to to-be-accelerated status";
+
     @Override
     protected void doHandle(EventContext eventContext) {
         super.doHandle(eventContext);
@@ -68,4 +79,70 @@ public abstract class AbstractEventPostJobHandler extends AbstractEventHandler {
      * @param executable
      */
     protected abstract void doHandle(EventContext eventContext, ChainedExecutable executable);
+
+    protected void rollFQBackToInitialStatus(EventContext eventContext, String comment) {
+        val project = eventContext.getProject();
+        val model = eventContext.getEvent().getModelId();
+        val kylinConfig = KylinConfig.getInstanceFromEnv();
+        val fqManager = FavoriteQueryManager.getInstance(kylinConfig, project);
+
+        for (val fq : fqManager.getAll()) {
+            if (!fq.getStatus().equals(FavoriteQueryStatusEnum.ACCELERATING))
+                continue;
+
+            if (fq.getRealizations().stream().anyMatch(fqr -> fqr.getModelId().equals(model)))
+                fqManager.rollBackToInitialStatus(fq.getSqlPattern(), comment);
+        }
+    }
+
+    protected void handleFavoriteQuery(EventContext eventContext) {
+        val project = eventContext.getProject();
+        val model = eventContext.getEvent().getModelId();
+        val kylinConfig = KylinConfig.getInstanceFromEnv();
+        val fqManager = FavoriteQueryManager.getInstance(kylinConfig, project);
+
+        for (val fq : fqManager.getAll()) {
+            if (!fq.getStatus().equals(FavoriteQueryStatusEnum.ACCELERATING))
+                continue;
+
+            if (!fq.getRealizations().stream().anyMatch(fqr -> fqr.getModelId().equals(model)))
+                continue;
+
+            boolean allLayoutBuildFinished = true;
+
+            for (val fqr : fq.getRealizations()) {
+                String fqrModelId = fqr.getModelId();
+                long layoutId = fqr.getLayoutId();
+                val df = NDataflowManager.getInstance(kylinConfig, project).getDataflow(fqrModelId);
+
+                val readySegs = df.getSegments(SegmentStatusEnum.READY);
+                if (readySegs.isEmpty()) {
+                    logger.info("no ready segment exists in target index plan {}", fqrModelId);
+                    allLayoutBuildFinished = false;
+                    break;
+                }
+
+                val indexPlanManager = NIndexPlanManager.getInstance(kylinConfig, project);
+                if (indexPlanManager.getIndexPlan(fqrModelId).getCuboidLayout(layoutId) == null) {
+                    logger.info(
+                            "Layout {} does not exist in target index plan {}, gonna put Favorite Query {} status back to TO-BE-ACCELERATED",
+                            layoutId, fqrModelId, fq.getId());
+                    allLayoutBuildFinished = false;
+                    fqManager.rollBackToInitialStatus(fq.getSqlPattern(), "Layout does not exist");
+                    break;
+                }
+
+                val lastReadySeg = readySegs.getLatestReadySegment();
+                val dataLayout = lastReadySeg.getLayout(layoutId);
+
+                if (dataLayout == null) {
+                    allLayoutBuildFinished = false;
+                    break;
+                }
+            }
+
+            if (allLayoutBuildFinished)
+                fqManager.updateStatus(fq.getSqlPattern(), FavoriteQueryStatusEnum.ACCELERATED, null);
+        }
+    }
 }
