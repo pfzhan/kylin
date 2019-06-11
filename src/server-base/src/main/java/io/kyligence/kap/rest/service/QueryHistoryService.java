@@ -226,7 +226,6 @@ public class QueryHistoryService extends BasicService {
         return result;
     }
 
-    @Scheduled(cron = "${kylin.metric.query-history.cleanup-cron:0 0 * * * *}")
     public void cleanQueryHistories() {
         String oldTheadName = Thread.currentThread().getName();
 

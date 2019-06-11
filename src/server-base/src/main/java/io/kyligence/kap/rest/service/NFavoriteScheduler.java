@@ -129,7 +129,7 @@ public class NFavoriteScheduler {
         autoFavoriteScheduler = Executors.newScheduledThreadPool(1,
                 new NamedThreadFactory("AutoFavoriteWorker(project:" + project + ")"));
         updateFavoriteScheduler = Executors.newScheduledThreadPool(1,
-                new NamedThreadFactory("UpdateFQWorker(project:" + project + ")"));
+                new NamedThreadFactory("UpdateUsageWorker(project:" + project + ")"));
 
         // adjust time offset
         adjustTimeOffset();

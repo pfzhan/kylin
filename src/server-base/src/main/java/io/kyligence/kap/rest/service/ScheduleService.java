@@ -23,6 +23,8 @@
  */
 package io.kyligence.kap.rest.service;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -33,6 +35,8 @@ import lombok.extern.slf4j.Slf4j;
 @Service
 public class ScheduleService {
 
+    private static final Logger logger = LoggerFactory.getLogger(ScheduleService.class);
+
     @Autowired
     MetadataBackupService backupService;
 
@@ -42,11 +46,28 @@ public class ScheduleService {
     @Autowired
     ProjectService projectService;
 
+    @Autowired
+    QueryHistoryService queryHistoryService;
+
+
     @Scheduled(cron = "${kylin.metadata.ops-cron:0 0 0 * * *}")
-    public void dailyTask() throws Exception {
-        backupService.backupAll();
-        projectService.garbageCleanup();
-        favoriteQueryService.adjustFavoriteQuery();
+    public void routineTask() throws Exception {
+        String oldTheadName = Thread.currentThread().getName();
+
+        try {
+            Thread.currentThread().setName("RoutineOpsWorker");
+
+            logger.info("Start to work");
+
+            backupService.backupAll();
+            projectService.garbageCleanup();
+            favoriteQueryService.adjustFavoriteQuery();
+            queryHistoryService.cleanQueryHistories();
+
+            logger.info("Finish to work");
+        } finally {
+            Thread.currentThread().setName(oldTheadName);
+        }
     }
 
 }
