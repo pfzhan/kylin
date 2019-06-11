@@ -24,7 +24,7 @@
 package io.kyligence.kap.rest;
 
 import io.kyligence.kap.common.util.TempMetadataBuilder;
-import io.kyligence.kap.rest.init.KerberosLoginTask;
+import io.kyligence.kap.tool.kerberos.KerberosLoginTask;
 import java.io.File;
 import java.sql.Connection;
 import java.sql.DriverManager;

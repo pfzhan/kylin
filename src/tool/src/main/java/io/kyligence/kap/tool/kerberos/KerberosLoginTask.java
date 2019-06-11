@@ -21,7 +21,7 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package io.kyligence.kap.rest.init;
+package io.kyligence.kap.tool.kerberos;
 
 import java.io.File;
 import java.io.IOException;
@@ -36,7 +36,6 @@ import org.apache.hadoop.security.token.TokenIdentifier;
 import org.apache.hadoop.util.Shell;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.rest.init.InitialTask;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -44,7 +43,7 @@ import com.google.common.base.Preconditions;
 
 import io.kyligence.kap.common.obf.IKeep;
 
-public class KerberosLoginTask extends InitialTask implements IKeep {
+public class KerberosLoginTask implements IKeep {
 
     private static final Logger logger = LoggerFactory.getLogger(KerberosLoginTask.class);
 
@@ -52,7 +51,6 @@ public class KerberosLoginTask extends InitialTask implements IKeep {
 
     private KapConfig kapConfig;
 
-    @Override
     public void execute() {
         kapConfig = KapConfig.getInstanceFromEnv();
 

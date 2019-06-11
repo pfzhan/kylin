@@ -34,6 +34,7 @@ import org.apache.kylin.job.lock.ZookeeperAclBuilder;
 import org.apache.kylin.job.lock.ZookeeperUtil;
 import org.apache.zookeeper.data.Stat;
 
+import io.kyligence.kap.tool.kerberos.KerberosLoginTask;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -42,6 +43,9 @@ public class CuratorOperator implements AutoCloseable {
     private CuratorFramework zkClient;
 
     public CuratorOperator() {
+        KerberosLoginTask kerberosLoginTask = new KerberosLoginTask();
+        kerberosLoginTask.execute();
+
         RetryPolicy retryPolicy = new ExponentialBackoffRetry(1000, 3);
         String connectString = ZookeeperUtil.getZKConnectString();
         ZookeeperAclBuilder aclBuilder = new ZookeeperAclBuilder().invoke();
