@@ -161,7 +161,7 @@ class SparderRexVisitor(val df: DataFrame,
         k_lit(children.head).isNotNull
       case LIKE =>
         assert(children.size == 2)
-        k_lit(children.head).like(children.last.asInstanceOf[String])
+        k_like(k_lit(children.head), k_lit(children.last))
       case MINUS_PREFIX =>
         assert(children.size == 1)
         negate(k_lit(children.head))
