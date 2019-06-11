@@ -37,7 +37,6 @@ import org.mockito.Mockito
 import org.scalatest.BeforeAndAfterEach
 
 class TestJobMonitor extends SparderBaseFunSuite with BeforeAndAfterEach {
-  private val eventLoop = new KylinJobEventLoop
   private val config = Mockito.mock(classOf[KylinConfig])
   private val gradient = 1.5
   private val proportion = 1.0
@@ -47,11 +46,9 @@ class TestJobMonitor extends SparderBaseFunSuite with BeforeAndAfterEach {
 
   override def beforeAll(): Unit = {
     super.beforeAll()
-    eventLoop.start()
   }
 
   override def afterAll(): Unit = {
-    eventLoop.stop()
     super.afterAll()
   }
 
@@ -60,191 +57,212 @@ class TestJobMonitor extends SparderBaseFunSuite with BeforeAndAfterEach {
     KylinBuildEnv.clean()
   }
 
+  def withEventLoop(body: KylinJobEventLoop => Unit): Unit = {
+    val loop = new KylinJobEventLoop
+    loop.start()
+    try body(loop)
+    finally loop.stop()
+  }
+
+
   test("post ExceedMaxRetry event when current retry times greater than Max") {
-    Mockito.when(config.getSparkEngineMaxRetryTime).thenReturn(0)
-    val env = KylinBuildEnv.getOrCreate(config)
-    env.resetRetryTimes()
-    val monitor = new JobMonitor(eventLoop)
-    val receiveExceedMaxRetry = new AtomicBoolean(false)
-    val countDownLatch = new CountDownLatch(3)
-    val listener = new KylinJobListener {
-      override def onReceive(event: KylinJobEvent): Unit = {
-        if (event.isInstanceOf[ExceedMaxRetry]) {
-          receiveExceedMaxRetry.getAndSet(true)
+    withEventLoop { eventLoop =>
+      Mockito.when(config.getSparkEngineMaxRetryTime).thenReturn(0)
+      val env = KylinBuildEnv.getOrCreate(config)
+      env.resetRetryTimes()
+      new JobMonitor(eventLoop)
+      val receiveExceedMaxRetry = new AtomicBoolean(false)
+      val countDownLatch = new CountDownLatch(3)
+      val listener = new KylinJobListener {
+        override def onReceive(event: KylinJobEvent): Unit = {
+          if (event.isInstanceOf[ExceedMaxRetry]) {
+            receiveExceedMaxRetry.getAndSet(true)
+          }
+          countDownLatch.countDown()
         }
-        countDownLatch.countDown()
       }
+      eventLoop.registerListener(listener)
+      eventLoop.post(ResourceLack(new Exception()))
+      // receive ResourceLack, ExceedMaxRetry and JobFailed
+      countDownLatch.await()
+      assert(receiveExceedMaxRetry.get())
+      eventLoop.unregisterListener(listener)
     }
-    eventLoop.registerListener(listener)
-    eventLoop.post(ResourceLack(new Exception()))
-    // receive ResourceLack, ExceedMaxRetry and JobFailed
-    countDownLatch.await()
-    assert(receiveExceedMaxRetry.get())
-    eventLoop.unregisterListener(listener)
   }
 
   test("rest spark.executor.cores when receive ResourceLack event and preMemory eq (maxAllocation - overhead)") {
-    Mockito.when(config.getSparkEngineMaxRetryTime).thenReturn(1)
-    val env = KylinBuildEnv.getOrCreate(config)
-    env.resetRetryTimes()
-    val monitor = new JobMonitor(eventLoop)
-    val memory = "2000MB"
-    val overhead = "400MB"
-    val cores = "2"
-    val maxAllocation = 2400
-    env.clusterInfoFetcher.asInstanceOf[MockFetcher].setMaxAllocation(ResourceInfo(maxAllocation, Int.MaxValue))
-    env.sparkConf.set(EXECUTOR_MEMORY, memory)
-    env.sparkConf.set(EXECUTOR_OVERHEAD, overhead)
-    env.sparkConf.set(EXECUTOR_CORES, cores)
-    val countDownLatch = new CountDownLatch(2)
-    val listener = new KylinJobListener {
-      override def onReceive(event: KylinJobEvent): Unit = {
-        countDownLatch.countDown()
+    withEventLoop { eventLoop =>
+      Mockito.when(config.getSparkEngineMaxRetryTime).thenReturn(1)
+      val env = KylinBuildEnv.getOrCreate(config)
+      env.resetRetryTimes()
+      new JobMonitor(eventLoop)
+      val memory = "2000MB"
+      val overhead = "400MB"
+      val cores = "2"
+      val maxAllocation = 2400
+      env.clusterInfoFetcher.asInstanceOf[MockFetcher].setMaxAllocation(ResourceInfo(maxAllocation, Int.MaxValue))
+      env.sparkConf.set(EXECUTOR_MEMORY, memory)
+      env.sparkConf.set(EXECUTOR_OVERHEAD, overhead)
+      env.sparkConf.set(EXECUTOR_CORES, cores)
+      val countDownLatch = new CountDownLatch(2)
+      val listener = new KylinJobListener {
+        override def onReceive(event: KylinJobEvent): Unit = {
+          countDownLatch.countDown()
+        }
       }
+      eventLoop.registerListener(listener)
+      eventLoop.post(ResourceLack(new Exception()))
+      // receive ResourceLack and RunJob
+      countDownLatch.await()
+      assert(env.sparkConf.get(EXECUTOR_MEMORY) == memory)
+      assert(env.sparkConf.get(EXECUTOR_CORES) == (cores.toInt - 1).toString)
+      assert(System.getProperty("kylin.spark-conf.auto.prior") == "false")
+      eventLoop.unregisterListener(listener)
     }
-    eventLoop.registerListener(listener)
-    eventLoop.post(ResourceLack(new Exception()))
-    // receive ResourceLack and RunJob
-    countDownLatch.await()
-    assert(env.sparkConf.get(EXECUTOR_MEMORY) == memory)
-    assert(env.sparkConf.get(EXECUTOR_CORES) == (cores.toInt - 1).toString)
-    assert(System.getProperty("kylin.spark-conf.auto.prior") == "false")
-    eventLoop.unregisterListener(listener)
   }
 
   test("post JobFailed when receive ResourceLack event and preMemory eq (maxAllocation - overhead) and retryCores eq 0") {
-    Mockito.when(config.getSparkEngineMaxRetryTime).thenReturn(1)
-    val env = KylinBuildEnv.getOrCreate(config)
-    env.resetRetryTimes()
-    val monitor = new JobMonitor(eventLoop)
-    val memory = "2000MB"
-    val overhead = "400MB"
-    val cores = "1"
-    val maxAllocation = 2400
-    env.clusterInfoFetcher.asInstanceOf[MockFetcher].setMaxAllocation(ResourceInfo(maxAllocation, Int.MaxValue))
-    env.sparkConf.set(EXECUTOR_MEMORY, memory)
-    env.sparkConf.set(EXECUTOR_OVERHEAD, overhead)
-    env.sparkConf.set(EXECUTOR_CORES, cores)
-    val receiveJobFailed = new AtomicBoolean(false)
-    val countDownLatch = new CountDownLatch(2)
-    val listener = new KylinJobListener {
-      override def onReceive(event: KylinJobEvent): Unit = {
-        if (event.isInstanceOf[JobFailed]) {
-          receiveJobFailed.getAndSet(true)
+    withEventLoop { eventLoop =>
+      val env = KylinBuildEnv.getOrCreate(config)
+      env.resetRetryTimes()
+      new JobMonitor(eventLoop)
+      val memory = "2000MB"
+      val overhead = "400MB"
+      val cores = "1"
+      val maxAllocation = 2400
+      env.clusterInfoFetcher.asInstanceOf[MockFetcher].setMaxAllocation(ResourceInfo(maxAllocation, Int.MaxValue))
+      env.sparkConf.set(EXECUTOR_MEMORY, memory)
+      env.sparkConf.set(EXECUTOR_OVERHEAD, overhead)
+      env.sparkConf.set(EXECUTOR_CORES, cores)
+      val receiveJobFailed = new AtomicBoolean(false)
+      val countDownLatch = new CountDownLatch(2)
+      val listener = new KylinJobListener {
+        override def onReceive(event: KylinJobEvent): Unit = {
+          if (event.isInstanceOf[JobFailed]) {
+            receiveJobFailed.getAndSet(true)
+          }
+          countDownLatch.countDown()
         }
-        countDownLatch.countDown()
       }
+      eventLoop.registerListener(listener)
+      eventLoop.post(ResourceLack(new Exception()))
+      // receive ResourceLack and JobFailed
+      countDownLatch.await()
+      assert(receiveJobFailed.get())
+      eventLoop.unregisterListener(listener)
     }
-    eventLoop.registerListener(listener)
-    eventLoop.post(ResourceLack(new Exception()))
-    // receive ResourceLack and JobFailed
-    countDownLatch.await()
-    assert(receiveJobFailed.get())
-    eventLoop.unregisterListener(listener)
   }
 
   test("rest spark.executor.memory to (maxAllocation - overhead) when receive ResourceLack event and retryMemory gt " +
     "(maxAllocation - overhead) and prevMemory le (maxAllocation - overhead)") {
-    Mockito.when(config.getSparkEngineMaxRetryTime).thenReturn(1)
-    val env = KylinBuildEnv.getOrCreate(config)
-    env.resetRetryTimes()
-    val monitor = new JobMonitor(eventLoop)
-    val memory = "2000MB"
-    val overhead = "400MB"
-    val maxAllocation = 2500
-    env.clusterInfoFetcher.asInstanceOf[MockFetcher].setMaxAllocation(ResourceInfo(maxAllocation, Int.MaxValue))
-    env.sparkConf.set(EXECUTOR_MEMORY, memory)
-    env.sparkConf.set(EXECUTOR_OVERHEAD, overhead)
-    val countDownLatch = new CountDownLatch(2)
-    val listener = new KylinJobListener {
-      override def onReceive(event: KylinJobEvent): Unit = {
-        countDownLatch.countDown()
+    withEventLoop { eventLoop =>
+      Mockito.when(config.getSparkEngineMaxRetryTime).thenReturn(1)
+      val env = KylinBuildEnv.getOrCreate(config)
+      env.resetRetryTimes()
+      new JobMonitor(eventLoop)
+      val memory = "2000MB"
+      val overhead = "400MB"
+      val maxAllocation = 2500
+      env.clusterInfoFetcher.asInstanceOf[MockFetcher].setMaxAllocation(ResourceInfo(maxAllocation, Int.MaxValue))
+      env.sparkConf.set(EXECUTOR_MEMORY, memory)
+      env.sparkConf.set(EXECUTOR_OVERHEAD, overhead)
+      val countDownLatch = new CountDownLatch(2)
+      val listener = new KylinJobListener {
+        override def onReceive(event: KylinJobEvent): Unit = {
+          countDownLatch.countDown()
+        }
       }
+      eventLoop.registerListener(listener)
+      eventLoop.post(ResourceLack(new Exception()))
+      // receive ResourceLack and RunJob
+      countDownLatch.await()
+      assert(env.sparkConf.get(EXECUTOR_MEMORY) == maxAllocation - Utils.byteStringAsMb(env.sparkConf.get(EXECUTOR_OVERHEAD)) + "MB")
+      assert(System.getProperty("kylin.spark-conf.auto.prior") == "false")
+      eventLoop.unregisterListener(listener)
     }
-    eventLoop.registerListener(listener)
-    eventLoop.post(ResourceLack(new Exception()))
-    // receive ResourceLack and RunJob
-    countDownLatch.await()
-    assert(env.sparkConf.get(EXECUTOR_MEMORY) == maxAllocation - Utils.byteStringAsMb(env.sparkConf.get(EXECUTOR_OVERHEAD)) + "MB")
-    assert(System.getProperty("kylin.spark-conf.auto.prior") == "false")
-    eventLoop.unregisterListener(listener)
   }
 
   test("rest spark.executor.memory") {
-    Mockito.when(config.getSparkEngineMaxRetryTime).thenReturn(1)
-    val env = KylinBuildEnv.getOrCreate(config)
-    env.resetRetryTimes()
-    val monitor = new JobMonitor(eventLoop)
-    val memory = "3000MB"
-    val overhead = "400MB"
-    val maxAllocation = 2500
-    env.clusterInfoFetcher.asInstanceOf[MockFetcher].setMaxAllocation(ResourceInfo(maxAllocation, Int.MaxValue))
-    env.sparkConf.set(EXECUTOR_MEMORY, memory)
-    env.sparkConf.set(EXECUTOR_OVERHEAD, overhead)
-    val countDownLatch = new CountDownLatch(2)
-    val listener = new KylinJobListener {
-      override def onReceive(event: KylinJobEvent): Unit = {
-        countDownLatch.countDown()
+    withEventLoop { eventLoop =>
+      Mockito.when(config.getSparkEngineMaxRetryTime).thenReturn(1)
+      val env = KylinBuildEnv.getOrCreate(config)
+      env.resetRetryTimes()
+      new JobMonitor(eventLoop)
+      val memory = "3000MB"
+      val overhead = "400MB"
+      val maxAllocation = 2500
+      env.clusterInfoFetcher.asInstanceOf[MockFetcher].setMaxAllocation(ResourceInfo(maxAllocation, Int.MaxValue))
+      env.sparkConf.set(EXECUTOR_MEMORY, memory)
+      env.sparkConf.set(EXECUTOR_OVERHEAD, overhead)
+      val countDownLatch = new CountDownLatch(2)
+      val listener = new KylinJobListener {
+        override def onReceive(event: KylinJobEvent): Unit = {
+          countDownLatch.countDown()
+        }
       }
+      eventLoop.registerListener(listener)
+      eventLoop.post(ResourceLack(new Exception()))
+      // receive ResourceLack and RunJob
+      countDownLatch.await()
+      assert(env.sparkConf.get(EXECUTOR_MEMORY) == maxAllocation - Utils.byteStringAsMb(env.sparkConf.get(EXECUTOR_OVERHEAD)) + "MB")
+      assert(System.getProperty("kylin.spark-conf.auto.prior") == "false")
+      eventLoop.unregisterListener(listener)
     }
-    eventLoop.registerListener(listener)
-    eventLoop.post(ResourceLack(new Exception()))
-    // receive ResourceLack and RunJob
-    countDownLatch.await()
-    assert(env.sparkConf.get(EXECUTOR_MEMORY) == maxAllocation - Utils.byteStringAsMb(env.sparkConf.get(EXECUTOR_OVERHEAD)) + "MB")
-    assert(System.getProperty("kylin.spark-conf.auto.prior") == "false")
-    eventLoop.unregisterListener(listener)
   }
 
   test("rest spark.executor.memory to retryMemory when receive ResourceLack event and retryMemory lte (maxAllocation - overhead) " +
     "and prevMemory le (maxAllocation - overhead)") {
-    Mockito.when(config.getSparkEngineMaxRetryTime).thenReturn(1)
-    val env = KylinBuildEnv.getOrCreate(config)
-    env.resetRetryTimes()
-    val monitor = new JobMonitor(eventLoop)
-    val memory = "2000MB"
-    val overhead = "400MB"
-    val maxAllocation = 4000
-    env.clusterInfoFetcher.asInstanceOf[MockFetcher].setMaxAllocation(ResourceInfo(maxAllocation, Int.MaxValue))
-    env.sparkConf.set(EXECUTOR_MEMORY, memory)
-    env.sparkConf.set(EXECUTOR_OVERHEAD, overhead)
-    val countDownLatch = new CountDownLatch(2)
-    val listener = new KylinJobListener {
-      override def onReceive(event: KylinJobEvent): Unit = {
-        countDownLatch.countDown()
+    withEventLoop { eventLoop =>
+      Mockito.when(config.getSparkEngineMaxRetryTime).thenReturn(1)
+      val env = KylinBuildEnv.getOrCreate(config)
+      env.resetRetryTimes()
+      new JobMonitor(eventLoop)
+      val memory = "2000MB"
+      val overhead = "400MB"
+      val maxAllocation = 4000
+      env.clusterInfoFetcher.asInstanceOf[MockFetcher].setMaxAllocation(ResourceInfo(maxAllocation, Int.MaxValue))
+      env.sparkConf.set(EXECUTOR_MEMORY, memory)
+      env.sparkConf.set(EXECUTOR_OVERHEAD, overhead)
+      val countDownLatch = new CountDownLatch(2)
+      val listener = new KylinJobListener {
+        override def onReceive(event: KylinJobEvent): Unit = {
+          countDownLatch.countDown()
+        }
       }
+      eventLoop.registerListener(listener)
+      eventLoop.post(ResourceLack(new Exception()))
+      // receive ResourceLack and RunJob
+      countDownLatch.await()
+      assert(env.sparkConf.get(EXECUTOR_MEMORY) == Math.ceil(Utils.byteStringAsMb(memory) * gradient).toInt + "MB")
+      assert(System.getProperty("kylin.spark-conf.auto.prior") == "false")
+      eventLoop.unregisterListener(listener)
     }
-    eventLoop.registerListener(listener)
-    eventLoop.post(ResourceLack(new Exception()))
-    // receive ResourceLack and RunJob
-    countDownLatch.await()
-    assert(env.sparkConf.get(EXECUTOR_MEMORY) == Math.ceil(Utils.byteStringAsMb(memory) * gradient).toInt + "MB")
-    assert(System.getProperty("kylin.spark-conf.auto.prior") == "false")
-    eventLoop.unregisterListener(listener)
   }
 
 
   test("post JobFailed event when receive UnknownThrowable event") {
-    Mockito.when(config.getSparkEngineMaxRetryTime).thenReturn(1)
-    val env = KylinBuildEnv.getOrCreate(config)
-    env.resetRetryTimes()
-    val monitor = new JobMonitor(eventLoop)
-    val countDownLatch = new CountDownLatch(2)
-    val receiveJobFailed = new AtomicBoolean(false)
-    val listener = new KylinJobListener {
-      override def onReceive(event: KylinJobEvent): Unit = {
-        if (event.isInstanceOf[JobFailed]) {
-          receiveJobFailed.getAndSet(true)
+    withEventLoop { eventLoop =>
+      Mockito.when(config.getSparkEngineMaxRetryTime).thenReturn(1)
+      val env = KylinBuildEnv.getOrCreate(config)
+      env.resetRetryTimes()
+      new JobMonitor(eventLoop)
+      val countDownLatch = new CountDownLatch(2)
+      val receiveJobFailed = new AtomicBoolean(false)
+      val listener = new KylinJobListener {
+        override def onReceive(event: KylinJobEvent): Unit = {
+          if (event.isInstanceOf[JobFailed]) {
+            receiveJobFailed.getAndSet(true)
+          }
+          countDownLatch.countDown()
         }
-        countDownLatch.countDown()
       }
+      eventLoop.registerListener(listener)
+      eventLoop.post(UnknownThrowable(new Exception()))
+      // receive UnknownThrowable and JobFailed
+      countDownLatch.await()
+      assert(receiveJobFailed.get())
+      eventLoop.unregisterListener(listener)
     }
-    eventLoop.registerListener(listener)
-    eventLoop.post(UnknownThrowable(new Exception()))
-    // receive UnknownThrowable and JobFailed
-    countDownLatch.await()
-    assert(receiveJobFailed.get())
-    eventLoop.unregisterListener(listener)
   }
 }
 
