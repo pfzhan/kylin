@@ -38,16 +38,16 @@ export function tableSettingDrama () {
       target: 'tablePartitionColumn',
       val: 'LO_ORDERDATE'
     },
-    {
-      eventID: 1,
-      done: false,
-      target: 'tableLoadDataBtn'
-    },
-    {
-      eventID: 2,
-      done: false,
-      target: 'tableLoadDataBtn' // 点击加载数据按钮
-    },
+    // {
+    //   eventID: 1,
+    //   done: false,
+    //   target: 'tableLoadDataBtn'
+    // },
+    // {
+    //   eventID: 2,
+    //   done: false,
+    //   target: 'tableLoadDataBtn' // 点击加载数据按钮
+    // },
     {
       eventID: 1,
       done: false,

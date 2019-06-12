@@ -12,7 +12,7 @@
             v-guide.tablePartitionColumn
             filterable
             size="medium"
-            v-model="table.partitionColumn"
+            v-bind:value="table.partitionColumn"
             @change="handleChangePartition">
             <el-option :label="$t('noPartition')" value=""></el-option>
             <el-option
@@ -147,6 +147,7 @@ export default class TableDataLoad extends Vue {
     this.$message({ type: 'success', message: this.$t('loadSuccessTip') })
   }
   async handleChangePartition (value) {
+    this.table.partitionColumn = value
     try {
       const { modelCount, modelSize } = await this._getAffectedModelCountAndSize()
       if (modelCount || modelSize) {
