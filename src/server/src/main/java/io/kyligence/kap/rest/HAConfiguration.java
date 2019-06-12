@@ -31,10 +31,13 @@ import javax.sql.DataSource;
 import org.apache.commons.io.IOUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.session.SessionProperties;
+import org.springframework.boot.autoconfigure.session.StoreType;
 import org.springframework.cloud.client.loadbalancer.LoadBalanced;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
+import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.jdbc.datasource.init.DatabasePopulatorUtils;
 import org.springframework.jdbc.datasource.init.ResourceDatabasePopulator;
 import org.springframework.security.util.InMemoryResource;
@@ -54,17 +57,23 @@ public class HAConfiguration extends AbstractHttpSessionApplicationInitializer {
     @Autowired
     DataSource dataSource;
 
+    @Autowired
+    SessionProperties sessionProperties;
+
     @PostConstruct
     public void initSessionTables() throws IOException {
+        if (sessionProperties.getStoreType() != StoreType.JDBC) {
+            return;
+        }
         ResourceDatabasePopulator populator = new ResourceDatabasePopulator();
 
         String sqlFile = "script/schema-session-pg.sql";
-        if (dataSource instanceof org.apache.tomcat.jdbc.pool.DataSource &&
-                ((org.apache.tomcat.jdbc.pool.DataSource)dataSource).getPoolProperties().getDriverClassName().equals("com.mysql.jdbc.Driver")) {
+        if (dataSource instanceof org.apache.tomcat.jdbc.pool.DataSource
+                && ((org.apache.tomcat.jdbc.pool.DataSource) dataSource).getPoolProperties().getDriverClassName()
+                        .equals("com.mysql.jdbc.Driver")) {
             sqlFile = "script/schema-session-mysql.sql";
         }
-        var sessionScript = IOUtils
-                .toString(getClass().getClassLoader().getResourceAsStream(sqlFile));
+        var sessionScript = IOUtils.toString(getClass().getClassLoader().getResourceAsStream(sqlFile));
         val tableName = KylinConfig.getInstanceFromEnv().getMetadataUrlPrefix() + "_session";
         sessionScript = sessionScript.replaceAll("SPRING_SESSION", tableName);
         populator.addScript(new InMemoryResource(sessionScript));
@@ -75,7 +84,9 @@ public class HAConfiguration extends AbstractHttpSessionApplicationInitializer {
     @Bean
     @LoadBalanced
     public RestTemplate restTemplate() {
-        return new RestTemplate();
+        val restTemplate = new RestTemplate();
+        restTemplate.setRequestFactory(new HttpComponentsClientHttpRequestFactory());
+        return restTemplate;
     }
 
     @Bean
