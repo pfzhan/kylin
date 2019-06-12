@@ -524,6 +524,10 @@ public class Message {
         return "Duplicate query name '%s'";
     }
 
+    public String getNULL_EMPTY_SQL() {
+        return "SQL should not be empty.";
+    }
+
     // Access
     public String getACL_PERMISSION_REQUIRED() {
         return "Acl permission required.";

@@ -68,6 +68,7 @@ import java.util.stream.Collectors;
 
 import javax.annotation.PostConstruct;
 
+import io.kyligence.kap.metadata.project.NProjectManager;
 import org.apache.calcite.avatica.ColumnMetaData.Rep;
 import org.apache.calcite.config.CalciteConnectionConfig;
 import org.apache.calcite.jdbc.CalcitePrepare;
@@ -352,6 +353,15 @@ public class QueryService extends BasicService {
         }
         if (StringUtils.isBlank(sqlRequest.getProject())) {
             throw new BadRequestException(msg.getEMPTY_PROJECT_NAME());
+        }
+
+        final NProjectManager projectMgr = NProjectManager.getInstance(kylinConfig);
+        if (projectMgr.getProject(sqlRequest.getProject()) == null) {
+            throw new BadRequestException(String.format(msg.getPROJECT_NOT_FOUND(), sqlRequest.getProject()));
+        }
+
+        if (StringUtils.isBlank(sqlRequest.getSql())) {
+            throw new BadRequestException(msg.getNULL_EMPTY_SQL());
         }
 
         if (sqlRequest.getBackdoorToggles() != null)

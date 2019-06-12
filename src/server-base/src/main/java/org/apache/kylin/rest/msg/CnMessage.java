@@ -423,6 +423,10 @@ public class CnMessage extends Message {
         return "查询名称重复 '%s'";
     }
 
+    public String getNULL_EMPTY_SQL() {
+        return "SQL不能为空";
+    }
+
     // Access
     public String getACL_PERMISSION_REQUIRED() {
         return "需要授权";

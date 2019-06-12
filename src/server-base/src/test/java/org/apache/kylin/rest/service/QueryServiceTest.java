@@ -77,6 +77,7 @@ import org.apache.kylin.metadata.realization.IRealization;
 import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 import org.apache.kylin.query.relnode.OLAPContext;
 import org.apache.kylin.rest.constant.Constant;
+import org.apache.kylin.rest.exception.BadRequestException;
 import org.apache.kylin.rest.exception.InternalErrorException;
 import org.apache.kylin.rest.model.Query;
 import org.apache.kylin.rest.request.SQLRequest;
@@ -99,6 +100,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
+import io.kyligence.kap.common.persistence.transaction.TransactionException;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.metadata.cube.cuboid.NLayoutCandidate;
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
@@ -260,6 +262,40 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         final SQLResponse response = queryService.doQueryWithCache(request, false);
         Assert.assertTrue(response.isException());
         Assert.assertEquals("[HIVE Exception] push down error", response.getExceptionMessage());
+    }
+
+    @Test
+    public void testQueryWithCacheFailedForProjectNotExist() {
+        final String sql = "select * from success_table";
+        final String notExistProject = "default0";
+        final SQLRequest request = new SQLRequest();
+        request.setProject(notExistProject);
+        request.setSql(sql);
+        try {
+            queryService.doQueryWithCache(request, false);
+            Assert.fail();
+        } catch (Exception e) {
+            Assert.assertTrue(e instanceof TransactionException);
+            Assert.assertTrue(e.getCause() instanceof BadRequestException);
+            Assert.assertEquals("Cannot find project 'default0'.", e.getCause().getMessage());
+        }
+    }
+
+    @Test
+    public void testQueryWithCacheFailedForSqlNotExist(){
+        final String sql = "";
+        final String notExistProject = "default";
+        final SQLRequest request = new SQLRequest();
+        request.setProject(notExistProject);
+        request.setSql(sql);
+        try {
+            queryService.doQueryWithCache(request, false);
+            Assert.fail();
+        } catch (Exception e) {
+            Assert.assertTrue(e instanceof TransactionException);
+            Assert.assertTrue(e.getCause() instanceof BadRequestException);
+            Assert.assertEquals("SQL should not be empty.", e.getCause().getMessage());
+        }
     }
 
     @Test
