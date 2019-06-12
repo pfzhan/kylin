@@ -28,7 +28,6 @@ import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.Semaphore;
 
-import io.kyligence.kap.spark.common.CredentialUtils;
 import org.apache.kylin.common.util.Pair;
 import org.apache.spark.sql.SparderEnv;
 import org.apache.spark.sql.SparkSession;
@@ -37,6 +36,7 @@ import org.slf4j.LoggerFactory;
 
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.ext.classloader.ClassLoaderUtils;
+import io.kyligence.kap.spark.common.CredentialUtils;
 
 public class SparkSubmitter {
     public static final Logger logger = LoggerFactory.getLogger(SparkSubmitter.class);
@@ -44,7 +44,7 @@ public class SparkSubmitter {
 
     public static PushdownResponse submitPushDownTask(String sql, String project) {
         if (UnitOfWork.isAlreadyInTransaction()) {
-            logger.warn("execute spark job with transaction lock", new IllegalStateException());
+            logger.warn("execute spark job with transaction lock");
         }
         Thread.currentThread().setContextClassLoader(ClassLoaderUtils.getSparkClassLoader());
         SparkSession ss = SparderEnv.getSparkSession();

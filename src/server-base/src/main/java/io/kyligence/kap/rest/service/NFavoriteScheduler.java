@@ -53,7 +53,7 @@ import java.util.concurrent.TimeUnit;
 
 import com.google.common.collect.Sets;
 import io.kyligence.kap.rest.service.task.QueryHistoryAccessor;
-import io.kyligence.kap.rest.service.task.UpdateFavoriteStatisticsRunner;
+import io.kyligence.kap.rest.service.task.UpdateUsageStatisticsRunner;
 import lombok.AllArgsConstructor;
 import lombok.NoArgsConstructor;
 import lombok.val;
@@ -147,7 +147,7 @@ public class NFavoriteScheduler {
         // schedule runner at fixed interval
         autoFavoriteScheduler.scheduleWithFixedDelay(new AutoFavoriteRunner(), initialDelay, autoFavoriteIntervalTime,
                 TimeUnit.SECONDS);
-        updateFavoriteScheduler.scheduleWithFixedDelay(new UpdateFavoriteStatisticsRunner(project), initialDelay + 10L,
+        updateFavoriteScheduler.scheduleWithFixedDelay(new UpdateUsageStatisticsRunner(project), initialDelay + 10L,
                 updateFavoriteIntervalTime, TimeUnit.SECONDS);
 
         hasStarted = true;
@@ -499,7 +499,7 @@ public class NFavoriteScheduler {
 
     public void scheduleImmediately() {
         autoFavoriteScheduler.schedule(new AutoFavoriteRunner(), 1, TimeUnit.SECONDS);
-        updateFavoriteScheduler.schedule(new UpdateFavoriteStatisticsRunner(project), 10L, TimeUnit.SECONDS);
+        updateFavoriteScheduler.schedule(new UpdateUsageStatisticsRunner(project), 10L, TimeUnit.SECONDS);
     }
 
     public boolean hasStarted() {

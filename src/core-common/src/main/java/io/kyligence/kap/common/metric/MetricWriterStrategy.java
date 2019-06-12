@@ -28,7 +28,6 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.kylin.common.KapConfig;
-import org.apache.kylin.common.KylinConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -36,7 +35,7 @@ public enum MetricWriterStrategy {
     INSTANCE;
     public static final Logger logger = LoggerFactory.getLogger(MetricWriterStrategy.class);
     private static AtomicInteger failoverFlag = new AtomicInteger(0);
-    private final static String CONFIG_KEY = "kap.metric.write-destination";
+    public final static String CONFIG_KEY = "kap.metric.write-destination";
 
     public void write(String dbName, String measurement, Map<String, String> tags, Map<String, Object> metrics) {
         write(dbName, measurement, tags, metrics, System.currentTimeMillis());
@@ -65,12 +64,7 @@ public enum MetricWriterStrategy {
     }
 
     private void failover() {
-        try {
-            KylinConfig.getInstanceFromEnv().setProperty(CONFIG_KEY, MetricWriter.Type.BLACK_HOLE.name());
-        } catch (Exception e) {
-            // In spark executor may can not get kylin config, use system property instead.
-            System.setProperty(CONFIG_KEY, MetricWriter.Type.BLACK_HOLE.name());
-        }
+        System.setProperty(CONFIG_KEY, MetricWriter.Type.BLACK_HOLE.name());
     }
 
     private String getType() {

@@ -106,10 +106,10 @@ public class InfluxDBWriter implements MetricWriter {
                 try {
                     tryConnectInfluxDB();
 
-                    if (!Type.INFLUX.name().equals(System.getProperty("kap.metric.write-destination"))) {
+                    if (!Type.INFLUX.name().equals(System.getProperty(MetricWriterStrategy.CONFIG_KEY))) {
                         // fallback to 'INFLUX', reset "kap.metric.write-destination" to "INFLUX"
-                        logger.info("Changed to 'INFLUX'");
-                        System.setProperty("kap.metric.write-destination", Type.INFLUX.name());
+                        logger.info("Changed MetricWriterStrategy to 'INFLUX'");
+                        System.setProperty(MetricWriterStrategy.CONFIG_KEY, Type.INFLUX.name());
                     }
 
                 } catch (Exception ex) {
@@ -135,7 +135,7 @@ public class InfluxDBWriter implements MetricWriter {
             isConnected = true;
         } catch (Throwable th) {
             isConnected = false;
-            throw new RuntimeException("Can not connected to influxDB", th);
+            throw th;
         }
     }
 
@@ -143,7 +143,8 @@ public class InfluxDBWriter implements MetricWriter {
     public void write(String dbName, String measurement, Map<String, String> tags, Map<String, Object> fields,
             long timestamp) throws Throwable {
         if (!isConnected) {
-            throw new IllegalStateException("Unable to got InfluxDB connection");
+            logger.error("InfluxDB is not connected, abort writing.");
+            return;
         }
 
         Point p = Point.measurement(measurement) //

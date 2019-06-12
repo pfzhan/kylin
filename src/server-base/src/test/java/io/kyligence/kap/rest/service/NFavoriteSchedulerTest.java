@@ -43,7 +43,7 @@ import io.kyligence.kap.metadata.query.AccelerateRatioManager;
 import io.kyligence.kap.metadata.query.QueryHistory;
 import io.kyligence.kap.metadata.query.QueryHistoryDAO;
 import io.kyligence.kap.rest.service.task.QueryHistoryAccessor;
-import io.kyligence.kap.rest.service.task.UpdateFavoriteStatisticsRunner;
+import io.kyligence.kap.rest.service.task.UpdateUsageStatisticsRunner;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Arrays;
@@ -429,7 +429,7 @@ public class NFavoriteSchedulerTest extends NLocalFileMetadataTestCase {
         long systemTime = mockedQueryHistoryDao.getCurrentTime();
         FavoriteQueryManager favoriteQueryManager = FavoriteQueryManager.getInstance(getTestConfig(), PROJECT);
         int originFavoriteQuerySize = favoriteQueryManager.getAll().size();
-        UpdateFavoriteStatisticsRunner updateRunner = Mockito.spy(new UpdateFavoriteStatisticsRunner(PROJECT));
+        UpdateUsageStatisticsRunner updateRunner = Mockito.spy(new UpdateUsageStatisticsRunner(PROJECT));
         ReflectionTestUtils.setField(updateRunner, "queryHistoryAccessor", queryHistoryAccessor);
 
         // first round, updated no favorite query
@@ -701,7 +701,7 @@ public class NFavoriteSchedulerTest extends NLocalFileMetadataTestCase {
         long systemTime = mockedQueryHistoryDao.getCurrentTime();
         FavoriteQueryManager favoriteQueryManager = FavoriteQueryManager.getInstance(getTestConfig(), PROJECT);
         int originFavoriteQuerySize = favoriteQueryManager.getAll().size();
-        UpdateFavoriteStatisticsRunner updateRunner = Mockito.spy(new UpdateFavoriteStatisticsRunner(PROJECT));
+        UpdateUsageStatisticsRunner updateRunner = Mockito.spy(new UpdateUsageStatisticsRunner(PROJECT));
         ReflectionTestUtils.setField(updateRunner, "queryHistoryAccessor", queryHistoryAccessor);
 
         val dfMgr = NDataflowManager.getInstance(getTestConfig(), PROJECT);

@@ -47,12 +47,12 @@ import lombok.var;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public class UpdateFavoriteStatisticsRunner implements Runnable {
+public class UpdateUsageStatisticsRunner implements Runnable {
 
     private final String project;
     private final QueryHistoryAccessor queryHistoryAccessor;
 
-    public UpdateFavoriteStatisticsRunner(String project) {
+    public UpdateUsageStatisticsRunner(String project) {
         this.project = project;
         queryHistoryAccessor = new QueryHistoryAccessor(project);
     }
