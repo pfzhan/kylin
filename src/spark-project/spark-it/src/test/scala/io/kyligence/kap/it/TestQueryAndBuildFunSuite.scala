@@ -82,6 +82,7 @@ class TestQueryAndBuildFunSuite
     FloderInfo("sql_raw"),
     FloderInfo("sql_rawtable"),
     FloderInfo("sql_value"),
+    FloderInfo("sql_udf", List("query02.sql")),
     FloderInfo("sql_tableau", List("query00.sql", "query24.sql", "query25.sql"))
   )
 
