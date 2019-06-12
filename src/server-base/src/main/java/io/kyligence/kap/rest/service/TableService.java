@@ -490,9 +490,34 @@ public class TableService extends BasicService {
         for (val model : models) {
             purgeRelatedModel(model.getUuid(), table, project);
             modelService.syncPartitionDesc(model.getUuid(), project);
+            if (StringUtils.isEmpty(column)) {
+                buildFullSegment(model.getUuid(), project);
+            }
         }
     }
+    private void buildFullSegment(String model, String project) {
+        val eventManager = getEventManager(project);
+        val dataflowManager = getDataflowManager(project);
+        val indexPlanManager = getIndexPlanManager(project);
+        val indexPlan = indexPlanManager.getIndexPlan(model);
+        val dataflow = dataflowManager.getDataflow(indexPlan.getUuid());
+        val newSegment = dataflowManager.appendSegment(dataflow,
+                new SegmentRange.TimePartitionedSegmentRange(0L, Long.MAX_VALUE));
 
+        val addSegmentEvent = new AddSegmentEvent();
+        addSegmentEvent.setSegmentId(newSegment.getId());
+        addSegmentEvent.setModelId(model);
+        addSegmentEvent.setJobId(UUID.randomUUID().toString());
+        addSegmentEvent.setOwner(getUsername());
+        eventManager.post(addSegmentEvent);
+
+        PostAddSegmentEvent postAddSegmentEvent = new PostAddSegmentEvent();
+        postAddSegmentEvent.setSegmentId(newSegment.getId());
+        postAddSegmentEvent.setModelId(model);
+        postAddSegmentEvent.setJobId(addSegmentEvent.getJobId());
+        postAddSegmentEvent.setOwner(getUsername());
+        eventManager.post(postAddSegmentEvent);
+    }
 
     public void setDataRange(String project, DateRangeRequest dateRangeRequest) throws Exception {
         String table = dateRangeRequest.getTable();

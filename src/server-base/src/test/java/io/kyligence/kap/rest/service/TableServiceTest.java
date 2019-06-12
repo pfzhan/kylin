@@ -541,7 +541,10 @@ public class TableServiceTest extends NLocalFileMetadataTestCase {
         //set null
         tableService.setPartitionKey("DEFAULT.TEST_KYLIN_FACT", "default", "");
         df = dfMgr.getDataflowByModelAlias("nmodel_basic");
-        Assert.assertEquals(df.getSegments().size(), 0);
+        Assert.assertEquals(df.getSegments().size(), 1);
+
+        val eventDao = EventDao.getInstance(getTestConfig(), "default");
+        Assert.assertEquals(eventDao.getEventsByModel(df.getUuid()).size(), 2);
 
         loadingRange = loadingRangeMgr.getDataLoadingRange("DEFAULT.TEST_KYLIN_FACT");
         Assert.assertNull(loadingRange);
@@ -830,7 +833,7 @@ public class TableServiceTest extends NLocalFileMetadataTestCase {
         Assert.assertNull(modelManager.getDataModelDesc("89af4ee2-2cdb-4b07-b39e-4c29856309aa").getPartitionDesc());
         val events = eventDao.getEvents();
         //do not build immediately
-        Assert.assertEquals(0, events.size());
+        Assert.assertEquals(8, events.size());
         // TODO check other events
         //        Assert.assertEquals(0L, Long.parseLong(events.get(0).getSegmentRange().getStart().toString()));
         //        Assert.assertEquals(Long.MAX_VALUE, Long.parseLong(events.get(0).getSegmentRange().getEnd().toString()));

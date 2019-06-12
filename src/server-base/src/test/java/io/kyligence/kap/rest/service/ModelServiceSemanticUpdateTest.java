@@ -474,6 +474,28 @@ public class ModelServiceSemanticUpdateTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
+    public void testChangeParititionDesc_OneToNull() {
+         val modelMgr = NDataModelManager.getInstance(getTestConfig(), "default");
+        val dfMgr = NDataflowManager.getInstance(getTestConfig(), "default");
+        val originModel = getTestBasicModel();
+        val cube = dfMgr.getDataflow(originModel.getUuid()).getIndexPlan();
+        val tableIndexCount = cube.getAllLayouts().stream().filter(l -> l.getIndex().isTableIndex()).count();
+
+        modelMgr.updateDataModel(MODEL_ID, model -> {
+            model.setPartitionDesc(null);
+        });
+        semanticService.handleSemanticUpdate("default", originModel.getUuid(), originModel);
+
+        val events = EventDao.getInstance(getTestConfig(), "default").getEvents();
+        Assert.assertEquals(2, events.size());
+        val df = dfMgr.getDataflow(MODEL_ID);
+
+        Assert.assertEquals(1, df.getSegments().size());
+        Assert.assertEquals(tableIndexCount,
+                df.getIndexPlan().getAllLayouts().stream().filter(l -> l.getIndex().isTableIndex()).count());
+    }
+
+    @Test
     public void testOnlyAddDimensions() throws Exception {
         val modelMgr = NDataModelManager.getInstance(getTestConfig(), "default");
         val originModel = getTestBasicModel();
