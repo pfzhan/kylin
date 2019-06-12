@@ -95,11 +95,11 @@ public class NTableSamplingJobTest extends NLocalWithSparkSessionTest {
         NExecutableManager execMgr = NExecutableManager.getInstance(config, PROJECT);
         val samplingJob = NTableSamplingJob.create(tableDesc, PROJECT, "ADMIN", 20_000_000);
         execMgr.addJob(samplingJob);
+        Assert.assertEquals(ExecutableState.READY, samplingJob.getStatus());
         val tableSamplingMem = config.getSparkEngineDriverMemoryTableSampling();
         await().atMost(60000, TimeUnit.MILLISECONDS).untilAsserted(() -> {
             Assert.assertEquals(currMem - tableSamplingMem, NDefaultScheduler.currentAvailableMem(), 0.1);
         });
-        Assert.assertEquals(ExecutableState.READY, samplingJob.getStatus());
         final String jobId = samplingJob.getId();
         await().atMost(3, TimeUnit.MINUTES).until(() -> !execMgr.getJob(jobId).getStatus().isProgressing());
         Assert.assertEquals(ExecutableState.SUCCEED, samplingJob.getStatus());

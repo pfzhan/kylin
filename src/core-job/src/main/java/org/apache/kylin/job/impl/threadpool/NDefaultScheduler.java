@@ -111,6 +111,30 @@ public class NDefaultScheduler implements Scheduler<AbstractExecutable>, Connect
         }
     }
 
+    private boolean checkSuicide(String jobId) {
+        val executableManager = NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+        if (executableManager.getJob(jobId).getStatus().isFinalState()) {
+            return false;
+        }
+        return executableManager.getJob(jobId).checkSuicide();
+    }
+
+    private boolean discardSuicidalJob(String jobId) {
+        try {
+            return UnitOfWork.doInTransactionWithRetry(() -> {
+                if (checkSuicide(jobId)) {
+                    NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project).discardJob(jobId);
+                    return true;
+                }
+                return false;
+            }, project);
+        } catch (Exception e) {
+            logger.warn("[UNEXPECTED_THINGS_HAPPENED] project " + project + " job " + jobId
+                    + " should be suicidal but discard failed", e);
+        }
+        return false;
+    }
+
     private class FetcherRunner implements Runnable {
 
         @Override
@@ -128,6 +152,10 @@ public class NDefaultScheduler implements Scheduler<AbstractExecutable>, Connect
                 int nSucceed = 0;
                 int nSuicidal = 0;
                 for (final String id : executableManager.getJobs()) {
+                    if (discardSuicidalJob(id)) {
+                        nDiscarded++;
+                        continue;
+                    }
                     if (runningJobs.containsKey(id)) {
                         // this is very important to prevent from same job being scheduled at same time.
                         // e.g. when a job is restarted, the old job may still be running (even if we tried to interrupt it)

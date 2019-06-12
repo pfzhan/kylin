@@ -82,7 +82,11 @@ public class DefaultChainedExecutableOnModel extends DefaultChainedExecutable {
 
     @Override
     public boolean checkSuicide() {
-        return !checkAnyTargetSegmentExists() || checkCuttingInJobByModel() || !checkAnyLayoutExists();
+        try {
+            return !checkAnyTargetSegmentExists() || checkCuttingInJobByModel() || !checkAnyLayoutExists();
+        } catch (Exception e) {
+            return true;
+        }
     }
 
     private boolean checkAnyLayoutExists() {

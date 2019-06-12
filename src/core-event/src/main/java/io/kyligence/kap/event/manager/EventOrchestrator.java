@@ -73,6 +73,8 @@ import io.kyligence.kap.event.model.EventContext;
 import io.kyligence.kap.event.model.JobRelatedEvent;
 import io.kyligence.kap.event.model.PostAddSegmentEvent;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
+import io.kyligence.kap.metadata.model.MaintainModelType;
+import io.kyligence.kap.metadata.project.NProjectManager;
 import lombok.val;
 
 /**
@@ -157,10 +159,16 @@ public class EventOrchestrator {
                 eventDao.deleteEventsByModel(modelId);
                 val dfManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
                 val df = dfManager.getDataflow(modelId);
-                dfManager.updateDataflow(df.getId(), copyForWrite -> {
-                    copyForWrite.setStatus(RealizationStatusEnum.BROKEN);
-                    copyForWrite.setEventError(true);
-                });
+                if (NProjectManager.getInstance(KylinConfig.getInstanceFromEnv()).getProject(project)
+                        .getMaintainModelType() == MaintainModelType.MANUAL_MAINTAIN) {
+                    dfManager.updateDataflow(df.getId(), copyForWrite -> {
+                        copyForWrite.setStatus(RealizationStatusEnum.BROKEN);
+                        copyForWrite.setEventError(true);
+                    });
+                } else {
+                    dfManager.dropDataflow(df.getId());
+                }
+
                 return null;
             }, project);
         }

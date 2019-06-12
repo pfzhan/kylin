@@ -23,7 +23,10 @@
  */
 package io.kyligence.kap.event.handle;
 
+import io.kyligence.kap.metadata.model.MaintainModelType;
+import io.kyligence.kap.metadata.project.NProjectManager;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 import org.junit.After;
 import org.junit.Assert;
@@ -56,6 +59,12 @@ public class ErrorEventHandlerTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testEventError() throws InterruptedException {
+
+        val projectManager = NProjectManager.getInstance(getTestConfig());
+        ProjectInstance projectInstance = projectManager.getProject(DEFAULT_PROJECT);
+        ProjectInstance projectInstanceUpdate = projectManager.copyForWrite(projectInstance);
+        projectInstanceUpdate.setMaintainModelType(MaintainModelType.MANUAL_MAINTAIN);
+        projectManager.updateProject(projectInstanceUpdate);
 
         val dfManager = NDataflowManager.getInstance(getTestConfig(), DEFAULT_PROJECT);
         val eventManager = EventManager.getInstance(getTestConfig(), DEFAULT_PROJECT);
