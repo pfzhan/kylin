@@ -11,7 +11,6 @@
             style="width: 100%">
             <el-table-column
               show-overflow-tooltip
-              sortable
               prop="name"
               :label="$t('kylinLang.common.userOrGroup')"
               width="180"

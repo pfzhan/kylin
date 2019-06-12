@@ -37,7 +37,7 @@
 
     <el-table :data="usersList" class="user-table" border>
       <!-- 表：username列 -->
-      <el-table-column sortable :label="$t('userName')" prop="username" :width="220">
+      <el-table-column :label="$t('userName')" prop="username" :width="220">
         <template slot-scope="scope">
           <i class="el-icon-ksd-table_admin ksd-fs-14" style="cursor: default;"></i>
           <span>{{scope.row.username}}</span>

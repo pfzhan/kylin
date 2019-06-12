@@ -19,7 +19,6 @@
         border>
         <el-table-column
           :label="$t('kylinLang.common.name')"
-          sortable
           show-overflow-tooltip
           prop="first">
           <template slot-scope="scope">
@@ -30,8 +29,7 @@
         <el-table-column
           :label="$t('usersCount')"
           prop="second"
-          show-overflow-tooltip
-          sortable>
+          show-overflow-tooltip>
           <template slot-scope="scope">
             {{scope.row.second && scope.row.second.length || 0}}
           </template>

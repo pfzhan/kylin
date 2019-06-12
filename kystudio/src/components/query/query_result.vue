@@ -60,9 +60,7 @@
 		    <el-table-column v-for="(value, index) in tableMeta" :key="index"
 		      :prop="''+index"
           :min-width="52+15*(value.label&&value.label.length || 0)"
-		      :label="value.label"
-          sortable
-          >
+		      :label="value.label">
 		    </el-table-column>
 		  </el-table>
 

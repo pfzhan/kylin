@@ -16,15 +16,15 @@
       style="width: 100%">
       <el-table-column type="selection" align="center" width="44"></el-table-column>
       <el-table-column :label="$t('kylinLang.query.sqlContent_th')" prop="sql_pattern" show-overflow-tooltip></el-table-column>
-      <el-table-column :label="$t('kylinLang.query.lastModefied')" prop="last_query_time" sortable width="218">
+      <el-table-column :label="$t('kylinLang.query.lastModefied')" prop="last_query_time" sortable="custom" width="218">
         <template slot-scope="props">
           {{transToGmtTime(props.row.last_query_time)}}
         </template>
       </el-table-column>
       <el-table-column :label="$t('kylinLang.query.original')" prop="channel" width="98">
       </el-table-column>
-      <el-table-column :label="$t('kylinLang.query.frequency')" align="right" prop="total_count" sortable width="115" v-if="tab =='accelerated'"></el-table-column>
-      <el-table-column :label="$t('kylinLang.query.avgDuration')" align="right" prop="average_duration" sortable width="155">
+      <el-table-column :label="$t('kylinLang.query.frequency')" align="right" prop="total_count" sortable="custom" width="115" v-if="tab =='accelerated'"></el-table-column>
+      <el-table-column :label="$t('kylinLang.query.avgDuration')" align="right" prop="average_duration" sortable="custom" width="155">
         <template slot-scope="props">
           <span v-if="props.row.average_duration < 1000"> &lt; 1s</span>
           <span v-else>{{props.row.average_duration / 1000 | fixed(2)}}s</span>

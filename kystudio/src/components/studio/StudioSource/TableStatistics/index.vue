@@ -23,13 +23,11 @@
       </el-table-column>
       <el-table-column
         prop="name"
-        sortable
         align="left"
         :label="$t('kylinLang.dataSource.columnName')">
       </el-table-column>
       <el-table-column
         prop="cardinality"
-        sortable
         align="right"
         header-align="right"
         min-width="120px"

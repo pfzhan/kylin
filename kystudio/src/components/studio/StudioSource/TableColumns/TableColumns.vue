@@ -13,7 +13,7 @@
         </el-input>
       </div>
     </div>
-    <el-table class="columns-body" :data="currentColumns" border>
+    <el-table class="columns-body" :data="currentColumns" @sort-change="onSortChange" border>
       <el-table-column
         type="index"
         label="ID"
@@ -22,19 +22,17 @@
       </el-table-column>
       <el-table-column
         prop="name"
-        sortable
         min-width="300"
         :label="$t('kylinLang.dataSource.columnName')">
       </el-table-column>
       <el-table-column
         prop="datatype"
-        sortable
         width="120"
         :label="$t('kylinLang.dataSource.dataType')">
       </el-table-column>
       <el-table-column
         prop="cardinality"
-        sortable
+        sortable="custom"
         align="right"
         header-align="right"
         min-width="105"
@@ -42,7 +40,6 @@
       </el-table-column>
       <el-table-column
         prop="min_value"
-        sortable
         align="right"
         header-align="right"
         min-width="105"
@@ -50,7 +47,6 @@
       </el-table-column>
       <el-table-column
         prop="max_value"
-        sortable
         align="right"
         header-align="right"
         min-width="105"
@@ -58,7 +54,6 @@
       </el-table-column>
       <el-table-column
         prop="comment"
-        sortable
         :label="$t('kylinLang.dataSource.comment')">
         <template slot-scope="scope">
           <span :title="scope.row.comment">{{scope.row.comment}}</span>
@@ -109,12 +104,20 @@ export default class TableColumns extends Vue {
     const { pageOffset, pageSize } = this.pagination
     return this.columns.slice(pageOffset * pageSize, pageOffset * pageSize + pageSize)
   }
-  getCardinality (columnName) {
-    return this.table.cardinality[columnName]
-  }
   handleCurrentChange (pageOffset, pageSize) {
     this.pagination.pageOffset = pageOffset
     this.pagination.pageSize = pageSize
+  }
+  onSortChange ({ column, prop, order }) {
+    if (order === 'ascending') {
+      this.table.columns.sort((a, b) => {
+        return a[prop] - b[prop]
+      })
+    } else {
+      this.table.columns.sort((a, b) => {
+        return b[prop] - a[prop]
+      })
+    }
   }
 }
 </script>

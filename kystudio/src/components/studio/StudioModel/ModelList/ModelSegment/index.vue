@@ -49,13 +49,13 @@
         </el-table-column>
         <el-table-column prop="status" :label="$t('kylinLang.common.status')" width="114">
         </el-table-column>
-        <el-table-column :label="$t('storageSize')" width="145" align="right" prop="storage" sortable>
+        <el-table-column :label="$t('storageSize')" width="145" align="right" prop="storage" sortable="custom">
           <template slot-scope="scope">{{scope.row.bytes_size | dataSize}}</template>
         </el-table-column>
-        <el-table-column :label="$t('kylinLang.common.startTime')" width="208" prop="start_time" sortable>
+        <el-table-column :label="$t('kylinLang.common.startTime')" width="208" prop="start_time" sortable="custom">
           <template slot-scope="scope">{{scope.row.startTime | toServerGMTDate}}</template>
         </el-table-column>
-        <el-table-column :label="$t('kylinLang.common.endTime')" width="208" prop="end_time" sortable>
+        <el-table-column :label="$t('kylinLang.common.endTime')" width="208" prop="end_time" sortable="custom">
           <template slot-scope="scope">{{scope.row.endTime | toServerGMTDate}}</template>
         </el-table-column>
         <el-table-column class-name="ky-hover-icon" :label="$t('kylinLang.common.action')" width="83">

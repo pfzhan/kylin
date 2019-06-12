@@ -60,7 +60,7 @@
       <el-table-column :renderHeader="renderColumn" prop="job_name" width="144"></el-table-column>
       <el-table-column
         :label="$t('TargetSubject')"
-        sortable
+        sortable="custom"
         min-width="140"
         show-overflow-tooltip
         prop="target_subject">
@@ -86,14 +86,14 @@
         :label="$t('startTime')"
         show-overflow-tooltip
         prop="create_time"
-        sortable>
+        sortable="custom">
         <template slot-scope="scope">
           {{transToGmtTime(scope.row.create_time)}}
         </template>
       </el-table-column>
       <el-table-column
         width="105"
-        sortable
+        sortable="custom"
         prop="duration"
         :label="$t('Duration')">
         <template slot-scope="scope">

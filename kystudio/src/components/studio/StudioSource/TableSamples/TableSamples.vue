@@ -16,7 +16,6 @@
       </div>
       <el-table class="columns-body" :data="columns" border>
         <el-table-column
-          sortable
           align="left"
           v-for="(headerText, index) in headers"
           :key="headerText"
