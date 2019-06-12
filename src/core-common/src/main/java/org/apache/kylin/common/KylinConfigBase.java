@@ -1236,7 +1236,7 @@ abstract public class KylinConfigBase implements Serializable {
     }
 
     public boolean isPushdownQueryCacheEnabled() {
-        return Boolean.parseBoolean(this.getOptional("kylin.query.pushdown.cache-enabled", "false"));
+        return Boolean.parseBoolean(this.getOptional("kylin.query.pushdown.cache-enabled", "true"));
     }
 
     public String getJdbcUrl() {
