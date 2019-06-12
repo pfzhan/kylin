@@ -23,30 +23,37 @@
  */
 package io.kyligence.kap.engine.spark.source;
 
+import com.google.common.collect.Lists;
 import java.io.Serializable;
 import java.net.URI;
 import java.util.List;
-
 import org.apache.spark.sql.SparderEnv;
 import org.apache.spark.sql.catalyst.TableIdentifier;
 import org.apache.spark.sql.catalyst.catalog.CatalogTable;
+import org.apache.spark.sql.catalyst.catalog.CatalogTableType;
 import org.apache.spark.sql.catalyst.catalog.SessionCatalog;
-
-import com.google.common.collect.Lists;
-
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import scala.Option;
 
 public class NSparkTableMetaExplorer implements Serializable {
 
+    private static final Logger logger = LoggerFactory.getLogger(NSparkTableMetaExplorer.class);
+
     public NSparkTableMeta getSparkTableMeta(String database, String tableName) {
         SessionCatalog catalog = SparderEnv.getSparkSession().sessionState().catalog();
-        try {
-            CatalogTable tableMetadata = catalog
-                    .getTempViewOrPermanentTableMetadata(TableIdentifier.apply(tableName, Option.apply(database.isEmpty()?null:database)));
-            return getnSparkTableMeta(tableName, tableMetadata);
-        } catch (Throwable e) {
-            throw new RuntimeException("Error for parser Spark table metadata.", e);
+        TableIdentifier tableIdentifier = TableIdentifier.apply(tableName, Option.apply(database.isEmpty() ? null : database));
+        CatalogTable tableMetadata = catalog
+                .getTempViewOrPermanentTableMetadata(tableIdentifier);
+        if (CatalogTableType.VIEW().equals(tableMetadata.tableType())) {
+            try {
+                SparderEnv.getSparkSession().table(tableIdentifier).queryExecution().analyzed();
+            } catch (Throwable e) {
+                logger.error("Error for parser view: " + tableName, e);
+                throw new RuntimeException("Error for parser view: " + tableName + ", " + e.getMessage()+ "(There are mabey syntactic differences between HIVE and SparkSQL)", e);
+            }
         }
+        return getnSparkTableMeta(tableName, tableMetadata);
     }
 
     private NSparkTableMeta getnSparkTableMeta(String tableName, CatalogTable tableMetadata) {

@@ -118,7 +118,6 @@ import io.kyligence.kap.rest.response.TableDescResponse;
 import io.kyligence.kap.rest.response.TableNameResponse;
 import io.kyligence.kap.rest.response.TablesAndColumnsResponse;
 import io.kyligence.kap.rest.transaction.Transaction;
-import io.netty.util.internal.ThrowableUtil;
 import lombok.val;
 import lombok.var;
 
@@ -257,8 +256,8 @@ public class TableService extends BasicService {
         if (!errorList.isEmpty()) {
             String errorMessage = StringUtils.join(errorList.stream()
                     .map(error -> "table : " + error.getFirst().getKey() + "." + error.getFirst().getValue()
-                            + " load Metadata error for exception:"
-                            + ThrowableUtil.stackTraceToString((Throwable) error.getSecond()))
+                            + " load Metadata error: "
+                            + ((Throwable) error.getSecond()).getMessage())
                     .collect(Collectors.toList()), "\n");
             throw new RuntimeException(errorMessage);
         }

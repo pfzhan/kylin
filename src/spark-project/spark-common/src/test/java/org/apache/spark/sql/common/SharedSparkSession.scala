@@ -26,8 +26,9 @@ import java.io.File
 import org.apache.commons.io.FileUtils
 import org.apache.spark.api.java.JavaSparkContext
 import org.apache.spark.internal.Logging
-import org.apache.spark.sql.{DataFrame, SQLContext, SQLImplicits, SparkSession}
+import org.apache.spark.sql.{DataFrame, SparkSession, SQLContext, SQLImplicits}
 import org.apache.spark.{SparkConf, SparkContext}
+import org.apache.spark.sql.catalyst.analysis.NoSuchTableException
 import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach, Suite}
 
 trait SharedSparkSession
@@ -98,5 +99,39 @@ trait SharedSparkSession
   def sql(sql: String): DataFrame = {
     logInfo(s"Executor sql: $sql")
     spark.sql(sql)
+  }
+  /**
+    * Drops global temporary view `viewNames` after calling `f`.
+    */
+  protected def withGlobalTempView(viewNames: String*)(f: => Unit): Unit = {
+    try f finally {
+      // If the test failed part way, we don't want to mask the failure by failing to remove
+      // global temp views that never got created.
+      try viewNames.foreach(spark.catalog.dropGlobalTempView) catch {
+        case _: NoSuchTableException =>
+      }
+    }
+  }
+
+  /**
+    * Drops table `tableName` after calling `f`.
+    */
+  protected def withTable(tableNames: String*)(f: => Unit): Unit = {
+    try f finally {
+      tableNames.foreach { name =>
+        spark.sql(s"DROP TABLE IF EXISTS $name")
+      }
+    }
+  }
+
+  /**
+    * Drops view `viewName` after calling `f`.
+    */
+  protected def withView(viewNames: String*)(f: => Unit): Unit = {
+    try f finally {
+      viewNames.foreach { name =>
+        spark.sql(s"DROP VIEW IF EXISTS $name")
+      }
+    }
   }
 }
