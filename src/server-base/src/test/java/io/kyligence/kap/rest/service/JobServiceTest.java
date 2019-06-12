@@ -43,11 +43,13 @@
 package io.kyligence.kap.rest.service;
 
 import java.io.IOException;
+import java.lang.reflect.Field;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.dao.ExecutableOutputPO;
@@ -129,7 +131,8 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
     public void testListJobs() throws Exception {
         NExecutableManager executableManager = Mockito.mock(NExecutableManager.class);
         Mockito.when(jobService.getExecutableManager("default")).thenReturn(executableManager);
-        Mockito.when(executableManager.getAllExecutables(Mockito.anyLong(), Mockito.anyLong())).thenReturn(mockJobs());
+        val mockJobs = mockJobs();
+        Mockito.when(executableManager.getAllExecutables(Mockito.anyLong(), Mockito.anyLong())).thenReturn(mockJobs);
 
         // test size
         List<String> jobNames = Lists.newArrayList();
@@ -171,6 +174,11 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
         jobFilter.setReverse(true);
         List<ExecutableResponse> jobs7 = jobService.listJobs(jobFilter);
         Assert.assertTrue(jobs7.size() == 3 && jobs7.get(0).getJobName().equals("sparkjob3"));
+
+        jobFilter.setSortBy("create_time");
+        jobFilter.setReverse(true);
+        List<ExecutableResponse> jobs8 = jobService.listJobs(jobFilter);
+        Assert.assertTrue(jobs8.size() == 3 && jobs7.get(0).getJobName().equals("sparkjob3"));
 
         jobFilter.setReverse(false);
         jobFilter.setStatus("");
@@ -309,20 +317,29 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
 
     }
 
-    private List<AbstractExecutable> mockJobs() {
+    private List<AbstractExecutable> mockJobs() throws NoSuchFieldException, IllegalAccessException {
+        NExecutableManager manager = Mockito.spy(NExecutableManager.getInstance(getTestConfig(), getProject()));
+        Field filed = getTestConfig().getClass().getDeclaredField("managersByPrjCache");
+        filed.setAccessible(true);
+        ConcurrentHashMap<Class, ConcurrentHashMap<String, Object>> managersByPrjCache = (ConcurrentHashMap<Class, ConcurrentHashMap<String, Object>>) filed
+                .get(getTestConfig());
+        managersByPrjCache.get(NExecutableManager.class).put(getProject(), manager);
         List<AbstractExecutable> jobs = new ArrayList<>();
         SucceedChainedTestExecutable job1 = new SucceedChainedTestExecutable();
-        job1.setProject("default");
+        job1.setProject(getProject());
         job1.setName("sparkjob1");
         job1.setTargetSubject("model1");
+        Mockito.when(manager.getCreateTime(job1.getId())).thenReturn(1560324101000L);
         SucceedChainedTestExecutable job2 = new SucceedChainedTestExecutable();
-        job2.setProject("default");
+        job2.setProject(getProject());
         job2.setName("sparkjob2");
         job2.setTargetSubject("model2");
+        Mockito.when(manager.getCreateTime(job2.getId())).thenReturn(1560324102000L);
         SucceedChainedTestExecutable job3 = new SucceedChainedTestExecutable();
-        job3.setProject("default");
+        job3.setProject(getProject());
         job3.setName("sparkjob3");
         job3.setTargetSubject("model3");
+        Mockito.when(manager.getCreateTime(job3.getId())).thenReturn(1560324103000L);
         jobs.add(job1);
         jobs.add(job2);
         jobs.add(job3);

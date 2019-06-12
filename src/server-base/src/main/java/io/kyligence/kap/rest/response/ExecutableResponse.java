@@ -67,8 +67,6 @@ public class ExecutableResponse implements Comparable<ExecutableResponse> {
     private String targetModel;
     @JsonProperty("target_segments")
     private List<String> targetSegments;
-    @JsonProperty("target_model_alias")
-    private String targetModelAlias;
     @JsonProperty("step_ratio")
     private float stepRatio;
     @JsonProperty("create_time")
@@ -90,8 +88,7 @@ public class ExecutableResponse implements Comparable<ExecutableResponse> {
         executableResponse.setLastModified(abstractExecutable.getLastModified());
         executableResponse.setTargetModel(abstractExecutable.getTargetSubject());
         executableResponse.setTargetSegments(abstractExecutable.getTargetSegments());
-        executableResponse.setTargetModelAlias(abstractExecutable.getTargetModelAlias());
-        executableResponse.setTargetSubject(abstractExecutable.getTargetModelAlias());
+        executableResponse.setTargetSubject(abstractExecutable.getTargetSubjectAlias());
         executableResponse.setWaitTime(abstractExecutable.getWaitTime());
         return executableResponse;
     }

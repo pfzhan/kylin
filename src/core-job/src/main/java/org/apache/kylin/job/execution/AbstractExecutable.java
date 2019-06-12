@@ -135,6 +135,10 @@ public abstract class AbstractExecutable implements Executable {
         return (dataModelDesc == null || dataModelDesc.isBroken()) ? null : dataModelDesc.getAlias();
     }
 
+    public String getTargetSubjectAlias() {
+        return getTargetModelAlias();
+    }
+
     public AbstractExecutable() {
         setId(UUID.randomUUID().toString());
     }

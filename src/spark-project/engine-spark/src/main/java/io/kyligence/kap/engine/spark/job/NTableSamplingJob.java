@@ -88,6 +88,11 @@ public class NTableSamplingJob extends DefaultChainedExecutable {
         return job;
     }
 
+    @Override
+    public String getTargetSubjectAlias() {
+        return getTableIdentity();
+    }
+
     NResourceDetectStep getResourceDetectStep() {
         return getTask(NResourceDetectStep.class);
     }

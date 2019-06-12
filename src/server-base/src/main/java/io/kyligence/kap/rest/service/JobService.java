@@ -87,9 +87,8 @@ public class JobService extends BasicService {
     private static final Logger logger = LoggerFactory.getLogger(JobService.class);
     private static final String JOB_NAME = "job_name";
     private static final String CREATE_TIME = "create_time";
-    private static final String TARGET_SUBJECT_ALIAS = "target_subject_alias";
+    private static final String TARGET_SUBJECT = "target_subject";
     private static final String JOB_STATUS = "job_status";
-    private static final String EXEC_START_TIME = "exec_start_time";
     private static final String DURATION = "duration";
 
     public List<ExecutableResponse> listJobs(final JobFilter jobFilter) {
@@ -113,7 +112,7 @@ public class JobService extends BasicService {
                     if (StringUtils.isEmpty(subject)) {
                         return true;
                     }
-                    return StringUtils.containsIgnoreCase(abstractExecutable.getTargetModelAlias(), subject);
+                    return StringUtils.containsIgnoreCase(abstractExecutable.getTargetSubjectAlias(), subject);
                 }).and(abstractExecutable -> {
                     List<String> jobNames = jobFilter.getJobNames();
                     if (CollectionUtils.isEmpty(jobNames)) {
@@ -126,7 +125,7 @@ public class JobService extends BasicService {
                         return true;
                     }
                     //if filter on uuid, then it must be accurate
-                    return abstractExecutable.getTargetSubject().equals(jobFilter.getSubject());
+                    return abstractExecutable.getTargetSubject().equals(jobFilter.getSubject().trim());
                 })
 
         ).map(abstractExecutable -> {
@@ -148,12 +147,12 @@ public class JobService extends BasicService {
         switch (sortBy) {
         case JOB_NAME:
             return o1.getJobName().compareTo(o2.getJobName());
-        case TARGET_SUBJECT_ALIAS:
-            return o1.getTargetModelAlias().compareTo(o2.getTargetModelAlias());
+        case TARGET_SUBJECT:
+            return o1.getTargetSubject().compareTo(o2.getTargetSubject());
         case JOB_STATUS:
             return o1.getStatus().compareTo(o2.getStatus());
-        case EXEC_START_TIME:
-            return o1.getExecStartTime() < o2.getExecStartTime() ? -1 : 1;
+        case CREATE_TIME:
+            return o1.getCreateTime() < o2.getCreateTime() ? -1 : 1;
         case DURATION:
             return o1.getDuration() < o2.getDuration() ? -1 : 1;
         default:
