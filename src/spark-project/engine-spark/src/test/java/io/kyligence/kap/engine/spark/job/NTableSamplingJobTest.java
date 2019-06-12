@@ -125,6 +125,7 @@ public class NTableSamplingJobTest extends NLocalWithSparkSessionTest {
         Assert.assertEquals(12, tableExt.getAllColumnStats().size());
         Assert.assertEquals(10, tableExt.getSampleRows().size());
         Assert.assertEquals(10_000, tableExt.getTotalRows());
+        Assert.assertEquals(samplingJob.getCreateTime(), tableExt.getCreateTime());
     }
 
     @Test

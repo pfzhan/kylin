@@ -133,6 +133,11 @@ public class NTableSamplingJob extends DefaultChainedExecutable {
 
                 localTblMgr.mergeAndUpdateTableExt(localTblMgr.getOrCreateTableExt(getTableIdentity()),
                         remoteTblMgr.getOrCreateTableExt(getTableIdentity()));
+                // use create time of sampling job to update the create time of TableExtDesc
+                final TableDesc tableDesc = localTblMgr.getTableDesc(getTableIdentity());
+                final TableExtDesc tableExt = localTblMgr.getTableExtIfExists(tableDesc);
+                tableExt.setCreateTime(this.getCreateTime());
+                localTblMgr.saveTableExt(tableExt);
             }
         }
 

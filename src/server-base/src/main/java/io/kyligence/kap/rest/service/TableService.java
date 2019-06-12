@@ -315,6 +315,7 @@ public class TableService extends BasicService {
             }
         }
         tableDescResponse.setDescExd(tableExtDesc.getDataSourceProps());
+        tableDescResponse.setCreateTime(tableExtDesc.getCreateTime());
         return tableDescResponse;
     }
 
