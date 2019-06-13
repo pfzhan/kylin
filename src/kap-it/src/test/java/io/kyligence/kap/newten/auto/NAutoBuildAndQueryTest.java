@@ -97,7 +97,7 @@ public class NAutoBuildAndQueryTest extends NAutoTestBase {
                 /* CompareLevel = SAME_ROWCOUNT */
 
                 /* CompareLevel = NONE */
-                new TestScenario(CompareLevel.SAME_ORDER,  "sql_window",
+                new TestScenario(CompareLevel.SAME_ORDER, "sql_window",
                         Sets.newHashSet("query08.sql", "query09.sql", "query12.sql")),
                 new TestScenario(CompareLevel.NONE, "sql_window")//
         );
@@ -129,6 +129,22 @@ public class NAutoBuildAndQueryTest extends NAutoTestBase {
         overwriteSystemProp("kylin.query.pushdown.runner-class-name",
                 "io.kyligence.kap.query.pushdown.PushDownRunnerSparkImpl");
         new TestScenario(CompareLevel.SAME, "sql_powerbi").execute();
+    }
+
+    @Test
+    public void testEscapeParentheses() throws Exception {
+        overwriteSystemProp("kylin.query.transformers",
+                "io.kyligence.kap.query.util.CognosParenthesesEscapeTransformer, "
+                        + "io.kyligence.kap.query.util.ConvertToComputedColumn, "
+                        + "org.apache.kylin.query.util.DefaultQueryTransformer, "
+                        + "io.kyligence.kap.query.util.EscapeTransformer, "
+                        + "org.apache.kylin.query.util.KeywordDefaultDirtyHack");
+        overwriteSystemProp("kylin.query.pushdown.converter-class-names",
+                "io.kyligence.kap.query.util.CognosParenthesesEscapeTransformer,"
+                        + "io.kyligence.kap.query.util.RestoreFromComputedColumn,"
+                        + "io.kyligence.kap.query.util.SparkSQLFunctionConverter,"
+                        + "org.apache.kylin.source.adhocquery.HivePushDownConverter");
+        new TestScenario(CompareLevel.SAME, "sql_parentheses_escape").execute();
     }
 
     @Test

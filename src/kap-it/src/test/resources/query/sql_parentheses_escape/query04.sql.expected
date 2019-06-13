@@ -1,0 +1,4 @@
+
+select count(*) COU FrOm   test_kylin_fact left join EDW.TEST_CAL_DT on TEST_CAL_DT.CAL_DT = test_kylin_fact.CAL_DT
+
+left join TEST_ACCOUNT on SELLER_ID = ACCOUNT_ID

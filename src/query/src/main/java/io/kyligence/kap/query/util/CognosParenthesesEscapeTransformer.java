@@ -24,36 +24,29 @@
 
 package io.kyligence.kap.query.util;
 
-import java.util.Collections;
+import java.util.ArrayDeque;
+import java.util.Deque;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Stack;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.apache.kylin.common.KapConfig;
+import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.query.util.QueryUtil;
+import org.apache.kylin.source.adhocquery.IPushDownConverter;
 
 import com.google.common.collect.Lists;
 
 import io.kyligence.kap.common.obf.IKeep;
 
-public class CognosParenthesesEscape implements QueryUtil.IQueryTransformer, IKeep {
-    private static final Pattern FROM_PATTERN = Pattern.compile("\\s+from\\s+(\\s*\\(\\s*)+(?!\\s*select\\s)",
+public class CognosParenthesesEscapeTransformer implements QueryUtil.IQueryTransformer, IPushDownConverter, IKeep {
+    private static final Pattern FROM_PATTERN = Pattern.compile("\\bfrom(\\s*\\()+(?!\\s*select\\s)",
             Pattern.CASE_INSENSITIVE);
 
     @Override
     public String transform(String sql, String project, String defaultSchema) {
-        if (!KapConfig.getInstanceFromEnv().isCognosParenthesesEscapeEnabled()) {
-            return sql;
-        }
-
-        if (sql == null || sql.isEmpty()) {
-            return sql;
-        }
-
-        return completion(sql);
+        return StringUtils.isEmpty(sql) ? sql : completion(sql);
     }
 
     String completion(String sql) {
@@ -64,9 +57,9 @@ public class CognosParenthesesEscape implements QueryUtil.IQueryTransformer, IKe
         }
 
         List<Integer> parentheses = Lists.newArrayList();
-        StringBuilder result = new StringBuilder(sql);
-
+        String originSql = sql;
         Matcher m;
+        int offset = 0; // use this to locate the index of matched parentheses in the pattern in original sql
         while (true) {
             m = FROM_PATTERN.matcher(sql);
             if (!m.find()) {
@@ -76,30 +69,40 @@ public class CognosParenthesesEscape implements QueryUtil.IQueryTransformer, IKe
             int i = m.end() - 1;
             while (i > m.start()) {
                 if (sql.charAt(i) == '(') {
-                    parentheses.add(i);
+                    parentheses.add(i + offset);
                 }
                 i--;
             }
 
             if (m.end() < sql.length()) {
+                offset += m.end();
                 sql = sql.substring(m.end());
             } else {
                 break;
             }
         }
 
-        Collections.sort(parentheses);
-        for (int i = 0; i < parentheses.size(); i++) {
-            result.deleteCharAt(parentheses.get(i) - i);
-            result.deleteCharAt(parenthesesPairs.get(parentheses.get(i)) - i - 1);
+        List<Integer> indices = Lists.newArrayList();
+        parentheses.forEach(index -> {
+            indices.add(index);
+            indices.add(parenthesesPairs.get(index));
+        });
+        indices.sort(Integer::compareTo);
+
+        StringBuilder builder = new StringBuilder();
+        int lastIndex = 0;
+        for (Integer i : indices) {
+            builder.append(originSql, lastIndex, i);
+            lastIndex = i + 1;
         }
-        return result.toString();
+        builder.append(originSql, lastIndex, originSql.length());
+        return builder.toString();
     }
 
     private Map<Integer, Integer> findParenthesesPairs(String sql) {
         Map<Integer, Integer> result = new HashMap<>();
         if (sql.length() > 1) {
-            Stack<Integer> lStack = new Stack<>();
+            Deque<Integer> lStack = new ArrayDeque<>();
             boolean inStrVal = false;
             for (int i = 0; i < sql.length(); i++) {
                 switch (sql.charAt(i)) {
@@ -109,7 +112,7 @@ public class CognosParenthesesEscape implements QueryUtil.IQueryTransformer, IKe
                     }
                     break;
                 case ')':
-                    if (!inStrVal && !lStack.empty()) {
+                    if (!inStrVal && !lStack.isEmpty()) {
                         result.put(lStack.pop(), i);
                     }
                     break;
@@ -122,5 +125,10 @@ public class CognosParenthesesEscape implements QueryUtil.IQueryTransformer, IKe
             }
         }
         return result;
+    }
+
+    @Override
+    public String convert(String originSql, String project, String defaultSchema, boolean isPrepare) {
+        return transform(originSql, project, defaultSchema);
     }
 }

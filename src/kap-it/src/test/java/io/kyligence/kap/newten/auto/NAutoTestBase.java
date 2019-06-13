@@ -33,7 +33,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.common.persistence.metadata.MetadataStore;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.io.FileUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -59,6 +58,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
+import io.kyligence.kap.common.persistence.metadata.MetadataStore;
 import io.kyligence.kap.engine.spark.ExecutableUtils;
 import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
 import io.kyligence.kap.engine.spark.job.NSparkCubingJob;
@@ -196,7 +196,9 @@ public class NAutoTestBase extends NLocalWithSparkSessionTest {
     private void assertOrPrintCmpResult(Map<String, CompareEntity> compareMap) {
         // print details
         compareMap.forEach((key, value) -> {
-            final String sqlPattern = QueryPatternUtil.normalizeSQLPattern(key);
+            final String sqlPattern = value.getFilePath().contains("/sql_parentheses_escape/") //
+                    ? key // sql in fold of sql_parentheses_escape cannot normalize sqlPattern directly
+                    : QueryPatternUtil.normalizeSQLPattern(key);
             log.debug("** start comparing the SQL: {} **", value.getFilePath());
             if (!excludedSqlPatterns.contains(sqlPattern) && !value.ignoredCompareLevel()) {
                 Assert.assertEquals(value.getAccelerateLayouts(), value.getQueryUsedLayouts());

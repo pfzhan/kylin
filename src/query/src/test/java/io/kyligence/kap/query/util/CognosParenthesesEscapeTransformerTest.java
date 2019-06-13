@@ -30,14 +30,15 @@ import java.nio.charset.Charset;
 import java.util.Collection;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.kylin.query.util.QueryUtil;
 import org.junit.Assert;
 import org.junit.Test;
 
-public class CognosParenthesesEscapeTest {
+public class CognosParenthesesEscapeTransformerTest {
 
     @Test
     public void basicTest() {
-        CognosParenthesesEscape escape = new CognosParenthesesEscape();
+        CognosParenthesesEscapeTransformer escape = new CognosParenthesesEscapeTransformer();
         String data = " from ((a left outer join b on a.x1 = b.y1 and a.x2=b.y2 and   a.x3= b.y3) inner join c as cc on a.x1=cc.z1 ) join d dd on a.x1=d.w1 and a.x2 =d.w2 ";
         String expected = " from a left outer join b on a.x1 = b.y1 and a.x2=b.y2 and   a.x3= b.y3 inner join c as cc on a.x1=cc.z1  join d dd on a.x1=d.w1 and a.x2 =d.w2 ";
         String transformed = escape.completion(data);
@@ -46,7 +47,7 @@ public class CognosParenthesesEscapeTest {
 
     @Test
     public void advanced1Test() throws IOException {
-        CognosParenthesesEscape escape = new CognosParenthesesEscape();
+        CognosParenthesesEscapeTransformer escape = new CognosParenthesesEscapeTransformer();
         String query = FileUtils.readFileToString(new File("src/test/resources/query/cognos/query01.sql"),
                 Charset.defaultCharset());
         String expected = FileUtils.readFileToString(new File("src/test/resources/query/cognos/query01.sql.expected"),
@@ -58,7 +59,7 @@ public class CognosParenthesesEscapeTest {
 
     @Test
     public void advanced2Test() throws IOException {
-        CognosParenthesesEscape escape = new CognosParenthesesEscape();
+        CognosParenthesesEscapeTransformer escape = new CognosParenthesesEscapeTransformer();
         String query = FileUtils.readFileToString(new File("src/test/resources/query/cognos/query02.sql"),
                 Charset.defaultCharset());
         String expected = FileUtils.readFileToString(new File("src/test/resources/query/cognos/query02.sql.expected"),
@@ -70,7 +71,7 @@ public class CognosParenthesesEscapeTest {
 
     @Test
     public void advanced3Test() throws IOException {
-        CognosParenthesesEscape escape = new CognosParenthesesEscape();
+        CognosParenthesesEscapeTransformer escape = new CognosParenthesesEscapeTransformer();
         String query = FileUtils.readFileToString(new File("src/test/resources/query/cognos/query03.sql"),
                 Charset.defaultCharset());
         String expected = FileUtils.readFileToString(new File("src/test/resources/query/cognos/query03.sql.expected"),
@@ -82,14 +83,64 @@ public class CognosParenthesesEscapeTest {
 
     @Test
     public void proguardTest() throws IOException {
-        CognosParenthesesEscape escape = new CognosParenthesesEscape();
+        CognosParenthesesEscapeTransformer escape = new CognosParenthesesEscapeTransformer();
         Collection<File> files = FileUtils.listFiles(new File("../../src/kap-it/src/test/resources/query"),
-                new String[] {"sql"}, true);
+                new String[] { "sql" }, true);
         for (File f : files) {
-            System.out.println("checking " + f.getAbsolutePath());
+            System.out.println("checking " + f.getCanonicalPath());
+            if (f.getCanonicalPath().contains("sql_parentheses_escape")) {
+                continue;
+            }
             String query = FileUtils.readFileToString(f, Charset.defaultCharset());
             String transformed = escape.completion(query);
             Assert.assertEquals(query, transformed);
         }
+    }
+
+    @Test
+    public void advanced4Test() throws Exception {
+        CognosParenthesesEscapeTransformer converter = new CognosParenthesesEscapeTransformer();
+
+        String originalSql = FileUtils.readFileToString(
+                new File("../../src/kap-it/src/test/resources/query/sql_parentheses_escape/query04.sql"),
+                Charset.defaultCharset());
+        String expectedSql = FileUtils.readFileToString(
+                new File("../../src/kap-it/src/test/resources/query/sql_parentheses_escape/query04.sql.expected"),
+                Charset.defaultCharset());
+        originalSql = QueryUtil.removeCommentInSql(originalSql);
+        String transformed = converter.completion(originalSql);
+        Assert.assertEquals(expectedSql, transformed);
+
+        String transformedSecond = converter.completion(transformed);
+        Assert.assertEquals(expectedSql, transformedSecond);
+    }
+
+    @Test
+    public void advanced5Test() throws Exception {
+        CognosParenthesesEscapeTransformer convertTransformer = new CognosParenthesesEscapeTransformer();
+        String sql2 = FileUtils.readFileToString(
+                new File("../../src/kap-it/src/test/resources/query/sql_parentheses_escape/query05.sql"),
+                Charset.defaultCharset());
+        String expectedSql2 = FileUtils.readFileToString(
+                new File("../../src/kap-it/src/test/resources/query/sql_parentheses_escape/query05.sql.expected"),
+                Charset.defaultCharset());
+        sql2 = QueryUtil.removeCommentInSql(sql2);
+        String transform2 = convertTransformer.completion(sql2);
+        Assert.assertEquals(expectedSql2, transform2);
+    }
+
+    @Test
+    public void advanced6Test() throws Exception {
+        CognosParenthesesEscapeTransformer convertTransformer = new CognosParenthesesEscapeTransformer();
+
+        String originalSql = FileUtils.readFileToString(
+                new File("../../src/kap-it/src/test/resources/query/sql_parentheses_escape/query06.sql"),
+                Charset.defaultCharset());
+        String expectedSql = FileUtils.readFileToString(
+                new File("../../src/kap-it/src/test/resources/query/sql_parentheses_escape/query06.sql.expected"),
+                Charset.defaultCharset());
+        originalSql = QueryUtil.removeCommentInSql(originalSql);
+        String transformed = convertTransformer.completion(originalSql);
+        Assert.assertEquals(expectedSql, transformed);
     }
 }

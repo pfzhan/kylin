@@ -426,10 +426,6 @@ public class KapConfig {
         return Boolean.valueOf(config.getOptional("kap.query.jdbc-escape-enabled", "true"));
     }
 
-    public boolean isCognosParenthesesEscapeEnabled() {
-        return Boolean.valueOf(config.getOptional("kap.query.cognos-parentheses-escape", "false"));
-    }
-
     public int getListenerBusBusyThreshold() {
         return Integer.valueOf(config.getOptional("kap.query.engine.spark-listenerbus-busy-threshold", "5000"));
     }
@@ -581,7 +577,8 @@ public class KapConfig {
      * Newten
      */
     public String getCuboidSpanningTree() {
-        return config.getOptional("kap.cube.cuboid-spanning-tree", "io.kyligence.kap.metadata.cube.cuboid.NForestSpanningTree");
+        return config.getOptional("kap.cube.cuboid-spanning-tree",
+                "io.kyligence.kap.metadata.cube.cuboid.NForestSpanningTree");
     }
 
     public float getSampleDatasetSizeRatio() {
