@@ -252,7 +252,7 @@
             </template>
           </el-table-column>
         </el-table>
-        <kap-pager :totalSize="waitingJob.jobsSize" v-if="waitingJob.jobsSize>10" v-on:handleCurrentChange='waitingJobsCurrentChange' ref="waitingJobPager" class="ksd-mtb-10 ksd-center" ></kap-pager>
+        <kap-pager :totalSize="waitingJob.jobsSize" v-on:handleCurrentChange='waitingJobsCurrentChange' ref="waitingJobPager" class="ksd-mtb-10 ksd-center" ></kap-pager>
       </div>
       <span slot="footer" class="dialog-footer">
         <el-button type="primary" plain size="medium" @click="waitingJobListVisibel = false">{{$t('kylinLang.common.ok')}}</el-button>
@@ -490,6 +490,9 @@ export default class JobsList extends Vue {
     this.waittingJobsFilter.project = this.currentSelectedProject
     this.waittingJobsFilter.model = uuid
     this.waitingJob.modelName = this.waittingJobModels.data[uuid].model_alias
+    this.getWaittingJobs()
+  }
+  getWaittingJobs () {
     this.laodWaittingJobsByModel(this.waittingJobsFilter).then((res) => {
       handleSuccess(res, (data) => {
         this.waitingJob.jobsList = data.data
@@ -847,7 +850,7 @@ export default class JobsList extends Vue {
   waitingJobsCurrentChange (size, count) {
     this.waittingJobsFilter.offset = size
     this.waittingJobsFilter.limit = count
-    this.getWaittingJobModels()
+    this.getWaittingJobs()
   }
   closeIt () {
     if (this.showStep) {
