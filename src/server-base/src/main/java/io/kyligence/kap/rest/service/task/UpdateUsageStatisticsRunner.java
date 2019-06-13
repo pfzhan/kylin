@@ -43,7 +43,6 @@ import io.kyligence.kap.metadata.favorite.QueryHistoryTimeOffsetManager;
 import io.kyligence.kap.metadata.query.QueryHistory;
 import lombok.Data;
 import lombok.val;
-import lombok.var;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -73,12 +72,12 @@ public class UpdateUsageStatisticsRunner implements Runnable {
                 .getInstance(KylinConfig.getInstanceFromEnv(), project).get();
         long startTime = timeOffset.getFavoriteQueryUpdateTimeOffset();
         long endTime = startTime + queryHistoryAccessor.getFetchQueryHistoryGapTime();
-        long backwardShiftTime = KapConfig.getInstanceFromEnv().getInfluxDBFlushDuration() * 2;
+        long backwardShiftTime = KapConfig.getInstanceFromEnv().getInfluxDBFlushDuration() * 2L;
 
         long maxTime = queryHistoryAccessor.getSystemTime() - backwardShiftTime;
 
         while (endTime <= maxTime) {
-            var queryHistories = queryHistoryAccessor.getQueryHistoryDao().getQueryHistoriesByTime(startTime, endTime);
+            val queryHistories = queryHistoryAccessor.getQueryHistoryDao().getQueryHistoriesByTime(startTime, endTime);
 
             if (CollectionUtils.isEmpty(queryHistories)) {
                 endTime = queryHistoryAccessor.skipEmptyIntervals(endTime, maxTime);
@@ -91,7 +90,7 @@ public class UpdateUsageStatisticsRunner implements Runnable {
         }
 
         if (startTime < maxTime) {
-            var queryHistories = queryHistoryAccessor.getQueryHistoryDao().getQueryHistoriesByTime(startTime, maxTime);
+            val queryHistories = queryHistoryAccessor.getQueryHistoryDao().getQueryHistoriesByTime(startTime, maxTime);
             updateRelatedMetadata(queryHistories, maxTime);
         }
     }
