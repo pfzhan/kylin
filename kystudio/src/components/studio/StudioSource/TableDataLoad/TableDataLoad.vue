@@ -147,7 +147,6 @@ export default class TableDataLoad extends Vue {
     this.$message({ type: 'success', message: this.$t('loadSuccessTip') })
   }
   async handleChangePartition (value) {
-    this.table.partitionColumn = value
     try {
       const { modelCount, modelSize } = await this._getAffectedModelCountAndSize()
       if (modelCount || modelSize) {
@@ -155,6 +154,7 @@ export default class TableDataLoad extends Vue {
       }
       await this._changePartitionKey(value)
       if (value) {
+        this.table.partitionColumn = value
         await this.handleLoadData(true)
       }
       this.$emit('fresh-tables')

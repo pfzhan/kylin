@@ -179,33 +179,39 @@ Vue.directive('search-highlight', function (el, binding) {
     })
   })
 })
-var list = null
+
+var keyboardList = null
 var scrollInstance = null
 let st = null // 定时器全局变量
+let selectIndex = -1
 Vue.directive('keyborad-select', {
   unbind: function () {
-    $(document).unbind('keyup')
+    $(document).unbind('keydown')
     clearInterval(st)
   },
   componentUpdated: function (el, binding) {
     var searchScope = binding.value.scope
-    list = $(el).find(searchScope)
+    keyboardList = $(el).find(searchScope)
     scrollInstance = Scrollbar.get(el)
+    selectIndex = -1
   },
   inserted: function (el, binding) {
-    var index = -1
+    selectIndex = -1
+    var searchScope = binding.value.scope
+    scrollInstance = Scrollbar.get(el)
+    keyboardList = $(el).find(searchScope)
     selectList()
     let handleKey = (event) => {
       if (event.keyCode === 40 || event.keyCode === 39) {
-        index = index + 1 >= list.length ? 0 : index + 1
-        selectList(index)
+        selectIndex = selectIndex + 1 >= keyboardList.length ? 0 : selectIndex + 1
+        selectList(selectIndex)
       }
       if (event.keyCode === 37 || event.keyCode === 38) {
-        index = index - 1 < 0 ? list.length - 1 : index - 1
-        selectList(index)
+        selectIndex = selectIndex - 1 < 0 ? keyboardList.length - 1 : selectIndex - 1
+        selectList(selectIndex)
       }
-      if (event.keyCode === 13 && index >= 0) {
-        list.eq(index).click()
+      if (event.keyCode === 13 && selectIndex >= 0) {
+        keyboardList.eq(selectIndex).click()
       }
     }
     $(document).keydown((event) => {
@@ -219,20 +225,19 @@ Vue.directive('keyborad-select', {
       clearInterval(st)
     })
     function selectList (i) {
-      if (!list) {
+      if (!keyboardList) {
         return
       }
-      list.removeClass('active')
+      keyboardList.removeClass('active')
       if (i >= 0) {
         if (scrollInstance) {
           scrollInstance.scrollTo(100, 32 * i + 5, 400)
         }
-        list.eq(i).addClass('active')
+        keyboardList.eq(i).addClass('active')
       }
     }
   }
 })
-
 Vue.directive('drag', {
   inserted: function (el, binding, vnode) {
     var oDiv = el

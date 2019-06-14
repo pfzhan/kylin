@@ -332,7 +332,7 @@
             </el-alert>
             <el-input @input="searchModelEverything"  clearable class="search-input" :placeholder="$t('searchInputPlaceHolder')" v-model="modelGlobalSearch" prefix-icon="el-icon-search"></el-input>
             <transition name="bounceleft">
-              <div v-scroll.reactive class="search-result-box" v-keyborad-select="{scope:'.search-content', searchKey: modelGlobalSearch}" v-show="modelGlobalSearch && showSearchResult" v-search-highlight="{scope:'.search-name', hightlight: modelGlobalSearch}">
+              <div v-scroll.reactive class="search-result-box" v-keyborad-select="{scope:'.search-content', searchKey: modelGlobalSearch}" v-if="modelGlobalSearch && showSearchResult" v-search-highlight="{scope:'.search-name', hightlight: modelGlobalSearch}">
                 <div>
                 <div class="search-group" v-for="(k,v) in searchResultData" :key="v">
                   <ul>
@@ -804,7 +804,10 @@ export default class ModelEdit extends Vue {
     if (this.panelAppear[i].display) {
       this.activePanel(i)
     }
-    this.modelSearchActionSuccessTip = ''
+    if (i === 'search') {
+      this.modelSearchActionSuccessTip = ''
+      this.modelGlobalSearch = ''
+    }
   }
   activePanel (i) {
     var curPanel = this.panelAppear[i]
@@ -1375,7 +1378,7 @@ export default class ModelEdit extends Vue {
   }
   @Watch('modelGlobalSearch')
   watchSearch (v) {
-    this.showSearchResult = true
+    this.showSearchResult = v
   }
   get panelStyle () {
     return (k) => {
@@ -1955,6 +1958,7 @@ export default class ModelEdit extends Vue {
       }
     }
     .panel-search-box {
+      cursor: default;
       .search-action-list {
         font-size:12px;
         margin-top:140px;

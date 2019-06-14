@@ -539,7 +539,6 @@ export default class ModelList extends Vue {
   .row-action {
     position: absolute;
     right:0;
-    width:300px;
     text-align: right;
     z-index: 2;
     cursor: pointer;
