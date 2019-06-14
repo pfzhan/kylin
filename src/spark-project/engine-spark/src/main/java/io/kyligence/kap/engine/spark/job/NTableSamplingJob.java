@@ -93,6 +93,12 @@ public class NTableSamplingJob extends DefaultChainedExecutable {
         return getTableIdentity();
     }
 
+    @Override
+    public boolean checkSuicide() {
+        return null == NTableMetadataManager.getInstance(KylinConfig.getInstanceFromEnv(), getProject())
+                .getTableDesc(getTableIdentity());
+    }
+
     NResourceDetectStep getResourceDetectStep() {
         return getTask(NResourceDetectStep.class);
     }
@@ -123,6 +129,7 @@ public class NTableSamplingJob extends DefaultChainedExecutable {
                 return result;
             }
             UnitOfWork.doInTransactionWithRetry(() -> {
+                checkNeedQuit(true);
                 mergeRemoteMetaAfterSampling();
                 return null;
             }, getProject());
@@ -131,13 +138,11 @@ public class NTableSamplingJob extends DefaultChainedExecutable {
 
         private void mergeRemoteMetaAfterSampling() {
             try (val remoteStore = ExecutableUtils.getRemoteStore(KylinConfig.getInstanceFromEnv(), this)) {
-                final NTableMetadataManager remoteTblMgr = NTableMetadataManager.getInstance(remoteStore.getConfig(),
-                        getProject());
-                final NTableMetadataManager localTblMgr = NTableMetadataManager
-                        .getInstance(KylinConfig.getInstanceFromEnv(), getProject());
-
+                val remoteTblMgr = NTableMetadataManager.getInstance(remoteStore.getConfig(), getProject());
+                val localTblMgr = NTableMetadataManager.getInstance(KylinConfig.getInstanceFromEnv(), getProject());
                 localTblMgr.mergeAndUpdateTableExt(localTblMgr.getOrCreateTableExt(getTableIdentity()),
                         remoteTblMgr.getOrCreateTableExt(getTableIdentity()));
+
                 // use create time of sampling job to update the create time of TableExtDesc
                 final TableDesc tableDesc = localTblMgr.getTableDesc(getTableIdentity());
                 final TableExtDesc tableExt = localTblMgr.getTableExtIfExists(tableDesc);

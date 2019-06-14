@@ -296,7 +296,7 @@ public abstract class AbstractExecutable implements Executable {
         }
     }
 
-    private void checkNeedQuit(boolean applyChange) throws JobStoppedException {
+    protected void checkNeedQuit(boolean applyChange) throws JobStoppedException {
         // voluntarily
         suicideIfNecessary(applyChange);
         // non voluntarily
