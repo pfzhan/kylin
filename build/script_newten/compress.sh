@@ -34,6 +34,9 @@ mkdir -p ${package_name}/tool/ssb
 cp -rf ../src/examples/sample_cube/data ${package_name}/tool/ssb/
 cp -rf ../src/examples/sample_cube/create_sample_ssb_tables.sql ${package_name}/tool/ssb/
 
+# add tpch benchmark tool
+cp -rf tpch-benchmark ${package_name}/tool/
+
 # Add min/prod profiles
 mkdir ${package_name}/conf
 
