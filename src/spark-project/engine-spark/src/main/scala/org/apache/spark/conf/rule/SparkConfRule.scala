@@ -29,11 +29,25 @@ import org.apache.spark.internal.Logging
 import org.apache.spark.util.Utils
 
 sealed trait SparkConfRule extends Logging {
-  def apply(helper: SparkConfHelper): Unit
+  def apply(helper: SparkConfHelper): Unit = {
+    try {
+      doApply(helper)
+    } catch {
+      case throwable: Throwable =>
+        logWarning(s"Apply rule error for rule ${this.getClass.getName}", throwable)
+        fallback(helper: SparkConfHelper)
+    }
+  }
+
+  def doApply(helper: SparkConfHelper): Unit
+
+  def fallback(helper: SparkConfHelper): Unit = {
+
+  }
 }
 
 class ExecutorMemoryRule extends SparkConfRule {
-  override def apply(helper: SparkConfHelper): Unit = {
+  override def doApply(helper: SparkConfHelper): Unit = {
     val sourceGB = Utils.byteStringAsGb(helper.getOption(SparkConfHelper.SOURCE_TABLE_SIZE))
     val memory = if (sourceGB >= 100) {
       "16GB"
@@ -49,7 +63,7 @@ class ExecutorMemoryRule extends SparkConfRule {
 }
 
 class ExecutorCoreRule extends SparkConfRule {
-  override def apply(helper: SparkConfHelper): Unit = {
+  override def doApply(helper: SparkConfHelper): Unit = {
     val sourceGB = Utils.byteStringAsGb(helper.getOption(SparkConfHelper.SOURCE_TABLE_SIZE))
     val cores = if (sourceGB >= 1) {
       "5"
@@ -61,7 +75,7 @@ class ExecutorCoreRule extends SparkConfRule {
 }
 
 class ExecutorOverheadRule extends SparkConfRule {
-  override def apply(helper: SparkConfHelper): Unit = {
+  override def doApply(helper: SparkConfHelper): Unit = {
     val sourceGB = Utils.byteStringAsGb(helper.getOption(SparkConfHelper.SOURCE_TABLE_SIZE))
     val overhead = if (sourceGB >= 100) {
       "4GB"
@@ -77,7 +91,7 @@ class ExecutorOverheadRule extends SparkConfRule {
 }
 
 class ExecutorInstancesRule extends SparkConfRule {
-  override def apply(helper: SparkConfHelper): Unit = {
+  override def doApply(helper: SparkConfHelper): Unit = {
     val queue = helper.getConf(SparkConfHelper.DEFAULT_QUEUE)
     val layoutSize = helper.getOption(SparkConfHelper.LAYOUT_SIZE)
     val baseExecutorInstances = KylinConfig.getInstanceFromEnv.getSparkEngineBaseExuctorInstances
@@ -90,8 +104,11 @@ class ExecutorInstancesRule extends SparkConfRule {
     val instance = Math.min(calculateExecutorInsByLayoutSize.toLong, queueAvailableInstance)
     logInfo(s"Maximum instance that the current queue can set: $queueAvailableInstance")
     val executorInstance = Math.max(instance.toLong, baseExecutorInstances.toLong).toString
-
     helper.setConf(SparkConfHelper.EXECUTOR_INSTANCES, executorInstance)
+  }
+
+  override def fallback(helper: SparkConfHelper): Unit = {
+    helper.setConf(SparkConfHelper.EXECUTOR_INSTANCES, KylinConfig.getInstanceFromEnv.getSparkEngineBaseExuctorInstances.toString)
   }
 
   def calculateExecutorInstanceSizeByLayoutSize(layoutSize: Int): Int = {
@@ -122,7 +139,7 @@ class ExecutorInstancesRule extends SparkConfRule {
 }
 
 class ShufflePartitionsRule extends SparkConfRule {
-  override def apply(helper: SparkConfHelper): Unit = {
+  override def doApply(helper: SparkConfHelper): Unit = {
     val sourceTableSize = helper.getOption(SparkConfHelper.SOURCE_TABLE_SIZE)
     val partitions = Math.max(1, Utils.byteStringAsMb(sourceTableSize) / 32).toString
     helper.setConf(SparkConfHelper.SHUFFLE_PARTITIONS, partitions)

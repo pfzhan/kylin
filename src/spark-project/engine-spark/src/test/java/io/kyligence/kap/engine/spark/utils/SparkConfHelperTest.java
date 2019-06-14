@@ -24,11 +24,14 @@
 
 package io.kyligence.kap.engine.spark.utils;
 
-import static org.mockito.Mockito.mock;
-
+import com.google.common.collect.Lists;
+import io.kyligence.kap.cluster.AvailableResource;
+import io.kyligence.kap.cluster.ResourceInfo;
+import io.kyligence.kap.cluster.YarnInfoFetcher;
+import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.engine.spark.job.KylinBuildEnv;
 import java.util.ArrayList;
 import java.util.List;
-
 import org.apache.kylin.common.KylinConfig;
 import org.apache.spark.SparkConf;
 import org.apache.spark.conf.rule.ExecutorInstancesRule;
@@ -38,13 +41,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 
-import com.google.common.collect.Lists;
-
-import io.kyligence.kap.cluster.AvailableResource;
-import io.kyligence.kap.cluster.ResourceInfo;
-import io.kyligence.kap.cluster.YarnInfoFetcher;
-import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
-import io.kyligence.kap.engine.spark.job.KylinBuildEnv;
+import static org.mockito.Mockito.mock;
 
 public class SparkConfHelperTest extends NLocalFileMetadataTestCase {
     private YarnInfoFetcher fetcher = mock(YarnInfoFetcher.class);
@@ -138,6 +135,9 @@ public class SparkConfHelperTest extends NLocalFileMetadataTestCase {
         compareConf(compareTuples, sparkConf);
     }
 
+
+
+
     private void compareConf(List<CompareTuple> tuples, SparkConf conf) {
         for (CompareTuple tuple : tuples) {
             Assert.assertEquals(tuple.expect_Value, conf.get(tuple.key));
@@ -227,6 +227,15 @@ public class SparkConfHelperTest extends NLocalFileMetadataTestCase {
         helper.setConf(SparkConfHelper.EXECUTOR_OVERHEAD, "512MB");
 
         System.clearProperty("kylin.engine.base-executor-instance");
+    }
+
+    @Test
+    public void testExecutorInstancesRuleWhenError() {
+        SparkConfHelper helper = new SparkConfHelper();
+        Mockito.when(fetcher.fetchQueueAvailableResource("default"))
+                .thenReturn(new AvailableResource(new ResourceInfo(-60480, -100), new ResourceInfo(-60480, -100)));
+        helper.generateSparkConf();
+        Assert.assertEquals("5", helper.getConf(SparkConfHelper.EXECUTOR_INSTANCES));
     }
 
 }
