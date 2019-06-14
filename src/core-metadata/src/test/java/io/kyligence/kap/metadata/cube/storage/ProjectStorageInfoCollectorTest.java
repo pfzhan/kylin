@@ -29,6 +29,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.TreeMap;
 
+import org.apache.kylin.common.util.TimeUtil;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -96,7 +97,7 @@ public class ProjectStorageInfoCollectorTest extends NLocalFileMetadataTestCase 
         val cube = indePlanManager.getIndexPlan(MODEL_ID);
 
         long currentTime = System.currentTimeMillis();
-        long currentDate = currentTime - currentTime % (24 * 60 * 60 * 1000L);
+        long currentDate = TimeUtil.getDayStart(currentTime);
         long dayInMillis = 24 * 60 * 60 * 1000L;
 
         dataflowManager.updateDataflow(MODEL_ID, copyForWrite -> {

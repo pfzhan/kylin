@@ -29,7 +29,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.TreeMap;
 
-import io.kyligence.kap.metadata.cube.model.FrequencyMap;
+import org.apache.kylin.common.util.TimeUtil;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -39,6 +39,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.metadata.cube.model.FrequencyMap;
 import lombok.val;
 
 public class FavoriteQueryManagerTest extends NLocalFileMetadataTestCase {
@@ -239,7 +240,7 @@ public class FavoriteQueryManagerTest extends NLocalFileMetadataTestCase {
         val favoriteQueryManager = FavoriteQueryManager.getInstance(getTestConfig(), PROJECT);
         long currentTime = System.currentTimeMillis();
         long dayInMillis = 24 * 60 * 60 * 1000L;
-        long currentDate = currentTime - currentTime % dayInMillis;
+        long currentDate = TimeUtil.getDayStart(currentTime);
 
         // a low frequency favorite query, related layout 1 will be considered as garbage
         val fq1 = new FavoriteQuery("sql1");
