@@ -330,7 +330,7 @@ export default class StudioSource extends Vue {
   .table-details {
     padding-bottom: 20px;
     .el-tabs__content {
-      height: calc(~'100vh - 196px');
+      min-height: calc(~'100vh - 196px');
     }
   }
   .table-update-at {

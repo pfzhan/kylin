@@ -1,7 +1,7 @@
 <template>
   <div class="table-sample">
-    <div v-if="headers.length">
-      <div class="columns-header">
+    <div>
+      <div class="columns-header" v-if="headers.length || (!headers.length && filterText)">
         <div class="left font-medium">
           {{$t('version')}}{{table.create_time | toGMTDate}}
         </div>
@@ -14,7 +14,7 @@
           </el-input>
         </div>
       </div>
-      <el-table class="columns-body" :data="columns" border>
+      <el-table class="columns-body" :data="columns" border v-if="headers.length">
         <el-table-column
           align="left"
           v-for="(headerText, index) in headers"
@@ -25,7 +25,7 @@
         </el-table-column>
       </el-table>
     </div>
-    <kap-empty-data v-else>
+    <kap-empty-data v-if="!headers.length">
     </kap-empty-data>
   </div>
 </template>

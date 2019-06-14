@@ -877,7 +877,7 @@ export default class FavoriteQuery extends Vue {
   fileItemChange (file, fileList) {
     let totalSize = 0
     this.uploadItems = fileList.filter((file) => {
-      return file.name.indexOf('.txt') !== -1 || file.name.indexOf('.sql') !== -1
+      return file.name.toLowerCase().indexOf('.txt') !== -1 || file.name.toLowerCase().indexOf('.sql') !== -1
     }).map((item) => {
       totalSize = totalSize + item.size
       return item.raw ? item.raw : item
@@ -888,7 +888,7 @@ export default class FavoriteQuery extends Vue {
     } else {
       this.fileSizeError = false
     }
-    if (!(file.name.indexOf('.txt') !== -1 || file.name.indexOf('.sql') !== -1)) {
+    if (!(file.name.toLowerCase().indexOf('.txt') !== -1 || file.name.toLowerCase().indexOf('.sql') !== -1)) {
       this.$message.error(this.$t('fileTypeError'))
     }
   }
