@@ -1590,4 +1590,7 @@ abstract public class KylinConfigBase implements Serializable {
         return Long.valueOf(this.getOptional("kylin.ratelimit.permits-per-minutes", "10"));
     }
 
+    public boolean getSmartModeBrokenModelDeleteEnabled() {
+        return Boolean.parseBoolean(getOptional("kylin.metadata.broken-model-deleted-on-smart-mode", "false"));
+    }
 }

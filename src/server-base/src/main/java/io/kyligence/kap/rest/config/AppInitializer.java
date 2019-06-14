@@ -23,6 +23,7 @@
  */
 package io.kyligence.kap.rest.config;
 
+import io.kyligence.kap.rest.config.initialize.ModelBrokenListener;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -69,6 +70,15 @@ public class AppInitializer {
 
         if (isLeader) {
             taskScheduler.scheduleWithFixedDelay(new BootstrapCommand(), 10000);
+
+            EventListenerRegistry.getInstance(kylinConfig).register(new FavoriteQueryUpdateListener(), "fq");
+            event.getApplicationContext().publishEvent(new AppInitializedEvent(event.getApplicationContext()));
+
+            // register scheduler listener
+            SchedulerEventBusFactory.getInstance(kylinConfig).register(new EventSchedulerListener());
+            SchedulerEventBusFactory.getInstance(kylinConfig).register(new FavoriteSchedulerListener());
+            SchedulerEventBusFactory.getInstance(kylinConfig).register(new JobSchedulerListener());
+            SchedulerEventBusFactory.getInstance(kylinConfig).register(new ModelBrokenListener());
         } else {
             val auditLogStore = new JdbcAuditLogStore(kylinConfig);
             kylinConfig.setProperty("kylin.metadata.url", kylinConfig.getMetadataUrlPrefix() + "@hdfs");
@@ -83,14 +93,6 @@ public class AppInitializer {
         } catch (Exception ex) {
             log.error("InfluxDB writer has not initialized");
         }
-
-        EventListenerRegistry.getInstance(kylinConfig).register(new FavoriteQueryUpdateListener(), "fq");
-        event.getApplicationContext().publishEvent(new AppInitializedEvent(event.getApplicationContext()));
-
-        // register scheduler listener
-        SchedulerEventBusFactory.getInstance(kylinConfig).register(new EventSchedulerListener());
-        SchedulerEventBusFactory.getInstance(kylinConfig).register(new FavoriteSchedulerListener());
-        SchedulerEventBusFactory.getInstance(kylinConfig).register(new JobSchedulerListener());
     }
 
 }

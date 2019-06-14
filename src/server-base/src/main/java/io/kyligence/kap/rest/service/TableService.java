@@ -91,7 +91,6 @@ import io.kyligence.kap.metadata.cube.model.NDataLoadingRangeManager;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
-import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import io.kyligence.kap.metadata.cube.model.NRuleBasedIndex;
 import io.kyligence.kap.metadata.cube.model.NSegmentConfigHelper;
@@ -972,17 +971,6 @@ public class TableService extends BasicService {
         val changeTypeAffectedModel = context.getChangeTypeAffectedModels().getOrDefault(model.getId(),
                 new ReloadTableAffectedModelContext());
         if (removeAffectedModel.isBroken()) {
-            if (project.getMaintainModelType() == MaintainModelType.AUTO_MAINTAIN) {
-                modelManager.dropModel(model);
-                dataflowManager.dropDataflow(model.getId());
-                indexManager.dropIndexPlan(model.getId());
-            } else {
-                val df = dataflowManager.getDataflow(model.getId());
-                val dfUpdate = new NDataflowUpdate(df.getId());
-                dfUpdate.setToRemoveSegs(df.getSegments().toArray(new NDataSegment[0]));
-                dfUpdate.setStatus(RealizationStatusEnum.BROKEN);
-                dataflowManager.updateDataflow(dfUpdate);
-            }
             return;
         }
 

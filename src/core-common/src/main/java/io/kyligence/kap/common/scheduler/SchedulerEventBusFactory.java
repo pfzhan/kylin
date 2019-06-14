@@ -66,4 +66,8 @@ public class SchedulerEventBusFactory {
         if (rateLimiter.tryAcquire())
             eventBus.post(event);
     }
+
+    public void post(Object event) {
+        eventBus.post(event);
+    }
 }

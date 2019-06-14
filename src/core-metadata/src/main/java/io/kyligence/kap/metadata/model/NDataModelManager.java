@@ -31,7 +31,6 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.persistence.Serializer;
@@ -45,6 +44,9 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
 
+import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
+import io.kyligence.kap.common.scheduler.SchedulerEventBusFactory;
+import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import lombok.val;
 
@@ -86,11 +88,17 @@ public class NDataModelManager {
         this.crud = new CachedCrudAssist<NDataModel>(getStore(), resourceRootPath, NDataModel.class) {
             @Override
             protected NDataModel initEntityAfterReload(NDataModel model, String resourceName) {
+
+                if (model.getBrokenReason() != NDataModel.BrokenReason.NULL) {
+                    throw new ModelBrokenException();
+                }
+
                 if (!model.isDraft()) {
                     model.init(config, getAllTablesMap(),
                             listAllValidCache().stream().filter(m -> !m.isBroken()).collect(Collectors.toList()),
                             project);
                 }
+                postModelRepairEvent(model);
                 return model;
             }
 
@@ -99,13 +107,38 @@ public class NDataModelManager {
                 NDataModel model = super.initBrokenEntity(entity, resourceName);
                 model.setProject(project);
                 if (entity != null) {
+                    entity.setProject(project);
                     model.setAlias(entity.getAlias());
+                    postModelBrokenEvent(entity);
                 }
                 return model;
             }
         };
     }
 
+    private void postModelBrokenEvent(NDataModel model) {
+        if (!model.isModelBroken()) {
+            if (UnitOfWork.isAlreadyInTransaction()) {
+                UnitOfWork.get().doAfterUnit(() -> SchedulerEventBusFactory
+                        .getInstance(KylinConfig.getInstanceFromEnv()).post(new NDataModel.ModelBrokenEvent(model)));
+            } else {
+                SchedulerEventBusFactory.getInstance(config).post(new NDataModel.ModelBrokenEvent(model));
+            }
+        }
+    }
+
+    private void postModelRepairEvent(NDataModel model) {
+        if (model.isModelBroken()) {
+            if (UnitOfWork.isAlreadyInTransaction()) {
+                UnitOfWork.get().doAfterUnit(
+                        () -> SchedulerEventBusFactory.getInstance(KylinConfig.getInstanceFromEnv())
+                                .post(new NDataModel.ModelRepairEvent(model)));
+            } else {
+                SchedulerEventBusFactory.getInstance(config).post(new NDataModel.ModelRepairEvent(model));
+            }
+
+        }
+    }
     public KylinConfig getConfig() {
         return config;
     }
@@ -200,6 +233,10 @@ public class NDataModelManager {
             throw new IllegalArgumentException("DataModelDesc '" + name + "' does not exist.");
         }
         return saveDataModelDesc(desc);
+    }
+
+    public NDataModel updateDataBrokenModelDesc(NDataModel desc) {
+        return crud.save(desc);
     }
 
     public void reloadAll() {

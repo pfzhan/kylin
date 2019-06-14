@@ -57,6 +57,8 @@ import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
+import lombok.AllArgsConstructor;
+import lombok.Setter;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.util.SqlBasicVisitor;
@@ -124,6 +126,20 @@ public class NDataModel extends RootPersistentEntity {
 
     public enum RealizationCapacity implements Serializable {
         SMALL, MEDIUM, LARGE
+    }
+
+    @Getter
+    @Setter
+    @AllArgsConstructor
+    public static class ModelBrokenEvent {
+        private NDataModel model;
+    }
+
+    @Getter
+    @Setter
+    @AllArgsConstructor
+    public static class ModelRepairEvent {
+        private NDataModel model;
     }
 
     private KylinConfig config;
@@ -221,6 +237,10 @@ public class NDataModel extends RootPersistentEntity {
     @JsonInclude(JsonInclude.Include.NON_DEFAULT)
     private BrokenReason brokenReason = BrokenReason.NULL;
 
+    @JsonProperty("model_broken")
+    @JsonInclude(JsonInclude.Include.NON_DEFAULT)
+    private boolean modelBroken = false;
+
     // computed fields below
     private String project;
 
@@ -261,7 +281,7 @@ public class NDataModel extends RootPersistentEntity {
     }
 
     public enum BrokenReason {
-        SCHEMA, NULL
+        SCHEMA, NULL, EVENT
     }
 
     @Data

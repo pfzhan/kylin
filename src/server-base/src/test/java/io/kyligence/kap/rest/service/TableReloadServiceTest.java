@@ -32,9 +32,12 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import io.kyligence.kap.common.scheduler.SchedulerEventBusFactory;
+import io.kyligence.kap.rest.config.initialize.ModelBrokenListener;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.RootPersistentEntity;
 import org.apache.kylin.common.util.JsonUtil;
@@ -78,6 +81,8 @@ import io.kyligence.kap.rest.request.ModelRequest;
 import lombok.val;
 import lombok.var;
 
+import static org.awaitility.Awaitility.await;
+
 public class TableReloadServiceTest extends ServiceTestBase {
 
     private static final String PROJECT = "default";
@@ -88,6 +93,8 @@ public class TableReloadServiceTest extends ServiceTestBase {
     @Autowired
     private ModelService modelService;
 
+    private final ModelBrokenListener modelBrokenListener = new ModelBrokenListener();
+
     @Before
     @Override
     public void setup() {
@@ -96,6 +103,7 @@ public class TableReloadServiceTest extends ServiceTestBase {
             setupPushdownEnv();
         } catch (Exception ignore) {
         }
+        SchedulerEventBusFactory.getInstance(getTestConfig()).register(modelBrokenListener);
         NProjectManager projectManager = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv());
         ProjectInstance projectInstance = projectManager.getProject(PROJECT);
         val overrideKylinProps = projectInstance.getOverrideKylinProps();
@@ -122,6 +130,7 @@ public class TableReloadServiceTest extends ServiceTestBase {
     @After
     public void cleanup() throws Exception {
         cleanPushdownEnv();
+        SchedulerEventBusFactory.getInstance(getTestConfig()).unRegister(modelBrokenListener);
         staticCleanupTestMetadata();
     }
 
@@ -166,13 +175,16 @@ public class TableReloadServiceTest extends ServiceTestBase {
     @Test
     public void testReload_BrokenModelInAutoProject() throws Exception {
         removeColumn("DEFAULT.TEST_KYLIN_FACT", "ORDER_ID");
-        tableService.innerReloadTable(PROJECT, "DEFAULT.TEST_KYLIN_FACT");
-        val modelManager = NDataModelManager.getInstance(getTestConfig(), PROJECT);
-        Assert.assertEquals(2, modelManager.listAllModels().size());
-        val indexManager = NIndexPlanManager.getInstance(getTestConfig(), PROJECT);
-        Assert.assertEquals(2, indexManager.listAllIndexPlans().size());
-        val dfManager = NDataflowManager.getInstance(getTestConfig(), PROJECT);
-        Assert.assertEquals(2, dfManager.listAllDataflows().size());
+        System.setProperty("kylin.metadata.broken-model-deleted-on-smart-mode", "true");
+        await().atMost(60000, TimeUnit.MILLISECONDS).untilAsserted(() -> {
+            tableService.innerReloadTable(PROJECT, "DEFAULT.TEST_KYLIN_FACT");
+            val modelManager = NDataModelManager.getInstance(getTestConfig(), PROJECT);
+            Assert.assertEquals(2, modelManager.listAllModels().size());
+            val indexManager = NIndexPlanManager.getInstance(getTestConfig(), PROJECT);
+            Assert.assertEquals(2, indexManager.listAllIndexPlans().size());
+            val dfManager = NDataflowManager.getInstance(getTestConfig(), PROJECT);
+            Assert.assertEquals(2, dfManager.listAllDataflows().size());
+        });
     }
 
     @Test
@@ -232,10 +244,13 @@ public class TableReloadServiceTest extends ServiceTestBase {
         Assert.assertEquals(197, brokenModel.getAllNamedColumns().size());
         Assert.assertEquals("ORDER_ID", brokenModel.getAllNamedColumns().get(13).getName());
         Assert.assertEquals(NDataModel.ColumnStatus.TOMB, brokenModel.getAllNamedColumns().get(13).getStatus());
-        val brokenDataflow = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), PROJECT)
-                .getDataflow(brokenModel.getId());
-        Assert.assertEquals(0, brokenDataflow.getSegments().size());
-        Assert.assertEquals(RealizationStatusEnum.BROKEN, brokenDataflow.getStatus());
+        await().atMost(60000, TimeUnit.MILLISECONDS).untilAsserted(() -> {
+            val brokenDataflow = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), PROJECT)
+                    .getDataflow(brokenModel.getId());
+            Assert.assertEquals(0, brokenDataflow.getSegments().size());
+            Assert.assertEquals(RealizationStatusEnum.BROKEN, brokenDataflow.getStatus());
+        });
+
         Assert.assertTrue(NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), PROJECT)
                 .getIndexPlan(brokenModel.getId()).isBroken());
 
@@ -290,10 +305,12 @@ public class TableReloadServiceTest extends ServiceTestBase {
         Assert.assertEquals("DEAL_YEAR", brokenModel.getAllNamedColumns().get(28).getName());
         Assert.assertEquals(NDataModel.ColumnStatus.TOMB, brokenModel.getAllNamedColumns().get(2).getStatus());
         Assert.assertEquals(NDataModel.ColumnStatus.TOMB, brokenModel.getAllNamedColumns().get(28).getStatus());
-        val brokenDataflow = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), PROJECT)
-                .getDataflow(brokenModel.getId());
-        Assert.assertEquals(0, brokenDataflow.getSegments().size());
-        Assert.assertEquals(RealizationStatusEnum.BROKEN, brokenDataflow.getStatus());
+        await().atMost(60000, TimeUnit.MILLISECONDS).untilAsserted(() -> {
+            val brokenDataflow = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), PROJECT)
+                    .getDataflow(brokenModel.getId());
+            Assert.assertEquals(0, brokenDataflow.getSegments().size());
+            Assert.assertEquals(RealizationStatusEnum.BROKEN, brokenDataflow.getStatus());
+        });
         Assert.assertTrue(NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), PROJECT)
                 .getIndexPlan(brokenModel.getId()).isBroken());
 
