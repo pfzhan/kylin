@@ -25,60 +25,58 @@
 package io.kyligence.kap.rest.service;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
-import org.apache.kylin.job.dao.ExecutablePO;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.NExecutableManager;
-import org.apache.kylin.metadata.model.TableDesc;
-import org.apache.kylin.rest.msg.Message;
-import org.apache.kylin.rest.msg.MsgPicker;
 import org.apache.kylin.rest.service.BasicService;
 import org.springframework.stereotype.Component;
 
-import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 
 import io.kyligence.kap.engine.spark.job.NTableSamplingJob;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.rest.transaction.Transaction;
+import lombok.val;
 
 @Component("tableSamplingService")
 public class TableSamplingService extends BasicService {
 
     @Transaction(project = 1)
     public void sampling(Set<String> tables, String project, int rows) {
-        final Message msg = MsgPicker.getMsg();
-
-        List<String> processingIdentity = Lists.newArrayList();
-        NTableMetadataManager tableMgr = NTableMetadataManager.getInstance(getConfig(), project);
         NExecutableManager execMgr = NExecutableManager.getInstance(getConfig(), project);
-        tables.forEach(table -> {
-            if (hasAnotherSamplingJob(project, table)) {
-                processingIdentity.add(table);
-            } else {
-                final TableDesc tableDesc = tableMgr.getTableDesc(table.toUpperCase());
-                ExecutablePO po = NExecutableManager
-                        .toPO(NTableSamplingJob.create(tableDesc, project, getUsername(), rows), project);
-                execMgr.addJob(po);
-            }
-        });
+        NTableMetadataManager tableMgr = NTableMetadataManager.getInstance(getConfig(), project);
 
-        if (!processingIdentity.isEmpty()) {
-            throw new IllegalStateException(String.format(msg.getFAILED_FOR_IN_SAMPLING(), processingIdentity));
-        }
+        val existingJobs = collectRunningSamplingJobs(tables, project);
+        tables.forEach(table -> {
+            // if existing a related job, discard it
+            if (existingJobs.containsKey(table)) {
+                execMgr.discardJob(existingJobs.get(table).getId());
+            }
+
+            val tableDesc = tableMgr.getTableDesc(table);
+            val samplingJob = NTableSamplingJob.create(tableDesc, project, getUsername(), rows);
+            execMgr.addJob(NExecutableManager.toPO(samplingJob, project));
+        });
     }
 
-    private boolean hasAnotherSamplingJob(String project, String tableIdentity) {
-        NExecutableManager execMgr = NExecutableManager.getInstance(getConfig(), project);
-        final List<AbstractExecutable> allExecutables = execMgr.getAllExecutables();
-        for (AbstractExecutable executable : allExecutables) {
-            if (executable instanceof NTableSamplingJob) {
-                NTableSamplingJob job = (NTableSamplingJob) executable;
-                if (job.getTableIdentity().equalsIgnoreCase(tableIdentity) && !job.getStatus().isFinalState()) {
-                    return true;
-                }
-            }
-        }
-        return false;
+    public boolean hasSamplingJob(String project, String table) {
+        return !collectRunningSamplingJobs(Sets.newHashSet(table), project).isEmpty();
+    }
+
+    private Map<String, AbstractExecutable> collectRunningSamplingJobs(Set<String> tables, String project) {
+        final List<AbstractExecutable> jobs = NExecutableManager.getInstance(getConfig(), project) //
+                .getAllExecutables().stream() //
+                .filter(executable -> executable instanceof NTableSamplingJob) //
+                .filter(job -> !job.getStatus().isFinalState()) //
+                .filter(job -> tables.contains(job.getTargetSubject())) //
+                .collect(Collectors.toList());
+
+        Map<String, AbstractExecutable> map = Maps.newHashMap();
+        jobs.forEach(job -> map.put(job.getTargetSubject(), job));
+        return map;
     }
 }

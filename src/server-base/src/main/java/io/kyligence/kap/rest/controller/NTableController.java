@@ -42,6 +42,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -380,6 +381,15 @@ public class NTableController extends NBasicController {
         tableSamplingService.sampling(Sets.newHashSet(request.getQualifiedTableName()), request.getProject(),
                 request.getRows());
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, null, "");
+    }
+
+    @GetMapping(value = "/pre_sampling_check", produces = { "application/vnd.apache.kylin-v2+json" })
+    @ResponseBody
+    public EnvelopeResponse hasSamplingJob(@RequestParam String project, @RequestParam String qualifiedTableName) {
+        checkProjectName(project);
+        checkSamplingTable(qualifiedTableName);
+        boolean hasSamplingJob = tableSamplingService.hasSamplingJob(project, qualifiedTableName);
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, hasSamplingJob, "");
     }
 
     private void checkSamplingRows(int rows) {

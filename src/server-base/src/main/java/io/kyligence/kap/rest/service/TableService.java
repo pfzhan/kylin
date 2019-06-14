@@ -437,8 +437,8 @@ public class TableService extends BasicService {
         val dataLoadingRange = dataLoadingRangeManager.getDataLoadingRange(table);
         String tableName = table.substring(table.lastIndexOf('.') + 1);
         String columnIdentity = tableName + "." + column;
-        if ((dataLoadingRange == null && StringUtils.isEmpty(column))
-                || (dataLoadingRange != null && StringUtils.equalsIgnoreCase(columnIdentity, dataLoadingRange.getColumnName()))) {
+        if ((dataLoadingRange == null && StringUtils.isEmpty(column)) || (dataLoadingRange != null
+                && StringUtils.equalsIgnoreCase(columnIdentity, dataLoadingRange.getColumnName()))) {
             logger.info("Partition column {} does not change", column);
             return;
         }
@@ -459,8 +459,8 @@ public class TableService extends BasicService {
         }
     }
 
-
-    private void handlePartitionColumnChanged(NDataLoadingRange dataLoadingRange, String columnIdentity, String column, String project, String table) {
+    private void handlePartitionColumnChanged(NDataLoadingRange dataLoadingRange, String columnIdentity, String column,
+            String project, String table) {
         val dataLoadingRangeManager = getDataLoadingRangeManager(project);
         val tableManager = getTableManager(project);
         val tableDesc = tableManager.getTableDesc(table);
@@ -495,6 +495,7 @@ public class TableService extends BasicService {
             }
         }
     }
+
     private void buildFullSegment(String model, String project) {
         val eventManager = getEventManager(project);
         val dataflowManager = getDataflowManager(project);
@@ -888,8 +889,7 @@ public class TableService extends BasicService {
         return result;
     }
 
-    public void reloadTable(String projectName, String tableIdentity, boolean needSample, int maxRows)
-            throws Exception {
+    public void reloadTable(String projectName, String tableIdentity, boolean needSample, int maxRows) {
         UnitOfWork.doInTransactionWithRetry(() -> {
             innerReloadTable(projectName, tableIdentity);
             if (needSample && maxRows > 0) {

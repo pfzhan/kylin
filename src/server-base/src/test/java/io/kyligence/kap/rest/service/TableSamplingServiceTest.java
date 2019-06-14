@@ -45,6 +45,7 @@ package io.kyligence.kap.rest.service;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.execution.AbstractExecutable;
@@ -62,6 +63,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 
 import com.google.common.collect.Sets;
 
+import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.engine.spark.job.NTableSamplingJob;
 import io.kyligence.kap.metadata.cube.model.NBatchConstants;
@@ -97,8 +99,8 @@ public class TableSamplingServiceTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testSampling() {
-        final String table1 = "default.test_kylin_fact";
-        final String table2 = "default.test_account";
+        final String table1 = "DEFAULT.TEST_KYLIN_FACT";
+        final String table2 = "DEFAULT.TEST_ACCOUNT";
         Set<String> tables = Sets.newHashSet(table1, table2);
         tableSamplingService.sampling(tables, PROJECT, SAMPLING_ROWS);
         NExecutableManager executableManager = NExecutableManager.getInstance(getTestConfig(), PROJECT);
@@ -111,7 +113,7 @@ public class TableSamplingServiceTest extends NLocalFileMetadataTestCase {
         NTableSamplingJob samplingJob1 = (NTableSamplingJob) job1;
         Assert.assertEquals("TABLE_SAMPLING", samplingJob1.getName());
         Assert.assertEquals(PROJECT, samplingJob1.getProject());
-        final String tableNameOfSamplingJob1 = samplingJob1.getParam(NBatchConstants.P_TABLE_NAME).toLowerCase();
+        final String tableNameOfSamplingJob1 = samplingJob1.getParam(NBatchConstants.P_TABLE_NAME);
         Assert.assertTrue(tables.contains(tableNameOfSamplingJob1));
         Assert.assertEquals(PROJECT, samplingJob1.getParam(NBatchConstants.P_PROJECT_NAME));
         Assert.assertEquals("ADMIN", samplingJob1.getSubmitter());
@@ -120,7 +122,7 @@ public class TableSamplingServiceTest extends NLocalFileMetadataTestCase {
         Assert.assertTrue(job2 instanceof NTableSamplingJob);
         NTableSamplingJob samplingJob2 = (NTableSamplingJob) job2;
         Assert.assertEquals("TABLE_SAMPLING", samplingJob2.getName());
-        final String tableNameOfSamplingJob2 = samplingJob2.getParam(NBatchConstants.P_TABLE_NAME).toLowerCase();
+        final String tableNameOfSamplingJob2 = samplingJob2.getParam(NBatchConstants.P_TABLE_NAME);
         Assert.assertEquals(PROJECT, samplingJob2.getProject());
         Assert.assertTrue(tables.contains(tableNameOfSamplingJob2));
         Assert.assertEquals(PROJECT, samplingJob2.getParam(NBatchConstants.P_PROJECT_NAME));
@@ -130,33 +132,66 @@ public class TableSamplingServiceTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void testSamplingFailedForStatusConflict() {
-
-        String table = "default.test_kylin_fact";
+    public void testSamplingKillAnExistingNonFinalJob() {
+        // initialize a sampling job and assert the status of it
+        String table = "DEFAULT.TEST_KYLIN_FACT";
         tableSamplingService.sampling(Sets.newHashSet(table), PROJECT, SAMPLING_ROWS);
         NExecutableManager executableManager = NExecutableManager.getInstance(getTestConfig(), PROJECT);
-        final List<AbstractExecutable> allExecutables = executableManager.getAllExecutables();
+        List<AbstractExecutable> allExecutables = executableManager.getAllExecutables();
         Assert.assertEquals(1, allExecutables.size());
+        val initialJob = allExecutables.get(0);
+        Assert.assertEquals(ExecutableState.READY, initialJob.getStatus());
 
-        val readyJob = allExecutables.get(0);
-        Assert.assertEquals(ExecutableState.READY, readyJob.getStatus());
-        checkRerunExceptionOfSampling(table);
-
-        executableManager.updateJobOutput(readyJob.getId(), ExecutableState.RUNNING);
-        val runningJob = executableManager.getAllExecutables().get(0);
-        Assert.assertEquals(ExecutableState.RUNNING, runningJob.getStatus());
-        checkRerunExceptionOfSampling(table);
-    }
-
-    private void checkRerunExceptionOfSampling(String table) {
-        final String errorCauseMsg = "The source table [default.test_kylin_fact] has a related sample job running. "
-                + "Please trigger another sample job later.";
-        try {
+        // launch another job on the same table will discard the already existing job and create a new job(secondJob)
+        Assert.assertTrue(tableSamplingService.hasSamplingJob(PROJECT, table));
+        UnitOfWork.doInTransactionWithRetry(() -> {
             tableSamplingService.sampling(Sets.newHashSet(table), PROJECT, SAMPLING_ROWS);
-            Assert.fail();
-        } catch (Exception e) {
-            Assert.assertTrue(e instanceof IllegalStateException);
-            Assert.assertEquals(errorCauseMsg, e.getMessage());
-        }
+            return null;
+        }, PROJECT);
+        Assert.assertEquals(ExecutableState.DISCARDED, initialJob.getStatus());
+        allExecutables = executableManager.getAllExecutables();
+        Assert.assertEquals(2, allExecutables.size());
+        List<AbstractExecutable> nonFinalStateJob = allExecutables.stream() //
+                .filter(job -> !job.getStatus().isFinalState()) //
+                .collect(Collectors.toList());
+        Assert.assertEquals(1, nonFinalStateJob.size());
+        val secondJob = nonFinalStateJob.get(0);
+        Assert.assertEquals(ExecutableState.READY, secondJob.getStatus());
+
+        // modify the status of the second sampling job to Running
+        // launch another job on the same table will discard the second job and create a new job(thirdJob)
+        Assert.assertTrue(tableSamplingService.hasSamplingJob(PROJECT, table));
+        UnitOfWork.doInTransactionWithRetry(() -> {
+            executableManager.updateJobOutput(secondJob.getId(), ExecutableState.RUNNING);
+            tableSamplingService.sampling(Sets.newHashSet(table), PROJECT, SAMPLING_ROWS);
+            return null;
+        }, PROJECT);
+        Assert.assertEquals(ExecutableState.DISCARDED, secondJob.getStatus());
+        allExecutables = executableManager.getAllExecutables();
+        Assert.assertEquals(3, allExecutables.size());
+        nonFinalStateJob = allExecutables.stream() //
+                .filter(job -> !job.getStatus().isFinalState()) //
+                .collect(Collectors.toList());
+        Assert.assertEquals(1, nonFinalStateJob.size());
+        val thirdJob = nonFinalStateJob.get(0);
+        Assert.assertEquals(ExecutableState.READY, thirdJob.getStatus());
+
+        // modify the status of the third sampling job to Error
+        // launch another job on the same table will discard the second job and create a new job(fourthJob)
+        Assert.assertTrue(tableSamplingService.hasSamplingJob(PROJECT, table));
+        UnitOfWork.doInTransactionWithRetry(() -> {
+            executableManager.updateJobOutput(thirdJob.getId(), ExecutableState.ERROR);
+            tableSamplingService.sampling(Sets.newHashSet(table), PROJECT, SAMPLING_ROWS);
+            return null;
+        }, PROJECT);
+        Assert.assertEquals(ExecutableState.DISCARDED, thirdJob.getStatus());
+        allExecutables = executableManager.getAllExecutables();
+        Assert.assertEquals(4, allExecutables.size());
+        nonFinalStateJob = allExecutables.stream() //
+                .filter(job -> !job.getStatus().isFinalState()) //
+                .collect(Collectors.toList());
+        Assert.assertEquals(1, nonFinalStateJob.size());
+        val fourthJob = nonFinalStateJob.get(0);
+        Assert.assertEquals(ExecutableState.READY, fourthJob.getStatus());
     }
 }
