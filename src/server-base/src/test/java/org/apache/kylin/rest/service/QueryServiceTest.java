@@ -615,6 +615,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         NDataModel dKapModel = dataModelSerializer.deserialize(new DataInputStream(bais));
 
         dKapModel.getComputedColumnDescs().remove(dKapModel.getComputedColumnDescs().size() - 1);
+        dKapModel.setMvcc(model.getMvcc());
         return dKapModel;
     }
 
@@ -635,6 +636,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
                 + "      \"comment\": \"test use\"\n" + "    }";
         ComputedColumnDesc computedColumnDesc = JsonUtil.readValue(newCCStr, ComputedColumnDesc.class);
         dKapModel.getComputedColumnDescs().add(computedColumnDesc);
+        dKapModel.setMvcc(model.getMvcc());
         return dKapModel;
     }
 

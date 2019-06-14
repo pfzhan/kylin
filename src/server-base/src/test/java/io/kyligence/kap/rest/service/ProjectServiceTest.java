@@ -78,6 +78,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 
 import com.google.common.collect.Lists;
 
+import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.event.manager.EventOrchestratorManager;
 import io.kyligence.kap.metadata.cube.model.FrequencyMap;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
@@ -429,7 +430,10 @@ public class ProjectServiceTest extends ServiceTestBase {
         NFavoriteScheduler favoriteScheduler = NFavoriteScheduler.getInstance(project);
         favoriteScheduler.init();
         Assert.assertTrue(favoriteScheduler.hasStarted());
-        projectService.dropProject(project);
+        UnitOfWork.doInTransactionWithRetry(() -> {
+            projectService.dropProject(project);
+            return null;
+        }, project);
         new BootstrapCommand().run();
         val prjManager = NProjectManager.getInstance(getTestConfig());
         Assert.assertNull(prjManager.getProject(project));

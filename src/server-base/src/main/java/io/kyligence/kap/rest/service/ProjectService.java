@@ -59,6 +59,7 @@ import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.metadata.cube.storage.ProjectStorageInfoCollector;
 import io.kyligence.kap.metadata.cube.storage.StorageInfoEnum;
 import io.kyligence.kap.metadata.project.NProjectManager;
+import io.kyligence.kap.rest.config.initialize.ProjectDropListener;
 import io.kyligence.kap.rest.request.GarbageCleanUpConfigRequest;
 import io.kyligence.kap.rest.request.JobNotificationConfigRequest;
 import io.kyligence.kap.rest.request.ProjectGeneralInfoRequest;
@@ -120,8 +121,8 @@ public class ProjectService extends BasicService {
         val allProjects = getProjectManager().listAllProjects();
 
         if (StringUtils.isNotEmpty(projectName)) {
-            return allProjects.stream()
-                    .filter(project -> (!exactMatch && project.getName().toUpperCase().contains(projectName.toUpperCase()))
+            return allProjects.stream().filter(
+                    project -> (!exactMatch && project.getName().toUpperCase().contains(projectName.toUpperCase()))
                             || (exactMatch && project.getName().equals(projectName)))
                     .filter(project -> aclEvaluate.hasProjectAdminPermission(project)).collect(Collectors.toList());
         }
@@ -339,6 +340,8 @@ public class ProjectService extends BasicService {
     public void dropProject(String project) {
         val prjManager = getProjectManager();
         prjManager.forceDropProject(project);
+        val context = UnitOfWork.get();
+        context.doAfterUnit(() -> new ProjectDropListener().onDelete(project));
     }
 
     public String backupProject(String project) throws Exception {
@@ -355,7 +358,6 @@ public class ProjectService extends BasicService {
     public void setDataSourceType(String project, String sourceType) {
         getProjectManager().updateProject(project, copyForWrite -> {
             copyForWrite.getOverrideKylinProps().put("kylin.source.default", sourceType);
-
         });
     }
 

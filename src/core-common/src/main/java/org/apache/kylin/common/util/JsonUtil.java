@@ -75,8 +75,10 @@ public class JsonUtil {
     private static final ObjectMapper indentMapper = new ObjectMapper();
 
     static {
-        mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
-        indentMapper.configure(SerializationFeature.INDENT_OUTPUT, true);
+        mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
+                .setConfig(mapper.getSerializationConfig().withView(PersistenceView.class));
+        indentMapper.configure(SerializationFeature.INDENT_OUTPUT, true)
+                .setConfig(indentMapper.getSerializationConfig().withView(PersistenceView.class));
     }
 
     public static <T> T readValue(File src, Class<T> valueType) throws IOException {
@@ -173,6 +175,7 @@ public class JsonUtil {
             throw new RuntimeException(e);
         }
 
+        copy.setMvcc(entity.getMvcc());
         copy.setCachedAndShared(false);
         if (initEntityAfterReload != null) {
             initEntityAfterReload.accept(copy, entity.resourceName());
@@ -187,5 +190,11 @@ public class JsonUtil {
         } catch (IOException e) {
             return false;
         }
+    }
+
+    public interface PersistenceView {
+    }
+
+    public interface PublicView extends PersistenceView {
     }
 }

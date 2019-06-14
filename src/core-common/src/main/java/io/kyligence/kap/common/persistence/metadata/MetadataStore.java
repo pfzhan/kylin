@@ -38,7 +38,6 @@ import org.apache.kylin.common.StorageURL;
 import org.apache.kylin.common.persistence.RawResource;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.util.ClassUtil;
-import org.apache.kylin.common.util.JsonUtil;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Sets;
@@ -49,7 +48,6 @@ import io.kyligence.kap.common.persistence.UnitMessages;
 import io.kyligence.kap.common.persistence.event.Event;
 import io.kyligence.kap.common.persistence.event.ResourceCreateOrUpdateEvent;
 import io.kyligence.kap.common.persistence.event.ResourceDeleteEvent;
-import lombok.Data;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.val;
@@ -148,15 +146,6 @@ public abstract class MetadataStore {
         });
     }
 
-    public static long getMvcc(ByteSource bs) {
-        try {
-            val wrapper = JsonUtil.readValue(bs.openStream(), MvccWrapper.class);
-            return wrapper.getMvcc();
-        } catch (IOException e) {
-            return 0;
-        }
-    }
-
     static void foreachFile(File root, Consumer<RawResource> resourceConsumer) {
         if (!root.exists()) {
             return;
@@ -166,17 +155,12 @@ public abstract class MetadataStore {
             try (val fis = new FileInputStream(f)) {
                 val resPath = f.getPath().replace(root.getPath(), "");
                 val bs = ByteStreams.asByteSource(IOUtils.toByteArray(fis));
-                val raw = new RawResource(resPath, bs, f.lastModified(), getMvcc(bs));
+                val raw = new RawResource(resPath, bs, f.lastModified(), 0);
                 resourceConsumer.accept(raw);
             } catch (IOException e) {
                 throw new IllegalArgumentException("cannot not read file " + f, e);
             }
         });
-    }
-
-    @Data
-    public static class MvccWrapper {
-        private long mvcc = 0;
     }
 
     public VerifyResult verify() {

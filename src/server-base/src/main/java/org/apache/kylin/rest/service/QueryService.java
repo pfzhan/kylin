@@ -275,7 +275,10 @@ public class QueryService extends BasicService {
         if (record == null) {
             return new QueryRecord();
         }
-        return JsonUtil.deepCopy(record, QueryRecord.class);
+        val resource = getStore().getResource(getQueryKeyById(project, creator));
+        val copy = JsonUtil.deepCopy(record, QueryRecord.class);
+        copy.setMvcc(resource.getMvcc());
+        return copy;
     }
 
     public String logQuery(final SQLRequest request, final SQLResponse response) {

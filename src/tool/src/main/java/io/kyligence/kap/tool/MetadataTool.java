@@ -50,8 +50,6 @@ import org.apache.kylin.metadata.project.ProjectInstance;
 import com.google.common.collect.Sets;
 import com.google.common.io.ByteStreams;
 
-import io.kyligence.kap.common.cluster.LeaderInitiator;
-import io.kyligence.kap.common.cluster.NodeCandidate;
 import io.kyligence.kap.common.persistence.ImageDesc;
 import io.kyligence.kap.common.persistence.metadata.MetadataStore;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
@@ -87,20 +85,17 @@ public class MetadataTool extends ExecutableApplication {
     private final Options options;
 
     private final KylinConfig kylinConfig;
-    private final LeaderInitiator leaderInitiator;
 
     private ResourceStore resourceStore;
 
     MetadataTool() {
         kylinConfig = KylinConfig.getInstanceFromEnv();
-        leaderInitiator = LeaderInitiator.getInstance(kylinConfig);
         this.options = new Options();
         initOptions();
     }
 
     public MetadataTool(KylinConfig kylinConfig) {
         this.kylinConfig = kylinConfig;
-        leaderInitiator = LeaderInitiator.getInstance(kylinConfig);
         this.options = new Options();
         initOptions();
     }
@@ -124,7 +119,7 @@ public class MetadataTool extends ExecutableApplication {
         try (val curatorOperator = new CuratorOperator()) {
             if (!curatorOperator.isJobNodeExist()) {
                 tool.execute(args);
-            }else {
+            } else {
                 log.warn("Fail to backup/restore, please stop all job nodes first");
             }
 
@@ -142,13 +137,6 @@ public class MetadataTool extends ExecutableApplication {
 
     @Override
     protected void execute(OptionsHelper optionsHelper) throws Exception {
-        val candidate = new NodeCandidate(kylinConfig.getNodeId());
-        leaderInitiator.start(candidate);
-
-        if (!leaderInitiator.isLeader()) {
-            throw new IllegalStateException("The leader is not avalilable");
-        }
-
         log.info("start to init ResourceStore");
         resourceStore = ResourceStore.getKylinMetaStore(kylinConfig);
 
@@ -249,7 +237,8 @@ public class MetadataTool extends ExecutableApplication {
             val projectFolders = Sets.union(srcProjectFolders, destProjectFolders);
 
             for (String projectPath : projectFolders) {
-                if (projectPath.equals(ResourceStore.METASTORE_UUID_TAG) || projectPath.equals(ResourceStore.METASTORE_IMAGE)) {
+                if (projectPath.equals(ResourceStore.METASTORE_UUID_TAG)
+                        || projectPath.equals(ResourceStore.METASTORE_IMAGE)) {
                     continue;
                 }
                 val projectName = Paths.get(projectPath).getName(0).toString();

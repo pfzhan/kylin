@@ -26,11 +26,11 @@ package io.kyligence.kap.rest.config.initialize;
 import static io.kyligence.kap.common.util.NLocalFileMetadataTestCase.staticCleanupTestMetadata;
 import static io.kyligence.kap.common.util.NLocalFileMetadataTestCase.staticCreateTestMetadata;
 
-import lombok.val;
+import java.io.IOException;
+
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.kylin.rest.constant.Constant;
 import org.junit.After;
@@ -40,7 +40,7 @@ import org.junit.Test;
 import org.springframework.security.authentication.TestingAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 
-import java.io.IOException;
+import lombok.val;
 
 public class ProjectDropListenerTest {
 
@@ -72,9 +72,8 @@ public class ProjectDropListenerTest {
         Assert.assertTrue(fs.exists(file));
 
         ProjectDropListener projectDropListener = new ProjectDropListener();
-        val resPath = String.format("%s/%s.%s", ResourceStore.PROJECT_ROOT, project, "json");
 
-        projectDropListener.onDelete(kylinConfig, resPath);
+        projectDropListener.onDelete(project);
 
         Assert.assertFalse(fs.exists(path));
     }

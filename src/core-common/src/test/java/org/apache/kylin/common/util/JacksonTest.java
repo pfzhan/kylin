@@ -46,6 +46,11 @@ package org.apache.kylin.common.util;
 import java.io.IOException;
 import java.util.HashMap;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.val;
+import org.apache.kylin.common.persistence.RootPersistentEntity;
+import org.junit.Assert;
 import org.junit.Test;
 
 public class JacksonTest {
@@ -70,5 +75,22 @@ public class JacksonTest {
         System.out.println(x2);
         
         System.out.println(desBean);
+    }
+
+    @Test
+    public void testSerializeWithView() throws JsonProcessingException {
+        val e = new TestEntity();
+        e.setMvcc(2);
+        e.setUuid("123456");
+        e.setVersion("1.2.3");
+        val str1 = JsonUtil.writeValueAsString(e);
+        Assert.assertFalse(str1.contains("mvcc"));
+
+        val mapper = new ObjectMapper();
+        val str2 = mapper.writeValueAsString(e);
+        Assert.assertTrue(str2.contains("mvcc"));
+    }
+
+    public static class TestEntity extends RootPersistentEntity {
     }
 }

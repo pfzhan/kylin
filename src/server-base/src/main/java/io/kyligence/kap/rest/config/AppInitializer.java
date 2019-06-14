@@ -23,11 +23,6 @@
  */
 package io.kyligence.kap.rest.config;
 
-import io.kyligence.kap.common.persistence.metadata.JdbcAuditLogStore;
-import io.kyligence.kap.common.scheduler.SchedulerEventBusFactory;
-import io.kyligence.kap.rest.scheduler.EventSchedulerListener;
-import io.kyligence.kap.rest.scheduler.FavoriteSchedulerListener;
-import io.kyligence.kap.rest.scheduler.JobSchedulerListener;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -40,11 +35,15 @@ import org.springframework.scheduling.TaskScheduler;
 import io.kyligence.kap.common.cluster.LeaderInitiator;
 import io.kyligence.kap.common.cluster.NodeCandidate;
 import io.kyligence.kap.common.metric.InfluxDBWriter;
+import io.kyligence.kap.common.persistence.metadata.JdbcAuditLogStore;
 import io.kyligence.kap.common.persistence.transaction.EventListenerRegistry;
+import io.kyligence.kap.common.scheduler.SchedulerEventBusFactory;
 import io.kyligence.kap.rest.config.initialize.AppInitializedEvent;
 import io.kyligence.kap.rest.config.initialize.BootstrapCommand;
 import io.kyligence.kap.rest.config.initialize.FavoriteQueryUpdateListener;
-import io.kyligence.kap.rest.config.initialize.ProjectDropListener;
+import io.kyligence.kap.rest.scheduler.EventSchedulerListener;
+import io.kyligence.kap.rest.scheduler.FavoriteSchedulerListener;
+import io.kyligence.kap.rest.scheduler.JobSchedulerListener;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
@@ -70,7 +69,6 @@ public class AppInitializer {
 
         if (isLeader) {
             taskScheduler.scheduleWithFixedDelay(new BootstrapCommand(), 10000);
-            EventListenerRegistry.getInstance(kylinConfig).register(new ProjectDropListener(), "pd");
         } else {
             val auditLogStore = new JdbcAuditLogStore(kylinConfig);
             kylinConfig.setProperty("kylin.metadata.url", kylinConfig.getMetadataUrlPrefix() + "@hdfs");

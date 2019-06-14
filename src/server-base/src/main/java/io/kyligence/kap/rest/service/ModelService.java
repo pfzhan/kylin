@@ -728,10 +728,12 @@ public class ModelService extends BasicService {
 
     private NDataModel getBrokenModel(String project, String resourcePath) {
         try {
-            val modelDesc = JsonUtil.readValue(ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv())
-                    .getResource(resourcePath).getByteSource().read(), NDataModel.class);
+            val resource = ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv())
+                    .getResource(resourcePath);
+            val modelDesc = JsonUtil.readValue(resource.getByteSource().read(), NDataModel.class);
             modelDesc.setBroken(true);
             modelDesc.setProject(project);
+            modelDesc.setMvcc(resource.getMvcc());
             return modelDesc;
         } catch (IOException e) {
             throw new RuntimeException(e);

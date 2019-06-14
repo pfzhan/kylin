@@ -46,12 +46,13 @@ import java.io.Serializable;
 import java.util.List;
 import java.util.UUID;
 
-import org.apache.commons.lang.time.FastDateFormat;
 import org.apache.kylin.common.KylinVersion;
+import org.apache.kylin.common.util.JsonUtil;
 
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonAutoDetect.Visibility;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonView;
 
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -71,15 +72,6 @@ import lombok.extern.slf4j.Slf4j;
 @JsonAutoDetect(fieldVisibility = Visibility.NONE, getterVisibility = Visibility.NONE, isGetterVisibility = Visibility.NONE, setterVisibility = Visibility.NONE)
 @Slf4j
 abstract public class RootPersistentEntity implements AclEntity, Serializable {
-
-    static final String DATE_PATTERN = "yyyy-MM-dd HH:mm:ss z";
-    static FastDateFormat format = FastDateFormat.getInstance(DATE_PATTERN);
-
-    public static String formatTime(long millis) {
-        return format.format(millis);
-    }
-
-    // ============================================================================
 
     @JsonProperty("uuid")
     protected String uuid = UUID.randomUUID().toString();
@@ -105,6 +97,7 @@ abstract public class RootPersistentEntity implements AclEntity, Serializable {
 
     @Getter
     @JsonProperty("mvcc")
+    @JsonView(JsonUtil.PublicView.class)
     private long mvcc = -1;
 
     @Getter

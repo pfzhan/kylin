@@ -89,7 +89,7 @@ public class FileMetadataStore extends MetadataStore {
         val resPath = f.getPath().replace(root.getPath() + path, "");
         try (FileInputStream in = new FileInputStream(f)) {
             val bs = ByteStreams.asByteSource(IOUtils.toByteArray(in));
-            return new RawResource(resPath, bs, f.lastModified(), getMvcc(bs));
+            return new RawResource(resPath, bs, f.lastModified(), 0);
         }
     }
 

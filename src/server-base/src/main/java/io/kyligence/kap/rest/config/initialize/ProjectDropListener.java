@@ -28,38 +28,24 @@ import java.io.IOException;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.persistence.RawResource;
-import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
 
-import io.kyligence.kap.common.persistence.transaction.EventListenerRegistry;
 import io.kyligence.kap.event.manager.EventOrchestratorManager;
 import io.kyligence.kap.rest.service.NFavoriteScheduler;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public class ProjectDropListener implements EventListenerRegistry.ResourceEventListener {
+public class ProjectDropListener {
 
-    @Override
-    public void onUpdate(KylinConfig config, RawResource rawResource) {
-        // override for default
-    }
-
-    @Override
-    public void onDelete(KylinConfig config, String resPath) {
-        val term = resPath.split("\\/");
-        if (!resPath.startsWith(ResourceStore.PROJECT_ROOT))
-            return;
-
-        val project = term[3];
+    public void onDelete(String project) {
         log.debug("delete project {}", project);
 
         val kylinConfig = KylinConfig.getInstanceFromEnv();
 
         try {
-            deleteStorage(config, project.split("\\.")[0]);
+            deleteStorage(kylinConfig, project.split("\\.")[0]);
             EventOrchestratorManager.getInstance(kylinConfig).shutdownByProject(project);
             NFavoriteScheduler.shutdownByProject(project);
             NDefaultScheduler.shutdownByProject(project);

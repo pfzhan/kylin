@@ -136,7 +136,7 @@ public class HDFSMetadataStore extends MetadataStore {
             try (val in = fs.open(p)) {
                 val bs = ByteStreams.asByteSource(IOUtils.toByteArray(in));
                 long t = fs.getFileStatus(p).getModificationTime();
-                return new RawResource(resPath, bs, t, getMvcc(bs));
+                return new RawResource(resPath, bs, t, 0);
             }
         } else {
             throw new IOException("path " + p + " not found");
