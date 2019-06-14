@@ -45,6 +45,7 @@ package org.apache.kylin.metadata.cachesync;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.persistence.JsonSerializer;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.persistence.RootPersistentEntity;
@@ -119,6 +120,10 @@ public abstract class CachedCrudAssist<T extends RootPersistentEntity> {
     }
 
     String resourcePath(String resourceName) {
+        if (StringUtils.isEmpty(resourceName) || StringUtils.containsWhitespace(resourceName)) {
+            logger.error("the resourceName \"{}\" cannot contain white character", resourceName);
+            throw new IllegalArgumentException("the resourceName \"" + resourceName + "\" cannot contain white character");
+        }
         return resRootPath + "/" + resourceName + resPathSuffix;
     }
 

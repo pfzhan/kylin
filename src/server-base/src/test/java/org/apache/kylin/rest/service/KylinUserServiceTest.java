@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -40,60 +39,57 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.apache.kylin.rest.service;
 
-package org.apache.kylin.metadata.streaming;
+import java.util.Arrays;
 
-import java.io.IOException;
-import java.util.List;
-
-import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.util.CleanMetadataHelper;
+import org.apache.kylin.rest.constant.Constant;
+import org.apache.kylin.rest.security.KylinUserManager;
+import org.apache.kylin.rest.security.ManagedUser;
 import org.junit.After;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Mockito;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 
-public class StreamingManagerTest {
+import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import lombok.extern.slf4j.Slf4j;
 
-    private CleanMetadataHelper cleanMetadataHelper = null;
+
+@Slf4j
+public class KylinUserServiceTest extends NLocalFileMetadataTestCase {
+
+    private KylinUserService kylinUserService;
 
     @Before
-    public void setUp() throws Exception {
-        System.setProperty("kylin.env", "UT");
-        cleanMetadataHelper = new CleanMetadataHelper();
-        cleanMetadataHelper.setUp();
+    public void setup() {
+        createTestMetadata();
+        kylinUserService = Mockito.spy(new KylinUserService());
+        KylinUserManager userManager = KylinUserManager.getInstance(getTestConfig());
+        userManager.update(new ManagedUser("ADMIN", "KYLIN", false, Arrays.asList(//
+                new SimpleGrantedAuthority(Constant.ROLE_ADMIN), new SimpleGrantedAuthority(Constant.ROLE_ANALYST),
+                new SimpleGrantedAuthority(Constant.ROLE_MODELER))));
     }
 
     @After
-    public void after() throws Exception {
-        cleanMetadataHelper.tearDown();
-        System.clearProperty("kylin.env");
+    public void destroy() {
+        cleanupTestMetadata();
     }
 
     @Test
-    public void testBasics() throws IOException {
-        StreamingManager mgr = StreamingManager.getInstance(KylinConfig.getInstanceFromEnv());
-        List<StreamingConfig> origin = mgr.listAllStreaming();
+    public void loadUserByUsername() {
+    }
 
-        // test create
-        {
-            StreamingConfig streamingConfig = new StreamingConfig();
-            streamingConfig.setName("name_for_test");
-            streamingConfig.setType("type for test");
-            mgr.createStreamingConfig(streamingConfig);
-            List<StreamingConfig> reloadAll = mgr.reloadAll();
-            Assert.assertTrue(origin.size() + 1 == reloadAll.size());
-        }
+    @Test
+    public void testLoadUser() {
+        String username = "ADMIN";
+        kylinUserService.loadUserByUsername(username);
+    }
 
-        // test update
-        {
-            StreamingConfig streamingConfig = mgr.getStreamingConfig("name_for_test");
-            streamingConfig.setType("updated type");
-            mgr.updateStreamingConfig(streamingConfig);
-            List<StreamingConfig> reloadAll = mgr.reloadAll();
-            Assert.assertTrue(origin.size() + 1 == reloadAll.size());
-            streamingConfig = mgr.getStreamingConfig("name_for_test");
-            Assert.assertEquals("updated type", streamingConfig.getType());
-        }
+    @Test(expected = UsernameNotFoundException.class)
+    public void testLoadUserWithWhiteSpace() {
+        String username = "ADMIN ";
+        kylinUserService.loadUserByUsername(username);
     }
 }

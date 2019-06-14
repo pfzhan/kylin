@@ -146,7 +146,13 @@ public class KylinUserService implements UserService {
     @Override
     public UserDetails loadUserByUsername(String userName) throws UsernameNotFoundException {
         Message msg = MsgPicker.getMsg();
-        ManagedUser managedUser = getKylinUserManager().get(userName);
+        ManagedUser managedUser = null;
+        try {
+            managedUser = getKylinUserManager().get(userName);
+        }catch (IllegalArgumentException e) {
+            logger.error("exception: ", e);
+            throw new UsernameNotFoundException(String.format(msg.getUSER_NOT_FOUND(), userName));
+        }
         if (managedUser == null) {
             throw new UsernameNotFoundException(String.format(msg.getUSER_NOT_FOUND(), userName));
         }
