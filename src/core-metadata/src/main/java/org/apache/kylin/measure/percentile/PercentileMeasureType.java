@@ -107,6 +107,11 @@ public class PercentileMeasureType extends MeasureType<PercentileCounter> {
                 }
                 return counter;
             }
+
+            @Override
+            public void reset() {
+                current = new PercentileCounter(dataType.getPrecision());
+            }
         };
     }
 
