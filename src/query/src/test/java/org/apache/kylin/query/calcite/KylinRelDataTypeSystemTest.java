@@ -43,7 +43,6 @@
 
 package org.apache.kylin.query.calcite;
 
-import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
@@ -56,6 +55,8 @@ import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+
+import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 
 public class KylinRelDataTypeSystemTest extends NLocalFileMetadataTestCase {
 
@@ -91,7 +92,8 @@ public class KylinRelDataTypeSystemTest extends NLocalFileMetadataTestCase {
         RelDataTypeFactory typeFactory = new SqlTypeFactoryImpl(typeSystem);
         Assert.assertEquals("DECIMAL(19, 4)", OLAPTable.createSqlType(typeFactory, DataType.getType("DECIMAL"), true).toString());
         Assert.assertEquals("CHAR(255)", OLAPTable.createSqlType(typeFactory, DataType.getType("CHAR"), true).toString());
-        Assert.assertEquals("VARCHAR(256)", OLAPTable.createSqlType(typeFactory, DataType.getType("VARCHAR"), true).toString());
+        Assert.assertEquals("VARCHAR(4096)",
+                OLAPTable.createSqlType(typeFactory, DataType.getType("VARCHAR"), true).toString());
         Assert.assertEquals("INTEGER", OLAPTable.createSqlType(typeFactory, DataType.getType("INTEGER"), true).toString());
         Assert.assertEquals("TINYINT", OLAPTable.createSqlType(typeFactory, DataType.getType("TINYINT"), true).toString());
         Assert.assertEquals("SMALLINT", OLAPTable.createSqlType(typeFactory, DataType.getType("SMALLINT"), true).toString());
