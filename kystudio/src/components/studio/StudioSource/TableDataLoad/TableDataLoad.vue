@@ -108,6 +108,10 @@ import { handleSuccessAsync, handleError } from '../../../../util'
 export default class TableDataLoad extends Vue {
   async handleLoadData (isChangePartition) {
     try {
+      if (isChangePartition) {
+        delete this.table.startTime // 切换partition key的时候选择范围设置为空
+        delete this.table.endTime
+      }
       const { project, table } = this
       if (table.partitionColumn) {
         const isSubmit = await this.callSourceTableModal({ editType: 'loadData', project, table })
