@@ -4,6 +4,15 @@ import store from '../store'
 import ElementUI from 'kyligence-ui'
 var selectedProject = store.state.project.selected_project
 export function bindRouterGuard (router) {
+  // 捕获在异步组件加载时出现过期组件的情况（服务端替换部署包等）
+  router.onError((error) => {
+    const pattern = /Loading chunk (\d)+ failed/g
+    const isChunkLoadFailed = error.message && error.message.match(pattern)
+    const targetPath = router.history.pending.fullPath
+    if (isChunkLoadFailed) {
+      router.replace(targetPath)
+    }
+  })
   router.beforeEach((to, from, next) => {
     // 处理在模型添加的业务窗口刷新浏览器
     ElementUI.Message.closeAll() // 切换路由的时候关闭message
