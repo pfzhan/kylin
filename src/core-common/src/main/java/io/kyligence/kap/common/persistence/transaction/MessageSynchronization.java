@@ -87,6 +87,12 @@ public class MessageSynchronization {
                 event.getCreatedOrUpdated().getMvcc());
         val raw = event.getCreatedOrUpdated();
         val oldRaw = resourceStore.getResource(raw.getResPath());
+        if (config.getServerMode().equals("query")) {
+            resourceStore.deleteResource(raw.getResPath());
+            resourceStore.putResourceWithoutCheck(raw.getResPath(), raw.getByteSource(), raw.getTimestamp(),
+                    raw.getMvcc());
+            return;
+        }
         if (oldRaw == null) {
             resourceStore.putResourceWithoutCheck(raw.getResPath(), raw.getByteSource(), raw.getTimestamp(),
                     raw.getMvcc());

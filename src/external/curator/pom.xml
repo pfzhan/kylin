@@ -43,7 +43,7 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <shadeBase>io.kyligence.kap.shaded.curator</shadeBase>
-        <shaded.curator.version>2.12.0</shaded.curator.version>
+        <shaded.curator.version>2.12.0-kylin-r1</shaded.curator.version>
     </properties>
 
 
@@ -75,6 +75,7 @@
         <dependency>
             <groupId>org.apache.curator</groupId>
             <artifactId>curator-x-discovery</artifactId>
+            <version>${shaded.curator.version}</version>
             <!-- this jar was absent from hbase lib, we have to ship it.
             Instead of using compile scope, we choose to copy the jar into ext due to #1251 -->
         </dependency>

@@ -43,7 +43,7 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <shadeBase>io.kyligence.kap.shaded.curator</shadeBase>
-        <shaded.curator.version>2.12.0</shaded.curator.version>
+        <shaded.curator.version>${curator.version}</shaded.curator.version>
     </properties>
 
     <dependencies>
