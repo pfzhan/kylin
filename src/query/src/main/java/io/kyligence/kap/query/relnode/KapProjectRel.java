@@ -183,11 +183,11 @@ public class KapProjectRel extends OLAPProjectRel implements KapRel {
         ColumnRowType inputColumnRowType = ((OLAPRel) getInput()).getColumnRowType();
         for (Map.Entry<String, RelDataType> rewriteField : this.context.rewriteFields.entrySet()) {
             String rewriteFieldName = rewriteField.getKey();
-            int rowIndex = this.columnRowType.getIndexByName(rewriteFieldName);
+            int rowIndex = this.columnRowType.getIndexByNameAndByContext(this.context, rewriteFieldName);
             if (rowIndex >= 0) {
                 continue;
             }
-            int inputIndex = inputColumnRowType.getIndexByName(rewriteFieldName);
+            int inputIndex = inputColumnRowType.getIndexByNameAndByContext(this.context, rewriteFieldName);
             if (inputIndex >= 0) {
                 // new field
                 RelDataType fieldType = rewriteField.getValue();

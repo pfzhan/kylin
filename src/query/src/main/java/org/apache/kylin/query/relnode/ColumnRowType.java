@@ -94,6 +94,16 @@ public class ColumnRowType {
         return -1;
     }
 
+    public int getIndexByNameAndByContext(OLAPContext ctx, String columnName) {
+        for (int i = 0; i < columns.size(); i++) {
+            TblColRef colRef = columns.get(i);
+            if (colRef.getName().equals(columnName) && ctx.belongToContextTables(colRef)) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
     public Set<TblColRef> getSourceColumnsByIndex(int i) {
         Set<TblColRef> result = null;
         if (sourceColumns != null) {

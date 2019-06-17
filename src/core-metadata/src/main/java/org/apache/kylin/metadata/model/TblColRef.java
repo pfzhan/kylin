@@ -303,6 +303,10 @@ public class TblColRef implements Serializable {
             return false;
         if (!(table == null ? other.table == null : table.equals(other.table)))
             return false;
+        //#9121 self-join's agg pushdown sql's left and right OlapContext have identical table,
+        //backupTable, containing olapContext's info, should be compared when both is not null
+        if (backupTable != null && other.backupTable != null && !backupTable.equals(other.backupTable))
+            return false;
         if (this.isInnerColumn() != other.isInnerColumn())
             return false;
         return true;

@@ -16,8 +16,8 @@
 -- limitations under the License.
 -- copy from sql_cross_join/query04_c.sql
 -- ISSUE #5613
---failed if replace line 24 to 'FROM TDVT.CALCS CALCS'
---failed 'type mismatch:BIGINT NOT NULL' in left join
+--not failed if replace line 24 to 'FROM TDVT.CALCS CALCS'
+--not failed 'type mismatch:BIGINT NOT NULL' in left join
 --if append ', COUNT(*) AS COU' to line 21
 SELECT Sta.datetime0 AS DAT, sum(Sta.NUM4) AS PRI
 , COUNT(*) AS COU

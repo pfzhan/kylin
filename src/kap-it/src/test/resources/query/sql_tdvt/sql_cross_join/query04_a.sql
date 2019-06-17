@@ -14,15 +14,14 @@
 -- WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 -- See the License for the specific language governing permissions and
 -- limitations under the License.
--- copy from sql_cross_join/query04_b.sql
--- ISSUE #5613
+-- copy from sql_cross_join/query04.sql
+-- ISSUE #5613, #9121
 --not failed if replace line 24 to 'FROM TDVT.CALCS CALCS'
 --not failed 'type mismatch:BIGINT NOT NULL' in left join
 --if append ', COUNT(*) AS COU' to line 21
-SELECT Sta.datetime0 AS DAT
+SELECT Sta.datetime0 AS DAT, sum(Sta.NUM4) AS PRI
 , COUNT(*) AS COU
---    FROM TDVT.CALCS CALCS
-    FROM (select datetime0 FROM TDVT.CALCS CALCS) as CALCS
+    FROM TDVT.CALCS CALCS
     INNER JOIN
         (    SELECT CALCS.datetime0, CALCS.NUM4
              FROM TDVT.CALCS CALCS
