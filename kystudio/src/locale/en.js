@@ -19,6 +19,7 @@ exports.default = {
     notice: 'Notification',
     save: 'Save',
     leave: 'Leave',
+    load: 'Load',
     ok: 'OK',
     exit: 'Exit',
     retry: 'Retry',

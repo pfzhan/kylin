@@ -275,7 +275,7 @@ export default class ModelList extends Vue {
     return (<span class="ky-hover-icon" onClick={e => (e.stopPropagation())}>
       <span>{this.$t('usage')}</span>&nbsp;
       <common-tip placement="top" content={this.$t('usageTip', {mode: this.$t(modelMode)})}>
-       <i class='el-icon-ksd-what'></i>
+       <span class='el-icon-ksd-what'></span>
       </common-tip>
     </span>)
   }

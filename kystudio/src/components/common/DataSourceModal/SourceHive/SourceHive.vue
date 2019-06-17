@@ -492,7 +492,7 @@ export default class SourceHive extends Vue {
     right: 20px;
     .header {
       color: @text-normal-color;
-      font-size: 13px;
+      font-size: 12px;
       margin-bottom: 2px;
     }
     .body {

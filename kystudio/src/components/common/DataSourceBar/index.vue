@@ -34,7 +34,7 @@
         @load-more="handleLoadMore">
       </TreeList>
     </section>
-    <kap-empty-data v-if="databaseArray.length <= 0" size="small"></kap-empty-data>
+    <kap-nodata v-if="databaseArray.length <= 0" size="small"></kap-nodata>
     <!-- <el-dialog
       class="datasource-result-modal"
       :title="$t('kylinLang.common.notice')"

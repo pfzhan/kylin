@@ -21,7 +21,7 @@
               :label="item.name"
               :value="item.name">
               <span style="float: left">{{ item.name }}</span>
-              <span class="ky-option-sub-info">{{ item.dataType }}</span>
+              <span class="ky-option-sub-info">{{ item.datatype }}</span>
             </el-option>
           </el-select>
         </span>
