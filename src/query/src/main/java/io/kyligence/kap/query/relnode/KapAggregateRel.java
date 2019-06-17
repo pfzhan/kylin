@@ -126,8 +126,6 @@ public class KapAggregateRel extends OLAPAggregateRel implements KapRel {
                         this.context.aggregations.add(agg);
                     }
                 }
-                this.context.aggrOutCols.addAll(
-                        columnRowType.getAllColumns().subList(groups.size(), columnRowType.getAllColumns().size()));
                 this.context.afterAggregate = true;
                 if (this.context.afterLimit) {
                     this.context.limitPrecedesAggr = true;
@@ -191,7 +189,6 @@ public class KapAggregateRel extends OLAPAggregateRel implements KapRel {
                 }
                 aggCall = rewriteAggCall(aggCall, cubeFunc);
                 this.rewriteAggCalls.add(aggCall);
-                this.context.aggrSqlCalls.add(toSqlCall(aggCall));
             }
         }
 

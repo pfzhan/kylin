@@ -82,7 +82,6 @@ public class OLAPQuery extends AbstractEnumerable<Object[]> implements Enumerabl
         if (BackdoorToggles.getPrepareOnly())
             return new EmptyEnumerator();
         OLAPContext olapContext = OLAPContext.getThreadLocalContextById(contextId);
-        olapContext.setEnumeratorType(type);
         switch (type) {
         case SIMPLE_AGGREGATION:
             return new SingleRowEnumerator();

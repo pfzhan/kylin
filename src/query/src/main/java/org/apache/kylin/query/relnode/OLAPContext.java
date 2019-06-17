@@ -67,9 +67,7 @@ import org.apache.kylin.metadata.model.MeasureDesc;
 import org.apache.kylin.metadata.model.TblColRef;
 import org.apache.kylin.metadata.realization.IRealization;
 import org.apache.kylin.metadata.realization.SQLDigest;
-import org.apache.kylin.metadata.realization.SQLDigest.SQLCall;
 import org.apache.kylin.metadata.tuple.TupleInfo;
-import org.apache.kylin.query.enumerator.OLAPQuery;
 import org.apache.kylin.query.routing.RealizationCheck;
 import org.apache.kylin.query.schema.OLAPSchema;
 import org.apache.kylin.storage.StorageContext;
@@ -180,9 +178,6 @@ public class OLAPContext {
     @Getter
     private boolean hasAgg = false;
     public boolean hasWindow = false;
-    @Getter
-    @Setter
-    private OLAPQuery.EnumeratorTypeEnum enumeratorType;
 
     // cube metadata
     public IRealization realization;
@@ -204,8 +199,6 @@ public class OLAPContext {
     @Setter
     @Getter
     private List<FunctionDesc> constantAggregations = new ArrayList<>(); // agg like min(2),max(2),avg(2), not including count(1)
-    public List<TblColRef> aggrOutCols = new ArrayList<>(); // aggregation output (inner) columns
-    public List<SQLCall> aggrSqlCalls = new ArrayList<>(); // sql level aggregation function call
     public Set<TblColRef> filterColumns = new LinkedHashSet<>();
     public TupleFilter filter;
     public TupleFilter havingFilter;
@@ -257,7 +250,7 @@ public class OLAPContext {
             sqlDigest = new SQLDigest(firstTableScan.getTableName(), Sets.newHashSet(allColumns),
                     Lists.newLinkedList(joins), // model
                     Lists.newArrayList(groupByColumns), Sets.newHashSet(subqueryJoinParticipants), // group by
-                    Sets.newHashSet(metricsColumns), aggrs, Lists.newArrayList(aggrSqlCalls), // aggregation
+                    Sets.newHashSet(metricsColumns), aggrs, // aggregation
                     Sets.newLinkedHashSet(filterColumns), filter, havingFilter, // filter
                     Lists.newArrayList(sortColumns), Lists.newArrayList(sortOrders), limit, limitPrecedesAggr, // sort & limit
                     Sets.newHashSet(involvedMeasure));
@@ -353,7 +346,6 @@ public class OLAPContext {
 
         this.allColumns.clear();
         this.groupByColumns.clear();
-        this.aggrOutCols.clear();
         this.subqueryJoinParticipants.clear();
         this.metricsColumns.clear();
         this.involvedMeasure.clear();
@@ -365,7 +357,6 @@ public class OLAPContext {
         this.filterColumns.clear();
 
         this.aggregations.clear();
-        this.aggrSqlCalls.clear();
 
         this.sortColumns.clear();
         this.sortOrders.clear();

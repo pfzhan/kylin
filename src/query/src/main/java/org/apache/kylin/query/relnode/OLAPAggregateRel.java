@@ -90,7 +90,6 @@ import org.apache.kylin.metadata.model.FunctionDesc;
 import org.apache.kylin.metadata.model.MeasureDesc;
 import org.apache.kylin.metadata.model.ParameterDesc;
 import org.apache.kylin.metadata.model.TblColRef;
-import org.apache.kylin.metadata.realization.SQLDigest.SQLCall;
 import org.apache.kylin.query.schema.OLAPTable;
 
 import com.google.common.base.Preconditions;
@@ -206,8 +205,6 @@ public class OLAPAggregateRel extends Aggregate implements OLAPRel {
         if (!this.afterAggregate) {
             addToContextGroupBy(this.groups);
             this.context.aggregations.addAll(this.aggregations);
-            this.context.aggrOutCols
-                    .addAll(columnRowType.getAllColumns().subList(groups.size(), columnRowType.getAllColumns().size()));
             this.context.afterAggregate = true;
 
             if (this.context.afterLimit) {
@@ -356,7 +353,6 @@ public class OLAPAggregateRel extends Aggregate implements OLAPRel {
                 FunctionDesc cubeFunc = this.context.aggregations.get(i);
                 aggCall = rewriteAggCall(aggCall, cubeFunc);
                 this.rewriteAggCalls.add(aggCall);
-                this.context.aggrSqlCalls.add(toSqlCall(aggCall));
             }
         }
 
@@ -385,18 +381,6 @@ public class OLAPAggregateRel extends Aggregate implements OLAPRel {
         }
 
         return aggCall;
-    }
-
-    protected SQLCall toSqlCall(AggregateCall aggCall) {
-        ColumnRowType inputColumnRowType = ((OLAPRel) getInput()).getColumnRowType();
-
-        String function = getSqlFuncName(aggCall);
-        List<Object> args = Lists.newArrayList();
-        for (Integer index : aggCall.getArgList()) {
-            TblColRef col = inputColumnRowType.getColumnByIndexNullable(index);
-            args.add(col);
-        }
-        return new SQLCall(function, args);
     }
 
     protected void translateAggregation() {
