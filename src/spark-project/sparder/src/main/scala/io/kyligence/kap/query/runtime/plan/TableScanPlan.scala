@@ -27,7 +27,7 @@ import java.util.concurrent.ConcurrentHashMap
 import com.google.common.collect.{Lists, Sets}
 import io.kyligence.kap.metadata.cube.cuboid.NLayoutCandidate
 import io.kyligence.kap.metadata.cube.gridtable.NCuboidToGridTableMapping
-import io.kyligence.kap.metadata.cube.model.{NDataflow, NDataSegment}
+import io.kyligence.kap.metadata.cube.model.{NDataSegment, NDataflow}
 import io.kyligence.kap.metadata.model.NTableMetadataManager
 import io.kyligence.kap.query.exception.UnsupportedQueryException
 import io.kyligence.kap.query.relnode.KapRel
@@ -180,21 +180,6 @@ object TableScanPlan extends Logging {
       }
       .reduce(_.union(_))
     logInfo(s"Gen table scan cost Time :${System.currentTimeMillis() - start} ")
-
-    if (olapContext.isConstantQueryWithoutAggregation()) {
-      val countIndex = olapContext.returnTupleInfo.getFieldIndex("_KY_COUNT__")
-      var totalCount = 0
-      cuboidDF.rdd.collect.foreach {
-        row => {
-          if (row.length <= countIndex || row.get(countIndex) == null || !(row.get(countIndex).isInstanceOf[Long])) {
-            throw new IllegalArgumentException("Query without aggregation's result does not match olapContext's returnTupleInfo");
-          }
-          totalCount = totalCount + row.get(countIndex).asInstanceOf[Long].toInt
-        }
-      }
-      return createSimpleRowsDF(totalCount)
-    }
-
     cuboidDF
   }
 
@@ -332,9 +317,7 @@ object TableScanPlan extends Logging {
     val lookupDf = SparderLookupManager.getOrCreate(dataFrameTableName,
       snapshotResPath,
       config)
-    if (olapContext.isConstantQueryWithoutAggregation()) {
-      return createSimpleRowsDF(lookupDf.count().toInt)
-    }
+
     val olapTable = olapContext.firstTableScan.getOlapTable
     val alisTableName = olapContext.firstTableScan.getBackupAlias
     val newNames = lookupDf.schema.fieldNames.map { name =>
@@ -385,16 +368,9 @@ object TableScanPlan extends Logging {
   }
 
   def createSingleRow(rel: KapRel, dataContext: DataContext): DataFrame = {
-    createSimpleRowsDF(1)
-  }
-
-  def createSimpleRowsDF(rowCount: Int): DataFrame = {
-
     val session = SparderEnv.getSparkSession
-    val fields = List[StructField]()
-    val row = Row.fromSeq(List[Object]())
-    val rows = List.fill(rowCount)(row)
+    val rows = List.fill(1)(Row.fromSeq(List[Object]()))
     val rdd = session.sparkContext.makeRDD(rows)
-    session.createDataFrame(rdd, StructType(fields))
+    session.createDataFrame(rdd, StructType(List[StructField]()))
   }
 }

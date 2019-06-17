@@ -241,16 +241,10 @@ public class OLAPContext {
 
     public SQLDigest getSQLDigest() {
         if (sqlDigest == null) {
-            List<FunctionDesc> aggrs = Lists.newArrayList();
-            if (isConstantQueryWithoutAggregation()) {
-                aggrs.add(FunctionDesc.newInstance(FunctionDesc.FUNC_COUNT, null, null));
-            } else {
-                aggrs.addAll(aggregations);
-            }
             sqlDigest = new SQLDigest(firstTableScan.getTableName(), Sets.newHashSet(allColumns),
                     Lists.newLinkedList(joins), // model
                     Lists.newArrayList(groupByColumns), Sets.newHashSet(subqueryJoinParticipants), // group by
-                    Sets.newHashSet(metricsColumns), aggrs, // aggregation
+                    Sets.newHashSet(metricsColumns), Lists.newArrayList(aggregations),  // aggregation
                     Sets.newLinkedHashSet(filterColumns), filter, havingFilter, // filter
                     Lists.newArrayList(sortColumns), Lists.newArrayList(sortOrders), limit, limitPrecedesAggr, // sort & limit
                     Sets.newHashSet(involvedMeasure));
