@@ -149,6 +149,23 @@ public class SegmentsTest {
     }
 
     @Test
+    public void testGetMergeEnd_ByQuarter() {
+        Segments segments = new Segments();
+        long end = segments.getMergeEnd(DateFormat.stringToMillis("2012-02-28 00:00:00"), AutoMergeTimeEnum.QUARTER);
+        Assert.assertEquals(DateFormat.stringToMillis("2012-04-01 00:00:00"), end);
+
+        end = segments.getMergeEnd(DateFormat.stringToMillis("2012-03-01 00:00:00"), AutoMergeTimeEnum.QUARTER);
+        Assert.assertEquals(DateFormat.stringToMillis("2012-04-01 00:00:00"), end);
+
+        end = segments.getMergeEnd(DateFormat.stringToMillis("2012-04-28 00:00:00"), AutoMergeTimeEnum.QUARTER);
+        Assert.assertEquals(DateFormat.stringToMillis("2012-07-01 00:00:00"), end);
+
+        end = segments.getMergeEnd(DateFormat.stringToMillis("2012-05-01 00:00:00"), AutoMergeTimeEnum.QUARTER);
+        Assert.assertEquals(DateFormat.stringToMillis("2012-07-01 00:00:00"), end);
+
+    }
+
+    @Test
     public void testGetRetentionStart_ByMonth() {
         Segments segments = new Segments();
         long start = segments.getRetentionEnd(DateFormat.stringToMillis("2012-03-31 00:00:00"), AutoMergeTimeEnum.MONTH, -1);

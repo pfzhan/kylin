@@ -48,12 +48,6 @@ import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
 
-import com.google.common.collect.Lists;
-import io.kyligence.kap.metadata.model.AutoMergeTimeEnum;
-import io.kyligence.kap.metadata.model.RetentionRange;
-import io.kyligence.kap.metadata.model.VolatileRange;
-import lombok.Getter;
-import lombok.Setter;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.KylinConfigExt;
@@ -73,10 +67,16 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
 
+import io.kyligence.kap.metadata.model.AutoMergeTimeEnum;
 import io.kyligence.kap.metadata.model.MaintainModelType;
+import io.kyligence.kap.metadata.model.RetentionRange;
+import io.kyligence.kap.metadata.model.VolatileRange;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.Setter;
 import lombok.val;
 
 /**
@@ -128,7 +128,8 @@ public class ProjectInstance extends RootPersistentEntity implements ISourceAwar
     @Getter
     @Setter
     private SegmentConfig segmentConfig = new SegmentConfig(true, Lists.newArrayList(AutoMergeTimeEnum.WEEK,
-            AutoMergeTimeEnum.MONTH, AutoMergeTimeEnum.YEAR), new VolatileRange(), new RetentionRange());
+            AutoMergeTimeEnum.MONTH, AutoMergeTimeEnum.QUARTER, AutoMergeTimeEnum.YEAR), new VolatileRange(),
+            new RetentionRange());
 
     @Override
     public String getResourcePath() {

@@ -390,6 +390,14 @@ public class Segments<T extends ISegment> extends ArrayList<T> implements Serial
                 calendar.set(Calendar.SECOND, 0);
                 calendar.set(Calendar.HOUR_OF_DAY, 0);
                 break;
+            case QUARTER:
+                calendar.set(Calendar.DAY_OF_MONTH, 1);
+                calendar.set(Calendar.MONTH, month / 3 * 3);
+                calendar.add(Calendar.MONTH, 3);
+                calendar.set(Calendar.MINUTE, 0);
+                calendar.set(Calendar.SECOND, 0);
+                calendar.set(Calendar.HOUR_OF_DAY, 0);
+                break;
             case YEAR:
                 calendar.set(Calendar.DAY_OF_MONTH, 1);
                 calendar.set(Calendar.MONTH, 0);
