@@ -24,9 +24,9 @@
 
 package io.kyligence.kap.common.scheduler;
 
-public class JobCreatedNotifier extends SchedulerEventNotifier {
-    public JobCreatedNotifier(String project) {
-        setName(SchedulerEventNotifier.JOB_CREATED_NOTIFIER);
+public class JobReadyNotifier extends SchedulerEventNotifier {
+    public JobReadyNotifier(String project) {
+        setName(SchedulerEventNotifier.JOB_IS_READY_NOTIFIER);
         setProject(project);
     }
 }

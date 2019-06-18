@@ -25,7 +25,7 @@
 package io.kyligence.kap.rest.scheduler;
 
 import com.google.common.eventbus.Subscribe;
-import io.kyligence.kap.common.scheduler.JobCreatedNotifier;
+import io.kyligence.kap.common.scheduler.JobReadyNotifier;
 import io.kyligence.kap.common.scheduler.JobFinishedNotifier;
 import io.kyligence.kap.event.manager.EventOrchestratorManager;
 import lombok.Getter;
@@ -37,14 +37,14 @@ public class JobSchedulerListener {
     // only for test usage
     @Getter
     @Setter
-    private boolean jobCreatedNotified = false;
+    private boolean jobReadyNotified = false;
     @Getter
     @Setter
     private boolean jobFinishedNotified = false;
 
     @Subscribe
-    public void onJobCreated(JobCreatedNotifier notifier) {
-        jobCreatedNotified = true;
+    public void onJobIsReady(JobReadyNotifier notifier) {
+        jobReadyNotified = true;
         NDefaultScheduler.getInstance(notifier.getProject()).fetchJobsImmediately();
     }
 

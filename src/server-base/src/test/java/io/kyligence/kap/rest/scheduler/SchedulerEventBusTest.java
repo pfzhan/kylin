@@ -24,6 +24,7 @@
 
 package io.kyligence.kap.rest.scheduler;
 
+import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.common.scheduler.SchedulerEventBusFactory;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.event.handle.AddCuboidHandler;
@@ -36,6 +37,7 @@ import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.favorite.FavoriteQueryManager;
 import io.kyligence.kap.rest.execution.SucceedChainedTestExecutable;
 import io.kyligence.kap.rest.service.FavoriteQueryService;
+import io.kyligence.kap.rest.service.JobService;
 import lombok.val;
 import org.apache.kylin.job.engine.JobEngineConfig;
 import org.apache.kylin.job.execution.AbstractExecutable;
@@ -55,6 +57,7 @@ import org.mockito.Mockito;
 import org.springframework.security.authentication.TestingAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -77,6 +80,9 @@ public class SchedulerEventBusTest extends NLocalFileMetadataTestCase {
 
     @InjectMocks
     private FavoriteQueryService favoriteQueryService = Mockito.spy(new FavoriteQueryService());
+
+    @InjectMocks
+    private JobService jobService = Mockito.spy(new JobService());
 
     @Before
     public void setup() {
@@ -103,7 +109,7 @@ public class SchedulerEventBusTest extends NLocalFileMetadataTestCase {
         favoriteSchedulerListener.setNotifiedCount(0);
         eventSchedulerListener.setEventCreatedNotified(false);
         eventSchedulerListener.setEventFinishedNotified(false);
-        jobSchedulerListener.setJobCreatedNotified(false);
+        jobSchedulerListener.setJobReadyNotified(false);
         jobSchedulerListener.setJobFinishedNotified(false);
 
         cleanupTestMetadata();
@@ -169,7 +175,7 @@ public class SchedulerEventBusTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testJobSchedulerListener() throws InterruptedException {
-        Assert.assertFalse(jobSchedulerListener.isJobCreatedNotified());
+        Assert.assertFalse(jobSchedulerListener.isJobReadyNotified());
         Assert.assertFalse(jobSchedulerListener.isJobFinishedNotified());
 
         val df = NDataflowManager.getInstance(getTestConfig(), PROJECT)
@@ -189,7 +195,7 @@ public class SchedulerEventBusTest extends NLocalFileMetadataTestCase {
         Thread.sleep(100);
 
         // job created message got dispatched
-        Assert.assertTrue(jobSchedulerListener.isJobCreatedNotified());
+        Assert.assertTrue(jobSchedulerListener.isJobReadyNotified());
         Assert.assertFalse(jobSchedulerListener.isJobFinishedNotified());
 
         // wait for job finished
@@ -202,5 +208,61 @@ public class SchedulerEventBusTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(ExecutableState.SUCCEED, executableManager.getOutput(job.getId()).getState());
         Assert.assertEquals(ExecutableState.SUCCEED, executableManager.getOutput(task.getId()).getState());
         Assert.assertTrue(jobSchedulerListener.isJobFinishedNotified());
+    }
+
+    @Test
+    public void testResumeJob() throws IOException {
+        val df = NDataflowManager.getInstance(getTestConfig(), PROJECT)
+                .getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+        DefaultChainedExecutable job = new DefaultChainedExecutable();
+        job.setProject(PROJECT);
+        job.setTargetSubject(df.getModel().getUuid());
+        job.setTargetSegments(df.getSegments().stream().map(NDataSegment::getId).collect(Collectors.toList()));
+        SucceedChainedTestExecutable task = new SucceedChainedTestExecutable();
+        task.setTargetSubject(df.getModel().getUuid());
+        task.setTargetSegments(df.getSegments().stream().map(NDataSegment::getId).collect(Collectors.toList()));
+        job.addTask(task);
+
+        val executableManager = NExecutableManager.getInstance(getTestConfig(), PROJECT);
+        executableManager.addJob(job);
+
+        jobSchedulerListener.setJobReadyNotified(false);
+
+        executableManager.updateJobOutput(job.getId(), ExecutableState.PAUSED);
+
+        UnitOfWork.doInTransactionWithRetry(() -> {
+            jobService.batchUpdateJobStatus(Lists.newArrayList(job.getId()), PROJECT, "RESUME", "");
+            return null;
+        }, PROJECT);
+
+        await().atMost(1000, TimeUnit.MILLISECONDS).until(() -> jobSchedulerListener.isJobReadyNotified());
+    }
+
+    @Test
+    public void testRestartJob() throws IOException {
+        val df = NDataflowManager.getInstance(getTestConfig(), PROJECT)
+                .getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+        DefaultChainedExecutable job = new DefaultChainedExecutable();
+        job.setProject(PROJECT);
+        job.setTargetSubject(df.getModel().getUuid());
+        job.setTargetSegments(df.getSegments().stream().map(NDataSegment::getId).collect(Collectors.toList()));
+        SucceedChainedTestExecutable task = new SucceedChainedTestExecutable();
+        task.setTargetSubject(df.getModel().getUuid());
+        task.setTargetSegments(df.getSegments().stream().map(NDataSegment::getId).collect(Collectors.toList()));
+        job.addTask(task);
+
+        val executableManager = NExecutableManager.getInstance(getTestConfig(), PROJECT);
+        executableManager.addJob(job);
+
+        jobSchedulerListener.setJobReadyNotified(false);
+
+        executableManager.updateJobOutput(job.getId(), ExecutableState.ERROR);
+
+        UnitOfWork.doInTransactionWithRetry(() -> {
+            jobService.batchUpdateJobStatus(Lists.newArrayList(job.getId()), PROJECT, "RESTART", "");
+            return null;
+        }, PROJECT);
+
+        await().atMost(1000, TimeUnit.MILLISECONDS).until(() -> jobSchedulerListener.isJobReadyNotified());
     }
 }

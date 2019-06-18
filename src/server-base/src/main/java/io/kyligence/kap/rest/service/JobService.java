@@ -35,6 +35,9 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import com.google.common.collect.Maps;
+import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
+import io.kyligence.kap.common.scheduler.JobReadyNotifier;
+import io.kyligence.kap.common.scheduler.SchedulerEventBusFactory;
 import io.kyligence.kap.event.model.AddCuboidEvent;
 import io.kyligence.kap.event.model.AddSegmentEvent;
 import io.kyligence.kap.event.model.Event;
@@ -46,6 +49,7 @@ import io.kyligence.kap.rest.response.JobStatisticsResponse;
 import lombok.var;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
+import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.job.common.ShellExecutable;
 import org.apache.kylin.job.constant.JobStatusEnum;
@@ -237,9 +241,13 @@ public class JobService extends BasicService {
         switch (JobActionEnum.valueOf(action)) {
         case RESUME:
             executableManager.resumeJob(jobId);
+            UnitOfWork.get().doAfterUnit(() -> SchedulerEventBusFactory.getInstance(KylinConfig.getInstanceFromEnv())
+                    .postWithLimit(new JobReadyNotifier(project)));
             break;
         case RESTART:
             executableManager.restartJob(jobId);
+            UnitOfWork.get().doAfterUnit(() -> SchedulerEventBusFactory.getInstance(KylinConfig.getInstanceFromEnv())
+                    .postWithLimit(new JobReadyNotifier(project)));
             break;
         case DISCARD:
             cancelJob(project, jobId);

@@ -62,7 +62,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
-import io.kyligence.kap.common.scheduler.JobCreatedNotifier;
+import io.kyligence.kap.common.scheduler.JobReadyNotifier;
 import io.kyligence.kap.common.scheduler.SchedulerEventBusFactory;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import lombok.val;
@@ -141,7 +141,11 @@ public class NExecutableManager {
         executableDao.addJob(executablePO);
 
         // dispatch job-created message out
-        SchedulerEventBusFactory.getInstance(config).postWithLimit(new JobCreatedNotifier(project));
+        if (KylinConfig.getInstanceFromEnv().isUTEnv())
+            SchedulerEventBusFactory.getInstance(config).postWithLimit(new JobReadyNotifier(project));
+        else
+            UnitOfWork.get().doAfterUnit(
+                () -> SchedulerEventBusFactory.getInstance(config).postWithLimit(new JobReadyNotifier(project)));
     }
 
     private void addJobOutput(ExecutablePO executable) {

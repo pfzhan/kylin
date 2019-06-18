@@ -42,6 +42,7 @@
 
 package io.kyligence.kap.event.manager;
 
+import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.common.scheduler.EventCreatedNotifier;
 import io.kyligence.kap.common.scheduler.SchedulerEventBusFactory;
 import org.apache.kylin.common.KylinConfig;
@@ -92,7 +93,11 @@ public class EventManager {
         }
 
         // dispatch event-created message out
-        SchedulerEventBusFactory.getInstance(config).postWithLimit(new EventCreatedNotifier(project));
+        if (KylinConfig.getInstanceFromEnv().isUTEnv())
+            SchedulerEventBusFactory.getInstance(config).postWithLimit(new EventCreatedNotifier(project));
+        else
+            UnitOfWork.get().doAfterUnit(
+                () -> SchedulerEventBusFactory.getInstance(config).postWithLimit(new EventCreatedNotifier(project)));
     }
 
 }
