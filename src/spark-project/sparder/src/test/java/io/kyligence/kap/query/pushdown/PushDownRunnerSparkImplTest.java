@@ -44,6 +44,7 @@ package io.kyligence.kap.query.pushdown;
 
 import java.util.List;
 
+import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.metadata.querymeta.SelectedColumnMeta;
 import org.apache.spark.sql.SparderEnv;
@@ -57,12 +58,13 @@ import org.junit.Test;
 
 import com.google.common.collect.Lists;
 
-public class PushDownRunnerSparkImplTest {
+public class PushDownRunnerSparkImplTest extends NLocalFileMetadataTestCase {
 
     SparkSession ss;
 
     @Before
     public void setUp() throws Exception {
+        createTestMetadata();
         ss = SparkSession.builder().appName("local").master("local[1]").getOrCreate();
         SparderEnv.setSparkSession(ss);
         StructType schema = new StructType();
@@ -84,6 +86,7 @@ public class PushDownRunnerSparkImplTest {
     @After
     public void after() throws Exception {
         ss.stop();
+        cleanupTestMetadata();
     }
 
     @Test

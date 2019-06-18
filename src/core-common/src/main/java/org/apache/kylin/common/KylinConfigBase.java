@@ -705,9 +705,10 @@ abstract public class KylinConfigBase implements Serializable {
     }
 
     // retry interval in milliseconds
-    public int getJobRetryInterval(){
+    public int getJobRetryInterval() {
         return Integer.parseInt(getOptional("kylin.job.retry-interval", "30000"));
     }
+
     public String[] getJobRetryExceptions() {
         return getOptionalStringArray("kylin.job.retry-exception-classes", new String[0]);
     }
@@ -1235,6 +1236,15 @@ abstract public class KylinConfigBase implements Serializable {
 
     public boolean isPushdownQueryCacheEnabled() {
         return Boolean.parseBoolean(this.getOptional("kylin.query.pushdown.cache-enabled", "true"));
+    }
+
+    public boolean isAutoSetPushDownPartitions() {
+        return Boolean
+                .parseBoolean(this.getOptional("kylin.query.pushdown.auto-set-shuffle-partitions-enabled", "true"));
+    }
+
+    public int getBaseShufflePartitionSize() {
+        return Integer.parseInt(this.getOptional("kylin.query.pushdown.base-shuffle-partition-size", "48"));
     }
 
     public String getJdbcUrl() {

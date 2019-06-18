@@ -26,11 +26,13 @@ package io.kyligence.kap.query.pushdown
 
 import java.util.{UUID, List => JList}
 
-import org.apache.kylin.common.{KylinConfig, QueryContext}
 import org.apache.kylin.common.exceptions.KylinTimeoutException
 import org.apache.kylin.common.util.Pair
+import org.apache.kylin.common.{KylinConfig, QueryContext}
 import org.apache.kylin.shaded.htrace.org.apache.htrace.Trace
+import org.apache.spark.network.util.JavaUtils
 import org.apache.spark.sql.functions._
+import org.apache.spark.sql.hive.utils.ResourceDetectUtils
 import org.apache.spark.sql.types.StringType
 import org.apache.spark.sql.util.SparderTypeUtil
 import org.apache.spark.sql.{DataFrame, SparkSession}
@@ -49,11 +51,30 @@ object SparkSqlClient {
 
     val df = ss.sql(sql)
 
+    autoSetShufflePartitions(ss, df)
+
     val msg = "SparkSQL returned result DataFrame"
     logger.info(msg)
 
     Trace.addTimelineAnnotation(msg)
     DFToList(ss, sql, uuid, df)
+  }
+
+  private def autoSetShufflePartitions(ss: SparkSession, df: DataFrame) = {
+    val config = KylinConfig.getInstanceFromEnv
+    if (config.isAutoSetPushDownPartitions) {
+      try {
+        val basePartitionSize = config.getBaseShufflePartitionSize
+        val paths = ResourceDetectUtils.getPaths(df.queryExecution.sparkPlan)
+        val sourceTableSize = ResourceDetectUtils.getResourceSize(paths: _*) + "b"
+        val partitions = Math.max(1, JavaUtils.byteStringAsMb(sourceTableSize) / basePartitionSize).toString
+        df.sparkSession.sessionState.conf.setLocalProperty("spark.sql.shuffle.partitions", partitions)
+        logger.info(s"Auto set spark.sql.shuffle.partitions $partitions")
+      } catch {
+        case e: Throwable =>
+          logger.error("Auto set spark.sql.shuffle.partitions failed.", e)
+      }
+    }
   }
 
   private def DFToList(ss: SparkSession, sql: String, uuid: UUID, df: DataFrame): Pair[JList[JList[String]], JList[StructField]] = {
@@ -74,6 +95,8 @@ object SparkSqlClient {
           throw new KylinTimeoutException("Query timeout after: " + KylinConfig.getInstanceFromEnv.getQueryTimeoutSeconds + "s")
         }
         else throw e
+    } finally {
+      df.sparkSession.sessionState.conf.setLocalProperty("spark.sql.shuffle.partitions", null)
     }
   }
 }
