@@ -228,10 +228,11 @@ public class NDefaultScheduler implements Scheduler<AbstractExecutable>, Connect
                 jobPool.execute(new JobRunner(executable));
                 logger.info("{} scheduled", jobDesc);
             } catch (Exception ex) {
-                if (executable != null)
+                if (executable != null) {
                     context.removeRunningJob(executable);
-                releaseMemoryQuotaIfNeeded(executable.computeStepDriverMemory(), executable.getProject(),
-                        executable.getId());
+                    releaseMemoryQuotaIfNeeded(executable.computeStepDriverMemory(), executable.getProject(),
+                            executable.getId());
+                }
                 logger.warn(jobDesc + " fail to schedule", ex);
             }
         }

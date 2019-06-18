@@ -178,7 +178,6 @@ public class HAMetadataTest extends NLocalFileMetadataTestCase {
         queryResourceStore.catchup();
 
         Assert.assertEquals(7, queryResourceStore.listResourcesRecursively("/").size());
-        Assert.assertEquals(3, queryResourceStore.getResource("/p0/path3.json").getMvcc());
         val auditCount = getJdbcTemplate().queryForObject("select count(*) from test_audit_log", Long.class);
         Assert.assertEquals(14, auditCount.longValue());
         val imageDesc = JsonUtil.readValue(queryResourceStore.getResource("/_image").getByteSource().read(), ImageDesc.class);

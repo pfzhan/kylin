@@ -120,6 +120,7 @@
             io/kyligence/kap/query/exec/*,
             io/kyligence/kap/query/relnode/KapOLAPToEnumerableConverter.java,
             **/org/apache/kylin/query/relnode/OLAP*Rel.java,
+            **/io/kyligence/kap/tool/kerberos/KerberosLoginTask.java,
             **/io/kyligence/kap/tool/kerberos/KerberosLoginUtil.java
         </sonar.jacoco.excludes>
         <sonar.coverage.exclusions>
