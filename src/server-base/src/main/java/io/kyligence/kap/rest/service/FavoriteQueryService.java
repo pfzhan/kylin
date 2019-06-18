@@ -85,8 +85,7 @@ public class FavoriteQueryService extends BasicService {
     private static final String TOTAL_COUNT = "total_count";
     private static final String AVERAGE_DURATION = "average_duration";
 
-
-    private static final String TO_BE_ACCELERATED = "to_be_accelerated";
+    private static final String CAN_BE_ACCELERATED = "can_be_accelerated";
     private static final String WAITING_TAB = "waiting";
     private static final String NOT_ACCELERATED_TAB = "not_accelerated";
     private static final String ACCELERATED_TAB = "accelerated";
@@ -199,16 +198,15 @@ public class FavoriteQueryService extends BasicService {
     }
 
     public Map<String, Integer> getFQSizeInDifferentStatus(String project) {
-        int toBeAcceleratedSize = 0;
+        int canBeAcceleratedSize = 0;
         int waitingSize = 0;
         int notAcceleratedSize = 0;
         int acceleratedSize = 0;
 
         for (val fq : getFavoriteQueryManager(project).getAll()) {
-            if (fq.getStatus().equals(FavoriteQueryStatusEnum.TO_BE_ACCELERATED)) {
-                toBeAcceleratedSize++;
-                waitingSize++;
-                continue;
+            if (fq.getStatus().equals(FavoriteQueryStatusEnum.TO_BE_ACCELERATED)
+                    || fq.getStatus().equals(FavoriteQueryStatusEnum.PENDING)) {
+                canBeAcceleratedSize++;
             }
 
             if (fq.isInWaitingList())
@@ -222,7 +220,7 @@ public class FavoriteQueryService extends BasicService {
         }
 
         Map<String, Integer> result = Maps.newHashMap();
-        result.put(TO_BE_ACCELERATED, toBeAcceleratedSize);
+        result.put(CAN_BE_ACCELERATED, canBeAcceleratedSize);
         result.put(WAITING_TAB, waitingSize);
         result.put(NOT_ACCELERATED_TAB, notAcceleratedSize);
         result.put(ACCELERATED_TAB, acceleratedSize);
@@ -319,7 +317,7 @@ public class FavoriteQueryService extends BasicService {
         return data;
     }
 
-    private List<String> getUnAcceleratedSqlPattern(String project) {
+    private List<String> getAccelerableSqlPattern(String project) {
         return getFavoriteQueryManager(project).getAccelerableSqlPattern();
     }
 
@@ -329,7 +327,7 @@ public class FavoriteQueryService extends BasicService {
 
     @Transaction(project = 0)
     public void acceptAccelerate(String project, int accelerateSize) {
-        List<String> unAcceleratedSqlPattern = getUnAcceleratedSqlPattern(project);
+        List<String> unAcceleratedSqlPattern = getAccelerableSqlPattern(project);
         if (accelerateSize > unAcceleratedSqlPattern.size()) {
             throw new IllegalArgumentException(
                     String.format(MsgPicker.getMsg().getUNACCELERATE_FAVORITE_QUERIES_NOT_ENOUGH(), accelerateSize));

@@ -496,7 +496,7 @@ public class FavoriteQueryServiceTest extends NLocalFileMetadataTestCase {
         favoriteQueryManager.create(mockFavoriteQuery());
 
         val result = favoriteQueryService.getFQSizeInDifferentStatus(PROJECT);
-        Assert.assertEquals(1, (int) result.get("to_be_accelerated"));
+        Assert.assertEquals(2, (int) result.get("can_be_accelerated"));
         Assert.assertEquals(2, (int) result.get("waiting"));
         Assert.assertEquals(2, (int) result.get("not_accelerated"));
         Assert.assertEquals(1, (int) result.get("accelerated"));
