@@ -31,6 +31,7 @@ import java.util.stream.Collectors;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.job.execution.AbstractExecutable;
+import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
 
 import com.clearspring.analytics.util.Lists;
@@ -50,7 +51,7 @@ public class AfterMergeOrRefreshResourceMerger extends SparkJobMetadataMerger{
         super(config, project);
     }
 
-    public NDataLayout[] merge(String dataflowId, Set<String> segmentIds, Set<Long> layoutIds, ResourceStore remoteResourceStore) {
+    public NDataLayout[] merge(String dataflowId, Set<String> segmentIds, Set<Long> layoutIds, ResourceStore remoteResourceStore, JobTypeEnum jobType) {
 
         NDataflowManager mgr = NDataflowManager.getInstance(getConfig(), getProject());
         NDataflowUpdate update = new NDataflowUpdate(dataflowId);
@@ -67,7 +68,9 @@ public class AfterMergeOrRefreshResourceMerger extends SparkJobMetadataMerger{
             mergedSegment.setStatus(SegmentStatusEnum.READY);
 
         toUpdateSegments.add(mergedSegment);
-
+        if (JobTypeEnum.INDEX_REFRESH.equals(jobType)) {
+            updateSnapshotTableIfNeed(mergedSegment);
+        }
         // only add layouts which still in segments, others maybe deleted by user
         List<NDataSegment> toRemoveSegments = distMgr.getToRemoveSegs(distDataflow, mergedSegment);
         val livedLayouts = mgr.getDataflow(dataflowId).getLatestReadySegment().getLayoutsMap().values().stream()
@@ -90,7 +93,7 @@ public class AfterMergeOrRefreshResourceMerger extends SparkJobMetadataMerger{
             val dataFlowId = ExecutableUtils.getDataflowId(abstractExecutable);
             val segmentIds = ExecutableUtils.getSegmentIds(abstractExecutable);
             val layoutIds = ExecutableUtils.getLayoutIds(abstractExecutable);
-            NDataLayout[] nDataLayouts = merge(dataFlowId, segmentIds, layoutIds, buildResourceStore);
+            NDataLayout[] nDataLayouts = merge(dataFlowId, segmentIds, layoutIds, buildResourceStore, abstractExecutable.getJobType());
             recordDownJobStats(abstractExecutable, nDataLayouts);
             abstractExecutable.notifyUserIfNecessary(nDataLayouts);
         }

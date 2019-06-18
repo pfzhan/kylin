@@ -37,7 +37,7 @@ import org.apache.commons.io.FileUtils
 import org.apache.kylin.common.persistence.ResourceStore
 import org.apache.kylin.common.{KapConfig, KylinConfig, StorageURL}
 import org.apache.kylin.job.engine.JobEngineConfig
-import org.apache.kylin.job.execution.{AbstractExecutable, ExecutableState, JobTypeEnum, NExecutableManager}
+import org.apache.kylin.job.execution.{AbstractExecutable, ExecutableState, NExecutableManager}
 import org.apache.kylin.job.impl.threadpool.NDefaultScheduler
 import org.apache.kylin.job.lock.MockJobLock
 import org.apache.kylin.metadata.model.SegmentRange
@@ -163,7 +163,7 @@ trait JobSupport
 
     val analysisStore: ResourceStore = ExecutableUtils.getRemoteStore(config, job.getSparkAnalysisStep)
     val buildStore: ResourceStore = ExecutableUtils.getRemoteStore(config, job.getSparkCubingStep)
-    val merger: AfterBuildResourceMerger = new AfterBuildResourceMerger(config, prj, JobTypeEnum.INC_BUILD)
+    val merger: AfterBuildResourceMerger = new AfterBuildResourceMerger(config, prj)
     val layoutIds: java.util.Set[java.lang.Long] = toBuildLayouts.asScala.map(c => new java.lang.Long(c.getId)).asJava
     merger.mergeAfterIncrement(df.getUuid, oneSeg.getId, layoutIds, buildStore)
     merger.mergeAnalysis(job.getSparkAnalysisStep)

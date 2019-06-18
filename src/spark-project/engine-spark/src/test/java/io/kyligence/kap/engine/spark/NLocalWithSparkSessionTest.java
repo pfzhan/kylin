@@ -37,7 +37,6 @@ import org.apache.kylin.common.StorageURL;
 import org.apache.kylin.job.engine.JobEngineConfig;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.ExecutableState;
-import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
 import org.apache.kylin.job.lock.MockJobLock;
@@ -244,7 +243,7 @@ public class NLocalWithSparkSessionTest extends NLocalFileMetadataTestCase imple
             throw new IllegalStateException();
         }
 
-        val merger = new AfterBuildResourceMerger(config, getProject(), JobTypeEnum.INC_BUILD);
+        val merger = new AfterBuildResourceMerger(config, getProject());
         if (isAppend) {
             merger.mergeAfterIncrement(df.getUuid(), oneSeg.getId(), ExecutableUtils.getLayoutIds(sparkStep),
                     ExecutableUtils.getRemoteStore(config, sparkStep));

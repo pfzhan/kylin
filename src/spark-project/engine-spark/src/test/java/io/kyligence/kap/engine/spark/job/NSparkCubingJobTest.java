@@ -44,7 +44,6 @@ import org.apache.kylin.job.engine.JobEngineConfig;
 import org.apache.kylin.job.exception.ExecuteException;
 import org.apache.kylin.job.execution.ExecutableContext;
 import org.apache.kylin.job.execution.ExecutableState;
-import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
 import org.apache.kylin.job.lock.MockJobLock;
@@ -194,7 +193,7 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
         ExecutableState status = wait(job);
         Assert.assertEquals(ExecutableState.SUCCEED, status);
 
-        val merger = new AfterBuildResourceMerger(config, getProject(), JobTypeEnum.INC_BUILD);
+        val merger = new AfterBuildResourceMerger(config, getProject());
         merger.mergeAfterIncrement(df.getUuid(), oneSeg.getId(), ExecutableUtils.getLayoutIds(sparkStep),
                 ExecutableUtils.getRemoteStore(config, sparkStep));
         merger.mergeAnalysis(job.getSparkAnalysisStep());
@@ -259,7 +258,7 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
         ExecutableState status = wait(job);
         Assert.assertEquals(ExecutableState.SUCCEED, status);
 
-        val merger = new AfterBuildResourceMerger(config, getProject(), JobTypeEnum.INC_BUILD);
+        val merger = new AfterBuildResourceMerger(config, getProject());
         merger.mergeAfterIncrement(df.getUuid(), oneSeg.getId(), ExecutableUtils.getLayoutIds(sparkStep),
                 ExecutableUtils.getRemoteStore(config, sparkStep));
         NDataSegment newSeg = dsMgr.getDataflow(dataflowId).getSegments().getFirstSegment();

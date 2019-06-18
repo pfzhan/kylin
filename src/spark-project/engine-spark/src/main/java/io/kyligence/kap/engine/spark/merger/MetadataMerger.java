@@ -32,6 +32,7 @@ import org.apache.kylin.job.execution.AbstractExecutable;
 
 import io.kyligence.kap.metadata.cube.model.NDataLayout;
 import lombok.Getter;
+import org.apache.kylin.job.execution.JobTypeEnum;
 
 public abstract class MetadataMerger {
     @Getter
@@ -41,8 +42,8 @@ public abstract class MetadataMerger {
         this.config = config;
     }
 
-    public abstract NDataLayout[] merge(String flowName, Set<String> segmentIds, Set<Long> layoutIds,
-            ResourceStore remoteStore);
+    public abstract NDataLayout[] merge(String dataflowId, Set<String> segmentIds, Set<Long> layoutIds,
+                                        ResourceStore remoteResourceStore, JobTypeEnum jobType);
 
     public abstract void merge(AbstractExecutable abstractExecutable);
 

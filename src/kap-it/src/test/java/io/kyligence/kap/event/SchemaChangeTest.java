@@ -43,7 +43,6 @@ import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.job.engine.JobEngineConfig;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.ExecutableState;
-import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
 import org.apache.kylin.job.lock.MockJobLock;
@@ -185,7 +184,7 @@ public class SchemaChangeTest extends AbstractMVCIntegrationTestCase {
             throw new IllegalStateException();
 
         val buildStore = ExecutableUtils.getRemoteStore(config, job.getSparkCubingStep());
-        val merger = new AfterBuildResourceMerger(config, PROJECT, JobTypeEnum.INC_BUILD);
+        val merger = new AfterBuildResourceMerger(config, PROJECT);
         val layoutIds = toBuildLayouts.stream().map(LayoutEntity::getId).collect(Collectors.toSet());
         merger.mergeAfterIncrement(df.getUuid(), oneSeg.getId(), layoutIds, buildStore);
     }

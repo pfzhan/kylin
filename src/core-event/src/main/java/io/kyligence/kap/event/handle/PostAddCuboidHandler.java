@@ -28,7 +28,6 @@ import java.util.UUID;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.execution.ChainedExecutable;
 import org.apache.kylin.job.execution.DefaultChainedExecutableOnModel;
-import org.apache.kylin.job.execution.JobTypeEnum;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -59,7 +58,7 @@ public class PostAddCuboidHandler extends AbstractEventPostJobHandler {
                 return;
             }
             val kylinConfig = KylinConfig.getInstanceFromEnv();
-            val merger = new AfterBuildResourceMerger(kylinConfig, project, JobTypeEnum.INDEX_BUILD);
+            val merger = new AfterBuildResourceMerger(kylinConfig, project);
             executable.getTasks().stream() //
                     .filter(task -> task instanceof NSparkExecutable) //
                     .filter(task -> ((NSparkExecutable) task).needMergeMetadata())

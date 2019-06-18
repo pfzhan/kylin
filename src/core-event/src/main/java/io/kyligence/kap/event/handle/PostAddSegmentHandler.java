@@ -78,7 +78,7 @@ public class PostAddSegmentHandler extends AbstractEventPostJobHandler {
         val dataflowId = ExecutableUtils.getDataflowId(buildTask);
         try {
             val kylinConfig = KylinConfig.getInstanceFromEnv();
-            val merger = new AfterBuildResourceMerger(kylinConfig, project, JobTypeEnum.INC_BUILD);
+            val merger = new AfterBuildResourceMerger(kylinConfig, project);
             executable.getTasks().stream()
                     .filter(task -> task instanceof NSparkExecutable)
                     .filter(task -> ((NSparkExecutable)task).needMergeMetadata())

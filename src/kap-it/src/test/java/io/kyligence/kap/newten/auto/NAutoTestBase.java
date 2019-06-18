@@ -40,7 +40,6 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.job.execution.ExecutableState;
-import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
 import org.apache.kylin.metadata.model.SegmentRange;
@@ -349,8 +348,7 @@ public class NAutoTestBase extends NLocalWithSparkSessionTest {
                 }
                 val analysisStore = ExecutableUtils.getRemoteStore(kylinConfig, job.getSparkAnalysisStep());
                 val buildStore = ExecutableUtils.getRemoteStore(kylinConfig, job.getSparkCubingStep());
-                AfterBuildResourceMerger merger = new AfterBuildResourceMerger(kylinConfig, proj,
-                        JobTypeEnum.INC_BUILD);
+                AfterBuildResourceMerger merger = new AfterBuildResourceMerger(kylinConfig, proj);
                 val layoutIds = layouts.stream().map(LayoutEntity::getId).collect(Collectors.toSet());
                 if (isAppend) {
                     merger.mergeAfterIncrement(df.getUuid(), oneSeg.getId(), layoutIds, buildStore);
