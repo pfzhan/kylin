@@ -11,10 +11,11 @@
       </el-table-column>
       <el-table-column :label="$t('kylinLang.common.action')" width="87" class-name="ky-hover-icon">
         <template slot-scope="scope">
-          <el-tooltip :content="$t('batchLoad')" effect="dark" placement="top">
+          <!-- <el-tooltip :content="$t('batchLoad')" effect="dark" placement="top">
             <i class="el-icon-ksd-batch_check ksd-fs-14 ksd-mr-10" @click="handleBatchLoad"></i>
           </el-tooltip><span>
-          </span><el-tooltip :content="$t('general')" effect="dark" placement="top">
+          </span> -->
+          <el-tooltip :content="$t('general')" effect="dark" placement="top">
             <i class="el-icon-ksd-setting ksd-fs-14 ksd-mr-10 disabled" @click="() => false && handleSourceGeneral(scope.row)"></i>
           </el-tooltip><span>
           </span><el-tooltip :content="$t('removeSource')" effect="dark" placement="top">
