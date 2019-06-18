@@ -443,7 +443,9 @@ export default class ModelList extends Vue {
       this.filterArgs.sortBy = 'last_modify'
     }
     this.filterArgs.reverse = !(order === 'ascending')
-    this.loadModelsList()
+    if (this.filterArgs.project) {
+      this.loadModelsList()
+    }
   }
   // 全屏查看模型附属信息
   toggleShowFull (index, row) {
