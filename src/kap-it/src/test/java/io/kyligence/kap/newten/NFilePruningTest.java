@@ -280,8 +280,8 @@ public class NFilePruningTest extends NLocalWithSparkSessionTest {
         query.add(Pair.newPair("", date1));
 
         // see #11598
-        // query.add(Pair.newPair("", ts0));
-        // query.add(Pair.newPair("", ts1));
+        query.add(Pair.newPair("", ts0));
+        query.add(Pair.newPair("", ts1));
         NExecAndComp.execAndCompare(query, getProject(), NExecAndComp.CompareLevel.SAME, "left");
     }
 
