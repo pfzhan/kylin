@@ -24,6 +24,7 @@
 
 package io.kyligence.kap.rest;
 
+import org.apache.spark.api.java.JavaSparkContext;
 import org.apache.spark.sql.SparderEnv;
 import org.junit.After;
 import org.junit.Assert;
@@ -57,7 +58,7 @@ public class SparkContextCanaryTest extends NLocalFileMetadataTestCase {
         SparderEnv.getSparkSession().stop();
         Assert.assertFalse(SparderEnv.isSparkAvailable());
 
-        SparkContextCanary.monitor();
+        SparkContextCanary.monitor(new JavaSparkContext(SparderEnv.getSparkSession().sparkContext()));
 
         Assert.assertTrue(SparderEnv.isSparkAvailable());
         Assert.assertEquals(0, SparkContextCanary.errorAccumulated);
@@ -69,17 +70,18 @@ public class SparkContextCanaryTest extends NLocalFileMetadataTestCase {
         // first check should be GOOD
         Assert.assertTrue(SparderEnv.isSparkAvailable());
 
+        JavaSparkContext jsc = new JavaSparkContext(SparderEnv.getSparkSession().sparkContext());
         // set kap.canary.sqlcontext-error-response-ms to 1
         // And SparkContextCanary numberCount will timeout
         Assert.assertEquals(0, SparkContextCanary.errorAccumulated);
         System.setProperty("kap.canary.sqlcontext-error-response-ms", "1");
-        SparkContextCanary.monitor();
+        SparkContextCanary.monitor(jsc);
 
         // errorAccumulated increase
         Assert.assertEquals(1, SparkContextCanary.errorAccumulated);
 
         // reach threshold to restart spark. Reset errorAccumulated.
-        SparkContextCanary.monitor();
+        SparkContextCanary.monitor(jsc);
         Assert.assertEquals(0, SparkContextCanary.errorAccumulated);
         Assert.assertTrue(SparderEnv.isSparkAvailable());
 

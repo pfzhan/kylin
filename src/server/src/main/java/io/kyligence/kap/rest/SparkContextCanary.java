@@ -43,8 +43,8 @@ public class SparkContextCanary {
     private static final Logger logger = LoggerFactory.getLogger(SparkContextCanary.class);
     private static volatile boolean isStarted = false;
 
-    private static final int thresholdToRestartSpark = KapConfig.getInstanceFromEnv().getThresholdToRestartSpark();
-    private static final int periodMinutes = KapConfig.getInstanceFromEnv().getSparkCanaryPeriodMinutes();
+    private static final int THRESHOLD_TO_RESTART_SPARK = KapConfig.getInstanceFromEnv().getThresholdToRestartSpark();
+    private static final int PERIOD_MINUTES = KapConfig.getInstanceFromEnv().getSparkCanaryPeriodMinutes();
 
     // visible for test
     static int errorAccumulated = 0;
@@ -57,26 +57,29 @@ public class SparkContextCanary {
             synchronized (SparkContextCanary.class) {
                 if (!isStarted) {
                     isStarted = true;
+                    val jsc = new JavaSparkContext(SparderEnv.getSparkSession().sparkContext());
+                    jsc.setLocalProperty("spark.scheduler.pool", "vip_tasks");
                     logger.info("Start monitoring Spark");
-                    Executors.newSingleThreadScheduledExecutor()
-                            .scheduleWithFixedDelay(SparkContextCanary::monitor, periodMinutes, periodMinutes, TimeUnit.MINUTES);
+                    Executors.newSingleThreadScheduledExecutor().scheduleWithFixedDelay(
+                            () -> SparkContextCanary.monitor(jsc), PERIOD_MINUTES, PERIOD_MINUTES, TimeUnit.MINUTES);
                 }
             }
         }
     }
 
-    static void monitor() {
+    static void monitor(JavaSparkContext jsc) {
         try {
             // check spark sql context
             if (!SparderEnv.isSparkAvailable()) {
                 logger.info("Spark is unavailable, need to restart immediately.");
-                errorAccumulated = Math.max(errorAccumulated + 1, thresholdToRestartSpark);
+                errorAccumulated = Math.max(errorAccumulated + 1, THRESHOLD_TO_RESTART_SPARK);
             } else {
                 try {
                     long t = System.currentTimeMillis();
-                    val ret = numberCount().get(KapConfig.getInstanceFromEnv().getSparkCanaryErrorResponseMs(), TimeUnit.MILLISECONDS);
-                    logger.info("SparkContextCanary numberCount returned successfully with value {}, takes {} ms.",
-                            ret, (System.currentTimeMillis() - t));
+                    val ret = numberCount(jsc).get(KapConfig.getInstanceFromEnv().getSparkCanaryErrorResponseMs(),
+                            TimeUnit.MILLISECONDS);
+                    logger.info("SparkContextCanary numberCount returned successfully with value {}, takes {} ms.", ret,
+                            (System.currentTimeMillis() - t));
                     // reset errorAccumulated once good context is confirmed
                     errorAccumulated = 0;
                 } catch (TimeoutException te) {
@@ -85,13 +88,13 @@ public class SparkContextCanary {
                             KapConfig.getInstanceFromEnv().getSparkCanaryErrorResponseMs(), errorAccumulated);
                 } catch (ExecutionException ee) {
                     logger.error("SparkContextCanary numberCount occurs exception, need to restart immediately.", ee);
-                    errorAccumulated = Math.max(errorAccumulated + 1, thresholdToRestartSpark);
+                    errorAccumulated = Math.max(errorAccumulated + 1, THRESHOLD_TO_RESTART_SPARK);
                 }
             }
 
             logger.debug("Spark context errorAccumulated:{}", errorAccumulated);
 
-            if (errorAccumulated >= thresholdToRestartSpark) {
+            if (errorAccumulated >= THRESHOLD_TO_RESTART_SPARK) {
                 try {
                     // Take repair action if error accumulated exceeds threshold
                     logger.warn("Repairing spark context");
@@ -108,15 +111,13 @@ public class SparkContextCanary {
     }
 
     // for canary
-    private static JavaFutureAction<Long> numberCount() {
-        val sc = new JavaSparkContext(SparderEnv.getSparkSession().sparkContext());
+    private static JavaFutureAction<Long> numberCount(JavaSparkContext jsc) {
         val list = new ArrayList<Integer>();
         for (int i = 0; i < 100; i++) {
             list.add(i);
         }
 
-        sc.setLocalProperty("spark.scheduler.pool", "vip_tasks");
-        return sc.parallelize(list).countAsync();
+        return jsc.parallelize(list).countAsync();
     }
 
 }
