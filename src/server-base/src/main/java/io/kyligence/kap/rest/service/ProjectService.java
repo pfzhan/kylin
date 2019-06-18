@@ -30,6 +30,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.metadata.favorite.FavoriteRule;
+import io.kyligence.kap.metadata.favorite.FavoriteRuleManager;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -114,7 +116,43 @@ public class ProjectService extends BasicService {
         ProjectInstance createdProject = getProjectManager().createProject(projectName, owner, description,
                 overrideProps, newProject.getMaintainModelType());
         logger.debug("New project created.");
+        UnitOfWork.get().doAfterUnit(() -> UnitOfWork.doInTransactionWithRetry(() -> {
+            createDefaultRules(projectName);
+            return 0;
+        }, projectName));
         return createdProject;
+    }
+
+    private void createDefaultRules(String projectName) {
+        // create default rules
+        // frequency rule
+        val favoriteRuleManager = FavoriteRuleManager.getInstance(KylinConfig.getInstanceFromEnv(), projectName);
+        FavoriteRule.Condition freqCond = new FavoriteRule.Condition();
+        freqCond.setRightThreshold("0.1");
+        FavoriteRule freqRule = new FavoriteRule(Lists.newArrayList(freqCond), FavoriteRule.FREQUENCY_RULE_NAME, true);
+        favoriteRuleManager.createRule(freqRule);
+        // submitter rule
+        FavoriteRule.Condition submitterCond = new FavoriteRule.Condition();
+        submitterCond.setRightThreshold("ADMIN");
+        FavoriteRule submitterRule = new FavoriteRule(Lists.newArrayList(submitterCond),
+                FavoriteRule.SUBMITTER_RULE_NAME, true);
+        favoriteRuleManager.createRule(submitterRule);
+        // submitter group rule
+        FavoriteRule.Condition submitterGroupCond = new FavoriteRule.Condition();
+        submitterGroupCond.setRightThreshold("ROLE_ADMIN");
+        favoriteRuleManager.createRule(new FavoriteRule(Lists.newArrayList(submitterGroupCond), FavoriteRule.SUBMITTER_GROUP_RULE_NAME, true));
+        // duration rule
+        FavoriteRule.Condition durationCond = new FavoriteRule.Condition();
+        durationCond.setLeftThreshold("0");
+        durationCond.setRightThreshold("180");
+        FavoriteRule durationRule = new FavoriteRule(Lists.newArrayList(durationCond), FavoriteRule.DURATION_RULE_NAME,
+                false);
+        favoriteRuleManager.createRule(durationRule);
+
+        // create blacklist
+        FavoriteRule blacklist = new FavoriteRule();
+        blacklist.setName(FavoriteRule.BLACKLIST_NAME);
+        favoriteRuleManager.createRule(blacklist);
     }
 
     public List<ProjectInstance> getReadableProjects(final String projectName, boolean exactMatch) {

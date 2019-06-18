@@ -142,7 +142,10 @@ public class ProjectServiceTest extends ServiceTestBase {
 
         ProjectInstance projectInstance = new ProjectInstance();
         projectInstance.setName("project11");
-        projectService.createProject(projectInstance.getName(), projectInstance);
+        UnitOfWork.doInTransactionWithRetry(() -> {
+            projectService.createProject(projectInstance.getName(), projectInstance);
+            return null;
+        }, projectInstance.getName());
         ProjectInstance projectInstance2 = projectManager.getProject("project11");
         Assert.assertTrue(projectInstance2 != null);
         Assert.assertEquals(projectInstance2.getMaintainModelType(), MaintainModelType.AUTO_MAINTAIN);
@@ -155,7 +158,10 @@ public class ProjectServiceTest extends ServiceTestBase {
         ProjectInstance projectInstance = new ProjectInstance();
         projectInstance.setName("project11");
         projectInstance.setMaintainModelType(MaintainModelType.MANUAL_MAINTAIN);
-        projectService.createProject(projectInstance.getName(), projectInstance);
+        UnitOfWork.doInTransactionWithRetry(() -> {
+            projectService.createProject(projectInstance.getName(), projectInstance);
+            return null;
+        }, projectInstance.getName());
         ProjectInstance projectInstance2 = projectManager.getProject("project11");
         Assert.assertTrue(projectInstance2 != null);
         Assert.assertEquals(projectInstance2.getMaintainModelType(), MaintainModelType.MANUAL_MAINTAIN);
@@ -419,7 +425,10 @@ public class ProjectServiceTest extends ServiceTestBase {
         val project = "project12";
         ProjectInstance projectInstance = new ProjectInstance();
         projectInstance.setName(project);
-        projectService.createProject(project, projectInstance);
+        UnitOfWork.doInTransactionWithRetry(() -> {
+            projectService.createProject(project, projectInstance);
+            return null;
+        }, project);
 
         val eventOrchestratorManager = EventOrchestratorManager.getInstance(getTestConfig());
         eventOrchestratorManager.addProject(project);
