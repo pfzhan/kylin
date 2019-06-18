@@ -31,10 +31,12 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.persistence.Serializer;
 import org.apache.kylin.common.util.ClassUtil;
+import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.metadata.cachesync.CachedCrudAssist;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.project.ProjectInstance;
@@ -122,6 +124,25 @@ public class NDataModelManager {
             return null;
         }
         return crud.get(modelId);
+    }
+
+    public NDataModel getDataModelDescWithoutInit(String modelId) {
+        try {
+            val resource = ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv())
+                    .getResource(getDataModelDesc(modelId).getResourcePath());
+            val modelDesc = JsonUtil.readValue(resource.getByteSource().read(), NDataModel.class);
+            modelDesc.setMvcc(resource.getMvcc());
+            modelDesc.setProject(project);
+            return modelDesc;
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public boolean isModelBroken(String modelId) {
+        val dataflowManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+        val dataflow = dataflowManager.getDataflow(modelId);
+        return dataflow == null || dataflow.checkBrokenWithRelatedInfo();
     }
 
     public NDataModel getDataModelDescByAlias(String alias) {

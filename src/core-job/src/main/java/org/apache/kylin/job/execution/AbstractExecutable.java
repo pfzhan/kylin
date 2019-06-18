@@ -139,9 +139,14 @@ public abstract class AbstractExecutable implements Executable {
     private Map<String, Object> runTimeInfo = Maps.newHashMap();
 
     public String getTargetModelAlias() {
+        val modelManager = NDataModelManager.getInstance(getConfig(), getProject());
         NDataModel dataModelDesc = NDataModelManager.getInstance(getConfig(), getProject())
                 .getDataModelDesc(targetSubject);
-        return (dataModelDesc == null || dataModelDesc.isBroken()) ? null : dataModelDesc.getAlias();
+        return dataModelDesc == null ? null
+                : modelManager.isModelBroken(targetSubject)
+                        ? modelManager.getDataModelDescWithoutInit(targetSubject).getAlias()
+                        : dataModelDesc.getAlias();
+
     }
 
     public String getTargetSubjectAlias() {

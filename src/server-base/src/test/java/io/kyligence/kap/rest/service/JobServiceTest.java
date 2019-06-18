@@ -51,7 +51,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.dao.ExecutableOutputPO;
 import org.apache.kylin.job.execution.AbstractExecutable;
@@ -77,6 +76,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 
 import com.google.common.collect.Lists;
 
+import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.engine.spark.job.NTableSamplingJob;
 import io.kyligence.kap.event.manager.EventDao;
@@ -86,6 +86,7 @@ import io.kyligence.kap.event.model.Event;
 import io.kyligence.kap.event.model.MergeSegmentEvent;
 import io.kyligence.kap.event.model.PostAddCuboidEvent;
 import io.kyligence.kap.event.model.RefreshSegmentEvent;
+import io.kyligence.kap.metadata.cube.model.NBatchConstants;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.rest.execution.SucceedChainedTestExecutable;
@@ -197,14 +198,22 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
 
     }
 
+    private void addSegment(AbstractExecutable job) {
+        job.setProject("default");
+        job.setParam(NBatchConstants.P_LAYOUT_IDS, "1,2,3,4,5");
+        job.setTargetSubject("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+    }
+
     @Test
     public void testJobStepRatio() {
         val project = "default";
         NExecutableManager manager = NExecutableManager.getInstance(jobService.getConfig(), project);
         SucceedChainedTestExecutable executable = new SucceedChainedTestExecutable();
         executable.setProject(project);
+        addSegment(executable);
         SucceedChainedTestExecutable task = new SucceedChainedTestExecutable();
         task.setProject(project);
+        addSegment(task);
         executable.addTask(task);
         manager.addJob(executable);
         manager.updateJobOutput(executable.getId(), ExecutableState.PAUSED, null, null, null);
@@ -288,6 +297,7 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
     public void testGetJobCreateTime() {
         NExecutableManager manager = NExecutableManager.getInstance(jobService.getConfig(), "default");
         SucceedChainedTestExecutable executable = new SucceedChainedTestExecutable();
+        addSegment(executable);
         executable.setParam("test1", "test1");
         executable.setParam("test2", "test2");
         executable.setParam("test3", "test3");
@@ -317,7 +327,7 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
         jobFilter.setSortBy("job_name");
         List<ExecutableResponse> jobs = jobService.listJobs(jobFilter);
 
-        Assert.assertNull(jobs.get(0).getTargetSubject()); // no target model so it's null
+        Assert.assertEquals("The model is deleted", jobs.get(0).getTargetSubject()); // no target model so it's null
         Assert.assertEquals("mocked job", jobs.get(0).getJobName());
         Assert.assertEquals(tableDesc.getIdentity(), jobs.get(1).getTargetSubject());
         Assert.assertEquals("TABLE_SAMPLING", jobs.get(1).getJobName());

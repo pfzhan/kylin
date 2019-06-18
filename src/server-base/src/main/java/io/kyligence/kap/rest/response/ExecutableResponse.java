@@ -26,6 +26,10 @@ package io.kyligence.kap.rest.response;
 
 import java.util.List;
 
+import io.kyligence.kap.metadata.cube.model.NDataflowManager;
+import io.kyligence.kap.metadata.model.NTableMetadataManager;
+import lombok.val;
+import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.constant.JobStatusEnum;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.ChainedExecutable;
@@ -99,6 +103,19 @@ public class ExecutableResponse implements Comparable<ExecutableResponse> {
             NTableSamplingJob samplingJob = (NTableSamplingJob) abstractExecutable;
             executableResponse.setDataRangeEnd(Long.MAX_VALUE);
             executableResponse.setTargetSubject(samplingJob.getParam(NBatchConstants.P_TABLE_NAME));
+            if (NTableMetadataManager.getInstance(KylinConfig.getInstanceFromEnv(), abstractExecutable.getProject())
+                    .getTableDesc(executableResponse.getTargetSubject()) == null) {
+                executableResponse.setTargetSubject(executableResponse.getTargetSubject() + " deleted");
+            }
+        } else {
+            val dataflow = NDataflowManager
+                    .getInstance(KylinConfig.getInstanceFromEnv(), abstractExecutable.getProject())
+                    .getDataflow(abstractExecutable.getTargetSubject());
+            if (dataflow == null) {
+                executableResponse.setTargetSubject("The model is deleted");
+            } else if (dataflow.checkBrokenWithRelatedInfo()) {
+                executableResponse.setTargetSubject(executableResponse.getTargetSubject() + " broken");
+            }
         }
 
         List<? extends AbstractExecutable> tasks = ((ChainedExecutable) abstractExecutable).getTasks();

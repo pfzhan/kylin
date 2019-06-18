@@ -39,7 +39,6 @@ import java.util.stream.Collectors;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.persistence.RootPersistentEntity;
 import org.apache.kylin.common.util.DateFormat;
 import org.apache.kylin.common.util.JsonUtil;
@@ -184,7 +183,7 @@ public class ModelService extends BasicService {
             var modelDesc = dataflow.getModel();
             val isBroken = dataflow.checkBrokenWithRelatedInfo();
             if (isBroken) {
-                modelDesc = getBrokenModel(projectName, modelDesc.getResourcePath());
+                modelDesc = getBrokenModel(projectName, modelDesc.getId());
             }
             boolean isModelNameMatch = isArgMatch(modelAlias, exactMatch, modelDesc.getAlias());
             boolean isModelOwnerMatch = isArgMatch(owner, exactMatch, modelDesc.getOwner());
@@ -240,6 +239,10 @@ public class ModelService extends BasicService {
     private NDataModelResponse enrichModelResponse(NDataModel modelDesc, String projectName) {
         NDataModelResponse nDataModelResponse = new NDataModelResponse(modelDesc);
         if (modelDesc.isBroken()) {
+            val tableManager = NTableMetadataManager.getInstance(KylinConfig.getInstanceFromEnv(), projectName);
+            if (tableManager.getTableDesc(modelDesc.getRootFactTableName()) == null) {
+                nDataModelResponse.setRootFactTableName(nDataModelResponse.getRootFactTableName() + " deleted");
+            }
             return nDataModelResponse;
         }
         nDataModelResponse.setAllTableRefs(modelDesc.getAllTables());
@@ -730,18 +733,11 @@ public class ModelService extends BasicService {
         }, project);
     }
 
-    private NDataModel getBrokenModel(String project, String resourcePath) {
-        try {
-            val resource = ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv())
-                    .getResource(resourcePath);
-            val modelDesc = JsonUtil.readValue(resource.getByteSource().read(), NDataModel.class);
-            modelDesc.setBroken(true);
-            modelDesc.setProject(project);
-            modelDesc.setMvcc(resource.getMvcc());
-            return modelDesc;
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+    private NDataModel getBrokenModel(String project, String modelId) {
+        val model = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
+                .getDataModelDescWithoutInit(modelId);
+        model.setBroken(true);
+        return model;
     }
 
     private void checkModelRequest(ModelRequest request) {
@@ -1238,7 +1234,7 @@ public class ModelService extends BasicService {
     public NDataModel repairBrokenModel(String project, ModelRequest modelRequest) throws Exception {
         val modelManager = getDataModelManager(project);
         val origin = modelManager.getDataModelDesc(modelRequest.getId());
-        val broken = getBrokenModel(project, origin.getResourcePath());
+        val broken = getBrokenModel(project, origin.getId());
         val prjManager = getProjectManager();
         val prj = prjManager.getProject(project);
 
