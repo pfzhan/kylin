@@ -127,7 +127,7 @@
                     <el-dropdown-item command="rename" divided v-if="scope.row.status !== 'BROKEN'">{{$t('rename')}}</el-dropdown-item>
                     <el-dropdown-item command="clone" v-if="scope.row.status !== 'BROKEN'">{{$t('kylinLang.common.clone')}}</el-dropdown-item>
                     <el-dropdown-item command="delete">{{$t('delete')}}</el-dropdown-item>
-                    <el-dropdown-item command="purge" v-if="scope.row.management_type!=='TABLE_ORIENTED'">{{$t('purge')}}</el-dropdown-item>
+                    <el-dropdown-item command="purge" v-if="scope.row.status !== 'BROKEN'">{{$t('purge')}}</el-dropdown-item>
                     <el-dropdown-item command="offline" v-if="scope.row.status !== 'OFFLINE' && scope.row.status !== 'BROKEN'">{{$t('offLine')}}</el-dropdown-item>
                     <el-dropdown-item command="online" v-if="scope.row.status !== 'ONLINE' && scope.row.status !== 'BROKEN'">{{$t('onLine')}}</el-dropdown-item>
                     </el-dropdown-menu>
