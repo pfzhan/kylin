@@ -43,6 +43,7 @@ exports.default = {
     automaticlayout: 'Automatic Layout',
     search: 'Search',
     fullscreen: 'Full Screen',
+    loadMore: 'Load More...',
     // 常规状态
     success: 'Success',
     fail: 'Fail',

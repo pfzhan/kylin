@@ -264,7 +264,7 @@ Vue.directive('drag', {
     function checkBoxCollision (changeType, size, rectifyVal) {
       rectifyVal = rectifyVal || 0
       // 无自定义盒子和限制
-      if (!dragInfo.box && !limitObj && dragInfo.ignoreEdgeCheck) {
+      if (!dragInfo.box && !limitObj && dragInfo.allowOutOfView) {
         return true
       }
       if (limitObj) {
@@ -281,7 +281,7 @@ Vue.directive('drag', {
           }
         }
       }
-      if (dragInfo.box && !dragInfo.ignoreEdgeCheck) {
+      if (dragInfo.box && !dragInfo.allowOutOfView) {
         if (changeType === 'top') {
           if (size + dragInfo.height > boxH) {
             dragInfo.top = boxH - dragInfo.height > 0 ? boxH - dragInfo.height : 0

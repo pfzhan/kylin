@@ -10,15 +10,17 @@ class NTable {
     this.columns = objectClone(options.columns).filter((col) => {
       return !col.is_computed_column
     }) // 所有列
-    // 添加一些筛选配置
-    this.columns.forEach((col) => {
-      col.isHidden = false
-    })
+    this.columnPerSize = 50 // 每批显示条数
+    this.hasMoreColumns = this.columns.length > 50 // 是否显示加载更多
+    this.columnCurrentPage = 1 // 当前页数
+    this.filterColumnChar = '' // 搜索字符串
+    this.showColumns = this.columns.slice(0, this.columnPerSize)
     this.getOtherTableByGuid = options.getTableByGuid
     this.kind = options.kind ? options.kind : options.fact ? modelRenderConfig.tableKind.fact : modelRenderConfig.tableKind.lookup // table 类型
     this.joinInfo = {} // 链接对象
     this.guid = options.guid || sampleGuid() // identify id
     this.alias = options.alias || options.table // 别名
+    this._cache_search_columns = this.columns // 搜索结果缓存
     // this._parent = options._parent
     this.ST = null
     this.drawSize = Object.assign({}, { // 绘制信息
@@ -31,28 +33,68 @@ class NTable {
         width: [modelRenderConfig.tableBoxWidth]
       },
       box: modelRenderConfig.rootBox,
-      ignoreEdgeCheck: true,
+      allowOutOfView: true,
+      needCheckOutOfView: true,
+      needCheckEdge: true,
       edgeOffset: 200, // 边缘检测提前缓冲距离
       isInLeftEdge: false, // 是否已经拖到边缘左侧
       isInRightEdge: false, // 是否已经拖到边缘右侧
+      isOutOfView: false, // 是否出界
       zIndex: zIndex++,
       sizeChangeCb: (x, y, sw, sh, dragInfo) => {
         let _parent = options._parent
+        _parent.windowWidth = sw
+        _parent.windowHeight = sh
+        if (!dragInfo.needCheckEdge && !dragInfo.needCheckOutOfView) { return }
         let left = dragInfo.left * (_parent.zoom / 10) + _parent.zoomXSpace
         // 判断是否到达边缘
-        if (left + dragInfo.width > sw - dragInfo.edgeOffset) {
-          dragInfo.isInRightEdge = true
-        } else if (left < dragInfo.edgeOffset) {
-          dragInfo.isInLeftEdge = true
-        } else {
-          dragInfo.isInLeftEdge = false
-          dragInfo.isInRightEdge = false
+        if (dragInfo.needCheckEdge) {
+          if (left + dragInfo.width > sw - dragInfo.edgeOffset) {
+            dragInfo.isInRightEdge = true
+          } else if (left < dragInfo.edgeOffset) {
+            dragInfo.isInLeftEdge = true
+          } else {
+            dragInfo.isInLeftEdge = false
+            dragInfo.isInRightEdge = false
+          }
         }
+        // 判断是否超过边界
+        this.checkIsOutOfView(_parent, dragInfo, sw, sh)
         options.plumbTool.lazyRender(() => {
           options.plumbTool.refreshPlumbInstance()
         })
       }
     }, options.drawSize)
+  }
+  loadMoreColumns () {
+    this.columnCurrentPage++
+    this.getPagerColumns()
+  }
+  getPagerColumns () {
+    this.showColumns = this._cache_search_columns.slice(0, this.columnCurrentPage * this.columnPerSize)
+    this.hasMoreColumns = this.showColumns.length < this._cache_search_columns.length
+  }
+  filterColumns () {
+    let reg = new RegExp(this.filterColumnChar, 'gi')
+    this.showColumns = this.columns.filter((col) => {
+      return this.filterColumnChar ? reg.test(col.name) : true
+    })
+    this._cache_search_columns = this.showColumns
+    this.columnCurrentPage = 1
+    this.getPagerColumns()
+  }
+  checkIsOutOfView (_parent, dragInfo, sw, sh) {
+    clearTimeout(this.ST)
+    this.ST = setTimeout(() => {
+      let left = dragInfo.left * (_parent.zoom / 10) + _parent.zoomXSpace
+      let top = dragInfo.top * (_parent.zoom / 10) + _parent.zoomYSpace
+      let offset = 20
+      if (left - offset > sw || left + dragInfo.width + offset < 0 || top + dragInfo.height + offset < 0 || top - offset > sh) {
+        dragInfo.isOutOfView = true
+      } else {
+        dragInfo.isOutOfView = false
+      }
+    }, 200)
   }
   // 链接关系处理 (链接数据都存储在主键表上)
   addLinkData (fTable, linkColumnF, linkColumnP, type) {

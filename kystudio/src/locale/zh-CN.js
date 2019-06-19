@@ -42,6 +42,7 @@ exports.default = {
     automaticlayout: '自动布局',
     search: '搜索',
     fullscreen: '全屏',
+    loadMore: '加载更多...',
     // 常规状态
     success: '成功',
     fail: '失败',

@@ -30,7 +30,7 @@
         </el-col>
       </el-form-item>
     </el-form> 
-    <template v-if="!(modelInstance && modelInstance.uuid) && partitionMeta.table && partitionMeta.column">
+    <template v-if="partitionMeta.table && partitionMeta.column">
       <div class="ky-list-title ksd-mt-14">{{$t('loadRange')}}</div>
     <el-form :model="modelBuildMeta" ref="rangeForm" :rules="rules"  label-width="85px" label-position="top"> 
       <el-form-item class="custom-load ksd-mt-10"  prop="dataRangeVal" :rule="[{required: true, trigger: 'blur', message: this.$t('dataRangeValValid')}, {
@@ -162,6 +162,9 @@ export default class ModelPartitionModal extends Vue {
       if (this.checkIsBroken(this.brokenPartitionColumns, value)) {
         return callback(new Error(this.$t('noColumnFund')))
       }
+    }
+    if (!value && this.partitionMeta.table) {
+      return callback(new Error(this.$t('pleaseInputColumn')))
     }
     callback()
   }
@@ -308,6 +311,7 @@ export default class ModelPartitionModal extends Vue {
   partitionTableChange () {
     this.partitionMeta.column = ''
     this.partitionMeta.format = ''
+    this.$refs.partitionForm.validate()
   }
   resetForm () {
     this.partitionMeta = {

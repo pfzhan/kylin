@@ -18,7 +18,8 @@ export default {
     invaildDate: 'Please input vaild date.',
     detectAvailableRange: 'Detect available range',
     modelPartitionSet: 'Model Partition',
-    noColumnFund: 'Column not found'
+    noColumnFund: 'Column not found',
+    pleaseInputColumn: 'Please select a partition column'
   },
   'zh-cn': {
     partitionSet: '分区设置',
@@ -39,6 +40,7 @@ export default {
     invaildDate: '请输入合法的时间区间。',
     detectAvailableRange: '获取最新数据范围',
     modelPartitionSet: '分区设置',
-    noColumnFund: '找不到该列'
+    noColumnFund: '找不到该列',
+    pleaseInputColumn: '请选择分区列'
   }
 }

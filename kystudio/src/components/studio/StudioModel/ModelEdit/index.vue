@@ -13,10 +13,10 @@
           </common-tip>
           <span class="setting-icon" v-if="!isSchemaBrokenModel" @click="editTable(t.guid)"><i class="el-icon-ksd-table_setting"></i></span>
         </div>
-        <div class="column-search-box"><el-input prefix-icon="el-icon-search" @input="(val) => {filterColumns(val, t.columns)}" size="small"></el-input></div>
-        <div class="column-list-box ksd-drag-box" @dragover='($event) => {allowDropColumn($event, t.guid)}' @drop='(e) => {dropColumn(e, null, t)}' v-scroll.reactive>
+        <div class="column-search-box"><el-input prefix-icon="el-icon-search" v-model="t.filterColumnChar" @input="t.filterColumns()" size="small"></el-input></div>
+        <div class="column-list-box ksd-drag-box" v-if="!t.drawSize.isOutOfView" @dragover='($event) => {allowDropColumn($event, t.guid)}' @drop='(e) => {dropColumn(e, null, t)}' v-scroll.reactive>
           <ul>
-            <li v-guide="t.guid + col.name" v-on:dragover="(e) => {dragColumnEnter(e, t)}" v-on:dragleave="dragColumnLeave" class="column-li" :class="{'column-li-cc': col.is_computed_column}" @drop.stop='(e) => {dropColumn(e, col, t)}' @dragstart="(e) => {dragColumns(e, col, t)}"  draggable v-for="col in getFilteredColumns(t.columns)" :key="col.name">
+            <li v-guide="t.guid + col.name" v-on:dragover="(e) => {dragColumnEnter(e, t)}" v-on:dragleave="dragColumnLeave" class="column-li" :class="{'column-li-cc': col.is_computed_column}" @drop.stop='(e) => {dropColumn(e, col, t)}' @dragstart="(e) => {dragColumns(e, col, t)}"  draggable v-for="col in t.showColumns" :key="col.name">
               <span class="ksd-nobr-text">
                 <span class="col-type-icon">
                   <i class="el-icon-ksd-fkpk_big is-pfk" v-show="col.isPFK"></i><i :class="columnTypeIconMap(col.datatype)"></i>
@@ -35,6 +35,7 @@
                 </span>
               </li>
             </template>
+            <li class="li-load-more" v-if="t.hasMoreColumns" @click="t.loadMoreColumns()">{{$t('kylinLang.common.loadMore')}}</li>
           </ul>
         </div>
         <!-- 拖动操纵 -->
@@ -52,7 +53,7 @@
             <el-input :placeholder="$t('searchTable')"  prefix-icon="el-icon-search" @keyup.native="(e) => filterDatasource(e)" @clear="filterDatasource"></el-input>
           </div>
           <div v-scroll v-guide.modelDataSourceTreeScrollBox style="height:calc(100% - 79px)">
-            <DataSourceBar 
+            <DataSourceBar
               :ignore-node-types="['column']"
               v-guide.modelDataSourceTree
               class="tree-box"
@@ -437,21 +438,26 @@
         <span class="alias-span name">{{currentEditTable.alias}}</span>
         <span class="setting-icon guide-setting" @click="cancelTableEdit"><i class="el-icon-ksd-table_setting"></i></span>
       </div>
-      <div class="column-search-box"><el-input prefix-icon="el-icon-search" @input="(val) => {filterColumns(val, currentEditTable.columns)}" size="small"></el-input></div>
-      <div class="column-list-box"  v-scroll>
+      <div class="column-search-box"><el-input prefix-icon="el-icon-search" v-model="currentEditTable.filterColumnChar" @input="currentEditTable.filterColumns()" size="small"></el-input></div>
+      <div class="column-list-box" v-scroll>
         <ul >
-          <li class="column-li" :class="{'column-li-cc': col.is_computed_column}"  v-for="col in getFilteredColumns(currentEditTable.columns)" :key="col.name">
-            <span class="col-type-icon"> <i class="el-icon-ksd-fkpk_big is-pfk" v-show="col.isPFK"></i><i :class="columnTypeIconMap(col.datatype)"></i></span>
-            <span class="col-name">{{col.name|omit(14,'...')}}</span>
+          <li class="column-li" :class="{'column-li-cc': col.is_computed_column}"  v-for="col in currentEditTable.showColumns" :key="col.name">
+            <span class="ksd-nobr-text">
+              <span class="col-type-icon"> <i class="el-icon-ksd-fkpk_big is-pfk" v-show="col.isPFK"></i><i :class="columnTypeIconMap(col.datatype)"></i></span>
+              <span class="col-name">{{col.name}}</span>
+            </span>
             <!-- <span class="li-type ky-option-sub-info">{{col.datatype}}</span> -->
           </li>
           <template v-if="currentEditTable.kind=== 'FACT'">
             <li class="column-li column-li-cc"  v-for="col in modelRender.computed_columns" :key="col.name">
-              <span class="col-type-icon"><i class="el-icon-ksd-fkpk_big is-pfk" v-show="col.isPFK"></i><i :class="columnTypeIconMap(col.datatype)"></i></span>
-              <span class="col-name">{{col.columnName|omit(14,'...')}}</span>
+              <span class="ksd-nobr-text">
+                <span class="col-type-icon"><i class="el-icon-ksd-fkpk_big is-pfk" v-show="col.isPFK"></i><i :class="columnTypeIconMap(col.datatype)"></i></span>
+                <span class="col-name">{{col.columnName}}</span>
+              </span>
               <!-- <span class="li-type ky-option-sub-info">{{col.datatype}}</span> -->
             </li>
           </template>
+          <li class="li-load-more" v-if="currentEditTable.hasMoreColumns" @click="currentEditTable.loadMoreColumns()">{{$t('kylinLang.common.loadMore')}}</li>
         </ul>
       </div>
       <!-- 拖动操纵 -->
@@ -2304,6 +2310,16 @@ export default class ModelEdit extends Vue {
               background-color:@warning-color-2;
               &:hover {
                 background-color:@warning-color-3;
+              }
+            }
+            &.li-load-more {
+              text-align:center;
+              cursor:pointer;
+              font-size: 12px;
+              color: @text-disabled-color;
+              border-bottom:none;
+              &:hover{
+                color:@base-color;
               }
             }
           }

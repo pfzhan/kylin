@@ -109,6 +109,7 @@ class NModel {
       })
     }
     this.allConnInfo = {}
+    this.getSysInfo()
     this.render()
     this.getZoomSpace()
   }
@@ -177,10 +178,18 @@ class NModel {
         currentTable.drawSize.top = baseT + layers[k].Y
         currentTable.drawSize.width = modelRenderConfig.tableBoxWidth
         currentTable.drawSize.height = modelRenderConfig.tableBoxHeight
+        currentTable.checkIsOutOfView(this._mount, currentTable.drawSize, this._mount.windowWidth, this._mount.windowHeight)
       }
       this.vm.$nextTick(() => {
         this.plumbTool.refreshPlumbInstance()
       })
+    }
+  }
+  getSysInfo () {
+    if (this.renderDom && this._mount) {
+      let boxDom = $(this.renderDom).parents(modelRenderConfig.rootBox).eq(0)
+      this._mount.windowWidth = boxDom.width()
+      this._mount.windowHeight = boxDom.height()
     }
   }
   getConn (pid, fid) {
@@ -1037,6 +1046,7 @@ class NModel {
       var curTable = this.tables[i]
       curTable.drawSize.left += x
       curTable.drawSize.top += y
+      curTable.checkIsOutOfView(this._mount, curTable.drawSize, this._mount.windowWidth, this._mount.windowHeight)
     }
     this.vm.$nextTick(() => {
       this.plumbTool.refreshPlumbInstance()
