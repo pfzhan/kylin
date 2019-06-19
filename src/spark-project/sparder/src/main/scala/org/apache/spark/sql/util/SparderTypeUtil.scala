@@ -77,30 +77,11 @@ object SparderTypeUtil extends Logging {
       case "float" => FloatType
       case "double" => DoubleType
       case tp if tp.startsWith("varchar") => StringType
+      case tp if tp.startsWith("char") => StringType
       case "bitmap" => LongType
       case "dim_dc" => LongType
       case "boolean" => BooleanType
       case _ => throw new IllegalArgumentException
-    }
-  }
-
-  // scalastyle:off
-  def convertSqlTypeNameToSparkType(dataType: RelDataType): org.apache.spark.sql.types.DataType = {
-    dataType.getSqlTypeName match {
-      case SqlTypeName.DECIMAL => DataTypes.createDecimalType(dataType.getPrecision, dataType.getScale)
-      case SqlTypeName.CHAR => DataTypes.StringType
-      case SqlTypeName.VARCHAR => DataTypes.StringType
-      case SqlTypeName.INTEGER => DataTypes.IntegerType
-      case SqlTypeName.TINYINT => DataTypes.ByteType
-      case SqlTypeName.SMALLINT => DataTypes.ShortType
-      case SqlTypeName.BIGINT => DataTypes.LongType
-      case SqlTypeName.FLOAT => DataTypes.FloatType
-      case SqlTypeName.DOUBLE => DataTypes.DoubleType
-      case SqlTypeName.DATE => DataTypes.DateType
-      case SqlTypeName.TIMESTAMP => DataTypes.TimestampType
-      case SqlTypeName.BOOLEAN => DataTypes.BooleanType
-      case _ =>
-        throw new IllegalArgumentException(s"unsupported SqlTypeName ${dataType.getSqlTypeName}")
     }
   }
 

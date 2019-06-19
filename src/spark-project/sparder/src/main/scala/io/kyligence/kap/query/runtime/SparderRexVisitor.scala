@@ -319,7 +319,7 @@ class SparderRexVisitor(val df: DataFrame,
         k_lit(children.head)
       case CAST =>
         // all date type is long,skip is
-        val goalType = SparderTypeUtil.convertSqlTypeNameToSparkType(
+        val goalType = SparderTypeUtil.convertSqlTypeToSparkType(
           call.getType)
         k_lit(children.head).cast(goalType)
 
@@ -356,7 +356,7 @@ class SparderRexVisitor(val df: DataFrame,
           case "abs" =>
             abs(
               k_lit(children.head).cast(SparderTypeUtil
-                .convertSqlTypeNameToSparkType(call.getType)))
+                .convertSqlTypeToSparkType(call.getType)))
           case "round" =>
             round(
               k_lit(children.head),
