@@ -32,6 +32,7 @@ import java.util.stream.Collectors;
 
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.apache.kylin.metadata.model.Segments;
 import org.apache.kylin.metadata.model.TblColRef;
 
@@ -95,11 +96,14 @@ public class IndexEntityResponse {
         long storage = 0L;
         long startTime = Long.MAX_VALUE;
         long endTime = 0L;
-        if (CollectionUtils.isEmpty(segments)) {
+        if (CollectionUtils.isEmpty(segments.getSegments(SegmentStatusEnum.READY))) {
             status = CuboidStatus.EMPTY;
             return;
         }
         for (NDataSegment segment : segments) {
+            if (segment.getStatus().equals(SegmentStatusEnum.NEW)) {
+                continue;
+            }
             for (LayoutEntity layout : layouts) {
                 NDataLayout dataLayout = segment.getLayout(layout.getId());
                 if (dataLayout == null) {

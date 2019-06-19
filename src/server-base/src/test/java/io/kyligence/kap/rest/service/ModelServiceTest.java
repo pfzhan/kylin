@@ -156,6 +156,8 @@ import lombok.var;
 
 public class ModelServiceTest extends NLocalFileMetadataTestCase {
 
+    private final String MODEL_UT_INNER_JOIN_ID = "82fa7671-a935-45f5-8779-85703601f49a";
+
     @InjectMocks
     private ModelService modelService = Mockito.spy(new ModelService());
 
@@ -384,7 +386,20 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testGetCuboidById_NoSegments_EMPTYStatus() {
-        IndexEntityResponse cuboid = modelService.getCuboidById("82fa7671-a935-45f5-8779-85703601f49a", "default",
+        IndexEntityResponse cuboid = modelService.getCuboidById(MODEL_UT_INNER_JOIN_ID, "default",
+                130000L);
+        Assert.assertEquals(130000L, cuboid.getId());
+        Assert.assertEquals(CuboidStatus.EMPTY, cuboid.getStatus());
+        Assert.assertEquals(0L, cuboid.getStorageSize());
+        Assert.assertEquals(0L, cuboid.getStartTime());
+        Assert.assertEquals(0L, cuboid.getEndTime());
+    }
+
+    @Test
+    public void testGetCuboidById_NoReadySegments() {
+        val dfMgr = NDataflowManager.getInstance(getTestConfig(), "default");
+        dfMgr.appendSegment(dfMgr.getDataflow(MODEL_UT_INNER_JOIN_ID), new SegmentRange.TimePartitionedSegmentRange(100L, 200L));
+        IndexEntityResponse cuboid = modelService.getCuboidById(MODEL_UT_INNER_JOIN_ID, "default",
                 130000L);
         Assert.assertEquals(130000L, cuboid.getId());
         Assert.assertEquals(CuboidStatus.EMPTY, cuboid.getStatus());
@@ -446,6 +461,20 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(1, relations.get(0).getRoots().size());
         Assert.assertEquals(5, relations.get(0).getNodesMap().size());
     }
+
+    @Test
+    public void testGetSimplifiedModelRelations_NoReadySegment() {
+        val dfMgr = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
+        dfMgr.appendSegment(dfMgr.getDataflow(MODEL_UT_INNER_JOIN_ID), new SegmentRange.TimePartitionedSegmentRange(10L, 200L));
+        List<NSpanningTreeForWeb> relations = modelService.getModelRelations(MODEL_UT_INNER_JOIN_ID,
+                "default");
+        Assert.assertEquals(1, relations.size());
+        Assert.assertEquals(1, relations.get(0).getRoots().size());
+        Assert.assertEquals(CuboidStatus.EMPTY, relations.get(0).getRoots().get(0).getCuboid().getStatus());
+        Assert.assertEquals(0L, relations.get(0).getRoots().get(0).getCuboid().getStorageSize());
+
+    }
+
 
     @Test
     public void testDropModelExceptionName() {

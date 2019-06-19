@@ -263,19 +263,14 @@ public class Segments<T extends ISegment> extends ArrayList<T> implements Serial
     }
 
     public Segments<T> getSegmentsExcludeRefreshingAndMerging() {
-        Segments<T> readySegments = this.getSegments(SegmentStatusEnum.READY);
-        Segments<T> buildingSegments = getBuildingSegments();
-        if (CollectionUtils.isEmpty(readySegments)) {
-            return this;
-        }
-        SegmentRange readySegmentsRange = readySegments.getFirstSegment().getSegRange()
-                .coverWith(readySegments.getLastSegment().getSegRange());
-        for (T buildingSegment : buildingSegments) {
-            if (readySegmentsRange.contains(buildingSegment.getSegRange())) {
-                this.remove(buildingSegment);
+        Segments<T> result = new Segments<T>();
+        for (val seg : this) {
+            val status = this.getSegmentStatusToDisplay(seg);
+            if (!(status.equals(SegmentStatusEnumToDisplay.REFRESHING) || status.equals(SegmentStatusEnumToDisplay.MERGING))) {
+                result.add(seg);
             }
         }
-        return this;
+        return result;
     }
 
     public Segments<T> getMergingSegments(T mergedSegment) {

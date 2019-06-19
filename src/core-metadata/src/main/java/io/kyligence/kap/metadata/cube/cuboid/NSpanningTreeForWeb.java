@@ -55,13 +55,14 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.val;
 import org.apache.commons.collections.CollectionUtils;
+import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.apache.kylin.metadata.model.Segments;
 
 @SuppressWarnings("serial")
 /*
-* Dirty fix web display spanning tree by use the old way that generate the spanning tree.
-* Only used in web display spanning tree.
-* */
+ * Dirty fix web display spanning tree by use the old way that generate the spanning tree.
+ * Only used in web display spanning tree.
+ * */
 @JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.NONE, getterVisibility = JsonAutoDetect.Visibility.NONE, isGetterVisibility = JsonAutoDetect.Visibility.NONE, setterVisibility = JsonAutoDetect.Visibility.NONE)
 public class NSpanningTreeForWeb extends NSpanningTree implements IKeepNames {
     @JsonProperty("nodes")
@@ -228,12 +229,15 @@ public class NSpanningTreeForWeb extends NSpanningTree implements IKeepNames {
                     .getDataflow(indexPlan.getUuid());
             Segments<NDataSegment> segments = dataflow.getSegments().getSegmentsExcludeRefreshingAndMerging();
 
-            if (CollectionUtils.isEmpty(segments)) {
+            if (CollectionUtils.isEmpty(segments.getSegments(SegmentStatusEnum.READY))) {
                 return new SimplifiedCuboidResponse(cuboid.getId(), CuboidStatus.EMPTY, 0L);
             }
 
             long storage = 0L;
             for (NDataSegment segment : segments) {
+                if (segment.getStatus().equals(SegmentStatusEnum.NEW)) {
+                    continue;
+                }
                 for (LayoutEntity layout : cuboid.getLayouts()) {
                     NDataLayout dataLayout = segment.getLayout(layout.getId());
                     if (dataLayout == null) {

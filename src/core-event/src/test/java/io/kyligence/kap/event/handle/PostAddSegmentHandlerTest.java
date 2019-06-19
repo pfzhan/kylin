@@ -36,6 +36,7 @@ import lombok.var;
 import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.metadata.model.SegmentRange;
+import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 import org.junit.After;
 import org.junit.Assert;
@@ -91,6 +92,44 @@ public class PostAddSegmentHandlerTest extends NLocalFileMetadataTestCase {
         update.setToRemoveSegs(dataflowManager.getDataflow(dataflowId).getSegments().toArray(new NDataSegment[0]));
         dataflowManager.updateDataflow(update);
         dataflowManager.appendSegment(dataflowManager.getDataflow(dataflowId), SegmentRange.TimePartitionedSegmentRange.createInfinite());
+
+
+        val dataLoadingRangeManager = NDataLoadingRangeManager.getInstance(getTestConfig(), project);
+        String tableName = "DEFAULT.TEST_KYLIN_FACT";
+        String columnName = "TEST_KYLIN_FACT.CAL_DT";
+        NDataLoadingRange dataLoadingRange = new NDataLoadingRange();
+        dataLoadingRange.updateRandomUuid();
+        dataLoadingRange.setTableName(tableName);
+        dataLoadingRange.setColumnName(columnName);
+        dataLoadingRange.setCoveredRange(SegmentRange.TimePartitionedSegmentRange.createInfinite());
+        dataLoadingRangeManager.createDataLoadingRange(dataLoadingRange);
+
+        testMarkDFOnlineIfNecessary();
+        val dataflow = NDataflowManager.getInstance(getTestConfig(), project).getDataflow(dataflowId);
+        Assert.assertEquals(RealizationStatusEnum.LAG_BEHIND, dataflow.getStatus());
+    }
+
+    @Test
+    public void testMarkModelOnline_WhenHasNewSegInQueryableRange() throws NoSuchMethodException, InvocationTargetException, IllegalAccessException {
+        val project = "default";
+        val dataflowId = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
+        var dataflowManager = NDataflowManager.getInstance(getTestConfig(), project);
+        dataflowManager.updateDataflow(dataflowId, copyForWrite -> {
+            copyForWrite.setStatus(RealizationStatusEnum.LAG_BEHIND);
+        });
+        NDataflowUpdate update = new NDataflowUpdate(dataflowId);
+        update.setToRemoveSegs(dataflowManager.getDataflow(dataflowId).getSegments().toArray(new NDataSegment[0]));
+        dataflowManager.updateDataflow(update);
+        //prepare 3 segments (0,10)Ready (10,100)NEW (100, Long.max)Ready
+        val seg1 = dataflowManager.appendSegment(dataflowManager.getDataflow(dataflowId), new SegmentRange.TimePartitionedSegmentRange(0L, 10L));
+        dataflowManager.appendSegment(dataflowManager.getDataflow(dataflowId), new SegmentRange.TimePartitionedSegmentRange(10L, 100L));
+        val seg2 = dataflowManager.appendSegment(dataflowManager.getDataflow(dataflowId), new SegmentRange.TimePartitionedSegmentRange(100L, Long.MAX_VALUE));
+
+        update = new NDataflowUpdate(dataflowId);
+        seg1.setStatus(SegmentStatusEnum.READY);
+        seg2.setStatus(SegmentStatusEnum.READY);
+        update.setToUpdateSegs(new NDataSegment[]{seg1, seg2});
+        dataflowManager.updateDataflow(update);
 
 
         val dataLoadingRangeManager = NDataLoadingRangeManager.getInstance(getTestConfig(), project);
