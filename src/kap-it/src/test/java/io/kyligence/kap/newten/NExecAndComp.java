@@ -101,6 +101,12 @@ public class NExecAndComp {
         execAndCompareNew(queries, prj, compareLevel, joinType, null);
     }
 
+    public static void execAndCompareQueryList(List<String> queries, String prj, CompareLevel compareLevel,
+                                      String joinType) {
+        List<Pair<String, String>> transformed = queries.stream().map(q -> Pair.newPair("", q)).collect(Collectors.toList());
+        execAndCompareNew(transformed, prj, compareLevel, joinType, null);
+    }
+
     public static void execAndCompareNew(List<Pair<String, String>> queries, String prj, CompareLevel compareLevel,
                                          String joinType, Map<String, CompareEntity> recAndQueryResult) {
         for (Pair<String, String> query : queries) {

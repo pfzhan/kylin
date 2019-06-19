@@ -33,7 +33,6 @@
     "partition_date_column": null,
     "partition_date_start": 0,
     "partition_date_format" : "yyyy-MM-dd",
-    "partition_time_format" : "HH:mm:ss",
     "partition_type": "APPEND"
   }
 }

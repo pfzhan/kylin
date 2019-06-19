@@ -25,11 +25,13 @@ package io.kyligence.kap.engine.spark;
 
 import java.io.File;
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 
+import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import org.apache.commons.io.FileUtils;
 import org.apache.hadoop.util.Shell;
 import org.apache.kylin.common.KylinConfig;
@@ -255,5 +257,33 @@ public class NLocalWithSparkSessionTest extends NLocalFileMetadataTestCase imple
         if (job.getSparkAnalysisStep() != null) {
             merger.mergeAnalysis(job.getSparkAnalysisStep());
         }
+    }
+
+    public void buildMultiSegs(String dfName, long... layoutID) throws Exception {
+        NDataflowManager dsMgr = NDataflowManager.getInstance(getTestConfig(), getProject());
+        NDataflow df = dsMgr.getDataflow(dfName);
+        List<LayoutEntity> layouts = new ArrayList<>();
+        IndexPlan indexPlan = df.getIndexPlan();
+        if (layoutID.length == 0) {
+            layouts = indexPlan.getAllLayouts();
+        } else {
+            for (long id : layoutID) {
+                layouts.add(indexPlan.getCuboidLayout(id));
+            }
+        }
+        long start = SegmentRange.dateToLong("2009-01-01 00:00:00");
+        long end = SegmentRange.dateToLong("2011-01-01 00:00:00");
+        buildCuboid(dfName, new SegmentRange.TimePartitionedSegmentRange(start, end), Sets.newLinkedHashSet(layouts),
+                true);
+
+        start = SegmentRange.dateToLong("2011-01-01 00:00:00");
+        end = SegmentRange.dateToLong("2013-01-01 00:00:00");
+        buildCuboid(dfName, new SegmentRange.TimePartitionedSegmentRange(start, end), Sets.newLinkedHashSet(layouts),
+                true);
+
+        start = SegmentRange.dateToLong("2013-01-01 00:00:00");
+        end = SegmentRange.dateToLong("2015-01-01 00:00:00");
+        buildCuboid(dfName, new SegmentRange.TimePartitionedSegmentRange(start, end), Sets.newLinkedHashSet(layouts),
+                true);
     }
 }

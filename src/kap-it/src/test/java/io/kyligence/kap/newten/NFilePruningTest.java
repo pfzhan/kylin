@@ -51,8 +51,6 @@ import org.junit.runner.RunWith;
 import org.spark_project.guava.collect.Sets;
 
 import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
-import io.kyligence.kap.metadata.cube.model.IndexPlan;
-import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import lombok.val;
@@ -125,7 +123,7 @@ public class NFilePruningTest extends NLocalWithSparkSessionTest {
         // [2009-01-01 00:00:00, 2011-01-01 00:00:00)
         // [2011-01-01 00:00:00, 2013-01-01 00:00:00)
         // [2013-01-01 00:00:00, 2015-01-01 00:00:00)
-        buildSegs("8c670664-8d05-466a-802f-83c023b56c77", 10001);
+        buildMultiSegs("8c670664-8d05-466a-802f-83c023b56c77", 10001);
         populateSSWithCSVData(getTestConfig(), getProject(), SparderEnv.getSparkSession());
 
         String and_pruning0 = base
@@ -183,7 +181,7 @@ public class NFilePruningTest extends NLocalWithSparkSessionTest {
     public void testShardPruning() throws Exception {
         System.setProperty("kap.storage.columnar.shard-rowcount", "100");
 
-        buildSegs("8c670664-8d05-466a-802f-83c023b56c77");
+        buildMultiSegs("8c670664-8d05-466a-802f-83c023b56c77");
 
         populateSSWithCSVData(getTestConfig(), getProject(), SparderEnv.getSparkSession());
 
@@ -336,33 +334,5 @@ public class NFilePruningTest extends NLocalWithSparkSessionTest {
                 return p instanceof FileSourceScanExec;
             }
         }).get();
-    }
-
-    private void buildSegs(String dfName, long... layoutID) throws Exception {
-        NDataflowManager dsMgr = NDataflowManager.getInstance(getTestConfig(), getProject());
-        NDataflow df = dsMgr.getDataflow(dfName);
-        List<LayoutEntity> layouts = new ArrayList<>();
-        IndexPlan indexPlan = df.getIndexPlan();
-        if (layoutID.length == 0) {
-            layouts = indexPlan.getAllLayouts();
-        } else {
-            for (long id : layoutID) {
-                layouts.add(indexPlan.getCuboidLayout(id));
-            }
-        }
-        long start = SegmentRange.dateToLong("2009-01-01 00:00:00");
-        long end = SegmentRange.dateToLong("2011-01-01 00:00:00");
-        buildCuboid(dfName, new SegmentRange.TimePartitionedSegmentRange(start, end), Sets.newLinkedHashSet(layouts),
-                true);
-
-        start = SegmentRange.dateToLong("2011-01-01 00:00:00");
-        end = SegmentRange.dateToLong("2013-01-01 00:00:00");
-        buildCuboid(dfName, new SegmentRange.TimePartitionedSegmentRange(start, end), Sets.newLinkedHashSet(layouts),
-                true);
-
-        start = SegmentRange.dateToLong("2013-01-01 00:00:00");
-        end = SegmentRange.dateToLong("2015-01-01 00:00:00");
-        buildCuboid(dfName, new SegmentRange.TimePartitionedSegmentRange(start, end), Sets.newLinkedHashSet(layouts),
-                true);
     }
 }

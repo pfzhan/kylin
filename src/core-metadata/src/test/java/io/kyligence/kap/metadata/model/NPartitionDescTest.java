@@ -43,16 +43,12 @@ public class NPartitionDescTest {
 
         partitionDesc1.setCubePartitionType(partitionType);
         partitionDesc1.setPartitionDateColumn(DATE_COL);
-        partitionDesc1.setPartitionTimeColumn(TIME_COL);
         partitionDesc1.setPartitionDateFormat(DATE_FORMAT);
-        partitionDesc1.setPartitionTimeFormat(TIME_FORMAT);
 
         PartitionDesc partitionDesc2 = new PartitionDesc();
         partitionDesc2.setCubePartitionType(partitionType);
         partitionDesc2.setPartitionDateColumn(DATE_COL);
-        partitionDesc2.setPartitionTimeColumn(TIME_COL);
         partitionDesc2.setPartitionDateFormat(DATE_FORMAT);
-        partitionDesc2.setPartitionTimeFormat(TIME_FORMAT);
         Assert.assertEquals(partitionDesc1, partitionDesc2);
         Assert.assertEquals(partitionDesc1.hashCode(), partitionDesc2.hashCode());
         partitionDesc2.setPartitionDateFormat("new_date");

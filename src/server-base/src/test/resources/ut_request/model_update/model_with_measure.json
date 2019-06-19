@@ -43,7 +43,6 @@
   "filter_condition": null,
   "partition_desc": {
     "partition_date_column": null,
-    "partition_time_column": null,
     "partition_date_start": 0,
     "partition_type": "APPEND"
   },

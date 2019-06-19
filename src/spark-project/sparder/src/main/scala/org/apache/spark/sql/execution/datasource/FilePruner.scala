@@ -94,10 +94,11 @@ class FilePruner(val session: SparkSession,
     val desc: PartitionDesc = dataflow.getModel.getPartitionDesc
     StructType(
       if (desc != null) {
+        val ref = desc.getPartitionDateColumnRef
         // only consider partition date column
         // we can only get col ID in layout cuz data schema is all ids.
-        val id = layout.getOrderedDimensions.inverse().get(desc.getPartitionDateColumnRef)
-        if (id != null) {
+        val id = layout.getOrderedDimensions.inverse().get(ref)
+        if (id != null && ref.getType.isDateTimeFamily) {
           dataSchema.filter(_.name == id.toString)
         } else {
           Seq.empty

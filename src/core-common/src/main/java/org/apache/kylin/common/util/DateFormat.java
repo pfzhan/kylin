@@ -48,9 +48,6 @@ public class DateFormat {
     public static final String DEFAULT_DATE_PATTERN = "yyyy-MM-dd";
     public static final String DEFAULT_DATE_PATTERN_WITH_SLASH = "yyyy/MM/dd";
     public static final String DEFAULT_DATE_PATTERN_WITH_DOT = "yyyy.MM.dd";
-    public static final String DATE_REVERSED_PATTERN = "dd-MM-yyyy";
-    public static final String DATE_REVERSED_PATTERN_WITH_DOT = "dd.MM.yyyy";
-    public static final String DATE_PATTERN_IN_AMERICAN_STYLE = "MM/dd/yyyy";
 
     public static final String DEFAULT_TIME_PATTERN = "HH:mm:ss";
     public static final String DEFAULT_TIME_PATTERN_WITHOUT_SECONDS = "HH:mm";
@@ -64,33 +61,21 @@ public class DateFormat {
 
     static {
         dateFormatRegex.put("^\\d{8}$", COMPACT_DATE_PATTERN);
-        dateFormatRegex.put("^\\d{4}-\\d{1,2}-\\d{1,2}$", DEFAULT_DATE_PATTERN);
-        dateFormatRegex.put("^\\d{4}/\\d{1,2}/\\d{1,2}$", DEFAULT_DATE_PATTERN_WITH_SLASH);
-        dateFormatRegex.put("^\\d{4}\\.\\d{1,2}\\.\\d{1,2}$", DEFAULT_DATE_PATTERN_WITH_DOT);
-        dateFormatRegex.put("^\\d{1,2}-\\d{1,2}-\\d{4}$", DATE_REVERSED_PATTERN);
-        dateFormatRegex.put("^\\d{1,2}\\.\\d{1,2}\\.\\d{4}$", DATE_REVERSED_PATTERN_WITH_DOT);
-        dateFormatRegex.put("^\\d{1,2}/\\d{1,2}/\\d{4}$", DATE_PATTERN_IN_AMERICAN_STYLE);
-        dateFormatRegex.put("^\\d{8}\\s\\d{1,2}:\\d{2}$", COMPACT_DATE_PATTERN + " " + DEFAULT_TIME_PATTERN_WITHOUT_SECONDS);
-        dateFormatRegex.put("^\\d{4}-\\d{1,2}-\\d{1,2}\\s\\d{1,2}:\\d{2}$", DEFAULT_DATE_PATTERN + " " + DEFAULT_TIME_PATTERN_WITHOUT_SECONDS);
-        dateFormatRegex.put("^\\d{4}/\\d{1,2}/\\d{1,2}\\s\\d{1,2}:\\d{2}$", DEFAULT_DATE_PATTERN_WITH_SLASH + " " + DEFAULT_TIME_PATTERN_WITHOUT_SECONDS);
-        dateFormatRegex.put("^\\d{4}\\.\\d{1,2}\\.\\d{1,2}\\s\\d{1,2}:\\d{2}$", DEFAULT_DATE_PATTERN_WITH_DOT + " " + DEFAULT_TIME_PATTERN_WITHOUT_SECONDS);
-        dateFormatRegex.put("^\\d{1,2}-\\d{1,2}-\\d{4}\\s\\d{1,2}:\\d{2}$", DATE_REVERSED_PATTERN + " " + DEFAULT_TIME_PATTERN_WITHOUT_SECONDS);
-        dateFormatRegex.put("^\\d{1,2}\\.\\d{1,2}\\.\\d{4}\\s\\d{1,2}:\\d{2}$", DATE_REVERSED_PATTERN_WITH_DOT + " " + DEFAULT_TIME_PATTERN_WITHOUT_SECONDS);
-        dateFormatRegex.put("^\\d{1,2}/\\d{1,2}/\\d{4}\\s\\d{1,2}:\\d{2}$", DATE_PATTERN_IN_AMERICAN_STYLE + " " + DEFAULT_TIME_PATTERN_WITHOUT_SECONDS);
-        dateFormatRegex.put("^\\d{8}\\s\\d{1,2}:\\d{2}:\\d{2}$", COMPACT_DATE_PATTERN + " " + DEFAULT_TIME_PATTERN);
-        dateFormatRegex.put("^\\d{4}-\\d{1,2}-\\d{1,2}\\s\\d{1,2}:\\d{2}:\\d{2}$", DEFAULT_DATE_PATTERN + " " + DEFAULT_TIME_PATTERN);
-        dateFormatRegex.put("^\\d{4}/\\d{1,2}/\\d{1,2}\\s\\d{1,2}:\\d{2}:\\d{2}$", DEFAULT_DATE_PATTERN_WITH_SLASH + " " + DEFAULT_TIME_PATTERN);
-        dateFormatRegex.put("^\\d{4}\\.\\d{1,2}\\.\\d{1,2}\\s\\d{1,2}:\\d{2}:\\d{2}$", DEFAULT_DATE_PATTERN_WITH_DOT + " " + DEFAULT_TIME_PATTERN);
-        dateFormatRegex.put("^\\d{1,2}-\\d{1,2}-\\d{4}\\s\\d{1,2}:\\d{2}:\\d{2}$", DATE_REVERSED_PATTERN + " " + DEFAULT_TIME_PATTERN);
-        dateFormatRegex.put("^\\d{1,2}\\.\\d{1,2}\\.\\d{4}\\s\\d{1,2}:\\d{2}:\\d{2}$", DATE_REVERSED_PATTERN_WITH_DOT + " " + DEFAULT_TIME_PATTERN);
-        dateFormatRegex.put("^\\d{1,2}/\\d{1,2}/\\d{4}\\s\\d{1,2}:\\d{2}:\\d{2}$", DATE_PATTERN_IN_AMERICAN_STYLE + " " + DEFAULT_TIME_PATTERN);
-        dateFormatRegex.put("^\\d{8}\\s\\d{1,2}:\\d{2}:\\d{2}.\\d{3}$", COMPACT_DATE_PATTERN + " " + DEFAULT_TIME_PATTERN_WITH_MILLISECONDS);
-        dateFormatRegex.put("^\\d{4}-\\d{1,2}-\\d{1,2}\\s\\d{1,2}:\\d{2}:\\d{2}.\\d{3}$", DEFAULT_DATE_PATTERN + " " + DEFAULT_TIME_PATTERN_WITH_MILLISECONDS);
-        dateFormatRegex.put("^\\d{4}/\\d{1,2}/\\d{1,2}\\s\\d{1,2}:\\d{2}:\\d{2}.\\d{3}$", DEFAULT_DATE_PATTERN_WITH_SLASH + " " + DEFAULT_TIME_PATTERN_WITH_MILLISECONDS);
-        dateFormatRegex.put("^\\d{4}\\.\\d{1,2}\\.\\d{1,2}\\s\\d{1,2}:\\d{2}:\\d{2}.\\d{3}$", DEFAULT_DATE_PATTERN_WITH_DOT + " " + DEFAULT_TIME_PATTERN_WITH_MILLISECONDS);
-        dateFormatRegex.put("^\\d{1,2}-\\d{1,2}-\\d{4}\\s\\d{1,2}:\\d{2}:\\d{2}.\\d{3}$", DATE_REVERSED_PATTERN + " " + DEFAULT_TIME_PATTERN_WITH_MILLISECONDS);
-        dateFormatRegex.put("^\\d{1,2}\\.\\d{1,2}\\.\\d{4}\\s\\d{1,2}:\\d{2}:\\d{2}.\\d{3}$", DATE_REVERSED_PATTERN_WITH_DOT + " " + DEFAULT_TIME_PATTERN_WITH_MILLISECONDS);
-        dateFormatRegex.put("^\\d{1,2}/\\d{1,2}/\\d{4}\\s\\d{1,2}:\\d{2}:\\d{2}.\\d{3}$", DATE_PATTERN_IN_AMERICAN_STYLE + " " + DEFAULT_TIME_PATTERN_WITH_MILLISECONDS);
+        dateFormatRegex.put("^\\d{4}-\\d{2}-\\d{2}$", DEFAULT_DATE_PATTERN);
+        dateFormatRegex.put("^\\d{4}/\\d{2}/\\d{2}$", DEFAULT_DATE_PATTERN_WITH_SLASH);
+        dateFormatRegex.put("^\\d{4}\\.\\d{2}\\.\\d{2}$", DEFAULT_DATE_PATTERN_WITH_DOT);
+        dateFormatRegex.put("^\\d{8}\\s\\d{2}:\\d{2}$", COMPACT_DATE_PATTERN + " " + DEFAULT_TIME_PATTERN_WITHOUT_SECONDS);
+        dateFormatRegex.put("^\\d{4}-\\d{2}-\\d{2}\\s\\d{2}:\\d{2}$", DEFAULT_DATE_PATTERN + " " + DEFAULT_TIME_PATTERN_WITHOUT_SECONDS);
+        dateFormatRegex.put("^\\d{4}/\\d{2}/\\d{2}\\s\\d{2}:\\d{2}$", DEFAULT_DATE_PATTERN_WITH_SLASH + " " + DEFAULT_TIME_PATTERN_WITHOUT_SECONDS);
+        dateFormatRegex.put("^\\d{4}\\.\\d{2}\\.\\d{2}\\s\\d{2}:\\d{2}$", DEFAULT_DATE_PATTERN_WITH_DOT + " " + DEFAULT_TIME_PATTERN_WITHOUT_SECONDS);
+        dateFormatRegex.put("^\\d{8}\\s\\d{2}:\\d{2}:\\d{2}$", COMPACT_DATE_PATTERN + " " + DEFAULT_TIME_PATTERN);
+        dateFormatRegex.put("^\\d{4}-\\d{2}-\\d{2}\\s\\d{2}:\\d{2}:\\d{2}$", DEFAULT_DATE_PATTERN + " " + DEFAULT_TIME_PATTERN);
+        dateFormatRegex.put("^\\d{4}/\\d{2}/\\d{2}\\s\\d{2}:\\d{2}:\\d{2}$", DEFAULT_DATE_PATTERN_WITH_SLASH + " " + DEFAULT_TIME_PATTERN);
+        dateFormatRegex.put("^\\d{4}\\.\\d{2}\\.\\d{2}\\s\\d{2}:\\d{2}:\\d{2}$", DEFAULT_DATE_PATTERN_WITH_DOT + " " + DEFAULT_TIME_PATTERN);
+        dateFormatRegex.put("^\\d{8}\\s\\d{2}:\\d{2}:\\d{2}.\\d{3}$", COMPACT_DATE_PATTERN + " " + DEFAULT_TIME_PATTERN_WITH_MILLISECONDS);
+        dateFormatRegex.put("^\\d{4}-\\d{2}-\\d{2}\\s\\d{2}:\\d{2}:\\d{2}.\\d{3}$", DEFAULT_DATE_PATTERN + " " + DEFAULT_TIME_PATTERN_WITH_MILLISECONDS);
+        dateFormatRegex.put("^\\d{4}/\\d{2}/\\d{2}\\s\\d{2}:\\d{2}:\\d{2}.\\d{3}$", DEFAULT_DATE_PATTERN_WITH_SLASH + " " + DEFAULT_TIME_PATTERN_WITH_MILLISECONDS);
+        dateFormatRegex.put("^\\d{4}\\.\\d{2}\\.\\d{2}\\s\\d{2}:\\d{2}:\\d{2}.\\d{3}$", DEFAULT_DATE_PATTERN_WITH_DOT + " " + DEFAULT_TIME_PATTERN_WITH_MILLISECONDS);
     }
 
     public static FastDateFormat getDateFormat(String datePattern) {
@@ -166,9 +151,7 @@ public class DateFormat {
     public static boolean isDatePattern(String ptn) {
         return COMPACT_DATE_PATTERN.equals(ptn) || DEFAULT_DATE_PATTERN.equals(ptn)
                 || DEFAULT_DATE_PATTERN_WITH_SLASH.equals(ptn)
-                || DEFAULT_DATE_PATTERN_WITH_DOT.equals(ptn)
-                || DATE_REVERSED_PATTERN.equals(ptn) || DATE_REVERSED_PATTERN_WITH_DOT.equals(ptn)
-                || DATE_PATTERN_IN_AMERICAN_STYLE.equals(ptn);
+                || DEFAULT_DATE_PATTERN_WITH_DOT.equals(ptn);
     }
 
     public static String proposeDateFormat(String sampleData) {

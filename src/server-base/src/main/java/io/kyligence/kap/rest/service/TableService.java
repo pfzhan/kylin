@@ -1152,9 +1152,6 @@ public class TableService extends BasicService {
                 if (model.getPartitionDesc().getPartitionDateColumnRef() != null) {
                     keyColumns.add(model.getPartitionDesc().getPartitionDateColumnRef().getIdentity());
                 }
-                if (model.getPartitionDesc().getPartitionTimeColumnRef() != null) {
-                    keyColumns.add(model.getPartitionDesc().getPartitionTimeColumnRef().getIdentity());
-                }
             }
             affectedModel.setBroken(!Sets.intersection(affectedModel.getColumns(), keyColumns).isEmpty());
         }

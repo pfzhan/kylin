@@ -88,32 +88,13 @@ public class DefaultPartitionConditionBuilderTest {
     public void testTimePartition() {
         PartitionDesc partitionDesc = new PartitionDesc();
         TblColRef col = TblColRef.mockup(TableDesc.mockup("DEFAULT.TABLE_NAME"), 2, "HOUR_COLUMN", "string");
-        partitionDesc.setPartitionTimeColumnRef(col);
-        partitionDesc.setPartitionTimeColumn(col.getCanonicalName());
-        partitionDesc.setPartitionTimeFormat("HH");
+        partitionDesc.setPartitionDateColumnRef(col);
+        partitionDesc.setPartitionDateColumn(col.getCanonicalName());
+        partitionDesc.setPartitionDateFormat("HH");
         SegmentRange.TimePartitionedSegmentRange range = new SegmentRange.TimePartitionedSegmentRange(
                 DateFormat.stringToMillis("2016-02-22 00:00:00"), DateFormat.stringToMillis("2016-02-23 01:00:00"));
         String condition = partitionConditionBuilder.buildDateRangeCondition(partitionDesc, null, range);
         Assert.assertEquals("UNKNOWN_ALIAS.HOUR_COLUMN >= '00' AND UNKNOWN_ALIAS.HOUR_COLUMN < '01'", condition);
-    }
-
-    @Test
-    public void testDateAndTimePartition() {
-        PartitionDesc partitionDesc = new PartitionDesc();
-        TblColRef col1 = TblColRef.mockup(TableDesc.mockup("DEFAULT.TABLE_NAME"), 1, "DATE_COLUMN", "string");
-        partitionDesc.setPartitionDateColumnRef(col1);
-        partitionDesc.setPartitionDateColumn(col1.getCanonicalName());
-        partitionDesc.setPartitionDateFormat("yyyy-MM-dd");
-        TblColRef col2 = TblColRef.mockup(TableDesc.mockup("DEFAULT.TABLE_NAME"), 2, "HOUR_COLUMN", "string");
-        partitionDesc.setPartitionTimeColumnRef(col2);
-        partitionDesc.setPartitionTimeColumn(col2.getCanonicalName());
-        partitionDesc.setPartitionTimeFormat("H");
-        SegmentRange.TimePartitionedSegmentRange range = new SegmentRange.TimePartitionedSegmentRange(
-                DateFormat.stringToMillis("2016-02-22 00:00:00"), DateFormat.stringToMillis("2016-02-23 01:00:00"));
-        String condition = partitionConditionBuilder.buildDateRangeCondition(partitionDesc, null, range);
-        Assert.assertEquals(
-                "((UNKNOWN_ALIAS.DATE_COLUMN = '2016-02-22' AND UNKNOWN_ALIAS.HOUR_COLUMN >= '0') OR (UNKNOWN_ALIAS.DATE_COLUMN > '2016-02-22')) AND ((UNKNOWN_ALIAS.DATE_COLUMN = '2016-02-23' AND UNKNOWN_ALIAS.HOUR_COLUMN < '1') OR (UNKNOWN_ALIAS.DATE_COLUMN < '2016-02-23'))",
-                condition);
     }
 
     @Test

@@ -74,20 +74,12 @@ public class PartitionDesc implements Serializable {
     private String partitionDateColumn;
 
     @EqualsAndHashCode.Include
-    @JsonProperty("partition_time_column")
-    private String partitionTimeColumn;
-
-    @EqualsAndHashCode.Include
     @JsonProperty("partition_date_start")
     private long partitionDateStart = 0L;//Deprecated
 
     @EqualsAndHashCode.Include
     @JsonProperty("partition_date_format")
     private String partitionDateFormat;
-
-    @EqualsAndHashCode.Include
-    @JsonProperty("partition_time_format")
-    private String partitionTimeFormat = DateFormat.DEFAULT_TIME_PATTERN;
 
     @EqualsAndHashCode.Include
     @JsonProperty("partition_type")
@@ -98,7 +90,6 @@ public class PartitionDesc implements Serializable {
     private String partitionConditionBuilderClz = DefaultPartitionConditionBuilder.class.getName();
 
     private TblColRef partitionDateColumnRef;
-    private TblColRef partitionTimeColumnRef;
     private IPartitionConditionBuilder partitionConditionBuilder;
 
     public void init(NDataModel model) {
@@ -107,10 +98,6 @@ public class PartitionDesc implements Serializable {
 
         partitionDateColumnRef = model.findColumn(partitionDateColumn);
         partitionDateColumn = partitionDateColumnRef.getIdentity();
-        if (StringUtils.isBlank(partitionTimeColumn) == false) {
-            partitionTimeColumnRef = model.findColumn(partitionTimeColumn);
-            partitionTimeColumn = partitionTimeColumnRef.getIdentity();
-        }
         partitionConditionBuilder = (IPartitionConditionBuilder) ClassUtil.newInstance(partitionConditionBuilderClz);
     }
 
@@ -148,20 +135,6 @@ public class PartitionDesc implements Serializable {
         this.partitionDateColumnRef = partitionDateColumnRef;
     }
 
-    public String getPartitionTimeColumn() {
-        return partitionTimeColumn;
-    }
-
-    // for test
-    public void setPartitionTimeColumn(String partitionTimeColumn) {
-        this.partitionTimeColumn = partitionTimeColumn;
-    }
-
-    // for test
-    public void setPartitionTimeColumnRef(TblColRef partitionTimeColumnRef) {
-        this.partitionTimeColumnRef = partitionTimeColumnRef;
-    }
-
     @Deprecated
     public long getPartitionDateStart() {
         return partitionDateStart;
@@ -178,14 +151,6 @@ public class PartitionDesc implements Serializable {
 
     public void setPartitionDateFormat(String partitionDateFormat) {
         this.partitionDateFormat = partitionDateFormat;
-    }
-
-    public String getPartitionTimeFormat() {
-        return partitionTimeFormat;
-    }
-
-    public void setPartitionTimeFormat(String partitionTimeFormat) {
-        this.partitionTimeFormat = partitionTimeFormat;
     }
 
     public PartitionType getCubePartitionType() {
@@ -212,10 +177,6 @@ public class PartitionDesc implements Serializable {
         return partitionDateColumnRef;
     }
 
-    public TblColRef getPartitionTimeColumnRef() {
-        return partitionTimeColumnRef;
-    }
-
     // ============================================================================
 
     public static interface IPartitionConditionBuilder {
@@ -234,7 +195,6 @@ public class PartitionDesc implements Serializable {
             long endExclusive = tsr.getEnd();
 
             TblColRef partitionDateColumn = partDesc.getPartitionDateColumnRef();
-            TblColRef partitionTimeColumn = partDesc.getPartitionTimeColumnRef();
 
             StringBuilder builder = new StringBuilder();
 
@@ -242,17 +202,10 @@ public class PartitionDesc implements Serializable {
                 buildSingleColumnRangeCondAsYmdInt(builder, partitionDateColumn, startInclusive, endExclusive);
             } else if (partDesc.partitionColumnIsTimeMillis()) {
                 buildSingleColumnRangeCondAsTimeMillis(builder, partitionDateColumn, startInclusive, endExclusive);
-            } else if (partitionDateColumn != null && partitionTimeColumn == null) {
+            } else if (partitionDateColumn != null) {
                 buildSingleColumnRangeCondition(builder, partitionDateColumn, startInclusive, endExclusive,
                         partDesc.getPartitionDateFormat());
-            } else if (partitionDateColumn == null && partitionTimeColumn != null) {
-                buildSingleColumnRangeCondition(builder, partitionTimeColumn, startInclusive, endExclusive,
-                        partDesc.getPartitionTimeFormat());
-            } else if (partitionDateColumn != null && partitionTimeColumn != null) {
-                buildMultipleColumnRangeCondition(builder, partitionDateColumn, partitionTimeColumn, startInclusive,
-                        endExclusive, partDesc.getPartitionDateFormat(), partDesc.getPartitionTimeFormat());
             }
-
             return builder.toString();
         }
 
@@ -297,81 +250,13 @@ public class PartitionDesc implements Serializable {
             builder.append(" AND ");
             builder.append(partitionColumnName + " < '" + endInc + "'");
         }
-
-        private static void buildMultipleColumnRangeCondition(StringBuilder builder, TblColRef partitionDateColumn,
-                TblColRef partitionTimeColumn, long startInclusive, long endExclusive, String partitionColumnDateFormat,
-                String partitionColumnTimeFormat) {
-            String partitionDateColumnName = partitionDateColumn.getExpressionInSourceDB();
-            String partitionTimeColumnName = partitionTimeColumn.getExpressionInSourceDB();
-            builder.append("(");
-            builder.append("(");
-            builder.append(partitionDateColumnName + " = '"
-                    + DateFormat.formatToDateStr(startInclusive, partitionColumnDateFormat) + "'").append(" AND ")
-                    .append(partitionTimeColumnName + " >= '"
-                            + DateFormat.formatToDateStr(startInclusive, partitionColumnTimeFormat) + "'");
-            builder.append(")");
-            builder.append(" OR ");
-            builder.append("(");
-            builder.append(partitionDateColumnName + " > '"
-                    + DateFormat.formatToDateStr(startInclusive, partitionColumnDateFormat) + "'");
-            builder.append(")");
-            builder.append(")");
-            builder.append(" AND ");
-
-            builder.append("(");
-            builder.append("(");
-            builder.append(partitionDateColumnName + " = '"
-                    + DateFormat.formatToDateStr(endExclusive, partitionColumnDateFormat) + "'").append(" AND ")
-                    .append(partitionTimeColumnName + " < '"
-                            + DateFormat.formatToDateStr(endExclusive, partitionColumnTimeFormat) + "'");
-            builder.append(")");
-            builder.append(" OR ");
-            builder.append("(");
-            builder.append(partitionDateColumnName + " < '"
-                    + DateFormat.formatToDateStr(endExclusive, partitionColumnDateFormat) + "'");
-            builder.append(")");
-            builder.append(")");
-        }
-    }
-
-    /**
-     * Another implementation of IPartitionConditionBuilder, for the fact tables which have three partition columns "YEAR", "MONTH", and "DAY"; This
-     * class will concat the three columns into yyyy-MM-dd format for query hive;
-     */
-    public static class YearMonthDayPartitionConditionBuilder implements IPartitionConditionBuilder {
-
-        @Override
-        public String buildDateRangeCondition(PartitionDesc partDesc, ISegment seg, SegmentRange segRange) {
-            Preconditions.checkState(segRange instanceof SegmentRange.TimePartitionedSegmentRange);
-            SegmentRange.TimePartitionedSegmentRange tsr = (SegmentRange.TimePartitionedSegmentRange) segRange;
-
-            long startInclusive = tsr.getStart();
-            long endExclusive = tsr.getEnd();
-
-            TblColRef partitionColumn = partDesc.getPartitionDateColumnRef();
-            String tableAlias = partitionColumn.getTableAlias();
-
-            String concatField = String.format("CONCAT(%s.YEAR,'-',%s.MONTH,'-',%s.DAY)", tableAlias, tableAlias,
-                    tableAlias);
-            StringBuilder builder = new StringBuilder();
-
-            if (startInclusive > 0) {
-                builder.append(concatField + " >= '" + DateFormat.formatToDateStr(startInclusive) + "' ");
-                builder.append("AND ");
-            }
-            builder.append(concatField + " < '" + DateFormat.formatToDateStr(endExclusive) + "'");
-
-            return builder.toString();
-        }
     }
 
     public static PartitionDesc getCopyOf(PartitionDesc orig) {
         PartitionDesc ret = new PartitionDesc();
         ret.partitionDateColumn = orig.partitionDateColumn;
-        ret.partitionTimeColumn = orig.partitionTimeColumn;
         ret.partitionDateStart = orig.partitionDateStart; //Deprecated
         ret.partitionDateFormat = orig.partitionDateFormat;
-        ret.partitionTimeFormat = orig.partitionTimeFormat;
         ret.partitionType = orig.partitionType;
         ret.partitionConditionBuilderClz = orig.partitionConditionBuilderClz;
         return ret;
