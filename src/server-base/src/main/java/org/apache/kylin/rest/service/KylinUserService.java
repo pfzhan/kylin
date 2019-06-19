@@ -151,7 +151,7 @@ public class KylinUserService implements UserService {
             managedUser = getKylinUserManager().get(userName);
         }catch (IllegalArgumentException e) {
             logger.error("exception: ", e);
-            throw new UsernameNotFoundException(String.format(msg.getUSER_NOT_FOUND(), userName));
+            throw new UsernameNotFoundException(String.format(msg.getUSER_AUTH_FAILED()));
         }
         if (managedUser == null) {
             throw new UsernameNotFoundException(String.format(msg.getUSER_NOT_FOUND(), userName));
