@@ -411,7 +411,7 @@ public class FunctionDesc implements Serializable {
             return true;
         } else {
             if (CollectionUtils.isEmpty(parameters)) {
-                if (CollectionUtils.isNotEmpty(parameters))
+                if (CollectionUtils.isNotEmpty(other.getParameters()))
                     return false;
             } else {
                 if (!Objects.equals(this.parameters, other.getParameters()))
