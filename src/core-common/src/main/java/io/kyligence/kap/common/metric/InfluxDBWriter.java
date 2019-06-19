@@ -131,7 +131,7 @@ public class InfluxDBWriter implements MetricWriter {
     private static void tryConnectInfluxDB() {
         try {
             final Pong pong = getInfluxDB().ping();
-            logger.info("Connected to influxDB successfully. [{}]", pong);
+            logger.trace("Connected to influxDB successfully. [{}]", pong);
             isConnected = true;
         } catch (Throwable th) {
             isConnected = false;

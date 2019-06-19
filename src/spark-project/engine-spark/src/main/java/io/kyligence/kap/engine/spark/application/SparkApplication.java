@@ -136,8 +136,9 @@ public abstract class SparkApplication implements Application, IKeep {
             // for wrapping credential
             CredentialUtils.wrap(sparkConf, project);
 
+            TimeZoneUtils.setDefaultTimeZone(config);
+
             if (isJobOnCluster(sparkConf)) {
-                TimeZoneUtils.setDefaultTimeZone(config);
                 logger.info("Sleep for random seconds to avoid submitting too many spark job at the same time.");
                 Thread.sleep((long) (Math.random() * 60 * 1000));
                 try {

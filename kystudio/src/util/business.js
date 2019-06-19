@@ -2,6 +2,7 @@ import { utcToConfigTimeZone } from './index'
 import { permissionsMaps, NamedRegex, DatePartitionRule, TimePartitionRule } from 'config/index'
 import { MessageBox, Message } from 'kyligence-ui'
 import moment from 'moment-timezone'
+
 // 成功回调入口
 export function handleSuccess (res, callback, errorcallback) {
   var responseData = res && res.data || null
@@ -282,8 +283,23 @@ export function transToUtcDateFormat (ms, isSlash) {
   var result = y + dataFormat + toDoubleNumber(m + 1) + dataFormat + toDoubleNumber(d)
   return result
 }
-export function transToUTCMs (date) {
-  return +moment(date).utc()
+export function transToUTCMs (ms, _vue) {
+  let v = _vue || window.kapVm
+  let zone = v.$store.state.system.timeZone
+  let date = new Date(ms)
+  let y = date.getFullYear()
+  let m = date.getMonth()
+  let d = date.getDate()
+  let h = date.getHours()
+  let M = date.getMinutes()
+  let s = date.getSeconds()
+  let timeFormat = '-'
+  let utcTime = +Date.UTC(y, m, d, h, M, s)
+  let dateStr = y + timeFormat + toDoubleNumber(m + 1) + timeFormat + toDoubleNumber(d) + ' ' + toDoubleNumber(h) + ':' + toDoubleNumber(M) + ':' + toDoubleNumber(s)
+  let momentObj = moment(dateStr).tz(zone)
+  let offsetMinutes = momentObj._offset
+  utcTime = utcTime - offsetMinutes * 60000
+  return utcTime
 }
 
 export function msTransDate (ms, limitWeeks) {
@@ -349,7 +365,8 @@ export function isTimePartitionType (type) {
 
 export function getGmtDateFromUtcLike (value) {
   if (value !== undefined) {
-    const isDate = value instanceof Date
-    return isDate ? value : new Date(value)
+    // const isDate = value instanceof Date
+    // value = isDate ? value : new Date(value)
+    return new Date(transToServerGmtTime(value).replace(/\s+GMT[+-]\d+$/, ''))
   }
 }

@@ -23,7 +23,6 @@
  */
 package io.kyligence.kap.event.handle;
 
-import io.kyligence.kap.engine.spark.job.NSparkExecutable;
 import java.util.UUID;
 
 import org.apache.kylin.common.KylinConfig;
@@ -34,12 +33,14 @@ import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.apache.kylin.metadata.model.Segments;
 import org.apache.kylin.metadata.realization.RealizationStatusEnum;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.Sets;
 
 import io.kyligence.kap.engine.spark.ExecutableUtils;
 import io.kyligence.kap.engine.spark.job.NSparkCubingStep;
+import io.kyligence.kap.engine.spark.job.NSparkExecutable;
 import io.kyligence.kap.engine.spark.merger.AfterBuildResourceMerger;
 import io.kyligence.kap.event.manager.EventManager;
 import io.kyligence.kap.event.model.EventContext;
@@ -56,8 +57,6 @@ import io.kyligence.kap.metadata.model.ManagementType;
 import io.kyligence.kap.metadata.model.NDataModel;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 @Slf4j
 public class PostAddSegmentHandler extends AbstractEventPostJobHandler {
@@ -79,9 +78,8 @@ public class PostAddSegmentHandler extends AbstractEventPostJobHandler {
         try {
             val kylinConfig = KylinConfig.getInstanceFromEnv();
             val merger = new AfterBuildResourceMerger(kylinConfig, project);
-            executable.getTasks().stream()
-                    .filter(task -> task instanceof NSparkExecutable)
-                    .filter(task -> ((NSparkExecutable)task).needMergeMetadata())
+            executable.getTasks().stream().filter(task -> task instanceof NSparkExecutable)
+                    .filter(task -> ((NSparkExecutable) task).needMergeMetadata())
                     .forEach(task -> ((NSparkExecutable) task).mergerMetadata(merger));
             NDataflowManager dfMgr = NDataflowManager.getInstance(kylinConfig, project);
             markDFOnlineIfNecessary(dfMgr.getDataflow(dataflowId));
@@ -166,9 +164,8 @@ public class PostAddSegmentHandler extends AbstractEventPostJobHandler {
             return;
         }
         val model = dataflow.getModel();
-        if (ManagementType.MODEL_BASED.equals(model.getManagementType())) {
-            return;
-        }
+        Preconditions.checkState(ManagementType.TABLE_ORIENTED.equals(model.getManagementType()));
+
         if (checkOnline(model)) {
             val dfManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), model.getProject());
             dfManager.updateDataflow(dataflow.getId(),
@@ -179,8 +176,8 @@ public class PostAddSegmentHandler extends AbstractEventPostJobHandler {
     private boolean checkOnline(NDataModel model) {
         // 1. check the job status of the model
         val executableManager = getExecutableManager(model.getProject(), KylinConfig.getInstanceFromEnv());
-        val count = executableManager.countByModelAndStatus(model.getId(),
-                Sets.newHashSet(ExecutableState.PAUSED, ExecutableState.ERROR), JobTypeEnum.INC_BUILD);
+        val count = executableManager.countByModelAndStatus(model.getId(), ExecutableState::isNotProgressing,
+                JobTypeEnum.INC_BUILD);
         if (count > 0) {
             return false;
         }

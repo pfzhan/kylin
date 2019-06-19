@@ -20,8 +20,15 @@ export const titleMaps = {
 export const validate = {
   [fieldTypes.LOAD_DATA_RANGE] (rule, value, callback) {
     const [ startValue, endValue ] = value
-    const { isLoadExisted } = this.form
-    if ((!startValue || !endValue || transToUTCMs(startValue) >= transToUTCMs(endValue)) && !isLoadExisted) {
+    if ((!startValue || !endValue || transToUTCMs(startValue) >= transToUTCMs(endValue))) {
+      callback(new Error(this.$t('invaildDate')))
+    } else {
+      callback()
+    }
+  },
+  [fieldTypes.REFRESH_DATA_RANGE] (rule, value, callback) {
+    const [ startValue, endValue ] = value
+    if ((!startValue || !endValue || transToUTCMs(startValue) >= transToUTCMs(endValue))) {
       callback(new Error(this.$t('invaildDate')))
     } else {
       callback()

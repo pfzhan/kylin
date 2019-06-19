@@ -50,18 +50,14 @@ import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Set;
+import java.util.TimeZone;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import io.kyligence.kap.common.persistence.transaction.TransactionException;
-import io.kyligence.kap.metadata.cube.model.NDataflowManager;
-import io.kyligence.kap.rest.response.BatchLoadTableResponse;
-import io.kyligence.kap.rest.response.ExistedDataRangeResponse;
-import io.kyligence.kap.rest.response.TableDescResponse;
-import lombok.var;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -90,12 +86,15 @@ import org.springframework.security.authentication.TestingAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.Lists;
 
+import io.kyligence.kap.common.persistence.transaction.TransactionException;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.event.manager.EventDao;
 import io.kyligence.kap.metadata.cube.model.NDataLoadingRange;
 import io.kyligence.kap.metadata.cube.model.NDataLoadingRangeManager;
+import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.model.MaintainModelType;
 import io.kyligence.kap.metadata.model.ManagementType;
 import io.kyligence.kap.metadata.model.NDataModel;
@@ -106,9 +105,13 @@ import io.kyligence.kap.rest.request.AutoMergeRequest;
 import io.kyligence.kap.rest.request.DateRangeRequest;
 import io.kyligence.kap.rest.request.TopTableRequest;
 import io.kyligence.kap.rest.response.AutoMergeConfigResponse;
+import io.kyligence.kap.rest.response.BatchLoadTableResponse;
+import io.kyligence.kap.rest.response.ExistedDataRangeResponse;
+import io.kyligence.kap.rest.response.TableDescResponse;
 import io.kyligence.kap.rest.response.TableNameResponse;
 import io.kyligence.kap.rest.response.TablesAndColumnsResponse;
 import lombok.val;
+import lombok.var;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -297,7 +300,7 @@ public class TableServiceTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testExtractTableMeta() throws Exception {
-        String[] tables = {"DEFAULT.TEST_ACCOUNT", "DEFAULT.TEST_KYLIN_FACT"};
+        String[] tables = { "DEFAULT.TEST_ACCOUNT", "DEFAULT.TEST_KYLIN_FACT" };
         List<Pair<TableDesc, TableExtDesc>> result = tableService.extractTableMeta(tables, "default");
         Assert.assertEquals(true, result.size() == 2);
 
@@ -404,7 +407,7 @@ public class TableServiceTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(originSize - 1, nTableMetadataManager.listAllTables().size());
 
         // reload table
-        String[] tables = {"DEFAULT.TEST_KYLIN_FACT"};
+        String[] tables = { "DEFAULT.TEST_KYLIN_FACT" };
         List<Pair<TableDesc, TableExtDesc>> extractTableMeta = tableService.extractTableMeta(tables, "default");
         tableService.loadTableToProject(extractTableMeta.get(0).getFirst(), extractTableMeta.get(0).getSecond(),
                 "default");
@@ -476,9 +479,13 @@ public class TableServiceTest extends NLocalFileMetadataTestCase {
         // case of load existing data
         tableService.setDataRange("default", mockeDateRangeRequestWithoutTime());
         dataLoadingRange = rangeManager.getDataLoadingRange("DEFAULT.TEST_KYLIN_FACT");
-        // 2014-01-01
-        String latestDateInEpoch = "1388534400000";
-        Assert.assertEquals(latestDateInEpoch, dataLoadingRange.getCoveredRange().getEnd().toString());
+
+        java.text.DateFormat sdf = new SimpleDateFormat("yyyy/MM/dd");
+        sdf.setTimeZone(TimeZone.getDefault());
+
+        long t2 = sdf.parse("2014/01/01").getTime();
+
+        Assert.assertEquals(t2, dataLoadingRange.getCoveredRange().getEnd());
     }
 
     //test toggle partition Key,A to null, null to A ,A to B with model:with lag behind, without lag behind
@@ -583,39 +590,58 @@ public class TableServiceTest extends NLocalFileMetadataTestCase {
         }
     }
 
-    private void testSetDataRangeOverlapOrGap() {
+    private void testSetDataRangeOverlapOrGap() throws ParseException {
+
+        java.text.DateFormat sdf = new SimpleDateFormat("yyyy/MM/dd");
+        sdf.setTimeZone(TimeZone.getDefault());
+
+        long t1 = sdf.parse("2012/01/01").getTime();
+        long t2 = sdf.parse("2014/01/01").getTime();
+        long t3 = sdf.parse("2012/02/01").getTime();
+        long t4 = sdf.parse("2014/03/01").getTime();
+
         DateRangeRequest request = mockDateRangeRequest();
         // 2012-02-01
-        request.setStart("1328054400000");
+        request.setStart(String.valueOf(t3));
         // 2012-03-01
-        request.setEnd("1330560000000");
+        request.setEnd(String.valueOf(t4));
         try {
             tableService.setDataRange("default", request);
         } catch (Exception ex) {
             Assert.assertEquals(TransactionException.class, ex.getClass());
             Assert.assertEquals(IllegalArgumentException.class, ex.getCause().getClass());
-            Assert.assertEquals(
-                    "NDataLoadingRange appendSegmentRange TimePartitionedSegmentRange[1328054400000,1330560000000) has overlaps/gap with existing segmentRanges TimePartitionedSegmentRange[0,1388534400000)",
-                    ex.getCause().getMessage());
+            Assert.assertEquals("NDataLoadingRange appendSegmentRange TimePartitionedSegmentRange[" + String.valueOf(t3)
+                    + "," + String.valueOf(t4)
+                    + ") has overlaps/gap with existing segmentRanges TimePartitionedSegmentRange[0,"
+                    + String.valueOf(t2) + ")", ex.getCause().getMessage());
         }
 
         // case of having gap with current loading range
-        request.setStart("1388534500000");
-        request.setEnd("1388534600000");
+        long t5 = sdf.parse("2014/01/02").getTime();
+        long t6 = sdf.parse("2014/01/03").getTime();
+
+        request.setStart(String.valueOf(t5));
+        request.setEnd(String.valueOf(t6));
         try {
             tableService.setDataRange("default", request);
         } catch (Exception ex) {
             Assert.assertEquals(TransactionException.class, ex.getClass());
             Assert.assertEquals(IllegalArgumentException.class, ex.getCause().getClass());
-            Assert.assertEquals(
-                    "NDataLoadingRange appendSegmentRange TimePartitionedSegmentRange[1388534500000,1388534600000) has overlaps/gap with existing segmentRanges TimePartitionedSegmentRange[0,1388534400000)",
+            Assert.assertEquals("NDataLoadingRange appendSegmentRange TimePartitionedSegmentRange[" + t5 + "," + t6
+                    + ") has overlaps/gap with existing segmentRanges TimePartitionedSegmentRange[0," + t2 + ")",
                     ex.getCause().getMessage());
         }
     }
 
     private void testGetLatestData() throws Exception {
+        java.text.DateFormat sdf = new SimpleDateFormat("yyyy/MM/dd");
+        sdf.setTimeZone(TimeZone.getDefault());
+
+        long t1 = sdf.parse("2012/01/01").getTime();
+        long t2 = sdf.parse("2014/01/01").getTime();
+
         ExistedDataRangeResponse response = tableService.getLatestDataRange("default", "DEFAULT.TEST_KYLIN_FACT");
-        Assert.assertEquals("1388534400000", response.getEndTime());
+        Assert.assertEquals(String.valueOf(t2), response.getEndTime());
     }
 
     @Test
@@ -797,7 +823,8 @@ public class TableServiceTest extends NLocalFileMetadataTestCase {
         Assert.assertFalse(tableManager.getTableDesc("DEFAULT.TEST_KYLIN_FACT").isIncrementLoading());
         Assert.assertNull(dataloadingManager.getDataLoadingRange("DEFAULT.TEST_KYLIN_FACT"));
         thrown.expect(BadRequestException.class);
-        thrown.expectMessage("Can not set table 'DEFAULT.TEST_ACCOUNT' incremental loading, as another model 'nmodel_basic_inner' uses it as a lookup table");
+        thrown.expectMessage(
+                "Can not set table 'DEFAULT.TEST_ACCOUNT' incremental loading, as another model 'nmodel_basic_inner' uses it as a lookup table");
         tableService.setPartitionKey("DEFAULT.TEST_ACCOUNT", "default", "CAL_DT");
     }
 
@@ -805,7 +832,8 @@ public class TableServiceTest extends NLocalFileMetadataTestCase {
     public void testSetFact_IncrementingExists_Exception() {
         tableService.setPartitionKey("DEFAULT.TEST_KYLIN_FACT", "default", "CAL_DT");
         thrown.expect(BadRequestException.class);
-        thrown.expectMessage("Can not set table 'DEFAULT.TEST_ACCOUNT' incremental loading, as another model 'nmodel_basic_inner' uses it as a lookup table");
+        thrown.expectMessage(
+                "Can not set table 'DEFAULT.TEST_ACCOUNT' incremental loading, as another model 'nmodel_basic_inner' uses it as a lookup table");
         tableService.setPartitionKey("DEFAULT.TEST_ACCOUNT", "default", "CAL_DT");
     }
 
@@ -858,7 +886,7 @@ public class TableServiceTest extends NLocalFileMetadataTestCase {
         autoMergeRequest.setProject("default");
         autoMergeRequest.setTable("DEFAULT.TEST_KYLIN_FACT");
         autoMergeRequest.setAutoMergeEnabled(true);
-        autoMergeRequest.setAutoMergeTimeRanges(new String[]{"HOUR"});
+        autoMergeRequest.setAutoMergeTimeRanges(new String[] { "HOUR" });
         autoMergeRequest.setVolatileRangeEnabled(true);
         autoMergeRequest.setVolatileRangeNumber(7);
         autoMergeRequest.setVolatileRangeType("HOUR");

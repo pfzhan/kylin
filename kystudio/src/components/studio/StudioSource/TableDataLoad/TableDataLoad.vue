@@ -79,6 +79,7 @@ import { Component } from 'vue-property-decorator'
 import locales from './locales'
 import { _getPartitionInfo, _getFullLoadInfo, _getRefreshFullLoadInfo } from './handler'
 import { handleSuccessAsync, handleError } from '../../../../util'
+import { getAffectedModelsType } from '../../../../config'
 
 @Component({
   props: {
@@ -137,7 +138,7 @@ export default class TableDataLoad extends Vue {
     isSubmit && this.$emit('fresh-tables')
   }
   async handleLoadFullData () {
-    const { modelCount, modelSize } = await this._getAffectedModelCountAndSize()
+    const { modelCount, modelSize } = await this._getAffectedModelCountAndSize(getAffectedModelsType.RELOAD_ROOT_FACT)
     if (modelCount || modelSize) {
       await this._showFullDataLoadConfirm({ modelSize })
     }
@@ -152,7 +153,7 @@ export default class TableDataLoad extends Vue {
   }
   async handleChangePartition (value) {
     try {
-      const { modelCount, modelSize } = await this._getAffectedModelCountAndSize()
+      const { modelCount, modelSize } = await this._getAffectedModelCountAndSize(getAffectedModelsType.TOGGLE_PARTITION)
       if (modelCount || modelSize) {
         await this._showPartitionConfirm({ modelSize, partitionKey: value })
       }
@@ -218,11 +219,11 @@ export default class TableDataLoad extends Vue {
     const submitData = _getPartitionInfo(this.project, this.table, value)
     return this.saveTablePartition(submitData)
   }
-  async _getAffectedModelCountAndSize () {
+  async _getAffectedModelCountAndSize (affectedType) {
     const projectName = this.project.name
     const tableName = this.table.fullName
-    const isSelectFact = !this.table.__data.increment_loading
-    const response = await this.fetchChangeTypeInfo({ projectName, tableName, isSelectFact })
+    // const isSelectFact = !this.table.__data.increment_loading
+    const response = await this.fetchChangeTypeInfo({ projectName, tableName, affectedType })
     const result = await handleSuccessAsync(response)
     return { modelCount: result.models.length, modelSize: result.byte_size }
   }

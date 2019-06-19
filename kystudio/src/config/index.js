@@ -612,4 +612,11 @@ export const speedProjectTypes = [
   'AUTO_MAINTAIN'
 ]
 
+// 探测影响模型的c操作类别
+export const getAffectedModelsType = {
+  TOGGLE_PARTITION: 'TOGGLE_PARTITION',
+  DROP_TABLE: 'DROP_TABLE',
+  RELOAD_ROOT_FACT: 'RELOAD_ROOT_FACT'
+}
+
 export { projectCfgs } from './projectCfgs'

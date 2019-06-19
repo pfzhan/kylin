@@ -11,6 +11,10 @@ export default {
   getConfig: () => {
     return Vue.resource(apiUrl + 'admin/config').get()
   },
+  // 获取节点的一些固定配置信息
+  getInstanceConfig: () => {
+    return Vue.resource(apiUrl + 'admin/instance_info').get()
+  },
   getPublicConfig: () => {
     return Vue.resource(apiUrl + 'admin/public_config').get()
   },

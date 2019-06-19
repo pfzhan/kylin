@@ -24,12 +24,6 @@
 
 package io.kyligence.kap.rest.cli;
 
-
-import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
-import io.kyligence.kap.metadata.cube.model.NDataflowManager;
-import io.kyligence.kap.metadata.model.ManagementType;
-import io.kyligence.kap.metadata.model.NDataModelManager;
-import lombok.val;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.GnuParser;
@@ -39,17 +33,26 @@ import org.apache.commons.cli.Options;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 
+import com.google.common.base.Preconditions;
 
+import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
+import io.kyligence.kap.metadata.cube.model.NDataflowManager;
+import io.kyligence.kap.metadata.model.ManagementType;
+import io.kyligence.kap.metadata.model.NDataModelManager;
+import lombok.val;
+
+/**
+ * recover a model broken due to event reasons
+ */
 public class RecoverModelCLI {
 
     @SuppressWarnings("static-access")
     private static final Option OPTION_METADATA = OptionBuilder.withArgName("metadata").hasArg().isRequired()
             .withDescription("Metadata").create("metadata");
 
-
     @SuppressWarnings("static-access")
     private static final Option OPTION_MODEL = OptionBuilder.withArgName("model").hasArg().isRequired()
-            .withDescription("MODEL").create("model");
+            .withDescription("MODEL ALIAS").create("model_alias");
 
     @SuppressWarnings("static-access")
     private static final Option OPTION_PROJECT = OptionBuilder.withArgName("project").hasArg().isRequired()
@@ -62,7 +65,6 @@ public class RecoverModelCLI {
         options.addOption(OPTION_MODEL);
         options.addOption(OPTION_PROJECT);
 
-
         CommandLineParser parser = new GnuParser();
         CommandLine commandLine = parser.parse(options, args);
 
@@ -71,13 +73,16 @@ public class RecoverModelCLI {
 
         KylinConfig config = KylinConfig.createInstanceFromUri(commandLine.getOptionValue(OPTION_METADATA.getOpt()));
 
-
         val dfManager = NDataflowManager.getInstance(config, project);
 
         val modelManager = NDataModelManager.getInstance(config, project);
 
-        val model = modelManager.getDataModelDescByAlias(modelAlias);
         val df = dfManager.getDataflowByModelAlias(modelAlias);
+        val model = modelManager.getDataModelDescByAlias(modelAlias);
+
+        Preconditions.checkNotNull(model, "cannot find model with alias " + modelAlias);
+        Preconditions.checkNotNull(df, "cannot find dataflow with alias " + modelAlias);
+
         if (df.getStatus().equals(RealizationStatusEnum.BROKEN) && df.isEventError()) {
             UnitOfWork.doInTransactionWithRetry(() -> {
                 if (model.getManagementType().equals(ManagementType.MODEL_BASED)) {
@@ -88,7 +93,6 @@ public class RecoverModelCLI {
                 System.out.println("Recover has finished!");
                 return null;
             }, project);
-
 
         } else {
             System.out.println("This model is healthy, no need to recover it!");

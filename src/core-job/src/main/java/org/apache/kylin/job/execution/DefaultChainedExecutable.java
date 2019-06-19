@@ -50,8 +50,8 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.constant.JobIssueEnum;
 import org.apache.kylin.job.exception.ExecuteException;
 import org.apache.kylin.job.exception.JobStoppedException;
-import org.apache.kylin.job.exception.JobSuicideException;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 
 import io.kyligence.kap.common.scheduler.JobFinishedNotifier;
@@ -75,31 +75,11 @@ public class DefaultChainedExecutable extends AbstractExecutable implements Chai
     protected ExecuteResult doWork(ExecutableContext context) throws ExecuteException {
         List<? extends Executable> executables = getTasks();
         for (Executable subTask : executables) {
-            ExecutableState state = subTask.getStatus();
-            if (state == ExecutableState.RUNNING) {
-                // there is already running subtask, no need to start a new subtask
-                break;
-            } else if (state == ExecutableState.PAUSED) {
-                // the job is paused
-                break;
-            } else if (state == ExecutableState.ERROR) {
-                throw new IllegalStateException("invalid subtask state, subtask:" + subTask.getDisplayName()
-                        + ", state:" + subTask.getStatus());
-            }
             if (subTask.isRunnable()) {
-                try {
-                    subTask.execute(context);
-                } catch (JobSuicideException e) {
-                    return ExecuteResult.createSucceed();
-                } catch (JobStoppedException e) {
-                    logger.debug("stopped unexpected", e);
-                    return ExecuteResult.createSucceed();
-                } catch (ExecuteException e) {
-                    if (e.getCause() instanceof JobSuicideException) {
-                        return ExecuteResult.createSucceed();
-                    }
-                    throw e;
-                }
+                subTask.execute(context);
+            } else {
+                throw new IllegalStateException("invalid subtask state, sub task:" + subTask.getDisplayName()
+                        + ", state:" + subTask.getStatus());
             }
         }
         return ExecuteResult.createSucceed();
@@ -107,74 +87,71 @@ public class DefaultChainedExecutable extends AbstractExecutable implements Chai
     }
 
     @Override
-    protected boolean needCheckState(ExecutableState parentState) {
+    protected boolean needCheckState() {
         return false;
     }
 
-    protected void onExecuteError(ExecuteResult result) {
+    protected void onExecuteError(ExecuteResult result) throws JobStoppedException {
         super.onExecuteError(result);
         notifyUserJobIssue(JobIssueEnum.JOB_ERROR);
     }
 
     @Override
-    protected void onExecuteFinished(ExecuteResult result) {
+    protected void onExecuteFinished(ExecuteResult result) throws JobStoppedException {
+
+        Preconditions.checkState(result.succeed());
+
+        wrapWithCheckQuit(() -> {
+
+            if (isStoppedNonVoluntarily())
+                return;
+
+            List<? extends Executable> jobs = getTasks();
+            boolean allSucceed = true;
+            boolean hasError = false;
+            boolean hasDiscarded = false;
+            boolean hasSuicidal = false;
+            for (Executable task : jobs) {
+                switch (task.getStatus()) {
+                case RUNNING:
+                    hasError = true;
+                    break;
+                case ERROR:
+                    hasError = true;
+                    break;
+                case DISCARDED:
+                    hasDiscarded = true;
+                    break;
+                case SUICIDAL:
+                    hasSuicidal = true;
+                    break;
+                default:
+                    break;
+                }
+                final ExecutableState status = task.getStatus();
+                if (status != ExecutableState.SUCCEED) {
+                    allSucceed = false;
+                }
+            }
+            if (allSucceed) {
+                updateJobOutput(getProject(), getId(), ExecutableState.SUCCEED, null, null, null);
+            } else if (hasError) {
+                logger.warn("[UNEXPECTED_THINGS_HAPPENED] Unexpected ERROR state discovered here!!!");
+                updateJobOutput(getProject(), getId(), ExecutableState.ERROR, null, null, this::onExecuteErrorHook);
+                notifyUserJobIssue(JobIssueEnum.JOB_ERROR);
+            } else if (hasDiscarded) {
+                updateJobOutput(getProject(), getId(), ExecutableState.DISCARDED, null, null, null);
+            } else if (hasSuicidal) {
+                updateJobOutput(getProject(), getId(), ExecutableState.SUICIDAL, null, null, null);
+            } else {
+                logger.warn("[UNEXPECTED_THINGS_HAPPENED] Unexpected READY state discovered here!!!");
+                updateJobOutput(getProject(), getId(), ExecutableState.READY, null, null, null);
+            }
+        });
+
         // dispatch job-finished message out
         SchedulerEventBusFactory.getInstance(KylinConfig.getInstanceFromEnv())
                 .postWithLimit(new JobFinishedNotifier(getProject()));
-
-        if (isPaused() || isDiscarded()) {
-            return;
-        }
-
-        if (!result.succeed()) {
-            updateJobOutput(getProject(), getId(), ExecutableState.ERROR, null, null, this::onExecuteErrorHook);
-            notifyUserJobIssue(JobIssueEnum.JOB_ERROR);
-            return;
-        }
-        List<? extends Executable> jobs = getTasks();
-        boolean allSucceed = true;
-        boolean hasError = false;
-        boolean hasDiscarded = false;
-        boolean hasSuicidal = false;
-        for (Executable task : jobs) {
-            switch (task.getStatus()) {
-            case RUNNING:
-                logger.error(
-                        "There shouldn't be a running subtask[{}], \n"
-                                + "it might cause endless state, will retry to fetch subtask's state.",
-                        task.getDisplayName());
-                hasError = true;
-                break;
-            case ERROR:
-                hasError = true;
-                break;
-            case DISCARDED:
-                hasDiscarded = true;
-                break;
-            case SUICIDAL:
-                hasSuicidal = true;
-                break;
-            default:
-                break;
-            }
-            final ExecutableState status = task.getStatus();
-            if (status != ExecutableState.SUCCEED) {
-                allSucceed = false;
-            }
-        }
-        if (allSucceed) {
-            updateJobOutput(getProject(), getId(), ExecutableState.SUCCEED, null);
-        } else if (hasError) {
-            updateJobOutput(getProject(), getId(), ExecutableState.ERROR, null, null, this::onExecuteErrorHook);
-            notifyUserJobIssue(JobIssueEnum.JOB_ERROR);
-        } else if (hasDiscarded) {
-            updateJobOutput(getProject(), getId(), ExecutableState.DISCARDED, null);
-        } else if (hasSuicidal) {
-            updateJobOutput(getProject(), getId(), ExecutableState.SUICIDAL, null);
-        } else {
-            //TODO: normal?
-            updateJobOutput(getProject(), getId(), ExecutableState.READY, null);
-        }
 
     }
 

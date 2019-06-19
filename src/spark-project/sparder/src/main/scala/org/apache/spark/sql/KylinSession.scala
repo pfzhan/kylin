@@ -58,6 +58,8 @@ class KylinSession(
 object KylinSession extends Logging {
 
   implicit class KylinBuilder(builder: Builder) {
+
+
     def getOrCreateKylinSession(): SparkSession = synchronized {
       val options =
         getValue("options", builder)

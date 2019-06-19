@@ -193,7 +193,7 @@ public class NLocalWithSparkSessionTest extends NLocalFileMetadataTestCase imple
         while (true) {
             Thread.sleep(500);
             ExecutableState status = job.getStatus();
-            if (!status.isReadyOrRunning()) {
+            if (!status.isProgressing()) {
                 return status;
             }
         }

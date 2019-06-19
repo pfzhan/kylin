@@ -339,7 +339,7 @@ public class NAutoTestBase extends NLocalWithSparkSessionTest {
                 while (true) {
                     Thread.sleep(500);
                     ExecutableState status = job.getStatus();
-                    if (!status.isReadyOrRunning()) {
+                    if (!status.isProgressing()) {
                         if (status == ExecutableState.ERROR) {
                             throw new IllegalStateException("Failed to execute job. " + job);
                         } else

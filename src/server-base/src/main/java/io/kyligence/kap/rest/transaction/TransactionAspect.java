@@ -51,7 +51,6 @@ public class TransactionAspect {
         if (transaction.project() != -1) {
             unitName = pjp.getArgs()[transaction.project()].toString();
         }
-        log.trace("start unit of work for project: {}", unitName);
         return UnitOfWork.doInTransactionWithRetry(UnitOfWorkParams.builder().unitName(unitName)
                 .readonly(transaction.readonly()).maxRetry(transaction.retry()).processor(() -> {
                     try {

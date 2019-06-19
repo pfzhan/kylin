@@ -409,33 +409,17 @@ function isValidDate (date) {
 // 时间转换工具
 import moment from 'moment-timezone'
 export function utcToConfigTimeZone (item, zone, formatSet) {
-  var timezone = zone || 'PST'
-  var gmttimezone = ''
+  var timezone = zone
   if (item === '' || item === null || item === undefined) {
     return ''
   }
   if (!isValidDate(new Date(item))) {
     return item
   }
-  var format = formatSet || 'YYYY-MM-DD HH:mm:ss z'
-  switch (timezone) {
-    // convert PST to GMT
-    case 'PST':
-      gmttimezone = 'GMT-8'
-      break
-    default:
-      gmttimezone = timezone
-  }
-  let time = ''
-  if (gmttimezone.indexOf('GMT') !== -1) {
-    let offset = parseInt(gmttimezone.substr(3, 2))
-    time = moment(item).utc().utcOffset(offset).format('YYYY-MM-DD HH:mm:ss ') + gmttimezone
-  } else if (moment.tz.zone(gmttimezone) != null) {
-    time = moment(item).tz(gmttimezone).format(format)
-  } else {
-    time = moment(item).utc().format(format)
-  }
-  return time
+  let momentObj = moment(item).tz(timezone)
+  let offset = momentObj ? momentObj._offset / 60 : 0
+  let timestr = momentObj ? momentObj.format('YYYY-MM-DD HH:mm:ss ') + 'GMT' + (offset >= 0 ? '+' + offset : offset) : ''
+  return timestr
 }
 // 将ISO标准时间转换为标准本地时间
 export function transISODateToLocalDate (date) {

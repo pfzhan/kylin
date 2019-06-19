@@ -34,9 +34,11 @@ export function bindRouterGuard (router) {
       let prepositionRequest = () => {
         let authenticationPromise = store.dispatch(types.LOAD_AUTHENTICATION)
         let projectPromise = store.dispatch(types.LOAD_ALL_PROJECT)
+        let instanceConfigPromise = store.dispatch(types.GET_INSTANCE_CONF)
         let rootPromise = Promise.all([
           authenticationPromise,
-          projectPromise
+          projectPromise,
+          instanceConfigPromise
         ])
         rootPromise.then(() => {
           store.commit(types.SAVE_CURRENT_LOGIN_USER, { user: store.state.system.authentication.data })

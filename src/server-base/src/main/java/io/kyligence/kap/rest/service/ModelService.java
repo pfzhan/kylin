@@ -36,14 +36,6 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-import com.google.common.collect.Maps;
-import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
-import io.kyligence.kap.event.model.AddCuboidEvent;
-import io.kyligence.kap.event.model.PostAddCuboidEvent;
-import io.kyligence.kap.metadata.cube.cuboid.NSpanningTreeForWeb;
-import io.kyligence.kap.rest.response.PurgeModelAffectedResponse;
-import io.kyligence.kap.metadata.cube.model.NDataLayout;
-import io.kyligence.kap.rest.response.BuildIndexResponse;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -83,17 +75,23 @@ import org.springframework.stereotype.Component;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
+import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.event.manager.EventManager;
+import io.kyligence.kap.event.model.AddCuboidEvent;
 import io.kyligence.kap.event.model.AddSegmentEvent;
+import io.kyligence.kap.event.model.PostAddCuboidEvent;
 import io.kyligence.kap.event.model.PostAddSegmentEvent;
 import io.kyligence.kap.event.model.PostMergeOrRefreshSegmentEvent;
 import io.kyligence.kap.event.model.RefreshSegmentEvent;
 import io.kyligence.kap.metadata.cube.cuboid.NSpanningTreeFactory;
+import io.kyligence.kap.metadata.cube.cuboid.NSpanningTreeForWeb;
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
+import io.kyligence.kap.metadata.cube.model.NDataLayout;
 import io.kyligence.kap.metadata.cube.model.NDataLoadingRange;
 import io.kyligence.kap.metadata.cube.model.NDataLoadingRangeManager;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
@@ -113,6 +111,7 @@ import io.kyligence.kap.query.util.KapQueryUtil;
 import io.kyligence.kap.rest.request.ModelConfigRequest;
 import io.kyligence.kap.rest.request.ModelRequest;
 import io.kyligence.kap.rest.response.AffectedModelsResponse;
+import io.kyligence.kap.rest.response.BuildIndexResponse;
 import io.kyligence.kap.rest.response.ComputedColumnUsageResponse;
 import io.kyligence.kap.rest.response.ExistedDataRangeResponse;
 import io.kyligence.kap.rest.response.IndexEntityResponse;
@@ -120,6 +119,7 @@ import io.kyligence.kap.rest.response.ModelConfigResponse;
 import io.kyligence.kap.rest.response.ModelInfoResponse;
 import io.kyligence.kap.rest.response.NDataModelResponse;
 import io.kyligence.kap.rest.response.NDataSegmentResponse;
+import io.kyligence.kap.rest.response.PurgeModelAffectedResponse;
 import io.kyligence.kap.rest.response.RefreshAffectedSegmentsResponse;
 import io.kyligence.kap.rest.response.RelatedModelResponse;
 import io.kyligence.kap.rest.response.SimplifiedMeasure;
@@ -500,7 +500,7 @@ public class ModelService extends BasicService {
         copy.setMvcc(-1);
         indexPlanManager.createIndexPlan(copy);
         NDataflow nDataflow = new NDataflow();
-        nDataflow.setStatus(RealizationStatusEnum.OFFLINE);
+        nDataflow.setStatus(RealizationStatusEnum.ONLINE);
         dataflowManager.createDataflow(copy, owner);
     }
 
@@ -602,11 +602,13 @@ public class ModelService extends BasicService {
         return getDataflowManager(project).getModelsUsingTable(getTableManager(project).getTableDesc(table));
     }
 
-    public RefreshAffectedSegmentsResponse getAffectedSegmentsResponse(String project, String table, String start,
-                                                                       String end) {
+    public RefreshAffectedSegmentsResponse getRefreshAffectedSegmentsResponse(String project, String table,
+            String start, String end) {
         val dfManager = getDataflowManager(project);
         long byteSize = 0L;
-        List<RelatedModelResponse> models = getRelateModels(project, table, "").stream().filter(relatedModelResponse -> relatedModelResponse.getManagementType().equals(ManagementType.TABLE_ORIENTED)).collect(Collectors.toList());
+        List<RelatedModelResponse> models = getRelateModels(project, table, "").stream().filter(
+                relatedModelResponse -> relatedModelResponse.getManagementType().equals(ManagementType.TABLE_ORIENTED))
+                .collect(Collectors.toList());
 
         TableDesc tableDesc = getTableManager(project).getTableDesc(table);
         SegmentRange toBeRefreshSegmentRange = SourceFactory.getSource(tableDesc).getSegmentRange(start, end);
@@ -660,7 +662,8 @@ public class ModelService extends BasicService {
 
     }
 
-    private void checkRefreshRangeWithinCoveredRange(NDataLoadingRange dataLoadingRange, String project, String table, SegmentRange toBeRefreshSegmentRange) {
+    private void checkRefreshRangeWithinCoveredRange(NDataLoadingRange dataLoadingRange, String project, String table,
+            SegmentRange toBeRefreshSegmentRange) {
         SegmentRange coveredReadySegmentRange = dataLoadingRange.getCoveredRange();
         if (coveredReadySegmentRange == null || !coveredReadySegmentRange.contains(toBeRefreshSegmentRange)) {
             throw new IllegalArgumentException("ToBeRefreshSegmentRange " + toBeRefreshSegmentRange
@@ -671,9 +674,10 @@ public class ModelService extends BasicService {
 
     @Transaction(project = 0)
     public void refreshSegments(String project, String table, String refreshStart, String refreshEnd,
-                                String affectedStart, String affectedEnd) throws IOException {
+            String affectedStart, String affectedEnd) throws IOException {
 
-        RefreshAffectedSegmentsResponse response = getAffectedSegmentsResponse(project, table, refreshStart, refreshEnd);
+        RefreshAffectedSegmentsResponse response = getRefreshAffectedSegmentsResponse(project, table, refreshStart,
+                refreshEnd);
         if (!response.getAffectedStart().equals(affectedStart) || !response.getAffectedEnd().equals(affectedEnd)) {
             throw new BadRequestException("Ready segments range has changed, can not refresh, please try again.");
         }
@@ -1106,8 +1110,8 @@ public class ModelService extends BasicService {
         Segments<NDataSegment> segments = dataflow.getSegments();
         for (String id : ids) {
             if (segments.getSegmentStatusToDisplay(dataflow.getSegment(id)).equals(SegmentStatusEnumToDisplay.LOCKED)) {
-                throw new BadRequestException("Can not remove or refresh segment (ID:" + id
-                        + "), because the segment is LOCKED.");
+                throw new BadRequestException(
+                        "Can not remove or refresh segment (ID:" + id + "), because the segment is LOCKED.");
             }
         }
     }
@@ -1278,15 +1282,27 @@ public class ModelService extends BasicService {
         return semanticUpdater.convertToDataModel(modelDesc);
     }
 
-    public AffectedModelsResponse getAffectedModelsByToggleTableType(String tableName, String project, boolean fact) {
+    public AffectedModelsResponse getAffectedModelsByToggleTableType(String tableName, String project) {
         val dataflowManager = getDataflowManager(project);
         val table = getTableManager(project).getTableDesc(tableName);
-        if (fact) {
-            checkSingleIncrementingLoadingTable(project, tableName);
-        }
         val response = new AffectedModelsResponse();
         val models = dataflowManager.getTableOrientedModelsUsingRootTable(table).stream()
                 .map(RootPersistentEntity::getUuid).collect(Collectors.toList());
+        var size = 0;
+        response.setModels(models);
+        for (val model : models) {
+            size += dataflowManager.getDataflowByteSize(model);
+        }
+        response.setByteSize(size);
+        return response;
+    }
+
+    public AffectedModelsResponse getAffectedModelsByDeletingTable(String tableName, String project) {
+        val dataflowManager = getDataflowManager(project);
+        val table = getTableManager(project).getTableDesc(tableName);
+        val response = new AffectedModelsResponse();
+        val models = dataflowManager.getModelsUsingTable(table).stream().map(RootPersistentEntity::getUuid)
+                .collect(Collectors.toList());
         var size = 0;
         response.setModels(models);
         for (val model : models) {
@@ -1303,7 +1319,10 @@ public class ModelService extends BasicService {
         for (val modelDesc : modelsUsingTable) {
             if (!modelDesc.getRootFactTable().getTableDesc().getIdentity().equals(tableName)
                     || modelDesc.isJoinTable(tableName)) {
-                throw new BadRequestException(String.format("Can not set table '%s' incremental loading, as another model '%s' uses it as a lookup table", tableName, modelDesc.getAlias()));
+                Preconditions.checkState(getDataLoadingRangeManager(project).getDataLoadingRange(tableName) == null);
+                throw new BadRequestException(String.format(
+                        "Can not set table '%s' incremental loading, as another model '%s' uses it as a lookup table",
+                        tableName, modelDesc.getAlias()));
             }
         }
     }
@@ -1498,10 +1517,7 @@ public class ModelService extends BasicService {
         val response = new PurgeModelAffectedResponse();
         val byteSize = getDataflowManager(project).getDataflowByteSize(model);
         response.setByteSize(byteSize);
-        Set<ExecutableState> states = Sets.newHashSet();
-        states.add(ExecutableState.RUNNING);
-        states.add(ExecutableState.READY);
-        long jobSize = getExecutableManager(project).countByModelAndStatus(model, states);
+        long jobSize = getExecutableManager(project).countByModelAndStatus(model, ExecutableState::isProgressing);
         response.setRelatedJobSize(jobSize);
         return response;
     }

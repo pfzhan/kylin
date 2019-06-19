@@ -514,7 +514,7 @@ public class NTableControllerTest {
     public void testGetRefreshDateRange() throws Exception {
         Mockito.doNothing().when(tableService).checkRefreshDataRangeReadiness("default", "DEFAULT.TEST_KYLIN_FACT", "0",
                 "100");
-        Mockito.doReturn(null).when(modelService).getAffectedSegmentsResponse("default", "DEFAULT.TEST_KYLIN_FACT", "0",
+        Mockito.doReturn(null).when(modelService).getRefreshAffectedSegmentsResponse("default", "DEFAULT.TEST_KYLIN_FACT", "0",
                 "100");
         mockMvc.perform(MockMvcRequestBuilders.get("/api/tables/affected_data_range") //
                 .contentType(MediaType.APPLICATION_JSON) //

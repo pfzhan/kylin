@@ -175,7 +175,7 @@ trait JobSupport
     while (true) {
       Thread.sleep(500)
       val status = job.getStatus
-      if (!status.isReadyOrRunning) {
+      if (!status.isProgressing) {
         return status
       }
     }

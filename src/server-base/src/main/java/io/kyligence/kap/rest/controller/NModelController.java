@@ -29,9 +29,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
-import io.kyligence.kap.metadata.cube.cuboid.NSpanningTreeForWeb;
-import io.kyligence.kap.rest.request.BuildIndexRequest;
-import io.kyligence.kap.rest.response.NDataSegmentResponse;
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.rest.exception.BadRequestException;
@@ -55,8 +52,10 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.google.common.base.Preconditions;
 
+import io.kyligence.kap.metadata.cube.cuboid.NSpanningTreeForWeb;
 import io.kyligence.kap.metadata.model.ComputedColumnDesc;
 import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.rest.request.BuildIndexRequest;
 import io.kyligence.kap.rest.request.BuildSegmentsRequest;
 import io.kyligence.kap.rest.request.ComputedColumnCheckRequest;
 import io.kyligence.kap.rest.request.ModelCheckRequest;
@@ -68,6 +67,7 @@ import io.kyligence.kap.rest.request.SegmentsRequest;
 import io.kyligence.kap.rest.request.UnlinkModelRequest;
 import io.kyligence.kap.rest.response.IndexEntityResponse;
 import io.kyligence.kap.rest.response.NDataModelResponse;
+import io.kyligence.kap.rest.response.NDataSegmentResponse;
 import io.kyligence.kap.rest.service.ModelSemanticHelper;
 import io.kyligence.kap.rest.service.ModelService;
 import lombok.val;
@@ -266,15 +266,28 @@ public class NModelController extends NBasicController {
     @RequestMapping(value = "/affected_models", method = RequestMethod.GET, produces = {
             "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public EnvelopeResponse getAffectedModelsByToggleTableType(
+    public EnvelopeResponse getAffectedModelsBySourceTableAction(
             @RequestParam(value = "table", required = true) String tableName,
             @RequestParam(value = "project", required = true) String project,
-            @RequestParam(value = "fact", required = true) boolean fact) {
+            @RequestParam(value = "action", required = true) String action
+    ) {
         checkProjectName(project);
         checkRequiredArg("table", tableName);
-        val affectedModelResponse = modelService.getAffectedModelsByToggleTableType(tableName, project, fact);
+        checkRequiredArg("action", action);
 
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, affectedModelResponse, "");
+        if ("TOGGLE_PARTITION".equals(action)) {
+            modelService.checkSingleIncrementingLoadingTable(project, tableName);
+            val affectedModelResponse = modelService.getAffectedModelsByToggleTableType(tableName, project);
+            return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, affectedModelResponse, "");
+        } else if ("DROP_TABLE".equals(action)) {
+            val affectedModelResponse = modelService.getAffectedModelsByDeletingTable(tableName, project);
+            return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, affectedModelResponse, "");
+        } else if ("RELOAD_ROOT_FACT".equals(action)) {
+            val affectedModelResponse = modelService.getAffectedModelsByToggleTableType(tableName, project);
+            return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, affectedModelResponse, "");
+        } else {
+            throw new IllegalArgumentException();
+        }
     }
 
     @PutMapping(value = "/semantic", produces = "application/vnd.apache.kylin-v2+json")
@@ -353,10 +366,13 @@ public class NModelController extends NBasicController {
     @RequestMapping(value = "/purgeEffect", method = { RequestMethod.GET }, produces = {
             "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public EnvelopeResponse getPurgeModelAffectedResponse(@RequestParam(value = "project", required = true) String project, @RequestParam(value = "model", required = true) String model) {
+    public EnvelopeResponse getPurgeModelAffectedResponse(
+            @RequestParam(value = "project", required = true) String project,
+            @RequestParam(value = "model", required = true) String model) {
         checkProjectName(project);
         checkRequiredArg(MODEL_ID, model);
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, modelService.getPurgeModelAffectedResponse(project, model), "");
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS,
+                modelService.getPurgeModelAffectedResponse(project, model), "");
     }
 
     @RequestMapping(value = "/clone", method = { RequestMethod.POST }, produces = {

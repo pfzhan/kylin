@@ -21,29 +21,7 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+package io.kyligence.kap.common.persistence.transaction;
 
-package org.apache.kylin.job.exception;
-
-import io.kyligence.kap.common.persistence.transaction.QuitTxnRightNow;
-
-/**
- */
-public class JobStoppedException extends ExecuteException implements QuitTxnRightNow {
-
-    private static final long serialVersionUID = 5678121412192984281L;
-
-    public JobStoppedException() {
-    }
-
-    public JobStoppedException(String message) {
-        super(message);
-    }
-
-    public JobStoppedException(String message, Throwable cause) {
-        super(message, cause);
-    }
-
-    public JobStoppedException(Throwable cause) {
-        super(cause);
-    }
+public interface QuitTxnRightNow {
 }

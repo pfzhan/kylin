@@ -101,33 +101,40 @@ public class UnitOfWork {
             T ret;
 
             if (retry != 1) {
-                log.debug("current unit of work in project {} is retrying for {}th time", params.getUnitName(), retry);
+                log.debug("UnitOfWork {} in project {} is retrying for {}th time", traceId, params.getUnitName(),
+                        retry);
             } else {
-                log.debug("start unit of work on project {}", params.getUnitName());
+                log.debug("UnitOfWork {} started on project {}", traceId, params.getUnitName());
             }
 
             long startTime = System.currentTimeMillis();
             TransactionListenerRegistry.onStart(params.getUnitName());
             context = UnitOfWork.startTransaction(params);
             ret = params.getProcessor().process();
-            UnitOfWork.endTransaction();
+            UnitOfWork.endTransaction(traceId);
             long duration = System.currentTimeMillis() - startTime;
             if (duration > 3000) {
-                log.warn("a UnitOfWork takes too long time {}ms to complete", duration);
+                log.warn("UnitOfWork {} takes too long time {}ms to complete", traceId, duration);
             } else {
-                log.debug("a UnitOfWork takes {}ms to complete", duration);
+                log.debug("UnitOfWork {} takes {}ms to complete", traceId, duration);
             }
             result = Pair.newPair(ret, true);
         } catch (Throwable throwable) {
+            if (throwable instanceof QuitTxnRightNow) {
+                retry = params.getMaxRetry();
+            }
+
             if (retry >= params.getMaxRetry()) {
                 params.getProcessor().onProcessError(throwable);
                 throw new TransactionException(
                         "exhausted max retry times, transaction failed due to inconsistent state, traceId:" + traceId,
                         throwable);
             }
+
             if (retry == 1) {
-                log.warn("transaction failed at first time, retry it. traceId:" + traceId, throwable);
+                log.warn("transaction failed at first time, traceId:" + traceId, throwable);
             }
+
         } finally {
             if (isAlreadyInTransaction()) {
                 try {
@@ -199,7 +206,7 @@ public class UnitOfWork {
         return temp;
     }
 
-    static void endTransaction() throws Exception {
+    static void endTransaction(String traceId) throws Exception {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         val work = get();
         if (work.isReadonly() || !work.isUseSandbox()) {
@@ -221,8 +228,11 @@ public class UnitOfWork {
 
         val originConfig = KylinConfig.getInstanceFromEnv();
         // publish events here
-        val unitMessages = packageEvents(eventList, get().getProject());
+        val unitMessages = packageEvents(eventList, get().getProject(), traceId);
         val metadataStore = ResourceStore.getKylinMetaStore(originConfig).getMetadataStore();
+        String allEntities = unitMessages.getMessages().stream().filter(event -> event instanceof ResourceRelatedEvent)
+                .map(event -> ((ResourceRelatedEvent) event).getResPath()).collect(Collectors.joining(","));
+        log.debug("metadata change list: " + allEntities);
         metadataStore.batchUpdate(unitMessages);
 
         try {
@@ -236,12 +246,11 @@ public class UnitOfWork {
         }
     }
 
-    private static UnitMessages packageEvents(List<Event> events, String project) {
+    private static UnitMessages packageEvents(List<Event> events, String project, String uuid) {
         Preconditions.checkState(events.stream().filter(e -> e instanceof ResourceRelatedEvent).allMatch(e -> {
             val event = (ResourceRelatedEvent) e;
             return event.getResPath().startsWith("/" + project) || event.getResPath().endsWith("/" + project + ".json");
         }), "some event are not in project " + project);
-        val uuid = UUID.randomUUID().toString();
         events.add(0, new StartUnit(uuid));
         events.add(new EndUnit(uuid));
         events.forEach(e -> e.setKey(get().getProject()));

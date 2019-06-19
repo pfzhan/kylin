@@ -133,7 +133,7 @@ public class NSparkCubingJobOnYarnTest extends NLocalFileMetadataTestCase {
             Thread.sleep(500);
 
             ExecutableState status = job.getStatus();
-            if (!status.isReadyOrRunning()) {
+            if (!status.isProgressing()) {
                 return status;
             }
         }

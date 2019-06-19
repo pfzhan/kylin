@@ -102,6 +102,9 @@ object SparderEnv extends Logging {
             case _ =>
               SparkSession.builder
                 .appName("sparder-sql-context")
+                .master("yarn-client")
+                //if user defined other master in kylin.properties,
+                // it will get overwrite later in org.apache.spark.sql.KylinSession.KylinBuilder.initSparkConf
                 .withExtensions(ext => ext.injectPlannerStrategy(_ => KylinSourceStrategy))
                 .enableHiveSupport()
                 .getOrCreateKylinSession()

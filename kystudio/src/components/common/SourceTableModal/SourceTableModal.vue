@@ -24,8 +24,7 @@
           type="datetime"
           :value="form.loadDataRange[0]"
           :is-auto-complete="true"
-          :disabled="isDisabled || form.isLoadExisted || isLoadingNewRange"
-          :picker-options="{ disabledDate: time => time.getTime() > form.loadDataRange[1] && form.loadDataRange[1] !== null }"
+          :disabled="isDisabled || isLoadingNewRange"
           :placeholder="$t('kylinLang.common.startTime')"
           @input="value => handleInputDate('loadDataRange.0', value)">
         </el-date-picker>
@@ -33,8 +32,7 @@
           type="datetime"
           :value="form.loadDataRange[1]"
           :is-auto-complete="true"
-          :disabled="isDisabled || form.isLoadExisted || isLoadingNewRange"
-          :picker-options="{ disabledDate: time => time.getTime() < form.loadDataRange[0] && form.loadDataRange[0] !== null }"
+          :disabled="isDisabled || isLoadingNewRange"
           :placeholder="$t('kylinLang.common.endTime')"
           @input="value => handleInputDate('loadDataRange.1', value)">
         </el-date-picker>
@@ -44,7 +42,7 @@
             size="medium"
             style="line-height:1"
             class="ksd-ml-10"
-            :disabled="isDisabled || form.isLoadExisted"
+            :disabled="isDisabled"
             :loading="isLoadingNewRange"
             v-guide.getRangeDataBtn
             icon="el-icon-ksd-data_range_search"
@@ -65,7 +63,6 @@
             :value="form.freshDataRange[0]"
             :is-auto-complete="true"
             :disabled="isDisabled"
-            :picker-options="{ disabledDate: time => time.getTime() > form.freshDataRange[1] && form.loadDataRange[1] !== null }"
             :placeholder="$t('kylinLang.common.startTime')"
             @input="value => handleInputDate('freshDataRange.0', value)">
           </el-date-picker>
@@ -74,7 +71,6 @@
             :value="form.freshDataRange[1]"
             :is-auto-complete="true"
             :disabled="isDisabled"
-            :picker-options="{ disabledDate: time => time.getTime() < form.freshDataRange[0] && form.loadDataRange[0] !== null }"
             :placeholder="$t('kylinLang.common.endTime')"
             @input="value => handleInputDate('freshDataRange.1', value)">
           </el-date-picker>
@@ -92,7 +88,7 @@
 
 <script>
 import Vue from 'vue'
-import { Component, Watch } from 'vue-property-decorator'
+import { Component } from 'vue-property-decorator'
 import { mapState, mapMutations, mapActions } from 'vuex'
 
 import vuex from '../../../store'
@@ -102,7 +98,7 @@ import { set } from '../../../util/object'
 import { handleError, handleSuccessAsync, getGmtDateFromUtcLike } from '../../../util'
 import { fieldVisiableMaps, titleMaps, validate, fieldTypes, editTypes, _getLoadDataForm, _getRefreshDataForm, _getNewestTableRange } from './handler'
 
-const { LOAD_DATA_RANGE } = fieldTypes
+const { LOAD_DATA_RANGE, REFRESH_DATA_RANGE } = fieldTypes
 
 vuex.registerModule(['modals', 'SourceTableModal'], store)
 
@@ -139,13 +135,10 @@ export default class SourceTableModal extends Vue {
   isDisabled = false
   isFormShow = false
   rules = {
-    [LOAD_DATA_RANGE]: [{ validator: this.validate(LOAD_DATA_RANGE), trigger: 'blur' }]
+    [LOAD_DATA_RANGE]: [{ validator: this.validate(LOAD_DATA_RANGE), trigger: 'blur' }],
+    [REFRESH_DATA_RANGE]: [{ validator: this.validate(LOAD_DATA_RANGE), trigger: 'blur' }]
   }
   isLoadingNewRange = false
-  @Watch('form.isLoadExisted')
-  onIsLoadExistedChange () {
-    this.$refs['form'].clearValidate('loadDataRange')
-  }
   get modalTitle () {
     return titleMaps[this.editType]
   }

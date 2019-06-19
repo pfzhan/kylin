@@ -107,14 +107,13 @@
 
 <script>
 import Vue from 'vue'
-import dayjs from 'dayjs'
 import { mapGetters, mapActions } from 'vuex'
 import { Component } from 'vue-property-decorator'
 import locales from './locales'
 import FlowerChart from '../../../../common/FlowerChart'
 import PartitionChart from '../../../../common/PartitionChart'
 import { handleSuccessAsync } from '../../../../../util'
-import { handleError, transToGmtTime } from '../../../../../util/business'
+import { handleError, transToGmtTime, transToServerGmtTime } from '../../../../../util/business'
 import { speedProjectTypes } from '../../../../../config'
 import { BuildIndexStatus } from '../../../../../config/model'
 import AggregateModal from './AggregateModal/index.vue'
@@ -213,8 +212,8 @@ export default class ModelAggregate extends Vue {
     const id = this.cuboidData.id
     const dimensions = this.cuboidData.dimensions_res || []
     const measures = this.cuboidData.measures_res || []
-    const startDate = dayjs(this.cuboidData.start_time).format('YYYY-MM-DD HH:mm:ss')
-    const endDate = dayjs(this.cuboidData.end_time).format('YYYY-MM-DD HH:mm:ss')
+    const startDate = transToServerGmtTime(this.cuboidData.start_time)
+    const endDate = transToServerGmtTime(this.cuboidData.end_time)
     const storage = this.cuboidData.storage_size
     const queryCount = this.cuboidData.query_hit_count || 0
     const modifiedTime = transToGmtTime(this.cuboidData.last_modify_time)

@@ -76,7 +76,7 @@ public class EventOrchestratorTest extends NLocalFileMetadataTestCase {
                 .get(getTestConfig());
         managersByPrjCache.get(NExecutableManager.class).put(DEFAULT_PROJECT, manager);
         Map<String, List<String>> modelExecutables = initModelExecutables(events);
-        Mockito.doReturn(modelExecutables).when(manager).getModelExecutables(Mockito.anySet(), Mockito.anySet());
+        Mockito.doReturn(modelExecutables).when(manager).getModelExecutables(Mockito.anySet(), Mockito.any());
 
         Map<String, Event> modelEvents = eventChecker.chooseEventForeachModel(events);
 

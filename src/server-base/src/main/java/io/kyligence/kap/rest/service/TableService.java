@@ -523,6 +523,7 @@ public class TableService extends BasicService {
     public void setDataRange(String project, DateRangeRequest dateRangeRequest) throws Exception {
         String table = dateRangeRequest.getTable();
         NDataLoadingRange dataLoadingRange = getDataLoadingRange(project, table);
+        Preconditions.checkNotNull(dataLoadingRange, "table " + table + " is not incremental, ");
         SegmentRange allRange = dataLoadingRange.getCoveredRange();
 
         var start = dateRangeRequest.getStart();

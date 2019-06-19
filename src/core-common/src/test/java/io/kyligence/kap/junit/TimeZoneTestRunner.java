@@ -25,6 +25,7 @@
 package io.kyligence.kap.junit;
 
 import java.util.TimeZone;
+
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.DateFormat;
 import org.junit.runner.notification.RunNotifier;
@@ -32,11 +33,10 @@ import org.junit.runners.BlockJUnit4ClassRunner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-
 public class TimeZoneTestRunner extends BlockJUnit4ClassRunner {
     private static final Logger logger = LoggerFactory.getLogger(KylinConfig.class);
 
-    private static String[] timeZones = {"GMT", "GMT+8", "CST"};
+    private static String[] timeZones = { "GMT+8", "CST", "PST", "UTC" };
 
     public TimeZoneTestRunner(Class<?> clazz) throws Exception {
         super(clazz);

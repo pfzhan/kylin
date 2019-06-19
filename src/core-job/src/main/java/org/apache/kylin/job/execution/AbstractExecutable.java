@@ -65,7 +65,8 @@ import org.apache.kylin.job.constant.JobIssueEnum;
 import org.apache.kylin.job.dao.ExecutableOutputPO;
 import org.apache.kylin.job.exception.ExecuteException;
 import org.apache.kylin.job.exception.JobStoppedException;
-import org.apache.kylin.job.exception.JobSuicideException;
+import org.apache.kylin.job.exception.JobStoppedNonVoluntarilyException;
+import org.apache.kylin.job.exception.JobStoppedVoluntarilyException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -82,6 +83,7 @@ import io.kyligence.kap.metadata.cube.model.NDataLayout;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
+import io.kyligence.kap.shaded.curator.org.apache.curator.shaded.com.google.common.base.Throwables;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.val;
@@ -90,6 +92,13 @@ import lombok.experimental.Delegate;
 /**
  */
 public abstract class AbstractExecutable implements Executable {
+
+    public interface Callback {
+        void process() throws Exception;
+
+        default void onProcessError(Throwable throwable) {
+        }
+    }
 
     protected static final String SUBMITTER = "submitter";
     protected static final String NOTIFY_LIST = "notify_list";
@@ -154,24 +163,52 @@ public abstract class AbstractExecutable implements Executable {
         return getExecutableManager(project);
     }
 
-    protected void onExecuteStart() {
+    protected void wrapWithCheckQuit(Callback f) throws JobStoppedException {
+        boolean tryAgain = true;
 
-        checkJobStateChange();
-        updateJobOutput(project, getId(), ExecutableState.RUNNING);
+        while (tryAgain) {
+            checkNeedQuit(true);
 
+            // in this short period user might changed job state
+
+            tryAgain = false;
+            try {
+                UnitOfWork.doInTransactionWithRetry(() -> {
+                    checkNeedQuit(false);
+                    f.process();
+                    return null;
+                }, project);
+            } catch (Exception e) {
+                if (Throwables.getCausalChain(e).stream().anyMatch(x -> x instanceof JobStoppedException)) {
+                    // "in this short period user might changed job state" happens
+                    logger.info("[LESS_LIKELY_THINGS_HAPPENED] JobStoppedException thrown from in a UnitOfWork", e);
+                    tryAgain = true;
+                }
+            }
+        }
     }
 
-    protected void onExecuteFinished(ExecuteResult result) {
-        checkJobStateChange();
+    protected final void onExecuteStart() throws JobStoppedException {
+        wrapWithCheckQuit(() -> {
+            updateJobOutput(project, getId(), ExecutableState.RUNNING, null, null, null);
+        });
+    }
+
+    protected void onExecuteFinished(ExecuteResult result) throws JobStoppedException {
         Preconditions.checkState(result.succeed());
-        updateJobOutput(project, getId(), ExecutableState.SUCCEED, result.getExtraInfo(), result.output(), null);
+
+        wrapWithCheckQuit(() -> {
+            updateJobOutput(project, getId(), ExecutableState.SUCCEED, result.getExtraInfo(), result.output(), null);
+        });
     }
 
-    protected void onExecuteError(ExecuteResult result) {
-        checkJobStateChange();
+    protected void onExecuteError(ExecuteResult result) throws JobStoppedException {
         Preconditions.checkState(!result.succeed());
-        updateJobOutput(project, getId(), ExecutableState.ERROR, result.getExtraInfo(), result.getErrorMsg(),
-                this::onExecuteErrorHook);
+
+        wrapWithCheckQuit(() -> {
+            updateJobOutput(project, getId(), ExecutableState.ERROR, result.getExtraInfo(), result.getErrorMsg(),
+                    this::onExecuteErrorHook);
+        });
     }
 
     protected void onExecuteStopHook() {
@@ -180,14 +217,6 @@ public abstract class AbstractExecutable implements Executable {
 
     protected void onExecuteErrorHook(String jobId) {
         // At present, only instance of DefaultChainedExecutableOnModel take full advantage of this method.
-    }
-
-    public void updateJobOutput(String project, String jobId, ExecutableState newStatus) {
-        updateJobOutput(project, jobId, newStatus, null, null, null);
-    }
-
-    public void updateJobOutput(String project, String jobId, ExecutableState newStatus, String output) {
-        updateJobOutput(project, jobId, newStatus, null, output, null);
     }
 
     public void updateJobOutput(String project, String jobId, ExecutableState newStatus, Map<String, String> info,
@@ -242,9 +271,13 @@ public abstract class AbstractExecutable implements Executable {
                 logger.info("Retrying for the {}th time ", retry);
             }
 
-            checkJobStateChange();
+            checkNeedQuit(true);
             try {
                 result = doWork(executableContext);
+            } catch (JobStoppedException jse) {
+                // job quits voluntarily or non-voluntarily, in this case, the job is "finished"
+                // we createSucceed() to run onExecuteFinished()
+                result = ExecuteResult.createSucceed();
             } catch (Throwable e) {
                 result = ExecuteResult.createError(e);
             }
@@ -263,18 +296,20 @@ public abstract class AbstractExecutable implements Executable {
         }
     }
 
-    private void checkJobStateChange() {
-        suicideIfNecessary();
-        checkJob(ExecutableState.READY, ExecutableState.READY);
-        checkJob(ExecutableState.PAUSED, ExecutableState.READY);
-        checkJob(ExecutableState.DISCARDED, ExecutableState.DISCARDED);
+    private void checkNeedQuit(boolean applyChange) throws JobStoppedException {
+        // voluntarily
+        suicideIfNecessary(applyChange);
+        // non voluntarily
+        abortIfJobStopped(applyChange);
     }
 
-    private void suicideIfNecessary() {
+    private void suicideIfNecessary(boolean applyChange) throws JobStoppedException {
         if (checkSuicide()) {
-            updateJobOutput(project, getId(), ExecutableState.SUICIDAL,
-                    "suicide as its subject(model, segment or table) no longer exists");
-            throw new JobSuicideException();
+            if (applyChange) {
+                updateJobOutput(project, getId(), ExecutableState.SUICIDAL, null,
+                        "suicide as its subject(model, segment or table) no longer exists", null);
+            }
+            throw new JobStoppedVoluntarilyException();
         }
     }
 
@@ -290,22 +325,40 @@ public abstract class AbstractExecutable implements Executable {
         }
     }
 
-    // If job need check paused, override this method, by default return true.
-    protected boolean needCheckState(ExecutableState parentState) {
+    // If job need check external status change, override this method, by default return true.
+    protected boolean needCheckState() {
         return true;
     }
 
-    public void checkJob(ExecutableState parentState, ExecutableState newState) {
-        if (!needCheckState(parentState)) {
+    /**
+     * will throw exception if necessary!
+     */
+    public void abortIfJobStopped(boolean applyChange) throws JobStoppedException {
+        if (!needCheckState()) {
             return;
         }
+
         val parent = this.getParent();
-        if (parentState.equals(parent.getStatus())) {
-            UnitOfWork.doInTransactionWithRetry(() -> {
-                updateJobOutput(project, getId(), newState);
-                return null;
-            }, project);
-            throw new JobStoppedException();
+
+        if (ExecutableState.READY.equals(parent.getStatus())) {
+            //if a job is restarted(all steps' status changed to READY), the old thread may still be alive and attempt to update job output
+            //in this case the old thread should fail itself by calling this
+            if (applyChange) {
+                updateJobOutput(project, getId(), ExecutableState.READY, null, null, null);
+            }
+            throw new JobStoppedNonVoluntarilyException();
+        } else if (ExecutableState.PAUSED.equals(parent.getStatus())) {
+            //if a job is paused
+            if (applyChange) {
+                updateJobOutput(project, getId(), ExecutableState.READY, null, null, null);
+            }
+            throw new JobStoppedNonVoluntarilyException();
+        } else if (ExecutableState.DISCARDED.equals(parent.getStatus())) {
+            //if a job is discarded
+            if (applyChange) {
+                updateJobOutput(project, getId(), ExecutableState.DISCARDED, null, null, null);
+            }
+            throw new JobStoppedNonVoluntarilyException();
         }
     }
 
@@ -524,18 +577,15 @@ public abstract class AbstractExecutable implements Executable {
         return Sets.newHashSet(value.split(","));
     }
 
-    /*
-    * discarded is triggered by JobService, the Scheduler is not awake of that
-    *
-    * */
-    protected final boolean isDiscarded() {
+    /**
+     * job get DISCARD or PAUSE without job fetcher's awareness
+     *
+     * SUICIDE is not the case, as it is awared by job fetcher
+     *
+     */
+    protected final boolean isStoppedNonVoluntarily() {
         final ExecutableState status = getOutput().getState();
-        return status == ExecutableState.DISCARDED;
-    }
-
-    protected final boolean isPaused() {
-        final ExecutableState status = getOutput().getState();
-        return status == ExecutableState.PAUSED;
+        return status.isStoppedNonVoluntarily();
     }
 
     protected boolean needRetry() {
@@ -616,5 +666,4 @@ public abstract class AbstractExecutable implements Executable {
             logger.error("error send email", e);
         }
     }
-
 }

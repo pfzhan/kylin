@@ -192,6 +192,22 @@ public class NTableController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, null, "");
     }
 
+    @RequestMapping(value = "/data_range", method = { RequestMethod.PUT }, produces = {
+            "application/vnd.apache.kylin-v2+json" })
+    @ResponseBody
+    public EnvelopeResponse refreshSegments(@RequestBody RefreshSegmentsRequest request) throws IOException {
+        checkProjectName(request.getProject());
+        checkRequiredArg(TABLE, request.getTable());
+        checkRequiredArg("refresh start", request.getRefreshStart());
+        checkRequiredArg("refresh end", request.getRefreshEnd());
+        checkRequiredArg("affected start", request.getAffectedStart());
+        checkRequiredArg("affected end", request.getAffectedEnd());
+        validateRange(request.getRefreshStart(), request.getRefreshEnd());
+        modelService.refreshSegments(request.getProject(), request.getTable(), request.getRefreshStart(),
+                request.getRefreshEnd(), request.getAffectedStart(), request.getAffectedEnd());
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, null, "");
+    }
+
     @RequestMapping(value = "/data_range/latest_data", method = { RequestMethod.GET }, produces = {
             "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
@@ -288,24 +304,9 @@ public class NTableController extends NBasicController {
         checkRequiredArg("end", end);
         validateRange(start, end);
         tableService.checkRefreshDataRangeReadiness(project, table, start, end);
-        RefreshAffectedSegmentsResponse response = modelService.getAffectedSegmentsResponse(project, table, start, end);
+        RefreshAffectedSegmentsResponse response = modelService.getRefreshAffectedSegmentsResponse(project, table,
+                start, end);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, response, "");
-    }
-
-    @RequestMapping(value = "/data_range", method = { RequestMethod.PUT }, produces = {
-            "application/vnd.apache.kylin-v2+json" })
-    @ResponseBody
-    public EnvelopeResponse refreshSegments(@RequestBody RefreshSegmentsRequest request) throws IOException {
-        checkProjectName(request.getProject());
-        checkRequiredArg(TABLE, request.getTable());
-        checkRequiredArg("refresh start", request.getRefreshStart());
-        checkRequiredArg("refresh end", request.getRefreshEnd());
-        checkRequiredArg("affected start", request.getAffectedStart());
-        checkRequiredArg("affected end", request.getAffectedEnd());
-        validateRange(request.getRefreshStart(), request.getRefreshEnd());
-        modelService.refreshSegments(request.getProject(), request.getTable(), request.getRefreshStart(),
-                request.getRefreshEnd(), request.getAffectedStart(), request.getAffectedEnd());
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, null, "");
     }
 
     @RequestMapping(value = "/pushdown_mode", method = { RequestMethod.PUT }, produces = {

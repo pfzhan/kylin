@@ -24,26 +24,16 @@
 
 package org.apache.kylin.job.exception;
 
-import io.kyligence.kap.common.persistence.transaction.QuitTxnRightNow;
-
 /**
  */
-public class JobStoppedException extends ExecuteException implements QuitTxnRightNow {
+public class JobStoppedNonVoluntarilyException extends JobStoppedException {
 
-    private static final long serialVersionUID = 5678121412192984281L;
+    private static final long serialVersionUID = 3904294673594613427L;
 
-    public JobStoppedException() {
+    public JobStoppedNonVoluntarilyException() {
     }
 
-    public JobStoppedException(String message) {
+    public JobStoppedNonVoluntarilyException(String message) {
         super(message);
-    }
-
-    public JobStoppedException(String message, Throwable cause) {
-        super(message, cause);
-    }
-
-    public JobStoppedException(Throwable cause) {
-        super(cause);
     }
 }

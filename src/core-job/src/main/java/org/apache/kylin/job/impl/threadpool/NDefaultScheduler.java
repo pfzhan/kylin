@@ -45,7 +45,8 @@ import org.apache.kylin.common.util.SetThreadName;
 import org.apache.kylin.job.Scheduler;
 import org.apache.kylin.job.engine.JobEngineConfig;
 import org.apache.kylin.job.exception.ExecuteException;
-import org.apache.kylin.job.exception.JobSuicideException;
+import org.apache.kylin.job.exception.JobStoppedNonVoluntarilyException;
+import org.apache.kylin.job.exception.JobStoppedVoluntarilyException;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.Executable;
 import org.apache.kylin.job.execution.ExecutableContext;
@@ -128,6 +129,9 @@ public class NDefaultScheduler implements Scheduler<AbstractExecutable>, Connect
                 int nSuicidal = 0;
                 for (final String id : executableManager.getJobs()) {
                     if (runningJobs.containsKey(id)) {
+                        // this is very important to prevent from same job being scheduled at same time.
+                        // e.g. when a job is restarted, the old job may still be running (even if we tried to interrupt it)
+                        // until the old job is finished, the new job should not start
                         nRunning++;
                         continue;
                     }
@@ -256,8 +260,8 @@ public class NDefaultScheduler implements Scheduler<AbstractExecutable>, Connect
                 executable.execute(context);
                 // trigger the next step asap
                 fetcherPool.schedule(fetcher, 0, TimeUnit.SECONDS);
-            } catch (JobSuicideException e) {
-                logger.info("job " + executable.getId() + " suicides as its serving model/segment no longer exists", e);
+            } catch (JobStoppedVoluntarilyException | JobStoppedNonVoluntarilyException e) {
+                logger.info("Job quits either voluntarily or non-voluntarily", e);
             } catch (ExecuteException e) {
                 logger.error("ExecuteException occurred while job: " + executable.getId(), e);
             } catch (Exception e) {

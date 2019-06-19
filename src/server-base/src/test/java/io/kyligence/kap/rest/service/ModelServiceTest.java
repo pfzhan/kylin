@@ -54,11 +54,13 @@ import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Set;
+import java.util.TimeZone;
 import java.util.UUID;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -530,7 +532,7 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
         dfMgr.updateDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa", copyForWrite -> {
             copyForWrite.setSegments(new Segments());
         });
-        RefreshAffectedSegmentsResponse response = modelService.getAffectedSegmentsResponse("default",
+        RefreshAffectedSegmentsResponse response = modelService.getRefreshAffectedSegmentsResponse("default",
                 "DEFAULT.TEST_KYLIN_FACT", "0", "" + Long.MAX_VALUE);
         Assert.assertTrue(response.getByteSize() == 0L);
     }
@@ -557,7 +559,7 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
             copyForWrite.getSegments().get(0).setStatus(SegmentStatusEnum.READY);
         });
 
-        val response = modelService.getAffectedSegmentsResponse("default", "DEFAULT.TEST_KYLIN_FACT", "0", "50");
+        val response = modelService.getRefreshAffectedSegmentsResponse("default", "DEFAULT.TEST_KYLIN_FACT", "0", "50");
         Assert.assertTrue(response.getAffectedStart().equals("0"));
         Assert.assertTrue(response.getAffectedEnd().equals("30"));
     }
@@ -988,7 +990,12 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
     private void testGetLatestDataWhenCreateModel() throws Exception {
         ExistedDataRangeResponse response = modelService.getLatestDataRange("default", "DEFAULT.TEST_KYLIN_FACT",
                 "CAL_DT", "");
-        Assert.assertEquals("1388534400000", response.getEndTime());
+
+        java.text.DateFormat dateFormat = new SimpleDateFormat("yyyy/MM/dd");
+        dateFormat.setTimeZone(TimeZone.getDefault());
+
+        long t1 = dateFormat.parse("2014/01/01").getTime();
+        Assert.assertEquals(String.valueOf(t1), response.getEndTime());
     }
 
     public void testChangePartitionDesc() throws Exception {
@@ -1101,8 +1108,17 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
         val dfManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
         val df = dfManager.getDataflow(newModel.getUuid());
         Assert.assertEquals(1, df.getSegments().size());
-        Assert.assertEquals(1325376000000L, df.getSegments().get(0).getSegRange().getStart());
-        Assert.assertEquals(1388534400000L, df.getSegments().get(0).getSegRange().getEnd());
+
+
+        java.text.DateFormat sdf = new SimpleDateFormat("yyyy/MM/dd");
+        sdf.setTimeZone(TimeZone.getDefault());
+
+        long t1 = sdf.parse("2012/01/01").getTime();
+        long t2 = sdf.parse("2014/01/01").getTime();
+
+
+        Assert.assertEquals(t1, df.getSegments().get(0).getSegRange().getStart());
+        Assert.assertEquals(t2, df.getSegments().get(0).getSegRange().getEnd());
         modelManager.dropModel(newModel);
     }
 
@@ -2210,8 +2226,15 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
         Assert.assertTrue(events.get(0) instanceof AddSegmentEvent);
         dataflow = dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         Assert.assertEquals(1, dataflow.getSegments().size());
-        Assert.assertEquals(1325376000000L, dataflow.getSegments().get(0).getSegRange().getStart());
-        Assert.assertEquals(1388534400000L, dataflow.getSegments().get(0).getSegRange().getEnd());
+
+        java.text.DateFormat sdf = new SimpleDateFormat("yyyy/MM/dd");
+        sdf.setTimeZone(TimeZone.getDefault());
+
+        long t1 = sdf.parse("2012/01/01").getTime();
+        long t2 = sdf.parse("2014/01/01").getTime();
+
+        Assert.assertEquals(t1, dataflow.getSegments().get(0).getSegRange().getStart());
+        Assert.assertEquals(t2, dataflow.getSegments().get(0).getSegRange().getEnd());
 
     }
 
@@ -2277,7 +2300,7 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testGetAffectedModelsByToggleTableType() {
-        val response = modelService.getAffectedModelsByToggleTableType("DEFAULT.TEST_KYLIN_FACT", "default", true);
+        val response = modelService.getAffectedModelsByToggleTableType("DEFAULT.TEST_KYLIN_FACT", "default");
         Assert.assertEquals(4, response.getModels().size());
         Assert.assertEquals(5633024L, response.getByteSize());
     }
@@ -2641,7 +2664,7 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
         RefreshAffectedSegmentsResponse response = new RefreshAffectedSegmentsResponse();
         response.setAffectedStart("12");
         response.setAffectedEnd("120");
-        Mockito.doReturn(response).when(modelService).getAffectedSegmentsResponse("default", "DEFAULT.TEST_KYLIN_FACT",
+        Mockito.doReturn(response).when(modelService).getRefreshAffectedSegmentsResponse("default", "DEFAULT.TEST_KYLIN_FACT",
                 "0", "12223334");
         modelService.refreshSegments("default", "DEFAULT.TEST_KYLIN_FACT", "0", "12223334", "0", "12223334");
     }

@@ -57,6 +57,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
+import com.google.common.base.Predicate;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
@@ -229,23 +230,23 @@ public class NExecutableManager {
         return ret;
     }
 
-    public long countByModelAndStatus(String model, Set<ExecutableState> status) {
-        return countByModelAndStatus(model, status, null);
+    public long countByModelAndStatus(String model, Predicate<ExecutableState> predicate) {
+        return countByModelAndStatus(model, predicate, null);
     }
 
-    public long countByModelAndStatus(String model, Set<ExecutableState> status, JobTypeEnum jobType) {
+    public long countByModelAndStatus(String model, Predicate<ExecutableState> predicate, JobTypeEnum jobType) {
         return getAllExecutables().stream() //
                 .filter(e -> e.getTargetSubject() != null) //
                 .filter(e -> e.getTargetSubject().equals(model)) //
-                .filter(e -> status.contains(e.getStatus()))
+                .filter(e -> predicate.apply(e.getStatus()))
                 .filter(e -> (jobType == null || jobType.equals(e.getJobType()))).count();
     }
 
-    public Map<String, List<String>> getModelExecutables(Set<String> models, Set<ExecutableState> status) {
+    public Map<String, List<String>> getModelExecutables(Set<String> models, Predicate<ExecutableState> predicate) {
         Map<String, List<String>> result = getAllExecutables().stream() //
                 .filter(e -> e.getTargetSubject() != null) //
                 .filter(e -> models.contains(e.getTargetSubject())) //
-                .filter(e -> status.contains(e.getStatus()))
+                .filter(e -> predicate.apply(e.getStatus()))
                 .collect(Collectors.toMap(AbstractExecutable::getTargetSubject,
                         executable -> Lists.newArrayList(executable.getId()), (one, other) -> {
                             one.addAll(other);
@@ -327,9 +328,7 @@ public class NExecutableManager {
         }
         if (job instanceof DefaultChainedExecutable) {
             List<? extends AbstractExecutable> tasks = ((DefaultChainedExecutable) job).getTasks();
-            tasks.stream().filter(task -> task.getStatus() != ExecutableState.READY) //
-                    .filter(task -> (task.getStatus() == ExecutableState.ERROR
-                            || task.getStatus() == ExecutableState.PAUSED))
+            tasks.stream().filter(task -> task.getStatus().isNotProgressing())
                     .forEach(task -> updateJobOutput(task.getId(), ExecutableState.READY));
         }
         updateJobOutput(jobId, ExecutableState.READY);

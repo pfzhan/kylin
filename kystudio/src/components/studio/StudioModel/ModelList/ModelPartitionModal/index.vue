@@ -43,7 +43,6 @@
               :is-auto-complete="true"
               class="ksd-mr-5"
               :disabled="modelBuildMeta.isLoadExisted || isLoadingNewRange"
-              :picker-options="{ disabledDate: time => time.getTime() > modelBuildMeta.dataRangeVal[1] && modelBuildMeta.dataRangeVal[1] !== null }"
               :placeholder="$t('kylinLang.common.startTime')">
             </el-date-picker>
             <el-date-picker
@@ -51,7 +50,6 @@
               v-model="modelBuildMeta.dataRangeVal[1]"
               :is-auto-complete="true"
               :disabled="modelBuildMeta.isLoadExisted || isLoadingNewRange"
-              :picker-options="{ disabledDate: time => time.getTime() < modelBuildMeta.dataRangeVal[0] && modelBuildMeta.dataRangeVal[0] !== null }"
               :placeholder="$t('kylinLang.common.endTime')">
             </el-date-picker>
             <el-tooltip effect="dark" :content="$t('detectAvailableRange')" placement="top">

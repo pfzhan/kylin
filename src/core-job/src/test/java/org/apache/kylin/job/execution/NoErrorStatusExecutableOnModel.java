@@ -49,10 +49,4 @@ public class NoErrorStatusExecutableOnModel extends DefaultChainedExecutableOnMo
     public NoErrorStatusExecutableOnModel() {
         super();
     }
-
-    @Override
-    protected void onExecuteError(ExecuteResult result) {
-        super.onExecuteError(result);
-    }
-
 }

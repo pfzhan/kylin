@@ -90,6 +90,7 @@ import TableSamples from './TableSamples/TableSamples.vue'
 import SourceManagement from './SourceManagement/SourceManagement.vue'
 import ReloadTable from './TableReload/reload.vue'
 import { handleSuccessAsync, handleError } from '../../../util'
+import { getAffectedModelsType } from '../../../config'
 import { getFormattedTable } from '../../../util/UtilTable'
 
 @Component({
@@ -292,8 +293,7 @@ export default class StudioSource extends Vue {
   async _getAffectedModelCountAndSize () {
     const projectName = this.currentSelectedProject
     const tableName = this.selectedTable.fullName
-    const isIncrement = this.selectedTable.__data.increment_loading
-    const response = await this.fetchChangeTypeInfo({ projectName, tableName, isSelectFact: isIncrement })
+    const response = await this.fetchChangeTypeInfo({projectName, tableName, affectedType: getAffectedModelsType.DROP_TABLE})
     const result = await handleSuccessAsync(response)
     return { modelCount: result.models.length, modelSize: result.byte_size }
   }

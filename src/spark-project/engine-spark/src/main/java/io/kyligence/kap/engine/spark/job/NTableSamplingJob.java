@@ -31,9 +31,9 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.constant.ExecutableConstants;
 import org.apache.kylin.job.exception.ExecuteException;
 import org.apache.kylin.job.execution.DefaultChainedExecutable;
+import org.apache.kylin.job.execution.ExecutableContext;
 import org.apache.kylin.job.execution.ExecuteResult;
 import org.apache.kylin.job.execution.JobTypeEnum;
-import org.apache.kylin.job.execution.ExecutableContext;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.TableExtDesc;
 import org.apache.kylin.metadata.project.ProjectInstance;
@@ -141,8 +141,9 @@ public class NTableSamplingJob extends DefaultChainedExecutable {
                 // use create time of sampling job to update the create time of TableExtDesc
                 final TableDesc tableDesc = localTblMgr.getTableDesc(getTableIdentity());
                 final TableExtDesc tableExt = localTblMgr.getTableExtIfExists(tableDesc);
-                tableExt.setCreateTime(this.getCreateTime());
-                localTblMgr.saveTableExt(tableExt);
+                TableExtDesc copyForWrite = localTblMgr.copyForWrite(tableExt);
+                copyForWrite.setCreateTime(this.getCreateTime());
+                localTblMgr.saveTableExt(copyForWrite);
             }
         }
 

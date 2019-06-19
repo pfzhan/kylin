@@ -25,8 +25,11 @@
 package io.kyligence.kap.rest.controller;
 
 import java.io.IOException;
+import java.time.ZoneId;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Map;
+import java.util.TimeZone;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -39,6 +42,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 
 @Controller
 @RequestMapping(value = "/admin")
@@ -69,6 +73,19 @@ public class NAdminController extends NBasicController {
         final String config = KylinConfig.getInstanceFromEnv().exportToString(propertyKeys);
 
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, config, "");
+    }
+
+    @RequestMapping(value = "/instance_info", method = { RequestMethod.GET }, produces = {
+            "application/vnd.apache.kylin-v2+json" })
+    @ResponseBody
+    public EnvelopeResponse getPublicConfig() throws IOException {
+
+        Map<String, String> data = Maps.newHashMap();
+
+        ZoneId zoneId = TimeZone.getTimeZone(KylinConfig.getInstanceFromEnv().getTimeZone()).toZoneId();
+        data.put("instance.timezone", zoneId.toString());
+
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, data, "");
     }
 
 }

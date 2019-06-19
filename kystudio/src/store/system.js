@@ -55,14 +55,14 @@ export default {
       state.adminConfig = result.conf
     },
     [types.GET_CONF_BY_NAME]: function (state, {name, key}) {
-      // if (!state[key]) {
       state[key] = getProperty(name, state.serverConfig)
-      // } else {
-      if (name === 'kylin.web.timezone') {
+      return state[key]
+    },
+    [types.SAVE_INSTANCE_CONF_BY_NAME]: function (state, {key, val}) {
+      state[key] = val
+      if (key === 'timeZone') {
         localStorage.setItem('GlobalSeverTimeZone', state[key])
       }
-      return state[key]
-      // }
     },
     [types.GET_ABOUT]: function (state, result) {
       state.serverAboutKap = result.list.data
@@ -109,7 +109,7 @@ export default {
       return new Promise((resolve, reject) => {
         api.system.getPublicConfig().then((response) => {
           commit(types.SAVE_CONF, { conf: response.data.data })
-          commit(types.GET_CONF_BY_NAME, {name: 'kylin.web.timezone', key: 'timeZone'})
+          // commit(types.GET_CONF_BY_NAME, {name: 'kylin.web.timezone', key: 'timeZone'})
           // commit(types.GET_CONF_BY_NAME, {name: 'kap.web.hide-feature.limited-lookup', key: 'limitlookup'})
           commit(types.GET_CONF_BY_NAME, {name: 'kylin.security.profile', key: 'securityProfile'})
           commit(types.GET_CONF_BY_NAME, {name: 'kylin.htrace.show-gui-trace-toggle', key: 'showHtrace'})
@@ -121,7 +121,21 @@ export default {
           commit(types.GET_CONF_BY_NAME, {name: 'kylin.web.export-allow-other', key: 'allowNotAdminExport'})
           commit(types.GET_CONF_BY_NAME, {name: 'kap.canary.default-canaries-period-min', key: 'canaryReloadTimer'})
           commit(types.GET_CONF_BY_NAME, {name: 'kylin.source.default', key: 'sourceDefault'})
-          resolve(response.data.data)
+          resolve(response)
+        }, () => {
+          reject()
+        })
+      })
+    },
+    [types.GET_INSTANCE_CONF]: function ({ commit }) {
+      return new Promise((resolve, reject) => {
+        api.system.getInstanceConfig().then((response) => {
+          try {
+            commit(types.SAVE_INSTANCE_CONF_BY_NAME, {key: 'timeZone', val: response.data.data['instance.timezone']})
+            resolve(response)
+          } catch (e) {
+            reject(e)
+          }
         }, () => {
           reject()
         })

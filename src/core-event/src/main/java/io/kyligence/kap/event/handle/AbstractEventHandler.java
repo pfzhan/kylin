@@ -44,24 +44,23 @@ package io.kyligence.kap.event.handle;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
-import io.kyligence.kap.common.scheduler.EventFinishedNotifier;
-import io.kyligence.kap.common.scheduler.SchedulerEventBusFactory;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.NExecutableManager;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.google.common.collect.Sets;
 
-import io.kyligence.kap.metadata.cube.model.NDataSegment;
-import io.kyligence.kap.metadata.cube.model.NDataflow;
-import io.kyligence.kap.metadata.cube.model.NDataflowManager;
+import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
+import io.kyligence.kap.common.scheduler.EventFinishedNotifier;
+import io.kyligence.kap.common.scheduler.SchedulerEventBusFactory;
 import io.kyligence.kap.event.manager.EventDao;
 import io.kyligence.kap.event.manager.EventManager;
 import io.kyligence.kap.event.model.Event;
 import io.kyligence.kap.event.model.EventContext;
+import io.kyligence.kap.metadata.cube.model.NDataSegment;
+import io.kyligence.kap.metadata.cube.model.NDataflow;
+import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import lombok.val;
@@ -119,8 +118,7 @@ public abstract class AbstractEventHandler implements EventHandler {
         checkNotNull(project);
         checkNotNull(NProjectManager.getInstance(kylinConfig).getProject(project));
         val execManager = NExecutableManager.getInstance(kylinConfig, project);
-        val runningCount = execManager.countByModelAndStatus(event.getModelId(),
-                Sets.newHashSet(ExecutableState.RUNNING, ExecutableState.READY));
+        val runningCount = execManager.countByModelAndStatus(event.getModelId(), ExecutableState::isProgressing);
         log.trace("model {} has {} running jobs",
                 NDataModelManager.getInstance(kylinConfig, project).getModelDisplayName(event.getModelId()),
                 runningCount);
@@ -137,7 +135,8 @@ public abstract class AbstractEventHandler implements EventHandler {
 
         NDataflow df = NDataflowManager.getInstance(kylinConfig, project).getDataflow(indexPlanId);
         if (df == null || df.checkBrokenWithRelatedInfo()) {
-            log.info("event {} is no longer valid because its target index_plan {} does not exist or broken", event, indexPlanId);
+            log.info("event {} is no longer valid because its target index_plan {} does not exist or broken", event,
+                    indexPlanId);
             return false;
         }
 

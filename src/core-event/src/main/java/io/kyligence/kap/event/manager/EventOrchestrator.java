@@ -64,7 +64,6 @@ import org.slf4j.LoggerFactory;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.event.handle.EventHandler;
@@ -121,7 +120,8 @@ public class EventOrchestrator {
         synchronized public void run() {
 
             List<Event> events = eventDao.getEvents();
-            logger.debug("project {} contains {} events", project, events.size());
+            if (!UnitOfWork.GLOBAL_UNIT.equals(project))
+                logger.debug("project {} contains {} events", project, events.size());
             Map<String, Event> eventsToBeProcessed = chooseEventForeachModel(events);
             for (Map.Entry<String, Event> eventsEntry : eventsToBeProcessed.entrySet()) {
 
@@ -181,7 +181,7 @@ public class EventOrchestrator {
 
             val execManager = NExecutableManager.getInstance(kylinConfig, project);
             val modelExecutables = execManager.getModelExecutables(modelEvents.keySet(),
-                    Sets.newHashSet(ExecutableState.PAUSED, ExecutableState.ERROR));
+                    ExecutableState::isNotProgressing);
 
             modelEvents.entrySet().forEach(entry -> {
                 val model = entry.getKey();

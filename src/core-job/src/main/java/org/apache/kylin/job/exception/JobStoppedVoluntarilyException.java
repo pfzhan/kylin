@@ -26,22 +26,22 @@ package org.apache.kylin.job.exception;
 
 /**
  */
-public class JobSuicideException extends RuntimeException {
+public class JobStoppedVoluntarilyException extends JobStoppedException {
 
-    private static final long serialVersionUID = 5677121412192984281L;
+    private static final long serialVersionUID = 5677121412192983281L;
 
-    public JobSuicideException() {
+    public JobStoppedVoluntarilyException() {
     }
 
-    public JobSuicideException(String message) {
+    public JobStoppedVoluntarilyException(String message) {
         super(message);
     }
 
-    public JobSuicideException(String message, Throwable cause) {
+    public JobStoppedVoluntarilyException(String message, Throwable cause) {
         super(message, cause);
     }
 
-    public JobSuicideException(Throwable cause) {
+    public JobStoppedVoluntarilyException(Throwable cause) {
         super(cause);
     }
 }

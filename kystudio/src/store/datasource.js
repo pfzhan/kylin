@@ -264,7 +264,7 @@ export default {
       return api.datasource.deleteTable(para.projectName, para.databaseName, para.tableName)
     },
     [types.FETCH_CHANGE_TYPE_INFO]: function ({commit}, para) {
-      return api.datasource.fetchChangeTypeInfo(para.projectName, para.tableName, para.isSelectFact)
+      return api.datasource.fetchChangeTypeInfo(para.projectName, para.tableName, para.affectedType)
     },
     [types.FETCH_RANGE_FRESH_INFO]: function ({commit}, para) {
       return api.datasource.fetchRangeFreshInfo(para.projectName, para.tableFullName, String(para.startTime), String(para.endTime))

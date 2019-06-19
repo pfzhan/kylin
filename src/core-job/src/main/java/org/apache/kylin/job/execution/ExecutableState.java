@@ -100,12 +100,20 @@ public enum ExecutableState {
 
     }
 
-    public boolean isReadyOrRunning() {
+    public boolean isProgressing() {
         return this == READY || this == RUNNING;
     }
 
     public boolean isFinalState() {
         return this == SUCCEED || this == DISCARDED || this == SUICIDAL;
+    }
+
+    public boolean isNotProgressing() {
+        return this == ERROR || this == PAUSED;
+    }
+
+    public boolean isStoppedNonVoluntarily() {
+        return this == DISCARDED || this == PAUSED;
     }
 
     public static boolean isValidStateTransfer(ExecutableState from, ExecutableState to) {

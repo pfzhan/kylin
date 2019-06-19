@@ -42,6 +42,7 @@ import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.common.util.ShellException;
 import org.apache.kylin.job.dao.ExecutablePO;
 import org.apache.kylin.job.exception.JobStoppedException;
+import org.apache.kylin.job.exception.JobStoppedNonVoluntarilyException;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.BaseTestExecutable;
 import org.apache.kylin.job.execution.DefaultChainedExecutable;
@@ -425,7 +426,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         pendingDurations[0] = pendingDurations[0] + 1000;
         for (int i = 1; i < pendingDurations.length; i++) {
             ExecutableState state = stopJob.getTasks().get(i - 1).getStatus();
-            if (state == ExecutableState.ERROR || state == ExecutableState.PAUSED) {
+            if (state.isNotProgressing()) {
                 pendingDurations[i] = pendingDurations[i] + 1000;
             }
         }
@@ -749,7 +750,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
     }
 
     @Test
-    public void testCheckJobStopped_TaskSucceed() {
+    public void testCheckJobStopped_TaskSucceed() throws JobStoppedException {
         val currMem = NDefaultScheduler.currentAvailableMem();
         val dfMgr = NDataflowManager.getInstance(getTestConfig(), project);
         val modelId = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
@@ -784,8 +785,8 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
             Assert.assertEquals(ExecutableState.READY, task.getStatus());
         });
 
-        thrown.expect(JobStoppedException.class);
-        task.checkJob(ExecutableState.PAUSED, ExecutableState.READY);
+        thrown.expect(JobStoppedNonVoluntarilyException.class);
+        task.abortIfJobStopped(true);
         assertMemoryRestore(currMem);
     }
 

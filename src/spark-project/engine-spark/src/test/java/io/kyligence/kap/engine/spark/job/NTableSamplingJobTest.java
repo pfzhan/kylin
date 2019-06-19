@@ -101,7 +101,7 @@ public class NTableSamplingJobTest extends NLocalWithSparkSessionTest {
         });
         Assert.assertEquals(ExecutableState.READY, samplingJob.getStatus());
         final String jobId = samplingJob.getId();
-        await().atMost(3, TimeUnit.MINUTES).until(() -> !execMgr.getJob(jobId).getStatus().isReadyOrRunning());
+        await().atMost(3, TimeUnit.MINUTES).until(() -> !execMgr.getJob(jobId).getStatus().isProgressing());
         Assert.assertEquals(ExecutableState.SUCCEED, samplingJob.getStatus());
 
         final TableExtDesc tableExtAfter = tableMgr.getTableExtIfExists(tableDesc);
