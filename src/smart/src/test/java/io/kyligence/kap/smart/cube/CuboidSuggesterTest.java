@@ -163,7 +163,7 @@ public class CuboidSuggesterTest extends NAutoTestOnLearnKylinData {
 
         final IndexPlan targetIndexPlan = mdCtx.getTargetIndexPlan();
         final List<IndexEntity> allCuboids = targetIndexPlan.getAllIndexes();
-        Assert.assertEquals(3, allCuboids.size());
+        Assert.assertEquals(4, allCuboids.size());
 
         final IndexEntity indexEntity0 = allCuboids.get(0);
         Assert.assertEquals(1, indexEntity0.getLayouts().size());
@@ -179,6 +179,11 @@ public class CuboidSuggesterTest extends NAutoTestOnLearnKylinData {
         Assert.assertEquals(1, indexEntity2.getLayouts().size());
         Assert.assertEquals(IndexEntity.INDEX_ID_STEP * 2 + 1, indexEntity2.getLayouts().get(0).getId());
         Assert.assertEquals("[100000, 100002]", indexEntity2.getLayouts().get(0).getColOrder().toString());
+
+        final IndexEntity indexEntity3 = allCuboids.get(3);
+        Assert.assertEquals(1, indexEntity3.getLayouts().size());
+        Assert.assertEquals(IndexEntity.TABLE_INDEX_START_ID + 1, indexEntity3.getLayouts().get(0).getId());
+        Assert.assertEquals("[0]", indexEntity3.getLayouts().get(0).getColOrder().toString());
     }
 
     @Test

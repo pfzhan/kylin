@@ -64,8 +64,8 @@ public class NQueryLayoutChooserTest extends NLocalWithSparkSessionTest {
     @Test
     public void testSelectIndexInOneModel() {
         // 1. test match aggIndex
-        String sql = "select CAL_DT, sum(price) as GMV from test_kylin_fact \n"
-                + " where CAL_DT='FP-GTC' group by CAL_DT ";
+        String sql = "select CAL_DT, count(price) as GMV from test_kylin_fact \n"
+                + " where CAL_DT='2012-01-10' group by CAL_DT ";
         OLAPContext context = prepareOlapContext(sql).get(0);
         NDataflow dataflow = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), PROJECT)
                 .getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
