@@ -239,7 +239,7 @@ public class PushDownUtil {
             if (rootCause instanceof KylinTimeoutException)
                 return false;
 
-            if (rootCause instanceof RoutingIndicatorException || rootCause instanceof NoRealizationFoundException) {
+            if (rootCause instanceof RoutingIndicatorException) {
                 return true;
             }
 

@@ -51,12 +51,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
-import com.google.common.collect.Sets;
-import io.kyligence.kap.rest.service.task.QueryHistoryAccessor;
-import io.kyligence.kap.rest.service.task.UpdateUsageStatisticsRunner;
-import lombok.AllArgsConstructor;
-import lombok.NoArgsConstructor;
-import lombok.val;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
@@ -71,6 +65,7 @@ import org.slf4j.LoggerFactory;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Ordering;
+import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.metadata.favorite.FavoriteQuery;
@@ -83,8 +78,13 @@ import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.metadata.query.AccelerateRatioManager;
 import io.kyligence.kap.metadata.query.QueryHistory;
 import io.kyligence.kap.metadata.query.QueryHistoryDAO;
+import io.kyligence.kap.rest.service.task.QueryHistoryAccessor;
+import io.kyligence.kap.rest.service.task.UpdateUsageStatisticsRunner;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
+import lombok.val;
 
 public class NFavoriteScheduler {
     private static final Logger logger = LoggerFactory.getLogger(NFavoriteScheduler.class);
@@ -141,8 +141,10 @@ public class NFavoriteScheduler {
         // auto favorite and update favorite interval times should be at least 60s
         long autoFavoriteIntervalTime = projectInstance.getConfig().getAutoMarkFavoriteInterval();
         long updateFavoriteIntervalTime = projectInstance.getConfig().getFavoriteStatisticsCollectionInterval();
-        Preconditions.checkArgument(autoFavoriteIntervalTime * 1000L >= queryHistoryAccessor.getFetchQueryHistoryGapTime());
-        Preconditions.checkArgument(updateFavoriteIntervalTime * 1000L >= queryHistoryAccessor.getFetchQueryHistoryGapTime());
+        Preconditions
+                .checkArgument(autoFavoriteIntervalTime * 1000L >= queryHistoryAccessor.getFetchQueryHistoryGapTime());
+        Preconditions.checkArgument(
+                updateFavoriteIntervalTime * 1000L >= queryHistoryAccessor.getFetchQueryHistoryGapTime());
 
         // schedule runner at fixed interval
         autoFavoriteScheduler.scheduleWithFixedDelay(new AutoFavoriteRunner(), initialDelay, autoFavoriteIntervalTime,
@@ -282,7 +284,7 @@ public class NFavoriteScheduler {
         }
 
         private void updateRelatedMetadata(Set<FavoriteQuery> candidates, long autoFavoriteTimeOffset,
-                                           int numOfQueryHitIndex, int overallQueryNum) {
+                int numOfQueryHitIndex, int overallQueryNum) {
             // update related metadata
             UnitOfWork.doInTransactionWithRetry(() -> {
                 KylinConfig config = KylinConfig.getInstanceFromEnv();
@@ -361,8 +363,7 @@ public class NFavoriteScheduler {
                         sqlPatternFromQuery);
                 newStatus.updateFrequency(sqlPattern);
 
-                if (FavoriteQueryManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
-                        .contains(sqlPattern)) {
+                if (FavoriteQueryManager.getInstance(KylinConfig.getInstanceFromEnv(), project).contains(sqlPattern)) {
                     continue;
                 }
 
@@ -429,7 +430,11 @@ public class NFavoriteScheduler {
         if (!QueryUtil.isSelectStatement(queryHistory.getSqlPattern()))
             return false;
 
-        return !queryHistory.isException() || QueryHistory.NO_REALIZATION_FOUND_ERROR.equals(queryHistory.getErrorType());
+        if (QueryHistory.NOT_SUPPORTED_SQL_BY_OLAP_ERROR.equals(queryHistory.getErrorType()))
+            return false;
+
+        return (!queryHistory.isException())
+                || QueryHistory.NO_REALIZATION_FOUND_ERROR.equals(queryHistory.getErrorType());
     }
 
     public FrequencyStatus getOverAllStatus() {

@@ -23,10 +23,36 @@
  */
 package io.kyligence.kap.rest.service;
 
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.Arrays;
+import java.util.Calendar;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
+import java.util.stream.Collectors;
+
+import org.apache.kylin.common.util.DateFormat;
+import org.apache.kylin.common.util.JsonUtil;
+import org.apache.kylin.rest.constant.Constant;
+import org.apache.kylin.rest.security.KylinUserManager;
+import org.apache.kylin.rest.security.ManagedUser;
+import org.junit.After;
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mockito;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.test.util.ReflectionTestUtils;
+
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.junit.TimeZoneTestRunner;
 import io.kyligence.kap.metadata.cube.model.FrequencyMap;
@@ -44,31 +70,8 @@ import io.kyligence.kap.metadata.query.QueryHistory;
 import io.kyligence.kap.metadata.query.QueryHistoryDAO;
 import io.kyligence.kap.rest.service.task.QueryHistoryAccessor;
 import io.kyligence.kap.rest.service.task.UpdateUsageStatisticsRunner;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
-import java.util.Arrays;
-import java.util.Calendar;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.TreeMap;
-import java.util.stream.Collectors;
 import lombok.val;
 import lombok.var;
-import org.apache.kylin.common.util.DateFormat;
-import org.apache.kylin.common.util.JsonUtil;
-import org.apache.kylin.rest.constant.Constant;
-import org.apache.kylin.rest.security.KylinUserManager;
-import org.apache.kylin.rest.security.ManagedUser;
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.mockito.InjectMocks;
-import org.mockito.Mockito;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.test.util.ReflectionTestUtils;
 
 @RunWith(TimeZoneTestRunner.class)
 public class NFavoriteSchedulerTest extends NLocalFileMetadataTestCase {
@@ -322,8 +325,18 @@ public class NFavoriteSchedulerTest extends NLocalFileMetadataTestCase {
         updateQuery.setQueryTime(1001);
         updateQuery.setQuerySubmitter("ADMIN");
 
+        // not supported query
+        QueryHistory notSupportedQuery = new QueryHistory();
+        notSupportedQuery
+                .setSqlPattern("select * from test_table inner join l_tbl on columnA='1' and columnA= columnB");
+        notSupportedQuery.setQueryStatus(QueryHistory.QUERY_HISTORY_SUCCEEDED);
+        notSupportedQuery.setErrorType(QueryHistory.NOT_SUPPORTED_SQL_BY_OLAP_ERROR);
+        notSupportedQuery.setQueryTime(1001);
+        notSupportedQuery.setQuerySubmitter("ADMIN");
+
         QueryHistoryDAO queryHistoryDAO = Mockito.mock(QueryHistoryDAO.class);
-        Mockito.doReturn(Lists.newArrayList(succeededQueryHistory, failedQueryHistory, queryWithConstants, syntaxValidQuery, updateQuery))
+        Mockito.doReturn(Lists.newArrayList(succeededQueryHistory, failedQueryHistory, queryWithConstants,
+                syntaxValidQuery, updateQuery, notSupportedQuery))
                 .when(queryHistoryDAO).getQueryHistoriesByTime(Mockito.anyLong(), Mockito.anyLong());
         Mockito.doReturn(queryHistoryDAO).when(favoriteScheduler).getQueryHistoryDao();
 

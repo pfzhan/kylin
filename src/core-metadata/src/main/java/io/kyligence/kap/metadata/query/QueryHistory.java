@@ -24,14 +24,17 @@
 
 package io.kyligence.kap.metadata.query;
 
+import java.util.List;
+
+import org.apache.commons.lang3.StringUtils;
+
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.Lists;
+
 import io.kyligence.kap.common.metric.InfluxDBWriter;
 import io.kyligence.kap.shaded.influxdb.org.influxdb.annotation.Column;
 import lombok.Getter;
 import lombok.Setter;
-import org.apache.commons.lang3.StringUtils;
-import java.util.List;
 
 @SuppressWarnings("serial")
 @Getter
@@ -77,6 +80,7 @@ public class QueryHistory {
     // error types
     public static final String SYNTAX_ERROR = "Syntax error";
     public static final String NO_REALIZATION_FOUND_ERROR = "No realization found";
+    public static final String NOT_SUPPORTED_SQL_BY_OLAP_ERROR = "Not Supported By OLAP SQL";
     public static final String OTHER_ERROR = "Other error";
 
     @JsonProperty(SQL_TEXT)

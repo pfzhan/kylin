@@ -23,10 +23,6 @@
  */
 package io.kyligence.kap.newten;
 
-import com.google.common.base.Preconditions;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
-import io.kyligence.kap.utils.RecAndQueryCompareUtil.CompareEntity;
 import java.io.File;
 import java.io.IOException;
 import java.sql.Connection;
@@ -40,6 +36,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
+
 import org.apache.commons.io.FileUtils;
 import org.apache.kylin.common.util.DBUtils;
 import org.apache.kylin.common.util.Pair;
@@ -54,6 +51,12 @@ import org.apache.spark.sql.SparderEnv;
 import org.apache.spark.sql.common.SparderQueryTest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.base.Preconditions;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
+
+import io.kyligence.kap.utils.RecAndQueryCompareUtil.CompareEntity;
 
 public class NExecAndComp {
     private static final Logger logger = LoggerFactory.getLogger(NExecAndComp.class);
@@ -189,14 +192,18 @@ public class NExecAndComp {
     private static Dataset<Row> queryWithSpark(String prj, String sql) {
         String afterConvert = QueryUtil.massagePushDownSql(sql, prj, "default", false);
         // Table schema comes from csv and DATABASE.TABLE is not supported.
-        String sqlForSpark = afterConvert.replaceAll("edw\\.", "").replaceAll("`edw`\\.", "")
-                .replaceAll("\"EDW\"\\.", "").replaceAll("EDW\\.", "").replaceAll("`EDW`\\.", "")
-                .replaceAll("default\\.", "").replaceAll("`default`\\.", "").replaceAll("DEFAULT\\.", "")
-                .replaceAll("\"DEFAULT\"\\.", "").replaceAll("`DEFAULT`\\.", "").replaceAll("TPCH\\.", "")
-                .replaceAll("`TPCH`\\.", "").replaceAll("tpch\\.", "").replaceAll("`tpch`\\.", "")
-                .replaceAll("TDVT\\.", "").replaceAll("\"TDVT\"\\.", "").replaceAll("`TDVT`\\.", "")
-                .replaceAll("\"POPHEALTH_ANALYTICS\"\\.", "").replaceAll("`POPHEALTH_ANALYTICS`\\.", "");
+        String sqlForSpark = removeDataBaseInSql(afterConvert);
         return querySparkSql(sqlForSpark);
+    }
+
+    public static String removeDataBaseInSql(String originSql) {
+        return originSql.replaceAll("edw\\.", "").replaceAll("`edw`\\.", "").replaceAll("\"EDW\"\\.", "")
+                .replaceAll("EDW\\.", "").replaceAll("`EDW`\\.", "").replaceAll("default\\.", "")
+                .replaceAll("`default`\\.", "").replaceAll("DEFAULT\\.", "").replaceAll("\"DEFAULT\"\\.", "")
+                .replaceAll("`DEFAULT`\\.", "").replaceAll("TPCH\\.", "").replaceAll("`TPCH`\\.", "")
+                .replaceAll("tpch\\.", "").replaceAll("`tpch`\\.", "").replaceAll("TDVT\\.", "")
+                .replaceAll("\"TDVT\"\\.", "").replaceAll("`TDVT`\\.", "").replaceAll("\"POPHEALTH_ANALYTICS\"\\.", "")
+                .replaceAll("`POPHEALTH_ANALYTICS`\\.", "");
     }
 
     public static List<Pair<String, String>> fetchQueries(String folder) throws IOException {

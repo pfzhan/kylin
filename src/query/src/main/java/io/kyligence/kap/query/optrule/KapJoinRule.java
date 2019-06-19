@@ -42,6 +42,7 @@ import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.util.ImmutableIntList;
+import org.apache.kylin.metadata.realization.RoutingIndicatorException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -49,7 +50,6 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.obf.IKeep;
-import io.kyligence.kap.query.exception.NotSupportedSQLException;
 import io.kyligence.kap.query.relnode.KapFilterRel;
 import io.kyligence.kap.query.relnode.KapJoinRel;
 import io.kyligence.kap.query.relnode.KapRel;
@@ -84,7 +84,7 @@ public class KapJoinRule extends ConverterRule implements IKeep {
         RelNode newRel;
         try {
             if (!info.isEqui() && join.getJoinType() != JoinRelType.INNER) {
-                throw new NotSupportedSQLException("Currently, Non-equi SQL is not supported by KE");
+                throw new RoutingIndicatorException("Currently, Non-equi SQL is not supported by KE");
             } else {
                 // if it is an inner equi-join, we can put a filter on top and it will be converted an EnumerableJoinRel in runtime-calculate
                 newRel = new KapJoinRel(join.getCluster(), traitSet, left, right,

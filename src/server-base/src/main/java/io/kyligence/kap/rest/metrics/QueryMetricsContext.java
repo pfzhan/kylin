@@ -211,9 +211,13 @@ public class QueryMetricsContext {
     private void collectErrorType(final QueryContext context) {
         Throwable olapErrorCause = context.getOlapCause();
         while (olapErrorCause != null) {
-            if (olapErrorCause instanceof NoRealizationFoundException
-                    || olapErrorCause instanceof RoutingIndicatorException) {
+            if (olapErrorCause instanceof NoRealizationFoundException) {
                 this.errorType = QueryHistory.NO_REALIZATION_FOUND_ERROR;
+                return;
+            }
+
+            if (olapErrorCause instanceof RoutingIndicatorException) {
+                this.errorType = QueryHistory.NOT_SUPPORTED_SQL_BY_OLAP_ERROR;
                 return;
             }
 

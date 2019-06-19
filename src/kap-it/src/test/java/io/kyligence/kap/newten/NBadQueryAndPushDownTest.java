@@ -23,6 +23,9 @@
  */
 package io.kyligence.kap.newten;
 
+import java.io.File;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.sql.SQLException;
 import java.util.List;
 
@@ -34,6 +37,7 @@ import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
 import org.apache.kylin.metadata.querymeta.SelectedColumnMeta;
 import org.apache.kylin.metadata.realization.NoRealizationFoundException;
+import org.apache.kylin.metadata.realization.RoutingIndicatorException;
 import org.apache.kylin.query.util.PushDownUtil;
 import org.apache.spark.sql.SparderEnv;
 import org.apache.spark.sql.catalyst.analysis.NoSuchTableException;
@@ -41,12 +45,15 @@ import org.junit.After;
 import org.junit.Assert;
 import org.junit.Test;
 
+import com.google.common.base.Throwables;
+
 import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
 import lombok.val;
 
 public class NBadQueryAndPushDownTest extends NLocalWithSparkSessionTest {
     private static final String PUSHDOWN_RUNNER_KEY = "kylin.query.pushdown.runner-class-name";
     private final static String PROJECT_NAME = "bad_query_test";
+    private final static String DEFAULT_PROJECT_NAME = "default";
 
     @Override
     public String getProject() {
@@ -121,6 +128,21 @@ public class NBadQueryAndPushDownTest extends NLocalWithSparkSessionTest {
     }
 
     @Test
+    public void testPushDownNonEquiSql() throws Exception {
+        File sqlFile = new File("src/test/resources/query/sql_pushdown/query11.sql");
+        String sql = new String(Files.readAllBytes(sqlFile.toPath()), StandardCharsets.UTF_8);
+        KylinConfig.getInstanceFromEnv().setProperty(PUSHDOWN_RUNNER_KEY, "");
+        try {
+            NExecAndComp.queryCubeAndSkipCompute(DEFAULT_PROJECT_NAME, sql);
+        } catch (SQLException e) {
+            Assert.assertEquals(RoutingIndicatorException.class, Throwables.getRootCause(e).getClass());
+            KylinConfig.getInstanceFromEnv().setProperty(PUSHDOWN_RUNNER_KEY,
+                    "io.kyligence.kap.query.pushdown.PushDownRunnerSparkImpl");
+            pushDownSql(DEFAULT_PROJECT_NAME, sql, 0, 0, e);
+        }
+    }
+
+    @Test
     public void testPushDownUdf() throws Exception {
         KylinConfig.getInstanceFromEnv().setProperty(PUSHDOWN_RUNNER_KEY,
                 "io.kyligence.kap.query.pushdown.PushDownRunnerSparkImpl");
@@ -156,7 +178,9 @@ public class NBadQueryAndPushDownTest extends NLocalWithSparkSessionTest {
             int offset, SQLException sqlException)
             throws Exception {
         populateSSWithCSVData(KylinConfig.getInstanceFromEnv(), prjName, SparderEnv.getSparkSession());
-        Pair<List<List<String>>, List<SelectedColumnMeta>> result = PushDownUtil.tryPushDownSelectQuery(prjName, sql,
+        String pushdownSql = NExecAndComp.removeDataBaseInSql(sql);
+        Pair<List<List<String>>, List<SelectedColumnMeta>> result = PushDownUtil.tryPushDownSelectQuery(prjName,
+                pushdownSql,
                 limit, offset, "DEFAULT", sqlException, BackdoorToggles.getPrepareOnly());
         if (result == null) {
             throw sqlException;
