@@ -89,7 +89,7 @@ public class LimitLoginAuthenticationProviderTest extends ServiceTestBase {
         UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken("",
                 userAdmin.getPassword(), userAdmin.getAuthorities());
         thrown.expect(UsernameNotFoundException.class);
-        thrown.expectMessage("User '' not found.");
+        thrown.expectMessage("Invalid username or password.");
         limitLoginAuthenticationProvider.authenticate(token);
     }
 
