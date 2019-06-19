@@ -23,6 +23,7 @@
  */
 package io.kyligence.kap.query;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -40,6 +41,7 @@ import org.junit.Test;
 import com.google.common.collect.Lists;
 
 import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
+import io.kyligence.kap.metadata.cube.cuboid.ComparatorUtils;
 import io.kyligence.kap.metadata.cube.cuboid.NLayoutCandidate;
 import io.kyligence.kap.metadata.cube.cuboid.NLookupCandidate;
 import io.kyligence.kap.metadata.cube.cuboid.NQueryLayoutChooser;
@@ -188,6 +190,37 @@ public class NQueryLayoutChooserTest extends NLocalWithSparkSessionTest {
 
     }
 
+    @Test
+    public void testShardByCol() {
+        // prepare metadata
+        NDataflow dataflow = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), PROJECT)
+                .getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+        mockShardByLayout(dataflow);
+        mockTableStats();
+
+        String sql = "select CAL_DT, TRANS_ID, count(*) as GMV from test_kylin_fact \n"
+                + " where CAL_DT = '2012-01-10' and TRANS_ID = 10000 group by CAL_DT, TRANS_ID ";
+        OLAPContext context1 = prepareOlapContext(sql).get(0);
+        Map<String, String> sqlAlias2ModelName1 = RealizationChooser.matchJoins(dataflow.getModel(), context1);
+        context1.fixModel(dataflow.getModel(), sqlAlias2ModelName1);
+
+        // same filter level, select the col with smallest cardinality and with shardby col
+        dataflow = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), PROJECT)
+                .getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+        val pair1 = NQueryLayoutChooser.selectCuboidLayout(dataflow.getLatestReadySegment(), context1.getSQLDigest());
+        Assert.assertNotNull(pair1);
+        Assert.assertEquals(1010002, pair1.getFirst().getCuboidLayout().getId());
+
+        sql = "select CAL_DT, TRANS_ID, count(*) as GMV from test_kylin_fact \n"
+                + " where CAL_DT = '2012-01-10' and TRANS_ID > 10000 group by CAL_DT, TRANS_ID ";
+        OLAPContext context2 = prepareOlapContext(sql).get(0);
+        Map<String, String> sqlAlias2ModelName2 = RealizationChooser.matchJoins(dataflow.getModel(), context2);
+        context2.fixModel(dataflow.getModel(), sqlAlias2ModelName2);
+        val pair2 = NQueryLayoutChooser.selectCuboidLayout(dataflow.getLatestReadySegment(), context2.getSQLDigest());
+        Assert.assertNotNull(pair2);
+        Assert.assertEquals(1010003, pair2.getFirst().getCuboidLayout().getId());
+    }
+
     private List<OLAPContext> prepareOlapContext(String sql) {
         NSmartMaster smartMaster = new NSmartMaster(KylinConfig.getInstanceFromEnv(), PROJECT, new String[] { sql });
         smartMaster.analyzeSQLs();
@@ -254,6 +287,52 @@ public class NQueryLayoutChooserTest extends NLocalWithSparkSessionTest {
         NDataLayout layout2 = NDataLayout.newDataLayout(dataflow.getLatestReadySegment().getSegDetails(), 1010002L);
         layout2.setRows(1000L);
         NDataLayout layout3 = NDataLayout.newDataLayout(dataflow.getLatestReadySegment().getSegDetails(), 1020001L);
+        layout3.setRows(1000L);
+        dataflowUpdate.setToAddOrUpdateLayouts(layout1, layout2, layout3);
+        NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), PROJECT).updateDataflow(dataflowUpdate);
+    }
+
+    private void mockShardByLayout(NDataflow dataflow) {
+        val indePlanManager = NIndexPlanManager.getInstance(getTestConfig(), PROJECT);
+        var indexPlan = indePlanManager.getIndexPlanByModelAlias("nmodel_basic");
+        NIndexPlanManager.NIndexPlanUpdater updater = copyForWrite -> {
+            val cuboids = copyForWrite.getIndexes();
+
+            val newAggIndex = new IndexEntity();
+            newAggIndex.setId(copyForWrite.getNextAggregationIndexId());
+            newAggIndex.setDimensions(Lists.newArrayList(1, 2, 3));
+            newAggIndex.setMeasures(Lists.newArrayList(100000));
+            // mock no shardby column
+            val newLayout1 = new LayoutEntity();
+            newLayout1.setId(newAggIndex.getId() + 1);
+            newLayout1.setAuto(true);
+            newLayout1.setColOrder(Lists.newArrayList(1, 2, 3, 100000));
+            // mock shardby trans_id
+            val newLayout2 = new LayoutEntity();
+            newLayout2.setId(newAggIndex.getId() + 2);
+            newLayout2.setAuto(true);
+            newLayout2.setColOrder(Lists.newArrayList(1, 2, 3, 100000));
+            newLayout2.setShardByColumns(Lists.newArrayList(1));
+            //mock shardby cal_dt
+            val newLayout3 = new LayoutEntity();
+            newLayout3.setId(newAggIndex.getId() + 3);
+            newLayout3.setAuto(true);
+            newLayout3.setColOrder(Lists.newArrayList(1, 2, 3, 100000));
+            newLayout3.setShardByColumns(Lists.newArrayList(2));
+
+            newAggIndex.setLayouts(Lists.newArrayList(newLayout1, newLayout2, newLayout3));
+            cuboids.add(newAggIndex);
+
+            copyForWrite.setIndexes(cuboids);
+        };
+        indePlanManager.updateIndexPlan(indexPlan.getUuid(), updater);
+
+        NDataflowUpdate dataflowUpdate = new NDataflowUpdate(dataflow.getUuid());
+        NDataLayout layout1 = NDataLayout.newDataLayout(dataflow.getLatestReadySegment().getSegDetails(), 1010001L);
+        layout1.setRows(1000L);
+        NDataLayout layout2 = NDataLayout.newDataLayout(dataflow.getLatestReadySegment().getSegDetails(), 1010002L);
+        layout2.setRows(1000L);
+        NDataLayout layout3 = NDataLayout.newDataLayout(dataflow.getLatestReadySegment().getSegDetails(), 1010003L);
         layout3.setRows(1000L);
         dataflowUpdate.setToAddOrUpdateLayouts(layout1, layout2, layout3);
         NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), PROJECT).updateDataflow(dataflowUpdate);
@@ -331,5 +410,14 @@ public class NQueryLayoutChooserTest extends NLocalWithSparkSessionTest {
         }
         tableExt.setColumnStats(columnStats);
         tableMetadataManager.saveTableExt(tableExt);
+    }
+
+    @Test
+    public void test() {
+        List<Integer> nums = Lists.newArrayList(1, 2, 4);
+        nums.add(null);
+        nums.add(2);
+        Collections.sort(nums, ComparatorUtils.nullLastComparator());
+        System.out.printf(nums.toString());
     }
 }

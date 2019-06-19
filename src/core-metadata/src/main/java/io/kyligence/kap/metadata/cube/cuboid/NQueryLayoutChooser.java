@@ -115,18 +115,23 @@ public class NQueryLayoutChooser {
 
         if (!candidates.isEmpty()) {
             final KylinConfig config = segment.getConfig();
-            final Set<TblColRef> filterColumns = ImmutableSet.copyOf(sqlDigest.filterColumns);
-            final Set<TblColRef> nonFilterColumns = sqlDigest.isRawQuery
+            final Set<TblColRef> filterColSet = ImmutableSet.copyOf(sqlDigest.filterColumns);
+            final List<TblColRef> filterCols = Lists.newArrayList(filterColSet);
+            filterCols.sort(ComparatorUtils.filterColComparator(config, segment.getProject()));
+
+            final Set<TblColRef> nonFilterColSet = sqlDigest.isRawQuery
                     ? sqlDigest.allColumns.stream()
                             .filter(colRef -> colRef.getFilterLevel() == TblColRef.FilterColEnum.NONE)
                             .collect(Collectors.toSet())
                     : sqlDigest.groupbyColumns.stream()
                             .filter(colRef -> colRef.getFilterLevel() == TblColRef.FilterColEnum.NONE)
                             .collect(Collectors.toSet());
+            final List<TblColRef> nonFilterColumns = Lists.newArrayList(nonFilterColSet);
+            nonFilterColumns.sort(ComparatorUtils.nonFilterColComparator());
 
             Ordering<NLayoutCandidate> ordering = Ordering //
                     .from(derivedLayoutComparator()).compound(rowSizeComparator()) // L1 comparator, compare cuboid rows
-                    .compound(filterColumnComparator(filterColumns, config)) // L2 comparator, order filter columns
+                    .compound(filterColumnComparator(filterCols, config, segment.getProject())) // L2 comparator, order filter columns
                     .compound(columnSizeComparator()) // L3 comparator, order size of cuboid columns
                     .compound(nonFilterColumnComparator(nonFilterColumns, config)); // L4 comparator, order non-filter columns
             candidates.sort(ordering);
@@ -244,20 +249,21 @@ public class NQueryLayoutChooser {
         return Comparator.comparingInt(candidate -> candidate.getCuboidLayout().getColOrder().size());
     }
 
-    private static Comparator<NLayoutCandidate> filterColumnComparator(Set<TblColRef> filters, KylinConfig config) {
-        return l2Comparator(filters, config, true);
+    private static Comparator<NLayoutCandidate> filterColumnComparator(List<TblColRef> sortedFilters,
+            KylinConfig config,
+            String project) {
+        return Ordering.from(colComparator(sortedFilters, config)).compound(shardByComparator(sortedFilters, config));
     }
 
-    private static Comparator<NLayoutCandidate> nonFilterColumnComparator(Set<TblColRef> nonFilters,
+    private static Comparator<NLayoutCandidate> nonFilterColumnComparator(List<TblColRef> sortedNonFilters,
             KylinConfig config) {
-        return l2Comparator(nonFilters, config, false);
+        return colComparator(sortedNonFilters, config);
     }
 
-    private static Comparator<NLayoutCandidate> l2Comparator(Set<TblColRef> columns, KylinConfig config,
-            boolean isFilterCol) {
+    private static Comparator<NLayoutCandidate> colComparator(List<TblColRef> sortedCols, KylinConfig config) {
         return (layoutCandidate1, layoutCandidate2) -> {
-            List<Integer> position1 = getColumnsPos(layoutCandidate1, config, columns, isFilterCol);
-            List<Integer> position2 = getColumnsPos(layoutCandidate2, config, columns, isFilterCol);
+            List<Integer> position1 = getColumnsPos(layoutCandidate1, config, sortedCols);
+            List<Integer> position2 = getColumnsPos(layoutCandidate2, config, sortedCols);
             Iterator<Integer> iter1 = position1.iterator();
             Iterator<Integer> iter2 = position2.iterator();
 
@@ -274,17 +280,42 @@ public class NQueryLayoutChooser {
         };
     }
 
-    private static List<Integer> getColumnsPos(final NLayoutCandidate candidate, KylinConfig config,
-            Set<TblColRef> columns, boolean isFilterCol) {
-        List<Integer> positions = Lists.newArrayList();
-        List<TblColRef> sortedColumns = Lists.newArrayList(columns);
-        String project = candidate.getCuboidLayout().getModel().getProject();
-        if (isFilterCol) {
-            sortedColumns.sort(ComparatorUtils.filterColComparator(config, project));
-        } else {
-            sortedColumns.sort(ComparatorUtils.nonFilterColComparator());
-        }
+    private static Comparator<NLayoutCandidate> shardByComparator(List<TblColRef> columns, KylinConfig config) {
+        return (candidate1, candidate2) -> {
+            TblColRef shardByCol1 = null;
+            List<Integer> shardByCols1 = candidate1.getCuboidLayout().getShardByColumns();
+            if (CollectionUtils.isNotEmpty(shardByCols1)) {
+                TblColRef tmpCol = candidate1.getCuboidLayout().getOrderedDimensions().get(shardByCols1.get(0));
+                for (TblColRef colRef : columns) {
+                    if (colRef.equals(tmpCol)) {
+                        shardByCol1 = colRef;
+                        break;
+                    }
+                }
+            }
 
+            TblColRef shardByCol2 = null;
+            List<Integer> shardByCols2 = candidate2.getCuboidLayout().getShardByColumns();
+            if (CollectionUtils.isNotEmpty(shardByCols2)) {
+                TblColRef tmpCol = candidate1.getCuboidLayout().getOrderedDimensions().get(shardByCols2.get(0));
+                for (TblColRef colRef : columns) {
+                    if (colRef.equals(tmpCol)) {
+                        shardByCol2 = colRef;
+                        break;
+                    }
+                }
+            }
+
+            String project = candidate1.getCuboidLayout().getModel().getProject();
+            return Ordering.from(ComparatorUtils.nullLastComparator())
+                    .compound(ComparatorUtils.filterColComparator(config, project)).compare(shardByCol1, shardByCol2);
+        };
+    }
+
+    private static List<Integer> getColumnsPos(final NLayoutCandidate candidate, KylinConfig config,
+            List<TblColRef> sortedColumns) {
+
+        List<Integer> positions = Lists.newArrayList();
         for (TblColRef col : sortedColumns) {
             DeriveInfo deriveInfo = candidate.getDerivedToHostMap().get(col);
             if (deriveInfo == null) {
