@@ -26,7 +26,7 @@ import java.io.{BufferedReader, InputStreamReader}
 
 import io.kyligence.kap.engine.spark.utils.BuildUtils
 import io.netty.util.internal.ThrowableUtil
-import org.apache.hadoop.yarn.conf.YarnConfiguration
+import org.apache.hadoop.yarn.conf.{HAUtil, YarnConfiguration}
 import org.apache.kylin.common.util.{JsonUtil, ShellException}
 import org.apache.spark.internal.Logging
 
@@ -55,21 +55,22 @@ object SchedulerInfoCmdHelper extends Logging {
 
   private[cluster] def getSocketAddress: Map[String, Int] = {
     val conf = BuildUtils.getCurrentYarnConfiguration
-    val haIds = conf.getInts(YarnConfiguration.RM_HA_IDS)
-    val addresses = if (haIds.isEmpty) {
-      if (useHttps) {
-        Array(conf.getSocketAddr(YarnConfiguration.RM_WEBAPP_HTTPS_ADDRESS,
-          YarnConfiguration.DEFAULT_RM_WEBAPP_HTTPS_ADDRESS, YarnConfiguration.DEFAULT_NM_WEBAPP_HTTPS_PORT))
-      } else {
-        Array(conf.getSocketAddr(YarnConfiguration.RM_WEBAPP_ADDRESS,
-          YarnConfiguration.DEFAULT_RM_WEBAPP_ADDRESS, YarnConfiguration.DEFAULT_NM_WEBAPP_PORT))
-      }
-    } else {
+    val addresses = if (HAUtil.isHAEnabled(conf)) {
+      val haIds = HAUtil.getRMHAIds(conf).toArray
+      require(haIds.nonEmpty, "Ha ids is empty, please check your yarn-site.xml.")
       if (useHttps) {
         haIds.map(id => conf.getSocketAddr(s"${YarnConfiguration.RM_WEBAPP_HTTPS_ADDRESS}.$id",
           YarnConfiguration.DEFAULT_RM_WEBAPP_HTTPS_ADDRESS, YarnConfiguration.DEFAULT_NM_WEBAPP_HTTPS_PORT))
       } else {
         haIds.map(id => conf.getSocketAddr(s"${YarnConfiguration.RM_WEBAPP_ADDRESS}.$id",
+          YarnConfiguration.DEFAULT_RM_WEBAPP_ADDRESS, YarnConfiguration.DEFAULT_NM_WEBAPP_PORT))
+      }
+    } else {
+      if (useHttps) {
+        Array(conf.getSocketAddr(YarnConfiguration.RM_WEBAPP_HTTPS_ADDRESS,
+          YarnConfiguration.DEFAULT_RM_WEBAPP_HTTPS_ADDRESS, YarnConfiguration.DEFAULT_NM_WEBAPP_HTTPS_PORT))
+      } else {
+        Array(conf.getSocketAddr(YarnConfiguration.RM_WEBAPP_ADDRESS,
           YarnConfiguration.DEFAULT_RM_WEBAPP_ADDRESS, YarnConfiguration.DEFAULT_NM_WEBAPP_PORT))
       }
     }
