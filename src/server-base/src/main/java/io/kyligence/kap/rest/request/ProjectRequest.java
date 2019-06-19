@@ -24,7 +24,6 @@
 
 package io.kyligence.kap.rest.request;
 
-import java.io.IOException;
 import java.util.List;
 import java.util.regex.Pattern;
 
@@ -62,12 +61,7 @@ public class ProjectRequest implements Validation {
         val message = MsgPicker.getMsg();
         if (!CollectionUtils.isEmpty(errors) && errors.size() > 0) {
             if (errors.get(0).getField().equalsIgnoreCase("nameValid")) {
-                try {
-                    val instance = JsonUtil.readValue(projectDescData, ProjectInstance.class);
-                    return String.format(message.getINVALID_PROJECT_NAME(), instance.getName());
-                } catch (IOException e) {
-                    return "";
-                }
+                return message.getINVALID_PROJECT_NAME();
             }
         }
         return "";

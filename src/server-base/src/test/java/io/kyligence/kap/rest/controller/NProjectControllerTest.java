@@ -65,6 +65,7 @@ import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.exception.BadRequestException;
+import org.apache.kylin.rest.msg.Message;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -143,7 +144,7 @@ public class NProjectControllerTest {
         ProjectRequest projectRequest = mockProjectRequest();
         Mockito.when(projectService.deserializeProjectDesc(projectRequest)).thenReturn(projectInstance);
         thrown.expect(BadRequestException.class);
-        thrown.expectMessage("Invalid project name '^project', only letters, numbers and underlines are supported.");
+        thrown.expectMessage(Message.getInstance().getINVALID_PROJECT_NAME());
         nProjectController.saveProject(projectRequest);
     }
 

@@ -38,7 +38,7 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
-*/
+ */
 
 package org.apache.kylin.rest.msg;
 
@@ -369,7 +369,7 @@ public class Message {
 
     // Project
     public String getINVALID_PROJECT_NAME() {
-        return "Invalid project name '%s', only letters, numbers and underlines are supported.";
+        return "Please use number, letter, and underline to name your project, and start with a number or a letter.";
     }
 
     public String getPROJECT_ALREADY_EXIST() {

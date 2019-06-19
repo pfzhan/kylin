@@ -283,7 +283,7 @@ public class CnMessage extends Message {
 
     // Project
     public String getINVALID_PROJECT_NAME() {
-        return "非法项目名词 '%s', 仅支持字母, 数字和下划线";
+        return "项目名称只支持数字、字母和下划线，并且需要用数字或者字母开头。";
     }
 
     public String getPROJECT_ALREADY_EXIST() {
