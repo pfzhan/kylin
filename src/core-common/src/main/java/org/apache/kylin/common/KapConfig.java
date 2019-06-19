@@ -665,4 +665,8 @@ public class KapConfig {
         return Integer.parseInt(config.getOptional("kap.canary.sqlcontext-period-min", "5"));
     }
 
+    public double getJoinMemoryFraction() {
+        // driver memroy that can be used by join(mostly BHJ)
+        return Double.parseDouble(config.getOptional("kap.query.join-memory-fraction", "0.3"));
+    }
 }

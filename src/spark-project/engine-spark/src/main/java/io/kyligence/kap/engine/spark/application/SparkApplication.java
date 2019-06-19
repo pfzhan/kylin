@@ -43,6 +43,10 @@ import org.apache.kylin.common.util.TimeZoneUtils;
 import org.apache.spark.SparkConf;
 import org.apache.spark.sql.SparderEnv;
 import org.apache.spark.sql.SparkSession;
+import org.apache.spark.sql.SparkSessionExtensions;
+import org.apache.spark.sql.execution.JoinMemoryManager;
+import org.apache.spark.sql.execution.KylinJoinSelection;
+import org.apache.spark.sql.execution.SparkStrategy;
 import org.apache.spark.sql.hive.utils.ResourceDetectUtils;
 import org.apache.spark.util.Utils;
 import org.apache.spark.utils.ResourceUtils;
@@ -60,6 +64,8 @@ import io.kyligence.kap.engine.spark.utils.SparkConfHelper;
 import io.kyligence.kap.metadata.cube.model.NBatchConstants;
 import io.kyligence.kap.spark.common.CredentialUtils;
 import lombok.val;
+import scala.runtime.AbstractFunction1;
+import scala.runtime.BoxedUnit;
 
 public abstract class SparkApplication implements Application, IKeep {
     private static final Logger logger = LoggerFactory.getLogger(SparkApplication.class);
@@ -152,9 +158,23 @@ public abstract class SparkApplication implements Application, IKeep {
                 }
             }
 
-            ss = SparkSession.builder().enableHiveSupport().config(sparkConf)
+            ss = SparkSession.builder().withExtensions(new AbstractFunction1<SparkSessionExtensions, BoxedUnit>() {
+                @Override
+                public BoxedUnit apply(SparkSessionExtensions v1) {
+                    v1.injectPlannerStrategy(new AbstractFunction1<SparkSession, SparkStrategy>() {
+                        @Override
+                        public SparkStrategy apply(SparkSession session) {
+                            return new KylinJoinSelection(session);
+                        }
+                    });
+                    return BoxedUnit.UNIT;
+                }
+            })
+                    .enableHiveSupport()
+                    .config(sparkConf)
                     .config("mapreduce.fileoutputcommitter.marksuccessfuljobs", "false").getOrCreate();
 
+            JoinMemoryManager.releaseAllMemory();
             // for spark metrics
             JobMetricsUtils.registerListener(ss);
 
