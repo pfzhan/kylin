@@ -190,7 +190,8 @@ public class DFBuildJob extends SparkApplication {
             if (!children.isEmpty()) {
                 val theRootLevelBuildInfos = new NBuildSourceInfo();
                 theRootLevelBuildInfos.setSparkSession(ss);
-                String path = NSparkCubingUtil.getStoragePath(getDataCuboid(seg, index.getLastLayout().getId()));
+                LayoutEntity layout = new ArrayList<>(st.getLayouts(index)).get(0);
+                String path = NSparkCubingUtil.getStoragePath(getDataCuboid(seg, layout.getId()));
                 theRootLevelBuildInfos.setParentStoragePath(path);
                 theRootLevelBuildInfos.setToBuildCuboids(children);
                 childrenBuildSourceInfos.add(theRootLevelBuildInfos);

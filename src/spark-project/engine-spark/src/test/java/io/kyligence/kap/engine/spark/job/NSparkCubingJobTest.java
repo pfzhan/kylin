@@ -68,6 +68,7 @@ import io.kyligence.kap.metadata.cube.cuboid.NCuboidLayoutChooser;
 import io.kyligence.kap.metadata.cube.cuboid.NSpanningTree;
 import io.kyligence.kap.metadata.cube.cuboid.NSpanningTreeFactory;
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
+import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.model.NBatchConstants;
 import io.kyligence.kap.metadata.cube.model.NDataLayout;
@@ -231,6 +232,30 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
         validateCube(df2.getSegments().getFirstSegment().getId());
         validateTableIndex(df2.getSegments().getFirstSegment().getId());
         //        validateTableExt(df.getModel());
+    }
+
+    @Test
+    public void testBuildPartialLayouts() throws Exception {
+        NDataflowManager dsMgr = NDataflowManager.getInstance(getTestConfig(), getProject());
+        String dfName = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
+        NDataflow df = dsMgr.getDataflow(dfName);
+
+        // cleanup all segments first
+        NDataflowUpdate update = new NDataflowUpdate(df.getUuid());
+        update.setToRemoveSegs(df.getSegments().toArray(new NDataSegment[0]));
+        dsMgr.updateDataflow(update);
+
+        // build
+        df = dsMgr.getDataflow(dfName);
+        IndexPlan indexPlan = df.getIndexPlan();
+        IndexEntity ie = indexPlan.getIndexEntity(10000);
+        IndexEntity ie2 = indexPlan.getIndexEntity(0);
+        Assert.assertEquals(2, ie.getLayouts().size());
+        List<LayoutEntity> layouts = new ArrayList<>();
+        layouts.add(ie.getLayouts().get(0));
+        layouts.add(ie2.getLayouts().get(0));
+        buildCuboid(dfName, SegmentRange.TimePartitionedSegmentRange.createInfinite(), Sets.newLinkedHashSet(layouts),
+                true);
     }
 
     @Test
