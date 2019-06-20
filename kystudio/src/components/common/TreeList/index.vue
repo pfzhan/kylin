@@ -13,6 +13,7 @@
     <el-tree
       v-loading="isLoading"
       ref="tree"
+      v-guide.tableScroll
       class="filter-tree"
       node-key="id"
       :show-checkbox="isShowCheckbox"

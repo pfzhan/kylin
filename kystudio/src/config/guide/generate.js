@@ -196,6 +196,12 @@ export function renderLoadHiveTables (target, tables) {
       t = t.toLowerCase()
       let timer = switchGuideSpeed(i)
       result.push({
+        eventID: 6,
+        done: false,
+        target: 'tableScroll', // 进入可视区域
+        search: '.guide-' + t,
+        timer: timer
+      }, {
         eventID: 1,
         done: false,
         target: target, // 飞向指定的列

@@ -214,12 +214,12 @@ class Guide {
     fuc()
   }
   _inView (dom, targetDom, stepInfo, resolve) {
+    if (targetDom) {
+      targetDom = targetDom.$el ? targetDom.$el : targetDom
+    }
     let scrollInstance = Scrollbar.get(targetDom)
     scrollInstance && scrollInstance.scrollIntoView(dom)
     let st = setTimeout(() => {
-      if (targetDom) {
-        targetDom = targetDom.$el ? targetDom.$el : targetDom
-      }
       if (scrollInstance && dom) {
         let listener = (status) => {
           if (scrollInstance.isVisible(dom)) {

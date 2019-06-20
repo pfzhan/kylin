@@ -96,7 +96,7 @@
 import Vue from 'vue'
 import { mapGetters, mapActions } from 'vuex'
 import { Component, Watch } from 'vue-property-decorator'
-
+import Scrollbar from 'smooth-scrollbar'
 import locales from './locales'
 import TreeList from '../../TreeList'
 import { sourceTypes } from '../../../../config'
@@ -232,6 +232,9 @@ export default class SourceHive extends Vue {
       const res = await this.fetchDatabase({ projectName, sourceType })
       this.treeData = this.getDatabaseTree(await handleSuccessAsync(res))
       this.isDatabaseError = false
+      this.$nextTick(() => {
+        Scrollbar.init(this.$el.querySelector('.filter-tree'))
+      })
     } catch (e) {
       this.isDatabaseError = true
       handleError(e)
