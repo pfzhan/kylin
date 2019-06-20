@@ -236,14 +236,18 @@ public class CuboidSuggesterTest extends NAutoTestOnLearnKylinData {
 
     @Test
     public void testSuggestShardBy() {
-        String[] sqls = new String[] {
-                "select part_dt, lstg_format_name, price from kylin_sales where part_dt = '2012-01-01'" };
 
         // set 'kap.smart.conf.rowkey.uhc.min-cardinality' = 2000 to test
+        // currently, column part_dt's cardinality < 2000 && tans_id's > 2000
         getTestConfig().setProperty("kap.smart.conf.rowkey.uhc.min-cardinality", "2000");
+
+        String[] sqls = new String[] {
+                "select part_dt, lstg_format_name, trans_id from kylin_sales where part_dt = '2012-01-01'",
+                "select part_dt, trans_id from kylin_sales where trans_id = 100000",
+                "select part_dt, lstg_format_name, trans_id from kylin_sales",
+                "select part_dt, lstg_format_name, trans_id from kylin_sales where trans_id = 100000 group by part_dt, lstg_format_name, trans_id" };
         NSmartMaster smartMaster = new NSmartMaster(getTestConfig(), proj, sqls);
         smartMaster.runAll();
-
         NSmartContext ctx = smartMaster.getContext();
         NSmartContext.NModelContext mdCtx = ctx.getModelContexts().get(0);
         IndexPlan indexPlan = mdCtx.getTargetIndexPlan();
@@ -251,13 +255,27 @@ public class CuboidSuggesterTest extends NAutoTestOnLearnKylinData {
         Assert.assertEquals(mdCtx.getTargetModel().getUuid(), indexPlan.getUuid());
 
         List<IndexEntity> indexEntities = indexPlan.getIndexes();
-        Assert.assertEquals("unmatched cuboids size", 1, indexEntities.size());
-
+        Assert.assertEquals("unmatched cuboids size", 3, indexEntities.size());
+        // case 1. with eq-filter but without high cardinality
         final List<LayoutEntity> layouts = indexEntities.get(0).getLayouts();
-        Assert.assertEquals("unmatched layouts size", 1, layouts.size());
-        Assert.assertEquals("unmatched shard by columns size", 1, layouts.get(0).getShardByColumns().size());
-        Assert.assertEquals("unexpected identity name of shard by column", "KYLIN_SALES.PRICE", mdCtx.getTargetModel()
-                .getEffectiveColsMap().get(layouts.get(0).getShardByColumns().get(0)).getIdentity());
+        Assert.assertEquals("unmatched layouts size", 2, layouts.size());
+        Assert.assertEquals("unmatched shard by columns size", 0, layouts.get(0).getShardByColumns().size());
+        Assert.assertEquals("unmatched shard by columns size", 0, layouts.get(1).getShardByColumns().size());
+        // case 2. tableIndex with eq-filter and high cardinality
+        final List<LayoutEntity> layouts1 = indexEntities.get(1).getLayouts();
+        Assert.assertTrue(indexEntities.get(1).isTableIndex());
+        Assert.assertEquals("unmatched layouts size", 1, layouts1.size());
+        Assert.assertEquals("unmatched shard by columns size", 1, layouts1.get(0).getShardByColumns().size());
+        Assert.assertEquals("unexpected identity name of shard by column", "KYLIN_SALES.TRANS_ID", mdCtx
+                .getTargetModel().getEffectiveColsMap().get(layouts1.get(0).getShardByColumns().get(0)).getIdentity());
+
+        // case 2. AggIndex with eq-filter and high cardinality
+        final List<LayoutEntity> layouts2 = indexEntities.get(2).getLayouts();
+        Assert.assertFalse(indexEntities.get(2).isTableIndex());
+        Assert.assertEquals("unmatched layouts size", 1, layouts2.size());
+        Assert.assertEquals("unmatched shard by columns size", 1, layouts2.get(0).getShardByColumns().size());
+        Assert.assertEquals("unexpected identity name of shard by column", "KYLIN_SALES.TRANS_ID", mdCtx
+                .getTargetModel().getEffectiveColsMap().get(layouts2.get(0).getShardByColumns().get(0)).getIdentity());
     }
 
     @Test

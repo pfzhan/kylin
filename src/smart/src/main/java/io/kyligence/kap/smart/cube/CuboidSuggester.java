@@ -31,7 +31,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.SortedSet;
 
-import io.kyligence.kap.smart.exception.PendingException;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.metadata.model.FunctionDesc;
 import org.apache.kylin.metadata.model.TableExtDesc;
@@ -58,6 +57,7 @@ import io.kyligence.kap.smart.NSmartContext;
 import io.kyligence.kap.smart.NSmartContext.NModelContext;
 import io.kyligence.kap.smart.common.AccelerateInfo;
 import io.kyligence.kap.smart.common.AccelerateInfo.QueryLayoutRelation;
+import io.kyligence.kap.smart.exception.PendingException;
 import io.kyligence.kap.smart.model.ModelTree;
 import lombok.extern.slf4j.Slf4j;
 
@@ -108,8 +108,8 @@ class CuboidSuggester {
             try {
                 Map<String, String> aliasMap = RealizationChooser.matchJoins(model, ctx);
                 if (aliasMap == null) {
-                    throw new PendingException(String.format(
-                            getMsgTemplateByModelMaintainType(JOIN_NOT_MATCHED, Type.TABLE), model.getAlias()));
+                    throw new PendingException(String
+                            .format(getMsgTemplateByModelMaintainType(JOIN_NOT_MATCHED, Type.TABLE), model.getAlias()));
                 }
                 ctx.fixModel(model, aliasMap);
                 QueryLayoutRelation queryLayoutRelation = ingest(ctx, model);
@@ -129,16 +129,18 @@ class CuboidSuggester {
         }
     }
 
-    private List<Integer> suggestShardBy(Collection<Integer> dimIds) {
+    private List<Integer> suggestShardBy(List<Integer> sortedDimIds) {
+        // for recommend dims order by filterLevel and Cardinality
         List<Integer> shardBy = Lists.newArrayList();
-        for (int dimId : dimIds) {
-            TblColRef colRef = model.getEffectiveColsMap().get(dimId);
-            TableExtDesc.ColumnStats colStats = TableExtDesc.ColumnStats
-                    .getColumnStats(smartContext.getTableMetadataManager(), colRef);
-            if (colStats != null
-                    && colStats.getCardinality() > smartContext.getSmartConfig().getRowkeyUHCCardinalityMin()) {
-                shardBy.add(dimId);
-            }
+        if (CollectionUtils.isEmpty(sortedDimIds))
+            return shardBy;
+
+        TblColRef colRef = model.getEffectiveColsMap().get(sortedDimIds.get(0));
+        TableExtDesc.ColumnStats colStats = TableExtDesc.ColumnStats
+                .getColumnStats(smartContext.getTableMetadataManager(), colRef);
+        if (colStats != null
+                && colStats.getCardinality() > smartContext.getSmartConfig().getRowkeyUHCCardinalityMin()) {
+            shardBy.add(sortedDimIds.get(0));
         }
         return shardBy;
     }
@@ -178,10 +180,8 @@ class CuboidSuggester {
         }
 
         List<Integer> shardBy = Lists.newArrayList();
-        List<Integer> sortBy = Lists.newArrayList();
-        if (isTableIndex) {
+        if (isQualifiedSuggestShardBy(ctx)) {
             shardBy = suggestShardBy(dimIds);
-            sortBy = suggestSortBy(ctx);
         }
 
         LayoutEntity layout = new LayoutEntity();
@@ -189,7 +189,6 @@ class CuboidSuggester {
         layout.setColOrder(suggestColOrder(dimIds, measureIds));
         layout.setIndex(indexEntity);
         layout.setShardByColumns(shardBy);
-        layout.setSortByColumns(sortBy);
         layout.setAuto(true);
         layout.setUpdateTime(System.currentTimeMillis());
         layout.setDraftVersion(smartContext.getDraftVersion());
@@ -206,6 +205,15 @@ class CuboidSuggester {
         cuboidLayoutIds.add(layout.getId());
 
         return new QueryLayoutRelation(ctx.sql, modelId, layout.getId(), semanticVersion);
+    }
+
+    private boolean isQualifiedSuggestShardBy(OLAPContext context) {
+        for (TblColRef colRef : context.getSQLDigest().filterColumns) {
+            if (TblColRef.FilterColEnum.EQUAL_FILTER == colRef.getFilterLevel()) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private List<Integer> suggestDimensions(OLAPContext context) {
