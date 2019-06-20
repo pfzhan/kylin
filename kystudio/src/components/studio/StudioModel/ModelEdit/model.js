@@ -1110,6 +1110,7 @@ class NModel {
     }
     let tableNamed = tableFullName.split('.')
     const currentDatasource = this.globalDataSource[this.project]
+    let result = null
     if (currentDatasource) {
       let i = indexOfObjWithSomeKeys(currentDatasource, 'database', tableNamed[0], 'name', tableNamed[1])
       if (i >= 0) {
@@ -1119,12 +1120,14 @@ class NModel {
         if (k < 0) {
           this.datasource.push(globalTableInfo)
         }
-        return globalTableInfo
-      } else {
-        return getTableBySource()
+        result = globalTableInfo
       }
     }
-    return getTableBySource()
+    result = result || getTableBySource()
+    if (!result) {
+      throw new Error('badModel')
+    }
+    return result
   }
   getTableByGuid (guid) {
     for (var i in this.tables) {

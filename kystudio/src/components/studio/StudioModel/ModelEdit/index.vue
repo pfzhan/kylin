@@ -1480,10 +1480,21 @@ export default class ModelEdit extends Vue {
       handleSuccess(res, (data) => {
         this.datasource = data
         this.initModelDesc((data) => { // 初始化模型数据
-          this.modelInstance = new NModel(Object.assign(data, {
-            project: this.currentSelectedProject,
-            renderDom: this.renderBox
-          }), this.modelRender, this)
+          try {
+            this.modelInstance = new NModel(Object.assign(data, {
+              project: this.currentSelectedProject,
+              renderDom: this.renderBox
+            }), this.modelRender, this)
+          } catch (e) {
+            this.globalLoading.hide()
+            kapConfirm(this.$t('canNotRepairBrokenTip'), {
+              type: 'warning',
+              showCancelButton: false,
+              confirmButtonText: this.$t('kylinLang.common.exit')
+            }).then(() => {
+              this.$emit('removetab')
+            })
+          }
           if (this.isSchemaBrokenModel) {
             kapConfirm(this.$t('brokenEditTip'), {
               showCancelButton: false,
