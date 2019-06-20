@@ -135,16 +135,9 @@ public class NAutoBuildAndQueryTest extends NAutoTestBase {
     @Test
     public void testEscapeParentheses() throws Exception {
         overwriteSystemProp("kylin.query.transformers",
-                "io.kyligence.kap.query.util.CognosParenthesesEscapeTransformer, "
-                        + "io.kyligence.kap.query.util.ConvertToComputedColumn, "
-                        + "org.apache.kylin.query.util.DefaultQueryTransformer, "
-                        + "io.kyligence.kap.query.util.EscapeTransformer, "
-                        + "org.apache.kylin.query.util.KeywordDefaultDirtyHack");
+                "io.kyligence.kap.query.util.CognosParenthesesEscapeTransformer, io.kyligence.kap.query.util.ConvertToComputedColumn, org.apache.kylin.query.util.DefaultQueryTransformer, io.kyligence.kap.query.util.EscapeTransformer, org.apache.kylin.query.util.KeywordDefaultDirtyHack");
         overwriteSystemProp("kylin.query.pushdown.converter-class-names",
-                "io.kyligence.kap.query.util.CognosParenthesesEscapeTransformer,"
-                        + "io.kyligence.kap.query.util.RestoreFromComputedColumn,"
-                        + "io.kyligence.kap.query.util.SparkSQLFunctionConverter,"
-                        + "org.apache.kylin.source.adhocquery.HivePushDownConverter");
+                "io.kyligence.kap.query.util.CognosParenthesesEscapeTransformer,io.kyligence.kap.query.util.RestoreFromComputedColumn,io.kyligence.kap.query.util.SparkSQLFunctionConverter,org.apache.kylin.source.adhocquery.HivePushDownConverter");
         new TestScenario(CompareLevel.SAME, "sql_parentheses_escape").execute();
     }
 
