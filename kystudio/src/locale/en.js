@@ -380,7 +380,8 @@ exports.default = {
     kafkaCluster: 'Kafka Cluster',
     full: 'Full Load',
     incremental: 'Incremental Load',
-    snapshot: 'Snapshot'
+    snapshot: 'Snapshot',
+    rangeInfoTip: 'The load range refers to the data from the start time(included) to end time(excluded).'
   },
   login: {
     signIn: 'Kyligence Account | Sign In'

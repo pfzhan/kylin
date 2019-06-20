@@ -32,8 +32,15 @@
     </el-form> 
     <template v-if="partitionMeta.table && partitionMeta.column">
       <div class="ky-list-title ksd-mt-14">{{$t('loadRange')}}</div>
+      <el-alert
+        :title="$t('kylinLang.dataSource.rangeInfoTip')"
+        type="info"
+        :show-background="false"
+        :closable="false"
+        show-icon>
+      </el-alert>
     <el-form :model="modelBuildMeta" ref="rangeForm" :rules="rules"  label-width="85px" label-position="top"> 
-      <el-form-item class="custom-load ksd-mt-10"  prop="dataRangeVal" :rule="[{
+      <el-form-item class="custom-load"  prop="dataRangeVal" :rule="[{
       validator: this.validateRange, trigger: 'blur'
     }]">
         <div class="ky-no-br-space">
@@ -147,7 +154,7 @@ export default class ModelPartitionModal extends Vue {
   }
   validateRange (rule, value, callback) {
     const [ startValue, endValue ] = value
-    if ((startValue && endValue) && transToUTCMs(startValue) >= transToUTCMs(endValue) || (startValue ^ endValue)) {
+    if ((startValue && endValue && transToUTCMs(startValue) >= transToUTCMs(endValue)) || startValue ^ endValue) {
       callback(new Error(this.$t('invaildDate')))
     } else {
       callback()

@@ -15,6 +15,13 @@
               {{$t('customLoadRange')}}
             </el-radio>
             <br/> -->
+            <el-alert
+              :title="$t('kylinLang.dataSource.rangeInfoTip')"
+              type="info"
+              :show-background="false"
+              :closable="false"
+              show-icon>
+            </el-alert>
             <div class="ky-no-br-space">
               <el-date-picker
                 type="datetime"

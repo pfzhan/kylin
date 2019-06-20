@@ -376,7 +376,8 @@ exports.default = {
     kafkaCluster: 'Kafka 集群',
     full: '全量加载',
     incremental: '增量加载',
-    snapshot: '快照'
+    snapshot: '快照',
+    rangeInfoTip: '加载的数据范围，是指起始时间（包含）到终止时间（不包含）之间的数据。'
   },
   login: {
     signIn: 'Kyligence 帐号 | 登录'

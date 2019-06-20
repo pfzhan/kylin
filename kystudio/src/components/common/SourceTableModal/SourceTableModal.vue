@@ -18,6 +18,13 @@
         <!-- <el-radio class="font-medium" v-guide.checkloadDataRangeRaido :value="form.isLoadExisted" :label="false" @input="value => handleInput('isLoadExisted', value)">
           {{$t('customLoadRange')}}
         </el-radio> -->
+        <el-alert
+          :title="$t('kylinLang.dataSource.rangeInfoTip')"
+          type="info"
+          :show-background="false"
+          :closable="false"
+          show-icon>
+        </el-alert>
         <div class="ky-no-br-space">
         <el-date-picker
           class="ksd-mr-5"
@@ -56,6 +63,13 @@
       </el-form-item>
       <el-form-item class="custom-load" prop="freshDataRange" v-if="_isFieldShow('freshDataRange')">
         <div class="item-desc">{{$t('refreshRangeDesc')}}</div>
+        <el-alert
+          :title="$t('kylinLang.dataSource.rangeInfoTip')"
+          type="info"
+          :show-background="false"
+          :closable="false"
+          show-icon>
+        </el-alert>
         <div class="ky-no-br-space">
           <el-date-picker
             type="datetime"
