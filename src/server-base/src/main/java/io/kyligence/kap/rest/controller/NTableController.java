@@ -371,7 +371,7 @@ public class NTableController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, null, "");
     }
 
-    @PostMapping(value = "/sampling", produces = { "application/vnd.apache.kylin-v2+json" })
+    @PostMapping(value = "/sampling_jobs", produces = { "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
     public EnvelopeResponse submitSampling(@RequestBody SamplingRequest request) {
         checkProjectName(request.getProject());
@@ -383,7 +383,7 @@ public class NTableController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, null, "");
     }
 
-    @GetMapping(value = "/pre_sampling_check", produces = { "application/vnd.apache.kylin-v2+json" })
+    @GetMapping(value = "/sampling_check_result", produces = { "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
     public EnvelopeResponse hasSamplingJob(@RequestParam String project, @RequestParam String qualifiedTableName) {
         checkProjectName(project);

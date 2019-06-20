@@ -635,7 +635,7 @@ public class NTableControllerTest {
         request.setQualifiedTableName("default.test_kylin_fact");
         Mockito.doNothing().when(tableSamplingService) //
                 .sampling(Sets.newHashSet(request.getQualifiedTableName()), request.getProject(), request.getRows());
-        mockMvc.perform(MockMvcRequestBuilders.post("/api/tables/sampling") //
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/tables/sampling_jobs") //
                 .contentType(MediaType.APPLICATION_JSON) //
                 .content(JsonUtil.writeValueAsString(request)) //
                 .accept(MediaType.parseMediaType(APPLICATION_JSON))) //
@@ -725,7 +725,7 @@ public class NTableControllerTest {
         String errorMsg = "Please input at least one table(database.table) for sampling!";
         Mockito.doNothing().when(tableSamplingService) //
                 .sampling(Sets.newHashSet(request.getQualifiedTableName()), request.getProject(), request.getRows());
-        final MvcResult mvcResult = mockMvc.perform(MockMvcRequestBuilders.post("/api/tables/sampling") //
+        final MvcResult mvcResult = mockMvc.perform(MockMvcRequestBuilders.post("/api/tables/sampling_jobs") //
                 .contentType(MediaType.APPLICATION_JSON) //
                 .content(JsonUtil.writeValueAsString(request)) //
                 .accept(MediaType.parseMediaType(APPLICATION_JSON))) //
@@ -745,7 +745,7 @@ public class NTableControllerTest {
         String errorMsg = "Illegal table name 'test_kylin_fact', please input a qualified table name as database.table!";
         Mockito.doNothing().when(tableSamplingService) //
                 .sampling(Sets.newHashSet(request.getQualifiedTableName()), request.getProject(), request.getRows());
-        final MvcResult mvcResult = mockMvc.perform(MockMvcRequestBuilders.post("/api/tables/sampling") //
+        final MvcResult mvcResult = mockMvc.perform(MockMvcRequestBuilders.post("/api/tables/sampling_jobs") //
                 .contentType(MediaType.APPLICATION_JSON) //
                 .content(JsonUtil.writeValueAsString(request)) //
                 .accept(MediaType.parseMediaType(APPLICATION_JSON))) //
