@@ -184,12 +184,11 @@ public class DFMergeJob extends SparkApplication {
         storage.saveTo(tempPath, dataset, ss);
 
         JobMetrics metrics = JobMetricsUtils.collectMetrics(queryExecutionId);
-        if( metrics.getMetrics(Metrics.CUBOID_ROWS_CNT()) == 0) {
-            logger.warn("Job metrics seems null, use count() to collect cuboid rows.");
-            dataCuboid.setRows(storage.getFrom(tempPath, ss).count());
-        } else {
-            dataCuboid.setRows(metrics.getMetrics(Metrics.CUBOID_ROWS_CNT()));
+        long rowCount = metrics.getMetrics(Metrics.CUBOID_ROWS_CNT());
+        if (rowCount == -1) {
+            logger.warn("Can not get cuboid row cnt.");
         }
+        dataCuboid.setRows(rowCount);
         dataCuboid.setSourceRows(sourceCount);
         dataCuboid.setBuildJobId(jobId);
 

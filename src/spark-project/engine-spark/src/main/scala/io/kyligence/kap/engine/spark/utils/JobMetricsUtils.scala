@@ -25,12 +25,13 @@ package io.kyligence.kap.engine.spark.utils
 import java.util.concurrent.ConcurrentHashMap
 
 import org.apache.spark.internal.Logging
-import org.apache.spark.scheduler.{SparkListener, SparkListenerJobStart}
+import org.apache.spark.scheduler.{SparkListener, SparkListenerEvent}
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.execution._
 import org.apache.spark.sql.execution.aggregate.{HashAggregateExec, ObjectHashAggregateExec, SortAggregateExec}
 import org.apache.spark.sql.execution.joins.{BroadcastHashJoinExec, BroadcastNestedLoopJoinExec, ShuffledHashJoinExec, SortMergeJoinExec}
 import org.apache.spark.sql.execution.streaming.StreamingSymmetricHashJoinExec
+import org.apache.spark.sql.execution.ui.SparkListenerSQLExecutionStart
 
 
 object JobMetricsUtils extends Logging {
@@ -70,7 +71,13 @@ object JobMetricsUtils extends Logging {
       case plan: LeafExecNode =>
         if (!afterJoin) {
           // add all numOutputRows in leaf nodes up for union case when merge table index
-          val rowsCnt = rowMetrics.getMetrics(Metrics.SOURCE_ROWS_CNT) + plan.metrics.apply("numOutputRows").value
+          val preCnt = if (rowMetrics.getMetrics(Metrics.SOURCE_ROWS_CNT) == -1) {
+            0
+          } else {
+            rowMetrics.getMetrics(Metrics.SOURCE_ROWS_CNT)
+          }
+
+          val rowsCnt = preCnt + plan.metrics.apply("numOutputRows").value
           rowMetrics.setMetrics(Metrics.SOURCE_ROWS_CNT, rowsCnt)
         }
       case _ =>
@@ -88,16 +95,15 @@ object JobMetricsUtils extends Logging {
   // to get actual QueryExecution when write parquet, more info in issue #8212
   def registerListener(ss: SparkSession): Unit = {
     sparkListener = new SparkListener {
-      override def onJobStart(jobStart: SparkListenerJobStart): Unit = {
-        val executionIdStr = jobStart.properties.getProperty(SQLExecution.EXECUTION_ID_KEY)
-        if (executionIdStr != null) {
-          val queryId = jobStart.properties.getProperty(QueryExecutionCache.N_EXECUTION_ID_KEY)
-          QueryExecutionCache.setQueryExecution(queryId, SQLExecution.getQueryExecution(executionIdStr.toLong))
-        } else {
-          if ("PROD".equals(System.getProperty("kylin.env"))) {
-            logDebug("executionIdStr is null, can't get QueryExecution from SQLExecution.")
+
+      override def onOtherEvent(event: SparkListenerEvent): Unit = event match {
+        case e: SparkListenerSQLExecutionStart =>
+          if (e.nExecutionId != "" && e.queryExecution != null) {
+            QueryExecutionCache.setQueryExecution(e.nExecutionId, e.queryExecution)
+          } else {
+            logWarning("executionIdStr is null, can't get QueryExecution from SQLExecution.")
           }
-        }
+        case _ => // Ignore
       }
     }
     ss.sparkContext.addSparkListener(sparkListener)

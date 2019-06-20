@@ -252,12 +252,11 @@ public class DFBuildJob extends SparkApplication {
 
         JobMetrics metrics = JobMetricsUtils.collectMetrics(queryExecutionId);
         dataCuboid.setBuildJobId(jobId);
-        if( metrics.getMetrics(Metrics.CUBOID_ROWS_CNT()) == 0) {
-            logger.warn("Job metrics seems null, use count() to collect cuboid rows.");
-            dataCuboid.setRows(storage.getFrom(tempPath, ss).count());
-        } else {
-            dataCuboid.setRows(metrics.getMetrics(Metrics.CUBOID_ROWS_CNT()));
+        long rowCount = metrics.getMetrics(Metrics.CUBOID_ROWS_CNT());
+        if (rowCount == -1) {
+            logger.warn("Can not get cuboid row cnt.");
         }
+        dataCuboid.setRows(rowCount);
         dataCuboid.setSourceRows(metrics.getMetrics(Metrics.SOURCE_ROWS_CNT()));
         val partitionNum = BuildUtils.repartitionIfNeed(layout, dataCuboid, storage, path, tempPath,
                 KapConfig.wrap(config), ss);

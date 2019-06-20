@@ -27,7 +27,7 @@ class JobMetrics {
   private var metrics: Map[String, Long] = Map.empty
 
   def getMetrics(key: String): Long = {
-    metrics.getOrElse(key, 0)
+    metrics.getOrElse(key, -1)
   }
 
   def setMetrics(key: String, value: Long): Unit = {
