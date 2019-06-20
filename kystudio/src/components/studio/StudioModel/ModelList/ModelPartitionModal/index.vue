@@ -154,10 +154,10 @@ export default class ModelPartitionModal extends Vue {
   }
   validateRange (rule, value, callback) {
     const [ startValue, endValue ] = value
-    if ((startValue && endValue && transToUTCMs(startValue) >= transToUTCMs(endValue)) || startValue ^ endValue) {
-      callback(new Error(this.$t('invaildDate')))
-    } else {
+    if ((startValue && endValue && transToUTCMs(startValue) < transToUTCMs(endValue)) || !startValue && !endValue) {
       callback()
+    } else {
+      callback(new Error(this.$t('invaildDate')))
     }
   }
   validateBrokenColumn (rule, value, callback) {
@@ -337,14 +337,9 @@ export default class ModelPartitionModal extends Vue {
     this.modelDesc.partition_desc.partition_date_format = this.partitionMeta.format
     this.modelDesc.filter_condition = this.filterCondition
     this.modelDesc.project = this.currentSelectedProject
-    if (!this.modelInstance.uuid) {
-      if (this.modelBuildMeta.isLoadExisted) {
-        this.modelDesc.start = null
-        this.modelDesc.end = null
-      } else {
-        this.modelDesc.start = (+transToUTCMs(this.modelBuildMeta.dataRangeVal[0]))
-        this.modelDesc.end = (+transToUTCMs(this.modelBuildMeta.dataRangeVal[1]))
-      }
+    if (this.modelBuildMeta.dataRangeVal[0] && this.modelBuildMeta.dataRangeVal[1]) {
+      this.modelDesc.start = (+transToUTCMs(this.modelBuildMeta.dataRangeVal[0]))
+      this.modelDesc.end = (+transToUTCMs(this.modelBuildMeta.dataRangeVal[1]))
     }
     this.handleClose(true)
   }
