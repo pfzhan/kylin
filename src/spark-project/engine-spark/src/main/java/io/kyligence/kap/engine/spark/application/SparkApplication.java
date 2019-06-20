@@ -30,6 +30,8 @@ import java.nio.file.Paths;
 import java.util.List;
 import java.util.Map;
 
+import io.kyligence.kap.engine.spark.job.BuildJobInfos;
+import io.kyligence.kap.engine.spark.job.LogJobInfoUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
@@ -75,6 +77,7 @@ public abstract class SparkApplication implements Application, IKeep {
     protected SparkSession ss;
     protected String project;
     protected int layoutSize = -1;
+    protected BuildJobInfos infos;
 
     public void execute(String[] args) {
         try {
@@ -123,6 +126,7 @@ public abstract class SparkApplication implements Application, IKeep {
             config = autoCloseConfig.get();
             // init KylinBuildEnv
             KylinBuildEnv buildEnv = KylinBuildEnv.getOrCreate(config);
+            infos = KylinBuildEnv.get().buildJobInfos();
 
             SparkConf sparkConf = buildEnv.sparkConf();
             if (config.isAutoSetSparkConf() && isJobOnCluster(sparkConf)) {
@@ -169,10 +173,8 @@ public abstract class SparkApplication implements Application, IKeep {
                     });
                     return BoxedUnit.UNIT;
                 }
-            })
-                    .enableHiveSupport()
-                    .config(sparkConf)
-                    .config("mapreduce.fileoutputcommitter.marksuccessfuljobs", "false").getOrCreate();
+            }).enableHiveSupport().config(sparkConf).config("mapreduce.fileoutputcommitter.marksuccessfuljobs", "false")
+                    .getOrCreate();
 
             JoinMemoryManager.releaseAllMemory();
             // for spark metrics
@@ -185,6 +187,7 @@ public abstract class SparkApplication implements Application, IKeep {
             if (!config.isUTEnv()) {
                 System.setProperty("kylin.env", config.getDeployEnv());
             }
+            infos.startJob();
             doExecute();
             // Output metadata to another folder
             val resourceStore = ResourceStore.getKylinMetaStore(config);
@@ -192,6 +195,7 @@ public abstract class SparkApplication implements Application, IKeep {
             outputConfig.setMetadataUrl(getParam(NBatchConstants.P_OUTPUT_META_URL));
             MetadataStore.createMetadataStore(outputConfig).dump(resourceStore);
         } finally {
+            infos.jobEnd();
             if (ss != null && !ss.conf().get("spark.master").startsWith("local")) {
                 JobMetricsUtils.unRegisterListener(ss);
                 ss.stop();
@@ -235,5 +239,17 @@ public abstract class SparkApplication implements Application, IKeep {
         }
         // return size with unit
         return ResourceDetectUtils.getMaxResourceSize(resourcePaths) + "b";
+    }
+
+    public void logJobInfo() {
+        try {
+            logger.info(generateInfo());
+        } catch (Exception e) {
+            logger.warn("Error occurred when generate job info.", e);
+        }
+    }
+
+    protected String generateInfo() {
+        return LogJobInfoUtils.sparkApplicationInfo();
     }
 }

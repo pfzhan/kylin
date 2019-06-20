@@ -24,6 +24,7 @@
 
 package io.kyligence.kap.engine.spark.job;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -57,21 +58,29 @@ public class ResourceDetectBeforeMergingJob extends SparkApplication {
         final NDataflow dataflow = mgr.getDataflow(dataflowId);
         final NDataSegment mergedSeg = dataflow.getSegment(getParam(NBatchConstants.P_SEGMENT_IDS));
         final List<NDataSegment> mergingSegments = dataflow.getMergingSegments(mergedSeg);
-
+        infos.clearMergingSegments();
+        Collections.sort(mergingSegments);
+        infos.recordMergingSegments(mergingSegments);
         Map<Long, DFLayoutMergeAssist> mergeCuboidsAssist = DFMergeJob.generateMergeAssist(mergingSegments, ss,
                 mergedSeg);
 
         Map<String, List<String>> resourcePaths = Maps.newHashMap();
+        infos.clearSparkPlans();
         for (Map.Entry<Long, DFLayoutMergeAssist> entry : mergeCuboidsAssist.entrySet()) {
             Dataset<Row> afterMerge = entry.getValue().merge();
+            infos.recordSparkPlan(afterMerge.queryExecution().sparkPlan());
             List<Path> paths = JavaConversions
                     .seqAsJavaList(ResourceDetectUtils.getPaths(afterMerge.queryExecution().sparkPlan()));
             List<String> pathStrs = paths.stream().map(Path::toString).collect(Collectors.toList());
             resourcePaths.put(String.valueOf(entry.getKey()), pathStrs);
         }
-        ResourceDetectUtils.writeResourcePaths(
-                new Path(config.getJobTmpShareDir(project, jobId), mergedSeg.getId() + "_" + ResourceDetectUtils.fileName()),
-                resourcePaths);
+        ResourceDetectUtils.writeResourcePaths(new Path(config.getJobTmpShareDir(project, jobId),
+                mergedSeg.getId() + "_" + ResourceDetectUtils.fileName()), resourcePaths);
+    }
+
+    @Override
+    protected String generateInfo() {
+        return LogJobInfoUtils.resourceDetectBeforeMergingJobInfo();
     }
 
     public static void main(String[] args) {

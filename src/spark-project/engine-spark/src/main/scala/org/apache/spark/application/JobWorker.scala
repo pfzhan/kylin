@@ -43,6 +43,7 @@ class JobWorker(application: SparkApplication, args: Array[String], eventLoop: K
 
   def stop(): Unit = {
     pool.shutdownNow()
+    application.logJobInfo()
   }
 
   private def runJob(): Unit = {

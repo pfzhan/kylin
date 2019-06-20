@@ -100,6 +100,7 @@ class DFChooser(toBuildTree: NSpanningTree,
     val sourceInfo = new NBuildSourceInfo
     sourceInfo.setSparkSession(ss)
     sourceInfo.setFlattableDS(afterJoin)
+    sourceInfo.setLayoutId(DFChooser.FLAT_TABLE_FLAG)
 
     logInfo("No suitable ready layouts could be reused, generate dataset from flat table.")
     sourceInfo
@@ -117,4 +118,5 @@ object DFChooser {
       ss: SparkSession,
       config: KylinConfig,
       needEncoding)
+  val FLAT_TABLE_FLAG: Long = -1L
 }

@@ -69,7 +69,6 @@ class TestJobMonitor extends SparderBaseFunSuite with BeforeAndAfterEach {
     withEventLoop { eventLoop =>
       Mockito.when(config.getSparkEngineMaxRetryTime).thenReturn(0)
       val env = KylinBuildEnv.getOrCreate(config)
-      env.resetRetryTimes()
       new JobMonitor(eventLoop)
       val receiveExceedMaxRetry = new AtomicBoolean(false)
       val countDownLatch = new CountDownLatch(3)
@@ -94,7 +93,6 @@ class TestJobMonitor extends SparderBaseFunSuite with BeforeAndAfterEach {
     withEventLoop { eventLoop =>
       Mockito.when(config.getSparkEngineMaxRetryTime).thenReturn(1)
       val env = KylinBuildEnv.getOrCreate(config)
-      env.resetRetryTimes()
       new JobMonitor(eventLoop)
       val memory = "2000MB"
       val overhead = "400MB"
@@ -124,7 +122,6 @@ class TestJobMonitor extends SparderBaseFunSuite with BeforeAndAfterEach {
   test("post JobFailed when receive ResourceLack event and preMemory eq (maxAllocation - overhead) and retryCores eq 0") {
     withEventLoop { eventLoop =>
       val env = KylinBuildEnv.getOrCreate(config)
-      env.resetRetryTimes()
       new JobMonitor(eventLoop)
       val memory = "2000MB"
       val overhead = "400MB"
@@ -158,7 +155,6 @@ class TestJobMonitor extends SparderBaseFunSuite with BeforeAndAfterEach {
     withEventLoop { eventLoop =>
       Mockito.when(config.getSparkEngineMaxRetryTime).thenReturn(1)
       val env = KylinBuildEnv.getOrCreate(config)
-      env.resetRetryTimes()
       new JobMonitor(eventLoop)
       val memory = "2000MB"
       val overhead = "400MB"
@@ -186,7 +182,6 @@ class TestJobMonitor extends SparderBaseFunSuite with BeforeAndAfterEach {
     withEventLoop { eventLoop =>
       Mockito.when(config.getSparkEngineMaxRetryTime).thenReturn(1)
       val env = KylinBuildEnv.getOrCreate(config)
-      env.resetRetryTimes()
       new JobMonitor(eventLoop)
       val memory = "3000MB"
       val overhead = "400MB"
@@ -215,7 +210,6 @@ class TestJobMonitor extends SparderBaseFunSuite with BeforeAndAfterEach {
     withEventLoop { eventLoop =>
       Mockito.when(config.getSparkEngineMaxRetryTime).thenReturn(1)
       val env = KylinBuildEnv.getOrCreate(config)
-      env.resetRetryTimes()
       new JobMonitor(eventLoop)
       val memory = "2000MB"
       val overhead = "400MB"
@@ -244,7 +238,6 @@ class TestJobMonitor extends SparderBaseFunSuite with BeforeAndAfterEach {
     withEventLoop { eventLoop =>
       Mockito.when(config.getSparkEngineMaxRetryTime).thenReturn(1)
       val env = KylinBuildEnv.getOrCreate(config)
-      env.resetRetryTimes()
       new JobMonitor(eventLoop)
       val countDownLatch = new CountDownLatch(2)
       val receiveJobFailed = new AtomicBoolean(false)

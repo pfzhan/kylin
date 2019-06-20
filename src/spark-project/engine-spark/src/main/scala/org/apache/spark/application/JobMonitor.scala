@@ -22,14 +22,20 @@
 
 package org.apache.spark.application
 
+import java.util
+
 import io.kyligence.kap.engine.spark.job.KylinBuildEnv
 import io.kyligence.kap.engine.spark.scheduler._
 import io.kyligence.kap.engine.spark.utils.SparkConfHelper._
+import io.netty.util.internal.ThrowableUtil
 import org.apache.spark.internal.Logging
 import org.apache.spark.scheduler.KylinJobEventLoop
 import org.apache.spark.util.Utils
 
+import scala.collection.JavaConverters._
+
 class JobMonitor(eventLoop: KylinJobEventLoop) extends Logging {
+  var retryTimes = 0
   eventLoop.registerListener(new KylinJobListener {
     override def onReceive(event: KylinJobEvent): Unit = {
       event match {
@@ -47,12 +53,13 @@ class JobMonitor(eventLoop: KylinJobEventLoop) extends Logging {
   def handleResourceLack(rl: ResourceLack): Unit = {
     try {
       val buildEnv = KylinBuildEnv.get()
-      buildEnv.increaseRetryTimes()
-      val retry = buildEnv.retryTimes
+      retryTimes += 1
+      KylinBuildEnv.get().buildJobInfos.recordRetryTimes(retryTimes)
       val maxRetry = buildEnv.kylinConfig.getSparkEngineMaxRetryTime
       val gradient = buildEnv.kylinConfig.getSparkEngineRetryMemoryGradient
-      if (retry <= maxRetry) {
-        logError(s"Job failed the $retry times.", rl.throwable)
+      if (retryTimes <= maxRetry) {
+        val overrideConf = new util.HashMap[String, String]
+        logError(s"Job failed the $retryTimes times.", rl.throwable)
         val conf = buildEnv.sparkConf
         val prevMemory = Utils.byteStringAsMb(conf.get(EXECUTOR_MEMORY))
         val retryMemory = Math.ceil(prevMemory * gradient).toInt
@@ -62,20 +69,22 @@ class JobMonitor(eventLoop: KylinJobEventLoop) extends Logging {
         if (prevMemory == maxMemory) {
           val retryCore = conf.get(EXECUTOR_CORES).toInt - 1
           if (retryCore > 0) {
-            conf.set(EXECUTOR_CORES, retryCore.toString)
+            overrideConf.put(EXECUTOR_CORES, retryCore.toString)
             logInfo(s"Reset $EXECUTOR_CORES=$retryCore when retry.")
           } else {
             eventLoop.post(JobFailed(s"Retry configuration is invalid." +
               s" $EXECUTOR_CORES=$retryCore, $EXECUTOR_MEMORY=$prevMemory.", new RuntimeException))
           }
         } else if (retryMemory > maxMemory) {
-          conf.set(EXECUTOR_MEMORY, maxMemory + "MB")
+          overrideConf.put(EXECUTOR_MEMORY, maxMemory + "MB")
           logInfo(s"Reset $EXECUTOR_MEMORY=${conf.get(EXECUTOR_MEMORY)} when retry.")
         } else {
-          conf.set(EXECUTOR_MEMORY, retryMemory + "MB")
+          overrideConf.put(EXECUTOR_MEMORY, retryMemory + "MB")
           logInfo(s"Reset $EXECUTOR_MEMORY=${conf.get(EXECUTOR_MEMORY)} when retry.")
         }
         System.setProperty("kylin.spark-conf.auto.prior", "false")
+        conf.setAll(overrideConf.asScala)
+        KylinBuildEnv.get().buildJobInfos.recordJobRetryInfos(RetryInfo(overrideConf, rl.throwable))
         eventLoop.post(RunJob())
       } else {
         eventLoop.post(ExceedMaxRetry(rl.throwable))
@@ -91,5 +100,14 @@ class JobMonitor(eventLoop: KylinJobEventLoop) extends Logging {
 
   def handleUnknownThrowable(ur: UnknownThrowable): Unit = {
     eventLoop.post(JobFailed("Unknown error occurred during the job.", ur.throwable))
+  }
+}
+
+case class RetryInfo(overrideConf: java.util.Map[String, String], throwable: Throwable) {
+  override def toString: String = {
+    s"""RetryInfo{
+       |    overrideConf : $overrideConf,
+       |    throwable : ${ThrowableUtil.stackTraceToString(throwable)}
+       |}""".stripMargin
   }
 }

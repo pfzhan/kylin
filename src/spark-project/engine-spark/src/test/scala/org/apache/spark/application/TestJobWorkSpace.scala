@@ -22,8 +22,11 @@
 
 package org.apache.spark.application
 
+import io.kyligence.kap.engine.spark.job.KylinBuildEnv
+import org.apache.kylin.common.KylinConfig
 import org.apache.spark.scheduler.KylinJobEventLoop
 import org.apache.spark.sql.common.SparderBaseFunSuite
+import org.mockito.Mockito
 
 class TestJobWorkSpace extends SparderBaseFunSuite {
   test("resolve args") {
@@ -46,6 +49,9 @@ class TestJobWorkSpace extends SparderBaseFunSuite {
   }
 
   test("return 1 when job failed") {
+    val config = Mockito.mock(classOf[KylinConfig])
+    Mockito.when(config.getClusterInfoFetcherClassName).thenReturn("io.kyligence.kap.cluster.YarnInfoFetcher")
+    KylinBuildEnv.getOrCreate(config)
     val args = Array("-className", "org.apache.spark.application.UnknownThrowableJob")
     val (application, appArgs) = JobWorkSpace.resolveArgs(args)
     val loop = new KylinJobEventLoop

@@ -82,6 +82,8 @@ public class DFMergeJob extends SparkApplication {
         final List<NDataSegment> mergingSegments = dataflow.getMergingSegments(mergedSeg);
 
         Collections.sort(mergingSegments);
+        infos.clearMergingSegments();
+        infos.recordMergingSegments(mergingSegments);
 
         NDataflow flowCopy = dataflow.copy();
         NDataSegment segCopy = flowCopy.getSegment(segmentId);
@@ -175,7 +177,7 @@ public class DFMergeJob extends SparkApplication {
         // for spark metrics
         String queryExecutionId = UUID.randomUUID().toString();
         ss.sparkContext().setLocalProperty(QueryExecutionCache.N_EXECUTION_ID_KEY(), queryExecutionId);
-
+        ss.sparkContext().setJobDescription("merge layout " + layoutId);
         NSparkCubingEngine.NSparkCubingStorage storage = StorageFactory.createEngineAdapter(layout,
                 NSparkCubingEngine.NSparkCubingStorage.class);
         String path = NSparkCubingUtil.getStoragePath(dataCuboid);
@@ -186,6 +188,8 @@ public class DFMergeJob extends SparkApplication {
         JobMetrics metrics = JobMetricsUtils.collectMetrics(queryExecutionId);
         long rowCount = metrics.getMetrics(Metrics.CUBOID_ROWS_CNT());
         if (rowCount == -1) {
+            infos.recordAbnormalLayouts(dataCuboid.getLayoutId(),
+                    "'Job metrics seems null, use count() to collect cuboid rows.'");
             logger.warn("Can not get cuboid row cnt.");
         }
         dataCuboid.setRows(rowCount);
@@ -196,11 +200,17 @@ public class DFMergeJob extends SparkApplication {
                 KapConfig.wrap(config), ss);
         dataCuboid.setPartitionNum(partitionNum);
         ss.sparkContext().setLocalProperty(QueryExecutionCache.N_EXECUTION_ID_KEY(), null);
+        ss.sparkContext().setJobDescription(null);
         QueryExecutionCache.removeQueryExecution(queryExecutionId);
 
         BuildUtils.fillCuboidInfo(dataCuboid);
 
         return dataCuboid;
+    }
+
+    @Override
+    protected String generateInfo() {
+        return LogJobInfoUtils.dfMergeJobInfo();
     }
 
     public static void main(String[] args) {

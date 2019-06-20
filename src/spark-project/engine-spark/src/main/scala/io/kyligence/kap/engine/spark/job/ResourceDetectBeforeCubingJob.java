@@ -78,15 +78,16 @@ public class ResourceDetectBeforeCubingJob extends SparkApplication {
             datasetChooser.decideSources();
             NBuildSourceInfo buildFromFlatTable = datasetChooser.flatTableSource();
             if (buildFromFlatTable != null) {
-                buildFromFlatTable.setLayoutId(DFBuildJob.FLAT_TABLE_FLAG);
                 sources.add(buildFromFlatTable);
             }
             Map<Long, NBuildSourceInfo> buildFromLayouts = datasetChooser.reuseSources();
             sources.addAll(buildFromLayouts.values());
 
             Map<String, List<String>> resourcePaths = Maps.newHashMap();
+            infos.clearSparkPlans();
             for (NBuildSourceInfo source : sources) {
                 Dataset<Row> dataset = source.getParentDS();
+                infos.recordSparkPlan(dataset.queryExecution().sparkPlan());
                 List<Path> paths = JavaConversions
                         .seqAsJavaList(ResourceDetectUtils.getPaths(dataset.queryExecution().sparkPlan()));
                 List<String> pathList = paths.stream().map(Path::toString).collect(Collectors.toList());
@@ -96,6 +97,11 @@ public class ResourceDetectBeforeCubingJob extends SparkApplication {
                     new Path(config.getJobTmpShareDir(project, jobId), segId + "_" + ResourceDetectUtils.fileName()),
                     resourcePaths);
         }
+    }
+
+    @Override
+    protected String generateInfo() {
+        return LogJobInfoUtils.resourceDetectBeforeCubingJobInfo();
     }
 
     public static void main(String[] args) {

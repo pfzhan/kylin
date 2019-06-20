@@ -100,7 +100,7 @@ public class NSpanningTreeCubingJobTest extends NLocalWithSparkSessionTest {
 
         String segId = getSegId();
 
-        NForestSpanningTree st = (NForestSpanningTree) KylinBuildEnv.get().seg2SpanningTree().get(segId);
+        NForestSpanningTree st = (NForestSpanningTree) KylinBuildEnv.get().buildJobInfos().getSpanningTree(segId);
         NForestSpanningTree.TreeNode leafNode = st.getNodesMap().get(0L);
         Assert.assertEquals(3, leafNode.getLevel());
         Assert.assertEquals(40000L, leafNode.getParent().getIndexEntity().getId());

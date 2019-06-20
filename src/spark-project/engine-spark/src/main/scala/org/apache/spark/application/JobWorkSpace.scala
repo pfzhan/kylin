@@ -22,9 +22,11 @@
 
 package org.apache.spark.application
 
+import java.util
 import java.util.concurrent.CountDownLatch
 
 import io.kyligence.kap.engine.spark.application.SparkApplication
+import io.kyligence.kap.engine.spark.job.KylinBuildEnv
 import io.kyligence.kap.engine.spark.scheduler._
 import org.apache.spark.internal.Logging
 import org.apache.spark.scheduler.KylinJobEventLoop
@@ -91,6 +93,7 @@ class JobWorkSpace(eventLoop: KylinJobEventLoop, monitor: JobMonitor, worker: Jo
   }
 
   def fail(jf: JobFailed): Unit = {
+    KylinBuildEnv.get().buildJobInfos.recordJobRetryInfos(RetryInfo(new util.HashMap, jf.throwable))
     stop()
     logError(s"Job failed eventually. Reason: ${jf.reason}", jf.throwable)
     statusCode = 1

@@ -42,6 +42,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Maps;
 
 import io.kyligence.kap.cluster.ClusterInfoFetcher;
+import io.kyligence.kap.engine.spark.job.KylinBuildEnv;
 
 public class SparkConfHelper {
     protected static final Logger logger = LoggerFactory.getLogger(SparkConfHelper.class);
@@ -100,6 +101,7 @@ public class SparkConfHelper {
     }
 
     public void applySparkConf(SparkConf sparkConf) {
+        KylinBuildEnv.get().buildJobInfos().recordAutoSparkConfs(confs);
         for (Map.Entry<String, String> entry : confs.entrySet()) {
             sparkConf.set(entry.getKey(), entry.getValue());
             logger.info("Auto set spark conf: {} = {}.", entry.getKey(), entry.getValue());

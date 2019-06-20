@@ -68,7 +68,6 @@ import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import lombok.val;
 
 public class DFBuildJob extends SparkApplication {
-    public static final Long FLAT_TABLE_FLAG = -1L;
     protected static final Logger logger = LoggerFactory.getLogger(DFBuildJob.class);
     protected static String TEMP_DIR_SUFFIX = "_temp";
 
@@ -101,14 +100,17 @@ public class DFBuildJob extends SparkApplication {
                 NBuildSourceInfo buildFromFlatTable = datasetChooser.flatTableSource();
                 Map<Long, NBuildSourceInfo> buildFromLayouts = datasetChooser.reuseSources();
 
+                infos.clearCuboidsNumPerLayer(segId);
                 // build cuboids from flat table
                 if (buildFromFlatTable != null) {
                     build(Collections.singletonList(buildFromFlatTable), segId, nSpanningTree);
                 }
 
                 // build cuboids from reused layouts
-                build(buildFromLayouts.values(), segId, nSpanningTree);
-                KylinBuildEnv.get().seg2SpanningTree().put(segId, nSpanningTree);
+                if (!buildFromLayouts.isEmpty()) {
+                    build(buildFromLayouts.values(), segId, nSpanningTree);
+                }
+                infos.recordSpanningTree(segId, nSpanningTree);
             }
         } finally {
             logger.info("Finish build take" + (System.currentTimeMillis() - start) + " ms");
@@ -145,11 +147,15 @@ public class DFBuildJob extends SparkApplication {
     private List<NBuildSourceInfo> buildLayer(Collection<NBuildSourceInfo> buildSourceInfos, String segId,
             NSpanningTree st) throws IOException {
         val seg = getSegment(segId);
+        int cuboidsNumInLayer = 0;
 
         // build current layer
         List<IndexEntity> allIndexesInCurrentLayer = new ArrayList<>();
         for (NBuildSourceInfo info : buildSourceInfos) {
             Collection<IndexEntity> toBuildCuboids = info.getToBuildCuboids();
+            infos.recordParent2Children(seg.getLayout(info.getLayoutId()),
+                    toBuildCuboids.stream().map(IndexEntity::getId).collect(Collectors.toList()));
+            cuboidsNumInLayer += toBuildCuboids.size();
             Preconditions.checkState(!toBuildCuboids.isEmpty(), "To be built cuboids is empty.");
             Dataset<Row> parentDS = info.getParentDS();
 
@@ -163,13 +169,14 @@ public class DFBuildJob extends SparkApplication {
 
                     @Override
                     public List<NDataLayout> build() throws IOException {
-                        return buildIndex(seg, index, parentDS, st);
+                        return buildIndex(seg, index, parentDS, st, info.getLayoutId());
                     }
                 }, config);
                 allIndexesInCurrentLayer.add(index);
             }
         }
 
+        infos.recordCuboidsNumPerLayer(segId, cuboidsNumInLayer);
         buildLayoutWithUpdate.updateLayout(seg, config, project);
 
         // decided the next layer by current layer's all indexes.
@@ -192,6 +199,7 @@ public class DFBuildJob extends SparkApplication {
                 theRootLevelBuildInfos.setSparkSession(ss);
                 LayoutEntity layout = new ArrayList<>(st.getLayouts(index)).get(0);
                 String path = NSparkCubingUtil.getStoragePath(getDataCuboid(seg, layout.getId()));
+                theRootLevelBuildInfos.setLayoutId(layout.getId());
                 theRootLevelBuildInfos.setParentStoragePath(path);
                 theRootLevelBuildInfos.setToBuildCuboids(children);
                 childrenBuildSourceInfos.add(theRootLevelBuildInfos);
@@ -202,7 +210,11 @@ public class DFBuildJob extends SparkApplication {
     }
 
     private List<NDataLayout> buildIndex(NDataSegment seg, IndexEntity cuboid, Dataset<Row> parent,
-            NSpanningTree nSpanningTree) throws IOException {
+            NSpanningTree nSpanningTree, long parentId) throws IOException {
+        String parentName = String.valueOf(parentId);
+        if (parentId == DFChooser.FLAT_TABLE_FLAG()) {
+            parentName = "flat table";
+        }
         logger.info("Build index:{}, in segment:{}", cuboid.getId(), seg.getId());
         LinkedList<NDataLayout> layouts = Lists.newLinkedList();
         Set<Integer> dimIndexes = cuboid.getEffectiveDimCols().keySet();
@@ -212,6 +224,7 @@ public class DFBuildJob extends SparkApplication {
             // TODO: shard number should respect the shard column defined in cuboid
             for (LayoutEntity layout : nSpanningTree.getLayouts(cuboid)) {
                 logger.info("Build layout:{}, in index:{}", layout.getId(), cuboid.getId());
+                ss.sparkContext().setJobDescription("build " + layout.getId() + " from parent " + parentName);
                 Set<Integer> orderedDims = layout.getOrderedDimensions().keySet();
                 Dataset<Row> afterSort = afterPrj.select(NSparkCubingUtil.getColumns(orderedDims))
                         .sortWithinPartitions(NSparkCubingUtil.getColumns(layout.getSortByColumns()));
@@ -221,6 +234,7 @@ public class DFBuildJob extends SparkApplication {
             Dataset<Row> afterAgg = CuboidAggregator.agg(ss, parent, dimIndexes, cuboid.getEffectiveMeasures(), seg);
             for (LayoutEntity layout : nSpanningTree.getLayouts(cuboid)) {
                 logger.info("Build layout:{}, in index:{}", layout.getId(), cuboid.getId());
+                ss.sparkContext().setJobDescription("build " + layout.getId() + "from parent " + parentName);
                 Set<Integer> rowKeys = layout.getOrderedDimensions().keySet();
 
                 Dataset<Row> afterSort = afterAgg
@@ -230,6 +244,7 @@ public class DFBuildJob extends SparkApplication {
                 layouts.add(saveAndUpdateLayout(afterSort, seg, layout));
             }
         }
+        ss.sparkContext().setJobDescription(null);
         logger.info("Finished Build index :{}, in segment:{}", cuboid.getId(), seg.getId());
         return layouts;
     }
@@ -255,6 +270,8 @@ public class DFBuildJob extends SparkApplication {
         dataCuboid.setBuildJobId(jobId);
         long rowCount = metrics.getMetrics(Metrics.CUBOID_ROWS_CNT());
         if (rowCount == -1) {
+            infos.recordAbnormalLayouts(dataCuboid.getLayoutId(),
+                    "'Job metrics seems null, use count() to collect cuboid rows.'");
             logger.warn("Can not get cuboid row cnt.");
         }
         dataCuboid.setRows(rowCount);
@@ -270,6 +287,11 @@ public class DFBuildJob extends SparkApplication {
 
     private NDataLayout getDataCuboid(NDataSegment seg, long layoutId) {
         return NDataLayout.newDataLayout(seg.getDataflow(), seg.getId(), layoutId);
+    }
+
+    @Override
+    protected String generateInfo() {
+        return LogJobInfoUtils.dfBuildJobInfo();
     }
 
     public static void main(String[] args) {

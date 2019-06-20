@@ -24,32 +24,20 @@
 
 package io.kyligence.kap.engine.spark.job
 
-import java.util
 import java.util.concurrent.atomic.AtomicReference
 
 import io.kyligence.kap.cluster.{ClusterInfoFetcher, ClusterInfoFetcherFactory}
-import io.kyligence.kap.metadata.cube.cuboid.NSpanningTree
 import javax.annotation.concurrent.NotThreadSafe
 import org.apache.kylin.common.KylinConfig
 import org.apache.spark.SparkConf
 
 class KylinBuildEnv(config: KylinConfig) {
-  val seg2SpanningTree: java.util.Map[String, NSpanningTree] = new util.HashMap[String, NSpanningTree]
+
+  val buildJobInfos: BuildJobInfos = new BuildJobInfos
 
   lazy val sparkConf: SparkConf = new SparkConf()
 
   val kylinConfig: KylinConfig = config
-
-  var retryTimes: Int = 0
-
-  def increaseRetryTimes(): Unit = {
-    retryTimes = retryTimes + 1
-  }
-
-  // for test only
-  def resetRetryTimes(): Unit = {
-    retryTimes = 0
-  }
 
   var clusterInfoFetcher: ClusterInfoFetcher = ClusterInfoFetcherFactory.create(config)
 }
