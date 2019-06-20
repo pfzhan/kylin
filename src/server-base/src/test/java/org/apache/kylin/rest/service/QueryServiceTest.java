@@ -100,7 +100,6 @@ import org.springframework.test.util.ReflectionTestUtils;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
-import io.kyligence.kap.common.persistence.transaction.TransactionException;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.metadata.cube.cuboid.NLayoutCandidate;
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
@@ -275,9 +274,8 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
             queryService.doQueryWithCache(request, false);
             Assert.fail();
         } catch (Exception e) {
-            Assert.assertTrue(e instanceof TransactionException);
-            Assert.assertTrue(e.getCause() instanceof BadRequestException);
-            Assert.assertEquals("Cannot find project 'default0'.", e.getCause().getMessage());
+            Assert.assertTrue(e instanceof BadRequestException);
+            Assert.assertEquals("Cannot find project 'default0'.", e.getMessage());
         }
     }
 
@@ -292,9 +290,8 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
             queryService.doQueryWithCache(request, false);
             Assert.fail();
         } catch (Exception e) {
-            Assert.assertTrue(e instanceof TransactionException);
-            Assert.assertTrue(e.getCause() instanceof BadRequestException);
-            Assert.assertEquals("SQL should not be empty.", e.getCause().getMessage());
+            Assert.assertTrue(e instanceof BadRequestException);
+            Assert.assertEquals("SQL should not be empty.", e.getMessage());
         }
     }
 
