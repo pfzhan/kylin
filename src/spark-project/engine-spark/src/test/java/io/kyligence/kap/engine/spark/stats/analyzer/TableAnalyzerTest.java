@@ -185,6 +185,16 @@ public class TableAnalyzerTest extends NLocalWithSparkSessionTest {
         final List<String[]> sampleRows = testEncodingsExt.getSampleRows();
         final String[] rowValue = sampleRows.get(sampleRows.size() - 1);
         Arrays.stream(rowValue).forEach(Assert::assertNull);
+
+        // case 3: this case test sample data with a large long string value
+        TableDesc allMeasTbl = tableMgr.getTableDesc("DEFAULT.TEST_MEASURE");
+        new TableAnalyzerJob().analyzeTable(allMeasTbl, getProject(), 10000, getTestConfig(), ss);
+        final TableExtDesc allMeasTblExt = tableMgr.getTableExtIfExists(allMeasTbl);
+        Assert.assertNotNull(allMeasTblExt);
+        String minName1 = allMeasTblExt.getColumnStatsByName("NAME1").getMinValue();
+        Assert.assertNotNull(minName1);
+        Assert.assertTrue(minName1.length() > 256);
+
     }
 
     @Test
