@@ -28,7 +28,7 @@ import org.apache.kylin.metadata.model.TableDesc
 object FileNames {
   /** Returns the path for a given snapshot file. */
   def snapshotFile(tableDesc: TableDesc): Path =
-    new Path(tableDesc.getProject + HadoopUtil.SNAPSHOT_STORAGE_ROOT + "/" + tableDesc.getName)
+    new Path(tableDesc.getProject + HadoopUtil.SNAPSHOT_STORAGE_ROOT + "/" + tableDesc.getIdentity)
 
   def snapshotFileWithWorkingDir(tableDesc: TableDesc, workingDir: String): Path =
     new Path(workingDir, snapshotFile(tableDesc))

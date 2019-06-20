@@ -26,12 +26,13 @@ package io.kyligence.kap.engine.spark.builder
 
 import java.io.IOException
 import java.util.UUID
-import java.util.concurrent.{Executors, TimeUnit}
+import java.util.concurrent.Executors
 
 import com.google.common.collect.Maps
 import io.kyligence.kap.engine.spark.NSparkCubingEngine
+import io.kyligence.kap.engine.spark.job.KylinBuildEnv
 import io.kyligence.kap.engine.spark.utils.FileNames
-import io.kyligence.kap.metadata.cube.model.{NDataflowManager, NDataflowUpdate, NDataSegment}
+import io.kyligence.kap.metadata.cube.model.{NDataSegment, NDataflowManager, NDataflowUpdate}
 import io.kyligence.kap.metadata.model.NDataModel
 import org.apache.commons.codec.digest.DigestUtils
 import org.apache.hadoop.fs.{FileStatus, FileSystem, Path, PathFilter}
@@ -40,12 +41,13 @@ import org.apache.kylin.common.util.HadoopUtil
 import org.apache.kylin.metadata.model.TableDesc
 import org.apache.kylin.source.SourceFactory
 import org.apache.spark.internal.Logging
+import org.apache.spark.sql.hive.utils.ResourceDetectUtils
 import org.apache.spark.sql.{Dataset, Row, SparkSession}
 import org.apache.spark.utils.ProxyThreadUtils
 
 import scala.collection.JavaConverters._
-import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.duration._
+import scala.concurrent.{ExecutionContext, Future}
 import scala.util.control.Breaks._
 import scala.util.{Failure, Success, Try}
 
@@ -56,6 +58,7 @@ class DFSnapshotBuilder extends Logging {
 
   private val MD5_SUFFIX = ".md5"
   private val PARQUET_SUFFIX = ".parquet"
+  private val MB = 1024 * 1024
 
   def this(seg: NDataSegment, ss: SparkSession) {
     this()
@@ -88,38 +91,39 @@ class DFSnapshotBuilder extends Logging {
       implicit val executorContext = ExecutionContext.fromExecutorService(service)
       val futures = toBuildTableDesc
         .map {
-        tableDesc =>
-          Future[(String, String)] {
-            if (seg.getConfig.isUTEnv) {
-              Thread.sleep(1000L)
+          tableDesc =>
+            Future[(String, String)] {
+              if (seg.getConfig.isUTEnv) {
+                Thread.sleep(1000L)
+              }
+              try {
+                buildSnapshotWithoutMd5(tableDesc, baseDir)
+              } catch {
+                case exception: Exception =>
+                  logError(s"Error for build snapshot table with $tableDesc", exception)
+                  throw exception
+              }
             }
-            try {
-              buildSnapshotWithoutMd5(tableDesc, baseDir)
-            } catch {
-              case exception: Exception =>
-                logError(s"Error for build snapshot table with $tableDesc", exception)
-                throw exception
-            }
-          }
-      }
-      // scalastyle:off
-        try {
-          val eventualTuples = Future.sequence(futures.toList)
-          // only throw the first exception
-          val result = ProxyThreadUtils.awaitResult(eventualTuples, seg.getConfig.snapshotParallelBuildTimeoutSeconds seconds)
-          if (result.nonEmpty) {
-            newSnapMap.putAll(result.toMap.asJava)
-          }
-        } catch {
-          case e: Exception =>
-            ProxyThreadUtils.shutdown(service)
-            throw e
         }
+      // scalastyle:off
+      try {
+        val eventualTuples = Future.sequence(futures.toList)
+        // only throw the first exception
+        val result = ProxyThreadUtils.awaitResult(eventualTuples, seg.getConfig.snapshotParallelBuildTimeoutSeconds seconds)
+        if (result.nonEmpty) {
+          newSnapMap.putAll(result.toMap.asJava)
+        }
+      } catch {
+        case e: Exception =>
+          ProxyThreadUtils.shutdown(service)
+          throw e
+      }
     } else {
-       toBuildTableDesc.foreach{
-         tableDesc =>
-           val tuple = buildSingleSnapshot(tableDesc, baseDir, fs)
-           newSnapMap.put(tuple._1, tuple._2)}
+      toBuildTableDesc.foreach {
+        tableDesc =>
+          val tuple = buildSingleSnapshot(tableDesc, baseDir, fs)
+          newSnapMap.put(tuple._1, tuple._2)
+      }
     }
     val dataflow = seg.getDataflow
     // make a copy of the changing segment, avoid changing the cached object
@@ -132,7 +136,7 @@ class DFSnapshotBuilder extends Logging {
     updatedDataflow.getSegment(seg.getId)
   }
 
-  def distinctTableDesc(model: NDataModel):Set[TableDesc] = {
+  def distinctTableDesc(model: NDataModel): Set[TableDesc] = {
     model.getJoinTables.asScala
       .filter(lookupDesc => {
         val tableDesc = lookupDesc.getTableRef.getTableDesc
@@ -213,9 +217,28 @@ class DFSnapshotBuilder extends Logging {
   def buildSnapshotWithoutMd5(tableDesc: TableDesc, baseDir: String): (String, String) = {
     val sourceData = getSourceData(tableDesc)
     val tablePath = FileNames.snapshotFile(tableDesc)
-    var snapshotTablePath = tablePath + "/" + UUID.randomUUID
+    val snapshotTablePath = tablePath + "/" + UUID.randomUUID
     val resourcePath = baseDir + "/" + snapshotTablePath
-    sourceData.write.parquet(resourcePath)
+    val repartitionNum = try {
+      val fs = HadoopUtil.getReadFileSystem
+      val sizeInMB = ResourceDetectUtils.getPaths(sourceData.queryExecution.sparkPlan)
+        .map(path => fs.getContentSummary(path).getLength)
+        .sum * 1.0 / MB
+      val num = Math.ceil(sizeInMB / KylinBuildEnv.get().kylinConfig.getSnapshotShardSizeMB).intValue()
+      logInfo(s"Table size is $sizeInMB MB, repartition num is set to $num.")
+      num
+    } catch {
+      case t: Throwable =>
+        logWarning("Error occurred when estimate repartition number.", t)
+        0
+    }
+    if (repartitionNum == 0) {
+      logInfo(s"Error may occurred or table size is 0, skip repartition.")
+      sourceData.write.parquet(resourcePath)
+    } else {
+      logInfo(s"Repartition snapshot to $repartitionNum partition.")
+      sourceData.repartition(repartitionNum).write.parquet(resourcePath)
+    }
     (tableDesc.getIdentity, snapshotTablePath)
   }
 }

@@ -493,6 +493,10 @@ abstract public class KylinConfigBase implements Serializable {
         return Long.parseLong(getOptional("kylin.snapshot.version-ttl", "259200000"));
     }
 
+    public int getSnapshotShardSizeMB() {
+        return Integer.parseInt(getOptional("kylin.snapshot.shard-size-mb", "128"));
+    }
+
     public int getGlobalDictV2MinHashPartitions() {
         return Integer.parseInt(getOptional("kylin.dictionary.globalV2-min-hash-partitions", "10"));
     }
