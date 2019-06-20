@@ -384,6 +384,11 @@ export default class GuidePannel extends Vue {
   #guid-panel {
     color:@fff;
     font-size:12px;
+    .el-tabs__nav-next i, .el-tabs__nav-prev i {
+      &:hover {
+        background-color: @background-disabled-color;
+      }
+    }
     .guide-icon {
       font-size:20px;
       margin-left:10px;
@@ -392,6 +397,7 @@ export default class GuidePannel extends Vue {
     .guide-btn {
       background: transparent;
       color:@fff;
+      border-color:@fff;
       margin:10px;
       &:hover {
         background: @fff;
@@ -401,7 +407,7 @@ export default class GuidePannel extends Vue {
     // tab 组件演示覆盖
     .el-tabs__item {
       color:@fff;
-      font-weight:normal;
+      font-weight:@font-medium;
       font-size:12px;
       height:30px;
       line-height:30px;
@@ -446,7 +452,7 @@ export default class GuidePannel extends Vue {
       i {
         width: 12px;
         height: 12px;
-        background-color: @text-placeholder-color;
+        background-color: @background-disabled-color;
         border-radius: 50%;
         font-size:12px;
         color:@base-color;
@@ -486,6 +492,7 @@ export default class GuidePannel extends Vue {
             background-color:@fff;
             display:inline-block;
             margin-right:9px;
+            vertical-align: middle;
           }
           &.guiding-step {
             width: 325px;

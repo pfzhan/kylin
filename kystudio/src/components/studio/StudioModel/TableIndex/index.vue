@@ -75,16 +75,16 @@
           </el-table-column> 
           <el-table-column
           :label="$t('sort')"
-          header-align="right"
           prop="sort"
           width="60"
-          align="right">
+          align="center">
           <template slot-scope="scope">
             <span class="ky-dot-tag" v-show="scope.row.sort">{{scope.row.sort}}</span>
           </template>
             </el-table-column>
           <el-table-column
           label="Shard"
+          align="center"
           width="70">
             <template slot-scope="scope">
                 <i class="el-icon-ksd-good_health ky-success" v-show="scope.row.shared"></i>

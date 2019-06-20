@@ -58,9 +58,9 @@
         <el-table-column :label="$t('kylinLang.common.endTime')" width="208" prop="end_time" sortable="custom">
           <template slot-scope="scope">{{scope.row.endTime | toServerGMTDate}}</template>
         </el-table-column>
-        <el-table-column class-name="ky-hover-icon" :label="$t('kylinLang.common.action')" width="83">
+        <el-table-column align="left" class-name="ky-hover-icon" :label="$t('kylinLang.common.action')" width="83">
           <template slot-scope="scope">
-            <common-tip :content="$t('showDetail')" class="ksd-ml-10">
+            <common-tip :content="$t('showDetail')">
               <i class="el-icon-ksd-type_date" @click="handleShowDetail(scope.row)"></i>
             </common-tip>
           </template>

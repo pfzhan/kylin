@@ -292,7 +292,6 @@ export default class ModelAggregate extends Vue {
   }
   .align-left {
     text-align: left;
-    padding-left: 10px;
   }
   .agg-detail-card {
     height: 496px;

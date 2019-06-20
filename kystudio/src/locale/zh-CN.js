@@ -114,6 +114,7 @@ exports.default = {
     pleaseFilterByCubeName: '输入 cube 名称筛选',
     enterAlias: '输入别名',
     pleaseSelect: '请选择',
+    pleaseSelectOrSearch: '请选择或者搜索',
     pleaseSelectUserName: '请选择用户',
     pleaseSelectUserGroup: '请选择组',
     pleaseSelectUserOrGroupName: '请选择用户名或组名',

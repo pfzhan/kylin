@@ -265,7 +265,7 @@ export default class TableJoinModal extends Vue {
     }
   }
   delConn () {
-    kapConfirm(this.$t('delConnTip')).then(() => {
+    kapConfirm(this.$t('delConnTip'), null, this.$t('delConnTitle')).then(() => {
       if (this.form.modelInstance) {
         this.form.modelInstance
         if (this.currentConnObj) {

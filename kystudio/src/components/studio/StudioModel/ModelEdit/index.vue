@@ -472,7 +472,7 @@
       :close-on-click-modal="false"
       :show-close="false">
       <i class="el-icon-success ksd-mr-10 ky-dialog-icon"></i>
-      <div class="ksd-pl-40">
+      <div class="ksd-pl-26">
         <span>{{$t('saveSuccessTip')}}</span>
       </div>
       <span slot="footer" class="dialog-footer" v-if="gotoIndexdialogVisible">
@@ -1620,7 +1620,7 @@ export default class ModelEdit extends Vue {
 @broken-line-color: @color-danger;
 @broken-line-lable-close-hover-color: #F178A2;
 .drag-in {
-  box-shadow: inset 0 0 14px 0 @base-color;
+  box-shadow: inset 0 0 4px 0 @base-color;
 }
 .fast-action-popper {
   z-index:100001!important;
@@ -2295,7 +2295,7 @@ export default class ModelEdit extends Vue {
         position:absolute;
         border-top: solid 1px @line-border-color;
         top:62px;
-        bottom:16px;
+        bottom:5px;
         right:0;
         left:0;
         overflow-x:hidden;

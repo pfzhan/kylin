@@ -216,7 +216,7 @@ export default class CCForm extends Vue {
   .cc-form-box {
      .cc-block {
       border: 1px solid @line-border-color;
-      padding: 20px;
+      padding: 15px;
       background-color: @table-stripe-color;
       margin-top: 10px;
     }

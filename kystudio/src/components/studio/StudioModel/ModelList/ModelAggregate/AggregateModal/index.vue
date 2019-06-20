@@ -6,7 +6,7 @@
     :close-on-press-escape="false"
     :close-on-click-modal="false"
     @close="isShow && handleClose(false)">
-    <span slot="title">{{$t(modalTitle)}}
+    <span class="el-dialog__title" slot="title">{{$t(modalTitle)}}
       <span v-html="renderCoboidText(cuboidsInfo.total_count)"></span>
     </span>
     <div class="loading" v-if="isLoading" v-loading="isLoading"></div>
@@ -51,7 +51,7 @@
               filterable
               :ref="`aggregate.include.${aggregateIdx}`"
               :value="aggregate.includes"
-              :placeholder="$t('kylinLang.common.pleaseSelect')"
+              :placeholder="$t('kylinLang.common.pleaseSelectOrSearch')"
               @input="value => handleInput(`aggregateArray.${aggregateIdx}.includes`, value)"
               @remove-tag="value => handleRemoveIncludeRules(value, aggregateIdx)">  
               <el-option
@@ -70,7 +70,7 @@
               multiple
               filterable
               :value="aggregate.mandatory"
-              :placeholder="$t('kylinLang.common.pleaseSelect')"
+              :placeholder="$t('kylinLang.common.pleaseSelectOrSearch')"
               @change="value => handleInput(`aggregateArray.${aggregateIdx}.mandatory`, value)">
               <el-option
                 v-for="dimension in getUnusedDimensions(aggregateIdx)"
@@ -91,7 +91,7 @@
                 multiple
                 filterable
                 :value="hierarchy.items"
-                :placeholder="$t('kylinLang.common.pleaseSelect')"
+                :placeholder="$t('kylinLang.common.pleaseSelectOrSearch')"
                 @change="value => handleInput(`aggregateArray.${aggregateIdx}.hierarchyArray.${hierarchyRowIdx}.items`, value)">
                 <el-option
                   v-for="dimension in getUnusedDimensions(aggregateIdx)"
@@ -122,7 +122,7 @@
                 multiple
                 filterable
                 :value="joint.items"
-                :placeholder="$t('kylinLang.common.pleaseSelect')"
+                :placeholder="$t('kylinLang.common.pleaseSelectOrSearch')"
                 @change="value => handleInput(`aggregateArray.${aggregateIdx}.jointArray.${jointRowIdx}.items`, value)">
                 <el-option
                   v-for="dimension in getUnusedDimensions(aggregateIdx)"

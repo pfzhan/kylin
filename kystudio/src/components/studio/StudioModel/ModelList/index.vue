@@ -369,7 +369,7 @@ export default class ModelList extends Vue {
       const isSubmit = await this.callRenameModelDialog(objectClone(modelDesc))
       isSubmit && this.loadModelsList()
     } else if (command === 'delete') {
-      kapConfirm(this.$t('delModelTip', {modelName: modelDesc.alias})).then(() => {
+      kapConfirm(this.$t('delModelTip', {modelName: modelDesc.alias}), null, this.$t('delModelTitle')).then(() => {
         this.handleDrop(modelDesc)
       })
     } else if (command === 'purge') {
@@ -380,11 +380,11 @@ export default class ModelList extends Vue {
       const isSubmit = await this.callCloneModelDialog(objectClone(modelDesc))
       isSubmit && this.loadModelsList()
     } else if (command === 'offline') {
-      kapConfirm(this.$t('disbaleModelTip')).then(() => {
+      kapConfirm(this.$t('disableModelTip', {modelName: modelDesc.alias}), null, this.$t('disableModelTitle')).then(() => {
         this.handleDisableModel(objectClone(modelDesc))
       })
     } else if (command === 'online') {
-      kapConfirm(this.$t('enableModelTip')).then(() => {
+      kapConfirm(this.$t('enableModelTip', {modelName: modelDesc.alias}), null, this.$t('enableModelTitle')).then(() => {
         this.handleEnableModel(objectClone(modelDesc))
       })
     }
@@ -411,7 +411,7 @@ export default class ModelList extends Vue {
   }
   // 禁用model
   handleDisableModel (modelDesc) {
-    this.handleModel('disableModel', modelDesc, this.$t('disbaleModelSuccessTip'))
+    this.handleModel('disableModel', modelDesc, this.$t('disableModelSuccessTip'))
   }
   // 启用model
   handleEnableModel (modelDesc) {

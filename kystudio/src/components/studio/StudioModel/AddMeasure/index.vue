@@ -77,8 +77,8 @@
               </el-option>
             </el-select>
           </div>
-          <el-button type="primary" size="medium" v-if="measure.expression === 'TOP_N' && index == 0" icon="el-icon-ksd-add_2" plain circle @click="addNewProperty" class="ksd-ml-10"></el-button>
-          <el-button size="medium" icon="el-icon-minus" circle @click="deleteProperty(index)" class="del-pro ksd-ml-10" :class="{'del-margin-more': measure.expression === 'TOP_N' && index > 0}" :disabled="measure.expression === 'TOP_N' && measure.convertedColumns.length == 1"></el-button>
+          <el-button type="primary" size="small" v-if="measure.expression === 'TOP_N' && index == 0" icon="el-icon-ksd-add_2" plain circle @click="addNewProperty" class="ksd-ml-10"></el-button>
+          <el-button type="primary" size="small" icon="el-icon-minus" circle @click="deleteProperty(index)" class="del-pro ksd-ml-10" :class="{'del-margin-more': measure.expression === 'TOP_N' && index > 0}" :disabled="measure.expression === 'TOP_N' && measure.convertedColumns.length == 1"></el-button>
         </div>
       </el-form-item>
       <el-form-item v-if="measure.expression ==='CORR'" class="ksd-mt-10" prop="convertedColumns[0].value" :rules="rules.convertedColValidate" key="corrItem">
@@ -552,7 +552,7 @@ export default class AddMeasure extends Vue {
       width: 100%;
     }
     .measures-addCC {
-      width: 350px;
+      width: 390px;
     }
     .del-margin-more {
       margin-left: 55px !important;

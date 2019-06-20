@@ -64,7 +64,7 @@
     </div>
     </template>
     <div class="hr"></div>
-    <div class="ksd-mt-15 ky-no-br-space">
+    <div class="ksd-mt-15 ksd-ml-10 ky-no-br-space">
       <el-button type="primary" size="medium" v-if="~['incremental', 'full'].indexOf(table.storageType) || table.partitionColumn" @click="handleLoadData()" v-guide.tableLoadDataBtn>{{$t('loadData')}}</el-button>
       <el-button v-if="~['incremental'].indexOf(table.storageType) || table.partitionColumn" size="medium" @click="handleRefreshData">{{$t('refreshData')}}</el-button>
     </div>
@@ -253,16 +253,16 @@ export default class TableDataLoad extends Vue {
   .info-row:not(:last-child) {
     margin-bottom: 10px;
   }
-  .hr.dashed {
-    height: 1px;
-    border: none;
-    background-image: linear-gradient(to right, @line-border-color 0%, @line-border-color 50%, transparent 50%);
-    background-size: 20px 1px;
-    background-repeat: repeat-x;
-  }
+  // .hr.dashed {
+  //   height: 1px;
+  //   border: none;
+  //   background-image: linear-gradient(to right, @line-border-color 0%, @line-border-color 50%, transparent 50%);
+  //   background-size: 20px 1px;
+  //   background-repeat: repeat-x;
+  // }
   .hr {
     height: auto;
-    border-bottom: 1px solid @line-border-color;
+    border-bottom: 1px solid @line-split-color;
     background-image: none;
   }
 }

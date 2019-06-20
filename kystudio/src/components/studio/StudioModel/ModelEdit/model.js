@@ -250,7 +250,7 @@ class NModel {
       var conn = this.plumbTool.connect(pid, fid, (pid, fid, e) => {
         if (e.target && /close/.test(e.target.className)) {
           // 调用删除
-          kapConfirm(this.vm.$t('delConnTip')).then(() => {
+          kapConfirm(this.vm.$t('delConnTip'), null, this.vm.$t('delConnTitle')).then(() => {
             this.removeRenderLink(conn)
           })
         } else {

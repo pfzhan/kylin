@@ -374,10 +374,6 @@ export default class StudioSource extends Vue {
   .el-tabs__nav {
     margin-left: 0;
   }
-  .el-tabs__item:not(.is-active) {
-    font-size: 14px;
-    color: #455A64;
-  }
   .empty-page {
     position: absolute;
     top: 50%;

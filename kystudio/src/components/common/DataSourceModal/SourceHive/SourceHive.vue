@@ -484,11 +484,11 @@ export default class SourceHive extends Vue {
   }
   .tips {
     position: absolute;
-    padding: 10px;
+    padding: 15px;
     height: 63px;
     border-radius: 2px;
     background-color: @base-color-9;
-    bottom: 14px;
+    bottom: 6px;
     right: 20px;
     .header {
       color: @text-normal-color;

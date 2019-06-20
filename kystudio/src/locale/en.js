@@ -115,6 +115,7 @@ exports.default = {
     pleaseFilterByCubeName: 'Filter by cube name',
     enterAlias: 'Enter Alias',
     pleaseSelect: 'Please select',
+    pleaseSelectOrSearch: 'Please select or search',
     pleaseSelectUserName: 'Please select user name',
     pleaseSelectUserGroup: 'Please select group',
     pleaseSelectUserOrGroupName: 'Please select user/group name',
