@@ -147,12 +147,12 @@ export default class StudioSource extends Vue {
     this.isShowSourcePage = value
   }
   handleSamplingRows (samplingRows) {
-    if (samplingRows < 10000) {
+    if (samplingRows && samplingRows < 10000) {
       this.errorMsg = this.$t('minNumber')
-    } else if (samplingRows > 20000000) {
+    } else if (samplingRows && samplingRows > 20000000) {
       this.errorMsg = this.$t('maxNumber')
     } else {
-      this.errorMsg = ''
+      this.errorMsg = this.$t('invalidType')
     }
   }
   resetSampling () {
