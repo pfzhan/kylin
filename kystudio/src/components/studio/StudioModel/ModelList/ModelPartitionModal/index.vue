@@ -33,7 +33,7 @@
     <template v-if="partitionMeta.table && partitionMeta.column">
       <div class="ky-list-title ksd-mt-14">{{$t('loadRange')}}</div>
     <el-form :model="modelBuildMeta" ref="rangeForm" :rules="rules"  label-width="85px" label-position="top"> 
-      <el-form-item class="custom-load ksd-mt-10"  prop="dataRangeVal" :rule="[{required: true, trigger: 'blur', message: this.$t('dataRangeValValid')}, {
+      <el-form-item class="custom-load ksd-mt-10"  prop="dataRangeVal" :rule="[{
       validator: this.validateRange, trigger: 'blur'
     }]">
         <div class="ky-no-br-space">
@@ -42,14 +42,14 @@
               v-model="modelBuildMeta.dataRangeVal[0]"
               :is-auto-complete="true"
               class="ksd-mr-5"
-              :disabled="modelBuildMeta.isLoadExisted || isLoadingNewRange"
+              :disabled="isLoadingNewRange"
               :placeholder="$t('kylinLang.common.startTime')">
             </el-date-picker>
             <el-date-picker
               type="datetime"
               v-model="modelBuildMeta.dataRangeVal[1]"
               :is-auto-complete="true"
-              :disabled="modelBuildMeta.isLoadExisted || isLoadingNewRange"
+              :disabled="isLoadingNewRange"
               :placeholder="$t('kylinLang.common.endTime')">
             </el-date-picker>
             <el-tooltip effect="dark" :content="$t('detectAvailableRange')" placement="top">
@@ -57,7 +57,6 @@
                 v-if="isShow"
                 size="medium"
                 class="ksd-ml-10"
-                :disabled="modelBuildMeta.isLoadExisted"
                 :loading="isLoadingNewRange"
                 v-guide.getPartitionRangeDataBtn
                 icon="el-icon-ksd-data_range_search"
@@ -148,8 +147,7 @@ export default class ModelPartitionModal extends Vue {
   }
   validateRange (rule, value, callback) {
     const [ startValue, endValue ] = value
-    const isLoadExisted = this.modelBuildMeta.isLoadExisted
-    if ((!startValue || !endValue || transToUTCMs(startValue) >= transToUTCMs(endValue)) && !isLoadExisted) {
+    if ((startValue && endValue) && transToUTCMs(startValue) >= transToUTCMs(endValue) || (startValue ^ endValue)) {
       callback(new Error(this.$t('invaildDate')))
     } else {
       callback()

@@ -286,6 +286,7 @@ export function transToUtcDateFormat (ms, isSlash) {
 export function transToUTCMs (ms, _vue) {
   let v = _vue || window.kapVm
   let zone = v.$store.state.system.timeZone
+  if (ms === undefined || !zone) { return ms }
   let date = new Date(ms)
   let y = date.getFullYear()
   let m = date.getMonth()
