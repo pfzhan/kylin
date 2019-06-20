@@ -8,9 +8,8 @@ export function bindRouterGuard (router) {
   router.onError((error) => {
     const pattern = /Loading chunk (\d)+ failed/g
     const isChunkLoadFailed = error.message && error.message.match(pattern)
-    const targetPath = router.history.pending.fullPath
     if (isChunkLoadFailed) {
-      router.replace(targetPath)
+      location.reload()
     }
   })
   router.beforeEach((to, from, next) => {
