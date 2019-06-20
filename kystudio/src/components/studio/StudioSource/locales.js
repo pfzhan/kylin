@@ -18,7 +18,8 @@ export default {
     sampleDesc2: ' rows.',
     sampleDialogTitle: 'Table Sampling',
     minNumber: 'Input should be no less than 10,000 rows',
-    maxNumber: 'Input should be no larger than 20,000,000 rows'
+    maxNumber: 'Input should be no larger than 20,000,000 rows',
+    confirmSampling: 'The source table {table_name} has a related sample job running, it will be discarded if you re-submit a new sample job. Do you really want to re-submit a new one?'
   },
   'zh-cn': {
     updateAt: '上次更新时间 :',
@@ -39,6 +40,7 @@ export default {
     sampleDesc2: '行。',
     sampleDialogTitle: '表级数据抽样',
     minNumber: '输入值应不小于 10,000 行',
-    maxNumber: '输入值应 不大于 20,000,000 行'
+    maxNumber: '输入值应 不大于 20,000,000 行',
+    confirmSampling: '表 {table_name} 有正在进行的抽样任务，再次触发会终止前一个抽样任务。您确认要重新抽样吗？'
   }
 }

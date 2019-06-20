@@ -93,6 +93,9 @@ export default {
     [types.SUBMIT_SAMPLING]: function ({commit}, para) {
       return api.datasource.submitSampling(para)
     },
+    [types.HAS_SAMPLING_JOB]: function ({commit}, para) {
+      return api.datasource.hasSamplingJob(para)
+    },
     [types.UN_LOAD_HIVE_IN_PROJECT]: function ({commit}, data) {
       return api.datasource.unLoadHiveInProject(data)
     },

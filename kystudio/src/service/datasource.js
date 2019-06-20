@@ -28,7 +28,10 @@ export default {
     return Vue.resource(apiUrl + 'tables').save(para)
   },
   submitSampling: (para) => {
-    return Vue.resource(apiUrl + 'tables/sampling').save(para)
+    return Vue.resource(apiUrl + 'tables/sampling_jobs').save(para)
+  },
+  hasSamplingJob: (para) => {
+    return Vue.resource(apiUrl + 'tables/sampling_check_result').get(para)
   },
   unLoadHiveInProject: (data) => {
     return Vue.resource(apiUrl + 'table_ext/' + data.tables + '/' + data.project).delete()

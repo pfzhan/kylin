@@ -1,6 +1,6 @@
 <template>
   <div class="studio-source">
-    <div class="table-layout clearfix"> 
+    <div class="table-layout clearfix">
       <!-- 数据源导航栏 -->
       <div class="layout-left">
         <DataSourceBar
@@ -22,7 +22,7 @@
           @tables-loaded="handleTablesLoaded">
         </DataSourceBar>
       </div>
-      
+
       <!-- Source Table展示 -->
       <div class="layout-right">
         <template v-if="selectedTable">
@@ -90,6 +90,7 @@ import TableSamples from './TableSamples/TableSamples.vue'
 import SourceManagement from './SourceManagement/SourceManagement.vue'
 import ReloadTable from './TableReload/reload.vue'
 import { handleSuccessAsync, handleError } from '../../../util'
+import { kapConfirm } from '../../../util/business'
 import { getAffectedModelsType } from '../../../config'
 import { getFormattedTable } from '../../../util/UtilTable'
 
@@ -116,6 +117,7 @@ import { getFormattedTable } from '../../../util/UtilTable'
       fetchChangeTypeInfo: 'FETCH_CHANGE_TYPE_INFO',
       deleteTable: 'DELETE_TABLE',
       submitSampling: 'SUBMIT_SAMPLING',
+      hasSamplingJob: 'HAS_SAMPLING_JOB',
       getReloadInfluence: 'GET_RELOAD_INFLUENCE'
     }),
     ...mapActions('ReloadTableModal', {
@@ -200,7 +202,27 @@ export default class StudioSource extends Vue {
   async submitSample () {
     this.sampleLoading = true
     try {
-      await this.submitSampling({ project: this.currentSelectedProject, qualifiedTableName: this.selectedTable.fullName, rows: this.samplingRows })
+      const res = await this.hasSamplingJob({ project: this.currentSelectedProject, qualifiedTableName: this.selectedTable.fullName })
+      const isHasSamplingJob = await handleSuccessAsync(res)
+      if (!isHasSamplingJob) {
+        this.toSubmitSample()
+      } else {
+        this.sampleVisible = false
+        this.sampleLoading = false
+        kapConfirm(this.$t('confirmSampling', {table_name: this.selectedTable.fullName})).then(() => {
+          this.toSubmitSample()
+        })
+      }
+    } catch (e) {
+      handleError(e)
+      this.sampleVisible = false
+      this.sampleLoading = false
+    }
+  }
+  async toSubmitSample () {
+    try {
+      const res = await this.submitSampling({ project: this.currentSelectedProject, qualifiedTableName: this.selectedTable.fullName, rows: this.samplingRows })
+      await handleSuccessAsync(res)
       this.$message({ type: 'success', message: this.$t('kylinLang.common.submitSuccess') })
       this.sampleVisible = false
       this.sampleLoading = false
