@@ -23,6 +23,7 @@
  */
 package io.kyligence.kap.metadata.cube.model;
 
+import java.io.Serializable;
 import java.util.Map;
 import java.util.NavigableMap;
 import java.util.TreeMap;
@@ -43,7 +44,7 @@ import lombok.val;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class FrequencyMap {
+public class FrequencyMap implements Serializable {
 
     @JsonIgnore
     private NavigableMap<Long, Integer> dateFrequency = new TreeMap<>();

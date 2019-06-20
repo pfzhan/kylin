@@ -159,6 +159,7 @@ public class NDataflow extends RootPersistentEntity implements Serializable, IRe
         return uuid;
     }
 
+    @Override
     public String getResourcePath() {
         return "/" + project + DATAFLOW_RESOURCE_ROOT + "/" + uuid + MetadataConstants.FILE_SURFIX;
     }

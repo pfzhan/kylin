@@ -52,6 +52,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.util.TimeUtil;
 import org.apache.kylin.job.engine.JobEngineConfig;
 import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
 import org.apache.kylin.job.lock.MockJobLock;
@@ -321,7 +322,7 @@ public class ProjectServiceTest extends ServiceTestBase {
         val dataflowManager = NDataflowManager.getInstance(getTestConfig(), PROJECT);
 
         long currentTime = System.currentTimeMillis();
-        long currentDate = currentTime - currentTime % (24 * 60 * 60 * 1000L);
+        long currentDate = TimeUtil.getDayStart(currentTime);
         long dayInMillis = 24 * 60 * 60 * 1000L;
 
         dataflowManager.updateDataflow(MODEL_ID, copyForWrite -> {
