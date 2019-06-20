@@ -89,7 +89,7 @@
           width="110"
           :label="$t('status')">
           <template slot-scope="scope">
-            <el-tag size="mini" :type="scope.row.status === 'OFFLINE' ? 'info' : scope.row.status === 'BROKEN'? 'danger' : 'success'">{{scope.row.status}}</el-tag>
+            <el-tag size="mini" :type="getModelStatusTagType[scope.row.status]">{{scope.row.status}}</el-tag>
           </template>
         </el-table-column>
         <el-table-column
@@ -167,8 +167,10 @@ import Vue from 'vue'
 import { Component, Watch } from 'vue-property-decorator'
 import { mapActions, mapGetters } from 'vuex'
 import { permissions, NamedRegex } from '../../../../config'
+import { ModelStatusTagType } from '../../../../config/model.js'
 import locales from './locales'
 import { handleError, hasRole, hasPermission, kapConfirm, kapMessage, handleSuccess } from 'util/business'
+
 import { objectClone } from 'util'
 import TableIndex from '../TableIndex/index.vue'
 import ModelSegment from './ModelSegment/index.vue'
@@ -270,6 +272,7 @@ export default class ModelList extends Vue {
   get modelTableTitle () {
     return this.isAutoProject ? this.$t('kylinLang.model.indexGroupName') : this.$t('kylinLang.model.modelNameGrid')
   }
+  getModelStatusTagType = ModelStatusTagType
   renderUsageHeader (h, { column, $index }) {
     let modelMode = this.isAutoProject ? 'indexGroup' : 'model'
     return (<span class="ky-hover-icon" onClick={e => (e.stopPropagation())}>
