@@ -52,8 +52,6 @@ import java.io.InputStream;
 import java.lang.reflect.Field;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
-import java.sql.Connection;
-import java.sql.DriverManager;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -67,9 +65,6 @@ import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
-import io.kyligence.kap.event.model.PostAddSegmentEvent;
-import io.kyligence.kap.metadata.cube.model.NDataLayout;
-import io.kyligence.kap.rest.response.BuildIndexResponse;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
@@ -89,9 +84,7 @@ import org.apache.kylin.metadata.model.Segments;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 import org.apache.kylin.query.util.PushDownUtil;
-import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.exception.BadRequestException;
-import org.apache.kylin.source.jdbc.H2Database;
 import org.hamcrest.BaseMatcher;
 import org.hamcrest.Description;
 import org.junit.After;
@@ -103,24 +96,23 @@ import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.mockito.InjectMocks;
 import org.mockito.Mockito;
-import org.springframework.security.authentication.TestingAuthenticationToken;
-import org.springframework.security.core.context.SecurityContextHolder;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.Lists;
 
-import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.event.manager.EventDao;
 import io.kyligence.kap.event.model.AddCuboidEvent;
 import io.kyligence.kap.event.model.AddSegmentEvent;
 import io.kyligence.kap.event.model.Event;
+import io.kyligence.kap.event.model.PostAddSegmentEvent;
 import io.kyligence.kap.event.model.PostMergeOrRefreshSegmentEvent;
 import io.kyligence.kap.event.model.RefreshSegmentEvent;
 import io.kyligence.kap.metadata.cube.cuboid.CuboidStatus;
 import io.kyligence.kap.metadata.cube.cuboid.NAggregationGroup;
 import io.kyligence.kap.metadata.cube.cuboid.NSpanningTreeForWeb;
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
+import io.kyligence.kap.metadata.cube.model.NDataLayout;
 import io.kyligence.kap.metadata.cube.model.NDataLoadingRange;
 import io.kyligence.kap.metadata.cube.model.NDataLoadingRangeManager;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
@@ -143,6 +135,7 @@ import io.kyligence.kap.metadata.query.QueryTimesResponse;
 import io.kyligence.kap.rest.execution.SucceedChainedTestExecutable;
 import io.kyligence.kap.rest.request.ModelConfigRequest;
 import io.kyligence.kap.rest.request.ModelRequest;
+import io.kyligence.kap.rest.response.BuildIndexResponse;
 import io.kyligence.kap.rest.response.ComputedColumnUsageResponse;
 import io.kyligence.kap.rest.response.ExistedDataRangeResponse;
 import io.kyligence.kap.rest.response.IndexEntityResponse;
@@ -156,7 +149,7 @@ import io.kyligence.kap.rest.response.SimplifiedMeasure;
 import lombok.val;
 import lombok.var;
 
-public class ModelServiceTest extends NLocalFileMetadataTestCase {
+public class ModelServiceTest extends CSVSourceTestCase {
 
     private final String MODEL_UT_INNER_JOIN_ID = "82fa7671-a935-45f5-8779-85703601f49a";
 
@@ -173,15 +166,9 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
     public ExpectedException thrown = ExpectedException.none();
 
     @Before
-    public void setupResource() {
-        System.setProperty("HADOOP_USER_NAME", "root");
-        createTestMetadata();
-    }
-
-    @Before
     public void setup() {
-        SecurityContextHolder.getContext()
-                .setAuthentication(new TestingAuthenticationToken("ADMIN", "ADMIN", Constant.ROLE_ADMIN));
+        super.setup();
+        System.setProperty("HADOOP_USER_NAME", "root");
 
         modelService.setSemanticUpdater(semanticService);
         modelService.setSegmentHelper(segmentHelper);
@@ -2446,31 +2433,6 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
         jobs.add(job2);
         jobs.add(job3);
         return jobs;
-    }
-
-    private void setupPushdownEnv() throws Exception {
-        getTestConfig().setProperty("kylin.query.pushdown.runner-class-name",
-                "io.kyligence.kap.query.pushdown.PushDownRunnerJdbcImpl");
-        // Load H2 Tables (inner join)
-        Connection h2Connection = DriverManager.getConnection("jdbc:h2:mem:db_default;DB_CLOSE_DELAY=-1", "sa", "");
-        H2Database h2DB = new H2Database(h2Connection, getTestConfig(), "default");
-        h2DB.loadAllTables();
-
-        System.setProperty("kylin.query.pushdown.jdbc.url", "jdbc:h2:mem:db_default;SCHEMA=DEFAULT");
-        System.setProperty("kylin.query.pushdown.jdbc.driver", "org.h2.Driver");
-        System.setProperty("kylin.query.pushdown.jdbc.username", "sa");
-        System.setProperty("kylin.query.pushdown.jdbc.password", "");
-    }
-
-    private void cleanPushdownEnv() throws Exception {
-        getTestConfig().setProperty("kylin.query.pushdown.runner-class-name", "");
-        // Load H2 Tables (inner join)
-        Connection h2Connection = DriverManager.getConnection("jdbc:h2:mem:db_default", "sa", "");
-        h2Connection.close();
-        System.clearProperty("kylin.query.pushdown.jdbc.url");
-        System.clearProperty("kylin.query.pushdown.jdbc.driver");
-        System.clearProperty("kylin.query.pushdown.jdbc.username");
-        System.clearProperty("kylin.query.pushdown.jdbc.password");
     }
 
     @Test

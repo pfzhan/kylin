@@ -57,7 +57,6 @@ import org.apache.kylin.common.util.ExecutorServiceUtil;
 import org.apache.kylin.common.util.NamedThreadFactory;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.NExecutableManager;
-import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -72,9 +71,8 @@ import io.kyligence.kap.event.model.Event;
 import io.kyligence.kap.event.model.EventContext;
 import io.kyligence.kap.event.model.JobRelatedEvent;
 import io.kyligence.kap.event.model.PostAddSegmentEvent;
-import io.kyligence.kap.metadata.cube.model.NDataflowManager;
-import io.kyligence.kap.metadata.model.MaintainModelType;
-import io.kyligence.kap.metadata.project.NProjectManager;
+import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.metadata.model.NDataModelManager;
 import lombok.val;
 
 /**
@@ -157,18 +155,9 @@ public class EventOrchestrator {
             UnitOfWork.doInTransactionWithRetry(() -> {
                 val eventDao = EventDao.getInstance(KylinConfig.getInstanceFromEnv(), project);
                 eventDao.deleteEventsByModel(modelId);
-                val dfManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
-                val df = dfManager.getDataflow(modelId);
-                if (NProjectManager.getInstance(KylinConfig.getInstanceFromEnv()).getProject(project)
-                        .getMaintainModelType() == MaintainModelType.MANUAL_MAINTAIN) {
-                    dfManager.updateDataflow(df.getId(), copyForWrite -> {
-                        copyForWrite.setStatus(RealizationStatusEnum.BROKEN);
-                        copyForWrite.setEventError(true);
-                    });
-                } else {
-                    dfManager.dropDataflow(df.getId());
-                }
-
+                val modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+                modelManager.updateDataModel(modelId,
+                        copyForWrite -> copyForWrite.setBrokenReason(NDataModel.BrokenReason.EVENT));
                 return null;
             }, project);
         }

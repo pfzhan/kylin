@@ -27,6 +27,8 @@ package io.kyligence.kap.rest.config.initialize;
 import java.io.IOException;
 import java.util.UUID;
 
+import io.kyligence.kap.event.manager.EventDao;
+import io.kyligence.kap.event.model.Event;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.util.JsonUtil;
@@ -91,6 +93,8 @@ public class ModelBrokenListener {
 
             model.setModelBroken(true);
             modelManager.updateDataBrokenModelDesc(model);
+            EventDao eventDao = EventDao.getInstance(config, project);
+            eventDao.getEventsByModel(origin.getId()).stream().map(Event::getId).forEach(eventDao::deleteEvent);
             return null;
         }, project);
     }
@@ -141,8 +145,7 @@ public class ModelBrokenListener {
 
     private NDataModel getBrokenModel(String project, String resourcePath) {
         try {
-            val resource = ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv())
-                    .getResource(resourcePath);
+            val resource = ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv()).getResource(resourcePath);
             val modelDesc = JsonUtil.readValue(resource.getByteSource().read(), NDataModel.class);
             modelDesc.setBroken(true);
             modelDesc.setProject(project);

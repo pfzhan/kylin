@@ -23,11 +23,11 @@
  */
 package io.kyligence.kap.rest.service;
 
+import static org.awaitility.Awaitility.await;
+
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.sql.Connection;
-import java.sql.DriverManager;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -36,8 +36,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import io.kyligence.kap.common.scheduler.SchedulerEventBusFactory;
-import io.kyligence.kap.rest.config.initialize.ModelBrokenListener;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.RootPersistentEntity;
 import org.apache.kylin.common.util.JsonUtil;
@@ -46,8 +44,6 @@ import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 import org.apache.kylin.rest.constant.Constant;
-import org.apache.kylin.rest.service.ServiceTestBase;
-import org.apache.kylin.source.jdbc.H2Database;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -60,6 +56,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
+import io.kyligence.kap.common.scheduler.SchedulerEventBusFactory;
 import io.kyligence.kap.event.manager.EventDao;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.model.NDataLayout;
@@ -77,13 +74,12 @@ import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
+import io.kyligence.kap.rest.config.initialize.ModelBrokenListener;
 import io.kyligence.kap.rest.request.ModelRequest;
 import lombok.val;
 import lombok.var;
 
-import static org.awaitility.Awaitility.await;
-
-public class TableReloadServiceTest extends ServiceTestBase {
+public class TableReloadServiceTest extends CSVSourceTestCase {
 
     private static final String PROJECT = "default";
 
@@ -104,19 +100,6 @@ public class TableReloadServiceTest extends ServiceTestBase {
         } catch (Exception ignore) {
         }
         SchedulerEventBusFactory.getInstance(getTestConfig()).register(modelBrokenListener);
-        NProjectManager projectManager = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv());
-        ProjectInstance projectInstance = projectManager.getProject(PROJECT);
-        val overrideKylinProps = projectInstance.getOverrideKylinProps();
-        overrideKylinProps.put("kylin.query.force-limit", "-1");
-        overrideKylinProps.put("kylin.source.default", "9");
-        ProjectInstance projectInstanceUpdate = ProjectInstance.create(projectInstance.getName(),
-                projectInstance.getOwner(), projectInstance.getDescription(), overrideKylinProps,
-                MaintainModelType.AUTO_MAINTAIN);
-        projectManager.updateProject(projectInstance, projectInstanceUpdate.getName(),
-                projectInstanceUpdate.getDescription(), projectInstanceUpdate.getOverrideKylinProps());
-        projectManager.forceDropProject("broken_test");
-        projectManager.forceDropProject("bad_query_test");
-
         val indexManager = NIndexPlanManager.getInstance(getTestConfig(), PROJECT);
         indexManager.updateIndexPlan("abe3bf1a-c4bc-458d-8278-7ea8b00f5e96", copyForWrite -> {
             copyForWrite.setIndexes(copyForWrite.getIndexes().stream().peek(i -> {
@@ -128,10 +111,14 @@ public class TableReloadServiceTest extends ServiceTestBase {
     }
 
     @After
-    public void cleanup() throws Exception {
-        cleanPushdownEnv();
+    @Override
+    public void cleanup(){
+        try {
+            cleanPushdownEnv();
+        } catch (Exception ignore) {
+        }
         SchedulerEventBusFactory.getInstance(getTestConfig()).unRegister(modelBrokenListener);
-        staticCleanupTestMetadata();
+        super.cleanup();
     }
 
     @Test
@@ -616,28 +603,5 @@ public class TableReloadServiceTest extends ServiceTestBase {
         });
     }
 
-    private void setupPushdownEnv() throws Exception {
-        getTestConfig().setProperty("kylin.query.pushdown.runner-class-name",
-                "io.kyligence.kap.query.pushdown.PushDownRunnerJdbcImpl");
-        // Load H2 Tables (inner join)
-        Connection h2Connection = DriverManager.getConnection("jdbc:h2:mem:db_default;DB_CLOSE_DELAY=-1", "sa", "");
-        H2Database h2DB = new H2Database(h2Connection, getTestConfig(), "default");
-        h2DB.loadAllTables();
 
-        System.setProperty("kylin.query.pushdown.jdbc.url", "jdbc:h2:mem:db_default;SCHEMA=DEFAULT");
-        System.setProperty("kylin.query.pushdown.jdbc.driver", "org.h2.Driver");
-        System.setProperty("kylin.query.pushdown.jdbc.username", "sa");
-        System.setProperty("kylin.query.pushdown.jdbc.password", "");
-    }
-
-    private void cleanPushdownEnv() throws Exception {
-        getTestConfig().setProperty("kylin.query.pushdown.runner-class-name", "");
-        // Load H2 Tables (inner join)
-        Connection h2Connection = DriverManager.getConnection("jdbc:h2:mem:db_default", "sa", "");
-        h2Connection.close();
-        System.clearProperty("kylin.query.pushdown.jdbc.url");
-        System.clearProperty("kylin.query.pushdown.jdbc.driver");
-        System.clearProperty("kylin.query.pushdown.jdbc.username");
-        System.clearProperty("kylin.query.pushdown.jdbc.password");
-    }
 }

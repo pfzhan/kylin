@@ -48,8 +48,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
-import java.sql.Connection;
-import java.sql.DriverManager;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -69,28 +67,22 @@ import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.TableExtDesc;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.metadata.realization.RealizationStatusEnum;
-import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.exception.BadRequestException;
-import org.apache.kylin.source.jdbc.H2Database;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
-import org.springframework.security.authentication.TestingAuthenticationToken;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.Lists;
 
 import io.kyligence.kap.common.persistence.transaction.TransactionException;
-import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.event.manager.EventDao;
 import io.kyligence.kap.metadata.cube.model.NDataLoadingRange;
 import io.kyligence.kap.metadata.cube.model.NDataLoadingRangeManager;
@@ -115,7 +107,7 @@ import lombok.var;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public class TableServiceTest extends NLocalFileMetadataTestCase {
+public class TableServiceTest extends CSVSourceTestCase {
 
     @InjectMocks
     private TableService tableService = Mockito.spy(new TableService());
@@ -126,17 +118,10 @@ public class TableServiceTest extends NLocalFileMetadataTestCase {
     @Rule
     public ExpectedException thrown = ExpectedException.none();
 
-    @BeforeClass
-    public static void setupResource() {
-        System.setProperty("HADOOP_USER_NAME", "root");
-
-    }
-
     @Before
     public void setup() {
-        staticCreateTestMetadata();
-        SecurityContextHolder.getContext()
-                .setAuthentication(new TestingAuthenticationToken("ADMIN", "ADMIN", Constant.ROLE_ADMIN));
+        super.setup();
+        System.setProperty("HADOOP_USER_NAME", "root");
         ReflectionTestUtils.setField(tableService, "modelService", modelService);
 
         NProjectManager projectManager = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv());
@@ -653,20 +638,6 @@ public class TableServiceTest extends NLocalFileMetadataTestCase {
         tableService.setDataRange("default", dateRangeRequest);
     }
 
-    private void setupPushdownEnv() throws Exception {
-        getTestConfig().setProperty("kylin.query.pushdown.runner-class-name",
-                "io.kyligence.kap.query.pushdown.PushDownRunnerJdbcImpl");
-        // Load H2 Tables (inner join)
-        Connection h2Connection = DriverManager.getConnection("jdbc:h2:mem:db_default;DB_CLOSE_DELAY=-1", "sa", "");
-        H2Database h2DB = new H2Database(h2Connection, getTestConfig(), "default");
-        h2DB.loadAllTables();
-
-        System.setProperty("kylin.query.pushdown.jdbc.url", "jdbc:h2:mem:db_default;SCHEMA=DEFAULT");
-        System.setProperty("kylin.query.pushdown.jdbc.driver", "org.h2.Driver");
-        System.setProperty("kylin.query.pushdown.jdbc.username", "sa");
-        System.setProperty("kylin.query.pushdown.jdbc.password", "");
-    }
-
     @Test
     public void testGetTableAndColumns() {
         List<TablesAndColumnsResponse> result = tableService.getTableAndColumns("default");
@@ -907,16 +878,5 @@ public class TableServiceTest extends NLocalFileMetadataTestCase {
         request.setProject("default");
         request.setTable("DEFAULT.TEST_KYLIN_FACT");
         return request;
-    }
-
-    private void cleanPushdownEnv() throws Exception {
-        getTestConfig().setProperty("kylin.query.pushdown.runner-class-name", "");
-        // Load H2 Tables (inner join)
-        Connection h2Connection = DriverManager.getConnection("jdbc:h2:mem:db_default", "sa", "");
-        h2Connection.close();
-        System.clearProperty("kylin.query.pushdown.jdbc.url");
-        System.clearProperty("kylin.query.pushdown.jdbc.driver");
-        System.clearProperty("kylin.query.pushdown.jdbc.username");
-        System.clearProperty("kylin.query.pushdown.jdbc.password");
     }
 }

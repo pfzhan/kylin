@@ -114,8 +114,8 @@ public class ServiceTestBase extends NLocalFileMetadataTestCase {
     }
 
     @After
-    public void after() {
-        this.cleanupTestMetadata();
+    public void cleanup() {
+        cleanupTestMetadata();
     }
 
     /**
