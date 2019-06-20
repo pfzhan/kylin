@@ -52,6 +52,8 @@ export default {
       callback(new Error(this.$t('noProject')))
     } else if (!/^\w+$/.test(value)) {
       callback(new Error(this.$t('kylinLang.common.nameFormatValidTip')))
+    } else if (!/^(?![_])\w+$/.test(value)) {
+      callback(new Error(this.$t('kylinLang.common.nameFormatValidTip1')))
     } else {
       callback()
     }

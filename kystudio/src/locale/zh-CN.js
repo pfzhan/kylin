@@ -126,6 +126,7 @@ exports.default = {
     checkNoChange: '未检测到任何改动',
     // 格式提示
     nameFormatValidTip: '名称格式有误，命名支持数字、字母和下划线的组合。',
+    nameFormatValidTip1: '项目名称只支持数字、字母和下划线，并且需要用数字或者字母开头。',
     // 其他
     name: '名称',
     users: '用户',
@@ -343,6 +344,7 @@ exports.default = {
     partlyAcce: '部分加速',
     ongoingAcce: '加速中',
     wartingAcce: '待加速',
+    canBeAcce: '可加速',
     failed: '无法加速',
     pending: '缺失对象',
     unAcce1: '未加速',

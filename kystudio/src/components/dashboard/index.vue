@@ -1,194 +1,202 @@
 <template>
   <div id="dashboard">
-    <el-row :gutter="10" class="ratio-row">
-      <el-col :span="8">
-        <div class="dash-card">
-          <div class="cart-title clearfix">
-            <span>{{$t('storageQuota')}}
-              <el-tooltip placement="right">
-                <div slot="content">{{$t('storageQuotaDesc')}}</div>
-                <i class="el-icon-ksd-what ksd-fs-14"></i>
-              </el-tooltip>
-            </span>
-            <a class="ky-a-like ksd-fright ksd-fs-12" @click="gotoSetting">{{$t('viewDetail')}}</a>
-          </div>
-          <div class="quota-row">
-            <div class="img-block ksd-fleft ksd-mr-15">
-              <el-popover
-                ref="popover"
-                placement="right-end"
-                trigger="hover"
-                popper-class="quota-popover"
-                :disabled="!(trashRatio*quotaHeight<14 || useageRatio*quotaHeight<14)"
-                v-model="popoverVisible">
-                <p class="info-block">
-                  <span class="info-title">{{$t('useageMana')}}</span>
-                  <span class="useage" v-if="quotaInfo.total_storage_size>=0">{{useageRatio*100 | fixed(2)}}%</span>
-                  <span v-else>--</span>
-                </p>
-                <p class="info-block">
-                  <span  class="info-title">{{$t('trash')}}</span>
-                  <span class="trash" v-if="quotaInfo.garbage_storage_size>=0">{{trashRatio*100 | fixed(2)}}%</span>
-                  <span v-else>--</span>
-                </p>
-              </el-popover>
-              <div class="quota-chart" v-popover:popover>
-                <div class="useage-block" :style="{'height': useageBlockHeight+'px'}">
-                  <div class="text" v-if="useageRatio*quotaHeight>=14">{{useageRatio*100 | fixed(2)}}%</div>
+    <el-alert class="quota_tips" type="error" :closable="false" show-icon v-if="isNoQuota">
+      <span slot="title">
+        <span>{{$t('quotaTips1')}}</span><span>{{$t('quotaTips2')}}</span><a @click="gotoSetting">{{$t('quotaTips3')}}</a><span>{{$t('quotaTips4')}}</span>
+      </span>
+    </el-alert>
+    <div class="dashboard-content">
+      <el-row :gutter="10" class="ratio-row">
+        <el-col :span="8">
+          <div class="dash-card">
+            <div class="cart-title clearfix">
+              <span>{{$t('storageQuota')}}
+                <el-tooltip placement="right">
+                  <div slot="content">{{$t('storageQuotaDesc')}}</div>
+                  <i class="el-icon-ksd-what ksd-fs-14"></i>
+                </el-tooltip>
+              </span>
+              <a class="ky-a-like ksd-fright ksd-fs-12" @click="gotoSetting">{{$t('viewDetail')}}</a>
+            </div>
+            <div class="quota-row">
+              <div class="img-block ksd-fleft ksd-mr-15">
+                <el-popover
+                  ref="popover"
+                  placement="right-end"
+                  trigger="hover"
+                  popper-class="quota-popover"
+                  :disabled="!(trashRatio*quotaHeight<14 || useageRatio*quotaHeight<14)"
+                  v-model="popoverVisible">
+                  <p class="info-block">
+                    <span class="info-title">{{$t('useageMana')}}</span>
+                    <span class="useage" v-if="quotaInfo.total_storage_size>=0">{{useageRatio*100 | fixed(2)}}%</span>
+                    <span v-else>--</span>
+                  </p>
+                  <p class="info-block">
+                    <span  class="info-title">{{$t('trash')}}</span>
+                    <span class="trash" v-if="quotaInfo.garbage_storage_size>=0">{{trashRatio*100 | fixed(2)}}%</span>
+                    <span v-else>--</span>
+                  </p>
+                </el-popover>
+                <div class="quota-chart" :class="{'is_no_quota': isNoQuota}" v-popover:popover>
+                  <div class="useage-block" :style="{'height': useageBlockHeight+'px'}">
+                    <div class="text" v-if="useageRatio*quotaHeight>=14">{{useageRatio*100 | fixed(2)}}%</div>
+                  </div>
+                  <div class="trash-block" :style="{'height': trashBlockHeight+'px'}">
+                  </div>
                 </div>
-                <div class="trash-block" :style="{'height': trashBlockHeight+'px'}">
+              </div>
+              <div>
+                <div class="quota-info">
+                  <div class="info-title">{{$t('totalStorage')}}</div>
+                  <div class="total-quota">
+                    <span v-if="quotaInfo.storage_quota_size>=0">
+                      <span class="ksd-fs-28">{{quotaTotalSize.size}}</span> <span class="ksd-fs-18">{{quotaTotalSize.unit}}</span>
+                    </span>
+                    <span class="ksd-fs-28" v-else>--</span>
+                  </div>
+                  <div class="info-title ksd-mt-15">{{$t('useageMana')}}</div>
+                  <div class="useage">
+                    <span v-if="quotaInfo.total_storage_size>=0">{{quotaInfo.total_storage_size | dataSize}}</span>
+                    <span v-else>--</span>
+                  </div>
+                  <div class="info-title ksd-mt-15">{{$t('trash')}}</div>
+                  <div class="trash">
+                    <span v-if="quotaInfo.garbage_storage_size>=0">{{quotaInfo.garbage_storage_size | dataSize}}</span>
+                    <span v-else>--</span><common-tip :content="$t('clear')">
+                      <i class="el-icon-ksd-clear ksd-ml-10 clear-btn"
+                      :class="{'is_no_quota': isNoQuota}"
+                    @click="clearStorage" v-if="quotaInfo.garbage_storage_size>0"></i>
+                    </common-tip>
+                  </div>
                 </div>
               </div>
             </div>
-            <div>
-              <div class="quota-info">
-                <div class="info-title">{{$t('totalStorage')}}</div>
-                <div class="total-quota">
-                  <span v-if="quotaInfo.storage_quota_size>=0">
-                    <span class="ksd-fs-28">{{quotaTotalSize.size}}</span> <span class="ksd-fs-18">{{quotaTotalSize.unit}}</span>
-                  </span>
-                  <span class="ksd-fs-28" v-else>--</span>
-                </div>
-                <div class="info-title ksd-mt-15">{{$t('useageMana')}}</div>
-                <div class="useage">
-                  <span v-if="quotaInfo.total_storage_size>=0">{{quotaInfo.total_storage_size | dataSize}}</span>
-                  <span v-else>--</span>
-                </div>
-                <div class="info-title ksd-mt-15">{{$t('trash')}}</div>
-                <div class="trash">
-                  <span v-if="quotaInfo.garbage_storage_size>=0">{{quotaInfo.garbage_storage_size | dataSize}}</span>
-                  <span v-else>--</span><common-tip :content="$t('clear')">
-                    <i class="el-icon-ksd-clear ksd-ml-10 clear-btn"
-                  @click="clearStorage" v-if="quotaInfo.garbage_storage_size>0"></i>
-                  </common-tip>
-                </div>
-              </div>
+          </div>
+        </el-col>
+        <el-col :span="8">
+          <div class="dash-card">
+            <div class="cart-title clearfix">
+              <span>{{$t('acceImpact')}}
+                <el-tooltip placement="right">
+                  <div slot="content">{{$t('acceImpactDesc')}}</div>
+                  <i class="el-icon-ksd-what ksd-fs-14"></i>
+                </el-tooltip>
+              </span>
+              <a class="ky-a-like ksd-fright ksd-fs-12" @click="gotoFavorite">{{$t('viewDetail')}}</a>
             </div>
+            <svg id="ruleImpact" width="100%" height="168" class="ksd-mt-20"></svg>
           </div>
+        </el-col>
+      </el-row>
+      <hr class="divider"/>
+      <div class="clearfix ksd-mb-15">
+        <div class="ksd-fleft">
+          <el-date-picker v-model="daterange"
+            type="daterange"
+            size="small"
+            unlink-panels
+            range-separator="-"
+            :start-placeholder="$t('kylinLang.common.startTime')"
+            :end-placeholder="$t('kylinLang.common.endTime')"
+            :default-time="['00:00:00', '23:59:59']"
+            :picker-options="pickerOptions"></el-date-picker>
         </div>
-      </el-col>
-      <el-col :span="8">
-        <div class="dash-card">
-          <div class="cart-title clearfix">
-            <span>{{$t('acceImpact')}}
-              <el-tooltip placement="right">
-                <div slot="content">{{$t('acceImpactDesc')}}</div>
-                <i class="el-icon-ksd-what ksd-fs-14"></i>
-              </el-tooltip>
-            </span>
-            <a class="ky-a-like ksd-fright ksd-fs-12" @click="gotoFavorite">{{$t('viewDetail')}}</a>
-          </div>
-          <svg id="ruleImpact" width="100%" height="168" class="ksd-mt-20"></svg>
-        </div>
-      </el-col>
-    </el-row>
-    <hr class="divider"/>
-    <div class="clearfix ksd-mb-15">
-      <div class="ksd-fleft">
-        <el-date-picker v-model="daterange"
-          type="daterange"
-          size="small"
-          unlink-panels
-          range-separator="-"
-          :start-placeholder="$t('kylinLang.common.startTime')"
-          :end-placeholder="$t('kylinLang.common.endTime')"
-          :default-time="['00:00:00', '23:59:59']"
-          :picker-options="pickerOptions"></el-date-picker>
       </div>
-    </div>
-    <el-row :gutter="10" class="count-row">
-      <el-col :span="6">
-        <div class="dash-card" :class="{'isActive': showQueryChart}" @click="loadQueryChart">
-          <div class="inner-card">
-            <div class="cart-title">
-              {{$t('queryCount')}}
-              <a class="ky-a-like ksd-fright ksd-fs-12" @click.stop="gotoQueryHistory">{{$t('viewDetail')}}</a>
-            </div>
-            <div class="content">
-              <span class="num">{{queryCount}}</span>
-            </div>
-          </div>
-        </div>
-      </el-col>
-      <el-col :span="6">
-        <div class="dash-card" :class="{'isActive': showLatencyChart}" @click="loadLatencyChart">
-          <div class="inner-card">
-            <div class="cart-title">
-              {{$t('avgQueryLatency')}}
-              <a class="ky-a-like ksd-fright ksd-fs-12" @click.stop="gotoQueryHistory">{{$t('viewDetail')}}</a>
-            </div>
-            <div class="content">
-              <span class="num">{{queryMean}}</span>
-              <span class="unit">{{$t('sec')}}</span>
+      <el-row :gutter="10" class="count-row">
+        <el-col :span="6">
+          <div class="dash-card" :class="{'isActive': showQueryChart}" @click="loadQueryChart">
+            <div class="inner-card">
+              <div class="cart-title">
+                {{$t('queryCount')}}
+                <a class="ky-a-like ksd-fright ksd-fs-12" @click.stop="gotoQueryHistory">{{$t('viewDetail')}}</a>
+              </div>
+              <div class="content">
+                <span class="num">{{queryCount}}</span>
+              </div>
             </div>
           </div>
-        </div>
-      </el-col>
-      <el-col :span="6">
-        <div class="dash-card" :class="{'isActive': showJobChart}" @click="loadJobChart">
-          <div class="inner-card">
-            <div class="cart-title">
-              {{$t('jobCount')}}
-              <a class="ky-a-like ksd-fright ksd-fs-12" @click.stop="gotoJoblist">{{$t('viewDetail')}}</a>
-            </div>
-            <div class="content">
-              <span class="num">{{jobCount}}</span>
-            </div>
-          </div>
-        </div>
-      </el-col>
-      <el-col :span="6">
-        <div class="dash-card" :class="{'isActive': showBulidChart}" @click="loadBulidChart">
-          <div class="inner-card">
-            <div class="cart-title">
-              {{$t('avgBulidTime')}}
-              <a class="ky-a-like ksd-fright ksd-fs-12" @click.stop="gotoJoblist">{{$t('viewDetail')}}</a>
-            </div>
-            <div class="content" v-if="noEnoughData">
-              <span class="no-data">{{$t('noEnoughData')}}</span>
-            </div>
-            <div class="content" v-else>
-              <span class="num" v-if="avgBulidTime+''==='0.00'">&lt; 0.01</span>
-              <span class="num" v-else>{{avgBulidTime}}</span>
-              <span class="unit">{{$t('sec')}}</span>
+        </el-col>
+        <el-col :span="6">
+          <div class="dash-card" :class="{'isActive': showLatencyChart}" @click="loadLatencyChart">
+            <div class="inner-card">
+              <div class="cart-title">
+                {{$t('avgQueryLatency')}}
+                <a class="ky-a-like ksd-fright ksd-fs-12" @click.stop="gotoQueryHistory">{{$t('viewDetail')}}</a>
+              </div>
+              <div class="content">
+                <span class="num">{{queryMean}}</span>
+                <span class="unit">{{$t('sec')}}</span>
+              </div>
             </div>
           </div>
-        </div>
-      </el-col>
-    </el-row>
-    <el-row class="ksd-mt-10 chart-row dash-card">
-      <el-col :span="12" class="chart-block">
-        <div>
-          <div class="cart-title" v-if="isAutoProject">{{$t('queryByIndex', {type: chartTitle})}}</div>
-          <div class="cart-title" v-else>{{$t('queryByModel', {type: chartTitle})}}</div>
-          <vn-bar :model="traffics"
-            :x-format="formatLabel"
+        </el-col>
+        <el-col :span="6">
+          <div class="dash-card" :class="{'isActive': showJobChart}" @click="loadJobChart">
+            <div class="inner-card">
+              <div class="cart-title">
+                {{$t('jobCount')}}
+                <a class="ky-a-like ksd-fright ksd-fs-12" @click.stop="gotoJoblist">{{$t('viewDetail')}}</a>
+              </div>
+              <div class="content">
+                <span class="num">{{jobCount}}</span>
+              </div>
+            </div>
+          </div>
+        </el-col>
+        <el-col :span="6">
+          <div class="dash-card" :class="{'isActive': showBulidChart}" @click="loadBulidChart">
+            <div class="inner-card">
+              <div class="cart-title">
+                {{$t('avgBulidTime')}}
+                <a class="ky-a-like ksd-fright ksd-fs-12" @click.stop="gotoJoblist">{{$t('viewDetail')}}</a>
+              </div>
+              <div class="content" v-if="noEnoughData">
+                <span class="no-data">{{$t('noEnoughData')}}</span>
+              </div>
+              <div class="content" v-else>
+                <span class="num" v-if="avgBulidTime+''==='0.00'">&lt; 0.01</span>
+                <span class="num" v-else>{{avgBulidTime}}</span>
+                <span class="unit">{{$t('sec')}}</span>
+              </div>
+            </div>
+          </div>
+        </el-col>
+      </el-row>
+      <el-row class="ksd-mt-10 chart-row dash-card">
+        <el-col :span="12" class="chart-block">
+          <div>
+            <div class="cart-title" v-if="isAutoProject">{{$t('queryByIndex', {type: chartTitle})}}</div>
+            <div class="cart-title" v-else>{{$t('queryByModel', {type: chartTitle})}}</div>
+            <vn-bar :model="traffics"
+              :x-format="formatLabel"
+              :y-format="formatYAxis"
+              id="barChart"
+              :content-generator="contentGenerator">
+            </vn-bar>
+          </div>
+        </el-col>
+        <el-col :span="12" class="chart-block">
+          <div>
+            <div class="cart-title">{{$t('queryByDay', {type: chartTitle, zone: getLocalTimezone()})}}</div>
+            <el-select v-model="dateUnit" size="small" class="line-chart-select" @change="loadLineChartData">
+              <el-option
+                v-for="item in unitOptions"
+                :key="item"
+                :label="$t(`${item}`)"
+                :value="item">
+              </el-option>
+            </el-select>
+            <vn-line :model="traffics2"
+            id="lineChart"
+            :x-format="formatDate"
             :y-format="formatYAxis"
-            id="barChart"
             :content-generator="contentGenerator">
-          </vn-bar>
-        </div>
-      </el-col>
-      <el-col :span="12" class="chart-block">
-        <div>
-          <div class="cart-title">{{$t('queryByDay', {type: chartTitle, zone: getLocalTimezone()})}}</div>
-          <el-select v-model="dateUnit" size="small" class="line-chart-select" @change="loadLineChartData">
-            <el-option
-              v-for="item in unitOptions"
-              :key="item"
-              :label="$t(`${item}`)"
-              :value="item">
-            </el-option>
-          </el-select>
-          <vn-line :model="traffics2"
-          id="lineChart"
-          :x-format="formatDate"
-          :y-format="formatYAxis"
-          :content-generator="contentGenerator">
-          </vn-line>
-        </div>
-      </el-col>
-    </el-row>
+            </vn-line>
+          </div>
+        </el-col>
+      </el-row>
+    </div>
   </div>
 </template>
 
@@ -235,7 +243,7 @@ import LineChart from './LineChart'
       acceImpact: 'Acceleration Ratio',
       totalStorage: 'Total Storage',
       useageMana: 'Used Storage',
-      trash: 'Garbage Storage',
+      trash: 'Low usage Storage',
       clear: 'Clear',
       queryCount: 'Query Count',
       viewDetail: 'View Detail',
@@ -256,14 +264,18 @@ import LineChart from './LineChart'
       storageQuotaDesc: 'In the project, the total storage can be used.',
       acceImpactDesc: 'In the project, accelerated queries ratio.',
       noEnoughData: 'Not enough data yet',
-      sec: 's'
+      sec: 's',
+      quotaTips1: 'No storage quota available. The system will terminate the new load data job and build index job, while the query engine will still serve. Please clean up low-efficient storage in time',
+      quotaTips2: ', increase the',
+      quotaTips3: ' low-efficient storage threshold',
+      quotaTips4: ', or notify the system administrator to increase the storage quota for this project.'
     },
     'zh-cn': {
       storageQuota: '存储配额',
       acceImpact: '加速比例',
       totalStorage: '总空间',
       useageMana: '已使用的存储',
-      trash: '系统垃圾',
+      trash: '低效存储',
       clear: '清除',
       queryCount: '查询次数',
       viewDetail: '查看详情',
@@ -284,7 +296,11 @@ import LineChart from './LineChart'
       storageQuotaDesc: '本项目可使用的存储空间总量。',
       acceImpactDesc: '本项目中，已经加速的查询的比例。',
       noEnoughData: '尚无足够数据统计',
-      sec: '秒'
+      sec: '秒',
+      quotaTips1: '已无可用的存储配额。系统将终止新增的数据加载任务和索引构建任务，查询引擎依然正常服务。请及时清理低效存储',
+      quotaTips2: '，提高',
+      quotaTips3: '低效存储阈值',
+      quotaTips4: '，或者通知系统管理员提高本项目的存储配额。'
     }
   }
 })
@@ -315,6 +331,7 @@ export default class Dashboard extends Vue {
   lineChartDara = {}
   dateUnit = 'day'
   unitOptions = ['day', 'week', 'month']
+  isNoQuota = false
   get chartTitle () {
     if (this.showQueryChart) {
       return this.$t('queryCount')
@@ -593,6 +610,9 @@ export default class Dashboard extends Vue {
     this.quotaInfo = resData
     this.useageRatio = (resData.total_storage_size / resData.storage_quota_size).toFixed(4)
     this.trashRatio = (resData.garbage_storage_size / resData.storage_quota_size).toFixed(4)
+    if (+this.useageRatio >= 0.99) {
+      this.isNoQuota = true
+    }
     setTimeout(() => {
       this.useageBlockHeight = this.useageRatio >= 1 ? this.quotaHeight : this.useageRatio * this.quotaHeight
       this.trashBlockHeight = this.trashRatio >= 1 ? this.quotaHeight : this.trashRatio * this.quotaHeight
@@ -637,7 +657,14 @@ export default class Dashboard extends Vue {
 <style lang="less">
   @import "../../assets/styles/variables.less";
   #dashboard {
-    margin: 20px;
+    .quota_tips {
+      a {
+        color: @base-color;
+      }
+    }
+    .dashboard-content {
+      margin: 20px;
+    }
     .el-date-editor--daterange.el-input__inner {
       width: 230px;
     }
@@ -691,6 +718,9 @@ export default class Dashboard extends Vue {
           border: 2px solid #15bdf1;
           box-shadow: 0px 0px 2px 0px #3AA0E5;
           position: relative;
+          &.is_no_quota {
+            border-color: @color-danger;
+          }
           .text {
             font-size: 12px;
             line-height: 14px;
@@ -770,6 +800,9 @@ export default class Dashboard extends Vue {
             .clear-btn {
               font-size: 16px;
               color: @base-color;
+              &.is_no_quota {
+                font-size: 18px;
+              }
               &:hover {
                 color: @base-color-2;
               }

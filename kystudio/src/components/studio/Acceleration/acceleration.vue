@@ -10,7 +10,7 @@
     </div>
     <div class="img-groups" v-guide.speedProcess>
       <div class="label-groups">
-        <span>{{$t('kylinLang.query.wartingAcce')}}: {{waitingSQLSize}}</span>
+        <span>{{$t('kylinLang.query.canBeAcce')}}: {{waitingSQLSize}}</span>
         <span v-if="showGif" class="ongoing-label">{{$t('kylinLang.query.ongoingAcce')}}</span>
         <div class="pattern-num">
           <p v-if="listSizes">{{listSizes.accelerated}}</p>
@@ -39,7 +39,7 @@
       </div>
       <el-tabs v-model="activeList" type="card" @tab-click="handleClick">
         <el-tab-pane name="waiting">
-          <span slot="label">{{$t('waitingList')}}<span v-if="listSizes">({{listSizes.waiting}})</span></span>
+          <span slot="label">{{$t('waitingList', {num: listSizes.waiting})}}</span>
           <acceleration_table
             v-if="activeList=='waiting'"
             :favoriteTableData="favQueList.favorite_queries"
@@ -51,7 +51,7 @@
           <kap-pager ref="favoriteQueryPager" class="ksd-center ksd-mtb-10" :totalSize="favQueList.size"  v-on:handleCurrentChange='pageCurrentChange'></kap-pager>
         </el-tab-pane>
         <el-tab-pane name="not_accelerated">
-          <span slot="label">{{$t('not_accelerated')}}<span v-if="listSizes">({{listSizes.not_accelerated}})</span></span>
+          <span slot="label">{{$t('not_accelerated', {num: listSizes.not_accelerated})}}</span>
           <acceleration_table
             v-if="activeList=='not_accelerated'"
             :favoriteTableData="favQueList.favorite_queries"
@@ -63,7 +63,7 @@
           <kap-pager ref="favoriteQueryPager" class="ksd-center ksd-mtb-10" :totalSize="favQueList.size"  v-on:handleCurrentChange='pageCurrentChange'></kap-pager>
         </el-tab-pane>
         <el-tab-pane name="accelerated">
-          <span slot="label">{{$t('accelerated')}}<span v-if="listSizes">({{listSizes.accelerated}})</span></span>
+          <span slot="label">{{$t('accelerated',  {num: listSizes.accelerated})}}</span>
           <acceleration_table
             v-if="activeList=='accelerated'"
             :favoriteTableData="favQueList.favorite_queries"
@@ -157,8 +157,8 @@
               </kap-editor>
               <div class="operatorBox" v-if="isEditSql">
                 <div class="btn-group ksd-fright ky-no-br-space">
-                  <el-button size="medium" @click="cancelEdit(isWhiteErrorMessage)">{{$t('kylinLang.common.cancel')}}</el-button>
-                  <el-button type="primary" size="medium" plain :loading="validateLoading" @click="validateWhiteSql()">{{$t('kylinLang.common.submit')}}</el-button>
+                  <el-button size="small" @click="cancelEdit(isWhiteErrorMessage)">{{$t('kylinLang.common.cancel')}}</el-button>
+                  <el-button type="primary" size="small" plain :loading="validateLoading" @click="validateWhiteSql()">{{$t('kylinLang.common.submit')}}</el-button>
                 </div>
               </div>
             </div>
@@ -178,7 +178,7 @@
           <span v-if="isUploaded"><i class="el-icon-ksd-good_health"></i>{{whiteSqlData.capable_sql_num}}
           <i class="el-icon-ksd-error_01"></i>{{whiteSqlData.size-whiteSqlData.capable_sql_num}}</span>
           <span v-else class="tips">
-            <i class="el-icon-warning ksd-fs-16"></i><span class="ksd-fs-12">{{$t('uploadFileTips')}}</span>
+            <i class="el-icon-ksd-alert ksd-fs-16"></i><span class="ksd-fs-12">{{$t('uploadFileTips')}}</span>
           </span>
         </div>
         <el-button size="medium" @click="importSqlVisible = false">{{$t('kylinLang.common.close')}}</el-button><el-button
@@ -197,14 +197,13 @@
       <span slot="title" class="ky-list-title">{{$t('blackList')}}
         <el-tooltip placement="left">
           <div slot="content">{{$t('blackListDesc')}}</div>
-          <i class="el-icon-ksd-what ksd-fs-12"></i>
+          <i class="el-icon-ksd-what ksd-fs-16"></i>
         </el-tooltip>
       </span>
       <el-row :gutter="15">
         <el-col :span="16">
           <div class="clearfix ksd-mb-10">
-            <span class="ksd-title-label ksd-fs-14 query-count">{{$t('blackList')}}
-              <span v-if="blackSqlData.size">({{blackSqlData.size}})</span>
+            <span class="ksd-title-label ksd-fs-14 query-count">{{$t('blackList1', {size: blackSqlData.size})}}
             </span>
             <div class="ksd-fright ksd-inline searchInput">
               <el-input v-model="blackSqlFilter" @input="onblackSqlFilterChange" prefix-icon="el-icon-search" :placeholder="$t('kylinLang.common.search')" size="medium"></el-input>
@@ -224,7 +223,7 @@
             <el-table-column :label="$t('kylinLang.common.action')" width="80">
               <template slot-scope="props">
                 <common-tip :content="$t('kylinLang.common.drop')">
-                  <i class="el-icon-ksd-table_delete ksd-ml-10" @click.stop="delBlack(props.row.id)"></i>
+                  <i class="el-icon-ksd-table_delete" @click.stop="delBlack(props.row.id)"></i>
                 </common-tip>
                </template>
             </el-table-column>
@@ -240,7 +239,7 @@
         </el-col>
       </el-row>
       <span slot="footer" class="dialog-footer">
-        <el-button size="medium" @click="blackListVisible = false">{{$t('kylinLang.common.cancel')}}</el-button>
+        <el-button size="medium" @click="blackListVisible = false">{{$t('kylinLang.common.close')}}</el-button>
       </span>
     </el-dialog>
     <el-dialog
@@ -367,6 +366,7 @@ import sqlFormatter from 'sql-formatter'
       selectedQuery: 'Selected Query',
       sqlBox: 'SQL Box',
       blackList: 'Black List',
+      blackList1: 'Black List ({size})',
       ruleSetting: 'Acceleration Rule',
       favoriteRules: 'Favorite Rule',
       favRulesDesc: 'By filtering SQL\'s frequency, duration and submitter, favorite rule will catch up frequently used and business critical queries.',
@@ -397,9 +397,9 @@ import sqlFormatter from 'sql-formatter'
       addTofavorite: 'Submit',
       filesSizeError: 'Files cannot exceed 5M.',
       fileTypeError: 'Invalid file format。',
-      waitingList: 'Waiting List',
-      not_accelerated: 'Not Accelerated',
-      accelerated: 'Accelerated',
+      waitingList: 'Waiting List ({num})',
+      not_accelerated: 'Not Accelerated ({num})',
+      accelerated: 'Accelerated ({num})',
       uploadFileTips: 'Supported file formats are txt and sql. Supported file size is up to 5 MB.',
       submitConfirm: '{unCheckedSQL} validated SQL statements are not selected, do you want to ignore them and submit anyway?',
       addSuccess: 'Suceess to imported {importedNum} new SQL statements to the waiting list',
@@ -416,6 +416,7 @@ import sqlFormatter from 'sql-formatter'
       selectedQuery: '已选择的 SQL',
       sqlBox: 'SQL 窗口',
       blackList: '禁用名单',
+      blackList1: '禁用名单 ({size})',
       ruleSetting: '加速规则',
       favoriteRules: '加速规则',
       queryFrequency: '查询频率',
@@ -445,10 +446,10 @@ import sqlFormatter from 'sql-formatter'
       addTofavorite: '提交',
       filesSizeError: '文件大小不能超过 5M!',
       fileTypeError: '不支持的文件格式！',
-      waitingList: '未加速',
-      not_accelerated: '加速失败',
-      accelerated: '加速完毕',
-      uploadFileTips: '支持的文件格式为 txt 和 sql，文件最大支持 5MB。',
+      waitingList: '未加速 ({num})',
+      not_accelerated: '加速失败 ({num})',
+      accelerated: '加速完毕 ({num})',
+      uploadFileTips: '支持的文件格式为 txt 和 sql，文件最大支持 5 MB。',
       submitConfirm: '还有 {unCheckedSQL} 条正确的 SQL 未被选中，是否忽略并直接提交？',
       addSuccess: '导入的查询中，新增 {importedNum} 条进入待加速列表',
       existedMsg: '（{existedNum} 条已经存在）',
@@ -466,7 +467,7 @@ export default class FavoriteQuery extends Vue {
     'accelerated': ['ACCELERATED']
   }
   showGif = false
-  listSizes = null
+  listSizes = {waiting: 0, not_accelerated: 0, accelerated: 0}
   waitingSQLSize = 0
   isAcceSubmit = false
   importSqlVisible = false
@@ -725,7 +726,7 @@ export default class FavoriteQuery extends Vue {
         const res = await this.getWaitingAcceSize({project: this.currentSelectedProject})
         const data = await handleSuccessAsync(res)
         this.listSizes = data
-        this.waitingSQLSize = data.to_be_accelerated
+        this.waitingSQLSize = data.can_be_accelerated
       }
       resolve()
     })

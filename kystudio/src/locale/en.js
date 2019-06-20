@@ -127,6 +127,7 @@ exports.default = {
     checkNoChange: 'No content changed',
     // 格式提示
     nameFormatValidTip: 'Invalid name. Only letters, numbers and underscore characters are supported in a valid name.',
+    nameFormatValidTip1: 'Please use number, letter, and underline to name your project, and start with a number or a letter.',
     // 其他
     name: 'Name',
     users: 'Users',
@@ -346,6 +347,7 @@ exports.default = {
     partlyAcce: 'Partial accelerated',
     ongoingAcce: 'Accelerating',
     wartingAcce: 'To be accelerated',
+    canBeAcce: 'Can be accelerated',
     failed: 'Failed',
     pending: 'Pending',
     unAcce1: 'Not accelerated',

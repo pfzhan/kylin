@@ -11,6 +11,7 @@ export const autoMergeTypes = [
   'DAY',
   'WEEK',
   'MONTH',
+  'QUARTER',
   'YEAR'
 ]
 export const volatileTypes = [

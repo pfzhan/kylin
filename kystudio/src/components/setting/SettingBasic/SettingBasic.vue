@@ -73,7 +73,7 @@
         </span>
         <div class="setting-desc">{{$t('pushdownEngineDesc')}}</div>
       </div>
-      <div class="setting-item">
+      <!-- <div class="setting-item">
         <span class="setting-label font-medium">{{$t('pushdownRange')}}</span><span class="setting-value fixed">
           <el-switch
             size="small"
@@ -84,7 +84,7 @@
           </el-switch>
         </span>
         <div class="setting-desc">{{$t('pushdownRangeDesc')}}</div>
-      </div>
+      </div> -->
     </EditableBlock>
     <!-- Segment设置 -->
     <EditableBlock

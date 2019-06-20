@@ -50,7 +50,7 @@
           :disabled="editType !== 'new'"
           auto-complete="off"
           :value="form.name"
-          :placeholder="$t('projectPlace')"
+          :placeholder="$t('kylinLang.common.nameFormatValidTip1')"
           @input="value => inputHandler('name', value)">
         </el-input>
       </el-form-item>

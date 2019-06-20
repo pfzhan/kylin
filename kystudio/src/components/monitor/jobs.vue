@@ -57,7 +57,11 @@
           </common-tip>
         </template>
       </el-table-column>
-      <el-table-column :renderHeader="renderColumn" prop="job_name" width="144"></el-table-column>
+      <el-table-column :renderHeader="renderColumn" prop="job_name" width="144">
+        <template slot-scope="scope">
+          {{$t(scope.row.job_name)}}
+        </template>
+      </el-table-column>
       <el-table-column
         :label="$t('TargetSubject')"
         sortable="custom"
@@ -369,7 +373,12 @@ import { transToGmtTime, handleError, handleSuccess } from 'util/business'
       sparkJobTip: 'Spark Job',
       logInfoTip: 'Log Output',
       openJobSteps: 'Open Job Steps',
-      sequenceId: 'Sequence ID'
+      sequenceId: 'Sequence ID',
+      INDEX_REFRESH: 'Refresh Data',
+      INDEX_MERGE: 'Merge Data',
+      INDEX_BUILD: 'Bulid Index',
+      INC_BUILD: 'Load Data',
+      TABLE_SAMPLING: 'Sample Table'
     },
     'zh-cn': {
       dataRange: '数据范围',
@@ -432,7 +441,12 @@ import { transToGmtTime, handleError, handleSuccess } from 'util/business'
       sparkJobTip: 'Spark任务详情',
       logInfoTip: '日志详情',
       openJobSteps: '展开任务详情',
-      sequenceId: '序列号'
+      sequenceId: '序列号',
+      INDEX_REFRESH: '刷新数据',
+      INDEX_MERGE: '合并数据',
+      INDEX_BUILD: '构建索引',
+      INC_BUILD: '加载数据',
+      TABLE_SAMPLING: '抽样表数据'
     }
   }
 })
@@ -473,7 +487,7 @@ export default class JobsList extends Vue {
   jobsList = []
   jobTotal = 0
   allStatus = ['ALL', 'PENDING', 'RUNNING', 'FINISHED', 'ERROR', 'DISCARDED', 'STOPPED']
-  jobTypeFilteArr = ['INDEX_REFRESH', 'INDEX_MERGE', 'INDEX_BUILD', 'TABLE_SAMPLING']
+  jobTypeFilteArr = ['INDEX_REFRESH', 'INDEX_MERGE', 'INDEX_BUILD', 'INC_BUILD', 'TABLE_SAMPLING']
   targetId = ''
   searchLoading = false
   batchBtnsEnabled = {
@@ -525,7 +539,7 @@ export default class JobsList extends Vue {
   renderColumn (h) {
     let items = []
     for (let i = 0; i < this.jobTypeFilteArr.length; i++) {
-      items.push(<el-checkbox label={this.jobTypeFilteArr[i]} key={this.jobTypeFilteArr[i]}></el-checkbox>)
+      items.push(<el-checkbox label={this.jobTypeFilteArr[i]} key={this.jobTypeFilteArr[i]}>{this.$t(this.jobTypeFilteArr[i])}</el-checkbox>)
     }
     return (<span>
       <span>{this.$t('JobType')}</span>
