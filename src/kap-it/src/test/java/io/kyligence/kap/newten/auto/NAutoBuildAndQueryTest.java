@@ -95,6 +95,7 @@ public class NAutoBuildAndQueryTest extends NAutoTestBase {
                 new TestScenario(CompareLevel.SAME, JoinType.LEFT, "sql_topn"), //
 
                 /* CompareLevel = SAME_ROWCOUNT */
+                new TestScenario(CompareLevel.SAME_ROWCOUNT, "sql_distinct/sql_distinct_hllc"),
 
                 /* CompareLevel = NONE */
                 new TestScenario(CompareLevel.SAME_ORDER, "sql_window",

@@ -37,10 +37,11 @@ object KapDateTimeUtils {
   val QUARTERS_PER_YEAR: Long = 4L
 
   def addMonths(timestamp: Long, m: Int): Long = {
-    var ms = timestamp * 1000
-    val millis = floorMod(ms, MILLIS_PER_DAY)
-    ms -= millis
-    val x = dateAddMonths((ms / MILLIS_PER_DAY).toInt, m)
+    // spark ts unit is microsecond
+    val ms = timestamp / 1000
+    val day0 = DateTimeUtils.millisToDays(ms)
+    val millis = ms - day0 * MILLIS_PER_DAY
+    val x = dateAddMonths(day0, m)
     (x * MILLIS_PER_DAY + millis) * 1000
   }
 

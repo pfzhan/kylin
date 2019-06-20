@@ -50,7 +50,7 @@ case class KapAddMonths(startDate: Expression, numMonths: Expression)
 
   override def right: Expression = numMonths
 
-  override def inputTypes: Seq[AbstractDataType] = Seq(LongType, IntegerType)
+  override def inputTypes: Seq[AbstractDataType] = Seq(TimestampType, IntegerType)
 
   override def dataType: TimestampType = TimestampType
 
@@ -226,7 +226,7 @@ case class TimestampAdd(left: Expression, mid: Expression, right: Expression) ex
   override protected def doGenCode(ctx: CodegenContext, ev: ExprCode): ExprCode = {
     val ta = TimestampAddImpl.getClass.getName.stripSuffix("$")
     defineCodeGen(ctx, ev, (arg1, arg2, arg3) => {
-      s"""$ta.evaluate($arg1.toString(), (int) $arg2, $arg3)"""
+      s"""$ta.evaluate($arg1.toString(), $arg2, $arg3)"""
     })
   }
 

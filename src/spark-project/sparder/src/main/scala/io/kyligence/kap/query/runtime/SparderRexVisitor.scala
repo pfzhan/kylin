@@ -173,7 +173,7 @@ class SparderRexVisitor(val df: DataFrame,
           children.last match {
             case num: MonthNum => {
               // both add_month and add_year case
-              val ts = k_lit(children.head).cast(TimestampType).cast(LongType)
+              val ts = k_lit(children.head).cast(TimestampType)
               return k_lit(kap_add_months(k_lit(ts), num.num))
             }
             case _ =>
