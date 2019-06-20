@@ -42,8 +42,9 @@
 
 package io.kyligence.kap.newten;
 
+import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
+import io.kyligence.kap.query.pushdown.SparkSqlClient;
 import java.util.UUID;
-
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.common.exceptions.KylinTimeoutException;
@@ -61,9 +62,6 @@ import org.junit.Before;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
-import io.kyligence.kap.query.pushdown.SparkSqlClient;
 
 public class SlowQueryDetectorTest extends NLocalWithSparkSessionTest {
     private SlowQueryDetector slowQueryDetector = null;
@@ -146,28 +144,34 @@ public class SlowQueryDetectorTest extends NLocalWithSparkSessionTest {
     @Test
     public void testPushdownTimeoutCancelJob() throws InterruptedException {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
-        SparkSession ss = SparderEnv.getSparkSession();
-        ss.sessionState().conf().setLocalProperty("spark.sql.shuffle.partitions", "10000");
-        populateSSWithCSVData(config, getProject(), ss);
-
-        slowQueryDetector.queryStart();
         try {
-            String sql = "select sum(price) from TEST_KYLIN_FACT group by LSTG_FORMAT_NAME";
-            SparkSqlClient.executeSql(ss, sql, UUID.randomUUID());
-            Assert.fail();
-        } catch (Exception e) {
-            Assert.assertTrue(QueryContext.current().isTimeout());
-            Assert.assertTrue(e instanceof KylinTimeoutException);
-            Assert.assertTrue(e.getMessage().contains("Query timeout after:"));
+            SparkSession ss = SparderEnv.getSparkSession();
+            ss.sessionState().conf().setLocalProperty("spark.sql.shuffle.partitions", "10000");
+            KylinConfig conf = KylinConfig.getInstanceFromEnv();
+            conf.setProperty("kylin.query.pushdown.auto-set-shuffle-partitions-enabled", "false");
+            populateSSWithCSVData(config, getProject(), ss);
 
-            // reset query thread's interrupt state.
-            Thread.interrupted();
+            slowQueryDetector.queryStart();
+            try {
+                String sql = "select sum(price) from TEST_KYLIN_FACT group by LSTG_FORMAT_NAME";
+                SparkSqlClient.executeSql(ss, sql, UUID.randomUUID());
+                Assert.fail();
+            } catch (Exception e) {
+                Assert.assertTrue(QueryContext.current().isTimeout());
+                Assert.assertTrue(e instanceof KylinTimeoutException);
+                Assert.assertTrue(e.getMessage().contains("Query timeout after:"));
+
+                // reset query thread's interrupt state.
+                Thread.interrupted();
+            }
+            slowQueryDetector.queryEnd();
+
+            Thread.sleep(1000);
+            JobData jobData = new InfoHelper(ss).getJobsByGroupId(Thread.currentThread().getName()).apply(0);
+            Assert.assertEquals(1, jobData.numFailedStages());
+
+        } finally {
+            config.setProperty("kylin.query.pushdown.auto-set-shuffle-partitions-enabled", "true");
         }
-        slowQueryDetector.queryEnd();
-
-        Thread.sleep(1000);
-        JobData jobData = new InfoHelper(ss).getJobsByGroupId(Thread.currentThread().getName()).apply(0);
-        Assert.assertEquals(1, jobData.numFailedStages());
-
     }
 }
