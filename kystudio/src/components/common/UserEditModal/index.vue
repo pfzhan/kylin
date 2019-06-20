@@ -7,6 +7,9 @@
     @close="isShow && closeHandler(false)">
 
     <el-form :model="form" label-position="top" :rules="rules" ref="form" v-if="isFormShow">
+       <!-- 避免浏览器自动填充 -->
+      <input name="username" type="text" style="display:none"/>
+      <input name="password" type="password" style="width:1px;height:0;border:none;position:absolute"/>
       <!-- 表单：用户名 -->
       <el-form-item :label="$t('username')" prop="username" v-if="isFieldShow('username')">
         <el-input
