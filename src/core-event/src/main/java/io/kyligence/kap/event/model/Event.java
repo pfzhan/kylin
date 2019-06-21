@@ -81,7 +81,7 @@ abstract public class Event extends RootPersistentEntity implements Comparable<E
     @JsonProperty("runTimes")
     private int runTimes;
 
-    private static Ordering<Event> comparator = Ordering.natural().onResultOf(Event::getLastModified)
+    private static Ordering<Event> comparator = Ordering.natural().onResultOf(Event::getCreateTime)
             .compound(Comparator.comparing(Event::getSequenceId));
 
     public Event() {
