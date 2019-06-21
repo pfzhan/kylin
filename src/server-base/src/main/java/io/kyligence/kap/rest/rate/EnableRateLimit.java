@@ -40,7 +40,7 @@
  * limitations under the License.
  */
 
-package io.kyligence.kap.rest.annotation;
+package io.kyligence.kap.rest.rate;
 
 
 import java.lang.annotation.Documented;

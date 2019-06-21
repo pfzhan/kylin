@@ -40,7 +40,7 @@
  * limitations under the License.
  */
 
-package io.kyligence.kap.rest.config;
+package io.kyligence.kap.rest.rate;
 
 import java.util.Map;
 
@@ -64,12 +64,13 @@ public class RateLimitAspect {
 
     private Map<String, RateLimiter> limitMap = Maps.newConcurrentMap();
 
-    @Pointcut("@annotation(io.kyligence.kap.rest.annotation.EnableRateLimit)")
-    public void rateLimit() {
+    @Pointcut("@annotation(enableRateLimit)")
+    public void callAt(EnableRateLimit enableRateLimit) {
+        /// just implement it
     }
 
-    @Around("rateLimit()")
-    public void around(ProceedingJoinPoint joinPoint) throws Throwable {
+    @Around("callAt(enableRateLimit)")
+    public void around(ProceedingJoinPoint joinPoint, EnableRateLimit enableRateLimit) throws Throwable {
         log.info("ratelimit aspect start");
         MethodSignature signature = (MethodSignature) joinPoint.getSignature();
         String methodName = signature.getDeclaringTypeName() + "." + signature.getName();
