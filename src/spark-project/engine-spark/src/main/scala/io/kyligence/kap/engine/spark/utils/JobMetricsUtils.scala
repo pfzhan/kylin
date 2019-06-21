@@ -31,7 +31,7 @@ import org.apache.spark.sql.execution._
 import org.apache.spark.sql.execution.aggregate.{HashAggregateExec, ObjectHashAggregateExec, SortAggregateExec}
 import org.apache.spark.sql.execution.joins.{BroadcastHashJoinExec, BroadcastNestedLoopJoinExec, ShuffledHashJoinExec, SortMergeJoinExec}
 import org.apache.spark.sql.execution.streaming.StreamingSymmetricHashJoinExec
-import org.apache.spark.sql.execution.ui.SparkListenerSQLExecutionStart
+import org.apache.spark.sql.execution.ui.PostQueryExecutionForKylin
 
 
 object JobMetricsUtils extends Logging {
@@ -97,7 +97,7 @@ object JobMetricsUtils extends Logging {
     sparkListener = new SparkListener {
 
       override def onOtherEvent(event: SparkListenerEvent): Unit = event match {
-        case e: SparkListenerSQLExecutionStart =>
+        case e: PostQueryExecutionForKylin =>
           if (e.nExecutionId != "" && e.queryExecution != null) {
             QueryExecutionCache.setQueryExecution(e.nExecutionId, e.queryExecution)
           } else {
