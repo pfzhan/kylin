@@ -29,8 +29,6 @@ import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -48,12 +46,7 @@ import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.OptionsHelper;
 import org.apache.kylin.metadata.project.ProjectInstance;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.web.client.RestTemplate;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.google.common.io.ByteStreams;
 
@@ -72,12 +65,6 @@ public class MetadataTool extends ExecutableApplication {
     public static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd-HH-mm-ss");
 
     private static final String HDFS_METADATA_URL_FROMATTER = "kylin_metadata@hdfs,path=%s";
-
-    private static final int RESTORE_FAILED = 11;
-    private static final int BACKUP_FAILED = 12;
-    private static final int LOCAL_BACKUP_SUCCEED = 1;
-    private static final int REMOTE_BACKUP_SUCCEED = 2;
-    private static final int RESTORE_SUCCEED = 3;
 
     @SuppressWarnings("static-access")
     private static final Option OPERATE_BACKUP = OptionBuilder
@@ -128,61 +115,19 @@ public class MetadataTool extends ExecutableApplication {
     public static void main(String[] args) {
         val tool = new MetadataTool();
 
-        int retFlag;
-        boolean isBackup = true;
-        OptionsHelper optionsHelper = new OptionsHelper();
+        int retFlag = 0;
         try (val curatorOperator = new CuratorOperator()) {
-            optionsHelper.parseOptions(tool.getOptions(), args);
-            isBackup = isBackupOption(optionsHelper);
             if (!curatorOperator.isJobNodeExist()) {
                 tool.execute(args);
-                retFlag = isBackup ? LOCAL_BACKUP_SUCCEED : RESTORE_SUCCEED;
             } else {
-                if (!isBackup) {
-                    log.warn("Fail to restore, please stop all job nodes first");
-                    retFlag = RESTORE_FAILED;
-                } else {
-                    val address = curatorOperator.getAddress();
-                    log.info("found a job node running, backup will be delegated to it at server: {}, this may be a remote server.", address);
-                    val ret = remoteBackup(address, optionsHelper);
-                    if ("000".equals(ret.get("code"))) {
-                        log.info("backup successfully at {}", optionsHelper.getOptionValue(OPTION_DIR));
-                        retFlag = REMOTE_BACKUP_SUCCEED;
-                    } else {
-                        log.error("backup failed");
-                        retFlag = BACKUP_FAILED;
-                    }
-                }
+                log.warn("Fail to backup/restore, please stop all job nodes first");
             }
 
         } catch (Exception e) {
             log.error("", e);
-            retFlag = isBackup? BACKUP_FAILED : RESTORE_FAILED;
+            retFlag = 1;
         }
         System.exit(retFlag);
-    }
-
-    private static Map remoteBackup(String address, OptionsHelper optionsHelper) throws Exception {
-        val restTemplate = new RestTemplate();
-
-        Map<String, String> map = new HashMap<>();
-        map.put("backup_path", optionsHelper.getOptionValue(MetadataTool.OPTION_DIR));
-        if (optionsHelper.hasOption(MetadataTool.OPTION_PROJECT)) {
-            map.put("project", optionsHelper.getOptionValue(MetadataTool.OPTION_PROJECT));
-        }
-        ObjectMapper objectMapper = new ObjectMapper();
-        byte[] body = objectMapper.writeValueAsBytes(map);
-
-        HttpHeaders headers = new HttpHeaders();
-        headers.put(HttpHeaders.CONTENT_TYPE, Lists.newArrayList("application/vnd.apache.kylin-v2+json"));
-
-        val response = restTemplate.postForEntity("http://" + address + "/kylin/api/system/backup",
-                new HttpEntity<>(body, headers), Map.class);
-        return response.getBody();
-    }
-
-    private static boolean isBackupOption(OptionsHelper optionsHelper) {
-        return optionsHelper.hasOption(OPERATE_BACKUP);
     }
 
     @Override
@@ -255,7 +200,7 @@ public class MetadataTool extends ExecutableApplication {
         }
 
         backupMetadataStore.dump(backupResourceStore);
-        log.info("backup successfully at {}", path);
+        log.info("backup successfully");
     }
 
     public void copyResourceStore(String projectPath, ResourceStore srcResourceStore, ResourceStore destResourceStore,

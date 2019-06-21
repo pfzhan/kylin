@@ -30,11 +30,6 @@ import org.apache.curator.RetryPolicy;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
 import org.apache.curator.retry.ExponentialBackoffRetry;
-import org.apache.curator.x.discovery.ServiceDiscovery;
-import org.apache.curator.x.discovery.ServiceDiscoveryBuilder;
-import org.apache.curator.x.discovery.ServiceInstance;
-import org.apache.curator.x.discovery.ServiceProvider;
-import org.apache.curator.x.discovery.strategies.RandomStrategy;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.lock.ZookeeperAclBuilder;
 import org.apache.kylin.job.lock.ZookeeperUtil;
@@ -84,25 +79,5 @@ public class CuratorOperator implements AutoCloseable {
         } catch (Exception e) {
             log.error("", e);
         }
-    }
-
-    public String getAddress() throws Exception {
-        String identifier = KylinConfig.getInstanceFromEnv().getMetadataUrlPrefix();
-        ServiceDiscovery serviceDiscovery = ServiceDiscoveryBuilder.builder(Object.class)
-                .client(zkClient)
-                .basePath("/kylin/" + identifier + "/services")
-                .serializer(new ServiceInstanceSerializer<>(Object.class))
-                .build();
-        serviceDiscovery.start();
-
-        ServiceProvider provider = serviceDiscovery.serviceProviderBuilder()
-                .serviceName("all")
-                .providerStrategy(new RandomStrategy<>())
-                .build();
-        provider.start();
-
-        ServiceInstance serviceInstance = provider.getInstance();
-
-        return serviceInstance.getAddress() + ":" + serviceInstance.getPort();
     }
 }

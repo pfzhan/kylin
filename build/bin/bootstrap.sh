@@ -1,9 +1,6 @@
 #!/bin/bash
 # Kyligence Inc. License
 
-RESTORE='\033[0m'
-YELLOW='\033[00;33m'
-
 source $(cd -P -- "$(dirname -- "$0")" && pwd -P)/header.sh $@
 version=`cat ${KYLIN_HOME}/VERSION | awk '{print $2}'`
 ${KYLIN_HOME}/bin/rotate-logs.sh $@
@@ -131,25 +128,6 @@ function runTool() {
     prepareEnv
 
     java ${KYLIN_EXTRA_START_OPTS} -Dlog4j.configuration=file:${KYLIN_HOME}/conf/kylin-tools-log4j.properties -Dkylin.hadoop.conf.dir=${kylin_hadoop_conf_dir} -Dhdp.version=current -cp "${kylin_hadoop_conf_dir}:${KYLIN_HOME}/tool/kap-tool-$version.jar:${SPARK_HOME}/jars/*" $@
-
-    ret=$?
-    if [[ ${ret} -eq "11" ]]
-    then
-        echo -e "${YELLOW}Restore failed. Detailed Message is at \"logs/shell.stderr\".${RESTORE}"
-    elif [[ ${ret} -eq "12" ]]
-    then
-        echo -e "${YELLOW}Backup failed. Detailed Message is at \"logs/shell.stderr\".${RESTORE}"
-    elif [[ ${ret} -eq "1" ]]
-    then
-        echo -e "${YELLOW}Backup at local disk succeed. The backup path is $4.${RESTORE}"
-    elif [[ ${ret} -eq "2" ]]
-    then
-        echo -e "${YELLOW}Backup succeed. The backup path is $4.${RESTORE}"
-        echo -e "${YELLOW}The backup process is delegated to a running job server. If it is a remote server, the backup will not be on local disk.${RESTORE}"
-    elif [[ ${ret} -eq "3" ]]
-    then
-        echo -e "${YELLOW}Restore succeed. Detailed Message is at \"logs/shell.stderr\".${RESTORE}"
-    fi
 }
 
 function killChildProcess {

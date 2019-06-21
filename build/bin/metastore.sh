@@ -18,6 +18,8 @@ function help {
 
 metadata_tool="-cp ${KYLIN_HOME}/tool/kap-tool-*.jar -Dlog4j.configuration=file:${KYLIN_HOME}/conf/kylin-tools-log4j.properties io.kyligence.kap.tool.MetadataTool"
 
+echo -e "${YELLOW}Make sure all kylin processes have stopped!!${RESTORE}"
+
 if [ "$1" == "backup" ]
 then
     if [ $# -eq 1 ]; then
@@ -39,18 +41,17 @@ then
 elif [ "$1" == "backup-project" ]
 then
     if [ $# -eq 2 ]; then
-        ${KYLIN_HOME}/bin/kylin.sh io.kyligence.kap.tool.MetadataTool -backup -dir ${KYLIN_HOME}/meta_backups -project $2
+        ${KYLIN_HOME}/bin/kylin.sh io.kyligence.kap.tool.MetadataTool -backup -project $2 -dir ${KYLIN_HOME}/meta_backups
     elif [ $# -eq 3 ]; then
-        ${KYLIN_HOME}/bin/kylin.sh io.kyligence.kap.tool.MetadataTool -backup -dir `cd $3 && pwd -P` -project $2
+        ${KYLIN_HOME}/bin/kylin.sh io.kyligence.kap.tool.MetadataTool -backup -project $2 -dir `cd $3 && pwd -P`
     else
         help
     fi
 
-
 elif [ "$1" == "restore-project" ]
 then
     if [ $# -eq 3 ]; then
-        ${KYLIN_HOME}/bin/kylin.sh io.kyligence.kap.tool.MetadataTool -restore -dir `cd $3 && pwd -P` -project $2
+        ${KYLIN_HOME}/bin/kylin.sh io.kyligence.kap.tool.MetadataTool -restore -project $2 -dir `cd $3 && pwd -P`
     else
         help
     fi

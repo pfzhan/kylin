@@ -39,18 +39,14 @@ import org.apache.kylin.shaded.htrace.org.apache.commons.codec.digest.DigestUtil
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseBody;
 
 import io.kyligence.kap.rest.config.initialize.AppInitializedEvent;
-import io.kyligence.kap.rest.request.BackupRequest;
-import io.kyligence.kap.rest.service.SystemService;
 
 
 @Controller
@@ -63,9 +59,6 @@ public class NSystemController extends NBasicController {
 
     @Autowired
     private LicenseInfoService licenseInfoService;
-    @Autowired
-    @Qualifier("systemService")
-    private SystemService systemService;
 
     @EventListener(AppInitializedEvent.class)
     public void init() throws IOException {
@@ -103,15 +96,5 @@ public class NSystemController extends NBasicController {
     @ResponseBody
     public EnvelopeResponse listLicense() throws IOException {
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, licenseInfoService.extractLicenseInfo(), "");
-    }
-
-    // used for service discovery
-    @RequestMapping(value = "/backup", method = {RequestMethod.POST}, produces = {
-            "application/vnd.apache.kylin-v2+json" })
-    @ResponseBody
-    public EnvelopeResponse remoteBackupProject(@RequestBody BackupRequest backupRequest) throws Exception {
-        checkRequiredArg("backupPath", backupRequest.getBackupPath());
-        systemService.backup(backupRequest);
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, null, "");
     }
 }

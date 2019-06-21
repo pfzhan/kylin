@@ -33,22 +33,6 @@
         </dependency>
 
         <dependency>
-            <groupId>org.apache.curator</groupId>
-            <artifactId>curator-framework</artifactId>
-            <scope>compile</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.curator</groupId>
-            <artifactId>curator-recipes</artifactId>
-            <scope>compile</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.curator</groupId>
-            <artifactId>curator-client</artifactId>
-            <scope>compile</scope>
-        </dependency>
-
-        <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-log4j12</artifactId>
             <scope>compile</scope>
@@ -123,6 +107,8 @@
                             <artifactSet>
                                 <includes>
                                     <include>io.kyligence.ke:*</include>
+                                    <include>org.slf4j:slf4j-api</include>
+                                    <include>org.slf4j:slf4j-log4j12</include>
                                     <include>log4j:log4j</include>
                                     <include>commons-cli:commons-cli</include>
                                     <include>commons-io:commons-io</include>
@@ -139,10 +125,6 @@
                                     <include>org.apache.calcite:*</include>
                                     <include>org.apache.calcite.avatica:*</include>
                                     <include>org.springframework.security:*</include>
-                                    <include>org.apache.curator:curator-framework</include>
-                                    <include>org.apache.curator:curator-recipes</include>
-                                    <include>org.apache.curator:curator-client</include>
-                                    <include>org.apache.curator:curator-x-discovery</include>
                                 </includes>
                             </artifactSet>
                             <relocations>
