@@ -327,8 +327,11 @@ export default class SourceHive extends Vue {
     } else if (samplingRows && samplingRows > 20000000) {
       this.errorMsg = this.$t('maxNumber')
       this.contentStyle.height = '317px'
-    } else {
+    } else if (!samplingRows) {
       this.errorMsg = this.$t('invalidType')
+      this.contentStyle.height = '317px'
+    } else {
+      this.errorMsg = ''
       this.contentStyle.height = '334px'
     }
     this.$emit('input', { samplingRows })
