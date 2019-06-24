@@ -79,7 +79,7 @@ public class QueryHistoryDAO {
         this.kapConfig = KapConfig.wrap(config);
         String metadataIdentifier = config.getMetadataUrl().getIdentifier().replaceAll("[^0-9|a-z|A-Z|_]{1,}", "_");
         this.queryMetricMeasurement = metadataIdentifier + "_" + project + "_" + QueryHistory.QUERY_MEASUREMENT_SURFIX;
-        this.realizationMetricMeasurement = metadataIdentifier + "_" + project + "_" + QueryHistory.QUERY_MEASUREMENT_SURFIX;
+        this.realizationMetricMeasurement = metadataIdentifier + "_" + project + "_" + QueryHistory.REALIZATION_MEASUREMENT_SURFIX;
     }
 
     public String getQueryMetricMeasurement() {

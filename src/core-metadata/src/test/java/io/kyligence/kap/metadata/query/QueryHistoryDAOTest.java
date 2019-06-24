@@ -88,6 +88,9 @@ public class QueryHistoryDAOTest extends NLocalFileMetadataTestCase {
         queryHistoryDAO = QueryHistoryDAO.getInstance(getTestConfig(), PROJECT);
         queryMeasurement = queryHistoryDAO.getQueryMetricMeasurement();
         realizationMeasurement = queryHistoryDAO.getRealizationMetricMeasurement();
+
+        Assert.assertEquals("_examples_test_metadata_metadata_default_query_history", queryMeasurement);
+        Assert.assertEquals("_examples_test_metadata_metadata_default_query_history_realization", realizationMeasurement);
     }
 
     @After
