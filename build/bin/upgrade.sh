@@ -95,6 +95,15 @@ function upgrade() {
     done
     info "...................................................[DONE]"
 
+    # copy ext jars
+    logging "Copy Ext Jars"
+    for jar_file in $(ls $old_kylin_home/lib/ext); do
+        if prompt "'${old_kylin_home}/lib/ext/${jar_file}' -> '${new_kylin_home}/lib/ext/'"; then
+            \cp -vf ${old_kylin_home}/lib/ext/${jar_file} ${new_kylin_home}/lib/ext/ >> $upgrade_log || fail
+        fi
+    done
+    info "...................................................[DONE]"
+
     # copy the customize directory under old kylin home
     # such as hadoop_conf
     logging "Copy Customize Directory"

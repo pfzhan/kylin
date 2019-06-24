@@ -22,6 +22,8 @@ mkdir ${package_name}
 
 cp -rf CHANGELOG.md VERSION commit_SHA1 lib tool LICENSE ${package_name}/
 
+mkdir ${package_name}/lib/ext
+
 if [ "${PACKAGE_SPARK}" = "1" ]; then
     cp -rf spark ${package_name}/
 fi
