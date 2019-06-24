@@ -46,8 +46,6 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.KylinConfigExt;
 import org.apache.kylin.common.persistence.RootPersistentEntity;
 import org.apache.kylin.common.util.JsonUtil;
-import org.apache.kylin.dimension.DictionaryDimEnc;
-import org.apache.kylin.measure.MeasureType;
 import org.apache.kylin.metadata.MetadataConstants;
 import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.FunctionDesc;
@@ -66,7 +64,6 @@ import com.google.common.base.Joiner;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -92,8 +89,6 @@ public class IndexPlan extends RootPersistentEntity implements Serializable, IEn
     @JsonProperty("description")
     @Getter
     private String description;
-    @JsonProperty("index_plan_override_encodings")
-    private Map<Integer, NEncodingDesc> indexPlanOverrideEnc = Maps.newHashMap();
 
     @JsonProperty("index_plan_override_indexes")
     @JsonInclude(JsonInclude.Include.NON_EMPTY)
@@ -171,7 +166,6 @@ public class IndexPlan extends RootPersistentEntity implements Serializable, IEn
         initAllCuboids();
         initDimensionAndMeasures();
         initAllColumns();
-        initDimEncodings();
         initDictionaryDesc();
 
         val manager = NDataModelManager.getInstance(config, project);
@@ -256,25 +250,6 @@ public class IndexPlan extends RootPersistentEntity implements Serializable, IEn
         }
     }
 
-    //currently layout level override is not supported
-    private void initDimEncodings() {
-        dimEncodingMap.clear();
-
-        for (Map.Entry<Integer, NEncodingDesc> entry : indexPlanOverrideEnc.entrySet()) {
-            TblColRef colRef = getModel().getEffectiveColsMap().get(entry.getKey());
-            entry.getValue().init(colRef);
-            dimEncodingMap.put(entry.getKey(), entry.getValue());
-        }
-
-        ImmutableSet<Integer> missing = Sets.difference(effectiveDimCols.keySet(), dimEncodingMap.keySet())
-                .immutableCopy();
-        for (Integer id : missing) {
-            NEncodingDesc encodingDesc = new NEncodingDesc("dict", 1);
-            encodingDesc.init(effectiveDimCols.get(id));
-            dimEncodingMap.put(id, encodingDesc);
-        }
-    }
-
     @Override
     public String resourceName() {
         return uuid;
@@ -328,10 +303,6 @@ public class IndexPlan extends RootPersistentEntity implements Serializable, IEn
         return Joiner.on(" ").join(errors);
     }
 
-    public NEncodingDesc getDimensionEncoding(TblColRef dimColRef) {
-        return dimEncodingMap.get(getModel().getColId(dimColRef));
-    }
-
     @Override
     public String getResourcePath() {
         return new StringBuilder().append("/").append(project).append(INDEX_PLAN_RESOURCE_ROOT).append("/")
@@ -357,58 +328,6 @@ public class IndexPlan extends RootPersistentEntity implements Serializable, IEn
 
     public BiMap<Integer, NDataModel.Measure> getEffectiveMeasures() {
         return effectiveMeasures;
-    }
-
-    public Set<TblColRef> getAllColumnsHaveDictionary() {
-        Set<TblColRef> result = Sets.newLinkedHashSet();
-
-        // dictionaries in dimensions
-        for (Map.Entry<Integer, TblColRef> dimEntry : effectiveDimCols.entrySet()) {
-            NEncodingDesc encodingDesc = dimEncodingMap.get(dimEntry.getKey());
-            if (isUsingDictionary(encodingDesc.getEncodingName())) {
-                result.add(dimEntry.getValue());
-            }
-        }
-
-        // dictionaries in measures
-        for (Map.Entry<Integer, NDataModel.Measure> measureEntry : effectiveMeasures.entrySet()) {
-            FunctionDesc funcDesc = measureEntry.getValue().getFunction();
-            MeasureType<?> aggrType = funcDesc.getMeasureType();
-            result.addAll(aggrType.getColumnsNeedDictionary(funcDesc));
-        }
-
-        // any additional dictionaries
-        if (dictionaries != null) {
-            for (NDictionaryDesc dictDesc : dictionaries) {
-                TblColRef col = dictDesc.getColumnRef();
-                result.add(col);
-            }
-        }
-
-        return result;
-    }
-
-    private boolean isUsingDictionary(String encodingName) {
-        return DictionaryDimEnc.ENCODING_NAME.equals(encodingName);
-    }
-
-    /**
-     * Get columns that need dictionary built on it. Note a column could reuse dictionary of another column.
-     */
-    public Set<TblColRef> getAllColumnsNeedDictionaryBuilt() {
-        Set<TblColRef> result = getAllColumnsHaveDictionary();
-
-        // remove columns that reuse other's dictionary
-        if (dictionaries != null) {
-            for (NDictionaryDesc dictDesc : dictionaries) {
-                if (dictDesc.getResuseColumnRef() != null) {
-                    result.remove(dictDesc.getColumnRef());
-                    result.add(dictDesc.getResuseColumnRef());
-                }
-            }
-        }
-
-        return result;
     }
 
     /**
@@ -607,15 +526,6 @@ public class IndexPlan extends RootPersistentEntity implements Serializable, IEn
     public void setIndexPlanOverrideIndexes(Map<Integer, String> m) {
         checkIsNotCachedAndShared();
         this.indexPlanOverrideIndexes = m;
-    }
-
-    public ImmutableMap<Integer, NEncodingDesc> getIndexPlanOverrideEncodings() {
-        return ImmutableMap.copyOf(indexPlanOverrideEnc);
-    }
-
-    public void setIndexPlanOverrideEncodings(Map<Integer, NEncodingDesc> m) {
-        checkIsNotCachedAndShared();
-        this.indexPlanOverrideEnc = m;
     }
 
     public LinkedHashMap<String, String> getOverrideProps() {

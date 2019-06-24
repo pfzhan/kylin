@@ -279,29 +279,6 @@ public class CuboidSuggesterTest extends NAutoTestOnLearnKylinData {
     }
 
     @Test
-    public void testSuggestSortBy() {
-
-        String[] sqls = new String[] { "select part_dt, lstg_format_name, price from kylin_sales order by part_dt" };
-        NSmartMaster smartMaster = new NSmartMaster(getTestConfig(), proj, sqls);
-        smartMaster.runAll();
-
-        NSmartContext ctx = smartMaster.getContext();
-        NSmartContext.NModelContext mdCtx = ctx.getModelContexts().get(0);
-        IndexPlan indexPlan = mdCtx.getTargetIndexPlan();
-        Assert.assertNotNull(indexPlan);
-        Assert.assertEquals(mdCtx.getTargetModel().getUuid(), indexPlan.getUuid());
-
-        List<IndexEntity> indexEntities = indexPlan.getIndexes();
-        Assert.assertEquals("unmatched cuboids size", 1, indexEntities.size());
-
-        final List<LayoutEntity> layouts = indexEntities.get(0).getLayouts();
-        Assert.assertEquals("unmatched layouts size", 1, layouts.size());
-        Assert.assertEquals("unmatched shard by columns size", 1, layouts.get(0).getSortByColumns().size());
-        Assert.assertEquals("unexpected identity name of sort by column", "KYLIN_SALES.PART_DT", mdCtx.getTargetModel()
-                .getEffectiveColsMap().get(layouts.get(0).getSortByColumns().get(0)).getIdentity());
-    }
-
-    @Test
     public void testSqlPattern2Layout() {
         String[] sqls = new String[] {
                 "select part_dt, lstg_format_name, sum(price) from kylin_sales "

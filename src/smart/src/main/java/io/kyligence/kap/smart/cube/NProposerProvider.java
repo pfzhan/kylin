@@ -38,20 +38,12 @@ public class NProposerProvider {
         return new NProposerProvider(context);
     }
 
-    NAbstractCubeProposer getDimensionProposer() {
-        return new NDimensionProposer(context);
-    }
-
     NAbstractCubeProposer getCuboidProposer() {
         return new NCuboidProposer(context);
     }
 
     NAbstractCubeProposer getCuboidReducer() {
         return new NCuboidReducer(context);
-    }
-
-    NAbstractCubeProposer getDimensionReducer() {
-        return new NDimensionReducer(context);
     }
 
     NAbstractCubeProposer getCuboidRefresher() {

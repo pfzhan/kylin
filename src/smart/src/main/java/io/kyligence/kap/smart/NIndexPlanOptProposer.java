@@ -50,11 +50,10 @@ public class NIndexPlanOptProposer extends NAbstractProposer {
                     indexPlan = cubeMaster.proposeInitialCube();
                 }
 
-                indexPlan = cubeMaster.proposeDimensions(indexPlan);
                 indexPlan = cubeMaster.proposeCuboids(indexPlan);
                 modelCtx.setTargetIndexPlan(indexPlan);
             } catch (Exception e) {
-                logger.error("Unexpected exception occurs in initialize target indexPlan.", e);
+                logger.error("[UNLIKELY_THINGS_HAPPENED] Something wrong occurs in initialize target indexPlan.", e);
                 modelCtx.setTargetIndexPlan(null);
                 recordException(modelCtx, e);
             }

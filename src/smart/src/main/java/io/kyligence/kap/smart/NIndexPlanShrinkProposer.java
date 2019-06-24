@@ -47,7 +47,6 @@ public class NIndexPlanShrinkProposer extends NAbstractProposer {
             NCubeMaster cubeMaster = new NCubeMaster(modelCtx);
             IndexPlan indexPlan = modelCtx.getTargetIndexPlan();
             indexPlan = cubeMaster.reduceCuboids(indexPlan);
-            indexPlan = cubeMaster.reduceDimensions(indexPlan);
             modelCtx.setTargetIndexPlan(indexPlan);
         }
     }

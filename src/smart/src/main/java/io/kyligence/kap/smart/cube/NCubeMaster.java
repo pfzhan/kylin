@@ -24,9 +24,9 @@
 
 package io.kyligence.kap.smart.cube;
 
-import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import org.apache.commons.lang.StringUtils;
 
+import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.smart.NSmartContext;
 
 public class NCubeMaster {
@@ -54,16 +54,8 @@ public class NCubeMaster {
         return proposerProvider.getCuboidProposer().doPropose(indexPlan);
     }
 
-    public IndexPlan proposeDimensions(final IndexPlan indexPlan) {
-        return proposerProvider.getDimensionProposer().doPropose(indexPlan);
-    }
-
     public IndexPlan reduceCuboids(final IndexPlan indexPlan) {
         return proposerProvider.getCuboidReducer().doPropose(indexPlan);
-    }
-
-    public IndexPlan reduceDimensions(final IndexPlan indexPlan) {
-        return proposerProvider.getDimensionReducer().doPropose(indexPlan);
     }
 
     public IndexPlan refreshCuboids(final IndexPlan indexPlan) {

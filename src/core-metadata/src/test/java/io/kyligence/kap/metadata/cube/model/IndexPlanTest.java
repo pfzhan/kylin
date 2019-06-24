@@ -28,11 +28,9 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.metadata.cube.CubeTestUtils;
 import org.apache.commons.collections.ListUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.KylinConfigExt;
@@ -53,6 +51,7 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.metadata.cube.CubeTestUtils;
 import io.kyligence.kap.metadata.cube.cuboid.NAggregationGroup;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.project.NProjectManager;
@@ -133,18 +132,6 @@ public class IndexPlanTest extends NLocalFileMetadataTestCase {
             Assert.assertEquals(36, cuboidLayout.getOrderedDimensions().size());
             Assert.assertEquals(0, cuboidLayout.getOrderedMeasures().size());
         }
-    }
-
-    @Test
-    public void testEncodingOverride() {
-        NIndexPlanManager mgr = NIndexPlanManager.getInstance(getTestConfig(), projectDefault);
-        IndexPlan indexPlan = mgr.getIndexPlanByModelAlias("nmodel_basic");
-
-        NEncodingDesc dimensionEncoding = indexPlan.getDimensionEncoding(indexPlan.getModel().getColRef(1));
-        Assert.assertEquals("dict", dimensionEncoding.getName());
-
-        NEncodingDesc dimensionEncoding1 = indexPlan.getDimensionEncoding(indexPlan.getModel().getColRef(2));
-        Assert.assertEquals("date", dimensionEncoding1.getName());
     }
 
     @Test
@@ -316,26 +303,6 @@ public class IndexPlanTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void testGetAllColumnsHaveDictionary() {
-        NIndexPlanManager cubeDefaultMgr = NIndexPlanManager.getInstance(getTestConfig(), projectDefault);
-        IndexPlan indexPlan = cubeDefaultMgr.getIndexPlanByModelAlias("nmodel_basic");
-        Set<TblColRef> tblCols = indexPlan.getAllColumnsHaveDictionary();
-        Assert.assertEquals(32, tblCols.size());
-
-        IndexPlan indexPlan2 = cubeDefaultMgr.getIndexPlan("abe3bf1a-c4bc-458d-8278-7ea8b00f5e96");
-        Set<TblColRef> tblCols2 = indexPlan2.getAllColumnsHaveDictionary();
-        Assert.assertEquals(0, tblCols2.size());
-    }
-
-    @Test
-    public void testGetAllColumnsNeedDictionaryBuilt() {
-        NIndexPlanManager cubeDefaultMgr = NIndexPlanManager.getInstance(getTestConfig(), projectDefault);
-        IndexPlan indexPlan = cubeDefaultMgr.getIndexPlanByModelAlias("nmodel_basic");
-        Set<TblColRef> tblCols = indexPlan.getAllColumnsNeedDictionaryBuilt();
-        Assert.assertEquals(32, tblCols.size());
-    }
-
-    @Test
     public void testGetConfig() {
         val indexPlanMgr = NIndexPlanManager.getInstance(getTestConfig(), projectDefault);
         val indexPlan = indexPlanMgr.getIndexPlanByModelAlias("nmodel_basic");
@@ -409,7 +376,8 @@ public class IndexPlanTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testGetRuleBasedLayout() throws IOException {
-        var newPlan = JsonUtil.readValue(getClass().getResourceAsStream("/rule_based_and_auto_cube.json"), IndexPlan.class);
+        var newPlan = JsonUtil.readValue(getClass().getResourceAsStream("/rule_based_and_auto_cube.json"),
+                IndexPlan.class);
         newPlan.initAfterReload(KylinConfig.getInstanceFromEnv(), "default");
         val layouts = newPlan.getRuleBaseLayouts();
         Assert.assertEquals(7, layouts.size());

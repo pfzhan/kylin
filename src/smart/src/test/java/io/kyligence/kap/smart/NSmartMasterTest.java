@@ -423,29 +423,6 @@ public class NSmartMasterTest extends NAutoTestOnLearnKylinData {
     }
 
     @Test
-    public void testInitTargetCubePlanError() {
-        KylinConfig kylinConfig = getTestConfig();
-        String[] sqls = new String[] { "select part_dt, lstg_format_name, sum(price) from kylin_sales \n"
-                + " left join kylin_cal_dt on cal_dt = part_dt \n"
-                + "where part_dt = '2012-01-01' group by part_dt, lstg_format_name" };
-        NSmartMaster smartMaster = new NSmartMaster(kylinConfig, proj, sqls);
-
-        smartMaster.runAll();
-
-        // just mock a case to cover exception may happen in NDimensionProposer
-        final NSmartContext.NModelContext modelContext = smartMaster.getContext().getModelContexts().get(0);
-        modelContext.getTargetIndexPlan().setIndexPlanOverrideEncodings(null);
-
-        smartMaster.optimizeIndexPlan();
-
-        final Map<String, AccelerateInfo> accelerateInfoMap = smartMaster.getContext().getAccelerateInfoMap();
-        Assert.assertEquals(1, accelerateInfoMap.values().size());
-        final AccelerateInfo accelerateInfo = Lists.newArrayList(accelerateInfoMap.values()).get(0);
-        Assert.assertTrue(accelerateInfo.isFailed());
-        Assert.assertTrue(accelerateInfo.getFailedCause() instanceof NullPointerException);
-    }
-
-    @Test
     public void testWithoutSaveModel() {
         KylinConfig kylinConfig = getTestConfig();
         String[] sqls = new String[] { "select part_dt, lstg_format_name, sum(price) from kylin_sales \n"
