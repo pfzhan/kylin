@@ -32,12 +32,7 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
-import io.kyligence.kap.metadata.cube.model.NDataflowManager;
-import io.kyligence.kap.metadata.model.MaintainModelType;
-import io.kyligence.kap.metadata.project.NProjectManager;
 import org.apache.kylin.job.execution.NExecutableManager;
-import org.apache.kylin.metadata.project.ProjectInstance;
-import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -120,31 +115,7 @@ public class EventOrchestratorTest extends NLocalFileMetadataTestCase {
         });
     }
 
-    @Test
-    public void testHandleEventErrorOnExpertMode() {
-        String modelId = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
-        val projectManager = NProjectManager.getInstance(getTestConfig());
-        ProjectInstance projectInstance = projectManager.getProject(DEFAULT_PROJECT);
-        ProjectInstance projectInstanceUpdate = projectManager.copyForWrite(projectInstance);
-        projectInstanceUpdate.setMaintainModelType(MaintainModelType.MANUAL_MAINTAIN);
-        projectManager.updateProject(projectInstanceUpdate);
-        List<Event> events = initEvents();
-        events.forEach(event -> event.setRunTimes(6));
-        events.forEach(eventManager::post);
-        await().atMost(60000, TimeUnit.MILLISECONDS).untilAsserted(() -> Assert.assertEquals(
-                RealizationStatusEnum.BROKEN,
-                NDataflowManager.getInstance(getTestConfig(), DEFAULT_PROJECT).getDataflow(modelId).getStatus()));
-    }
 
-    @Test
-    public void testHandleEventErrorOnSmartMode() {
-        String modelId = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
-        List<Event> events = initEvents();
-        events.forEach(event -> event.setRunTimes(6));
-        events.forEach(eventManager::post);
-        await().atMost(60000, TimeUnit.MILLISECONDS).untilAsserted(() -> Assert
-                .assertNull(NDataflowManager.getInstance(getTestConfig(), DEFAULT_PROJECT).getDataflow(modelId)));
-    }
 
     private Map<String, List<String>> initModelExecutables(List<Event> events) {
         Map<String, List<String>> map = Maps.newHashMap();

@@ -59,7 +59,7 @@ public class ModelBrokenListener {
     public void onModelBrolken(NDataModel.ModelBrokenEvent event) {
         val origin = event.getModel();
         val project = origin.getProject();
-        if (origin.isModelBroken()) {
+        if (origin.isHandledAfterBroken()) {
             return;
         }
 
@@ -71,7 +71,7 @@ public class ModelBrokenListener {
                 return null;
             }
             val model = getBrokenModel(project, originModel.getResourcePath());
-            if (model.isModelBroken()) {
+            if (model.isHandledAfterBroken()) {
                 return null;
             }
             val dataflowManager = NDataflowManager.getInstance(config, project);
@@ -91,7 +91,8 @@ public class ModelBrokenListener {
             dfUpdate.setStatus(RealizationStatusEnum.BROKEN);
             dataflowManager.updateDataflow(dfUpdate);
 
-            model.setModelBroken(true);
+            dataflowManager.updateDataflow(origin.getId(), copyForWrite -> copyForWrite.setEventError(true));
+            model.setHandledAfterBroken(true);
             modelManager.updateDataBrokenModelDesc(model);
             EventDao eventDao = EventDao.getInstance(config, project);
             eventDao.getEventsByModel(origin.getId()).stream().map(Event::getId).forEach(eventDao::deleteEvent);
@@ -103,14 +104,14 @@ public class ModelBrokenListener {
     public void onModelRepair(NDataModel.ModelRepairEvent event) {
         val origin = event.getModel();
         val project = origin.getProject();
-        if (!origin.isModelBroken()) {
+        if (!origin.isHandledAfterBroken()) {
             return;
         }
 
         UnitOfWork.doInTransactionWithRetry(() -> {
             val modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
             val model = modelManager.getDataModelDesc(origin.getId());
-            if (!model.isModelBroken()) {
+            if (!model.isHandledAfterBroken()) {
                 return null;
             }
             val dataflowManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
@@ -124,7 +125,7 @@ public class ModelBrokenListener {
             } else if (model.getManagementType() == ManagementType.TABLE_ORIENTED) {
                 dataflowManager.fillDf(dataflow);
             }
-            model.setModelBroken(false);
+            model.setHandledAfterBroken(false);
             modelManager.updateDataBrokenModelDesc(model);
             val eventManager = EventManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
             AddCuboidEvent addCuboidEvent = new AddCuboidEvent();

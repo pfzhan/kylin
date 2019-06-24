@@ -50,6 +50,7 @@ import java.io.IOException;
 import java.util.IllegalFormatException;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
@@ -568,7 +569,8 @@ public abstract class AbstractExecutable implements Executable {
             pendingDuration += (startTime - output.getCreateTime());
         }
         pendingDuration += output.getWaitTime();
-        if (output.getEndTime() > 0 && !output.getState().isFinalState()) {
+        if (output.getEndTime() > 0 && !output.getState().isFinalState()
+                && !Optional.ofNullable(getParent()).orElse(this).getStatus().isFinalState()) {
             pendingDuration += System.currentTimeMillis() - output.getEndTime();
         }
         return pendingDuration;

@@ -117,7 +117,7 @@ public class NDataModelManager {
     }
 
     private void postModelBrokenEvent(NDataModel model) {
-        if (!model.isModelBroken()) {
+        if (!model.isHandledAfterBroken()) {
             if (UnitOfWork.isAlreadyInTransaction()) {
                 UnitOfWork.get().doAfterUnit(() -> SchedulerEventBusFactory
                         .getInstance(KylinConfig.getInstanceFromEnv()).post(new NDataModel.ModelBrokenEvent(model)));
@@ -128,7 +128,7 @@ public class NDataModelManager {
     }
 
     private void postModelRepairEvent(NDataModel model) {
-        if (model.isModelBroken()) {
+        if (model.isHandledAfterBroken()) {
             if (UnitOfWork.isAlreadyInTransaction()) {
                 UnitOfWork.get().doAfterUnit(
                         () -> SchedulerEventBusFactory.getInstance(KylinConfig.getInstanceFromEnv())

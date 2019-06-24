@@ -237,9 +237,9 @@ public class NDataModel extends RootPersistentEntity {
     @JsonInclude(JsonInclude.Include.NON_DEFAULT)
     private BrokenReason brokenReason = BrokenReason.NULL;
 
-    @JsonProperty("model_broken")
+    @JsonProperty("handled_after_broken")
     @JsonInclude(JsonInclude.Include.NON_DEFAULT)
-    private boolean modelBroken = false;
+    private boolean handledAfterBroken = false;
 
     // computed fields below
     private String project;

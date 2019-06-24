@@ -217,12 +217,12 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
     private void assertTimeFinalState(long createTime, String id, ExecutableState state) {
         AbstractExecutable job = executableManager.getJob(id);
         Assert.assertNotNull(job);
+        Assert.assertEquals(state, executableManager.getOutput(job.getId()).getState());
         Assert.assertEquals(createTime, job.getCreateTime());
         Assert.assertTrue(job.getStartTime() > 0L);
         Assert.assertTrue(job.getEndTime() > 0L);
         Assert.assertTrue(job.getDuration() >= 0L);
         Assert.assertTrue(job.getWaitTime() >= 0L);
-        Assert.assertEquals(state, executableManager.getOutput(job.getId()).getState());
     }
 
     private void assertTimeRunning(long createTime, String id) {
@@ -417,6 +417,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         executableManager.addJob(job);
         await().atMost(60000, TimeUnit.MILLISECONDS).untilAsserted(() -> Assert.assertEquals(ExecutableState.DISCARDED,
                 executableManager.getJob(job.getId()).getStatus()));
+        testJobStopped(job.getId());
         assertMemoryRestore(currMem);
     }
 
@@ -445,6 +446,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         }, project);
         await().atMost(6000, TimeUnit.MILLISECONDS).untilAsserted(() -> Assert.assertEquals(ExecutableState.DISCARDED,
                 executableManager.getJob(job.getId()).getStatus()));
+        testJobStopped(job.getId());
         assertMemoryRestore(currMem);
     }
 
@@ -480,6 +482,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         }, project);
         await().atMost(6000, TimeUnit.MILLISECONDS).untilAsserted(() -> Assert.assertEquals(ExecutableState.DISCARDED,
                 executableManager.getJob(job.getId()).getStatus()));
+        testJobStopped(job.getId());
         assertMemoryRestore(currMem);
     }
 
@@ -658,9 +661,10 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         update.setToRemoveSegs(df.getSegments().toArray(new NDataSegment[0]));
         dfMgr.updateDataflow(update);
 
-        await().atMost(60000, TimeUnit.MILLISECONDS).until(() -> {
+        await().atMost(60000, TimeUnit.MILLISECONDS).untilAsserted(() -> {
             val task1 = ((DefaultChainedExecutable) executableManager.getJob(job.getId())).getTasks().get(0);
-            return task1.getStatus() == ExecutableState.SUICIDAL;
+            Assert.assertEquals(ExecutableState.SUICIDAL, job.getStatus());
+            Assert.assertEquals(ExecutableState.SUICIDAL, task1.getStatus());
         });
         //in case hdfs write is not finished yet
         assertTimeSuicide(createTime, job.getId());

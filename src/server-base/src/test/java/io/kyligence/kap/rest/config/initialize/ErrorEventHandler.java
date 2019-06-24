@@ -21,13 +21,12 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package io.kyligence.kap.event.handle;
+package io.kyligence.kap.rest.config.initialize;
 
-
-
-import io.kyligence.kap.event.model.EventContext;
 import org.apache.kylin.job.execution.ChainedExecutable;
 
+import io.kyligence.kap.event.handle.AbstractEventPostJobHandler;
+import io.kyligence.kap.event.model.EventContext;
 
 public class ErrorEventHandler extends AbstractEventPostJobHandler {
 

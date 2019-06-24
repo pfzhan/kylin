@@ -21,12 +21,9 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package io.kyligence.kap.event.event;
+package io.kyligence.kap.rest.config.initialize;
 
-
-import io.kyligence.kap.event.handle.ErrorEventHandler;
 import io.kyligence.kap.event.handle.EventHandler;
-
 import io.kyligence.kap.event.model.JobRelatedEvent;
 
 public class ErrorEvent extends JobRelatedEvent {
