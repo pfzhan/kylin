@@ -178,7 +178,7 @@
           <span v-if="isUploaded"><i class="el-icon-ksd-good_health"></i>{{whiteSqlData.capable_sql_num}}
           <i class="el-icon-ksd-error_01"></i>{{whiteSqlData.size-whiteSqlData.capable_sql_num}}</span>
           <span v-else class="tips">
-            <i class="el-icon-ksd-alert ksd-fs-16"></i><span class="ksd-fs-12">{{$t('uploadFileTips')}}</span>
+            <i class="el-icon-warning ksd-fs-16"></i><span class="ksd-fs-12">{{$t('uploadFileTips')}}</span>
           </span>
         </div>
         <el-button size="medium" @click="importSqlVisible = false">{{$t('kylinLang.common.close')}}</el-button><el-button
@@ -1309,7 +1309,7 @@ export default class FavoriteQuery extends Vue {
           color: @text-normal-color;
         }
         i {
-          color: @text-secondary-color;
+          color: @text-disabled-color;
         }
       }
       .el-icon-ksd-good_health {
@@ -1371,9 +1371,8 @@ export default class FavoriteQuery extends Vue {
           height: 0;
         }
         .upload-block {
-          width: 50%;
-          margin-left: calc(~'50% - 35px');
-          text-align: left;
+          text-align: center;
+          margin: 0 auto;
           img {
             margin-top: 100px;
           }
@@ -1386,8 +1385,9 @@ export default class FavoriteQuery extends Vue {
             margin-top: 25px;
           }
           .el-upload-list {
-            width: 200px;
-            margin-left: -60px;
+            width: 300px;
+            margin: 0 auto;
+            text-align: left;
             .el-upload-list__item {
               .el-upload-list__item-name {
                 margin-right: 20px;

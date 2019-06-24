@@ -151,6 +151,9 @@ export default {
     position: relative;
     border: 1px solid @line-border-color;
     background-color: @aceditor-bg-color;
+    .ace_print-margin {
+      visibility: hidden !important;
+    }
     .smyles_editor {
       // width: calc(~'100% - 50px') !important;
       border: none;

@@ -59,7 +59,7 @@
             </el-select>
             <common-tip :content="$t('addCCTip')"><el-button size="medium" v-if="measure.expression !== 'COUNT_DISTINCT' && measure.expression !== 'TOP_N'" icon="el-icon-ksd-auto_computed_column" type="primary" plain @click="newCC" class="ksd-ml-6" :disabled="isEdit&&ccVisible"></el-button></common-tip>
           </div>
-          <el-button type="primary" size="medium" icon="el-icon-ksd-add_2" plain circle v-if="measure.expression === 'COUNT_DISTINCT'" class="ksd-ml-10" @click="addNewProperty"></el-button>
+          <el-button type="primary" size="mini" icon="el-icon-ksd-add_2" plain circle v-if="measure.expression === 'COUNT_DISTINCT'" class="ksd-ml-10" @click="addNewProperty"></el-button>
         </div>
         <CCEditForm v-if="ccVisible" @saveSuccess="saveCC" @delSuccess="delCC" :ccDesc="ccObject" :modelInstance="modelInstance"></CCEditForm>
       </el-form-item>
@@ -77,8 +77,8 @@
               </el-option>
             </el-select>
           </div>
-          <el-button type="primary" size="small" v-if="measure.expression === 'TOP_N' && index == 0" icon="el-icon-ksd-add_2" plain circle @click="addNewProperty" class="ksd-ml-10"></el-button>
-          <el-button type="primary" size="small" icon="el-icon-minus" circle @click="deleteProperty(index)" class="del-pro ksd-ml-10" :class="{'del-margin-more': measure.expression === 'TOP_N' && index > 0}" :disabled="measure.expression === 'TOP_N' && measure.convertedColumns.length == 1"></el-button>
+          <el-button type="primary" size="mini" v-if="measure.expression === 'TOP_N' && index == 0" icon="el-icon-ksd-add_2" plain circle @click="addNewProperty" class="ksd-ml-10"></el-button>
+          <el-button type="primary" size="mini" icon="el-icon-minus" circle @click="deleteProperty(index)" class="del-pro ksd-ml-10" :class="{'del-margin-more': measure.expression === 'TOP_N' && index > 0}" :disabled="measure.expression === 'TOP_N' && measure.convertedColumns.length == 1"></el-button>
         </div>
       </el-form-item>
       <el-form-item v-if="measure.expression ==='CORR'" class="ksd-mt-10" prop="convertedColumns[0].value" :rules="rules.convertedColValidate" key="corrItem">
@@ -543,6 +543,7 @@ export default class AddMeasure extends Vue {
   .add-measure {
     .measure-flex-row {
       display: flex;
+      align-items: center;
       .flex-item {
         flex-shrink: 1;
         width: 100%;

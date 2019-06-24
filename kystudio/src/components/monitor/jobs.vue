@@ -376,7 +376,7 @@ import { transToGmtTime, handleError, handleSuccess } from 'util/business'
       sequenceId: 'Sequence ID',
       INDEX_REFRESH: 'Refresh Data',
       INDEX_MERGE: 'Merge Data',
-      INDEX_BUILD: 'Bulid Index',
+      INDEX_BUILD: 'Build Index',
       INC_BUILD: 'Load Data',
       TABLE_SAMPLING: 'Sample Table'
     },

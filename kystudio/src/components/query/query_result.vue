@@ -107,6 +107,7 @@ export default class queryResult extends Vue {
   project = ''
   limit = ''
   showDetail = false
+  pageSize = 10
   modelsTotal = this.extraoption.results.length
   timer = null
   exportData () {
@@ -153,9 +154,11 @@ export default class queryResult extends Vue {
     }
   }
   pageSizeChange (currentPage, pageSize) {
-    const size = pageSize || 10
+    if (pageSize) {
+      this.pageSize = pageSize
+    }
     const filteredData = this.filterTableData()
-    this.tableData = filteredData.slice(currentPage * size, (currentPage + 1) * size)
+    this.tableData = filteredData.slice(currentPage * this.pageSize, (currentPage + 1) * this.pageSize)
     var len = this.tableData.length
     for (let i = 0; i < len; i++) {
       var innerLen = this.tableData[i].length
