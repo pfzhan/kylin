@@ -655,9 +655,7 @@ public class ModelService extends BasicService {
             if (model.getPartitionDesc() == null
                     || StringUtils.isEmpty(model.getPartitionDesc().getPartitionDateColumn())) {
                 range = SegmentRange.TimePartitionedSegmentRange.createInfinite();
-            } else {
-                Preconditions.checkArgument(!PushDownUtil.needPushdown(modelRequest.getStart(), modelRequest.getEnd()),
-                        "Load data must set start and end date");
+            } else if (StringUtils.isNotEmpty(modelRequest.getStart()) && StringUtils.isNotEmpty(modelRequest.getEnd())) {
                 range = getSegmentRangeByModel(project, model.getUuid(), modelRequest.getStart(),
                         modelRequest.getEnd());
             }

@@ -1183,25 +1183,12 @@ public class ModelServiceTest extends CSVSourceTestCase {
         modelRequest.setAlias("new_model");
         modelRequest.setUuid(null);
         modelRequest.setLastModified(0L);
-        val minAndMaxTime = PushDownUtil.getMaxAndMinTime(model.getPartitionDesc().getPartitionDateColumn(),
-                model.getRootFactTableName(), "default");
-        val dateFormat = DateFormat.proposeDateFormat(minAndMaxTime.getFirst());
-        modelRequest.setStart(DateFormat.getFormattedDate(minAndMaxTime.getFirst(), dateFormat));
-        modelRequest.setEnd(DateFormat.getFormattedDate(minAndMaxTime.getSecond(), dateFormat));
         val newModel = modelService.createModel(modelRequest.getProject(), modelRequest);
         Assert.assertEquals("new_model", newModel.getAlias());
         val dfManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
         val df = dfManager.getDataflow(newModel.getUuid());
-        Assert.assertEquals(1, df.getSegments().size());
+        Assert.assertEquals(0, df.getSegments().size());
 
-        java.text.DateFormat sdf = new SimpleDateFormat("yyyy/MM/dd");
-        sdf.setTimeZone(TimeZone.getDefault());
-
-        long t1 = sdf.parse("2012/01/01").getTime();
-        long t2 = sdf.parse("2014/01/01").getTime();
-
-        Assert.assertEquals(t1, df.getSegments().get(0).getSegRange().getStart());
-        Assert.assertEquals(t2, df.getSegments().get(0).getSegRange().getEnd());
         modelManager.dropModel(newModel);
     }
 

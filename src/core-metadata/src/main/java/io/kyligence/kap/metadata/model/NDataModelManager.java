@@ -216,7 +216,8 @@ public class NDataModelManager {
     }
 
     public NDataModel createDataModelDesc(NDataModel desc, String owner) {
-        String name = desc.getAlias();
+        NDataModel copy = copyForWrite(desc);
+        String name = copy.getAlias();
         List<NDataModel> allModels = crud.listAll();
         for (NDataModel model : allModels.stream().filter(model -> !model.isBroken()).collect(Collectors.toList())) {
             if (model.getAlias().equals(name)) {
@@ -232,8 +233,8 @@ public class NDataModelManager {
         //check model count
         NCircuitBreaker.verifyModelCreation(allModels.size());
 
-        desc.setOwner(owner);
-        desc = saveDataModelDesc(desc);
+        copy.setOwner(owner);
+        desc = saveDataModelDesc(copy);
 
         return desc;
     }
