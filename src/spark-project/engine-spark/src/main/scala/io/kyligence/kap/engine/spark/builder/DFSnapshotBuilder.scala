@@ -169,7 +169,7 @@ class DFSnapshotBuilder extends Logging {
 
   def buildSingleSnapshot(tableDesc: TableDesc, baseDir: String, fs: FileSystem): (String, String) = {
     val sourceData = getSourceData(tableDesc)
-    val tablePath = tableDesc.getProject + HadoopUtil.SNAPSHOT_STORAGE_ROOT + "/" + tableDesc.getName
+    val tablePath = FileNames.snapshotFile(tableDesc)
     var snapshotTablePath = tablePath + "/" + UUID.randomUUID
     val resourcePath = baseDir + "/" + snapshotTablePath
     sourceData.coalesce(1).write.parquet(resourcePath)

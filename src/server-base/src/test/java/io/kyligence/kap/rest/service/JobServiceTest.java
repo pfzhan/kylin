@@ -172,15 +172,15 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
         List<ExecutableResponse> jobs6 = jobService.listJobs(jobFilter);
         Assert.assertTrue(jobs6.size() == 3 && jobs6.get(0).getJobName().equals("sparkjob1"));
 
-        jobFilter.setSortBy("duration");
-        jobFilter.setReverse(true);
-        List<ExecutableResponse> jobs7 = jobService.listJobs(jobFilter);
-        Assert.assertTrue(jobs7.size() == 3 && jobs7.get(0).getJobName().equals("sparkjob3"));
+//        jobFilter.setSortBy("duration");
+//        jobFilter.setReverse(true);
+//        List<ExecutableResponse> jobs7 = jobService.listJobs(jobFilter);
+//        Assert.assertTrue(jobs7.size() == 3 && jobs7.get(0).getJobName().equals("sparkjob3"));
 
         jobFilter.setSortBy("create_time");
         jobFilter.setReverse(true);
         List<ExecutableResponse> jobs8 = jobService.listJobs(jobFilter);
-        Assert.assertTrue(jobs8.size() == 3 && jobs7.get(0).getJobName().equals("sparkjob3"));
+        Assert.assertTrue(jobs8.size() == 3 && jobs8.get(0).getJobName().equals("sparkjob3"));
 
         jobFilter.setReverse(false);
         jobFilter.setStatus("");

@@ -171,7 +171,7 @@ public class EventOrchestrator {
             events.sort(Event::compareTo);
 
             Map<String, List<Event>> modelEvents = events.stream()
-                    .collect(Collectors.toMap(Event::getModelId, event -> Lists.newArrayList(event), (one, other) -> {
+                    .collect(Collectors.toMap(Event::getModelId, Lists::newArrayList, (one, other) -> {
                         one.addAll(other);
                         return one;
                     }));
@@ -180,10 +180,9 @@ public class EventOrchestrator {
             val modelExecutables = execManager.getModelExecutables(modelEvents.keySet(),
                     ExecutableState::isNotProgressing);
 
-            modelEvents.entrySet().forEach(entry -> {
-                val model = entry.getKey();
+            modelEvents.forEach((model, value) -> {
                 val executableIds = modelExecutables.getOrDefault(model, Lists.newArrayList());
-                val event = entry.getValue().stream()
+                val event = value.stream()
                         .filter(e -> CollectionUtils.isEmpty(executableIds)
                                 || ((e instanceof AddSegmentEvent || e instanceof PostAddSegmentEvent)
                                         && !executableIds.contains(((JobRelatedEvent) e).getJobId()) // to skip Post*Event

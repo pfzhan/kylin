@@ -26,14 +26,6 @@ package io.kyligence.kap.event.handle;
 
 import java.util.UUID;
 
-import com.google.common.collect.Lists;
-import io.kyligence.kap.metadata.cube.model.NDataLayout;
-import io.kyligence.kap.metadata.favorite.FavoriteQuery;
-import io.kyligence.kap.metadata.favorite.FavoriteQueryManager;
-import io.kyligence.kap.metadata.favorite.FavoriteQueryRealization;
-import io.kyligence.kap.metadata.favorite.FavoriteQueryStatusEnum;
-import io.kyligence.kap.metadata.model.NTableMetadataManager;
-import io.kyligence.kap.smart.NSmartMaster;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.ChainedExecutable;
 import org.apache.kylin.job.execution.DefaultChainedExecutable;
@@ -46,6 +38,9 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.spark_project.guava.collect.Sets;
+
+import com.google.common.collect.Lists;
+
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.engine.spark.job.NSparkCubingJob;
 import io.kyligence.kap.event.manager.EventDao;
@@ -54,9 +49,16 @@ import io.kyligence.kap.event.model.AddCuboidEvent;
 import io.kyligence.kap.event.model.Event;
 import io.kyligence.kap.event.model.EventContext;
 import io.kyligence.kap.event.model.PostAddCuboidEvent;
+import io.kyligence.kap.metadata.cube.model.NDataLayout;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
+import io.kyligence.kap.metadata.favorite.FavoriteQuery;
+import io.kyligence.kap.metadata.favorite.FavoriteQueryManager;
+import io.kyligence.kap.metadata.favorite.FavoriteQueryRealization;
+import io.kyligence.kap.metadata.favorite.FavoriteQueryStatusEnum;
+import io.kyligence.kap.metadata.model.NTableMetadataManager;
+import io.kyligence.kap.smart.NSmartMaster;
 import lombok.val;
 import lombok.var;
 
@@ -87,7 +89,7 @@ public class PostAddCuboidHandlerTest extends NLocalFileMetadataTestCase {
 
         PostAddCuboidHandler handler = new PostAddCuboidHandler();
         EventContext context = new EventContext(postAddEvent, getTestConfig(), "default");
-        handler.restartNewJobIfNecessary(context, (ChainedExecutable) job);
+        handler.doHandleWithSuicidalJob(context, (ChainedExecutable) job);
         val events = EventDao.getInstance(getTestConfig(), "default").getEvents();
         events.sort(Event::compareTo);
         Assert.assertEquals(1, events.size());
@@ -119,7 +121,7 @@ public class PostAddCuboidHandlerTest extends NLocalFileMetadataTestCase {
                 SegmentRange.dateToLong("2012-10-01"));
 
         EventContext context = new EventContext(postAddEvent, getTestConfig(), "default");
-        handler.restartNewJobIfNecessary(context, (ChainedExecutable) job);
+        handler.doHandleWithSuicidalJob(context, (ChainedExecutable) job);
         val events = EventDao.getInstance(getTestConfig(), "default").getEvents();
         events.sort(Event::compareTo);
         Assert.assertEquals(3, events.size());
@@ -138,7 +140,7 @@ public class PostAddCuboidHandlerTest extends NLocalFileMetadataTestCase {
         cleanModel("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         PostAddCuboidHandler handler = new PostAddCuboidHandler();
         EventContext context = new EventContext(postAddEvent, getTestConfig(), "default");
-        handler.restartNewJobIfNecessary(context, (ChainedExecutable) job);
+        handler.doHandleWithSuicidalJob(context, (ChainedExecutable) job);
         val events = EventDao.getInstance(getTestConfig(), "default").getEvents();
         events.sort(Event::compareTo);
         Assert.assertEquals(1, events.size());
@@ -219,7 +221,7 @@ public class PostAddCuboidHandlerTest extends NLocalFileMetadataTestCase {
         fq2 = fqManager.get(sqlPattern);
 
         Assert.assertEquals(FavoriteQueryStatusEnum.ACCELERATING, fq.getStatus());
-        Assert.assertEquals(FavoriteQueryStatusEnum.ACCELERATING, fq2.getStatus());
+        Assert.assertEquals(FavoriteQueryStatusEnum.TO_BE_ACCELERATED, fq2.getStatus());
 
         // mocks the process of building index 2
         long layoutId2 = fq.getRealizations().get(1).getLayoutId();
@@ -237,7 +239,7 @@ public class PostAddCuboidHandlerTest extends NLocalFileMetadataTestCase {
         fq = fqManager.get(sqlProposesTwoModels);
         fq2 = fqManager.get(sqlPattern);
         Assert.assertEquals(FavoriteQueryStatusEnum.ACCELERATED, fq.getStatus());
-        Assert.assertEquals(FavoriteQueryStatusEnum.ACCELERATING, fq2.getStatus());
+        Assert.assertEquals(FavoriteQueryStatusEnum.TO_BE_ACCELERATED, fq2.getStatus());
     }
 
     @Test

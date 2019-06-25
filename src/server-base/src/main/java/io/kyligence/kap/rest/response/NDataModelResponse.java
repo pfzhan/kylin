@@ -58,6 +58,8 @@ public class NDataModelResponse extends NDataModel {
     @JsonProperty("model_broken")
     private boolean modelBroken;
 
+    private long lastModify;
+
     public NDataModelResponse() {
         super();
     }
@@ -67,6 +69,7 @@ public class NDataModelResponse extends NDataModel {
         this.setConfig(dataModel.getConfig());
         this.setProject(dataModel.getProject());
         this.setMvcc(dataModel.getMvcc());
+        this.lastModify = lastModified;
     }
 
     @JsonProperty("simplified_dimensions")

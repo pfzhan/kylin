@@ -828,7 +828,7 @@ public class NDataModel extends RootPersistentEntity {
 
     @Override
     public String toString() {
-        return "NDataModel [" + getAlias() + ")]";
+        return "NDataModel [" + getAlias() + "]";
     }
 
     public static String concatResourcePath(String descName) {

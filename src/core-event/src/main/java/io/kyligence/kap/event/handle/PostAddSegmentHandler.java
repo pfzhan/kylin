@@ -27,6 +27,7 @@ import java.util.UUID;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.execution.ChainedExecutable;
+import org.apache.kylin.job.execution.DefaultChainedExecutableOnModel;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.metadata.model.SegmentRange;
@@ -94,6 +95,7 @@ public class PostAddSegmentHandler extends AbstractEventPostJobHandler {
         }
     }
 
+    @Override
     protected void doHandleWithNullJob(EventContext eventContext) {
         PostAddSegmentEvent event = (PostAddSegmentEvent) eventContext.getEvent();
         String project = eventContext.getProject();
@@ -104,6 +106,22 @@ public class PostAddSegmentHandler extends AbstractEventPostJobHandler {
             return;
         }
 
+        makeSegmentReady(project, event);
+
+        handleFavoriteQuery(eventContext);
+        finishEvent(project, event.getId());
+    }
+
+    @Override
+    protected void doHandleWithSuicidalJob(EventContext eventContext, ChainedExecutable executable) {
+        if (((DefaultChainedExecutableOnModel) executable).checkAnyLayoutExists()) {
+            return;
+        }
+        PostAddSegmentEvent event = (PostAddSegmentEvent) eventContext.getEvent();
+        makeSegmentReady(eventContext.getProject(), event);
+    }
+
+    private void makeSegmentReady(String project, PostAddSegmentEvent event) {
         val kylinConfig = KylinConfig.getInstanceFromEnv();
         val segmentId = event.getSegmentId();
 
@@ -122,9 +140,6 @@ public class PostAddSegmentHandler extends AbstractEventPostJobHandler {
         //TODO: take care of this
         handleRetention(project, event.getModelId());
         autoMergeSegments(project, event.getModelId(), event.getOwner());
-
-        handleFavoriteQuery(eventContext);
-        finishEvent(project, event.getId());
     }
 
     private void autoMergeSegments(String project, String modelId, String owner) {

@@ -24,15 +24,10 @@
 
 package io.kyligence.kap.event.handle;
 
-import com.google.common.collect.Sets;
-import io.kyligence.kap.metadata.cube.model.NDataLoadingRange;
-import io.kyligence.kap.metadata.cube.model.NDataLoadingRangeManager;
-import io.kyligence.kap.metadata.cube.model.NDataSegment;
-import io.kyligence.kap.metadata.cube.model.NDataflow;
-import io.kyligence.kap.metadata.cube.model.NDataflowManager;
-import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
-import io.kyligence.kap.engine.spark.job.NSparkCubingJob;
-import lombok.var;
+import java.lang.reflect.InvocationTargetException;
+import java.util.UUID;
+
+import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.metadata.model.SegmentRange;
@@ -43,11 +38,22 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
-import lombok.val;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 
-import java.lang.reflect.InvocationTargetException;
-import java.util.UUID;
+import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.engine.spark.job.NSparkCubingJob;
+import io.kyligence.kap.event.model.EventContext;
+import io.kyligence.kap.event.model.PostAddSegmentEvent;
+import io.kyligence.kap.metadata.cube.model.NDataLoadingRange;
+import io.kyligence.kap.metadata.cube.model.NDataLoadingRangeManager;
+import io.kyligence.kap.metadata.cube.model.NDataSegment;
+import io.kyligence.kap.metadata.cube.model.NDataflow;
+import io.kyligence.kap.metadata.cube.model.NDataflowManager;
+import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
+import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
+import lombok.val;
+import lombok.var;
 
 public class PostAddSegmentHandlerTest extends NLocalFileMetadataTestCase {
 
@@ -62,7 +68,8 @@ public class PostAddSegmentHandlerTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void testMarkModelOnline_WhenStoppedIncJobExist() throws NoSuchMethodException, InvocationTargetException, IllegalAccessException {
+    public void testMarkModelOnline_WhenStoppedIncJobExist()
+            throws NoSuchMethodException, InvocationTargetException, IllegalAccessException {
         val project = "default";
         val dataflowId = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
         var dataflowManager = NDataflowManager.getInstance(getTestConfig(), project);
@@ -70,7 +77,8 @@ public class PostAddSegmentHandlerTest extends NLocalFileMetadataTestCase {
         val executableManager = NExecutableManager.getInstance(getTestConfig(), project);
 
         val job = NSparkCubingJob.create(Sets.newHashSet(dataflow.getSegments()),
-                Sets.newLinkedHashSet(dataflow.getIndexPlan().getAllLayouts()), "", JobTypeEnum.INC_BUILD, UUID.randomUUID().toString());
+                Sets.newLinkedHashSet(dataflow.getIndexPlan().getAllLayouts()), "", JobTypeEnum.INC_BUILD,
+                UUID.randomUUID().toString());
         executableManager.addJob(job);
         // pause IncJob will mark dataflow status to LAG_BEHIND
         executableManager.pauseJob(job.getId());
@@ -81,7 +89,8 @@ public class PostAddSegmentHandlerTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void testMarkModelOnline_WhenDataLoadingRangeCannotCover() throws NoSuchMethodException, InvocationTargetException, IllegalAccessException {
+    public void testMarkModelOnline_WhenDataLoadingRangeCannotCover()
+            throws NoSuchMethodException, InvocationTargetException, IllegalAccessException {
         val project = "default";
         val dataflowId = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
         var dataflowManager = NDataflowManager.getInstance(getTestConfig(), project);
@@ -91,8 +100,8 @@ public class PostAddSegmentHandlerTest extends NLocalFileMetadataTestCase {
         NDataflowUpdate update = new NDataflowUpdate(dataflowId);
         update.setToRemoveSegs(dataflowManager.getDataflow(dataflowId).getSegments().toArray(new NDataSegment[0]));
         dataflowManager.updateDataflow(update);
-        dataflowManager.appendSegment(dataflowManager.getDataflow(dataflowId), SegmentRange.TimePartitionedSegmentRange.createInfinite());
-
+        dataflowManager.appendSegment(dataflowManager.getDataflow(dataflowId),
+                SegmentRange.TimePartitionedSegmentRange.createInfinite());
 
         val dataLoadingRangeManager = NDataLoadingRangeManager.getInstance(getTestConfig(), project);
         String tableName = "DEFAULT.TEST_KYLIN_FACT";
@@ -110,7 +119,8 @@ public class PostAddSegmentHandlerTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void testMarkModelOnline_WhenHasNewSegInQueryableRange() throws NoSuchMethodException, InvocationTargetException, IllegalAccessException {
+    public void testMarkModelOnline_WhenHasNewSegInQueryableRange()
+            throws NoSuchMethodException, InvocationTargetException, IllegalAccessException {
         val project = "default";
         val dataflowId = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
         var dataflowManager = NDataflowManager.getInstance(getTestConfig(), project);
@@ -121,16 +131,18 @@ public class PostAddSegmentHandlerTest extends NLocalFileMetadataTestCase {
         update.setToRemoveSegs(dataflowManager.getDataflow(dataflowId).getSegments().toArray(new NDataSegment[0]));
         dataflowManager.updateDataflow(update);
         //prepare 3 segments (0,10)Ready (10,100)NEW (100, Long.max)Ready
-        val seg1 = dataflowManager.appendSegment(dataflowManager.getDataflow(dataflowId), new SegmentRange.TimePartitionedSegmentRange(0L, 10L));
-        dataflowManager.appendSegment(dataflowManager.getDataflow(dataflowId), new SegmentRange.TimePartitionedSegmentRange(10L, 100L));
-        val seg2 = dataflowManager.appendSegment(dataflowManager.getDataflow(dataflowId), new SegmentRange.TimePartitionedSegmentRange(100L, Long.MAX_VALUE));
+        val seg1 = dataflowManager.appendSegment(dataflowManager.getDataflow(dataflowId),
+                new SegmentRange.TimePartitionedSegmentRange(0L, 10L));
+        dataflowManager.appendSegment(dataflowManager.getDataflow(dataflowId),
+                new SegmentRange.TimePartitionedSegmentRange(10L, 100L));
+        val seg2 = dataflowManager.appendSegment(dataflowManager.getDataflow(dataflowId),
+                new SegmentRange.TimePartitionedSegmentRange(100L, Long.MAX_VALUE));
 
         update = new NDataflowUpdate(dataflowId);
         seg1.setStatus(SegmentStatusEnum.READY);
         seg2.setStatus(SegmentStatusEnum.READY);
-        update.setToUpdateSegs(new NDataSegment[]{seg1, seg2});
+        update.setToUpdateSegs(new NDataSegment[] { seg1, seg2 });
         dataflowManager.updateDataflow(update);
-
 
         val dataLoadingRangeManager = NDataLoadingRangeManager.getInstance(getTestConfig(), project);
         String tableName = "DEFAULT.TEST_KYLIN_FACT";
@@ -148,7 +160,8 @@ public class PostAddSegmentHandlerTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void testMarkModelOnline_WhenNoErrorJObAndDataLoadingRangeCover() throws NoSuchMethodException, InvocationTargetException, IllegalAccessException {
+    public void testMarkModelOnline_WhenNoErrorJObAndDataLoadingRangeCover()
+            throws NoSuchMethodException, InvocationTargetException, IllegalAccessException {
         val project = "default";
         val dataflowId = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
         var dataflowManager = NDataflowManager.getInstance(getTestConfig(), project);
@@ -171,7 +184,44 @@ public class PostAddSegmentHandlerTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(RealizationStatusEnum.ONLINE, dataflow.getStatus());
     }
 
-    private void testMarkDFOnlineIfNecessary() throws NoSuchMethodException, InvocationTargetException, IllegalAccessException {
+    @Test
+    public void testSegmentReady_WhenJobSuicideBecauseOfLayouts() {
+        val project = "default";
+        val dataflowId = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
+        var dataflowManager = NDataflowManager.getInstance(getTestConfig(), project);
+        var dataflow = dataflowManager.getDataflow(dataflowId);
+        val copy = dataflow.copy();
+        val update = new NDataflowUpdate(dataflow.getId());
+        val segment = copy.getFirstSegment();
+        segment.setStatus(SegmentStatusEnum.NEW);
+        update.setToUpdateSegs(segment);
+        dataflowManager.updateDataflow(update);
+        val executableManager = NExecutableManager.getInstance(getTestConfig(), project);
+
+        val job = NSparkCubingJob.create(Sets.newHashSet(dataflow.getFirstSegment()),
+                Sets.newLinkedHashSet(dataflow.getIndexPlan().getAllLayouts()), "", JobTypeEnum.INC_BUILD,
+                UUID.randomUUID().toString());
+        executableManager.addJob(job);
+        // pause IncJob will mark dataflow status to LAG_BEHIND
+        executableManager.updateJobOutput(job.getId(), ExecutableState.SUICIDAL);
+        val indexPlanManager = NIndexPlanManager.getInstance(getTestConfig(), project);
+        indexPlanManager.updateIndexPlan(dataflowId, copyForWrite -> {
+            copyForWrite.setIndexes(Lists.newArrayList());
+        });
+
+        val event = new PostAddSegmentEvent();
+        event.setModelId(dataflowId);
+        event.setSegmentId(dataflow.getFirstSegment().getId());
+        event.setJobId(job.getId());
+
+        event.getEventHandler().handle(new EventContext(event, getTestConfig(), project));
+
+        dataflow = NDataflowManager.getInstance(getTestConfig(), project).getDataflow(dataflowId);
+        Assert.assertEquals(dataflow.getFirstSegment().getStatus(), SegmentStatusEnum.READY);
+    }
+
+    private void testMarkDFOnlineIfNecessary()
+            throws NoSuchMethodException, InvocationTargetException, IllegalAccessException {
         val project = "default";
         val dataflowId = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
         val postAddSegmentHandler = new PostAddSegmentHandler();

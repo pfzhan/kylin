@@ -42,26 +42,31 @@
 
 package org.apache.kylin.rest.service;
 
-import io.kyligence.kap.metadata.favorite.FavoriteQueryManager;
-import io.kyligence.kap.metadata.favorite.FavoriteRuleManager;
-import io.kyligence.kap.metadata.query.AccelerateRatioManager;
-import io.kyligence.kap.metadata.query.QueryHistoryDAO;
-import io.kyligence.kap.rest.service.NFavoriteScheduler;
+import java.util.Comparator;
+
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.dao.JobStatisticsManager;
 import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.metadata.acl.TableACLManager;
+import org.springframework.beans.support.PropertyComparator;
+import org.springframework.security.core.context.SecurityContextHolder;
 
-import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
-import io.kyligence.kap.metadata.cube.model.NDataLoadingRangeManager;
-import io.kyligence.kap.metadata.cube.model.NDataflowManager;
+import com.google.common.base.CaseFormat;
+
 import io.kyligence.kap.event.manager.EventDao;
 import io.kyligence.kap.event.manager.EventManager;
+import io.kyligence.kap.metadata.cube.model.NDataLoadingRangeManager;
+import io.kyligence.kap.metadata.cube.model.NDataflowManager;
+import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
+import io.kyligence.kap.metadata.favorite.FavoriteQueryManager;
+import io.kyligence.kap.metadata.favorite.FavoriteRuleManager;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
-import org.springframework.security.core.context.SecurityContextHolder;
+import io.kyligence.kap.metadata.query.AccelerateRatioManager;
+import io.kyligence.kap.metadata.query.QueryHistoryDAO;
+import io.kyligence.kap.rest.service.NFavoriteScheduler;
 
 public abstract class BasicService {
 
@@ -143,8 +148,13 @@ public abstract class BasicService {
         return AccelerateRatioManager.getInstance(getConfig(), project);
     }
 
-
     public JobStatisticsManager getJobStatisticsManager(String project) {
         return JobStatisticsManager.getInstance(getConfig(), project);
+    }
+
+    protected static <T> Comparator<T> propertyComparator(String property, boolean ascending) {
+        return new PropertyComparator<T>(CaseFormat.LOWER_UNDERSCORE.to(CaseFormat.LOWER_CAMEL, property), false,
+                ascending);
+
     }
 }

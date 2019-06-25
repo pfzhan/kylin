@@ -89,20 +89,20 @@ public class DefaultChainedExecutableOnModel extends DefaultChainedExecutable {
         }
     }
 
-    private boolean checkAnyLayoutExists() {
+    public boolean checkAnyLayoutExists() {
         String layouts = getParam(NBatchConstants.P_LAYOUT_IDS);
         if (StringUtils.isEmpty(layouts)) {
             return true;
         }
-        val cubeManager = NIndexPlanManager.getInstance(getConfig(), getProject());
-        val cube = cubeManager.getIndexPlan(getTargetModel());
-        val allLayoutIds = cube.getAllLayouts().stream().map(l -> l.getId() + "").collect(Collectors.toSet());
+        val indexPlanManager = NIndexPlanManager.getInstance(getConfig(), getProject());
+        val indexPlan = indexPlanManager.getIndexPlan(getTargetModel());
+        val allLayoutIds = indexPlan.getAllLayouts().stream().map(l -> l.getId() + "").collect(Collectors.toSet());
         return Stream.of(StringUtil.splitAndTrim(layouts, ",")).anyMatch(allLayoutIds::contains);
     }
 
     private boolean checkTargetSegmentExists(String segmentId) {
         NDataflow dataflow = NDataflowManager.getInstance(getConfig(), getProject()).getDataflow(getTargetModel());
-        if (dataflow == null) {
+        if (dataflow == null || dataflow.checkBrokenWithRelatedInfo()) {
             return false;
         }
         NDataSegment segment = dataflow.getSegment(segmentId);

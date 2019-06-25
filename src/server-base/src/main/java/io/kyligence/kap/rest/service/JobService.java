@@ -59,13 +59,13 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 
-import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
 import io.kyligence.kap.common.metrics.NMetricsCategory;
 import io.kyligence.kap.common.metrics.NMetricsGroup;
 import io.kyligence.kap.common.metrics.NMetricsName;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
+import io.kyligence.kap.common.persistence.transaction.UnitOfWorkContext;
 import io.kyligence.kap.common.scheduler.JobReadyNotifier;
 import io.kyligence.kap.common.scheduler.SchedulerEventBusFactory;
 import io.kyligence.kap.event.model.AddCuboidEvent;
@@ -92,11 +92,6 @@ public class JobService extends BasicService {
     private TableExtService tableExtService;
 
     private static final Logger logger = LoggerFactory.getLogger(JobService.class);
-    private static final String JOB_NAME = "job_name";
-    private static final String CREATE_TIME = "create_time";
-    private static final String TARGET_SUBJECT = "target_subject";
-    private static final String JOB_STATUS = "job_status";
-    private static final String DURATION = "duration";
 
     public List<ExecutableResponse> listJobs(final JobFilter jobFilter) {
         NExecutableManager executableManager = getExecutableManager(jobFilter.getProject());
@@ -106,65 +101,40 @@ public class JobService extends BasicService {
         long timeStartInMillis = getTimeStartInMillis(calendar, JobTimeFilterEnum.getByCode(jobFilter.getTimeFilter()));
         long timeEndInMillis = Long.MAX_VALUE;
         List<AbstractExecutable> jobs = executableManager.getAllExecutables(timeStartInMillis, timeEndInMillis);
-        List<ExecutableResponse> filteredJobs = jobs.stream().filter(
+        Comparator<ExecutableResponse> comparator = propertyComparator(
+                StringUtils.isEmpty(jobFilter.getSortBy()) ? "last_modified" : jobFilter.getSortBy(),
+                !jobFilter.isReverse());
 
-                ((Predicate<AbstractExecutable>) (abstractExecutable -> {
-                    if (StringUtils.isEmpty(jobFilter.getStatus())) {
-                        return true;
-                    }
-                    ExecutableState state = abstractExecutable.getStatus();
-                    return state.equals(parseToExecutableState(JobStatusEnum.valueOf(jobFilter.getStatus())));
-                })).and(abstractExecutable -> {
-                    String subject = jobFilter.getSubjectAlias();
-                    if (StringUtils.isEmpty(subject)) {
-                        return true;
-                    }
-                    return StringUtils.containsIgnoreCase(abstractExecutable.getTargetSubjectAlias(), subject);
-                }).and(abstractExecutable -> {
-                    List<String> jobNames = jobFilter.getJobNames();
-                    if (CollectionUtils.isEmpty(jobNames)) {
-                        return true;
-                    }
-                    return jobNames.contains(abstractExecutable.getName());
-                }).and(abstractExecutable -> {
-                    String subject = jobFilter.getSubject();
-                    if (StringUtils.isEmpty(subject)) {
-                        return true;
-                    }
-                    //if filter on uuid, then it must be accurate
-                    return abstractExecutable.getTargetSubject().equals(jobFilter.getSubject().trim());
-                })
-
-        ).map(abstractExecutable -> {
+        return jobs.stream().filter(((Predicate<AbstractExecutable>) (abstractExecutable -> {
+            if (StringUtils.isEmpty(jobFilter.getStatus())) {
+                return true;
+            }
+            ExecutableState state = abstractExecutable.getStatus();
+            return state.equals(parseToExecutableState(JobStatusEnum.valueOf(jobFilter.getStatus())));
+        })).and(abstractExecutable -> {
+            String subject = jobFilter.getSubjectAlias();
+            if (StringUtils.isEmpty(subject)) {
+                return true;
+            }
+            return StringUtils.containsIgnoreCase(abstractExecutable.getTargetSubjectAlias(), subject);
+        }).and(abstractExecutable -> {
+            List<String> jobNames = jobFilter.getJobNames();
+            if (CollectionUtils.isEmpty(jobNames)) {
+                return true;
+            }
+            return jobNames.contains(abstractExecutable.getName());
+        }).and(abstractExecutable -> {
+            String subject = jobFilter.getSubject();
+            if (StringUtils.isEmpty(subject)) {
+                return true;
+            }
+            //if filter on uuid, then it must be accurate
+            return abstractExecutable.getTargetSubject().equals(jobFilter.getSubject().trim());
+        })).map(abstractExecutable -> {
             ExecutableResponse executableResponse = ExecutableResponse.create(abstractExecutable);
             executableResponse.setStatus(parseToJobStatus(abstractExecutable.getStatus()));
             return executableResponse;
-        }).sorted((o1, o2) -> {
-            String sortBy = jobFilter.getSortBy();
-            return sortJobs(sortBy, o1, o2);
-        }).collect(Collectors.toList());
-
-        if (jobFilter.isReverse()) {
-            filteredJobs = Lists.reverse(filteredJobs);
-        }
-        return filteredJobs;
-    }
-
-    private int sortJobs(String sortBy, ExecutableResponse o1, ExecutableResponse o2) {
-        switch (sortBy) {
-        case JOB_NAME:
-            return o1.getJobName().compareTo(o2.getJobName());
-        case TARGET_SUBJECT:
-            return o1.getTargetSubject().compareTo(o2.getTargetSubject());
-        case JOB_STATUS:
-            return o1.getStatus().compareTo(o2.getStatus());
-        case CREATE_TIME:
-            return o1.getCreateTime() < o2.getCreateTime() ? -1 : 1;
-        case DURATION:
-            return o1.getDuration() < o2.getDuration() ? -1 : 1;
-        default:
-            return o1.getLastModified() < o2.getLastModified() ? -1 : 1;
-        }
+        }).sorted(comparator).collect(Collectors.toList());
     }
 
     private long getTimeStartInMillis(Calendar calendar, JobTimeFilterEnum timeFilter) {
@@ -241,17 +211,17 @@ public class JobService extends BasicService {
 
     private void updateJobStatus(String jobId, String project, String action) throws IOException {
         val executableManager = getExecutableManager(project);
+        UnitOfWorkContext.AfterUnitTask afterUnitTask = () -> SchedulerEventBusFactory
+                .getInstance(KylinConfig.getInstanceFromEnv()).postWithLimit(new JobReadyNotifier(project));
         switch (JobActionEnum.valueOf(action)) {
         case RESUME:
             executableManager.resumeJob(jobId);
-            UnitOfWork.get().doAfterUnit(() -> SchedulerEventBusFactory.getInstance(KylinConfig.getInstanceFromEnv())
-                    .postWithLimit(new JobReadyNotifier(project)));
+            UnitOfWork.get().doAfterUnit(afterUnitTask);
             NMetricsGroup.counterInc(NMetricsName.JOB_RESUMED, NMetricsCategory.PROJECT, project);
             break;
         case RESTART:
             executableManager.restartJob(jobId);
-            UnitOfWork.get().doAfterUnit(() -> SchedulerEventBusFactory.getInstance(KylinConfig.getInstanceFromEnv())
-                    .postWithLimit(new JobReadyNotifier(project)));
+            UnitOfWork.get().doAfterUnit(afterUnitTask);
             break;
         case DISCARD:
             cancelJob(project, jobId);

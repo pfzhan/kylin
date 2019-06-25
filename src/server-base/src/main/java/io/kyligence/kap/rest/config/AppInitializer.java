@@ -29,10 +29,12 @@ import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.metadata.project.ProjectInstance;
+import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.security.KylinUserManager;
 import org.apache.kylin.rest.security.ManagedUser;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.context.event.ApplicationPreparedEvent;
+import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.event.EventListener;
 import org.springframework.core.annotation.Order;
@@ -86,7 +88,7 @@ public class AppInitializer {
             //start the embedded metrics reporters
             NMetricsController.startReporters(KapConfig.wrap(kylinConfig));
 
-            taskScheduler.scheduleWithFixedDelay(bootstrapCommand, 10000);
+            val resourceStore = ResourceStore.getKylinMetaStore(kylinConfig);
 
             EventListenerRegistry.getInstance(kylinConfig).register(new FavoriteQueryUpdateListener(), "fq");
             event.getApplicationContext().publishEvent(new AppInitializedEvent(event.getApplicationContext()));
@@ -112,6 +114,14 @@ public class AppInitializer {
             InfluxDBWriter.getInstance();
         } catch (Exception ex) {
             log.error("InfluxDB writer has not initialized");
+        }
+    }
+
+    @EventListener(ApplicationReadyEvent.class)
+    public void afterReady(ApplicationReadyEvent event) {
+        val kylinConfig = KylinConfig.getInstanceFromEnv();
+        if (kylinConfig.getServerMode().equals(Constant.SERVER_MODE_ALL)) {
+            taskScheduler.scheduleWithFixedDelay(new BootstrapCommand(), 10000);
         }
     }
 

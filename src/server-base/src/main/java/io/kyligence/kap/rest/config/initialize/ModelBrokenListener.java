@@ -27,8 +27,6 @@ package io.kyligence.kap.rest.config.initialize;
 import java.io.IOException;
 import java.util.UUID;
 
-import io.kyligence.kap.event.manager.EventDao;
-import io.kyligence.kap.event.model.Event;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.util.JsonUtil;
@@ -39,8 +37,10 @@ import com.google.common.collect.Lists;
 import com.google.common.eventbus.Subscribe;
 
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
+import io.kyligence.kap.event.manager.EventDao;
 import io.kyligence.kap.event.manager.EventManager;
 import io.kyligence.kap.event.model.AddCuboidEvent;
+import io.kyligence.kap.event.model.Event;
 import io.kyligence.kap.event.model.PostAddCuboidEvent;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
@@ -52,11 +52,12 @@ import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import lombok.val;
+import lombok.var;
 
 public class ModelBrokenListener {
 
     @Subscribe
-    public void onModelBrolken(NDataModel.ModelBrokenEvent event) {
+    public void onModelBroken(NDataModel.ModelBrokenEvent event) {
         val origin = event.getModel();
         val project = origin.getProject();
         if (origin.isHandledAfterBroken()) {
@@ -110,10 +111,11 @@ public class ModelBrokenListener {
 
         UnitOfWork.doInTransactionWithRetry(() -> {
             val modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
-            val model = modelManager.getDataModelDesc(origin.getId());
+            var model = modelManager.getDataModelDesc(origin.getId());
             if (!model.isHandledAfterBroken()) {
                 return null;
             }
+            model = modelManager.copyForWrite(model);
             val dataflowManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
             val dataflow = dataflowManager.getDataflow(origin.getId());
             val dfUpdate = new NDataflowUpdate(dataflow.getId());

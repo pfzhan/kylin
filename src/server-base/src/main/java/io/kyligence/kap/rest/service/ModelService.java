@@ -135,23 +135,11 @@ public class ModelService extends BasicService {
 
     private static final Message msg = MsgPicker.getMsg();
 
-    private static final String LAST_MODIFY = "last_modify";
-
     private static final String MODEL = "Model '";
 
     private static final String SEGMENT_PATH = "segment_path";
 
     private static final String FILE_COUNT = "file_count";
-
-    private static final String CREATE_TIME = "create_time";
-
-    private static final String START_TIME = "start_time";
-
-    private static final String END_TIME = "end_time";
-
-    private static final String STORAGE = "storage";
-
-    private static final String USAGE = "usage";
 
     public static final String VALID_NAME_FOR_MODEL_DIMENSION_MEASURE = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890_";
 
@@ -203,37 +191,15 @@ public class ModelService extends BasicService {
                 }
             }
         }
-        return sortModelResponses(sortBy, reverse, filterModels);
+        Comparator<NDataModelResponse> comparator = propertyComparator(
+                StringUtils.isEmpty(sortBy) ? "last_modify" : sortBy, !reverse);
+        filterModels.sort(comparator);
+        return filterModels;
     }
 
     private boolean isArgMatch(String valueToMatch, boolean exactMatch, String originValue) {
         return StringUtils.isEmpty(valueToMatch) || (exactMatch && originValue.equalsIgnoreCase(valueToMatch))
                 || (!exactMatch && originValue.toLowerCase().contains(valueToMatch.toLowerCase()));
-    }
-
-    private Comparator<NDataModelResponse> lastModifyComp = Comparator.comparingLong(r -> -r.getLastModified());
-    private Comparator<NDataModelResponse> usageComp = Comparator.comparingLong(r -> -r.getUsage());
-    private Comparator<NDataModelResponse> storageComp = Comparator.comparingLong(r -> -r.getStorage());
-
-    private List<NDataModelResponse> sortModelResponses(String sortBy, boolean reverse,
-            List<NDataModelResponse> filterModels) {
-        if (sortBy.equals(LAST_MODIFY) && reverse) {
-            Collections.sort(filterModels, lastModifyComp);
-        } else if (sortBy.equals(LAST_MODIFY) && !reverse) {
-            Collections.sort(filterModels, lastModifyComp);
-            Collections.reverse(filterModels);
-        } else if (sortBy.equals(USAGE) && reverse) {
-            Collections.sort(filterModels, usageComp);
-        } else if (sortBy.equals(USAGE) && !reverse) {
-            Collections.sort(filterModels, usageComp);
-            Collections.reverse(filterModels);
-        } else if (sortBy.equals(STORAGE) && reverse) {
-            Collections.sort(filterModels, storageComp);
-        } else if (sortBy.equals(STORAGE) && !reverse) {
-            Collections.sort(filterModels, storageComp);
-            Collections.reverse(filterModels);
-        }
-        return filterModels;
     }
 
     private NDataModelResponse enrichModelResponse(NDataModel modelDesc, String projectName) {
@@ -288,35 +254,10 @@ public class ModelService extends BasicService {
             nDataSegmentResponse.setStatusToDisplay(dataflow.getSegments().getSegmentStatusToDisplay(segment));
             segmentResponse.add(nDataSegmentResponse);
         }
-        sortSegments(segmentResponse, sortBy);
-        if (reverse) {
-            segmentResponse = Lists.reverse(segmentResponse);
-        }
+        Comparator<NDataSegmentResponse> comparator = propertyComparator(
+                StringUtils.isEmpty(sortBy) ? "create_time" : sortBy, reverse);
+        segmentResponse.sort(comparator);
         return segmentResponse;
-    }
-
-    private void sortSegments(List<NDataSegmentResponse> segments, String sortBy) {
-        var comp = Comparator.<NDataSegmentResponse> comparingLong(r -> -r.getCreateTimeUTC());
-
-        switch (sortBy) {
-        case CREATE_TIME:
-            comp = Comparator.<NDataSegmentResponse> comparingLong(r -> -r.getCreateTimeUTC());
-            break;
-        case START_TIME:
-            comp = Comparator
-                    .<NDataSegmentResponse> comparingLong(r -> -Long.parseLong(r.getSegRange().getStart().toString()));
-            break;
-        case END_TIME:
-            comp = Comparator
-                    .<NDataSegmentResponse> comparingLong(r -> -Long.parseLong(r.getSegRange().getEnd().toString()));
-            break;
-        case STORAGE:
-            comp = Comparator.<NDataSegmentResponse> comparingLong(r -> -r.getBytesSize());
-            break;
-        default:
-            break;
-        }
-        Collections.sort(segments, comp);
     }
 
     public Segments<NDataSegment> getSegmentsByRange(String modelId, String project, String start, String end) {

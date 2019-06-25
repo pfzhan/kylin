@@ -24,13 +24,13 @@
 
 package io.kyligence.kap.rest.response;
 
-import io.kyligence.kap.metadata.cube.model.NDataSegment;
-
+import org.apache.kylin.metadata.model.SegmentStatusEnumToDisplay;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+
+import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import lombok.Getter;
 import lombok.Setter;
-import org.apache.kylin.metadata.model.SegmentStatusEnumToDisplay;
 
 @Getter
 @Setter
@@ -44,12 +44,24 @@ public class NDataSegmentResponse extends NDataSegment {
     @JsonProperty("status_to_display")
     private SegmentStatusEnumToDisplay statusToDisplay;
 
+    private long createTime;
+
+    private long startTime;
+
+    private long endTime;
+
+    private long storage;
+
     public NDataSegmentResponse() {
         super();
     }
 
     public NDataSegmentResponse(NDataSegment other) {
         super(other);
+        createTime = getCreateTimeUTC();
+        startTime = Long.parseLong(getSegRange().getStart().toString());
+        endTime = Long.parseLong(getSegRange().getEnd().toString());
+        storage = bytesSize;
     }
 
 }

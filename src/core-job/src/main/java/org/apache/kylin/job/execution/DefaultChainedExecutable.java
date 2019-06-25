@@ -80,6 +80,8 @@ public class DefaultChainedExecutable extends AbstractExecutable implements Chai
         for (Executable subTask : executables) {
             if (subTask.isRunnable()) {
                 subTask.execute(context);
+            } else if (subTask.getStatus() == ExecutableState.SUCCEED) {
+                logger.info("Subtask {} was succeed, skip it", subTask.getDisplayName());
             } else {
                 throw new IllegalStateException("invalid subtask state, sub task:" + subTask.getDisplayName()
                         + ", state:" + subTask.getStatus());

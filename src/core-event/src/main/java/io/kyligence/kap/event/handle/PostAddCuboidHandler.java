@@ -72,7 +72,7 @@ public class PostAddCuboidHandler extends AbstractEventPostJobHandler {
     }
 
     @Override
-    protected void restartNewJobIfNecessary(EventContext eventContext, ChainedExecutable executable) {
+    protected void doHandleWithSuicidalJob(EventContext eventContext, ChainedExecutable executable) {
         val project = eventContext.getProject();
         val postEvent = (PostAddCuboidEvent) eventContext.getEvent();
         val job = (DefaultChainedExecutableOnModel) executable;

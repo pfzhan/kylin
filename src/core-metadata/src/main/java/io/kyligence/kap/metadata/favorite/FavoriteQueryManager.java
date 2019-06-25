@@ -28,6 +28,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.metadata.cachesync.CachedCrudAssist;
@@ -169,7 +170,10 @@ public class FavoriteQueryManager implements IKeepNames {
         FavoriteQuery cached = get(sqlPattern);
         if (cached == null)
             return;
-
+        if (cached.getStatus() == FavoriteQueryStatusEnum.TO_BE_ACCELERATED
+                && CollectionUtils.isEmpty(cached.getRealizations())) {
+            return;
+        }
         FavoriteQuery copyForWrite = crud.copyForWrite(cached);
         copyForWrite.updateStatus(FavoriteQueryStatusEnum.TO_BE_ACCELERATED, comment);
         copyForWrite.setRealizations(Lists.newArrayList());

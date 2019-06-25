@@ -26,15 +26,15 @@ package io.kyligence.kap.rest;
 import java.io.File;
 import java.nio.file.Paths;
 
-import javax.annotation.PostConstruct;
-
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.spark.sql.SparderEnv;
 import org.springframework.boot.autoconfigure.AutoConfigureOrder;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.event.EventListener;
 
+import io.kyligence.kap.rest.config.initialize.AppInitializedEvent;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -42,8 +42,8 @@ import lombok.extern.slf4j.Slf4j;
 @AutoConfigureOrder
 public class SparderConfiguration {
 
-    @PostConstruct
-    public void init() {
+    @EventListener(AppInitializedEvent.class)
+    public void init(AppInitializedEvent event) {
         SparderEnv.init();
         if (System.getProperty("spark.local", "false").equals("true")) {
             log.debug("spark.local=true");

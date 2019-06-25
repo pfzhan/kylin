@@ -500,8 +500,7 @@ public class NDataflow extends RootPersistentEntity implements Serializable, IRe
         }
         val modelManager = NDataModelManager.getInstance(config, project);
         val model = modelManager.getDataModelDesc(uuid);
-        val modelBroken = model == null || model.isBroken();
-        return modelBroken;
+        return model == null || model.isBroken();
     }
 
     public Set<Long> findLowFrequencyLayout() {
