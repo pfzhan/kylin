@@ -153,7 +153,7 @@
           <div class="ky-list-title ksd-mt-10 ksd-fs-14">{{$t('sqlBox')}}</div>
           <div v-loading="sqlLoading" element-loading-spinner="el-icon-loading">
             <div class="query_panel_box ksd-mt-10">
-              <kap-editor ref="whiteInputBox" :height="inputHeight" :readOnly="this.isReadOnly" lang="sql" theme="chrome" v-model="whiteSql">
+              <kap-editor ref="whiteInputBox" :height="inputHeight" :readOnly="this.isReadOnly" lang="sql" theme="chrome" v-model="whiteSql" v-if="isShowEditor">
               </kap-editor>
               <div class="operatorBox" v-if="isEditSql">
                 <div class="btn-group ksd-fright ky-no-br-space">
@@ -512,6 +512,7 @@ export default class FavoriteQuery extends Vue {
     offset: 0
   }
   updateLoading = false
+  isShowEditor = true
   ST = null
   stCycle = null
   isPausePolling = false
@@ -640,6 +641,15 @@ export default class FavoriteQuery extends Vue {
       this.initTimer = setTimeout(() => {
         this.init()
       }, 1000)
+    }
+  }
+  @Watch('inputHeight')
+  onHeightChange (val) {
+    if (val) {
+      this.isShowEditor = false
+      this.$nextTick(() => {
+        this.isShowEditor = true
+      })
     }
   }
 
