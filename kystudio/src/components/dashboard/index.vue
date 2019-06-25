@@ -2,7 +2,7 @@
   <div id="dashboard">
     <el-alert class="quota_tips" type="error" :closable="false" show-icon v-if="isNoQuota">
       <span slot="title">
-        <span>{{$t('quotaTips1')}}</span><span>{{$t('quotaTips2')}}</span><a @click="gotoSetting">{{$t('quotaTips3')}}</a><span>{{$t('quotaTips4')}}</span>
+        <span>{{noMoreQuotaTips1}}</span><a @click="gotoSetting">{{$t('quotaTips3')}}</a><span>{{$t('quotaTips4')}}</span>
       </span>
     </el-alert>
     <div class="dashboard-content">
@@ -265,8 +265,8 @@ import LineChart from './LineChart'
       acceImpactDesc: 'In the project, accelerated queries ratio.',
       noEnoughData: 'Not enough data yet',
       sec: 's',
-      quotaTips1: 'No storage quota available. The system will terminate the new load data job and build index job, while the query engine will still serve. Please clean up low-efficient storage in time',
-      quotaTips2: ', increase the',
+      quotaTips1: 'The project only has 10% storage quota. Some new jobs will be terminated when no storage quota is available. Please clean up low-efficient storage in time, increase the',
+      quotaTips2: 'No storage quota available. The system will terminate the new load data job and build index job, while the query engine will still serve. Please clean up low-efficient storage in time, increase the',
       quotaTips3: ' low-efficient storage threshold',
       quotaTips4: ', or notify the system administrator to increase the storage quota for this project.'
     },
@@ -297,8 +297,8 @@ import LineChart from './LineChart'
       acceImpactDesc: '本项目中，已经加速的查询的比例。',
       noEnoughData: '尚无足够数据统计',
       sec: '秒',
-      quotaTips1: '已无可用的存储配额。系统将终止新增的数据加载任务和索引构建任务，查询引擎依然正常服务。请及时清理低效存储',
-      quotaTips2: '，提高',
+      quotaTips1: '只有10%存储配额可用，当没有可用存储配额时系统将终止部分新增的任务。请及时清理低效存储，提高',
+      quotaTips2: '已无可用的存储配额。系统将终止新增的数据加载任务和索引构建任务，查询引擎依然正常服务。请及时清理低效存储，提高',
       quotaTips3: '低效存储阈值',
       quotaTips4: '，或者通知系统管理员提高本项目的存储配额。'
     }
@@ -604,14 +604,29 @@ export default class Dashboard extends Vue {
       this.loadQueryChart()
     }
   }
+  get noMoreQuotaTips1 () {
+    let noMoreQuotaTips1 = ''
+    if (+this.useageRatio >= 0.9 && +this.useageRatio < 0.99) {
+      noMoreQuotaTips1 = this.$t('quotaTips1')
+    } else if (+this.useageRatio >= 0.99) {
+      noMoreQuotaTips1 = this.$t('quotaTips2')
+    } else {
+      noMoreQuotaTips1 = ''
+    }
+    return noMoreQuotaTips1
+  }
   async loadQuotaInfo () {
     const res = await this.getQuotaInfo({project: this.currentSelectedProject})
     const resData = await handleSuccessAsync(res)
     this.quotaInfo = resData
     this.useageRatio = (resData.total_storage_size / resData.storage_quota_size).toFixed(4)
     this.trashRatio = (resData.garbage_storage_size / resData.storage_quota_size).toFixed(4)
-    if (+this.useageRatio >= 0.99) {
+    if (+this.useageRatio >= 0.9 && +this.useageRatio < 0.99) {
       this.isNoQuota = true
+    } else if (+this.useageRatio >= 0.99) {
+      this.isNoQuota = true
+    } else {
+      this.isNoQuota = false
     }
     setTimeout(() => {
       this.useageBlockHeight = this.useageRatio >= 1 ? this.quotaHeight : this.useageRatio * this.quotaHeight

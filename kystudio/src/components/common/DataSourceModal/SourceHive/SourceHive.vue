@@ -207,6 +207,9 @@ export default class SourceHive extends Vue {
   }
   async mounted () {
     await this.loadDatabase()
+    this.$on('samplingFormValid', () => {
+      this.handleSamplingRows(this.samplingRows)
+    })
   }
   updated () {
     this.refreshSelectorWidth()

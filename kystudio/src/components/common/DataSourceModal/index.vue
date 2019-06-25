@@ -23,6 +23,7 @@
       </SourceHiveSetting>
       <SourceHive
         v-if="[editTypes.HIVE, editTypes.RDBMS, editTypes.RDBMS2].includes(editType)"
+        ref="source-hive-form"
         :source-type="sourceType"
         :selected-tables="form.selectedTables"
         :selected-databases="form.selectedDatabases"
@@ -204,9 +205,6 @@ export default class DataSourceModal extends Vue {
     this.isDisabled = true
   }
   async _submit () {
-    if (this.form.needSampling && (this.form.samplingRows < 10000 || this.form.samplingRows > 20000000)) {
-      return
-    }
     const submitData = getSubmitData(this.form, this.editType)
     this.prevSteps.push(this.editType)
     switch (this.editType) {
@@ -268,7 +266,11 @@ export default class DataSourceModal extends Vue {
       case editTypes.RDBMS2: {
         const isValid = this.form.selectedTables.length || this.form.selectedDatabases.length
         !isValid && this.$message(this.$t('pleaseSelectTableOrDatabase'))
-        return isValid
+        const isSamplingValid = this.form.needSampling && this.form.samplingRows && this.form.samplingRows >= 10000 && this.form.samplingRows <= 20000000
+        if (!isSamplingValid) {
+          this.$refs['source-hive-form'].$emit('samplingFormValid')
+        }
+        return isValid && isSamplingValid
       }
       case editTypes.CSV: {
         return await this.$refs['source-csv-connection-form'].$refs.form.validate()
