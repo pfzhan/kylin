@@ -39,7 +39,6 @@
 
 <script>
 import Vue from 'vue'
-import loadMoreImg from '../../../assets/img/loadmore.png'
 import { Component } from 'vue-property-decorator'
 import { isIE } from '../../../util'
 
@@ -120,6 +119,14 @@ const filterDefaultWhiteList = ['isMore', 'isLoading']
         children: 'children',
         label: 'label'
       })
+    }
+  },
+  locales: {
+    'en': {
+      loadMore: 'Load More ...'
+    },
+    'zh-cn': {
+      loadMore: '加载更多 ...'
     }
   }
 })
@@ -229,9 +236,7 @@ export default class TreeList extends Vue {
           render(h, { node, data, store })
         ) : node.label }
         { type === 'isMore' ? (
-          <img class="load-more-img"
-            title="load more"
-            src={loadMoreImg} />
+          <span>{this.$t('loadMore')}</span>
         ) : null}
       </div>
     )
@@ -341,33 +346,34 @@ export default class TreeList extends Vue {
   }
   .tree-item.el-loading-parent--relative {
     position: relative !important;
-    width: calc(~'100% + 18px');
-    height: 36px;
-    left: -42px;
+    height: 100%;
+    // margin:0 auto;
+    width: auto;
     background: white;
     flex: none;
     cursor: default;
+    margin-left: calc(50% - 16px)!important;
     .el-loading-spinner {
-      height: 36px;
+      width: 16px;
     }
     .circular {
-      width: 36px;
-      height: 36px;
+      width: 16px;
+      width: 16px;
     }
   }
   .load-more {
     flex: none;
     height: 100%;
-    line-height: 36px;
+    line-height: 30px!important;
     position: relative;
     box-sizing: border-box;
-  }
-  .load-more-img {
-    font-weight: @font-medium;
-    width: 20px;
-    height: 6px;
-    margin-left: 10px;
-    cursor: pointer;
+    span {
+      font-size:12px;
+      cursor:pointer;
+      &:hover{
+        color:@base-color;
+      }
+    }
   }
   .resize-bar {
     position: absolute;

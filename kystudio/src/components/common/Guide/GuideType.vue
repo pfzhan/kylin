@@ -10,7 +10,7 @@
         <el-col :span="12" >
           <div class="guide-type-content">
             <div class="guide-pic">
-              <img src="../../../assets/img/guide/smart_mode_big.png"/>
+              <i class="el-icon-ksd-smart_mode"></i>
             </div>
             <div class="guide-title">{{$t('smartMode')}}</div>
             <div class="guide-desc" :class="$lang=='en'? 'en' : ''">{{$t('smartModeDesc')}}</div>
@@ -20,7 +20,7 @@
         <el-col :span="12">
           <div class="guide-type-content">
             <div class="guide-pic">
-              <img src="../../../assets/img/guide/expert_mode_big.png"/>
+              <i class="el-icon-ksd-expert_mode"></i>
             </div>
             <div class="guide-title">{{$t('exportMode')}}</div>
             <div class="guide-desc" :class="$lang=='en'? 'en' : ''">{{$t('exportModeDesc')}}</div>
@@ -117,13 +117,15 @@
     .guide-pic{
       width:85px;
       height:85px;
-      background-color: @grey-4;
+      background-color: @base-color-9;
       margin: 0 auto;
       border-radius: 50%;
       margin-top:40px;
-      img {
-        width:85px;
-        height:85px;
+      text-align: center;
+      i {
+        margin-top:10px;
+        font-size:67px;
+        color:@base-color;
       }
     }
     .guide-title{
