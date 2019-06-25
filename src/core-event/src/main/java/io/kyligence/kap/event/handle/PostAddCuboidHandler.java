@@ -23,8 +23,6 @@
  */
 package io.kyligence.kap.event.handle;
 
-import java.util.UUID;
-
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.execution.ChainedExecutable;
 import org.apache.kylin.job.execution.DefaultChainedExecutableOnModel;
@@ -35,7 +33,6 @@ import com.google.common.base.Preconditions;
 
 import io.kyligence.kap.engine.spark.job.NSparkExecutable;
 import io.kyligence.kap.engine.spark.merger.AfterBuildResourceMerger;
-import io.kyligence.kap.event.model.AddCuboidEvent;
 import io.kyligence.kap.event.model.EventContext;
 import io.kyligence.kap.event.model.PostAddCuboidEvent;
 import lombok.val;
@@ -80,17 +77,8 @@ public class PostAddCuboidHandler extends AbstractEventPostJobHandler {
         if (!(job.checkCuttingInJobByModel() && job.checkAnyTargetSegmentExists())) {
             return;
         }
-        val addEvent = new AddCuboidEvent();
-        addEvent.setModelId(postEvent.getModelId());
-        addEvent.setOwner(postEvent.getOwner());
-        addEvent.setJobId(UUID.randomUUID().toString());
-        getEventManager(project, KylinConfig.getInstanceFromEnv()).post(addEvent);
-
-        val postAddEvent = new PostAddCuboidEvent();
-        postAddEvent.setModelId(addEvent.getModelId());
-        postAddEvent.setJobId(addEvent.getJobId());
-        postAddEvent.setOwner(addEvent.getOwner());
-        getEventManager(project, KylinConfig.getInstanceFromEnv()).post(postAddEvent);
+        getEventManager(project, KylinConfig.getInstanceFromEnv()).postAddCuboidEvents(postEvent.getModelId(),
+                postEvent.getOwner());
     }
 
     protected void doHandleWithNullJob(EventContext eventContext) {

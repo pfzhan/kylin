@@ -460,7 +460,7 @@ public class ModelServiceSemanticUpdateTest extends NLocalFileMetadataTestCase {
         });
         val cube = dfMgr.getDataflow(originModel.getUuid()).getIndexPlan();
         val tableIndexCount = cube.getAllLayouts().stream().filter(l -> l.getIndex().isTableIndex()).count();
-        semanticService.handleSemanticUpdate("default", MODEL_ID, originModel);
+        semanticService.handleSemanticUpdate("default", MODEL_ID, originModel, null, null);
         val events = EventDao.getInstance(getTestConfig(), "default").getEvents();
         events.sort(Event::compareTo);
 
@@ -483,10 +483,10 @@ public class ModelServiceSemanticUpdateTest extends NLocalFileMetadataTestCase {
             val partitionDesc = model.getPartitionDesc();
             partitionDesc.setCubePartitionType(PartitionDesc.PartitionType.UPDATE_INSERT);
         });
-        semanticService.handleSemanticUpdate("default", originModel.getUuid(), originModel);
+        semanticService.handleSemanticUpdate("default", originModel.getUuid(), originModel, null, null);
 
         val events = EventDao.getInstance(getTestConfig(), "default").getEvents();
-        Assert.assertTrue(events.size() == 0);
+        Assert.assertTrue(events.size() == 2);
         val df = dfMgr.getDataflow(MODEL_ID);
 
         Assert.assertEquals(0, df.getSegments().size());
@@ -496,7 +496,7 @@ public class ModelServiceSemanticUpdateTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testChangeParititionDesc_OneToNull() {
-         val modelMgr = NDataModelManager.getInstance(getTestConfig(), "default");
+        val modelMgr = NDataModelManager.getInstance(getTestConfig(), "default");
         val dfMgr = NDataflowManager.getInstance(getTestConfig(), "default");
         val originModel = getTestBasicModel();
         val cube = dfMgr.getDataflow(originModel.getUuid()).getIndexPlan();
@@ -505,7 +505,7 @@ public class ModelServiceSemanticUpdateTest extends NLocalFileMetadataTestCase {
         modelMgr.updateDataModel(MODEL_ID, model -> {
             model.setPartitionDesc(null);
         });
-        semanticService.handleSemanticUpdate("default", originModel.getUuid(), originModel);
+        semanticService.handleSemanticUpdate("default", originModel.getUuid(), originModel, null, null);
 
         val events = EventDao.getInstance(getTestConfig(), "default").getEvents();
         Assert.assertEquals(2, events.size());
@@ -517,12 +517,121 @@ public class ModelServiceSemanticUpdateTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
+    public void testChangePartitionDesc_NullToOne() {
+        val modelMgr = NDataModelManager.getInstance(getTestConfig(), "default");
+        val dfMgr = NDataflowManager.getInstance(getTestConfig(), "default");
+
+        modelMgr.updateDataModel(MODEL_ID, model -> model.setPartitionDesc(null));
+
+        val originModel = modelMgr.getDataModelDesc(MODEL_ID);
+
+        modelMgr.updateDataModel(MODEL_ID, model -> {
+            val partition = new PartitionDesc();
+            partition.setPartitionDateColumn("DEFAULT.TEST_KYLIN_FACT.CAL_DT");
+            partition.setPartitionDateFormat("yyyy-MM-dd");
+            model.setPartitionDesc(partition);
+        });
+
+        semanticService.handleSemanticUpdate("default", MODEL_ID, originModel, "1325347200000", "1388505600000");
+
+        val events = EventDao.getInstance(getTestConfig(), "default").getEvents();
+        Assert.assertEquals(2, events.size());
+
+        val df = dfMgr.getDataflow(MODEL_ID);
+
+        Assert.assertEquals(1, df.getSegments().size());
+
+        val segment = df.getSegments().get(0);
+        Assert.assertEquals(1325347200000L, segment.getTSRange().getStart());
+        Assert.assertEquals(1388505600000L, segment.getTSRange().getEnd());
+    }
+
+    @Test
+    public void testChangePartitionDesc_NullToOneWithNoDateRange() {
+        val modelMgr = NDataModelManager.getInstance(getTestConfig(), "default");
+        val dfMgr = NDataflowManager.getInstance(getTestConfig(), "default");
+
+        modelMgr.updateDataModel(MODEL_ID, model -> model.setPartitionDesc(null));
+
+        val originModel = modelMgr.getDataModelDesc(MODEL_ID);
+
+        modelMgr.updateDataModel(MODEL_ID, model -> {
+            val partition = new PartitionDesc();
+            partition.setPartitionDateColumn("DEFAULT.TEST_KYLIN_FACT.CAL_DT");
+            partition.setPartitionDateFormat("yyyy-MM-dd");
+            model.setPartitionDesc(partition);
+        });
+
+        semanticService.handleSemanticUpdate("default", originModel.getUuid(), originModel, null, null);
+
+        val events = EventDao.getInstance(getTestConfig(), "default").getEvents();
+        Assert.assertEquals(2, events.size());
+        val df = dfMgr.getDataflow(MODEL_ID);
+
+        Assert.assertEquals(0, df.getSegments().size());
+    }
+
+    @Test
+    public void testChangePartitionDesc_ChangePartitionColumn() {
+        val modelMgr = NDataModelManager.getInstance(getTestConfig(), "default");
+        val dfMgr = NDataflowManager.getInstance(getTestConfig(), "default");
+        val originModel = getTestBasicModel();
+
+        modelMgr.updateDataModel(MODEL_ID, model -> {
+            val partition = new PartitionDesc();
+            partition.setPartitionDateColumn("DEFAULT.TEST_KYLIN_FACT.TRANS_ID");
+            partition.setPartitionDateFormat("yyyy-MM-dd");
+            model.setPartitionDesc(partition);
+        });
+
+        var df = dfMgr.getDataflow(MODEL_ID);
+        Assert.assertEquals(1, df.getSegments().size());
+
+        semanticService.handleSemanticUpdate("default", MODEL_ID, originModel, null, null);
+
+        val events = EventDao.getInstance(getTestConfig(), "default").getEvents();
+        Assert.assertEquals(2, events.size());
+        df = dfMgr.getDataflow(MODEL_ID);
+
+        Assert.assertEquals(0, df.getSegments().size());
+    }
+
+    @Test
+    public void testChangePartitionDesc_ChangePartitionColumn_WithDateRange() {
+        val modelMgr = NDataModelManager.getInstance(getTestConfig(), "default");
+        val dfMgr = NDataflowManager.getInstance(getTestConfig(), "default");
+        val originModel = getTestBasicModel();
+
+        modelMgr.updateDataModel(MODEL_ID, model -> {
+            val partition = new PartitionDesc();
+            partition.setPartitionDateColumn("DEFAULT.TEST_KYLIN_FACT.TRANS_ID");
+            partition.setPartitionDateFormat("yyyy-MM-dd");
+            model.setPartitionDesc(partition);
+        });
+
+        var df = dfMgr.getDataflow(MODEL_ID);
+        Assert.assertEquals(1, df.getSegments().size());
+
+        semanticService.handleSemanticUpdate("default", MODEL_ID, originModel, "1325347200000", "1388505600000");
+
+        val events = EventDao.getInstance(getTestConfig(), "default").getEvents();
+        Assert.assertEquals(2, events.size());
+        df = dfMgr.getDataflow(MODEL_ID);
+
+        Assert.assertEquals(1, df.getSegments().size());
+        val segment = df.getSegments().get(0);
+
+        Assert.assertEquals(1325347200000L, segment.getSegRange().getStart());
+        Assert.assertEquals(1388505600000L, segment.getSegRange().getEnd());
+    }
+
+    @Test
     public void testOnlyAddDimensions() throws Exception {
         val modelMgr = NDataModelManager.getInstance(getTestConfig(), "default");
         val originModel = getTestBasicModel();
         modelMgr.updateDataModel(MODEL_ID, model -> model.setAllNamedColumns(model.getAllNamedColumns().stream()
                 .peek(c -> c.setStatus(NDataModel.ColumnStatus.DIMENSION)).collect(Collectors.toList())));
-        semanticService.handleSemanticUpdate("default", MODEL_ID, originModel);
+        semanticService.handleSemanticUpdate("default", MODEL_ID, originModel, null, null);
         val events = EventDao.getInstance(getTestConfig(), "default").getEvents();
         events.sort(Event::compareTo);
 
@@ -540,7 +649,7 @@ public class ModelServiceSemanticUpdateTest extends NLocalFileMetadataTestCase {
                 m.id = 100017;
             }
         }).collect(Collectors.toList())));
-        semanticService.handleSemanticUpdate("default", MODEL_ID, originModel);
+        semanticService.handleSemanticUpdate("default", MODEL_ID, originModel, null, null);
 
         var events = EventDao.getInstance(getTestConfig(), "default").getEvents();
         Assert.assertEquals(0, events.size());
@@ -551,7 +660,7 @@ public class ModelServiceSemanticUpdateTest extends NLocalFileMetadataTestCase {
             rule.setMeasures(Arrays.asList(100001, 100000));
             copyForWrite.setRuleBasedIndex(rule);
         });
-        semanticService.handleSemanticUpdate("default", MODEL_ID, originModel);
+        semanticService.handleSemanticUpdate("default", MODEL_ID, originModel, null, null);
         events = EventDao.getInstance(getTestConfig(), "default").getEvents();
         Assert.assertEquals(0, events.size());
 
@@ -574,7 +683,7 @@ public class ModelServiceSemanticUpdateTest extends NLocalFileMetadataTestCase {
                     }
                 }).collect(Collectors.toList())));
 
-        semanticService.handleSemanticUpdate("default", originModel.getUuid(), originModel);
+        semanticService.handleSemanticUpdate("default", originModel.getUuid(), originModel, null, null);
 
         val cube = indePlanManager.getIndexPlan("741ca86a-1f13-46da-a59f-95fb68615e3a");
         for (LayoutEntity layout : cube.getWhitelistLayouts()) {
@@ -607,7 +716,7 @@ public class ModelServiceSemanticUpdateTest extends NLocalFileMetadataTestCase {
                         c.setStatus(NDataModel.ColumnStatus.EXIST);
                     }
                 }).collect(Collectors.toList())));
-        semanticService.handleSemanticUpdate("default", originModel.getUuid(), originModel);
+        semanticService.handleSemanticUpdate("default", originModel.getUuid(), originModel, null, null);
 
         val events = EventDao.getInstance(getTestConfig(), "default").getEvents();
         events.sort(Event::compareTo);
@@ -667,7 +776,7 @@ public class ModelServiceSemanticUpdateTest extends NLocalFileMetadataTestCase {
         modelManager.updateDataModel(originModel.getUuid(),
                 model -> model.setAllMeasures(model.getAllMeasures().stream()
                         .filter(m -> m.id != 100002 && m.id != 100001 && m.id != 100011).collect(Collectors.toList())));
-        semanticService.handleSemanticUpdate("default", indexPlan.getUuid(), originModel);
+        semanticService.handleSemanticUpdate("default", indexPlan.getUuid(), originModel, null, null);
 
         val events = EventDao.getInstance(getTestConfig(), "default").getEvents();
         events.sort(Event::compareTo);

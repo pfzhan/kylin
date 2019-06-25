@@ -27,10 +27,6 @@ package io.kyligence.kap.rest.cli;
 
 import com.google.common.collect.Sets;
 import io.kyligence.kap.event.manager.EventManager;
-import io.kyligence.kap.event.model.AddCuboidEvent;
-import io.kyligence.kap.event.model.AddSegmentEvent;
-import io.kyligence.kap.event.model.PostAddCuboidEvent;
-import io.kyligence.kap.event.model.PostAddSegmentEvent;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.NDataLoadingRangeManager;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
@@ -51,7 +47,6 @@ import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 
 import java.util.List;
 import java.util.Set;
-import java.util.UUID;
 
 public class RecoverModelUtil {
 
@@ -68,37 +63,13 @@ public class RecoverModelUtil {
         if (CollectionUtils.isNotEmpty(newSegs)) {
             //recover inc_build segs
             for (val newSeg : newSegs) {
-                AddSegmentEvent addSegmentEvent = new AddSegmentEvent();
-                addSegmentEvent.setSegmentId(newSeg.getId());
-                addSegmentEvent.setModelId(df.getModel().getId());
-                addSegmentEvent.setJobId(UUID.randomUUID().toString());
-                addSegmentEvent.setOwner(df.getModel().getOwner());
-                eventManager.post(addSegmentEvent);
-
-                PostAddSegmentEvent postAddSegmentEvent = new PostAddSegmentEvent();
-                postAddSegmentEvent.setSegmentId(newSeg.getId());
-                postAddSegmentEvent.setModelId(df.getModel().getId());
-                postAddSegmentEvent.setJobId(addSegmentEvent.getJobId());
-                postAddSegmentEvent.setOwner(df.getModel().getOwner());
-                eventManager.post(postAddSegmentEvent);
+                eventManager.postAddSegmentEvents(newSeg, df.getModel().getId(), df.getModel().getOwner());
             }
         }
 
         IndexPlan indexPlan = NIndexPlanManager.getInstance(config, project).getIndexPlan(df.getId());
         // be process layouts = all layouts - ready layouts
-        val addEvent = new AddCuboidEvent();
-        addEvent.setModelId(indexPlan.getUuid());
-        addEvent.setOwner(df.getModel().getOwner());
-        addEvent.setJobId(UUID.randomUUID().toString());
-        eventManager.post(addEvent);
-
-        val postAddEvent = new PostAddCuboidEvent();
-        postAddEvent.setModelId(indexPlan.getUuid());
-        postAddEvent.setJobId(addEvent.getJobId());
-        postAddEvent.setOwner(df.getModel().getOwner());
-        eventManager.post(postAddEvent);
-
-
+        eventManager.postAddCuboidEvents(indexPlan.getUuid(), df.getModel().getOwner());
         updateDfStatus(df, config, project);
     }
 

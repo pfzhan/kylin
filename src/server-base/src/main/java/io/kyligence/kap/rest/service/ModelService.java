@@ -79,10 +79,6 @@ import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.event.manager.EventManager;
-import io.kyligence.kap.event.model.AddCuboidEvent;
-import io.kyligence.kap.event.model.AddSegmentEvent;
-import io.kyligence.kap.event.model.PostAddCuboidEvent;
-import io.kyligence.kap.event.model.PostAddSegmentEvent;
 import io.kyligence.kap.event.model.PostMergeOrRefreshSegmentEvent;
 import io.kyligence.kap.event.model.RefreshSegmentEvent;
 import io.kyligence.kap.metadata.cube.cuboid.NSpanningTreeFactory;
@@ -850,31 +846,8 @@ public class ModelService extends BasicService {
 
             EventManager eventManager = getEventManager(project);
 
-            AddSegmentEvent addSegmentEvent = new AddSegmentEvent();
-            addSegmentEvent.setSegmentId(newSegment.getId());
-            addSegmentEvent.setModelId(modelId);
-            addSegmentEvent.setJobId(UUID.randomUUID().toString());
-            addSegmentEvent.setOwner(getUsername());
-            eventManager.post(addSegmentEvent);
-
-            PostAddSegmentEvent postAddSegmentEvent = new PostAddSegmentEvent();
-            postAddSegmentEvent.setSegmentId(newSegment.getId());
-            postAddSegmentEvent.setModelId(modelId);
-            postAddSegmentEvent.setJobId(addSegmentEvent.getJobId());
-            postAddSegmentEvent.setOwner(getUsername());
-            eventManager.post(postAddSegmentEvent);
-
-            AddCuboidEvent addCuboidEvent = new AddCuboidEvent();
-            addCuboidEvent.setModelId(modelId);
-            addCuboidEvent.setJobId(UUID.randomUUID().toString());
-            addCuboidEvent.setOwner(getUsername());
-            eventManager.post(addCuboidEvent);
-
-            PostAddCuboidEvent postAddCuboidEvent = new PostAddCuboidEvent();
-            postAddCuboidEvent.setModelId(modelId);
-            postAddCuboidEvent.setJobId(addCuboidEvent.getJobId());
-            postAddCuboidEvent.setOwner(getUsername());
-            eventManager.post(postAddCuboidEvent);
+            eventManager.postAddSegmentEvents(newSegment, modelId, getUsername());
+            eventManager.postAddCuboidEvents(modelId, getUsername());
             return null;
         }, project);
     }
@@ -1118,12 +1091,11 @@ public class ModelService extends BasicService {
     @Transaction(project = 0)
     public void updateDataModelSemantic(String project, ModelRequest request) throws Exception {
         checkModelRequest(request);
+        val modelId = request.getUuid();
         val modelManager = getDataModelManager(project);
-        val originModel = modelManager.getDataModelDesc(request.getUuid());
+        val originModel = modelManager.getDataModelDesc(modelId);
 
         val cubeManager = getIndexPlanManager(project);
-        val dataflowManager = getDataflowManager(project);
-        val df = dataflowManager.getDataflow(request.getUuid());
         val copyModel = modelManager.copyForWrite(originModel);
         semanticUpdater.updateModelColumns(copyModel, request);
         val allTables = NTableMetadataManager.getInstance(modelManager.getConfig(), request.getProject())
@@ -1131,7 +1103,7 @@ public class ModelService extends BasicService {
         copyModel.init(modelManager.getConfig(), allTables, getDataflowManager(project).listUnderliningDataModels(),
                 project);
 
-        val indexPlan = cubeManager.getIndexPlan(request.getUuid());
+        val indexPlan = cubeManager.getIndexPlan(modelId);
         // check agg group contains removed dimensions
         val rule = indexPlan.getRuleBasedIndex();
         if (rule != null && !copyModel.getEffectiveDimenionsMap().keySet().containsAll(rule.getDimensions())) {
@@ -1147,15 +1119,16 @@ public class ModelService extends BasicService {
         preProcessBeforeModelSave(copyModel, project);
         modelManager.updateDataModelDesc(copyModel);
 
-        val newModel = modelManager.getDataModelDesc(request.getId());
+        var newModel = modelManager.getDataModelDesc(modelId);
 
         if (needChangeFormat(originModel, newModel)) {
             modelManager.updateDataModel(request.getId(), copyForWrite -> {
                 copyForWrite.getPartitionDesc().setPartitionDateFormat("");
             });
         }
-        proposeAndSaveDateFormatIfNotExist(project, request.getId());
-        semanticUpdater.handleSemanticUpdate(project, request.getId(), originModel);
+        proposeAndSaveDateFormatIfNotExist(project, modelId);
+        semanticUpdater.handleSemanticUpdate(project, modelId, originModel, request.getStart(),
+                request.getEnd());
     }
 
     public void updateBrokenModel(String project, ModelRequest modelRequest, Set<Integer> columnIds) {
@@ -1435,17 +1408,7 @@ public class ModelService extends BasicService {
         }
 
         val eventManager = getEventManager(project);
-        AddCuboidEvent addCuboidEvent = new AddCuboidEvent();
-        addCuboidEvent.setModelId(modelId);
-        addCuboidEvent.setJobId(UUID.randomUUID().toString());
-        addCuboidEvent.setOwner(getUsername());
-        eventManager.post(addCuboidEvent);
-
-        PostAddCuboidEvent postAddCuboidEvent = new PostAddCuboidEvent();
-        postAddCuboidEvent.setModelId(modelId);
-        postAddCuboidEvent.setJobId(addCuboidEvent.getJobId());
-        postAddCuboidEvent.setOwner(getUsername());
-        eventManager.post(postAddCuboidEvent);
+        eventManager.postAddCuboidEvents(modelId, getUsername());
 
         return new BuildIndexResponse(BuildIndexResponse.BuildIndexType.NORM_BUILD);
     }

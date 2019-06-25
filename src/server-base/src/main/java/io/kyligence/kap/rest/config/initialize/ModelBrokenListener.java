@@ -25,7 +25,6 @@
 package io.kyligence.kap.rest.config.initialize;
 
 import java.io.IOException;
-import java.util.UUID;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
@@ -41,9 +40,7 @@ import com.google.common.eventbus.Subscribe;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.event.manager.EventDao;
 import io.kyligence.kap.event.manager.EventManager;
-import io.kyligence.kap.event.model.AddCuboidEvent;
 import io.kyligence.kap.event.model.Event;
-import io.kyligence.kap.event.model.PostAddCuboidEvent;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
@@ -165,18 +162,7 @@ public class ModelBrokenListener {
             model.setHandledAfterBroken(false);
             modelManager.updateDataBrokenModelDesc(model);
             val eventManager = EventManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
-            AddCuboidEvent addCuboidEvent = new AddCuboidEvent();
-            addCuboidEvent.setModelId(model.getId());
-            addCuboidEvent.setJobId(UUID.randomUUID().toString());
-            addCuboidEvent.setOwner("ADMIN");
-            eventManager.post(addCuboidEvent);
-
-            PostAddCuboidEvent postAddCuboidEvent = new PostAddCuboidEvent();
-            postAddCuboidEvent.setModelId(model.getId());
-            postAddCuboidEvent.setJobId(addCuboidEvent.getJobId());
-            postAddCuboidEvent.setOwner("ADMIN");
-
-            eventManager.post(postAddCuboidEvent);
+            eventManager.postAddCuboidEvents(model.getId(), "ADMIN");
             return null;
         }, project);
     }

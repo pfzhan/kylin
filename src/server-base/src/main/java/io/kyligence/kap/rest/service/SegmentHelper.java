@@ -29,8 +29,6 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.event.model.AddSegmentEvent;
-import io.kyligence.kap.event.model.PostAddSegmentEvent;
 import io.kyligence.kap.metadata.cube.model.NDataLoadingRangeManager;
 import lombok.var;
 import org.apache.commons.collections.CollectionUtils;
@@ -153,19 +151,7 @@ public class SegmentHelper extends BasicService {
         val newSegment = dataflowManager.appendSegment(dataflow,
                 new SegmentRange.TimePartitionedSegmentRange(0L, Long.MAX_VALUE));
 
-        val addSegmentEvent = new AddSegmentEvent();
-        addSegmentEvent.setSegmentId(newSegment.getId());
-        addSegmentEvent.setModelId(model);
-        addSegmentEvent.setJobId(UUID.randomUUID().toString());
-        addSegmentEvent.setOwner(getUsername());
-        eventManager.post(addSegmentEvent);
-
-        PostAddSegmentEvent postAddSegmentEvent = new PostAddSegmentEvent();
-        postAddSegmentEvent.setSegmentId(newSegment.getId());
-        postAddSegmentEvent.setModelId(model);
-        postAddSegmentEvent.setJobId(addSegmentEvent.getJobId());
-        postAddSegmentEvent.setOwner(getUsername());
-        eventManager.post(postAddSegmentEvent);
+        eventManager.postAddSegmentEvents(newSegment, model, getUsername());
     }
 
     private void handleRefreshLagBehindModel(String project, NDataflow df, Segments<NDataSegment> newSegments, String modelId, NDataflowManager dfMgr, EventManager eventManager) throws IOException {
@@ -174,19 +160,8 @@ public class SegmentHelper extends BasicService {
             handleJobAndOldSeg(project, seg, df, dfMgr);
             df = dfMgr.getDataflow(modelId);
             val newSeg = dfMgr.appendSegment(df, seg.getSegRange());
-            val addSegmentEvent = new AddSegmentEvent();
-            addSegmentEvent.setSegmentId(newSeg.getId());
-            addSegmentEvent.setModelId(modelId);
-            addSegmentEvent.setJobId(UUID.randomUUID().toString());
-            addSegmentEvent.setOwner(getUsername());
-            eventManager.post(addSegmentEvent);
 
-            PostAddSegmentEvent postAddSegmentEvent = new PostAddSegmentEvent();
-            postAddSegmentEvent.setSegmentId(newSeg.getId());
-            postAddSegmentEvent.setModelId(modelId);
-            postAddSegmentEvent.setJobId(addSegmentEvent.getJobId());
-            postAddSegmentEvent.setOwner(getUsername());
-            eventManager.post(postAddSegmentEvent);
+            eventManager.postAddSegmentEvents(newSeg, modelId, getUsername());
         }
     }
 

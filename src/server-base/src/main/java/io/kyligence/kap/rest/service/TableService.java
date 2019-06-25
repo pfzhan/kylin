@@ -77,11 +77,7 @@ import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.event.manager.EventManager;
-import io.kyligence.kap.event.model.AddCuboidEvent;
-import io.kyligence.kap.event.model.AddSegmentEvent;
 import io.kyligence.kap.event.model.Event;
-import io.kyligence.kap.event.model.PostAddCuboidEvent;
-import io.kyligence.kap.event.model.PostAddSegmentEvent;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.model.NDataLoadingRange;
@@ -501,19 +497,7 @@ public class TableService extends BasicService {
         val newSegment = dataflowManager.appendSegment(dataflow,
                 new SegmentRange.TimePartitionedSegmentRange(0L, Long.MAX_VALUE));
 
-        val addSegmentEvent = new AddSegmentEvent();
-        addSegmentEvent.setSegmentId(newSegment.getId());
-        addSegmentEvent.setModelId(model);
-        addSegmentEvent.setJobId(UUID.randomUUID().toString());
-        addSegmentEvent.setOwner(getUsername());
-        eventManager.post(addSegmentEvent);
-
-        PostAddSegmentEvent postAddSegmentEvent = new PostAddSegmentEvent();
-        postAddSegmentEvent.setSegmentId(newSegment.getId());
-        postAddSegmentEvent.setModelId(model);
-        postAddSegmentEvent.setJobId(addSegmentEvent.getJobId());
-        postAddSegmentEvent.setOwner(getUsername());
-        eventManager.post(postAddSegmentEvent);
+        eventManager.postAddSegmentEvents(newSegment, model, getUsername());
     }
 
     public void setDataRange(String project, DateRangeRequest dateRangeRequest) throws Exception {
@@ -632,19 +616,8 @@ public class TableService extends BasicService {
                 IndexPlan indexPlan = NIndexPlanManager.getInstance(kylinConfig, project).getIndexPlan(modelId);
                 NDataflow df = dataflowManager.getDataflow(indexPlan.getUuid());
                 NDataSegment dataSegment = dataflowManager.appendSegment(df, segmentRange);
-                AddSegmentEvent addSegmentEvent = new AddSegmentEvent();
-                addSegmentEvent.setModelId(modelId);
-                addSegmentEvent.setSegmentId((dataSegment.getId()));
-                addSegmentEvent.setJobId(UUID.randomUUID().toString());
-                addSegmentEvent.setOwner(getUsername());
-                eventManager.post(addSegmentEvent);
 
-                PostAddSegmentEvent postAddSegmentEvent = new PostAddSegmentEvent();
-                postAddSegmentEvent.setModelId(modelId);
-                postAddSegmentEvent.setJobId(addSegmentEvent.getJobId());
-                postAddSegmentEvent.setSegmentId((dataSegment.getId()));
-                postAddSegmentEvent.setOwner(getUsername());
-                eventManager.post(postAddSegmentEvent);
+                eventManager.postAddSegmentEvents(dataSegment, modelId, getUsername());
 
                 logger.info(
                         "LoadingRangeUpdateHandler produce AddSegmentEvent project : {}, model : {}, segmentRange : {}",
@@ -988,17 +961,7 @@ public class TableService extends BasicService {
         if (CollectionUtils.isNotEmpty(changeTypeAffectedModel.getLayouts())) {
             val eventManager = getEventManager(projectName);
             dataflowManager.removeLayouts(df, changeTypeAffectedModel.getLayouts());
-            AddCuboidEvent addCuboidEvent = new AddCuboidEvent();
-            addCuboidEvent.setModelId(model.getId());
-            addCuboidEvent.setJobId(UUID.randomUUID().toString());
-            addCuboidEvent.setOwner(getUsername());
-            eventManager.post(addCuboidEvent);
-
-            PostAddCuboidEvent postAddCuboidEvent = new PostAddCuboidEvent();
-            postAddCuboidEvent.setJobId(addCuboidEvent.getJobId());
-            postAddCuboidEvent.setModelId(model.getId());
-            postAddCuboidEvent.setOwner(getUsername());
-            eventManager.post(postAddCuboidEvent);
+            eventManager.postAddCuboidEvents(model.getId(), getUsername());
         }
 
         cleanRedundantEvents(projectName, model, events);

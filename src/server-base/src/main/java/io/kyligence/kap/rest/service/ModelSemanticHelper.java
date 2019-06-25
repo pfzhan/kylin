@@ -45,8 +45,11 @@ import org.apache.kylin.metadata.model.JoinTableDesc;
 import org.apache.kylin.metadata.model.ParameterDesc;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.Segments;
+import org.apache.kylin.metadata.model.TableDesc;
+import org.apache.kylin.metadata.model.TableRef;
 import org.apache.kylin.metadata.model.TblColRef;
 import org.apache.kylin.rest.service.BasicService;
+import org.apache.kylin.source.SourceFactory;
 import org.springframework.stereotype.Service;
 
 import com.google.common.collect.Lists;
@@ -54,8 +57,6 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.event.manager.EventManager;
-import io.kyligence.kap.event.model.AddCuboidEvent;
-import io.kyligence.kap.event.model.PostAddCuboidEvent;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
@@ -279,11 +280,10 @@ public class ModelSemanticHelper extends BasicService {
         return measures;
     }
 
-    public void handleSemanticUpdate(String project, String model, NDataModel originModel) {
+    public void handleSemanticUpdate(String project, String model, NDataModel originModel, String start, String end) {
         val config = KylinConfig.getInstanceFromEnv();
         val indePlanManager = NIndexPlanManager.getInstance(config, project);
         val modelMgr = NDataModelManager.getInstance(config, project);
-        val dataflowManager = NDataflowManager.getInstance(config, project);
 
         val indexPlan = indePlanManager.getIndexPlan(model);
         val newModel = modelMgr.getDataModelDesc(model);
@@ -294,7 +294,7 @@ public class ModelSemanticHelper extends BasicService {
             removeUselessDimensions(savedIndexPlan, newModel.getEffectiveDimenionsMap().keySet(), false, config);
             modelMgr.updateDataModel(newModel.getUuid(),
                     copyForWrite -> copyForWrite.setSemanticVersion(copyForWrite.getSemanticVersion() + 1));
-            handleReloadData(newModel, originModel, dataflowManager, config, project);
+            handleReloadData(newModel, originModel, project, start, end);
             return;
         }
         val dimensionsOnlyAdded = newModel.getEffectiveDimenionsMap().keySet()
@@ -361,45 +361,40 @@ public class ModelSemanticHelper extends BasicService {
         }
     }
 
-    private void handleReloadData(NDataModel model, NDataModel oriModel, NDataflowManager dataflowManager,
-            KylinConfig config, String project) {
-        var df = dataflowManager.getDataflow(model.getUuid());
+    public SegmentRange getSegmentRangeByModel(String project, String modelId, String start, String end) {
+        TableRef tableRef = getDataModelManager(project).getDataModelDesc(modelId).getRootFactTable();
+        TableDesc tableDesc = getTableManager(project).getTableDesc(tableRef.getTableIdentity());
+        return SourceFactory.getSource(tableDesc).getSegmentRange(start, end);
+    }
+
+    private void handleReloadData(NDataModel newModel, NDataModel oriModel, String project, String start, String end) {
+        val config = KylinConfig.getInstanceFromEnv();
+        val dataflowManager = NDataflowManager.getInstance(config, project);
+        var df = dataflowManager.getDataflow(newModel.getUuid());
         val segments = df.getFlatSegments();
-        df = dataflowManager.updateDataflow(df.getUuid(), copyForWrite -> {
+
+        dataflowManager.updateDataflow(df.getUuid(), copyForWrite -> {
             copyForWrite.setSegments(new Segments<>());
         });
-        val isPartitionChanged = !Objects.equals(model.getPartitionDesc(), oriModel.getPartitionDesc());
-        List<SegmentRange> ranges = Lists.newArrayList();
-        if (isPartitionChanged) {
-            //partition column changed, build next time manually
-            // null -> partition or partition1 -> partition2
-            if (model.getPartitionDesc() != null) {
-                return;
-            } else {
-                //full load
-                // partition -> null
-                ranges.add(SegmentRange.TimePartitionedSegmentRange.createInfinite());
+
+        String modelId = newModel.getUuid();
+
+        if (!Objects.equals(oriModel.getPartitionDesc(), newModel.getPartitionDesc())) {
+
+            // from having partition to no partition
+            if (newModel.getPartitionDesc() == null) {
+                dataflowManager.fillDfManually(df, Lists.newArrayList(SegmentRange.TimePartitionedSegmentRange.createInfinite()));
+            // change partition column and from no partition to having partition
+            } else if (StringUtils.isNotEmpty(start) && StringUtils.isNotEmpty(end)) {
+                dataflowManager.fillDfManually(df, Lists.newArrayList(getSegmentRangeByModel(project, modelId, start, end)));
             }
         } else {
-            for (val seg : segments) {
-                ranges.add(seg.getSegRange());
-            }
+            List<SegmentRange> segmentRanges = Lists.newArrayList();
+            segments.forEach(segment -> segmentRanges.add(segment.getSegRange()));
+            dataflowManager.fillDfManually(df, segmentRanges);
         }
-        dataflowManager.fillDfManually(df, ranges);
 
-        EventManager eventManager = EventManager.getInstance(config, project);
-
-        AddCuboidEvent addCuboidEvent = new AddCuboidEvent();
-        addCuboidEvent.setModelId(model.getUuid());
-        addCuboidEvent.setJobId(UUID.randomUUID().toString());
-        addCuboidEvent.setOwner(getUsername());
-        eventManager.post(addCuboidEvent);
-
-        PostAddCuboidEvent postAddCuboidEvent = new PostAddCuboidEvent();
-        postAddCuboidEvent.setModelId(model.getUuid());
-        postAddCuboidEvent.setJobId(addCuboidEvent.getJobId());
-        postAddCuboidEvent.setOwner(getUsername());
-        eventManager.post(postAddCuboidEvent);
+        EventManager.getInstance(config, project).postAddCuboidEvents(modelId, getUsername());
     }
 
     public BuildIndexResponse handleIndexPlanUpdateRule(String project, String model, NRuleBasedIndex oldRule,
@@ -420,17 +415,7 @@ public class ModelSemanticHelper extends BasicService {
 
         // new cuboid
         if (difference.size() > 0 || forceFireEvent) {
-            AddCuboidEvent addCuboidEvent = new AddCuboidEvent();
-            addCuboidEvent.setModelId(model);
-            addCuboidEvent.setJobId(UUID.randomUUID().toString());
-            addCuboidEvent.setOwner(getUsername());
-            eventManager.post(addCuboidEvent);
-
-            PostAddCuboidEvent postAddCuboidEvent = new PostAddCuboidEvent();
-            postAddCuboidEvent.setJobId(addCuboidEvent.getJobId());
-            postAddCuboidEvent.setModelId(model);
-            postAddCuboidEvent.setOwner(getUsername());
-            eventManager.post(postAddCuboidEvent);
+            eventManager.postAddCuboidEvents(model, getUsername());
             return new BuildIndexResponse(BuildIndexResponse.BuildIndexType.NORM_BUILD);
         }
 

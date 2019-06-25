@@ -28,7 +28,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import java.util.UUID;
 import java.util.stream.Collectors;
 
 import io.kyligence.kap.metadata.cube.cuboid.NAggregationGroup;
@@ -55,8 +54,6 @@ import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NRuleBasedIndex;
-import io.kyligence.kap.event.model.AddCuboidEvent;
-import io.kyligence.kap.event.model.PostAddCuboidEvent;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.rest.request.CreateTableIndexRequest;
@@ -180,18 +177,7 @@ public class IndexPlanService extends BasicService {
                 if (readySegs.isEmpty()) {
                     return new BuildIndexResponse(BuildIndexResponse.BuildIndexType.NO_SEGMENT);
                 }
-
-                val addEvent = new AddCuboidEvent();
-                addEvent.setModelId(indexPlan.getUuid());
-                addEvent.setOwner(getUsername());
-                addEvent.setJobId(UUID.randomUUID().toString());
-                eventManager.post(addEvent);
-
-                val postAddEvent = new PostAddCuboidEvent();
-                postAddEvent.setModelId(indexPlan.getUuid());
-                postAddEvent.setJobId(addEvent.getJobId());
-                postAddEvent.setOwner(getUsername());
-                eventManager.post(postAddEvent);
+                eventManager.postAddCuboidEvents(indexPlan.getUuid(), getUsername());
                 return new BuildIndexResponse(BuildIndexResponse.BuildIndexType.NORM_BUILD);
             }
         }

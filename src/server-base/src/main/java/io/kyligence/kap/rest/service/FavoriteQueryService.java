@@ -31,7 +31,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.UUID;
 import java.util.stream.Collectors;
 
 import org.apache.commons.collections.CollectionUtils;
@@ -61,8 +60,6 @@ import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.common.scheduler.FavoriteQueryListNotifier;
 import io.kyligence.kap.common.scheduler.SchedulerEventBusFactory;
 import io.kyligence.kap.event.manager.EventManager;
-import io.kyligence.kap.event.model.AddCuboidEvent;
-import io.kyligence.kap.event.model.PostAddCuboidEvent;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.favorite.FavoriteQuery;
@@ -408,19 +405,7 @@ public class FavoriteQueryService extends BasicService {
                     return;
                 }
 
-                AddCuboidEvent addCuboidEvent = new AddCuboidEvent();
-                addCuboidEvent.setModelId(targetIndexPlan.getUuid());
-                addCuboidEvent.setOwner(user);
-                addCuboidEvent.setJobId(UUID.randomUUID().toString());
-                eventManager.post(addCuboidEvent);
-
-                PostAddCuboidEvent postAddCuboidEvent = new PostAddCuboidEvent();
-                postAddCuboidEvent.setJobId(addCuboidEvent.getJobId());
-                postAddCuboidEvent.setModelId(targetIndexPlan.getUuid());
-                postAddCuboidEvent.setOwner(user);
-                postAddCuboidEvent.setJobId(addCuboidEvent.getJobId());
-
-                eventManager.post(postAddCuboidEvent);
+                eventManager.postAddCuboidEvents(targetIndexPlan.getUuid(), user);
 
                 updateFavoriteQueryStatus(sqls, project, FavoriteQueryStatusEnum.ACCELERATING);
             }

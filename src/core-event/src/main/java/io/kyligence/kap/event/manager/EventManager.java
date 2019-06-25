@@ -48,11 +48,18 @@ import io.kyligence.kap.common.metrics.NMetricsName;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.common.scheduler.EventCreatedNotifier;
 import io.kyligence.kap.common.scheduler.SchedulerEventBusFactory;
+import io.kyligence.kap.event.model.AddCuboidEvent;
+import io.kyligence.kap.event.model.AddSegmentEvent;
+import io.kyligence.kap.event.model.PostAddCuboidEvent;
+import io.kyligence.kap.event.model.PostAddSegmentEvent;
+import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import org.apache.kylin.common.KylinConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.kyligence.kap.event.model.Event;
+
+import java.util.UUID;
 
 public class EventManager {
 
@@ -105,4 +112,33 @@ public class EventManager {
         NMetricsGroup.counterInc(NMetricsName.EVENT_COUNTER, NMetricsCategory.PROJECT, project);
     }
 
+    public void postAddSegmentEvents(NDataSegment newSegment, String modelId, String userName) {
+        AddSegmentEvent addSegmentEvent = new AddSegmentEvent();
+        addSegmentEvent.setSegmentId(newSegment.getId());
+        addSegmentEvent.setModelId(modelId);
+        addSegmentEvent.setJobId(UUID.randomUUID().toString());
+        addSegmentEvent.setOwner(userName);
+        post(addSegmentEvent);
+
+        PostAddSegmentEvent postAddSegmentEvent = new PostAddSegmentEvent();
+        postAddSegmentEvent.setSegmentId(newSegment.getId());
+        postAddSegmentEvent.setModelId(modelId);
+        postAddSegmentEvent.setJobId(addSegmentEvent.getJobId());
+        postAddSegmentEvent.setOwner(userName);
+        post(postAddSegmentEvent);
+    }
+
+    public void postAddCuboidEvents(String modelId, String userName) {
+        AddCuboidEvent addCuboidEvent = new AddCuboidEvent();
+        addCuboidEvent.setModelId(modelId);
+        addCuboidEvent.setJobId(UUID.randomUUID().toString());
+        addCuboidEvent.setOwner(userName);
+        post(addCuboidEvent);
+
+        PostAddCuboidEvent postAddCuboidEvent = new PostAddCuboidEvent();
+        postAddCuboidEvent.setModelId(modelId);
+        postAddCuboidEvent.setJobId(addCuboidEvent.getJobId());
+        postAddCuboidEvent.setOwner(userName);
+        post(postAddCuboidEvent);
+    }
 }
