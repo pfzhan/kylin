@@ -514,4 +514,59 @@ public class ProjectServiceTest extends ServiceTestBase {
                 projectManager.getProject(PROJECT).getOverrideKylinProps().get("kylin.source.credential.value"));
     }
 
+    private void updateProject() {
+        val segmentConfigRequest = new SegmentConfigRequest();
+        segmentConfigRequest.setAutoMergeEnabled(false);
+        segmentConfigRequest.setProject(PROJECT);
+        projectService.updateSegmentConfig(PROJECT, segmentConfigRequest);
+
+        val jobNotificationConfigRequest = new JobNotificationConfigRequest();
+        jobNotificationConfigRequest.setProject(PROJECT);
+        jobNotificationConfigRequest.setDataLoadEmptyNotificationEnabled(true);
+        jobNotificationConfigRequest.setJobErrorNotificationEnabled(true);
+        jobNotificationConfigRequest.setJobNotificationEmails(
+                Lists.newArrayList("user1@kyligence.io", "user2@kyligence.io", "user2@kyligence.io"));
+        projectService.updateJobNotificationConfig(PROJECT, jobNotificationConfigRequest);
+
+        projectService.updateQueryAccelerateThresholdConfig(PROJECT, 30, false);
+
+
+        val request = new GarbageCleanUpConfigRequest();
+        request.setFrequencyTimeWindow(GarbageCleanUpConfigRequest.FrequencyTimeWindowEnum.WEEK);
+        request.setLowFrequencyThreshold(12);
+        projectService.updateGarbageCleanupConfig("default", request);
+    }
+
+    @Test
+    public void testResetProjectConfig() {
+        updateProject();
+        var response = projectService.getProjectConfig(PROJECT);
+        Assert.assertEquals(2, response.getJobNotificationEmails().size());
+        Assert.assertTrue(response.isJobErrorNotificationEnabled());
+        Assert.assertTrue(response.isDataLoadEmptyNotificationEnabled());
+
+        response = projectService.resetProjectConfig(PROJECT, "job_notification_config");
+        Assert.assertEquals(0, response.getJobNotificationEmails().size());
+        Assert.assertFalse(response.isJobErrorNotificationEnabled());
+        Assert.assertFalse(response.isDataLoadEmptyNotificationEnabled());
+
+        Assert.assertFalse(response.isFavoriteQueryTipsEnabled());
+        Assert.assertEquals(30, response.getFavoriteQueryThreshold());
+        Assert.assertEquals(GarbageCleanUpConfigRequest.FrequencyTimeWindowEnum.WEEK.name(), response.getFrequencyTimeWindow());
+        Assert.assertEquals(12, response.getLowFrequencyThreshold());
+        Assert.assertFalse(response.isAutoMergeEnabled());
+
+        response = projectService.resetProjectConfig(PROJECT, "query_accelerate_threshold");
+        Assert.assertTrue(response.isFavoriteQueryTipsEnabled());
+        Assert.assertEquals(20, response.getFavoriteQueryThreshold());
+
+        response = projectService.resetProjectConfig(PROJECT, "garbage_cleanup_config");
+        Assert.assertEquals(GarbageCleanUpConfigRequest.FrequencyTimeWindowEnum.MONTH.name(), response.getFrequencyTimeWindow());
+        Assert.assertEquals(5, response.getLowFrequencyThreshold());
+
+        response = projectService.resetProjectConfig(PROJECT, "segment_config");
+        Assert.assertTrue(response.isAutoMergeEnabled());
+        Assert.assertEquals(4, response.getAutoMergeTimeRanges().size());
+    }
+
 }

@@ -28,6 +28,7 @@ import java.io.IOException;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import io.kyligence.kap.metadata.favorite.FavoriteRule;
@@ -410,4 +411,61 @@ public class ProjectService extends BasicService {
         updateProjectOverrideKylinProps(project, overrideKylinProps);
     }
 
+    @Transaction
+    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#project, 'ADMINISTRATION')")
+    public ProjectConfigResponse resetProjectConfig(String project, String resetItem) {
+        if ("job_notification_config".equals(resetItem)) {
+            resetJobNotificationConfig(project);
+        }else if ("query_accelerate_threshold".equals(resetItem)) {
+            resetQueryAccelerateThreshold(project);
+        }else if ("garbage_cleanup_config".equals(resetItem)) {
+            resetGarbageCleanupConfig(project);
+        }else if ("segment_config".equals(resetItem)) {
+            resetSegmentConfig(project);
+        }
+        return getProjectConfig(project);
+    }
+
+    private void resetJobNotificationConfig(String project) {
+        Set<String> toBeRemovedProps = Sets.newHashSet();
+        toBeRemovedProps.add("kylin.job.notification-on-empty-data-load");
+        toBeRemovedProps.add("kylin.job.notification-on-job-error");
+        toBeRemovedProps.add("kylin.job.notification-admin-emails");
+        removeProjectOveridedProps(project, toBeRemovedProps);
+    }
+
+    private void resetQueryAccelerateThreshold(String project) {
+        Set<String> toBeRemovedProps = Sets.newHashSet();
+        toBeRemovedProps.add("kylin.favorite.query-accelerate-threshold");
+        toBeRemovedProps.add("kylin.favorite.query-accelerate-tips-enable");
+        removeProjectOveridedProps(project, toBeRemovedProps);
+    }
+
+    private void resetGarbageCleanupConfig(String project) {
+        Set<String> toBeRemovedProps = Sets.newHashSet();
+        toBeRemovedProps.add("kylin.favorite.low-frequency-threshold");
+        toBeRemovedProps.add("kylin.favorite.frequency-time-window");
+        removeProjectOveridedProps(project, toBeRemovedProps);
+    }
+
+    private void resetSegmentConfig(String project) {
+        getProjectManager().updateProject(project, copyForWrite -> {
+            val projectInstance = new ProjectInstance();
+            copyForWrite.getSegmentConfig().setAutoMergeEnabled(projectInstance.getSegmentConfig().getAutoMergeEnabled());
+            copyForWrite.getSegmentConfig().setAutoMergeTimeRanges(projectInstance.getSegmentConfig().getAutoMergeTimeRanges());
+            copyForWrite.getSegmentConfig().setVolatileRange(projectInstance.getSegmentConfig().getVolatileRange());
+            copyForWrite.getSegmentConfig().setRetentionRange(projectInstance.getSegmentConfig().getRetentionRange());
+        });
+    }
+
+    private void removeProjectOveridedProps(String project, Set<String> toBeRemovedProps) {
+        val projectManager = getProjectManager();
+        val projectInstance = projectManager.getProject(project);
+        if (projectInstance == null) {
+            throw new BadRequestException(String.format("Project '%s' does not exist!", project));
+        }
+        projectManager.updateProject(project, copyForWrite -> {
+            toBeRemovedProps.forEach(copyForWrite.getOverrideKylinProps()::remove);
+        });
+    }
 }
