@@ -168,7 +168,7 @@ export default {
       })
     },
     backup (project) {
-      kapConfirm(this.$t('backupProject'), null, this.$t('backupPro')).then(() => {
+      kapConfirm(this.$t('backupProject'), {type: 'info'}, this.$t('backupPro')).then(() => {
         this.backupProject(project).then((result) => {
           handleSuccess(result, (data, code, status, msg) => {
             this.$message({

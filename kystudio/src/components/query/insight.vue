@@ -433,6 +433,7 @@ export default class NewQuery extends Vue {
       margin-top: 5px;
       color: @text-disabled-color;
       i {
+        cursor: default;
         position: relative;
         top: 2px;
       }

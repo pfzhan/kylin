@@ -1186,7 +1186,7 @@ export default class JobsList extends Vue {
       }
       .job-btn {
         position: absolute;
-        left: 0px;
+        left: -1px;
         top: 310px;
         height: 70px;
         width: 13px;

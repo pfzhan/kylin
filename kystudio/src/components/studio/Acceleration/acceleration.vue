@@ -175,8 +175,10 @@
       </el-row>
       <span slot="footer" class="dialog-footer">
         <div class="ksd-fleft query-count">
-          <span v-if="isUploaded"><i class="el-icon-ksd-good_health"></i>{{whiteSqlData.capable_sql_num}}
-          <i class="el-icon-ksd-error_01"></i>{{whiteSqlData.size-whiteSqlData.capable_sql_num}}</span>
+          <span v-if="isUploaded">
+            <span><i class="el-icon-ksd-good_health"></i>{{whiteSqlData.capable_sql_num}}</span><span class="ksd-ml-10">
+            <i class="el-icon-ksd-error_01"></i>{{whiteSqlData.size-whiteSqlData.capable_sql_num}}</span>
+          </span>
           <span v-else class="tips">
             <i class="el-icon-warning ksd-fs-16"></i><span class="ksd-fs-12">{{$t('uploadFileTips')}}</span>
           </span>
@@ -1306,8 +1308,7 @@ export default class FavoriteQuery extends Vue {
       }
       .query-count {
         color: @text-title-color;
-        font-size: 16px;
-        line-height: 32px;
+        line-height: 40px;
         height: 32px;
         display: inline-block;
       }

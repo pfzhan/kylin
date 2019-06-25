@@ -20,7 +20,7 @@
             </el-form-item><el-form-item>
               <el-input placeholder="" size="small" style="width:90px;" @input="handleInputChange" v-model="listRows" class="limit-input"></el-input>
             </el-form-item><el-form-item>
-              <el-button type="primary" v-guide.workSpaceSubmit  plain size="small" class="ksd-btn-minwidth" :loading="isLoading" @click="submitQuery(sourceSchema)">{{$t('kylinLang.common.submit')}}</el-button>
+              <el-button type="primary" v-guide.workSpaceSubmit  plain size="small" class="ksd-btn-minwidth" :disabled="!sourceSchema" :loading="isLoading" @click="submitQuery(sourceSchema)">{{$t('kylinLang.common.submit')}}</el-button>
             </el-form-item>
           </el-form>
         </p>
