@@ -79,7 +79,7 @@
       </el-form>
     </template>
     <div slot="footer" class="dialog-footer ky-no-br-space">
-      <el-button plain  size="medium" :disabled="isLoadingNewRange" @click="isShow && handleClose(false)">{{$t('kylinLang.common.cancel')}}</el-button>
+      <el-button plain  size="medium" @click="isShow && handleClose(false)">{{$t('kylinLang.common.cancel')}}</el-button>
       <el-button type="primary" v-if="isShow" :disabled="isLoadingNewRange" v-guide.partitionSaveBtn plain @click="savePartition" size="medium">{{$t('kylinLang.common.ok')}}</el-button>
     </div>
   </el-dialog>
@@ -344,6 +344,7 @@ export default class ModelPartitionModal extends Vue {
     this.handleClose(true)
   }
   handleClose (isSubmit) {
+    this.isLoadingNewRange = false
     this.hideModal()
     setTimeout(() => {
       this.resetModalForm()

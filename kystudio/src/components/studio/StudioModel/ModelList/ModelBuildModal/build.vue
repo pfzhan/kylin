@@ -10,12 +10,13 @@
             </el-radio>
             <div class="item-desc">{{$t('loadExistingDataDesc')}}</div>
           </el-form-item> -->
-          <el-form-item class="ksd-mt-10" prop="dataRangeVal" :rule="modelBuildMeta.isLoadExisted ? [] : [{required: true, trigger: 'blur', message: this.$t('dataRangeValValid')}]">
+          <el-form-item prop="dataRangeVal" :rule="modelBuildMeta.isLoadExisted ? [] : [{required: true, trigger: 'blur', message: this.$t('dataRangeValValid')}]">
             <!-- <el-radio class="font-medium" v-model="modelBuildMeta.isLoadExisted" :label="false">
               {{$t('customLoadRange')}}
             </el-radio>
             <br/> -->
             <el-alert
+              class="ksd-pt-0"
               :title="$t('kylinLang.dataSource.rangeInfoTip')"
               type="info"
               :show-background="false"
@@ -148,15 +149,13 @@
       this.isLoadingNewRange = false
     }
     closeModal (isSubmit) {
+      this.isLoadingNewRange = false
       this.$refs.buildForm && this.$refs.buildForm.resetFields()
       this.hideModal()
       setTimeout(() => {
         this.callback && this.callback(isSubmit)
         this.resetModalForm()
       }, 200)
-    }
-    get timeRange () {
-
     }
     _buildModel ({start, end, modelId}) {
       this.buildModel({

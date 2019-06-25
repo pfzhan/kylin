@@ -21,6 +21,7 @@
         <el-alert
           :title="$t('kylinLang.dataSource.rangeInfoTip')"
           type="info"
+          class="ksd-pt-0"
           :show-background="false"
           :closable="false"
           show-icon>
@@ -66,6 +67,7 @@
         <el-alert
           :title="$t('kylinLang.dataSource.rangeInfoTip')"
           type="info"
+          class="ksd-pt-0"
           :show-background="false"
           :closable="false"
           show-icon>
