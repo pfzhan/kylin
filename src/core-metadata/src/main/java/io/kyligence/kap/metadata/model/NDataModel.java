@@ -105,6 +105,7 @@ import io.kyligence.kap.common.scheduler.SchedulerEventNotifier;
 import io.kyligence.kap.metadata.model.alias.AliasDeduce;
 import io.kyligence.kap.metadata.model.alias.AliasMapping;
 import io.kyligence.kap.metadata.model.alias.ExpressionComparator;
+import io.kyligence.kap.metadata.model.exception.LookupTableException;
 import io.kyligence.kap.metadata.model.util.ComputedColumnUtil;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import lombok.AllArgsConstructor;
@@ -876,8 +877,35 @@ public class NDataModel extends RootPersistentEntity {
         initAllMeasures();
         initFk2Pk();
         checkSingleIncrementingLoadingTable();
-
         setDependencies(calcDependencies());
+
+        if (NProjectManager.getInstance(KylinConfig.getInstanceFromEnv()).getProject(getProject())
+                .getMaintainModelType() == MaintainModelType.MANUAL_MAINTAIN) {
+            if (isIncrementBuildOnExpertMode()) {
+                val incrementLookupTables = otherModels.stream().filter(m -> !m.getId().equals(getId()))
+                        .flatMap(model -> model.getJoinTables().stream()
+                                .filter(joinTableDesc -> joinTableDesc.getKind() == TableKind.LOOKUP)
+                                .map(JoinTableDesc::getTable))
+                        .collect(Collectors.toSet());
+
+                if (incrementLookupTables.contains(getRootFactTableName())) {
+                    throw new LookupTableException(
+                            "increment build type model's fact table used by other model as look up table");
+                }
+            }
+
+            val incrementRootFactTables = otherModels.stream().filter(m -> !m.getId().equals(getId()))
+                    .filter(NDataModel::isIncrementBuildOnExpertMode).map(NDataModel::getRootFactTable)
+                    .map(TableRef::getTableIdentity).collect(Collectors.toSet());
+            incrementRootFactTables.add(getRootFactTableName());
+            val lookups = getJoinTables().stream().filter(joinTableDesc -> joinTableDesc.getKind() == TableKind.LOOKUP)
+                    .map(JoinTableDesc::getTable).collect(Collectors.toSet());
+
+            if (!Collections.disjoint(incrementRootFactTables, lookups)) {
+                throw new LookupTableException(
+                        "model look up tables used by other model as fact table in increment build type");
+            }
+        }
     }
 
     @Override
@@ -894,6 +922,14 @@ public class NDataModel extends RootPersistentEntity {
                     : new MissingRootPersistentEntity(TableDesc.concatResourcePath(t, project));
 
         }).collect(Collectors.toList());
+    }
+
+    public boolean isIncrementBuildOnExpertMode() {
+        if (NProjectManager.getInstance(KylinConfig.getInstanceFromEnv()).getProject(getProject())
+                .getMaintainModelType() == MaintainModelType.MANUAL_MAINTAIN) {
+            return getPartitionDesc() != null;
+        }
+        return false;
     }
 
     public void checkSingleIncrementingLoadingTable() {

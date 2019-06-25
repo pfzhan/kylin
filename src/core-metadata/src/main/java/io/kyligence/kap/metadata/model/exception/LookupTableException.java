@@ -22,16 +22,17 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.metadata.model;
+package io.kyligence.kap.metadata.model.exception;
 
-public class ModelBrokenException extends RuntimeException {
-    private static final long serialVersionUID = -2288922690296134341L;
+public class LookupTableException extends RuntimeException {
 
-    ModelBrokenException() {
+    private static final long serialVersionUID = 4684202079909560806L;
+
+    public LookupTableException() {
 
     }
 
-    ModelBrokenException(String msg) {
+    public LookupTableException(String msg) {
         super(msg);
     }
 }

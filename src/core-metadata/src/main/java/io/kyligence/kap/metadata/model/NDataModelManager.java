@@ -48,6 +48,7 @@ import com.google.common.base.Preconditions;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.common.scheduler.SchedulerEventBusFactory;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
+import io.kyligence.kap.metadata.model.exception.ModelBrokenException;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import lombok.val;
 

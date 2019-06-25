@@ -29,6 +29,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
+import io.kyligence.kap.metadata.model.exception.LookupTableException;
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.rest.exception.BadRequestException;
@@ -139,8 +140,13 @@ public class NModelController extends NBasicController {
         checkProjectName(modelRequest.getProject());
         validateStartAndEndExistBoth(modelRequest.getStart(), modelRequest.getEnd());
         validatePartitionDesc(modelRequest);
-        modelService.createModel(modelRequest.getProject(), modelRequest);
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, null, "");
+        try {
+            modelService.createModel(modelRequest.getProject(), modelRequest);
+            return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, null, "");
+        } catch (LookupTableException e) {
+            throw new BadRequestException(e.getMessage(), ResponseCode.CODE_UNDEFINED, e);
+        }
+
     }
 
     @RequestMapping(value = "/data_range/latest_data", method = { RequestMethod.GET }, produces = {
@@ -296,12 +302,16 @@ public class NModelController extends NBasicController {
         checkProjectName(request.getProject());
         validatePartitionDesc(request);
         checkRequiredArg(MODEL_ID, request.getUuid());
-        if (request.getBrokenReason() == NDataModel.BrokenReason.SCHEMA) {
-            modelService.repairBrokenModel(request.getProject(), request);
-        } else {
-            modelService.updateDataModelSemantic(request.getProject(), request);
+        try {
+            if (request.getBrokenReason() == NDataModel.BrokenReason.SCHEMA) {
+                modelService.repairBrokenModel(request.getProject(), request);
+            } else {
+                modelService.updateDataModelSemantic(request.getProject(), request);
+            }
+            return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, null, "");
+        } catch (LookupTableException e) {
+            throw new BadRequestException(e.getMessage(), ResponseCode.CODE_UNDEFINED, e);
         }
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, null, "");
     }
 
     @RequestMapping(value = "/name", method = { RequestMethod.PUT }, produces = {

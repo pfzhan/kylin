@@ -344,6 +344,8 @@ public class ModelServiceSemanticUpdateTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testRenameTableAliasUsedAsMeasure() throws Exception {
+        val modelManager = NDataModelManager.getInstance(getTestConfig(), "default");
+        modelManager.listAllModels().forEach(modelManager::dropModel);
         val request = JsonUtil.readValue(
                 getClass().getResourceAsStream("/ut_request/model_update/model_with_measure.json"), ModelRequest.class);
         val newModel = modelService.createModel(request.getProject(), request);

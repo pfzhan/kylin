@@ -129,6 +129,7 @@ import io.kyligence.kap.metadata.model.MaintainModelType;
 import io.kyligence.kap.metadata.model.ManagementType;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
+import io.kyligence.kap.metadata.model.exception.LookupTableException;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.metadata.query.QueryHistoryDAO;
 import io.kyligence.kap.metadata.query.QueryTimesResponse;
@@ -375,8 +376,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
 
     @Test
     public void testGetCuboidById_NoSegments_EMPTYStatus() {
-        IndexEntityResponse cuboid = modelService.getCuboidById(MODEL_UT_INNER_JOIN_ID, "default",
-                130000L);
+        IndexEntityResponse cuboid = modelService.getCuboidById(MODEL_UT_INNER_JOIN_ID, "default", 130000L);
         Assert.assertEquals(130000L, cuboid.getId());
         Assert.assertEquals(CuboidStatus.EMPTY, cuboid.getStatus());
         Assert.assertEquals(0L, cuboid.getStorageSize());
@@ -387,9 +387,9 @@ public class ModelServiceTest extends CSVSourceTestCase {
     @Test
     public void testGetCuboidById_NoReadySegments() {
         val dfMgr = NDataflowManager.getInstance(getTestConfig(), "default");
-        dfMgr.appendSegment(dfMgr.getDataflow(MODEL_UT_INNER_JOIN_ID), new SegmentRange.TimePartitionedSegmentRange(100L, 200L));
-        IndexEntityResponse cuboid = modelService.getCuboidById(MODEL_UT_INNER_JOIN_ID, "default",
-                130000L);
+        dfMgr.appendSegment(dfMgr.getDataflow(MODEL_UT_INNER_JOIN_ID),
+                new SegmentRange.TimePartitionedSegmentRange(100L, 200L));
+        IndexEntityResponse cuboid = modelService.getCuboidById(MODEL_UT_INNER_JOIN_ID, "default", 130000L);
         Assert.assertEquals(130000L, cuboid.getId());
         Assert.assertEquals(CuboidStatus.EMPTY, cuboid.getStatus());
         Assert.assertEquals(0L, cuboid.getStorageSize());
@@ -454,16 +454,15 @@ public class ModelServiceTest extends CSVSourceTestCase {
     @Test
     public void testGetSimplifiedModelRelations_NoReadySegment() {
         val dfMgr = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
-        dfMgr.appendSegment(dfMgr.getDataflow(MODEL_UT_INNER_JOIN_ID), new SegmentRange.TimePartitionedSegmentRange(10L, 200L));
-        List<NSpanningTreeForWeb> relations = modelService.getModelRelations(MODEL_UT_INNER_JOIN_ID,
-                "default");
+        dfMgr.appendSegment(dfMgr.getDataflow(MODEL_UT_INNER_JOIN_ID),
+                new SegmentRange.TimePartitionedSegmentRange(10L, 200L));
+        List<NSpanningTreeForWeb> relations = modelService.getModelRelations(MODEL_UT_INNER_JOIN_ID, "default");
         Assert.assertEquals(1, relations.size());
         Assert.assertEquals(1, relations.get(0).getRoots().size());
         Assert.assertEquals(CuboidStatus.EMPTY, relations.get(0).getRoots().get(0).getCuboid().getStatus());
         Assert.assertEquals(0L, relations.get(0).getRoots().get(0).getCuboid().getStorageSize());
 
     }
-
 
     @Test
     public void testDropModelExceptionName() {
@@ -505,9 +504,6 @@ public class ModelServiceTest extends CSVSourceTestCase {
         thrown.expectMessage("Model 'test_encoding' is table oriented, can not purge the model!");
         modelService.purgeModelManually("a8ba3ff1-83bd-4066-ad54-d2fb3d1f0e94", "default");
     }
-
-
-
 
     @Test
     public void testGetAffectedSegmentsResponse_FullBuildAndEmptyModel() {
@@ -709,12 +705,12 @@ public class ModelServiceTest extends CSVSourceTestCase {
         Assert.assertEquals(4, result.size());
     }
 
-    private void prepareTwoOnlineModels(){
+    private void prepareTwoOnlineModels() {
         modelService.dropModel("82fa7671-a935-45f5-8779-85703601f49a", "default");
         modelService.dropModel("abe3bf1a-c4bc-458d-8278-7ea8b00f5e96", "default");
     }
 
-    private void prepareTwoLagBehindModels(){
+    private void prepareTwoLagBehindModels() {
         //all lag behind
         modelService.dropModel("82fa7671-a935-45f5-8779-85703601f49a", "default");
         modelService.dropModel("abe3bf1a-c4bc-458d-8278-7ea8b00f5e96", "default");
@@ -730,7 +726,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         dfMgr.updateDataflow(update2);
     }
 
-    private void prepareOneLagBehindAndOneOnlineModels(){
+    private void prepareOneLagBehindAndOneOnlineModels() {
         //one ONLINE one Lag_behind
         modelService.dropModel("82fa7671-a935-45f5-8779-85703601f49a", "default");
         modelService.dropModel("abe3bf1a-c4bc-458d-8278-7ea8b00f5e96", "default");
@@ -740,7 +736,6 @@ public class ModelServiceTest extends CSVSourceTestCase {
         update1.setStatus(RealizationStatusEnum.LAG_BEHIND);
         dfMgr.updateDataflow(update1);
     }
-
 
     @Test
     public void testDeleteSegmentById_SegmentIsLocked() {
@@ -773,11 +768,11 @@ public class ModelServiceTest extends CSVSourceTestCase {
         dataflowManager.refreshSegment(df, segmentRange);
 
         thrown.expect(BadRequestException.class);
-        thrown.expectMessage("Can not remove or refresh segment (ID:" + dataSegment.getId()
-                + "), because the segment is LOCKED.");
+        thrown.expectMessage(
+                "Can not remove or refresh segment (ID:" + dataSegment.getId() + "), because the segment is LOCKED.");
 
         modelService.deleteSegmentById("741ca86a-1f13-46da-a59f-95fb68615e3a", "default",
-                new String[]{dataSegment.getId()});
+                new String[] { dataSegment.getId() });
     }
 
     @Test
@@ -848,8 +843,8 @@ public class ModelServiceTest extends CSVSourceTestCase {
         //        Assert.assertEquals(SegmentRange.dateToLong("2010-01-03"), events.get(0).getSegmentRange().getEnd());
 
         thrown.expect(BadRequestException.class);
-        thrown.expectMessage("Can not remove or refresh segment (ID:" + dataSegment2.getId()
-                + "), because the segment is LOCKED.");
+        thrown.expectMessage(
+                "Can not remove or refresh segment (ID:" + dataSegment2.getId() + "), because the segment is LOCKED.");
         //refresh exception
         modelService.refreshSegmentById("741ca86a-1f13-46da-a59f-95fb68615e3a", "default",
                 new String[] { dataSegment2.getId() });
@@ -968,10 +963,113 @@ public class ModelServiceTest extends CSVSourceTestCase {
         cleanPushdownEnv();
     }
 
+    @Test
+    public void testCreateModel_SelfJoinIncrementBuild() throws Exception {
+        val modelRequest = JsonUtil.readValue(
+                new File("src/test/resources/ut_meta/cc_test/default/model_desc/model_self_join_increment.json"),
+                ModelRequest.class);
+        modelRequest.setProject("default");
+        modelRequest.setUuid(null);
+        modelRequest.setLastModified(0L);
+        thrown.expect(LookupTableException.class);
+        thrown.expectMessage("model look up tables used by other model as fact table in increment build type");
+        modelService.createModel(modelRequest.getProject(), modelRequest);
+    }
+
+    @Test
+    public void testCreateModel_IncrementBuildFactTableConflictIncrement() throws Exception {
+        setupPushdownEnv();
+        val modelManager = NDataModelManager.getInstance(getTestConfig(), getProject());
+        modelManager.listAllModels().forEach(modelManager::dropModel);
+        var modelRequest = JsonUtil.readValue(
+                new File("src/test/resources/ut_meta/cc_test/default/model_desc/model_join_increment_fact_table1.json"),
+                ModelRequest.class);
+        addModelInfo(modelRequest);
+        modelService.createModel(modelRequest.getProject(), modelRequest);
+        modelRequest = JsonUtil.readValue(
+                new File("src/test/resources/ut_meta/cc_test/default/model_desc/model_join_increment_fact_table2.json"),
+                ModelRequest.class);
+        addModelInfo(modelRequest);
+        thrown.expect(LookupTableException.class);
+        thrown.expectMessage("increment build type model's fact table used by other model as look up table");
+        modelService.createModel(modelRequest.getProject(), modelRequest);
+    }
+
+    @Test
+    public void testCreateModel_IncrementBuildFactTableConflictFull() throws Exception {
+        setupPushdownEnv();
+        val modelManager = NDataModelManager.getInstance(getTestConfig(), getProject());
+        modelManager.listAllModels().forEach(modelManager::dropModel);
+        var modelRequest = JsonUtil.readValue(
+                new File("src/test/resources/ut_meta/cc_test/default/model_desc/model_join_increment_fact_table1.json"),
+                ModelRequest.class);
+        modelRequest.setProject("default");
+        modelRequest.setUuid(null);
+        modelRequest.setLastModified(0L);
+        modelRequest.setPartitionDesc(null);
+        modelService.createModel(modelRequest.getProject(), modelRequest);
+        modelRequest = JsonUtil.readValue(
+                new File("src/test/resources/ut_meta/cc_test/default/model_desc/model_join_increment_fact_table2.json"),
+                ModelRequest.class);
+        addModelInfo(modelRequest);
+        thrown.expect(LookupTableException.class);
+        thrown.expectMessage("increment build type model's fact table used by other model as look up table");
+        modelService.createModel(modelRequest.getProject(), modelRequest);
+    }
+
+    @Test
+    public void testCreateModel_IncrementBuildLookupTableConflictIncrement() throws Exception {
+        setupPushdownEnv();
+        val modelManager = NDataModelManager.getInstance(getTestConfig(), getProject());
+        modelManager.listAllModels().forEach(modelManager::dropModel);
+        var modelRequest = JsonUtil.readValue(
+                new File("src/test/resources/ut_meta/cc_test/default/model_desc/model_join_increment_fact_table2.json"),
+                ModelRequest.class);
+        addModelInfo(modelRequest);
+        modelService.createModel(modelRequest.getProject(), modelRequest);
+        modelRequest = JsonUtil.readValue(
+                new File("src/test/resources/ut_meta/cc_test/default/model_desc/model_join_increment_fact_table1.json"),
+                ModelRequest.class);
+        addModelInfo(modelRequest);
+        thrown.expect(LookupTableException.class);
+        thrown.expectMessage("model look up tables used by other model as fact table in increment build type");
+        modelService.createModel(modelRequest.getProject(), modelRequest);
+    }
+
+    @Test
+    public void testCreateModel_FullBuildLookupTableConflictIncrement() throws Exception {
+        setupPushdownEnv();
+        val modelManager = NDataModelManager.getInstance(getTestConfig(), getProject());
+        modelManager.listAllModels().forEach(modelManager::dropModel);
+        var modelRequest = JsonUtil.readValue(
+                new File("src/test/resources/ut_meta/cc_test/default/model_desc/model_join_increment_fact_table2.json"),
+                ModelRequest.class);
+        addModelInfo(modelRequest);
+        modelService.createModel(modelRequest.getProject(), modelRequest);
+        modelRequest = JsonUtil.readValue(
+                new File("src/test/resources/ut_meta/cc_test/default/model_desc/model_join_increment_fact_table1.json"),
+                ModelRequest.class);
+        modelRequest.setProject("default");
+        modelRequest.setUuid(null);
+        modelRequest.setLastModified(0L);
+        modelRequest.setPartitionDesc(null);
+        thrown.expect(LookupTableException.class);
+        thrown.expectMessage("model look up tables used by other model as fact table in increment build type");
+        modelService.createModel(modelRequest.getProject(), modelRequest);
+    }
+
     private void testGetLatestData() throws Exception {
         ExistedDataRangeResponse response = modelService.getLatestDataRange("default", "", "",
                 "89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         Assert.assertEquals(String.valueOf(Long.MAX_VALUE), response.getEndTime());
+    }
+
+    private void addModelInfo(ModelRequest modelRequest) {
+        modelRequest.setProject("default");
+        modelRequest.setUuid(null);
+        modelRequest.setLastModified(0L);
+        modelRequest.setStart("1325347200000");
+        modelRequest.setEnd("1388505600000");
     }
 
     private void testGetLatestDataWhenCreateModel() throws Exception {
@@ -1096,13 +1194,11 @@ public class ModelServiceTest extends CSVSourceTestCase {
         val df = dfManager.getDataflow(newModel.getUuid());
         Assert.assertEquals(1, df.getSegments().size());
 
-
         java.text.DateFormat sdf = new SimpleDateFormat("yyyy/MM/dd");
         sdf.setTimeZone(TimeZone.getDefault());
 
         long t1 = sdf.parse("2012/01/01").getTime();
         long t2 = sdf.parse("2014/01/01").getTime();
-
 
         Assert.assertEquals(t1, df.getSegments().get(0).getSegRange().getStart());
         Assert.assertEquals(t2, df.getSegments().get(0).getSegRange().getEnd());
@@ -2616,7 +2712,6 @@ public class ModelServiceTest extends CSVSourceTestCase {
 
     }
 
-
     //test refreshSegments:all Online model, all lag beghind model, One Online One lag behind model
     //first test exception
     @Test
@@ -2626,11 +2721,10 @@ public class ModelServiceTest extends CSVSourceTestCase {
         RefreshAffectedSegmentsResponse response = new RefreshAffectedSegmentsResponse();
         response.setAffectedStart("12");
         response.setAffectedEnd("120");
-        Mockito.doReturn(response).when(modelService).getRefreshAffectedSegmentsResponse("default", "DEFAULT.TEST_KYLIN_FACT",
-                "0", "12223334");
+        Mockito.doReturn(response).when(modelService).getRefreshAffectedSegmentsResponse("default",
+                "DEFAULT.TEST_KYLIN_FACT", "0", "12223334");
         modelService.refreshSegments("default", "DEFAULT.TEST_KYLIN_FACT", "0", "12223334", "0", "12223334");
     }
-
 
     @Test
     public void testGetAffectedSegmentsResponse_NoSegments_Exception() throws IOException {
@@ -2668,7 +2762,8 @@ public class ModelServiceTest extends CSVSourceTestCase {
     }
 
     @Test
-    public void testGetAffectedSegmentsResponse_OneLagBehindAndOneOnlineModel_LagBehindHasRefreshingException() throws IOException {
+    public void testGetAffectedSegmentsResponse_OneLagBehindAndOneOnlineModel_LagBehindHasRefreshingException()
+            throws IOException {
         prepareOneLagBehindAndOneOnlineModels();
         val dfMgr = NDataflowManager.getInstance(getTestConfig(), "default");
 
@@ -2686,19 +2781,18 @@ public class ModelServiceTest extends CSVSourceTestCase {
         modelService.refreshSegments("default", "DEFAULT.TEST_KYLIN_FACT", "0", "12223334", "0", "12223334");
     }
 
-
     //now test cases without exception
     @Test
     public void testRefreshSegmentsByDataRange_TwoOnlineModelAndHasReadySegs() throws IOException {
         prepareTwoOnlineModels();
-        modelService.refreshSegments("default", "DEFAULT.TEST_KYLIN_FACT", "0", "9223372036854775807", "0", "9223372036854775807");
+        modelService.refreshSegments("default", "DEFAULT.TEST_KYLIN_FACT", "0", "9223372036854775807", "0",
+                "9223372036854775807");
         EventDao eventDao = EventDao.getInstance(KylinConfig.getInstanceFromEnv(), "default");
         List<Event> events = eventDao.getEventsOrdered();
         Assert.assertTrue(events.size() == 4);
         Assert.assertTrue(events.get(0) instanceof RefreshSegmentEvent);
         Assert.assertTrue(events.get(1) instanceof PostMergeOrRefreshSegmentEvent);
     }
-
 
     @Test
     public void testRefreshSegmentsByDataRange_TwoOnlineModelNoExistedSegmentAndFullBuild() throws IOException {
@@ -2716,14 +2810,14 @@ public class ModelServiceTest extends CSVSourceTestCase {
         update2.setToRemoveSegs(df2.getSegments().toArray(new NDataSegment[0]));
         dfMgr.updateDataflow(update2);
 
-        modelService.refreshSegments("default", "DEFAULT.TEST_KYLIN_FACT", "0", "9223372036854775807", "0", "9223372036854775807");
+        modelService.refreshSegments("default", "DEFAULT.TEST_KYLIN_FACT", "0", "9223372036854775807", "0",
+                "9223372036854775807");
         EventDao eventDao = EventDao.getInstance(KylinConfig.getInstanceFromEnv(), "default");
         List<Event> events = eventDao.getEventsOrdered();
         Assert.assertTrue(events.size() == 4);
         Assert.assertTrue(events.get(0) instanceof AddSegmentEvent);
         Assert.assertTrue(events.get(1) instanceof PostAddSegmentEvent);
     }
-
 
     @Test
     public void testRefreshSegmentsByDataRange_TwoLagBehindModelAndNoReadySegs() throws IOException {
@@ -2744,7 +2838,8 @@ public class ModelServiceTest extends CSVSourceTestCase {
         df_basic_inner = dfMgr.getDataflowByModelAlias("nmodel_basic_inner");
         val oldSeg = dfMgr.appendSegment(df_basic_inner, SegmentRange.TimePartitionedSegmentRange.createInfinite());
 
-        modelService.refreshSegments("default", "DEFAULT.TEST_KYLIN_FACT", "0", "9223372036854775807", "0", "9223372036854775807");
+        modelService.refreshSegments("default", "DEFAULT.TEST_KYLIN_FACT", "0", "9223372036854775807", "0",
+                "9223372036854775807");
         EventDao eventDao = EventDao.getInstance(KylinConfig.getInstanceFromEnv(), "default");
         df_basic_inner = dfMgr.getDataflowByModelAlias("nmodel_basic_inner");
         Assert.assertTrue(df_basic_inner.getSegments().get(0).getId() != oldSeg.getId());
@@ -2800,7 +2895,6 @@ public class ModelServiceTest extends CSVSourceTestCase {
         Assert.assertTrue(events.get(7) instanceof PostAddSegmentEvent);
     }
 
-
     @Test
     public void testRefreshSegmentsByDataRange_OneLagBehindOneOnlineModelAndHasReadySegs() throws IOException {
         prepareOneLagBehindAndOneOnlineModels();
@@ -2845,6 +2939,5 @@ public class ModelServiceTest extends CSVSourceTestCase {
         Assert.assertTrue(events.get(6) instanceof AddSegmentEvent);
         Assert.assertTrue(events.get(7) instanceof PostAddSegmentEvent);
     }
-
 
 }
