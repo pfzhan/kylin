@@ -32,6 +32,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.JsonSerializer;
 import org.apache.kylin.common.persistence.RawResource;
@@ -144,6 +145,9 @@ public class NTableMetadataManager {
      * Get TableDesc by name and project
      */
     public TableDesc getTableDesc(String tableName) {
+        if (StringUtils.isEmpty(tableName)) {
+            return null;
+        }
         return srcTableCrud.get(tableName);
     }
 

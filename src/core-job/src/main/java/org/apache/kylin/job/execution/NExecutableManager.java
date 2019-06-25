@@ -151,7 +151,7 @@ public class NExecutableManager {
             SchedulerEventBusFactory.getInstance(config).postWithLimit(new JobReadyNotifier(project));
         else
             UnitOfWork.get().doAfterUnit(
-                () -> SchedulerEventBusFactory.getInstance(config).postWithLimit(new JobReadyNotifier(project)));
+                    () -> SchedulerEventBusFactory.getInstance(config).postWithLimit(new JobReadyNotifier(project)));
     }
 
     private void addJobOutput(ExecutablePO executable) {
@@ -424,6 +424,7 @@ public class NExecutableManager {
             ExecutableState oldStatus = ExecutableState.valueOf(jobOutput.getStatus());
             if (newStatus != null && oldStatus != newStatus) {
                 if (!ExecutableState.isValidStateTransfer(oldStatus, newStatus)) {
+                    logger.warn("[UNEXPECTED_THINGS_HAPPENED] wrong job state transfer!");
                     throw new IllegalStateTranferException("There is no valid state transfer from: " + oldStatus
                             + " to: " + newStatus + ", job id: " + taskOrJobId);
                 }

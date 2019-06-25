@@ -77,10 +77,6 @@ public class TableExtDesc extends RootPersistentEntity implements Serializable {
         return ResourceStore.TABLE_EXD_RESOURCE_ROOT + "/" + nameOnPath + ".json";
     }
 
-    public static String concatResourcePath(String tableIdentity, String prj) {
-        return concatRawResourcePath(TableDesc.makeResourceName(tableIdentity, prj));
-    }
-
     // returns <table, project>
     public static Pair<String, String> parseResourcePath(String path) {
         return TableDesc.parseResourcePath(path);

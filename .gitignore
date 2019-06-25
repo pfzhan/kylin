@@ -83,6 +83,7 @@ webapp/CHANGELOG.md
 build/tomcat
 build/lib
 build/kybot
+build/tpch-benchmark
 *.tgz
 *.tar.gz
 webapp/app/components/*

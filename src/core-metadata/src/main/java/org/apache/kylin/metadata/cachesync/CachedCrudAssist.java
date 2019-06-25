@@ -122,7 +122,8 @@ public abstract class CachedCrudAssist<T extends RootPersistentEntity> {
     String resourcePath(String resourceName) {
         if (StringUtils.isEmpty(resourceName) || StringUtils.containsWhitespace(resourceName)) {
             logger.error("the resourceName \"{}\" cannot contain white character", resourceName);
-            throw new IllegalArgumentException("the resourceName \"" + resourceName + "\" cannot contain white character");
+            throw new IllegalArgumentException(
+                    "the resourceName \"" + resourceName + "\" cannot contain white character");
         }
         return resRootPath + "/" + resourceName + resPathSuffix;
     }
@@ -163,6 +164,7 @@ public abstract class CachedCrudAssist<T extends RootPersistentEntity> {
     public T reloadAt(String path) {
         T entity = null;
         try {
+
             entity = store.getResource(path, serializer);
             if (entity == null) {
                 throw new IllegalStateException(
@@ -176,11 +178,13 @@ public abstract class CachedCrudAssist<T extends RootPersistentEntity> {
             if (!path.equals(resourcePath(entity.resourceName())))
                 throw new IllegalStateException("The entity " + entity + " read from " + path
                         + " will save to a different path " + resourcePath(entity.resourceName()));
-
         } catch (Exception e) {
+            logger.warn(
+                    "Error loading " + entityType.getSimpleName() + " at " + path + " entity, return a BrokenEntity",
+                    e);
             entity = initBrokenEntity(entity, resourceName(path));
-            logger.warn("Error loading " + entityType.getSimpleName() + " at " + path + " entity", e);
         }
+
         cache.put(entity.resourceName(), entity);
         return entity;
     }
@@ -204,8 +208,14 @@ public abstract class CachedCrudAssist<T extends RootPersistentEntity> {
     abstract protected T initEntityAfterReload(T entity, String resourceName);
 
     protected T initBrokenEntity(T entity, String resourceName) {
-        val brokenEntity = BrokenEntityProxy.getProxy(entityType, resourcePath(resourceName));
+        String resourcePath = resourcePath(resourceName);
+
+        val brokenEntity = BrokenEntityProxy.getProxy(entityType, resourcePath);
         brokenEntity.setUuid(resourceName);
+
+        if (entity != null)
+            brokenEntity.setMvcc(entity.getMvcc());
+
         return brokenEntity;
     }
 
@@ -226,7 +236,7 @@ public abstract class CachedCrudAssist<T extends RootPersistentEntity> {
 
         String path = resourcePath(resName);
         logger.debug("Saving {} at {}", entityType.getSimpleName(), path);
-//        new RuntimeException().printStackTrace();
+        //        new RuntimeException().printStackTrace();
 
         store.checkAndPutResource(path, entity, serializer);
 

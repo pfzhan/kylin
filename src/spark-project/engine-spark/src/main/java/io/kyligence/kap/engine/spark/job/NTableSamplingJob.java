@@ -131,7 +131,11 @@ public class NTableSamplingJob extends DefaultChainedExecutable {
                 return result;
             }
             UnitOfWork.doInTransactionWithRetry(() -> {
-                checkNeedQuit(true);
+                if (checkSuicide()) {
+                        log.info(
+                                "This Table Sampling job seems meaningless now, quit before mergeRemoteMetaAfterSampling()");
+                        return null;
+                }
                 mergeRemoteMetaAfterSampling();
                 return null;
             }, getProject());

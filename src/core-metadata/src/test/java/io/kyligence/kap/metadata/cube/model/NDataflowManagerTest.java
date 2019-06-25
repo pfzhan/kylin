@@ -596,7 +596,7 @@ public class NDataflowManagerTest extends NLocalFileMetadataTestCase {
 
         Assert.assertEquals(dataflowId, dataflow.getId());
         thrown.expect(RuntimeException.class);
-        thrown.expectMessage("Entity broken");
+        thrown.expectMessage("call on Broken Entity's getAllColumns method");
         dataflow.getAllColumns();
     }
 

@@ -23,8 +23,11 @@
  */
 package org.apache.kylin.metadata.cachesync;
 
+import org.apache.kylin.common.persistence.MissingRootPersistentEntity;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.persistence.RootPersistentEntity;
+
+import com.google.common.base.Preconditions;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -50,11 +53,15 @@ public class CacheReloadChecker<T extends RootPersistentEntity> {
     private boolean checkDependencies(RootPersistentEntity entity) {
         val raw = store.getResource(entity.getResourcePath());
         if (raw == null) {
-            return true;
+            // if still missing, no need to reload
+            return !(entity instanceof MissingRootPersistentEntity);
         }
         if (raw.getMvcc() != entity.getMvcc()) {
             return true;
         }
+
+        Preconditions.checkState(!(entity instanceof MissingRootPersistentEntity));
+
         val entities = entity.getDependencies();
         if (entities == null) {
             return false;

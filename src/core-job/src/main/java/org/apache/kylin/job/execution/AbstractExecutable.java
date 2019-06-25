@@ -135,7 +135,7 @@ public abstract class AbstractExecutable implements Executable {
 
     @Delegate
     private ExecutableParams executableParams = new ExecutableParams();
-    private String project;
+    protected String project;
     private ExecutableContext context;
 
     @Getter
@@ -172,13 +172,19 @@ public abstract class AbstractExecutable implements Executable {
         return getExecutableManager(project);
     }
 
+    /**
+     * for job steps, they need to update step status and throw exception
+     * so they need to use wrapWithCheckQuit
+     */
     protected void wrapWithCheckQuit(Callback f) throws JobStoppedException {
         boolean tryAgain = true;
 
         while (tryAgain) {
             checkNeedQuit(true);
 
-            // in this short period user might changed job state
+            // in this short period user might changed job state, say restart
+            // if a worker thread is unaware of this, it may go ahead and register step 1 as succeed here.
+            // However the user expects a total RESTART
 
             tryAgain = false;
             try {
@@ -197,7 +203,7 @@ public abstract class AbstractExecutable implements Executable {
         }
     }
 
-    protected final void onExecuteStart() throws JobStoppedException {
+    protected void onExecuteStart() throws JobStoppedException {
         wrapWithCheckQuit(() -> {
             updateJobOutput(project, getId(), ExecutableState.RUNNING, null, null, null);
         });
@@ -280,7 +286,6 @@ public abstract class AbstractExecutable implements Executable {
                 logger.info("Retrying for the {}th time ", retry);
             }
 
-            checkNeedQuit(true);
             try {
                 result = doWork(executableContext);
             } catch (JobStoppedException jse) {
@@ -315,6 +320,10 @@ public abstract class AbstractExecutable implements Executable {
     }
 
     private void suicideIfNecessary(boolean applyChange) throws JobStoppedException {
+        if (!needCheckState()) {
+            return;
+        }
+
         if (checkSuicide()) {
             if (applyChange) {
                 updateJobOutput(project, getId(), ExecutableState.SUICIDAL, null,
@@ -361,7 +370,7 @@ public abstract class AbstractExecutable implements Executable {
         } else if (ExecutableState.PAUSED.equals(parent.getStatus())) {
             //if a job is paused
             if (applyChange) {
-                updateJobOutput(project, getId(), ExecutableState.READY, null, null, null);
+                updateJobOutput(project, getId(), ExecutableState.PAUSED, null, null, null);
             }
             throw new JobStoppedNonVoluntarilyException();
         } else if (ExecutableState.DISCARDED.equals(parent.getStatus())) {
@@ -596,6 +605,7 @@ public abstract class AbstractExecutable implements Executable {
      *
      */
     protected final boolean isStoppedNonVoluntarily() {
+        Preconditions.checkState(getParent() == null);
         final ExecutableState status = getOutput().getState();
         return status.isStoppedNonVoluntarily();
     }

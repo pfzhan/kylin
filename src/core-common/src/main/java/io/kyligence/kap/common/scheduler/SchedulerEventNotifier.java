@@ -36,12 +36,7 @@ import lombok.ToString;
 @NoArgsConstructor
 @ToString
 public class SchedulerEventNotifier {
-    public static final String FAVORITE_QUERY_LIST_NOTIFIER = "favorite_query_listed";
-    public static final String EVENT_CREATED_NOTIFIER = "event_created";
-    public static final String EVENT_FINISHED_NOTIFIER = "event_finished";
-    public static final String JOB_IS_READY_NOTIFIER = "job_is_ready";
-    public static final String JOB_FINISHED_NOTIFIER = "job_finished";
 
-    private String name;
-    private String project;
+    protected String project;
+    protected String subject;
 }

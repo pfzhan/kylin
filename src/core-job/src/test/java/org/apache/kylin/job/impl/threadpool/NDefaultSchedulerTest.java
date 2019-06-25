@@ -37,7 +37,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
-import com.google.common.collect.Lists;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.JobProcessContext;
 import org.apache.kylin.common.KylinConfig;
@@ -72,6 +71,7 @@ import org.mockito.Mockito;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
@@ -472,7 +472,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         await().atMost(6000, TimeUnit.MILLISECONDS).untilAsserted(
                 () -> Assert.assertEquals(ExecutableState.RUNNING, executableManager.getJob(job.getId()).getStatus()));
         pauseJobWithLock(job.getId());
-        await().atMost(6000, TimeUnit.MILLISECONDS).untilAsserted(() -> Assert.assertEquals(ExecutableState.READY,
+        await().atMost(6000, TimeUnit.MILLISECONDS).untilAsserted(() -> Assert.assertEquals(ExecutableState.PAUSED,
                 ((DefaultChainedExecutable) executableManager.getJob(job.getId())).getTasks().get(0).getStatus()));
         UnitOfWork.doInTransactionWithRetry(() -> {
             val modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
@@ -899,7 +899,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
 
         await().atMost(3000, TimeUnit.MILLISECONDS).untilAsserted(() -> {
             Assert.assertEquals(ExecutableState.PAUSED, job.getStatus());
-            Assert.assertEquals(ExecutableState.READY, task.getStatus());
+            Assert.assertEquals(ExecutableState.PAUSED, task.getStatus());
         });
 
         thrown.expect(JobStoppedNonVoluntarilyException.class);
@@ -936,7 +936,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
 
         await().atMost(3, TimeUnit.SECONDS).untilAsserted(() -> {
             Assert.assertEquals(ExecutableState.PAUSED, job.getStatus());
-            Assert.assertEquals(ExecutableState.READY, task.getStatus());
+            Assert.assertEquals(ExecutableState.PAUSED, task.getStatus());
         });
         assertMemoryRestore(currMem);
         Assert.assertEquals(1, killProcessCount.get());
@@ -1383,7 +1383,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
     private void assertPausedState(ExecutableDurationContext context, long interval) {
         Assert.assertEquals(ExecutableState.PAUSED, context.getRecord().getState());
         val stepType = context.getStepRecords().get(0).getState();
-        Assert.assertTrue(stepType == ExecutableState.SUCCEED || stepType == ExecutableState.READY);
+        Assert.assertTrue(stepType == ExecutableState.SUCCEED || stepType == ExecutableState.PAUSED);
         Assert.assertEquals(ExecutableState.READY, context.getStepRecords().get(1).getState());
         Assert.assertTrue(context.getRecord().getDuration() > 0);
         Assert.assertTrue(context.getStepRecords().get(0).getDuration() > 0);
@@ -1558,6 +1558,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         assertMemoryRestore(currMem);
     }
 
+    @Ignore
     @Test
     public void testJobErrorAndRestart() {
         val currMem = NDefaultScheduler.currentAvailableMem();
@@ -1749,6 +1750,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         Assert.assertEquals(ExecutableState.ERROR, executableManager.getOutput(task1.getId()).getState());
     }
 
+    @Ignore
     @Test
     public void testSubmitParallelTasksReachMemoryQuota()
             throws InterruptedException, NoSuchFieldException, IllegalAccessException {

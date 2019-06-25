@@ -32,6 +32,8 @@ import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.realization.RealizationStatusEnum;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Lists;
 import com.google.common.eventbus.Subscribe;
@@ -52,29 +54,43 @@ import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import lombok.val;
-import lombok.var;
 
 public class ModelBrokenListener {
 
+    private static final Logger logger = LoggerFactory.getLogger(ModelBrokenListener.class);
+
+    private boolean needHandleModelBroken(String project, String modelId) {
+        val config = KylinConfig.getInstanceFromEnv();
+        val modelManager = NDataModelManager.getInstance(config, project);
+        val model = modelManager.getDataModelDesc(modelId);
+
+        if (model != null && model.isBroken() && !model.isHandledAfterBroken()) {
+            return true;
+        }
+
+        return false;
+    }
+
     @Subscribe
     public void onModelBroken(NDataModel.ModelBrokenEvent event) {
-        val origin = event.getModel();
-        val project = origin.getProject();
-        if (origin.isHandledAfterBroken()) {
+        val project = event.getProject();
+        val modelId = event.getSubject();
+
+        if (!needHandleModelBroken(project, modelId)) {
             return;
         }
 
         UnitOfWork.doInTransactionWithRetry(() -> {
+
+            if (!needHandleModelBroken(project, modelId)) {
+                return null;
+            }
+
             val config = KylinConfig.getInstanceFromEnv();
             val modelManager = NDataModelManager.getInstance(config, project);
-            val originModel = modelManager.getDataModelDesc(origin.getId());
-            if (originModel == null || !originModel.isBroken()) {
-                return null;
-            }
-            val model = getBrokenModel(project, originModel.getResourcePath());
-            if (model.isHandledAfterBroken()) {
-                return null;
-            }
+
+            val model = getBrokenModel(project, NDataModel.concatResourcePath(modelId, project));
+
             val dataflowManager = NDataflowManager.getInstance(config, project);
             val indexPlanManager = NIndexPlanManager.getInstance(config, project);
             val projectManager = NProjectManager.getInstance(config);
@@ -86,38 +102,57 @@ public class ModelBrokenListener {
                 modelManager.dropModel(model);
                 return null;
             }
-            val dataflow = dataflowManager.getDataflow(origin.getId());
+            val dataflow = dataflowManager.getDataflow(modelId);
             val dfUpdate = new NDataflowUpdate(dataflow.getId());
             dfUpdate.setToRemoveSegs(dataflow.getSegments().toArray(new NDataSegment[0]));
             dfUpdate.setStatus(RealizationStatusEnum.BROKEN);
             dataflowManager.updateDataflow(dfUpdate);
 
-            dataflowManager.updateDataflow(origin.getId(), copyForWrite -> copyForWrite.setEventError(true));
+            if (model.getBrokenReason() == NDataModel.BrokenReason.EVENT) {
+                dataflowManager.updateDataflow(model.getId(), copyForWrite -> copyForWrite.setEventError(true));
+            }
             model.setHandledAfterBroken(true);
             modelManager.updateDataBrokenModelDesc(model);
             EventDao eventDao = EventDao.getInstance(config, project);
-            eventDao.getEventsByModel(origin.getId()).stream().map(Event::getId).forEach(eventDao::deleteEvent);
+            eventDao.getEventsByModel(modelId).stream().map(Event::getId).forEach(eventDao::deleteEvent);
             return null;
         }, project);
     }
 
+    private boolean needHandleModelRepair(String project, String modelId) {
+        val config = KylinConfig.getInstanceFromEnv();
+        val modelManager = NDataModelManager.getInstance(config, project);
+        val model = modelManager.getDataModelDesc(modelId);
+
+        if (model != null && !model.isBroken() && model.isHandledAfterBroken()) {
+            return true;
+        }
+
+        return false;
+    }
+
     @Subscribe
     public void onModelRepair(NDataModel.ModelRepairEvent event) {
-        val origin = event.getModel();
-        val project = origin.getProject();
-        if (!origin.isHandledAfterBroken()) {
+
+        val project = event.getProject();
+        val modelId = event.getSubject();
+
+        if (!needHandleModelRepair(project, modelId)) {
             return;
         }
 
         UnitOfWork.doInTransactionWithRetry(() -> {
-            val modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
-            var model = modelManager.getDataModelDesc(origin.getId());
-            if (!model.isHandledAfterBroken()) {
+
+            if (!needHandleModelRepair(project, modelId)) {
                 return null;
             }
-            model = modelManager.copyForWrite(model);
+
+            val modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+            val modelOrigin = modelManager.getDataModelDesc(modelId);
+            val model = modelManager.copyForWrite(modelOrigin);
+
             val dataflowManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
-            val dataflow = dataflowManager.getDataflow(origin.getId());
+            val dataflow = dataflowManager.getDataflow(modelId);
             val dfUpdate = new NDataflowUpdate(dataflow.getId());
             dfUpdate.setStatus(RealizationStatusEnum.ONLINE);
             dataflowManager.updateDataflow(dfUpdate);

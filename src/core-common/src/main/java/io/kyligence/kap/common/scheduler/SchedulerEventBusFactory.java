@@ -24,18 +24,27 @@
 
 package io.kyligence.kap.common.scheduler;
 
+import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+
+import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.util.NamedThreadFactory;
+
 import com.google.common.collect.Maps;
 import com.google.common.eventbus.AsyncEventBus;
 import com.google.common.eventbus.EventBus;
 import com.google.common.util.concurrent.RateLimiter;
-import org.apache.kylin.common.KylinConfig;
-
-import java.util.Map;
-import java.util.concurrent.Executors;
 
 public class SchedulerEventBusFactory {
     private KylinConfig kylinConfig;
-    private static EventBus eventBus = new AsyncEventBus(Executors.newCachedThreadPool());
+    private static EventBus eventBus;
+
+    static {
+        ExecutorService executor = Executors.newCachedThreadPool(new NamedThreadFactory("SchedulerEventBus"));
+        eventBus = new AsyncEventBus(executor);
+    }
+
     private Map<String, RateLimiter> rateLimiters = Maps.newConcurrentMap();
 
     public static SchedulerEventBusFactory getInstance(KylinConfig kylinConfig) {
@@ -59,8 +68,7 @@ public class SchedulerEventBusFactory {
     }
 
     public void postWithLimit(SchedulerEventNotifier event) {
-        rateLimiters.putIfAbsent(event.toString(),
-                RateLimiter.create(kylinConfig.getSchedulerLimitPerMinute() / 60.0));
+        rateLimiters.putIfAbsent(event.toString(), RateLimiter.create(kylinConfig.getSchedulerLimitPerMinute() / 60.0));
         RateLimiter rateLimiter = rateLimiters.get(event.toString());
 
         if (rateLimiter.tryAcquire())

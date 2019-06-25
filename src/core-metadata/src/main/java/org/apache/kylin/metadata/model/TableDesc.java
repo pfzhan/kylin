@@ -47,8 +47,6 @@ import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 
-import com.fasterxml.jackson.annotation.JsonGetter;
-import com.fasterxml.jackson.annotation.JsonSetter;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.persistence.RootPersistentEntity;
 import org.apache.kylin.common.util.Pair;
@@ -59,8 +57,10 @@ import org.slf4j.LoggerFactory;
 
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonAutoDetect.Visibility;
+import com.fasterxml.jackson.annotation.JsonGetter;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonSetter;
 import com.google.common.collect.Lists;
 
 /**
@@ -74,20 +74,6 @@ public class TableDesc extends RootPersistentEntity implements Serializable, ISo
 
     private static final String TABLE_TYPE_VIRTUAL_VIEW = "VIRTUAL_VIEW";
     private static final String materializedTableNamePrefix = "kylin_intermediate_";
-
-    public static String concatRawResourcePath(String nameOnPath) {
-        return ResourceStore.TABLE_RESOURCE_ROOT + "/" + nameOnPath + ".json";
-    }
-
-    public static String makeResourceName(String tableIdentity, String prj) {
-        return prj == null ? tableIdentity : tableIdentity + "--" + prj;
-    }
-
-    // this method should only used for getting dest path when copying from src to dest.
-    // if you want to get table's src path, use getResourcePath() instead.
-    private static String concatResourcePath(String tableIdentity, String prj) {
-        return concatRawResourcePath(makeResourceName(tableIdentity, prj));
-    }
 
     // returns <table, project>
     public static Pair<String, String> parseResourcePath(String path) {
@@ -131,7 +117,6 @@ public class TableDesc extends RootPersistentEntity implements Serializable, ISo
 
     @JsonProperty("last_snapshot_path")
     private String lastSnapshotPath;
-
 
     protected String project;
     private DatabaseDesc database = new DatabaseDesc();
@@ -224,16 +209,13 @@ public class TableDesc extends RootPersistentEntity implements Serializable, ISo
 
     @Override
     public String getResourcePath() {
-        return new StringBuilder().append("/").append(project).append(ResourceStore.TABLE_RESOURCE_ROOT).append("/")
-                .append(getIdentity()).append(MetadataConstants.FILE_SURFIX).toString();
+        return concatResourcePath(getIdentity(), project);
+
     }
 
-    /**
-     * @deprecated this is for compatible with data model v1;
-     * @return
-     */
-    public String getResourcePathV1() {
-        return concatResourcePath(name, null);
+    public static String concatResourcePath(String name, String project) {
+        return new StringBuilder().append("/").append(project).append(ResourceStore.TABLE_RESOURCE_ROOT).append("/")
+                .append(name).append(MetadataConstants.FILE_SURFIX).toString();
     }
 
     public String getIdentity() {

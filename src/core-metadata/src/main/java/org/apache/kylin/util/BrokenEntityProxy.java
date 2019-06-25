@@ -59,9 +59,10 @@ import lombok.val;
 public class BrokenEntityProxy implements MethodInterceptor {
 
     private static Set<String> methods = Sets.newHashSet("setBroken", "isBroken", "setProject", "getProject",
-            "resourceName", "getId", "getUuid", "setUuid",
-            "getAlias", "setAlias", "checkBrokenWithRelatedInfo", "toString", "getMvcc", "setMvcc", "setConfig",
-            "getConfig", "getModelAlias", "getModel");
+            "resourceName", "getId", "getUuid", "setUuid", "getAlias", "setAlias", "checkBrokenWithRelatedInfo",
+            "toString", "getMvcc", "setMvcc", "setConfig", "getConfig", "getModelAlias", "getModel",
+            "getRootFactTableName", "setRootFactTableName", "getJoinTables", "setJoinTables", "calcDependencies",
+            "getDependencies", "setDependencies", "setHandledAfterBroken", "isHandledAfterBroken");
 
     private final String resourcePath;
 
@@ -84,7 +85,7 @@ public class BrokenEntityProxy implements MethodInterceptor {
         if (method.getName().equals("checkIsNotCachedAndShared")) {
             return null;
         }
-        throw new RuntimeException("Entity broken.");
+        throw new RuntimeException("call on Broken Entity's " + method.getName() + " method");
     }
 
 }

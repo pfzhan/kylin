@@ -36,6 +36,7 @@ import java.util.stream.Collectors;
 
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfigExt;
+import org.apache.kylin.common.persistence.MissingRootPersistentEntity;
 import org.apache.kylin.common.persistence.RootPersistentEntity;
 import org.apache.kylin.common.util.StringUtil;
 import org.apache.kylin.metadata.MetadataConstants;
@@ -84,10 +85,6 @@ public class NDataflow extends RootPersistentEntity implements Serializable, IRe
         df.setStatus(RealizationStatusEnum.ONLINE);
 
         return df;
-    }
-
-    public static String concatResourcePath(String name) {
-        return DATAFLOW_RESOURCE_ROOT + "/" + name + ".json";
     }
 
     // ============================================================================
@@ -142,8 +139,17 @@ public class NDataflow extends RootPersistentEntity implements Serializable, IRe
             seg.initAfterReload();
         }
 
+        this.setDependencies(calcDependencies());
+
+    }
+
+    @Override
+    public List<RootPersistentEntity> calcDependencies() {
         val indexPlanManager = NIndexPlanManager.getInstance(config, project);
-        setDependencies(Lists.newArrayList(indexPlanManager.getIndexPlan(getId())));
+        IndexPlan indexPlan = indexPlanManager.getIndexPlan(getId());
+
+        return Lists.newArrayList(indexPlan != null ? indexPlan
+                : new MissingRootPersistentEntity(IndexPlan.concatResourcePath(getId(), project)));
     }
 
     public KylinConfigExt getConfig() {
@@ -161,7 +167,11 @@ public class NDataflow extends RootPersistentEntity implements Serializable, IRe
 
     @Override
     public String getResourcePath() {
-        return "/" + project + DATAFLOW_RESOURCE_ROOT + "/" + uuid + MetadataConstants.FILE_SURFIX;
+        return concatResourcePath(getUuid(), project);
+    }
+
+    public static String concatResourcePath(String name, String project) {
+        return "/" + project + DATAFLOW_RESOURCE_ROOT + "/" + name + MetadataConstants.FILE_SURFIX;
     }
 
     public Set<String> collectPrecalculationResource() {

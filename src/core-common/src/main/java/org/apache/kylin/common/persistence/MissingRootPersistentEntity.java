@@ -21,11 +21,18 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+package org.apache.kylin.common.persistence;
 
-package io.kyligence.kap.common.scheduler;
+public class MissingRootPersistentEntity extends RootPersistentEntity {
 
-public class JobFinishedNotifier extends SchedulerEventNotifier {
-    public JobFinishedNotifier(String project) {
-        setProject(project);
+    private String rp;
+
+    public MissingRootPersistentEntity(String rp) {
+        this.rp = rp;
+    }
+
+    @Override
+    public String getResourcePath() {
+        return rp;
     }
 }

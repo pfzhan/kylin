@@ -62,7 +62,7 @@ public class UnitOfWork {
     private static ThreadLocal<UnitOfWorkContext> threadLocals = new ThreadLocal<>();
 
     public static <T> T doInTransactionWithRetry(Callback<T> f, String unitName) {
-        return doInTransactionWithRetry(f, unitName, 10);
+        return doInTransactionWithRetry(f, unitName, 3);
     }
 
     public static <T> T doInTransactionWithRetry(Callback<T> f, String unitName, int maxRetry) {

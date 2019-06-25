@@ -38,6 +38,7 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.KylinConfigExt;
 import org.apache.kylin.common.persistence.ResourceStore;
@@ -105,6 +106,7 @@ public class NDataflowManager implements IRealizationProvider, IKeepNames {
                 IndexPlan plan = NIndexPlanManager.getInstance(config, project).getIndexPlan(resourceName);
                 dataflow.setConfig((KylinConfigExt) plan.getConfig());
                 dataflow.setProject(project);
+                dataflow.setDependencies(dataflow.calcDependencies());
                 return dataflow;
             }
         };
@@ -209,6 +211,9 @@ public class NDataflowManager implements IRealizationProvider, IKeepNames {
     }
 
     public NDataflow getDataflow(String id) {
+        if (StringUtils.isEmpty(id)) {
+            return null;
+        }
         return crud.get(id);
     }
 

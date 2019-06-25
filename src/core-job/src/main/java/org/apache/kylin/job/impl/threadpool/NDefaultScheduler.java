@@ -121,13 +121,15 @@ public class NDefaultScheduler implements Scheduler<AbstractExecutable>, Connect
 
     private boolean discardSuicidalJob(String jobId) {
         try {
-            return UnitOfWork.doInTransactionWithRetry(() -> {
-                if (checkSuicide(jobId)) {
-                    NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project).discardJob(jobId);
-                    return true;
-                }
-                return false;
-            }, project);
+            if (checkSuicide(jobId)) {
+                return UnitOfWork.doInTransactionWithRetry(() -> {
+                    if (checkSuicide(jobId)) {
+                        NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project).discardJob(jobId);
+                        return true;
+                    }
+                    return false;
+                }, project);
+            }
         } catch (Exception e) {
             logger.warn("[UNEXPECTED_THINGS_HAPPENED] project " + project + " job " + jobId
                     + " should be suicidal but discard failed", e);
@@ -156,6 +158,7 @@ public class NDefaultScheduler implements Scheduler<AbstractExecutable>, Connect
                         nDiscarded++;
                         continue;
                     }
+
                     if (runningJobs.containsKey(id)) {
                         // this is very important to prevent from same job being scheduled at same time.
                         // e.g. when a job is restarted, the old job may still be running (even if we tried to interrupt it)
@@ -163,6 +166,7 @@ public class NDefaultScheduler implements Scheduler<AbstractExecutable>, Connect
                         nRunning++;
                         continue;
                     }
+
                     final Output output = executableManager.getOutput(id);
                     switch (output.getState()) {
                     case READY:

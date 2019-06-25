@@ -175,6 +175,7 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
             val dfManager = NDataflowManager.getInstance(getTestConfig(), PROJECT);
             Assert.assertEquals(2, dfManager.listAllDataflows().size());
         });
+        System.clearProperty("kylin.metadata.broken-model-deleted-on-smart-mode");
     }
 
     @Test

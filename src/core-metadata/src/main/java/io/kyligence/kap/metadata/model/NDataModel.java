@@ -50,6 +50,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Queue;
 import java.util.Set;
 import java.util.function.Predicate;
@@ -57,8 +58,6 @@ import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
-import lombok.AllArgsConstructor;
-import lombok.Setter;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.util.SqlBasicVisitor;
@@ -66,6 +65,7 @@ import org.apache.calcite.sql.util.SqlVisitor;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.persistence.MissingRootPersistentEntity;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.persistence.RootPersistentEntity;
 import org.apache.kylin.common.util.Pair;
@@ -101,14 +101,17 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.obf.IKeep;
+import io.kyligence.kap.common.scheduler.SchedulerEventNotifier;
 import io.kyligence.kap.metadata.model.alias.AliasDeduce;
 import io.kyligence.kap.metadata.model.alias.AliasMapping;
 import io.kyligence.kap.metadata.model.alias.ExpressionComparator;
 import io.kyligence.kap.metadata.model.util.ComputedColumnUtil;
 import io.kyligence.kap.metadata.project.NProjectManager;
+import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
+import lombok.Setter;
 import lombok.ToString;
 import lombok.val;
 
@@ -131,15 +134,21 @@ public class NDataModel extends RootPersistentEntity {
     @Getter
     @Setter
     @AllArgsConstructor
-    public static class ModelBrokenEvent {
-        private NDataModel model;
+    public static class ModelBrokenEvent extends SchedulerEventNotifier {
+        public ModelBrokenEvent(String project, String subject) {
+            this.project = project;
+            this.subject = subject;
+        }
     }
 
     @Getter
     @Setter
     @AllArgsConstructor
-    public static class ModelRepairEvent {
-        private NDataModel model;
+    public static class ModelRepairEvent extends SchedulerEventNotifier {
+        public ModelRepairEvent(String project, String subject) {
+            this.project = project;
+            this.subject = subject;
+        }
     }
 
     private KylinConfig config;
@@ -831,10 +840,6 @@ public class NDataModel extends RootPersistentEntity {
         return "NDataModel [" + getAlias() + "]";
     }
 
-    public static String concatResourcePath(String descName) {
-        return ResourceStore.DATA_MODEL_DESC_RESOURCE_ROOT + "/" + descName + MetadataConstants.FILE_SURFIX;
-    }
-
     public ProjectInstance getProjectInstance() {
         return NProjectManager.getInstance(getConfig()).getProject(project);
     }
@@ -872,8 +877,23 @@ public class NDataModel extends RootPersistentEntity {
         initFk2Pk();
         checkSingleIncrementingLoadingTable();
 
-        setDependencies(getAllTables().stream().map(ref -> originalTables.get(ref.getTableIdentity()))
-                .collect(Collectors.toList()));
+        setDependencies(calcDependencies());
+    }
+
+    @Override
+    public List<RootPersistentEntity> calcDependencies() {
+
+        Set<String> dependTables = Sets.newHashSet();
+        dependTables.add(getRootFactTableName());
+        dependTables.addAll(this.getJoinTables().stream().map(JoinTableDesc::getTable).collect(Collectors.toList()));
+
+        return dependTables.stream().filter(Objects::nonNull).map(t -> {
+
+            TableDesc tableDesc = NTableMetadataManager.getInstance(config, project).getTableDesc(t);
+            return tableDesc != null ? tableDesc
+                    : new MissingRootPersistentEntity(TableDesc.concatResourcePath(t, project));
+
+        }).collect(Collectors.toList());
     }
 
     public void checkSingleIncrementingLoadingTable() {
@@ -1394,8 +1414,13 @@ public class NDataModel extends RootPersistentEntity {
 
     @Override
     public String getResourcePath() {
+        return concatResourcePath(getUuid(), project);
+    }
+
+    public static String concatResourcePath(String name, String project) {
         return new StringBuilder().append("/").append(project).append(ResourceStore.DATA_MODEL_DESC_RESOURCE_ROOT)
-                .append("/").append(getUuid()).append(MetadataConstants.FILE_SURFIX).toString();
+                .append("/").append(name).append(MetadataConstants.FILE_SURFIX).toString();
+
     }
 
 }

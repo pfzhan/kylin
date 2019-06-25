@@ -193,7 +193,7 @@ public class NProjectLoader {
             if (tableDesc != null) {
                 projectBundle.tables.put(tableDesc.getIdentity(), new TableBundle(tableDesc));
             } else {
-                logger.warn("Table '{}' defined under project '{}' is not found.", tableName, project);
+                logger.warn("Table '{}' defined under project '{}' is not found or it's broken.", tableName, project);
             }
         });
 
@@ -203,7 +203,7 @@ public class NProjectLoader {
             if (realization != null) {
                 projectBundle.realizations.add(realization);
             } else {
-                logger.warn("Realization '{}' defined under project '{}' is not found.", entry, project);
+                logger.warn("Realization '{}' defined under project '{}' is not found or it's broken.", entry, project);
             }
         });
 

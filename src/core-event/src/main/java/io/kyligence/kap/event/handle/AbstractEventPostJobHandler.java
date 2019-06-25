@@ -58,7 +58,8 @@ public abstract class AbstractEventPostJobHandler extends AbstractEventHandler {
             // in case the job is skipped
             doHandleWithNullJob(eventContext);
             return;
-        } else if (executable.getStatus() == ExecutableState.SUICIDAL) {
+        } else if (executable.getStatus() == ExecutableState.SUICIDAL
+                || executable.getStatus() == ExecutableState.DISCARDED) {
             doHandleWithSuicidalJob(eventContext, executable);
             log.debug("previous job suicide, current event:{} will be ignored", eventContext.getEvent());
             handleFavoriteQuery(eventContext);

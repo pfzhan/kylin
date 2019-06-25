@@ -30,6 +30,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.KylinConfigExt;
 import org.apache.kylin.common.persistence.ResourceStore;
@@ -87,6 +88,8 @@ public class NIndexPlanManager implements IKeepNames {
                 val indexPlan = super.initBrokenEntity(entity, resourceName);
                 indexPlan.setProject(project);
                 indexPlan.setConfig(KylinConfigExt.createInstance(config, Maps.newHashMap()));
+                indexPlan.setDependencies(indexPlan.calcDependencies());
+
                 return indexPlan;
             }
 
@@ -99,6 +102,9 @@ public class NIndexPlanManager implements IKeepNames {
     }
 
     public IndexPlan getIndexPlan(String id) {
+        if (StringUtils.isEmpty(id)) {
+            return null;
+        }
         return crud.get(id);
     }
 

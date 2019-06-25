@@ -26,7 +26,6 @@ package io.kyligence.kap.common.scheduler;
 
 public class EventCreatedNotifier extends SchedulerEventNotifier {
     public EventCreatedNotifier(String project) {
-        setName(SchedulerEventNotifier.EVENT_CREATED_NOTIFIER);
         setProject(project);
     }
 }

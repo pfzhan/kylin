@@ -44,6 +44,7 @@ import java.util.stream.Collectors;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.KylinConfigExt;
+import org.apache.kylin.common.persistence.MissingRootPersistentEntity;
 import org.apache.kylin.common.persistence.RootPersistentEntity;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.metadata.MetadataConstants;
@@ -81,10 +82,6 @@ import lombok.val;
 @SuppressWarnings("serial")
 public class IndexPlan extends RootPersistentEntity implements Serializable, IEngineAware, IKeep {
     public static final String INDEX_PLAN_RESOURCE_ROOT = "/index_plan";
-
-    public static String concatResourcePath(String name) {
-        return INDEX_PLAN_RESOURCE_ROOT + "/" + name + MetadataConstants.FILE_SURFIX;
-    }
 
     @JsonProperty("description")
     @Getter
@@ -168,8 +165,16 @@ public class IndexPlan extends RootPersistentEntity implements Serializable, IEn
         initAllColumns();
         initDictionaryDesc();
 
+        this.setDependencies(calcDependencies());
+    }
+
+    @Override
+    public List<RootPersistentEntity> calcDependencies() {
         val manager = NDataModelManager.getInstance(config, project);
-        setDependencies(Lists.newArrayList(manager.getDataModelDesc(getId())));
+        NDataModel dataModelDesc = manager.getDataModelDesc(getId());
+
+        return Lists.newArrayList(dataModelDesc != null ? dataModelDesc
+                : new MissingRootPersistentEntity(NDataModel.concatResourcePath(getId(), project)));
     }
 
     private void initConfig4IndexPlan(KylinConfig config) {
@@ -305,8 +310,12 @@ public class IndexPlan extends RootPersistentEntity implements Serializable, IEn
 
     @Override
     public String getResourcePath() {
-        return new StringBuilder().append("/").append(project).append(INDEX_PLAN_RESOURCE_ROOT).append("/")
-                .append(getUuid()).append(MetadataConstants.FILE_SURFIX).toString();
+        return concatResourcePath(getUuid(), project);
+    }
+
+    public static String concatResourcePath(String name, String project) {
+        return new StringBuilder().append("/").append(project).append(INDEX_PLAN_RESOURCE_ROOT).append("/").append(name)
+                .append(MetadataConstants.FILE_SURFIX).toString();
     }
 
     public String getProject() {

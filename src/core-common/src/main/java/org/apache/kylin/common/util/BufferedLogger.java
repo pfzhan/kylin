@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -52,25 +51,14 @@ public class BufferedLogger implements Logger {
     private final org.slf4j.Logger wrappedLogger;
     private final StringBuilder buffer = new StringBuilder();
 
-    private static int MAX_BUFFER_SIZE = 10 * 1024 * 1024;
-
     public BufferedLogger(org.slf4j.Logger wrappedLogger) {
         this.wrappedLogger = wrappedLogger;
     }
 
     @Override
     public void log(String message) {
-        wrappedLogger.info(message);
-        if (buffer.length() < MAX_BUFFER_SIZE) {
-            buffer.append(message).append("\n");
+        if (wrappedLogger != null) {
+            wrappedLogger.info(message);
         }
-    }
-
-    public String getBufferedLog() {
-        return buffer.toString();
-    }
-
-    public void resetBuffer() {
-        buffer.setLength(0);
     }
 }

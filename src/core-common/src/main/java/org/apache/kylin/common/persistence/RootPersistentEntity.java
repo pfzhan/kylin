@@ -53,8 +53,8 @@ import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonAutoDetect.Visibility;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonView;
+import com.google.common.collect.Lists;
 
-import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
@@ -105,8 +105,12 @@ abstract public class RootPersistentEntity implements AclEntity, Serializable {
     private boolean isBroken = false;
 
     @Getter
-    @Setter(AccessLevel.PROTECTED)
+    @Setter
     private List<RootPersistentEntity> dependencies;
+
+    public List<RootPersistentEntity> calcDependencies() {
+        return Lists.newArrayList();
+    }
 
     public String getVersion() {
         return version;
@@ -161,8 +165,8 @@ abstract public class RootPersistentEntity implements AclEntity, Serializable {
 
     public void setMvcc(long mvcc) {
         if (isCachedAndShared) {
-            log.warn("cannot update mvcc for {}, from {} to {}", this.getClass(), this.mvcc, mvcc);
-            log.warn("stack trace", new IllegalStateException("illegal operation"));
+            log.warn("[UNEXPECTED_THINGS_HAPPENED]update mvcc for isCachedAndShared object " + this.getClass()
+                    + ", from " + this.mvcc + " to " + mvcc, new IllegalStateException());
         }
         this.mvcc = mvcc;
     }

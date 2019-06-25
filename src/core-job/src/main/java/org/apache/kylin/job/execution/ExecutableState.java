@@ -69,33 +69,27 @@ public enum ExecutableState {
                     }
                 });
 
-        //scheduler
         VALID_STATE_TRANSFER.put(ExecutableState.READY, ExecutableState.RUNNING);
         VALID_STATE_TRANSFER.put(ExecutableState.READY, ExecutableState.ERROR);
-        //user
         VALID_STATE_TRANSFER.put(ExecutableState.READY, ExecutableState.DISCARDED);
         VALID_STATE_TRANSFER.put(ExecutableState.READY, ExecutableState.SUICIDAL);
+        VALID_STATE_TRANSFER.put(ExecutableState.READY, ExecutableState.PAUSED);
 
-        //job
         VALID_STATE_TRANSFER.put(ExecutableState.RUNNING, ExecutableState.READY);
-        //job
         VALID_STATE_TRANSFER.put(ExecutableState.RUNNING, ExecutableState.SUCCEED);
-        //user
         VALID_STATE_TRANSFER.put(ExecutableState.RUNNING, ExecutableState.DISCARDED);
-        //scheduler,job
         VALID_STATE_TRANSFER.put(ExecutableState.RUNNING, ExecutableState.ERROR);
         VALID_STATE_TRANSFER.put(ExecutableState.RUNNING, ExecutableState.SUICIDAL);
+        VALID_STATE_TRANSFER.put(ExecutableState.RUNNING, ExecutableState.PAUSED);
 
         VALID_STATE_TRANSFER.put(ExecutableState.PAUSED, ExecutableState.DISCARDED);
+        VALID_STATE_TRANSFER.put(ExecutableState.PAUSED, ExecutableState.SUICIDAL);
         VALID_STATE_TRANSFER.put(ExecutableState.PAUSED, ExecutableState.READY);
 
         VALID_STATE_TRANSFER.put(ExecutableState.ERROR, ExecutableState.DISCARDED);
+        VALID_STATE_TRANSFER.put(ExecutableState.ERROR, ExecutableState.SUICIDAL);
         VALID_STATE_TRANSFER.put(ExecutableState.ERROR, ExecutableState.READY);
 
-        VALID_STATE_TRANSFER.put(ExecutableState.READY, ExecutableState.PAUSED);
-        VALID_STATE_TRANSFER.put(ExecutableState.RUNNING, ExecutableState.PAUSED);
-
-        //rollback
         VALID_STATE_TRANSFER.put(ExecutableState.SUCCEED, ExecutableState.READY);
 
     }
@@ -113,7 +107,8 @@ public enum ExecutableState {
     }
 
     public boolean isStoppedNonVoluntarily() {
-        return this == DISCARDED || this == PAUSED;
+        return this == DISCARDED || this == PAUSED || //
+                this == READY;//restart case
     }
 
     public static boolean isValidStateTransfer(ExecutableState from, ExecutableState to) {

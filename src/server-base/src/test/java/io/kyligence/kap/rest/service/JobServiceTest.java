@@ -55,6 +55,7 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.dao.ExecutableOutputPO;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.ExecutableState;
+import org.apache.kylin.job.execution.FiveSecondSucceedTestExecutable;
 import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.metadata.model.TableDesc;
@@ -211,7 +212,7 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
         SucceedChainedTestExecutable executable = new SucceedChainedTestExecutable();
         executable.setProject(project);
         addSegment(executable);
-        SucceedChainedTestExecutable task = new SucceedChainedTestExecutable();
+        FiveSecondSucceedTestExecutable task = new FiveSecondSucceedTestExecutable();
         task.setProject(project);
         addSegment(task);
         executable.addTask(task);
@@ -287,7 +288,7 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
         executable.setParam("test3", "test3");
         executable.setProject("default");
         executable.setName("test");
-        executable.addTask(new SucceedChainedTestExecutable());
+        executable.addTask(new FiveSecondSucceedTestExecutable());
         manager.addJob(executable);
         List<ExecutableStepResponse> result = jobService.getJobDetail("default", executable.getId());
         Assert.assertTrue(result.size() == 1);

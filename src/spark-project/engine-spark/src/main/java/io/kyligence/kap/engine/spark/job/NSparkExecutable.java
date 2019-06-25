@@ -272,7 +272,7 @@ public class NSparkExecutable extends AbstractExecutable {
     private ExecuteResult runSparkSubmit(KylinConfig config, String sparkHome, String hadoopConf, String jars,
             String kylinJobJar, String appArgs, String jobId) {
 
-        PatternedLogger patternedLogger = new PatternedLogger(logger);
+        PatternedLogger patternedLogger = new PatternedLogger(null);
         try {
             String cmd = generateSparkCmd(config, hadoopConf, jars, kylinJobJar, appArgs);
 
@@ -343,18 +343,16 @@ public class NSparkExecutable extends AbstractExecutable {
     void attachMetadataAndKylinProps(KylinConfig config) throws IOException {
 
         // The way of Updating metadata is CopyOnWrite. So it is safe to use Reference in the value.
-        Map dumpMap = UnitOfWork.doInTransactionWithRetry(UnitOfWorkParams.<Map>builder()
-            .readonly(true)
-            .unitName(getProject())
-            .processor(() -> {
-                Map<String, RawResource> retMap = Maps.newHashMap();
-                for (String resPath: getMetadataDumpList(config)) {
-                    ResourceStore resourceStore = ResourceStore.getKylinMetaStore(config);
-                    RawResource rawResource = resourceStore.getResource(resPath);
-                    retMap.put(resPath, rawResource);
-                }
-                return retMap;
-            }).build());
+        Map dumpMap = UnitOfWork.doInTransactionWithRetry(
+                UnitOfWorkParams.<Map> builder().readonly(true).unitName(getProject()).processor(() -> {
+                    Map<String, RawResource> retMap = Maps.newHashMap();
+                    for (String resPath : getMetadataDumpList(config)) {
+                        ResourceStore resourceStore = ResourceStore.getKylinMetaStore(config);
+                        RawResource rawResource = resourceStore.getResource(resPath);
+                        retMap.put(resPath, rawResource);
+                    }
+                    return retMap;
+                }).build());
 
         if (dumpMap.isEmpty()) {
             return;

@@ -178,7 +178,7 @@
             trigger="hover" popper-class="jobPoplayer">
             <i slot="reference" class="fa"
                :class="{
-              'el-icon-ksd-more_05' : step.step_status=='PENDING',
+              'el-icon-ksd-more_05' : step.step_status=='PENDING'|| step.step_status=='STOPPED',
               'el-icon-loading' : step.step_status=='WAITING' || step.step_status=='RUNNING',
               'el-icon-ksd-good_health' : step.step_status=='FINISHED',
               'el-icon-ksd-error_01' : step.step_status=='ERROR',

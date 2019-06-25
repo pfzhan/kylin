@@ -26,7 +26,6 @@ package io.kyligence.kap.common.scheduler;
 
 public class FavoriteQueryListNotifier extends SchedulerEventNotifier {
     public FavoriteQueryListNotifier(String project) {
-        setName(SchedulerEventNotifier.FAVORITE_QUERY_LIST_NOTIFIER);
         setProject(project);
     }
 }

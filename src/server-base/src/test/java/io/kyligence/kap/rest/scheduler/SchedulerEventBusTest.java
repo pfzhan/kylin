@@ -24,6 +24,33 @@
 
 package io.kyligence.kap.rest.scheduler;
 
+import static org.awaitility.Awaitility.await;
+
+import java.io.IOException;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
+
+import org.apache.kylin.job.engine.JobEngineConfig;
+import org.apache.kylin.job.execution.AbstractExecutable;
+import org.apache.kylin.job.execution.DefaultChainedExecutable;
+import org.apache.kylin.job.execution.ExecutableState;
+import org.apache.kylin.job.execution.FiveSecondSucceedTestExecutable;
+import org.apache.kylin.job.execution.NExecutableManager;
+import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
+import org.apache.kylin.job.lock.MockJobLock;
+import org.apache.kylin.rest.constant.Constant;
+import org.assertj.core.util.Lists;
+import org.junit.After;
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.Ignore;
+import org.junit.Test;
+import org.mockito.InjectMocks;
+import org.mockito.Mockito;
+import org.springframework.security.authentication.TestingAuthenticationToken;
+import org.springframework.security.core.context.SecurityContextHolder;
+
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.common.scheduler.SchedulerEventBusFactory;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
@@ -35,34 +62,11 @@ import io.kyligence.kap.event.model.EventContext;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.favorite.FavoriteQueryManager;
-import io.kyligence.kap.rest.execution.SucceedChainedTestExecutable;
 import io.kyligence.kap.rest.service.FavoriteQueryService;
 import io.kyligence.kap.rest.service.JobService;
 import lombok.val;
-import org.apache.kylin.job.engine.JobEngineConfig;
-import org.apache.kylin.job.execution.AbstractExecutable;
-import org.apache.kylin.job.execution.DefaultChainedExecutable;
-import org.apache.kylin.job.execution.ExecutableState;
-import org.apache.kylin.job.execution.NExecutableManager;
-import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
-import org.apache.kylin.job.lock.MockJobLock;
-import org.apache.kylin.rest.constant.Constant;
-import org.assertj.core.util.Lists;
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
-import org.mockito.InjectMocks;
-import org.mockito.Mockito;
-import org.springframework.security.authentication.TestingAuthenticationToken;
-import org.springframework.security.core.context.SecurityContextHolder;
 
-import java.io.IOException;
-import java.util.List;
-import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
-import static org.awaitility.Awaitility.await;
-
+@Ignore
 public class SchedulerEventBusTest extends NLocalFileMetadataTestCase {
     private static final String PROJECT = "default";
     private static final String PROJECT_NEWTEN = "newten";
@@ -184,7 +188,8 @@ public class SchedulerEventBusTest extends NLocalFileMetadataTestCase {
         job.setProject(PROJECT);
         job.setTargetSubject(df.getModel().getUuid());
         job.setTargetSegments(df.getSegments().stream().map(NDataSegment::getId).collect(Collectors.toList()));
-        SucceedChainedTestExecutable task = new SucceedChainedTestExecutable();
+
+        FiveSecondSucceedTestExecutable task = new FiveSecondSucceedTestExecutable();
         task.setTargetSubject(df.getModel().getUuid());
         task.setTargetSegments(df.getSegments().stream().map(NDataSegment::getId).collect(Collectors.toList()));
         job.addTask(task);
@@ -218,7 +223,7 @@ public class SchedulerEventBusTest extends NLocalFileMetadataTestCase {
         job.setProject(PROJECT);
         job.setTargetSubject(df.getModel().getUuid());
         job.setTargetSegments(df.getSegments().stream().map(NDataSegment::getId).collect(Collectors.toList()));
-        SucceedChainedTestExecutable task = new SucceedChainedTestExecutable();
+        FiveSecondSucceedTestExecutable task = new FiveSecondSucceedTestExecutable();
         task.setTargetSubject(df.getModel().getUuid());
         task.setTargetSegments(df.getSegments().stream().map(NDataSegment::getId).collect(Collectors.toList()));
         job.addTask(task);
@@ -246,7 +251,7 @@ public class SchedulerEventBusTest extends NLocalFileMetadataTestCase {
         job.setProject(PROJECT);
         job.setTargetSubject(df.getModel().getUuid());
         job.setTargetSegments(df.getSegments().stream().map(NDataSegment::getId).collect(Collectors.toList()));
-        SucceedChainedTestExecutable task = new SucceedChainedTestExecutable();
+        FiveSecondSucceedTestExecutable task = new FiveSecondSucceedTestExecutable();
         task.setTargetSubject(df.getModel().getUuid());
         task.setTargetSegments(df.getSegments().stream().map(NDataSegment::getId).collect(Collectors.toList()));
         job.addTask(task);

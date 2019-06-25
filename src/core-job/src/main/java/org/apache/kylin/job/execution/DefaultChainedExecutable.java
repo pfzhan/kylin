@@ -57,6 +57,7 @@ import org.apache.kylin.job.exception.JobStoppedException;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 
+import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.common.scheduler.JobFinishedNotifier;
 import io.kyligence.kap.common.scheduler.SchedulerEventBusFactory;
 
@@ -80,8 +81,8 @@ public class DefaultChainedExecutable extends AbstractExecutable implements Chai
         for (Executable subTask : executables) {
             if (subTask.isRunnable()) {
                 subTask.execute(context);
-            } else if (subTask.getStatus() == ExecutableState.SUCCEED) {
-                logger.info("Subtask {} was succeed, skip it", subTask.getDisplayName());
+            } else if (ExecutableState.SUCCEED.equals(subTask.getStatus())) {
+                logger.info("step " + subTask.getDisplayName() + " is already succeed, skip it.");
             } else {
                 throw new IllegalStateException("invalid subtask state, sub task:" + subTask.getDisplayName()
                         + ", state:" + subTask.getStatus());
@@ -96,8 +97,33 @@ public class DefaultChainedExecutable extends AbstractExecutable implements Chai
         return false;
     }
 
+    @Override
+    protected void onExecuteStart() throws JobStoppedException {
+        UnitOfWork.doInTransactionWithRetry(() -> {
+
+            if (isStoppedNonVoluntarily() && //
+            !ExecutableState.READY.equals(getOutput().getState())) //onExecuteStart will turn READY to RUNNING
+                return null;
+
+            updateJobOutput(project, getId(), ExecutableState.RUNNING, null, null, null);
+            return null;
+        }, project);
+    }
+
+    @Override
     protected void onExecuteError(ExecuteResult result) throws JobStoppedException {
-        super.onExecuteError(result);
+        Preconditions.checkState(!result.succeed());
+
+        UnitOfWork.doInTransactionWithRetry(() -> {
+
+            if (isStoppedNonVoluntarily())
+                return null;
+
+            updateJobOutput(project, getId(), ExecutableState.ERROR, result.getExtraInfo(), result.getErrorMsg(),
+                    this::onExecuteErrorHook);
+            return null;
+        }, project);
+
         notifyUserJobIssue(JobIssueEnum.JOB_ERROR);
         NMetricsGroup.counterInc(NMetricsName.JOB_ERROR, NMetricsCategory.PROJECT, getProject());
     }
@@ -107,16 +133,14 @@ public class DefaultChainedExecutable extends AbstractExecutable implements Chai
 
         Preconditions.checkState(result.succeed());
 
-        wrapWithCheckQuit(() -> {
-
-            if (isStoppedNonVoluntarily())
-                return;
+        UnitOfWork.doInTransactionWithRetry(() -> {
 
             List<? extends Executable> jobs = getTasks();
             boolean allSucceed = true;
             boolean hasError = false;
             boolean hasDiscarded = false;
             boolean hasSuicidal = false;
+            boolean hasPaused = false;
             for (Executable task : jobs) {
                 switch (task.getStatus()) {
                 case RUNNING:
@@ -131,6 +155,9 @@ public class DefaultChainedExecutable extends AbstractExecutable implements Chai
                 case SUICIDAL:
                     hasSuicidal = true;
                     break;
+                case PAUSED:
+                    hasPaused = true;
+                    break;
                 default:
                     break;
                 }
@@ -140,20 +167,36 @@ public class DefaultChainedExecutable extends AbstractExecutable implements Chai
                 }
             }
             if (allSucceed) {
-                updateJobOutput(getProject(), getId(), ExecutableState.SUCCEED, null, null, this::afterUpdateOutput);
-            } else if (hasError) {
-                logger.warn("[UNEXPECTED_THINGS_HAPPENED] Unexpected ERROR state discovered here!!!");
-                updateJobOutput(getProject(), getId(), ExecutableState.ERROR, null, null, this::onExecuteErrorHook);
-                notifyUserJobIssue(JobIssueEnum.JOB_ERROR);
+                //to final state, regardless of isStoppedNonVoluntarily, otherwise a paused job might fail to suicide
+                if (!getOutput().getState().isFinalState())
+                    updateJobOutput(getProject(), getId(), ExecutableState.SUCCEED, null, null, this::afterUpdateOutput);
             } else if (hasDiscarded) {
-                updateJobOutput(getProject(), getId(), ExecutableState.DISCARDED, null, null, null);
+                //to final state, regardless of isStoppedNonVoluntarily, otherwise a paused job might fail to suicide
+                if (!getOutput().getState().isFinalState())
+                    updateJobOutput(getProject(), getId(), ExecutableState.DISCARDED, null, null, null);
             } else if (hasSuicidal) {
-                updateJobOutput(getProject(), getId(), ExecutableState.SUICIDAL, null, null, null);
+                //to final state, regardless of isStoppedNonVoluntarily, otherwise a paused job might fail to suicide
+                if (!getOutput().getState().isFinalState())
+                    updateJobOutput(getProject(), getId(), ExecutableState.SUICIDAL, null, null, null);
             } else {
-                logger.warn("[UNEXPECTED_THINGS_HAPPENED] Unexpected READY state discovered here!!!");
-                updateJobOutput(getProject(), getId(), ExecutableState.READY, null, null, null);
+                if (isStoppedNonVoluntarily())
+                    return null;
+
+                if (hasError) {
+                    logger.warn("[UNEXPECTED_THINGS_HAPPENED] Unexpected ERROR state discovered here!!!");
+                    updateJobOutput(getProject(), getId(), ExecutableState.ERROR, null, null, this::onExecuteErrorHook);
+                    notifyUserJobIssue(JobIssueEnum.JOB_ERROR);
+                } else if (hasPaused) {
+                    updateJobOutput(getProject(), getId(), ExecutableState.PAUSED, null, null, null);
+                } else {
+                    //restart case
+                    updateJobOutput(getProject(), getId(), ExecutableState.READY, null, null, null);
+                }
             }
-        });
+
+            return null;
+
+        }, project);
 
         // dispatch job-finished message out
         SchedulerEventBusFactory.getInstance(KylinConfig.getInstanceFromEnv())

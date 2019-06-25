@@ -51,13 +51,14 @@ import java.io.InputStreamReader;
 import java.lang.reflect.Field;
 import java.util.List;
 
-import com.google.common.base.Preconditions;
-import com.google.common.collect.Lists;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.JobProcessContext;
 import org.apache.kylin.common.KapConfig;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.base.Preconditions;
+import com.google.common.collect.Lists;
 
 /**
  * @author yangli9
@@ -174,6 +175,7 @@ public class CliCommandExecutor {
 
             if (StringUtils.isNotBlank(jobId)) {
                 persistJobChildProcess(pid);
+                logger.info("sub process {} on behalf of job {}, start to run...", pid, jobId);
                 JobProcessContext.registerProcess(jobId, proc);
             }
 
@@ -189,7 +191,11 @@ public class CliCommandExecutor {
 
             try {
                 int exitCode = proc.waitFor();
-                return Pair.newPair(exitCode, result.toString());
+                String b = result.toString();
+                if (b.length() > (100 << 20)) {
+                    logger.info("[LESS_LIKELY_THINGS_HAPPENED]Sub process log larger than 100M");
+                }
+                return Pair.newPair(exitCode, b);
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
                 throw e;

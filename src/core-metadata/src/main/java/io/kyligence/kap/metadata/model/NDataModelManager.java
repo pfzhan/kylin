@@ -31,6 +31,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.persistence.Serializer;
@@ -106,23 +107,33 @@ public class NDataModelManager {
             protected NDataModel initBrokenEntity(NDataModel entity, String resourceName) {
                 NDataModel model = super.initBrokenEntity(entity, resourceName);
                 model.setProject(project);
+                model.setConfig(config);
+
                 if (entity != null) {
-                    entity.setProject(project);
+                    model.setHandledAfterBroken(entity.isHandledAfterBroken());
                     model.setAlias(entity.getAlias());
+                    model.setRootFactTableName(entity.getRootFactTableName());
+                    model.setJoinTables(entity.getJoinTables());
+                    model.setDependencies(model.calcDependencies());
+
                     postModelBrokenEvent(entity);
                 }
+
                 return model;
             }
         };
     }
 
     private void postModelBrokenEvent(NDataModel model) {
+
         if (!model.isHandledAfterBroken()) {
             if (UnitOfWork.isAlreadyInTransaction()) {
-                UnitOfWork.get().doAfterUnit(() -> SchedulerEventBusFactory
-                        .getInstance(KylinConfig.getInstanceFromEnv()).post(new NDataModel.ModelBrokenEvent(model)));
+                UnitOfWork.get()
+                        .doAfterUnit(() -> SchedulerEventBusFactory.getInstance(KylinConfig.getInstanceFromEnv())
+                                .post(new NDataModel.ModelBrokenEvent(project, model.getUuid())));
             } else {
-                SchedulerEventBusFactory.getInstance(config).post(new NDataModel.ModelBrokenEvent(model));
+                SchedulerEventBusFactory.getInstance(config)
+                        .post(new NDataModel.ModelBrokenEvent(project, model.getUuid()));
             }
         }
     }
@@ -130,10 +141,12 @@ public class NDataModelManager {
     private void postModelRepairEvent(NDataModel model) {
         if (model.isHandledAfterBroken()) {
             if (UnitOfWork.isAlreadyInTransaction()) {
-                UnitOfWork.get().doAfterUnit(() -> SchedulerEventBusFactory
-                        .getInstance(KylinConfig.getInstanceFromEnv()).post(new NDataModel.ModelRepairEvent(model)));
+                UnitOfWork.get()
+                        .doAfterUnit(() -> SchedulerEventBusFactory.getInstance(KylinConfig.getInstanceFromEnv())
+                                .post(new NDataModel.ModelRepairEvent(project, model.getUuid())));
             } else {
-                SchedulerEventBusFactory.getInstance(config).post(new NDataModel.ModelRepairEvent(model));
+                SchedulerEventBusFactory.getInstance(config)
+                        .post(new NDataModel.ModelRepairEvent(project, model.getUuid()));
             }
 
         }
@@ -153,7 +166,7 @@ public class NDataModelManager {
     }
 
     public NDataModel getDataModelDesc(String modelId) {
-        if (modelId == null) {
+        if (StringUtils.isEmpty(modelId)) {
             return null;
         }
         return crud.get(modelId);
@@ -286,12 +299,5 @@ public class NDataModelManager {
 
     public interface NDataModelUpdater {
         void modify(NDataModel copyForWrite);
-    }
-
-    public void reload(String modelId) {
-        val model = getDataModelDesc(modelId);
-        if (model != null) {
-            crud.reloadAt(model.getResourcePath());
-        }
     }
 }
