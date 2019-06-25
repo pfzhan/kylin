@@ -385,7 +385,8 @@ public class NTableController extends NBasicController {
 
     @GetMapping(value = "/sampling_check_result", produces = { "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public EnvelopeResponse hasSamplingJob(@RequestParam String project, @RequestParam String qualifiedTableName) {
+    public EnvelopeResponse hasSamplingJob(@RequestParam(value = "project") String project,
+            @RequestParam(value = "qualifiedTableName") String qualifiedTableName) {
         checkProjectName(project);
         checkSamplingTable(qualifiedTableName);
         boolean hasSamplingJob = tableSamplingService.hasSamplingJob(project, qualifiedTableName);
