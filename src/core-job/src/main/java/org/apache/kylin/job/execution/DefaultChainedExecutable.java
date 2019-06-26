@@ -140,7 +140,7 @@ public class DefaultChainedExecutable extends AbstractExecutable implements Chai
                 }
             }
             if (allSucceed) {
-                updateJobOutput(getProject(), getId(), ExecutableState.SUCCEED, null, null, null);
+                updateJobOutput(getProject(), getId(), ExecutableState.SUCCEED, null, null, this::afterUpdateOutput);
             } else if (hasError) {
                 logger.warn("[UNEXPECTED_THINGS_HAPPENED] Unexpected ERROR state discovered here!!!");
                 updateJobOutput(getProject(), getId(), ExecutableState.ERROR, null, null, this::onExecuteErrorHook);
@@ -195,6 +195,10 @@ public class DefaultChainedExecutable extends AbstractExecutable implements Chai
             }
         }
         return null;
+    }
+
+    protected void afterUpdateOutput(String jobId) {
+        // just implement it
     }
 
 }

@@ -50,6 +50,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.job.dao.JobStatisticsManager;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
@@ -63,6 +64,7 @@ import org.junit.Test;
 import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import lombok.val;
+import lombok.var;
 
 public class NTableSamplingJobTest extends NLocalWithSparkSessionTest {
     private static final String PROJECT = "default";
@@ -126,6 +128,33 @@ public class NTableSamplingJobTest extends NLocalWithSparkSessionTest {
         Assert.assertEquals(10, tableExt.getSampleRows().size());
         Assert.assertEquals(10_000, tableExt.getTotalRows());
         Assert.assertEquals(samplingJob.getCreateTime(), tableExt.getCreateTime());
+    }
+
+    @Test
+    public void testSamplingUpdateJobStatistics() {
+        KylinConfig config = KylinConfig.getInstanceFromEnv();
+        NTableMetadataManager tableMgr = NTableMetadataManager.getInstance(config, PROJECT);
+        NExecutableManager executableManager = NExecutableManager.getInstance(config, PROJECT);
+        JobStatisticsManager jobStatisticsManager = JobStatisticsManager.getInstance(config, PROJECT);
+
+        long endTime = System.currentTimeMillis() + 302400000L;
+        long startTime = endTime - 604800000L;
+
+        var stats = jobStatisticsManager.getOverallJobStats(startTime, endTime);
+        Assert.assertTrue(stats.getFirst() == 0);
+
+        String tableName = "DEFAULT.TEST_KYLIN_FACT";
+        final TableDesc tableDesc = tableMgr.getTableDesc(tableName);
+
+        val samplingJob = NTableSamplingJob.create(tableDesc, PROJECT, "ADMIN", 20_000_000);
+        executableManager.addJob(samplingJob);
+        final String jobId = samplingJob.getId();
+        await().atMost(60, TimeUnit.MINUTES).until(() -> executableManager.getJob(jobId).getStatus().isFinalState());
+        Assert.assertEquals(ExecutableState.SUCCEED, samplingJob.getStatus());
+
+        stats = jobStatisticsManager.getOverallJobStats(startTime, endTime);
+        Assert.assertTrue(stats.getFirst() == 1);
+
     }
 
     @Test

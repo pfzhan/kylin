@@ -61,6 +61,13 @@ public class JobStatistics extends JobStatisticsBasic {
         setTotalByteSize(totalByteSize);
     }
 
+    public JobStatistics(long date, long totalDuration, long totalByteSize) {
+        this.date = date;
+        setCount(1);
+        setTotalDuration(totalDuration);
+        setTotalByteSize(totalByteSize);
+    }
+
     public void update(String model, long duration, long byteSize) {
         super.update(duration, byteSize);
         JobStatisticsBasic jobStatisticsByModel = jobStatisticsByModels.get(model);

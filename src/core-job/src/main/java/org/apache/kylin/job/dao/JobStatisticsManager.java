@@ -105,6 +105,19 @@ public class JobStatisticsManager {
         return crud.save(jobStatisticsToUpdate);
     }
 
+    public JobStatistics updateStatistics(long date, long duration, long byteSize) {
+        JobStatistics jobStatistics = crud.get(String.valueOf(date));
+        JobStatistics jobStatisticsToUpdate;
+        if (jobStatistics == null) {
+            jobStatisticsToUpdate = new JobStatistics(date, duration, byteSize);
+            return crud.save(jobStatisticsToUpdate);
+        }
+
+        jobStatisticsToUpdate = crud.copyForWrite(jobStatistics);
+        jobStatisticsToUpdate.update(duration, byteSize);
+        return crud.save(jobStatisticsToUpdate);
+    }
+
     public Pair<Integer, JobStatistics> getOverallJobStats(final long startTime, final long endTime) {
         // filter
         List<JobStatistics> filteredJobStats = getFilteredJobStatsByTime(crud.listAll(), startTime, endTime);

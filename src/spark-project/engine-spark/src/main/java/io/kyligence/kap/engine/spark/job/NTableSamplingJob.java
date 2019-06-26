@@ -28,7 +28,9 @@ import java.util.Set;
 import java.util.UUID;
 
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.util.TimeUtil;
 import org.apache.kylin.job.constant.ExecutableConstants;
+import org.apache.kylin.job.dao.JobStatisticsManager;
 import org.apache.kylin.job.exception.ExecuteException;
 import org.apache.kylin.job.execution.DefaultChainedExecutable;
 import org.apache.kylin.job.execution.ExecutableContext;
@@ -174,6 +176,18 @@ public class NTableSamplingJob extends DefaultChainedExecutable {
 
             return dumpList;
         }
+    }
+
+    @Override
+    protected void afterUpdateOutput(String jobId) {
+        val job = getExecutableManager(getProject()).getJob(jobId);
+        long duration = job.getDuration();
+        long endTime = job.getEndTime();
+        KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
+        long startOfDay = TimeUtil.getDayStart(endTime);
+
+        JobStatisticsManager jobStatisticsManager = JobStatisticsManager.getInstance(kylinConfig, getProject());
+        jobStatisticsManager.updateStatistics(startOfDay, duration, 0);
     }
 
 }
