@@ -21,38 +21,20 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package io.kyligence.kap.rest.service;
 
-import java.io.IOException;
+package io.kyligence.kap.common.metrics;
 
-import org.springframework.scheduling.annotation.Async;
-import org.springframework.stereotype.Service;
+import org.apache.kylin.common.KapConfig;
 
-import io.kyligence.kap.common.metrics.NMetricsCategory;
-import io.kyligence.kap.common.metrics.NMetricsGroup;
-import io.kyligence.kap.common.metrics.NMetricsName;
-import io.kyligence.kap.tool.garbage.StorageCleaner;
-import lombok.val;
-import lombok.extern.slf4j.Slf4j;
+public class NMetricsConfig {
 
-@Slf4j
-@Service
-public class AsyncTaskService {
+    private KapConfig kapConfig;
 
-    @Async
-    public void cleanupStorage() throws IOException {
+    public NMetricsConfig(KapConfig kapConfig) {
+        this.kapConfig = kapConfig;
+    }
 
-        long startAt = System.currentTimeMillis();
-        try {
-            val storageCleaner = new StorageCleaner();
-            storageCleaner.execute();
-        } catch (Exception e) {
-            NMetricsGroup.counterInc(NMetricsName.STORAGE_CLEAN_FAILED, NMetricsCategory.GLOBAL, "global");
-            throw e;
-        } finally {
-            NMetricsGroup.counterInc(NMetricsName.STORAGE_CLEAN, NMetricsCategory.GLOBAL, "global");
-            NMetricsGroup.counterInc(NMetricsName.STORAGE_CLEAN_DURATION, NMetricsCategory.GLOBAL, "global",
-                    System.currentTimeMillis() - startAt);
-        }
+    public int pollingIntervalSecs() {
+        return this.kapConfig.getMetricsPollingIntervalSecs();
     }
 }

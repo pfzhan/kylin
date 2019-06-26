@@ -526,6 +526,25 @@ public class KapConfig {
     }
 
     /**
+     * kap metrics, default: influxDb
+     */
+    public String getMetricsInfluxDbName() {
+        return config.getOptional("kap.metrics.influx.db", "KE_METRICS");
+    }
+
+    public String getMetricsInfluxRetentionPolicy() {
+        return config.getOptional("kap.metrics.influx.rp", "KE_METRICS_RP");
+    }
+
+    public String getMetricsInfluxMeasurement() {
+        return config.getOptional("kap.metrics.influx.measurement", "system_metric");
+    }
+
+    public int getMetricsPollingIntervalSecs() {
+        return Integer.parseInt(config.getOptional("kap.metrics.polling.interval.secs", "60"));
+    }
+
+    /**
      * ZK Connection
      */
     public int getZKBaseSleepTimeMs() {

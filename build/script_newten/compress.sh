@@ -29,6 +29,7 @@ if [ "${PACKAGE_SPARK}" = "1" ]; then
 fi
 
 cp -rf influxdb ${package_name}/
+cp -rf grafana ${package_name}/
 cp -rf postgresql ${package_name}/
 
 # Add ssb data preparation files
@@ -49,6 +50,9 @@ cp -rf conf/kylin-server-log4j.properties ${package_name}/conf/
 cp -rf conf/spark-driver-log4j.properties ${package_name}/conf/
 cp -rf conf/spark-executor-log4j.properties ${package_name}/conf/
 cp -rf conf/setenv.sh ${package_name}/conf/
+cp -rf deploy/grafana/dashboards ${package_name}/grafana/
+cp -rf deploy/grafana/provisioning ${package_name}/grafana/conf/
+cp -rf deploy/grafana/custom.ini ${package_name}/grafana/conf/
 cp -rf bin/ ${package_name}/bin/
 
 # update symblink, use production profile as default
@@ -78,6 +82,7 @@ find ${package_name} -type f -exec chmod 644 {} \;
 find ${package_name} -type f -name "*.sh" -exec chmod 755 {} \;
 find ${package_name}/spark -type f -exec chmod 755 {} \;
 find ${package_name}/influxdb -type f -exec chmod 755 {} \;
+find ${package_name}/grafana -type f -exec chmod 755 {} \;
 find ${package_name}/postgresql -type f -exec chmod 755 {} \;
 
 rm -rf ../dist

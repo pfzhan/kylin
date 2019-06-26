@@ -29,9 +29,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import com.google.common.base.Preconditions;
-import io.kyligence.kap.metadata.favorite.FavoriteQuery;
-import io.kyligence.kap.rest.request.SQLValidateRequest;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.rest.exception.BadRequestException;
@@ -49,9 +46,15 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
 
+import io.kyligence.kap.common.metrics.NMetricsCategory;
+import io.kyligence.kap.common.metrics.NMetricsGroup;
+import io.kyligence.kap.common.metrics.NMetricsName;
+import io.kyligence.kap.metadata.favorite.FavoriteQuery;
 import io.kyligence.kap.metadata.favorite.FavoriteRule;
+import io.kyligence.kap.rest.request.SQLValidateRequest;
 import io.kyligence.kap.rest.service.FavoriteQueryService;
 import io.kyligence.kap.rest.service.FavoriteRuleService;
 
@@ -93,15 +96,15 @@ public class FavoriteQueryController extends NBasicController {
     @ResponseBody
     public EnvelopeResponse getFQSizeInDifferentStatus(@RequestParam(value = "project") String project) {
         checkProjectName(project);
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS,
-                favoriteQueryService.getFQSizeInDifferentStatus(project), "");
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, favoriteQueryService.getFQSizeInDifferentStatus(project),
+                "");
     }
 
     @RequestMapping(value = "", method = RequestMethod.DELETE)
     @ResponseBody
     public EnvelopeResponse batchDeleteFQs(@RequestParam(value = "project") String project,
-                                           @RequestParam(value = "uuids") List<String> uuids,
-                                           @RequestParam(value = "block", required = false, defaultValue = "false") boolean block) {
+            @RequestParam(value = "uuids") List<String> uuids,
+            @RequestParam(value = "block", required = false, defaultValue = "false") boolean block) {
         checkProjectName(project);
         Preconditions.checkArgument(CollectionUtils.isNotEmpty(uuids), "Ids should not be empty");
         uuids.forEach(uuid -> checkId(uuid));
@@ -121,6 +124,8 @@ public class FavoriteQueryController extends NBasicController {
             @RequestParam(value = "accelerateSize") int accelerateSize) {
         checkProjectName(project);
         favoriteQueryService.acceptAccelerate(project, accelerateSize);
+
+        NMetricsGroup.counterInc(NMetricsName.FQ_FE_INVOKED, NMetricsCategory.PROJECT, project);
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, "", "");
     }
 

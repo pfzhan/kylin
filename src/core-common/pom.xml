@@ -24,7 +24,7 @@
             <groupId>org.apache.tomcat.embed</groupId>
             <artifactId>tomcat-embed-core</artifactId>
         </dependency>
-        
+
         <dependency>
             <groupId>com.google.guava</groupId>
             <artifactId>guava</artifactId>
@@ -45,12 +45,17 @@
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
         </dependency>
+
+        <dependency>
+            <groupId>io.dropwizard.metrics</groupId>
+            <artifactId>metrics-core</artifactId>
+            <version>${dropwizard.version}</version>
+        </dependency>
         <dependency>
             <groupId>io.dropwizard.metrics</groupId>
             <artifactId>metrics-jvm</artifactId>
             <version>${dropwizard.version}</version>
         </dependency>
-
         <dependency>
             <groupId>io.dropwizard.metrics</groupId>
             <artifactId>metrics-json</artifactId>
@@ -74,8 +79,8 @@
         </dependency>
 
         <!--<dependency>-->
-            <!--<groupId>io.kyligence.ke</groupId>-->
-            <!--<artifactId>kap-external</artifactId>-->
+        <!--<groupId>io.kyligence.ke</groupId>-->
+        <!--<artifactId>kap-external</artifactId>-->
         <!--</dependency>-->
         <dependency>
             <groupId>io.kyligence.ke</groupId>

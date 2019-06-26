@@ -33,6 +33,9 @@ import org.apache.kylin.common.KylinConfig;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
+import io.kyligence.kap.common.metrics.NMetricsCategory;
+import io.kyligence.kap.common.metrics.NMetricsGroup;
+import io.kyligence.kap.common.metrics.NMetricsName;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.metadata.cube.model.FrequencyMap;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
@@ -58,12 +61,17 @@ public class UpdateUsageStatisticsRunner implements Runnable {
 
     @Override
     public void run() {
+        long startTime = System.currentTimeMillis();
         try {
-            long startTime = System.currentTimeMillis();
             updateFavoriteStatistics();
             log.info("update favorite stats runner takes {}ms", System.currentTimeMillis() - startTime);
         } catch (Exception ex) {
+            NMetricsGroup.counterInc(NMetricsName.FQ_FAILED_UPDATE_USAGE, NMetricsCategory.PROJECT, project);
             log.error("Error {} caught when updating favorite queries for project {}", ex.getMessage(), project);
+        } finally {
+            NMetricsGroup.counterInc(NMetricsName.FQ_UPDATE_USAGE, NMetricsCategory.PROJECT, project);
+            NMetricsGroup.counterInc(NMetricsName.FQ_UPDATE_USAGE_DURATION, NMetricsCategory.PROJECT, project,
+                    System.currentTimeMillis() - startTime);
         }
     }
 

@@ -56,6 +56,9 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
+import io.kyligence.kap.common.metrics.NMetricsCategory;
+import io.kyligence.kap.common.metrics.NMetricsGroup;
+import io.kyligence.kap.common.metrics.NMetricsName;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -293,7 +296,9 @@ public abstract class AbstractExecutable implements Executable {
         } while (needRetry(this.retry, result.getThrowable())); //exception in ExecuteResult should handle by user itself.
         //check exception in result to avoid retry on ChainedExecutable(only need retry on subtask actually)
 
+        NMetricsGroup.counterInc(NMetricsName.JOB_STEP_ATTEMPTED, NMetricsCategory.PROJECT, project, retry);
         if (!result.succeed()) {
+            NMetricsGroup.counterInc(NMetricsName.JOB_FAILED_STEP_ATTEMPTED, NMetricsCategory.PROJECT, project, retry);
             onExecuteError(result);
             throw new ExecuteException(result.getThrowable());
         } else {

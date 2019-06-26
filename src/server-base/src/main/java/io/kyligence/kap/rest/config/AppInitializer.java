@@ -23,9 +23,14 @@
  */
 package io.kyligence.kap.rest.config;
 
-import io.kyligence.kap.rest.config.initialize.ModelBrokenListener;
+import java.util.List;
+
+import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
+import org.apache.kylin.metadata.project.ProjectInstance;
+import org.apache.kylin.rest.security.KylinUserManager;
+import org.apache.kylin.rest.security.ManagedUser;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.context.event.ApplicationPreparedEvent;
 import org.springframework.context.annotation.Configuration;
@@ -36,12 +41,18 @@ import org.springframework.scheduling.TaskScheduler;
 import io.kyligence.kap.common.cluster.LeaderInitiator;
 import io.kyligence.kap.common.cluster.NodeCandidate;
 import io.kyligence.kap.common.metric.InfluxDBWriter;
+import io.kyligence.kap.common.metrics.NMetricsCategory;
+import io.kyligence.kap.common.metrics.NMetricsController;
+import io.kyligence.kap.common.metrics.NMetricsGroup;
+import io.kyligence.kap.common.metrics.NMetricsName;
 import io.kyligence.kap.common.persistence.metadata.JdbcAuditLogStore;
 import io.kyligence.kap.common.persistence.transaction.EventListenerRegistry;
 import io.kyligence.kap.common.scheduler.SchedulerEventBusFactory;
+import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.rest.config.initialize.AppInitializedEvent;
 import io.kyligence.kap.rest.config.initialize.BootstrapCommand;
 import io.kyligence.kap.rest.config.initialize.FavoriteQueryUpdateListener;
+import io.kyligence.kap.rest.config.initialize.ModelBrokenListener;
 import io.kyligence.kap.rest.scheduler.EventSchedulerListener;
 import io.kyligence.kap.rest.scheduler.FavoriteSchedulerListener;
 import io.kyligence.kap.rest.scheduler.JobSchedulerListener;
@@ -56,6 +67,9 @@ public class AppInitializer {
     @Autowired
     TaskScheduler taskScheduler;
 
+    @Autowired
+    BootstrapCommand bootstrapCommand;
+
     @EventListener(ApplicationPreparedEvent.class)
     public void init(ApplicationPreparedEvent event) throws Exception {
         val kylinConfig = KylinConfig.getInstanceFromEnv();
@@ -69,7 +83,10 @@ public class AppInitializer {
         }
 
         if (isLeader) {
-            taskScheduler.scheduleWithFixedDelay(new BootstrapCommand(), 10000);
+            //start the embedded metrics reporters
+            NMetricsController.startReporters(KapConfig.wrap(kylinConfig));
+
+            taskScheduler.scheduleWithFixedDelay(bootstrapCommand, 10000);
 
             EventListenerRegistry.getInstance(kylinConfig).register(new FavoriteQueryUpdateListener(), "fq");
             event.getApplicationContext().publishEvent(new AppInitializedEvent(event.getApplicationContext()));
@@ -79,6 +96,9 @@ public class AppInitializer {
             SchedulerEventBusFactory.getInstance(kylinConfig).register(new FavoriteSchedulerListener());
             SchedulerEventBusFactory.getInstance(kylinConfig).register(new JobSchedulerListener());
             SchedulerEventBusFactory.getInstance(kylinConfig).register(new ModelBrokenListener());
+
+            //register all global metrics
+            registerGlobalMetrics(kylinConfig);
         } else {
             val auditLogStore = new JdbcAuditLogStore(kylinConfig);
             kylinConfig.setProperty("kylin.metadata.url", kylinConfig.getMetadataUrlPrefix() + "@hdfs");
@@ -93,6 +113,42 @@ public class AppInitializer {
         } catch (Exception ex) {
             log.error("InfluxDB writer has not initialized");
         }
+    }
+
+    void registerGlobalMetrics(KylinConfig config) {
+
+        final NProjectManager projectManager = NProjectManager.getInstance(config);
+        NMetricsGroup.newGauge(NMetricsName.PROJECT_GAUGE, NMetricsCategory.GLOBAL, "global", () -> {
+            List<ProjectInstance> list = projectManager.listAllProjects();
+            if (list == null) {
+                return 0;
+            }
+            return list.size();
+        });
+
+        final KylinUserManager userManager = KylinUserManager.getInstance(config);
+        NMetricsGroup.newGauge(NMetricsName.USER_GAUGE, NMetricsCategory.GLOBAL, "global", () -> {
+            List<ManagedUser> list = userManager.list();
+            if (list == null) {
+                return 0;
+            }
+            return list.size();
+        });
+
+        NMetricsGroup.newCounter(NMetricsName.STORAGE_CLEAN, NMetricsCategory.GLOBAL, "global");
+        NMetricsGroup.newCounter(NMetricsName.STORAGE_CLEAN_DURATION, NMetricsCategory.GLOBAL, "global");
+        NMetricsGroup.newCounter(NMetricsName.STORAGE_CLEAN_FAILED, NMetricsCategory.GLOBAL, "global");
+
+        NMetricsGroup.newCounter(NMetricsName.METADATA_BACKUP, NMetricsCategory.GLOBAL, "global");
+        NMetricsGroup.newCounter(NMetricsName.METADATA_BACKUP_DURATION, NMetricsCategory.GLOBAL, "global");
+        NMetricsGroup.newCounter(NMetricsName.METADATA_BACKUP_FAILED, NMetricsCategory.GLOBAL, "global");
+        NMetricsGroup.newCounter(NMetricsName.METADATA_OPS_CRON, NMetricsCategory.GLOBAL, "global");
+        NMetricsGroup.newCounter(NMetricsName.METADATA_OPS_CRON_SUCCESS, NMetricsCategory.GLOBAL, "global");
+
+        NMetricsGroup.newCounter(NMetricsName.SPARDER_RESTART, NMetricsCategory.GLOBAL, "global");
+
+        NMetricsGroup.newCounter(NMetricsName.TRANSACTION_RETRY_COUNTER, NMetricsCategory.GLOBAL, "global");
+        NMetricsGroup.newHistogram(NMetricsName.TRANSACTION_LATENCY, NMetricsCategory.GLOBAL, "global");
     }
 
 }

@@ -34,7 +34,6 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.rest.rate.EnableRateLimit;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.collections.MapUtils;
 import org.apache.commons.lang.StringUtils;
@@ -55,6 +54,9 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
+import io.kyligence.kap.common.metrics.NMetricsCategory;
+import io.kyligence.kap.common.metrics.NMetricsGroup;
+import io.kyligence.kap.common.metrics.NMetricsName;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.common.scheduler.FavoriteQueryListNotifier;
 import io.kyligence.kap.common.scheduler.SchedulerEventBusFactory;
@@ -68,6 +70,7 @@ import io.kyligence.kap.metadata.favorite.FavoriteQueryManager;
 import io.kyligence.kap.metadata.favorite.FavoriteQueryRealization;
 import io.kyligence.kap.metadata.favorite.FavoriteQueryStatusEnum;
 import io.kyligence.kap.query.util.QueryPatternUtil;
+import io.kyligence.kap.rest.rate.EnableRateLimit;
 import io.kyligence.kap.rest.transaction.Transaction;
 import io.kyligence.kap.smart.NSmartContext;
 import io.kyligence.kap.smart.NSmartMaster;
@@ -541,11 +544,11 @@ public class FavoriteQueryService extends BasicService {
     }
 
     private void adjustFQForProject(String project) {
+        NMetricsGroup.counterInc(NMetricsName.FQ_ADJUST_INVOKED, NMetricsCategory.PROJECT, project);
         logger.trace("Start checking favorite query accelerate status adjustment for project {}.", project);
         long startTime = System.currentTimeMillis();
         KylinConfig config = KylinConfig.getInstanceFromEnv();
-        List<String> sqlPatterns = FavoriteQueryManager.getInstance(config, project)
-                .getAcceleratedSqlPattern();
+        List<String> sqlPatterns = FavoriteQueryManager.getInstance(config, project).getAcceleratedSqlPattern();
         // split sqlPatterns into batches to avoid
         int batchOffset = 0;
         int batchSize = config.getAutoCheckAccStatusBatchSize();
@@ -558,9 +561,10 @@ public class FavoriteQueryService extends BasicService {
             String[] sqls = sqlPatterns.subList(batchStart, batchOffset).toArray(new String[0]);
             checkAccelerateStatus(project, sqls);
         }
-        long endTime = System.currentTimeMillis();
-        logger.trace("End favorite query adjustment. Processed {} queries and took {}ms for project {}",
-                sqlSize, endTime - startTime, project);
+        long duration = System.currentTimeMillis() - startTime;
+        logger.trace("End favorite query adjustment. Processed {} queries and took {}ms for project {}", sqlSize,
+                duration, project);
+        NMetricsGroup.counterInc(NMetricsName.FQ_ADJUST_INVOKED_DURATION, NMetricsCategory.PROJECT, project, duration);
     }
 
     private void checkAccelerateStatus(String project, String[] sqls) {

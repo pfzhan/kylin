@@ -37,6 +37,9 @@ import org.apache.spark.sql.SparderEnv;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import io.kyligence.kap.common.metrics.NMetricsCategory;
+import io.kyligence.kap.common.metrics.NMetricsGroup;
+import io.kyligence.kap.common.metrics.NMetricsName;
 import lombok.val;
 
 public class SparkContextCanary {
@@ -100,6 +103,9 @@ public class SparkContextCanary {
                     logger.warn("Repairing spark context");
                     SparderEnv.restartSpark();
                     errorAccumulated = 0;
+
+                    NMetricsGroup.counterInc(NMetricsName.SPARDER_RESTART, NMetricsCategory.GLOBAL, "global");
+
                 } catch (Throwable th) {
                     logger.error("Restart spark context failed.", th);
                 }

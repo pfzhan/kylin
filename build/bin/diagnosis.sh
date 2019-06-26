@@ -27,6 +27,7 @@ mkdir $diag_tmp_dir/spark_logs
 mkdir $diag_tmp_dir/metadata
 mkdir $diag_tmp_dir/conf
 mkdir $diag_tmp_dir/hadoop_conf
+mkdir $diag_tmp_dir/system_metrics
 
 diag_log_file=$diag_tmp_dir/diag.log
 exec 2>>$diag_log_file
@@ -149,6 +150,23 @@ cp -rf ${KYLIN_HOME}/conf/* ${diag_tmp_dir}/conf/
 verbose "Copy hadoop conf"
 cp -rf ${KYLIN_HOME}/hadoop_conf/* ${diag_tmp_dir}/hadoop_conf/
 
+#KE_METRICS backup
+inlfuxd_path=$(which influxd)
+if [[ -z  $inlfuxd_path ]];then
+    verbose "influxd not found, try \$INFLUXDB_HOME/usr/bin/influxd."
+    if [[ -z $INFLUXDB_HOME ]];then
+        verbose "INFLUXDB_HOME not defined."
+    else
+        inlfuxd_path=$INFLUXDB_HOME/usr/bin/influxd
+    fi
+fi
+
+if [[ $inlfuxd_path ]];then
+    $inlfuxd_path backup -portable -database KE_METRICS ${diag_tmp_dir}/system_metrics/
+else
+    verbose "influxd not found, KE_METRICS backup failed."
+fi
+
 # package
 if [[ -z $diag_pkg_home ]]; then
     diag_pkg_home="${KYLIN_HOME}/diagnosis_package"
@@ -159,7 +177,7 @@ fi
 diag_pkg_home=$(cd -P $diag_pkg_home && pwd -P)
 diag_package="diag_$(date '+%Y_%m_%d_%H_%M_%S')"
 verbose "Packaging, build diagnostic package in [${diag_pkg_home}/${diag_package}.tar.gz]"
-(cd ${diag_tmp_dir} && mkdir $diag_package && cp -rf "metadata" "logs" "spark_logs" "conf" "hadoop_conf" "diag.log" $diag_package \
+(cd ${diag_tmp_dir} && mkdir $diag_package && cp -rf "metadata" "logs" "spark_logs" "conf" "hadoop_conf" "diag.log" "system_metrics" $diag_package \
     && tar -zcf "${diag_package}.tar.gz" $diag_package \
     && cp "${diag_package}.tar.gz" "${diag_pkg_home}/${diag_package}.tar.gz")
 

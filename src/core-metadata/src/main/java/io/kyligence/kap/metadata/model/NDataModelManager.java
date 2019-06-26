@@ -130,15 +130,15 @@ public class NDataModelManager {
     private void postModelRepairEvent(NDataModel model) {
         if (model.isHandledAfterBroken()) {
             if (UnitOfWork.isAlreadyInTransaction()) {
-                UnitOfWork.get().doAfterUnit(
-                        () -> SchedulerEventBusFactory.getInstance(KylinConfig.getInstanceFromEnv())
-                                .post(new NDataModel.ModelRepairEvent(model)));
+                UnitOfWork.get().doAfterUnit(() -> SchedulerEventBusFactory
+                        .getInstance(KylinConfig.getInstanceFromEnv()).post(new NDataModel.ModelRepairEvent(model)));
             } else {
                 SchedulerEventBusFactory.getInstance(config).post(new NDataModel.ModelRepairEvent(model));
             }
 
         }
     }
+
     public KylinConfig getConfig() {
         return config;
     }

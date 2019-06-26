@@ -49,11 +49,8 @@
 package io.kyligence.kap.rest.service;
 
 import java.net.UnknownHostException;
+import java.util.concurrent.TimeUnit;
 
-import com.google.common.base.Preconditions;
-import io.kyligence.kap.metadata.query.QueryHistory;
-import io.kyligence.kap.rest.metrics.QueryMetricsContext;
-import io.kyligence.kap.rest.response.QueryEngineStatisticsResponse;
 import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.query.util.QueryUtil;
 import org.apache.kylin.rest.request.SQLRequest;
@@ -63,7 +60,15 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
+import com.google.common.base.Preconditions;
+
 import io.kyligence.kap.common.metric.MetricWriterStrategy;
+import io.kyligence.kap.common.metrics.NMetricsCategory;
+import io.kyligence.kap.common.metrics.NMetricsGroup;
+import io.kyligence.kap.common.metrics.NMetricsName;
+import io.kyligence.kap.metadata.query.QueryHistory;
+import io.kyligence.kap.rest.metrics.QueryMetricsContext;
+import io.kyligence.kap.rest.response.QueryEngineStatisticsResponse;
 
 @Component("kapQueryService")
 public class KapQueryService extends QueryService {
@@ -86,7 +91,7 @@ public class KapQueryService extends QueryService {
          }
          message = sb.toString();
          }
-
+        
          */
         return message;
     }
@@ -97,23 +102,49 @@ public class KapQueryService extends QueryService {
             // preparing statement should not be recorded
             return;
         }
-        
+
         if (QueryMetricsContext.isStarted()) {
             final QueryMetricsContext queryMetricsContext = QueryMetricsContext.collect(sqlRequest, sqlResponse,
                     QueryContext.current());
 
-            MetricWriterStrategy.INSTANCE.write(QueryHistory.DB_NAME, getQueryHistoryDao(sqlRequest.getProject()).getQueryMetricMeasurement(),
+            MetricWriterStrategy.INSTANCE.write(QueryHistory.DB_NAME,
+                    getQueryHistoryDao(sqlRequest.getProject()).getQueryMetricMeasurement(),
                     queryMetricsContext.getInfluxdbTags(), queryMetricsContext.getInfluxdbFields(),
                     System.currentTimeMillis());
 
             for (final QueryMetricsContext.RealizationMetrics realizationMetrics : queryMetricsContext
                     .getRealizationMetrics()) {
 
-                MetricWriterStrategy.INSTANCE.write(QueryHistory.DB_NAME, getQueryHistoryDao(sqlRequest.getProject()).getRealizationMetricMeasurement(),
+                MetricWriterStrategy.INSTANCE.write(QueryHistory.DB_NAME,
+                        getQueryHistoryDao(sqlRequest.getProject()).getRealizationMetricMeasurement(),
                         realizationMetrics.getInfluxdbTags(), realizationMetrics.getInfluxdbFields(),
                         System.currentTimeMillis());
             }
         }
+
+        if (TimeUnit.MILLISECONDS.toSeconds(sqlResponse.getDuration()) > 10) {
+            NMetricsGroup.counterInc(NMetricsName.QUERY_SLOW, NMetricsCategory.PROJECT, sqlRequest.getProject());
+            NMetricsGroup.meterMark(NMetricsName.QUERY_SLOW_RATE, NMetricsCategory.PROJECT, sqlRequest.getProject());
+        }
+
+        if (sqlResponse.isException()) {
+            NMetricsGroup.counterInc(NMetricsName.QUERY_FAILED, NMetricsCategory.PROJECT, sqlRequest.getProject());
+            NMetricsGroup.meterMark(NMetricsName.QUERY_FAILED_RATE, NMetricsCategory.PROJECT, sqlRequest.getProject());
+        }
+
+        if (sqlResponse.isQueryPushDown()) {
+            NMetricsGroup.counterInc(NMetricsName.QUERY_PUSH_DOWN, NMetricsCategory.PROJECT, sqlRequest.getProject());
+            NMetricsGroup.meterMark(NMetricsName.QUERY_PUSH_DOWN_RATE, NMetricsCategory.PROJECT,
+                    sqlRequest.getProject());
+        }
+
+        if (sqlResponse.isTimeout()) {
+            NMetricsGroup.counterInc(NMetricsName.QUERY_TIMEOUT, NMetricsCategory.PROJECT, sqlRequest.getProject());
+            NMetricsGroup.meterMark(NMetricsName.QUERY_TIMEOUT_RATE, NMetricsCategory.PROJECT, sqlRequest.getProject());
+        }
+
+        NMetricsGroup.histogramUpdate(NMetricsName.QUERY_LATENCY, NMetricsCategory.PROJECT, sqlRequest.getProject(),
+                sqlResponse.getDuration());
 
         super.recordMetric(sqlRequest, sqlResponse);
     }
@@ -121,6 +152,7 @@ public class KapQueryService extends QueryService {
     public QueryEngineStatisticsResponse getQueryStatisticsByEngine(String project, long startTime, long endTime) {
         Preconditions.checkArgument(project != null && !project.isEmpty());
 
-        return QueryEngineStatisticsResponse.valueOf(getQueryHistoryDao(project).getQueryEngineStatistics(startTime, endTime));
+        return QueryEngineStatisticsResponse
+                .valueOf(getQueryHistoryDao(project).getQueryEngineStatistics(startTime, endTime));
     }
 }

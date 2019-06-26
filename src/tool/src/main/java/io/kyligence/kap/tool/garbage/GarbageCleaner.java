@@ -26,6 +26,9 @@ package io.kyligence.kap.tool.garbage;
 
 import org.apache.kylin.common.KylinConfig;
 
+import io.kyligence.kap.common.metrics.NMetricsCategory;
+import io.kyligence.kap.common.metrics.NMetricsGroup;
+import io.kyligence.kap.common.metrics.NMetricsName;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.metadata.model.MaintainModelType;
 import io.kyligence.kap.metadata.project.NProjectManager;
@@ -50,6 +53,8 @@ public class GarbageCleaner {
             new ExecutableCleaner().cleanup(project);
             return 0;
         }, project);
+
+        NMetricsGroup.counterInc(NMetricsName.METADATA_CLEAN, NMetricsCategory.PROJECT, project);
     }
 
     /**
@@ -65,6 +70,7 @@ public class GarbageCleaner {
             new ExecutableCleaner().cleanup(project);
             return 0;
         }, project);
+        NMetricsGroup.counterInc(NMetricsName.METADATA_CLEAN, NMetricsCategory.PROJECT, project);
     }
 
     private static boolean isProjectAutoMain(String project) {

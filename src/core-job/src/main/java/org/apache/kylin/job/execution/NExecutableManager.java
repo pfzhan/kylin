@@ -39,6 +39,9 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.common.metrics.NMetricsCategory;
+import io.kyligence.kap.common.metrics.NMetricsGroup;
+import io.kyligence.kap.common.metrics.NMetricsName;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -64,6 +67,7 @@ import com.google.common.collect.Maps;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.common.scheduler.JobReadyNotifier;
 import io.kyligence.kap.common.scheduler.SchedulerEventBusFactory;
+import io.kyligence.kap.metadata.cube.model.NBatchConstants;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import lombok.val;
 
@@ -140,6 +144,8 @@ public class NExecutableManager {
         addJobOutput(executablePO);
         executableDao.addJob(executablePO);
 
+        NMetricsGroup.counterInc(NMetricsName.JOB, NMetricsCategory.PROJECT,
+                executablePO.getParams().get(NBatchConstants.P_PROJECT_NAME));
         // dispatch job-created message out
         if (KylinConfig.getInstanceFromEnv().isUTEnv())
             SchedulerEventBusFactory.getInstance(config).postWithLimit(new JobReadyNotifier(project));

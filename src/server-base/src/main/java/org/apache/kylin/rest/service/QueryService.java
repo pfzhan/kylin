@@ -68,7 +68,6 @@ import java.util.stream.Collectors;
 
 import javax.annotation.PostConstruct;
 
-import io.kyligence.kap.metadata.project.NProjectManager;
 import org.apache.calcite.avatica.ColumnMetaData.Rep;
 import org.apache.calcite.config.CalciteConnectionConfig;
 import org.apache.calcite.jdbc.CalcitePrepare;
@@ -138,10 +137,14 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.Lists;
 
+import io.kyligence.kap.common.metrics.NMetricsCategory;
+import io.kyligence.kap.common.metrics.NMetricsGroup;
+import io.kyligence.kap.common.metrics.NMetricsName;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWorkParams;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
+import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.metadata.query.NativeQueryRealization;
 import io.kyligence.kap.rest.cluster.ClusterManager;
 import io.kyligence.kap.rest.config.AppConfig;
@@ -202,6 +205,7 @@ public class QueryService extends BasicService {
     }
 
     public SQLResponse query(SQLRequest sqlRequest) throws Exception {
+        NMetricsGroup.counterInc(NMetricsName.QUERY, NMetricsCategory.PROJECT, sqlRequest.getProject());
         SQLResponse ret;
         try {
             slowQueryDetector.queryStart();
@@ -342,7 +346,7 @@ public class QueryService extends BasicService {
             return UnitOfWork
                     .doInTransactionWithRetry(UnitOfWorkParams.<SQLResponse> builder().unitName(sqlRequest.getProject())
                             .readonly(true).processor(() -> queryWithCache(sqlRequest, isQueryInspect)).build());
-        }else {
+        } else {
             return queryWithCache(sqlRequest, isQueryInspect);
         }
     }
@@ -433,6 +437,7 @@ public class QueryService extends BasicService {
             } catch (Throwable th) {
                 logger.warn("Write metric error.", th);
             }
+
             return sqlResponse;
 
         } finally {

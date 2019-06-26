@@ -67,6 +67,9 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Ordering;
 import com.google.common.collect.Sets;
 
+import io.kyligence.kap.common.metrics.NMetricsCategory;
+import io.kyligence.kap.common.metrics.NMetricsGroup;
+import io.kyligence.kap.common.metrics.NMetricsName;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.metadata.favorite.FavoriteQuery;
 import io.kyligence.kap.metadata.favorite.FavoriteQueryManager;
@@ -251,11 +254,17 @@ public class NFavoriteScheduler {
             copiedFrequencyStatues = deepCopyFrequencyStatues();
             copiedOverallStatus = copyFrequencyStatus(overAllStatus);
 
+            long startAt = System.currentTimeMillis();
             try {
                 autoFavorite();
             } catch (Exception e) {
+                NMetricsGroup.counterInc(NMetricsName.FQ_BE_INVOKED_FAILED, NMetricsCategory.PROJECT, project);
                 logger.error("Error {} caught when doing auto favorite for project {} ", e.getMessage(), project);
                 return;
+            } finally {
+                NMetricsGroup.counterInc(NMetricsName.FQ_BE_INVOKED, NMetricsCategory.PROJECT, project);
+                NMetricsGroup.counterInc(NMetricsName.FQ_BE_INVOKED_DURATION, NMetricsCategory.PROJECT, project,
+                        System.currentTimeMillis() - startAt);
             }
 
             frequencyStatuses = copiedFrequencyStatues;

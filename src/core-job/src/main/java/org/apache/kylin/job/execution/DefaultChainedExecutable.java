@@ -46,6 +46,9 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 
+import io.kyligence.kap.common.metrics.NMetricsCategory;
+import io.kyligence.kap.common.metrics.NMetricsGroup;
+import io.kyligence.kap.common.metrics.NMetricsName;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.constant.JobIssueEnum;
 import org.apache.kylin.job.exception.ExecuteException;
@@ -94,6 +97,7 @@ public class DefaultChainedExecutable extends AbstractExecutable implements Chai
     protected void onExecuteError(ExecuteResult result) throws JobStoppedException {
         super.onExecuteError(result);
         notifyUserJobIssue(JobIssueEnum.JOB_ERROR);
+        NMetricsGroup.counterInc(NMetricsName.JOB_ERROR, NMetricsCategory.PROJECT, getProject());
     }
 
     @Override
@@ -152,6 +156,14 @@ public class DefaultChainedExecutable extends AbstractExecutable implements Chai
         // dispatch job-finished message out
         SchedulerEventBusFactory.getInstance(KylinConfig.getInstanceFromEnv())
                 .postWithLimit(new JobFinishedNotifier(getProject()));
+
+        ExecutableState state = getStatus();
+        if (state != null && state.isFinalState()) {
+            NMetricsGroup.counterInc(NMetricsName.JOB_FINISHED, NMetricsCategory.PROJECT, getProject());
+            NMetricsGroup.counterInc(NMetricsName.JOB_DURATION, NMetricsCategory.PROJECT, getProject(), getDuration());
+            NMetricsGroup.histogramUpdate(NMetricsName.JOB_DURATION_HISTOGRAM, NMetricsCategory.PROJECT, getProject(),
+                    getDuration());
+        }
 
     }
 

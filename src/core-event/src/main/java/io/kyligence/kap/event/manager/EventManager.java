@@ -42,6 +42,9 @@
 
 package io.kyligence.kap.event.manager;
 
+import io.kyligence.kap.common.metrics.NMetricsCategory;
+import io.kyligence.kap.common.metrics.NMetricsGroup;
+import io.kyligence.kap.common.metrics.NMetricsName;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.common.scheduler.EventCreatedNotifier;
 import io.kyligence.kap.common.scheduler.SchedulerEventBusFactory;
@@ -98,6 +101,8 @@ public class EventManager {
         else
             UnitOfWork.get().doAfterUnit(
                 () -> SchedulerEventBusFactory.getInstance(config).postWithLimit(new EventCreatedNotifier(project)));
+
+        NMetricsGroup.counterInc(NMetricsName.EVENT_COUNTER, NMetricsCategory.PROJECT, project);
     }
 
 }

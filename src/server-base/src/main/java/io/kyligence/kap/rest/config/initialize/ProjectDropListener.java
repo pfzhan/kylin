@@ -31,6 +31,7 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
 
+import io.kyligence.kap.common.metrics.NMetricsGroup;
 import io.kyligence.kap.event.manager.EventOrchestratorManager;
 import io.kyligence.kap.rest.service.NFavoriteScheduler;
 import lombok.val;
@@ -49,6 +50,9 @@ public class ProjectDropListener {
             EventOrchestratorManager.getInstance(kylinConfig).shutdownByProject(project);
             NFavoriteScheduler.shutdownByProject(project);
             NDefaultScheduler.shutdownByProject(project);
+
+            NMetricsGroup.removeProjectMetrics(project);
+
         } catch (IOException e) {
             log.warn("error when delete " + project + " storage", e);
         }

@@ -34,19 +34,6 @@ import java.util.Map;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
-import com.google.common.collect.Maps;
-import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
-import io.kyligence.kap.common.scheduler.JobReadyNotifier;
-import io.kyligence.kap.common.scheduler.SchedulerEventBusFactory;
-import io.kyligence.kap.event.model.AddCuboidEvent;
-import io.kyligence.kap.event.model.AddSegmentEvent;
-import io.kyligence.kap.event.model.Event;
-import io.kyligence.kap.event.model.MergeSegmentEvent;
-import io.kyligence.kap.event.model.RefreshSegmentEvent;
-import io.kyligence.kap.rest.response.EventModelResponse;
-import io.kyligence.kap.rest.response.EventResponse;
-import io.kyligence.kap.rest.response.JobStatisticsResponse;
-import lombok.var;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -73,13 +60,29 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 
+import io.kyligence.kap.common.metrics.NMetricsCategory;
+import io.kyligence.kap.common.metrics.NMetricsGroup;
+import io.kyligence.kap.common.metrics.NMetricsName;
+import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
+import io.kyligence.kap.common.scheduler.JobReadyNotifier;
+import io.kyligence.kap.common.scheduler.SchedulerEventBusFactory;
+import io.kyligence.kap.event.model.AddCuboidEvent;
+import io.kyligence.kap.event.model.AddSegmentEvent;
+import io.kyligence.kap.event.model.Event;
+import io.kyligence.kap.event.model.MergeSegmentEvent;
+import io.kyligence.kap.event.model.RefreshSegmentEvent;
 import io.kyligence.kap.rest.request.JobActionEnum;
 import io.kyligence.kap.rest.request.JobFilter;
+import io.kyligence.kap.rest.response.EventModelResponse;
+import io.kyligence.kap.rest.response.EventResponse;
 import io.kyligence.kap.rest.response.ExecutableResponse;
 import io.kyligence.kap.rest.response.ExecutableStepResponse;
+import io.kyligence.kap.rest.response.JobStatisticsResponse;
 import io.kyligence.kap.rest.transaction.Transaction;
 import lombok.val;
+import lombok.var;
 
 @Component("jobService")
 public class JobService extends BasicService {
@@ -243,6 +246,7 @@ public class JobService extends BasicService {
             executableManager.resumeJob(jobId);
             UnitOfWork.get().doAfterUnit(() -> SchedulerEventBusFactory.getInstance(KylinConfig.getInstanceFromEnv())
                     .postWithLimit(new JobReadyNotifier(project)));
+            NMetricsGroup.counterInc(NMetricsName.JOB_RESUMED, NMetricsCategory.PROJECT, project);
             break;
         case RESTART:
             executableManager.restartJob(jobId);
@@ -251,6 +255,7 @@ public class JobService extends BasicService {
             break;
         case DISCARD:
             cancelJob(project, jobId);
+            NMetricsGroup.counterInc(NMetricsName.JOB_DISCARDED, NMetricsCategory.PROJECT, project);
             break;
         case PAUSE:
             executableManager.pauseJob(jobId);

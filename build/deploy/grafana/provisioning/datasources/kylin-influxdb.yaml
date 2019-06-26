@@ -1,0 +1,21 @@
+# Kyligence Inc. License
+
+apiVersion: 1
+
+deleteDatasources:
+  - name: KylinInfluxDB
+    orgId: 1
+
+datasources:
+  - id: 1
+    name: KylinInfluxDB
+    type: influxdb
+    access: proxy
+    orgId: 1
+    url: http://$INFLUXDB_ADDRESS
+    password: $INFLUXDB_PASSWORD
+    user: $INFLUXDB_USERNAME
+    database: KE_METRICS
+    readOnly: false
+
+

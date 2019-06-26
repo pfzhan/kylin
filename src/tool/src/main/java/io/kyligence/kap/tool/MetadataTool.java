@@ -57,6 +57,9 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.google.common.io.ByteStreams;
 
+import io.kyligence.kap.common.metrics.NMetricsCategory;
+import io.kyligence.kap.common.metrics.NMetricsGroup;
+import io.kyligence.kap.common.metrics.NMetricsName;
 import io.kyligence.kap.common.persistence.ImageDesc;
 import io.kyligence.kap.common.persistence.metadata.MetadataStore;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
@@ -196,7 +199,32 @@ public class MetadataTool extends ExecutableApplication {
         resourceStore = ResourceStore.getKylinMetaStore(kylinConfig);
 
         if (optionsHelper.hasOption(OPERATE_BACKUP)) {
-            backup(optionsHelper);
+            boolean isGlobal = null == optionsHelper.getOptionValue(OPTION_PROJECT);
+            long startAt = System.currentTimeMillis();
+
+            try {
+                backup(optionsHelper);
+            } catch (Exception be) {
+                if (isGlobal) {
+                    NMetricsGroup.counterInc(NMetricsName.METADATA_BACKUP_FAILED, NMetricsCategory.GLOBAL, "global");
+                } else {
+                    NMetricsGroup.counterInc(NMetricsName.METADATA_BACKUP_FAILED, NMetricsCategory.PROJECT,
+                            optionsHelper.getOptionValue(OPTION_PROJECT));
+                }
+                throw be;
+            } finally {
+                if (isGlobal) {
+                    NMetricsGroup.counterInc(NMetricsName.METADATA_BACKUP, NMetricsCategory.GLOBAL, "global");
+                    NMetricsGroup.counterInc(NMetricsName.METADATA_BACKUP_DURATION, NMetricsCategory.GLOBAL, "global",
+                            System.currentTimeMillis() - startAt);
+                } else {
+                    NMetricsGroup.counterInc(NMetricsName.METADATA_BACKUP, NMetricsCategory.PROJECT,
+                            optionsHelper.getOptionValue(OPTION_PROJECT));
+                    NMetricsGroup.counterInc(NMetricsName.METADATA_BACKUP_DURATION, NMetricsCategory.PROJECT,
+                            optionsHelper.getOptionValue(OPTION_PROJECT), System.currentTimeMillis() - startAt);
+                }
+            }
+
         } else if (optionsHelper.hasOption(OPERATE_RESTORE)) {
             restore(optionsHelper);
         } else {

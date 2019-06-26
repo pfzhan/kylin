@@ -25,6 +25,9 @@ package io.kyligence.kap.rest.service;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import io.kyligence.kap.common.metrics.NMetricsCategory;
+import io.kyligence.kap.common.metrics.NMetricsGroup;
+import io.kyligence.kap.common.metrics.NMetricsName;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -52,8 +55,10 @@ public class ScheduleService {
 
     @Scheduled(cron = "${kylin.metadata.ops-cron:0 0 0 * * *}")
     public void routineTask() throws Exception {
-        String oldTheadName = Thread.currentThread().getName();
 
+        NMetricsGroup.counterInc(NMetricsName.METADATA_OPS_CRON, NMetricsCategory.GLOBAL, "global");
+
+        String oldTheadName = Thread.currentThread().getName();
         try {
             Thread.currentThread().setName("RoutineOpsWorker");
 
@@ -68,6 +73,7 @@ public class ScheduleService {
         } finally {
             Thread.currentThread().setName(oldTheadName);
         }
-    }
 
+        NMetricsGroup.counterInc(NMetricsName.METADATA_OPS_CRON_SUCCESS, NMetricsCategory.GLOBAL, "global");
+    }
 }

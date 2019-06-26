@@ -38,6 +38,9 @@ import org.apache.kylin.common.util.Pair;
 
 import com.google.common.base.Preconditions;
 
+import io.kyligence.kap.common.metrics.NMetricsCategory;
+import io.kyligence.kap.common.metrics.NMetricsGroup;
+import io.kyligence.kap.common.metrics.NMetricsName;
 import io.kyligence.kap.common.persistence.UnitMessages;
 import io.kyligence.kap.common.persistence.event.EndUnit;
 import io.kyligence.kap.common.persistence.event.Event;
@@ -86,6 +89,15 @@ public class UnitOfWork {
         int retry = 0;
         val traceId = UUID.randomUUID().toString();
         while (retry++ < maxRetry) {
+            if (retry > 1) {
+                if (!GLOBAL_UNIT.equals(params.getUnitName())) {
+                    NMetricsGroup.counterInc(NMetricsName.TRANSACTION_RETRY_COUNTER, NMetricsCategory.PROJECT,
+                            params.getUnitName());
+                } else {
+                    NMetricsGroup.counterInc(NMetricsName.TRANSACTION_RETRY_COUNTER, NMetricsCategory.GLOBAL, "global");
+                }
+            }
+
             val ret = doTransaction(params, retry, traceId);
             if (ret.getSecond()) {
                 return ret.getFirst();
@@ -118,6 +130,15 @@ public class UnitOfWork {
             } else {
                 log.debug("UnitOfWork {} takes {}ms to complete", traceId, duration);
             }
+
+            if (!GLOBAL_UNIT.equals(params.getUnitName())) {
+                NMetricsGroup.histogramUpdate(NMetricsName.TRANSACTION_LATENCY, NMetricsCategory.PROJECT,
+                        params.getUnitName(), duration);
+            } else {
+                NMetricsGroup.histogramUpdate(NMetricsName.TRANSACTION_LATENCY, NMetricsCategory.GLOBAL, "global",
+                        duration);
+            }
+
             result = Pair.newPair(ret, true);
         } catch (Throwable throwable) {
             if (throwable instanceof QuitTxnRightNow) {
@@ -152,6 +173,7 @@ public class UnitOfWork {
                 TransactionListenerRegistry.onEnd(params.getUnitName());
             }
         }
+
         if (result.getSecond() && context != null) {
             context.runTasks();
         }
