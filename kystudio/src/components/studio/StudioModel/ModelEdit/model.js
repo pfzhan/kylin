@@ -1222,7 +1222,7 @@ class NModel {
       expression = 'COUNT'
     }
     for (let k = 0; k < this._mount.all_measures.length; k++) {
-      if (this._mount.all_measures[k].name !== measure.name && this._mount.all_measures[k].expression === expression && column.value === this._mount.all_measures[k].parameter_value[0].value) {
+      if (this._mount.all_measures[k].guid !== measure.guid && this._mount.all_measures[k].expression === expression && column.value === this._mount.all_measures[k].parameter_value[0].value) {
         return false
       }
     }

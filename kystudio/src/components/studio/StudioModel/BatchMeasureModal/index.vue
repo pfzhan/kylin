@@ -231,6 +231,7 @@ export default class BatchMeasureModal extends Vue {
         if (column.SUM.value && !column.SUM.isShouldDisable) {
           const measure = {
             name: column.table_alias + '_' + column.name + '_SUM',
+            guid: sampleGuid(),
             expression: 'SUM',
             parameter_value: [{type: 'column', value: column.table_alias + '.' + column.name}],
             table_guid: column.table_guid
@@ -240,6 +241,7 @@ export default class BatchMeasureModal extends Vue {
         if (column.MIN.value && !column.MIN.isShouldDisable) {
           const measure = {
             name: column.table_alias + '_' + column.name + '_MIN',
+            guid: sampleGuid(),
             expression: 'MIN',
             parameter_value: [{type: 'column', value: column.table_alias + '.' + column.name}],
             table_guid: column.table_guid
@@ -249,6 +251,7 @@ export default class BatchMeasureModal extends Vue {
         if (column.MAX.value && !column.MAX.isShouldDisable) {
           const measure = {
             name: column.table_alias + '_' + column.name + '_MAX',
+            guid: sampleGuid(),
             expression: 'MAX',
             parameter_value: [{type: 'column', value: column.table_alias + '.' + column.name}],
             table_guid: column.table_guid
@@ -258,6 +261,7 @@ export default class BatchMeasureModal extends Vue {
         if (column.COUNT.value && !column.COUNT.isShouldDisable) {
           const measure = {
             name: column.table_alias + '_' + column.name + '_COUNT',
+            guid: sampleGuid(),
             expression: 'COUNT',
             parameter_value: [{type: 'column', value: column.table_alias + '.' + column.name}],
             table_guid: column.table_guid

@@ -223,7 +223,7 @@ export default class queryResult extends Vue {
       .resultText{
         color:@color-text-primary;
         .label {
-          font-weight: normal;
+          font-weight: bold;
         }
         .text{
           color:@color-text-primary;

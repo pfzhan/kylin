@@ -153,7 +153,7 @@
           <div class="ky-list-title ksd-mt-10 ksd-fs-14">{{$t('sqlBox')}}</div>
           <div v-loading="sqlLoading" element-loading-spinner="el-icon-loading">
             <div class="query_panel_box ksd-mt-10">
-              <kap-editor ref="whiteInputBox" :height="inputHeight" :readOnly="this.isReadOnly" lang="sql" theme="chrome" v-model="whiteSql" v-if="isShowEditor">
+              <kap-editor ref="whiteInputBox" :height="inputHeight" :dragable="false" :readOnly="this.isReadOnly" lang="sql" theme="chrome" v-model="whiteSql" v-if="isShowEditor">
               </kap-editor>
               <div class="operatorBox" v-if="isEditSql">
                 <div class="btn-group ksd-fright ky-no-br-space">
@@ -180,7 +180,7 @@
             <i class="el-icon-ksd-error_01"></i>{{whiteSqlData.size-whiteSqlData.capable_sql_num}}</span>
           </span>
           <span v-else class="tips">
-            <i class="el-icon-warning ksd-fs-16"></i><span class="ksd-fs-12">{{$t('uploadFileTips')}}</span>
+            <i class="el-icon-ksd-info ksd-fs-14"></i><span class="ksd-fs-12">{{$t('uploadFileTips')}}</span>
           </span>
         </div>
         <el-button size="medium" @click="importSqlVisible = false">{{$t('kylinLang.common.close')}}</el-button><el-button
@@ -235,7 +235,7 @@
         <el-col :span="8">
           <div class="ky-list-title ksd-mt-12 ksd-fs-14">{{$t('sqlBox')}}</div>
           <div class="query_panel_box ksd-mt-10" v-loading="sqlLoading" element-loading-spinner="el-icon-loading">
-            <kap-editor ref="blackInputBox" :height="inputHeight" :readOnly="true" lang="sql" theme="chrome" v-model="blackSql">
+            <kap-editor ref="blackInputBox" :height="inputHeight" :dragable="false" :readOnly="true" lang="sql" theme="chrome" v-model="blackSql">
             </kap-editor>
           </div>
         </el-col>

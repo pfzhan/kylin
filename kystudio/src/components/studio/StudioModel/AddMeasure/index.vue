@@ -121,7 +121,7 @@
 import Vue from 'vue'
 import { Component, Watch } from 'vue-property-decorator'
 import { measuresDataType, measureSumAndTopNDataType, measurePercenDataType } from '../../../../config'
-import { objectClone } from '../../../../util/index'
+import { objectClone, sampleGuid } from '../../../../util/index'
 import { NamedRegex } from 'config'
 import CCEditForm from '../ComputedColumnForm/ccform.vue'
 import $ from 'jquery'
@@ -522,6 +522,9 @@ export default class AddMeasure extends Vue {
       measureObj.expression = `${measureObj.expression}(${measureObj.parameterValue.type})`
     }
     this.measure = measureObj
+    if (!this.isEditMeasure) {
+      this.measure.guid = sampleGuid()
+    }
   }
 
   @Watch('isShow')

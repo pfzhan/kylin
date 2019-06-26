@@ -434,8 +434,6 @@ export default class NewQuery extends Vue {
       color: @text-disabled-color;
       i {
         cursor: default;
-        position: relative;
-        top: 2px;
       }
     }
     .insight_tab{

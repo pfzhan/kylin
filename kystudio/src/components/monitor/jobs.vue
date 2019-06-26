@@ -4,7 +4,7 @@
     <el-row :gutter="20" class="jobs_tools_row ksd-mt-10 ksd-mb-10">
       <el-col :span="18">
         <el-dropdown class="ksd-fleft waiting-jobs" trigger="click" placement="bottom-start" @command="handleCommand">
-          <el-button plain class="el-dropdown-link" size="medium" :disabled="!waittingJobModels.size">
+          <el-button class="el-dropdown-link" size="medium" :disabled="!waittingJobModels.size">
             {{waittingJobModels.size}} {{$t('waitingjobs')}}<i class="el-icon-arrow-down el-icon--right"></i>
           </el-button>
           <el-dropdown-menu slot="dropdown">
@@ -1120,14 +1120,20 @@ export default class JobsList extends Vue {
           color: @base-color;
         }
       }
-      .el-button.is-disabled {
-        .el-icon-arrow-down {
-          color: inherit;
-          cursor: not-allowed;
-        }
+      .el-button {
         &:hover {
+          background-color: @fff;
+        }
+        &.is-disabled {
           .el-icon-arrow-down {
             color: inherit;
+            cursor: not-allowed;
+          }
+          &:hover {
+            background-color: @background-disabled-color;
+            .el-icon-arrow-down {
+              color: inherit;
+            }
           }
         }
       }
@@ -1200,6 +1206,9 @@ export default class JobsList extends Vue {
         i {
           position: relative;
           left: 1px;
+        }
+        &:hover i {
+          color: @base-color;
         }
       }
       .timeline {

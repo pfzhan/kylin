@@ -1,7 +1,7 @@
 <template>
-  <div class="smyles_editor_wrap" :style="{width: width? width: '100%', height: height ? height : '100%'}">
-    <editor class="smyles_editor" v-model="editorData" ref="kapEditor" :height="height? height: '100%'" :lang="lang" :theme="theme" @change="changeInput" @input="changeInput"></editor>
-    <div class="smyles_dragbar"></div>
+  <div class="smyles_editor_wrap" :style="editorStyle">
+    <editor class="smyles_editor" v-model="editorData" ref="kapEditor" :style="{height: editorStyle.height}" :lang="lang" :theme="theme" @change="changeInput" @input="changeInput"></editor>
+    <div class="smyles_dragbar" v-if="dragable" v-drag:change.height="editorDragData"></div>
     <el-popover
       placement="top"
       title=""
@@ -23,12 +23,49 @@ import $ from 'jquery'
 import sqlFormatter from 'sql-formatter'
 export default {
   name: 'kapEditor',
-  props: ['height', 'lang', 'theme', 'value', 'width', 'dragbar', 'isFormatter', 'readOnly'],
+  props: {
+    height: {
+      default: 0
+    },
+    lang: {
+      default: ''
+    },
+    theme: {
+      default: ''
+    },
+    value: {
+      default: ''
+    },
+    width: {
+      default: '100%'
+    },
+    dragable: {
+      default: true
+    },
+    isFormatter: {
+      default: false
+    },
+    readOnly: {
+      default: false
+    }
+  },
   data () {
     return {
       editorData: this.isFormatter ? sqlFormatter.format(this.value) : this.value,
       dragging: false,
-      showCopyStatus: false
+      showCopyStatus: false,
+      editorDragData: {
+        height: +this.height || 0,
+        width: this.width
+      }
+    }
+  },
+  computed: {
+    editorStyle: function () {
+      return {
+        height: this.editorDragData.height ? this.editorDragData.height + 'px' : '100%',
+        width: this.editorDragData.width ? this.editorDragData.width : '100%'
+      }
     }
   },
   methods: {
@@ -61,8 +98,8 @@ export default {
   mounted () {
     var editor = this.$refs.kapEditor.editor
     // editor.setOption('wrap', 'free')
-    var editorWrap = this.$el
-    var smylesEditor = this.$el.querySelector('.smyles_editor')
+    // var editorWrap = this.$el
+    // var smylesEditor = this.$el.querySelector('.smyles_editor')
     if (this.readOnly) {
       editor.setReadOnly(this.readOnly)
     }
@@ -103,31 +140,31 @@ export default {
         }
       })
     })
-    this.$el.querySelector('.smyles_dragbar').onmousedown = (e) => {
-      e.preventDefault()
-      this.dragging = true
-      var oldTop = 0
-      var topOffset = $(smylesEditor).offset().top
-      // handle mouse movement
-      $(document).mousemove((e) => {
-        if (e.pageY - oldTop > 4 || oldTop - e.pageY > 4) {
-          oldTop = e.pageY
-          var eheight = e.pageY - topOffset
-          // Set wrapper height
-          editorWrap.style.height = eheight + 'px'
-          smylesEditor.style.height = eheight + 'px'
-          editor.resize()
-        }
-      })
-    }
-    $(document).mouseup((e) => {
-      if (this.dragging) {
-        $(document).unbind('mousemove')
-        // Trigger ace editor resize()
-        editor.resize()
-        this.dragging = false
-      }
-    })
+    // this.$el.querySelector('.smyles_dragbar').onmousedown = (e) => {
+    //   e.preventDefault()
+    //   this.dragging = true
+    //   var oldTop = 0
+    //   var topOffset = $(smylesEditor).offset().top
+    //   // handle mouse movement
+    //   $(document).mousemove((e) => {
+    //     if (e.pageY - oldTop > 4 || oldTop - e.pageY > 4) {
+    //       oldTop = e.pageY
+    //       var eheight = e.pageY - topOffset
+    //       // Set wrapper height
+    //       editorWrap.style.height = eheight + 'px'
+    //       smylesEditor.style.height = eheight + 'px'
+    //       editor.resize()
+    //     }
+    //   })
+    // }
+    // $(document).mouseup((e) => {
+    //   if (this.dragging) {
+    //     $(document).unbind('mousemove')
+    //     // Trigger ace editor resize()
+    //     editor.resize()
+    //     this.dragging = false
+    //   }
+    // })
   },
   destroyed () {
     $(document).unbind('mouseup')
@@ -148,6 +185,7 @@ export default {
 <style lang="less">
   @import '../../assets/styles/variables.less';
   .smyles_editor_wrap {
+    width: 100%;
     position: relative;
     border: 1px solid @line-border-color;
     background-color: @aceditor-bg-color;

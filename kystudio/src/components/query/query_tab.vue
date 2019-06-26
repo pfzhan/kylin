@@ -26,7 +26,7 @@
         </p>
       </div>
       <div class="submit-tips" v-if="isWorkspace">
-        <i class="el-icon-ksd-alert ksd-fs-14" ></i>
+        <i class="el-icon-ksd-info ksd-fs-12" ></i>
         Control / Command + Enter = <span>{{$t('kylinLang.common.submit')}}</span></div>
     </div>
     <div v-show="isLoading" class="ksd-center ksd-mt-10">

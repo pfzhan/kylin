@@ -12,6 +12,7 @@
       :data="queryHistoryData"
       border
       class="history-table"
+      @expand-change="expandChange"
       style="width: 100%">
       <el-table-column type="expand" width="34">
         <template slot-scope="props">
@@ -20,12 +21,12 @@
           </div>
           <div class="detail-content">
             <el-row :gutter="15" type="flex">
-              <el-col :span="14">
-                <kap-editor width="100%" lang="sql" theme="chrome" ref="historySqlEditor" :readOnly="true" :isFormatter="true" v-model="props.row.sql_text" dragbar="#393e53">
+              <el-col :span="14" :style="{height: flexHeight}">
+                <kap-editor width="100%" lang="sql" theme="chrome" v-if="flexHeight" ref="historySqlEditor" :readOnly="true" :isFormatter="true" :dragable="false" v-model="props.row.sql_text">
                 </kap-editor>
               </el-col>
               <el-col :span="10">
-                <table class="ksd-table">
+                <table class="ksd-table history_detail_table">
                   <tr class="ksd-tr">
                     <th class="label">{{$t('kylinLang.query.query_id')}}</th>
                     <td>{{props.row.query_id}}</td>
@@ -143,6 +144,7 @@ export default class QueryHistoryTable extends Vue {
   }
   timer = null
   showCopyStatus = false
+  flexHeight = 0
 
   @Watch('datetimerange')
   onDateRangeChange (val) {
@@ -155,7 +157,15 @@ export default class QueryHistoryTable extends Vue {
     }
     this.filterList()
   }
-
+  expandChange () {
+    this.flexHeight = 0
+    this.$nextTick(() => {
+      const tableHeigth = $('.history_detail_table') && $('.history_detail_table').height()
+      if (tableHeigth) {
+        this.flexHeight = this.flexHeight + tableHeigth + 'px'
+      }
+    })
+  }
   onCopy () {
     this.showCopyStatus = true
     setTimeout(() => {
