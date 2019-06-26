@@ -180,35 +180,40 @@ public class NFilePruningTest extends NLocalWithSparkSessionTest {
     @Test
     public void testShardPruning() throws Exception {
         System.setProperty("kap.storage.columnar.shard-rowcount", "100");
+        try {
+            buildMultiSegs("8c670664-8d05-466a-802f-83c023b56c77");
 
-        buildMultiSegs("8c670664-8d05-466a-802f-83c023b56c77");
+            populateSSWithCSVData(getTestConfig(), getProject(), SparderEnv.getSparkSession());
 
-        populateSSWithCSVData(getTestConfig(), getProject(), SparderEnv.getSparkSession());
+            basicPruningScenario();
+            pruningWithVariousTypesScenario();
 
-        basicPruningScenario();
-        pruningWithVariousTypesScenario();
-
-        System.clearProperty("kap.storage.columnar.shard-rowcount");
+        } finally {
+            System.clearProperty("kap.storage.columnar.shard-rowcount");
+        }
     }
 
     @Test
     public void testPruningWithChineseCharacter() throws Exception {
         System.setProperty("kap.storage.columnar.shard-rowcount", "1");
-        fullBuildCube("9cde9d25-9334-4b92-b229-a00f49453757", getProject());
-        populateSSWithCSVData(getTestConfig(), getProject(), SparderEnv.getSparkSession());
+        try {
+            fullBuildCube("9cde9d25-9334-4b92-b229-a00f49453757", getProject());
+            populateSSWithCSVData(getTestConfig(), getProject(), SparderEnv.getSparkSession());
 
-        val chinese0 = "select count(*) from TEST_MEASURE where name1 = '中国'";
-        val chinese1 = "select count(*) from TEST_MEASURE where name1 <> '中国'";
+            val chinese0 = "select count(*) from TEST_MEASURE where name1 = '中国'";
+            val chinese1 = "select count(*) from TEST_MEASURE where name1 <> '中国'";
 
-        assertResultsAndScanFiles(chinese0, 1);
-        assertResultsAndScanFiles(chinese1, 2);
+            assertResultsAndScanFiles(chinese0, 1);
+            assertResultsAndScanFiles(chinese1, 3);
 
-        List<Pair<String, String>> query = new ArrayList<>();
-        query.add(Pair.newPair("", chinese0));
-        query.add(Pair.newPair("", chinese1));
-        NExecAndComp.execAndCompare(query, getProject(), NExecAndComp.CompareLevel.SAME, "left");
+            List<Pair<String, String>> query = new ArrayList<>();
+            query.add(Pair.newPair("", chinese0));
+            query.add(Pair.newPair("", chinese1));
+            NExecAndComp.execAndCompare(query, getProject(), NExecAndComp.CompareLevel.SAME, "left");
 
-        System.clearProperty("kap.storage.columnar.shard-rowcount");
+        } finally {
+            System.clearProperty("kap.storage.columnar.shard-rowcount");
+        }
     }
 
     private void pruningWithVariousTypesScenario() throws Exception {
