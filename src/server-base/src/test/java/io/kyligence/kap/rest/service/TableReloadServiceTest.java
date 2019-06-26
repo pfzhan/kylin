@@ -41,6 +41,7 @@ import org.apache.kylin.common.persistence.RootPersistentEntity;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.TableDesc;
+import org.apache.kylin.metadata.model.TableExtDesc;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 import org.apache.kylin.rest.constant.Constant;
@@ -52,6 +53,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.TestingAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 
+import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
@@ -108,11 +110,12 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
                 }
             }).collect(Collectors.toList()));
         });
+        val tableManager = NTableMetadataManager.getInstance(getTestConfig(), PROJECT);
     }
 
     @After
     @Override
-    public void cleanup(){
+    public void cleanup() {
         try {
             cleanPushdownEnv();
         } catch (Exception ignore) {
@@ -344,6 +347,9 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
     public void testReload_RemoveDimensionsAndIndexes() throws Exception {
         val indexManager = NIndexPlanManager.getInstance(getTestConfig(), PROJECT);
         val originIndexPlan = indexManager.getIndexPlanByModelAlias("nmodel_basic");
+        val originTable = NTableMetadataManager.getInstance(getTestConfig(), PROJECT)
+                .getTableDesc("DEFAULT.TEST_ORDER");
+        prepareTableExt("DEFAULT.TEST_ORDER");
         removeColumn("DEFAULT.TEST_ORDER", "TEST_TIME_ENC");
         tableService.innerReloadTable(PROJECT, "DEFAULT.TEST_ORDER");
 
@@ -385,6 +391,17 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
 
         events = eventDao.getJobRelatedEventsByModel(model2.getId());
         Assert.assertEquals(0, events.size());
+
+        // check table sample
+        val tableExt = NTableMetadataManager.getInstance(getTestConfig(), PROJECT)
+                .getOrCreateTableExt("DEFAULT.TEST_ORDER");
+        Assert.assertEquals(originTable.getColumns().length - 1, tableExt.getAllColumnStats().size());
+        for (TableExtDesc.ColumnStats stat : tableExt.getAllColumnStats()) {
+            Assert.assertNotEquals("TEST_TIME_ENC", stat.getColumnName());
+        }
+        for (String[] sampleRow : tableExt.getSampleRows()) {
+            Assert.assertTrue(!Joiner.on(",").join(sampleRow).contains("col_3"));
+        }
     }
 
     @Test
@@ -396,12 +413,25 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
         val model = modelManager.getDataModelDescByAlias("nmodel_basic_inner");
         val originMaxId = model.getAllNamedColumns().stream().mapToInt(NDataModel.NamedColumn::getId).max().getAsInt();
 
+        val originTable = NTableMetadataManager.getInstance(getTestConfig(), PROJECT)
+                .getTableDesc("DEFAULT.TEST_COUNTRY");
+        prepareTableExt("DEFAULT.TEST_COUNTRY");
         addColumn("DEFAULT.TEST_COUNTRY", new ColumnDesc("", "tmp1", "bigint", "", "", "", null));
         tableService.innerReloadTable(PROJECT, "DEFAULT.TEST_COUNTRY");
 
         val model2 = modelManager.getDataModelDescByAlias("nmodel_basic_inner");
         val maxId = model2.getAllNamedColumns().stream().mapToInt(NDataModel.NamedColumn::getId).max().getAsInt();
         Assert.assertEquals(originMaxId + 2, maxId);
+
+        // check table sample
+        val tableExt = NTableMetadataManager.getInstance(getTestConfig(), PROJECT)
+                .getOrCreateTableExt("DEFAULT.TEST_COUNTRY");
+        Assert.assertEquals(originTable.getColumns().length, tableExt.getAllColumnStats().size());
+        Assert.assertNull(tableExt.getColumnStatsByName("TMP1"));
+        for (String[] sampleRow : tableExt.getSampleRows()) {
+            Assert.assertEquals(originTable.getColumns().length + 1, sampleRow.length);
+            Assert.assertTrue(Joiner.on(",").join(sampleRow).endsWith(","));
+        }
     }
 
     @Test
@@ -418,6 +448,8 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
         val layoutIds = indexPlan.getAllLayouts().stream().map(LayoutEntity::getId).collect(Collectors.toSet());
 
         val tableIdentity = "DEFAULT.TEST_COUNTRY";
+        val originTable = NTableMetadataManager.getInstance(getTestConfig(), PROJECT).getTableDesc(tableIdentity);
+        prepareTableExt(tableIdentity);
         changeTypeColumn(tableIdentity, new HashMap<String, String>() {
             {
                 put("LATITUDE", "bigint");
@@ -442,6 +474,17 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
         val eventDao = EventDao.getInstance(getTestConfig(), PROJECT);
         var events = eventDao.getJobRelatedEventsByModel(model.getId());
         Assert.assertEquals(1, events.size());
+
+        // check table sample
+        val tableExt = NTableMetadataManager.getInstance(getTestConfig(), PROJECT).getOrCreateTableExt(tableIdentity);
+        Assert.assertEquals(originTable.getColumns().length - 2, tableExt.getAllColumnStats().size());
+        Assert.assertNull(tableExt.getColumnStatsByName("LATITUDE"));
+        Assert.assertNull(tableExt.getColumnStatsByName("NAME"));
+        for (String[] sampleRow : tableExt.getSampleRows()) {
+            Assert.assertEquals(originTable.getColumns().length, sampleRow.length);
+            Assert.assertTrue(!Joiner.on(",").join(sampleRow).contains("col_1"));
+            Assert.assertTrue(!Joiner.on(",").join(sampleRow).contains("col_3"));
+        }
     }
 
     @Test
@@ -501,6 +544,27 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
 
         val indexPlan2 = indexManager.getIndexPlan(indexPlan.getId());
         Assert.assertEquals(0, indexPlan2.getDictionaries().size());
+    }
+
+    private void prepareTableExt(String tableIdentity) {
+        val tableManager = NTableMetadataManager.getInstance(getTestConfig(), PROJECT);
+        val table = tableManager.getTableDesc(tableIdentity);
+        val ext = tableManager.getOrCreateTableExt(tableIdentity);
+        ext.setColumnStats(Stream.of(table.getColumns()).map(desc -> {
+            val res = new TableExtDesc.ColumnStats();
+            res.setColumnName(desc.getName());
+            res.setCardinality(1000);
+            res.setMaxLength(100);
+            return res;
+        }).collect(Collectors.toList()));
+        ext.setSampleRows(Stream.of(1, 2, 3, 4).map(i -> {
+            val row = new String[table.getColumns().length];
+            for (int j = 0; j < row.length; j++) {
+                row[j] = "row_" + i + "_col_" + j;
+            }
+            return row;
+        }).collect(Collectors.toList()));
+        tableManager.saveTableExt(ext);
     }
 
     private void changeTypeColumn(String tableIdentity, Map<String, String> columns, boolean useMeta)
@@ -602,6 +666,5 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
             }
         });
     }
-
 
 }

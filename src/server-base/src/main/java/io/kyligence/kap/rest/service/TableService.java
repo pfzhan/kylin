@@ -30,7 +30,6 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.Function;
@@ -69,7 +68,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Lists;
@@ -1081,8 +1079,38 @@ public class TableService extends BasicService {
         val originTable = tableManager.getTableDesc(context.getTableDesc().getIdentity());
         val originTableExt = tableManager.getTableExtIfExists(originTable);
         context.getTableDesc().setMvcc(originTable.getMvcc());
-        Optional.ofNullable(originTableExt)
-                .ifPresent(ext -> context.getTableExtDesc().setMvcc(originTableExt.getMvcc()));
+        if (originTableExt != null && keepTomb) {
+            val validStats = originTableExt.getAllColumnStats().stream()
+                    .filter(stats -> !context.getRemoveColumns().contains(stats.getColumnName()))
+                    .filter(stats -> !context.getChangeTypeColumns().contains(stats.getColumnName()))
+                    .collect(Collectors.toList());
+            val originCols = originTableExt.getAllColumnStats().stream().map(TableExtDesc.ColumnStats::getColumnName)
+                    .collect(Collectors.toList());
+            val indexMapping = Maps.<Integer, Integer> newHashMap();
+            int index = 0;
+            for (ColumnDesc column : context.getTableDesc().getColumns()) {
+                if (context.getChangeTypeColumns().contains(column.getName())) {
+                    indexMapping.put(index, -1);
+                } else {
+                    int oldIndex = originCols.indexOf(column.getName());
+                    indexMapping.put(index, oldIndex);
+                }
+                index++;
+            }
+            context.getTableExtDesc().setSampleRows(originTableExt.getSampleRows().stream().map(row -> {
+                val result = new String[indexMapping.size()];
+                indexMapping.forEach((key, value) -> {
+                    if (value != -1) {
+                        result[key] = row[value];
+                    } else {
+                        result[key] = "";
+                    }
+                });
+                return result;
+            }).collect(Collectors.toList()));
+            context.getTableExtDesc().setColumnStats(validStats);
+            context.getTableExtDesc().setMvcc(originTable.getMvcc());
+        }
 
         TableDesc loadDesc = context.getTableDesc();
         if (keepTomb) {
@@ -1101,8 +1129,7 @@ public class TableService extends BasicService {
         loadTableToProject(loadDesc, context.getTableExtDesc(), projectName);
     }
 
-    @VisibleForTesting
-    ReloadTableContext calcReloadContext(String project, String tableIdentity) throws Exception {
+    private ReloadTableContext calcReloadContext(String project, String tableIdentity) throws Exception {
         val context = new ReloadTableContext();
         val tableMeta = extractTableMeta(new String[] { tableIdentity }, project).get(0);
         val newTableDesc = new TableDesc(tableMeta.getFirst());
@@ -1119,7 +1146,6 @@ public class TableService extends BasicService {
         context.setRemoveColumns(diff.entriesOnlyOnRight().keySet());
         context.setChangeTypeColumns(diff.entriesDiffering().keySet());
 
-        val modelManager = getDataModelManager(project);
         val dataflowManager = getDataflowManager(project);
         for (NDataModel model : dataflowManager.listUnderliningDataModels()) {
             val affectedModel = calcAffectedModel(project, model, context.getRemoveColumns(), tableIdentity);
