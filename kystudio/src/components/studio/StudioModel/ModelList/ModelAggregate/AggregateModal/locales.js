@@ -17,7 +17,8 @@ export default {
     'delAggregateTitle': 'Delete Aggregate Group',
     'clearAggregateTitle': 'Clear Aggregate Group',
     'clearAllAggregateTip': 'Are you sure to clear Aggregate-Group-{aggId}?',
-    'maxCombinationTip': 'The aggregate amount exceeds its limit per aggregate group, please optimize the group setting or reduce dimension amount.'
+    'maxCombinationTip': 'The aggregate amount exceeds its limit per aggregate group, please optimize the group setting or reduce dimension amount.',
+    aggRuleTip: 'It is recommended to select the grouping dimensions and filtering dimensions frequently used in the query into the aggregation group according to the cardinality from high to low.'
   },
   'zh-cn': {
     'editAggregateGroup': '编辑聚合索引',
@@ -37,6 +38,7 @@ export default {
     'delAggregateTitle': '删除聚合组',
     'clearAggregateTitle': '清除聚合组',
     'clearAllAggregateTip': '你确认要清除聚合组-{aggId}吗？',
-    'maxCombinationTip': '聚合索引数超过单个聚合组可以接受的上限，请优化当前聚合组或者减少聚合组中的维度。'
+    'maxCombinationTip': '聚合索引数超过单个聚合组可以接受的上限，请优化当前聚合组或者减少聚合组中的维度。',
+    aggRuleTip: '推荐将查询中常用的分组维度、过滤维度按照基数从大到小的方式选入聚合组。'
   }
 }

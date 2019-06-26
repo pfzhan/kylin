@@ -25,6 +25,14 @@
         </el-button>
       </div> -->
       <!-- 聚合组按钮 -->
+      <el-alert
+        class="ksd-pt-0"
+        :title="$t('aggRuleTip')"
+        type="info"
+        :show-background="false"
+        :closable="false"
+        show-icon>
+      </el-alert>
       <div class="aggregate-buttons ksd-mb-15">
         <el-button type="primary" icon="el-icon-ksd-add_2" @click="handleAddAggregate">{{$t('addAggregateGroup')}}</el-button>
       </div>
@@ -267,12 +275,16 @@ export default class AggregateModal extends Vue {
         this.resetCuboidInfo()
         return
       }
+      delete data.dimensions // 后台处理规整顺序
       this.getCalcCuboids(data).then((res) => {
         handleSuccess(res, (data) => {
           if (!/^\d+$/.test(data.total_count.result)) {
             this.$message.error(this.$t('maxCombinationTip'))
           }
-          this.cuboidsInfo = data
+          if (data) {
+            this.cuboidsInfo = data
+            this.cuboidsInfo.agg_index_counts = data.agg_index_counts.reverse()
+          }
           this.calcLoading = false
         })
       }, (res) => {
@@ -445,6 +457,7 @@ export default class AggregateModal extends Vue {
     try {
       if (this.checkFormVaild()) {
         const data = this.getSubmitData()
+        delete data.dimensions // 后台处理规整顺序
         let res = await this.submit(data)
         let result = await handleSuccessAsync(res)
         this.handleBuildIndexTip(result)
@@ -496,7 +509,7 @@ export default class AggregateModal extends Vue {
                 return joints.items.map(jointItem => dimensionIdMapping[jointItem])
               }).filter(joints => joints.length)
             }
-          }))
+          })).reverse()
         }
       }
     }
