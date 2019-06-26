@@ -81,16 +81,16 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class NAutoTestBase extends NLocalWithSparkSessionTest {
 
-    private static final String IT_SQL_KAP_DIR = "../kap-it/src/test/resources/query";
+    static final String IT_SQL_KAP_DIR = "../kap-it/src/test/resources/query";
     private Map<String, String> systemProp = Maps.newHashMap();
     protected KylinConfig kylinConfig;
-    private static Set<String> excludedSqlPatterns;
-    private static final String FILE_SEPARATOR = System.getProperty("line.separator");
+    private static Set<String> excludedSqlPatterns = Sets.newHashSet();
 
     @Before
     public void setup() throws Exception {
         super.init();
         kylinConfig = getTestConfig();
+        getTestConfig().setProperty("kylin.job.analyze-strategy", "never");
         if (excludedSqlPatterns == null) {
             excludedSqlPatterns = loadWhiteListSqlPatterns();
         }
@@ -142,7 +142,7 @@ public class NAutoTestBase extends NLocalWithSparkSessionTest {
             throws Exception {
 
         // 1. execute auto-modeling propose
-        final NSmartMaster smartMaster = proposeWithSmartMaster(testScenarios, getProject());
+        final NSmartMaster smartMaster = proposeWithSmartMaster(getProject(), testScenarios);
 
         final Map<String, CompareEntity> compareMap = collectCompareEntity(smartMaster);
 
@@ -208,40 +208,11 @@ public class NAutoTestBase extends NLocalWithSparkSessionTest {
         });
     }
 
-    private Set<String> loadWhiteListSqlPatterns() throws IOException {
-
-        Set<String> result = Sets.newHashSet();
-        final String folder = getFolder("unchecked_layout_list");
-        File[] files = new File(folder).listFiles();
-        if (files == null || files.length == 0) {
-            return result;
-        }
-
-        String[] fileContentArr = new String(getFileBytes(files[0])).split(FILE_SEPARATOR);
-        final List<String> fileNames = Arrays.stream(fileContentArr)
-                .filter(name -> !name.startsWith("-") && name.length() > 0) //
-                .collect(Collectors.toList());
-        final List<Pair<String, String>> queries = Lists.newArrayList();
-        for (String name : fileNames) {
-            File tmp = new File(IT_SQL_KAP_DIR + "/" + name);
-            final String sql = new String(getFileBytes(tmp));
-            queries.add(new Pair<>(tmp.getCanonicalPath(), sql));
-        }
-
-        queries.forEach(pair -> {
-            String sql = pair.getSecond(); // origin sql
-            result.addAll(changeJoinType(sql));
-
-            // add limit
-            if (!sql.toLowerCase().contains("limit ")) {
-                result.addAll(changeJoinType(sql + " limit 5"));
-            }
-        });
-
-        return result;
+    protected Set<String> loadWhiteListSqlPatterns() throws IOException {
+        return Sets.newHashSet();
     }
 
-    private Set<String> changeJoinType(String sql) {
+    Set<String> changeJoinType(String sql) {
         Set<String> patterns = Sets.newHashSet();
         for (JoinType joinType : JoinType.values()) {
             final String rst = KylinTestBase.changeJoinType(sql, joinType.name());
@@ -251,7 +222,7 @@ public class NAutoTestBase extends NLocalWithSparkSessionTest {
         return patterns;
     }
 
-    private byte[] getFileBytes(File whiteListFile) throws IOException {
+    byte[] getFileBytes(File whiteListFile) throws IOException {
         final Long fileLength = whiteListFile.length();
         byte[] fileContent = new byte[fileLength.intValue()];
         try (FileInputStream inputStream = new FileInputStream(whiteListFile)) {
@@ -261,7 +232,7 @@ public class NAutoTestBase extends NLocalWithSparkSessionTest {
         return fileContent;
     }
 
-    NSmartMaster proposeWithSmartMaster(TestScenario[] testScenarios, String project) throws IOException {
+    NSmartMaster proposeWithSmartMaster(String project, TestScenario... testScenarios) throws IOException {
 
         List<String> sqlList = collectQueries(testScenarios);
 
@@ -348,7 +319,6 @@ public class NAutoTestBase extends NLocalWithSparkSessionTest {
                             break;
                     }
                 }
-                val analysisStore = ExecutableUtils.getRemoteStore(kylinConfig, job.getSparkAnalysisStep());
                 val buildStore = ExecutableUtils.getRemoteStore(kylinConfig, job.getSparkCubingStep());
                 AfterBuildResourceMerger merger = new AfterBuildResourceMerger(kylinConfig, proj);
                 val layoutIds = layouts.stream().map(LayoutEntity::getId).collect(Collectors.toSet());
@@ -359,7 +329,11 @@ public class NAutoTestBase extends NLocalWithSparkSessionTest {
                             .collect(Collectors.toSet());
                     merger.mergeAfterCatchup(df.getUuid(), segIds, layoutIds, buildStore);
                 }
-                merger.mergeAnalysis(job.getSparkAnalysisStep());
+
+                if (job.getSparkAnalysisStep() != null) {
+                    merger.mergeAnalysis(job.getSparkAnalysisStep());
+                }
+
                 SchemaProcessor.checkSchema(SparderEnv.getSparkSession(), df.getUuid(), proj);
             }
         }

@@ -25,22 +25,21 @@
 package io.kyligence.kap.newten.auto;
 
 import java.io.File;
+import java.io.IOException;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
-import org.apache.commons.io.FileUtils;
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.metadata.model.FunctionDesc;
-import org.apache.kylin.metadata.model.MeasureDesc;
-import org.junit.Assert;
+import org.apache.kylin.common.util.Pair;
 import org.junit.Ignore;
 import org.junit.Test;
 
+import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
-import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.newten.NExecAndComp.CompareLevel;
-import io.kyligence.kap.rest.service.FavoriteQueryService;
 
 @SuppressWarnings("serial")
 public class NAutoBuildAndQueryTest extends NAutoTestBase {
@@ -142,33 +141,6 @@ public class NAutoBuildAndQueryTest extends NAutoTestBase {
     }
 
     @Test
-    public void testProposeSQLWontChangeOriginMetadata() throws Exception {
-        try {
-            // 1. create metadata
-            proposeWithSmartMaster(
-                    new TestScenario[] { new TestScenario(CompareLevel.SAME, "auto/sql_repropose", 0, 1) },
-                    getProject());
-            buildAllCubes(KylinConfig.getInstanceFromEnv(), getProject());
-
-            //2. get accelerate tip
-            List<String> waitingAccelerateSqls = collectQueries(
-                    new TestScenario(CompareLevel.SAME, "auto/sql_repropose", 0, 1));
-            new FavoriteQueryService().getOptimizedModelNumForTest(getProject(),
-                    waitingAccelerateSqls.toArray(new String[] {}));
-
-            //3. ensure metadata
-            List<MeasureDesc> measureDescs = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv())
-                    .listEffectiveRewriteMeasures(getProject(), "EDW.TEST_SITES");
-            measureDescs.stream().filter(measureDesc -> measureDesc.getFunction().isSum()).forEach(measureDesc -> {
-                FunctionDesc func = measureDesc.getFunction();
-                Assert.assertTrue(!func.getColRefs().isEmpty());
-            });
-        } finally {
-            FileUtils.deleteDirectory(new File("../kap-it/metastore_db"));
-        }
-    }
-
-    @Test
     public void testLimit() throws Exception {
         new TestScenario(CompareLevel.SAME_ROWCOUNT, "sql_limit").execute();
     }
@@ -248,5 +220,39 @@ public class NAutoBuildAndQueryTest extends NAutoTestBase {
             return;
         }
         super.executeTestScenario(tests);
+    }
+
+    @Override
+    protected Set<String> loadWhiteListSqlPatterns() throws IOException {
+
+        Set<String> result = Sets.newHashSet();
+        final String folder = getFolder("unchecked_layout_list");
+        File[] files = new File(folder).listFiles();
+        if (files == null || files.length == 0) {
+            return result;
+        }
+
+        String[] fileContentArr = new String(getFileBytes(files[0])).split(System.getProperty("line.separator"));
+        final List<String> fileNames = Arrays.stream(fileContentArr)
+                .filter(name -> !name.startsWith("-") && name.length() > 0) //
+                .collect(Collectors.toList());
+        final List<Pair<String, String>> queries = Lists.newArrayList();
+        for (String name : fileNames) {
+            File tmp = new File(NAutoTestBase.IT_SQL_KAP_DIR + "/" + name);
+            final String sql = new String(getFileBytes(tmp));
+            queries.add(new Pair<>(tmp.getCanonicalPath(), sql));
+        }
+
+        queries.forEach(pair -> {
+            String sql = pair.getSecond(); // origin sql
+            result.addAll(changeJoinType(sql));
+
+            // add limit
+            if (!sql.toLowerCase().contains("limit ")) {
+                result.addAll(changeJoinType(sql + " limit 5"));
+            }
+        });
+
+        return result;
     }
 }

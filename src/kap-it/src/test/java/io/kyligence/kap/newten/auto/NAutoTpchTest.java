@@ -67,9 +67,8 @@ public class NAutoTpchTest extends NAutoTestBase {
         // 1st round, recommend model with a single fact table
         NDataModelManager dataModelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(),
                 getProject());
-        NSmartMaster smartMaster1 = proposeWithSmartMaster(new TestScenario[] {
-                new TestScenario(CompareLevel.SAME, JoinType.LEFT, false, "sql_tpch/sql_tpch_reprosal/", 0, 1, null) },
-                getProject());
+        NSmartMaster smartMaster1 = proposeWithSmartMaster(getProject(),
+                new TestScenario(CompareLevel.SAME, JoinType.LEFT, false, "sql_tpch/sql_tpch_reprosal/", 0, 1, null));
         Assert.assertEquals(1, smartMaster1.getContext().getAccelerateInfoMap().size());
         Set<NDataModel> selectedDataModels1 = Sets.newHashSet();
         smartMaster1.getContext().getAccelerateInfoMap().forEach((s, accelerateInfo) -> {
@@ -82,9 +81,8 @@ public class NAutoTpchTest extends NAutoTestBase {
         JoinsGraph graph1 = proposedModel1.getJoinsGraph();
 
         // 2nd round, reuse the model and increase more Joins which is through accelerating 2 different olapCtx
-        NSmartMaster smartMaster2 = proposeWithSmartMaster(new TestScenario[] {
-                new TestScenario(CompareLevel.SAME, JoinType.LEFT, false, "sql_tpch/sql_tpch_reprosal/", 1, 3, null) },
-                getProject());
+        NSmartMaster smartMaster2 = proposeWithSmartMaster(getProject(),
+                new TestScenario(CompareLevel.SAME, JoinType.LEFT, false, "sql_tpch/sql_tpch_reprosal/", 1, 3, null));
         Set<NDataModel> selectedDataModels2 = Sets.newHashSet();
         smartMaster2.getContext().getAccelerateInfoMap().forEach((s, accelerateInfo) -> {
             Assert.assertFalse(accelerateInfo.isFailed());
@@ -98,9 +96,8 @@ public class NAutoTpchTest extends NAutoTestBase {
         Assert.assertTrue(graph1.match(graph2, new HashMap<String, String>()));
 
         // 3rd round, accelerate a sql that its join info equaled with current model, so it won't change previous model
-        NSmartMaster smartMaster3 = proposeWithSmartMaster(new TestScenario[] {
-                new TestScenario(CompareLevel.SAME, JoinType.LEFT, false, "sql_tpch/sql_tpch_reprosal/", 3, 4, null) },
-                getProject());
+        NSmartMaster smartMaster3 = proposeWithSmartMaster(getProject(),
+                new TestScenario(CompareLevel.SAME, JoinType.LEFT, false, "sql_tpch/sql_tpch_reprosal/", 3, 4, null));
         Set<NDataModel> selectedDataModels3 = Sets.newHashSet();
         smartMaster3.getContext().getAccelerateInfoMap().forEach((s, accelerateInfo) -> {
             Assert.assertFalse(accelerateInfo.isFailed());
@@ -118,14 +115,13 @@ public class NAutoTpchTest extends NAutoTestBase {
     @Test
     public void testBatchProposeSQLAndReuseInnerJoinModel() throws Exception {
         //1st round, propose initial model
-        NSmartMaster smartMaster = proposeWithSmartMaster(
-                new TestScenario[] { new TestScenario(CompareLevel.SAME, "sql_tpch") }, getProject());
+        NSmartMaster smartMaster = proposeWithSmartMaster(getProject(),
+                new TestScenario(CompareLevel.SAME, "sql_tpch"));
         NDataModel originModel = smartMaster.getContext().getModelContexts().get(8).getTargetModel();
         JoinsGraph originJoinGragh = originModel.getJoinsGraph();
 
-        NSmartMaster smartMaster1 = proposeWithSmartMaster(
-                new TestScenario[] { new TestScenario(CompareLevel.SAME, "sql_tpch/sql_tpch_reprosal/", 3, 4) },
-                getProject());
+        NSmartMaster smartMaster1 = proposeWithSmartMaster(getProject(),
+                new TestScenario(CompareLevel.SAME, "sql_tpch/sql_tpch_reprosal/", 3, 4));
         AccelerateInfo accelerateInfo = smartMaster1.getContext().getAccelerateInfoMap().values()
                 .toArray(new AccelerateInfo[] {})[0];
         Assert.assertFalse(accelerateInfo.isFailed());

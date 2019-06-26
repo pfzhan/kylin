@@ -24,93 +24,46 @@
 
 package io.kyligence.kap.newten.auto;
 
-import java.util.Collection;
-import java.util.Collections;
+import java.io.File;
 import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
 
+import org.apache.commons.io.FileUtils;
+import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.metadata.model.FunctionDesc;
+import org.apache.kylin.metadata.model.MeasureDesc;
 import org.junit.Assert;
 import org.junit.Test;
 
-import com.google.common.collect.Sets;
-
+import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.newten.NExecAndComp.CompareLevel;
-import io.kyligence.kap.smart.NSmartMaster;
-import io.kyligence.kap.smart.common.AccelerateInfo;
-import io.kyligence.kap.smart.common.SmartConfig;
-import io.kyligence.kap.utils.RecAndQueryCompareUtil;
+import io.kyligence.kap.rest.service.FavoriteQueryService;
 import lombok.val;
 
 public class NAutoReproposeValidationTest extends NAutoTestBase {
 
-    /**
-     * Validate proposed layouts change with table stats. First round without stats, second round with stats
-     */
     @Test
-    public void testReproposeChangedWithTableStats() throws Exception {
-        val firstRoundProposed = new TestScenario(CompareLevel.SAME, "sql", 35, 36).execute(true);
+    public void testReproposeSQLWontChangeOriginMetadata() throws Exception {
+        val folder = "auto/repropose";
+        try {
+            // 1. create metadata
+            proposeWithSmartMaster(getProject(), new TestScenario(CompareLevel.SAME, folder));
+            buildAllCubes(KylinConfig.getInstanceFromEnv(), getProject());
 
-        // set 'kap.smart.conf.rowkey.uhc.min-cardinality' = 50 to test
-        getTestConfig().setProperty("kap.smart.conf.rowkey.uhc.min-cardinality", "50");
-        val secondRoundProposed = new TestScenario(CompareLevel.SAME, "sql", 35, 36).execute(true);
+            //2. get accelerate tip
+            List<String> waitingAccelerateSqls = collectQueries(new TestScenario(CompareLevel.SAME, folder));
+            new FavoriteQueryService().getOptimizedModelNumForTest(getProject(),
+                    waitingAccelerateSqls.toArray(new String[] {}));
 
-        firstRoundProposed.forEach((sql, entity) -> {
-            Assert.assertFalse(entity.getAccelerateLayouts()
-                    .equalsIgnoreCase(secondRoundProposed.get(sql).getAccelerateLayouts()));
-        });
-        final long rowkeyUHCCardinalityMin = SmartConfig.getInstanceFromEnv().getRowkeyUHCCardinalityMin();
-        getTestConfig().setProperty("kap.smart.conf.rowkey.uhc.min-cardinality", rowkeyUHCCardinalityMin + "");
-    }
-
-    @Test
-    public void testProposedLayoutConsistency() throws Exception {
-
-        new TestScenario(CompareLevel.SAME, "auto/repropose_sql").execute();
-
-        final List<String> sqlList = collectQueries(new TestScenario(CompareLevel.SAME, "auto/repropose_sql"));
-        NSmartMaster smartMaster = new NSmartMaster(kylinConfig, getProject(), sqlList.toArray(new String[0]));
-        smartMaster.runAll();
-        final Map<String, AccelerateInfo> secondRoundMap = smartMaster.getContext().getAccelerateInfoMap();
-        final Set<String> secondRoundProposedColOrders = collectColOrders(secondRoundMap.values());
-
-        // Suggested layouts should be independent of the order of input sqls
-        {
-            Collections.shuffle(sqlList); // shuffle and propose
-            smartMaster = new NSmartMaster(kylinConfig, getProject(), sqlList.toArray(new String[0]));
-            smartMaster.runAll();
-            final Map<String, AccelerateInfo> thirdRoundMap = smartMaster.getContext().getAccelerateInfoMap();
-            final Set<String> thirdRoundProposedColOrders = collectColOrders(thirdRoundMap.values());
-            Assert.assertTrue(Objects.equals(secondRoundProposedColOrders, thirdRoundProposedColOrders));
-        }
-
-        // Suggested layouts should be independent of modeling by a single batch or multi-batches
-        {
-            List<String> batchOne = sqlList.subList(0, sqlList.size() / 2);
-            smartMaster = new NSmartMaster(kylinConfig, getProject(), batchOne.toArray(new String[0]));
-            smartMaster.runAll();
-            final Map<String, AccelerateInfo> batchOneMap = smartMaster.getContext().getAccelerateInfoMap();
-
-            List<String> batchTwo = sqlList.subList(sqlList.size() / 2, sqlList.size());
-            smartMaster = new NSmartMaster(kylinConfig, getProject(), batchTwo.toArray(new String[0]));
-            smartMaster.runAll();
-            final Map<String, AccelerateInfo> batchTwoMap = smartMaster.getContext().getAccelerateInfoMap();
-
-            Set<String> batchProposedColOrders = Sets.newHashSet();
-            batchProposedColOrders.addAll(collectColOrders(batchOneMap.values()));
-            batchProposedColOrders.addAll(collectColOrders(batchTwoMap.values()));
-            Assert.assertTrue(Objects.equals(secondRoundProposedColOrders, batchProposedColOrders));
+            //3. ensure metadata
+            List<MeasureDesc> measureDescs = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv())
+                    .listEffectiveRewriteMeasures(getProject(), "EDW.TEST_SITES");
+            measureDescs.stream().filter(measureDesc -> measureDesc.getFunction().isSum()).forEach(measureDesc -> {
+                FunctionDesc func = measureDesc.getFunction();
+                Assert.assertTrue(!func.getColRefs().isEmpty());
+            });
+        } finally {
+            FileUtils.deleteDirectory(new File("../kap-it/metastore_db"));
         }
     }
 
-    private Set<String> collectColOrders(Collection<AccelerateInfo> accelerateInfoList) {
-        Set<String> allProposedColOrder = Sets.newHashSet();
-        accelerateInfoList.forEach(accelerateInfo -> {
-            final Set<AccelerateInfo.QueryLayoutRelation> layouts = accelerateInfo.getRelatedLayouts();
-            Set<String> colOrders = RecAndQueryCompareUtil.collectAllColOrders(kylinConfig, getProject(), layouts);
-            allProposedColOrder.addAll(colOrders);
-        });
-        return allProposedColOrder;
-    }
 }
