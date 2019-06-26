@@ -12,8 +12,9 @@
         :data="modelArray"
         border
         tooltip-effect="dark"
-        :expand-row-keys=[currentExtandRow]
+        :expand-row-keys="expandedRows"
         :row-key="renderRowKey"
+        @expand-change="expandRow"
         :default-sort = "{prop: 'gmtTime', order: 'descending'}"
         @sort-change="onSortChange"
         :cell-class-name="renderColumnClass"
@@ -21,12 +22,12 @@
         <el-table-column  width="34" type="expand">
           <template slot-scope="props" v-if="props.row.status !== 'BROKEN'">
             <transition name="full-model-slide-fade">
-              <div class="cell-content" v-if="props.row.showModelDetail">
+              <div :class="renderFullExpandClass(props.row)">
                 <div  v-if="!showFull" class="row-action" @click="toggleShowFull(props.$index, props.row)"><span class="tip-text">{{$t('fullScreen')}}</span><i class="el-icon-ksd-full_screen_1 full-model-box"></i></div>
                 <div v-else class="row-action"  @click="toggleShowFull(props.$index, props.row)"><span class="tip-text">{{$t('exitFullScreen')}}</span><i class="el-icon-ksd-collapse_1 full-model-box" ></i></div>
                 <el-tabs class="el-tabs--default model-detail-tabs" type="card" v-model="props.row.tabTypes">
                   <el-tab-pane :label="$t('segment')" name="first">
-                    <ModelSegment :model="props.row" v-if="props.row.tabTypes === 'first'" @purge-model="model => handleCommand('purge', model)" />
+                    <ModelSegment ref="segmentComp" :model="props.row" v-if="props.row.tabTypes === 'first'" @purge-model="model => handleCommand('purge', model)" />
                   </el-tab-pane>
                   <el-tab-pane :label="$t('aggregate')" name="second">
                     <ModelAggregate :model="props.row" :project-name="currentSelectedProject" v-if="props.row.tabTypes === 'second'" />
@@ -204,10 +205,7 @@ import '../../../../util/fly.js'
       'modelsPagerRenderData',
       'briefMenuGet',
       'isAutoProject'
-    ]),
-    currentExtandRow () {
-      return this.currentEditModel ? [this.currentEditModel] : []
-    }
+    ])
   },
   methods: {
     ...mapActions({
@@ -269,10 +267,14 @@ export default class ModelList extends Vue {
   showSearchResult = false
   searchLoading = false
   modelArray = []
+  expandedRows = []
   get modelTableTitle () {
     return this.isAutoProject ? this.$t('kylinLang.model.indexGroupName') : this.$t('kylinLang.model.modelNameGrid')
   }
   getModelStatusTagType = ModelStatusTagType
+  renderFullExpandClass (row) {
+    return (row.showModelDetail || this.currentEditModel === row.alias) ? 'full-cell-content' : ''
+  }
   renderUsageHeader (h, { column, $index }) {
     let modelMode = this.isAutoProject ? 'indexGroup' : 'model'
     return (<span class="ky-hover-icon" onClick={e => (e.stopPropagation())}>
@@ -281,6 +283,12 @@ export default class ModelList extends Vue {
        <span class='el-icon-ksd-what'></span>
       </common-tip>
     </span>)
+  }
+  expandRow (row, expandedRows) {
+    this.expandedRows = expandedRows && expandedRows.map((m) => {
+      return m.alias
+    }) || []
+    this.currentEditModel = null
   }
   renderRowKey (row) {
     return row.alias
@@ -320,14 +328,14 @@ export default class ModelList extends Vue {
       )
     }
   }
-  setModelBuldRange (modelDesc) {
+  async setModelBuldRange (modelDesc) {
     if (modelDesc.partition_desc && modelDesc.partition_desc.partition_date_column) {
-      this.callModelBuildDialog({
+      await this.callModelBuildDialog({
         modelDesc: modelDesc
       })
     } else {
       let storage = modelDesc.storage
-      this._showFullDataLoadConfirm(storage, modelDesc.alias).then(() => {
+      await this._showFullDataLoadConfirm(storage, modelDesc.alias).then(() => {
         this.$refs.modelBuildComp.$emit('buildModel', {
           start: null,
           end: null,
@@ -335,6 +343,10 @@ export default class ModelList extends Vue {
         })
       })
     }
+    this.refreshSegment()
+  }
+  async refreshSegment () {
+    this.$refs.segmentComp && this.$refs.segmentComp.$emit('refresh')
   }
   async handleCommand (command, modelDesc) {
     if (command === 'dataCheck') {
@@ -373,8 +385,10 @@ export default class ModelList extends Vue {
         this.handleDrop(modelDesc)
       })
     } else if (command === 'purge') {
-      kapConfirm(this.$t('pergeModelTip', {modelName: modelDesc.alias}), {type: 'warning'}, this.$t('pergeModelTitle')).then(() => {
-        this.handlePurge(modelDesc)
+      return kapConfirm(this.$t('pergeModelTip', {modelName: modelDesc.alias}), {type: 'warning'}, this.$t('pergeModelTitle')).then(() => {
+        this.handlePurge(modelDesc).then(() => {
+          this.refreshSegment()
+        })
       })
     } else if (command === 'clone') {
       const isSubmit = await this.callCloneModelDialog(objectClone(modelDesc))
@@ -402,7 +416,7 @@ export default class ModelList extends Vue {
     })
   }
   handleModel (action, modelDesc, successTip) {
-    this[action]({modelId: modelDesc.uuid, project: this.currentSelectedProject}).then(() => {
+    return this[action]({modelId: modelDesc.uuid, project: this.currentSelectedProject}).then(() => {
       kapMessage(successTip)
       this.loadModelsList()
     }, (res) => {
@@ -422,8 +436,8 @@ export default class ModelList extends Vue {
     this.handleModel('delModel', modelDesc, this.$t('deleteModelSuccessTip'))
   }
   // 清理model
-  handlePurge (modelDesc) {
-    this.handleModel('purgeModel', modelDesc, this.$t('purgeModelSuccessTip'))
+  async handlePurge (modelDesc) {
+    return this.handleModel('purgeModel', modelDesc, this.$t('purgeModelSuccessTip'))
   }
   // 编辑model
   handleEditModel (modelName) {
@@ -433,7 +447,7 @@ export default class ModelList extends Vue {
   onModelChange (modelsPagerRenderData) {
     this.modelArray = []
     modelsPagerRenderData.list.forEach(item => {
-      this.$set(item, 'showModelDetail', true)
+      this.$set(item, 'showModelDetail', false)
       this.modelArray.push({
         ...item,
         tabTypes: this.currentEditModel === item.alias ? 'second' : 'first'
@@ -453,22 +467,21 @@ export default class ModelList extends Vue {
   // 全屏查看模型附属信息
   toggleShowFull (index, row) {
     var scrollBoxDom = document.getElementById('scrollContent')
-    this.$set(row, 'showModelDetail', false)
     if (!this.showFull && scrollBoxDom) {
       // 展开时记录下展开时候的scrollbar 的top距离，搜索的时候复原该位置
       row.hisScrollTop = scrollBoxDom.scrollTop
     }
     this.$nextTick(() => {
-      this.$set(row, 'showModelDetail', true)
+      this.$set(row, 'showModelDetail', !this.showFull)
       this.showFull = !this.showFull
       this.$nextTick(() => {
         if (scrollBoxDom) {
           if (this.showFull) {
-            this.currentEditModel = row.alias
             scrollBoxDom.scrollTop = 0
           } else {
             scrollBoxDom.scrollTop = row.hisScrollTop
           }
+          this.currentEditModel = null
         }
       })
     })
@@ -481,6 +494,9 @@ export default class ModelList extends Vue {
       } else {
         this.showSearchResult = false
       }
+      this.$nextTick(() => {
+        this.expandedRows = this.currentEditModel ? [this.currentEditModel] : this.expandedRows
+      })
     }).catch((res) => {
       handleError(res)
     })
@@ -580,22 +596,22 @@ export default class ModelList extends Vue {
     &:hover {
       background-color: @breadcrumbs-bg-color;
     }
-    .cell-content {
+    .full-cell-content {
       position: relative;
-      .full-model-box {
-        vertical-align:middle;
-        font-size: 20px;
-        margin-left:10px;
-        z-index: 10;
-      }
+    }
+    .full-model-box {
+      vertical-align:middle;
+      font-size: 20px;
+      margin-left:10px;
+      z-index: 10;
     }
   }
   margin-left: 20px;
   margin-right: 20px;
+  .row-action {
+    right:20px;
+  }
   &.full-cell {
-    .row-action {
-      right:20px;
-    }
     margin: 0 20px;
     position: relative;
     .segment-settings {
@@ -614,7 +630,7 @@ export default class ModelList extends Vue {
         position: static !important;
         .el-table__expanded-cell {
           padding: 0;
-          .cell-content {
+          .full-cell-content {
             z-index: 999;
             position: absolute;
             padding-top: 10px;

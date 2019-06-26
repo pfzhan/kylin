@@ -27,7 +27,7 @@
         </span>
       </div>
     </div>
-    <div class="hr dashed"></div>
+    <div class="hr inner"></div>
     <div class="info-group">
       <div class="info-row">
         <span class="info-label font-medium">{{$t('storageType')}}</span>
@@ -46,7 +46,7 @@
       </div>
     </div>
     <template v-if="table.partitionColumn">
-      <div class="hr dashed"></div>
+      <div class="hr inner"></div>
       <div class="info-group">
       <div class="info-row">
         <span class="info-label font-medium">{{$t('loadRange')}}</span>
@@ -264,6 +264,9 @@ export default class TableDataLoad extends Vue {
     height: auto;
     border-bottom: 1px solid @line-split-color;
     background-image: none;
+    &.inner{
+      margin: 0 10px;
+    }
   }
 }
 </style>

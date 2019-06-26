@@ -67,7 +67,7 @@ export function addModelDrama () {
       eventID: 1,
       done: false,
       tip: 'addModelTip1',
-      target: 'modelDataSourceTreeScrollBox' // 进入可视区域
+      target: 'dataSourceScroll' // 进入可视区域
     },
     // 添加表SSB.P_LINEORDER
     // 添加表DATES.D_DATEKEY

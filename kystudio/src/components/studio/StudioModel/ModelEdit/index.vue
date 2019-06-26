@@ -49,27 +49,23 @@
       <transition name="bounceleft">
         <div class="panel-box panel-datasource"  v-show="panelAppear.datasource.display" :style="panelStyle('datasource')" v-event-stop>
           <div class="panel-title" v-drag:change.left.top="panelAppear.datasource"><span class="title">{{$t('kylinLang.common.dataSource')}}</span><span class="close" @click="toggleMenu('datasource')"><i class="el-icon-ksd-close"></i></span></div>
-          <div class="ksd-mrl-10 ksd-mt-10">
-            <el-input :placeholder="$t('searchTable')"  prefix-icon="el-icon-search" @keyup.native="(e) => filterDatasource(e)" @clear="filterDatasource"></el-input>
-          </div>
-          <div v-scroll v-guide.modelDataSourceTreeScrollBox style="height:calc(100% - 79px)">
-            <DataSourceBar
-              :ignore-node-types="['column']"
-              v-guide.modelDataSourceTree
-              class="tree-box"
-              ref="datasourceTree"
-              :is-show-filter="false"
-              :project-name="currentSelectedProject"
-              :is-show-load-source="true"
-              :is-show-settings="false"
-              :is-show-action-group="false"
-              :is-expand-on-click-node="false"
-              :expand-node-types="['datasource', 'database']"
-              :draggable-node-types="['table']"
-              :searchable-node-types="['table']"
-              @drag="dragTable">
-            </DataSourceBar>
-          </div>
+          <!-- <div v-scroll v-guide.modelDataSourceTreeScrollBox style="height:calc(100% - 79px)"> -->
+          <DataSourceBar
+            :ignore-node-types="['column']"
+            v-guide.modelDataSourceTree
+            class="tree-box"
+            ref="datasourceTree"
+            :project-name="currentSelectedProject"
+            :is-show-load-source="true"
+            :is-show-settings="false"
+            :is-show-action-group="false"
+            :is-expand-on-click-node="false"
+            :expand-node-types="['datasource', 'database']"
+            :draggable-node-types="['table']"
+            :searchable-node-types="['table']"
+            @drag="dragTable">
+          </DataSourceBar>
+          <!-- </div> -->
           <!-- 拖动操纵 -->
           <DragBar :dragData="panelAppear.datasource"/>
           <!-- 拖动操纵 -->
@@ -768,9 +764,6 @@ export default class ModelEdit extends Vue {
     } else {
       return 0
     }
-  }
-  filterDatasource (e) {
-    this.$refs.datasourceTree.$emit('filter', e)
   }
   delTable () {
     this.modelInstance.delTable(this.currentEditTable.guid).then(() => {

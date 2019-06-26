@@ -11,28 +11,33 @@
       </div>
     </section>
 
-    <section class="body" v-scroll>
+    <section class="body">
       <div v-if="isShowLoadSource" class="btn-group">
         <el-button plain size="medium" v-if="databaseArray.length <= 0" type="primary" v-guide.addDatasource icon="el-icon-ksd-add_data_source" @click="importDataSource('selectSource', currentProjectData)">
           {{$t('addDatasource')}}
         </el-button>
       </div>
-      <TreeList
-        ref="treeList"
-        :data="datasources"
-        :placeholder="$t('searchTable')"
-        :default-expanded-keys="defaultExpandedKeys"
-        :draggable-node-types="draggableNodeTypes"
-        :is-expand-all="isExpandAll"
-        :is-show-filter="isShowFilter && !!databaseArray.length"
-        :is-expand-on-click-node="isExpandOnClickNode"
-        :is-resizable="isResizable"
-        :on-filter="handleFilter"
-        :filter-white-list-types="['column']"
-        @click="handleClick"
-        @drag="handleDrag"
-        @load-more="handleLoadMore">
-      </TreeList>
+      <div v-if="isShowFilter && !!databaseArray.length" class="ksd-mb-10">
+        <el-input :placeholder="$t('searchTable')"  prefix-icon="el-icon-search" @keyup.native="(e) => handleFilter(e.target.value)" @clear="handleFilter()"></el-input>
+      </div>
+      <div v-scroll style="height:calc(100%)" v-guide.dataSourceScroll>
+        <TreeList
+          ref="treeList"
+          :data="datasources"
+          :placeholder="$t('searchTable')"
+          :default-expanded-keys="defaultExpandedKeys"
+          :draggable-node-types="draggableNodeTypes"
+          :is-expand-all="isExpandAll"
+          :is-show-filter="false"
+          :is-expand-on-click-node="isExpandOnClickNode"
+          :is-resizable="isResizable"
+          :on-filter="handleFilter"
+          :filter-white-list-types="['column']"
+          @click="handleClick"
+          @drag="handleDrag"
+          @load-more="handleLoadMore">
+        </TreeList>
+      </div>
     </section>
     <kap-nodata v-if="databaseArray.length <= 0" size="small"></kap-nodata>
     <!-- <el-dialog
@@ -499,7 +504,7 @@ export default class DataSourceBar extends Vue {
   }
   .body {
     height: calc(~"100% - 51px");
-    overflow: auto;
+    overflow: hidden;
   }
   .body .btn-group {
     text-align: center;

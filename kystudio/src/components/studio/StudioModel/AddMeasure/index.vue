@@ -77,8 +77,8 @@
               </el-option>
             </el-select>
           </div>
-          <el-button type="primary" size="mini" v-if="measure.expression === 'TOP_N' && index == 0" icon="el-icon-ksd-add_2" plain circle @click="addNewProperty" class="ksd-ml-10"></el-button>
-          <el-button type="primary" size="mini" icon="el-icon-minus" circle @click="deleteProperty(index)" class="del-pro ksd-ml-10" :class="{'del-margin-more': measure.expression === 'TOP_N' && index > 0}" :disabled="measure.expression === 'TOP_N' && measure.convertedColumns.length == 1"></el-button>
+          <el-button type="primary" plain icon="el-icon-ksd-add_2" size="mini" v-if="measure.expression === 'TOP_N' && index == 0" circle @click="addNewProperty" class="ksd-ml-10"></el-button><el-button
+           type="primary" icon="el-icon-minus" size="mini" circle @click="deleteProperty(index)" class="del-pro ksd-ml-5" :class="{'del-margin-more': measure.expression === 'TOP_N' && index > 0}" :disabled="measure.expression === 'TOP_N' && measure.convertedColumns.length == 1"></el-button>
         </div>
       </el-form-item>
       <el-form-item v-if="measure.expression ==='CORR'" class="ksd-mt-10" prop="convertedColumns[0].value" :rules="rules.convertedColValidate" key="corrItem">

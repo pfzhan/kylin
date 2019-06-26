@@ -177,6 +177,9 @@ export default class ModelSegment extends Vue {
   }
   async mounted () {
     await this.loadSegments()
+    this.$on('refresh', () => {
+      this.loadSegments()
+    })
   }
   getStartDateLimit (time) {
     return this.filter.endDate ? time.getTime() > this.filter.endDate.getTime() : false
@@ -205,7 +208,6 @@ export default class ModelSegment extends Vue {
       const modelName = this.model.uuid
       const startTime = startDate && transToUTCMs(startDate)
       const endTime = endDate && transToUTCMs(endDate)
-
       this.isSegmentLoading = true
       const res = await this.fetchSegments({ projectName, modelName, startTime, endTime, sortBy, reverse, ...this.pagination })
       const { size, segments } = await handleSuccessAsync(res)

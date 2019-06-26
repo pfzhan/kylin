@@ -30,7 +30,7 @@ export function renderModelAddTableData (tables, links, factTableName) {
       {
         eventID: 6,
         done: false,
-        target: 'modelDataSourceTreeScrollBox', // 进入可视区域
+        target: 'dataSourceScroll', // 进入可视区域
         search: '.guide-' + t.name.replace('.', '').toLowerCase(),
         timer: timer
       },
