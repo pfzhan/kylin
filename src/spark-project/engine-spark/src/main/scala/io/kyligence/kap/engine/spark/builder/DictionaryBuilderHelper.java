@@ -22,28 +22,21 @@
 
 package io.kyligence.kap.engine.spark.builder;
 
-import static io.kyligence.kap.engine.spark.builder.NGlobalDictionaryBuilderAssist.resize;
+import static org.apache.spark.dict.NGlobalDictBuilderAssist.resize;
 
 import java.io.IOException;
 import java.util.Collection;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.lock.DistributedLock;
-import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.kylin.measure.bitmap.BitmapMeasureType;
 import org.apache.kylin.metadata.model.MeasureDesc;
 import org.apache.kylin.metadata.model.TblColRef;
-import org.apache.spark.api.java.JavaSparkContext;
-import org.apache.spark.api.java.function.Function2;
-import org.apache.spark.api.java.function.PairFunction;
-import org.apache.spark.broadcast.Broadcast;
+import org.apache.spark.dict.NGlobalDictMetaInfo;
+import org.apache.spark.dict.NGlobalDictionaryV2;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
-import org.apache.spark.sql.SparkSession;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.spark_project.guava.collect.Sets;
@@ -51,61 +44,14 @@ import org.spark_project.guava.collect.Sets;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 
-import io.kyligence.kap.engine.spark.job.NSparkCubingUtil;
 import io.kyligence.kap.metadata.cube.cuboid.NSpanningTree;
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.model.NDataLayout;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
-import lombok.val;
-import scala.Tuple2;
 
-public class DictionaryBuilder {
-    protected static final Logger logger = LoggerFactory.getLogger(DictionaryBuilder.class);
-    private SparkSession ss;
-    private Dataset<Row> dataset;
-    private NDataSegment seg;
-    private Set<TblColRef> colRefSet;
-    private DistributedLock lock;
-
-    public DictionaryBuilder(Dataset<Row> dataset, NDataSegment seg, SparkSession ss, Set<TblColRef> colRefSet) {
-        this.dataset = dataset;
-        this.seg = seg;
-        this.ss = ss;
-        this.colRefSet = colRefSet;
-        lock = KylinConfig.getInstanceFromEnv().getDistributedLockFactory().lockForCurrentThread();
-    }
-
-    public void buildDictionary() throws IOException {
-
-        logger.info("Building global dictionaries V2 for seg {}", seg);
-
-        final long start = System.currentTimeMillis();
-
-        for (TblColRef col : colRefSet) {
-            safeBuild(col);
-        }
-
-        final long end = System.currentTimeMillis();
-
-        logger.info("Building global dictionaries V2 for seg {} , cost {} ms", seg, end - start);
-    }
-
-    void safeBuild(TblColRef col) throws IOException {
-        String sourceColumn = col.getTable() + "." + col.getName();
-        lock.lock(getLockPath(sourceColumn), Long.MAX_VALUE);
-        try {
-            if (lock.lock(getLockPath(sourceColumn))) {
-                val colName = NSparkCubingUtil
-                        .convertFromDot(col.getTableAlias() + "." + col.getColumnDesc().getName());
-                Dataset<Row> dictColDistinct = dataset.select(colName).distinct();
-                int bucketPartitionSize = calculateBucketSize(col, dictColDistinct);
-                build(col, bucketPartitionSize, dictColDistinct);
-            }
-        } finally {
-            lock.unlock(getLockPath(sourceColumn));
-        }
-    }
+public class DictionaryBuilderHelper {
+    protected static final Logger logger = LoggerFactory.getLogger(DictionaryBuilderHelper.class);
 
     /**
      * Dictionary resize in three cases
@@ -116,7 +62,7 @@ public class DictionaryBuilder {
      *  #3 After the last build, the number of individual buckets in the existing dictionary is greater
      *  than the threshold multiplied by KylinConfigBase.getGlobalDictV2BucketOverheadFactor
      */
-    int calculateBucketSize(TblColRef col, Dataset<Row> afterDistinct) throws IOException {
+    public static int calculateBucketSize(NDataSegment seg, TblColRef col, Dataset<Row> afterDistinct) throws IOException {
         NGlobalDictionaryV2 globalDict = new NGlobalDictionaryV2(seg.getProject(), col.getTable(), col.getName(),
                 seg.getConfig().getHdfsWorkingDirectory());
         int bucketPartitionSize = globalDict.getBucketSizeOrDefault(seg.getConfig().getGlobalDictV2MinHashPartitions());
@@ -167,46 +113,12 @@ public class DictionaryBuilder {
         if (resizeBucketSize != bucketPartitionSize) {
             logger.info("Start building a global dictionary column for {}, need resize from {} to {} ", col.getName(),
                     bucketPartitionSize, resizeBucketSize);
-            resize(col, seg, resizeBucketSize, afterDistinct.sparkSession().sparkContext());
+            resize(col, seg, resizeBucketSize, afterDistinct.sparkSession());
             logger.info("End building a global dictionary column for {}, need resize from {} to {} ", col.getName(),
                     bucketPartitionSize, resizeBucketSize);
         }
 
         return resizeBucketSize;
-    }
-
-    void build(TblColRef col, int bucketPartitionSize, Dataset<Row> afterDistinct) throws IOException {
-        logger.info("Start building global dict V2 for column {}.", col.getTable() + "." + col.getName());
-
-        NGlobalDictionaryV2 globalDict = new NGlobalDictionaryV2(seg.getProject(), col.getTable(), col.getName(),
-                seg.getConfig().getHdfsWorkingDirectory());
-        globalDict.prepareWrite();
-        Broadcast<NGlobalDictionaryV2> broadcastDict = JavaSparkContext
-                .fromSparkContext(afterDistinct.sparkSession().sparkContext()).broadcast(globalDict);
-        afterDistinct.javaRDD().mapToPair((PairFunction<Row, String, String>) row -> {
-            if (row.get(0) == null) {
-                return new Tuple2<>(null, null);
-            }
-            return new Tuple2<>(row.get(0).toString(), null);
-        }).partitionBy(new NHashPartitioner(bucketPartitionSize)).mapPartitionsWithIndex(
-                (Function2<Integer, Iterator<Tuple2<String, String>>, Iterator<Object>>) (bucketId, tuple2Iterator) -> {
-                    NGlobalDictionaryV2 gDict = broadcastDict.getValue();
-                    NBucketDictionary bucketDict = gDict.loadBucketDictionary(bucketId);
-
-                    while (tuple2Iterator.hasNext()) {
-                        Tuple2<String, String> tuple2 = tuple2Iterator.next();
-                        bucketDict.addRelativeValue(tuple2._1);
-                    }
-
-                    bucketDict.saveBucketDict(bucketId);
-
-                    return Lists.newArrayList().iterator();
-                }, true).count();
-
-        globalDict.writeMetaDict(bucketPartitionSize, seg.getConfig().getGlobalDictV2MaxVersions(),
-                seg.getConfig().getGlobalDictV2VersionTTL());
-
-        logger.info("Build global dict V2 for column {} success.", col.getName());
     }
 
     private static Set<TblColRef> findNeedDictCols(List<LayoutEntity> layouts) {
@@ -256,9 +168,4 @@ public class DictionaryBuilder {
         }
         return null;
     }
-
-    private String getLockPath(String pathName) {
-        return "/" + seg.getProject() + HadoopUtil.GLOBAL_DICT_STORAGE_ROOT + "/" + pathName + "/lock";
-    }
-
 }

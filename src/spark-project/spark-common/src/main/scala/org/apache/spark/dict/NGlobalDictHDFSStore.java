@@ -40,7 +40,7 @@
  * limitations under the License.
  */
 
-package io.kyligence.kap.engine.spark.builder;
+package org.apache.spark.dict;
 
 import java.io.IOException;
 import java.util.TreeSet;

@@ -31,7 +31,6 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 
-import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import org.apache.commons.io.FileUtils;
 import org.apache.hadoop.util.Shell;
 import org.apache.kylin.common.KylinConfig;
@@ -69,6 +68,7 @@ import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.engine.spark.job.NSparkCubingJob;
 import io.kyligence.kap.engine.spark.job.NSparkCubingStep;
 import io.kyligence.kap.engine.spark.merger.AfterBuildResourceMerger;
+import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflow;

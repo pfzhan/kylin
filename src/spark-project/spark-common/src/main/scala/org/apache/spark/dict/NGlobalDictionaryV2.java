@@ -21,7 +21,7 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package io.kyligence.kap.engine.spark.builder;
+package org.apache.spark.dict;
 
 import java.io.IOException;
 import java.io.Serializable;
@@ -30,15 +30,19 @@ import org.apache.kylin.common.util.HadoopUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import lombok.val;
+
 public class NGlobalDictionaryV2 implements Serializable {
 
     protected static final Logger logger = LoggerFactory.getLogger(NGlobalDictionaryV2.class);
 
-    private String baseDir;
-    private NGlobalDictMetaInfo metadata;
-
     private final static String WORKING_DIR = "working";
 
+    public static final String SEPARATOR = "_0_DOT_0_";
+
+    private NGlobalDictMetaInfo metadata;
+
+    private String baseDir;
     private String project;
     private String sourceTable;
     private String sourceColumn;
@@ -57,6 +61,19 @@ public class NGlobalDictionaryV2 implements Serializable {
         this.project = project;
         this.sourceTable = sourceTable;
         this.sourceColumn = sourceColumn;
+        this.baseDir = baseDir + getResourceDir();
+        this.metadata = getMetaInfo();
+        if (metadata != null) {
+            isFirst = false;
+        }
+    }
+
+    public NGlobalDictionaryV2(String dictParams) throws IOException {
+        val dictInfo = dictParams.split(SEPARATOR);
+        this.project = dictInfo[0];
+        this.sourceTable = dictInfo[1];
+        this.sourceColumn = dictInfo[2];
+        this.baseDir = dictInfo[3];
         this.baseDir = baseDir + getResourceDir();
         this.metadata = getMetaInfo();
         if (metadata != null) {

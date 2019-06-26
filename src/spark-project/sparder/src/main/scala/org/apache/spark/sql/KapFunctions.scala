@@ -28,6 +28,7 @@ import org.apache.spark.sql.catalyst.analysis.FunctionRegistry.FunctionBuilder
 import org.apache.spark.sql.catalyst.expressions.ExpressionUtils.expression
 import org.apache.spark.sql.catalyst.expressions.aggregate.AggregateFunction
 import org.apache.spark.sql.catalyst.expressions.{Expression, ExpressionInfo, ImplicitCastInputTypes, In, KapAddMonths, KapDayOfWeek, KapSubtractMonths, Like, Literal, RoundBase, Sum0, TimestampAdd, TimestampDiff, Truncate}
+import org.apache.spark.sql.catalyst.expressions.{DictEncode, Expression, ExpressionInfo, ImplicitCastInputTypes, KapAddMonths, KapDayOfWeek, KapSubtractMonths, Like, Literal, RoundBase, Sum0, TimestampAdd, TimestampDiff, Truncate}
 import org.apache.spark.sql.udf.{ApproxCountDistinct, PreciseCountDistinct}
 
 object KapFunctions {
@@ -46,7 +47,7 @@ object KapFunctions {
 
   def kap_day_of_week(date: Column): Column = Column(KapDayOfWeek(date.expr))
 
-  def k_like(left:Column, right:Column):Column = Column(Like(left.expr, right.expr))
+  def k_like(left: Column, right: Column): Column = Column(Like(left.expr, right.expr))
 
   def sum0(e: Column): Column = withAggregateFunction {
     Sum0(e.expr)
@@ -77,11 +78,16 @@ object KapFunctions {
     def this(child: Expression) = this(child, Literal(0))
   }
 
+  def dict_encode(column: Column, dictParams: Column, bucketSize: Column): Column = {
+    Column(DictEncode(column.expr, dictParams.expr, bucketSize.expr))
+  }
+
 
   val builtin: Seq[FunctionEntity] = Seq(
     FunctionEntity(expression[TimestampAdd]("TIMESTAMPADD")),
     FunctionEntity(expression[TimestampDiff]("TIMESTAMPDIFF")),
-    FunctionEntity(expression[Truncate]("TRUNCATE")))
+    FunctionEntity(expression[Truncate]("TRUNCATE")),
+    FunctionEntity(expression[DictEncode]("DICTENCODE")))
 }
 
 case class FunctionEntity(name: FunctionIdentifier,

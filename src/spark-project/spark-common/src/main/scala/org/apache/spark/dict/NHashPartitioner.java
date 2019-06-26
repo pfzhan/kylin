@@ -22,7 +22,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.engine.spark.builder;
+package org.apache.spark.dict;
 
 import org.apache.spark.Partitioner;
 

@@ -26,9 +26,11 @@ import java.util
 import io.kyligence.kap.engine.spark.job.NSparkCubingUtil
 import io.kyligence.kap.metadata.cube.model.NDataSegment
 import org.apache.kylin.metadata.model.TblColRef
-import org.apache.spark.broadcast.Broadcast
+import org.apache.spark.dict.NGlobalDictionaryV2
 import org.apache.spark.internal.Logging
-import org.apache.spark.sql.types.LongType
+import org.apache.spark.sql.KapFunctions._
+import org.apache.spark.sql.functions.{col, _}
+import org.apache.spark.sql.types.StringType
 import org.apache.spark.sql.{Dataset, Row}
 
 import scala.collection.JavaConverters._
@@ -38,62 +40,34 @@ object DFTableEncoder extends Logging {
 
   val ENCODE_SUFFIX = "_encode"
 
-  def encode(ds: Dataset[Row], seg: NDataSegment, cols: util.Set[TblColRef]): Dataset[Row] = {
-    var dataFrame = ds
-    var globalDictRdd = ds.rdd
+  def encodeTable(ds: Dataset[Row], seg: NDataSegment, cols: util.Set[TblColRef]): Dataset[Row] = {
+    val structType = ds.schema
+    var partitionedDs = ds
 
-    var structType = ds.schema
-    val sourceCnt = globalDictRdd.count()
+    val sourceCnt = ds.count()
+    val bucketThreshold = seg.getConfig.getGlobalDictV2ThresholdBucketSize
+    val minBucketSize: Long = sourceCnt / bucketThreshold
 
-    // process global dictionary
-    for (ref: TblColRef <- cols.asScala) {
-      val columnIndex = structType.fieldIndex(
-        NSparkCubingUtil.convertFromDot(ref.getTableAlias + "." + ref.getColumnDesc.getName))
+    cols.asScala.foreach(
+      ref => {
+        val globalDict = new NGlobalDictionaryV2(seg.getProject, ref.getTable, ref.getName, seg.getConfig.getHdfsWorkingDirectory)
+        val bucketSize = globalDict.getBucketSizeOrDefault(seg.getConfig.getGlobalDictV2MinHashPartitions)
+        val enlargedBucketSize = (((minBucketSize / bucketSize) + 1) * bucketSize).toInt
 
-      structType = structType.add(structType.apply(columnIndex).name + ENCODE_SUFFIX, LongType)
+        val encodeColRef = NSparkCubingUtil.convertFromDot(ref.getTableAlias + "." + ref.getColumnDesc.getName)
+        val columnIndex = structType.fieldIndex(encodeColRef)
 
-      val bucketThreshold = seg.getConfig.getGlobalDictV2ThresholdBucketSize
-      val minBucketSize: Long = sourceCnt / bucketThreshold
+        val dictParams = Array(seg.getProject, ref.getTable, ref.getName, seg.getConfig.getHdfsWorkingDirectory)
+          .mkString(NSparkCubingUtil.SEPARATOR)
+        val aliasName = structType.apply(columnIndex).name.concat(ENCODE_SUFFIX)
+        val encodeCol = dict_encode(col(encodeColRef).cast(StringType), lit(dictParams), lit(bucketSize).cast(StringType)).as(aliasName)
+        val columns = partitionedDs.schema.map(ty => col(ty.name)) ++ Seq(encodeCol)
 
-      val globalDict = new NGlobalDictionaryV2(seg.getProject, ref.getTable, ref.getName, seg.getConfig.getHdfsWorkingDirectory)
-      var bucketPartitionSize = globalDict.getBucketSizeOrDefault(seg.getConfig.getGlobalDictV2MinHashPartitions)
-      bucketPartitionSize = (((minBucketSize / bucketPartitionSize) + 1) * bucketPartitionSize).toInt
-
-      val broadDict: Broadcast[NGlobalDictionaryV2] = globalDictRdd.sparkContext.broadcast[NGlobalDictionaryV2](globalDict)
-
-      globalDictRdd = globalDictRdd
-        .map(row => (row.get(columnIndex), row))
-        .partitionBy(new NHashPartitioner(bucketPartitionSize))
-        .mapPartitionsWithIndex {
-          case (bucketId, iterator) =>
-            val globalDict = broadDict.value
-            logInfo(s"encode source: ${globalDict.getResourceDir} bucketId: $bucketId")
-            val encodeBucketId = bucketId % globalDict.getMetaInfo.getBucketSize
-
-            val bucketDict = globalDict.loadBucketDictionary(encodeBucketId)
-            var list = new ListBuffer[Row]
-            iterator.foreach(
-              next => {
-                val rowFields = next._2.toSeq
-                val objects = new Array[Any](rowFields.size + 1)
-                rowFields.indices.foreach(
-                  index => {
-                    objects(index) = rowFields.apply(index)
-                    if (index == columnIndex) {
-                      if (rowFields.apply(index) == null) {
-                        objects(rowFields.size) = null
-                      } else {
-                        objects(rowFields.size) = bucketDict.encode(rowFields.apply(index))
-                      }
-                    }
-                  })
-                list.+=(Row.fromSeq(objects.toSeq))
-              })
-            list.iterator
-        }
-      dataFrame = ds.sparkSession.createDataFrame(globalDictRdd, structType)
-    }
-    dataFrame
+        partitionedDs = partitionedDs
+          .repartition(enlargedBucketSize, col(encodeColRef).cast(StringType))
+          .select(columns: _*)
+      }
+    )
+    partitionedDs
   }
-
 }

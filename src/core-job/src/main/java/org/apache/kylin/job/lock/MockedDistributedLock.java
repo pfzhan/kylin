@@ -44,6 +44,7 @@
 package org.apache.kylin.job.lock;
 
 import java.io.Closeable;
+import java.io.Serializable;
 import java.nio.charset.Charset;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -55,7 +56,7 @@ import org.apache.kylin.common.lock.DistributedLock;
 import org.apache.kylin.common.lock.DistributedLockFactory;
 import org.apache.kylin.common.util.AutoReadWriteLock;
 
-public class MockedDistributedLock implements DistributedLock, JobLock {
+public class MockedDistributedLock implements DistributedLock, JobLock, Serializable {
 
     public static class MockedFactory extends DistributedLockFactory {
 

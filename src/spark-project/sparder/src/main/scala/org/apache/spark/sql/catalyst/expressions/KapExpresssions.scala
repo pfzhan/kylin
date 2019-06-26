@@ -23,11 +23,14 @@
  */
 package org.apache.spark.sql.catalyst.expressions
 
+import org.apache.spark.dict.{NBucketDictionary, NGlobalDictionaryV2}
 import org.apache.spark.sql.catalyst.expressions.aggregate.DeclarativeAggregate
-import org.apache.spark.sql.catalyst.expressions.codegen.{CodegenContext, ExprCode}
+import org.apache.spark.sql.catalyst.expressions.codegen.{CodeGenerator, CodegenContext, ExprCode}
 import org.apache.spark.sql.catalyst.util.KapDateTimeUtils
 import org.apache.spark.sql.types._
-import org.apache.spark.sql.udf.{TimestampAddImpl, TimestampDiffImpl, TruncateImpl}
+import org.apache.spark.sql.udf.{DictEncodeImpl, TimestampAddImpl, TimestampDiffImpl, TruncateImpl}
+import org.apache.spark.unsafe.types.UTF8String
+import org.apache.spark.util.random.XORShiftRandom
 
 // Returns the date that is num_months after start_date.
 // scalastyle:off line.size.limit
@@ -289,4 +292,51 @@ case class Truncate(_left: Expression, _right: Expression) extends BinaryExpress
 
   override def dataType: DataType = left.dataType
 }
+
+case class DictEncode(left: Expression, mid: Expression, right: Expression) extends TernaryExpression with ExpectsInputTypes {
+
+  override def inputTypes: Seq[AbstractDataType] = Seq(AnyDataType, StringType, StringType)
+
+  override protected def doGenCode(ctx: CodegenContext,
+                                   ev: ExprCode): ExprCode = {
+    val globalDictClass = classOf[NGlobalDictionaryV2].getName
+    val bucketDictClass = classOf[NBucketDictionary].getName
+
+    val globalDictTerm = ctx.addMutableState(globalDictClass, "globalDict")
+    val bucketDictTerm = ctx.addMutableState(bucketDictClass, "bucketDict")
+
+    val dictParamsTerm = mid.simpleString
+    val bucketSizeTerm = right.simpleString.toInt
+
+    val initBucketDictFuncName = ctx.addNewFunction("initBucketDict",
+      s"""
+         | private void initBucketDict(int idx) {
+         |   try {
+         |     int bucketId = idx % $bucketSizeTerm;
+         |     $globalDictTerm = new org.apache.spark.dict.NGlobalDictionaryV2("$dictParamsTerm");
+         |     $bucketDictTerm = $globalDictTerm.loadBucketDictionary(bucketId);
+         |   } catch (Exception e) {
+         |     throw new RuntimeException(e);
+         |   }
+         | }
+        """.stripMargin)
+
+    ctx.addPartitionInitializationStatement(s"$initBucketDictFuncName(partitionIndex);");
+
+    defineCodeGen(ctx, ev, (arg1, arg2, arg3) => {
+      s"""$bucketDictTerm.encode($arg1)"""
+    })
+  }
+
+  override protected def nullSafeEval(input1: Any, input2: Any, input3: Any): Any = {
+    DictEncodeImpl.evaluate(input1.toString, input2.toString, input3.toString)
+  }
+
+  override def dataType: DataType = LongType
+
+  override def children: Seq[Expression] = Seq(left, mid, right)
+
+  override def prettyName: String = "DICTENCODE"
+}
+
 

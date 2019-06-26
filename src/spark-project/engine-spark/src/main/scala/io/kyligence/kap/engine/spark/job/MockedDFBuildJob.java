@@ -52,7 +52,7 @@ import com.google.common.collect.Sets;
 
 import io.kyligence.kap.engine.spark.NSparkCubingEngine;
 import io.kyligence.kap.engine.spark.application.SparkApplication;
-import io.kyligence.kap.engine.spark.builder.DictionaryBuilder;
+import io.kyligence.kap.engine.spark.builder.DictionaryBuilderHelper;
 import io.kyligence.kap.metadata.cube.cuboid.NSpanningTree;
 import io.kyligence.kap.metadata.cube.cuboid.NSpanningTreeFactory;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
@@ -100,7 +100,7 @@ public class MockedDFBuildJob extends SparkApplication {
                 var structType = new StructType(collect);
                 val flatTableDesc = new NCubeJoinedFlatTableDesc(indexPlan, seg.getSegRange());
                 val nSpanningTree = NSpanningTreeFactory.fromLayouts(indexPlan.getAllLayouts(), dfName);
-                for (TblColRef ref : DictionaryBuilder.extractTreeRelatedGlobalDicts(seg, nSpanningTree)) {
+                for (TblColRef ref : DictionaryBuilderHelper.extractTreeRelatedGlobalDicts(seg, nSpanningTree)) {
                     int columnIndex = flatTableDesc.getColumnIndex(ref);
                     structType = structType.add(
                             structType.apply(columnIndex).name() + DFTableEncoder.ENCODE_SUFFIX(), IntegerType);

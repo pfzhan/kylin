@@ -88,7 +88,7 @@ class CreateFlatTable(val flatTable: IJoinedFlatTableDesc,
   private def buildDict(ds: Dataset[Row], tableName: String, globalDictTuple: GlobalDictType): Unit = {
     globalDictTuple._1.asScala.get(tableName) match {
       case Some(cols) =>
-        val dictionaryBuilder = new DictionaryBuilder(ds, seg, ss, cols)
+        val dictionaryBuilder = new DFDictionaryBuilder(ds, seg, ss, cols)
         dictionaryBuilder.buildDictionary()
       case None => None
     }
@@ -97,7 +97,7 @@ class CreateFlatTable(val flatTable: IJoinedFlatTableDesc,
   private def encodeTable(ds: Dataset[Row], tableName: String, globalDictTuple: GlobalDictType): Dataset[Row] = {
     globalDictTuple._2.asScala.get(tableName) match {
       case Some(cols) =>
-        DFTableEncoder.encode(ds, seg, cols)
+        DFTableEncoder.encodeTable(ds, seg, cols)
       case None => ds
     }
   }
@@ -234,10 +234,10 @@ object CreateFlatTable extends Logging {
   }
 
   def assemblyGlobalDictTuple(seg: NDataSegment, toBuildTree: NSpanningTree): GlobalDictType = {
-    val toBuildDictSet = DictionaryBuilder.extractTreeRelatedGlobalDictToBuild(seg, toBuildTree)
+    val toBuildDictSet = DictionaryBuilderHelper.extractTreeRelatedGlobalDictToBuild(seg, toBuildTree)
     val toBuildDictMap: util.Map[String, util.Set[TblColRef]] = convert(toBuildDictSet)
 
-    val globalDictSet = DictionaryBuilder.extractTreeRelatedGlobalDicts(seg, toBuildTree)
+    val globalDictSet = DictionaryBuilderHelper.extractTreeRelatedGlobalDicts(seg, toBuildTree)
     val globalDictMap: util.Map[String, util.Set[TblColRef]] = convert(globalDictSet)
 
     (toBuildDictMap, globalDictMap)

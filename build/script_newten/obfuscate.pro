@@ -45,7 +45,8 @@
 }
 
 #Confuse the string constants corresponding to the class name.
--adaptclassstrings io.kyligence.kap.engine.spark.builder.DictionaryBuilder
+-adaptclassstrings io.kyligence.kap.engine.spark.builder.DictionaryBuilderHelper
+-adaptclassstrings io.kyligence.kap.engine.spark.builder.DFDictionaryBuilder
 
 -keepclassmembers class io.kyligence.kap.rest.request.** {*;}
 -keepclassmembers class io.kyligence.kap.rest.response.** {*;}

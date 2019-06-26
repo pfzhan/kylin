@@ -30,7 +30,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-import io.kyligence.kap.engine.spark.builder.NGlobalDictMetaInfo;
+import org.apache.spark.dict.NGlobalDictMetaInfo;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.kylin.common.KylinConfig;
@@ -50,11 +50,11 @@ import org.junit.Test;
 import com.google.common.collect.Lists;
 
 import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
-import io.kyligence.kap.engine.spark.builder.NBucketDictionary;
-import io.kyligence.kap.engine.spark.builder.NGlobalDictHDFSStore;
-import io.kyligence.kap.engine.spark.builder.NGlobalDictStore;
-import io.kyligence.kap.engine.spark.builder.NGlobalDictionaryV2;
-import io.kyligence.kap.engine.spark.builder.NHashPartitioner;
+import org.apache.spark.dict.NBucketDictionary;
+import org.apache.spark.dict.NGlobalDictHDFSStore;
+import org.apache.spark.dict.NGlobalDictStore;
+import org.apache.spark.dict.NGlobalDictionaryV2;
+import org.apache.spark.dict.NHashPartitioner;
 import it.unimi.dsi.fastutil.objects.Object2LongMap;
 import scala.Tuple2;
 

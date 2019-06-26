@@ -38,6 +38,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.engine.spark.job.UdfManager;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.math.RandomUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -208,6 +209,7 @@ public class NMeasuresTest extends NLocalWithSparkSessionTest {
     @Test
     // Need to fill in support for top-n and percentile #8848
     public void testAllMeasures() throws Exception {
+        UdfManager.create(ss);
 
         //validate Cube Data by decode
         KylinConfig config = KylinConfig.getInstanceFromEnv();

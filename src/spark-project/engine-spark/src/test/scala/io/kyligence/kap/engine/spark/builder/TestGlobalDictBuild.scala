@@ -28,7 +28,11 @@ import io.kyligence.kap.metadata.cube.model.{NDataSegment, NDataflow, NDataflowM
 import org.apache.commons.lang3.RandomStringUtils
 import org.apache.kylin.common.KylinConfig
 import org.apache.kylin.metadata.model.TblColRef
+import org.apache.spark.TaskContext
+import org.apache.spark.dict.{NGlobalDictMetaInfo, NGlobalDictionaryV2}
+import org.apache.spark.sql.catalyst.encoders.RowEncoder
 import org.apache.spark.sql.common.{LocalMetadata, SharedSparkSession, SparderBaseFunSuite}
+import org.apache.spark.sql.functions.col
 import org.apache.spark.sql.types.{StringType, StructType}
 import org.apache.spark.sql.{Dataset, Row}
 import org.junit.Assert
@@ -51,10 +55,10 @@ class TestGlobalDictBuild extends SparderBaseFunSuite with SharedSparkSession wi
     val df: NDataflow = dsMgr.getDataflow(CUBE_NAME)
     val seg = df.getLastSegment
     val nSpanningTree = NSpanningTreeFactory.fromLayouts(seg.getIndexPlan.getAllLayouts, df.getUuid)
-    val dictColSet = DictionaryBuilder.extractTreeRelatedGlobalDicts(seg, nSpanningTree)
+    val dictColSet = DictionaryBuilderHelper.extractTreeRelatedGlobalDicts(seg, nSpanningTree)
     seg.getConfig.setProperty("kylin.dictionary.globalV2-threshold-bucket-size", "100")
 
-    // When to resize the dictionary, please refer to the description of DictionaryBuilder.calculateBucketSize
+    // When to resize the dictionary, please refer to the description of DictionaryBuilderHelper.calculateBucketSize
 
     // First build dictionary, no dictionary file exists
     var randomDataSet = generateOriginData(1000, 21)
@@ -79,6 +83,7 @@ class TestGlobalDictBuild extends SparderBaseFunSuite with SharedSparkSession wi
     Assert.assertEquals(140, meta4.getBucketSize)
     Assert.assertEquals(7200, meta4.getDictCount)
 
+    // apply rule #3
     randomDataSet = generateHotOriginData(200, 140)
     val meta5 = buildDict(seg, randomDataSet, dictColSet)
     Assert.assertEquals(140, meta5.getBucketSize)
@@ -97,10 +102,10 @@ class TestGlobalDictBuild extends SparderBaseFunSuite with SharedSparkSession wi
   }
 
   def buildDict(seg: NDataSegment, randomDataSet: Dataset[Row], dictColSet: Set[TblColRef]): NGlobalDictMetaInfo = {
-    val dictionaryBuilder = new DictionaryBuilder(randomDataSet, seg, randomDataSet.sparkSession, dictColSet)
+    val dictionaryBuilder = new DFDictionaryBuilder(randomDataSet, seg, randomDataSet.sparkSession, dictColSet)
     val col = dictColSet.iterator().next()
     val ds = randomDataSet.select("26").distinct()
-    val bucketPartitionSize = dictionaryBuilder.calculateBucketSize(col, ds)
+    val bucketPartitionSize = DictionaryBuilderHelper.calculateBucketSize(seg, col, ds)
     dictionaryBuilder.build(col, bucketPartitionSize, ds)
     val dict = new NGlobalDictionaryV2(seg.getProject, col.getTable, col.getName,
       seg.getConfig.getHdfsWorkingDirectory)
@@ -109,6 +114,7 @@ class TestGlobalDictBuild extends SparderBaseFunSuite with SharedSparkSession wi
 
   def generateOriginData(count: Int, length: Int): Dataset[Row] = {
     var schema = new StructType
+
     schema = schema.add("26", StringType)
     var set = new mutable.LinkedHashSet[Row]
     while (set.size != count) {
@@ -123,17 +129,17 @@ class TestGlobalDictBuild extends SparderBaseFunSuite with SharedSparkSession wi
   def generateHotOriginData(threshold: Int, bucketSize: Int): Dataset[Row] = {
     var schema = new StructType
     schema = schema.add("26", StringType)
-    var set = new mutable.LinkedHashSet[Row]
-    val partitioner = new NHashPartitioner(bucketSize)
-    while (set.size != threshold) {
-      val objects = new Array[String](1)
-      val randomValue = RandomStringUtils.randomAlphabetic(30)
-      if (partitioner.getPartition(randomValue) == 1) {
-        objects(0) = randomValue
-        set.+=(Row.fromSeq(objects.toSeq))
-      }
-    }
-
-    spark.createDataFrame(spark.sparkContext.parallelize(set.toSeq), schema)
+    var ds = generateOriginData(threshold * bucketSize * 2, 30)
+    ds = ds.repartition(bucketSize, col("26"))
+      .mapPartitions {
+        iter =>
+          val partitionID = TaskContext.get().partitionId()
+          if (partitionID != 1) {
+            Iterator.empty
+          } else {
+            iter
+          }
+      }(RowEncoder.apply(ds.schema))
+    ds.limit(threshold)
   }
 }

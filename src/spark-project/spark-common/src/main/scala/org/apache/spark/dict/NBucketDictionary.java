@@ -21,7 +21,7 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package io.kyligence.kap.engine.spark.builder;
+package org.apache.spark.dict;
 
 import java.io.IOException;
 
@@ -37,6 +37,8 @@ public class NBucketDictionary {
 
     private String workingDir;
 
+    private int bucketId;
+
     private Object2LongMap<String> absoluteDictMap;
     // Relative dictionary needs to calculate dictionary code according to NGlobalDictMetaInfo's bucketOffsets
     private Object2LongMap<String> relativeDictMap;
@@ -44,6 +46,7 @@ public class NBucketDictionary {
     NBucketDictionary(String baseDir, String workingDir, int bucketId, NGlobalDictMetaInfo metainfo)
             throws IOException {
         this.workingDir = workingDir;
+        this.bucketId = bucketId;
         final NGlobalDictStore globalDictStore = new NGlobalDictHDFSStore(baseDir);
         Long[] versions = globalDictStore.listAllVersions();
         if (versions.length == 0) {
@@ -101,4 +104,15 @@ public class NBucketDictionary {
         return absoluteDictMap;
     }
 
+    public Object2LongMap<String> getRelativeDictMap() {
+        return relativeDictMap;
+    }
+
+    public int getBucketId() {
+        return bucketId;
+    }
+
+    public void setBucketId(int bucketId) {
+        this.bucketId = bucketId;
+    }
 }
