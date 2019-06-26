@@ -266,7 +266,10 @@ export default class DataSourceModal extends Vue {
       case editTypes.RDBMS2: {
         const isValid = this.form.selectedTables.length || this.form.selectedDatabases.length
         !isValid && this.$message(this.$t('pleaseSelectTableOrDatabase'))
-        const isSamplingValid = this.form.needSampling && this.form.samplingRows && this.form.samplingRows >= 10000 && this.form.samplingRows <= 20000000
+        let isSamplingValid = true
+        if (this.form.needSampling) {
+          isSamplingValid = !!this.form.samplingRows && this.form.samplingRows >= 10000 && this.form.samplingRows <= 20000000
+        }
         if (!isSamplingValid) {
           this.$refs['source-hive-form'].$emit('samplingFormValid')
         }

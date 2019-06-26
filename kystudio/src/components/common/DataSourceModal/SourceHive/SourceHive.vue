@@ -322,6 +322,10 @@ export default class SourceHive extends Vue {
   }
   handleSampling (needSampling) {
     this.$emit('input', { needSampling })
+    if (!needSampling) {
+      this.errorMsg = ''
+      this.contentStyle.height = '334px'
+    }
   }
   handleSamplingRows (samplingRows) {
     if (samplingRows && samplingRows < 10000) {
