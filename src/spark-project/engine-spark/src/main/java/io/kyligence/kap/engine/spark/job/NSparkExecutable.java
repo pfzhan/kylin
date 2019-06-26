@@ -40,6 +40,7 @@ import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.yarn.api.records.ApplicationReport;
 import org.apache.hadoop.yarn.api.records.YarnApplicationState;
 import org.apache.hadoop.yarn.client.api.YarnClient;
@@ -293,6 +294,9 @@ public class NSparkExecutable extends AbstractExecutable {
         Map<String, String> sparkConfigOverride = config.getSparkConfigOverride();
         if (!sparkConfigOverride.containsKey("spark.driver.memory")) {
             sparkConfigOverride.put("spark.driver.memory", computeStepDriverMemory() + "m");
+        }
+        if (UserGroupInformation.isSecurityEnabled()) {
+            sparkConfigOverride.put("spark.hadoop.hive.metastore.sasl.enabled", "ture");
         }
         return sparkConfigOverride;
     }

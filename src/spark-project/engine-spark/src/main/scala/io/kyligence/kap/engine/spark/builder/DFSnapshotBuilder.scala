@@ -32,11 +32,11 @@ import com.google.common.collect.Maps
 import io.kyligence.kap.engine.spark.NSparkCubingEngine
 import io.kyligence.kap.engine.spark.job.KylinBuildEnv
 import io.kyligence.kap.engine.spark.utils.FileNames
-import io.kyligence.kap.metadata.cube.model.{NDataSegment, NDataflowManager, NDataflowUpdate}
+import io.kyligence.kap.metadata.cube.model.{NDataflowManager, NDataflowUpdate, NDataSegment}
 import io.kyligence.kap.metadata.model.NDataModel
 import org.apache.commons.codec.digest.DigestUtils
 import org.apache.hadoop.fs.{FileStatus, FileSystem, Path, PathFilter}
-import org.apache.kylin.common.KapConfig
+import org.apache.kylin.common.{KapConfig, KylinConfig}
 import org.apache.kylin.common.util.HadoopUtil
 import org.apache.kylin.metadata.model.TableDesc
 import org.apache.kylin.source.SourceFactory
@@ -86,6 +86,7 @@ class DFSnapshotBuilder extends Logging {
     val fs = HadoopUtil.getWorkingFileSystem
     val baseDir = KapConfig.wrap(seg.getConfig).getReadHdfsWorkingDirectory
     val toBuildTableDesc = distinctTableDesc(model)
+    val kylinConf = KylinConfig.getInstanceFromEnv
     if (seg.getConfig.isSnapshotParallelBuildEnabled) {
       val service = Executors.newCachedThreadPool()
       implicit val executorContext = ExecutionContext.fromExecutorService(service)
@@ -97,6 +98,7 @@ class DFSnapshotBuilder extends Logging {
                 Thread.sleep(1000L)
               }
               try {
+                KylinConfig.setAndUnsetThreadLocalConfig(kylinConf)
                 buildSnapshotWithoutMd5(tableDesc, baseDir)
               } catch {
                 case exception: Exception =>

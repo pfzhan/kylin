@@ -98,12 +98,21 @@ function retrieveSparkEnvProps()
 
     # spark conf
     confStr=`echo "$SPARK_CONF_PROPS" |  awk '{ print "--conf " "\"" $0 "\""}' | tr '\n' ' ' `
+    KAP_KERBEROS_ENABLED=`$KYLIN_HOME/bin/get-properties.sh kap.kerberos.enabled`
+    if [[ "${KAP_KERBEROS_ENABLED}" == "true" ]]
+    then
+        confStr=`echo ${confStr} --conf 'spark.hadoop.hive.metastore.sasl.enabled=true'`
+    fi
     kylinMetadataUrlIdentifier="-Dkap.metadata.identifier=\${kylin.metadata.url.identifier}"
     jobProject="-Dkap.spark.project=\${job.project}"
     confStr=`echo ${confStr//${kylinMetadataUrlIdentifier}/}`
     confStr=`echo ${confStr//${jobProject}/}`
 
     engineConfStr=`echo "$SPARK_ENGINE_CONF_PROPS" |  awk '{ print "--conf " "\"" $0 "\""}' | tr '\n' ' ' `
+    if [[ "${KAP_KERBEROS_ENABLED}" == "true" ]]
+    then
+        engineConfStr=`echo ${engineConfStr} --conf 'spark.hadoop.hive.metastore.sasl.enabled=true'`
+    fi
     jobId="-Dkap.spark.identifier=\${job.id}"
     jobStepId="-Dkap.spark.jobName=\${job.stepId}"
     engineConfStr=`echo ${engineConfStr//${kylinMetadataUrlIdentifier}}`
@@ -187,7 +196,7 @@ then
     verbose "Safeguard cleanup..."
     echo "use ${HIVE_TEST_DB};" > ${SPARK_HQL_TMP_FILE}
     echo "show tables;" >> ${SPARK_HQL_TMP_FILE}
-    eval $spark_sql_command | grep -o "chkenv__[[:digit:]]\+" | xargs -I "{}" $spark_sql -e "drop table ${HIVE_TEST_DB}.{}"
+    eval $spark_sql_command | grep -o "chkenv__[[:digit:]]\+" | xargs -I "{}" $spark_sql ${engineConfStr} -e "drop table ${HIVE_TEST_DB}.{}"
     # drop test db
     echo "drop database if exists ${HIVE_TEST_DB};" > ${SPARK_HQL_TMP_FILE}
     eval $spark_sql_command

@@ -24,15 +24,13 @@
 
 package org.apache.kylin.common;
 
+import io.kyligence.kap.common.util.FileUtils;
 import java.io.File;
 import java.io.IOException;
 import java.util.Map;
-
 import org.apache.commons.lang.time.DateUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.fs.Path;
-
-import io.kyligence.kap.common.util.FileUtils;
 
 public class KapConfig {
 
@@ -571,7 +569,15 @@ public class KapConfig {
             if (storageFile != null) {
                 path1 = storageFile.getCanonicalPath();
             }
-
+            storageFile = FileUtils.findFile(KylinConfigBase.getKylinHome() + "/conf",
+                    "spark-appmaster-log4j.properties");
+            if (storageFile != null) {
+                if (path1.isEmpty()) {
+                    path1 = storageFile.getCanonicalPath();
+                } else {
+                    path1 = path1 + "," + storageFile.getCanonicalPath();
+                }
+            }
             return config.getOptional("kap.query.engine.sparder-additional-files", path1);
         } catch (IOException e) {
             return "";
