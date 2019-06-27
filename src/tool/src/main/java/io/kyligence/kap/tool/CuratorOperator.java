@@ -79,11 +79,16 @@ public class CuratorOperator implements AutoCloseable {
     }
 
     public static void main(String[] args) {
+        int ret = 0;
         try (val curatorOperator = new CuratorOperator()) {
-            System.out.println(curatorOperator.isJobNodeExist());
+            if (curatorOperator.isJobNodeExist()) {
+                ret = 1;
+            }
         } catch (Exception e) {
             log.error("", e);
+            ret = 1;
         }
+        System.exit(ret);
     }
 
     public String getAddress() throws Exception {

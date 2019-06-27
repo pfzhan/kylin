@@ -9,5 +9,7 @@ ${dir}/rotate-logs.sh $@
 echo "-----------------------  log start  -----------------------" >>${ERR_LOG}
 echo "-----------------------  log start  -----------------------" >>${OUT_LOG}
 bash -x ${KYLIN_HOME}/bin/bootstrap.sh $@ 2>>${ERR_LOG}  | tee -a ${OUT_LOG}
+ret=${PIPESTATUS[0]}
 echo "-----------------------  log end  -------------------------" >>${ERR_LOG}
 echo "-----------------------  log end  -------------------------" >>${OUT_LOG}
+exit ${ret}

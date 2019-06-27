@@ -10,8 +10,8 @@ initKerberosIfNeeded
 
 echo "Checking Zookeeper role..."
 
-is_job=`${dir}/kylin.sh io.kyligence.kap.tool.CuratorOperator $1 2>/dev/null`
+${dir}/kylin.sh io.kyligence.kap.tool.CuratorOperator $1 2>/dev/null
 
-if [[ ${is_job} == "true" ]]; then
+if [[ $? == 1 ]]; then
     quit "Failed, only one job node is allowed"
 fi
