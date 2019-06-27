@@ -102,6 +102,7 @@ exports.default = {
     markSuccess: 'Mark successfully.',
     backupSuccess: 'Back up successfully.',
     updateSuccess: 'Updated successfully.',
+    resetSuccess: 'Reset successfully.',
     actionSuccess: 'Operate successfully.',
     confirmDel: 'Are you sure to delete it?',
     checkDraft: 'Exit the page will lose unsaved content.',

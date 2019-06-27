@@ -177,6 +177,9 @@ export default {
     },
     [types.UPDATE_PROJECT_DATASOURCE]: function ({commit}, para) {
       return api.project.updateProjectDatasource(para)
+    },
+    [types.RESET_PROJECT_CONFIG]: function ({ commit }, para) {
+      return api.project.resetConfig(para)
     }
   },
   getters: {

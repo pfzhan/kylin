@@ -11,7 +11,7 @@
       <slot></slot>
     </div>
     <div class="block-foot" v-if="isEditing">
-      <el-button size="small" :disabled="isLoading || (!isEdited && isKeepEditing)" @click="handleCancel">{{cancelText}}</el-button><el-button
+      <el-button size="small" v-if="isReset" :loading="isResetLoading" @click="handleCancel">{{cancelText}}</el-button><el-button
       plain size="small" type="primary" :loading="isLoading" :disabled="!isEdited && isKeepEditing" @click="handleSubmit">{{$t('kylinLang.common.save')}}</el-button>
     </div>
   </div>
@@ -37,12 +37,17 @@ import { Component } from 'vue-property-decorator'
     isEdited: {
       type: Boolean,
       default: false
+    },
+    isReset: {
+      type: Boolean,
+      default: true
     }
   }
 })
 export default class EditableBlock extends Vue {
   isUserEditing = false
   isLoading = false
+  isResetLoading = false
   set isEditing (value) {
     this.isUserEditing = value
   }
@@ -57,7 +62,8 @@ export default class EditableBlock extends Vue {
   }
   handleCancel () {
     this.isEditing = false
-    this.$emit('cancel')
+    this.isResetLoading = true
+    this.$emit('cancel', this.handleSuccess, this.handleError)
   }
   handleSubmit () {
     this.isLoading = true
@@ -65,9 +71,11 @@ export default class EditableBlock extends Vue {
   }
   handleError () {
     this.isLoading = false
+    this.isResetLoading = false
   }
   handleSuccess () {
     this.isLoading = false
+    this.isResetLoading = false
     this.isEditing = false
   }
 }

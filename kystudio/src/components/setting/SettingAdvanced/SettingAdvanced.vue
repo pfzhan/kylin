@@ -6,7 +6,7 @@
       :is-keep-editing="true"
       :is-edited="isFormEdited(form, 'accelerate-settings')"
       @submit="(scb, ecb) => handleSubmit('accelerate-settings', scb, ecb)"
-      @cancel="() => handleReset('accelerate-settings')">
+      @cancel="(scb, ecb) => handleResetForm('accelerate-settings', scb, ecb)">
       <el-form ref="accelerate-setting-form" :model="form" :rules="accelerateRules">
         <div class="setting-item">
           <div class="setting-label font-medium">{{$t('acceThreshold')}}</div><span class="setting-value fixed">
@@ -41,7 +41,7 @@
       :is-keep-editing="true"
       :is-edited="isFormEdited(form, 'job-alert')"
       @submit="(scb, ecb) => handleSubmit('job-alert', scb, ecb)"
-      @cancel="() => handleReset('job-alert')">
+      @cancel="(scb, ecb) => handleResetForm('job-alert', scb, ecb)">
       <!-- 空任务邮件通知 -->
       <div class="setting-item">
         <span class="setting-label font-medium">{{$t('emptyDataLoad')}}</span><span class="setting-value fixed">
@@ -95,7 +95,7 @@ import locales from './locales'
 import { mapActions, mapGetters } from 'vuex'
 import { Component, Watch } from 'vue-property-decorator'
 
-import { handleError } from '../../../util'
+import { handleError, handleSuccessAsync } from '../../../util'
 import { validate, _getAccelerationSettings, _getJobAlertSettings } from './handler'
 import EditableBlock from '../../common/EditableBlock/EditableBlock.vue'
 @Component({
@@ -108,7 +108,8 @@ import EditableBlock from '../../common/EditableBlock/EditableBlock.vue'
   methods: {
     ...mapActions({
       updateAccelerationSettings: 'UPDATE_ACCELERATION_SETTINGS',
-      updateJobAlertSettings: 'UPDATE_JOB_ALERT_SETTINGS'
+      updateJobAlertSettings: 'UPDATE_JOB_ALERT_SETTINGS',
+      resetConfig: 'RESET_PROJECT_CONFIG'
     })
   },
   components: {
@@ -151,10 +152,10 @@ export default class SettingAdvanced extends Vue {
     this.initForm()
   }
   initForm () {
-    this.handleReset('accelerate-settings')
-    this.handleReset('job-alert')
+    this.handleInit('accelerate-settings')
+    this.handleInit('job-alert')
   }
-  handleReset (type) {
+  handleInit (type) {
     switch (type) {
       case 'accelerate-settings': {
         this.form = { ...this.form, ..._getAccelerationSettings(this.project) }
@@ -189,6 +190,32 @@ export default class SettingAdvanced extends Vue {
       successCallback()
       this.$emit('reload-setting')
       this.$message({ type: 'success', message: this.$t('kylinLang.common.updateSuccess') })
+    } catch (e) {
+      errorCallback()
+      handleError(e)
+    }
+  }
+  async handleResetForm (type, successCallback, errorCallback) {
+    try {
+      switch (type) {
+        case 'accelerate-settings': {
+          const res = await this.resetConfig({project: this.currentSelectedProject, reset_item: 'query_accelerate_threshold'})
+          const data = await handleSuccessAsync(res)
+          this.form = { ...this.form, ..._getAccelerationSettings(data) }
+          this.$refs['accelerate-setting-form'].clearValidate()
+          break
+        }
+        case 'job-alert': {
+          const res = await this.resetConfig({project: this.currentSelectedProject, reset_item: 'job_notification_config'})
+          const data = await handleSuccessAsync(res)
+          this.form = { ...this.form, ..._getJobAlertSettings(data, true) }
+          this.$refs['job-alert'].clearValidate()
+          break
+        }
+      }
+      successCallback()
+      this.$emit('reload-setting')
+      this.$message({ type: 'success', message: this.$t('kylinLang.common.resetSuccess') })
     } catch (e) {
       errorCallback()
       handleError(e)

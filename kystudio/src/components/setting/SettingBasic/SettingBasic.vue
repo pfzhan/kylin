@@ -5,8 +5,8 @@
       :header-content="$t('basicInfo')"
       :is-keep-editing="true"
       :is-edited="isFormEdited(form, 'basic-info')"
-      @submit="(scb, ecb) => handleSubmit('basic-info', scb, ecb)"
-      @cancel="() => handleReset('basic-info')">
+      :is-reset="false"
+      @submit="(scb, ecb) => handleSubmit('basic-info', scb, ecb)">
       <div class="setting-item">
         <div class="setting-label font-medium" style="width: 92px;">{{$t('projectName')}}</div>
         <div class="setting-value fixed">{{project.alias || project.project}}</div>
@@ -28,7 +28,7 @@
       :is-keep-editing="true"
       :is-edited="isFormEdited(form, 'storage-quota')"
       @submit="(scb, ecb) => handleSubmit('storage-quota', scb, ecb)"
-      @cancel="() => handleReset('storage-quota')">
+      @cancel="(scb, ecb) => handleResetForm('storage-quota', scb, ecb)">
       <div class="setting-item">
         <span class="setting-label font-medium">{{$t('storageQuota')}}</span>
         <span class="setting-value fixed">{{form.storage_quota_size | dataSize}}</span>
@@ -92,7 +92,7 @@
       :is-keep-editing="true"
       :is-edited="isFormEdited(form, 'segment-settings')"
       @submit="(scb, ecb) => handleSubmit('segment-settings', scb, ecb)"
-      @cancel="() => handleReset('segment-settings')">
+      @cancel="(scb, ecb) => handleResetForm('segment-settings', scb, ecb)">
       <el-form ref="segment-setting-form" :model="form" :rules="rules">
         <div class="setting-item">
           <span class="setting-label font-medium">{{$t('segmentMerge')}}</span><span class="setting-value fixed">
@@ -170,11 +170,11 @@
 
 <script>
 import Vue from 'vue'
-import { mapActions } from 'vuex'
+import { mapActions, mapGetters } from 'vuex'
 import { Component, Watch } from 'vue-property-decorator'
 
 import locales from './locales'
-import { handleError } from '../../../util'
+import { handleError, handleSuccessAsync } from '../../../util'
 import { projectTypeIcons, lowUsageStorageTypes, autoMergeTypes, volatileTypes, validate, retentionTypes, initialFormValue, _getProjectGeneralInfo, _getSegmentSettings, _getPushdownConfig, _getStorageQuota, _getRetentionRangeScale } from './handler'
 import EditableBlock from '../../common/EditableBlock/EditableBlock.vue'
 
@@ -188,12 +188,18 @@ import EditableBlock from '../../common/EditableBlock/EditableBlock.vue'
   components: {
     EditableBlock
   },
+  computed: {
+    ...mapGetters([
+      'currentSelectedProject'
+    ])
+  },
   methods: {
     ...mapActions({
       updateProjectGeneralInfo: 'UPDATE_PROJECT_GENERAL_INFO',
       updateSegmentConfig: 'UPDATE_SEGMENT_CONFIG',
       updatePushdownConfig: 'UPDATE_PUSHDOWN_CONFIG',
-      updateStorageQuota: 'UPDATE_STORAGE_QUOTA'
+      updateStorageQuota: 'UPDATE_STORAGE_QUOTA',
+      resetConfig: 'RESET_PROJECT_CONFIG'
     })
   },
   locales
@@ -224,10 +230,10 @@ export default class SettingBasic extends Vue {
     this.$emit('form-changed', { basicSetting })
   }
   initForm () {
-    this.handleReset('basic-info')
-    this.handleReset('segment-settings')
-    this.handleReset('pushdown-settings')
-    this.handleReset('storage-quota')
+    this.handleInit('basic-info')
+    this.handleInit('segment-settings')
+    this.handleInit('pushdown-settings')
+    this.handleInit('storage-quota')
   }
   async mounted () {
     this.initForm()
@@ -295,7 +301,7 @@ export default class SettingBasic extends Vue {
       handleError(e)
     }
   }
-  handleReset (type) {
+  handleInit (type) {
     switch (type) {
       case 'basic-info': {
         this.form = { ...this.form, ..._getProjectGeneralInfo(this.project) }; break
@@ -311,6 +317,30 @@ export default class SettingBasic extends Vue {
       case 'storage-quota': {
         this.form = { ...this.form, ..._getStorageQuota(this.project) }; break
       }
+    }
+  }
+  async handleResetForm (type, successCallback, errorCallback) {
+    try {
+      switch (type) {
+        case 'segment-settings': {
+          const res = await this.resetConfig({project: this.currentSelectedProject, reset_item: 'segment_config'})
+          const data = await handleSuccessAsync(res)
+          this.form = { ...this.form, ..._getSegmentSettings(data) }
+          this.$refs['segment-setting-form'].clearValidate()
+          break
+        }
+        case 'storage-quota': {
+          const res = await this.resetConfig({project: this.currentSelectedProject, reset_item: 'garbage_cleanup_config'})
+          const data = await handleSuccessAsync(res)
+          this.form = { ...this.form, ..._getStorageQuota(data) }; break
+        }
+      }
+      successCallback()
+      this.$emit('reload-setting')
+      this.$message({ type: 'success', message: this.$t('kylinLang.common.resetSuccess') })
+    } catch (e) {
+      errorCallback()
+      handleError(e)
     }
   }
   isFormEdited (form, type) {

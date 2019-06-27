@@ -84,5 +84,8 @@ export default {
   },
   updateProjectDatasource (body) {
     return Vue.resource(apiUrl + 'projects/source_type').update(body)
+  },
+  resetConfig (para) {
+    return Vue.resource(apiUrl + 'projects/' + para.project + '/project_config').update({reset_item: para.reset_item})
   }
 }

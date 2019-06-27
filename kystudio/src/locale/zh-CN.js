@@ -101,6 +101,7 @@ exports.default = {
     markSuccess: '标记成功。',
     backupSuccess: '备份成功。',
     updateSuccess: '更新成功。',
+    resetSuccess: '重置成功。',
     confirmDel: '确认删除吗？',
     actionSuccess: '操作成功。',
     checkDraft: '退出当前页面将丢失未保存的内容。',
