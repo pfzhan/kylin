@@ -36,10 +36,12 @@
           @click="handleClick"
           @drag="handleDrag"
           @load-more="handleLoadMore">
+          <template>
+            <kap-nodata v-if="databaseArray.length <= 0 || tableArray.length <= 0" size="small"></kap-nodata>
+          </template>
         </TreeList>
       </div>
     </section>
-    <kap-nodata v-if="databaseArray.length <= 0" size="small"></kap-nodata>
     <!-- <el-dialog
       class="datasource-result-modal"
       :title="$t('kylinLang.common.notice')"
@@ -442,6 +444,7 @@ export default class DataSourceBar extends Vue {
       this.loadedTables.length && this.$emit('tables-loaded')
       this.loadedTables = []
       this.failedTables = []
+      this.selectFirstTable()
     } catch (e) {
       handleError(e)
     }
@@ -515,6 +518,7 @@ export default class DataSourceBar extends Vue {
   }
   // datasource tree样式
   .el-tree {
+    min-height: calc(~"100vh - 263px");
     margin-bottom: 40px;
     .left {
       float: left;
@@ -614,6 +618,7 @@ export default class DataSourceBar extends Vue {
     }
     & > .el-tree-node {
       border: 1px solid #CFD8DC;
+      min-height: calc(~"100vh - 263px");
       overflow: hidden;
       margin-bottom: 10px;
       & > .el-tree-node__content {

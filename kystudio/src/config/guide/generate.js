@@ -180,6 +180,12 @@ export function renderLoadHiveTables (target, tables) {
   for (let i in tables) {
     let dbname = i.toLowerCase()
     result.push({
+      eventID: 6,
+      done: false,
+      target: 'tableScroll', // 进入可视区域
+      search: '.guide-' + dbname,
+      timer: switchGuideSpeed(i)
+    }, {
       eventID: 1,
       done: false,
       target: target, // 飞向指定的database

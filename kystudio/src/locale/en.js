@@ -436,7 +436,7 @@ exports.default = {
     speedTipAuto: 'SQL statements in the Waiting List are filtered by the system. You can adjust these rules to manage accelerating workload.',
     speedTipAuto1: 'By default, all SQL sent by ADMIN would be accelerated.',
     speedTipAuto2: 'Click the button Accelerate Now, the system will trigger multiple jobs to accelerate all waiting SQL statements.',
-    monitorTip: 'Tigger a loading data job and you can check jobs via the Monitor.',
+    monitorTip: 'Tigger a loading data job and you can check jobs via the Monitor. The load data job usually takes 5 minutes, and you may exit the guide and check the job later.',
     addModelTip: 'Add a new model. Note that the model name should be unique in the project.',
     addModelTip1: 'Scratch tables to the blank canvas and set at least one fact table.',
     addModelTip2: 'Add dimensions and measures.',

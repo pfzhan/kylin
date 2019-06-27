@@ -85,7 +85,7 @@
                     </template>
                   </el-table-column>
                 </el-table>
-                <el-table class="cuboid-content"  size="medium" nested :data="cuboidContent" border max-height="335">
+                <el-table class="cuboid-content"  size="medium" nested :data="cuboidContent" border>
                   <el-table-column type="index" :label="$t('order')" width="64">
                   </el-table-column>
                   <el-table-column prop="content" :label="$t('content')">

@@ -30,6 +30,7 @@
       @node-click="handleNodeClick"
       @node-expand="handleNodeExpand">
     </el-tree>
+    <slot :renderData="data"></slot>
     <div class="resize-bar" v-show="isShowResizeBar" ref="resize-bar">
       <i></i>
       <i></i>

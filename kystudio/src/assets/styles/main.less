@@ -763,9 +763,34 @@ i[class^=el-icon-]{
     white-space: pre;
   }
 }
-
+// 呼吸灯
+.ky-bln{
+  box-shadow: @guide-button-shadow;
+  animation:bln 1s infinite;
+  -webkit-animation:bln 1s infinite;
+  animation-direction:alternate;
+  -webkit-animation-direction:alternate;
+}
+@keyframes bln
+{
+  0% {box-shadow:@guide-button-shadow; opacity: 0.5;}
+  // 50% {box-shadow:@guide-button-shadow1;opacity: 0.8;}
+  100% {box-shadow:@guide-button-shadow1;opacity: 1;}
+}
+@-webkit-keyframes bln
+{
+  0% {box-shadow:@guide-button-shadow;}
+  100% {box-shadow:@guide-button-shadow1;}
+}
 
 // 组件库覆盖样式（临时，达到一定的数量，整合到组件库）
 .el-tabs__item {
   color: @text-normal-color;
+}
+.el-step__icon {
+  width: 26px;
+  height: 26px;
+  div {
+    line-height: 1;
+  }
 }

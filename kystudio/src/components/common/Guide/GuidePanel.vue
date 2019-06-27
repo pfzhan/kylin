@@ -11,11 +11,12 @@
               <span class="guide-icon" :class="guideType !== 'auto' ? 'el-icon-ksd-expert_mode' : 'el-icon-ksd-smart_mode'"></span>
               <span v-if="guideType !== 'auto'">{{$t('expertMode')}}</span>
               <span v-else>{{$t('smartMode')}}</span>
+              <span>({{currentStep + 1}}/{{guideSteps.length}})</span>
               <i class="el-icon-close ksd-fright ksd-mt-8 ksd-mr-10" @click="closeGuide"></i>
             </div>
           </transition>
           <transition name="panelani">
-            <div class="guid-content" v-if="showGuid.showContent">
+            <div class="guide-content" v-if="showGuid.showContent">
                 <el-tabs v-model="activeName" @tab-click="handleClickTab">
                   <el-tab-pane :label="$t(step.label)" :key="step.name" :name="step.name" v-for="step in guideSteps">
                     <!-- <div class="ksd-ml-20 ksd-mtb-6">操作提示：</div> -->
@@ -28,8 +29,13 @@
                     </ul>
                   </el-tab-pane>
                 </el-tabs>
-                <el-button class="ksd-fright guide-btn" size="mini" :loading="guideLoading" @click="goNextStep" plain>{{getNextBtnText}}</el-button>
-                <el-button class="ksd-fright guide-btn" size="mini"  @click="stopGuide" v-if="showPauseBtn" plain>{{isPause ? $t('goon') : $t('pause')}}</el-button>
+                
+                <div class="guide-footer">
+                  <template v-if="activeName == guideSteps[this.currentStep].name">
+                    <el-button class="ksd-fright guide-btn" size="mini" :class="{'ky-bln': !guideLoading}" :loading="guideLoading" @click="goNextStep" plain>{{getNextBtnText}}</el-button>
+                    <el-button class="ksd-fright guide-btn" size="mini"  @click="stopGuide" v-if="showPauseBtn" plain>{{isPause ? $t('goon') : $t('pause')}}</el-button>
+                  </template>
+                </div>
                 <!-- <el-button class="ksd-fright guide-btn" size="mini"  @click="retryGuide" v-if="showRetryStep" plain>重放该步骤</el-button> -->
             </div>
           </transition>
@@ -467,7 +473,10 @@ export default class GuidePannel extends Vue {
       box-shadow: 0 0 4px 0 rgba(58, 160, 229, 0.9);
       background-image: linear-gradient(193deg, #15bdf1, @base-color);
     }
-    .guid-content {
+    .guide-footer {
+      height:40px;
+    }
+    .guide-content {
       width: 360px;
       float: right;
       border-radius: 2px;
