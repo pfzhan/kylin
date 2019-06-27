@@ -25,6 +25,7 @@ package io.kyligence.kap.rest.config;
 
 import java.util.List;
 
+import io.kyligence.kap.common.hystrix.NCircuitBreaker;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
@@ -75,6 +76,8 @@ public class AppInitializer {
     @EventListener(ApplicationPreparedEvent.class)
     public void init(ApplicationPreparedEvent event) throws Exception {
         val kylinConfig = KylinConfig.getInstanceFromEnv();
+
+        NCircuitBreaker.start(KapConfig.wrap(kylinConfig));
 
         boolean isLeader = false;
         if (!kylinConfig.getServerMode().equals("query")) {

@@ -161,8 +161,10 @@ if [[ -z  $inlfuxd_path ]];then
     fi
 fi
 
+metrics_db_name=`$KYLIN_HOME/bin/get-properties.sh kap.metrics.influx.db`
+metrics_backup_host=`$KYLIN_HOME/bin/get-properties.sh kap.metrics.influx.rpc-service.bind-address`
 if [[ $inlfuxd_path ]];then
-    $inlfuxd_path backup -portable -database KE_METRICS ${diag_tmp_dir}/system_metrics/
+    $inlfuxd_path backup -portable -database $metrics_db_name -host $metrics_backup_host ${diag_tmp_dir}/system_metrics/
 else
     verbose "influxd not found, KE_METRICS backup failed."
 fi

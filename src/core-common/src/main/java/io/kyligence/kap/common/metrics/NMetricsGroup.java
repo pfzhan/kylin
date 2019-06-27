@@ -374,7 +374,7 @@ public class NMetricsGroup {
             final StringBuilder sb = new StringBuilder("select ");
             sb.append(fieldName);
             sb.append(" from ");
-            sb.append(config.getMetricsInfluxMeasurement());
+            sb.append(config.getMetricsMeasurementWithMetadataUrlPrefix());
             sb.append(" where category='");
             sb.append(category);
             sb.append("' and entity='");

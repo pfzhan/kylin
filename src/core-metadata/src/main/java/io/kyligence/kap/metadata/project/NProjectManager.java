@@ -48,6 +48,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
+import io.kyligence.kap.common.hystrix.NCircuitBreaker;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.metadata.model.MaintainModelType;
 import lombok.val;
@@ -100,6 +101,9 @@ public class NProjectManager {
 
         ProjectInstance currentProject = getProject(projectName);
         if (currentProject == null) {
+            //circuit breaker
+            NCircuitBreaker.verifyProjectCreation(listAllProjects().size());
+
             currentProject = ProjectInstance.create(projectName, owner, description, overrideProps, maintainModelType);
             currentProject.initConfig(config);
         } else {

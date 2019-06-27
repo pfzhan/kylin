@@ -45,6 +45,7 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
 
+import io.kyligence.kap.common.hystrix.NCircuitBreaker;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.common.scheduler.SchedulerEventBusFactory;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
@@ -216,8 +217,8 @@ public class NDataModelManager {
 
     public NDataModel createDataModelDesc(NDataModel desc, String owner) {
         String name = desc.getAlias();
-        for (NDataModel model : crud.listAll().stream().filter(model -> !model.isBroken())
-                .collect(Collectors.toList())) {
+        List<NDataModel> allModels = crud.listAll();
+        for (NDataModel model : allModels.stream().filter(model -> !model.isBroken()).collect(Collectors.toList())) {
             if (model.getAlias().equals(name)) {
                 throw new IllegalArgumentException("DataModelDesc '" + name + "' already exists");
             }
@@ -227,6 +228,9 @@ public class NDataModelManager {
         ProjectInstance prj = prjMgr.getProject(project);
         if (prj.containsModel(name))
             throw new IllegalStateException("project " + project + " already contains model " + name);
+
+        //check model count
+        NCircuitBreaker.verifyModelCreation(allModels.size());
 
         desc.setOwner(owner);
         desc = saveDataModelDesc(desc);

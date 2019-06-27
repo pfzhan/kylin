@@ -52,7 +52,7 @@ public class NMetricsInfluxdbReporter implements NMetricsReporter {
         synchronized (this) {
             if (!initialized.get()) {
                 final NMetricsConfig config = new NMetricsConfig(kapConfig);
-                defaultMeasurement = kapConfig.getMetricsInfluxMeasurement();
+                defaultMeasurement = kapConfig.getMetricsMeasurementWithMetadataUrlPrefix();
                 defaultInfluxDb = NMetricsController.getDefaultInfluxDb();
                 underlying = new InfluxdbReporter(defaultInfluxDb, defaultMeasurement,
                         NMetricsController.getDefaultMetricRegistry(), reporterName);

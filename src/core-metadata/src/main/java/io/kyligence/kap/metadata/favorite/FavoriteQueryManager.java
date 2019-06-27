@@ -26,6 +26,7 @@ package io.kyligence.kap.metadata.favorite;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 import org.apache.commons.collections.CollectionUtils;
@@ -37,6 +38,7 @@ import org.apache.kylin.metadata.project.ProjectInstance;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
+import io.kyligence.kap.common.hystrix.NCircuitBreaker;
 import io.kyligence.kap.common.obf.IKeepNames;
 import io.kyligence.kap.metadata.project.NProjectManager;
 
@@ -96,6 +98,9 @@ public class FavoriteQueryManager implements IKeepNames {
     public void create(final Set<FavoriteQuery> favoriteQueries) {
         Set<String> blacklistSqls = FavoriteRuleManager.getInstance(kylinConfig, project).getBlacklistSqls();
 
+        List<FavoriteQuery> all = getAll();
+        final AtomicInteger num = all == null ? new AtomicInteger(0) : new AtomicInteger(all.size());
+
         favoriteQueries.forEach(favoriteQuery -> {
             if (blacklistSqls.contains(favoriteQuery.getSqlPattern()))
                 return;
@@ -103,13 +108,22 @@ public class FavoriteQueryManager implements IKeepNames {
             if (contains(favoriteQuery.getSqlPattern()))
                 return;
 
+            //check fq count
+            NCircuitBreaker.verifyFavoriteQueryCreation(num.getAndIncrement());
+
             favoriteQueryMap.put(favoriteQuery.getSqlPattern(), crud.save(favoriteQuery));
         });
     }
 
     public void createWithoutCheck(final Set<FavoriteQuery> favoriteQueries) {
-        favoriteQueries.forEach(
-                favoriteQuery -> favoriteQueryMap.put(favoriteQuery.getSqlPattern(), crud.save(favoriteQuery)));
+        List<FavoriteQuery> all = getAll();
+        final AtomicInteger num = all == null ? new AtomicInteger(0) : new AtomicInteger(all.size());
+        favoriteQueries.forEach(favoriteQuery -> {
+            //check fq count
+            NCircuitBreaker.verifyFavoriteQueryCreation(num.getAndIncrement());
+
+            favoriteQueryMap.put(favoriteQuery.getSqlPattern(), crud.save(favoriteQuery));
+        });
     }
 
     public FavoriteQuery getByUuid(String uuid) {

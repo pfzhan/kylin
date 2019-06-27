@@ -534,12 +534,46 @@ public class KapConfig {
         return config.getOptional("kap.metrics.influx.rp", "KE_METRICS_RP");
     }
 
-    public String getMetricsInfluxMeasurement() {
-        return config.getOptional("kap.metrics.influx.measurement", "system_metric");
+    public String getMetricsMeasurementWithMetadataUrlPrefix() {
+        StringBuilder sb = new StringBuilder(config.getMetadataUrlPrefix().replaceAll("[^0-9|a-z|A-Z|_]{1,}", "_"));
+        sb.append("_");
+        sb.append(config.getOptional("kap.metrics.influx.measurement", "system_metric"));
+        return sb.toString();
+    }
+
+    public String getMetricsRpcServiceBindAddress() {
+        return config.getOptional("kap.metrics.influx.rpc-service.bind-address", "127.0.0.1:8088");
     }
 
     public int getMetricsPollingIntervalSecs() {
         return Integer.parseInt(config.getOptional("kap.metrics.polling.interval.secs", "60"));
+    }
+
+    /**
+     * kap circuit-breaker
+     */
+    public Boolean isCircuitBreakerEnabled() {
+        return Boolean.valueOf(config.getOptional("kap.circuit-breaker.enabled", "true"));
+    }
+
+    public int getCircuitBreakerThresholdOfProject() {
+        return Integer.parseInt(config.getOptional("kap.circuit-breaker.threshold.project", "100"));
+    }
+
+    public int getCircuitBreakerThresholdOfModel() {
+        return Integer.parseInt(config.getOptional("kap.circuit-breaker.threshold.model", "100"));
+    }
+
+    public int getCircuitBreakerThresholdOfFavoriteQuery() {
+        return Integer.parseInt(config.getOptional("kap.circuit-breaker.threshold.fq", "30000"));
+    }
+
+    public int getCircuitBreakerThresholdOfSqlPatternToBlacklist() {
+        return Integer.parseInt(config.getOptional("kap.circuit-breaker.threshold.sql-pattern-to-blacklist", "30000"));
+    }
+
+    public long getCircuitBreakerThresholdOfQueryResultRowCount() {
+        return Long.parseLong(config.getOptional("kap.circuit-breaker.threshold.query-result-row-count", "2000000"));
     }
 
     /**

@@ -29,6 +29,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.common.hystrix.NCircuitBreaker;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.metadata.cachesync.CachedCrudAssist;
@@ -95,6 +96,9 @@ public class FavoriteRuleManager {
 
         if (conditions.contains(newCondition))
             return;
+
+        //check blacklist count
+        NCircuitBreaker.verifySqlPatternToBlacklist(conditions.size());
 
         conditions.add(newCondition);
         blacklist.setConds(conditions);

@@ -68,6 +68,7 @@ import java.util.stream.Collectors;
 
 import javax.annotation.PostConstruct;
 
+import io.kyligence.kap.common.hystrix.NCircuitBreaker;
 import org.apache.calcite.avatica.ColumnMetaData.Rep;
 import org.apache.calcite.config.CalciteConnectionConfig;
 import org.apache.calcite.jdbc.CalcitePrepare;
@@ -437,6 +438,9 @@ public class QueryService extends BasicService {
             } catch (Throwable th) {
                 logger.warn("Write metric error.", th);
             }
+
+            //check query result row count
+            NCircuitBreaker.verifyQueryResultRowCount(sqlResponse.getResultRowCount());
 
             return sqlResponse;
 
