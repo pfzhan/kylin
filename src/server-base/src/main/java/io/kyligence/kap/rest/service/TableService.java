@@ -1045,19 +1045,14 @@ public class TableService extends BasicService {
         if (originTableExt != null && keepTomb) {
             val validStats = originTableExt.getAllColumnStats().stream()
                     .filter(stats -> !context.getRemoveColumns().contains(stats.getColumnName()))
-                    .filter(stats -> !context.getChangeTypeColumns().contains(stats.getColumnName()))
                     .collect(Collectors.toList());
             val originCols = originTableExt.getAllColumnStats().stream().map(TableExtDesc.ColumnStats::getColumnName)
                     .collect(Collectors.toList());
             val indexMapping = Maps.<Integer, Integer> newHashMap();
             int index = 0;
             for (ColumnDesc column : context.getTableDesc().getColumns()) {
-                if (context.getChangeTypeColumns().contains(column.getName())) {
-                    indexMapping.put(index, -1);
-                } else {
-                    int oldIndex = originCols.indexOf(column.getName());
-                    indexMapping.put(index, oldIndex);
-                }
+                int oldIndex = originCols.indexOf(column.getName());
+                indexMapping.put(index, oldIndex);
                 index++;
             }
             context.getTableExtDesc().setSampleRows(originTableExt.getSampleRows().stream().map(row -> {

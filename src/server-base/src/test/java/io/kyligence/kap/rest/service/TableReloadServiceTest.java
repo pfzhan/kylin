@@ -417,7 +417,7 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
         val originTable = NTableMetadataManager.getInstance(getTestConfig(), PROJECT)
                 .getTableDesc("DEFAULT.TEST_COUNTRY");
         prepareTableExt("DEFAULT.TEST_COUNTRY");
-        addColumn("DEFAULT.TEST_COUNTRY", new ColumnDesc("", "tmp1", "bigint", "", "", "", null));
+        addColumn("DEFAULT.TEST_COUNTRY", true, new ColumnDesc("", "tmp1", "bigint", "", "", "", null));
         tableService.innerReloadTable(PROJECT, "DEFAULT.TEST_COUNTRY");
 
         val model2 = modelManager.getDataModelDescByAlias("nmodel_basic_inner");
@@ -478,13 +478,14 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
 
         // check table sample
         val tableExt = NTableMetadataManager.getInstance(getTestConfig(), PROJECT).getOrCreateTableExt(tableIdentity);
-        Assert.assertEquals(originTable.getColumns().length - 2, tableExt.getAllColumnStats().size());
-        Assert.assertNull(tableExt.getColumnStatsByName("LATITUDE"));
-        Assert.assertNull(tableExt.getColumnStatsByName("NAME"));
+        Assert.assertEquals(originTable.getColumns().length, tableExt.getAllColumnStats().size());
+        int i = 1;
         for (String[] sampleRow : tableExt.getSampleRows()) {
             Assert.assertEquals(originTable.getColumns().length, sampleRow.length);
-            Assert.assertTrue(!Joiner.on(",").join(sampleRow).contains("col_1"));
-            Assert.assertTrue(!Joiner.on(",").join(sampleRow).contains("col_3"));
+            int finalI = i;
+            Assert.assertEquals(Stream.of(0, 1, 2, 3).map(j -> "row_" + finalI + "_col_" + j)
+                    .collect(Collectors.joining(",")), Joiner.on(",").join(sampleRow));
+            i++;
         }
     }
 
@@ -526,6 +527,29 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
         val eventDao = EventDao.getInstance(getTestConfig(), PROJECT);
         var events = eventDao.getJobRelatedEventsByModel(model.getId());
         Assert.assertEquals(1, events.size());
+    }
+
+    @Test
+    public void testReload_ChangeColumnOrder() throws Exception {
+        val tableIdentity = "DEFAULT.TEST_COUNTRY";
+        val originTable = NTableMetadataManager.getInstance(getTestConfig(), PROJECT).getTableDesc(tableIdentity);
+        prepareTableExt(tableIdentity);
+        removeColumn(tableIdentity, "LATITUDE");
+        addColumn(tableIdentity, false, new ColumnDesc("5", "LATITUDE", "double", "", "", "", null));
+
+        tableService.innerReloadTable(PROJECT, tableIdentity);
+
+        // check table sample
+        val tableExt = NTableMetadataManager.getInstance(getTestConfig(), PROJECT)
+                .getOrCreateTableExt("DEFAULT.TEST_COUNTRY");
+        Assert.assertEquals(originTable.getColumns().length, tableExt.getAllColumnStats().size());
+        Assert.assertNull(tableExt.getColumnStatsByName("TMP1"));
+        for (int i = 0; i < tableExt.getSampleRows().size(); i++) {
+            val sampleRow = tableExt.getSampleRows().get(i);
+            int finalI = i;
+            Assert.assertEquals(Stream.of(0, 2, 3, 1).map(j -> "row_" + (finalI + 1) + "_col_" + j)
+                    .collect(Collectors.joining(",")), Joiner.on(",").join(sampleRow));
+        }
     }
 
     @Test
@@ -585,14 +609,15 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
         JsonUtil.writeValueIndent(new FileOutputStream(new File(tablePath)), tableMeta);
     }
 
-    private void addColumn(String tableIdentity, ColumnDesc... columns) throws IOException {
+    private void addColumn(String tableIdentity, boolean useMeta, ColumnDesc... columns) throws IOException {
         val tableManager = NTableMetadataManager.getInstance(getTestConfig(), PROJECT);
         val factTable = tableManager.getTableDesc(tableIdentity);
         String resPath = KylinConfig.getInstanceFromEnv().getMetadataUrl().getIdentifier();
         String tablePath = resPath + "/../data/tableDesc/" + tableIdentity + ".json";
         val tableMeta = JsonUtil.readValue(new File(tablePath), TableDesc.class);
-        val newColumns = Lists.newArrayList(factTable.getColumns());
-        long maxId = newColumns.stream().mapToLong(col -> Long.parseLong(col.getId())).max().getAsLong();
+        val newColumns = Lists.newArrayList(useMeta ? factTable.getColumns() : tableMeta.getColumns());
+        long maxId = Stream.of(useMeta ? tableManager.copyForWrite(factTable).getColumns() : tableMeta.getColumns())
+                .mapToLong(col -> Long.parseLong(col.getId())).max().getAsLong();
         for (ColumnDesc column : columns) {
             maxId++;
             column.setId("" + maxId);
