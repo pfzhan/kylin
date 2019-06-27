@@ -178,7 +178,7 @@
         </el-col>
         <el-col :span="12" class="chart-block">
           <div>
-            <div class="cart-title">{{$t('queryByDay', {type: chartTitle, zone: getLocalTimezone()})}}</div>
+            <div class="cart-title">{{$t('queryByDay', {type: chartTitle, zone: 'UTC'})}}</div>
             <el-select v-model="dateUnit" size="small" class="line-chart-select" @change="loadLineChartData">
               <el-option
                 v-for="item in unitOptions"
@@ -204,7 +204,7 @@
 import Vue from 'vue'
 import { Component, Watch } from 'vue-property-decorator'
 import { mapActions, mapGetters } from 'vuex'
-import { handleSuccess, getLocalTimezone } from '../../util/business'
+import { handleSuccess } from '../../util/business'
 import { handleSuccessAsync, handleError } from '../../util/index'
 import { loadLiquidFillGauge, liquidFillGaugeDefaultSettings } from '../../util/liquidFillGauge'
 import $ from 'jquery'
@@ -214,7 +214,6 @@ import BarChart from './BarChart'
 import LineChart from './LineChart'
 @Component({
   methods: {
-    getLocalTimezone: getLocalTimezone,
     ...mapActions({
       getRulesImpact: 'GET_RULES_IMPACT',
       getQuotaInfo: 'GET_QUOTA_INFO',

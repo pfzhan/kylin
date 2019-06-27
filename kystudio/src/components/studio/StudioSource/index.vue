@@ -225,7 +225,7 @@ export default class StudioSource extends Vue {
     try {
       const res = await this.submitSampling({ project: this.currentSelectedProject, qualifiedTableName: this.selectedTable.fullName, rows: this.samplingRows })
       await handleSuccessAsync(res)
-      this.$message({ type: 'success', message: this.$t('kylinLang.common.submitSuccess') })
+      this.$message({ type: 'success', message: this.$t('samplingTableJobBeginTips', {tableName: this.selectedTable.fullName}) })
       this.sampleVisible = false
       this.sampleLoading = false
     } catch (e) {
