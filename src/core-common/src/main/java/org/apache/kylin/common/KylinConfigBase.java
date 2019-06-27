@@ -597,6 +597,11 @@ abstract public class KylinConfigBase implements Serializable {
         return new Path(path);
     }
 
+    public Path getJobTmpFlatTableDir(String project, String jobId) {
+        String path = getJobTmpDir(project) + jobId + "/flat_table/";
+        return new Path(path);
+    }
+
     // a_b => a/b/
     private String getNestedPath(String id) {
         String[] ids = id.split("_");
@@ -1593,4 +1598,9 @@ abstract public class KylinConfigBase implements Serializable {
     public boolean getSmartModeBrokenModelDeleteEnabled() {
         return Boolean.parseBoolean(getOptional("kylin.metadata.broken-model-deleted-on-smart-mode", "false"));
     }
+
+    public int getPersistFlatTableThreshold() {
+        return Integer.parseInt(getOptional("kap.engine.persist-flattable-threshold", "1"));
+    }
+
 }

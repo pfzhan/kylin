@@ -74,7 +74,7 @@ public class ResourceDetectBeforeCubingJob extends SparkApplication {
 
         for (String segId : segmentIds) {
             NDataSegment seg = dfMgr.getDataflow(dataflowId).getSegment(segId);
-            DFChooser datasetChooser = new DFChooser(nSpanningTree, seg, ss, config, false);
+            DFChooser datasetChooser = new DFChooser(nSpanningTree, seg, jobId, ss, config, false);
             datasetChooser.decideSources();
             NBuildSourceInfo buildFromFlatTable = datasetChooser.flatTableSource();
             if (buildFromFlatTable != null) {

@@ -36,8 +36,10 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.util.StringUtils;
 import org.apache.kylin.common.KapConfig;
+import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.kylin.storage.StorageFactory;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
@@ -83,6 +85,7 @@ public class DFBuildJob extends SparkApplication {
         Set<String> segmentIds = Sets.newHashSet(StringUtils.split(getParam(NBatchConstants.P_SEGMENT_IDS)));
         Set<Long> layoutIds = NSparkCubingUtil.str2Longs(getParam(NBatchConstants.P_LAYOUT_IDS));
         dfMgr = NDataflowManager.getInstance(config, project);
+        List<String> persistedFlatTable = new ArrayList<>();
 
         try {
             IndexPlan indexPlan = dfMgr.getDataflow(dataflowId).getIndexPlan();
@@ -95,7 +98,7 @@ public class DFBuildJob extends SparkApplication {
                 NDataSegment seg = getSegment(segId);
 
                 // choose source
-                DFChooser datasetChooser = new DFChooser(nSpanningTree, seg, ss, config, true);
+                DFChooser datasetChooser = new DFChooser(nSpanningTree, seg, jobId, ss, config, true);
                 datasetChooser.decideSources();
                 NBuildSourceInfo buildFromFlatTable = datasetChooser.flatTableSource();
                 Map<Long, NBuildSourceInfo> buildFromLayouts = datasetChooser.reuseSources();
@@ -103,6 +106,10 @@ public class DFBuildJob extends SparkApplication {
                 infos.clearCuboidsNumPerLayer(segId);
                 // build cuboids from flat table
                 if (buildFromFlatTable != null) {
+                    val path = datasetChooser.persistFlatTableIfNecessary();
+                    if (!path.equals("")) {
+                        persistedFlatTable.add(path);
+                    }
                     build(Collections.singletonList(buildFromFlatTable), segId, nSpanningTree);
                 }
 
@@ -113,6 +120,11 @@ public class DFBuildJob extends SparkApplication {
                 infos.recordSpanningTree(segId, nSpanningTree);
             }
         } finally {
+            for (String path : persistedFlatTable) {
+                val fs = HadoopUtil.getFileSystem(path);
+                fs.delete(new Path(path), true);
+                logger.info("Delete persisted flat table: {}.", path);
+            }
             logger.info("Finish build take" + (System.currentTimeMillis() - start) + " ms");
         }
     }
@@ -234,7 +246,7 @@ public class DFBuildJob extends SparkApplication {
             Dataset<Row> afterAgg = CuboidAggregator.agg(ss, parent, dimIndexes, cuboid.getEffectiveMeasures(), seg);
             for (LayoutEntity layout : nSpanningTree.getLayouts(cuboid)) {
                 logger.info("Build layout:{}, in index:{}", layout.getId(), cuboid.getId());
-                ss.sparkContext().setJobDescription("build " + layout.getId() + "from parent " + parentName);
+                ss.sparkContext().setJobDescription("build " + layout.getId() + " from parent " + parentName);
                 Set<Integer> rowKeys = layout.getOrderedDimensions().keySet();
 
                 Dataset<Row> afterSort = afterAgg

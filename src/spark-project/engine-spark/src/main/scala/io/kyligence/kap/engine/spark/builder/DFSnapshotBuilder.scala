@@ -232,6 +232,7 @@ class DFSnapshotBuilder extends Logging {
         logWarning("Error occurred when estimate repartition number.", t)
         0
     }
+    ss.sparkContext.setJobDescription(s"Build table snapshot ${tableDesc.getIdentity}.")
     if (repartitionNum == 0) {
       logInfo(s"Error may occurred or table size is 0, skip repartition.")
       sourceData.write.parquet(resourcePath)

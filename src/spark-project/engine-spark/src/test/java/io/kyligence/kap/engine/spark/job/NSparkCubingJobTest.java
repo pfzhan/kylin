@@ -40,6 +40,7 @@ import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.RandomUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.StorageURL;
+import org.apache.kylin.common.util.ClassUtil;
 import org.apache.kylin.job.engine.JobEngineConfig;
 import org.apache.kylin.job.exception.ExecuteException;
 import org.apache.kylin.job.execution.ExecutableContext;
@@ -48,8 +49,14 @@ import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
 import org.apache.kylin.job.lock.MockJobLock;
 import org.apache.kylin.metadata.model.SegmentRange;
+import org.apache.kylin.metadata.realization.IRealization;
+import org.apache.kylin.storage.IStorage;
+import org.apache.kylin.storage.IStorageQuery;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
+import org.apache.spark.sql.SparkSession;
+import org.apache.spark.sql.catalyst.plans.logical.Join;
+import org.apache.spark.sql.catalyst.plans.logical.LogicalPlan;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -82,6 +89,8 @@ import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import lombok.val;
+import scala.Option;
+import scala.runtime.AbstractFunction1;
 
 @SuppressWarnings("serial")
 public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
@@ -154,14 +163,10 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
         NDataflowManager dsMgr = NDataflowManager.getInstance(config, getProject());
         NExecutableManager execMgr = NExecutableManager.getInstance(config, getProject());
 
-        NDataflow df = dsMgr.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         Assert.assertTrue(config.getHdfsWorkingDirectory().startsWith("file:"));
 
-        // cleanup all segments first
-        NDataflowUpdate update = new NDataflowUpdate(df.getUuid());
-        update.setToRemoveSegs(df.getSegments().toArray(new NDataSegment[0]));
-        dsMgr.updateDataflow(update);
-        df = dsMgr.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+        cleanupSegments(dsMgr, "89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+        NDataflow df = dsMgr.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
 
         // ready dataflow, segment, cuboid layout
         NDataSegment oneSeg = dsMgr.appendSegment(df, SegmentRange.TimePartitionedSegmentRange.createInfinite());
@@ -238,15 +243,8 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
     public void testBuildPartialLayouts() throws Exception {
         NDataflowManager dsMgr = NDataflowManager.getInstance(getTestConfig(), getProject());
         String dfName = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
+        cleanupSegments(dsMgr, dfName);
         NDataflow df = dsMgr.getDataflow(dfName);
-
-        // cleanup all segments first
-        NDataflowUpdate update = new NDataflowUpdate(df.getUuid());
-        update.setToRemoveSegs(df.getSegments().toArray(new NDataSegment[0]));
-        dsMgr.updateDataflow(update);
-
-        // build
-        df = dsMgr.getDataflow(dfName);
         IndexPlan indexPlan = df.getIndexPlan();
         IndexEntity ie = indexPlan.getIndexEntity(10000);
         IndexEntity ie2 = indexPlan.getIndexEntity(0);
@@ -265,11 +263,8 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
         NDataflowManager dsMgr = NDataflowManager.getInstance(config, getProject());
         NExecutableManager execMgr = NExecutableManager.getInstance(config, getProject());
 
+        cleanupSegments(dsMgr, dataflowId);
         NDataflow df = dsMgr.getDataflow(dataflowId);
-        NDataflowUpdate update = new NDataflowUpdate(df.getUuid());
-        update.setToRemoveSegs(df.getSegments().toArray(new NDataSegment[0]));
-        dsMgr.updateDataflow(update);
-        df = dsMgr.getDataflow(dataflowId);
 
         List<LayoutEntity> round1 = new ArrayList<>();
         round1.add(df.getIndexPlan().getCuboidLayout(20_000_020_001L));
@@ -300,11 +295,8 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
     public void testCancelCubingJob() throws Exception {
         NDataflowManager dsMgr = NDataflowManager.getInstance(config, getProject());
         NExecutableManager execMgr = NExecutableManager.getInstance(config, getProject());
+        cleanupSegments(dsMgr, "89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         NDataflow df = dsMgr.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
-        NDataflowUpdate update = new NDataflowUpdate(df.getUuid());
-        update.setToRemoveSegs(df.getSegments().toArray(new NDataSegment[0]));
-        dsMgr.updateDataflow(update);
-        df = dsMgr.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         Assert.assertEquals(0, df.getSegments().size());
         // ready dataflow, segment, cuboid layout
         NDataSegment oneSeg = dsMgr.appendSegment(df, SegmentRange.TimePartitionedSegmentRange.createInfinite());
@@ -351,11 +343,8 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
 
         NDataflowManager dsMgr = NDataflowManager.getInstance(config, getProject());
         NExecutableManager execMgr = NExecutableManager.getInstance(config, getProject());
+        cleanupSegments(dsMgr, "89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         NDataflow df = dsMgr.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
-        NDataflowUpdate update = new NDataflowUpdate(df.getUuid());
-        update.setToRemoveSegs(df.getSegments().toArray(new NDataSegment[0]));
-        dsMgr.updateDataflow(update);
-        df = dsMgr.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         Assert.assertEquals(0, df.getSegments().size());
         // ready dataflow, segment, cuboid layout
         List<LayoutEntity> layouts = df.getIndexPlan().getAllLayouts();
@@ -432,7 +421,6 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
     public void testNSparkCubingJobUsingModelUuid() {
         String modelAlias = "nmodel_basic_alias";
         NDataflowManager dsMgr = NDataflowManager.getInstance(config, getProject());
-        NDataflow df = dsMgr.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
 
         // set model alias
         NDataModelManager dataModelManager = NDataModelManager.getInstance(config, getProject());
@@ -440,11 +428,8 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
         dataModel.setAlias(modelAlias);
         dataModelManager.updateDataModelDesc(dataModel);
 
-        // cleanup all segments first
-        NDataflowUpdate update = new NDataflowUpdate(df.getUuid());
-        update.setToRemoveSegs(df.getSegments().toArray(new NDataSegment[0]));
-        dsMgr.updateDataflow(update);
-        df = dsMgr.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+        cleanupSegments(dsMgr, "89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+        NDataflow df = dsMgr.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
 
         // ready dataflow, segment, cuboid layout
         NDataSegment oneSeg = dsMgr.appendSegment(df, SegmentRange.TimePartitionedSegmentRange.createInfinite());
@@ -506,4 +491,79 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
             }
         }
     }
+
+    @Test
+    public void testBuildFromFlatTable() throws Exception {
+        System.setProperty("kylin.storage.provider.20", MockupStorageEngine.class.getName());
+
+        try {
+            NDataflowManager dsMgr = NDataflowManager.getInstance(getTestConfig(), getProject());
+            String dfName = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
+            cleanupSegments(dsMgr, dfName);
+            NDataflow df = dsMgr.getDataflow(dfName);
+            IndexPlan indexPlan = df.getIndexPlan();
+            IndexEntity ie = indexPlan.getIndexEntity(10000);
+            IndexEntity ie2 = indexPlan.getIndexEntity(30000);
+            List<LayoutEntity> layouts = new ArrayList<>();
+            layouts.addAll(ie.getLayouts());
+            layouts.addAll(ie2.getLayouts());
+            buildCuboid(dfName, SegmentRange.TimePartitionedSegmentRange.createInfinite(),
+                    Sets.newLinkedHashSet(layouts), true);
+        } finally {
+            System.clearProperty("kylin.storage.provider.20");
+        }
+    }
+
+    private void cleanupSegments(NDataflowManager dsMgr, String dfName) {
+        NDataflow df = dsMgr.getDataflow(dfName);
+
+        // cleanup all segments first
+        NDataflowUpdate update = new NDataflowUpdate(df.getUuid());
+        update.setToRemoveSegs(df.getSegments().toArray(new NDataSegment[0]));
+        dsMgr.updateDataflow(update);
+    }
+
+    public static class MockParquetStorage extends ParquetStorage {
+
+        @Override
+        public Dataset<Row> getFrom(String path, SparkSession ss) {
+            return super.getFrom(path, ss);
+        }
+
+        @Override
+        public void saveTo(String path, Dataset<Row> data, SparkSession ss) {
+            Option<LogicalPlan> option = data.queryExecution().optimizedPlan().find(new AbstractFunction1<LogicalPlan, Object>() {
+                @Override
+                public Object apply(LogicalPlan v1) {
+                    return v1 instanceof Join;
+                }
+            });
+            Assert.assertFalse(option.isDefined());
+            super.saveTo(path, data, ss);
+        }
+    }
+
+    public static class MockupStorageEngine implements IStorage {
+
+        @Override
+        public IStorageQuery createQuery(IRealization realization) {
+            return null;
+        }
+
+        @Override
+        public <I> I adaptToBuildEngine(Class<I> engineInterface) {
+            Class clz;
+            try {
+                clz = Class.forName("io.kyligence.kap.engine.spark.NSparkCubingEngine$NSparkCubingStorage");
+            } catch (ClassNotFoundException e) {
+                throw new RuntimeException(e);
+            }
+            if (engineInterface == clz) {
+                return (I) ClassUtil.newInstance("io.kyligence.kap.engine.spark.job.NSparkCubingJobTest$MockParquetStorage");
+            } else {
+                throw new RuntimeException("Cannot adapt to " + engineInterface);
+            }
+        }
+    }
+
 }

@@ -31,12 +31,16 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparkSession;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
 
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
 
 public class NBuildSourceInfo {
+    protected static final Logger logger = LoggerFactory.getLogger(NBuildSourceInfo.class);
+
     private Dataset<Row> flattableDS;
     private SparkSession ss;
     private long byteSize;
@@ -57,13 +61,19 @@ public class NBuildSourceInfo {
         this.flattableDS = flattableDS;
     }
 
+    public Dataset<Row> getFlattableDS() {
+        return flattableDS;
+    }
+
     public Dataset<Row> getParentDS() {
-        if (flattableDS != null) {
-            return flattableDS;
-        } else {
-            Preconditions.checkState(!StringUtils.isBlank(parentStoragePath), "Parent storage path is blank.");
+        if (!StringUtils.isBlank(parentStoragePath)) {
+            logger.info("parent storage path exists, read from it. path:{}", parentStoragePath);
             Preconditions.checkNotNull(ss, "SparkSession is null is NBuildSourceInfo.");
             return ss.read().parquet(parentStoragePath);
+        } else {
+            Preconditions.checkState(flattableDS != null, "Path and DS can no be empty at the same time.");
+            logger.info("parent storage path not exists, use flattable dataset.");
+            return flattableDS;
         }
     }
 

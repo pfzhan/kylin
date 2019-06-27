@@ -29,12 +29,15 @@ import io.kyligence.kap.metadata.cube.cuboid.{NCuboidLayoutChooser, NSpanningTre
 import io.kyligence.kap.metadata.cube.model._
 import org.apache.kylin.common.KylinConfig
 import org.apache.spark.internal.Logging
-import org.apache.spark.sql.{Dataset, Row, SparkSession}
+import org.apache.spark.sql.functions.col
+import org.apache.spark.sql.{Dataset, Row, SaveMode, SparkSession}
 
 import scala.collection.JavaConverters._
+import scala.collection.mutable
 
 class DFChooser(toBuildTree: NSpanningTree,
                 var seg: NDataSegment,
+                jobId: String,
                 ss: SparkSession,
                 config: KylinConfig,
                 needEncoding: Boolean)
@@ -71,6 +74,38 @@ class DFChooser(toBuildTree: NSpanningTree,
         }
       }
     map.foreach(entry => reuseSources.put(entry._1, entry._2))
+  }
+
+  def persistFlatTableIfNecessary(): String = {
+    var path = ""
+    if (flatTableSource != null
+      && flatTableSource.getToBuildCuboids.size() >= config.getPersistFlatTableThreshold) {
+      val columns = new mutable.ListBuffer[String]
+      val df = flatTableSource.getFlattableDS
+
+      val colIndex = df.schema.fieldNames.zipWithIndex.map(tp => (tp._2, tp._1)).toMap
+      flatTableSource.getToBuildCuboids.asScala.foreach { c =>
+        columns.appendAll(c.getDimensions.asScala.map(_.toString))
+
+        c.getEffectiveMeasures.asScala.foreach { mea =>
+          val parameters = mea._2.getFunction.getParameters.asScala
+          if (parameters.head.isColumnType) {
+            val measureUsedCols = parameters.map(p => colIndex.apply(flatTableDesc.getColumnIndex(p.getColRef)).toString)
+            columns.appendAll(measureUsedCols)
+          }
+        }
+      }
+
+      df.select(columns.map(col): _*)
+      if (df.schema.nonEmpty) {
+        path = s"${config.getJobTmpFlatTableDir(seg.getProject, jobId)}"
+        ss.sparkContext.setJobDescription("Persist flat table.")
+        df.write.mode(SaveMode.Overwrite).parquet(path)
+        logInfo(s"Persist flat table into:$path. Selected cols in table are $columns.")
+        flatTableSource.setParentStoragePath(path)
+      }
+    }
+    path
   }
 
   private def getSourceFromLayout(layout: LayoutEntity,
@@ -110,11 +145,13 @@ class DFChooser(toBuildTree: NSpanningTree,
 object DFChooser {
   def apply(toBuildTree: NSpanningTree,
             seg: NDataSegment,
+            jobId: String,
             ss: SparkSession,
             config: KylinConfig,
             needEncoding: Boolean): DFChooser =
     new DFChooser(toBuildTree: NSpanningTree,
       seg: NDataSegment,
+      jobId,
       ss: SparkSession,
       config: KylinConfig,
       needEncoding)
