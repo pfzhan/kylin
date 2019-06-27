@@ -162,6 +162,7 @@ export default class SourceTableModal extends Vue {
     this._showForm()
   }
   handleClose (isSubmit = false) {
+    this.isLoadingNewRange = false
     this.hideModal()
     this.callback && this.callback(isSubmit)
   }
@@ -180,6 +181,9 @@ export default class SourceTableModal extends Vue {
     try {
       const submitData = _getNewestTableRange(this.project, this.table)
       const response = await this.fetchNewestTableRange(submitData)
+      if (submitData.table !== this.table) {
+        return
+      }
       const result = await handleSuccessAsync(response)
       const startTime = +result.start_time
       const endTime = +result.end_time

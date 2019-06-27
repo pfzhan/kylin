@@ -139,6 +139,9 @@
           model: this.modelDesc.uuid
         }
         const response = await this.fetchNewestModelRange(submitData)
+        if (submitData.model !== this.modelDesc.uuid) { // 避免ajax耗时太长导致会覆盖新的model的load range数据
+          return
+        }
         const result = await handleSuccessAsync(response)
         const startTime = +result.start_time
         const endTime = +result.end_time
