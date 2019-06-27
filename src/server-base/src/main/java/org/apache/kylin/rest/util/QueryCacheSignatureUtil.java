@@ -43,27 +43,32 @@ package org.apache.kylin.rest.util;
 
 import java.util.List;
 
-import io.kyligence.kap.metadata.query.NativeQueryRealization;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.apache.kylin.rest.response.SQLResponse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 
+import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
+import io.kyligence.kap.metadata.query.NativeQueryRealization;
 import lombok.val;
 
 public class QueryCacheSignatureUtil {
+    private static final Logger logger = LoggerFactory.getLogger(QueryCacheSignatureUtil.class);
 
     public static String createCacheSignature(SQLResponse response, String project) {
         List<String> signature = Lists.newArrayList();
         val realizations = response.getNativeRealizations();
         Preconditions.checkState(CollectionUtils.isNotEmpty(realizations));
-        for (int i = 0; i < realizations.size(); i++) {
-            signature.add(generateSignature(realizations.get(i), project));
+        for (NativeQueryRealization realization : realizations) {
+            signature.add(generateSignature(realization, project, response.getDuration()));
         }
         return Joiner.on(",").join(signature);
     }
@@ -71,16 +76,34 @@ public class QueryCacheSignatureUtil {
     public static boolean checkCacheExpired(SQLResponse sqlResponse, String project) {
         val signature = sqlResponse.getSignature();
         if (StringUtils.isBlank(signature)) {
-            return false;
+            // pushdown cache is not supported by default because checkCacheExpired always return true
+            return true;
+        }
+        if (signature.split(",").length != sqlResponse.getNativeRealizations().size()) {
+            return true;
         }
         val lastSignature = createCacheSignature(sqlResponse, project);
         return !signature.equals(lastSignature);
     }
 
-    private static String generateSignature(NativeQueryRealization realization, String project) {
+    private static String generateSignature(NativeQueryRealization realization, String project, long sqlDuration) {
         val modelId = realization.getModelId();
-        Preconditions.checkState(StringUtils.isNotBlank(modelId));
-        val dataflow = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project).getDataflow(modelId);
-        return dataflow == null ? "" : String.valueOf(dataflow.getLastModified());
+        val layoutId = realization.getLayoutId();
+        try {
+            val dataflow = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project).getDataflow(modelId);
+            List<Long> allLayoutTimes = Lists.newLinkedList();
+            for (NDataSegment seg : dataflow.getSegments(SegmentStatusEnum.READY)) {
+                long now = System.currentTimeMillis();
+                long latestTime = seg.getSegDetails().getLastModified();
+                if (latestTime <= now && latestTime >= (now - sqlDuration)) {
+                    return "";
+                }
+                allLayoutTimes.add(seg.getLayout(layoutId).getCreateTime());
+            }
+            return Joiner.on("_").join(allLayoutTimes);
+        } catch (NullPointerException e) {
+            logger.warn("NPE occurred because metadata changed during query.", e);
+            return "";
+        }
     }
 }
