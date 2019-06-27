@@ -24,23 +24,37 @@
 
 package io.kyligence.kap.spark.common.logging;
 
-import lombok.val;
+import java.io.File;
+import java.io.IOException;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.Arrays;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Semaphore;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
+
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.reflect.FieldUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.security.UserGroupInformation;
+import org.apache.kylin.common.util.HadoopUtil;
+import org.apache.log4j.Layout;
+import org.apache.log4j.Level;
 import org.apache.log4j.spi.LoggingEvent;
+import org.apache.spark.SparkEnv;
 import org.junit.Assert;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.mockito.Mockito;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
-import java.util.Arrays;
+import lombok.val;
 
 public class HdfsAppenderTest {
 
@@ -164,5 +178,112 @@ public class HdfsAppenderTest {
         val field = FieldUtils.getField(LoggingEvent.class, "timeStamp");
         FieldUtils.removeFinalModifier(field);
         field.setLong(mockEvent, timestamp);
+    }
+
+    public static final Logger logger = LoggerFactory.getLogger(HdfsAppenderTest.class);
+
+    @Test
+    public void testHdfsAppender() throws InterruptedException, IOException {
+        String workingdir = "/tmp/work";
+        System.setProperty("kap.hdfs.working.dir", workingdir);
+        Configuration conf = new Configuration();
+        HdfsAppender hdfsAppender = new HdfsAppender();
+        hdfsAppender.setIdentifier("sparder_app_id");
+        hdfsAppender.executorId = "94569abc-51aa-4f71-8ce5-f1e04835a848";
+        hdfsAppender.setCategory("job");
+        SparkEnv.setUGI(UserGroupInformation.getLoginUser());
+        try {
+            boolean isFinish = RunBenchmark(hdfsAppender, 4, 1000000, 10_000L);
+            Assert.assertTrue(isFinish);
+            // concurrent put make it more than 1000000
+            Assert.assertEquals(1000000, FileUtils.readLines(new File(hdfsAppender.outPutPath)).size());
+        } finally {
+            HadoopUtil.getFileSystem(new Path(workingdir), conf).deleteOnExit(new Path(workingdir));
+
+        }
+    }
+
+    @Test
+    public void testErrorHdfsAppender() throws InterruptedException, IOException {
+        String workingdir = "/tmp/work";
+        System.setProperty("kap.hdfs.working.dir", workingdir);
+        Configuration conf = new Configuration();
+        TestErrorHdfsAppender hdfsAppender = new TestErrorHdfsAppender();
+        hdfsAppender.setIdentifier("sparder_app_id");
+        hdfsAppender.executorId = "94569abc-51aa-4f71-8ce5-f1e04835a848";
+        hdfsAppender.setCategory("job");
+        SparkEnv.setUGI(UserGroupInformation.getLoginUser());
+        try {
+            System.setProperty("kap.hdfs.working.dir", "/tmp/work");
+            boolean isFinish = RunBenchmark(hdfsAppender, 4, 1000000, 100_000L);
+            Assert.assertTrue(isFinish);
+            // throw exception make it miss some event
+            Assert.assertTrue(1000000 > FileUtils.readLines(new File(hdfsAppender.outPutPath)).size());
+        } finally {
+            hdfsAppender.close();
+            HadoopUtil.getFileSystem(new Path(workingdir), conf).deleteOnExit(new Path(workingdir));
+        }
+    }
+
+    private boolean RunBenchmark(final HdfsAppender hdfsAppender, int threadNumber, final int size, long timeout)
+            throws InterruptedException, IOException {
+        long start = System.currentTimeMillis();
+        hdfsAppender.setHdfsWorkingDir("/tmp/work");
+        hdfsAppender.setLayout(new Layout() {
+            @Override
+            public String format(LoggingEvent loggingEvent) {
+                return loggingEvent.toString() + "\n";
+            }
+
+            @Override
+            public boolean ignoresThrowable() {
+                return false;
+            }
+
+            @Override
+            public void activateOptions() {
+
+            }
+        });
+        hdfsAppender.activateOptions();
+        final LoggingEvent loggingEvent = new LoggingEvent("1", org.apache.log4j.Logger.getLogger("sdad"), 10,
+                Level.ERROR, "sdadas", new Throwable("sd"));
+        final AtomicLong atomicLong = new AtomicLong();
+        final CountDownLatch countDownLatch = new CountDownLatch(threadNumber);
+        final Semaphore semaphore = new Semaphore(size);
+        final long l = System.currentTimeMillis();
+        for (int i = 0; i < threadNumber; i++) {
+            new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        while (true) {
+                            if (semaphore.tryAcquire(10L, TimeUnit.MILLISECONDS)) {
+                                hdfsAppender.append(loggingEvent);
+                                atomicLong.incrementAndGet();
+                                if (atomicLong.get() % 100000 == 0) {
+                                    System.out.println(
+                                            atomicLong.get() / ((System.currentTimeMillis() - l + 1000) / 1000));
+                                }
+                            } else {
+                                break;
+                            }
+                        }
+                    } catch (Throwable e) {
+                        e.printStackTrace();
+                    } finally {
+                        countDownLatch.countDown();
+                    }
+                }
+            }).start();
+        }
+        countDownLatch.await();
+        while (hdfsAppender.logBufferQue.size() > 0) {
+            if ((System.currentTimeMillis() - start) > timeout) {
+                return false;
+            }
+        }
+        hdfsAppender.close();
+        return true;
     }
 }

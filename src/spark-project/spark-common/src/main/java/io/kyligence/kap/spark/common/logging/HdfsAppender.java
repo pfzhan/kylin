@@ -37,7 +37,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingDeque;
 
-import com.google.common.annotations.VisibleForTesting;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.conf.Configuration;
@@ -53,6 +52,8 @@ import org.apache.log4j.spi.LoggingEvent;
 import org.apache.spark.SparkEnv;
 import org.apache.spark.deploy.yarn.YarnSparkHadoopUtil;
 
+import com.google.common.annotations.VisibleForTesting;
+
 public class HdfsAppender extends AppenderSkeleton {
 
     private static long A_DAY_MILLIS = 24 * 60 * 60 * 1000L;
@@ -65,7 +66,8 @@ public class HdfsAppender extends AppenderSkeleton {
     FileSystem fileSystem = null;
     String outPutPath;
     String executorId;
-    private BlockingDeque<LoggingEvent> logBufferQue = null;
+    @VisibleForTesting
+    BlockingDeque<LoggingEvent> logBufferQue = null;
     private ExecutorService appendHdfsService = null;
     private HdfsFlushService flushService;
     long startTime = 0;
@@ -104,10 +106,14 @@ public class HdfsAppender extends AppenderSkeleton {
         logBufferQue = new LinkedBlockingDeque<>(logQueueCapacity);
 
         appendHdfsService = Executors.newSingleThreadExecutor();
-        flushService = new HdfsFlushService();
+        flushService = initService();
         appendHdfsService.execute(flushService);
 
         Runtime.getRuntime().addShutdownHook(new Thread((this::close)));
+    }
+
+    protected HdfsFlushService initService() {
+        return new HdfsFlushService();
     }
 
     @Override
@@ -234,7 +240,7 @@ public class HdfsAppender extends AppenderSkeleton {
         public void run() {
             setName("SparkExecutorLogAppender");
             long start = System.currentTimeMillis();
-            while (!Thread.currentThread().isInterrupted()) {
+            while (true) {
                 try {
                     if (SparkEnv.get() == null && StringUtils.isBlank(executorId)) {
                         LogLog.warn("Waiting for spark executor to start");
@@ -255,21 +261,20 @@ public class HdfsAppender extends AppenderSkeleton {
                         flushLog(curSize);
 
                     }
-                } catch (IOException eio) {
-                    LogLog.error("IOException when flushing, retry after sleep 10s", eio);
-                    try {
-                        Thread.sleep(10000);
-                    } catch (InterruptedException e) {
-                        LogLog.warn("Interrupted!", e);
-                        // Restore interrupted state...
-                        Thread.currentThread().interrupt();
+                } catch (Throwable th) {
+                    if (logBufferQue.size() == logQueueCapacity) {
+                        int removeNum = 1000;
+                        while (removeNum > 0) {
+                            try {
+                                logBufferQue.take();
+                            } catch (InterruptedException e) {
+                                e.printStackTrace();
+                            } finally {
+                                removeNum--;
+                            }
+                        }
                     }
-                } catch (InterruptedException e) {
-                    LogLog.warn("Flush log interrupted!", e);
-                    // Restore interrupted state...
-                    Thread.currentThread().interrupt();
-                } catch (Exception e) {
-                    LogLog.error("Unknown exception, ignore", e);
+                    th.printStackTrace();
                 }
             }
         }
@@ -349,7 +354,7 @@ public class HdfsAppender extends AppenderSkeleton {
             bufferedWriter.write(buf);
         }
 
-        private void flush() throws IOException {
+        protected void flush() throws IOException {
             bufferedWriter.flush();
             outStream.hsync();
         }
