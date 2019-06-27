@@ -221,7 +221,7 @@ public class ModelSemanticTest extends AbstractMVCIntegrationTestCase {
                 "        }\n" + //
                 "}", NAggregationGroup.class);
         val request = UpdateRuleBasedCuboidRequest.builder().project(DEFAULT_PROJECT).modelId(MODEL_ID)
-                .dimensions(Lists.newArrayList(1, 2, 3, 4)).aggregationGroups(Lists.newArrayList(group1)).build();
+                .aggregationGroups(Lists.newArrayList(group1)).build();
         mockMvc.perform(MockMvcRequestBuilders.put("/api/index_plans/rule").contentType(MediaType.APPLICATION_JSON)
                 .content(JsonUtil.writeValueAsString(request))
                 .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))

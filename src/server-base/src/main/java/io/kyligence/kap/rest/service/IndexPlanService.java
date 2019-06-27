@@ -84,8 +84,7 @@ public class IndexPlanService extends BasicService {
         Preconditions.checkNotNull(model);
 
         val indexPlan = indexPlanManager.updateIndexPlan(originIndexPlan.getUuid(), copyForWrite -> {
-            val newRuleBasedCuboid = new NRuleBasedIndex();
-            BeanUtils.copyProperties(request, newRuleBasedCuboid);
+            val newRuleBasedCuboid = request.convertToRuleBasedIndex();
             newRuleBasedCuboid.setLastModifiedTime(System.currentTimeMillis());
             copyForWrite.setRuleBasedIndex(newRuleBasedCuboid);
         });
@@ -221,9 +220,7 @@ public class IndexPlanService extends BasicService {
         request.setAggregationGroups(aggregationGroupsCopy);
 
         try {
-            val newRuleBasedCuboid = new NRuleBasedIndex();
-            BeanUtils.copyProperties(request, newRuleBasedCuboid);
-            indexPlan.setRuleBasedIndex(newRuleBasedCuboid);
+            indexPlan.setRuleBasedIndex(request.convertToRuleBasedIndex());
         } catch (IllegalStateException e) {
             log.error(e.getMessage());
         }
@@ -252,11 +249,6 @@ public class IndexPlanService extends BasicService {
     }
 
     public void checkIndexCountWithinLimit(UpdateRuleBasedCuboidRequest request) {
-        val indexPlan = getIndexPlan(request.getProject(), request.getModelId()).copy();
-        val newRuleBasedCuboid = new NRuleBasedIndex();
-        BeanUtils.copyProperties(request, newRuleBasedCuboid);
-        indexPlan.setRuleBasedIndex(newRuleBasedCuboid);
-
         val maxCount = getConfig().getCubeAggrGroupMaxCombination();
         List<NAggregationGroup> aggGroups = request.getAggregationGroups();
         for (NAggregationGroup aggGroup : aggGroups) {

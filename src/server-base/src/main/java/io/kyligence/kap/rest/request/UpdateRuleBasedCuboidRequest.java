@@ -24,15 +24,23 @@
 package io.kyligence.kap.rest.request;
 
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.google.common.collect.Lists;
 
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 import io.kyligence.kap.metadata.cube.cuboid.NAggregationGroup;
+import io.kyligence.kap.metadata.cube.model.NRuleBasedIndex;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.val;
+import org.apache.commons.collections.CollectionUtils;
+import org.springframework.beans.BeanUtils;
 
 @Builder
 @AllArgsConstructor
@@ -44,13 +52,110 @@ public class UpdateRuleBasedCuboidRequest {
 
     private String modelId;
 
-    @Builder.Default
-    private List<Integer> dimensions = Lists.newArrayList();
-
     @JsonProperty("aggregation_groups")
     private List<NAggregationGroup> aggregationGroups;
 
     @Builder.Default
     @JsonProperty("load_data")
     private boolean isLoadData = true;
+
+    public NRuleBasedIndex convertToRuleBasedIndex() {
+        val newRuleBasedCuboid = new NRuleBasedIndex();
+        BeanUtils.copyProperties(this, newRuleBasedCuboid);
+        newRuleBasedCuboid.setDimensions(getSortedDimensions());
+
+        return newRuleBasedCuboid;
+    }
+
+    /**
+     * for example,
+     * [1,2,3] [4,3] [2,4] [5,4]
+     *
+     * this algorithm sorts them from last to first
+     *
+     * step 1:
+     * mergedAndSorted = [5, 4]
+     * trying merge [5, 4] to [2, 4]
+     * the point is merging new elements to former agg group!!
+     * currentSortedList = [2, 4]
+     * 5 -> 5 is before 4, so insert 5 before 4
+     * currentSortedList = [2, 5, 4]
+     * so mergedAndSorted = [2, 5, 4], assgined from currentSortedList
+     *
+     * step 2:
+     * mergedAndSorted = [2, 5, 4]
+     * trying merge new elements from [2, 5, 4] to [4, 3]
+     * 2 -> 2 is before 4, so insert 2 before 4
+     * currentSortedList = [2, 4, 3]
+     * 5 -> 5 is before 4, so insert 5 before 4
+     * currentSortedList = [2, 5, 4, 3]
+     * assign currentSortedList to mergedAndSorted
+     *
+     * step 3:
+     * mergedAndSorted = [2, 5, 4, 3]
+     * trying merge new elements from [2, 5, 4, 3] to [1, 2, 3]
+     * 5 -> 5 is before 3, so insert 5 before 3
+     * currentSortedList = [1, 2, 5, 3]
+     * 4 -> 4 is before 3, so insert 4 before 3
+     * currentSortedList = [1, 2, 5, 4, 3]
+     *
+     * get final result mergedAndSorted = [1, 2, 5, 4, 3]
+     * @return
+     */
+
+    public List<Integer> getSortedDimensions() {
+        if (CollectionUtils.isEmpty(aggregationGroups)) {
+            return Lists.newArrayList();
+        }
+
+        // final result
+        List<Integer> mergedAndSorted = Lists.newArrayList();
+
+        // merging from bottom to top
+        for (int aggGroupIndex = aggregationGroups.size() - 1; aggGroupIndex >= 0; aggGroupIndex--) {
+            val includes = aggregationGroups.get(aggGroupIndex).getIncludes();
+            if (includes == null || includes.length == 0)
+                continue;
+
+            final List<Integer> currentSortedList = Lists.newArrayList(includes);
+            Map<Integer, Integer> mergedAndSortedIndexMap = Maps.newHashMap();
+
+            int count = 0;
+            for (int element : mergedAndSorted) {
+                mergedAndSortedIndexMap.put(element, count);
+                count++;
+            }
+
+            for (int dimensionId : mergedAndSorted) {
+                calculateCurrentSortdList(mergedAndSortedIndexMap, currentSortedList, dimensionId);
+            }
+
+            mergedAndSorted = Lists.newArrayList(currentSortedList);
+        }
+
+        return mergedAndSorted;
+    }
+
+    private void calculateCurrentSortdList(Map<Integer, Integer> mergedAndSortedIndexMap, List<Integer> currentSortedList, int dimensionId) {
+        boolean needToAppendToTail = true;
+        Set<Integer> currentSortedSet = Sets.newHashSet(currentSortedList);
+        if (currentSortedSet.contains(dimensionId)) {
+            return;
+        }
+
+        Integer indexOfNewDimension = mergedAndSortedIndexMap.get(dimensionId);
+
+        for (int oldDimensionId : currentSortedSet) {
+            Integer indexOfOldDimension = mergedAndSortedIndexMap.get(oldDimensionId);
+
+            if (indexOfOldDimension != null && indexOfNewDimension < indexOfOldDimension) {
+                currentSortedList.add(currentSortedList.indexOf(oldDimensionId), dimensionId);
+                needToAppendToTail = false;
+                break;
+            }
+        }
+
+        if (needToAppendToTail)
+            currentSortedList.add(dimensionId);
+    }
 }

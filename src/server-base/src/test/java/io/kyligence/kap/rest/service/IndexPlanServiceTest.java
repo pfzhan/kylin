@@ -30,6 +30,7 @@ import java.util.List;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.JsonUtil;
+import org.apache.kylin.cube.model.SelectRule;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.response.AggIndexCombResult;
 import org.apache.kylin.rest.response.AggIndexResponse;
@@ -99,49 +100,113 @@ public class IndexPlanServiceTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void testUpdateIndexPlan() {
+    public void testUpdateSingleRuleBasedCuboid() {
         val indexPlanManager = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
         val origin = indexPlanManager.getIndexPlan("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+        NAggregationGroup aggregationGroup = new NAggregationGroup();
+        aggregationGroup.setIncludes(new Integer[]{1, 2, 3, 4});
+        val selectRule = new SelectRule();
+        selectRule.mandatoryDims = new Integer[0];
+        selectRule.hierarchyDims = new Integer[0][0];
+        selectRule.jointDims = new Integer[0][0];
+        aggregationGroup.setSelectRule(selectRule);
         val saved = indexPlanService.updateRuleBasedCuboid("default",
                 UpdateRuleBasedCuboidRequest.builder().project("default").modelId("89af4ee2-2cdb-4b07-b39e-4c29856309aa")
-                        .dimensions(Arrays.asList(1, 2, 3, 4))
-                        .aggregationGroups(Lists.<NAggregationGroup> newArrayList()).build()).getFirst();
+                        .aggregationGroups(Lists.<NAggregationGroup> newArrayList(aggregationGroup)).build()).getFirst();
         Assert.assertNotNull(saved.getRuleBasedIndex());
         Assert.assertEquals(4, saved.getRuleBasedIndex().getDimensions().size());
-        Assert.assertEquals(origin.getAllLayouts().size() + 1, saved.getAllLayouts().size());
+        Assert.assertEquals(origin.getAllLayouts().size() + 15, saved.getAllLayouts().size());
     }
 
     @Test
-    public void testUpdateEmptyRule() {
-        val indexPlanManager = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
-        val origin = indexPlanManager.getIndexPlan("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
-        val saved = indexPlanService.updateRuleBasedCuboid("default",
-                UpdateRuleBasedCuboidRequest.builder().project("default").modelId("89af4ee2-2cdb-4b07-b39e-4c29856309aa")
-                        .dimensions(Arrays.asList(1, 2, 3, 4))
-                        .aggregationGroups(Lists.<NAggregationGroup> newArrayList()).build()).getFirst();
+    public void testUpdateRuleBasedSortDimension() {
+        String modelId = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
+        val aggregationGroup1 = new NAggregationGroup();
+        aggregationGroup1.setIncludes(new Integer[]{1, 2, 3, 4});
+        val selectRule = new SelectRule();
+        selectRule.mandatoryDims = new Integer[0];
+        selectRule.hierarchyDims = new Integer[0][0];
+        selectRule.jointDims = new Integer[0][0];
+        aggregationGroup1.setSelectRule(selectRule);
+
+        val aggregationGroup2 = new NAggregationGroup();
+        aggregationGroup2.setIncludes(new Integer[]{4, 3, 5});
+        aggregationGroup2.setSelectRule(selectRule);
+
+        var saved = indexPlanService.updateRuleBasedCuboid("default",
+                UpdateRuleBasedCuboidRequest.builder().project("default").modelId(modelId)
+                        .aggregationGroups(Lists.<NAggregationGroup> newArrayList(aggregationGroup1, aggregationGroup2)).build()).getFirst();
         Assert.assertNotNull(saved.getRuleBasedIndex());
+        Assert.assertEquals(5, saved.getRuleBasedIndex().getDimensions().size());
+        Assert.assertEquals("[1, 2, 3, 4, 5]", saved.getRuleBasedIndex().getDimensions().toString());
+
+        aggregationGroup1.setIncludes(new Integer[]{1, 2, 3});
+        aggregationGroup2.setIncludes(new Integer[]{4, 3});
+
+        val aggregationGroup3 = new NAggregationGroup();
+        aggregationGroup3.setIncludes(new Integer[]{2, 4});
+        aggregationGroup3.setSelectRule(selectRule);
+
+        val aggregationGroup4 = new NAggregationGroup();
+        aggregationGroup4.setIncludes(new Integer[]{5, 4});
+        aggregationGroup4.setSelectRule(selectRule);
+
+        saved = indexPlanService.updateRuleBasedCuboid("default",
+                UpdateRuleBasedCuboidRequest.builder().project("default").modelId(modelId)
+                        .aggregationGroups(Lists.newArrayList(aggregationGroup1, aggregationGroup2, aggregationGroup3, aggregationGroup4)).build()).getFirst();
+
+        Assert.assertEquals(5, saved.getRuleBasedIndex().getDimensions().size());
+        Assert.assertEquals("[1, 2, 5, 4, 3]", saved.getRuleBasedIndex().getDimensions().toString());
+
+        aggregationGroup1.setIncludes(new Integer[]{1, 2, 3, 4});
+        aggregationGroup2.setIncludes(new Integer[]{2, 5, 6, 4});
+        aggregationGroup3.setIncludes(new Integer[]{5, 3});
+
+        saved = indexPlanService.updateRuleBasedCuboid("default",
+                UpdateRuleBasedCuboidRequest.builder().project("default").modelId(modelId)
+                        .aggregationGroups(Lists.newArrayList(aggregationGroup1, aggregationGroup2, aggregationGroup3)).build()).getFirst();
+
+        Assert.assertEquals(6, saved.getRuleBasedIndex().getDimensions().size());
+        Assert.assertEquals("[1, 2, 5, 6, 3, 4]", saved.getRuleBasedIndex().getDimensions().toString());
+
+        aggregationGroup1.setIncludes(new Integer[]{1, 2, 3});
+        aggregationGroup2.setIncludes(new Integer[]{2, 4});
+        aggregationGroup3.setIncludes(new Integer[]{4, 3});
+        aggregationGroup4.setIncludes(new Integer[]{3, 2});
+
+        saved = indexPlanService.updateRuleBasedCuboid("default",
+                UpdateRuleBasedCuboidRequest.builder().project("default").modelId(modelId)
+                        .aggregationGroups(Lists.newArrayList(aggregationGroup1, aggregationGroup2, aggregationGroup3, aggregationGroup4)).build()).getFirst();
+
         Assert.assertEquals(4, saved.getRuleBasedIndex().getDimensions().size());
-        Assert.assertEquals(origin.getAllLayouts().size() + 1, saved.getAllLayouts().size());
+        Assert.assertEquals("[1, 2, 3, 4]", saved.getRuleBasedIndex().getDimensions().toString());
     }
 
     @Test
     public void testUpdateIndexPlanDuplicate() {
         val indexPlanManager = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
         val origin = indexPlanManager.getIndexPlan("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+        NAggregationGroup aggregationGroup = new NAggregationGroup();
+        aggregationGroup.setIncludes(new Integer[]{1, 2, 3, 4});
+        val selectRule = new SelectRule();
+        selectRule.mandatoryDims = new Integer[0];
+        selectRule.hierarchyDims = new Integer[0][0];
+        selectRule.jointDims = new Integer[0][0];
+        aggregationGroup.setSelectRule(selectRule);
         val saved = indexPlanService.updateRuleBasedCuboid("default",
                 UpdateRuleBasedCuboidRequest.builder().project("default").modelId("89af4ee2-2cdb-4b07-b39e-4c29856309aa")
-                        .dimensions(Arrays.asList(1, 2, 3, 4)).isLoadData(true)
-                        .aggregationGroups(Lists.<NAggregationGroup> newArrayList()).build()).getFirst();
+                        .isLoadData(true)
+                        .aggregationGroups(Lists.<NAggregationGroup> newArrayList(aggregationGroup)).build()).getFirst();
         Assert.assertNotNull(saved.getRuleBasedIndex());
         Assert.assertEquals(4, saved.getRuleBasedIndex().getDimensions().size());
-        Assert.assertEquals(origin.getAllLayouts().size() + 1, saved.getAllLayouts().size());
+        Assert.assertEquals(origin.getAllLayouts().size() + 15, saved.getAllLayouts().size());
 
         long lastModifiedTime = saved.getRuleBasedIndex().getLastModifiedTime();
 
         val res = indexPlanService.updateRuleBasedCuboid("default",
                 UpdateRuleBasedCuboidRequest.builder().project("default").modelId("89af4ee2-2cdb-4b07-b39e-4c29856309aa")
-                        .dimensions(Arrays.asList(1, 2, 3, 4)).isLoadData(true)
-                        .aggregationGroups(Lists.<NAggregationGroup> newArrayList()).build());
+                        .isLoadData(true)
+                        .aggregationGroups(Lists.<NAggregationGroup> newArrayList(aggregationGroup)).build());
         long lastModifiedTime2 = res.getFirst().getRuleBasedIndex().getLastModifiedTime();
         Assert.assertEquals(BuildIndexResponse.BuildIndexType.NO_LAYOUT, res.getSecond().getType());
         Assert.assertTrue(lastModifiedTime2 > lastModifiedTime);
@@ -156,16 +221,25 @@ public class IndexPlanServiceTest extends NLocalFileMetadataTestCase {
         dataflowManager.updateDataflow(dfUpdate);
         val indexPlanManager = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
         val origin = indexPlanManager.getIndexPlan("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+
+        NAggregationGroup aggregationGroup = new NAggregationGroup();
+        aggregationGroup.setIncludes(new Integer[]{1, 2, 3, 4});
+        val selectRule = new SelectRule();
+        selectRule.mandatoryDims = new Integer[0];
+        selectRule.hierarchyDims = new Integer[0][0];
+        selectRule.jointDims = new Integer[0][0];
+        aggregationGroup.setSelectRule(selectRule);
+
         val res = indexPlanService.updateRuleBasedCuboid("default",
                 UpdateRuleBasedCuboidRequest.builder().project("default").modelId("89af4ee2-2cdb-4b07-b39e-4c29856309aa")
-                        .dimensions(Arrays.asList(1, 2, 3, 4)).isLoadData(true)
-                        .aggregationGroups(Lists.<NAggregationGroup> newArrayList()).build());
+                        .isLoadData(true)
+                        .aggregationGroups(Lists.<NAggregationGroup> newArrayList(aggregationGroup)).build());
         val saved = res.getFirst();
         val response = res.getSecond();
         Assert.assertEquals(BuildIndexResponse.BuildIndexType.NO_SEGMENT, response.getType());
         Assert.assertNotNull(saved.getRuleBasedIndex());
         Assert.assertEquals(4, saved.getRuleBasedIndex().getDimensions().size());
-        Assert.assertEquals(origin.getAllLayouts().size() + 1, saved.getAllLayouts().size());
+        Assert.assertEquals(origin.getAllLayouts().size() + 15, saved.getAllLayouts().size());
     }
 
     @Test
@@ -366,7 +440,7 @@ public class IndexPlanServiceTest extends NLocalFileMetadataTestCase {
     public void testCalculateAggIndexCountEmpty() throws Exception {
         String aggGroupStr = "{\"includes\":[],\"select_rule\":{\"mandatory_dims\":[],\"hierarchy_dims\":[],\"joint_dims\":[]}}";
         val aggGroup = JsonUtil.readValue(aggGroupStr, NAggregationGroup.class);
-        val ret = calculateCount(Lists.newArrayList(aggGroup), Lists.newArrayList());
+        val ret = calculateCount(Lists.newArrayList(aggGroup));
         AggIndexCombResult aggIndexCombResult = ret.getAggIndexCounts().get(0);
         Assert.assertEquals(0L, aggIndexCombResult.getResult());
         Assert.assertEquals(0L, ret.getTotalCount().getResult());
@@ -376,7 +450,7 @@ public class IndexPlanServiceTest extends NLocalFileMetadataTestCase {
     public void testCalculateAggIndexCount() throws Exception {
         String aggGroupStr = "{\"includes\":[0, 1, 2, 3],\"select_rule\":{\"mandatory_dims\":[],\"hierarchy_dims\":[[1, 3]],\"joint_dims\":[]}}";
         val aggGroup = JsonUtil.readValue(aggGroupStr, NAggregationGroup.class);
-        val ret = calculateCount(Lists.newArrayList(aggGroup), Lists.newArrayList(0, 1, 2, 3));
+        val ret = calculateCount(Lists.newArrayList(aggGroup));
         AggIndexCombResult aggIndexCombResult = ret.getAggIndexCounts().get(0);
         Assert.assertEquals(11L, aggIndexCombResult.getResult());
         Assert.assertEquals(11L, ret.getTotalCount().getResult());
@@ -386,7 +460,7 @@ public class IndexPlanServiceTest extends NLocalFileMetadataTestCase {
     public void testCalculateAggIndexCountFail() throws Exception {
         String aggGroupStr = "{\"includes\":[0,1,2,3,4,5,6,7,8,9,10,11,12],\"select_rule\":{\"mandatory_dims\":[],\"hierarchy_dims\":[],\"joint_dims\":[]}}";
         val aggGroup = JsonUtil.readValue(aggGroupStr, NAggregationGroup.class);
-        var response = calculateCount(Lists.newArrayList(aggGroup), Lists.newArrayList(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12));
+        var response = calculateCount(Lists.newArrayList(aggGroup));
         Assert.assertEquals(1, response.getAggIndexCounts().size());
         Assert.assertEquals("FAIL", response.getAggIndexCounts().get(0).getStatus());
         Assert.assertEquals("FAIL", response.getTotalCount().getStatus());
@@ -399,7 +473,7 @@ public class IndexPlanServiceTest extends NLocalFileMetadataTestCase {
         String aggGroupStr2 = "{\"includes\":[2,3,4,5,6,7],\"select_rule\":{\"mandatory_dims\":[2, 4],\"hierarchy_dims\":[],\"joint_dims\":[]}}";
         val aggGroup1 = JsonUtil.readValue(aggGroupStr1, NAggregationGroup.class);
         val aggGroup2 = JsonUtil.readValue(aggGroupStr2, NAggregationGroup.class);
-        val ret = calculateCount(Lists.newArrayList(aggGroup1, aggGroup2), Lists.newArrayList(0, 1, 2, 3, 4, 5, 6, 7));
+        val ret = calculateCount(Lists.newArrayList(aggGroup1, aggGroup2));
         Assert.assertEquals(8L, ret.getAggIndexCounts().get(0).getResult());
         Assert.assertEquals(16L, ret.getAggIndexCounts().get(1).getResult());
         Assert.assertEquals(25L, ret.getTotalCount().getResult());
@@ -417,7 +491,6 @@ public class IndexPlanServiceTest extends NLocalFileMetadataTestCase {
         var request = UpdateRuleBasedCuboidRequest.builder()
                 .project("default")
                 .modelId("741ca86a-1f13-46da-a59f-95fb68615e3a")
-                .dimensions(Lists.newArrayList(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11))
                 .aggregationGroups(Lists.newArrayList(aggGroup))
                 .build();
         indexPlanService.checkIndexCountWithinLimit(request);
@@ -435,17 +508,15 @@ public class IndexPlanServiceTest extends NLocalFileMetadataTestCase {
         var request = UpdateRuleBasedCuboidRequest.builder()
                 .project("default")
                 .modelId("741ca86a-1f13-46da-a59f-95fb68615e3a")
-                .dimensions(Lists.newArrayList(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12))
                 .aggregationGroups(Lists.newArrayList(aggGroup))
                 .build();
         indexPlanService.checkIndexCountWithinLimit(request);
     }
 
-    private AggIndexResponse calculateCount(List<NAggregationGroup> aggGroups, List<Integer> dimensions) {
+    private AggIndexResponse calculateCount(List<NAggregationGroup> aggGroups) {
         val request = UpdateRuleBasedCuboidRequest.builder()
                 .project("default")
                 .modelId("741ca86a-1f13-46da-a59f-95fb68615e3a")
-                .dimensions(dimensions)
                 .aggregationGroups(aggGroups).build();
 
         return indexPlanService.calculateAggIndexCount(request);

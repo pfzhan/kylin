@@ -23,8 +23,6 @@
  */
 package io.kyligence.kap.rest.controller;
 
-import java.util.Arrays;
-
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.rest.constant.Constant;
@@ -81,7 +79,7 @@ public class IndexPlanControllerTest {
 
     @Test
     public void testUpdateRule() throws Exception {
-        val request = UpdateRuleBasedCuboidRequest.builder().dimensions(Arrays.asList(1, 2, 3, 4, 5, 6))
+        val request = UpdateRuleBasedCuboidRequest.builder()
                 .project("default").modelId("89af4ee2-2cdb-4b07-b39e-4c29856309aa")
                 .aggregationGroups(Lists.<NAggregationGroup> newArrayList()).build();
         Mockito.when(indexPlanService.updateRuleBasedCuboid(Mockito.anyString(),
