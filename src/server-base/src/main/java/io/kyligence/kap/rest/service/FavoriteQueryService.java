@@ -402,7 +402,7 @@ public class FavoriteQueryService extends BasicService {
                 IndexPlan targetIndexPlan = modelContext.getTargetIndexPlan();
 
                 if (CollectionUtils.isEmpty(sqls)) {
-                    return;
+                    continue;
                 }
 
                 eventManager.postAddCuboidEvents(targetIndexPlan.getUuid(), user);

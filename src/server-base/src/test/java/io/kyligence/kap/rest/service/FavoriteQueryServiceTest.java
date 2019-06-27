@@ -23,18 +23,19 @@
  */
 package io.kyligence.kap.rest.service;
 
+import java.util.Arrays;
 import java.util.Comparator;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.msg.MsgPicker;
 import org.apache.kylin.rest.request.FavoriteRequest;
-import org.junit.AfterClass;
+import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -71,7 +72,10 @@ public class FavoriteQueryServiceTest extends NLocalFileMetadataTestCase {
             "select cal_dt, lstg_format_name, sum(price) from test_kylin_fact where cal_dt = '2012-01-03' group by cal_dt, lstg_format_name", //
             "select cal_dt, lstg_format_name, sum(price) from test_kylin_fact where lstg_format_name = 'ABIN' group by cal_dt, lstg_format_name", //
             "select sum(price) from test_kylin_fact where cal_dt = '2012-01-03'", //
-            "select lstg_format_name, sum(item_count), count(*) from test_kylin_fact group by lstg_format_name" //
+            "select lstg_format_name, sum(item_count), count(*) from test_kylin_fact group by lstg_format_name", //
+            "select lstg_format_name, seller_id, sum(price)\n"
+                    + "from test_account inner join test_kylin_fact on test_kylin_fact.seller_id = test_account.account_id\n"
+                    + "group by lstg_format_name, seller_id order by lstg_format_name, seller_id\n" //
     };
 
     private final String constantSql = "select * from test_kylin_fact where 1 <> 1";
@@ -109,13 +113,7 @@ public class FavoriteQueryServiceTest extends NLocalFileMetadataTestCase {
         favoriteQuery3.setStatus(FavoriteQueryStatusEnum.ACCELERATING);
         favoriteQuery3.setChannel(FavoriteQuery.CHANNEL_FROM_RULE);
 
-        favoriteQueryManager.create(new HashSet<FavoriteQuery>() {
-            {
-                add(favoriteQuery1);
-                add(favoriteQuery2);
-                add(favoriteQuery3);
-            }
-        });
+        favoriteQueryManager.create(Sets.newHashSet(favoriteQuery1, favoriteQuery2, favoriteQuery3));
     }
 
     @Before
@@ -130,8 +128,8 @@ public class FavoriteQueryServiceTest extends NLocalFileMetadataTestCase {
         }
     }
 
-    @AfterClass
-    public static void tearDown() {
+    @After
+    public void tearDown() {
         staticCleanupTestMetadata();
     }
 
@@ -153,7 +151,7 @@ public class FavoriteQueryServiceTest extends NLocalFileMetadataTestCase {
 
         // case of not reached threshold
         Map<String, Object> newten_data = favoriteQueryService.getAccelerateTips(PROJECT_NEWTEN);
-        Assert.assertEquals(4, newten_data.get("size"));
+        Assert.assertEquals(5, newten_data.get("size"));
         Assert.assertEquals(false, newten_data.get("reach_threshold"));
         Assert.assertEquals(0, newten_data.get("optimized_model_num"));
 
@@ -161,9 +159,9 @@ public class FavoriteQueryServiceTest extends NLocalFileMetadataTestCase {
         System.setProperty("kylin.favorite.query-accelerate-threshold", "1");
 
         newten_data = favoriteQueryService.getAccelerateTips(PROJECT_NEWTEN);
-        Assert.assertEquals(4, newten_data.get("size"));
+        Assert.assertEquals(5, newten_data.get("size"));
         Assert.assertEquals(true, newten_data.get("reach_threshold"));
-        Assert.assertEquals(1, newten_data.get("optimized_model_num"));
+        Assert.assertEquals(2, newten_data.get("optimized_model_num"));
 
         NSmartMaster smartMaster = new NSmartMaster(getTestConfig(), PROJECT_NEWTEN, sqls);
         smartMaster.runAll();
@@ -179,7 +177,7 @@ public class FavoriteQueryServiceTest extends NLocalFileMetadataTestCase {
         stubWaitingAccelerateSqlPatterns(Lists.newArrayList(sqls), PROJECT_NEWTEN);
 
         newten_data = favoriteQueryService.getAccelerateTips("newten");
-        Assert.assertEquals(4, newten_data.get("size"));
+        Assert.assertEquals(5, newten_data.get("size"));
         Assert.assertEquals(true, newten_data.get("reach_threshold"));
         Assert.assertEquals(0, newten_data.get("optimized_model_num"));
         System.clearProperty("kylin.favorite.query-accelerate-threshold");
@@ -219,7 +217,7 @@ public class FavoriteQueryServiceTest extends NLocalFileMetadataTestCase {
         EventDao eventDaoOfNewtenProj = EventDao.getInstance(getTestConfig(), PROJECT_NEWTEN);
         var events = eventDaoOfNewtenProj.getEvents();
         events.sort(Event::compareTo);
-        Assert.assertEquals(2, events.size());
+        Assert.assertEquals(4, events.size());
 
         // when there is origin model
         stubUnAcceleratedSqlPatterns(Lists.newArrayList(sqls), PROJECT);
@@ -227,7 +225,7 @@ public class FavoriteQueryServiceTest extends NLocalFileMetadataTestCase {
         EventDao eventDaoOfDefaultProj = EventDao.getInstance(getTestConfig(), PROJECT);
         events = eventDaoOfDefaultProj.getEvents();
         events.sort(Event::compareTo);
-        Assert.assertEquals(2, events.size());
+        Assert.assertEquals(4, events.size());
 
         try {
             favoriteQueryService.acceptAccelerate(PROJECT, 10);
@@ -260,41 +258,53 @@ public class FavoriteQueryServiceTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testAcceptAccelerateWithPendingSqlPattern() {
-
         getTestConfig().setProperty("kylin.server.mode", "query");
 
         // 1. create favorite queries
-        FavoriteRequest request = new FavoriteRequest(PROJECT, Lists.newArrayList(sqls));
+        List<String> sqlPatterns = Arrays.stream(sqls).map(QueryPatternUtil::normalizeSQLPattern)
+                .collect(Collectors.toList());
+        FavoriteRequest request = new FavoriteRequest(PROJECT, Lists.newArrayList(sqlPatterns));
         favoriteQueryService.createFavoriteQuery(PROJECT, request);
 
-        // 3. change status of some favorite queries to FAILED
+        // 2. change status of some favorite queries to FAILED
         FavoriteQueryManager favoriteQueryManager = favoriteQueryService.getFavoriteQueryManager(PROJECT);
-        List<FavoriteQuery> favoriteQueries = favoriteQueryManager.getAll();
-        favoriteQueries.get(0).setStatus(FavoriteQueryStatusEnum.PENDING);
-        favoriteQueries.get(1).setStatus(FavoriteQueryStatusEnum.FAILED);
-        favoriteQueries.get(2).setStatus(FavoriteQueryStatusEnum.ACCELERATED);
-        favoriteQueryManager.updateFavoriteQueryMap(favoriteQueries.get(0));
-        favoriteQueryManager.updateFavoriteQueryMap(favoriteQueries.get(1));
-        favoriteQueryManager.updateFavoriteQueryMap(favoriteQueries.get(2));
+        Map<String, FavoriteQuery> fqMap = Maps.newHashMap();
+        favoriteQueryManager.getAll().forEach(fq -> fqMap.putIfAbsent(fq.getSqlPattern(), fq));
 
-        favoriteQueries = favoriteQueryManager.getAll();
-        Assert.assertEquals(FavoriteQueryStatusEnum.PENDING, favoriteQueries.get(0).getStatus());
-        Assert.assertEquals(FavoriteQueryStatusEnum.FAILED, favoriteQueries.get(1).getStatus());
-        Assert.assertEquals(FavoriteQueryStatusEnum.ACCELERATED, favoriteQueries.get(2).getStatus());
-        Assert.assertEquals(FavoriteQueryStatusEnum.TO_BE_ACCELERATED, favoriteQueries.get(3).getStatus());
+        fqMap.get(sqlPatterns.get(0)).setStatus(FavoriteQueryStatusEnum.PENDING);
+        fqMap.get(sqlPatterns.get(1)).setStatus(FavoriteQueryStatusEnum.FAILED);
+        fqMap.get(sqlPatterns.get(2)).setStatus(FavoriteQueryStatusEnum.ACCELERATED);
+        fqMap.get(sqlPatterns.get(3)).setStatus(FavoriteQueryStatusEnum.TO_BE_ACCELERATED);
+        fqMap.get(sqlPatterns.get(4)).setStatus(FavoriteQueryStatusEnum.PENDING);
+        favoriteQueryManager.updateFavoriteQueryMap(fqMap.get(sqlPatterns.get(0)));
+        favoriteQueryManager.updateFavoriteQueryMap(fqMap.get(sqlPatterns.get(1)));
+        favoriteQueryManager.updateFavoriteQueryMap(fqMap.get(sqlPatterns.get(2)));
+        favoriteQueryManager.updateFavoriteQueryMap(fqMap.get(sqlPatterns.get(3)));
+        favoriteQueryManager.updateFavoriteQueryMap(fqMap.get(sqlPatterns.get(4)));
+
+        // 3. assert status update successfully
+        Map<String, FavoriteQuery> fqChanged = Maps.newHashMap();
+        favoriteQueryManager.getAll().forEach(fq -> fqChanged.putIfAbsent(fq.getSqlPattern(), fq));
+        Assert.assertEquals(FavoriteQueryStatusEnum.PENDING, fqChanged.get(sqlPatterns.get(0)).getStatus());
+        Assert.assertEquals(FavoriteQueryStatusEnum.FAILED, fqChanged.get(sqlPatterns.get(1)).getStatus());
+        Assert.assertEquals(FavoriteQueryStatusEnum.ACCELERATED, fqChanged.get(sqlPatterns.get(2)).getStatus());
+        Assert.assertEquals(FavoriteQueryStatusEnum.TO_BE_ACCELERATED, fqChanged.get(sqlPatterns.get(3)).getStatus());
+        Assert.assertEquals(FavoriteQueryStatusEnum.PENDING, fqChanged.get(sqlPatterns.get(4)).getStatus());
 
         // 4. accelerate and validate
-        favoriteQueryService.acceptAccelerate(PROJECT, 2);
+        favoriteQueryService.acceptAccelerate(PROJECT, 3);
         EventDao eventDaoOfDefaultProject = EventDao.getInstance(getTestConfig(), PROJECT);
         var events = eventDaoOfDefaultProject.getEvents();
         events.sort(Event::compareTo);
-        Assert.assertEquals(2, events.size());
+        Assert.assertEquals(4, events.size());
 
-        final List<FavoriteQuery> favoriteQueriesAfter = favoriteQueryManager.getAll();
-        Assert.assertEquals(FavoriteQueryStatusEnum.ACCELERATING, favoriteQueriesAfter.get(0).getStatus());
-        Assert.assertEquals(FavoriteQueryStatusEnum.FAILED, favoriteQueriesAfter.get(1).getStatus());
-        Assert.assertEquals(FavoriteQueryStatusEnum.ACCELERATED, favoriteQueriesAfter.get(2).getStatus());
-        Assert.assertEquals(FavoriteQueryStatusEnum.ACCELERATING, favoriteQueriesAfter.get(3).getStatus());
+        Map<String, FavoriteQuery> accFQ = Maps.newHashMap();
+        favoriteQueryManager.getAll().forEach(fq -> accFQ.putIfAbsent(fq.getSqlPattern(), fq));
+        Assert.assertEquals(FavoriteQueryStatusEnum.ACCELERATING, accFQ.get(sqlPatterns.get(0)).getStatus());
+        Assert.assertEquals(FavoriteQueryStatusEnum.FAILED, accFQ.get(sqlPatterns.get(1)).getStatus());
+        Assert.assertEquals(FavoriteQueryStatusEnum.ACCELERATED, accFQ.get(sqlPatterns.get(2)).getStatus());
+        Assert.assertEquals(FavoriteQueryStatusEnum.ACCELERATING, accFQ.get(sqlPatterns.get(3)).getStatus());
+        Assert.assertEquals(FavoriteQueryStatusEnum.ACCELERATING, accFQ.get(sqlPatterns.get(4)).getStatus());
 
         getTestConfig().setProperty("kylin.server.mode", "all");
     }
@@ -303,23 +313,23 @@ public class FavoriteQueryServiceTest extends NLocalFileMetadataTestCase {
     public void testAcceptAccelerateWithConstantAndBlockedPattern() {
 
         getTestConfig().setProperty("kylin.server.mode", "query");
-        List<String> sqlPatterns = Lists.newArrayList(constantSql);
-        sqlPatterns.add(blockedSql);
-        sqlPatterns.add(tableMissingSql);
-        sqlPatterns.add(blockedSqlForCircleJoin);
+        List<String> sqlPatterns = Lists.newArrayList(constantSql, blockedSql, tableMissingSql, blockedSqlForCircleJoin)
+                .stream().map(QueryPatternUtil::normalizeSQLPattern) //
+                .collect(Collectors.toList());
+
         FavoriteRequest request = new FavoriteRequest(PROJECT, sqlPatterns);
         favoriteQueryService.createFavoriteQuery(PROJECT, request);
 
         FavoriteQueryManager favoriteQueryManager = favoriteQueryService.getFavoriteQueryManager(PROJECT);
         favoriteQueryService.acceptAccelerate(PROJECT, 4);
 
-        final List<FavoriteQuery> favoriteQueriesAfter = favoriteQueryManager.getAll();
-        favoriteQueriesAfter.sort(Comparator.comparing(FavoriteQuery::getSqlPattern));
+        Map<String, FavoriteQuery> fqMap = Maps.newHashMap();
+        favoriteQueryManager.getAll().forEach(fq -> fqMap.putIfAbsent(fq.getSqlPattern(), fq));
 
-        Assert.assertEquals(FavoriteQueryStatusEnum.ACCELERATED, favoriteQueriesAfter.get(1).getStatus());
-        Assert.assertEquals(FavoriteQueryStatusEnum.FAILED, favoriteQueriesAfter.get(3).getStatus());
-        Assert.assertEquals(FavoriteQueryStatusEnum.PENDING, favoriteQueriesAfter.get(2).getStatus());
-        Assert.assertEquals(FavoriteQueryStatusEnum.FAILED, favoriteQueriesAfter.get(0).getStatus());
+        Assert.assertEquals(FavoriteQueryStatusEnum.ACCELERATED, fqMap.get(sqlPatterns.get(0)).getStatus());
+        Assert.assertEquals(FavoriteQueryStatusEnum.FAILED, fqMap.get(sqlPatterns.get(1)).getStatus());
+        Assert.assertEquals(FavoriteQueryStatusEnum.PENDING, fqMap.get(sqlPatterns.get(2)).getStatus());
+        Assert.assertEquals(FavoriteQueryStatusEnum.FAILED, fqMap.get(sqlPatterns.get(3)).getStatus());
 
         getTestConfig().setProperty("kylin.server.mode", "all");
     }
@@ -328,19 +338,20 @@ public class FavoriteQueryServiceTest extends NLocalFileMetadataTestCase {
     public void testAcceptAccelerateWithNormalAndBlockedPattern() {
 
         getTestConfig().setProperty("kylin.server.mode", "query");
-        List<String> sqlPatterns = Lists.newArrayList(sqls[0]);
-        sqlPatterns.add(blockedSql);
+        List<String> sqlPatterns = Lists.newArrayList(sqls[0], blockedSql) //
+                .stream().map(QueryPatternUtil::normalizeSQLPattern) //
+                .collect(Collectors.toList());
         FavoriteRequest request = new FavoriteRequest(PROJECT, sqlPatterns);
         favoriteQueryService.createFavoriteQuery(PROJECT, request);
 
         FavoriteQueryManager favoriteQueryManager = favoriteQueryService.getFavoriteQueryManager(PROJECT);
         favoriteQueryService.acceptAccelerate(PROJECT, 2);
 
-        final List<FavoriteQuery> favoriteQueriesAfter = favoriteQueryManager.getAll();
-        favoriteQueriesAfter.sort(Comparator.comparing(FavoriteQuery::getSqlPattern));
+        Map<String, FavoriteQuery> fqMap = Maps.newHashMap();
+        favoriteQueryManager.getAll().forEach(fq -> fqMap.putIfAbsent(fq.getSqlPattern(), fq));
 
-        Assert.assertEquals(FavoriteQueryStatusEnum.ACCELERATING, favoriteQueriesAfter.get(0).getStatus());
-        Assert.assertEquals(FavoriteQueryStatusEnum.FAILED, favoriteQueriesAfter.get(1).getStatus());
+        Assert.assertEquals(FavoriteQueryStatusEnum.ACCELERATING, fqMap.get(sqlPatterns.get(0)).getStatus());
+        Assert.assertEquals(FavoriteQueryStatusEnum.FAILED, fqMap.get(sqlPatterns.get(1)).getStatus());
 
         getTestConfig().setProperty("kylin.server.mode", "all");
     }
@@ -479,15 +490,7 @@ public class FavoriteQueryServiceTest extends NLocalFileMetadataTestCase {
         favoriteQuery5.setAverageDuration(80);
         favoriteQuery5.setStatus(FavoriteQueryStatusEnum.FAILED);
 
-        return new HashSet<FavoriteQuery>() {
-            {
-                add(favoriteQuery1);
-                add(favoriteQuery2);
-                add(favoriteQuery3);
-                add(favoriteQuery4);
-                add(favoriteQuery5);
-            }
-        };
+        return Sets.newHashSet(favoriteQuery1, favoriteQuery2, favoriteQuery3, favoriteQuery4, favoriteQuery5);
     }
 
     @Test
