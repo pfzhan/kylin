@@ -52,7 +52,7 @@
         </template>
       </el-table-column>
       <!-- 表：是否系统管理员列 -->
-      <el-table-column :label="$t('admin')" :width="120">
+      <el-table-column :label="$t('admin')" align="center" :width="120">
         <template slot-scope="scope">
           <i class="el-icon-ksd-good_health admin-svg" v-if="scope.row.admin"></i>
         </template>

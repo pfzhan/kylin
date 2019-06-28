@@ -54,6 +54,9 @@
           show-overflow-tooltip
           min-width="229px"
           :label="$t('kylinLang.common.fact')">
+          <template slot-scope="scope">
+            <span :class="{'is-disabled': scope.row.root_fact_table_deleted}">{{scope.row.fact_table}}</span>
+          </template>
         </el-table-column>
         <el-table-column
           header-align="right"
@@ -590,20 +593,25 @@ export default class ModelList extends Vue {
       right:10px;
     }
   }
-  .model_list_table .el-table__expanded-cell {
-    background-color: #fbfbfb;
-    padding-bottom:0;
-    &:hover {
-      background-color: @breadcrumbs-bg-color;
+  .model_list_table {
+    span.is-disabled {
+      color: @text-disabled-color;
     }
-    .full-cell-content {
-      position: relative;
-    }
-    .full-model-box {
-      vertical-align:middle;
-      font-size: 20px;
-      margin-left:10px;
-      z-index: 10;
+    .el-table__expanded-cell {
+      background-color: #fbfbfb;
+      padding-bottom:0;
+      &:hover {
+        background-color: @breadcrumbs-bg-color;
+      }
+      .full-cell-content {
+        position: relative;
+      }
+      .full-model-box {
+        vertical-align:middle;
+        font-size: 20px;
+        margin-left:10px;
+        z-index: 10;
+      }
     }
   }
   margin-left: 20px;

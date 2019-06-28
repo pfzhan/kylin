@@ -68,6 +68,9 @@
         min-width="140"
         show-overflow-tooltip
         prop="target_subject">
+        <template slot-scope="scope">
+          <span :class="{'is-disabled': scope.row.target_subject_error}">{{scope.row.target_subject}}</span>
+        </template>
       </el-table-column>
        <el-table-column
         :label="$t('dataRange')"
@@ -608,15 +611,15 @@ export default class JobsList extends Vue {
     clearTimeout(this.stCycle)
   }
   mounted () {
-    window.addEventListener('click', this.closeIt)
-    if (document.getElementById('scrollBox')) {
-      document.getElementById('scrollBox').addEventListener('scroll', this.scrollRightBar, false)
-    }
+    // window.addEventListener('click', this.closeIt)
+    // if (document.getElementById('scrollBox')) {
+    //   document.getElementById('scrollBox').addEventListener('scroll', this.scrollRightBar, false)
+    // }
   }
   beforeDestroy () {
     window.clearTimeout(this.stCycle)
     window.clearTimeout(this.scrollST)
-    window.removeEventListener('click', this.closeIt)
+    // window.removeEventListener('click', this.closeIt)
     if (document.getElementById('scrollBox')) {
       document.getElementById('scrollBox').removeEventListener('scroll', this.scrollRightBar, false)
     }
@@ -1325,6 +1328,9 @@ export default class JobsList extends Vue {
       }
     }
     .jobs-table {
+      span.is-disabled {
+        color: @text-disabled-color;
+      }
       .el-icon-ksd-filter {
         position: relative;
         left: 5px;

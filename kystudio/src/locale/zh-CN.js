@@ -291,8 +291,8 @@ exports.default = {
     dataOrientedTip: '“模型优先”策略下，模型检测尚未完成，维度优化可能无法完成。请选择其他策略或等待模型检测完成。'
   },
   project: {
-    mustSelectProject: '请先选择一个 Project',
-    selectProject: '选择 Project',
+    mustSelectProject: '请先选择一个项目',
+    selectProject: '选择项目',
     projectList: '项目列表',
     addProject: '添加项目'
   },
@@ -323,7 +323,7 @@ exports.default = {
     total_scan_count: '查询扫描记录数',
     total_scan_bytes: '查询扫描字节数',
     cache_hit: '是否击中缓存',
-    query_id: '查询ID',
+    query_id: '查询 ID',
     to: '至',
     startTime_th: '查询开始时间',
     latency_th: '查询执行时间',
