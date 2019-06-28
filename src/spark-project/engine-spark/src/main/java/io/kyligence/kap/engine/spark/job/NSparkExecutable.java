@@ -296,7 +296,7 @@ public class NSparkExecutable extends AbstractExecutable {
             sparkConfigOverride.put("spark.driver.memory", computeStepDriverMemory() + "m");
         }
         if (UserGroupInformation.isSecurityEnabled()) {
-            sparkConfigOverride.put("spark.hadoop.hive.metastore.sasl.enabled", "ture");
+            sparkConfigOverride.put("spark.hadoop.hive.metastore.sasl.enabled", "true");
         }
         return sparkConfigOverride;
     }
