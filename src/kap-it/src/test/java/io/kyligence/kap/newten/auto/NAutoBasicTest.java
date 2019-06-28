@@ -56,7 +56,7 @@ public class NAutoBasicTest extends NAutoTestBase {
         // 1. Create simple model with one fact table
         String targetModelId;
         {
-            List<Pair<String, String>> queries = fetchQueries("auto/sql", 0, 1);
+            List<Pair<String, String>> queries = fetchQueries("sql_for_automodeling/sql", 0, 1);
             NSmartMaster master = proposeWithSmartMaster(queries);
             buildAllCubes(kylinConfig, getProject());
 
@@ -73,7 +73,7 @@ public class NAutoBasicTest extends NAutoTestBase {
 
         // 2. Feed query with left join using same fact table, should update same model
         {
-            List<Pair<String, String>> queries = fetchQueries("auto/sql", 1, 2);
+            List<Pair<String, String>> queries = fetchQueries("sql_for_automodeling/sql", 1, 2);
             NSmartMaster master = proposeWithSmartMaster(queries);
             buildAllCubes(kylinConfig, getProject());
 
@@ -92,14 +92,14 @@ public class NAutoBasicTest extends NAutoTestBase {
 
         // 3. Auto suggested model is able to serve related query
         {
-            List<Pair<String, String>> queries = fetchQueries("auto/sql", 0, 3);
+            List<Pair<String, String>> queries = fetchQueries("sql_for_automodeling/sql", 0, 3);
             populateSSWithCSVData(kylinConfig, getProject(), SparderEnv.getSparkSession());
             NExecAndComp.execAndCompare(queries, getProject(), NExecAndComp.CompareLevel.SAME, "default");
         }
 
         // 4. Feed bad queries
         {
-            List<Pair<String, String>> queries = fetchQueries("auto/sql_bad", 0, 0);
+            List<Pair<String, String>> queries = fetchQueries("sql_for_automodeling/sql_bad", 0, 0);
             NSmartMaster master = proposeWithSmartMaster(queries);
             buildAllCubes(kylinConfig, getProject());
 
@@ -109,7 +109,7 @@ public class NAutoBasicTest extends NAutoTestBase {
 
         // 5. Feed query with inner join using same fact table, should create another model
         {
-            List<Pair<String, String>> queries = fetchQueries("auto/sql", 3, 4);
+            List<Pair<String, String>> queries = fetchQueries("sql_for_automodeling/sql", 3, 4);
             NSmartMaster master = proposeWithSmartMaster(queries);
             buildAllCubes(kylinConfig, getProject());
 
@@ -126,7 +126,7 @@ public class NAutoBasicTest extends NAutoTestBase {
 
         // 6. Finally, run all queries
         {
-            List<Pair<String, String>> queries = fetchQueries("auto/sql", 0, 4);
+            List<Pair<String, String>> queries = fetchQueries("sql_for_automodeling/sql", 0, 4);
             populateSSWithCSVData(kylinConfig, getProject(), SparderEnv.getSparkSession());
             NExecAndComp.execAndCompare(queries, getProject(), NExecAndComp.CompareLevel.SAME, "default");
         }
@@ -142,7 +142,7 @@ public class NAutoBasicTest extends NAutoTestBase {
 
         // 1. Feed queries part1
         {
-            List<Pair<String, String>> queries = fetchQueries("auto/sql", 0, 2);
+            List<Pair<String, String>> queries = fetchQueries("sql_for_automodeling/sql", 0, 2);
             NSmartMaster master = proposeWithSmartMaster(queries);
 
             List<NSmartContext.NModelContext> modelContexts = master.getContext().getModelContexts();
@@ -154,7 +154,7 @@ public class NAutoBasicTest extends NAutoTestBase {
 
         // 2. Feed queries part2
         {
-            List<Pair<String, String>> queries = fetchQueries("auto/sql", 2, 4);
+            List<Pair<String, String>> queries = fetchQueries("sql_for_automodeling/sql", 2, 4);
             NSmartMaster master = proposeWithSmartMaster(queries);
 
             List<NSmartContext.NModelContext> modelContexts = master.getContext().getModelContexts();
@@ -166,7 +166,7 @@ public class NAutoBasicTest extends NAutoTestBase {
 
         // 3. Retry all queries
         {
-            List<Pair<String, String>> queries = fetchQueries("auto/sql", 0, 4);
+            List<Pair<String, String>> queries = fetchQueries("sql_for_automodeling/sql", 0, 4);
             NSmartMaster master = proposeWithSmartMaster(queries);
 
             List<NSmartContext.NModelContext> modelContexts = master.getContext().getModelContexts();
@@ -194,6 +194,20 @@ public class NAutoBasicTest extends NAutoTestBase {
         }
 
         FileUtils.deleteDirectory(new File("../kap-it/metastore_db"));
+    }
+
+    /**
+     * Test a query only only with count(*), can build and query from IndexPlan,
+     * don't move it.
+     */
+    @Test
+    public void testCountStar() throws Exception {
+        new TestScenario(NExecAndComp.CompareLevel.SAME, "sql_for_automodeling/sql_count_star").execute();
+    }
+
+    @Test
+    public void testLimitCorrectness() throws Exception {
+        new TestScenario(NExecAndComp.CompareLevel.SAME, true, "query/sql").execute();
     }
 
     /**

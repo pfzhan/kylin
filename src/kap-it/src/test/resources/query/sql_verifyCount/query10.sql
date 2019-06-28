@@ -21,11 +21,11 @@
                                               
                                                            when 1=1  then
                                               
-                                                             cal_dt
+                                                             cast(cal_dt as varchar )
                                               
-                                                          ELSE
+                                                          else
                                               
-                                                             seller_id
+                                                             cast(seller_id as varchar)
                                               
                                                          end  desc
                                               

@@ -24,7 +24,7 @@ from
 test_kylin_fact
 left join
 (
- select WEEK_BEG_DT, cal_dt from EDW.TEST_CAL_DT
+ select * from EDW.TEST_CAL_DT
  where TEST_CAL_DT.cal_dt>=date'2012-01-01'
 )
 TEST_CAL_DT

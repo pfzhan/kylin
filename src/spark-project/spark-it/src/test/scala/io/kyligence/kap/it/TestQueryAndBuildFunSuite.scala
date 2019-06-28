@@ -57,48 +57,55 @@ class TestQueryAndBuildFunSuite
 
   val queryFolders = List(
     FloderInfo("sql", List("query105.sql")),
+    //        FloderInfo("sql_boolean"),
+    FloderInfo("sql_cache"),
+    FloderInfo("sql_casewhen"),
+    FloderInfo("sql_cross_join"),
+    FloderInfo("sql_datetime"),
+    FloderInfo("sql_derived"),
+    FloderInfo("sql_distinct_dim"),
+    //        "sql_distinct_precisel", not exist dir
+    FloderInfo("sql_hive"),
+    FloderInfo("sql_join"),
     FloderInfo("sql_kap", List("query03.sql")),
-    FloderInfo("sql_should_work"),
+    FloderInfo("sql_like"),
+    FloderInfo("sql_lookup"),
     FloderInfo("sql_magine", List("query13.sql")),
     FloderInfo("sql_magine_left"),
-    FloderInfo("sql_magine_window"),
-    FloderInfo("sql_lookup"),
-    FloderInfo("sql_casewhen"),
-    FloderInfo("sql_like"),
-    FloderInfo("sql_cache"),
-    FloderInfo("sql_derived"),
-    FloderInfo("sql_datetime"),
     FloderInfo("sql_subquery", List("query19.sql", "query25.sql")),
-    FloderInfo("sql_distinct_dim"),
-    //    "sql_timestamp", no exist dir
     FloderInfo("sql_orderby", List(), checkOrder = true),
-    FloderInfo("sql_snowflake"),
-    FloderInfo("sql_topn"),
-    FloderInfo("sql_join"),
-    FloderInfo("sql_union"),
-    FloderInfo("sql_hive"),
-    //    "sql_distinct_precisel", not exist dir
     FloderInfo("sql_powerbi"),
     FloderInfo("sql_raw"),
-    FloderInfo("sql_rawtable"),
+    FloderInfo("sql_rawtable", List("query26.sql", "query32.sql", "query33.sql", "query34.sql", "query37.sql")),
+    FloderInfo("sql_tableau", List("query00.sql", "query24.sql", "query25.sql")),
+    //    "sql_timestamp", no exist dir
+    FloderInfo("sql_topn"),
+    FloderInfo("sql_union"),
     FloderInfo("sql_value"),
     FloderInfo("sql_udf", List("query02.sql")),
     FloderInfo("sql_tableau", List("query00.sql", "query24.sql", "query25.sql"))
   )
 
+  val onlyLeft = List(
+    FloderInfo("sql_computedcolumn"),
+    FloderInfo("sql_computedcolumn/sql_computedcolumn_common"),
+    FloderInfo("sql_computedcolumn/sql_computedcolumn_leftjoin")
+  )
+
   val noneCompare = List(
     FloderInfo("sql_current_date"),
-//    FloderInfo("sql_timestamp"),
-    FloderInfo("sql_window"),
-    FloderInfo("sql_h2_uncapable"),
+    FloderInfo("sql_distinct"),
     FloderInfo("sql_grouping"),
+    FloderInfo("sql_h2_uncapable"),
     //    FloderInfo("sql_intersect_count"),
     FloderInfo("sql_percentile"),
-    FloderInfo("sql_distinct")
+    //    FloderInfo("sql_timestamp"),
+    FloderInfo("sql_window")
   )
+
   val tempQuery = List(
-    //    FloderInfo("sql_tableau", List("query00.sql", "query24.sql", "query25.sql")),
     FloderInfo("temp")
+    //      FloderInfo("sql_rawtable", List("query26.sql", "query32.sql", "query33.sql", "query34.sql", "query37.sql"))
   )
 
   val joinTypes = List(
@@ -130,20 +137,20 @@ class TestQueryAndBuildFunSuite
     TimeZone.setDefault(defaultTimeZone)
   }
 
-  ignore("temp") {
-    var result = tempQuery
-      .flatMap { folder =>
-        queryFolder(folder)
-      }
-      .filter(_ != null)
-
-    assert(result.isEmpty)
-  }
-
   test("buildKylinFact") {
     var result = queryFolders
       .flatMap { folder =>
-        queryFolder(folder)
+        queryFolder(folder, joinTypes)
+      }
+      .filter(_ != null)
+    if (result.nonEmpty) {
+      print(result)
+    }
+    assert(result.isEmpty)
+
+    result = onlyLeft
+      .flatMap { folder =>
+        queryFolder(folder, List("left"))
       }
       .filter(_ != null)
     if (result.nonEmpty) {
@@ -195,7 +202,7 @@ class TestQueryAndBuildFunSuite
     df.queryExecution.sparkPlan.collectFirst { case p: FileSourceScanExec => p }.get
   }
 
-  private def queryFolder(floderInfo: FloderInfo): List[String] = {
+  private def queryFolder(floderInfo: FloderInfo, joinType: List[String]): List[String] = {
     val futures = QueryFetcher
       .fetchQueries(QueryConstants.KAP_SQL_BASE_DIR + floderInfo.floder)
       .filter { tp =>
@@ -203,8 +210,8 @@ class TestQueryAndBuildFunSuite
       }
       .flatMap {
         case (fileName: String, query: String) =>
-          joinTypes.map { joinType =>
-              val afterChangeJoin = changeJoinType(query, joinType)
+          joinType.map { joinType =>
+            val afterChangeJoin = changeJoinType(query, "left")
 
               Future[String] {
                 runAndCompare(afterChangeJoin, cleanSql(afterChangeJoin), DEFAULT_PROJECT, floderInfo.checkOrder,

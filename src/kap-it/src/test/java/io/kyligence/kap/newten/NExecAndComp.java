@@ -25,7 +25,9 @@ package io.kyligence.kap.newten;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.Charset;
 import java.sql.Connection;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -38,9 +40,9 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.util.DBUtils;
 import org.apache.kylin.common.util.Pair;
-import org.apache.kylin.query.CompareQueryBySuffix;
 import org.apache.kylin.query.KylinTestBase;
 import org.apache.kylin.query.QueryConnection;
 import org.apache.kylin.query.relnode.OLAPContext;
@@ -56,6 +58,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
+import io.kyligence.kap.newten.auto.NAutoTestBase;
 import io.kyligence.kap.utils.RecAndQueryCompareUtil.CompareEntity;
 
 public class NExecAndComp {
@@ -73,7 +76,7 @@ public class NExecAndComp {
     }
 
     public static void execLimitAndValidateNew(List<Pair<String, String>> queries, String prj, String joinType,
-                                               Map<String, CompareEntity> recAndQueryResult) {
+            Map<String, CompareEntity> recAndQueryResult) {
 
         int appendLimitQueries = 0;
         for (Pair<String, String> query : queries) {
@@ -89,7 +92,7 @@ public class NExecAndComp {
             Dataset<Row> kapResult = (recAndQueryResult == null) ? queryWithKap(prj, joinType, sqlAndAddedLimitSql)
                     : queryWithKap(prj, joinType, sqlAndAddedLimitSql, recAndQueryResult);
             addQueryPath(recAndQueryResult, query, sql);
-            Dataset<Row> sparkResult = queryWithSpark(prj, sql);
+            Dataset<Row> sparkResult = queryWithSpark(prj, sql, query.getFirst());
             List<Row> kapRows = SparderQueryTest.castDataType(kapResult, sparkResult).toJavaRDD().collect();
             List<Row> sparkRows = sparkResult.toJavaRDD().collect();
             if (!compareResults(normRows(sparkRows), normRows(kapRows), CompareLevel.SUBSET)) {
@@ -100,8 +103,43 @@ public class NExecAndComp {
     }
 
     public static void execAndCompare(List<Pair<String, String>> queries, String prj, CompareLevel compareLevel,
-                                      String joinType) {
+            String joinType) {
         execAndCompareNew(queries, prj, compareLevel, joinType, null);
+    }
+
+    public static void execAndCompareDynamic(NAutoTestBase.TestScenario testScenario, String prj, String joinType,
+            Map<String, CompareEntity> recAndQueryResult) {
+
+        for (Pair<String, String> path2Sql : testScenario.getQueries()) {
+            try {
+                logger.info("Exec and compare query ({}) :{}", joinType, path2Sql.getFirst());
+                String sql = KylinTestBase.changeJoinType(path2Sql.getSecond(), joinType);
+                long startTime = System.currentTimeMillis();
+                List<String> params = KylinTestBase.getParameterFromFile(new File(path2Sql.getFirst().trim()));
+
+                recAndQueryResult.putIfAbsent(path2Sql.getSecond(), new CompareEntity());
+                final CompareEntity entity = recAndQueryResult.get(path2Sql.getSecond());
+                entity.setSql(path2Sql.getSecond());
+                Dataset<Row> cubeResult = queryFromCube(prj, sql, params);
+
+                Dataset<Row> sparkResult = queryWithSpark(prj, path2Sql.getSecond(), path2Sql.getFirst());
+                List<Row> sparkRows = sparkResult.toJavaRDD().collect();
+                List<Row> kapRows = SparderQueryTest.castDataType(cubeResult, sparkResult).toJavaRDD().collect();
+                if (!compareResults(normRows(sparkRows), normRows(kapRows), testScenario.getCompareLevel())) {
+                    logger.error("Failed on compare query ({}) :{}", joinType, sql);
+                    throw new IllegalArgumentException("query (" + joinType + ") :" + sql + " result not match");
+                }
+
+                entity.setOlapContexts(OLAPContext.getThreadLocalContexts());
+                OLAPContext.clearThreadLocalContexts();
+                addQueryPath(recAndQueryResult, path2Sql, sql);
+                logger.info("The query ({}) : {} cost {} (ms)", joinType, sql, System.currentTimeMillis() - startTime);
+
+            } catch (IOException e) {
+                throw new IllegalArgumentException(
+                        "meet ERROR when running query (" + joinType + ") :\n" + path2Sql.getSecond(), e);
+            }
+        }
     }
 
     public static void execAndCompareQueryList(List<String> queries, String prj, CompareLevel compareLevel,
@@ -111,7 +149,7 @@ public class NExecAndComp {
     }
 
     public static void execAndCompareNew(List<Pair<String, String>> queries, String prj, CompareLevel compareLevel,
-                                         String joinType, Map<String, CompareEntity> recAndQueryResult) {
+            String joinType, Map<String, CompareEntity> recAndQueryResult) {
         for (Pair<String, String> query : queries) {
             logger.info("Exec and compare query ({}) :{}", joinType, query.getFirst());
 
@@ -123,7 +161,7 @@ public class NExecAndComp {
                     : queryWithKap(prj, joinType, Pair.newPair(sql, sql), recAndQueryResult);
             addQueryPath(recAndQueryResult, query, sql);
             if (compareLevel != CompareLevel.NONE) {
-                Dataset<Row> sparkResult = queryWithSpark(prj, sql);
+                Dataset<Row> sparkResult = queryWithSpark(prj, sql, query.getFirst());
                 List<Row> sparkRows = sparkResult.toJavaRDD().collect();
                 List<Row> kapRows = SparderQueryTest.castDataType(cubeResult, sparkResult).toJavaRDD().collect();
                 if (!compareResults(normRows(sparkRows), normRows(kapRows), compareLevel)) {
@@ -150,7 +188,7 @@ public class NExecAndComp {
     }
 
     private static void addQueryPath(Map<String, CompareEntity> recAndQueryResult, Pair<String, String> query,
-                                     String modifiedSql) {
+            String modifiedSql) {
         if (recAndQueryResult == null) {
             return;
         }
@@ -159,22 +197,14 @@ public class NExecAndComp {
         recAndQueryResult.get(modifiedSql).setFilePath(query.getFirst());
     }
 
+    @Deprecated
     static void execCompareQueryAndCompare(List<Pair<String, String>> queries, String prj, String joinType) {
-        for (Pair<String, String> query : queries) {
-
-            logger.info("Exec CompareQuery and compare on query: " + query.getFirst());
-            String sql1 = KylinTestBase.changeJoinType(query.getSecond(), joinType);
-            String sql2 = CompareQueryBySuffix.INSTANCE.transform(new File(query.getFirst()));
-
-            Dataset<Row> kapResult = queryWithKap(prj, joinType, Pair.newPair(sql1, sql1));
-            Dataset<Row> sparkResult = queryWithSpark(prj, sql2);
-
-            compareResults(sparkResult, kapResult, CompareLevel.SAME);
-        }
+        throw new IllegalStateException(
+                "The method has deprecated, please call io.kyligence.kap.newten.NExecAndComp.execAndCompareNew");
     }
 
     private static Dataset<Row> queryWithKap(String prj, String joinType, Pair<String, String> pair,
-                                             Map<String, CompareEntity> compareEntityMap) {
+            Map<String, CompareEntity> compareEntityMap) {
 
         compareEntityMap.putIfAbsent(pair.getFirst(), new CompareEntity());
         final CompareEntity entity = compareEntityMap.get(pair.getFirst());
@@ -185,12 +215,16 @@ public class NExecAndComp {
         return rowDataset;
     }
 
-    public static Dataset<Row> queryWithKap(String prj, String joinType, Pair<String, String> sql) {
+    private static Dataset<Row> queryWithKap(String prj, String joinType, Pair<String, String> sql) {
         return queryFromCube(prj, KylinTestBase.changeJoinType(sql.getSecond(), joinType));
     }
 
-    private static Dataset<Row> queryWithSpark(String prj, String sql) {
-        String afterConvert = QueryUtil.massagePushDownSql(sql, prj, "default", false);
+    private static Dataset<Row> queryWithSpark(String prj, String originSql, String sqlPath) {
+        String compareSql = getCompareSql(sqlPath);
+        if (StringUtils.isEmpty(compareSql))
+            compareSql = originSql;
+
+        String afterConvert = QueryUtil.massagePushDownSql(compareSql, prj, "default", false);
         // Table schema comes from csv and DATABASE.TABLE is not supported.
         String sqlForSpark = removeDataBaseInSql(afterConvert);
         return querySparkSql(sqlForSpark);
@@ -314,7 +348,7 @@ public class NExecAndComp {
     }
 
     private static void compareResults(Dataset<Row> expectedResult, Dataset<Row> actualResult,
-                                       CompareLevel compareLevel) {
+            CompareLevel compareLevel) {
         Preconditions.checkArgument(expectedResult != null);
         Preconditions.checkArgument(actualResult != null);
 
@@ -356,7 +390,7 @@ public class NExecAndComp {
     }
 
     public static List<Pair<String, String>> doFilter(List<Pair<String, String>> sources,
-                                                      final Set<String> exclusionList) {
+            final Set<String> exclusionList) {
         Preconditions.checkArgument(sources != null);
         Set<String> excludes = Sets.newHashSet(exclusionList);
         return sources.stream().filter(pair -> {
@@ -365,9 +399,14 @@ public class NExecAndComp {
         }).collect(Collectors.toList());
     }
 
+    public static Dataset<Row> queryFromCube(String prj, String sqlText, List<String> parameters) {
+        sqlText = QueryUtil.massageSql(sqlText, prj, 0, 0, "DEFAULT");
+        return sql(prj, sqlText, parameters);
+    }
+
     public static Dataset<Row> queryFromCube(String prj, String sqlText) {
         sqlText = QueryUtil.massageSql(sqlText, prj, 0, 0, "DEFAULT");
-        return sql(prj, sqlText);
+        return sql(prj, sqlText, null);
     }
 
     public static Dataset<Row> querySparkSql(String sqlText) {
@@ -379,14 +418,17 @@ public class NExecAndComp {
     }
 
     public static Dataset<Row> sql(String prj, String sqlText) {
-        if (sqlText == null) {
+        return sql(prj, sqlText, null);
+    }
+
+    public static Dataset<Row> sql(String prj, String sqlText, List<String> parameters) {
+        if (sqlText == null)
             throw new RuntimeException("Sorry your SQL is null...");
-        }
 
         try {
             logger.info("Try to query from cube....");
             long startTs = System.currentTimeMillis();
-            Dataset<Row> dataset = queryCubeAndSkipCompute(prj, sqlText);
+            Dataset<Row> dataset = queryCubeAndSkipCompute(prj, sqlText, parameters);
             logger.info("Cool! This sql hits cube...");
             logger.info("Duration(ms): {}", (System.currentTimeMillis() - startTs));
             return dataset;
@@ -397,20 +439,33 @@ public class NExecAndComp {
         }
     }
 
+    static Dataset<Row> queryCubeAndSkipCompute(String prj, String sql, List<String> parameters) throws Exception {
+        SparderEnv.skipCompute();
+        Dataset<Row> df = queryCube(prj, sql, parameters);
+        return df;
+    }
+
     static Dataset<Row> queryCubeAndSkipCompute(String prj, String sql) throws Exception {
         SparderEnv.skipCompute();
-        Dataset<Row> df = queryCube(prj, sql);
+        Dataset<Row> df = queryCube(prj, sql, null);
         return df;
     }
 
     public static Dataset<Row> queryCube(String prj, String sql) throws SQLException {
+        return queryCube(prj, sql, null);
+    }
+
+    public static Dataset<Row> queryCube(String prj, String sql, List<String> parameters) throws SQLException {
         Connection conn = null;
-        Statement stmt = null;
+        PreparedStatement stmt = null;
         ResultSet rs = null;
         try {
             conn = QueryConnection.getConnection(prj);
-            stmt = conn.createStatement();
-            rs = stmt.executeQuery(sql);
+            stmt = conn.prepareStatement(sql);
+            for (int i = 1; parameters != null && i <= parameters.size(); i++) {
+                stmt.setString(i, parameters.get(i - 1).trim());
+            }
+            rs = stmt.executeQuery();
         } finally {
             DBUtils.closeQuietly(rs);
             DBUtils.closeQuietly(stmt);
@@ -420,8 +475,24 @@ public class NExecAndComp {
         return SparderEnv.getDF();
     }
 
+    private static String getCompareSql(String originSqlPath) {
+        if (!originSqlPath.endsWith(".sql")) {
+            return "";
+        }
+        File file = new File(originSqlPath + ".expected");
+        if (!file.exists())
+            return "";
+
+        try {
+            return FileUtils.readFileToString(file, Charset.defaultCharset());
+        } catch (IOException e) {
+            logger.error("meet error when reading compared spark sql from {}", file.getAbsolutePath());
+            return "";
+        }
+    }
+
     public static List<List<String>> queryCubeWithJDBC(String prj, String sql) throws Exception {
-//      SparderEnv.skipCompute();
+        //      SparderEnv.skipCompute();
         Connection conn = null;
         Statement stmt = null;
         ResultSet rs = null;

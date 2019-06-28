@@ -44,9 +44,4 @@ public class NAutoTdvtTest extends NAutoTestBase {
     public void testSameLevelOfTdvt() throws Exception {
         new TestScenario(CompareLevel.SAME, "sql_tdvt/same_level").execute();
     }
-
-    @Test
-    public void testTdvtCrossJoin() throws Exception {
-        new TestScenario(CompareLevel.SAME, "sql_tdvt/sql_cross_join").execute();
-    }
 }

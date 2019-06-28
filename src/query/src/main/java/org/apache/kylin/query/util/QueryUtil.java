@@ -146,6 +146,9 @@ public class QueryUtil {
         NProjectManager projectManager = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv());
         ProjectInstance projectInstance = projectManager.getProject(project);
         KylinConfig kylinConfig = projectInstance.getConfig();
+        while (sql.endsWith(";"))
+            sql = sql.substring(0, sql.length() - 1);
+
         return massagePushDownSql(kylinConfig, sql, project, defaultSchema, isPrepare);
     }
 

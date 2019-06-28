@@ -16,6 +16,7 @@
 -- limitations under the License.
 --
 -- ISSUE #7325
+-- without test_data_type cube
 select ORDER_ID,BUYER_ID,TEST_DATE_ENC,TEST_TIME_ENC,TEST_EXTENDED_COLUMN
 from test_order
 where ORDER_ID > -1

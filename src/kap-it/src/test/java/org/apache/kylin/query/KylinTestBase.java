@@ -209,7 +209,7 @@ public class KylinTestBase {
         return stringBuilder.toString();
     }
 
-    protected static List<String> getParameterFromFile(File sqlFile) throws IOException {
+    public static List<String> getParameterFromFile(File sqlFile) throws IOException {
         String sqlFileName = sqlFile.getAbsolutePath();
         int prefixIndex = sqlFileName.lastIndexOf(".sql");
         String dataFielName = sqlFileName.substring(0, prefixIndex) + ".dat";

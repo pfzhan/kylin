@@ -23,18 +23,19 @@
  */
 package io.kyligence.kap.newten.auto;
 
-import io.kyligence.kap.newten.NExecAndComp.CompareLevel;
+import java.io.File;
+import java.nio.file.Paths;
+
 import org.junit.Assert;
 import org.junit.Test;
 
-import java.io.File;
-import java.nio.file.Paths;
+import io.kyligence.kap.newten.NExecAndComp.CompareLevel;
 
 public class NCleanWorkingDirTest extends NAutoTestBase {
 
     @Test
     public void testCleanWorkingDir() throws Exception {
-        new TestScenario(CompareLevel.SAME, "sql", 0, 1).execute();
+        new TestScenario(CompareLevel.SAME, "query/sql", 0, 1).execute();
 
         String hdfsWorkingDirectory = kylinConfig.getHdfsWorkingDirectory();
         File workingDir = Paths.get(hdfsWorkingDirectory).getParent().toFile();

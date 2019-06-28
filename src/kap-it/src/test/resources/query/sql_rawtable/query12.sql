@@ -31,4 +31,4 @@ FROM test_kylin_fact
  ON test_kylin_fact.leaf_categ_id = test_category_groupings.leaf_categ_id AND test_kylin_fact.lstg_site_id = test_category_groupings.site_id 
  left JOIN edw.test_sites as test_sites 
  ON test_kylin_fact.lstg_site_id = test_sites.site_id 
--- GROUP BY 1
+--GROUP BY 1 SparkSQl not supported group by 1

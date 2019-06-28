@@ -75,25 +75,27 @@ import io.kyligence.kap.smart.NSmartMaster;
 import io.kyligence.kap.smart.common.AccelerateInfo;
 import io.kyligence.kap.utils.RecAndQueryCompareUtil;
 import io.kyligence.kap.utils.RecAndQueryCompareUtil.CompareEntity;
+import lombok.Getter;
+import lombok.Setter;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class NAutoTestBase extends NLocalWithSparkSessionTest {
 
-    static final String IT_SQL_KAP_DIR = "../kap-it/src/test/resources/query";
+    static final String IT_SQL_KAP_DIR = "../kap-it/src/test/resources/";
     private Map<String, String> systemProp = Maps.newHashMap();
     protected KylinConfig kylinConfig;
-    private static Set<String> excludedSqlPatterns = Sets.newHashSet();
+    private static Set<String> excludedSqlPatterns;
 
     @Before
     public void setup() throws Exception {
         super.init();
         kylinConfig = getTestConfig();
-        getTestConfig().setProperty("kylin.job.analyze-strategy", "never");
         if (excludedSqlPatterns == null) {
             excludedSqlPatterns = loadWhiteListSqlPatterns();
         }
+        overwriteSystemProp("kylin.job.analyze-strategy", "never");
     }
 
     @Override
@@ -158,6 +160,9 @@ public class NAutoTestBase extends NLocalWithSparkSessionTest {
                 populateSSWithCSVData(kylinConfig, getProject(), SparderEnv.getSparkSession());
                 if (testScenario.isLimit) {
                     NExecAndComp.execLimitAndValidateNew(testScenario.queries, getProject(), JoinType.DEFAULT.name(),
+                            compareMap);
+                } else if (testScenario.isDynamicSql) {
+                    NExecAndComp.execAndCompareDynamic(testScenario, getProject(), testScenario.joinType.name(),
                             compareMap);
                 } else {
                     NExecAndComp.execAndCompareNew(testScenario.queries, getProject(), testScenario.compareLevel,
@@ -342,14 +347,19 @@ public class NAutoTestBase extends NLocalWithSparkSessionTest {
     public class TestScenario {
 
         String folderName;
-        CompareLevel compareLevel;
+        @Getter
+        private CompareLevel compareLevel;
         JoinType joinType;
         private int fromIndex;
         private int toIndex;
         private boolean isLimit;
         private Set<String> exclusionList;
+        @Getter
+        @Setter
+        private boolean isDynamicSql = false;
 
         // value when execute
+        @Getter
         List<Pair<String, String>> queries;
 
         TestScenario(String folderName) {

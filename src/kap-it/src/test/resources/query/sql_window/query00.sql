@@ -15,6 +15,6 @@
 -- See the License for the specific language governing permissions and
 -- limitations under the License.
 --
-select lstg_format_name, sum(price) as GMV, row_number() over(partition by lstg_format_name ORDER BY lstg_format_name)
+select lstg_format_name, sum(price) as GMV, row_number() over(order by lstg_format_name)
 from test_kylin_fact
 group by lstg_format_name

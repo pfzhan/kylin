@@ -16,7 +16,7 @@
 -- limitations under the License.
 --
 -- ISSUE #7325
-select ORDER_ID,BUYER_ID,TEST_DATE_ENC,TEST_TIME_ENC,TEST_EXTENDED_COLUMN
+select TEST_TIME_ENC,ORDER_ID,BUYER_ID,TEST_EXTENDED_COLUMN
 from test_order
 where ORDER_ID > -1
 AND TEST_DATE_ENC is not null

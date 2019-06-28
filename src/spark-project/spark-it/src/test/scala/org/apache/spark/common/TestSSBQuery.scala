@@ -65,7 +65,7 @@ class TestSSBQuery
 
   val querys: Array[String] = QueryFetcher
 //    .fetchQueries(QueryConstants.KAP_SQL_BASE_DIR + "temp")
-    .fetchQueries(QueryConstants.KAP_SQL_BASE_DIR + "sql_ssb_loadtest")
+    .fetchQueries(QueryConstants.KAP_RESOURCE_BASE_DIR + "sql_ssb_loadtest")
     .map(tp => tp._2)
 
   ignore("ssb - load test with helper") {

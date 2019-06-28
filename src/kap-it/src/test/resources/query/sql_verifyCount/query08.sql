@@ -16,4 +16,5 @@
 -- limitations under the License.
 --
 
-select lstg_format_name,sum(price) as sp from test_kylin_fact group by lstg_format_name limit 1 offset 2
+select lstg_format_name,sum(price) as sp from test_kylin_fact group by lstg_format_name limit 1
+--offset 2

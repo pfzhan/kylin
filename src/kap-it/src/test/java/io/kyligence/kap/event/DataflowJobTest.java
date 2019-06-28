@@ -268,7 +268,8 @@ public class DataflowJobTest extends NLocalWithSparkSessionTest {
         val config = getTestConfig();
         val round1Deps = job.getDependentFiles();
         val files = FileUtils.listFiles(new File(config.getHdfsWorkingDirectory().substring(7)), null, true).stream()
-                .map(File::getAbsolutePath).filter(f -> !f.contains("job_tmp") && !f.contains("table_exd"))
+                .map(File::getAbsolutePath)
+                .filter(f -> !f.contains("job_tmp") && !f.contains("table_exd"))
                 .collect(Collectors.toSet());
 
         // check
@@ -277,6 +278,7 @@ public class DataflowJobTest extends NLocalWithSparkSessionTest {
                 FileUtils.listFiles(new File(config.getHdfsWorkingDirectory().substring(7) + dep.substring(1)), null,
                         true).forEach(f -> files.remove(f.getAbsolutePath()));
             } catch (Exception ignore) {
+                ignore.printStackTrace();
             }
         }
         Assert.assertEquals(expected, files.size());

@@ -15,8 +15,6 @@
 -- See the License for the specific language governing permissions and
 -- limitations under the License.
 -- ISSUE #7294
-
--- ISSUE #11059
 select * from
 (
 select sum({fn CONVERT(ITEM_COUNT, SQL_BIGINT)}) bigint0

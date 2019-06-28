@@ -18,6 +18,8 @@
 
 -- ISSUE #2121
 -- test window function for Window_Function
+-- from KE /query/sql_magine_window/query01.sql
+-- commit e3f35c3
 
 select
 t.sum_price as total_price,

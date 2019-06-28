@@ -15,7 +15,7 @@
 -- See the License for the specific language governing permissions and
 -- limitations under the License.
 --
-select * from(
+select * from (
   select cal_dt, lstg_format_name, sum(price) as GMV,
   round (100*sum(price)/first_value(sum(price)) over (partition by lstg_format_name order by cast(cal_dt as timestamp) range interval '1' day PRECEDING) , 0)as "last_day",
   round(first_value(sum(price)) over (partition by lstg_format_name order by cast(cal_dt as timestamp) range cast(3 as INTERVAL day) preceding), 0)  as "last_year"

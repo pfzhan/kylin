@@ -187,7 +187,8 @@ public class NFavoriteSchedulerTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(24 * 60, favoriteScheduler.getFrequencyStatuses().size());
         Assert.assertEquals(3, favoriteScheduler.getOverAllStatus().getSqlPatternFreqMap().size());
         Assert.assertNotNull(favoriteScheduler.getOverAllStatus().getSqlPatternFreqMap().get("select * from sql1"));
-        Assert.assertEquals(24 * 60, (int) favoriteScheduler.getOverAllStatus().getSqlPatternFreqMap().get("select * from sql2"));
+        Assert.assertEquals(24 * 60,
+                (int) favoriteScheduler.getOverAllStatus().getSqlPatternFreqMap().get("select * from sql2"));
 
         NFavoriteScheduler.FrequencyStatus firstStatus = favoriteScheduler.getFrequencyStatuses().pollFirst();
         NFavoriteScheduler.FrequencyStatus lastStatus = favoriteScheduler.getFrequencyStatuses().pollLast();
@@ -470,17 +471,17 @@ public class NFavoriteSchedulerTest extends NLocalFileMetadataTestCase {
         currentFavoriteQueries = favoriteQueryManager.getAll();
         for (FavoriteQuery favoriteQuery : currentFavoriteQueries) {
             switch (favoriteQuery.getSqlPattern()) {
-                case "sql1":
-                case "sql2":
-                    Assert.assertEquals(2, favoriteQuery.getTotalCount());
-                    Assert.assertEquals(2, favoriteQuery.getFrequency(PROJECT));
-                    break;
-                case "sql3":
-                    Assert.assertEquals(1, favoriteQuery.getTotalCount());
-                    Assert.assertEquals(0, favoriteQuery.getFrequency(PROJECT));
-                    break;
-                default:
-                    break;
+            case "sql1":
+            case "sql2":
+                Assert.assertEquals(2, favoriteQuery.getTotalCount());
+                Assert.assertEquals(2, favoriteQuery.getFrequency(PROJECT));
+                break;
+            case "sql3":
+                Assert.assertEquals(1, favoriteQuery.getTotalCount());
+                Assert.assertEquals(0, favoriteQuery.getFrequency(PROJECT));
+                break;
+            default:
+                break;
             }
         }
 
@@ -506,20 +507,20 @@ public class NFavoriteSchedulerTest extends NLocalFileMetadataTestCase {
 
         for (FavoriteQuery favoriteQuery : currentFavoriteQueries) {
             switch (favoriteQuery.getSqlPattern()) {
-                case "sql1":
-                    Assert.assertEquals(2, favoriteQuery.getTotalCount());
-                    Assert.assertEquals(2, favoriteQuery.getFrequency(PROJECT));
-                    break;
-                case "sql2":
-                    Assert.assertEquals(3, favoriteQuery.getTotalCount());
-                    Assert.assertEquals(3, favoriteQuery.getFrequency(PROJECT));
-                    break;
-                case "sql3":
-                    Assert.assertEquals(2, favoriteQuery.getTotalCount());
-                    Assert.assertEquals(1, favoriteQuery.getFrequency(PROJECT));
-                    break;
-                default:
-                    break;
+            case "sql1":
+                Assert.assertEquals(2, favoriteQuery.getTotalCount());
+                Assert.assertEquals(2, favoriteQuery.getFrequency(PROJECT));
+                break;
+            case "sql2":
+                Assert.assertEquals(3, favoriteQuery.getTotalCount());
+                Assert.assertEquals(3, favoriteQuery.getFrequency(PROJECT));
+                break;
+            case "sql3":
+                Assert.assertEquals(2, favoriteQuery.getTotalCount());
+                Assert.assertEquals(1, favoriteQuery.getFrequency(PROJECT));
+                break;
+            default:
+                break;
             }
         }
     }
@@ -570,14 +571,14 @@ public class NFavoriteSchedulerTest extends NLocalFileMetadataTestCase {
                 .getSystemTime();
         autoMarkFavoriteRunner.run();
         Assert.assertEquals(originFavoriteQuerySize + 2, favoriteQueryManager.getAll().size());
-        Assert.assertTrue(
-                favoriteScheduler.getFrequencyStatuses().last().getSqlPatternFreqMap().containsKey("select * from sql_pattern0"));
-        Assert.assertTrue(
-                favoriteScheduler.getFrequencyStatuses().last().getSqlPatternFreqMap().containsKey("select * from sql_pattern1"));
+        Assert.assertTrue(favoriteScheduler.getFrequencyStatuses().last().getSqlPatternFreqMap()
+                .containsKey("select * from sql_pattern0"));
+        Assert.assertTrue(favoriteScheduler.getFrequencyStatuses().last().getSqlPatternFreqMap()
+                .containsKey("select * from sql_pattern1"));
 
         // at time 02-01 00:01:03, a query history is inserted into influxdb but with insert time as 00:00:59
-        QueryHistory queryHistory = new QueryHistory("select * from sql_pattern7", QueryHistory.QUERY_HISTORY_SUCCEEDED, "ADMIN",
-                System.currentTimeMillis(), 6000L);
+        QueryHistory queryHistory = new QueryHistory("select * from sql_pattern7", QueryHistory.QUERY_HISTORY_SUCCEEDED,
+                "ADMIN", System.currentTimeMillis(), 6000L);
         queryHistory.setInsertTime(mockedQueryHistoryDao.getCurrentTime() + 59 * 1000L);
         queryHistory.setEngineType("HIVE");
         mockedQueryHistoryDao.insert(queryHistory);
@@ -588,12 +589,12 @@ public class NFavoriteSchedulerTest extends NLocalFileMetadataTestCase {
                 .getSystemTime();
         autoMarkFavoriteRunner.run();
         Assert.assertEquals(originFavoriteQuerySize + 5, favoriteQueryManager.getAll().size());
-        Assert.assertTrue(
-                favoriteScheduler.getFrequencyStatuses().last().getSqlPatternFreqMap().containsKey("select * from sql_pattern2"));
-        Assert.assertTrue(
-                favoriteScheduler.getFrequencyStatuses().last().getSqlPatternFreqMap().containsKey("select * from sql_pattern3"));
-        Assert.assertTrue(
-                favoriteScheduler.getFrequencyStatuses().last().getSqlPatternFreqMap().containsKey("select * from sql_pattern7"));
+        Assert.assertTrue(favoriteScheduler.getFrequencyStatuses().last().getSqlPatternFreqMap()
+                .containsKey("select * from sql_pattern2"));
+        Assert.assertTrue(favoriteScheduler.getFrequencyStatuses().last().getSqlPatternFreqMap()
+                .containsKey("select * from sql_pattern3"));
+        Assert.assertTrue(favoriteScheduler.getFrequencyStatuses().last().getSqlPatternFreqMap()
+                .containsKey("select * from sql_pattern7"));
         Assert.assertTrue(favoriteScheduler.getOverAllStatus().getSqlPatternFreqMap().size() > 0);
 
         // current time is 02-01 00:03:00, runner scanned from 2018-02-01 00:02:00 to 2018-02-01 00:03:00
@@ -633,7 +634,8 @@ public class NFavoriteSchedulerTest extends NLocalFileMetadataTestCase {
 
         Assert.assertTrue(favoriteScheduler.getFrequencyStatuses().size() > 1);
         Assert.assertFalse(favoriteScheduler.getOverAllStatus().getSqlPatternFreqMap().isEmpty());
-        Assert.assertEquals(1, (int) favoriteScheduler.getOverAllStatus().getSqlPatternFreqMap().get("select * from sql_pattern0"));
+        Assert.assertEquals(1,
+                (int) favoriteScheduler.getOverAllStatus().getSqlPatternFreqMap().get("select * from sql_pattern0"));
 
         setUpTimeOffset();
 
@@ -650,7 +652,8 @@ public class NFavoriteSchedulerTest extends NLocalFileMetadataTestCase {
 
         Assert.assertFalse(favoriteScheduler.getOverAllStatus().getSqlPatternFreqMap().isEmpty());
         // frequency is still 1
-        Assert.assertEquals(1, (int) favoriteScheduler.getOverAllStatus().getSqlPatternFreqMap().get("select * from sql_pattern0"));
+        Assert.assertEquals(1,
+                (int) favoriteScheduler.getOverAllStatus().getSqlPatternFreqMap().get("select * from sql_pattern0"));
     }
 
     private List<QueryHistory> queryHistories() {
@@ -689,8 +692,7 @@ public class NFavoriteSchedulerTest extends NLocalFileMetadataTestCase {
     public void testAccelerateRatio() {
         QueryHistoryDAO queryHistoryDAO = Mockito.mock(QueryHistoryDAO.class);
         Mockito.when(queryHistoryDAO.getQueryHistoriesByTime(Mockito.anyLong(), Mockito.anyLong()))
-                .thenReturn(queryHistories())
-                .thenReturn(null);
+                .thenReturn(queryHistories()).thenReturn(null);
 
         Mockito.doReturn(queryHistoryDAO).when(favoriteScheduler).getQueryHistoryDao();
         Mockito.when(favoriteScheduler.getQueryHistoryDao()).thenReturn(queryHistoryDAO);
@@ -740,29 +742,19 @@ public class NFavoriteSchedulerTest extends NLocalFileMetadataTestCase {
         updateRunner.run();
         var df1 = dfMgr.getDataflow(DF_ID1);
         var df2 = dfMgr.getDataflow(DF_ID2);
-        Assert.assertEquals("{\n" +
-                "  \"100001\" : {\n" +
-                "    \"" + DateFormat.stringToMillis("2018-01-01") + "\" : 4,\n" +
-                "    \"" + DateFormat.stringToMillis("2018-01-02") + "\" : 7\n" +
-                "  },\n" +
-                "  \"1\" : {\n" +
-                "    \"" + DateFormat.stringToMillis("2018-01-01") + "\" : 3,\n" +
-                "    \"" + DateFormat.stringToMillis("2018-01-02") + "\" : 6\n" +
-                "  },\n" +
-                "  \"100002\" : {\n" +
-                "    \"" + DateFormat.stringToMillis("2018-01-02") + "\" : 8\n" +
-                "  }\n" +
-                "}", JsonUtil.writeValueAsIndentString(df1.getLayoutHitCount()));
-        Assert.assertEquals("{\n" +
-                "  \"1\" : {\n" +
-                "    \"" + DateFormat.stringToMillis("2018-01-01") + "\" : 3,\n" +
-                "    \"" + DateFormat.stringToMillis("2018-01-02") + "\" : 6\n" +
-                "  },\n" +
-                "  \"100002\" : {\n" +
-                "    \"" + DateFormat.stringToMillis("2018-01-01") + "\" : 5,\n" +
-                "    \"" + DateFormat.stringToMillis("2018-01-02") + "\" : 8\n" +
-                "  }\n" +
-                "}", JsonUtil.writeValueAsIndentString(df2.getLayoutHitCount()));
+        Assert.assertEquals(
+                "{\n" + "  \"100001\" : {\n" + "    \"" + DateFormat.stringToMillis("2018-01-01") + "\" : 4,\n"
+                        + "    \"" + DateFormat.stringToMillis("2018-01-02") + "\" : 7\n" + "  },\n" + "  \"1\" : {\n"
+                        + "    \"" + DateFormat.stringToMillis("2018-01-01") + "\" : 3,\n" + "    \""
+                        + DateFormat.stringToMillis("2018-01-02") + "\" : 6\n" + "  },\n" + "  \"100002\" : {\n"
+                        + "    \"" + DateFormat.stringToMillis("2018-01-02") + "\" : 8\n" + "  }\n" + "}",
+                JsonUtil.writeValueAsIndentString(df1.getLayoutHitCount()));
+        Assert.assertEquals(
+                "{\n" + "  \"1\" : {\n" + "    \"" + DateFormat.stringToMillis("2018-01-01") + "\" : 3,\n" + "    \""
+                        + DateFormat.stringToMillis("2018-01-02") + "\" : 6\n" + "  },\n" + "  \"100002\" : {\n"
+                        + "    \"" + DateFormat.stringToMillis("2018-01-01") + "\" : 5,\n" + "    \""
+                        + DateFormat.stringToMillis("2018-01-02") + "\" : 8\n" + "  }\n" + "}",
+                JsonUtil.writeValueAsIndentString(df2.getLayoutHitCount()));
 
         // second round, merge frequency
         offset = offsetManager.get();
@@ -787,51 +779,32 @@ public class NFavoriteSchedulerTest extends NLocalFileMetadataTestCase {
         updateRunner.run();
         df1 = dfMgr.getDataflow(DF_ID1);
         df2 = dfMgr.getDataflow(DF_ID2);
-        Assert.assertEquals("{\n" +
-                "  \"100001\" : {\n" +
-                "    \"" + DateFormat.stringToMillis("2018-01-01") + "\" : 4,\n" +
-                "    \"" + DateFormat.stringToMillis("2018-01-02") + "\" : 14,\n" +
-                "    \"" + DateFormat.stringToMillis("2018-01-03") + "\" : 4\n" +
-                "  },\n" +
-                "  \"1\" : {\n" +
-                "    \"" + DateFormat.stringToMillis("2018-01-01") + "\" : 3,\n" +
-                "    \"" + DateFormat.stringToMillis("2018-01-02") + "\" : 12,\n" +
-                "    \"" + DateFormat.stringToMillis("2018-01-03") + "\" : 3\n" +
-                "  },\n" +
-                "  \"100002\" : {\n" +
-                "    \"" + DateFormat.stringToMillis("2018-01-02") + "\" : 16\n" +
-                "  },\n" +
-                "  \"100003\" : {\n" +
-                "    \"" + DateFormat.stringToMillis("2018-01-02") + "\" : 2\n" +
-                "  },\n" +
-                "  \"100004\" : {\n" +
-                "    \"" + DateFormat.stringToMillis("2018-01-02") + "\" : 3\n" +
-                "  }\n" +
-                "}", JsonUtil.writeValueAsIndentString(df1.getLayoutHitCount()));
-        Assert.assertEquals("{\n" +
-                "  \"1\" : {\n" +
-                "    \"" + DateFormat.stringToMillis("2018-01-01") + "\" : 3,\n" +
-                "    \"" + DateFormat.stringToMillis("2018-01-02") + "\" : 12,\n" +
-                "    \"" + DateFormat.stringToMillis("2018-01-03") + "\" : 3\n" +
-                "  },\n" +
-                "  \"100002\" : {\n" +
-                "    \"" + DateFormat.stringToMillis("2018-01-01") + "\" : 5,\n" +
-                "    \"" + DateFormat.stringToMillis("2018-01-02") + "\" : 16,\n" +
-                "    \"" + DateFormat.stringToMillis("2018-01-03") + "\" : 5\n" +
-                "  },\n" +
-                "  \"2\" : {\n" +
-                "    \"" + DateFormat.stringToMillis("2018-01-02") + "\" : 1\n" +
-                "  },\n" +
-                "  \"100004\" : {\n" +
-                "    \"" + DateFormat.stringToMillis("2018-01-02") + "\" : 3\n" +
-                "  }\n" +
-                "}", JsonUtil.writeValueAsIndentString(df2.getLayoutHitCount()));
+        Assert.assertEquals("{\n" + "  \"100001\" : {\n" + "    \"" + DateFormat.stringToMillis("2018-01-01")
+                + "\" : 4,\n" + "    \"" + DateFormat.stringToMillis("2018-01-02") + "\" : 14,\n" + "    \""
+                + DateFormat.stringToMillis("2018-01-03") + "\" : 4\n" + "  },\n" + "  \"1\" : {\n" + "    \""
+                + DateFormat.stringToMillis("2018-01-01") + "\" : 3,\n" + "    \""
+                + DateFormat.stringToMillis("2018-01-02") + "\" : 12,\n" + "    \""
+                + DateFormat.stringToMillis("2018-01-03") + "\" : 3\n" + "  },\n" + "  \"100002\" : {\n" + "    \""
+                + DateFormat.stringToMillis("2018-01-02") + "\" : 16\n" + "  },\n" + "  \"100003\" : {\n" + "    \""
+                + DateFormat.stringToMillis("2018-01-02") + "\" : 2\n" + "  },\n" + "  \"100004\" : {\n" + "    \""
+                + DateFormat.stringToMillis("2018-01-02") + "\" : 3\n" + "  }\n" + "}",
+                JsonUtil.writeValueAsIndentString(df1.getLayoutHitCount()));
+        Assert.assertEquals(
+                "{\n" + "  \"1\" : {\n" + "    \"" + DateFormat.stringToMillis("2018-01-01") + "\" : 3,\n" + "    \""
+                        + DateFormat.stringToMillis("2018-01-02") + "\" : 12,\n" + "    \""
+                        + DateFormat.stringToMillis("2018-01-03") + "\" : 3\n" + "  },\n" + "  \"100002\" : {\n"
+                        + "    \"" + DateFormat.stringToMillis("2018-01-01") + "\" : 5,\n" + "    \""
+                        + DateFormat.stringToMillis("2018-01-02") + "\" : 16,\n" + "    \""
+                        + DateFormat.stringToMillis("2018-01-03") + "\" : 5\n" + "  },\n" + "  \"2\" : {\n" + "    \""
+                        + DateFormat.stringToMillis("2018-01-02") + "\" : 1\n" + "  },\n" + "  \"100004\" : {\n"
+                        + "    \"" + DateFormat.stringToMillis("2018-01-02") + "\" : 3\n" + "  }\n" + "}",
+                JsonUtil.writeValueAsIndentString(df2.getLayoutHitCount()));
     }
 
     private List<QueryHistory> mockHistory(String currentDate, String queryDate, long layoutId, int size,
-                                           List<String> dfIds) throws ParseException {
+            List<String> dfIds) throws ParseException {
         SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd");
-        val result = Lists.<QueryHistory>newArrayList();
+        val result = Lists.<QueryHistory> newArrayList();
         long currentTime = format.parse(currentDate).getTime();
         long queryTime = format.parse(queryDate).getTime();
 

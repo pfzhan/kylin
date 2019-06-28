@@ -22,9 +22,9 @@
                                                            when 1=1  then
                                               
                                                              cal_dt
-                                              
+
                                                           ELSE
-                                              
+
                                                              seller_id
                                               
                                                          end 

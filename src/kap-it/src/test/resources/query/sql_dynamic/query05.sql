@@ -15,6 +15,7 @@
 -- See the License for the specific language governing permissions and
 -- limitations under the License.
 -- ISSUE #11246 fix jdbc like query
+-- ISSUE 10435,10436 fix jdbc like query
 
 select
 test_cal_dt.week_beg_dt, test_kylin_fact.lstg_format_name, test_category_groupings.meta_categ_name, sum(test_kylin_fact.price) as gmv, count(*) as trans_cnt

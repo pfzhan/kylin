@@ -24,5 +24,6 @@ package io.kyligence.kap.query
 
 object QueryConstants {
     val KAP_SQL_BASE_DIR = "../kap-it/src/test/resources/query/"
+    val KAP_RESOURCE_BASE_DIR = "../kap-it/src/test/resources/"
 
 }

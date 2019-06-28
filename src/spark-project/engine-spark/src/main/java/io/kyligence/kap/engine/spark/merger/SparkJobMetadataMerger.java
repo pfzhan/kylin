@@ -77,6 +77,10 @@ public abstract class SparkJobMetadataMerger extends MetadataMerger {
 
     @Override
     public void mergeAnalysis(AbstractExecutable abstractExecutable) {
+
+        if ("never".equals(KylinConfig.getInstanceFromEnv().getAnalyzeStrategy()))
+            return;
+
         try (val remoteStore = ExecutableUtils.getRemoteStore(getConfig(), abstractExecutable)) {
             val dataflowId = ExecutableUtils.getDataflowId(abstractExecutable);
             val remoteConfig = remoteStore.getConfig();

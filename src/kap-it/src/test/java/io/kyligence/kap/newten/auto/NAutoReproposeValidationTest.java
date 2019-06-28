@@ -43,7 +43,7 @@ public class NAutoReproposeValidationTest extends NAutoTestBase {
 
     @Test
     public void testReproposeSQLWontChangeOriginMetadata() throws Exception {
-        val folder = "auto/repropose";
+        val folder = "sql_for_automodeling/repropose";
         try {
             // 1. create metadata
             proposeWithSmartMaster(getProject(), new TestScenario(CompareLevel.SAME, folder));
