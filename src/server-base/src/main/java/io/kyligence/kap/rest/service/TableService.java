@@ -27,6 +27,7 @@ package io.kyligence.kap.rest.service;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -207,6 +208,16 @@ public class TableService extends BasicService {
                     nTableExtDesc.setLastModified(origExt.getLastModified());
                     nTableExtDesc.setMvcc(origExt.getMvcc());
                 }
+                val colNameMap = Stream.of(nTableDesc.getColumns())
+                        .collect(Collectors.toMap(ColumnDesc::getName, col -> {
+                            try {
+                                return Integer.parseInt(col.getId());
+                            } catch (NumberFormatException e) {
+                                return Integer.MAX_VALUE;
+                            }
+                        }));
+                nTableExtDesc.getAllColumnStats()
+                        .sort(Comparator.comparing(stat -> colNameMap.getOrDefault(stat.getColumnName(), -1)));
                 nTableExtDesc.init(project);
 
                 tableMetaMgr.saveTableExt(nTableExtDesc);
@@ -927,8 +938,6 @@ public class TableService extends BasicService {
 
     void updateModelByReloadTable(ProjectInstance project, NDataModel model, ReloadTableContext context)
             throws Exception {
-        val modelManager = getDataModelManager(project.getName());
-        val indexManager = getIndexPlanManager(project.getName());
         val dataflowManager = getDataflowManager(project.getName());
         val projectName = project.getName();
 

@@ -483,8 +483,9 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
         for (String[] sampleRow : tableExt.getSampleRows()) {
             Assert.assertEquals(originTable.getColumns().length, sampleRow.length);
             int finalI = i;
-            Assert.assertEquals(Stream.of(0, 1, 2, 3).map(j -> "row_" + finalI + "_col_" + j)
-                    .collect(Collectors.joining(",")), Joiner.on(",").join(sampleRow));
+            Assert.assertEquals(
+                    Stream.of(0, 1, 2, 3).map(j -> "row_" + finalI + "_col_" + j).collect(Collectors.joining(",")),
+                    Joiner.on(",").join(sampleRow));
             i++;
         }
     }
@@ -530,7 +531,7 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
     }
 
     @Test
-    public void testReload_ChangeColumnOrder() throws Exception {
+    public void testReload_ChangeColumnOrderAndDeleteColumn() throws Exception {
         val tableIdentity = "DEFAULT.TEST_COUNTRY";
         val originTable = NTableMetadataManager.getInstance(getTestConfig(), PROJECT).getTableDesc(tableIdentity);
         prepareTableExt(tableIdentity);
@@ -540,14 +541,28 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
         tableService.innerReloadTable(PROJECT, tableIdentity);
 
         // check table sample
-        val tableExt = NTableMetadataManager.getInstance(getTestConfig(), PROJECT)
+        var tableExt = NTableMetadataManager.getInstance(getTestConfig(), PROJECT)
                 .getOrCreateTableExt("DEFAULT.TEST_COUNTRY");
         Assert.assertEquals(originTable.getColumns().length, tableExt.getAllColumnStats().size());
-        Assert.assertNull(tableExt.getColumnStatsByName("TMP1"));
         for (int i = 0; i < tableExt.getSampleRows().size(); i++) {
             val sampleRow = tableExt.getSampleRows().get(i);
             int finalI = i;
             Assert.assertEquals(Stream.of(0, 2, 3, 1).map(j -> "row_" + (finalI + 1) + "_col_" + j)
+                    .collect(Collectors.joining(",")), Joiner.on(",").join(sampleRow));
+        }
+
+        removeColumn(tableIdentity, "NAME");
+        tableService.innerReloadTable(PROJECT, tableIdentity);
+
+        // check table sample
+        tableExt = NTableMetadataManager.getInstance(getTestConfig(), PROJECT)
+                .getOrCreateTableExt("DEFAULT.TEST_COUNTRY");
+        Assert.assertEquals(originTable.getColumns().length - 1, tableExt.getAllColumnStats().size());
+        Assert.assertNull(tableExt.getColumnStatsByName("NAME"));
+        for (int i = 0; i < tableExt.getSampleRows().size(); i++) {
+            val sampleRow = tableExt.getSampleRows().get(i);
+            int finalI = i;
+            Assert.assertEquals(Stream.of(0, 2, 1).map(j -> "row_" + (finalI + 1) + "_col_" + j)
                     .collect(Collectors.joining(",")), Joiner.on(",").join(sampleRow));
         }
     }

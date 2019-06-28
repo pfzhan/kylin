@@ -124,7 +124,7 @@ public class AppInitializer {
     public void afterReady(ApplicationReadyEvent event) {
         val kylinConfig = KylinConfig.getInstanceFromEnv();
         if (kylinConfig.getServerMode().equals(Constant.SERVER_MODE_ALL)) {
-            taskScheduler.scheduleWithFixedDelay(new BootstrapCommand(), 10000);
+            taskScheduler.scheduleWithFixedDelay(bootstrapCommand, 10000);
         }
     }
 
