@@ -237,7 +237,7 @@ public class NExecAndComp {
                 .replaceAll("`DEFAULT`\\.", "").replaceAll("TPCH\\.", "").replaceAll("`TPCH`\\.", "")
                 .replaceAll("tpch\\.", "").replaceAll("`tpch`\\.", "").replaceAll("TDVT\\.", "")
                 .replaceAll("\"TDVT\"\\.", "").replaceAll("`TDVT`\\.", "").replaceAll("\"POPHEALTH_ANALYTICS\"\\.", "")
-                .replaceAll("`POPHEALTH_ANALYTICS`\\.", "");
+                .replaceAll("`POPHEALTH_ANALYTICS`\\.", "").replaceAll("ISSUES\\.", "");
     }
 
     public static List<Pair<String, String>> fetchQueries(String folder) throws IOException {

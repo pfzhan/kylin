@@ -332,16 +332,15 @@ public class TopNMeasureType extends MeasureType<TopNCounter<ByteArray>> {
             return false;
         }
         TblColRef sortCol = digest.sortColumns.get(0);
-        String database = sortCol.getColumnDesc().getTable().getDatabase();
+        // String database = sortCol.getColumnDesc().getTable().getDatabase();
 
         for (FunctionDesc agg : digest.aggregations) {
-            if (!agg.getParameters().get(0).getColRef().getColumnDesc().getTable().getDatabase().equals(database)) {
-                continue;
-            }
+            //  if (!agg.getParameters().get(0).getColRef().getColumnDesc().getTable().getDatabase().equals(database)) {
+            //      continue;
+            //  }
             if (sortCol.getName().equals(agg.getRewriteFieldName())) {
                 return true;
             }
-
         }
         return false;
     }

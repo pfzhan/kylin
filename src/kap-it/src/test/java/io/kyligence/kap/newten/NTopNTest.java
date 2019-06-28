@@ -24,10 +24,12 @@
 
 package io.kyligence.kap.newten;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.commons.io.FileUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.job.engine.JobEngineConfig;
@@ -78,6 +80,7 @@ public class NTopNTest extends NLocalWithSparkSessionTest {
         NDefaultScheduler.destroyInstance();
         cleanupTestMetadata();
         System.clearProperty("kylin.job.scheduler.poll-interval-second");
+        FileUtils.deleteDirectory(new File("../kap-it/metastore_db"));
     }
 
     @Override
@@ -189,6 +192,31 @@ public class NTopNTest extends NLocalWithSparkSessionTest {
             copyForWrite.setStatus(RealizationStatusEnum.OFFLINE);
         });
 
+        try {
+            NExecAndComp.execAndCompare(query, getProject(), CompareLevel.SAME, "left");
+            Assert.fail();
+        } catch (Exception e) {
+            Assert.assertTrue(e.getMessage().contains("result not match"));
+        }
+    }
+
+    @Test
+    public void testNonDefaultDatabase() throws Exception {
+        String dfName = "ab547ec2-350e-4ba4-88f9-099048962ceq";
+        TopNCounter.EXTRA_SPACE_RATE = 1;
+        SparkContext existingCxt = SparkContext.getOrCreate(sparkConf);
+        existingCxt.stop();
+        ss = SparkSession.builder().config(sparkConf).getOrCreate();
+        ss.sparkContext().setLogLevel("ERROR");
+
+        fullBuildCube(dfName, getProject());
+        ss.close();
+
+        populateSSWithCSVData(getTestConfig(), getProject(), SparderEnv.getSparkSession());
+
+        List<Pair<String, String>> query = new ArrayList<>();
+        query.add(Pair.newPair("top_n_answer",
+                "select sum(PRICE) from ISSUES.TEST_TOP_N group by SELLER_ID order by sum(PRICE) desc limit 1"));
         try {
             NExecAndComp.execAndCompare(query, getProject(), CompareLevel.SAME, "left");
             Assert.fail();
