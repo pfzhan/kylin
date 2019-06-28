@@ -7,12 +7,12 @@ fi
 
 cd $KYLIN_HOME/grafana
 
-GRAFANA_PORT=$(grep -w "http_port =" conf/defaults.ini |tr -d '[:space:]' | cut -d'=' -f2)
-echo "Grafana port is $GRAFANA_PORT"
+PORT=$(grep -w "http_port =" conf/defaults.ini |tr -d '[:space:]' | cut -d'=' -f2)
+echo "Grafana port is ${PORT}"
 
-GRAFANA_PID=$(lsof -t -i:$GRAFANA_PORT)
-if [[ $GRAFANA_PID ]];then
-    echo "Grafana is running, stop it first, PID is $GRAFANA_PID"
+PID=`netstat -tpln 2>/dev/null | grep "\<$PORT\>" | awk '{print $7}' | sed "s/\// /g" | awk '{print $1}'`
+if [[ ! -z "${PID}" ]];then
+    echo "Grafana is running, stop it first, PID is ${PID}"
     exit 0
 fi
 
@@ -30,25 +30,26 @@ export INFLUXDB_ADDRESS=`$KYLIN_HOME/bin/get-properties.sh kap.influxdb.address`
 export INFLUXDB_USERNAME=`$KYLIN_HOME/bin/get-properties.sh kap.influxdb.username`
 export INFLUXDB_PASSWORD=`$KYLIN_HOME/bin/get-properties.sh kap.influxdb.password`
 
-echo "influxdb address: $INFLUXDB_ADDRESS"
+echo "Influxdb Address: $INFLUXDB_ADDRESS"
+echo "Metrics Database: $KE_METRICS_DATABASE"
 
-nohup bin/grafana-server web &
+nohup bin/grafana-server web > /dev/null 2>&1 &
 
 echo "Grafana starting..."
 
 try_times=30
-while [ $try_times -gt 0 ];do
-    if lsof -t -i:$GRAFANA_PORT > /dev/null;then
+while [[ ${try_times} -gt 0 ]];do
+    sleep 3
+    PID=`netstat -tpln 2>/dev/null | grep "\<$PORT\>" | awk '{print $7}' | sed "s/\// /g" | awk '{print $1}'`
+    if [[ ! -z "${PID}" ]];then
         break
-    else
-        let try_times-=1
-        sleep 5
     fi
+    let try_times-=1
 done
 
-if [ $try_times -le 0 ];then
+if [[ ${try_times} -le 0 ]];then
     echo "Grafana start timeout."
     exit 0
 fi
 
-echo "Grafana started, PID is $(lsof -t -i:$GRAFANA_PORT)"
+echo "Grafana started, PID is $PID"
