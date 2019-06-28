@@ -25,9 +25,13 @@
 package io.kyligence.kap.server;
 
 
-import com.jayway.jsonpath.JsonPath;
+import java.io.File;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.ResultSet;
+import java.sql.Statement;
+
 import org.apache.commons.lang3.StringUtils;
-import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.query.KylinTestBase;
 import org.apache.kylin.rest.request.PrepareSqlRequest;
@@ -40,11 +44,7 @@ import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.result.MockMvcResultHandlers;
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 
-import java.io.File;
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.ResultSet;
-import java.sql.Statement;
+import com.jayway.jsonpath.JsonPath;
 
 public class NQueryControllerTest extends AbstractMVCIntegrationTestCase {
 
@@ -110,21 +110,6 @@ public class NQueryControllerTest extends AbstractMVCIntegrationTestCase {
                 .andExpect(MockMvcResultMatchers.jsonPath("$.data.results[0].length()")
                         .value(resultSet.getMetaData().getColumnCount()))
                 .andExpect(MockMvcResultMatchers.jsonPath("$.data.pushDown").value(true))
-                .andDo(MockMvcResultHandlers.print())
-                .andReturn();
-
-        // push down with cache
-        mockMvc.perform(MockMvcRequestBuilders
-                .post("/api/query")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(JsonUtil.writeValueAsString(sqlRequest))
-                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
-                .andExpect(MockMvcResultMatchers.status().isOk())
-                .andExpect(MockMvcResultMatchers.jsonPath("$.data.results[0].length()")
-                        .value(resultSet.getMetaData().getColumnCount()))
-                .andExpect(MockMvcResultMatchers.jsonPath("$.data.pushDown").value(true))
-                .andExpect(MockMvcResultMatchers.jsonPath("$.data.engineType").value(QueryContext.PUSHDOWN_RDBMS))
-                .andExpect(MockMvcResultMatchers.jsonPath("$.data.storageCacheUsed").value(true))
                 .andDo(MockMvcResultHandlers.print())
                 .andReturn();
 

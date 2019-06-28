@@ -129,13 +129,14 @@ public class QueryCacheSignatureUtilTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void testCheckCacheExpiredWhenUpdateOtherLayout() {
+    public void testCheckCacheExpiredWhenUpdateOtherLayout() throws InterruptedException {
         Long otherLayout = 10002L;
         NDataLayout layout = NDataLayout.newDataLayout(dataflow, dataflow.getSegments().getFirstSegment().getId(),
                 otherLayout);
         NDataflowUpdate update = new NDataflowUpdate(modelId);
         update.setToAddOrUpdateLayouts(layout);
         dataflowManager.updateDataflow(update);
+        Thread.sleep(10L);
         Assert.assertFalse(QueryCacheSignatureUtil.checkCacheExpired(response, project));
     }
 
