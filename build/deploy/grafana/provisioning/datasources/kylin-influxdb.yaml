@@ -15,7 +15,7 @@ datasources:
     url: http://$INFLUXDB_ADDRESS
     password: $INFLUXDB_PASSWORD
     user: $INFLUXDB_USERNAME
-    database: KE_METRICS
+    database: $KE_METRICS_DATABASE
     readOnly: false
 
 

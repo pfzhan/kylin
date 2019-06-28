@@ -24,13 +24,15 @@
 
 package org.apache.kylin.common;
 
-import io.kyligence.kap.common.util.FileUtils;
 import java.io.File;
 import java.io.IOException;
 import java.util.Map;
+
 import org.apache.commons.lang.time.DateUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.fs.Path;
+
+import io.kyligence.kap.common.util.FileUtils;
 
 public class KapConfig {
 
@@ -526,18 +528,10 @@ public class KapConfig {
     /**
      * kap metrics, default: influxDb
      */
-    public String getMetricsInfluxDbName() {
-        return config.getOptional("kap.metrics.influx.db", "KE_METRICS");
-    }
-
-    public String getMetricsInfluxRetentionPolicy() {
-        return config.getOptional("kap.metrics.influx.rp", "KE_METRICS_RP");
-    }
-
-    public String getMetricsMeasurementWithMetadataUrlPrefix() {
-        StringBuilder sb = new StringBuilder(config.getMetadataUrlPrefix().replaceAll("[^0-9|a-z|A-Z|_]{1,}", "_"));
+    public String getMetricsDbNameWithMetadataUrlPrefix() {
+        StringBuilder sb = new StringBuilder(config.getMetadataUrlPrefix());
         sb.append("_");
-        sb.append(config.getOptional("kap.metrics.influx.measurement", "system_metric"));
+        sb.append(config.getOptional("kap.metrics.influx.db", "KE_METRICS"));
         return sb.toString();
     }
 

@@ -160,8 +160,15 @@ if [[ -z  $inlfuxd_path ]];then
         inlfuxd_path=$INFLUXDB_HOME/usr/bin/influxd
     fi
 fi
-
-metrics_db_name=`$KYLIN_HOME/bin/get-properties.sh kap.metrics.influx.db`
+metadata_url_prefix=`$KYLIN_HOME/bin/get-properties.sh kylin.metadata.url`
+## check whether it contain '@' mark,if it exists, extract the content before it
+mark=`echo ${metadata_url_prefix} | grep "@"`
+if [ ${#mark} -ne 0 ]
+then
+    metadata_url_prefix=`echo ${metadata_url_prefix} | awk -F'@' '{print $1}'`
+fi
+metrics_db_suffix=`$KYLIN_HOME/bin/get-properties.sh kap.metrics.influx.db`
+metrics_db_name=${metadata_url_prefix}_${metrics_db_suffix}
 metrics_backup_host=`$KYLIN_HOME/bin/get-properties.sh kap.metrics.influx.rpc-service.bind-address`
 if [[ $inlfuxd_path ]];then
     $inlfuxd_path backup -portable -database $metrics_db_name -host $metrics_backup_host ${diag_tmp_dir}/system_metrics/

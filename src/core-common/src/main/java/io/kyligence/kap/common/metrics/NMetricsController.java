@@ -45,6 +45,8 @@ import io.kyligence.kap.shaded.influxdb.org.influxdb.InfluxDBFactory;
 public class NMetricsController {
     private static final Logger logger = LoggerFactory.getLogger(NMetricsController.class);
 
+    private static final String KE_METRICS_RP = "KE_METRICS_RP";
+
     private static final AtomicBoolean reporterStarted = new AtomicBoolean(false);
 
     private volatile static MetricRegistry defaultMetricRegistry = null;
@@ -78,15 +80,15 @@ public class NMetricsController {
                             new StringBuilder("http://").append(config.influxdbAddress()).toString(),
                             config.influxdbUsername(), config.influxdbPassword());
 
-                    defaultInfluxDb.setDatabase(config.getMetricsInfluxDbName());
-                    defaultInfluxDb.setRetentionPolicy(config.getMetricsInfluxRetentionPolicy());
+                    defaultInfluxDb.setDatabase(config.getMetricsDbNameWithMetadataUrlPrefix());
+                    defaultInfluxDb.setRetentionPolicy(KE_METRICS_RP);
                     defaultInfluxDb.enableBatch(BatchOptions.DEFAULTS.actions(1000).bufferLimit(10000)
                             .flushDuration(config.getInfluxDBFlushDuration()).jitterDuration(500));
 
-                    if (!defaultInfluxDb.databaseExists(config.getMetricsInfluxDbName())) {
-                        defaultInfluxDb.createDatabase(config.getMetricsInfluxDbName());
-                        defaultInfluxDb.createRetentionPolicy(config.getMetricsInfluxRetentionPolicy(),
-                                config.getMetricsInfluxDbName(), "30d", "7d", 1, true);
+                    if (!defaultInfluxDb.databaseExists(config.getMetricsDbNameWithMetadataUrlPrefix())) {
+                        defaultInfluxDb.createDatabase(config.getMetricsDbNameWithMetadataUrlPrefix());
+                        defaultInfluxDb.createRetentionPolicy(KE_METRICS_RP,
+                                config.getMetricsDbNameWithMetadataUrlPrefix(), "30d", "7d", 1, true);
                     }
                 }
             }

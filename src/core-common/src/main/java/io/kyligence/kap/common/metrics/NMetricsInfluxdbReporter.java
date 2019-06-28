@@ -38,6 +38,8 @@ public class NMetricsInfluxdbReporter implements NMetricsReporter {
 
     private static final Logger logger = LoggerFactory.getLogger(NMetricsInfluxdbReporter.class);
 
+    public static final String METRICS_MEASUREMENT = "system_metric";
+
     private final AtomicBoolean running = new AtomicBoolean(false);
     private final AtomicBoolean initialized = new AtomicBoolean(false);
     private final String reporterName = "MetricsReporter";
@@ -52,7 +54,7 @@ public class NMetricsInfluxdbReporter implements NMetricsReporter {
         synchronized (this) {
             if (!initialized.get()) {
                 final NMetricsConfig config = new NMetricsConfig(kapConfig);
-                defaultMeasurement = kapConfig.getMetricsMeasurementWithMetadataUrlPrefix();
+                defaultMeasurement = METRICS_MEASUREMENT;
                 defaultInfluxDb = NMetricsController.getDefaultInfluxDb();
                 underlying = new InfluxdbReporter(defaultInfluxDb, defaultMeasurement,
                         NMetricsController.getDefaultMetricRegistry(), reporterName);

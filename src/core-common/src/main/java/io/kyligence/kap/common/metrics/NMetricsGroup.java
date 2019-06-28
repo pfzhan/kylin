@@ -374,7 +374,7 @@ public class NMetricsGroup {
             final StringBuilder sb = new StringBuilder("select ");
             sb.append(fieldName);
             sb.append(" from ");
-            sb.append(config.getMetricsMeasurementWithMetadataUrlPrefix());
+            sb.append(NMetricsInfluxdbReporter.METRICS_MEASUREMENT);
             sb.append(" where category='");
             sb.append(category);
             sb.append("' and entity='");
@@ -395,7 +395,8 @@ public class NMetricsGroup {
 
             final String querySql = sb.toString();
 
-            final QueryResult result = defaultInfluxDb.query(new Query(querySql, config.getMetricsInfluxDbName()));
+            final QueryResult result = defaultInfluxDb
+                    .query(new Query(querySql, config.getMetricsDbNameWithMetadataUrlPrefix()));
             if (CollectionUtils.isEmpty(result.getResults().get(0).getSeries())) {
                 logger.info("kap.metrics tryRestoreCounter, got empty series, sql=[{}]", querySql);
                 return 0;
