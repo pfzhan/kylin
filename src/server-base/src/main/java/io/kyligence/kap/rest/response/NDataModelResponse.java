@@ -58,6 +58,9 @@ public class NDataModelResponse extends NDataModel {
     @JsonProperty("model_broken")
     private boolean modelBroken;
 
+    @JsonProperty("root_fact_table_deleted")
+    private boolean rootFactTableDeleted = false;
+
     private long lastModify;
 
     public NDataModelResponse() {

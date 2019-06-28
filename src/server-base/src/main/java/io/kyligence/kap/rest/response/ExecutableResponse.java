@@ -79,6 +79,8 @@ public class ExecutableResponse implements Comparable<ExecutableResponse> {
     private long waitTime;
     @JsonProperty("target_subject")
     private String targetSubject;
+    @JsonProperty("target_subject_error")
+    private boolean targetSubjectError = false;
 
     private static ExecutableResponse newInstance(AbstractExecutable abstractExecutable) {
         ExecutableResponse executableResponse = new ExecutableResponse();
@@ -106,6 +108,7 @@ public class ExecutableResponse implements Comparable<ExecutableResponse> {
             if (NTableMetadataManager.getInstance(KylinConfig.getInstanceFromEnv(), abstractExecutable.getProject())
                     .getTableDesc(executableResponse.getTargetSubject()) == null) {
                 executableResponse.setTargetSubject(executableResponse.getTargetSubject() + " deleted");
+                executableResponse.setTargetSubjectError(true);
             }
         } else {
             val dataflow = NDataflowManager
@@ -113,8 +116,10 @@ public class ExecutableResponse implements Comparable<ExecutableResponse> {
                     .getDataflow(abstractExecutable.getTargetSubject());
             if (dataflow == null) {
                 executableResponse.setTargetSubject("The model is deleted");
+                executableResponse.setTargetSubjectError(true);
             } else if (dataflow.checkBrokenWithRelatedInfo()) {
                 executableResponse.setTargetSubject(executableResponse.getTargetSubject() + " broken");
+                executableResponse.setTargetSubjectError(true);
             }
         }
 

@@ -204,6 +204,7 @@ public class ModelService extends BasicService {
             val tableManager = NTableMetadataManager.getInstance(KylinConfig.getInstanceFromEnv(), projectName);
             if (tableManager.getTableDesc(modelDesc.getRootFactTableName()) == null) {
                 nDataModelResponse.setRootFactTableName(nDataModelResponse.getRootFactTableName() + " deleted");
+                nDataModelResponse.setRootFactTableDeleted(true);
             }
             return nDataModelResponse;
         }
