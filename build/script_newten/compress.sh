@@ -40,19 +40,13 @@ cp -rf ../src/examples/sample_cube/create_sample_ssb_tables.sql ${package_name}/
 # add tpch benchmark tool
 cp -rf tpch-benchmark ${package_name}/tool/
 
-# Add min/prod profiles
-mkdir ${package_name}/conf
 
-cp -rf conf/profile_min ${package_name}/conf/
-cp -rf conf/profile_prod ${package_name}/conf/
-cp -rf conf/kylin-tools-log4j.properties ${package_name}/conf/
-cp -rf conf/kylin-server-log4j.properties ${package_name}/conf/
-cp -rf conf/spark-driver-log4j.properties ${package_name}/conf/
-cp -rf conf/spark-executor-log4j.properties ${package_name}/conf/
-cp -rf conf/setenv.sh ${package_name}/conf/
 cp -rf deploy/grafana/dashboards ${package_name}/grafana/
 cp -rf deploy/grafana/provisioning ${package_name}/grafana/conf/
 cp -rf deploy/grafana/custom.ini ${package_name}/grafana/conf/
+
+# Add conf profiles
+cp -rf conf ${package_name}/conf
 cp -rf bin/ ${package_name}/bin/
 
 # update symblink, use production profile as default
