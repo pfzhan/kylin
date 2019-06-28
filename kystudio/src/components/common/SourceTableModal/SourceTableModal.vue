@@ -181,7 +181,7 @@ export default class SourceTableModal extends Vue {
     try {
       const submitData = _getNewestTableRange(this.project, this.table)
       const response = await this.fetchNewestTableRange(submitData)
-      if (submitData.table !== this.table) {
+      if (submitData.tableFullName !== this.table.fullName) {
         return
       }
       const result = await handleSuccessAsync(response)
