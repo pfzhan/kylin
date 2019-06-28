@@ -163,6 +163,7 @@ export default class SourceTableModal extends Vue {
   }
   handleClose (isSubmit = false) {
     this.isLoadingNewRange = false
+    this.isLoading = false
     this.hideModal()
     this.callback && this.callback(isSubmit)
   }

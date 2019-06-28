@@ -153,6 +153,7 @@
     }
     closeModal (isSubmit) {
       this.isLoadingNewRange = false
+      this.btnLoading = false
       this.$refs.buildForm && this.$refs.buildForm.resetFields()
       this.hideModal()
       setTimeout(() => {

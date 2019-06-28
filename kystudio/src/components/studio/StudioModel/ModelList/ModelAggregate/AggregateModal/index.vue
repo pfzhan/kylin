@@ -26,7 +26,7 @@
       </div> -->
       <!-- 聚合组按钮 -->
       <el-alert
-        class="ksd-pt-0"
+        class="ksd-pt-0 ksd-pb-15"
         :title="$t('aggRuleTip')"
         type="info"
         :show-background="false"

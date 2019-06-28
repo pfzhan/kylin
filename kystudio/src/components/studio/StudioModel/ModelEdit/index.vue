@@ -1478,6 +1478,25 @@ export default class ModelEdit extends Vue {
               project: this.currentSelectedProject,
               renderDom: this.renderBox
             }), this.modelRender, this)
+            if (this.isSchemaBrokenModel) {
+              kapConfirm(this.$t('brokenEditTip'), {
+                showCancelButton: false,
+                type: 'warning'
+              })
+              this.hiddenAllPanels()
+              this.hiddenAllPanelIconsInBroken()
+            } else {
+              this.initAllPanels()
+            }
+            this.modelInstance.bindConnClickEvent((ptable, ftable) => {
+              // 设置连接弹出框数据
+              this.callJoinDialog({
+                pid: ptable.guid,
+                fid: ftable.guid,
+                primaryTable: ptable,
+                tables: this.modelRender.tables
+              })
+            })
           } catch (e) {
             this.globalLoading.hide()
             kapConfirm(this.$t('canNotRepairBrokenTip'), {
@@ -1488,25 +1507,6 @@ export default class ModelEdit extends Vue {
               this.$emit('removetab')
             })
           }
-          if (this.isSchemaBrokenModel) {
-            kapConfirm(this.$t('brokenEditTip'), {
-              showCancelButton: false,
-              type: 'warning'
-            })
-            this.hiddenAllPanels()
-            this.hiddenAllPanelIconsInBroken()
-          } else {
-            this.initAllPanels()
-          }
-          this.modelInstance.bindConnClickEvent((ptable, ftable) => {
-            // 设置连接弹出框数据
-            this.callJoinDialog({
-              pid: ptable.guid,
-              fid: ftable.guid,
-              primaryTable: ptable,
-              tables: this.modelRender.tables
-            })
-          })
         })
       })
     }, (err) => {
