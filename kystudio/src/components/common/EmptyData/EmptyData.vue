@@ -46,6 +46,7 @@ export default class EmptyData extends Vue {
 <style lang="less">
 @import '../../../assets/styles/variables.less';
 .empty-data {
+  pointer-events:none;
   position: absolute;
   top: 50%;
   left: 50%;

@@ -20,6 +20,7 @@ exports.default = {
     save: 'Save',
     leave: 'Leave',
     load: 'Load',
+    loadMetadata: 'Load metadata',
     ok: 'OK',
     exit: 'Exit',
     retry: 'Retry',

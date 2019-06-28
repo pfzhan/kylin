@@ -17,6 +17,7 @@ export default {
 <style scoped="" lang="less">
 @import "../../assets/styles/variables.less";
 div{
+ pointer-events:none;
  text-align: center;
  color:@text-disabled-color;
  position: absolute;

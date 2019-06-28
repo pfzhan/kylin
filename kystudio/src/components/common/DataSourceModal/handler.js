@@ -53,7 +53,7 @@ export const confirmMaps = {
   [editTypes.CONFIG_CSV_SETTING]: 'kylinLang.common.next',
   [editTypes.CONFIG_CSV_STRUCTURE]: 'kylinLang.common.submit',
   [editTypes.CONFIG_CSV_SQL]: 'kylinLang.common.submit',
-  [editTypes.HIVE]: 'kylinLang.common.load',
+  [editTypes.HIVE]: 'kylinLang.common.loadMetadata',
   [editTypes.RDBMS]: 'kylinLang.common.sync',
   [editTypes.RDBMS2]: 'kylinLang.common.sync',
   [editTypes.KAFKA]: 'kylinLang.common.submit',

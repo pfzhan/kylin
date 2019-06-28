@@ -19,6 +19,7 @@ exports.default = {
     save: '保存',
     leave: '跳转',
     load: '加载',
+    loadMetadata: '加载元数据',
     notice: '提示',
     ok: '确定',
     exit: '退出',

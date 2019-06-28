@@ -3,7 +3,7 @@
     <div class="model-edit">
       <el-button v-guide.modelEditAction v-visible @click="guideActions"></el-button>
 
-      <kap-empty-data style="pointer-events:none" :content="$t('noTableTip')" v-if="!Object.keys(modelRender.tables).length"></kap-empty-data>
+      <kap-empty-data :content="$t('noTableTip')" v-if="!Object.keys(modelRender.tables).length"></kap-empty-data>
       <!-- table box -->
       <div v-guide="t.guid" class="table-box" @click="activeTablePanel(t)" v-visible="!currentEditTable || currentEditTable.guid !== t.guid" :id="t.guid" v-event-stop :class="{isLookup:t.kind==='LOOKUP'}" v-for="t in modelRender && modelRender.tables || []" :key="t.guid" :style="tableBoxStyle(t.drawSize)">
         <div class="table-title" :data-zoom="modelRender.zoom"  v-drag:change.left.top="t.drawSize">

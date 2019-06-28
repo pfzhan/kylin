@@ -36,6 +36,7 @@ class NModel {
       partition_date_start: 0,
       partition_type: 'APPEND'
     }
+    this.his_partition_desc = Object.assign({}, options.partition_desc)
     this.simplified_dimensions = options.simplified_dimensions || []
     this.simplified_dimensions.forEach((col) => {
       col.guid = sampleGuid()

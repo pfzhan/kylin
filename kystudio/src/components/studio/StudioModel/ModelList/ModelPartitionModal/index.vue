@@ -30,7 +30,7 @@
         </el-col>
       </el-form-item>
     </el-form> 
-    <template v-if="partitionMeta.table && partitionMeta.column">
+    <template v-if="showDataRange">
       <div class="ky-list-title ksd-mt-14">{{$t('loadRange')}}</div>
       <el-alert
         :title="$t('kylinLang.dataSource.rangeInfoTip')"
@@ -225,6 +225,13 @@ export default class ModelPartitionModal extends Vue {
       })
     }
     return result
+  }
+  get showDataRange () {
+    // 分区列有空值或者和历史值一样
+    if (!this.partitionMeta.table || !this.partitionMeta.column || this.partitionMeta.table + '.' + this.partitionMeta.column === this.modelInstance.his_partition_desc.partition_date_column) {
+      return false
+    }
+    return true
   }
   // 获取破损的partition keys
   get brokenPartitionColumns () {
