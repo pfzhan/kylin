@@ -1504,7 +1504,7 @@ export default class ModelEdit extends Vue {
               showCancelButton: false,
               confirmButtonText: this.$t('kylinLang.common.exit')
             }).then(() => {
-              this.$emit('removetab')
+              this.$router.replace({name: 'ModelList', params: { ignoreIntercept: true }})
             })
           }
         })
