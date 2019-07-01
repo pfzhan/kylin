@@ -266,7 +266,8 @@ public class Segments<T extends ISegment> extends ArrayList<T> implements Serial
         Segments<T> result = new Segments<T>();
         for (val seg : this) {
             val status = this.getSegmentStatusToDisplay(seg);
-            if (!(status.equals(SegmentStatusEnumToDisplay.REFRESHING) || status.equals(SegmentStatusEnumToDisplay.MERGING))) {
+            if (!(SegmentStatusEnumToDisplay.REFRESHING.toString().equals(status)
+                    || SegmentStatusEnumToDisplay.MERGING.toString().equals(status))) {
                 result.add(seg);
             }
         }

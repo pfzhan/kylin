@@ -583,12 +583,7 @@ public class ModelService extends BasicService {
                             "Can not refresh, some segments is building within the range you want to refresh!");
                 }
             } else {
-                for (val seg : segments) {
-                    if (segments.getSegmentStatusToDisplay(seg).equals(SegmentStatusEnumToDisplay.REFRESHING)) {
-                        throw new BadRequestException(
-                                "Can not refresh, some segments is building within the range you want to refresh!");
-                    }
-                }
+                checkSegRefreshingInLagBehindModel(segments);
             }
             affetedSegments.addAll(segments);
         }
@@ -601,6 +596,15 @@ public class ModelService extends BasicService {
         }
         return new RefreshAffectedSegmentsResponse(byteSize, affectedStart, affectedEnd);
 
+    }
+
+    private void checkSegRefreshingInLagBehindModel(Segments<NDataSegment> segments) {
+        for (val seg : segments) {
+            if (segments.getSegmentStatusToDisplay(seg).equals(SegmentStatusEnumToDisplay.REFRESHING)) {
+                throw new BadRequestException(
+                        "Can not refresh, some segments is building within the range you want to refresh!");
+            }
+        }
     }
 
     private void checkRefreshRangeWithinCoveredRange(NDataLoadingRange dataLoadingRange, String project, String table,
