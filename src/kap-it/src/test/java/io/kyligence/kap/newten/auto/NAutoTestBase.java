@@ -95,7 +95,6 @@ public class NAutoTestBase extends NLocalWithSparkSessionTest {
         if (excludedSqlPatterns == null) {
             excludedSqlPatterns = loadWhiteListSqlPatterns();
         }
-        overwriteSystemProp("kylin.job.analyze-strategy", "never");
     }
 
     @Override
@@ -333,10 +332,6 @@ public class NAutoTestBase extends NLocalWithSparkSessionTest {
                     val segIds = readySegments.stream().map(nDataSegment -> nDataSegment.getId())
                             .collect(Collectors.toSet());
                     merger.mergeAfterCatchup(df.getUuid(), segIds, layoutIds, buildStore);
-                }
-
-                if (job.getSparkAnalysisStep() != null) {
-                    merger.mergeAnalysis(job.getSparkAnalysisStep());
                 }
 
                 SchemaProcessor.checkSchema(SparderEnv.getSparkSession(), df.getUuid(), proj);

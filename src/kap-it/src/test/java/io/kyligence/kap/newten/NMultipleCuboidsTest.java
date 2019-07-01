@@ -47,7 +47,6 @@ public class NMultipleCuboidsTest extends NLocalWithSparkSessionTest {
         ss.sparkContext().setLogLevel("ERROR");
         System.setProperty("kylin.job.scheduler.poll-interval-second", "1");
         System.setProperty("kylin.engine.spark.cache-threshold", "2");
-        System.setProperty("kylin.job.analyze-strategy", "no");
         NDefaultScheduler.destroyInstance();
         NDefaultScheduler scheduler = NDefaultScheduler.getInstance(getProject());
         scheduler.init(new JobEngineConfig(getTestConfig()), new MockJobLock());

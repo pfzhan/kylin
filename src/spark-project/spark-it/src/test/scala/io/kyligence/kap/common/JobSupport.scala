@@ -158,15 +158,14 @@ trait JobSupport
         .startsWith(config.getHdfsWorkingDirectory))
     // launch the job
     execMgr.addJob(job)
-    if (!Objects.equals(wait(job), ExecutableState.SUCCEED))
+    if (!Objects.equals(wait(job), ExecutableState.SUCCEED)) {
       throw new IllegalStateException
+    }
 
-    val analysisStore: ResourceStore = ExecutableUtils.getRemoteStore(config, job.getSparkAnalysisStep)
     val buildStore: ResourceStore = ExecutableUtils.getRemoteStore(config, job.getSparkCubingStep)
     val merger: AfterBuildResourceMerger = new AfterBuildResourceMerger(config, prj)
     val layoutIds: java.util.Set[java.lang.Long] = toBuildLayouts.asScala.map(c => new java.lang.Long(c.getId)).asJava
     merger.mergeAfterIncrement(df.getUuid, oneSeg.getId, layoutIds, buildStore)
-    merger.mergeAnalysis(job.getSparkAnalysisStep)
     checkSnapshotTable(df.getId, oneSeg.getId, oneSeg.getProject)
   }
 

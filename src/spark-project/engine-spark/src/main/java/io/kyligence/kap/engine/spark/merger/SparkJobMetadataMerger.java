@@ -24,17 +24,6 @@
 
 package io.kyligence.kap.engine.spark.merger;
 
-import com.google.common.collect.Sets;
-import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
-import io.kyligence.kap.engine.spark.ExecutableUtils;
-import io.kyligence.kap.engine.spark.cleanup.SnapshotChecker;
-import io.kyligence.kap.engine.spark.utils.FileNames;
-import io.kyligence.kap.engine.spark.utils.HDFSUtils;
-import io.kyligence.kap.metadata.cube.model.NDataLayout;
-import io.kyligence.kap.metadata.cube.model.NDataSegment;
-import io.kyligence.kap.metadata.cube.model.NDataflowManager;
-import io.kyligence.kap.metadata.model.NDataModel;
-import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
@@ -44,8 +33,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TimeZone;
-import lombok.Getter;
-import lombok.val;
+
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.Path;
 import org.apache.kylin.common.KapConfig;
@@ -54,10 +42,18 @@ import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.job.dao.JobStatisticsManager;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.JobTypeEnum;
-import org.apache.kylin.metadata.model.JoinTableDesc;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
+import io.kyligence.kap.engine.spark.cleanup.SnapshotChecker;
+import io.kyligence.kap.engine.spark.utils.FileNames;
+import io.kyligence.kap.engine.spark.utils.HDFSUtils;
+import io.kyligence.kap.metadata.cube.model.NDataLayout;
+import io.kyligence.kap.metadata.cube.model.NDataSegment;
+import io.kyligence.kap.metadata.model.NTableMetadataManager;
+import lombok.Getter;
 
 public abstract class SparkJobMetadataMerger extends MetadataMerger {
     private static final Logger log = LoggerFactory.getLogger(SparkJobMetadataMerger.class);
@@ -71,43 +67,8 @@ public abstract class SparkJobMetadataMerger extends MetadataMerger {
 
     @Override
     public NDataLayout[] merge(String dataflowId, Set<String> segmentIds, Set<Long> layoutIds,
-                               ResourceStore remoteResourceStore, JobTypeEnum jobType) {
+            ResourceStore remoteResourceStore, JobTypeEnum jobType) {
         return new NDataLayout[0];
-    }
-
-    @Override
-    public void mergeAnalysis(AbstractExecutable abstractExecutable) {
-
-        if ("never".equals(KylinConfig.getInstanceFromEnv().getAnalyzeStrategy()))
-            return;
-
-        try (val remoteStore = ExecutableUtils.getRemoteStore(getConfig(), abstractExecutable)) {
-            val dataflowId = ExecutableUtils.getDataflowId(abstractExecutable);
-            val remoteConfig = remoteStore.getConfig();
-            final NTableMetadataManager remoteTblMgr = NTableMetadataManager.getInstance(remoteConfig, project);
-            final NTableMetadataManager localTblMgr = NTableMetadataManager.getInstance(getConfig(), project);
-            final NDataModel dataModel = NDataflowManager.getInstance(getConfig(), project).getDataflow(dataflowId)
-                    .getModel();
-            mergeAndUpdateTableExt(localTblMgr, remoteTblMgr, dataModel.getRootFactTableName());
-            final Set<String> lookupMerged = Sets.newHashSet();
-            for (final JoinTableDesc lookupDesc : dataModel.getJoinTables()) {
-                final String lookupTable = lookupDesc.getTable();
-                // The same lookup table should not be merged twice.
-                if (lookupMerged.contains(lookupTable)) {
-                    continue;
-                }
-                mergeAndUpdateTableExt(localTblMgr, remoteTblMgr, lookupDesc.getTable());
-                lookupMerged.add(lookupTable);
-            }
-        }
-    }
-
-    private void mergeAndUpdateTableExt(NTableMetadataManager localTblMgr, NTableMetadataManager remoteTblMgr,
-                                        String tableName) {
-        val localFactTblExt = localTblMgr.getOrCreateTableExt(tableName);
-        val remoteFactTblExt = remoteTblMgr.getOrCreateTableExt(tableName);
-
-        localTblMgr.mergeAndUpdateTableExt(localFactTblExt, remoteFactTblExt);
     }
 
     protected void recordDownJobStats(AbstractExecutable buildTask, NDataLayout[] addOrUpdateCuboids) {
@@ -130,7 +91,7 @@ public abstract class SparkJobMetadataMerger extends MetadataMerger {
 
     protected void updateSnapshotTableIfNeed(NDataSegment segment) {
         try {
-            log.info("Check snapshot for segment:" + segment.toString());
+            log.info("Check snapshot for segment: {}", segment);
             Map<Path, SnapshotChecker> snapshotCheckerMap = new HashMap<>();
             List<TableDesc> needUpdateTableDescs = new ArrayList<>();
             Map<String, String> snapshots = segment.getSnapshots();
@@ -150,20 +111,25 @@ public abstract class SparkJobMetadataMerger extends MetadataMerger {
 
                 if (lastFile.getModificationTime() <= segmentFile.getModificationTime()) {
 
-                    log.info("Update snapshot table " + entry.getKey() + " : " + "from " + (currentFile == null ? 0L : currentFile.getModificationTime()) + " to " + lastFile.getModificationTime())
-                    ;
-                    log.info("Update snapshot table " + entry.getKey() + " : " + "from " + (currentFile == null ? "null" : currentFile.getPath().toString()) + " to " + segmentFile.getPath().toString());
+                    log.info("Update snapshot table {} : from {} to {}", entry.getKey(),
+                            currentFile == null ? 0L : currentFile.getModificationTime(),
+                            lastFile.getModificationTime());
+                    log.info("Update snapshot table {} : from {} to {}", entry.getKey(),
+                            currentFile == null ? "null" : currentFile.getPath(), segmentFile.getPath());
                     TableDesc copyDesc = manager.copyForWrite(tableDesc);
                     copyDesc.setLastSnapshotPath(entry.getValue());
                     needUpdateTableDescs.add(copyDesc);
-                    snapshotCheckerMap.put(snapshotPath,
-                            new SnapshotChecker(segmentConf.getSnapshotMaxVersions(), segmentConf.getSnapshotVersionTTL(), segmentFile.getModificationTime()));
+                    snapshotCheckerMap.put(snapshotPath, new SnapshotChecker(segmentConf.getSnapshotMaxVersions(),
+                            segmentConf.getSnapshotVersionTTL(), segmentFile.getModificationTime()));
                 } else {
-                    log.info("Skip update snapshot table because current segment snapshot table is to old. Current segment snapshot table ts is : " + segmentFile.getModificationTime());
+                    log.info(
+                            "Skip update snapshot table because current segment snapshot table is to old. Current segment snapshot table ts is: {}",
+                            segmentFile.getModificationTime());
                 }
             }
             UnitOfWork.doInTransactionWithRetry(() -> {
-                NTableMetadataManager updateManager = NTableMetadataManager.getInstance(KylinConfig.getInstanceFromEnv(), segment.getProject());
+                NTableMetadataManager updateManager = NTableMetadataManager
+                        .getInstance(KylinConfig.getInstanceFromEnv(), segment.getProject());
                 for (TableDesc tableDesc : needUpdateTableDescs) {
                     updateManager.updateTableDesc(tableDesc);
                 }

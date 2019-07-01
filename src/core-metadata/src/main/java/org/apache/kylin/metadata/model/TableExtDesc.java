@@ -187,14 +187,6 @@ public class TableExtDesc extends RootPersistentEntity implements Serializable {
         return cardinality.toString();
     }
 
-    public void resetCardinality() {
-        int columnSize = this.columnStats.size();
-        this.columnStats.clear();
-        for (int i = 0; i < columnSize; i++) {
-            this.columnStats.add(new ColumnStats());
-        }
-    }
-
     public void setCardinality(String cardinality) {
         if (null == cardinality)
             return;

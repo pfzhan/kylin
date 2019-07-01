@@ -29,10 +29,10 @@ import java.util.Set;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.job.execution.AbstractExecutable;
+import org.apache.kylin.job.execution.JobTypeEnum;
 
 import io.kyligence.kap.metadata.cube.model.NDataLayout;
 import lombok.Getter;
-import org.apache.kylin.job.execution.JobTypeEnum;
 
 public abstract class MetadataMerger {
     @Getter
@@ -43,9 +43,8 @@ public abstract class MetadataMerger {
     }
 
     public abstract NDataLayout[] merge(String dataflowId, Set<String> segmentIds, Set<Long> layoutIds,
-                                        ResourceStore remoteResourceStore, JobTypeEnum jobType);
+            ResourceStore remoteResourceStore, JobTypeEnum jobType);
 
     public abstract void merge(AbstractExecutable abstractExecutable);
 
-    public abstract void mergeAnalysis(AbstractExecutable abstractExecutable);
 }

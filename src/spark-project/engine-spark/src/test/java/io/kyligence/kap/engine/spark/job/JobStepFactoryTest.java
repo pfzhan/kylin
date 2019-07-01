@@ -24,13 +24,11 @@
 
 package io.kyligence.kap.engine.spark.job;
 
-import java.util.HashMap;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.KylinConfigExt;
 import org.apache.kylin.job.constant.ExecutableConstants;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.JobTypeEnum;
@@ -47,7 +45,6 @@ import org.junit.Test;
 import org.spark_project.guava.collect.Sets;
 
 import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
-import io.kyligence.kap.engine.spark.builder.NModelAnalysisJob;
 import io.kyligence.kap.engine.spark.stats.analyzer.TableAnalyzerJob;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.model.NBatchConstants;
@@ -127,13 +124,6 @@ public class JobStepFactoryTest extends NLocalWithSparkSessionTest {
         Assert.assertEquals(config.getJobTmpMetaStoreUrl(getProject(), resourceDetectStep.getId()).toString(),
                 resourceDetectStep.getDistMetaUrl());
 
-        NSparkExecutable analysisStep = job.getSparkAnalysisStep();
-        Assert.assertEquals(NModelAnalysisJob.class.getName(), analysisStep.getSparkSubmitClassName());
-        Assert.assertEquals(ExecutableConstants.STEP_NAME_DATA_PROFILING, analysisStep.getName());
-        job.getParams().forEach((key, value) -> Assert.assertEquals(value, analysisStep.getParam(key)));
-        Assert.assertEquals(config.getJobTmpMetaStoreUrl(getProject(), analysisStep.getId()).toString(),
-                analysisStep.getDistMetaUrl());
-
         NSparkExecutable cubeStep = job.getSparkCubingStep();
         Assert.assertEquals(config.getSparkBuildClassName(), cubeStep.getSparkSubmitClassName());
         Assert.assertEquals(ExecutableConstants.STEP_NAME_BUILD_SPARK_CUBE, cubeStep.getName());
@@ -203,54 +193,6 @@ public class JobStepFactoryTest extends NLocalWithSparkSessionTest {
         });
         Assert.assertEquals(config.getJobTmpMetaStoreUrl(getProject(), cleanStep.getId()).toString(),
                 cleanStep.getDistMetaUrl());
-    }
-
-    @Test
-    public void testModeAnalyzeStrategyAlaways() {
-        cleanModel("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
-        NSparkCubingJob abstractExecutable = (NSparkCubingJob) mockJob(UUID.randomUUID().toString(),
-                SegmentRange.dateToLong("2011-01-01"), SegmentRange.dateToLong("2011-09-01"));
-        Assert.assertNotNull(abstractExecutable.getSparkAnalysisStep());
-    }
-
-    @Test
-    public void testModeAnalyzeStrategyNever() {
-        cleanModel("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
-        val dataflowManager = NDataflowManager.getInstance(getTestConfig(), "default");
-        var dataflow = dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
-        getTestConfig().setProperty("kylin.job.analyze-strategy", "never");
-        dataflow.getIndexPlan()
-                .setConfig(KylinConfigExt.createInstance(getTestConfig(), new HashMap<String, String>()));
-        NSparkCubingJob abstractExecutable = (NSparkCubingJob) mockJob(UUID.randomUUID().toString(),
-                SegmentRange.dateToLong("2011-01-01"), SegmentRange.dateToLong("2011-09-01"));
-        Assert.assertNull(abstractExecutable.getSparkAnalysisStep());
-        getTestConfig().setProperty("kylin.job.analyze-strategy", "always");
-    }
-
-    @Test
-    public void testModeAnalyzeStrategyFirst() {
-        val dataflowManager = NDataflowManager.getInstance(getTestConfig(), "default");
-        var dataflow = dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
-
-        cleanModel("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
-        SegmentRange.TimePartitionedSegmentRange timePartitionedSegmentRange = new SegmentRange.TimePartitionedSegmentRange(
-                SegmentRange.dateToLong("2010-06-01"), SegmentRange.dateToLong("2010-06-01"));
-        NDataSegment nDataSegment = dataflowManager.appendSegment(dataflowManager.getDataflow(dataflow.getId()),
-                timePartitionedSegmentRange);
-        nDataSegment.setStatus(SegmentStatusEnum.READY);
-        getTestConfig().setProperty("kylin.job.analyze-strategy", "first");
-        NDataflowUpdate update = new NDataflowUpdate(dataflow.getId());
-        update.setToAddSegs(nDataSegment);
-        dataflowManager.updateDataflow(update);
-        NSparkCubingJob abstractExecutable = (NSparkCubingJob) mockJob(UUID.randomUUID().toString(),
-                SegmentRange.dateToLong("2011-01-01"), SegmentRange.dateToLong("2011-09-01"));
-        Assert.assertNull(abstractExecutable.getSparkAnalysisStep());
-
-        cleanModel("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
-        abstractExecutable = (NSparkCubingJob) mockJob(UUID.randomUUID().toString(),
-                SegmentRange.dateToLong("2011-01-01"), SegmentRange.dateToLong("2011-09-01"));
-        Assert.assertNotNull(abstractExecutable.getSparkAnalysisStep());
-        getTestConfig().setProperty("kylin.job.analyze-strategy", "always");
     }
 
     private void cleanModel(String dataflowId) {

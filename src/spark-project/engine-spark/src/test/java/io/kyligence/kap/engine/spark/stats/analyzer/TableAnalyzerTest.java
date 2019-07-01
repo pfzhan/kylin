@@ -31,18 +31,12 @@ import java.util.stream.Collectors;
 import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.TableExtDesc;
-import org.apache.kylin.source.SourceFactory;
 import org.apache.spark.sql.AnalysisException;
-import org.apache.spark.sql.Dataset;
-import org.apache.spark.sql.Row;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-import com.google.common.collect.Maps;
-
 import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
-import io.kyligence.kap.engine.spark.NSparkCubingEngine;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import lombok.val;
 import lombok.var;
@@ -54,72 +48,6 @@ public class TableAnalyzerTest extends NLocalWithSparkSessionTest {
     @Before
     public void setup() {
         tableMgr = NTableMetadataManager.getInstance(getTestConfig(), getProject());
-    }
-
-    @Test
-    public void testAnalyze() {
-        TableDesc tableDesc = tableMgr.getTableDesc("DEFAULT.TEST_KYLIN_FACT");
-        Dataset<Row> sourceData = SourceFactory
-                .createEngineAdapter(tableDesc, NSparkCubingEngine.NSparkCubingSource.class)
-                .getSourceData(tableDesc, ss, Maps.newHashMap());
-
-        final List<Row> rows = sourceData.collectAsList();
-
-        final TableAnalyzer tableAnalyzer = new TableAnalyzer(tableDesc);
-        for (final Row row : rows) {
-            tableAnalyzer.analyze(row);
-        }
-
-        final TableAnalyzerResult result = tableAnalyzer.getResult();
-        Assert.assertEquals(10000, result.getRowCount());
-
-        // column "TRANS_ID"
-        int TRANS_ID = 0;
-        {
-            Assert.assertEquals(0, result.getNullOrBlankCount(TRANS_ID));
-            Assert.assertEquals(4, result.getMaxLength(TRANS_ID));
-            Assert.assertEquals("1000", result.getMaxLengthValue(TRANS_ID));
-            Assert.assertEquals(1, result.getMinLength(TRANS_ID));
-            Assert.assertEquals("0", result.getMinLengthValue(TRANS_ID));
-            Assert.assertEquals(9999.0d, result.getMaxNumeral(TRANS_ID), 0.0001d);
-            Assert.assertEquals(0.0, result.getMinNumeral(TRANS_ID), 0.0001d);
-            Assert.assertEquals(9958, result.getCardinality(TRANS_ID));
-        }
-
-        // column "CAL_DT"
-        int CAL_DT = 2;
-        {
-            Assert.assertEquals(0, result.getNullOrBlankCount(CAL_DT));
-            Assert.assertEquals(10, result.getMaxLength(CAL_DT));
-            Assert.assertEquals("2012-01-01", result.getMaxLengthValue(CAL_DT));
-            Assert.assertEquals(10, result.getMinLength(CAL_DT));
-            Assert.assertEquals("2012-01-01", result.getMinLengthValue(CAL_DT));
-            Assert.assertEquals(734, result.getCardinality(CAL_DT));
-        }
-
-        // column "LSTG_FORMAT_NAME"
-        int LSTG_FORMAT_NAME = 3;
-        {
-            Assert.assertEquals(0, result.getNullOrBlankCount(LSTG_FORMAT_NAME));
-            Assert.assertEquals(10, result.getMaxLength(LSTG_FORMAT_NAME));
-            Assert.assertEquals("FP-non GTC", result.getMaxLengthValue(LSTG_FORMAT_NAME));
-            Assert.assertEquals(4, result.getMinLength(LSTG_FORMAT_NAME));
-            Assert.assertEquals("ABIN", result.getMinLengthValue(LSTG_FORMAT_NAME));
-            Assert.assertEquals(5, result.getCardinality(LSTG_FORMAT_NAME));
-        }
-
-        // column "PRICE"
-        int PRICE = 8;
-        {
-            Assert.assertEquals(0, result.getNullOrBlankCount(PRICE));
-            Assert.assertEquals(8, result.getMaxLength(PRICE));
-            Assert.assertEquals("290.4800", result.getMaxLengthValue(PRICE));
-            Assert.assertEquals(6, result.getMinLength(PRICE));
-            Assert.assertEquals("9.1000", result.getMinLengthValue(PRICE));
-            Assert.assertEquals(999.84d, result.getMaxNumeral(PRICE), 0.0001d);
-            Assert.assertEquals(-99.79, result.getMinNumeral(PRICE), 0.0001d);
-            Assert.assertEquals(9443, result.getCardinality(PRICE));
-        }
     }
 
     @Test

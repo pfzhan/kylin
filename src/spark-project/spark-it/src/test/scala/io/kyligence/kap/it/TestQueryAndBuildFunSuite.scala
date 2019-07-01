@@ -122,7 +122,6 @@ class TestQueryAndBuildFunSuite
     logInfo(s"Curren time zone set to $timeZoneStr")
 
     super.beforeAll()
-    KylinConfig.getInstanceFromEnv.setProperty("kylin.job.analyze-strategy", "always")
     KylinConfig.getInstanceFromEnv.setProperty("kylin.query.pushdown.runner-class-name", "")
     KylinConfig.getInstanceFromEnv.setProperty("kylin.snapshot.parallel-build-enabled", "true")
     // test for snapshot cleanup

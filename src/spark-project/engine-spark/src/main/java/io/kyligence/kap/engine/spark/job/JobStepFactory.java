@@ -66,9 +66,6 @@ public class JobStepFactory {
         NDataflow df = segments.iterator().next().getDataflow();
         KylinConfigExt config = df.getConfig();
         switch (type) {
-        case ANALYSIS:
-            step = new NSparkAnalysisStep();
-            break;
         case RESOURCE_DETECT:
             step = new NResourceDetectStep(parent);
             break;

@@ -91,17 +91,6 @@ public class NSparkCubingJob extends DefaultChainedExecutableOnModel {
         job.setParam(NBatchConstants.P_DATA_RANGE_END, String.valueOf(endTime));
 
         JobStepFactory.addStep(job, JobStepType.RESOURCE_DETECT, segments);
-        switch (df.getConfig().getAnalyzeStrategy()) {
-        case "first":
-            if (df.getQueryableSegments().isEmpty()) {
-                JobStepFactory.addStep(job, JobStepType.ANALYSIS, segments);
-            }
-            break;
-        case "always":
-            JobStepFactory.addStep(job, JobStepType.ANALYSIS, segments);
-            break;
-        default:
-        }
         JobStepFactory.addStep(job, JobStepType.CUBING, segments);
         return job;
     }
@@ -112,10 +101,6 @@ public class NSparkCubingJob extends DefaultChainedExecutableOnModel {
         return NDataflowManager.getInstance(config, getProject()) //
                 .getDataflow(dataflowId) //
                 .collectPrecalculationResource();
-    }
-
-    public NSparkAnalysisStep getSparkAnalysisStep() {
-        return getTask(NSparkAnalysisStep.class);
     }
 
     public NSparkCubingStep getSparkCubingStep() {

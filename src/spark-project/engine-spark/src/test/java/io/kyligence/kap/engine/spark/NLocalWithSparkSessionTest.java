@@ -123,8 +123,6 @@ public class NLocalWithSparkSessionTest extends NLocalFileMetadataTestCase imple
     @Before
     public void setUp() throws Exception {
         this.createTestMetadata();
-        // todo We will remove old sampling code completely in a subsequent issue #12336
-        getTestConfig().setProperty("kylin.job.analyze-strategy", "always");
     }
 
     @After
@@ -139,7 +137,6 @@ public class NLocalWithSparkSessionTest extends NLocalFileMetadataTestCase imple
     protected void init() throws Exception {
         System.setProperty("kylin.job.scheduler.poll-interval-second", "1");
         this.createTestMetadata();
-        getTestConfig().setProperty("kylin.job.analyze-strategy", "always");
         NDefaultScheduler scheduler = NDefaultScheduler.getInstance(getProject());
         scheduler.init(new JobEngineConfig(KylinConfig.getInstanceFromEnv()), new MockJobLock());
         if (!scheduler.hasStarted()) {
@@ -252,10 +249,6 @@ public class NLocalWithSparkSessionTest extends NLocalFileMetadataTestCase imple
         } else {
             merger.mergeAfterCatchup(df.getUuid(), Sets.newHashSet(oneSeg.getId()),
                     ExecutableUtils.getLayoutIds(sparkStep), ExecutableUtils.getRemoteStore(config, sparkStep));
-        }
-
-        if (job.getSparkAnalysisStep() != null) {
-            merger.mergeAnalysis(job.getSparkAnalysisStep());
         }
     }
 

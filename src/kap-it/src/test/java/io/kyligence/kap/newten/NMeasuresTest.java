@@ -509,6 +509,5 @@ public class NMeasuresTest extends NLocalWithSparkSessionTest {
         AfterBuildResourceMerger merger = new AfterBuildResourceMerger(config, getProject());
         val layoutIds = toBuildLayouts.stream().map(LayoutEntity::getId).collect(Collectors.toSet());
         merger.mergeAfterIncrement(df.getUuid(), oneSeg.getId(), layoutIds, buildStore);
-        merger.mergeAnalysis(job.getSparkAnalysisStep());
     }
 }

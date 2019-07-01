@@ -98,7 +98,7 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
     private KylinConfig config;
 
     @Before
-    public void setup() throws Exception {
+    public void setup() {
         ss.sparkContext().setLogLevel("ERROR");
         System.setProperty("kylin.job.scheduler.poll-interval-second", "1");
 
@@ -113,7 +113,7 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
     }
 
     @After
-    public void after() throws Exception {
+    public void after() {
         NDefaultScheduler.destroyInstance();
         cleanupTestMetadata();
         System.clearProperty("kylin.job.scheduler.poll-interval-second");
@@ -189,9 +189,6 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
         Assert.assertEquals("hdfs", distMetaUrl.getScheme());
         Assert.assertTrue(distMetaUrl.getParameter("path").startsWith(config.getHdfsWorkingDirectory()));
 
-        final NSparkAnalysisStep analysisStep = job.getSparkAnalysisStep();
-        Assert.assertNotNull(analysisStep);
-
         // launch the job
         execMgr.addJob(job);
 
@@ -202,7 +199,6 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
         val merger = new AfterBuildResourceMerger(config, getProject());
         merger.mergeAfterIncrement(df.getUuid(), oneSeg.getId(), ExecutableUtils.getLayoutIds(sparkStep),
                 ExecutableUtils.getRemoteStore(config, sparkStep));
-        merger.mergeAnalysis(job.getSparkAnalysisStep());
 
         /**
          * Round2. Build new layouts, should reuse the data from already existing cuboid.
@@ -232,7 +228,6 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
         merger.mergeAfterCatchup(df2.getUuid(), Sets.newHashSet(oneSeg.getId()),
                 ExecutableUtils.getLayoutIds(job.getSparkCubingStep()),
                 ExecutableUtils.getRemoteStore(config, job.getSparkCubingStep()));
-        merger.mergeAnalysis(job.getSparkAnalysisStep());
 
         validateCube(df2.getSegments().getFirstSegment().getId());
         validateTableIndex(df2.getSegments().getFirstSegment().getId());
@@ -532,12 +527,13 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
 
         @Override
         public void saveTo(String path, Dataset<Row> data, SparkSession ss) {
-            Option<LogicalPlan> option = data.queryExecution().optimizedPlan().find(new AbstractFunction1<LogicalPlan, Object>() {
-                @Override
-                public Object apply(LogicalPlan v1) {
-                    return v1 instanceof Join;
-                }
-            });
+            Option<LogicalPlan> option = data.queryExecution().optimizedPlan()
+                    .find(new AbstractFunction1<LogicalPlan, Object>() {
+                        @Override
+                        public Object apply(LogicalPlan v1) {
+                            return v1 instanceof Join;
+                        }
+                    });
             Assert.assertFalse(option.isDefined());
             super.saveTo(path, data, ss);
         }
@@ -559,7 +555,8 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
                 throw new RuntimeException(e);
             }
             if (engineInterface == clz) {
-                return (I) ClassUtil.newInstance("io.kyligence.kap.engine.spark.job.NSparkCubingJobTest$MockParquetStorage");
+                return (I) ClassUtil
+                        .newInstance("io.kyligence.kap.engine.spark.job.NSparkCubingJobTest$MockParquetStorage");
             } else {
                 throw new RuntimeException("Cannot adapt to " + engineInterface);
             }
