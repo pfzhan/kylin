@@ -121,7 +121,12 @@
             io/kyligence/kap/query/relnode/KapOLAPToEnumerableConverter.java,
             **/org/apache/kylin/query/relnode/OLAP*Rel.java,
             **/io/kyligence/kap/tool/kerberos/KerberosLoginTask.java,
-            **/io/kyligence/kap/tool/kerberos/KerberosLoginUtil.java
+            **/io/kyligence/kap/tool/kerberos/KerberosLoginUtil.java,
+            **/io/kyligence/kap/tool/setup/KapSparkTaskTestCLI,
+            **/io/kyligence/kap/tool/setup/KapGetClusterInfo,
+            **/io/kyligence/kap/tool/common/HadoopConfExtractor,
+            **/io/kyligence/kap/tool/hadoop/CheckHadoopConfDir,
+            **/io/kyligence/kap/tool/hadoop/KapGetPathWithoutSchemeAndAuthorityCLI
         </sonar.jacoco.excludes>
         <sonar.coverage.exclusions>
             **/io/kyligence/kap/rest/*Server.java,
@@ -133,6 +138,11 @@
             **/io/kyligence/kap/tool/CuratorOperator.java,
             **/io/kyligence/kap/tool/kerberos/KerberosLoginUtil.java,
             **/io/kyligence/kap/tool/kerberos/KerberosLoginTask.java,
+            **/io/kyligence/kap/tool/setup/KapSparkTaskTestCLI,
+            **/io/kyligence/kap/tool/setup/KapGetClusterInfo,
+            **/io/kyligence/kap/tool/common/HadoopConfExtractor,
+            **/io/kyligence/kap/tool/hadoop/CheckHadoopConfDir,
+            **/io/kyligence/kap/tool/hadoop/KapGetPathWithoutSchemeAndAuthorityCLI,
             **/io/kyligence/kap/spark/common/logging/HdfsAppender.java,
             **/io/kyligence/kap/common/logging/QueryLoggerAdapter.java
         </sonar.coverage.exclusions>
