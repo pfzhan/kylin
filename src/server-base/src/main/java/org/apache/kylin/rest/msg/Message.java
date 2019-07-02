@@ -269,7 +269,11 @@ public class Message {
     }
 
     public String getILLEGAL_EXECUTABLE_STATE() {
-        return "Illegal status: %s.";
+        return "Illegal executable status: %s.";
+    }
+
+    public String getILLEGAL_JOB_STATE() {
+        return "Illegal job status: %s.";
     }
 
     public String getILLEGAL_JOB_TYPE() {

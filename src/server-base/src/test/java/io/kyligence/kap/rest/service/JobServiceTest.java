@@ -237,6 +237,12 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
             jobService.batchUpdateJobStatus(Lists.newArrayList(executable.getId()), "default", "RESUME", "");
             return null;
         }, "default");
+        jobService.batchUpdateJobStatus(Lists.newArrayList(executable.getId()), "default", "PAUSE", "OTHER_STATUS");
+        Assert.assertTrue(manager.getJob(executable.getId()).getStatus().equals(ExecutableState.PAUSED));
+        UnitOfWork.doInTransactionWithRetry(() -> {
+            jobService.batchUpdateJobStatus(Lists.newArrayList(executable.getId()), "default", "RESUME", "STOPPED");
+            return null;
+        }, "default");
         Assert.assertTrue(manager.getJob(executable.getId()).getStatus().equals(ExecutableState.READY));
         UnitOfWork.doInTransactionWithRetry(() -> {
             jobService.batchUpdateJobStatus(Lists.newArrayList(executable.getId()), "default", "DISCARD", "");

@@ -74,6 +74,7 @@ public class NJobController extends NBasicController {
             @RequestParam(value = "sortBy", required = false, defaultValue = "last_modified") String sortBy,
             @RequestParam(value = "reverse", required = false, defaultValue = "true") Boolean reverse) {
         checkProjectName(project);
+        checkJobStatus(status);
         JobFilter jobFilter = new JobFilter(status, jobNames, timeFilter, subject, subjectAlias, project, sortBy,
                 reverse);
         List<ExecutableResponse> executables = jobService.listJobs(jobFilter);
@@ -109,6 +110,7 @@ public class NJobController extends NBasicController {
             @RequestParam(value = "jobIds", required = false) List<String> jobIds,
             @RequestParam(value = "status", required = false) String status) throws IOException {
         checkProjectName(project);
+        checkJobStatus(status);
         if (CollectionUtils.isEmpty(jobIds) && StringUtils.isEmpty(status)) {
             throw new BadRequestException("At least one job should be selected to delete!");
         }
@@ -121,6 +123,7 @@ public class NJobController extends NBasicController {
     @ResponseBody
     public EnvelopeResponse updateJobStatus(@RequestBody JobUpdateRequest jobUpdateRequest) throws IOException {
         checkProjectName(jobUpdateRequest.getProject());
+        checkJobStatus(jobUpdateRequest.getStatus());
         if (CollectionUtils.isEmpty(jobUpdateRequest.getJobIds())
                 && StringUtils.isEmpty(jobUpdateRequest.getStatus())) {
             throw new BadRequestException("At least one job should be selected to " + jobUpdateRequest.getAction());

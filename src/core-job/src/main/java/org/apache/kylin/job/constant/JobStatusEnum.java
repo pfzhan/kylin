@@ -43,6 +43,9 @@
 
 package org.apache.kylin.job.constant;
 
+import java.util.HashMap;
+import java.util.Map;
+
 public enum JobStatusEnum {
 
     NEW(0), PENDING(1), RUNNING(2), FINISHED(4), ERROR(8), DISCARDED(16), STOPPED(32), SUICIDAL(64);
@@ -53,22 +56,37 @@ public enum JobStatusEnum {
         this.code = statusCode;
     }
 
-    public static JobStatusEnum getByCode(int statusCode) {
-        for (JobStatusEnum status : values()) {
-            if (status.getCode() == statusCode) {
-                return status;
-            }
-        }
-
-        return null;
-    }
-
     public int getCode() {
         return this.code;
     }
 
     public boolean isComplete() {
         return code == JobStatusEnum.FINISHED.getCode() || code == JobStatusEnum.ERROR.getCode() || code == JobStatusEnum.DISCARDED.getCode();
+    }
+
+    private static final Map<Integer, JobStatusEnum> codeMap = new HashMap<>(10);
+    private static final Map<String, JobStatusEnum> nameMap = new HashMap<>(10);
+    static {
+        for (JobStatusEnum jobStatusEnum : JobStatusEnum.values()) {
+            codeMap.put(jobStatusEnum.getCode(), jobStatusEnum);
+            nameMap.put(jobStatusEnum.name(), jobStatusEnum);
+        }
+    }
+
+    public static JobStatusEnum getByCode(Integer statusCode) {
+        if (null == statusCode) {
+            return null;
+        }
+
+        return codeMap.get(statusCode);
+    }
+
+    public static JobStatusEnum getByName(String name) {
+        if (null == name) {
+            return null;
+        }
+
+        return nameMap.get(name);
     }
 
 }

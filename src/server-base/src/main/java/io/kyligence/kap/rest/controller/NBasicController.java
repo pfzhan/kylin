@@ -49,6 +49,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 import javax.servlet.http.HttpServletRequest;
@@ -57,6 +58,7 @@ import javax.servlet.http.HttpServletResponse;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.yarn.webapp.ForbiddenException;
+import org.apache.kylin.job.constant.JobStatusEnum;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.exception.BadRequestException;
 import org.apache.kylin.rest.exception.InternalErrorException;
@@ -201,6 +203,13 @@ public class NBasicController {
         Message msg = MsgPicker.getMsg();
         if (StringUtils.isEmpty(project)) {
             throw new BadRequestException(msg.getEMPTY_PROJECT_NAME());
+        }
+    }
+
+    public void checkJobStatus(String jobStatus) {
+        Message msg = MsgPicker.getMsg();
+        if(! StringUtils.isBlank(jobStatus) && Objects.isNull(JobStatusEnum.getByName(jobStatus))) {
+            throw new BadRequestException(String.format(msg.getILLEGAL_JOB_STATE(), jobStatus));
         }
     }
 

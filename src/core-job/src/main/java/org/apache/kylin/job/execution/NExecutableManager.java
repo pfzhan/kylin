@@ -265,7 +265,7 @@ public class NExecutableManager {
         return result;
     }
 
-    public List<AbstractExecutable> getExecutablesByStatus(List<String> jobIds, String status) {
+    public List<AbstractExecutable> getExecutablesByStatus(List<String> jobIds, ExecutableState status) {
 
         val executables = getAllExecutables();
         val resultExecutables = new ArrayList<AbstractExecutable>();
@@ -275,9 +275,8 @@ public class NExecutableManager {
         } else {
             resultExecutables.addAll(executables);
         }
-        if (StringUtils.isNotEmpty(status)) {
-            return resultExecutables.stream().filter(t -> t.getStatus().equals(ExecutableState.valueOf(status)))
-                    .collect(Collectors.toList());
+        if (Objects.nonNull(status)) {
+            return resultExecutables.stream().filter(t -> t.getStatus().equals(status)).collect(Collectors.toList());
         } else {
             return resultExecutables;
         }
@@ -287,7 +286,7 @@ public class NExecutableManager {
 
         val executables = getAllExecutables();
 
-        if (status != null) {
+        if (Objects.nonNull(status)) {
             return executables.stream().filter(t -> t.getStatus().equals(status)).collect(Collectors.toList());
         } else {
             return executables;

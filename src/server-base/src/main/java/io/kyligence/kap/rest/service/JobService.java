@@ -31,6 +31,7 @@ import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
@@ -297,19 +298,23 @@ public class JobService extends BasicService {
     }
 
     @Transaction(project = 1)
-    public void batchUpdateJobStatus(List<String> jobIds, String project, String action, String status)
+    public void batchUpdateJobStatus(List<String> jobIds, String project, String action, String filterStatus)
             throws IOException {
         val executableManager = getExecutableManager(project);
-        val jobs = executableManager.getExecutablesByStatus(jobIds, status);
+        JobStatusEnum jobStatus = JobStatusEnum.getByName(filterStatus);
+        ExecutableState executableState = Objects.isNull(jobStatus) ? null : parseToExecutableState(jobStatus);
+        val jobs = executableManager.getExecutablesByStatus(jobIds, executableState);
         for (val job : jobs) {
             updateJobStatus(job.getId(), project, action);
         }
     }
 
     @Transaction(project = 0)
-    public void batchDropJob(String project, List<String> jobIds, String status) throws IOException {
+    public void batchDropJob(String project, List<String> jobIds, String filterStatus) throws IOException {
         val executableManager = getExecutableManager(project);
-        val jobs = executableManager.getExecutablesByStatus(jobIds, status);
+        JobStatusEnum jobStatus = JobStatusEnum.getByName(filterStatus);
+        ExecutableState executableState = Objects.isNull(jobStatus) ? null : parseToExecutableState(jobStatus);
+        val jobs = executableManager.getExecutablesByStatus(jobIds, executableState);
         for (val job : jobs) {
             dropJob(project, job.getId());
         }
