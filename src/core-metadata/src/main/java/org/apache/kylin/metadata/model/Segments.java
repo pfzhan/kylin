@@ -49,6 +49,7 @@ import java.util.Calendar;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Objects;
 import java.util.TimeZone;
 import java.util.stream.Collectors;
 
@@ -266,8 +267,8 @@ public class Segments<T extends ISegment> extends ArrayList<T> implements Serial
         Segments<T> result = new Segments<T>();
         for (val seg : this) {
             val status = this.getSegmentStatusToDisplay(seg);
-            if (!(SegmentStatusEnumToDisplay.REFRESHING.toString().equals(status)
-                    || SegmentStatusEnumToDisplay.MERGING.toString().equals(status))) {
+            if (!(Objects.equals(SegmentStatusEnumToDisplay.REFRESHING, status)
+                    || Objects.equals(SegmentStatusEnumToDisplay.MERGING, status))) {
                 result.add(seg);
             }
         }
