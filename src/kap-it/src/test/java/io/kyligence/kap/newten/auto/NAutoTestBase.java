@@ -86,13 +86,13 @@ public class NAutoTestBase extends NLocalWithSparkSessionTest {
     static final String IT_SQL_KAP_DIR = "../kap-it/src/test/resources/";
     private Map<String, String> systemProp = Maps.newHashMap();
     protected KylinConfig kylinConfig;
-    private static Set<String> excludedSqlPatterns;
+    private static Set<String> excludedSqlPatterns = Sets.newHashSet();
 
     @Before
     public void setup() throws Exception {
         super.init();
         kylinConfig = getTestConfig();
-        if (excludedSqlPatterns == null) {
+        if (CollectionUtils.isEmpty(excludedSqlPatterns)) {
             excludedSqlPatterns = loadWhiteListSqlPatterns();
         }
     }
@@ -125,6 +125,7 @@ public class NAutoTestBase extends NLocalWithSparkSessionTest {
         NDefaultScheduler.destroyInstance();
         super.cleanupTestMetadata();
         ResourceStore.clearCache(kylinConfig);
+        excludedSqlPatterns.clear();
         System.clearProperty("kylin.job.scheduler.poll-interval-second");
 
         FileUtils.deleteDirectory(new File("../kap-it/metastore_db"));
@@ -205,9 +206,11 @@ public class NAutoTestBase extends NLocalWithSparkSessionTest {
                     : QueryPatternUtil.normalizeSQLPattern(key);
             log.debug("** start comparing the SQL: {} **", value.getFilePath());
             if (!excludedSqlPatterns.contains(sqlPattern) && !value.ignoredCompareLevel()) {
-                Assert.assertEquals(value.getAccelerateLayouts(), value.getQueryUsedLayouts());
+                Assert.assertEquals(
+                        "something unexpected happened when comparing result of sql: " + value.getFilePath(),
+                        value.getAccelerateLayouts(), value.getQueryUsedLayouts());
             } else {
-                System.out.println(value.toString() + '\n');
+                log.info(value.toString() + '\n');
             }
         });
     }

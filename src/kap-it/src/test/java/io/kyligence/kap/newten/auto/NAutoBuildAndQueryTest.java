@@ -40,7 +40,9 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.newten.NExecAndComp.CompareLevel;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 @SuppressWarnings("serial")
 /***
  *
@@ -55,7 +57,7 @@ public class NAutoBuildAndQueryTest extends NAutoTestBase {
     public void testAllQueries() throws Exception {
         executeTestScenario(
                 /* CompareLevel = SAME */
-                new TestScenario(CompareLevel.SAME, "query/h2"),
+                new TestScenario(CompareLevel.SAME, "query/h2"), //
                 new TestScenario(CompareLevel.SAME, "query/sql"), //
                 new TestScenario(CompareLevel.SAME, "query/sql_boolean"), //
                 new TestScenario(CompareLevel.SAME, "query/sql_cache"), //
@@ -105,8 +107,7 @@ public class NAutoBuildAndQueryTest extends NAutoTestBase {
                 new TestScenario(CompareLevel.SAME_ROWCOUNT, "query/sql_verifyCount"),
 
                 /* CompareLevel = SAME_ORDER */
-                new TestScenario(CompareLevel.SAME_ORDER, "query/sql_window")
-        );
+                new TestScenario(CompareLevel.SAME_ORDER, "query/sql_window"));
     }
 
     @Test
@@ -202,6 +203,7 @@ public class NAutoBuildAndQueryTest extends NAutoTestBase {
 
     @Override
     protected Set<String> loadWhiteListSqlPatterns() throws IOException {
+        log.info("override loadWhiteListSqlPatterns in NAutoBuildAndQueryTest");
 
         Set<String> result = Sets.newHashSet();
         final String folder = getFolder("query/unchecked_layout_list");
