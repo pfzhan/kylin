@@ -41,6 +41,7 @@ import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.collections.MapUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KapConfig;
+import org.apache.kylin.common.KylinConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -68,6 +69,9 @@ public class NMetricsGroup {
     private static final ConcurrentHashMap<String, Meter> meters = new ConcurrentHashMap();
 
     private static final ConcurrentHashMap<String, Histogram> histograms = new ConcurrentHashMap();
+
+    private NMetricsGroup() {
+    }
 
     public static <T> boolean newGauge(NMetricsName name, NMetricsCategory category, String entity, Gauge<T> metric) {
         return newGauge(name, category, entity, Collections.emptyMap(), metric);
@@ -365,6 +369,9 @@ public class NMetricsGroup {
 
     private static long tryRestoreCounter(String fieldName, String category, String entity, Map<String, String> tags) {
         try {
+            if (KylinConfig.getInstanceFromEnv().isDevOrUT()) {
+                return 0;
+            }
             final InfluxDB defaultInfluxDb = NMetricsController.getDefaultInfluxDb();
             if (!defaultInfluxDb.ping().isGood()) {
                 throw new IllegalStateException("the pinged influxdb is not good.");

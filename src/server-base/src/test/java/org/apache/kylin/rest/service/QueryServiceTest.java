@@ -60,6 +60,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.common.exceptions.KylinTimeoutException;
@@ -89,7 +90,9 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
@@ -100,6 +103,8 @@ import org.springframework.test.util.ReflectionTestUtils;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
+import io.kyligence.kap.common.hystrix.CircuitBreakerException;
+import io.kyligence.kap.common.hystrix.NCircuitBreaker;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.metadata.cube.cuboid.NLayoutCandidate;
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
@@ -135,6 +140,9 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
 
     @InjectMocks
     private AppConfig appConfig = Mockito.spy(new AppConfig());
+
+    @Rule
+    public ExpectedException thrown = ExpectedException.none();
 
     @BeforeClass
     public static void setupResource() throws Exception {
@@ -723,6 +731,28 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(1, thirdSuccess.getNativeRealizations().size());
         Assert.assertEquals(QueryMetricsContext.AGG_INDEX, thirdSuccess.getNativeRealizations().get(0).getIndexType());
         Assert.assertEquals(modelAlias, thirdSuccess.getNativeRealizations().get(0).getModelAlias());
+    }
+
+    @Test
+    public void testQueryWithResultRowCountBreaker() {
+        final String sql = "select * from success_table_2";
+        final String project = "default";
+        final SQLRequest request = new SQLRequest();
+        request.setProject(project);
+        request.setSql(sql);
+        final SQLResponse response = Mockito.mock(SQLResponse.class);
+        Mockito.doReturn(1L).when(response).getResultRowCount();
+
+        getTestConfig().setProperty("kap.circuit-breaker.threshold.query-result-row-count", "1");
+        NCircuitBreaker.start(KapConfig.wrap(getTestConfig()));
+        try {
+            Mockito.doReturn(response).when(queryService).queryAndUpdateCache(Mockito.any(SQLRequest.class),
+                    Mockito.anyLong(), Mockito.anyBoolean());
+            thrown.expect(CircuitBreakerException.class);
+            queryService.queryWithCache(request, false);
+        } finally {
+            NCircuitBreaker.stop();
+        }
     }
 
 }

@@ -144,7 +144,11 @@
             **/io/kyligence/kap/tool/hadoop/CheckHadoopConfDir.java,
             **/io/kyligence/kap/tool/hadoop/KapGetPathWithoutSchemeAndAuthorityCLI.java,
             **/io/kyligence/kap/spark/common/logging/HdfsAppender.java,
-            **/io/kyligence/kap/common/logging/QueryLoggerAdapter.java
+            **/io/kyligence/kap/common/logging/QueryLoggerAdapter.java,
+            **/io/kyligence/kap/common/metrics/reporter/InfluxdbReporter.java,
+            **/io/kyligence/kap/common/metrics/NMetricsInfluxdbReporter.java,
+            **/io/kyligence/kap/rest/config/initialize/BootstrapCommand.java,
+            **/io/kyligence/kap/rest/config/AppInitializer.java
         </sonar.coverage.exclusions>
         <sonar.jacoco.itReportPath>${project.basedir}/../../target/jacoco-it.exec</sonar.jacoco.itReportPath>
 

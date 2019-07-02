@@ -24,20 +24,31 @@
 
 package io.kyligence.kap.metadata.query;
 
-import com.google.common.collect.Lists;
-import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
-import io.kyligence.kap.metadata.favorite.FavoriteRule;
-import io.kyligence.kap.metadata.favorite.FavoriteRuleManager;
+import java.util.List;
+
+import org.apache.kylin.common.KapConfig;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
+import org.mockito.Mockito;
 
-import java.util.List;
+import com.google.common.collect.Lists;
+
+import io.kyligence.kap.common.hystrix.CircuitBreakerException;
+import io.kyligence.kap.common.hystrix.NCircuitBreaker;
+import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.metadata.favorite.FavoriteRule;
+import io.kyligence.kap.metadata.favorite.FavoriteRuleManager;
 
 public class FavoriteRuleManagerTest extends NLocalFileMetadataTestCase {
     private static String PROJECT = "default";
     private static FavoriteRuleManager manager;
+
+    @Rule
+    public ExpectedException thrown = ExpectedException.none();
 
     @Before
     public void setUp() {
@@ -74,7 +85,7 @@ public class FavoriteRuleManagerTest extends NLocalFileMetadataTestCase {
         cond1.setLeftThreshold("10");
         conds = Lists.newArrayList(cond1, cond2);
         newRule.setConds(conds);
-        manager.updateRule((List<FavoriteRule.Condition>)(List<?>) conds, true, newRule.getName());
+        manager.updateRule((List<FavoriteRule.Condition>) (List<?>) conds, true, newRule.getName());
 
         Assert.assertEquals(6, manager.getAll().size());
         FavoriteRule updatedNewRule = manager.getByName("new_rule");
@@ -116,6 +127,23 @@ public class FavoriteRuleManagerTest extends NLocalFileMetadataTestCase {
         manager.removeSqlPatternFromBlacklist(newSql.getId());
         blacklist = manager.getByName(FavoriteRule.BLACKLIST_NAME);
         Assert.assertEquals(1, blacklist.getConds().size());
-        Assert.assertEquals("SELECT *\nFROM \"TEST_KYLIN_FACT\"", ((FavoriteRule.SQLCondition) blacklist.getConds().get(0)).getSqlPattern());
+        Assert.assertEquals("SELECT *\nFROM \"TEST_KYLIN_FACT\"",
+                ((FavoriteRule.SQLCondition) blacklist.getConds().get(0)).getSqlPattern());
+    }
+
+    @Test
+    public void testAppendSqlPatternToBlacklistWithBreaker() {
+        FavoriteRuleManager manager = Mockito.spy(FavoriteRuleManager.getInstance(getTestConfig(), PROJECT));
+        FavoriteRule.SQLCondition condition = new FavoriteRule.SQLCondition("test_ck_sql1");
+        manager.appendSqlPatternToBlacklist(condition);
+
+        getTestConfig().setProperty("kap.circuit-breaker.threshold.sql-pattern-to-blacklist", "1");
+        NCircuitBreaker.start(KapConfig.wrap(getTestConfig()));
+        try {
+            thrown.expect(CircuitBreakerException.class);
+            manager.appendSqlPatternToBlacklist(new FavoriteRule.SQLCondition("test_ck_sql2"));
+        } finally {
+            NCircuitBreaker.stop();
+        }
     }
 }

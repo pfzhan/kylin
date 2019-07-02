@@ -29,21 +29,31 @@ import java.util.List;
 import java.util.Set;
 import java.util.TreeMap;
 
+import org.apache.commons.lang3.RandomStringUtils;
+import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.util.TimeUtil;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
+import org.mockito.Mockito;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
+import io.kyligence.kap.common.hystrix.CircuitBreakerException;
+import io.kyligence.kap.common.hystrix.NCircuitBreaker;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.metadata.cube.model.FrequencyMap;
 import lombok.val;
 
 public class FavoriteQueryManagerTest extends NLocalFileMetadataTestCase {
     private static final String PROJECT = "default";
+
+    @Rule
+    public ExpectedException thrown = ExpectedException.none();
 
     @Before
     public void setUp() {
@@ -311,5 +321,42 @@ public class FavoriteQueryManagerTest extends NLocalFileMetadataTestCase {
 
         Assert.assertEquals(FavoriteQueryStatusEnum.TO_BE_ACCELERATED, fqs.get(0).getStatus());
         Assert.assertEquals(0, fqs.get(0).getRealizations().size());
+    }
+
+    private Set<FavoriteQuery> mockFavoriteQueries(int size) {
+        Set<FavoriteQuery> queries = Sets.newHashSet();
+        while (size > 0) {
+            FavoriteQuery fq = new FavoriteQuery("ck_sql_" + RandomStringUtils.randomAlphanumeric(5), 1000, 0, 0);
+            fq.setChannel((size & 1) == 0 ? FavoriteQuery.CHANNEL_FROM_IMPORTED : FavoriteQuery.CHANNEL_FROM_RULE);
+            queries.add(fq);
+            size--;
+        }
+        return queries;
+    }
+
+    @Test
+    public void testCreateFQWithBreaker() {
+        FavoriteQueryManager manager = Mockito.spy(FavoriteQueryManager.getInstance(getTestConfig(), PROJECT));
+        getTestConfig().setProperty("kap.circuit-breaker.threshold.fq", "1");
+        NCircuitBreaker.start(KapConfig.wrap(getTestConfig()));
+        try {
+            thrown.expect(CircuitBreakerException.class);
+            manager.create(mockFavoriteQueries(2));
+        } finally {
+            NCircuitBreaker.stop();
+        }
+    }
+
+    @Test
+    public void testCreateFQWithoutCheckWithBreaker() {
+        FavoriteQueryManager manager = Mockito.spy(FavoriteQueryManager.getInstance(getTestConfig(), PROJECT));
+        getTestConfig().setProperty("kap.circuit-breaker.threshold.fq", "1");
+        NCircuitBreaker.start(KapConfig.wrap(getTestConfig()));
+        thrown.expect(CircuitBreakerException.class);
+        try {
+            manager.createWithoutCheck(mockFavoriteQueries(2));
+        } finally {
+            NCircuitBreaker.stop();
+        }
     }
 }

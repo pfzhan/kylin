@@ -30,6 +30,8 @@ import org.apache.kylin.common.KapConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.annotations.VisibleForTesting;
+
 public class NCircuitBreaker {
 
     private static final Logger logger = LoggerFactory.getLogger(NCircuitBreaker.class);
@@ -37,6 +39,9 @@ public class NCircuitBreaker {
     private static final AtomicBoolean breakerStarted = new AtomicBoolean(false);
 
     private volatile static NBreakerConfig breakerConfig = null;
+
+    private NCircuitBreaker() {
+    }
 
     public static void start(KapConfig verifiableProps) {
 
@@ -53,6 +58,13 @@ public class NCircuitBreaker {
                 }
             }
         }
+    }
+
+    @VisibleForTesting
+    public static void stop() {
+        // Only used in test cases!!!
+        breakerStarted.set(false);
+        logger.info("kap circuit-breaker stopped");
     }
 
     public static void verifyProjectCreation(int current) {

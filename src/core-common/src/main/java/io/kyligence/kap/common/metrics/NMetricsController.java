@@ -32,6 +32,7 @@ import javax.management.MBeanServer;
 import javax.management.ObjectName;
 
 import org.apache.kylin.common.KapConfig;
+import org.apache.kylin.common.KylinConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -52,6 +53,9 @@ public class NMetricsController {
     private volatile static MetricRegistry defaultMetricRegistry = null;
 
     private volatile static InfluxDB defaultInfluxDb = null;
+
+    private NMetricsController() {
+    }
 
     //TODO try register metrics background
     // like: 1. NProjectManager.listAllProjects foreach register counters
@@ -97,7 +101,9 @@ public class NMetricsController {
     }
 
     public static void startReporters(KapConfig verifiableProps) {
-
+        if (KylinConfig.getInstanceFromEnv().isDevOrUT()) {
+            return;
+        }
         synchronized (reporterStarted) {
             if (!reporterStarted.get()) {
                 try {

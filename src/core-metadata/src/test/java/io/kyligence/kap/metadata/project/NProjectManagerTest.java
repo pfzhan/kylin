@@ -24,6 +24,8 @@
 
 package io.kyligence.kap.metadata.project;
 
+import java.util.Arrays;
+
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.kylin.common.KapConfig;
@@ -32,13 +34,21 @@ import org.apache.kylin.common.util.HadoopUtil;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
+import org.mockito.Mockito;
 
+import io.kyligence.kap.common.hystrix.CircuitBreakerException;
+import io.kyligence.kap.common.hystrix.NCircuitBreaker;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.metadata.model.MaintainModelType;
 import lombok.val;
 
-
 public class NProjectManagerTest extends NLocalFileMetadataTestCase {
+
+    @Rule
+    public ExpectedException thrown = ExpectedException.none();
 
     @Before
     public void setUp() throws Exception {
@@ -66,5 +76,22 @@ public class NProjectManagerTest extends NLocalFileMetadataTestCase {
         val projects = projectManager.listAllProjects();
         Assert.assertEquals(10, projects.size());
         Assert.assertTrue(projects.stream().noneMatch(p -> p.getName().equals("test")));
+    }
+
+    @Test
+    public void testCreateProjectWithBreaker() {
+
+        NProjectManager manager = Mockito.spy(NProjectManager.getInstance(getTestConfig()));
+        val projects = Arrays.asList("test_ck__1", "test_ck_2", "test_ck_3");
+        Mockito.doReturn(projects).when(manager).listAllProjects();
+
+        getTestConfig().setProperty("kap.circuit-breaker.threshold.project", "1");
+        NCircuitBreaker.start(KapConfig.wrap(getTestConfig()));
+        try {
+            thrown.expect(CircuitBreakerException.class);
+            manager.createProject("test_ck_project", "admin", "", null, MaintainModelType.MANUAL_MAINTAIN);
+        } finally {
+            NCircuitBreaker.stop();
+        }
     }
 }
