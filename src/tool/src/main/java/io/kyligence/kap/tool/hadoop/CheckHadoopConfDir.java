@@ -33,7 +33,7 @@ import java.io.File;
 import java.io.IOException;
 
 public class CheckHadoopConfDir {
-    public static String CHECKENV_REPORT_PFX = ">   ";
+    public static final String CHECKENV_REPORT_PFX = ">   ";
 
     public static void main(String[] args) throws Exception {
 
@@ -87,8 +87,8 @@ public class CheckHadoopConfDir {
             LocalFileSystem localfs = FileSystem.getLocal(new Configuration());
             return localfs;
         } catch (IOException e) {
-            e.printStackTrace();
             System.err.println("ERROR: Hadoop security exception? Seems the classpath is not setup propertly regarding Hadoop security.");
+            System.err.println("Detailed error message: " + e.getMessage());
             System.exit(1);
             return null;
         }
