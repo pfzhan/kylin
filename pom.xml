@@ -149,8 +149,9 @@
             **/io/kyligence/kap/common/metrics/reporter/InfluxdbReporter.java,
             **/io/kyligence/kap/common/metrics/NMetricsInfluxdbReporter.java,
             **/io/kyligence/kap/rest/config/initialize/BootstrapCommand.java,
-            **/io/kyligence/kap/rest/config/AppInitializer.java
-            **/io/kyligence/kap/metadata/model/Canvas.java
+            **/io/kyligence/kap/rest/config/AppInitializer.java,
+            **/io/kyligence/kap/metadata/model/Canvas.java,
+            **/io/kyligence/kap/rest/ZookeeperClusterManager.java
         </sonar.coverage.exclusions>
         <sonar.jacoco.itReportPath>${project.basedir}/../../target/jacoco-it.exec</sonar.jacoco.itReportPath>
 
