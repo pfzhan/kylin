@@ -268,13 +268,13 @@ public class HdfsAppender extends AppenderSkeleton {
                             try {
                                 logBufferQue.take();
                             } catch (InterruptedException e) {
-                                e.printStackTrace();
+                                LogLog.error("Take event interrupted!", e);
                             } finally {
                                 removeNum--;
                             }
                         }
                     }
-                    th.printStackTrace();
+                    LogLog.error("Error occurred when consume event", th);
                 }
             }
         }
