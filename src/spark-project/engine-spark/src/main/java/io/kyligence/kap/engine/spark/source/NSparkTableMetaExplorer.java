@@ -45,14 +45,7 @@ public class NSparkTableMetaExplorer implements Serializable {
         TableIdentifier tableIdentifier = TableIdentifier.apply(tableName, Option.apply(database.isEmpty() ? null : database));
         CatalogTable tableMetadata = catalog
                 .getTempViewOrPermanentTableMetadata(tableIdentifier);
-        if (CatalogTableType.VIEW().equals(tableMetadata.tableType())) {
-            try {
-                SparderEnv.getSparkSession().table(tableIdentifier).queryExecution().analyzed();
-            } catch (Throwable e) {
-                logger.error("Error for parser view: " + tableName, e);
-                throw new RuntimeException("Error for parser view: " + tableName + ", " + e.getMessage()+ "(There are mabey syntactic differences between HIVE and SparkSQL)", e);
-            }
-        }
+        checkTableIsValid(tableMetadata, tableIdentifier, database, tableName);
         return getnSparkTableMeta(tableName, tableMetadata);
     }
 
@@ -96,5 +89,19 @@ public class NSparkTableMetaExplorer implements Serializable {
             builder.setFileNum(Long.parseLong(tableMetadata.properties().get("numFiles").get()));
         }
         return builder.createSparkTableMeta();
+    }
+
+    private void checkTableIsValid(CatalogTable tableMetadata, TableIdentifier tableIdentifier, String database, String tableName) {
+        if (CatalogTableType.VIEW().equals(tableMetadata.tableType())) {
+            try {
+                SparderEnv.getSparkSession().table(tableIdentifier).queryExecution().analyzed();
+            } catch (Throwable e) {
+                logger.error("Error for parser view: " + tableName, e);
+                throw new RuntimeException("Error for parser view: " + tableName + ", " + e.getMessage() + "(There are maybe syntactic differences between HIVE and SparkSQL)", e);
+            }
+        }
+        if (tableMetadata.properties().contains("skip.header.line.count")) {
+            throw new RuntimeException("The current product version does not support such source data tables, which are generally converted from a CSV table with a header. Please change the table to a table without a header.");
+        }
     }
 }
