@@ -85,16 +85,13 @@ sh build/script_newten/download-grafana.sh      || { exit 1; }
 echo "BUILD STAGE 6 - Prepare postgresql..."
 sh build/script_newten/download-postgresql.sh      || { exit 1; }
 
-echo "BUILD STAGE 7 - Prepare tpch benchmark tool..."
-sh build/script_newten/download-tpch.sh      || { exit 1; }
-
-echo "BUILD STAGE 8 - Generate license..."
+echo "BUILD STAGE 7 - Generate license..."
 sh build/script_newten/generate-license.sh || { exit 1; }
 
-echo "BUILD STAGE 9 - Prepare and compress package..."
+echo "BUILD STAGE 8 - Prepare and compress package..."
 sh build/script_newten/prepare.sh ${MVN_PROFILE} || { exit 1; }
 sh build/script_newten/compress.sh               || { exit 1; }
 
-echo "BUILD STAGE 10 - Clean up..."
+echo "BUILD STAGE 9 - Clean up..."
     
 echo "BUILD FINISHED!"
