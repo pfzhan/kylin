@@ -7,6 +7,7 @@ source build/script_newten/functions.sh
 
 mkdir -p build/postgresql
 
+
 pg_urls=(
     "https://download.postgresql.org/pub/repos/yum/10/redhat/rhel-6-x86_64/postgresql10-libs-10.7-1PGDG.rhel6.x86_64.rpm"
     "https://download.postgresql.org/pub/repos/yum/10/redhat/rhel-6-x86_64/postgresql10-10.7-1PGDG.rhel6.x86_64.rpm"
@@ -37,15 +38,18 @@ do
     file_name=${url##*/}
     if [ ! -f "build/postgresql/$file_name" ]
     then
-        echo "no binary file found "
-        wget --directory-prefix=build/postgresql/ $url || echo "Download $file_name failed"
+        echo "No binary file found "
+        wget --directory-prefix=build/postgresql/ $url || echo "Download $file_name failed."
     else
         if [ `calMd5 build/postgresql/$file_name | awk '{print $1}'` != "${pg_file_md5[$i]}" ]
         then
             echo "md5 check failed"
             rm build/$file_name
-            wget --directory-prefix=build/postgresql/ $url || echo "Download $file_name failed"
+            wget --directory-prefix=build/postgresql/ $url || echo "Download $file_name failed."
         fi
     fi
 done
 
+
+
+cp build/deploy/licenses/postgresql-license build/postgresql/LICENSE || { echo "No license for PostgreSQL found, please check build/deploy/licenses" && exit 1; }
