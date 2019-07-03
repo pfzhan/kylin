@@ -36,6 +36,8 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.event.manager.EventDao;
+import io.kyligence.kap.event.model.Event;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -380,6 +382,8 @@ public class ModelService extends BasicService {
         dataflowManager.dropDataflow(modelId);
         indexPlanManager.dropIndexPlan(modelId);
         dataModelManager.dropModel(dataModelDesc);
+        val eventDao = EventDao.getInstance(KylinConfig.getInstanceFromEnv(), project);
+        eventDao.getEventsByModel(modelId).stream().map(Event::getId).forEach(eventDao::deleteEvent);
     }
 
     @Transaction(project = 1)
@@ -660,7 +664,8 @@ public class ModelService extends BasicService {
             if (model.getPartitionDesc() == null
                     || StringUtils.isEmpty(model.getPartitionDesc().getPartitionDateColumn())) {
                 range = SegmentRange.TimePartitionedSegmentRange.createInfinite();
-            } else if (StringUtils.isNotEmpty(modelRequest.getStart()) && StringUtils.isNotEmpty(modelRequest.getEnd())) {
+            } else if (StringUtils.isNotEmpty(modelRequest.getStart())
+                    && StringUtils.isNotEmpty(modelRequest.getEnd())) {
                 range = getSegmentRangeByModel(project, model.getUuid(), modelRequest.getStart(),
                         modelRequest.getEnd());
             }
@@ -1130,8 +1135,7 @@ public class ModelService extends BasicService {
             });
         }
         proposeAndSaveDateFormatIfNotExist(project, modelId);
-        semanticUpdater.handleSemanticUpdate(project, modelId, originModel, request.getStart(),
-                request.getEnd());
+        semanticUpdater.handleSemanticUpdate(project, modelId, originModel, request.getStart(), request.getEnd());
     }
 
     public void updateBrokenModel(String project, ModelRequest modelRequest, Set<Integer> columnIds) {

@@ -65,6 +65,7 @@ import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
+import io.kyligence.kap.event.manager.EventManager;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
@@ -473,11 +474,17 @@ public class ModelServiceTest extends CSVSourceTestCase {
 
     @Test
     public void testDropModelPass() {
+        String modelId = "a8ba3ff1-83bd-4066-ad54-d2fb3d1f0e94";
+        String project = "default";
+        EventManager eventManager = EventManager.getInstance(getTestConfig(), project);
+        eventManager.postAddCuboidEvents(modelId, "admin");
+        EventDao eventDao = EventDao.getInstance(getTestConfig(), project);
+        Assert.assertEquals(2, eventDao.getEventsByModel(modelId).size());
         modelService.dropModel("a8ba3ff1-83bd-4066-ad54-d2fb3d1f0e94", "default");
         List<NDataModelResponse> models = modelService.getModels("test_encoding", "default", true, "", "",
                 "last_modify", true);
         Assert.assertTrue(CollectionUtils.isEmpty(models));
-
+        Assert.assertEquals(0, eventDao.getEventsByModel(modelId).size());
     }
 
     @Test
