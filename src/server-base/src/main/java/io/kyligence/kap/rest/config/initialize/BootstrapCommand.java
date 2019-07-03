@@ -117,6 +117,53 @@ public class BootstrapCommand implements Runnable {
         log.info("init project {} finished", project);
     }
 
+    void registerFavoriteQueryMetrics(KylinConfig config, String project) {
+        final FavoriteQueryManager favoriteQueryManager = FavoriteQueryManager.getInstance(config, project);
+        NMetricsGroup.newGauge(NMetricsName.FQ_TO_BE_ACCELERATED, NMetricsCategory.PROJECT, project, () -> {
+            final List<FavoriteQuery> list = favoriteQueryManager.getAll();
+            return list == null ? 0 : list.stream().filter(fq -> fq.getStatus() == FavoriteQueryStatusEnum.TO_BE_ACCELERATED).count();
+        });
+        NMetricsGroup.newGauge(NMetricsName.FQ_ACCELERATED, NMetricsCategory.PROJECT, project, () -> {
+            final List<FavoriteQuery> list = favoriteQueryManager.getAll();
+            return list == null ? 0 : list.stream().filter(fq -> fq.getStatus() == FavoriteQueryStatusEnum.ACCELERATED).count();
+        });
+        NMetricsGroup.newGauge(NMetricsName.FQ_FAILED, NMetricsCategory.PROJECT, project, () -> {
+            final List<FavoriteQuery> list = favoriteQueryManager.getAll();
+            return list == null ? 0 : list.stream().filter(fq -> fq.getStatus() == FavoriteQueryStatusEnum.FAILED).count();
+        });
+        NMetricsGroup.newGauge(NMetricsName.FQ_ACCELERATING, NMetricsCategory.PROJECT, project, () -> {
+            final List<FavoriteQuery> list = favoriteQueryManager.getAll();
+            return list == null ? 0 : list.stream().filter(fq -> fq.getStatus() == FavoriteQueryStatusEnum.ACCELERATING).count();
+        });
+        NMetricsGroup.newGauge(NMetricsName.FQ_PENDING, NMetricsCategory.PROJECT, project, () -> {
+            final List<FavoriteQuery> list = favoriteQueryManager.getAll();
+            return list == null ? 0 : list.stream().filter(fq -> fq.getStatus() == FavoriteQueryStatusEnum.PENDING).count();
+        });
+    }
+
+    void registerJobMetrics(KylinConfig config, String project) {
+        final NExecutableManager executableManager = NExecutableManager.getInstance(config, project);
+        NMetricsGroup.newGauge(NMetricsName.JOB_ERROR_GAUGE, NMetricsCategory.PROJECT, project, () -> {
+            List<AbstractExecutable> list = executableManager.getAllExecutables();
+            return list == null ? 0 : list.stream().filter(e -> e.getStatus() == ExecutableState.ERROR).count();
+        });
+        NMetricsGroup.newGauge(NMetricsName.JOB_RUNNING_GAUGE, NMetricsCategory.PROJECT, project, () -> {
+            List<AbstractExecutable> list = executableManager.getAllExecutables();
+            return list == null ? 0 : list.stream().filter(e -> e.getStatus().isProgressing()).count();
+        });
+    }
+
+    void registerStorageMetrics(String project) {
+        NMetricsGroup.newGauge(NMetricsName.PROJECT_STORAGE_SIZE, NMetricsCategory.PROJECT, project, () -> {
+            StorageVolumeInfoResponse resp = projectService.getStorageVolumeInfoResponse(project);
+            return resp == null ? 0L : resp.getTotalStorageSize();
+        });
+        NMetricsGroup.newGauge(NMetricsName.PROJECT_GARBAGE_SIZE, NMetricsCategory.PROJECT, project, () -> {
+            StorageVolumeInfoResponse resp = projectService.getStorageVolumeInfoResponse(project);
+            return resp == null ? 0L : resp.getGarbageStorageSize();
+        });
+    }
+
     void registerProjectMetrics(KylinConfig config, String project) {
 
         // for non-gauges
@@ -126,121 +173,41 @@ public class BootstrapCommand implements Runnable {
         final EventDao eventDao = EventDao.getInstance(config, project);
         NMetricsGroup.newGauge(NMetricsName.EVENT_GAUGE, NMetricsCategory.PROJECT, project, () -> {
             List<Event> list = eventDao.getEvents();
-            if (list == null) {
-                return 0;
-            }
-            return list.size();
+            return list == null ? 0 : list.size();
         });
 
         final NDataModelManager dataModelManager = NDataModelManager.getInstance(config, project);
         NMetricsGroup.newGauge(NMetricsName.MODEL_GAUGE, NMetricsCategory.PROJECT, project, () -> {
             List<NDataModel> list = dataModelManager.listAllModels();
-            if (list == null) {
-                return 0;
-            }
-            return list.size();
+            return list == null ? 0 : list.size();
         });
 
         final NDataflowManager dataflowManager = NDataflowManager.getInstance(config, project);
         NMetricsGroup.newGauge(NMetricsName.HEALTHY_MODEL_GAUGE, NMetricsCategory.PROJECT, project, () -> {
             List<NDataModel> list = dataflowManager.listUnderliningDataModels();
-            if (list == null) {
-                return 0;
-            }
-            return list.size();
+            return list == null ? 0 : list.size();
         });
 
-        NMetricsGroup.newGauge(NMetricsName.PROJECT_STORAGE_SIZE, NMetricsCategory.PROJECT, project, () -> {
-            StorageVolumeInfoResponse resp = projectService.getStorageVolumeInfoResponse(project);
-            if (resp == null) {
-                return 0L;
-            }
-            return resp.getTotalStorageSize();
-        });
-        NMetricsGroup.newGauge(NMetricsName.PROJECT_GARBAGE_SIZE, NMetricsCategory.PROJECT, project, () -> {
-            StorageVolumeInfoResponse resp = projectService.getStorageVolumeInfoResponse(project);
-            if (resp == null) {
-                return 0L;
-            }
-            return resp.getGarbageStorageSize();
-        });
+        registerStorageMetrics(project);
 
-        final NExecutableManager executableManager = NExecutableManager.getInstance(config, project);
-        NMetricsGroup.newGauge(NMetricsName.JOB_ERROR_GAUGE, NMetricsCategory.PROJECT, project, () -> {
-            List<AbstractExecutable> list = executableManager.getAllExecutables();
-            if (list == null) {
-                return 0;
-            }
-            return list.stream().filter(e -> e.getStatus() == ExecutableState.ERROR).count();
-        });
-        NMetricsGroup.newGauge(NMetricsName.JOB_RUNNING_GAUGE, NMetricsCategory.PROJECT, project, () -> {
-            List<AbstractExecutable> list = executableManager.getAllExecutables();
-            if (list == null) {
-                return 0;
-            }
-            return list.stream().filter(e -> e.getStatus().isProgressing()).count();
-        });
+        registerJobMetrics(config, project);
 
-        final FavoriteQueryManager favoriteQueryManager = FavoriteQueryManager.getInstance(config, project);
-        NMetricsGroup.newGauge(NMetricsName.FQ_TO_BE_ACCELERATED, NMetricsCategory.PROJECT, project, () -> {
-            final List<FavoriteQuery> list = favoriteQueryManager.getAll();
-            if (list == null) {
-                return 0;
-            }
-            return list.stream().filter(fq -> fq.getStatus() == FavoriteQueryStatusEnum.TO_BE_ACCELERATED).count();
-        });
-        NMetricsGroup.newGauge(NMetricsName.FQ_ACCELERATED, NMetricsCategory.PROJECT, project, () -> {
-            final List<FavoriteQuery> list = favoriteQueryManager.getAll();
-            if (list == null) {
-                return 0;
-            }
-            return list.stream().filter(fq -> fq.getStatus() == FavoriteQueryStatusEnum.ACCELERATED).count();
-        });
-        NMetricsGroup.newGauge(NMetricsName.FQ_FAILED, NMetricsCategory.PROJECT, project, () -> {
-            final List<FavoriteQuery> list = favoriteQueryManager.getAll();
-            if (list == null) {
-                return 0;
-            }
-            return list.stream().filter(fq -> fq.getStatus() == FavoriteQueryStatusEnum.FAILED).count();
-        });
-        NMetricsGroup.newGauge(NMetricsName.FQ_ACCELERATING, NMetricsCategory.PROJECT, project, () -> {
-            final List<FavoriteQuery> list = favoriteQueryManager.getAll();
-            if (list == null) {
-                return 0;
-            }
-            return list.stream().filter(fq -> fq.getStatus() == FavoriteQueryStatusEnum.ACCELERATING).count();
-        });
-        NMetricsGroup.newGauge(NMetricsName.FQ_PENDING, NMetricsCategory.PROJECT, project, () -> {
-            final List<FavoriteQuery> list = favoriteQueryManager.getAll();
-            if (list == null) {
-                return 0;
-            }
-            return list.stream().filter(fq -> fq.getStatus() == FavoriteQueryStatusEnum.PENDING).count();
-        });
+        registerFavoriteQueryMetrics(config, project);
 
         final FavoriteRuleManager favoriteRuleManager = FavoriteRuleManager.getInstance(config, project);
         NMetricsGroup.newGauge(NMetricsName.FQ_BLACKLIST, NMetricsCategory.PROJECT, project, () -> {
             final Set<String> list = favoriteRuleManager.getBlacklistSqls();
-            if (list == null) {
-                return 0;
-            }
-            return list.size();
+            return list == null ? 0 : list.size();
         });
 
         final NTableMetadataManager tableMetadataManager = NTableMetadataManager.getInstance(config, project);
         NMetricsGroup.newGauge(NMetricsName.TABLE_GAUGE, NMetricsCategory.PROJECT, project, () -> {
             final List<TableDesc> list = tableMetadataManager.listAllTables();
-            if (list == null) {
-                return 0;
-            }
-            return list.size();
+            return list == null ? 0 : list.size();
         });
         NMetricsGroup.newGauge(NMetricsName.DB_GAUGE, NMetricsCategory.PROJECT, project, () -> {
             final List<TableDesc> list = tableMetadataManager.listAllTables();
-            if (list == null) {
-                return 0;
-            }
-            return list.stream().map(t -> t.getCaseSensitiveDatabase()).collect(toSet()).size();
+            return list == null ? 0 : list.stream().map(t -> t.getCaseSensitiveDatabase()).collect(toSet()).size();
         });
     }
 }

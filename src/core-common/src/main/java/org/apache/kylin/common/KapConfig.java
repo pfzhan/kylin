@@ -59,6 +59,12 @@ public class KapConfig {
 
     private final KylinConfig config;
 
+    private static final String CIRCUIT_BREAKER_THRESHOLD = "30000";
+    
+    private static final String HALF_MINUTE_MS = "30000";
+    
+    private static final String FALSE = "false";
+
     private KapConfig(KylinConfig config) {
         this.config = config;
     }
@@ -90,7 +96,7 @@ public class KapConfig {
     }
 
     public boolean isParquetSeparateFsEnabled() {
-        return Boolean.parseBoolean(config.getOptional("kylin.storage.columnar.separate-fs-enable", "false"));
+        return Boolean.parseBoolean(config.getOptional("kylin.storage.columnar.separate-fs-enable", FALSE));
     }
 
     public String getParquetReadFileSystem() {
@@ -158,7 +164,7 @@ public class KapConfig {
 
     public boolean getParquetSparkDynamicResourceEnabled() {
         return Boolean.valueOf(
-                config.getOptional("kap.storage.columnar.spark-conf.spark.dynamicAllocation.enabled", "false"));
+                config.getOptional("kap.storage.columnar.spark-conf.spark.dynamicAllocation.enabled", FALSE));
     }
 
     public int getParquetSparkExecutorInstanceMax() {
@@ -559,11 +565,11 @@ public class KapConfig {
     }
 
     public int getCircuitBreakerThresholdOfFavoriteQuery() {
-        return Integer.parseInt(config.getOptional("kap.circuit-breaker.threshold.fq", "30000"));
+        return Integer.parseInt(config.getOptional("kap.circuit-breaker.threshold.fq", CIRCUIT_BREAKER_THRESHOLD));
     }
 
     public int getCircuitBreakerThresholdOfSqlPatternToBlacklist() {
-        return Integer.parseInt(config.getOptional("kap.circuit-breaker.threshold.sql-pattern-to-blacklist", "30000"));
+        return Integer.parseInt(config.getOptional("kap.circuit-breaker.threshold.sql-pattern-to-blacklist", CIRCUIT_BREAKER_THRESHOLD));
     }
 
     public long getCircuitBreakerThresholdOfQueryResultRowCount() {
@@ -623,7 +629,7 @@ public class KapConfig {
     }
 
     public Boolean isAsyncResultRepartitionEnabled() {
-        return Boolean.valueOf(config.getOptional("kap.query.engine.sparder-asyncresult-repartition-enabled", "false"));
+        return Boolean.valueOf(config.getOptional("kap.query.engine.sparder-asyncresult-repartition-enabled", FALSE));
     }
 
     /**
@@ -643,7 +649,7 @@ public class KapConfig {
     }
 
     public boolean needFetchAllSdictToExecutor() {
-        return Boolean.valueOf(config.getOptional("kap.query.engine.fetch-sdict-to-executor", "false"));
+        return Boolean.valueOf(config.getOptional("kap.query.engine.fetch-sdict-to-executor", FALSE));
     }
 
     public String getParquetSeparateOverrideFiles() {
@@ -656,7 +662,7 @@ public class KapConfig {
     }
 
     public boolean shouldMockMetadataWithoutDictStore() {
-        return Boolean.valueOf(config.getOptional("kap.metadata.mock.no-dict-store", "false"));
+        return Boolean.valueOf(config.getOptional("kap.metadata.mock.no-dict-store", FALSE));
     }
 
     /**
@@ -664,7 +670,7 @@ public class KapConfig {
      */
 
     public Boolean isKerberosEnabled() {
-        return Boolean.valueOf(config.getOptional("kap.kerberos.enabled", "false"));
+        return Boolean.valueOf(config.getOptional("kap.kerberos.enabled", FALSE));
     }
 
     public String getKerberosKeytab() {
@@ -708,7 +714,7 @@ public class KapConfig {
     }
 
     public int getSparkCanaryErrorResponseMs() {
-        return Integer.parseInt(config.getOptional("kap.canary.sqlcontext-error-response-ms", "30000"));
+        return Integer.parseInt(config.getOptional("kap.canary.sqlcontext-error-response-ms", HALF_MINUTE_MS));
     }
 
     public int getSparkCanaryPeriodMinutes() {
@@ -716,7 +722,7 @@ public class KapConfig {
     }
 
     public double getJoinMemoryFraction() {
-        // driver memroy that can be used by join(mostly BHJ)
+        // driver memory that can be used by join(mostly BHJ)
         return Double.parseDouble(config.getOptional("kap.query.join-memory-fraction", "0.3"));
     }
 }

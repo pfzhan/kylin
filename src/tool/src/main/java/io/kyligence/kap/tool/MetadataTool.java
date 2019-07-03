@@ -74,7 +74,9 @@ public class MetadataTool extends ExecutableApplication {
 
     public static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd-HH-mm-ss");
 
-    private static final String HDFS_METADATA_URL_FROMATTER = "kylin_metadata@hdfs,path=%s";
+    private static final String HDFS_METADATA_URL_FORMATTER = "kylin_metadata@hdfs,path=%s";
+
+    private static final String GLOBAL = "global";
 
     private static final int RESTORE_FAILED = 11;
     private static final int BACKUP_FAILED = 12;
@@ -206,7 +208,7 @@ public class MetadataTool extends ExecutableApplication {
                 backup(optionsHelper);
             } catch (Exception be) {
                 if (isGlobal) {
-                    NMetricsGroup.counterInc(NMetricsName.METADATA_BACKUP_FAILED, NMetricsCategory.GLOBAL, "global");
+                    NMetricsGroup.counterInc(NMetricsName.METADATA_BACKUP_FAILED, NMetricsCategory.GLOBAL, GLOBAL);
                 } else {
                     NMetricsGroup.counterInc(NMetricsName.METADATA_BACKUP_FAILED, NMetricsCategory.PROJECT,
                             optionsHelper.getOptionValue(OPTION_PROJECT));
@@ -214,8 +216,8 @@ public class MetadataTool extends ExecutableApplication {
                 throw be;
             } finally {
                 if (isGlobal) {
-                    NMetricsGroup.counterInc(NMetricsName.METADATA_BACKUP, NMetricsCategory.GLOBAL, "global");
-                    NMetricsGroup.counterInc(NMetricsName.METADATA_BACKUP_DURATION, NMetricsCategory.GLOBAL, "global",
+                    NMetricsGroup.counterInc(NMetricsName.METADATA_BACKUP, NMetricsCategory.GLOBAL, GLOBAL);
+                    NMetricsGroup.counterInc(NMetricsName.METADATA_BACKUP_DURATION, NMetricsCategory.GLOBAL, GLOBAL,
                             System.currentTimeMillis() - startAt);
                 } else {
                     NMetricsGroup.counterInc(NMetricsName.METADATA_BACKUP, NMetricsCategory.PROJECT,
@@ -390,7 +392,7 @@ public class MetadataTool extends ExecutableApplication {
 
     private String getMetadataUrl(String rootPath) {
         if (rootPath.startsWith("hdfs://")) {
-            return String.format(HDFS_METADATA_URL_FROMATTER,
+            return String.format(HDFS_METADATA_URL_FORMATTER,
                     Path.getPathWithoutSchemeAndAuthority(new Path(rootPath)).toString() + "/");
 
         } else if (rootPath.startsWith("file://")) {

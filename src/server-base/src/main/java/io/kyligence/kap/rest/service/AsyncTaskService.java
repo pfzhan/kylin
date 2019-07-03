@@ -39,6 +39,8 @@ import lombok.extern.slf4j.Slf4j;
 @Service
 public class AsyncTaskService {
 
+    private static final String GLOBAL = "global";
+
     @Async
     public void cleanupStorage() throws IOException {
 
@@ -47,11 +49,11 @@ public class AsyncTaskService {
             val storageCleaner = new StorageCleaner();
             storageCleaner.execute();
         } catch (Exception e) {
-            NMetricsGroup.counterInc(NMetricsName.STORAGE_CLEAN_FAILED, NMetricsCategory.GLOBAL, "global");
+            NMetricsGroup.counterInc(NMetricsName.STORAGE_CLEAN_FAILED, NMetricsCategory.GLOBAL, GLOBAL);
             throw e;
         } finally {
-            NMetricsGroup.counterInc(NMetricsName.STORAGE_CLEAN, NMetricsCategory.GLOBAL, "global");
-            NMetricsGroup.counterInc(NMetricsName.STORAGE_CLEAN_DURATION, NMetricsCategory.GLOBAL, "global",
+            NMetricsGroup.counterInc(NMetricsName.STORAGE_CLEAN, NMetricsCategory.GLOBAL, GLOBAL);
+            NMetricsGroup.counterInc(NMetricsName.STORAGE_CLEAN_DURATION, NMetricsCategory.GLOBAL, GLOBAL,
                     System.currentTimeMillis() - startAt);
         }
     }

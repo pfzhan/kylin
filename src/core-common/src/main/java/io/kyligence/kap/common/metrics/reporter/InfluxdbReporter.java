@@ -75,6 +75,23 @@ public class InfluxdbReporter extends ScheduledReporter {
 
     private final String defaultMeasurement;
 
+    private static final String COUNT = "count";
+    private static final String MIN = "min";
+    private static final String MAX = "max";
+    private static final String MEAN = "mean";
+    private static final String STANDARD_DEVIATION = "std-dev";
+    private static final String FIFTY_PERCENTILE = "50p";
+    private static final String SEVENTY_FIVE_PERCENTILE = "75p";
+    private static final String NINETY_FIVE_PERCENTILE = "95p";
+    private static final String NINETY_NINE_PERCENTILE = "99p";
+    private static final String NINETY_NINE_POINT_NINE_PERCENTILE = "999p";
+    private static final String RUN_COUNT = "run-count";
+    private static final String ONE_MINUTE = "1-minute";
+    private static final String FIVE_MINUTE = "5-minute";
+    private static final String FIFTEEN_MINUTE = "15-minute";
+    private static final String MEAN_MINUTE = "mean-minute";
+
+
     public InfluxdbReporter(InfluxDB influxDb, String defaultMeasurement, MetricRegistry registry, String name) {
         super(registry, name, MetricFilter.ALL, TimeUnit.SECONDS, TimeUnit.MILLISECONDS);
         this.influxDb = influxDb;
@@ -138,17 +155,17 @@ public class InfluxdbReporter extends ScheduledReporter {
                 final Snapshot snapshot = histogram.getSnapshot();
 
                 return new PointBuilder(measurement, timestamp, timeUnit).putTags(nameTags.getSecond())
-                        .putField(filedName(nameTags.getFirst(), "count"), snapshot.size())
-                        .putField(filedName(nameTags.getFirst(), "min"), snapshot.getMin())
-                        .putField(filedName(nameTags.getFirst(), "max"), snapshot.getMax())
-                        .putField(filedName(nameTags.getFirst(), "mean"), snapshot.getMean())
-                        .putField(filedName(nameTags.getFirst(), "std-dev"), snapshot.getStdDev())
-                        .putField(filedName(nameTags.getFirst(), "50p"), snapshot.getMedian())
-                        .putField(filedName(nameTags.getFirst(), "75p"), snapshot.get75thPercentile())
-                        .putField(filedName(nameTags.getFirst(), "95p"), snapshot.get95thPercentile())
-                        .putField(filedName(nameTags.getFirst(), "99p"), snapshot.get99thPercentile())
-                        .putField(filedName(nameTags.getFirst(), "999p"), snapshot.get999thPercentile())
-                        .putField(filedName(nameTags.getFirst(), "run-count"), histogram.getCount()).build();
+                        .putField(filedName(nameTags.getFirst(), COUNT), snapshot.size())
+                        .putField(filedName(nameTags.getFirst(), MIN), snapshot.getMin())
+                        .putField(filedName(nameTags.getFirst(), MAX), snapshot.getMax())
+                        .putField(filedName(nameTags.getFirst(), MEAN), snapshot.getMean())
+                        .putField(filedName(nameTags.getFirst(), STANDARD_DEVIATION), snapshot.getStdDev())
+                        .putField(filedName(nameTags.getFirst(), FIFTY_PERCENTILE), snapshot.getMedian())
+                        .putField(filedName(nameTags.getFirst(), SEVENTY_FIVE_PERCENTILE), snapshot.get75thPercentile())
+                        .putField(filedName(nameTags.getFirst(), NINETY_FIVE_PERCENTILE), snapshot.get95thPercentile())
+                        .putField(filedName(nameTags.getFirst(), NINETY_NINE_PERCENTILE), snapshot.get99thPercentile())
+                        .putField(filedName(nameTags.getFirst(), NINETY_NINE_POINT_NINE_PERCENTILE), snapshot.get999thPercentile())
+                        .putField(filedName(nameTags.getFirst(), RUN_COUNT), histogram.getCount()).build();
             }).collect(toList());
         }
 
@@ -159,12 +176,12 @@ public class InfluxdbReporter extends ScheduledReporter {
                 final Meter meter = e.getValue();
 
                 return new PointBuilder(measurement, timestamp, timeUnit).putTags(nameTags.getSecond())
-                        .putField(filedName(nameTags.getFirst(), "count"), meter.getCount())
-                        .putField(filedName(nameTags.getFirst(), "1-minute"), convertRate(meter.getOneMinuteRate()))
-                        .putField(filedName(nameTags.getFirst(), "5-minute"), convertRate(meter.getFiveMinuteRate()))
-                        .putField(filedName(nameTags.getFirst(), "15-minute"),
+                        .putField(filedName(nameTags.getFirst(), COUNT), meter.getCount())
+                        .putField(filedName(nameTags.getFirst(), ONE_MINUTE), convertRate(meter.getOneMinuteRate()))
+                        .putField(filedName(nameTags.getFirst(), FIVE_MINUTE), convertRate(meter.getFiveMinuteRate()))
+                        .putField(filedName(nameTags.getFirst(), FIFTEEN_MINUTE),
                                 convertRate(meter.getFifteenMinuteRate()))
-                        .putField(filedName(nameTags.getFirst(), "mean-minute"), convertRate(meter.getMeanRate()))
+                        .putField(filedName(nameTags.getFirst(), MEAN_MINUTE), convertRate(meter.getMeanRate()))
                         .build();
             }).collect(toList());
         }
@@ -177,23 +194,23 @@ public class InfluxdbReporter extends ScheduledReporter {
                 final Snapshot snapshot = timer.getSnapshot();
 
                 return new PointBuilder(measurement, timestamp, timeUnit).putTags(nameTags.getSecond())
-                        .putField(filedName(nameTags.getFirst(), "count"), snapshot.size())
-                        .putField(filedName(nameTags.getFirst(), "min"), convertDuration(snapshot.getMin()))
-                        .putField(filedName(nameTags.getFirst(), "max"), convertDuration(snapshot.getMax()))
-                        .putField(filedName(nameTags.getFirst(), "mean"), convertDuration(snapshot.getMean()))
-                        .putField(filedName(nameTags.getFirst(), "std-dev"), convertDuration(snapshot.getStdDev()))
-                        .putField(filedName(nameTags.getFirst(), "50p"), convertDuration(snapshot.getMedian()))
-                        .putField(filedName(nameTags.getFirst(), "75p"), convertDuration(snapshot.get75thPercentile()))
-                        .putField(filedName(nameTags.getFirst(), "95p"), convertDuration(snapshot.get95thPercentile()))
-                        .putField(filedName(nameTags.getFirst(), "99p"), convertDuration(snapshot.get99thPercentile()))
-                        .putField(filedName(nameTags.getFirst(), "999p"),
+                        .putField(filedName(nameTags.getFirst(), COUNT), snapshot.size())
+                        .putField(filedName(nameTags.getFirst(), MIN), convertDuration(snapshot.getMin()))
+                        .putField(filedName(nameTags.getFirst(), MAX), convertDuration(snapshot.getMax()))
+                        .putField(filedName(nameTags.getFirst(), MEAN), convertDuration(snapshot.getMean()))
+                        .putField(filedName(nameTags.getFirst(), STANDARD_DEVIATION), convertDuration(snapshot.getStdDev()))
+                        .putField(filedName(nameTags.getFirst(), FIFTY_PERCENTILE), convertDuration(snapshot.getMedian()))
+                        .putField(filedName(nameTags.getFirst(), SEVENTY_FIVE_PERCENTILE), convertDuration(snapshot.get75thPercentile()))
+                        .putField(filedName(nameTags.getFirst(), NINETY_FIVE_PERCENTILE), convertDuration(snapshot.get95thPercentile()))
+                        .putField(filedName(nameTags.getFirst(), NINETY_NINE_PERCENTILE), convertDuration(snapshot.get99thPercentile()))
+                        .putField(filedName(nameTags.getFirst(), NINETY_NINE_POINT_NINE_PERCENTILE),
                                 convertDuration(snapshot.get999thPercentile()))
-                        .putField(filedName(nameTags.getFirst(), "1-minute"), convertRate(timer.getOneMinuteRate()))
-                        .putField(filedName(nameTags.getFirst(), "5-minute"), convertRate(timer.getFiveMinuteRate()))
-                        .putField(filedName(nameTags.getFirst(), "15-minute"),
+                        .putField(filedName(nameTags.getFirst(), ONE_MINUTE), convertRate(timer.getOneMinuteRate()))
+                        .putField(filedName(nameTags.getFirst(), FIVE_MINUTE), convertRate(timer.getFiveMinuteRate()))
+                        .putField(filedName(nameTags.getFirst(), FIFTEEN_MINUTE),
                                 convertRate(timer.getFifteenMinuteRate()))
-                        .putField(filedName(nameTags.getFirst(), "mean-minute"), convertRate(timer.getMeanRate()))
-                        .putField(filedName(nameTags.getFirst(), "run-count"), timer.getCount()).build();
+                        .putField(filedName(nameTags.getFirst(), MEAN_MINUTE), convertRate(timer.getMeanRate()))
+                        .putField(filedName(nameTags.getFirst(), RUN_COUNT), timer.getCount()).build();
             }).collect(toList());
         }
 
