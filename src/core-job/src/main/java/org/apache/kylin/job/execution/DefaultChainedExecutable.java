@@ -45,10 +45,8 @@ package org.apache.kylin.job.execution;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
+import java.util.function.Consumer;
 
-import io.kyligence.kap.common.metrics.NMetricsCategory;
-import io.kyligence.kap.common.metrics.NMetricsGroup;
-import io.kyligence.kap.common.metrics.NMetricsName;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.constant.JobIssueEnum;
 import org.apache.kylin.job.exception.ExecuteException;
@@ -57,6 +55,9 @@ import org.apache.kylin.job.exception.JobStoppedException;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 
+import io.kyligence.kap.common.metrics.NMetricsCategory;
+import io.kyligence.kap.common.metrics.NMetricsGroup;
+import io.kyligence.kap.common.metrics.NMetricsName;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.common.scheduler.JobFinishedNotifier;
 import io.kyligence.kap.common.scheduler.SchedulerEventBusFactory;
@@ -142,6 +143,7 @@ public class DefaultChainedExecutable extends AbstractExecutable implements Chai
             boolean hasSuicidal = false;
             boolean hasPaused = false;
             for (Executable task : jobs) {
+                boolean taskSucceed = false;
                 switch (task.getStatus()) {
                 case RUNNING:
                     hasError = true;
@@ -158,26 +160,20 @@ public class DefaultChainedExecutable extends AbstractExecutable implements Chai
                 case PAUSED:
                     hasPaused = true;
                     break;
+                case SUCCEED:
+                    taskSucceed = true;
+                    break;
                 default:
                     break;
                 }
-                final ExecutableState status = task.getStatus();
-                if (status != ExecutableState.SUCCEED) {
-                    allSucceed = false;
-                }
+                allSucceed &= taskSucceed;
             }
             if (allSucceed) {
-                //to final state, regardless of isStoppedNonVoluntarily, otherwise a paused job might fail to suicide
-                if (!getOutput().getState().isFinalState())
-                    updateJobOutput(getProject(), getId(), ExecutableState.SUCCEED, null, null, this::afterUpdateOutput);
+                updateToFinalState(ExecutableState.SUCCEED, this::afterUpdateOutput);
             } else if (hasDiscarded) {
-                //to final state, regardless of isStoppedNonVoluntarily, otherwise a paused job might fail to suicide
-                if (!getOutput().getState().isFinalState())
-                    updateJobOutput(getProject(), getId(), ExecutableState.DISCARDED, null, null, null);
+                updateToFinalState(ExecutableState.DISCARDED, null);
             } else if (hasSuicidal) {
-                //to final state, regardless of isStoppedNonVoluntarily, otherwise a paused job might fail to suicide
-                if (!getOutput().getState().isFinalState())
-                    updateJobOutput(getProject(), getId(), ExecutableState.SUICIDAL, null, null, null);
+                updateToFinalState(ExecutableState.SUICIDAL, null);
             } else {
                 if (isStoppedNonVoluntarily())
                     return null;
@@ -202,6 +198,18 @@ public class DefaultChainedExecutable extends AbstractExecutable implements Chai
         SchedulerEventBusFactory.getInstance(KylinConfig.getInstanceFromEnv())
                 .postWithLimit(new JobFinishedNotifier(getProject()));
 
+        updateMetrics();
+
+    }
+
+    private void updateToFinalState(ExecutableState finalState, Consumer<String> hook) {
+        //to final state, regardless of isStoppedNonVoluntarily, otherwise a paused job might fail to suicide
+        if (!getOutput().getState().isFinalState()) {
+            updateJobOutput(getProject(), getId(), finalState, null, null, hook);
+        }
+    }
+
+    private void updateMetrics() {
         ExecutableState state = getStatus();
         if (state != null && state.isFinalState()) {
             NMetricsGroup.counterInc(NMetricsName.JOB_FINISHED, NMetricsCategory.PROJECT, getProject());
@@ -209,7 +217,6 @@ public class DefaultChainedExecutable extends AbstractExecutable implements Chai
             NMetricsGroup.histogramUpdate(NMetricsName.JOB_DURATION_HISTOGRAM, NMetricsCategory.PROJECT, getProject(),
                     getDuration());
         }
-
     }
 
     @Override
