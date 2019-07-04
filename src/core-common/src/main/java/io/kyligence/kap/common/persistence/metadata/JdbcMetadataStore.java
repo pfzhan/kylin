@@ -40,6 +40,7 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.StorageURL;
 import org.apache.kylin.common.persistence.RawResource;
 import org.apache.kylin.common.persistence.ResourceStore;
+import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
@@ -101,7 +102,8 @@ public class JdbcMetadataStore extends MetadataStore implements JdbcTransactionM
         jdbcTemplate = new JdbcTemplate(dataSource);
         table = url.getIdentifier();
         if (config.isMetadataAuditLogEnabled()) {
-            auditLogStore = new JdbcAuditLogStore(config, jdbcTemplate, transactionManager, table + JdbcAuditLogStore.AUDIT_LOG_SUFFIX);
+            auditLogStore = new JdbcAuditLogStore(config, jdbcTemplate, transactionManager,
+                    table + JdbcAuditLogStore.AUDIT_LOG_SUFFIX);
         }
         createIfNotExist();
     }
@@ -140,7 +142,7 @@ public class JdbcMetadataStore extends MetadataStore implements JdbcTransactionM
             ps.setString(1, path);
             try {
                 ps.setBytes(2, bs.read());
-            }catch (IOException e) {
+            } catch (IOException e) {
                 log.error("exception: ", e);
                 throw new SQLException(e);
             }
@@ -153,7 +155,7 @@ public class JdbcMetadataStore extends MetadataStore implements JdbcTransactionM
         jdbcTemplate.update(sql, ps -> {
             try {
                 ps.setBytes(1, bs.read());
-            }catch (IOException e) {
+            } catch (IOException e) {
                 log.error("exception: ", e);
                 throw new SQLException(e);
             }
@@ -197,6 +199,17 @@ public class JdbcMetadataStore extends MetadataStore implements JdbcTransactionM
             val project = words[words.length - 1].replace(".json", "");
             restoreProject(store, project);
         });
+        try {
+            val uuidRaw = load(ResourceStore.METASTORE_UUID_TAG);
+            store.putResourceWithoutCheck(uuidRaw.getResPath(), uuidRaw.getByteSource(), uuidRaw.getTimestamp(),
+                    uuidRaw.getMvcc());
+        } catch (PersistException e) {
+            if (e.getCause() instanceof EmptyResultDataAccessException) {
+                log.info("Cannot find /UUID in metastore");
+            } else {
+                throw e;
+            }
+        }
     }
 
     @Override
@@ -231,9 +244,10 @@ public class JdbcMetadataStore extends MetadataStore implements JdbcTransactionM
 
     private void createIfNotExist() throws IOException {
         String fileName = "metadata-jdbc-default.properties";
-        if (((BasicDataSource)jdbcTemplate.getDataSource()).getDriverClassName().equals("org.postgresql.Driver")) {
+        if (((BasicDataSource) jdbcTemplate.getDataSource()).getDriverClassName().equals("org.postgresql.Driver")) {
             fileName = "metadata-jdbc-postgresql.properties";
-        }else if (((BasicDataSource) jdbcTemplate.getDataSource()).getDriverClassName().equals("com.mysql.jdbc.Driver")) {
+        } else if (((BasicDataSource) jdbcTemplate.getDataSource()).getDriverClassName()
+                .equals("com.mysql.jdbc.Driver")) {
             fileName = "metadata-jdbc-mysql.properties";
         }
         InputStream is = Thread.currentThread().getContextClassLoader().getResourceAsStream(fileName);

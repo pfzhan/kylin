@@ -57,7 +57,6 @@ import java.util.Map;
 import java.util.NavigableSet;
 import java.util.Properties;
 import java.util.Set;
-import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.commons.io.IOUtils;
@@ -129,7 +128,7 @@ public abstract class ResourceStore implements AutoCloseable {
         synchronized (ResourceStore.class) {
             store = META_CACHE.get(config);
             if (store == null) {
-                store = createKylinMetaStore(config);
+                store = createResourceStore(config);
                 META_CACHE.put(config, store);
 
                 if (isPotentialMemoryLeak()) {
@@ -154,18 +153,6 @@ public abstract class ResourceStore implements AutoCloseable {
 
     public static void setRS(KylinConfig config, ResourceStore rs) {
         META_CACHE.put(config, rs);
-    }
-
-    private static ResourceStore createKylinMetaStore(KylinConfig config) {
-        ResourceStore store = createResourceStore(config);
-        if (!store.exists(METASTORE_UUID_TAG)) {
-            val output = ByteStreams.newDataOutput();
-            output.writeUTF(store.createMetaStoreUUID());
-            store.putResourceWithoutCheck(METASTORE_UUID_TAG, ByteStreams.asByteSource(output.toByteArray()),
-                    System.currentTimeMillis(), 0);
-        }
-
-        return store;
     }
 
     /**
@@ -214,10 +201,6 @@ public abstract class ResourceStore implements AutoCloseable {
     protected void init(MetadataStore metadataStore) throws Exception {
         metadataStore.restore(this);
         this.metadataStore = metadataStore;
-    }
-
-    protected String createMetaStoreUUID() {
-        return String.valueOf(UUID.randomUUID());
     }
 
     public String getMetaStoreUUID() {
@@ -426,10 +409,11 @@ public abstract class ResourceStore implements AutoCloseable {
         clearCache(this.getConfig());
     }
 
-    public static void dumpResourceMaps(KylinConfig kylinConfig, File metaDir, Map<String, RawResource> dumpMap, Properties properties) {
+    public static void dumpResourceMaps(KylinConfig kylinConfig, File metaDir, Map<String, RawResource> dumpMap,
+            Properties properties) {
         long startTime = System.currentTimeMillis();
         metaDir.mkdirs();
-        for (Map.Entry<String, RawResource> entry: dumpMap.entrySet()) {
+        for (Map.Entry<String, RawResource> entry : dumpMap.entrySet()) {
             RawResource res = entry.getValue();
             if (res == null) {
                 throw new IllegalStateException("No resource found at -- " + entry.getKey());

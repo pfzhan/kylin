@@ -27,6 +27,7 @@ import static io.kyligence.kap.common.persistence.metadata.JdbcMetadataStore.dat
 import static org.awaitility.Awaitility.await;
 
 import java.util.Comparator;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 
@@ -35,6 +36,7 @@ import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.Path;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
+import org.apache.kylin.common.persistence.StringEntity;
 import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.kylin.common.util.JsonUtil;
 import org.junit.After;
@@ -64,6 +66,12 @@ public class HAMetadataTest extends NLocalFileMetadataTestCase {
         createTestMetadata();
         getTestConfig().setMetadataUrl(
                 "test@jdbc,driverClassName=org.h2.Driver,url=jdbc:h2:mem:db_default;DB_CLOSE_DELAY=-1,username=sa,password=");
+        UnitOfWork.doInTransactionWithRetry(() -> {
+            val resourceStore = ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv());
+            resourceStore.checkAndPutResource("/UUID", new StringEntity(UUID.randomUUID().toString()),
+                    StringEntity.serializer);
+            return null;
+        }, "");
         queryKylinConfig = KylinConfig.createKylinConfig(getTestConfig());
         val auditLogStore = new JdbcAuditLogStore(queryKylinConfig);
         queryKylinConfig.setMetadataUrl("test@hdfs");
@@ -125,7 +133,7 @@ public class HAMetadataTest extends NLocalFileMetadataTestCase {
 
         await().atMost(2, TimeUnit.SECONDS).until(() -> 7 == queryResourceStore.listResourcesRecursively("/").size());
         val auditCount = getJdbcTemplate().queryForObject("select count(*) from test_audit_log", Long.class);
-        Assert.assertEquals(11L, auditCount.longValue());
+        Assert.assertEquals(12L, auditCount.longValue());
     }
 
     @Test
@@ -134,15 +142,24 @@ public class HAMetadataTest extends NLocalFileMetadataTestCase {
             val resourceStore = getStore();
             resourceStore.checkAndPutResource("/_global/project/p0.json",
                     ByteStreams.asByteSource("{  \"uuid\": \"1eaca32a-a33e-4b69-83dd-0bb8b1f8c91b\"}".getBytes()), -1);
-            resourceStore.checkAndPutResource("/p0/path1.json", ByteStreams.asByteSource("{ \"mvcc\": 0 }".getBytes()), -1);
-            resourceStore.checkAndPutResource("/p0/path2.json", ByteStreams.asByteSource("{ \"mvcc\": 0 }".getBytes()), -1);
-            resourceStore.checkAndPutResource("/p0/path3.json", ByteStreams.asByteSource("{ \"mvcc\": 0 }".getBytes()), -1);
-            resourceStore.checkAndPutResource("/p0/path4.json", ByteStreams.asByteSource("{ \"mvcc\": 0 }".getBytes()), -1);
-            resourceStore.checkAndPutResource("/p0/path3.json", ByteStreams.asByteSource("{ \"mvcc\": 1 }".getBytes()), 0);
-            resourceStore.checkAndPutResource("/p0/path4.json", ByteStreams.asByteSource("{ \"mvcc\": 1 }".getBytes()), 0);
-            resourceStore.checkAndPutResource("/p0/path3.json", ByteStreams.asByteSource("{ \"mvcc\": 2 }".getBytes()), 1);
-            resourceStore.checkAndPutResource("/p0/path4.json", ByteStreams.asByteSource("{ \"mvcc\": 2 }".getBytes()), 1);
-            resourceStore.checkAndPutResource("/p0/path3.json", ByteStreams.asByteSource("{ \"mvcc\": 3 }".getBytes()), 2);
+            resourceStore.checkAndPutResource("/p0/path1.json", ByteStreams.asByteSource("{ \"mvcc\": 0 }".getBytes()),
+                    -1);
+            resourceStore.checkAndPutResource("/p0/path2.json", ByteStreams.asByteSource("{ \"mvcc\": 0 }".getBytes()),
+                    -1);
+            resourceStore.checkAndPutResource("/p0/path3.json", ByteStreams.asByteSource("{ \"mvcc\": 0 }".getBytes()),
+                    -1);
+            resourceStore.checkAndPutResource("/p0/path4.json", ByteStreams.asByteSource("{ \"mvcc\": 0 }".getBytes()),
+                    -1);
+            resourceStore.checkAndPutResource("/p0/path3.json", ByteStreams.asByteSource("{ \"mvcc\": 1 }".getBytes()),
+                    0);
+            resourceStore.checkAndPutResource("/p0/path4.json", ByteStreams.asByteSource("{ \"mvcc\": 1 }".getBytes()),
+                    0);
+            resourceStore.checkAndPutResource("/p0/path3.json", ByteStreams.asByteSource("{ \"mvcc\": 2 }".getBytes()),
+                    1);
+            resourceStore.checkAndPutResource("/p0/path4.json", ByteStreams.asByteSource("{ \"mvcc\": 2 }".getBytes()),
+                    1);
+            resourceStore.checkAndPutResource("/p0/path3.json", ByteStreams.asByteSource("{ \"mvcc\": 3 }".getBytes()),
+                    2);
             return 0;
         }, "p0");
 
@@ -179,9 +196,10 @@ public class HAMetadataTest extends NLocalFileMetadataTestCase {
 
         Assert.assertEquals(7, queryResourceStore.listResourcesRecursively("/").size());
         val auditCount = getJdbcTemplate().queryForObject("select count(*) from test_audit_log", Long.class);
-        Assert.assertEquals(14, auditCount.longValue());
-        val imageDesc = JsonUtil.readValue(queryResourceStore.getResource("/_image").getByteSource().read(), ImageDesc.class);
-        Assert.assertEquals(15, imageDesc.getOffset().longValue());
+        Assert.assertEquals(15, auditCount.longValue());
+        val imageDesc = JsonUtil.readValue(queryResourceStore.getResource("/_image").getByteSource().read(),
+                ImageDesc.class);
+        Assert.assertEquals(16, imageDesc.getOffset().longValue());
     }
 
     JdbcTemplate getJdbcTemplate() throws Exception {

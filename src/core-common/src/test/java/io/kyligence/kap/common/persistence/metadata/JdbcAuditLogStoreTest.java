@@ -34,6 +34,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.dbcp2.BasicDataSourceFactory;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
+import org.apache.kylin.common.persistence.StringEntity;
 import org.awaitility.Awaitility;
 import org.junit.After;
 import org.junit.Assert;
@@ -120,6 +121,8 @@ public class JdbcAuditLogStoreTest extends NLocalFileMetadataTestCase {
     @Test
     public void testRestore() throws Exception {
         val workerStore = ResourceStore.getKylinMetaStore(getTestConfig());
+        workerStore.checkAndPutResource("/UUID", new StringEntity(UUID.randomUUID().toString()),
+                StringEntity.serializer);
         Assert.assertEquals(1, workerStore.listResourcesRecursively("/").size());
         val url = getTestConfig().getMetadataUrl();
         val jdbcTemplate = getJdbcTemplate();
@@ -154,6 +157,8 @@ public class JdbcAuditLogStoreTest extends NLocalFileMetadataTestCase {
     @Test
     public void testRestore_WhenOtherAppend() throws Exception {
         val workerStore = ResourceStore.getKylinMetaStore(getTestConfig());
+        workerStore.checkAndPutResource("/UUID", new StringEntity(UUID.randomUUID().toString()),
+                StringEntity.serializer);
         Assert.assertEquals(1, workerStore.listResourcesRecursively("/").size());
         val url = getTestConfig().getMetadataUrl();
         val jdbcTemplate = getJdbcTemplate();

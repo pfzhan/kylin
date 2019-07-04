@@ -148,7 +148,9 @@ public class MetadataTool extends ExecutableApplication {
                     retFlag = RESTORE_FAILED;
                 } else {
                     val address = curatorOperator.getAddress();
-                    log.info("found a job node running, backup will be delegated to it at server: {}, this may be a remote server.", address);
+                    log.info(
+                            "found a job node running, backup will be delegated to it at server: {}, this may be a remote server.",
+                            address);
                     val ret = remoteBackup(address, optionsHelper);
                     if ("000".equals(ret.get("code"))) {
                         log.info("backup successfully at {}", optionsHelper.getOptionValue(OPTION_DIR));
@@ -162,7 +164,7 @@ public class MetadataTool extends ExecutableApplication {
 
         } catch (Exception e) {
             log.error("", e);
-            retFlag = isBackup? BACKUP_FAILED : RESTORE_FAILED;
+            retFlag = isBackup ? BACKUP_FAILED : RESTORE_FAILED;
         }
         System.exit(retFlag);
     }
@@ -256,7 +258,10 @@ public class MetadataTool extends ExecutableApplication {
             log.info("start to copy all projects from ResourceStore.");
 
             UnitOfAllWorks.doInTransaction(() -> {
-                val projectFolders = resourceStore.listResources("/");
+                var projectFolders = resourceStore.listResources("/");
+                if (projectFolders == null) {
+                    return null;
+                }
                 for (String projectPath : projectFolders) {
                     if (projectPath.equals(ResourceStore.METASTORE_UUID_TAG)) {
                         continue;
@@ -269,6 +274,7 @@ public class MetadataTool extends ExecutableApplication {
                 backupMetadataStore.putResource(new RawResource(ResourceStore.METASTORE_IMAGE,
                         ByteStreams.asByteSource(JsonUtil.writeValueAsBytes(new ImageDesc(offset))),
                         System.currentTimeMillis(), -1));
+                backupMetadataStore.putResource(resourceStore.getResource(ResourceStore.METASTORE_UUID_TAG));
                 return null;
             }, true);
             log.info("start to backup all projects");
@@ -278,6 +284,7 @@ public class MetadataTool extends ExecutableApplication {
             UnitOfWork.doInTransactionWithRetry(
                     UnitOfWorkParams.builder().readonly(true).unitName(project).processor(() -> {
                         copyResourceStore("/" + project, resourceStore, backupResourceStore, true);
+                        backupMetadataStore.putResource(resourceStore.getResource(ResourceStore.METASTORE_UUID_TAG));
                         return null;
                     }).build());
 
@@ -317,8 +324,9 @@ public class MetadataTool extends ExecutableApplication {
 
         if (StringUtils.isBlank(project)) {
             log.info("start to restore all projects");
-            val srcProjectFolders = restoreResourceStore.listResources("/");
+            var srcProjectFolders = restoreResourceStore.listResources("/");
             val destProjectFolders = resourceStore.listResources("/");
+            srcProjectFolders = srcProjectFolders == null ? Sets.newTreeSet() : srcProjectFolders;
             val projectFolders = Sets.union(srcProjectFolders, destProjectFolders);
 
             for (String projectPath : projectFolders) {

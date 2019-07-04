@@ -32,7 +32,6 @@ import java.util.regex.Pattern;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.util.DateFormat;
 import org.apache.kylin.metadata.MetadataConstants;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.exception.BadRequestException;
@@ -43,6 +42,7 @@ import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.response.ResponseCode;
 import org.apache.kylin.rest.security.ManagedUser;
 import org.apache.kylin.rest.service.AccessService;
+import org.apache.kylin.rest.service.LicenseInfoService;
 import org.apache.kylin.rest.service.UserService;
 import org.apache.kylin.rest.util.AclEvaluate;
 import org.apache.kylin.rest.util.PagingUtil;
@@ -94,6 +94,9 @@ public class NUserController extends NBasicController {
     @Autowired
     @Qualifier("accessService")
     private AccessService accessService;
+
+    @Autowired
+    private LicenseInfoService licenseInfoService;
 
     @Autowired
     private Environment env;
@@ -299,17 +302,9 @@ public class NUserController extends NBasicController {
     }
 
     private void checkLicense() {
-        val msg = MsgPicker.getMsg();
         if (!KylinConfig.getInstanceFromEnv().isDevOrUT()) {
-            if (StringUtils.isEmpty(System.getProperty("ke.license.valid-dates"))) {
-                throw new BadRequestException(msg.getLICENSE_NOT_FOUND());
-            }
-            val dates = System.getProperty("ke.license.valid-dates").split(",");
-            val dateStart = DateFormat.stringToMillis(dates[0]);
-            val dateEnd = DateFormat.stringToMillis(dates[1]);
-            if (System.currentTimeMillis() > dateEnd || System.currentTimeMillis() < dateStart) {
-                throw new BadRequestException(String.format(msg.getLICENSE_OUT_OF_DATE(), dates[0], dates[1]));
-            }
+            val info = licenseInfoService.extractLicenseInfo();
+            licenseInfoService.verifyLicense(info);
         }
     }
 

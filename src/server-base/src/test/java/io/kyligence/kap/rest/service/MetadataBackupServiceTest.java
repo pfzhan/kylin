@@ -26,12 +26,14 @@ package io.kyligence.kap.rest.service;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.InputStreamReader;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.Path;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
+import org.apache.kylin.common.persistence.StringEntity;
 import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.kylin.common.util.JsonUtil;
 import org.assertj.core.api.Assertions;
@@ -74,6 +76,9 @@ public class MetadataBackupServiceTest extends NLocalFileMetadataTestCase {
         val kylinConfig = KylinConfig.getInstanceFromEnv();
         kylinConfig.setProperty("kylin.env.hdfs-working-dir", junitFolder.getAbsolutePath());
         kylinConfig.setMetadataUrl("metadata_backup_ut_test");
+        val resourceStore = ResourceStore.getKylinMetaStore(kylinConfig);
+        resourceStore.checkAndPutResource("/UUID", new StringEntity(UUID.randomUUID().toString()),
+                StringEntity.serializer);
 
         //1.assert there is no metadata dir in root dir before backup,the root dir is junitFolder.getAbsolutePath()
         val rootPath = new Path(kylinConfig.getHdfsWorkingDirectory()).getParent();
@@ -133,6 +138,10 @@ public class MetadataBackupServiceTest extends NLocalFileMetadataTestCase {
         kylinConfig.setMetadataUrl(
                 "test@jdbc,driverClassName=org.h2.Driver,url=jdbc:h2:mem:db_default;DB_CLOSE_DELAY=-1,username=sa,password=");
         kylinConfig.setProperty("kylin.env.hdfs-working-dir", junitFolder.getAbsolutePath());
+
+        val resourceStore = ResourceStore.getKylinMetaStore(kylinConfig);
+        resourceStore.checkAndPutResource("/UUID", new StringEntity(UUID.randomUUID().toString()),
+                StringEntity.serializer);
 
         val auditLogStore = JdbcAuditLogStoreTool.prepareJdbcAuditLogStore(kylinConfig);
         ResourceStore.getKylinMetaStore(kylinConfig).getMetadataStore().setAuditLogStore(auditLogStore);

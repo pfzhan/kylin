@@ -645,12 +645,32 @@ public class Message {
 
     // License
 
-    public String getLICENSE_NOT_FOUND() {
+    public String getLICENSE_OVERDUE_TRIAL() {
+        return "The license has expired and the validity period is [%s - %s]. Please upload a new license or contact the Kyligence sales staff.";
+    }
+
+    public String getLICENSE_NODES_EXCEED() {
+        return "The number of nodes which you are using is higher than the allowable number. Please contact your Kyligence account manager.";
+    }
+
+    public String getLICENSE_WRONG_CATEGORY() {
+        return "The current version of Kyligence Enterprise does not match the license. Please upload a new license or contact the Kyligence sales staff.";
+    }
+
+    public String getLICENSE_NO_LICENSE() {
         return "No license file. Please contact the Kyligence sales staff.";
     }
 
-    public String getLICENSE_OUT_OF_DATE() {
-        return "This license has expired and the validity period is ['%s' - '%s']. Please contact the Kyligence sales staff.";
+    public String getLICENSE_INVALID_LICENSE() {
+        return "Invalid license, please contact the Kyligence sales staff.";
+    }
+
+    public String getLICENSE_NOT_EFFECTIVE() {
+        return "License is not effective yet, please apply for a new license.";
+    }
+
+    public String getLICENSE_EXPIRED() {
+        return "This license has expired and the validity period is [%s - %s]. Please contact the Kyligence sales staff.";
     }
 
     public String getINVALID_CREDENTIAL() {

@@ -23,16 +23,20 @@
  */
 package io.kyligence.kap.rest.config;
 
-import java.util.List;
+import static org.apache.kylin.common.persistence.ResourceStore.METASTORE_UUID_TAG;
 
-import io.kyligence.kap.common.hystrix.NCircuitBreaker;
+import java.util.List;
+import java.util.UUID;
+
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
+import org.apache.kylin.common.persistence.StringEntity;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.security.KylinUserManager;
 import org.apache.kylin.rest.security.ManagedUser;
+import org.apache.kylin.rest.service.LicenseInfoService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.context.event.ApplicationPreparedEvent;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
@@ -43,6 +47,7 @@ import org.springframework.scheduling.TaskScheduler;
 
 import io.kyligence.kap.common.cluster.LeaderInitiator;
 import io.kyligence.kap.common.cluster.NodeCandidate;
+import io.kyligence.kap.common.hystrix.NCircuitBreaker;
 import io.kyligence.kap.common.metric.InfluxDBWriter;
 import io.kyligence.kap.common.metrics.NMetricsCategory;
 import io.kyligence.kap.common.metrics.NMetricsController;
@@ -50,6 +55,7 @@ import io.kyligence.kap.common.metrics.NMetricsGroup;
 import io.kyligence.kap.common.metrics.NMetricsName;
 import io.kyligence.kap.common.persistence.metadata.JdbcAuditLogStore;
 import io.kyligence.kap.common.persistence.transaction.EventListenerRegistry;
+import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.common.scheduler.SchedulerEventBusFactory;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.rest.config.initialize.AppInitializedEvent;
@@ -75,6 +81,9 @@ public class AppInitializer {
     @Autowired
     BootstrapCommand bootstrapCommand;
 
+    @Autowired
+    LicenseInfoService licenseInfoService;
+
     @EventListener(ApplicationPreparedEvent.class)
     public void init(ApplicationPreparedEvent event) throws Exception {
         val kylinConfig = KylinConfig.getInstanceFromEnv();
@@ -94,6 +103,14 @@ public class AppInitializer {
             NMetricsController.startReporters(KapConfig.wrap(kylinConfig));
 
             val resourceStore = ResourceStore.getKylinMetaStore(kylinConfig);
+            if (!resourceStore.exists(METASTORE_UUID_TAG)) {
+                UnitOfWork.doInTransactionWithRetry(() -> {
+                    val store = ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv());
+                    store.checkAndPutResource(METASTORE_UUID_TAG, new StringEntity(UUID.randomUUID().toString()),
+                            StringEntity.serializer);
+                    return null;
+                }, "");
+            }
 
             EventListenerRegistry.getInstance(kylinConfig).register(new FavoriteQueryUpdateListener(), "fq");
             event.getApplicationContext().publishEvent(new AppInitializedEvent(event.getApplicationContext()));

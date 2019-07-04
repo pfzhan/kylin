@@ -24,90 +24,62 @@
 
 package io.kyligence.kap.rest.controller;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
-import java.io.InputStreamReader;
 
-import org.apache.kylin.common.KapConfig;
-import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.rest.exception.BadRequestException;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.response.ResponseCode;
 import org.apache.kylin.rest.service.LicenseInfoService;
-import org.apache.kylin.shaded.htrace.org.apache.commons.codec.digest.DigestUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseBody;
 
-import io.kyligence.kap.rest.config.initialize.AppInitializedEvent;
 import io.kyligence.kap.rest.request.BackupRequest;
 import io.kyligence.kap.rest.service.SystemService;
-
+import lombok.val;
 
 @Controller
 @Component("nSystemController")
 @RequestMapping(value = "/system")
 public class NSystemController extends NBasicController {
 
-    private static final Logger logger = LoggerFactory.getLogger(NSystemController.class);
-
-
     @Autowired
     private LicenseInfoService licenseInfoService;
+
     @Autowired
     @Qualifier("systemService")
     private SystemService systemService;
 
-    @EventListener(AppInitializedEvent.class)
-    public void init() throws IOException {
-        if (KylinConfig.getInstanceFromEnv().isDevOrUT()) {
-            return;
-        }
-        File kylinHome = KapConfig.getKylinHomeAtBestEffort();
-        File licenseFile = new File(kylinHome, "LICENSE");
-        if (licenseFile.exists()) {
-            getLicenseInfo(licenseFile);
-        }
-    }
-
-    private void getLicenseInfo(File licenseFile) {
-        try (BufferedReader in = new BufferedReader(new InputStreamReader(new FileInputStream(licenseFile), "UTF-8"))) {
-            String dates;
-            while ((dates = in.readLine()) != null) {
-                String license = in.readLine();
-                if (DigestUtils.md5Hex(dates + DigestUtils.md5Hex(dates)).equals(license)) {
-                    System.setProperty("ke.license.valid-dates", dates);
-                    System.setProperty("ke.license", license);
-                } else {
-                    throw new IllegalStateException("license is invalid");
-                }
-                break;
-            }
-        } catch (Exception ex) {
-            logger.error("license is invalid", ex);
-            System.exit(1);
-        }
-    }
-
-    @RequestMapping(value = "/license", method = {RequestMethod.GET}, produces = {
-            "application/vnd.apache.kylin-v2+json"})
+    @GetMapping(value = "/license", produces = { "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
     public EnvelopeResponse listLicense() throws IOException {
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, licenseInfoService.extractLicenseInfo(), "");
+        val info = licenseInfoService.extractLicenseInfo();
+        val response = new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, info, "");
+        try {
+            val warning = licenseInfoService.verifyLicense(info);
+            if (warning != null) {
+                setResponse(response, LicenseInfoService.CODE_WARNING, warning);
+            }
+        } catch (BadRequestException e) {
+            setResponse(response, e.getCode(), e.getMessage());
+        }
+        return response;
+
+    }
+
+    private void setResponse(EnvelopeResponse response, String errorCode, String message) {
+        response.setCode(errorCode);
+        response.setMsg(message);
     }
 
     // used for service discovery
-    @RequestMapping(value = "/backup", method = {RequestMethod.POST}, produces = {
-            "application/vnd.apache.kylin-v2+json" })
+    @PostMapping(value = "/backup", produces = { "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
     public EnvelopeResponse remoteBackupProject(@RequestBody BackupRequest backupRequest) throws Exception {
         checkRequiredArg("backupPath", backupRequest.getBackupPath());

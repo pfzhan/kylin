@@ -42,23 +42,28 @@
 
 package io.kyligence.kap.rest.controller;
 
+import static org.apache.kylin.rest.service.LicenseInfoService.getDefaultCommitFile;
+import static org.apache.kylin.rest.service.LicenseInfoService.getDefaultLicenseFile;
+import static org.apache.kylin.rest.service.LicenseInfoService.getDefaultVersionFile;
+import static org.hamcrest.CoreMatchers.containsString;
+
 import java.util.ArrayList;
 import java.util.List;
 
-import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
-import io.kyligence.kap.rest.request.PasswordChangeRequest;
-import lombok.val;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.exception.BadRequestException;
+import org.apache.kylin.rest.msg.Message;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.response.ResponseCode;
 import org.apache.kylin.rest.security.ManagedUser;
 import org.apache.kylin.rest.service.AccessService;
+import org.apache.kylin.rest.service.LicenseInfoService;
 import org.apache.kylin.rest.service.UserService;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -74,17 +79,24 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
-import static org.hamcrest.CoreMatchers.containsString;
+import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.rest.request.PasswordChangeRequest;
+import io.kyligence.kap.rest.rules.ClearKEPropertiesRule;
+import lombok.val;
 
 public class NUserControllerTest extends NLocalFileMetadataTestCase {
 
     private MockMvc mockMvc;
     private static BCryptPasswordEncoder pwdEncoder = new BCryptPasswordEncoder();
+
+    @Rule
+    public ClearKEPropertiesRule clearKEProperties = new ClearKEPropertiesRule();
 
     @InjectMocks
     private NUserController nUserController = Mockito.spy(new NUserController());
@@ -101,10 +113,11 @@ public class NUserControllerTest extends NLocalFileMetadataTestCase {
     @Mock
     private AccessService accessService;
 
+    private LicenseInfoService licenseInfoService = new LicenseInfoService();
+
     @Before
     public void setupResource() {
         createTestMetadata();
-        System.clearProperty("ke.license.valid-dates");
         getTestConfig().setProperty("kylin.env", "UT");
     }
 
@@ -118,6 +131,7 @@ public class NUserControllerTest extends NLocalFileMetadataTestCase {
         ManagedUser user = new ManagedUser("ADMIN", "ADMIN", false, authorities);
         Authentication authentication = new TestingAuthenticationToken(user, "ADMIN", Constant.ROLE_ADMIN);
         SecurityContextHolder.getContext().setAuthentication(authentication);
+        ReflectionTestUtils.setField(nUserController, "licenseInfoService", licenseInfoService);
     }
 
     @After
@@ -133,20 +147,24 @@ public class NUserControllerTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
+    @Ignore("verify license code is in a individual patch")
     public void testAuthenticated_WithOutOfDateLicense() {
         getTestConfig().setProperty("kylin.env", "PROD");
-        System.setProperty("ke.license.valid-dates", "2018-12-17,2019-01-17");
+        licenseInfoService.gatherLicenseInfo(getDefaultLicenseFile(), getDefaultCommitFile(), getDefaultVersionFile(),
+                null);
+        System.setProperty(LicenseInfoService.KE_DATES, "2018-12-17,2019-01-17");
         thrown.expect(BadRequestException.class);
         thrown.expectMessage(
-                "This license has expired and the validity period is ['2018-12-17' - '2019-01-17']. Please contact the Kyligence sales staff.");
+                String.format(Message.getInstance().getLICENSE_OVERDUE_TRIAL(), "2018-12-17", "2019-01-17"));
         nUserController.authenticate();
     }
 
     @Test
+    @Ignore("verify license code is in a individual patch")
     public void testAuthenticated_WithoutLicense() {
         getTestConfig().setProperty("kylin.env", "PROD");
         thrown.expect(BadRequestException.class);
-        thrown.expectMessage("No license file. Please contact the Kyligence sales staff.");
+        thrown.expectMessage(Message.getInstance().getLICENSE_INVALID_LICENSE());
         nUserController.authenticate();
     }
 
@@ -183,8 +201,8 @@ public class NUserControllerTest extends NLocalFileMetadataTestCase {
         mockMvc.perform(MockMvcRequestBuilders.post("/api/user").contentType(MediaType.APPLICATION_JSON)
                 .content(JsonUtil.writeValueAsString(user))
                 .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
-                .andExpect(MockMvcResultMatchers.content().string(containsString(
-                        "Username should only contain alphanumerics and underscores.")));
+                .andExpect(MockMvcResultMatchers.content()
+                        .string(containsString("Username should only contain alphanumerics and underscores.")));
 
         Mockito.verify(nUserController).createUser(Mockito.any(ManagedUser.class));
     }
@@ -198,8 +216,8 @@ public class NUserControllerTest extends NLocalFileMetadataTestCase {
         mockMvc.perform(MockMvcRequestBuilders.post("/api/user").contentType(MediaType.APPLICATION_JSON)
                 .content(JsonUtil.writeValueAsString(user))
                 .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
-                .andExpect(MockMvcResultMatchers.content().string(containsString(
-                        "The password should contain more than 8 characters!")));
+                .andExpect(MockMvcResultMatchers.content()
+                        .string(containsString("The password should contain more than 8 characters!")));
 
         Mockito.verify(nUserController).createUser(Mockito.any(ManagedUser.class));
     }
@@ -226,8 +244,7 @@ public class NUserControllerTest extends NLocalFileMetadataTestCase {
         mockMvc.perform(MockMvcRequestBuilders.put("/api/user/password").contentType(MediaType.APPLICATION_JSON)
                 .content(JsonUtil.writeValueAsString(request))
                 .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
-                .andExpect(MockMvcResultMatchers.content().string(containsString(
-                        "User 'ADMIN' not found.")));
+                .andExpect(MockMvcResultMatchers.content().string(containsString("User 'ADMIN' not found.")));
 
         Mockito.verify(nUserController).updateUserPassword(Mockito.any(PasswordChangeRequest.class));
     }
@@ -261,8 +278,8 @@ public class NUserControllerTest extends NLocalFileMetadataTestCase {
         mockMvc.perform(MockMvcRequestBuilders.put("/api/user/password").contentType(MediaType.APPLICATION_JSON)
                 .content(JsonUtil.writeValueAsString(request))
                 .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
-                .andExpect(MockMvcResultMatchers.content().string(containsString(
-                        "New password should not be same as old one!")));
+                .andExpect(MockMvcResultMatchers.content()
+                        .string(containsString("New password should not be same as old one!")));
 
         Mockito.verify(nUserController).updateUserPassword(Mockito.any(PasswordChangeRequest.class));
     }
@@ -338,8 +355,7 @@ public class NUserControllerTest extends NLocalFileMetadataTestCase {
         mockMvc.perform(MockMvcRequestBuilders.put("/api/user/password").contentType(MediaType.APPLICATION_JSON)
                 .content(JsonUtil.writeValueAsString(request))
                 .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
-                .andExpect(MockMvcResultMatchers.content()
-                        .string(containsString("Old password is not correct!")));
+                .andExpect(MockMvcResultMatchers.content().string(containsString("Old password is not correct!")));
 
         Mockito.verify(nUserController).updateUserPassword(Mockito.any(PasswordChangeRequest.class));
     }

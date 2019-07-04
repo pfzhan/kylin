@@ -590,12 +590,32 @@ public class CnMessage extends Message {
 
     //license
 
-    public String getLICENSE_NOT_FOUND() {
+    public String getLICENSE_OVERDUE_TRIAL() {
+        return "许可证已过期，当前有效期为[%s - %s]。请重新上传新的许可证或联系 Kyligence 销售人员。";
+    }
+
+    public String getLICENSE_NODES_EXCEED() {
+        return "您使用的节点数已超过许可证范围，请联系您的客户经理。";
+    }
+
+    public String getLICENSE_WRONG_CATEGORY() {
+        return "当前许可证的版本与产品不匹配，请重新上传新的许可证或联系 Kyligence 销售人员。";
+    }
+
+    public String getLICENSE_NO_LICENSE() {
         return "没有许可证文件。请联系 Kyligence 销售人员。";
     }
 
-    public String getLICENSE_OUT_OF_DATE() {
-        return "许可证已过期，当前有效期为 ['%s' - '%s']。请联系 Kyligence 销售人员。";
+    public String getLICENSE_INVALID_LICENSE() {
+        return "无效许可证，请联系 Kyligence 销售人员。";
+    }
+
+    public String getLICENSE_NOT_EFFECTIVE() {
+        return "许可证尚未生效，请重新申请。";
+    }
+
+    public String getLICENSE_EXPIRED() {
+        return "许可证已过期，当前有效期为 [%s - %s]。请联系 Kyligence 销售人员。";
     }
 
     // ICredential

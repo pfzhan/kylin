@@ -31,10 +31,9 @@ import static org.junit.Assert.fail;
 
 import java.lang.reflect.Field;
 import java.util.NavigableSet;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentSkipListMap;
 
-import io.kyligence.kap.common.persistence.transaction.TransactionException;
-import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.CleanMetadataHelper;
 import org.hamcrest.core.IsInstanceOf;
@@ -42,11 +41,13 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 
 import com.google.common.collect.Sets;
 
+import io.kyligence.kap.common.persistence.transaction.TransactionException;
+import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import lombok.val;
-import org.junit.rules.ExpectedException;
 
 public class ThreadViewResourceStoreTest {
 
@@ -107,6 +108,8 @@ public class ThreadViewResourceStoreTest {
     public void testOverlay() {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         ResourceStore underlying = ResourceStore.getKylinMetaStore(config);
+        underlying.checkAndPutResource("/UUID", new StringEntity(UUID.randomUUID().toString()),
+                StringEntity.serializer);
 
         String dir1 = "/cube";
         String dir2 = "/table";

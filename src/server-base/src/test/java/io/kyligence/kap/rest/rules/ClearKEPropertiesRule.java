@@ -21,20 +21,22 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package io.kyligence.kap.rest.transaction;
+package io.kyligence.kap.rest.rules;
 
-import java.lang.annotation.ElementType;
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
-import java.lang.annotation.Target;
+import org.junit.rules.ExternalResource;
 
-@Target(ElementType.METHOD)
-@Retention(RetentionPolicy.RUNTIME)
-public @interface Transaction {
+import lombok.val;
 
-    int project() default -1;
+public class ClearKEPropertiesRule extends ExternalResource {
 
-    int retry() default 3;
-
-    boolean readonly() default false;
+    @Override
+    protected void after() {
+        val names = System.getProperties().propertyNames();
+        while (names.hasMoreElements()) {
+            val name = names.nextElement().toString();
+            if (name.startsWith("ke.")) {
+                System.clearProperty(name);
+            }
+        }
+    }
 }
