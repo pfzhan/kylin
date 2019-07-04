@@ -115,7 +115,7 @@ public class SchedulerEventBusTest extends NLocalFileMetadataTestCase {
         eventSchedulerListener.setEventFinishedNotified(false);
         jobSchedulerListener.setJobReadyNotified(false);
         jobSchedulerListener.setJobFinishedNotified(false);
-
+        SchedulerEventBusFactory.restart();
         cleanupTestMetadata();
     }
 

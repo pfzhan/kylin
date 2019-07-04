@@ -27,6 +27,7 @@ package io.kyligence.kap.common.scheduler;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.NamedThreadFactory;
@@ -39,9 +40,10 @@ import com.google.common.util.concurrent.RateLimiter;
 public class SchedulerEventBusFactory {
     private KylinConfig kylinConfig;
     private static EventBus eventBus;
+    private static ExecutorService executor;
 
     static {
-        ExecutorService executor = Executors.newCachedThreadPool(new NamedThreadFactory("SchedulerEventBus"));
+        executor = Executors.newCachedThreadPool(new NamedThreadFactory("SchedulerEventBus"));
         eventBus = new AsyncEventBus(executor);
     }
 
@@ -77,5 +79,20 @@ public class SchedulerEventBusFactory {
 
     public void post(Object event) {
         eventBus.post(event);
+    }
+
+    //for ut
+    public static void restart() {
+        executor.shutdown();
+        try {
+            if (!executor.awaitTermination(6000, TimeUnit.SECONDS)) {
+                executor.shutdownNow();
+            }
+        } catch (InterruptedException ex) {
+            executor.shutdownNow();
+            Thread.currentThread().interrupt();
+        }
+        executor = Executors.newCachedThreadPool(new NamedThreadFactory("SchedulerEventBus"));
+        eventBus = new AsyncEventBus(executor);
     }
 }

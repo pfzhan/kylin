@@ -95,6 +95,7 @@ public class ModelBrokenListenerTest extends CSVSourceTestCase {
     @After
     public void cleanup() {
         SchedulerEventBusFactory.getInstance(getTestConfig()).unRegister(modelBrokenListener);
+        SchedulerEventBusFactory.restart();
         super.cleanup();
     }
 

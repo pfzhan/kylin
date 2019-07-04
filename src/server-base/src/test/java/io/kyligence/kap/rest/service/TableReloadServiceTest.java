@@ -121,6 +121,7 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
         } catch (Exception ignore) {
         }
         SchedulerEventBusFactory.getInstance(getTestConfig()).unRegister(modelBrokenListener);
+        SchedulerEventBusFactory.restart();
         super.cleanup();
     }
 
