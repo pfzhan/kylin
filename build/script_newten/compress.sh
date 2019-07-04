@@ -12,8 +12,12 @@ if [ "${current_branch}" = "" ]; then
     current_branch=$(git branch | sed -n -e 's/^\* \(.*\)/\1/p')
 fi
 
-timestamp=`date '+%Y%m%d%H%M%S'`
-package_name="Kyligence-Enterprise-${release_version}.${timestamp}"
+package_name="Kyligence-Enterprise-${release_version}"
+if [ "${PACKAGE_TIMESTAMP}" = "1" ]; then
+    timestamp=`date '+%Y%m%d%H%M%S'`
+    package_name=${package_name}.${timestamp}
+fi
+
 # package as *.tar.gz
 echo "package name: ${package_name}"
 cd build/
