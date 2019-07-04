@@ -84,19 +84,26 @@ public class NAutoComputedColumnTest extends NAutoTestBase {
         Assert.assertEquals(expectedQuery, convertedQuery);
     }
 
+    /*
+     * test points: 1. support propose more than one cc
+     *              2. tolerance of failed sql
+     *              3. unsupported sql in current calcite version but can propose
+     */
     @Test
     public void testProposeMultiCCToOneModel() {
-        // The 'price*item_count' should be replaced by auto_cc_1, query2 will success, however query4 will fail
-        // (reason: the second param of left() cannot be a negative number, left() also support by spark2.3+).
+        // The 'price*item_count' should be replaced by auto_cc_1
         // The 'price+item_count' will produce another cc expression auto_cc_2.
+        // (query5: left() supported by CALCITE-3005, left() supported by spark2.3+).
         String query1 = "select price*item_count from test_kylin_fact";
         String query2 = "select sum(price*item_count) from test_kylin_fact"; // one cc
         String query3 = "select sum(price*item_count), price from test_kylin_fact group by price";
         String query4 = "select sum(price+item_count) from test_kylin_fact"; // another cc
         String query5 = "select {fn left(lstg_format_name,-4)} as name, sum(price*item_count) "
-                + "from test_kylin_fact group by lstg_format_name"; // blocked
+                + "from test_kylin_fact group by lstg_format_name"; // left(...) will replaced by substring(...)
+        String query6 = "select  {fn CHAR(lstg_format_name)}, sum(price*item_count) "
+                + "from test_kylin_fact group by lstg_format_name";
         NSmartMaster smartMaster = new NSmartMaster(kylinConfig, getProject(),
-                new String[] { query1, query2, query3, query4, query5 });
+                new String[] { query1, query2, query3, query4, query5, query6 });
         smartMaster.runAll();
 
         val modelContexts = smartMaster.getContext().getModelContexts();
@@ -115,9 +122,10 @@ public class NAutoComputedColumnTest extends NAutoTestBase {
         Assert.assertFalse(accelerateInfoMap.get(query2).isFailed());
         Assert.assertFalse(accelerateInfoMap.get(query3).isFailed());
         Assert.assertFalse(accelerateInfoMap.get(query4).isFailed());
-        Assert.assertTrue(accelerateInfoMap.get(query5).isFailed());
-        Assert.assertEquals("Table not found by UNKNOWN_ALIAS",
-                accelerateInfoMap.get(query5).getFailedCause().getMessage());
+        Assert.assertFalse(accelerateInfoMap.get(query4).isFailed());
+        Assert.assertTrue(accelerateInfoMap.get(query6).isFailed());
+        Assert.assertTrue(accelerateInfoMap.get(query6).getFailedCause().getMessage()
+                .contains("parse failed: Encountered \"{fn CHAR\""));
 
         val targetIndexPlan = modelContexts.get(0).getTargetIndexPlan();
         final List<IndexEntity> indexes = targetIndexPlan.getIndexes();
@@ -125,7 +133,8 @@ public class NAutoComputedColumnTest extends NAutoTestBase {
         Assert.assertEquals(0L, indexes.get(0).getId());
         Assert.assertEquals(10000L, indexes.get(1).getId());
         Assert.assertEquals(20000L, indexes.get(2).getId());
-        Assert.assertEquals(20000000000L, indexes.get(3).getId());
+        Assert.assertEquals(30000L, indexes.get(3).getId());
+        Assert.assertEquals(20000000000L, indexes.get(4).getId());
     }
 
     @Test
