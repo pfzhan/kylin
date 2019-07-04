@@ -164,6 +164,15 @@ public class DateFormat {
         throw new IllegalArgumentException("there is no valid date pattern for:" + sampleData);
     }
 
+    /**
+     * convert String date to String timestamp(millisecond);
+     * same date but different timezone will get different result;
+     * timezone base on the system default
+     *
+     * @param date
+     * @param datePattern
+     * @return
+     */
     public static String getFormattedDate(String date, String datePattern) {
         DateTimeFormatter formatter = new DateTimeFormatterBuilder().append(DateTimeFormatter.ofPattern(datePattern))
                 .parseDefaulting(ChronoField.HOUR_OF_DAY, 0).parseDefaulting(ChronoField.MINUTE_OF_HOUR, 0)
