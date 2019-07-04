@@ -31,7 +31,7 @@ export default {
     return Vue.resource(apiUrl + 'admin/config').update(config)
   },
   getAboutKap: () => {
-    return Vue.resource(apiUrl + 'kap/system/license').get()
+    return Vue.resource(apiUrl + 'system/license').get()
   },
   getKybotDump: (para) => {
     return Vue.resource(apiUrl + 'kybot/dump_remote').get(para)

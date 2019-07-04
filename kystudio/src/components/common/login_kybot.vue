@@ -40,11 +40,7 @@
     methods: {
       ...mapActions({
         getKybotAccount: 'GET_KYBOT_ACCOUNT',
-        loginKybot: 'LOGIN_KYBOT',
-        getKyStatus: 'GET_KYBOT_STATUS',
-        startKybot: 'START_KYBOT',
-        stopKybot: 'STOP_KYBOT',
-        getAgreement: 'GET_AGREEMENT'
+        loginKybot: 'LOGIN_KYBOT'
       }),
       validateUserName (rule, value, callback) {
         if (value === '') {
@@ -93,34 +89,7 @@
                     type: 'success',
                     message: this.$t('openSuccess')
                   })
-                  this.getKyStatus().then((res) => {
-                    handleSuccess(res, (data, code, status, msg) => {
-                      if (data) { // 开启了 则开启
-                        // this.$emit('openSwitch')
-                        this.$emit('closeLoginForm')
-                      } else {
-                        // a
-                        this.$emit('closeLoginForm')
-                        this.getAgreement().then((res) => {
-                          handleSuccess(res, (data, code, status, msg) => {
-                            if (!data) { // 没有同意过协议 开协议层
-                              this.$emit('closeLoginOpenKybot')
-                            }
-                          })
-                        })
-                      }
-                    })
-                  }, (errResp) => {
-                    handleError(errResp)
-                    this.$emit('closeLoginOpenKybot')
-                  })
                 } else {
-                  // this.$message({
-                  //   type: 'error',
-                  //   duration: 0,  // 不自动关掉提示
-                  //   showClose: true,    // 给提示框增加一个关闭按钮
-                  //   message: msg
-                  // })
                   handleError(result)
                 }
               }, (res) => {

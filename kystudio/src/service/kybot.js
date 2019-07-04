@@ -24,24 +24,5 @@ export default {
   },
   kybotLogOut () {
     return Vue.resource(apiUrl + 'kyaccount/logout').save()
-  },
-  // 开启KyBot自动上传
-  startKybot () {
-    return Vue.resource(apiUrl + 'kybot/daemon/start').save()
-  },
-  // 关闭KyBot自动上传
-  stopKybot () {
-    return Vue.resource(apiUrl + 'kybot/daemon/stop').save()
-  },
-  // 获取是否已同意协议
-  getAgreement () {
-    return Vue.resource(apiUrl + 'kybot/agreement').get()
-  },
-  // 同意协议
-  setAgreement () {
-    return Vue.resource(apiUrl + 'kybot/agreement').save()
-  },
-  getKybotServers () {
-    return Vue.resource(apiUrl + 'kybot/servers').save()
   }
 }

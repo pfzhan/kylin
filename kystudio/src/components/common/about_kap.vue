@@ -7,52 +7,56 @@
         </a>
       </el-row>
       <el-row>
-        <label for="">{{$t('version')}}</label>{{license(serverAboutKap && serverAboutKap['kap.version'])}}
+        <label for="">{{$t('version')}}</label>{{license(serverAboutKap && serverAboutKap['ke.version'])}}
       </el-row>
       <el-row>
-        <label for="">{{$t('validPeriod')}}</label>{{license(serverAboutKap && serverAboutKap['kap.dates'])}}
+        <label for="">{{$t('validPeriod')}}</label>{{license(serverAboutKap && serverAboutKap['ke.dates'])}}
       </el-row>
       <el-row>
         <label for="">{{$t('dataVolume')}}</label>
-        <span v-if="license(serverAboutKap && serverAboutKap['kap.license.source.total']) !== 'Unlimited'">{{license(serverAboutKap && serverAboutKap['kap.license.source.used'])}} TB / {{license(serverAboutKap && serverAboutKap['kap.license.source.total'])}} TB</span>
-        <span v-else>Unlimited</span>
+        {{$t('noLimitation')}}
+        <!-- <span v-if="license(serverAboutKap && serverAboutKap['ke.license.source.total']) !== 'Unlimited'">{{license(serverAboutKap && serverAboutKap['ke.license.source.used'])}} TB / {{license(serverAboutKap && serverAboutKap['ke.license.source.total'])}} TB</span>
+        <span v-else>Unlimited</span> -->
+      </el-row>
+      <el-row>
+        <label for="">{{$t('level')}}</label>{{license(serverAboutKap && serverAboutKap['ke.license.level'])}}
       </el-row>
       <el-row>
         <label for="">{{$t('licenseStatement')}}</label>
-        {{license(serverAboutKap&&serverAboutKap['kap.license.statement'])}}
+        {{license(serverAboutKap&&serverAboutKap['ke.license.statement'])}}
       </el-row>	
 	  </div>
 	  <div class="container">
 	    <h3>{{$t('statement')}}</h3>
-      <p v-if="serverAboutKap['kap.license.isEvaluation']=='true'" v-html="$t('kylinLang.system.evaluationStatement')"></p>
-      <p v-if="serverAboutKap['kap.license.isEvaluation']!=='true'" v-html="$t('kylinLang.system.statement')"></p>
+      <p v-if="serverAboutKap['ke.license.isEvaluation']=='true'" v-html="$t('kylinLang.system.evaluationStatement')"></p>
+      <p v-if="serverAboutKap['ke.license.isEvaluation']!=='true'" v-html="$t('kylinLang.system.statement')"></p>
       <div class="margin-split"></div>
       <el-row>
-        <label for="">{{$t('serviceEnd')}}</label>{{license(serverAboutKap&&serverAboutKap['kap.license.serviceEnd'])}}
+        <label for="">{{$t('serviceEnd')}}</label>{{license(serverAboutKap&&serverAboutKap['ke.license.serviceEnd'])}}
       </el-row>
       <el-row>
-        <label for="">KAP Commit:</label>{{license(serverAboutKap&&serverAboutKap['kap.commit'])}}
+        <label for="">Kyligence Enterprise Commit: </label>{{license(serverAboutKap&&serverAboutKap['ke.commit'])}}
       </el-row>
-      <el-row>
+      <!-- <el-row>
         <label for="">Kyligence Account: </label>
         <span v-if="$store.state.kybot.hasLoginAccount">{{$store.state.kybot.hasLoginAccount}} <a href="#" @click.prevent="logOut">{{$t('quit')}}</a></span>
         <a v-if="!$store.state.kybot.hasLoginAccount" href="#" @click.prevent="loginKyaccount">{{$t('login')}}</a>
-      </el-row>
+      </el-row> -->
     </div>
     <div class="footer">
       <p class="details" v-html="$t('sendFile')"></p>
       <!-- <a class="buttonLink" href="api/kap/system/requestLicense">{{$t('generateLicense')}}</a> -->
-      <el-row class="text-center">
+      <!-- <el-row class="text-center">
         <el-button type="primary" @click="requestLicense">{{$t('generateLicense')}}</el-button>
-      </el-row>
+      </el-row> -->
       <el-row class="gray text-center">Copyright 2016 Kyligence Inc. All rights reserved.</el-row>
     </div>
   </div>
 </template>
 <script>
 import { mapActions } from 'vuex'
-import loginKybot from '../common/login_kybot.vue'
-import { handleSuccess, handleError, kapConfirm } from '../../util/business'
+// import loginKybot from '../common/login_kybot.vue'
+// import { handleSuccess, handleError, kapConfirm } from '../../util/business'
 export default {
   name: 'about_kap',
   props: ['about'],
@@ -77,15 +81,15 @@ export default {
     }
   },
   components: {
-    'login_kybot': loginKybot
+    // 'login_kybot': loginKybot
   },
   created () {
-    this.getKyAccountStatus()
+    // this.getKyAccountStatus()
   },
   methods: {
     ...mapActions({
-      logOutKyAccount: 'LOGOUT_KYBOT',
-      getKybotAccount: 'GET_CUR_ACCOUNTNAME'
+      // logOutKyAccount: 'LOGOUT_KYBOT',
+      // getKybotAccount: 'GET_CUR_ACCOUNTNAME'
     }),
     license (obj) {
       if (!obj) {
@@ -96,37 +100,75 @@ export default {
     },
     requestLicense () {
       location.href = 'api/kap/system/requestLicense'
-    },
-    getLicense () {
-      // let newWinLicense = window.open()
-      // newWinLicense.location.href = 'api/kap/system/requestLicense'
-    },
-    logOut () {
-      kapConfirm(this.$t('logOutConfirm')).then(() => {
-        this.logOutKyAccount().then(() => {
-          this.getKyAccountStatus()
-        }, (res) => {
-          handleError(res)
-        })
-      })
-    },
-    loginKyaccount () {
-      this.$store.state.kybot.loginKyaccountDialog = true
-    },
-    getKyAccountStatus () {
-      this.getKybotAccount().then((res) => {
-        handleSuccess(res, (data, code, status, msg) => {
-          this.$store.state.kybot.hasLoginAccount = data
-        }, (errResp) => {
-          this.$store.state.kybot.hasLoginAccount = ''
-          handleError(errResp)
-        })
-      })
     }
+    // getLicense () {
+    //   let newWinLicense = window.open()
+    //   newWinLicense.location.href = 'api/kap/system/requestLicense'
+    // },
+    // logOut () {
+    //   kapConfirm(this.$t('logOutConfirm')).then(() => {
+    //     this.logOutKyAccount().then(() => {
+    //       this.getKyAccountStatus()
+    //     }, (res) => {
+    //       handleError(res)
+    //     })
+    //   })
+    // },
+    // loginKyaccount () {
+    //   this.$store.state.kybot.loginKyaccountDialog = true
+    // },
+    // getKyAccountStatus () {
+    //   this.getKybotAccount().then((res) => {
+    //     handleSuccess(res, (data, code, status, msg) => {
+    //       this.$store.state.kybot.hasLoginAccount = data
+    //     }, (errResp) => {
+    //       this.$store.state.kybot.hasLoginAccount = ''
+    //       handleError(errResp)
+    //     })
+    //   })
+    // }
   },
   locales: {
-    'en': {version: 'Version: ', validPeriod: 'Valid Period: ', serviceEnd: 'Service End Time:', enterLicense: 'Select License File Or Enter Your License', upload: 'Upload', license: 'License', statement: 'Service Statement', licenseStatement: 'License Statement: ', sendFile: 'You can apply EVALUATION license from <a target="_blank" href="https://account.kyligence.io">Kyligence account</a>. To request ENTERPRISE license, please contact Kyligence sales support with the License Request file.', noAccount: 'No account is configured in Kylin properties', generateLicense: 'Generate License Request File', updateLicense: 'Update License', logOutConfirm: 'Comfirm quit?', login: 'Login', quit: 'Quit', dataVolume: 'Data Source Volume: '},
-    'zh-cn': {version: '版本: ', validPeriod: '使用期限: ', serviceEnd: '服务截止日期:', enterLicense: '请选择许可证文件或手动输入许可证', upload: '上传', license: '许可证', statement: '服务申明', licenseStatement: '许可声明: ', sendFile: '申请试用许可证，请访问 <a target="_blank" href="https://account.kyligence.io">Kyligence account</a>。申请企业版许可证，请将许可申请文件发送给销售支持人员。', noAccount: '未在Kylin properties中配置KyAccount账号', generateLicense: '生成许可申请文件', updateLicense: '更新许可证', logOutConfirm: '确认要退出吗？', login: '登录', quit: '退出', dataVolume: '数据量额度: '}
+    'en': {
+      version: 'Version: ',
+      validPeriod: 'Valid Period: ',
+      serviceEnd: 'Service End Time: ',
+      enterLicense: 'Select License File Or Enter Your License',
+      upload: 'Upload',
+      license: 'License',
+      statement: 'Service Statement',
+      licenseStatement: 'License Statement: ',
+      sendFile: 'You can apply EVALUATION license from <a target="_blank" href="https://account.kyligence.io">Kyligence account</a>. To request ENTERPRISE license, please contact Kyligence sales support with the License Request file.',
+      noAccount: 'No account is configured in Kylin properties',
+      generateLicense: 'Generate License Request File',
+      updateLicense: 'Update License',
+      logOutConfirm: 'Comfirm quit?',
+      login: 'Login',
+      quit: 'Quit',
+      dataVolume: 'Data Source Volume: ',
+      noLimitation: 'No limitation',
+      level: 'Level: '
+    },
+    'zh-cn': {
+      version: '版本：',
+      validPeriod: '使用期限：',
+      serviceEnd: '服务截止日期：',
+      enterLicense: '请选择许可证文件或手动输入许可证',
+      upload: '上传',
+      license: '许可证',
+      statement: '服务申明',
+      licenseStatement: '许可声明：',
+      sendFile: '申请试用许可证，请访问 <a target="_blank" href="https://account.kyligence.io">Kyligence account</a>。申请企业版许可证，请将许可申请文件发送给销售支持人员。',
+      noAccount: '未在Kylin properties中配置KyAccount账号',
+      generateLicense: '生成许可申请文件',
+      updateLicense: '更新许可证',
+      logOutConfirm: '确认要退出吗？',
+      login: '登录',
+      quit: '退出',
+      dataVolume: '数据量额度：',
+      noLimitation: '无限制',
+      level: '产品等级：'
+    }
   }
 }
 </script>
@@ -134,7 +176,8 @@ export default {
 @import '../../assets/styles/variables.less';
   .about-kap {
     .logo {
-      margin-bottom: 26px;
+      margin-top: 10px;
+      margin-bottom: 40px;
     }
     .text-center {
       text-align: center;
@@ -161,7 +204,7 @@ export default {
 	// .container {padding-bottom:20px;border-bottom:1px solid #424860;}
 	h3 {margin-top:20px;font-size:14px;}
 	.details {line-height:24px;margin:20px 0 25px;}
-	.gray {margin-top:30px;color:#a2a2a2;font-size:12px;}
+	.gray {margin-top:60px;color:#a2a2a2;font-size:12px;}
 	// .buttonLink {padding:10px;color: #fff;border-radius:2px;background: #35a8fe;text-decoration: none;}
   .el-input{
     width: 100%;

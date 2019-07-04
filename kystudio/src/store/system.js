@@ -152,7 +152,6 @@ export default {
     },
     [types.GET_ABOUTKAP]: function ({ commit }) {
       return api.system.getAboutKap().then((response) => {
-        // console.log('response ::', response.data)
         commit(types.GET_ABOUT, { list: response.data })
       })
     },

@@ -1,18 +1,21 @@
 <template>
   <div class="help-box">
-    <el-dropdown @visible-change="dropHelp" @command="handleCommand">
-      <!-- <span class="el-dropdown-link ky-a-like">
-        {{$t('kylinLang.common.help')}} <i class="el-icon-caret-bottom"></i>
-      </span> -->
+    <el-dropdown @command="handleCommand">
       <el-button size="small" plain>
          {{$t('kylinLang.common.help')}}<i class="el-icon-arrow-down el-icon--right"></i>
       </el-button>
       <el-dropdown-menu slot="dropdown">
         <el-dropdown-item command="guide"><a class="ksd-block-a">{{$t('userGuide')}}</a></el-dropdown-item>
+        <el-dropdown-item command="aboutkap" >{{$t('aboutKap')}}</el-dropdown-item>
         <!-- <el-dropdown-item command="kapmanual"><a class="ksd-block-a" target="_blank" href="http://manual.kyligence.io/">{{$t('Manual')}}</a></el-dropdown-item>
         <el-dropdown-item command="kybotservice"><a class="ksd-block-a" target="_blank" :href="'https://kybot.io/#/home'+kapVersionPara"> {{$t('kybotService')}}</a></el-dropdown-item> -->
       </el-dropdown-menu>
     </el-dropdown>
+
+    <el-dialog :visible.sync="aboutKapVisible" :title="$t('aboutKap')" width="720px"  :close-on-click-modal="false" :append-to-body="true">
+      <about_kap :about="serverAbout" :aboutKapVisible="aboutKapVisible">
+      </about_kap>
+    </el-dialog>
   </div>
 </template>
 <script>
@@ -67,20 +70,22 @@
     },
     methods: {
       ...mapActions({
-        getKyStatus: 'GET_KYBOT_STATUS',
-        getAgreement: 'GET_AGREEMENT',
-        trialLicenseFile: 'TRIAL_LICENSE_FILE',
-        getCurKybotAccount: 'GET_CUR_ACCOUNTNAME'
+        getAboutKap: 'GET_ABOUTKAP'
+        // trialLicenseFile: 'TRIAL_LICENSE_FILE',
+        // getCurKybotAccount: 'GET_CUR_ACCOUNTNAME'
       }),
       handleCommand (val) {
         if (val === 'aboutkap') {
-          this.getCurKybotAccount().then((res) => {
-            handleSuccess(res, (data, code, status, msg) => {
-              this.$store.state.kybot.hasLoginAccount = data
-            }, (errResp) => {
-              this.$store.state.kybot.hasLoginAccount = ''
-              handleError(errResp)
-            })
+          // this.getCurKybotAccount().then((res) => {
+          //   handleSuccess(res, (data, code, status, msg) => {
+          //     this.$store.state.kybot.hasLoginAccount = data
+          //   }, (errResp) => {
+          //     this.$store.state.kybot.hasLoginAccount = ''
+          //     handleError(errResp)
+          //   })
+          // })
+          this.getAboutKap(() => {}, (res) => {
+            handleError(res)
           })
           this.aboutKapVisible = true
         } else if (val === 'updatelicense') {
@@ -104,21 +109,6 @@
         this.kyBotUploadVisible = false
         this.infoKybotVisible = true
       },
-      // 同意协议并开启自动服务
-      startService () {
-        this.startKybot().then((resp) => {
-          handleSuccess(resp, (data, code, status, msg) => {
-            if (data) {
-              this.isopend = true
-              this.$message({
-                type: 'success',
-                message: this.$t('openSuccess')
-              })
-              this.infoKybotVisible = false
-            }
-          })
-        })
-      },
       // 检测登录
       checkLogin (callback) {
         this.getKybotAccount().then((res) => {
@@ -133,67 +123,6 @@
             handleError(errResp)
           })
         })
-      },
-      // 获取同意协议
-      getAgreementInfo () {
-        this.getAgreement().then((res) => {
-          handleSuccess(res, (data, code, status, msg) => {
-            if (!data) { // 没有同意过协议 开协议层
-              this.infoKybotVisible = true
-              this.isopend = false
-            } else {
-              this.startService()
-            }
-          })
-        })
-      },
-      // 获取是否开启
-      getStatus (showAgreement, callback) {
-        if (!this.flag) {
-          return
-        }
-        this.flag = false
-        this.getKyStatus().then((res) => {
-          handleSuccess(res, (data, code, status, msg) => {
-            if (!data) {
-              // this.isopend = false
-              showAgreement && this.getAgreementInfo()
-            } else {
-              this.isopend = true
-            }
-            this.flag = true
-          }, (errResp) => {
-            handleError(errResp)
-            this.flag = true
-          })
-        })
-      },
-      // 改变kybot自动上传状态
-      changeKystaus (status) {
-        if (this.switchTimer) {
-          clearTimeout(this.switchTimer)
-        }
-        this.switchTimer = setTimeout(() => {
-          if (status) { // 开启
-            // 需要先检测有没有登录
-            this.checkLogin(() => {
-              this.getStatus(true)
-            })
-          } else { // 关闭
-            this.stopService()
-          }
-        }, 200)
-      },
-      closeStartLayer () {
-        this.infoKybotVisible = false
-      },
-      // 开启switch事件
-      openSwitch () {
-        this.isopend = true
-      },
-      // 关闭switch事件
-      closeSwitch () {
-        this.isopend = false
       },
       licenseForm: function () {
         this.$refs['licenseEnter'].$emit('licenseFormValid')

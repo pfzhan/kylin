@@ -388,6 +388,9 @@ export default class LayoutLeftRightTop extends Vue {
   created () {
     // this.reloadRouter()
     this.defaultActive = this.$route.path || '/dashboard'
+    this.getAboutKap(() => {}, (res) => {
+      handleError(res)
+    })
   }
   showMenuByRole (menuName) {
     return this.availableMenus.includes(menuName)

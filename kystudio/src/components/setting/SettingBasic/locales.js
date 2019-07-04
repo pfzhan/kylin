@@ -62,7 +62,7 @@ export default {
     autoMerge: '自动合并：',
     autoMergeTip: '根据不同层级的时间周期，系统可以自动合并 segment 碎片。合并 segment 就像碎片整理，可以优化查询提升查询性能。',
     volatile: '变动范围：',
-    volatileTip: '"自动合并"将不会合并[变动范围]内的 cube segments，默认值为 0。',
+    volatileTip: '"自动合并"将不会合并[变动范围]内的 segments，默认值为 0。',
     retentionThreshold: '留存阈值',
     retentionThresholdDesc: '在留存阈值内的 segment 将会被系统保留，在阈值之外的 segments 将会被自动移除。',
     minute: '分钟',
