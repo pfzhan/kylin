@@ -55,13 +55,17 @@ cat > build/CHANGELOG.md <<EOL
 
 **Feature & Enhancement**
 
-- KE version 4.0.0
-
+- Optimize source table schema changes
+- Add record and management for index usage
+- Support rapid sampling of wide tables for multiple columns
+- Automatically detect queue memory and set the number of concurrent tasks
+- Adjust the built-in metabase to PostgreSQL
+- Expand the range of queries that can be accelerated
 
 EOL
 
 
-KAP_VERSION_NAME="Newten ${release_version}"
+KAP_VERSION_NAME="Kyligence Enterprise ${release_version}"
 
 echo "${KAP_VERSION_NAME}" > build/VERSION
 echo "VERSION file content:" ${KAP_VERSION_NAME}
