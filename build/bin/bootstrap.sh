@@ -3,7 +3,7 @@
 
 
 source $(cd -P -- "$(dirname -- "$0")" && pwd -P)/header.sh $@
-version=`cat ${KYLIN_HOME}/VERSION | awk '{print $2}'`
+version=`cat ${KYLIN_HOME}/VERSION | awk '{print $3}'`
 ${KYLIN_HOME}/bin/rotate-logs.sh $@
 
 if [ "$1" == "-v" ]; then
