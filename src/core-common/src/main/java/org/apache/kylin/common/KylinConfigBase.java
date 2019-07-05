@@ -1603,4 +1603,7 @@ abstract public class KylinConfigBase implements Serializable {
         return Integer.parseInt(getOptional("kap.engine.persist-flattable-threshold", "1"));
     }
 
+    public int getQueryPartitionSplitSizeMB() {
+        return Integer.parseInt(getOptional("kap.storage.columnar.partition-split-size-mb", "64"));
+    }
 }

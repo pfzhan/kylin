@@ -107,7 +107,7 @@ public class DFBuildJob extends SparkApplication {
                 // build cuboids from flat table
                 if (buildFromFlatTable != null) {
                     val path = datasetChooser.persistFlatTableIfNecessary();
-                    if (!path.equals("")) {
+                    if (!path.isEmpty()) {
                         persistedFlatTable.add(path);
                     }
                     build(Collections.singletonList(buildFromFlatTable), segId, nSpanningTree);
@@ -125,7 +125,7 @@ public class DFBuildJob extends SparkApplication {
                 fs.delete(new Path(path), true);
                 logger.info("Delete persisted flat table: {}.", path);
             }
-            logger.info("Finish build take" + (System.currentTimeMillis() - start) + " ms");
+            logger.info("Building job takes {} ms", (System.currentTimeMillis() - start));
         }
     }
 

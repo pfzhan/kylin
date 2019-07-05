@@ -82,9 +82,19 @@ object SparderEnv extends Logging {
     if (sparkConf.get("spark.master").startsWith("local")) {
       return 1
     }
-    val instances = sparkConf.get("spark.executor.instances").toInt
+    val instances = getExecutorNum(sparkConf)
     val cores = sparkConf.get("spark.executor.cores").toInt
     Math.max(instances * cores, 1)
+  }
+
+  def getExecutorNum(sparkConf: SparkConf): Int = {
+    if (sparkConf.get("spark.dynamicAllocation.enabled", "false").toBoolean) {
+      val maxExecutors = sparkConf.get("spark.dynamicAllocation.maxExecutors", Int.MaxValue.toString).toInt
+      logInfo(s"Use spark.dynamicAllocation.maxExecutors:$maxExecutors as num instances of executors.")
+      maxExecutors
+    } else {
+      sparkConf.get("spark.executor.instances").toInt
+    }
   }
 
   def initSpark(): Unit = withClassLoad {

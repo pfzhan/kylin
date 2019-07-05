@@ -40,7 +40,7 @@ object ResultType extends Enumeration {
 }
 
 object ResultPlan extends Logging {
-  val PARTITION_SPLIT_BYTES: Long = 64 * 1024 * 1024 // 64MB
+  val PARTITION_SPLIT_BYTES: Long = KylinConfig.getInstanceFromEnv.getQueryPartitionSplitSizeMB * 1024 * 1024 // 64MB
 
   def collectEnumerable(df: DataFrame,
                         rowType: RelDataType): Enumerable[Array[Any]] = {
@@ -69,7 +69,9 @@ object ResultPlan extends Logging {
         Math.min(QueryContext.current().getSourceScanBytes / PARTITION_SPLIT_BYTES + 1,
           SparderEnv.getTotalCore).toInt
       }
-    logInfo(s"partition is : $partitionsNum , bytes is ${QueryContext.current().getSourceScanBytes}")
+    logInfo(s"partitions num are : $partitionsNum," +
+      s" total scan bytes are ${QueryContext.current().getSourceScanBytes}" +
+      s" total cores are ${SparderEnv.getTotalCore}")
     if (QueryContext.current().isHighPriorityQuery) {
       pool = "vip_tasks"
     } else if (QueryContext.current().isTableIndex) {
