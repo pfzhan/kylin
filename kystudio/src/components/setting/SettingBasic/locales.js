@@ -17,7 +17,7 @@ export default {
     autoMerge: 'Auto-Merge:',
     autoMergeTip: 'The system can auto-merge segment fragments over different merge threshold. Auto-merge, like defragmentation, will optimize storage to enhance query performance.',
     volatile: 'Volatile Range:',
-    volatileTip: '\'Auto-Merge\' will not merge latest [Volatile Range] days cube segments, by default is 0.',
+    volatileTip: '\'Auto-Merge\' will not merge latest [Volatile Range] days segments, by default is 0.',
     retentionThreshold: 'Retention Threshold',
     retentionThresholdDesc: 'Only keep the segment whose data is in past given days in cube, the old segment will be automatically dropped from head.',
     minute: 'Minute',
