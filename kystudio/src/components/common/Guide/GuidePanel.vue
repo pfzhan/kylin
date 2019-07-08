@@ -125,6 +125,10 @@ import Guide from 'util/guide'
         this.guide = new Guide({
           mode: currentGuidePage.name
         }, this)
+        this.guidePanelPos = {
+          right: 20,
+          top: 60
+        }
       }
       return showGuideMask
     },
