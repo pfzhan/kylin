@@ -272,8 +272,12 @@ public class NSparkExecutable extends AbstractExecutable {
 
     private ExecuteResult runSparkSubmit(KylinConfig config, String sparkHome, String hadoopConf, String jars,
             String kylinJobJar, String appArgs, String jobId) {
-
-        PatternedLogger patternedLogger = new PatternedLogger(null);
+        PatternedLogger patternedLogger;
+        if (config.isJobLogPrintEnabled()) {
+            patternedLogger = new PatternedLogger(logger);
+        } else {
+            patternedLogger = new PatternedLogger(null);
+        }
         try {
             String cmd = generateSparkCmd(config, hadoopConf, jars, kylinJobJar, appArgs);
 

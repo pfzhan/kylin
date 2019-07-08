@@ -750,6 +750,10 @@ abstract public class KylinConfigBase implements Serializable {
         return getOptional("kylin.job.tracking-url-pattern", "");
     }
 
+    public boolean isJobLogPrintEnabled() {
+        return Boolean.parseBoolean(getOptional("kylin.job.log-print-enabled", "true"));
+
+    }
     // ============================================================================
     // SOURCE.HIVE
     // ============================================================================
