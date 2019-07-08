@@ -33,7 +33,7 @@ import org.apache.kylin.metadata.model.TableDesc
 import org.apache.kylin.source.SourceFactory
 import org.apache.spark.sql.functions._
 import org.apache.spark.sql.{Column, _}
-
+import org.apache.spark.sql.DataFrameEnhancement._
 class TableAnalysisJob(tableDesc: TableDesc,
                        project: String,
                        rowCount: Long,
@@ -48,22 +48,14 @@ class TableAnalysisJob(tableDesc: TableDesc,
 
     val instances = sparkConf.get(SparkConfHelper.EXECUTOR_INSTANCES, "1").toInt
     val cores = sparkConf.get(SparkConfHelper.EXECUTOR_CORES, "1").toInt
-    val numPartitions = instances * taskFactor * cores
+    val numPartitions = instances * cores
     val rowsTakenInEachPartition = rowCount / numPartitions
-
-    val dataset = SourceFactory
+    val dataFrame = SourceFactory
       .createEngineAdapter(tableDesc, classOf[NSparkCubingEngine.NSparkCubingSource])
       .getSourceData(tableDesc, ss, Maps.newHashMap[String, String])
       .coalesce(numPartitions)
-
-    // sampling
-    def sample(iterator: Iterator[Row]): Iterator[Row] = {
-      iterator.take(rowsTakenInEachPartition.toInt)
-    }
-
-    val dat = ss.createDataFrame(dataset.rdd.mapPartitions(partition => sample(partition)), dataset.schema)
+    val dat = dataFrame.localLimit(rowsTakenInEachPartition)
     val sampledDataset = CreateFlatTable.changeSchemaToAliasDotName(dat, tableDesc.getIdentity)
-
     // todo: use sample data to estimate total info
     // calculate the stats info
     val statsMetrics = buildStatsMetric(sampledDataset)
