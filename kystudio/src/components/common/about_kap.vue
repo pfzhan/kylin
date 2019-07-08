@@ -28,8 +28,8 @@
 	  </div>
 	  <div class="container">
 	    <h3>{{$t('statement')}}</h3>
-      <p v-if="serverAboutKap['ke.license.isEvaluation']=='true'" v-html="$t('kylinLang.system.evaluationStatement')"></p>
-      <p v-if="serverAboutKap['ke.license.isEvaluation']!=='true'" v-html="$t('kylinLang.system.statement')"></p>
+      <p v-if="serverAboutKap['ke.license.isEvaluation']" v-html="$t('kylinLang.system.evaluationStatement')"></p>
+      <p v-else v-html="$t('kylinLang.system.statement')"></p>
       <div class="margin-split"></div>
       <el-row>
         <label for="">{{$t('serviceEnd')}}</label>{{license(serverAboutKap&&serverAboutKap['ke.license.serviceEnd'])}}
