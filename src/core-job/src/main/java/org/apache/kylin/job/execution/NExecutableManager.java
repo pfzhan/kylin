@@ -30,6 +30,7 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -37,11 +38,9 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.common.metrics.NMetricsCategory;
-import io.kyligence.kap.common.metrics.NMetricsGroup;
-import io.kyligence.kap.common.metrics.NMetricsName;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -64,6 +63,9 @@ import com.google.common.base.Predicate;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
+import io.kyligence.kap.common.metrics.NMetricsCategory;
+import io.kyligence.kap.common.metrics.NMetricsGroup;
+import io.kyligence.kap.common.metrics.NMetricsName;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.common.scheduler.JobReadyNotifier;
 import io.kyligence.kap.common.scheduler.SchedulerEventBusFactory;
@@ -78,6 +80,10 @@ public class NExecutableManager {
 
     private static final Logger logger = LoggerFactory.getLogger(NExecutableManager.class);
     private static final String PARSE_ERROR_MSG = "Error parsing the executablePO: ";
+
+    private static final int CMD_EXEC_TIMEOUT_SEC = 10;
+
+    private static final String KILL_CHILD_PROCESS = "kill-child-process.sh";
 
     public static NExecutableManager getInstance(KylinConfig config, String project) {
         if (null == project) {
@@ -466,16 +472,25 @@ public class NExecutableManager {
     public void destroyProcess(String jobId) {
         Process process = JobProcessContext.getProcess(jobId);
         if (process != null && process.isAlive()) {
-            String cmd = "";
             try {
-                int pid = getPid(process);
-                cmd = String.format("pkill -P %d", pid);
-                logger.info("destroyProcess pid {} of job {} with cmd '{}'", pid, jobId, cmd);
+                final int ppid = getPid(process);
+                logger.info("job {} destroy process {}", jobId, ppid);
+                StringBuilder sb = new StringBuilder("bash ");
+                sb.append(Paths.get(KylinConfig.getKylinHome(), "bin", KILL_CHILD_PROCESS));
+                sb.append(" ");
+                sb.append(ppid);
+                final String cmd = sb.toString();
                 Process proc = Runtime.getRuntime().exec(cmd);
-                int exitValue = proc.waitFor();
-                logger.info("exec cmd '{}', exitValue : {}", cmd, exitValue);
+                if (proc.waitFor(CMD_EXEC_TIMEOUT_SEC, TimeUnit.SECONDS)) {
+                    logger.info("job {} destroy process {}, exec cmd '{}', exitValue : {}", jobId, ppid, cmd,
+                            proc.exitValue());
+                    return;
+                }
+                //generally, code executing wouldn't reach here
+                logger.warn("job {} destroy process {}, exec cmd '{}' exceed {}s.", jobId, ppid, cmd,
+                        CMD_EXEC_TIMEOUT_SEC);
             } catch (Exception e) {
-                logger.error("exec cmd : '{}', error : {}", cmd, e.getMessage(), e);
+                logger.error("job {} destroy process error: {}", jobId, e.getMessage(), e);
             }
         }
     }

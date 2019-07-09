@@ -145,7 +145,7 @@ function killChildProcess {
                 if [ "$parentId" -eq 1 ] && ps aux | grep $line | grep spark-submit > /dev/null
                 then
                     verbose "Killing child process $line"
-                    pkill -P $line
+                    bash ${KYLIN_HOME}/bin/kill-child-process.sh $line
                 else
                     sleep 1
                 fi
