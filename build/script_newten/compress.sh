@@ -36,6 +36,10 @@ cp -rf influxdb ${package_name}/
 cp -rf grafana ${package_name}/
 cp -rf postgresql ${package_name}/
 
+# Add ssb data preparation files
+mkdir -p ${package_name}/tool/ssb
+cp -rf ../src/examples/sample_cube/data ${package_name}/tool/ssb/
+cp -rf ../src/examples/sample_cube/create_sample_ssb_tables.sql ${package_name}/tool/ssb/
 
 cp -rf deploy/grafana/dashboards ${package_name}/grafana/
 cp -rf deploy/grafana/provisioning ${package_name}/grafana/conf/
