@@ -48,6 +48,7 @@ cp -rf deploy/grafana/custom.ini ${package_name}/grafana/conf/
 # Add conf profiles
 cp -rf conf ${package_name}/conf
 cp -rf bin/ ${package_name}/bin/
+cp -rf sbin/ ${package_name}/sbin/
 
 # update symblink, use production profile as default
 ln -sfn profile_min profile

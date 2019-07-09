@@ -4,15 +4,15 @@
 
 source $(cd -P -- "$(dirname -- "$0")" && pwd -P)/header.sh
 
-source ${dir}/init-kerberos.sh
+source ${KYLIN_HOME}/sbin/init-kerberos.sh
 ## init Kerberos if needed
 initKerberosIfNeeded
 
 echo "Checking InfluxDB..."
 
-influxdb_address=`${dir}/get-properties.sh kap.influxdb.address`
-influxdb_username=`${dir}/get-properties.sh kap.influxdb.username`
-influxdb_password=`${dir}/get-properties.sh kap.influxdb.password`
+influxdb_address=`${KYLIN_HOME}/bin/get-properties.sh kap.influxdb.address`
+influxdb_username=`${KYLIN_HOME}/bin/get-properties.sh kap.influxdb.username`
+influxdb_password=`${KYLIN_HOME}/bin/get-properties.sh kap.influxdb.password`
 connection=`curl -sL -I "http://${influxdb_address}/ping" | grep "204 No Content"`
 
 [[ -n ${connection} ]] || quit "ERROR: InfluxDB service is not up, please make sure InfluxDB service is up"

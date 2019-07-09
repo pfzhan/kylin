@@ -15,7 +15,7 @@ function checkFileOccupied() {
 
 function checkSizeExceedLimit() {
     target_file=$1
-    file_threshold=`${dir}/get-properties.sh kap.env.max-keep-log-file-threshold-mb`
+    file_threshold=`${KYLIN_HOME}/bin/get-properties.sh kap.env.max-keep-log-file-threshold-mb`
     file_size=`du -b "$target_file" | cut -f 1`
     let file_threshold=file_threshold*1024*1024
     if [[ ${file_size} -gt ${file_threshold} ]]; then
@@ -28,7 +28,7 @@ function checkSizeExceedLimit() {
 function logRotate() {
     target_file=$1
     # keep 10 history log files
-    keep_limit=`${dir}/get-properties.sh kap.env.max-keep-log-file-number`
+    keep_limit=`${KYLIN_HOME}/bin/get-properties.sh kap.env.max-keep-log-file-number`
 
     is_occupied=`checkFileOccupied ${target_file}`
     if [[ "${is_occupied}" == "true" ]]; then

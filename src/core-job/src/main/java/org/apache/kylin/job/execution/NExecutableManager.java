@@ -476,7 +476,7 @@ public class NExecutableManager {
                 final int ppid = getPid(process);
                 logger.info("job {} destroy process {}", jobId, ppid);
                 StringBuilder sb = new StringBuilder("bash ");
-                sb.append(Paths.get(KylinConfig.getKylinHome(), "bin", KILL_CHILD_PROCESS));
+                sb.append(Paths.get(KylinConfig.getKylinHome(), "sbin", KILL_CHILD_PROCESS));
                 sb.append(" ");
                 sb.append(ppid);
                 final String cmd = sb.toString();

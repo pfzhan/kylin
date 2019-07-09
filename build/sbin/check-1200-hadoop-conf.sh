@@ -3,13 +3,12 @@
 #title=Checking Hadoop Configuration
 
 source $(cd -P -- "$(dirname -- "$0")" && pwd -P)/header.sh
-source ${dir}/init-kerberos.sh
+source ${KYLIN_HOME}/sbin/init-kerberos.sh
 
 ## init Kerberos if needed
 initKerberosIfNeeded
 
-## ${dir} assigned to $KYLIN_HOME/bin in header.sh
-source ${dir}/prepare-hadoop-conf-dir.sh
+source ${KYLIN_HOME}/sbin/prepare-hadoop-conf-dir.sh
 
 echo "Checking hadoop conf dir..."
 
@@ -17,7 +16,7 @@ echo "Checking hadoop conf dir..."
 
 
 # this is the very first check, apply -v to print verbose classpath in check-env log
-${dir}/kylin.sh -v io.kyligence.kap.tool.hadoop.CheckHadoopConfDir "${kylin_hadoop_conf_dir}"
+${KYLIN_HOME}/bin/kylin.sh -v io.kyligence.kap.tool.hadoop.CheckHadoopConfDir "${kylin_hadoop_conf_dir}"
 
 # CheckHadoopConfDir will print the last error message
 [[ $? == 0 ]] || quit "ERROR: Check HADOOP_CONF_DIR failed. Please correct hadoop configurations."

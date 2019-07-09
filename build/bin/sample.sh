@@ -17,10 +17,9 @@
 # limitations under the License.
 #
 
-source $(cd -P -- "$(dirname -- "$0")" && pwd -P)/header.sh
+source $(cd -P -- "$(dirname -- "$0")" && pwd -P)/../sbin/header.sh
 
-## ${dir} assigned to $KYLIN_HOME/bin in header.sh
-source ${dir}/prepare-hadoop-conf-dir.sh
+source ${KYLIN_HOME}/sbin/prepare-hadoop-conf-dir.sh
 
 cd ${KYLIN_HOME}/tool/ssb/data
 

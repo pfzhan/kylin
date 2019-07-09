@@ -7,10 +7,6 @@ source $(cd -P -- "$(dirname -- "$0")" && pwd -P)/header.sh
 
 function fetchKylinHadoopConf() {
 
-    if [[ -d ${kylin_hadoop_conf_dir} ]]; then
-        return
-    fi
-
     export FI_ENV_PLATFORM=
 
     ## FusionInsight platform C60.
@@ -23,6 +19,10 @@ function fetchKylinHadoopConf() {
     if [ -n "$BIGDATA_CLIENT_HOME" ]
     then
         FI_ENV_PLATFORM=$BIGDATA_CLIENT_HOME
+    fi
+
+    if [[ -d ${kylin_hadoop_conf_dir} ]]; then
+        return
     fi
 
     if [ -n "$FI_ENV_PLATFORM" ]

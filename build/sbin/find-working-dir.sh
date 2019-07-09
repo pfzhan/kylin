@@ -2,13 +2,12 @@
 # Kyligence Inc. License
 
 source $(cd -P -- "$(dirname -- "$0")" && pwd -P)/header.sh
-source ${dir}/init-kerberos.sh
+source ${KYLIN_HOME}/sbin/init-kerberos.sh
 
 ## init Kerberos if needed
 initKerberosIfNeeded
 
-## ${dir} assigned to $KYLIN_HOME/bin in header.sh
-source ${dir}/prepare-hadoop-conf-dir.sh
+source ${KYLIN_HOME}/sbin/prepare-hadoop-conf-dir.sh
 
 WORKING_DIR=`$KYLIN_HOME/bin/get-properties.sh kylin.env.hdfs-working-dir`
 ENABLE_FS_SEPARATE=`$KYLIN_HOME/bin/get-properties.sh kylin.storage.columnar.separate-fs-enable | tr '[A-Z]' '[a-z]'`

@@ -1,7 +1,7 @@
 #!/bin/bash
 # Kyligence Inc. License
 
-source $(cd -P -- "$(dirname -- "$0")" && pwd -P)/header.sh
+source $(cd -P -- "$(dirname -- "$0")" && pwd -P)/../sbin/header.sh
 if [ "$1" == "-v" ]; then
     shift
 fi
@@ -13,7 +13,7 @@ if [[ "$CHECKENV_ING" == "" ]]; then
     mkdir -p ${KYLIN_HOME}/logs
     LOG=${KYLIN_HOME}/logs/check-env.out
     ERRORS=${KYLIN_HOME}/logs/check-env.error
-    BYPASS=${dir}/check-env-bypass
+    BYPASS=${KYLIN_HOME}/bin/check-env-bypass
     TITLE="#title"
 
     if [[ "$1" != "if-not-yet" || ! -f ${BYPASS} ]]; then
@@ -30,7 +30,7 @@ if [[ "$CHECKENV_ING" == "" ]]; then
         export CHECKENV_REPORT_PFX=">   "
         export QUIT_MESSAGE_LOG=${ERRORS}
 
-        for f in ${dir}/check-*.sh
+        for f in ${KYLIN_HOME}/sbin/check-*.sh
         do
             if [[ ! $f == *check-env.sh ]]; then
                 echo `getValueByKey ${TITLE} ${f}`

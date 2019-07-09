@@ -2,7 +2,7 @@
 # Kyligence Inc. License
 
 source $(cd -P -- "$(dirname -- "$0")" && pwd -P)/header.sh $@
-source ${dir}/init-kerberos.sh
+source ${KYLIN_HOME}/sbin/init-kerberos.sh
 
 ## init Kerberos if needed
 initKerberosIfNeeded
@@ -48,7 +48,7 @@ else
     fi
 fi
 
-source ${dir}/prepare-hadoop-conf-dir.sh
+source ${KYLIN_HOME}/sbin/prepare-hadoop-conf-dir.sh
 export KAP_SPARK_IDENTIFIER=$RANDOM
 #export KAP_HDFS_APPENDER_JAR=`basename ${KYLIN_SPARK_JAR_PATH}`
 
@@ -68,7 +68,7 @@ verbose "SPARK_DIR is set to ${SPARK_DIR}"
 mkdir -p ${KYLIN_HOME}/logs
 
 #auto detect SPARK_HOME
-source ${KYLIN_HOME}/bin/do-check-and-prepare-spark.sh
+source ${KYLIN_HOME}/sbin/do-check-and-prepare-spark.sh
 if [ -z "$SPARK_HOME" ]
 then
     if [ -d ${SPARK_DIR} ]
@@ -125,7 +125,7 @@ function retrieveSparkEnvProps()
 
 if [ "$1" == "test" ]
 then
-    source ${dir}/find-working-dir.sh
+    source ${KYLIN_HOME}/sbin/find-working-dir.sh
     echo "Starting test spark with conf"
 
     retrieveSparkEnvProps

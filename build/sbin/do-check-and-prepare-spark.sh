@@ -1,10 +1,12 @@
 #!/bin/bash
 # Kyligence Inc. License
 
+source ${KYLIN_HOME}/sbin/replace-jars-under-spark.sh
+
 function configureMaprSparkSql() {
     # copy hive-conf/hive-site.xml to $SPARK_HOME/conf/ and delete "hive.execution.engine" property
     if [ -z ${kylin_hadoop_conf_dir} ]; then
-        source ${dir}/prepare-hadoop-conf-dir.sh
+        source ${KYLIN_HOME}/sbin/prepare-hadoop-conf-dir.sh
     fi
 
     hive_conf_spark_path="${SPARK_HOME}/conf/hive-site.xml"
@@ -76,7 +78,7 @@ else
         SPARK_HDP_VERSION="hadoop"
     fi
 fi
-echo "SPARK_HDP_VERSION is set to '${SPARK_HDP_VERSION}'"
+verbose "SPARK_HDP_VERSION is set to '${SPARK_HDP_VERSION}'"
 
 ## MapR is a different operation rule
 
@@ -137,7 +139,7 @@ then
 fi
 
 export SPARK_HOME=${KYLIN_HOME}/spark
-echo "Export SPARK_HOME to ${KYLIN_HOME}/spark"
+verbose "Export SPARK_HOME to ${KYLIN_HOME}/spark"
 
 if [ "${SPARK_HDP_VERSION}" = "mapr" ]; then
     configureMaprSparkSql

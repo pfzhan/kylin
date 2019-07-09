@@ -3,8 +3,8 @@
 #title=Checking Spark Dir
 
 source $(cd -P -- "$(dirname -- "$0")" && pwd -P)/header.sh
-source ${dir}/prepare-hadoop-conf-dir.sh
-source ${dir}/init-kerberos.sh
+source ${KYLIN_HOME}/sbin/prepare-hadoop-conf-dir.sh
+source ${KYLIN_HOME}/sbin/init-kerberos.sh
 
 ## init Kerberos if needed
 initKerberosIfNeeded

@@ -4,7 +4,7 @@
 
 source $(cd -P -- "$(dirname -- "$0")" && pwd -P)/header.sh $@
 version=`cat ${KYLIN_HOME}/VERSION | awk '{print $3}'`
-${KYLIN_HOME}/bin/rotate-logs.sh $@
+${KYLIN_HOME}/sbin/rotate-logs.sh $@
 
 if [ "$1" == "-v" ]; then
     shift
@@ -21,11 +21,11 @@ function prepareEnv {
     retrieveDependency
 
     mkdir -p ${KYLIN_HOME}/logs
-    source ${KYLIN_HOME}/bin/replace-jars-under-spark.sh
+    source ${KYLIN_HOME}/sbin/do-check-and-prepare-spark.sh
 
     # init kerberos
     if [ "$SKIP_KERB" != "1" ]; then
-        source ${KYLIN_HOME}/bin/init-kerberos.sh
+        source ${KYLIN_HOME}/sbin/init-kerberos.sh
         initKerberosIfNeeded
     fi
 }
@@ -33,7 +33,7 @@ function prepareEnv {
 function retrieveDependency() {
     # get kylin_hadoop_conf_dir
     if [[ -z ${kylin_hadoop_conf_dir} ]]; then
-       source ${dir}/prepare-hadoop-conf-dir.sh
+       source ${KYLIN_HOME}/sbin/prepare-hadoop-conf-dir.sh
     fi
 
     #retrive $KYLIN_EXTRA_START_OPTS
@@ -53,7 +53,7 @@ function checkRestPort() {
 }
 
 function checkZookeeperRole {
-    ${dir}/kylin.sh io.kyligence.kap.tool.CuratorOperator $1 2>/dev/null
+    ${KYLIN_HOME}/bin/kylin.sh io.kyligence.kap.tool.CuratorOperator $1 2>/dev/null
 
     if [[ $? == 1 ]]; then
         quit "Failed, only one job node is allowed"
@@ -61,7 +61,7 @@ function checkZookeeperRole {
 }
 
 function checkSparkDir() {
-    source ${KYLIN_HOME}/bin/check-1600-spark-dir.sh
+    source ${KYLIN_HOME}/sbin/check-1600-spark-dir.sh
 }
 
 function checkIfStopUserSameAsStartUser() {
@@ -158,7 +158,7 @@ function killChildProcess {
                 if [ "$parentId" -eq 1 ] && ps aux | grep $line | grep spark-submit > /dev/null
                 then
                     verbose "Killing child process $line"
-                    bash ${KYLIN_HOME}/bin/kill-child-process.sh $line
+                    bash ${KYLIN_HOME}/sbin/kill-child-process.sh $line
                 else
                     sleep 1
                 fi
@@ -191,7 +191,7 @@ then
     prepareEnv
 
     cd ${KYLIN_HOME}/server
-    source ${KYLIN_HOME}/bin/load-zookeeper-config.sh
+    source ${KYLIN_HOME}/sbin/load-zookeeper-config.sh
     fetchFIZkInfo
     prepareFairScheduler
 
@@ -201,7 +201,7 @@ then
         exit -1
     fi
 
-    ${dir}/check-env.sh "if-not-yet" || exit 1
+    ${KYLIN_HOME}/bin/check-env.sh "if-not-yet" || exit 1
 
     checkRestPort
     checkZookeeperRole

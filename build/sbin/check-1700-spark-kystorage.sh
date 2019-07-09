@@ -3,7 +3,7 @@
 #title=Checking Spark Availability
 
 source $(cd -P -- "$(dirname -- "$0")" && pwd -P)/header.sh
-source ${dir}/init-kerberos.sh
+source ${KYLIN_HOME}/sbin/init-kerberos.sh
 
 ## init Kerberos if needed
 initKerberosIfNeeded
@@ -24,7 +24,7 @@ echo "Checking spark home..."
 [[ -z ${SPARK_HOME} ]] || [[ ${SPARK_HOME} == ${KYLIN_HOME}/spark ]] || echo "${CHECKENV_REPORT_PFX}`setColor 32 Important!` Current SPARK_HOME is set: ${SPARK_HOME}, please don't risk it, more info: http://manual.kyligence.io/books/v2.5/en/install/check_env.en.html"
 
 # prepare spark
-source ${dir}/adapt-to-fusioninsight.sh
+source ${KYLIN_HOME}/sbin/do-check-and-prepare-spark.sh
 
 echo "Checking spark executor config..."
 
@@ -106,5 +106,5 @@ else
 fi
 
 echo "Testing spark task..."
-${dir}/spark-test.sh test
+${KYLIN_HOME}/sbin/spark-test.sh test
 [[ $? == 0 ]] || quit "Test of spark failed, please check the logs/check-env.out for the details."

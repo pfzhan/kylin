@@ -18,6 +18,7 @@ function initKerberosIfNeeded(){
     KAP_KERBEROS_ENABLED=`$KYLIN_HOME/bin/get-properties.sh kap.kerberos.enabled`
     if [[ "${KAP_KERBEROS_ENABLED}" == "true" ]]
     then
+        export SKIP_KERB=1
         if [[ -z "$(command -v klist)" ]]
         then
              quit "Kerberos command not found! Please check configuration of Kerberos in kylin.properties or check Kerberos installation."
