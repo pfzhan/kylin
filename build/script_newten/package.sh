@@ -62,12 +62,60 @@ cat > build/CHANGELOG.md <<EOL
 
 **Feature & Enhancement**
 
-- Optimize source table schema changes
-- Add record and management for index usage
-- Support rapid sampling of wide tables for multiple columns
-- Automatically detect queue memory and set the number of concurrent tasks
-- Adjust the built-in metabase to PostgreSQL
-- Expand the range of queries that can be accelerated
+- Metastore
+  - Built-in PostgreSQL as metastore
+
+- Data Source
+  - Integrate Hive as default data source
+  - Quick table sampling in minutes level
+  - If source schema changes, the system can detect missing column and impacted model
+
+- Model
+  - Intuitive model design canvas to define table relations, dimensions, measures
+  - Intelligent modeling based on user's query pattern
+  - Quick search for model semantic layer as dimensions, measures, tables, joins, etc. in the model editing page
+  - Aggregate index for OLAP queries
+  - Table index to query on raw data
+- Load Data
+  - Full load data
+  - Incremental load data by date / time
+  - Segment management after loading data
+
+- Query Pushdown
+  - Enable smart query pushdown by default to explore massive data in minutes
+- Query Acceleration
+  - One-click to pre-calculate target SQL patterns
+  - Import query history logs or detect user query behavior in the system to summarize frequently used SQL patterns
+  - Custom acceleration rules to focus on different SQL patterns
+- High Availability Deployment
+- Compatible Hadoop Distributions
+  - Cloudera CDH 5.8 / 5.12
+  - Hortonworks HDP 2.4
+  - Huawei FusionInsight C70 / C80
+- Standard JDBC driver and standard ODBC driver
+- Integrate with multiple BI tools
+  - Tableau Desktop 8.2.2 / 9.0
+  - Tableau Server 10.3
+  - Power BI Desktop 2.70.5494.761
+  - Power BI Service
+  - IBM Cognos Framework 10
+  - IBM Cognos Server 10.2 for Linux
+  - QlikView 11.20.13405.0
+  - OBIEE 11g / 12c
+  - SAP BO Web Intelligence 4.1
+  - SmartBI Insight
+  - FineBI and FineReport
+- Integrate with Excel and Python
+- Operation And Diagnose
+  - Environment check tool to ensure installation dependency and autority are pre-settled properly
+  - Storage management at the project level and one-click to clean up low usage storage
+  - System and job diagnoses tool to help trouble shooting
+  - Operation preference at the project level to automate daily tasks
+  - Dynamic resources allocation and workload balance on job execution
+- Security
+  - User and group management
+  - Integrate with Kerberos
+  - Audit log for metadata changes
 
 EOL
 
