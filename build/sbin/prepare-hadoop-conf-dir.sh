@@ -3,7 +3,7 @@
 
 # source me
 
-source $(cd -P -- "$(dirname -- "$0")" && pwd -P)/header.sh
+source $(cd -P -- "$(dirname -- "$0")" && pwd -P)/../sbin/header.sh
 
 function fetchKylinHadoopConf() {
 

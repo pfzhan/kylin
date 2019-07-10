@@ -17,53 +17,93 @@
 # limitations under the License.
 #
 
+function help(){
+    echo "Usage: $0  [--client <hive_client_mode>] [--dir <hdfs_tmp_dir> ] [--params <beeline_params>] [--conf <hive_conf_properties> ]"
+    exit 1
+}
+
 source $(cd -P -- "$(dirname -- "$0")" && pwd -P)/../sbin/header.sh
 
 source ${KYLIN_HOME}/sbin/prepare-hadoop-conf-dir.sh
 
 cd ${KYLIN_HOME}/tool/ssb/data
 
-if [ -z "${kylin_hadoop_conf_dir}" ]; then
+if [[ -z "${kylin_hadoop_conf_dir}" ]]; then
     hadoop_conf_param=
 else
     hadoop_conf_param="--config ${kylin_hadoop_conf_dir}"
 fi
 
-if [ -z "$1" ]; then
+# Get the parameterS
+while [[ $# != 0 ]]; do
+    if [[ $# != 1 ]]; then
+        if [[ $1 == "--client" ]]; then
+            hive_client_mode=$2
+        elif [[ $1 == "--dir" ]]; then
+            hdfs_tmp_dir=$2
+        elif [[ $1 == "--params" ]]; then
+            beeline_params=$2
+        elif [[ $1 == "--conf" ]]; then
+            hive_conf_properties=$2
+        else
+            help
+        fi
+        shift
+    else
+        case $1 in
+            --client|--dir|--params|--conf) break
+            ;;
+            *)
+            help
+            ;;
+        esac
+    fi
+    shift
+done
+
+#judge hive_client for FusionInsight or default
+## FusionInsight platform C60.
+if [[ -z $hive_client_mode && -n "$FI_ENV_PLATFORM" ]]; then
+    hive_client_mode=beeline
+elif [[ -z $hive_client_mode && -z "$FI_ENV_PLATFORM" ]]; then
+    hive_client_mode=hive
+fi
+
+#set default properties
+if [[ -z $hdfs_tmp_dir ]]; then
     hdfs_tmp_dir=/tmp/kylin
-else
-    hdfs_tmp_dir=$1
 fi
 
 echo "Loading sample data into HDFS tmp path: ${hdfs_tmp_dir}/sample_cube/data"
+
 hadoop ${hadoop_conf_param} fs -mkdir -p ${hdfs_tmp_dir}/sample_cube/data
-if [ $? != 0 ]
-then
-    quit "Failed to create ${hdfs_tmp_dir}/sample_cube/data. Please make sure the user has right to access ${hdfs_tmp_dir}/sample_cube/data or usage: sample.sh hdfs_tmp_dir"
+
+if [[ $? != 0 ]]; then
+    quit "Failed to create ${hdfs_tmp_dir}/sample_cube/data. Please make sure the user has right to access ${hdfs_tmp_dir}/sample_cube/data or usage: sample.sh --dir hdfs_tmp_dir"
 fi
 
 hadoop ${hadoop_conf_param} fs -put * ${hdfs_tmp_dir}/sample_cube/data/
 
-hive_client_mode=`bash ${KYLIN_HOME}/bin/get-properties.sh kylin.source.hive.client`
 sample_database=SSB
+
 echo "Going to create sample tables in hive to database "$sample_database" by "$hive_client_mode
 
-if [ "${hive_client_mode}" == "beeline" ]
-then
-    beeline_params=`bash ${KYLIN_HOME}/bin/get-properties.sh kylin.source.hive.beeline-params`
+if [[ "${hive_client_mode}" == "beeline" ]]; then
     beeline ${hive_conf_properties} ${beeline_params} -e "CREATE DATABASE IF NOT EXISTS "$sample_database
     hive2_url=`expr match "${beeline_params}" '.*\(hive2:.*:[0-9]\{4,6\}\/\)'`
-    if [ -z ${hive2_url} ]; then
+    if [[ -z ${hive2_url} ]]; then
         hive2_url=`expr match "${beeline_params}" '.*\(hive2:.*:[0-9]\{4,6\}\)'`
         beeline_params=${beeline_params/${hive2_url}/${hive2_url}/${sample_database}}
     else
         beeline_params=${beeline_params/${hive2_url}/${hive2_url}${sample_database}}
     fi
-
     beeline ${hive_conf_properties} --hivevar hdfs_tmp_dir=${hdfs_tmp_dir} ${beeline_params} -f ${KYLIN_HOME}/tool/ssb/create_sample_ssb_tables.sql  || { exit 1; }
-else
+elif [[ "${hive_client_mode}" == "hive" ]]; then
     hive ${hive_conf_properties} -e "CREATE DATABASE IF NOT EXISTS "$sample_database
     hive ${hive_conf_properties} --hivevar hdfs_tmp_dir=${hdfs_tmp_dir} --database $sample_database -f ${KYLIN_HOME}/tool/ssb/create_sample_ssb_tables.sql  || { exit 1; }
+else
+    echo "Now $hive_client_mode is not supported, please use hive or beeline."
 fi
 
 echo "Sample hive tables are created successfully"
+

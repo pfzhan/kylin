@@ -83,7 +83,7 @@ public class KapGetClusterInfo {
 
         val response = config.getCliCommandExecutor().execute(command, patternedLogger).getSecond();
         if (response == null) {
-            throw new IllegalStateException("Can not get yarn matrics with url: " + yarnMasterUrlBase + YARN_METRICS_SUFFIX);
+            throw new IllegalStateException("Cannot get yarn metrics with url: " + yarnMasterUrlBase + YARN_METRICS_SUFFIX);
         }
 
         logger.info("yarn metrics response: {}", response);
