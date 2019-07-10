@@ -24,8 +24,9 @@
 
 package io.kyligence.kap.smart.util;
 
+import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
+import java.util.stream.Collectors;
 
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
@@ -35,7 +36,6 @@ import org.apache.spark.sql.catalyst.parser.ParseException;
 import org.apache.spark.sql.util.SparderTypeUtil;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.Maps;
 
 import io.kyligence.kap.engine.spark.builder.CreateFlatTable$;
 import io.kyligence.kap.engine.spark.job.NSparkCubingUtil;
@@ -51,14 +51,13 @@ public class ComputedColumnEvalUtil {
     }
 
     public static void evaluateExprAndTypes(NDataModel nDataModel, List<ComputedColumnDesc> computedColumns) {
-        Map<String, ComputedColumnDesc> expToCcMap = Maps.newConcurrentMap();
-        computedColumns.forEach(cc -> expToCcMap.putIfAbsent(cc.getInnerExpression(), cc));
         SparkSession ss = SparderEnv.getSparkSession();
         while (true) {
             try {
-                Dataset<Row> ds = CreateFlatTable$.MODULE$.generateFullFlatTable(nDataModel, ss).selectExpr(
-                        expToCcMap.keySet().stream().map(NSparkCubingUtil::convertFromDot).toArray(String[]::new));
-                computedColumns.removeIf(cc -> !expToCcMap.containsKey(cc.getInnerExpression()));
+                Dataset<Row> ds = CreateFlatTable$.MODULE$.generateFullFlatTable(nDataModel, ss)
+                        .selectExpr(computedColumns.stream() //
+                                .map(ComputedColumnDesc::getInnerExpression) //
+                                .map(NSparkCubingUtil::convertFromDot).toArray(String[]::new));
                 for (int i = 0; i < computedColumns.size(); i++) {
                     String dataType = SparderTypeUtil.convertSparkTypeToSqlType(ds.schema().fields()[i].dataType());
                     computedColumns.get(i).setDatatype(dataType);
@@ -66,22 +65,30 @@ public class ComputedColumnEvalUtil {
                 break;
             } catch (Exception e) {
                 if (e instanceof ParseException) {
-                    final int size = expToCcMap.size();
+                    int size = computedColumns.size();
                     String parseCmdInfo = ((ParseException) e).command().getOrElse(null);
-                    expToCcMap.forEach((exp, cc) -> {
-                        if (parseCmdInfo == null || parseCmdInfo.contains(NSparkCubingUtil.convertFromDot(exp))) {
-                            expToCcMap.remove(exp);
-                            log.warn("Unsupported to infer CC type, corresponding cc expression is: {}", exp);
+                    Iterator<ComputedColumnDesc> iterator = computedColumns.iterator();
+                    while (iterator.hasNext()) {
+                        ComputedColumnDesc cc = iterator.next();
+                        if (parseCmdInfo == null
+                                || parseCmdInfo.contains(NSparkCubingUtil.convertFromDot(cc.getInnerExpression()))) {
+                            log.warn("Unsupported to infer CC type, corresponding cc expression is: {}",
+                                    cc.getInnerExpression());
+                            iterator.remove();
                         }
-                    });
+                    }
 
-                    Preconditions.checkState(size != expToCcMap.size(),
+                    Preconditions.checkState(size != computedColumns.size(),
                             "[UNLIKELY_THINGS_HAPPENED] ParseException occurs, but no cc expression was removed, {}",
                             e);
                 } else {
                     // other exception occurs, fail directly
-                    throw new IllegalStateException("Auto model failed to evaluate CC "
-                            + String.join(",", expToCcMap.keySet()) + ", CC expression not valid.", e);
+                    throw new IllegalStateException(
+                            "Auto model failed to evaluate CC "
+                                    + String.join(",", computedColumns.stream()
+                                            .map(ComputedColumnDesc::getInnerExpression).collect(Collectors.toList()))
+                                    + ", CC expression not valid.",
+                            e);
                 }
             }
         }

@@ -530,13 +530,13 @@ public class NAutoComputedColumnTest extends NAutoTestBase {
         Assert.assertEquals(3, computedColumns.size());
         Assert.assertEquals("CAST(TEST_KYLIN_FACT.PRICE AS BIGINT)",
                 computedColumns.get(0).getInnerExpression().trim());
-        Assert.assertEquals("DECIMAL(30,4)", computedColumns.get(0).getDatatype());
+        Assert.assertEquals("BIGINT", computedColumns.get(0).getDatatype());
         Assert.assertEquals("CAST(LENGTH(substring(TEST_KYLIN_FACT.LSTG_FORMAT_NAME, 1, 4)) AS DOUBLE)",
                 computedColumns.get(1).getInnerExpression().trim());
         Assert.assertEquals("DOUBLE", computedColumns.get(1).getDatatype());
         Assert.assertEquals("TEST_KYLIN_FACT.PRICE * TEST_KYLIN_FACT.ITEM_COUNT",
                 computedColumns.get(2).getInnerExpression().trim());
-        Assert.assertEquals("BIGINT", computedColumns.get(2).getDatatype());
+        Assert.assertEquals("DECIMAL(30,4)", computedColumns.get(2).getDatatype());
     }
 
     @Test
@@ -586,10 +586,12 @@ public class NAutoComputedColumnTest extends NAutoTestBase {
                 computedColumns.get(0).getInnerExpression().trim());
         Assert.assertEquals("CAST(CHAR_LENGTH(SUBSTRING(TEST_KYLIN_FACT.LSTG_FORMAT_NAME FROM 1 FOR 4)) AS DOUBLE)",
                 computedColumns.get(0).getExpression().trim());
+        Assert.assertEquals("DOUBLE", computedColumns.get(0).getDatatype());
         Assert.assertEquals("TEST_KYLIN_FACT.PRICE * TEST_KYLIN_FACT.ITEM_COUNT",
                 computedColumns.get(1).getInnerExpression().trim());
         Assert.assertEquals("TEST_KYLIN_FACT.PRICE * TEST_KYLIN_FACT.ITEM_COUNT",
                 computedColumns.get(1).getExpression().trim());
+        Assert.assertEquals("DECIMAL(30,4)", computedColumns.get(1).getDatatype());
 
         // set one CC to unsupported
         computedColumns.get(0)
@@ -607,7 +609,6 @@ public class NAutoComputedColumnTest extends NAutoTestBase {
                     "Auto model failed to evaluate CC TEST_KYLIN_FACT.PRICE * TEST_KYLIN_FACT.ITEM_COUNT1, CC expression not valid.",
                     e.getMessage());
         }
-
     }
 
     private String convertCC(String originSql) {
