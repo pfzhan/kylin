@@ -40,6 +40,7 @@ import io.kyligence.kap.metadata.model.NDataModel.NamedColumn;
 import io.kyligence.kap.query.util.ConvertToComputedColumn;
 import io.kyligence.kap.smart.NSmartMaster;
 import io.kyligence.kap.smart.common.AccelerateInfo;
+import io.kyligence.kap.smart.util.ComputedColumnEvalUtil;
 import lombok.val;
 
 public class NAutoComputedColumnTest extends NAutoTestBase {
@@ -497,6 +498,116 @@ public class NAutoComputedColumnTest extends NAutoTestBase {
         Assert.assertFalse(accelerateInfo.isFailed());
         Assert.assertEquals(1, accelerateInfo.getRelatedLayouts().size());
         Assert.assertEquals(1, accelerateInfo.getRelatedLayouts().iterator().next().getLayoutId());
+    }
+
+    @Test
+    public void testInferTypesOfCC() {
+        String[] sqls = new String[] {
+                "select {fn left(lstg_format_name,2)} as name, sum(price*item_count) from test_kylin_fact group by lstg_format_name ",
+                "select sum({fn convert(price, SQL_BIGINT)}) as big67 from test_kylin_fact",
+                "select sum({fn convert({fn length(substring(lstg_format_name, 1, 4)) }, double )}) from test_kylin_fact group by lstg_format_name",
+                "select {fn year(cast('2012-01-01' as date))} from test_kylin_fact",
+                "select {fn convert({fn year(cast('2012-01-01' as date))}, varchar)} from test_kylin_fact",
+                "select case when substring(lstg_format_name, 1, 4) like '%ABIN%' then item_count - 10 else item_count end as  item_count_new from test_kylin_fact" //
+        };
+        NSmartMaster smartMaster = new NSmartMaster(kylinConfig, getProject(), sqls);
+        smartMaster.runAll();
+
+        val modelContexts = smartMaster.getContext().getModelContexts();
+        Assert.assertEquals(1, modelContexts.size());
+        val targetModel = modelContexts.get(0).getTargetModel();
+        val computedColumns = targetModel.getComputedColumnDescs();
+        val accelerationInfoMap = smartMaster.getContext().getAccelerateInfoMap();
+        Assert.assertFalse(accelerationInfoMap.get(sqls[0]).isNotSucceed());
+        Assert.assertFalse(accelerationInfoMap.get(sqls[1]).isNotSucceed());
+        Assert.assertTrue(accelerationInfoMap.get(sqls[2]).isNotSucceed());
+        Assert.assertEquals("Table not found by UNKNOWN_ALIAS",
+                accelerationInfoMap.get(sqls[2]).getFailedCause().getMessage());
+        Assert.assertFalse(accelerationInfoMap.get(sqls[3]).isNotSucceed());
+        Assert.assertFalse(accelerationInfoMap.get(sqls[4]).isNotSucceed());
+        Assert.assertFalse(accelerationInfoMap.get(sqls[5]).isNotSucceed());
+
+        Assert.assertEquals(3, computedColumns.size());
+        Assert.assertEquals("CAST(TEST_KYLIN_FACT.PRICE AS BIGINT)",
+                computedColumns.get(0).getInnerExpression().trim());
+        Assert.assertEquals("DECIMAL(30,4)", computedColumns.get(0).getDatatype());
+        Assert.assertEquals("CAST(LENGTH(substring(TEST_KYLIN_FACT.LSTG_FORMAT_NAME, 1, 4)) AS DOUBLE)",
+                computedColumns.get(1).getInnerExpression().trim());
+        Assert.assertEquals("DOUBLE", computedColumns.get(1).getDatatype());
+        Assert.assertEquals("TEST_KYLIN_FACT.PRICE * TEST_KYLIN_FACT.ITEM_COUNT",
+                computedColumns.get(2).getInnerExpression().trim());
+        Assert.assertEquals("BIGINT", computedColumns.get(2).getDatatype());
+    }
+
+    @Test
+    public void testInferTypesOfCcWithUnsupportedFunctions() {
+        overwriteSystemProp("kylin.query.transformers", "io.kyligence.kap.query.util.ConvertToComputedColumn");
+        overwriteSystemProp("kylin.query.pushdown.converter-class-names",
+                "io.kyligence.kap.query.util.RestoreFromComputedColumn");
+
+        String[] sqls = new String[] {
+                "select sum(char_length(substring(lstg_format_name from 1 for 4))) from test_kylin_fact",
+                "select sum(cast(item_count as bigint) * price) from test_kylin_fact" };
+        NSmartMaster smartMaster = new NSmartMaster(kylinConfig, getProject(), sqls);
+        smartMaster.runAll();
+
+        val modelContexts = smartMaster.getContext().getModelContexts();
+        Assert.assertEquals(1, modelContexts.size());
+        val targetModel = modelContexts.get(0).getTargetModel();
+        val computedColumns = targetModel.getComputedColumnDescs();
+        Assert.assertEquals(1, computedColumns.size());
+        Assert.assertEquals("CC_AUTO_2", computedColumns.get(0).getColumnName());
+        Assert.assertEquals("CAST(TEST_KYLIN_FACT.ITEM_COUNT AS BIGINT) * TEST_KYLIN_FACT.PRICE",
+                computedColumns.get(0).getExpression());
+        Assert.assertEquals("CAST(TEST_KYLIN_FACT.ITEM_COUNT AS BIGINT) * TEST_KYLIN_FACT.PRICE ",
+                computedColumns.get(0).getInnerExpression());
+        Assert.assertEquals("DECIMAL(38,4)", computedColumns.get(0).getDatatype());
+
+        val accelerationInfoMap = smartMaster.getContext().getAccelerateInfoMap();
+        Assert.assertTrue(accelerationInfoMap.get(sqls[0]).isNotSucceed());
+        Assert.assertEquals("Table not found by UNKNOWN_ALIAS",
+                accelerationInfoMap.get(sqls[0]).getFailedCause().getMessage());
+        Assert.assertFalse(accelerationInfoMap.get(sqls[1]).isNotSucceed());
+    }
+
+    @Test
+    public void testRemoveUnsupportedCC() {
+        String[] sqls = new String[] {
+                "select {fn left(lstg_format_name,2)} as name, sum(price*item_count) from test_kylin_fact group by lstg_format_name ",
+                "select sum({fn convert({fn length(substring(lstg_format_name, 1, 4)) }, double )}) from test_kylin_fact group by lstg_format_name" };
+
+        NSmartMaster smartMaster = new NSmartMaster(kylinConfig, getProject(), sqls);
+        smartMaster.runAll();
+        val modelContexts = smartMaster.getContext().getModelContexts();
+        val targetModel = modelContexts.get(0).getTargetModel();
+        val computedColumns = targetModel.getComputedColumnDescs();
+        Assert.assertEquals(2, computedColumns.size());
+        Assert.assertEquals("CAST(LENGTH(substring(TEST_KYLIN_FACT.LSTG_FORMAT_NAME, 1, 4)) AS DOUBLE)",
+                computedColumns.get(0).getInnerExpression().trim());
+        Assert.assertEquals("CAST(CHAR_LENGTH(SUBSTRING(TEST_KYLIN_FACT.LSTG_FORMAT_NAME FROM 1 FOR 4)) AS DOUBLE)",
+                computedColumns.get(0).getExpression().trim());
+        Assert.assertEquals("TEST_KYLIN_FACT.PRICE * TEST_KYLIN_FACT.ITEM_COUNT",
+                computedColumns.get(1).getInnerExpression().trim());
+        Assert.assertEquals("TEST_KYLIN_FACT.PRICE * TEST_KYLIN_FACT.ITEM_COUNT",
+                computedColumns.get(1).getExpression().trim());
+
+        // set one CC to unsupported
+        computedColumns.get(0)
+                .setInnerExpression("CAST(LENGTH(SUBSTRING(TEST_KYLIN_FACT.LSTG_FORMAT_NAME FROM 1 FOR 4)) AS DOUBLE)");
+        ComputedColumnEvalUtil.evaluateExprAndTypes(targetModel, computedColumns);
+        Assert.assertEquals(1, targetModel.getComputedColumnDescs().size());
+
+        // set one CC to unsupported
+        computedColumns.get(0).setInnerExpression("TEST_KYLIN_FACT.PRICE * TEST_KYLIN_FACT.ITEM_COUNT1");
+        try {
+            ComputedColumnEvalUtil.evaluateExprAndTypes(targetModel, computedColumns);
+            Assert.fail();
+        } catch (Exception e) {
+            Assert.assertEquals(
+                    "Auto model failed to evaluate CC TEST_KYLIN_FACT.PRICE * TEST_KYLIN_FACT.ITEM_COUNT1, CC expression not valid.",
+                    e.getMessage());
+        }
+
     }
 
     private String convertCC(String originSql) {

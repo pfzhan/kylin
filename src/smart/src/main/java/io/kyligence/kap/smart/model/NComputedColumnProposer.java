@@ -108,14 +108,18 @@ public class NComputedColumnProposer extends NAbstractModelProposer {
             if (isValidCC) {
                 validCCs.add(ccDesc);
                 modelContext.getUsedCC().put(ccDesc.getExpression(), ccDesc);
-            } else {
-                nDataModel.getComputedColumnDescs().remove(ccDesc);
             }
         }
 
         if (!modelContext.getSmartContext().isSkipEvaluateCC() && !validCCs.isEmpty()) {
             ComputedColumnEvalUtil.evaluateExprAndTypes(nDataModel, validCCs);
         }
+
+        // there are three kind of CC need remove:
+        // 1. invalid CC: something wrong happened in resolving name
+        // 2. unsupported CC: something wrong happened in inferring type
+        // 3. the type of CC is ANY: something unlikely thing happened in inferring type
+        nDataModel.getComputedColumnDescs().removeIf(cc -> cc.getDatatype().equals("ANY"));
     }
 
     private Set<String> collectComputedColumnSuggestion(NModelContext modelContext, NDataModel nDataModel) {

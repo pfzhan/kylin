@@ -37,18 +37,20 @@ import org.apache.kylin.metadata.model.JoinTableDesc;
 import org.apache.kylin.metadata.model.TableRef;
 import org.apache.kylin.metadata.model.TblColRef;
 import org.apache.kylin.query.util.KeywordDefaultDirtyHack;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.kylin.query.util.QueryUtil;
 
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.metadata.model.ComputedColumnDesc;
 import io.kyligence.kap.metadata.model.NDataModel;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 public class KapQueryUtil {
-    
-    private static final Logger LOGGER = LoggerFactory.getLogger(KapQueryUtil.class);
+
+    private KapQueryUtil() {
+    }
 
     public static String massageComputedColumn(NDataModel model, String project, ComputedColumnDesc cc) {
         String tempConst = "'" + UUID.randomUUID().toString() + "'";
@@ -64,10 +66,10 @@ public class KapQueryUtil {
             // massage nested CC for drafted model
             Map<String, NDataModel> modelMap = Maps.newHashMap();
             modelMap.put(model.getUuid(), model);
-            ccSql = RestoreFromComputedColumn.convertWithGivenModels(ccSql, project, "DEFAULT",
-                    modelMap);
+            ccSql = RestoreFromComputedColumn.convertWithGivenModels(ccSql, project, "DEFAULT", modelMap);
+            ccSql = QueryUtil.massagePushDownSql(ccSql, project, "DEFAULT", false);
         } catch (Exception e) {
-            LOGGER.warn("Failed to massage SQL expression [{}] with input model {}", ccSql, model.getUuid(), e);
+            log.warn("Failed to massage SQL expression [{}] with input model {}", ccSql, model.getUuid(), e);
         }
 
         return ccSql.substring("select ".length(), ccSql.indexOf(tempConst) - 1);
@@ -78,8 +80,7 @@ public class KapQueryUtil {
         Set<TableRef> dimTableCache = Sets.newHashSet();
 
         TableRef rootTable = model.getRootFactTable();
-        sql.append("FROM " + model.getRootFactTable().getTableIdentity() + " as "
-                + rootTable.getAlias() + " " + sep);
+        sql.append("FROM " + model.getRootFactTable().getTableIdentity() + " as " + rootTable.getAlias() + " " + sep);
 
         for (JoinTableDesc lookupDesc : model.getJoinTables()) {
             JoinDesc join = lookupDesc.getJoin();
@@ -107,7 +108,7 @@ public class KapQueryUtil {
             dimTableCache.add(dimTable);
         }
     }
-    
+
     public static SqlSelect extractSqlSelect(SqlCall selectOrOrderby) {
         SqlSelect sqlSelect = null;
 
@@ -119,7 +120,7 @@ public class KapQueryUtil {
                 sqlSelect = (SqlSelect) sqlOrderBy.query;
             }
         }
-        
+
         return sqlSelect;
     }
 }
