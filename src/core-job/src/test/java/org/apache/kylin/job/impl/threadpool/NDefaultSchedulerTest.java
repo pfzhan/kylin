@@ -1668,6 +1668,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         Assert.assertFalse(task.needRetry(1, new Exception("")));
     }
 
+    @Ignore
     @Test
     public void testKillProcess() {
         val cmd = "nohup sleep 5 & sleep 5";
