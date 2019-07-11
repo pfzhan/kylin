@@ -42,7 +42,6 @@
 
 package org.apache.kylin.rest.util;
 
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
@@ -52,10 +51,15 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 
+import com.google.common.collect.Lists;
+
 public class AclPermissionUtil {
 
+    private AclPermissionUtil() {
+    }
+
     public static List<String> transformAuthorities(Collection<? extends GrantedAuthority> authorities) {
-        List<String> ret = new ArrayList<String>();
+        List<String> ret = Lists.newArrayList();
         for (GrantedAuthority auth : authorities) {
             if (!ret.contains(auth.getAuthority())) {
                 ret.add(auth.getAuthority());

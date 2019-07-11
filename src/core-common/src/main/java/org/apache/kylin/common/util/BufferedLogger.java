@@ -49,7 +49,6 @@ package org.apache.kylin.common.util;
  */
 public class BufferedLogger implements Logger {
     private final org.slf4j.Logger wrappedLogger;
-    private final StringBuilder buffer = new StringBuilder();
 
     public BufferedLogger(org.slf4j.Logger wrappedLogger) {
         this.wrappedLogger = wrappedLogger;

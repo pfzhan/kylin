@@ -44,14 +44,15 @@ import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
 import lombok.val;
 
-public class AfterMergeOrRefreshResourceMerger extends SparkJobMetadataMerger{
-
+public class AfterMergeOrRefreshResourceMerger extends SparkJobMetadataMerger {
 
     public AfterMergeOrRefreshResourceMerger(KylinConfig config, String project) {
         super(config, project);
     }
 
-    public NDataLayout[] merge(String dataflowId, Set<String> segmentIds, Set<Long> layoutIds, ResourceStore remoteResourceStore, JobTypeEnum jobType) {
+    @Override
+    public NDataLayout[] merge(String dataflowId, Set<String> segmentIds, Set<Long> layoutIds,
+            ResourceStore remoteResourceStore, JobTypeEnum jobType) {
 
         NDataflowManager mgr = NDataflowManager.getInstance(getConfig(), getProject());
         NDataflowUpdate update = new NDataflowUpdate(dataflowId);
@@ -93,7 +94,8 @@ public class AfterMergeOrRefreshResourceMerger extends SparkJobMetadataMerger{
             val dataFlowId = ExecutableUtils.getDataflowId(abstractExecutable);
             val segmentIds = ExecutableUtils.getSegmentIds(abstractExecutable);
             val layoutIds = ExecutableUtils.getLayoutIds(abstractExecutable);
-            NDataLayout[] nDataLayouts = merge(dataFlowId, segmentIds, layoutIds, buildResourceStore, abstractExecutable.getJobType());
+            NDataLayout[] nDataLayouts = merge(dataFlowId, segmentIds, layoutIds, buildResourceStore,
+                    abstractExecutable.getJobType());
             recordDownJobStats(abstractExecutable, nDataLayouts);
             abstractExecutable.notifyUserIfNecessary(nDataLayouts);
         }
