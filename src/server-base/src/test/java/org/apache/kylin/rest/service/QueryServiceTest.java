@@ -65,6 +65,8 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.common.exceptions.KylinTimeoutException;
 import org.apache.kylin.common.exceptions.ResourceLimitExceededException;
+import org.apache.kylin.common.persistence.InMemResourceStore;
+import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.persistence.Serializer;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.Pair;
@@ -85,11 +87,11 @@ import org.apache.kylin.rest.request.SQLRequest;
 import org.apache.kylin.rest.response.SQLResponse;
 import org.apache.kylin.rest.util.AclEvaluate;
 import org.apache.kylin.rest.util.QueryCacheSignatureUtil;
+import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -135,14 +137,18 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
 
     private ClusterManager clusterManager = new DefaultClusterManager(8080);
 
+    private QueryService origin = new QueryService();
+
     @InjectMocks
-    private QueryService queryService = Mockito.spy(new QueryService());
+    private QueryService queryService = Mockito.spy(origin);
 
     @InjectMocks
     private AppConfig appConfig = Mockito.spy(new AppConfig());
 
     @Rule
     public ExpectedException thrown = ExpectedException.none();
+
+    private int pushdownCount;
 
     @BeforeClass
     public static void setupResource() throws Exception {
@@ -152,7 +158,9 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
     }
 
     @Before
-    public void setup() {
+    public void setup() throws Exception {
+        System.setProperty("kylin.query.transaction-enable", "true");
+
         createTestMetadata();
         SecurityContextHolder.getContext()
                 .setAuthentication(new TestingAuthenticationToken("ADMIN", "ADMIN", Constant.ROLE_ADMIN));
@@ -162,6 +170,13 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         ReflectionTestUtils.setField(queryService, "clusterManager", clusterManager);
         Mockito.when(appConfig.getPort()).thenReturn(7070);
         ReflectionTestUtils.setField(queryService, "appConfig", appConfig);
+        pushdownCount = 0;
+
+    }
+
+    @After
+    public void cleanup() {
+        System.clearProperty("kylin.query.transaction-enable");
     }
 
     private void stubQueryConnection(final String sql, final String project) throws SQLException {
@@ -199,8 +214,13 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         SQLRequest sqlRequest = new SQLRequest();
         sqlRequest.setSql(sql);
         sqlRequest.setProject(project);
-        Mockito.when(queryService.tryPushDownSelectQuery(sqlRequest, null, sqlException, false)).thenReturn(
-                new Pair<List<List<String>>, List<SelectedColumnMeta>>(Collections.EMPTY_LIST, Collections.EMPTY_LIST));
+
+        Mockito.doAnswer(invocation -> {
+            pushdownCount++;
+            Assert.assertTrue(
+                    ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv()) instanceof InMemResourceStore);
+            return new Pair<List<List<String>>, List<SelectedColumnMeta>>(Collections.EMPTY_LIST, Collections.EMPTY_LIST);
+        }).when(queryService).tryPushDownSelectQuery(sqlRequest, null, sqlException, false);
 
     }
 
@@ -239,6 +259,8 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testQueryPushDown() throws Exception {
+
+        Assert.assertEquals(0, pushdownCount);
         final String sql = "select * from success_table_2";
         final String project = "default";
         stubQueryConnectionSQLException(sql, project);
@@ -254,6 +276,8 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(expectedQueryID, response.getQueryId());
 
         Mockito.verify(queryService).recordMetric(request, response);
+        Assert.assertEquals(1, pushdownCount);
+
     }
 
     @Test
@@ -376,7 +400,6 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         }
     }
 
-    @Ignore("see issue 11326")
     @Test
     public void testCreateTableToWith() throws IOException {
         String create_table1 = " create table tableId as select * from some_table1;";

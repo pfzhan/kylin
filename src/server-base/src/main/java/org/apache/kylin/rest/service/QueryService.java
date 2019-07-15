@@ -142,6 +142,7 @@ import io.kyligence.kap.common.hystrix.NCircuitBreaker;
 import io.kyligence.kap.common.metrics.NMetricsCategory;
 import io.kyligence.kap.common.metrics.NMetricsGroup;
 import io.kyligence.kap.common.metrics.NMetricsName;
+import io.kyligence.kap.common.persistence.transaction.TransactionException;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWorkParams;
 import io.kyligence.kap.metadata.model.NDataModel;
@@ -344,12 +345,16 @@ public class QueryService extends BasicService {
         logger.info("Check query permission in {} ms.", (System.currentTimeMillis() - t));
         sqlRequest.setUsername(getUsername());
         val kylinConfig = getConfig();
+        return queryWithCache(sqlRequest, isQueryInspect);
+    }
+
+    private <T> T doTransactionEnabled(UnitOfWork.Callback<T> f, String project) throws Exception {
+        val kylinConfig = getConfig();
         if (kylinConfig.isTransactionEnabledInQuery()) {
-            return UnitOfWork
-                    .doInTransactionWithRetry(UnitOfWorkParams.<SQLResponse> builder().unitName(sqlRequest.getProject())
-                            .readonly(true).processor(() -> queryWithCache(sqlRequest, isQueryInspect)).build());
+            return UnitOfWork.doInTransactionWithRetry(
+                    UnitOfWorkParams.<T> builder().unitName(project).readonly(true).processor(f).build());
         } else {
-            return queryWithCache(sqlRequest, isQueryInspect);
+            return f.process();
         }
     }
 
@@ -594,54 +599,77 @@ public class QueryService extends BasicService {
     }
 
     private SQLResponse queryWithSqlMassage(SQLRequest sqlRequest) throws Exception {
-        Connection conn = null;
+        try (Connection conn = getConnection(sqlRequest.getProject())) {
+            try {
+                return doTransactionEnabled(() -> {
+                    String userInfo = SecurityContextHolder.getContext().getAuthentication().getName();
+                    QueryContext context = QueryContext.current();
+                    context.setUsername(userInfo);
+                    context.setGroups(AclPermissionUtil.getCurrentUserGroups());
+                    final Collection<? extends GrantedAuthority> grantedAuthorities = SecurityContextHolder.getContext()
+                            .getAuthentication().getAuthorities();
+                    for (GrantedAuthority grantedAuthority : grantedAuthorities) {
+                        userInfo += ",";
+                        userInfo += grantedAuthority.getAuthority();
+                    }
 
-        try {
-            conn = getConnection(sqlRequest.getProject());
+                    SQLResponse fakeResponse = TableauInterceptor.tableauIntercept(sqlRequest.getSql());
+                    if (null != fakeResponse) {
+                        logger.debug("Return fake response, is exception? " + fakeResponse.isException());
+                        return fakeResponse;
+                    }
 
-            String userInfo = SecurityContextHolder.getContext().getAuthentication().getName();
-            QueryContext context = QueryContext.current();
-            context.setUsername(userInfo);
-            context.setGroups(AclPermissionUtil.getCurrentUserGroups());
-            final Collection<? extends GrantedAuthority> grantedAuthorities = SecurityContextHolder.getContext()
-                    .getAuthentication().getAuthorities();
-            for (GrantedAuthority grantedAuthority : grantedAuthorities) {
-                userInfo += ",";
-                userInfo += grantedAuthority.getAuthority();
+                    String correctedSql = QueryUtil.massageSql(sqlRequest.getSql(), sqlRequest.getProject(),
+                            sqlRequest.getLimit(), sqlRequest.getOffset(), conn.getSchema());
+
+                    QueryContext.current().setCorrectedSql(correctedSql);
+
+                    if (!correctedSql.equals(sqlRequest.getSql())) {
+                        logger.info("The corrected query: " + correctedSql);
+
+                        //CAUTION: should not change sqlRequest content!
+                        //sqlRequest.setSql(correctedSql);
+                    }
+                    Trace.addTimelineAnnotation("query massaged");
+
+                    // add extra parameters into olap context, like acceptPartial
+                    Map<String, String> parameters = new HashMap<String, String>();
+                    parameters.put(OLAPContext.PRM_USER_AUTHEN_INFO, userInfo);
+                    parameters.put(OLAPContext.PRM_ACCEPT_PARTIAL_RESULT, String.valueOf(sqlRequest.isAcceptPartial()));
+                    OLAPContext.setParameters(parameters);
+                    // force clear the query context before a new query
+                    clearThreadLocalContexts();
+                    return execute(correctedSql, sqlRequest, conn);
+                }, sqlRequest.getProject());
+            } catch (TransactionException e) {
+                if (e.getCause() instanceof SQLException) {
+                    return pushDownQuery((SQLException) e.getCause(), sqlRequest, conn);
+                } else {
+                    throw e;
+                }
+            } catch (SQLException e) {
+                return pushDownQuery(e, sqlRequest, conn);
             }
-
-            SQLResponse fakeResponse = TableauInterceptor.tableauIntercept(sqlRequest.getSql());
-            if (null != fakeResponse) {
-                logger.debug("Return fake response, is exception? " + fakeResponse.isException());
-                return fakeResponse;
-            }
-
-            String correctedSql = QueryUtil.massageSql(sqlRequest.getSql(), sqlRequest.getProject(),
-                    sqlRequest.getLimit(), sqlRequest.getOffset(), conn.getSchema());
-
-            QueryContext.current().setCorrectedSql(correctedSql);
-
-            if (!correctedSql.equals(sqlRequest.getSql())) {
-                logger.info("The corrected query: " + correctedSql);
-
-                //CAUTION: should not change sqlRequest content!
-                //sqlRequest.setSql(correctedSql);
-            }
-            Trace.addTimelineAnnotation("query massaged");
-
-            // add extra parameters into olap context, like acceptPartial
-            Map<String, String> parameters = new HashMap<String, String>();
-            parameters.put(OLAPContext.PRM_USER_AUTHEN_INFO, userInfo);
-            parameters.put(OLAPContext.PRM_ACCEPT_PARTIAL_RESULT, String.valueOf(sqlRequest.isAcceptPartial()));
-            OLAPContext.setParameters(parameters);
-            // force clear the query context before a new query
-            clearThreadLocalContexts();
-
-            return execute(correctedSql, sqlRequest, conn);
-
-        } finally {
-            DBUtils.closeQuietly(conn);
         }
+    }
+
+    private SQLResponse pushDownQuery(SQLException sqlException, SQLRequest sqlRequest, Connection conn)
+            throws SQLException {
+        QueryContext.current().setOlapCause(sqlException);
+        Pair<List<List<String>>, List<SelectedColumnMeta>> r = null;
+        try {
+            r = tryPushDownSelectQuery(sqlRequest, conn.getSchema(), sqlException, BackdoorToggles.getPrepareOnly());
+        } catch (Exception e2) {
+            logger.error("pushdown engine failed current query too", e2);
+            //exception in pushdown, throw it instead of exception in calcite
+            throw new RuntimeException(
+                    "[" + QueryContext.current().getPushdownEngine() + " Exception] " + e2.getMessage(), e2);
+        }
+
+        if (r == null)
+            throw sqlException;
+
+        return buildSqlResponse(true, r.getFirst(), r.getSecond(), sqlRequest.getProject());
     }
 
     public void clearThreadLocalContexts() {
@@ -917,26 +945,6 @@ public class QueryService extends BasicService {
 
                 results.add(oneRow);
             }
-
-        } catch (SQLException sqlException) {
-            QueryContext.current().setOlapCause(sqlException);
-            Pair<List<List<String>>, List<SelectedColumnMeta>> r = null;
-            try {
-                r = tryPushDownSelectQuery(sqlRequest, conn.getSchema(), sqlException,
-                        BackdoorToggles.getPrepareOnly());
-            } catch (Exception e2) {
-                logger.error("pushdown engine failed current query too", e2);
-                //exception in pushdown, throw it instead of exception in calcite
-                throw new RuntimeException(
-                        "[" + QueryContext.current().getPushdownEngine() + " Exception] " + e2.getMessage(), e2);
-            }
-
-            if (r == null)
-                throw sqlException;
-
-            isPushDown = true;
-            results = r.getFirst();
-            columnMetas = r.getSecond();
 
         } finally {
             close(resultSet, stat, null); //conn is passed in, not my duty to close
