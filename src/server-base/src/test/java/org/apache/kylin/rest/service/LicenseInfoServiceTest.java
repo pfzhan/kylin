@@ -40,11 +40,14 @@
  * limitations under the License.
  */
 
-package io.kyligence.kap.rest.controller;
+package org.apache.kylin.rest.service;
 
+import java.io.File;
 import java.io.IOException;
 
-import org.apache.kylin.rest.service.LicenseInfoService;
+import lombok.extern.slf4j.Slf4j;
+import lombok.val;
+import org.apache.commons.io.FileUtils;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -56,7 +59,8 @@ import org.mockito.Mockito;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.rest.rules.ClearKEPropertiesRule;
 
-public class NSystemControllerTest extends NLocalFileMetadataTestCase {
+@Slf4j
+public class LicenseInfoServiceTest extends NLocalFileMetadataTestCase {
 
     @Rule
     public ClearKEPropertiesRule clearKEProperties = new ClearKEPropertiesRule();
@@ -64,6 +68,13 @@ public class NSystemControllerTest extends NLocalFileMetadataTestCase {
     @Before
     public void setupResource() {
         createTestMetadata();
+        val commitFile = LicenseInfoService.getDefaultCommitFile();
+        try {
+            FileUtils.write(commitFile, "daa973eada22ab76b7a740e1d81d5ef903809ace@KAP\n" +
+                    "Build with MANUAL at 2019-07-05 10:12:34");
+            FileUtils.write(LicenseInfoService.getDefaultVersionFile(), "Kyligence Enterprise 4.0.0-SNAPSHOT");
+        } catch (IOException ignore) {
+        }
     }
 
     @InjectMocks
@@ -71,6 +82,8 @@ public class NSystemControllerTest extends NLocalFileMetadataTestCase {
 
     @After
     public void tearDown() {
+        FileUtils.deleteQuietly(LicenseInfoService.getDefaultVersionFile());
+        FileUtils.deleteQuietly(LicenseInfoService.getDefaultCommitFile());
         cleanupTestMetadata();
     }
 
@@ -85,6 +98,21 @@ public class NSystemControllerTest extends NLocalFileMetadataTestCase {
                 System.getProperty(LicenseInfoService.KE_LICENSE));
         getTestConfig().setProperty("kylin.env", "UT");
 
+    }
+
+    @Test
+    public void testParseFailed() throws IOException {
+        val licenseFilePath = LicenseInfoService.getDefaultLicenseFile().getAbsolutePath();
+        try {
+            FileUtils.copyFile(new File(licenseFilePath), new File(licenseFilePath + ".backup"));
+            FileUtils.copyFile(new File("src/test/resources/ut_license/wrong_volume_license"), new File(licenseFilePath));
+            licenseInfoService.init(code -> log.info("code {}", code));
+            Assert.assertTrue(new File(licenseFilePath + ".error").exists());
+        } finally {
+            FileUtils.copyFile(new File(licenseFilePath + ".backup"), new File(licenseFilePath));
+            FileUtils.deleteQuietly(new File(licenseFilePath + ".error"));
+            FileUtils.deleteQuietly(new File(licenseFilePath + ".backup"));
+        }
     }
 
 }

@@ -109,13 +109,17 @@ public class LicenseInfoService extends BasicService {
 
     @EventListener(AppInitializedEvent.class)
     public void init() {
+        init(code -> System.exit(code));
+    }
+
+    void init(Consumer<Integer> onError) {
         try {
             gatherLicenseInfo(getDefaultLicenseFile(), getDefaultCommitFile(), getDefaultVersionFile(), null);
             val info = extractLicenseInfo();
             verifyLicense(info);
         } catch (Exception e) {
             log.error("license is invalid", e);
-            System.exit(1);
+            onError.accept(1);
         }
     }
 
@@ -257,6 +261,7 @@ public class LicenseInfoService extends BasicService {
         // set defaults
         setProperty(KE_LICENSE_ISEVALUATION, prefix, "false");
         setProperty(KE_LICENSE_CATEGORY, prefix, "4.x");
+        setProperty(KE_LICENSE_LEVEL, prefix, "professional");
 
         if (statement == null) {
             return;
