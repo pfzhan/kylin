@@ -116,42 +116,42 @@ public class NBasicControllerTest {
     public void testCheckStartAndEndException() {
         thrown.expect(BadRequestException.class);
         thrown.expectMessage("Start and end must exist or not at the same time!");
-        nBasicController.validateStartAndEndExistBoth("10", "");
+        nBasicController.validateDataRange("10", "");
     }
 
     @Test
     public void testTimeRangeEndGreaterThanStart() {
         thrown.expect(BadRequestException.class);
         thrown.expectMessage("End of range must be greater than start!");
-        nBasicController.validateRangeIfExist("10", "1");
+        nBasicController.validateDataRange("10", "1");
     }
 
     @Test
     public void testTimeRangeEndEqualToStart() {
         thrown.expect(BadRequestException.class);
         thrown.expectMessage("End of range must be greater than start!");
-        nBasicController.validateRangeIfExist("1", "1");
+        nBasicController.validateDataRange("1", "1");
     }
 
     @Test
     public void testTimeRangeInvalidStart() {
         thrown.expect(BadRequestException.class);
         thrown.expectMessage("Start of range must be greater than 0!");
-        nBasicController.validateRangeIfExist("-1", "1");
+        nBasicController.validateDataRange("-1", "1");
     }
 
     @Test
     public void testTimeRangeInvalidEnd() {
         thrown.expect(BadRequestException.class);
         thrown.expectMessage("End of range must be greater than 0!");
-        nBasicController.validateRangeIfExist("2", "-1");
+        nBasicController.validateDataRange("2", "-1");
     }
 
     @Test
     public void testTimeRangeInvalidFormat() {
         thrown.expect(NumberFormatException.class);
         thrown.expectMessage("For input string: \"start\"");
-        nBasicController.validateRangeIfExist("start", "end");
+        nBasicController.validateDataRange("start", "end");
     }
 
 }

@@ -401,6 +401,34 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
+    public void testCreateModel_DataRangeEndLessThanStart() throws Exception {
+        ModelRequest request = new ModelRequest();
+        request.setProject("default");
+        request.setStart("1325347200000");
+        request.setEnd("1293811200000");
+        Mockito.doReturn(null).when(modelService).createModel(request.getProject(), request);
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/models").contentType(MediaType.APPLICATION_JSON)
+                .content(JsonUtil.writeValueAsString(request))
+                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .andExpect(MockMvcResultMatchers.status().isBadRequest());
+        Mockito.verify(nModelController).createModel(Mockito.any(ModelRequest.class));
+    }
+
+    @Test
+    public void testCreateModel_DataRangeLessThan0() throws Exception {
+        ModelRequest request = new ModelRequest();
+        request.setProject("default");
+        request.setStart("-1");
+        request.setEnd("1293811200000");
+        Mockito.doReturn(null).when(modelService).createModel(request.getProject(), request);
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/models").contentType(MediaType.APPLICATION_JSON)
+                .content(JsonUtil.writeValueAsString(request))
+                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .andExpect(MockMvcResultMatchers.status().isBadRequest());
+        Mockito.verify(nModelController).createModel(Mockito.any(ModelRequest.class));
+    }
+
+    @Test
     public void testCloneModel() throws Exception {
         ModelCloneRequest request = new ModelCloneRequest();
         request.setModelId("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
@@ -451,6 +479,62 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
                 .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
                 .andExpect(MockMvcResultMatchers.status().isOk());
         Mockito.verify(nModelController).buildSegmentsManually(Mockito.any(BuildSegmentsRequest.class));
+    }
+
+    @Test
+    public void testBuildSegments_DataRangeEndLessThanStart() throws Exception {
+        BuildSegmentsRequest request = new BuildSegmentsRequest();
+        request.setModelId("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+        request.setProject("default");
+        request.setStart("100");
+        request.setEnd("1");
+        Mockito.doNothing().when(modelService).buildSegmentsManually("default", "nmodel_basci", "100", "1");
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/models/segments").contentType(MediaType.APPLICATION_JSON)
+                .content(JsonUtil.writeValueAsString(request))
+                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .andExpect(MockMvcResultMatchers.status().isBadRequest());
+        Mockito.verify(nModelController).buildSegmentsManually(Mockito.any(BuildSegmentsRequest.class));
+    }
+
+    @Test
+    public void testBuildSegments_DataRangeLessThan0() throws Exception {
+        BuildSegmentsRequest request = new BuildSegmentsRequest();
+        request.setModelId("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+        request.setProject("default");
+        request.setStart("-1");
+        request.setEnd("1");
+        Mockito.doNothing().when(modelService).buildSegmentsManually("default", "nmodel_basci", "-1", "1");
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/models/segments").contentType(MediaType.APPLICATION_JSON)
+                .content(JsonUtil.writeValueAsString(request))
+                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .andExpect(MockMvcResultMatchers.status().isBadRequest());
+        Mockito.verify(nModelController).buildSegmentsManually(Mockito.any(BuildSegmentsRequest.class));
+    }
+
+    @Test
+    public void testUpdateModelSemantics_DataRangeEndLessThanStart() throws Exception {
+        ModelRequest request = new ModelRequest();
+        request.setProject("default");
+        request.setStart("100");
+        request.setEnd("1");
+        mockMvc.perform(MockMvcRequestBuilders.put("/api/models/semantic").contentType(MediaType.APPLICATION_JSON)
+                .content(JsonUtil.writeValueAsString(request))
+                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .andExpect(MockMvcResultMatchers.status().isBadRequest());
+        Mockito.verify(nModelController).updateSemantic(Mockito.any(ModelRequest.class));
+    }
+
+    @Test
+    public void testUpdateModelSemantics_DataRangeLessThan0() throws Exception {
+        ModelRequest request = new ModelRequest();
+        request.setProject("default");
+        request.setStart("-1");
+        request.setEnd("1");
+        mockMvc.perform(MockMvcRequestBuilders.put("/api/models/semantic").contentType(MediaType.APPLICATION_JSON)
+                .content(JsonUtil.writeValueAsString(request))
+                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .andExpect(MockMvcResultMatchers.status().isBadRequest());
+        Mockito.verify(nModelController).updateSemantic(Mockito.any(ModelRequest.class));
     }
 
     @Test

@@ -138,7 +138,7 @@ public class NModelController extends NBasicController {
     @ResponseBody
     public EnvelopeResponse createModel(@RequestBody ModelRequest modelRequest) throws Exception {
         checkProjectName(modelRequest.getProject());
-        validateStartAndEndExistBoth(modelRequest.getStart(), modelRequest.getEnd());
+        validateDataRange(modelRequest.getStart(), modelRequest.getEnd());
         validatePartitionDesc(modelRequest);
         try {
             modelService.createModel(modelRequest.getProject(), modelRequest);
@@ -300,6 +300,7 @@ public class NModelController extends NBasicController {
     @ResponseBody
     public EnvelopeResponse updateSemantic(@RequestBody ModelRequest request) throws Exception {
         checkProjectName(request.getProject());
+        validateDataRange(request.getStart(), request.getEnd());
         validatePartitionDesc(request);
         checkRequiredArg(MODEL_ID, request.getUuid());
         try {
@@ -420,11 +421,7 @@ public class NModelController extends NBasicController {
     public EnvelopeResponse buildSegmentsManually(@RequestBody BuildSegmentsRequest buildSegmentsRequest)
             throws Exception {
         checkProjectName(buildSegmentsRequest.getProject());
-        validateStartAndEndExistBoth(buildSegmentsRequest.getStart(), buildSegmentsRequest.getEnd());
-        if (StringUtils.isNotEmpty(buildSegmentsRequest.getStart())
-                && StringUtils.isNotEmpty(buildSegmentsRequest.getEnd())) {
-            validateRange(buildSegmentsRequest.getStart(), buildSegmentsRequest.getEnd());
-        }
+        validateDataRange(buildSegmentsRequest.getStart(), buildSegmentsRequest.getEnd());
         modelService.buildSegmentsManually(buildSegmentsRequest.getProject(), buildSegmentsRequest.getModelId(),
                 buildSegmentsRequest.getStart(), buildSegmentsRequest.getEnd());
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, null, "");

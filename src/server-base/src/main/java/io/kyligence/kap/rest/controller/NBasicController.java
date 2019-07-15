@@ -223,7 +223,7 @@ public class NBasicController {
         validateRange(Long.parseLong(start), Long.parseLong(end));
     }
 
-    public void validateRange(long start, long end) {
+    private void validateRange(long start, long end) {
         if (start < 0 || end < 0) {
             throw new BadRequestException("Start or end of range must be greater than 0!");
         }
@@ -232,32 +232,27 @@ public class NBasicController {
         }
     }
 
-    public void validateRangeIfExist(String start, String end) {
-        if (StringUtils.isNotEmpty(start) && Long.parseLong(start) < 0)
-            throw new BadRequestException("Start of range must be greater than 0!");
-
-        if (StringUtils.isNotEmpty(end) && Long.parseLong(end) < 0)
-            throw new BadRequestException("End of range must be greater than 0!");
+    public void validateDataRange(String start, String end) {
+        if (StringUtils.isEmpty(start) && StringUtils.isEmpty(end)) {
+            return;
+        }
 
         if (StringUtils.isNotEmpty(start) && StringUtils.isNotEmpty(end)) {
             long startLong = Long.parseLong(start);
             long endLong = Long.parseLong(end);
 
-            if (startLong >= endLong) {
-                throw new BadRequestException("End of range must be greater than start!");
-            }
-        }
-    }
+            if (startLong < 0)
+                throw new BadRequestException("Start of range must be greater than 0!");
 
-    public void validateStartAndEndExistBoth(String start, String end) {
-        if (StringUtils.isEmpty(start) && StringUtils.isEmpty(end)) {
-            return;
-        } else if (StringUtils.isNotEmpty(start) && StringUtils.isNotEmpty(end)) {
-            return;
+            if (endLong < 0)
+                throw new BadRequestException("End of range must be greater than 0!");
+
+            if (startLong >= endLong)
+                throw new BadRequestException("End of range must be greater than start!");
+
         } else {
             throw new BadRequestException("Start and end must exist or not at the same time!");
         }
-
     }
 
     public void checkArgsAndValidateRangeForBatchLoad(List<DateRangeRequest> requests) {
