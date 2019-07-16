@@ -56,6 +56,7 @@ class NModelOptProposer extends NAbstractProposer {
 
         final ProjectInstance projectInstance = NProjectManager.getInstance(kylinConfig).getProject(project);
         if (projectInstance.getMaintainModelType() == MaintainModelType.MANUAL_MAINTAIN) {
+            logger.info("Expert mode doesn't support modify an existing model.");
             return;
         }
 
@@ -64,6 +65,7 @@ class NModelOptProposer extends NAbstractProposer {
             NDataModel model = modelCtx.getTargetModel();
             if (model == null) {
                 model = modelMaster.proposeInitialModel();
+                logger.info("Initialized a new model({}) for no compatible one to use.", model.getId());
             }
 
             try {

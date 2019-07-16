@@ -29,17 +29,12 @@ import java.util.List;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import io.kyligence.kap.metadata.model.NDataModel;
-import io.kyligence.kap.metadata.project.NProjectManager;
 import lombok.val;
 
 public class NIndexPlanSelectProposer extends NAbstractProposer {
 
-    private final NProjectManager projectManager;
-
     public NIndexPlanSelectProposer(NSmartContext smartContext) {
         super(smartContext);
-
-        projectManager = NProjectManager.getInstance(kylinConfig);
     }
 
     @Override

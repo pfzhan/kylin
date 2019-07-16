@@ -55,7 +55,9 @@ import io.kyligence.kap.smart.query.SQLResult.Status;
 import io.kyligence.kap.smart.query.mockup.AbstractQueryExecutor;
 import io.kyligence.kap.smart.query.mockup.MockupQueryExecutor;
 import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 public abstract class AbstractQueryRunner implements Closeable {
 
     @Getter
@@ -122,6 +124,7 @@ public abstract class AbstractQueryRunner implements Closeable {
     }
 
     public void execute() throws IOException, InterruptedException {
+        log.info("Mock query to generate OLAPContexts applied to auto-modeling.");
         KylinConfig config = prepareConfig();
         try {
             AbstractQueryExecutor queryExecutor = new MockupQueryExecutor();

@@ -83,7 +83,7 @@ public class MockupQueryExecutor extends AbstractQueryExecutor {
                     ? String.format("%s, check kylin.log for details", e.getClass().toString())
                     : QueryUtil.makeErrorMsgUserFriendly(e);
             if (printException) {
-                logger.debug("Failed to run in MockupQueryExecutor", e);
+                logger.debug("Failed to run in MockupQueryExecutor.", e);
             }
 
             sqlResult.setStatus(SQLResult.Status.FAILED);

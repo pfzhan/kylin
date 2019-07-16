@@ -63,8 +63,11 @@ public class NModelSelectProposer extends NAbstractProposer {
     @Override
     void propose() {
         List<NSmartContext.NModelContext> modelContexts = smartContext.getModelContexts();
-        if (CollectionUtils.isEmpty(modelContexts))
+        if (CollectionUtils.isEmpty(modelContexts)) {
+            logger.warn("Something wrong happened in the preceding step of sql analysis. "
+                    + "Cannot continue auto-modeling without modelTrees.");
             return;
+        }
 
         Set<String> selectedModel = Sets.newHashSet();
         for (NSmartContext.NModelContext modelContext : modelContexts) {
@@ -73,6 +76,10 @@ public class NModelSelectProposer extends NAbstractProposer {
             if (model == null || selectedModel.contains(model.getUuid())) {
                 // original model is allowed to be selected one context in batch
                 // to avoid modification conflict
+                if (model != null) {
+                    logger.info("An existing model({}) compatible to more than one modelTree, "
+                            + "in order to avoid modification conflict, ignore this match.", model.getId());
+                }
                 continue;
             }
             // found matched, then use it

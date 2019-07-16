@@ -24,7 +24,6 @@
 
 package io.kyligence.kap.smart.model;
 
-import io.kyligence.kap.metadata.model.NDataModelManager;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.query.relnode.OLAPContext;
 import org.slf4j.Logger;
@@ -33,13 +32,16 @@ import org.slf4j.LoggerFactory;
 import com.google.common.collect.Lists;
 
 import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.smart.NSmartContext;
 import lombok.val;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 public abstract class NAbstractModelProposer {
 
-    static final Logger LOGGER = LoggerFactory.getLogger(NAbstractModelProposer.class);
+    static final Logger logger = LoggerFactory.getLogger(NAbstractModelProposer.class);
 
     protected NSmartContext.NModelContext modelContext;
     final KylinConfig kylinConfig;

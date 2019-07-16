@@ -52,10 +52,12 @@ import io.kyligence.kap.smart.NSmartContext;
 import io.kyligence.kap.smart.common.AccelerateInfo;
 import io.kyligence.kap.smart.util.CubeUtils;
 import lombok.val;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * Define Dimensions and Measures from SQLs
  */
+@Slf4j
 public class NQueryScopeProposer extends NAbstractModelProposer {
 
     NQueryScopeProposer(NSmartContext.NModelContext modelContext) {
@@ -64,7 +66,7 @@ public class NQueryScopeProposer extends NAbstractModelProposer {
 
     @Override
     protected void doPropose(NDataModel dataModel) {
-        LOGGER.trace("Propose scope for model [{}]", dataModel.getId());
+        log.trace("Propose scope for model [{}]", dataModel.getId());
         ScopeBuilder scopeBuilder = new ScopeBuilder(dataModel);
 
         ModelTree modelTree = modelContext.getModelTree();
@@ -177,7 +179,8 @@ public class NQueryScopeProposer extends NAbstractModelProposer {
                 if (!candidateMeasures.containsKey(agg)) {
 
                     FunctionDesc fun = copyFunctionDesc(agg);
-                    String name = String.format("%s_%s", fun.getExpression(), fun.getParameters().get(0).getColRef().getName());
+                    String name = String.format("%s_%s", fun.getExpression(),
+                            fun.getParameters().get(0).getColRef().getName());
                     NDataModel.Measure measure = CubeUtils.newMeasure(fun, name, ++maxMeasureId);
                     if (CubeUtils.isValidMeasure(agg)) {
                         candidateMeasures.put(fun, measure);
@@ -185,7 +188,8 @@ public class NQueryScopeProposer extends NAbstractModelProposer {
                         dimensionAsMeasureColumns.addAll(fun.getColRefs());
                     }
                 } else if (candidateMeasures.get(agg).tomb) {
-                    String name = String.format("%s_%s", agg.getExpression(), agg.getParameters().get(0).getColRef().getName());
+                    String name = String.format("%s_%s", agg.getExpression(),
+                            agg.getParameters().get(0).getColRef().getName());
                     Measure measure = CubeUtils.newMeasure(agg, name, ++maxMeasureId);
                     candidateMeasures.put(agg, measure);
                 }

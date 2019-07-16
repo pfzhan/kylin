@@ -32,12 +32,10 @@ import org.apache.kylin.metadata.model.JoinTableDesc;
 import org.apache.kylin.metadata.model.TableRef;
 import org.apache.kylin.query.relnode.OLAPContext;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
 
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.smart.NSmartContext;
-import io.kyligence.kap.smart.common.AccelerateInfo;
 import lombok.val;
 
 public class NJoinProposer extends NAbstractModelProposer {
@@ -69,9 +67,7 @@ public class NJoinProposer extends NAbstractModelProposer {
                 joinTables.putAll(tmpJoinTablesMap);
             } catch (Exception e) {
                 val accelerateInfoMap = modelContext.getSmartContext().getAccelerateInfoMap();
-                AccelerateInfo accelerateInfo = accelerateInfoMap.get(ctx.sql);
-                Preconditions.checkNotNull(accelerateInfo);
-                accelerateInfo.setFailedCause(e);
+                accelerateInfoMap.get(ctx.sql).setFailedCause(e);
             }
         }
 

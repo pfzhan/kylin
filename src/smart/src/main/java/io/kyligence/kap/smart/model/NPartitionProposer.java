@@ -31,7 +31,9 @@ import io.kyligence.kap.metadata.cube.model.NDataLoadingRange;
 import io.kyligence.kap.metadata.cube.model.NDataLoadingRangeManager;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.smart.NSmartContext;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 public class NPartitionProposer extends NAbstractModelProposer {
 
     NPartitionProposer(NSmartContext.NModelContext modelContext) {
@@ -53,7 +55,7 @@ public class NPartitionProposer extends NAbstractModelProposer {
             return;
         }
         if (!partitionCol.getType().isLegalPartitionColumnType()) {
-            LOGGER.warn("{} is not date type, cannot be used as partition column", partitionCol);
+            log.warn("{} is not date type, cannot be used as partition column", partitionCol);
             return;
         }
 

@@ -61,7 +61,7 @@ public class NComputedColumnProposer extends NAbstractModelProposer {
 
     @Override
     protected void doPropose(NDataModel nDataModel) {
-        LOGGER.trace("Propose computed column for model [{}]", nDataModel.getId());
+        logger.trace("Propose computed column for model [{}]", nDataModel.getId());
 
         List<NDataModel> otherModels = NDataflowManager.getInstance(kylinConfig, project) //
                 .listUnderliningDataModels().stream() //
@@ -153,7 +153,7 @@ public class NComputedColumnProposer extends NAbstractModelProposer {
                 parserDesc = matchingAlias.entrySet().stream()
                         .map(entry -> (Function<String, String>) s -> s.replaceAll(entry.getKey(), entry.getValue()))
                         .reduce(Function.identity(), Function::andThen).apply(parserDesc);
-                LOGGER.trace(parserDesc);
+                logger.trace(parserDesc);
                 candidates.add(parserDesc);
             }
         }
@@ -188,14 +188,14 @@ public class NComputedColumnProposer extends NAbstractModelProposer {
                     break;
                 case WRONG_POSITION_DUE_TO_EXPR:
                 case LOOKUP_CC_NOT_REFERENCING_ITSELF:
-                    LOGGER.debug("Bad CC suggestion: {}", ccDesc.getExpression(), e);
+                    logger.debug("Bad CC suggestion: {}", ccDesc.getExpression(), e);
                     retryCount = 99; // fail directly
                     break;
                 default:
                     break;
                 }
             } catch (Exception e) {
-                LOGGER.debug("Check CC with model failed", e);
+                logger.debug("Check CC with model failed", e);
                 break; // break loop
             }
         }

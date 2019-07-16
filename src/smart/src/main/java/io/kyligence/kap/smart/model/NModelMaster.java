@@ -35,8 +35,6 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.model.FunctionDesc;
 import org.apache.kylin.metadata.model.PartitionDesc;
 import org.apache.kylin.query.relnode.OLAPContext;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -50,10 +48,10 @@ import io.kyligence.kap.smart.NSmartContext;
 import io.kyligence.kap.smart.query.AbstractQueryRunner;
 import io.kyligence.kap.smart.query.NQueryRunnerFactory;
 import io.kyligence.kap.smart.util.CubeUtils;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 public class NModelMaster {
-
-    private static final Logger LOGGER = LoggerFactory.getLogger(NModelMaster.class);
 
     private final NSmartContext.NModelContext modelContext;
     private final NProposerProvider proposerProvider;
@@ -82,23 +80,34 @@ public class NModelMaster {
     }
 
     public NDataModel proposeJoins(NDataModel dataModel) {
-        return proposerProvider.getJoinProposer().propose(dataModel);
+        log.info("Start proposing join relations.");
+        dataModel = proposerProvider.getJoinProposer().propose(dataModel);
+        log.info("Proposing join relations completed successfully.");
+        return dataModel;
     }
 
     public NDataModel proposeScope(NDataModel dataModel) {
-        return proposerProvider.getScopeProposer().propose(dataModel);
+        log.info("Start proposing dimensions and measures.");
+        dataModel = proposerProvider.getScopeProposer().propose(dataModel);
+        log.info("Proposing dimensions and measures completed successfully.");
+        return dataModel;
     }
 
     public NDataModel proposePartition(NDataModel dataModel) {
-        return proposerProvider.getPartitionProposer().propose(dataModel);
+        log.info("Start proposing partition column.");
+        dataModel = proposerProvider.getPartitionProposer().propose(dataModel);
+        log.info("Proposing partition column completed successfully.");
+        return dataModel;
     }
 
     public NDataModel proposeComputedColumn(NDataModel dataModel) {
+        log.info("Start proposing computed columns.");
         KapConfig kapConfig = KapConfig.wrap(kylinConfig);
         Set<String> transformers = Sets.newHashSet(kylinConfig.getQueryTransformers());
         boolean isComputedColumnEnabled = transformers.contains(ConvertToComputedColumn.class.getCanonicalName())
                 && kapConfig.isImplicitComputedColumnConvertEnabled();
         if (!isComputedColumnEnabled) {
+            log.warn("The feature of proposing computed column in Kyligence Enterprise has been turned off.");
             return dataModel;
         }
 
@@ -107,10 +116,12 @@ public class NModelMaster {
             dataModel = proposerProvider.getComputedColumnProposer().propose(dataModel);
             if (dataModel.getComputedColumnDescs().size() != originalCCs.size()) {
                 // New CC detected, need to rebuild ModelContext regarding new coming CC
+                log.info("Start using proposed computed columns to update the model({})", dataModel.getId());
                 updateContextWithCC(dataModel);
             }
+            log.info("Proposing computed column completed successfully.");
         } catch (Exception e) {
-            LOGGER.error("Propose failed, will discard new computed columns.", e);
+            log.error("Propose failed, will discard new computed columns.", e);
             dataModel.setComputedColumnDescs(originalCCs);
         }
         return dataModel;
@@ -128,12 +139,14 @@ public class NModelMaster {
                 newQuery = new ConvertToComputedColumn().transformImpl(oldQuery, project, dataModel,
                         dataModel.getRootFactTable().getTableDesc().getDatabase());
             } catch (Exception e) {
-                LOGGER.warn("NModelMaster.updateContextWithCC failed to transform query: {}", oldQuery, e);
+                log.warn("NModelMaster.updateContextWithCC failed to transform query: {}, {}", oldQuery, e);
             }
             mapNewAndOldQueries.put(newQuery, oldQuery);
         }
 
         if (mapNewAndOldQueries.isEmpty()) {
+            log.warn("Failed to replace cc expression in original sql with proposed computed columns, "
+                    + "early termination of the method of updateContextWithCC");
             return;
         }
 
@@ -141,12 +154,13 @@ public class NModelMaster {
         List<String> oldQueries = newQueries.stream().map(mapNewAndOldQueries::get).collect(Collectors.toList());
 
         // Rebuild modelTrees and find match one to replace original
-        try (AbstractQueryRunner extractor = NQueryRunnerFactory.createForModelSuggestion(kylinConfig,
-                project, newQueries.toArray(new String[0]), Lists.newArrayList(dataModel), 1)) {
+        try (AbstractQueryRunner extractor = NQueryRunnerFactory.createForModelSuggestion(kylinConfig, project,
+                newQueries.toArray(new String[0]), Lists.newArrayList(dataModel), 1)) {
+            log.info("Start to rebuild modelTrees after replace cc expression with cc name.");
             extractor.execute();
             List<ModelTree> modelTrees = new GreedyModelTreesBuilder(kylinConfig, project,
                     modelContext.getSmartContext()) //
-                    .build(oldQueries, extractor.getAllOLAPContexts(), null);
+                            .build(oldQueries, extractor.getAllOLAPContexts(), null);
             ModelTree updatedModelTree = null;
             for (ModelTree modelTree : modelTrees) {
                 if (NModelSelectProposer.matchModelTree(dataModel, modelTree)) {
@@ -160,8 +174,9 @@ public class NModelMaster {
 
             // Update context info
             this.modelContext.setModelTree(updatedModelTree);
+            log.info("Rebuild modelTree successfully.");
         } catch (Exception e) {
-            LOGGER.warn("NModelMaster.updateContextWithCC failed to update model tree", e);
+            log.warn("NModelMaster.updateContextWithCC failed to update model tree", e);
         }
     }
 }

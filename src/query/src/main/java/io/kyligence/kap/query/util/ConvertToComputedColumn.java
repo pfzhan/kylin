@@ -76,6 +76,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Function;
+import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Ordering;
@@ -89,15 +90,19 @@ import io.kyligence.kap.metadata.model.alias.ExpressionComparator;
 public class ConvertToComputedColumn implements QueryUtil.IQueryTransformer, IKeep {
 
     private static final Logger logger = LoggerFactory.getLogger(ConvertToComputedColumn.class);
+    private static final String CONVERT_TO_CC_ERROR_MSG = "Something unexpected while ConvertToComputedColumn transforming the query, return original query.";
 
     @Override
     public String transform(String originSql, String project, String defaultSchema) {
         try {
             return transformImpl(originSql, project, defaultSchema);
         } catch (Exception e) {
-            logger.error(
-                    "Something unexpected while ConvertToComputedColumn transforming the query, return original query",
-                    e);
+            if (e instanceof org.apache.calcite.sql.parser.SqlParseException) {
+                logger.warn(CONVERT_TO_CC_ERROR_MSG, Throwables.getRootCause(e));
+            } else {
+                logger.warn(CONVERT_TO_CC_ERROR_MSG, e);
+            }
+
             return originSql;
         }
     }

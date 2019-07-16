@@ -44,8 +44,6 @@ import org.apache.kylin.metadata.model.JoinsGraph;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.TableRef;
 import org.apache.kylin.query.relnode.OLAPContext;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
@@ -60,10 +58,10 @@ import io.kyligence.kap.smart.util.JoinDescUtil;
 import io.kyligence.kap.smart.util.OLAPContextUtil;
 import io.kyligence.kap.smart.util.TableAliasGenerator;
 import lombok.val;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 public class GreedyModelTreesBuilder {
-
-    private static final Logger logger = LoggerFactory.getLogger(GreedyModelTreesBuilder.class);
 
     private final Map<String, TableDesc> tableMap;
     KylinConfig kylinConfig;
@@ -77,8 +75,9 @@ public class GreedyModelTreesBuilder {
 
     @SuppressWarnings("unchecked")
     public List<ModelTree> build(List<String> sqls, List<Collection<OLAPContext>> olapContexts,
-            TableDesc expectTactTbl) {
+            TableDesc expectedFactTable) {
         // 1. group OLAPContexts by fact_table
+        log.info("Split OLAPContexts by fact table.");
         Map<TableDesc, TreeBuilder> builders = Maps.newHashMap();
         for (int i = 0; i < sqls.size(); i++) {
             String sql = sqls.get(i);
@@ -87,7 +86,8 @@ public class GreedyModelTreesBuilder {
                     .filter(ctx -> ctx.firstTableScan != null) //
                     .forEach(ctx -> {
                         TableDesc actualFactTbl = ctx.firstTableScan.getTableRef().getTableDesc();
-                        if (expectTactTbl != null && !actualFactTbl.getIdentity().equals(expectTactTbl.getIdentity())) {
+                        if (expectedFactTable != null
+                                && !actualFactTbl.getIdentity().equals(expectedFactTable.getIdentity())) {
                             return; // root fact not match
                         }
 
@@ -103,10 +103,13 @@ public class GreedyModelTreesBuilder {
                 .map(TreeBuilder::build) //
                 .flatMap(List::stream) //
                 .collect(Collectors.toList());
+        log.info("Grouped OLAPContexts generated {} modelTrees.", results.size());
 
         // 3. enable current root_fact's model exists
-        if (expectTactTbl != null && results.stream().noneMatch(tree -> tree.getRootFactTable() == expectTactTbl)) {
-            results.add(new ModelTree(expectTactTbl, CollectionUtils.EMPTY_COLLECTION, MapUtils.EMPTY_MAP,
+        if (expectedFactTable != null
+                && results.stream().noneMatch(tree -> tree.getRootFactTable() == expectedFactTable)) {
+            log.debug("There is no modelTree relies on fact table({}), add a new one.", expectedFactTable.getIdentity());
+            results.add(new ModelTree(expectedFactTable, CollectionUtils.EMPTY_COLLECTION, MapUtils.EMPTY_MAP,
                     MapUtils.EMPTY_MAP));
         }
         return results;
@@ -164,7 +167,6 @@ public class GreedyModelTreesBuilder {
         }
 
         private ModelTree buildOne(List<OLAPContext> inputCtxs) {
-
             Map<TableRef, String> innerTableRefAlias = Maps.newHashMap();
             Map<TableRef, String> correctedTableAlias = Maps.newHashMap();
             List<OLAPContext> usedCtxs = Lists.newArrayList();
@@ -201,7 +203,7 @@ public class GreedyModelTreesBuilder {
                 try {
                     mergeContext(ctx, joinTables, correctedTableAlias, aliasRefMap);
                 } catch (Exception e) {
-                    logger.debug("the sql \n" + ctx.sql + "\n cannot be accelerated for meeting error", e);
+                    log.debug("the sql \n{}\n cannot be accelerated for meeting error", ctx.sql, e);
                     inputCtxs.remove(ctx);
                     usedCtxs.remove(ctx);
                     accelerateInfo.setFailedCause(e);
