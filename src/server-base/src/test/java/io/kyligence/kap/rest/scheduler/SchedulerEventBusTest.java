@@ -32,7 +32,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import org.apache.kylin.job.engine.JobEngineConfig;
-import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.DefaultChainedExecutable;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.FiveSecondSucceedTestExecutable;
@@ -44,10 +43,11 @@ import org.assertj.core.util.Lists;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mockito;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.security.authentication.TestingAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 
@@ -66,8 +66,10 @@ import io.kyligence.kap.rest.service.FavoriteQueryService;
 import io.kyligence.kap.rest.service.JobService;
 import lombok.val;
 
-@Ignore
 public class SchedulerEventBusTest extends NLocalFileMetadataTestCase {
+
+    private static final Logger logger = LoggerFactory.getLogger(SchedulerEventBusTest.class);
+
     private static final String PROJECT = "default";
     private static final String PROJECT_NEWTEN = "newten";
 
@@ -90,12 +92,14 @@ public class SchedulerEventBusTest extends NLocalFileMetadataTestCase {
 
     @Before
     public void setup() {
+        logger.info("SchedulerEventBusTest setup");
         createTestMetadata();
 
         SecurityContextHolder.getContext()
                 .setAuthentication(new TestingAuthenticationToken("ADMIN", "ADMIN", Constant.ROLE_ADMIN));
 
         // init DefaultScheduler
+        System.setProperty("kylin.job.max-local-consumption-ratio", "10");
         NDefaultScheduler.getInstance(PROJECT_NEWTEN).init(new JobEngineConfig(getTestConfig()), new MockJobLock());
         NDefaultScheduler.getInstance(PROJECT).init(new JobEngineConfig(getTestConfig()), new MockJobLock());
 
@@ -106,21 +110,26 @@ public class SchedulerEventBusTest extends NLocalFileMetadataTestCase {
 
     @After
     public void cleanup() {
+        logger.info("SchedulerEventBusTest cleanup");
         SchedulerEventBusFactory.getInstance(getTestConfig()).unRegister(favoriteSchedulerListener);
         SchedulerEventBusFactory.getInstance(getTestConfig()).unRegister(jobSchedulerListener);
         SchedulerEventBusFactory.getInstance(getTestConfig()).unRegister(eventSchedulerListener);
+        SchedulerEventBusFactory.restart();
 
         favoriteSchedulerListener.setNotifiedCount(0);
         eventSchedulerListener.setEventCreatedNotified(false);
         eventSchedulerListener.setEventFinishedNotified(false);
         jobSchedulerListener.setJobReadyNotified(false);
         jobSchedulerListener.setJobFinishedNotified(false);
-        SchedulerEventBusFactory.restart();
         cleanupTestMetadata();
+        System.clearProperty("kylin.scheduler.schedule-limit-per-minute");
+        System.clearProperty("kylin.metadata.broken-model-deleted-on-smart-mode");
+
     }
 
     @Test
     public void testRateLimit() throws InterruptedException {
+        logger.info("SchedulerEventBusTest testRateLimit");
         // only allow 10 permits per second
         System.setProperty("kylin.scheduler.schedule-limit-per-minute", "600");
 
@@ -153,6 +162,8 @@ public class SchedulerEventBusTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testEventSchedulerListener() {
+        logger.info("SchedulerEventBusTest testEventSchedulerListener");
+
         // prepare favorite queries
         prepareFavoriteQuery();
 
@@ -179,6 +190,9 @@ public class SchedulerEventBusTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testJobSchedulerListener() throws InterruptedException {
+        logger.info("SchedulerEventBusTest testJobSchedulerListener");
+
+        System.setProperty("kylin.scheduler.schedule-limit-per-minute", "6000");
         Assert.assertFalse(jobSchedulerListener.isJobReadyNotified());
         Assert.assertFalse(jobSchedulerListener.isJobFinishedNotified());
 
@@ -204,19 +218,19 @@ public class SchedulerEventBusTest extends NLocalFileMetadataTestCase {
         Assert.assertFalse(jobSchedulerListener.isJobFinishedNotified());
 
         // wait for job finished
-        await().atMost(60000, TimeUnit.MILLISECONDS).until(() -> {
-            AbstractExecutable currentExecutable = executableManager.getJob(job.getId());
-            if (currentExecutable.getStatus() == ExecutableState.SUCCEED)
-                return true;
-            return false;
+        await().atMost(60000, TimeUnit.MILLISECONDS).untilAsserted(() -> {
+            Assert.assertEquals(ExecutableState.SUCCEED, executableManager.getOutput(job.getId()).getState());
+            Assert.assertEquals(ExecutableState.SUCCEED, executableManager.getOutput(task.getId()).getState());
+            Assert.assertTrue(jobSchedulerListener.isJobFinishedNotified());
         });
-        Assert.assertEquals(ExecutableState.SUCCEED, executableManager.getOutput(job.getId()).getState());
-        Assert.assertEquals(ExecutableState.SUCCEED, executableManager.getOutput(task.getId()).getState());
-        Assert.assertTrue(jobSchedulerListener.isJobFinishedNotified());
+        System.clearProperty("kylin.scheduler.schedule-limit-per-minute");
     }
 
     @Test
     public void testResumeJob() throws IOException {
+        logger.info("SchedulerEventBusTest testResumeJob");
+
+        System.setProperty("kylin.scheduler.schedule-limit-per-minute", "6000");
         val df = NDataflowManager.getInstance(getTestConfig(), PROJECT)
                 .getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         DefaultChainedExecutable job = new DefaultChainedExecutable();
@@ -240,11 +254,15 @@ public class SchedulerEventBusTest extends NLocalFileMetadataTestCase {
             return null;
         }, PROJECT);
 
-        await().atMost(1000, TimeUnit.MILLISECONDS).until(() -> jobSchedulerListener.isJobReadyNotified());
+        await().atMost(60000, TimeUnit.MILLISECONDS).until(() -> jobSchedulerListener.isJobReadyNotified());
+        System.clearProperty("kylin.scheduler.schedule-limit-per-minute");
     }
 
     @Test
     public void testRestartJob() throws IOException {
+        logger.info("SchedulerEventBusTest testRestartJob");
+
+        System.setProperty("kylin.scheduler.schedule-limit-per-minute", "6000");
         val df = NDataflowManager.getInstance(getTestConfig(), PROJECT)
                 .getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         DefaultChainedExecutable job = new DefaultChainedExecutable();
@@ -268,6 +286,8 @@ public class SchedulerEventBusTest extends NLocalFileMetadataTestCase {
             return null;
         }, PROJECT);
 
-        await().atMost(1000, TimeUnit.MILLISECONDS).until(() -> jobSchedulerListener.isJobReadyNotified());
+        await().atMost(60000, TimeUnit.MILLISECONDS)
+                .untilAsserted(() -> Assert.assertTrue(jobSchedulerListener.isJobReadyNotified()));
+        System.clearProperty("kylin.scheduler.schedule-limit-per-minute");
     }
 }

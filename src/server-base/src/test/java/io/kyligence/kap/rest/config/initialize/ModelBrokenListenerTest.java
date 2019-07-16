@@ -36,11 +36,12 @@ import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import com.google.common.collect.Lists;
@@ -67,8 +68,9 @@ import io.kyligence.kap.rest.service.TableService;
 import lombok.val;
 import lombok.var;
 
-@Ignore
 public class ModelBrokenListenerTest extends CSVSourceTestCase {
+
+    private static final Logger logger = LoggerFactory.getLogger(ModelBrokenListenerTest.class);
 
     private static final String DEFAULT_PROJECT = "default";
 
@@ -84,6 +86,7 @@ public class ModelBrokenListenerTest extends CSVSourceTestCase {
 
     @Before
     public void setup() {
+        logger.info("ModelBrokenListenerTest setup");
         System.setProperty("HADOOP_USER_NAME", "root");
         System.setProperty("kylin.job.event.poll-interval-second", "3");
         super.setup();
@@ -94,8 +97,10 @@ public class ModelBrokenListenerTest extends CSVSourceTestCase {
 
     @After
     public void cleanup() {
+        logger.info("ModelBrokenListenerTest cleanup");
         SchedulerEventBusFactory.getInstance(getTestConfig()).unRegister(modelBrokenListener);
         SchedulerEventBusFactory.restart();
+        System.clearProperty("kylin.metadata.broken-model-deleted-on-smart-mode");
         super.cleanup();
     }
 
@@ -117,6 +122,8 @@ public class ModelBrokenListenerTest extends CSVSourceTestCase {
 
     @Test
     public void testModelBrokenListener_DropModel() {
+        logger.info("ModelBrokenListenerTest testModelBrokenListener_DropModel");
+
         val project = "default";
         val modelId = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
         generateEvents(project, modelId);
@@ -135,6 +142,8 @@ public class ModelBrokenListenerTest extends CSVSourceTestCase {
 
     @Test
     public void testModelBrokenListener_TableOriented() throws Exception {
+        logger.info("ModelBrokenListenerTest testModelBrokenListener_TableOriented");
+
         val project = "default";
         val modelId = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
         generateEvents(project, modelId);
@@ -158,6 +167,8 @@ public class ModelBrokenListenerTest extends CSVSourceTestCase {
 
     @Test
     public void testModelBrokenListener_BrokenReason() throws Exception {
+        logger.info("ModelBrokenListenerTest testModelBrokenListener_BrokenReason");
+
         val project = "default";
         val modelId = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
         val modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
@@ -175,6 +186,8 @@ public class ModelBrokenListenerTest extends CSVSourceTestCase {
 
     @Test
     public void testModelBrokenListener_FullBuild() throws Exception {
+        logger.info("ModelBrokenListenerTest testModelBrokenListener_FullBuild");
+
         val project = "default";
         val modelId = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
         val modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
@@ -201,8 +214,9 @@ public class ModelBrokenListenerTest extends CSVSourceTestCase {
 
     @Test
     public void testEventError() throws InterruptedException {
-        eventOrchestrator = new EventOrchestrator(DEFAULT_PROJECT, getTestConfig());
+        logger.info("ModelBrokenListenerTest testEventError");
 
+        eventOrchestrator = new EventOrchestrator(DEFAULT_PROJECT, getTestConfig());
 
         val projectManager = NProjectManager.getInstance(getTestConfig());
         ProjectInstance projectInstance = projectManager.getProject(DEFAULT_PROJECT);
@@ -254,11 +268,12 @@ public class ModelBrokenListenerTest extends CSVSourceTestCase {
         });
         eventOrchestrator.forceShutdown();
 
-
     }
 
     @Test
     public void testHandleEventErrorOnExpertMode() {
+        logger.info("ModelBrokenListenerTest testHandleEventErrorOnExpertMode");
+
         eventOrchestrator = new EventOrchestrator(DEFAULT_PROJECT, getTestConfig());
 
         String modelId = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
@@ -281,6 +296,8 @@ public class ModelBrokenListenerTest extends CSVSourceTestCase {
 
     @Test
     public void testHandleEventErrorOnSmartMode() {
+        logger.info("ModelBrokenListenerTest testHandleEventErrorOnSmartMode");
+
         eventOrchestrator = new EventOrchestrator(DEFAULT_PROJECT, getTestConfig());
 
         String modelId = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
