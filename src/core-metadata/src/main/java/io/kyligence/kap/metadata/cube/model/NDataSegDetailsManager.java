@@ -49,7 +49,7 @@ import lombok.val;
 
 /**
  * Package private. Not intended for public use.
- * 
+ * <p>
  * Public use goes through NDataflowManager.
  */
 class NDataSegDetailsManager implements IKeepNames {
@@ -182,7 +182,17 @@ class NDataSegDetailsManager implements IKeepNames {
         }
     }
 
+    /**
+     * delete the segment from the restore.
+     *
+     * @param df
+     * @param segId
+     */
     void removeForSegment(NDataflow df, String segId) {
+        if (!getStore().exists(getResourcePathForSegment(df.getUuid(), segId))) {
+            return;
+        }
+
         getStore().deleteResource(getResourcePathForSegment(df.getUuid(), segId));
     }
 

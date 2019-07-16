@@ -34,6 +34,7 @@ import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -41,11 +42,13 @@ import java.util.Random;
 import java.util.UUID;
 import java.util.Vector;
 import java.util.concurrent.atomic.AtomicInteger;
+
 import lombok.val;
 import lombok.var;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
+import org.apache.kylin.metadata.model.Segments;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 import org.junit.After;
@@ -187,6 +190,30 @@ public class NDataflowManagerTest extends NLocalFileMetadataTestCase {
 
         df = mgr.getDataflowByModelAlias("nmodel_basic");
         Assert.assertEquals(1, df.getSegments().size());
+    }
+
+    @Test
+    public void testUpdateSegmentByDataflowSetSegments() throws IOException {
+        KylinConfig testConfig = getTestConfig();
+        NDataflowManager mgr = NDataflowManager.getInstance(testConfig, projectDefault);
+        NDataflow df = mgr.getDataflowByModelAlias("nmodel_basic");
+
+        NDataSegDetailsManager dsdMgr = NDataSegDetailsManager.getInstance(testConfig, projectDefault);
+
+        mgr.appendSegment(df, SegmentRange.TimePartitionedSegmentRange.createInfinite());
+
+        Segments<NDataSegment> segsSet = df.getSegments();
+
+        df = mgr.getDataflowByModelAlias("nmodel_basic");
+        Assert.assertEquals(2, df.getSegments().size());
+
+        mgr.updateDataflow(df.getId(), copyForWrite -> {
+            copyForWrite.setSegments(new Segments<>());
+        });
+
+        for(NDataSegment segment: segsSet) {
+            Assert.assertNull(dsdMgr.getForSegment(segment));
+        }
     }
 
     @Test

@@ -32,8 +32,10 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -453,6 +455,14 @@ public class NDataflowManager implements IRealizationProvider, IKeepNames {
         void modify(NDataflow copyForWrite);
     }
 
+    /**
+     * update the dataflow from the restore by lambda function updater.
+     * sometimes, dataflow's segments is removed, but do not from the restore, need to remove again.
+     *
+     * @param dfId
+     * @param updater
+     * @return
+     */
     public NDataflow updateDataflow(String dfId, NDataflowUpdater updater) {
         NDataflow cached = getDataflow(dfId);
         NDataflow copy = copy(cached);
@@ -460,6 +470,15 @@ public class NDataflowManager implements IRealizationProvider, IKeepNames {
         if (copy.getSegments().stream().map(seg -> seg.getLayoutsMap().keySet()).distinct().count() > 1) {
             logger.warn("Dataflow <{}> is not a prefect square", dfId);
         }
+
+        Set<String> copySegIdSet = copy.getSegments().stream().map(NDataSegment::getId).collect(Collectors.toSet());
+        val nDataSegDetailsManager = NDataSegDetailsManager.getInstance(cached.getConfig(), project);
+        for (NDataSegment segment : cached.getSegments()) {
+            if (!copySegIdSet.contains(segment.getId())) {
+                nDataSegDetailsManager.removeForSegment(copy, segment.getId());
+            }
+        }
+
         return crud.save(copy);
     }
 
