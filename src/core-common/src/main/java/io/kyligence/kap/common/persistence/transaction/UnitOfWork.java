@@ -252,9 +252,8 @@ public class UnitOfWork {
         // publish events here
         val unitMessages = packageEvents(eventList, get().getProject(), traceId);
         val metadataStore = ResourceStore.getKylinMetaStore(originConfig).getMetadataStore();
-        String allEntities = unitMessages.getMessages().stream().filter(event -> event instanceof ResourceRelatedEvent)
-                .map(event -> ((ResourceRelatedEvent) event).getResPath()).collect(Collectors.joining(","));
-        log.debug("metadata change list: " + allEntities);
+        long entitiesSize = unitMessages.getMessages().stream().filter(event -> event instanceof ResourceRelatedEvent).count();
+        log.debug("transaction {} updates {} metadata items", traceId, entitiesSize);
         metadataStore.batchUpdate(unitMessages);
 
         try {
