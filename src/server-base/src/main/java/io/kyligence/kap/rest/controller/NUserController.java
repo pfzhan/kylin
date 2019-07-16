@@ -101,7 +101,7 @@ public class NUserController extends NBasicController {
     @Autowired
     private Environment env;
 
-    private static final Pattern usernamePattern = Pattern.compile("^[a-zA-Z0-9_]*$");
+    private static final Pattern usernamePattern = Pattern.compile("^[a-zA-Z0-9_.@]*$");
     private static final Pattern passwordPattern = Pattern
             .compile("^(?=.*\\d)(?=.*[a-zA-Z])(?=.*[~!@#$%^&*(){}|:\"<>?\\[\\];',./`]).{8,}$");
     private static final Pattern bcryptPattern = Pattern.compile("\\A\\$2a?\\$\\d\\d\\$[./0-9A-Za-z]{53}");

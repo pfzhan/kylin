@@ -312,7 +312,7 @@ public class Message {
     }
 
     public String getINVALID_USERNAME() {
-        return "Username should only contain alphanumerics and underscores.";
+        return "Username should only contain alphanumerics, at sign, dot and underscores.";
     }
 
     public String getSHORT_PASSWORD() {
@@ -324,7 +324,7 @@ public class Message {
     }
 
     public String getINVALID_GROUP_NAME() {
-        return "User group name should only contain alphanumerics and underscores.";
+        return "User group name should only contain alphanumerics, at sign, dot and underscores.";
     }
 
     public String getPERMISSION_DENIED() {

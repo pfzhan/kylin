@@ -443,7 +443,7 @@ public class CnMessage extends Message {
     }
 
     public String getINVALID_GROUP_NAME() {
-        return "用户组名只能包含字母，数字和下划线";
+        return "用户组名只能包含字母，数字，艾特，点和下划线";
     }
 
     public String getEMPTY_SID() {
@@ -502,7 +502,7 @@ public class CnMessage extends Message {
     }
 
     public String getINVALID_USERNAME() {
-        return "用户名只能包含数字，字母和下划线";
+        return "用户名只能包含数字，字母，艾特，点和下划线";
     }
 
     public String getUSER_BE_LOCKED() {

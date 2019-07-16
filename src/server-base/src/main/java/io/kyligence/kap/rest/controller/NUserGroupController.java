@@ -69,7 +69,7 @@ public class NUserGroupController extends NBasicController {
     private UserService userService;
 
     private static final Message msg = MsgPicker.getMsg();
-    private static final Pattern groupNamePattern = Pattern.compile("^[a-zA-Z0-9_]*$");
+    private static final Pattern groupNamePattern = Pattern.compile("^[a-zA-Z0-9_.@]*$");
 
     @RequestMapping(value = "/groupMembers/{groupName}", method = { RequestMethod.GET }, produces = {
             "application/vnd.apache.kylin-v2+json" })

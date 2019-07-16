@@ -171,7 +171,7 @@ public class NUserControllerTest extends NLocalFileMetadataTestCase {
     @Test
     public void testCreateUser() throws Exception {
         val user = new ManagedUser();
-        user.setUsername("u1");
+        user.setUsername("u1@.");
         user.setPassword("p14532522?");
         Mockito.doNothing().when(userService).createUser(Mockito.any(UserDetails.class));
         mockMvc.perform(MockMvcRequestBuilders.post("/api/user").contentType(MediaType.APPLICATION_JSON)
@@ -202,7 +202,7 @@ public class NUserControllerTest extends NLocalFileMetadataTestCase {
                 .content(JsonUtil.writeValueAsString(user))
                 .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
                 .andExpect(MockMvcResultMatchers.content()
-                        .string(containsString("Username should only contain alphanumerics and underscores.")));
+                        .string(containsString("Username should only contain alphanumerics, at sign, dot and underscores.")));
 
         Mockito.verify(nUserController).createUser(Mockito.any(ManagedUser.class));
     }
