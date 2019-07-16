@@ -32,6 +32,7 @@ import java.util.Set;
 import java.util.SortedSet;
 
 import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.metadata.model.FunctionDesc;
 import org.apache.kylin.metadata.model.TableExtDesc;
 import org.apache.kylin.metadata.model.TblColRef;
@@ -53,6 +54,7 @@ import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.model.MaintainModelType;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.project.NProjectManager;
+import io.kyligence.kap.query.exception.NotSupportedSQLException;
 import io.kyligence.kap.smart.NSmartContext;
 import io.kyligence.kap.smart.NSmartContext.NModelContext;
 import io.kyligence.kap.smart.common.AccelerateInfo;
@@ -106,6 +108,11 @@ class CuboidSuggester {
             }
 
             try {
+                if (CollectionUtils.isNotEmpty(ctx.getContainedNotSupportedFunc())) {
+                    throw new NotSupportedSQLException(
+                            StringUtils.join(ctx.getContainedNotSupportedFunc(), ", ") + " function not supported");
+                }
+
                 Map<String, String> aliasMap = RealizationChooser.matchJoins(model, ctx);
                 if (aliasMap == null) {
                     throw new PendingException(String

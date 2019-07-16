@@ -50,6 +50,7 @@ import com.google.common.collect.Sets;
 import io.kyligence.kap.query.util.ICutContextStrategy;
 
 /**
+ *
  */
 public class KapAggregateRel extends OLAPAggregateRel implements KapRel {
     ImmutableBitSet groupSet;
@@ -58,7 +59,7 @@ public class KapAggregateRel extends OLAPAggregateRel implements KapRel {
     private Set<OLAPContext> subContexts = Sets.newHashSet();
 
     public KapAggregateRel(RelOptCluster cluster, RelTraitSet traits, RelNode child, boolean indicator,
-            ImmutableBitSet groupSet, List<ImmutableBitSet> groupSets, List<AggregateCall> aggCalls)
+                           ImmutableBitSet groupSet, List<ImmutableBitSet> groupSets, List<AggregateCall> aggCalls)
             throws InvalidRelException {
         super(cluster, traits, child, indicator, groupSet, groupSets, aggCalls);
         this.groupSet = groupSet;
@@ -78,7 +79,7 @@ public class KapAggregateRel extends OLAPAggregateRel implements KapRel {
 
     @Override
     public Aggregate copy(RelTraitSet traitSet, RelNode input, boolean indicator, ImmutableBitSet groupSet,
-            List<ImmutableBitSet> groupSets, List<AggregateCall> aggCalls) {
+                          List<ImmutableBitSet> groupSets, List<AggregateCall> aggCalls) {
         try {
             return new KapAggregateRel(getCluster(), traitSet, input, indicator, groupSet, groupSets, aggCalls);
         } catch (InvalidRelException e) {
@@ -112,6 +113,11 @@ public class KapAggregateRel extends OLAPAggregateRel implements KapRel {
 
         olapContextImplementor.visitChild(getInput(), this);
 
+        for (int i = 0; i < aggCalls.size(); i++) {
+            if (FunctionDesc.NOT_SUPPORTED_FUNCTION.contains(aggCalls.get(i).getAggregation().getName())) {
+                context.getContainedNotSupportedFunc().add(aggCalls.get(i).getAggregation().getName());
+            }
+        }
         this.columnRowType = buildColumnRowType();
         if (context != null) {
             this.context.setHasAgg(true);
@@ -210,7 +216,6 @@ public class KapAggregateRel extends OLAPAggregateRel implements KapRel {
     /**
      * optimize its Context Rel after context cut off according some rules
      * 1. push through the Agg Above Join Rel
-     *
      */
     public void optimizeContextCut() {
         // case 1: Agg push through Join

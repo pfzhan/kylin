@@ -210,6 +210,9 @@ public class OLAPContext {
     @Setter
     private List<TblColRef> sortColumns;
     List<SQLDigest.OrderEnum> sortOrders;
+    @Setter
+    @Getter
+    private Set<String> containedNotSupportedFunc = Sets.newHashSet();
 
     // rewrite info
     public Map<String, RelDataType> rewriteFields = new HashMap<>();

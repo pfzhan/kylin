@@ -49,7 +49,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-import lombok.Getter;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.measure.MeasureType;
@@ -68,6 +67,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
 import io.kyligence.kap.metadata.model.NDataModel;
+import lombok.Getter;
 import lombok.Setter;
 
 /**
@@ -118,6 +118,8 @@ public class FunctionDesc implements Serializable {
     public static final String FUNC_MAX = "MAX";
     public static final String FUNC_COUNT = "COUNT";
     public static final String FUNC_COUNT_DISTINCT = "COUNT_DISTINCT";
+    public static final String FUNC_INTERSECT_COUNT = "INTERSECT_COUNT";
+    public static final String FUNC_CORR = "CORR";
     public static final String FUNC_COUNT_DISTINCT_HLLC10 = "hllc(10)";
     public static final String FUNC_COUNT_DISTINCT_BIT_MAP = "bitmap";
     public static final String FUNC_PERCENTILE = "PERCENTILE_APPROX";
@@ -127,6 +129,8 @@ public class FunctionDesc implements Serializable {
             .add(FUNC_MAX, FUNC_MIN, FUNC_COUNT_DISTINCT).build();
     public static final ImmutableSet<String> BUILT_IN_AGGREGATIONS = ImmutableSet.<String> builder()
             .add(FUNC_MAX, FUNC_MIN, FUNC_COUNT_DISTINCT).add(FUNC_COUNT, FUNC_SUM, FUNC_PERCENTILE).build();
+    public static final ImmutableSet<String> NOT_SUPPORTED_FUNCTION = ImmutableSet.<String> builder()
+            .add(FUNC_INTERSECT_COUNT, FUNC_CORR).build();
 
     private static final Map<String, String> EXPRESSION_DEFAULT_TYPE_MAP = Maps.newHashMap();
 
