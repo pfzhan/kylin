@@ -57,11 +57,14 @@
               v-guide.aggIncludes
               multiple
               filterable
+              class="mul-filter-select"
+              :class="{'reset-padding': aggregate.includes.length}"
               :ref="`aggregate.include.${aggregateIdx}`"
               :value="aggregate.includes"
               :placeholder="$t('kylinLang.common.pleaseSelectOrSearch')"
               @input="value => handleInput(`aggregateArray.${aggregateIdx}.includes`, value)"
-              @remove-tag="value => handleRemoveIncludeRules(value, aggregateIdx)">  
+              @remove-tag="value => handleRemoveIncludeRules(value, aggregateIdx)">
+              <i slot="prefix" v-show="!aggregate.includes.length" class="el-input__icon el-icon-search"></i>
               <el-option
                 v-for="dimension in dimensions"
                 :key="dimension.value"
@@ -77,9 +80,12 @@
               v-guide.aggMandatory
               multiple
               filterable
+              class="mul-filter-select"
+              :class="{'reset-padding': aggregate.mandatory.length}"
               :value="aggregate.mandatory"
               :placeholder="$t('kylinLang.common.pleaseSelectOrSearch')"
               @change="value => handleInput(`aggregateArray.${aggregateIdx}.mandatory`, value)">
+              <i slot="prefix" v-show="!aggregate.mandatory.length" class="el-input__icon el-icon-search"></i>
               <el-option
                 v-for="dimension in getUnusedDimensions(aggregateIdx)"
                 :key="dimension.value"
@@ -98,9 +104,12 @@
                 v-guide.aggHierarchy
                 multiple
                 filterable
+                class="mul-filter-select"
+                :class="{'reset-padding': hierarchy.items.length}"
                 :value="hierarchy.items"
                 :placeholder="$t('kylinLang.common.pleaseSelectOrSearch')"
                 @change="value => handleInput(`aggregateArray.${aggregateIdx}.hierarchyArray.${hierarchyRowIdx}.items`, value)">
+                <i slot="prefix" v-show="!hierarchy.items.length" class="el-input__icon el-icon-search"></i>
                 <el-option
                   v-for="dimension in getUnusedDimensions(aggregateIdx)"
                   :key="dimension.value"
@@ -129,9 +138,12 @@
                 v-guide.joint
                 multiple
                 filterable
+                class="mul-filter-select"
+                :class="{'reset-padding': joint.items.length}"
                 :value="joint.items"
                 :placeholder="$t('kylinLang.common.pleaseSelectOrSearch')"
                 @change="value => handleInput(`aggregateArray.${aggregateIdx}.jointArray.${jointRowIdx}.items`, value)">
+                <i slot="prefix" v-show="!joint.items.length" class="el-input__icon el-icon-search"></i>
                 <el-option
                   v-for="dimension in getUnusedDimensions(aggregateIdx)"
                   :key="dimension.value"
@@ -540,6 +552,16 @@ export default class AggregateModal extends Vue {
 @import '../../../../../../assets/styles/variables.less';
 
 .aggregate-modal {
+  .mul-filter-select {
+    .el-select__tags {
+      padding-left: 15px;
+    }
+    &.reset-padding {
+      .el-select__tags {
+        padding-left: 0px;
+      }
+    }
+  }
   .cuboid-error {
     .cuboid-result {
       color:@error-color-1;
