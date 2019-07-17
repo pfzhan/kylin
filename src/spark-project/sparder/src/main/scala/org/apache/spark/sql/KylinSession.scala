@@ -182,6 +182,11 @@ object KylinSession extends Logging {
 
         val fileName = KylinConfig.getInstanceFromEnv.getKylinJobJarPath
         sparkConf.set("spark.executor.extraClassPath", Paths.get(fileName).getFileName.toString)
+
+        val executorExtraJavaOptions =
+          sparkConf.get("spark.executor.extraJavaOptions", "")
+        sparkConf.set("spark.executor.extraJavaOptions",
+          s"$executorExtraJavaOptions -Duser.timezone=${kapConfig.getKylinConfig.getTimeZone}")
       }
 
       sparkConf

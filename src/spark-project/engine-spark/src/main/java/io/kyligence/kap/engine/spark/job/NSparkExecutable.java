@@ -232,6 +232,7 @@ public class NSparkExecutable extends AbstractExecutable {
         if (StringUtils.isNotBlank(parentId)) {
             jobOverrides.put("job.stepId", getId());
         }
+        jobOverrides.put("user.timezone", KylinConfig.getInstanceFromEnv().getTimeZone());
         jobOverrides.putAll(kylinConfigExt.getExtendedOverrides());
         return KylinConfigExt.createInstance(kylinConfigExt, jobOverrides);
     }
