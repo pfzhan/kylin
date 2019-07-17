@@ -1761,7 +1761,6 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         Assert.assertEquals(ExecutableState.ERROR, executableManager.getOutput(task1.getId()).getState());
     }
 
-    @Ignore
     @Test
     public void testSubmitParallelTasksReachMemoryQuota()
             throws InterruptedException, NoSuchFieldException, IllegalAccessException {
@@ -1777,10 +1776,13 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         val currMem = NDefaultScheduler.currentAvailableMem();
         val dfs = Lists.newArrayList(NDataflowManager.getInstance(getTestConfig(), project).listAllDataflows());
 
+        val baseMem = Math.max(Math.round(currMem / dfs.size()), 1024) * 2;
+        getTestConfig().setProperty("kylin.engine.driver-memory-base", Long.valueOf(baseMem).toString());
+        getTestConfig().setProperty("kylin.engine.driver-memory-maximum", "102400");
         addParallelTasksForJob(dfs, executableManager);
 
         await().pollInterval(50, TimeUnit.MILLISECONDS).atMost(60000, TimeUnit.MILLISECONDS)
-                .until(() -> (NDefaultScheduler.currentAvailableMem() < 1024));
+                .until(() -> (NDefaultScheduler.currentAvailableMem() < baseMem));
         assertMemoryRestore(currMem);
     }
 
@@ -1793,7 +1795,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
             job.setTargetSubject(dfs.get(i).getModel().getUuid());
             job.setTargetSegments(
                     dfs.get(i).getSegments().stream().map(NDataSegment::getId).collect(Collectors.toList()));
-            BaseTestExecutable task1 = new FiveSecondSucceedTestExecutable();
+            BaseTestExecutable task1 = new FiveSecondSucceedTestExecutable(10);
             task1.setTargetSubject(dfs.get(i).getModel().getUuid());
             task1.setTargetSegments(
                     dfs.get(i).getSegments().stream().map(NDataSegment::getId).collect(Collectors.toList()));
