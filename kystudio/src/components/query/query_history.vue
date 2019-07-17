@@ -5,6 +5,7 @@
     <el-dialog
       title="Aggregate Index"
       top="5vh"
+      limited-area
       :visible.sync="aggDetailVisible"
       class="agg-dialog"
       :close-on-press-escape="false"

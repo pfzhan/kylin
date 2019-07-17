@@ -60,6 +60,7 @@
       <el-dialog
         class="sample-dialog"
         @close="resetSampling"
+        limited-area
         :title="$t('sampleDialogTitle')" width="480px" :visible.sync="sampleVisible" :close-on-press-escape="false" :close-on-click-modal="false">
         <div class="sample-desc">{{sampleDesc}}</div>
         <div class="sample-desc" style="margin-top: 3px;">

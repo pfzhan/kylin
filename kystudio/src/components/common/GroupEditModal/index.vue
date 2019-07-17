@@ -2,6 +2,7 @@
   <el-dialog class="group-edit-modal" :width="modalWidth"
     :title="$t(modalTitle)"
     :visible="isShow"
+    limited-area
     :close-on-click-modal="false"
     :close-on-press-escape="false"
     @close="isShow && closeHandler(false)">

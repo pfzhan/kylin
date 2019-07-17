@@ -14,6 +14,7 @@
     <el-dialog
       :title="$t('grant')"
       width="720px"
+      limited-area
       :close-on-press-escape="false"
       :close-on-click-modal="false"
       :visible.sync="editAccessVisible">

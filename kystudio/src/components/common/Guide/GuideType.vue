@@ -1,5 +1,5 @@
 <template>
-  <el-dialog class="guide-box" :append-to-body="true" width="720px"
+  <el-dialog class="guide-box" :append-to-body="true" width="720px" limited-area
     :before-close="closeShowGuideModeCheckDialog"
     :title="$t('switchModeTitle')"
     :close-on-click-modal="false"

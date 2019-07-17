@@ -1,5 +1,5 @@
 <template>
-   <el-dialog append-to-body 
+   <el-dialog append-to-body limited-area
     :close-on-press-escape="false"
     :close-on-click-modal="false" 
     :title="$t('kylinLang.model.addCC')" width="480px" :visible="isShow" @close="closeModal()">

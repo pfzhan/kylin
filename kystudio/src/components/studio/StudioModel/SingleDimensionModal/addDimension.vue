@@ -1,5 +1,5 @@
 <template>
-  <el-dialog append-to-body :title="$t('adddimension')" @close="isShow && handleClose(false)"  width="480px" :visible="isShow" class="add-dimension-dialog" :close-on-press-escape="false" :close-on-click-modal="false">
+  <el-dialog append-to-body limited-area :title="$t('adddimension')" @close="isShow && handleClose(false)"  width="480px" :visible="isShow" class="add-dimension-dialog" :close-on-press-escape="false" :close-on-click-modal="false">
     <div>
       <!-- <div class="ky-tips-box">
         <div class="tips-title">Reminder!</div>

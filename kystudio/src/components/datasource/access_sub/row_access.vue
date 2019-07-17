@@ -47,7 +47,7 @@
             :totalSize="aclRowTotalSize"
             @handleCurrentChange="handleCurrentChange">
           </kap-pager>
-          <el-dialog :title="$t('restrict')" width="720px" :visible.sync="addGrantDialog" @close="closeDialog" :close-on-press-escape="false" :close-on-click-modal="false">
+          <el-dialog :title="$t('restrict')" width="720px" limited-area :visible.sync="addGrantDialog" @close="closeDialog" :close-on-press-escape="false" :close-on-click-modal="false">
               <el-alert
                 :title="$t('rowAclDesc')"
                 show-icon

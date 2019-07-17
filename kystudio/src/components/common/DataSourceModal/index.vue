@@ -1,5 +1,5 @@
 <template>
-  <el-dialog class="data-srouce-modal" :width="modelWidth" v-guide.dataSourceSelectBox
+  <el-dialog class="data-srouce-modal" :width="modelWidth" limited-area v-guide.dataSourceSelectBox
     :title="$t(modalTitle)"
     :visible="isShow"
     :close-on-press-escape="false"

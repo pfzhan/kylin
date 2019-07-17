@@ -1,5 +1,5 @@
 <template>
-  <el-dialog :title="$t('computedDetail')" append-to-body width="480px" :visible="isShow" :close-on-press-escape="false" :close-on-click-modal="false" @close="isShow && closeModal()">
+  <el-dialog :title="$t('computedDetail')" append-to-body limited-area width="480px" :visible="isShow" :close-on-press-escape="false" :close-on-click-modal="false" @close="isShow && closeModal()">
     <div class="cc-detail-box" v-if="ccDetail">
       <el-table
       :show-header="false"

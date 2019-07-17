@@ -109,6 +109,7 @@
     <el-dialog class="linsencebox"
       :title="kapVersion"
       width="480px"
+      limited-area
       :visible.sync="lisenceDialogVisible"
       :close-on-press-escape="false"
       :close-on-click-modal="false"
@@ -121,7 +122,7 @@
       </span>
     </el-dialog>
     <!-- 全局apply favorite query -->
-    <el-dialog width="480px" :title="$t('accelerateTips')" class="speed_dialog" :visible="reachThresholdVisible" @close="manualClose = false" :close-on-click-modal="false">
+    <el-dialog width="480px" :title="$t('accelerateTips')" class="speed_dialog" limited-area :visible="reachThresholdVisible" @close="manualClose = false" :close-on-click-modal="false">
       <el-row>
         <el-col :span="14">
           {{$t('hello', {user: currentUser.username})}}<br/>

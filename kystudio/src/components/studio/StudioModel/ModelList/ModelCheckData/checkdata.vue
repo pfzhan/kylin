@@ -1,6 +1,6 @@
 <template>
   <!-- 模型数据检查 -->
-  <el-dialog class="model-data-check" :title="$t('modelDataCheck')" width="480px" :visible="isShow" :close-on-press-escape="false" :close-on-click-modal="false" @close="isShow && closeModal()">
+  <el-dialog class="model-data-check" :title="$t('modelDataCheck')" limited-area width="480px" :visible="isShow" :close-on-press-escape="false" :close-on-click-modal="false" @close="isShow && closeModal()">
       <el-form :model="checkModelMeta" ref="modelCheckDataForm" :rules="rules" label-width="130px" label-position="top">
         <div class="ky-list-title">数据检查项</div>
         <el-checkbox-group v-model="checkModelMeta.check_options">

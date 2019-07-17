@@ -4,7 +4,7 @@
     :visible="isShow"
     :close-on-press-escape="false"
     :close-on-click-modal="false"
-    :limited-area="true"
+    limited-area
     top="5vh"
     v-event-stop
     @close="isShow && handleClose(false)">

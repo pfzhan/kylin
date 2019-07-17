@@ -1,5 +1,5 @@
 <template>
-  <el-dialog append-to-body width="480px" :title="$t(measureTitle)" :visible.sync="measureVisible" top="5%" :close-on-press-escape="false" :close-on-click-modal="false" @close="handleHide(false)">
+  <el-dialog append-to-body width="480px" limited-area :title="$t(measureTitle)" :visible.sync="measureVisible" top="5%" :close-on-press-escape="false" :close-on-click-modal="false" @close="handleHide(false)">
     <el-form :model="measure" class="add-measure" label-position="top" :rules="rules"  ref="measureForm">
       <el-form-item :label="$t('name')" prop="name">
         <div>

@@ -12,7 +12,7 @@
       </el-dropdown-menu>
     </el-dropdown>
 
-    <el-dialog :visible.sync="aboutKapVisible" :title="$t('aboutKap')" width="720px"  :close-on-click-modal="false" :append-to-body="true">
+    <el-dialog :visible.sync="aboutKapVisible" :title="$t('aboutKap')" width="720px" limited-area :close-on-click-modal="false" :append-to-body="true">
       <about_kap :about="serverAbout" :aboutKapVisible="aboutKapVisible">
       </about_kap>
     </el-dialog>

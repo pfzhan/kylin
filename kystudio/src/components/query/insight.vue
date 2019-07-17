@@ -36,6 +36,7 @@
             width="720px"
             class="saved_query_dialog"
             top="5vh"
+            limited-area
             :close-on-press-escape="false"
             :close-on-click-modal="false"
             :visible.sync="savedQueryListVisible">

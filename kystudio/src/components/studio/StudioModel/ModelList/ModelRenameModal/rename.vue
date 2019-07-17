@@ -1,6 +1,6 @@
 <template>
   <!-- 模型重命名 -->
-  <el-dialog :title="$t('modelRename')" width="480px" :visible="isShow" :close-on-press-escape="false" :close-on-click-modal="false" @close="isShow && closeModal()">
+  <el-dialog :title="$t('modelRename')" width="480px" :visible="isShow" limited-area :close-on-press-escape="false" :close-on-click-modal="false" @close="isShow && closeModal()">
       <el-form :model="modelEdit" :rules="rules" ref="renameForm" label-width="100px">
         <el-form-item :label="$t('modelName')" prop="newName">
           <el-input v-focus="isShow" v-model="modelEdit.newName" auto-complete="off" size="medium"></el-input>

@@ -465,6 +465,7 @@
       :visible.sync="gotoIndexdialogVisible"
       width="30%"
       append-to-body
+      limited-area
       :close-on-click-modal="false"
       :show-close="false">
       <i class="el-icon-success ksd-mr-10 ky-dialog-icon"></i>

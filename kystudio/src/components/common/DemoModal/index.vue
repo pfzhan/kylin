@@ -1,5 +1,5 @@
 <template>
-  <el-dialog class="demo-modal" :width="modalWidth"
+  <el-dialog class="demo-modal" limited-area :width="modalWidth"
     :title="$t(modalTitle)"
     :visible="isShow"
     :close-on-click-modal="false"

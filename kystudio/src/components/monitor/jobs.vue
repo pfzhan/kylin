@@ -245,7 +245,7 @@
       <div class='job-btn' @click='showStep=false'><i class='el-icon-d-arrow-right' aria-hidden='true'></i>
       </div>
     </el-card>
-    <el-dialog :title="$t('waitingJobList')" :close-on-press-escape="false" :close-on-click-modal="false" :visible.sync="waitingJobListVisibel" width="480px">
+    <el-dialog :title="$t('waitingJobList')" limited-area :close-on-press-escape="false" :close-on-click-modal="false" :visible.sync="waitingJobListVisibel" width="480px">
       <div v-if="waitingJob">
         <div style="height:14px;line-height:14px;">
           <span class="ksd-title-label ksd-fs-14">{{$t('jobTarget')}}</span><span class="ky-title-color">{{waitingJob.modelName}}</span>
@@ -267,6 +267,7 @@
     </el-dialog>
     <el-dialog
       id="show-diagnos"
+      limited-area
       :title="stepAttrToShow == 'cmd' ? $t('parameters') : $t('output')"
       :visible.sync="dialogVisible"
       :close-on-press-escape="false"

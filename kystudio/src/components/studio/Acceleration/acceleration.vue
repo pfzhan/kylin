@@ -80,6 +80,7 @@
       :visible.sync="importSqlVisible"
       top="5vh"
       width="960px"
+      limited-area
       :close-on-press-escape="false"
       :close-on-click-modal="false"
       @closed="resetImport"
@@ -192,6 +193,7 @@
       top="5vh"
       :visible.sync="blackListVisible"
       width="960px"
+      limited-area
       :close-on-press-escape="false"
       :close-on-click-modal="false"
       @close="resetBlack"
@@ -247,6 +249,7 @@
     <el-dialog
       :visible.sync="ruleSettingVisible"
       width="720px"
+      limited-area
       :close-on-press-escape="false"
       :close-on-click-modal="false"
       :title="$t('ruleSetting')"
@@ -1334,7 +1337,8 @@ export default class FavoriteQuery extends Vue {
         font-size: 14px;
       }
       .el-dialog__body {
-        min-height: 460px;
+        // min-height: 460px;
+        height: 460px;
         .import-table {
           .cell {
             height: 23px;

@@ -11,7 +11,7 @@
     <div class="tree-list">
       <tree class="insight-search" :tableType="tableType" :empty-text="$t('kylinLang.common.dialogHiveTreeNoData')" :expandnodeclick="false" :treedata="tableData" :placeholder="$t('kylinLang.common.pleaseFilter')"  :indent="4" :expandall="false" :showfilter="true" :allowdrag="false" @contentClick="clickTable" maxlevel="4"></tree>
     </div>
-    <el-dialog class="load-datasource-dialog" :title="dataSourceLoadDialogTitle" width="720px" :visible.sync="loadDataSourceVisible" :close-on-press-escape="false" :close-on-click-modal="false">
+    <el-dialog class="load-datasource-dialog" :title="dataSourceLoadDialogTitle" width="720px" limited-area :visible.sync="loadDataSourceVisible" :close-on-press-escape="false" :close-on-click-modal="false">
       <div v-if="activeLoadFormIndex===-1">
         <p class="ksd-center ksd-mt-40 select-title">{{$t('dataSourceTypeCheckTip')}}{{initDefaultCheck}}</p>
        

@@ -3,6 +3,7 @@
     class="batch-load-modal"
     width="720px"
     :visible="isShow"
+    limited-area
     :title="$t('batchLoad')"
     :close-on-press-escape="false"
     :close-on-click-modal="false"

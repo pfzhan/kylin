@@ -3,6 +3,7 @@
     :title="$t('editDimension') + ' (' + allColumnsCount(true) + '/' + allColumnsCount() + ')'"
     :visible="isShow"
     top="5vh"
+    limited-area
     :close-on-press-escape="false"
     :close-on-click-modal="false"
     v-event-stop

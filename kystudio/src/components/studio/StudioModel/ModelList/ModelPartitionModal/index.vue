@@ -3,6 +3,7 @@
     :title="$t('modelPartitionSet')"
     width="560px"
     append-to-body
+    limited-area
     :visible="isShow" 
     class="model-partition-dialog" 
     @close="isShow && handleClose(false)" 

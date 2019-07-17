@@ -5,7 +5,8 @@
     <kap-loading v-show="$store.state.config.showLoadingBox"></kap-loading>
     <!-- 全局级别错误提示框 -->
     <el-dialog class="errMsgBox"
-       width="480px"
+      width="480px"
+      limited-area
       :before-close="handleClose"
       :title="$t('kylinLang.common.notice')"
       :close-on-click-modal="false"
