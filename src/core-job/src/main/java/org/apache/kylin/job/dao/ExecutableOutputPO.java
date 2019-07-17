@@ -65,6 +65,9 @@ public class ExecutableOutputPO implements Serializable {
     @JsonProperty("content")
     private String content;
 
+    @JsonProperty("log_path")
+    private String logPath;
+
     @JsonProperty("status")
     private String status = "READY";
 

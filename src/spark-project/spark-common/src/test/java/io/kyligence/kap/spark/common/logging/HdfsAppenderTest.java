@@ -247,7 +247,7 @@ public class HdfsAppenderTest {
         });
         hdfsAppender.activateOptions();
         final LoggingEvent loggingEvent = new LoggingEvent("1", org.apache.log4j.Logger.getLogger("sdad"), 10,
-                Level.ERROR, "sdadas", new Throwable("sd"));
+                Level.ERROR, "sdadas", null);
         final AtomicLong atomicLong = new AtomicLong();
         final CountDownLatch countDownLatch = new CountDownLatch(threadNumber);
         final Semaphore semaphore = new Semaphore(size);

@@ -30,6 +30,7 @@ import java.util.List;
 import java.util.Map;
 
 import com.google.common.collect.Maps;
+import io.kyligence.kap.rest.request.SparkJobUpdateRequest;
 import io.kyligence.kap.rest.response.EventResponse;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
@@ -187,5 +188,20 @@ public class NJobController extends NBasicController {
                                                   @RequestParam(value = "dimension") String dimension) {
         checkProjectName(project);
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, jobService.getJobDurationPerByte(project, startTime, endTime, dimension), "");
+    }
+
+    @RequestMapping(value = "/spark", method = { RequestMethod.PUT }, produces = {
+            "application/vnd.apache.kylin-v2+json" })
+    @ResponseBody
+    public EnvelopeResponse updateSparkJobInfo(@RequestBody SparkJobUpdateRequest sparkJobUpdateRequest) throws IOException {
+        checkProjectName(sparkJobUpdateRequest.getProject());
+        jobService.updateSparkJobInfo(
+                sparkJobUpdateRequest.getProject(),
+                sparkJobUpdateRequest.getJobId(),
+                sparkJobUpdateRequest.getTaskId(),
+                sparkJobUpdateRequest.getYarnAppId(),
+                sparkJobUpdateRequest.getYarnAppUrl());
+
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, null, "");
     }
 }

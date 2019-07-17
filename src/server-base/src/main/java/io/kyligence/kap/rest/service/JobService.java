@@ -40,6 +40,7 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.job.common.ShellExecutable;
+import org.apache.kylin.job.constant.ExecutableConstants;
 import org.apache.kylin.job.constant.JobStatusEnum;
 import org.apache.kylin.job.constant.JobTimeFilterEnum;
 import org.apache.kylin.job.dao.JobStatistics;
@@ -398,5 +399,23 @@ public class JobService extends BasicService {
             return JobTypeEnum.INDEX_REFRESH.toString();
 
         throw new IllegalStateException(String.format("Illegal type of event %s", event.getId()));
+    }
+
+    /**
+     * update the spark job info, such as yarnAppId, yarnAppUrl.
+     * @param project
+     * @param jobId
+     * @param taskId
+     * @param yarnAppId
+     * @param yarnAppUrl
+     */
+    @Transaction(project = 0)
+    public void updateSparkJobInfo(String project, String jobId, String taskId, String yarnAppId, String yarnAppUrl) {
+        val executableManager = getExecutableManager(project);
+        Map<String, String> extraInfo = Maps.newHashMap();
+        extraInfo.put(ExecutableConstants.YARN_APP_ID, yarnAppId);
+        extraInfo.put(ExecutableConstants.YARN_APP_URL, yarnAppUrl);
+
+        executableManager.updateJobOutput(taskId, null, extraInfo, null, null);
     }
 }

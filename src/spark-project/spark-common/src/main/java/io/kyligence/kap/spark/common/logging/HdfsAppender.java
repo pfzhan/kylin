@@ -306,6 +306,12 @@ public class HdfsAppender extends AppenderSkeleton {
                     });
                 }
                 write(layout.format(loggingEvent));
+                if(null != loggingEvent.getThrowableStrRep()) {
+                    for(String stackMsg: loggingEvent.getThrowableStrRep()) {
+                        write(stackMsg);
+                        write("\n");
+                    }
+                }
                 size--;
             }
             flush();

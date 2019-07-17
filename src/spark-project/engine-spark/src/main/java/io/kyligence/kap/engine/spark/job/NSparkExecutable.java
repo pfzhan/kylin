@@ -26,6 +26,8 @@ package io.kyligence.kap.engine.spark.job;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Collections;
@@ -80,6 +82,7 @@ import io.kyligence.kap.metadata.project.NProjectManager;
 import lombok.val;
 
 /**
+ *
  */
 public class NSparkExecutable extends AbstractExecutable {
 
@@ -225,7 +228,7 @@ public class NSparkExecutable extends AbstractExecutable {
             kylinConfigExt = projectInstance.getConfig();
         }
 
-        val jobOverrides = Maps.<String, String> newHashMap();
+        val jobOverrides = Maps.<String, String>newHashMap();
         val parentId = getParentId();
         jobOverrides.put("job.id", StringUtils.defaultIfBlank(parentId, getId()));
         jobOverrides.put("job.project", project);
@@ -272,7 +275,7 @@ public class NSparkExecutable extends AbstractExecutable {
     }
 
     private ExecuteResult runSparkSubmit(KylinConfig config, String sparkHome, String hadoopConf, String jars,
-            String kylinJobJar, String appArgs, String jobId) {
+                                         String kylinJobJar, String appArgs, String jobId) {
         PatternedLogger patternedLogger;
         if (config.isJobLogPrintEnabled()) {
             patternedLogger = new PatternedLogger(logger);
@@ -287,12 +290,16 @@ public class NSparkExecutable extends AbstractExecutable {
 
             Preconditions.checkState(result.getFirst() == 0);
             Map<String, String> extraInfo = makeExtraInfo(patternedLogger.getInfo());
-            val ret = ExecuteResult.createSucceed(result.getSecond());
+            val ret = ExecuteResult.createSucceed(result.getSecond(), getOutputHDFSPath());
             ret.getExtraInfo().putAll(extraInfo);
             return ret;
         } catch (Exception e) {
             return ExecuteResult.createError(e);
         }
+    }
+
+    private String getOutputHDFSPath() {
+        return KylinConfig.getInstanceFromEnv().getJobTmpOutputStorePath(getProject(), getId()) + ".log";
     }
 
     protected Map<String, String> getSparkConfigOverride(KylinConfig config) {
@@ -303,11 +310,41 @@ public class NSparkExecutable extends AbstractExecutable {
         if (UserGroupInformation.isSecurityEnabled()) {
             sparkConfigOverride.put("spark.hadoop.hive.metastore.sasl.enabled", "true");
         }
+
+        String serverIp = "127.0.0.1";
+        try {
+            serverIp = InetAddress.getLocalHost().getHostAddress();
+        } catch (UnknownHostException e) {
+            logger.warn("use the InetAddress get local ip failed!", e);
+        }
+        String serverPort = KylinConfig.getInstanceFromEnv().getServerPort();
+        String hdfsWorkingDir = KylinConfig.getInstanceFromEnv().getHdfsWorkingDirectory();
+
+        StringBuilder log4jConfiguration = new StringBuilder("file:");
+        log4jConfiguration.append(KylinConfig.getInstanceFromEnv().getKylinHome());
+        if (KylinConfig.getInstanceFromEnv().isDevEnv()) {
+            log4jConfiguration.append("/build");
+        }
+        log4jConfiguration.append("/conf/spark-driver-hdfs-log4j.properties");
+
+        StringBuilder sb = new StringBuilder();
+        if (sparkConfigOverride.containsKey("spark.driver.extraJavaOptions")) {
+            sb.append(sparkConfigOverride.get("spark.driver.extraJavaOptions"));
+        }
+
+        sb.append(String.format(" -Dlog4j.configuration=%s ", log4jConfiguration));
+        sb.append(String.format(" -Dkap.hdfs.working.dir=%s ", hdfsWorkingDir));
+        sb.append(String.format(" -Dspark.driver.log4j.appender.hdfs.File=%s ", getOutputHDFSPath()));
+        sb.append(String.format(" -Dspark.driver.rest.server.ip=%s ", serverIp));
+        sb.append(String.format(" -Dspark.driver.rest.server.port=%s ", serverPort));
+        sb.append(String.format(" -Dspark.driver.param.taskId=%s ", getId()));
+        sparkConfigOverride.put("spark.driver.extraJavaOptions", sb.toString());
+
         return sparkConfigOverride;
     }
 
     protected String generateSparkCmd(KylinConfig config, String hadoopConf, String jars, String kylinJobJar,
-            String appArgs) {
+                                      String appArgs) {
         StringBuilder sb = new StringBuilder();
         sb.append(
                 "export HADOOP_CONF_DIR=%s && %s/bin/spark-submit --class io.kyligence.kap.engine.spark.application.SparkEntry ");
@@ -317,6 +354,7 @@ public class NSparkExecutable extends AbstractExecutable {
             appendSparkConf(sb, entry.getKey(), entry.getValue());
         }
         appendSparkConf(sb, "spark.executor.extraClassPath", Paths.get(kylinJobJar).getFileName().toString());
+        appendSparkConf(sb, "spark.driver.extraClassPath", kylinJobJar);
 
         if (sparkConfs.containsKey("spark.sql.hive.metastore.jars")) {
             jars = jars + "," + sparkConfs.get("spark.sql.hive.metastore.jars");
@@ -338,7 +376,7 @@ public class NSparkExecutable extends AbstractExecutable {
     private ExecuteResult runLocalMode(String appArgs) {
         try {
             Class<? extends Object> appClz = ClassUtil.forName(getSparkSubmitClassName(), Object.class);
-            appClz.getMethod("main", String[].class).invoke(null, (Object) new String[] { appArgs });
+            appClz.getMethod("main", String[].class).invoke(null, (Object) new String[]{appArgs});
             return ExecuteResult.createSucceed();
         } catch (Exception e) {
             return ExecuteResult.createError(e);
@@ -353,7 +391,7 @@ public class NSparkExecutable extends AbstractExecutable {
 
         // The way of Updating metadata is CopyOnWrite. So it is safe to use Reference in the value.
         Map dumpMap = UnitOfWork.doInTransactionWithRetry(
-                UnitOfWorkParams.<Map> builder().readonly(true).unitName(getProject()).processor(() -> {
+                UnitOfWorkParams.<Map>builder().readonly(true).unitName(getProject()).processor(() -> {
                     Map<String, RawResource> retMap = Maps.newHashMap();
                     for (String resPath : getMetadataDumpList(config)) {
                         ResourceStore resourceStore = ResourceStore.getKylinMetaStore(config);

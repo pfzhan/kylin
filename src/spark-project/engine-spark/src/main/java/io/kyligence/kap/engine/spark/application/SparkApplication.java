@@ -25,17 +25,29 @@
 package io.kyligence.kap.engine.spark.application;
 
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.PrintStream;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import io.kyligence.kap.engine.spark.job.BuildJobInfos;
 import io.kyligence.kap.engine.spark.job.LogJobInfoUtils;
+import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.yarn.exceptions.YarnException;
+import org.apache.http.HttpResponse;
+import org.apache.http.HttpStatus;
+import org.apache.http.client.methods.HttpPut;
+import org.apache.http.entity.StringEntity;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClients;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.util.Application;
@@ -52,6 +64,8 @@ import org.apache.spark.sql.execution.SparkStrategy;
 import org.apache.spark.sql.hive.utils.ResourceDetectUtils;
 import org.apache.spark.util.Utils;
 import org.apache.spark.utils.ResourceUtils;
+import org.apache.spark.utils.YarnInfoFetcherUtils;
+import org.codehaus.jackson.map.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -81,6 +95,9 @@ public abstract class SparkApplication implements Application, IKeep {
 
     public void execute(String[] args) {
         try {
+            System.setOut(createLoggingProxy(System.out, false));
+            System.setErr(createLoggingProxy(System.err, true));
+
             String argsLine = Files.readAllLines(Paths.get(args[0])).get(0);
             if (argsLine.isEmpty()) {
                 throw new RuntimeException("Args file is empty");
@@ -90,6 +107,7 @@ public abstract class SparkApplication implements Application, IKeep {
             logger.info("Executor task " + this.getClass().getName() + " with args : " + argsLine);
             execute();
         } catch (Exception e) {
+            logger.error("The spark job execute failed!", e);
             throw new RuntimeException("Error execute " + this.getClass().getName(), e);
         }
     }
@@ -112,6 +130,49 @@ public abstract class SparkApplication implements Application, IKeep {
 
     public void checkArgs() {
         // do nothing
+    }
+
+    private static PrintStream createLoggingProxy(final PrintStream printStream, boolean setError) {
+        return new PrintStream(printStream) {
+            @Override
+            public void print(final String message) {
+                if (setError) {
+                    logger.error(message);
+                } else {
+                    logger.info(message);
+                }
+            }
+        };
+    }
+
+    /**
+     * http request the spark job controller
+     *
+     * @param json
+     */
+    public Boolean updateJobExtraInfo(String json) {
+        String serverIp = System.getProperty("spark.driver.rest.server.ip", "127.0.0.1");
+        String port = System.getProperty("spark.driver.rest.server.port", "7070");
+        String requestApi = String.format("http://%s:%s/kylin/api/jobs/spark", serverIp, port);
+
+        try (CloseableHttpClient httpClient = HttpClients.createDefault()) {
+            HttpPut httpPut = new HttpPut(requestApi);
+            httpPut.addHeader("Content-Type", "application/vnd.apache.kylin-v2+json");
+            httpPut.setEntity(new StringEntity(json, StandardCharsets.UTF_8));
+
+            HttpResponse response = httpClient.execute(httpPut);
+            int code = response.getStatusLine().getStatusCode();
+            if (code == HttpStatus.SC_OK) {
+                return true;
+            } else {
+                InputStream inputStream = response.getEntity().getContent();
+                String responseContent = IOUtils.toString(inputStream);
+                logger.warn("update spark job yarnAppid and yarnAppUrl failed, info: {}", responseContent);
+            }
+        } catch (IOException e) {
+            logger.error("http request {} failed!", requestApi, e);
+        }
+        return false;
     }
 
     final protected void execute() throws Exception {
@@ -175,6 +236,31 @@ public abstract class SparkApplication implements Application, IKeep {
                 }
             }).enableHiveSupport().config(sparkConf).config("mapreduce.fileoutputcommitter.marksuccessfuljobs", "false")
                     .getOrCreate();
+
+            if (isJobOnCluster(sparkConf)) {
+                Map<String, String> payload = new HashMap<>(5);
+                payload.put("project", project);
+                payload.put("jobId", jobId);
+                payload.put("taskId", System.getProperty("spark.driver.param.taskId", jobId));
+                payload.put("yarnAppId", ss.sparkContext().applicationId());
+
+                try {
+                    String yarnAppUrl = YarnInfoFetcherUtils.getTrackingUrl(ss.sparkContext().applicationId());
+                    payload.put("yarnAppUrl", yarnAppUrl);
+                } catch (IOException | YarnException e) {
+                    logger.error("get yarn tracking url failed!", e);
+                }
+
+                String payloadJson = new ObjectMapper().writeValueAsString(payload);
+                int retry = 3;
+                for (int i = 0; i < retry; i++) {
+                    if (updateJobExtraInfo(payloadJson)) {
+                        break;
+                    }
+                    Thread.sleep(3000);
+                    logger.warn("retry request rest api update spark job yarnAppId and yarnAppUr!");
+                }
+            }
 
             JoinMemoryManager.releaseAllMemory();
             // for spark metrics

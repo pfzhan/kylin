@@ -213,7 +213,7 @@ public abstract class AbstractExecutable implements Executable {
         Preconditions.checkState(result.succeed());
 
         wrapWithCheckQuit(() -> {
-            updateJobOutput(project, getId(), ExecutableState.SUCCEED, result.getExtraInfo(), result.output(), null);
+            updateJobOutput(project, getId(), ExecutableState.SUCCEED, result.getExtraInfo(), result.output(), result.getLogPath(), null);
         });
     }
 
@@ -236,6 +236,11 @@ public abstract class AbstractExecutable implements Executable {
 
     public void updateJobOutput(String project, String jobId, ExecutableState newStatus, Map<String, String> info,
             String output, Consumer<String> hook) {
+        updateJobOutput(project, jobId, newStatus, info, output, null, hook);
+    }
+
+    public void updateJobOutput(String project, String jobId, ExecutableState newStatus, Map<String, String> info,
+                                String output, String logPath, Consumer<String> hook) {
         UnitOfWork.doInTransactionWithRetry(() -> {
             NExecutableManager executableManager = getExecutableManager(project);
             val existedInfo = executableManager.getOutput(jobId).getExtra();
@@ -252,19 +257,25 @@ public abstract class AbstractExecutable implements Executable {
         }, project);
 
         //write output to HDFS
-        updateJobOutputToHDFS(project, jobId, output);
+        updateJobOutputToHDFS(project, jobId, output, logPath);
     }
 
-    private static void updateJobOutputToHDFS(String project, String jobId, String output) {
+    private static void updateJobOutputToHDFS(String project, String jobId, String output, String logPath) {
         NExecutableManager nExecutableManager = getExecutableManager(project);
         ExecutableOutputPO jobOutput = nExecutableManager.getJobOutput(jobId);
-        if (output != null) {
+        if (null != output) {
             jobOutput.setContent(output);
         }
-
+        if (null != logPath) {
+            jobOutput.setLogPath(logPath);
+        }
         String outputHDFSPath = KylinConfig.getInstanceFromEnv().getJobTmpOutputStorePath(project, jobId);
 
         nExecutableManager.updateJobOutputToHDFS(outputHDFSPath, jobOutput);
+    }
+
+    private static void updateJobOutputToHDFS(String project, String jobId, String output) {
+        updateJobOutputToHDFS(project, jobId, output, null);
     }
 
     protected static NExecutableManager getExecutableManager(String project) {

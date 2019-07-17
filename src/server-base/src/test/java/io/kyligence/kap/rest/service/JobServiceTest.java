@@ -474,5 +474,4 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
         event8.setModelId("not_existing_model");
         eventDao.addEvent(event8);
     }
-
 }

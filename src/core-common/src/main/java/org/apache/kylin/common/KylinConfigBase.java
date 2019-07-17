@@ -441,6 +441,9 @@ abstract public class KylinConfigBase implements Serializable {
         return Boolean.parseBoolean(getOptional("kylin.metadata.check-copy-on-write", "false"));
     }
 
+    public String getServerPort() {
+        return getOptional("server.port", "7070");
+    }
     // ============================================================================
     // DICTIONARY & SNAPSHOT
     // ============================================================================

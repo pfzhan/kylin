@@ -64,11 +64,16 @@ public final class ExecuteResult {
     private final String output;
     private final Throwable throwable;
 
+    /**
+     * spark driver log will save to hdfs first;
+     */
+    private final String logPath;
+
     //extra
     @Getter
     private Map<String, String> extraInfo = Maps.newHashMap();
 
-    private ExecuteResult(State state, String output, Throwable throwable) {
+    private ExecuteResult(State state, String output, Throwable throwable, String logPath) {
         Preconditions.checkArgument(state != null, "state cannot be null");
 
         if (state == State.SUCCEED) {
@@ -84,6 +89,11 @@ public final class ExecuteResult {
         this.state = state;
         this.output = output;
         this.throwable = throwable;
+        this.logPath = logPath;
+    }
+
+    private ExecuteResult(State state, String output, Throwable throwable) {
+        this(state, output, throwable, null);
     }
 
     public static ExecuteResult createSucceed() {
@@ -92,6 +102,10 @@ public final class ExecuteResult {
 
     public static ExecuteResult createSucceed(String output) {
         return new ExecuteResult(State.SUCCEED, output, null);
+    }
+
+    public static ExecuteResult createSucceed(String output, String logPath) {
+        return new ExecuteResult(State.SUCCEED, output, null, logPath);
     }
 
     public static ExecuteResult createError(Throwable throwable) {
@@ -113,6 +127,10 @@ public final class ExecuteResult {
 
     public Throwable getThrowable() {
         return throwable;
+    }
+
+    public String getLogPath() {
+        return logPath;
     }
 
     public String getErrorMsg() {

@@ -26,8 +26,11 @@ package org.apache.kylin.job.execution;
 
 import static org.apache.kylin.job.execution.AbstractExecutable.RUNTIME_INFO;
 
+import java.io.BufferedReader;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
+import java.io.IOException;
+import java.io.InputStreamReader;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.nio.file.Paths;
@@ -213,10 +216,26 @@ public class NExecutableManager {
         return parseOutput(jobOutput);
     }
 
+    /**
+     * get job output from hdfs json file;
+     * if json file contains logPath,
+     * the logPath is spark driver log hdfs path(*.json.log), read sample data from log file.
+     *
+     * @param jobId
+     * @return
+     */
     public Output getOutputFromHDFSByJobId(String jobId) {
         ExecutableOutputPO jobOutput = getJobOutputFromHDFS(
                 KylinConfig.getInstanceFromEnv().getJobTmpOutputStorePath(project, jobId));
         assertOutputNotNull(jobOutput, KylinConfig.getInstanceFromEnv().getJobTmpOutputStorePath(project, jobId));
+
+        if(Objects.nonNull(jobOutput.getLogPath())) {
+            if(Objects.isNull(jobOutput.getContent())) {
+                jobOutput.setContent(getSampleDataFromHDFS(jobOutput.getLogPath()));
+            } else {
+                jobOutput.setContent(jobOutput.getContent() + getSampleDataFromHDFS(jobOutput.getLogPath()));
+            }
+        }
         return parseOutput(jobOutput);
     }
 
@@ -585,6 +604,35 @@ public class NExecutableManager {
             return executableOutputPO;
         } finally {
             IOUtils.closeQuietly(din);
+        }
+    }
+
+    /**
+     * get sample data from hdfs log data.
+     * @param resPath
+     * @return
+     */
+    public String getSampleDataFromHDFS(String resPath) {
+        try{
+            Path path = new Path(resPath);
+            FileSystem fs = HadoopUtil.getFileSystem(path);
+            if(!fs.exists(path)) {
+                return null;
+            }
+
+            try(DataInputStream din = fs.open(path);
+                 BufferedReader reader = new BufferedReader(new InputStreamReader(din))) {
+                String line;
+                StringBuilder sampleData = new StringBuilder();
+                while ((line = reader.readLine()) != null) {
+                    sampleData.append(line).append('\n');
+                }
+
+                return sampleData.toString();
+            }
+        } catch (IOException e) {
+            logger.error("get sample data from hdfs log file [{}] failed!", resPath, e);
+            return null;
         }
     }
 
