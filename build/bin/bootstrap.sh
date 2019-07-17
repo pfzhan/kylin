@@ -64,6 +64,15 @@ function checkSparkDir() {
     source ${KYLIN_HOME}/bin/check-1600-spark-dir.sh
 }
 
+function checkIfStopUserSameAsStartUser() {
+    startUser=`ps -p $1 -o user=`
+    currentUser=`whoami`
+
+    if [ ${startUser} != ${currentUser} ]; then
+        echo `setColor 33 "Warning: You started Kyligence Enterprise as user [${startUser}], please stop the instance as the same user."`
+    fi
+}
+
 function quit {
         echo "$@"
         if [[ -n "${QUIT_MESSAGE_LOG}" ]]; then
@@ -214,6 +223,9 @@ then
         PID=`cat ${KYLIN_HOME}/pid`
         if ps -p $PID > /dev/null
         then
+
+           checkIfStopUserSameAsStartUser $PID
+
            echo "Stopping Kylin: $PID"
            kill $PID
            for i in {1..10}
