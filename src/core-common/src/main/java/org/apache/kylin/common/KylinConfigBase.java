@@ -1260,6 +1260,10 @@ abstract public class KylinConfigBase implements Serializable {
         return Integer.parseInt(this.getOptional("kylin.query.pushdown.base-shuffle-partition-size", "48"));
     }
 
+    public String getHiveMetastoreExtraClassPath() {
+        return getOptional("kylin.query.pushdown.hive-extra-class-path", "");
+    }
+
     public String getJdbcUrl() {
         return getOptional("kylin.query.pushdown.jdbc.url", "");
     }

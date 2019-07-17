@@ -23,14 +23,12 @@
  */
 package io.kyligence.kap.rest;
 
-import io.kyligence.kap.common.util.TempMetadataBuilder;
-import io.kyligence.kap.tool.kerberos.KerberosLoginTask;
 import java.io.File;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
-import lombok.extern.slf4j.Slf4j;
-import lombok.val;
+
+import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.ClassUtil;
 import org.apache.kylin.common.util.TimeZoneUtils;
@@ -41,6 +39,11 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.env.EnvironmentPostProcessor;
 import org.springframework.core.Ordered;
 import org.springframework.core.env.ConfigurableEnvironment;
+
+import io.kyligence.kap.common.util.TempMetadataBuilder;
+import io.kyligence.kap.tool.kerberos.KerberosLoginTask;
+import lombok.val;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class KylinPrepareEnvListener implements EnvironmentPostProcessor, Ordered {
@@ -74,6 +77,12 @@ public class KylinPrepareEnvListener implements EnvironmentPostProcessor, Ordere
         KerberosLoginTask kerberosLoginTask = new KerberosLoginTask();
         kerberosLoginTask.execute();
         env.addActiveProfile(config.getSecurityProfile());
+
+        // add extra hive class paths.
+        val extraClassPath = config.getHiveMetastoreExtraClassPath();
+        if (StringUtils.isNotEmpty(extraClassPath)) {
+            ClassUtil.addToClasspath(extraClassPath, Thread.currentThread().getContextClassLoader());
+        }
     }
 
     private static void setSandboxEnvs() {

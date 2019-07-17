@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -50,8 +49,6 @@ import java.net.URL;
 import java.net.URLClassLoader;
 import java.net.URLDecoder;
 import java.util.Enumeration;
-import java.util.HashMap;
-import java.util.Map;
 
 import org.slf4j.LoggerFactory;
 
@@ -62,46 +59,27 @@ public class ClassUtil {
     private static final org.slf4j.Logger logger = LoggerFactory.getLogger(ClassUtil.class);
 
     public static void addClasspath(String path) {
+        addToClasspath(path, ClassLoader.getSystemClassLoader());
+    }
+
+    public static void addToClasspath(String path, ClassLoader classLoader) {
         logger.info("Adding path " + path + " to class path");
         File file = new File(path);
 
         try {
             if (file.exists()) {
-                URLClassLoader urlClassLoader = (URLClassLoader) ClassLoader.getSystemClassLoader();
                 Class<URLClassLoader> urlClass = URLClassLoader.class;
                 Method method = urlClass.getDeclaredMethod("addURL", new Class[] { URL.class });
                 method.setAccessible(true);
-                method.invoke(urlClassLoader, new Object[] { file.toURI().toURL() });
+                method.invoke((URLClassLoader) classLoader, new Object[] { file.toURI().toURL() });
             }
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
     }
 
-    private static final Map<String, String> classRenameMap;
-    static {
-        classRenameMap = new HashMap<>();
-        classRenameMap.put("org.apache.kylin.job.common.HadoopShellExecutable", "org.apache.kylin.engine.mr.common.HadoopShellExecutable");
-        classRenameMap.put("org.apache.kylin.job.common.MapReduceExecutable", "org.apache.kylin.engine.mr.common.MapReduceExecutable");
-        classRenameMap.put("org.apache.kylin.job.cube.CubingJob", "org.apache.kylin.engine.mr.CubingJob");
-        classRenameMap.put("org.apache.kylin.job.cube.GarbageCollectionStep", "org.apache.kylin.storage.hbase.steps.DeprecatedGCStep");
-        classRenameMap.put("org.apache.kylin.job.cube.MergeDictionaryStep", "org.apache.kylin.engine.mr.steps.MergeDictionaryStep");
-        classRenameMap.put("org.apache.kylin.job.cube.UpdateCubeInfoAfterBuildStep", "org.apache.kylin.engine.mr.steps.UpdateCubeInfoAfterBuildStep");
-        classRenameMap.put("org.apache.kylin.job.cube.UpdateCubeInfoAfterMergeStep", "org.apache.kylin.engine.mr.steps.UpdateCubeInfoAfterMergeStep");
-        classRenameMap.put("org.apache.kylin.rest.util.KeywordDefaultDirtyHack", "org.apache.kylin.query.util.KeywordDefaultDirtyHack");
-    }
-
     public static <T> Class<? extends T> forName(String name, Class<T> clz) throws ClassNotFoundException {
-        name = forRenamedClass(name);
         return (Class<? extends T>) Class.forName(name);
-    }
-
-    private static String forRenamedClass(String name) {
-        if (name.startsWith("com.kylinolap")) {
-            name = "org.apache.kylin" + name.substring("com.kylinolap".length());
-        }
-        String rename = classRenameMap.get(name);
-        return rename == null ? name : rename;
     }
 
     public static Object newInstance(String clz) {
