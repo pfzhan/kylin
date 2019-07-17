@@ -109,6 +109,8 @@ public class NTopNTest extends NLocalWithSparkSessionTest {
     public void testTopNCanNotAnswerNonTopNStyleQuery() throws Exception {
         dfMgr.updateDataflow("fb6ce800-43ee-4ef9-b100-39d523f36304",
                 copyForWrite -> copyForWrite.setStatus(RealizationStatusEnum.OFFLINE));
+        dfMgr.updateDataflow("da101c43-6d22-48ce-88d2-bf0ce0594022",
+                copyForWrite -> copyForWrite.setStatus(RealizationStatusEnum.OFFLINE));
         String dfID = "79547ec2-350e-4ba4-88f9-099048962ceb";
         buildCuboid(dfID, TimePartitionedSegmentRange.createInfinite(),
                 Sets.newHashSet(dfMgr.getDataflow(dfID).getIndexPlan().getCuboidLayout(100001L),
@@ -138,6 +140,8 @@ public class NTopNTest extends NLocalWithSparkSessionTest {
     @Test
     public void testSingleDimLayoutCannotAnswerMultiTopnQuery() throws Exception {
         dfMgr.updateDataflow("79547ec2-350e-4ba4-88f9-099048962ceb",
+                copyForWrite -> copyForWrite.setStatus(RealizationStatusEnum.OFFLINE));
+        dfMgr.updateDataflow("da101c43-6d22-48ce-88d2-bf0ce0594022",
                 copyForWrite -> copyForWrite.setStatus(RealizationStatusEnum.OFFLINE));
         String dfID = "fb6ce800-43ee-4ef9-b100-39d523f36304";
         //  layout[ID, count(*), sum(price), Topn(price, SELLER_ID)]
@@ -223,6 +227,32 @@ public class NTopNTest extends NLocalWithSparkSessionTest {
         } catch (Exception e) {
             Assert.assertTrue(e.getMessage().contains("result not match"));
         }
+    }
+
+    @Test
+    public void testSameTableNameInDifferentDatabase() throws Exception {
+        TopNCounter.EXTRA_SPACE_RATE = 1;
+        SparkContext existingCxt = SparkContext.getOrCreate(sparkConf);
+        existingCxt.stop();
+        ss = SparkSession.builder().config(sparkConf).getOrCreate();
+        ss.sparkContext().setLogLevel("ERROR");
+
+        fullBuildCube("da101c43-6d22-48ce-88d2-bf0ce0594022", getProject());
+        ss.close();
+
+        populateSSWithCSVData(getTestConfig(), getProject(), SparderEnv.getSparkSession());
+
+        List<Pair<String, String>> query = new ArrayList<>();
+        query.add(Pair.newPair("top_n_answer",
+                "select A.SELLER_ID,sum(A.PRICE) from ISSUES.TEST_TOP_N A "
+                        + " join TEST_TOP_N B on A.ID=B.ID group by A.SELLER_ID order by sum(B.PRICE) desc limit 100"));
+        try {
+            NExecAndComp.queryFromCube(getProject(), query.get(0).getSecond());
+            Assert.fail();
+        } catch (Exception e) {
+            Assert.assertTrue(e.getCause().getCause().getMessage().contains("No realization found for OLAPContext"));
+        }
+
     }
 
     private void verifyTopnResult(List<Pair<String, String>> queries, NDataflow dataflow) {
