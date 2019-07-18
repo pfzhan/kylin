@@ -180,7 +180,7 @@ public class QueryMetricsContext {
 
         this.queryDuration = response.getDuration();
         this.totalScanBytes = response.getTotalScanBytes();
-        this.totalScanCount = response.getTotalScanCount();
+        this.totalScanCount = response.getTotalScanRows();
         this.engineType = response.getEngineType();
 
         if (response.isException())

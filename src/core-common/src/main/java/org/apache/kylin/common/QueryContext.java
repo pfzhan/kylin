@@ -42,6 +42,7 @@
 
 package org.apache.kylin.common;
 
+import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicLong;
@@ -76,8 +77,6 @@ public class QueryContext {
     private String queryId;
     private String username;
     private Set<String> groups;
-    private AtomicLong scannedRows = new AtomicLong();
-    private AtomicLong scannedBytes = new AtomicLong();
     private AtomicLong sourceScanBytes = new AtomicLong();
     private String sql;
     private boolean isTimeout;
@@ -107,6 +106,18 @@ public class QueryContext {
     private boolean withoutSyntaxError;
 
     private String correctedSql;
+
+    @Getter
+    @Setter
+    private int shufflePartitions;
+
+    @Getter
+    @Setter
+    private List<Long> scanRows;
+
+    @Getter
+    @Setter
+    private List<Long> scanBytes;
 
     private QueryContext() {
         // use QueryContext.current() instead
@@ -159,11 +170,19 @@ public class QueryContext {
     }
 
     public long getScannedRows() {
-        return scannedRows.get();
+        if (scanRows == null) {
+            return -1;
+        } else {
+            return scanRows.stream().reduce((x, y) -> x + y).orElse(-1L);
+        }
     }
 
     public long getScannedBytes() {
-        return scannedBytes.get();
+        if (scanBytes == null) {
+            return -1;
+        } else {
+            return scanBytes.stream().reduce((x, y) -> x + y).orElse(-1L);
+        }
     }
 
     public long getSourceScanBytes() {
@@ -224,10 +243,6 @@ public class QueryContext {
 
     public void setPushdownEngine(String pushdownEngine) {
         this.pushdownEngine = pushdownEngine;
-    }
-
-    public long addAndGetScannedRows(long deltaRows) {
-        return scannedRows.addAndGet(deltaRows);
     }
 
     public Throwable getFinalCause() {

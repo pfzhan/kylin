@@ -32,6 +32,7 @@ import org.apache.kylin.common.{KylinConfig, QueryContext}
 import org.apache.kylin.shaded.htrace.org.apache.htrace.Trace
 import org.apache.spark.network.util.JavaUtils
 import org.apache.spark.sql.functions._
+import org.apache.spark.sql.hive.QueryMetricUtils
 import org.apache.spark.sql.hive.utils.ResourceDetectUtils
 import org.apache.spark.sql.types.StringType
 import org.apache.spark.sql.util.SparderTypeUtil
@@ -69,6 +70,7 @@ object SparkSqlClient {
         val sourceTableSize = ResourceDetectUtils.getResourceSize(paths: _*) + "b"
         val partitions = Math.max(1, JavaUtils.byteStringAsMb(sourceTableSize) / basePartitionSize).toString
         df.sparkSession.sessionState.conf.setLocalProperty("spark.sql.shuffle.partitions", partitions)
+        QueryContext.current().setShufflePartitions(partitions.toInt)
         logger.info(s"Auto set spark.sql.shuffle.partitions $partitions")
       } catch {
         case e: Throwable =>
@@ -83,7 +85,11 @@ object SparkSqlClient {
     try {
       val columns = df.schema.map(tp => col(tp.name).cast(StringType))
       val fieldList = df.schema.map(field => SparderTypeUtil.convertSparkFieldToJavaField(field)).asJava
-      val rowList = df.select(columns: _*).collect().map(_.toSeq.map(_.asInstanceOf[String]).asJava).toSeq.asJava
+      val frame = df.select(columns: _*)
+      val rowList = frame.collect().map(_.toSeq.map(_.asInstanceOf[String]).asJava).toSeq.asJava
+      val (scanRows, scanBytes) = QueryMetricUtils.collectScanMetrics(frame.queryExecution.executedPlan)
+      QueryContext.current().setScanRows(scanRows)
+      QueryContext.current().setScanBytes(scanBytes)
       Pair.newPair(rowList, fieldList)
     } catch {
       case e: Throwable =>

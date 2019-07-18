@@ -319,9 +319,12 @@ public class QueryService extends BasicService {
         stringBuilder.append("Project: ").append(request.getProject()).append(newLine);
         stringBuilder.append("Realization Names: ").append(modelNames).append(newLine);
         stringBuilder.append("Index Layout Ids: ").append(layoutIds).append(newLine);
-        stringBuilder.append("Total Scan Count: ").append(response.getTotalScanCount()).append(newLine);
+        stringBuilder.append("Scan rows: ").append(response.getScanRows()).append(newLine);
+        stringBuilder.append("Total Scan rows: ").append(response.getTotalScanRows()).append(newLine);
+        stringBuilder.append("Scan bytes: ").append(response.getScanBytes()).append(newLine);
         stringBuilder.append("Total Scan Bytes: ").append(response.getTotalScanBytes()).append(newLine);
         stringBuilder.append("Result Row Count: ").append(resultRowCount).append(newLine);
+        stringBuilder.append("Shuffle partitions: ").append(response.getShufflePartitions()).append(newLine);
         stringBuilder.append("Accept Partial: ").append(request.isAcceptPartial()).append(newLine);
         stringBuilder.append("Is Partial Result: ").append(response.isPartial()).append(newLine);
         stringBuilder.append("Hit Exception Cache: ").append(response.isHitExceptionCache()).append(newLine);
@@ -496,7 +499,7 @@ public class QueryService extends BasicService {
             sqlResponse.setDuration(System.currentTimeMillis() - startTime);
             logger.info("Stats of SQL response: isException: {}, duration: {}, total scan count {}", //
                     String.valueOf(sqlResponse.isException()), String.valueOf(sqlResponse.getDuration()),
-                    String.valueOf(sqlResponse.getTotalScanCount()));
+                    String.valueOf(sqlResponse.getTotalScanRows()));
             if (checkCondition(queryCacheEnabled, "query cache is disabled") //
                     && checkCondition(!sqlResponse.isException(), "query has exception") //
                     && checkCondition(
@@ -505,10 +508,10 @@ public class QueryService extends BasicService {
                             "query is executed with pushdown, but it is non-select, or the cache for pushdown is disabled") //
                     && checkCondition(
                             sqlResponse.getDuration() > durationThreshold
-                                    || sqlResponse.getTotalScanCount() > scanCountThreshold
+                                    || sqlResponse.getTotalScanRows() > scanCountThreshold
                                     || sqlResponse.getTotalScanBytes() > scanBytesThreshold, //
                             "query is too lightweight with duration: {} (threshold {}), scan count: {} (threshold {}), scan bytes: {} (threshold {})",
-                            sqlResponse.getDuration(), durationThreshold, sqlResponse.getTotalScanCount(),
+                            sqlResponse.getDuration(), durationThreshold, sqlResponse.getTotalScanRows(),
                             scanCountThreshold, sqlResponse.getTotalScanBytes(), scanBytesThreshold)
                     && checkCondition(sqlResponse.getResults().size() < kylinConfig.getLargeQueryThreshold(),
                             "query response is too large: {} ({})", sqlResponse.getResults().size(),
@@ -530,8 +533,9 @@ public class QueryService extends BasicService {
             }
 
             sqlResponse.setQueryId(queryContext.getQueryId());
-            sqlResponse.setTotalScanCount(queryContext.getScannedRows());
-            sqlResponse.setTotalScanBytes(queryContext.getScannedBytes());
+            sqlResponse.setScanRows(queryContext.getScanRows());
+            sqlResponse.setScanBytes(queryContext.getScanBytes());
+            sqlResponse.setShufflePartitions(queryContext.getShufflePartitions());
             sqlResponse.setTimeout(queryContext.isTimeout());
 
             if (queryCacheEnabled && e.getCause() != null
@@ -1042,14 +1046,16 @@ public class QueryService extends BasicService {
         logger.info(logSb.toString());
 
         SQLResponse response = new SQLResponse(columnMetas, results, 0, false, null, isPartialResult, isPushDown);
-        response.setQueryId(QueryContext.current().getQueryId());
-        response.setTotalScanCount(QueryContext.current().getScannedRows());
-        response.setTotalScanBytes(QueryContext.current().getScannedBytes());
+        QueryContext queryContext = QueryContext.current();
+        response.setQueryId(queryContext.getQueryId());
+        response.setScanRows(queryContext.getScanRows());
+        response.setScanBytes(queryContext.getScanBytes());
+        response.setShufflePartitions(queryContext.getShufflePartitions());
         response.setNativeRealizations(realizations);
 
         if (isPushDown) {
             response.setNativeRealizations(Lists.newArrayList());
-            response.setEngineType(QueryContext.current().getPushdownEngine());
+            response.setEngineType(queryContext.getPushdownEngine());
             return response;
         }
 

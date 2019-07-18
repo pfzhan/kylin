@@ -28,6 +28,7 @@ import org.apache.calcite.rel.`type`.RelDataType
 import org.apache.kylin.common.exceptions.KylinTimeoutException
 import org.apache.kylin.common.{KapConfig, KylinConfig, QueryContext}
 import org.apache.spark.internal.Logging
+import org.apache.spark.sql.hive.QueryMetricUtils
 import org.apache.spark.sql.util.SparderTypeUtil
 import org.apache.spark.sql.{DataFrame, SparderEnv}
 
@@ -69,6 +70,7 @@ object ResultPlan extends Logging {
         Math.min(QueryContext.current().getSourceScanBytes / PARTITION_SPLIT_BYTES + 1,
           SparderEnv.getTotalCore).toInt
       }
+    QueryContext.current().setShufflePartitions(partitionsNum)
     logInfo(s"partitions num are : $partitionsNum," +
       s" total scan bytes are ${QueryContext.current().getSourceScanBytes}" +
       s" total cores are ${SparderEnv.getTotalCore}")
@@ -89,6 +91,9 @@ object ResultPlan extends Logging {
       interruptOnCancel = true)
     try {
       val rows = df.collect()
+      val (scanRows, scanBytes) = QueryMetricUtils.collectScanMetrics(df.queryExecution.executedPlan)
+      QueryContext.current().setScanRows(scanRows)
+      QueryContext.current().setScanBytes(scanBytes)
       val dt = rows.map { row =>
         var rowIndex = 0
         row.toSeq.map { cell => {

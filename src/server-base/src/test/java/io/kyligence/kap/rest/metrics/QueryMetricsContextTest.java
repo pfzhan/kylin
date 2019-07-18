@@ -221,8 +221,8 @@ public class QueryMetricsContextTest extends NLocalFileMetadataTestCase {
             final SQLResponse response = new SQLResponse(null, null, 0, false, null, true, true);
             response.setEngineType("MOCKUP");
             response.setDuration(100L);
-            response.setTotalScanBytes(999);
-            response.setTotalScanCount(111);
+            response.setScanBytes(Lists.newArrayList(999L));
+            response.setScanRows(Lists.newArrayList(111L));
 
             final QueryMetricsContext metricsContext = QueryMetricsContext.collect(request, response, queryContext);
 

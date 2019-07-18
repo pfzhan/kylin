@@ -45,17 +45,17 @@ package org.apache.kylin.rest.response;
 import java.io.Serializable;
 import java.util.List;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
-import io.kyligence.kap.metadata.query.NativeQueryRealization;
-
-import lombok.Getter;
-import lombok.Setter;
 import org.apache.kylin.common.debug.BackdoorToggles;
 import org.apache.kylin.metadata.querymeta.SelectedColumnMeta;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
+import io.kyligence.kap.metadata.query.NativeQueryRealization;
+import lombok.Getter;
+import lombok.Setter;
 
 @Getter
 @Setter
@@ -87,11 +87,31 @@ public class SQLResponse implements Serializable {
 
     protected boolean isPartial = false;
 
-    protected long totalScanCount;
+    protected List<Long> scanRows;
 
-    protected long totalScanBytes;
+    @JsonProperty("totalScanRows")
+    public long getTotalScanRows() {
+        if (scanRows == null) {
+            return -1;
+        } else {
+            return scanRows.stream().reduce((x, y) -> x + y).orElse(-1L);
+        }
+    }
+
+    protected List<Long> scanBytes;
+
+    @JsonProperty("totalScanBytes")
+    public long getTotalScanBytes() {
+        if (scanBytes == null) {
+            return -1;
+        } else {
+            return scanBytes.stream().reduce((x, y) -> x + y).orElse(-1L);
+        }
+    }
 
     protected long resultRowCount;
+
+    protected int shufflePartitions;
 
     protected boolean hitExceptionCache = false;
 
