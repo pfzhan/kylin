@@ -7,7 +7,7 @@ export const PROJECT_NAME = 'project-name'
 // TODO: 在this中解构$t，会造成$t方法中的this为undefined
 export default {
   [GROUP_NAME] (rule, value, callback) {
-    if (!/^\w+$/.test(value)) {
+    if (!/^[\w.@]*$/.test(value)) {
       callback(new Error(this.$t('kylinLang.common.nameFormatValidTip')))
     } else {
       callback()
