@@ -144,23 +144,6 @@ public class KapProjectRel extends OLAPProjectRel implements KapRel {
     }
 
     @Override
-    protected TblColRef translateRexInputRef(RexInputRef inputRef, ColumnRowType inputColumnRowType, String fieldName,
-            Set<TblColRef> sourceCollector) {
-        int index = inputRef.getIndex();
-        // check it for rewrite count
-        if (index < inputColumnRowType.size()) {
-            TblColRef column = inputColumnRowType.getColumnByIndex(index);
-            if (!column.isInnerColumn() && !this.rewriting && !this.afterAggregate) {
-                sourceCollector.add(column);
-            }
-            return column;
-        } else {
-            throw new IllegalStateException("Can't find " + inputRef + " from child columnrowtype " + inputColumnRowType
-                    + " with fieldname " + fieldName);
-        }
-    }
-
-    @Override
     public void implementRewrite(RewriteImplementor implementor) {
         implementor.visitChild(this, getInput());
         if (this.context == null) {

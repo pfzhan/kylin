@@ -28,6 +28,7 @@ import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptRuleOperand;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.rules.JoinProjectTransposeRule;
 
 import io.kyligence.kap.query.relnode.KapJoinRel;
@@ -55,4 +56,20 @@ public class KapJoinProjectTransposeRule extends RelOptRule {
     public static final JoinProjectTransposeRule RIGHT_PROJECT = new JoinProjectTransposeRule(
             operand(KapJoinRel.class, operand(RelNode.class, any()), operand(KapProjectRel.class, any())),
             "JoinProjectTransposeRule(Other-Project)");
+
+    public static final JoinProjectTransposeRule LEFT_PROJECT_INCLUDE_OUTER =
+            new JoinProjectTransposeRule(
+                    operand(KapJoinRel.class,
+                            some(operand(KapProjectRel.class, any()))),
+                    "Join(IncludingOuter)ProjectTransposeRule(Project-Other)",
+                    true, RelFactories.LOGICAL_BUILDER);
+
+    public static final JoinProjectTransposeRule RIGHT_PROJECT_INCLUDE_OUTER =
+            new JoinProjectTransposeRule(
+                    operand(
+                            KapJoinRel.class,
+                            operand(RelNode.class, any()),
+                            operand(KapProjectRel.class, any())),
+                    "Join(IncludingOuter)ProjectTransposeRule(Other-Project)",
+                    true, RelFactories.LOGICAL_BUILDER);
 }
