@@ -611,6 +611,27 @@ public class NAutoComputedColumnTest extends NAutoTestBase {
         }
     }
 
+    @Test
+    public void testCCOnInnerCol() {
+        String[] sqls = new String[] {
+                "select max(cast(LEAF_CATEG_ID*SITE_ID as VARCHAR)) from TEST_CATEGORY_GROUPINGS group by META_CATEG_NAME"
+        };
+        NSmartMaster smartMaster = new NSmartMaster(kylinConfig, getProject(), sqls);
+        smartMaster.runAll();
+
+        val modelContexts = smartMaster.getContext().getModelContexts();
+        Assert.assertEquals(1, modelContexts.size());
+        val targetModel = modelContexts.get(0).getTargetModel();
+        val computedColumns = targetModel.getComputedColumnDescs();
+        val accelerationInfoMap = smartMaster.getContext().getAccelerateInfoMap();
+        Assert.assertFalse(accelerationInfoMap.get(sqls[0]).isNotSucceed());
+
+        Assert.assertEquals(1, computedColumns.size());
+        Assert.assertEquals("CAST(TEST_CATEGORY_GROUPINGS.LEAF_CATEG_ID * TEST_CATEGORY_GROUPINGS.SITE_ID AS string)",
+                computedColumns.get(0).getInnerExpression().trim());
+        Assert.assertEquals("VARCHAR", computedColumns.get(0).getDatatype());
+    }
+
     private String convertCC(String originSql) {
         return (new ConvertToComputedColumn()).transform(originSql, getProject(), "DEFAULT");
     }
