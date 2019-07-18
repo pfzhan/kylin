@@ -29,6 +29,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Stack;
 
+import io.kyligence.kap.query.optrule.RightJoinToLeftJoinRule;
 import org.apache.calcite.adapter.enumerable.EnumerableRel;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptCost;
@@ -185,6 +186,8 @@ public class KapTableScan extends OLAPTableScan implements EnumerableRel, KapRel
 
         // see Dec 26th email @ http://mail-archives.apache.org/mod_mbox/calcite-dev/201412.mbox/browser
         planner.removeRule(ExpandConversionRule.INSTANCE);
+        // convert all right joins to left join since we only support left joins in model
+        planner.addRule(RightJoinToLeftJoinRule.INSTANCE);
     }
 
     @Override

@@ -111,10 +111,10 @@ public class OLAPJoinRel extends EnumerableJoin implements OLAPRel {
     public EnumerableJoin copy(RelTraitSet traitSet, RexNode conditionExpr, RelNode left, RelNode right, //
             JoinRelType joinType, boolean semiJoinDone) {
 
-        final JoinInfo joinInfo = JoinInfo.of(left, right, condition);
+        final JoinInfo joinInfo = JoinInfo.of(left, right, conditionExpr);
         assert joinInfo.isEqui();
         try {
-            return new OLAPJoinRel(getCluster(), traitSet, left, right, condition, joinInfo.leftKeys,
+            return new OLAPJoinRel(getCluster(), traitSet, left, right, conditionExpr, joinInfo.leftKeys,
                     joinInfo.rightKeys, variablesSet, joinType);
         } catch (InvalidRelException e) {
             // Semantic error not possible. Must be a bug. Convert to internal error.
@@ -124,7 +124,10 @@ public class OLAPJoinRel extends EnumerableJoin implements OLAPRel {
 
     @Override
     public RelOptCost computeSelfCost(RelOptPlanner planner, RelMetadataQuery mq) {
-        return super.computeSelfCost(planner, mq).multiplyBy(.05);
+        // assign a hugh cost on right join so that the swapped left join will win in the optimization
+        return joinType == JoinRelType.RIGHT ?
+                super.computeSelfCost(planner, mq).multiplyBy(100) :
+                super.computeSelfCost(planner, mq).multiplyBy(.05);
     }
 
     @Override
