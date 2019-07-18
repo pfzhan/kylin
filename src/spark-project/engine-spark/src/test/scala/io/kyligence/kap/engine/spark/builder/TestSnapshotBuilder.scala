@@ -51,7 +51,6 @@ class TestSnapshotBuilder extends SparderBaseFunSuite with SharedSparkSession wi
     config
   }
 
-
   test("snapshot -- check snapshot reuse") {
     val dsMgr: NDataflowManager = NDataflowManager.getInstance(getTestConfig, DEFAULT_PROJECT)
     val df: NDataflow = dsMgr.getDataflow(DF_NAME)
@@ -65,7 +64,6 @@ class TestSnapshotBuilder extends SparderBaseFunSuite with SharedSparkSession wi
     buildSnapshot(df, isMock = true, 2)
     buildSnapshot(df, isMock = true, 2)
     df.getSegments.asScala.foreach(_.getConfig.setProperty("kylin.snapshot.parallel-build-enabled", "true"))
-
   }
 
   test("snapshot -- check snapshot concurrent construction") {
@@ -75,7 +73,6 @@ class TestSnapshotBuilder extends SparderBaseFunSuite with SharedSparkSession wi
     fs.delete(new Path(snapPath), true)
     roundTestBuildSnap()
   }
-
 
   test("test concurrent snapshot success") {
     val dsMgr: NDataflowManager = NDataflowManager.getInstance(getTestConfig, DEFAULT_PROJECT)
@@ -169,9 +166,6 @@ class TestSnapshotBuilder extends SparderBaseFunSuite with SharedSparkSession wi
       snapshot
     }
   }
-
-
-
 
   private def buildSnapshot(df: NDataflow, isMock: Boolean, expectedSize: Int): Unit = {
     val snapPath = KapConfig.wrap(getTestConfig).getReadHdfsWorkingDirectory + df.getProject + HadoopUtil.SNAPSHOT_STORAGE_ROOT

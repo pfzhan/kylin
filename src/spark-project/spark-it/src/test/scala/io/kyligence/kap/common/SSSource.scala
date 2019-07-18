@@ -31,6 +31,8 @@ import org.apache.spark.sql.common.{LocalMetadata, SharedSparkSession}
 import org.apache.spark.sql.execution.utils.SchemaProcessor
 import org.scalatest.Suite
 
+import scala.util.Random
+
 trait SSSource extends SharedSparkSession with LocalMetadata {
   self: Suite =>
 
@@ -47,15 +49,24 @@ trait SSSource extends SharedSparkSession with LocalMetadata {
     import scala.collection.JavaConverters._
     projectInstance.getTables.asScala
       .filter(!_.equals("DEFAULT.STREAMING_TABLE"))
-      .foreach { tableName =>
+      .foreach { table =>
         val tableDesc = NTableMetadataManager
           .getInstance(kylinConf, project)
-          .getTableDesc(tableName)
+          .getTableDesc(table)
         val columns = tableDesc.getColumns
         val schema = SchemaProcessor.buildSchemaWithRawTable(columns)
-        val ret =
-          spark.read.schema(schema).csv(String.format(CSV_TABLE_DIR, tableName))
-        ret.createOrReplaceTempView(tableDesc.getName)
+        var tableN = tableDesc.getName
+        if (table.equals("DEFAULT.TEST_KYLIN_FACT")) {
+          tableN = tableDesc.getName + "_table"
+        }
+        spark.catalog.createTable(
+          tableName = tableN,
+          source = "csv",
+          schema = schema,
+          options = Map("path" -> String.format(CSV_TABLE_DIR, table)))
+        if (table.equals("DEFAULT.TEST_KYLIN_FACT")) {
+          spark.sql("create view " + tableDesc.getName + " as select * from " + tableN)
+        }
       }
   }
 
