@@ -24,14 +24,18 @@
 
 package org.apache.spark.sql.util
 
+import java.lang.{Boolean, Byte, Double, Float, Long, Short}
 import java.math.BigDecimal
-import java.sql.{Timestamp, Types}
+import java.sql.{Date, Timestamp, Types}
 import java.util.regex.Pattern
-import java.util.TimeZone
+import java.util.{GregorianCalendar, TimeZone}
 
 import io.kyligence.kap.query.pushdown.StructField
+import org.apache.calcite.avatica.util.TimeUnitRange
 import org.apache.calcite.rel.`type`.RelDataType
+import org.apache.calcite.rex.RexLiteral
 import org.apache.calcite.sql.`type`.SqlTypeName
+import org.apache.calcite.util.NlsString
 import org.apache.kylin.common.util.DateFormat
 import org.apache.kylin.metadata.datatype.DataType
 import org.apache.spark.internal.Logging
@@ -160,6 +164,54 @@ object SparderTypeUtil extends Logging {
         }
       }
     }
+  }
+
+  def getValueFromRexLit(literal: RexLiteral) = {
+    val ret = literal.getValue match {
+      case s: NlsString =>
+        s.getValue
+      case g: GregorianCalendar =>
+        if (literal.getTypeName.getName.equals("DATE")) {
+          new Date(DateTimeUtils.stringToTimestamp(UTF8String.fromString(literal.toString)).get / 1000)
+        } else {
+          new Timestamp(DateTimeUtils.stringToTimestamp(UTF8String.fromString(literal.toString)).get / 1000)
+        }
+      case range: TimeUnitRange =>
+        // Extract(x from y) in where clause
+        range.name
+      case b: Boolean =>
+        b
+      case b: BigDecimal =>
+        literal.getType.getSqlTypeName match {
+          case SqlTypeName.BIGINT =>
+            b.longValue()
+          case SqlTypeName.INTEGER =>
+            b.intValue()
+          case SqlTypeName.DOUBLE =>
+            b.doubleValue()
+          case SqlTypeName.FLOAT =>
+            b.floatValue()
+          case SqlTypeName.SMALLINT =>
+            b.shortValue()
+          case _ =>
+            b
+        }
+      case b: Float =>
+        b
+      case b: Double =>
+        b
+      case b: Integer =>
+        b
+      case b: Byte =>
+        b
+      case b: Short =>
+        b
+      case b: Long =>
+        b
+      case _ =>
+        literal.getValue.toString
+    }
+    ret
   }
 
   // scalastyle:off

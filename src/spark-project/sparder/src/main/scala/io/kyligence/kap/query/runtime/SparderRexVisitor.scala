@@ -24,20 +24,16 @@
 
 package io.kyligence.kap.query.runtime
 
-import java.lang.{Boolean, Byte, Double, Float, Long, Short}
 import java.math.BigDecimal
-import java.sql.{Date, Timestamp}
-import java.util.GregorianCalendar
+import java.sql.Timestamp
 
 import io.kyligence.kap.query.util.UnsupportedSparkFunctionException
 import org.apache.calcite.DataContext
-import org.apache.calcite.avatica.util.TimeUnitRange
 import org.apache.calcite.rel.`type`.RelDataType
 import org.apache.calcite.rex._
 import org.apache.calcite.sql.SqlKind._
 import org.apache.calcite.sql.`type`.{BasicSqlType, IntervalSqlType, SqlTypeFamily, SqlTypeName}
 import org.apache.calcite.sql.fun.SqlDatetimeSubtractionOperator
-import org.apache.calcite.util.NlsString
 import org.apache.kylin.common.util.DateFormat
 import org.apache.spark.sql.KapFunctions._
 import org.apache.spark.sql.catalyst.expressions.StringLocate
@@ -165,7 +161,11 @@ class SparderRexVisitor(val df: DataFrame,
       case MINUS_PREFIX =>
         assert(children.size == 1)
         negate(k_lit(children.head))
-
+      case IN => val values = children.drop(1).map(c => k_lit(c).expr)
+        in(k_lit(children.head).expr, values)
+      case NOT_IN =>
+        val values = children.drop(1).map(c => k_lit(c).expr)
+        not(in(k_lit(children.head).expr, values))
       case PLUS =>
         assert(children.size == 2)
         if (op.getName.equals("DATETIME_PLUS")) {
@@ -495,69 +495,9 @@ class SparderRexVisitor(val df: DataFrame,
 
       case _ =>
     }
-    literal.getValue match {
-      case s: NlsString =>
-        Some(s.getValue)
-      case g: GregorianCalendar =>
-        if (literal.getTypeName.getName.equals("DATE")) {
-          Some(new Date(DateTimeUtils.stringToTimestamp(UTF8String.fromString(literal.toString)).get / 1000))
-        } else {
-          Some(new Timestamp(DateTimeUtils.stringToTimestamp(UTF8String.fromString(literal.toString)).get / 1000))
-        }
-      case range: TimeUnitRange =>
-        // Extract(x from y) in where clause
-        Some(range.name)
-      case b: Boolean =>
-        Some(b)
-      case b: BigDecimal =>
-        literal.getType.getSqlTypeName match {
-          case SqlTypeName.BIGINT =>
-            Some(b.longValue())
-          case SqlTypeName.INTEGER =>
-            Some(b.intValue())
-          case SqlTypeName.DOUBLE =>
-            Some(b.doubleValue())
-          case SqlTypeName.FLOAT =>
-            Some(b.floatValue())
-          case SqlTypeName.SMALLINT =>
-            Some(b.shortValue())
-          case _ =>
-            Some(b)
-        }
-      case b: Float =>
-        Some(b)
-      case b: Double =>
-        Some(b)
-      case b: Integer =>
-        Some(b)
-      case b: Byte =>
-        Some(b)
-      case b: Short =>
-        Some(b)
-      case b: Long =>
-        Some(b)
-      case _ =>
-        Some(literal.getValue.toString)
-    }
+    val ret = SparderTypeUtil.getValueFromRexLit(literal)
+    Some(ret)
   }
-
-  //
-  //  private def convertFilterValueBeforeAggr(literalValue: Any): Any = {
-  //    if (literalValue == null) {
-  //      return None
-  //    }
-  //    literalValue match {
-  //      case s: NlsString =>
-  //        s.getValue
-  //      case g: GregorianCalendar =>
-  //        g.getTimeInMillis.toString
-  //      case range: TimeUnitRange =>
-  //        // Extract(x from y) in where clause
-  //        range.name
-  //      case _ =>
-  //        literalValue.toString
-  //    }
-  //  }
 
   override def visitDynamicParam(dynamicParam: RexDynamicParam): Any = {
     val name = dynamicParam.getName

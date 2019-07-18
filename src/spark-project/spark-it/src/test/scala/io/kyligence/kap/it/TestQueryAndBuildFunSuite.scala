@@ -117,6 +117,7 @@ class TestQueryAndBuildFunSuite
   conf.set("spark.shuffle.detectCorrupt", "false")
 
   override def beforeAll(): Unit = {
+    System.setProperty("calcite.keep-in-clause", "true")
     val timeZones = Array("GMT", "GMT+8", "CST")
     val timeZoneStr = timeZones.apply((System.currentTimeMillis() % 3).toInt)
     TimeZone.setDefault(TimeZone.getTimeZone(timeZoneStr))
@@ -135,6 +136,17 @@ class TestQueryAndBuildFunSuite
   override def afterAll(): Unit = {
     SparderEnv.cleanCompute()
     TimeZone.setDefault(defaultTimeZone)
+    System.clearProperty("calcite.keep-in-clause")
+  }
+
+  ignore("temp") {
+    var result = tempQuery
+      .flatMap { folder =>
+        queryFolder(folder, joinTypes)
+      }
+      .filter(_ != null)
+
+    assert(result.isEmpty)
   }
 
   test("buildKylinFact") {

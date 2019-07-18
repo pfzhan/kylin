@@ -73,6 +73,11 @@ public class KylinPrepareEnvListener implements EnvironmentPostProcessor, Ordere
         // enable CC check
         System.setProperty("needCheckCC", "true");
         val config = KylinConfig.getInstanceFromEnv();
+        if (config.isCalciteInClauseEnabled()) {
+            System.setProperty("calcite.keep-in-clause", "true");
+        } else {
+            System.setProperty("calcite.keep-in-clause", "false");
+        }
         TimeZoneUtils.setDefaultTimeZone(config);
         KerberosLoginTask kerberosLoginTask = new KerberosLoginTask();
         kerberosLoginTask.execute();

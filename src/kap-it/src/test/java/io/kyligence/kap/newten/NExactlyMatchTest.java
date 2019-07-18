@@ -24,6 +24,9 @@
 
 package io.kyligence.kap.newten;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.job.engine.JobEngineConfig;
@@ -32,18 +35,21 @@ import org.apache.kylin.job.lock.MockJobLock;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparderEnv;
+import org.apache.spark.sql.catalyst.expressions.Expression;
+import org.apache.spark.sql.catalyst.expressions.In;
 import org.apache.spark.sql.catalyst.plans.logical.Aggregate;
+import org.apache.spark.sql.catalyst.plans.logical.Filter;
 import org.apache.spark.sql.catalyst.plans.logical.LogicalPlan;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
-import scala.runtime.AbstractFunction1;
+import com.google.common.collect.Lists;
 
-import java.util.ArrayList;
-import java.util.List;
+import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
+import scala.Option;
+import scala.runtime.AbstractFunction1;
 
 public class NExactlyMatchTest extends NLocalWithSparkSessionTest {
 
@@ -68,6 +74,52 @@ public class NExactlyMatchTest extends NLocalWithSparkSessionTest {
     @Override
     public String getProject() {
         return "agg_match";
+    }
+
+    @Test
+    public void testInClause() throws Exception{
+        fullBuildCube("c9ddd37e-c870-4ccf-a131-5eef8fe6cb7e", getProject());
+
+        KylinConfig config = KylinConfig.getInstanceFromEnv();
+        populateSSWithCSVData(config, getProject(), SparderEnv.getSparkSession());
+
+        String base = "select count(*) from TEST_KYLIN_FACT ";
+
+        String in1 = base + "where substring(LSTG_FORMAT_NAME, 1, 1) in ('A','F')"
+                + " or substring(LSTG_FORMAT_NAME, 1, 1) in ('O','B')";
+
+        String in2 = base + "where substring(LSTG_FORMAT_NAME, 1, 1) in ('A','F')"
+                + " and substring(LSTG_FORMAT_NAME, 1, 1) in ('O','B')";
+
+        String not_in1 = base + "where substring(LSTG_FORMAT_NAME, 1, 1) not in ('A','F')"
+                + " or substring(LSTG_FORMAT_NAME, 1, 1) not in ('O','B')";
+
+        String not_in2 = base + "where substring(LSTG_FORMAT_NAME, 1, 1) not in ('A','F')"
+                + " or substring(LSTG_FORMAT_NAME, 1, 1) not in ('O','B')";
+
+        System.setProperty("calcite.keep-in-clause", "true");
+        Dataset<Row> df1 = NExecAndComp.queryCubeAndSkipCompute(getProject(), in1);
+        Dataset<Row> df2 = NExecAndComp.queryCubeAndSkipCompute(getProject(), in2);
+        Dataset<Row> df3 = NExecAndComp.queryCubeAndSkipCompute(getProject(), not_in2);
+        Dataset<Row> df4 = NExecAndComp.queryCubeAndSkipCompute(getProject(), not_in2);
+
+        Assert.assertTrue(existsIn(df1));
+        Assert.assertTrue(existsIn(df2));
+        Assert.assertTrue(existsIn(df3));
+        Assert.assertTrue(existsIn(df4));
+        ArrayList<String> querys = Lists.newArrayList(in1, in2, not_in1, not_in2);
+        NExecAndComp.execAndCompareQueryList(querys, getProject(), NExecAndComp.CompareLevel.SAME, "left");
+
+        System.setProperty("calcite.keep-in-clause", "false");
+        Dataset<Row> df5 = NExecAndComp.queryCubeAndSkipCompute(getProject(), in1);
+        Dataset<Row> df6 = NExecAndComp.queryCubeAndSkipCompute(getProject(), in2);
+        Dataset<Row> df7 = NExecAndComp.queryCubeAndSkipCompute(getProject(), not_in2);
+        Dataset<Row> df8 = NExecAndComp.queryCubeAndSkipCompute(getProject(), not_in2);
+
+        Assert.assertFalse(existsIn(df5));
+        Assert.assertFalse(existsIn(df6));
+        Assert.assertFalse(existsIn(df7));
+        Assert.assertFalse(existsIn(df8));
     }
 
     @Test
@@ -111,5 +163,26 @@ public class NExactlyMatchTest extends NLocalWithSparkSessionTest {
                 return v1 instanceof Aggregate;
             }
         }).isEmpty();
+    }
+
+    private boolean existsIn(Dataset<Row> m1) {
+        Option<LogicalPlan> option = m1.logicalPlan().find(new AbstractFunction1<LogicalPlan, Object>() {
+            @Override
+            public Object apply(LogicalPlan v1) {
+                return v1 instanceof Filter;
+            }
+        });
+
+        if (option.isDefined()) {
+            Filter filter = (Filter) option.get();
+            return filter.condition().find(new AbstractFunction1<Expression, Object>() {
+                @Override
+                public Object apply(Expression v1) {
+                    return v1 instanceof In;
+                }
+            }).isDefined();
+        } else {
+            return false;
+        }
     }
 }

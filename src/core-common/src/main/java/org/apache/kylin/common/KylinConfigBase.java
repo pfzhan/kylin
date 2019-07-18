@@ -1545,6 +1545,10 @@ abstract public class KylinConfigBase implements Serializable {
         return Boolean.parseBoolean(getOptional("kylin.storage.columnar.separate-fs-enable", "false"));
     }
 
+    public Boolean isCalciteInClauseEnabled() {
+        return Boolean.parseBoolean(getOptional("kylin.query.calcite-in-clause-enabled", "true"));
+    }
+
     public Boolean isEnumerableRulesEnabled() {
         return Boolean.parseBoolean(getOptional("kylin.query.calcite.enumerable-rules-enabled", "false"));
     }

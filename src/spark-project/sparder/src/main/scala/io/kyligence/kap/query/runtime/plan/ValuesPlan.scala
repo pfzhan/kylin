@@ -37,7 +37,7 @@ object ValuesPlan {
         SparderTypeUtil.convertSqlTypeToSparkType(field.getType))
     })
     val rows = rel.tuples.asScala.map { tp =>
-      Row.apply(tp.asScala.map(f => f.getValue))
+      Row.fromSeq(tp.asScala.map(lit => SparderTypeUtil.getValueFromRexLit(lit)))
     }.asJava
     if (rel.tuples.size() == 0) {
       SparkOperation.createEmptyDataFrame(schema)

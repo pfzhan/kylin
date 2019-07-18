@@ -95,6 +95,7 @@ public class NAutoTestBase extends NLocalWithSparkSessionTest {
         if (CollectionUtils.isEmpty(excludedSqlPatterns)) {
             excludedSqlPatterns = loadWhiteListSqlPatterns();
         }
+        overwriteSystemProp("calcite.keep-in-clause", "true");
     }
 
     @Override
