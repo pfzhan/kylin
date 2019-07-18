@@ -429,9 +429,11 @@ public class NExecutableManager {
             ExecutableState oldStatus = ExecutableState.valueOf(jobOutput.getStatus());
             if (newStatus != null && oldStatus != newStatus) {
                 if (!ExecutableState.isValidStateTransfer(oldStatus, newStatus)) {
-                    logger.warn("[UNEXPECTED_THINGS_HAPPENED] wrong job state transfer!");
-                    throw new IllegalStateTranferException("There is no valid state transfer from: " + oldStatus
-                            + " to: " + newStatus + ", job id: " + taskOrJobId);
+                    logger.warn(
+                            "[UNEXPECTED_THINGS_HAPPENED] wrong job state transfer! There is no valid state transfer from: {} to: {}, job id: {}",
+                            oldStatus, newStatus, taskOrJobId);
+                    throw new IllegalStateTranferException(
+                            "UNEXPECTED_THINGS_HAPPENED, job " + taskOrJobId + " couldn't be continued.");
                 }
                 jobOutput.setStatus(String.valueOf(newStatus));
                 updateJobStatus(jobOutput, oldStatus, newStatus);
