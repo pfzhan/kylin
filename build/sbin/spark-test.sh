@@ -103,24 +103,43 @@ function retrieveSparkEnvProps()
     then
         confStr=`echo ${confStr} --conf 'spark.hadoop.hive.metastore.sasl.enabled=true'`
     fi
-    kylinMetadataUrlIdentifier="-Dkap.metadata.identifier=\${kylin.metadata.url.identifier}"
-    jobProject="-Dkap.spark.project=\${job.project}"
-    confStr=`echo ${confStr//${kylinMetadataUrlIdentifier}/}`
-    confStr=`echo ${confStr//${jobProject}/}`
 
     engineConfStr=`echo "$SPARK_ENGINE_CONF_PROPS" |  awk '{ print "--conf " "\"" $0 "\""}' | tr '\n' ' ' `
     if [[ "${KAP_KERBEROS_ENABLED}" == "true" ]]
     then
         engineConfStr=`echo ${engineConfStr} --conf 'spark.hadoop.hive.metastore.sasl.enabled=true'`
     fi
-    jobId="-Dkap.spark.identifier=\${job.id}"
-    jobStepId="-Dkap.spark.jobName=\${job.stepId}"
-    engineConfStr=`echo ${engineConfStr//${kylinMetadataUrlIdentifier}}`
-    engineConfStr=`echo ${engineConfStr//${jobProject}}`
-    engineConfStr=`echo ${engineConfStr//${jobId}/}`
-    engineConfStr=`echo ${engineConfStr//${jobStepId}/}`
+
+    confStr=`removeInvalidSparkConfValue "$SPARK_CONF_PROPS" "$confStr"`
+    engineConfStr=`removeInvalidSparkConfValue "$SPARK_ENGINE_CONF_PROPS" "$engineConfStr"`
+
     verbose "additional confs spark-submit: $confStr"
     verbose "additional confs spark-sql: $engineConfStr"
+}
+
+function removeInvalidSparkConfValue() {
+    SAVEIFS=$IFS
+    IFS=$'\n'
+    sparkConfArray=($1)
+    result=$2
+
+    for (( i=0; i<${#sparkConfArray[@]}; i++ ))
+    do
+        conf=${sparkConfArray[$i]}
+        confValuesString=${conf#*=}
+        IFS=' ' read -r -a confValues <<< "$confValuesString"
+        for (( j=0; j<${#confValues[@]}; j++ ))
+        do
+            confValue=${confValues[$j]}
+            if [[ $confValue == *"\${"* ]]; then
+                result=`echo ${result//${confValue}/}`
+            fi
+        done
+    done
+
+    IFS=$SAVEIFS
+
+    echo "$result"
 }
 
 if [ "$1" == "test" ]
