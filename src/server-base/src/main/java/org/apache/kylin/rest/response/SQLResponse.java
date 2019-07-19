@@ -65,10 +65,10 @@ public class SQLResponse implements Serializable {
     private static final Logger logger = LoggerFactory.getLogger(SQLResponse.class);
 
     // the data type for each column
-    protected List<SelectedColumnMeta> columnMetas;
+    private List<SelectedColumnMeta> columnMetas;
 
     // the results rows, each row contains several columns
-    protected List<List<String>> results;
+    private List<List<String>> results;
 
     // if not select query, only return affected row count
     protected int affectedRowCount;
@@ -87,7 +87,7 @@ public class SQLResponse implements Serializable {
 
     protected boolean isPartial = false;
 
-    protected List<Long> scanRows;
+    private List<Long> scanRows;
 
     @JsonProperty("totalScanRows")
     public long getTotalScanRows() {
@@ -98,7 +98,7 @@ public class SQLResponse implements Serializable {
         }
     }
 
-    protected List<Long> scanBytes;
+    private List<Long> scanBytes;
 
     @JsonProperty("totalScanBytes")
     public long getTotalScanBytes() {
