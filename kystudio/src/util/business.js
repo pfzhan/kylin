@@ -365,9 +365,7 @@ export function isTimePartitionType (type) {
 }
 
 export function getGmtDateFromUtcLike (value) {
-  if (value !== undefined) {
-    // const isDate = value instanceof Date
-    // value = isDate ? value : new Date(value)
-    return new Date(transToServerGmtTime(value).replace(/\s+GMT[+-]\d+$/, ''))
+  if (value !== undefined && value !== null) {
+    return new Date(transToServerGmtTime(value).replace(/\s+GMT[+-]\d+$/, '').replace(/-/g, '/'))
   }
 }
