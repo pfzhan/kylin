@@ -66,6 +66,7 @@ public class JdbcAuditLogStore implements AuditLogStore, JdbcTransactionMixin {
 
     static final String AUDIT_LOG_SUFFIX = "_audit_log";
 
+    static final String AUDIT_LOG_TABLE_ID = "id";
     static final String AUDIT_LOG_TABLE_KEY = "meta_key";
     static final String AUDIT_LOG_TABLE_CONTENT = "meta_content";
     static final String AUDIT_LOG_TABLE_TS = "meta_ts";
@@ -78,11 +79,15 @@ public class JdbcAuditLogStore implements AuditLogStore, JdbcTransactionMixin {
                     AUDIT_LOG_TABLE_MVCC, AUDIT_LOG_TABLE_UNIT, AUDIT_LOG_TABLE_OPERATOR)
             + ") values (?, ?, ?, ?, ?, ?)";
     static final String SELECT_BY_RANGE_SQL = "select "
-            + Joiner.on(",").join("id", AUDIT_LOG_TABLE_KEY, AUDIT_LOG_TABLE_CONTENT, AUDIT_LOG_TABLE_TS,
+            + Joiner.on(",").join(AUDIT_LOG_TABLE_ID, AUDIT_LOG_TABLE_KEY, AUDIT_LOG_TABLE_CONTENT, AUDIT_LOG_TABLE_TS,
                     AUDIT_LOG_TABLE_MVCC, AUDIT_LOG_TABLE_UNIT, AUDIT_LOG_TABLE_OPERATOR)
             + " from %s where id > %d and id <= %d order by id";
     static final String SELECT_MAX_ID_SQL = "select max(id) from %s";
     static final String DELETE_ID_LESSTHAN_SQL = "delete from %s where id < ?";
+    static final String SELECT_TS_RANGE = "select "
+            + Joiner.on(",").join(AUDIT_LOG_TABLE_ID, AUDIT_LOG_TABLE_KEY, AUDIT_LOG_TABLE_CONTENT, AUDIT_LOG_TABLE_TS,
+                    AUDIT_LOG_TABLE_MVCC, AUDIT_LOG_TABLE_UNIT, AUDIT_LOG_TABLE_OPERATOR)
+            + " from %s where id > %d and meta_ts between %d and %d order by id limit %d";
 
     private final KylinConfig config;
     @Getter
@@ -138,9 +143,26 @@ public class JdbcAuditLogStore implements AuditLogStore, JdbcTransactionMixin {
                 }).filter(Objects::nonNull).collect(Collectors.toList())));
     }
 
+    public void batchInsert(List<AuditLog> auditLogs) {
+        withTransaction(() -> jdbcTemplate.batchUpdate(String.format(INSERT_SQL, table), auditLogs.stream().map(x -> {
+            try {
+                return new Object[] { x.getResPath(), x.getByteSource().read(), x.getTimestamp(), x.getMvcc(),
+                        x.getUnitId(), x.getOperator() };
+            } catch (IOException e) {
+                return null;
+            }
+        }).filter(Objects::nonNull).collect(Collectors.toList())));
+    }
+
     public List<AuditLog> fetch(long currentId, long size) {
         log.trace("fetch log from {} < id <= {}", currentId, currentId + size);
         return jdbcTemplate.query(String.format(SELECT_BY_RANGE_SQL, table, currentId, currentId + size),
+                new AuditLogRowMapper());
+    }
+
+    public List<AuditLog> fetchRange(long fromId, long start, long end, int limit) {
+        log.trace("fetch log from {} meta_ts between {} and {}", table, start, end);
+        return jdbcTemplate.query(String.format(SELECT_TS_RANGE, table, fromId, start, end, limit),
                 new AuditLogRowMapper());
     }
 
@@ -234,9 +256,10 @@ public class JdbcAuditLogStore implements AuditLogStore, JdbcTransactionMixin {
 
     void createIfNotExist() throws IOException {
         String fileName = "metadata-jdbc-default.properties";
-        if (((BasicDataSource)jdbcTemplate.getDataSource()).getDriverClassName().equals("org.postgresql.Driver")) {
+        if (((BasicDataSource) jdbcTemplate.getDataSource()).getDriverClassName().equals("org.postgresql.Driver")) {
             fileName = "metadata-jdbc-postgresql.properties";
-        }else if (((BasicDataSource) jdbcTemplate.getDataSource()).getDriverClassName().equals("com.mysql.jdbc.Driver")) {
+        } else if (((BasicDataSource) jdbcTemplate.getDataSource()).getDriverClassName()
+                .equals("com.mysql.jdbc.Driver")) {
             fileName = "metadata-jdbc-mysql.properties";
         }
         InputStream is = Thread.currentThread().getContextClassLoader().getResourceAsStream(fileName);

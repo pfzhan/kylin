@@ -28,6 +28,9 @@ mkdir $diag_tmp_dir/metadata
 mkdir $diag_tmp_dir/conf
 mkdir $diag_tmp_dir/hadoop_conf
 mkdir $diag_tmp_dir/system_metrics
+mkdir $diag_tmp_dir/audit_log
+mkdir $diag_tmp_dir/job_tmp
+mkdir $diag_tmp_dir/yarn_application_log
 
 diag_log_file=$diag_tmp_dir/diag.log
 exec 2>>$diag_log_file
@@ -79,26 +82,26 @@ for log_file in $log_files; do
     fi
 done
 
-# extract spark logs
 ## get hdfs dir
-verbose "Extract spark logs..."
 hdfs_working_dir=`$KYLIN_HOME/bin/get-properties.sh kylin.env.hdfs-working-dir`
 metadata_url=`$KYLIN_HOME/bin/get-properties.sh kylin.metadata.url`
-spark_logs_path=${hdfs_working_dir}/${metadata_url}
-
+kylin_hdfs_prefix=${hdfs_working_dir}/${metadata_url}
 ## check whether it contain '@' mark,if it exists,extract the content before it
-mark=`echo ${spark_logs_path} | grep "@"`
+mark=`echo ${kylin_hdfs_prefix} | grep "@"`
 if [ ${#mark} -ne 0 ]
 then
-    spark_logs_path=`echo ${spark_logs_path} | awk -F'@' '{print $1}'`
+    kylin_hdfs_prefix=`echo ${kylin_hdfs_prefix} | awk -F'@' '{print $1}'`
 fi
+verbose "kylin_hdfs_prefix: $kylin_hdfs_prefix"
 
+# extract spark logs
+verbose "Extract spark logs..."
 if [[ $1 == "-full" ]]; then
     if [[ -f $KYLIN_HOME/appid ]]; then
         start_date=`date -d "@$start_time" "+%F"`
         end_date=`date -d "@$end_time" "+%F"`
         appid=`cat $KYLIN_HOME/appid`
-        sparder_logs_path=$spark_logs_path/_sparder_logs
+        sparder_logs_path=$kylin_hdfs_prefix/_sparder_logs
         for sparder_log_file in $(hadoop fs -ls -d "$sparder_logs_path/*/*" | awk '{print $8}'); do
             log_appid=$(echo $sparder_log_file | awk -F "/" '{print $NF}')
             log_date=$(echo $sparder_log_file | awk -F "/" '{print $(NF-1)}')
@@ -115,22 +118,68 @@ if [[ $1 == "-full" ]]; then
     else
         verbose "=> can not found appid"
     fi
-
 elif [[ $1 == "-job" ]]; then
-    spark_job_logs_path=$spark_logs_path/*/spark_logs
-    for job_log_file in $(hadoop fs -ls -d "$spark_job_logs_path/*/*" | awk '{print $8}'); do
-        log_job_id=$(echo $job_log_file | awk -F "/" '{print $NF}')
-        if [[ $log_job_id == $job_id ]]; then
+    spark_job_logs_path=${kylin_hdfs_prefix}/*/spark_logs
+    for job_log_file in $(hadoop fs -ls -d "$spark_job_logs_path/*/${job_id}" | awk '{print $8}'); do
+        log_job_id=$(echo ${job_log_file} | awk -F "/" '{print $NF}')
+        if [[ ${log_job_id} == ${job_id} ]]; then
+            project_name=$(echo ${job_log_file} | awk -F "/" '{print $(NF-3)}')
             if [[ ! -d ${diag_tmp_dir}/spark_logs/job ]]; then
                 mkdir ${diag_tmp_dir}/spark_logs/job
             fi
-            hadoop fs -copyToLocal $job_log_file ${diag_tmp_dir}/spark_logs/job/
+            hadoop fs -copyToLocal ${job_log_file} ${diag_tmp_dir}/spark_logs/job/
             if [[ $? == 0 ]]; then
                 verbose "=> extract [$job_log_file] spark log successful"
             fi
             break;
         fi
     done
+fi
+
+verbose "Dump job_tmp..."
+if [[ $1 == "-job" ]]; then
+    job_tmp_path=${kylin_hdfs_prefix}/*/job_tmp
+    for job_tmp_file in $(hadoop fs -ls -d "$job_tmp_path/${job_id}" | awk '{print $8}'); do
+        tmp_job_id=$(echo ${job_tmp_file} | awk -F "/" '{print $NF}')
+        if [[ ${tmp_job_id} == ${job_id} ]]; then
+            project_name=$(echo ${job_tmp_file} | awk -F "/" '{print $(NF-2)}')
+            hadoop fs -copyToLocal ${job_tmp_file} ${diag_tmp_dir}/job_tmp/
+            if [[ $? == 0 ]]; then
+                verbose "=> extract [$job_tmp_file] job_tmp successful"
+            fi
+            break;
+        fi
+    done
+fi
+
+verbose "Dump audit log..."
+if [[ $1 == "-full" ]]; then
+    ${KYLIN_HOME}/bin/kylin.sh io.kyligence.kap.tool.AuditLogTool -startTime $[$start_time * 1000] -endTime $[$end_time * 1000] -dir ${diag_tmp_dir}/audit_log
+elif [[ $1 == "-job" ]]; then
+    verbose "project name: $project_name"
+    if [[ -z ${project_name} ]];then
+        verbose "=> project name not specified, dump audit log failed"
+    else
+        ${KYLIN_HOME}/bin/kylin.sh io.kyligence.kap.tool.AuditLogTool -job ${job_id} -project ${project_name} -dir ${diag_tmp_dir}/audit_log
+    fi
+fi
+
+verbose "Dump yarn application log..."
+if [[ $1 == "-job" ]]; then
+    ${KYLIN_HOME}/bin/kylin.sh io.kyligence.kap.tool.YarnApplicationTool -job ${job_id} -project ${project_name} > ${diag_tmp_dir}/yarn_application_id
+    for yarn_application_id in `cat ${diag_tmp_dir}/yarn_application_id`
+    do
+        if [[ -z ${yarn_application_id} ]];then
+            verbose "=> ignore empty yarn_application_id"
+        else
+            verbose "yarn_application_id: $yarn_application_id"
+            yarn logs -applicationId ${yarn_application_id} > ${diag_tmp_dir}/yarn_application_log/${yarn_application_id}.log
+            if [[ $? == 0 ]]; then
+                verbose "=> extract [$yarn_application_id] yarn application log successful"
+            fi
+        fi
+    done
+    rm ${diag_tmp_dir}/yarn_application_id
 fi
 
 # dump metadata
@@ -186,7 +235,7 @@ fi
 diag_pkg_home=$(cd -P $diag_pkg_home && pwd -P)
 diag_package="diag_$(date '+%Y_%m_%d_%H_%M_%S')"
 verbose "Packaging, build diagnostic package in [${diag_pkg_home}/${diag_package}.tar.gz]"
-(cd ${diag_tmp_dir} && mkdir $diag_package && cp -rf "metadata" "logs" "spark_logs" "conf" "hadoop_conf" "diag.log" "system_metrics" $diag_package \
+(cd ${diag_tmp_dir} && mkdir $diag_package && cp -rf "metadata" "logs" "spark_logs" "conf" "hadoop_conf" "diag.log" "system_metrics" "audit_log" "job_tmp" "yarn_application_log" $diag_package \
     && tar -zcf "${diag_package}.tar.gz" $diag_package \
     && cp "${diag_package}.tar.gz" "${diag_pkg_home}/${diag_package}.tar.gz")
 

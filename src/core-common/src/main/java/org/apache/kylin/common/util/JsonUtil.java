@@ -105,6 +105,10 @@ public class JsonUtil {
         return mapper.readValue(content, valueTypeRef);
     }
 
+    public static <T> T readValue(File src, TypeReference<T> valueTypeRef) throws IOException {
+        return mapper.readValue(src, valueTypeRef);
+    }
+
     public static Map<String, String> readValueAsMap(String content) throws IOException {
         TypeReference<HashMap<String, String>> typeRef = new TypeReference<HashMap<String, String>>() {
         };

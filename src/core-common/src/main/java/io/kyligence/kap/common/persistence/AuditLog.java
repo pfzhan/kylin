@@ -23,7 +23,19 @@
  */
 package io.kyligence.kap.common.persistence;
 
+import java.io.IOException;
+
+import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.databind.DeserializationContext;
+import com.fasterxml.jackson.databind.JsonDeserializer;
+import com.fasterxml.jackson.databind.JsonSerializer;
+import com.fasterxml.jackson.databind.SerializerProvider;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.common.io.ByteSource;
+import com.google.common.io.ByteStreams;
+
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -37,6 +49,8 @@ public class AuditLog {
 
     private String resPath;
 
+    @JsonSerialize(using = ByteSourceSerializer.class)
+    @JsonDeserialize(using = ByteSourceDeserializer.class)
     private ByteSource byteSource;
 
     private Long timestamp;
@@ -46,4 +60,22 @@ public class AuditLog {
     private String unitId;
 
     private String operator;
+
+    public static class ByteSourceSerializer extends JsonSerializer<ByteSource> {
+
+        @Override
+        public void serialize(ByteSource byteSource, JsonGenerator jsonGenerator, SerializerProvider serializerProvider)
+                throws IOException {
+            jsonGenerator.writeBinary(byteSource.read());
+        }
+    }
+
+    public static class ByteSourceDeserializer extends JsonDeserializer<ByteSource> {
+
+        @Override
+        public ByteSource deserialize(JsonParser jsonParser, DeserializationContext deserializationContext)
+                throws IOException {
+            return ByteStreams.asByteSource(jsonParser.getBinaryValue());
+        }
+    }
 }
