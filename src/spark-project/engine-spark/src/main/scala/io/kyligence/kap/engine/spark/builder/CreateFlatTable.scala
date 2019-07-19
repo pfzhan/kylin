@@ -43,27 +43,34 @@ import scala.collection.mutable.ListBuffer
 class CreateFlatTable(val flatTable: IJoinedFlatTableDesc,
                       val seg: NDataSegment,
                       val toBuildTree: NSpanningTree,
-                      val ss: SparkSession) {
+                      val ss: SparkSession) extends Logging {
 
-  def generateDataset(needEncode: Boolean = false): Dataset[Row] = {
+  def generateDataset(needEncode: Boolean = false, needJoin: Boolean = true): Dataset[Row] = {
     val model = flatTable.getDataModel
 
     var rootFactDataset: Dataset[Row] = CreateFlatTable.generateFactTableDataset(model, ss)
     rootFactDataset = CreateFlatTable.applyFilterCondition(flatTable, rootFactDataset)
 
-    var lookupTableDatasetMap: util.Map[JoinTableDesc, Dataset[Row]] = CreateFlatTable.generateLookupTableDataset(model.getJoinTables, ss)
-
-    if (needEncode) {
-      val globalDictTuple: GlobalDictType = CreateFlatTable.assemblyGlobalDictTuple(seg, toBuildTree)
-      rootFactDataset = applyEncodeOperation(rootFactDataset, model.getRootFactTable.getAlias, globalDictTuple)
-      lookupTableDatasetMap = applyEncodeOperation(lookupTableDatasetMap, globalDictTuple)
+    logInfo(s"Create flattable need join lookup tables ${needJoin}, need encode cols ${needEncode}")
+    (needJoin, needEncode) match {
+      case (true, true) =>
+        var lookupTableDatasetMap = CreateFlatTable.generateLookupTableDataset(model.getJoinTables, ss)
+        val globalDictTuple: GlobalDictType = CreateFlatTable.assemblyGlobalDictTuple(seg, toBuildTree)
+        rootFactDataset = applyEncodeOperation(rootFactDataset, model.getRootFactTable.getAlias, globalDictTuple)
+        lookupTableDatasetMap = applyEncodeOperation(lookupTableDatasetMap, globalDictTuple)
+        rootFactDataset = CreateFlatTable.joinFactTableWithLookupTables(rootFactDataset, lookupTableDatasetMap, model, ss)
+      case (true, false) =>
+        val lookupTableDatasetMap = CreateFlatTable.generateLookupTableDataset(model.getJoinTables, ss)
+        rootFactDataset = CreateFlatTable.joinFactTableWithLookupTables(rootFactDataset, lookupTableDatasetMap, model, ss)
+      case (false, true) =>
+        val globalDictTuple: GlobalDictType = CreateFlatTable.assemblyGlobalDictTuple(seg, toBuildTree)
+        rootFactDataset = applyEncodeOperation(rootFactDataset, model.getRootFactTable.getAlias, globalDictTuple)
+      case _ =>
     }
-
-    rootFactDataset = CreateFlatTable.joinFactTableWithLookupTables(rootFactDataset, lookupTableDatasetMap, model, ss)
 
     flatTable match {
       case joined: NCubeJoinedFlatTableDesc =>
-        CreateFlatTable.selectNCubeJoinedFlatTable(rootFactDataset, joined)
+        CreateFlatTable.changeSchemeToColumnIndice(rootFactDataset, joined)
       case unsupported =>
         throw new UnsupportedOperationException(
           s"Unsupported flat table desc type : ${unsupported.getClass}.")
@@ -194,7 +201,7 @@ object CreateFlatTable extends Logging {
     afterJoin
   }
 
-  def selectNCubeJoinedFlatTable(ds: Dataset[Row], flatTable: NCubeJoinedFlatTableDesc): Dataset[Row] = {
+  def changeSchemeToColumnIndice(ds: Dataset[Row], flatTable: NCubeJoinedFlatTableDesc): Dataset[Row] = {
     val structType = ds.schema
     val colIndices = flatTable.getIndices.asScala
     val columnNameToIndex = flatTable.getAllColumns

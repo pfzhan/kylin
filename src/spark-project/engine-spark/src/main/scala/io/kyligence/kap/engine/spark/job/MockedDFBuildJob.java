@@ -98,7 +98,8 @@ public class MockedDFBuildJob extends SparkApplication {
                         .toArray(StructField[]::new);
 
                 var structType = new StructType(collect);
-                val flatTableDesc = new NCubeJoinedFlatTableDesc(indexPlan, seg.getSegRange());
+                val needJoin = DFChooser.needJoinLookupTables(seg.getModel(), nSpanningTree);
+                val flatTableDesc = new NCubeJoinedFlatTableDesc(indexPlan, seg.getSegRange(), needJoin);
                 val nSpanningTree = NSpanningTreeFactory.fromLayouts(indexPlan.getAllLayouts(), dfName);
                 for (TblColRef ref : DictionaryBuilderHelper.extractTreeRelatedGlobalDicts(seg, nSpanningTree)) {
                     int columnIndex = flatTableDesc.getColumnIndex(ref);
@@ -110,7 +111,7 @@ public class MockedDFBuildJob extends SparkApplication {
 
                 cuboids.forEach(layout -> {
                     CuboidAggregator.agg(ss, ds, layout.getOrderedDimensions().keySet(),
-                            indexPlan.getEffectiveMeasures(), seg);
+                            indexPlan.getEffectiveMeasures(), seg, nSpanningTree);
 
                     NDataLayout dataCuboid = NDataLayout.newDataLayout(seg.getDataflow(), seg.getId(), layout.getId());
                     dataCuboid.setRows(123);

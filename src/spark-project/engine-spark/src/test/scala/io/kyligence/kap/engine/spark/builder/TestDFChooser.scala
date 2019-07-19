@@ -155,7 +155,7 @@ class TestDFChooser extends SparderBaseFunSuite with SharedSparkSession with Loc
     val dictColSet = DictionaryBuilderHelper.extractTreeRelatedGlobalDictToBuild(seg, nSpanningTree)
     Assert.assertEquals(expectColSize, dictColSet.size())
 
-    val flatTableDesc = new NCubeJoinedFlatTableDesc(df.getIndexPlan, seg.getSegRange)
+    val flatTableDesc = new NCubeJoinedFlatTableDesc(df.getIndexPlan, seg.getSegRange, true)
     val encodeColSet = DictionaryBuilderHelper.extractTreeRelatedGlobalDicts(seg, nSpanningTree)
     val flatTable = new CreateFlatTable(flatTableDesc, seg, nSpanningTree, spark)
     val afterJoin = flatTable.generateDataset(true)
@@ -181,9 +181,9 @@ class TestDFChooser extends SparderBaseFunSuite with SharedSparkSession with Loc
       if (layout.getId < IndexEntity.TABLE_INDEX_START_ID) {
         val dimIndexes = layout.getOrderedDimensions.keySet
         val measures = layout.getOrderedMeasures
-        val afterAgg = CuboidAggregator.agg(spark, afterEncode, dimIndexes, measures, segment)
-        val aggExp = afterAgg.queryExecution.logical.children.head.output
         val nSpanningTree = NSpanningTreeFactory.fromLayouts(segment.getIndexPlan.getAllLayouts, MODEL_ID)
+        val afterAgg = CuboidAggregator.agg(spark, afterEncode, dimIndexes, measures, segment, nSpanningTree)
+        val aggExp = afterAgg.queryExecution.logical.children.head.output
         val colRefSet = DictionaryBuilderHelper.extractTreeRelatedGlobalDictToBuild(segment, nSpanningTree)
         val needDictColIdSet = Sets.newHashSet[Integer]()
         for (col <- colRefSet.asScala) {

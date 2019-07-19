@@ -746,6 +746,10 @@ abstract public class KylinConfigBase implements Serializable {
         return getOptional("kylin.job.advanced-flat-table.class");
     }
 
+    public boolean isFlatTableJoinWithoutLookup() {
+        return Boolean.parseBoolean(getOptional("kylin.job.flat-table-join-without-lookup", "false"));
+    }
+
     public String getJobTrackingURLPattern() {
         return getOptional("kylin.job.tracking-url-pattern", "");
     }

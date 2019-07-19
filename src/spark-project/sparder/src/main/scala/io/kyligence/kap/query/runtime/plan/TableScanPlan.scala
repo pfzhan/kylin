@@ -42,6 +42,7 @@ import org.apache.spark.internal.Logging
 import org.apache.spark.sql.execution.datasource.KylinRelation
 import org.apache.spark.sql.execution.utils.SchemaProcessor
 import org.apache.spark.sql.functions.col
+import org.apache.spark.sql.hive.utils.ResourceDetectUtils
 import org.apache.spark.sql.manager.SparderLookupManager
 import org.apache.spark.sql.types.{ArrayType, DoubleType, StructField, StructType}
 import org.apache.spark.sql.util.SparderTypeUtil
@@ -61,11 +62,13 @@ object TableScanPlan extends Logging {
     }
     r
   }
+
   val cacheDf: ThreadLocal[ConcurrentHashMap[String, DataFrame]] = new ThreadLocal[ConcurrentHashMap[String, DataFrame]] {
     override def initialValue: ConcurrentHashMap[String, DataFrame] = {
       new ConcurrentHashMap[String, DataFrame]
     }
   }
+
   def createOLAPTable(rel: KapRel, dataContext: DataContext): DataFrame = {
 
     val start = System.currentTimeMillis()
@@ -153,6 +156,9 @@ object TableScanPlan extends Logging {
             context.getCandidate)
           if (derived.hasDerived) {
             df = derived.joinDerived(df)
+            val paths = ResourceDetectUtils.getPaths(df.queryExecution.sparkPlan)
+            val sourceTableSize = ResourceDetectUtils.getResourceSize(paths: _*)
+            QueryContext.current().addAndGetSourceScanBytes(sourceTableSize - sourceBytes)
           }
 
           var topNMapping: Map[Int, Column] = Map.empty

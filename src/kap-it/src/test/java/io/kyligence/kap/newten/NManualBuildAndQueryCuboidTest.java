@@ -228,9 +228,9 @@ public class NManualBuildAndQueryCuboidTest extends NManualBuildAndQueryTest {
         NDataflow df = dsMgr.getDataflow(dfName);
         NDataModel model = df.getModel();
 
-        NCubeJoinedFlatTableDesc flatTableDesc = new NCubeJoinedFlatTableDesc(df.getIndexPlan(), segmentRange);
+        NCubeJoinedFlatTableDesc flatTableDesc = new NCubeJoinedFlatTableDesc(df.getIndexPlan(), segmentRange, true);
         CreateFlatTable flatTable = new CreateFlatTable(flatTableDesc, null, null, ss);
-        Dataset<Row> ds = flatTable.generateDataset(false);
+        Dataset<Row> ds = flatTable.generateDataset(false, true);
 
         StructType schema = ds.schema();
         for (StructField field : schema.fields()) {

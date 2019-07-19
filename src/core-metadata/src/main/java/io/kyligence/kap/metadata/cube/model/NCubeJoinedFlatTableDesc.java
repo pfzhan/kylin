@@ -40,6 +40,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
 import io.kyligence.kap.metadata.model.NDataModel;
+import lombok.val;
 
 @SuppressWarnings("serial")
 public class NCubeJoinedFlatTableDesc implements IJoinedFlatTableDesc, Serializable {
@@ -47,25 +48,29 @@ public class NCubeJoinedFlatTableDesc implements IJoinedFlatTableDesc, Serializa
     protected final String tableName;
     protected final IndexPlan indexPlan;
     protected final SegmentRange segmentRange;
+    protected final boolean needJoin;
 
     private Map<TblColRef, Integer> columnIndexMap = Maps.newHashMap();
     private List<TblColRef> columns = Lists.newLinkedList();
     private List<Integer> indices = Lists.newArrayList();
 
     public NCubeJoinedFlatTableDesc(IndexPlan indexPlan) {
-        this(indexPlan, null);
+        this(indexPlan, null, true);
     }
 
     public NCubeJoinedFlatTableDesc(NDataSegment segment) {
-        this(segment.getIndexPlan(), segment.getSegRange());
+        this(segment.getIndexPlan(), segment.getSegRange(), true);
     }
 
-    public NCubeJoinedFlatTableDesc(IndexPlan indexPlan, @Nullable SegmentRange segmentRange) {
+    public NCubeJoinedFlatTableDesc(IndexPlan indexPlan, @Nullable SegmentRange segmentRange, Boolean needJoinLookup) {
         this.indexPlan = indexPlan;
         this.segmentRange = segmentRange;
         this.tableName = makeTableName();
+        this.needJoin = needJoinLookup;
 
         initParseIndexPlan();
+
+        initIndices();
     }
 
     protected String makeTableName() {
@@ -77,6 +82,12 @@ public class NCubeJoinedFlatTableDesc implements IJoinedFlatTableDesc, Serializa
     }
 
     protected final void initAddColumn(TblColRef col) {
+        val model = getDataModel();
+        val factTable = model.getRootFactTable();
+        if (!needJoin && !factTable.getTableName().equalsIgnoreCase(col.getTableRef().getTableName())) {
+            return;
+        }
+
         if (columnIndexMap.containsKey(col))
             return;
 
@@ -104,6 +115,10 @@ public class NCubeJoinedFlatTableDesc implements IJoinedFlatTableDesc, Serializa
     }
 
     public List<Integer> getIndices() {
+        return indices;
+    }
+
+    public void initIndices() {
         for (TblColRef tblColRef : columns) {
             int id = indexPlan.getModel().getColumnIdByColumnName(tblColRef.getIdentity());
             if (-1 == id)
@@ -111,7 +126,6 @@ public class NCubeJoinedFlatTableDesc implements IJoinedFlatTableDesc, Serializa
                         "Column: " + tblColRef.getIdentity() + " is not in model: " + indexPlan.getModel().getUuid());
             indices.add(id);
         }
-        return indices;
     }
 
     @Override

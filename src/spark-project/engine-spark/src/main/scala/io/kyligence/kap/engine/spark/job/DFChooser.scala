@@ -23,11 +23,14 @@
 package io.kyligence.kap.engine.spark.job
 
 import com.google.common.base.Preconditions
-import com.google.common.collect.Maps
+import com.google.common.collect.{Lists, Maps}
 import io.kyligence.kap.engine.spark.builder._
 import io.kyligence.kap.metadata.cube.cuboid.{NCuboidLayoutChooser, NSpanningTree}
 import io.kyligence.kap.metadata.cube.model._
+import io.kyligence.kap.metadata.model.NDataModel
+import io.kyligence.kap.metadata.model.NDataModel.TableKind
 import org.apache.kylin.common.KylinConfig
+import org.apache.kylin.metadata.model.TblColRef
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.functions.col
 import org.apache.spark.sql.{Dataset, Row, SaveMode, SparkSession}
@@ -46,7 +49,7 @@ class DFChooser(toBuildTree: NSpanningTree,
     Maps.newHashMap[java.lang.Long, NBuildSourceInfo]()
   var flatTableSource: NBuildSourceInfo = _
   val flatTableDesc =
-    new NCubeJoinedFlatTableDesc(seg.getIndexPlan, seg.getSegRange)
+    new NCubeJoinedFlatTableDesc(seg.getIndexPlan, seg.getSegRange, DFChooser.needJoinLookupTables(seg.getModel, toBuildTree))
 
   @throws[Exception]
   def decideSources(): Unit = {
@@ -127,10 +130,11 @@ class DFChooser(toBuildTree: NSpanningTree,
 
   @throws[Exception]
   private def getFlatTable(): NBuildSourceInfo = {
+    val needJoin = DFChooser.needJoinLookupTables(seg.getModel, toBuildTree)
+    val flatTableDesc = new NCubeJoinedFlatTableDesc(seg.getIndexPlan, seg.getSegRange, needJoin)
+    val flatTable = new CreateFlatTable(flatTableDesc, seg, toBuildTree, ss)
 
-    val flatTableDesc = new NCubeJoinedFlatTableDesc(seg.getIndexPlan, seg.getSegRange)
-    val flatTable = new CreateFlatTable(flatTableDesc, seg, toBuildTree, ss);
-    val afterJoin: Dataset[Row] = flatTable.generateDataset(needEncoding)
+    val afterJoin: Dataset[Row] = flatTable.generateDataset(needEncoding, needJoin)
 
     val sourceInfo = new NBuildSourceInfo
     sourceInfo.setSparkSession(ss)
@@ -155,5 +159,46 @@ object DFChooser {
       ss: SparkSession,
       config: KylinConfig,
       needEncoding)
+
   val FLAT_TABLE_FLAG: Long = -1L
+
+  def needJoinLookupTables(model: NDataModel, toBuildTree: NSpanningTree): Boolean = {
+    val conf = KylinConfig.getInstanceFromEnv
+    if (!conf.isFlatTableJoinWithoutLookup) {
+      return true
+    }
+
+    val joinTables = model.getJoinTables
+    val factTable = model.getRootFactTable
+    var needJoin = false
+    if (joinTables.asScala.filter(_.getJoin.isLeftJoin).size != joinTables.size()) {
+      needJoin = true
+    }
+
+    if (joinTables.asScala.filter(_.getKind == TableKind.LOOKUP).size != joinTables.size()) {
+      needJoin = true
+    }
+
+    val toBuildCols = Lists.newArrayList[TblColRef]()
+    toBuildTree.getRootIndexEntities.asScala.map(
+      index => {
+        index.getEffectiveMeasures.asScala.map(
+          mea =>
+            toBuildCols.addAll(mea._2.getFunction.getColRefs)
+        )
+        index.getEffectiveDimCols.asScala.map(
+          dim =>
+            toBuildCols.add(dim._2)
+        )
+      }
+    )
+    toBuildCols.asScala.distinct.map(
+      col =>
+        if (!factTable.getTableIdentity.equalsIgnoreCase(col.getTableRef.getTableIdentity)) {
+          needJoin = true
+        }
+    )
+
+    needJoin
+  }
 }

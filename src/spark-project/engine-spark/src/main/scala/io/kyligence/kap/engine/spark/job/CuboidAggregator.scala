@@ -27,6 +27,7 @@ package io.kyligence.kap.engine.spark.job
 import java.util
 
 import io.kyligence.kap.engine.spark.builder.DFTableEncoder
+import io.kyligence.kap.metadata.cube.cuboid.NSpanningTree
 import io.kyligence.kap.metadata.cube.model.{NCubeJoinedFlatTableDesc, NDataSegment}
 import io.kyligence.kap.metadata.model.NDataModel
 import org.apache.kylin.measure.bitmap.BitmapMeasureType
@@ -46,9 +47,16 @@ object CuboidAggregator {
           dataSet: DataFrame,
           dimensions: util.Set[Integer],
           measures: util.Map[Integer, NDataModel.Measure],
-          seg: NDataSegment): DataFrame = {
+          seg: NDataSegment,
+          st: NSpanningTree): DataFrame = {
+    val needJoin = st match {
+      // when merge cuboid st is null
+      case null => true
+      case _ => DFChooser.needJoinLookupTables(seg.getModel, st)
+    }
+
     val flatTableDesc =
-      new NCubeJoinedFlatTableDesc(seg.getIndexPlan, seg.getSegRange)
+      new NCubeJoinedFlatTableDesc(seg.getIndexPlan, seg.getSegRange, needJoin)
     agg(ss, dataSet, dimensions, measures, flatTableDesc, isSparkSql = false)
   }
 
@@ -166,8 +174,8 @@ object CuboidAggregator {
       // to avoid sum(decimal) add more precision for example: sum(decimal(19,4)) -> decimal(29,4)  sum(sum(decimal(19,4))) -> decimal(38,4)
       if (reuseLayout) {
         val seq = dataSet.schema
-        val columns = NSparkCubingUtil.getColumns(dimensions)  ++
-          measures.asScala.map{
+        val columns = NSparkCubingUtil.getColumns(dimensions) ++
+          measures.asScala.map {
             measure =>
               measure._2.getFunction.getExpression.toUpperCase match {
                 case "SUM" =>
@@ -184,10 +192,10 @@ object CuboidAggregator {
         df
       }
     } else {
-     val df = dataSet.agg(agg.head, agg.drop(1): _*)
+      val df = dataSet.agg(agg.head, agg.drop(1): _*)
       if (reuseLayout) {
         val seq = dataSet.schema
-        val columns = measures.asScala.map{
+        val columns = measures.asScala.map {
           measure =>
             measure._2.getFunction.getExpression.toUpperCase match {
               case "SUM" =>

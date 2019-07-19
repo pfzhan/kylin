@@ -120,7 +120,7 @@ public class DFMergeJob extends SparkApplication {
             } else {
                 Column[] dimsCols = NSparkCubingUtil.getColumns(layout.getOrderedDimensions().keySet());
                 Dataset<Row> afterAgg = CuboidAggregator.agg(ss, afterMerge, layout.getOrderedDimensions().keySet(),
-                        layout.getOrderedMeasures(), mergedSeg);
+                        layout.getOrderedMeasures(), mergedSeg, null);
                 afterSort = afterAgg.sortWithinPartitions(dimsCols);
             }
             buildLayoutWithUpdate.submit(new BuildLayoutWithUpdate.JobEntity() {
