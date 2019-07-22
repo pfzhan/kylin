@@ -101,7 +101,6 @@ public class NUserController extends NBasicController {
     @Autowired
     private Environment env;
 
-    private static final Pattern usernamePattern = Pattern.compile("^[a-zA-Z0-9_.@]*$");
     private static final Pattern passwordPattern = Pattern
             .compile("^(?=.*\\d)(?=.*[a-zA-Z])(?=.*[~!@#$%^&*(){}|:\"<>?\\[\\];',./`]).{8,}$");
     private static final Pattern bcryptPattern = Pattern.compile("\\A\\$2a?\\$\\d\\d\\$[./0-9A-Za-z]{53}");
@@ -190,7 +189,7 @@ public class NUserController extends NBasicController {
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, null, "");
     }
 
-    @DeleteMapping(value = "/{username}", produces = { "application/vnd.apache.kylin-v2+json" })
+    @DeleteMapping(value = "/{username:.+}", produces = { "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
     public EnvelopeResponse delete(@PathVariable("username") String username) {
@@ -293,14 +292,6 @@ public class NUserController extends NBasicController {
         return response;
     }
 
-    @Deprecated
-    @PostMapping(value = "/authentication", produces = { "application/json" })
-    public UserDetails authenticate4JDBC() {
-        UserDetails userDetails = authenticatedUser().getData();
-        logger.debug("User login: {}", userDetails);
-        return userDetails;
-    }
-
     private void checkLicense() {
         if (!KylinConfig.getInstanceFromEnv().isDevOrUT()) {
             val info = licenseInfoService.extractLicenseInfo();
@@ -355,9 +346,6 @@ public class NUserController extends NBasicController {
         val msg = MsgPicker.getMsg();
         if (StringUtils.isEmpty(username)) {
             throw new BadRequestException(msg.getEMPTY_USER_NAME());
-        }
-        if (!usernamePattern.matcher(username).matches()) {
-            throw new BadRequestException(msg.getINVALID_USERNAME());
         }
     }
 

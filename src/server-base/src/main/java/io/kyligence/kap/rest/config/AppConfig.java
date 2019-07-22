@@ -33,6 +33,9 @@ import org.springframework.core.env.Environment;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.scheduling.TaskScheduler;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
+import org.springframework.web.servlet.config.annotation.ContentNegotiationConfigurer;
+import org.springframework.web.servlet.config.annotation.EnableWebMvc;
+import org.springframework.web.servlet.config.annotation.WebMvcConfigurerAdapter;
 
 import io.kyligence.kap.rest.cluster.ClusterManager;
 import io.kyligence.kap.rest.cluster.DefaultClusterManager;
@@ -40,7 +43,8 @@ import lombok.Getter;
 import lombok.val;
 
 @Configuration
-public class AppConfig {
+@EnableWebMvc
+public class AppConfig extends WebMvcConfigurerAdapter {
 
     @Bean
     public TaskScheduler taskScheduler() {
@@ -77,6 +81,11 @@ public class AppConfig {
     @ConditionalOnMissingBean(ClusterManager.class)
     public ClusterManager clusterManager() {
         return new DefaultClusterManager(port);
+    }
+
+    @Override
+    public void configureContentNegotiation(ContentNegotiationConfigurer configurer) {
+        configurer.favorPathExtension(false);
     }
 
 }

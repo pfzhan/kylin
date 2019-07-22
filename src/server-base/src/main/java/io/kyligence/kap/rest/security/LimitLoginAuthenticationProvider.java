@@ -44,8 +44,6 @@ import org.springframework.security.authentication.dao.DaoAuthenticationProvider
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.web.context.request.RequestContextHolder;
-import org.springframework.web.context.request.ServletRequestAttributes;
 
 import com.google.common.base.Preconditions;
 import com.google.common.cache.CacheBuilder;
@@ -73,11 +71,6 @@ public class LimitLoginAuthenticationProvider extends DaoAuthenticationProvider 
 
     @Override
     public Authentication authenticate(Authentication authentication) throws AuthenticationException {
-        ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder
-                .currentRequestAttributes();
-        if (attributes.getRequest() != null) {
-            MsgPicker.setMsg(attributes.getRequest().getHeader("Accept-Language"));
-        }
         MessageDigest md = null;
         try {
             md = MessageDigest.getInstance("MD5");

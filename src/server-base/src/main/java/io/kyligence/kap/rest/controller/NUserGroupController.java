@@ -31,10 +31,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
-import java.util.regex.Pattern;
 
-import io.kyligence.kap.rest.request.UpdateGroupRequest;
-import lombok.val;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.rest.exception.BadRequestException;
@@ -56,6 +53,9 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
+import io.kyligence.kap.rest.request.UpdateGroupRequest;
+import lombok.val;
+
 @Controller
 @RequestMapping(value = "/user_group")
 public class NUserGroupController extends NBasicController {
@@ -69,9 +69,8 @@ public class NUserGroupController extends NBasicController {
     private UserService userService;
 
     private static final Message msg = MsgPicker.getMsg();
-    private static final Pattern groupNamePattern = Pattern.compile("^[a-zA-Z0-9_.@]*$");
 
-    @RequestMapping(value = "/groupMembers/{groupName}", method = { RequestMethod.GET }, produces = {
+    @RequestMapping(value = "/groupMembers/{groupName:.+}", method = { RequestMethod.GET }, produces = {
             "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
     public EnvelopeResponse<Map<String, Object>> getUsersByGroup(@PathVariable(value = "groupName") String groupName,
@@ -131,7 +130,7 @@ public class NUserGroupController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, userGroupService.getUserAndUserGroup(), "");
     }
 
-    @RequestMapping(value = "/{groupName}", method = { RequestMethod.POST }, produces = {
+    @RequestMapping(value = "/{groupName:.+}", method = { RequestMethod.POST }, produces = {
             "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
     public EnvelopeResponse<String> addUserGroup(@PathVariable(value = "groupName") String groupName)
@@ -141,7 +140,7 @@ public class NUserGroupController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, null, "add user group");
     }
 
-    @RequestMapping(value = "/{groupName}", method = { RequestMethod.DELETE }, produces = {
+    @RequestMapping(value = "/{groupName:.+}", method = { RequestMethod.DELETE }, produces = {
             "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
     public EnvelopeResponse<String> delUserGroup(@PathVariable(value = "groupName") String groupName)
@@ -163,9 +162,6 @@ public class NUserGroupController extends NBasicController {
     private void checkGroupName(String groupName) {
         if (StringUtils.isEmpty(groupName)) {
             throw new BadRequestException(msg.getEMPTY_GROUP_NAME());
-        }
-        if (!groupNamePattern.matcher(groupName).matches()) {
-            throw new BadRequestException(msg.getINVALID_GROUP_NAME());
         }
     }
 }

@@ -85,6 +85,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import org.springframework.web.accept.ContentNegotiationManager;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.rest.request.PasswordChangeRequest;
@@ -129,7 +130,8 @@ public class NUserControllerTest extends NLocalFileMetadataTestCase {
     public void setup() {
         MockitoAnnotations.initMocks(this);
         Mockito.doReturn(true).when(env).acceptsProfiles("testing");
-        mockMvc = MockMvcBuilders.standaloneSetup(nUserController)
+        ContentNegotiationManager contentNegotiationManager = new ContentNegotiationManager();
+        mockMvc = MockMvcBuilders.standaloneSetup(nUserController).setContentNegotiationManager(contentNegotiationManager)
                 .defaultRequest(MockMvcRequestBuilders.get("/").servletPath("/api")).build();
         List<GrantedAuthority> authorities = new ArrayList<GrantedAuthority>();
         ManagedUser user = new ManagedUser("ADMIN", "ADMIN", false, authorities);
@@ -197,21 +199,6 @@ public class NUserControllerTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void testCreateUser_InvalidUsername() throws Exception {
-        val user = new ManagedUser();
-        user.setUsername("u1&");
-        user.setPassword("p1111241.");
-        Mockito.doNothing().when(userService).createUser(Mockito.any(UserDetails.class));
-        mockMvc.perform(MockMvcRequestBuilders.post("/api/user").contentType(MediaType.APPLICATION_JSON)
-                .content(JsonUtil.writeValueAsString(user))
-                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
-                .andExpect(MockMvcResultMatchers.content().string(
-                        containsString("Username should only contain alphanumerics, at sign, dot and underscores.")));
-
-        Mockito.verify(nUserController).createUser(Mockito.any(ManagedUser.class));
-    }
-
-    @Test
     public void testCreateUser_PasswordLength_Exception() throws Exception {
         val user = new ManagedUser();
         user.setUsername("u1");
@@ -247,11 +234,11 @@ public class NUserControllerTest extends NLocalFileMetadataTestCase {
         Mockito.doNothing().when(accessService).revokeProjectPermission(Mockito.anyString(), Mockito.anyString());
 
         mockMvc.perform(
-                MockMvcRequestBuilders.delete("/api/user/{username}", "u1").contentType(MediaType.APPLICATION_JSON)
+                MockMvcRequestBuilders.delete("/api/user/{username:.+}", "u1@.h").contentType(MediaType.APPLICATION_JSON)
                         .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
                 .andExpect(MockMvcResultMatchers.status().isOk());
 
-        Mockito.verify(nUserController).delete("u1");
+        Mockito.verify(nUserController).delete("u1@.h");
     }
 
     @Test

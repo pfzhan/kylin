@@ -442,10 +442,6 @@ public class CnMessage extends Message {
         return "用户组名不能为空.";
     }
 
-    public String getINVALID_GROUP_NAME() {
-        return "用户组名只能包含字母，数字，艾特，点和下划线";
-    }
-
     public String getEMPTY_SID() {
         return "用户名/用户组名不能为空";
     }
@@ -499,10 +495,6 @@ public class CnMessage extends Message {
 
     public String getUSER_NOT_FOUND() {
         return "找不到用户 '%s'";
-    }
-
-    public String getINVALID_USERNAME() {
-        return "用户名只能包含数字，字母，艾特，点和下划线";
     }
 
     public String getUSER_BE_LOCKED() {

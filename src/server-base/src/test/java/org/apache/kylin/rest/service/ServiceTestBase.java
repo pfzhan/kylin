@@ -67,9 +67,11 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import org.springframework.test.context.web.WebAppConfiguration;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(classes = ServiceTestBase.SpringConfig.class)
+@WebAppConfiguration(value = "src/main/resources")
 @ActiveProfiles("testing")
 public class ServiceTestBase extends NLocalFileMetadataTestCase {
 

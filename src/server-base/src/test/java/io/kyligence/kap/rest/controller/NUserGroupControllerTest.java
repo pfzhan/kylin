@@ -44,10 +44,6 @@ package io.kyligence.kap.rest.controller;
 
 import java.util.List;
 
-import com.google.common.collect.Lists;
-import io.kyligence.kap.rest.request.UpdateGroupRequest;
-import io.kyligence.kap.rest.service.NUserGroupService;
-import lombok.val;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.exception.BadRequestException;
@@ -70,8 +66,13 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import org.springframework.web.accept.ContentNegotiationManager;
 
-import static org.hamcrest.CoreMatchers.containsString;
+import com.google.common.collect.Lists;
+
+import io.kyligence.kap.rest.request.UpdateGroupRequest;
+import io.kyligence.kap.rest.service.NUserGroupService;
+import lombok.val;
 
 public class NUserGroupControllerTest {
 
@@ -94,7 +95,8 @@ public class NUserGroupControllerTest {
     @Before
     public void setup() {
         MockitoAnnotations.initMocks(this);
-        mockMvc = MockMvcBuilders.standaloneSetup(nUserGroupController)
+        ContentNegotiationManager contentNegotiationManager = new ContentNegotiationManager();
+        mockMvc = MockMvcBuilders.standaloneSetup(nUserGroupController).setContentNegotiationManager(contentNegotiationManager)
                 .defaultRequest(MockMvcRequestBuilders.get("/").servletPath("/api")).build();
         SecurityContextHolder.getContext().setAuthentication(authentication);
     }
@@ -106,12 +108,12 @@ public class NUserGroupControllerTest {
     @Test
     public void testGetUsersByGroup() throws Exception {
         Mockito.doReturn(mockManagedUser()).when(userGroupService).getGroupMembersByName(Mockito.anyString());
-        mockMvc.perform(MockMvcRequestBuilders.get("/api/user_group/groupMembers/{groupName}", "g1")
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/user_group/groupMembers/{groupName:.+}", "g1@.h")
                 .contentType(MediaType.APPLICATION_JSON).param("pageOffset", "0").param("pageSize", "10")
                 .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
 
-        Mockito.verify(nUserGroupController).getUsersByGroup("g1", 0, 10);
+        Mockito.verify(nUserGroupController).getUsersByGroup("g1@.h", 0, 10);
     }
 
     @Test
@@ -139,11 +141,11 @@ public class NUserGroupControllerTest {
 
     @Test
     public void testAddGroup() throws Exception {
-        Mockito.doNothing().when(userGroupService).addGroup("g1@");
-        mockMvc.perform(MockMvcRequestBuilders.post("/api/user_group/{groupName}", "g1@")
+        Mockito.doNothing().when(userGroupService).addGroup("g1@.h");
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/user_group/{groupName:.+}", "g1@.h")
                 .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
                 .andExpect(MockMvcResultMatchers.status().isOk());
-        Mockito.verify(nUserGroupController).addUserGroup("g1@");
+        Mockito.verify(nUserGroupController).addUserGroup("g1@.h");
     }
 
     @Test
@@ -154,22 +156,12 @@ public class NUserGroupControllerTest {
     }
 
     @Test
-    public void testAddGroupWithInvalidGroupName() throws Exception {
-        Mockito.doNothing().when(userGroupService).addGroup("a$");
-        mockMvc.perform(MockMvcRequestBuilders.post("/api/user_group/{groupName}", "a$")
-                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
-                .andExpect(MockMvcResultMatchers.content()
-                        .string(containsString("User group name should only contain alphanumerics, at sign, dot and underscores.")));
-        Mockito.verify(nUserGroupController).addUserGroup("a$");
-    }
-
-    @Test
     public void testDelGroup() throws Exception {
-        Mockito.doNothing().when(userGroupService).deleteGroup("g1");
-        mockMvc.perform(MockMvcRequestBuilders.delete("/api/user_group/{groupName}", "g1")
+        Mockito.doNothing().when(userGroupService).deleteGroup("g1@.h");
+        mockMvc.perform(MockMvcRequestBuilders.delete("/api/user_group/{groupName:.+}", "g1@.h")
                 .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
                 .andExpect(MockMvcResultMatchers.status().isOk());
-        Mockito.verify(nUserGroupController).delUserGroup("g1");
+        Mockito.verify(nUserGroupController).delUserGroup("g1@.h");
     }
 
     @Test

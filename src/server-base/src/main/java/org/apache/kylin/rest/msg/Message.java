@@ -311,20 +311,12 @@ public class Message {
         return "Username should not be empty.";
     }
 
-    public String getINVALID_USERNAME() {
-        return "Username should only contain alphanumerics, at sign, dot and underscores.";
-    }
-
     public String getSHORT_PASSWORD() {
         return "The password should contain more than 8 characters!";
     }
 
     public String getINVALID_PASSWORD() {
         return "The password should contain at least one number, letter and special character (~!@#$%^&*(){}|:\"<>?[];\\'\\,./`).";
-    }
-
-    public String getINVALID_GROUP_NAME() {
-        return "User group name should only contain alphanumerics, at sign, dot and underscores.";
     }
 
     public String getPERMISSION_DENIED() {
