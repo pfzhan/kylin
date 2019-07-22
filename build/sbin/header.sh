@@ -3,6 +3,19 @@
 
 # source me
 
+function isValidJavaVersion() {
+    version=`java -version 2>&1 | awk -F\" '/version/ {print $2}'`
+    version_first_part="$(echo ${version} | cut -d '.' -f1)"
+    version_second_part="$(echo ${version} | cut -d '.' -f2)"
+
+    if [[ "$version_first_part" -eq "1" ]] && [[ "$version_second_part" -lt "8" ]]; then
+        echo "false"
+        exit 0
+    fi
+
+    echo "true"
+}
+
 # avoid re-entering
 if [[ "$dir" == "" ]]
 then
@@ -68,8 +81,7 @@ then
     # set JAVA
     if [[ "${JAVA}" == "" ]]; then
         if [[ -z "$JAVA_HOME" ]]; then
-            JAVA_VERSION=`java -version 2>&1 | awk -F\" '/version/ {print $2}'`
-            if [[ $JAVA_VERSION ]] && [[ "$JAVA_VERSION" > "1.8" ]]; then
+            if [[ `isValidJavaVersion` == "true" ]]; then
                 JAVA_HOME=$(dirname $(dirname $(readlink -f $(which java))))
             else
                 quit "Java 1.8 or above is required."
