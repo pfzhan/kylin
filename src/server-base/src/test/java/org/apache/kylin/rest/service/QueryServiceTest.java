@@ -327,6 +327,90 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         }
     }
 
+    @Test
+    public void testQueryWithCache() throws Exception {
+        final String sql = "select * from success_table";
+        final String project = "default";
+        stubQueryConnection(sql, project);
+        mockOLAPContext();
+
+        final SQLRequest request = new SQLRequest();
+        request.setProject(project);
+        request.setSql(sql);
+
+        // case of not hitting cache
+        String expectedQueryID = QueryContext.current().getQueryId();
+        final SQLResponse firstSuccess = queryService.doQueryWithCache(request, false);
+        Assert.assertEquals(expectedQueryID, firstSuccess.getQueryId());
+        Assert.assertEquals(2, firstSuccess.getNativeRealizations().size());
+        Assert.assertEquals(QueryMetricsContext.AGG_INDEX, firstSuccess.getNativeRealizations().get(0).getIndexType());
+        Assert.assertEquals(QueryMetricsContext.TABLE_INDEX,
+                firstSuccess.getNativeRealizations().get(1).getIndexType());
+        Assert.assertEquals(Lists.newArrayList("mock_model_alias1", "mock_model_alias2"),
+                firstSuccess.getNativeRealizations().stream().map(NativeQueryRealization::getModelAlias)
+                        .collect(Collectors.toList()));
+        // assert log info
+        String log = queryService.logQuery(request, firstSuccess);
+        Assert.assertTrue(log.contains("mock_model_alias1"));
+        Assert.assertTrue(log.contains("mock_model_alias2"));
+
+        // case of hitting cache
+        expectedQueryID = QueryContext.current().getQueryId();
+        final SQLResponse secondSuccess = queryService.doQueryWithCache(request, false);
+        Assert.assertEquals(true, secondSuccess.isStorageCacheUsed());
+        Assert.assertEquals(expectedQueryID, secondSuccess.getQueryId());
+        Assert.assertEquals(2, secondSuccess.getNativeRealizations().size());
+        Assert.assertEquals(QueryMetricsContext.AGG_INDEX, secondSuccess.getNativeRealizations().get(0).getIndexType());
+        Assert.assertEquals(QueryMetricsContext.TABLE_INDEX,
+                secondSuccess.getNativeRealizations().get(1).getIndexType());
+        Assert.assertEquals("mock_model_alias1", secondSuccess.getNativeRealizations().get(0).getModelAlias());
+        // assert log info
+        log = queryService.logQuery(request, secondSuccess);
+        Assert.assertTrue(log.contains("mock_model_alias1"));
+        Assert.assertTrue(log.contains("mock_model_alias2"));
+    }
+
+    private void mockOLAPContext() {
+        val modelManager = Mockito.spy(NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), "default"));
+
+        Mockito.doReturn(modelManager).when(queryService).getDataModelManager("default");
+        // mock agg index realization
+        OLAPContext aggMock = new OLAPContext(1);
+        NDataModel mockModel1 = Mockito.spy(new NDataModel());
+        Mockito.when(mockModel1.getUuid()).thenReturn("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+        Mockito.when(mockModel1.getAlias()).thenReturn("mock_model_alias1");
+        Mockito.doReturn(mockModel1).when(modelManager).getDataModelDesc("mock_model1");
+        IRealization mockRealization1 = Mockito.mock(IRealization.class);
+        Mockito.when(mockRealization1.getModel()).thenReturn(mockModel1);
+        aggMock.realization = mockRealization1;
+        IndexEntity mockIndexEntity1 = new IndexEntity();
+        mockIndexEntity1.setId(1);
+        LayoutEntity mockLayout1 = new LayoutEntity();
+        mockLayout1.setIndex(mockIndexEntity1);
+        aggMock.storageContext.setCandidate(new NLayoutCandidate(mockLayout1));
+        aggMock.storageContext.setCuboidLayoutId(1L);
+        OLAPContext.registerContext(aggMock);
+
+        // mock table index realization
+        OLAPContext tableMock = new OLAPContext(2);
+        NDataModel mockModel2 = Mockito.spy(new NDataModel());
+        Mockito.when(mockModel2.getUuid()).thenReturn("741ca86a-1f13-46da-a59f-95fb68615e3a");
+        Mockito.when(mockModel2.getAlias()).thenReturn("mock_model_alias2");
+        Mockito.doReturn(mockModel2).when(modelManager).getDataModelDesc("mock_model2");
+        IRealization mockRealization2 = Mockito.mock(IRealization.class);
+        Mockito.when(mockRealization2.getModel()).thenReturn(mockModel2);
+        tableMock.realization = mockRealization2;
+        IndexEntity mockIndexEntity2 = new IndexEntity();
+        mockIndexEntity2.setId(IndexEntity.TABLE_INDEX_START_ID + 1);
+        LayoutEntity mockLayout2 = new LayoutEntity();
+        mockLayout2.setIndex(mockIndexEntity2);
+        tableMock.storageContext.setCandidate(new NLayoutCandidate(mockLayout2));
+        tableMock.storageContext.setCuboidLayoutId(1L);
+        OLAPContext.registerContext(tableMock);
+
+        Mockito.doNothing().when(queryService).clearThreadLocalContexts();
+    }
+
     private void mockOLAPContextWithOneModelInfo(String modelId, String modelAlias, long layoutId) {
         final OLAPContext mock = new OLAPContext(1);
 
