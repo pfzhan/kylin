@@ -184,23 +184,24 @@ public class AuditLogTool extends ExecutableApplication {
         val dataSource = BasicDataSourceFactory.createDataSource(props);
         val transactionManager = new DataSourceTransactionManager(dataSource);
         val jdbcTemplate = new JdbcTemplate(dataSource);
-
-        JdbcAuditLogStore auditLogStore = new JdbcAuditLogStore(kylinConfig, jdbcTemplate, transactionManager, table);
-        for (File logFile : dirFile.listFiles()) {
-            if (!logFile.getName().endsWith(AUDIT_LOG_SUFFIX)) {
-                continue;
-            }
-            String line;
-            try (BufferedReader br = new BufferedReader(new FileReader(logFile))) {
-                List<AuditLog> auditLogs = Lists.newArrayList();
-                while ((line = br.readLine()) != null) {
-                    try {
-                        auditLogs.add(JsonUtil.readValue(line, AuditLog.class));
-                    } catch (Exception e) {
-                        log.error("audit log deserialize error >>> {}", line, e);
-                    }
+        try (JdbcAuditLogStore auditLogStore = new JdbcAuditLogStore(kylinConfig, jdbcTemplate, transactionManager,
+                table)) {
+            for (File logFile : dirFile.listFiles()) {
+                if (!logFile.getName().endsWith(AUDIT_LOG_SUFFIX)) {
+                    continue;
                 }
-                auditLogStore.batchInsert(auditLogs);
+                String line;
+                try (BufferedReader br = new BufferedReader(new FileReader(logFile))) {
+                    List<AuditLog> auditLogs = Lists.newArrayList();
+                    while ((line = br.readLine()) != null) {
+                        try {
+                            auditLogs.add(JsonUtil.readValue(line, AuditLog.class));
+                        } catch (Exception e) {
+                            log.error("audit log deserialize error >>> {}", line, e);
+                        }
+                    }
+                    auditLogStore.batchInsert(auditLogs);
+                }
             }
         }
     }
@@ -222,19 +223,20 @@ public class AuditLogTool extends ExecutableApplication {
     private List<AuditLog> extract(long startTs, long endTs) throws Exception {
         List<AuditLog> result = Lists.newArrayList();
         long fromId = 0L;
-        final JdbcAuditLogStore auditLogStore = new JdbcAuditLogStore(kylinConfig);
-        while (true) {
-            List<AuditLog> auditLogs = auditLogStore.fetchRange(fromId, startTs, endTs, BATCH_SIZE);
-            if (CollectionUtils.isEmpty(auditLogs)) {
-                break;
-            }
+        try (JdbcAuditLogStore auditLogStore = new JdbcAuditLogStore(kylinConfig)) {
+            while (true) {
+                List<AuditLog> auditLogs = auditLogStore.fetchRange(fromId, startTs, endTs, BATCH_SIZE);
+                if (CollectionUtils.isEmpty(auditLogs)) {
+                    break;
+                }
 
-            result.addAll(auditLogs);
+                result.addAll(auditLogs);
 
-            if (auditLogs.size() < BATCH_SIZE) {
-                break;
+                if (auditLogs.size() < BATCH_SIZE) {
+                    break;
+                }
+                fromId = auditLogs.get(auditLogs.size() - 1).getId();
             }
-            fromId = auditLogs.get(auditLogs.size() - 1).getId();
         }
         return result;
     }
