@@ -60,6 +60,7 @@ import org.apache.kylin.rest.security.ManagedUser;
 import org.apache.kylin.rest.service.AccessService;
 import org.apache.kylin.rest.service.LicenseInfoService;
 import org.apache.kylin.rest.service.UserService;
+import org.apache.kylin.rest.util.AclEvaluate;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -103,6 +104,9 @@ public class NUserControllerTest extends NLocalFileMetadataTestCase {
 
     @Mock
     private UserService userService;
+
+    @Mock
+    private AclEvaluate aclEvaluate;
 
     @Mock
     Environment env;
@@ -201,8 +205,8 @@ public class NUserControllerTest extends NLocalFileMetadataTestCase {
         mockMvc.perform(MockMvcRequestBuilders.post("/api/user").contentType(MediaType.APPLICATION_JSON)
                 .content(JsonUtil.writeValueAsString(user))
                 .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
-                .andExpect(MockMvcResultMatchers.content()
-                        .string(containsString("Username should only contain alphanumerics, at sign, dot and underscores.")));
+                .andExpect(MockMvcResultMatchers.content().string(
+                        containsString("Username should only contain alphanumerics, at sign, dot and underscores.")));
 
         Mockito.verify(nUserController).createUser(Mockito.any(ManagedUser.class));
     }
@@ -218,6 +222,21 @@ public class NUserControllerTest extends NLocalFileMetadataTestCase {
                 .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
                 .andExpect(MockMvcResultMatchers.content()
                         .string(containsString("The password should contain more than 8 characters!")));
+
+        Mockito.verify(nUserController).createUser(Mockito.any(ManagedUser.class));
+    }
+
+    @Test
+    public void testCreateUser_InvalidPasswordPattern() throws Exception {
+        val user = new ManagedUser();
+        user.setUsername("u1");
+        user.setPassword("kylin123456");
+        Mockito.doNothing().when(userService).createUser(Mockito.any(UserDetails.class));
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/user").contentType(MediaType.APPLICATION_JSON)
+                .content(JsonUtil.writeValueAsString(user))
+                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .andExpect(MockMvcResultMatchers.content().string(containsString(
+                        "The password should contain at least one number, letter and special character (~!@#$%^&*(){}|:\\\"<>?[];\\\\'\\\\,./`).")));
 
         Mockito.verify(nUserController).createUser(Mockito.any(ManagedUser.class));
     }
@@ -360,4 +379,27 @@ public class NUserControllerTest extends NLocalFileMetadataTestCase {
         Mockito.verify(nUserController).updateUserPassword(Mockito.any(PasswordChangeRequest.class));
     }
 
+    @Test
+    public void testListAll() throws Exception {
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/user").contentType(MediaType.APPLICATION_JSON)
+                .param("project", "default").param("name", "KYLIN")
+                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .andExpect(MockMvcResultMatchers.status().isOk());
+
+        Mockito.verify(nUserController).listAllUsers(Mockito.anyString(), Mockito.anyString(), Mockito.anyBoolean(),
+                Mockito.anyInt(), Mockito.anyInt());
+    }
+
+    @Test
+    public void testUpdateUser() throws Exception {
+        val user = new ManagedUser("ADMIN", pwdEncoder.encode("KYLIN"), false);
+
+        Mockito.doReturn(user).when(nUserController).getManagedUser("ADMIN");
+        mockMvc.perform(MockMvcRequestBuilders.put("/api/user").contentType(MediaType.APPLICATION_JSON)
+                .content(JsonUtil.writeValueAsString(user))
+                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .andExpect(MockMvcResultMatchers.status().isOk());
+
+        Mockito.verify(nUserController).updateUser(Mockito.any(ManagedUser.class));
+    }
 }

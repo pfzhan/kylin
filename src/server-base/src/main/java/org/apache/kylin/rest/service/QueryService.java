@@ -347,7 +347,6 @@ public class QueryService extends BasicService {
         aclEvaluate.checkProjectReadPermission(sqlRequest.getProject());
         logger.info("Check query permission in {} ms.", (System.currentTimeMillis() - t));
         sqlRequest.setUsername(getUsername());
-        val kylinConfig = getConfig();
         return queryWithCache(sqlRequest, isQueryInspect);
     }
 
