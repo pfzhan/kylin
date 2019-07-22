@@ -150,7 +150,7 @@ public abstract class SparkApplication implements Application, IKeep {
      *
      * @param json
      */
-    public Boolean updateJobExtraInfo(String json) {
+    public Boolean updateSparkJobInfo(String json) {
         String serverIp = System.getProperty("spark.driver.rest.server.ip", "127.0.0.1");
         String port = System.getProperty("spark.driver.rest.server.port", "7070");
         String requestApi = String.format("http://%s:%s/kylin/api/jobs/spark", serverIp, port);
@@ -173,6 +173,52 @@ public abstract class SparkApplication implements Application, IKeep {
             logger.error("http request {} failed!", requestApi, e);
         }
         return false;
+    }
+
+    /**
+     * get tracking url by yarn app id
+     *
+     * @param yarnAppId
+     * @return
+     * @throws IOException
+     * @throws YarnException
+     */
+    public String getTrackingUrl(String yarnAppId) throws IOException, YarnException {
+        return YarnInfoFetcherUtils.getTrackingUrl(yarnAppId);
+    }
+
+    /**
+     * when
+     * update spark job extra info, link yarn_application_tracking_url & yarn_application_id
+     */
+    public Boolean updateSparkJobExtraInfo(String project, String jobId, String yarnAppId) {
+        Map<String, String> payload = new HashMap<>(5);
+        payload.put("project", project);
+        payload.put("jobId", jobId);
+        payload.put("taskId", System.getProperty("spark.driver.param.taskId", jobId));
+        payload.put("yarnAppId", yarnAppId);
+
+        try {
+            payload.put("yarnAppUrl", getTrackingUrl(yarnAppId));
+        } catch (IOException | YarnException e) {
+            logger.error("get yarn tracking url failed!", e);
+        }
+
+        try {
+            String payloadJson = new ObjectMapper().writeValueAsString(payload);
+            int retry = 3;
+            for (int i = 0; i < retry; i++) {
+                if (updateSparkJobInfo(payloadJson)) {
+                    return Boolean.TRUE;
+                }
+                Thread.sleep(3000);
+                logger.warn("retry request rest api update spark job yarnAppId and yarnAppUr!");
+            }
+        } catch (Exception e) {
+            logger.error("update spark job extra info failed!", e);
+        }
+
+        return Boolean.FALSE;
     }
 
     final protected void execute() throws Exception {
@@ -238,28 +284,7 @@ public abstract class SparkApplication implements Application, IKeep {
                     .getOrCreate();
 
             if (isJobOnCluster(sparkConf)) {
-                Map<String, String> payload = new HashMap<>(5);
-                payload.put("project", project);
-                payload.put("jobId", jobId);
-                payload.put("taskId", System.getProperty("spark.driver.param.taskId", jobId));
-                payload.put("yarnAppId", ss.sparkContext().applicationId());
-
-                try {
-                    String yarnAppUrl = YarnInfoFetcherUtils.getTrackingUrl(ss.sparkContext().applicationId());
-                    payload.put("yarnAppUrl", yarnAppUrl);
-                } catch (IOException | YarnException e) {
-                    logger.error("get yarn tracking url failed!", e);
-                }
-
-                String payloadJson = new ObjectMapper().writeValueAsString(payload);
-                int retry = 3;
-                for (int i = 0; i < retry; i++) {
-                    if (updateJobExtraInfo(payloadJson)) {
-                        break;
-                    }
-                    Thread.sleep(3000);
-                    logger.warn("retry request rest api update spark job yarnAppId and yarnAppUr!");
-                }
+                updateSparkJobExtraInfo(project, jobId, ss.sparkContext().applicationId());
             }
 
             JoinMemoryManager.releaseAllMemory();

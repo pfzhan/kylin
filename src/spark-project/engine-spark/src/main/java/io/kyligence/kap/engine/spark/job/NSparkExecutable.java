@@ -49,6 +49,7 @@ import org.apache.hadoop.yarn.client.api.YarnClient;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.exceptions.YarnException;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.KylinConfigBase;
 import org.apache.kylin.common.KylinConfigExt;
 import org.apache.kylin.common.StorageURL;
 import org.apache.kylin.common.persistence.RawResource;
@@ -290,7 +291,7 @@ public class NSparkExecutable extends AbstractExecutable {
 
             Preconditions.checkState(result.getFirst() == 0);
             Map<String, String> extraInfo = makeExtraInfo(patternedLogger.getInfo());
-            val ret = ExecuteResult.createSucceed(result.getSecond(), getOutputHDFSPath());
+            val ret = ExecuteResult.createSucceed(result.getSecond(), getOutputHDFSPath(config));
             ret.getExtraInfo().putAll(extraInfo);
             return ret;
         } catch (Exception e) {
@@ -298,8 +299,8 @@ public class NSparkExecutable extends AbstractExecutable {
         }
     }
 
-    private String getOutputHDFSPath() {
-        return KylinConfig.getInstanceFromEnv().getJobTmpOutputStorePath(getProject(), getId()) + ".log";
+    private String getOutputHDFSPath(KylinConfig config) {
+        return config.getJobTmpOutputStorePath(getProject(), getId()) + ".log";
     }
 
     protected Map<String, String> getSparkConfigOverride(KylinConfig config) {
@@ -317,28 +318,30 @@ public class NSparkExecutable extends AbstractExecutable {
         } catch (UnknownHostException e) {
             logger.warn("use the InetAddress get local ip failed!", e);
         }
-        String serverPort = KylinConfig.getInstanceFromEnv().getServerPort();
-        String hdfsWorkingDir = KylinConfig.getInstanceFromEnv().getHdfsWorkingDirectory();
+        String serverPort = config.getServerPort();
+        String hdfsWorkingDir = config.getHdfsWorkingDirectory();
 
         StringBuilder log4jConfiguration = new StringBuilder("file:");
-        log4jConfiguration.append(KylinConfig.getInstanceFromEnv().getKylinHome());
+        log4jConfiguration.append(KylinConfigBase.getKylinHome());
         if (KylinConfig.getInstanceFromEnv().isDevEnv()) {
             log4jConfiguration.append("/build");
         }
         log4jConfiguration.append("/conf/spark-driver-hdfs-log4j.properties");
 
+        String sparkDriverExtraJavaOptionsKey = "spark.driver.extraJavaOptions";
         StringBuilder sb = new StringBuilder();
-        if (sparkConfigOverride.containsKey("spark.driver.extraJavaOptions")) {
-            sb.append(sparkConfigOverride.get("spark.driver.extraJavaOptions"));
+        if (sparkConfigOverride.containsKey(sparkDriverExtraJavaOptionsKey)) {
+            sb.append(sparkConfigOverride.get(sparkDriverExtraJavaOptionsKey));
         }
 
         sb.append(String.format(" -Dlog4j.configuration=%s ", log4jConfiguration));
         sb.append(String.format(" -Dkap.hdfs.working.dir=%s ", hdfsWorkingDir));
-        sb.append(String.format(" -Dspark.driver.log4j.appender.hdfs.File=%s ", getOutputHDFSPath()));
+        sb.append(String.format(" -Dspark.driver.log4j.appender.hdfs.File=%s ", getOutputHDFSPath(config)));
         sb.append(String.format(" -Dspark.driver.rest.server.ip=%s ", serverIp));
         sb.append(String.format(" -Dspark.driver.rest.server.port=%s ", serverPort));
         sb.append(String.format(" -Dspark.driver.param.taskId=%s ", getId()));
-        sparkConfigOverride.put("spark.driver.extraJavaOptions", sb.toString());
+
+        sparkConfigOverride.put(sparkDriverExtraJavaOptionsKey, sb.toString());
 
         return sparkConfigOverride;
     }

@@ -184,35 +184,31 @@ public class HdfsFileAppender extends AppenderSkeleton {
         public void run() {
             setName("SparkDriverLogAppender");
             long start = System.currentTimeMillis();
-            while (true) {
+            do {
                 try {
-                    int curSize = logBufferQue.size();
-                    if (curSize < logQueueCapacity * 0.2) {
-                        Thread.sleep(flushInterval / 100);
-                        long end = System.currentTimeMillis();
-                        if (end - start > flushInterval) {
-                            flushLog(curSize);
-                            start = System.currentTimeMillis();
-                        }
+                    int queSize = logBufferQue.size();
+                    if (queSize > logQueueCapacity * 0.2
+                            || System.currentTimeMillis() - start > flushInterval) {
+                        flushLog(queSize);
+                        start = System.currentTimeMillis();
                     } else {
-                        flushLog(curSize);
+                        Thread.sleep(flushInterval / 100);
                     }
-                } catch (Throwable th) {
-                    if (logBufferQue.size() == logQueueCapacity) {
+                } catch (Exception e) {
+                    if (logBufferQue.size() >= logQueueCapacity) {
                         int removeNum = 1000;
                         while (removeNum > 0) {
                             try {
                                 logBufferQue.take();
-                            } catch (InterruptedException e) {
-                                LogLog.error("Take event interrupted!", e);
-                            } finally {
-                                removeNum--;
+                            } catch (Exception ex) {
+                                LogLog.error("Take event interrupted!", ex);
                             }
+                            removeNum--;
                         }
                     }
-                    LogLog.error("Error occurred when consume event", th);
+                    LogLog.error("Error occurred when consume event", e);
                 }
-            }
+            } while (!closed);
         }
 
         /**
@@ -229,8 +225,8 @@ public class HdfsFileAppender extends AppenderSkeleton {
             while (size > 0) {
                 final LoggingEvent loggingEvent = logBufferQue.take();
                 write(layout.format(loggingEvent));
-                if(null != loggingEvent.getThrowableStrRep()) {
-                    for(String stackMsg: loggingEvent.getThrowableStrRep()) {
+                if (null != loggingEvent.getThrowableStrRep()) {
+                    for (String stackMsg : loggingEvent.getThrowableStrRep()) {
                         write(stackMsg);
                         write("\n");
                     }
