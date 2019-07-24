@@ -99,9 +99,6 @@ public class AppInitializer {
         }
 
         if (isLeader) {
-            //start the embedded metrics reporters
-            NMetricsController.startReporters(KapConfig.wrap(kylinConfig));
-
             val resourceStore = ResourceStore.getKylinMetaStore(kylinConfig);
             if (!resourceStore.exists(METASTORE_UUID_TAG)) {
                 UnitOfWork.doInTransactionWithRetry(() -> {
@@ -111,6 +108,9 @@ public class AppInitializer {
                     return null;
                 }, "");
             }
+
+            //start the embedded metrics reporters
+            NMetricsController.startReporters(KapConfig.wrap(kylinConfig));
 
             EventListenerRegistry.getInstance(kylinConfig).register(new FavoriteQueryUpdateListener(), "fq");
             event.getApplicationContext().publishEvent(new AppInitializedEvent(event.getApplicationContext()));
