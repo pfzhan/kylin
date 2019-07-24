@@ -29,6 +29,7 @@ import java.util.Set;
 import java.util.UUID;
 
 import org.apache.calcite.sql.SqlCall;
+import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlOrderBy;
 import org.apache.calcite.sql.SqlSelect;
 import org.apache.commons.lang.StringUtils;
@@ -44,6 +45,7 @@ import com.google.common.collect.Sets;
 
 import io.kyligence.kap.metadata.model.ComputedColumnDesc;
 import io.kyligence.kap.metadata.model.NDataModel;
+import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -72,7 +74,7 @@ public class KapQueryUtil {
             log.warn("Failed to massage SQL expression [{}] with input model {}", ccSql, model.getUuid(), e);
         }
 
-        return ccSql.substring("select ".length(), ccSql.indexOf(tempConst) - 1);
+        return ccSql.substring("select ".length(), ccSql.indexOf(tempConst) - 1).trim();
     }
 
     public static void appendJoinStatement(NDataModel model, StringBuilder sql, boolean singleLine) {
@@ -122,5 +124,15 @@ public class KapQueryUtil {
         }
 
         return sqlSelect;
+    }
+
+    public static Set<SqlNode> collectGroupByNodes(SqlSelect select) {
+        val group = select.getGroup();
+        return group == null ? Sets.newHashSet() : Sets.newHashSet(group.getList());
+    }
+
+    public static Set<SqlNode> collectSelectList(SqlSelect select) {
+        val selectList = select.getSelectList();
+        return Sets.newHashSet(selectList.getList());
     }
 }

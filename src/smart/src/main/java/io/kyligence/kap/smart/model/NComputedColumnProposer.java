@@ -48,6 +48,8 @@ import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.query.util.KapQueryUtil;
 import io.kyligence.kap.smart.NSmartContext.NModelContext;
+import io.kyligence.kap.smart.common.SmartConfig;
+import io.kyligence.kap.smart.model.rule.CCRuleAdvisor;
 import io.kyligence.kap.smart.util.ComputedColumnEvalUtil;
 
 public class NComputedColumnProposer extends NAbstractModelProposer {
@@ -126,6 +128,7 @@ public class NComputedColumnProposer extends NAbstractModelProposer {
         Set<String> ccSuggestions = Sets.newHashSet();
 
         ModelTree modelTree = modelContext.getModelTree();
+        String project = modelContext.getSmartContext().getProject();
 
         // Load from context
         for (OLAPContext ctx : modelTree.getOlapContexts()) {
@@ -133,6 +136,7 @@ public class NComputedColumnProposer extends NAbstractModelProposer {
             Map<String, String> matchingAlias = RealizationChooser.matchJoins(nDataModel, ctx);
             ctx.fixModel(nDataModel, matchingAlias);
             ccSuggestions.addAll(collectInnerColumnCandidate(ctx, matchingAlias));
+            ccSuggestions.addAll(collectCandidatesBasedOnSqlNode(project, ctx.sql, nDataModel));
             ctx.unfixModel();
         }
 
@@ -154,10 +158,35 @@ public class NComputedColumnProposer extends NAbstractModelProposer {
                         .map(entry -> (Function<String, String>) s -> s.replaceAll(entry.getKey(), entry.getValue()))
                         .reduce(Function.identity(), Function::andThen).apply(parserDesc);
                 logger.trace(parserDesc);
-                candidates.add(parserDesc);
+
+                if (isMalformedCandidate(parserDesc)) {
+                    logger.warn("Discard malformed inner column:[{}]", col.getParserDescription());
+                } else {
+                    candidates.add(parserDesc);
+                }
             }
         }
         return candidates;
+    }
+
+    // If index represented column cannot be replaced, the parserDesc still contains '$',
+    // for example: the param of aggregation `sum(timestampdiff(second, time0, time1))`
+    // is `CAST(/INT(Reinterpret(-($23, $22)), 1000)):INTEGER`, failed in the transformation still contains '$'
+    private boolean isMalformedCandidate(String candidate) {
+        return candidate.contains("$");
+    }
+
+    private List<String> collectCandidatesBasedOnSqlNode(String project, String sql, NDataModel dataModel) {
+        if (SmartConfig.getInstanceFromEnv().isAdviseComputedColumnOnSqlNodeEnabled()) {
+            try {
+                return new CCRuleAdvisor().suggestCandidate(project, dataModel, sql);
+            } catch (Exception e) {
+                logger.error("Something wrong happened when proposing cc suggestions on rules. "
+                        + "The original sql is: {}\n", sql, e);
+                return Lists.newArrayList();
+            }
+        }
+        return Lists.newArrayList();
     }
 
     private boolean resolveCCName(ComputedColumnDesc ccDesc, NDataModel nDataModel, List<NDataModel> otherModels) {

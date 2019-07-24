@@ -24,6 +24,7 @@
 
 package io.kyligence.kap.smart.common;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.dimension.DictionaryDimEnc;
@@ -85,7 +86,23 @@ public class SmartConfig {
         return getOptional("measure.count-distinct.return-type", FunctionDesc.FUNC_COUNT_DISTINCT_BIT_MAP);
     }
 
-    public int getProposeRetryMax() {
-        return getOptional("propose.retry-max", 3);
+    // =========== based on rules to propose computed columns with sqlNode ====================
+
+    public boolean isAdviseComputedColumnOnSqlNodeEnabled() {
+        return getOptional("cc-advise-on-sqlnode", true);
+    }
+
+    public String[] getFunctionsAppliedToCCRules() {
+        return getOptionalStringArray("cc-propose-functions", new String[] { "TIMESTAMP_DIFF", "TIMESTAMP_ADD" });
+    }
+
+    public String[] getSpecialCCRulesOnSqlNode() {
+        return getOptionalStringArray("cc-propose-rules", new String[] { "io.kyligence.kap.smart.model.rule.AggFunctionRule",
+                "io.kyligence.kap.smart.model.rule.CaseWhenRule" });
+    }
+
+    private String[] getOptionalStringArray(String key, String[] values) {
+        String value = getOptional(key, null);
+        return StringUtils.isBlank(value) ? values : new String[0];
     }
 }

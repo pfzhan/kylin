@@ -2212,17 +2212,17 @@ public class ModelServiceTest extends CSVSourceTestCase {
 
         Assert.assertEquals("CC1 * 2", ccDesc2.getInnerExpression());
         modelService.preProcessBeforeModelSave(updated, "default");
-        Assert.assertEquals("(TEST_KYLIN_FACT.PRICE * TEST_KYLIN_FACT.ITEM_COUNT + 1) * 2 ",
+        Assert.assertEquals("(TEST_KYLIN_FACT.PRICE * TEST_KYLIN_FACT.ITEM_COUNT + 1) * 2",
                 ccDesc2.getInnerExpression());
 
         ccDesc1.setExpression("TEST_KYLIN_FACT.PRICE * TEST_KYLIN_FACT.ITEM_COUNT + 2");
         modelService.preProcessBeforeModelSave(updated, "default");
-        Assert.assertEquals("(TEST_KYLIN_FACT.PRICE * TEST_KYLIN_FACT.ITEM_COUNT + 2) * 2 ",
+        Assert.assertEquals("(TEST_KYLIN_FACT.PRICE * TEST_KYLIN_FACT.ITEM_COUNT + 2) * 2",
                 ccDesc2.getInnerExpression());
 
         ccDesc2.setExpression("CC1 * 3");
         modelService.preProcessBeforeModelSave(updated, "default");
-        Assert.assertEquals("(TEST_KYLIN_FACT.PRICE * TEST_KYLIN_FACT.ITEM_COUNT + 2) * 3 ",
+        Assert.assertEquals("(TEST_KYLIN_FACT.PRICE * TEST_KYLIN_FACT.ITEM_COUNT + 2) * 3",
                 ccDesc2.getInnerExpression());
     }
 
