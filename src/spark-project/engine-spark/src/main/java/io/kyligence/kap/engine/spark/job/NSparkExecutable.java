@@ -48,6 +48,7 @@ import org.apache.hadoop.yarn.api.records.YarnApplicationState;
 import org.apache.hadoop.yarn.client.api.YarnClient;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.exceptions.YarnException;
+import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.KylinConfigBase;
 import org.apache.kylin.common.KylinConfigExt;
@@ -334,7 +335,11 @@ public class NSparkExecutable extends AbstractExecutable {
             sb.append(sparkConfigOverride.get(sparkDriverExtraJavaOptionsKey));
         }
 
+        KapConfig kapConfig = KapConfig.wrap(config);
         sb.append(String.format(" -Dlog4j.configuration=%s ", log4jConfiguration));
+        sb.append(String.format(" -Dkap.kerberos.enabled=%s ", kapConfig.isKerberosEnabled()));
+        sb.append(String.format(" -Dkap.kerberos.principal=%s ", kapConfig.getKerberosPrincipal()));
+        sb.append(String.format(" -Dkap.kerberos.keytab=%s", kapConfig.getKerberosKeytabPath()));
         sb.append(String.format(" -Dkap.hdfs.working.dir=%s ", hdfsWorkingDir));
         sb.append(String.format(" -Dspark.driver.log4j.appender.hdfs.File=%s ", getOutputHDFSPath(config)));
         sb.append(String.format(" -Dspark.driver.rest.server.ip=%s ", serverIp));

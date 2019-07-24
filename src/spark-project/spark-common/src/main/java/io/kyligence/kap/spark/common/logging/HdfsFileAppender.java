@@ -30,6 +30,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.log4j.AppenderSkeleton;
 import org.apache.log4j.helpers.LogLog;
@@ -65,6 +66,11 @@ public class HdfsFileAppender extends AppenderSkeleton {
     // only cubing job
     private String logPath;
 
+    // kerberos
+    private Boolean kerberosEnable = Boolean.FALSE;
+    private String kerberosPrincipal;
+    private String kerberosKeytab;
+
     /**
      * init the load resource.
      */
@@ -77,7 +83,7 @@ public class HdfsFileAppender extends AppenderSkeleton {
      * init the hdfs append service.
      */
     private void init() {
-        LogLog.warn("HdfsFileAppender start ...");
+        LogLog.warn("HdfsFileAppender starting ...");
         LogLog.warn("spark.driver.log4j.appender.hdfs.File -> " + getLogPath());
 
         logBufferQue = new LinkedBlockingDeque<>(logQueueCapacity);
@@ -87,10 +93,11 @@ public class HdfsFileAppender extends AppenderSkeleton {
         appendHdfsService.execute(flushService);
 
         Runtime.getRuntime().addShutdownHook(new Thread((this::close)));
+        LogLog.warn("HdfsFileAppender Started ...");
     }
 
     protected HdfsFileAppender.HdfsFlushService initService() {
-        return new HdfsFileAppender.HdfsFlushService(new Path(getLogPath()));
+        return new HdfsFileAppender.HdfsFlushService();
     }
 
     @Override
@@ -168,14 +175,6 @@ public class HdfsFileAppender extends AppenderSkeleton {
     @VisibleForTesting
     class HdfsFlushService implements Runnable {
 
-        public HdfsFlushService(Path outputHDFSPath) {
-            try {
-                initWriter(outputHDFSPath);
-            } catch (IOException e) {
-                LogLog.error("init the Hdfs writer failed!");
-            }
-        }
-
         /**
          * roll polling，to check the size of queue and write the event to HDFS.
          * write to HDFS condition: event size > logQueueCapacity*0.2 and flushInterval > 5000ms
@@ -219,6 +218,15 @@ public class HdfsFileAppender extends AppenderSkeleton {
          * @throws InterruptedException
          */
         private void flushLog(int size) throws IOException, InterruptedException {
+            if (null == outStream && null == bufferedWriter) {
+                try {
+                    initWriter(new Path(getLogPath()));
+                } catch (IOException e) {
+                    LogLog.error("init the Hdfs writer failed!", e);
+                    throw e;
+                }
+            }
+
             if (size == 0)
                 return;
 
@@ -247,6 +255,11 @@ public class HdfsFileAppender extends AppenderSkeleton {
             closeWriter();
 
             Configuration conf = new Configuration();
+            if (kerberosEnable) {
+                UserGroupInformation.setConfiguration(conf);
+                UserGroupInformation.loginUserFromKeytab(kerberosPrincipal, kerberosKeytab);
+            }
+
             fileSystem = HadoopUtil.getFileSystem(outPath, conf);
             int retry = 10;
             for (int i = 0; i < retry; i++) {
@@ -254,8 +267,7 @@ public class HdfsFileAppender extends AppenderSkeleton {
                     outStream = fileSystem.create(outPath, true);
                     break;
                 } catch (Exception e) {
-                    LogLog.error("fail to create stream for path: " + outPath);
-                    LogLog.error("", e);
+                    LogLog.error("fail to create stream for path: " + outPath, e);
                 }
 
                 try {

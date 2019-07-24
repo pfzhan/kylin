@@ -24,22 +24,16 @@
 
 package io.kyligence.kap.spark.common.logging;
 
-import org.apache.hadoop.fs.Path;
-
 import java.io.IOException;
 
 public class TestErrorHdfsFileAppender extends HdfsFileAppender {
 
     @Override
     public HdfsFileAppender.HdfsFlushService initService() {
-        return new TestErrorHdfsFileAppender.ErrorService(new Path(getLogPath()));
+        return new TestErrorHdfsFileAppender.ErrorService();
     }
 
     class ErrorService extends HdfsFileAppender.HdfsFlushService {
-
-        public ErrorService(Path outputHDFSPath) {
-            super(outputHDFSPath);
-        }
 
         @Override
         protected void flush() throws IOException {
