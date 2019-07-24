@@ -151,7 +151,8 @@
             **/io/kyligence/kap/rest/config/initialize/BootstrapCommand.java,
             **/io/kyligence/kap/rest/config/AppInitializer.java,
             **/io/kyligence/kap/metadata/model/Canvas.java,
-            **/io/kyligence/kap/rest/ZookeeperClusterManager.java
+            **/io/kyligence/kap/rest/ZookeeperClusterManager.java,
+            **/org/apache/kylin/rest/model/LicenseInfo.java
         </sonar.coverage.exclusions>
         <sonar.jacoco.itReportPath>${project.basedir}/../../target/jacoco-it.exec</sonar.jacoco.itReportPath>
 

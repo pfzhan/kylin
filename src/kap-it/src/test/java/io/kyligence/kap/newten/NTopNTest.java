@@ -41,9 +41,7 @@ import org.apache.kylin.metadata.realization.CapabilityResult;
 import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 import org.apache.kylin.query.relnode.OLAPContext;
 import org.apache.kylin.query.routing.RealizationChooser;
-import org.apache.spark.SparkContext;
 import org.apache.spark.sql.SparderEnv;
-import org.apache.spark.sql.SparkSession;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -65,7 +63,7 @@ public class NTopNTest extends NLocalWithSparkSessionTest {
     private NDataflowManager dfMgr = null;
 
     @Before
-    public void setup() throws Exception {
+    public void setup() {
         System.setProperty("kylin.job.scheduler.poll-interval-second", "1");
         dfMgr = NDataflowManager.getInstance(getTestConfig(), getProject());
         NDefaultScheduler scheduler = NDefaultScheduler.getInstance(getProject());
@@ -163,15 +161,9 @@ public class NTopNTest extends NLocalWithSparkSessionTest {
     @Test
     public void testPreferSumMeasure() throws Exception {
         TopNCounter.EXTRA_SPACE_RATE = 1;
-        SparkContext existingCxt = SparkContext.getOrCreate(sparkConf);
-        existingCxt.stop();
-        ss = SparkSession.builder().config(sparkConf).getOrCreate();
-        ss.sparkContext().setLogLevel("ERROR");
 
         fullBuildCube("79547ec2-350e-4ba4-88f9-099048962ceb", getProject());
         fullBuildCube("fb6ce800-43ee-4ef9-b100-39d523f36304", getProject());
-
-        ss.close();
 
         populateSSWithCSVData(getTestConfig(), getProject(), SparderEnv.getSparkSession());
 
@@ -208,14 +200,8 @@ public class NTopNTest extends NLocalWithSparkSessionTest {
     public void testNonDefaultDatabase() throws Exception {
         String dfName = "ab547ec2-350e-4ba4-88f9-099048962ceq";
         TopNCounter.EXTRA_SPACE_RATE = 1;
-        SparkContext existingCxt = SparkContext.getOrCreate(sparkConf);
-        existingCxt.stop();
-        ss = SparkSession.builder().config(sparkConf).getOrCreate();
-        ss.sparkContext().setLogLevel("ERROR");
 
         fullBuildCube(dfName, getProject());
-        ss.close();
-
         populateSSWithCSVData(getTestConfig(), getProject(), SparderEnv.getSparkSession());
 
         List<Pair<String, String>> query = new ArrayList<>();
@@ -232,20 +218,14 @@ public class NTopNTest extends NLocalWithSparkSessionTest {
     @Test
     public void testSameTableNameInDifferentDatabase() throws Exception {
         TopNCounter.EXTRA_SPACE_RATE = 1;
-        SparkContext existingCxt = SparkContext.getOrCreate(sparkConf);
-        existingCxt.stop();
-        ss = SparkSession.builder().config(sparkConf).getOrCreate();
-        ss.sparkContext().setLogLevel("ERROR");
 
         fullBuildCube("da101c43-6d22-48ce-88d2-bf0ce0594022", getProject());
-        ss.close();
 
         populateSSWithCSVData(getTestConfig(), getProject(), SparderEnv.getSparkSession());
 
         List<Pair<String, String>> query = new ArrayList<>();
-        query.add(Pair.newPair("top_n_answer",
-                "select A.SELLER_ID,sum(A.PRICE) from ISSUES.TEST_TOP_N A "
-                        + " join TEST_TOP_N B on A.ID=B.ID group by A.SELLER_ID order by sum(B.PRICE) desc limit 100"));
+        query.add(Pair.newPair("top_n_answer", "select A.SELLER_ID,sum(A.PRICE) from ISSUES.TEST_TOP_N A "
+                + " join TEST_TOP_N B on A.ID=B.ID group by A.SELLER_ID order by sum(B.PRICE) desc limit 100"));
         try {
             NExecAndComp.queryFromCube(getProject(), query.get(0).getSecond());
             Assert.fail();
