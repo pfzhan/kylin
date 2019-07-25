@@ -1425,7 +1425,8 @@ export default class ModelEdit extends Vue {
   addPartitionFunc (data) {
     if (this.modelRender.management_type !== 'TABLE_ORIENTED') {
       this.showPartitionDialog({
-        modelDesc: data
+        modelDesc: data,
+        modelInstance: this.modelInstance
       }).then((res) => {
         if (res.isSubmit) {
           this.handleSaveModel(data)

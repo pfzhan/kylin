@@ -111,7 +111,7 @@ vuex.registerModule(['modals', 'ModelPartitionModal'], store)
     ...mapState('ModelPartitionModal', {
       isShow: state => state.isShow,
       modelDesc: state => state.form.modelDesc,
-      modelInstance: state => state.form.modelDesc && new NModel(state.form.modelDesc) || null,
+      modelInstance: state => state.form.modelInstance || state.form.modelDesc && new NModel(state.form.modelDesc) || null,
       callback: state => state.callback
     })
   },
