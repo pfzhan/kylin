@@ -33,12 +33,14 @@ import java.util.stream.Collectors;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.Pair;
+import org.apache.spark.sql.SparderEnv;
 import org.junit.Ignore;
 import org.junit.Test;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
+import io.kyligence.kap.newten.NExecAndComp;
 import io.kyligence.kap.newten.NExecAndComp.CompareLevel;
 import lombok.extern.slf4j.Slf4j;
 
@@ -104,6 +106,8 @@ public class NAutoBuildAndQueryTest extends NAutoTestBase {
 
                 /* CompareLevel = SAME_ROWCOUNT */
                 new TestScenario(CompareLevel.SAME_ROWCOUNT, "query/sql_distinct/sql_distinct_hllc"),
+                new TestScenario(CompareLevel.SAME_ROWCOUNT, "query/sql_h2_uncapable"),
+                new TestScenario(CompareLevel.SAME_ROWCOUNT, "query/sql_limit"),
                 new TestScenario(CompareLevel.SAME_ROWCOUNT, "query/sql_percentile"),
                 new TestScenario(CompareLevel.SAME_ROWCOUNT, "query/sql_percentile_only_with_spark_cube"),
                 new TestScenario(CompareLevel.SAME_ROWCOUNT, "query/sql_verifyCount"),
@@ -118,7 +122,18 @@ public class NAutoBuildAndQueryTest extends NAutoTestBase {
         KylinConfig.getInstanceFromEnv().setProperty("kylin.query.calcite.extras-props.conformance", "DEFAULT");
         Set<String> exclusionList = Sets.newHashSet();
         overwriteSystemProp("calcite.debug", "true");
-        new TestScenario(CompareLevel.SAME, "query/sql_window/new_sql_window").execute();
+        new TestScenario(CompareLevel.SAME, "query/temp").execute();
+    }
+
+    @Ignore
+    @Test
+    public void testQueryForPreparedMetadata() throws Exception {
+        TestScenario scenario = new TestScenario(CompareLevel.SAME_ROWCOUNT, "query/temp");
+        collectQueries(scenario);
+        List<Pair<String, String>> queries = scenario.getQueries();
+        populateSSWithCSVData(kylinConfig, getProject(), SparderEnv.getSparkSession());
+        NExecAndComp.execAndCompareNew(queries, getProject(), scenario.getCompareLevel(), scenario.joinType.toString(),
+                null);
     }
 
     @Test
@@ -128,13 +143,6 @@ public class NAutoBuildAndQueryTest extends NAutoTestBase {
         overwriteSystemProp("kylin.query.pushdown.converter-class-names",
                 "io.kyligence.kap.query.util.CognosParenthesesEscapeTransformer,io.kyligence.kap.query.util.RestoreFromComputedColumn,io.kyligence.kap.query.util.SparkSQLFunctionConverter,org.apache.kylin.source.adhocquery.HivePushDownConverter");
         new TestScenario(CompareLevel.SAME, "query/sql_parentheses_escape").execute();
-    }
-
-    @Test
-    public void testSqlH2Uncapable() throws Exception {
-        // not stable test in query/sql_h2_uncapable/query13.sql when in allquery
-        executeTestScenario(new TestScenario(CompareLevel.SAME_ROWCOUNT, "query/sql_h2_uncapable"),
-                new TestScenario(CompareLevel.SAME_ROWCOUNT, "query/sql_limit"));
     }
 
     @Test
