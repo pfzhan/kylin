@@ -59,7 +59,7 @@ trait QuerySupport
   def singleQuery(sql: String, project: String): DataFrame = {
     val connection = QueryConnection.getConnection(project)
     val convertedSql =
-      QueryUtil.massageSql(sql, project, 0, 0, connection.getSchema)
+      QueryUtil.massageSql(sql, project, 0, 0, connection.getSchema, true)
     connection.createStatement().execute(convertedSql)
     SparderEnv.getDF
   }

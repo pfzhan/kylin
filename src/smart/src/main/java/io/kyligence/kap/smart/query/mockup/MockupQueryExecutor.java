@@ -65,7 +65,7 @@ public class MockupQueryExecutor extends AbstractQueryExecutor {
         try (Connection conn = QueryConnection.getConnection(projectName);
                 Statement statement = conn.createStatement();
                 ResultSet ignored = statement
-                        .executeQuery(QueryUtil.massageSql(sql, projectName, 0, 0, conn.getSchema()))) {
+                        .executeQuery(QueryUtil.massageSql(sql, projectName, 0, 0, conn.getSchema(), true))) {
 
             sqlResult.setStatus(SQLResult.Status.SUCCESS);
         } catch (Throwable e) { // cannot replace with Exception, e may a instance of Error

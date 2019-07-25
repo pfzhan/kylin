@@ -400,12 +400,12 @@ public class NExecAndComp {
     }
 
     public static Dataset<Row> queryFromCube(String prj, String sqlText, List<String> parameters) {
-        sqlText = QueryUtil.massageSql(sqlText, prj, 0, 0, "DEFAULT");
+        sqlText = QueryUtil.massageSql(sqlText, prj, 0, 0, "DEFAULT", true);
         return sql(prj, sqlText, parameters);
     }
 
     public static Dataset<Row> queryFromCube(String prj, String sqlText) {
-        sqlText = QueryUtil.massageSql(sqlText, prj, 0, 0, "DEFAULT");
+        sqlText = QueryUtil.massageSql(sqlText, prj, 0, 0, "DEFAULT", true);
         return sql(prj, sqlText, null);
     }
 

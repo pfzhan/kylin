@@ -417,4 +417,36 @@ public class QueryMetricsContextTest extends NLocalFileMetadataTestCase {
             QueryMetricsContext.reset();
         }
     }
+
+    @Test
+    public void testCollectCCSQL() {
+        try {
+            // PRICE * ITEM_COUNT expression already exists
+            final String origSql = "SELECT SUM(PRICE * ITEM_COUNT), CAL_DT FROM TEST_KYLIN_FACT GROUP BY CAL_DT";
+            final String sqlPattern = QueryPatternUtil.normalizeSQLPattern(origSql);
+            final QueryContext queryContext = QueryContext.current();
+            QueryMetricsContext.start(queryContext.getQueryId(), "localhost:7070");
+            Assert.assertEquals(true, QueryMetricsContext.isStarted());
+
+            final SQLRequest request = new SQLRequest();
+            request.setProject("default");
+            request.setSql(origSql);
+            request.setUsername("ADMIN");
+
+            final SQLResponse response = new SQLResponse();
+            response.setHitExceptionCache(true);
+            response.setServer("localhost:7070");
+            response.setSuite("suite_1");
+            response.setEngineType("HIVE");
+
+            final QueryMetricsContext metricsContext = QueryMetricsContext.collect(request, response, queryContext);
+
+            final Map<String, Object> influxdbFields = metricsContext.getInfluxdbFields();
+            Assert.assertEquals(origSql, influxdbFields.get(QueryHistory.SQL_TEXT));
+            Assert.assertEquals(sqlPattern, influxdbFields.get(QueryHistory.SQL_PATTERN));
+        } finally {
+            QueryContext.reset();
+            QueryMetricsContext.reset();
+        }
+    }
 }

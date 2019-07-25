@@ -67,7 +67,7 @@ public class FavoriteRuleService extends BasicService {
     private static final Logger logger = LoggerFactory.getLogger(FavoriteRuleService.class);
     private static final List<String> favoriteRuleNames = Lists.newArrayList(FavoriteRule.FREQUENCY_RULE_NAME, FavoriteRule.DURATION_RULE_NAME, FavoriteRule.SUBMITTER_RULE_NAME, FavoriteRule.SUBMITTER_GROUP_RULE_NAME);
 
-    private static final String DEFAULT_SCHEMA = "default";
+    private static final String DEFAULT_SCHEMA = "DEFAULT";
 
     public Map<String, Object> getFavoriteRules(String project) {
         Map<String, Object> result = Maps.newHashMap();
@@ -305,7 +305,7 @@ public class FavoriteRuleService extends BasicService {
             if (sql == null || sql.length() == 0 || sql.replace('\n', ' ').trim().length() == 0) {
                 continue;
             }
-            String correctedSql = QueryUtil.massageSql(sql, project, 0, 0, DEFAULT_SCHEMA);
+            String correctedSql = QueryUtil.massageSql(sql, project, 0, 0, DEFAULT_SCHEMA, false);
             sqls.add(correctedSql);
         }
 
@@ -313,7 +313,7 @@ public class FavoriteRuleService extends BasicService {
     }
 
     public SQLValidateResponse sqlValidate(String project, String sql) {
-        String correctedSql = QueryUtil.massageSql(sql, project, 0, 0, DEFAULT_SCHEMA);
+        String correctedSql = QueryUtil.massageSql(sql, project, 0, 0, DEFAULT_SCHEMA, false);
         // sql validation
         Map<String, SQLValidateResult> map = batchSqlValidate(Lists.newArrayList(correctedSql), project);
         SQLValidateResult result = map.get(correctedSql);

@@ -31,6 +31,9 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 
+import io.kyligence.kap.metadata.model.ComputedColumnDesc;
+import io.kyligence.kap.metadata.model.NDataModelManager;
+import lombok.val;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.exception.BadRequestException;
 import org.apache.kylin.rest.exception.NotFoundException;
@@ -294,5 +297,32 @@ public class FavoriteRuleServiceTest extends NLocalFileMetadataTestCase {
         var response = favoriteRuleService.sqlValidate(PROJECT, sql);
         Assert.assertFalse(response.isCapable());
         Assert.assertEquals("Table 'TEST_KYLIN' not found.", Lists.newArrayList(response.getSqlAdvices()).get(0).getIncapableReason());
+    }
+
+    @Test
+    public void testImportCCSQLs() {
+        val ccDesc = new ComputedColumnDesc();
+        ccDesc.setTableAlias("TEST_KYLIN_FACT");
+        ccDesc.setTableIdentity("DEFAULT.TEST_KYLIN_FACT");
+        ccDesc.setColumnName("DEAL_AMOUNT");
+        ccDesc.setDatatype("decimal(30,4)");
+        ccDesc.setExpression("TEST_KYLIN_FACT.PRICE * TEST_KYLIN_FACT.ITEM_COUNT");
+
+        val basicModel = NDataModelManager.getInstance(getTestConfig(), PROJECT).getDataModelDescByAlias("nmodel_basic");
+        Assert.assertTrue(basicModel.getComputedColumnDescs().contains(ccDesc));
+
+        // PRICE * ITEM_COUNT expression already exists
+        String sql = "SELECT SUM(PRICE * ITEM_COUNT), CAL_DT FROM TEST_KYLIN_FACT GROUP BY CAL_DT";
+
+        MockMultipartFile file1 = new MockMultipartFile("file.sql", "file.sql", "text/plain", sql.getBytes());
+        Map<String, Object> result = favoriteRuleService.importSqls(new MultipartFile[]{file1}, PROJECT);
+        List<ImportSqlResponse> responses = (List<ImportSqlResponse>) result.get("data");
+        Assert.assertEquals(1, responses.size());
+        Assert.assertTrue(responses.get(0).isCapable());
+        Assert.assertEquals(1, result.get("size"));
+        Assert.assertEquals(1, result.get("capable_sql_num"));
+
+        // same cc expression not replaced with existed cc
+        Assert.assertEquals(sql, responses.get(0).getSql());
     }
 }

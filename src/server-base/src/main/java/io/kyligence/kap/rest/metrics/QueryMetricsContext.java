@@ -157,8 +157,7 @@ public class QueryMetricsContext {
 
         // this case happens when a query hit cache, the process did not proceed to the place where massaged sql is set
         if (correctedSql == null) {
-            correctedSql = QueryUtil.massageSql(request.getSql(), request.getProject(), request.getLimit(),
-                    request.getOffset(), null);
+            correctedSql = QueryUtil.massageSql(request.getSql(), request.getProject(), request.getLimit(), request.getOffset(), "DEFAULT", false);
         }
 
         this.sql = correctedSql;

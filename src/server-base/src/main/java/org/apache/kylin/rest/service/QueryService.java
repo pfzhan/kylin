@@ -623,7 +623,7 @@ public class QueryService extends BasicService {
                     }
 
                     String correctedSql = QueryUtil.massageSql(sqlRequest.getSql(), sqlRequest.getProject(),
-                            sqlRequest.getLimit(), sqlRequest.getOffset(), conn.getSchema());
+                            sqlRequest.getLimit(), sqlRequest.getOffset(), conn.getSchema(), true);
 
                     QueryContext.current().setCorrectedSql(correctedSql);
 

@@ -42,6 +42,7 @@
 
 package org.apache.kylin.query.util;
 
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
@@ -75,22 +76,22 @@ public class QueryUtil {
         String transform(String sql, String project, String defaultSchema);
     }
 
-    public static String massageSql(String sql, String project, int limit, int offset, String defaultSchema) {
+    public static String massageSql(String sql, String project, int limit, int offset, String defaultSchema, boolean isCCNeeded) {
         NProjectManager projectManager = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv());
         ProjectInstance projectInstance = projectManager.getProject(project);
         KylinConfig kylinConfig = projectInstance.getConfig();
-        return massageSql(kylinConfig, sql, project, limit, offset, defaultSchema);
+        return massageSql(kylinConfig, sql, project, limit, offset, defaultSchema, isCCNeeded);
     }
 
     static String massageSql(KylinConfig kylinConfig, String sql, String project, int limit, int offset,
-            String defaultSchema) {
+            String defaultSchema, boolean isCCNeeded) {
         String massagedSql = normalMassageSql(kylinConfig, sql, limit, offset);
-        return transformSql(kylinConfig, massagedSql, project, defaultSchema);
+        return transformSql(kylinConfig, massagedSql, project, defaultSchema, isCCNeeded);
     }
 
-    private static String transformSql(KylinConfig kylinConfig, String sql, String project, String defaultSchema) {
+    private static String transformSql(KylinConfig kylinConfig, String sql, String project, String defaultSchema, boolean isCCNeeded) {
         // customizable SQL transformation
-        initQueryTransformersIfNeeded(kylinConfig);
+        initQueryTransformersIfNeeded(kylinConfig, isCCNeeded);
         for (IQueryTransformer t : queryTransformers) {
             sql = t.transform(sql, project, defaultSchema);
         }
@@ -120,19 +121,24 @@ public class QueryUtil {
         return sql;
     }
 
-    static void initQueryTransformersIfNeeded(KylinConfig kylinConfig) {
+    static void initQueryTransformersIfNeeded(KylinConfig kylinConfig, boolean isCCNeeded) {
         String[] currentTransformers = queryTransformers.stream().map(Object::getClass).map(Class::getCanonicalName)
                 .toArray(String[]::new);
         String[] configTransformers = kylinConfig.getQueryTransformers();
-        boolean skipInit = Objects.deepEquals(currentTransformers, configTransformers);
-        if (skipInit) {
+        boolean containsCCTransformer = Arrays.stream(configTransformers).anyMatch(t -> t.equals("io.kyligence.kap.query.util.ConvertToComputedColumn"));
+        boolean transformersEqual = Objects.deepEquals(currentTransformers, configTransformers);
+        if (transformersEqual && (isCCNeeded || !containsCCTransformer)) {
             return;
         }
 
         List<IQueryTransformer> transformers = Lists.newArrayList();
         for (String clz : configTransformers) {
+            if (!isCCNeeded && clz.equals("io.kyligence.kap.query.util.ConvertToComputedColumn"))
+                continue;
+
             try {
                 IQueryTransformer t = (IQueryTransformer) ClassUtil.newInstance(clz);
+
                 transformers.add(t);
             } catch (Exception e) {
                 throw new IllegalStateException("Failed to init query transformer", e);

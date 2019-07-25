@@ -45,6 +45,7 @@ package org.apache.kylin.query.util;
 import java.sql.SQLException;
 import java.util.Properties;
 
+import io.kyligence.kap.query.util.ConvertToComputedColumn;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.KylinConfig.SetAndUnsetThreadLocalConfig;
 import org.apache.spark.sql.catalyst.analysis.NoSuchTableException;
@@ -62,11 +63,11 @@ public class QueryUtilTest {
             config.setProperty("kylin.query.transformers", DefaultQueryTransformer.class.getCanonicalName());
 
             String sql = "SELECT * FROM TABLE";
-            String newSql = QueryUtil.massageSql(config, sql, "", 100, 20, "");
+            String newSql = QueryUtil.massageSql(config, sql, "", 100, 20, "", true);
             Assert.assertEquals("SELECT * FROM TABLE\nLIMIT 100\nOFFSET 20", newSql);
 
             String sql2 = "SELECT SUM({fn convert(0, INT)}) from TABLE";
-            String newSql2 = QueryUtil.massageSql(config, sql2, "", 0, 0, "");
+            String newSql2 = QueryUtil.massageSql(config, sql2, "", 0, 0, "", true);
             Assert.assertEquals("SELECT SUM({fn convert(0, INT)}) from TABLE", newSql2);
         }
     }
@@ -95,14 +96,25 @@ public class QueryUtilTest {
 
             config.setProperty("kylin.query.transformers", DefaultQueryTransformer.class.getCanonicalName());
             Assert.assertEquals(0, QueryUtil.queryTransformers.size());
-            QueryUtil.initQueryTransformersIfNeeded(config);
+            QueryUtil.initQueryTransformersIfNeeded(config, true);
             Assert.assertEquals(1, QueryUtil.queryTransformers.size());
             Assert.assertTrue(QueryUtil.queryTransformers.get(0) instanceof DefaultQueryTransformer);
 
             config.setProperty("kylin.query.transformers", KeywordDefaultDirtyHack.class.getCanonicalName());
-            QueryUtil.initQueryTransformersIfNeeded(config);
+            QueryUtil.initQueryTransformersIfNeeded(config, true);
             Assert.assertEquals(1, QueryUtil.queryTransformers.size());
             Assert.assertTrue(QueryUtil.queryTransformers.get(0) instanceof KeywordDefaultDirtyHack);
+
+            QueryUtil.initQueryTransformersIfNeeded(config, false);
+            Assert.assertEquals(1, QueryUtil.queryTransformers.size());
+            Assert.assertTrue(QueryUtil.queryTransformers.get(0) instanceof KeywordDefaultDirtyHack);
+
+            config.setProperty("kylin.query.transformers", DefaultQueryTransformer.class.getCanonicalName() + "," + ConvertToComputedColumn.class.getCanonicalName());
+            QueryUtil.initQueryTransformersIfNeeded(config, true);
+            Assert.assertEquals(2, QueryUtil.queryTransformers.size());
+            QueryUtil.initQueryTransformersIfNeeded(config, false);
+            Assert.assertEquals(1, QueryUtil.queryTransformers.size());
+            Assert.assertTrue(QueryUtil.queryTransformers.get(0) instanceof DefaultQueryTransformer);
         }
     }
 
