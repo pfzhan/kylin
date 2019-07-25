@@ -27,9 +27,8 @@ import org.apache.spark.sql.catalyst.FunctionIdentifier
 import org.apache.spark.sql.catalyst.analysis.FunctionRegistry.FunctionBuilder
 import org.apache.spark.sql.catalyst.expressions.ExpressionUtils.expression
 import org.apache.spark.sql.catalyst.expressions.aggregate.AggregateFunction
-import org.apache.spark.sql.catalyst.expressions.{Expression, ExpressionInfo, ImplicitCastInputTypes, In, KapAddMonths, KapDayOfWeek, KapSubtractMonths, Like, Literal, RoundBase, Sum0, TimestampAdd, TimestampDiff, Truncate}
-import org.apache.spark.sql.catalyst.expressions.{DictEncode, Expression, ExpressionInfo, ImplicitCastInputTypes, KapAddMonths, KapDayOfWeek, KapSubtractMonths, Like, Literal, RoundBase, Sum0, TimestampAdd, TimestampDiff, Truncate}
-import org.apache.spark.sql.udf.{ApproxCountDistinct, PreciseCountDistinct}
+import org.apache.spark.sql.catalyst.expressions._
+import org.apache.spark.sql.udaf.{ApproxCountDistinct, PreciseCountDistinct}
 
 object KapFunctions {
   private def withAggregateFunction(func: AggregateFunction,

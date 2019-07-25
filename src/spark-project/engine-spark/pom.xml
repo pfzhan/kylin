@@ -32,6 +32,11 @@
             <groupId>io.kyligence.ke</groupId>
             <artifactId>kap-sparder</artifactId>
         </dependency>
+        <dependency>
+            <groupId>io.kyligence.ke</groupId>
+            <artifactId>kap-spark-common</artifactId>
+            <version>${project.version}</version>
+        </dependency>
         <!-- Env & Test -->
         <dependency>
             <groupId>io.kyligence.ke</groupId>
@@ -99,6 +104,14 @@
             <artifactId>scalatest_2.11</artifactId>
             <version>3.0.0</version>
             <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.apache.spark</groupId>
+            <artifactId>spark-core_2.11</artifactId>
+            <version>${spark.version}</version>
+            <type>test-jar</type>
+            <scope>provided</scope>
         </dependency>
 
         <dependency>

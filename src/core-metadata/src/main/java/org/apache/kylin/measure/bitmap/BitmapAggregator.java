@@ -89,4 +89,8 @@ public class BitmapAggregator extends MeasureAggregator<BitmapCounter> {
     public int getMemBytesEstimate() {
         return sum == null ? 0 : sum.getMemBytes();
     }
+
+    public void add(Long value) {
+        sum.add(value);
+    }
 }

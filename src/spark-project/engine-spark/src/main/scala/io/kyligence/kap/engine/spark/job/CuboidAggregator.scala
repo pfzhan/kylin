@@ -38,6 +38,7 @@ import org.apache.spark.sql.types.{StringType, _}
 import org.apache.spark.sql.util.SparderTypeUtil
 import org.apache.spark.sql.util.SparderTypeUtil.toSparkType
 import org.apache.spark.sql.{Column, DataFrame, SparkSession}
+import org.apache.spark.sql.udaf._
 
 import scala.collection.JavaConverters._
 import scala.collection.mutable
@@ -54,7 +55,6 @@ object CuboidAggregator {
       case null => true
       case _ => DFChooser.needJoinLookupTables(seg.getModel, st)
     }
-
     val flatTableDesc =
       new NCubeJoinedFlatTableDesc(seg.getIndexPlan, seg.getSegRange, needJoin)
     agg(ss, dataSet, dimensions, measures, flatTableDesc, isSparkSql = false)
@@ -123,21 +123,31 @@ object CuboidAggregator {
           if (isSparkSql) {
             countDistinct(columns.head).as(measureEntry._1.toString)
           } else {
-            val udfName = UdfManager.register(function.getReturnDataType,
-              function.getExpression,
-              null,
-              !reuseLayout)
             if (!reuseLayout) {
               var col = columns.head
               if (function.getReturnDataType.getName.equalsIgnoreCase(BitmapMeasureType.DATATYPE_BITMAP)) {
                 col = wrapEncodeColumn(parameters.head.getColRef, columns.head)
+                new Column(EncodePreciseCountDistinct(col.expr).toAggregateExpression()).as(measureEntry._1.toString)
               } else if (columns.length > 1 && function.getReturnDataType.getName.startsWith(HLLCMeasureType.DATATYPE_HLLC)) {
                 col = wrapMutilHllcColumn(columns: _*)
+                new Column(EncodeApproxCountDistinct(col.expr, function.getReturnDataType.getPrecision).toAggregateExpression())
+                  .as(measureEntry._1.toString)
+              } else {
+                new Column(EncodeApproxCountDistinct(col.expr, function.getReturnDataType.getPrecision).toAggregateExpression())
+                  .as(measureEntry._1.toString)
               }
-              callUDF(udfName, col.cast(StringType))
-                .as(measureEntry._1.toString)
             } else {
-              callUDF(udfName, columns.head).as(measureEntry._1.toString)
+              var col = columns.head
+              if (function.getReturnDataType.getName.equalsIgnoreCase(BitmapMeasureType.DATATYPE_BITMAP)) {
+                new Column(ReusePreciseCountDistinct(col.expr).toAggregateExpression()).as(measureEntry._1.toString)
+              } else if (columns.length > 1 && function.getReturnDataType.getName.startsWith(HLLCMeasureType.DATATYPE_HLLC)) {
+                  col = wrapMutilHllcColumn(columns: _*)
+                new Column(ReuseApproxCountDistinct(col.expr, function.getReturnDataType.getPrecision).toAggregateExpression())
+                  .as(measureEntry._1.toString)
+              } else {
+                new Column(ReuseApproxCountDistinct(col.expr, function.getReturnDataType.getPrecision).toAggregateExpression())
+                  .as(measureEntry._1.toString)
+              }
             }
           }
         case "TOP_N" =>

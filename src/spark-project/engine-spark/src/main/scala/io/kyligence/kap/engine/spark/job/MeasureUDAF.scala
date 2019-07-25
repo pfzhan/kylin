@@ -22,7 +22,7 @@
 
 package io.kyligence.kap.engine.spark.job
 
-import java.nio.ByteBuffer
+import java.nio.{BufferOverflowException, ByteBuffer}
 
 import org.apache.kylin.measure.{MeasureAggregator, MeasureIngester, MeasureTypeFactory}
 import org.apache.kylin.metadata.datatype.{DataTypeSerializer, DataType => KyDataType}
@@ -86,29 +86,13 @@ sealed abstract class MeasureUDAF extends UserDefinedAggregateFunction {
 
   override def update(buffer: MutableAggregationBuffer, input: Row): Unit = {
     byteBuffer.clear()
-    var inputValue: Any = null
-    if (isFirst) {
-      inputValue = encoder.encoder(input.apply(0))
-    } else {
-      inputValue = serializer.deserialize(ByteBuffer.wrap(input.apply(0).asInstanceOf[Array[Byte]]))
-    }
-    if (buffer.isNullAt(0)) {
-      serializer.serialize(inputValue, byteBuffer)
-      buffer.update(0, byteBuffer.array().slice(0, byteBuffer.position()))
-    } else {
-      measureAggregator.reset()
-      val bufferValue = serializer.deserialize(ByteBuffer.wrap(buffer.apply(0).asInstanceOf[Array[Byte]]))
-      measureAggregator.aggregate(bufferValue)
-      measureAggregator.aggregate(inputValue)
-      serializer.serialize(measureAggregator.getState, byteBuffer)
-      buffer.update(0, byteBuffer.array().slice(0, byteBuffer.position()))
-    }
-  }
-
-  override def merge(buffer: MutableAggregationBuffer, input: Row): Unit = {
-    if (!input.isNullAt(0)) {
-      byteBuffer.clear()
-      var inputValue = serializer.deserialize(ByteBuffer.wrap(input.apply(0).asInstanceOf[Array[Byte]]))
+    try {
+      var inputValue: Any = null
+      if (isFirst) {
+        inputValue = encoder.encoder(input.apply(0))
+      } else {
+        inputValue = serializer.deserialize(ByteBuffer.wrap(input.apply(0).asInstanceOf[Array[Byte]]))
+      }
       if (buffer.isNullAt(0)) {
         serializer.serialize(inputValue, byteBuffer)
         buffer.update(0, byteBuffer.array().slice(0, byteBuffer.position()))
@@ -120,6 +104,36 @@ sealed abstract class MeasureUDAF extends UserDefinedAggregateFunction {
         serializer.serialize(measureAggregator.getState, byteBuffer)
         buffer.update(0, byteBuffer.array().slice(0, byteBuffer.position()))
       }
+    } catch {
+      case th: BufferOverflowException =>
+        byteBuffer = ByteBuffer.allocate(byteBuffer.array().length * 2)
+        update(buffer, input)
+      case th: Throwable => throw th
+    }
+  }
+
+  override def merge(buffer: MutableAggregationBuffer, input: Row): Unit = {
+    try {
+      if (!input.isNullAt(0)) {
+        byteBuffer.clear()
+        var inputValue = serializer.deserialize(ByteBuffer.wrap(input.apply(0).asInstanceOf[Array[Byte]]))
+        if (buffer.isNullAt(0)) {
+          serializer.serialize(inputValue, byteBuffer)
+          buffer.update(0, byteBuffer.array().slice(0, byteBuffer.position()))
+        } else {
+          measureAggregator.reset()
+          val bufferValue = serializer.deserialize(ByteBuffer.wrap(buffer.apply(0).asInstanceOf[Array[Byte]]))
+          measureAggregator.aggregate(bufferValue)
+          measureAggregator.aggregate(inputValue)
+          serializer.serialize(measureAggregator.getState, byteBuffer)
+          buffer.update(0, byteBuffer.array().slice(0, byteBuffer.position()))
+        }
+      }
+    } catch {
+      case th: BufferOverflowException =>
+        byteBuffer = ByteBuffer.allocate(byteBuffer.array().length * 2)
+        merge(buffer, input)
+      case th: Throwable => throw th
     }
   }
 
