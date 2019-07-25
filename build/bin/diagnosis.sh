@@ -28,9 +28,7 @@ mkdir $diag_tmp_dir/metadata
 mkdir $diag_tmp_dir/conf
 mkdir $diag_tmp_dir/hadoop_conf
 mkdir $diag_tmp_dir/system_metrics
-mkdir $diag_tmp_dir/audit_log
-mkdir $diag_tmp_dir/job_tmp
-mkdir $diag_tmp_dir/yarn_application_log
+mkdir ${diag_tmp_dir}/audit_log
 
 diag_log_file=$diag_tmp_dir/diag.log
 exec 2>>$diag_log_file
@@ -56,6 +54,8 @@ case $1 in
         verbose "Start to build full diagnostic package"
         ;;
     "-job")
+        mkdir ${diag_tmp_dir}/job_tmp
+        mkdir ${diag_tmp_dir}/yarn_application_log
         job_id=$2
         if [[ $3 == "-destDir" ]]; then
             diag_pkg_home=$4
@@ -165,7 +165,7 @@ elif [[ $1 == "-job" ]]; then
 fi
 
 verbose "Dump yarn application log..."
-if [[ $1 == "-job" ]]; then
+if [[ $1 == "-job"  && -n ${project_name} ]]; then
     ${KYLIN_HOME}/bin/kylin.sh io.kyligence.kap.tool.YarnApplicationTool -job ${job_id} -project ${project_name} > ${diag_tmp_dir}/yarn_application_id
     for yarn_application_id in `cat ${diag_tmp_dir}/yarn_application_id`
     do
@@ -235,8 +235,8 @@ fi
 diag_pkg_home=$(cd -P $diag_pkg_home && pwd -P)
 diag_package="diag_$(date '+%Y_%m_%d_%H_%M_%S')"
 verbose "Packaging, build diagnostic package in [${diag_pkg_home}/${diag_package}.tar.gz]"
-(cd ${diag_tmp_dir} && mkdir $diag_package && cp -rf "metadata" "logs" "spark_logs" "conf" "hadoop_conf" "diag.log" "system_metrics" "audit_log" "job_tmp" "yarn_application_log" $diag_package \
-    && tar -zcf "${diag_package}.tar.gz" $diag_package \
+(cd ${diag_tmp_dir} && mkdir ${diag_package} && cp -rf `ls -A | grep -v "${diag_package}"` ${diag_package} \
+    && tar -zcf "${diag_package}.tar.gz" ${diag_package} \
     && cp "${diag_package}.tar.gz" "${diag_pkg_home}/${diag_package}.tar.gz")
 
 verbose "Build diagnostic package finished."
@@ -244,5 +244,3 @@ verbose "Build diagnostic package finished."
 if [[ -d $diag_tmp_dir ]]; then
     rm -rf $diag_tmp_dir
 fi
-
-

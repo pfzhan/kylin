@@ -2091,7 +2091,10 @@
           "output": {
             "content": null,
             "status": "SUCCEED",
-            "info": {},
+            "info": {
+              "yarn_application_id": "",
+              "yarn_application_tracking_url": "http://master.kcluster:8088/proxy/application_1554187389076_9294/"
+            },
             "last_modified": 0,
             "createTime": 1562933776999,
             "start_time": 1562933777841,
@@ -2132,7 +2135,7 @@
             "content": null,
             "status": "SUCCEED",
             "info": {
-              "yarn_application_id": "",
+              "yarn_application_id": "application_1554187389076_9295",
               "yarn_application_tracking_url": "http://master.kcluster:8088/proxy/application_1554187389076_9295/"
             },
             "last_modified": 0,

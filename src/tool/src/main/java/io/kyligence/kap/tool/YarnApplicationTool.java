@@ -108,8 +108,9 @@ public class YarnApplicationTool extends ExecutableApplication {
                     continue;
                 }
                 trackingUrl = StringUtils.stripEnd(trackingUrl, "/");
-                applications.add(trackingUrl.substring(trackingUrl.lastIndexOf("/") + 1));
+                applicationId = trackingUrl.substring(trackingUrl.lastIndexOf("/") + 1);
             }
+            applications.add(applicationId);
         }
         return applications;
     }
