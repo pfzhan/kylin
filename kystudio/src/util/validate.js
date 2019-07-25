@@ -7,20 +7,16 @@ export const PROJECT_NAME = 'project-name'
 // TODO: 在this中解构$t，会造成$t方法中的this为undefined
 export default {
   [GROUP_NAME] (rule, value, callback) {
-    if (!value) {
+    if (!value.trim()) {
       callback(new Error(this.$t('kylinLang.common.userGroupNameEmpty')))
-    } else if (!/^[\w.@]+$/.test(value)) {
-      callback(new Error(this.$t('kylinLang.common.userGroupNameFormatValidTip')))
     } else {
       callback()
     }
   },
 
   [USERNAME] (rule, value, callback) {
-    if (!value) {
+    if (!value.trim()) {
       callback(new Error(this.$t('usernameEmpty')))
-    } else if (!/^[\w.@]+$/.test(value)) {
-      callback(new Error(this.$t('kylinLang.common.userNameFormatValidTip')))
     } else {
       callback()
     }

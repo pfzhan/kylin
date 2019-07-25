@@ -135,7 +135,7 @@ export default class GroupEditModal extends Vue {
 
   // Action: 修改Form函数
   inputHandler (key, value) {
-    this.setModalForm({[key]: value})
+    this.setModalForm({[key]: value.trim()})
   }
 
   // Action: Form递交函数
