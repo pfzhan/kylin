@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -41,19 +40,13 @@
  * limitations under the License.
  */
 
-package org.apache.kylin.query.udf;
+package org.apache.kylin.query.udf.stringUdf;
 
 import org.apache.calcite.linq4j.function.Parameter;
 
-public class ConcatUDF {
+public class LengthUDF {
 
-    public String eval(@Parameter(name = "str1") String col1, @Parameter(name = "str2") String col2) {
-        if (col1 == null) {
-            return null;
-        }
-        if (col2 == null) {
-            return null;
-        }
-        return col1 + col2;
+    public int LENGTH(@Parameter(name = "str") String s) {
+        return s.length();
     }
 }

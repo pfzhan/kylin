@@ -375,19 +375,36 @@ class SparderRexVisitor(val df: DataFrame,
             regexp_replace(k_lit(children.head),
                            children.apply(1).asInstanceOf[String],
                            children.apply(2).asInstanceOf[String])
-          case "substring" =>
-            if (children.length == 3) {
+          case "substring" | "substr" =>
+            if (children.length == 3) { //substr(str1,startPos,length)
               k_lit(children.head)
                 .substr(k_lit(children.apply(1)), k_lit(children.apply(2)))
+            } else if (children.length == 2) { //substr(str1,startPos)
+              k_lit(children.head).
+                substr(k_lit(children.apply(1)), k_lit(Int.MaxValue))
             } else {
               throw new UnsupportedOperationException(
-                s"substring must provide three parameters under sparder")
+                s"substring must provide three or two parameters under sparder")
             }
+          case "initcapb" =>
+            initcap(k_lit(children.head))
+          case "instr" =>
+            val instr =
+              if (children.length == 2) 1
+              else children.apply(2).asInstanceOf[Int]
+            new Column(StringLocate(k_lit(children.apply(1)).expr, k_lit(children.head).expr, lit(instr).expr)) //instr(str,substr,start)
+          case "length" =>
+            length(k_lit(children.head))
+          case "strpos" =>
+            val pos =
+              if (children.length == 2) 1
+              else children.apply(2).asInstanceOf[Int]
+            new Column(StringLocate(k_lit(children.apply(1)).expr, k_lit(children.head).expr, lit(pos).expr)) //strpos(str,substr,start)
           case "position" =>
             val pos =
               if (children.length == 2) 0
               else children.apply(2).asInstanceOf[Int]
-            new Column(StringLocate(k_lit(children.head).expr, k_lit(children.apply(1)).expr, lit(pos).expr))
+            new Column(StringLocate(k_lit(children.head).expr, k_lit(children.apply(1)).expr, lit(pos).expr)) //position(substr,str,start)
           case "concat" =>
             concat(k_lit(children.head), k_lit(children.apply(1)))
           // time_funcs

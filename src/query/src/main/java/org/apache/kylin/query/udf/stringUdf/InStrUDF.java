@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -41,13 +40,18 @@
  * limitations under the License.
  */
 
-package org.apache.kylin.query.udf;
+package org.apache.kylin.query.udf.stringUdf;
 
 import org.apache.calcite.linq4j.function.Parameter;
 
-public class MassInUDF {
+public class InStrUDF {
 
-    public boolean MASSIN(@Parameter(name = "col") Object col, @Parameter(name = "filterTable") String filterTable) {
-        return true;
+    public int INSTR(@Parameter(name = "str") String s1, @Parameter(name = "subStr") String s2) {
+        return s1.indexOf(s2) + 1;
+    }
+
+    public int INSTR(@Parameter(name = "str") String s1, @Parameter(name = "subStr") String s2,
+            @Parameter(name = "position") int p) {
+        return s1.indexOf(s2, p) + 1;
     }
 }

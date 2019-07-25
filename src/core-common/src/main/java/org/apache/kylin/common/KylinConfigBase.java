@@ -1204,8 +1204,14 @@ abstract public class KylinConfigBase implements Serializable {
     public Map<String, String> getUDFs() {
         Map<String, String> udfMap = Maps.newLinkedHashMap();
         udfMap.put("version", "org.apache.kylin.query.udf.VersionUDF");
-        udfMap.put("concat", "org.apache.kylin.query.udf.ConcatUDF");
+        udfMap.put("concat", "org.apache.kylin.query.udf.stringUdf.ConcatUDF");
         udfMap.put("massin", "org.apache.kylin.query.udf.MassInUDF");
+        udfMap.put("initcapb", "org.apache.kylin.query.udf.stringUdf.InitCapbUDF");
+        udfMap.put("substr", "org.apache.kylin.query.udf.stringUdf.SubStrUDF");
+        udfMap.put("left", "org.apache.kylin.query.udf.stringUdf.LeftUDF");
+        udfMap.put("length", "org.apache.kylin.query.udf.stringUdf.LengthUDF");
+        udfMap.put("instr", "org.apache.kylin.query.udf.stringUdf.InStrUDF");
+        udfMap.put("strpos", "org.apache.kylin.query.udf.stringUdf.StrPosUDF");
         Map<String, String> overrideUdfMap = getPropertiesByPrefix("kylin.query.udf.");
         udfMap.putAll(overrideUdfMap);
         return udfMap;

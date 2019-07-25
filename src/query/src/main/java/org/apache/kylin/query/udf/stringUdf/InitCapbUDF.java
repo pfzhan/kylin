@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -41,13 +40,44 @@
  * limitations under the License.
  */
 
-package org.apache.kylin.query.udf;
+package org.apache.kylin.query.udf.stringUdf;
 
 import org.apache.calcite.linq4j.function.Parameter;
 
-public class MassInUDF {
+public class InitCapbUDF {
 
-    public boolean MASSIN(@Parameter(name = "col") Object col, @Parameter(name = "filterTable") String filterTable) {
-        return true;
+    public String INITCAPB(@Parameter(name = "str") String s) {
+        final int len = s.length();
+        boolean start = true;
+        final StringBuilder newS = new StringBuilder();
+
+        for (int i = 0; i < len; i++) {
+            char curCh = s.charAt(i);
+            final int c = (int) curCh;
+            if (start) { // curCh is whitespace or first character of word.
+                if (c > 47 && c < 58) { // 0-9
+                    start = false;
+                } else if (c > 64 && c < 91) { // A-Z
+                    start = false;
+                } else if (c > 96 && c < 123) { // a-z
+                    start = false;
+                    curCh = (char) (c - 32); // Uppercase this character
+                }
+                // else {} whitespace
+            } else { // Inside of a word or white space after end of word.
+                if (c > 47 && c < 58) { // 0-9
+                    // noop
+                } else if (c > 64 && c < 91) { // A-Z
+                    curCh = (char) (c + 32); // Lowercase this character
+                } else if (c > 96 && c < 123) { // a-z
+                    // noop
+                } else { // whitespace
+                    start = true;
+                }
+            }
+            newS.append(curCh);
+        } // for each character in s
+        return newS.toString();
     }
+
 }

@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -44,18 +43,23 @@
 package org.apache.kylin.query.schema;
 
 import java.io.File;
-import java.io.IOException;
+import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import com.clearspring.analytics.util.Lists;
 import io.kyligence.kap.metadata.project.NProjectManager;
+import org.apache.calcite.model.JsonFunction;
 import org.apache.calcite.schema.Schema;
 import org.apache.calcite.schema.SchemaFactory;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.commons.io.FileUtils;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.measure.MeasureTypeFactory;
 import org.apache.kylin.metadata.model.DatabaseDesc;
 import org.apache.kylin.metadata.model.TableDesc;
@@ -84,7 +88,7 @@ public class OLAPSchemaFactory implements SchemaFactory {
         return KylinConfig.getInstanceFromEnv().isPushDownEnabled();
     }
 
-    public static File createTempOLAPJson(String project, KylinConfig config) {
+    public static File createTempOLAPJson(String project, KylinConfig config) throws SQLException {
 
         Collection<TableDesc> tables = NProjectManager.getInstance(config).listExposedTables(project, exposeMore());
 
@@ -117,13 +121,11 @@ public class OLAPSchemaFactory implements SchemaFactory {
 
             int counter = 0;
 
-
-
             for (String schemaName : schemaCounts.keySet()) {
                 out.append("        {\n");
                 out.append("            \"type\": \"custom\",\n");
                 out.append("            \"name\": \"" + schemaName + "\",\n");
-                out.append("            \"factory\": \"" + KylinConfig.getInstanceFromEnv().getSchemaFactory()+ "\",\n");
+                out.append("            \"factory\": \"" + KylinConfig.getInstanceFromEnv().getSchemaFactory() + "\",\n");
                 out.append("            \"operand\": {\n");
                 out.append("                \"" + SCHEMA_PROJECT + "\": \"" + project + "\"\n");
                 out.append("            },\n");
@@ -152,33 +154,42 @@ public class OLAPSchemaFactory implements SchemaFactory {
 
             return file;
 
-        } catch (IOException e) {
+        } catch (Exception e) {
             throw new RuntimeException(e);
         }
     }
 
-    private static void createOLAPSchemaFunctions(StringBuilder out) throws IOException {
+    private static void createOLAPSchemaFunctions(StringBuilder out) throws Exception {
+        out.append("            \"functions\": \n");
+        List<JsonFunction> jsonFunctionList = Lists.newArrayList();
+        //udf
         Map<String, String> udfs = Maps.newHashMap();
         udfs.putAll(KylinConfig.getInstanceFromEnv().getUDFs());
+        List<JsonFunction> udfJsonFunctionList = addToJsonFunctionList(udfs, true);
+        jsonFunctionList.addAll(udfJsonFunctionList);
+        //udaf
+        Map<String, String> udafs = Maps.newHashMap();
         for (Entry<String, Class<?>> entry : MeasureTypeFactory.getUDAFs().entrySet()) {
-            udfs.put(entry.getKey(), entry.getValue().getName());
+            udafs.put(entry.getKey(), entry.getValue().getName());
         }
+        List<JsonFunction> udafJsonFunctionList = addToJsonFunctionList(udafs, false);
+        jsonFunctionList.addAll(udafJsonFunctionList);
 
-        int index = 0;
-        out.append("            \"functions\": [\n");
-        for (Map.Entry<String, String> udf : udfs.entrySet()) {
-            String udfName = udf.getKey().trim().toUpperCase();
-            String udfClassName = udf.getValue().trim();
-            out.append("               {\n");
-            out.append("                   name: '" + udfName + "',\n");
-            out.append("                   className: '" + udfClassName + "'\n");
-            if (index < udfs.size() - 1) {
-                out.append("               },\n");
-            } else {
-                out.append("               }\n");
+        String jsonFunc = JsonUtil.writeValueAsString(jsonFunctionList);
+        out.append(" " + jsonFunc + " ");
+    }
+
+    public static List<JsonFunction> addToJsonFunctionList(Map<String, String> u, boolean isUDF) {
+        List<JsonFunction> jsonFunctionList = new ArrayList<>();
+        for (Map.Entry<String, String> e : u.entrySet()) {
+            JsonFunction jsonFunction = new JsonFunction();
+            jsonFunction.name = e.getKey().trim().toUpperCase();
+            jsonFunction.className = e.getValue().trim();
+            if (isUDF) {
+                jsonFunction.methodName = "*";
             }
-            index++;
+            jsonFunctionList.add(jsonFunction);
         }
-        out.append("            ]\n");
+        return jsonFunctionList;
     }
 }

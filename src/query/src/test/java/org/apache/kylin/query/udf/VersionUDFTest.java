@@ -52,7 +52,7 @@ public class VersionUDFTest {
     @Test
     public void testVersionUDF() {
         String currentVer = KylinVersion.getCurrentVersion().toString();
-        String udfVer = new VersionUDF().eval();
+        String udfVer = new VersionUDF().VERSION();
         assertTrue(currentVer.equals(udfVer));
     }
 }
