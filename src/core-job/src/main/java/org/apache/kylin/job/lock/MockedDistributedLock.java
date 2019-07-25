@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -44,7 +43,6 @@
 package org.apache.kylin.job.lock;
 
 import java.io.Closeable;
-import java.io.Serializable;
 import java.nio.charset.Charset;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -56,7 +54,7 @@ import org.apache.kylin.common.lock.DistributedLock;
 import org.apache.kylin.common.lock.DistributedLockFactory;
 import org.apache.kylin.common.util.AutoReadWriteLock;
 
-public class MockedDistributedLock implements DistributedLock, JobLock, Serializable {
+public class MockedDistributedLock implements DistributedLock, JobLock {
 
     public static class MockedFactory extends DistributedLockFactory {
 

@@ -46,6 +46,7 @@ class DFDictionaryBuilder(val dataset: Dataset[Row],
                           val ss: SparkSession,
                           val colRefSet: util.Set[TblColRef]) extends Logging with Serializable {
 
+  @transient
   val lock: DistributedLock = KylinConfig.getInstanceFromEnv.getDistributedLockFactory.lockForCurrentThread
 
   @throws[IOException]
