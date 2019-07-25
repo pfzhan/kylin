@@ -58,6 +58,24 @@ echo "Build with ${BUILD_SYSTEM} at" `date "+%Y-%m-%d %H:%M:%S"` >> build/commit
 cat > build/CHANGELOG.md <<EOL
 ### Release History
 
+#### KE 4.0.1 release note
+
+**Feature & Enhancement**
+
+- Optimize table encode
+- Optimize building
+- Optimize TPCH query
+- Improve speed of table sampling
+- Improve step information of job monitor page
+
+**Bugfix**
+
+- Cannot stop instance using command kylin.sh stop
+- Count distinct cannot serialization
+- The task of deleting the model cannot be restarted and cannot be deleted
+- Wrong data range can be saved
+- Configuring incorrect metadata, the process is still running after the startup fails
+
 #### KE 4.0.0 release note
 
 **Feature & Enhancement**
