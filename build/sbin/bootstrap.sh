@@ -24,10 +24,8 @@ function prepareEnv {
     source ${KYLIN_HOME}/sbin/do-check-and-prepare-spark.sh
 
     # init kerberos
-    if [ "$SKIP_KERB" != "1" ]; then
-        source ${KYLIN_HOME}/sbin/init-kerberos.sh
-        initKerberosIfNeeded
-    fi
+    source ${KYLIN_HOME}/sbin/init-kerberos.sh
+    initKerberosIfNeeded
 }
 
 function retrieveDependency() {
@@ -53,11 +51,7 @@ function checkRestPort() {
 }
 
 function checkZookeeperRole {
-    ${KYLIN_HOME}/bin/kylin.sh io.kyligence.kap.tool.CuratorOperator $1 2>/dev/null
-
-    if [[ $? == 1 ]]; then
-        quit "Failed, only one job node is allowed"
-    fi
+    source ${KYLIN_HOME}/sbin/check-2000-zookeeper-role.sh
 }
 
 function checkSparkDir() {
@@ -201,11 +195,13 @@ then
         exit -1
     fi
 
-    ${KYLIN_HOME}/bin/check-env.sh "if-not-yet" || exit 1
+    if [[ -f ${KYLIN_HOME}/bin/check-env-bypass ]]; then
+        checkRestPort
+        checkZookeeperRole
+        checkSparkDir
+    fi
 
-    checkRestPort
-    checkZookeeperRole
-    checkSparkDir
+    ${KYLIN_HOME}/bin/check-env.sh "if-not-yet" || exit 1
 
     java ${KYLIN_EXTRA_START_OPTS} -Dlogging.path=${KYLIN_HOME}/logs -Dspring.profiles.active=prod -Dlogging.config=file:${KYLIN_HOME}/conf/kylin-server-log4j.properties -Dkylin.hadoop.conf.dir=${kylin_hadoop_conf_dir} -Dhdp.version=current -Dloader.path="${kylin_hadoop_conf_dir},${KYLIN_HOME}/lib/ext,${KYLIN_HOME}/server/jars,${SPARK_HOME}/jars" -XX:OnOutOfMemoryError="sh ${KYLIN_HOME}/bin/kylin.sh stop"  -jar newten.jar >> ${KYLIN_HOME}/logs/kylin.out 2>&1 & echo $! > ${KYLIN_HOME}/pid &
     PID=`cat ${KYLIN_HOME}/pid`

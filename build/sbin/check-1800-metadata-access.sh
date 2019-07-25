@@ -10,5 +10,5 @@ initKerberosIfNeeded
 
 echo "Checking Metadata Accessibility..."
 
-output=`${KYLIN_HOME}/bin/kylin.sh io.kyligence.kap.tool.metadata.CheckMetadataAccessCLI 10`
+output=`${KYLIN_HOME}/sbin/bootstrap.sh io.kyligence.kap.tool.metadata.CheckMetadataAccessCLI 10`
 [[ $? == 0 ]] || quit "${output}"

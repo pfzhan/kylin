@@ -41,11 +41,11 @@ key_executor_instance="kap.storage.columnar.spark-conf.spark.executor.instances"
 
 mkdir -p ${KYLIN_HOME}/logs
 saveFileName=${KYLIN_HOME}/logs/cluster.info
-${dir}/kylin.sh io.kyligence.kap.tool.setup.KapGetClusterInfo ${saveFileName}
+${KYLIN_HOME}/sbin/bootstrap.sh io.kyligence.kap.tool.setup.KapGetClusterInfo ${saveFileName}
 
 if [ $? != 0 ]; then
     echo "${CHECKENV_REPORT_PFX}WARN: Failed to get cluster' info, skip the spark config suggestion."
-    exit 0
+    exit 3
 fi
 
 #def constant var
@@ -57,12 +57,12 @@ spark_executor_instance=`${dir}/get-properties.sh ${key_executor_instance}`
 
 if [ -z ${yarn_available_cores} ]; then
     echo "${CHECKENV_REPORT_PFX}WARN: Cannot get Yarn RM's cores info, skip the spark config suggestion."
-    exit 0
+    exit 3
 fi
 
 if [ -z ${yarn_available_memory} ]; then
     echo "${CHECKENV_REPORT_PFX}WARN: Cannot get Yarn RM's memory info, skip the spark config suggestion."
-    exit 0
+    exit 3
 fi
 
 echo "${key_executor_cores}=`setColor 36 ${spark_executor_cores}`"

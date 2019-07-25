@@ -26,19 +26,19 @@ package io.kyligence.kap.tool;
 
 import static java.util.stream.Collectors.toList;
 
-import java.io.ByteArrayOutputStream;
+import java.io.File;
 import java.io.IOException;
-import java.io.PrintStream;
 import java.nio.file.Paths;
 import java.util.List;
 import java.util.Objects;
 
+import org.apache.commons.io.FileUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.RawResource;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.util.JsonUtil;
-import org.assertj.core.api.Assertions;
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -59,30 +59,26 @@ public class YarnApplicationToolTest extends NLocalFileMetadataTestCase {
     private final static String DATA_DIR = "src/test/resources/ut_audit_log/";
     private final static String YARN_APPLICATION_ID = "application_1554187389076_9294\napplication_1554187389076_9295\n";
 
-    private final PrintStream systemOut = System.out;
-    private ByteArrayOutputStream output;
-
     @Before
     public void setup() throws Exception {
         createTestMetadata();
         prepareData();
 
-        output = new ByteArrayOutputStream();
-        System.setOut(new PrintStream(output));
     }
 
     @After
     public void teardown() {
-        System.setOut(systemOut);
-
         cleanupTestMetadata();
     }
 
     @Test
-    public void testExtractAppId() {
+    public void testExtractAppId() throws IOException {
         val tool = new YarnApplicationTool();
-        tool.execute(new String[] { "-project", project, "-job", jobId });
-        Assertions.assertThat(YARN_APPLICATION_ID).isEqualTo(output.toString());
+        val tmpFile = File.createTempFile("yarn_app_id_", ".tmp");
+        tool.execute(new String[] { "-project", project, "-job", jobId, "-dir",  tmpFile.getAbsolutePath()});
+        val savedYarnAppId = FileUtils.readFileToString(tmpFile);
+        Assert.assertEquals(YARN_APPLICATION_ID, savedYarnAppId);
+        FileUtils.forceDeleteOnExit(tmpFile);
     }
 
     private void prepareData() throws Exception {

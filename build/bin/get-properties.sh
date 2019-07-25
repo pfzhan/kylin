@@ -4,7 +4,7 @@
 if [ $# != 1 ]
 then
     echo 'invalid input'
-    exit -1
+    exit 1
 fi
 
 if [ -z $KYLIN_HOME ];then
@@ -15,9 +15,7 @@ if [ -z ${kylin_hadoop_conf_dir} ]; then
     export kylin_hadoop_conf_dir=$KYLIN_HOME/hadoop_conf
 fi
 
-if [ -z $SPARK_HOME ];then
-    export SPARK_HOME=$KYLIN_HOME/spark
-fi
+export SPARK_HOME=$KYLIN_HOME/spark
 
 tool_jar=$(ls $KYLIN_HOME/tool/kap-tool-*.jar)
 

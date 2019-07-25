@@ -77,12 +77,6 @@ public class MetadataTool extends ExecutableApplication {
 
     private static final String GLOBAL = "global";
 
-    private static final int RESTORE_FAILED = 11;
-    private static final int BACKUP_FAILED = 12;
-    private static final int LOCAL_BACKUP_SUCCEED = 1;
-    private static final int REMOTE_BACKUP_SUCCEED = 2;
-    private static final int RESTORE_SUCCEED = 3;
-
     @SuppressWarnings("static-access")
     private static final Option OPERATE_BACKUP = OptionBuilder
             .withDescription("Backup metadata to local path or HDFS path").isRequired(false).create("backup");
@@ -136,19 +130,17 @@ public class MetadataTool extends ExecutableApplication {
     public static void main(String[] args) {
         val tool = new MetadataTool();
 
-        int retFlag;
-        boolean isBackup = true;
+        int retFlag = 0;
         OptionsHelper optionsHelper = new OptionsHelper();
         try (val curatorOperator = new CuratorOperator()) {
             optionsHelper.parseOptions(tool.getOptions(), args);
-            isBackup = isBackupOption(optionsHelper);
+            boolean isBackup = isBackupOption(optionsHelper);
             if (!curatorOperator.isJobNodeExist()) {
                 tool.execute(args);
-                retFlag = isBackup ? LOCAL_BACKUP_SUCCEED : RESTORE_SUCCEED;
             } else {
                 if (!isBackup) {
                     log.warn("Fail to restore, please stop all job nodes first");
-                    retFlag = RESTORE_FAILED;
+                    retFlag = 1;
                 } else {
                     val address = curatorOperator.getAddress();
                     log.info(
@@ -157,17 +149,16 @@ public class MetadataTool extends ExecutableApplication {
                     val ret = remoteBackup(address, optionsHelper);
                     if ("000".equals(ret.get("code"))) {
                         log.info("backup successfully at {}", optionsHelper.getOptionValue(OPTION_DIR));
-                        retFlag = REMOTE_BACKUP_SUCCEED;
                     } else {
                         log.error("backup failed");
-                        retFlag = BACKUP_FAILED;
+                        retFlag = 1;
                     }
                 }
             }
 
         } catch (Exception e) {
-            log.error("", e);
-            retFlag = isBackup ? BACKUP_FAILED : RESTORE_FAILED;
+            log.error("metadata tool error: ", e);
+            retFlag = 1;
         }
         System.exit(retFlag);
     }

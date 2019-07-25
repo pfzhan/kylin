@@ -78,7 +78,7 @@ for log_file in $log_files; do
 
     $KYLIN_HOME/bin/log-extract-tool.sh $log_path/$log_file $extract_log_args 2>>${diag_log_file} 1>>$diag_tmp_dir/logs/$log_file
     if [[ $? -eq 0 ]]; then
-        verbose "=> extract [$log_file] log content successful"
+        verbose "=> extract [$log_file] log content succeed"
     fi
 done
 
@@ -111,7 +111,7 @@ if [[ $1 == "-full" ]]; then
                 fi
                 hadoop fs -copyToLocal $sparder_log_file ${diag_tmp_dir}/spark_logs/$log_date/
                 if [[ $? == 0 ]]; then
-                    verbose "=> extract [$sparder_log_file] spark log successful"
+                    verbose "=> extract [$sparder_log_file] spark log succeed"
                 fi
             fi
         done
@@ -129,7 +129,7 @@ elif [[ $1 == "-job" ]]; then
             fi
             hadoop fs -copyToLocal ${job_log_file} ${diag_tmp_dir}/spark_logs/job/
             if [[ $? == 0 ]]; then
-                verbose "=> extract [$job_log_file] spark log successful"
+                verbose "=> extract [$job_log_file] spark log succeed"
             fi
             break;
         fi
@@ -145,7 +145,7 @@ if [[ $1 == "-job" ]]; then
             project_name=$(echo ${job_tmp_file} | awk -F "/" '{print $(NF-2)}')
             hadoop fs -copyToLocal ${job_tmp_file} ${diag_tmp_dir}/job_tmp/
             if [[ $? == 0 ]]; then
-                verbose "=> extract [$job_tmp_file] job_tmp successful"
+                verbose "=> extract [$job_tmp_file] job_tmp succeed"
             fi
             break;
         fi
@@ -155,18 +155,31 @@ fi
 verbose "Dump audit log..."
 if [[ $1 == "-full" ]]; then
     ${KYLIN_HOME}/bin/kylin.sh io.kyligence.kap.tool.AuditLogTool -startTime $[$start_time * 1000] -endTime $[$end_time * 1000] -dir ${diag_tmp_dir}/audit_log
+    if [[ $? == 0 ]]; then
+        verbose "=> dump audit log succeed"
+    else
+        verbose "=> dump audit log failed, detailed Message is at \"logs/shell.stderr\""
+    fi
 elif [[ $1 == "-job" ]]; then
     verbose "project name: $project_name"
     if [[ -z ${project_name} ]];then
         verbose "=> project name not specified, dump audit log failed"
     else
         ${KYLIN_HOME}/bin/kylin.sh io.kyligence.kap.tool.AuditLogTool -job ${job_id} -project ${project_name} -dir ${diag_tmp_dir}/audit_log
+        if [[ $? == 0 ]]; then
+            verbose "=> dump audit log succeed"
+        else
+            verbose "=> dump audit log failed, detailed Message is at \"logs/shell.stderr\""
+        fi
     fi
 fi
 
 verbose "Dump yarn application log..."
 if [[ $1 == "-job"  && -n ${project_name} ]]; then
-    ${KYLIN_HOME}/bin/kylin.sh io.kyligence.kap.tool.YarnApplicationTool -job ${job_id} -project ${project_name} > ${diag_tmp_dir}/yarn_application_id
+    ${KYLIN_HOME}/bin/kylin.sh io.kyligence.kap.tool.YarnApplicationTool -job ${job_id} -project ${project_name} -dir ${diag_tmp_dir}/yarn_application_id
+    if [[ $? != 0 ]]; then
+        verbose "=> dump yarn application log failed, detailed Message is at \"logs/shell.stderr\""
+    fi
     for yarn_application_id in `cat ${diag_tmp_dir}/yarn_application_id`
     do
         if [[ -z ${yarn_application_id} ]];then
@@ -175,7 +188,7 @@ if [[ $1 == "-job"  && -n ${project_name} ]]; then
             verbose "yarn_application_id: $yarn_application_id"
             yarn logs -applicationId ${yarn_application_id} > ${diag_tmp_dir}/yarn_application_log/${yarn_application_id}.log
             if [[ $? == 0 ]]; then
-                verbose "=> extract [$yarn_application_id] yarn application log successful"
+                verbose "=> extract [$yarn_application_id] yarn application log succeed"
             fi
         fi
     done
@@ -187,6 +200,7 @@ verbose "Dump metadata..."
 bash ${KYLIN_HOME}/bin/metastore.sh backup ${diag_tmp_dir} 2>>${diag_log_file}
 if [[ $? == 0 ]]; then
     mv -f ${diag_tmp_dir}/*_backup/* ${diag_tmp_dir}/metadata/ && rm -rf ${diag_tmp_dir}/*_backup
+    verbose "=> backup metadata succeed"
 else
     verbose "=> backup metadata failed"
 fi

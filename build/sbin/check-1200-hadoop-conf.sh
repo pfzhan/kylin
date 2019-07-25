@@ -16,7 +16,7 @@ echo "Checking hadoop conf dir..."
 
 
 # this is the very first check, apply -v to print verbose classpath in check-env log
-${KYLIN_HOME}/bin/kylin.sh -v io.kyligence.kap.tool.hadoop.CheckHadoopConfDir "${kylin_hadoop_conf_dir}"
+${KYLIN_HOME}/sbin/bootstrap.sh -v io.kyligence.kap.tool.hadoop.CheckHadoopConfDir "${kylin_hadoop_conf_dir}"
 
 # CheckHadoopConfDir will print the last error message
 [[ $? == 0 ]] || quit "ERROR: Check HADOOP_CONF_DIR failed. Please correct hadoop configurations."

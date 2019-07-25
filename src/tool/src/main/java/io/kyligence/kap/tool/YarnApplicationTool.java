@@ -27,11 +27,13 @@ package io.kyligence.kap.tool;
 import static org.apache.kylin.job.constant.ExecutableConstants.YARN_APP_ID;
 import static org.apache.kylin.job.constant.ExecutableConstants.YARN_APP_URL;
 
+import java.io.File;
 import java.util.List;
 
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.OptionBuilder;
 import org.apache.commons.cli.Options;
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.ExecutableApplication;
@@ -48,6 +50,8 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class YarnApplicationTool extends ExecutableApplication {
+    private static final Option OPTION_DIR = OptionBuilder.hasArg().withArgName("DESTINATION_DIR")
+            .withDescription("Specify the file to save yarn application id").isRequired(true).create("dir");
 
     private static final Option OPTION_JOB = OptionBuilder.hasArg().withArgName("JOB_ID")
             .withDescription("Specify the job").isRequired(true).create("job");
@@ -72,6 +76,7 @@ public class YarnApplicationTool extends ExecutableApplication {
     private void initOptions() {
         options.addOption(OPTION_JOB);
         options.addOption(OPTION_PROJECT);
+        options.addOption(OPTION_DIR);
     }
 
     public static void main(String[] args) {
@@ -85,12 +90,13 @@ public class YarnApplicationTool extends ExecutableApplication {
     }
 
     @Override
-    protected void execute(OptionsHelper optionsHelper) {
+    protected void execute(OptionsHelper optionsHelper) throws Exception {
+        final String dir = optionsHelper.getOptionValue(OPTION_DIR);
         val jobId = optionsHelper.getOptionValue(OPTION_JOB);
         val project = optionsHelper.getOptionValue(OPTION_PROJECT);
         AbstractExecutable job = NExecutableManager.getInstance(kylinConfig, project).getJob(jobId);
         if (job instanceof ChainedExecutable) {
-            extract((ChainedExecutable) job).forEach(System.out::println);
+            FileUtils.writeLines(new File(dir), extract((ChainedExecutable) job));
         }
     }
 

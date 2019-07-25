@@ -9,6 +9,8 @@ source ${KYLIN_HOME}/sbin/init-kerberos.sh
 ## init Kerberos if needed
 initKerberosIfNeeded
 
+echo "Checking Spark directory..."
+
 function checkDirExistAndPermission() {
     directory=$1
     message=$2

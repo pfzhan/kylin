@@ -47,12 +47,12 @@ public class CheckMetadataAccessCLI implements IKeep {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         ResourceStore store = ResourceStore.getKylinMetaStore(config);
 
-        System.out.println("Start to test. Test metastore is: " + config.getMetadataUrl().toString());
+        logger.error("Start to test. Test metastore is: " + config.getMetadataUrl().toString());
         //test store's connection.
         try {
             store.collectResourceRecursively(ResourceStore.PROJECT_ROOT, MetadataConstants.FILE_SURFIX);
         } catch (Exception e) {
-            System.out.println("Connection test failed." + e.getCause());
+            logger.error("Connection test failed." + e.getCause());
             return false;
         }
 
@@ -65,13 +65,13 @@ public class CheckMetadataAccessCLI implements IKeep {
                 return null;
             }, UnitOfWork.GLOBAL_UNIT);
         } catch (TransactionException e) {
-            System.out.println("Creation test failed." + e.getMessage());
+            logger.error("Creation test failed." + e.getMessage());
             return false;
         }
 
         NProjectManager projectManager = NProjectManager.getInstance(config);
         if (projectManager.getProject(projectName) == null) {
-            System.out.println("Creation test failed.");
+            logger.error("Creation test failed.");
             return false;
         }
 
@@ -84,7 +84,7 @@ public class CheckMetadataAccessCLI implements IKeep {
                 return null;
             }, projectName);
         } catch (TransactionException e) {
-            System.out.println("Update test failed." + e.getMessage());
+            logger.error("Update test failed." + e.getMessage());
             clean(store, ProjectInstance.concatResourcePath(projectName));
             return false;
         }
@@ -92,7 +92,7 @@ public class CheckMetadataAccessCLI implements IKeep {
         ProjectInstance projectInstance = projectManager.getProject(projectName);
         if (projectInstance.getMaintainModelType() != MaintainModelType.MANUAL_MAINTAIN) {
             clean(store, ProjectInstance.concatResourcePath(projectName));
-            System.out.println("Update test failed, maintain type should be manual in project: " + projectName);
+            logger.error("Update test failed, maintain type should be manual in project: " + projectName);
             return false;
         }
 
@@ -104,7 +104,7 @@ public class CheckMetadataAccessCLI implements IKeep {
             }, projectName);
         } catch (TransactionException e) {
             clean(store, ProjectInstance.concatResourcePath(projectName));
-            System.out.println("Deletion test failed");
+            logger.error("Deletion test failed");
             return false;
         }
 
@@ -127,7 +127,7 @@ public class CheckMetadataAccessCLI implements IKeep {
         CheckMetadataAccessCLI cli = new CheckMetadataAccessCLI();
 
         if (args.length != 1) {
-            System.out.println("Usage: CheckMetadataAccessCLI <repetition>");
+            logger.info("Usage: CheckMetadataAccessCLI <repetition>");
             System.exit(1);
         }
 
@@ -135,13 +135,13 @@ public class CheckMetadataAccessCLI implements IKeep {
 
         while (repetition > 0) {
             if (false == cli.testAccessMetadata()) {
-                System.out.println("Test failed.");
+                logger.error("Test failed.");
                 System.exit(1);
             }
             repetition--;
         }
 
-        System.out.println("Test succeed.");
+        logger.info("Test succeed.");
         System.exit(0);
     }
 }
