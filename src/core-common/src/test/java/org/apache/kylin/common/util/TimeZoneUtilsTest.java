@@ -42,29 +42,30 @@
  */
 package org.apache.kylin.common.util;
 
-import java.time.ZoneId;
+import io.kyligence.kap.junit.TimeZoneTestRunner;
+import org.apache.kylin.common.HotLoadKylinPropertiesTestCase;
+import org.apache.kylin.common.KylinConfig;
+import org.junit.Assert;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+
+import java.util.Arrays;
 import java.util.TimeZone;
 
-import org.apache.kylin.common.KylinConfig;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+@RunWith(TimeZoneTestRunner.class)
+public class TimeZoneUtilsTest extends HotLoadKylinPropertiesTestCase {
 
+    @Test
+    public void testSetDefaultTimeZone() {
+        KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
+        TimeZoneUtils.setDefaultTimeZone(kylinConfig);
+        Assert.assertEquals(TimeZone.getDefault().getID(), TimeZone.getDefault().toZoneId().getId());
 
-public final class TimeZoneUtils {
-    private static final Logger log = LoggerFactory.getLogger(TimeZoneUtils.class);
-
-    private TimeZoneUtils() {
+        for (String timeZone : Arrays.asList("GMT+8", "CST", "PST", "UTC")) {
+            kylinConfig.setProperty("kylin.web.timezone", timeZone);
+            TimeZoneUtils.setDefaultTimeZone(kylinConfig);
+            Assert.assertEquals(TimeZone.getDefault().getID(), TimeZone.getDefault().toZoneId().getId());
+        }
     }
 
-    /**
-     * short time zone like [CST, PST], may raise some problem (issue#13185).
-     * TimeZone.ID & TimeZone.ZoneId.ID set same data, like [Asia/Shanghai, America/New_York].
-     *
-     * @param kylinConfig
-     */
-    public static void setDefaultTimeZone(KylinConfig kylinConfig) {
-        ZoneId zoneId = TimeZone.getTimeZone(kylinConfig.getTimeZone()).toZoneId();
-        TimeZone.setDefault(TimeZone.getTimeZone(zoneId));
-        log.info("System timezone set to {}, TimeZoneId: {}.", kylinConfig.getTimeZone(), TimeZone.getDefault().getID());
-    }
 }
