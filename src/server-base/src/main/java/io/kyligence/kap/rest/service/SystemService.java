@@ -25,6 +25,7 @@ package io.kyligence.kap.rest.service;
 
 import java.util.List;
 
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.rest.service.BasicService;
 import org.springframework.stereotype.Service;
@@ -36,6 +37,7 @@ import io.kyligence.kap.tool.MetadataTool;
 import lombok.val;
 
 @Service("systemService")
+@Slf4j
 public class SystemService extends BasicService {
 
     public void backup(BackupRequest backupRequest) throws Exception {
@@ -46,10 +48,15 @@ public class SystemService extends BasicService {
 
     private String[] createBackupArgs(BackupRequest backupRequest) {
         List<String> args = Lists.newArrayList("-backup", "-dir", backupRequest.getBackupPath());
+        if (backupRequest.isCompress()) {
+            args.add("-compress");
+        }
         if (StringUtils.isNotBlank(backupRequest.getProject())) {
             args.add("-project");
             args.add(backupRequest.getProject());
         }
+
+        log.info("SystemService " + args);
         return args.toArray(new String[0]);
     }
 

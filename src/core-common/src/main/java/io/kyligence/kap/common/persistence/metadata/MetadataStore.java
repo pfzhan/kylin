@@ -202,6 +202,11 @@ public abstract class MetadataStore {
                 continue;
             }
 
+            if (file.startsWith(ResourceStore.COMPRESSED_FILE)) {
+                verifyResult.existCompressedFile = true;
+                continue;
+            }
+
             //check illegal file which locates in metadata dir
             if (File.separator.equals(Paths.get(file).toFile().getParent())) {
                 verifyResult.illegalFiles.add(file);
@@ -230,6 +235,7 @@ public abstract class MetadataStore {
         boolean existACLDir = false;
         boolean existUserDir = false;
         boolean existUserGroupFile = false;
+        boolean existCompressedFile = false;
         Set<String> illegalProjects = Sets.newHashSet();
         Set<String> illegalFiles = Sets.newHashSet();
 

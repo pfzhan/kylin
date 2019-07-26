@@ -41,7 +41,6 @@ import org.apache.commons.cli.Options;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.fs.Path;
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.persistence.RawResource;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.util.ExecutableApplication;
 import org.apache.kylin.common.util.HadoopUtil;
@@ -88,6 +87,9 @@ public class MetadataTool extends ExecutableApplication {
     private static final Option OPERATE_BACKUP = OptionBuilder
             .withDescription("Backup metadata to local path or HDFS path").isRequired(false).create("backup");
 
+    private static final Option OPERATE_COMPRESS = OptionBuilder
+            .withDescription("Backup compressed metadata to HDFS path").isRequired(false).create("compress");
+
     private static final Option OPERATE_RESTORE = OptionBuilder
             .withDescription("Restore metadata from local path or HDFS path").isRequired(false).create("restore");
 
@@ -128,6 +130,7 @@ public class MetadataTool extends ExecutableApplication {
         options.addOption(OPTION_DIR);
         options.addOption(OPTION_PROJECT);
         options.addOption(FOLDER_NAME);
+        options.addOption(OPERATE_COMPRESS);
     }
 
     public static void main(String[] args) {
@@ -176,6 +179,9 @@ public class MetadataTool extends ExecutableApplication {
         map.put("backup_path", optionsHelper.getOptionValue(MetadataTool.OPTION_DIR));
         if (optionsHelper.hasOption(MetadataTool.OPTION_PROJECT)) {
             map.put("project", optionsHelper.getOptionValue(MetadataTool.OPTION_PROJECT));
+        }
+        if (optionsHelper.hasOption(MetadataTool.OPERATE_COMPRESS)) {
+            map.put("compress", "true");
         }
         ObjectMapper objectMapper = new ObjectMapper();
         byte[] body = objectMapper.writeValueAsBytes(map);
@@ -240,11 +246,12 @@ public class MetadataTool extends ExecutableApplication {
         val project = optionsHelper.getOptionValue(OPTION_PROJECT);
         val path = optionsHelper.getOptionValue(OPTION_DIR);
         var folder = optionsHelper.getOptionValue(FOLDER_NAME);
+        var compress = optionsHelper.hasOption(OPERATE_COMPRESS);
         if (StringUtils.isEmpty(folder)) {
             folder = LocalDateTime.now().format(DATE_TIME_FORMATTER) + "_backup";
         }
         val backupPath = StringUtils.appendIfMissing(path, "/") + folder;
-        val backupMetadataUrl = getMetadataUrl(backupPath);
+        val backupMetadataUrl = getMetadataUrl(backupPath, compress);
         val backupConfig = KylinConfig.createKylinConfig(kylinConfig);
         backupConfig.setMetadataUrl(backupMetadataUrl);
         val fs = HadoopUtil.getFileSystem(backupPath);
@@ -271,10 +278,12 @@ public class MetadataTool extends ExecutableApplication {
                 }
                 val auditLogStore = resourceStore.getAuditLogStore();
                 val offset = auditLogStore.getMaxId();
-                backupMetadataStore.putResource(new RawResource(ResourceStore.METASTORE_IMAGE,
+                backupResourceStore.putResourceWithoutCheck(ResourceStore.METASTORE_IMAGE,
                         ByteStreams.asByteSource(JsonUtil.writeValueAsBytes(new ImageDesc(offset))),
-                        System.currentTimeMillis(), -1));
-                backupMetadataStore.putResource(resourceStore.getResource(ResourceStore.METASTORE_UUID_TAG));
+                        System.currentTimeMillis(), -1);
+                val uuid = resourceStore.getResource(ResourceStore.METASTORE_UUID_TAG);
+                backupResourceStore.putResourceWithoutCheck(uuid.getResPath(), uuid.getByteSource(),
+                        uuid.getTimestamp(), -1);
                 return null;
             }, true);
             log.info("start to backup all projects");
@@ -284,7 +293,9 @@ public class MetadataTool extends ExecutableApplication {
             UnitOfWork.doInTransactionWithRetry(
                     UnitOfWorkParams.builder().readonly(true).unitName(project).processor(() -> {
                         copyResourceStore("/" + project, resourceStore, backupResourceStore, true);
-                        backupMetadataStore.putResource(resourceStore.getResource(ResourceStore.METASTORE_UUID_TAG));
+                        val uuid = resourceStore.getResource(ResourceStore.METASTORE_UUID_TAG);
+                        backupResourceStore.putResourceWithoutCheck(uuid.getResPath(), uuid.getByteSource(),
+                                uuid.getTimestamp(), -1);
                         return null;
                     }).build());
 
@@ -308,6 +319,7 @@ public class MetadataTool extends ExecutableApplication {
     private void restore(OptionsHelper optionsHelper) throws IOException {
         val project = optionsHelper.getOptionValue(OPTION_PROJECT);
         val restorePath = optionsHelper.getOptionValue(OPTION_DIR);
+        val compressed = optionsHelper.hasOption(OPERATE_COMPRESS);
 
         val restoreMetadataUrl = getMetadataUrl(restorePath);
         val restoreConfig = KylinConfig.createKylinConfig(kylinConfig);
@@ -339,7 +351,7 @@ public class MetadataTool extends ExecutableApplication {
                 val srcResources = restoreMetadataStore.list(projectPath).stream().map(x -> projectPath + x)
                         .collect(Collectors.toSet());
                 UnitOfWork.doInTransactionWithRetry(() -> doRestore(restoreMetadataStore, destResources, srcResources),
-                        projectName);
+                        projectName, 1);
             }
 
         } else {
@@ -351,20 +363,22 @@ public class MetadataTool extends ExecutableApplication {
                     .map(x -> ResourceStore.PROJECT_ROOT + x).collect(Collectors.toSet());
             UnitOfWork.doInTransactionWithRetry(
                     () -> doRestore(restoreMetadataStore, globalDestResources, globalSrcResources),
-                    UnitOfWork.GLOBAL_UNIT);
+                    UnitOfWork.GLOBAL_UNIT, 1);
 
             val projectPath = "/" + project;
             val destResources = resourceStore.listResourcesRecursively(projectPath);
             val srcResources = restoreMetadataStore.list(projectPath).stream().map(x -> projectPath + x)
                     .collect(Collectors.toSet());
             UnitOfWork.doInTransactionWithRetry(() -> doRestore(restoreMetadataStore, destResources, srcResources),
-                    project);
+                    project, 1);
         }
 
         log.info("restore successfully");
 
         HDFSMetadataTool.cleanBeforeBackup(kylinConfig);
-        String[] args = new String[] { "-backup", "-dir", HadoopUtil.getBackupFolder(kylinConfig) };
+        String[] args = compressed
+                ? new String[] { "-backup", "-compress", "-dir", HadoopUtil.getBackupFolder(kylinConfig) }
+                : new String[] { "-backup", "-dir", HadoopUtil.getBackupFolder(kylinConfig) };
         val backupTool = new MetadataTool();
         backupTool.execute(args);
     }
@@ -399,9 +413,14 @@ public class MetadataTool extends ExecutableApplication {
     }
 
     private String getMetadataUrl(String rootPath) {
+        return getMetadataUrl(rootPath, false);
+    }
+
+    String getMetadataUrl(String rootPath, boolean compressed) {
         if (rootPath.startsWith("hdfs://")) {
-            return String.format(HDFS_METADATA_URL_FORMATTER,
+            val url = String.format(HDFS_METADATA_URL_FORMATTER,
                     Path.getPathWithoutSchemeAndAuthority(new Path(rootPath)).toString() + "/");
+            return compressed ? url + ",zip=1" : url;
 
         } else if (rootPath.startsWith("file://")) {
             rootPath = rootPath.replace("file://", "");

@@ -112,6 +112,7 @@ public abstract class ResourceStore implements AutoCloseable {
     public static final String METASTORE_UUID_TAG = "/UUID";
     public static final String QUERY_HISTORY_TIME_OFFSET = "/query_history_time_offset";
     public static final String ACCELERATE_RATIO_RESOURCE_ROOT = "/accelerate_ratio";
+    public static final String COMPRESSED_FILE = "/metadata.zip";
 
     private static final Map<KylinConfig, ResourceStore> META_CACHE = new ConcurrentHashMap<>();
     @Getter

@@ -39,7 +39,11 @@ public class MetadataToolTestFixture {
     public static void fixtureRestoreTest(KylinConfig kylinConfig, File junitFolder, String folder) throws IOException {
         // copy an metadata image to junit folder
         ResourceTool.copy(kylinConfig, KylinConfig.createInstanceFromUri(junitFolder.getAbsolutePath()), folder);
+        fixtureRestoreTest();
 
+    }
+
+    public static void fixtureRestoreTest() {
         val dataModelMgr = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
 
         // Make the current resource store state inconsistent with the image store
@@ -56,5 +60,4 @@ public class MetadataToolTestFixture {
         dataModel3.setMvcc(-1L);
         dataModelMgr.createDataModelDesc(dataModel3, "who");
     }
-
 }

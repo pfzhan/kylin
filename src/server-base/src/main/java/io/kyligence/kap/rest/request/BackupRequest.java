@@ -33,4 +33,6 @@ public class BackupRequest {
     private String project;
     @JsonProperty("backup_path")
     private String backupPath;
+    @JsonProperty("compress")
+    private boolean compress;
 }
