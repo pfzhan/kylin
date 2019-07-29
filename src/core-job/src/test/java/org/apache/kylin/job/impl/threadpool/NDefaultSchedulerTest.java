@@ -1761,6 +1761,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         Assert.assertEquals(ExecutableState.ERROR, executableManager.getOutput(task1.getId()).getState());
     }
 
+    @Ignore("#13813")
     @Test
     public void testSubmitParallelTasksReachMemoryQuota()
             throws InterruptedException, NoSuchFieldException, IllegalAccessException {

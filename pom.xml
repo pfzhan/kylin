@@ -1643,7 +1643,7 @@
                                 <property>
                                     <name>log4j.configuration</name>
                                     <value>
-                                        file:${project.basedir}/../../build/conf/kylin-tools-log4j.properties
+                                        file:${user.dir}/build/conf/kylin-tools-log4j.properties
                                     </value>
                                 </property>
                             </systemProperties>
@@ -1911,7 +1911,7 @@
                                 <property>
                                     <name>log4j.configuration</name>
                                     <value>
-                                        file:${project.basedir}/../../build/conf/kylin-tools-log4j.properties
+                                        file:${user.dir}/build/conf/kylin-tools-log4j.properties
                                     </value>
                                 </property>
                             </systemProperties>

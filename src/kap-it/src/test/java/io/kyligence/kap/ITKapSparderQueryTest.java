@@ -64,8 +64,6 @@ public class ITKapSparderQueryTest extends KapTestBase {
 
     @Test
     public void testSingleRunQuery() throws Exception {
-        System.setProperty("log4j.configuration", "file:../../build/conf/kylin-tools-log4j.properties");
-
         String queryFileName = getQueryFolderPrefix() + "src/test/resources/query/sql_verifyCount/query03.sql";
 
         File sqlFile = new File(queryFileName);
@@ -77,8 +75,6 @@ public class ITKapSparderQueryTest extends KapTestBase {
 
     @Test
     public void testSparderFilterVisitor() throws Exception {
-
-        System.setProperty("log4j.configuration", "file:../../build/conf/kylin-tools-log4j.properties");
 
         String queryFileName = "src/test/resources/query/sparder/filtervisitor";
 
@@ -95,8 +91,6 @@ public class ITKapSparderQueryTest extends KapTestBase {
         System.setProperty("kap.query.engine.sparder-enabled", "true");
         System.setProperty("calcite.debug", "false");
         PRINT_RESULT = true;
-
-        System.setProperty("log4j.configuration", "file:../../build/conf/kylin-tools-log4j.properties");
 
         //String queryFileName = getQueryFolderPrefix() + "src/test/resources/query/sql/query05.sql";
         String queryFileName = "src/test/resources/query/sparder/tmp";

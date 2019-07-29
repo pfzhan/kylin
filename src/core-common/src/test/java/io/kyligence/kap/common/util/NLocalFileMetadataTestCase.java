@@ -40,14 +40,6 @@ public class NLocalFileMetadataTestCase extends AbstractKylinTestCase {
     private static final String LOCALMETA_TEMP_DATA = "../examples/test_metadata/";
     protected static File tempMetadataDirectory = null;
 
-    static {
-        if (new File("../../build/conf/kylin-tools-log4j.properties").exists()) {
-            System.setProperty("log4j.configuration", "file:../../build/conf/kylin-tools-log4j.properties");
-        } else {
-            System.setProperty("log4j.configuration", "file:../../../build/conf/kylin-tools-log4j.properties");
-        }
-    }
-
     @Override
     public void createTestMetadata(String... overlay) {
         staticCreateTestMetadata(overlay);

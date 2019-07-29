@@ -39,7 +39,8 @@ public class DebugSparkShell {
             FileUtils.forceDelete(new File("metastore_db"));
 
         // logger
-        System.setProperty("log4j.configuration", "file:../../build/conf/kylin-tools-log4j.properties");
+        System.setProperty("log4j.configuration",
+                "file:" + System.getProperty("user.dir") + "/build/conf/kylin-tools-log4j.properties");
 
         // prepare UT metadata
         String tempMetadataDir = TempMetadataBuilder.prepareNLocalTempMetadata();

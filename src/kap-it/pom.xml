@@ -388,7 +388,7 @@
                                     <argument>-Dkylin.storage=${kylin.storage}</argument>
                                     <argument>-Dsparder.enabled=${sparder.enabled}</argument>
                                     <argument>
-                                        -Dlog4j.configuration=file:${project.basedir}/../../build/conf/kylin-tools-log4j.properties
+                                        -Dlog4j.configuration=file:${user.dir}/build/conf/kylin-tools-log4j.properties
                                     </argument>
                                     <argument>-classpath</argument>
                                     <classpath/>
@@ -416,7 +416,7 @@
                                     <argument>-Dkylin.engine=${kylin.engine}</argument>
                                     <argument>-Dkylin.storage=${kylin.storage}</argument>
                                     <argument>
-                                        -Dlog4j.configuration=file:${project.basedir}/../../build/conf/kylin-tools-log4j.properties
+                                        -Dlog4j.configuration=file:${user.dir}/build/conf/kylin-tools-log4j.properties
                                     </argument>
                                     <argument>-classpath</argument>
                                     <classpath/>

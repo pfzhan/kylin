@@ -46,6 +46,7 @@ import java.io.File;
 import java.util.Random;
 import java.util.UUID;
 
+import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.junit.After;
 import org.junit.Assert;
@@ -128,22 +129,31 @@ public class NSparkExecutableTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testGenerateSparkCmd() {
-        System.setProperty("KYLIN_HOME", "/kylin");
-
         KylinConfig kylinConfig = getTestConfig();
-        NSparkExecutable sparkExecutable = new NSparkExecutable();
-        sparkExecutable.setProject("default");
+        final String kylinHome = System.getProperty("KYLIN_HOME");
+        try {
+            System.setProperty("KYLIN_HOME", "/kylin");
 
-        String hadoopConf = System.getProperty("KYLIN_HOME") + "/hadoop";
-        String kylinJobJar = System.getProperty("KYLIN_HOME") + "/lib/job.jar";
-        String appArgs = "/tmp/output";
+            NSparkExecutable sparkExecutable = new NSparkExecutable();
+            sparkExecutable.setProject("default");
 
-        String cmd = sparkExecutable.generateSparkCmd(kylinConfig, hadoopConf, kylinJobJar, kylinJobJar, appArgs);
-        Assert.assertNotNull(cmd);
-        Assert.assertTrue(cmd.contains("spark-submit"));
-        Assert.assertTrue(cmd.contains("log4j.configuration=file:/kylin/conf/spark-driver-hdfs-log4j.properties"));
-        Assert.assertTrue(cmd.contains("spark.executor.extraClassPath=job.jar"));
-        Assert.assertTrue(cmd.contains("execute_output.json.log"));
-        Assert.assertTrue(cmd.contains("kap.hdfs.working.dir="));
+            String hadoopConf = System.getProperty("KYLIN_HOME") + "/hadoop";
+            String kylinJobJar = System.getProperty("KYLIN_HOME") + "/lib/job.jar";
+            String appArgs = "/tmp/output";
+
+            String cmd = sparkExecutable.generateSparkCmd(kylinConfig, hadoopConf, kylinJobJar, kylinJobJar, appArgs);
+            Assert.assertNotNull(cmd);
+            Assert.assertTrue(cmd.contains("spark-submit"));
+            Assert.assertTrue(cmd.contains("log4j.configuration=file:/kylin/conf/spark-driver-hdfs-log4j.properties"));
+            Assert.assertTrue(cmd.contains("spark.executor.extraClassPath=job.jar"));
+            Assert.assertTrue(cmd.contains("execute_output.json.log"));
+            Assert.assertTrue(cmd.contains("kap.hdfs.working.dir="));
+        } finally {
+            if (StringUtils.isEmpty(kylinHome)) {
+                System.clearProperty("KYLIN_HOME");
+            } else {
+                System.setProperty("KYLIN_HOME", kylinHome);
+            }
+        }
     }
 }
