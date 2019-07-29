@@ -200,6 +200,8 @@ import '../../../../util/fly.js'
         vm.filterArgs.model = to.params.modelAlias
         vm.filterArgs.exact = true
       }
+      // onSortChange 中project有值时会 loadmodellist, 达到初始化数据的目的
+      vm.filterArgs.project = vm.currentSelectedProject
     })
   },
   computed: {
@@ -533,12 +535,6 @@ export default class ModelList extends Vue {
   }
   get isAdmin () {
     return hasRole(this, 'ROLE_ADMIN')
-  }
-  created () {
-    this.filterArgs.project = this.currentSelectedProject
-    if (this.filterArgs.project) {
-      this.loadModelsList()
-    }
   }
 }
 </script>
