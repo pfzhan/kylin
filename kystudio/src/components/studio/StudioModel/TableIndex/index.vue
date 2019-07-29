@@ -1,11 +1,11 @@
 <template>
    <div class="tableIndex-box">
-     <kap-empty-data v-if="tableIndexBaseList.length === 0" size="small"></kap-empty-data>
+     <kap-empty-data v-if="isNoData" size="small"></kap-empty-data>
      <div class="left-part">
       <div class="ksd-mb-20">
-        <el-button type="primary" size="small" icon="el-icon-ksd-add_2" v-visible="!isAutoProject" @click="editTableIndex(true)">{{$t('tableIndex')}}
+        <el-button type="primary" size="small" icon="el-icon-ksd-add_2" v-visible="!isAutoProject && !isHideEdit" @click="editTableIndex(true)">{{$t('tableIndex')}}
         </el-button><el-button :loading="buildIndexLoading"
-          type="primary" size="small"  @click="buildTableIndex" v-visible="!isAutoProject">
+          type="primary" size="small"  @click="buildTableIndex" v-visible="!isAutoProject && !isHideEdit">
         {{$t('buildIndex')}}
        </el-button>
         <!-- <el-button type="primary" disabled icon="el-icon-ksd-table_refresh">Refresh</el-button> -->
@@ -110,7 +110,7 @@ import { BuildIndexStatus } from 'config/model'
 import TableIndexEdit from '../TableIndexEdit/tableindex_edit'
 import NModel from '../ModelEdit/model.js'
 @Component({
-  props: ['modelDesc'],
+  props: ['modelDesc', 'isHideEdit', 'layoutId'],
   computed: {
     ...mapGetters([
       'currentSelectedProject',
@@ -160,6 +160,9 @@ import NModel from '../ModelEdit/model.js'
         longAgo: this.longAgoTableIndex
       }
     },
+    isNoData () {
+      return !(this.tableIndexGroup.today.length > 0 || this.tableIndexGroup.thisWeek.length > 0 || this.tableIndexGroup.lastWeek.length > 0 || this.tableIndexGroup.longAgo.length > 0)
+    },
     totalTableIndexColumnSize () {
       return this.currentShowTableIndex && this.currentShowTableIndex.col_order && this.currentShowTableIndex.col_order.length || 0
     },
@@ -207,7 +210,7 @@ export default class TableIndex extends Vue {
   currentCount = 10
   searchLoading = false
   transToGmtTime = transToGmtTime
-  tableIndexFilter = ''
+  tableIndexFilter = this.layoutId || ''
   currentShowTableIndex = null
   tableIndexBaseList = []
   buildIndexLoading = false
@@ -310,6 +313,9 @@ export default class TableIndex extends Vue {
   }
 }
 .tableIndex-box {
+  div {
+    box-sizing: border-box;
+  }
   .box-card {
     .el-card__header {
       padding: 0 15px;

@@ -39,7 +39,7 @@
                     <th class="label">{{$t('kylinLang.query.answered_by')}}</th>
                     <td style="padding: 3px 10px;">
                       <div v-if="props.row.realizations && props.row.realizations.length" class="realization-tags">
-                        <el-tag size="small" class="model-tag" v-for="item in props.row.realizations" :key="item.modelId" @click.native="openAgg(item.modelId)">{{item.modelAlias}}</el-tag>
+                        <el-tag size="small" class="model-tag" v-for="item in props.row.realizations" :key="item.modelId" @click.native="openIndexDialog(item)">{{item.modelAlias}}</el-tag>
                       </div>
                       <div v-else class="realization-tags"><el-tag type="warning" size="small" v-if="props.row.engine_type">{{props.row.engine_type}}</el-tag></div>
                     </td>
@@ -246,8 +246,12 @@ export default class QueryHistoryTable extends Vue {
     this.$emit('loadFilterList', this.filterData)
   }
 
-  openAgg (modelId) {
-    this.$emit('openAgg', modelId)
+  openIndexDialog (realization) {
+    if (realization.indexType === 'Agg Index') {
+      this.$emit('openIndexDialog', realization.modelId)
+    } else if (realization.indexType === 'Table Index') {
+      this.$emit('openIndexDialog', realization.modelId, realization.layoutId)
+    }
   }
   renderColumn (h) {
     if (this.filterData.startTimeFrom && this.filterData.startTimeTo) {
