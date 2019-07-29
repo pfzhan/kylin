@@ -3,28 +3,15 @@ import os
 import logging
 import functools
 import traceback
+import argparse
+import sys
 
-logging.basicConfig(level='DEBUG', format='%(asctime)-15s %(message)s')
+logging.basicConfig(
+    level='DEBUG', format='%(asctime)-15s %(levelname)s: %(message)s', stream=sys.stdout)
+
 INPUT_ROOT = './metadata'
 OUTPUT_ROOT = './newten_meta'
-OUTPUT_PROJECT_ROOT = OUTPUT_ROOT + '/CPIC_FRP'
-TABLE_BLACK_LIST = [
-    'DIM_NEW_CLASSIFY_LABLE_D',
-    'DIM_PERIOD_MONTH_VIEW',
-    'DIM_REPORT_PERIOD_D',
-    'DM_CUSTOM_FLEXIBLE_F',
-    'DM_CUSTOM_NONAUTO_KH',
-    'DM_DEFINED_FLEXIBLE_F',
-    'DM_FLEXIBLE_NONAUTO_VIEW',
-    'DM_FLEXIBLE_PZ_ALL_VIEW',
-    'DM_SELL_CHANNEL_VIEW',
-    'D_NONAUTO_PRODUCT_T',
-    'IX_ACC_DQXB_MONTHLY_QD_VIEW',
-    'IX_ACC_DQXB_MONTHLY_VIEW',
-    'IX_QLC_PREMIUM_CLAIM_DAILY_VIEW',
-    'IX_SUB_INSURED_MONTHLY_VIEW',
-    'JK_NONAUTO_DAILY_T_VIEW'
-]
+TABLE_BLACK_LIST = []
 
 table_content_dict = {}
 model_content_dict = {}
@@ -116,8 +103,24 @@ INDEX_PLAN_TEMPLATE = '''
 
 
 def prepare_project():
+    ret = []
+    project_table_dict = {}
+    for table_name in os.listdir(INPUT_ROOT + '/table'):
+        plain_table_name, table_project = table_name.split(
+            '--') if '--' in table_name else (table_name[0:-5], 'default.json')
+        table_project = table_project.split('.')[0]
+        if table_project not in project_table_dict:
+            project_table_dict[table_project] = []
+        project_table_dict[table_project].append(plain_table_name)
+        if plain_table_name.split('.')[-1] in TABLE_BLACK_LIST:
+            logging.info("skip table %s, blacklist", plain_table_name)
+            continue
+        with open(INPUT_ROOT + '/table/' + table_name) as table_file:
+            table_json = json.load(table_file)
+            table_content_dict[(plain_table_name, table_project)] = table_json
     for project_name in os.listdir(INPUT_ROOT + '/project'):
-        os.makedirs(OUTPUT_ROOT + '/_global/project', exist_ok=True)
+        if not os.path.exists(OUTPUT_ROOT + '/_global/project'):
+            os.makedirs(OUTPUT_ROOT + '/_global/project')
         project_json = json.loads(PROJECT_TEMPALTE)
         plain_project_name = project_name.split('.')[0]
         with open(INPUT_ROOT + '/project/' + project_name) as project_file:
@@ -127,12 +130,17 @@ def prepare_project():
             project_json['last_modified'] = project_origin_json['last_modified']
             project_json['create_time'] = project_origin_json['create_time_utc']
             project_json['create_time_utc'] = project_origin_json['create_time_utc']
+
+            pm = ProjectMigrator(plain_project_name, list(
+                set([x['realization'] for x in project_origin_json['realizations']])),
+                project_table_dict.get(plain_project_name, []))
+            ret.append(pm)
         with open(OUTPUT_ROOT + '/_global/project/' + project_name, 'w') as new_project_file:
             json.dump(project_json, new_project_file)
         for sub in ['rule', 'dataflow', 'index_plan', 'model_desc', 'table']:
-            os.makedirs(OUTPUT_ROOT + '/' + plain_project_name +
-                        '/' + sub, exist_ok=True)
-        with open(OUTPUT_ROOT + '/' + plain_project_name + '/rule/3fcc884d-a4da-4afa-bba5-f22241b127d4', 'w') as f:
+            if not os.path.exists(OUTPUT_ROOT + '/' + plain_project_name + '/' + sub):
+                os.makedirs(OUTPUT_ROOT + '/' + plain_project_name + '/' + sub)
+        with open(OUTPUT_ROOT + '/' + plain_project_name + '/rule/3fcc884d-a4da-4afa-bba5-f22241b127d4.json', 'w') as f:
             f.write('''{
   "uuid" : "3fcc884d-a4da-4afa-bba5-f22241b127d4",
   "last_modified" : 0,
@@ -147,7 +155,7 @@ def prepare_project():
   "name" : "submitter",
   "enabled" : true
 }''')
-        with open(OUTPUT_ROOT + '/' + plain_project_name + '/rule/744e60ef-4e14-4489-b87e-7ff2479ff813', 'w') as f:
+        with open(OUTPUT_ROOT + '/' + plain_project_name + '/rule/744e60ef-4e14-4489-b87e-7ff2479ff813.json', 'w') as f:
             f.write('''{
   "uuid" : "744e60ef-4e14-4489-b87e-7ff2479ff813",
   "last_modified" : 0,
@@ -162,7 +170,7 @@ def prepare_project():
   "name" : "duration",
   "enabled" : false
 }''')
-        with open(OUTPUT_ROOT + '/' + plain_project_name + '/rule/71283af5-3b60-43e6-8539-ea46de9c707f', 'w') as f:
+        with open(OUTPUT_ROOT + '/' + plain_project_name + '/rule/71283af5-3b60-43e6-8539-ea46de9c707f.json', 'w') as f:
             f.write('''{
   "uuid" : "71283af5-3b60-43e6-8539-ea46de9c707f",
   "last_modified" : 0,
@@ -177,7 +185,7 @@ def prepare_project():
   "name" : "submitter_group",
   "enabled" : true
 }''')
-        with open(OUTPUT_ROOT + '/' + plain_project_name + '/rule/a0f6d6fb-f98f-4461-a107-69503c4a653d', 'w') as f:
+        with open(OUTPUT_ROOT + '/' + plain_project_name + '/rule/a0f6d6fb-f98f-4461-a107-69503c4a653d.json', 'w') as f:
             f.write('''{
   "uuid" : "a0f6d6fb-f98f-4461-a107-69503c4a653d",
   "last_modified" : 0,
@@ -192,7 +200,7 @@ def prepare_project():
   "name" : "frequency",
   "enabled" : true
 }''')
-        with open(OUTPUT_ROOT + '/' + plain_project_name + '/rule/a88950b9-6f9e-4d83-9982-01e18b8ef365', 'w') as f:
+        with open(OUTPUT_ROOT + '/' + plain_project_name + '/rule/a88950b9-6f9e-4d83-9982-01e18b8ef365.json', 'w') as f:
             f.write('''{
   "uuid" : "a88950b9-6f9e-4d83-9982-01e18b8ef365",
   "last_modified" : 0,
@@ -203,31 +211,38 @@ def prepare_project():
   "name" : "blacklist",
   "enabled" : false
 }''')
+    return ret
 
 
-def migrate_table(table_name):
-    with open(INPUT_ROOT + '/table/' + table_name) as table_file:
-        table_json = json.load(table_file)
-        plain_table_name = table_name.split(
-            '--')[0] if '--' in table_name else table_name[0:-5]
-        if plain_table_name.split('.')[-1] in TABLE_BLACK_LIST:
-            logging.info("skip table %s", plain_table_name)
-            return
-        with open(OUTPUT_PROJECT_ROOT + '/table/' + plain_table_name + '.json', 'w') as new_table_file:
-            table_json['source_type'] = 9
-            json.dump(table_json, new_table_file, indent=2)
-        table_content_dict[plain_table_name] = table_json
+def prepare_cube_model():
+    for cube_name in os.listdir(INPUT_ROOT + '/cube_desc'):
+        with open(INPUT_ROOT + '/cube_desc/' + cube_name) as cube_file:
+            cube_json = json.load(cube_file)
+            cube_model_dict[cube_json['name']] = cube_json['model_name']
+    for raw_table_name in os.listdir(INPUT_ROOT + '/raw_table_desc'):
+        with open(INPUT_ROOT + '/raw_table_desc/' + raw_table_name) as raw_table_file:
+            raw_table_json = json.load(raw_table_file)
+            model_name = raw_table_json['model_name']
+            model_raw_table_dict[model_name] = [
+                raw_table_json] + model_raw_table_dict[model_name] if model_name in model_raw_table_dict else [raw_table_json]
 
 
-def __model_all_named_columns(model_json):
-    tables = [model_json['fact_table']] + [x['table']
-                                           for x in model_json['lookups']]
+def model_all_named_columns(model_json, project_name):
+    tables = [{'table': model_json['fact_table']}] + \
+        [x for x in model_json['lookups']]
     columns = []
-    for x in tables:
-        t = table_content_dict[x]
-        cols = t['columns']
+    for table_ref in tables:
+        x = table_ref['table']
+        t = table_content_dict[(x, project_name)]
+        cols = json.loads(json.dumps(t['columns']))
         for col in cols:
-            col['column'] = t['name'] + '.' + col['name']
+            if 'alias' in table_ref:
+                col['column'] = table_ref['alias'] + '.' + col['name']
+            else:
+                col['column'] = t['name'] + '.' + col['name']
+            if 'cc_expr' in col:
+                continue
+            col['name'] = col['column'].replace('.', '_')
             columns.append(col)
 
     dimensions = [x['table'].split('.')[-1] + '.' + y for x in model_json['dimensions']
@@ -238,10 +253,17 @@ def __model_all_named_columns(model_json):
         if column['column'] in dimensions:
             column['status'] = 'DIMENSION'
         id_index += 1
+
+    if 'computed_columns' in model_json:
+        for cc in model_json['computed_columns']:
+            col = {'id': id_index, 'status': 'DIMENSION',
+                   'name': cc['tableAlias'] + '_' + cc['columnName'], 'column': cc['tableAlias'] + '.' + cc['columnName']}
+            columns.append(col)
+            id_index += 1
     model_json['all_named_columns'] = columns
 
 
-def __migrate_measure_parameter(measure, measure_id):
+def migrate_measure_parameter(measure, measure_id):
     origin_param = measure['function']['parameter']
 
     def recursive(p):
@@ -256,7 +278,7 @@ def __migrate_measure_parameter(measure, measure_id):
     return measure
 
 
-def __migrate_aggregation_groups(index_plan_json, model_json, aggregation_groups_json):
+def migrate_aggregation_groups(index_plan_json, model_json, aggregation_groups_json):
     col_id_dict = {}
     for col in model_json['all_named_columns']:
         col_id_dict[col['column']] = col['id']
@@ -278,7 +300,7 @@ def __migrate_aggregation_groups(index_plan_json, model_json, aggregation_groups
         _replace_group(x) for x in aggregation_groups_json['aggregation_groups']]
 
 
-def __migrate_table_index(index_plan_json, model_json, raw_table_list):
+def migrate_table_index(index_plan_json, model_json, raw_table_list):
     col_id_dict = {}
     for col in model_json['all_named_columns']:
         col_id_dict[col['column']] = col['id']
@@ -313,73 +335,112 @@ def __migrate_table_index(index_plan_json, model_json, raw_table_list):
     index_plan_json['next_table_index_id'] = start_id
 
 
-def prepare_cube_model():
-    for cube_name in os.listdir(INPUT_ROOT + '/cube_desc'):
-        with open(INPUT_ROOT + '/cube_desc/' + cube_name) as cube_file:
-            cube_json = json.load(cube_file)
-            cube_model_dict[cube_json['name']] = cube_json['model_name']
-    for raw_table_name in os.listdir(INPUT_ROOT + '/raw_table_desc'):
-        with open(INPUT_ROOT + '/raw_table_desc/' + raw_table_name) as raw_table_file:
-            raw_table_json = json.load(raw_table_file)
-            model_name = raw_table_json['model_name']
-            model_raw_table_dict[model_name] = [
-                raw_table_json] + model_raw_table_dict[model_name] if model_name in model_raw_table_dict else [raw_table_json]
+class ProjectMigrator:
+    def __init__(self, project, cubes, tables):
+        self.project = project
+        self.cubes = cubes
+        self.tables = tables
 
+    def migrate(self):
+        logging.info('start migrate project %s', self.project)
+        for table_name in self.tables:
+            logging.info('migrating table %s', table_name)
+            self.migrate_table(table_name)
 
-def migrate_model_and_cube(cube_name):
-    model_name = cube_model_dict[cube_name.split('.')[0]]
-    with open(INPUT_ROOT + '/cube_desc/' + cube_name) as cube_file:
-        cube_json = json.load(cube_file)
-    with open(INPUT_ROOT + '/model_desc/' + model_name + '.json') as model_file:
-        model_json = json.load(model_file)
+        for cube_name in self.cubes:
+            try:
+                model_name = cube_model_dict[cube_name]
+                with open(INPUT_ROOT + '/cube_desc/' + cube_name + '.json') as cube_file:
+                    cube_json = json.load(cube_file)
+                with open(INPUT_ROOT + '/model_desc/' + model_name + '.json') as model_file:
+                    model_json = json.load(model_file)
 
-    tables = [model_json['fact_table'].split('.')[-1]] + [x['table'].split('.')[-1]
-                                                          for x in model_json['lookups']]
-    if len(set(tables) & set(TABLE_BLACK_LIST)) > 0:
-        logging.info("cube %s has tables %s in blacklist", cube_name, str(set(tables) & set(TABLE_BLACK_LIST)))
-        return
-    uuid = cube_json['uuid']
-    with open(OUTPUT_PROJECT_ROOT + '/model_desc/' + uuid + '.json', 'w') as new_model_file:
-        model_json['uuid'] = uuid
-        model_json['alias'] = cube_json['name']
-        model_json['join_tables'] = model_json['lookups']
-        __model_all_named_columns(model_json)
-        model_json['all_measures'] = [
-            __migrate_measure_parameter(x, 100000+i) for i, x in enumerate(cube_json['measures'])]
-        model_json['management_type'] = 'MODEL_BASED'
-        del model_json['dimensions']
-        del model_json['metrics']
-        del model_json['name']
-        json.dump(model_json, new_model_file, indent=2)
-    model_content_dict[model_name] = model_json
-    with open(OUTPUT_PROJECT_ROOT + '/index_plan/' + uuid + '.json', 'w') as new_cube_file:
-        index_plan_json = json.loads(INDEX_PLAN_TEMPLATE)
-        index_plan_json['uuid'] = uuid
-        index_plan_json['rule_based_index']['measures'] = [
-            x['id'] for x in model_json['all_measures']]
-        __migrate_aggregation_groups(index_plan_json, model_json, cube_json)
-        index_plan_json['rule_based_index']['dimensions'] = list(functools.reduce(lambda x, y: x | y, [set(
-            x['includes']) for x in index_plan_json['rule_based_index']['aggregation_groups']], set([])))
-        if model_name in model_raw_table_dict:
-            raw_table_list = model_raw_table_dict[model_name]
-            __migrate_table_index(index_plan_json, model_json, raw_table_list)
-        json.dump(index_plan_json, new_cube_file, indent=2)
-    with open(OUTPUT_PROJECT_ROOT + '/dataflow/' + uuid + '.json', 'w') as new_cube_file:
-        dataflow_json = json.loads(DATAFLOW_TEMPLATE)
-        dataflow_json['uuid'] = uuid
-        json.dump(dataflow_json, new_cube_file, indent=2)
+                tables = [model_json['fact_table'].split('.')[-1]] + [x['table'].split('.')[-1]
+                                                                      for x in model_json['lookups']]
+                if len(set(tables) & set(TABLE_BLACK_LIST)) > 0:
+                    logging.info("cube %s has tables %s in blacklist",
+                                 cube_name, str(set(tables) & set(TABLE_BLACK_LIST)))
+                    continue
+                uuid = cube_json['uuid']
+                logging.info('migrating cube %s -- %s, uuid %s',
+                             self.project, cube_name, uuid)
+                self.migrate_model_and_cube(
+                    cube_name, model_name, cube_json, model_json)
+            except Exception as e:
+                logging.exception(
+                    'cube %s -- %s migrate failed', self.project, cube_name)
+                try:
+                    os.remove(OUTPUT_ROOT + '/' + self.project +
+                              '/model_desc/' + uuid + '.json')
+                except:
+                    pass
+                try:
+                    os.remove(OUTPUT_ROOT + '/' + self.project +
+                              '/index_plan/' + uuid + '.json')
+                except:
+                    pass
+                try:
+                    os.remove(OUTPUT_ROOT + '/' + self.project +
+                              '/dataflow/' + uuid + '.json')
+                except:
+                    pass
+        logging.info('migrate project %s finished', self.project)
+
+    def migrate_table(self, plain_table_name):
+        table_json = table_content_dict[(plain_table_name, self.project)]
+        with open(OUTPUT_ROOT + '/' + self.project + '/table/' + plain_table_name + '.json', 'w') as new_table_file:
+            table_json['source_type'] = 9
+            json.dump(table_json, new_table_file, indent=2)
+
+    def migrate_model_and_cube(self, cube_name, model_name, cube_json, model_json):
+        uuid = cube_json['uuid']
+        with open(OUTPUT_ROOT + '/' + self.project + '/model_desc/' + uuid + '.json', 'w') as new_model_file:
+            model_json['uuid'] = uuid
+            model_json['alias'] = cube_json['name']
+            model_json['join_tables'] = model_json['lookups']
+            model_all_named_columns(model_json, self.project)
+            model_json['all_measures'] = [
+                migrate_measure_parameter(x, 100000+i) for i, x in enumerate(cube_json['measures'])]
+            model_json['management_type'] = 'MODEL_BASED'
+            if 'partition_desc' in model_json:
+                model_json['partition_desc']['partition_type'] = 'APPEND'
+            del model_json['dimensions']
+            del model_json['metrics']
+            del model_json['name']
+            json.dump(model_json, new_model_file, indent=2)
+        model_content_dict[model_name] = model_json
+        with open(OUTPUT_ROOT + '/' + self.project + '/index_plan/' + uuid + '.json', 'w') as new_cube_file:
+            index_plan_json = json.loads(INDEX_PLAN_TEMPLATE)
+            index_plan_json['uuid'] = uuid
+            index_plan_json['rule_based_index']['measures'] = [
+                x['id'] for x in model_json['all_measures']]
+            migrate_aggregation_groups(
+                index_plan_json, model_json, cube_json)
+            index_plan_json['rule_based_index']['dimensions'] = list(functools.reduce(lambda x, y: x | y, [set(
+                x['includes']) for x in index_plan_json['rule_based_index']['aggregation_groups']], set([])))
+            if model_name in model_raw_table_dict:
+                raw_table_list = model_raw_table_dict[model_name]
+                migrate_table_index(
+                    index_plan_json, model_json, raw_table_list)
+            json.dump(index_plan_json, new_cube_file, indent=2)
+        with open(OUTPUT_ROOT + '/' + self.project + '/dataflow/' + uuid + '.json', 'w') as new_cube_file:
+            dataflow_json = json.loads(DATAFLOW_TEMPLATE)
+            dataflow_json['uuid'] = uuid
+            json.dump(dataflow_json, new_cube_file, indent=2)
 
 
 if __name__ == "__main__":
-    prepare_project()
-    prepare_cube_model()
-    for table_name in os.listdir(INPUT_ROOT + '/table'):
-        logging.info('migrating table %s', table_name)
-        migrate_table(table_name)
 
-    for cube_name in os.listdir(INPUT_ROOT + "/cube_desc"):
-        logging.info('migrating cube %s', cube_name)
-        try:
-            migrate_model_and_cube(cube_name)
-        except Exception as e:
-            logging.exception('model %s migrate failed', cube_name)
+    parser = argparse.ArgumentParser(
+        description='migration from 2.x/3.x metadata')
+    parser.add_argument('-i', help='the folder of input metadata')
+    parser.add_argument('-o', help='the folder of output metadata')
+    args = parser.parse_args()
+
+    INPUT_ROOT = args.i
+    OUTPUT_ROOT = args.o
+
+    pms = prepare_project()
+    prepare_cube_model()
+    for pm in pms:
+        pm.migrate()
