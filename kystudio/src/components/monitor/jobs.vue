@@ -13,7 +13,7 @@
             </el-dropdown-item>
           </el-dropdown-menu>
         </el-dropdown>
-        <el-button-group class="action_groups ksd-ml-10 ksd-fleft">
+        <el-button-group class="ksd-btn-groups action_groups ksd-ml-10 ksd-fleft">
           <el-button plain size="medium" icon="el-icon-ksd-table_resume" :disabled="!batchBtnsEnabled.resume" @click="batchResume">{{$t('jobResume')}}</el-button>
           <el-button plain size="medium" icon="el-icon-ksd-restart" :disabled="!batchBtnsEnabled.restart" @click="batchRestart">{{$t('jobRestart')}}</el-button>
           <el-button plain size="medium" icon="el-icon-ksd-pause" :disabled="!batchBtnsEnabled.pause" @click="batchPause">{{$t('jobPause')}}</el-button>
@@ -1100,22 +1100,6 @@ export default class JobsList extends Vue {
     }
     .action_groups {
       vertical-align: top;
-      .el-button.el-button--default {
-        background: #fff;
-        border-color: @base-color;
-        color: @base-color;
-        z-index: 1;
-        &:hover {
-          background: @base-color;
-          color: @fff;
-        }
-      }
-      .el-button.is-disabled.is-plain, .el-button.is-disabled.is-plain:hover {
-        border-color: @line-border-color;
-        background-color: @background-disabled-color;
-        z-index: 0;
-        color: @text-disabled-color;
-      }
     }
     .waiting-jobs {
       color: @text-title-color;

@@ -1246,6 +1246,22 @@ export default class FavoriteQuery extends Vue {
   @import '../../../assets/styles/variables.less';
   #favoriteQuery {
     padding: 0px 20px 50px 20px;
+    .batch-btn-groups {
+      display: flex;
+      > .el-button {
+        z-index: 1;
+      }
+      .ksd-btn-groups {
+        margin-left: -1px;
+      }
+    }
+    .slide-enter-active, .slide-leave-active {
+      transition: transform .1s linear;
+      transform: translateX(0px);
+    }
+    .slide-enter, .slide-leave-to {
+      transform: translateX(-200px);
+    }
     .img-block {
       height: 46px;
     }

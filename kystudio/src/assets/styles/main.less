@@ -632,6 +632,24 @@ i[class^=el-icon-]{
     color: rgba(255,255,255,0.6);
   }
 }
+.ksd-btn-groups {
+  .el-button.el-button--default {
+    background: #fff;
+    border-color: @base-color;
+    color: @base-color;
+    z-index: 1;
+    &:hover {
+      background: @base-color;
+      color: @fff;
+    }
+  }
+  .el-button.is-disabled.is-plain, .el-button.is-disabled.is-plain:hover {
+    border-color: @line-border-color;
+    background-color: @background-disabled-color;
+    z-index: 0;
+    color: @text-disabled-color;
+  }
+}
 .ksd-drag-box{
  *[draggable="true"]{
     &:hover{
