@@ -25,6 +25,8 @@
 package io.kyligence.kap.spark.common.logging;
 
 import com.google.common.annotations.VisibleForTesting;
+import lombok.Getter;
+import lombok.Setter;
 import org.apache.commons.io.IOUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataOutputStream;
@@ -58,17 +60,30 @@ public class HdfsFileAppender extends AppenderSkeleton {
     private HdfsFileAppender.HdfsFlushService flushService;
 
     //configurable
+    @Getter
+    @Setter
     private int logQueueCapacity = 5000;
+    @Getter
+    @Setter
     private int flushInterval = 5000;
 
+    @Getter
+    @Setter
     private String hdfsWorkingDir;
 
-    // only cubing job
+    @Getter
+    @Setter
     private String logPath;
 
     // kerberos
-    private Boolean kerberosEnable = Boolean.FALSE;
+    @Getter
+    @Setter
+    private boolean kerberosEnable = false;
+    @Getter
+    @Setter
     private String kerberosPrincipal;
+    @Getter
+    @Setter
     private String kerberosKeytab;
 
     /**
@@ -85,6 +100,7 @@ public class HdfsFileAppender extends AppenderSkeleton {
     private void init() {
         LogLog.warn("HdfsFileAppender starting ...");
         LogLog.warn("spark.driver.log4j.appender.hdfs.File -> " + getLogPath());
+        LogLog.warn("kerberosEnable -> " + isKerberosEnable());
 
         logBufferQue = new LinkedBlockingDeque<>(logQueueCapacity);
 
@@ -117,7 +133,8 @@ public class HdfsFileAppender extends AppenderSkeleton {
      */
     @Override
     public void close() {
-        LogLog.warn("Close HdfsFileAppender ...");
+        this.closed = true;
+
         try {
             flushService.flushLog(logBufferQue.size());
             closeWriter();
@@ -127,7 +144,8 @@ public class HdfsFileAppender extends AppenderSkeleton {
         } catch (Exception e) {
             LogLog.error("close HdfsAppender failed", e);
         }
-        this.closed = true;
+
+        LogLog.warn("HdfsFileAppender Closed ...");
     }
 
     private void closeWriter() {
@@ -138,38 +156,6 @@ public class HdfsFileAppender extends AppenderSkeleton {
     @Override
     public boolean requiresLayout() {
         return true;
-    }
-
-    public String getLogPath() {
-        return logPath;
-    }
-
-    public void setLogPath(String logPath) {
-        this.logPath = logPath;
-    }
-
-    public String getHdfsWorkingDir() {
-        return hdfsWorkingDir;
-    }
-
-    public void setHdfsWorkingDir(String hdfsWorkingDir) {
-        this.hdfsWorkingDir = hdfsWorkingDir;
-    }
-
-    public void setLogQueueCapacity(int logQueueCapacity) {
-        this.logQueueCapacity = logQueueCapacity;
-    }
-
-    public int getLogQueueCapacity() {
-        return this.logQueueCapacity;
-    }
-
-    public void setFlushInterval(int flushInterval) {
-        this.flushInterval = flushInterval;
-    }
-
-    public int getFlushInterval() {
-        return this.flushInterval;
     }
 
     @VisibleForTesting
@@ -217,7 +203,7 @@ public class HdfsFileAppender extends AppenderSkeleton {
          * @throws IOException
          * @throws InterruptedException
          */
-        private void flushLog(int size) throws IOException, InterruptedException {
+        private synchronized void flushLog(int size) throws IOException, InterruptedException {
             if (null == outStream && null == bufferedWriter) {
                 try {
                     initWriter(new Path(getLogPath()));
@@ -227,7 +213,7 @@ public class HdfsFileAppender extends AppenderSkeleton {
                 }
             }
 
-            if (size == 0)
+            if (0 == size || logBufferQue.isEmpty())
                 return;
 
             while (size > 0) {
@@ -255,9 +241,9 @@ public class HdfsFileAppender extends AppenderSkeleton {
             closeWriter();
 
             Configuration conf = new Configuration();
-            if (kerberosEnable) {
+            if (isKerberosEnable()) {
                 UserGroupInformation.setConfiguration(conf);
-                UserGroupInformation.loginUserFromKeytab(kerberosPrincipal, kerberosKeytab);
+                UserGroupInformation.loginUserFromKeytab(getKerberosPrincipal(), getKerberosKeytab());
             }
 
             fileSystem = HadoopUtil.getFileSystem(outPath, conf);

@@ -26,7 +26,6 @@ package io.kyligence.kap.engine.spark.application;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -95,9 +94,6 @@ public abstract class SparkApplication implements Application, IKeep {
 
     public void execute(String[] args) {
         try {
-            System.setOut(createLoggingProxy(System.out, false));
-            System.setErr(createLoggingProxy(System.err, true));
-
             String argsLine = Files.readAllLines(Paths.get(args[0])).get(0);
             if (argsLine.isEmpty()) {
                 throw new RuntimeException("Args file is empty");
@@ -130,19 +126,6 @@ public abstract class SparkApplication implements Application, IKeep {
 
     public void checkArgs() {
         // do nothing
-    }
-
-    private static PrintStream createLoggingProxy(final PrintStream printStream, boolean setError) {
-        return new PrintStream(printStream) {
-            @Override
-            public void print(final String message) {
-                if (setError) {
-                    logger.error(message);
-                } else {
-                    logger.info(message);
-                }
-            }
-        };
     }
 
     /**
