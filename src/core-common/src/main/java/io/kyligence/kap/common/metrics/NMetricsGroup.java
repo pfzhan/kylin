@@ -58,7 +58,7 @@ import io.kyligence.kap.shaded.influxdb.org.influxdb.dto.QueryResult;
 
 public class NMetricsGroup {
 
-    //TODO redesign: event loop, metrics registering shouldn't block the main process 
+    //redesign: event loop, metrics registering shouldn't block the main process
 
     private static final Logger logger = LoggerFactory.getLogger(NMetricsGroup.class);
 
@@ -305,11 +305,7 @@ public class NMetricsGroup {
     }
 
     private static String metricName(String name, String category, String entity, Map<String, String> tags) {
-
         Preconditions.checkNotNull(name);
-        Preconditions.checkNotNull(category);
-        Preconditions.checkNotNull(entity);
-
         StringBuilder sb = new StringBuilder(name);
         sb.append(":category=");
         sb.append(category);
@@ -349,10 +345,7 @@ public class NMetricsGroup {
         if (!counters.containsKey(metricName)) {
             synchronized (counters) {
                 if (!counters.containsKey(metricName)) {
-                    //TODO bad design 
-                    // 1. Consider async realization;
-                    // 2. Deadlock maybe occurs here;
-                    // 3. Add timeout mechanism.
+                    // bad design: 1. Consider async realization; 2. Deadlock maybe occurs here; 3. Add timeout mechanism.
                     final Counter metric = NMetricsController.getDefaultMetricRegistry().counter(metricName);
                     final long restoreVal = tryRestoreCounter(name, category, entity, tags);
                     if (restoreVal > 0) {
@@ -451,7 +444,7 @@ public class NMetricsGroup {
     }
 
     private static void doRemove(final String projectTag, final Iterator<String> it, final MetricRegistry registry) {
-        //TODO replace with removeIf
+        // replace with removeIf
         while (it.hasNext()) {
             //some1:k1=v1,k2=v2,k3=v3,...
             final String metricName = it.next();
@@ -467,5 +460,4 @@ public class NMetricsGroup {
             }
         }
     }
-
 }
