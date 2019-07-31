@@ -49,9 +49,18 @@
 package io.kyligence.kap.rest.service;
 
 import java.net.UnknownHostException;
+import java.util.Comparator;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
+import com.google.common.collect.Lists;
+import org.apache.calcite.sql.dialect.CalciteSqlDialect;
+import org.apache.calcite.sql.parser.SqlParseException;
+import org.apache.calcite.sql.parser.SqlParser;
+import org.apache.calcite.sql.pretty.SqlPrettyWriter;
 import org.apache.kylin.common.QueryContext;
+import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.query.util.QueryUtil;
 import org.apache.kylin.rest.request.SQLRequest;
 import org.apache.kylin.rest.response.SQLResponse;
@@ -69,6 +78,7 @@ import io.kyligence.kap.common.metrics.NMetricsName;
 import io.kyligence.kap.metadata.query.QueryHistory;
 import io.kyligence.kap.rest.metrics.QueryMetricsContext;
 import io.kyligence.kap.rest.response.QueryEngineStatisticsResponse;
+import lombok.val;
 
 @Component("kapQueryService")
 public class KapQueryService extends QueryService {
@@ -154,5 +164,26 @@ public class KapQueryService extends QueryService {
 
         return QueryEngineStatisticsResponse
                 .valueOf(getQueryHistoryDao(project).getQueryEngineStatistics(startTime, endTime));
+    }
+
+    public List<String> format(List<String> sqls) {
+        List<Pair<Integer, String>> pairs = Lists.newArrayList();
+        int index = 0;
+        for (String sql : sqls) {
+            pairs.add(Pair.newPair(index, sql));
+        }
+        return pairs.parallelStream().map(pair -> {
+            try {
+                val node = SqlParser.create(pair.getSecond()).parseQuery();
+                val writer = new SqlPrettyWriter(CalciteSqlDialect.DEFAULT);
+                writer.setIndentation(2);
+                writer.setSelectListExtraIndentFlag(true);
+                writer.setSelectListItemsOnSeparateLines(true);
+                return Pair.newPair(pair.getFirst(), writer.format(node));
+            } catch (SqlParseException e) {
+                logger.info("Sql {} cannot be formatted", pair.getSecond());
+                return pair;
+            }
+        }).sorted(Comparator.comparingInt(Pair::getFirst)).map(Pair::getSecond).collect(Collectors.toList());
     }
 }

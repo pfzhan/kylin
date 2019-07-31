@@ -39,7 +39,6 @@ import java.util.regex.Pattern;
 
 import javax.servlet.http.HttpServletResponse;
 
-import io.kyligence.kap.rest.cluster.ClusterManager;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -68,6 +67,7 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -81,6 +81,8 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
 
 import io.kyligence.kap.metadata.query.QueryHistoryRequest;
+import io.kyligence.kap.rest.cluster.ClusterManager;
+import io.kyligence.kap.rest.request.SQLFormatRequest;
 import io.kyligence.kap.rest.response.QueryEngineStatisticsResponse;
 import io.kyligence.kap.rest.service.KapQueryService;
 import io.kyligence.kap.rest.service.QueryHistoryService;
@@ -306,6 +308,11 @@ public class NQueryController extends NBasicController {
             @RequestParam(value = "projects", required = false) List<String> projects) {
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, queryHistoryService.getQueryHistoryTableMap(projects),
                 "");
+    }
+
+    @PutMapping(value = "/format", produces = { "application/vnd.apache.kylin-v2+json" })
+    public EnvelopeResponse formatQuery(@RequestBody SQLFormatRequest request) {
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, queryService.format(request.getSqls()), "");
     }
 
     private void checkQueryName(String queryName) {

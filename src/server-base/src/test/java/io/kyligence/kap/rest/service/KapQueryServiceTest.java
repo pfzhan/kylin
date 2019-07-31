@@ -24,11 +24,8 @@
 
 package io.kyligence.kap.rest.service;
 
-import com.google.common.collect.Lists;
-import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
-import io.kyligence.kap.metadata.query.QueryHistoryDAO;
-import io.kyligence.kap.metadata.query.QueryStatistics;
-import io.kyligence.kap.rest.response.QueryEngineStatisticsResponse;
+import java.util.List;
+
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.Before;
@@ -36,6 +33,14 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mockito;
+
+import com.google.common.collect.Lists;
+
+import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.metadata.query.QueryHistoryDAO;
+import io.kyligence.kap.metadata.query.QueryStatistics;
+import io.kyligence.kap.rest.response.QueryEngineStatisticsResponse;
+import lombok.val;
 
 public class KapQueryServiceTest extends NLocalFileMetadataTestCase {
 
@@ -88,5 +93,16 @@ public class KapQueryServiceTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(0, nativeQuery.getCount());
         Assert.assertEquals(0d, nativeQuery.getMeanDuration(), 0.1);
         Assert.assertEquals(0d, nativeQuery.getRatio(), 0.01);
+    }
+
+    @Test
+    public void testSqlsFormat() {
+        List<String> sqls = Lists.newArrayList("select * from A", "select A.a, B.b from A join B on A.a2=B.b2", "Select sum(a), b from A group by b");
+        val formated = kapQueryService.format(sqls);
+
+        Assert.assertEquals(3, formated.size());
+        Assert.assertEquals("SELECT\n  *\nFROM \"A\"", formated.get(0));
+        Assert.assertEquals("SELECT\n  \"A\".\"A\",\n  \"B\".\"B\"\nFROM \"A\"\n  INNER JOIN \"B\" ON \"A\".\"A2\" = \"B\".\"B2\"", formated.get(1));
+        Assert.assertEquals("SELECT\n  SUM(\"A\"),\n  \"B\"\nFROM \"A\"\nGROUP BY\n  \"B\"", formated.get(2));
     }
 }
