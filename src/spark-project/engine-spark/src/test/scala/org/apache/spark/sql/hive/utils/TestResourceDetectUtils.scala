@@ -26,11 +26,27 @@ import java.io.FileOutputStream
 import java.util.{List => JList, Map => JMap}
 
 import com.google.common.collect.{Lists, Maps}
+import io.kyligence.kap.common.util.NLocalFileMetadataTestCase
 import org.apache.hadoop.fs.Path
+import org.apache.kylin.common.KylinConfig
 import org.apache.spark.sql.common.SparderBaseFunSuite
 import org.apache.spark.util.Utils
 
 class TestResourceDetectUtils extends SparderBaseFunSuite {
+  private var config: KylinConfig = _
+
+  override def beforeAll(): Unit = {
+    NLocalFileMetadataTestCase.staticCreateTestMetadata()
+    config = KylinConfig.getInstanceFromEnv
+    super.beforeAll()
+  }
+
+  override def afterAll(): Unit = {
+    NLocalFileMetadataTestCase.staticCleanupTestMetadata();
+    super.afterAll()
+  }
+
+
   test("write and read resource paths") {
     val map: JMap[String, JList[String]] = Maps.newHashMap()
     map.put("test", Lists.newArrayList("test"))

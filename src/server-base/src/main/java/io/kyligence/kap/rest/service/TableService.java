@@ -40,7 +40,6 @@ import java.util.stream.Stream;
 
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
-import org.apache.hadoop.fs.ContentSummary;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.kylin.common.KylinConfig;
@@ -376,8 +375,7 @@ public class TableService extends BasicService {
                 FileSystem fs = HadoopUtil.getReadFileSystem();
                 val path = new Path(snapShots.get(table));
                 if (fs.exists(path)) {
-                    ContentSummary cs = fs.getContentSummary(path);
-                    size += cs.getLength();
+                    size += HadoopUtil.getContentSummary(fs, path).getLength();
                 }
             }
         }

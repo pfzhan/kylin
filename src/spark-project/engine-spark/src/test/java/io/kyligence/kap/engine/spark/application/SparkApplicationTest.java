@@ -44,7 +44,9 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import org.mockito.Mockito;
 
-public class SparkApplicationTest {
+import io.kyligence.kap.engine.spark.NSparkBasicTest;
+
+public class SparkApplicationTest extends NSparkBasicTest {
     File tempDir = new File("./temp/");
     File file1 = new File(tempDir, "temp1_" + ResourceDetectUtils.fileName());
     File file2 = new File(tempDir, "temp2_" + ResourceDetectUtils.fileName());
@@ -54,6 +56,7 @@ public class SparkApplicationTest {
     @Before
     public void before() throws IOException {
         FileUtils.forceMkdir(tempDir);
+
     }
 
     @After

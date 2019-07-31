@@ -21,28 +21,15 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+package org.apache.kylin.common.storage;
 
-package io.kyligence.kap.metadata.cube.storage;
+import io.kyligence.kap.common.obf.IKeep;
+import org.apache.hadoop.fs.ContentSummary;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
 
 import java.io.IOException;
 
-import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.Path;
-import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.util.HadoopUtil;
-
-public class TotalStorageCollector implements StorageInfoCollector {
-
-    @Override
-    public void collect(KylinConfig config, String project, StorageVolumeInfo storageVolumeInfo) throws IOException {
-        String strPath = config.getHdfsWorkingDirectory(project);
-        Path path = new Path(strPath);
-        FileSystem fs = path.getFileSystem(HadoopUtil.getCurrentConfiguration());
-        long totalStorageSize = 0L;
-        if (fs.exists(path)) {
-            totalStorageSize = HadoopUtil.getContentSummary(fs, path).getLength();
-        }
-        storageVolumeInfo.setTotalStorageSize(totalStorageSize);
-    }
-
+public interface IStorageProvider extends IKeep {
+    ContentSummary getContentSummary(FileSystem fileSystem, Path path) throws IOException;
 }

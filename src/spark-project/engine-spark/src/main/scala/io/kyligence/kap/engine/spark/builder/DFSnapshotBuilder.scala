@@ -224,7 +224,7 @@ class DFSnapshotBuilder extends Logging {
     val repartitionNum = try {
       val fs = HadoopUtil.getReadFileSystem
       val sizeInMB = ResourceDetectUtils.getPaths(sourceData.queryExecution.sparkPlan)
-        .map(path => fs.getContentSummary(path).getLength)
+        .map(path => HadoopUtil.getContentSummary(fs, path).getLength)
         .sum * 1.0 / MB
       val num = Math.ceil(sizeInMB / KylinBuildEnv.get().kylinConfig.getSnapshotShardSizeMB).intValue()
       logInfo(s"Table size is $sizeInMB MB, repartition num is set to $num.")

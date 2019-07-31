@@ -1621,4 +1621,8 @@ abstract public class KylinConfigBase implements Serializable {
     public int getQueryPartitionSplitSizeMB() {
         return Integer.parseInt(getOptional("kap.storage.columnar.partition-split-size-mb", "64"));
     }
+
+    public String getStorageProvider() {
+        return getOptional("kap.storage.provider", "org.apache.kylin.common.storage.DefaultStorageProvider");
+    }
 }

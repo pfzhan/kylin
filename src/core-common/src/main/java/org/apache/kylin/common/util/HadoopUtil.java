@@ -50,11 +50,13 @@ import java.net.URISyntaxException;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.ContentSummary;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.PathFilter;
 import org.apache.hadoop.io.Writable;
+import org.apache.kylin.common.storage.IStorageProvider;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.slf4j.Logger;
@@ -234,5 +236,12 @@ public class HadoopUtil {
             path = Path.getPathWithoutSchemeAndAuthority(new Path(path)).toString() + "/";
         }
         return path;
+    }
+
+    public static ContentSummary getContentSummary(FileSystem fileSystem, Path path) throws IOException {
+        IStorageProvider provider = (IStorageProvider) ClassUtil
+                .newInstance(KylinConfig.getInstanceFromEnv().getStorageProvider());
+        logger.debug("Use provider:{}", provider.getClass().getCanonicalName());
+        return provider.getContentSummary(fileSystem, path);
     }
 }

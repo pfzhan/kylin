@@ -21,28 +21,26 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+package org.apache.kylin.common.storage;
 
-package io.kyligence.kap.metadata.cube.storage;
+import org.apache.hadoop.fs.ContentSummary;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
 
 import java.io.IOException;
 
-import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.Path;
-import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.util.HadoopUtil;
-
-public class TotalStorageCollector implements StorageInfoCollector {
-
+// for reflection
+public class DefaultStorageProvider implements IStorageProvider {
+    /**
+     * Warning: different cloud provider may not return full ContentSummary,
+     * only return file length and count now.
+     * @param fileSystem
+     * @param path
+     * @return
+     * @throws IOException
+     */
     @Override
-    public void collect(KylinConfig config, String project, StorageVolumeInfo storageVolumeInfo) throws IOException {
-        String strPath = config.getHdfsWorkingDirectory(project);
-        Path path = new Path(strPath);
-        FileSystem fs = path.getFileSystem(HadoopUtil.getCurrentConfiguration());
-        long totalStorageSize = 0L;
-        if (fs.exists(path)) {
-            totalStorageSize = HadoopUtil.getContentSummary(fs, path).getLength();
-        }
-        storageVolumeInfo.setTotalStorageSize(totalStorageSize);
+    public ContentSummary getContentSummary(FileSystem fileSystem, Path path) throws IOException {
+        return fileSystem.getContentSummary(path);
     }
-
 }

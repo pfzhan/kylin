@@ -58,7 +58,7 @@ object ResourceDetectUtils extends Logging {
 
   def getResourceSize(paths: Path*): Long = {
     val fs = HadoopUtil.getFileSystem(paths.head)
-    paths.map(fs.getContentSummary(_).getLength).sum
+    paths.map(HadoopUtil.getContentSummary(fs, _).getLength).sum
   }
 
   def getMaxResourceSize(resourcePaths: JMap[String, JList[String]]): Long = {

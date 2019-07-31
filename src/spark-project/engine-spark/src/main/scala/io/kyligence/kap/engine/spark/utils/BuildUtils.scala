@@ -55,7 +55,7 @@ object BuildUtils extends Logging {
                          sparkSession: SparkSession): Int = {
     val fs = HadoopUtil.getReadFileSystem
     if (fs.exists(new Path(tempPath))) {
-      val summary = fs.getContentSummary(new Path(tempPath))
+      val summary = HadoopUtil.getContentSummary(fs, new Path(tempPath))
       var repartitionThresholdSize = kapConfig.getParquetStorageShardSizeRowCount
       if (findCountDistinctMeasure(layout)) {
         repartitionThresholdSize = kapConfig.getParquetStorageCountDistinctShardSizeRowCount
@@ -81,7 +81,7 @@ object BuildUtils extends Logging {
     val strPath = NSparkCubingUtil.getStoragePath(cuboid)
     val fs = HadoopUtil.getReadFileSystem
     if (fs.exists(new Path(strPath))) {
-      val cs = fs.getContentSummary(new Path(strPath))
+      val cs = HadoopUtil.getContentSummary(fs, new Path(strPath))
       cuboid.setFileCount(cs.getFileCount)
       cuboid.setByteSize(cs.getLength)
     } else {
