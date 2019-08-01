@@ -21,7 +21,8 @@
       @selection-change="handleSelectionChange"
       :row-class-name="tableRowClassName"
       style="width: 100%">
-      <el-table-column type="selection" align="center" width="44"></el-table-column>
+      <el-table-column type="selection" align="center" width="44" v-if="isShowBatch" key="checkbox"></el-table-column>
+      <el-table-column type="index" width="44" align="center" v-if="!isShowBatch" key="index"></el-table-column>
       <el-table-column :label="$t('kylinLang.query.sqlContent_th')" prop="sql_pattern" show-overflow-tooltip></el-table-column>
       <el-table-column :label="$t('kylinLang.query.lastModefied')" prop="last_query_time" sortable="custom" width="218">
         <template slot-scope="props">
