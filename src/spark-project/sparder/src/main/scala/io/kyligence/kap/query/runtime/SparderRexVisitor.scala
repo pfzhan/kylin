@@ -452,6 +452,33 @@ class SparderRexVisitor(val dfs: Array[DataFrame],
             tan(k_lit(children.head))
           case "sin" =>
             sin(k_lit(children.head))
+          case "add_months" =>
+            kap_add_months(k_lit(children.head), k_lit(children.apply(1)))
+          case "date_part" | "date_trunc" =>
+            var p = k_lit(children.head).toString().toUpperCase
+            var part = p match {
+              case "YEAR" =>
+                "y"
+              case "MONTH" =>
+                "M"
+              case "DAY" =>
+                "d"
+              case "HOUR" =>
+                "h"
+              case "MINUTE" =>
+                "m"
+              case "MINUTES" =>
+                "m"
+              case "SECOND" =>
+                "s"
+              case "SECONDS" =>
+                "s"
+              case _ =>
+                p
+            }
+            date_format(k_lit(children.apply(1)),part)
+          case "datediff" =>
+            datediff(k_lit(children.head),k_lit(children.apply(1)))
           case "initcap" =>
             initcap(k_lit(children.head))
           case "pi" =>
