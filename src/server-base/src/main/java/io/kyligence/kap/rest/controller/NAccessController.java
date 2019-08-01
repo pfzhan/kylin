@@ -24,9 +24,12 @@
 
 package io.kyligence.kap.rest.controller;
 
-import com.google.common.collect.Lists;
-import io.kyligence.kap.rest.request.AccessRequest;
-import lombok.val;
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.List;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.persistence.AclEntity;
 import org.apache.kylin.metadata.MetadataConstants;
@@ -38,7 +41,6 @@ import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.response.ResponseCode;
 import org.apache.kylin.rest.security.AclEntityType;
 import org.apache.kylin.rest.security.AclPermissionFactory;
-import org.apache.kylin.rest.security.ManagedUser;
 import org.apache.kylin.rest.service.AccessService;
 import org.apache.kylin.rest.service.IUserGroupService;
 import org.apache.kylin.rest.service.UserService;
@@ -54,11 +56,12 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
-import java.io.IOException;
-import java.util.HashMap;
-import java.util.List;
-import java.util.regex.Pattern;
-import java.util.stream.Collectors;
+
+import com.google.common.collect.Lists;
+
+import io.kyligence.kap.metadata.user.ManagedUser;
+import io.kyligence.kap.rest.request.AccessRequest;
+import lombok.val;
 
 @Controller
 @RequestMapping(value = "/access")

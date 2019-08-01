@@ -45,8 +45,9 @@ package org.apache.kylin.rest.service;
 import java.io.IOException;
 import java.util.List;
 
-import org.apache.kylin.rest.security.ManagedUser;
 import org.springframework.security.provisioning.UserDetailsManager;
+
+import io.kyligence.kap.metadata.user.ManagedUser;
 
 public interface UserService extends UserDetailsManager {
 

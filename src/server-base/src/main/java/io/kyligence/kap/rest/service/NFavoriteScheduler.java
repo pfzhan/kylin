@@ -58,7 +58,6 @@ import org.apache.kylin.common.util.ExecutorServiceUtil;
 import org.apache.kylin.common.util.NamedThreadFactory;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.query.util.QueryUtil;
-import org.apache.kylin.rest.security.KylinUserManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -81,6 +80,7 @@ import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.metadata.query.AccelerateRatioManager;
 import io.kyligence.kap.metadata.query.QueryHistory;
 import io.kyligence.kap.metadata.query.QueryHistoryDAO;
+import io.kyligence.kap.metadata.user.NKylinUserManager;
 import io.kyligence.kap.rest.service.task.QueryHistoryAccessor;
 import io.kyligence.kap.rest.service.task.UpdateUsageStatisticsRunner;
 import lombok.AllArgsConstructor;
@@ -508,7 +508,7 @@ public class NFavoriteScheduler {
     }
 
     private Set<String> getUserGroups(String userName) {
-        return KylinUserManager.getInstance(KylinConfig.getInstanceFromEnv()).getUserGroups(userName);
+        return NKylinUserManager.getInstance(KylinConfig.getInstanceFromEnv()).getUserGroups(userName);
     }
 
     public void scheduleImmediately() {

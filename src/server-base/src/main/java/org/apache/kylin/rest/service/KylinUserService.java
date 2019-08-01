@@ -56,8 +56,6 @@ import org.apache.kylin.rest.exception.BadRequestException;
 import org.apache.kylin.rest.exception.InternalErrorException;
 import org.apache.kylin.rest.msg.Message;
 import org.apache.kylin.rest.msg.MsgPicker;
-import org.apache.kylin.rest.security.KylinUserManager;
-import org.apache.kylin.rest.security.ManagedUser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -66,6 +64,8 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 
 import com.google.common.base.Preconditions;
 
+import io.kyligence.kap.metadata.user.ManagedUser;
+import io.kyligence.kap.metadata.user.NKylinUserManager;
 import io.kyligence.kap.rest.transaction.Transaction;
 
 public class KylinUserService implements UserService {
@@ -198,7 +198,7 @@ public class KylinUserService implements UserService {
         return DIR_PREFIX + userName;
     }
 
-    private KylinUserManager getKylinUserManager() {
-        return KylinUserManager.getInstance(KylinConfig.getInstanceFromEnv());
+    private NKylinUserManager getKylinUserManager() {
+        return NKylinUserManager.getInstance(KylinConfig.getInstanceFromEnv());
     }
 }

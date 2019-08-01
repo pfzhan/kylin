@@ -250,7 +250,9 @@ then
     else
         quit "Kylin is not running"
     fi
-
+elif [ "$1" == "admin-password-reset" ]
+then
+    runTool io.kyligence.kap.tool.security.KapPasswordResetCLI
 else
     quit "Usage: 'kylin.sh [-v] start' or 'kylin.sh [-v] stop'"
 fi

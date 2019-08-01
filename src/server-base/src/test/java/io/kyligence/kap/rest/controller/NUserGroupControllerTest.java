@@ -47,7 +47,6 @@ import java.util.List;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.exception.BadRequestException;
-import org.apache.kylin.rest.security.ManagedUser;
 import org.apache.kylin.rest.service.UserService;
 import org.junit.After;
 import org.junit.Before;
@@ -70,6 +69,7 @@ import org.springframework.web.accept.ContentNegotiationManager;
 
 import com.google.common.collect.Lists;
 
+import io.kyligence.kap.metadata.user.ManagedUser;
 import io.kyligence.kap.rest.request.UpdateGroupRequest;
 import io.kyligence.kap.rest.service.NUserGroupService;
 import lombok.val;

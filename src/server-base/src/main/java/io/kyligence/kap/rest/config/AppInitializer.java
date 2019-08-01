@@ -34,8 +34,6 @@ import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.persistence.StringEntity;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.rest.constant.Constant;
-import org.apache.kylin.rest.security.KylinUserManager;
-import org.apache.kylin.rest.security.ManagedUser;
 import org.apache.kylin.rest.service.LicenseInfoService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.context.event.ApplicationPreparedEvent;
@@ -58,6 +56,8 @@ import io.kyligence.kap.common.persistence.transaction.EventListenerRegistry;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.common.scheduler.SchedulerEventBusFactory;
 import io.kyligence.kap.metadata.project.NProjectManager;
+import io.kyligence.kap.metadata.user.ManagedUser;
+import io.kyligence.kap.metadata.user.NKylinUserManager;
 import io.kyligence.kap.rest.config.initialize.AppInitializedEvent;
 import io.kyligence.kap.rest.config.initialize.BootstrapCommand;
 import io.kyligence.kap.rest.config.initialize.FavoriteQueryUpdateListener;
@@ -158,7 +158,7 @@ public class AppInitializer {
             return list.size();
         });
 
-        final KylinUserManager userManager = KylinUserManager.getInstance(config);
+        final NKylinUserManager userManager = NKylinUserManager.getInstance(config);
         NMetricsGroup.newGauge(NMetricsName.USER_GAUGE, NMetricsCategory.GLOBAL, GLOBAL, () -> {
             List<ManagedUser> list = userManager.list();
             if (list == null) {

@@ -56,7 +56,6 @@ import org.apache.kylin.rest.exception.BadRequestException;
 import org.apache.kylin.rest.msg.Message;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.response.ResponseCode;
-import org.apache.kylin.rest.security.ManagedUser;
 import org.apache.kylin.rest.service.AccessService;
 import org.apache.kylin.rest.service.LicenseInfoService;
 import org.apache.kylin.rest.service.UserService;
@@ -88,6 +87,7 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.accept.ContentNegotiationManager;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.metadata.user.ManagedUser;
 import io.kyligence.kap.rest.request.PasswordChangeRequest;
 import io.kyligence.kap.rest.rules.ClearKEPropertiesRule;
 import lombok.val;

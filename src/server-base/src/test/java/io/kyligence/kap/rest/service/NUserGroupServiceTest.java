@@ -31,7 +31,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.kylin.rest.security.ManagedUser;
 import org.apache.kylin.rest.service.IUserGroupService;
 import org.apache.kylin.rest.service.ServiceTestBase;
 import org.apache.kylin.rest.service.UserService;
@@ -42,6 +41,8 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 
 import com.google.common.collect.Lists;
+
+import io.kyligence.kap.metadata.user.ManagedUser;
 
 public class NUserGroupServiceTest extends ServiceTestBase {
 

@@ -24,7 +24,6 @@
 package io.kyligence.kap.rest.security;
 
 import org.apache.kylin.rest.constant.Constant;
-import org.apache.kylin.rest.security.ManagedUser;
 import org.apache.kylin.rest.service.KylinUserService;
 import org.apache.kylin.rest.service.ServiceTestBase;
 import org.apache.kylin.rest.service.UserService;
@@ -41,11 +40,12 @@ import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.authentication.LockedException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
+
+import io.kyligence.kap.metadata.user.ManagedUser;
 
 public class LimitLoginAuthenticationProviderTest extends ServiceTestBase {
 

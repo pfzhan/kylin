@@ -42,7 +42,7 @@
 
 package org.apache.kylin.rest.service;
 
-import org.apache.kylin.rest.security.ManagedUser;
+import io.kyligence.kap.metadata.user.ManagedUser;
 
 import java.io.IOException;
 import java.util.List;

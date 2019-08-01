@@ -40,9 +40,7 @@
  * limitations under the License.
 */
 
-package org.apache.kylin.rest.security;
-
-import static org.apache.kylin.rest.constant.Constant.GROUP_ALL_USERS;
+package io.kyligence.kap.metadata.user;
 
 import java.io.IOException;
 import java.util.Collection;
@@ -50,9 +48,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.UUID;
 
-import lombok.Getter;
-import lombok.Setter;
 import org.apache.kylin.common.persistence.RootPersistentEntity;
+import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.service.UserGrantedAuthority;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -71,6 +68,9 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
+
+import lombok.Getter;
+import lombok.Setter;
 
 @SuppressWarnings("serial")
 @JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.NONE, getterVisibility = JsonAutoDetect.Visibility.NONE, isGetterVisibility = JsonAutoDetect.Visibility.NONE, setterVisibility = JsonAutoDetect.Visibility.NONE)
@@ -102,7 +102,7 @@ public class ManagedUser extends RootPersistentEntity implements UserDetails {
     //DISABLED_ROLE is a ancient way to represent disabled user
     //now we no longer support such way, however legacy metadata may still contain it
     private static final String DISABLED_ROLE = "--disabled--";
-    private static final SimpleGrantedAuthority DEFAULT_GROUP = new SimpleGrantedAuthority(GROUP_ALL_USERS);
+    private static final SimpleGrantedAuthority DEFAULT_GROUP = new SimpleGrantedAuthority(Constant.GROUP_ALL_USERS);
     private static final int CHECK_TIME = 900000; //15 minutes
 
     public ManagedUser() {

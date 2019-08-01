@@ -46,7 +46,6 @@ import java.util.Arrays;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.rest.constant.Constant;
-import org.apache.kylin.rest.security.ManagedUser;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -65,9 +64,10 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.test.context.web.WebAppConfiguration;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
-import org.springframework.test.context.web.WebAppConfiguration;
+import io.kyligence.kap.metadata.user.ManagedUser;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(classes = ServiceTestBase.SpringConfig.class)

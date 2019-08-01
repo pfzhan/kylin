@@ -365,7 +365,12 @@ public class MetadataTool extends ExecutableApplication {
         }
 
         log.info("restore successfully");
+        backup(kylinConfig, compressed);
 
+
+    }
+
+    public static void backup(KylinConfig kylinConfig, boolean compressed) throws IOException {
         HDFSMetadataTool.cleanBeforeBackup(kylinConfig);
         String[] args = compressed
                 ? new String[] { "-backup", "-compress", "-dir", HadoopUtil.getBackupFolder(kylinConfig) }

@@ -36,8 +36,6 @@ import java.util.stream.Collectors;
 import org.apache.kylin.common.util.DateFormat;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.rest.constant.Constant;
-import org.apache.kylin.rest.security.KylinUserManager;
-import org.apache.kylin.rest.security.ManagedUser;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -68,6 +66,8 @@ import io.kyligence.kap.metadata.query.AccelerateRatio;
 import io.kyligence.kap.metadata.query.AccelerateRatioManager;
 import io.kyligence.kap.metadata.query.QueryHistory;
 import io.kyligence.kap.metadata.query.QueryHistoryDAO;
+import io.kyligence.kap.metadata.user.ManagedUser;
+import io.kyligence.kap.metadata.user.NKylinUserManager;
 import io.kyligence.kap.rest.service.task.QueryHistoryAccessor;
 import io.kyligence.kap.rest.service.task.UpdateUsageStatisticsRunner;
 import lombok.val;
@@ -368,7 +368,7 @@ public class NFavoriteSchedulerTest extends NLocalFileMetadataTestCase {
         queryHistory.setDuration(0);
         Assert.assertFalse(favoriteScheduler.matchRuleBySingleRecord(queryHistory));
 
-        KylinUserManager userManager = KylinUserManager.getInstance(getTestConfig());
+        NKylinUserManager userManager = NKylinUserManager.getInstance(getTestConfig());
         userManager.update(new ManagedUser("ADMIN", "KYLIN", false, Arrays.asList(//
                 new SimpleGrantedAuthority(Constant.ROLE_ADMIN), new SimpleGrantedAuthority(Constant.ROLE_ANALYST),
                 new SimpleGrantedAuthority(Constant.ROLE_MODELER))));

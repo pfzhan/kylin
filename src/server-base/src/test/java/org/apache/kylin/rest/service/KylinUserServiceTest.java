@@ -44,8 +44,6 @@ package org.apache.kylin.rest.service;
 import java.util.Arrays;
 
 import org.apache.kylin.rest.constant.Constant;
-import org.apache.kylin.rest.security.KylinUserManager;
-import org.apache.kylin.rest.security.ManagedUser;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -54,6 +52,8 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.metadata.user.ManagedUser;
+import io.kyligence.kap.metadata.user.NKylinUserManager;
 import lombok.extern.slf4j.Slf4j;
 
 
@@ -66,7 +66,7 @@ public class KylinUserServiceTest extends NLocalFileMetadataTestCase {
     public void setup() {
         createTestMetadata();
         kylinUserService = Mockito.spy(new KylinUserService());
-        KylinUserManager userManager = KylinUserManager.getInstance(getTestConfig());
+        NKylinUserManager userManager = NKylinUserManager.getInstance(getTestConfig());
         userManager.update(new ManagedUser("ADMIN", "KYLIN", false, Arrays.asList(//
                 new SimpleGrantedAuthority(Constant.ROLE_ADMIN), new SimpleGrantedAuthority(Constant.ROLE_ANALYST),
                 new SimpleGrantedAuthority(Constant.ROLE_MODELER))));

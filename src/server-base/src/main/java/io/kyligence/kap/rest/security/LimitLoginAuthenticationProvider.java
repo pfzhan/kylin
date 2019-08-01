@@ -31,7 +31,6 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.rest.msg.MsgPicker;
-import org.apache.kylin.rest.security.ManagedUser;
 import org.apache.kylin.rest.service.UserService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -49,6 +48,8 @@ import com.google.common.base.Preconditions;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.RemovalListener;
 import com.google.common.cache.RemovalNotification;
+
+import io.kyligence.kap.metadata.user.ManagedUser;
 
 public class LimitLoginAuthenticationProvider extends DaoAuthenticationProvider {
 

@@ -40,7 +40,7 @@
  * limitations under the License.
  */
 
-package org.apache.kylin.rest.security;
+package io.kyligence.kap.metadata.user;
 
 import static org.apache.kylin.common.persistence.ResourceStore.USER_ROOT;
 
@@ -50,27 +50,28 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import com.google.common.collect.Sets;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.metadata.cachesync.CachedCrudAssist;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 
-public class KylinUserManager {
+import com.google.common.collect.Sets;
 
-    private static final Logger logger = LoggerFactory.getLogger(KylinUserManager.class);
+import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 
-    public static KylinUserManager getInstance(KylinConfig config) {
-        return config.getManager(KylinUserManager.class);
+public class NKylinUserManager {
+
+    private static final Logger logger = LoggerFactory.getLogger(NKylinUserManager.class);
+
+    public static NKylinUserManager getInstance(KylinConfig config) {
+        return config.getManager(NKylinUserManager.class);
     }
 
     // called by reflection
-    static KylinUserManager newInstance(KylinConfig config) throws IOException {
-        return new KylinUserManager(config);
+    static NKylinUserManager newInstance(KylinConfig config) throws IOException {
+        return new NKylinUserManager(config);
     }
 
     // ============================================================================
@@ -79,9 +80,9 @@ public class KylinUserManager {
     // user ==> ManagedUser
     private CachedCrudAssist<ManagedUser> crud;
 
-    public KylinUserManager(KylinConfig config) {
+    public NKylinUserManager(KylinConfig config) {
         if (!UnitOfWork.isAlreadyInTransaction())
-            logger.info("Initializing KylinUserManager with KylinConfig Id: {}", System.identityHashCode(config));
+            logger.info("Initializing NKylinUserManager with KylinConfig Id: {}", System.identityHashCode(config));
         this.config = config;
         this.crud = new CachedCrudAssist<ManagedUser>(getStore(), USER_ROOT, "", ManagedUser.class) {
             @Override

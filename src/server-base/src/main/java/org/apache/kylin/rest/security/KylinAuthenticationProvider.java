@@ -45,6 +45,7 @@ package org.apache.kylin.rest.security;
 import java.util.Arrays;
 import java.util.concurrent.TimeUnit;
 
+import io.kyligence.kap.metadata.user.ManagedUser;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.rest.service.UserService;
 import org.slf4j.Logger;
