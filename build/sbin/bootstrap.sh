@@ -165,17 +165,10 @@ function killChildProcess {
     fi
 }
 
-# start command
-if [[ "$1" == io.kyligence.* ]]
-then
-    runTool "$@"
-elif [ "$1" == "start" ]
-then
-    if [ -f "${KYLIN_HOME}/pid" ]
-    then
+function startKE(){
+    if [ -f "${KYLIN_HOME}/pid" ]; then
         PID=`cat ${KYLIN_HOME}/pid`
-    if ps -p $PID > /dev/null
-        then
+        if ps -p $PID > /dev/null; then
           quit "Kylin is running, stop it first, PID is $PID"
         fi
     fi
@@ -209,28 +202,21 @@ then
     echo $CUR_DATE" new KE process pid is "$PID >> ${KYLIN_HOME}/logs/kylin.log
 
     echo "Kylin is starting, PID:`cat ${KYLIN_HOME}/pid`. Please checkout http://`hostname`:$port/kylin/index.html"
+}
 
-# stop command
-elif [ "$1" == "stop" ]
-then
-
-    if [ -f "${KYLIN_HOME}/pid" ]
-    then
+function stopKE(){
+    if [ -f "${KYLIN_HOME}/pid" ]; then
         PID=`cat ${KYLIN_HOME}/pid`
-        if ps -p $PID > /dev/null
-        then
+        if ps -p $PID > /dev/null; then
 
            checkIfStopUserSameAsStartUser $PID
 
            echo "Stopping Kylin: $PID"
            kill $PID
-           for i in {1..10}
-           do
+           for i in {1..10}; do
               sleep 3
-              if ps -p $PID -f | grep kylin > /dev/null
-              then
-                 if [ "$i" == "10" ]
-                 then
+              if ps -p $PID -f | grep kylin > /dev/null; then
+                 if [ "$i" == "10" ]; then
                     echo "Killing Kylin: $PID"
                     kill -9 $PID
                  fi
@@ -242,17 +228,44 @@ then
 
            killChildProcess
 
-           exit 0
+           return 0
         else
-           quit "Kylin is not running"
+           return 1
         fi
 
     else
-        quit "Kylin is not running"
+        return 1
     fi
-elif [ "$1" == "admin-password-reset" ]
-then
+}
+
+
+if [[ "$1" == io.kyligence.* ]]; then
+    runTool "$@"
+# start command
+elif [ "$1" == "start" ]; then
+    echo "Starting Kyligence Enterprise..."
+    startKE
+# stop command
+elif [ "$1" == "stop" ]; then
+    echo "Stopping Kylingence Enterprise..."
+    stopKE
+    if [[ $? == 0 ]]; then
+        exit 0
+    else
+        quit "Kylingence Enterprise is not running"
+    fi
+# restart command
+elif [ "$1" == "restart" ]; then
+    echo "Restarting Kyligence Enterprise..."
+    echo "--> Stopping Kylingence Enterprise first if it's running..."
+    stopKE
+    if [[ $? != 0 ]]; then
+        echo "    Kylingence Enterprise is not running, now start it"
+    fi
+    echo "--> Starting Kyligence Enterprise..."
+    startKE
+elif [ "$1" == "admin-password-reset" ]; then
     runTool io.kyligence.kap.tool.security.KapPasswordResetCLI
 else
-    quit "Usage: 'kylin.sh [-v] start' or 'kylin.sh [-v] stop'"
+    quit "Usage: 'kylin.sh [-v] start' or 'kylin.sh [-v] stop' or 'kylin.sh [-v] restart'"
 fi
