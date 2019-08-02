@@ -70,7 +70,7 @@ public class NMetricsInfluxdbReporter implements NMetricsReporter {
             if (initialized.get() && !running.get()) {
                 underlying.start(pollingPeriodInSeconds, TimeUnit.SECONDS);
                 running.set(true);
-                logger.info("kap.metrics influxdb reporter started");
+                logger.info("ke.metrics influxdb reporter started");
             }
         }
     }
@@ -90,6 +90,6 @@ public class NMetricsInfluxdbReporter implements NMetricsReporter {
 
     @Override
     public String getMBeanName() {
-        return "kap.metrics:type=NMetricsInfluxdbReporter";
+        return "ke.metrics:type=NMetricsInfluxdbReporter";
     }
 }

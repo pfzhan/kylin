@@ -128,9 +128,9 @@ public class InfluxdbReporter extends ScheduledReporter {
             NMetricsGroup.counterInc(NMetricsName.SUMMARY_DURATION, NMetricsCategory.GLOBAL, "global",
                     System.currentTimeMillis() - startAt);
 
-            logger.debug("kap.metrics report data: {} points", points.size());
+            logger.debug("ke.metrics report data: {} points", points.size());
         } catch (Exception e) {
-            logger.warn("kap.metrics report data failed", e);
+            logger.warn("ke.metrics report data failed", e);
         }
     }
 

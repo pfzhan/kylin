@@ -115,9 +115,9 @@ public class NMetricsController {
 
                     reporterStarted.set(true);
 
-                    logger.info("kap.metrics reporters started");
+                    logger.info("ke.metrics reporters started");
                 } catch (Exception e) {
-                    logger.error("kap.metrics reporters start failed", e);
+                    logger.error("ke.metrics reporters start failed", e);
                 }
             }
         }

@@ -102,7 +102,7 @@ public class NMetricsGroup {
                 return true;
             }
         } catch (Exception e) {
-            logger.error("kap.metrics counterInc", e);
+            logger.error("ke.metrics counterInc", e);
         }
         return false;
     }
@@ -116,7 +116,7 @@ public class NMetricsGroup {
                 return true;
             }
         } catch (Exception e) {
-            logger.error("kap.metrics counterInc", e);
+            logger.error("ke.metrics counterInc", e);
         }
         return false;
     }
@@ -134,7 +134,7 @@ public class NMetricsGroup {
                 return true;
             }
         } catch (Exception e) {
-            logger.error("kap.metrics histogramUpdate", e);
+            logger.error("ke.metrics histogramUpdate", e);
         }
         return false;
     }
@@ -152,7 +152,7 @@ public class NMetricsGroup {
                 return true;
             }
         } catch (Exception e) {
-            logger.error("kap.metrics meterMark", e);
+            logger.error("ke.metrics meterMark", e);
         }
         return false;
     }
@@ -190,7 +190,7 @@ public class NMetricsGroup {
             }
             return true;
         } catch (Exception e) {
-            logger.error("kap.metrics removeProjectMetrics, projectName: {}", projectName, e);
+            logger.error("ke.metrics removeProjectMetrics, projectName: {}", projectName, e);
         }
         return false;
     }
@@ -244,7 +244,7 @@ public class NMetricsGroup {
 
             return true;
         } catch (Exception e) {
-            logger.error("kap.metrics registerProjectMetrics, projectName: {}", projectName, e);
+            logger.error("ke.metrics registerProjectMetrics, projectName: {}", projectName, e);
         }
         return false;
     }
@@ -254,7 +254,7 @@ public class NMetricsGroup {
         try {
             return registerGaugeIfAbsent(name, category, entity, tags, metric);
         } catch (Exception e) {
-            logger.error("kap.metrics newGauge", e);
+            logger.error("ke.metrics newGauge", e);
         }
         return false;
     }
@@ -267,7 +267,7 @@ public class NMetricsGroup {
                 return true;
             }
         } catch (Exception e) {
-            logger.error("kap.metrics newCounter", e);
+            logger.error("ke.metrics newCounter", e);
         }
         return false;
     }
@@ -280,7 +280,7 @@ public class NMetricsGroup {
                 return true;
             }
         } catch (Exception e) {
-            logger.error("kap.metrics newHistogram", e);
+            logger.error("ke.metrics newHistogram", e);
         }
         return false;
     }
@@ -293,7 +293,7 @@ public class NMetricsGroup {
                 return true;
             }
         } catch (Exception e) {
-            logger.error("kap.metrics newMeter", e);
+            logger.error("ke.metrics newMeter", e);
         }
         return false;
     }
@@ -330,7 +330,7 @@ public class NMetricsGroup {
                 if (!gauges.contains(metricName)) {
                     NMetricsController.getDefaultMetricRegistry().register(metricName, metric);
                     gauges.add(metricName);
-                    logger.info("kap.metrics register gauge: {}", metricName);
+                    logger.info("ke.metrics register gauge: {}", metricName);
                     return true;
                 }
             }
@@ -350,10 +350,10 @@ public class NMetricsGroup {
                     final long restoreVal = tryRestoreCounter(name, category, entity, tags);
                     if (restoreVal > 0) {
                         metric.inc(restoreVal);
-                        logger.info("kap.metrics counter=[{}] restore with value: {}", metricName, restoreVal);
+                        logger.info("ke.metrics counter=[{}] restore with value: {}", metricName, restoreVal);
                     }
                     counters.put(metricName, metric);
-                    logger.info("kap.metrics register counter: {}", metricName);
+                    logger.info("ke.metrics register counter: {}", metricName);
                 }
             }
         }
@@ -398,7 +398,7 @@ public class NMetricsGroup {
             final QueryResult result = defaultInfluxDb
                     .query(new Query(querySql, config.getMetricsDbNameWithMetadataUrlPrefix()));
             if (CollectionUtils.isEmpty(result.getResults().get(0).getSeries())) {
-                logger.info("kap.metrics tryRestoreCounter, got empty series, sql=[{}]", querySql);
+                logger.info("ke.metrics tryRestoreCounter, got empty series, sql=[{}]", querySql);
                 return 0;
             }
             QueryResult.Series series = result.getResults().get(0).getSeries().get(0);
@@ -406,10 +406,10 @@ public class NMetricsGroup {
                     ? String.valueOf(series.getValues().get(0).get(1))
                     : String.valueOf(series.getValues().get(0).get(0));
 
-            logger.debug("kap.metrics tryRestoreCounter, sql=[{}], result=[{}]", querySql, valStr);
+            logger.debug("ke.metrics tryRestoreCounter, sql=[{}], result=[{}]", querySql, valStr);
             return NumberFormat.getInstance().parse(valStr).longValue();
         } catch (Exception e) {
-            logger.error("kap.metrics tryRestoreCounter error", e);
+            logger.error("ke.metrics tryRestoreCounter error", e);
         }
         return 0;
     }
@@ -421,7 +421,7 @@ public class NMetricsGroup {
                 if (!meters.containsKey(metricName)) {
                     final Meter metric = NMetricsController.getDefaultMetricRegistry().meter(metricName);
                     meters.put(metricName, metric);
-                    logger.info("kap.metrics register meter: {}", metricName);
+                    logger.info("ke.metrics register meter: {}", metricName);
                 }
             }
         }
@@ -436,7 +436,7 @@ public class NMetricsGroup {
                 if (!histograms.containsKey(metricName)) {
                     final Histogram metric = NMetricsController.getDefaultMetricRegistry().histogram(metricName);
                     histograms.put(metricName, metric);
-                    logger.info("kap.metrics register histogram: {}", metricName);
+                    logger.info("ke.metrics register histogram: {}", metricName);
                 }
             }
         }
@@ -453,10 +453,10 @@ public class NMetricsGroup {
                 if (projectTag.equals(arr[1]) || arr[1].startsWith(projectTag + ",")) {
                     registry.remove(metricName);
                     it.remove();
-                    logger.info("kap.metrics remove metric: {}", metricName);
+                    logger.info("ke.metrics remove metric: {}", metricName);
                 }
             } catch (Exception e) {
-                logger.error("kap.metrics remove metric: {}", metricName, e);
+                logger.error("ke.metrics remove metric: {}", metricName, e);
             }
         }
     }
