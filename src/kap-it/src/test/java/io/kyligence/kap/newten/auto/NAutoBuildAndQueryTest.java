@@ -73,6 +73,7 @@ public class NAutoBuildAndQueryTest extends NAutoTestBase {
                 new TestScenario(CompareLevel.SAME, "query/sql_distinct_dim"), //
                 new TestScenario(CompareLevel.SAME, "query/sql_extended_column"), //
                 new TestScenario(CompareLevel.SAME, "query/sql_function"), //
+                new TestScenario(CompareLevel.SAME, "query/sql_function/sql_function_nullHandling"),
                 new TestScenario(CompareLevel.SAME, "query/sql_grouping"), //
                 new TestScenario(CompareLevel.SAME, "query/sql_hive"), //
                 new TestScenario(CompareLevel.SAME, "query/sql_join"), //

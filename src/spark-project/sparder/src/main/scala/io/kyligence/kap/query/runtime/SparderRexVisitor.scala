@@ -36,7 +36,7 @@ import org.apache.calcite.sql.`type`.{BasicSqlType, IntervalSqlType, SqlTypeFami
 import org.apache.calcite.sql.fun.SqlDatetimeSubtractionOperator
 import org.apache.kylin.common.util.DateFormat
 import org.apache.spark.sql.KapFunctions._
-import org.apache.spark.sql.catalyst.expressions.StringLocate
+import org.apache.spark.sql.catalyst.expressions.{IfNull, StringLocate}
 import org.apache.spark.sql.catalyst.util.DateTimeUtils
 import org.apache.spark.sql.functions._
 import org.apache.spark.sql.types.{DateType, LongType, TimestampType}
@@ -369,7 +369,11 @@ class SparderRexVisitor(val dfs: Array[DataFrame],
             kap_truncate(k_lit(children.head), children.apply(1).asInstanceOf[Int])
           case "cot" =>
             k_lit(1).divide(tan(k_lit(children.head)))
-
+          //null handling funcs
+          case "isnull" =>
+            isnull(k_lit(children.head))
+          case "ifnull" =>
+            new Column(new IfNull(k_lit(children.head).expr, k_lit(children.apply(1)).expr))
           //string_funcs
           case "lower"            => lower(k_lit(children.head))
           case "upper"            => upper(k_lit(children.head))
