@@ -1,0 +1,4 @@
+--https://github.com/Kyligence/KAP/issues/13616
+
+SELECT "LSTG_FORMAT_NAME" FROM "TEST_KYLIN_FACT"
+WHERE REGEXP_LIKE(substr("LSTG_FORMAT_NAME",1), 'ABIN')

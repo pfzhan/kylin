@@ -1203,6 +1203,7 @@ abstract public class KylinConfigBase implements Serializable {
 
     public Map<String, String> getUDFs() {
         Map<String, String> udfMap = Maps.newLinkedHashMap();
+        udfMap.put("regexp_like", "org.apache.kylin.query.udf.other.RegexpLikeUDF");
         udfMap.put("version", "org.apache.kylin.query.udf.VersionUDF");
         udfMap.put("concat", "org.apache.kylin.query.udf.stringUdf.ConcatUDF");
         udfMap.put("massin", "org.apache.kylin.query.udf.MassInUDF");
