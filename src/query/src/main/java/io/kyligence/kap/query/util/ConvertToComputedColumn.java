@@ -56,6 +56,7 @@ import java.util.List;
 
 import javax.annotation.Nullable;
 
+import org.apache.calcite.sql.SqlAsOperator;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlDataTypeSpec;
 import org.apache.calcite.sql.SqlDynamicParam;
@@ -66,6 +67,7 @@ import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.parser.SqlParseException;
+import org.apache.calcite.sql.util.SqlBasicVisitor;
 import org.apache.calcite.sql.util.SqlVisitor;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
@@ -187,12 +189,17 @@ public class ConvertToComputedColumn implements QueryUtil.IQueryTransformer, IKe
                 Pair<String, Integer> ret = replaceComputedColumn(sql, selectOrOrderby, computedColumns, info,
                         replaceCcName);
 
-                if (ret.getSecond() == 0 && !replaceCcName)
-                    continue;
-
-                if ((choiceForCurrentSubquery == null) || (ret.getSecond() > choiceForCurrentSubquery.getSecond())) {
+                if (replaceCcName && !sql.equals(ret.getFirst())) {
                     choiceForCurrentSubquery = ret;
-                    recursionCompleted = false;
+                } else {
+                    if (ret.getSecond() == 0)
+                        continue;
+
+                    if ((choiceForCurrentSubquery == null)
+                            || (ret.getSecond() > choiceForCurrentSubquery.getSecond())) {
+                        choiceForCurrentSubquery = ret;
+                        recursionCompleted = false;
+                    }
                 }
             }
 
@@ -409,6 +416,11 @@ public class ConvertToComputedColumn implements QueryUtil.IQueryTransformer, IKe
         @Override
         public SqlNode visit(SqlCall call) {
             sqlNodes.add(call);
+            if (call.getOperator() instanceof SqlAsOperator) {
+                call.getOperator().acceptCall(this, call, true, SqlBasicVisitor.ArgHandlerImpl.<SqlNode> instance());
+                return null;
+            }
+
             for (SqlNode operand : call.getOperandList()) {
                 if (operand != null) {
                     operand.accept(this);
