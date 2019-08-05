@@ -53,9 +53,7 @@ class CalciteToSparkPlaner(dataContext: DataContext) extends RelVisitor with Log
     if (node.isInstanceOf[KapUnionRel]) {
       unionStack.push(stack.size())
     }
-    if (!node.isInstanceOf[KapJoinRel]) {
-      node.childrenAccept(this)
-    } else if (node.asInstanceOf[KapJoinRel].isRuntimeJoin) {
+    if (!node.isInstanceOf[KapJoinRel] || node.asInstanceOf[KapJoinRel].isRuntimeJoin || node.isInstanceOf[KapNonEquiJoinRel]) {
       node.childrenAccept(this)
     }
     stack.push(node match {
@@ -90,6 +88,10 @@ class CalciteToSparkPlaner(dataContext: DataContext) extends RelVisitor with Log
           val left = stack.pop()
           logTime("join") { plan.JoinPlan.join(Lists.newArrayList(left, right), rel) }
         }
+      case rel: KapNonEquiJoinRel =>
+        val right = stack.pop()
+        val left = stack.pop()
+        logTime("non-equi join") { plan.JoinPlan.nonEquiJoin(Lists.newArrayList(left, right), rel, dataContext) }
       case rel: KapUnionRel =>
         val size = unionStack.pop()
         val java = Range(0, stack.size() - size).map(a => stack.pop()).asJava

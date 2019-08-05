@@ -50,15 +50,19 @@ import scala.collection.mutable.ListBuffer
  /**
   * Convert RexNode to a nested Column
   *
-  * @param df          dataframe
+  * @param dfs         dataframes
   * @param rowType     rowtyple
   * @param dataContext context
   */
-class SparderRexVisitor(val df: DataFrame,
+class SparderRexVisitor(val dfs: Array[DataFrame],
                         val rowType: RelDataType,
                         val dataContext: DataContext)
     extends RexVisitorImpl[Any](true) {
-  val fieldNames: Array[String] = df.schema.fieldNames
+  val fieldNames: Array[String] = dfs.flatMap(df => df.schema.fieldNames)
+
+  def this(df: DataFrame,
+           rowType: RelDataType,
+           dataContext: DataContext) = this(Array(df), rowType, dataContext)
 
   // scalastyle:off
   override def visitCall(call: RexCall): Any = {

@@ -21,12 +21,33 @@
  */
 package io.kyligence.kap.query.runtime.plan
 
-import io.kyligence.kap.query.relnode.KapJoinRel
+import io.kyligence.kap.query.relnode.{KapJoinRel, KapNonEquiJoinRel}
+import io.kyligence.kap.query.runtime.SparderRexVisitor
+import org.apache.calcite.DataContext
 import org.apache.spark.sql.functions._
 import org.apache.spark.sql.{Column, DataFrame}
+
 import scala.collection.JavaConverters._
 
 object JoinPlan {
+  def nonEquiJoin(inputs: java.util.List[DataFrame],
+           rel: KapNonEquiJoinRel, dataContext: DataContext): DataFrame = {
+    val lDataFrame = inputs.get(0)
+    val rDataFrame = inputs.get(1)
+    val lSchemaNames = lDataFrame.schema.fieldNames.map("l_" + _)
+    val rSchemaNames = rDataFrame.schema.fieldNames.map("r_" + _)
+    // val schema = statefulDF.indexSchema
+    val newLDataFrame = inputs.get(0).toDF(lSchemaNames: _*)
+    val newRDataFrame = inputs.get(1).toDF(rSchemaNames: _*)
+
+    val visitor = new SparderRexVisitor(Array(newLDataFrame, newRDataFrame),
+      null,
+      dataContext)
+    val conditionExprCol = rel.getCondition.accept(visitor).asInstanceOf[Column]
+
+    newLDataFrame.join(newRDataFrame, conditionExprCol, rel.getJoinType.lowerName)
+  }
+
   def join(inputs: java.util.List[DataFrame],
            rel: KapJoinRel): DataFrame = {
 

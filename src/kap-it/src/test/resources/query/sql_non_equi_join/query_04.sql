@@ -1,0 +1,9 @@
+select cal_dt, sum(TEST_KYLIN_FACT.PRICE), count(1)
+ from TEST_KYLIN_FACT
+ left JOIN TEST_ACCOUNT
+  ON TEST_KYLIN_FACT.SELLER_ID > TEST_ACCOUNT.ACCOUNT_ID
+  and TEST_KYLIN_FACT.SELLER_ID = 10000005
+  and substring(TEST_KYLIN_FACT.LSTG_FORMAT_NAME, 1, 3) = 'the'
+ group by TEST_KYLIN_FACT.cal_dt
+ order by TEST_KYLIN_FACT.cal_dt asc
+

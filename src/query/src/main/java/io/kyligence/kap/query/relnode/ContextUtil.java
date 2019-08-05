@@ -33,6 +33,7 @@ import java.util.Set;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.AggregateCall;
+import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexInputRef;
@@ -102,7 +103,7 @@ public class ContextUtil {
         // 1. the parent node of TopRel in subContext is not NULL and is instance Of KapJoinRel.
         // 2. JoinRels in the path from currentNode to the ParentOfContextTopRel node are all of the same type (left/inner/cross)
         // 3. all aggregate is derived from the same subContext
-        return subContext.getParentOfTopNode() instanceof KapJoinRel
+        return (subContext.getParentOfTopNode() instanceof KapJoinRel || subContext.getParentOfTopNode() instanceof KapNonEquiJoinRel)
                 && areSubJoinRelsSameType(currentRel, subContext, null, null)
                 && derivedFromSameContext(new HashSet<>(), currentRel, subContext, false);
     }
@@ -135,8 +136,8 @@ public class ContextUtil {
                     .forEach(inputRef -> indexOfInputRel.add(((RexInputRef) inputRef).getIndex()));
             return derivedFromSameContext(indexOfInputRel, ((KapProjectRel) currentNode).getInput(), subContext, hasCountConstant);
 
-        } else if (currentNode instanceof KapJoinRel) {
-            return isJoinFromSameContext(indexOfInputCols, (KapJoinRel) currentNode, subContext, hasCountConstant);
+        } else if (currentNode instanceof KapJoinRel || currentNode instanceof KapNonEquiJoinRel) {
+            return isJoinFromSameContext(indexOfInputCols, (Join) currentNode, subContext, hasCountConstant);
 
         } else if (currentNode instanceof KapFilterRel) {
             RexNode condition = ((KapFilterRel) currentNode).getCondition();
@@ -170,7 +171,7 @@ public class ContextUtil {
         return inputColsIndex;
     }
 
-    private static boolean isJoinFromSameContext(Collection<Integer> indexOfInputCols, KapJoinRel joinRel,
+    private static boolean isJoinFromSameContext(Collection<Integer> indexOfInputCols, Join joinRel,
             OLAPContext subContext, boolean hasCountConstant) {
         // now support Cartesian Join if children are from different contexts
         if (indexOfInputCols.isEmpty())
@@ -213,8 +214,8 @@ public class ContextUtil {
         if (ctx != null && ctx != subContext)
             return false;
 
-        if (kapRel instanceof KapJoinRel) {
-            KapJoinRel joinRel = (KapJoinRel) kapRel;
+        if (kapRel instanceof Join) {
+            Join joinRel = (Join) kapRel;
             if (joinCondClz == null) {
                 joinCondClz = joinRel.getCondition().getClass();
             }

@@ -84,6 +84,7 @@ public class NAutoBuildAndQueryTest extends NAutoTestBase {
                 new TestScenario(CompareLevel.SAME, "query/sql_magine_inner"), //
                 new TestScenario(CompareLevel.SAME, "query/sql_magine_left"), //
                 new TestScenario(CompareLevel.SAME, "query/sql_multi_model"), //
+                new TestScenario(CompareLevel.SAME, "query/sql_non_equi_join"),
                 new TestScenario(CompareLevel.SAME, "query/sql_orderby"), //
                 new TestScenario(CompareLevel.SAME, "query/sql_probe"), //
                 new TestScenario(CompareLevel.SAME, "query/sql_powerbi"),

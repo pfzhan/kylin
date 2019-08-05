@@ -37,15 +37,12 @@ import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
 import org.apache.kylin.metadata.querymeta.SelectedColumnMeta;
 import org.apache.kylin.metadata.realization.NoRealizationFoundException;
-import org.apache.kylin.metadata.realization.RoutingIndicatorException;
 import org.apache.kylin.query.util.PushDownUtil;
 import org.apache.spark.sql.SparderEnv;
 import org.apache.spark.sql.catalyst.analysis.NoSuchTableException;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Test;
-
-import com.google.common.base.Throwables;
 
 import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
 import lombok.val;
@@ -135,7 +132,6 @@ public class NBadQueryAndPushDownTest extends NLocalWithSparkSessionTest {
         try {
             NExecAndComp.queryCubeAndSkipCompute(DEFAULT_PROJECT_NAME, sql);
         } catch (SQLException e) {
-            Assert.assertEquals(RoutingIndicatorException.class, Throwables.getRootCause(e).getClass());
             KylinConfig.getInstanceFromEnv().setProperty(PUSHDOWN_RUNNER_KEY,
                     "io.kyligence.kap.query.pushdown.PushDownRunnerSparkImpl");
             pushDownSql(DEFAULT_PROJECT_NAME, sql, 0, 0, e);
