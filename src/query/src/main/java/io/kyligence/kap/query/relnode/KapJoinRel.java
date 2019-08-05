@@ -50,6 +50,7 @@ import org.apache.kylin.query.relnode.ColumnRowType;
 import org.apache.kylin.query.relnode.OLAPContext;
 import org.apache.kylin.query.relnode.OLAPJoinRel;
 import org.apache.kylin.query.relnode.OLAPRel;
+import org.apache.kylin.query.relnode.OLAPTableScan;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
@@ -284,7 +285,7 @@ public class KapJoinRel extends OLAPJoinRel implements KapRel {
                 fieldInfo.addAll(newFieldList);
                 this.rowType = getCluster().getTypeFactory().createStructType(fieldInfo);
                 // rebuild columns
-                this.columnRowType = this.rebuildColumnRowType(newFieldList);
+                this.columnRowType = this.rebuildColumnRowType(newFieldList, context);
             }
 
         }
@@ -333,7 +334,7 @@ public class KapJoinRel extends OLAPJoinRel implements KapRel {
         this.subContexts = contexts;
     }
 
-    private ColumnRowType rebuildColumnRowType(List<RelDataTypeField> missingFields) {
+    private ColumnRowType rebuildColumnRowType(List<RelDataTypeField> missingFields, OLAPContext context) {
         List<TblColRef> columns = Lists.newArrayList();
         OLAPRel olapLeft = (OLAPRel) this.left;
         OLAPRel olapRight = (OLAPRel) this.right;
@@ -342,7 +343,16 @@ public class KapJoinRel extends OLAPJoinRel implements KapRel {
 
         for (RelDataTypeField dataTypeField : missingFields) {
             String fieldName = dataTypeField.getName();
-            TblColRef aggOutCol = TblColRef.newInnerColumn(fieldName, TblColRef.InnerDataTypeEnum.LITERAL);
+            TblColRef aggOutCol = null;
+            for (OLAPTableScan tableScan : context.allTableScans) {
+                aggOutCol = tableScan.getColumnRowType().getColumnByName(fieldName);
+                if (aggOutCol != null) {
+                    break;
+                }
+            }
+            if (aggOutCol == null) {
+                aggOutCol = TblColRef.newInnerColumn(fieldName, TblColRef.InnerDataTypeEnum.LITERAL);
+            }
             aggOutCol.getColumnDesc().setId("" + dataTypeField.getIndex());
             columns.add(aggOutCol);
         }

@@ -71,7 +71,7 @@ public class KapJoinRule extends ConverterRule implements IKeep {
 
         RelTraitSet traitSet = join.getTraitSet().replace(KapRel.CONVENTION);
         left = convert(left, left.getTraitSet().replace(KapRel.CONVENTION));
-        right = convert(right, left.getTraitSet().replace(KapRel.CONVENTION));
+        right = convert(right, right.getTraitSet().replace(KapRel.CONVENTION));
 
         final JoinInfo info = JoinInfo.of(left, right, join.getCondition());
 
