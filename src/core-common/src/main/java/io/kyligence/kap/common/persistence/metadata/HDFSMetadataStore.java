@@ -262,10 +262,13 @@ public class HDFSMetadataStore extends MetadataStore {
     private Map<String, RawResource> getFilesFromCompressedFile() {
         val res = Maps.<String, RawResource> newHashMap();
         val compressedFile = getRealHDFSPath(COMPRESSED_FILE);
-        try (FSDataInputStream in = fs.open(compressedFile); ZipInputStream zipIn = new ZipInputStream(in);) {
+        try {
             if (!fs.exists(compressedFile) || !fs.isFile(compressedFile)) {
                 return Maps.newHashMap();
             }
+        } catch (IOException ignored) {
+        }
+        try (FSDataInputStream in = fs.open(compressedFile); ZipInputStream zipIn = new ZipInputStream(in);) {
             ZipEntry zipEntry = null;
             while ((zipEntry = zipIn.getNextEntry()) != null) {
                 if (!zipEntry.getName().startsWith("/")) {
