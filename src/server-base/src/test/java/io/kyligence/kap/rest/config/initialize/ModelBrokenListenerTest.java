@@ -130,7 +130,7 @@ public class ModelBrokenListenerTest extends CSVSourceTestCase {
         val modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
         System.setProperty("kylin.metadata.broken-model-deleted-on-smart-mode", "true");
 
-        tableService.unloadTable(project, "DEFAULT.TEST_KYLIN_FACT");
+        tableService.unloadTable(project, "DEFAULT.TEST_KYLIN_FACT", false);
 
         await().atMost(60000, TimeUnit.MILLISECONDS).untilAsserted(() -> {
             Assert.assertNull(modelManager.getDataModelDesc(modelId));
@@ -147,7 +147,7 @@ public class ModelBrokenListenerTest extends CSVSourceTestCase {
         val project = "default";
         val modelId = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
         generateEvents(project, modelId);
-        tableService.unloadTable(project, "DEFAULT.TEST_KYLIN_FACT");
+        tableService.unloadTable(project, "DEFAULT.TEST_KYLIN_FACT", false);
 
         await().atMost(60000, TimeUnit.MILLISECONDS).untilAsserted(() -> {
             Assert.assertEquals(0,
@@ -196,7 +196,7 @@ public class ModelBrokenListenerTest extends CSVSourceTestCase {
         copyForUpdate.setPartitionDesc(null);
         modelManager.updateDataModelDesc(copyForUpdate);
 
-        tableService.unloadTable(project, "DEFAULT.TEST_KYLIN_FACT");
+        tableService.unloadTable(project, "DEFAULT.TEST_KYLIN_FACT", false);
         await().atMost(60000, TimeUnit.MILLISECONDS).untilAsserted(() -> {
             Assert.assertEquals(0,
                     NDataflowManager.getInstance(getTestConfig(), project).getDataflow(modelId).getSegments().size());

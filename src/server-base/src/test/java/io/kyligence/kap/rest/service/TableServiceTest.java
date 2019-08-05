@@ -354,17 +354,27 @@ public class TableServiceTest extends CSVSourceTestCase {
                 .getInstance(KylinConfig.getInstanceFromEnv(), "default");
         Assert.assertTrue(result.length == 1);
         val size = nTableMetadataManager.listAllTables().size();
-        tableService.unloadTable("default", "DEFAULT.TEST_UNLOAD");
+        tableService.unloadTable("default", "DEFAULT.TEST_UNLOAD", false);
 
         Assert.assertEquals(null, nTableMetadataManager.getTableDesc("DEFAULT.TEST_UNLOAD"));
         Assert.assertEquals(size - 1, nTableMetadataManager.listAllTables().size());
     }
 
     @Test
+    public void testUnloadTable_RemoveModels() throws IOException {
+        val dfMgr = NDataflowManager.getInstance(getTestConfig(), "default");
+        val originSize = dfMgr.listUnderliningDataModels().size();
+        val response = tableService.preUnloadTable("default", "EDW.TEST_SITES");
+        Assert.assertTrue(response.isHasModel());
+        tableService.unloadTable("default", "EDW.TEST_SITES", true);
+        Assert.assertEquals(originSize - 4, dfMgr.listUnderliningDataModels().size());
+    }
+
+    @Test
     public void testUnloadNotExistTable() {
         thrown.expect(BadRequestException.class);
         thrown.expectMessage("Cannot find table 'DEFAULT.not_exist_table'");
-        tableService.unloadTable("default", "DEFAULT.not_exist_table");
+        tableService.unloadTable("default", "DEFAULT.not_exist_table", false);
     }
 
     @Test
@@ -388,7 +398,7 @@ public class TableServiceTest extends CSVSourceTestCase {
         Assert.assertEquals(1294450900000L, dataLoadingRange.getCoveredRange().getEnd());
 
         // unload table
-        tableService.unloadTable("default", tableName);
+        tableService.unloadTable("default", tableName, false);
         Assert.assertEquals(originSize - 1, nTableMetadataManager.listAllTables().size());
 
         // reload table

@@ -371,8 +371,14 @@ public class ModelService extends BasicService {
 
     @Transaction(project = 1)
     public void dropModel(String modelId, String project) {
+        dropModel(modelId, project, false);
+    }
+
+    void dropModel(String modelId, String project, boolean ignoreType) {
         val projectInstance = getProjectManager().getProject(project);
-        Preconditions.checkState(MaintainModelType.MANUAL_MAINTAIN.equals(projectInstance.getMaintainModelType()));
+        if (!ignoreType) {
+            Preconditions.checkState(MaintainModelType.MANUAL_MAINTAIN.equals(projectInstance.getMaintainModelType()));
+        }
 
         NDataModel dataModelDesc = getModelById(modelId, project);
 

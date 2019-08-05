@@ -557,7 +557,7 @@ public class FavoriteQueryServiceTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(FavoriteQueryStatusEnum.ACCELERATED, manager.get(sql).getStatus());
 
         // ------------ case when table not loaded --------------
-        tableService.unloadTable(PROJECT, "DEFAULT.TEST_KYLIN_FACT");
+        tableService.unloadTable(PROJECT, "DEFAULT.TEST_KYLIN_FACT", false);
         favoriteQueryService.adjustFalseAcceleratedFQ();
         manager.reloadSqlPatternMap();
         Assert.assertTrue(manager.getAcceleratedSqlPattern().isEmpty());

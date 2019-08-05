@@ -119,11 +119,23 @@ public class NTableController extends NBasicController {
             "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
     public EnvelopeResponse unloadTable(@PathVariable(value = "project") String project,
-            @PathVariable(value = "database") String database, @PathVariable(value = "table") String table) {
+            @PathVariable(value = "database") String database, @PathVariable(value = "table") String table,
+            @RequestParam(value = "cascade", defaultValue = "false") Boolean cascade) {
 
         checkProjectName(project);
-        tableService.unloadTable(project, database + "." + table);
+        tableService.unloadTable(project, database + "." + table, cascade);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, null, "");
+    }
+
+    @GetMapping(value = "{project}/{database}/{table}/prepare_unload", produces = {
+            "application/vnd.apache.kylin-v2+json" })
+    @ResponseBody
+    public EnvelopeResponse prepareUnloadTable(@PathVariable(value = "project") String project,
+            @PathVariable(value = "database") String database, @PathVariable(value = "table") String table)
+            throws IOException {
+        checkProjectName(project);
+        val response = tableService.preUnloadTable(project, database + "." + table);
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, response, "");
     }
 
     /**

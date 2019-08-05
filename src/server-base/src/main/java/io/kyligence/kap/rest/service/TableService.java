@@ -47,6 +47,7 @@ import org.apache.kylin.common.util.DateFormat;
 import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.Pair;
+import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.JoinTableDesc;
 import org.apache.kylin.metadata.model.SegmentRange;
@@ -106,6 +107,7 @@ import io.kyligence.kap.rest.response.AutoMergeConfigResponse;
 import io.kyligence.kap.rest.response.BatchLoadTableResponse;
 import io.kyligence.kap.rest.response.ExistedDataRangeResponse;
 import io.kyligence.kap.rest.response.PreReloadTableResponse;
+import io.kyligence.kap.rest.response.PreUnloadTableResponse;
 import io.kyligence.kap.rest.response.SimplifiedMeasure;
 import io.kyligence.kap.rest.response.TableDescResponse;
 import io.kyligence.kap.rest.response.TableNameResponse;
@@ -676,12 +678,19 @@ public class TableService extends BasicService {
     }
 
     @Transaction(project = 0)
-    public void unloadTable(String project, String table) {
+    public void unloadTable(String project, String table, Boolean cascade) {
         NTableMetadataManager tableMetadataManager = getTableManager(project);
         val tableDesc = tableMetadataManager.getTableDesc(table);
         if (tableDesc == null) {
             val msg = MsgPicker.getMsg();
             throw new BadRequestException(String.format(msg.getTABLE_NOT_FOUND(), table));
+        }
+
+        val dataflowManager = getDataflowManager(project);
+        if (cascade) {
+            for (NDataModel tableRelatedModel : dataflowManager.getModelsUsingTable(tableDesc)) {
+                modelService.dropModel(tableRelatedModel.getId(), project, true);
+            }
         }
 
         tableMetadataManager.removeTableExt(table);
@@ -692,6 +701,30 @@ public class TableService extends BasicService {
         if (dataLoadingRange != null) {
             dataLoadingRangeManager.removeDataLoadingRange(dataLoadingRange);
         }
+    }
+
+    @Transaction(project = 0, readonly = true)
+    public PreUnloadTableResponse preUnloadTable(String project, String tableIdentity) throws IOException {
+        val response = new PreUnloadTableResponse();
+        val dataflowManager = getDataflowManager(project);
+        val tableMetadataManager = getTableManager(project);
+        val execManager = getExecutableManager(project);
+
+        val tableDesc = tableMetadataManager.getTableDesc(tableIdentity);
+        val models = dataflowManager.getModelsUsingTable(tableDesc);
+        response.setHasModel(!models.isEmpty());
+
+        val rootTableModels = dataflowManager.getModelsUsingRootTable(tableDesc);
+        if (CollectionUtils.isNotEmpty(rootTableModels)) {
+            response.setStorageSize(getStorageSize(project, rootTableModels));
+        } else if (CollectionUtils.isNotEmpty(models)) {
+            response.setStorageSize(getSnapshotSize(project, models, tableIdentity));
+        }
+
+        response.setHasJob(
+                execManager.countByModelAndStatus(tableIdentity, state -> state == ExecutableState.RUNNING) > 0);
+
+        return response;
     }
 
     @Transaction(project = 1)

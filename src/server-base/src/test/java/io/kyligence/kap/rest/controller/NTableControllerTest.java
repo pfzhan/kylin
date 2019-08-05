@@ -450,22 +450,22 @@ public class NTableControllerTest {
     @Test
     public void testUnloadTable() throws Exception {
         Mockito.doReturn(false).when(modelService).isModelsUsingTable("DEFAULT.TABLE", "default");
-        Mockito.doNothing().when(tableService).unloadTable("default", "DEFAULT.TABLE");
+        Mockito.doNothing().when(tableService).unloadTable("default", "DEFAULT.TABLE", false);
         mockMvc.perform(
                 MockMvcRequestBuilders.delete("/api/tables/{project}/{database}/{table}", "default", "DEFAULT", "TABLE")
                         .accept(MediaType.parseMediaType(APPLICATION_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
-        Mockito.verify(nTableController).unloadTable("default", "DEFAULT", "TABLE");
+        Mockito.verify(nTableController).unloadTable("default", "DEFAULT", "TABLE", false);
     }
 
     @Test
     public void testUnloadTableException() throws Exception {
         Mockito.doReturn(true).when(modelService).isModelsUsingTable("DEFAULT.TABLE", "default");
-        Mockito.doNothing().when(tableService).unloadTable("default", "DEFAULT.TABLE");
+        Mockito.doNothing().when(tableService).unloadTable("default", "DEFAULT.TABLE", false);
         mockMvc.perform(
                 MockMvcRequestBuilders.delete("/api/tables/{project}/{database}/{table}", "default", "DEFAULT", "TABLE")
                         .accept(MediaType.parseMediaType(APPLICATION_JSON)));
-        Mockito.verify(nTableController).unloadTable("default", "DEFAULT", "TABLE");
+        Mockito.verify(nTableController).unloadTable("default", "DEFAULT", "TABLE", false);
     }
 
     @Test
