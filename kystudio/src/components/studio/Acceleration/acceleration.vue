@@ -480,7 +480,7 @@ export default class FavoriteQuery extends Vue {
   ruleSettingVisible = false
   blackListVisible = false
   isShowInput = false
-  inputHeight = 432
+  inputHeight = 424
   isEditSql = false
   blackSqlFilter = ''
   whiteSqlFilter = ''
@@ -800,7 +800,7 @@ export default class FavoriteQuery extends Vue {
 
   openBlackList () {
     this.blackListVisible = true
-    this.inputHeight = 432
+    this.inputHeight = 424
     this.blackSql = ''
     this.isEditSql = false
     this.getBlackList()
@@ -837,10 +837,10 @@ export default class FavoriteQuery extends Vue {
     this.isReadOnly = true
     if (sqlObj.capable) {
       this.isWhiteErrorMessage = false
-      this.inputHeight = 432
+      this.inputHeight = 424
     } else {
       this.isWhiteErrorMessage = true
-      this.inputHeight = 432 - 140
+      this.inputHeight = 424 - 140
       this.whiteMessages = sqlObj.sqlAdvices
     }
     let formatterSql
@@ -1049,7 +1049,7 @@ export default class FavoriteQuery extends Vue {
       this.isEditSql = false
       this.whiteMessages = []
       this.isWhiteErrorMessage = false
-      this.inputHeight = 432
+      this.inputHeight = 424
     }
   }
   selectPagerSqls (isSelectAll) {
@@ -1124,7 +1124,7 @@ export default class FavoriteQuery extends Vue {
 
   cancelEdit (isErrorMes) {
     this.isEditSql = false
-    this.inputHeight = isErrorMes ? 432 - 140 : 432
+    this.inputHeight = isErrorMes ? 424 - 140 : 424
     this.whiteSql = this.sqlFormatterObj[this.activeSqlObj.id]
     this.activeSqlObj = null
     this.isReadOnly = true
@@ -1141,7 +1141,7 @@ export default class FavoriteQuery extends Vue {
             message: this.$t('kylinLang.common.actionSuccess')
           })
           this.whiteMessages = []
-          this.inputHeight = 382
+          this.inputHeight = 424
           this.isWhiteErrorMessage = false
           this.isEditSql = false
           this.isReadOnly = true
@@ -1159,7 +1159,7 @@ export default class FavoriteQuery extends Vue {
           }
         } else {
           this.whiteMessages = data.sqlAdvices
-          this.inputHeight = 382 - 140
+          this.inputHeight = 424 - 140
           this.isWhiteErrorMessage = true
         }
       })
