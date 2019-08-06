@@ -869,6 +869,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         return job;
     }
 
+    @Ignore("#14006")
     @Test
     public void testCheckJobStopped_TaskSucceed() throws JobStoppedException {
         val currMem = NDefaultScheduler.currentAvailableMem();
