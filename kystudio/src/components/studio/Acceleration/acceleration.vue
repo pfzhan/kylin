@@ -834,6 +834,7 @@ export default class FavoriteQuery extends Vue {
   async activeSql (sqlObj) {
     this.activeSqlObj = sqlObj
     this.isEditSql = false
+    this.isReadOnly = true
     if (sqlObj.capable) {
       this.isWhiteErrorMessage = false
       this.inputHeight = 432
@@ -1148,7 +1149,6 @@ export default class FavoriteQuery extends Vue {
             if (this.whiteSqlData.data[key].id === this.activeSqlObj.id) {
               this.whiteSqlData.data[key].sql = this.whiteSql
               this.sqlFormatterObj[this.activeSqlObj.id] = this.whiteSql
-              this.whiteSqlDatasPageChange(this.whiteCurrentPage)
               if (!this.whiteSqlData.data[key].capable) {
                 this.whiteSqlData.data[key].capable = true
                 this.whiteSqlData.data[key].sqlAdvices = []
