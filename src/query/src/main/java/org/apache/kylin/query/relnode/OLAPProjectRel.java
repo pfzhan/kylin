@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -43,10 +42,7 @@
 
 package org.apache.kylin.query.relnode;
 
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -54,6 +50,7 @@ import java.util.Set;
 import org.apache.calcite.adapter.enumerable.EnumerableCalc;
 import org.apache.calcite.adapter.enumerable.EnumerableConvention;
 import org.apache.calcite.adapter.enumerable.EnumerableRel;
+import org.apache.calcite.jdbc.JavaTypeFactoryImpl;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptCost;
 import org.apache.calcite.plan.RelOptPlanner;
@@ -67,6 +64,8 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory.FieldInfoBuilder;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rel.type.RelDataTypeFieldImpl;
+import org.apache.calcite.rel.type.RelDataTypeSystem;
+import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
@@ -76,6 +75,7 @@ import org.apache.calcite.rex.RexProgram;
 import org.apache.calcite.rex.RexSqlStandardConvertletTable;
 import org.apache.calcite.rex.RexToSqlNodeConverter;
 import org.apache.calcite.rex.RexToSqlNodeConverterImpl;
+import org.apache.calcite.sql.SqlBinaryOperator;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlLiteral;
@@ -94,6 +94,7 @@ import org.apache.kylin.metadata.model.tool.CalciteParser;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 
 /**
  */
@@ -113,7 +114,6 @@ public class OLAPProjectRel extends Project implements OLAPRel {
             RelDataType rowType) {
         super(cluster, traitSet, child, exps, rowType);
         Preconditions.checkArgument(getConvention() == OLAPRel.CONVENTION);
-        //        Preconditions.checkArgument(child.getConvention() == OLAPRel.CONVENTION);
         this.rewriteProjects = exps;
         this.hasJoin = false;
         this.afterTopJoin = false;
@@ -179,8 +179,8 @@ public class OLAPProjectRel extends Project implements OLAPRel {
     }
 
     protected ColumnRowType buildColumnRowType() {
-        List<TblColRef> columns = new ArrayList<TblColRef>();
-        List<Set<TblColRef>> sourceColumns = new ArrayList<Set<TblColRef>>();
+        List<TblColRef> columns = Lists.newArrayList();
+        List<Set<TblColRef>> sourceColumns = Lists.newArrayList();
         OLAPRel olapChild = (OLAPRel) getInput();
         ColumnRowType inputColumnRowType = olapChild.getColumnRowType();
         Map<RexNode, TblColRef> nodeAndTblColMap = new HashMap<>();
@@ -188,7 +188,7 @@ public class OLAPProjectRel extends Project implements OLAPRel {
             RexNode rex = this.rewriteProjects.get(i);
             RelDataTypeField columnField = this.rowType.getFieldList().get(i);
             String fieldName = columnField.getName();
-            Set<TblColRef> sourceCollector = new HashSet<TblColRef>();
+            Set<TblColRef> sourceCollector = Sets.newHashSet();
             TblColRef column = translateRexNode(rex, inputColumnRowType, fieldName, sourceCollector, nodeAndTblColMap);
             if (column == null)
                 throw new IllegalStateException("No TblColRef found in " + rex);
@@ -265,18 +265,42 @@ public class OLAPProjectRel extends Project implements OLAPRel {
         List<RexNode> children = limitTranslateScope(call.getOperands(), operator);
         List<TblColRef> tblColRefs = Lists.newArrayList();
         for (RexNode operand : children) {
-            TblColRef colRef = translateRexNode(operand, inputColumnRowType, fieldName, sourceCollector, nodeAndTblColMap);
+            TblColRef colRef = translateRexNode(operand, inputColumnRowType, fieldName, sourceCollector,
+                    nodeAndTblColMap);
             nodeAndTblColMap.put(operand, colRef);
             tblColRefs.add(colRef);
         }
 
-        return TblColRef.newInnerColumn(fieldName, InnerDataTypeEnum.LITERAL,
-                createInnerColumn(call, nodeAndTblColMap), operator, tblColRefs);
+        return TblColRef.newInnerColumn(fieldName, InnerDataTypeEnum.LITERAL, createInnerColumn(call, nodeAndTblColMap),
+                operator, tblColRefs);
+    }
+
+    /*
+     * In RexNode trees, OR and AND have any number of children,
+     * SqlCall requires exactly 2. So, convert to a left-deep binary tree.
+     */
+    static RexNode createLeftCall(RexNode origin) {
+        RexNode newRexNode = origin;
+        if (origin instanceof RexCall) {
+            RexCall call = (RexCall) origin;
+            SqlOperator op = call.getOperator();
+            List<RexNode> operands = call.getOperands();
+            if (op instanceof SqlBinaryOperator && operands.size() > 2) {
+                RexBuilder builder = new RexBuilder(new JavaTypeFactoryImpl(RelDataTypeSystem.DEFAULT));
+                RexNode first = builder.makeCall(op, operands.get(0), operands.get(1));
+                for (int i = 2; i < operands.size(); i++) {
+                    first = builder.makeCall(op, first, operands.get(i));
+                }
+                newRexNode = first;
+            }
+        }
+        return newRexNode;
     }
 
     private String createInnerColumn(RexCall call, Map<RexNode, TblColRef> nodeAndTblColMap) {
         final RexSqlStandardConvertletTable convertletTable = new OLAPRexSqlStandardConvertletTable();
         final RexToSqlNodeConverter rexNodeToSqlConverter = new RexToSqlNodeConverterImpl(convertletTable) {
+
             @Override
             public SqlNode convertLiteral(RexLiteral literal) {
                 SqlNode sqlLiteral = super.convertLiteral(literal);
@@ -290,19 +314,26 @@ public class OLAPProjectRel extends Project implements OLAPRel {
             public SqlNode convertInputRef(RexInputRef ref) {
                 TblColRef colRef = nodeAndTblColMap.get(ref);
                 String colExpr = colRef.isInnerColumn() && colRef.getParserDescription() != null
-                        ? colRef.getParserDescription() : colRef.getIdentity();
+                        ? colRef.getParserDescription()
+                        : colRef.getIdentity();
                 try {
                     return CalciteParser.getExpNode(colExpr);
                 } catch (Exception e) {
                     return super.convertInputRef(ref); // i.e. return null
                 }
             }
+
+            @Override
+            public SqlNode convertCall(RexCall call) {
+                RexCall newCall = (RexCall) createLeftCall(call);
+                return super.convertCall(newCall);
+            }
         };
 
         try {
             SqlNode sqlCall = rexNodeToSqlConverter.convertCall(call);
             return sqlCall.toSqlString(SqlDialect.DatabaseProduct.HIVE.getDialect()).toString();
-        } catch (Exception| Error e) {
+        } catch (Exception | Error e) {
             return call.toString();
         }
     }
@@ -321,15 +352,11 @@ public class OLAPProjectRel extends Project implements OLAPRel {
          */
         private void registerCaseOpNew() {
             registerOp(SqlStdOperatorTable.CASE, (RexToSqlNodeConverter converter, RexCall call) -> {
-                List<RexNode> nodes = call.getOperands();
-                SqlNode[] operands = new SqlNode[nodes.size()];
-                for (int i = 0; i < nodes.size(); i++) {
-                    RexNode node = nodes.get(i);
-                    operands[i] = converter.convertNode(node);
-                    if (operands[i] == null) {
-                        return null;
-                    }
+                SqlNode[] operands = this.convertExpressionList(converter, call.getOperands());
+                if (operands == null) {
+                    return null;
                 }
+
                 SqlNodeList whenList = new SqlNodeList(SqlParserPos.ZERO);
                 SqlNodeList thenList = new SqlNodeList(SqlParserPos.ZERO);
                 int i = 0;
@@ -347,6 +374,18 @@ public class OLAPProjectRel extends Project implements OLAPRel {
                 newOperands[3] = elseExpr;
                 return SqlStdOperatorTable.CASE.createCall(null, SqlParserPos.ZERO, newOperands);
             });
+        }
+
+        SqlNode[] convertExpressionList(RexToSqlNodeConverter converter, List<RexNode> nodes) {
+            final SqlNode[] exprs = new SqlNode[nodes.size()];
+            for (int i = 0; i < nodes.size(); i++) {
+                RexNode node = nodes.get(i);
+                exprs[i] = converter.convertNode(node);
+                if (exprs[i] == null) {
+                    return null;
+                }
+            }
+            return exprs;
         }
     }
 
@@ -395,12 +434,8 @@ public class OLAPProjectRel extends Project implements OLAPRel {
             return true;
         }
 
-        if (rexNode instanceof RexCall && SqlKind.CAST.equals(rexNode.getKind())
-                && ((RexCall) rexNode).getOperands().get(0) instanceof RexLiteral) {
-            return true;
-        }
-
-        return false;
+        return rexNode instanceof RexCall && SqlKind.CAST.equals(rexNode.getKind())
+                && ((RexCall) rexNode).getOperands().get(0) instanceof RexLiteral;
     }
 
     @Override
@@ -443,8 +478,8 @@ public class OLAPProjectRel extends Project implements OLAPRel {
 
         // find missed rewrite fields
         int paramIndex = this.rowType.getFieldList().size();
-        List<RelDataTypeField> newFieldList = new LinkedList<RelDataTypeField>();
-        List<RexNode> newExpList = new LinkedList<>();
+        List<RelDataTypeField> newFieldList = Lists.newLinkedList();
+        List<RexNode> newExpList = Lists.newLinkedList();
         ColumnRowType inputColumnRowType = ((OLAPRel) getInput()).getColumnRowType();
 
         for (Map.Entry<String, RelDataType> rewriteField : this.context.rewriteFields.entrySet()) {
@@ -467,7 +502,7 @@ public class OLAPProjectRel extends Project implements OLAPRel {
 
         if (!newFieldList.isEmpty()) {
             // rebuild projects
-            List<RexNode> newProjects = new ArrayList<RexNode>(this.rewriteProjects);
+            List<RexNode> newProjects = Lists.newArrayList(this.rewriteProjects);
             newProjects.addAll(newExpList);
             this.rewriteProjects = newProjects;
 

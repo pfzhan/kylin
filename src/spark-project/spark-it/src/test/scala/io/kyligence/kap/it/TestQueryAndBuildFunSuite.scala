@@ -59,7 +59,7 @@ class TestQueryAndBuildFunSuite
     FloderInfo("sql", List("query105.sql")),
     //        FloderInfo("sql_boolean"),
     FloderInfo("sql_cache"),
-    FloderInfo("sql_casewhen"),
+    FloderInfo("sql_casewhen", List("query08.sql")),
     FloderInfo("sql_cross_join"),
     FloderInfo("sql_datetime"),
     FloderInfo("sql_derived"),

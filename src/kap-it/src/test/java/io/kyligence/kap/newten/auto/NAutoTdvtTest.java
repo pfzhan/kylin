@@ -24,6 +24,8 @@
 
 package io.kyligence.kap.newten.auto;
 
+import org.apache.kylin.common.KylinConfig;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import io.kyligence.kap.newten.NExecAndComp.CompareLevel;
@@ -43,5 +45,13 @@ public class NAutoTdvtTest extends NAutoTestBase {
     @Test
     public void testSameLevelOfTdvt() throws Exception {
         new TestScenario(CompareLevel.SAME, "sql_tdvt/same_level").execute();
+    }
+
+    @Ignore("for testing")
+    @Test
+    public void test() throws Exception {
+        KylinConfig.getInstanceFromEnv().setProperty("kylin.query.calcite.extras-props.conformance", "DEFAULT");
+        overwriteSystemProp("calcite.debug", "true");
+        new TestScenario(CompareLevel.SAME, "query/temp").execute();
     }
 }
