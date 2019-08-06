@@ -374,7 +374,7 @@ class SparderRexVisitor(val dfs: Array[DataFrame],
           case "isnull" =>
             isnull(k_lit(children.head))
           case "ifnull" =>
-              new Column(new IfNull(k_lit(children.head).expr, k_lit(children.apply(1)).expr))
+            new Column(new IfNull(k_lit(children.head).expr, k_lit(children.apply(1)).expr))
           //string_funcs
           case "lower"            => lower(k_lit(children.head))
           case "upper"            => upper(k_lit(children.head))
@@ -423,6 +423,47 @@ class SparderRexVisitor(val dfs: Array[DataFrame],
                 DateTimeUtils.millisToDays(System.currentTimeMillis())))
           case "current_timestamp" =>
             current_timestamp()
+          case "to_timestamp" =>
+            if (children.length == 1) {
+              to_timestamp(k_lit(children.head))
+            } else if (children.length == 2) {
+              to_timestamp(k_lit(children.head), k_lit(children.apply(1)).toString())
+            } else {
+              throw new UnsupportedOperationException(
+                s"to_timestamp must provide one or two parameters under sparder")
+            }
+          case "to_date" =>
+            if (children.length == 1) {
+              to_date(k_lit(children.head))
+            } else if (children.length == 2) {
+              to_date(k_lit(children.head), k_lit(children.apply(1)).toString())
+            } else {
+              throw new UnsupportedOperationException(
+                s"to_date must provide one or two parameters under sparder")
+            }
+          case "to_char" =>
+            var p = k_lit(children.apply(1)).toString().toUpperCase
+            var part = p match {
+              case "YEAR" =>
+                "y"
+              case "MONTH" =>
+                "M"
+              case "DAY" =>
+                "d"
+              case "HOUR" =>
+                "h"
+              case "MINUTE" =>
+                "m"
+              case "MINUTES" =>
+                "m"
+              case "SECOND" =>
+                "s"
+              case "SECONDS" =>
+                "s"
+              case _ =>
+                p
+            }
+            date_format(k_lit(children.head),part)
           case "power" =>
             pow(k_lit(children.head), k_lit(children.apply(1)))
           case "log10" =>
