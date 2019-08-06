@@ -130,11 +130,11 @@
         </sonar.jacoco.excludes>
         <sonar.coverage.exclusions>
             **/io/kyligence/kap/rest/*Server.java,
-            **/io/kyligence/kap/engine/spark/builder/FlatTableEncoder.java,
+            **/io/kyligence/kap/engine/spark/builder/DFTableEncoder.java,
             **/io/kyligence/kap/engine/spark/builder/DFLayoutMergeAssist.java,
             **/io/kyligence/kap/engine/spark/job/DFMergeJob.java,
             **/io/kyligence/kap/engine/spark/builder/DFBuildJob.java,
-            **/io/kyligence/kap/engine/spark/builder/DictionaryBuilder.java,
+            **/io/kyligence/kap/engine/spark/builder/DFDictionaryBuilder.java,
             **/io/kyligence/kap/tool/CuratorOperator.java,
             **/io/kyligence/kap/tool/kerberos/KerberosLoginUtil.java,
             **/io/kyligence/kap/tool/kerberos/KerberosLoginTask.java,
@@ -152,6 +152,11 @@
             **/io/kyligence/kap/rest/config/AppInitializer.java,
             **/io/kyligence/kap/metadata/model/Canvas.java,
             **/io/kyligence/kap/rest/ZookeeperClusterManager.java,
+            **/org/apache/spark/dict/NBucketDictionary.java,
+            **/org/apache/spark/dict/NGlobalDictHDFSStore.java,
+            **/org/apache/spark/dict/NGlobalDictionaryV2.java,
+            **/org/apache/spark/dict/NGlobalDictMetaInfo.java,
+            **/org/apache/spark/dict/NHashPartitioner.java,
             **/org/apache/kylin/rest/model/LicenseInfo.java
         </sonar.coverage.exclusions>
         <sonar.jacoco.itReportPath>${project.basedir}/../../target/jacoco-it.exec</sonar.jacoco.itReportPath>
