@@ -102,11 +102,13 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
     public void setup() throws Exception {
         super.setup();
         SPARK_DRIVER_BASE_MEMORY = KylinConfig.getInstanceFromEnv().getSparkEngineDriverMemoryBase();
+        System.setProperty("kylin.job.auto-set-concurrent-jobs", "true");
     }
 
     @Override
     public void after() throws Exception {
         super.after();
+        System.clearProperty("kylin.job.auto-set-concurrent-jobs");
         System.clearProperty("kylin.job.retry");
         System.clearProperty("kylin.job.retry-exception-classes");
     }

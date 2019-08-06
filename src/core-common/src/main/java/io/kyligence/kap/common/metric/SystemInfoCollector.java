@@ -24,6 +24,7 @@
 package io.kyligence.kap.common.metric;
 
 import lombok.val;
+import org.apache.kylin.common.KylinConfig;
 import oshi.SystemInfo;
 import oshi.hardware.HardwareAbstractionLayer;
 import oshi.software.os.OperatingSystem;
@@ -52,6 +53,9 @@ public final class SystemInfoCollector {
     }
 
     public static Integer getAvailableMemoryInfo() {
+        if (KylinConfig.getInstanceFromEnv().isDevEnv()) {
+            return 6192;
+        }
         val mem = hal.getMemory();
         if (mem.getAvailable() % MEBI == 0) {
             return Integer.parseInt(String.format("%d", mem.getAvailable() / MEBI));

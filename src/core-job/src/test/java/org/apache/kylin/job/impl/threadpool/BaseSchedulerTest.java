@@ -42,11 +42,12 @@
 
 package org.apache.kylin.job.impl.threadpool;
 
+import static org.awaitility.Awaitility.await;
+
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import io.kyligence.kap.common.persistence.transaction.mq.MessageQueue;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.dao.NExecutableDao;
 import org.apache.kylin.job.engine.JobEngineConfig;
@@ -60,10 +61,9 @@ import org.mockito.Mockito;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import io.kyligence.kap.common.persistence.transaction.mq.MessageQueue;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import lombok.val;
-
-import static org.awaitility.Awaitility.await;
 
 public abstract class BaseSchedulerTest extends NLocalFileMetadataTestCase {
 
@@ -134,9 +134,8 @@ public abstract class BaseSchedulerTest extends NLocalFileMetadataTestCase {
         await().atMost(maxWaitTime, TimeUnit.MILLISECONDS).until(() -> {
             AbstractExecutable job = executableManager.getJob(jobId);
             ExecutableState status = job.getStatus();
-            if (status == ExecutableState.SUCCEED || status == ExecutableState.ERROR
-                    || status == ExecutableState.PAUSED || status == ExecutableState.DISCARDED
-                    || status == ExecutableState.SUICIDAL) {
+            if (status == ExecutableState.SUCCEED || status == ExecutableState.ERROR || status == ExecutableState.PAUSED
+                    || status == ExecutableState.DISCARDED || status == ExecutableState.SUICIDAL) {
                 return true;
             }
             return false;
