@@ -1031,7 +1031,7 @@ abstract public class KylinConfigBase implements Serializable {
     }
 
     public int getSparkEngineDriverMemoryTableSampling() {
-        return Integer.parseInt(getOptional("kylin.engine.driver-memory-table-sampling", "512"));
+        return Integer.parseInt(getOptional("kylin.engine.driver-memory-table-sampling", "1024"));
     }
 
     public int getSparkEngineDriverMemoryBase() {
