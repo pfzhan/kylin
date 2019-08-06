@@ -97,6 +97,9 @@ export default {
   importSqlFiles: (para) => {
     return Vue.resource(apiUrl + 'query/favorite_queries/sql_files?project=' + para.project).save(para.formData)
   },
+  formatSql: (para) => {
+    return Vue.resource(apiUrl + 'query/format').update(para)
+  },
   validateWhite: (para) => {
     return Vue.resource(apiUrl + 'query/favorite_queries/sql_validation').update(para)
   },

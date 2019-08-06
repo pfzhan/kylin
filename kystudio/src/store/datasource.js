@@ -159,6 +159,9 @@ export default {
     [types.IMPORT_SQL_FILES]: function ({commit}, para) {
       return api.datasource.importSqlFiles(para)
     },
+    [types.FORMAT_SQL]: function ({ commit }, para) {
+      return api.datasource.formatSql(para)
+    },
     [types.VALIDATE_WHITE_SQL]: function ({commit}, para) {
       return api.datasource.validateWhite(para)
     },

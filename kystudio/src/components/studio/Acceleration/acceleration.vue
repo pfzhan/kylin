@@ -152,8 +152,8 @@
         </el-col>
         <el-col :span="8">
           <div class="ky-list-title ksd-mt-10 ksd-fs-14">{{$t('sqlBox')}}</div>
-          <div v-loading="sqlLoading" element-loading-spinner="el-icon-loading">
-            <div class="query_panel_box ksd-mt-10">
+          <div element-loading-spinner="el-icon-loading">
+            <div v-loading="sqlLoading" class="query_panel_box ksd-mt-10">
               <kap-editor ref="whiteInputBox" :height="inputHeight" :dragable="false" :readOnly="this.isReadOnly" lang="sql" theme="chrome" v-model="whiteSql" v-if="isShowEditor">
               </kap-editor>
               <div class="operatorBox" v-if="isEditSql">
@@ -331,7 +331,6 @@ import $ from 'jquery'
 import { handleSuccessAsync, handleError, objectClone } from '../../../util/index'
 import { handleSuccess, transToGmtTime, kapConfirm } from '../../../util/business'
 import accelerationTable from './acceleration_table'
-import sqlFormatter from 'sql-formatter'
 @Component({
   methods: {
     transToGmtTime: transToGmtTime,
@@ -346,7 +345,8 @@ import sqlFormatter from 'sql-formatter'
       deleteBlack: 'DELETE_BLACK_SQL',
       applySpeedInfo: 'APPLY_SPEED_INFO',
       importSqlFiles: 'IMPORT_SQL_FILES',
-      getWaitingAcceSize: 'GET_WAITING_ACCE_SIZE'
+      getWaitingAcceSize: 'GET_WAITING_ACCE_SIZE',
+      formatSql: 'FORMAT_SQL'
     }),
     ...mapMutations({
       lockSpeedInfo: 'LOCK_SPEED_INFO'
@@ -831,33 +831,33 @@ export default class FavoriteQuery extends Vue {
   hideLoading () {
     this.sqlLoading = false
   }
-  activeSql (sqlObj) {
-    // SQL很长时formatter会耗时过长
-    this.showLoading()
-    setTimeout(() => {
-      let formatterSql
-      if (this.sqlFormatterObj[sqlObj.id]) {
-        formatterSql = this.sqlFormatterObj[sqlObj.id]
-      } else {
-        formatterSql = sqlFormatter.format(sqlObj.sql)
-        this.sqlFormatterObj[sqlObj.id] = formatterSql
-      }
-      this.whiteSql = formatterSql
-      this.activeSqlObj = sqlObj
-      this.isEditSql = false
-      if (sqlObj.capable) {
-        this.isWhiteErrorMessage = false
-        this.inputHeight = 432
-      } else {
-        this.isWhiteErrorMessage = true
-        this.inputHeight = 432 - 140
-        this.whiteMessages = sqlObj.sqlAdvices
-      }
+  async activeSql (sqlObj) {
+    this.activeSqlObj = sqlObj
+    this.isEditSql = false
+    if (sqlObj.capable) {
+      this.isWhiteErrorMessage = false
+      this.inputHeight = 432
+    } else {
+      this.isWhiteErrorMessage = true
+      this.inputHeight = 432 - 140
+      this.whiteMessages = sqlObj.sqlAdvices
+    }
+    let formatterSql
+    if (this.sqlFormatterObj[sqlObj.id]) {
+      formatterSql = this.sqlFormatterObj[sqlObj.id]
+      this.$refs.whiteInputBox.$emit('input', formatterSql)
+    } else {
+      this.showLoading()
+      const res = await this.formatSql({sqls: [sqlObj.sql]})
+      const data = await handleSuccessAsync(res)
+      formatterSql = data[0]
+      this.sqlFormatterObj[sqlObj.id] = formatterSql
+      this.$refs.whiteInputBox.$emit('input', formatterSql)
       this.hideLoading()
-    }, 100)
+    }
   }
 
-  editWhiteSql (sqlObj) {
+  async editWhiteSql (sqlObj) {
     this.isEditSql = true
     this.inputHeight = 382
     if (sqlObj.capable) {
@@ -867,19 +867,20 @@ export default class FavoriteQuery extends Vue {
       this.isWhiteErrorMessage = true
       this.inputHeight = 382 - 140
     }
-    this.showLoading()
-    setTimeout(() => {
-      let formatterSql
-      if (this.sqlFormatterObj[sqlObj.id]) {
-        formatterSql = this.sqlFormatterObj[sqlObj.id]
-      } else {
-        formatterSql = sqlFormatter.format(sqlObj.sql)
-        this.sqlFormatterObj[sqlObj.id] = formatterSql
-      }
-      this.whiteSql = formatterSql
-      this.activeSqlObj = sqlObj
+    let formatterSql
+    if (this.sqlFormatterObj[sqlObj.id]) {
+      formatterSql = this.sqlFormatterObj[sqlObj.id]
+      this.$refs.whiteInputBox.$emit('input', formatterSql)
+    } else {
+      this.showLoading()
+      const res = await this.formatSql({sqls: [sqlObj.sql]})
+      const data = await handleSuccessAsync(res)
+      formatterSql = data[0]
+      this.sqlFormatterObj[sqlObj.id] = formatterSql
+      this.$refs.whiteInputBox.$emit('input', formatterSql)
       this.hideLoading()
-    }, 100)
+    }
+    this.activeSqlObj = sqlObj
     this.isReadOnly = false
   }
 
@@ -1146,8 +1147,7 @@ export default class FavoriteQuery extends Vue {
           for (const key in this.whiteSqlData.data) {
             if (this.whiteSqlData.data[key].id === this.activeSqlObj.id) {
               this.whiteSqlData.data[key].sql = this.whiteSql
-              const formatterSql = sqlFormatter.format(this.whiteSql)
-              this.sqlFormatterObj[this.activeSqlObj.id] = formatterSql
+              this.sqlFormatterObj[this.activeSqlObj.id] = this.whiteSql
               this.whiteSqlDatasPageChange(this.whiteCurrentPage)
               if (!this.whiteSqlData.data[key].capable) {
                 this.whiteSqlData.data[key].capable = true
@@ -1197,20 +1197,22 @@ export default class FavoriteQuery extends Vue {
     }
   }
 
-  viewBlackSql (row) {
+  async viewBlackSql (row) {
     this.showLoading()
-    setTimeout(() => {
-      this.activeSqlObj = row
-      let formatterSql
-      if (this.blackSqlData[row.id]) {
-        formatterSql = this.sqlFormatterObj[row.id]
-      } else {
-        formatterSql = sqlFormatter.format(row.sql_pattern)
-        this.sqlFormatterObj[row.id] = formatterSql
-      }
-      this.blackSql = formatterSql
-    }, 100)
-    this.hideLoading()
+    this.activeSqlObj = row
+    let formatterSql
+    if (this.blackSqlData[row.id]) {
+      formatterSql = this.sqlFormatterObj[row.id]
+      this.$refs.blackInputBox.$emit('input', formatterSql)
+    } else {
+      this.showLoading()
+      const res = await this.formatSql({sqls: [row.sql_pattern]})
+      const data = await handleSuccessAsync(res)
+      formatterSql = data[0]
+      this.sqlFormatterObj[row.id] = formatterSql
+      this.$refs.blackInputBox.$emit('input', formatterSql)
+      this.hideLoading()
+    }
   }
 
   delBlack (id) {
