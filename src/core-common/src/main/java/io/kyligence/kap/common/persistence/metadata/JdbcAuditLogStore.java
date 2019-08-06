@@ -34,6 +34,7 @@ import java.util.Optional;
 import java.util.Properties;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
 import org.apache.commons.collections.CollectionUtils;
@@ -96,6 +97,7 @@ public class JdbcAuditLogStore implements AuditLogStore, JdbcTransactionMixin {
     @Getter
     private final DataSourceTransactionManager transactionManager;
     private ExecutorService consumeExecutor;
+    private AtomicBoolean stop = new AtomicBoolean(false);
 
     public JdbcAuditLogStore(KylinConfig config) throws Exception {
         this.config = config;
@@ -208,8 +210,7 @@ public class JdbcAuditLogStore implements AuditLogStore, JdbcTransactionMixin {
         return () -> {
             val replayer = MessageSynchronization.getInstance(config);
             long startId = id;
-            boolean stop = false;
-            while (!stop) {
+            while (!stop.get()) {
                 try {
                     long finalStartId = startId;
                     startId = withTransaction(() -> {
@@ -229,7 +230,7 @@ public class JdbcAuditLogStore implements AuditLogStore, JdbcTransactionMixin {
                     log.warn("thread interrupted", e);
                 } catch (Exception e) {
                     log.error("unknown exception, exit ", e);
-                    stop = true;
+                    stop.set(true);
                     if (!config.isUTEnv()) {
                         System.exit(-2);
                     }
@@ -273,6 +274,13 @@ public class JdbcAuditLogStore implements AuditLogStore, JdbcTransactionMixin {
 
     @Override
     public void close() throws IOException {
+        stop.set(true);
         ExecutorServiceUtil.forceShutdown(consumeExecutor);
+    }
+
+    // only for test
+    public void forceClose() {
+        stop.set(true);
+        ExecutorServiceUtil.shutdownGracefully(consumeExecutor, 60);
     }
 }

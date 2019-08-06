@@ -30,7 +30,6 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.dbcp2.BasicDataSourceFactory;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
@@ -52,6 +51,7 @@ import io.kyligence.kap.common.persistence.metadata.jdbc.AuditLogRowMapper;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import lombok.val;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class JdbcAuditLogStoreTest extends NLocalFileMetadataTestCase {
@@ -151,7 +151,7 @@ public class JdbcAuditLogStoreTest extends NLocalFileMetadataTestCase {
         Awaitility.await().atMost(6, TimeUnit.SECONDS).until(() -> 2003 == workerStore.listResourcesRecursively("/").size());
         Assert.assertEquals(2003, workerStore.listResourcesRecursively("/").size());
 
-        workerStore.getAuditLogStore().close();
+        ((JdbcAuditLogStore)workerStore.getAuditLogStore()).forceClose();
     }
 
     @Test
@@ -184,6 +184,7 @@ public class JdbcAuditLogStoreTest extends NLocalFileMetadataTestCase {
 
         Assert.assertEquals(4, workerStore.listResourcesRecursively("/").size());
         stopped.compareAndSet(false, true);
+        ((JdbcAuditLogStore)workerStore.getAuditLogStore()).forceClose();
     }
 
     @Test

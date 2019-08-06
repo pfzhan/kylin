@@ -85,7 +85,7 @@ public class HAMetadataTest extends NLocalFileMetadataTestCase {
         jdbcTemplate.batchUpdate("DROP ALL OBJECTS");
         cleanupTestMetadata();
         queryResourceStore.close();
-        queryResourceStore.getAuditLogStore().close();
+        ((JdbcAuditLogStore) queryResourceStore.getAuditLogStore()).forceClose();
     }
 
     @Test
