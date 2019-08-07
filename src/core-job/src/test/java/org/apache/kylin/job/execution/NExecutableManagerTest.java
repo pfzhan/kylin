@@ -28,17 +28,22 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
+import java.io.File;
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.List;
 
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.metadata.cube.model.NBatchConstants;
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.constant.JobIssueEnum;
 import org.apache.kylin.job.dao.NExecutableDao;
 import org.apache.kylin.job.exception.IllegalStateTranferException;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.realization.RealizationStatusEnum;
+import org.assertj.core.util.Lists;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -49,13 +54,18 @@ import org.junit.rules.ExpectedException;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import lombok.val;
+import org.junit.rules.TemporaryFolder;
 
 /**
+ *
  */
 public class NExecutableManagerTest extends NLocalFileMetadataTestCase {
 
     @Rule
     public ExpectedException thrown = ExpectedException.none();
+
+    @Rule
+    public TemporaryFolder temporaryFolder = new TemporaryFolder();
 
     private NExecutableManager manager;
 
@@ -413,5 +423,47 @@ public class NExecutableManagerTest extends NLocalFileMetadataTestCase {
         Assert.assertTrue(content.getEmailBody().contains(start));
         Assert.assertTrue(content.getEmailBody().contains(end));
 
+    }
+
+    @Test
+    public void testGetSampleDataFromHDFS() throws IOException {
+        final String junitFolder = temporaryFolder.getRoot().getAbsolutePath();
+        final String mainFolder = junitFolder + "/testGetSampleDataFromHDFS";
+        File file = new File(mainFolder);
+        if (!file.exists()) {
+            Assert.assertTrue(file.mkdir());
+        } else {
+            Assert.fail("exist the test case folder: " + mainFolder);
+        }
+
+        int nLines = 100;
+        for (Integer logLines : Arrays.asList(0, 1, 70, 150, 230, 1024, nLines)) {
+            String hdfsPath = mainFolder + "/hdfs.log" + logLines;
+            List<String> text = Lists.newArrayList();
+            for (int i = 0; i < logLines; i++) {
+                text.add("INFO: this is line " + i);
+            }
+
+            FileUtils.writeLines(new File(hdfsPath), text);
+
+            String sampleLog = manager.getSampleDataFromHDFS(hdfsPath, nLines);
+
+            String[] logArray = StringUtils.splitByWholeSeparatorPreserveAllTokens(sampleLog, "\n");
+
+            int expectedLines;
+            if (logLines <= nLines) {
+                expectedLines = logLines;
+            } else if (logLines < nLines * 2) {
+                expectedLines = logLines + 1;
+            } else {
+                expectedLines = nLines * 2 + 1;
+            }
+
+            Assert.assertEquals(expectedLines, logArray.length);
+            if (logLines > 0) {
+                Assert.assertEquals("INFO: this is line 0", logArray[0]);
+                Assert.assertEquals("INFO: this is line " + (logLines - 1), logArray[logArray.length - 1]);
+            }
+        }
     }
 }

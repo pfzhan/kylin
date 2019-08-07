@@ -42,15 +42,20 @@
 
 package io.kyligence.kap.rest.service;
 
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.lang.reflect.Field;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 
+import org.apache.commons.io.FileUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.dao.ExecutableOutputPO;
 import org.apache.kylin.job.execution.AbstractExecutable;
@@ -68,6 +73,7 @@ import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
+import org.junit.rules.TemporaryFolder;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
@@ -99,6 +105,8 @@ import io.kyligence.kap.rest.response.ExecutableStepResponse;
 import io.kyligence.kap.rest.response.JobStatisticsResponse;
 import lombok.val;
 
+import javax.servlet.http.HttpServletResponse;
+
 public class JobServiceTest extends NLocalFileMetadataTestCase {
 
     @InjectMocks
@@ -109,6 +117,9 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
 
     @Rule
     public ExpectedException thrown = ExpectedException.none();
+
+    @Rule
+    public TemporaryFolder temporaryFolder = new TemporaryFolder();
 
     @Before
     public void setup() {
@@ -173,10 +184,10 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
         List<ExecutableResponse> jobs6 = jobService.listJobs(jobFilter);
         Assert.assertTrue(jobs6.size() == 3 && jobs6.get(0).getJobName().equals("sparkjob1"));
 
-//        jobFilter.setSortBy("duration");
-//        jobFilter.setReverse(true);
-//        List<ExecutableResponse> jobs7 = jobService.listJobs(jobFilter);
-//        Assert.assertTrue(jobs7.size() == 3 && jobs7.get(0).getJobName().equals("sparkjob3"));
+        //        jobFilter.setSortBy("duration");
+        //        jobFilter.setReverse(true);
+        //        List<ExecutableResponse> jobs7 = jobService.listJobs(jobFilter);
+        //        Assert.assertTrue(jobs7.size() == 3 && jobs7.get(0).getJobName().equals("sparkjob3"));
 
         jobFilter.setSortBy("create_time");
         jobFilter.setReverse(true);
@@ -473,5 +484,62 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
         Event event8 = new AddCuboidEvent();
         event8.setModelId("not_existing_model");
         eventDao.addEvent(event8);
+    }
+
+    @Test
+    public void testHdfsFileWrite2OutputStream() throws IOException {
+        final String junitFolder = temporaryFolder.getRoot().getAbsolutePath();
+        final String mainFolder = junitFolder + "/testHdfsFileWrite2OutputStream";
+        File file = new File(mainFolder);
+        if (!file.exists()) {
+            Assert.assertTrue(file.mkdir());
+        } else {
+            Assert.fail("exist the test case folder: " + mainFolder);
+        }
+
+        String hdfsPath = mainFolder + "/hdfs.log";
+        List<String> text = Arrays.asList("INFO: this is the line 1", "WARN: this is the line 2",
+                "ERROR: this is the last line");
+        FileUtils.writeLines(new File(hdfsPath), text);
+
+        try (FileOutputStream outputStream = new FileOutputStream(new File(mainFolder + "/output.log"))) {
+            Assert.assertTrue(jobService.hdfsFileWrite2OutputStream(outputStream, hdfsPath));
+        }
+
+        List<String> text1 = FileUtils.readLines(new File(hdfsPath));
+
+        Assert.assertEquals(text.size(), text1.size());
+        for (int i = 0; i < text.size(); i++) {
+            Assert.assertEquals(text.get(i), text1.get(i));
+        }
+    }
+
+    @Test
+    public void testDownloadHdfsLogFile() throws IOException {
+        final String junitFolder = temporaryFolder.getRoot().getAbsolutePath();
+        final String mainFolder = junitFolder + "/testDownloadHdfsLogFile";
+
+        NExecutableManager executableManager = Mockito.mock(NExecutableManager.class);
+        Mockito.when(jobService.getExecutableManager("default")).thenReturn(executableManager);
+
+        HttpServletResponse response = Mockito.mock(HttpServletResponse.class);
+        Mockito.when(response.getOutputStream()).thenReturn(null);
+
+        String hdfsLogPath = mainFolder + "/hdfs.log";
+        Mockito.when(jobService.hdfsFileWrite2OutputStream(null, hdfsLogPath)).thenReturn(true);
+
+        ExecutableOutputPO jobOutput = new ExecutableOutputPO();
+        jobOutput.setLogPath(hdfsLogPath);
+        FileUtils.writeLines(new File(jobOutput.getLogPath()), Arrays.asList("line1", "line2"));
+
+        Mockito.when(executableManager.getJobOutputFromHDFS(Mockito.anyString())).thenReturn(jobOutput);
+        String newHdfsLogPath = jobService.getHdfsLogPath("default", "00000_01");
+        if (Objects.isNull(newHdfsLogPath)) {
+            Assert.fail("hdfs log path is null!");
+        }
+
+        if (!jobService.downloadHdfsLogFile(response, newHdfsLogPath)) {
+            Assert.fail("download file failed!");
+        }
     }
 }

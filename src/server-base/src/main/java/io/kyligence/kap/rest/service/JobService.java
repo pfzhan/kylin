@@ -24,7 +24,9 @@
 
 package io.kyligence.kap.rest.service;
 
+import java.io.DataInputStream;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Comparator;
@@ -36,13 +38,18 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.job.common.ShellExecutable;
 import org.apache.kylin.job.constant.ExecutableConstants;
 import org.apache.kylin.job.constant.JobStatusEnum;
 import org.apache.kylin.job.constant.JobTimeFilterEnum;
+import org.apache.kylin.job.dao.ExecutableOutputPO;
 import org.apache.kylin.job.dao.JobStatistics;
 import org.apache.kylin.job.dao.JobStatisticsManager;
 import org.apache.kylin.job.execution.AbstractExecutable;
@@ -85,6 +92,8 @@ import io.kyligence.kap.rest.response.JobStatisticsResponse;
 import io.kyligence.kap.rest.transaction.Transaction;
 import lombok.val;
 import lombok.var;
+
+import javax.servlet.http.HttpServletResponse;
 
 @Component("jobService")
 public class JobService extends BasicService {
@@ -377,6 +386,69 @@ public class JobService extends BasicService {
         return executableManager.getOutputFromHDFSByJobId(jobId).getVerboseMsg();
     }
 
+    /**
+     * write hdfs file input stream to output stream
+     *
+     * @param outputStream
+     * @param hdfsFilePath
+     * @return
+     */
+    public boolean hdfsFileWrite2OutputStream(OutputStream outputStream, String hdfsFilePath) {
+        try {
+            Path path = new Path(hdfsFilePath);
+            FileSystem fs = HadoopUtil.getFileSystem(path);
+            if (!fs.exists(path)) {
+                logger.warn("can not found the hdfs file: {}", hdfsFilePath);
+                return false;
+            }
+
+            try (DataInputStream din = fs.open(path)) {
+                IOUtils.copyLarge(din, outputStream);
+            }
+            return true;
+        } catch (IOException e) {
+            logger.error("read hdfs file and write to the output stream failed!", e);
+        }
+
+        return false;
+    }
+
+    /**
+     * get the log path by project and jobId(step id)
+     *
+     * @param project
+     * @param jobId
+     * @return
+     */
+    public String getHdfsLogPath(String project, String jobId) {
+        String hdfsPath = KylinConfig.getInstanceFromEnv().getJobTmpOutputStorePath(project, jobId);
+
+        val executableManager = getExecutableManager(project);
+        ExecutableOutputPO jobOutput = executableManager.getJobOutputFromHDFS(hdfsPath);
+
+        if (Objects.isNull(jobOutput)) {
+            logger.info("the jobOutput is null, project: {}, jobId {}", project, jobId);
+            return null;
+        }
+
+        return jobOutput.getLogPath();
+    }
+
+    /**
+     * user from web to download the hdfs log file
+     *
+     * @param response
+     */
+    public boolean downloadHdfsLogFile(final HttpServletResponse response, String hdfsLogPath) {
+        try (OutputStream outputStream = response.getOutputStream()) {
+            return hdfsFileWrite2OutputStream(outputStream, hdfsLogPath);
+        } catch (IOException e) {
+            logger.error("read hdfs file and write to the output stream failed!", e);
+        }
+
+        return false;
+    }
+
     public List<EventResponse> getWaitingJobsByModel(String project, String modelId) {
         List<Event> jobRelatedEvents = getEventDao(project).getJobRelatedEventsByModel(modelId);
 
@@ -403,6 +475,7 @@ public class JobService extends BasicService {
 
     /**
      * update the spark job info, such as yarnAppId, yarnAppUrl.
+     *
      * @param project
      * @param jobId
      * @param taskId

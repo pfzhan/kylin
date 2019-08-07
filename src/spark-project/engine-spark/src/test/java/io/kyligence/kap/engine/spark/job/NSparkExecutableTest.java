@@ -61,7 +61,6 @@ import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import lombok.val;
 
-
 public class NSparkExecutableTest extends NLocalFileMetadataTestCase {
 
     @Rule
@@ -144,9 +143,9 @@ public class NSparkExecutableTest extends NLocalFileMetadataTestCase {
             String cmd = sparkExecutable.generateSparkCmd(kylinConfig, hadoopConf, kylinJobJar, kylinJobJar, appArgs);
             Assert.assertNotNull(cmd);
             Assert.assertTrue(cmd.contains("spark-submit"));
-            Assert.assertTrue(cmd.contains("log4j.configuration=file:/kylin/conf/spark-driver-hdfs-log4j.properties"));
+            Assert.assertTrue(cmd.contains("log4j.configuration=file:/kylin/conf/spark-driver-log4j.properties"));
             Assert.assertTrue(cmd.contains("spark.executor.extraClassPath=job.jar"));
-            Assert.assertTrue(cmd.contains("execute_output.json.log"));
+            Assert.assertTrue(cmd.contains("execute_output.json"));
             Assert.assertTrue(cmd.contains("kap.hdfs.working.dir="));
         } finally {
             if (StringUtils.isEmpty(kylinHome)) {

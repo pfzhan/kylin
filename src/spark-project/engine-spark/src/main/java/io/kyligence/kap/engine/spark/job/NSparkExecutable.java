@@ -31,6 +31,7 @@ import java.net.UnknownHostException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Collections;
+import java.util.Date;
 import java.util.EnumSet;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -230,7 +231,7 @@ public class NSparkExecutable extends AbstractExecutable {
             kylinConfigExt = projectInstance.getConfig();
         }
 
-        val jobOverrides = Maps.<String, String>newHashMap();
+        val jobOverrides = Maps.<String, String> newHashMap();
         val parentId = getParentId();
         jobOverrides.put("job.id", StringUtils.defaultIfBlank(parentId, getId()));
         jobOverrides.put("job.project", project);
@@ -277,7 +278,7 @@ public class NSparkExecutable extends AbstractExecutable {
     }
 
     private ExecuteResult runSparkSubmit(KylinConfig config, String sparkHome, String hadoopConf, String jars,
-                                         String kylinJobJar, String appArgs, String jobId) {
+            String kylinJobJar, String appArgs, String jobId) {
         PatternedLogger patternedLogger;
         if (config.isJobLogPrintEnabled()) {
             patternedLogger = new PatternedLogger(logger);
@@ -292,7 +293,9 @@ public class NSparkExecutable extends AbstractExecutable {
 
             Preconditions.checkState(result.getFirst() == 0);
             Map<String, String> extraInfo = makeExtraInfo(patternedLogger.getInfo());
-            val ret = ExecuteResult.createSucceed(result.getSecond(), getOutputHDFSPath(config));
+
+            String sparkDriverLogHdfsPath = getConfigValueFromSparkCmd(cmd, "spark.driver.log4j.appender.hdfs.File");
+            val ret = ExecuteResult.createSucceed(result.getSecond(), sparkDriverLogHdfsPath);
             ret.getExtraInfo().putAll(extraInfo);
             return ret;
         } catch (Exception e) {
@@ -300,8 +303,46 @@ public class NSparkExecutable extends AbstractExecutable {
         }
     }
 
-    private String getOutputHDFSPath(KylinConfig config) {
-        return config.getJobTmpOutputStorePath(getProject(), getId()) + ".log";
+    /**
+     * get the config value from spark submit command by config key.
+     * key=value, use the key get the value.
+     *
+     * @param cmd
+     * @param configKey
+     * @return
+     */
+    private String getConfigValueFromSparkCmd(String cmd, String configKey) {
+        if (StringUtils.isBlank(cmd) || StringUtils.isBlank(configKey)) {
+            return null;
+        }
+
+        int index = cmd.indexOf(configKey);
+        if (-1 == index) {
+            return null;
+        }
+
+        int equalSepIndex = index + configKey.length();
+        if ('=' != cmd.charAt(equalSepIndex)) {
+            return null;
+        }
+
+        int spaceIndex = cmd.indexOf(' ', equalSepIndex);
+        if (-1 == spaceIndex) {
+            spaceIndex = cmd.length();
+        }
+
+        return cmd.substring(equalSepIndex + 1, spaceIndex);
+    }
+
+    /**
+     * generate the spark driver log hdfs path format, json path + timestamp + .log
+     *
+     * @param config
+     * @return
+     */
+    private String getSparkDriverLogHdfsPath(KylinConfig config) {
+        return String.format("%s.%s.log", config.getJobTmpOutputStorePath(getProject(), getId()),
+                (new Date()).getTime());
     }
 
     protected Map<String, String> getSparkConfigOverride(KylinConfig config) {
@@ -327,7 +368,7 @@ public class NSparkExecutable extends AbstractExecutable {
         if (KylinConfig.getInstanceFromEnv().isDevEnv()) {
             log4jConfiguration.append("/build");
         }
-        log4jConfiguration.append("/conf/spark-driver-hdfs-log4j.properties");
+        log4jConfiguration.append("/conf/spark-driver-log4j.properties");
 
         String sparkDriverExtraJavaOptionsKey = "spark.driver.extraJavaOptions";
         StringBuilder sb = new StringBuilder();
@@ -338,10 +379,12 @@ public class NSparkExecutable extends AbstractExecutable {
         KapConfig kapConfig = KapConfig.wrap(config);
         sb.append(String.format(" -Dlog4j.configuration=%s ", log4jConfiguration));
         sb.append(String.format(" -Dkap.kerberos.enabled=%s ", kapConfig.isKerberosEnabled()));
-        sb.append(String.format(" -Dkap.kerberos.principal=%s ", kapConfig.getKerberosPrincipal()));
-        sb.append(String.format(" -Dkap.kerberos.keytab=%s", kapConfig.getKerberosKeytabPath()));
+        if (kapConfig.isKerberosEnabled()) {
+            sb.append(String.format(" -Dkap.kerberos.principal=%s ", kapConfig.getKerberosPrincipal()));
+            sb.append(String.format(" -Dkap.kerberos.keytab=%s", kapConfig.getKerberosKeytabPath()));
+        }
         sb.append(String.format(" -Dkap.hdfs.working.dir=%s ", hdfsWorkingDir));
-        sb.append(String.format(" -Dspark.driver.log4j.appender.hdfs.File=%s ", getOutputHDFSPath(config)));
+        sb.append(String.format(" -Dspark.driver.log4j.appender.hdfs.File=%s ", getSparkDriverLogHdfsPath(config)));
         sb.append(String.format(" -Dspark.driver.rest.server.ip=%s ", serverIp));
         sb.append(String.format(" -Dspark.driver.rest.server.port=%s ", serverPort));
         sb.append(String.format(" -Dspark.driver.param.taskId=%s ", getId()));
@@ -352,7 +395,7 @@ public class NSparkExecutable extends AbstractExecutable {
     }
 
     protected String generateSparkCmd(KylinConfig config, String hadoopConf, String jars, String kylinJobJar,
-                                      String appArgs) {
+            String appArgs) {
         StringBuilder sb = new StringBuilder();
         sb.append(
                 "export HADOOP_CONF_DIR=%s && %s/bin/spark-submit --class io.kyligence.kap.engine.spark.application.SparkEntry ");
@@ -384,7 +427,7 @@ public class NSparkExecutable extends AbstractExecutable {
     private ExecuteResult runLocalMode(String appArgs) {
         try {
             Class<? extends Object> appClz = ClassUtil.forName(getSparkSubmitClassName(), Object.class);
-            appClz.getMethod("main", String[].class).invoke(null, (Object) new String[]{appArgs});
+            appClz.getMethod("main", String[].class).invoke(null, (Object) new String[] { appArgs });
             return ExecuteResult.createSucceed();
         } catch (Exception e) {
             return ExecuteResult.createError(e);
@@ -399,7 +442,7 @@ public class NSparkExecutable extends AbstractExecutable {
 
         // The way of Updating metadata is CopyOnWrite. So it is safe to use Reference in the value.
         Map dumpMap = UnitOfWork.doInTransactionWithRetry(
-                UnitOfWorkParams.<Map>builder().readonly(true).unitName(getProject()).processor(() -> {
+                UnitOfWorkParams.<Map> builder().readonly(true).unitName(getProject()).processor(() -> {
                     Map<String, RawResource> retMap = Maps.newHashMap();
                     for (String resPath : getMetadataDumpList(config)) {
                         ResourceStore resourceStore = ResourceStore.getKylinMetaStore(config);

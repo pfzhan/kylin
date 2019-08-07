@@ -28,6 +28,7 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 import com.google.common.collect.Maps;
 import io.kyligence.kap.rest.request.SparkJobUpdateRequest;
@@ -40,6 +41,7 @@ import org.apache.kylin.rest.response.ResponseCode;
 import org.apache.kylin.rest.util.PagingUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -53,6 +55,8 @@ import io.kyligence.kap.rest.request.JobUpdateRequest;
 import io.kyligence.kap.rest.response.ExecutableResponse;
 import io.kyligence.kap.rest.response.ExecutableStepResponse;
 import io.kyligence.kap.rest.service.JobService;
+
+import javax.servlet.http.HttpServletResponse;
 
 @Controller
 @RequestMapping(value = "/jobs")
@@ -83,12 +87,13 @@ public class NJobController extends NBasicController {
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, result, "");
     }
 
-    @RequestMapping(value = "/waiting_jobs", method = { RequestMethod.GET }, produces = { "application/vnd.apache.kylin-v2+json" })
+    @RequestMapping(value = "/waiting_jobs", method = { RequestMethod.GET }, produces = {
+            "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
     public EnvelopeResponse getWaitingJobs(@RequestParam(value = "project") String project,
-                                           @RequestParam(value = "model") String modelId,
-                                           @RequestParam(value = "offset", required = false, defaultValue = "0") Integer offset,
-                                           @RequestParam(value = "limit", required = false, defaultValue = "10") Integer limit) {
+            @RequestParam(value = "model") String modelId,
+            @RequestParam(value = "offset", required = false, defaultValue = "0") Integer offset,
+            @RequestParam(value = "limit", required = false, defaultValue = "10") Integer limit) {
         checkProjectName(project);
         List<EventResponse> waitingJobs = jobService.getWaitingJobsByModel(project, modelId);
         Map<String, Object> data = Maps.newHashMap();
@@ -97,7 +102,8 @@ public class NJobController extends NBasicController {
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, data, "");
     }
 
-    @RequestMapping(value = "/waiting_jobs/models", method = { RequestMethod.GET }, produces = { "application/vnd.apache.kylin-v2+json" })
+    @RequestMapping(value = "/waiting_jobs/models", method = { RequestMethod.GET }, produces = {
+            "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
     public EnvelopeResponse getWaitingJobsInfoGroupByModel(@RequestParam(value = "project") String project) {
         checkProjectName(project);
@@ -149,21 +155,44 @@ public class NJobController extends NBasicController {
             "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
     public EnvelopeResponse getJobOutput(@PathVariable("jobId") String jobId, @PathVariable("stepId") String stepId,
-            @RequestParam(value = "project", required = true) String project) {
+            @RequestParam(value = "project") String project) {
         Map<String, String> result = new HashMap<String, String>();
         result.put("jobId", jobId);
         result.put("stepId", stepId);
-        result.put("cmd_output",
-                jobService.getJobOutput(project, stepId));
+        result.put("cmd_output", jobService.getJobOutput(project, stepId));
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, result, "");
+    }
+
+    @RequestMapping(value = "/{jobId}/steps/{stepId}/log", method = { RequestMethod.GET }, produces = {
+            "application/vnd.apache.kylin-v2+json" })
+    @ResponseBody
+    public EnvelopeResponse downloadLogFile(@PathVariable("jobId") String jobId, @PathVariable("stepId") String stepId,
+            @RequestParam(value = "project") String project, HttpServletResponse response) {
+        checkProjectName(project);
+        checkRequiredArg("jobId", jobId);
+        checkRequiredArg("stepId", stepId);
+        String downloadFilename = String.format("%s_%s.log", project, stepId);
+
+        String hdfsLogpath = jobService.getHdfsLogPath(project, stepId);
+        if (Objects.isNull(hdfsLogpath)) {
+            return new EnvelopeResponse(ResponseCode.CODE_UNDEFINED, null, "can not found the log file!");
+        }
+
+        response.setHeader("content-type", "application/octet-stream");
+        response.setContentType("application/octet-stream");
+        response.setHeader(HttpHeaders.CONTENT_DISPOSITION,
+                String.format("attachment; filename=\"%s\"", downloadFilename));
+
+        jobService.downloadHdfsLogFile(response, hdfsLogpath);
+
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, null, "");
     }
 
     @RequestMapping(value = "/statistics", method = { RequestMethod.GET }, produces = {
             "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
     public EnvelopeResponse getJobStats(@RequestParam(value = "project") String project,
-                                         @RequestParam(value = "start_time") long startTime,
-                                        @RequestParam(value = "end_time") long endTime) {
+            @RequestParam(value = "start_time") long startTime, @RequestParam(value = "end_time") long endTime) {
         checkProjectName(project);
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, jobService.getJobStats(project, startTime, endTime), "");
     }
@@ -172,34 +201,32 @@ public class NJobController extends NBasicController {
             "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
     public EnvelopeResponse getJobCount(@RequestParam(value = "project") String project,
-                                        @RequestParam(value = "start_time") long startTime,
-                                        @RequestParam(value = "end_time") long endTime,
-                                        @RequestParam(value = "dimension") String dimension) {
+            @RequestParam(value = "start_time") long startTime, @RequestParam(value = "end_time") long endTime,
+            @RequestParam(value = "dimension") String dimension) {
         checkProjectName(project);
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, jobService.getJobCount(project, startTime, endTime, dimension), "");
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS,
+                jobService.getJobCount(project, startTime, endTime, dimension), "");
     }
 
     @RequestMapping(value = "/statistics/duration_per_byte", method = { RequestMethod.GET }, produces = {
             "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
     public EnvelopeResponse getJobDurationPerByte(@RequestParam(value = "project") String project,
-                                                  @RequestParam(value = "start_time") long startTime,
-                                                  @RequestParam(value = "end_time") long endTime,
-                                                  @RequestParam(value = "dimension") String dimension) {
+            @RequestParam(value = "start_time") long startTime, @RequestParam(value = "end_time") long endTime,
+            @RequestParam(value = "dimension") String dimension) {
         checkProjectName(project);
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, jobService.getJobDurationPerByte(project, startTime, endTime, dimension), "");
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS,
+                jobService.getJobDurationPerByte(project, startTime, endTime, dimension), "");
     }
 
     @RequestMapping(value = "/spark", method = { RequestMethod.PUT }, produces = {
             "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public EnvelopeResponse updateSparkJobInfo(@RequestBody SparkJobUpdateRequest sparkJobUpdateRequest) throws IOException {
+    public EnvelopeResponse updateSparkJobInfo(@RequestBody SparkJobUpdateRequest sparkJobUpdateRequest)
+            throws IOException {
         checkProjectName(sparkJobUpdateRequest.getProject());
-        jobService.updateSparkJobInfo(
-                sparkJobUpdateRequest.getProject(),
-                sparkJobUpdateRequest.getJobId(),
-                sparkJobUpdateRequest.getTaskId(),
-                sparkJobUpdateRequest.getYarnAppId(),
+        jobService.updateSparkJobInfo(sparkJobUpdateRequest.getProject(), sparkJobUpdateRequest.getJobId(),
+                sparkJobUpdateRequest.getTaskId(), sparkJobUpdateRequest.getYarnAppId(),
                 sparkJobUpdateRequest.getYarnAppUrl());
 
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, null, "");

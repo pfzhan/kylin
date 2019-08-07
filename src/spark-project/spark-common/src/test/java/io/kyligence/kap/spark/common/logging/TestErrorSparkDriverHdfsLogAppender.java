@@ -23,40 +23,14 @@
  */
 package io.kyligence.kap.spark.common.logging;
 
+import java.io.IOException;
 
-import org.slf4j.Logger;
+public class TestErrorSparkDriverHdfsLogAppender extends SparkDriverHdfsLogAppender {
 
-import java.io.PrintStream;
-
-public class PrintStreamManager {
-
-    private PrintStreamManager() {
-    }
-
-    private static final PrintStream outPrintStream = System.out;
-    private static final PrintStream errPrintStream = System.err;
-
-    public static PrintStream createLoggingProxy(final Logger logger, final PrintStream printStream, boolean setError) {
-        return new PrintStream(printStream) {
-            @Override
-            public void print(final String message) {
-                if (setError) {
-                    logger.error(message);
-                } else {
-                    logger.info(message);
-                }
-            }
-
-            @Override
-            public void println(final String message) {
-                print(message);
-            }
-        };
-    }
-
-    public static void resetSystemPrintStream() {
-        System.setOut(outPrintStream);
-        System.setErr(errPrintStream);
+    @Override
+    public void doWriteLog(int size) throws IOException, InterruptedException {
+        super.doWriteLog(size);
+        throw new IOException("test flush IOException!");
     }
 
 }

@@ -33,8 +33,11 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Deque;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -47,6 +50,8 @@ import java.util.stream.Collectors;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.hadoop.fs.FSDataInputStream;
+import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.kylin.common.JobProcessContext;
@@ -229,12 +234,8 @@ public class NExecutableManager {
                 KylinConfig.getInstanceFromEnv().getJobTmpOutputStorePath(project, jobId));
         assertOutputNotNull(jobOutput, KylinConfig.getInstanceFromEnv().getJobTmpOutputStorePath(project, jobId));
 
-        if(Objects.nonNull(jobOutput.getLogPath())) {
-            if(Objects.isNull(jobOutput.getContent())) {
-                jobOutput.setContent(getSampleDataFromHDFS(jobOutput.getLogPath()));
-            } else {
-                jobOutput.setContent(jobOutput.getContent() + getSampleDataFromHDFS(jobOutput.getLogPath()));
-            }
+        if (Objects.nonNull(jobOutput.getLogPath())) {
+            jobOutput.setContent(getSampleDataFromHDFS(jobOutput.getLogPath(), 100));
         }
         return parseOutput(jobOutput);
     }
@@ -608,32 +609,109 @@ public class NExecutableManager {
     }
 
     /**
-     * get sample data from hdfs log data.
+     * get sample data from hdfs log file.
+     * specified the lines, will get the first num lines and last num lines.
+     *
      * @param resPath
      * @return
      */
-    public String getSampleDataFromHDFS(String resPath) {
-        try{
+    public String getSampleDataFromHDFS(String resPath, final int nLines) {
+        try {
             Path path = new Path(resPath);
             FileSystem fs = HadoopUtil.getFileSystem(path);
-            if(!fs.exists(path)) {
+            if (!fs.exists(path)) {
                 return null;
             }
 
-            try(DataInputStream din = fs.open(path);
-                 BufferedReader reader = new BufferedReader(new InputStreamReader(din))) {
+            FileStatus fileStatus = fs.getFileStatus(path);
+            try (FSDataInputStream din = fs.open(path);
+                    BufferedReader reader = new BufferedReader(new InputStreamReader(din))) {
+
                 String line;
                 StringBuilder sampleData = new StringBuilder();
-                while ((line = reader.readLine()) != null) {
-                    sampleData.append(line).append('\n');
+                for (int i = 0; i < nLines && (line = reader.readLine()) != null; i++) {
+                    if (sampleData.length() > 0) {
+                        sampleData.append('\n');
+                    }
+                    sampleData.append(line);
                 }
 
+                int offset = sampleData.toString().getBytes().length + 1;
+                if (offset < fileStatus.getLen()) {
+                    sampleData.append("\n================================================================\n");
+                    sampleData.append(tailHdfsFileInputStream(din, offset, fileStatus.getLen(), nLines));
+                }
                 return sampleData.toString();
             }
         } catch (IOException e) {
             logger.error("get sample data from hdfs log file [{}] failed!", resPath, e);
             return null;
         }
+    }
+
+    /**
+     * get the last N_LINES lines from the end of hdfs file input stream;
+     * reference: https://olapio.atlassian.net/wiki/spaces/PD/pages/1306918958
+     *
+     * @param hdfsDin
+     * @param startPos
+     * @param endPos
+     * @param nLines
+     * @return
+     * @throws IOException
+     */
+    private String tailHdfsFileInputStream(FSDataInputStream hdfsDin, final long startPos, final long endPos,
+            final int nLines) throws IOException {
+        Preconditions.checkNotNull(hdfsDin);
+        Preconditions.checkArgument(startPos < endPos && startPos >= 0);
+        Preconditions.checkArgument(nLines >= 0);
+
+        Deque<String> deque = new ArrayDeque<>();
+        int buffSize = 8192;
+        byte[] byteBuf = new byte[buffSize];
+
+        long pos = endPos;
+
+        // cause by log last char is \n
+        hdfsDin.seek(pos - 1);
+        int lastChar = hdfsDin.read();
+        if ('\n' == lastChar) {
+            pos--;
+        }
+
+        int bytesRead = (int) ((pos - startPos) % buffSize);
+        if (bytesRead == 0) {
+            bytesRead = buffSize;
+        }
+
+        pos -= bytesRead;
+        int lines = nLines;
+        while (lines > 0 && pos >= startPos) {
+            bytesRead = hdfsDin.read(pos, byteBuf, 0, bytesRead);
+
+            int last = bytesRead;
+            for (int i = bytesRead - 1; i >= 0 && lines > 0; i--) {
+                if (byteBuf[i] == '\n') {
+                    deque.push(new String(byteBuf, i, last - i, StandardCharsets.UTF_8));
+                    lines--;
+                    last = i;
+                }
+            }
+
+            if (lines > 0 && last > 0) {
+                deque.push(new String(byteBuf, 0, last, StandardCharsets.UTF_8));
+            }
+
+            bytesRead = buffSize;
+            pos -= bytesRead;
+        }
+
+        StringBuilder sb = new StringBuilder();
+        while (!deque.isEmpty()) {
+            sb.append(deque.pop());
+        }
+
+        return sb.length() > 0 && sb.charAt(0) == '\n' ? sb.substring(1) : sb.toString();
     }
 
     private void assertOutputNotNull(ExecutableOutputPO output, String idOrPath) {

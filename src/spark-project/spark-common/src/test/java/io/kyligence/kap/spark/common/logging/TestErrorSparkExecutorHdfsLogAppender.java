@@ -21,24 +21,16 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-
 package io.kyligence.kap.spark.common.logging;
 
 import java.io.IOException;
 
-public class TestErrorHdfsFileAppender extends HdfsFileAppender {
+public class TestErrorSparkExecutorHdfsLogAppender extends SparkExecutorHdfsLogAppender {
 
     @Override
-    public HdfsFileAppender.HdfsFlushService initService() {
-        return new TestErrorHdfsFileAppender.ErrorService();
-    }
-
-    class ErrorService extends HdfsFileAppender.HdfsFlushService {
-
-        @Override
-        protected void flush() throws IOException {
-            throw new RuntimeException("For test.");
-        }
+    public void doWriteLog(int size) throws IOException, InterruptedException {
+        super.doWriteLog(size);
+        throw new IOException("test flush IOException!");
     }
 
 }
