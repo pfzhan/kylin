@@ -61,6 +61,7 @@ public class QueryConnection {
         info.put("model", olapTmp.getAbsolutePath());
         info.put("typeSystem", "org.apache.kylin.query.calcite.KylinRelDataTypeSystem");
         info.put("DEFAULT_NULL_COLLATION", "LOW");
+        info.put("caseSensitive", "false");
         return DriverManager.getConnection("jdbc:calcite:", info);
     }
 }
