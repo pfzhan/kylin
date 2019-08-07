@@ -36,6 +36,7 @@ import org.apache.kylin.rest.response.SQLResponse;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -66,6 +67,7 @@ public class QueryMetricsContextTest extends NLocalFileMetadataTestCase {
         staticCleanupTestMetadata();
     }
 
+    @Ignore("#14035")
     @Test
     public void assertStart() {
         try {
@@ -305,8 +307,7 @@ public class QueryMetricsContextTest extends NLocalFileMetadataTestCase {
             QueryMetricsContext.start(queryContext.getQueryId(), "localhost:7070");
             Assert.assertEquals(true, QueryMetricsContext.isStarted());
 
-            queryContext
-                    .setFinalCause(new RuntimeException("realization not found", new RuntimeException()));
+            queryContext.setFinalCause(new RuntimeException("realization not found", new RuntimeException()));
 
             final SQLRequest request = new SQLRequest();
             request.setProject("default");
@@ -314,8 +315,10 @@ public class QueryMetricsContextTest extends NLocalFileMetadataTestCase {
             request.setUsername("ADMIN");
 
             final SQLResponse response = new SQLResponse();
-            NativeQueryRealization aggIndex = new NativeQueryRealization("mocked_model_id", "mocked_model", 1L, QueryMetricsContext.AGG_INDEX);
-            NativeQueryRealization tableIndex = new NativeQueryRealization("mocked_model_id", "mocked_model", IndexEntity.TABLE_INDEX_START_ID + 2, QueryMetricsContext.TABLE_INDEX);
+            NativeQueryRealization aggIndex = new NativeQueryRealization("mocked_model_id", "mocked_model", 1L,
+                    QueryMetricsContext.AGG_INDEX);
+            NativeQueryRealization tableIndex = new NativeQueryRealization("mocked_model_id", "mocked_model",
+                    IndexEntity.TABLE_INDEX_START_ID + 2, QueryMetricsContext.TABLE_INDEX);
             response.setNativeRealizations(Lists.newArrayList(aggIndex, tableIndex));
             response.setEngineType("NATIVE");
 
@@ -329,7 +332,8 @@ public class QueryMetricsContextTest extends NLocalFileMetadataTestCase {
 
             // assert query metric fields
             final Map<String, Object> influxdbFields = metricsContext.getInfluxdbFields();
-            Assert.assertEquals("mocked_model_id#1#Agg Index,mocked_model_id#20000000002#Table Index", influxdbFields.get("realizations"));
+            Assert.assertEquals("mocked_model_id#1#Agg Index,mocked_model_id#20000000002#Table Index",
+                    influxdbFields.get("realizations"));
 
             // assert realizations
             final List<QueryMetricsContext.RealizationMetrics> realizationMetrics = metricsContext
