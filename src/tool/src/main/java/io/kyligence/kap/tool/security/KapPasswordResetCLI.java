@@ -81,7 +81,7 @@ public class KapPasswordResetCLI {
         logger.trace("update user : {}", user.getUsername());
         logger.info("User " + user.getUsername() + "'s password is set to default password.");
 
-        MetadataTool.backup(config, true);
+        MetadataTool.backup(config);
 
     }
 }

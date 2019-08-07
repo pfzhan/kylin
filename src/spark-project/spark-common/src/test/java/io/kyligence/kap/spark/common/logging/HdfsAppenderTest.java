@@ -47,6 +47,7 @@ import org.apache.log4j.Level;
 import org.apache.log4j.spi.LoggingEvent;
 import org.apache.spark.SparkEnv;
 import org.junit.Assert;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -182,6 +183,7 @@ public class HdfsAppenderTest {
 
     public static final Logger logger = LoggerFactory.getLogger(HdfsAppenderTest.class);
 
+    @Ignore("#13898")
     @Test
     public void testHdfsAppender() throws InterruptedException, IOException {
         String workingdir = "/tmp/work";

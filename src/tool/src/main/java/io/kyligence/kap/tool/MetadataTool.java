@@ -310,7 +310,6 @@ public class MetadataTool extends ExecutableApplication {
     private void restore(OptionsHelper optionsHelper) throws IOException {
         val project = optionsHelper.getOptionValue(OPTION_PROJECT);
         val restorePath = optionsHelper.getOptionValue(OPTION_DIR);
-        val compressed = optionsHelper.hasOption(OPERATE_COMPRESS);
 
         val restoreMetadataUrl = getMetadataUrl(restorePath);
         val restoreConfig = KylinConfig.createKylinConfig(kylinConfig);
@@ -365,16 +364,13 @@ public class MetadataTool extends ExecutableApplication {
         }
 
         log.info("restore successfully");
-        backup(kylinConfig, compressed);
-
+        backup(kylinConfig);
 
     }
 
-    public static void backup(KylinConfig kylinConfig, boolean compressed) throws IOException {
+    public static void backup(KylinConfig kylinConfig) throws IOException {
         HDFSMetadataTool.cleanBeforeBackup(kylinConfig);
-        String[] args = compressed
-                ? new String[] { "-backup", "-compress", "-dir", HadoopUtil.getBackupFolder(kylinConfig) }
-                : new String[] { "-backup", "-dir", HadoopUtil.getBackupFolder(kylinConfig) };
+        String[] args = new String[] { "-backup", "-compress", "-dir", HadoopUtil.getBackupFolder(kylinConfig) };
         val backupTool = new MetadataTool();
         backupTool.execute(args);
     }
