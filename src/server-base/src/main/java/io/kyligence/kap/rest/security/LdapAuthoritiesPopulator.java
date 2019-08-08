@@ -40,7 +40,7 @@
  * limitations under the License.
  */
 
-package org.apache.kylin.rest.security;
+package io.kyligence.kap.rest.security;
 
 import java.util.Set;
 
@@ -52,11 +52,11 @@ import org.springframework.security.ldap.userdetails.DefaultLdapAuthoritiesPopul
 
 import com.google.common.collect.Sets;
 
-public class LDAPAuthoritiesPopulator extends DefaultLdapAuthoritiesPopulator {
+public class LdapAuthoritiesPopulator extends DefaultLdapAuthoritiesPopulator {
 
     private SimpleGrantedAuthority adminRoleAsAuthority;
 
-    public LDAPAuthoritiesPopulator(ContextSource contextSource, String groupSearchBase, String adminRole) {
+    public LdapAuthoritiesPopulator(ContextSource contextSource, String groupSearchBase, String adminRole) {
         super(contextSource, groupSearchBase);
         setConvertToUpperCase(false);
         setRolePrefix("");

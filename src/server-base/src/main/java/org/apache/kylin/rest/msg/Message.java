@@ -335,8 +335,16 @@ public class Message {
         return "User editing is not allowed unless in testing profile, please go to LDAP/SAML provider instead";
     }
 
+    public String getUSER_EDIT_NOT_ALLOWED_FOR_CUSTOM() {
+        return "User editing is not allowed unless in current custom profile, function '%s' not implemented";
+    }
+
     public String getGroup_EDIT_NOT_ALLOWED() {
         return "Group editing is not allowed unless in testing profile, please go to LDAP/SAML provider instead";
+    }
+
+    public String getGroup_EDIT_NOT_ALLOWED_FOR_CUSTOM() {
+        return "Group editing is not allowed unless in current custom profile, function '%s' not implemented";
     }
 
     public String getOLD_PASSWORD_WRONG() {

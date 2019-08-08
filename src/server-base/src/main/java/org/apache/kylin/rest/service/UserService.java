@@ -44,7 +44,9 @@ package org.apache.kylin.rest.service;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.stream.Collectors;
 
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.security.provisioning.UserDetailsManager;
 
 import io.kyligence.kap.metadata.user.ManagedUser;
@@ -64,5 +66,16 @@ public interface UserService extends UserDetailsManager {
     //loadUserByUsername() has guarantee that the return user is complete.
     void completeUserInfo(ManagedUser user);
 
-    List<ManagedUser> getManagedUsersByFuzzMatching(String userName, boolean isCaseSensitive) throws IOException;
+    default List<ManagedUser> getManagedUsersByFuzzMatching(String userName, boolean isCaseSensitive)
+            throws IOException {
+        return listUsers().stream().filter(managedUser -> {
+            if (StringUtils.isEmpty(userName)) {
+                return true;
+            } else if (isCaseSensitive) {
+                return managedUser.getUsername().contains(userName);
+            } else {
+                return StringUtils.containsIgnoreCase(managedUser.getUsername(), userName);
+            }
+        }).collect(Collectors.toList());
+    }
 }

@@ -45,9 +45,7 @@ package org.apache.kylin.rest.service;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 
-import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.JsonSerializer;
 import org.apache.kylin.common.persistence.Serializer;
@@ -149,7 +147,7 @@ public class KylinUserService implements UserService {
         ManagedUser managedUser = null;
         try {
             managedUser = getKylinUserManager().get(userName);
-        }catch (IllegalArgumentException e) {
+        } catch (IllegalArgumentException e) {
             logger.error("exception: ", e);
             throw new UsernameNotFoundException(String.format(msg.getUSER_AUTH_FAILED()));
         }
@@ -178,20 +176,6 @@ public class KylinUserService implements UserService {
 
     @Override
     public void completeUserInfo(ManagedUser user) {
-    }
-
-    @Override
-    public List<ManagedUser> getManagedUsersByFuzzMatching(String userName, boolean isCaseSensitive)
-            throws IOException {
-        return listUsers().stream().filter(managedUser -> {
-            if (StringUtils.isEmpty(userName)) {
-                return true;
-            } else if (isCaseSensitive) {
-                return managedUser.getUsername().contains(userName);
-            } else {
-                return StringUtils.containsIgnoreCase(managedUser.getUsername(), userName);
-            }
-        }).collect(Collectors.toList());
     }
 
     public static String getId(String userName) {
