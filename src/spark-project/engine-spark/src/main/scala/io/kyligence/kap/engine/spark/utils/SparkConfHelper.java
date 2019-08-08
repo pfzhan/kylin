@@ -59,6 +59,7 @@ public class SparkConfHelper {
     public static final String LAYOUT_SIZE = "layout_size";
     // configurations key
     public static final String DEFAULT_QUEUE = "spark.yarn.queue";
+    public static final String REQUIRED_CORES = "required_cores";
     public static final String EXECUTOR_INSTANCES = "spark.executor.instances";
     public static final String EXECUTOR_CORES = "spark.executor.cores";
     public static final String EXECUTOR_MEMORY = "spark.executor.memory";

@@ -170,8 +170,9 @@ public class SparkConfHelperTest extends NLocalFileMetadataTestCase {
      *  v2 = Calculate the number of instances based on layout size. See the calculation rules.
      *     kylin.engine.executor-instance-strategy = "100,2,500,3,1000,4"
      *     if SparkConfHelper.LAYOUT_SIZE is -1,then v2 = v1
-     *  v3 = Calculate the number of instances based on the available resources of the queue.
-     *  rule --> spark.executor.instances = max(v1, min(v2, v3))
+     *  v3 = Calculate the number of instances based on the available resources of the queue.'
+     *  v4 = Calculate the number of instances based on required cores
+     *  rule --> spark.executor.instances = max(v1, min(max(v2,v4), v3))
      */
     @Test
     public void testExecutorInstancesRule() {
@@ -185,26 +186,35 @@ public class SparkConfHelperTest extends NLocalFileMetadataTestCase {
         instancesRule.apply(helper);
         Assert.assertEquals("5", helper.getConf(SparkConfHelper.EXECUTOR_INSTANCES));
 
-        // case: v1 == v2 < v3, spark.executor.instances = v1
+        // case: v1 == v2 < v4 < v3, spark.executor.instances = v4
         resetSparkConfHelper(helper);
         Mockito.when(fetcher.fetchQueueAvailableResource("default"))
                 .thenReturn(new AvailableResource(new ResourceInfo(20480, 100), new ResourceInfo(60480, 100)));
         instancesRule.apply(helper);
-        Assert.assertEquals("5", helper.getConf(SparkConfHelper.EXECUTOR_INSTANCES));
+        Assert.assertEquals("14", helper.getConf(SparkConfHelper.EXECUTOR_INSTANCES));
 
-        // case: v1 < v2 < v3, spark.executor.instances = v2
+        // case: v1 < v4 <  v2 < v3, spark.executor.instances = v2
         resetSparkConfHelper(helper);
         helper.setOption(SparkConfHelper.LAYOUT_SIZE, "200");
+        helper.setOption(SparkConfHelper.REQUIRED_CORES, "9");
         instancesRule.apply(helper);
         Assert.assertEquals("10", helper.getConf(SparkConfHelper.EXECUTOR_INSTANCES));
 
-        // case: v2 < v3 < v1, spark.executor.instances = v1
+
+        // case: v1 < v2 < v4 < v3, spark.executor.instances = v4
+        resetSparkConfHelper(helper);
+        helper.setOption(SparkConfHelper.LAYOUT_SIZE, "200");
+        instancesRule.apply(helper);
+        Assert.assertEquals("14", helper.getConf(SparkConfHelper.EXECUTOR_INSTANCES));
+
+
+        // case: v2 < v4 < v3 < v1, spark.executor.instances = v1
         resetSparkConfHelper(helper);
         System.setProperty("kylin.engine.base-executor-instance", "30");
         instancesRule.apply(helper);
         Assert.assertEquals("30", helper.getConf(SparkConfHelper.EXECUTOR_INSTANCES));
 
-        // case: v1 < v2 < v3, spark.executor.instances = v2
+        // case: v1 <  v 4 < v2 < v3, spark.executor.instances = v2
         resetSparkConfHelper(helper);
         Mockito.when(fetcher.fetchQueueAvailableResource("default"))
                 .thenReturn(new AvailableResource(new ResourceInfo(60480, 100), new ResourceInfo(60480, 100)));
@@ -212,11 +222,13 @@ public class SparkConfHelperTest extends NLocalFileMetadataTestCase {
         instancesRule.apply(helper);
         Assert.assertEquals("20", helper.getConf(SparkConfHelper.EXECUTOR_INSTANCES));
 
-        // case: SparkConfHelper.LAYOUT_SIZE=-1, v1 = v2 < v3, spark.executor.instances = v1
+        // case: SparkConfHelper.LAYOUT_SIZE=-1, v4 < v1 = v2 < v3 , spark.executor.instances = v1
         resetSparkConfHelper(helper);
         helper.setOption(SparkConfHelper.LAYOUT_SIZE, "-1");
+        helper.setOption(SparkConfHelper.REQUIRED_CORES, "4");
         instancesRule.apply(helper);
         Assert.assertEquals("5", helper.getConf(SparkConfHelper.EXECUTOR_INSTANCES));
+
     }
 
     private void resetSparkConfHelper(SparkConfHelper helper) {
@@ -225,6 +237,7 @@ public class SparkConfHelperTest extends NLocalFileMetadataTestCase {
         helper.setConf(SparkConfHelper.DEFAULT_QUEUE, "default");
         helper.setConf(SparkConfHelper.EXECUTOR_MEMORY, "1GB");
         helper.setConf(SparkConfHelper.EXECUTOR_OVERHEAD, "512MB");
+        helper.setOption(SparkConfHelper.REQUIRED_CORES, "14");
 
         System.clearProperty("kylin.engine.base-executor-instance");
     }

@@ -36,13 +36,17 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import org.apache.hadoop.fs.FileStatus;
+import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.util.StringUtils;
 import org.apache.kylin.common.KapConfig;
+import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.kylin.storage.StorageFactory;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
+import org.apache.spark.sql.hive.utils.ResourceDetectUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -127,6 +131,27 @@ public class DFBuildJob extends SparkApplication {
             }
             logger.info("Building job takes {} ms", (System.currentTimeMillis() - start));
         }
+    }
+
+    @Override
+    protected  String calculateRequiredCores() throws Exception {
+        if (config.getSparkEngineTaskImpactInstanceEnabled()) {
+            Path shareDir = config.getJobTmpShareDir(project, jobId);
+            String maxLeafTasksNums =  maxLeafTasksNums(shareDir);
+            logger.info("Calculate the number of executor instance size based on the number of leafTaskNums: {}", maxLeafTasksNums);
+            val config = KylinConfig.getInstanceFromEnv();
+            val factor = config.getSparkEngineTaskCoreFactor();
+            return String.valueOf(Integer.valueOf(maxLeafTasksNums) / factor);
+        } else {
+            return SparkJobConstants.DEFAULT_REQUIRED_CORES;
+        }
+    }
+
+    private String maxLeafTasksNums(Path shareDir) throws IOException {
+        FileSystem fs = HadoopUtil.getFileSystem(shareDir);
+        FileStatus[] fileStatuses = fs.listStatus(shareDir,
+                path -> path.toString().endsWith(ResourceDetectUtils.cubingDetectItemFileSuffix()));
+        return  ResourceDetectUtils.selectMaxValueInFiles(fileStatuses);
     }
 
     private NDataSegment getSegment(String segId) {

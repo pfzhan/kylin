@@ -27,6 +27,7 @@ import io.kyligence.kap.engine.spark.utils.SparkConfHelper
 import org.apache.kylin.common.KylinConfig
 import org.apache.spark.internal.Logging
 import org.apache.spark.util.Utils
+import io.kyligence.kap.engine.spark.utils.SparkConfRuleConstants
 
 sealed trait SparkConfRule extends Logging {
   def apply(helper: SparkConfHelper): Unit = {
@@ -68,7 +69,7 @@ class ExecutorCoreRule extends SparkConfRule {
     val cores = if (sourceGB >= 1) {
       "5"
     } else {
-      "1"
+      SparkConfRuleConstants.DEFUALT_EXECUTOR_CORE
     }
     helper.setConf(SparkConfHelper.EXECUTOR_CORES, cores)
   }
@@ -92,24 +93,38 @@ class ExecutorOverheadRule extends SparkConfRule {
 
 class ExecutorInstancesRule extends SparkConfRule {
   override def doApply(helper: SparkConfHelper): Unit = {
+    val config: KylinConfig = KylinConfig.getInstanceFromEnv
     val queue = helper.getConf(SparkConfHelper.DEFAULT_QUEUE)
     val layoutSize = helper.getOption(SparkConfHelper.LAYOUT_SIZE)
+    val requiredCores = helper.getOption(SparkConfHelper.REQUIRED_CORES)
     val baseExecutorInstances = KylinConfig.getInstanceFromEnv.getSparkEngineBaseExuctorInstances
     val calculateExecutorInsByLayoutSize = calculateExecutorInstanceSizeByLayoutSize(Integer.parseInt(layoutSize))
 
+
     val availableMem = helper.getFetcher.fetchQueueAvailableResource(queue).available.memory
+    val availableCore = helper.getFetcher.fetchQueueAvailableResource(queue).available.vCores
     val executorMem = Utils.byteStringAsMb(helper.getConf(SparkConfHelper.EXECUTOR_MEMORY))
     +Utils.byteStringAsMb(helper.getConf(SparkConfHelper.EXECUTOR_OVERHEAD))
-    val queueAvailableInstance = availableMem / executorMem
-    val instance = Math.min(calculateExecutorInsByLayoutSize.toLong, queueAvailableInstance)
+
+    val executorCore: Int = Option(helper.getConf(SparkConfHelper.EXECUTOR_CORES)) match {
+      case Some(cores) => cores.toInt
+      case None => SparkConfRuleConstants.DEFUALT_EXECUTOR_CORE.toInt
+    }
+
+    val queueAvailableInstance = Math.min(availableMem / executorMem, availableCore / executorCore)
     logInfo(s"Maximum instance that the current queue can set: $queueAvailableInstance")
+
+    val needInstance = Math.max(calculateExecutorInsByLayoutSize.toLong, requiredCores.toInt / executorCore)
+    val instance = Math.min(needInstance, queueAvailableInstance)
     val executorInstance = Math.max(instance.toLong, baseExecutorInstances.toLong).toString
+    logInfo(s"queueAvailableInstance is $queueAvailableInstance , needInstance is $needInstance , instance is $instance")
     helper.setConf(SparkConfHelper.EXECUTOR_INSTANCES, executorInstance)
   }
 
   override def fallback(helper: SparkConfHelper): Unit = {
     helper.setConf(SparkConfHelper.EXECUTOR_INSTANCES, KylinConfig.getInstanceFromEnv.getSparkEngineBaseExuctorInstances.toString)
   }
+
 
   def calculateExecutorInstanceSizeByLayoutSize(layoutSize: Int): Int = {
     logInfo(s"Calculate the number of executor instance size based on the number of layouts: $layoutSize")

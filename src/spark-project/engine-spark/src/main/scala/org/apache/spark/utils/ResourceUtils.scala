@@ -22,13 +22,38 @@
 
 package org.apache.spark.utils
 
+import java.util.{List => JList, Map => JMap}
+
 import io.kyligence.kap.cluster.{AvailableResource, ClusterInfoFetcher, ResourceInfo}
 import io.kyligence.kap.engine.spark.utils.SparkConfHelper._
+import io.kyligence.kap.engine.spark.job.SparkJobConstants
+import org.apache.kylin.common.KylinConfig
 import org.apache.spark.SparkConf
 import org.apache.spark.internal.Logging
+import org.apache.spark.sql.hive.utils.EnumDetectItem
 import org.apache.spark.util.Utils
 
 object ResourceUtils extends Logging {
+
+  @throws[Exception]
+  def caculateRequiredCores(sampSplitThreshold: String, detectItems: JMap[EnumDetectItem, String], rowCount: Long): String = {
+    val lineCount = detectItems.get(EnumDetectItem.ESTIMATED_LINE_COUNT)
+    val estimatedSize = detectItems.get(EnumDetectItem.ESTIMATED_SIZE)
+    val splitThreshold = Utils.byteStringAsBytes(sampSplitThreshold)
+    val aveBytesSingleLine = estimatedSize.toDouble / lineCount.toDouble
+    assert(splitThreshold > aveBytesSingleLine)
+    val linesPerPartition = splitThreshold / aveBytesSingleLine
+    val partitions = if (linesPerPartition >= rowCount) {
+      SparkJobConstants.DEFAULT_REQUIRED_CORES
+    } else {
+      math.ceil(rowCount / linesPerPartition).toInt
+    }
+    logInfo(s"linecount is $lineCount, estimatedSize is $estimatedSize, splitThreshold is $splitThreshold")
+    logInfo(s"aveBytesSingleLine is $aveBytesSingleLine, linesPerPartition is $linesPerPartition, partitions is $partitions")
+    partitions.toString
+  }
+
+
   def checkResource(sparkConf: SparkConf, clusterInfo: ClusterInfoFetcher): Boolean = {
     val queue = sparkConf.get("spark.yarn.queue", "default")
     val driverMemory = (Utils.byteStringAsMb(sparkConf.get(DRIVER_MEMORY)) + Utils.byteStringAsMb(sparkConf.get(DRIVER_OVERHEAD))).toInt

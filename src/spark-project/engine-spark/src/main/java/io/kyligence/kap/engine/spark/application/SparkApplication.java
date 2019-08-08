@@ -35,6 +35,7 @@ import java.util.Map;
 
 import io.kyligence.kap.engine.spark.job.BuildJobInfos;
 import io.kyligence.kap.engine.spark.job.LogJobInfoUtils;
+import io.kyligence.kap.engine.spark.job.SparkJobConstants;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.fs.FileStatus;
@@ -303,17 +304,23 @@ public abstract class SparkApplication implements Application, IKeep {
 
     protected abstract void doExecute() throws Exception;
 
+    protected  String calculateRequiredCores() throws Exception {
+        return SparkJobConstants.DEFAULT_REQUIRED_CORES;
+    }
+
     private void autoSetSparkConf(SparkConf sparkConf) throws Exception {
         logger.info("Start set spark conf automatically.");
         SparkConfHelper helper = new SparkConfHelper();
         helper.setFetcher(KylinBuildEnv.get().clusterInfoFetcher());
         Path shareDir = config.getJobTmpShareDir(project, jobId);
         String contentSize = chooseContentSize(shareDir);
+
         // add content size with unit
         helper.setOption(SparkConfHelper.SOURCE_TABLE_SIZE, contentSize);
         helper.setOption(SparkConfHelper.LAYOUT_SIZE, Integer.toString(layoutSize));
         Map<String, String> configOverride = config.getSparkConfigOverride();
         helper.setConf(SparkConfHelper.DEFAULT_QUEUE, configOverride.get(SparkConfHelper.DEFAULT_QUEUE));
+        helper.setOption(SparkConfHelper.REQUIRED_CORES, calculateRequiredCores());
         helper.generateSparkConf();
         helper.applySparkConf(sparkConf);
     }

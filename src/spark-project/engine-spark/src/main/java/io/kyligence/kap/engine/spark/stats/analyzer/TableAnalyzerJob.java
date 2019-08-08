@@ -27,18 +27,23 @@ import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 
+
+import org.apache.hadoop.fs.Path;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.TableExtDesc;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparkSession;
+import org.apache.spark.utils.ResourceUtils;
+import org.apache.spark.sql.hive.utils.ResourceDetectUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
+import io.kyligence.kap.engine.spark.job.SparkJobConstants;
 import io.kyligence.kap.engine.spark.application.SparkApplication;
 import io.kyligence.kap.engine.spark.job.TableAnalysisJob;
 import io.kyligence.kap.metadata.cube.model.NBatchConstants;
@@ -54,10 +59,9 @@ public class TableAnalyzerJob extends SparkApplication implements Serializable {
 
     @Override
     protected void doExecute() {
-        String prjName = getParam(NBatchConstants.P_PROJECT_NAME);
         String tableName = getParam(NBatchConstants.P_TABLE_NAME);
         Long rowCount = Long.valueOf(getParam(NBatchConstants.P_SAMPLING_ROWS));
-
+        String prjName = getParam(NBatchConstants.P_PROJECT_NAME);
         TableDesc tableDesc = NTableMetadataManager.getInstance(config, project).getTableDesc(tableName);
         logger.info("Start analyse table {} ", tableName);
         analyzeTable(tableDesc, prjName, rowCount.intValue(), config, ss);
@@ -127,6 +131,21 @@ public class TableAnalyzerJob extends SparkApplication implements Serializable {
         tableMetadataManager.saveTableExt(tableExt);
         logger.info("Table {} analysis finished, update table ext desc done.", tableDesc.getName());
     }
+
+    @Override
+    protected String calculateRequiredCores() throws Exception {
+        String tableName = getParam(NBatchConstants.P_TABLE_NAME);
+        Long rowCount = Long.valueOf(getParam(NBatchConstants.P_SAMPLING_ROWS));
+        if (config.getSparkEngineDataImpactInstanceEnabled()) {
+            Path shareDir = config.getJobTmpShareDir(project, jobId);
+            val  child = tableName + "_" + ResourceDetectUtils.samplingDetectItemFileSuffix();
+            val  detectItems = ResourceDetectUtils.readDetectItems(new Path(shareDir,  child));
+            return ResourceUtils.caculateRequiredCores(config.getSparkEngineSampleSplitThreshold(), detectItems, rowCount);
+        } else {
+            return SparkJobConstants.DEFAULT_REQUIRED_CORES;
+        }
+    }
+
 
     public static void main(String[] args) {
         TableAnalyzerJob job = new TableAnalyzerJob();

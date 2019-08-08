@@ -25,13 +25,12 @@ package org.apache.spark.sql.hive.utils
 import java.util.{List => JList, Map => JMap}
 
 import com.fasterxml.jackson.core.`type`.TypeReference
-import org.apache.hadoop.fs.{FSDataInputStream, FSDataOutputStream, Path}
+import org.apache.hadoop.fs.{FSDataInputStream, FSDataOutputStream, FileStatus, Path}
 import org.apache.kylin.common.util.{HadoopUtil, JsonUtil}
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.execution.columnar.InMemoryTableScanExec
 import org.apache.spark.sql.execution.{FileSourceScanExec, SparkPlan}
 import org.apache.spark.sql.hive.execution.HiveTableScanExec
-
 import scala.collection.JavaConverters._
 
 object ResourceDetectUtils extends Logging {
@@ -65,16 +64,66 @@ object ResourceDetectUtils extends Logging {
     resourcePaths.values.asScala.map(value => getResourceSize(value.asScala.map(path => new Path(path)): _*)).max
   }
 
-  def writeResourcePaths(path: Path, resourcePaths: JMap[String, JList[String]]): Unit = {
-    log.info(s"Write resource paths to $path")
+  def write(path: Path, item: JMap[_, _]): Unit = {
     val fs = HadoopUtil.getFileSystem(path)
     var out: FSDataOutputStream = null
     try {
       out = fs.create(path)
-      out.writeUTF(JsonUtil.writeValueAsString(resourcePaths))
+      out.writeUTF(JsonUtil.writeValueAsString(item))
     } finally {
       if (out != null) {
         out.close()
+      }
+    }
+  }
+
+  def selectMaxValueInFiles(files : Array[FileStatus]): String = {
+    files.map(f => this.readLayoutLeafTaskNums(f.getPath).values().asScala.max).max.toString
+  }
+
+  def writeLayoutLeafTaskNums(path: Path, layoutLeafTaskNums: JMap[String, Integer]): Unit = {
+    log.info(s"Write layoutLeafTaskNums to $path")
+    write(path, layoutLeafTaskNums)
+  }
+
+  def writeDetectItems(path: Path, detectItem: JMap[EnumDetectItem, String]): Unit = {
+    log.info(s"Write writeDetectItems to $path")
+    write(path, detectItem)
+  }
+
+
+  def writeResourcePaths(path: Path, resourcePaths: JMap[String, JList[String]]): Unit = {
+    log.info(s"Write resource paths to $path")
+    write(path, resourcePaths)
+  }
+
+
+  def readDetectItems(path: Path): JMap[EnumDetectItem, String] = {
+    log.info(s"Read detectItems from " + path)
+    val fs = HadoopUtil.getFileSystem(path)
+    val typeRef = new TypeReference[JMap[EnumDetectItem, String]]() {}
+    var in: FSDataInputStream = null
+    try {
+      in = fs.open(path)
+      JsonUtil.readValue(in.readUTF, typeRef)
+    } finally {
+      if (in != null) {
+        in.close()
+      }
+    }
+  }
+
+  def readLayoutLeafTaskNums(path: Path): JMap[String, Integer] = {
+    log.info(s"Read layoutLeafTaskNums from $path")
+    val fs = HadoopUtil.getFileSystem(path)
+    val typeRef = new TypeReference[JMap[String, Integer]]() {}
+    var in: FSDataInputStream = null
+    try {
+      in = fs.open(path)
+      JsonUtil.readValue(in.readUTF, typeRef)
+    } finally {
+      if (in != null) {
+        in.close()
       }
     }
   }
@@ -94,7 +143,13 @@ object ResourceDetectUtils extends Logging {
     }
   }
 
+
+
   def fileName(): String = {
     "resource_paths.json"
   }
+
+  def cubingDetectItemFileSuffix: String = "cubing_detect_items.json"
+
+  def samplingDetectItemFileSuffix: String = "sampling_detect_items.json"
 }

@@ -1,5 +1,6 @@
 package io.kyligence.kap.engine.spark.job;
 
+import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -11,6 +12,7 @@ import org.apache.kylin.source.SourceFactory;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.hive.utils.ResourceDetectUtils;
+import org.apache.spark.sql.hive.utils.EnumDetectItem;
 
 import com.google.common.collect.Maps;
 
@@ -20,6 +22,10 @@ import io.kyligence.kap.metadata.cube.model.NBatchConstants;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import lombok.extern.slf4j.Slf4j;
 import scala.collection.JavaConversions;
+import lombok.val;
+import org.apache.spark.util.SizeEstimator;
+
+
 
 @Slf4j
 public class ResourceDetectBeforeSampling extends SparkApplication {
@@ -34,6 +40,13 @@ public class ResourceDetectBeforeSampling extends SparkApplication {
         final List<Path> paths = JavaConversions
                 .seqAsJavaList(ResourceDetectUtils.getPaths(dataset.queryExecution().sparkPlan()));
         List<String> pathList = paths.stream().map(Path::toString).collect(Collectors.toList());
+        val sampledData = dataset.limit(SparkJobConstants.DEFAULT_SAMPLED_DATA_LIMIT).collectAsList();
+        val estimatedSize = SizeEstimator.estimate(sampledData);
+        log.info("estimatedSize is " + estimatedSize);
+
+        EnumMap<EnumDetectItem, String> detectedItems = Maps.newEnumMap(EnumDetectItem.class);
+        detectedItems.put(EnumDetectItem.ESTIMATED_LINE_COUNT, String.valueOf(sampledData.size()));
+        detectedItems.put(EnumDetectItem.ESTIMATED_SIZE, String.valueOf(estimatedSize));
 
         Map<String, List<String>> resourcePaths = Maps.newHashMap();
         resourcePaths.put(tableName, pathList);
@@ -41,6 +54,10 @@ public class ResourceDetectBeforeSampling extends SparkApplication {
         ResourceDetectUtils.writeResourcePaths(
                 new Path(config.getJobTmpShareDir(project, jobId), tableName + "_" + ResourceDetectUtils.fileName()),
                 resourcePaths);
+
+        ResourceDetectUtils.writeDetectItems(
+                new Path(config.getJobTmpShareDir(project, jobId), tableName + "_" + ResourceDetectUtils.samplingDetectItemFileSuffix()),
+                detectedItems);
     }
 
     public static void main(String[] args) {
