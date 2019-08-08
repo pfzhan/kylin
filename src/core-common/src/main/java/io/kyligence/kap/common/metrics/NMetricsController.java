@@ -25,10 +25,16 @@
 package io.kyligence.kap.common.metrics;
 
 import java.lang.management.ManagementFactory;
+import java.lang.reflect.InvocationTargetException;
 import java.util.Arrays;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import javax.management.InstanceAlreadyExistsException;
+import javax.management.InstanceNotFoundException;
+import javax.management.MBeanRegistrationException;
 import javax.management.MBeanServer;
+import javax.management.MalformedObjectNameException;
+import javax.management.NotCompliantMBeanException;
 import javax.management.ObjectName;
 
 import org.apache.kylin.common.KapConfig;
@@ -50,14 +56,14 @@ public class NMetricsController {
 
     private static final AtomicBoolean reporterStarted = new AtomicBoolean(false);
 
-    private volatile static MetricRegistry defaultMetricRegistry = null;
+    private static volatile MetricRegistry defaultMetricRegistry = null;
 
-    private volatile static InfluxDB defaultInfluxDb = null;
+    private static volatile InfluxDB defaultInfluxDb = null;
 
     private NMetricsController() {
     }
 
-    //TODO try register metrics background
+    // try register metrics background
     // like: 1. NProjectManager.listAllProjects foreach register counters
     // 2. NDataModelManager.listAllModels register gauge
     // 3...
@@ -129,7 +135,8 @@ public class NMetricsController {
         return cl == null ? NMetricsController.class.getClassLoader() : cl;
     }
 
-    static <T> T createReporter(String reporterType, Object[] args) throws Exception {
+    static <T> T createReporter(String reporterType, Object[] args) throws ClassNotFoundException,
+            NoSuchMethodException, InstantiationException, IllegalAccessException, InvocationTargetException {
         if (args == null) {
             args = new Object[] {};
         }
@@ -138,7 +145,9 @@ public class NMetricsController {
                 .newInstance(args);
     }
 
-    static boolean registerMBean(Object mbean, String name) throws Exception {
+    static boolean registerMBean(Object mbean, String name)
+            throws MalformedObjectNameException, InstanceNotFoundException, InstanceAlreadyExistsException,
+            MBeanRegistrationException, NotCompliantMBeanException {
         MBeanServer mbs = ManagementFactory.getPlatformMBeanServer();
         synchronized (mbs) {
             ObjectName objName = new ObjectName(name);
