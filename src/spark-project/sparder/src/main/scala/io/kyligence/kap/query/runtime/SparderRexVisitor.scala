@@ -24,6 +24,7 @@
 
 package io.kyligence.kap.query.runtime
 
+import java.lang
 import java.math.BigDecimal
 import java.sql.Timestamp
 
@@ -36,7 +37,7 @@ import org.apache.calcite.sql.`type`.{BasicSqlType, IntervalSqlType, SqlTypeFami
 import org.apache.calcite.sql.fun.SqlDatetimeSubtractionOperator
 import org.apache.kylin.common.util.DateFormat
 import org.apache.spark.sql.KapFunctions._
-import org.apache.spark.sql.catalyst.expressions.{IfNull, StringLocate}
+import org.apache.spark.sql.catalyst.expressions.{Expression, IfNull, StringLocate}
 import org.apache.spark.sql.catalyst.util.DateTimeUtils
 import org.apache.spark.sql.functions._
 import org.apache.spark.sql.types.{DateType, LongType, TimestampType}
@@ -373,7 +374,7 @@ class SparderRexVisitor(val dfs: Array[DataFrame],
           case "isnull" =>
             isnull(k_lit(children.head))
           case "ifnull" =>
-            new Column(new IfNull(k_lit(children.head).expr, k_lit(children.apply(1)).expr))
+              new Column(new IfNull(k_lit(children.head).expr, k_lit(children.apply(1)).expr))
           //string_funcs
           case "lower"            => lower(k_lit(children.head))
           case "upper"            => upper(k_lit(children.head))
@@ -421,7 +422,7 @@ class SparderRexVisitor(val dfs: Array[DataFrame],
               DateTimeUtils.dateToString(
                 DateTimeUtils.millisToDays(System.currentTimeMillis())))
           case "current_timestamp" =>
-            k_lit(SparderTypeUtil.toSparkTimestamp(System.currentTimeMillis()))
+            current_timestamp()
           case "power" =>
             pow(k_lit(children.head), k_lit(children.apply(1)))
           case "log10" =>

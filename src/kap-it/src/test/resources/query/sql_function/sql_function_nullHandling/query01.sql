@@ -14,7 +14,7 @@ select ifnull(ID2,132322342),  --test bigint null value
        ifnull(name3,'FT'),  --test char null value
        ifnull(name4,2),  --test byte null value
        ifnull(time1,date'2014-3-31'),  --test date null value
-      -- ifnull(time2,current_timestamp),  --test timestamp null value
+       ifnull(time2,timestamp'2019-08-08 16:33:41.061'),  --test timestamp null value
        ifnull(flag,true), --test boolean null value
        isnull(ID2),  --test bigint null value
        isnull(ID3),  --test long null value

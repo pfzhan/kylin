@@ -21,7 +21,8 @@
 select seller_id,lstg_format_name,sum(price) from
  
 (select * from test_kylin_fact
-  where lstg_format_name='FP-GTC' limit 20)
+  where lstg_format_name='FP-GTC'
+  order by seller_id limit 20)
   
   group by seller_id,lstg_format_name 
  

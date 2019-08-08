@@ -55,21 +55,20 @@ public class InitCapbUDF {
             char curCh = s.charAt(i);
             final int c = (int) curCh;
             if (start) { // curCh is whitespace or first character of word.
-                if (c > 47 && c < 58) { // 0-9
+                if (isNumber(c)) {
                     start = false;
-                } else if (c > 64 && c < 91) { // A-Z
+                } else if (isUppercase(c)) {
                     start = false;
-                } else if (c > 96 && c < 123) { // a-z
+                } else if (isLowerCase(c)) {
                     start = false;
                     curCh = (char) (c - 32); // Uppercase this character
                 }
-                // else {} whitespace
             } else { // Inside of a word or white space after end of word.
-                if (c > 47 && c < 58) { // 0-9
+                if (isNumber(c)) {
                     // noop
-                } else if (c > 64 && c < 91) { // A-Z
+                } else if (isUppercase(c)) {
                     curCh = (char) (c + 32); // Lowercase this character
-                } else if (c > 96 && c < 123) { // a-z
+                } else if (isLowerCase(c)) {
                     // noop
                 } else { // whitespace
                     start = true;
@@ -78,6 +77,18 @@ public class InitCapbUDF {
             newS.append(curCh);
         } // for each character in s
         return newS.toString();
+    }
+
+    public boolean isNumber(int c){
+        return c > 47 && c < 58;
+    }
+
+    public boolean isUppercase(int c){
+        return c > 64 && c < 91;
+    }
+
+    public boolean isLowerCase(int c){
+        return c > 96 && c < 123;
     }
 
 }

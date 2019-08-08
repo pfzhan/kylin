@@ -16,5 +16,5 @@ and ifnull(name2,'FT')  =  'FT'  --test varchar(254) null value
 and ifnull(name3,'FT')  =  'FT'  --test char null value
 and ifnull(name4,2)  =  2  --test byte null value
 and ifnull(time1,date'2014-3-31')  =  date'2014-3-31'  --test date null value
---and ifnull(time2,current_timestamp)  =  current_timestamp  --test timestamp null value
+and ifnull(time2,timestamp'2019-08-08 16:33:41')  =  timestamp'2019-08-08 16:33:41'  --test timestamp null value
 and ifnull(flag,true)  =  true  --test boolean null value
