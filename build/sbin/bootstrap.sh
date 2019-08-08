@@ -264,8 +264,6 @@ elif [ "$1" == "restart" ]; then
     fi
     echo "--> Starting Kyligence Enterprise..."
     startKE
-elif [ "$1" == "admin-password-reset" ]; then
-    runTool io.kyligence.kap.tool.security.KapPasswordResetCLI
 else
     quit "Usage: 'kylin.sh [-v] start' or 'kylin.sh [-v] stop' or 'kylin.sh [-v] restart'"
 fi
