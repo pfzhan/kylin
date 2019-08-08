@@ -25,6 +25,8 @@
 package io.kyligence.kap.rest;
 
 import org.apache.catalina.Context;
+import org.apache.catalina.connector.Connector;
+import org.apache.coyote.http11.Http11NioProtocol;
 import org.apache.curator.x.discovery.ServiceInstance;
 import org.apache.curator.x.discovery.details.InstanceSerializer;
 import org.apache.curator.x.discovery.details.JsonInstanceSerializer;
@@ -75,7 +77,27 @@ public class BootstrapServer implements ApplicationListener<ApplicationReadyEven
             }
         };
 
+        if (KylinConfig.getInstanceFromEnv().isServerHttpsEnabled())
+            tomcatFactory.addAdditionalTomcatConnectors(createSslConnector());
+
         return tomcatFactory;
+    }
+
+    private Connector createSslConnector() {
+        KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
+
+        Connector connector = new Connector("org.apache.coyote.http11.Http11NioProtocol");
+        Http11NioProtocol protocol = (Http11NioProtocol) connector.getProtocolHandler();
+
+        connector.setScheme("https");
+        connector.setSecure(true);
+        connector.setPort(Integer.valueOf(kylinConfig.getServerHttpsPort()));
+        protocol.setSSLEnabled(true);
+        protocol.setKeystoreType(kylinConfig.getServerHttpsKeyType());
+        protocol.setKeystoreFile(kylinConfig.getServerHttpsKeystore());
+        protocol.setKeystorePass(kylinConfig.getServerHttpsKeyPassword());
+        protocol.setKeyAlias(kylinConfig.getServerHttpsKeyAlias());
+        return connector;
     }
 
     @Bean

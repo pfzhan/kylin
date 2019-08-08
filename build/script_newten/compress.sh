@@ -62,6 +62,7 @@ mkdir ${package_name}/server
 cp -rf server/webapp/dist ${package_name}/server/public
 cp -rf server/newten.jar ${package_name}/server/
 cp -rf server/jars ${package_name}/server/
+cp -rf deploy/.keystore ${package_name}/server/
 rm -rf server/
 
 #add udf jar to lib
