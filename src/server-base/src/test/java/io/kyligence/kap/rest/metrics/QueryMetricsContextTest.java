@@ -36,7 +36,6 @@ import org.apache.kylin.rest.response.SQLResponse;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -67,20 +66,18 @@ public class QueryMetricsContextTest extends NLocalFileMetadataTestCase {
         staticCleanupTestMetadata();
     }
 
-    @Ignore("#14035")
     @Test
     public void assertStart() {
         try {
+            QueryMetricsContext.reset();
             Assert.assertEquals(false, QueryMetricsContext.isStarted());
 
-            QueryMetricsContext.kapConfig.getKylinConfig().setProperty("kap.metric.diagnosis.graph-writer-type",
-                    "BLACK_HOLE");
+            QueryMetricsContext.kapConfig.getKylinConfig().setProperty("kap.metric.write-destination", "BLACK_HOLE");
 
             QueryMetricsContext.start(QUERY_ID, "localhost:7070");
             Assert.assertEquals(false, QueryMetricsContext.isStarted());
 
-            QueryMetricsContext.kapConfig.getKylinConfig().setProperty("kap.metric.diagnosis.graph-writer-type",
-                    "INFLUX");
+            QueryMetricsContext.kapConfig.getKylinConfig().setProperty("kap.metric.write-destination", "INFLUX");
 
             QueryMetricsContext.start(QUERY_ID, "localhost:7070");
             Assert.assertEquals(true, QueryMetricsContext.isStarted());
