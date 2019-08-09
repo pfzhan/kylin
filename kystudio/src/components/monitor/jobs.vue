@@ -272,7 +272,7 @@
       :visible.sync="dialogVisible"
       :close-on-press-escape="false"
       :close-on-click-modal="false">
-      <job_dialog :stepDetail="outputDetail"></job_dialog>
+      <job_dialog :stepDetail="outputDetail" :stepId="stepId" :jobId="selectedJob.id"></job_dialog>
       <span slot="footer" class="dialog-footer">
         <el-button type="primary" plain size="medium" @click="dialogVisible = false">{{$t('kylinLang.common.close')}}</el-button>
       </span>
@@ -503,6 +503,7 @@ export default class JobsList extends Vue {
   waitingJobListVisibel = false
   waitingJob = {modelName: '', jobsList: [], jobsSize: 0}
   waittingJobModels = {size: 0, data: null}
+  stepId = ''
   handleCommand (uuid) {
     this.waitingJobListVisibel = true
     this.waittingJobsFilter.project = this.currentSelectedProject
@@ -1048,6 +1049,7 @@ export default class JobsList extends Vue {
     this.loadStepOutputs({jobId: this.selectedJob.id, stepId: step.id, project: this.currentSelectedProject}).then((res) => {
       handleSuccess(res, (data) => {
         this.outputDetail = data.cmd_output
+        this.stepId = step.id
       })
     }, (resError) => {
       this.outputDetail = this.$t('cmdOutput')
