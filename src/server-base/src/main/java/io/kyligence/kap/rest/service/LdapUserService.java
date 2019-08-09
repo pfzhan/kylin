@@ -26,13 +26,13 @@ package io.kyligence.kap.rest.service;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.rest.msg.Message;
 import org.apache.kylin.rest.msg.MsgPicker;
 import org.apache.kylin.rest.service.UserService;
 import org.slf4j.Logger;
@@ -76,8 +76,6 @@ public class LdapUserService implements UserService {
     @Qualifier("userGroupService")
     private LdapUserGroupService userGroupService;
 
-    private final Message msg = MsgPicker.getMsg();
-
     private boolean evictCacheFlag = false;
 
     @Override
@@ -92,22 +90,22 @@ public class LdapUserService implements UserService {
 
     @Override
     public void createUser(UserDetails userDetails) {
-        throw new UnsupportedOperationException(msg.getUSER_EDIT_NOT_ALLOWED());
+        throw new UnsupportedOperationException(MsgPicker.getMsg().getUSER_EDIT_NOT_ALLOWED());
     }
 
     @Override
     public void updateUser(UserDetails userDetails) {
-        throw new UnsupportedOperationException(msg.getUSER_EDIT_NOT_ALLOWED());
+        throw new UnsupportedOperationException(MsgPicker.getMsg().getUSER_EDIT_NOT_ALLOWED());
     }
 
     @Override
     public void deleteUser(String s) {
-        throw new UnsupportedOperationException(msg.getUSER_EDIT_NOT_ALLOWED());
+        throw new UnsupportedOperationException(MsgPicker.getMsg().getUSER_EDIT_NOT_ALLOWED());
     }
 
     @Override
     public void changePassword(String s, String s1) {
-        throw new UnsupportedOperationException(msg.getUSER_EDIT_NOT_ALLOWED());
+        throw new UnsupportedOperationException(MsgPicker.getMsg().getUSER_EDIT_NOT_ALLOWED());
     }
 
     @Override
@@ -144,7 +142,7 @@ public class LdapUserService implements UserService {
                     "Failed to load users from ldap server, something went wrong."));
         }
         logger.info("Get all users size: {}", allUsers.size());
-        return allUsers;
+        return Collections.unmodifiableList(allUsers);
     }
 
     @Override
@@ -154,7 +152,7 @@ public class LdapUserService implements UserService {
                 .getGroupMembersByName(KylinConfig.getInstanceFromEnv().getLDAPAdminRole())) {
             adminUsers.add(user.getUsername());
         }
-        return adminUsers;
+        return Collections.unmodifiableList(adminUsers);
     }
 
     @Override

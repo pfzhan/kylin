@@ -466,6 +466,14 @@ public class CnMessage extends Message {
         return "找不到 Ace id";
     }
 
+    public String getGroup_EDIT_NOT_ALLOWED() {
+        return "暂不支持LDAP认证机制下的用户组编辑操作";
+    }
+
+    public String getGroup_EDIT_NOT_ALLOWED_FOR_CUSTOM() {
+        return "暂不支持客户认证接入机制下的用户组编辑操作, 方法 '%s' 未被实现";
+    }
+
     // Async Query
     public String getQUERY_RESULT_NOT_FOUND() {
         return "该查询不存在有效的结果, 请首先检查它的状态";
@@ -515,6 +523,14 @@ public class CnMessage extends Message {
 
     public String getNEW_PASSWORD_SAME_AS_OLD() {
         return "新密码与旧密码一致，请输入一个不同的新密码";
+    }
+
+    public String getUSER_EDIT_NOT_ALLOWED() {
+        return "暂不支持LDAP认证机制下的用户编辑操作";
+    }
+
+    public String getUSER_EDIT_NOT_ALLOWED_FOR_CUSTOM() {
+        return "暂不支持客户认证接入机制下的用户编辑操作, 方法 '%s' 未被实现";
     }
 
     // Diagnosis

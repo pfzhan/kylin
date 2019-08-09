@@ -32,6 +32,7 @@ if [ "${PACKAGE_SPARK}" = "1" ]; then
     cp -rf spark ${package_name}/
 fi
 
+cp -rf samples ${package_name}/
 cp -rf influxdb ${package_name}/
 cp -rf grafana ${package_name}/
 cp -rf postgresql ${package_name}/

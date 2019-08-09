@@ -61,7 +61,7 @@ import lombok.val;
 public class NUserGroupController extends NBasicController {
 
     @Autowired
-    @Qualifier("nUserGroupService")
+    @Qualifier("userGroupService")
     private IUserGroupService userGroupService;
 
     @Autowired

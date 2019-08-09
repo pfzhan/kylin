@@ -76,7 +76,7 @@ public class NAccessController extends NBasicController {
     protected UserService userService;
 
     @Autowired
-    @Qualifier("nUserGroupService")
+    @Qualifier("userGroupService")
     private IUserGroupService userGroupService;
 
     private static final Pattern sidPattern = Pattern.compile("^[a-zA-Z0-9_]*$");
@@ -166,12 +166,12 @@ public class NAccessController extends NBasicController {
             throw new BadRequestException("Operation failed, user:" + identifier + " not exists, please add it first.");
         }
         if (!isPrincipal && !userGroupService.exists(identifier)) {
-            throw new BadRequestException("Operation failed, group:" + identifier + " not exists, please add it first.");
+            throw new BadRequestException(
+                    "Operation failed, group:" + identifier + " not exists, please add it first.");
         }
         accessService.grant(type, uuid, identifier, isPrincipal, accessRequest.getPermission());
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, null, "");
     }
-
 
     /**
      * Update a access on a domain object

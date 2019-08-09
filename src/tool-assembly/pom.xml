@@ -109,6 +109,14 @@
             <groupId>org.apache.calcite.avatica</groupId>
             <artifactId>avatica-core</artifactId>
         </dependency>
+        <dependency>
+            <groupId>io.kyligence.ke</groupId>
+            <artifactId>kap-server-base</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.kyligence.ke</groupId>
+            <artifactId>kap-core-metadata</artifactId>
+        </dependency>
     </dependencies>
 
 
@@ -128,7 +136,10 @@
                             <shadedClassifierName>assembly</shadedClassifierName>
                             <artifactSet>
                                 <includes>
+                                    <include>io.kyligence.kap:*</include>
                                     <include>io.kyligence.ke:*</include>
+                                    <include>org.slf4j:slf4j-api</include>
+                                    <include>org.slf4j:slf4j-log4j12</include>
                                     <include>log4j:log4j</include>
                                     <include>commons-cli:commons-cli</include>
                                     <include>commons-io:commons-io</include>

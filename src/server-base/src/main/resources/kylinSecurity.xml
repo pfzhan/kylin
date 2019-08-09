@@ -217,7 +217,7 @@
         </scr:authentication-manager>
     </beans>
 
-    <beans profile="testing,ldap">
+    <beans profile="testing,ldap,custom">
         <scr:http auto-config="true" use-expressions="true">
             <scr:csrf disabled="true"/>
             <scr:http-basic entry-point-ref="nUnauthorisedEntryPoint"/>
@@ -610,6 +610,17 @@
 
         <bean id="parserPoolHolder"
               class="org.springframework.security.saml.parser.ParserPoolHolder"/>
+    </beans>
+
+    <beans profile="custom">
+        <bean id="userService" class="${kylin.security.custom.user-service-class-name}"/>
+        <bean id="userGroupService" class="${kylin.security.custom.user-group-service-class-name}"/>
+        <!-- user auth -->
+        <bean id="customAuthProvider" class="${kylin.security.custom.authentication-provider-class-name}"></bean>
+
+        <scr:authentication-manager alias="customAuthManager">
+            <scr:authentication-provider ref="customAuthProvider"/>
+        </scr:authentication-manager>
     </beans>
 
     <beans profile="ldap-test">

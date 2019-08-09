@@ -154,7 +154,7 @@ public class NUserGroupService implements ApplicationListener<AppInitializedEven
         List<ManagedUser> managedUsers = userService.listUsers();
         for (ManagedUser managedUser : managedUsers) {
             if (managedUser.getAuthorities().contains(new SimpleGrantedAuthority(name))) {
-                managedUser.removeAuthoritie(name);
+                managedUser.removeAuthorities(name);
                 userService.updateUser(managedUser);
             }
         }
@@ -181,13 +181,13 @@ public class NUserGroupService implements ApplicationListener<AppInitializedEven
 
         for (String in : moveInUsers) {
             ManagedUser managedUser = (ManagedUser) userService.loadUserByUsername(in);
-            managedUser.addAuthoritie(groupName);
+            managedUser.addAuthorities(groupName);
             userService.updateUser(managedUser);
         }
 
         for (String out : moveOutUsers) {
             ManagedUser managedUser = (ManagedUser) userService.loadUserByUsername(out);
-            managedUser.removeAuthoritie(groupName);
+            managedUser.removeAuthorities(groupName);
             userService.updateUser(managedUser);
         }
     }

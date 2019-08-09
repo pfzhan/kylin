@@ -51,6 +51,11 @@
 -keepclassmembers class io.kyligence.kap.rest.request.** {*;}
 -keepclassmembers class io.kyligence.kap.rest.response.** {*;}
 
+-keep class io.kyligence.kap.rest.service.OpenUserService {*;}
+-keep class io.kyligence.kap.rest.service.OpenUserGroupService {*;}
+-keep class io.kyligence.kap.rest.security.OpenAuthenticationProvider {*;}
+-keep class io.kyligence.kap.metadata.user.ManagedUser {*;}
+
 -keep class io.kyligence.kap.tool.shaded.** {*;}
 -keep class io.kyligence.kap.job.shaded.** {*;}
 -keep class io.kyligence.kap.storage.parquet.protocol.shaded.** {*;}

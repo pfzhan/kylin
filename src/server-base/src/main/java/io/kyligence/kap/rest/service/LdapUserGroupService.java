@@ -25,6 +25,7 @@
 package io.kyligence.kap.rest.service;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -36,7 +37,6 @@ import javax.naming.ldap.LdapName;
 
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.rest.msg.Message;
 import org.apache.kylin.rest.msg.MsgPicker;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -75,21 +75,19 @@ public class LdapUserGroupService extends NUserGroupService {
     @Qualifier("ldapTemplate")
     private SpringSecurityLdapTemplate ldapTemplate;
 
-    private Message msg = MsgPicker.getMsg();
-
     @Override
     public void addGroup(String name) {
-        throw new UnsupportedOperationException(msg.getGroup_EDIT_NOT_ALLOWED());
+        throw new UnsupportedOperationException(MsgPicker.getMsg().getGroup_EDIT_NOT_ALLOWED());
     }
 
     @Override
     public void deleteGroup(String name) {
-        throw new UnsupportedOperationException(msg.getGroup_EDIT_NOT_ALLOWED());
+        throw new UnsupportedOperationException(MsgPicker.getMsg().getGroup_EDIT_NOT_ALLOWED());
     }
 
     @Override
     public void modifyGroupUsers(String groupName, List<String> users) {
-        throw new UnsupportedOperationException(msg.getGroup_EDIT_NOT_ALLOWED());
+        throw new UnsupportedOperationException(MsgPicker.getMsg().getGroup_EDIT_NOT_ALLOWED());
     }
 
     @Override
@@ -110,7 +108,7 @@ public class LdapUserGroupService extends NUserGroupService {
             ldapGroupsCache.put(LDAP_GROUPS, allGroups);
         }
         logger.info("Get all groups size: {}", allGroups.size());
-        return Lists.newArrayList(allGroups);
+        return Collections.unmodifiableList(Lists.newArrayList(allGroups));
     }
 
     @Override
@@ -120,7 +118,7 @@ public class LdapUserGroupService extends NUserGroupService {
             result.put(group,
                     getGroupMembersByName(group).stream().map(ManagedUser::getUsername).collect(Collectors.toList()));
         }
-        return result;
+        return Collections.unmodifiableMap(result);
     }
 
     @Override
@@ -148,7 +146,7 @@ public class LdapUserGroupService extends NUserGroupService {
                     logger.error("Can not get LDAP group's member: {}", u, ie);
                 }
             }
-            ldapGroupsMembersCache.put(name, members);
+            ldapGroupsMembersCache.put(name, Collections.unmodifiableList(members));
         }
         return members;
     }
