@@ -686,7 +686,7 @@ abstract public class KylinConfigBase implements Serializable {
     }
 
     public Boolean getAutoSetConcurrentJob() {
-        if (isDevEnv()) {
+        if (isDevOrUT()) {
             return Boolean.parseBoolean(getOptional("kylin.job.auto-set-concurrent-jobs", "false"));
         }
         return Boolean.parseBoolean(getOptional("kylin.job.auto-set-concurrent-jobs", "true"));

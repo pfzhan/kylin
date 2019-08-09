@@ -53,7 +53,7 @@ public final class SystemInfoCollector {
     }
 
     public static Integer getAvailableMemoryInfo() {
-        if (KylinConfig.getInstanceFromEnv().isDevEnv()) {
+        if (KylinConfig.getInstanceFromEnv().isDevOrUT()) {
             return 6192;
         }
         val mem = hal.getMemory();
