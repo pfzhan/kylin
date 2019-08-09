@@ -77,7 +77,7 @@ public class RepartitionerTest {
         when(sc.getFileCount()).thenReturn(6L);
         when(sc.getLength()).thenReturn(4 * 1024 * 1024L);
         Repartitioner helper = new Repartitioner(2, 1, 1000L, 1000L, sc, null);
-        Assert.assertEquals(2, helper.getRepartitionNum());
+        Assert.assertEquals(2, helper.getRepartitionNumByStorage());
     }
 
     @Test
@@ -87,7 +87,7 @@ public class RepartitionerTest {
         when(sc.getLength()).thenReturn(4 * 1024 * 1024L);
         Repartitioner helper = new Repartitioner(2, 1, 2000L, 500L, sc, null);
         // size = (4M/2M - 2000/500)/2 + min(4M/2M)
-        Assert.assertEquals(3, helper.getRepartitionNum());
+        Assert.assertEquals(3, helper.getRepartitionNumByStorage());
     }
 
     @Test

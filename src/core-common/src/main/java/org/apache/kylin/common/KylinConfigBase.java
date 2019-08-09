@@ -1671,6 +1671,10 @@ abstract public class KylinConfigBase implements Serializable {
         return Integer.parseInt(getOptional("kap.engine.persist-flattable-threshold", "1"));
     }
 
+    public boolean isShardingJoinOptEnabled() {
+        return Boolean.parseBoolean(getOptional("kap.storage.columnar.expose-sharding-trait", "true"));
+    }
+
     public int getQueryPartitionSplitSizeMB() {
         return Integer.parseInt(getOptional("kap.storage.columnar.partition-split-size-mb", "64"));
     }

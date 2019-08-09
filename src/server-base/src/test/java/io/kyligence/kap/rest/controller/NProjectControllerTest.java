@@ -55,6 +55,7 @@ import io.kyligence.kap.rest.request.ProjectRequest;
 import io.kyligence.kap.rest.request.FavoriteQueryThresholdRequest;
 import io.kyligence.kap.rest.request.PushDownConfigRequest;
 import io.kyligence.kap.rest.request.SegmentConfigRequest;
+import io.kyligence.kap.rest.request.ShardNumConfigRequest;
 import io.kyligence.kap.rest.request.StorageQuotaRequest;
 import io.kyligence.kap.rest.response.FavoriteQueryThresholdResponse;
 import io.kyligence.kap.rest.response.ProjectConfigResponse;
@@ -259,6 +260,18 @@ public class NProjectControllerTest {
                 .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
         Mockito.verify(nProjectController).updatePushDownConfig(request);
+    }
+
+    @Test
+    public void testUpdateShardNumConfig() throws Exception {
+        val request = new ShardNumConfigRequest();
+        request.setProject("default");
+        Mockito.doNothing().when(projectService).updateShardNumConfig("default", request);
+        mockMvc.perform(MockMvcRequestBuilders.put("/api/projects/shard_num_config")
+                .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
+                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
+        Mockito.verify(nProjectController).updateShardNumConfig(request);
     }
 
     @Test

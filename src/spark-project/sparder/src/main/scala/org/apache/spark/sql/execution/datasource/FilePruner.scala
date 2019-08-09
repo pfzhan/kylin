@@ -24,24 +24,53 @@ package org.apache.spark.sql.execution.datasource
 
 import java.sql.{Date, Timestamp}
 
-import io.kyligence.kap.metadata.cube.model.{LayoutEntity, NDataflow, NDataflowManager}
+import io.kyligence.kap.metadata.cube.model.{IndexEntity, LayoutEntity, NDataflow, NDataflowManager}
 import org.apache.hadoop.fs.{FileStatus, Path}
 import org.apache.kylin.common.util.DateFormat
 import org.apache.kylin.common.{KapConfig, KylinConfig}
 import org.apache.kylin.metadata.model.PartitionDesc
 import org.apache.spark.internal.Logging
-import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.catalyst.analysis.Resolver
 import org.apache.spark.sql.catalyst.expressions.{Attribute, AttributeSet, EmptyRow, Expression, Literal}
 import org.apache.spark.sql.catalyst.{InternalRow, expressions}
 import org.apache.spark.sql.execution.datasources._
 import org.apache.spark.sql.sources._
 import org.apache.spark.sql.types.StructType
+import org.apache.spark.sql.{AnalysisException, SparkSession}
 import org.apache.spark.util.collection.BitSet
 
 import scala.collection.JavaConverters._
 
 case class SegmentDirectory(segmentID: String, files: Seq[FileStatus])
+
+/**
+ * A container for shard information.
+ * Sharding is a technology for decomposing data sets into more manageable parts, and the number
+ * of shards is fixed so it does not fluctuate with data.
+ *
+ * @param numShards number of shards.
+ * @param shardColumnName the names of the columns that used to generate the shard id.
+ * @param sortColumnNames the names of the columns that used to sort data in each shard.
+ */
+case class ShardSpec(numShards: Int,
+                     shardColumnName: String,
+                     sortColumnNames: Seq[String]) {
+
+  if (numShards <= 0) {
+    throw new AnalysisException(
+      s"Number of shards should be greater than 0.")
+  }
+
+  override def toString: String = {
+    val str = s"shard column: [$shardColumnName]"
+    val sortString = if (sortColumnNames.nonEmpty) {
+      s", sort columns: [${sortColumnNames.mkString(", ")}]"
+    } else {
+      ""
+    }
+    s"$numShards shards, $str$sortString"
+  }
+}
 
 class FilePruner(val session: SparkSession,
                  val options: Map[String, String],
@@ -142,6 +171,33 @@ class FilePruner(val session: SparkSession,
     isResolved = true
   }
 
+  def getShardSpec: Option[ShardSpec] = {
+    val segs = dataflow.getQueryableSegments
+    val shardNum = segs.getLatestReadySegment.getLayout(layout.getId).getPartitionNum
+
+    if (layout.getShardByColumns.isEmpty ||
+      segs.asScala.exists(_.getLayout(layout.getId).getPartitionNum != shardNum)) {
+      logInfo("Shard by column is empty or segments have a different number of shards, skip shard join opt.")
+      None
+    } else {
+
+      val sortColumns = if (segs.size() == 1) {
+        val cols = if (layout.getId >= IndexEntity.TABLE_INDEX_START_ID) {
+          layout.getSortByColumns
+        } else {
+          // The first col should be sorted.
+          layout.getOrderedDimensions.keySet
+        }
+        cols.asScala.map(_.toString).toSeq
+      } else {
+        logInfo("Sort order will lost in multi segments.")
+        Seq.empty
+      }
+
+      Some(ShardSpec(shardNum, shardBySchema.fieldNames.head, sortColumns))
+    }
+  }
+
   override def listFiles(partitionFilters: Seq[Expression], dataFilters: Seq[Expression]): Seq[PartitionDirectory] = {
     require(isResolved)
     val timePartitionFilters = getSpecFilter(dataFilters, timePartitionColumn)
@@ -219,13 +275,11 @@ class FilePruner(val session: SparkSession,
         val partitionNumber = dataflow.getSegment(segID).getLayout(layout.getId).getPartitionNum
         require(partitionNumber > 0, "Shards num with shard by col should greater than 0.")
 
-        val bitSet = getExpressionBuckets(normalizedFiltersAndExpr, shardByColumn.name, partitionNumber)
+        val bitSet = getExpressionShards(normalizedFiltersAndExpr, shardByColumn.name, partitionNumber)
 
         val selected = files.filter(f => {
-          // path like: part-00001-91f13932-3d5e-4f85-9a56-d1e2b47d0ccb-c000.snappy.parquet
-          // we need to get 00001.
-          val split = f.getPath.getName.split("-", 3)(1).toInt
-          bitSet.get(split)
+          val partitionId = FilePruner.getPartitionId(f.getPath)
+          bitSet.get(partitionId)
         })
         SegmentDirectory(segID, selected)
       }
@@ -243,50 +297,58 @@ class FilePruner(val session: SparkSession,
 
   override def refresh(): Unit = {}
 
-  private def getExpressionBuckets(expr: Expression,
-                                   bucketColumnName: String,
-                                   numBuckets: Int): BitSet = {
+  private def getExpressionShards(expr: Expression,
+                                  shardColumnName: String,
+                                  numShards: Int): BitSet = {
 
-    def getBucketNumber(attr: Attribute, v: Any): Int = {
-      BucketingUtils.getBucketIdFromValue(attr, numBuckets, v)
+    def getShardNumber(attr: Attribute, v: Any): Int = {
+      BucketingUtils.getBucketIdFromValue(attr, numShards, v)
     }
 
-    def getBucketSetFromIterable(attr: Attribute, iter: Iterable[Any]): BitSet = {
-      val matchedBuckets = new BitSet(numBuckets)
-      iter
-        .map(v => getBucketNumber(attr, v))
-        .foreach(bucketNum => matchedBuckets.set(bucketNum))
-      matchedBuckets
+    def getShardSetFromIterable(attr: Attribute, iter: Iterable[Any]): BitSet = {
+      val matchedShards = new BitSet(numShards)
+      iter.map(v => getShardNumber(attr, v))
+        .foreach(shardNum => matchedShards.set(shardNum))
+      matchedShards
     }
 
-    def getBucketSetFromValue(attr: Attribute, v: Any): BitSet = {
-      val matchedBuckets = new BitSet(numBuckets)
-      matchedBuckets.set(getBucketNumber(attr, v))
-      matchedBuckets
+    def getShardSetFromValue(attr: Attribute, v: Any): BitSet = {
+      val matchedShards = new BitSet(numShards)
+      matchedShards.set(getShardNumber(attr, v))
+      matchedShards
     }
 
     expr match {
-      case expressions.Equality(a: Attribute, Literal(v, _)) if a.name == bucketColumnName =>
-        getBucketSetFromValue(a, v)
+      case expressions.Equality(a: Attribute, Literal(v, _)) if a.name == shardColumnName =>
+        getShardSetFromValue(a, v)
       case expressions.In(a: Attribute, list)
-        if list.forall(_.isInstanceOf[Literal]) && a.name == bucketColumnName =>
-        getBucketSetFromIterable(a, list.map(e => e.eval(EmptyRow)))
+        if list.forall(_.isInstanceOf[Literal]) && a.name == shardColumnName =>
+        getShardSetFromIterable(a, list.map(e => e.eval(EmptyRow)))
       case expressions.InSet(a: Attribute, hset)
-        if hset.forall(_.isInstanceOf[Literal]) && a.name == bucketColumnName =>
-        getBucketSetFromIterable(a, hset.map(e => expressions.Literal(e).eval(EmptyRow)))
-      case expressions.IsNull(a: Attribute) if a.name == bucketColumnName =>
-        getBucketSetFromValue(a, null)
+        if hset.forall(_.isInstanceOf[Literal]) && a.name == shardColumnName =>
+        getShardSetFromIterable(a, hset.map(e => expressions.Literal(e).eval(EmptyRow)))
+      case expressions.IsNull(a: Attribute) if a.name == shardColumnName =>
+        getShardSetFromValue(a, null)
       case expressions.And(left, right) =>
-        getExpressionBuckets(left, bucketColumnName, numBuckets) &
-          getExpressionBuckets(right, bucketColumnName, numBuckets)
+        getExpressionShards(left, shardColumnName, numShards) &
+          getExpressionShards(right, shardColumnName, numShards)
       case expressions.Or(left, right) =>
-        getExpressionBuckets(left, bucketColumnName, numBuckets) |
-          getExpressionBuckets(right, bucketColumnName, numBuckets)
+        getExpressionShards(left, shardColumnName, numShards) |
+          getExpressionShards(right, shardColumnName, numShards)
       case _ =>
-        val matchedBuckets = new BitSet(numBuckets)
-        matchedBuckets.setUntil(numBuckets)
-        matchedBuckets
+        val matchedShards = new BitSet(numShards)
+        matchedShards.setUntil(numShards)
+        matchedShards
     }
+  }
+}
+
+object FilePruner {
+  def getPartitionId(p: Path): Int = {
+    // path like: part-00001-91f13932-3d5e-4f85-9a56-d1e2b47d0ccb-c000.snappy.parquet
+    // we need to get 00001.
+    val partitionId = p.getName.split("-", 3)(1).toInt
+    partitionId
   }
 }
 

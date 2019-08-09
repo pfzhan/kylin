@@ -24,8 +24,6 @@
 
 package io.kyligence.kap.engine.spark.utils;
 
-import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.Lists;
 import java.io.IOException;
 import java.util.List;
 
@@ -33,11 +31,15 @@ import org.apache.hadoop.fs.ContentSummary;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.kylin.common.util.HadoopUtil;
+import org.apache.spark.sql.Column;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparkSession;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.Lists;
 
 import io.kyligence.kap.engine.spark.NSparkCubingEngine;
 import io.kyligence.kap.engine.spark.job.NSparkCubingUtil;
@@ -88,7 +90,7 @@ public class Repartitioner {
         }
         boolean needRepartition = needRepartitionForFileSize() || needRepartitionForRowCount();
 
-        if (needRepartition && getRepartitionNum() == contentSummary.getFileCount()) {
+        if (needRepartition && getRepartitionNumByStorage() == contentSummary.getFileCount()) {
             needRepartition = false;
         }
         return needRepartition;
@@ -118,7 +120,7 @@ public class Repartitioner {
         return (int) Math.ceil(1.0 * totalRowCount / rowCountThreshold);
     }
 
-    public int getRepartitionNum() {
+    public int getRepartitionNumByStorage() {
         int fileLengthRepartitionNum = getFileLengthRepartitionNum();
         int rowCountRepartitionNum = getRowCountRepartitionNum();
         logger.info("File length repartition num : {}, Row count Rpartition num: {}", fileLengthRepartitionNum,
@@ -144,7 +146,7 @@ public class Repartitioner {
         this.shardByColumns = shardByColumns;
     }
 
-    public void doRepartition(NSparkCubingEngine.NSparkCubingStorage storage, String path, SparkSession ss)
+    public void doRepartition(NSparkCubingEngine.NSparkCubingStorage storage, String path, int repartitionNum, Column[] sortCols, SparkSession ss)
             throws IOException {
         String tempPath = path + tempDirSuffix;
         Path tempResourcePath = new Path(tempPath);
@@ -155,22 +157,24 @@ public class Repartitioner {
             logger.info("Start repartition and rewrite");
             long start = System.currentTimeMillis();
             Dataset<Row> data;
-            int repartitionNum = getRepartitionNum();
 
             if (needRepartitionForShardByColumns()) {
                 ss.sessionState().conf().setLocalProperty("spark.sql.adaptive.enabled", "false");
                 data = storage.getFrom(tempPath, ss).repartition(repartitionNum,
-                        NSparkCubingUtil.getColumns(Lists.newArrayList(getShardByColumns())));
+                        NSparkCubingUtil.getColumns(Lists.newArrayList(getShardByColumns())))
+                        .sortWithinPartitions(sortCols);
             } else {
                 // repartition for single file size is too small
                 logger.info("repartition to {}", repartitionNum);
-                data = storage.getFrom(tempPath, ss).repartition(repartitionNum);
+                data = storage.getFrom(tempPath, ss).repartition(repartitionNum)
+                        .sortWithinPartitions(sortCols);
             }
+
             storage.saveTo(path, data, ss);
             if (needRepartitionForShardByColumns()) {
                 ss.sessionState().conf().setLocalProperty("spark.sql.adaptive.enabled", null);
             }
-                if (readFileSystem.delete(tempResourcePath, true)) {
+            if (readFileSystem.delete(tempResourcePath, true)) {
                 logger.info("Delete temp cuboid path successful. Temp path: {}.", tempPath);
             } else {
                 logger.error("Delete temp cuboid path wrong, leave garbage. Temp path: {}.", tempPath);

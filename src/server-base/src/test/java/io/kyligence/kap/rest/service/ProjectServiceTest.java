@@ -46,12 +46,14 @@ import java.io.IOException;
 import java.lang.reflect.Field;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.TreeMap;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.TimeUtil;
 import org.apache.kylin.job.engine.JobEngineConfig;
 import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
@@ -95,6 +97,7 @@ import io.kyligence.kap.rest.request.JobNotificationConfigRequest;
 import io.kyligence.kap.rest.request.ProjectGeneralInfoRequest;
 import io.kyligence.kap.rest.request.PushDownConfigRequest;
 import io.kyligence.kap.rest.request.SegmentConfigRequest;
+import io.kyligence.kap.rest.request.ShardNumConfigRequest;
 import io.kyligence.kap.rest.response.StorageVolumeInfoResponse;
 import io.kyligence.kap.source.file.S3KeyCredential;
 import io.kyligence.kap.source.file.S3KeyCredentialOperator;
@@ -366,7 +369,7 @@ public class ProjectServiceTest extends ServiceTestBase {
     }
 
     @Test
-    public void testUpdateProjectConfig() {
+    public void testUpdateProjectConfig() throws IOException {
         val project = PROJECT;
 
         val description = "test description";
@@ -411,13 +414,24 @@ public class ProjectServiceTest extends ServiceTestBase {
         response = projectService.getProjectConfig(project);
         Assert.assertEquals(true, response.isPushDownEnabled());
 
+        // this config should not expose to end users.
+        val shardNumConfigRequest = new ShardNumConfigRequest();
+        shardNumConfigRequest.setProject(project);
+        Map<String, String> map = new HashMap<>();
+        map.put("DEFAULT.TEST_KYLIN_FACT.LSTG_FORMAT_NAME", "100");
+        map.put("DEFAULT.TEST_KYLIN_FACT.SELLER_ID", "50");
+        shardNumConfigRequest.setColToNum(map);
+        projectService.updateShardNumConfig(project, shardNumConfigRequest);
+        val pi = NProjectManager.getInstance(getTestConfig()).getProject(project);
+        Assert.assertEquals(JsonUtil
+                .readValueAsMap(pi.getConfig().getExtendedOverrides().get("kylin.engine.shard-num-json")), map);
+
         getTestConfig().setProperty("kylin.query.pushdown.runner-class-name", "");
         pushDownConfigRequest.setProject(project);
         pushDownConfigRequest.setPushDownEnabled(true);
         thrown.expectMessage(
                 "There is no default PushDownRunner, please check kylin.query.pushdown.runner-class-name in kylin.properties.");
         projectService.updatePushDownConfig(project, pushDownConfigRequest);
-
     }
 
     @Test

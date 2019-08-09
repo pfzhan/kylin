@@ -32,6 +32,7 @@ import javax.validation.Valid;
 import io.kyligence.kap.rest.request.DataSourceTypeRequest;
 import io.kyligence.kap.rest.request.GarbageCleanUpConfigRequest;
 import io.kyligence.kap.rest.request.ProjectConfigResetRequest;
+import io.kyligence.kap.rest.request.ShardNumConfigRequest;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.rest.constant.Constant;
@@ -179,6 +180,16 @@ public class NProjectController extends NBasicController {
         long storageQuotaSize = storageQuotaRequest.getStorageQuotaSize();
         projectService.updateStorageQuotaConfig(project, storageQuotaSize);
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, true, "");
+    }
+
+    @RequestMapping(value = "/shard_num_config", method = { RequestMethod.PUT }, produces = {
+            "application/vnd.apache.kylin-v2+json" })
+    @ResponseBody
+    public EnvelopeResponse updateShardNumConfig(@RequestBody ShardNumConfigRequest req) {
+        String project = req.getProject();
+        checkProjectName(project);
+        projectService.updateShardNumConfig(project, req);
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, projectService.getShardNumConfig(project), "");
     }
 
     @RequestMapping(value = "/garbage_cleanup_config", method = { RequestMethod.PUT }, produces = {

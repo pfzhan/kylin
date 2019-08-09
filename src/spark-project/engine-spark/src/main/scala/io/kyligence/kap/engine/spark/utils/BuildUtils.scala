@@ -30,7 +30,7 @@ import io.kyligence.kap.metadata.cube.model._
 import io.kyligence.kap.metadata.model.NDataModel
 import org.apache.hadoop.fs.Path
 import org.apache.hadoop.yarn.conf.YarnConfiguration
-import org.apache.kylin.common.util.HadoopUtil
+import org.apache.kylin.common.util.{HadoopUtil, JsonUtil}
 import org.apache.kylin.common.{KapConfig, KylinConfig}
 import org.apache.kylin.measure.bitmap.BitmapMeasureType
 import org.apache.spark.internal.Logging
@@ -60,16 +60,49 @@ object BuildUtils extends Logging {
       if (findCountDistinctMeasure(layout)) {
         repartitionThresholdSize = kapConfig.getParquetStorageCountDistinctShardSizeRowCount
       }
+      val shardByColumns = layout.getShardByColumns
       val repartitioner = new Repartitioner(
         kapConfig.getParquetStorageShardSizeMB,
         kapConfig.getParquetStorageRepartitionThresholdSize,
         dataCuboid.getRows,
         repartitionThresholdSize,
         summary,
-        layout.getShardByColumns
+        shardByColumns
       )
-      repartitioner.doRepartition(storage, path, sparkSession)
-      repartitioner.getRepartitionNum
+
+      val sortCols = if (layout.getId >= IndexEntity.TABLE_INDEX_START_ID) {
+        NSparkCubingUtil.getColumns(layout.getSortByColumns)
+      } else {
+        NSparkCubingUtil.getColumns(layout.getOrderedDimensions.keySet)
+      }
+
+      val extConfig = layout.getIndex.getModel.getProjectInstance.getConfig.getExtendedOverrides
+      val configJson = extConfig.get("kylin.engine.shard-num-json")
+
+      val numByFileStorage = repartitioner.getRepartitionNumByStorage
+      val repartitionNum = if (configJson != null) {
+        try {
+          val colToShardsNum = JsonUtil.readValueAsMap(configJson)
+
+          // now we only has one shard by col
+          val colIdentity = layout.getIndex.getModel
+            .getEffectiveDimenionsMap.get(shardByColumns.asScala.head).toString
+          val num = colToShardsNum.getOrDefault(colIdentity, String.valueOf(numByFileStorage)).toInt
+          logInfo(s"Get shard num in config, col identity is:$colIdentity, shard num is $num.")
+          num
+        } catch {
+          case th: Throwable =>
+            logError("Some thing went wrong when getting shard num in config", th)
+            numByFileStorage
+        }
+
+      } else {
+        logInfo(s"Get shard num by file size, shard num is $numByFileStorage.")
+        numByFileStorage
+      }
+
+      repartitioner.doRepartition(storage, path, repartitionNum, sortCols, sparkSession)
+      repartitionNum
     } else {
       throw new RuntimeException(
         String.format("Temp path does not exist before repartition. Temp path: %s.", tempPath))
