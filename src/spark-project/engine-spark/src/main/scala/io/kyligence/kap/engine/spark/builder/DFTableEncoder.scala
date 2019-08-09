@@ -23,7 +23,8 @@ package io.kyligence.kap.engine.spark.builder
 
 import java.util
 
-import io.kyligence.kap.engine.spark.job.NSparkCubingUtil
+import io.kyligence.kap.engine.spark.builder.DFBuilderHelper.ENCODE_SUFFIX
+import io.kyligence.kap.engine.spark.job.NSparkCubingUtil._
 import io.kyligence.kap.metadata.cube.model.NDataSegment
 import org.apache.kylin.metadata.model.TblColRef
 import org.apache.spark.dict.NGlobalDictionaryV2
@@ -38,12 +39,11 @@ import scala.collection.mutable._
 
 object DFTableEncoder extends Logging {
 
-  val ENCODE_SUFFIX = "_encode"
-
   def encodeTable(ds: Dataset[Row], seg: NDataSegment, cols: util.Set[TblColRef]): Dataset[Row] = {
     val structType = ds.schema
     var partitionedDs = ds
 
+    ds.sparkSession.sparkContext.setJobDescription("Encode count source data.")
     val sourceCnt = ds.count()
     val bucketThreshold = seg.getConfig.getGlobalDictV2ThresholdBucketSize
     val minBucketSize: Long = sourceCnt / bucketThreshold
@@ -54,11 +54,11 @@ object DFTableEncoder extends Logging {
         val bucketSize = globalDict.getBucketSizeOrDefault(seg.getConfig.getGlobalDictV2MinHashPartitions)
         val enlargedBucketSize = (((minBucketSize / bucketSize) + 1) * bucketSize).toInt
 
-        val encodeColRef = NSparkCubingUtil.convertFromDot(ref.getTableAlias + "." + ref.getColumnDesc.getName)
+        val encodeColRef = convertFromDot(ref.getIdentity)
         val columnIndex = structType.fieldIndex(encodeColRef)
 
         val dictParams = Array(seg.getProject, ref.getTable, ref.getName, seg.getConfig.getHdfsWorkingDirectory)
-          .mkString(NSparkCubingUtil.SEPARATOR)
+          .mkString(SEPARATOR)
         val aliasName = structType.apply(columnIndex).name.concat(ENCODE_SUFFIX)
         val encodeCol = dict_encode(col(encodeColRef).cast(StringType), lit(dictParams), lit(bucketSize).cast(StringType)).as(aliasName)
         val columns = partitionedDs.schema.map(ty => col(ty.name)) ++ Seq(encodeCol)

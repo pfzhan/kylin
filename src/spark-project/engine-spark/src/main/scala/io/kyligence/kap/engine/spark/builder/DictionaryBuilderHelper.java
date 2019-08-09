@@ -108,14 +108,14 @@ public class DictionaryBuilderHelper {
 
             resizeBucketSize = Math.max(Math.max(newDataBucketSize, averageBucketSize),
                     Math.max(peakBucketSize, bucketPartitionSize));
-        }
 
-        if (resizeBucketSize != bucketPartitionSize) {
-            logger.info("Start building a global dictionary column for {}, need resize from {} to {} ", col.getName(),
-                    bucketPartitionSize, resizeBucketSize);
-            resize(col, seg, resizeBucketSize, afterDistinct.sparkSession());
-            logger.info("End building a global dictionary column for {}, need resize from {} to {} ", col.getName(),
-                    bucketPartitionSize, resizeBucketSize);
+            if (resizeBucketSize != bucketPartitionSize) {
+                logger.info("Start building a global dictionary column for {}, need resize from {} to {} ", col.getName(),
+                        bucketPartitionSize, resizeBucketSize);
+                resize(col, seg, resizeBucketSize, afterDistinct.sparkSession());
+                logger.info("End building a global dictionary column for {}, need resize from {} to {} ", col.getName(),
+                        bucketPartitionSize, resizeBucketSize);
+            }
         }
 
         return resizeBucketSize;
@@ -125,7 +125,7 @@ public class DictionaryBuilderHelper {
         Set<TblColRef> dictColSet = Sets.newHashSet();
         for (LayoutEntity layout : layouts) {
             for (MeasureDesc measureDesc : layout.getIndex().getEffectiveMeasures().values()) {
-                if (needGlobalDictionary(measureDesc) == null)
+                if (needGlobalDict(measureDesc) == null)
                     continue;
                 TblColRef col = measureDesc.getFunction().getParameters().get(0).getColRef();
                 dictColSet.add(col);
@@ -159,7 +159,7 @@ public class DictionaryBuilderHelper {
         return findNeedDictCols(toBuildCuboids);
     }
 
-    public static TblColRef needGlobalDictionary(MeasureDesc measure) {
+    public static TblColRef needGlobalDict(MeasureDesc measure) {
         String returnDataTypeName = measure.getFunction().getReturnDataType().getName();
         if (returnDataTypeName.equalsIgnoreCase(BitmapMeasureType.DATATYPE_BITMAP)) {
             List<TblColRef> cols = measure.getFunction().getColRefs();

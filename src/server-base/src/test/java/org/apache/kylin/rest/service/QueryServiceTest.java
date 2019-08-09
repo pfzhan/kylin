@@ -534,7 +534,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
             Assert.assertEquals(2, tableSchemas.size());
             //make sure the schema "metadata" is not exposed
             Assert.assertTrue(!tableSchemas.contains("metadata"));
-            Assert.assertEquals(9, tableNames.size());
+            Assert.assertEquals(10, tableNames.size());
             Assert.assertTrue(tableNames.contains("TEST_KYLIN_FACT"));
 
             //make sure test_kylin_fact contains all computed columns
@@ -565,7 +565,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
             Assert.assertEquals(1, tableSchemas.size());
             //make sure the schema "metadata" is not exposed
             Assert.assertTrue(!tableSchemas.contains("metadata"));
-            Assert.assertEquals(1, tableNames.size());
+            Assert.assertEquals(2, tableNames.size());
             Assert.assertTrue(tableNames.contains("TEST_MEASURE"));
         }
 
@@ -593,7 +593,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
             Assert.assertEquals(2, tableSchemas.size());
             //make sure the schema "metadata" is not exposed
             Assert.assertTrue(!tableSchemas.contains("metadata"));
-            Assert.assertEquals(9, tableNames.size());
+            Assert.assertEquals(10, tableNames.size());
             Assert.assertTrue(tableNames.contains("TEST_KYLIN_FACT"));
 
             //make sure test_kylin_fact contains all computed columns
@@ -624,7 +624,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
             Assert.assertEquals(2, tableSchemas.size());
             //make sure the schema "metadata" is not exposed
             Assert.assertTrue(!tableSchemas.contains("metadata"));
-            Assert.assertEquals(11, tableNames.size());
+            Assert.assertEquals(12, tableNames.size());
             Assert.assertTrue(tableNames.contains("TEST_KYLIN_FACT"));
 
             //make sure test_kylin_fact contains all computed columns

@@ -26,7 +26,7 @@ package io.kyligence.kap.engine.spark.job
 
 import java.util
 
-import io.kyligence.kap.engine.spark.builder.DFTableEncoder
+import io.kyligence.kap.engine.spark.builder.DFBuilderHelper.ENCODE_SUFFIX
 import io.kyligence.kap.metadata.cube.cuboid.NSpanningTree
 import io.kyligence.kap.metadata.cube.model.{NCubeJoinedFlatTableDesc, NDataSegment}
 import io.kyligence.kap.metadata.model.NDataModel
@@ -215,7 +215,7 @@ object CuboidAggregator {
   }
 
   def wrapEncodeColumn(ref: TblColRef, column: Column): Column = {
-    new Column(column.toString() + DFTableEncoder.ENCODE_SUFFIX)
+    new Column(column.toString() + ENCODE_SUFFIX)
   }
 
   def wrapMutilHllcColumn(columns: Column*): Column = {

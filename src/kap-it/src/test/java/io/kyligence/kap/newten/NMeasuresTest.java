@@ -38,7 +38,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.engine.spark.job.UdfManager;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.math.RandomUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -73,6 +72,7 @@ import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
 import io.kyligence.kap.engine.spark.job.NSparkCubingJob;
 import io.kyligence.kap.engine.spark.job.NSparkCubingStep;
 import io.kyligence.kap.engine.spark.job.NSparkCubingUtil;
+import io.kyligence.kap.engine.spark.job.UdfManager;
 import io.kyligence.kap.engine.spark.merger.AfterBuildResourceMerger;
 import io.kyligence.kap.engine.spark.storage.ParquetStorage;
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
@@ -228,51 +228,34 @@ public class NMeasuresTest extends NLocalWithSparkSessionTest {
         double delta = 0.0001;
         for (Row row : ret.collectAsList()) {
             if (row.apply(0).toString().equals("10000000157")) {
-                Assert.assertEquals(132322344, BigDecimal.valueOf(decodePercentileCol(row, 85)).doubleValue(), delta);// percentile(ID2)
-                Assert.assertEquals(14123, decodePercentileCol(row, 86), delta);// percentile(ID3)
-                Assert.assertEquals(313, decodePercentileCol(row, 87), delta);// percentile(ID4)
-                Assert.assertEquals(1, decodePercentileCol(row, 88), delta);// percentile(PRICE5)
-                Assert.assertEquals(1, decodePercentileCol(row, 89), delta);// percentile(PRICE6)
-                Assert.assertEquals(1, decodePercentileCol(row, 90), delta);// percentile(PRICE7)
-                Assert.assertEquals(2, decodePercentileCol(row, 91), delta);// percentile(NAME4)
+                Assert.assertEquals(132322344, BigDecimal.valueOf(decodePercentileCol(row, 140)).doubleValue(), delta);// percentile(ID2)
+                Assert.assertEquals(14123, decodePercentileCol(row, 141), delta);// percenti(ID3)
+                Assert.assertEquals(313, decodePercentileCol(row, 142), delta);// percentile(ID4)
+                Assert.assertEquals(1, decodePercentileCol(row, 143), delta);// percentile(PRICE5)
+                Assert.assertEquals(1, decodePercentileCol(row, 144), delta);// percentile(PRICE6)
+                Assert.assertEquals(1, decodePercentileCol(row, 145), delta);// percentile(PRICE7)
+                Assert.assertEquals(2, decodePercentileCol(row, 146), delta);// percentile(NAME4)
             }
             if (row.apply(0).toString().equals("10000000158")) {
-                Assert.assertEquals(332342336, BigDecimal.valueOf(decodePercentileCol(row, 85)).doubleValue(), delta);// percentile(ID2)
-                Assert.assertEquals(1241, decodePercentileCol(row, 86), delta);// percentile(ID3)
-                Assert.assertEquals(31233, decodePercentileCol(row, 87), delta);// percentile(ID4)
-                Assert.assertEquals(5, decodePercentileCol(row, 88), delta);// percentile(PRICE5)
-                Assert.assertEquals(11, decodePercentileCol(row, 89), delta);// percentile(PRICE6)
-                Assert.assertEquals(3, decodePercentileCol(row, 90), delta);// percentile(PRICE7)
-                Assert.assertEquals(12, decodePercentileCol(row, 91), delta);// percentile(NAME4)
+                Assert.assertEquals(332342336, BigDecimal.valueOf(decodePercentileCol(row, 140)).doubleValue(), delta);// percentile(ID2)
+                Assert.assertEquals(1241, decodePercentileCol(row, 141), delta);// percentile(ID3)
+                Assert.assertEquals(31233, decodePercentileCol(row, 142), delta);// percentile(ID4)
+                Assert.assertEquals(5, decodePercentileCol(row, 143), delta);// percentile(PRICE5)
+                Assert.assertEquals(11, decodePercentileCol(row, 144), delta);// percentile(PRICE6)
+                Assert.assertEquals(3, decodePercentileCol(row, 145), delta);// percentile(PRICE7)
+                Assert.assertEquals(12, decodePercentileCol(row, 146), delta);// percentile(NAME4)
             }
             // verify the all null value aggregate
             if (row.apply(0).toString().equals("10000000160")) {
-                Assert.assertNull(decodePercentileCol(row, 85));// percentile(ID2)
-                Assert.assertNull(decodePercentileCol(row, 86));// percentile(ID3)
-                Assert.assertNull(decodePercentileCol(row, 87));// percentile(ID4)
-                Assert.assertNull(decodePercentileCol(row, 88));// percentile(PRICE5)
-                Assert.assertNull(decodePercentileCol(row, 89));// percentile(PRICE6)
-                Assert.assertNull(decodePercentileCol(row, 90));// percentile(PRICE7)
-                Assert.assertNull(decodePercentileCol(row, 91));// percentile(NAME4)
+                Assert.assertNull(decodePercentileCol(row, 140));// percentile(ID2)
+                Assert.assertNull(decodePercentileCol(row, 141));// percentile(ID3)
+                Assert.assertNull(decodePercentileCol(row, 142));// percentile(ID4)
+                Assert.assertNull(decodePercentileCol(row, 143));// percentile(PRICE5)
+                Assert.assertNull(decodePercentileCol(row, 144));// percentile(PRICE6)
+                Assert.assertNull(decodePercentileCol(row, 145));// percentile(PRICE7)
+                Assert.assertNull(decodePercentileCol(row, 146));// percentile(NAME4)
             }
         }
-
-        Assert.assertEquals(
-                "select ID1,COUNT(*),SUM(1),SUM(1.0),SUM(1.0),SUM(ID1),SUM(ID2),SUM(ID3),SUM(ID4),SUM(PRICE1),SUM(PRICE2),"
-                        + "SUM(PRICE3),SUM(PRICE5),SUM(PRICE6),SUM(PRICE7),SUM(NAME4),MAX(ID1),MAX(ID2),MAX(ID3),"
-                        + "MAX(ID4),MAX(PRICE1),MAX(PRICE2),MAX(PRICE3),MAX(PRICE5),MAX(PRICE6),MAX(PRICE7),MAX(NAME1),"
-                        + "MAX(NAME2),MAX(NAME3),MAX(NAME4),MAX(TIME1),MAX(TIME2),MAX(FLAG),MIN(ID1),MIN(ID2),MIN(ID3),"
-                        + "MIN(ID4),MIN(PRICE1),MIN(PRICE2),MIN(PRICE3),MIN(PRICE5),MIN(PRICE6),MIN(PRICE7),MIN(NAME1),"
-                        + "MIN(NAME2),MIN(NAME3),MIN(NAME4),MIN(TIME1),MIN(TIME2),MIN(FLAG),COUNT(ID1),COUNT(ID2),"
-                        + "COUNT(ID3),COUNT(ID4),COUNT(PRICE1),COUNT(PRICE2),COUNT(PRICE3),COUNT(PRICE5),COUNT(PRICE6),"
-                        + "COUNT(PRICE7),COUNT(NAME1),COUNT(NAME2),COUNT(NAME3),COUNT(NAME4),COUNT(TIME1),COUNT(TIME2),"
-                        + "COUNT(FLAG),count(distinct ID1),count(distinct ID2),count(distinct ID3),count(distinct ID4),"
-                        + "count(distinct PRICE1),count(distinct PRICE2),count(distinct PRICE3),count(distinct PRICE5),"
-                        + "count(distinct PRICE6),count(distinct PRICE7),count(distinct NAME1),count(distinct NAME2),"
-                        + "count(distinct NAME3),count(distinct NAME4),count(distinct TIME1),count(distinct TIME2),"
-                        + "count(distinct FLAG),count(distinct ID1,ID2,ID3,ID4,PRICE1,PRICE2,PRICE3,PRICE5,PRICE6,"
-                        + "PRICE7,NAME1,NAME2,NAME3,NAME4,TIME1,TIME2,FLAG), 1 from TEST_MEASURE  group by ID1",
-                querySql);
         Pair<String, String> pair = new Pair<>("sql", querySql);
 
         NExecAndComp.execAndCompare(newArrayList(pair), getProject(), NExecAndComp.CompareLevel.SAME, "left");
@@ -303,9 +286,10 @@ public class NMeasuresTest extends NLocalWithSparkSessionTest {
             if (parmeter.isColumnType()) {
                 StringBuilder sqlBuilder = new StringBuilder("select ");
                 StringBuilder topnStr = new StringBuilder(nextParmeter.getValue());
-                topnStr.append(" ,sum(").append(parmeter.getValue()).append(") ").append(" from TEST_MEASURE ")
-                        .append(" group by ").append(nextParmeter.getValue()).append(" order by ").append(" sum(")
-                        .append(parmeter.getValue()).append(") desc limit 15");
+                topnStr.append(" ,sum(").append(parmeter.getColRef().getExpressionInSourceDB()).append(") ")
+                        .append(" from TEST_MEASURE ").append(" group by ")
+                        .append(nextParmeter.getColRef().getExpressionInSourceDB()).append(" order by ").append(" sum(")
+                        .append(parmeter.getColRef().getExpressionInSourceDB()).append(") desc limit 15");
                 sqlBuilder.append(topnStr);
                 sqlPair.add(new Pair<>(index + "_topn_sql", sqlBuilder.toString()));
             }
@@ -320,9 +304,11 @@ public class NMeasuresTest extends NLocalWithSparkSessionTest {
         StringBuilder sqlBuilder;
         sqlBuilder = new StringBuilder("select ");
         for (TblColRef col : indexPlan.getEffectiveDimCols().values())
-            sqlBuilder.append(col.getColumnDesc().getName()).append(",");
+            sqlBuilder.append(col.getIdentity()).append(",");
 
         for (NDataModel.Measure mea : indexPlan.getEffectiveMeasures().values()) {
+            if (mea.getFunction().getColRefs().size() <= 1)
+                continue;
             String exp = mea.getFunction().getExpression();
             ParameterDesc parmeter = mea.getFunction().getParameters().get(0);
             if (parmeter.isColumnType()) {
@@ -333,23 +319,24 @@ public class NMeasuresTest extends NLocalWithSparkSessionTest {
                 if (exp.equalsIgnoreCase(FUNC_COUNT_DISTINCT)) {
                     StringBuilder distinctStr = new StringBuilder("distinct");
                     for (TblColRef col : mea.getFunction().getColRefs()) {
-                        distinctStr.append(",").append(col.getName());
+                        distinctStr.append(",").append(col.getExpressionInSourceDB());
                     }
                     distinctStr = new StringBuilder(distinctStr.toString().replaceFirst(",", " "));
                     sqlBuilder.append(String.format("%s(%s)", "count", distinctStr.toString())).append(",");
                 } else {
-                    sqlBuilder.append(String.format("%s(%s)", exp, parmeter.getColRef().getName())).append(",");
+                    sqlBuilder.append(String.format("%s(%s)", exp, parmeter.getColRef().getExpressionInSourceDB()))
+                            .append(",");
                 }
             } else {
                 sqlBuilder.append(String.format("%s(%s)", exp, parmeter.getValue())).append(",");
             }
 
         }
-        sqlBuilder.append(" 1 from TEST_MEASURE ");
+        sqlBuilder.append(" 1 from TEST_MEASURE LEFT join TEST_MEASURE1 on TEST_MEASURE.ID1=TEST_MEASURE1.ID1 ");
 
         sqlBuilder.append(" group by ");
         for (TblColRef col : indexPlan.getEffectiveDimCols().values()) {
-            sqlBuilder.append(col.getColumnDesc().getName()).append(",");
+            sqlBuilder.append(col.getIdentity()).append(",");
         }
         return StringUtils.removeEnd(sqlBuilder.toString(), ",");
     }
@@ -414,6 +401,7 @@ public class NMeasuresTest extends NLocalWithSparkSessionTest {
         boolean isFirstNumCol = false;
         for (TblColRef groupByCol : groupByCols) {
             for (TblColRef col : columnList) {
+                if (col.getExpressionInSourceDB().contains("TEST_MEASURE1")) continue;
                 // cannot support topn(date) topn(string) topn(boolean)
                 if (!col.getType().isNumberFamily() || !col.getType().isIntegerFamily() || groupByCol.equals(col)) {
                     continue;

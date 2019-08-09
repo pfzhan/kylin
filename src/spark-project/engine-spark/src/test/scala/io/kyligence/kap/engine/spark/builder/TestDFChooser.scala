@@ -25,6 +25,7 @@ import java.util
 
 import com.google.common.collect.Lists.newArrayList
 import com.google.common.collect.{Lists, Sets}
+import io.kyligence.kap.engine.spark.builder.DFBuilderHelper.ENCODE_SUFFIX
 import io.kyligence.kap.engine.spark.job.{CuboidAggregator, UdfManager}
 import io.kyligence.kap.metadata.cube.cuboid.NSpanningTreeFactory
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager.NIndexPlanUpdater
@@ -119,7 +120,7 @@ class TestDFChooser extends SparderBaseFunSuite with SharedSparkSession with Loc
 
     val flatTableAggSet = new util.HashSet[TblColRef]()
     for (mea <- meas.values().asScala) {
-      if (DictionaryBuilderHelper.needGlobalDictionary(mea) != null) {
+      if (DictionaryBuilderHelper.needGlobalDict(mea) != null) {
         val col = mea.getFunction.getParameters.get(0).getColRef
         flatTableAggSet.add(col)
       }
@@ -170,7 +171,7 @@ class TestDFChooser extends SparderBaseFunSuite with SharedSparkSession with Loc
         Assert.assertEquals(meta1.getBucketSize + 10, dict2.getMetaInfo.getBucketSize)
       }
     )
-    val dictSize = afterJoin.schema.count(_.name.endsWith(DFTableEncoder.ENCODE_SUFFIX))
+    val dictSize = afterJoin.schema.count(_.name.endsWith(ENCODE_SUFFIX))
     Assert.assertEquals(dictSize, encodeColSet.size())
     afterJoin
   }
@@ -193,9 +194,9 @@ class TestDFChooser extends SparderBaseFunSuite with SharedSparkSession with Loc
         var encodedColNum = 0
         for (agg <- aggExp) {
           val aggName = agg.name
-          if (aggName.endsWith(DFTableEncoder.ENCODE_SUFFIX)) {
+          if (aggName.endsWith(ENCODE_SUFFIX)) {
             encodedColNum = encodedColNum + 1
-            val encodeColId = StringUtils.remove(aggName, DFTableEncoder.ENCODE_SUFFIX)
+            val encodeColId = StringUtils.remove(aggName, ENCODE_SUFFIX)
             Assert.assertTrue(needDictColIdSet.contains(Integer.parseInt(encodeColId)))
           }
         }

@@ -59,14 +59,15 @@ object NGlobalDictBuilderAssist extends Logging {
           tupleList.asScala.iterator
       }
 
+    ss.sparkContext.setJobDescription("Resize dict " + ref.getIdentity)
     existsDictDs
       .repartition(bucketPartitionSize, col(existsDictDs.schema.head.name).cast(StringType))
       .mapPartitions {
         iter =>
           val partitionID = TaskContext.get().partitionId()
           logInfo(s"Rebuild partition dict col: ${ref.getTable + "." + ref.getName}, partitionId: $partitionID")
-          val gDict = broadcastDict.value
-          val bucketDict = gDict.createNewBucketDictionary()
+          val d = broadcastDict.value
+          val bucketDict = d.createNewBucketDictionary()
           while (iter.hasNext) {
             val dictTuple = iter.next
             bucketDict.addAbsoluteValue(dictTuple._1, dictTuple._2)

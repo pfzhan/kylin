@@ -30,13 +30,18 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.spark.dict.NGlobalDictMetaInfo;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.HadoopUtil;
+import org.apache.spark.HashPartitioner;
 import org.apache.spark.api.java.function.Function2;
 import org.apache.spark.api.java.function.PairFunction;
+import org.apache.spark.dict.NBucketDictionary;
+import org.apache.spark.dict.NGlobalDictHDFSStore;
+import org.apache.spark.dict.NGlobalDictMetaInfo;
+import org.apache.spark.dict.NGlobalDictStore;
+import org.apache.spark.dict.NGlobalDictionaryV2;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.RowFactory;
@@ -50,11 +55,6 @@ import org.junit.Test;
 import com.google.common.collect.Lists;
 
 import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
-import org.apache.spark.dict.NBucketDictionary;
-import org.apache.spark.dict.NGlobalDictHDFSStore;
-import org.apache.spark.dict.NGlobalDictStore;
-import org.apache.spark.dict.NGlobalDictionaryV2;
-import org.apache.spark.dict.NHashPartitioner;
 import it.unimi.dsi.fastutil.objects.Object2LongMap;
 import scala.Tuple2;
 
@@ -121,7 +121,7 @@ public class NGlobalDictionaryV2Test extends NLocalWithSparkSessionTest {
             if (row.get(0) == null)
                 return new Tuple2<>(null, null);
             return new Tuple2<>(row.get(0).toString(), null);
-        }).sortByKey().partitionBy(new NHashPartitioner(BUCKET_SIZE)).mapPartitionsWithIndex(
+        }).sortByKey().partitionBy(new HashPartitioner(BUCKET_SIZE)).mapPartitionsWithIndex(
                 (Function2<Integer, Iterator<Tuple2<String, String>>, Iterator<Object>>) (bucketId, tuple2Iterator) -> {
                     NBucketDictionary bucketDict = dict.loadBucketDictionary(bucketId);
                     while (tuple2Iterator.hasNext()) {
@@ -138,7 +138,7 @@ public class NGlobalDictionaryV2Test extends NLocalWithSparkSessionTest {
     private void runWithLocalBuildGlobalDict(NGlobalDictionaryV2 dict, List<String> stringSet) throws IOException {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         dict.prepareWrite();
-        NHashPartitioner partitioner = new NHashPartitioner(BUCKET_SIZE);
+        HashPartitioner partitioner = new HashPartitioner(BUCKET_SIZE);
         Map<Integer, List<String>> vmap = new HashMap<>();
         for (int i = 0; i < BUCKET_SIZE; i++) {
             vmap.put(i, Lists.newArrayList());

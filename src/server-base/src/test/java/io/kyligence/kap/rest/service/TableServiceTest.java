@@ -145,11 +145,11 @@ public class TableServiceTest extends CSVSourceTestCase {
     public void testGetTableDesc() throws IOException {
 
         List<TableDesc> tableDesc = tableService.getTableDesc("default", true, "", "DEFAULT", true);
-        Assert.assertEquals(true, tableDesc.size() == 8);
+        Assert.assertEquals(true, tableDesc.size() == 9);
         List<TableDesc> tableDesc2 = tableService.getTableDesc("default", true, "TEST_COUNTRY", "DEFAULT", false);
         Assert.assertEquals(1, tableDesc2.size());
         List<TableDesc> tables3 = tableService.getTableDesc("default", true, "", "", true);
-        Assert.assertEquals(true, tables3.size() == 11);
+        Assert.assertEquals(true, tables3.size() == 12);
         List<TableDesc> tables = tableService.getTableDesc("default", true, "TEST_KYLIN_FACT", "DEFAULT", true);
         Assert.assertEquals("TEST_KYLIN_FACT", tables.get(0).getName());
         Assert.assertEquals(5633024, ((TableDescResponse) tables.get(0)).getStorageSize());
@@ -641,7 +641,7 @@ public class TableServiceTest extends CSVSourceTestCase {
     @Test
     public void testGetTableAndColumns() {
         List<TablesAndColumnsResponse> result = tableService.getTableAndColumns("default");
-        Assert.assertEquals(11, result.size());
+        Assert.assertEquals(12, result.size());
     }
 
     @Test
@@ -769,7 +769,7 @@ public class TableServiceTest extends CSVSourceTestCase {
     @Test
     public void testGetTableNameResponse_PASS() throws Exception {
         List<TableNameResponse> result = tableService.getTableNameResponses("default", "DEFAULT", "");
-        Assert.assertEquals(8, result.size());
+        Assert.assertEquals(9, result.size());
         Assert.assertTrue(result.get(0).isLoaded());
 
     }

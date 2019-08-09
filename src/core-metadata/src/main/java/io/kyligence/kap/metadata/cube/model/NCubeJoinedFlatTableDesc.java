@@ -50,7 +50,7 @@ public class NCubeJoinedFlatTableDesc implements IJoinedFlatTableDesc, Serializa
     protected final SegmentRange segmentRange;
     protected final boolean needJoin;
 
-    private Map<TblColRef, Integer> columnIndexMap = Maps.newHashMap();
+    private Map<String, Integer> columnIndexMap = Maps.newHashMap();
     private List<TblColRef> columns = Lists.newLinkedList();
     private List<Integer> indices = Lists.newArrayList();
 
@@ -88,10 +88,10 @@ public class NCubeJoinedFlatTableDesc implements IJoinedFlatTableDesc, Serializa
             return;
         }
 
-        if (columnIndexMap.containsKey(col))
+        if (columnIndexMap.containsKey(col.getIdentity()))
             return;
 
-        columnIndexMap.put(col, columnIndexMap.size());
+        columnIndexMap.put(col.getIdentity(), columnIndexMap.size());
         columns.add(col);
     }
 
@@ -145,7 +145,7 @@ public class NCubeJoinedFlatTableDesc implements IJoinedFlatTableDesc, Serializa
 
     @Override
     public int getColumnIndex(TblColRef colRef) {
-        Integer index = columnIndexMap.get(colRef);
+        Integer index = columnIndexMap.get(colRef.getIdentity());
         if (index == null)
             return -1;
 

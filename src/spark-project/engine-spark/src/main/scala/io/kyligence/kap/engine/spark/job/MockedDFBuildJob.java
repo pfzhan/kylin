@@ -52,6 +52,7 @@ import com.google.common.collect.Sets;
 
 import io.kyligence.kap.engine.spark.NSparkCubingEngine;
 import io.kyligence.kap.engine.spark.application.SparkApplication;
+import io.kyligence.kap.engine.spark.builder.DFBuilderHelper$;
 import io.kyligence.kap.engine.spark.builder.DictionaryBuilderHelper;
 import io.kyligence.kap.metadata.cube.cuboid.NSpanningTree;
 import io.kyligence.kap.metadata.cube.cuboid.NSpanningTreeFactory;
@@ -63,7 +64,6 @@ import io.kyligence.kap.metadata.cube.model.NDataLayout;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
-import io.kyligence.kap.engine.spark.builder.DFTableEncoder;
 import lombok.val;
 import lombok.var;
 
@@ -104,7 +104,8 @@ public class MockedDFBuildJob extends SparkApplication {
                 for (TblColRef ref : DictionaryBuilderHelper.extractTreeRelatedGlobalDicts(seg, nSpanningTree)) {
                     int columnIndex = flatTableDesc.getColumnIndex(ref);
                     structType = structType.add(
-                            structType.apply(columnIndex).name() + DFTableEncoder.ENCODE_SUFFIX(), IntegerType);
+                            structType.apply(columnIndex).name() + DFBuilderHelper$.MODULE$.ENCODE_SUFFIX(),
+                            IntegerType);
                 }
 
                 Dataset<Row> ds = ss.createDataFrame(Lists.newArrayList(), structType);
