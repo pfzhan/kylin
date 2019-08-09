@@ -50,7 +50,6 @@ import java.util.Set;
 import org.apache.calcite.adapter.enumerable.EnumerableCalc;
 import org.apache.calcite.adapter.enumerable.EnumerableConvention;
 import org.apache.calcite.adapter.enumerable.EnumerableRel;
-import org.apache.calcite.jdbc.JavaTypeFactoryImpl;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptCost;
 import org.apache.calcite.plan.RelOptPlanner;
@@ -64,33 +63,14 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory.FieldInfoBuilder;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rel.type.RelDataTypeFieldImpl;
-import org.apache.calcite.rel.type.RelDataTypeSystem;
-import org.apache.calcite.rex.RexBuilder;
-import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexInputRef;
-import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexOver;
 import org.apache.calcite.rex.RexProgram;
-import org.apache.calcite.rex.RexSqlStandardConvertletTable;
-import org.apache.calcite.rex.RexToSqlNodeConverter;
-import org.apache.calcite.rex.RexToSqlNodeConverterImpl;
-import org.apache.calcite.sql.SqlBinaryOperator;
-import org.apache.calcite.sql.SqlDialect;
-import org.apache.calcite.sql.SqlKind;
-import org.apache.calcite.sql.SqlLiteral;
-import org.apache.calcite.sql.SqlNode;
-import org.apache.calcite.sql.SqlNodeList;
-import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.fun.SqlCaseOperator;
-import org.apache.calcite.sql.fun.SqlStdOperatorTable;
-import org.apache.calcite.sql.parser.SqlParserPos;
-import org.apache.calcite.sql.validate.SqlUserDefinedFunction;
 import org.apache.calcite.tools.RelUtils;
-import org.apache.kylin.metadata.filter.CompareTupleFilter.CompareResultType;
 import org.apache.kylin.metadata.model.TblColRef;
-import org.apache.kylin.metadata.model.TblColRef.InnerDataTypeEnum;
-import org.apache.kylin.metadata.model.tool.CalciteParser;
+import org.apache.kylin.query.util.RexToTblColRefTranslator;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
@@ -200,242 +180,13 @@ public class OLAPProjectRel extends Project implements OLAPRel {
 
     TblColRef translateRexNode(RexNode rexNode, ColumnRowType inputColumnRowType, String fieldName,
             Set<TblColRef> sourceCollector, Map<RexNode, TblColRef> nodeAndTblColMap) {
-        if (rexNode instanceof RexInputRef) {
-            RexInputRef inputRef = (RexInputRef) rexNode;
-            return translateRexInputRef(inputRef, inputColumnRowType, fieldName, sourceCollector);
-        } else if (rexNode instanceof RexLiteral) {
-            RexLiteral literal = (RexLiteral) rexNode;
-            return translateRexLiteral(literal);
-        } else if (rexNode instanceof RexCall) {
-            RexCall call = (RexCall) rexNode;
-            return translateRexCall(call, inputColumnRowType, fieldName, sourceCollector, nodeAndTblColMap);
+        if (!this.rewriting && !this.afterAggregate) {
+            return RexToTblColRefTranslator.translateRexNode(
+                    rexNode, inputColumnRowType, fieldName, sourceCollector, nodeAndTblColMap);
         } else {
-            throw new IllegalStateException("Unsupported RexNode " + rexNode);
+            return RexToTblColRefTranslator.translateRexNode(
+                    rexNode, inputColumnRowType, fieldName, nodeAndTblColMap);
         }
-    }
-
-    private TblColRef translateFirstRexInputRef(RexCall call, ColumnRowType inputColumnRowType, String fieldName,
-            Set<TblColRef> sourceCollector) {
-        for (RexNode operand : call.getOperands()) {
-            if (operand instanceof RexInputRef) {
-                return translateRexInputRef((RexInputRef) operand, inputColumnRowType, fieldName, sourceCollector);
-            }
-            if (operand instanceof RexCall) {
-                TblColRef r = translateFirstRexInputRef((RexCall) operand, inputColumnRowType, fieldName,
-                        sourceCollector);
-                if (r != null)
-                    return r;
-            }
-        }
-        return null;
-    }
-
-    protected TblColRef translateRexInputRef(RexInputRef inputRef, ColumnRowType inputColumnRowType, String fieldName,
-            Set<TblColRef> sourceCollector) {
-        int index = inputRef.getIndex();
-        // check it for rewrite count
-        if (index < inputColumnRowType.size()) {
-            if (!this.rewriting && !this.afterAggregate) {
-                Set<TblColRef> sourceColumns = inputColumnRowType.getSourceColumnsByIndex(index);
-                sourceColumns.stream().filter(col -> !col.isInnerColumn()).forEach(sourceCollector::add);
-            }
-            return inputColumnRowType.getColumnByIndex(index);
-        } else {
-            throw new IllegalStateException("Can't find " + inputRef + " from child columnrowtype " + inputColumnRowType
-                    + " with fieldname " + fieldName);
-        }
-    }
-
-    TblColRef translateRexLiteral(RexLiteral literal) {
-        if (RexLiteral.isNullLiteral(literal)) {
-            return TblColRef.newInnerColumn("null", InnerDataTypeEnum.LITERAL);
-        } else {
-            return TblColRef.newInnerColumn(literal.getValue().toString(), InnerDataTypeEnum.LITERAL);
-        }
-
-    }
-
-    protected TblColRef translateRexCall(RexCall call, ColumnRowType inputColumnRowType, String fieldName,
-            Set<TblColRef> sourceCollector, Map<RexNode, TblColRef> nodeAndTblColMap) {
-        SqlOperator operator = call.getOperator();
-        if (operator instanceof SqlUserDefinedFunction && ("QUARTER").equals(operator.getName())) {
-            return translateFirstRexInputRef(call, inputColumnRowType, fieldName, sourceCollector);
-        }
-
-        List<RexNode> children = limitTranslateScope(call.getOperands(), operator);
-        List<TblColRef> tblColRefs = Lists.newArrayList();
-        for (RexNode operand : children) {
-            TblColRef colRef = translateRexNode(operand, inputColumnRowType, fieldName, sourceCollector,
-                    nodeAndTblColMap);
-            nodeAndTblColMap.put(operand, colRef);
-            tblColRefs.add(colRef);
-        }
-
-        return TblColRef.newInnerColumn(fieldName, InnerDataTypeEnum.LITERAL, createInnerColumn(call, nodeAndTblColMap),
-                operator, tblColRefs);
-    }
-
-    /*
-     * In RexNode trees, OR and AND have any number of children,
-     * SqlCall requires exactly 2. So, convert to a left-deep binary tree.
-     */
-    static RexNode createLeftCall(RexNode origin) {
-        RexNode newRexNode = origin;
-        if (origin instanceof RexCall) {
-            RexCall call = (RexCall) origin;
-            SqlOperator op = call.getOperator();
-            List<RexNode> operands = call.getOperands();
-            if (op instanceof SqlBinaryOperator && operands.size() > 2) {
-                RexBuilder builder = new RexBuilder(new JavaTypeFactoryImpl(RelDataTypeSystem.DEFAULT));
-                RexNode first = builder.makeCall(op, operands.get(0), operands.get(1));
-                for (int i = 2; i < operands.size(); i++) {
-                    first = builder.makeCall(op, first, operands.get(i));
-                }
-                newRexNode = first;
-            }
-        }
-        return newRexNode;
-    }
-
-    private String createInnerColumn(RexCall call, Map<RexNode, TblColRef> nodeAndTblColMap) {
-        final RexSqlStandardConvertletTable convertletTable = new OLAPRexSqlStandardConvertletTable();
-        final RexToSqlNodeConverter rexNodeToSqlConverter = new RexToSqlNodeConverterImpl(convertletTable) {
-
-            @Override
-            public SqlNode convertLiteral(RexLiteral literal) {
-                SqlNode sqlLiteral = super.convertLiteral(literal);
-                if (sqlLiteral == null) {
-                    sqlLiteral = SqlLiteral.createNull(SqlParserPos.ZERO);
-                }
-                return sqlLiteral;
-            }
-
-            @Override
-            public SqlNode convertInputRef(RexInputRef ref) {
-                TblColRef colRef = nodeAndTblColMap.get(ref);
-                String colExpr = colRef.isInnerColumn() && colRef.getParserDescription() != null
-                        ? colRef.getParserDescription()
-                        : colRef.getIdentity();
-                try {
-                    return CalciteParser.getExpNode(colExpr);
-                } catch (Exception e) {
-                    return super.convertInputRef(ref); // i.e. return null
-                }
-            }
-
-            @Override
-            public SqlNode convertCall(RexCall call) {
-                RexCall newCall = (RexCall) createLeftCall(call);
-                return super.convertCall(newCall);
-            }
-        };
-
-        try {
-            SqlNode sqlCall = rexNodeToSqlConverter.convertCall(call);
-            return sqlCall.toSqlString(SqlDialect.DatabaseProduct.HIVE.getDialect()).toString();
-        } catch (Exception | Error e) {
-            return call.toString();
-        }
-    }
-
-    /**
-     * Extend RexSqlStandardConvertletTable to rewrite
-     */
-    class OLAPRexSqlStandardConvertletTable extends RexSqlStandardConvertletTable {
-        public OLAPRexSqlStandardConvertletTable() {
-            super();
-            registerCaseOpNew();
-        }
-
-        /**
-         * fix bug in registerCaseOp
-         */
-        private void registerCaseOpNew() {
-            registerOp(SqlStdOperatorTable.CASE, (RexToSqlNodeConverter converter, RexCall call) -> {
-                SqlNode[] operands = this.convertExpressionList(converter, call.getOperands());
-                if (operands == null) {
-                    return null;
-                }
-
-                SqlNodeList whenList = new SqlNodeList(SqlParserPos.ZERO);
-                SqlNodeList thenList = new SqlNodeList(SqlParserPos.ZERO);
-                int i = 0;
-                while (i < operands.length - 1) {
-                    whenList.add(operands[i]);
-                    ++i;
-                    thenList.add(operands[i]);
-                    ++i;
-                }
-                SqlNode elseExpr = operands[i];
-                SqlNode[] newOperands = new SqlNode[4];
-                newOperands[0] = null;
-                newOperands[1] = whenList;
-                newOperands[2] = thenList;
-                newOperands[3] = elseExpr;
-                return SqlStdOperatorTable.CASE.createCall(null, SqlParserPos.ZERO, newOperands);
-            });
-        }
-
-        SqlNode[] convertExpressionList(RexToSqlNodeConverter converter, List<RexNode> nodes) {
-            final SqlNode[] exprs = new SqlNode[nodes.size()];
-            for (int i = 0; i < nodes.size(); i++) {
-                RexNode node = nodes.get(i);
-                exprs[i] = converter.convertNode(node);
-                if (exprs[i] == null) {
-                    return null;
-                }
-            }
-            return exprs;
-        }
-    }
-
-    //in most cases it will return children itself
-    List<RexNode> limitTranslateScope(List<RexNode> children, SqlOperator operator) {
-
-        //group by case when 1 = 1 then x 1 = 2 then y else z
-        if (operator instanceof SqlCaseOperator) {
-            int unknownWhenCalls = 0;
-            for (int i = 0; i < children.size() - 1; i += 2) {
-                if (children.get(i) instanceof RexCall) {
-                    RexCall whenCall = (RexCall) children.get(i);
-                    CompareResultType compareResultType = getCompareResultType(whenCall);
-                    if (compareResultType == CompareResultType.AlwaysTrue) {
-                        return Lists.newArrayList(children.get(i), children.get(i + 1));
-                    } else if (compareResultType == CompareResultType.Unknown) {
-                        unknownWhenCalls++;
-                    }
-                }
-            }
-
-            if (unknownWhenCalls == 0) {
-                return Lists.newArrayList(children.get(children.size() - 1));
-            }
-        }
-
-        return children;
-    }
-
-    CompareResultType getCompareResultType(RexCall whenCall) {
-        List<RexNode> operands = whenCall.getOperands();
-        if (SqlKind.EQUALS == whenCall.getKind() && operands != null && operands.size() == 2) {
-            if (operands.get(0).equals(operands.get(1))) {
-                return CompareResultType.AlwaysTrue;
-            }
-
-            if (isConstant(operands.get(0)) && isConstant(operands.get(1))) {
-                return CompareResultType.AlwaysFalse;
-            }
-        }
-        return CompareResultType.Unknown;
-    }
-
-    boolean isConstant(RexNode rexNode) {
-        if (rexNode instanceof RexLiteral) {
-            return true;
-        }
-
-        return rexNode instanceof RexCall && SqlKind.CAST.equals(rexNode.getKind())
-                && ((RexCall) rexNode).getOperands().get(0) instanceof RexLiteral;
     }
 
     @Override

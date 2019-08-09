@@ -77,6 +77,7 @@ public class NAutoBuildAndQueryTest extends NAutoTestBase {
                 new TestScenario(CompareLevel.SAME_ROWCOUNT, "query/sql_function/sql_function_ifnull_timestamp"),
                 new TestScenario(CompareLevel.SAME, "query/sql_grouping"), //
                 new TestScenario(CompareLevel.SAME, "query/sql_hive"), //
+                new TestScenario(CompareLevel.SAME, "query/sql_inner_column"), //
                 new TestScenario(CompareLevel.SAME, "query/sql_join"), //
                 new TestScenario(CompareLevel.SAME, "query/sql_join/sql_right_join"), //
                 new TestScenario(CompareLevel.SAME, "query/sql_kap"), //

@@ -45,6 +45,7 @@ package org.apache.kylin.metadata.model;
 import static com.google.common.base.Preconditions.checkArgument;
 
 import java.io.Serializable;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -365,5 +366,11 @@ public class TblColRef implements Serializable {
         for (TblColRef child : colRef.getOpreand()) {
             collectSourceColumns(child, collector);
         }
+    }
+
+    public Set<TblColRef> getSourceColumns() {
+        Set<TblColRef> resultSet = new HashSet<>();
+        collectSourceColumns(this, resultSet);
+        return resultSet;
     }
 }

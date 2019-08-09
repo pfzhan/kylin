@@ -1,0 +1,14 @@
+select count(1) as num from
+(
+select trans_id, cal_dt
+from TEST_KYLIN_FACT
+inner JOIN TEST_ACCOUNT ON TEST_KYLIN_FACT.SELLER_ID = TEST_ACCOUNT.ACCOUNT_ID
+where
+  TEST_ACCOUNT.ACCOUNT_ID + TEST_KYLIN_FACT.ITEM_COUNT >= 10000336
+  and TEST_KYLIN_FACT.ITEM_COUNT > 100
+  or (
+    TEST_KYLIN_FACT.ITEM_COUNT * 100 <> 100000
+    and LSTG_FORMAT_NAME in ('FP-GTC', 'ABIN')
+  )
+)
+group by cal_dt

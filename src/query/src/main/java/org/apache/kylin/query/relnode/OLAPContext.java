@@ -193,6 +193,16 @@ public class OLAPContext {
     private Set<TblColRef> groupByColumns = Sets.newLinkedHashSet();
     @Setter
     @Getter
+    // collect inner columns in group keys
+    // this filed is used by CC proposer only
+    private Set<TblColRef> innerGroupByColumns = Sets.newLinkedHashSet();
+    @Setter
+    @Getter
+    // collect inner columns in filter
+    // this filed is used by CC proposer only
+    private Set<TblColRef> innerFilterColumns = Sets.newLinkedHashSet();
+    @Setter
+    @Getter
     private Set<TblColRef> subqueryJoinParticipants = new HashSet<TblColRef>();//subqueryJoinParticipants will be added to groupByColumns(only when other group by co-exists) and allColumns
     public Set<TblColRef> metricsColumns = new HashSet<>();
     public List<FunctionDesc> aggregations = new ArrayList<>(); // storage level measure type, on top of which various sql aggr function may apply

@@ -148,9 +148,33 @@ public class NComputedColumnProposer extends NAbstractModelProposer {
         Set<String> candidates = Sets.newHashSet();
         usedCols.addAll(context.allColumns);
 
-        context.aggregations.stream() //
+        context.aggregations.stream() // collect inner columns from agg metrics
                 .filter(agg -> CollectionUtils.isNotEmpty(agg.getParameters()))
                 .forEach(agg -> usedCols.addAll(agg.getColRefs()));
+        // collect inner columns from group keys
+        usedCols.addAll(context.getInnerGroupByColumns().stream().filter(col -> !col.getSourceColumns().isEmpty())
+                .collect(Collectors.toList()));
+        // collect inner columns from filter keys
+        // if the inner filter column contains columns from group keys
+        // and the inner filter column also appears in the select clause,
+        // the the CC replacement will produce a wrong aggregation form.
+        // eg.
+        // BEFORE: select expr(a) from tbl where expr(a) > 100 group by a
+        // AFTER: select CC_1 from tbl where CC_1 > 100 group by a
+        // Thus we add a simple check here to ensure that inner filter column
+        // does not contain columns from group by clause
+        // see: https://github.com/Kyligence/KAP/issues/14072
+        // remove this once issue #14072 is fixed
+        for (TblColRef innerFilterCol : context.getInnerFilterColumns()) {
+            Set<TblColRef> filterSourceCols = innerFilterCol.getSourceColumns();
+            if (filterSourceCols.isEmpty()) {
+                continue;
+            }
+            filterSourceCols.retainAll(context.getGroupByColumns());
+            if (filterSourceCols.isEmpty()) {
+                usedCols.add(innerFilterCol);
+            }
+        }
         for (TblColRef col : usedCols) {
             if (col.isInnerColumn()) {
                 String parserDesc = col.getParserDescription();

@@ -728,41 +728,114 @@ public class NAutoComputedColumnTest extends NAutoTestBase {
     @Test
     public void testCaseWhenWithMoreThanTwoLogicalOperands() {
         KylinConfig.getInstanceFromEnv().setProperty("kylin.query.calcite.extras-props.conformance", "LENIENT");
-        String[] sqls = { "select case when coalesce(item_count, 0) <=10 and coalesce(price, 0) >= 0.0 then 'a'\n"
+        String[] sqls = {"select case when coalesce(item_count, 0) <=10 and coalesce(price, 0) >= 0.0 then 'a'\n"
                 + "            when coalesce(item_count, 0) < 0 then 'exception' else null end,\n"
                 + "  sum(case when price > 1 and item_count < 10 and seller_id > 20 then 1 else 0 end),\n"
                 + "  sum(case when price > 1 and item_count < 5 or seller_id > 10 then price else 0 end),\n"
                 + "  sum(case when price + item_count + 1 > 5 then 1 else 0 end)\n"
-                + "from test_kylin_fact group by 1" };
+                + "from test_kylin_fact group by 1"};
         NSmartMaster smartMaster = new NSmartMaster(kylinConfig, getProject(), sqls);
         smartMaster.runAll();
         List<NSmartContext.NModelContext> modelContextList1 = smartMaster.getContext().getModelContexts();
         val targetModel1 = modelContextList1.get(0).getTargetModel();
         val ccList1 = targetModel1.getComputedColumnDescs();
         ccList1.sort(Comparator.comparing(ComputedColumnDesc::getExpression));
-        Assert.assertEquals(3, ccList1.size());
+        Assert.assertEquals(4, ccList1.size());
         val cc10 = ccList1.get(0);
-        Assert.assertEquals("CASE WHEN TEST_KYLIN_FACT.PRICE + TEST_KYLIN_FACT.ITEM_COUNT + 1 > 5 THEN 1 ELSE 0 END",
+        Assert.assertEquals("CASE WHEN CASE WHEN TEST_KYLIN_FACT.ITEM_COUNT IS NOT NULL THEN TEST_KYLIN_FACT.ITEM_COUNT <= 10 ELSE CAST(TRUE AS BOOLEAN) END AND CASE WHEN TEST_KYLIN_FACT.PRICE IS NOT NULL THEN TEST_KYLIN_FACT.PRICE >= 0.0 ELSE CAST(TRUE AS BOOLEAN) END THEN 'a' WHEN CASE WHEN TEST_KYLIN_FACT.ITEM_COUNT IS NOT NULL THEN TEST_KYLIN_FACT.ITEM_COUNT < 0 ELSE CAST(FALSE AS BOOLEAN) END THEN 'exception' ELSE NULL END",
                 cc10.getExpression());
-        Assert.assertEquals("CASE WHEN TEST_KYLIN_FACT.PRICE + TEST_KYLIN_FACT.ITEM_COUNT + 1 > 5 THEN 1 ELSE 0 END",
+        Assert.assertEquals("CASE WHEN CASE WHEN TEST_KYLIN_FACT.ITEM_COUNT IS NOT NULL THEN TEST_KYLIN_FACT.ITEM_COUNT <= 10 ELSE CAST(TRUE AS BOOLEAN) END AND CASE WHEN TEST_KYLIN_FACT.PRICE IS NOT NULL THEN TEST_KYLIN_FACT.PRICE >= 0.0 ELSE CAST(TRUE AS BOOLEAN) END THEN 'a' WHEN CASE WHEN TEST_KYLIN_FACT.ITEM_COUNT IS NOT NULL THEN TEST_KYLIN_FACT.ITEM_COUNT < 0 ELSE CAST(FALSE AS BOOLEAN) END THEN 'exception' ELSE NULL END",
                 cc10.getInnerExpression());
-        Assert.assertEquals("INTEGER", cc10.getDatatype());
+        Assert.assertEquals("VARCHAR", cc10.getDatatype());
         val cc11 = ccList1.get(1);
-        Assert.assertEquals("CASE WHEN TEST_KYLIN_FACT.PRICE > 1 AND TEST_KYLIN_FACT.ITEM_COUNT < 10 "
-                + "AND TEST_KYLIN_FACT.SELLER_ID > 20 THEN 1 ELSE 0 END", cc11.getExpression());
-        Assert.assertEquals("CASE WHEN TEST_KYLIN_FACT.PRICE > 1 AND TEST_KYLIN_FACT.ITEM_COUNT < 10 "
-                + "AND TEST_KYLIN_FACT.SELLER_ID > 20 THEN 1 ELSE 0 END", cc11.getInnerExpression());
+        Assert.assertEquals("CASE WHEN TEST_KYLIN_FACT.PRICE + TEST_KYLIN_FACT.ITEM_COUNT + 1 > 5 THEN 1 ELSE 0 END",
+                cc11.getExpression());
+        Assert.assertEquals("CASE WHEN TEST_KYLIN_FACT.PRICE + TEST_KYLIN_FACT.ITEM_COUNT + 1 > 5 THEN 1 ELSE 0 END",
+                cc11.getInnerExpression());
         Assert.assertEquals("INTEGER", cc11.getDatatype());
         val cc12 = ccList1.get(2);
+        Assert.assertEquals("CASE WHEN TEST_KYLIN_FACT.PRICE > 1 AND TEST_KYLIN_FACT.ITEM_COUNT < 10 "
+                + "AND TEST_KYLIN_FACT.SELLER_ID > 20 THEN 1 ELSE 0 END", cc12.getExpression());
+        Assert.assertEquals("CASE WHEN TEST_KYLIN_FACT.PRICE > 1 AND TEST_KYLIN_FACT.ITEM_COUNT < 10 "
+                + "AND TEST_KYLIN_FACT.SELLER_ID > 20 THEN 1 ELSE 0 END", cc12.getInnerExpression());
+        Assert.assertEquals("INTEGER", cc12.getDatatype());
+        val cc13 = ccList1.get(3);
         Assert.assertEquals(
                 "CASE WHEN TEST_KYLIN_FACT.PRICE > 1 AND TEST_KYLIN_FACT.ITEM_COUNT < 5 "
                         + "OR TEST_KYLIN_FACT.SELLER_ID > 10 THEN TEST_KYLIN_FACT.PRICE ELSE 0 END",
-                cc12.getExpression());
+                cc13.getExpression());
         Assert.assertEquals(
                 "CASE WHEN TEST_KYLIN_FACT.PRICE > 1 AND TEST_KYLIN_FACT.ITEM_COUNT < 5 "
                         + "OR TEST_KYLIN_FACT.SELLER_ID > 10 THEN TEST_KYLIN_FACT.PRICE ELSE 0 END",
-                cc12.getInnerExpression());
-        Assert.assertEquals("DECIMAL(19,4)", cc12.getDatatype());
+                cc13.getInnerExpression());
+        Assert.assertEquals("DECIMAL(19,4)", cc13.getDatatype());
+    }
+
+    @Test
+    public void testCCOnInnerGroupCol() {
+        String[] sqls = new String[] {
+                "select is_screen_on, count(1) as num from\n" +
+                        "(\n" +
+                        "select trans_id,\n" +
+                        "  case when TEST_ACCOUNT.ACCOUNT_ID >= 10000336 then 1\n" +
+                        "    else 2\n" +
+                        "    end as is_screen_on\n" +
+                        "from TEST_KYLIN_FACT\n" +
+                        "inner JOIN TEST_ACCOUNT ON TEST_KYLIN_FACT.SELLER_ID = TEST_ACCOUNT.ACCOUNT_ID\n" +
+                        ")\n" +
+                        "group by is_screen_on"
+        };
+        NSmartMaster smartMaster = new NSmartMaster(kylinConfig, getProject(), sqls);
+        smartMaster.runAll();
+
+        val modelContexts = smartMaster.getContext().getModelContexts();
+        Assert.assertEquals(1, modelContexts.size());
+        val targetModel = modelContexts.get(0).getTargetModel();
+        val computedColumns = targetModel.getComputedColumnDescs();
+        val accelerationInfoMap = smartMaster.getContext().getAccelerateInfoMap();
+        Assert.assertFalse(accelerationInfoMap.get(sqls[0]).isNotSucceed());
+
+        Assert.assertEquals(1, computedColumns.size());
+        Assert.assertEquals("CASE WHEN TEST_ACCOUNT.ACCOUNT_ID >= 10000336 THEN 1 ELSE 2 END",
+                computedColumns.get(0).getInnerExpression().trim());
+        Assert.assertEquals("INTEGER", computedColumns.get(0).getDatatype());
+    }
+
+    @Test
+    public void testCCOnInnerFilterCol() {
+        String[] sqls = new String[] {
+                "select count(1) as num from\n" +
+                        "(\n" +
+                        "select trans_id, cal_dt\n" +
+                        "from TEST_KYLIN_FACT\n" +
+                        "inner JOIN TEST_ACCOUNT ON TEST_KYLIN_FACT.SELLER_ID = TEST_ACCOUNT.ACCOUNT_ID\n" +
+                        "where\n" +
+                        "  TEST_ACCOUNT.ACCOUNT_ID + TEST_KYLIN_FACT.ITEM_COUNT >= 10000336\n" +
+                        "  and TEST_KYLIN_FACT.ITEM_COUNT > 100\n" +
+                        "  or (\n" +
+                        "    TEST_KYLIN_FACT.ITEM_COUNT * 100 <> 100000\n" +
+                        "    and LSTG_FORMAT_NAME in ('FP-GTC', 'ABIN')\n" +
+                        "  )\n" +
+                        ")\n" +
+                        "group by cal_dt"
+        };
+        NSmartMaster smartMaster = new NSmartMaster(kylinConfig, getProject(), sqls);
+        smartMaster.runAll();
+
+        val modelContexts = smartMaster.getContext().getModelContexts();
+        Assert.assertEquals(1, modelContexts.size());
+        val targetModel = modelContexts.get(0).getTargetModel();
+        val computedColumns = targetModel.getComputedColumnDescs();
+        val accelerationInfoMap = smartMaster.getContext().getAccelerateInfoMap();
+        Assert.assertFalse(accelerationInfoMap.get(sqls[0]).isNotSucceed());
+
+        Assert.assertEquals(2, computedColumns.size());
+        Assert.assertEquals("TEST_ACCOUNT.ACCOUNT_ID + TEST_KYLIN_FACT.ITEM_COUNT",
+                computedColumns.get(0).getInnerExpression().trim());
+        Assert.assertEquals("TEST_KYLIN_FACT.ITEM_COUNT * 100",
+                computedColumns.get(1).getInnerExpression().trim());
+        Assert.assertEquals("BIGINT", computedColumns.get(0).getDatatype());
+        Assert.assertEquals("INTEGER", computedColumns.get(1).getDatatype());
     }
 
     private String convertCC(String originSql) {

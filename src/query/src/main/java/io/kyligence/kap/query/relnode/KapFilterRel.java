@@ -24,6 +24,8 @@
 
 package io.kyligence.kap.query.relnode;
 
+import java.util.Collection;
+import java.util.HashSet;
 import java.util.Set;
 
 import org.apache.calcite.plan.RelOptCluster;
@@ -33,7 +35,9 @@ import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
+import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.fun.SqlLikeOperator;
 import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.metadata.filter.FilterOptimizeTransformer;
@@ -41,6 +45,8 @@ import org.apache.kylin.metadata.filter.TupleFilter;
 import org.apache.kylin.metadata.model.TblColRef;
 import org.apache.kylin.query.relnode.OLAPContext;
 import org.apache.kylin.query.relnode.OLAPFilterRel;
+import org.apache.kylin.query.relnode.OLAPRel;
+import org.apache.kylin.query.util.RexToTblColRefTranslator;
 
 import com.google.common.collect.Sets;
 
@@ -110,19 +116,76 @@ public class KapFilterRel extends OLAPFilterRel implements KapRel {
         if (context != null) {
             // only translate where clause and don't translate having clause
             if (!context.afterAggregate) {
-                translateFilter(context);
+                updateContextFilter();
             } else {
                 context.afterHavingClauseFilter = true;
-
-                TupleFilterVisitor visitor = new TupleFilterVisitor(this.columnRowType);
-                TupleFilter havingFilter = this.condition.accept(visitor);
-                if (context.havingFilter == null)
-                    context.havingFilter = havingFilter;
+                context.havingFilter = convertAndGetTupleFilter();
             }
             if (this == context.getTopNode() && !context.isHasAgg())
                 KapContext.amendAllColsIfNoAgg(this);
         } else {
             pushDownColsInfo(subContexts);
+        }
+    }
+
+    private TupleFilter convertAndGetTupleFilter() {
+        TupleFilterVisitor visitor = new TupleFilterVisitor(this.columnRowType);
+        return this.condition.accept(visitor);
+    }
+
+    private void updateContextFilter() {
+        // optimize the filter, the optimization has to be segment-irrelevant
+        TupleFilter tupleFilter = new FilterOptimizeTransformer().transform(convertAndGetTupleFilter());
+        Set<TblColRef> filterColumns = Sets.newHashSet();
+        TupleFilter.collectColumns(tupleFilter, filterColumns);
+        for (TblColRef tblColRef : filterColumns) {
+            if (!tblColRef.isInnerColumn() && context.belongToContextTables(tblColRef)) {
+                context.allColumns.add(tblColRef);
+                context.filterColumns.add(tblColRef);
+            }
+        }
+        context.filter = TupleFilter.and(context.filter, tupleFilter);
+
+        // collect inner col condition
+        context.getInnerFilterColumns().addAll(collectInnerColumnInFilter());
+    }
+
+    private Collection<TblColRef> collectInnerColumnInFilter() {
+        Collection<TblColRef> resultSet = new HashSet<>();
+        if (condition instanceof RexCall) {
+            // collection starts from the sub rexNodes
+            for (RexNode childCondition : ((RexCall) condition).getOperands()) {
+                doCollectInnerColumnInFilter(childCondition, resultSet);
+            }
+        }
+        return resultSet;
+    }
+
+    private void doCollectInnerColumnInFilter(RexNode rexNode, Collection<TblColRef> resultSet) {
+        if (rexNode instanceof RexCall) {
+            RexCall rexCall = (RexCall) rexNode;
+            // for comparison operators, continue with its operands
+            // otherwise, try translating rexCall into inner column
+            SqlKind sqlKind = rexCall.getOperator().kind;
+            if (sqlKind == SqlKind.AND || sqlKind == SqlKind.OR || // AND, OR
+                    SqlKind.COMPARISON.contains(sqlKind) || sqlKind == SqlKind.NOT_IN || // COMPARISON
+                    sqlKind == SqlKind.LIKE || sqlKind == SqlKind.SIMILAR || sqlKind == SqlKind.BETWEEN ||
+                    sqlKind.name().startsWith("IS_") // IS_TRUE, IS_FALSE, iS_NOT_TRUE...
+            ) {
+                rexCall.getOperands().forEach(childRexNode -> doCollectInnerColumnInFilter(childRexNode, resultSet));
+            } else {
+                TblColRef colRef;
+                try {
+                    colRef = RexToTblColRefTranslator.translateRexNode(rexCall, ((OLAPRel) input).getColumnRowType());
+                } catch (IllegalStateException e) {
+                    // if translation failed (encountered unrecognized rex node), simply return
+                    return;
+                }
+                // inner column and contains any actual cols
+                if (colRef.isInnerColumn() && !colRef.getSourceColumns().isEmpty()) {
+                    resultSet.add(colRef);
+                }
+            }
         }
     }
 

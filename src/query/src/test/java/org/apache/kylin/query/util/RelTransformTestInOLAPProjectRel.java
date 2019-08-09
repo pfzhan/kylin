@@ -22,7 +22,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package org.apache.kylin.query.relnode;
+package org.apache.kylin.query.util;
 
 import org.apache.calcite.jdbc.JavaTypeFactoryImpl;
 import org.apache.calcite.rel.type.RelDataType;
@@ -88,7 +88,7 @@ public class RelTransformTestInOLAPProjectRel {
         RexNode structuredAND = rexBuilder.makeCall(SqlStdOperatorTable.AND,
                 rexBuilder.makeCall(SqlStdOperatorTable.AND, node1, node2), node3);
         RexNode flattenAnd = RexUtil.flatten(rexBuilder, structuredAND);
-        RexNode transformedAndRexNode = OLAPProjectRel.createLeftCall(flattenAnd);
+        RexNode transformedAndRexNode = RexToTblColRefTranslator.createLeftCall(flattenAnd);
         Assert.assertEquals("AND(AND(>($0, '1'), <($1, '2')), >($2, '3'))", structuredAND.toString());
         Assert.assertEquals("AND(>($0, '1'), <($1, '2'), >($2, '3'))", flattenAnd.toString());
         Assert.assertEquals("AND(AND(>($0, '1'), <($1, '2')), >($2, '3'))", transformedAndRexNode.toString());
@@ -98,7 +98,7 @@ public class RelTransformTestInOLAPProjectRel {
                 rexBuilder.makeCall(SqlStdOperatorTable.OR, node1, node2), node3);
         Assert.assertEquals("OR(OR(>($0, '1'), <($1, '2')), >($2, '3'))", structuredOR.toString());
         RexNode originOrRexNode = RexUtil.flatten(rexBuilder, structuredOR);
-        RexNode transformedOrRexNode = OLAPProjectRel.createLeftCall(originOrRexNode);
+        RexNode transformedOrRexNode = RexToTblColRefTranslator.createLeftCall(originOrRexNode);
         Assert.assertEquals("OR(>($0, '1'), <($1, '2'), >($2, '3'))", originOrRexNode.toString());
         Assert.assertEquals("OR(OR(>($0, '1'), <($1, '2')), >($2, '3'))", transformedOrRexNode.toString());
 
@@ -107,7 +107,7 @@ public class RelTransformTestInOLAPProjectRel {
                 rexBuilder.makeCall(SqlStdOperatorTable.AND, node1, node2),
                 rexBuilder.makeCall(SqlStdOperatorTable.AND, node2, node3));
         RexNode complexNotFlatten = RexUtil.flatten(rexBuilder, complex);
-        RexNode transformedComplex = OLAPProjectRel.createLeftCall(complexNotFlatten);
+        RexNode transformedComplex = RexToTblColRefTranslator.createLeftCall(complexNotFlatten);
         String expected = "OR(AND(>($0, '1'), <($1, '2')), AND(<($1, '2'), >($2, '3')))";
         Assert.assertEquals(expected, complex.toString());
         Assert.assertEquals(expected, complexNotFlatten.toString());

@@ -25,6 +25,7 @@
 package io.kyligence.kap.query.relnode;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -42,8 +43,10 @@ import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.metadata.model.FunctionDesc;
 import org.apache.kylin.metadata.model.TblColRef;
+import org.apache.kylin.query.relnode.ColumnRowType;
 import org.apache.kylin.query.relnode.OLAPAggregateRel;
 import org.apache.kylin.query.relnode.OLAPContext;
+import org.apache.kylin.query.relnode.OLAPRel;
 
 import com.google.common.collect.Sets;
 
@@ -55,6 +58,7 @@ import io.kyligence.kap.query.util.ICutContextStrategy;
 public class KapAggregateRel extends OLAPAggregateRel implements KapRel {
     ImmutableBitSet groupSet;
     List<AggregateCall> aggCalls;
+    private Set<TblColRef> groupByInnerColumns = new HashSet<>(); // inner columns in group keys, for CC generation
 
     private Set<OLAPContext> subContexts = Sets.newHashSet();
 
@@ -124,7 +128,7 @@ public class KapAggregateRel extends OLAPAggregateRel implements KapRel {
             this.afterAggregate = this.context.afterAggregate;
             // only translate the innermost aggregation
             if (!this.afterAggregate) {
-                addToContextGroupBy(this.groups);
+                updateContextGroupByColumns();
                 for (FunctionDesc agg : aggregations) {
                     if (agg.isAggregateOnConstant()) {
                         this.context.getConstantAggregations().add(agg);
@@ -143,6 +147,30 @@ public class KapAggregateRel extends OLAPAggregateRel implements KapRel {
 
             checkAggCallAfterAggRel();
         }
+    }
+
+    @Override
+    protected void buildGroups() {
+        ColumnRowType inputColumnRowType = ((OLAPRel) getInput()).getColumnRowType();
+        this.groups = new ArrayList<TblColRef>();
+        for (int i = getGroupSet().nextSetBit(0); i >= 0; i = getGroupSet().nextSetBit(i + 1)) {
+            TblColRef originalColumn = inputColumnRowType.getColumnByIndex(i);
+            Set<TblColRef> sourceColumns = inputColumnRowType.getSourceColumnsByIndex(i);
+
+            this.groups.addAll(sourceColumns);
+            if (originalColumn.isInnerColumn()) {
+                this.groupByInnerColumns.add(originalColumn);
+            }
+        }
+    }
+
+    private void updateContextGroupByColumns() {
+        for (TblColRef col : groups) {
+            if (!col.isInnerColumn() && context.belongToContextTables(col)) {
+                context.getGroupByColumns().add(col);
+            }
+        }
+        context.getInnerGroupByColumns().addAll(groupByInnerColumns);
     }
 
     @Override
