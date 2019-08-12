@@ -196,8 +196,12 @@ export default {
   updateTopTable (project, table, top) {
     return Vue.resource(apiUrl + 'tables/top').save({project, table, top})
   },
-  deleteTable (project, database, table) {
-    return Vue.resource(apiUrl + `tables/${project}/${database}/${table}`).delete()
+  deleteTable (project, database, table, cascade) {
+    const para = { cascade }
+    return Vue.resource(apiUrl + `tables/${project}/${database}/${table}`).delete(para)
+  },
+  prepareUnload (para) {
+    return Vue.resource(apiUrl + `tables/${para.projectName}/${para.databaseName}/${para.tableName}/prepare_unload`).get()
   },
   fetchChangeTypeInfo (project, table, action) {
     return Vue.resource(apiUrl + `models/affected_models`).get({ project, table, action })

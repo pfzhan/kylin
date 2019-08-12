@@ -267,10 +267,13 @@ export default {
       return api.datasource.updateTopTable(para.projectName, para.tableFullName, para.isTopSet)
     },
     [types.DELETE_TABLE]: function ({commit}, para) {
-      return api.datasource.deleteTable(para.projectName, para.databaseName, para.tableName)
+      return api.datasource.deleteTable(para.projectName, para.databaseName, para.tableName, para.cascade)
     },
     [types.FETCH_CHANGE_TYPE_INFO]: function ({commit}, para) {
       return api.datasource.fetchChangeTypeInfo(para.projectName, para.tableName, para.affectedType)
+    },
+    [types.PREPARE_UNLOAD]: function ({ commit }, para) {
+      return api.datasource.prepareUnload(para)
     },
     [types.FETCH_RANGE_FRESH_INFO]: function ({commit}, para) {
       return api.datasource.fetchRangeFreshInfo(para.projectName, para.tableFullName, String(para.startTime), String(para.endTime))

@@ -72,6 +72,22 @@
           <el-button type="primary" plain @click="submitSample" size="medium" :disabled="!!errorMsg" :loading="sampleLoading">{{$t('kylinLang.common.submit')}}</el-button>
         </span>
       </el-dialog>
+
+      <el-dialog
+        :visible.sync="isDelAllDepVisible"
+        width="480px"
+        :close-on-press-escape="false"
+        :close-on-click-modal="false">
+        <span slot="title">{{$t('unloadTableTitle')}}</span>
+        <el-alert :show-background="false" :closable="false" show-icon type="warning" style="padding:0">
+          <span slot="title" class="ksd-fs-14" v-html="delTabelConfirmMessage"></span>
+        </el-alert>
+        <span slot="footer" class="dialog-footer ky-no-br-space">
+          <el-button size="medium" @click="isDelAllDepVisible = false">{{$t('kylinLang.common.cancel')}}</el-button>
+          <el-button size="medium" :loading="delAllLoading" @click="handelDeleteTable(true)">{{$t('deleteAll')}}</el-button>
+          <el-button type="primary" size="medium" plain :loading="delLoading" @click="handelDeleteTable(false)">{{$t('deleteTable')}}</el-button>
+        </span>
+      </el-dialog>
     </div>
     <ReloadTable></ReloadTable>
   </div>
@@ -92,7 +108,6 @@ import SourceManagement from './SourceManagement/SourceManagement.vue'
 import ReloadTable from './TableReload/reload.vue'
 import { handleSuccessAsync, handleError } from '../../../util'
 import { kapConfirm } from '../../../util/business'
-import { getAffectedModelsType } from '../../../config'
 import { getFormattedTable } from '../../../util/UtilTable'
 
 @Component({
@@ -115,7 +130,7 @@ import { getFormattedTable } from '../../../util/UtilTable'
     ...mapActions({
       fetchTables: 'FETCH_TABLES',
       importTable: 'LOAD_HIVE_IN_PROJECT',
-      fetchChangeTypeInfo: 'FETCH_CHANGE_TYPE_INFO',
+      prepareUnload: 'PREPARE_UNLOAD',
       deleteTable: 'DELETE_TABLE',
       submitSampling: 'SUBMIT_SAMPLING',
       hasSamplingJob: 'HAS_SAMPLING_JOB',
@@ -138,6 +153,10 @@ export default class StudioSource extends Vue {
   delBtnLoading = false
   samplingRows = 20000000
   errorMsg = ''
+  isDelAllDepVisible = false
+  delTabelConfirmMessage = ''
+  delLoading = false
+  delAllLoading = false
   get selectedTable () {
     return this.selectedTableData ? getFormattedTable(this.selectedTableData) : null
   }
@@ -174,27 +193,22 @@ export default class StudioSource extends Vue {
       handleError(e)
     }
   }
-  showDeleteTableConfirm (modelCount, modelSize) {
+  showDeleteTableConfirm (hasModel, hasJob) {
     const tableName = this.selectedTable.name
-    const storageSize = Vue.filter('dataSize')(modelSize)
-    const contentVal = { tableName, storageSize }
+    const contentVal = { tableName }
     const confirmTitle = this.$t('unloadTableTitle')
-    const confirmMessage1 = modelSize ? this.$t('affactUnloadInfo', contentVal) : ''
+    const confirmMessage1 = this.$t('affactUnloadInfo', contentVal)
     const confirmMessage2 = this.$t('unloadTable', contentVal)
-    const confirmMessage = _render(this.$createElement)
+    let confirmMessage = ''
+    if (hasJob && !hasModel) {
+      confirmMessage = confirmMessage1
+    } else if (!hasJob && !hasModel) {
+      confirmMessage = confirmMessage2
+    }
     const confirmButtonText = this.$t('kylinLang.common.ok')
     const cancelButtonText = this.$t('kylinLang.common.cancel')
     const confirmParams = { confirmButtonText, cancelButtonText, type: 'warning' }
     return this.$confirm(confirmMessage, confirmTitle, confirmParams)
-
-    function _render (h) {
-      return (
-        <div>
-          <p class="break-all">{confirmMessage1}</p>
-          <p>{confirmMessage2}</p>
-        </div>
-      )
-    }
   }
   sampleTable () {
     this.sampleVisible = true
@@ -236,20 +250,49 @@ export default class StudioSource extends Vue {
     }
   }
   async handleDelete () {
+    const projectName = this.currentSelectedProject
+    const databaseName = this.selectedTable.database
+    const tableName = this.selectedTable.name
+    const { hasModel, hasJob, modelSize } = await this._getAffectedModelCountAndSize()
+    if (!hasModel) {
+      this.delBtnLoading = true
+      try {
+        await this.showDeleteTableConfirm(hasModel, hasJob)
+        await this.deleteTable({ projectName, databaseName, tableName })
+        this.$message({ type: 'success', message: this.$t('unloadSuccess') })
+        await this.handleFreshTable({ isSetToDefault: true })
+        this.delBtnLoading = false
+      } catch (e) {
+        this.delBtnLoading = false
+        handleError(e)
+      }
+    } else {
+      const storageSize = Vue.filter('dataSize')(modelSize)
+      const contentVal = { tableName, storageSize }
+      this.delTabelConfirmMessage = this.$t('dropTabelDepen', contentVal)
+      this.isDelAllDepVisible = true
+    }
+  }
+  async handelDeleteTable (cascade) {
+    if (cascade) {
+      this.delAllLoading = true
+    } else {
+      this.delLoading = true
+    }
     try {
       const projectName = this.currentSelectedProject
       const databaseName = this.selectedTable.database
       const tableName = this.selectedTable.name
-      const { modelCount, modelSize } = await this._getAffectedModelCountAndSize()
-      this.delBtnLoading = true
-      await this.showDeleteTableConfirm(modelCount, modelSize)
-      await this.deleteTable({ projectName, databaseName, tableName })
-
+      await this.deleteTable({ projectName, databaseName, tableName, cascade })
       this.$message({ type: 'success', message: this.$t('unloadSuccess') })
       await this.handleFreshTable({ isSetToDefault: true })
-      this.delBtnLoading = false
+      this.isDelAllDepVisible = false
+      this.delAllLoading = false
+      this.delLoading = false
     } catch (e) {
-      this.delBtnLoading = false
+      this.isDelAllDepVisible = false
+      this.delAllLoading = false
+      this.delLoading = false
       handleError(e)
     }
   }
@@ -317,10 +360,11 @@ export default class StudioSource extends Vue {
   }
   async _getAffectedModelCountAndSize () {
     const projectName = this.currentSelectedProject
-    const tableName = this.selectedTable.fullName
-    const response = await this.fetchChangeTypeInfo({projectName, tableName, affectedType: getAffectedModelsType.DROP_TABLE})
+    const databaseName = this.selectedTable.database
+    const tableName = this.selectedTable.name
+    const response = await this.prepareUnload({projectName, databaseName, tableName})
     const result = await handleSuccessAsync(response)
-    return { modelCount: result.models.length, modelSize: result.byte_size }
+    return { hasModel: result.has_model, hasJob: result.has_job, modelSize: result.storage_size }
   }
   mounted () {
     if (!this.isAutoProject) {

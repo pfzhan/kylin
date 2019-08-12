@@ -21,8 +21,8 @@
       @selection-change="handleSelectionChange"
       :row-class-name="tableRowClassName"
       style="width: 100%">
-      <el-table-column type="selection" align="center" width="44" v-if="isShowBatch" key="checkbox"></el-table-column>
-      <el-table-column type="index" width="44" align="center" v-if="!isShowBatch" key="index"></el-table-column>
+      <el-table-column type="selection" align="center" width="50" v-if="isShowBatch" key="checkbox"></el-table-column>
+      <el-table-column type="index" :label="$t('order')" width="50" align="center" v-if="!isShowBatch" key="index"></el-table-column>
       <el-table-column :label="$t('kylinLang.query.sqlContent_th')" prop="sql_pattern" show-overflow-tooltip></el-table-column>
       <el-table-column :label="$t('kylinLang.query.lastModefied')" prop="last_query_time" sortable="custom" width="218">
         <template slot-scope="props">
@@ -99,13 +99,15 @@ import { handleError } from '../../../util/index'
       delSql: 'Do you really need to delete {numbers} sql(s)?',
       addToBlackList: 'Do you really need this {numbers} sql(s) to the Black List',
       openBatchBtn: 'Open Batch Actions',
-      closeBatchBtn: 'Close Batch Actions'
+      closeBatchBtn: 'Close Batch Actions',
+      order: 'No.'
     },
     'zh-cn': {
       delSql: '您确认要删除 {numbers} 条查询语句吗？',
       addToBlackList: '确定将这 {numbers} 条查询语句加入禁用名单吗？',
       openBatchBtn: '开启批量操作',
-      closeBatchBtn: '关闭批量操作'
+      closeBatchBtn: '关闭批量操作',
+      order: '序号'
     }
   }
 })
