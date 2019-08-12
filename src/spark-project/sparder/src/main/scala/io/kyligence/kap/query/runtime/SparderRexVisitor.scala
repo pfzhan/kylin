@@ -525,7 +525,7 @@ class SparderRexVisitor(val dfs: Array[DataFrame],
           case "pi" =>
             k_lit(Math.PI)
           case "regexp_like"=>
-            k_like(k_lit(children.head),k_lit(children.apply(1)))
+            k_lit(children.head).rlike(children.apply(1).toString)
           case _ =>
             throw new UnsupportedOperationException(
               s"Unsupported function $funcName")

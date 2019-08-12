@@ -52,25 +52,25 @@ public class ToDateUDF {
         if (dateStr == null) {
             return null;
         }
-        Date Date = null;
+        Date date = null;
         switch (fmt){
             case "yyyy-MM-dd" :
                 dateStr = dateStr.substring(0, 10);
-                Date = Date.valueOf(dateStr);
+                date = Date.valueOf(dateStr);
                 break;
             case "yyyy-MM" :
                 dateStr = dateStr.substring(0, 7) + "-01";
-                Date = Date.valueOf(dateStr);
+                date = Date.valueOf(dateStr);
                 break;
             case "yyyy":
             case "y":
                 dateStr = dateStr.substring(0, 4) + "-01-01";
-                Date = Date.valueOf(dateStr);
+                date = Date.valueOf(dateStr);
                 break;
             default:
                 //date = null
         }
-        return Date;
+        return date;
     }
 
     public Date TO_DATE(@Parameter(name = "str1") String date) {
