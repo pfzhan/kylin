@@ -186,8 +186,8 @@ export default class SecurityUser extends Vue {
         ? await this.loadUsersList(parameter)
         : await this.loadUserListByGroupName(parameter)
 
-      this.userData = data.users || data.groupMembers || []
-      this.totalSize = data.size
+      this.userData = data && (data.users || data.groupMembers) || []
+      this.totalSize = data && data.size || 0
     } catch (e) {
       handleError(e)
     }
