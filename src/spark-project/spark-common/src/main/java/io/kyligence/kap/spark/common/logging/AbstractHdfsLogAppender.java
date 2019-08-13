@@ -45,9 +45,9 @@ import java.util.concurrent.LinkedBlockingDeque;
 
 public abstract class AbstractHdfsLogAppender extends AppenderSkeleton {
 
-    private final Object FLUSH_LOG_LOCK = new Object();
-    private final Object INIT_WRITER_LOCK = new Object();
-    private final Object CLOSE_LOCK = new Object();
+    private final Object flushLogLock = new Object();
+    private final Object initWriterLock = new Object();
+    private final Object closeLock = new Object();
 
     private FSDataOutputStream outStream = null;
     private BufferedWriter bufferedWriter = null;
@@ -81,7 +81,7 @@ public abstract class AbstractHdfsLogAppender extends AppenderSkeleton {
     }
 
     public boolean isWriterInited() {
-        synchronized (INIT_WRITER_LOCK) {
+        synchronized (initWriterLock) {
             return null != bufferedWriter;
         }
     }
@@ -121,7 +121,7 @@ public abstract class AbstractHdfsLogAppender extends AppenderSkeleton {
 
     @Override
     public void close() {
-        synchronized (CLOSE_LOCK) {
+        synchronized (closeLock) {
             if (!this.closed) {
                 this.closed = true;
 
@@ -207,7 +207,7 @@ public abstract class AbstractHdfsLogAppender extends AppenderSkeleton {
      * @param outPath
      */
     protected boolean initHdfsWriter(Path outPath, Configuration conf) {
-        synchronized (INIT_WRITER_LOCK) {
+        synchronized (initWriterLock) {
             closeWriter();
             bufferedWriter = null;
             outStream = null;
@@ -215,7 +215,7 @@ public abstract class AbstractHdfsLogAppender extends AppenderSkeleton {
             fileSystem = HadoopUtil.getFileSystem(new Path(getHdfsWorkingDir()), conf);
 
             int retry = 10;
-            for (int i = 0; i < retry; i++) {
+            while (retry-- > 0) {
                 try {
                     outStream = fileSystem.create(outPath, true);
                     break;
@@ -224,7 +224,7 @@ public abstract class AbstractHdfsLogAppender extends AppenderSkeleton {
                 }
 
                 try {
-                    Thread.sleep(1000);//waiting for acl to turn to current user
+                    initWriterLock.wait(1000);//waiting for acl to turn to current user
                 } catch (InterruptedException e) {
                     LogLog.warn("Init writer interrupted!", e);
                     // Restore interrupted state...
@@ -300,7 +300,7 @@ public abstract class AbstractHdfsLogAppender extends AppenderSkeleton {
             return;
         }
 
-        synchronized (FLUSH_LOG_LOCK) {
+        synchronized (flushLogLock) {
             if (eventSize > getLogBufferQue().size()) {
                 eventSize = getLogBufferQue().size();
             }

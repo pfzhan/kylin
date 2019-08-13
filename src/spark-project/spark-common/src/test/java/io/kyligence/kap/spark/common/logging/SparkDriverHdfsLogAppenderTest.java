@@ -30,7 +30,7 @@ import org.junit.Test;
 import java.io.File;
 import java.io.IOException;
 
-public class SparkDriverHdfsLogAppenderTest extends AbstractHdfsLogAppenderTest {
+public class SparkDriverHdfsLogAppenderTest extends AbstractHdfsLogAppenderTestBase {
 
     @Test
     public void testSparkDriverHdfsLogAppender() throws InterruptedException, IOException {

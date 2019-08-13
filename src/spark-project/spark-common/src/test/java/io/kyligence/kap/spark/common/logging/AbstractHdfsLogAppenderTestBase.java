@@ -36,7 +36,7 @@ import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
-public class AbstractHdfsLogAppenderTest {
+public class AbstractHdfsLogAppenderTestBase {
 
     @Rule
     public TemporaryFolder temporaryFolder = new TemporaryFolder();

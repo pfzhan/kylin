@@ -43,7 +43,7 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Arrays;
 
-public class SparkExecutorHdfsLogAppenderTest extends AbstractHdfsLogAppenderTest {
+public class SparkExecutorHdfsLogAppenderTest extends AbstractHdfsLogAppenderTestBase {
 
     private SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 

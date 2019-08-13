@@ -46,8 +46,8 @@ import java.util.UUID;
 
 public class SparkExecutorHdfsLogAppender extends AbstractHdfsLogAppender {
 
-    private static long A_DAY_MILLIS = 24 * 60 * 60 * 1000L;
-    private static long A_HOUR_MILLIS = 60 * 60 * 1000L;
+    private static final long A_DAY_MILLIS = 24 * 60 * 60 * 1000L;
+    private static final long A_HOUR_MILLIS = 60 * 60 * 1000L;
     private SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
     private SimpleDateFormat hourFormat = new SimpleDateFormat("HH");
 
@@ -115,6 +115,7 @@ public class SparkExecutorHdfsLogAppender extends AbstractHdfsLogAppender {
                 Thread.sleep(1000);
             } catch (InterruptedException e) {
                 LogLog.error("Waiting for spark executor starting is interrupted!", e);
+                Thread.currentThread().interrupt();
             }
             return true;
         }

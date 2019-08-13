@@ -62,6 +62,9 @@ import javax.servlet.http.HttpServletResponse;
 @RequestMapping(value = "/jobs")
 public class NJobController extends NBasicController {
 
+    private static final String JOB_ID_ARG_NAME = "jobId";
+    private static final String STEP_ID_ARG_NAME = "stepId";
+
     @Autowired
     @Qualifier("jobService")
     private JobService jobService;
@@ -146,7 +149,7 @@ public class NJobController extends NBasicController {
     public EnvelopeResponse getJobDetail(@RequestParam(value = "project", required = true) String project,
             @RequestParam(value = "jobId", required = true) String jobId) {
         checkProjectName(project);
-        checkRequiredArg("jobId", jobId);
+        checkRequiredArg(JOB_ID_ARG_NAME, jobId);
         List<ExecutableStepResponse> jobDetails = jobService.getJobDetail(project, jobId);
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, jobDetails, "");
     }
@@ -157,8 +160,8 @@ public class NJobController extends NBasicController {
     public EnvelopeResponse getJobOutput(@PathVariable("jobId") String jobId, @PathVariable("stepId") String stepId,
             @RequestParam(value = "project") String project) {
         Map<String, String> result = new HashMap<String, String>();
-        result.put("jobId", jobId);
-        result.put("stepId", stepId);
+        result.put(JOB_ID_ARG_NAME, jobId);
+        result.put(STEP_ID_ARG_NAME, stepId);
         result.put("cmd_output", jobService.getJobOutput(project, stepId));
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, result, "");
     }
@@ -169,8 +172,8 @@ public class NJobController extends NBasicController {
     public EnvelopeResponse downloadLogFile(@PathVariable("jobId") String jobId, @PathVariable("stepId") String stepId,
             @RequestParam(value = "project") String project, HttpServletResponse response) {
         checkProjectName(project);
-        checkRequiredArg("jobId", jobId);
-        checkRequiredArg("stepId", stepId);
+        checkRequiredArg(JOB_ID_ARG_NAME, jobId);
+        checkRequiredArg(STEP_ID_ARG_NAME, stepId);
         String downloadFilename = String.format("%s_%s.log", project, stepId);
 
         String hdfsLogpath = jobService.getHdfsLogPath(project, stepId);
