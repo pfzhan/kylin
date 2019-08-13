@@ -296,7 +296,7 @@ public class RexToTblColRefTranslator {
          */
         private void registerCaseOpNew() {
             registerOp(SqlStdOperatorTable.CASE, (RexToSqlNodeConverter converter, RexCall call) -> {
-                SqlNode[] operands = convertExpressionList(converter, call.getOperands());
+                SqlNode[] operands = doConvertExpressionList(converter, call.getOperands());
                 if (operands == null) {
                     return null;
                 }
@@ -319,7 +319,7 @@ public class RexToTblColRefTranslator {
             });
         }
 
-        SqlNode[] convertExpressionList(RexToSqlNodeConverter converter, List<RexNode> nodes) {
+        SqlNode[] doConvertExpressionList(RexToSqlNodeConverter converter, List<RexNode> nodes) {
             final SqlNode[] exprs = new SqlNode[nodes.size()];
             for (int i = 0; i < nodes.size(); i++) {
                 RexNode node = nodes.get(i);
