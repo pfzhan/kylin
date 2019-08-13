@@ -43,6 +43,7 @@
 package org.apache.kylin.query.routing;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.apache.commons.lang3.StringUtils;
@@ -52,7 +53,12 @@ import org.apache.kylin.query.relnode.OLAPContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.collect.BiMap;
+import com.google.common.collect.HashBiMap;
 import com.google.common.collect.Lists;
+
+import io.kyligence.kap.query.util.ComputedColumnRewriter;
+import io.kyligence.kap.query.util.QueryAliasMatchInfo;
 
 /**
  * @author xjiang
@@ -64,7 +70,7 @@ public class QueryRouter {
 
     private static final Logger logger = LoggerFactory.getLogger(QueryRouter.class);
 
-    public static Candidate selectRealization(OLAPContext olapContext, Set<IRealization> realizations) {
+    public static Candidate selectRealization(OLAPContext olapContext, Set<IRealization> realizations, Map<String, String> aliasMap) {
         String factTableName = olapContext.firstTableScan.getTableName();
         String projectName = olapContext.olapSchema.getProjectName();
         SQLDigest sqlDigest = olapContext.getSQLDigest();
@@ -74,10 +80,18 @@ public class QueryRouter {
                 candidates.add(new Candidate(real, sqlDigest, olapContext));
             }
         }
+        if (candidates.isEmpty()) {
+            return null;
+        }
+
         logger.info("Find candidates by table {} and project={} : {}", factTableName, projectName,
                 StringUtils.join(candidates, ","));
-
         List<Candidate> originCandidates = Lists.newArrayList(candidates);
+
+        BiMap<String, String> aliasMapping = HashBiMap.create();
+        aliasMapping.putAll(aliasMap);
+        ComputedColumnRewriter.rewriteCcInnerCol(olapContext, candidates.get(0).getRealization().getModel(),
+                new QueryAliasMatchInfo(aliasMapping, null));
         // rule based realization selection, rules might reorder realizations or remove specific realization
         RoutingRule.applyRules(candidates);
 

@@ -424,6 +424,10 @@ public class KapConfig {
         return Boolean.valueOf(config.getOptional("kap.query.implicit-computed-column-convert", "true"));
     }
 
+    public boolean isAggComputedColumnRewriteEnabled() {
+        return Boolean.valueOf(config.getOptional("kap.query.agg-computed-column-rewrite", "true"));
+    }
+
     public int getComputedColumnMaxRecursionTimes() {
         return Integer.valueOf(config.getOptional("kap.query.computed-column-max-recursion-times", "10"));
     }

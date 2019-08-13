@@ -118,7 +118,7 @@ public class RealizationChooser {
 
             // Step 2. select realizations
             preprocessOlapCtx(context);
-            Candidate candidate = QueryRouter.selectRealization(context, Sets.newHashSet(modelMap.get(model)));
+            Candidate candidate = QueryRouter.selectRealization(context, Sets.newHashSet(modelMap.get(model)), model2AliasMap.get(model));
             if (candidate != null)
                 candidates.add(candidate);
 

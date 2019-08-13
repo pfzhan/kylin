@@ -227,7 +227,11 @@ class CuboidSuggester {
 
         // 1. determine filter columns and non-filter columns
         List<TblColRef> filterColumns = Lists.newArrayList(context.filterColumns);
-        Set<TblColRef> nonFilterColumnSet = Sets.newHashSet(context.allColumns);
+        Set<TblColRef> allcols = Sets.newHashSet(context.getGroupByColumns());
+        allcols.addAll(context.filterColumns);
+        allcols.addAll(context.getSubqueryJoinParticipants());
+        Set<TblColRef> nonFilterColumnSet = Sets
+                .newHashSet(context.getSQLDigest().isRawQuery ? context.allColumns : allcols);
         nonFilterColumnSet.removeAll(context.filterColumns);
         context.aggregations.forEach(functionDesc -> {
             if (CollectionUtils.isEmpty(functionDesc.getParameters())) {

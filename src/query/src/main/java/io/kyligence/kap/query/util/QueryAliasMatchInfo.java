@@ -35,7 +35,7 @@ public class QueryAliasMatchInfo extends AliasMapping {
     // each alias's ColumnRowType
     private LinkedHashMap<String, ColumnRowType> alias2CRT;
 
-    QueryAliasMatchInfo(BiMap<String, String> aliasMapping, LinkedHashMap<String, ColumnRowType> alias2CRT) {
+    public QueryAliasMatchInfo(BiMap<String, String> aliasMapping, LinkedHashMap<String, ColumnRowType> alias2CRT) {
         super(aliasMapping);
         this.alias2CRT = alias2CRT;
     }

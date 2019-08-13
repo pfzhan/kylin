@@ -33,16 +33,21 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.model.FunctionDesc;
+import org.apache.kylin.metadata.model.JoinsGraph;
 import org.apache.kylin.metadata.model.PartitionDesc;
 import org.apache.kylin.query.relnode.OLAPContext;
 
+import com.google.common.collect.BiMap;
+import com.google.common.collect.HashBiMap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.metadata.model.ComputedColumnDesc;
 import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.query.util.ComputedColumnRewriter;
 import io.kyligence.kap.query.util.ConvertToComputedColumn;
+import io.kyligence.kap.query.util.QueryAliasMatchInfo;
 import io.kyligence.kap.smart.NModelSelectProposer;
 import io.kyligence.kap.smart.NSmartContext;
 import io.kyligence.kap.smart.query.AbstractQueryRunner;
@@ -174,9 +179,25 @@ public class NModelMaster {
 
             // Update context info
             this.modelContext.setModelTree(updatedModelTree);
+            updateOlapCtxWithCC(updatedModelTree, dataModel);
             log.info("Rebuild modelTree successfully.");
         } catch (Exception e) {
             log.warn("NModelMaster.updateContextWithCC failed to update model tree", e);
         }
+    }
+
+    private void updateOlapCtxWithCC(ModelTree modelTree, NDataModel model) {
+        modelTree.getOlapContexts().forEach(context -> {
+            JoinsGraph joinsGraph = context.getJoinsGraph() == null
+                    ? new JoinsGraph(context.firstTableScan.getTableRef(), context.joins)
+                    : context.getJoinsGraph();
+            Map<String, String> matches = joinsGraph.matchAlias(model.getJoinsGraph(), false);
+            if (matches == null || matches.isEmpty()) {
+                return;
+            }
+            BiMap<String, String> aliasMapping = HashBiMap.create();
+            aliasMapping.putAll(matches);
+            ComputedColumnRewriter.rewriteCcInnerCol(context, model, new QueryAliasMatchInfo(aliasMapping, null));
+        });
     }
 }

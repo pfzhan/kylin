@@ -196,7 +196,7 @@ public class TblColRef implements Serializable {
         this.column = column;
     }
 
-    TblColRef(TableRef table, ColumnDesc column) {
+    public TblColRef(TableRef table, ColumnDesc column) {
         checkArgument(table.getTableDesc().getIdentity().equals(column.getTable().getIdentity()));
         this.table = table;
         this.column = column;

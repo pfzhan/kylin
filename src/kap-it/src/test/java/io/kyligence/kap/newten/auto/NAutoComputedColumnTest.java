@@ -418,8 +418,12 @@ public class NAutoComputedColumnTest extends NAutoTestBase {
         NSmartMaster smartMaster = new NSmartMaster(kylinConfig, getProject(), new String[] { query });
         smartMaster.runAll();
 
-        final Map<String, AccelerateInfo> accelerateInfoMap = smartMaster.getContext().getAccelerateInfoMap();
-        Assert.assertTrue(accelerateInfoMap.get(query).isFailed());
+        NDataModel model = smartMaster.getContext().getModelContexts().get(0).getTargetModel();
+        Assert.assertEquals(1, model.getComputedColumnDescs().size());
+        ComputedColumnDesc computedColumnDesc = model.getComputedColumnDescs().get(0);
+        Assert.assertEquals("CC_AUTO_1", computedColumnDesc.getColumnName());
+        Assert.assertEquals("TEST_KYLIN_FACT.PRICE * TEST_KYLIN_FACT.ITEM_COUNT + 1", computedColumnDesc.getExpression());
+
     }
 
     @Test
@@ -528,9 +532,7 @@ public class NAutoComputedColumnTest extends NAutoTestBase {
         val accelerationInfoMap = smartMaster.getContext().getAccelerateInfoMap();
         Assert.assertFalse(accelerationInfoMap.get(sqls[0]).isNotSucceed());
         Assert.assertFalse(accelerationInfoMap.get(sqls[1]).isNotSucceed());
-        Assert.assertTrue(accelerationInfoMap.get(sqls[2]).isNotSucceed());
-        Assert.assertEquals("Table not found by UNKNOWN_ALIAS",
-                accelerationInfoMap.get(sqls[2]).getFailedCause().getMessage());
+        Assert.assertFalse(accelerationInfoMap.get(sqls[2]).isNotSucceed());
         Assert.assertFalse(accelerationInfoMap.get(sqls[3]).isNotSucceed());
         Assert.assertFalse(accelerationInfoMap.get(sqls[4]).isNotSucceed());
         Assert.assertFalse(accelerationInfoMap.get(sqls[5]).isNotSucceed());
