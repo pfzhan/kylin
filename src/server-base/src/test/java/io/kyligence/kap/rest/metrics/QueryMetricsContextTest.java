@@ -27,6 +27,9 @@ package io.kyligence.kap.rest.metrics;
 import java.util.List;
 import java.util.Map;
 
+import io.kyligence.kap.metadata.model.ComputedColumnDesc;
+import io.kyligence.kap.metadata.model.NDataModelManager;
+import lombok.val;
 import org.apache.calcite.sql.validate.SqlValidatorException;
 import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.metadata.realization.NoRealizationFoundException;
@@ -355,13 +358,14 @@ public class QueryMetricsContextTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void testSqlPatternParseError() {
+    public void testSqlMassagedBeforeNormalize() {
         try {
             // error happens when there is a comma, but the query history still gets to record down
-            final String origSql = "select * from test_parse_sql_pattern_error";
-            final String massagedSql = "select * from test_parse_sql_pattern_error limit 500;";
+            final String origSql = "select * from test_parse_sql_pattern_error;";
+            final String massagedSql = "select * from test_parse_sql_pattern_error";
+            final String sqlPattern = "SELECT *\n" +
+                    "FROM \"TEST_PARSE_SQL_PATTERN_ERROR\"";
             final QueryContext queryContext = QueryContext.current();
-            queryContext.setCorrectedSql(massagedSql);
             QueryMetricsContext.start(queryContext.getQueryId(), "localhost:7070");
             Assert.assertEquals(true, QueryMetricsContext.isStarted());
 
@@ -380,7 +384,7 @@ public class QueryMetricsContextTest extends NLocalFileMetadataTestCase {
 
             final Map<String, Object> influxdbFields = metricsContext.getInfluxdbFields();
             Assert.assertEquals(massagedSql, influxdbFields.get(QueryHistory.SQL_TEXT));
-            Assert.assertEquals(massagedSql, influxdbFields.get(QueryHistory.SQL_PATTERN));
+            Assert.assertEquals(sqlPattern, influxdbFields.get(QueryHistory.SQL_PATTERN));
         } finally {
             QueryContext.reset();
             QueryMetricsContext.reset();
@@ -421,6 +425,15 @@ public class QueryMetricsContextTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testCollectCCSQL() {
+        val ccDesc = new ComputedColumnDesc();
+        ccDesc.setTableAlias("TEST_KYLIN_FACT");
+        ccDesc.setTableIdentity("DEFAULT.TEST_KYLIN_FACT");
+        ccDesc.setColumnName("DEAL_AMOUNT");
+        ccDesc.setDatatype("decimal(30,4)");
+        ccDesc.setExpression("TEST_KYLIN_FACT.PRICE * TEST_KYLIN_FACT.ITEM_COUNT");
+
+        val basicModel = NDataModelManager.getInstance(getTestConfig(), "default").getDataModelDescByAlias("nmodel_basic");
+        Assert.assertTrue(basicModel.getComputedColumnDescs().contains(ccDesc));
         try {
             // PRICE * ITEM_COUNT expression already exists
             final String origSql = "SELECT SUM(PRICE * ITEM_COUNT), CAL_DT FROM TEST_KYLIN_FACT GROUP BY CAL_DT";
