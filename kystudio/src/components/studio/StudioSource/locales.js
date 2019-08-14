@@ -11,7 +11,7 @@ export default {
     unloadTable: 'Do you need to delete the table {tableName}?',
     unloadSuccess: 'Delete Table successfully.',
     affactUnloadInfo: 'The source table {tableName} is referenced by a running job. Please confirm whether to delete this table and discard the running job.',
-    dropTabelDepen: 'This source table {tableName} is referenced by models, whose total storage size is {storageSize}. Please confirm whether to only delete this table or delete all.<br/><br/>Deleting Table: Only deleting this source table and stopping related jobs and this will cause models (indexes) being broken. You can load this table again to fix.<br/><br/>Deleting Model: Deleting this source table and referenced models (indexes) as well as stopping related jobs.',
+    dropTabelDepen: 'This source table {tableName} is referenced by models or indexes, whose total storage size is {storageSize}. Please confirm whether to only delete this table or delete all.<br/><br/>Only deleting this source table and stopping related jobs. This will cause models (indexes) being broken. You can reload this table to fix them.<br/><br/>Deleting Model: Deleting this source table and referenced models (indexes) as well as stopping related jobs.',
     remindLoadRange: 'If you have tables which increase by day, it is suggested to select the corresponding date column as partition key. Especially, tables containing historical data, in which new data is added into the newest partition.',
     remindLoadRangeTitle: 'Add Partition',
     sampleDesc: 'The system will sample the table {tableName}.',

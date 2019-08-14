@@ -75,7 +75,7 @@
 
       <el-dialog
         :visible.sync="isDelAllDepVisible"
-        width="480px"
+        width="720px"
         :close-on-press-escape="false"
         :close-on-click-modal="false">
         <span slot="title">{{$t('unloadTableTitle')}}</span>
