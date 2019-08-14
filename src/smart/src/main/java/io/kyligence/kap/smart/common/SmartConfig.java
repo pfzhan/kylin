@@ -89,20 +89,28 @@ public class SmartConfig {
     // =========== based on rules to propose computed columns with sqlNode ====================
 
     public boolean isAdviseComputedColumnOnSqlNodeEnabled() {
-        return getOptional("cc-advise-on-sqlnode", true);
+        return getOptional("computed-column.advise-on-sqlnode", true);
     }
 
     public String[] getFunctionsAppliedToCCRules() {
-        return getOptionalStringArray("cc-propose-functions", new String[] { "TIMESTAMP_DIFF", "TIMESTAMP_ADD" });
+        return getOptionalStringArray("computed-column.propose-functions", new String[] { "TIMESTAMP_DIFF", "TIMESTAMP_ADD" });
     }
 
     public String[] getSpecialCCRulesOnSqlNode() {
-        return getOptionalStringArray("cc-propose-rules", new String[] { "io.kyligence.kap.smart.model.rule.AggFunctionRule",
+        return getOptionalStringArray("computed-column.propose-rules", new String[] { "io.kyligence.kap.smart.model.rule.AggFunctionRule",
                 "io.kyligence.kap.smart.model.rule.CaseWhenRule" });
     }
 
     private String[] getOptionalStringArray(String key, String[] values) {
         String value = getOptional(key, null);
         return StringUtils.isBlank(value) ? values : new String[0];
+    }
+
+    public long getComputedColumnOnGroupKeySuggestionMinCardinality() {
+        return getOptional("computed-column.suggestion.group-key.minimum-cardinality", 10000L);
+    }
+
+    public long getComputedColumnOnFilterKeySuggestionMinCardinality() {
+        return getOptional("computed-column.suggestion.filter-key.minimum-cardinality", 10000L);
     }
 }

@@ -25,10 +25,13 @@
 package io.kyligence.kap.newten.auto;
 
 import java.util.Comparator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.metadata.model.TableDesc;
+import org.apache.kylin.metadata.model.TableExtDesc;
 import org.junit.Assert;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -42,6 +45,7 @@ import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModel.Measure;
 import io.kyligence.kap.metadata.model.NDataModel.NamedColumn;
 import io.kyligence.kap.metadata.model.NDataModelManager;
+import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.query.util.ConvertToComputedColumn;
 import io.kyligence.kap.smart.NSmartContext;
 import io.kyligence.kap.smart.NSmartMaster;
@@ -642,12 +646,12 @@ public class NAutoComputedColumnTest extends NAutoTestBase {
     }
 
     /**
-     * test turn on or turn off 'kap.smart.conf.cc-advise-on-sqlnode'
+     * test turn on or turn off 'kap.smart.conf.computed-column.advise-on-sqlnode'
      */
     @Test
     public void testProposeCcmputedColumnOnSqlNode() {
         // turn off
-        kylinConfig.setProperty("kap.smart.conf.cc-advise-on-sqlnode", "false");
+        kylinConfig.setProperty("kap.smart.conf.computed-column.advise-on-sqlnode", "false");
         String[] sqls = { "select max(timestampdiff(second, time0, time1)) from tdvt.calcs" };
         NSmartMaster smartMaster = new NSmartMaster(kylinConfig, getProjectTDVT(), sqls);
         smartMaster.runAll();
@@ -660,7 +664,7 @@ public class NAutoComputedColumnTest extends NAutoTestBase {
 
         // turn on
         cleanExistingModelsAndIndexPlans(getProjectTDVT());
-        kylinConfig.setProperty("kap.smart.conf.cc-advise-on-sqlnode", "true");
+        kylinConfig.setProperty("kap.smart.conf.computed-column.advise-on-sqlnode", "true");
         smartMaster = new NSmartMaster(kylinConfig, getProjectTDVT(), sqls);
         smartMaster.runAll();
         accelerationInfoMap1 = smartMaster.getContext().getAccelerateInfoMap();
@@ -838,6 +842,122 @@ public class NAutoComputedColumnTest extends NAutoTestBase {
                 computedColumns.get(1).getInnerExpression().trim());
         Assert.assertEquals("BIGINT", computedColumns.get(0).getDatatype());
         Assert.assertEquals("INTEGER", computedColumns.get(1).getDatatype());
+    }
+
+    @Test
+    public void testCCOnInnerFilterColGreaterThanMinCardinality() {
+        String[] sqls = new String[]{"select price, item_count, count(1)\n" + "from test_kylin_fact\n"
+                + "where TRANS_ID + ORDER_ID > 100\n" + "group by price, item_count"};
+
+        mockTableExtDesc("DEFAULT.TEST_KYLIN_FACT", "newten", new String[]{"TRANS_ID", "ORDER_ID"}, new int[]{99, 77});
+        overwriteSystemProp("kap.smart.conf.computed-column.suggestion.filter-key.minimum-cardinality", "5000");
+        NSmartMaster smartMaster = new NSmartMaster(kylinConfig, getProject(), sqls);
+        smartMaster.runAll();
+
+        val modelContexts = smartMaster.getContext().getModelContexts();
+        Assert.assertEquals(1, modelContexts.size());
+        val targetModel = modelContexts.get(0).getTargetModel();
+        val computedColumns = targetModel.getComputedColumnDescs();
+        val accelerationInfoMap = smartMaster.getContext().getAccelerateInfoMap();
+        Assert.assertFalse(accelerationInfoMap.get(sqls[0]).isNotSucceed());
+
+        Assert.assertEquals(1, computedColumns.size());
+        Assert.assertEquals("TEST_KYLIN_FACT.TRANS_ID + TEST_KYLIN_FACT.ORDER_ID",
+                computedColumns.get(0).getInnerExpression().trim());
+        Assert.assertEquals("BIGINT", computedColumns.get(0).getDatatype());
+    }
+
+    @Test
+    public void testCCOnInnerFilterColLessThanMinCardinality() {
+        String[] sqls = new String[]{"select price, item_count, count(1)\n" + "from test_kylin_fact\n"
+                + "where TRANS_ID + ORDER_ID > 100\n" + "group by price, item_count"};
+        mockTableExtDesc("DEFAULT.TEST_KYLIN_FACT", "newten", new String[]{"TRANS_ID", "ORDER_ID"}, new int[]{99, 77});
+        overwriteSystemProp("kap.smart.conf.computed-column.suggestion.filter-key.minimum-cardinality", "10000");
+        NSmartMaster smartMaster = new NSmartMaster(kylinConfig, getProject(), sqls);
+        smartMaster.runAll();
+
+        val modelContexts = smartMaster.getContext().getModelContexts();
+        Assert.assertEquals(1, modelContexts.size());
+        val targetModel = modelContexts.get(0).getTargetModel();
+        val computedColumns = targetModel.getComputedColumnDescs();
+        val accelerationInfoMap = smartMaster.getContext().getAccelerateInfoMap();
+        Assert.assertFalse(accelerationInfoMap.get(sqls[0]).isNotSucceed());
+
+        Assert.assertEquals(0, computedColumns.size());
+    }
+
+    @Test
+    public void testCCOnInnerGroupColGreaterThanMinCardinality() {
+        String[] sqls = new String[] { "select sum(price), sum(item_count)\n" +
+                "from (\n" +
+                "select TRANS_ID + ORDER_ID as NEW_ID, price, item_count\n" +
+                "from test_kylin_fact\n" +
+                ")\n" +
+                "group by NEW_ID" };
+
+        mockTableExtDesc("DEFAULT.TEST_KYLIN_FACT", "newten", new String[]{"TRANS_ID", "ORDER_ID"}, new int[]{99, 77});
+        overwriteSystemProp("kap.smart.conf.computed-column.suggestion.group-key.minimum-cardinality", "5000");
+        NSmartMaster smartMaster = new NSmartMaster(kylinConfig, getProject(), sqls);
+        smartMaster.runAll();
+
+        val modelContexts = smartMaster.getContext().getModelContexts();
+        Assert.assertEquals(1, modelContexts.size());
+        val targetModel = modelContexts.get(0).getTargetModel();
+        val computedColumns = targetModel.getComputedColumnDescs();
+        val accelerationInfoMap = smartMaster.getContext().getAccelerateInfoMap();
+        Assert.assertFalse(accelerationInfoMap.get(sqls[0]).isNotSucceed());
+
+        Assert.assertEquals(1, computedColumns.size());
+        Assert.assertEquals("TEST_KYLIN_FACT.TRANS_ID + TEST_KYLIN_FACT.ORDER_ID",
+                computedColumns.get(0).getInnerExpression().trim());
+        Assert.assertEquals("BIGINT", computedColumns.get(0).getDatatype());
+    }
+
+    @Test
+    public void testCCOnInnerGroupColLessThanMinCardinality() {
+        String[] sqls = new String[] { "select sum(price), sum(item_count)\n" +
+                "from (\n" +
+                "select TRANS_ID + ORDER_ID as NEW_ID, price, item_count\n" +
+                "from test_kylin_fact\n" +
+                ")\n" +
+                "group by NEW_ID" };
+        mockTableExtDesc("DEFAULT.TEST_KYLIN_FACT", "newten", new String[]{"TRANS_ID", "ORDER_ID"}, new int[]{99, 77});
+        overwriteSystemProp("kap.smart.conf.computed-column.suggestion.group-key.minimum-cardinality", "10000");
+        NSmartMaster smartMaster = new NSmartMaster(kylinConfig, getProject(), sqls);
+        smartMaster.runAll();
+
+        val modelContexts = smartMaster.getContext().getModelContexts();
+        Assert.assertEquals(1, modelContexts.size());
+        val targetModel = modelContexts.get(0).getTargetModel();
+        val computedColumns = targetModel.getComputedColumnDescs();
+        val accelerationInfoMap = smartMaster.getContext().getAccelerateInfoMap();
+        Assert.assertFalse(accelerationInfoMap.get(sqls[0]).isNotSucceed());
+
+        Assert.assertEquals(0, computedColumns.size());
+    }
+
+    private void mockTableExtDesc(String tableIdentity, String proj, String[] colNames, int[] cardinalityList) {
+        final NTableMetadataManager tableMgr = NTableMetadataManager.getInstance(getTestConfig(), proj);
+        final TableDesc tableDesc = tableMgr.getTableDesc(tableIdentity);
+        final TableExtDesc oldExtDesc = tableMgr.getOrCreateTableExt(tableDesc);
+
+        // mock table ext desc
+        List<TableExtDesc.ColumnStats> columnStatsList = new LinkedList<>();
+        TableExtDesc tableExt = new TableExtDesc(oldExtDesc);
+        tableExt.setIdentity(tableIdentity);
+        for (int i = 0; i < colNames.length; i++) {
+            TableExtDesc.ColumnStats col = new TableExtDesc.ColumnStats();
+            col.setCardinality(cardinalityList[i]);
+            col.setTableExtDesc(tableExt);
+            col.setColumnName(colNames[i]);
+            columnStatsList.add(col);
+        }
+        tableExt.setColumnStats(columnStatsList);
+        tableMgr.mergeAndUpdateTableExt(oldExtDesc, tableExt);
+
+        // verify the column stats update successfully
+        final TableExtDesc newTableExt = tableMgr.getTableExtIfExists(tableDesc);
+        Assert.assertEquals(colNames.length, newTableExt.getAllColumnStats().size());
     }
 
     private String convertCC(String originSql) {

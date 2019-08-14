@@ -24,6 +24,8 @@
 
 package io.kyligence.kap.smart.model;
 
+import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -33,6 +35,7 @@ import java.util.stream.Collectors;
 
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.metadata.model.TableExtDesc;
 import org.apache.kylin.metadata.model.TableRef;
 import org.apache.kylin.metadata.model.TblColRef;
 import org.apache.kylin.query.relnode.OLAPContext;
@@ -152,29 +155,10 @@ public class NComputedColumnProposer extends NAbstractModelProposer {
                 .filter(agg -> CollectionUtils.isNotEmpty(agg.getParameters()))
                 .forEach(agg -> usedCols.addAll(agg.getColRefs()));
         // collect inner columns from group keys
-        usedCols.addAll(context.getInnerGroupByColumns().stream().filter(col -> !col.getSourceColumns().isEmpty())
-                .collect(Collectors.toList()));
+        usedCols.addAll(getGroupByInnerColumns(context));
         // collect inner columns from filter keys
-        // if the inner filter column contains columns from group keys
-        // and the inner filter column also appears in the select clause,
-        // the the CC replacement will produce a wrong aggregation form.
-        // eg.
-        // BEFORE: select expr(a) from tbl where expr(a) > 100 group by a
-        // AFTER: select CC_1 from tbl where CC_1 > 100 group by a
-        // Thus we add a simple check here to ensure that inner filter column
-        // does not contain columns from group by clause
-        // see: https://github.com/Kyligence/KAP/issues/14072
-        // remove this once issue #14072 is fixed
-        for (TblColRef innerFilterCol : context.getInnerFilterColumns()) {
-            Set<TblColRef> filterSourceCols = innerFilterCol.getSourceColumns();
-            if (filterSourceCols.isEmpty()) {
-                continue;
-            }
-            filterSourceCols.retainAll(context.getGroupByColumns());
-            if (filterSourceCols.isEmpty()) {
-                usedCols.add(innerFilterCol);
-            }
-        }
+        usedCols.addAll(getFilterInnerColumns(context));
+
         for (TblColRef col : usedCols) {
             if (col.isInnerColumn()) {
                 String parserDesc = col.getParserDescription();
@@ -191,6 +175,71 @@ public class NComputedColumnProposer extends NAbstractModelProposer {
             }
         }
         return candidates;
+    }
+
+    private Collection<TblColRef> getFilterInnerColumns(OLAPContext context) {
+        Collection<TblColRef> resultSet = new HashSet<>();
+        for (TblColRef innerColRef : context.getInnerFilterColumns()) {
+            Set<TblColRef> filterSourceColumns = innerColRef.getSourceColumns();
+            if (!innerColRef.getSourceColumns().isEmpty() &&
+                    checkColumnsMinCardinality(filterSourceColumns, modelContext.getSmartContext().getSmartConfig().getComputedColumnOnFilterKeySuggestionMinCardinality())) {
+
+                // if the inner filter column contains columns from group keys
+                // and the inner filter column also appears in the select clause,
+                // the the CC replacement will produce a wrong aggregation form.
+                // eg.
+                // BEFORE: select expr(a) from tbl where expr(a) > 100 group by a
+                // AFTER: select CC_1 from tbl where CC_1 > 100 group by a
+                // Thus we add a simple check here to ensure that inner filter column
+                // does not contain columns from group by clause
+                // see: https://github.com/Kyligence/KAP/issues/14072
+                // remove this once issue #14072 is fixed
+                filterSourceColumns.retainAll(context.getGroupByColumns());
+                if (filterSourceColumns.isEmpty()) {
+                    resultSet.add(innerColRef);
+                }
+            }
+        }
+        return resultSet;
+    }
+
+    private Collection<TblColRef> getGroupByInnerColumns(OLAPContext context) {
+        Collection<TblColRef> resultSet = new HashSet<>();
+        for (TblColRef groupByColRef : context.getInnerGroupByColumns()) {
+            Set<TblColRef> groupSourceColumns = groupByColRef.getSourceColumns();
+            if (!groupByColRef.getSourceColumns().isEmpty() &&
+                    checkColumnsMinCardinality(groupSourceColumns, modelContext.getSmartContext().getSmartConfig().getComputedColumnOnGroupKeySuggestionMinCardinality())) {
+                resultSet.add(groupByColRef);
+            }
+        }
+        return resultSet;
+    }
+
+    /**
+     * check and ensure that the cardinality of input cols is greater than or equal to the minCardinality
+     * If the cardinality of a column is missing, return true
+     * @param colRefs
+     * @param minCardinality
+     * @return
+     */
+    private boolean checkColumnsMinCardinality(Collection<TblColRef> colRefs, long minCardinality) {
+        for (TblColRef colRef : colRefs) {
+            long colCardinality = getColumnCardinality(colRef);
+            if (colCardinality == -1) {
+                return true;
+            }
+            if (colCardinality >= minCardinality) {
+                return true;
+            }
+            minCardinality = minCardinality / colCardinality;
+        }
+        return false;
+    }
+
+    private long getColumnCardinality(TblColRef colRef) {
+        NTableMetadataManager nTableMetadataManager = modelContext.getSmartContext().getTableMetadataManager();
+        TableExtDesc.ColumnStats columnStats = TableExtDesc.ColumnStats.getColumnStats(nTableMetadataManager, colRef);
+        return columnStats == null ? -1 : columnStats.getCardinality();
     }
 
     // If index represented column cannot be replaced, the parserDesc still contains '$',
