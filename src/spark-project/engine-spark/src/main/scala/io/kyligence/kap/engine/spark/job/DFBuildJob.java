@@ -264,7 +264,7 @@ public class DFBuildJob extends SparkApplication {
                 ss.sparkContext().setJobDescription("build " + layout.getId() + " from parent " + parentName);
                 Set<Integer> orderedDims = layout.getOrderedDimensions().keySet();
                 Dataset<Row> afterSort = afterPrj.select(NSparkCubingUtil.getColumns(orderedDims))
-                        .sortWithinPartitions(NSparkCubingUtil.getColumns(layout.getSortByColumns()));
+                        .sortWithinPartitions(NSparkCubingUtil.getColumns(orderedDims));
                 layouts.add(saveAndUpdateLayout(afterSort, seg, layout));
             }
         } else {

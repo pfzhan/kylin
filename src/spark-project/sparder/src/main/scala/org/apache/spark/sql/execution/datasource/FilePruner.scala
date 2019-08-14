@@ -182,13 +182,7 @@ class FilePruner(val session: SparkSession,
     } else {
 
       val sortColumns = if (segs.size() == 1) {
-        val cols = if (layout.getId >= IndexEntity.TABLE_INDEX_START_ID) {
-          layout.getSortByColumns
-        } else {
-          // The first col should be sorted.
-          layout.getOrderedDimensions.keySet
-        }
-        cols.asScala.map(_.toString).toSeq
+          layout.getOrderedDimensions.keySet.asScala.map(_.toString).toSeq
       } else {
         logInfo("Sort order will lost in multi segments.")
         Seq.empty

@@ -7,5 +7,5 @@ left join (
     from TEST_ACCOUNT
 ) as ITBL
 on OTBL.SELLER_ID < ITBL.ACCOUNT_ID
-order by OTBL.PRICE asc
+order by OTBL.PRICE, ITBL.C1 asc
 LIMIT 10

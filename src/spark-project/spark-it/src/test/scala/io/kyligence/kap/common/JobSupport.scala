@@ -33,7 +33,10 @@ import io.kyligence.kap.engine.spark.merger.{AfterBuildResourceMerger, AfterMerg
 import io.kyligence.kap.engine.spark.utils.{FileNames, HDFSUtils}
 import io.kyligence.kap.metadata.cube.model._
 import io.kyligence.kap.metadata.model.NTableMetadataManager
+import io.kyligence.kap.query.runtime.plan.TableScanPlan
 import org.apache.commons.io.FileUtils
+import org.apache.hadoop.conf.Configuration
+import org.apache.hadoop.fs.Path
 import org.apache.kylin.common.persistence.ResourceStore
 import org.apache.kylin.common.{KapConfig, KylinConfig, StorageURL}
 import org.apache.kylin.job.engine.JobEngineConfig
@@ -42,8 +45,11 @@ import org.apache.kylin.job.impl.threadpool.NDefaultScheduler
 import org.apache.kylin.job.lock.MockJobLock
 import org.apache.kylin.metadata.model.SegmentRange
 import org.apache.spark.internal.Logging
+import org.apache.spark.sql.SparkSession
+import org.apache.spark.sql.common.SparderQueryTest
 import org.junit.Assert
 import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach, Suite}
+import org.apache.spark.sql.functions._
 
 import scala.collection.JavaConverters._
 
@@ -355,4 +361,30 @@ trait JobSupport
     MetadataStore.createMetadataStore(outputConfig).dump(resourceStore)
   }
 
+  def checkOrder(sparkSession: SparkSession, dfName: String, project: String): Unit = {
+    val config: KylinConfig = KylinConfig.getInstanceFromEnv
+    val dsMgr: NDataflowManager = NDataflowManager.getInstance(config, project)
+    val df: NDataflow = dsMgr.getDataflow(dfName)
+    val latestReadySegment: NDataSegment = df.getQueryableSegments.getFirstSegment
+    val allCuboidLayouts = df.getIndexPlan.getAllLayouts.asScala
+    val base: String = KapConfig.getInstanceFromEnv.getReadParquetStoragePath(df.getProject)
+    for (nCuboidLayout <- allCuboidLayouts) {
+      val path: String = TableScanPlan.toCuboidPath(df, nCuboidLayout.getId, base, latestReadySegment)
+      val paths = new Path(path).getFileSystem(new Configuration())
+        .listFiles(new Path(path), false)
+      while(paths.hasNext) {
+        val path = paths.next()
+        val beforeSort = sparkSession.read.parquet(path.getPath.toString)
+        val afterSort = beforeSort.sort(beforeSort.schema.names.map(col): _*)
+        val str = SparderQueryTest.checkAnswer(beforeSort, afterSort, true)
+        if(str != null) {
+          beforeSort.collect().foreach(println)
+          println("==========================")
+          afterSort.collect().foreach(println)
+          dumpMetadata()
+          throw new RuntimeException(s"Check order failed : dfName: $dfName, layoutId: ${nCuboidLayout.getId}")
+        }
+      }
+    }
+  }
 }

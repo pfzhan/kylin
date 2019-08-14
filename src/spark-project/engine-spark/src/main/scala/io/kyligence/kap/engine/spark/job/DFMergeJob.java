@@ -116,7 +116,7 @@ public class DFMergeJob extends SparkApplication {
             LayoutEntity layout = assist.getLayout();
             Dataset<Row> afterSort;
             if (layout.getIndex().getId() > IndexEntity.TABLE_INDEX_START_ID) {
-                afterSort = afterMerge.sortWithinPartitions(NSparkCubingUtil.getColumns(layout.getSortByColumns()));
+                afterSort = afterMerge.sortWithinPartitions(NSparkCubingUtil.getColumns(layout.getOrderedDimensions().keySet()));
             } else {
                 Column[] dimsCols = NSparkCubingUtil.getColumns(layout.getOrderedDimensions().keySet());
                 Dataset<Row> afterAgg = CuboidAggregator.agg(ss, afterMerge, layout.getOrderedDimensions().keySet(),

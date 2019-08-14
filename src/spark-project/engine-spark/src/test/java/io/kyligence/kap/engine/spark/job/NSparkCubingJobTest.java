@@ -406,10 +406,11 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
 
         ParquetStorage storage = new ParquetStorage();
         Dataset<Row> ret = storage.getFrom(NSparkCubingUtil.getStoragePath(dataCuboid), ss);
-        Assert.assertEquals("Australia", ret.collectAsList().get(0).apply(1).toString());
-        Assert.assertEquals("Australia", ret.collectAsList().get(1).apply(1).toString());
-        Assert.assertEquals("英国", ret.collectAsList().get(9998).apply(1).toString());
-        Assert.assertEquals("英国", ret.collectAsList().get(9999).apply(1).toString());
+        List<Row> rows = ret.collectAsList();
+        Assert.assertEquals("Ebay", rows.get(0).apply(1).toString());
+        Assert.assertEquals("Ebaymotors", rows.get(1).apply(1).toString());
+        Assert.assertEquals("Ebay", rows.get(9998).apply(1).toString());
+        Assert.assertEquals("英国", rows.get(9999).apply(1).toString());
     }
 
     @Test

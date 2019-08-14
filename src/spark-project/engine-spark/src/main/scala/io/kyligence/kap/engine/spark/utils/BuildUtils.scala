@@ -70,11 +70,7 @@ object BuildUtils extends Logging {
         shardByColumns
       )
 
-      val sortCols = if (layout.getId >= IndexEntity.TABLE_INDEX_START_ID) {
-        NSparkCubingUtil.getColumns(layout.getSortByColumns)
-      } else {
-        NSparkCubingUtil.getColumns(layout.getOrderedDimensions.keySet)
-      }
+      val sortCols = NSparkCubingUtil.getColumns(layout.getOrderedDimensions.keySet)
 
       val extConfig = layout.getIndex.getModel.getProjectInstance.getConfig.getExtendedOverrides
       val configJson = extConfig.get("kylin.engine.shard-num-json")
