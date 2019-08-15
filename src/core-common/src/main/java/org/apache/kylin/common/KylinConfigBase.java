@@ -1080,11 +1080,11 @@ abstract public class KylinConfigBase implements Serializable {
     }
 
     public Boolean getSparkEngineTaskImpactInstanceEnabled() {
-        return Boolean.parseBoolean(getOptional("kylin.engine.spark.task-impact-instance-enable", "true"));
+        return Boolean.parseBoolean(getOptional("kylin.engine.spark.task-impact-instance-enabled", "true"));
     }
 
     public Boolean getSparkEngineDataImpactInstanceEnabled() {
-        return Boolean.parseBoolean(getOptional("kylin.engine.spark.data-impact-instance-enable", "true"));
+        return Boolean.parseBoolean(getOptional("kylin.engine.spark.data-impact-instance-enabled", "true"));
     }
 
     public int getSparkEngineBaseExuctorInstances() {

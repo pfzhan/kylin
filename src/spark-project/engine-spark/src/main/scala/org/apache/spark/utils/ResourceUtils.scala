@@ -23,6 +23,9 @@
 package org.apache.spark.utils
 
 import java.util.{List => JList, Map => JMap}
+import scala.util.Try
+import scala.util.Success
+import scala.util.Failure
 
 import io.kyligence.kap.cluster.{AvailableResource, ClusterInfoFetcher, ResourceInfo}
 import io.kyligence.kap.engine.spark.utils.SparkConfHelper._
@@ -33,24 +36,38 @@ import org.apache.spark.internal.Logging
 import org.apache.spark.sql.hive.utils.EnumDetectItem
 import org.apache.spark.util.Utils
 
+
 object ResourceUtils extends Logging {
 
   @throws[Exception]
   def caculateRequiredCores(sampSplitThreshold: String, detectItems: JMap[EnumDetectItem, String], rowCount: Long): String = {
-    val lineCount = detectItems.get(EnumDetectItem.ESTIMATED_LINE_COUNT)
-    val estimatedSize = detectItems.get(EnumDetectItem.ESTIMATED_SIZE)
-    val splitThreshold = Utils.byteStringAsBytes(sampSplitThreshold)
-    val aveBytesSingleLine = estimatedSize.toDouble / lineCount.toDouble
-    assert(splitThreshold > aveBytesSingleLine)
-    val linesPerPartition = splitThreshold / aveBytesSingleLine
-    val partitions = if (linesPerPartition >= rowCount) {
-      SparkJobConstants.DEFAULT_REQUIRED_CORES
-    } else {
-      math.ceil(rowCount / linesPerPartition).toInt
+
+    Try {
+      val lineCount = detectItems.get(EnumDetectItem.ESTIMATED_LINE_COUNT)
+      if (lineCount == "0") {
+        logInfo(s"the lineCount is $lineCount")
+        return SparkJobConstants.DEFAULT_REQUIRED_CORES
+      }
+      val estimatedSize = detectItems.get(EnumDetectItem.ESTIMATED_SIZE)
+      val splitThreshold = Utils.byteStringAsBytes(sampSplitThreshold)
+      val aveBytesSingleLine = estimatedSize.toDouble / lineCount.toDouble
+      assert(splitThreshold > aveBytesSingleLine)
+      val linesPerPartition = splitThreshold / aveBytesSingleLine
+      val partitions = if (linesPerPartition >= rowCount) {
+        SparkJobConstants.DEFAULT_REQUIRED_CORES
+      } else {
+        math.ceil(rowCount / linesPerPartition).toInt
+      }
+      logInfo(s"linecount is $lineCount, estimatedSize is $estimatedSize, splitThreshold is $splitThreshold")
+      logInfo(s"aveBytesSingleLine is $aveBytesSingleLine, linesPerPartition is $linesPerPartition, partitions is $partitions")
+      partitions.toString
+    } match {
+      case Success(partitionNum) =>
+        partitionNum
+      case Failure(throwable) =>
+        logWarning(s"caculate required cores failed ${this.getClass.getName}", throwable)
+        return SparkJobConstants.DEFAULT_REQUIRED_CORES
     }
-    logInfo(s"linecount is $lineCount, estimatedSize is $estimatedSize, splitThreshold is $splitThreshold")
-    logInfo(s"aveBytesSingleLine is $aveBytesSingleLine, linesPerPartition is $linesPerPartition, partitions is $partitions")
-    partitions.toString
   }
 
 

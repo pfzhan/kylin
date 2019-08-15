@@ -133,6 +133,9 @@ class TestResourceUtils extends SparderBaseFunSuite {
     detectedItems.put(EnumDetectItem.ESTIMATED_SIZE, "23120216")
     assert(ResourceUtils.caculateRequiredCores("300m", detectedItems, 20000000) == "147")
     assert(ResourceUtils.caculateRequiredCores("300m", detectedItems, 136055) == "1")
+    detectedItems.put(EnumDetectItem.ESTIMATED_LINE_COUNT, "0")
+    assert(ResourceUtils.caculateRequiredCores("300m", detectedItems, 136055) == "1")
+
   }
 
 }

@@ -138,7 +138,7 @@ public class DFBuildJob extends SparkApplication {
         if (config.getSparkEngineTaskImpactInstanceEnabled()) {
             Path shareDir = config.getJobTmpShareDir(project, jobId);
             String maxLeafTasksNums =  maxLeafTasksNums(shareDir);
-            logger.info("Calculate the number of executor instance size based on the number of leafTaskNums: {}", maxLeafTasksNums);
+            logger.info("The maximum number of tasks required to run the job is {}", maxLeafTasksNums);
             val config = KylinConfig.getInstanceFromEnv();
             val factor = config.getSparkEngineTaskCoreFactor();
             return String.valueOf(Integer.valueOf(maxLeafTasksNums) / factor);
