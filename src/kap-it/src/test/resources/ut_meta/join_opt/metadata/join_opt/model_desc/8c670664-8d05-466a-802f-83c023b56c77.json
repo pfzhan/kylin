@@ -34,6 +34,12 @@
       "name": "LSTG_FORMAT_NAME",
       "column": "TEST_KYLIN_FACT.LSTG_FORMAT_NAME",
       "status": "DIMENSION"
+    },
+    {
+      "id": 5,
+      "name": "TRANS_ID",
+      "column": "TEST_KYLIN_FACT.TRANS_ID",
+      "status": "DIMENSION"
     }
   ],
   "all_measures": [

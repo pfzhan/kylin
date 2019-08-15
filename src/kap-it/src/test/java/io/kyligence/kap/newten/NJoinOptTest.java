@@ -110,36 +110,39 @@ public class NJoinOptTest extends NLocalWithSparkSessionTest {
             // calcite will transform this "in" to join
             val sql1 = "select count(*) from TEST_KYLIN_FACT where SELLER_ID in (select SELLER_ID from TEST_KYLIN_FACT group by SELLER_ID)";
             val sql2 = "select count(*) from TEST_KYLIN_FACT where LSTG_FORMAT_NAME in (select LSTG_FORMAT_NAME from TEST_KYLIN_FACT group by LSTG_FORMAT_NAME)";
+            val sql3 = "select count(*) from TEST_KYLIN_FACT t1 join "
+                    + "(select TRANS_ID,LSTG_FORMAT_NAME from TEST_KYLIN_FACT group by TRANS_ID,LSTG_FORMAT_NAME) t2 "
+                    + "on t1.TRANS_ID = t2.TRANS_ID and t1.LSTG_FORMAT_NAME = t2.LSTG_FORMAT_NAME";
             List<String> query = new ArrayList<>();
             query.add(sql1);
             query.add(sql2);
+            query.add(sql3);
             NExecAndComp.execAndCompareQueryList(query, getProject(), NExecAndComp.CompareLevel.SAME, "default");
 
             basicScenario(sql1);
             testExchangePruningAfterAgg(sql2);
+            testMultiShards(sql3);
         } finally {
             System.clearProperty("kap.storage.columnar.shard-rowcount");
         }
     }
 
-    private void testExchangePruningAfterAgg(String sql) throws SQLException {
-        val plan = NExecAndComp.queryCube(getProject(), sql).queryExecution().executedPlan();
-        val joinExec = (SortMergeJoinExec) findSpecPlan(plan, SortMergeJoinExec.class).get();
+    private void testMultiShards(String sql) throws SQLException {
         // assert no exchange
-        Assert.assertFalse(findSpecPlan(joinExec, Exchange.class).isDefined());
+        // assert no sort
+        assertPlan(sql, false, false);
+    }
 
+    private void testExchangePruningAfterAgg(String sql) throws SQLException {
+        // assert no exchange
         // data after agg will lost its sorting characteristics
-        Assert.assertTrue(findSpecPlan(joinExec, SortExec.class).isDefined());
+        assertPlan(sql, false, true);
     }
 
     private void basicScenario(String sql) throws SQLException {
-        val plan = NExecAndComp.queryCube(getProject(), sql).queryExecution().executedPlan();
-        val joinExec = (SortMergeJoinExec) findSpecPlan(plan, SortMergeJoinExec.class).get();
         // assert no exchange
-        Assert.assertFalse(findSpecPlan(joinExec, Exchange.class).isDefined());
-
         // assert no sort
-        Assert.assertFalse(findSpecPlan(joinExec, SortExec.class).isDefined());
+        assertPlan(sql, false, false);
     }
 
     @Test
@@ -154,13 +157,9 @@ public class NJoinOptTest extends NLocalWithSparkSessionTest {
             query.add(sql);
             NExecAndComp.execAndCompareQueryList(query, getProject(), NExecAndComp.CompareLevel.SAME, "default");
 
-            val plan = NExecAndComp.queryCube(getProject(), sql).queryExecution().executedPlan();
-            val joinExec = (SortMergeJoinExec) findSpecPlan(plan, SortMergeJoinExec.class).get();
             // assert exists exchange
-            Assert.assertTrue(findSpecPlan(joinExec, Exchange.class).isDefined());
-
             // assert exists sort
-            Assert.assertTrue(findSpecPlan(joinExec, SortExec.class).isDefined());
+            assertPlan(sql, true, true);
         } finally {
             System.clearProperty("kap.storage.columnar.shard-rowcount");
         }
@@ -172,7 +171,8 @@ public class NJoinOptTest extends NLocalWithSparkSessionTest {
         val projectManager = NProjectManager.getInstance(config);
 
         Map<String, String> overrideKylinProps = new HashMap<>();
-        overrideKylinProps.put("kylin.engine.shard-num-json", "{\"DEFAULT.TEST_KYLIN_FACT.SELLER_ID\":\"10\",\"c\":\"200\",\"e\":\"300\"}");
+        overrideKylinProps.put("kylin.engine.shard-num-json",
+                "{\"DEFAULT.TEST_KYLIN_FACT.SELLER_ID\":\"10\",\"DEFAULT.TEST_KYLIN_FACT.LSTG_FORMAT_NAME,DEFAULT.TEST_KYLIN_FACT.TRANS_ID\":\"15\",\"e\":\"300\"}");
         projectManager.updateProject(getProject(), copyForWrite -> {
             copyForWrite.getOverrideKylinProps().putAll(overrideKylinProps);
         });
@@ -180,18 +180,32 @@ public class NJoinOptTest extends NLocalWithSparkSessionTest {
         buildMultiSegs("8c670664-8d05-466a-802f-83c023b56c77");
         populateSSWithCSVData(getTestConfig(), getProject(), SparderEnv.getSparkSession());
         // calcite will transform this "in" to join
-        val sql = "select count(*) from TEST_KYLIN_FACT where SELLER_ID in (select SELLER_ID from TEST_KYLIN_FACT group by SELLER_ID)";
+        val sql1 = "select count(*) from TEST_KYLIN_FACT where SELLER_ID in (select SELLER_ID from TEST_KYLIN_FACT group by SELLER_ID)";
+        val sql2 = "select count(*) from TEST_KYLIN_FACT t1 join "
+                + "(select TRANS_ID,LSTG_FORMAT_NAME from TEST_KYLIN_FACT group by TRANS_ID,LSTG_FORMAT_NAME) t2 "
+                + "on t1.TRANS_ID = t2.TRANS_ID and t1.LSTG_FORMAT_NAME = t2.LSTG_FORMAT_NAME";
+
         List<String> query = new ArrayList<>();
-        query.add(sql);
+        query.add(sql1);
+        query.add(sql2);
         NExecAndComp.execAndCompareQueryList(query, getProject(), NExecAndComp.CompareLevel.SAME, "default");
 
-        val plan = NExecAndComp.queryCube(getProject(), sql).queryExecution().executedPlan();
-        val joinExec = (SortMergeJoinExec) findSpecPlan(plan, SortMergeJoinExec.class).get();
         // assert no exchange, cuz we unified the num of shards in different segments.
-        Assert.assertFalse(findSpecPlan(joinExec, Exchange.class).isDefined());
-
         // assert exists sort
-        Assert.assertTrue(findSpecPlan(joinExec, SortExec.class).isDefined());
+        assertPlan(sql1, false, true);
+        assertPlan(sql2, false, true);
+    }
+
+    private void assertPlan(String sql, boolean existsExchange, boolean existsSort) throws SQLException {
+        SortMergeJoinExec joinExec = getSortMergeJoinExec(sql);
+        Assert.assertEquals(existsExchange, findSpecPlan(joinExec, Exchange.class).isDefined());
+
+        Assert.assertEquals(existsSort, findSpecPlan(joinExec, SortExec.class).isDefined());
+    }
+
+    private SortMergeJoinExec getSortMergeJoinExec(String sql) throws SQLException {
+        val plan = NExecAndComp.queryCube(getProject(), sql).queryExecution().executedPlan();
+        return (SortMergeJoinExec) findSpecPlan(plan, SortMergeJoinExec.class).get();
     }
 
     private Option<SparkPlan> findSpecPlan(SparkPlan plan, Class<?> cls) {

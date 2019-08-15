@@ -25,6 +25,7 @@
 package io.kyligence.kap.engine.spark.utils;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.hadoop.fs.ContentSummary;
@@ -54,8 +55,7 @@ public class Repartitioner {
     private long totalRowCount;
     private long rowCountThreshold;
     private ContentSummary contentSummary;
-    // only support 1 column
-    private Integer shardByColumns;
+    private List<Integer> shardByColumns = new ArrayList<>();
 
     public Repartitioner(int shardSize, int fileLengthThreshold, long totalRowCount, long rowCountThreshold,
             ContentSummary contentSummary, List<Integer> shardByColumns) {
@@ -64,8 +64,8 @@ public class Repartitioner {
         this.totalRowCount = totalRowCount;
         this.rowCountThreshold = rowCountThreshold;
         this.contentSummary = contentSummary;
-        if (shardByColumns != null && !shardByColumns.isEmpty()) {
-            this.shardByColumns = shardByColumns.get(0);
+        if (shardByColumns != null) {
+            this.shardByColumns = shardByColumns;
         }
     }
 
@@ -76,7 +76,7 @@ public class Repartitioner {
     }
 
     boolean needRepartitionForShardByColumns() {
-        return shardByColumns != null;
+        return shardByColumns != null && !shardByColumns.isEmpty();
     }
 
     private boolean needRepartitionForRowCount() {
@@ -108,7 +108,7 @@ public class Repartitioner {
         return contentSummary;
     }
 
-    private Integer getShardByColumns() {
+    private List<Integer> getShardByColumns() {
         return shardByColumns;
     }
 
@@ -142,10 +142,6 @@ public class Repartitioner {
         this.contentSummary = contentSummary;
     }
 
-    public void setShardByColumns(Integer shardByColumns) {
-        this.shardByColumns = shardByColumns;
-    }
-
     public void doRepartition(NSparkCubingEngine.NSparkCubingStorage storage, String path, int repartitionNum, Column[] sortCols, SparkSession ss)
             throws IOException {
         String tempPath = path + tempDirSuffix;
@@ -161,7 +157,7 @@ public class Repartitioner {
             if (needRepartitionForShardByColumns()) {
                 ss.sessionState().conf().setLocalProperty("spark.sql.adaptive.enabled", "false");
                 data = storage.getFrom(tempPath, ss).repartition(repartitionNum,
-                        NSparkCubingUtil.getColumns(Lists.newArrayList(getShardByColumns())))
+                        NSparkCubingUtil.getColumns(getShardByColumns()))
                         .sortWithinPartitions(sortCols);
             } else {
                 // repartition for single file size is too small

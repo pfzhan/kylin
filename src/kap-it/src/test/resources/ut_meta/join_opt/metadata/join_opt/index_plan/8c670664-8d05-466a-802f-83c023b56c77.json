@@ -56,8 +56,33 @@
           "storage_type": 20
         }
       ]
+    },
+    {
+      "id": 10004,
+      "dimensions": [
+        4,
+        5
+      ],
+      "measures": [
+        100000
+      ],
+      "layouts": [
+        {
+          "id": 10005,
+          "auto": true,
+          "col_order": [
+            4,
+            5,
+            100000
+          ],
+          "shard_by_columns": [
+            4,
+            5
+          ],
+          "storage_type": 20
+        }
+      ]
     }
-
   ],
   "dictionaries": [],
   "next_aggregation_index_id": 1010000,

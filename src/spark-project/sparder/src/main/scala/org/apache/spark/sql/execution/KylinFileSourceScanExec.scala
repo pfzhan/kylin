@@ -101,9 +101,9 @@ class KylinFileSourceScanExec(
         def toAttribute(colName: String): Option[Attribute] =
           output.find(_.name == colName)
 
-        val shardCol = toAttribute(spec.shardColumnName)
-        val partitioning = if (shardCol.isDefined) {
-          HashPartitioning(Seq(shardCol.get), spec.numShards)
+        val shardCols = spec.shardColumnNames.flatMap(toAttribute)
+        val partitioning = if (shardCols.size == spec.shardColumnNames.size) {
+          HashPartitioning(shardCols, spec.numShards)
         } else {
           UnknownPartitioning(0)
         }

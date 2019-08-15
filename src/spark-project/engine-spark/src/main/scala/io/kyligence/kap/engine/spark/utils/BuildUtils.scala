@@ -81,10 +81,10 @@ object BuildUtils extends Logging {
           val colToShardsNum = JsonUtil.readValueAsMap(configJson)
 
           // now we only has one shard by col
-          val colIdentity = layout.getIndex.getModel
-            .getEffectiveDimenionsMap.get(shardByColumns.asScala.head).toString
-          val num = colToShardsNum.getOrDefault(colIdentity, String.valueOf(numByFileStorage)).toInt
-          logInfo(s"Get shard num in config, col identity is:$colIdentity, shard num is $num.")
+          val shardColIdentity = shardByColumns.asScala.map(layout.getIndex.getModel
+            .getEffectiveDimenionsMap.get(_).toString).mkString(",")
+          val num = colToShardsNum.getOrDefault(shardColIdentity, String.valueOf(numByFileStorage)).toInt
+          logInfo(s"Get shard num in config, col identity is:$shardColIdentity, shard num is $num.")
           num
         } catch {
           case th: Throwable =>

@@ -49,11 +49,11 @@ case class SegmentDirectory(segmentID: String, files: Seq[FileStatus])
  * of shards is fixed so it does not fluctuate with data.
  *
  * @param numShards number of shards.
- * @param shardColumnName the names of the columns that used to generate the shard id.
+ * @param shardColumnNames the names of the columns that used to generate the shard id.
  * @param sortColumnNames the names of the columns that used to sort data in each shard.
  */
 case class ShardSpec(numShards: Int,
-                     shardColumnName: String,
+                     shardColumnNames: Seq[String],
                      sortColumnNames: Seq[String]) {
 
   if (numShards <= 0) {
@@ -62,7 +62,7 @@ case class ShardSpec(numShards: Int,
   }
 
   override def toString: String = {
-    val str = s"shard column: [$shardColumnName]"
+    val str = s"shard column: [${shardColumnNames.mkString(", ")}]"
     val sortString = if (sortColumnNames.nonEmpty) {
       s", sort columns: [${sortColumnNames.mkString(", ")}]"
     } else {
@@ -138,16 +138,13 @@ class FilePruner(val session: SparkSession,
   }
 
   lazy val shardBySchema: StructType = {
-    val shardByCols = layout.getShardByColumns
+    val shardByCols = layout.getShardByColumns.asScala.map(_.toString)
+
     StructType(
       if (shardByCols.isEmpty) {
         Seq.empty
       } else {
-        val id = shardByCols.asScala.head
-        if(shardByCols.size() > 1) {
-         logDebug(s"Now we only support one shard by col, but curren shard by cols is ${shardByCols.size()}")
-        }
-        dataSchema.filter(_.name == id.toString)
+        dataSchema.filter(f => shardByCols.contains(f.name))
       })
   }
 
@@ -188,7 +185,7 @@ class FilePruner(val session: SparkSession,
         Seq.empty
       }
 
-      Some(ShardSpec(shardNum, shardBySchema.fieldNames.head, sortColumns))
+      Some(ShardSpec(shardNum, shardBySchema.fieldNames.toSeq, sortColumns))
     }
   }
 
@@ -260,7 +257,7 @@ class FilePruner(val session: SparkSession,
 
   private def pruneShards(filters: Seq[Expression],
                           segDirs: Seq[SegmentDirectory]): Seq[SegmentDirectory] = {
-    val filteredStatuses = if (layout.getShardByColumns.isEmpty) {
+    val filteredStatuses = if (layout.getShardByColumns.size() != 1) {
       segDirs
     } else {
       val normalizedFiltersAndExpr = filters.reduce(expressions.And)
