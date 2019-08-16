@@ -10,7 +10,7 @@
     <el-form :model="form" :rules="rules" ref="form" v-if="isFormShow">
       <!-- 表单：组名 -->
       <el-form-item :label="$t('kylinLang.common.groupName')" prop="groupName" v-if="isFieldShow('groupName')">
-        <el-input auto-complete="off" @input="value => inputHandler('groupName', value)" :value="form.groupName"></el-input>
+        <el-input auto-complete="off" @input="value => inputHandler('groupName', value.trim())" :value="form.groupName"></el-input>
       </el-form-item>
       <!-- 表单：分配用户 -->
       <el-form-item v-if="isFieldShow('users')">
@@ -135,7 +135,7 @@ export default class GroupEditModal extends Vue {
 
   // Action: 修改Form函数
   inputHandler (key, value) {
-    this.setModalForm({[key]: value.trim()})
+    this.setModalForm({[key]: value})
   }
 
   // Action: Form递交函数
