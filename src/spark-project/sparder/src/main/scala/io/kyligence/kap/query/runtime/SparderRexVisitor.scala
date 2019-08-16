@@ -442,8 +442,7 @@ class SparderRexVisitor(val dfs: Array[DataFrame],
                 s"to_date must provide one or two parameters under sparder")
             }
           case "to_char" =>
-            var p = k_lit(children.apply(1)).toString().toUpperCase
-            var part = p match {
+            var part = k_lit(children.apply(1)).toString().toUpperCase match {
               case "YEAR" =>
                 "y"
               case "MONTH" =>
@@ -461,7 +460,7 @@ class SparderRexVisitor(val dfs: Array[DataFrame],
               case "SECONDS" =>
                 "s"
               case _ =>
-                p
+                k_lit(children.apply(1)).toString()
             }
             date_format(k_lit(children.head),part)
           case "power" =>
