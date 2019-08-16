@@ -264,8 +264,8 @@ exports.default = {
     cubeNameTip: '1. Cube 名称需要是全系统唯一的。<br/>2.创建后不能修改 Cube 名称。',
     noticeTip: '这些状态下总是会触发一条通知。',
     dimensionTip: '1. 事实表上的每个选中的列, 会自动创建为一个普通维度。<br/>2. 维度表上选中的列, 可以选择定义为从外键可推导的(Derived)维度或普通维度。',
-    expressionTip: 'Cube 必须有一个 Count(1) 的度量, 并使用"_Count_"做为度量名（已经自动生成）',
-    paramValueTip: '1. 当参数类型是"Column"时, 只能选择一个列做为值。<br/>2. 基于 HyperLogLog 的 Distinct Count 是近似计算, 请选择能接受的误差率；低误差率意味着更多的存储空间和更长的构建时间。',
+    expressionTip: 'Cube 必须有一个 Count(1) 的度量, 并使用"_Count_"作为度量名（已经自动生成）',
+    paramValueTip: '1. 当参数类型是"Column"时, 只能选择一个列作为值。<br/>2. 基于 HyperLogLog 的 Distinct Count 是近似计算, 请选择能接受的误差率；低误差率意味着更多的存储空间和更长的构建时间。',
     orderSumTip: '使用这个列作为 TopN 的 SUM 和 ORDER BY 部分. 如果是常量(constant) 1, 将使用 SUM(1)。',
     hostColumnTip: '通过 Host column 推导其他维度, 这里指事实表上维度之间的推导。',
     refreshSetTip: '系统会自动检查您设置的时间阈值,<br/> 例如设置了时间阈值为[ 7天, 30天] , 则系统会每隔7天合并一次 segment, 并且每隔30天再合并一次已合并的 segment。',
@@ -429,8 +429,8 @@ exports.default = {
     status: '状态'
   },
   guide: {
-    addProjectTip: '添加项目时，请注意选择项目类型。如果您希望做为多维建模专家进行分析，请选择专家模式。智能模式更适用于直接对接 BI，系统将分批加速 BI 发出的 SQL 语句。',
-    addProjectTipAuto: '添加项目时，请注意选择项目类型。智能模式更适用于直接通过BI探索数据，系统将透明地加速 BI 发出的 SQL 语句。如果您希望做为多维建模专家进行分析，则选择专家模式。',
+    addProjectTip: '添加项目时，请注意选择项目类型。如果您希望作为多维建模专家进行分析，请选择专家模式。智能模式更适用于直接对接 BI，系统将分批加速 BI 发出的 SQL 语句。',
+    addProjectTipAuto: '添加项目时，请注意选择项目类型。智能模式更适用于直接通过BI探索数据，系统将透明地加速 BI 发出的 SQL 语句。如果您希望作为多维建模专家进行分析，则选择专家模式。',
     // loadTableTipAuto: 'Kyligence 企业数据分析平台需要连接您的源数据系统。选择你所需的数据集并且从中同步表的元数据。这里我们选用SSB数据集为后续分析做准备。',
     queryTipAuto: '加载过数据表后，即可在分析页面可以进行数据探索。',
     speedTipAuto: '系统将筛选过的 SQL 语句放在待加速列表，您可以通过调整筛选规则控制加速的查询数量。',
