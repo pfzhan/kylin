@@ -18,16 +18,19 @@
         type="index"
         label="ID"
         width="64"
+        show-overflow-tooltip
         :index="startIndex">
       </el-table-column>
       <el-table-column
         prop="name"
         min-width="300"
+        show-overflow-tooltip
         :label="$t('kylinLang.dataSource.columnName')">
       </el-table-column>
       <el-table-column
         prop="datatype"
         width="120"
+        show-overflow-tooltip
         :label="$t('kylinLang.dataSource.dataType')">
       </el-table-column>
       <el-table-column
@@ -36,6 +39,7 @@
         align="right"
         header-align="right"
         min-width="105"
+        show-overflow-tooltip
         :label="$t('kylinLang.dataSource.cardinality')">
       </el-table-column>
       <el-table-column
@@ -43,6 +47,7 @@
         align="right"
         header-align="right"
         min-width="105"
+        show-overflow-tooltip
         :label="$t('kylinLang.dataSource.minimal')">
       </el-table-column>
       <el-table-column
@@ -50,10 +55,12 @@
         align="right"
         header-align="right"
         min-width="105"
+        show-overflow-tooltip
         :label="$t('kylinLang.dataSource.maximum')">
       </el-table-column>
       <el-table-column
         prop="comment"
+        show-overflow-tooltip
         :label="$t('kylinLang.dataSource.comment')">
         <template slot-scope="scope">
           <span :title="scope.row.comment">{{scope.row.comment}}</span>

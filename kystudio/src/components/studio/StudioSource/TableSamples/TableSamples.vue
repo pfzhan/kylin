@@ -16,6 +16,7 @@
       <el-table class="columns-body" ref="sampleTable" :data="pagedColumns" border v-if="pagedHeaders.length">
         <el-table-column
           align="left"
+          show-overflow-tooltip
           v-for="(headerText, index) in pagedHeaders"
           :key="headerText"
           :prop="String(index)"
