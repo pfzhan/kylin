@@ -4,6 +4,6 @@ public final class SparkConfRuleConstants {
     private SparkConfRuleConstants() {
         // not call
     }
-    public static String DEFUALT_EXECUTOR_CORE = "1";
+    public static  final String DEFUALT_EXECUTOR_CORE = "1";
 }
 
