@@ -51,11 +51,11 @@ public class ResourceDetectBeforeSampling extends SparkApplication {
         Map<String, List<String>> resourcePaths = Maps.newHashMap();
         resourcePaths.put(tableName, pathList);
 
-        ResourceDetectUtils.writeResourcePaths(
+        ResourceDetectUtils.write(
                 new Path(config.getJobTmpShareDir(project, jobId), tableName + "_" + ResourceDetectUtils.fileName()),
                 resourcePaths);
 
-        ResourceDetectUtils.writeDetectItems(
+        ResourceDetectUtils.write(
                 new Path(config.getJobTmpShareDir(project, jobId), tableName + "_" + ResourceDetectUtils.samplingDetectItemFileSuffix()),
                 detectedItems);
     }

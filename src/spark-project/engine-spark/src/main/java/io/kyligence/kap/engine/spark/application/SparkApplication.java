@@ -83,6 +83,8 @@ import lombok.val;
 import scala.runtime.AbstractFunction1;
 import scala.runtime.BoxedUnit;
 
+import static io.kyligence.kap.engine.spark.utils.SparkConfHelper.COUNT_DISTICT;
+
 public abstract class SparkApplication implements Application, IKeep {
     private static final Logger logger = LoggerFactory.getLogger(SparkApplication.class);
     private Map<String, String> params = Maps.newHashMap();
@@ -324,6 +326,7 @@ public abstract class SparkApplication implements Application, IKeep {
         Map<String, String> configOverride = config.getSparkConfigOverride();
         helper.setConf(SparkConfHelper.DEFAULT_QUEUE, configOverride.get(SparkConfHelper.DEFAULT_QUEUE));
         helper.setOption(SparkConfHelper.REQUIRED_CORES, calculateRequiredCores());
+        helper.setConf(COUNT_DISTICT, hasCountDistinct().toString());
         helper.generateSparkConf();
         helper.applySparkConf(sparkConf);
     }
@@ -336,7 +339,7 @@ public abstract class SparkApplication implements Application, IKeep {
         for (FileStatus file : fileStatuses) {
             String fileName = file.getPath().getName();
             String segmentId = fileName.substring(0, fileName.indexOf(ResourceDetectUtils.fileName()));
-            Map<String, List<String>> map = ResourceDetectUtils.readResourcePaths(file.getPath());
+            Map<String, List<String>> map = ResourceDetectUtils.readResourcePathsAs(file.getPath());
             for (Map.Entry<String, List<String>> entry : map.entrySet()) {
                 resourcePaths.put(segmentId + entry.getKey(), entry.getValue());
             }
@@ -344,6 +347,16 @@ public abstract class SparkApplication implements Application, IKeep {
         // return size with unit
         return ResourceDetectUtils.getMaxResourceSize(resourcePaths) + "b";
     }
+
+
+    protected Boolean hasCountDistinct() {
+        Path countDistinct = new Path(config.getJobTmpShareDir(project, jobId), ResourceDetectUtils.countDistinctSuffix());
+        Boolean exist = ResourceDetectUtils.readResourcePathsAs(countDistinct);
+        logger.info("Exist count distinct measure: {}", exist);
+        return exist;
+    }
+
+
 
     public void logJobInfo() {
         try {

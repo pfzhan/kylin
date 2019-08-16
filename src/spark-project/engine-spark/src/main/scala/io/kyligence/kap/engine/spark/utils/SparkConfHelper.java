@@ -68,6 +68,7 @@ public class SparkConfHelper {
     public static final String DRIVER_MEMORY = "spark.driver.memory";
     public static final String DRIVER_OVERHEAD = "spark.driver.memoryOverhead";
     public static final String DRIVER_CORES = "spark.driver.cores";
+    public static final String COUNT_DISTICT = "count_distinct";
 
     private static final List<SparkConfRule> EXECUTOR_RULES = ImmutableList.of(new ExecutorMemoryRule(),
             new ExecutorCoreRule(), new ExecutorOverheadRule(), new ExecutorInstancesRule(),

@@ -23,14 +23,17 @@
 package org.apache.spark.sql.hive.utils
 
 import java.util.{List => JList, Map => JMap}
+import java.util
 
 import com.fasterxml.jackson.core.`type`.TypeReference
-import org.apache.hadoop.fs.{FSDataInputStream, FSDataOutputStream, FileStatus, Path}
+import io.kyligence.kap.metadata.cube.model.LayoutEntity
+import org.apache.hadoop.fs.{FileStatus, FSDataInputStream, FSDataOutputStream, Path}
 import org.apache.kylin.common.util.{HadoopUtil, JsonUtil}
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.execution.columnar.InMemoryTableScanExec
 import org.apache.spark.sql.execution.{FileSourceScanExec, SparkPlan}
 import org.apache.spark.sql.hive.execution.HiveTableScanExec
+
 import scala.collection.JavaConverters._
 
 object ResourceDetectUtils extends Logging {
@@ -55,6 +58,15 @@ object ResourceDetectUtils extends Logging {
     paths.distinct
   }
 
+  def findCountDistinctMeasure(layouts: util.Collection[LayoutEntity]): Boolean = {
+    for (layoutEntity <- layouts.asScala) {
+      for (measure <- layoutEntity.getOrderedMeasures.values.asScala) {
+        if (measure.getFunction.getExpression.equalsIgnoreCase("COUNT_DISTINCT"))  return true
+      }
+    }
+    false
+  }
+
   def getResourceSize(paths: Path*): Long = {
     val fs = HadoopUtil.getFileSystem(paths.head)
     paths.map(HadoopUtil.getContentSummary(fs, _).getLength).sum
@@ -64,7 +76,7 @@ object ResourceDetectUtils extends Logging {
     resourcePaths.values.asScala.map(value => getResourceSize(value.asScala.map(path => new Path(path)): _*)).max
   }
 
-  def write(path: Path, item: JMap[_, _]): Unit = {
+  def write(path: Path, item: Object): Unit = {
     val fs = HadoopUtil.getFileSystem(path)
     var out: FSDataOutputStream = null
     try {
@@ -77,26 +89,10 @@ object ResourceDetectUtils extends Logging {
     }
   }
 
-  def selectMaxValueInFiles(files : Array[FileStatus]): String = {
-    files.map(f => this.readLayoutLeafTaskNums(f.getPath).values().asScala.max).max.toString
+  def selectMaxValueInFiles(files: Array[FileStatus]): String = {
+    files.map(f => readResourcePathsAs[JMap[String, Integer]](f.getPath).values().asScala.max).max.toString
   }
-
-  def writeLayoutLeafTaskNums(path: Path, layoutLeafTaskNums: JMap[String, Integer]): Unit = {
-    log.info(s"Write layoutLeafTaskNums to $path")
-    write(path, layoutLeafTaskNums)
-  }
-
-  def writeDetectItems(path: Path, detectItem: JMap[EnumDetectItem, String]): Unit = {
-    log.info(s"Write writeDetectItems to $path")
-    write(path, detectItem)
-  }
-
-
-  def writeResourcePaths(path: Path, resourcePaths: JMap[String, JList[String]]): Unit = {
-    log.info(s"Write resource paths to $path")
-    write(path, resourcePaths)
-  }
-
+  
 
   def readDetectItems(path: Path): JMap[EnumDetectItem, String] = {
     log.info(s"Read detectItems from " + path)
@@ -113,25 +109,10 @@ object ResourceDetectUtils extends Logging {
     }
   }
 
-  def readLayoutLeafTaskNums(path: Path): JMap[String, Integer] = {
-    log.info(s"Read layoutLeafTaskNums from $path")
-    val fs = HadoopUtil.getFileSystem(path)
-    val typeRef = new TypeReference[JMap[String, Integer]]() {}
-    var in: FSDataInputStream = null
-    try {
-      in = fs.open(path)
-      JsonUtil.readValue(in.readUTF, typeRef)
-    } finally {
-      if (in != null) {
-        in.close()
-      }
-    }
-  }
-
-  def readResourcePaths(path: Path): JMap[String, JList[String]] = {
+  def readResourcePathsAs[T](path: Path): T = {
     log.info(s"Read resource paths form $path")
     val fs = HadoopUtil.getFileSystem(path)
-    val typeRef = new TypeReference[JMap[String, JList[String]]]() {}
+    val typeRef = new TypeReference[T]() {}
     var in: FSDataInputStream = null
     try {
       in = fs.open(path)
@@ -142,14 +123,15 @@ object ResourceDetectUtils extends Logging {
       }
     }
   }
-
 
 
   def fileName(): String = {
     "resource_paths.json"
   }
 
-  def cubingDetectItemFileSuffix: String = "cubing_detect_items.json"
+  val cubingDetectItemFileSuffix: String = "cubing_detect_items.json"
 
-  def samplingDetectItemFileSuffix: String = "sampling_detect_items.json"
+  val samplingDetectItemFileSuffix: String = "sampling_detect_items.json"
+
+  val countDistinctSuffix: String = "count_distinct.json"
 }

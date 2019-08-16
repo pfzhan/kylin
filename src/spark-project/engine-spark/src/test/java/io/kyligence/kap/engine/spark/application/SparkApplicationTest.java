@@ -87,11 +87,11 @@ public class SparkApplicationTest extends NSparkBasicTest {
         // write resource_path file
         Map<String, List<String>> map1 = Maps.newHashMap();
         map1.put("1", Lists.newArrayList(sourceFile1.getAbsolutePath()));
-        ResourceDetectUtils.writeResourcePaths(new Path(file1.getAbsolutePath()), map1);
+        ResourceDetectUtils.write(new Path(file1.getAbsolutePath()), map1);
 
         Map<String, List<String>> map2 = Maps.newHashMap();
         map2.put("1", Lists.newArrayList(sourceFile2.getAbsolutePath()));
-        ResourceDetectUtils.writeResourcePaths(new Path(file2.getAbsolutePath()), map2);
+        ResourceDetectUtils.write(new Path(file2.getAbsolutePath()), map2);
 
         Assert.assertEquals(maxString.getBytes().length + "b",
                 application.chooseContentSize(new Path(tempDir.getAbsolutePath())));

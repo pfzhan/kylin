@@ -76,6 +76,11 @@ public class SparkConfHelperTest extends NLocalFileMetadataTestCase {
                 new CompareTuple("5", SparkConfHelper.EXECUTOR_INSTANCES),
                 new CompareTuple("1", SparkConfHelper.SHUFFLE_PARTITIONS));
         compareConf(compareTuples, sparkConf);
+        helper.setConf(SparkConfHelper.COUNT_DISTICT, "true");
+        helper.applySparkConf(sparkConf);
+        compareTuples.set(0, new CompareTuple("1GB", SparkConfHelper.EXECUTOR_MEMORY));
+        compareConf(compareTuples, sparkConf);
+
     }
 
     @Test
@@ -95,6 +100,11 @@ public class SparkConfHelperTest extends NLocalFileMetadataTestCase {
                 new CompareTuple("5", SparkConfHelper.EXECUTOR_INSTANCES),
                 new CompareTuple("256", SparkConfHelper.SHUFFLE_PARTITIONS));
         compareConf(compareTuples, sparkConf);
+        helper.setConf(SparkConfHelper.COUNT_DISTICT, "true");
+        helper.generateSparkConf();
+        helper.applySparkConf(sparkConf);
+        compareTuples.set(0, new CompareTuple("10GB", SparkConfHelper.EXECUTOR_MEMORY));
+                compareConf(compareTuples, sparkConf);
     }
 
     @Test
@@ -114,6 +124,11 @@ public class SparkConfHelperTest extends NLocalFileMetadataTestCase {
                 new CompareTuple("5", SparkConfHelper.EXECUTOR_INSTANCES),
                 new CompareTuple("1600", SparkConfHelper.SHUFFLE_PARTITIONS));
         compareConf(compareTuples, sparkConf);
+        helper.setConf(SparkConfHelper.COUNT_DISTICT, "true");
+        helper.generateSparkConf();
+        helper.applySparkConf(sparkConf);
+        compareTuples.set(0, new CompareTuple("16GB", SparkConfHelper.EXECUTOR_MEMORY));
+                compareConf(compareTuples, sparkConf);
     }
 
     @Test
@@ -133,6 +148,11 @@ public class SparkConfHelperTest extends NLocalFileMetadataTestCase {
                 new CompareTuple("5", SparkConfHelper.EXECUTOR_INSTANCES),
                 new CompareTuple("3200", SparkConfHelper.SHUFFLE_PARTITIONS));
         compareConf(compareTuples, sparkConf);
+        helper.setConf(SparkConfHelper.COUNT_DISTICT, "true");
+        helper.generateSparkConf();
+        helper.applySparkConf(sparkConf);
+        compareTuples.set(0, new CompareTuple("20GB", SparkConfHelper.EXECUTOR_MEMORY));
+                compareConf(compareTuples, sparkConf);
     }
 
 

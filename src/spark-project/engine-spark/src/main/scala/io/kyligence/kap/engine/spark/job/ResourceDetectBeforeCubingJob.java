@@ -52,7 +52,6 @@ import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.model.NBatchConstants;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
-import scala.Int;
 import scala.collection.JavaConversions;
 import lombok.val;
 
@@ -75,6 +74,7 @@ public class ResourceDetectBeforeCubingJob extends SparkApplication {
                 .collect(Collectors.toSet());
         nSpanningTree = NSpanningTreeFactory.fromLayouts(cuboids, dataflowId);
 
+        ResourceDetectUtils.write(new Path(config.getJobTmpShareDir(project, jobId), ResourceDetectUtils.countDistinctSuffix()), ResourceDetectUtils.findCountDistinctMeasure(cuboids));
         for (String segId : segmentIds) {
             NDataSegment seg = dfMgr.getDataflow(dataflowId).getSegment(segId);
             DFChooser datasetChooser = new DFChooser(nSpanningTree, seg, jobId, ss, config, false);
@@ -100,10 +100,10 @@ public class ResourceDetectBeforeCubingJob extends SparkApplication {
                 resourcePaths.put(String.valueOf(source.getLayoutId()), pathList);
                 layoutLeafTaskNums.put(String.valueOf(source.getLayoutId()), SparkUtils.leafNodePartitionNums(actionRdd));
             }
-            ResourceDetectUtils.writeResourcePaths(
+            ResourceDetectUtils.write(
                     new Path(config.getJobTmpShareDir(project, jobId), segId + "_" + ResourceDetectUtils.fileName()),
                     resourcePaths);
-            ResourceDetectUtils.writeLayoutLeafTaskNums(
+            ResourceDetectUtils.write(
                     new Path(config.getJobTmpShareDir(project, jobId), segId + "_" + ResourceDetectUtils.cubingDetectItemFileSuffix()),
                     layoutLeafTaskNums);
 

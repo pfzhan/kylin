@@ -50,14 +50,25 @@ sealed trait SparkConfRule extends Logging {
 class ExecutorMemoryRule extends SparkConfRule {
   override def doApply(helper: SparkConfHelper): Unit = {
     val sourceGB = Utils.byteStringAsGb(helper.getOption(SparkConfHelper.SOURCE_TABLE_SIZE))
-    val memory = if (sourceGB >= 100) {
-      "16GB"
-    } else if (sourceGB >= 10) {
-      "10GB"
-    } else if (sourceGB >= 1) {
-      "4GB"
-    } else {
-      "1GB"
+    var hasCountDistinct = {
+      if (helper.getConf(SparkConfHelper.COUNT_DISTICT) != null && helper.getConf(SparkConfHelper.COUNT_DISTICT).equals("true")) {
+        logInfo("Find count distinct measure.")
+        true
+      } else {
+        false
+      }
+    }
+    val memory = sourceGB match {
+      case _ if `sourceGB` >= 100 && `hasCountDistinct` =>
+        "20GB"
+      case _ if (`sourceGB` >= 100) || (`sourceGB` >= 10 && `hasCountDistinct`) =>
+        "16GB"
+      case _ if `sourceGB` >= 10 || (`sourceGB` >= 1 && `hasCountDistinct`) =>
+        "10GB"
+      case _ if `sourceGB` >= 1 =>
+        "4GB"
+      case _ =>
+        "1GB"
     }
     helper.setConf(SparkConfHelper.EXECUTOR_MEMORY, memory)
   }

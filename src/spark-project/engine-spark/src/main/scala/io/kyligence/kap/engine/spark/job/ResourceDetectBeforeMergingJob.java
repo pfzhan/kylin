@@ -63,7 +63,7 @@ public class ResourceDetectBeforeMergingJob extends SparkApplication {
         infos.recordMergingSegments(mergingSegments);
         Map<Long, DFLayoutMergeAssist> mergeCuboidsAssist = DFMergeJob.generateMergeAssist(mergingSegments, ss,
                 mergedSeg);
-
+        ResourceDetectUtils.write(new Path(config.getJobTmpShareDir(project, jobId), ResourceDetectUtils.countDistinctSuffix()), ResourceDetectUtils.findCountDistinctMeasure(mergedSeg.getIndexPlan().getAllLayouts()));
         Map<String, List<String>> resourcePaths = Maps.newHashMap();
         infos.clearSparkPlans();
         for (Map.Entry<Long, DFLayoutMergeAssist> entry : mergeCuboidsAssist.entrySet()) {
@@ -74,7 +74,7 @@ public class ResourceDetectBeforeMergingJob extends SparkApplication {
             List<String> pathStrs = paths.stream().map(Path::toString).collect(Collectors.toList());
             resourcePaths.put(String.valueOf(entry.getKey()), pathStrs);
         }
-        ResourceDetectUtils.writeResourcePaths(new Path(config.getJobTmpShareDir(project, jobId),
+        ResourceDetectUtils.write(new Path(config.getJobTmpShareDir(project, jobId),
                 mergedSeg.getId() + "_" + ResourceDetectUtils.fileName()), resourcePaths);
     }
 

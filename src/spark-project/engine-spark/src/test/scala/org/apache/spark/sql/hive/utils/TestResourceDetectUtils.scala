@@ -42,7 +42,7 @@ class TestResourceDetectUtils extends SparderBaseFunSuite {
   }
 
   override def afterAll(): Unit = {
-    NLocalFileMetadataTestCase.staticCleanupTestMetadata();
+    NLocalFileMetadataTestCase.staticCleanupTestMetadata()
     super.afterAll()
   }
 
@@ -52,8 +52,8 @@ class TestResourceDetectUtils extends SparderBaseFunSuite {
     map.put("test", Lists.newArrayList("test"))
     withTempPath { file =>
       val path = new Path(file.getPath)
-      ResourceDetectUtils.writeResourcePaths(path, map)
-      val actualMap = ResourceDetectUtils.readResourcePaths(path)
+      ResourceDetectUtils.write(path, map)
+      val actualMap: JMap[String, JList[String]] = ResourceDetectUtils.readResourcePathsAs(path)
       assert(map == actualMap)
     }
   }
