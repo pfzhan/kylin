@@ -193,7 +193,7 @@
                   <i class="el-icon-ksd-backup"></i>
                   <span>{{$t('batchAdd')}}</span>
                 </span>
-                <span class="action_btn" @click="toggleMeaCheckbox" :class="{'disabled': allMeasure.length==1}">
+                <span class="action_btn" @click="toggleMeaCheckbox" :class="{'disabled': canDelMeasureAll}">
                   <i class="el-icon-ksd-batch_delete"></i>
                   <span>{{$t('batchDel')}}</span>
                 </span>
@@ -208,9 +208,9 @@
                   width: panelAppear.measure.width-2+'px'
                 }">
                 <span class="action_btn" @click="toggleCheckAllMeasure">
-                  <i class="el-icon-ksd-batch_uncheck" v-if="measureSelectedList.length==allMeasure.length-1"></i>
-                  <i class="el-icon-ksd-batch" v-else></i>
-                  <span v-if="measureSelectedList.length==allMeasure-1">{{$t('unCheckAll')}}</span>
+                  <i class="el-icon-ksd-batch" v-if="measureSelectedList.length > 0 && measureSelectedList.length==toggleMeasureStatus"></i>
+                  <i class="el-icon-ksd-batch_uncheck" v-else></i>
+                  <span v-if="measureSelectedList.length > 0 && measureSelectedList.length==toggleMeasureStatus">{{$t('unCheckAll')}}</span>
                   <span v-else>{{$t('checkAll')}}</span>
                 </span>
                 <span class="action_btn" :class="{'disabled': measureSelectedList.length==0}" @click="deleteMeasures">
@@ -647,6 +647,32 @@ export default class ModelEdit extends Vue {
   get allMeasure () {
     return this.modelRender.all_measures || []
   }
+  get canDelMeasureAll () { // 控制批量删除按钮的 disable 状态
+    let flag = true // 默认不可点
+    if (this.modelRender.all_measures.length === 0) {
+      flag = true
+    } else {
+      let temp = this.modelRender.all_measures.filter((item) => {
+        return item.name === 'COUNT_ALL'
+      })
+      if (temp.length > 0) { // 如果有count all 这个度量，则批量删除按钮不可用
+        flag = this.modelRender.all_measures.length === temp.length
+      } else {
+        flag = this.modelRender.all_measures.length === 0
+      }
+    }
+    return flag
+  }
+  get toggleMeasureStatus () { // 控制批量删除度量的全选切换按钮的状态
+    let temp = this.modelRender.all_measures.filter((item) => {
+      return item.name === 'COUNT_ALL'
+    })
+    if (temp.length > 0) { // 如果有count all 全选文案的切换要去掉count all 后
+      return this.modelRender.all_measures.length - 1
+    } else {
+      return this.modelRender.all_measures.length
+    }
+  }
   query (className) {
     return $(this.$el.querySelector(className))
   }
@@ -939,13 +965,17 @@ export default class ModelEdit extends Vue {
     this.modelInstance.delMeasure(name)
   }
   toggleCheckAllMeasure () {
-    if (this.measureSelectedList.length === this.modelRender.all_measures.length - 1) {
+    // 过滤出非count_all 的度量，未保存前，是没有count_all 这个度量的，这时候，选中的和给出的列表len是相同的，保存后编辑再进时，会多一个count_all 这时候len是减一后对比
+    let temp = this.modelRender.all_measures.filter((item, i) => {
+      return item.name !== 'COUNT_ALL'
+    })
+    if (this.measureSelectedList.length === temp.length) {
       this.measureSelectedList = []
     } else {
-      this.measureSelectedList = this.modelRender.all_measures.map((item, i) => {
+      // 全选时，count_all的，不勾
+      this.measureSelectedList = temp.map((item, i) => {
         return item.name
       })
-      this.measureSelectedList.shift()
     }
   }
   deleteMeasures () {
