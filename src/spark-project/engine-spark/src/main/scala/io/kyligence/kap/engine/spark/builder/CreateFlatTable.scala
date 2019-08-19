@@ -34,8 +34,9 @@ import io.kyligence.kap.metadata.model.NDataModel
 import org.apache.commons.lang3.StringUtils
 import org.apache.kylin.metadata.model._
 import org.apache.spark.internal.Logging
+import org.apache.spark.sql.catalyst.parser.ParseException
 import org.apache.spark.sql.functions.{col, expr}
-import org.apache.spark.sql.{Dataset, Row, SparkSession}
+import org.apache.spark.sql.{AnalysisException, Dataset, Row, SparkSession}
 
 import scala.collection.JavaConverters._
 import scala.collection.mutable
@@ -122,6 +123,8 @@ class CreateFlatTable(val flatTable: IJoinedFlatTableDesc,
 object CreateFlatTable extends Logging {
   type GlobalDictType = (Set[TblColRef], Set[TblColRef])
 
+  @throws(classOf[ParseException])
+  @throws(classOf[AnalysisException])
   def generateFullFlatTable(model: NDataModel, ss: SparkSession): Dataset[Row] = {
     val rootFact = model.getRootFactTable
     val ccCols = rootFact.getColumns.asScala.filter(_.getColumnDesc.isComputedColumn).toSet

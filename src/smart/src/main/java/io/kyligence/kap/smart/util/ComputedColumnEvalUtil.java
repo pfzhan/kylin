@@ -26,8 +26,11 @@ package io.kyligence.kap.smart.util;
 
 import java.util.Iterator;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import org.apache.spark.sql.AnalysisException;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparderEnv;
@@ -46,8 +49,39 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class ComputedColumnEvalUtil {
 
+    private static final Pattern PATTERN_COLUMN = Pattern
+            .compile("(cannot resolve '(.*?)' given input columns: \\[(.*?)\\.(.*?)\\..*?[,|\\]|\\s])");
+
     private ComputedColumnEvalUtil() {
         throw new IllegalAccessError();
+    }
+
+    private static void throwIllegalStateException(List<ComputedColumnDesc> computedColumns, Exception e) {
+        Preconditions.checkNotNull(computedColumns);
+
+        // other exception occurs, fail directly
+        throw new IllegalStateException("Auto model failed to evaluate CC " + String.join(",",
+                computedColumns.stream().map(ComputedColumnDesc::getInnerExpression).collect(Collectors.toList()))
+                + ", CC expression not valid.", e);
+    }
+
+    private static void dealWithParseException(List<ComputedColumnDesc> computedColumns, ParseException e) {
+        Preconditions.checkNotNull(computedColumns);
+
+        int size = computedColumns.size();
+        String parseCmdInfo = e.command().getOrElse(null);
+        Iterator<ComputedColumnDesc> iterator = computedColumns.iterator();
+        while (iterator.hasNext()) {
+            ComputedColumnDesc cc = iterator.next();
+            if (parseCmdInfo == null
+                    || parseCmdInfo.contains(NSparkCubingUtil.convertFromDot(cc.getInnerExpression()))) {
+                log.warn("Unsupported to infer CC type, corresponding cc expression is: {}", cc.getInnerExpression());
+                iterator.remove();
+            }
+        }
+
+        Preconditions.checkState(size != computedColumns.size(),
+                "[UNLIKELY_THINGS_HAPPENED] ParseException occurs, but no cc expression was removed, {}", e);
     }
 
     public static void evaluateExprAndTypes(NDataModel nDataModel, List<ComputedColumnDesc> computedColumns) {
@@ -63,33 +97,19 @@ public class ComputedColumnEvalUtil {
                     computedColumns.get(i).setDatatype(dataType);
                 }
                 break;
-            } catch (Exception e) {
-                if (e instanceof ParseException) {
-                    int size = computedColumns.size();
-                    String parseCmdInfo = ((ParseException) e).command().getOrElse(null);
-                    Iterator<ComputedColumnDesc> iterator = computedColumns.iterator();
-                    while (iterator.hasNext()) {
-                        ComputedColumnDesc cc = iterator.next();
-                        if (parseCmdInfo == null
-                                || parseCmdInfo.contains(NSparkCubingUtil.convertFromDot(cc.getInnerExpression()))) {
-                            log.warn("Unsupported to infer CC type, corresponding cc expression is: {}",
-                                    cc.getInnerExpression());
-                            iterator.remove();
-                        }
-                    }
-
-                    Preconditions.checkState(size != computedColumns.size(),
-                            "[UNLIKELY_THINGS_HAPPENED] ParseException occurs, but no cc expression was removed, {}",
-                            e);
-                } else {
-                    // other exception occurs, fail directly
-                    throw new IllegalStateException(
-                            "Auto model failed to evaluate CC "
-                                    + String.join(",", computedColumns.stream()
-                                            .map(ComputedColumnDesc::getInnerExpression).collect(Collectors.toList()))
-                                    + ", CC expression not valid.",
-                            e);
+            } catch (ParseException e) {
+                dealWithParseException(computedColumns, e);
+            } catch (AnalysisException e) {
+                Matcher matcher = PATTERN_COLUMN.matcher(e.getMessage());
+                if (matcher.find()) {
+                    throw new IllegalStateException(String.format(
+                            "Failed to evaluate '%s.%s' in computed column check, please check whether the table structure has been changed.",
+                            matcher.group(4), matcher.group(2)), e);
                 }
+
+                throwIllegalStateException(computedColumns, e);
+            } catch (Exception e) {
+                throwIllegalStateException(computedColumns, e);
             }
         }
     }
