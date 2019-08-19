@@ -49,12 +49,9 @@
       <el-table-column type="selection" align="center" width="44"></el-table-column>
       <el-table-column align="center" width="40" prop="icon">
         <template slot-scope="scope">
-          <common-tip :content="$t('openJobSteps')">
-            <i :class="{
-            'el-icon-ksd-dock_to_right_return': scope.row.id !== selectedJob.id || !showStep,
-            'el-icon-ksd-dock_to_right': scope.row.id == selectedJob.id && showStep}"
-            ></i>
-          </common-tip>
+          <i :class="{
+            'el-icon-arrow-right': scope.row.id !== selectedJob.id || !showStep,
+            'el-icon-arrow-down': scope.row.id == selectedJob.id && showStep}"></i>
         </template>
       </el-table-column>
       <el-table-column :renderHeader="renderColumn" prop="job_name" width="144">
@@ -1351,12 +1348,18 @@ export default class JobsList extends Vue {
       tr.current-row2 > td{
         background: @base-color-9;
       }
-      tr .el-icon-arrow-right {
+      tr .el-icon-arrow-right, tr .el-icon-arrow-down {
         position:absolute;
         left:15px;
         top:50%;
         transform:translate(0,-50%);
         font-size:12px;
+        &:hover{
+          color:@base-color;
+        }
+      }
+      tr .el-icon-arrow-down{
+        color:@base-color;
       }
     }
   }

@@ -43,9 +43,9 @@
 
     <div class="segment-views ksd-mb-15">
       <el-table border nested  size="medium" :data="segments" @selection-change="handleSelectSegments" @sort-change="handleSortChange">
-        <el-table-column type="selection" width="44">
+        <el-table-column type="selection" width="44" v-if="!isAutoProject">
         </el-table-column>
-        <el-table-column prop="id" label="Segment Id">
+        <el-table-column prop="id" label="Segment ID">
         </el-table-column>
         <el-table-column prop="status" :label="$t('kylinLang.common.status')" width="114">
         </el-table-column>
