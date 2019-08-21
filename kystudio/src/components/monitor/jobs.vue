@@ -908,10 +908,11 @@ export default class JobsList extends Vue {
   }
   async resume (jobIds, isBatch) {
     await this.callGlobalDetailDialog({
-      msg: this.$t('resumeJob', {count: jobIds.length}),
+      msg: this.$t('resumeJob', {count: (isBatch && isBatch === 'batchAll') ? this.selectedNumber : jobIds.length}),
       title: this.$t('resumeJobTitle'),
       details: jobIds,
-      dialogType: 'tip'
+      dialogType: 'tip',
+      showDetailBtn: false
     })
     this.resumeJob({jobIds: jobIds, project: this.currentSelectedProject, action: 'RESUME', status: this.filter.status}).then(() => {
       this.$message({
@@ -933,10 +934,11 @@ export default class JobsList extends Vue {
   }
   async restart (jobIds, isBatch) {
     await this.callGlobalDetailDialog({
-      msg: this.$t('restartJob', {count: jobIds.length}),
+      msg: this.$t('restartJob', {count: (isBatch && isBatch === 'batchAll') ? this.selectedNumber : jobIds.length}),
       title: this.$t('restartJobTitle'),
       details: jobIds,
-      dialogType: 'tip'
+      dialogType: 'tip',
+      showDetailBtn: false
     })
     this.restartJob({jobIds: jobIds, project: this.currentSelectedProject, action: 'RESTART', status: this.filter.status}).then(() => {
       this.$message({
@@ -958,10 +960,11 @@ export default class JobsList extends Vue {
   }
   async pause (jobIds, isBatch) {
     await this.callGlobalDetailDialog({
-      msg: this.$t('pauseJob', {count: jobIds.length}),
+      msg: this.$t('pauseJob', {count: (isBatch && isBatch === 'batchAll') ? this.selectedNumber : jobIds.length}),
       title: this.$t('pauseJobTitle'),
       details: jobIds,
-      dialogType: 'tip'
+      dialogType: 'tip',
+      showDetailBtn: false
     })
     this.pauseJob({jobIds: jobIds, project: this.currentSelectedProject, action: 'PAUSE', status: this.filter.status}).then(() => {
       this.$message({
@@ -983,10 +986,11 @@ export default class JobsList extends Vue {
   }
   async drop (jobIds, isBatch) {
     await this.callGlobalDetailDialog({
-      msg: this.$t('dropJob', {count: jobIds.length}),
+      msg: this.$t('dropJob', {count: (isBatch && isBatch === 'batchAll') ? this.selectedNumber : jobIds.length}),
       title: this.$t('dropJobTitle'),
       details: jobIds,
-      dialogType: 'warning'
+      dialogType: 'warning',
+      showDetailBtn: false
     })
     this.removeJob({jobIds: jobIds, project: this.currentSelectedProject, status: this.filter.status}).then(() => {
       this.$message({
@@ -1087,7 +1091,7 @@ export default class JobsList extends Vue {
       opacity: 0;
     }
     .selectLabel {
-      background-color: @base-color-10;
+      background-color: @base-color-9;
       height: 32px;
       line-height: 32px;
       margin: 10px 0;

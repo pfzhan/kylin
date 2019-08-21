@@ -12,7 +12,8 @@ const initialState = JSON.stringify({
   title: '',
   dialogType: '',
   theme: '',
-  details: []
+  details: [],
+  showDetailBtn: true
 })
 
 export default {
@@ -39,9 +40,9 @@ export default {
     }
   },
   actions: {
-    [types.CALL_MODAL] ({ commit }, { dialogType = 'error', msg, title, details = [], theme = 'plain' }) {
+    [types.CALL_MODAL] ({ commit }, { dialogType = 'error', msg, title, details = [], theme = 'plain', showDetailBtn = true }) {
       return new Promise(async (resolve, reject) => {
-        commit(types.SET_MODAL, { dialogType, msg, title, details, theme, callback: resolve })
+        commit(types.SET_MODAL, { dialogType, msg, title, details, theme, showDetailBtn, callback: resolve })
         commit(types.SHOW_MODAL)
       })
     }

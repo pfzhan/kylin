@@ -14,7 +14,7 @@
       :closable="false"
       show-icon>
       <span style="word-break: break-word;" v-html="filterInjectScript(msg).replace(/\r\n/g, '<br/><br/>')"></span>
-      <a href="javascript:;" @click="toggleDetail">{{$t('kylinLang.common.seeDetail')}}  
+      <a href="javascript:;" @click="toggleDetail" v-if="showDetailBtn">{{$t('kylinLang.common.seeDetail')}}  
         <i class="el-icon-arrow-down" v-show="!showDetail"></i>
         <i class="el-icon-arrow-up" v-show="showDetail"></i>
       </a>
@@ -59,6 +59,7 @@ vuex.registerModule(['modals', 'DetailDialogModal'], store)
       msg: state => state.msg,
       isShow: state => state.isShow,
       dialogType: state => state.dialogType,
+      showDetailBtn: state => state.showDetailBtn, // 控制是否需要显示详情按钮，默认是显示的
       callback: state => state.callback
     })
   },
