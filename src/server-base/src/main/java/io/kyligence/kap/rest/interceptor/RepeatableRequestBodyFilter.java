@@ -38,11 +38,15 @@ import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletRequestWrapper;
 
-import lombok.Getter;
 import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.kylin.common.util.JsonUtil;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
+import io.kyligence.kap.metadata.project.NProjectLoader;
+import lombok.Data;
+import lombok.Getter;
 import lombok.val;
 
 @Component
@@ -56,11 +60,26 @@ public class RepeatableRequestBodyFilter implements Filter {
     @Override
     public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
             throws IOException, ServletException {
-        if (request.getContentType() != null && request.getContentType().contains("json")) {
-            val requestWrapper = new RepeatableBodyRequestWrapper((HttpServletRequest) request);
+        try {
+            String project = request.getParameter("project");
+            ServletRequest requestWrapper = request;
+            if (StringUtils.isEmpty(project) && request.getContentType() != null
+                    && request.getContentType().contains("json")) {
+                requestWrapper = new RepeatableBodyRequestWrapper((HttpServletRequest) request);
+                try {
+                    val projectRequest = JsonUtil.readValue(((RepeatableBodyRequestWrapper) requestWrapper).getBody(),
+                            ProjectRequest.class);
+                    if (projectRequest != null) {
+                        project = projectRequest.getProject();
+                    }
+                } catch (IOException ignored) {
+                    // ignore JSON exception
+                }
+            }
+            NProjectLoader.updateCache(project);
             chain.doFilter(requestWrapper, response);
-        } else {
-            chain.doFilter(request, response);
+        } finally {
+            NProjectLoader.removeCache();
         }
     }
 
@@ -93,6 +112,13 @@ public class RepeatableRequestBodyFilter implements Filter {
         public BufferedReader getReader() throws IOException {
             return new BufferedReader(new InputStreamReader(this.getInputStream()));
         }
+
+    }
+
+    @Data
+    public static class ProjectRequest {
+
+        private String project;
 
     }
 }
