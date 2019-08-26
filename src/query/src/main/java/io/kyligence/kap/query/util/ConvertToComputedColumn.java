@@ -49,7 +49,6 @@
 package io.kyligence.kap.query.util;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
@@ -69,13 +68,12 @@ import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.util.SqlBasicVisitor;
 import org.apache.calcite.sql.util.SqlVisitor;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.metadata.model.tool.CalciteParser;
 import org.apache.kylin.query.util.QueryUtil;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Function;
 import com.google.common.base.Throwables;
@@ -88,10 +86,12 @@ import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.model.ComputedColumnDesc;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.alias.ExpressionComparator;
+import lombok.val;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 public class ConvertToComputedColumn implements QueryUtil.IQueryTransformer, IKeep {
 
-    private static final Logger logger = LoggerFactory.getLogger(ConvertToComputedColumn.class);
     private static final String CONVERT_TO_CC_ERROR_MSG = "Something unexpected while ConvertToComputedColumn transforming the query, return original query.";
 
     @Override
@@ -100,9 +100,9 @@ public class ConvertToComputedColumn implements QueryUtil.IQueryTransformer, IKe
             return transformImpl(originSql, project, defaultSchema);
         } catch (Exception e) {
             if (e instanceof org.apache.calcite.sql.parser.SqlParseException) {
-                logger.warn(CONVERT_TO_CC_ERROR_MSG, Throwables.getRootCause(e));
+                log.warn(CONVERT_TO_CC_ERROR_MSG, Throwables.getRootCause(e));
             } else {
-                logger.warn(CONVERT_TO_CC_ERROR_MSG, e);
+                log.warn(CONVERT_TO_CC_ERROR_MSG, e);
             }
 
             return originSql;
@@ -117,21 +117,20 @@ public class ConvertToComputedColumn implements QueryUtil.IQueryTransformer, IKe
 
     public String transformImpl(String originSql, String project, NDataModel dataModelDesc, String defaultSchema)
             throws SqlParseException {
-        return transformImpl(originSql, project, defaultSchema, Arrays.asList(dataModelDesc));
+        return transformImpl(originSql, project, defaultSchema, Lists.newArrayList(dataModelDesc));
     }
 
     private String transformImpl(String originSql, String project, String defaultSchema,
             List<NDataModel> dataModelDescs) throws SqlParseException {
 
-        String sql = originSql;
-        if (project == null || sql == null) {
-            return sql;
+        if (project == null || originSql == null) {
+            return originSql;
         }
 
         return transformImpl(originSql, new QueryAliasMatcher(project, defaultSchema), dataModelDescs);
     }
 
-    public String transformImpl(String originSql, QueryAliasMatcher queryAliasMatcher, List<NDataModel> dataModelDescs)
+    private String transformImpl(String originSql, QueryAliasMatcher queryAliasMatcher, List<NDataModel> dataModelDescs)
             throws SqlParseException {
         if (!KapConfig.getInstanceFromEnv().isImplicitComputedColumnConvertEnabled()) {
             return originSql;
@@ -173,35 +172,12 @@ public class ConvertToComputedColumn implements QueryUtil.IQueryTransformer, IKe
             }
 
             SqlCall selectOrOrderby = selectOrOrderbys.get(i);
-            SqlSelect sqlSelect = KapQueryUtil.extractSqlSelect(selectOrOrderby);
-            if (sqlSelect == null)
-                continue;
 
-            //give each data model a chance to rewrite, choose the model that generates most changes
-            for (int j = 0; j < dataModelDescs.size(); j++) {
-                NDataModel model = dataModelDescs.get(j);
-                QueryAliasMatchInfo info = queryAliasMatcher.match(model, sqlSelect);
-                if (info == null) {
-                    continue;
-                }
-
-                List<ComputedColumnDesc> computedColumns = getSortedComputedColumnWithModel(model);
-                Pair<String, Integer> ret = replaceComputedColumn(sql, selectOrOrderby, computedColumns, info,
-                        replaceCcName);
-
-                if (replaceCcName && !sql.equals(ret.getFirst())) {
-                    choiceForCurrentSubquery = ret;
-                } else {
-                    if (ret.getSecond() == 0)
-                        continue;
-
-                    if ((choiceForCurrentSubquery == null)
-                            || (ret.getSecond() > choiceForCurrentSubquery.getSecond())) {
-                        choiceForCurrentSubquery = ret;
-                        recursionCompleted = false;
-                    }
-                }
-            }
+            ComputedColumnReplacer rewriteChecker = new ComputedColumnReplacer(queryAliasMatcher, dataModelDescs,
+                    recursionCompleted, choiceForCurrentSubquery, selectOrOrderby);
+            rewriteChecker.replace(sql, replaceCcName);
+            recursionCompleted = rewriteChecker.isRecursionCompleted();
+            choiceForCurrentSubquery = rewriteChecker.getChoiceForCurrentSubquery();
 
             if (choiceForCurrentSubquery != null) {
                 sql = choiceForCurrentSubquery.getFirst();
@@ -229,17 +205,11 @@ public class ConvertToComputedColumn implements QueryUtil.IQueryTransformer, IKe
             toBeReplacedExp = matchComputedColumn(inputSql, selectOrOrderby, computedColumns, queryAliasMatchInfo,
                     replaceCcName);
         } catch (Exception e) {
-            logger.debug("Convert to computedColumn Fail,parse sql fail ", e);
+            log.debug("Convert to computedColumn Fail,parse sql fail ", e);
             return Pair.newPair(inputSql, 0);
         }
 
-        Collections.sort(toBeReplacedExp, new Comparator<Pair<ComputedColumnDesc, Pair<Integer, Integer>>>() {
-            @Override
-            public int compare(Pair<ComputedColumnDesc, Pair<Integer, Integer>> o1,
-                    Pair<ComputedColumnDesc, Pair<Integer, Integer>> o2) {
-                return o2.getSecond().getFirst().compareTo(o1.getSecond().getFirst());
-            }
-        });
+        toBeReplacedExp.sort((o1, o2) -> o2.getSecond().getFirst().compareTo(o1.getSecond().getFirst()));
 
         //replace user's input sql
         for (Pair<ComputedColumnDesc, Pair<Integer, Integer>> toBeReplaced : toBeReplacedExp) {
@@ -256,8 +226,8 @@ public class ConvertToComputedColumn implements QueryUtil.IQueryTransformer, IKe
 
             String expr = inputSql.substring(start, end);
             String ccColumnName = replaceCcName ? cc.getInternalCcName() : cc.getColumnName();
-            logger.debug("Computed column: {} matching {} at [{},{}] using alias in query: {}", cc.getColumnName(),
-                    expr, start, end, alias);
+            log.debug("Computed column: {} matching {} at [{},{}] using alias in query: {}", cc.getColumnName(), expr,
+                    start, end, alias);
             result = result.substring(0, start) + alias + "." + ccColumnName + result.substring(end);
         }
         try {
@@ -267,7 +237,7 @@ public class ConvertToComputedColumn implements QueryUtil.IQueryTransformer, IKe
             int cntNodesAfter = getInputTreeNodes((SqlCall) resultNodes).size();
             return Pair.newPair(result, cntNodesBefore - cntNodesAfter);
         } catch (SqlParseException e) {
-            logger.debug("Convert to computedColumn Fail, parse result sql fail: {}", result, e);
+            log.debug("Convert to computedColumn Fail, parse result sql fail: {}", result, e);
             return Pair.newPair(inputSql, 0);
         }
     }
@@ -287,8 +257,8 @@ public class ConvertToComputedColumn implements QueryUtil.IQueryTransformer, IKe
                 int end = startEndPos.getSecond();
 
                 boolean conflict = false;
-                for (int i = 0; i < toBeReplacedExp.size(); i++) {
-                    Pair<Integer, Integer> replaced = toBeReplacedExp.get(i).getSecond();
+                for (val pair : toBeReplacedExp) {
+                    Pair<Integer, Integer> replaced = pair.getSecond();
                     if (!(replaced.getFirst() >= end || replaced.getSecond() <= start)) {
                         // overlap with chosen areas
                         conflict = true;
@@ -305,7 +275,7 @@ public class ConvertToComputedColumn implements QueryUtil.IQueryTransformer, IKe
 
     //Return matched node's position and its alias(if exists).If can not find matches, return an empty list
     private static List<SqlNode> getMatchedNodes(SqlCall selectOrOrderby, String ccExp, QueryAliasMatchInfo matchInfo) {
-        if (ccExp == null || ccExp.equals("")) {
+        if (ccExp == null || ccExp.equals(StringUtils.EMPTY)) {
             return Collections.emptyList();
         }
         ArrayList<SqlNode> matchedNodes = new ArrayList<>();
@@ -335,7 +305,7 @@ public class ConvertToComputedColumn implements QueryUtil.IQueryTransformer, IKe
             return getTableAlias(call.getOperandList());
         }
         if (node instanceof SqlIdentifier) {
-            StringBuilder alias = new StringBuilder("");
+            StringBuilder alias = new StringBuilder();
             ImmutableList<String> names = ((SqlIdentifier) node).names;
             if (names.size() >= 2) {
                 for (int i = 0; i < names.size() - 1; i++) {
@@ -345,24 +315,19 @@ public class ConvertToComputedColumn implements QueryUtil.IQueryTransformer, IKe
             return alias.toString();
         }
         if (node instanceof SqlNodeList) {
-            return "";
+            return StringUtils.EMPTY;
         }
         if (node instanceof SqlLiteral) {
-            return "";
+            return StringUtils.EMPTY;
         }
-        return "";
+        return StringUtils.EMPTY;
     }
 
     private static String getTableAlias(List<SqlNode> operands) {
         if (operands.isEmpty()) {
-            return "";
+            return StringUtils.EMPTY;
         }
         return getTableAlias(operands.get(0));
-    }
-
-    //match longer expressions first
-    private List<ComputedColumnDesc> getSortedComputedColumnWithModel(NDataModel dataModelDesc) {
-        return getCCListSortByLength(dataModelDesc.getComputedColumnDescs());
     }
 
     static List<ComputedColumnDesc> getCCListSortByLength(List<ComputedColumnDesc> computedColumns) {
@@ -370,10 +335,11 @@ public class ConvertToComputedColumn implements QueryUtil.IQueryTransformer, IKe
             return Lists.newArrayList();
         }
 
-        Ordering<ComputedColumnDesc> ordering = Ordering.<String> from(new Comparator<String>() {
+        Ordering<ComputedColumnDesc> ordering = Ordering.from(new Comparator<String>() {
             @Override
             public int compare(String o1, String o2) {
-                return Integer.compare(o1.replaceAll("\\s*", "").length(), o2.replaceAll("\\s*", "").length());
+                return Integer.compare(o1.replaceAll("\\s*", StringUtils.EMPTY).length(),
+                        o2.replaceAll("\\s*", StringUtils.EMPTY).length());
             }
         }).reverse().nullsLast().onResultOf(new Function<ComputedColumnDesc, String>() {
             @Nullable
@@ -448,6 +414,67 @@ public class ConvertToComputedColumn implements QueryUtil.IQueryTransformer, IKe
         @Override
         public SqlNode visit(SqlIntervalQualifier intervalQualifier) {
             return null;
+        }
+    }
+
+    private class ComputedColumnReplacer {
+        private QueryAliasMatcher queryAliasMatcher;
+        private List<NDataModel> dataModels;
+        private boolean recursionCompleted;
+        private Pair<String, Integer> choiceForCurrentSubquery;
+        private SqlCall selectOrOrderby;
+
+        ComputedColumnReplacer(QueryAliasMatcher queryAliasMatcher, List<NDataModel> dataModels,
+                boolean recursionCompleted, Pair<String, Integer> choiceForCurrentSubquery, SqlCall selectOrOrderby) {
+            this.queryAliasMatcher = queryAliasMatcher;
+            this.dataModels = dataModels;
+            this.recursionCompleted = recursionCompleted;
+            this.choiceForCurrentSubquery = choiceForCurrentSubquery;
+            this.selectOrOrderby = selectOrOrderby;
+        }
+
+        boolean isRecursionCompleted() {
+            return recursionCompleted;
+        }
+
+        Pair<String, Integer> getChoiceForCurrentSubquery() {
+            return choiceForCurrentSubquery;
+        }
+
+        public void replace(String sql, boolean replaceCcName) {
+            SqlSelect sqlSelect = KapQueryUtil.extractSqlSelect(selectOrOrderby);
+            if (sqlSelect == null) {
+                return;
+            }
+
+            //give each data model a chance to rewrite, choose the model that generates most changes
+            for (NDataModel model : dataModels) {
+                QueryAliasMatchInfo info = queryAliasMatcher.match(model, sqlSelect);
+                if (info == null) {
+                    continue;
+                }
+
+                List<ComputedColumnDesc> computedColumns = getSortedComputedColumnWithModel(model);
+                Pair<String, Integer> ret = replaceComputedColumn(sql, selectOrOrderby, computedColumns, info,
+                        replaceCcName);
+
+                if (replaceCcName && !sql.equals(ret.getFirst())) {
+                    choiceForCurrentSubquery = ret;
+                } else {
+                    if (ret.getSecond() == 0) {
+                        continue;
+                    }
+                    if (choiceForCurrentSubquery == null || ret.getSecond() > choiceForCurrentSubquery.getSecond()) {
+                        choiceForCurrentSubquery = ret;
+                        recursionCompleted = false;
+                    }
+                }
+            }
+        }
+
+        //match longer expressions first
+        private List<ComputedColumnDesc> getSortedComputedColumnWithModel(NDataModel dataModelDesc) {
+            return getCCListSortByLength(dataModelDesc.getComputedColumnDescs());
         }
     }
 }
