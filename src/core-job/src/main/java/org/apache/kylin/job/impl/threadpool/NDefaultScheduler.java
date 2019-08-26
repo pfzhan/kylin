@@ -30,6 +30,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.Semaphore;
 import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -70,6 +71,7 @@ import lombok.val;
 /**
  */
 public class NDefaultScheduler implements Scheduler<AbstractExecutable>, ConnectionStateListener {
+    private static final Logger logger = LoggerFactory.getLogger(NDefaultScheduler.class);
 
     @Getter
     private String project;
@@ -79,12 +81,11 @@ public class NDefaultScheduler implements Scheduler<AbstractExecutable>, Connect
     private ExecutorService jobPool;
     private ExecutableContext context;
     private static ConcurrentHashMap<String, Thread> threadToInterrupt = new ConcurrentHashMap<>();
-    private static final Logger logger = LoggerFactory.getLogger(NDefaultScheduler.class);
     private volatile boolean initialized = false;
     private volatile boolean hasStarted = false;
     private JobEngineConfig jobEngineConfig;
     private ProjectStorageInfoCollector collector;
-    private static volatile double availableMemory = Double.MAX_VALUE;
+    private static volatile Semaphore memoryRemaining = new Semaphore(Integer.MAX_VALUE);
 
     private static final Map<String, NDefaultScheduler> INSTANCE_MAP = Maps.newConcurrentMap();
 
@@ -171,8 +172,8 @@ public class NDefaultScheduler implements Scheduler<AbstractExecutable>, Connect
                     switch (output.getState()) {
                     case READY:
                         nReady++;
-                        if (!isJobPoolFull() && !reachStorageQuota() && !reachMemoryQuota(id)) {
-                            logger.info("fetcher schedule " + id);
+                        if (!isJobPoolFull() && !reachStorageQuota()) {
+                            logger.info("fetcher schedule {} ", id);
 
                             scheduleJob(id);
                         }
@@ -207,34 +208,18 @@ public class NDefaultScheduler implements Scheduler<AbstractExecutable>, Connect
             }
         }
 
-        private boolean reachMemoryQuota(String id) {
-            KylinConfig config = KylinConfig.getInstanceFromEnv();
-            if (!config.getAutoSetConcurrentJob()) {
-                return false;
-            }
-            logger.info("System available memory is {} when schedule job {}", availableMemory, id);
-
-            if (availableMemory < 1024) {
-                logger.info(String.format(
-                        "Reach memory quota limit, [quota = os available memory * kylin.job.max-local-consumption-ratio], no job will be scheduled!!!"));
-                return true;
-            }
-
-            return false;
-        }
-
         private boolean reachStorageQuota() {
             val storageVolumeInfo = collector.getStorageVolumeInfo(KylinConfig.getInstanceFromEnv(), project);
             val totalSize = storageVolumeInfo.getTotalStorageSize();
             val storageQuotaSize = storageVolumeInfo.getStorageQuotaSize();
             if (totalSize < 0) {
-                logger.error(String.format(
-                        "Project '%s' : an exception occurs when getting storage volume info, no job will be scheduled!!! The error info : %s",
-                        project, storageVolumeInfo.getThrowableMap().get(StorageInfoEnum.TOTAL_STORAGE)));
+                logger.error(
+                        "Project '{}' : an exception occurs when getting storage volume info, no job will be scheduled!!! The error info : {}",
+                        project, storageVolumeInfo.getThrowableMap().get(StorageInfoEnum.TOTAL_STORAGE));
                 return true;
             }
             if (totalSize >= storageQuotaSize) {
-                logger.info(String.format("Project '%s' reach storage quota, no job will be scheduled!!!", project));
+                logger.info("Project '{}' reach storage quota, no job will be scheduled!!!", project);
                 return true;
             }
             return false;
@@ -253,26 +238,36 @@ public class NDefaultScheduler implements Scheduler<AbstractExecutable>, Connect
         private void scheduleJob(String id) {
             AbstractExecutable executable = null;
             String jobDesc = null;
+
+            boolean memoryLock = false;
+            int useMemoryCapacity = 0;
             try {
                 val config = KylinConfig.getInstanceFromEnv();
                 val executableManager = NExecutableManager.getInstance(config, project);
                 executable = executableManager.getJob(id);
-                allocateMemoryQuotaIfNeeded(executable.computeStepDriverMemory(), project, id);
-                jobDesc = executable.toString();
-                logger.info("{} prepare to schedule", jobDesc);
-                context.addRunningJob(executable);
-                jobPool.execute(new JobRunner(executable));
-                logger.info("{} scheduled", jobDesc);
+                useMemoryCapacity = executable.computeStepDriverMemory();
+
+                memoryLock = memoryRemaining.tryAcquire(useMemoryCapacity);
+                if (memoryLock) {
+                    jobDesc = executable.toString();
+                    logger.info("{} prepare to schedule", jobDesc);
+                    context.addRunningJob(executable);
+                    jobPool.execute(new JobRunner(executable));
+                    logger.info("{} scheduled", jobDesc);
+                } else {
+                    logger.info("memory is not enough, remaining: {} MB", memoryRemaining.availablePermits());
+                }
             } catch (Exception ex) {
                 if (executable != null) {
                     context.removeRunningJob(executable);
-                    releaseMemoryQuotaIfNeeded(executable.computeStepDriverMemory(), executable.getProject(),
-                            executable.getId());
+                    if (memoryLock) {
+                        // may release twice when exception raise after jobPool execute executable
+                        memoryRemaining.release(useMemoryCapacity);
+                    }
                 }
                 logger.warn(jobDesc + " fail to schedule", ex);
             }
         }
-
     }
 
     private class JobRunner implements Runnable {
@@ -301,8 +296,7 @@ public class NDefaultScheduler implements Scheduler<AbstractExecutable>, Connect
             } finally {
                 threadToInterrupt.remove(executable.getId());
                 context.removeRunningJob(executable);
-                releaseMemoryQuotaIfNeeded(executable.computeStepDriverMemory(), executable.getProject(),
-                        executable.getId());
+                memoryRemaining.release(executable.computeStepDriverMemory());
             }
         }
     }
@@ -316,12 +310,7 @@ public class NDefaultScheduler implements Scheduler<AbstractExecutable>, Connect
     }
 
     public static synchronized NDefaultScheduler getInstance(String project) {
-        NDefaultScheduler ret = INSTANCE_MAP.get(project);
-        if (ret == null) {
-            ret = new NDefaultScheduler(project);
-            INSTANCE_MAP.put(project, ret);
-        }
-        return ret;
+        return INSTANCE_MAP.computeIfAbsent(project, NDefaultScheduler::new);
     }
 
     public void fetchJobsImmediately() {
@@ -387,8 +376,14 @@ public class NDefaultScheduler implements Scheduler<AbstractExecutable>, Connect
         if (config.getAutoSetConcurrentJob()) {
             corePoolSize = Integer.MAX_VALUE;
             val availableMemoryRate = config.getMaxLocalConsumptionRatio();
-            availableMemory = SystemInfoCollector.getAvailableMemoryInfo() * availableMemoryRate;
-            logger.info("Scheduler can use memory {}", availableMemory);
+            synchronized (NDefaultScheduler.class) {
+                if (Integer.MAX_VALUE == memoryRemaining.availablePermits()) {
+                    memoryRemaining = new Semaphore(
+                            (int) (SystemInfoCollector.getAvailableMemoryInfo() * availableMemoryRate));
+                }
+            }
+
+            logger.info("Scheduler memory remaining: {}", memoryRemaining.availablePermits());
         }
         jobPool = new ThreadPoolExecutor(corePoolSize, corePoolSize, Long.MAX_VALUE, TimeUnit.DAYS,
                 new SynchronousQueue<>(), new NamedThreadFactory("RunJobWorker(project:" + project + ")"));
@@ -430,26 +425,8 @@ public class NDefaultScheduler implements Scheduler<AbstractExecutable>, Connect
         return this.hasStarted;
     }
 
-    public static synchronized void allocateMemoryQuotaIfNeeded(double mem, String project, String jobId) {
-        KylinConfig config = KylinConfig.getInstanceFromEnv();
-        if (config.getAutoSetConcurrentJob()) {
-            availableMemory -= mem;
-            logger.info("Project {} job {} allocate memory quota {}, scheduler available memory {}", project, jobId,
-                    mem, availableMemory);
-        }
-    }
-
-    public static synchronized void releaseMemoryQuotaIfNeeded(double mem, String project, String jobId) {
-        KylinConfig config = KylinConfig.getInstanceFromEnv();
-        if (config.getAutoSetConcurrentJob()) {
-            availableMemory += mem;
-            logger.info("Project {} job {} release memory quota {}, scheduler available memory {}", project, jobId, mem,
-                    availableMemory);
-        }
-    }
-
     public static double currentAvailableMem() {
-        return availableMemory;
+        return 1.0 * memoryRemaining.availablePermits();
     }
 
 }
