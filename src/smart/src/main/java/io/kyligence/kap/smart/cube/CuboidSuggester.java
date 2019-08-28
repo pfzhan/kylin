@@ -24,12 +24,16 @@
 
 package io.kyligence.kap.smart.cube;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
+import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.SortedSet;
+import java.util.stream.Collectors;
 
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
@@ -174,10 +178,18 @@ class CuboidSuggester {
 
     private QueryLayoutRelation ingest(OLAPContext ctx, NDataModel model) {
 
-        final List<Integer> dimIds = suggestDimensions(ctx);
-        boolean isTableIndex = ctx.getSQLDigest().isRawQuery;
-        SortedSet<Integer> measureIds = isTableIndex ? Sets.newTreeSet() : suggestMeasures(ctx);
-        IndexEntity indexEntity = createIndexEntity(dimIds, measureIds, isTableIndex);
+        List<Integer> dimIds;
+        SortedSet<Integer> measureIds;
+        IndexEntity indexEntity;
+        if (ctx.getSQLDigest().isRawQuery) {
+            dimIds = suggestTableIndexDimensions(ctx);
+            measureIds = Sets.newTreeSet();
+            indexEntity = createIndexEntity(suggestDescId(true), dimIds, measureIds);
+        } else {
+            dimIds = suggestAggIndexDimensions(ctx);
+            measureIds = suggestMeasures(ctx);
+            indexEntity = createIndexEntity(suggestDescId(false), dimIds, measureIds);
+        }
 
         final IndexIdentifier cuboidIdentifier = indexEntity.createIndexIdentifier();
         if (collector.containsKey(cuboidIdentifier)) {
@@ -223,73 +235,63 @@ class CuboidSuggester {
         return false;
     }
 
-    private List<Integer> suggestDimensions(OLAPContext context) {
-
+    private List<Integer> suggestTableIndexDimensions(OLAPContext context) {
         // 1. determine filter columns and non-filter columns
-        List<TblColRef> filterColumns = Lists.newArrayList(context.filterColumns);
-        Set<TblColRef> allcols = Sets.newHashSet(context.getGroupByColumns());
-        allcols.addAll(context.filterColumns);
-        allcols.addAll(context.getSubqueryJoinParticipants());
-        Set<TblColRef> nonFilterColumnSet = Sets
-                .newHashSet(context.getSQLDigest().isRawQuery ? context.allColumns : allcols);
-        nonFilterColumnSet.removeAll(context.filterColumns);
-        context.aggregations.forEach(functionDesc -> {
-            if (CollectionUtils.isEmpty(functionDesc.getParameters())) {
-                return;
-            }
-
-            final List<TblColRef> aggCols = Lists.newArrayList(functionDesc.getColRefs());
-            if (CollectionUtils.isNotEmpty(aggCols)) {
-                aggCols.removeAll(context.getGroupByColumns());
-                aggCols.removeAll(context.getSubqueryJoinParticipants());
-                nonFilterColumnSet.removeAll(aggCols);
-            }
-        });
+        Set<TblColRef> nonFilterColumnSet = new HashSet<>(context.allColumns);
+        nonFilterColumnSet.addAll(context.getSubqueryJoinParticipants());
 
         // 2. add extra non-filter column if necessary
-        boolean isTableIndex = context.getSQLDigest().isRawQuery;
-        final ImmutableBiMap<Integer, TblColRef> colMap;
-        if (isTableIndex) {
-            colMap = model.getEffectiveColsMap();
-            // no column selected in raw query , select the first column of the model (i.e. select 1 from table1)
-            if (nonFilterColumnSet.isEmpty() && filterColumns.isEmpty()) {
-                Preconditions.checkState(CollectionUtils.isNotEmpty(model.getAllNamedColumns()),
-                        "Cannot suggest any columns in table index.");
-                final NDataModel.NamedColumn namedColumn = model.getAllNamedColumns().iterator().next();
-                nonFilterColumnSet.add(colMap.get(namedColumn.getId()));
-            }
-        } else {
-            colMap = model.getEffectiveDimenionsMap();
+        // no column selected in raw query , select the first column of the model (i.e. select 1 from table1)
+        if (nonFilterColumnSet.isEmpty() && context.filterColumns.isEmpty()) {
+            Preconditions.checkState(CollectionUtils.isNotEmpty(model.getAllNamedColumns()),
+                    "Cannot suggest any columns in table index.");
+            final NDataModel.NamedColumn namedColumn = model.getAllNamedColumns().iterator().next();
+            nonFilterColumnSet.add(model.getEffectiveColsMap().get(namedColumn.getId()));
         }
+        nonFilterColumnSet.removeAll(context.filterColumns);
 
         // 3. sort filter columns and non-filter columns
+        List<TblColRef> sortedDims = sortDimensionColumns(context.filterColumns, nonFilterColumnSet);
+
+        // 4. generate dimension ids
+        return generateDimensionIds(sortedDims, model.getEffectiveColsMap().inverse());
+    }
+
+    private List<Integer> suggestAggIndexDimensions(OLAPContext context) {
+        // 1. determine filter columns and non-filter columns
+        Set<TblColRef> nonFilterColumnSet = new HashSet<>(context.getGroupByColumns());
+        nonFilterColumnSet.addAll(context.getSubqueryJoinParticipants());
+        nonFilterColumnSet.removeAll(context.filterColumns);
+
+        // 2. sort filter columns and non-filter columns
+        List<TblColRef> sortedDims = sortDimensionColumns(context.filterColumns, nonFilterColumnSet);
+
+        // 3. generate dimension ids
+        return generateDimensionIds(sortedDims, model.getEffectiveDimenionsMap().inverse());
+    }
+
+    private List<TblColRef> sortDimensionColumns(Collection<TblColRef> filterColumnsCollection, Collection<TblColRef> nonFilterColumnsCollection) {
+        List<TblColRef> filterColumns = new ArrayList<>(filterColumnsCollection);
+        List<TblColRef> nonFilterColumns = new ArrayList<>(nonFilterColumnsCollection);
         final Comparator<TblColRef> filterColComparator = ComparatorUtils
                 .filterColComparator(smartContext.getKylinConfig(), smartContext.getProject());
         filterColumns.sort(filterColComparator);
-        final List<TblColRef> nonFilterColumns = Lists.newArrayList(nonFilterColumnSet);
         nonFilterColumns.sort(ComparatorUtils.nonFilterColComparator());
 
-        // 4. generate dimension ids
-        final List<Integer> dimensions = Lists.newArrayList();
-        final ImmutableBiMap<TblColRef, Integer> colIdMap = colMap.inverse();
-        filterColumns.forEach(dimension -> {
-            if (colIdMap.get(dimension) == null) {
-                throw new PendingException(
-                        String.format(getMsgTemplateByModelMaintainType(COLUMN_NOT_FOUND_PTN, Type.COLUMN),
-                                model.getAlias(), dimension.getIdentity()));
-            }
-            dimensions.add(colIdMap.get(dimension));
-        });
-        nonFilterColumns.forEach(dimension -> {
-            if (colIdMap.get(dimension) == null) {
-                throw new PendingException(
-                        String.format(getMsgTemplateByModelMaintainType(COLUMN_NOT_FOUND_PTN, Type.COLUMN),
-                                model.getAlias(), dimension.getIdentity()));
-            }
-            dimensions.add(colIdMap.get(dimension));
-        });
+        List<TblColRef> resultSet = new LinkedList<>(filterColumns);
+        resultSet.addAll(nonFilterColumns);
+        return resultSet;
+    }
 
-        return dimensions;
+    private List<Integer> generateDimensionIds(List<TblColRef> dimCols, ImmutableBiMap<TblColRef, Integer> colIdMap) {
+        return dimCols.stream().map(dimCol -> {
+            if (colIdMap.get(dimCol) == null) {
+                throw new PendingException(
+                        String.format(getMsgTemplateByModelMaintainType(COLUMN_NOT_FOUND_PTN, Type.COLUMN),
+                                model.getAlias(), dimCol.getIdentity()));
+            }
+            return colIdMap.get(dimCol);
+        }).collect(Collectors.toList());
     }
 
     private SortedSet<Integer> suggestMeasures(OLAPContext ctx) {
@@ -332,12 +334,12 @@ class CuboidSuggester {
                 : messagePattern;
     }
 
-    private IndexEntity createIndexEntity(List<Integer> dimIds, SortedSet<Integer> measureIds, boolean isTableIndex) {
+    private IndexEntity createIndexEntity(long id, List<Integer> dimIds, SortedSet<Integer> measureIds) {
         Preconditions.checkState(!dimIds.isEmpty() || !measureIds.isEmpty(),
                 "Neither dimension nor measure could be proposed for indexEntity");
 
         IndexEntity indexEntity = new IndexEntity();
-        indexEntity.setId(suggestDescId(isTableIndex));
+        indexEntity.setId(id);
         indexEntity.setDimensions(Lists.newArrayList(dimIds));
         indexEntity.getDimensions().sort(Integer::compareTo);
         indexEntity.setMeasures(Lists.newArrayList(measureIds));

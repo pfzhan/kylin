@@ -91,6 +91,31 @@ public class CuboidSuggesterTest extends NAutoTestOnLearnKylinData {
     }
 
     @Test
+    public void testAggIndexSuggestColOrder() {
+        String[] sqls = new String[] {
+                "SELECT COUNT(KYLIN_ACCOUNT.ACCOUNT_COUNTRY), KYLIN_ACCOUNT.ACCOUNT_SELLER_LEVEL\n" +
+                        "FROM (\n" +
+                        "\tSELECT PRICE, TRANS_ID, SELLER_ID FROM KYLIN_SALES ORDER BY TRANS_ID DESC\n" +
+                        "\t) FACT\n" +
+                        "INNER JOIN KYLIN_ACCOUNT\n" +
+                        "ON KYLIN_ACCOUNT.ACCOUNT_ID = FACT.SELLER_ID\n" +
+                        "GROUP BY KYLIN_ACCOUNT.ACCOUNT_SELLER_LEVEL\n" +
+                        "ORDER BY KYLIN_ACCOUNT.ACCOUNT_SELLER_LEVEL"
+                        };
+        NSmartMaster smartMaster = new NSmartMaster(getTestConfig(), proj, sqls);
+        smartMaster.runAll();
+
+        NSmartContext ctx = smartMaster.getContext();
+        NSmartContext.NModelContext mdCtx = ctx.getModelContexts().get(0);
+        final IndexPlan targetIndexPlan = mdCtx.getTargetIndexPlan();
+        final List<IndexEntity> allCuboids = targetIndexPlan.getAllIndexes();
+        final LayoutEntity layout = allCuboids.get(0).getLayouts().get(0);
+        Assert.assertEquals("unexpected colOrder", "[4, 100000, 100001]", layout.getColOrder().toString());
+        Assert.assertTrue(layout.getUpdateTime() > 0);
+    }
+
+
+    @Test
     public void testComplicateSuggestColOrder() {
         String project = "newten";
         KylinConfig kylinConfig = getTestConfig();
