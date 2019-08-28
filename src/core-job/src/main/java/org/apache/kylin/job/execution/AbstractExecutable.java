@@ -205,7 +205,7 @@ public abstract class AbstractExecutable implements Executable {
 
     protected void onExecuteStart() throws JobStoppedException {
         wrapWithCheckQuit(() -> {
-            updateJobOutput(project, getId(), ExecutableState.RUNNING, null, null, null);
+            updateJobOutput(project, getId(), ExecutableState.RUNNING, null, null, null, null);
         });
     }
 
@@ -213,7 +213,8 @@ public abstract class AbstractExecutable implements Executable {
         Preconditions.checkState(result.succeed());
 
         wrapWithCheckQuit(() -> {
-            updateJobOutput(project, getId(), ExecutableState.SUCCEED, result.getExtraInfo(), result.output(), result.getLogPath(), null);
+            updateJobOutput(project, getId(), ExecutableState.SUCCEED, result.getExtraInfo(), result.output(),
+                    result.getLogPath(), null);
         });
     }
 
@@ -222,7 +223,7 @@ public abstract class AbstractExecutable implements Executable {
 
         wrapWithCheckQuit(() -> {
             updateJobOutput(project, getId(), ExecutableState.ERROR, result.getExtraInfo(), result.getErrorMsg(),
-                    this::onExecuteErrorHook);
+                    result.getLogPath(), this::onExecuteErrorHook);
         });
     }
 
@@ -240,7 +241,7 @@ public abstract class AbstractExecutable implements Executable {
     }
 
     public void updateJobOutput(String project, String jobId, ExecutableState newStatus, Map<String, String> info,
-                                String output, String logPath, Consumer<String> hook) {
+            String output, String logPath, Consumer<String> hook) {
         UnitOfWork.doInTransactionWithRetry(() -> {
             NExecutableManager executableManager = getExecutableManager(project);
             val existedInfo = executableManager.getOutput(jobId).getExtra();

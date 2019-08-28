@@ -446,6 +446,8 @@ public class NExecutableManagerTest extends NLocalFileMetadataTestCase {
 
             FileUtils.writeLines(new File(hdfsPath), text);
 
+            Assert.assertTrue(manager.isHdfsPathExists(hdfsPath));
+
             String sampleLog = manager.getSampleDataFromHDFS(hdfsPath, nLines);
 
             String[] logArray = StringUtils.splitByWholeSeparatorPreserveAllTokens(sampleLog, "\n");

@@ -284,21 +284,21 @@ public class NSparkExecutable extends AbstractExecutable {
         } else {
             patternedLogger = new PatternedLogger(null);
         }
+
+        String sparkDriverLogHdfsPath = null;
         try {
             String cmd = generateSparkCmd(config, hadoopConf, jars, kylinJobJar, appArgs);
+            sparkDriverLogHdfsPath = getConfigValueFromSparkCmd(cmd, "spark.driver.log4j.appender.hdfs.File");
 
             CliCommandExecutor exec = new CliCommandExecutor();
             Pair<Integer, String> result = exec.execute(cmd, patternedLogger, jobId);
 
-            Preconditions.checkState(result.getFirst() == 0);
             Map<String, String> extraInfo = makeExtraInfo(patternedLogger.getInfo());
-
-            String sparkDriverLogHdfsPath = getConfigValueFromSparkCmd(cmd, "spark.driver.log4j.appender.hdfs.File");
             val ret = ExecuteResult.createSucceed(result.getSecond(), sparkDriverLogHdfsPath);
             ret.getExtraInfo().putAll(extraInfo);
             return ret;
         } catch (Exception e) {
-            return ExecuteResult.createError(e);
+            return ExecuteResult.createError(e, sparkDriverLogHdfsPath);
         }
     }
 

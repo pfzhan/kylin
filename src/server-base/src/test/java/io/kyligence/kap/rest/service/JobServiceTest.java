@@ -533,6 +533,7 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
         FileUtils.writeLines(new File(jobOutput.getLogPath()), Arrays.asList("line1", "line2"));
 
         Mockito.when(executableManager.getJobOutputFromHDFS(Mockito.anyString())).thenReturn(jobOutput);
+        Mockito.when(executableManager.isHdfsPathExists(Mockito.anyString())).thenReturn(true);
         String newHdfsLogPath = jobService.getHdfsLogPath("default", "00000_01");
         if (Objects.isNull(newHdfsLogPath)) {
             Assert.fail("hdfs log path is null!");

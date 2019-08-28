@@ -237,7 +237,7 @@ public class NExecutableManager {
                 KylinConfig.getInstanceFromEnv().getJobTmpOutputStorePath(project, jobId));
         assertOutputNotNull(jobOutput, KylinConfig.getInstanceFromEnv().getJobTmpOutputStorePath(project, jobId));
 
-        if (Objects.nonNull(jobOutput.getLogPath())) {
+        if (Objects.nonNull(jobOutput.getLogPath()) && isHdfsPathExists(jobOutput.getLogPath())) {
             jobOutput.setContent(getSampleDataFromHDFS(jobOutput.getLogPath(), 100));
         }
         return parseOutput(jobOutput);
@@ -631,6 +631,27 @@ public class NExecutableManager {
         } finally {
             IOUtils.closeQuietly(din);
         }
+    }
+
+    /**
+     * check the hdfs path exists.
+     * @param hdfsPath
+     * @return
+     */
+    public boolean isHdfsPathExists(String hdfsPath) {
+        if(StringUtils.isBlank(hdfsPath)) {
+            return false;
+        }
+
+        Path path = new Path(hdfsPath);
+        FileSystem fs = HadoopUtil.getFileSystem(path);
+        try {
+            return fs.exists(path);
+        } catch (IOException e) {
+            logger.error("check the hdfs path [{}] exists failed, ", hdfsPath, e);
+        }
+
+        return false;
     }
 
     /**

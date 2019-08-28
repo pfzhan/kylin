@@ -109,8 +109,12 @@ public final class ExecuteResult {
     }
 
     public static ExecuteResult createError(Throwable throwable) {
+        return createError(throwable, null);
+    }
+
+    public static ExecuteResult createError(Throwable throwable, String logPath) {
         Preconditions.checkArgument(throwable != null, "throwable cannot be null");
-        return new ExecuteResult(State.ERROR, null, throwable);
+        return new ExecuteResult(State.ERROR, null, throwable, logPath);
     }
 
     public State state() {

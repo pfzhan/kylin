@@ -431,6 +431,11 @@ public class JobService extends BasicService {
             return null;
         }
 
+        if (Objects.nonNull(jobOutput.getLogPath()) && !executableManager.isHdfsPathExists(jobOutput.getLogPath())) {
+            logger.info("job output hdfs path is not exists, path: {}.", jobOutput.getLogPath());
+            return null;
+        }
+
         return jobOutput.getLogPath();
     }
 
