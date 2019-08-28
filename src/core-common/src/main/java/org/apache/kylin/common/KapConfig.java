@@ -320,6 +320,17 @@ public class KapConfig {
     }
 
     /**
+     * Diagnosis config
+     */
+    public long getDiagPackageTimeout() {
+        return Long.parseLong(config.getOptional(("kap.diag.package.timeout.seconds"), "3600"));
+    }
+
+    public int getExtractionStartTimeDays() {
+        return Integer.parseInt(config.getOptional("kap.diag.extraction.start-time-days", "3"));
+    }
+
+    /**
      * Online service
      */
     public String getKyAccountUsename() {
@@ -344,10 +355,6 @@ public class KapConfig {
 
     public String getKyBotSiteUrl() {
         return config.getOptional("kap.external.kybot.url", "https://kybot.io");
-    }
-
-    public String getKyBotClientPath() {
-        return config.getOptional("kybot.client.path", "kybot");
     }
 
     public String getHttpProxyHost() {

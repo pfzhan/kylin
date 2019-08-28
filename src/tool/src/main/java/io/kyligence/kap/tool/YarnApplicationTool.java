@@ -36,8 +36,11 @@ import org.apache.commons.cli.Options;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.util.CliCommandExecutor;
 import org.apache.kylin.common.util.ExecutableApplication;
 import org.apache.kylin.common.util.OptionsHelper;
+import org.apache.kylin.common.util.Pair;
+import org.apache.kylin.common.util.ShellException;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.ChainedExecutable;
 import org.apache.kylin.job.execution.NExecutableManager;
@@ -119,6 +122,43 @@ public class YarnApplicationTool extends ExecutableApplication {
             applications.add(applicationId);
         }
         return applications;
+    }
+
+    public void extractYarnLogs(File exportDir, String project, String jobId) {
+        try {
+            File yarnLogsDir = new File(exportDir, "yarn_application_log");
+            FileUtils.forceMkdir(yarnLogsDir);
+
+            AbstractExecutable job = NExecutableManager.getInstance(kylinConfig, project).getJob(jobId);
+            if (!(job instanceof ChainedExecutable)) {
+                log.warn("job type is not ChainedExecutable!");
+                return;
+            }
+
+            List<String> applicationIdList = extract((ChainedExecutable) job);
+
+            CliCommandExecutor cmdExecutor = new CliCommandExecutor();
+            String cmd = "yarn logs -applicationId %s";
+            for (String applicationId : applicationIdList) {
+                try {
+                    Pair<Integer, String> result = cmdExecutor.execute(String.format(cmd, applicationId),
+                            null);
+
+                    if (result.getFirst() != 0) {
+                        log.error("Failed to execute the yarn cmd: {}", cmd);
+                    }
+
+                    if (null != result.getSecond()) {
+                        FileUtils.write(new File(yarnLogsDir, applicationId + ".log"), result.getSecond());
+                    }
+                } catch (ShellException se) {
+                    log.error("Failed to extract log by yarn job: {}", applicationId, se);
+                    FileUtils.write(new File(yarnLogsDir, applicationId + ".log"), se.getMessage());
+                }
+            }
+        } catch (Exception e) {
+            log.error("Failed to extract yarn job logs.", e);
+        }
     }
 
 }
