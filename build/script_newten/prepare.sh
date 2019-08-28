@@ -29,7 +29,7 @@ chmod -R 755 build/server
 cp src/server/target/kap-server-${kap_version}.jar build/server/newten.jar
 cp -r src/server/target/jars build/server/
 
-echo "Start to add js & css to war..."
+echo "Start to add js & css..."
 if [ ! -d "kystudio/dist" ]
 then
     echo "Failed to generate js files!"

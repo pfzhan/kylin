@@ -33,7 +33,12 @@ export INFLUXDB_PASSWORD=`$KYLIN_HOME/bin/get-properties.sh kap.influxdb.passwor
 echo "Influxdb Address: $INFLUXDB_ADDRESS"
 echo "Metrics Database: $KE_METRICS_DATABASE"
 
-nohup bin/grafana-server web > /dev/null 2>&1 &
+if [[ -f "${KYLIN_HOME}/conf/grafana.ini" ]]; then
+    nohup bin/grafana-server --config ${KYLIN_HOME}/conf/grafana.ini web > /dev/null 2>&1 &
+else
+    nohup bin/grafana-server web > /dev/null 2>&1 &
+fi
+
 
 echo "Grafana starting..."
 

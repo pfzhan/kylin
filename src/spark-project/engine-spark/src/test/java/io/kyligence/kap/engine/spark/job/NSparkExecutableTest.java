@@ -42,10 +42,11 @@
 
 package io.kyligence.kap.engine.spark.job;
 
-import java.io.File;
-import java.util.Random;
-import java.util.UUID;
-
+import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
+import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.metadata.model.NDataModelManager;
+import lombok.val;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.junit.After;
@@ -55,11 +56,9 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
-import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
-import io.kyligence.kap.metadata.model.NDataModel;
-import io.kyligence.kap.metadata.model.NDataModelManager;
-import lombok.val;
+import java.io.File;
+import java.util.Random;
+import java.util.UUID;
 
 public class NSparkExecutableTest extends NLocalFileMetadataTestCase {
 
@@ -143,7 +142,7 @@ public class NSparkExecutableTest extends NLocalFileMetadataTestCase {
             String cmd = sparkExecutable.generateSparkCmd(kylinConfig, hadoopConf, kylinJobJar, kylinJobJar, appArgs);
             Assert.assertNotNull(cmd);
             Assert.assertTrue(cmd.contains("spark-submit"));
-            Assert.assertTrue(cmd.contains("log4j.configuration=file:/kylin/conf/spark-driver-log4j.properties"));
+            Assert.assertTrue(cmd.contains("log4j.configuration=file:" + kylinConfig.getLogSparkDriverPropertiesFile()));
             Assert.assertTrue(cmd.contains("spark.executor.extraClassPath=job.jar"));
             Assert.assertTrue(cmd.contains("execute_output.json"));
             Assert.assertTrue(cmd.contains("kap.hdfs.working.dir="));

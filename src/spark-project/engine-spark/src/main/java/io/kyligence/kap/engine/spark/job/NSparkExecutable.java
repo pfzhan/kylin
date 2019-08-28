@@ -51,7 +51,6 @@ import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.exceptions.YarnException;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.KylinConfigBase;
 import org.apache.kylin.common.KylinConfigExt;
 import org.apache.kylin.common.StorageURL;
 import org.apache.kylin.common.persistence.RawResource;
@@ -363,12 +362,7 @@ public class NSparkExecutable extends AbstractExecutable {
         String serverPort = config.getServerPort();
         String hdfsWorkingDir = config.getHdfsWorkingDirectory();
 
-        StringBuilder log4jConfiguration = new StringBuilder("file:");
-        log4jConfiguration.append(KylinConfigBase.getKylinHome());
-        if (KylinConfig.getInstanceFromEnv().isDevEnv()) {
-            log4jConfiguration.append("/build");
-        }
-        log4jConfiguration.append("/conf/spark-driver-log4j.properties");
+        String log4jConfiguration = "file:" + config.getLogSparkDriverPropertiesFile();
 
         String sparkDriverExtraJavaOptionsKey = "spark.driver.extraJavaOptions";
         StringBuilder sb = new StringBuilder();

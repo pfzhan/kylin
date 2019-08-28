@@ -35,10 +35,8 @@ function retrieveDependency() {
     fi
 
     #retrive $KYLIN_EXTRA_START_OPTS
-    if [ -f "${KYLIN_HOME}/conf/setenv.sh" ]; then
-        source ${KYLIN_HOME}/conf/setenv.sh
-        export KYLIN_EXTRA_START_OPTS=`echo ${KYLIN_EXTRA_START_OPTS}|sed  "s/-XX:+PrintFlagsFinal//g"`
-    fi
+    source ${KYLIN_HOME}/sbin/setenv.sh
+    export KYLIN_EXTRA_START_OPTS=`echo ${KYLIN_EXTRA_START_OPTS}|sed  "s/-XX:+PrintFlagsFinal//g"`
 }
 
 function checkRestPort() {
@@ -136,7 +134,13 @@ EOL
 function runTool() {
     prepareEnv
 
-    java -Xms${JAVA_VM_XMS} -Xmx${JAVA_VM_XMX} -Dlog4j.configuration=file:${KYLIN_HOME}/conf/kylin-tools-log4j.properties -Dkylin.hadoop.conf.dir=${kylin_hadoop_conf_dir} -Dhdp.version=current -cp "${kylin_hadoop_conf_dir}:${KYLIN_HOME}/lib/ext/*:${KYLIN_HOME}/tool/kap-tool-$version.jar:${SPARK_HOME}/jars/*" $@
+    if [[ -f ${KYLIN_HOME}/conf/kylin-tools-log4j.properties ]]; then
+        kylin_tools_log4j="file:${KYLIN_HOME}/conf/kylin-tools-log4j.properties"
+    else
+        kylin_tools_log4j="file:${KYLIN_HOME}/tool/conf/kylin-tools-log4j.properties"
+    fi
+
+    java -Xms${JAVA_VM_XMS} -Xmx${JAVA_VM_XMX} -Dlog4j.configuration=${kylin_tools_log4j} -Dkylin.hadoop.conf.dir=${kylin_hadoop_conf_dir} -Dhdp.version=current -cp "${kylin_hadoop_conf_dir}:${KYLIN_HOME}/lib/ext/*:${KYLIN_HOME}/tool/kap-tool-$version.jar:${SPARK_HOME}/jars/*" $@
     exit $?
 }
 
@@ -198,7 +202,13 @@ function startKE(){
 
     ${KYLIN_HOME}/bin/check-env.sh "if-not-yet" || exit 1
 
-    java ${KYLIN_EXTRA_START_OPTS} -Dlogging.path=${KYLIN_HOME}/logs -Dspring.profiles.active=prod -Dlogging.config=file:${KYLIN_HOME}/conf/kylin-server-log4j.properties -Dkylin.hadoop.conf.dir=${kylin_hadoop_conf_dir} -Dhdp.version=current -Dloader.path="${kylin_hadoop_conf_dir},${KYLIN_HOME}/lib/ext,${KYLIN_HOME}/server/jars,${SPARK_HOME}/jars" -XX:OnOutOfMemoryError="sh ${KYLIN_HOME}/bin/kylin.sh stop"  -jar newten.jar >> ${KYLIN_HOME}/logs/kylin.out 2>&1 & echo $! > ${KYLIN_HOME}/pid &
+    if [[ -f ${KYLIN_HOME}/conf/kylin-server-log4j.properties ]]; then
+        kylin_server_log4j="file:${KYLIN_HOME}/conf/kylin-server-log4j.properties"
+    else
+        kylin_server_log4j="file:${KYLIN_HOME}/server/conf/kylin-server-log4j.properties"
+    fi
+
+    java ${KYLIN_EXTRA_START_OPTS} -Dlogging.path=${KYLIN_HOME}/logs -Dspring.profiles.active=prod -Dlogging.config=${kylin_server_log4j} -Dkylin.hadoop.conf.dir=${kylin_hadoop_conf_dir} -Dhdp.version=current -Dloader.path="${kylin_hadoop_conf_dir},${KYLIN_HOME}/lib/ext,${KYLIN_HOME}/server/jars,${SPARK_HOME}/jars" -XX:OnOutOfMemoryError="sh ${KYLIN_HOME}/bin/kylin.sh stop"  -jar newten.jar >> ${KYLIN_HOME}/logs/kylin.out 2>&1 & echo $! > ${KYLIN_HOME}/pid &
     PID=`cat ${KYLIN_HOME}/pid`
     CUR_DATE=$(date "+%Y-%m-%d %H:%M:%S")
     echo $CUR_DATE" new KE process pid is "$PID >> ${KYLIN_HOME}/logs/kylin.log

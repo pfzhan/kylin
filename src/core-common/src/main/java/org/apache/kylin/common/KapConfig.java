@@ -60,9 +60,9 @@ public class KapConfig {
     private final KylinConfig config;
 
     private static final String CIRCUIT_BREAKER_THRESHOLD = "30000";
-    
+
     private static final String HALF_MINUTE_MS = "30000";
-    
+
     private static final String FALSE = "false";
 
     public static final String FI_PLATFORM = "FI";
@@ -165,8 +165,8 @@ public class KapConfig {
     }
 
     public boolean getParquetSparkDynamicResourceEnabled() {
-        return Boolean.valueOf(
-                config.getOptional("kap.storage.columnar.spark-conf.spark.dynamicAllocation.enabled", FALSE));
+        return Boolean
+                .valueOf(config.getOptional("kap.storage.columnar.spark-conf.spark.dynamicAllocation.enabled", FALSE));
     }
 
     public int getParquetSparkExecutorInstanceMax() {
@@ -575,7 +575,8 @@ public class KapConfig {
     }
 
     public int getCircuitBreakerThresholdOfSqlPatternToBlacklist() {
-        return Integer.parseInt(config.getOptional("kap.circuit-breaker.threshold.sql-pattern-to-blacklist", CIRCUIT_BREAKER_THRESHOLD));
+        return Integer.parseInt(config.getOptional("kap.circuit-breaker.threshold.sql-pattern-to-blacklist",
+                CIRCUIT_BREAKER_THRESHOLD));
     }
 
     public long getCircuitBreakerThresholdOfQueryResultRowCount() {
@@ -603,22 +604,15 @@ public class KapConfig {
 
     public String sparderFiles() {
         try {
-            File storageFile = FileUtils.findFile(KylinConfigBase.getKylinHome() + "/conf",
-                    "spark-executor-log4j.properties");
-            String path1 = "";
-            if (storageFile != null) {
-                path1 = storageFile.getCanonicalPath();
+            File storageFile = new File(getKylinConfig().getLogSparkExecutorPropertiesFile());
+            String additionalFiles = storageFile.getCanonicalPath();
+            storageFile = new File(getKylinConfig().getLogSparkAppMasterPropertiesFile());
+            if (additionalFiles.isEmpty()) {
+                additionalFiles = storageFile.getCanonicalPath();
+            } else {
+                additionalFiles = additionalFiles + "," + storageFile.getCanonicalPath();
             }
-            storageFile = FileUtils.findFile(KylinConfigBase.getKylinHome() + "/conf",
-                    "spark-appmaster-log4j.properties");
-            if (storageFile != null) {
-                if (path1.isEmpty()) {
-                    path1 = storageFile.getCanonicalPath();
-                } else {
-                    path1 = path1 + "," + storageFile.getCanonicalPath();
-                }
-            }
-            return config.getOptional("kap.query.engine.sparder-additional-files", path1);
+            return config.getOptional("kap.query.engine.sparder-additional-files", additionalFiles);
         } catch (IOException e) {
             return "";
         }

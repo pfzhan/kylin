@@ -49,7 +49,6 @@ public class KylinPropertySourceConfiguration implements EnvironmentPostProcesso
         log.debug("use kylinconfig as spring properties");
         val propertySources = environment.getPropertySources();
         val kylinConfig = KylinConfig.getInstanceFromEnv();
-        kylinConfig.setProperty("kylin.metadata.url.identifier", kylinConfig.getMetadataUrlPrefix());
         val storageURL = kylinConfig.getMetadataUrl();
         if (storageURL.getScheme().equals("jdbc")) {
             JdbcMetadataStore.datasourceParameters(storageURL).forEach((key, value) -> {

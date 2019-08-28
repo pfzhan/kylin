@@ -45,6 +45,8 @@ package org.apache.kylin.common;
 import java.io.File;
 import java.io.IOException;
 import java.io.Serializable;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
@@ -235,6 +237,10 @@ abstract public class KylinConfigBase implements Serializable {
 
     final protected void reloadKylinConfig(Properties properties) {
         this.properties = BCC.check(properties);
+        setProperty("kylin.metadata.url.identifier", getMetadataUrlPrefix());
+        setProperty("kylin.log.spark-executor-properties-file", getLogSparkExecutorPropertiesFile());
+        setProperty("kylin.log.spark-driver-properties-file", getLogSparkDriverPropertiesFile());
+        setProperty("kylin.log.spark-appmaster-properties-file", getLogSparkAppMasterPropertiesFile());
     }
 
     private Map<Integer, String> convertKeyToInteger(Map<String, String> map) {
@@ -1688,5 +1694,29 @@ abstract public class KylinConfigBase implements Serializable {
 
     public String getStorageProvider() {
         return getOptional("kap.storage.provider", "org.apache.kylin.common.storage.DefaultStorageProvider");
+    }
+
+    public String getLogSparkDriverPropertiesFile() {
+        return getLogPropertyFile("spark-driver-log4j.properties");
+    }
+
+    public String getLogSparkExecutorPropertiesFile() {
+        return getLogPropertyFile("spark-executor-log4j.properties");
+    }
+
+    public String getLogSparkAppMasterPropertiesFile() {
+        return getLogPropertyFile("spark-appmaster-log4j.properties");
+    }
+
+    private String getLogPropertyFile(String filename) {
+        String parentFolder;
+        if (isDevEnv()) {
+            parentFolder = Paths.get(getKylinHomeWithoutWarn(), "build", "conf").toString();
+        } else if (Files.exists(Paths.get(getKylinHomeWithoutWarn(), "conf", filename))) {
+            parentFolder = Paths.get(getKylinHomeWithoutWarn(), "conf").toString();
+        } else {
+            parentFolder = Paths.get(getKylinHomeWithoutWarn(), "server", "conf").toString();
+        }
+        return parentFolder + File.separator + filename;
     }
 }

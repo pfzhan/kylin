@@ -47,15 +47,21 @@ cp -rf deploy/grafana/provisioning ${package_name}/grafana/conf/
 cp -rf deploy/grafana/custom.ini ${package_name}/grafana/conf/
 
 # Add conf profiles
-cp -rf conf ${package_name}/conf
+mkdir -p ${package_name}/conf
+mkdir -p ${package_name}/tool/conf
+mkdir -p ${package_name}/server/conf
+for log_conf in `find conf -name "*-log4j.properties"`; do
+    cp ${log_conf} ${package_name}/${log_conf}.template
+    if [[ ${log_conf} == *"tool"* ]]; then
+        cp ${log_conf} ${package_name}/tool/${log_conf}
+    else
+        cp ${log_conf} ${package_name}/server/${log_conf}
+    fi
+done
+cp -rf conf/kylin.properties ${package_name}/conf/kylin.properties
+cp -rf conf/setenv.sh ${package_name}/conf/setenv.sh.template
 cp -rf bin/ ${package_name}/bin/
 cp -rf sbin/ ${package_name}/sbin/
-
-# update symblink, use production profile as default
-ln -sfn profile_min profile
-mv profile ${package_name}/conf/
-ln -sfn profile/kylin.properties kylin.properties
-mv kylin.properties ${package_name}/conf/
 
 rm -rf ext lib tomcat commit_SHA1 VERSION # keep the spark folder on purpose
 
@@ -71,8 +77,7 @@ cp ../src/udf/target/kap-udf-${kap_version}.jar ${package_name}/lib/kylin-udf-${
 
 ## comment all default properties, and append them to the user visible kylin.properties
 ## first 16 lines are license, just skip them
-sed '1,21d' ../src/core-common/src/main/resources/kylin-defaults0.properties | awk '{print "#"$0}' >> ${package_name}/conf/profile_min/kylin.properties
-sed '1,21d' ../src/core-common/src/main/resources/kylin-defaults0.properties | awk '{print "#"$0}' >> ${package_name}/conf/profile_prod/kylin.properties
+sed '1,21d' ../src/core-common/src/main/resources/kylin-defaults0.properties | awk '{print "#"$0}' >> ${package_name}/conf/kylin.properties
 
 find ${package_name} -type d -exec chmod 755 {} \;
 find ${package_name} -type f -exec chmod 644 {} \;

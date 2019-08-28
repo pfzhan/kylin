@@ -23,6 +23,8 @@
  */
 package io.kyligence.kap.rest.config;
 
+import java.net.MalformedURLException;
+
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.cache.ehcache.EhCacheCacheManager;
@@ -31,6 +33,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.env.Environment;
 import org.springframework.core.io.ClassPathResource;
+import org.springframework.core.io.UrlResource;
 import org.springframework.scheduling.TaskScheduler;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
 import org.springframework.web.servlet.config.annotation.ContentNegotiationConfigurer;
@@ -41,7 +44,9 @@ import io.kyligence.kap.rest.cluster.ClusterManager;
 import io.kyligence.kap.rest.cluster.DefaultClusterManager;
 import lombok.Getter;
 import lombok.val;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 @Configuration
 @EnableWebMvc
 public class AppConfig extends WebMvcConfigurerAdapter {
@@ -58,10 +63,12 @@ public class AppConfig extends WebMvcConfigurerAdapter {
     public EhCacheManagerFactoryBean cacheFactoryBean(Environment environment) {
         val factory = new EhCacheManagerFactoryBean();
         factory.setShared(true);
-        if (environment.acceptsProfiles("ldap", "saml")) {
+        try {
+            log.debug("Trying to use {}", cacheConfigLocation);
+            factory.setConfigLocation(new UrlResource(cacheConfigLocation));
+        } catch (MalformedURLException e) {
+            log.warn("Cannot use " + cacheConfigLocation + ", use default ehcache.xml", e);
             factory.setConfigLocation(new ClassPathResource("ehcache.xml"));
-        } else {
-            factory.setConfigLocation(new ClassPathResource("ehcache-test.xml"));
         }
         return factory;
     }
@@ -76,6 +83,9 @@ public class AppConfig extends WebMvcConfigurerAdapter {
     @Value("${server.port:7070}")
     @Getter
     private int port;
+
+    @Value("${kylin.cache.config}")
+    private String cacheConfigLocation;
 
     @Bean
     @ConditionalOnMissingBean(ClusterManager.class)
