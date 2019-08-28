@@ -51,8 +51,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
-import com.clearspring.analytics.util.Lists;
-import io.kyligence.kap.metadata.project.NProjectManager;
 import org.apache.calcite.model.JsonFunction;
 import org.apache.calcite.schema.Schema;
 import org.apache.calcite.schema.SchemaFactory;
@@ -66,7 +64,10 @@ import org.apache.kylin.metadata.model.TableDesc;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+
+import io.kyligence.kap.metadata.project.NProjectManager;
 
 /**
  */

@@ -27,7 +27,6 @@ package io.kyligence.kap.smart.model;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KapConfig;
@@ -35,12 +34,11 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.model.FunctionDesc;
 import org.apache.kylin.metadata.model.JoinsGraph;
 import org.apache.kylin.metadata.model.PartitionDesc;
-import org.apache.kylin.query.relnode.OLAPContext;
+import org.apache.kylin.query.util.QueryUtil;
 
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.metadata.model.ComputedColumnDesc;
@@ -133,39 +131,28 @@ public class NModelMaster {
     }
 
     private void updateContextWithCC(NDataModel dataModel) {
-        Map<String, String> mapNewAndOldQueries = Maps.newHashMap();
-        for (OLAPContext olapContext : modelContext.getModelTree().getOlapContexts()) {
-            String oldQuery = olapContext.sql;
-            if (StringUtils.isEmpty(oldQuery)) {
-                continue;
-            }
-            String newQuery = oldQuery;
-            try {
-                newQuery = new ConvertToComputedColumn().transformImpl(oldQuery, project, dataModel,
-                        dataModel.getRootFactTable().getTableDesc().getDatabase());
-            } catch (Exception e) {
-                log.warn("NModelMaster.updateContextWithCC failed to transform query: {}, {}", oldQuery, e);
-            }
-            mapNewAndOldQueries.put(newQuery, oldQuery);
-        }
-
-        if (mapNewAndOldQueries.isEmpty()) {
+        List<String> massagedQueryList = Lists.newArrayList();
+        List<String> originQueryList = Lists.newArrayList();
+        modelContext.getModelTree().getOlapContexts().stream() //
+                .filter(context -> !StringUtils.isEmpty(context.sql)) //
+                .forEach(context -> {
+                    originQueryList.add(context.sql);
+                    massagedQueryList.add(QueryUtil.massageSql(context.sql, project, 0, 0, "DEFAULT", true));
+                });
+        if (massagedQueryList.isEmpty()) {
             log.warn("Failed to replace cc expression in original sql with proposed computed columns, "
                     + "early termination of the method of updateContextWithCC");
             return;
         }
 
-        List<String> newQueries = Lists.newArrayList(mapNewAndOldQueries.keySet());
-        List<String> oldQueries = newQueries.stream().map(mapNewAndOldQueries::get).collect(Collectors.toList());
-
         // Rebuild modelTrees and find match one to replace original
         try (AbstractQueryRunner extractor = NQueryRunnerFactory.createForModelSuggestion(kylinConfig, project,
-                newQueries.toArray(new String[0]), Lists.newArrayList(dataModel), 1)) {
+                massagedQueryList.toArray(new String[0]), Lists.newArrayList(dataModel), 1)) {
             log.info("Start to rebuild modelTrees after replace cc expression with cc name.");
             extractor.execute();
             List<ModelTree> modelTrees = new GreedyModelTreesBuilder(kylinConfig, project,
                     modelContext.getSmartContext()) //
-                            .build(oldQueries, extractor.getAllOLAPContexts(), null);
+                            .build(originQueryList, extractor.getAllOLAPContexts(), null);
             ModelTree updatedModelTree = null;
             for (ModelTree modelTree : modelTrees) {
                 if (NModelSelectProposer.matchModelTree(dataModel, modelTree)) {

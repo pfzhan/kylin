@@ -16,9 +16,12 @@
 -- limitations under the License.
 --
 
+---TIMESTAMPADD(SQL_TSI_DAY,10,"CALCS"."DATETIME0") will propose computed column
+---by other sql, if it was replaced, this sql cannot pass SqlNode validation.
+---https://github.com/Kyligence/KAP/issues/14560
 
 
-SELECT TIMESTAMPADD(SQL_TSI_DAY,1,"CALCS"."DATETIME0") AS "TEMP_Test__1142591405__0_"
+SELECT TIMESTAMPADD(SQL_TSI_DAY,10,"CALCS"."DATETIME0") AS "TEMP_Test__1142591405__0_"
 
 FROM "TDVT"."CALCS" "CALCS"
 

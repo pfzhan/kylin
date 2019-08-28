@@ -137,7 +137,7 @@ public class NAutoTpchTest extends NAutoTestBase {
     @Test
     @Ignore
     public void testTemp() throws Exception {
-        new TestScenario(CompareLevel.SAME, "temp").execute();
+        new TestScenario(CompareLevel.SAME, "query/temp").execute();
 
     }
 }

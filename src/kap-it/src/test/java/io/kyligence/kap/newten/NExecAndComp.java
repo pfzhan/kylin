@@ -143,8 +143,9 @@ public class NExecAndComp {
     }
 
     public static void execAndCompareQueryList(List<String> queries, String prj, CompareLevel compareLevel,
-                                      String joinType) {
-        List<Pair<String, String>> transformed = queries.stream().map(q -> Pair.newPair("", q)).collect(Collectors.toList());
+            String joinType) {
+        List<Pair<String, String>> transformed = queries.stream().map(q -> Pair.newPair("", q))
+                .collect(Collectors.toList());
         execAndCompareNew(transformed, prj, compareLevel, joinType, null);
     }
 
@@ -231,13 +232,23 @@ public class NExecAndComp {
     }
 
     public static String removeDataBaseInSql(String originSql) {
-        return originSql.replaceAll("edw\\.", "").replaceAll("`edw`\\.", "").replaceAll("\"EDW\"\\.", "")
-                .replaceAll("EDW\\.", "").replaceAll("`EDW`\\.", "").replaceAll("default\\.", "")
-                .replaceAll("`default`\\.", "").replaceAll("DEFAULT\\.", "").replaceAll("\"DEFAULT\"\\.", "")
-                .replaceAll("`DEFAULT`\\.", "").replaceAll("TPCH\\.", "").replaceAll("`TPCH`\\.", "")
-                .replaceAll("tpch\\.", "").replaceAll("`tpch`\\.", "").replaceAll("TDVT\\.", "")
-                .replaceAll("\"TDVT\"\\.", "").replaceAll("`TDVT`\\.", "").replaceAll("\"POPHEALTH_ANALYTICS\"\\.", "")
-                .replaceAll("`POPHEALTH_ANALYTICS`\\.", "").replaceAll("ISSUES\\.", "");
+        return originSql.replaceAll("(?i)edw\\.", "") //
+                .replaceAll("`edw`\\.", "") //
+                .replaceAll("\"EDW\"\\.", "") //
+                .replaceAll("`EDW`\\.", "") //
+                .replaceAll("(?i)default\\.", "") //
+                .replaceAll("`default`\\.", "") //
+                .replaceAll("\"DEFAULT\"\\.", "") //
+                .replaceAll("`DEFAULT`\\.", "") //
+                .replaceAll("(?i)TPCH\\.", "") //
+                .replaceAll("`TPCH`\\.", "") //
+                .replaceAll("`tpch`\\.", "") //
+                .replaceAll("(?i)TDVT\\.", "") //
+                .replaceAll("\"TDVT\"\\.", "") //
+                .replaceAll("`TDVT`\\.", "") //
+                .replaceAll("\"POPHEALTH_ANALYTICS\"\\.", "") //
+                .replaceAll("`POPHEALTH_ANALYTICS`\\.", "") //
+                .replaceAll("(?i)ISSUES\\.", "");
     }
 
     public static List<Pair<String, String>> fetchQueries(String folder) throws IOException {

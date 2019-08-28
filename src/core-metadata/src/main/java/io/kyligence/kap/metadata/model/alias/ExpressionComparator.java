@@ -29,6 +29,7 @@ import java.util.Objects;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlDataTypeSpec;
 import org.apache.calcite.sql.SqlIdentifier;
+import org.apache.calcite.sql.SqlIntervalQualifier;
 import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
@@ -169,7 +170,18 @@ public class ExpressionComparator {
                 return isSqlDataTypeSpecEqual(thisNode, thatNode);
             }
 
+            if (queryNode instanceof SqlIntervalQualifier) {
+                SqlIntervalQualifier thisNode = (SqlIntervalQualifier) queryNode;
+                SqlIntervalQualifier thatNode = (SqlIntervalQualifier) exprNode;
+                return isSqlIntervalQualifierEqual(thisNode, thatNode);
+            }
+
             return false;
+        }
+
+        private boolean isSqlIntervalQualifierEqual(SqlIntervalQualifier querySqlIntervalQualifier,
+                SqlIntervalQualifier exprIntervalQualifier) {
+            return querySqlIntervalQualifier.getUnit().equals(exprIntervalQualifier.getUnit());
         }
 
         protected boolean isSqlDataTypeSpecEqual(SqlDataTypeSpec querySqlDataTypeSpec,

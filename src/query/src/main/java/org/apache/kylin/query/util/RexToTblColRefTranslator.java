@@ -24,12 +24,14 @@
 
 package org.apache.kylin.query.util;
 
+import java.math.BigDecimal;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.calcite.avatica.util.TimeUnit;
 import org.apache.calcite.avatica.util.TimeUnitRange;
 import org.apache.calcite.jdbc.JavaTypeFactoryImpl;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
@@ -38,9 +40,11 @@ import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexSqlConvertletTable;
 import org.apache.calcite.rex.RexSqlStandardConvertletTable;
 import org.apache.calcite.rex.RexToSqlNodeConverter;
 import org.apache.calcite.rex.RexToSqlNodeConverterImpl;
+import org.apache.calcite.sql.SqlDataTypeSpec;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlIntervalQualifier;
 import org.apache.calcite.sql.SqlKind;
@@ -49,9 +53,13 @@ import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.fun.SqlCaseOperator;
+import org.apache.calcite.sql.fun.SqlDatePartFunction;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParserPos;
+import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.sql.validate.SqlUserDefinedFunction;
+import org.apache.commons.lang3.NotImplementedException;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.filter.CompareTupleFilter;
 import org.apache.kylin.metadata.model.TblColRef;
@@ -59,10 +67,15 @@ import org.apache.kylin.metadata.model.tool.CalciteParser;
 import org.apache.kylin.query.relnode.ColumnRowType;
 
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+
+import lombok.val;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * convert rexNode to TblColRef
  */
+@Slf4j
 public class RexToTblColRefTranslator {
 
     private Set<TblColRef> sourceColumnCollector;
@@ -90,10 +103,11 @@ public class RexToTblColRefTranslator {
         return new RexToTblColRefTranslator(sourceColumnCollector, nodeAndTblColMap).doTranslateRexNode(rexNode,
                 inputColumnRowType, fieldName);
     }
-    
+
     public static TblColRef translateRexNode(RexNode rexNode, ColumnRowType inputColumnRowType, String fieldName,
             Map<RexNode, TblColRef> nodeAndTblColMap) {
-        return new RexToTblColRefTranslator(new HashSet<>(), nodeAndTblColMap).doTranslateRexNode(rexNode, inputColumnRowType, fieldName);
+        return new RexToTblColRefTranslator(new HashSet<>(), nodeAndTblColMap).doTranslateRexNode(rexNode,
+                inputColumnRowType, fieldName);
     }
 
     public static TblColRef translateRexNode(RexNode rexNode, ColumnRowType inputColumnRowType) {
@@ -143,6 +157,10 @@ public class RexToTblColRefTranslator {
     }
 
     TblColRef translateRexLiteral(RexLiteral literal) {
+        if (literal.getTypeName() == SqlTypeName.SYMBOL) {
+            final Enum symbol = (Enum) literal.getValue();
+            return TblColRef.newInnerColumn(symbol.name(), TblColRef.InnerDataTypeEnum.LITERAL);
+        }
         if (RexLiteral.isNullLiteral(literal)) {
             return TblColRef.newInnerColumn("null", TblColRef.InnerDataTypeEnum.LITERAL);
         } else {
@@ -151,7 +169,7 @@ public class RexToTblColRefTranslator {
 
     }
 
-    protected TblColRef translateRexCall(RexCall call, ColumnRowType inputColumnRowType, String fieldName) {
+    private TblColRef translateRexCall(RexCall call, ColumnRowType inputColumnRowType, String fieldName) {
         SqlOperator operator = call.getOperator();
         if (operator instanceof SqlUserDefinedFunction && ("QUARTER").equals(operator.getName())) {
             return translateFirstRexInputRef(call, inputColumnRowType, fieldName);
@@ -169,10 +187,10 @@ public class RexToTblColRefTranslator {
                 operator, tblColRefs);
     }
 
-    /*
-    * In RexNode trees, OR and AND have any number of children,
-    * SqlCall requires exactly 2. So, convert to a left-deep binary tree.
-    */
+    /**
+     * In RexNode trees, OR and AND have any number of children,
+     * SqlCall requires exactly 2. So, convert to a left-deep binary tree.
+     */
     static RexNode createLeftCall(RexNode origin) {
         RexNode newRexNode = origin;
         if (origin instanceof RexCall) {
@@ -190,45 +208,10 @@ public class RexToTblColRefTranslator {
         }
         return newRexNode;
     }
-    
+
     private String createInnerColumn(RexCall call) {
         final RexSqlStandardConvertletTable convertletTable = new OLAPRexSqlStandardConvertletTable(call);
-        final RexToSqlNodeConverter rexNodeToSqlConverter = new RexToSqlNodeConverterImpl(convertletTable) {
-            @Override
-            public SqlNode convertLiteral(RexLiteral literal) {
-                SqlNode sqlLiteral = super.convertLiteral(literal);
-                if (sqlLiteral == null) {
-                    if (literal.getTypeName().getName().equals("SYMBOL")) {
-                        // INTERVAL QUALIFIER
-                        if (literal.getValue() instanceof TimeUnitRange) {
-                            TimeUnitRange timeUnitRange = (TimeUnitRange) literal.getValue();
-                            return new SqlIntervalQualifier(timeUnitRange.startUnit, timeUnitRange.endUnit, SqlParserPos.ZERO);
-                        }
-                    }
-                    sqlLiteral = SqlLiteral.createNull(SqlParserPos.ZERO);
-                }
-                return sqlLiteral;
-            }
-
-            @Override
-            public SqlNode convertInputRef(RexInputRef ref) {
-                TblColRef colRef = nodeAndTblColMap.get(ref);
-                String colExpr = colRef.isInnerColumn() && colRef.getParserDescription() != null
-                        ? colRef.getParserDescription()
-                        : colRef.getIdentity();
-                try {
-                    return CalciteParser.getExpNode(colExpr);
-                } catch (Exception e) {
-                    return super.convertInputRef(ref); // i.e. return null
-                }
-            }
-
-            @Override
-            public SqlNode convertCall(RexCall call) {
-                RexCall newCall = (RexCall) createLeftCall(call);
-                return super.convertCall(newCall);
-            }
-        };
+        final RexToSqlNodeConverter rexNodeToSqlConverter = new ExtendedRexToSqlNodeConverter(convertletTable);
 
         try {
             SqlNode sqlCall = rexNodeToSqlConverter.convertCall(call);
@@ -287,6 +270,8 @@ public class RexToTblColRefTranslator {
     }
 
     static class OLAPRexSqlStandardConvertletTable extends RexSqlStandardConvertletTable {
+        final Map<TimeUnit, SqlDatePartFunction> timeUnitFunctions = initTimeUnitFunctionMap();
+
         public OLAPRexSqlStandardConvertletTable(RexCall call) {
             super();
             Set<String> udfs = KylinConfig.getInstanceFromEnv().getUDFs().keySet();
@@ -295,6 +280,27 @@ public class RexToTblColRefTranslator {
                 this.registerEquivOp(operator);
             }
             registerCaseOpNew();
+            registerReinterpret();
+            registerCast();
+            registerDivInt();
+            registerExtract();
+            registerTimestampAdd();
+            registerTimestampDiff();
+        }
+
+        private Map<TimeUnit, SqlDatePartFunction> initTimeUnitFunctionMap() {
+            Map<TimeUnit, SqlDatePartFunction> rst = Maps.newHashMap();
+            rst.putIfAbsent(TimeUnit.YEAR, SqlStdOperatorTable.YEAR);
+            rst.putIfAbsent(TimeUnit.DAY, SqlStdOperatorTable.DAYOFMONTH);
+            rst.putIfAbsent(TimeUnit.MONTH, SqlStdOperatorTable.MONTH);
+            rst.putIfAbsent(TimeUnit.QUARTER, SqlStdOperatorTable.QUARTER);
+            rst.putIfAbsent(TimeUnit.WEEK, SqlStdOperatorTable.WEEK);
+            rst.putIfAbsent(TimeUnit.HOUR, SqlStdOperatorTable.HOUR);
+            rst.putIfAbsent(TimeUnit.SECOND, SqlStdOperatorTable.SECOND);
+            rst.putIfAbsent(TimeUnit.MINUTE, SqlStdOperatorTable.MINUTE);
+            rst.putIfAbsent(TimeUnit.DOW, SqlStdOperatorTable.DAYOFWEEK);
+            rst.putIfAbsent(TimeUnit.DOY, SqlStdOperatorTable.DAYOFYEAR);
+            return rst;
         }
 
         /**
@@ -325,6 +331,167 @@ public class RexToTblColRefTranslator {
             });
         }
 
+        /**
+         *  The RexCall of the expression `timestampdiff(second, time0, time1)` is:
+         *  `CAST(/INT(Reinterpret(-($23, $22)), 1000)):INTEGER`.
+         *  We need to re-translate this RexCall to a SqlCall of TIMESTAMPDIFF.
+         *  <br>
+         *  <br>Following steps used for erasing redundant content of REINTERPRET:
+         *  <br>1. Detect whether the operator is instance of SqlDatetimeSubtractionOperator;
+         *  <br>2. if true, then convert the RexNode call.operands.get(0) to a SqlNode and return.
+         *  <br>3. otherwise try default processing method.
+         *  <br>
+         *  <br>In this example, the translation result of RexNode `Reinterpret(-($23, $22)`
+         *  is `timestampdiff(second, time0, time1)`.
+         */
+        private void registerReinterpret() {
+            registerOp(SqlStdOperatorTable.REINTERPRET, (RexToSqlNodeConverter converter, RexCall call) -> {
+                RexNode node = call.operands.get(0);
+                if (node instanceof RexCall && ((RexCall) node).getOperator() == SqlStdOperatorTable.MINUS_DATE) {
+                    return converter.convertNode(node);
+                }
+                return convertCall(converter, call);
+            });
+        }
+
+        /**
+         * The RexCall of the expression `timestampdiff(second, time0, time1)` is:
+         * `CAST(/INT(Reinterpret(-($23, $22)), 1000)):INTEGER`.
+         * We need to re-translate this RexCall to a SqlCall of TIMESTAMPDIFF.
+         * <br>
+         * <br>Following steps used for erasing redundant content of CAST:
+         * <br>1. Detect whether the sub-RexNode is divide integer operation;
+         * <br>2. if true, then convert the RexCall call.operands.get(0) to a SqlNode and return;
+         * <br>3. otherwise, try to translate normally.
+         * <br>
+         * <br>In this example, the translation result of RexNode `CAST(/INT(Reinterpret(-($23, $22)), 1000)):INTEGER`
+         * is `timestampdiff(second, time0, time1)`.
+         */
+        private void registerCast() {
+            registerOp(SqlStdOperatorTable.CAST, (RexToSqlNodeConverter converter, RexCall call) -> {
+                RexNode node = call.operands.get(0);
+                if (node instanceof RexCall && ((RexCall) node).getOperator() == SqlStdOperatorTable.DIVIDE_INTEGER) {
+                    return converter.convertNode(node);
+                }
+
+                SqlNode[] operands = doConvertExpressionList(converter, call.operands);
+                if (operands == null) {
+                    return null;
+                }
+                List<SqlNode> operandList = Lists.newArrayList(operands);
+                SqlDataTypeSpec typeSpec = SqlTypeUtil.convertTypeToSpec(call.getType());
+                operandList.add(typeSpec);
+                return SqlStdOperatorTable.CAST.createCall(SqlParserPos.ZERO, operandList);
+            });
+        }
+
+        /**
+         * The RexCall of the expression `timestampdiff(second, time0, time1)` is:
+         * `CAST(/INT(Reinterpret(-($23, $22)), 1000)):INTEGER`.
+         * We need to re-translate this RexCall to a SqlCall of TIMESTAMPDIFF.
+         * <br>
+         * <br>Following steps use for erasing redundant content of DIVIDE_INTEGER:
+         * <br>1. Detect whether the first sub-RexNode is reinterpret operation;
+         * <br>2. if true, then convert the RexCall call.operands.get(0) to a SqlNode and return;
+         * <br>3. otherwise, try default processing method.
+         * <br>
+         * <br>In this example, the translation result of RexNode
+         * `/INT(Reinterpret(-($23, $22)), 1000)` is `timestampdiff(second, time0, time1)`.
+         */
+        private void registerDivInt() {
+            registerOp(SqlStdOperatorTable.DIVIDE_INTEGER, (RexToSqlNodeConverter converter, RexCall call) -> {
+                List<RexNode> rexNodes = call.getOperands();
+                if (rexNodes.size() == 2 && rexNodes.get(0).isA(SqlKind.REINTERPRET)) {
+                    return converter.convertCall((RexCall) rexNodes.get(0));
+                }
+                return convertCall(converter, call);
+            });
+        }
+
+        /**
+         * The RexCall of the expression `timestampdiff(second, time0, time1)` is:
+         * `CAST(/INT(Reinterpret(-($23, $22)), 1000)):INTEGER`.
+         * We need to re-translate this RexCall to a SqlCall of TIMESTAMPDIFF.
+         * <br>
+         * <br>Following steps use for translating TIMESTAMPDIFF RexCall to SqlCall:
+         * <br>1. get the first operand from call.getType().getIntervalQualifier().getUnit();
+         * <br>2. get the second operand from call.operands.get(1);
+         * <br>3. get the third operand from call.operands.get(0).
+         * <br>
+         * <br>In this example, the translation result of RexNode
+         * `-($23, $22)` is `timestampdiff(second, time0, time1)`.
+         */
+        private void registerTimestampDiff() {
+            registerOp(SqlStdOperatorTable.MINUS_DATE, (RexToSqlNodeConverter converter, RexCall call) -> {
+                SqlNode[] operands = doConvertExpressionList(converter, call.operands);
+                TimeUnit unit = call.getType().getIntervalQualifier().getUnit();
+                SqlNode first = SqlLiteral.createSymbol(unit, SqlParserPos.ZERO);
+                return SqlStdOperatorTable.TIMESTAMP_DIFF.createCall(SqlParserPos.ZERO, first, operands[1],
+                        operands[0]);
+            });
+        }
+
+        /**
+         * Translate a TIMESTAMPADD RexCall to a TIMESTAMPADD SqlCall.
+         * For example: the RexCall of the expression `timestampadd(minute, 1, time0)` is:
+         * `DATETIME_PLUS($22, 60000)`. We need to re-translate the RexCall to a SqlCall.
+         * <br>
+         * <br>Following steps used for translating TIMESTAMPADD RexCall to SqlCall.
+         * <br> 1. get the first operand from the call.operands.get(1).getType().getIntervalQualifier().getUnit();
+         * <br> 2. get the second operand from the call.operands.get(1).value / TimeUnit.multiplier;
+         * <br> 3. get the third operand from the call.operands.get(0).
+         * <br>
+         * <br>In this example, the translation result of RexCall `DATETIME_PLUS($22, 60000)`
+         * is `timestampadd(minute, 1, time0)`.
+         */
+        private void registerTimestampAdd() {
+            registerOp(SqlStdOperatorTable.DATETIME_PLUS, (RexToSqlNodeConverter converter, RexCall call) -> {
+                RexNode firstOperand = call.operands.get(0);
+                RexNode secondOperand = call.operands.get(1);
+                TimeUnit unit = secondOperand.getType().getIntervalQualifier().getUnit();
+                SqlNode first = SqlLiteral.createSymbol(unit, SqlParserPos.ZERO);
+                SqlNode third = doConvertExpression(converter, firstOperand);
+                BigDecimal multiplier = unit.multiplier;
+                if (secondOperand instanceof RexLiteral) {
+                    BigDecimal interval = new BigDecimal(((RexLiteral) secondOperand).getValue().toString())
+                            .divide(multiplier);
+                    SqlNode second = SqlLiteral.createExactNumeric(interval.toString(), SqlParserPos.ZERO);
+                    return SqlStdOperatorTable.TIMESTAMP_ADD.createCall(SqlParserPos.ZERO, first, second, third);
+                } else if (secondOperand instanceof RexCall) {
+                    RexCall call0 = (RexCall) secondOperand;
+                    if (call0.getOperands().size() == 2) {
+                        RexNode subNode = call0.getOperands().get(1);
+                        SqlNode second = doConvertExpression(converter, subNode);
+                        return SqlStdOperatorTable.TIMESTAMP_ADD.createCall(SqlParserPos.ZERO, first, second, third);
+                    }
+                }
+                throw new NotImplementedException("Not implement convert for RexCall, " + call.toString());
+            });
+        }
+
+        /**
+         * Translate EXTRACT RexCall to corresponding SqlCall. At present, we only handle following
+         * functions:YEAR, QUARTER, MONTH, WEEK, DAY, HOUR, MINUTE, SECOND, DAYOFYEAR, DAYOFWEEK, DAYOFMONTH.
+         *
+         * For example: the RexCall of expression `year(time0)` is: EXTRACT(FLAG(YEAR), $22).
+         * We need to translate this RexCall to a SqlCall to keep consistance with SparkSQL.
+         */
+        private void registerExtract() {
+            registerOp(SqlStdOperatorTable.EXTRACT, (RexToSqlNodeConverter converter, RexCall call) -> {
+                RexLiteral firstOperand = (RexLiteral) call.operands.get(0);
+                val unit = firstOperand.getValue();
+                if (unit instanceof TimeUnitRange && ((TimeUnitRange) unit).endUnit == null) {
+                    RexNode secondOperand = call.operands.get(1);
+                    SqlNode param = doConvertExpression(converter, secondOperand);
+                    TimeUnit startUnit = ((TimeUnitRange) unit).startUnit;
+                    if (timeUnitFunctions.containsKey(startUnit)) {
+                        return timeUnitFunctions.get(startUnit).createCall(SqlParserPos.ZERO, param);
+                    }
+                }
+                return convertCall(converter, call);
+            });
+        }
+
         SqlNode[] doConvertExpressionList(RexToSqlNodeConverter converter, List<RexNode> nodes) {
             final SqlNode[] exprs = new SqlNode[nodes.size()];
             for (int i = 0; i < nodes.size(); i++) {
@@ -335,6 +502,53 @@ public class RexToTblColRefTranslator {
                 }
             }
             return exprs;
+        }
+
+        SqlNode doConvertExpression(RexToSqlNodeConverter converter, RexNode node) {
+            return converter.convertNode(node);
+        }
+    }
+
+    class ExtendedRexToSqlNodeConverter extends RexToSqlNodeConverterImpl {
+
+        ExtendedRexToSqlNodeConverter(RexSqlConvertletTable convertletTable) {
+            super(convertletTable);
+        }
+
+        @Override
+        public SqlNode convertLiteral(RexLiteral literal) {
+            SqlNode sqlLiteral = super.convertLiteral(literal);
+            if (sqlLiteral == null) {
+                if (literal.getTypeName().getName().equals("SYMBOL")) {
+                    // INTERVAL QUALIFIER
+                    if (literal.getValue() instanceof TimeUnitRange) {
+                        TimeUnitRange timeUnitRange = (TimeUnitRange) literal.getValue();
+                        return new SqlIntervalQualifier(timeUnitRange.startUnit, timeUnitRange.endUnit,
+                                SqlParserPos.ZERO);
+                    }
+                }
+                sqlLiteral = SqlLiteral.createNull(SqlParserPos.ZERO);
+            }
+            return sqlLiteral;
+        }
+
+        @Override
+        public SqlNode convertInputRef(RexInputRef ref) {
+            TblColRef colRef = nodeAndTblColMap.get(ref);
+            String colExpr = colRef.isInnerColumn() && colRef.getParserDescription() != null
+                    ? colRef.getParserDescription()
+                    : colRef.getIdentity();
+            try {
+                return CalciteParser.getExpNode(colExpr);
+            } catch (Exception e) {
+                return super.convertInputRef(ref); // i.e. return null
+            }
+        }
+
+        @Override
+        public SqlNode convertCall(RexCall call) {
+            RexCall newCall = (RexCall) createLeftCall(call);
+            return super.convertCall(newCall);
         }
     }
 }

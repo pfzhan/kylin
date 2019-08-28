@@ -47,6 +47,12 @@ public class NAutoTdvtTest extends NAutoTestBase {
         new TestScenario(CompareLevel.SAME, "sql_tdvt/same_level").execute();
     }
 
+    @Test
+    public void testDateFamily() throws Exception {
+        KylinConfig.getInstanceFromEnv().setProperty("kylin.query.calcite.extras-props.conformance", "LENIENT");
+        new TestScenario(CompareLevel.SAME, "sql_tdvt/sql_datefamily").execute();
+    }
+
     @Ignore("for testing")
     @Test
     public void test() throws Exception {

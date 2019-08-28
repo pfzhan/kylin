@@ -145,7 +145,7 @@ public class ComputedColumnDesc implements Serializable {
             simpleParserCheck(ret, aliasSet);
             return ret;
         } catch (Exception e) {
-            logger.error("failed to handle legacy CC '{}'", expr);
+            logger.error("failed to handle legacy CC '{}' for {}", expr, e.getMessage());
             return null;
         }
     }
