@@ -60,6 +60,7 @@ public class SQLRequest implements Serializable {
     protected static final long serialVersionUID = 1L;
 
     private String sql;
+    private String queryId;
 
     private String project;
     private String username = "";

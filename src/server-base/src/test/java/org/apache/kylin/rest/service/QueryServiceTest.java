@@ -57,6 +57,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.StringUtils;
@@ -860,6 +861,20 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         } finally {
             NCircuitBreaker.stop();
         }
+    }
+
+    @Test
+    public void testQueryWithSpecificQueryId() throws Exception {
+        final String sql = "select * from test";
+        final String project = "default";
+        final String queryId = UUID.randomUUID().toString();
+        final SQLRequest request = new SQLRequest();
+        request.setProject(project);
+        request.setSql(sql);
+        request.setQueryId(queryId);
+
+        final SQLResponse response = queryService.doQueryWithCache(request, false);
+        Assert.assertEquals(queryId, response.getQueryId());
     }
 
 }

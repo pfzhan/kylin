@@ -386,6 +386,9 @@ public class QueryService extends BasicService {
             BackdoorToggles.addToggles(sqlRequest.getBackdoorToggles());
 
         final QueryContext queryContext = QueryContext.current();
+        if (StringUtils.isNotEmpty(sqlRequest.getQueryId())) {
+            queryContext.setQueryId(sqlRequest.getQueryId());
+        }
         QueryMetricsContext.start(queryContext.getQueryId(), getDefaultServer());
 
         TraceScope scope = null;
