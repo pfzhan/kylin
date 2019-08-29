@@ -42,11 +42,13 @@
 package org.apache.kylin.rest.util;
 
 import java.util.List;
+import java.util.Set;
 
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
+import org.apache.kylin.metadata.model.TableRef;
 import org.apache.kylin.rest.response.SQLResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -91,6 +93,9 @@ public class QueryCacheSignatureUtil {
         val layoutId = realization.getLayoutId();
         try {
             val dataflow = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project).getDataflow(modelId);
+            if (dataflow.getStatus().toString().equals("OFFLINE")) {
+                return "";
+            }
             List<Long> allLayoutTimes = Lists.newLinkedList();
             for (NDataSegment seg : dataflow.getSegments(SegmentStatusEnum.READY)) {
                 long now = System.currentTimeMillis();
@@ -100,7 +105,14 @@ public class QueryCacheSignatureUtil {
                 }
                 allLayoutTimes.add(seg.getLayout(layoutId).getCreateTime());
             }
-            return Joiner.on("_").join(allLayoutTimes);
+            Set<TableRef> allTableRefs = dataflow.getModel().getAllTableRefs();
+            List<Long> allTableTimes = Lists.newLinkedList();
+            for (TableRef tableRef : allTableRefs) {
+                allTableTimes.add(tableRef.getTableDesc().getLastModified());
+            }
+            String allLayoutTimesSignature = Joiner.on("_").join(allLayoutTimes);
+            String allTableTimesSignature = Joiner.on("_").join(allTableTimes);
+            return Joiner.on(";").join(allLayoutTimesSignature, allTableTimesSignature);
         } catch (NullPointerException e) {
             logger.warn("NPE occurred because metadata changed during query.", e);
             return "";

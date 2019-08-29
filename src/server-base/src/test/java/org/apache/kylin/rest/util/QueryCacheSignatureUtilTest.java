@@ -94,8 +94,9 @@ public class QueryCacheSignatureUtilTest extends NLocalFileMetadataTestCase {
                 new NativeQueryRealization(modelId, layoutId, "TEST"),
                 new NativeQueryRealization(modelId, 10002L, "TEST"));
         response.setNativeRealizations(multiRealizations);
-        Assert.assertEquals("1538323200000_1538323200000,1538323300000_1538323300000",
-                QueryCacheSignatureUtil.createCacheSignature(response, project));
+        String cacheSignature = QueryCacheSignatureUtil.createCacheSignature(response, project);
+        Assert.assertEquals("1538323200000_1538323200000", cacheSignature.split(",")[0].split(";")[0]);
+        Assert.assertEquals("1538323300000_1538323300000", cacheSignature.split(",")[1].split(";")[0]);
     }
 
     @Test
@@ -115,7 +116,7 @@ public class QueryCacheSignatureUtilTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testCreateCacheSignature() {
-        Assert.assertEquals("1538323200000_1538323200000", response.getSignature());
+        Assert.assertEquals("1538323200000_1538323200000", response.getSignature().split(";")[0]);
     }
 
     @Test

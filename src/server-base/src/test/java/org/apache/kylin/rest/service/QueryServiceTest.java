@@ -794,11 +794,50 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(
                 String.valueOf(
                         dataflowManager.getDataflow(modelId).getLastSegment().getLayout(layoutId).getCreateTime()),
-                signature);
+                signature.split(";")[0]);
         response.setSignature(signature);
         dataflowManager.updateDataflow(modelId, copyForWrite -> {
             copyForWrite.setSegments(new Segments<>());
         });
+        Assert.assertTrue(QueryCacheSignatureUtil.checkCacheExpired(response, project));
+    }
+
+    @Test
+    public void testCacheSignatureWhenModelOffline() {
+        val project = "default";
+        val modelId = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
+        val layoutId = 1000001L;
+        val dataflowManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+
+        SQLResponse response = new SQLResponse();
+        response.setNativeRealizations(
+                Lists.newArrayList(new NativeQueryRealization(modelId, layoutId, QueryMetricsContext.AGG_INDEX)));
+        response.setSignature(QueryCacheSignatureUtil.createCacheSignature(response, project));
+
+        Assert.assertFalse(QueryCacheSignatureUtil.checkCacheExpired(response, project));
+        //let model offline
+        dataflowManager.updateDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa", copyForWrite -> {
+            copyForWrite.setStatus(RealizationStatusEnum.OFFLINE);
+        });
+        Assert.assertTrue(QueryCacheSignatureUtil.checkCacheExpired(response, project));
+    }
+
+    @Test
+    public void testCacheSignatureWhenTableModified() {
+        val project = "default";
+        val modelId = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
+        val layoutId = 1000001L;
+        val dataflowManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+
+        SQLResponse response = new SQLResponse();
+        response.setNativeRealizations(
+                Lists.newArrayList(new NativeQueryRealization(modelId, layoutId, QueryMetricsContext.AGG_INDEX)));
+        response.setSignature(QueryCacheSignatureUtil.createCacheSignature(response, project));
+
+        Assert.assertFalse(QueryCacheSignatureUtil.checkCacheExpired(response, project));
+        //modify table
+        dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa").getModel().getRootFactTable().getTableDesc()
+                .setLastModified(1);
         Assert.assertTrue(QueryCacheSignatureUtil.checkCacheExpired(response, project));
     }
 
