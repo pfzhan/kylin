@@ -351,7 +351,34 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
                 .content(JsonUtil.writeValueAsString(request))
                 .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
                 .andExpect(MockMvcResultMatchers.status().isOk());
-        Mockito.verify(nModelController).refreshSegmentsByIds(Mockito.any(SegmentsRequest.class));
+        Mockito.verify(nModelController).refreshOrMergeSegmentsByIds(Mockito.any(SegmentsRequest.class));
+    }
+
+    @Test
+    public void testMergeSegments() throws Exception {
+        SegmentsRequest request = mockSegmentRequest();
+        request.setType(SegmentsRequest.SegmentsRequestType.MERGE);
+        request.setIds(new String[]{"0", "1"});
+        Mockito.doNothing().when(modelService).mergeSegmentsManually("89af4ee2-2cdb-4b07-b39e-4c29856309aa", "default",
+                request.getIds());
+        mockMvc.perform(MockMvcRequestBuilders.put("/api/models/segments").contentType(MediaType.APPLICATION_JSON)
+                .content(JsonUtil.writeValueAsString(request))
+                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .andExpect(MockMvcResultMatchers.status().isOk());
+        Mockito.verify(nModelController).refreshOrMergeSegmentsByIds(Mockito.any(SegmentsRequest.class));
+    }
+
+    @Test
+    public void testMergeSegmentsException() throws Exception {
+        SegmentsRequest request = mockSegmentRequest();
+        request.setType(SegmentsRequest.SegmentsRequestType.MERGE);
+        Mockito.doNothing().when(modelService).mergeSegmentsManually("89af4ee2-2cdb-4b07-b39e-4c29856309aa", "default",
+                request.getIds());
+        mockMvc.perform(MockMvcRequestBuilders.put("/api/models/segments").contentType(MediaType.APPLICATION_JSON)
+                .content(JsonUtil.writeValueAsString(request))
+                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .andExpect(MockMvcResultMatchers.status().isBadRequest());
+        Mockito.verify(nModelController).refreshOrMergeSegmentsByIds(Mockito.any(SegmentsRequest.class));
     }
 
     @Test
@@ -364,7 +391,7 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
                 .content(JsonUtil.writeValueAsString(request))
                 .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
                 .andExpect(MockMvcResultMatchers.status().isBadRequest());
-        Mockito.verify(nModelController).refreshSegmentsByIds(Mockito.any(SegmentsRequest.class));
+        Mockito.verify(nModelController).refreshOrMergeSegmentsByIds(Mockito.any(SegmentsRequest.class));
     }
 
     private SegmentsRequest mockSegmentRequest() {

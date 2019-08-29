@@ -38,6 +38,7 @@ import java.util.stream.Collectors;
 
 import io.kyligence.kap.event.manager.EventDao;
 import io.kyligence.kap.event.model.Event;
+import io.kyligence.kap.event.model.MergeSegmentEvent;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -1065,6 +1066,57 @@ public class ModelService extends BasicService {
                 || !idsToDelete.contains(allSegments.get(i + 1).getId())) {
             throw new BadRequestException("Only consecutive segments in head or tail can be removed!");
         }
+    }
+
+    @Transaction(project = 1)
+    public void mergeSegmentsManually(String modelId, String project, String[] ids) {
+        val dfManager = getDataflowManager(project);
+        val eventManager = getEventManager(project);
+        val indexPlan = getIndexPlan(modelId, project);
+        val df = dfManager.getDataflow(indexPlan.getUuid());
+
+        checkSegmentsLocked(modelId, project, ids);
+
+        long start = Long.MAX_VALUE;
+        long end = -1;
+
+        for (String id : ids) {
+            val segment = df.getSegment(id);
+            if (segment == null) {
+                throw new IllegalArgumentException(
+                        String.format("segment %s not found on model %s", id, df.getModelAlias()));
+            }
+
+            if (!segment.getStatus().equals(SegmentStatusEnum.READY)) {
+                throw new BadRequestException("Cannot merge segments which are not ready");
+            }
+
+            val segmentStart = segment.getTSRange().getStart();
+            val segmentEnd = segment.getTSRange().getEnd();
+
+            if (segmentStart < start)
+                start = segmentStart;
+
+            if (segmentEnd > end)
+                end = segmentEnd;
+        }
+
+        NDataSegment mergeSeg = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
+                .mergeSegments(df, new SegmentRange.TimePartitionedSegmentRange(start, end), true);
+
+        val mergeEvent = new MergeSegmentEvent();
+        mergeEvent.setModelId(modelId);
+        mergeEvent.setSegmentId(mergeSeg.getId());
+        mergeEvent.setJobId(UUID.randomUUID().toString());
+        mergeEvent.setOwner(getUsername());
+        eventManager.post(mergeEvent);
+
+        val postMergeEvent = new PostMergeOrRefreshSegmentEvent();
+        postMergeEvent.setModelId(modelId);
+        postMergeEvent.setSegmentId(mergeSeg.getId());
+        postMergeEvent.setJobId(mergeEvent.getJobId());
+        postMergeEvent.setOwner(getUsername());
+        eventManager.post(postMergeEvent);
     }
 
     @Transaction(project = 1)

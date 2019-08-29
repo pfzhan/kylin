@@ -406,12 +406,20 @@ public class NModelController extends NBasicController {
     @RequestMapping(value = "/segments", method = { RequestMethod.PUT }, produces = {
             "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public EnvelopeResponse refreshSegmentsByIds(@RequestBody SegmentsRequest request) {
+    public EnvelopeResponse refreshOrMergeSegmentsByIds(@RequestBody SegmentsRequest request) {
         checkProjectName(request.getProject());
-        if (ArrayUtils.isEmpty(request.getIds())) {
-            throw new BadRequestException("You should choose at least one segment to refresh!");
+        if (request.getType().equals(SegmentsRequest.SegmentsRequestType.REFRESH)) {
+            if (ArrayUtils.isEmpty(request.getIds())) {
+                throw new BadRequestException("You should choose at least one segment to refresh!");
+            }
+            modelService.refreshSegmentById(request.getModelId(), request.getProject(), request.getIds());
+        } else {
+            if (ArrayUtils.isEmpty(request.getIds()) || request.getIds().length < 2) {
+                throw new BadRequestException("You should choose at least two segments to merge!");
+            }
+            modelService.mergeSegmentsManually(request.getModelId(), request.getProject(), request.getIds());
         }
-        modelService.refreshSegmentById(request.getModelId(), request.getProject(), request.getIds());
+
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, null, "");
     }
 

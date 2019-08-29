@@ -56,6 +56,7 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
 import java.util.TimeZone;
@@ -66,6 +67,7 @@ import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 
 import io.kyligence.kap.event.manager.EventManager;
+import io.kyligence.kap.event.model.MergeSegmentEvent;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
@@ -807,6 +809,114 @@ public class ModelServiceTest extends CSVSourceTestCase {
         thrown.expectMessage("Model 'nmodel_basic_inner' is table oriented, can not remove segments manually!");
         modelService.deleteSegmentById("741ca86a-1f13-46da-a59f-95fb68615e3a", "default",
                 new String[] { dataSegment.getId() });
+    }
+
+    @Test
+    public void testMergeSegment() {
+        val dfId = new String("741ca86a-1f13-46da-a59f-95fb68615e3a");
+        val dfManager = NDataflowManager.getInstance(getTestConfig(), "default");
+        val df = dfManager.getDataflow(dfId);
+        // remove exist segment
+        val update = new NDataflowUpdate(df.getUuid());
+        update.setToRemoveSegs(df.getSegments().toArray(new NDataSegment[0]));
+        dfManager.updateDataflow(update);
+
+        Segments<NDataSegment> segments = new Segments<>();
+
+        // first segment
+        long start = SegmentRange.dateToLong("2010-01-01");
+        long end = SegmentRange.dateToLong("2010-02-01");
+        SegmentRange segmentRange = new SegmentRange.TimePartitionedSegmentRange(start, end);
+        val dataSegment1 = dfManager.appendSegment(df, segmentRange);
+        dataSegment1.setStatus(SegmentStatusEnum.READY);
+        dataSegment1.setSegmentRange(segmentRange);
+        segments.add(dataSegment1);
+
+        // second segment
+        start = SegmentRange.dateToLong("2010-03-01");
+        end = SegmentRange.dateToLong("2010-04-01");
+        segmentRange = new SegmentRange.TimePartitionedSegmentRange(start, end);
+        val dataSegment2 = dfManager.appendSegment(df, segmentRange);
+        dataSegment2.setStatus(SegmentStatusEnum.READY);
+        dataSegment2.setSegmentRange(segmentRange);
+        segments.add(dataSegment2);
+
+        // third segment
+        start = SegmentRange.dateToLong("2010-04-01");
+        end = SegmentRange.dateToLong("2010-05-01");
+        segmentRange = new SegmentRange.TimePartitionedSegmentRange(start, end);
+        val dataSegment3 = dfManager.appendSegment(df, segmentRange);
+        dataSegment3.setStatus(SegmentStatusEnum.READY);
+        dataSegment3.setSegmentRange(segmentRange);
+        segments.add(dataSegment3);
+
+        update.setToUpdateSegs(segments.toArray(new NDataSegment[segments.size()]));
+        dfManager.updateDataflow(update);
+        EventDao eventDao = EventDao.getInstance(KylinConfig.getInstanceFromEnv(), "default");
+        eventDao.deleteAllEvents();
+
+        modelService.mergeSegmentsManually(dfId, "default", new String[] { dataSegment1.getId(), dataSegment2.getId(), dataSegment3.getId() });
+        List<Event> events = eventDao.getEvents();
+        Assert.assertEquals(2, events.size());
+
+        events.sort(Comparator.comparingLong(Event::getSequenceId));
+        val mergedSegment = dfManager.getDataflow(dfId).getSegment(((MergeSegmentEvent) events.get(0)).getSegmentId());
+
+        Assert.assertEquals(SegmentRange.dateToLong("2010-01-01"), mergedSegment.getSegRange().getStart());
+        Assert.assertEquals(SegmentRange.dateToLong("2010-05-01"), mergedSegment.getSegRange().getEnd());
+
+        thrown.expect(BadRequestException.class);
+        thrown.expectMessage(
+                "Can not remove or refresh segment (ID:" + dataSegment2.getId() + "), because the segment is LOCKED.");
+        //refresh exception
+        modelService.mergeSegmentsManually(dfId, "default",
+                new String[] { dataSegment2.getId() });
+
+        // clear segments
+        update.setToRemoveSegs(df.getSegments().toArray(new NDataSegment[0]));
+        dfManager.updateDataflow(update);
+    }
+
+    @Test
+    public void testMergeLoadingSegments() {
+        val dfId = new String("741ca86a-1f13-46da-a59f-95fb68615e3a");
+        val dfManager = NDataflowManager.getInstance(getTestConfig(), "default");
+        val df = dfManager.getDataflow(dfId);
+        // remove exist segment
+        val update = new NDataflowUpdate(df.getUuid());
+        update.setToRemoveSegs(df.getSegments().toArray(new NDataSegment[0]));
+        dfManager.updateDataflow(update);
+
+        Segments<NDataSegment> segments = new Segments<>();
+
+        // first segment
+        long start = SegmentRange.dateToLong("2010-01-01");
+        long end = SegmentRange.dateToLong("2010-02-01");
+        SegmentRange segmentRange = new SegmentRange.TimePartitionedSegmentRange(start, end);
+        val dataSegment1 = dfManager.appendSegment(df, segmentRange);
+        dataSegment1.setStatus(SegmentStatusEnum.NEW);
+        dataSegment1.setSegmentRange(segmentRange);
+        segments.add(dataSegment1);
+
+        // second segment
+        start = SegmentRange.dateToLong("2010-02-01");
+        end = SegmentRange.dateToLong("2010-03-01");
+        segmentRange = new SegmentRange.TimePartitionedSegmentRange(start, end);
+        val dataSegment2 = dfManager.appendSegment(df, segmentRange);
+        dataSegment2.setStatus(SegmentStatusEnum.READY);
+        dataSegment2.setSegmentRange(segmentRange);
+        segments.add(dataSegment2);
+
+        update.setToUpdateSegs(segments.toArray(new NDataSegment[segments.size()]));
+        dfManager.updateDataflow(update);
+
+        thrown.expect(BadRequestException.class);
+        thrown.expectMessage("Cannot merge segments which are not ready");
+        modelService.mergeSegmentsManually(dfId, "default", new String[] { dataSegment1.getId(), dataSegment2.getId() });
+
+        // clear segments
+        update.setToRemoveSegs(df.getSegments().toArray(new NDataSegment[0]));
+        dfManager.updateDataflow(update);
     }
 
     @Test
