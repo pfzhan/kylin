@@ -39,7 +39,7 @@ class KylinBuildEnv(config: KylinConfig) {
 
   val kylinConfig: KylinConfig = config
 
-  var clusterInfoFetcher: ClusterInfoFetcher = ClusterInfoFetcherFactory.create(config)
+  lazy val clusterInfoFetcher: ClusterInfoFetcher = ClusterInfoFetcherFactory.create(config)
 }
 
 object KylinBuildEnv {

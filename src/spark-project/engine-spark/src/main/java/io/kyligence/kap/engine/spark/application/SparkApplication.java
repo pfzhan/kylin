@@ -290,7 +290,10 @@ public abstract class SparkApplication implements Application, IKeep {
             outputConfig.setMetadataUrl(getParam(NBatchConstants.P_OUTPUT_META_URL));
             MetadataStore.createMetadataStore(outputConfig).dump(resourceStore);
         } finally {
-            infos.jobEnd();
+            if (infos != null) {
+                infos.jobEnd();
+            }
+
             if (ss != null && !ss.conf().get("spark.master").startsWith("local")) {
                 JobMetricsUtils.unRegisterListener(ss);
                 ss.stop();

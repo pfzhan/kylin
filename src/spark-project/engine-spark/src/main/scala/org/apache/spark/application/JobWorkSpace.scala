@@ -87,17 +87,23 @@ class JobWorkSpace(eventLoop: KylinJobEventLoop, monitor: JobMonitor, worker: Jo
   }
 
   def success(): Unit = {
-    stop()
-    statusCode = 0
-    latch.countDown()
+    try {
+      stop()
+    } finally {
+      statusCode = 0
+      latch.countDown()
+    }
   }
 
   def fail(jf: JobFailed): Unit = {
-    KylinBuildEnv.get().buildJobInfos.recordJobRetryInfos(RetryInfo(new util.HashMap, jf.throwable))
-    stop()
-    logError(s"Job failed eventually. Reason: ${jf.reason}", jf.throwable)
-    statusCode = 1
-    latch.countDown()
+    try {
+      logError(s"Job failed eventually. Reason: ${jf.reason}", jf.throwable)
+      KylinBuildEnv.get().buildJobInfos.recordJobRetryInfos(RetryInfo(new util.HashMap, jf.throwable))
+      stop()
+    } finally {
+      statusCode = 1
+      latch.countDown()
+    }
   }
 
   def stop(): Unit = {
