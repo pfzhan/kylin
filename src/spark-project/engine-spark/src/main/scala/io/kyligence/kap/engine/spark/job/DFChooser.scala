@@ -82,7 +82,7 @@ class DFChooser(toBuildTree: NSpanningTree,
   def persistFlatTableIfNecessary(): String = {
     var path = ""
     if (flatTableSource != null
-      && flatTableSource.getToBuildCuboids.size() >= config.getPersistFlatTableThreshold) {
+      && flatTableSource.getToBuildCuboids.size() > config.getPersistFlatTableThreshold) {
       val columns = new mutable.ListBuffer[String]
       val df = flatTableSource.getFlattableDS
 

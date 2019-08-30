@@ -101,6 +101,7 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
     public void setup() {
         ss.sparkContext().setLogLevel("ERROR");
         System.setProperty("kylin.job.scheduler.poll-interval-second", "1");
+        System.setProperty("kap.engine.persist-flattable-threshold", "0");
 
         NDefaultScheduler.destroyInstance();
         NDefaultScheduler scheduler = NDefaultScheduler.getInstance(getProject());
@@ -117,6 +118,7 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
         NDefaultScheduler.destroyInstance();
         cleanupTestMetadata();
         System.clearProperty("kylin.job.scheduler.poll-interval-second");
+        System.clearProperty("kap.engine.persist-flattable-threshold");
     }
 
     @Test
