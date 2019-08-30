@@ -30,8 +30,10 @@ import io.kyligence.kap.engine.spark.job.KylinBuildEnv
 import io.kyligence.kap.engine.spark.scheduler._
 import io.kyligence.kap.engine.spark.utils.SparkConfHelper._
 import org.apache.kylin.common.KylinConfig
+import org.apache.spark.launcher.SparkLauncher
 import org.apache.spark.scheduler.KylinJobEventLoop
 import org.apache.spark.sql.common.SparderBaseFunSuite
+import org.apache.spark.sql.internal.SQLConf
 import org.apache.spark.util.Utils
 import org.mockito.Mockito
 import org.scalatest.BeforeAndAfterEach
@@ -257,6 +259,60 @@ class TestJobMonitor extends SparderBaseFunSuite with BeforeAndAfterEach {
       eventLoop.unregisterListener(listener)
     }
   }
+
+
+  test("post JobFailed event when receive class not found event") {
+    withEventLoop { eventLoop =>
+      Mockito.when(config.getSparkEngineMaxRetryTime).thenReturn(1)
+      val env = KylinBuildEnv.getOrCreate(config)
+      new JobMonitor(eventLoop)
+      val countDownLatch = new CountDownLatch(2)
+      val receiveRunJob = new AtomicBoolean(false)
+      val listener = new KylinJobListener {
+        override def onReceive(event: KylinJobEvent): Unit = {
+          if (event.isInstanceOf[RunJob]) {
+            receiveRunJob.getAndSet(true)
+          }
+          countDownLatch.countDown()
+        }
+      }
+      eventLoop.registerListener(listener)
+      eventLoop.post(ResourceLack(new ClassNotFoundException()))
+      // receive UnknownThrowable and JobFailed
+      countDownLatch.await()
+      assert(!receiveRunJob.get())
+      eventLoop.unregisterListener(listener)
+    }
+  }
+
+  test("post JobFailed event when receive oom event") {
+    withEventLoop { eventLoop =>
+      Mockito.when(config.getSparkEngineMaxRetryTime).thenReturn(1)
+      val env = KylinBuildEnv.getOrCreate(config)
+      new JobMonitor(eventLoop)
+      val countDownLatch = new CountDownLatch(2)
+      val receiveRunJob = new AtomicBoolean(false)
+      val listener = new KylinJobListener {
+        override def onReceive(event: KylinJobEvent): Unit = {
+          if (event.isInstanceOf[RunJob]) {
+            receiveRunJob.getAndSet(true)
+          }
+          countDownLatch.countDown()
+        }
+      }
+      eventLoop.registerListener(listener)
+      eventLoop.post(ResourceLack(new OutOfMemoryError(s"Not enough memory to build and broadcast the table to " +
+        s"all worker nodes. As a workaround, you can either disable broadcast by setting " +
+        s"${SQLConf.AUTO_BROADCASTJOIN_THRESHOLD.key} to -1 or increase the spark driver " +
+        s"memory by setting ${SparkLauncher.DRIVER_MEMORY} to a higher value")))
+      // receive UnknownThrowable and JobFailed
+      countDownLatch.await()
+      assert(env.sparkConf.get(SQLConf.AUTO_BROADCASTJOIN_THRESHOLD.key).equals("-1"))
+      assert(receiveRunJob.get())
+      eventLoop.unregisterListener(listener)
+    }
+  }
+
 }
 
 class MockFetcher extends ClusterInfoFetcher {
