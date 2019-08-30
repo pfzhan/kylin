@@ -64,6 +64,7 @@ public class NAutoBuildAndQueryTest extends NAutoTestBase {
                 new TestScenario(CompareLevel.SAME, "query/sql_boolean"), //
                 new TestScenario(CompareLevel.SAME, "query/sql_cache"), //
                 new TestScenario(CompareLevel.SAME, "query/sql_casewhen"), //
+                new TestScenario(CompareLevel.SAME, "query/sql_computedcolumn/sql_ccv2"), //
                 new TestScenario(CompareLevel.SAME, "query/sql_cross_join"), //
                 new TestScenario(CompareLevel.SAME, "query/sql_current_date"), //
                 new TestScenario(CompareLevel.SAME, "query/sql_datetime"), //
