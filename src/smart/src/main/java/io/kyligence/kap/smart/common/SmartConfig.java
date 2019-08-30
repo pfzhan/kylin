@@ -24,7 +24,6 @@
 
 package io.kyligence.kap.smart.common;
 
-import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.dimension.DictionaryDimEnc;
@@ -84,26 +83,6 @@ public class SmartConfig {
 
     public String getMeasureCountDistinctType() {
         return getOptional("measure.count-distinct.return-type", FunctionDesc.FUNC_COUNT_DISTINCT_BIT_MAP);
-    }
-
-    // =========== based on rules to propose computed columns with sqlNode ====================
-
-    public boolean isAdviseComputedColumnOnSqlNodeEnabled() {
-        return getOptional("computed-column.advise-on-sqlnode", true);
-    }
-
-    public String[] getFunctionsAppliedToCCRules() {
-        return getOptionalStringArray("computed-column.propose-functions", new String[] { "TIMESTAMP_DIFF", "TIMESTAMP_ADD" });
-    }
-
-    public String[] getSpecialCCRulesOnSqlNode() {
-        return getOptionalStringArray("computed-column.propose-rules", new String[] { "io.kyligence.kap.smart.model.rule.AggFunctionRule",
-                "io.kyligence.kap.smart.model.rule.CaseWhenRule" });
-    }
-
-    private String[] getOptionalStringArray(String key, String[] values) {
-        String value = getOptional(key, null);
-        return StringUtils.isBlank(value) ? values : new String[0];
     }
 
     public long getComputedColumnOnGroupKeySuggestionMinCardinality() {

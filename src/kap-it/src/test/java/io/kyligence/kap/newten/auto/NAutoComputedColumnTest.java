@@ -27,24 +27,19 @@ package io.kyligence.kap.newten.auto;
 import java.util.Comparator;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.TableExtDesc;
 import org.junit.Assert;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
-import io.kyligence.kap.metadata.cube.model.NDataflowManager;
-import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import io.kyligence.kap.metadata.model.ComputedColumnDesc;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModel.Measure;
 import io.kyligence.kap.metadata.model.NDataModel.NamedColumn;
-import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.query.util.ConvertToComputedColumn;
 import io.kyligence.kap.smart.NSmartContext;
@@ -52,9 +47,7 @@ import io.kyligence.kap.smart.NSmartMaster;
 import io.kyligence.kap.smart.common.AccelerateInfo;
 import io.kyligence.kap.smart.util.ComputedColumnEvalUtil;
 import lombok.val;
-import lombok.extern.slf4j.Slf4j;
 
-@Slf4j
 public class NAutoComputedColumnTest extends NAutoTestBase {
 
     @Test
@@ -428,7 +421,6 @@ public class NAutoComputedColumnTest extends NAutoTestBase {
         Assert.assertEquals("CC_AUTO_1", computedColumnDesc.getColumnName());
         Assert.assertEquals("TEST_KYLIN_FACT.PRICE * TEST_KYLIN_FACT.ITEM_COUNT + 1",
                 computedColumnDesc.getExpression());
-
     }
 
     @Test
@@ -637,92 +629,6 @@ public class NAutoComputedColumnTest extends NAutoTestBase {
         Assert.assertEquals("VARCHAR", computedColumns.get(0).getDatatype());
     }
 
-    /**
-     * test turn on or turn off 'kap.smart.conf.computed-column.advise-on-sqlnode'
-     */
-    @Test
-    public void testProposeCcmputedColumnOnSqlNode() {
-        // turn off
-        kylinConfig.setProperty("kap.smart.conf.computed-column.advise-on-sqlnode", "false");
-        String[] sqls = { "select max(timestampdiff(second, time0, time1)) from tdvt.calcs" };
-        NSmartMaster smartMaster = new NSmartMaster(kylinConfig, getProjectTDVT(), sqls);
-        smartMaster.runAll();
-        List<NSmartContext.NModelContext> modelContextList1 = smartMaster.getContext().getModelContexts();
-        Assert.assertEquals(1, modelContextList1.size());
-        Map<String, AccelerateInfo> accelerationInfoMap1 = smartMaster.getContext().getAccelerateInfoMap();
-        Assert.assertTrue(accelerationInfoMap1.get(sqls[0]).isNotSucceed());
-        Assert.assertEquals("Table not found by UNKNOWN_ALIAS",
-                accelerationInfoMap1.get(sqls[0]).getFailedCause().getMessage());
-
-        // turn on
-        cleanExistingModelsAndIndexPlans(getProjectTDVT());
-        kylinConfig.setProperty("kap.smart.conf.computed-column.advise-on-sqlnode", "true");
-        smartMaster = new NSmartMaster(kylinConfig, getProjectTDVT(), sqls);
-        smartMaster.runAll();
-        accelerationInfoMap1 = smartMaster.getContext().getAccelerateInfoMap();
-        Assert.assertFalse(accelerationInfoMap1.get(sqls[0]).isNotSucceed());
-        modelContextList1 = smartMaster.getContext().getModelContexts();
-        val targetModel1 = modelContextList1.get(0).getTargetModel();
-        val ccList1 = targetModel1.getComputedColumnDescs();
-        val cc10 = ccList1.get(0);
-        Assert.assertEquals("TIMESTAMPDIFF(SECOND, CALCS.TIME0, CALCS.TIME1)", cc10.getExpression());
-        Assert.assertEquals("TIMESTAMPDIFF('SECOND', CALCS.TIME0, CALCS.TIME1)", cc10.getInnerExpression());
-        Assert.assertEquals("BIGINT", cc10.getDatatype());
-    }
-
-    // Unsupported cases at present, see https://github.com/Kyligence/KAP/issues/13866
-    @Ignore
-    @Test
-    public void testCaseWhenRuleWithLenientConformance() {
-        // set conformance to LENIENT, after this method it will set to DEFAULT in @After
-        overwriteSystemProp("kylin.query.calcite.extras-props.conformance", "LENIENT");
-
-        /*
-         * case 1: group by caseWhenClause contains special function
-         */
-        String[] sqls = { "select case when int0 > 0 then timestampdiff(second, time0, time1) else null end "
-                + "from tdvt.calcs group by 1" };
-        NSmartMaster smartMaster = new NSmartMaster(kylinConfig, getProjectTDVT(), sqls);
-        smartMaster.runAll();
-        val modelContextList1 = smartMaster.getContext().getModelContexts();
-        Assert.assertEquals(1, modelContextList1.size());
-        val accelerationInfoMap1 = smartMaster.getContext().getAccelerateInfoMap();
-        Assert.assertFalse(accelerationInfoMap1.get(sqls[0]).isNotSucceed());
-        val targetModel1 = modelContextList1.get(0).getTargetModel();
-        val ccList1 = targetModel1.getComputedColumnDescs();
-        val cc10 = ccList1.get(0);
-        Assert.assertEquals(
-                "CASE WHEN CALCS.INT0 > 0 THEN TIMESTAMPDIFF(SECOND, CALCS.TIME0, CALCS.TIME1) ELSE NULL END",
-                cc10.getExpression());
-        Assert.assertEquals(
-                "CASE WHEN CALCS.INT0 > 0 THEN TIMESTAMPDIFF('SECOND', CALCS.TIME0, CALCS.TIME1) ELSE NULL END",
-                cc10.getInnerExpression());
-        Assert.assertEquals("BIGINT", cc10.getDatatype());
-
-        /*
-         * case 2: same with case 1 group by column index, should use `kylin.query.calcite.extras-props.conformance=LENIENT`
-         */
-        cleanExistingModelsAndIndexPlans(getProject());
-        sqls = new String[] { "select case when int0 > 0 then timestampdiff(second, time0, time1) else null end as col "
-                + "from tdvt.calcs group by col" };
-        smartMaster = new NSmartMaster(kylinConfig, getProject(), sqls);
-        smartMaster.runAll();
-        val modelContextList2 = smartMaster.getContext().getModelContexts();
-        Assert.assertEquals(1, modelContextList2.size());
-        val accelerationInfoMap2 = smartMaster.getContext().getAccelerateInfoMap();
-        Assert.assertFalse(accelerationInfoMap2.get(sqls[0]).isNotSucceed());
-        val targetModel2 = modelContextList2.get(0).getTargetModel();
-        val ccList2 = targetModel2.getComputedColumnDescs();
-        val cc20 = ccList2.get(0);
-        Assert.assertEquals(
-                "CASE WHEN CALCS.INT0 > 0 THEN TIMESTAMPDIFF(SECOND, CALCS.TIME0, CALCS.TIME1) ELSE NULL END",
-                cc20.getExpression());
-        Assert.assertEquals(
-                "CASE WHEN CALCS.INT0 > 0 THEN TIMESTAMPDIFF('SECOND', CALCS.TIME0, CALCS.TIME1) ELSE NULL END",
-                cc20.getInnerExpression());
-        Assert.assertEquals("BIGINT", cc20.getDatatype());
-    }
-
     @Test
     public void testCaseWhenWithMoreThanTwoLogicalOperands() {
         KylinConfig.getInstanceFromEnv().setProperty("kylin.query.calcite.extras-props.conformance", "LENIENT");
@@ -773,10 +679,15 @@ public class NAutoComputedColumnTest extends NAutoTestBase {
 
     @Test
     public void testCCOnInnerGroupCol() {
-        String[] sqls = new String[] { "select is_screen_on, count(1) as num from\n" + "(\n" + "select trans_id,\n"
-                + "  case when TEST_ACCOUNT.ACCOUNT_ID >= 10000336 then 1\n" + "    else 2\n"
-                + "    end as is_screen_on\n" + "from TEST_KYLIN_FACT\n"
-                + "inner JOIN TEST_ACCOUNT ON TEST_KYLIN_FACT.SELLER_ID = TEST_ACCOUNT.ACCOUNT_ID\n" + ")\n"
+        String[] sqls = new String[] { "select is_screen_on, count(1) as num from\n" //
+                + "(\n" //
+                + "select trans_id,\n" //
+                + "  case when TEST_ACCOUNT.ACCOUNT_ID >= 10000336 then 1\n" //
+                + "    else 2\n" //
+                + "    end as is_screen_on\n" //
+                + "from TEST_KYLIN_FACT\n" //
+                + "inner JOIN TEST_ACCOUNT ON TEST_KYLIN_FACT.SELLER_ID = TEST_ACCOUNT.ACCOUNT_ID\n" //
+                + ")\n" //
                 + "group by is_screen_on" };
         NSmartMaster smartMaster = new NSmartMaster(kylinConfig, getProject(), sqls);
         smartMaster.runAll();
@@ -796,13 +707,20 @@ public class NAutoComputedColumnTest extends NAutoTestBase {
 
     @Test
     public void testCCOnInnerFilterCol() {
-        String[] sqls = new String[] {
-                "select count(1) as num from\n" + "(\n" + "select trans_id, cal_dt\n" + "from TEST_KYLIN_FACT\n"
-                        + "inner JOIN TEST_ACCOUNT ON TEST_KYLIN_FACT.SELLER_ID = TEST_ACCOUNT.ACCOUNT_ID\n" + "where\n"
-                        + "  TEST_ACCOUNT.ACCOUNT_ID + TEST_KYLIN_FACT.ITEM_COUNT >= 10000336\n"
-                        + "  and TEST_KYLIN_FACT.ITEM_COUNT > 100\n" + "  or (\n"
-                        + "    TEST_KYLIN_FACT.ITEM_COUNT * 100 <> 100000\n"
-                        + "    and LSTG_FORMAT_NAME in ('FP-GTC', 'ABIN')\n" + "  )\n" + ")\n" + "group by cal_dt" };
+        String[] sqls = new String[] { "select count(1) as num from\n" //
+                + "(\n" //
+                + "select trans_id, cal_dt\n" //
+                + "from TEST_KYLIN_FACT\n" //
+                + "inner JOIN TEST_ACCOUNT ON TEST_KYLIN_FACT.SELLER_ID = TEST_ACCOUNT.ACCOUNT_ID\n" //
+                + "where\n" //
+                + "  TEST_ACCOUNT.ACCOUNT_ID + TEST_KYLIN_FACT.ITEM_COUNT >= 10000336\n" //
+                + "  and TEST_KYLIN_FACT.ITEM_COUNT > 100\n" //
+                + "  or (\n" //
+                + "    TEST_KYLIN_FACT.ITEM_COUNT * 100 <> 100000\n" //
+                + "    and LSTG_FORMAT_NAME in ('FP-GTC', 'ABIN')\n" //
+                + "  )\n" //
+                + ")\n" //
+                + "group by cal_dt" };
         NSmartMaster smartMaster = new NSmartMaster(kylinConfig, getProject(), sqls);
         smartMaster.runAll();
 
@@ -823,8 +741,10 @@ public class NAutoComputedColumnTest extends NAutoTestBase {
 
     @Test
     public void testCCOnInnerFilterColGreaterThanMinCardinality() {
-        String[] sqls = new String[] { "select price, item_count, count(1)\n" + "from test_kylin_fact\n"
-                + "where TRANS_ID + ORDER_ID > 100\n" + "group by price, item_count" };
+        String[] sqls = new String[] { "select price, item_count, count(1)\n" //
+                + "from test_kylin_fact\n" //
+                + "where TRANS_ID + ORDER_ID > 100\n" //
+                + "group by price, item_count" };
 
         mockTableExtDesc("DEFAULT.TEST_KYLIN_FACT", "newten", new String[] { "TRANS_ID", "ORDER_ID" },
                 new int[] { 99, 77 });
@@ -847,8 +767,10 @@ public class NAutoComputedColumnTest extends NAutoTestBase {
 
     @Test
     public void testCCOnInnerFilterColLessThanMinCardinality() {
-        String[] sqls = new String[] { "select price, item_count, count(1)\n" + "from test_kylin_fact\n"
-                + "where TRANS_ID + ORDER_ID > 100\n" + "group by price, item_count" };
+        String[] sqls = new String[] { "select price, item_count, count(1)\n" //
+                + "from test_kylin_fact\n" //
+                + "where TRANS_ID + ORDER_ID > 100\n" //
+                + "group by price, item_count" };
         mockTableExtDesc("DEFAULT.TEST_KYLIN_FACT", "newten", new String[] { "TRANS_ID", "ORDER_ID" },
                 new int[] { 99, 77 });
         overwriteSystemProp("kap.smart.conf.computed-column.suggestion.filter-key.minimum-cardinality", "10000");
@@ -867,8 +789,11 @@ public class NAutoComputedColumnTest extends NAutoTestBase {
 
     @Test
     public void testCCOnInnerGroupColGreaterThanMinCardinality() {
-        String[] sqls = new String[] { "select sum(price), sum(item_count)\n" + "from (\n"
-                + "select TRANS_ID + ORDER_ID as NEW_ID, price, item_count\n" + "from test_kylin_fact\n" + ")\n"
+        String[] sqls = new String[] { "select sum(price), sum(item_count)\n" //
+                + "from (\n" //
+                + "select TRANS_ID + ORDER_ID as NEW_ID, price, item_count\n" //
+                + "from test_kylin_fact\n" //
+                + ")\n" //
                 + "group by NEW_ID" };
 
         mockTableExtDesc("DEFAULT.TEST_KYLIN_FACT", "newten", new String[] { "TRANS_ID", "ORDER_ID" },
@@ -892,8 +817,11 @@ public class NAutoComputedColumnTest extends NAutoTestBase {
 
     @Test
     public void testCCOnInnerGroupColLessThanMinCardinality() {
-        String[] sqls = new String[] { "select sum(price), sum(item_count)\n" + "from (\n"
-                + "select TRANS_ID + ORDER_ID as NEW_ID, price, item_count\n" + "from test_kylin_fact\n" + ")\n"
+        String[] sqls = new String[] { "select sum(price), sum(item_count)\n" //
+                + "from (\n" //
+                + "select TRANS_ID + ORDER_ID as NEW_ID, price, item_count\n" //
+                + "from test_kylin_fact\n" //
+                + ")\n" //
                 + "group by NEW_ID" };
         mockTableExtDesc("DEFAULT.TEST_KYLIN_FACT", "newten", new String[] { "TRANS_ID", "ORDER_ID" },
                 new int[] { 99, 77 });
@@ -939,26 +867,4 @@ public class NAutoComputedColumnTest extends NAutoTestBase {
         return (new ConvertToComputedColumn()).transform(originSql, getProject(), "DEFAULT");
     }
 
-    private void cleanExistingModelsAndIndexPlans(String project) {
-        log.info("clean all existing targetModel in memory.");
-
-        val dataflowMgr = NDataflowManager.getInstance(kylinConfig, project);
-        val dataflows = dataflowMgr.listAllDataflows();
-        dataflows.forEach(dataflow -> dataflowMgr.dropDataflow(dataflow.getId()));
-        Assert.assertTrue(dataflowMgr.listAllDataflows().isEmpty());
-
-        val indexPlanMgr = NIndexPlanManager.getInstance(kylinConfig, project);
-        val indexPlans = indexPlanMgr.listAllIndexPlans();
-        indexPlans.forEach(indexPlanMgr::dropIndexPlan);
-        Assert.assertTrue(indexPlanMgr.listAllIndexPlans().isEmpty());
-
-        val modelMgr = NDataModelManager.getInstance(kylinConfig, project);
-        val existingModelIds = modelMgr.listAllModelIds();
-        existingModelIds.forEach(modelId -> modelMgr.dropModel(modelMgr.getDataModelDesc(modelId)));
-        Assert.assertTrue(modelMgr.listAllModels().isEmpty());
-    }
-
-    private String getProjectTDVT() {
-        return "tdvt";
-    }
 }
