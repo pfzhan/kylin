@@ -29,6 +29,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import org.apache.kylin.metadata.model.FunctionDesc;
@@ -176,11 +178,14 @@ public class NQueryScopeProposer extends NAbstractModelProposer {
         private void injectCandidateMeasure(OLAPContext ctx) {
 
             ctx.aggregations.forEach(agg -> {
+                Set<String> paramNames = Sets.newHashSet();
+                agg.getParameters().forEach(parameterDesc -> {
+                    paramNames.add(parameterDesc.getColRef().getIdentity().replaceAll("\\.", "_"));
+                });
                 if (!candidateMeasures.containsKey(agg)) {
 
                     FunctionDesc fun = copyFunctionDesc(agg);
-                    String name = String.format("%s_%s", fun.getExpression(),
-                            fun.getParameters().get(0).getColRef().getName());
+                    String name = String.format("%s_%s", fun.getExpression(), String.join("_", paramNames));
                     NDataModel.Measure measure = CubeUtils.newMeasure(fun, name, ++maxMeasureId);
                     if (CubeUtils.isValidMeasure(agg)) {
                         candidateMeasures.put(fun, measure);
@@ -188,8 +193,7 @@ public class NQueryScopeProposer extends NAbstractModelProposer {
                         dimensionAsMeasureColumns.addAll(fun.getColRefs());
                     }
                 } else if (candidateMeasures.get(agg).tomb) {
-                    String name = String.format("%s_%s", agg.getExpression(),
-                            agg.getParameters().get(0).getColRef().getName());
+                    String name = String.format("%s_%s", agg.getExpression(), String.join("_", paramNames));
                     Measure measure = CubeUtils.newMeasure(agg, name, ++maxMeasureId);
                     candidateMeasures.put(agg, measure);
                 }
@@ -200,6 +204,9 @@ public class NQueryScopeProposer extends NAbstractModelProposer {
 
             // 1. publish all measures
             List<Measure> measures = Lists.newArrayList(candidateMeasures.values());
+            checkDuplicate(measures, Measure::getName, measure -> {
+                throw new IllegalStateException("Duplicate measure name occurs: " + measure.getName());
+            });
             Preconditions.checkState(
                     Ordering.natural().isOrdered(measures.stream().map(Measure::getId).collect(Collectors.toList())),
                     "Unsorted measures exception in process of proposing model.");
@@ -207,10 +214,23 @@ public class NQueryScopeProposer extends NAbstractModelProposer {
 
             // 2. publish all named columns
             List<NamedColumn> namedColumns = Lists.newArrayList(candidateNamedColumns.values());
+            checkDuplicate(namedColumns, NamedColumn::getName, column -> {
+                throw new IllegalStateException("Duplicate column name occurs: " + column.getName());
+            });
             Preconditions.checkState(
                     Ordering.natural().isOrdered(measures.stream().map(Measure::getId).collect(Collectors.toList())),
                     "Unsorted named columns exception in process of proposing model.");
             dataModel.setAllNamedColumns(namedColumns);
+        }
+
+        private <T> void checkDuplicate(List<T> targets, Function<T, String> nameGetter, Consumer<T> whenError) {
+            Set<String> set = Sets.newHashSet();
+            targets.forEach(target -> {
+                if (set.contains(nameGetter.apply(target))) {
+                    whenError.accept(target);
+                }
+                set.add(nameGetter.apply(target));
+            });
         }
 
         private ParameterDesc copyParameterDesc(ParameterDesc param) {
@@ -244,7 +264,7 @@ public class NQueryScopeProposer extends NAbstractModelProposer {
 
         private NamedColumn transferToNamedColumn(TblColRef colRef, ColumnStatus status) {
             NamedColumn col = new NamedColumn();
-            col.setName(colRef.getName());
+            col.setName(colRef.getIdentity().replaceAll("\\.", "_"));
             col.setAliasDotColumn(colRef.getIdentity());
             col.setId(++maxColId);
             col.setStatus(status);

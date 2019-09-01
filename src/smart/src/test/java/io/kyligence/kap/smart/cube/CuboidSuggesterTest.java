@@ -93,15 +93,11 @@ public class CuboidSuggesterTest extends NAutoTestOnLearnKylinData {
     @Test
     public void testAggIndexSuggestColOrder() {
         String[] sqls = new String[] {
-                "SELECT COUNT(KYLIN_ACCOUNT.ACCOUNT_COUNTRY), KYLIN_ACCOUNT.ACCOUNT_SELLER_LEVEL\n" +
-                        "FROM (\n" +
-                        "\tSELECT PRICE, TRANS_ID, SELLER_ID FROM KYLIN_SALES ORDER BY TRANS_ID DESC\n" +
-                        "\t) FACT\n" +
-                        "INNER JOIN KYLIN_ACCOUNT\n" +
-                        "ON KYLIN_ACCOUNT.ACCOUNT_ID = FACT.SELLER_ID\n" +
-                        "GROUP BY KYLIN_ACCOUNT.ACCOUNT_SELLER_LEVEL\n" +
-                        "ORDER BY KYLIN_ACCOUNT.ACCOUNT_SELLER_LEVEL"
-                        };
+                "SELECT COUNT(KYLIN_ACCOUNT.ACCOUNT_COUNTRY), KYLIN_ACCOUNT.ACCOUNT_SELLER_LEVEL\n" + "FROM (\n"
+                        + "\tSELECT PRICE, TRANS_ID, SELLER_ID FROM KYLIN_SALES ORDER BY TRANS_ID DESC\n" + "\t) FACT\n"
+                        + "INNER JOIN KYLIN_ACCOUNT\n" + "ON KYLIN_ACCOUNT.ACCOUNT_ID = FACT.SELLER_ID\n"
+                        + "GROUP BY KYLIN_ACCOUNT.ACCOUNT_SELLER_LEVEL\n"
+                        + "ORDER BY KYLIN_ACCOUNT.ACCOUNT_SELLER_LEVEL" };
         NSmartMaster smartMaster = new NSmartMaster(getTestConfig(), proj, sqls);
         smartMaster.runAll();
 
@@ -113,7 +109,6 @@ public class CuboidSuggesterTest extends NAutoTestOnLearnKylinData {
         Assert.assertEquals("unexpected colOrder", "[4, 100000, 100001]", layout.getColOrder().toString());
         Assert.assertTrue(layout.getUpdateTime() > 0);
     }
-
 
     @Test
     public void testComplicateSuggestColOrder() {
@@ -226,14 +221,14 @@ public class CuboidSuggesterTest extends NAutoTestOnLearnKylinData {
         final List<NDataModel.Measure> allMeasures = mdCtx.getTargetModel().getAllMeasures();
         Assert.assertEquals(9, allMeasures.size());
         Assert.assertEquals("COUNT_ALL", allMeasures.get(0).getName());
-        Assert.assertEquals("MIN_LSTG_FORMAT_NAME", allMeasures.get(1).getName());
-        Assert.assertEquals("MAX_LSTG_FORMAT_NAME", allMeasures.get(2).getName());
-        Assert.assertEquals("MIN_PART_DT", allMeasures.get(3).getName());
-        Assert.assertEquals("MAX_PART_DT", allMeasures.get(4).getName());
-        Assert.assertEquals("MIN_PRICE", allMeasures.get(5).getName());
-        Assert.assertEquals("MAX_PRICE", allMeasures.get(6).getName());
-        Assert.assertEquals("MIN_SELLER_ID", allMeasures.get(7).getName());
-        Assert.assertEquals("MAX_SELLER_ID", allMeasures.get(8).getName());
+        Assert.assertEquals("MIN_KYLIN_SALES_LSTG_FORMAT_NAME", allMeasures.get(1).getName());
+        Assert.assertEquals("MAX_KYLIN_SALES_LSTG_FORMAT_NAME", allMeasures.get(2).getName());
+        Assert.assertEquals("MIN_KYLIN_SALES_PART_DT", allMeasures.get(3).getName());
+        Assert.assertEquals("MAX_KYLIN_SALES_PART_DT", allMeasures.get(4).getName());
+        Assert.assertEquals("MIN_KYLIN_SALES_PRICE", allMeasures.get(5).getName());
+        Assert.assertEquals("MAX_KYLIN_SALES_PRICE", allMeasures.get(6).getName());
+        Assert.assertEquals("MIN_KYLIN_SALES_SELLER_ID", allMeasures.get(7).getName());
+        Assert.assertEquals("MAX_KYLIN_SALES_SELLER_ID", allMeasures.get(8).getName());
 
         IndexPlan indexPlan = mdCtx.getTargetIndexPlan();
         List<IndexEntity> allCuboids = indexPlan.getIndexes();

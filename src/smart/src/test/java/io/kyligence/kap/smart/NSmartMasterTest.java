@@ -28,6 +28,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -44,6 +45,7 @@ import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.favorite.FavoriteQueryRealization;
 import io.kyligence.kap.metadata.model.MaintainModelType;
 import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.smart.common.AccelerateInfo;
@@ -145,12 +147,13 @@ public class NSmartMasterTest extends NAutoTestOnLearnKylinData {
             Assert.assertEquals(4, allMeasures.size());
 
             final NDataModel.Measure measure3 = allMeasures.get(2);
-            Assert.assertEquals("COUNT_DISTINCT_LSTG_FORMAT_NAME", measure3.getName());
+            Assert.assertEquals("COUNT_DISTINCT_KYLIN_SALES_LSTG_FORMAT_NAME", measure3.getName());
             Assert.assertEquals(1, measure3.getFunction().getParameterCount());
             Assert.assertEquals("bitmap", measure3.getFunction().getReturnDataType().getName());
 
             final NDataModel.Measure measure4 = allMeasures.get(3);
-            Assert.assertEquals("COUNT_DISTINCT_SELLER_ID", measure4.getName());
+            Assert.assertEquals("COUNT_DISTINCT_KYLIN_SALES_SELLER_ID_KYLIN_SALES_LSTG_FORMAT_NAME",
+                    measure4.getName());
             Assert.assertEquals(2, measure4.getFunction().getParameterCount());
             Assert.assertEquals("hllc", measure4.getFunction().getReturnDataType().getName());
         }
@@ -169,12 +172,12 @@ public class NSmartMasterTest extends NAutoTestOnLearnKylinData {
             Assert.assertEquals(3, allMeasures.size());
 
             final NDataModel.Measure measure1 = allMeasures.get(1);
-            Assert.assertEquals("COUNT_DISTINCT_META_CATEG_NAME", measure1.getName());
+            Assert.assertEquals("COUNT_DISTINCT_KYLIN_CATEGORY_GROUPINGS_META_CATEG_NAME", measure1.getName());
             Assert.assertEquals(1, measure1.getFunction().getParameterCount());
             Assert.assertEquals("bitmap", measure1.getFunction().getReturnDataType().getName());
 
             final NDataModel.Measure measure2 = allMeasures.get(2);
-            Assert.assertEquals("MAX_META_CATEG_NAME", measure2.getName());
+            Assert.assertEquals("MAX_KYLIN_CATEGORY_GROUPINGS_META_CATEG_NAME", measure2.getName());
             Assert.assertEquals(1, measure2.getFunction().getParameterCount());
             Assert.assertEquals("varchar", measure2.getFunction().getReturnDataType().getName());
         }
@@ -492,6 +495,71 @@ public class NSmartMasterTest extends NAutoTestOnLearnKylinData {
         String namedColumn2 = namedColumns[7];
         Assert.assertEquals("TEST_ACCOUNT.ACCOUNT_COUNTRY", namedColumn1);
         Assert.assertEquals("TEST_ACCOUNT_1.ACCOUNT_COUNTRY", namedColumn2);
+    }
+
+    @Test
+    public void testProposeShortNameOfDimensionAndMeasureAreSame() {
+        String[] sqls = new String[] {
+                "select test_account.account_id, test_account1.account_id, count(test_account.account_country) \n"
+                        + "from \"DEFAULT\".test_account inner join \"DEFAULT\".test_account1 on test_account.account_id = test_account1.account_id\n"
+                        + "group by test_account.account_id, test_account1.account_id",
+                "select test_account.account_id, count(test_account.account_country), count(test_account1.account_country)\n"
+                        + "from \"DEFAULT\".test_account inner join \"DEFAULT\".test_account1 on test_account.account_id = test_account1.account_id\n"
+                        + "group by test_account.account_id",
+                "select test_kylin_fact.cal_dt, test_cal_dt.cal_dt, count(price) \n"
+                        + "from test_kylin_fact inner join edw.test_cal_dt\n"
+                        + "on test_kylin_fact.cal_dt = test_cal_dt.cal_dt\n"
+                        + "group by test_kylin_fact.cal_dt, test_cal_dt.cal_dt" };
+        NSmartMaster smartMaster = new NSmartMaster(getTestConfig(), "newten", sqls);
+        smartMaster.runAll();
+        Map<String, AccelerateInfo> accelerationInfoMap = smartMaster.getContext().getAccelerateInfoMap();
+        accelerationInfoMap.forEach((key, value) -> {
+            Assert.assertFalse(value.isNotSucceed());
+        });
+        List<NSmartContext.NModelContext> contexts = smartMaster.getContext().getModelContexts();
+        Assert.assertEquals(2, contexts.size());
+        NDataModel model1 = contexts.get(0).getTargetModel();
+        List<NDataModel.NamedColumn> dimensionList1 = model1.getAllNamedColumns().stream()
+                .filter(NDataModel.NamedColumn::isDimension).collect(Collectors.toList());
+        Assert.assertEquals("TEST_CAL_DT_CAL_DT", dimensionList1.get(0).getName());
+        Assert.assertEquals("TEST_CAL_DT.CAL_DT", dimensionList1.get(0).getAliasDotColumn());
+        Assert.assertEquals("TEST_KYLIN_FACT_CAL_DT", dimensionList1.get(1).getName());
+        Assert.assertEquals("TEST_KYLIN_FACT.CAL_DT", dimensionList1.get(1).getAliasDotColumn());
+        List<NDataModel.Measure> measureList1 = model1.getAllMeasures();
+        Assert.assertEquals("COUNT_ALL", measureList1.get(0).getName());
+        Assert.assertEquals("COUNT_TEST_KYLIN_FACT_PRICE", measureList1.get(1).getName());
+
+        NDataModel model2 = contexts.get(1).getTargetModel();
+        List<NDataModel.NamedColumn> dimensionList2 = model2.getAllNamedColumns().stream()
+                .filter(NDataModel.NamedColumn::isDimension).collect(Collectors.toList());
+        Assert.assertEquals("TEST_ACCOUNT_ACCOUNT_ID", dimensionList2.get(0).getName());
+        Assert.assertEquals("TEST_ACCOUNT.ACCOUNT_ID", dimensionList2.get(0).getAliasDotColumn());
+        Assert.assertEquals("TEST_ACCOUNT1_ACCOUNT_ID", dimensionList2.get(1).getName());
+        Assert.assertEquals("TEST_ACCOUNT1.ACCOUNT_ID", dimensionList2.get(1).getAliasDotColumn());
+        List<NDataModel.Measure> measureList2 = model2.getAllMeasures();
+        Assert.assertEquals("COUNT_ALL", measureList2.get(0).getName());
+        Assert.assertEquals("COUNT_TEST_ACCOUNT_ACCOUNT_COUNTRY", measureList2.get(1).getName());
+        Assert.assertEquals("COUNT_TEST_ACCOUNT1_ACCOUNT_COUNTRY", measureList2.get(2).getName());
+
+        // mock error case for dimension
+        dimensionList1.get(0).setName("TEST_KYLIN_FACT_CAL_DT");
+        NDataModelManager.getInstance(getTestConfig(), "newten").updateDataModelDesc(model1);
+        smartMaster = new NSmartMaster(getTestConfig(), "newten", new String[] { sqls[2] });
+        smartMaster.runAll();
+        accelerationInfoMap = smartMaster.getContext().getAccelerateInfoMap();
+        Assert.assertTrue(accelerationInfoMap.get(sqls[2]).isFailed());
+        Assert.assertEquals("Duplicate column name occurs: TEST_KYLIN_FACT_CAL_DT",
+                accelerationInfoMap.get(sqls[2]).getFailedCause().getMessage());
+
+        // mock error case for measure
+        measureList2.get(2).setName("COUNT_TEST_ACCOUNT_ACCOUNT_COUNTRY");
+        NDataModelManager.getInstance(getTestConfig(), "newten").updateDataModelDesc(model2);
+        smartMaster = new NSmartMaster(getTestConfig(), "newten", new String[] { sqls[1] });
+        smartMaster.runAll();
+        accelerationInfoMap = smartMaster.getContext().getAccelerateInfoMap();
+        Assert.assertTrue(accelerationInfoMap.get(sqls[1]).isFailed());
+        Assert.assertEquals("Duplicate measure name occurs: COUNT_TEST_ACCOUNT_ACCOUNT_COUNTRY",
+                accelerationInfoMap.get(sqls[1]).getFailedCause().getMessage());
     }
 
     private NDataModel proposeModel(String[] sqlStatements) {

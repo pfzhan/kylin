@@ -426,7 +426,8 @@ public class NAutoComputedColumnTest extends NAutoTestBase {
         Assert.assertEquals(1, model.getComputedColumnDescs().size());
         ComputedColumnDesc computedColumnDesc = model.getComputedColumnDescs().get(0);
         Assert.assertEquals("CC_AUTO_1", computedColumnDesc.getColumnName());
-        Assert.assertEquals("TEST_KYLIN_FACT.PRICE * TEST_KYLIN_FACT.ITEM_COUNT + 1", computedColumnDesc.getExpression());
+        Assert.assertEquals("TEST_KYLIN_FACT.PRICE * TEST_KYLIN_FACT.ITEM_COUNT + 1",
+                computedColumnDesc.getExpression());
 
     }
 
@@ -465,7 +466,8 @@ public class NAutoComputedColumnTest extends NAutoTestBase {
                 computedColumnDesc.getExpression());
         Assert.assertEquals(1, model.getEffectiveDimensions().size());
         Assert.assertEquals("CAL_DT", model.getEffectiveDimensions().get(0).getName());
-        Assert.assertTrue(model.getAllNamedColumns().stream().map(NamedColumn::getName).anyMatch("CC_AUTO_1"::equals));
+        Assert.assertTrue(model.getAllNamedColumns().stream().map(NamedColumn::getName)
+                .anyMatch("TEST_KYLIN_FACT_CC_AUTO_1"::equals));
         Measure measure = model.getEffectiveMeasures().get(100001);
         Assert.assertNotNull(measure);
         Assert.assertTrue(measure.getFunction().isSum());
@@ -498,7 +500,8 @@ public class NAutoComputedColumnTest extends NAutoTestBase {
                 computedColumnDesc.getExpression());
         Assert.assertEquals(1, model.getEffectiveDimensions().size());
         Assert.assertEquals("CAL_DT", model.getEffectiveDimensions().get(0).getName());
-        Assert.assertTrue(model.getAllNamedColumns().stream().map(NamedColumn::getName).anyMatch("CC_AUTO_1"::equals));
+        Assert.assertTrue(model.getAllNamedColumns().stream().map(NamedColumn::getName)
+                .anyMatch("TEST_KYLIN_FACT_CC_AUTO_1"::equals));
         Measure measure = model.getEffectiveMeasures().get(100001);
         Assert.assertNotNull(measure);
         Assert.assertTrue(measure.getFunction().isSum());
@@ -734,12 +737,12 @@ public class NAutoComputedColumnTest extends NAutoTestBase {
     @Test
     public void testCaseWhenWithMoreThanTwoLogicalOperands() {
         KylinConfig.getInstanceFromEnv().setProperty("kylin.query.calcite.extras-props.conformance", "LENIENT");
-        String[] sqls = {"select case when coalesce(item_count, 0) <=10 and coalesce(price, 0) >= 0.0 then 'a'\n"
+        String[] sqls = { "select case when coalesce(item_count, 0) <=10 and coalesce(price, 0) >= 0.0 then 'a'\n"
                 + "            when coalesce(item_count, 0) < 0 then 'exception' else null end,\n"
                 + "  sum(case when price > 1 and item_count < 10 and seller_id > 20 then 1 else 0 end),\n"
                 + "  sum(case when price > 1 and item_count < 5 or seller_id > 10 then price else 0 end),\n"
                 + "  sum(case when price + item_count + 1 > 5 then 1 else 0 end)\n"
-                + "from test_kylin_fact group by 1"};
+                + "from test_kylin_fact group by 1" };
         NSmartMaster smartMaster = new NSmartMaster(kylinConfig, getProject(), sqls);
         smartMaster.runAll();
         List<NSmartContext.NModelContext> modelContextList1 = smartMaster.getContext().getModelContexts();
@@ -748,9 +751,11 @@ public class NAutoComputedColumnTest extends NAutoTestBase {
         ccList1.sort(Comparator.comparing(ComputedColumnDesc::getExpression));
         Assert.assertEquals(4, ccList1.size());
         val cc10 = ccList1.get(0);
-        Assert.assertEquals("CASE WHEN CASE WHEN TEST_KYLIN_FACT.ITEM_COUNT IS NOT NULL THEN TEST_KYLIN_FACT.ITEM_COUNT <= 10 ELSE CAST(TRUE AS BOOLEAN) END AND CASE WHEN TEST_KYLIN_FACT.PRICE IS NOT NULL THEN TEST_KYLIN_FACT.PRICE >= 0.0 ELSE CAST(TRUE AS BOOLEAN) END THEN 'a' WHEN CASE WHEN TEST_KYLIN_FACT.ITEM_COUNT IS NOT NULL THEN TEST_KYLIN_FACT.ITEM_COUNT < 0 ELSE CAST(FALSE AS BOOLEAN) END THEN 'exception' ELSE NULL END",
+        Assert.assertEquals(
+                "CASE WHEN CASE WHEN TEST_KYLIN_FACT.ITEM_COUNT IS NOT NULL THEN TEST_KYLIN_FACT.ITEM_COUNT <= 10 ELSE CAST(TRUE AS BOOLEAN) END AND CASE WHEN TEST_KYLIN_FACT.PRICE IS NOT NULL THEN TEST_KYLIN_FACT.PRICE >= 0.0 ELSE CAST(TRUE AS BOOLEAN) END THEN 'a' WHEN CASE WHEN TEST_KYLIN_FACT.ITEM_COUNT IS NOT NULL THEN TEST_KYLIN_FACT.ITEM_COUNT < 0 ELSE CAST(FALSE AS BOOLEAN) END THEN 'exception' ELSE NULL END",
                 cc10.getExpression());
-        Assert.assertEquals("CASE WHEN CASE WHEN TEST_KYLIN_FACT.ITEM_COUNT IS NOT NULL THEN TEST_KYLIN_FACT.ITEM_COUNT <= 10 ELSE CAST(TRUE AS BOOLEAN) END AND CASE WHEN TEST_KYLIN_FACT.PRICE IS NOT NULL THEN TEST_KYLIN_FACT.PRICE >= 0.0 ELSE CAST(TRUE AS BOOLEAN) END THEN 'a' WHEN CASE WHEN TEST_KYLIN_FACT.ITEM_COUNT IS NOT NULL THEN TEST_KYLIN_FACT.ITEM_COUNT < 0 ELSE CAST(FALSE AS BOOLEAN) END THEN 'exception' ELSE NULL END",
+        Assert.assertEquals(
+                "CASE WHEN CASE WHEN TEST_KYLIN_FACT.ITEM_COUNT IS NOT NULL THEN TEST_KYLIN_FACT.ITEM_COUNT <= 10 ELSE CAST(TRUE AS BOOLEAN) END AND CASE WHEN TEST_KYLIN_FACT.PRICE IS NOT NULL THEN TEST_KYLIN_FACT.PRICE >= 0.0 ELSE CAST(TRUE AS BOOLEAN) END THEN 'a' WHEN CASE WHEN TEST_KYLIN_FACT.ITEM_COUNT IS NOT NULL THEN TEST_KYLIN_FACT.ITEM_COUNT < 0 ELSE CAST(FALSE AS BOOLEAN) END THEN 'exception' ELSE NULL END",
                 cc10.getInnerExpression());
         Assert.assertEquals("VARCHAR", cc10.getDatatype());
         val cc11 = ccList1.get(1);
@@ -779,18 +784,11 @@ public class NAutoComputedColumnTest extends NAutoTestBase {
 
     @Test
     public void testCCOnInnerGroupCol() {
-        String[] sqls = new String[] {
-                "select is_screen_on, count(1) as num from\n" +
-                        "(\n" +
-                        "select trans_id,\n" +
-                        "  case when TEST_ACCOUNT.ACCOUNT_ID >= 10000336 then 1\n" +
-                        "    else 2\n" +
-                        "    end as is_screen_on\n" +
-                        "from TEST_KYLIN_FACT\n" +
-                        "inner JOIN TEST_ACCOUNT ON TEST_KYLIN_FACT.SELLER_ID = TEST_ACCOUNT.ACCOUNT_ID\n" +
-                        ")\n" +
-                        "group by is_screen_on"
-        };
+        String[] sqls = new String[] { "select is_screen_on, count(1) as num from\n" + "(\n" + "select trans_id,\n"
+                + "  case when TEST_ACCOUNT.ACCOUNT_ID >= 10000336 then 1\n" + "    else 2\n"
+                + "    end as is_screen_on\n" + "from TEST_KYLIN_FACT\n"
+                + "inner JOIN TEST_ACCOUNT ON TEST_KYLIN_FACT.SELLER_ID = TEST_ACCOUNT.ACCOUNT_ID\n" + ")\n"
+                + "group by is_screen_on" };
         NSmartMaster smartMaster = new NSmartMaster(kylinConfig, getProject(), sqls);
         smartMaster.runAll();
 
@@ -810,21 +808,12 @@ public class NAutoComputedColumnTest extends NAutoTestBase {
     @Test
     public void testCCOnInnerFilterCol() {
         String[] sqls = new String[] {
-                "select count(1) as num from\n" +
-                        "(\n" +
-                        "select trans_id, cal_dt\n" +
-                        "from TEST_KYLIN_FACT\n" +
-                        "inner JOIN TEST_ACCOUNT ON TEST_KYLIN_FACT.SELLER_ID = TEST_ACCOUNT.ACCOUNT_ID\n" +
-                        "where\n" +
-                        "  TEST_ACCOUNT.ACCOUNT_ID + TEST_KYLIN_FACT.ITEM_COUNT >= 10000336\n" +
-                        "  and TEST_KYLIN_FACT.ITEM_COUNT > 100\n" +
-                        "  or (\n" +
-                        "    TEST_KYLIN_FACT.ITEM_COUNT * 100 <> 100000\n" +
-                        "    and LSTG_FORMAT_NAME in ('FP-GTC', 'ABIN')\n" +
-                        "  )\n" +
-                        ")\n" +
-                        "group by cal_dt"
-        };
+                "select count(1) as num from\n" + "(\n" + "select trans_id, cal_dt\n" + "from TEST_KYLIN_FACT\n"
+                        + "inner JOIN TEST_ACCOUNT ON TEST_KYLIN_FACT.SELLER_ID = TEST_ACCOUNT.ACCOUNT_ID\n" + "where\n"
+                        + "  TEST_ACCOUNT.ACCOUNT_ID + TEST_KYLIN_FACT.ITEM_COUNT >= 10000336\n"
+                        + "  and TEST_KYLIN_FACT.ITEM_COUNT > 100\n" + "  or (\n"
+                        + "    TEST_KYLIN_FACT.ITEM_COUNT * 100 <> 100000\n"
+                        + "    and LSTG_FORMAT_NAME in ('FP-GTC', 'ABIN')\n" + "  )\n" + ")\n" + "group by cal_dt" };
         NSmartMaster smartMaster = new NSmartMaster(kylinConfig, getProject(), sqls);
         smartMaster.runAll();
 
@@ -838,18 +827,18 @@ public class NAutoComputedColumnTest extends NAutoTestBase {
         Assert.assertEquals(2, computedColumns.size());
         Assert.assertEquals("TEST_ACCOUNT.ACCOUNT_ID + TEST_KYLIN_FACT.ITEM_COUNT",
                 computedColumns.get(0).getInnerExpression().trim());
-        Assert.assertEquals("TEST_KYLIN_FACT.ITEM_COUNT * 100",
-                computedColumns.get(1).getInnerExpression().trim());
+        Assert.assertEquals("TEST_KYLIN_FACT.ITEM_COUNT * 100", computedColumns.get(1).getInnerExpression().trim());
         Assert.assertEquals("BIGINT", computedColumns.get(0).getDatatype());
         Assert.assertEquals("INTEGER", computedColumns.get(1).getDatatype());
     }
 
     @Test
     public void testCCOnInnerFilterColGreaterThanMinCardinality() {
-        String[] sqls = new String[]{"select price, item_count, count(1)\n" + "from test_kylin_fact\n"
-                + "where TRANS_ID + ORDER_ID > 100\n" + "group by price, item_count"};
+        String[] sqls = new String[] { "select price, item_count, count(1)\n" + "from test_kylin_fact\n"
+                + "where TRANS_ID + ORDER_ID > 100\n" + "group by price, item_count" };
 
-        mockTableExtDesc("DEFAULT.TEST_KYLIN_FACT", "newten", new String[]{"TRANS_ID", "ORDER_ID"}, new int[]{99, 77});
+        mockTableExtDesc("DEFAULT.TEST_KYLIN_FACT", "newten", new String[] { "TRANS_ID", "ORDER_ID" },
+                new int[] { 99, 77 });
         overwriteSystemProp("kap.smart.conf.computed-column.suggestion.filter-key.minimum-cardinality", "5000");
         NSmartMaster smartMaster = new NSmartMaster(kylinConfig, getProject(), sqls);
         smartMaster.runAll();
@@ -869,9 +858,10 @@ public class NAutoComputedColumnTest extends NAutoTestBase {
 
     @Test
     public void testCCOnInnerFilterColLessThanMinCardinality() {
-        String[] sqls = new String[]{"select price, item_count, count(1)\n" + "from test_kylin_fact\n"
-                + "where TRANS_ID + ORDER_ID > 100\n" + "group by price, item_count"};
-        mockTableExtDesc("DEFAULT.TEST_KYLIN_FACT", "newten", new String[]{"TRANS_ID", "ORDER_ID"}, new int[]{99, 77});
+        String[] sqls = new String[] { "select price, item_count, count(1)\n" + "from test_kylin_fact\n"
+                + "where TRANS_ID + ORDER_ID > 100\n" + "group by price, item_count" };
+        mockTableExtDesc("DEFAULT.TEST_KYLIN_FACT", "newten", new String[] { "TRANS_ID", "ORDER_ID" },
+                new int[] { 99, 77 });
         overwriteSystemProp("kap.smart.conf.computed-column.suggestion.filter-key.minimum-cardinality", "10000");
         NSmartMaster smartMaster = new NSmartMaster(kylinConfig, getProject(), sqls);
         smartMaster.runAll();
@@ -888,14 +878,12 @@ public class NAutoComputedColumnTest extends NAutoTestBase {
 
     @Test
     public void testCCOnInnerGroupColGreaterThanMinCardinality() {
-        String[] sqls = new String[] { "select sum(price), sum(item_count)\n" +
-                "from (\n" +
-                "select TRANS_ID + ORDER_ID as NEW_ID, price, item_count\n" +
-                "from test_kylin_fact\n" +
-                ")\n" +
-                "group by NEW_ID" };
+        String[] sqls = new String[] { "select sum(price), sum(item_count)\n" + "from (\n"
+                + "select TRANS_ID + ORDER_ID as NEW_ID, price, item_count\n" + "from test_kylin_fact\n" + ")\n"
+                + "group by NEW_ID" };
 
-        mockTableExtDesc("DEFAULT.TEST_KYLIN_FACT", "newten", new String[]{"TRANS_ID", "ORDER_ID"}, new int[]{99, 77});
+        mockTableExtDesc("DEFAULT.TEST_KYLIN_FACT", "newten", new String[] { "TRANS_ID", "ORDER_ID" },
+                new int[] { 99, 77 });
         overwriteSystemProp("kap.smart.conf.computed-column.suggestion.group-key.minimum-cardinality", "5000");
         NSmartMaster smartMaster = new NSmartMaster(kylinConfig, getProject(), sqls);
         smartMaster.runAll();
@@ -915,13 +903,11 @@ public class NAutoComputedColumnTest extends NAutoTestBase {
 
     @Test
     public void testCCOnInnerGroupColLessThanMinCardinality() {
-        String[] sqls = new String[] { "select sum(price), sum(item_count)\n" +
-                "from (\n" +
-                "select TRANS_ID + ORDER_ID as NEW_ID, price, item_count\n" +
-                "from test_kylin_fact\n" +
-                ")\n" +
-                "group by NEW_ID" };
-        mockTableExtDesc("DEFAULT.TEST_KYLIN_FACT", "newten", new String[]{"TRANS_ID", "ORDER_ID"}, new int[]{99, 77});
+        String[] sqls = new String[] { "select sum(price), sum(item_count)\n" + "from (\n"
+                + "select TRANS_ID + ORDER_ID as NEW_ID, price, item_count\n" + "from test_kylin_fact\n" + ")\n"
+                + "group by NEW_ID" };
+        mockTableExtDesc("DEFAULT.TEST_KYLIN_FACT", "newten", new String[] { "TRANS_ID", "ORDER_ID" },
+                new int[] { 99, 77 });
         overwriteSystemProp("kap.smart.conf.computed-column.suggestion.group-key.minimum-cardinality", "10000");
         NSmartMaster smartMaster = new NSmartMaster(kylinConfig, getProject(), sqls);
         smartMaster.runAll();
