@@ -80,6 +80,7 @@ function quit {
         fi
     }
 
+
 function prepareFairScheduler() {
     cat > ${KYLIN_HOME}/conf/fairscheduler.xml <<EOL
 <?xml version="1.0"?>
@@ -180,6 +181,7 @@ function startKE(){
     cd ${KYLIN_HOME}/server
     source ${KYLIN_HOME}/sbin/load-zookeeper-config.sh
     fetchFIZkInfo
+
     prepareFairScheduler
 
     serverMode=`$KYLIN_HOME/bin/get-properties.sh kylin.server.mode`

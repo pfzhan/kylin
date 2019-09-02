@@ -14,6 +14,49 @@ function initKerberos() {
     kinit -kt $KAP_KERBEROS_KEYTAB_PATH $KAP_KERBEROS_PRINCIPAL
 }
 
+function prepareJaasConf() {
+    if [ -f ${KYLIN_HOME}/conf/jaas.conf ]; then
+        return
+    fi
+
+    cat > ${KYLIN_HOME}/conf/jaas.conf <<EOL
+Client{
+    com.sun.security.auth.module.Krb5LoginModule required
+    useKeyTab=false
+    useTicketCache=true
+    debug=false;
+};
+
+EOL
+}
+
+function prepareZKPrinciple() {
+    params=`env | grep "HADOOP_OPTS"`
+    splitParams=(${params//'-D'/ })
+    for param in ${splitParams[@]}
+    do
+        if [[ "$param" == zookeeper* ]];then
+            infos=(${param//'zookeeper.server.principal='/ })
+            envZKPrinciple=${infos[0]}
+            zkPrinciple=`$KYLIN_HOME/bin/get-properties.sh kap.kerberos.zookeeper.server.principal`
+            if [ $zkPrinciple != $envZKPrinciple ]
+            then
+                sed -i '/kap.kerberos.zookeeper.server.principal/d' ${KYLIN_CONFIG_FILE}
+                sed -i '$a\kap.kerberos.zookeeper.server.principal='$envZKPrinciple'' ${KYLIN_CONFIG_FILE}
+            fi
+        fi
+    done
+}
+
+function prepareFIKerberosInfoIfNeeded() {
+    prepareJaasConf
+    KERBEROS_PALTFORM=`$KYLIN_HOME/bin/get-properties.sh kap.kerberos.platform`
+    if [[ "${KERBEROS_PALTFORM}" == "FI" ]]
+    then
+        prepareZKPrinciple
+    fi
+}
+
 function initKerberosIfNeeded(){
     if [[ -n $SKIP_KERB ]]; then
         return
@@ -37,6 +80,8 @@ function initKerberosIfNeeded(){
         else
            echo "Kerberos ticket is valid, skip init."
         fi
+
+        prepareFIKerberosInfoIfNeeded
 
         # check if kerberos init success
         if ! klist -s

@@ -382,6 +382,11 @@ public class NSparkExecutable extends AbstractExecutable {
         if (kapConfig.isKerberosEnabled()) {
             sb.append(String.format(" -Dkap.kerberos.principal=%s ", kapConfig.getKerberosPrincipal()));
             sb.append(String.format(" -Dkap.kerberos.keytab=%s", kapConfig.getKerberosKeytabPath()));
+            if (kapConfig.getKerberosPlatform().equalsIgnoreCase(KapConfig.FI_PLATFORM)
+                    || kapConfig.getPlatformZKEnable()) {
+                sb.append(String.format(" -Djava.security.auth.login.config=%s", kapConfig.getKerberosJaasConfPath()));
+                sb.append(String.format(" -Djava.security.krb5.conf=%s", kapConfig.getKerberosKrb5ConfPath()));
+            }
         }
         sb.append(String.format(" -Dkap.hdfs.working.dir=%s ", hdfsWorkingDir));
         sb.append(String.format(" -Dspark.driver.log4j.appender.hdfs.File=%s ", getSparkDriverLogHdfsPath(config)));

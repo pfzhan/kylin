@@ -23,7 +23,6 @@
  */
 package io.kyligence.kap.tool.kerberos;
 
-import java.io.File;
 import java.io.IOException;
 import java.util.Collection;
 
@@ -35,7 +34,6 @@ import org.apache.hadoop.security.token.Token;
 import org.apache.hadoop.security.token.TokenIdentifier;
 import org.apache.hadoop.util.Shell;
 import org.apache.kylin.common.KapConfig;
-import org.apache.kylin.common.KylinConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -136,8 +134,8 @@ public class KerberosLoginTask implements IKeep {
         String zkServerPrincipal = kapConfig.getKerberosZKPrincipal();
 
         System.setProperty("zookeeper.sasl.client", "true");
-        System.setProperty("java.security.auth.login.config",
-                KylinConfig.getKylinConfDir() + File.separator + "jaas.conf");
+        String jaasFilePath = kapConfig.getKerberosJaasConfPath();
+        System.setProperty("java.security.auth.login.config", jaasFilePath);
         System.setProperty("java.security.krb5.conf", kapConfig.getKerberosKrb5ConfPath());
 
         KerberosLoginUtil.setJaasConf("Client", kapConfig.getKerberosPrincipal(), kapConfig.getKerberosKeytabPath());

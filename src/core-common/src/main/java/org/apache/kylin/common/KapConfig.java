@@ -65,6 +65,8 @@ public class KapConfig {
     
     private static final String FALSE = "false";
 
+    public static final String FI_PLATFORM = "FI";
+
     private KapConfig(KylinConfig config) {
         this.config = config;
     }
@@ -701,12 +703,24 @@ public class KapConfig {
         return config.getOptional("kap.kerberos.platform", "");
     }
 
+    public Boolean getPlatformZKEnable() {
+        return Boolean.valueOf(config.getOptional("kap.platform.zk.kerberos.enable", "false"));
+    }
+
     public String getKerberosKrb5Conf() {
-        return config.getOptional("kap.kerberos.krb5.conf", "");
+        return config.getOptional("kap.kerberos.krb5.conf", "krb5.conf");
     }
 
     public String getKerberosKrb5ConfPath() {
         return KylinConfig.getKylinConfDir() + File.separator + getKerberosKrb5Conf();
+    }
+
+    public String getKerberosJaasConf() {
+        return config.getOptional("kap.kerberos.jaas.conf", "jaas.conf");
+    }
+
+    public String getKerberosJaasConfPath() {
+        return KylinConfig.getKylinConfDir() + File.separator + getKerberosJaasConf();
     }
 
     public String getKerberosPrincipal() {
