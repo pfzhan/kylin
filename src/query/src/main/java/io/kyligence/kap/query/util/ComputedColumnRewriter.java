@@ -41,8 +41,12 @@ import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.alias.ExpressionComparator;
 import io.kyligence.kap.metadata.model.util.ComputedColumnUtil;
 import lombok.var;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ComputedColumnRewriter {
+
+    private static final Logger logger = LoggerFactory.getLogger(ComputedColumnRewriter.class);
 
     private ComputedColumnRewriter() {
     }
@@ -75,6 +79,7 @@ public class ComputedColumnRewriter {
                         var ccCols = ComputedColumnUtil.createComputedColumns(Lists.newArrayList(cc),
                                 model.getRootFactTable().getTableDesc());
                         parameters.add(ParameterDesc.newInstance(new TblColRef(model.getRootFactTable(), ccCols[0])));
+                        logger.info("Replacing CC expr [{},{}] in Agg {}", cc.getColumnName(), cc.getExpression(), agg.getFullExpression());
                     }
                 }
             }

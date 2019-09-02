@@ -80,6 +80,7 @@ public class KapOLAPToEnumerableConverter extends OLAPToEnumerableConverter impl
         OLAPRel.RewriteImplementor rewriteImplementor = new OLAPRel.RewriteImplementor();
         rewriteImplementor.visitChild(this, getInput());
         QueryContext.current().setCalcitePlan(this.copy(getTraitSet(), getInputs()));
+        ContextUtil.dumpCalcitePlan("EXECUTION PLAN AFTER REWRITE", this);
 
         boolean sparderEnabled = KapConfig.getInstanceFromEnv().isSparderEnabled();
         if (!sparderEnabled) {

@@ -115,4 +115,13 @@ public class NLayoutCandidate implements IRealizationCandidate  {
     public double getCost() {
         return this.cost;
     }
+
+    @Override
+    public String toString() {
+        return "NLayoutCandidate{" +
+                "cuboidLayout=" + cuboidLayout +
+                ", indexEntity=" + cuboidLayout.getIndex()  +
+                ", cost=" + cost +
+                '}';
+    }
 }

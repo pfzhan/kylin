@@ -99,6 +99,10 @@ public class QueryContextCutter {
         // identify model
         List<OLAPContext> contexts = ContextUtil.listContextsHavingScan();
 
+        for (OLAPContext olapContext: contexts) {
+            logger.info("Context for realization matching: {}", olapContext);
+        }
+
         if (!contexts.isEmpty()) {
             // intercept query
             List<QueryInterceptor> intercepts = QueryInterceptorUtil.getQueryInterceptors();

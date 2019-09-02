@@ -94,12 +94,18 @@ public class NQueryLayoutChooser {
                 unmatchedCols.addAll(sqlDigest.allColumns);
                 matched = matchTableIndex(cuboid.getLayout(), segment.getDataflow(), unmatchedCols, needDerive,
                         tempResult);
+                if (!matched) {
+                    logger.info("Table index {} does not match sql {}, unmatched columns {}", cuboid, sqlDigest, unmatchedCols);
+                }
             }
             if (!indexEntity.isTableIndex() && !sqlDigest.isRawQuery) {
                 unmatchedCols.addAll(sqlDigest.filterColumns);
                 unmatchedCols.addAll(sqlDigest.groupbyColumns);
                 matched = matchAggIndex(sqlDigest, cuboid.getLayout(), segment.getDataflow(), unmatchedCols,
                         unmatchedMetrics, needDerive, tempResult);
+                if (!matched) {
+                    logger.info("Agg index {} does not match sql {}, unmatched columns {}, unmatched metrics {}", cuboid, sqlDigest, unmatchedCols, unmatchedMetrics);
+                }
             }
             if (matched) {
                 LayoutEntity layout = cuboid.getLayout();

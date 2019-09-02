@@ -86,7 +86,9 @@ public class QueryUtil {
     static String massageSql(KylinConfig kylinConfig, String sql, String project, int limit, int offset,
             String defaultSchema, boolean isCCNeeded) {
         String massagedSql = normalMassageSql(kylinConfig, sql, limit, offset);
-        return transformSql(kylinConfig, massagedSql, project, defaultSchema, isCCNeeded);
+        massagedSql = transformSql(kylinConfig, massagedSql, project, defaultSchema, isCCNeeded);
+        logger.info("SQL massage result: {}", massagedSql);
+        return massagedSql;
     }
 
     private static String transformSql(KylinConfig kylinConfig, String sql, String project, String defaultSchema, boolean isCCNeeded) {
@@ -94,6 +96,7 @@ public class QueryUtil {
         initQueryTransformersIfNeeded(kylinConfig, isCCNeeded);
         for (IQueryTransformer t : queryTransformers) {
             sql = t.transform(sql, project, defaultSchema);
+            logger.debug("SQL transformed by {}, result: {}", t.getClass(), sql);
         }
         return sql;
     }

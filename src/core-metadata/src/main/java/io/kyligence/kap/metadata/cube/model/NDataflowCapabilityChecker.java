@@ -46,6 +46,7 @@ public class NDataflowCapabilityChecker {
     private static final Logger logger = LoggerFactory.getLogger(NDataflowCapabilityChecker.class);
 
     public static CapabilityResult check(NDataflow dataflow, SQLDigest digest) {
+        logger.info("Matching Layout in dataflow {}, SQL digest {}", dataflow, digest);
         CapabilityResult result = new CapabilityResult();
         if (digest.limitPrecedesAggr) {
             logger.info("Exclude NDataflow {} because there's limit preceding aggregation", dataflow);
@@ -59,7 +60,9 @@ public class NDataflowCapabilityChecker {
         IRealizationCandidate chosenCandidate = null;
         if (digest.joinDescs.isEmpty() && !rootFactTable.equals(digest.factTable)) {
             chosenCandidate = tryMatchLookup(dataflow, digest, result);
-
+            if (chosenCandidate != null) {
+                logger.info("Matched table {} snapshot in dataflow {} ", digest.factTable, dataflow);
+            }
         } else {
             // for query-on-facttable
             Pair<NLayoutCandidate, List<CapabilityResult.CapabilityInfluence>> candidateAndInfluence = NQueryLayoutChooser
@@ -68,6 +71,9 @@ public class NDataflowCapabilityChecker {
             if (candidateAndInfluence != null) {
                 chosenCandidate = candidateAndInfluence.getFirst();
                 result.influences.addAll(candidateAndInfluence.getSecond());
+                if (chosenCandidate != null) {
+                    logger.info("Matched layout {} snapshot in dataflow {} ", chosenCandidate, dataflow);
+                }
             }
         }
         if (chosenCandidate != null) {

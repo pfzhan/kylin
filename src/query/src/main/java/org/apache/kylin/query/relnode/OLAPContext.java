@@ -408,4 +408,18 @@ public class OLAPContext {
     public interface IAccessController {
         void check(List<OLAPContext> contexts, OLAPRel tree, KylinConfig config);
     }
+
+    @Override
+    public String toString() {
+        return "OLAPContext{" +
+                "firstTableScan=" + firstTableScan +
+                ", allTableScans=" + allTableScans +
+                ", allOlapJoins=" + allOlapJoins +
+                ", groupByColumns=" + groupByColumns +
+                ", innerGroupByColumns=" + innerGroupByColumns +
+                ", innerFilterColumns=" + innerFilterColumns +
+                ", aggregations=" + aggregations +
+                ", filterColumns=" + filterColumns +
+                '}';
+    }
 }

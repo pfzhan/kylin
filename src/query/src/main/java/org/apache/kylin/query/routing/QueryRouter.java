@@ -81,6 +81,7 @@ public class QueryRouter {
             }
         }
         if (candidates.isEmpty()) {
+            logger.warn("Realization {} is not ready", realizations);
             return null;
         }
 

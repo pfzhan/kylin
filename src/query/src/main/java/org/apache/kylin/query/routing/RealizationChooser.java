@@ -106,6 +106,8 @@ public class RealizationChooser {
         if (modelMap.size() == 0) {
             throw new NoRealizationFoundException("No model found for " + toErrorMsg(context));
         }
+        logger.info("Models matched fact table {}: {}", context.firstTableScan.getTableName(), modelMap.values());
+
         List<Candidate> candidates = Lists.newArrayList();
         Map<NDataModel, Map<String, String>> model2AliasMap = Maps.newHashMap();
         for (NDataModel model : modelMap.keySet()) {
@@ -115,18 +117,24 @@ public class RealizationChooser {
             }
             context.fixModel(model, map);
             model2AliasMap.put(model, map);
+            logger.info("Model {} join matched", model);
 
             // Step 2. select realizations
             preprocessOlapCtx(context);
             Candidate candidate = QueryRouter.selectRealization(context, Sets.newHashSet(modelMap.get(model)), model2AliasMap.get(model));
-            if (candidate != null)
+            if (candidate != null) {
+                logger.info("Model {} QueryRouter matched", model);
                 candidates.add(candidate);
+            } else {
+                logger.info("Model {} failed in QueryRouter matching", model);
+            }
 
             context.unfixModel();
         }
 
         // Step 3. find the lowest-cost candidate
         Collections.sort(candidates);
+        logger.info("Cost Sorted Realizations {}", candidates);
         if (!candidates.isEmpty()) {
             Candidate selectedCandidate = candidates.get(0);
             context.fixModel(selectedCandidate.getRealization().getModel(),
@@ -268,6 +276,7 @@ public class RealizationChooser {
             String modelAlias = model.findFirstTable(firstTable.getTableIdentity()).getAlias();
             matchUp = ImmutableMap.of(firstTable.getAlias(), modelAlias);
             matched = true;
+            logger.debug("Context fact table {} matched lookup table in model {}", ctx.firstTableScan.getTableName(), model);
         } else if (ctx.joins.size() != ctx.allTableScans.size() - 1) {
             // has hanging tables
             ctx.realizationCheck.addModelIncapableReason(model,
@@ -280,6 +289,12 @@ public class RealizationChooser {
                 ctx.setJoinsGraph(new JoinsGraph(firstTable, ctx.joins));
             }
             matched = ctx.getJoinsGraph().match(model.getJoinsGraph(), matchUp);
+            if (matched) {
+                logger.debug("Context join graph matched model {}, context join graph {}, model join graph {}", model, ctx.getJoinsGraph(), model.getJoinsGraph());
+            } else {
+                logger.debug("Context join graph missed model {}, context join graph {}, model join graph {}", model, ctx.getJoinsGraph(), model.getJoinsGraph());
+                logger.debug("Missed match nodes - Context {}, Model {}", ctx.getJoinsGraph().unmatched(model.getJoinsGraph()), model.getJoinsGraph().unmatched(ctx.getJoinsGraph()));
+            }
         }
 
         if (!matched) {
@@ -304,9 +319,14 @@ public class RealizationChooser {
             if (!real.isReady()) {
                 context.realizationCheck.addIncapableCube(real,
                         RealizationCheck.IncapableReason.create(RealizationCheck.IncapableType.CUBE_NOT_READY));
+                logger.warn("Realization {} is not ready for project {} with fact table {}", real, projectName, factTableName);
                 continue;
             }
             mapModelToRealizations.put(real.getModel(), real);
+        }
+
+        if (mapModelToRealizations.isEmpty()) {
+            logger.error("No realization found for project {} with fact table {}", projectName, factTableName);
         }
 
         return mapModelToRealizations;

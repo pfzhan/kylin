@@ -43,6 +43,7 @@ public class SparkEngine implements QueryEngine {
     @Override
     public Enumerable<Object> computeSCALA(DataContext dataContext, RelNode relNode, RelDataType resultType) {
         Dataset<Row> sparkPlan = toSparkPlan(dataContext, relNode);
+        log.debug("SPARK LOGICAL PLAN {}", sparkPlan.queryExecution().logical());
         return ResultPlan.getResult(sparkPlan, resultType, ResultType.SCALA()).right().get();
 
     }
@@ -50,6 +51,7 @@ public class SparkEngine implements QueryEngine {
     @Override
     public Enumerable<Object[]> compute(DataContext dataContext, RelNode relNode, RelDataType resultType) {
         Dataset<Row> sparkPlan = toSparkPlan(dataContext, relNode);
+        log.debug("SPARK LOGICAL PLAN {}", sparkPlan.queryExecution().logical());
         return ResultPlan.getResult(sparkPlan, resultType, ResultType.NORMAL()).left().get();
     }
 

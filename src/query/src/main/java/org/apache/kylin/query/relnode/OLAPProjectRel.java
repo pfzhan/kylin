@@ -50,6 +50,7 @@ import java.util.Set;
 import org.apache.calcite.adapter.enumerable.EnumerableCalc;
 import org.apache.calcite.adapter.enumerable.EnumerableConvention;
 import org.apache.calcite.adapter.enumerable.EnumerableRel;
+import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptCost;
 import org.apache.calcite.plan.RelOptPlanner;
@@ -294,7 +295,20 @@ public class OLAPProjectRel extends Project implements OLAPRel {
 
     @Override
     public RelWriter explainTerms(RelWriter pw) {
-        return super.explainTerms(pw).item("ctx",
+        pw.input("input", getInput());
+        if (pw.nest()) {
+            pw.item("fields", rowType.getFieldNames());
+            pw.item("exprs", rewriteProjects);
+        } else {
+            for (Ord<RelDataTypeField> field : Ord.zip(rowType.getFieldList())) {
+                String fieldName = field.e.getName();
+                if (fieldName == null) {
+                    fieldName = "field#" + field.i;
+                }
+                pw.item(fieldName, rewriteProjects.get(field.i));
+            }
+        }
+        return pw.item("ctx",
                 context == null ? "" : String.valueOf(context.id) + "@" + context.realization);
     }
 }
