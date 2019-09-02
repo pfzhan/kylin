@@ -83,7 +83,7 @@ object SparkSqlClient {
     val jobGroup = Thread.currentThread.getName
     ss.sparkContext.setJobGroup(jobGroup, s"Push down: $sql", interruptOnCancel = true)
     try {
-      val columns = df.schema.map(tp => col(tp.name).cast(StringType))
+      val columns = df.schema.map(tp => col(s"`${tp.name}`").cast(StringType))
       val fieldList = df.schema.map(field => SparderTypeUtil.convertSparkFieldToJavaField(field)).asJava
       val frame = df.select(columns: _*)
       val rowList = frame.collect().map(_.toSeq.map(_.asInstanceOf[String]).asJava).toSeq.asJava

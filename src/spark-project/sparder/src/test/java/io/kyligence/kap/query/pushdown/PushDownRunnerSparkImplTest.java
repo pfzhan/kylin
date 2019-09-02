@@ -104,4 +104,20 @@ public class PushDownRunnerSparkImplTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(11, returnColumnMeta.size());
         Assert.assertEquals(QueryContext.PUSHDOWN_HIVE, pushDownRunnerSpark.getName());
     }
+
+    @Test
+    public void testPushDownRunnerSparkWithDotColumn() {
+        PushDownRunnerSparkImpl pushDownRunnerSpark = new PushDownRunnerSparkImpl();
+        pushDownRunnerSpark.init(null);
+
+        List<List<String>> returnRows = Lists.newArrayList();
+        List<SelectedColumnMeta> returnColumnMeta = Lists.newArrayList();
+
+        String sql = "select TEST_KYLIN_FACT.price as `TEST_KYLIN_FACT.price` from TEST_KYLIN_FACT";
+        pushDownRunnerSpark.executeQuery(sql, returnRows, returnColumnMeta, null);
+
+        Assert.assertEquals(10000, returnRows.size());
+        Assert.assertEquals(1, returnColumnMeta.size());
+        Assert.assertEquals(QueryContext.PUSHDOWN_HIVE, pushDownRunnerSpark.getName());
+    }
 }
