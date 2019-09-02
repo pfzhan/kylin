@@ -42,9 +42,9 @@
 
 package io.kyligence.kap.query.pushdown;
 
+import java.util.ArrayList;
 import java.util.List;
 
-import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.metadata.querymeta.SelectedColumnMeta;
 import org.apache.spark.sql.SparderEnv;
@@ -57,6 +57,8 @@ import org.junit.Before;
 import org.junit.Test;
 
 import com.google.common.collect.Lists;
+
+import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 
 public class PushDownRunnerSparkImplTest extends NLocalFileMetadataTestCase {
 
@@ -87,6 +89,42 @@ public class PushDownRunnerSparkImplTest extends NLocalFileMetadataTestCase {
     public void after() throws Exception {
         ss.stop();
         cleanupTestMetadata();
+    }
+
+    @Test
+    public void testCast() {
+        PushDownRunnerSparkImpl pushDownRunnerSpark = new PushDownRunnerSparkImpl();
+        pushDownRunnerSpark.init(null);
+
+        List<List<String>> returnRows = Lists.newArrayList();
+        List<SelectedColumnMeta> returnColumnMeta = Lists.newArrayList();
+
+        List<String> queries = new ArrayList<>();
+        queries.add("SELECT cast(ORDER_ID as integer) FROM TEST_KYLIN_FACT limit 10");
+        queries.add("SELECT cast(LSTG_SITE_ID as long) FROM TEST_KYLIN_FACT limit 10");
+        queries.add("SELECT cast(LSTG_SITE_ID as short) FROM TEST_KYLIN_FACT limit 10");
+        queries.add("SELECT CAST(ORDER_ID AS VARCHAR) FROM TEST_KYLIN_FACT limit 10");
+        queries.add("SELECT CAST(ORDER_ID AS char) FROM TEST_KYLIN_FACT limit 10");
+        queries.add("select SELLER_ID,ITEM_COUNT,sum(price)\n" + //
+                "from (\n" + //
+                "SELECT SELLER_ID, ITEM_COUNT,price\n" + //
+                "\t, concat(concat(CAST(year(CAST(CAL_DT AS date)) AS varchar), '-'), CAST(month(CAST(CAL_DT AS date)) AS varchar)) AS prt_mth\n" + //
+                "FROM TEST_KYLIN_FACT) \n" + //
+                "group by SELLER_ID,ITEM_COUNT,price limit 10"); //
+
+        queries.add("select SELLER_ID,ITEM_COUNT,sum(price)\n" + //
+                "from (\n" + //
+                "SELECT SELLER_ID, ITEM_COUNT,price\n" + //
+                "\t, concat(concat(CAST(year(CAST(CAL_DT AS date)) AS char), '-'), CAST(month(CAST(CAL_DT AS date)) AS varchar)) AS prt_mth\n" + //
+                "FROM TEST_KYLIN_FACT) \n" + //
+                "group by SELLER_ID,ITEM_COUNT,price limit 10");
+
+        queries.forEach(q -> {
+            returnRows.clear();
+            pushDownRunnerSpark.executeQuery(q, returnRows, returnColumnMeta, null);
+            Assert.assertEquals(10, returnRows.size());
+        });
+
     }
 
     @Test

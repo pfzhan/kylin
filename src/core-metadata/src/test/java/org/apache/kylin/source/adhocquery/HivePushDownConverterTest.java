@@ -62,19 +62,6 @@ public class HivePushDownConverterTest {
     }
 
     @Test
-    public void testCastReplace() {
-        String originString = "ignore EXTRACT(YEAR FROM CAST(KYLIN_CAL_DT.CAL_DT AS INTEGER)) ignore";
-        String replacedString = HivePushDownConverter.castReplace(originString);
-        Assert.assertEquals("ignore EXTRACT(YEAR FROM CAST(KYLIN_CAL_DT.CAL_DT AS int)) ignore", replacedString);
-
-        HivePushDownConverter converter = new HivePushDownConverter();
-        originString = "SELECT CAST(YEAR(KYLIN_CAL_DT.CAL_DT) AS INTEGER) AS Y FROM KYLIN_CAL_DT LIMIT 10;";
-        replacedString = converter.convert(originString, "", "", false);
-        Assert.assertEquals("SELECT CAST(YEAR(KYLIN_CAL_DT.CAL_DT) AS int) AS Y FROM KYLIN_CAL_DT LIMIT 10;",
-                replacedString);
-    }
-
-    @Test
     public void testAddLimit() {
         String originString = "select t.TRANS_ID from (\n"
                 + "    select * from test_kylin_fact s inner join TEST_ACCOUNT a \n"

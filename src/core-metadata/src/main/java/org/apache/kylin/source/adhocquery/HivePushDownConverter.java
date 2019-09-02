@@ -61,8 +61,6 @@ public class HivePushDownConverter implements IPushDownConverter, IKeep {
 
     private static final Pattern EXTRACT_PATTERN = Pattern.compile("extract\\s*(\\()\\s*(.*?)\\s*from(\\s+)",
             Pattern.CASE_INSENSITIVE);
-    private static final Pattern CAST_PATTERN = Pattern.compile("CAST\\((.*?) (?i)AS\\s*(.*?)\\s*\\)",
-            Pattern.CASE_INSENSITIVE);
     private static final Pattern TIMESTAMP_ADD_DIFF_PATTERN = Pattern
             .compile("timestamp(add|diff)\\s*\\(\\s*(.*?)\\s*,", Pattern.CASE_INSENSITIVE);
     private static final Pattern SELECT_PATTERN = Pattern.compile("^select", Pattern.CASE_INSENSITIVE);
@@ -72,8 +70,6 @@ public class HivePushDownConverter implements IPushDownConverter, IKeep {
     private static final Pattern COLUMN_NAME_PATTERN = Pattern.compile("[`_a-z0-9A-Z]+", Pattern.CASE_INSENSITIVE);
     private static final Pattern VAR_SUBSTRING_PATTERN = Pattern
             .compile("\\bsubstring\\s*\\(\\s*(.*?)\\s+from\\s+(.*?)\\s+for\\s+(.*?)\\s*\\)", Pattern.CASE_INSENSITIVE);
-
-    private static final String NVARCHAR_PATTERN = "(?i)\\s+AS\\s+VARCHAR\\(\\d+\\)";
 
     public static String replaceString(String originString, String fromString, String toString) {
         return originString.replace(fromString, toString);
@@ -98,41 +94,6 @@ public class HivePushDownConverter implements IPushDownConverter, IKeep {
 
             replacedString = replaceString(replacedString, originString.substring(originStart, originEnd),
                     functionStr + "(" + extractInner + ")");
-        }
-
-        return replacedString;
-    }
-
-    public static String castReplace(String originString) {
-        originString = originString.replaceAll(NVARCHAR_PATTERN, " AS string");
-        Matcher castMatcher = CAST_PATTERN.matcher(originString);
-        String replacedString = originString;
-
-        while (castMatcher.find()) {
-            String castStr = castMatcher.group();
-            String type = castMatcher.group(2);
-            String supportedType;
-            switch (type.toUpperCase()) {
-            case "INTEGER":
-                supportedType = "int";
-                break;
-            case "SHORT":
-                supportedType = "smallint";
-                break;
-            case "LONG":
-                supportedType = "bigint";
-                break;
-            case "VARCHAR":
-                supportedType = "string";
-                break;
-            default:
-                supportedType = type;
-            }
-
-            if (!supportedType.equals(type)) {
-                String replacedCastStr = castStr.replace(type, supportedType);
-                replacedString = replaceString(replacedString, castStr, replacedCastStr);
-            }
         }
 
         return replacedString;
@@ -201,35 +162,32 @@ public class HivePushDownConverter implements IPushDownConverter, IKeep {
     }
 
     private static String doConvert(String originStr, boolean isPrepare) {
-        // Step1.Replace " with `
+        // Replace " with `
         String convertedSql = replaceString(originStr, "\"", "`");
 
-        // Step2.Replace extract functions
+        // Replace extract functions
         convertedSql = extractReplace(convertedSql);
 
-        // Step3.Replace cast type string
-        convertedSql = castReplace(convertedSql);
-
-        // Step4.Replace char_length with length
+        // Replace char_length with length
         convertedSql = replaceString(convertedSql, "CHAR_LENGTH", "LENGTH");
         convertedSql = replaceString(convertedSql, "char_length", "length");
 
-        // Step5.Add quote for interval in timestampadd
+        // Add quote for interval in timestampadd
         convertedSql = timestampAddDiffReplace(convertedSql);
 
-        // Step6.Replace integer with int
+        // Replace integer with int
         convertedSql = replaceString(convertedSql, "INTEGER", "INT");
         convertedSql = replaceString(convertedSql, "integer", "int");
 
-        // Step7.Add limit 1 for prepare select sql to speed up
+        // Add limit 1 for prepare select sql to speed up
         if (isPrepare) {
             convertedSql = addLimit(convertedSql);
         }
 
-        // Step8.Support grouping sets with none group by
+        // Support grouping sets with none group by
         convertedSql = groupingSetsReplace(convertedSql);
 
-        // Step9. Support variant substring grammar
+        // Support variant substring grammar
         convertedSql = castVariantSubstringGrammar(convertedSql);
 
         return convertedSql;

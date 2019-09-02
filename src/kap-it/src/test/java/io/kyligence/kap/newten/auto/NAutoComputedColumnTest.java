@@ -640,7 +640,7 @@ public class NAutoComputedColumnTest extends NAutoTestBase {
         Assert.assertFalse(accelerationInfoMap.get(sqls[0]).isNotSucceed());
 
         Assert.assertEquals(1, computedColumns.size());
-        Assert.assertEquals("CAST(TEST_CATEGORY_GROUPINGS.LEAF_CATEG_ID * TEST_CATEGORY_GROUPINGS.SITE_ID AS string)",
+        Assert.assertEquals("CAST(TEST_CATEGORY_GROUPINGS.LEAF_CATEG_ID * TEST_CATEGORY_GROUPINGS.SITE_ID AS VARCHAR)",
                 computedColumns.get(0).getInnerExpression().trim());
         Assert.assertEquals("VARCHAR", computedColumns.get(0).getDatatype());
     }
