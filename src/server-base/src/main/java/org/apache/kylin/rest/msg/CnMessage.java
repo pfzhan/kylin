@@ -63,7 +63,7 @@ public class CnMessage extends Message {
     }
 
     public String getSEG_NOT_FOUND() {
-        return "找不到 Segment '%s'";
+        return "找不到 Segment '%s' 在模型 '%s' 上";
     }
 
     public String getKAFKA_DEP_NOT_FOUND() {

@@ -1022,7 +1022,7 @@ public class ModelService extends BasicService {
                 idsToDelete.add(id);
             } else {
                 throw new IllegalArgumentException(
-                        String.format("segment %s not found on model %s", id, dataflow.getModelAlias()));
+                        String.format(MsgPicker.getMsg().getSEG_NOT_FOUND(), id, dataflow.getModelAlias()));
             }
         }
         segmentHelper.removeSegment(project, dataflow.getUuid(), idsToDelete);
@@ -1084,7 +1084,7 @@ public class ModelService extends BasicService {
             val segment = df.getSegment(id);
             if (segment == null) {
                 throw new IllegalArgumentException(
-                        String.format("segment %s not found on model %s", id, df.getModelAlias()));
+                        String.format(MsgPicker.getMsg().getSEG_NOT_FOUND(), id, df.getModelAlias()));
             }
 
             if (!segment.getStatus().equals(SegmentStatusEnum.READY)) {
@@ -1132,7 +1132,7 @@ public class ModelService extends BasicService {
             NDataSegment segment = df.getSegment(id);
             if (segment == null) {
                 throw new IllegalArgumentException(
-                        String.format("segment %s not found on model %s", id, df.getModelAlias()));
+                        String.format(MsgPicker.getMsg().getSEG_NOT_FOUND(), id, df.getModelAlias()));
             }
 
             NDataSegment newSeg = dfMgr.refreshSegment(df, segment.getSegRange());

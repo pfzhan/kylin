@@ -63,7 +63,7 @@ public class Message {
     }
 
     public String getSEG_NOT_FOUND() {
-        return "Cannot find segment '%s'.";
+        return "Cannot find segment '%s' in model '%s'.";
     }
 
     public String getKAFKA_DEP_NOT_FOUND() {
