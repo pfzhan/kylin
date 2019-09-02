@@ -30,7 +30,7 @@ Client{
 EOL
 }
 
-function prepareZKPrinciple() {
+function prepareZKPrincipal() {
     params=`env | grep "HADOOP_OPTS"`
     splitParams=(${params//'-D'/ })
     for param in ${splitParams[@]}
@@ -53,7 +53,7 @@ function prepareFIKerberosInfoIfNeeded() {
     KERBEROS_PALTFORM=`$KYLIN_HOME/bin/get-properties.sh kap.kerberos.platform`
     if [[ "${KERBEROS_PALTFORM}" == "FI" ]]
     then
-        prepareZKPrinciple
+        prepareZKPrincipal
     fi
 }
 
