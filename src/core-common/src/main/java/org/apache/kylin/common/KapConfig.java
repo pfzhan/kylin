@@ -698,7 +698,7 @@ public class KapConfig {
     }
 
     public Boolean getPlatformZKEnable() {
-        return Boolean.valueOf(config.getOptional("kap.platform.zk.kerberos.enable", "false"));
+        return Boolean.valueOf(config.getOptional("kap.platform.zk.kerberos.enable", FALSE));
     }
 
     public String getKerberosKrb5Conf() {
