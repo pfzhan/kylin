@@ -23,16 +23,20 @@
  */
 package org.apache.spark.benchmark
 
+import com.esotericsoftware.kryo.io.{KryoDataOutput, Output}
 import io.kyligence.kap.engine.spark.job.FirstUDAF
 import org.apache.kylin.metadata.datatype.DataType
-import org.apache.spark.sql.common.{SharedSparkSession, SparderBaseFunSuite}
-import org.apache.spark.sql.internal.SQLConf
 import org.apache.spark.sql.Column
-import org.apache.spark.sql.udaf.{EncodeApproxCountDistinct, EncodePreciseCountDistinct, ReuseApproxCountDistinct, ReusePreciseCountDistinct}
+import org.apache.spark.sql.common.{SharedSparkSession, SparderBaseFunSuite}
+import org.apache.spark.sql.functions._
+import org.apache.spark.sql.internal.SQLConf
+import org.apache.spark.sql.udaf._
+import org.apache.spark.sql.udf.SparderExternalAggFunc
 import org.apache.spark.util.Benchmark
+import org.roaringbitmap.longlong.Roaring64NavigableMap
 
 import scala.concurrent.duration._
-import org.apache.spark.sql.functions._
+import scala.util.Random
 
 class UDAFBenchmark extends SparderBaseFunSuite with SharedSparkSession {
 
@@ -310,5 +314,87 @@ class UDAFBenchmark extends SparderBaseFunSuite with SharedSparkSession {
     //      new af w/ group by w/100 fallback               43 /   75          1.5         650.1     233.5X
   }
 
+  ignore("new intersect count udf vs old intersect count udaf") {
+    val N = 2 << 8
+    val benchmark = new Benchmark(
+      name = "new intersect count udf vs old intersect count udaf",
+      valuesPerIteration = N,
+      minNumIters = 5,
+      warmupTime = 5.seconds,
+      minTime = 10.seconds,
+      outputPerIteration = true
+    )
 
+    val array: Array[Byte] = new Array[Byte](1024 * 1024)
+    spark.udf.register("intersect_count", new SparderExternalAggFunc(""))
+    spark.udf.register("bitmap", () => {
+      val output: Output = new Output(array)
+      val map = new Roaring64NavigableMap()
+      Range(0, Random.nextInt(10000)).foreach(_ =>
+        map.add(Random.nextInt(10000000).toLong)
+      )
+      output.clear()
+      val kryo = new KryoDataOutput(output)
+      map.serialize(kryo)
+      val i = output.position()
+      output.close()
+      array.slice(0, i)
+    })
+    spark.udf.register("label", () => {
+      Random.nextInt(5)
+    })
+    spark.range(N).selectExpr("id", "bitmap() as map", "label() as key").createOrReplaceTempView("t")
+
+    benchmark.addCase("old udaf w/o group by") { _ =>
+      spark.conf.set(SQLConf.USE_OBJECT_HASH_AGG.key, "false")
+      spark.table("t").agg(callUDF("intersect_count", col("map"), col("key"), lit(Array(1)))).collect()
+    }
+
+    benchmark.addCase("new udaf w/o group by") { _ =>
+      spark.conf.set(SQLConf.USE_OBJECT_HASH_AGG.key, "true")
+      spark.table("t").agg(new Column(IntersectCount(col("map").expr, col("key").expr, lit(Array(1)).expr)
+        .toAggregateExpression())).collect()
+    }
+
+    benchmark.addCase("old udaf w/ group by w/4") { _ =>
+      spark.conf.set(SQLConf.USE_OBJECT_HASH_AGG.key, "false")
+      spark.table("t").groupBy(col("id").divide(4).cast("BIGINT"))
+        .agg(callUDF("intersect_count", col("map"), col("key"), lit(Array(1))))
+        .collect()
+    }
+
+    benchmark.addCase("new af w/ group by w/4 ") { _ =>
+      spark.conf.set(SQLConf.USE_OBJECT_HASH_AGG.key, "true")
+      spark.conf.set(SQLConf.OBJECT_AGG_SORT_BASED_FALLBACK_THRESHOLD.key, "2")
+      spark.table("t").groupBy(col("id").divide(4).cast("BIGINT"))
+        .agg(new Column(IntersectCount(col("map").expr, col("key").expr, lit(Array(1)).expr).toAggregateExpression()))
+        .collect()
+    }
+
+    benchmark.addCase("old udaf w/ group by w/100") { _ =>
+      spark.conf.set(SQLConf.USE_OBJECT_HASH_AGG.key, "false")
+      spark.table("t").groupBy(col("id").divide(100).cast("BIGINT"))
+        .agg(callUDF("intersect_count", col("map"), col("key"), lit(Array(1))))
+        .collect()
+    }
+
+    benchmark.addCase("new af w/ group by w/100") { _ =>
+      spark.conf.set(SQLConf.USE_OBJECT_HASH_AGG.key, "true")
+      spark.conf.set(SQLConf.OBJECT_AGG_SORT_BASED_FALLBACK_THRESHOLD.key, "2")
+      spark.table("t").groupBy(col("id").divide(100).cast("BIGINT"))
+        .agg(new Column(IntersectCount(col("map").expr, col("key").expr, lit(Array(1)).expr).toAggregateExpression()))
+        .collect()
+    }
+
+    benchmark.run()
+
+// new intersect count udf vs old intersect count udaf: Best/Avg Time(ms)    Rate(M/s)   Per Row(ns)   Relative
+//      ------------------------------------------------------------------------------------------------
+//          old udaf w/o group by                          535 /  650          0.0     1045404.0       1.0X
+//          new udaf w/o group by                          249 /  267          0.0      486413.3       2.1X
+//          old udaf w/ group by w/4                       284 /  377          0.0      553724.4       1.9X
+//          new af w/ group by w/4                         222 /  261          0.0      433049.1       2.4X
+//          old udaf w/ group by w/100                     381 /  441          0.0      744083.8       1.4X
+//          new af w/ group by w/100                       210 /  238          0.0      409919.9       2.6X
+  }
 }

@@ -40,7 +40,7 @@
         <!-- Spark versions -->
         <spark.version>2.4.1-kylin-r14</spark.version>
 
-        <roaring.version>0.7.36-kylin-r1</roaring.version>
+        <roaring.version>0.7.36</roaring.version>
 
         <kryo.version>4.0.0</kryo.version>
 

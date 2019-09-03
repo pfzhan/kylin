@@ -130,7 +130,7 @@ public class FunctionDesc implements Serializable {
     public static final ImmutableSet<String> BUILT_IN_AGGREGATIONS = ImmutableSet.<String> builder()
             .add(FUNC_MAX, FUNC_MIN, FUNC_COUNT_DISTINCT).add(FUNC_COUNT, FUNC_SUM, FUNC_PERCENTILE).build();
     public static final ImmutableSet<String> NOT_SUPPORTED_FUNCTION = ImmutableSet.<String> builder()
-            .add(FUNC_INTERSECT_COUNT, FUNC_CORR).build();
+            .add(FUNC_CORR).build();
 
     private static final Map<String, String> EXPRESSION_DEFAULT_TYPE_MAP = Maps.newHashMap();
 

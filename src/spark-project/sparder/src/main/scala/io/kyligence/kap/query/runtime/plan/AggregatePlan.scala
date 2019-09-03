@@ -32,10 +32,13 @@ import org.apache.kylin.metadata.model.FunctionDesc
 import org.apache.kylin.query.relnode.{KylinAggregateCall, OLAPAggregateRel}
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.KapFunctions._
+import org.apache.spark.sql._
+import org.apache.spark.sql.catalyst.expressions.{CreateArray, In}
+import org.apache.spark.sql.catalyst.plans.logical.Project
 import org.apache.spark.sql.execution.utils.SchemaProcessor
 import org.apache.spark.sql.functions._
+import org.apache.spark.sql.types.{ArrayType, StructType}
 import org.apache.spark.sql.util.SparderTypeUtil
-import org.apache.spark.sql.{AggArgc, Column, DataFrame, KapFunctions, SparkOperation}
 
 import scala.collection.JavaConverters._
 
@@ -51,7 +54,7 @@ object AggregatePlan extends Logging {
           rel: KapAggregateRel,
           dataContext: DataContext): DataFrame = {
     val start = System.currentTimeMillis()
-    val dataFrame = inputs.get(0)
+    var dataFrame = inputs.get(0)
     val schemaNames = dataFrame.schema.fieldNames
     val groupList = rel.getGroupSet.asScala
       .map(groupId => col(schemaNames.apply(groupId)))
@@ -67,18 +70,45 @@ object AggregatePlan extends Logging {
       logInfo(s"Query exactly match index, skip agg, project $prjList.")
       dataFrame.select(prjList: _*)
     } else {
-      val aggList = buildAgg(schemaNames, rel)
+      dataFrame = genFiltersWhenIntersectCount(rel, dataFrame)
+      val aggList = buildAgg(dataFrame.schema, rel)
       SparkOperation.agg(AggArgc(dataFrame, groupList, aggList))
     }
     logInfo(s"Gen aggregate cost Time :${System.currentTimeMillis() - start} ")
     df
   }
 
+  private def genFiltersWhenIntersectCount(rel: KapAggregateRel, dataFrame: DataFrame): DataFrame = {
+    try {
+      val intersects = rel.getRewriteAggCalls.asScala.filter(_.isInstanceOf[KylinAggregateCall])
+        .filter(!_.asInstanceOf[KylinAggregateCall].getFunc.isCount)
+        .map(_.asInstanceOf[KylinAggregateCall])
+        .filter(call => !call.getFunc.isCount && OLAPAggregateRel.getAggrFuncName(call).equals(FunctionDesc.FUNC_INTERSECT_COUNT))
+      val names = dataFrame.schema.names
+      val children = dataFrame.queryExecution.logical
+      if (intersects.nonEmpty && intersects.size == rel.getRewriteAggCalls.size() && children.isInstanceOf[Project]) {
+        val list = children.asInstanceOf[Project].projectList
+        val filters = intersects.map { call =>
+          val filterColumnIndex = call.getArgList.get(1)
+          val litIndex = call.getArgList.get(2)
+          new Column(In(col(names(filterColumnIndex)).expr, list.apply(litIndex).children.head.asInstanceOf[CreateArray].children))
+        }
+        val column = filters.reduceLeft(_.or(_))
+        dataFrame.filter(column)
+      } else {
+        dataFrame
+      }
+    } catch {
+      case e: Throwable => logWarning("Error occurred when generate filters", e)
+        dataFrame
+    }
+  }
+
   private def onlyHasOneSeg(rel: KapAggregateRel): Boolean = {
     rel.getContext.realization.asInstanceOf[NDataflow].getQueryableSegments.size() == 1
   }
 
-  private def isExactlyMatched(rel: KapAggregateRel) :Boolean = {
+  private def isExactlyMatched(rel: KapAggregateRel): Boolean = {
     val olapContext = rel.getContext
 
     val rewrites = rel.getRewriteAggCalls.asScala
@@ -112,23 +142,21 @@ object AggregatePlan extends Logging {
     groupByCols.nonEmpty && groupByCols.equals(cuboidDimSet)
   }
 
-  def buildAgg(schemaNames: Array[String],
+  def buildAgg(schema: StructType,
                rel: KapAggregateRel): List[Column] = {
     val hash = System.identityHashCode(rel).toString
 
     rel.getRewriteAggCalls.asScala.zipWithIndex.map {
       case (call: KylinAggregateCall, index: Int)
-          if binaryMeasureType.contains(OLAPAggregateRel.getAggrFuncName(call)) =>
+        if binaryMeasureType.contains(OLAPAggregateRel.getAggrFuncName(call)) =>
         val dataType = call.getFunc.getReturnDataType
         val isCount = call.getFunc.isCount
         val funcName =
           if (isCount) FunctionDesc.FUNC_COUNT else OLAPAggregateRel.getAggrFuncName(call)
-        val argNames = call.getArgList.asScala.map(schemaNames.apply(_))
+        val argNames = call.getArgList.asScala.map(schema.names.apply(_))
         val columnName = argNames.map(col)
-        var registeredFuncName =
-          RuntimeHelper.registerSingleByColName(funcName, dataType)
-        val aggName =
-          SchemaProcessor.replaceToAggravateSchemaName(index, funcName, hash, argNames: _*)
+        val registeredFuncName = RuntimeHelper.registerSingleByColName(funcName, dataType)
+        val aggName = SchemaProcessor.replaceToAggravateSchemaName(index, funcName, hash, argNames: _*)
         if (funcName == "COUNT_DISTINCT") {
           if (dataType.getName == "hllc") {
             org.apache.spark.sql.KapFunctions
@@ -137,11 +165,19 @@ object AggregatePlan extends Logging {
           } else {
             KapFunctions.precise_count_distinct(columnName.head).alias(aggName)
           }
+        } else if (funcName.equalsIgnoreCase(FunctionDesc.FUNC_INTERSECT_COUNT)) {
+          require(columnName.size == 3, s"Input columns size ${columnName.size} don't equal to 3.")
+          val columns = columnName.zipWithIndex.map {
+            case (column: Column, 2) => column.cast(ArrayType.apply(schema.fields.apply(call.getArgList.get(1)).dataType))
+            case (column: Column, _) => column
+          }
+          KapFunctions.intersect_count(columns.toList: _*).alias(aggName)
         } else {
           callUDF(registeredFuncName, columnName.toList: _*).alias(aggName)
         }
       case (call: Any, index: Int) =>
         val funcName = OLAPAggregateRel.getAggrFuncName(call)
+        val schemaNames = schema.names
         val argNames = call.getArgList.asScala.map(id => schemaNames.apply(id))
         val inputType = call.getType
         val aggName = SchemaProcessor.replaceToAggravateSchemaName(index,

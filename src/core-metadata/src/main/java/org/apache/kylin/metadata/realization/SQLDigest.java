@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -92,8 +91,7 @@ public class SQLDigest {
             Set<TblColRef> metricColumns, List<FunctionDesc> aggregations, // aggregation
             Set<TblColRef> filterColumns, TupleFilter filter, TupleFilter havingFilter, // filter
             List<TblColRef> sortColumns, List<OrderEnum> sortOrders, int limit, boolean limitPrecedesAggr, // sort & limit
-            Set<MeasureDesc> involvedMeasure
-    ) {
+            Set<MeasureDesc> involvedMeasure) {
         this.factTable = factTable;
         this.allColumns = allColumns;
         this.joinDescs = joinDescs;

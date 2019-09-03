@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -46,7 +45,9 @@ package org.apache.kylin.measure.bitmap;
 import static com.google.common.base.Preconditions.checkArgument;
 
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
@@ -60,6 +61,8 @@ import org.apache.kylin.metadata.datatype.DataTypeSerializer;
 import org.apache.kylin.metadata.model.FunctionDesc;
 import org.apache.kylin.metadata.model.MeasureDesc;
 import org.apache.kylin.metadata.model.TblColRef;
+import org.apache.kylin.metadata.realization.CapabilityResult;
+import org.apache.kylin.metadata.realization.SQLDigest;
 
 import com.google.common.collect.ImmutableMap;
 
@@ -103,13 +106,14 @@ public class BitmapMeasureType extends MeasureType<BitmapCounter> {
     @Override
     public void validate(FunctionDesc functionDesc) throws IllegalArgumentException {
         checkArgument(FUNC_COUNT_DISTINCT.equals(functionDesc.getExpression()),
-                "BitmapMeasureType only support function %s, got %s", FUNC_COUNT_DISTINCT, functionDesc.getExpression());
-        checkArgument(functionDesc.getParameterCount() == 1,
-                "BitmapMeasureType only support 1 parameter, got %d", functionDesc.getParameterCount());
+                "BitmapMeasureType only support function %s, got %s", FUNC_COUNT_DISTINCT,
+                functionDesc.getExpression());
+        checkArgument(functionDesc.getParameterCount() == 1, "BitmapMeasureType only support 1 parameter, got %d",
+                functionDesc.getParameterCount());
 
         String returnType = functionDesc.getReturnDataType().getName();
-        checkArgument(DATATYPE_BITMAP.equals(returnType),
-                "BitmapMeasureType's return type must be %s, got %s", DATATYPE_BITMAP, returnType);
+        checkArgument(DATATYPE_BITMAP.equals(returnType), "BitmapMeasureType's return type must be %s, got %s",
+                DATATYPE_BITMAP, returnType);
     }
 
     @Override
@@ -125,7 +129,8 @@ public class BitmapMeasureType extends MeasureType<BitmapCounter> {
             BitmapCounter current = factory.newBitmap();
 
             @Override
-            public BitmapCounter valueOf(String[] values, MeasureDesc measureDesc, Map<TblColRef, Dictionary<String>> dictionaryMap) {
+            public BitmapCounter valueOf(String[] values, MeasureDesc measureDesc,
+                    Map<TblColRef, Dictionary<String>> dictionaryMap) {
                 checkArgument(values.length == 1, "expect 1 value, got %s", Arrays.toString(values));
 
                 current.clear();
@@ -148,7 +153,8 @@ public class BitmapMeasureType extends MeasureType<BitmapCounter> {
             }
 
             @Override
-            public BitmapCounter reEncodeDictionary(BitmapCounter value, MeasureDesc measureDesc, Map<TblColRef, Dictionary<String>> oldDicts, Map<TblColRef, Dictionary<String>> newDicts) {
+            public BitmapCounter reEncodeDictionary(BitmapCounter value, MeasureDesc measureDesc,
+                    Map<TblColRef, Dictionary<String>> oldDicts, Map<TblColRef, Dictionary<String>> newDicts) {
                 //BitmapCounter needn't reEncode
                 return value;
             }
@@ -188,13 +194,45 @@ public class BitmapMeasureType extends MeasureType<BitmapCounter> {
         return true;
     }
 
-    static final Map<String, Class<?>> UDAF_MAP = ImmutableMap.of(
-            FUNC_COUNT_DISTINCT, BitmapDistinctCountAggFunc.class,
-            FUNC_INTERSECT_COUNT_DISTINCT, BitmapIntersectDistinctCountAggFunc.class);
+    static final Map<String, Class<?>> UDAF_MAP = ImmutableMap.of(FUNC_COUNT_DISTINCT,
+            BitmapDistinctCountAggFunc.class);
 
     @Override
     public Map<String, Class<?>> getRewriteCalciteAggrFunctions() {
         return UDAF_MAP;
     }
 
+    public CapabilityResult.CapabilityInfluence influenceCapabilityCheck(Collection<TblColRef> unmatchedDimensions,
+            Collection<FunctionDesc> unmatchedAggregations, SQLDigest digest, final MeasureDesc bitmap) {
+        if (unmatchedAggregations.size() == 0) {
+            return null;
+        }
+        boolean chosen = false;
+        Iterator<FunctionDesc> iterator = unmatchedAggregations.iterator();
+        while (iterator.hasNext()) {
+            FunctionDesc functionDesc = iterator.next();
+            if (functionDesc.getExpression().equals(FUNC_INTERSECT_COUNT_DISTINCT)) {
+                TblColRef countDistinctCol = functionDesc.getParameters().get(0).getColRef();
+                boolean equals = bitmap.getFunction().getParameters().get(0).getColRef().equals(countDistinctCol);
+                if (equals) {
+                    chosen =  true;
+                    iterator.remove();
+                }
+            }
+        }
+        if (chosen) {
+            return new CapabilityResult.CapabilityInfluence() {
+                @Override
+                public double suggestCostMultiplier() {
+                    return 0.9;
+                }
+
+                @Override
+                public MeasureDesc getInvolvedMeasure() {
+                    return bitmap;
+                }
+            };
+        }
+        return null;
+    }
 }

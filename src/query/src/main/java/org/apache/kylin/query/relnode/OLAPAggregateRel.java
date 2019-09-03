@@ -83,8 +83,8 @@ import org.apache.calcite.sql.validate.SqlUserDefinedAggFunction;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Util;
 import org.apache.kylin.measure.MeasureTypeFactory;
-import org.apache.kylin.measure.ParamAsMeasureCount;
 import org.apache.kylin.measure.basic.BasicMeasureType;
+import org.apache.kylin.measure.percentile.PercentileMeasureType;
 import org.apache.kylin.measure.topn.TopNMeasureType;
 import org.apache.kylin.metadata.model.FunctionDesc;
 import org.apache.kylin.metadata.model.MeasureDesc;
@@ -101,7 +101,6 @@ import com.google.common.collect.Sets;
 public class OLAPAggregateRel extends Aggregate implements OLAPRel {
 
     final static Map<String, String> AGGR_FUNC_MAP = new HashMap<String, String>();
-    final static Map<String, Integer> AGGR_FUNC_PARAM_AS_MEASURE_MAP = new HashMap<String, Integer>();
 
     static {
         AGGR_FUNC_MAP.put("SUM", "SUM");
@@ -115,16 +114,6 @@ public class OLAPAggregateRel extends Aggregate implements OLAPRel {
         Map<String, MeasureTypeFactory> udafFactories = MeasureTypeFactory.getUDAFFactories();
         for (Map.Entry<String, MeasureTypeFactory> entry : udafFactories.entrySet()) {
             AGGR_FUNC_MAP.put(entry.getKey(), entry.getValue().getAggrFunctionName());
-        }
-
-        Map<String, Class<?>> udafs = MeasureTypeFactory.getUDAFs();
-        for (String func : udafs.keySet()) {
-            try {
-                AGGR_FUNC_PARAM_AS_MEASURE_MAP.put(func,
-                        ((ParamAsMeasureCount) (udafs.get(func).newInstance())).getParamAsMeasureCount());
-            } catch (Exception e) {
-                throw new RuntimeException(e);
-            }
         }
     }
 
@@ -220,7 +209,7 @@ public class OLAPAggregateRel extends Aggregate implements OLAPRel {
         }
     }
 
-    protected ColumnRowType buildColumnRowType() {
+    public ColumnRowType buildColumnRowType() {
         buildGroups();
         buildAggregations();
 
@@ -291,8 +280,14 @@ public class OLAPAggregateRel extends Aggregate implements OLAPRel {
             // By default all args are included, UDFs can define their own in getParamAsMeasureCount method.
             if (!aggCall.getArgList().isEmpty()) {
                 List<TblColRef> columns = Lists.newArrayList();
-                int argsCount = getAggArgCount(aggCall);
-                for (Integer index : aggCall.getArgList().subList(0, argsCount)) {
+                List<Integer> args = Lists.newArrayList();
+                if (PercentileMeasureType.FUNC_PERCENTILE.equals(getSqlFuncName(aggCall))
+                        || PercentileMeasureType.FUNC_PERCENTILE_APPROX.equals(getSqlFuncName(aggCall))) {
+                    args.add(aggCall.getArgList().get(0));
+                } else {
+                    args = aggCall.getArgList();
+                }
+                for (Integer index : args) {
                     TblColRef column = inputColumnRowType.getColumnByIndex(index);
                     if (FunctionDesc.FUNC_SUM.equals(getSqlFuncName(aggCall))) {
                         column = rewriteCastInSumIfNecessary(aggCall, inputColumnRowType, index);
@@ -310,13 +305,12 @@ public class OLAPAggregateRel extends Aggregate implements OLAPRel {
         }
     }
 
-    private TblColRef rewriteCastInSumIfNecessary(AggregateCall aggCall, ColumnRowType inputColumnRowType, Integer index) {
+    private TblColRef rewriteCastInSumIfNecessary(AggregateCall aggCall, ColumnRowType inputColumnRowType,
+            Integer index) {
         // ISSUE #7294, for case like sum({fn CONVERT(ITEM_COUNT, SQL_BIGINT)})
         // remove the cast by rewriting input project, such that the sum can hit cube
         TblColRef column = inputColumnRowType.getColumnByIndex(index);
-        if (getInput() instanceof OLAPProjectRel
-                && SqlTypeUtil.isBigint(aggCall.type)
-                && column.isCastInnerColumn()) {
+        if (getInput() instanceof OLAPProjectRel && SqlTypeUtil.isBigint(aggCall.type) && column.isCastInnerColumn()) {
             TblColRef innerColumn = column.getOpreand().get(0);
             if (!innerColumn.isInnerColumn() && innerColumn.getType().isIntegerFamily()) {
                 inputColumnRowType.getAllColumns().set(index, innerColumn);
@@ -426,12 +420,9 @@ public class OLAPAggregateRel extends Aggregate implements OLAPRel {
                 if (aggFunc.equals(internalTopn))
                     return internalTopn;
             }
-
-        }
-        if (aggFunc.getExpression().equalsIgnoreCase("intersect_count")) {
-            for (MeasureDesc m : measures) {
+            if (FunctionDesc.FUNC_INTERSECT_COUNT.equalsIgnoreCase(aggFunc.getExpression())) {
                 if (m.getFunction().getReturnType().equals("bitmap")
-                        && aggFunc.getParameters().equals(m.getFunction().getParameters()))
+                        && aggFunc.getParameters().get(0).equals(m.getFunction().getParameters().get(0)))
                     return m.getFunction();
             }
         }
@@ -585,20 +576,6 @@ public class OLAPAggregateRel extends Aggregate implements OLAPRel {
     public RelWriter explainTerms(RelWriter pw) {
         return super.explainTerms(pw).item("ctx",
                 context == null ? "" : String.valueOf(context.id) + "@" + context.realization);
-    }
-
-    private int getAggArgCount(AggregateCall aggCall) {
-
-        int argsCount = aggCall.getArgList().size();
-        if (AGGR_FUNC_PARAM_AS_MEASURE_MAP.containsKey(getSqlFuncName(aggCall))) {
-            int asMeasureCnt = AGGR_FUNC_PARAM_AS_MEASURE_MAP.get(getSqlFuncName(aggCall));
-            if (asMeasureCnt > 0) {
-                argsCount = asMeasureCnt;
-            } else {
-                argsCount += asMeasureCnt;
-            }
-        }
-        return argsCount;
     }
 
     public List<TblColRef> getGroups() {

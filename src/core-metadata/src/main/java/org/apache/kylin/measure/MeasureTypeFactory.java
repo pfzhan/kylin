@@ -50,6 +50,7 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.KylinConfigCannotInitException;
 import org.apache.kylin.measure.basic.BasicMeasureType;
 import org.apache.kylin.measure.bitmap.BitmapMeasureType;
+import org.apache.kylin.measure.bitmap.intersect.IntersectMeasureType;
 import org.apache.kylin.measure.dim.DimCountDistinctMeasureType;
 import org.apache.kylin.measure.extendedcolumn.ExtendedColumnMeasureType;
 import org.apache.kylin.measure.hllc.HLLCMeasureType;
@@ -137,6 +138,7 @@ abstract public class MeasureTypeFactory<T> {
         factoryInsts.add(new ExtendedColumnMeasureType.Factory());
         factoryInsts.add(new PercentileMeasureType.Factory());
         factoryInsts.add(new DimCountDistinctMeasureType.Factory());
+        factoryInsts.add(new IntersectMeasureType.Factory());
 
         logger.info("Checking custom measure types from kylin config");
 

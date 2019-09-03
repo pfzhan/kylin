@@ -221,8 +221,18 @@ public class RealizationChooser {
         for (FunctionDesc func : sqlDigest.aggregations) {
             if (!func.isDimensionAsMetric() && !func.isGrouping()) {
                 // use the FunctionDesc from cube desc as much as possible, that has more info such as HLLC precision
-                FunctionDesc aggrFuncFromDataflowDesc = dataflow.findAggrFuncFromDataflowDesc(func);
-                metrics.add(aggrFuncFromDataflowDesc);
+
+                if (FunctionDesc.FUNC_INTERSECT_COUNT.equalsIgnoreCase(func.getExpression())) {
+                    for (MeasureDesc m : dataflow.getMeasures()) {
+                        if (m.getFunction().getReturnType().equals("bitmap")
+                                && func.getParameters().get(0).equals(m.getFunction().getParameters().get(0)))
+                            metrics.add(m.getFunction());
+                    }
+                    dimensions.add(func.getParameters().get(1).getColRef());
+                } else {
+                    FunctionDesc aggrFuncFromDataflowDesc = dataflow.findAggrFuncFromDataflowDesc(func);
+                    metrics.add(aggrFuncFromDataflowDesc);
+                }
             } else if (func.isDimensionAsMetric()) {
                 FunctionDesc funcUsedDimenAsMetric = findAggrFuncFromDataflowDesc(func, dataflow);
                 dimensions.addAll(funcUsedDimenAsMetric.getColRefs());

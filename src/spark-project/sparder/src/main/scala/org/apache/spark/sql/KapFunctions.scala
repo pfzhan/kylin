@@ -27,8 +27,8 @@ import org.apache.spark.sql.catalyst.FunctionIdentifier
 import org.apache.spark.sql.catalyst.analysis.FunctionRegistry.FunctionBuilder
 import org.apache.spark.sql.catalyst.expressions.ExpressionUtils.expression
 import org.apache.spark.sql.catalyst.expressions.aggregate.AggregateFunction
-import org.apache.spark.sql.catalyst.expressions._
-import org.apache.spark.sql.udaf.{ApproxCountDistinct, PreciseCountDistinct}
+import org.apache.spark.sql.catalyst.expressions.{DictEncode, Expression, ExpressionInfo, ImplicitCastInputTypes, In, KapAddMonths, KapDayOfWeek, KapSubtractMonths, Like, Literal, RoundBase, Sum0, TimestampAdd, TimestampDiff, Truncate}
+import org.apache.spark.sql.udaf.{ApproxCountDistinct, IntersectCount, PreciseCountDistinct}
 
 object KapFunctions {
   private def withAggregateFunction(func: AggregateFunction,
@@ -69,6 +69,13 @@ object KapFunctions {
 
   def kap_truncate(column: Column, scale: Int): Column = {
     Column(TRUNCATE(column.expr, Literal(scale)))
+  }
+
+  def intersect_count(columns: Column*): Column = {
+    require(columns.size == 3, s"Input columns size ${columns.size} don't equal to 3.")
+    val expressions = columns.map(_.expr)
+    Column(IntersectCount(expressions.apply(0), expressions.apply(1), expressions.apply(2))
+      .toAggregateExpression())
   }
 
   case class TRUNCATE(child: Expression, scale: Expression)

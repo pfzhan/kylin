@@ -163,7 +163,9 @@ object TableScanPlan extends Logging {
 
           var topNMapping: Map[Int, Column] = Map.empty
           // query will only has one Top N measure.
-          val topNMetric = context.getMetrics.asScala.collectFirst { case x: FunctionDesc if x.getReturnType.startsWith("topn") => x }
+          val topNMetric = context.getMetrics.asScala.collectFirst {
+            case x: FunctionDesc if x.getReturnType.startsWith("topn") => x
+          }
           if (topNMetric.isDefined) {
             val topNFieldIndex = mapping.getMetricsIndices(List(topNMetric.get).asJava).head
             val tp = processTopN(topNMetric.get, df, topNFieldIndex, olapContext.returnTupleInfo, tableName)

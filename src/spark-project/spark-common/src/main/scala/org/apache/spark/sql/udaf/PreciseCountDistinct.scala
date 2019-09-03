@@ -24,8 +24,8 @@
 
 package org.apache.spark.sql.udaf
 
-import com.esotericsoftware.kryo.io.{Input, KryoDataInput, KryoDataOutput, Output}
 import com.esotericsoftware.kryo.KryoException
+import com.esotericsoftware.kryo.io.{Input, KryoDataInput, KryoDataOutput, Output}
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.expressions._
@@ -63,6 +63,7 @@ sealed abstract class BasicPreciseCountDistinct(
         array = new Array[Byte](1024 * 1024)
         output = new Output(array)
       }
+      buffer.runOptimize()
       output.clear()
       val dos = new KryoDataOutput(output)
       buffer.serialize(dos)

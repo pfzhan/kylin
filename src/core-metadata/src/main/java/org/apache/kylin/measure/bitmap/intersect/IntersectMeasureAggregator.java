@@ -22,6 +22,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -40,29 +41,44 @@
  * limitations under the License.
  */
 
-package org.apache.kylin.measure.percentile;
+package org.apache.kylin.measure.bitmap.intersect;
 
-public class PercentileAggFunc {
-    public static PercentileCounter init() {
-        return null;
+import org.apache.kylin.measure.MeasureAggregator;
+import org.apache.kylin.measure.bitmap.BitmapCounter;
+import org.apache.kylin.measure.bitmap.BitmapCounterFactory;
+import org.apache.kylin.measure.bitmap.RoaringBitmapCounterFactory;
+
+/**
+ *  This is dummy aggregator, the effective aggregation is done in org.apache.spark.sql.udf.SparderExternalAggFunc
+ */
+@Deprecated
+public class IntersectMeasureAggregator extends MeasureAggregator<IntersectBitmapCounter> {
+    private static final BitmapCounterFactory bitmapFactory = RoaringBitmapCounterFactory.INSTANCE;
+
+    private IntersectBitmapCounter sum;
+
+    @Override
+    public void reset() {
+        sum = null;
     }
 
-    public static PercentileCounter add(PercentileCounter counter, Object v, Object r) {
-        PercentileCounter c = (PercentileCounter) v;
-        Number n = (Number) r;
-        if (counter == null) {
-            counter = new PercentileCounter(c.compression, n.doubleValue());
-        }
-        counter.merge(c);
-        return counter;
+    @Override
+    public void aggregate(IntersectBitmapCounter value) {
     }
 
-    public static PercentileCounter merge(PercentileCounter counter0, PercentileCounter counter1) {
-        counter0.merge(counter1);
-        return counter0;
+    @Override
+    public IntersectBitmapCounter aggregate(IntersectBitmapCounter value1, IntersectBitmapCounter value2) {
+        return value1;
     }
 
-    public static double result(PercentileCounter counter) {
-        return counter == null ? 0L : counter.getResultEstimate();
+    @Override
+    public IntersectBitmapCounter getState() {
+        return sum;
     }
+
+    @Override
+    public int getMemBytesEstimate() {
+        return sum == null ? 0 : ((BitmapCounter) sum).getMemBytes();
+    }
+
 }
