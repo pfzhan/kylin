@@ -116,7 +116,11 @@ class CreateFlatTable(val flatTable: IJoinedFlatTableDesc,
 
   private def encodeColumn(ds: Dataset[Row], encodeCols: Set[TblColRef]): Dataset[Row] = {
     val matchedCols = filterCols(ds, encodeCols)
-    DFTableEncoder.encodeTable(ds, seg, matchedCols.asJava)
+    var encodeDs = ds
+    if (!matchedCols.isEmpty) {
+      encodeDs = DFTableEncoder.encodeTable(ds, seg, matchedCols.asJava)
+    }
+    encodeDs
   }
 }
 

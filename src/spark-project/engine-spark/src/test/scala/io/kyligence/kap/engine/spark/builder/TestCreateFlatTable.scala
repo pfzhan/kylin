@@ -22,7 +22,7 @@
 package io.kyligence.kap.engine.spark.builder
 
 import java.text.SimpleDateFormat
-import java.util.TimeZone
+import java.util.{TimeZone, UUID}
 
 import io.kyligence.kap.engine.spark.builder.DFBuilderHelper.ENCODE_SUFFIX
 import io.kyligence.kap.engine.spark.job.DFChooser
@@ -30,6 +30,7 @@ import io.kyligence.kap.metadata.cube.cuboid.NSpanningTreeFactory
 import io.kyligence.kap.metadata.cube.model._
 import org.apache.kylin.common.KylinConfig
 import org.apache.kylin.metadata.model.SegmentRange
+import org.apache.spark.InfoHelper
 import org.apache.spark.sql.common.{LocalMetadata, SharedSparkSession, SparderBaseFunSuite}
 import org.apache.spark.sql.{Dataset, Row}
 import org.junit.Assert
@@ -40,7 +41,8 @@ import scala.collection.JavaConverters._
 class TestCreateFlatTable extends SparderBaseFunSuite with SharedSparkSession with LocalMetadata {
 
   private val DEFAULT_PROJECT = "default"
-  private val MODEL_NAME = "89af4ee2-2cdb-4b07-b39e-4c29856309aa"
+  private val MODEL_NAME1 = "89af4ee2-2cdb-4b07-b39e-4c29856309aa"
+  private val MODEL_NAME2 = "a8ba3ff1-83bd-4066-ad54-d2fb3d1f0e94"
 
   val dateFormat = new SimpleDateFormat("yyyy-MM-dd")
   dateFormat.setTimeZone(TimeZone.getDefault)
@@ -52,7 +54,7 @@ class TestCreateFlatTable extends SparderBaseFunSuite with SharedSparkSession wi
 
   test("Check the flattable filter and encode") {
     val dsMgr: NDataflowManager = NDataflowManager.getInstance(getTestConfig, DEFAULT_PROJECT)
-    val df: NDataflow = dsMgr.getDataflow(MODEL_NAME)
+    val df: NDataflow = dsMgr.getDataflow(MODEL_NAME1)
     // cleanup all segments first
     val update = new NDataflowUpdate(df.getUuid)
     update.setToRemoveSegsWithArray(df.getSegments.asScala.toArray)
@@ -79,6 +81,26 @@ class TestCreateFlatTable extends SparderBaseFunSuite with SharedSparkSession wi
     checkEncodeCols(afterJoin4, seg4, true)
   }
 
+  test("Check the flattable spark jobs num correctness") {
+    val helper: InfoHelper = new InfoHelper(spark)
+
+    val dsMgr: NDataflowManager = NDataflowManager.getInstance(getTestConfig, DEFAULT_PROJECT)
+    val df: NDataflow = dsMgr.getDataflow(MODEL_NAME2)
+    // cleanup all segments first
+    val update = new NDataflowUpdate(df.getUuid)
+    update.setToRemoveSegsWithArray(df.getSegments.asScala.toArray)
+    dsMgr.updateDataflow(update)
+
+    val groupId = UUID.randomUUID().toString
+    spark.sparkContext.setJobGroup(groupId, "test", false)
+    val seg1 = dsMgr.appendSegment(df, new SegmentRange.TimePartitionedSegmentRange(0L, 1356019200000L))
+    val afterJoin1 = generateFlatTable(seg1, df, true)
+    afterJoin1.collect()
+
+    val jobs = helper.getJobsByGroupId(groupId)
+    Assert.assertEquals(jobs.length, 1)
+  }
+
   private def checkFilterCondition(ds: Dataset[Row], seg: NDataSegment) = {
     val queryExecution = ds.queryExecution.simpleString
     val startTime = dateFormat.format(seg.getSegRange.getStart)
@@ -90,7 +112,7 @@ class TestCreateFlatTable extends SparderBaseFunSuite with SharedSparkSession wi
   }
 
   private def checkEncodeCols(ds: Dataset[Row], seg: NDataSegment, needEncode: Boolean) = {
-    val toBuildTree = NSpanningTreeFactory.fromLayouts(seg.getIndexPlan.getAllLayouts, MODEL_NAME)
+    val toBuildTree = NSpanningTreeFactory.fromLayouts(seg.getIndexPlan.getAllLayouts, MODEL_NAME1)
     val globalDictSet = DictionaryBuilderHelper.extractTreeRelatedGlobalDicts(seg, toBuildTree)
     val actualEncodeDictSize = ds.schema.count(_.name.endsWith(ENCODE_SUFFIX))
     if (needEncode) {
@@ -101,7 +123,7 @@ class TestCreateFlatTable extends SparderBaseFunSuite with SharedSparkSession wi
   }
 
   private def generateFlatTable(seg: NDataSegment, df: NDataflow, needEncode: Boolean): Dataset[Row] = {
-    val toBuildTree = NSpanningTreeFactory.fromLayouts(seg.getIndexPlan.getAllLayouts, MODEL_NAME)
+    val toBuildTree = NSpanningTreeFactory.fromLayouts(seg.getIndexPlan.getAllLayouts, MODEL_NAME1)
     val needJoin = DFChooser.needJoinLookupTables(seg.getModel, toBuildTree)
     val flatTableDesc = new NCubeJoinedFlatTableDesc(df.getIndexPlan, seg.getSegRange, needJoin)
     val flatTable = new CreateFlatTable(flatTableDesc, seg, toBuildTree, spark)

@@ -68,6 +68,7 @@ object DFTableEncoder extends Logging {
           .select(columns: _*)
       }
     )
+    ds.sparkSession.sparkContext.setJobDescription(null)
     partitionedDs
   }
 }
