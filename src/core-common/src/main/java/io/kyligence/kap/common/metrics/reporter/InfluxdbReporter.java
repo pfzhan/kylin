@@ -32,6 +32,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.SortedMap;
@@ -91,7 +92,6 @@ public class InfluxdbReporter extends ScheduledReporter {
     private static final String FIFTEEN_MINUTE = "15-minute";
     private static final String MEAN_MINUTE = "mean-minute";
 
-
     public InfluxdbReporter(InfluxDB influxDb, String defaultMeasurement, MetricRegistry registry, String name) {
         super(registry, name, MetricFilter.ALL, TimeUnit.SECONDS, TimeUnit.MILLISECONDS);
         this.influxDb = influxDb;
@@ -121,7 +121,7 @@ public class InfluxdbReporter extends ScheduledReporter {
                     .addAll(transformer.fromTimers(timers, defaultMeasurement, timestamp, TimeUnit.MILLISECONDS))
                     .build();
 
-            points.forEach(p -> influxDb.write(p));
+            points.forEach(influxDb::write);
             influxDb.flush();
 
             NMetricsGroup.counterInc(NMetricsName.SUMMARY_COUNTER, NMetricsCategory.GLOBAL, "global");
@@ -130,7 +130,7 @@ public class InfluxdbReporter extends ScheduledReporter {
 
             logger.debug("ke.metrics report data: {} points", points.size());
         } catch (Exception e) {
-            logger.warn("ke.metrics report data failed", e);
+            logger.error("[UNEXPECTED_THINGS_HAPPENED] ke.metrics report data failed", e);
         }
     }
 
@@ -150,78 +150,109 @@ public class InfluxdbReporter extends ScheduledReporter {
                 final long timestamp, final TimeUnit timeUnit) {
 
             return histograms.entrySet().stream().map(e -> {
-                Pair<String, Map<String, String>> nameTags = parseNameTags(e.getKey());
-                final Histogram histogram = e.getValue();
-                final Snapshot snapshot = histogram.getSnapshot();
+                try {
+                    Pair<String, Map<String, String>> nameTags = parseNameTags(e.getKey());
+                    final Histogram histogram = e.getValue();
+                    final Snapshot snapshot = histogram.getSnapshot();
 
-                return new PointBuilder(measurement, timestamp, timeUnit).putTags(nameTags.getSecond())
-                        .putField(filedName(nameTags.getFirst(), COUNT), snapshot.size())
-                        .putField(filedName(nameTags.getFirst(), MIN), snapshot.getMin())
-                        .putField(filedName(nameTags.getFirst(), MAX), snapshot.getMax())
-                        .putField(filedName(nameTags.getFirst(), MEAN), snapshot.getMean())
-                        .putField(filedName(nameTags.getFirst(), STANDARD_DEVIATION), snapshot.getStdDev())
-                        .putField(filedName(nameTags.getFirst(), FIFTY_PERCENTILE), snapshot.getMedian())
-                        .putField(filedName(nameTags.getFirst(), SEVENTY_FIVE_PERCENTILE), snapshot.get75thPercentile())
-                        .putField(filedName(nameTags.getFirst(), NINETY_FIVE_PERCENTILE), snapshot.get95thPercentile())
-                        .putField(filedName(nameTags.getFirst(), NINETY_NINE_PERCENTILE), snapshot.get99thPercentile())
-                        .putField(filedName(nameTags.getFirst(), NINETY_NINE_POINT_NINE_PERCENTILE), snapshot.get999thPercentile())
-                        .putField(filedName(nameTags.getFirst(), RUN_COUNT), histogram.getCount()).build();
-            }).collect(toList());
+                    return new PointBuilder(measurement, timestamp, timeUnit).putTags(nameTags.getSecond())
+                            .putField(filedName(nameTags.getFirst(), COUNT), snapshot.size())
+                            .putField(filedName(nameTags.getFirst(), MIN), snapshot.getMin())
+                            .putField(filedName(nameTags.getFirst(), MAX), snapshot.getMax())
+                            .putField(filedName(nameTags.getFirst(), MEAN), snapshot.getMean())
+                            .putField(filedName(nameTags.getFirst(), STANDARD_DEVIATION), snapshot.getStdDev())
+                            .putField(filedName(nameTags.getFirst(), FIFTY_PERCENTILE), snapshot.getMedian())
+                            .putField(filedName(nameTags.getFirst(), SEVENTY_FIVE_PERCENTILE),
+                                    snapshot.get75thPercentile())
+                            .putField(filedName(nameTags.getFirst(), NINETY_FIVE_PERCENTILE),
+                                    snapshot.get95thPercentile())
+                            .putField(filedName(nameTags.getFirst(), NINETY_NINE_PERCENTILE),
+                                    snapshot.get99thPercentile())
+                            .putField(filedName(nameTags.getFirst(), NINETY_NINE_POINT_NINE_PERCENTILE),
+                                    snapshot.get999thPercentile())
+                            .putField(filedName(nameTags.getFirst(), RUN_COUNT), histogram.getCount()).build();
+                } catch (Exception ex) {
+                    logger.error("[UNEXPECTED_THINGS_HAPPENED] ke.metrics histogram {}", e.getKey(), ex);
+                    return null;
+                }
+            }).filter(Objects::nonNull).collect(toList());
         }
 
         public List<Point> fromMeters(final Map<String, Meter> meters, final String measurement, final long timestamp,
                 final TimeUnit timeUnit) {
             return meters.entrySet().stream().map(e -> {
-                Pair<String, Map<String, String>> nameTags = parseNameTags(e.getKey());
-                final Meter meter = e.getValue();
+                try {
+                    Pair<String, Map<String, String>> nameTags = parseNameTags(e.getKey());
+                    final Meter meter = e.getValue();
 
-                return new PointBuilder(measurement, timestamp, timeUnit).putTags(nameTags.getSecond())
-                        .putField(filedName(nameTags.getFirst(), COUNT), meter.getCount())
-                        .putField(filedName(nameTags.getFirst(), ONE_MINUTE), convertRate(meter.getOneMinuteRate()))
-                        .putField(filedName(nameTags.getFirst(), FIVE_MINUTE), convertRate(meter.getFiveMinuteRate()))
-                        .putField(filedName(nameTags.getFirst(), FIFTEEN_MINUTE),
-                                convertRate(meter.getFifteenMinuteRate()))
-                        .putField(filedName(nameTags.getFirst(), MEAN_MINUTE), convertRate(meter.getMeanRate()))
-                        .build();
-            }).collect(toList());
+                    return new PointBuilder(measurement, timestamp, timeUnit).putTags(nameTags.getSecond())
+                            .putField(filedName(nameTags.getFirst(), COUNT), meter.getCount())
+                            .putField(filedName(nameTags.getFirst(), ONE_MINUTE), convertRate(meter.getOneMinuteRate()))
+                            .putField(filedName(nameTags.getFirst(), FIVE_MINUTE),
+                                    convertRate(meter.getFiveMinuteRate()))
+                            .putField(filedName(nameTags.getFirst(), FIFTEEN_MINUTE),
+                                    convertRate(meter.getFifteenMinuteRate()))
+                            .putField(filedName(nameTags.getFirst(), MEAN_MINUTE), convertRate(meter.getMeanRate()))
+                            .build();
+                } catch (Exception ex) {
+                    logger.error("[UNEXPECTED_THINGS_HAPPENED] ke.metrics meter {}", e.getKey(), ex);
+                    return null;
+                }
+            }).filter(Objects::nonNull).collect(toList());
         }
 
         public List<Point> fromTimers(final Map<String, Timer> timers, final String measurement, final long timestamp,
                 final TimeUnit timeUnit) {
             return timers.entrySet().stream().map(e -> {
-                Pair<String, Map<String, String>> nameTags = parseNameTags(e.getKey());
-                final Timer timer = e.getValue();
-                final Snapshot snapshot = timer.getSnapshot();
+                try {
+                    Pair<String, Map<String, String>> nameTags = parseNameTags(e.getKey());
+                    final Timer timer = e.getValue();
+                    final Snapshot snapshot = timer.getSnapshot();
 
-                return new PointBuilder(measurement, timestamp, timeUnit).putTags(nameTags.getSecond())
-                        .putField(filedName(nameTags.getFirst(), COUNT), snapshot.size())
-                        .putField(filedName(nameTags.getFirst(), MIN), convertDuration(snapshot.getMin()))
-                        .putField(filedName(nameTags.getFirst(), MAX), convertDuration(snapshot.getMax()))
-                        .putField(filedName(nameTags.getFirst(), MEAN), convertDuration(snapshot.getMean()))
-                        .putField(filedName(nameTags.getFirst(), STANDARD_DEVIATION), convertDuration(snapshot.getStdDev()))
-                        .putField(filedName(nameTags.getFirst(), FIFTY_PERCENTILE), convertDuration(snapshot.getMedian()))
-                        .putField(filedName(nameTags.getFirst(), SEVENTY_FIVE_PERCENTILE), convertDuration(snapshot.get75thPercentile()))
-                        .putField(filedName(nameTags.getFirst(), NINETY_FIVE_PERCENTILE), convertDuration(snapshot.get95thPercentile()))
-                        .putField(filedName(nameTags.getFirst(), NINETY_NINE_PERCENTILE), convertDuration(snapshot.get99thPercentile()))
-                        .putField(filedName(nameTags.getFirst(), NINETY_NINE_POINT_NINE_PERCENTILE),
-                                convertDuration(snapshot.get999thPercentile()))
-                        .putField(filedName(nameTags.getFirst(), ONE_MINUTE), convertRate(timer.getOneMinuteRate()))
-                        .putField(filedName(nameTags.getFirst(), FIVE_MINUTE), convertRate(timer.getFiveMinuteRate()))
-                        .putField(filedName(nameTags.getFirst(), FIFTEEN_MINUTE),
-                                convertRate(timer.getFifteenMinuteRate()))
-                        .putField(filedName(nameTags.getFirst(), MEAN_MINUTE), convertRate(timer.getMeanRate()))
-                        .putField(filedName(nameTags.getFirst(), RUN_COUNT), timer.getCount()).build();
-            }).collect(toList());
+                    return new PointBuilder(measurement, timestamp, timeUnit).putTags(nameTags.getSecond())
+                            .putField(filedName(nameTags.getFirst(), COUNT), snapshot.size())
+                            .putField(filedName(nameTags.getFirst(), MIN), convertDuration(snapshot.getMin()))
+                            .putField(filedName(nameTags.getFirst(), MAX), convertDuration(snapshot.getMax()))
+                            .putField(filedName(nameTags.getFirst(), MEAN), convertDuration(snapshot.getMean()))
+                            .putField(filedName(nameTags.getFirst(), STANDARD_DEVIATION),
+                                    convertDuration(snapshot.getStdDev()))
+                            .putField(filedName(nameTags.getFirst(), FIFTY_PERCENTILE),
+                                    convertDuration(snapshot.getMedian()))
+                            .putField(filedName(nameTags.getFirst(), SEVENTY_FIVE_PERCENTILE),
+                                    convertDuration(snapshot.get75thPercentile()))
+                            .putField(filedName(nameTags.getFirst(), NINETY_FIVE_PERCENTILE),
+                                    convertDuration(snapshot.get95thPercentile()))
+                            .putField(filedName(nameTags.getFirst(), NINETY_NINE_PERCENTILE),
+                                    convertDuration(snapshot.get99thPercentile()))
+                            .putField(filedName(nameTags.getFirst(), NINETY_NINE_POINT_NINE_PERCENTILE),
+                                    convertDuration(snapshot.get999thPercentile()))
+                            .putField(filedName(nameTags.getFirst(), ONE_MINUTE), convertRate(timer.getOneMinuteRate()))
+                            .putField(filedName(nameTags.getFirst(), FIVE_MINUTE),
+                                    convertRate(timer.getFiveMinuteRate()))
+                            .putField(filedName(nameTags.getFirst(), FIFTEEN_MINUTE),
+                                    convertRate(timer.getFifteenMinuteRate()))
+                            .putField(filedName(nameTags.getFirst(), MEAN_MINUTE), convertRate(timer.getMeanRate()))
+                            .putField(filedName(nameTags.getFirst(), RUN_COUNT), timer.getCount()).build();
+                } catch (Exception ex) {
+                    logger.error("[UNEXPECTED_THINGS_HAPPENED] ke.metrics timer {}", e.getKey(), ex);
+                    return null;
+                }
+            }).filter(Objects::nonNull).collect(toList());
         }
 
         private <T, R> List<Point> fromGaugesOrCounters(final Map<String, T> items, final Function<T, R> valueExtractor,
                 final String measurement, final long timestamp, final TimeUnit timeUnit) {
             return items.entrySet().stream().map(e -> {
-                Pair<String, Map<String, String>> nameTags = parseNameTags(e.getKey());
-                final R value = valueExtractor.apply(e.getValue());
-                return new PointBuilder(measurement, timestamp, timeUnit).putTags(nameTags.getSecond())
-                        .putField(nameTags.getFirst(), value).build();
-            }).collect(toList());
+                try {
+                    Pair<String, Map<String, String>> nameTags = parseNameTags(e.getKey());
+                    final R value = valueExtractor.apply(e.getValue());
+                    return new PointBuilder(measurement, timestamp, timeUnit).putTags(nameTags.getSecond())
+                            .putField(nameTags.getFirst(), value).build();
+                } catch (Exception ex) {
+                    logger.error("[UNEXPECTED_THINGS_HAPPENED] ke.metrics gauge or counter {}", e.getKey(), ex);
+                    return null;
+                }
+            }).filter(Objects::nonNull).collect(toList());
         }
 
         private Pair<String, Map<String, String>> parseNameTags(String metricName) {
@@ -275,7 +306,7 @@ public class InfluxdbReporter extends ScheduledReporter {
             return value == null || VALID_FIELD_CLASSES.contains(value.getClass());
         }
 
-        private <T> Optional<T> handleField(final String key, final T value) {
+        private <T> Optional<T> handleField(final T value) {
             if (value instanceof Float) {
                 final float f = (Float) value;
                 if (!Float.isNaN(f) && !Float.isInfinite(f)) {
@@ -290,12 +321,7 @@ public class InfluxdbReporter extends ScheduledReporter {
                 return Optional.of(value);
             } else if (value instanceof String || value instanceof Character || value instanceof Boolean) {
                 return Optional.of(value);
-            } /*else {
-                //TODO handle exception
-                throw new IllegalArgumentException(String.format(
-                        "Measure field '%s' must be a String, primitive, or Collection: invalid field '%s'", key,
-                        value));
-              }*/
+            }
 
             return Optional.empty();
         }
@@ -315,7 +341,7 @@ public class InfluxdbReporter extends ScheduledReporter {
             if (value instanceof Collection<?>) {
                 fields.put(key, handleCollection(key, (Collection) value));
             } else if (value != null) {
-                handleField(key, value).ifPresent(s -> fields.put(key, s));
+                handleField(value).ifPresent(s -> fields.put(key, s));
             }
 
             return this;
