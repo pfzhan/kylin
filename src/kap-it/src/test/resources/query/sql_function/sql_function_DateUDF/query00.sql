@@ -1,6 +1,7 @@
 --https://github.com/Kyligence/KAP/issues/13614
 
-select add_months(CAL_DT,2),
+select
+       --add_months(CAL_DT,2),
 	   date_part('YEAR',CAL_DT),
 	   date_part('MONTH',CAL_DT),
 	   date_part('DAY',CAL_DT),

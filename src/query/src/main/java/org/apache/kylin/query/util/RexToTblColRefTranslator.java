@@ -52,6 +52,7 @@ import org.apache.calcite.sql.fun.SqlCaseOperator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.validate.SqlUserDefinedFunction;
+import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.filter.CompareTupleFilter;
 import org.apache.kylin.metadata.model.TblColRef;
 import org.apache.kylin.metadata.model.tool.CalciteParser;
@@ -191,7 +192,7 @@ public class RexToTblColRefTranslator {
     }
     
     private String createInnerColumn(RexCall call) {
-        final RexSqlStandardConvertletTable convertletTable = new OLAPRexSqlStandardConvertletTable();
+        final RexSqlStandardConvertletTable convertletTable = new OLAPRexSqlStandardConvertletTable(call);
         final RexToSqlNodeConverter rexNodeToSqlConverter = new RexToSqlNodeConverterImpl(convertletTable) {
             @Override
             public SqlNode convertLiteral(RexLiteral literal) {
@@ -286,8 +287,13 @@ public class RexToTblColRefTranslator {
     }
 
     static class OLAPRexSqlStandardConvertletTable extends RexSqlStandardConvertletTable {
-        public OLAPRexSqlStandardConvertletTable() {
+        public OLAPRexSqlStandardConvertletTable(RexCall call) {
             super();
+            Set<String> udfs = KylinConfig.getInstanceFromEnv().getUDFs().keySet();
+            if (udfs.contains(call.getOperator().toString().toLowerCase())) {
+                SqlOperator operator = call.getOperator();
+                this.registerEquivOp(operator);
+            }
             registerCaseOpNew();
         }
 

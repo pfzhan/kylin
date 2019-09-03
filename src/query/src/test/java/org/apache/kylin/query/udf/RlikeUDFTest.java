@@ -44,14 +44,14 @@ package org.apache.kylin.query.udf;
 
 import static org.junit.Assert.assertTrue;
 
-import org.apache.kylin.query.udf.otherUdf.RegexpLikeUDF;
+import org.apache.kylin.query.udf.otherUdf.RlikeUDF;
 import org.junit.Test;
 
-public class RegexpLikeUDFTest {
+public class RlikeUDFTest {
 
     @Test
-    public void testRegexpLikeUDF() throws Exception {
-        RegexpLikeUDF rlu = new RegexpLikeUDF();
-        assertTrue(rlu.REGEXP_LIKE("onceA", "onceA*"));
+    public void testRlikeUDF() throws Exception {
+        RlikeUDF rlu = new RlikeUDF();
+        assertTrue(rlu.RLIKE("onceA", "onceA*"));
     }
 }

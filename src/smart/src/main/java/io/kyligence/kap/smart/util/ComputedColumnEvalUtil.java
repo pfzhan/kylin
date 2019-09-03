@@ -26,11 +26,9 @@ package io.kyligence.kap.smart.util;
 
 import java.util.Iterator;
 import java.util.List;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-import org.apache.spark.sql.AnalysisException;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparderEnv;
@@ -45,9 +43,13 @@ import io.kyligence.kap.engine.spark.job.NSparkCubingUtil;
 import io.kyligence.kap.metadata.model.ComputedColumnDesc;
 import io.kyligence.kap.metadata.model.NDataModel;
 import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Slf4j
 public class ComputedColumnEvalUtil {
+
+    protected static Logger logger = LoggerFactory.getLogger(ComputedColumnEvalUtil.class);
 
     private static final Pattern PATTERN_COLUMN = Pattern
             .compile("(cannot resolve '(.*?)' given input columns: \\[(.*?)\\.(.*?)\\..*?[,|\\]|\\s])");
@@ -86,30 +88,31 @@ public class ComputedColumnEvalUtil {
 
     public static void evaluateExprAndTypes(NDataModel nDataModel, List<ComputedColumnDesc> computedColumns) {
         SparkSession ss = SparderEnv.getSparkSession();
-        while (true) {
-            try {
-                Dataset<Row> ds = CreateFlatTable$.MODULE$.generateFullFlatTable(nDataModel, ss)
-                        .selectExpr(computedColumns.stream() //
-                                .map(ComputedColumnDesc::getInnerExpression) //
-                                .map(NSparkCubingUtil::convertFromDot).toArray(String[]::new));
-                for (int i = 0; i < computedColumns.size(); i++) {
-                    String dataType = SparderTypeUtil.convertSparkTypeToSqlType(ds.schema().fields()[i].dataType());
-                    computedColumns.get(i).setDatatype(dataType);
-                }
-                break;
-            } catch (ParseException e) {
-                dealWithParseException(computedColumns, e);
-            } catch (AnalysisException e) {
-                Matcher matcher = PATTERN_COLUMN.matcher(e.getMessage());
-                if (matcher.find()) {
-                    throw new IllegalStateException(String.format(
-                            "Failed to evaluate '%s.%s' in computed column check, please check whether the table structure has been changed.",
-                            matcher.group(4), matcher.group(2)), e);
-                }
+        setDataTypeToCC(computedColumns, ss, nDataModel, 0, computedColumns.size());
+        computedColumns.removeIf(cc -> cc.getDatatype().equals("ANY"));
+    }
 
-                throwIllegalStateException(computedColumns, e);
-            } catch (Exception e) {
-                throwIllegalStateException(computedColumns, e);
+    private static void setDataTypeToCC(List<ComputedColumnDesc> computedColumns, SparkSession ss,
+            NDataModel nDataModel, int start, int end) {
+        try {
+            Dataset<Row> originDf = CreateFlatTable$.MODULE$.generateFullFlatTable(nDataModel, ss).limit(10);
+            originDf.persist();
+
+            Dataset<Row> ds = originDf.selectExpr(computedColumns.subList(start, end).stream() //
+                    .map(ComputedColumnDesc::getInnerExpression) //
+                    .map(NSparkCubingUtil::convertFromDot).toArray(String[]::new));
+            for (int i = start; i < end; i++) {
+                String dataType = SparderTypeUtil.convertSparkTypeToSqlType(ds.schema().fields()[i - start].dataType());
+                computedColumns.get(i).setDatatype(dataType);
+            }
+        } catch (Exception e) {
+            if (end - start > 1) { //numbers of CC > 1
+                setDataTypeToCC(computedColumns, ss, nDataModel, start, start + (end - start) / 2);
+                setDataTypeToCC(computedColumns, ss, nDataModel, start + (end - start) / 2, end);
+            } else { //numbers of CC = 1
+                computedColumns.get(start).setDatatype("ANY");
+                log.info("because of {} , discard the computed column {}", e.getMessage(),
+                        computedColumns.get(start).getInnerExpression());
             }
         }
     }

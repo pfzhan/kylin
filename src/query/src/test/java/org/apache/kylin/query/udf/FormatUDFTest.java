@@ -42,6 +42,7 @@
 
 package org.apache.kylin.query.udf;
 
+import org.apache.kylin.query.udf.formatUdf.DateFormatUDF;
 import org.apache.kylin.query.udf.formatUdf.ToCharUDF;
 import org.apache.kylin.query.udf.formatUdf.ToDateUDF;
 import org.apache.kylin.query.udf.formatUdf.ToTimestampUDF;
@@ -94,5 +95,19 @@ public class FormatUDFTest {
         assertEquals("2019", toCharUDF.TO_CHAR(Date.valueOf("2019-05-09"), "year"));
         assertEquals("05", toCharUDF.TO_CHAR(Date.valueOf("2019-05-09"), "month"));
         assertEquals("09", toCharUDF.TO_CHAR(Date.valueOf("2019-05-09"), "day"));
+    }
+
+    @Test
+    public void testDateFormatUDF() throws Exception {
+        DateFormatUDF dateFormatUDF = new DateFormatUDF();
+        assertEquals("2019", dateFormatUDF.DATE_FORMAT(Timestamp.valueOf("2019-05-09 11:49:45"), "year"));
+        assertEquals("05", dateFormatUDF.DATE_FORMAT(Timestamp.valueOf("2019-05-09 11:49:45"), "month"));
+        assertEquals("09", dateFormatUDF.DATE_FORMAT(Timestamp.valueOf("2019-05-09 11:49:45"), "day"));
+        assertEquals("11", dateFormatUDF.DATE_FORMAT(Timestamp.valueOf("2019-05-09 11:49:45"), "hour"));
+        assertEquals("49", dateFormatUDF.DATE_FORMAT(Timestamp.valueOf("2019-05-09 11:49:45"), "minute"));
+        assertEquals("45", dateFormatUDF.DATE_FORMAT(Timestamp.valueOf("2019-05-09 11:49:45"), "seconds"));
+        assertEquals("2019", dateFormatUDF.DATE_FORMAT(Date.valueOf("2019-05-09"), "year"));
+        assertEquals("05", dateFormatUDF.DATE_FORMAT(Date.valueOf("2019-05-09"), "month"));
+        assertEquals("09", dateFormatUDF.DATE_FORMAT(Date.valueOf("2019-05-09"), "day"));
     }
 }

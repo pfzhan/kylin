@@ -1,11 +1,12 @@
---https://github.com/Kyligence/KAP/issues/13612
+--https://github.com/kyligence/kap/issues/14155#
 
-select date_format(CAL_DT,'y'),
+--disable reason: https://github.com/Kyligence/KAP/issues/14426
+select date_format(CAL_DT,'YEAR'),
        date_format(CAL_DT,'y'),
 	   date_format(CAL_DT,'Y'),
+	   date_format(CAL_DT,'MONTH'),
 	   date_format(CAL_DT,'M'),
-	   date_format(CAL_DT,'M'),
-	   date_format(CAL_DT,'d'),
+	   date_format(CAL_DT,'DAY'),
 	   date_format(CAL_DT,'D'),
        date_format(CAL_DT,'d'),
        date_format(CAL_DT,'H'),

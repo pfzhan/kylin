@@ -83,6 +83,8 @@ public class NComputedColumnProposer extends NAbstractModelProposer {
         // pre-init to construct join-tree
         initModel(nDataModel);
         Set<String> ccSuggestions = collectComputedColumnSuggestion(modelContext, nDataModel);
+        logger.info("Proposed computed column candidates {} for model [{}] successfully", ccSuggestions.toString(),
+                nDataModel.getId());
         if (ccSuggestions.isEmpty()) {
             return;
         }
@@ -125,6 +127,8 @@ public class NComputedColumnProposer extends NAbstractModelProposer {
         // 2. unsupported CC: something wrong happened in inferring type
         // 3. the type of CC is ANY: something unlikely thing happened in inferring type
         nDataModel.getComputedColumnDescs().removeIf(cc -> cc.getDatatype().equals("ANY"));
+        logger.info("There are valid computed columns {} for model [{}] after validation",
+                nDataModel.getComputedColumnNames().toString(), nDataModel.getId());
     }
 
     private Set<String> collectComputedColumnSuggestion(NModelContext modelContext, NDataModel nDataModel) {
@@ -181,8 +185,9 @@ public class NComputedColumnProposer extends NAbstractModelProposer {
         Collection<TblColRef> resultSet = new HashSet<>();
         for (TblColRef innerColRef : context.getInnerFilterColumns()) {
             Set<TblColRef> filterSourceColumns = innerColRef.getSourceColumns();
-            if (!innerColRef.getSourceColumns().isEmpty() &&
-                    checkColumnsMinCardinality(filterSourceColumns, modelContext.getSmartContext().getSmartConfig().getComputedColumnOnFilterKeySuggestionMinCardinality())) {
+            if (!innerColRef.getSourceColumns().isEmpty()
+                    && checkColumnsMinCardinality(filterSourceColumns, modelContext.getSmartContext().getSmartConfig()
+                            .getComputedColumnOnFilterKeySuggestionMinCardinality())) {
 
                 // if the inner filter column contains columns from group keys
                 // and the inner filter column also appears in the select clause,
@@ -207,8 +212,9 @@ public class NComputedColumnProposer extends NAbstractModelProposer {
         Collection<TblColRef> resultSet = new HashSet<>();
         for (TblColRef groupByColRef : context.getInnerGroupByColumns()) {
             Set<TblColRef> groupSourceColumns = groupByColRef.getSourceColumns();
-            if (!groupByColRef.getSourceColumns().isEmpty() &&
-                    checkColumnsMinCardinality(groupSourceColumns, modelContext.getSmartContext().getSmartConfig().getComputedColumnOnGroupKeySuggestionMinCardinality())) {
+            if (!groupByColRef.getSourceColumns().isEmpty()
+                    && checkColumnsMinCardinality(groupSourceColumns, modelContext.getSmartContext().getSmartConfig()
+                            .getComputedColumnOnGroupKeySuggestionMinCardinality())) {
                 resultSet.add(groupByColRef);
             }
         }

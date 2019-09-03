@@ -40,18 +40,18 @@
  * limitations under the License.
  */
 
-package org.apache.kylin.query.udf;
+package org.apache.kylin.query.udf.otherUdf;
 
-import static org.junit.Assert.assertTrue;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
-import org.apache.kylin.query.udf.otherUdf.RegexpLikeUDF;
-import org.junit.Test;
+import org.apache.calcite.linq4j.function.Parameter;
 
-public class RegexpLikeUDFTest {
+public class RegexpLikeUDF {
 
-    @Test
-    public void testRegexpLikeUDF() throws Exception {
-        RegexpLikeUDF rlu = new RegexpLikeUDF();
-        assertTrue(rlu.REGEXP_LIKE("onceA", "onceA*"));
+    public boolean REGEXP_LIKE(@Parameter(name = "str1") String s, @Parameter(name = "str2") String patternStr) {
+        Pattern p = Pattern.compile(patternStr);
+        Matcher m = p.matcher(s);
+        return m.matches();
     }
 }

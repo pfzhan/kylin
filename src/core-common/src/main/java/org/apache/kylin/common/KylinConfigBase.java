@@ -1265,7 +1265,9 @@ abstract public class KylinConfigBase implements Serializable {
 
     public Map<String, String> getUDFs() {
         Map<String, String> udfMap = Maps.newLinkedHashMap();
-        udfMap.put("regexp_like", "org.apache.kylin.query.udf.other.RegexpLikeUDF");
+        udfMap.put("regexp_like", "org.apache.kylin.query.udf.otherUdf.RegexpLikeUDF");
+        udfMap.put("rlike", "org.apache.kylin.query.udf.otherUdf.RlikeUDF");
+        udfMap.put("if", "org.apache.kylin.query.udf.otherUdf.IfUDF");
         udfMap.put("version", "org.apache.kylin.query.udf.VersionUDF");
         udfMap.put("concat", "org.apache.kylin.query.udf.stringUdf.ConcatUDF");
         udfMap.put("massin", "org.apache.kylin.query.udf.MassInUDF");
@@ -1280,10 +1282,12 @@ abstract public class KylinConfigBase implements Serializable {
         udfMap.put("to_timestamp", "org.apache.kylin.query.udf.formatUdf.ToTimestampUDF");
         udfMap.put("to_date", "org.apache.kylin.query.udf.formatUdf.ToDateUDF");
         udfMap.put("to_char", "org.apache.kylin.query.udf.formatUdf.ToCharUDF");
+        udfMap.put("date_format", "org.apache.kylin.query.udf.formatUdf.DateFormatUDF");
         udfMap.put("instr", "org.apache.kylin.query.udf.stringUdf.InStrUDF");
         udfMap.put("strpos", "org.apache.kylin.query.udf.stringUdf.StrPosUDF");
         udfMap.put("ifnull", "org.apache.kylin.query.udf.nullHandling.IfNullUDF");
         udfMap.put("isnull", "org.apache.kylin.query.udf.nullHandling.IsNullUDF");
+        udfMap.put("split_part", "org.apache.kylin.query.udf.stringUdf.SplitPartUDF");
         Map<String, String> overrideUdfMap = getPropertiesByPrefix("kylin.query.udf.");
         udfMap.putAll(overrideUdfMap);
         return udfMap;

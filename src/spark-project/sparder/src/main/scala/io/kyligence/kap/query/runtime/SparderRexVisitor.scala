@@ -24,7 +24,7 @@
 
 package io.kyligence.kap.query.runtime
 
-import java.lang
+
 import java.math.BigDecimal
 import java.sql.Timestamp
 
@@ -37,7 +37,7 @@ import org.apache.calcite.sql.`type`.{BasicSqlType, IntervalSqlType, SqlTypeFami
 import org.apache.calcite.sql.fun.SqlDatetimeSubtractionOperator
 import org.apache.kylin.common.util.DateFormat
 import org.apache.spark.sql.KapFunctions._
-import org.apache.spark.sql.catalyst.expressions.{Expression, IfNull, StringLocate}
+import org.apache.spark.sql.catalyst.expressions.{Expression, If, IfNull, StringLocate, StringSplit}
 import org.apache.spark.sql.catalyst.util.DateTimeUtils
 import org.apache.spark.sql.functions._
 import org.apache.spark.sql.types.{DateType, LongType, TimestampType}
@@ -416,6 +416,9 @@ class SparderRexVisitor(val dfs: Array[DataFrame],
             new Column(StringLocate(k_lit(children.head).expr, k_lit(children.apply(1)).expr, lit(pos).expr)) //position(substr,str,start)
           case "concat" =>
             concat(k_lit(children.head), k_lit(children.apply(1)))
+          case "split_part" =>
+            val args = Seq(k_lit(children.head), lit(children.apply(1)), lit(children.apply(2).asInstanceOf[Int])).toArray
+            callUDF("split_part", args: _*)
           // time_funcs
           case "current_date" =>
             k_lit(
@@ -441,7 +444,7 @@ class SparderRexVisitor(val dfs: Array[DataFrame],
               throw new UnsupportedOperationException(
                 s"to_date must provide one or two parameters under sparder")
             }
-          case "to_char" =>
+          case "to_char" | "date_format" =>
             var part = k_lit(children.apply(1)).toString().toUpperCase match {
               case "YEAR" =>
                 "y"
@@ -462,7 +465,7 @@ class SparderRexVisitor(val dfs: Array[DataFrame],
               case _ =>
                 k_lit(children.apply(1)).toString()
             }
-            date_format(k_lit(children.head),part)
+            date_format(k_lit(children.head), part)
           case "power" =>
             pow(k_lit(children.head), k_lit(children.apply(1)))
           case "log10" =>
@@ -495,8 +498,7 @@ class SparderRexVisitor(val dfs: Array[DataFrame],
           case "add_months" =>
             kap_add_months(k_lit(children.head), k_lit(children.apply(1)))
           case "date_part" | "date_trunc" =>
-            var p = k_lit(children.head).toString().toUpperCase
-            var part = p match {
+            var part = k_lit(children.head).toString().toUpperCase match {
               case "YEAR" =>
                 "y"
               case "MONTH" =>
@@ -514,17 +516,19 @@ class SparderRexVisitor(val dfs: Array[DataFrame],
               case "SECONDS" =>
                 "s"
               case _ =>
-                p
+                k_lit(children.head).toString()
             }
-            date_format(k_lit(children.apply(1)),part)
+            date_format(k_lit(children.apply(1)), part)
           case "datediff" =>
-            datediff(k_lit(children.head),k_lit(children.apply(1)))
+            datediff(k_lit(children.head), k_lit(children.apply(1)))
           case "initcap" =>
             initcap(k_lit(children.head))
           case "pi" =>
             k_lit(Math.PI)
-          case "regexp_like"=>
+          case "regexp_like" | "rlike" =>
             k_lit(children.head).rlike(children.apply(1).toString)
+          case "if" =>
+            new Column(new If(k_lit(children.head).expr,k_lit(children.apply(1)).expr,k_lit(children.apply(2)).expr))
           case _ =>
             throw new UnsupportedOperationException(
               s"Unsupported function $funcName")

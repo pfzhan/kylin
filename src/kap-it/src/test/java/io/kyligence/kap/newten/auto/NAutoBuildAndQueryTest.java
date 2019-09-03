@@ -74,8 +74,15 @@ public class NAutoBuildAndQueryTest extends NAutoTestBase {
                 new TestScenario(CompareLevel.SAME, "query/sql_distinct_dim"), //
                 new TestScenario(CompareLevel.SAME, "query/sql_extended_column"), //
                 new TestScenario(CompareLevel.SAME, "query/sql_function"), //
-                new TestScenario(CompareLevel.SAME, "query/sql_function/sql_function_nullHandling"),
-                new TestScenario(CompareLevel.SAME, "query/sql_function/sql_function_formatUDF"),
+                new TestScenario(CompareLevel.SAME, "query/sql_function/sql_function_nullHandling"), //
+                new TestScenario(CompareLevel.SAME, "query/sql_function/sql_function_formatUDF"), //
+                new TestScenario(CompareLevel.SAME, "query/sql_function/sql_function_DateUDF"), //
+                new TestScenario(CompareLevel.SAME, "query/sql_function/sql_function_OtherUDF"), //
+                new TestScenario(CompareLevel.SAME, "query/sql_computedcolumn/sql_computedcolumn_StringUDF"), //
+                new TestScenario(CompareLevel.SAME, "query/sql_computedcolumn/sql_computedcolumn_nullHandling"), //
+                new TestScenario(CompareLevel.SAME, "query/sql_computedcolumn/sql_computedcolumn_formatUDF"), //
+                new TestScenario(CompareLevel.SAME, "query/sql_computedcolumn/sql_computedcolumn_DateUDF"), //
+                new TestScenario(CompareLevel.SAME, "query/sql_computedcolumn/sql_computedcolumn_OtherUDF"), //
                 new TestScenario(CompareLevel.SAME, "query/sql_grouping"), //
                 new TestScenario(CompareLevel.SAME, "query/sql_hive"), //
                 new TestScenario(CompareLevel.SAME, "query/sql_inner_column"), //
@@ -110,6 +117,7 @@ public class NAutoBuildAndQueryTest extends NAutoTestBase {
                 new TestScenario(CompareLevel.SAME, JoinType.LEFT, "query/sql_topn"), //
 
                 /* CompareLevel = SAME_ROWCOUNT */
+                new TestScenario(CompareLevel.SAME_ROWCOUNT, "query/sql_computedcolumn/sql_computedcolumn_ifnull_timestamp"),
                 new TestScenario(CompareLevel.SAME_ROWCOUNT, "query/sql_distinct/sql_distinct_hllc"),
                 new TestScenario(CompareLevel.SAME_ROWCOUNT, "query/sql_function/sql_function_ifnull_timestamp"),
                 new TestScenario(CompareLevel.SAME_ROWCOUNT, "query/sql_h2_uncapable"),
@@ -119,7 +127,8 @@ public class NAutoBuildAndQueryTest extends NAutoTestBase {
                 new TestScenario(CompareLevel.SAME_ROWCOUNT, "query/sql_verifyCount"),
 
                 /* CompareLevel = SAME_ORDER */
-                new TestScenario(CompareLevel.SAME_ORDER, "query/sql_window"));
+                new TestScenario(CompareLevel.SAME_ORDER, "query/sql_window")
+                );
     }
 
     @Test

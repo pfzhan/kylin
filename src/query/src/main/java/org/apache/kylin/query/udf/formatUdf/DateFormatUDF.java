@@ -40,18 +40,45 @@
  * limitations under the License.
  */
 
-package org.apache.kylin.query.udf.other;
-
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+package org.apache.kylin.query.udf.formatUdf;
 
 import org.apache.calcite.linq4j.function.Parameter;
 
-public class RegexpLikeUDF {
+import java.sql.Date;
+import java.sql.Timestamp;
 
-    public boolean REGEXP_LIKE(@Parameter(name = "str1") String s, @Parameter(name = "str2") String patternStr) {
-        Pattern p = Pattern.compile(patternStr);
-        Matcher m = p.matcher(s);
-        return m.matches();
+public class DateFormatUDF {
+
+    public String DATE_FORMAT(@Parameter(name = "date") Timestamp date, @Parameter(name = "part") String part) {
+        String partOfDate = null;
+        switch (part.toUpperCase()) {
+            case "YEAR":
+                partOfDate = date.toString().substring(0, 4);
+                break;
+            case "MONTH":
+                partOfDate = date.toString().substring(5, 7);
+                break;
+            case "DAY":
+                partOfDate = date.toString().substring(8, 10);
+                break;
+            case "HOUR":
+                partOfDate = date.toString().substring(11, 13);
+                break;
+            case "MINUTE":
+            case "MINUTES":
+                partOfDate = date.toString().substring(14, 16);
+                break;
+            case "SECOND":
+            case "SECONDS":
+                partOfDate = date.toString().substring(17, 19);
+                break;
+            default:
+                //throws
+        }
+        return partOfDate;
+    }
+
+    public String DATE_FORMAT(@Parameter(name = "date") Date date, @Parameter(name = "part") String part) {
+        return DATE_FORMAT(new Timestamp(date.getTime()), part);
     }
 }

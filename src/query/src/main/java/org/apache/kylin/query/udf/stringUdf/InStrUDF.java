@@ -52,6 +52,6 @@ public class InStrUDF {
 
     public int INSTR(@Parameter(name = "str") String s1, @Parameter(name = "subStr") String s2,
             @Parameter(name = "position") int p) {
-        return s1.indexOf(s2, p) + 1;
+        return s1.indexOf(s2, p - 1) + 1;
     }
 }

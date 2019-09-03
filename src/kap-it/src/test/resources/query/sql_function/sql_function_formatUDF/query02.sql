@@ -8,6 +8,7 @@ select to_char(CAL_DT,'YEAR'),
 	   to_char(CAL_DT,'DAY'),
 	   to_char(CAL_DT,'D'),
        to_char(CAL_DT,'d'),
+       to_char(CAL_DT,'H'),
 	   to_char(CAL_DT,'h'),
 	   to_char(CAL_DT,'m'),
 	   to_char(CAL_DT,'s')

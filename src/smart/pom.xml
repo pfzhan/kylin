@@ -38,6 +38,7 @@
         <dependency>
             <groupId>io.kyligence.ke</groupId>
             <artifactId>kap-engine-spark</artifactId>
+            <scope>provided</scope>
         </dependency>
 
         <!--log4j provided for debugging-->
@@ -84,6 +85,13 @@
         <dependency>
             <groupId>io.kyligence.ke</groupId>
             <artifactId>kap-core-common</artifactId>
+            <type>test-jar</type>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.kyligence.ke</groupId>
+            <artifactId>kap-engine-spark</artifactId>
+            <version>${project.version}</version>
             <type>test-jar</type>
             <scope>test</scope>
         </dependency>
