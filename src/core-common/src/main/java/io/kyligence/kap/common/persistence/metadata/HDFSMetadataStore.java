@@ -87,7 +87,7 @@ public class HDFSMetadataStore extends MetadataStore {
             String path = storageUrl.getParameter("path");
             if (path == null) {
                 path = HadoopUtil.getBackupFolder(kylinConfig);
-                fs = HadoopUtil.getFileSystem(path);
+                fs = HadoopUtil.getWorkingFileSystem();
                 if (!fs.exists(new Path(path))) {
                     fs.mkdirs(new Path(path));
                 }
@@ -98,7 +98,7 @@ public class HDFSMetadataStore extends MetadataStore {
                     fs.mkdirs(rootPath);
                 }
             } else {
-                fs = HadoopUtil.getFileSystem(path);
+                fs = HadoopUtil.getWorkingFileSystem();
                 rootPath = fs.makeQualified(new Path(path));
             }
 

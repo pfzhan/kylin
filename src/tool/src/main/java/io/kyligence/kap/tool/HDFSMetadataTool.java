@@ -36,7 +36,7 @@ import java.util.stream.Stream;
 public class HDFSMetadataTool {
     public static void cleanBeforeBackup(KylinConfig kylinConfig) throws IOException {
         val rootMetadataBackupPath = new Path(HadoopUtil.getBackupFolder(KylinConfig.getInstanceFromEnv()));
-        val fs = HadoopUtil.getFileSystem(rootMetadataBackupPath);
+        val fs = HadoopUtil.getWorkingFileSystem();
         if (!fs.exists(rootMetadataBackupPath)) {
             fs.mkdirs(rootMetadataBackupPath);
             return;

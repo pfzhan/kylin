@@ -121,7 +121,7 @@ class TestDFBuildJob extends WordSpec with MockFactory with SharedSparkSession w
 
         var stream: FSDataOutputStream = null
         try {
-          stream = HadoopUtil.getReadFileSystem.create(new Path(path))
+          stream = HadoopUtil.getWorkingFileSystem().create(new Path(path))
           stream.writeUTF("test")
         } finally {
           if (stream != null) {

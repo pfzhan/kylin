@@ -61,7 +61,7 @@ public class ProjectDropListener {
 
     private void deleteStorage(KylinConfig config, String project) throws IOException {
         String strPath = config.getHdfsWorkingDirectory(project);
-        FileSystem fs = HadoopUtil.getFileSystem(strPath);
+        FileSystem fs = HadoopUtil.getWorkingFileSystem();
         if (fs.exists(new Path(strPath))) {
             fs.delete(new Path(strPath), true);
         }

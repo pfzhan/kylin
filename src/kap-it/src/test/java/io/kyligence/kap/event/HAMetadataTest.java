@@ -179,7 +179,7 @@ public class HAMetadataTest extends NLocalFileMetadataTestCase {
 
         Thread.sleep(1000);
         val path = HadoopUtil.getBackupFolder(getTestConfig());
-        val fs = HadoopUtil.getFileSystem(path);
+        val fs = HadoopUtil.getWorkingFileSystem();
         val rootPath = Stream.of(fs.listStatus(new Path(path)))
                 .max(Comparator.comparing(FileStatus::getModificationTime)).map(FileStatus::getPath)
                 .orElse(new Path(path + "/backup_1/"));

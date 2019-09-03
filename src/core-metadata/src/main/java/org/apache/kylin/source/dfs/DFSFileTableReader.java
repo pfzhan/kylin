@@ -100,7 +100,7 @@ public class DFSFileTableReader implements TableReader {
         this.expectedColumnNumber = expectedColumnNumber;
         this.readerList = new ArrayList<RowReader>();
 
-        FileSystem fs = HadoopUtil.getFileSystem(filePath);
+        FileSystem fs = HadoopUtil.getWorkingFileSystem();
 
         ArrayList<FileStatus> allFiles = new ArrayList<>();
         FileStatus status = fs.getFileStatus(new Path(filePath));

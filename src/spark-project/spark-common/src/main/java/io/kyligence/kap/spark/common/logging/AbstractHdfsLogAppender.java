@@ -212,7 +212,7 @@ public abstract class AbstractHdfsLogAppender extends AppenderSkeleton {
             bufferedWriter = null;
             outStream = null;
 
-            fileSystem = HadoopUtil.getFileSystem(new Path(getHdfsWorkingDir()), conf);
+            fileSystem = HadoopUtil.getWorkingFileSystem(conf);
 
             int retry = 10;
             while (retry-- > 0) {

@@ -82,7 +82,7 @@ public class MetadataBackupServiceTest extends NLocalFileMetadataTestCase {
 
         //1.assert there is no metadata dir in root dir before backup,the root dir is junitFolder.getAbsolutePath()
         val rootPath = new Path(kylinConfig.getHdfsWorkingDirectory()).getParent();
-        val rootFS = HadoopUtil.getFileSystem(rootPath);
+        val rootFS = HadoopUtil.getWorkingFileSystem();
         Assertions.assertThat(rootFS.listStatus(rootPath)).hasSize(0);
 
         //2.execute backup()
@@ -90,7 +90,7 @@ public class MetadataBackupServiceTest extends NLocalFileMetadataTestCase {
 
         //3.assert there is a metadata dir in root metadata dir after backup,the metadata dir location is junitFolder.getAbsolutePath()/metadata_backup_ut_test/backup/LocalDateTime/metadata
         val rootMetadataPath = new Path(kylinConfig.getHdfsWorkingDirectory() + "/_backup");
-        val rootMetadataFS = HadoopUtil.getFileSystem(rootMetadataPath);
+        val rootMetadataFS = HadoopUtil.getWorkingFileSystem();
         Assertions.assertThat(rootMetadataFS.listStatus(rootMetadataPath)).hasSize(1);
 
         val rootMetadataChildrenPath = rootMetadataFS.listStatus(rootMetadataPath)[0].getPath();
@@ -107,7 +107,7 @@ public class MetadataBackupServiceTest extends NLocalFileMetadataTestCase {
         kylinConfig.setProperty("kylin.env.hdfs-working-dir", temporaryFolder.getRoot().getAbsolutePath());
         val rootMetadataPath = new Path(kylinConfig.getHdfsWorkingDirectory() + "/_backup");
 
-        val fs = HadoopUtil.getFileSystem(rootMetadataPath);
+        val fs = HadoopUtil.getWorkingFileSystem();
         fs.mkdirs(rootMetadataPath);
 
         int metadataBackupCountThreshold = kylinConfig.getMetadataBackupCountThreshold();
@@ -150,14 +150,14 @@ public class MetadataBackupServiceTest extends NLocalFileMetadataTestCase {
         long count = jdbcTemplate.queryForObject("select count(1) from test_audit_Log", Long.class);
 
         val rootPath = new Path(kylinConfig.getHdfsWorkingDirectory()).getParent();
-        val rootFS = HadoopUtil.getFileSystem(rootPath);
+        val rootFS = HadoopUtil.getWorkingFileSystem();
         Assertions.assertThat(rootFS.listStatus(rootPath)).hasSize(0);
 
         metadataBackupService.backupAll();
 
         // make sure backup is successful
         val rootMetadataPath = new Path(kylinConfig.getHdfsWorkingDirectory() + "/_backup");
-        val rootMetadataFS = HadoopUtil.getFileSystem(rootMetadataPath);
+        val rootMetadataFS = HadoopUtil.getWorkingFileSystem();
         Assert.assertEquals(1, rootMetadataFS.listStatus(rootMetadataPath).length);
         val path = rootMetadataFS.listStatus(rootMetadataPath)[0].getPath();
         Assert.assertEquals(2, rootMetadataFS.listStatus(path).length);

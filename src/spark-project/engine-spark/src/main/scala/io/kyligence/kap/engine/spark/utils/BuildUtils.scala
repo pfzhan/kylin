@@ -53,7 +53,7 @@ object BuildUtils extends Logging {
                          tempPath: String,
                          kapConfig: KapConfig,
                          sparkSession: SparkSession): Int = {
-    val fs = HadoopUtil.getReadFileSystem
+    val fs = HadoopUtil.getWorkingFileSystem()
     if (fs.exists(new Path(tempPath))) {
       val summary = HadoopUtil.getContentSummary(fs, new Path(tempPath))
       var repartitionThresholdSize = kapConfig.getParquetStorageShardSizeRowCount
@@ -108,7 +108,7 @@ object BuildUtils extends Logging {
   @throws[IOException]
   def fillCuboidInfo(cuboid: NDataLayout): Unit = {
     val strPath = NSparkCubingUtil.getStoragePath(cuboid)
-    val fs = HadoopUtil.getReadFileSystem
+    val fs = HadoopUtil.getWorkingFileSystem
     if (fs.exists(new Path(strPath))) {
       val cs = HadoopUtil.getContentSummary(fs, new Path(strPath))
       cuboid.setFileCount(cs.getFileCount)

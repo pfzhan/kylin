@@ -56,9 +56,9 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.PathFilter;
 import org.apache.hadoop.io.Writable;
-import org.apache.kylin.common.storage.IStorageProvider;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
+import org.apache.kylin.common.storage.IStorageProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -109,6 +109,7 @@ public class HadoopUtil {
         return conf;
     }
 
+    //add sonar rule:  filesystem.get forbidden
     public static FileSystem getWorkingFileSystem() {
         return getFileSystem(KylinConfig.getInstanceFromEnv().getHdfsWorkingDirectory(null));
     }
@@ -118,26 +119,19 @@ public class HadoopUtil {
         return getFileSystem(workingPath, conf);
     }
 
-    public static FileSystem getReadFileSystem() {
-        Configuration conf = getCurrentConfiguration();
-        return getReadFileSystem(conf);
-    }
-
-    public static FileSystem getReadFileSystem(Configuration conf) {
-        Path parquetReadPath = new Path(KylinConfig.getInstanceFromEnv().getReadHdfsWorkingDirectory(null));
-        return getFileSystem(parquetReadPath, conf);
-    }
-
-    public static FileSystem getFileSystem(String path) {
+    //package-private spark
+    private static FileSystem getFileSystem(String path) {
         return getFileSystem(new Path(makeURI(path)));
     }
 
-    public static FileSystem getFileSystem(Path path) {
+    //package-private spark
+    private static FileSystem getFileSystem(Path path) {
         Configuration conf = getCurrentConfiguration();
         return getFileSystem(path, conf);
     }
 
-    public static FileSystem getFileSystem(Path path, Configuration conf) {
+    //package-private spark
+    private static FileSystem getFileSystem(Path path, Configuration conf) {
         try {
             return path.getFileSystem(conf);
         } catch (IOException e) {

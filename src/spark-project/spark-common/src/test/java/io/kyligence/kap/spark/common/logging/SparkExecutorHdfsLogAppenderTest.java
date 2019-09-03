@@ -23,7 +23,12 @@
  */
 package io.kyligence.kap.spark.common.logging;
 
-import lombok.val;
+import java.io.File;
+import java.io.IOException;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.Arrays;
+
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.reflect.FieldUtils;
@@ -37,11 +42,7 @@ import org.junit.Assert;
 import org.junit.Test;
 import org.mockito.Mockito;
 
-import java.io.File;
-import java.io.IOException;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
-import java.util.Arrays;
+import lombok.val;
 
 public class SparkExecutorHdfsLogAppenderTest extends AbstractHdfsLogAppenderTestBase {
 

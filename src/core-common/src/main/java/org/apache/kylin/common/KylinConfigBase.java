@@ -86,6 +86,9 @@ abstract public class KylinConfigBase implements Serializable {
     private static final long serialVersionUID = 1L;
     private static final Logger logger = LoggerFactory.getLogger(KylinConfigBase.class);
 
+    private static final String WORKING_DIR_PROP = "kylin.env.hdfs-working-dir";
+    private static final String WORKING_DIR_DEFAULT = "/kylin";
+
     /*
      * DON'T DEFINE CONSTANTS FOR PROPERTY KEYS!
      *
@@ -168,6 +171,7 @@ abstract public class KylinConfigBase implements Serializable {
                 properties.put(entry.getKey(), substitutor.replace((String) entry.getValue()));
             }
         }
+
         return properties;
     }
 
@@ -176,12 +180,12 @@ abstract public class KylinConfigBase implements Serializable {
         final Map<String, Object> all = Maps.newHashMap();
         all.putAll((Map) properties);
         all.putAll(System.getenv());
+
         return new StrSubstitutor(all);
     }
 
     protected Properties getRawAllProperties() {
         return properties;
-
     }
 
     final protected Map<String, String> getPropertiesByPrefix(String prefix) {
@@ -241,6 +245,10 @@ abstract public class KylinConfigBase implements Serializable {
         setProperty("kylin.log.spark-executor-properties-file", getLogSparkExecutorPropertiesFile());
         setProperty("kylin.log.spark-driver-properties-file", getLogSparkDriverPropertiesFile());
         setProperty("kylin.log.spark-appmaster-properties-file", getLogSparkAppMasterPropertiesFile());
+
+        // https://github.com/kyligence/kap/issues/12654
+        this.properties.put(WORKING_DIR_PROP,
+                makeQualified(new Path(this.properties.getProperty(WORKING_DIR_PROP, WORKING_DIR_DEFAULT))).toString());
     }
 
     private Map<Integer, String> convertKeyToInteger(Map<String, String> map) {
@@ -277,23 +285,27 @@ abstract public class KylinConfigBase implements Serializable {
         return HadoopUtil.getPathWithoutScheme(getHdfsWorkingDirectory());
     }
 
+    private Path makeQualified(Path path) {
+        try {
+            FileSystem fs = path.getFileSystem(HadoopUtil.getCurrentConfiguration());
+            return fs.makeQualified(path);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     public String getHdfsWorkingDirectory() {
         if (cachedHdfsWorkingDirectory != null)
             return cachedHdfsWorkingDirectory;
 
-        String root = getOptional("kylin.env.hdfs-working-dir", "/kylin");
+        String root = getOptional(WORKING_DIR_PROP, WORKING_DIR_DEFAULT);
 
         Path path = new Path(root);
         if (!path.isAbsolute())
             throw new IllegalArgumentException("kylin.env.hdfs-working-dir must be absolute, but got " + root);
 
         // make sure path is qualified
-        try {
-            FileSystem fs = path.getFileSystem(HadoopUtil.getCurrentConfiguration());
-            path = fs.makeQualified(path);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+        path = makeQualified(path);
 
         // append metadata-url prefix
         String metaId = getMetadataUrlPrefix().replace(':', '-').replace('/', '-');

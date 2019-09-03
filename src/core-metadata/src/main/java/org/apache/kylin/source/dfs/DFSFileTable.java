@@ -112,7 +112,7 @@ public class DFSFileTable implements IReadableTable {
     }
 
     public static Pair<Long, Long> getSizeAndLastModified(String path) throws IOException {
-        FileSystem fs = HadoopUtil.getFileSystem(path);
+        FileSystem fs = HadoopUtil.getWorkingFileSystem();
 
         // get all contained files if path is directory
         ArrayList<FileStatus> allFiles = new ArrayList<>();

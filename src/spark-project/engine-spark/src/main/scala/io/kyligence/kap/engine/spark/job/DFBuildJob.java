@@ -125,7 +125,7 @@ public class DFBuildJob extends SparkApplication {
             }
         } finally {
             for (String path : persistedFlatTable) {
-                val fs = HadoopUtil.getFileSystem(path);
+                val fs = HadoopUtil.getWorkingFileSystem();
                 fs.delete(new Path(path), true);
                 logger.info("Delete persisted flat table: {}.", path);
             }
@@ -148,7 +148,7 @@ public class DFBuildJob extends SparkApplication {
     }
 
     private String maxLeafTasksNums(Path shareDir) throws IOException {
-        FileSystem fs = HadoopUtil.getFileSystem(shareDir);
+        FileSystem fs = HadoopUtil.getWorkingFileSystem();
         FileStatus[] fileStatuses = fs.listStatus(shareDir,
                 path -> path.toString().endsWith(ResourceDetectUtils.cubingDetectItemFileSuffix()));
         return  ResourceDetectUtils.selectMaxValueInFiles(fileStatuses);

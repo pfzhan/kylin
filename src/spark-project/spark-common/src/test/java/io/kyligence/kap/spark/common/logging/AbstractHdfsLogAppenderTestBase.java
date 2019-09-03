@@ -23,26 +23,40 @@
  */
 package io.kyligence.kap.spark.common.logging;
 
-import org.apache.log4j.Layout;
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
-import org.apache.log4j.spi.LoggingEvent;
-import org.junit.Rule;
-import org.junit.rules.TemporaryFolder;
-import org.junit.rules.TestName;
-
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
-public class AbstractHdfsLogAppenderTestBase {
+import org.apache.log4j.Layout;
+import org.apache.log4j.Level;
+import org.apache.log4j.Logger;
+import org.apache.log4j.spi.LoggingEvent;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Rule;
+import org.junit.rules.TemporaryFolder;
+import org.junit.rules.TestName;
+
+import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+
+public class AbstractHdfsLogAppenderTestBase extends NLocalFileMetadataTestCase {
 
     @Rule
     public TemporaryFolder temporaryFolder = new TemporaryFolder();
 
     @Rule
     public TestName testName = new TestName();
+
+    @Before
+    public void setup() {
+        createTestMetadata();
+    }
+
+    @After
+    public void cleanup() {
+        cleanupTestMetadata();
+    }
 
     protected boolean RunBenchmark(final AbstractHdfsLogAppender hdfsLogAppender, final int threadNumber,
             final int size, final long timeout) throws InterruptedException {

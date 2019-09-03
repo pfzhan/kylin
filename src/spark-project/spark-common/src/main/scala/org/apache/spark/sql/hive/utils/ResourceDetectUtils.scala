@@ -68,8 +68,7 @@ object ResourceDetectUtils extends Logging {
   }
 
   def getResourceSize(paths: Path*): Long = {
-    val fs = HadoopUtil.getFileSystem(paths.head)
-    paths.map(HadoopUtil.getContentSummary(fs, _).getLength).sum
+    paths.map(path => HadoopUtil.getContentSummary(path.getFileSystem(HadoopUtil.getCurrentConfiguration), path).getLength).sum
   }
 
   def getMaxResourceSize(resourcePaths: JMap[String, JList[String]]): Long = {
@@ -77,7 +76,7 @@ object ResourceDetectUtils extends Logging {
   }
 
   def write(path: Path, item: Object): Unit = {
-    val fs = HadoopUtil.getFileSystem(path)
+    val fs = HadoopUtil.getWorkingFileSystem()
     var out: FSDataOutputStream = null
     try {
       out = fs.create(path)
@@ -92,11 +91,11 @@ object ResourceDetectUtils extends Logging {
   def selectMaxValueInFiles(files: Array[FileStatus]): String = {
     files.map(f => readResourcePathsAs[JMap[String, Integer]](f.getPath).values().asScala.max).max.toString
   }
-  
+
 
   def readDetectItems(path: Path): JMap[EnumDetectItem, String] = {
     log.info(s"Read detectItems from " + path)
-    val fs = HadoopUtil.getFileSystem(path)
+    val fs = HadoopUtil.getWorkingFileSystem()
     val typeRef = new TypeReference[JMap[EnumDetectItem, String]]() {}
     var in: FSDataInputStream = null
     try {
@@ -111,7 +110,7 @@ object ResourceDetectUtils extends Logging {
 
   def readResourcePathsAs[T](path: Path): T = {
     log.info(s"Read resource paths form $path")
-    val fs = HadoopUtil.getFileSystem(path)
+    val fs = HadoopUtil.getWorkingFileSystem
     val typeRef = new TypeReference[T]() {}
     var in: FSDataInputStream = null
     try {

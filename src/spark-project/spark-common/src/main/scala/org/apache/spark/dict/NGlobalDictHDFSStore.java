@@ -73,7 +73,7 @@ public class NGlobalDictHDFSStore extends NGlobalDictStore {
 
     public NGlobalDictHDFSStore(String baseDir) throws IOException {
         this.basePath = new Path(baseDir);
-        this.fileSystem = HadoopUtil.getFileSystem(baseDir);
+        this.fileSystem = HadoopUtil.getWorkingFileSystem();
     }
 
     @Override

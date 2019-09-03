@@ -67,7 +67,7 @@ public class NProjectManagerTest extends NLocalFileMetadataTestCase {
         KapConfig kapConf = KapConfig.wrap(config);
 
         String path = kapConf.getReadHdfsWorkingDirectory() + "dict-store/test";
-        FileSystem fs = HadoopUtil.getFileSystem(path);
+        FileSystem fs = HadoopUtil.getWorkingFileSystem();
         Path metadataPath = new Path(path);
         if (!fs.exists(metadataPath)) {
             fs.mkdirs(metadataPath);

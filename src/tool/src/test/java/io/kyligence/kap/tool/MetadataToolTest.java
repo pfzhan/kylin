@@ -35,6 +35,7 @@ import java.util.Arrays;
 import java.util.Comparator;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -133,7 +134,7 @@ public class MetadataToolTest extends NLocalFileMetadataTestCase {
     public void testBackupProjectCompress() throws IOException {
         val junitFolder = temporaryFolder.getRoot();
         val tool = tool(junitFolder.getAbsolutePath() + "/prj_bak");
-        tool.execute(new String[] { "-backup", "-project", "default", "-compress", "-dir", "ignored"});
+        tool.execute(new String[] { "-backup", "-project", "default", "-compress", "-dir", "ignored" });
 
         Assertions.assertThat(junitFolder.listFiles()).hasSize(1);
         val archiveFolder = junitFolder.listFiles()[0];
@@ -180,7 +181,7 @@ public class MetadataToolTest extends NLocalFileMetadataTestCase {
     public void testBackupAllCompress() throws IOException {
         val junitFolder = temporaryFolder.getRoot();
         val tool = tool(junitFolder.getAbsolutePath() + "/backup");
-        tool.execute(new String[] { "-backup", "-compress", "-dir", "ignored"});
+        tool.execute(new String[] { "-backup", "-compress", "-dir", "ignored" });
         Assertions.assertThat(junitFolder.listFiles()).hasSize(1);
         val archiveFolder = junitFolder.listFiles()[0];
         Assertions.assertThat(archiveFolder).exists();
@@ -253,7 +254,7 @@ public class MetadataToolTest extends NLocalFileMetadataTestCase {
         Assertions.assertThat(NProjectManager.getInstance(getTestConfig()).getProject("ssb")).isNotNull();
     }
 
-    private void prepareCompressedFile() throws IOException {
+    private void prepareCompressedFile() throws Exception {
         val junitFolder = temporaryFolder.getRoot();
 
         //there is a project that destResourceStore doesn't contain and srcResourceStore contains
@@ -265,13 +266,14 @@ public class MetadataToolTest extends NLocalFileMetadataTestCase {
         destResourceStore.deleteResource("/_global/project/demo.json");
 
         val tool = tool(junitFolder.getAbsolutePath());
-        tool.execute(new String[] { "-backup", "-compress", "-dir", "ignored"});
+        tool.execute(new String[] { "-backup", "-compress", "-dir", "ignored" });
         teardown();
         setup();
+        Thread.sleep(TimeUnit.SECONDS.toMillis(1));
     }
 
     @Test
-    public void testRestoreAllCompress() throws IOException {
+    public void testRestoreAllCompress() throws Exception {
         prepareCompressedFile();
 
         val junitFolder = temporaryFolder.getRoot();
@@ -289,14 +291,14 @@ public class MetadataToolTest extends NLocalFileMetadataTestCase {
         Assertions.assertThat(NProjectManager.getInstance(getTestConfig()).getProject("ssb")).isNull();
         assertBeforeRestoreTest();
         val tool = tool(junitFolder.getAbsolutePath());
-        tool.execute(new String[] { "-restore", "-compress", "-dir", "ignored"});
+        tool.execute(new String[] { "-restore", "-compress", "-dir", "ignored" });
         assertAfterRestoreTest();
         Assertions.assertThat(NProjectManager.getInstance(getTestConfig()).getProject("demo")).isNull();
         Assertions.assertThat(NProjectManager.getInstance(getTestConfig()).getProject("ssb")).isNotNull();
     }
 
     @Test
-    public void testRestoreAllWithSrcOrDestIsEmpty() throws IOException {
+    public void testRestoreAllWithSrcOrDestIsEmpty() throws Exception {
         val emptyFolder = temporaryFolder.newFolder();
         val restoreFolder = temporaryFolder.newFolder();
         MetadataToolTestFixture.fixtureRestoreTest(getTestConfig(), restoreFolder, "/");
@@ -308,6 +310,8 @@ public class MetadataToolTest extends NLocalFileMetadataTestCase {
         tool.execute(new String[] { "-restore", "-dir", emptyFolder.getAbsolutePath() });
         Assertions.assertThat(NProjectManager.getInstance(getTestConfig()).listAllProjects()).isEmpty();
 
+        Thread.sleep(TimeUnit.SECONDS.toMillis(1));
+
         tool.execute(new String[] { "-restore", "-dir", restoreFolder.getAbsolutePath() });
         Assertions.assertThat(NProjectManager.getInstance(getTestConfig()).getProject("demo")).isNotNull();
         Assertions.assertThat(NProjectManager.getInstance(getTestConfig()).getProject("ssb")).isNotNull();
@@ -315,7 +319,7 @@ public class MetadataToolTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void testRestoreAllCompressWithSrcOrDestIsEmpty() throws IOException {
+    public void testRestoreAllCompressWithSrcOrDestIsEmpty() throws Exception {
         val emptyFolder = temporaryFolder.newFolder();
         createEmptyCompressedFile(emptyFolder);
         val restoreFolder = temporaryFolder.newFolder();
@@ -327,12 +331,15 @@ public class MetadataToolTest extends NLocalFileMetadataTestCase {
         Assertions.assertThat(NProjectManager.getInstance(getTestConfig()).getProject("ssb")).isNotNull();
         Assertions.assertThat(NProjectManager.getInstance(getTestConfig()).getProject("default")).isNotNull();
         val tool = tool(emptyFolder.getAbsolutePath());
-        tool.execute(new String[] { "-restore", "-compress", "-dir", "ignored"});
+        tool.execute(new String[] { "-restore", "-compress", "-dir", "ignored" });
         Assertions.assertThat(NProjectManager.getInstance(getTestConfig()).listAllProjects()).isEmpty();
 
         Mockito.when(tool.getMetadataUrl(Mockito.anyString(), Mockito.anyBoolean()))
                 .thenReturn("kylin_metadata@hdfs,zip=1,path=file://" + restoreFolder.getAbsolutePath());
-        tool.execute(new String[] { "-restore", "-compress", "-dir", "ignored"});
+
+        Thread.sleep(TimeUnit.SECONDS.toMillis(1));
+
+        tool.execute(new String[] { "-restore", "-compress", "-dir", "ignored" });
         Assertions.assertThat(NProjectManager.getInstance(getTestConfig()).getProject("demo")).isNotNull();
         Assertions.assertThat(NProjectManager.getInstance(getTestConfig()).getProject("ssb")).isNotNull();
         Assertions.assertThat(NProjectManager.getInstance(getTestConfig()).getProject("default")).isNotNull();
@@ -355,7 +362,7 @@ public class MetadataToolTest extends NLocalFileMetadataTestCase {
 
     private void createAllCompressedFile(File folder) throws IOException {
         val tool = tool(folder.getAbsolutePath());
-        tool.execute(new String[] { "-backup", "-compress", "-dir", "ignored"});
+        tool.execute(new String[] { "-backup", "-compress", "-dir", "ignored" });
     }
 
     @Test
@@ -373,7 +380,7 @@ public class MetadataToolTest extends NLocalFileMetadataTestCase {
         assertAfterRestoreTest();
 
         val path = HadoopUtil.getBackupFolder(getTestConfig());
-        val fs = HadoopUtil.getFileSystem(path);
+        val fs = HadoopUtil.getWorkingFileSystem();
         val rootPath = Stream.of(fs.listStatus(new Path(path)))
                 .max(Comparator.comparing(FileStatus::getModificationTime)).map(FileStatus::getPath)
                 .orElse(new Path(path + "/backup_0/"));
@@ -396,11 +403,11 @@ public class MetadataToolTest extends NLocalFileMetadataTestCase {
 
         assertBeforeRestoreTest();
         val tool = tool(junitFolder.getAbsolutePath());
-        tool.execute(new String[] { "-restore", "-project", "default", "-compress", "-dir", "ignored"});
+        tool.execute(new String[] { "-restore", "-project", "default", "-compress", "-dir", "ignored" });
         assertAfterRestoreTest();
 
         val path = HadoopUtil.getBackupFolder(getTestConfig());
-        val fs = HadoopUtil.getFileSystem(path);
+        val fs = HadoopUtil.getWorkingFileSystem();
         val rootPath = Stream.of(fs.listStatus(new Path(path)))
                 .max(Comparator.comparing(FileStatus::getModificationTime)).map(FileStatus::getPath)
                 .orElse(new Path(path + "/backup_0/"));
@@ -412,7 +419,7 @@ public class MetadataToolTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void testRestoreProjectWithSrcOrDestIsEmpty() throws IOException {
+    public void testRestoreProjectWithSrcOrDestIsEmpty() throws Exception {
         val junitFolder = temporaryFolder.getRoot();
         ResourceTool.copy(getTestConfig(), KylinConfig.createInstanceFromUri(junitFolder.getAbsolutePath()), "/");
         val tool = new MetadataTool();
@@ -434,20 +441,22 @@ public class MetadataToolTest extends NLocalFileMetadataTestCase {
         destResourceStore.deleteResource("/_global/project/ssb.json");
 
         Assertions.assertThat(NProjectManager.getInstance(getTestConfig()).getProject("ssb")).isNull();
+
+        Thread.sleep(TimeUnit.SECONDS.toMillis(1));
+
         tool.execute(new String[] { "-restore", "-project", "ssb", "-dir", junitFolder.getAbsolutePath() });
         Assertions.assertThat(NProjectManager.getInstance(getTestConfig()).getProject("ssb")).isNotNull();
     }
 
     @Test
-    public void testRestoreProjectCompressWithSrcOrDestIsEmpty() throws IOException {
+    public void testRestoreProjectCompressWithSrcOrDestIsEmpty() throws Exception {
         prepareCompressedFile();
 
         val junitFolder = temporaryFolder.getRoot();
         val tool = tool(junitFolder.getAbsolutePath());
 
         Assertions.assertThat(NProjectManager.getInstance(getTestConfig()).getProject("demo")).isNotNull();
-        tool.execute(
-                new String[] { "-restore", "-project", "demo", "-compress", "-dir", "ignored"});
+        tool.execute(new String[] { "-restore", "-project", "demo", "-compress", "-dir", "ignored" });
         Assertions.assertThat(NProjectManager.getInstance(getTestConfig()).getProject("demo")).isNull();
 
         //there is a project metadata that destResourceStore doesn't contain and srcResourceStore contains
@@ -459,8 +468,10 @@ public class MetadataToolTest extends NLocalFileMetadataTestCase {
         destResourceStore.deleteResource("/_global/project/ssb.json");
 
         Assertions.assertThat(NProjectManager.getInstance(getTestConfig()).getProject("ssb")).isNull();
-        tool.execute(
-                new String[] { "-restore", "-project", "ssb", "-compress", "-dir", "ignored"});
+
+        Thread.sleep(TimeUnit.SECONDS.toMillis(1));
+
+        tool.execute(new String[] { "-restore", "-project", "ssb", "-compress", "-dir", "ignored" });
         Assertions.assertThat(NProjectManager.getInstance(getTestConfig()).getProject("ssb")).isNotNull();
     }
 

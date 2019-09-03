@@ -598,7 +598,7 @@ public class NExecutableManager {
         DataOutputStream dout = null;
         try {
             Path path = new Path(resPath);
-            FileSystem fs = HadoopUtil.getFileSystem(path);
+            FileSystem fs = HadoopUtil.getWorkingFileSystem();
             dout = fs.create(path, true);
             JsonUtil.writeValue(dout, obj);
         } catch (Exception e) {
@@ -613,7 +613,7 @@ public class NExecutableManager {
         DataInputStream din = null;
         try {
             val path = new Path(resPath);
-            FileSystem fs = HadoopUtil.getFileSystem(path);
+            FileSystem fs = HadoopUtil.getWorkingFileSystem();
             if (!fs.exists(path)) {
                 val executableOutputPO = new ExecutableOutputPO();
                 executableOutputPO.setContent("job output not found, please check kylin.log");
@@ -643,7 +643,7 @@ public class NExecutableManager {
     public String getSampleDataFromHDFS(String resPath, final int nLines) {
         try {
             Path path = new Path(resPath);
-            FileSystem fs = HadoopUtil.getFileSystem(path);
+            FileSystem fs = HadoopUtil.getWorkingFileSystem();
             if (!fs.exists(path)) {
                 return null;
             }

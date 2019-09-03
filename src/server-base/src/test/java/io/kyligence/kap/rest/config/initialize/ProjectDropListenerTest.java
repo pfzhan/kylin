@@ -62,7 +62,7 @@ public class ProjectDropListenerTest {
         val project = "drop_project";
         val kylinConfig = KylinConfig.getInstanceFromEnv();
         String strPath = kylinConfig.getHdfsWorkingDirectory(project);
-        FileSystem fs = HadoopUtil.getFileSystem(strPath);
+        FileSystem fs = HadoopUtil.getWorkingFileSystem();
         Path path = new Path(strPath);
         if (!fs.exists(path)) {
             fs.mkdirs(path);

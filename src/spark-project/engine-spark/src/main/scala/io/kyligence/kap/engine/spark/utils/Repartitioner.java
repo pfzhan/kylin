@@ -147,7 +147,7 @@ public class Repartitioner {
         String tempPath = path + tempDirSuffix;
         Path tempResourcePath = new Path(tempPath);
 
-        FileSystem readFileSystem = HadoopUtil.getReadFileSystem();
+        FileSystem readFileSystem = HadoopUtil.getWorkingFileSystem();
         if (needRepartition()) {
             // repartition and write to target path
             logger.info("Start repartition and rewrite");

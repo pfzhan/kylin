@@ -94,12 +94,11 @@ public class StorageCleaner {
             for (NDataflow dataflow : dataflows) {
                 KapConfig kapConfig = KapConfig.wrap(dataflow.getConfig());
                 String hdfsWorkingDir = kapConfig.getReadHdfsWorkingDirectory();
-                val fs = HadoopUtil.getFileSystem(hdfsWorkingDir);
+                val fs = HadoopUtil.getWorkingFileSystem();
                 allFileSystems.add(new StorageItem(fs, hdfsWorkingDir));
             }
         }
-        allFileSystems.add(new StorageItem(HadoopUtil.getFileSystem(new Path(config.getHdfsWorkingDirectory())),
-                config.getHdfsWorkingDirectory()));
+        allFileSystems.add(new StorageItem(HadoopUtil.getWorkingFileSystem(), config.getHdfsWorkingDirectory()));
         log.info("all file systems are {}", allFileSystems);
         for (StorageItem allFileSystem : allFileSystems) {
             collectFromHDFS(allFileSystem);

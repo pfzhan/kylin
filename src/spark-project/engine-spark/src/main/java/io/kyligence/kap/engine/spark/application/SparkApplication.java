@@ -332,7 +332,7 @@ public abstract class SparkApplication implements Application, IKeep {
     }
 
     protected String chooseContentSize(Path shareDir) throws IOException {
-        FileSystem fs = HadoopUtil.getFileSystem(shareDir);
+        FileSystem fs = HadoopUtil.getWorkingFileSystem();
         FileStatus[] fileStatuses = fs.listStatus(shareDir,
                 path -> path.toString().endsWith(ResourceDetectUtils.fileName()));
         Map<String, List<String>> resourcePaths = Maps.newHashMap();

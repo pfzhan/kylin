@@ -84,10 +84,10 @@ public class SparderCover extends NLocalFileMetadataTestCase {
 
     @Test
     public void testHadoopUtil() throws IOException {
-        FileSystem readFileSystem = HadoopUtil.getReadFileSystem();
+        FileSystem readFileSystem = HadoopUtil.getWorkingFileSystem();
         String scheme = readFileSystem.getScheme();
         assert scheme.equals("file");
-        readFileSystem = HadoopUtil.getReadFileSystem(new Configuration());
+        readFileSystem = HadoopUtil.getWorkingFileSystem(new Configuration());
         scheme = readFileSystem.getScheme();
         assert scheme.equals("file");
         readFileSystem = HadoopUtil.getWorkingFileSystem(new Configuration());

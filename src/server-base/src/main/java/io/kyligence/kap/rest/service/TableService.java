@@ -374,7 +374,7 @@ public class TableService extends BasicService {
             hasReadySegs = true;
             val snapShots = lastSeg.getSnapshots();
             if (snapShots.containsKey(table)) {
-                FileSystem fs = HadoopUtil.getReadFileSystem();
+                FileSystem fs = HadoopUtil.getWorkingFileSystem();
                 val path = new Path(snapShots.get(table));
                 if (fs.exists(path)) {
                     size += HadoopUtil.getContentSummary(fs, path).getLength();

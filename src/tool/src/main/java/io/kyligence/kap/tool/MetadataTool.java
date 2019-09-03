@@ -24,7 +24,10 @@
 
 package io.kyligence.kap.tool;
 
+import java.io.File;
 import java.io.IOException;
+import java.net.URI;
+import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -233,6 +236,24 @@ public class MetadataTool extends ExecutableApplication {
         }
     }
 
+    private void abortIfAlreadyExists(String path) throws IOException {
+        URI uri = HadoopUtil.makeURI(path);
+        if (!uri.isAbsolute()) {
+            log.info("no scheme specified for {}, try local file system file://", path);
+            File localFile = new File(path);
+            if (localFile.exists()) {
+                log.error("[UNEXPECTED_THINGS_HAPPENED] local file {} already exists ", path);
+                throw new FileAlreadyExistsException(path);
+            }
+            return;
+        }
+        val fs = HadoopUtil.getWorkingFileSystem();
+        if (fs.exists(new Path(path))) {
+            log.error("[UNEXPECTED_THINGS_HAPPENED] specified file {} already exists ", path);
+            throw new org.apache.hadoop.fs.FileAlreadyExistsException(path);
+        }
+    }
+
     private void backup(OptionsHelper optionsHelper) throws Exception {
         val project = optionsHelper.getOptionValue(OPTION_PROJECT);
         val path = optionsHelper.getOptionValue(OPTION_DIR);
@@ -245,8 +266,7 @@ public class MetadataTool extends ExecutableApplication {
         val backupMetadataUrl = getMetadataUrl(backupPath, compress);
         val backupConfig = KylinConfig.createKylinConfig(kylinConfig);
         backupConfig.setMetadataUrl(backupMetadataUrl);
-        val fs = HadoopUtil.getFileSystem(backupPath);
-        fs.delete(new Path(backupPath), true);
+        abortIfAlreadyExists(backupPath);
         log.info("The backup metadataUrl is {} and backup path is {}", backupMetadataUrl, backupPath);
 
         val backupResourceStore = ResourceStore.getKylinMetaStore(backupConfig);

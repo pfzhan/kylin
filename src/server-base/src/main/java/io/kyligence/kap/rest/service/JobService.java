@@ -396,7 +396,7 @@ public class JobService extends BasicService {
     public boolean hdfsFileWrite2OutputStream(OutputStream outputStream, String hdfsFilePath) {
         try {
             Path path = new Path(hdfsFilePath);
-            FileSystem fs = HadoopUtil.getFileSystem(path);
+            FileSystem fs = HadoopUtil.getWorkingFileSystem();
             if (!fs.exists(path)) {
                 logger.warn("can not found the hdfs file: {}", hdfsFilePath);
                 return false;
