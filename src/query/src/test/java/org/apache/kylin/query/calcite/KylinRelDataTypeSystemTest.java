@@ -101,7 +101,7 @@ public class KylinRelDataTypeSystemTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals("FLOAT", OLAPTable.createSqlType(typeFactory, DataType.getType("FLOAT"), true).toString());
         Assert.assertEquals("DOUBLE", OLAPTable.createSqlType(typeFactory, DataType.getType("DOUBLE"), true).toString());
         Assert.assertEquals("DATE", OLAPTable.createSqlType(typeFactory, DataType.getType("DATE"), true).toString());
-        Assert.assertEquals("TIMESTAMP(0)", OLAPTable.createSqlType(typeFactory, DataType.getType("TIMESTAMP"), true).toString());
+        Assert.assertEquals("TIMESTAMP(3)", OLAPTable.createSqlType(typeFactory, DataType.getType("TIMESTAMP"), true).toString());
         Assert.assertEquals("BOOLEAN", OLAPTable.createSqlType(typeFactory, DataType.getType("BOOLEAN"), true).toString());
     }
 
