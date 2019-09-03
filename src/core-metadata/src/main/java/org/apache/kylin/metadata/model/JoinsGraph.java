@@ -44,6 +44,7 @@ package org.apache.kylin.metadata.model;
 import java.io.Serializable;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -70,6 +71,7 @@ public class JoinsGraph implements Serializable {
         private JoinDesc join;
         private ColumnDesc[] leftCols;
         private ColumnDesc[] rightCols;
+        private NonEquiJoinCondition nonEquiJoinCondition;
 
         private Edge(JoinDesc join) {
             this.join = join;
@@ -85,6 +87,12 @@ public class JoinsGraph implements Serializable {
             for (TblColRef colRef : join.getPrimaryKeyColumns()) {
                 rightCols[i++] = colRef.getColumnDesc();
             }
+
+            nonEquiJoinCondition = join.getNonEquiJoinCondition();
+        }
+
+        public boolean isNonEquiJoin() {
+            return nonEquiJoinCondition != null;
         }
 
         public boolean isLeftJoin() {
@@ -150,7 +158,7 @@ public class JoinsGraph implements Serializable {
         }
     }
 
-    public Edge edgeOf(JoinDesc join) {
+    private Edge edgeOf(JoinDesc join) {
         return new Edge(join);
     }
 
@@ -171,6 +179,10 @@ public class JoinsGraph implements Serializable {
         @Override
         public boolean matches(@NonNull Edge join1, @NonNull Edge join2) {
             if (join1.isLeftJoin() != join2.isLeftJoin()) {
+                return false;
+            }
+
+            if (!Objects.equals(join1.nonEquiJoinCondition, join2.nonEquiJoinCondition)) {
                 return false;
             }
 
@@ -288,7 +300,7 @@ public class JoinsGraph implements Serializable {
 
             AtomicReference<Map<TableRef, TableRef>> finalMatchRef = new AtomicReference<>();
             innerMatch(pattern, trialMatch, matchPatial, finalMatchRef);
-            if (finalMatchRef.get() != null) {
+            if (finalMatchRef.get() != null && checkNonEquiJoinMatches(finalMatchRef.get(), pattern)) {
                 matchAlias.clear();
                 matchAlias.putAll(finalMatchRef.get().entrySet().stream()
                         .collect(Collectors.toMap(e -> e.getKey().getAlias(), e -> e.getValue().getAlias())));
@@ -296,6 +308,31 @@ public class JoinsGraph implements Serializable {
             }
         }
         return false;
+    }
+
+    /**
+     * check if any non-equi join is missed in the pattern
+     * if so, we cannot match the current graph with the the pattern graph
+     * @param matches
+     * @return
+     */
+    private boolean checkNonEquiJoinMatches(Map<TableRef, TableRef> matches, JoinsGraph pattern) {
+        HashSet<TableRef> patternGraphTables = new HashSet<>(pattern.nodes.values());
+
+        for (TableRef patternTable : patternGraphTables) {
+            List<Edge> outgoingEdges = pattern.getEdgesByFKSide(patternTable);
+            // for all outgoing non-equi join edges
+            // if there is no match found for the right side table in the current graph
+            // return false
+            for (Edge outgoingEdge : outgoingEdges) {
+                if (outgoingEdge.isNonEquiJoin()) {
+                    if (!matches.values().contains(patternTable) || !matches.values().contains(outgoingEdge.right())) {
+                        return false;
+                    }
+                }
+            }
+        }
+        return true;
     }
 
     private boolean checkInnerJoinNum(JoinsGraph pattern, TableRef queryTableRef, TableRef patternTableRef,

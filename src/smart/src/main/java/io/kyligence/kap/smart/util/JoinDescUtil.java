@@ -29,10 +29,13 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.metadata.model.JoinDesc;
 import org.apache.kylin.metadata.model.JoinTableDesc;
+import org.apache.kylin.metadata.model.NonEquiJoinCondition;
+import org.apache.kylin.metadata.model.NonEquiJoinConditionType;
 import org.apache.kylin.metadata.model.TableRef;
 import org.apache.kylin.metadata.model.TblColRef;
 
@@ -56,37 +59,69 @@ public class JoinDescUtil {
         joinTableDesc.setTable(table.getTableIdentity());
         joinTableDesc.setAlias(pkTblAlias);
 
-        JoinDesc joinDesc = new JoinDesc();
+        JoinDesc.JoinDescBuilder joinDescBuilder = new JoinDesc.JoinDescBuilder();
 
-        joinDesc.setType(join.getType().toLowerCase());
+        joinDescBuilder.setType(join.getType().toLowerCase());
         String[] pkCols = new String[join.getPrimaryKey().length];
         TblColRef[] pkColRefs = new TblColRef[pkCols.length];
 
         TableRef pkTblRef = aliasTableRefMap.computeIfAbsent(pkTblAlias, alias -> TblColRef.tableForUnknownModel(alias,
-                join.getPrimaryKeyColumns()[0].getTableRef().getTableDesc()));
+                join.getPKSide().getTableDesc()));
         for (int i = 0; i < pkCols.length; i++) {
             TblColRef colRef = join.getPrimaryKeyColumns()[i];
             pkCols[i] = pkTblAlias + "." + colRef.getName();
             pkColRefs[i] = TblColRef.columnForUnknownModel(pkTblRef, colRef.getColumnDesc());
         }
-        joinDesc.setPrimaryKey(pkCols);
-        joinDesc.setPrimaryKeyColumns(pkColRefs);
+        joinDescBuilder.addPrimaryKeys(pkCols, pkColRefs);
+        joinDescBuilder.setPrimaryTableRef(pkTblRef);
 
         String[] fkCols = new String[join.getForeignKey().length];
         TblColRef[] fkColRefs = new TblColRef[fkCols.length];
 
         TableRef fkTblRef = aliasTableRefMap.computeIfAbsent(fkTblAlias, alias -> TblColRef.tableForUnknownModel(alias,
-                join.getForeignKeyColumns()[0].getTableRef().getTableDesc()));
+                join.getFKSide().getTableDesc()));
         for (int i = 0; i < fkCols.length; i++) {
             TblColRef colRef = join.getForeignKeyColumns()[i];
             fkCols[i] = fkTblAlias + "." + colRef.getName();
             fkColRefs[i] = TblColRef.columnForUnknownModel(fkTblRef, colRef.getColumnDesc());
         }
-        joinDesc.setForeignKey(fkCols);
-        joinDesc.setForeignKeyColumns(fkColRefs);
-        joinTableDesc.setJoin(joinDesc);
+        joinDescBuilder.addForeignKeys(fkCols, fkColRefs);
+        joinDescBuilder.setForeignTableRef(fkTblRef);
+
+        if (join.getNonEquiJoinCondition() != null) {
+            NonEquiJoinCondition nonEquiJoinCondition = convertNonEquiJoinCondition(join.getNonEquiJoinCondition(), pkTblRef, fkTblRef);
+            String expr = join.getNonEquiJoinCondition().getExpr();
+            expr = expr.replaceAll(join.getPKSide().getAlias(), pkTblAlias);
+            expr = expr.replaceAll(join.getFKSide().getAlias(), fkTblAlias);
+            nonEquiJoinCondition.setExpr(expr);
+            joinDescBuilder.setNonEquiJoinCondition(nonEquiJoinCondition);
+        }
+        joinTableDesc.setJoin(joinDescBuilder.build());
 
         return joinTableDesc;
+    }
+
+    private static NonEquiJoinCondition convertNonEquiJoinCondition(NonEquiJoinCondition cond, TableRef pkTblRef, TableRef fkTblRef) {
+        if (cond.getType() == NonEquiJoinConditionType.EXPRESSION) {
+            return new NonEquiJoinCondition(
+                    cond.getOpName(),
+                    cond.getOp(),
+                    Arrays.stream(cond.getOperands()).map(condInput -> convertNonEquiJoinCondition(condInput, pkTblRef, fkTblRef)).toArray(NonEquiJoinCondition[]::new),
+                    cond.getDataType()
+            );
+        } else if (cond.getType() == NonEquiJoinConditionType.LITERAL) {
+            return cond;
+        } else {
+            return new NonEquiJoinCondition(convertColumn(cond.getColRef(), pkTblRef, fkTblRef), cond.getDataType());
+        }
+    }
+
+    private static TblColRef convertColumn(TblColRef colRef, TableRef pkTblRef, TableRef fkTblRef) {
+        if (colRef.getTableRef().getTableIdentity().equals(pkTblRef.getTableIdentity())) {
+            return TblColRef.columnForUnknownModel(pkTblRef, colRef.getColumnDesc());
+        } else {
+            return TblColRef.columnForUnknownModel(fkTblRef, colRef.getColumnDesc());
+        }
     }
 
     public static List<Pair<JoinDesc, TableKind>> resolveTableType(List<JoinDesc> joins) {
@@ -135,6 +170,9 @@ public class JoinDescUtil {
             return false;
         if (!Arrays.equals(ja.getPrimaryKey(), jb.getPrimaryKey()))
             return false;
+        if (!Objects.equals(ja.getNonEquiJoinCondition(), jb.getNonEquiJoinCondition())) {
+            return false;
+        }
         return true;
     }
 

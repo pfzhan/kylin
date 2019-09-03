@@ -93,6 +93,12 @@
             <scope>compile</scope>
         </dependency>
         <dependency>
+            <groupId>com.google.protobuf</groupId>
+            <artifactId>protobuf-java</artifactId>
+            <version>3.0.2</version>
+            <scope>compile</scope>
+        </dependency>
+        <dependency>
             <groupId>net.sf.ehcache</groupId>
             <artifactId>ehcache</artifactId>
             <scope>compile</scope>
@@ -123,8 +129,6 @@
                                     <exclude>com.sun.mail:javax.mail:*</exclude>
                                     <exclude>javax.activation:activation:*</exclude>
                                     <exclude>org.apache.parquet:*</exclude>
-                                    <exclude>org.apache.calcite:*</exclude>
-                                    <exclude>org.apache.calcite.avatica:*</exclude>
                                     <exclude>org.slf4j:*</exclude>
                                 </excludes>
                             </artifactSet>
@@ -178,6 +182,14 @@
                                 <relocation>
                                     <pattern>org.apache.commons.jocl</pattern>
                                     <shadedPattern>${shadeBase}.org.apache.commons.jocl</shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <pattern>org.apache.calcite</pattern>
+                                    <shadedPattern>${shadeBase}.org.apache.calcite</shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <pattern>com.google.protobuf</pattern>
+                                    <shadedPattern>${shadeBase}.com.google.protobuf</shadedPattern>
                                 </relocation>
                             </relocations>
                             <filters>

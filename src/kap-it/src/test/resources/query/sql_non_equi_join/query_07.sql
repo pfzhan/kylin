@@ -1,7 +1,13 @@
-select sum(price)
-from (select SELLER_ID, price+1 as price, lstg_format_name, cal_dt from test_kylin_fact) test_kylin_fact
-left join test_account
-ON TEST_KYLIN_FACT.SELLER_ID = TEST_ACCOUNT.ACCOUNT_ID
- and test_kylin_fact.lstg_format_name='FP-GTC'
- and test_kylin_fact.cal_dt between '2013-05-01' and DATE '2013-08-01'
-group by test_kylin_fact.cal_dt
+-- join with agg
+SELECT TEST_ACCOUNT.ACCOUNT_SELLER_LEVEL, SUM(TEST_ACCOUNT.ACCOUNT_BUYER_LEVEL)
+FROM TEST_ACCOUNT
+LEFT JOIN
+(
+  SELECT count(DISTINCT COUNTRY) as COUNTRY_DISTINCT_CNT
+  FROM TEST_COUNTRY
+) TEST_COUNTRY
+ON
+TEST_ACCOUNT.ACCOUNT_BUYER_LEVEL + TEST_COUNTRY.COUNTRY_DISTINCT_CNT > 10
+GROUP BY TEST_ACCOUNT.ACCOUNT_SELLER_LEVEL
+ORDER BY 1,2
+LIMIT 10000

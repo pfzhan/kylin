@@ -93,7 +93,7 @@ public class ParameterDesc implements Serializable {
         return value.getBytes("UTF-8");
     }
 
-    void setColRef(TblColRef colRef) {
+    public void setColRef(TblColRef colRef) {
         this.colRef = colRef;
     }
 

@@ -130,8 +130,8 @@ public class GreedyModelTreesBuilder {
         JoinsGraph graphB = new JoinsGraph(ctxB.firstTableScan.getTableRef(), Lists.newArrayList(ctxB.joins));
         return graphA.match(graphB, Maps.newHashMap()) //
                 || graphB.match(graphA, Maps.newHashMap())
-                || (graphA.unmatched(graphB).stream().allMatch(JoinsGraph.Edge::isLeftJoin)
-                        && graphB.unmatched(graphA).stream().allMatch(JoinsGraph.Edge::isLeftJoin));
+                || (graphA.unmatched(graphB).stream().allMatch(e -> e.isLeftJoin() && !e.isNonEquiJoin())
+                        && graphB.unmatched(graphA).stream().allMatch(e -> e.isLeftJoin() && !e.isNonEquiJoin()));
     }
 
     public static class TreeBuilder {

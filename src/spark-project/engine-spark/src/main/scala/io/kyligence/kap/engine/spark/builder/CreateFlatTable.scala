@@ -209,13 +209,23 @@ object CreateFlatTable extends Logging {
           s"Invalid join condition of fact table: $rootFactDesc,fk: ${fk.mkString(",")}," +
             s" lookup table:$lookupDesc, pk: ${pk.mkString(",")}")
       }
-      val condition = fk.zip(pk).map(joinKey =>
+      val equiConditionColPairs = fk.zip(pk).map(joinKey =>
         col(convertFromDot(joinKey._1.getIdentity))
           .equalTo(col(convertFromDot(joinKey._2.getIdentity))))
-        .reduce(_.and(_))
       logInfo(s"Lookup table schema ${lookupDataset.schema.treeString}")
-      logInfo(s"Root table ${rootFactDesc.getIdentity}, join table ${lookupDesc.getAlias}, condition: ${condition.toString()}")
-      afterJoin = afterJoin.join(lookupDataset, condition, joinType)
+
+      if (join.getNonEquiJoinCondition != null) {
+        var condition = NonEquiJoinConditionBuilder.convert(join.getNonEquiJoinCondition)
+        if (!equiConditionColPairs.isEmpty) {
+          condition = condition && equiConditionColPairs.reduce(_ && _)
+        }
+        logInfo(s"Root table ${rootFactDesc.getIdentity}, join table ${lookupDesc.getAlias}, non-equi condition: ${condition.toString()}")
+        afterJoin = afterJoin.join(lookupDataset, condition, joinType)
+      } else {
+        val condition = equiConditionColPairs.reduce(_ && _)
+        logInfo(s"Root table ${rootFactDesc.getIdentity}, join table ${lookupDesc.getAlias}, condition: ${condition.toString()}")
+        afterJoin = afterJoin.join(lookupDataset, condition, joinType)
+      }
     }
     afterJoin
   }

@@ -26,12 +26,14 @@ package io.kyligence.kap.query.relnode;
 
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 import org.apache.calcite.adapter.enumerable.EnumerableRel;
 import org.apache.calcite.adapter.enumerable.EnumerableThetaJoin;
+import org.apache.calcite.jdbc.JavaTypeFactoryImpl;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptCost;
 import org.apache.calcite.plan.RelOptPlanner;
@@ -41,31 +43,43 @@ import org.apache.calcite.rel.InvalidRelException;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelWriter;
 import org.apache.calcite.rel.core.CorrelationId;
+import org.apache.calcite.rel.core.JoinInfo;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rel.type.RelDataTypeFieldImpl;
+import org.apache.calcite.rel.type.RelDataTypeSystem;
+import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexInputRef;
+import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexUtil;
+import org.apache.kylin.metadata.model.JoinDesc;
+import org.apache.kylin.metadata.model.NonEquiJoinCondition;
 import org.apache.kylin.metadata.model.TblColRef;
 import org.apache.kylin.query.relnode.ColumnRowType;
 import org.apache.kylin.query.relnode.OLAPContext;
 import org.apache.kylin.query.relnode.OLAPRel;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.query.util.ICutContextStrategy;
+import org.apache.kylin.query.util.RexToTblColRefTranslator;
 
 public class KapNonEquiJoinRel extends EnumerableThetaJoin implements KapRel {
 
     private OLAPContext context;
     private Set<OLAPContext> subContexts = Sets.newHashSet();
     private ColumnRowType columnRowType;
+
+    private boolean isPreCalJoin = true;
+    private boolean aboveContextPreCalcJoin = false;
 
     public KapNonEquiJoinRel(RelOptCluster cluster, RelTraitSet traits, RelNode left, RelNode right, RexNode condition,
             Set<CorrelationId> variablesSet, JoinRelType joinType) throws InvalidRelException {
@@ -82,47 +96,146 @@ public class KapNonEquiJoinRel extends EnumerableThetaJoin implements KapRel {
         olapContextImplementor.fixSharedOlapTableScanOnTheRight(this);
         olapContextImplementor.visitChild(getInput(1), this, rightState);
 
-        // case: runtime join
-        if (leftState.hasFreeTable()) {
-            olapContextImplementor.allocateContext((KapRel) left, this);
-            leftState.setHasFreeTable(false);
-        }
-        if (rightState.hasFreeTable()) {
-            olapContextImplementor.allocateContext((KapRel) right, this);
-            rightState.setHasFreeTable(false);
-        }
+        allocateContext(leftState, rightState, olapContextImplementor);
 
         state.merge(leftState).merge(rightState);
         subContexts.addAll(ContextUtil.collectSubContext(this.left));
         subContexts.addAll(ContextUtil.collectSubContext(this.right));
     }
 
+    private void allocateContext(ContextVisitorState leftState, ContextVisitorState rightState, OLAPContextImplementor olapContextImplementor) {
+        if (rightState.hasFreeTable() && rightState.hasFilter()) {
+            olapContextImplementor.allocateContext((KapRel) right, this);
+            rightState.setHasFreeTable(false);
+        }
+
+        if (!leftState.hasFreeTable() && !rightState.hasFreeTable()) { // no free table, return directly
+            return;
+        } else if (leftState.hasFreeTable() && !rightState.hasFreeTable()) { // left has free tbl, alloc ctx to left only
+            olapContextImplementor.allocateContext((KapRel) left, this);
+            leftState.setHasFreeTable(false);
+        } else if (rightState.hasFreeTable() && !leftState.hasFreeTable()) { // right has free tbl, alloc ctx to right only
+            olapContextImplementor.allocateContext((KapRel) right, this);
+            rightState.setHasFreeTable(false);
+        } else {
+            // both has free tbl, leave ctx alloc for higher rel node
+            // except the following situations
+            if (rightState.hasIncrementalTable() || hasSameFirstTable(leftState, rightState)) {
+                olapContextImplementor.allocateContext((KapRel) left, this);
+                olapContextImplementor.allocateContext((KapRel) right, this);
+                leftState.setHasFreeTable(false);
+                rightState.setHasFreeTable(false);
+            }
+        }
+    }
+
     @Override
     public void implementCutContext(ICutContextStrategy.CutContextImplementor implementor) {
-        // try cut context on left input and right input
-        RelNode input = ((KapRel) this.left).getContext() == null ? this.left : this.right;
-        implementor.visitChild(input);
-        this.context = null;
-        this.columnRowType = null;
+        if (isPreCalJoin) {
+            this.context = null;
+            this.columnRowType = null;
+            implementor.allocateContext((KapRel) getInput(0), this);
+            implementor.allocateContext((KapRel) getInput(1), this);
+        } else {
+            RelNode input = ((KapRel) this.left).getContext() == null ? this.left : this.right;
+            implementor.visitChild(input);
+            this.context = null;
+            this.columnRowType = null;
+        }
     }
 
     @Override
     public void implementOLAP(OLAPImplementor implementor) {
+        if (context != null) {
+            this.aboveContextPreCalcJoin = !this.isPreCalJoin || !this.context.isHasPreCalcJoin();
+            this.context.setHasJoin(true);
+            this.context.setHasPreCalcJoin(this.context.isHasPreCalcJoin() || this.isPreCalJoin);
+        }
+
         implementor.visitChild(this.left, this);
         implementor.visitChild(this.right, this);
 
         columnRowType = buildColumnRowType();
 
         Set<TblColRef> joinCols = collectColumnsInJoinCondition(this.getCondition());
-        // push down join cols anyway since it supports runtime join only for now
-        pushDownJoinColsToSubContexts(joinCols);
         if (context != null) {
-            for (TblColRef joinCol : joinCols) {
-                if (this.context.belongToContextTables(joinCol)) {
-                    this.context.getSubqueryJoinParticipants().add(joinCol);
+            if (isPreCalJoin) {
+                // for pre calc join
+                buildAndUpdateContextJoin(condition);
+            } else {
+                for (TblColRef joinCol : joinCols) {
+                    if (this.context.belongToContextTables(joinCol)) {
+                        this.context.getSubqueryJoinParticipants().add(joinCol);
+                    }
                 }
+                pushDownJoinColsToSubContexts(joinCols);
             }
+        } else {
+            pushDownJoinColsToSubContexts(joinCols);
         }
+    }
+
+    private void buildAndUpdateContextJoin(RexNode condition) {
+        JoinDesc.JoinDescBuilder joinDescBuilder = new JoinDesc.JoinDescBuilder();
+        JoinInfo joinInfo = JoinInfo.of(left, right, condition);
+        Set<TblColRef> leftCols = new HashSet<>();
+        joinInfo.leftKeys.forEach(key -> leftCols.addAll(getColFromLeft(key).getSourceColumns()));
+        joinDescBuilder.addForeignKeys(leftCols);
+        Set<TblColRef> rightCols = new HashSet<>();
+        joinInfo.rightKeys.forEach(key -> rightCols.addAll(getColFromRight(key).getSourceColumns()));
+        joinDescBuilder.addPrimaryKeys(rightCols);
+
+        String joinType = this.getJoinType() == JoinRelType.INNER || this.getJoinType() == JoinRelType.LEFT
+                ? this.getJoinType().name()
+                : null;
+        joinDescBuilder.setType(joinType);
+
+        RexNode nonEquvCond = joinInfo.getRemaining(new RexBuilder(new JavaTypeFactoryImpl(RelDataTypeSystem.DEFAULT)));
+        joinDescBuilder.setForeignTableRef(((KapRel) left).getColumnRowType().getColumnByIndex(0).getTableRef());
+        joinDescBuilder.setPrimaryTableRef(((KapRel) right).getColumnRowType().getColumnByIndex(0).getTableRef());
+        NonEquiJoinCondition nonEquiJoinCondition = doBuildJoin(RexUtil.toCnf(new RexBuilder(new JavaTypeFactoryImpl(RelDataTypeSystem.DEFAULT)), nonEquvCond));
+        nonEquiJoinCondition.setExpr(RexToTblColRefTranslator.translateRexNode(condition, columnRowType).getParserDescription());
+        joinDescBuilder.setNonEquiJoinCondition(nonEquiJoinCondition);
+
+        JoinDesc joinDesc = joinDescBuilder.build();
+
+        context.joins.add(joinDesc);
+    }
+
+    private NonEquiJoinCondition doBuildJoin(RexNode condition) {
+        if (condition instanceof RexCall) {
+            List<NonEquiJoinCondition> nonEquiJoinConditions = new LinkedList<>();
+            for (RexNode operand : ((RexCall) condition).getOperands()) {
+                nonEquiJoinConditions.add(doBuildJoin(operand));
+            }
+            return new NonEquiJoinCondition(((RexCall) condition).getOperator(), nonEquiJoinConditions.toArray(new NonEquiJoinCondition[0]), condition.getType());
+        } else if (condition instanceof RexInputRef) {
+            final int colIdx = ((RexInputRef) condition).getIndex();
+            Set<TblColRef> sourceCols = getColByIndex(colIdx).getSourceColumns();
+            Preconditions.checkArgument(sourceCols.size() == 1);
+            TblColRef sourceCol = sourceCols.iterator().next();
+            return new NonEquiJoinCondition(sourceCol, condition.getType());
+        } else if (condition instanceof RexLiteral) {
+            return new NonEquiJoinCondition(((RexLiteral) condition), condition.getType());
+        }
+        throw new IllegalStateException("Invalid join condition " + condition);
+    }
+
+    private TblColRef getColByIndex(int idx) {
+        final int leftColumnsSize = ((OLAPRel) this.left).getColumnRowType().getAllColumns().size();
+        if (idx < leftColumnsSize) {
+            return getColFromLeft(idx);
+        } else {
+            return getColFromRight(idx - leftColumnsSize);
+        }
+    }
+
+    private TblColRef getColFromLeft(int idx) {
+        return ((OLAPRel) this.left).getColumnRowType().getAllColumns().get(idx);
+    }
+
+    private TblColRef getColFromRight(int idx) {
+        return ((OLAPRel) this.right).getColumnRowType().getAllColumns().get(idx);
     }
 
     private void pushDownJoinColsToSubContexts(Set<TblColRef> joinColumns) {
@@ -176,7 +289,8 @@ public class KapNonEquiJoinRel extends EnumerableThetaJoin implements KapRel {
         if (context != null) {
             this.rowType = this.deriveRowType();
             // for runtime join, add rewrite fields anyway
-            if (RewriteImplementor.needRewrite(this.context)) {
+            if (this.context.hasPrecalculatedFields() && RewriteImplementor.needRewrite(this.context)
+                    && aboveContextPreCalcJoin) {
                 int paramIndex = this.rowType.getFieldList().size();
                 List<RelDataTypeField> newFieldList = Lists.newLinkedList();
                 for (Map.Entry<String, RelDataType> rewriteField : this.context.rewriteFields.entrySet()) {
@@ -228,6 +342,10 @@ public class KapNonEquiJoinRel extends EnumerableThetaJoin implements KapRel {
     @Override
     public void setContext(OLAPContext context) {
         this.context = context;
+        for (RelNode input : getInputs()) {
+            ((KapRel) input).setContext(context);
+            subContexts.addAll(ContextUtil.collectSubContext(input));
+        }
     }
 
     @Override
@@ -240,6 +358,7 @@ public class KapNonEquiJoinRel extends EnumerableThetaJoin implements KapRel {
                 || ((KapRel) getLeft()).pushRelInfoToContext(context)
                 || ((KapRel) getRight()).pushRelInfoToContext(context)) {
             this.context = context;
+            isPreCalJoin = false;
             return true;
         }
         return false;
@@ -304,5 +423,18 @@ public class KapNonEquiJoinRel extends EnumerableThetaJoin implements KapRel {
     public RelWriter explainTerms(RelWriter pw) {
         return super.explainTerms(pw).item("ctx",
                 context == null ? "" : String.valueOf(context.id) + "@" + context.realization);
+    }
+
+    public boolean isRuntimeJoin() {
+        if (context != null) {
+            context.setReturnTupleInfo(rowType, columnRowType);
+        }
+        return this.context == null || ((KapRel) left).getContext() != ((KapRel) right).getContext();
+    }
+
+    private boolean hasSameFirstTable(ContextVisitorState leftState, ContextVisitorState rightState) {
+        // both sides have the same first table, each side should allocate a context
+        return !leftState.hasIncrementalTable() && !rightState.hasIncrementalTable() && leftState.hasFirstTable()
+                && rightState.hasFirstTable();
     }
 }

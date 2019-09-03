@@ -89,9 +89,17 @@ class CalciteToSparkPlaner(dataContext: DataContext) extends RelVisitor with Log
           logTime("join") { plan.JoinPlan.join(Lists.newArrayList(left, right), rel) }
         }
       case rel: KapNonEquiJoinRel =>
-        val right = stack.pop()
-        val left = stack.pop()
-        logTime("non-equi join") { plan.JoinPlan.nonEquiJoin(Lists.newArrayList(left, right), rel, dataContext) }
+        if (!rel.isRuntimeJoin) {
+          logTime("join with table scan") {
+            TableScanPlan.createOLAPTable(rel, dataContext)
+          }
+        } else {
+          val right = stack.pop()
+          val left = stack.pop()
+          logTime("non-equi join") {
+            plan.JoinPlan.nonEquiJoin(Lists.newArrayList(left, right), rel, dataContext)
+          }
+        }
       case rel: KapUnionRel =>
         val size = unionStack.pop()
         val java = Range(0, stack.size() - size).map(a => stack.pop()).asJava

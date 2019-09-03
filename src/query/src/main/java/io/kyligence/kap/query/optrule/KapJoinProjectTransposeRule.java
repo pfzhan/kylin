@@ -32,6 +32,7 @@ import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.rules.JoinProjectTransposeRule;
 
 import io.kyligence.kap.query.relnode.KapJoinRel;
+import io.kyligence.kap.query.relnode.KapNonEquiJoinRel;
 import io.kyligence.kap.query.relnode.KapProjectRel;
 
 public class KapJoinProjectTransposeRule extends RelOptRule {
@@ -68,6 +69,22 @@ public class KapJoinProjectTransposeRule extends RelOptRule {
             new JoinProjectTransposeRule(
                     operand(
                             KapJoinRel.class,
+                            operand(RelNode.class, any()),
+                            operand(KapProjectRel.class, any())),
+                    "Join(IncludingOuter)ProjectTransposeRule(Other-Project)",
+                    true, RelFactories.LOGICAL_BUILDER);
+
+    public static final JoinProjectTransposeRule NON_EQUI_LEFT_PROJECT_INCLUDE_OUTER =
+            new JoinProjectTransposeRule(
+                    operand(KapNonEquiJoinRel.class,
+                            some(operand(KapProjectRel.class, any()))),
+                    "Join(IncludingOuter)ProjectTransposeRule(Project-Other)",
+                    true, RelFactories.LOGICAL_BUILDER);
+
+    public static final JoinProjectTransposeRule NON_EQUI_RIGHT_PROJECT_INCLUDE_OUTER =
+            new JoinProjectTransposeRule(
+                    operand(
+                            KapNonEquiJoinRel.class,
                             operand(RelNode.class, any()),
                             operand(KapProjectRel.class, any())),
                     "Join(IncludingOuter)ProjectTransposeRule(Other-Project)",

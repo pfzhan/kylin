@@ -77,6 +77,8 @@ import org.apache.kylin.metadata.model.JoinDesc;
 import org.apache.kylin.metadata.model.JoinTableDesc;
 import org.apache.kylin.metadata.model.JoinsGraph;
 import org.apache.kylin.metadata.model.MeasureDesc;
+import org.apache.kylin.metadata.model.NonEquiJoinCondition;
+import org.apache.kylin.metadata.model.NonEquiJoinConditionType;
 import org.apache.kylin.metadata.model.PartitionDesc;
 import org.apache.kylin.metadata.model.SegmentConfig;
 import org.apache.kylin.metadata.model.TableDesc;
@@ -544,7 +546,13 @@ public class NDataModel extends RootPersistentEntity {
     public TableRef findTable(String table) throws IllegalArgumentException {
         TableRef result = tableNameMap.get(table.toUpperCase());
         if (result == null) {
-            throw new IllegalArgumentException("Table not found by " + table);
+            int endOfDatabaseName = table.indexOf(".");
+            if (endOfDatabaseName > -1) {
+                result = tableNameMap.get(table.substring(endOfDatabaseName + 1));
+            }
+            if (result == null) {
+                throw new IllegalArgumentException("Table not found by " + table);
+            }
         }
         return result;
     }
@@ -728,6 +736,7 @@ public class NDataModel extends RootPersistentEntity {
                 pkCols[i] = col;
             }
             join.setPrimaryKeyColumns(pkCols);
+            join.setPrimaryTableRef(dimTable);
 
             // foreign key
             String[] fks = join.getForeignKey();
@@ -741,23 +750,41 @@ public class NDataModel extends RootPersistentEntity {
                 fkCols[i] = col;
             }
             join.setForeignKeyColumns(fkCols);
+            if (join.getForeignTable() != null && findTable(join.getForeignTable()) != null) {
+                join.setForeignTableRef(findTable(join.getForeignTable()));
+            }
+
+            // non equi joins
+            initNonEquiCondition(join.getNonEquiJoinCondition());
 
             join.sortByFK();
 
             // Validate join in dimension
-            TableRef fkTable = fkCols[0].getTableRef();
-            if (pkCols.length == 0 || fkCols.length == 0)
-                throw new IllegalStateException("Missing join columns on table " + dimTable);
             if (pkCols.length != fkCols.length) {
                 throw new IllegalStateException("Primary keys(" + dimTable + ")" + Arrays.toString(pks)
-                        + " are not consistent with Foreign keys(" + fkTable + ") " + Arrays.toString(fks));
+                        + " are not consistent with Foreign keys(" + join.getFKSide().getTableIdentity() + ") " + Arrays.toString(fks));
             }
             for (int i = 0; i < fkCols.length; i++) {
                 if (!fkCols[i].getDatatype().equals(pkCols[i].getDatatype())) {
                     logger.warn("PK " + dimTable + "." + pkCols[i].getName() + "." + pkCols[i].getDatatype()
-                            + " are not consistent with FK " + fkTable + "." + fkCols[i].getName() + "."
+                            + " are not consistent with FK " + join.getFKSide().getTableIdentity() + "." + fkCols[i].getName() + "."
                             + fkCols[i].getDatatype());
                 }
+            }
+        }
+    }
+
+    private void initNonEquiCondition(NonEquiJoinCondition cond) {
+        if (cond == null) {
+            return;
+        }
+
+        if (cond.getType() == NonEquiJoinConditionType.COLUMN) {
+            cond.setColRef(findColumn(cond.getValue()));
+        }
+        if (cond.getOperands().length > 0) {
+            for (NonEquiJoinCondition childInput : cond.getOperands()) {
+                initNonEquiCondition(childInput);
             }
         }
     }

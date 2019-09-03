@@ -50,6 +50,8 @@ public class HepUtils {
             KapJoinProjectTransposeRule.RIGHT_PROJECT,
             KapJoinProjectTransposeRule.LEFT_PROJECT_INCLUDE_OUTER,
             KapJoinProjectTransposeRule.RIGHT_PROJECT_INCLUDE_OUTER,
+            KapJoinProjectTransposeRule.NON_EQUI_LEFT_PROJECT_INCLUDE_OUTER,
+            KapJoinProjectTransposeRule.NON_EQUI_RIGHT_PROJECT_INCLUDE_OUTER,
             //                ProjectJoinTransposeRule.INSTANCE,
             KapProjectRule.INSTANCE, KapFilterRule.INSTANCE,
             //                AggregateJoinTransposeRule.EXTENDED,

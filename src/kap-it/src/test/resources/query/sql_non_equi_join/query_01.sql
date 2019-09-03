@@ -1,12 +1,21 @@
--- example: both table are incremental load, result have two context
---    join
---   /    \
---  A      A (alias B)
-
-
-SELECT test_kylin_fact.seller_id AS seller_id, fact.cal_dt as cal_dt
-FROM test_kylin_fact test_kylin_fact
-	JOIN test_kylin_fact fact ON test_kylin_fact.seller_id < fact.seller_id
-WHERE fact.cal_dt = '2013-12-02'
-order by 1 asc
+-- test operators
+SELECT COUNT(1), TEST_KYLIN_FACT.SELLER_ID, TEST_ACCOUNT.ACCOUNT_ID, sum(TEST_KYLIN_FACT.ITEM_COUNT), count(TEST_ACCOUNT.ACCOUNT_CONTACT)
+FROM TEST_KYLIN_FACT
+LEFT JOIN TEST_ACCOUNT
+ON
+-- AND OR NOT
+TEST_KYLIN_FACT.SELLER_ID = TEST_ACCOUNT.ACCOUNT_ID
+AND TEST_KYLIN_FACT.CAL_DT BETWEEN '2013-05-01' AND DATE '2013-08-01'
+OR TEST_KYLIN_FACT.LSTG_FORMAT_NAME='FP-GTC'
+OR (NOT (TEST_KYLIN_FACT.PRICE > 100))
+-- <> > >= < <=
+AND TEST_KYLIN_FACT.ITEM_COUNT >= 2
+AND TEST_KYLIN_FACT.LEAF_CATEG_ID < 95672
+AND TEST_KYLIN_FACT.SLR_SEGMENT_CD <= 16
+AND TEST_KYLIN_FACT.SELLER_ID <> 10000000
+-- in, not in
+OR TEST_KYLIN_FACT.LSTG_FORMAT_NAME in ('ABIN', 'Auction')
+AND TEST_KYLIN_FACT.LSTG_FORMAT_NAME not in ('Others')
+group by TEST_KYLIN_FACT.SELLER_ID, TEST_ACCOUNT.ACCOUNT_ID
+order by 1,2,3,4,5
 limit 10000
