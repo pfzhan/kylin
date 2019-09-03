@@ -86,7 +86,8 @@ object KapFunctions {
     FunctionEntity(expression[TimestampAdd]("TIMESTAMPADD")),
     FunctionEntity(expression[TimestampDiff]("TIMESTAMPDIFF")),
     FunctionEntity(expression[Truncate]("TRUNCATE")),
-    FunctionEntity(expression[DictEncode]("DICTENCODE")))
+    FunctionEntity(expression[DictEncode]("DICTENCODE")),
+    FunctionEntity(expression[SplitPart]("split_part")))
 }
 
 case class FunctionEntity(name: FunctionIdentifier,

@@ -28,7 +28,7 @@ import org.apache.spark.sql.catalyst.expressions.aggregate.DeclarativeAggregate
 import org.apache.spark.sql.catalyst.expressions.codegen.{CodeGenerator, CodegenContext, ExprCode}
 import org.apache.spark.sql.catalyst.util.KapDateTimeUtils
 import org.apache.spark.sql.types._
-import org.apache.spark.sql.udf.{DictEncodeImpl, TimestampAddImpl, TimestampDiffImpl, TruncateImpl}
+import org.apache.spark.sql.udf.{DictEncodeImpl, SplitPartImpl, TimestampAddImpl, TimestampDiffImpl, TruncateImpl}
 import org.apache.spark.unsafe.types.UTF8String
 import org.apache.spark.util.random.XORShiftRandom
 
@@ -340,3 +340,22 @@ case class DictEncode(left: Expression, mid: Expression, right: Expression) exte
 }
 
 
+case class SplitPart(left: Expression, mid: Expression, right: Expression) extends TernaryExpression with ExpectsInputTypes {
+
+  override def dataType: DataType = left.dataType
+
+  override def inputTypes: Seq[AbstractDataType] = Seq(StringType, StringType, IntegerType)
+
+  override protected def nullSafeEval(input1: Any, input2: Any, input3: Any): Any = {
+    SplitPartImpl.evaluate(input1.toString, input2.toString, input3.asInstanceOf[Int])
+  }
+
+  override protected def doGenCode(ctx: CodegenContext, ev: ExprCode): ExprCode = {
+    val ta = SplitPartImpl.getClass.getName.stripSuffix("$")
+    defineCodeGen(ctx, ev, (arg1, arg2, arg3) => {
+      s"""$ta.evaluate($arg1.toString(), $arg2.toString(), $arg3)"""
+    })
+  }
+
+  override def children: Seq[Expression] = Seq(left, mid, right)
+}

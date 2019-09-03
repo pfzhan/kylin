@@ -46,10 +46,13 @@ import org.apache.kylin.query.udf.stringUdf.ConcatUDF;
 import org.apache.kylin.query.udf.stringUdf.InStrUDF;
 import org.apache.kylin.query.udf.stringUdf.InitCapbUDF;
 import org.apache.kylin.query.udf.stringUdf.LengthUDF;
+import org.apache.kylin.query.udf.stringUdf.SplitPartUDF;
 import org.apache.kylin.query.udf.stringUdf.StrPosUDF;
 import org.apache.kylin.query.udf.stringUdf.SubStrUDF;
 import org.junit.Test;
-import static org.junit.Assert.assertTrue;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 
 public class StringUDFTest {
 
@@ -57,42 +60,42 @@ public class StringUDFTest {
     public void testConcatUDF() throws Exception {
         ConcatUDF cu = new ConcatUDF();
         String str1 = cu.CONCAT("Apache ", "Kylin");
-        assertTrue("Apache Kylin".equals(str1));
+        assertEquals("Apache Kylin", str1);
 
         String str2 = cu.CONCAT("", "Kylin");
-        assertTrue("Kylin".equals(str2));
+        assertEquals("Kylin", str2);
 
         String str3 = cu.CONCAT("Apache", "");
-        assertTrue("Apache".equals(str3));
+        assertEquals("Apache", str3);
     }
 
     @Test
     public void testInitCapbUDF() throws Exception {
         InitCapbUDF icu = new InitCapbUDF();
         String str1 = icu.INITCAPB("abc DEF 123aVC 124Btd,lAsT");
-        assertTrue("Abc Def 123avc 124btd,Last".equals(str1));
+        assertEquals("Abc Def 123avc 124btd,Last", str1);
 
         String str2 = icu.INITCAPB("");
-        assertTrue("".equals(str2));
+        assertEquals("", str2);
     }
 
     @Test
     public void testInStrUDF() throws Exception {
         InStrUDF isd = new InStrUDF();
         int s1 = isd.INSTR("abcdebcf", "bc");
-        assertTrue(s1 == 2);
+        assertEquals(2, s1);
 
         int s2 = isd.INSTR("", "bc");
-        assertTrue(s2 == 0);
+        assertEquals(0, s2);
 
         int s3 = isd.INSTR("a", "bc");
-        assertTrue(s3 == 0);
+        assertEquals(0, s3);
 
         int s4 = isd.INSTR("abcdebcf", "");
-        assertTrue(s4 == 1);
+        assertEquals(1, s4);
 
         int s5 = isd.INSTR("abcdebcf", "bc", 4);
-        assertTrue(s5 == 6);
+        assertEquals(6, s5);
     }
 
     @Test
@@ -104,26 +107,26 @@ public class StringUDFTest {
     public void testLengthUDF() throws Exception {
         LengthUDF lu = new LengthUDF();
         int len1 = lu.LENGTH("apache kylin");
-        assertTrue(len1 == 12);
+        assertEquals(12, len1);
 
         int len2 = lu.LENGTH("");
-        assertTrue(len2 == 0);
+        assertEquals(0, len2);
     }
 
     @Test
     public void testStrPosUDF() throws Exception {
         StrPosUDF spu = new StrPosUDF();
         int s1 = spu.STRPOS("abcdebcf", "bc");
-        assertTrue(s1 == 2);
+        assertEquals(2, s1);
 
         int s2 = spu.STRPOS("", "bc");
-        assertTrue(s2 == 0);
+        assertEquals(0, s2);
 
         int s3 = spu.STRPOS("a", "bc");
-        assertTrue(s3 == 0);
+        assertEquals(0, s3);
 
         int s4 = spu.STRPOS("abcdebcf", "");
-        assertTrue(s4 == 1);
+        assertEquals(1, s4);
     }
 
     @Test
@@ -131,22 +134,29 @@ public class StringUDFTest {
         SubStrUDF ssu = new SubStrUDF();
 
         String s1 = ssu.SUBSTR("apache kylin", 2);
-        assertTrue("pache kylin".equals(s1));
+        assertEquals("pache kylin", s1);
 
         String s2 = ssu.SUBSTR("apache kylin", 2, 5);
-        assertTrue("pache".equals(s2));
+        assertEquals("pache", s2);
 
         String s3 = ssu.SUBSTR("", 2);
-        assertTrue(s3 == null);
+        assertNull(s3);
 
         String s4 = ssu.SUBSTR("", 2, 5);
-        assertTrue(s4 == null);
+        assertNull(s4);
 
         String s5 = ssu.SUBSTR("", 0, 5);
-        assertTrue(s5 == null);
+        assertNull(s5);
 
         String s6 = ssu.SUBSTR("a", 1, 5);
-        assertTrue("a".equals(s6));
+        assertEquals("a", s6);
     }
 
+    @Test
+    public void testSplitPartUDF() throws Exception {
+        SplitPartUDF splitPartUDF = new SplitPartUDF();
+        assertEquals("one", splitPartUDF.SPLIT_PART("oneAtwoBthreeC", "[ABC]", 1));
+        assertEquals("two", splitPartUDF.SPLIT_PART("oneAtwoBthreeC", "[ABC]", 2));
+        assertEquals("three", splitPartUDF.SPLIT_PART("oneAtwoBthreeC", "[ABC]", 3));
+    }
 }
