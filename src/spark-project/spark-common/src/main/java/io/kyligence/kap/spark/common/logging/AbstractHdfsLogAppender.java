@@ -30,7 +30,6 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.log4j.AppenderSkeleton;
 import org.apache.log4j.helpers.LogLog;
 import org.apache.log4j.spi.LoggingEvent;
@@ -72,11 +71,22 @@ public abstract class AbstractHdfsLogAppender extends AppenderSkeleton {
     @Setter
     private String hdfsWorkingDir;
 
-    public synchronized FileSystem getFileSystem() {
+    public FileSystem getFileSystem() {
         if (null == fileSystem) {
-            fileSystem = HadoopUtil.getWorkingFileSystem();
+            return getFileSystem(new Configuration());
         }
+        return fileSystem;
+    }
 
+    private synchronized FileSystem getFileSystem(Configuration conf) {
+        if (null == fileSystem) {
+            try {
+                fileSystem = new Path(hdfsWorkingDir).getFileSystem(conf);
+            } catch (IOException e) {
+                LogLog.error("Failed to create the file system, ", e);
+                throw new RuntimeException(e);
+            }
+        }
         return fileSystem;
     }
 
@@ -212,11 +222,10 @@ public abstract class AbstractHdfsLogAppender extends AppenderSkeleton {
             bufferedWriter = null;
             outStream = null;
 
-            fileSystem = HadoopUtil.getWorkingFileSystem(conf);
-
             int retry = 10;
             while (retry-- > 0) {
                 try {
+                    fileSystem = getFileSystem(conf);
                     outStream = fileSystem.create(outPath, true);
                     break;
                 } catch (Exception e) {

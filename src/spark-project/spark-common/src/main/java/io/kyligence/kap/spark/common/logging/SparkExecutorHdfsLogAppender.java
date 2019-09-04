@@ -138,12 +138,12 @@ public class SparkExecutorHdfsLogAppender extends AbstractHdfsLogAppender {
                 UserGroupInformation ugi = SparkEnv.getUGI();
                 // Add tokens to new user so that it may execute its task correctly.
                 LogLog.warn("Login user hashcode is " + ugi.hashCode());
-                ugi.doAs(new PrivilegedExceptionAction<Void>() {
-                    public Void run() throws Exception {
-                        initHdfsWriter(file, new Configuration());
-                        doRollingClean(loggingEvent);
-                        return null;
+                ugi.doAs((PrivilegedExceptionAction<Void>) () -> {
+                    if (!initHdfsWriter(file, new Configuration())) {
+                        LogLog.error("Failed to init the hdfs writer!");
                     }
+                    doRollingClean(loggingEvent);
+                    return null;
                 });
             }
 

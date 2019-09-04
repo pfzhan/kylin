@@ -644,7 +644,7 @@ public class NExecutableManager {
         }
 
         Path path = new Path(hdfsPath);
-        FileSystem fs = HadoopUtil.getFileSystem(path);
+        FileSystem fs = HadoopUtil.getWorkingFileSystem();
         try {
             return fs.exists(path);
         } catch (IOException e) {
