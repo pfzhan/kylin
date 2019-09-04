@@ -46,6 +46,7 @@ import java.io.IOException;
 import java.util.TreeSet;
 
 import org.apache.commons.lang.StringUtils;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileStatus;
@@ -73,7 +74,7 @@ public class NGlobalDictHDFSStore extends NGlobalDictStore {
 
     public NGlobalDictHDFSStore(String baseDir) throws IOException {
         this.basePath = new Path(baseDir);
-        this.fileSystem = HadoopUtil.getWorkingFileSystem();
+        this.fileSystem = basePath.getFileSystem(new Configuration());
     }
 
     @Override
