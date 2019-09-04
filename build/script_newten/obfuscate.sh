@@ -107,3 +107,7 @@ mv $BUILD_LIB_DIR/kap-assembly-${release_version}-job-obf.jar tmp/
 # obfuscate tool jar
 obfuscate src/tool-assembly/ $BUILD_LIB_DIR/../tool/ 1 1 kap-tool-assembly-${release_version}-assembly-obf kap-tool-${release_version}.jar
 mv $BUILD_LIB_DIR/../tool/kap-tool-assembly-${release_version}-assembly-obf.jar tmp/
+
+# obfuscate kylin user session jar
+obfuscate src/spark-project/kylin-user-session-dep/ $BUILD_LIB_DIR 1 1 kylin-user-session-dep-${release_version}-obf  kylin-user-session-dep-${release_version}.jar
+mv $BUILD_LIB_DIR/kylin-user-session-dep-${release_version}-obf.jar tmp/

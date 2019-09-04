@@ -24,6 +24,7 @@ cd build/
 rm -rf ${package_name}
 mkdir ${package_name}
 
+rm -rf lib/kylin-user-session-dep-${release_version}.jar
 cp -rf CHANGELOG.md VERSION commit_SHA1 lib tool LICENSE ${package_name}/
 
 mkdir ${package_name}/lib/ext
@@ -74,6 +75,19 @@ rm -rf server/
 
 #add udf jar to lib
 cp ../src/udf/target/kap-udf-${kap_version}.jar ${package_name}/lib/kylin-udf-${release_version}.jar
+
+
+# add kylin user jar to lib
+rm -rf ../tmp/merge
+mkdir ../tmp/merge
+cd ../tmp/merge
+jar -xf ../kylin-user-session-dep-${release_version}-obf.jar
+jar -xf ../../src/spark-project/kylin-user-session/target/original-kylin-user-session-${kap_version}.jar
+jar -cfM kylin-user-session-${release_version}.jar  .
+cd ../../build
+mv ../tmp/merge/kylin-user-session-${release_version}.jar  ${package_name}/lib/kylin-user-session-${release_version}.jar
+
+
 
 ## comment all default properties, and append them to the user visible kylin.properties
 ## first 16 lines are license, just skip them

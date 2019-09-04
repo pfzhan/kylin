@@ -24,9 +24,14 @@ package org.apache.spark.sql
 
 import java.io.File
 import java.nio.file.Paths
+import java.sql.SQLException
+
+import scala.util.{Failure, Success, Try}
 
 import org.apache.hadoop.security.UserGroupInformation
 import org.apache.kylin.common.{KapConfig, KylinConfig}
+import org.apache.kylin.query.QueryConnection
+import org.apache.kylin.query.util.QueryUtil
 import org.apache.spark.internal.Logging
 import org.apache.spark.scheduler.{SparkListener, SparkListenerApplicationEnd}
 import org.apache.spark.sql.SparkSession.Builder
@@ -53,6 +58,30 @@ class KylinSession(
   override def newSession(): SparkSession = {
     new KylinSession(sparkContext, Some(sharedState))
   }
+
+  def singleQuery(sql: String, project: String): DataFrame = {
+    val connection = QueryConnection.getConnection(project)
+    val convertedSql =
+      QueryUtil.massageSql(sql, project, 0, 0, connection.getSchema, true)
+    connection.createStatement().execute(convertedSql)
+    SparderEnv.getDF
+  }
+
+  def sql(project: String, sqlText: String): DataFrame = {
+    Try {
+      singleQuery(sqlText, project)
+    } match {
+      case Success(result_df) =>
+        result_df
+      case Failure(e) =>
+        if (e.isInstanceOf[SQLException]) {
+          sql(sqlText)
+        } else {
+          throw e
+        }
+    }
+  }
+
 }
 
 object KylinSession extends Logging {
@@ -138,6 +167,9 @@ object KylinSession extends Logging {
     private lazy val kapConfig: KapConfig = KapConfig.getInstanceFromEnv
 
     def initSparkConf(sparkConf: SparkConf): SparkConf = {
+      if (sparkConf.getBoolean("user.kylin.session", false)) {
+        return sparkConf
+      }
       sparkConf.set("spark.executor.plugins", "org.apache.spark.memory.MonitorExecutorExtension")
 
       // kerberos
