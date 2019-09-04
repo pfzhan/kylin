@@ -57,7 +57,7 @@ import lombok.Data;
 public class ComputedColumnDesc implements Serializable {
     private static final Logger logger = LoggerFactory.getLogger(ComputedColumnDesc.class);
 
-    private static final String CC_PREFIX = "_CC_";
+    public static final String CC_PREFIX = "_CC_";
 
     // the table identity DB.TABLE (ignoring alias) in the model where the computed column belong to
     // this field is more useful for frontend, for backend code, usage should be avoided

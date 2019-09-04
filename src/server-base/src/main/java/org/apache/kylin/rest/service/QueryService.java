@@ -38,7 +38,7 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
-*/
+ */
 
 package org.apache.kylin.rest.service;
 
@@ -61,6 +61,7 @@ import java.sql.Timestamp;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -137,6 +138,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 
 import io.kyligence.kap.common.hystrix.NCircuitBreaker;
 import io.kyligence.kap.common.metrics.NMetricsCategory;
@@ -145,6 +147,7 @@ import io.kyligence.kap.common.metrics.NMetricsName;
 import io.kyligence.kap.common.persistence.transaction.TransactionException;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWorkParams;
+import io.kyligence.kap.metadata.model.ComputedColumnDesc;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
@@ -172,6 +175,7 @@ public class QueryService extends BasicService {
     public static final String EXCEPTION_QUERY_CACHE = "ExceptionQueryCache";
     public static final String QUERY_STORE_PATH_PREFIX = "/query/";
     public static final String UNKNOWN = "Unknown";
+    private static final String JDBC_METADATA_SCHEMA = "metadata";
     private static final Logger logger = LoggerFactory.getLogger(QueryService.class);
     final SlowQueryDetector slowQueryDetector = new SlowQueryDetector();
 
@@ -631,7 +635,7 @@ public class QueryService extends BasicService {
                     QueryContext.current().setCorrectedSql(correctedSql);
 
                     if (!correctedSql.equals(sqlRequest.getSql())) {
-                        logger.info("The corrected query: " + correctedSql);
+                        logger.info("The corrected query: {}", correctedSql);
 
                         //CAUTION: should not change sqlRequest content!
                         //sqlRequest.setSql(correctedSql);
@@ -718,7 +722,7 @@ public class QueryService extends BasicService {
                         schemaName == null ? Constant.FakeSchemaName : schemaName, JDBCTableMeta.getString(3),
                         JDBCTableMeta.getString(4), JDBCTableMeta.getString(5), null, null, null, null, null);
 
-                if (!"metadata".equalsIgnoreCase(tblMeta.getTABLE_SCHEM())) {
+                if (!JDBC_METADATA_SCHEMA.equalsIgnoreCase(tblMeta.getTABLE_SCHEM())) {
                     tableMetas.add(tblMeta);
                     tableMap.put(tblMeta.getTABLE_SCHEM() + "#" + tblMeta.getTABLE_NAME(), tblMeta);
                 }
@@ -741,8 +745,9 @@ public class QueryService extends BasicService {
                         columnMeta.getString(20), columnMeta.getString(21), getShort(columnMeta.getString(22)),
                         columnMeta.getString(23));
 
-                if (!"metadata".equalsIgnoreCase(colmnMeta.getTABLE_SCHEM())
-                        && !colmnMeta.getCOLUMN_NAME().toUpperCase().startsWith("_KY_")) {
+                if (!JDBC_METADATA_SCHEMA.equalsIgnoreCase(colmnMeta.getTABLE_SCHEM())
+                        && !colmnMeta.getCOLUMN_NAME().toUpperCase().startsWith("_KY_")
+                        && !colmnMeta.getCOLUMN_NAME().startsWith(ComputedColumnDesc.CC_PREFIX)) {
                     tableMap.get(colmnMeta.getTABLE_SCHEM() + "#" + colmnMeta.getTABLE_NAME()).addColumn(colmnMeta);
                 }
             }
@@ -757,45 +762,66 @@ public class QueryService extends BasicService {
     }
 
     @SuppressWarnings("checkstyle:methodlength")
-    public List<TableMetaWithType> getMetadataV2(String project) throws SQLException, IOException {
-        //Message msg = MsgPicker.getMsg();
+    public List<TableMetaWithType> getMetadataV2(String project) throws SQLException {
 
-        Connection conn = null;
-        ResultSet columnMeta = null;
-        List<TableMetaWithType> tableMetas = null;
+        if (StringUtils.isBlank(project))
+            return Collections.emptyList();
+
         Map<String, TableMetaWithType> tableMap = null;
         Map<String, ColumnMetaWithType> columnMap = null;
-        if (StringUtils.isBlank(project)) {
-            return Collections.emptyList();
-        }
-        ResultSet JDBCTableMeta = null;
+        Connection conn = null;
         try {
             conn = getConnection(project);
             DatabaseMetaData metaData = conn.getMetaData();
+            tableMap = constructTableMeta(metaData);
+            columnMap = constructTblColMeta(metaData);
+            addColsToTblMeta(tableMap, columnMap);
+        } finally {
+            close(null, null, conn);
+        }
 
-            JDBCTableMeta = metaData.getTables(null, null, null, null);
+        ProjectInstance projectInstance = getProjectManager().getProject(project);
+        for (String modelId : projectInstance.getModels()) {
+            NDataModel dataModelDesc = NDataModelManager.getInstance(getConfig(), project).getDataModelDesc(modelId);
+            if (dataModelDesc != null && !dataModelDesc.isDraft()) {
+                clarifyTblTypeToFactOrLookup(dataModelDesc, tableMap);
+                clarifyPkFkCols(dataModelDesc, columnMap);
+            }
+        }
 
-            tableMetas = new LinkedList<TableMetaWithType>();
-            tableMap = new HashMap<String, TableMetaWithType>();
-            columnMap = new HashMap<String, ColumnMetaWithType>();
-            while (JDBCTableMeta.next()) {
-                String catalogName = JDBCTableMeta.getString(1);
-                String schemaName = JDBCTableMeta.getString(2);
+        List<TableMetaWithType> tableMetas = Lists.newArrayList();
+        tableMap.forEach((name, tableMeta) -> tableMetas.add(tableMeta));
 
+        return tableMetas;
+    }
+
+    private LinkedHashMap<String, TableMetaWithType> constructTableMeta(DatabaseMetaData metaData) throws SQLException {
+        LinkedHashMap<String, TableMetaWithType> tableMap = Maps.newLinkedHashMap();
+        try (ResultSet jdbcTableMeta = metaData.getTables(null, null, null, null)) {
+
+            while (jdbcTableMeta.next()) {
+                String catalogName = jdbcTableMeta.getString(1);
+                String schemaName = jdbcTableMeta.getString(2);
                 // Not every JDBC data provider offers full 10 columns, e.g., PostgreSQL has only 5
                 TableMetaWithType tblMeta = new TableMetaWithType(
                         catalogName == null ? Constant.FakeCatalogName : catalogName,
-                        schemaName == null ? Constant.FakeSchemaName : schemaName, JDBCTableMeta.getString(3),
-                        JDBCTableMeta.getString(4), JDBCTableMeta.getString(5), null, null, null, null, null);
+                        schemaName == null ? Constant.FakeSchemaName : schemaName, jdbcTableMeta.getString(3),
+                        jdbcTableMeta.getString(4), jdbcTableMeta.getString(5), null, null, null, null, null);
 
-                if (!"metadata".equalsIgnoreCase(tblMeta.getTABLE_SCHEM())) {
-                    tableMetas.add(tblMeta);
+                if (!JDBC_METADATA_SCHEMA.equalsIgnoreCase(tblMeta.getTABLE_SCHEM())) {
                     tableMap.put(tblMeta.getTABLE_SCHEM() + "#" + tblMeta.getTABLE_NAME(), tblMeta);
                 }
             }
 
-            columnMeta = metaData.getColumns(null, null, null, null);
+            return tableMap;
+        }
+    }
 
+    private LinkedHashMap<String, ColumnMetaWithType> constructTblColMeta(DatabaseMetaData metaData)
+            throws SQLException {
+
+        LinkedHashMap<String, ColumnMetaWithType> columnMap = Maps.newLinkedHashMap();
+        try (ResultSet columnMeta = metaData.getColumns(null, null, null, null)) {
             while (columnMeta.next()) {
                 String catalogName = columnMeta.getString(1);
                 String schemaName = columnMeta.getString(2);
@@ -812,76 +838,63 @@ public class QueryService extends BasicService {
                         columnMeta.getString(20), columnMeta.getString(21), getShort(columnMeta.getString(22)),
                         columnMeta.getString(23));
 
-                if (!"metadata".equalsIgnoreCase(colmnMeta.getTABLE_SCHEM())
-                        && !colmnMeta.getCOLUMN_NAME().toUpperCase().startsWith("_KY_")) {
-                    tableMap.get(colmnMeta.getTABLE_SCHEM() + "#" + colmnMeta.getTABLE_NAME()).addColumn(colmnMeta);
+                if (!JDBC_METADATA_SCHEMA.equalsIgnoreCase(colmnMeta.getTABLE_SCHEM())
+                        && !colmnMeta.getCOLUMN_NAME().toUpperCase().startsWith("_KY_")
+                        && !colmnMeta.getCOLUMN_NAME().startsWith(ComputedColumnDesc.CC_PREFIX)) {
                     columnMap.put(colmnMeta.getTABLE_SCHEM() + "#" + colmnMeta.getTABLE_NAME() + "#"
                             + colmnMeta.getCOLUMN_NAME(), colmnMeta);
                 }
             }
 
-        } finally {
-            close(columnMeta, null, conn);
-            if (JDBCTableMeta != null) {
-                JDBCTableMeta.close();
+            return columnMap;
+        }
+    }
+
+    private void addColsToTblMeta(Map<String, TableMetaWithType> tblMap,
+            Map<String, ColumnMetaWithType> columnMetaWithTypeMap) {
+        columnMetaWithTypeMap.forEach((name, columnMetaWithType) -> {
+            String tblName = name.substring(0, name.lastIndexOf('#'));
+            tblMap.get(tblName).addColumn(columnMetaWithType);
+        });
+    }
+
+    private void clarifyTblTypeToFactOrLookup(NDataModel dataModelDesc, Map<String, TableMetaWithType> tableMap) {
+        // update table type: FACT
+        for (TableRef factTable : dataModelDesc.getFactTables()) {
+            String factTableName = factTable.getTableIdentity().replace('.', '#');
+            if (tableMap.containsKey(factTableName)) {
+                tableMap.get(factTableName).getTYPE().add(TableMetaWithType.tableTypeEnum.FACT);
             }
         }
 
-        ProjectInstance projectInstance = getProjectManager().getProject(project);
-        for (String modelId : projectInstance.getModels()) {
-
-            NDataModel dataModelDesc = NDataModelManager.getInstance(getConfig(), project).getDataModelDesc(modelId);
-            if (dataModelDesc != null && !dataModelDesc.isDraft()) {
-
-                // update table type: FACT
-                for (TableRef factTable : dataModelDesc.getFactTables()) {
-                    String factTableName = factTable.getTableIdentity().replace('.', '#');
-                    if (tableMap.containsKey(factTableName)) {
-                        tableMap.get(factTableName).getTYPE().add(TableMetaWithType.tableTypeEnum.FACT);
-                    } else {
-                        // should be used after JDBC exposes all tables and columns
-                        // throw new BadRequestException(msg.getTABLE_META_INCONSISTENT());
-                    }
-                }
-
-                // update table type: LOOKUP
-                for (TableRef lookupTable : dataModelDesc.getLookupTables()) {
-                    String lookupTableName = lookupTable.getTableIdentity().replace('.', '#');
-                    if (tableMap.containsKey(lookupTableName)) {
-                        tableMap.get(lookupTableName).getTYPE().add(TableMetaWithType.tableTypeEnum.LOOKUP);
-                    } else {
-                        // throw new BadRequestException(msg.getTABLE_META_INCONSISTENT());
-                    }
-                }
-
-                // update column type: PK and FK
-                for (JoinTableDesc joinTableDesc : dataModelDesc.getJoinTables()) {
-                    JoinDesc joinDesc = joinTableDesc.getJoin();
-                    for (String pk : joinDesc.getPrimaryKey()) {
-                        String columnIdentity = (dataModelDesc.findTable(pk.substring(0, pk.indexOf(".")))
-                                .getTableIdentity() + pk.substring(pk.indexOf("."))).replace('.', '#');
-                        if (columnMap.containsKey(columnIdentity)) {
-                            columnMap.get(columnIdentity).getTYPE().add(ColumnMetaWithType.columnTypeEnum.PK);
-                        } else {
-                            // throw new BadRequestException(msg.getCOLUMN_META_INCONSISTENT());
-                        }
-                    }
-
-                    for (String fk : joinDesc.getForeignKey()) {
-                        String columnIdentity = (dataModelDesc.findTable(fk.substring(0, fk.indexOf(".")))
-                                .getTableIdentity() + fk.substring(fk.indexOf("."))).replace('.', '#');
-                        if (columnMap.containsKey(columnIdentity)) {
-                            columnMap.get(columnIdentity).getTYPE().add(ColumnMetaWithType.columnTypeEnum.FK);
-                        } else {
-                            // throw new BadRequestException(msg.getCOLUMN_META_INCONSISTENT());
-                        }
-                    }
-                }
-
+        // update table type: LOOKUP
+        for (TableRef lookupTable : dataModelDesc.getLookupTables()) {
+            String lookupTableName = lookupTable.getTableIdentity().replace('.', '#');
+            if (tableMap.containsKey(lookupTableName)) {
+                tableMap.get(lookupTableName).getTYPE().add(TableMetaWithType.tableTypeEnum.LOOKUP);
             }
         }
+    }
 
-        return tableMetas;
+    private void clarifyPkFkCols(NDataModel dataModelDesc, Map<String, ColumnMetaWithType> columnMap) {
+        for (JoinTableDesc joinTableDesc : dataModelDesc.getJoinTables()) {
+            JoinDesc joinDesc = joinTableDesc.getJoin();
+            for (String pk : joinDesc.getPrimaryKey()) {
+                String columnIdentity = (dataModelDesc.findTable(pk.substring(0, pk.indexOf('.'))).getTableIdentity()
+                        + pk.substring(pk.indexOf('.'))).replace('.', '#');
+                if (columnMap.containsKey(columnIdentity)) {
+                    columnMap.get(columnIdentity).getTYPE().add(ColumnMetaWithType.columnTypeEnum.PK);
+                }
+            }
+
+            for (String fk : joinDesc.getForeignKey()) {
+                String columnIdentity = (dataModelDesc.findTable(fk.substring(0, fk.indexOf('.'))).getTableIdentity()
+                        + fk.substring(fk.indexOf('.'))).replace('.', '#');
+                if (columnMap.containsKey(columnIdentity)) {
+                    columnMap.get(columnIdentity).getTYPE().add(ColumnMetaWithType.columnTypeEnum.FK);
+                }
+            }
+        }
     }
 
     protected void processStatementAttr(Statement s, SQLRequest sqlRequest) throws SQLException {

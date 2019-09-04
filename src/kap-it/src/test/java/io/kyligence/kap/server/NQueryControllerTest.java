@@ -24,7 +24,6 @@
 
 package io.kyligence.kap.server;
 
-
 import java.io.File;
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -45,7 +44,11 @@ import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.result.MockMvcResultHandlers;
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.jayway.jsonpath.JsonPath;
+
+import io.kyligence.kap.metadata.model.ComputedColumnDesc;
+import lombok.val;
 
 public class NQueryControllerTest extends AbstractMVCIntegrationTestCase {
 
@@ -157,12 +160,12 @@ public class NQueryControllerTest extends AbstractMVCIntegrationTestCase {
 
     @Test
     public void testGetMetadata() throws Exception {
-        mockMvc.perform(MockMvcRequestBuilders
-                .get("/api/query/tables_and_columns")
-                .param("project", "default")
-                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
-                .andExpect(MockMvcResultMatchers.status().isOk())
-                .andDo(MockMvcResultHandlers.print());
-
+        final val mvcResult = mockMvc
+                .perform(MockMvcRequestBuilders.get("/api/query/tables_and_columns").param("project", "default")
+                        .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
+        final JsonNode jsonNode = JsonUtil.readValueAsTree(mvcResult.getResponse().getContentAsString());
+        final JsonNode data = jsonNode.get("data");
+        Assert.assertTrue(!data.toString().contains(ComputedColumnDesc.CC_PREFIX));
     }
 }

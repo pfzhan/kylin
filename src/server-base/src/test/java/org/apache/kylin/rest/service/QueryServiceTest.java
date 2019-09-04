@@ -540,7 +540,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
 
             //make sure test_kylin_fact contains all computed columns
             factColumns = getFactColumns(tableMetas);
-            Assert.assertEquals(22, factColumns.size());
+            Assert.assertEquals(11, factColumns.size());
         }
 
         //disable the one ready cube
@@ -599,7 +599,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
 
             //make sure test_kylin_fact contains all computed columns
             factColumns = getFactColumns(tableMetas);
-            Assert.assertEquals(22, factColumns.size());
+            Assert.assertEquals(11, factColumns.size());
         }
     }
 
@@ -630,8 +630,8 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
 
             //make sure test_kylin_fact contains all computed columns
             factColumns = getFactColumns(tableMetas4default);
-            Assert.assertEquals(23, factColumns.size());
-            Assert.assertTrue(getColumnNames(factColumns).containsAll(Arrays.asList("_CC_DEAL_YEAR", "_CC_DEAL_AMOUNT",
+            Assert.assertEquals(12, factColumns.size());
+            Assert.assertFalse(getColumnNames(factColumns).containsAll(Arrays.asList("_CC_DEAL_YEAR", "_CC_DEAL_AMOUNT",
                     "_CC_LEFTJOIN_BUYER_ID_AND_COUNTRY_NAME", "_CC_LEFTJOIN_SELLER_ID_AND_COUNTRY_NAME",
                     "_CC_LEFTJOIN_BUYER_COUNTRY_ABBR", "_CC_LEFTJOIN_SELLER_COUNTRY_ABBR")));
         }
@@ -645,8 +645,8 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
 
             ColumnDesc[] columnDescs = findColumnDescs();
             factColumns = getFactColumns(tableMetas);
-            Assert.assertEquals(12 + columnDescs.length, factColumns.size());
-            Assert.assertTrue(getColumnNames(factColumns).containsAll(Arrays.asList("_CC_DEAL_YEAR", "_CC_DEAL_AMOUNT",
+            Assert.assertEquals(columnDescs.length, factColumns.size());
+            Assert.assertFalse(getColumnNames(factColumns).containsAll(Arrays.asList("_CC_DEAL_YEAR", "_CC_DEAL_AMOUNT",
                     "_CC_LEFTJOIN_BUYER_ID_AND_COUNTRY_NAME", "_CC_LEFTJOIN_SELLER_ID_AND_COUNTRY_NAME",
                     "_CC_LEFTJOIN_BUYER_COUNTRY_ABBR", "_CC_LEFTJOIN_SELLER_COUNTRY_ABBR")));
         }
@@ -659,8 +659,8 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
             final List<TableMetaWithType> tableMetas4default = queryService.getMetadataV2("default");
             ColumnDesc[] columnDescs = findColumnDescs();
             factColumns = getFactColumns(tableMetas4default);
-            Assert.assertEquals(11 + columnDescs.length, factColumns.size());
-            Assert.assertTrue(getColumnNames(factColumns).containsAll(Arrays.asList("_CC_DEAL_YEAR", "_CC_DEAL_AMOUNT",
+            Assert.assertEquals(columnDescs.length, factColumns.size());
+            Assert.assertFalse(getColumnNames(factColumns).containsAll(Arrays.asList("_CC_DEAL_YEAR", "_CC_DEAL_AMOUNT",
                     "_CC_LEFTJOIN_BUYER_ID_AND_COUNTRY_NAME", "_CC_LEFTJOIN_SELLER_ID_AND_COUNTRY_NAME",
                     "_CC_LEFTJOIN_BUYER_COUNTRY_ABBR", "_CC_LEFTJOIN_SELLER_COUNTRY_ABBR")));
         }
