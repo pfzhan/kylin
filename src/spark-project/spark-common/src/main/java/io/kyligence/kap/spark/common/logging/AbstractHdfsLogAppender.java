@@ -47,6 +47,7 @@ public abstract class AbstractHdfsLogAppender extends AppenderSkeleton {
     private final Object flushLogLock = new Object();
     private final Object initWriterLock = new Object();
     private final Object closeLock = new Object();
+    private final Object fileSystemLock = new Object();
 
     private FSDataOutputStream outStream = null;
     private BufferedWriter bufferedWriter = null;
@@ -78,13 +79,15 @@ public abstract class AbstractHdfsLogAppender extends AppenderSkeleton {
         return fileSystem;
     }
 
-    private synchronized FileSystem getFileSystem(Configuration conf) {
-        if (null == fileSystem) {
-            try {
-                fileSystem = new Path(hdfsWorkingDir).getFileSystem(conf);
-            } catch (IOException e) {
-                LogLog.error("Failed to create the file system, ", e);
-                throw new RuntimeException(e);
+    private FileSystem getFileSystem(Configuration conf) {
+        synchronized (fileSystemLock) {
+            if (null == fileSystem) {
+                try {
+                    fileSystem = new Path(hdfsWorkingDir).getFileSystem(conf);
+                } catch (IOException e) {
+                    LogLog.error("Failed to create the file system, ", e);
+                    throw new RuntimeException(e);
+                }
             }
         }
         return fileSystem;
