@@ -46,7 +46,7 @@
         <module>spark-it</module>
         <module>source-file</module>
         <module>kylin-user-session</module>
-        <module>Kylin-user-session-dep</module>
+        <module>kylin-user-session-dep</module>
     </modules>
 
     <dependencies>
