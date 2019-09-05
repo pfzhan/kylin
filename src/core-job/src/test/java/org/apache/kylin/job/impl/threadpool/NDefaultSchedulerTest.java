@@ -38,6 +38,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.junit.rule.Repeat;
+import io.kyligence.kap.junit.rule.RepeatRule;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.JobProcessContext;
 import org.apache.kylin.common.KylinConfig;
@@ -68,6 +70,8 @@ import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
+import org.junit.rules.RuleChain;
+import org.junit.rules.TestRule;
 import org.mockito.Mockito;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -113,8 +117,12 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         System.clearProperty("kylin.job.retry-exception-classes");
     }
 
-    @Rule
+
     public ExpectedException thrown = ExpectedException.none();
+
+    @Rule
+    public TestRule chain = RuleChain.outerRule(new RepeatRule())
+            .around(thrown);
 
     @Test
     public void testSingleTaskJob() {
@@ -869,7 +877,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         return job;
     }
 
-    @Ignore("#14006")
+    @Repeat(3)
     @Test
     public void testCheckJobStopped_TaskSucceed() throws JobStoppedException {
         val currMem = NDefaultScheduler.currentAvailableMem();
@@ -1562,7 +1570,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         assertMemoryRestore(currMem);
     }
 
-    @Ignore
+    @Repeat(3)
     @Test
     public void testJobErrorAndRestart() {
         val currMem = NDefaultScheduler.currentAvailableMem();
