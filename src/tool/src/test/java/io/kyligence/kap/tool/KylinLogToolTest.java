@@ -150,7 +150,7 @@ public class KylinLogToolTest extends NLocalFileMetadataTestCase {
         FileUtils.writeStringToFile(kylinLog, logs1);
         FileUtils.writeStringToFile(kylinLog1, logs2);
 
-        long startTime = DateTime.parse("2019-09-02").withTimeAtStartOfDay().getMillis();
+        long startTime = DateTime.parse("2019-09-01").withTimeAtStartOfDay().getMillis();
         long endTime = DateTime.parse("2019-09-03").withTimeAtStartOfDay().getMillis();
 
         KylinLogTool.extractKylinLog(mainDir, startTime, endTime);
