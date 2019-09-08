@@ -1165,7 +1165,7 @@ public class NDataModel extends RootPersistentEntity {
                 TblColRef col = tableRef.getColumn(column);
                 if (col == null) {
                     throw new IllegalArgumentException(
-                            "Computed Column " + ccDesc.getColumnName() + " use incorrect column");
+                            "Computed Column " + ccDesc.getColumnName() + " use nonexistent column(s): " + tblCol);
                 }
             }
         }

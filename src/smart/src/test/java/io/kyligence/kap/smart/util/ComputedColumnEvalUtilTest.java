@@ -24,16 +24,21 @@
 
 package io.kyligence.kap.smart.util;
 
-import com.google.common.collect.Lists;
-import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
-import io.kyligence.kap.metadata.model.ComputedColumnDesc;
-import io.kyligence.kap.metadata.model.NDataModel;
-import io.kyligence.kap.metadata.model.NDataModelManager;
+import java.util.List;
+
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.metadata.project.ProjectInstance;
 import org.junit.Assert;
 import org.junit.Test;
 
-import java.util.List;
+import com.google.common.collect.Lists;
+
+import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
+import io.kyligence.kap.metadata.model.ComputedColumnDesc;
+import io.kyligence.kap.metadata.model.MaintainModelType;
+import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.metadata.model.NDataModelManager;
+import io.kyligence.kap.metadata.project.NProjectManager;
 
 public class ComputedColumnEvalUtilTest extends NLocalWithSparkSessionTest {
 
@@ -124,6 +129,44 @@ public class ComputedColumnEvalUtilTest extends NLocalWithSparkSessionTest {
         Assert.assertEquals(1, computedColumns.size());
         Assert.assertEquals("CONCAT(TEST_KYLIN_FACT.LSTG_FORMAT_NAME, TEST_KYLIN_FACT.LSTG_FORMAT_NAME)",
                 computedColumns.get(0).getInnerExpression().trim());
+    }
+
+    @Test
+    public void testUnsupportedCCInManualMaintainType() {
+
+        NDataModel dataModel = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), "default")
+                .getDataModelDesc("abe3bf1a-c4bc-458d-8278-7ea8b00f5e96");
+        // set maintain model type to manual
+        final NProjectManager projectManager = NProjectManager.getInstance(getTestConfig());
+        final ProjectInstance projectUpdate = projectManager
+                .copyForWrite(projectManager.getProject(dataModel.getProject()));
+        projectUpdate.setMaintainModelType(MaintainModelType.MANUAL_MAINTAIN);
+        projectManager.updateProject(projectUpdate);
+
+        // case 1: resolve column failed, but table schema not changed.
+        try {
+            ComputedColumnDesc cc = new ComputedColumnDesc();
+            cc.setInnerExpression("TEST_KYLIN_FACT.LSTG_FORMAT_NAME2 + '1'");
+            cc.setColumnName("CC_1");
+            ComputedColumnEvalUtil.evaluateExprAndTypes(dataModel, Lists.newArrayList(cc));
+            Assert.fail();
+        } catch (Exception e) {
+            Assert.assertEquals("Cannot find column `TEST_KYLIN_FACT.LSTG_FORMAT_NAME2`, "
+                    + "please check whether schema of related table has changed.", e.getMessage());
+        }
+
+        // case 2: unsupported computed column expression
+        try {
+            ComputedColumnDesc cc = new ComputedColumnDesc();
+            cc.setInnerExpression("SUBSTRING(TEST_KYLIN_FACT.LSTG_FORMAT_NAME FROM 1 FOR 4)");
+            cc.setColumnName("CC_2");
+            ComputedColumnEvalUtil.evaluateExprAndTypes(dataModel, Lists.newArrayList(cc));
+            Assert.fail();
+        } catch (Exception e) {
+            Assert.assertEquals("Cannot evaluate data type of computed column " //
+                    + "SUBSTRING(TEST_KYLIN_FACT.LSTG_FORMAT_NAME FROM 1 FOR 4) due to unsupported expression.",
+                    e.getMessage());
+        }
     }
 
     @Test
