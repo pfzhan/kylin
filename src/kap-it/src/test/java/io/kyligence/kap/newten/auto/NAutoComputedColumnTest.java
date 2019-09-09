@@ -839,6 +839,44 @@ public class NAutoComputedColumnTest extends NAutoTestBase {
         Assert.assertEquals(0, computedColumns.size());
     }
 
+    @Test
+    public void testNestedUdfRecommendCC() {
+        String[] sqls = new String[] {
+                "SELECT COUNT(SPLIT_PART(CONCAT(substr(lstg_format_name,1), '-apache-kylin'), '-', 1)) FROM test_kylin_fact",
+                "SELECT COUNT(SPLIT_PART(upper(substr(lstg_format_name,1)), 'A', 1)) FROM test_kylin_fact",
+                "SELECT sum(length(concat(cast(instr(cast(SELLER_ID as varchar),'0') as varchar),'ll'))) from test_kylin_fact\n" +
+                        "where instr(cast(SELLER_ID as varchar),'0') > 1 group by LSTG_FORMAT_NAME"
+        };
+
+        NSmartMaster smartMaster = new NSmartMaster(kylinConfig, getProject(), sqls);
+        smartMaster.runAll();
+        val modelContexts = smartMaster.getContext().getModelContexts();
+        val targetModel = modelContexts.get(0).getTargetModel();
+        val computedColumns = targetModel.getComputedColumnDescs();
+        Assert.assertEquals(4, computedColumns.size());
+        Assert.assertEquals("SPLIT_PART(CONCAT(SUBSTR(TEST_KYLIN_FACT.LSTG_FORMAT_NAME, 1), '-apache-kylin'), '-', 1)",
+                computedColumns.get(0).getInnerExpression().trim());
+        Assert.assertEquals("SPLIT_PART(CONCAT(SUBSTR(TEST_KYLIN_FACT.LSTG_FORMAT_NAME, 1), '-apache-kylin'), '-', 1)",
+                computedColumns.get(0).getExpression().trim());
+        Assert.assertEquals("VARCHAR", computedColumns.get(0).getDatatype());
+        Assert.assertEquals("SPLIT_PART(UPPER(SUBSTR(TEST_KYLIN_FACT.LSTG_FORMAT_NAME, 1)), 'A', 1)",
+                computedColumns.get(1).getInnerExpression().trim());
+        Assert.assertEquals("SPLIT_PART(UPPER(SUBSTR(TEST_KYLIN_FACT.LSTG_FORMAT_NAME, 1)), 'A', 1)",
+                computedColumns.get(1).getExpression().trim());
+        Assert.assertEquals("VARCHAR", computedColumns.get(1).getDatatype());
+        Assert.assertEquals("LENGTH(CONCAT(CAST(INSTR(CAST(TEST_KYLIN_FACT.SELLER_ID AS VARCHAR), '0') AS VARCHAR), 'll'))",
+                computedColumns.get(2).getInnerExpression().trim());
+        Assert.assertEquals("LENGTH(CONCAT(CAST(INSTR(CAST(TEST_KYLIN_FACT.SELLER_ID AS VARCHAR), '0') AS VARCHAR), 'll'))",
+                computedColumns.get(2).getExpression().trim());
+        Assert.assertEquals("INTEGER", computedColumns.get(2).getDatatype());
+        Assert.assertEquals("INSTR(CAST(TEST_KYLIN_FACT.SELLER_ID AS VARCHAR), '0')",
+                computedColumns.get(3).getInnerExpression().trim());
+        Assert.assertEquals("INSTR(CAST(TEST_KYLIN_FACT.SELLER_ID AS VARCHAR), '0')",
+                computedColumns.get(3).getExpression().trim());
+        Assert.assertEquals("INTEGER", computedColumns.get(3).getDatatype());
+
+    }
+
     private void mockTableExtDesc(String tableIdentity, String proj, String[] colNames, int[] cardinalityList) {
         final NTableMetadataManager tableMgr = NTableMetadataManager.getInstance(getTestConfig(), proj);
         final TableDesc tableDesc = tableMgr.getTableDesc(tableIdentity);

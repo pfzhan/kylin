@@ -279,11 +279,7 @@ public class RexToTblColRefTranslator {
 
         public OLAPRexSqlStandardConvertletTable(RexCall call) {
             super();
-            Set<String> udfs = KylinConfig.getInstanceFromEnv().getUDFs().keySet();
-            if (udfs.contains(call.getOperator().toString().toLowerCase())) {
-                SqlOperator operator = call.getOperator();
-                this.registerEquivOp(operator);
-            }
+            this.registerUdfOperator(call);
             registerCaseOpNew();
             registerReinterpret();
             registerCast();
@@ -291,6 +287,20 @@ public class RexToTblColRefTranslator {
             registerExtract();
             registerTimestampAdd();
             registerTimestampDiff();
+        }
+
+        private void registerUdfOperator(RexCall call) {
+            Set<String> udfs = KylinConfig.getInstanceFromEnv().getUDFs().keySet();
+            if (udfs.contains(call.getOperator().toString().toLowerCase())) {
+                SqlOperator operator = call.getOperator();
+                this.registerEquivOp(operator);
+            }
+            List<RexNode> operands = call.getOperands();
+            for (RexNode udfRexNode : operands) {
+                if (udfRexNode instanceof RexCall) {
+                    registerUdfOperator((RexCall) udfRexNode);
+                }
+            }
         }
 
         private Map<TimeUnit, SqlDatePartFunction> initTimeUnitFunctionMap() {
