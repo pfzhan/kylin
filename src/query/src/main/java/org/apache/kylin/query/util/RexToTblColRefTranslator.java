@@ -44,6 +44,8 @@ import org.apache.calcite.rex.RexSqlConvertletTable;
 import org.apache.calcite.rex.RexSqlStandardConvertletTable;
 import org.apache.calcite.rex.RexToSqlNodeConverter;
 import org.apache.calcite.rex.RexToSqlNodeConverterImpl;
+import org.apache.calcite.sql.SqlBasicCall;
+import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlDataTypeSpec;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlIntervalQualifier;
@@ -270,6 +272,9 @@ public class RexToTblColRefTranslator {
     }
 
     static class OLAPRexSqlStandardConvertletTable extends RexSqlStandardConvertletTable {
+
+        private static final BigDecimal SECONDS_OF_WEEK = new BigDecimal(604800); // a week equals 604800 seconds
+        private static final BigDecimal MONTHS_OF_QUARTER = new BigDecimal(3); // a quarter equals 3 months
         final Map<TimeUnit, SqlDatePartFunction> timeUnitFunctions = initTimeUnitFunctionMap();
 
         public OLAPRexSqlStandardConvertletTable(RexCall call) {
@@ -370,8 +375,12 @@ public class RexToTblColRefTranslator {
         private void registerCast() {
             registerOp(SqlStdOperatorTable.CAST, (RexToSqlNodeConverter converter, RexCall call) -> {
                 RexNode node = call.operands.get(0);
-                if (node instanceof RexCall && ((RexCall) node).getOperator() == SqlStdOperatorTable.DIVIDE_INTEGER) {
-                    return converter.convertNode(node);
+                if (node instanceof RexCall) {
+                    RexCall rexCall = (RexCall) node;
+                    if (rexCall.getOperator() == SqlStdOperatorTable.REINTERPRET
+                            || rexCall.getOperator() == SqlStdOperatorTable.DIVIDE_INTEGER) {
+                        return converter.convertNode(node);
+                    }
                 }
 
                 SqlNode[] operands = doConvertExpressionList(converter, call.operands);
@@ -403,6 +412,22 @@ public class RexToTblColRefTranslator {
                 List<RexNode> rexNodes = call.getOperands();
                 if (rexNodes.size() == 2 && rexNodes.get(0).isA(SqlKind.REINTERPRET)) {
                     return converter.convertCall((RexCall) rexNodes.get(0));
+                } else if (rexNodes.size() == 2 && rexNodes.get(0).isA(SqlKind.CAST)) {
+                    SqlNode node = converter.convertCall((RexCall) rexNodes.get(0));
+                    RexNode secRex = rexNodes.get(1);
+                    if (node.getKind() == SqlKind.TIMESTAMP_DIFF && secRex instanceof RexLiteral) {
+                        SqlCall diffCall = (SqlBasicCall) node;
+                        RexLiteral literal = (RexLiteral) secRex;
+                        if (literal.getValue().equals(OLAPRexSqlStandardConvertletTable.SECONDS_OF_WEEK)) {
+                            SqlNode week = SqlLiteral.createSymbol(TimeUnit.WEEK, SqlParserPos.ZERO);
+                            return SqlStdOperatorTable.TIMESTAMP_DIFF.createCall(SqlParserPos.ZERO,
+                                    Lists.newArrayList(week, diffCall.operand(1), diffCall.operand(2)));
+                        } else if (literal.getValue().equals(OLAPRexSqlStandardConvertletTable.MONTHS_OF_QUARTER)) {
+                            SqlNode quarter = SqlLiteral.createSymbol(TimeUnit.QUARTER, SqlParserPos.ZERO);
+                            return SqlStdOperatorTable.TIMESTAMP_DIFF.createCall(SqlParserPos.ZERO,
+                                    Lists.newArrayList(quarter, diffCall.operand(1), diffCall.operand(2)));
+                        }
+                    }
                 }
                 return convertCall(converter, call);
             });
