@@ -42,48 +42,11 @@
 
 package org.apache.kylin.query.util;
 
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import org.junit.Test;
 
 public class DefaultQueryTransformerTest {
-
-    @Test
-    public void sumOfFnConvertTransform() {
-        DefaultQueryTransformer transformer = new DefaultQueryTransformer();
-        String fnConvertSumSql = "select sum({fn convert(\"LSTG_SITE_ID\", SQL_DOUBLE)}) from KYLIN_SALES group by LSTG_SITE_ID";
-        String correctSql = transformer.transform(fnConvertSumSql, "", "");
-        assertTrue("select sum(\"LSTG_SITE_ID\") from KYLIN_SALES group by LSTG_SITE_ID".equalsIgnoreCase(correctSql));
-
-        //test SQL contains blank
-        //Case one blank interval
-        fnConvertSumSql = "select sum ( { fn convert( \"LSTG_SITE_ID\" , SQL_DOUBLE) } ) from KYLIN_SALES group by LSTG_SITE_ID";
-        correctSql = transformer.transform(fnConvertSumSql, "", "");
-        assertTrue("select sum(\"LSTG_SITE_ID\") from KYLIN_SALES group by LSTG_SITE_ID".equalsIgnoreCase(correctSql));
-
-        //Case multi blank interval
-        fnConvertSumSql = "select SUM  (  {  fn  convert(  \"LSTG_SITE_ID\"  ,  SQL_DOUBLE  )  }  ) from KYLIN_SALES group by LSTG_SITE_ID";
-        correctSql = transformer.transform(fnConvertSumSql, "", "");
-        assertTrue("select sum(\"LSTG_SITE_ID\") from KYLIN_SALES group by LSTG_SITE_ID".equalsIgnoreCase(correctSql));
-
-        //Case one or multi blank interval
-        fnConvertSumSql = "select SUM(  { fn convert( \"LSTG_SITE_ID\"  , SQL_DOUBLE  ) }  ) from KYLIN_SALES group by LSTG_SITE_ID";
-        correctSql = transformer.transform(fnConvertSumSql, "", "");
-        assertTrue("select sum(\"LSTG_SITE_ID\") from KYLIN_SALES group by LSTG_SITE_ID".equalsIgnoreCase(correctSql));
-
-        //test exception case of "... fnconvert ..."
-        fnConvertSumSql = "select SUM ({fnconvert(\"LSTG_SITE_ID\", SQL_DOUBLE)}) from KYLIN_SALES group by LSTG_SITE_ID";
-        correctSql = transformer.transform(fnConvertSumSql, "", "");
-        assertFalse("select sum(\"LSTG_SITE_ID\") from KYLIN_SALES group by LSTG_SITE_ID".equalsIgnoreCase(correctSql));
-
-        //test SQL contains multi sum
-        fnConvertSumSql = "select SUM({fn convert(\"LSTG_SITE_ID\", SQL_DOUBLE)}), SUM({fn convert(\"price\", SQL_DOUBLE)}) from KYLIN_SALES group by LSTG_SITE_ID";
-        correctSql = transformer.transform(fnConvertSumSql, "", "");
-        assertTrue("select sum(\"LSTG_SITE_ID\"), sum(\"price\") from KYLIN_SALES group by LSTG_SITE_ID"
-                .equalsIgnoreCase(correctSql));
-
-    }
 
     @Test
     public void transformSumNumericLiteral() {
