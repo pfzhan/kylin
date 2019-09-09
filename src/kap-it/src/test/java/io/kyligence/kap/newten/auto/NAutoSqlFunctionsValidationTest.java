@@ -31,6 +31,7 @@ import java.util.Set;
 import org.apache.kylin.common.util.Pair;
 import org.apache.spark.sql.SparderEnv;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import com.google.common.base.Preconditions;
@@ -77,6 +78,7 @@ public class NAutoSqlFunctionsValidationTest extends NAutoTestBase {
         addConditionFunctions();
     }
 
+    @Ignore
     @Test
     public void testProposeComputedColumnWithFunctionsInManual() throws InterruptedException {
         Set<String> measures = generateAllMeasures();
