@@ -178,6 +178,12 @@ export default {
       if (this.$refs.kapEditor.editor) {
         this.$refs.kapEditor.editor.setReadOnly(val)
       }
+    },
+    'editorDragData.height' (val) {
+      if (val) {
+        var editor = this.$refs.kapEditor.editor
+        editor.resize()
+      }
     }
   }
 }
