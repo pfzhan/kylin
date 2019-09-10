@@ -107,45 +107,50 @@ public class NQueryLayoutChooser {
                     logger.info("Agg index {} does not match sql {}, unmatched columns {}, unmatched metrics {}", cuboid, sqlDigest, unmatchedCols, unmatchedMetrics);
                 }
             }
-            if (matched) {
-                LayoutEntity layout = cuboid.getLayout();
-                NLayoutCandidate candidate = new NLayoutCandidate(layout);
-                candidate.setCost(cuboid.getRows() * (tempResult.influences.size() + 1.0));
-                if (!needDerive.isEmpty()) {
-                    candidate.setDerivedToHostMap(needDerive);
-                }
-                candidates.add(candidate);
-                candidateCapabilityResultMap.put(candidate, tempResult);
+            if (!matched) {
+                continue;
             }
+
+            LayoutEntity layout = cuboid.getLayout();
+            NLayoutCandidate candidate = new NLayoutCandidate(layout);
+            candidate.setCost(cuboid.getRows() * (tempResult.influences.size() + 1.0));
+            if (!needDerive.isEmpty()) {
+                candidate.setDerivedToHostMap(needDerive);
+            }
+            candidates.add(candidate);
+            candidateCapabilityResultMap.put(candidate, tempResult);
         }
 
-        if (!candidates.isEmpty()) {
-            final KylinConfig config = segment.getConfig();
-            final Set<TblColRef> filterColSet = ImmutableSet.copyOf(sqlDigest.filterColumns);
-            final List<TblColRef> filterCols = Lists.newArrayList(filterColSet);
-            filterCols.sort(ComparatorUtils.filterColComparator(config, segment.getProject()));
-
-            final Set<TblColRef> nonFilterColSet = sqlDigest.isRawQuery
-                    ? sqlDigest.allColumns.stream()
-                            .filter(colRef -> colRef.getFilterLevel() == TblColRef.FilterColEnum.NONE)
-                            .collect(Collectors.toSet())
-                    : sqlDigest.groupbyColumns.stream()
-                            .filter(colRef -> colRef.getFilterLevel() == TblColRef.FilterColEnum.NONE)
-                            .collect(Collectors.toSet());
-            final List<TblColRef> nonFilterColumns = Lists.newArrayList(nonFilterColSet);
-            nonFilterColumns.sort(ComparatorUtils.nonFilterColComparator());
-
-            Ordering<NLayoutCandidate> ordering = Ordering //
-                    .from(derivedLayoutComparator()).compound(rowSizeComparator()) // L1 comparator, compare cuboid rows
-                    .compound(filterColumnComparator(filterCols, config, segment.getProject())) // L2 comparator, order filter columns
-                    .compound(columnSizeComparator()) // L3 comparator, order size of cuboid columns
-                    .compound(nonFilterColumnComparator(nonFilterColumns, config)); // L4 comparator, order non-filter columns
-            candidates.sort(ordering);
-            NLayoutCandidate chosenCandidate = candidates.get(0);
-            return new Pair<>(chosenCandidate, candidateCapabilityResultMap.get(chosenCandidate).influences);
+        if (candidates.isEmpty()) {
+            return null;
         }
-        return null;
+        sortCandidates(candidates, segment, sqlDigest);
+        NLayoutCandidate chosenCandidate = candidates.get(0);
+        return new Pair<>(chosenCandidate, candidateCapabilityResultMap.get(chosenCandidate).influences);
     }
+
+    private static void sortCandidates(List<NLayoutCandidate> candidates, NDataSegment segment, SQLDigest sqlDigest) {
+        final KylinConfig config = segment.getConfig();
+        final Set<TblColRef> filterColSet = ImmutableSet.copyOf(sqlDigest.filterColumns);
+        final List<TblColRef> filterCols = Lists.newArrayList(filterColSet);
+        filterCols.sort(ComparatorUtils.filterColComparator(config, segment.getProject()));
+
+        final Set<TblColRef> nonFilterColSet = sqlDigest.isRawQuery ? sqlDigest.allColumns.stream()
+                .filter(colRef -> colRef.getFilterLevel() == TblColRef.FilterColEnum.NONE).collect(Collectors.toSet())
+                : sqlDigest.groupbyColumns.stream()
+                        .filter(colRef -> colRef.getFilterLevel() == TblColRef.FilterColEnum.NONE)
+                        .collect(Collectors.toSet());
+        final List<TblColRef> nonFilterColumns = Lists.newArrayList(nonFilterColSet);
+        nonFilterColumns.sort(ComparatorUtils.nonFilterColComparator());
+
+        Ordering<NLayoutCandidate> ordering = Ordering //
+                .from(derivedLayoutComparator()).compound(rowSizeComparator()) // L1 comparator, compare cuboid rows
+                .compound(filterColumnComparator(filterCols, config, segment.getProject())) // L2 comparator, order filter columns
+                .compound(columnSizeComparator()) // L3 comparator, order size of cuboid columns
+                .compound(nonFilterColumnComparator(nonFilterColumns, config)); // L4 comparator, order non-filter columns
+        candidates.sort(ordering);
+    }
+
 
     private static void unmatchedAggregations(Collection<FunctionDesc> aggregations, LayoutEntity cuboidLayout) {
         for (MeasureDesc measureDesc : cuboidLayout.getOrderedMeasures().values()) {
