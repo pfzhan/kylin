@@ -104,9 +104,9 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
 
     @Override
     public void setup() throws Exception {
+        System.setProperty("kylin.job.auto-set-concurrent-jobs", "true");
         super.setup();
         SPARK_DRIVER_BASE_MEMORY = KylinConfig.getInstanceFromEnv().getSparkEngineDriverMemoryBase();
-        System.setProperty("kylin.job.auto-set-concurrent-jobs", "true");
     }
 
     @Override
@@ -1772,7 +1772,6 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         Assert.assertEquals(ExecutableState.ERROR, executableManager.getOutput(task1.getId()).getState());
     }
 
-    @Ignore("#13813")
     @Test
     public void testSubmitParallelTasksReachMemoryQuota()
             throws InterruptedException, NoSuchFieldException, IllegalAccessException {
@@ -1783,8 +1782,6 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         ConcurrentHashMap<Class, ConcurrentHashMap<String, Object>> managersByPrjCache = (ConcurrentHashMap<Class, ConcurrentHashMap<String, Object>>) filed
                 .get(getTestConfig());
         managersByPrjCache.get(NExecutableManager.class).put(project, manager);
-        Mockito.when(manager.countCuttingInJobByModel(Mockito.eq("89af4ee2-2cdb-4b07-b39e-4c29856309aa"),
-                Mockito.any(AbstractExecutable.class))).thenReturn(0L);
         val currMem = NDefaultScheduler.currentAvailableMem();
         val dfs = Lists.newArrayList(NDataflowManager.getInstance(getTestConfig(), project).listAllDataflows());
 
