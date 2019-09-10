@@ -44,6 +44,7 @@ import org.apache.kylin.common.util.JsonUtil;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
+import io.kyligence.kap.common.obf.IKeep;
 import io.kyligence.kap.metadata.project.NProjectLoader;
 import lombok.Data;
 import lombok.Getter;
@@ -116,7 +117,7 @@ public class RepeatableRequestBodyFilter implements Filter {
     }
 
     @Data
-    public static class ProjectRequest {
+    public static class ProjectRequest implements IKeep {
 
         private String project;
 
