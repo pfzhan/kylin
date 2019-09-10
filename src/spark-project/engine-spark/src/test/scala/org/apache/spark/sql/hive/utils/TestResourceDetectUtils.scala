@@ -90,7 +90,9 @@ class TestResourceDetectUtils extends SparderBaseFunSuite {
         out.write(contents.apply(i).getBytes)
         out.close()
       }
-      val l = ResourceDetectUtils.getMaxResourceSize(resourcePaths)
+      import scala.collection.JavaConverters._
+
+     val l = resourcePaths.values().asScala.map(path => ResourceDetectUtils.getResourceSize(new Path(path.get(0)))).max
       assert(l == contents.last.getBytes.length)
     } finally {
       Utils.deleteRecursively(tempDir)

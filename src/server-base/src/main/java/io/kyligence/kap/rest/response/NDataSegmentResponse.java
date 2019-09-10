@@ -41,6 +41,9 @@ public class NDataSegmentResponse extends NDataSegment {
     @JsonProperty("hit_count")
     private long hitCount;
 
+    @JsonProperty("source_bytes_size")
+    private long sourceBytesSize;
+
     @JsonProperty("status_to_display")
     private SegmentStatusEnumToDisplay statusToDisplay;
 

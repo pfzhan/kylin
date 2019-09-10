@@ -24,6 +24,7 @@
 
 package org.apache.spark.autoheal
 
+import com.google.common.collect.Maps
 import io.kyligence.kap.engine.spark.job.KylinBuildEnv
 import io.kyligence.kap.engine.spark.scheduler.{JobFailed, ResourceLack, RunJob}
 import org.apache.spark.internal.Logging
@@ -31,6 +32,7 @@ import org.apache.spark.sql.internal.SQLConf
 import org.apache.spark.util.Utils
 import org.apache.spark.SparkConf
 import io.kyligence.kap.engine.spark.utils.SparkConfHelper._
+import org.apache.spark.application.RetryInfo
 import org.apache.spark.scheduler.KylinJobEventLoop
 
 
@@ -47,7 +49,11 @@ object ExceptionTerminator extends Logging {
         incMemory(env)
     }
     result match {
-      case _: Success => eventLoop.post(RunJob())
+      case Success(key, value) =>
+      val overrideConf = Maps.newHashMap[String, String]()
+        overrideConf.put(key, value)
+        KylinBuildEnv.get().buildJobInfos.recordJobRetryInfos(RetryInfo(overrideConf, rl.throwable))
+        eventLoop.post(RunJob())
       case Failed(message, throwable) => eventLoop.post(JobFailed(message, throwable))
     }
   }
@@ -56,7 +62,7 @@ object ExceptionTerminator extends Logging {
     if (throwable.getMessage.contains(SQLConf.AUTO_BROADCASTJOIN_THRESHOLD.key)) {
       logInfo("Resolve out of memory error with broadcast.")
       overrideSparkConf(env.sparkConf, SQLConf.AUTO_BROADCASTJOIN_THRESHOLD.key, "-1")
-      Success()
+      Success(SQLConf.AUTO_BROADCASTJOIN_THRESHOLD.key, "-1")
     } else {
       incMemory(env)
     }
@@ -75,19 +81,19 @@ object ExceptionTerminator extends Logging {
       if (retryCore > 0) {
         conf.set(EXECUTOR_CORES, retryCore.toString)
         logInfo(s"Reset $EXECUTOR_CORES=$retryCore when retry.")
-        Success()
+        Success(EXECUTOR_CORES, retryCore.toString)
       } else {
-        Failed(s"Retry configuration is invEXECUTOR_MEMORYalid." +
+        Failed(s"Retry configuration is invalid." +
           s" $EXECUTOR_CORES=$retryCore, $EXECUTOR_MEMORY=$prevMemory.", new RuntimeException)
       }
     } else if (retryMemory > maxMemory) {
       conf.set(EXECUTOR_MEMORY, maxMemory + "MB")
       logInfo(s"Reset $EXECUTOR_MEMORY=${conf.get(EXECUTOR_MEMORY)} when retry.")
-      Success()
+      Success(EXECUTOR_MEMORY, maxMemory + "MB")
     } else {
       conf.set(EXECUTOR_MEMORY, retryMemory + "MB")
       logInfo(s"Reset $EXECUTOR_MEMORY=${conf.get(EXECUTOR_MEMORY)} when retry.")
-      Success()
+      Success(EXECUTOR_MEMORY, retryMemory + "MB")
     }
   }
 
@@ -99,6 +105,6 @@ object ExceptionTerminator extends Logging {
 
 sealed trait ResolverResult {}
 
-case class Success() extends ResolverResult
+case class Success(key: String, value: String) extends ResolverResult
 
 case class Failed(message: String, throwable: Throwable) extends ResolverResult

@@ -207,7 +207,9 @@ public class ModelServiceTest extends CSVSourceTestCase {
         List<NDataModelResponse> model4 = modelService.getModels("nmodel_full_measure_test", "default", false, "adm",
                 "", "last_modify", true);
         Assert.assertEquals(1, model4.size());
-        Assert.assertEquals(0, model4.get(0).getStorage());
+        Assert.assertEquals(99, model4.get(0).getStorage());
+        Assert.assertEquals(100, model4.get(0).getSource());
+        Assert.assertEquals("99.00", model4.get(0).getExpansionrate());
         Assert.assertEquals(0, model4.get(0).getUsage());
         List<NDataModelResponse> model5 = modelService.getModels("nmodel_full_measure_test", "default", false, "adm",
                 "DISABLED", "last_modify", true);
@@ -239,6 +241,11 @@ public class ModelServiceTest extends CSVSourceTestCase {
         Assert.assertEquals("nmodel_basic", models.get(0).getAlias());
         models = modelService.getModels("", "default", false, "", "", "storage", false);
         Assert.assertEquals("nmodel_basic", models.get(models.size() - 1).getAlias());
+
+        models = modelService.getModels("", "default", false, "", "", "expansionrate", true);
+        Assert.assertEquals("nmodel_full_measure_test", models.get(0).getAlias());
+        models = modelService.getModels("", "default", false, "", "", "expansionrate", false);
+        Assert.assertEquals("nmodel_full_measure_test", models.get(3).getAlias());
 
     }
 
@@ -2526,7 +2533,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         val modelInfo2 = modelService.getModelInfo("*", "cb596712-3a09-46f8-aea1-988b43fe9b6c", projects, 0, 0);
         Assert.assertEquals(1, modelInfo2.size());
         Assert.assertEquals(10, modelInfo2.get(0).getQueryTimes());
-        Assert.assertEquals(0, modelInfo2.get(0).getModelStorageSize());
+        Assert.assertEquals(99, modelInfo2.get(0).getModelStorageSize());
     }
 
     @Test

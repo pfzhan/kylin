@@ -22,12 +22,13 @@
 
 package org.apache.spark.sql.hive.utils
 
-import java.util.{List => JList, Map => JMap}
-import java.util
+import java.io.IOException
+import java.util.{Map => JMap}
 
 import com.fasterxml.jackson.core.`type`.TypeReference
+import com.google.common.collect.Maps
 import io.kyligence.kap.metadata.cube.model.LayoutEntity
-import org.apache.hadoop.fs.{FileStatus, FSDataInputStream, FSDataOutputStream, Path}
+import org.apache.hadoop.fs.{FileStatus, FSDataInputStream, FSDataOutputStream, Path, PathFilter}
 import org.apache.kylin.common.util.{HadoopUtil, JsonUtil}
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.execution.columnar.InMemoryTableScanExec
@@ -55,10 +56,30 @@ object ResourceDetectUtils extends Logging {
         }
       case _ =>
     }
-    paths.distinct
+    paths
   }
 
-  def findCountDistinctMeasure(layouts: util.Collection[LayoutEntity]): Boolean = {
+  @throws[IOException]
+  protected def listSourcePath(shareDir: Path): java.util.Map[String, java.util.Map[String, java.util.List[String]]] = {
+    val fs = HadoopUtil.getWorkingFileSystem
+    val fileStatuses = fs.listStatus(shareDir, new PathFilter{
+      override def accept(path: Path): Boolean = {
+        path.toString.endsWith(ResourceDetectUtils.fileName())
+      }
+    })
+    // segmnet -> (layout_ID, path)
+    val resourcePaths = Maps.newHashMap[String, java.util.Map[String, java.util.List[String]]]()
+    for (file <- fileStatuses) {
+      val fileName = file.getPath.getName
+      val segmentId = fileName.substring(0, fileName.indexOf(ResourceDetectUtils.fileName) - 1)
+      val map = ResourceDetectUtils.readResourcePathsAs[java.util.Map[String, java.util.List[String]]](file.getPath)
+        resourcePaths.put(segmentId, map)
+    }
+    // return size with unit
+     resourcePaths
+  }
+
+  def findCountDistinctMeasure(layouts: java.util.Collection[LayoutEntity]): Boolean = {
     for (layoutEntity <- layouts.asScala) {
       for (measure <- layoutEntity.getOrderedMeasures.values.asScala) {
         if (measure.getFunction.getExpression.equalsIgnoreCase("COUNT_DISTINCT"))  return true
@@ -71,8 +92,19 @@ object ResourceDetectUtils extends Logging {
     paths.map(path => HadoopUtil.getContentSummary(path.getFileSystem(HadoopUtil.getCurrentConfiguration), path).getLength).sum
   }
 
-  def getMaxResourceSize(resourcePaths: JMap[String, JList[String]]): Long = {
-    resourcePaths.values.asScala.map(value => getResourceSize(value.asScala.map(path => new Path(path)): _*)).max
+  def getMaxResourceSize(shareDir: Path): Long = {
+    ResourceDetectUtils.listSourcePath(shareDir)
+      .values.asScala
+      .flatMap(value => value.values().asScala.map(v => getResourceSize(v.asScala.map(path => new Path(path)): _*)))
+      .max
+  }
+
+  def getSegmentSourceSize(shareDir: Path): java.util.Map[String, Long] = {
+    ResourceDetectUtils.listSourcePath(shareDir).asScala
+      .filter(_._2.keySet().contains("-1"))
+      .map(tp => (tp._1, getResourceSize(tp._2.get("-1").asScala.map(path => new Path(path)): _*)))
+      .toMap
+      .asJava
   }
 
   def write(path: Path, item: Object): Unit = {

@@ -30,7 +30,6 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 import io.kyligence.kap.engine.spark.job.BuildJobInfos;
@@ -38,8 +37,6 @@ import io.kyligence.kap.engine.spark.job.LogJobInfoUtils;
 import io.kyligence.kap.engine.spark.job.SparkJobConstants;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
-import org.apache.hadoop.fs.FileStatus;
-import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.yarn.exceptions.YarnException;
 import org.apache.http.HttpResponse;
@@ -51,7 +48,6 @@ import org.apache.http.impl.client.HttpClients;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.util.Application;
-import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.TimeZoneUtils;
 import org.apache.spark.SparkConf;
@@ -295,7 +291,6 @@ public abstract class SparkApplication implements Application, IKeep {
             if (infos != null) {
                 infos.jobEnd();
             }
-
             if (ss != null && !ss.conf().get("spark.master").startsWith("local")) {
                 JobMetricsUtils.unRegisterListener(ss);
                 ss.stop();
@@ -332,20 +327,8 @@ public abstract class SparkApplication implements Application, IKeep {
     }
 
     protected String chooseContentSize(Path shareDir) throws IOException {
-        FileSystem fs = HadoopUtil.getWorkingFileSystem();
-        FileStatus[] fileStatuses = fs.listStatus(shareDir,
-                path -> path.toString().endsWith(ResourceDetectUtils.fileName()));
-        Map<String, List<String>> resourcePaths = Maps.newHashMap();
-        for (FileStatus file : fileStatuses) {
-            String fileName = file.getPath().getName();
-            String segmentId = fileName.substring(0, fileName.indexOf(ResourceDetectUtils.fileName()));
-            Map<String, List<String>> map = ResourceDetectUtils.readResourcePathsAs(file.getPath());
-            for (Map.Entry<String, List<String>> entry : map.entrySet()) {
-                resourcePaths.put(segmentId + entry.getKey(), entry.getValue());
-            }
-        }
         // return size with unit
-        return ResourceDetectUtils.getMaxResourceSize(resourcePaths) + "b";
+        return ResourceDetectUtils.getMaxResourceSize(shareDir) + "b";
     }
 
     protected Boolean hasCountDistinct() {

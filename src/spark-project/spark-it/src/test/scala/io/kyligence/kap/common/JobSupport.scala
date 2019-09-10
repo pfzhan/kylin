@@ -145,7 +145,7 @@ trait JobSupport
   protected def builCuboid(cubeName: String,
                            segmentRange: SegmentRange[_ <: Comparable[_]],
                            toBuildLayouts: java.util.Set[LayoutEntity],
-                           prj: String): Unit = {
+                           prj: String): NDataSegment = {
     val config: KylinConfig = KylinConfig.getInstanceFromEnv
     val dsMgr: NDataflowManager = NDataflowManager.getInstance(config, prj)
     val execMgr: NExecutableManager =
@@ -173,6 +173,7 @@ trait JobSupport
     val layoutIds: java.util.Set[java.lang.Long] = toBuildLayouts.asScala.map(c => new java.lang.Long(c.getId)).asJava
     merger.mergeAfterIncrement(df.getUuid, oneSeg.getId, layoutIds, buildStore)
     checkSnapshotTable(df.getId, oneSeg.getId, oneSeg.getProject)
+    oneSeg
   }
 
   @throws[InterruptedException]
@@ -206,28 +207,37 @@ trait JobSupport
     val layouts = df.getIndexPlan.getAllLayouts
     var start = SegmentRange.dateToLong("2010-01-01")
     var end = SegmentRange.dateToLong("2012-06-01")
-    builCuboid(dfName,
-               new SegmentRange.TimePartitionedSegmentRange(start, end),
-               Sets.newLinkedHashSet(layouts),
-               prj)
+    var segment = builCuboid(dfName,
+      new SegmentRange.TimePartitionedSegmentRange(start, end),
+      Sets.newLinkedHashSet(layouts),
+      prj)
+   val seg1 = checkSourceBytesSize(segment)
+
+
     start = SegmentRange.dateToLong("2012-06-01")
     end = SegmentRange.dateToLong("2013-01-01")
-    builCuboid(dfName,
+    segment = builCuboid(dfName,
                new SegmentRange.TimePartitionedSegmentRange(start, end),
                Sets.newLinkedHashSet(layouts),
                prj)
+   val seg2 = checkSourceBytesSize(segment)
+
     start = SegmentRange.dateToLong("2013-01-01")
     end = SegmentRange.dateToLong("2013-06-01")
-    builCuboid(dfName,
+    segment = builCuboid(dfName,
                new SegmentRange.TimePartitionedSegmentRange(start, end),
                Sets.newLinkedHashSet(layouts),
                prj)
+    val seg3 = checkSourceBytesSize(segment)
+
     start = SegmentRange.dateToLong("2013-06-01")
     end = SegmentRange.dateToLong("2015-01-01")
-    builCuboid(dfName,
+    segment = builCuboid(dfName,
                new SegmentRange.TimePartitionedSegmentRange(start, end),
                Sets.newLinkedHashSet(layouts),
                prj)
+   val seg4 = checkSourceBytesSize(segment)
+
 
     /**
       * Round2. Merge two segments
@@ -272,10 +282,12 @@ trait JobSupport
                           SegmentRange.dateToLong("2010-01-01"),
                           SegmentRange.dateToLong("2013-01-01")),
                         firstSegment.getSegRange)
+    Assert.assertEquals(firstSegment.getSourceBytesSize, seg1 + seg2)
     Assert.assertEquals(new SegmentRange.TimePartitionedSegmentRange(
                           SegmentRange.dateToLong("2013-01-01"),
                           SegmentRange.dateToLong("2015-01-01")),
                         secondSegment.getSegRange)
+    Assert.assertEquals(secondSegment.getSourceBytesSize, seg3 + seg4)
     //    Assert.assertEquals(21, firstSegment.getDictionaries.size)
     //    Assert.assertEquals(21, secondSegment.getDictionaries.size)
     Assert.assertEquals(7, firstSegment.getSnapshots.size)
@@ -360,6 +372,20 @@ trait JobSupport
     outputConfig.setMetadataUrl(metadataUrlPrefix)
     MetadataStore.createMetadataStore(outputConfig).dump(resourceStore)
   }
+
+  def checkSourceBytesSize(nDataSegment: NDataSegment): Long = {
+    val metadataDir = System.getProperty(KylinConfig.KYLIN_CONF)
+    val expect = nDataSegment.getModel.getAllTableRefs.asScala
+      .toSeq
+      .map(table => new File(metadataDir, "data/" + table.getTableIdentity + ".csv").length())
+   val dataSegment = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv, nDataSegment.getProject)
+      .getDataflow(nDataSegment.getDataflow.getId)
+        .getSegment(nDataSegment.getId)
+    assert(dataSegment.getSourceBytesSize == expect.sum,
+      s"Error for get source bytes size,it should $expect, actual is ${dataSegment.getSourceBytesSize}")
+    dataSegment.getSourceBytesSize
+  }
+
 
   def checkOrder(sparkSession: SparkSession, dfName: String, project: String): Unit = {
     val config: KylinConfig = KylinConfig.getInstanceFromEnv

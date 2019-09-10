@@ -74,6 +74,10 @@ public class AfterMergeOrRefreshResourceMerger extends SparkJobMetadataMerger {
         }
         // only add layouts which still in segments, others maybe deleted by user
         List<NDataSegment> toRemoveSegments = distMgr.getToRemoveSegs(distDataflow, mergedSegment);
+        if (JobTypeEnum.INDEX_MERGE.equals(jobType)) {
+            long totalSourceSize  = toRemoveSegments.stream().map(NDataSegment::getSourceBytesSize).reduce(Long::sum).get();
+            mergedSegment.setSourceBytesSize(totalSourceSize);
+        }
         val livedLayouts = mgr.getDataflow(dataflowId).getLatestReadySegment().getLayoutsMap().values().stream()
                 .map(NDataLayout::getLayoutId).collect(Collectors.toSet());
         toUpdateCuboids.addAll(mergedSegment.getSegDetails().getLayouts().stream()

@@ -481,31 +481,12 @@ public class NDataflowManager implements IRealizationProvider, IKeepNames {
         return crud.save(copy);
     }
 
-    public long getSegmentSize(NDataSegment segment) {
-        long size = 0L;
-        Collection<NDataLayout> dataLayouts = segment.getLayoutsMap().values();
-        for (NDataLayout dataLayout : dataLayouts) {
-            size += dataLayout.getByteSize();
-        }
-        return size;
+    public long getDataflowStorageSize(String modelId) {
+        return getDataflow(modelId).getStorageBytesSize();
     }
 
-    public long getSegmentFileCount(NDataSegment segment) {
-        long fileCount = 0L;
-        Collection<NDataLayout> dataLayouts = segment.getLayoutsMap().values();
-        for (NDataLayout dataLayout : dataLayouts) {
-            fileCount += dataLayout.getFileCount();
-        }
-        return fileCount;
-    }
-
-    public long getDataflowByteSize(String modelId) {
-        var byteSize = 0L;
-        val dataflow = getDataflow(modelId);
-        for (val segment : dataflow.getSegments(SegmentStatusEnum.READY)) {
-            byteSize += getSegmentSize(segment);
-        }
-        return byteSize;
+    public long getDataflowSourceSize(String modelId) {
+        return getDataflow(modelId).getSourceBytesSize();
     }
 
     public NDataflow updateDataflow(final NDataflowUpdate update) {

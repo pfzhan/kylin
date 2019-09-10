@@ -22,8 +22,6 @@
 
 package org.apache.spark.application
 
-import java.util
-
 import io.kyligence.kap.engine.spark.job.KylinBuildEnv
 import io.kyligence.kap.engine.spark.scheduler._
 import io.netty.util.internal.ThrowableUtil
@@ -54,10 +52,8 @@ class JobMonitor(eventLoop: KylinJobEventLoop) extends Logging {
       KylinBuildEnv.get().buildJobInfos.recordRetryTimes(retryTimes)
       val maxRetry = buildEnv.kylinConfig.getSparkEngineMaxRetryTime
       if (retryTimes <= maxRetry) {
-        val overrideConf = new util.HashMap[String, String]
         logError(s"Job failed the $retryTimes times.", rl.throwable)
         System.setProperty("kylin.spark-conf.auto.prior", "false")
-        KylinBuildEnv.get().buildJobInfos.recordJobRetryInfos(RetryInfo(overrideConf, rl.throwable))
         ExceptionTerminator.resolveException(rl, eventLoop)
       } else {
         eventLoop.post(ExceedMaxRetry(rl.throwable))

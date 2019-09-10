@@ -26,7 +26,8 @@
       "column_stats": null,
       "last_build_time": 0,
       "last_build_job_id": 0,
-      "additionalInfo": {}
+      "additionalInfo": {},
+      "source_bytes_size": 100
     }
   ],
   "storage_location_identifier": null

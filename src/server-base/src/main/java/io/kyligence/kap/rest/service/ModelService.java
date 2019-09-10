@@ -25,6 +25,7 @@
 package io.kyligence.kap.rest.service;
 
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -36,10 +37,6 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-import com.google.common.annotations.VisibleForTesting;
-import io.kyligence.kap.event.manager.EventDao;
-import io.kyligence.kap.event.model.Event;
-import io.kyligence.kap.event.model.MergeSegmentEvent;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -79,13 +76,17 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
+import io.kyligence.kap.event.manager.EventDao;
 import io.kyligence.kap.event.manager.EventManager;
+import io.kyligence.kap.event.model.Event;
+import io.kyligence.kap.event.model.MergeSegmentEvent;
 import io.kyligence.kap.event.model.PostMergeOrRefreshSegmentEvent;
 import io.kyligence.kap.event.model.RefreshSegmentEvent;
 import io.kyligence.kap.metadata.cube.cuboid.NSpanningTreeFactory;
@@ -188,7 +189,10 @@ public class ModelService extends BasicService {
                     NDataModelResponse nDataModelResponse = enrichModelResponse(modelDesc, projectName);
                     nDataModelResponse.setModelBroken(isBroken);
                     nDataModelResponse.setStatus(modelStatus);
-                    nDataModelResponse.setStorage(dfManager.getDataflowByteSize(modelDesc.getUuid()));
+                    nDataModelResponse.setStorage(dfManager.getDataflowStorageSize(modelDesc.getUuid()));
+                    nDataModelResponse.setSource(dfManager.getDataflowSourceSize(modelDesc.getUuid()));
+                    nDataModelResponse.setExpansionrate(
+                            computeExpansionRate(nDataModelResponse.getStorage(), nDataModelResponse.getSource()));
                     nDataModelResponse.setUsage(dataflow.getQueryHitCount());
                     filterModels.add(nDataModelResponse);
                 }
@@ -197,12 +201,35 @@ public class ModelService extends BasicService {
         Comparator<NDataModelResponse> comparator = propertyComparator(
                 StringUtils.isEmpty(sortBy) ? "last_modify" : sortBy, !reverse);
         filterModels.sort(comparator);
-        return filterModels;
+        if ("expansionrate".equalsIgnoreCase(sortBy)) {
+            List<NDataModelResponse> unknowModels = filterModels.stream()
+                    .filter(modle -> "-1".equalsIgnoreCase(modle.getExpansionrate())).collect(Collectors.toList());
+
+            List<NDataModelResponse> nDataModelResponses = filterModels.stream()
+                    .filter(modle -> !"-1".equalsIgnoreCase(modle.getExpansionrate())).collect(Collectors.toList());
+            nDataModelResponses.addAll(unknowModels);
+            return nDataModelResponses;
+        } else {
+            return filterModels;
+        }
     }
 
     private boolean isArgMatch(String valueToMatch, boolean exactMatch, String originValue) {
         return StringUtils.isEmpty(valueToMatch) || (exactMatch && originValue.equalsIgnoreCase(valueToMatch))
                 || (!exactMatch && originValue.toLowerCase().contains(valueToMatch.toLowerCase()));
+    }
+
+    private String computeExpansionRate(long storageBytesSize, long sourceBytesSize) {
+        if (storageBytesSize == 0) {
+            return "0";
+        }
+        if (sourceBytesSize == 0) {
+            return "-1";
+        }
+        BigDecimal divide = new BigDecimal(storageBytesSize)
+                .divide(new BigDecimal(sourceBytesSize), 4, BigDecimal.ROUND_HALF_UP);
+        BigDecimal bigDecimal = divide.multiply(new BigDecimal(100)).setScale(2);
+        return bigDecimal.toString();
     }
 
     private NDataModelResponse enrichModelResponse(NDataModel modelDesc, String projectName) {
@@ -250,11 +277,10 @@ public class ModelService extends BasicService {
                     && status.equalsIgnoreCase(segs.getSegmentStatusToDisplay(segment).toString())) {
                 continue;
             }
-            long segmentSize = dataflowManager.getSegmentSize(segment);
             NDataSegmentResponse nDataSegmentResponse = new NDataSegmentResponse(segment);
-            nDataSegmentResponse.setBytesSize(segmentSize);
+            nDataSegmentResponse.setBytesSize(segment.getStorageBytesSize());
             nDataSegmentResponse.getAdditionalInfo().put(SEGMENT_PATH, dataflow.getSegmentHdfsPath(segment.getId()));
-            nDataSegmentResponse.getAdditionalInfo().put(FILE_COUNT, dataflowManager.getSegmentFileCount(segment) + "");
+            nDataSegmentResponse.getAdditionalInfo().put(FILE_COUNT, segment.getStorageFileCount() + "");
             nDataSegmentResponse.setStatusToDisplay(dataflow.getSegments().getSegmentStatusToDisplay(segment));
             segmentResponse.add(nDataSegmentResponse);
         }
@@ -612,7 +638,7 @@ public class ModelService extends BasicService {
         String affectedStart = affetedSegments.getFirstSegment().getSegRange().getStart().toString();
         String affectedEnd = affetedSegments.getLastSegment().getSegRange().getEnd().toString();
         for (NDataSegment segment : affetedSegments) {
-            byteSize += dfManager.getSegmentSize(segment);
+            byteSize += segment.getStorageBytesSize();
         }
         return new RefreshAffectedSegmentsResponse(byteSize, affectedStart, affectedEnd);
 
@@ -1295,7 +1321,7 @@ public class ModelService extends BasicService {
         var size = 0;
         response.setModels(models);
         for (val model : models) {
-            size += dataflowManager.getDataflowByteSize(model);
+            size += dataflowManager.getDataflowStorageSize(model);
         }
         response.setByteSize(size);
         return response;
@@ -1310,7 +1336,7 @@ public class ModelService extends BasicService {
         var size = 0;
         response.setModels(models);
         for (val model : models) {
-            size += dataflowManager.getDataflowByteSize(model);
+            size += dataflowManager.getDataflowStorageSize(model);
         }
         response.setByteSize(size);
         return response;
@@ -1398,7 +1424,7 @@ public class ModelService extends BasicService {
         modelInfoResponse.setProject(project);
         modelInfoResponse.setAlias(modelDesc.getAlias());
         modelInfoResponse.setModel(model);
-        val modelSize = dataflowManager.getDataflowByteSize(model);
+        val modelSize = dataflowManager.getDataflowStorageSize(model);
         modelInfoResponse.setModelStorageSize(modelSize);
         return modelInfoResponse;
     }
@@ -1509,7 +1535,7 @@ public class ModelService extends BasicService {
 
     public PurgeModelAffectedResponse getPurgeModelAffectedResponse(String project, String model) {
         val response = new PurgeModelAffectedResponse();
-        val byteSize = getDataflowManager(project).getDataflowByteSize(model);
+        val byteSize = getDataflowManager(project).getDataflowStorageSize(model);
         response.setByteSize(byteSize);
         long jobSize = getExecutableManager(project).countByModelAndStatus(model, ExecutableState::isProgressing);
         response.setRelatedJobSize(jobSize);

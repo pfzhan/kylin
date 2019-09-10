@@ -45,7 +45,10 @@ export default {
     exitFullScreen: 'Exit Full Screen',
     usageTip: 'Times of the {mode} used by queries',
     model: 'model',
-    indexGroup: 'index group'
+    indexGroup: 'index group',
+    expansionRate: 'Expansion Rate',
+    expansionRateTip: 'Expansion Rate = Storage Size / Source Table Size',
+    tentative: 'Tentative'
   },
   'zh-cn': {
     capbility: '加速比例',
@@ -93,6 +96,9 @@ export default {
     exitFullScreen: '退出全屏',
     usageTip: '查询击中该 {mode} 的次数',
     model: '模型',
-    indexGroup: '索引组'
+    indexGroup: '索引组',
+    expansionRate: '膨胀率',
+    expansionRateTip: '膨胀率 = 存储数据大小/源表大小',
+    tentative: '未知'
   }
 }

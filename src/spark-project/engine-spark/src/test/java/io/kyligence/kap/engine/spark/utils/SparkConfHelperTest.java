@@ -74,7 +74,7 @@ public class SparkConfHelperTest extends NLocalFileMetadataTestCase {
                 new CompareTuple("1", SparkConfHelper.EXECUTOR_CORES),
                 new CompareTuple("512MB", SparkConfHelper.EXECUTOR_OVERHEAD),
                 new CompareTuple("5", SparkConfHelper.EXECUTOR_INSTANCES),
-                new CompareTuple("1", SparkConfHelper.SHUFFLE_PARTITIONS));
+                new CompareTuple("2", SparkConfHelper.SHUFFLE_PARTITIONS));
         compareConf(compareTuples, sparkConf);
         helper.setConf(SparkConfHelper.COUNT_DISTICT, "true");
         helper.applySparkConf(sparkConf);

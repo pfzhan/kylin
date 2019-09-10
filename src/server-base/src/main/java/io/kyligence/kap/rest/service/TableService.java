@@ -399,7 +399,7 @@ public class TableService extends BasicService {
             val readySegs = df.getSegments(SegmentStatusEnum.READY);
             if (CollectionUtils.isNotEmpty(readySegs)) {
                 hasReadySegs = true;
-                size += dfManger.getDataflowByteSize(model.getUuid());
+                size += dfManger.getDataflowStorageSize(model.getUuid());
             }
         }
         if (!hasReadySegs) {

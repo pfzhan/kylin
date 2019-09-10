@@ -529,4 +529,21 @@ public class NDataflow extends RootPersistentEntity implements Serializable, IRe
                 }).collect(Collectors.toSet());
 
     }
+
+
+    public long getStorageBytesSize() {
+        long bytesSize = 0L;
+        for (val segment : getSegments(SegmentStatusEnum.READY)) {
+            bytesSize += segment.getStorageBytesSize();
+        }
+        return bytesSize;
+    }
+
+    public long getSourceBytesSize() {
+        long bytesSize = 0L;
+        for (val segment : getSegments(SegmentStatusEnum.READY)) {
+            bytesSize += segment.getSourceBytesSize() == -1 ? 0 : segment.getSourceBytesSize();
+        }
+        return bytesSize;
+    }
 }

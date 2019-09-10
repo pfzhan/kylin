@@ -71,6 +71,19 @@
           :render-header="renderUsageHeader"
           :label="$t('usage')">
         </el-table-column>
+        <el-table-column
+          header-align="right"
+          align="right"
+          sortable="custom"
+          prop="expansionrate"
+          show-overflow-tooltip
+          width="170px"
+          :render-header="renderExpansionRateHeader">
+          <template slot-scope="scope">
+              <span v-if="scope.row.expansion_rate !== '-1'">{{scope.row.expansion_rate}}%</span>
+              <span v-else class="is-disabled">{{$t('tentative')}}</span>
+          </template>
+        </el-table-column>
          <el-table-column
           header-align="right"
           align="right"
@@ -290,6 +303,14 @@ export default class ModelList extends Vue {
     return (<span class="ky-hover-icon" onClick={e => (e.stopPropagation())}>
       <span>{this.$t('usage')}</span>&nbsp;
       <common-tip placement="top" content={this.$t('usageTip', {mode: this.$t(modelMode)})}>
+       <span class='el-icon-ksd-what'></span>
+      </common-tip>
+    </span>)
+  }
+  renderExpansionRateHeader (h, { column, $index }) {
+    return (<span class="ky-hover-icon" onClick={e => (e.stopPropagation())}>
+      <span>{this.$t('expansionRate')}</span>&nbsp;
+      <common-tip placement="top" content={this.$t('expansionRateTip')}>
        <span class='el-icon-ksd-what'></span>
       </common-tip>
     </span>)

@@ -108,6 +108,7 @@ class ExecutorInstancesRule extends SparkConfRule {
     val queue = helper.getConf(SparkConfHelper.DEFAULT_QUEUE)
     val layoutSize = helper.getOption(SparkConfHelper.LAYOUT_SIZE)
     val requiredCores = helper.getOption(SparkConfHelper.REQUIRED_CORES)
+    logInfo(s"RequiredCores is $requiredCores")
     val baseExecutorInstances = KylinConfig.getInstanceFromEnv.getSparkEngineBaseExuctorInstances
     val calculateExecutorInsByLayoutSize = calculateExecutorInstanceSizeByLayoutSize(Integer.parseInt(layoutSize))
 
@@ -122,6 +123,7 @@ class ExecutorInstancesRule extends SparkConfRule {
       case None => SparkConfRuleConstants.DEFUALT_EXECUTOR_CORE.toInt
     }
 
+    logInfo(s"Current availableMem is $availableMem, availableCore is $availableCore")
     val queueAvailableInstance = Math.min(availableMem / executorMem, availableCore / executorCore)
     logInfo(s"Maximum instance that the current queue can set: $queueAvailableInstance")
 
@@ -159,7 +161,7 @@ class ExecutorInstancesRule extends SparkConfRule {
         instanceMultiple = choosen.last._2.toInt
       }
     }
-
+    logInfo(s"The instanceMultiple is $instanceMultiple")
     baseInstances * instanceMultiple
   }
 }
@@ -167,7 +169,7 @@ class ExecutorInstancesRule extends SparkConfRule {
 class ShufflePartitionsRule extends SparkConfRule {
   override def doApply(helper: SparkConfHelper): Unit = {
     val sourceTableSize = helper.getOption(SparkConfHelper.SOURCE_TABLE_SIZE)
-    val partitions = Math.max(1, Utils.byteStringAsMb(sourceTableSize) / 32).toString
+    val partitions = Math.max(2, Utils.byteStringAsMb(sourceTableSize) / 32).toString
     helper.setConf(SparkConfHelper.SHUFFLE_PARTITIONS, partitions)
   }
 }

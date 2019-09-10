@@ -25,6 +25,7 @@
 package io.kyligence.kap.metadata.cube.model;
 
 import java.io.Serializable;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -80,8 +81,16 @@ public class NDataSegment implements ISegment, Serializable, IKeep {
     @JsonProperty("source_count")
     private long sourceCount = -1; // source table records number
 
+    @JsonProperty("source_bytes_size")
+    private long sourceBytesSize = -1;
+
+    private Long storageSize = null;
+
+    private Long storageFileCount = null;
+
     @JsonProperty("additionalInfo")
     private Map<String, String> additionalInfo = Maps.newLinkedHashMap();
+
 
     // computed fields below
 
@@ -333,6 +342,14 @@ public class NDataSegment implements ISegment, Serializable, IKeep {
         this.sourceCount = sourceCount;
     }
 
+    public long getSourceBytesSize() {
+        return sourceBytesSize;
+    }
+
+    public void setSourceBytesSize(long sourceBytesSize) {
+        this.sourceBytesSize = sourceBytesSize;
+    }
+
     public String getProject() {
         return this.dataflow.getProject();
     }
@@ -357,6 +374,30 @@ public class NDataSegment implements ISegment, Serializable, IKeep {
 
     public void putSnapshotResPath(String table, String snapshotResPath) {
         getSnapshots().put(table, snapshotResPath);
+    }
+
+    public long getStorageBytesSize() {
+        if (storageSize == null) {
+            long size = 0;
+            Collection<NDataLayout> dataLayouts = getLayoutsMap().values();
+            for (NDataLayout dataLayout : dataLayouts) {
+                size += dataLayout.getByteSize();
+            }
+            storageSize = size;
+        }
+        return storageSize;
+    }
+
+    public long getStorageFileCount() {
+        if (storageFileCount == null) {
+            long fileCount = 0L;
+            Collection<NDataLayout> dataLayouts = getLayoutsMap().values();
+            for (NDataLayout dataLayout : dataLayouts) {
+                fileCount += dataLayout.getFileCount();
+            }
+            storageFileCount = fileCount;
+        }
+        return storageFileCount;
     }
 
     @Override

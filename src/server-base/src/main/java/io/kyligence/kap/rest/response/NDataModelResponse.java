@@ -52,6 +52,12 @@ public class NDataModelResponse extends NDataModel {
     @JsonProperty("storage")
     private long storage;
 
+    @JsonProperty("source")
+    private long source;
+
+    @JsonProperty("expansion_rate")
+    private String expansionrate;
+
     @JsonProperty("usage")
     private long usage;
 

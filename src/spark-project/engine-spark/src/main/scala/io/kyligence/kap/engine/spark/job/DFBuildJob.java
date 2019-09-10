@@ -24,6 +24,9 @@
 
 package io.kyligence.kap.engine.spark.job;
 
+import com.google.common.collect.Maps;
+import io.kyligence.kap.metadata.cube.model.NDataflow;
+import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -90,7 +93,7 @@ public class DFBuildJob extends SparkApplication {
         Set<Long> layoutIds = NSparkCubingUtil.str2Longs(getParam(NBatchConstants.P_LAYOUT_IDS));
         dfMgr = NDataflowManager.getInstance(config, project);
         List<String> persistedFlatTable = new ArrayList<>();
-
+        Path shareDir = config.getJobTmpShareDir(project, jobId);
         try {
             IndexPlan indexPlan = dfMgr.getDataflow(dataflowId).getIndexPlan();
             Set<LayoutEntity> cuboids = NSparkCubingUtil.toLayouts(indexPlan, layoutIds).stream()
@@ -123,6 +126,8 @@ public class DFBuildJob extends SparkApplication {
                 }
                 infos.recordSpanningTree(segId, nSpanningTree);
             }
+            Map<String, Object> segmentSourceSize = ResourceDetectUtils.getSegmentSourceSize(shareDir);
+            updateSegmentSourceBytesSize(dataflowId, segmentSourceSize);
         } finally {
             for (String path : persistedFlatTable) {
                 val fs = HadoopUtil.getWorkingFileSystem();
@@ -131,6 +136,20 @@ public class DFBuildJob extends SparkApplication {
             }
             logger.info("Building job takes {} ms", (System.currentTimeMillis() - start));
         }
+    }
+
+    private void updateSegmentSourceBytesSize(String dataflowId, Map<String, Object> toUpdateSegmentSourceSize) {
+        NDataflow dataflow = dfMgr.getDataflow(dataflowId);
+        NDataflow newDF = dataflow.copy();
+        val update = new NDataflowUpdate(dataflow.getUuid());
+        List<NDataSegment> nDataSegments = Lists.newArrayList();
+        for(Map.Entry<String, Object> entry: toUpdateSegmentSourceSize.entrySet()) {
+            NDataSegment segment = newDF.getSegment(entry.getKey());
+            segment.setSourceBytesSize((Long)entry.getValue());
+            nDataSegments.add(segment);
+        }
+        update.setToUpdateSegs(nDataSegments.toArray(new NDataSegment[0]));
+        dfMgr.updateDataflow(update);
     }
 
     @Override
