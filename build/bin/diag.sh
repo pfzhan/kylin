@@ -1,8 +1,6 @@
 #!/bin/bash
 # Kyligence Inc. License
 
-source $(cd -P -- "$(dirname -- "$0")" && pwd -P)/../sbin/header.sh
-
 if [[ -z ${KYLIN_HOME} ]];then
     export KYLIN_HOME=$(cd -P -- "$(dirname -- "$0")"/../ && pwd -P)
 fi
@@ -41,9 +39,9 @@ function prepareEnv {
     export KYLIN_CONFIG_FILE="${KYLIN_HOME}/conf/kylin.properties"
     export SPARK_HOME=${KYLIN_HOME}/spark
 
-    verbose "KYLIN_HOME is:${KYLIN_HOME}"
-    verbose "KYLIN_CONFIG_FILE is:${KYLIN_CONFIG_FILE}"
-    verbose "SPARK_HOME is:${SPARK_HOME}"
+    echo "KYLIN_HOME is:${KYLIN_HOME}"
+    echo "KYLIN_CONFIG_FILE is:${KYLIN_CONFIG_FILE}"
+    echo "SPARK_HOME is:${SPARK_HOME}"
 
     retrieveDependency
 
