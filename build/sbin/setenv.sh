@@ -17,7 +17,7 @@
 # limitations under the License.
 #
 
-source $(cd -P -- "$(dirname -- "$0")" && pwd -P)/header.sh
+source $(cd -P -- "$(dirname -- "$0")" && pwd -P)/../sbin/header.sh
 
 if [[ `isValidJavaVersion` == "false" ]]; then
     quit "ERROR: Java 1.8 or above is required for Kyligence Enterprise"

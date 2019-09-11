@@ -32,9 +32,7 @@ function retrieveDependency() {
     fi
 
     #retrive $KYLIN_EXTRA_START_OPTS
-    if [[ -f "${KYLIN_HOME}/conf/setenv.sh" ]]; then
-        source ${KYLIN_HOME}/conf/setenv.sh
-    fi
+    source ${KYLIN_HOME}/sbin/setenv.sh
 
     DIAG_JAVA_OPTS="-Dkylin.home=${KYLIN_HOME}"
 }
@@ -70,7 +68,13 @@ function prepareEnv {
 function runTool() {
     prepareEnv
 
-    java -Xms${JAVA_VM_XMS} -Xmx${JAVA_VM_XMX} ${DIAG_JAVA_OPTS} -Dlog4j.configuration=file:${KYLIN_HOME}/tool/conf/kylin-tools-diag-log4j.properties -Dkylin.hadoop.conf.dir=${kylin_hadoop_conf_dir} -Dhdp.version=current -cp "${kylin_hadoop_conf_dir}:${KYLIN_HOME}/lib/ext/*:${KYLIN_HOME}/tool/kap-tool-${version}.jar:${SPARK_HOME}/jars/*" $@
+    if [[ -f ${KYLIN_HOME}/conf/kylin-tools-diag-log4j.properties ]]; then
+        diag_log4j="file:${KYLIN_HOME}/conf/kylin-tools-diag-log4j.properties"
+    else
+        diag_log4j="file:${KYLIN_HOME}/tool/conf/kylin-tools-diag-log4j.properties"
+    fi
+
+    java -Xms${JAVA_VM_XMS} -Xmx${JAVA_VM_XMX} ${DIAG_JAVA_OPTS} -Dlog4j.configuration=${diag_log4j} -Dkylin.hadoop.conf.dir=${kylin_hadoop_conf_dir} -Dhdp.version=current -cp "${kylin_hadoop_conf_dir}:${KYLIN_HOME}/lib/ext/*:${KYLIN_HOME}/tool/kap-tool-${version}.jar:${SPARK_HOME}/jars/*" $@
     exit $?
 }
 
