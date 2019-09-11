@@ -398,7 +398,9 @@ public class KapNonEquiJoinRel extends EnumerableThetaJoin implements KapRel {
 
     @Override
     public RelOptCost computeSelfCost(RelOptPlanner planner, RelMetadataQuery mq) {
-        return super.computeSelfCost(planner, mq).multiplyBy(.05);
+        return joinType == JoinRelType.RIGHT ?
+                super.computeSelfCost(planner, mq).multiplyBy(100) :
+                super.computeSelfCost(planner, mq).multiplyBy(.05);
     }
 
     @Override public EnumerableThetaJoin copy(RelTraitSet traitSet,
