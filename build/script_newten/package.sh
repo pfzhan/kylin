@@ -58,6 +58,44 @@ echo "Build with ${BUILD_SYSTEM} at" `date "+%Y-%m-%d %H:%M:%S"` >> build/commit
 cat > build/CHANGELOG.md <<EOL
 ### Release History
 
+#### KE 4.0.3 release note
+
+**Enhancement**
+
+- Support to automatic upgrade via script
+- Enhance diagnostic package
+- Support some new query functions
+- Optimize the recognition and conversion of computed columns in smart mode project
+- Simplify integration with Kerberos
+- Optimize the build performance of Count Distinct measure
+
+**Bugfix**
+
+- Queries still hit the cache when the model goes offline
+- In smart mode, when the type of measure is int or boolean, query pushdown in Power BI will return error
+- In smart mode, when querying the recommended computed column through Power BI, query pushdown will return error
+- Timestamp() function cannot support millisecond precision
+
+#### KE 4.0.2 release note
+
+**Feature**
+
+- Support integration with LDAP
+- Support integration with 3rd-party User Authentication System
+- Support HTTPS connection
+
+**Enhancement**
+
+- Support to view partial job execution log and download the full logs on monitor page
+- Support some new query functions
+- Improve the query performance when queries contain the join condition with a high cardinality column
+- Support dynamic resource allocation in table sampling job
+- Optimize the recognition and conversion of computed columns in smart mode project
+
+**Bugfix**
+
+- The password reset script for ADMIN user doesn’t take effect
+
 #### KE 4.0.1 release note
 
 **Feature & Enhancement**
