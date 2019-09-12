@@ -140,6 +140,19 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
+    public void testGetModelSql() throws Exception {
+        String sql = "SELECT * FROM TABLE1";
+        Mockito.when(modelService.getModelSql("model1", "default")).thenReturn(sql);
+        MvcResult mvcResult = mockMvc
+                .perform(MockMvcRequestBuilders.get("/api/models/sql").contentType(MediaType.APPLICATION_JSON)
+                        .param("model", "model1").param("project", "default")
+                        .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
+
+        Mockito.verify(nModelController).getModelSql("model1", "default");
+    }
+
+    @Test
     public void testGetModelJson() throws Exception {
         String json = "testjson";
         Mockito.when(modelService.getModelJson("model1", "default")).thenReturn(json);

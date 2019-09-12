@@ -36,6 +36,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import com.google.common.annotations.VisibleForTesting;
 import io.kyligence.kap.event.manager.EventDao;
 import io.kyligence.kap.event.model.Event;
 import io.kyligence.kap.event.model.MergeSegmentEvent;
@@ -47,6 +48,7 @@ import org.apache.kylin.common.util.DateFormat;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.common.util.StringUtil;
+import org.apache.kylin.job.JoinedFlatTable;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.metadata.model.JoinDesc;
 import org.apache.kylin.metadata.model.JoinTableDesc;
@@ -66,6 +68,8 @@ import org.apache.kylin.rest.msg.MsgPicker;
 import org.apache.kylin.rest.service.BasicService;
 import org.apache.kylin.source.SourceFactory;
 import org.apache.kylin.source.adhocquery.PushDownConverterKeyWords;
+import org.apache.spark.sql.SparderEnv;
+import org.apache.spark.sql.SparkSession;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -307,6 +311,11 @@ public class ModelService extends BasicService {
     public String getModelJson(String modelId, String project) throws JsonProcessingException {
         NDataModel modelDesc = getDataModelManager(project).getDataModelDesc(modelId);
         return JsonUtil.writeValueAsIndentString(modelDesc);
+    }
+
+    public String getModelSql(String modelId, String project) {
+        NDataModel modelDesc = getDataModelManager(project).getDataModelDesc(modelId);
+        return JoinedFlatTable.generateSelectDataStatement(modelDesc, false);
     }
 
     public List<NSpanningTreeForWeb> getModelRelations(String modelId, String project) {
@@ -642,6 +651,21 @@ public class ModelService extends BasicService {
         segmentHelper.refreshRelatedModelSegments(project, table, segmentRange);
     }
 
+    @VisibleForTesting
+    public void checkFlatTableSql(NDataModel dataModel) {
+        if (KylinConfig.getInstanceFromEnv().isUTEnv()) {
+            return;
+        }
+
+        try {
+            SparkSession ss = SparderEnv.getSparkSession();
+            ss.sql(JoinedFlatTable.generateSelectDataStatement(dataModel, false));
+        } catch (Exception e) {
+            String errorMsg = null != e.getMessage() ? e.getMessage().substring(0, 200) : "null";
+            throw new RuntimeException(errorMsg, e);
+        }
+    }
+
     public NDataModel createModel(String project, ModelRequest modelRequest) throws Exception {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication != null && authentication.getPrincipal() instanceof UserDetails) {
@@ -659,6 +683,9 @@ public class ModelService extends BasicService {
         }
         preProcessBeforeModelSave(dataModel, project);
         val format = probeDateFormatIfNotExist(project, dataModel);
+
+        checkFlatTableSql(dataModel);
+
         return UnitOfWork.doInTransactionWithRetry(() -> {
             val model = getDataModelManager(project).createDataModelDesc(dataModel, dataModel.getOwner());
             val indexPlanManager = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), model.getProject());
@@ -1193,6 +1220,8 @@ public class ModelService extends BasicService {
             });
         }
         proposeAndSaveDateFormatIfNotExist(project, modelId);
+
+        checkFlatTableSql(newModel);
         semanticUpdater.handleSemanticUpdate(project, modelId, originModel, request.getStart(), request.getEnd());
     }
 

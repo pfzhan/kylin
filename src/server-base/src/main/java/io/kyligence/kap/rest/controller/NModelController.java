@@ -257,6 +257,22 @@ public class NModelController extends NBasicController {
 
     }
 
+    @RequestMapping(value = "/sql", method = { RequestMethod.GET }, produces = {
+            "application/vnd.apache.kylin-v2+json" })
+    @ResponseBody
+    public EnvelopeResponse getModelSql(@RequestParam(value = "model") String modelId,
+            @RequestParam(value = "project") String project) {
+        checkProjectName(project);
+        checkRequiredArg(MODEL_ID, modelId);
+
+        try {
+            String sql = modelService.getModelSql(modelId, project);
+            return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, sql, "");
+        } catch (Exception e) {
+            throw new BadRequestException("can not get model sql, " + e);
+        }
+    }
+
     @RequestMapping(value = "/relations", method = RequestMethod.GET, produces = {
             "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
@@ -275,8 +291,7 @@ public class NModelController extends NBasicController {
     public EnvelopeResponse getAffectedModelsBySourceTableAction(
             @RequestParam(value = "table", required = true) String tableName,
             @RequestParam(value = "project", required = true) String project,
-            @RequestParam(value = "action", required = true) String action
-    ) {
+            @RequestParam(value = "action", required = true) String action) {
         checkProjectName(project);
         checkRequiredArg("table", tableName);
         checkRequiredArg("action", action);

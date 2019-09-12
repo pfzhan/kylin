@@ -309,7 +309,7 @@ public abstract class SparkApplication implements Application, IKeep {
 
     protected abstract void doExecute() throws Exception;
 
-    protected  String calculateRequiredCores() throws Exception {
+    protected String calculateRequiredCores() throws Exception {
         return SparkJobConstants.DEFAULT_REQUIRED_CORES;
     }
 
@@ -348,15 +348,13 @@ public abstract class SparkApplication implements Application, IKeep {
         return ResourceDetectUtils.getMaxResourceSize(resourcePaths) + "b";
     }
 
-
     protected Boolean hasCountDistinct() {
-        Path countDistinct = new Path(config.getJobTmpShareDir(project, jobId), ResourceDetectUtils.countDistinctSuffix());
+        Path countDistinct = new Path(config.getJobTmpShareDir(project, jobId),
+                ResourceDetectUtils.countDistinctSuffix());
         Boolean exist = ResourceDetectUtils.readResourcePathsAs(countDistinct);
         logger.info("Exist count distinct measure: {}", exist);
         return exist;
     }
-
-
 
     public void logJobInfo() {
         try {
