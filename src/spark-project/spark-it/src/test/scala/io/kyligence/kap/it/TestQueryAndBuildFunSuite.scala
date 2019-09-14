@@ -56,7 +56,7 @@ class TestQueryAndBuildFunSuite
   implicit val ec: ExecutionContextExecutor = ExecutionContext.global
 
   val queryFolders = List(
-    FloderInfo("sql", List("query105.sql")),
+    FloderInfo("sql", List("query105.sql", "query131.sql")),
     //        FloderInfo("sql_boolean"),
     FloderInfo("sql_cache"),
     FloderInfo("sql_casewhen", List("query08.sql", "query09.sql")),

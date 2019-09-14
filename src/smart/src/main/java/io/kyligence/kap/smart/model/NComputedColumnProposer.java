@@ -57,7 +57,6 @@ public class NComputedColumnProposer extends NAbstractModelProposer {
 
     private static final String CC_NAME_PREFIX = "CC_AUTO_";
     private static final String DEFAULT_CC_NAME = "CC_AUTO_1";
-    private static final String TIMESTAMP_PATTERN = "(?i)\\s+timestamp\\(\\d+\\)";
 
     NComputedColumnProposer(NModelContext modelCtx) {
         super(modelCtx);
@@ -165,8 +164,7 @@ public class NComputedColumnProposer extends NAbstractModelProposer {
                 String parserDesc = col.getParserDescription();
                 parserDesc = matchingAlias.entrySet().stream()
                         .map(entry -> (Function<String, String>) s -> s.replaceAll(entry.getKey(), entry.getValue()))
-                        .reduce(Function.identity(), Function::andThen).apply(parserDesc)
-                        .replaceAll(TIMESTAMP_PATTERN, " TIMESTAMP");
+                        .reduce(Function.identity(), Function::andThen).apply(parserDesc);
                 logger.trace(parserDesc);
 
                 if (isMalformedCandidate(parserDesc)) {

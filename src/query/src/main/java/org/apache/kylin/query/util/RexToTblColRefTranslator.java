@@ -58,6 +58,7 @@ import org.apache.calcite.sql.fun.SqlCaseOperator;
 import org.apache.calcite.sql.fun.SqlDatePartFunction;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParserPos;
+import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.sql.validate.SqlUserDefinedFunction;
@@ -398,7 +399,9 @@ public class RexToTblColRefTranslator {
                     return null;
                 }
                 List<SqlNode> operandList = Lists.newArrayList(operands);
-                SqlDataTypeSpec typeSpec = SqlTypeUtil.convertTypeToSpec(call.getType());
+                SqlDataTypeSpec typeSpec = call.getType().getFamily() == SqlTypeFamily.TIMESTAMP
+                        ? new SqlDataTypeSpec(call.getType().getSqlIdentifier(), -1, -1, null, null, SqlParserPos.ZERO)
+                        : SqlTypeUtil.convertTypeToSpec(call.getType());
                 operandList.add(typeSpec);
                 return SqlStdOperatorTable.CAST.createCall(SqlParserPos.ZERO, operandList);
             });
