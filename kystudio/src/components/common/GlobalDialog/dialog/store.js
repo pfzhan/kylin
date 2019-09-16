@@ -13,7 +13,7 @@ const initialState = JSON.stringify({
   dialogType: '',
   theme: '',
   details: [],
-  showDetailBtn: true
+  showDetailBtn: false // 默认设为不显示详情按钮，如果默认显示，配置为不显示的弹窗，在关闭时会闪现详情按钮
 })
 
 export default {
@@ -26,6 +26,9 @@ export default {
       state.isShow = false
     },
     [types.SET_MODAL]: (state, payload = {}) => {
+      // 为兼容以前没传参数，后来传参数，默认不可显示，会有闪现问题，所以默认隐藏，再通过参数判断是否传入，进行动态赋值
+      // 如果不传 showDetailBtn 参数，就默认是显示的，如果传了，就取传的值
+      payload['showDetailBtn'] = payload['showDetailBtn'] === undefined ? true : payload['showDetailBtn']
       for (const key in payload) {
         state[key] = payload[key]
       }
