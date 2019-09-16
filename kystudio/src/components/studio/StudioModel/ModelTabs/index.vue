@@ -43,7 +43,7 @@ let MessageBox = ElementUI.MessageBox
           if (to.name === 'refresh') { // 刷新逻辑下要手动重定向
             next()
             this.$nextTick(() => {
-              this.$router.replace('studio/model')
+              this.$router.replace({name: 'ModelList', params: { refresh: true }})
             })
             return
           }
