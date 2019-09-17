@@ -61,7 +61,7 @@ public class IntersectMeasureType extends MeasureType<IntersectBitmapCounter> {
 
     public DataType dataType;
 
-    public IntersectMeasureType(String funcName, DataType dataType) {
+    public IntersectMeasureType(DataType dataType) {
         this.dataType = dataType;
     }
 
@@ -69,7 +69,7 @@ public class IntersectMeasureType extends MeasureType<IntersectBitmapCounter> {
 
         @Override
         public MeasureType<IntersectBitmapCounter> createMeasureType(String funcName, DataType dataType) {
-            return new IntersectMeasureType(funcName, dataType);
+            return new IntersectMeasureType(dataType);
         }
 
         // cube chose
