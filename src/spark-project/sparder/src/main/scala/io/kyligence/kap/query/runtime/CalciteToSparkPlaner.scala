@@ -53,7 +53,12 @@ class CalciteToSparkPlaner(dataContext: DataContext) extends RelVisitor with Log
     if (node.isInstanceOf[KapUnionRel]) {
       unionStack.push(stack.size())
     }
-    if (!node.isInstanceOf[KapJoinRel] || node.asInstanceOf[KapJoinRel].isRuntimeJoin || node.isInstanceOf[KapNonEquiJoinRel]) {
+    // skip non runtime joins children
+    // cases to skip children visit
+    // 1. current node is a KapJoinRel and is not a runtime join
+    // 2. current node is a KapNonEquiJoinRel and is not a runtime join
+    if (!(node.isInstanceOf[KapJoinRel] && !node.asInstanceOf[KapJoinRel].isRuntimeJoin) &&
+      !(node.isInstanceOf[KapNonEquiJoinRel] && !node.asInstanceOf[KapNonEquiJoinRel].isRuntimeJoin)) {
       node.childrenAccept(this)
     }
     stack.push(node match {
