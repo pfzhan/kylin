@@ -57,6 +57,7 @@ public class HepUtils {
             //                AggregateJoinTransposeRule.EXTENDED,
             //                AggregateFilterTransposeRule.INSTANCE,
             JoinFilterRule.JOIN_LEFT_FILTER, JoinFilterRule.JOIN_RIGHT_FILTER, JoinFilterRule.JOIN_BOTH_FILTER,
+            JoinFilterRule.LEFT_JOIN_LEFT_FILTER,
             // Merge Rule
             ProjectMergeRule.INSTANCE, FilterMergeRule.INSTANCE, ProjectRemoveRule.INSTANCE);
 
