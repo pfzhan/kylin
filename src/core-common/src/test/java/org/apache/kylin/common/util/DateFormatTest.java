@@ -108,7 +108,7 @@ public class DateFormatTest {
                 correctTime = "1262304000000";
                 break;
             default:
-                Assert.fail("can not found the zoneId: " + zoneId);
+                Assert.fail("can not find the zoneId: " + zoneId);
         }
 
 

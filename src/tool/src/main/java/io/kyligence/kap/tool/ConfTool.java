@@ -46,7 +46,7 @@ public class ConfTool {
             if (confDir.exists()) {
                 FileUtils.copyDirectoryToDirectory(confDir, exportDir);
             } else {
-                logger.error("Can not found the /conf dir: {}!", confDir.getAbsolutePath());
+                logger.error("Can not find the /conf dir: {}!", confDir.getAbsolutePath());
             }
         } catch (Exception e) {
             logger.warn("Failed to copy /conf, ", e);
@@ -59,7 +59,7 @@ public class ConfTool {
             if (hadoopConfDir.exists()) {
                 FileUtils.copyDirectoryToDirectory(hadoopConfDir, exportDir);
             } else {
-                logger.error("Can not found the hadoop_conf: {}!", hadoopConfDir.getAbsolutePath());
+                logger.error("Can not find the hadoop_conf: {}!", hadoopConfDir.getAbsolutePath());
             }
         } catch (Exception e) {
             logger.error("Failed to copy /hadoop_conf, ", e);

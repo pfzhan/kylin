@@ -120,19 +120,19 @@ public class KylinLogTool {
 
             File logExtractTool = new File(ToolUtil.getKylinHome() + File.separator + logBinFile);
             if (!logExtractTool.exists()) {
-                logger.error("Can not found the log extract tool: {}", logExtractTool.getAbsolutePath());
+                logger.error("Can not find the log extract tool: {}", logExtractTool.getAbsolutePath());
                 return;
             }
 
             File logsDir = new File(ToolUtil.getKylinHome() + File.separator + "logs");
             if (!logsDir.exists()) {
-                logger.error("Can not found the logs dir: {}", logsDir);
+                logger.error("Can not find the logs dir: {}", logsDir);
                 return;
             }
 
             File[] kylinLogs = logsDir.listFiles(pathname -> pathname.getName().startsWith("kylin.log"));
             if (null == kylinLogs) {
-                logger.error("Can not found the kylin.log file!");
+                logger.error("Can not find the kylin.log file!");
                 return;
             }
 
@@ -184,7 +184,7 @@ public class KylinLogTool {
             String jobPath = hdfsPath + "/*/" + jobId;
             FileStatus[] fileStatuses = fs.globStatus(new Path(jobPath));
             if (null == fileStatuses || fileStatuses.length == 0) {
-                logger.error("Can not found the spark logs: {}", jobPath);
+                logger.error("Can not find the spark logs: {}", jobPath);
                 return;
             }
 
@@ -212,7 +212,7 @@ public class KylinLogTool {
             String hdfsPath = ToolUtil.getJobTmpDir(project, jobId);
             FileSystem fs = HadoopUtil.getWorkingFileSystem();
             if (!fs.exists(new Path(hdfsPath))) {
-                logger.error("Can not found the job tmp: {}", hdfsPath);
+                logger.error("Can not find the job tmp: {}", hdfsPath);
                 return;
             }
 

@@ -76,16 +76,20 @@ public class NJobController extends NBasicController {
             @RequestParam(value = "timeFilter", required = true) Integer timeFilter,
             @RequestParam(value = "subject", required = false) String subject,
             @RequestParam(value = "subjectAlias", required = false) String subjectAlias,
-            @RequestParam(value = "project", required = true) String project,
+            @RequestParam(value = "project", required = false) String project,
             @RequestParam(value = "pageOffset", required = false, defaultValue = "0") Integer pageOffset,
             @RequestParam(value = "pageSize", required = false, defaultValue = "10") Integer pageSize,
             @RequestParam(value = "sortBy", required = false, defaultValue = "last_modified") String sortBy,
             @RequestParam(value = "reverse", required = false, defaultValue = "true") Boolean reverse) {
-        checkProjectName(project);
         checkJobStatus(status);
         JobFilter jobFilter = new JobFilter(status, jobNames, timeFilter, subject, subjectAlias, project, sortBy,
                 reverse);
-        List<ExecutableResponse> executables = jobService.listJobs(jobFilter);
+        List<ExecutableResponse> executables;
+        if (!StringUtils.isEmpty(project)) {
+            executables = jobService.listJobs(jobFilter);
+        } else {
+            executables = jobService.listAllJobs(jobFilter);
+        }
         Map<String, Object> result = getDataResponse("jobList", executables, pageOffset, pageSize);
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, result, "");
     }
@@ -178,7 +182,7 @@ public class NJobController extends NBasicController {
 
         String hdfsLogpath = jobService.getHdfsLogPath(project, stepId);
         if (Objects.isNull(hdfsLogpath)) {
-            return new EnvelopeResponse(ResponseCode.CODE_UNDEFINED, null, "can not found the log file!");
+            return new EnvelopeResponse(ResponseCode.CODE_UNDEFINED, null, "can not find the log file!");
         }
 
         response.setHeader("content-type", "application/octet-stream");

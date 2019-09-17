@@ -64,6 +64,7 @@ import org.apache.kylin.job.execution.FiveSecondSucceedTestExecutable;
 import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.metadata.model.TableDesc;
+import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.rest.constant.Constant;
 import org.assertj.core.api.Assertions;
 import org.junit.After;
@@ -208,6 +209,55 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
         List<ExecutableResponse> jobs12 = jobService.listJobs(jobFilter);
         Assert.assertTrue(jobs12.size() == 3 && jobs12.get(0).getJobName().equals("sparkjob1"));
 
+    }
+
+    private List<ProjectInstance> mockProjects() {
+        ProjectInstance defaultProject = new ProjectInstance();
+        defaultProject.setName("default");
+
+        ProjectInstance defaultProject1 = new ProjectInstance();
+        defaultProject1.setName("default1");
+
+        return Lists.newArrayList(defaultProject, defaultProject1);
+    }
+
+    private List<AbstractExecutable> mockJobs1() throws NoSuchFieldException, IllegalAccessException {
+        NExecutableManager manager = Mockito.spy(NExecutableManager.getInstance(getTestConfig(), "default1"));
+        Field filed = getTestConfig().getClass().getDeclaredField("managersByPrjCache");
+        filed.setAccessible(true);
+        ConcurrentHashMap<Class, ConcurrentHashMap<String, Object>> managersByPrjCache = (ConcurrentHashMap<Class, ConcurrentHashMap<String, Object>>) filed
+                .get(getTestConfig());
+        managersByPrjCache.get(NExecutableManager.class).put(getProject(), manager);
+        List<AbstractExecutable> jobs = new ArrayList<>();
+        SucceedChainedTestExecutable job1 = new SucceedChainedTestExecutable();
+        job1.setProject("default1");
+        job1.setName("sparkjob22");
+        job1.setTargetSubject("model22");
+        Mockito.when(manager.getCreateTime(job1.getId())).thenReturn(1560324102100L);
+
+        jobs.add(job1);
+        return jobs;
+    }
+
+    @Test
+    public void testListAllJobs() throws Exception {
+        Mockito.doReturn(mockProjects()).when(jobService).getReadableProjects();
+
+        NExecutableManager executableManager = Mockito.mock(NExecutableManager.class);
+        Mockito.when(jobService.getExecutableManager("default")).thenReturn(executableManager);
+        val mockJobs = mockJobs();
+        Mockito.when(executableManager.getAllExecutables(Mockito.anyLong(), Mockito.anyLong())).thenReturn(mockJobs);
+
+        NExecutableManager executableManager1 = Mockito.mock(NExecutableManager.class);
+        Mockito.when(jobService.getExecutableManager("default1")).thenReturn(executableManager1);
+        val mockJobs1 = mockJobs1();
+        Mockito.when(executableManager1.getAllExecutables(Mockito.anyLong(), Mockito.anyLong())).thenReturn(mockJobs1);
+
+        List<String> jobNames = Lists.newArrayList();
+        JobFilter jobFilter = new JobFilter("", jobNames, 4, "", "", "", "", true);
+        List<ExecutableResponse> jobs = jobService.listAllJobs(jobFilter);
+        Assert.assertEquals(4, jobs.size());
+        Assert.assertEquals("default1", jobs.get(3).getProject());
     }
 
     private void addSegment(AbstractExecutable job) {

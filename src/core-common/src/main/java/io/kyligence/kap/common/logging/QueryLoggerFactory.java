@@ -56,7 +56,7 @@ public final class QueryLoggerFactory implements ILoggerFactory {
         }
 
         if (factories.isEmpty()) {
-            Util.report("Can not found internal SLF4J ILoggerFactory instance, used NOPLoggerFactory.");
+            Util.report("Can not find internal SLF4J ILoggerFactory instance, used NOPLoggerFactory.");
             innerLoggerFactory = new NOPLoggerFactory();
         } else {
             if (factories.size() > 1) {

@@ -81,6 +81,8 @@ public class ExecutableResponse implements Comparable<ExecutableResponse> {
     private String targetSubject;
     @JsonProperty("target_subject_error")
     private boolean targetSubjectError = false;
+    @JsonProperty("project")
+    private String project;
 
     private static ExecutableResponse newInstance(AbstractExecutable abstractExecutable) {
         ExecutableResponse executableResponse = new ExecutableResponse();
@@ -137,6 +139,7 @@ public class ExecutableResponse implements Comparable<ExecutableResponse> {
             stepRatio = 0.99F;
         }
         executableResponse.setStepRatio(stepRatio);
+        executableResponse.setProject(abstractExecutable.getProject());
         return executableResponse;
     }
 

@@ -71,7 +71,7 @@ public class KapPasswordResetCLI {
         val res = aclStore.getResource(id);
 
         if (res == null) {
-            logger.warn("can not found admin user");
+            logger.warn("can not find admin user");
             System.exit(1);
         }
 

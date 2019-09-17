@@ -100,7 +100,7 @@ public class JobDiagInfoTool extends AbstractInfoExtractorTool {
 
         String project = getProjectByJobId(jobId);
         if (null == project) {
-            logger.error("Can not found the jobId: {}", jobId);
+            logger.error("Can not find the jobId: {}", jobId);
             return;
         }
 

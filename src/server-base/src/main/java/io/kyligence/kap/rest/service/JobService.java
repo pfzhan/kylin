@@ -37,6 +37,8 @@ import java.util.Objects;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Preconditions;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
@@ -58,6 +60,8 @@ import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.job.execution.Output;
+import org.apache.kylin.metadata.project.ProjectInstance;
+import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.exception.BadRequestException;
 import org.apache.kylin.rest.msg.Message;
 import org.apache.kylin.rest.msg.MsgPicker;
@@ -66,6 +70,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Component;
 
 import com.google.common.collect.Maps;
@@ -102,16 +107,15 @@ public class JobService extends BasicService {
     @Qualifier("tableExtService")
     private TableExtService tableExtService;
 
+    @Autowired
+    private ProjectService projectService;
+
     private static final Logger logger = LoggerFactory.getLogger(JobService.class);
 
-    public List<ExecutableResponse> listJobs(final JobFilter jobFilter) {
-        NExecutableManager executableManager = getExecutableManager(jobFilter.getProject());
-        // prepare time range
-        Calendar calendar = Calendar.getInstance();
-        calendar.setTime(new Date());
-        long timeStartInMillis = getTimeStartInMillis(calendar, JobTimeFilterEnum.getByCode(jobFilter.getTimeFilter()));
-        long timeEndInMillis = Long.MAX_VALUE;
-        List<AbstractExecutable> jobs = executableManager.getAllExecutables(timeStartInMillis, timeEndInMillis);
+    private List<ExecutableResponse> filterAndSort(final JobFilter jobFilter, List<AbstractExecutable> jobs) {
+        Preconditions.checkNotNull(jobFilter);
+        Preconditions.checkNotNull(jobs);
+
         Comparator<ExecutableResponse> comparator = propertyComparator(
                 StringUtils.isEmpty(jobFilter.getSortBy()) ? "last_modified" : jobFilter.getSortBy(),
                 !jobFilter.isReverse());
@@ -146,6 +150,41 @@ public class JobService extends BasicService {
             executableResponse.setStatus(parseToJobStatus(abstractExecutable.getStatus()));
             return executableResponse;
         }).sorted(comparator).collect(Collectors.toList());
+    }
+
+    private List<AbstractExecutable> listJobs0(final JobFilter jobFilter) {
+        JobTimeFilterEnum filterEnum = JobTimeFilterEnum.getByCode(jobFilter.getTimeFilter());
+        Preconditions.checkNotNull(filterEnum, "Can not find the JobTimeFilterEnum by code: %s",
+                jobFilter.getTimeFilter());
+
+        NExecutableManager executableManager = getExecutableManager(jobFilter.getProject());
+        // prepare time range
+        Calendar calendar = Calendar.getInstance();
+        calendar.setTime(new Date());
+        long timeStartInMillis = getTimeStartInMillis(calendar, filterEnum);
+        long timeEndInMillis = Long.MAX_VALUE;
+        return executableManager.getAllExecutables(timeStartInMillis, timeEndInMillis);
+    }
+
+    public List<ExecutableResponse> listJobs(final JobFilter jobFilter) {
+        return filterAndSort(jobFilter, listJobs0(jobFilter));
+    }
+
+    @VisibleForTesting
+    public List<ProjectInstance> getReadableProjects() {
+        return projectService.getReadableProjects(null, false);
+    }
+
+    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#ae, 'ADMINISTRATION')")
+    public List<ExecutableResponse> listAllJobs(final JobFilter jobFilter) {
+        List<AbstractExecutable> jobs = new ArrayList<>();
+        for (ProjectInstance project : getReadableProjects()) {
+            jobFilter.setProject(project.getName());
+            jobs.addAll(listJobs0(jobFilter));
+        }
+        jobFilter.setProject(null);
+
+        return filterAndSort(jobFilter, jobs);
     }
 
     private long getTimeStartInMillis(Calendar calendar, JobTimeFilterEnum timeFilter) {
@@ -214,7 +253,7 @@ public class JobService extends BasicService {
         }
     }
 
-    private void dropJob(String project, String jobId) throws IOException {
+    private void dropJob(String project, String jobId) {
         NExecutableManager executableManager = getExecutableManager(project);
         executableManager.deleteJob(jobId);
         tableExtService.removeJobIdFromTableExt(jobId, project);
@@ -398,7 +437,7 @@ public class JobService extends BasicService {
             Path path = new Path(hdfsFilePath);
             FileSystem fs = HadoopUtil.getWorkingFileSystem();
             if (!fs.exists(path)) {
-                logger.warn("can not found the hdfs file: {}", hdfsFilePath);
+                logger.warn("can not find the hdfs file: {}", hdfsFilePath);
                 return false;
             }
 
