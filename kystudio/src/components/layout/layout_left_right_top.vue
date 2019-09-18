@@ -185,7 +185,8 @@ let MessageBox = ElementUI.MessageBox
       toggleMenu: 'TOGGLE_MENU',
       cacheHistory: 'CACHE_HISTORY',
       saveTabs: 'SET_QUERY_TABS',
-      resetSpeedInfo: 'CACHE_SPEED_INFO'
+      resetSpeedInfo: 'CACHE_SPEED_INFO',
+      setProject: 'SET_PROJECT'
     }),
     ...mapActions('UserEditModal', {
       callUserEditModal: 'CALL_MODAL'
@@ -420,9 +421,8 @@ export default class LayoutLeftRightTop extends Vue {
     })
   }
   changeProject (val) {
+    this.setProject(val)
     var currentPathName = this.$router.currentRoute.name
-    cacheSessionStorage('projectName', val)
-    cacheLocalStorage('projectName', val)
     this._replaceRouter(currentPathName)
   }
   async addProject () {
@@ -640,6 +640,9 @@ export default class LayoutLeftRightTop extends Vue {
   circleLoadSpeedInfo () {
     clearTimeout(this.ST)
     this.ST = setTimeout(() => {
+      if (this._isDestroyed) {
+        return
+      }
       this.loadCircleSpeedInfo().then(() => {
         if (this._isDestroyed) {
           return
