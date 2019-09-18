@@ -40,14 +40,14 @@
         </p>
       </div>
     </div>
-    <div class="clearfix">
-      <div class="ksd-fleft ksd-mt-10">
-        <div class="ksd-title-label-small result-title" :class="{'guide-queryResultBox':isWorkspace}">{{$t('queryResults')}}</div>
-        <kap-icon-button v-if="showExportCondition" size="small" icon="el-icon-ksd-download" @click.native="exportData">
-          {{$t('kylinLang.query.export')}}
-        </kap-icon-button>
+    <div class="ksd-title-label-small result-title ksd-mt-20" :class="{'guide-queryResultBox':isWorkspace}">{{$t('queryResults')}}</div>
+    <div class="clearfix ksd-mt-15">
+      <div class="ksd-fleft">
+        <el-button v-if="showExportCondition" type="primary" plain size="small" @click.native="exportData">
+          {{$t('exportCSV')}}
+        </el-button>
       </div>
-      <div class="resultOperator ksd-mt-10 ksd-fright">
+      <div class="resultOperator ksd-fright">
         <el-input :placeholder="$t('kylinLang.common.pleaseFilter')" v-model="resultFilter" class="show-search-btn ksd-inline" size="small" prefix-icon="el-icon-search">
         </el-input>
       </div>
@@ -80,7 +80,7 @@ import { mapActions, mapGetters } from 'vuex'
 import { scToFloat, showNull } from '../../util/index'
 import { hasRole, transToGmtTime } from '../../util/business'
 @Component({
-  props: ['extraoption', 'isWorkspace'],
+  props: ['extraoption', 'isWorkspace', 'queryExportData'],
   methods: {
     transToGmtTime: transToGmtTime,
     ...mapActions({
@@ -93,8 +93,8 @@ import { hasRole, transToGmtTime } from '../../util/business'
     ])
   },
   locales: {
-    'en': {username: 'Username', role: 'Role', analyst: 'Analyst', modeler: 'Modeler', admin: 'Admin', save: 'Save', restore: 'Restore', lineChart: 'Line Chart', barChart: 'Bar Chart', pieChart: 'Pie Chart', traceUrl: 'Trace Url:', extraoptionrmation: 'Query Information', queryResults: 'Query Results'},
-    'zh-cn': {username: '用户名', role: '角色', analyst: '分析人员', modeler: '建模人员', admin: '管理人员', save: '保存', restore: '还原', lineChart: '折线图', barChart: '柱状图', pieChart: '饼状图', traceUrl: '追踪链接：', extraoptionrmation: '查询信息', queryResults: '查询结果'}
+    'en': {username: 'Username', role: 'Role', analyst: 'Analyst', modeler: 'Modeler', admin: 'Admin', save: 'Save', restore: 'Restore', lineChart: 'Line Chart', barChart: 'Bar Chart', pieChart: 'Pie Chart', traceUrl: 'Trace Url:', extraoptionrmation: 'Query Information', queryResults: 'Query Results', exportCSV: 'Export to CSV'},
+    'zh-cn': {username: '用户名', role: '角色', analyst: '分析人员', modeler: '建模人员', admin: '管理人员', save: '保存', restore: '还原', lineChart: '折线图', barChart: '柱状图', pieChart: '饼状图', traceUrl: '追踪链接：', extraoptionrmation: '查询信息', queryResults: '查询结果', exportCSV: '导出 CSV'}
   }
 })
 export default class queryResult extends Vue {
@@ -111,9 +111,10 @@ export default class queryResult extends Vue {
   modelsTotal = this.extraoption.results.length
   timer = null
   exportData () {
-    this.sql = this.extraoption.sql
+    // 区别于3x中，导出所需的参数，存在props 传进来的 queryExportData 这个对象中，不再一起放在 extraoption 中
+    this.sql = this.queryExportData.sql
     this.project = this.currentSelectedProject
-    this.limit = this.extraoption.resultRowCount
+    this.limit = this.queryExportData.limit
     this.$nextTick(() => {
       this.$el.querySelectorAll('.exportTool')[0].submit()
     })

@@ -43,7 +43,7 @@
         <pre class="error-block" v-html="errinfo"></pre>
       </div>
     </div>
-    <queryresult :extraoption="extraoptionObj" :isWorkspace="isWorkspace" v-if="extraoptionObj&&!errinfo"></queryresult>
+    <queryresult :extraoption="extraoptionObj" :isWorkspace="isWorkspace" v-if="extraoptionObj&&!errinfo" :queryExportData="tabsItem.queryObj"></queryresult>
     <save_query_dialog :show="saveQueryFormVisible" :sql="this.sourceSchema" :project="currentSelectedProject" v-on:closeModal="closeModal"></save_query_dialog>
   </div>
 </template>
