@@ -24,17 +24,14 @@
 
 package io.kyligence.kap.query.runtime
 
-import java.util.TimeZone
-
 import io.kyligence.kap.query.util.UnsupportedSparkFunctionException
 import org.apache.calcite.rel.`type`.RelDataType
-import org.apache.calcite.rex.RexCall
 import org.apache.calcite.sql.SqlKind
 import org.apache.calcite.sql.SqlKind._
 import org.apache.calcite.sql.`type`.SqlTypeName
 import org.apache.spark.sql.Column
 import org.apache.spark.sql.KapFunctions._
-import org.apache.spark.sql.catalyst.expressions.{FromUnixTime, If, IfNull, Literal, StringLocate}
+import org.apache.spark.sql.catalyst.expressions.{If, IfNull, StringLocate}
 import org.apache.spark.sql.catalyst.util.DateTimeUtils
 import org.apache.spark.sql.functions._
 import org.apache.spark.sql.util.SparderTypeUtil
@@ -44,11 +41,18 @@ import scala.collection.mutable
 object ExpressionConverter {
 
   val unaryParameterFunc = mutable.HashSet("ucase", "lcase", "base64",
-    "sentences", "unbase64", "crc32", "md5", "sha", "sha1")
-  val ternaryParameterFunc = mutable.HashSet("replace", "substring_index", "lpad", "rpad")
+    "sentences", "unbase64", "crc32", "md5", "sha", "sha1",
+    // math
+    "cbrt", "cosh", "expm1", "factorial", "log1p", "log2", "rint", "sinh", "tanh"
+  )
+
+  val ternaryParameterFunc = mutable.HashSet("replace", "substring_index", "lpad", "rpad",  "conv")
   val binaryParameterFunc =
     mutable.HashSet("decode", "encode", "find_in_set", "levenshtein", "sha2",
-    "trunc", "add_months", "date_add", "date_sub", "from_unixtime", "from_utc_timestamp", "to_utc_timestamp")
+      "trunc", "add_months", "date_add", "date_sub", "from_unixtime", "from_utc_timestamp", "to_utc_timestamp",
+      // math function
+      "bround", "hypot", "log"
+    )
 
   val noneParameterfunc = mutable.HashSet("current_database", "input_file_block_length", "input_file_block_start",
     "input_file_name", "monotonically_increasing_id", "now", "spark_partition_id", "uuid"
@@ -167,9 +171,9 @@ object ExpressionConverter {
           case "ifnull" =>
             new Column(new IfNull(k_lit(children.head).expr, k_lit(children.apply(1)).expr))
           // string_funcs
-          case "lower"            => lower(k_lit(children.head))
-          case "upper"            => upper(k_lit(children.head))
-          case "char_length"      => length(k_lit(children.head))
+          case "lower" => lower(k_lit(children.head))
+          case "upper" => upper(k_lit(children.head))
+          case "char_length" => length(k_lit(children.head))
           case "character_length" => length(k_lit(children.head))
           case "replace" =>
             regexp_replace(k_lit(children.head),
@@ -286,16 +290,16 @@ object ExpressionConverter {
             tan(k_lit(children.head))
           case "sin" =>
             sin(k_lit(children.head))
-          case func if(noneParameterfunc.contains(func)) =>
+          case func if (noneParameterfunc.contains(func)) =>
             callUDF(func)
           case func if (unaryParameterFunc.contains(func)) =>
             callUDF(func, k_lit(children.head))
           case func if (binaryParameterFunc.contains(func)) =>
-            callUDF(func,  k_lit(children.head), k_lit(children.apply(1)))
+            callUDF(func, k_lit(children.head), k_lit(children.apply(1)))
           case func if (ternaryParameterFunc.contains(func)) =>
             callUDF(func, k_lit(children.head), k_lit(children.apply(1)), k_lit(children.apply(2)))
-          case func if (varArgsFunc.contains(func))  => {
-            callUDF(func,children.map(k_lit(_)):_*)
+          case func if (varArgsFunc.contains(func)) => {
+            callUDF(func, children.map(k_lit(_)): _*)
           }
           case "date_part" | "date_trunc" =>
             var part = k_lit(children.head).toString().toUpperCase match {
@@ -328,7 +332,7 @@ object ExpressionConverter {
           case "regexp_like" | "rlike" =>
             k_lit(children.head).rlike(children.apply(1).toString)
           case "if" =>
-            new Column(new If(k_lit(children.head).expr,k_lit(children.apply(1)).expr,k_lit(children.apply(2)).expr))
+            new Column(new If(k_lit(children.head).expr, k_lit(children.apply(1)).expr, k_lit(children.apply(2)).expr))
           case _ =>
             throw new UnsupportedOperationException(
               s"Unsupported function $funcName")

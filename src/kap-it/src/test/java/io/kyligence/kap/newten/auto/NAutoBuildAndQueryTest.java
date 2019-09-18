@@ -114,14 +114,15 @@ public class NAutoBuildAndQueryTest extends NAutoTestBase {
                 new TestScenario(CompareLevel.SAME, "query/sql_spark_func/time"),
                 new TestScenario(CompareLevel.SAME, "query/sql_spark_func/string"),
                 new TestScenario(CompareLevel.SAME, "query/sql_spark_func/misc"),
-
+                new TestScenario(CompareLevel.SAME, "query/sql_spark_func/math"),
 
                 /* CompareLevel = SAME, JoinType = LEFT */
                 new TestScenario(CompareLevel.SAME, JoinType.LEFT, "query/sql_distinct_precisely"), //
                 new TestScenario(CompareLevel.SAME, JoinType.LEFT, "query/sql_topn"), //
 
                 /* CompareLevel = SAME_ROWCOUNT */
-                new TestScenario(CompareLevel.SAME_ROWCOUNT, "query/sql_computedcolumn/sql_computedcolumn_ifnull_timestamp"),
+                new TestScenario(CompareLevel.SAME_ROWCOUNT,
+                        "query/sql_computedcolumn/sql_computedcolumn_ifnull_timestamp"),
                 new TestScenario(CompareLevel.SAME_ROWCOUNT, "query/sql_distinct/sql_distinct_hllc"),
                 new TestScenario(CompareLevel.SAME_ROWCOUNT, "query/sql_function/sql_function_ifnull_timestamp"),
                 new TestScenario(CompareLevel.SAME_ROWCOUNT, "query/sql_h2_uncapable"),
@@ -131,10 +132,8 @@ public class NAutoBuildAndQueryTest extends NAutoTestBase {
                 new TestScenario(CompareLevel.SAME_ROWCOUNT, "query/sql_verifyCount"),
 
                 /* CompareLevel = SAME_ORDER */
-                new TestScenario(CompareLevel.SAME_ORDER, "query/sql_window")
-                );
+                new TestScenario(CompareLevel.SAME_ORDER, "query/sql_window"));
     }
-
 
     @Test
     @Ignore("For development")
