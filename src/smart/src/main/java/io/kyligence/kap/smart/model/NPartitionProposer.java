@@ -55,7 +55,8 @@ public class NPartitionProposer extends NAbstractModelProposer {
             return;
         }
         if (!partitionCol.getType().isLegalPartitionColumnType()) {
-            log.warn("{} is not date type, cannot be used as partition column", partitionCol);
+            log.warn("{} is not legal date type[String, date, timestamp or int], cannot be used as partition column",
+                    partitionCol);
             return;
         }
 

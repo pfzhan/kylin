@@ -541,15 +541,13 @@ public class NSmartMasterTest extends NAutoTestOnLearnKylinData {
         Assert.assertEquals("COUNT_TEST_ACCOUNT_ACCOUNT_COUNTRY", measureList2.get(1).getName());
         Assert.assertEquals("COUNT_TEST_ACCOUNT1_ACCOUNT_COUNTRY", measureList2.get(2).getName());
 
-        // mock error case for dimension
+        // mock error case for dimension and this case should be auto-corrected when inherited from existed model
         dimensionList1.get(0).setName("TEST_KYLIN_FACT_CAL_DT");
         NDataModelManager.getInstance(getTestConfig(), "newten").updateDataModelDesc(model1);
         smartMaster = new NSmartMaster(getTestConfig(), "newten", new String[] { sqls[2] });
         smartMaster.runAll();
         accelerationInfoMap = smartMaster.getContext().getAccelerateInfoMap();
-        Assert.assertTrue(accelerationInfoMap.get(sqls[2]).isFailed());
-        Assert.assertEquals("Duplicate column name occurs: TEST_KYLIN_FACT_CAL_DT",
-                accelerationInfoMap.get(sqls[2]).getFailedCause().getMessage());
+        Assert.assertFalse(accelerationInfoMap.get(sqls[2]).isFailed());
 
         // mock error case for measure
         measureList2.get(2).setName("COUNT_TEST_ACCOUNT_ACCOUNT_COUNTRY");

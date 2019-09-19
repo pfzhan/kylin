@@ -204,7 +204,7 @@ public class ProjectServiceTest extends ServiceTestBase {
     public void testGetReadableProjects() throws Exception {
         Mockito.doReturn(true).when(aclEvaluate).hasProjectAdminPermission(Mockito.any(ProjectInstance.class));
         List<ProjectInstance> projectInstances = projectService.getReadableProjects("", false);
-        Assert.assertEquals(11, projectInstances.size());
+        Assert.assertEquals(12, projectInstances.size());
 
     }
 
@@ -220,7 +220,7 @@ public class ProjectServiceTest extends ServiceTestBase {
     public void testGetReadableProjects_hasNoPermissionProject() throws Exception {
         Mockito.doReturn(true).when(aclEvaluate).hasProjectAdminPermission(Mockito.any(ProjectInstance.class));
         List<ProjectInstance> projectInstances = projectService.getReadableProjects("", false);
-        Assert.assertEquals(11, projectInstances.size());
+        Assert.assertEquals(12, projectInstances.size());
 
     }
 
@@ -300,6 +300,9 @@ public class ProjectServiceTest extends ServiceTestBase {
         projectService.garbageCleanup();
         for (ProjectInstance projectInstance : projectManager.listAllProjects()) {
             dataflowManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), projectInstance.getName());
+            if (projectInstance.getName().equals("smart_reuse_existed_models")) {
+                continue;
+            }
             if (projectInstance.getName().equals("broken_test")) {
                 Assert.assertEquals(0, dataflowManager.listUnderliningDataModels(true).size());
             }

@@ -27,12 +27,16 @@ package io.kyligence.kap.smart;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.apache.commons.collections.CollectionUtils;
+import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.JoinDesc;
 import org.apache.kylin.metadata.model.JoinsGraph;
 import org.apache.kylin.metadata.model.TableRef;
+import org.apache.kylin.metadata.model.TblColRef;
 import org.apache.kylin.metadata.project.ProjectInstance;
+import org.apache.kylin.query.relnode.OLAPContext;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -72,7 +76,7 @@ public class NModelSelectProposer extends NAbstractProposer {
         Set<String> selectedModel = Sets.newHashSet();
         for (NSmartContext.NModelContext modelContext : modelContexts) {
             ModelTree modelTree = modelContext.getModelTree();
-            NDataModel model = compareWithFactTable(modelTree);
+            NDataModel model = selectExistedModel(modelTree);
             if (model == null || selectedModel.contains(model.getUuid())) {
                 // original model is allowed to be selected one context in batch
                 // to avoid modification conflict
@@ -113,13 +117,30 @@ public class NModelSelectProposer extends NAbstractProposer {
         modelDesc.init(kylinConfig, manager.getAllTablesMap(), Lists.newArrayList(), project);
     }
 
-    private NDataModel compareWithFactTable(ModelTree modelTree) {
+    private NDataModel selectExistedModel(ModelTree modelTree) {
         for (NDataModel model : dataflowManager.listUnderliningDataModels()) {
-            if (matchModelTree(model, modelTree)) {
+            if (matchModelTree(model, modelTree) && isContainAllCcColsInModel(model, modelTree)) {
                 return model;
             }
         }
         return null;
+    }
+
+    private boolean isContainAllCcColsInModel(NDataModel model, ModelTree modelTree) {
+        NDataModel targetModel = dataModelManager.copyForWrite(model);
+        initModel(targetModel);
+        Set<ColumnDesc> ccColDesc = targetModel.getEffectiveCols().values().stream()
+                .filter(tblColRef -> tblColRef.getColumnDesc().isComputedColumn()).map(TblColRef::getColumnDesc)
+                .collect(Collectors.toSet());
+        for (OLAPContext context : modelTree.getOlapContexts()) {
+            Set<ColumnDesc> ccColDescInCtx = context.allColumns.stream()
+                    .filter(tblColRef -> tblColRef.getColumnDesc().isComputedColumn()).map(TblColRef::getColumnDesc)
+                    .collect(Collectors.toSet());
+            if (!ccColDesc.containsAll(ccColDescInCtx)) {
+                return false;
+            }
+        }
+        return true;
     }
 
     public static boolean matchModelTree(NDataModel model, ModelTree modelTree) {

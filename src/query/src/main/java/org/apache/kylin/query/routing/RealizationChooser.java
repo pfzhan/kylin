@@ -93,6 +93,7 @@ public class RealizationChooser {
         for (OLAPContext ctx : contexts) {
             if (ctx.isConstantQueryWithAggregations())
                 continue;
+
             ctx.realizationCheck = new RealizationCheck();
             attemptSelectCandidate(ctx);
             Preconditions.checkNotNull(ctx.realization);

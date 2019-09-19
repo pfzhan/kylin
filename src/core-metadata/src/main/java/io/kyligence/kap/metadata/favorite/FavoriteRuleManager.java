@@ -29,7 +29,6 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.common.hystrix.NCircuitBreaker;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.metadata.cachesync.CachedCrudAssist;
@@ -37,7 +36,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 
+import io.kyligence.kap.common.hystrix.NCircuitBreaker;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import lombok.val;
 
@@ -165,6 +166,9 @@ public class FavoriteRuleManager {
 
     public Set<String> getBlacklistSqls() {
         val blacklist = getByName(FavoriteRule.BLACKLIST_NAME);
+        if (blacklist == null)
+            return Sets.newHashSet();
+
         return blacklist.getConds().stream().map(cond -> ((FavoriteRule.SQLCondition) cond).getSqlPattern())
                 .collect(Collectors.toSet());
     }
