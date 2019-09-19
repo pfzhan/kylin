@@ -217,6 +217,11 @@
       if (this.tableIndexMeta.sort_by_columns) {
         result = topArrByArr(result, this.tableIndexMeta.sort_by_columns)
       }
+      // cc列也要放到这里
+      let ccColumns = this.modelInstance && this.modelInstance.computed_columns || []
+      ccColumns.forEach((col) => {
+        result.push(col.tableAlias + '.' + col.columnName)
+      })
       result.forEach((i, index) => {
         let obj = {fullName: i, isSorted: false, isUsed: false, isShared: false, colorful: false}
         if (this.tableIndexMeta.sort_by_columns.indexOf(i) >= 0) {
