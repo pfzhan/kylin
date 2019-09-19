@@ -115,6 +115,23 @@ public class NTableController extends NBasicController {
                 "");
     }
 
+    @RequestMapping(value = "project_tables", method = { RequestMethod.GET }, produces = {
+            "application/vnd.apache.kylin-v2+json" })
+    @ResponseBody
+    public EnvelopeResponse getProjectTables(@RequestParam(value = "ext", required = false) boolean withExt,
+            @RequestParam(value = "project", required = true) String project,
+            @RequestParam(value = "table", required = false, defaultValue = "") String table,
+            @RequestParam(value = "isFuzzy", required = false, defaultValue = "true") boolean isFuzzy,
+            @RequestParam(value = "pageOffset", required = false, defaultValue = "0") Integer offset,
+            @RequestParam(value = "pageSize", required = false, defaultValue = "10") Integer limit) throws Exception {
+
+        checkProjectName(project);
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS,
+                tableService.getProjectTables(project, table, offset, limit, (databaseName, tableName) -> {
+                    return tableService.getTableDesc(project, withExt, tableName, databaseName, isFuzzy);
+                }), "");
+    }
+
     @RequestMapping(value = "{project}/{database}/{table}", method = { RequestMethod.DELETE }, produces = {
             "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
@@ -288,6 +305,21 @@ public class NTableController extends NBasicController {
         checkProjectName(project);
         List<TableNameResponse> tables = tableService.getTableNameResponses(project, database, table);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, getDataResponse("tables", tables, offset, limit), "");
+    }
+
+    @RequestMapping(value = "/project_table_names", method = { RequestMethod.GET }, produces = {
+            "application/vnd.apache.kylin-v2+json" })
+    @ResponseBody
+    public EnvelopeResponse showProjectTableNames(@RequestParam(value = "project", required = true) String project,
+            @RequestParam(value = "datasourceType", required = false) Integer dataSourceType,
+            @RequestParam(value = "table", required = false, defaultValue = "") String table,
+            @RequestParam(value = "pageOffset", required = false, defaultValue = "0") Integer offset,
+            @RequestParam(value = "pageSize", required = false, defaultValue = "10") Integer limit) throws Exception {
+        checkProjectName(project);
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS,
+                tableService.getProjectTables(project, table, offset, limit, (databaseName, tableName) -> {
+                    return tableService.getTableNameResponses(project, databaseName, tableName);
+                }), "");
     }
 
     @RequestMapping(value = "/simple_table", method = { RequestMethod.GET }, produces = {

@@ -62,6 +62,7 @@ import org.apache.kylin.rest.exception.BadRequestException;
 import org.apache.kylin.rest.msg.Message;
 import org.apache.kylin.rest.msg.MsgPicker;
 import org.apache.kylin.rest.service.BasicService;
+import org.apache.kylin.rest.util.PagingUtil;
 import org.apache.kylin.source.ISourceMetadataExplorer;
 import org.apache.kylin.source.SourceFactory;
 import org.slf4j.Logger;
@@ -106,6 +107,7 @@ import io.kyligence.kap.rest.request.ReloadTableContext;
 import io.kyligence.kap.rest.response.AutoMergeConfigResponse;
 import io.kyligence.kap.rest.response.BatchLoadTableResponse;
 import io.kyligence.kap.rest.response.ExistedDataRangeResponse;
+import io.kyligence.kap.rest.response.NInitTablesResponse;
 import io.kyligence.kap.rest.response.PreReloadTableResponse;
 import io.kyligence.kap.rest.response.PreUnloadTableResponse;
 import io.kyligence.kap.rest.response.SimplifiedMeasure;
@@ -1231,6 +1233,38 @@ public class TableService extends BasicService {
             loadedDatabases.add(table.getDatabase());
         }
         return loadedDatabases;
+    }
+
+    public interface ProjectTablesFilter {
+        List<?> process(String database, String table) throws Exception;
+    }
+
+    public NInitTablesResponse getProjectTables(String project, String table, Integer offset, Integer limit,
+            ProjectTablesFilter projectTablesFilter) throws Exception {
+        NInitTablesResponse response = new NInitTablesResponse();
+        if (table == null)
+            table = "";
+        String exceptDatabase = null;
+        if (table.contains(".")) {
+            exceptDatabase = table.split("\\.", 2)[0].trim();
+            table = table.split("\\.", 2)[1].trim();
+        }
+        for (String database : getSourceDbNames(project)) {
+            if (exceptDatabase != null && !exceptDatabase.equalsIgnoreCase(database)) {
+                continue;
+            }
+            List<?> tables;
+            if (database.toLowerCase().contains(table.toLowerCase())) {
+                tables = projectTablesFilter.process(database, "");
+            } else {
+                tables = projectTablesFilter.process(database, table);
+            }
+            List<?> tablePage = PagingUtil.cutPage(tables, offset, limit);
+            if (!tablePage.isEmpty()) {
+                response.putDatabase(database, tables.size(), tablePage);
+            }
+        }
+        return response;
     }
 
 }

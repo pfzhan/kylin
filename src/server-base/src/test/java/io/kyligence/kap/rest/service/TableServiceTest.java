@@ -99,6 +99,7 @@ import io.kyligence.kap.rest.request.TopTableRequest;
 import io.kyligence.kap.rest.response.AutoMergeConfigResponse;
 import io.kyligence.kap.rest.response.BatchLoadTableResponse;
 import io.kyligence.kap.rest.response.ExistedDataRangeResponse;
+import io.kyligence.kap.rest.response.NInitTablesResponse;
 import io.kyligence.kap.rest.response.TableDescResponse;
 import io.kyligence.kap.rest.response.TableNameResponse;
 import io.kyligence.kap.rest.response.TablesAndColumnsResponse;
@@ -889,4 +890,49 @@ public class TableServiceTest extends CSVSourceTestCase {
         request.setTable("DEFAULT.TEST_KYLIN_FACT");
         return request;
     }
+
+    @Test
+    public void testGetProjectTables() throws Exception {
+        NInitTablesResponse response = null;
+        response = tableService.getProjectTables("default", "", 0, 14, (databaseName, tableName) -> {
+            return tableService.getTableNameResponses("default", databaseName, tableName);
+        });
+        Assert.assertEquals(response.getDatabases().size(), 3);
+        Assert.assertEquals(response.getDatabases().get(0).getTables().size()
+                + response.getDatabases().get(1).getTables().size() + response.getDatabases().get(2).getTables().size(),
+                17);
+
+        response = tableService.getProjectTables("default", "TEST", 0, 14, (databaseName, tableName) -> {
+            return tableService.getTableNameResponses("default", databaseName, tableName);
+        });
+        Assert.assertEquals(response.getDatabases().size(), 2);
+        Assert.assertEquals(
+                response.getDatabases().get(0).getTables().size() + response.getDatabases().get(1).getTables().size(),
+                11);
+
+        response = tableService.getProjectTables("default", "EDW.", 0, 14, (databaseName, tableName) -> {
+            return tableService.getTableNameResponses("default", databaseName, tableName);
+        });
+        Assert.assertEquals(response.getDatabases().size(), 1);
+        Assert.assertEquals(response.getDatabases().get(0).getTables().size(), 3);
+
+        response = tableService.getProjectTables("default", "EDW.", 0, 14, (databaseName, tableName) -> {
+            return tableService.getTableDesc("default", true, tableName, databaseName, true);
+        });
+        Assert.assertEquals(response.getDatabases().size(), 1);
+        Assert.assertEquals(response.getDatabases().get(0).getTables().size(), 3);
+
+        response = tableService.getProjectTables("default", "DEFAULT.TEST_ORDER", 0, 14, (databaseName, tableName) -> {
+            return tableService.getTableDesc("default", true, tableName, databaseName, true);
+        });
+        Assert.assertEquals(response.getDatabases().size(), 1);
+        Assert.assertEquals(response.getDatabases().get(0).getTables().size(), 1);
+
+        response = tableService.getProjectTables("default", ".TEST_ORDER", 0, 14, (databaseName, tableName) -> {
+            return tableService.getTableDesc("default", true, tableName, databaseName, true);
+        });
+        Assert.assertEquals(response.getDatabases().size(), 0);
+
+    }
+
 }
