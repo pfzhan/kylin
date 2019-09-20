@@ -41,14 +41,19 @@ import com.google.common.base.Preconditions;
 
 import io.kyligence.kap.engine.spark.builder.CreateFlatTable$;
 import io.kyligence.kap.engine.spark.job.NSparkCubingUtil;
+import io.kyligence.kap.metadata.model.BadModelException;
 import io.kyligence.kap.metadata.model.ComputedColumnDesc;
 import io.kyligence.kap.metadata.model.MaintainModelType;
 import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class ComputedColumnEvalUtil {
+
+    private static final String CC_NAME_PREFIX = "CC_AUTO_";
+    public static final String DEFAULT_CC_NAME = "CC_AUTO_1";
 
     private static final Pattern PATTERN_COLUMN = Pattern
             .compile("cannot resolve '(.*?)' given input columns: \\[(.*?),(.*?)];");
@@ -126,5 +131,64 @@ public class ComputedColumnEvalUtil {
             String dataType = SparderTypeUtil.convertSparkTypeToSqlType(ds.schema().fields()[i - start].dataType());
             computedColumns.get(i).setDatatype(dataType);
         }
+    }
+
+    public static boolean resolveCCName(ComputedColumnDesc ccDesc, NDataModel dataModel, List<NDataModel> otherModels,
+            KylinConfig config, String project) {
+        // Resolve CC name, Limit 99 retries to avoid infinite loop
+        // TODO: what if the dataModel has more than 99 computed columns?
+        int retryCount = 0;
+        while (retryCount < 99) {
+            retryCount++;
+            try {
+                // Init model to check CC availability
+                dataModel.init(config, NTableMetadataManager.getInstance(config, project).getAllTablesMap(),
+                        otherModels, project);
+                // No exception, check passed
+                return true;
+            } catch (BadModelException e) {
+                switch (e.getCauseType()) {
+                case SAME_NAME_DIFF_EXPR:
+                case WRONG_POSITION_DUE_TO_NAME:
+                case SELF_CONFLICT:
+                    // updating CC auto index to resolve name conflict
+                    String ccName = ccDesc.getColumnName();
+                    ccDesc.setColumnName(incrementIndex(ccName));
+                    break;
+                case SAME_EXPR_DIFF_NAME:
+                    ccDesc.setColumnName(e.getAdvise());
+                    break;
+                case WRONG_POSITION_DUE_TO_EXPR:
+                case LOOKUP_CC_NOT_REFERENCING_ITSELF:
+                    log.debug("Bad CC suggestion: {}", ccDesc.getExpression(), e);
+                    retryCount = 99; // fail directly
+                    break;
+                default:
+                    break;
+                }
+            } catch (Exception e) {
+                log.debug("When resolving the name of computed column {}, model {} initializing failed.", //
+                        ccDesc, dataModel.getUuid(), e);
+                break; // break loop
+            }
+        }
+        return false;
+    }
+
+    private static String incrementIndex(String oldAlias) {
+        if (oldAlias == null || !oldAlias.startsWith(CC_NAME_PREFIX) || oldAlias.equals(CC_NAME_PREFIX)) {
+            return DEFAULT_CC_NAME;
+        }
+
+        String idxStr = oldAlias.substring(CC_NAME_PREFIX.length());
+        Integer idx;
+        try {
+            idx = Integer.valueOf(idxStr);
+        } catch (NumberFormatException e) {
+            return DEFAULT_CC_NAME;
+        }
+
+        idx++;
+        return CC_NAME_PREFIX + idx.toString();
     }
 }

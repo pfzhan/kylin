@@ -170,6 +170,53 @@ public class ComputedColumnEvalUtilTest extends NLocalWithSparkSessionTest {
     }
 
     @Test
+    public void testResolveCCName() {
+        KylinConfig config = KylinConfig.getInstanceFromEnv();
+        final String project = "default";
+        List<NDataModel> otherModels = Lists.newArrayList();
+        NDataModel dataModel = NDataModelManager.getInstance(config, project)
+                .getDataModelDesc("abe3bf1a-c4bc-458d-8278-7ea8b00f5e96");
+        Assert.assertTrue(dataModel.getComputedColumnDescs().isEmpty());
+
+        // add a good computed column
+        ComputedColumnDesc cc1 = new ComputedColumnDesc();
+        cc1.setColumnName(ComputedColumnEvalUtil.DEFAULT_CC_NAME);
+        cc1.setTableIdentity("DEFAULT.TEST_KYLIN_FACT");
+        cc1.setExpression("SUBSTRING(LSTG_FORMAT_NAME FROM 1 FOR 4)");
+        cc1.setInnerExpression("SUBSTRING(LSTG_FORMAT_NAME, 1, 4)");
+        cc1.setDatatype("ANY");
+        dataModel.getComputedColumnDescs().add(cc1);
+        Assert.assertTrue(ComputedColumnEvalUtil.resolveCCName(cc1, dataModel, otherModels, config, project));
+        Assert.assertEquals("CC_AUTO_1", cc1.getColumnName());
+
+        // add a bad computed column
+        ComputedColumnDesc cc2 = new ComputedColumnDesc();
+        cc2.setColumnName(ComputedColumnEvalUtil.DEFAULT_CC_NAME);
+        cc2.setTableIdentity("DEFAULT.TEST_KYLIN_FACT");
+        cc2.setExpression("CASE(IN($3, 'Auction', 'FP-GTC'), 'Auction', $3)");
+        cc2.setInnerExpression("CASE(IN($3, 'Auction', 'FP-GTC'), 'Auction', $3)");
+        cc2.setDatatype("ANY");
+        dataModel.getComputedColumnDescs().add(cc2);
+        boolean rst = ComputedColumnEvalUtil.resolveCCName(cc2, dataModel, otherModels, config, project);
+        Assert.assertFalse(rst);
+        Assert.assertEquals("CC_AUTO_1", cc2.getColumnName());
+        Assert.assertEquals(2, dataModel.getComputedColumnDescs().size());
+        dataModel.getComputedColumnDescs().remove(cc2); // same logic code in NComputedColumnProposer
+        Assert.assertEquals(1, dataModel.getComputedColumnDescs().size());
+
+        // add a good computed column again
+        ComputedColumnDesc cc3 = new ComputedColumnDesc();
+        cc3.setColumnName(ComputedColumnEvalUtil.DEFAULT_CC_NAME);
+        cc3.setTableIdentity("DEFAULT.TEST_KYLIN_FACT");
+        cc3.setExpression("YEAR(TEST_KYLIN_FACT.CAL_DT)");
+        cc3.setInnerExpression("YEAR(TEST_KYLIN_FACT.CAL_DT)");
+        cc3.setDatatype("ANY");
+        dataModel.getComputedColumnDescs().add(cc3);
+        Assert.assertTrue(ComputedColumnEvalUtil.resolveCCName(cc3, dataModel, otherModels, config, project));
+        Assert.assertEquals("CC_AUTO_2", cc3.getColumnName());
+    }
+
+    @Test
     public void testRemoveUnsupportedCCWithAllSuccessCase() {
         List<ComputedColumnDesc> computedColumns = Lists.newArrayList();
 

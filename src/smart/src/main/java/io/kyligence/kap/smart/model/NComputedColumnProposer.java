@@ -34,7 +34,6 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import org.apache.commons.collections.CollectionUtils;
-import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.model.TableExtDesc;
 import org.apache.kylin.metadata.model.TableRef;
 import org.apache.kylin.metadata.model.TblColRef;
@@ -45,7 +44,6 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
-import io.kyligence.kap.metadata.model.BadModelException;
 import io.kyligence.kap.metadata.model.ComputedColumnDesc;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
@@ -54,9 +52,6 @@ import io.kyligence.kap.smart.NSmartContext.NModelContext;
 import io.kyligence.kap.smart.util.ComputedColumnEvalUtil;
 
 public class NComputedColumnProposer extends NAbstractModelProposer {
-
-    private static final String CC_NAME_PREFIX = "CC_AUTO_";
-    private static final String DEFAULT_CC_NAME = "CC_AUTO_1";
 
     NComputedColumnProposer(NModelContext modelCtx) {
         super(modelCtx);
@@ -81,7 +76,7 @@ public class NComputedColumnProposer extends NAbstractModelProposer {
         // pre-init to construct join-tree
         initModel(nDataModel);
         Set<String> ccSuggestions = collectComputedColumnSuggestion(modelContext, nDataModel);
-        logger.info("Proposed computed column candidates {} for model [{}] successfully", ccSuggestions.toString(),
+        logger.info("Proposed computed column candidates {} for model [{}] successfully", ccSuggestions,
                 nDataModel.getId());
         if (ccSuggestions.isEmpty()) {
             return;
@@ -100,7 +95,7 @@ public class NComputedColumnProposer extends NAbstractModelProposer {
             }
 
             ccDesc = new ComputedColumnDesc();
-            ccDesc.setColumnName(DEFAULT_CC_NAME);
+            ccDesc.setColumnName(ComputedColumnEvalUtil.DEFAULT_CC_NAME);
             ccDesc.setTableIdentity(rootTable.getTableIdentity());
             ccDesc.setTableAlias(nDataModel.getRootFactTableAlias());
             ccDesc.setComment("Auto suggested from: " + ccSuggestion);
@@ -109,10 +104,17 @@ public class NComputedColumnProposer extends NAbstractModelProposer {
             ccDesc.setInnerExpression(KapQueryUtil.massageComputedColumn(nDataModel, project, ccDesc));
             nDataModel.getComputedColumnDescs().add(ccDesc);
 
-            boolean isValidCC = resolveCCName(ccDesc, nDataModel, otherModels);
-            if (isValidCC) {
+            if (ComputedColumnEvalUtil.resolveCCName(ccDesc, nDataModel, otherModels, kylinConfig, project)) {
                 validCCs.add(ccDesc);
                 modelContext.getUsedCC().put(ccDesc.getExpression(), ccDesc);
+            } else {
+                // For example: If a malformed computed column expression of
+                // `CASE(IN($3, 'Auction', 'FP-GTC'), 'Auction', $3)`
+                // has been added to the model, we should discard it, otherwise, all suggestions after this round
+                // cannot resolve ccName for model initialization failed.
+                nDataModel.getComputedColumnDescs().remove(ccDesc);
+                logger.debug("Malformed computed column {} has been removed from the model {}.", //
+                        ccDesc, nDataModel.getUuid());
             }
         }
 
@@ -126,7 +128,7 @@ public class NComputedColumnProposer extends NAbstractModelProposer {
         // 3. the type of CC is ANY: something unlikely thing happened in inferring type
         nDataModel.getComputedColumnDescs().removeIf(cc -> cc.getDatatype().equals("ANY"));
         logger.info("There are valid computed columns {} for model [{}] after validation",
-                nDataModel.getComputedColumnNames().toString(), nDataModel.getId());
+                nDataModel.getComputedColumnNames(), nDataModel.getId());
     }
 
     private Set<String> collectComputedColumnSuggestion(NModelContext modelContext, NDataModel nDataModel) {
@@ -166,12 +168,7 @@ public class NComputedColumnProposer extends NAbstractModelProposer {
                         .map(entry -> (Function<String, String>) s -> s.replaceAll(entry.getKey(), entry.getValue()))
                         .reduce(Function.identity(), Function::andThen).apply(parserDesc);
                 logger.trace(parserDesc);
-
-                if (isMalformedCandidate(parserDesc)) {
-                    logger.warn("Discard malformed inner column:[{}]", col.getParserDescription());
-                } else {
-                    candidates.add(parserDesc);
-                }
+                candidates.add(parserDesc);
             }
         }
         return candidates;
@@ -242,71 +239,5 @@ public class NComputedColumnProposer extends NAbstractModelProposer {
         NTableMetadataManager nTableMetadataManager = modelContext.getSmartContext().getTableMetadataManager();
         TableExtDesc.ColumnStats columnStats = TableExtDesc.ColumnStats.getColumnStats(nTableMetadataManager, colRef);
         return columnStats == null ? -1 : columnStats.getCardinality();
-    }
-
-    // If index represented column cannot be replaced, the parserDesc still contains '$',
-    // for example: the param of aggregation `sum(timestampdiff(second, time0, time1))`
-    // is `CAST(/INT(Reinterpret(-($23, $22)), 1000)):INTEGER`, failed in the transformation still contains '$'
-    private boolean isMalformedCandidate(String candidate) {
-        return candidate.contains("$");
-    }
-
-    private boolean resolveCCName(ComputedColumnDesc ccDesc, NDataModel nDataModel, List<NDataModel> otherModels) {
-        KylinConfig config = getModelContext().getSmartContext().getKylinConfig();
-        String project = getModelContext().getSmartContext().getProject();
-
-        // Resolve CC name, Limit 99 retries to avoid infinite loop
-        int retryCount = 0;
-        while (retryCount < 99) {
-            retryCount++;
-            try {
-                // Init model to check CC availability
-                nDataModel.init(config, NTableMetadataManager.getInstance(config, project).getAllTablesMap(),
-                        otherModels, project);
-                // No exception, check passed
-                return true;
-            } catch (BadModelException e) {
-                switch (e.getCauseType()) {
-                case SAME_NAME_DIFF_EXPR:
-                case WRONG_POSITION_DUE_TO_NAME:
-                case SELF_CONFLICT:
-                    // updating CC auto index to resolve name conflict
-                    String ccName = ccDesc.getColumnName();
-                    ccDesc.setColumnName(incrementIndex(ccName));
-                    break;
-                case SAME_EXPR_DIFF_NAME:
-                    ccDesc.setColumnName(e.getAdvise());
-                    break;
-                case WRONG_POSITION_DUE_TO_EXPR:
-                case LOOKUP_CC_NOT_REFERENCING_ITSELF:
-                    logger.debug("Bad CC suggestion: {}", ccDesc.getExpression(), e);
-                    retryCount = 99; // fail directly
-                    break;
-                default:
-                    break;
-                }
-            } catch (Exception e) {
-                logger.debug("Check CC with model failed", e);
-                break; // break loop
-            }
-        }
-        return false;
-    }
-
-    private static String incrementIndex(String oldAlias) {
-        if (oldAlias == null || !oldAlias.startsWith(CC_NAME_PREFIX) || oldAlias.equals(CC_NAME_PREFIX)) {
-            return DEFAULT_CC_NAME;
-        }
-
-        String idxStr = oldAlias.substring(CC_NAME_PREFIX.length());
-        Integer idx;
-        try {
-            idx = Integer.valueOf(idxStr);
-        } catch (NumberFormatException e) {
-            return DEFAULT_CC_NAME;
-        }
-
-        idx++;
-        return CC_NAME_PREFIX + idx.toString();
     }
 }
