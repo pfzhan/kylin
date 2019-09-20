@@ -38,6 +38,9 @@
                   <el-tab-pane label="JSON" name="forth">
                     <ModelJson v-if="props.row.tabTypes === 'forth'" :model="props.row.uuid"/>
                   </el-tab-pane>
+                  <el-tab-pane label="SQL" name="fifth">
+                    <ModelSql v-if="props.row.tabTypes === 'fifth'" :model="props.row.uuid"/>
+                  </el-tab-pane>
                 </el-tabs>
               </div>
             </transition>
@@ -186,6 +189,7 @@ import ModelCheckDataModal from './ModelCheckData/checkdata.vue'
 import ModelBuildModal from './ModelBuildModal/build.vue'
 import ModelPartitionModal from './ModelPartitionModal/index.vue'
 import ModelJson from './ModelJson/modelJson.vue'
+import ModelSql from './ModelSql/ModelSql.vue'
 import { mockSQL } from './mock'
 import '../../../../util/fly.js'
 @Component({
@@ -253,7 +257,8 @@ import '../../../../util/fly.js'
     ModelCheckDataModal,
     ModelBuildModal,
     ModelPartitionModal,
-    ModelJson
+    ModelJson,
+    ModelSql
   },
   locales
 })
