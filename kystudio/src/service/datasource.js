@@ -17,6 +17,9 @@ export default {
   loadDataSourceExt: (para) => {
     return Vue.resource(apiUrl + 'tables').get(para)
   },
+  loadBasicLiveDatabaseTables: (project, datasourceType, database, table, pageOffset, pageSize) => {
+    return Vue.resource(apiUrl + 'tables/project_table_names').get({project, datasourceType, database, table, pageOffset, pageSize})
+  },
   loadBasicLiveDatabase: (project, datasourceType) => {
     // return Vue.resource(apiUrl + 'tables/hive').get()
     return Vue.resource(apiUrl + 'tables/databases').get({project, datasourceType})
@@ -192,6 +195,9 @@ export default {
   },
   fetchDatabases (project, datasourceType) {
     return Vue.resource(apiUrl + 'tables/loaded_databases').get({project, datasourceType})
+  },
+  fetchDBandTables (project, pageOffset, pageSize, table, datasourceType) {
+    return Vue.resource(apiUrl + 'tables/project_tables').get({project, pageOffset, pageSize, table, datasourceType})
   },
   updateTopTable (project, table, top) {
     return Vue.resource(apiUrl + 'tables/top').save({project, table, top})

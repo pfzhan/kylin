@@ -4,13 +4,14 @@
       <el-input
         size="medium"
         prefix-icon="el-icon-search"
-        v-model="filterText"
+        v-model.trim="filterText"
         :placeholder="placeholder"
         @clear="handleInput"
         @keyup.native="handleInput">
       </el-input>
     </div>
     <el-tree
+      :key="filterText"
       v-loading="isLoading"
       ref="tree"
       v-guide.tableScroll
@@ -120,6 +121,10 @@ const filterDefaultWhiteList = ['isMore', 'isLoading']
         children: 'children',
         label: 'label'
       })
+    },
+    isRemote: {
+      type: Boolean,
+      default: false
     }
   },
   locales: {
@@ -185,7 +190,9 @@ export default class TreeList extends Vue {
       await this.onFilter(this.filterText)
       this.hideLoading()
     }
-    this.$refs['tree'].filter(this.filterText)
+    if (!this.isRemote) {
+      this.$refs['tree'].filter(this.filterText)
+    }
   }
   getTreeItemStyle (data, node) {
     const treeItemStyle = {}

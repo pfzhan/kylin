@@ -1,5 +1,39 @@
 import { pageSizeMapping } from '../../../../config'
 
+export function getDatabaseTablesTree (databases) {
+  return databases.map(database => ({
+    id: database.dbname,
+    label: database.dbname,
+    children: [],
+    originTables: database.tables || [],
+    size: database.size,
+    type: 'database',
+    isMore: database.size && database.size > database.tables.length,
+    isLoading: false,
+    isSelected: false,
+    pagination: {
+      pageOffset: 0,
+      pageSize: pageSizeMapping.TABLE_TREE
+    },
+    render: (h, { node, data, store }) => {
+      const { label } = data
+      return (
+        <div class="database">
+          <div class="label">
+            {data.isSelected ? (
+              <span class="el-icon-ksd-good_health"></span>
+            ) : null}
+            <i class="el-icon-ksd-data_source"></i> {label}
+          </div>
+          <div class="select-all" onClick={event => this.handleSelectDatabase(event, data)}>
+            {data.isSelected ? this.$t('cleanAll') : this.$t('selectAll')}
+          </div>
+        </div>
+      )
+    }
+  }))
+}
+
 export function getDatabaseTree (databases) {
   return databases.map(databaseName => ({
     id: databaseName,

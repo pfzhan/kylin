@@ -1,6 +1,6 @@
 export default {
   'en': {
-    searchTable: 'Search Table',
+    searchTable: 'Search Database/Table',
     to: 'to',
     dataRange: 'Data Range:',
     source: 'Source',
@@ -18,7 +18,7 @@ export default {
     loadTablesFail: 'Failed to sync {count} source table(s) metadata.'
   },
   'zh-cn': {
-    searchTable: '搜索数据源',
+    searchTable: '搜索数据库名称或表名',
     to: '至',
     dataRange: '数据范围:',
     source: '数据源',

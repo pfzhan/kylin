@@ -13,14 +13,14 @@
 
     <section class="body">
       <div v-if="isShowLoadSource" class="btn-group">
-        <el-button plain size="medium" v-if="databaseArray.length <= 0" type="primary" v-guide.addDatasource icon="el-icon-ksd-add_data_source" @click="importDataSource('selectSource', currentProjectData)">
+        <el-button plain size="medium" v-if="showAddDatasourceBtn" type="primary" v-guide.addDatasource icon="el-icon-ksd-add_data_source" @click="importDataSource('selectSource', currentProjectData)">
           {{$t('addDatasource')}}
         </el-button>
       </div>
-      <div v-if="isShowFilter && !!databaseArray.length" class="ksd-mb-10">
+      <div v-if="showTreeFilter" class="ksd-mb-10">
         <el-input :placeholder="$t('searchTable')"  prefix-icon="el-icon-search" @keyup.native="(e) => handleFilter(e.target.value)" @clear="handleFilter()"></el-input>
       </div>
-      <div v-scroll style="height:calc(100%)" v-guide.dataSourceScroll>
+      <div v-scroll style="height:calc(100%)" v-guide.dataSourceScroll v-loading="isLoadingTreeData">
         <TreeList
           ref="treeList"
           :data="datasources"
@@ -89,10 +89,10 @@ import Vue from 'vue'
 import { mapActions, mapGetters, mapMutations } from 'vuex'
 import { Component, Watch } from 'vue-property-decorator'
 
-import { sourceTypes, sourceNameMapping } from '../../../config'
+import { sourceTypes, sourceNameMapping, pageSizeMapping } from '../../../config'
 import TreeList from '../TreeList/index.vue'
 import locales from './locales'
-import { getDatasourceObj, getDatabaseObj, getTableObj, getFirstTableData, getWordsData, getTableDBWordsData, freshTreeOrder } from './handler'
+import { getDatasourceObj, getDatabaseObj, getTableObj, getFirstTableData, getWordsData, getTableDBWordsData, freshTreeOrder, getDatabaseTablesObj } from './handler'
 import { handleSuccessAsync, handleError } from '../../../util'
 
 @Component({
@@ -185,7 +185,8 @@ import { handleSuccessAsync, handleError } from '../../../util'
     ...mapActions({
       fetchDatabases: 'FETCH_DATABASES',
       fetchTables: 'FETCH_TABLES',
-      updateTopTable: 'UPDATE_TOP_TABLE'
+      updateTopTable: 'UPDATE_TOP_TABLE',
+      fetchDBandTables: 'FETCH_DB_AND_TABLES'
     }),
     ...mapMutations({
       cacheDatasource: 'CACHE_DATASOURCE'
@@ -195,6 +196,8 @@ import { handleSuccessAsync, handleError } from '../../../util'
 })
 export default class DataSourceBar extends Vue {
   filterText = ''
+  isSearchIng = false
+  isLoadingTreeData = true // 用于处理查询搜索时loading 效果
   datasources = []
   sourceTypes = sourceTypes
   allWords = []
@@ -208,6 +211,28 @@ export default class DataSourceBar extends Vue {
     width: 250,
     limit: {
       width: [250]
+    }
+  }
+  get showAddDatasourceBtn () {
+    // 嵌套在lightning 中的4x，会有内置数据源的情况，只支持单数据源，这时候，不该放出添加数据源，所以只要判断datasources的length是否大于0 即可
+    if (this.$store.state.config.platform === 'cloud') {
+      return this.datasources.length <= 0
+    } else { // 4x 本身保持原来逻辑: 有库表后，才隐藏添加数据源按钮（搜索时会有可能导致databaseArray数组为空，所以要判断是否是搜索后的空态）
+      return this.filterText === '' && this.databaseArray.length <= 0
+    }
+  }
+  get showTreeFilter () {
+    // 配置带搜索
+    if (this.isShowFilter) {
+      // 有库表 显示搜索框
+      if (this.databaseArray.length) {
+        return true
+      } else {
+        // 没库表，但处于筛选状态，也显示搜索框
+        return this.isSearchIng
+      }
+    } else { // 配置为false 就直接隐藏搜索框
+      return false
     }
   }
   get dataSourceStyle () {
@@ -285,9 +310,11 @@ export default class DataSourceBar extends Vue {
   }
   async initTree () {
     try {
+      this.isSearchIng = false
       await this.loadDatasources()
-      await this.loadDataBases()
-      await this.loadTables({ isReset: true })
+      // await this.loadDataBases()
+      // await this.loadTables({ isReset: true })
+      await this.loadTreeData()
       freshTreeOrder(this)
       this.selectFirstTable()
     } catch (e) {
@@ -296,6 +323,32 @@ export default class DataSourceBar extends Vue {
   }
   async loadDatasources () {
     this.datasources = this.currentSourceTypes.map(sourceType => getDatasourceObj(this, sourceType))
+  }
+  async loadTreeData (filterText) { // 根据数据源获取dbs 和tables
+    this.isLoadingTreeData = true
+    // 默认获取 this.datasources 的第一个元素拿到相应参数，发送接口获取数据，暂不考虑多数据源
+    let params = {
+      projectName: this.datasources[0].projectName,
+      sourceType: this.datasources[0].sourceType,
+      pageOffset: 0,
+      pageSize: pageSizeMapping.TABLE_TREE,
+      table: filterText || ''
+    }
+    const response = await this.fetchDBandTables(params)
+    const results = await handleSuccessAsync(response)
+    // 初始化数据中 db 一层的 render
+    this.datasources.forEach((datasource, index) => {
+      // 先处理 db 一层的render，以及初值的赋值
+      datasource.children = results.databases.map(resultDatabse => getDatabaseTablesObj(this, datasource, resultDatabse))
+
+      // 然后处理 table 一级的render render 后变更页码，并存入store
+      datasource.children.forEach((database, index) => {
+        database.children = database.originTables.map(resultTable => getTableObj(this, database, resultTable, this.ignoreNodeTypes.indexOf('column') >= 0))
+        this.addPagination(database)
+        this.cacheDatasourceInStore(index, database.originTables, true)
+      })
+    })
+    this.isLoadingTreeData = false
   }
   async loadDataBases () {
     // 分数据源，请求database
@@ -313,7 +366,6 @@ export default class DataSourceBar extends Vue {
     const currentDatabases = this.databaseArray.filter(database => {
       return database.id === databaseId || !databaseId
     })
-
     const responses = await Promise.all(currentDatabases.map((database) => {
       const { projectName, label: databaseName, pagination } = database
       isReset ? this.clearPagination(database) : null
@@ -346,18 +398,11 @@ export default class DataSourceBar extends Vue {
     this.$emit('drag', data, node)
   }
   handleFilter (filterText) {
+    this.isSearchIng = true
     clearInterval(this.timer)
-
     return new Promise(async resolve => {
       this.timer = setTimeout(async () => {
-        const requests = this.databaseArray.map(async database => {
-          const tableName = filterText
-          const databaseId = database.id
-          this.clearPagination(database)
-
-          await this.loadTables({ databaseId, tableName, isReset: true })
-        })
-        await Promise.all(requests)
+        await this.loadTreeData(filterText)
         this.filterText = filterText
         this.selectFirstTable()
         resolve()

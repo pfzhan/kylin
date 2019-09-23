@@ -6,6 +6,7 @@
         :show-overflow-tooltip="true"
         ref="tree-list"
         class="table-tree"
+        :is-remote="true"
         :data="treeData"
         :placeholder="$t('filterTableName')"
         :is-show-filter="true"
@@ -16,9 +17,13 @@
         @click="handleClickNode"
         @node-expand="handleNodeExpand"
         @load-more="handleLoadMore"
+        :default-expanded-keys="defaultExpandedKeys"
       />
       <div class="split" v-if="false">
         <i class="el-icon-ksd-more_03"></i>
+      </div>
+      <div class="empty" v-if="treeData.length===0">
+        <p class="empty-text">{{$t('kylinLang.common.noData')}}</p>
       </div>
     </div>
     <div class="content" :style="contentStyle">
@@ -99,8 +104,8 @@ import { Component, Watch } from 'vue-property-decorator'
 import Scrollbar from 'smooth-scrollbar'
 import locales from './locales'
 import TreeList from '../../TreeList'
-import { sourceTypes } from '../../../../config'
-import { getDatabaseTree, getTableTree } from './handler'
+import { sourceTypes, pageSizeMapping } from '../../../../config'
+import { getDatabaseTree, getTableTree, getDatabaseTablesTree } from './handler'
 import { handleSuccessAsync, handleError } from '../../../../util'
 import arealabel from '../../area_label.vue'
 
@@ -132,7 +137,8 @@ import arealabel from '../../area_label.vue'
   methods: {
     ...mapActions({
       fetchDatabase: 'LOAD_HIVEBASIC_DATABASE',
-      fetchTables: 'LOAD_HIVE_TABLES'
+      fetchTables: 'LOAD_HIVE_TABLES',
+      fetctDatabaseAndTables: 'LOAD_HIVEBASIC_DATABASE_TABLES'
     })
   },
   locales
@@ -151,6 +157,7 @@ export default class SourceHive extends Vue {
   selectorWidth = 0
   filterText = ''
   errorMsg = ''
+  defaultExpandedKeys= []
 
   get databaseOptions () {
     return this.treeData.map(database => ({
@@ -204,6 +211,7 @@ export default class SourceHive extends Vue {
     super()
     this.getDatabaseTree = getDatabaseTree.bind(this)
     this.getTableTree = getTableTree.bind(this)
+    this.getDatabaseTablesTree = getDatabaseTablesTree.bind(this)
   }
   async mounted () {
     await this.loadDatabase()
@@ -228,7 +236,9 @@ export default class SourceHive extends Vue {
     }
   }
   async loadDatabase () {
-    this.$refs['tree-list'].showLoading()
+    if (this.$refs['tree-list']) {
+      this.$refs['tree-list'].showLoading()
+    }
     try {
       const projectName = this.currentSelectedProject
       const sourceType = this.sourceType
@@ -241,9 +251,10 @@ export default class SourceHive extends Vue {
     } catch (e) {
       this.isDatabaseError = true
       handleError(e)
-      console.log(e)
     }
-    this.$refs['tree-list'].hideLoading()
+    if (this.$refs['tree-list']) {
+      this.$refs['tree-list'].hideLoading()
+    }
   }
   async loadTables ({database, tableName = '', isTableReset = false}) {
     const projectName = this.currentSelectedProject
@@ -256,20 +267,61 @@ export default class SourceHive extends Vue {
     this.setNextPagination(pagination)
     // this.$emit('input', { selectedTables: [...this.selectedTables] })
   }
+  async loadDatabaseAndTables (filterText) {
+    if (this.$refs['tree-list']) {
+      this.$refs['tree-list'].showLoading()
+    }
+    try {
+      let params = {
+        projectName: this.currentSelectedProject,
+        sourceType: this.sourceType,
+        pageOffset: 0,
+        pageSize: pageSizeMapping.TABLE_TREE,
+        table: filterText || ''
+      }
+      const res = await this.fetctDatabaseAndTables(params)
+      const results = await handleSuccessAsync(res)
+      this.treeData = this.getDatabaseTablesTree(results.databases)
+      this.treeData.forEach((database, index) => {
+        const pagination = database.pagination
+        const size = database.size
+        const tables = database.originTables
+        this.getTableTree(database, { size, tables }, true)
+        this.setNextPagination(pagination)
+      })
+      // 搜索后，没匹配上库名时，需要展开，匹配上库名不用展开
+      this.defaultExpandedKeys = []
+      if (filterText) {
+        let tempArr = this.treeData.filter((item) => {
+          let dbName = (item.id).toLocaleLowerCase()
+          let searchText = (filterText).toLocaleLowerCase()
+          // db 中没有含关键字的要展开 包括db. 这种情况
+          if (dbName.indexOf(searchText) === -1) {
+            return item
+          }
+        })
+        this.defaultExpandedKeys = tempArr.map((item) => {
+          return item.id
+        })
+      }
+      this.isDatabaseError = false
+      this.$nextTick(() => {
+        Scrollbar.init(this.$el.querySelector('.filter-tree'))
+      })
+    } catch (e) {
+      this.isDatabaseError = true
+      handleError(e)
+    }
+    if (this.$refs['tree-list']) {
+      this.$refs['tree-list'].hideLoading()
+    }
+  }
   handleFilter (filterText) {
     clearInterval(this.timer)
-
     return new Promise(async resolve => {
       this.timer = setTimeout(async () => {
-        const requests = this.treeData.map(async database => {
-          const { pagination } = database
-          const tableName = filterText
-          this.clearPagination(pagination)
-
-          await this.loadTables({ database, tableName, isTableReset: true })
-        })
-        await Promise.all(requests)
-        this.treeData = [...this.treeData]
+        // 发一个接口就行
+        await this.loadDatabaseAndTables(filterText)
         this.filterText = filterText
         this.onSelectedItemsChange()
         resolve()

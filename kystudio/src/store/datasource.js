@@ -81,6 +81,9 @@ export default {
     [types.LOAD_DATASOURCE_EXT]: function ({commit}, para) {
       return api.datasource.loadDataSourceExt({ext: true, project: para.project, table: para.tableName})
     },
+    [types.LOAD_HIVEBASIC_DATABASE_TABLES]: function ({commit}, para) {
+      return api.datasource.loadBasicLiveDatabaseTables(para.projectName, para.sourceType, para.databaseName, para.table, para.pageOffset, para.pageSize)
+    },
     [types.LOAD_HIVEBASIC_DATABASE]: function ({commit}, para) {
       return api.datasource.loadBasicLiveDatabase(para.projectName, para.sourceType)
     },
@@ -250,6 +253,9 @@ export default {
     },
     [types.FETCH_RELATED_MODELS]: function ({commit}, para) {
       return api.datasource.fetchRelatedModels(para.projectName, para.tableFullName, para.modelName, para.pageOffset, para.pageSize)
+    },
+    [types.FETCH_DB_AND_TABLES]: function ({commit}, para) { // 获取db 和 tables，参数：projectName，页码，每页条数，搜索关键字，数据源类型
+      return api.datasource.fetchDBandTables(para.projectName, para.pageOffset, para.pageSize, para.table, para.sourceType)
     },
     [types.FETCH_DATABASES]: function ({commit}, para) {
       return api.datasource.fetchDatabases(para.projectName, para.sourceType)

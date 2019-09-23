@@ -144,6 +144,28 @@ export function getDatabaseObj (that, datasource, databaseItem) {
   }
 }
 
+export function getDatabaseTablesObj (that, datasource, databaseItem) {
+  const { projectName } = datasource
+  return {
+    id: `${datasource.id}.${databaseItem.dbname}`,
+    label: databaseItem.dbname,
+    render: render.database.render.bind(that),
+    children: [],
+    originTables: databaseItem.tables || [],
+    type: 'database',
+    datasource: datasource.id,
+    isMore: databaseItem.size && databaseItem.size > databaseItem.tables.length,
+    isHidden: !databaseItem.tables || !databaseItem.tables.length,
+    isLoading: false,
+    projectName,
+    parent: datasource,
+    pagination: {
+      pageOffset: 0,
+      pageSize: pageSizeMapping.TABLE_TREE
+    }
+  }
+}
+
 export function getTableObj (that, database, table, ignoreColumn) {
   const { datasource, label: databaseName } = database
   const tags = [
