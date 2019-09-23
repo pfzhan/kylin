@@ -73,6 +73,15 @@ public class ModelNonEquiCondMock {
         );
     }
 
+    public NonEquiJoinCondition colOp(SqlKind op, String col1) {
+        return new NonEquiJoinCondition(
+                null,
+                op,
+                new NonEquiJoinCondition[]{mockTblColRefCond(col1, SqlTypeName.CHAR)},
+                mockDataType(SqlTypeName.BOOLEAN)
+        );
+    }
+
     public NonEquiJoinCondition colCompareCond(SqlKind op, String col1, SqlTypeName col1Type, String col2, SqlTypeName col2Type) {
         return new NonEquiJoinCondition(
                 null,

@@ -25,6 +25,7 @@
 package org.apache.kylin.metadata.model;
 
 import java.io.Serializable;
+import java.util.Arrays;
 
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexLiteral;
@@ -125,6 +126,19 @@ public class NonEquiJoinCondition implements Serializable {
         return TypedLiteralConverter.stringValueToTypedValue(value, dataType);
     }
 
+    public NonEquiJoinCondition copy() {
+        NonEquiJoinCondition condCopy = new NonEquiJoinCondition();
+        condCopy.type = type;
+        condCopy.dataType = dataType;
+        condCopy.op = op;
+        condCopy.opName = opName;
+        condCopy.operands = Arrays.copyOf(operands, operands.length);
+        condCopy.value = value;
+        condCopy.colRef = colRef;
+        condCopy.expr = expr;
+        return condCopy;
+    }
+
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder();
@@ -134,8 +148,14 @@ public class NonEquiJoinCondition implements Serializable {
             sb.append(input.toString());
             sb.append(", ");
         }
-        if (value != null) {
+        if (type == NonEquiJoinConditionType.LITERAL) {
             sb.append(value);
+        } else if (type == NonEquiJoinConditionType.COLUMN) {
+            if (colRef != null) {
+                sb.append(colRef.getColumnWithTableAndSchema());
+            } else {
+                sb.append(value);
+            }
         }
         sb.append(")");
         return sb.toString();
@@ -161,7 +181,16 @@ public class NonEquiJoinCondition implements Serializable {
         for (NonEquiJoinCondition operand : operands) {
             result = prime * result + operand.hashCode();
         }
-        result = prime * result + value.hashCode();
+
+        if (type == NonEquiJoinConditionType.LITERAL) {
+            result = prime * result + value.hashCode();
+        } else if (type == NonEquiJoinConditionType.COLUMN) {
+            if (colRef != null) {
+                result = prime * result + colRef.hashCode();
+            } else {
+                result = prime * result + value.hashCode();
+            }
+        }
         return result;
     }
 }

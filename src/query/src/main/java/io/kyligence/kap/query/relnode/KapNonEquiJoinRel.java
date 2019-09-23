@@ -56,7 +56,6 @@ import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
-import org.apache.calcite.rex.RexUtil;
 import org.apache.kylin.metadata.model.JoinDesc;
 import org.apache.kylin.metadata.model.NonEquiJoinCondition;
 import org.apache.kylin.metadata.model.TblColRef;
@@ -193,7 +192,7 @@ public class KapNonEquiJoinRel extends EnumerableThetaJoin implements KapRel {
         RexNode nonEquvCond = joinInfo.getRemaining(new RexBuilder(new JavaTypeFactoryImpl(RelDataTypeSystem.DEFAULT)));
         joinDescBuilder.setForeignTableRef(((KapRel) left).getColumnRowType().getColumnByIndex(0).getTableRef());
         joinDescBuilder.setPrimaryTableRef(((KapRel) right).getColumnRowType().getColumnByIndex(0).getTableRef());
-        NonEquiJoinCondition nonEquiJoinCondition = doBuildJoin(RexUtil.toCnf(new RexBuilder(new JavaTypeFactoryImpl(RelDataTypeSystem.DEFAULT)), nonEquvCond));
+        NonEquiJoinCondition nonEquiJoinCondition = doBuildJoin(nonEquvCond);
         nonEquiJoinCondition.setExpr(RexToTblColRefTranslator.translateRexNode(condition, columnRowType).getParserDescription());
         joinDescBuilder.setNonEquiJoinCondition(nonEquiJoinCondition);
 

@@ -95,7 +95,7 @@ public class NonEquiJoinConditionComparatorTest {
         NonEquiJoinCondition cond2 = nonEquiMock.composite(SqlKind.OR,
                 nonEquiMock.colCompareCond(SqlKind.GREATER_THAN, "A.a1", "B.b1"),
                 nonEquiMock.colCompareCond(SqlKind.LESS_THAN, "A.a2", "B.b1"),
-                nonEquiMock.composite(SqlKind.OR, nonEquiMock.colCompareCond(SqlKind.GREATER_THAN, "A.a3", "B.b2"),
+                nonEquiMock.composite(SqlKind.OR, nonEquiMock.colCompareCond(SqlKind.GREATER_THAN, "A.a3", "B.b8"),
                         nonEquiMock.colCompareCond(SqlKind.GREATER_THAN, "A.a3", "B.b2")),
                 nonEquiMock.composite(SqlKind.NOT, nonEquiMock.colCompareCond(SqlKind.EQUALS, "A.a5", "B.b6")),
                 nonEquiMock.colCompareCond(SqlKind.NOT_EQUALS, "A.a9", "B.b8"), nonEquiMock.colConstantCompareCond(
@@ -135,4 +135,22 @@ public class NonEquiJoinConditionComparatorTest {
         Assert.assertNotEquals(cond1, cond2);
     }
 
+    @Test
+    public void testCondNormalizations() {
+        NonEquiJoinCondition cond1 = nonEquiMock.composite(SqlKind.AND,
+                nonEquiMock.colCompareCond(SqlKind.EQUALS, "A.a8", "B.b8"),
+                nonEquiMock.composite(SqlKind.NOT, nonEquiMock.colCompareCond(SqlKind.EQUALS, "A.a9", "B.b9")),
+                nonEquiMock.composite(SqlKind.NOT, nonEquiMock.colOp(SqlKind.IS_NULL, "A.a9")),
+                nonEquiMock.colCompareCond(SqlKind.LESS_THAN_OR_EQUAL, "A.a1", "B.b1"),
+                nonEquiMock.colCompareCond(SqlKind.LESS_THAN, "A.a4", "B.b4")
+        );
+        NonEquiJoinCondition cond2 = nonEquiMock.composite(SqlKind.AND,
+                nonEquiMock.colCompareCond(SqlKind.EQUALS, "B.b8", "A.a8"),
+                nonEquiMock.colCompareCond(SqlKind.NOT_EQUALS, "B.b9", "A.a9"),
+                nonEquiMock.colOp(SqlKind.IS_NOT_NULL, "A.a9"),
+                nonEquiMock.composite(SqlKind.NOT, nonEquiMock.colCompareCond(SqlKind.GREATER_THAN, "A.a1", "B.b1")),
+                nonEquiMock.composite(SqlKind.NOT, nonEquiMock.colCompareCond(SqlKind.GREATER_THAN_OR_EQUAL, "A.a4", "B.b4"))
+        );
+        Assert.assertEquals(cond1, cond2);
+    }
 }
