@@ -49,25 +49,33 @@
 package io.kyligence.kap.query.util;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.Objects;
+import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
+import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlAsOperator;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlDataTypeSpec;
 import org.apache.calcite.sql.SqlDynamicParam;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlIntervalQualifier;
+import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
+import org.apache.calcite.sql.SqlOrderBy;
 import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.util.SqlBasicVisitor;
 import org.apache.calcite.sql.util.SqlVisitor;
+import org.apache.calcite.util.Litmus;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
@@ -273,6 +281,14 @@ public class ConvertToComputedColumn implements QueryUtil.IQueryTransformer, IKe
         return toBeReplacedExp;
     }
 
+    private static String getCalciteConformance() {
+        try {
+            return KylinConfig.getInstanceFromEnv().getCalciteExtrasProperties().get("conformance");
+        } catch (Throwable e) {
+            return "DEFAULT";
+        }
+    }
+
     //Return matched node's position and its alias(if exists).If can not find matches, return an empty list
     private static List<SqlNode> getMatchedNodes(SqlCall selectOrOrderby, String ccExp, QueryAliasMatchInfo matchInfo) {
         if (ccExp == null || ccExp.equals(StringUtils.EMPTY)) {
@@ -280,7 +296,49 @@ public class ConvertToComputedColumn implements QueryUtil.IQueryTransformer, IKe
         }
         ArrayList<SqlNode> matchedNodes = new ArrayList<>();
         SqlNode ccExpressionNode = CalciteParser.getExpNode(ccExp);
-        List<SqlNode> inputNodes = getInputTreeNodes(selectOrOrderby);
+
+        List<SqlNode> inputNodes = new LinkedList<>();
+        if ("LENIENT".equals(getCalciteConformance())) {
+            inputNodes = getInputTreeNodes(selectOrOrderby);
+        } else {
+
+            // for select with group by, if the sql is like 'select expr(A) from tbl group by A'
+            // do not replace expr(A) with CC
+            if (selectOrOrderby instanceof SqlSelect && ((SqlSelect) selectOrOrderby).getGroup() != null) {
+                SqlSelect select = (SqlSelect) selectOrOrderby;
+                inputNodes.addAll(collectCandidateInputNodes(select.getSelectList(), select.getGroup()));
+                inputNodes.addAll(collectCandidateInputNodes(select.getOrderList(), select.getGroup()));
+                inputNodes.addAll(collectCandidateInputNode(select.getHaving(), select.getGroup()));
+                inputNodes.addAll(getInputTreeNodes(select.getWhere()));
+                inputNodes.addAll(getInputTreeNodes(select.getGroup()));
+            } else if (selectOrOrderby instanceof SqlOrderBy) {
+                SqlOrderBy sqlOrderBy = (SqlOrderBy) selectOrOrderby;
+                // for sql orderby
+                // 1. process order list
+                // if order list is not empty and query is a select
+                // then collect order list with checking on group keys
+                if (sqlOrderBy.orderList != null &&
+                        sqlOrderBy.query != null &&
+                        sqlOrderBy.query instanceof SqlSelect &&
+                        ((SqlSelect) sqlOrderBy.query).getGroup() != null) {
+                    inputNodes.addAll(collectCandidateInputNodes(sqlOrderBy.orderList, ((SqlSelect) sqlOrderBy.query).getGroup()));
+                } else {
+                    if (sqlOrderBy.orderList != null) {
+                        inputNodes.addAll(getInputTreeNodes(sqlOrderBy.orderList));
+                    }
+                }
+
+                // 2. process query part
+                // pass to getMatchedNodes directly
+                if (sqlOrderBy.query instanceof SqlCall) {
+                    matchedNodes.addAll(getMatchedNodes((SqlCall) sqlOrderBy.query, ccExp, matchInfo));
+                } else {
+                    inputNodes.addAll(getInputTreeNodes(sqlOrderBy.query));
+                }
+            } else {
+                inputNodes = getInputTreeNodes(selectOrOrderby);
+            }
+        }
 
         // find whether user input sql's tree node equals computed columns's define expression
         for (SqlNode inputNode : inputNodes) {
@@ -290,12 +348,81 @@ public class ConvertToComputedColumn implements QueryUtil.IQueryTransformer, IKe
             }
 
         }
+
         return matchedNodes;
     }
 
-    private static List<SqlNode> getInputTreeNodes(SqlCall selectOrOrderby) {
+    private static List<SqlNode> collectCandidateInputNodes(SqlNodeList sqlNodeList, SqlNodeList groupSet) {
+        List<SqlNode> inputNodes = new LinkedList<>();
+        if (sqlNodeList == null) {
+            return inputNodes;
+        }
+        for (SqlNode sqlNode : sqlNodeList) {
+            inputNodes.addAll(collectCandidateInputNode(sqlNode, groupSet));
+        }
+        return inputNodes;
+    }
+
+    private static List<SqlNode> collectCandidateInputNode(SqlNode node, SqlNodeList groupSet) {
+        List<SqlNode> inputNodes = new LinkedList<>();
+        if (node == null) {
+            return inputNodes;
+        }
+        // strip off AS clause
+        if (node instanceof SqlCall && ((SqlCall) node).getOperator().kind == SqlKind.AS) {
+            node = ((SqlCall) node).getOperandList().get(0);
+        }
+        // if agg node, replace with CC directly
+        // otherwise the select node needs to be matched with group by nodes
+        for (SqlNode sqlNode : getSelectNodesToReplace(node, groupSet)) {
+            inputNodes.addAll(getInputTreeNodes(sqlNode));
+        }
+        return inputNodes;
+    }
+
+    /**
+     * collect all select nodes that
+     * 1. is a agg call
+     * 2. is equal to any group key
+     * @param selectNode
+     * @param groupKeys
+     * @return
+     */
+    private static List<SqlNode> getSelectNodesToReplace(SqlNode selectNode, SqlNodeList groupKeys) {
+        for (SqlNode groupNode : groupKeys) {
+            // for non-agg select node, collect it only when there is a equal node in the group set
+            if (selectNode.equalsDeep(groupNode, Litmus.IGNORE)) {
+                return Collections.singletonList(selectNode);
+            }
+        }
+        if (selectNode instanceof SqlCall) {
+            if (((SqlCall) selectNode).getOperator() instanceof SqlAggFunction) {
+                // collect agg node directly
+                return Collections.singletonList(selectNode);
+            } else {
+                // iterate through sql call's operands
+                // eg case .. when
+                return ((SqlCall) selectNode).getOperandList().stream()
+                        .filter(Objects::nonNull)
+                        .map(node -> getSelectNodesToReplace(node, groupKeys)).flatMap(Collection::stream)
+                        .collect(Collectors.toList());
+            }
+        } else if (selectNode instanceof SqlNodeList) {
+            // iterate through select list
+            return ((SqlNodeList) selectNode).getList().stream()
+                        .filter(Objects::nonNull)
+                        .map(node -> getSelectNodesToReplace(node, groupKeys)).flatMap(Collection::stream)
+                        .collect(Collectors.toList());
+        }
+        return Collections.emptyList();
+    }
+
+    private static List<SqlNode> getInputTreeNodes(SqlNode sqlNode) {
+        if (sqlNode == null) {
+            return Collections.emptyList();
+        }
         SqlTreeVisitor stv = new SqlTreeVisitor();
-        selectOrOrderby.accept(stv);
+        sqlNode.accept(stv);
         return stv.getSqlNodes();
     }
 

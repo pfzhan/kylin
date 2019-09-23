@@ -22,31 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- 
-/*
- * Copyright (C) 2016 Kyligence Inc. All rights reserved.
- *
- * http://kyligence.io
- *
- * This software is the confidential and proprietary information of
- * Kyligence Inc. ("Confidential Information"). You shall not disclose
- * such Confidential Information and shall use it only in accordance
- * with the terms of the license agreement you entered into with
- * Kyligence Inc.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
- * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
- * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
- * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
- * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
- * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
- * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
- * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- */
-
 package io.kyligence.kap.query.util;
 
 import java.util.LinkedHashMap;
@@ -149,8 +124,10 @@ public class ImplicitCCTest {
     @Test
     public void testReplaceComputedColumn() throws SqlParseException {
 
-        String sql0 = "select (t1 . a + t1.b + t1.c) as c, substring(substring(d,1,3),1,3) as z from table1 as t1 group by t1.a+   t1.b +     t1.c having t1.a+t1.b+t1.c > 100 order by t1.a +t1.b +t1.c";
-        //String sql0 = "select (\"t1\" . \"a\" + t1.b + t1.c) as c, substring(substring(d,1,3),1,3) as z from table1 as t1 group by t1.a+   t1.b +     t1.c having t1.a+t1.b+t1.c > 100 order by t1.a +t1.b +t1.c";
+        String sql0 = "select (t1 . a + t1.b + t1.c) as c, substring(substring(d,1,3),1,3) as z from table1 as t1 "
+                + "group by t1.a+   t1.b +     t1.c, d having t1.a+t1.b+t1.c > 100 order by t1.a +t1.b +t1.c";
+        //String sql0 = "select (\"t1\" . \"a\" + t1.b + t1.c) as c, substring(substring(d,1,3),1,3) as z " +
+        // "from table1 as t1 group by t1.a+   t1.b +     t1.c having t1.a+t1.b+t1.c > 100 order by t1.a +t1.b +t1.c";
         String sql1 = "select sum(sum(a)) from table1 as t1";
         String sql2 = "select substring(substring(t1.d,1,3),1,3) from table1 as t1";
         String sql3 = "select a + b + (c+d   \t\n) from table1";
@@ -185,7 +162,8 @@ public class ImplicitCCTest {
         QueryAliasMatchInfo queryAliasMatchInfo = new QueryAliasMatchInfo(aliasMapping, mockQueryAlias);
 
         Assert.assertEquals(
-                "select (T1.cc0) as c, T1.cc as z from table1 as t1 group by T1.cc0 having T1.cc0 > 100 order by T1.cc0",
+                "select (T1.cc0) as c, substring(substring(d,1,3),1,3) as z from table1 "
+                        + "as t1 group by T1.cc0, d having T1.cc0 > 100 order by T1.cc0",
                 ConvertToComputedColumn.replaceComputedColumn(sql0, SqlSubqueryFinder.getSubqueries(sql0).get(0),
                         mockCCs, queryAliasMatchInfo).getFirst());
 
@@ -213,7 +191,8 @@ public class ImplicitCCTest {
                         .getFirst());
 
         //more tables
-        String sql2tables = "select t1.a + t1.b as aa, t2.c + t2.d as bb from table1 t1 inner join table2 t2 on t1.x = t2.y where t1.a + t1.b > t2.c + t2.d order by t1.a + t1.b";
+        String sql2tables = "select t1.a + t1.b as aa, t2.c + t2.d as bb from table1 t1 inner join "
+                + "table2 t2 on t1.x = t2.y where t1.a + t1.b > t2.c + t2.d order by t1.a + t1.b";
 
         ColumnRowType columnRowType2 = ColumnRowTypeMockUtil.mock("TABLE2", "T2", //
                 Pair.newPair("A", "integer"), //
@@ -225,23 +204,116 @@ public class ImplicitCCTest {
         queryAliasMatchInfo = new QueryAliasMatchInfo(aliasMapping, mockQueryAlias);
 
         Assert.assertEquals(
-                "select T1.cc2 as aa, T2.cc3 as bb from table1 t1 inner join table2 t2 on t1.x = t2.y where T1.cc2 > T2.cc3 order by T1.cc2",
+                "select T1.cc2 as aa, T2.cc3 as bb from table1 t1 inner join table2 t2 on t1.x = t2.y "
+                        + "where T1.cc2 > T2.cc3 order by T1.cc2",
                 ConvertToComputedColumn.replaceComputedColumn(sql2tables,
-                        SqlSubqueryFinder.getSubqueries(sql2tables).get(0), mockCCs, queryAliasMatchInfo)
-                        .getFirst());
+                        SqlSubqueryFinder.getSubqueries(sql2tables).get(0), mockCCs, queryAliasMatchInfo).getFirst());
 
-        String sql2tableswithquote = "\r\n select \"T1\".\"A\" + \"T1\".\"B\" as aa, \"T2\".\"C\" + \"T2\".\"D\" as bb from \r\n table1 \"T1\" inner join table2 \"T2\" on \"T1\".\"X\" = \"T2\".\"Y\" where \"T1\".\"A\" + \"T1\".\"B\" > \"T2\".\"C\" + \"T2\".\"D\" order by \"T1\".\"A\" + \"T1\".\"B\"";
+        String sql2tableswithquote = "\r\n select \"T1\".\"A\" + \"T1\".\"B\" as aa, \"T2\".\"C\" + \"T2\".\"D\" as bb "
+                + "from \r\n table1 \"T1\" inner join table2 \"T2\" on \"T1\".\"X\" = \"T2\".\"Y\" "
+                + "where \"T1\".\"A\" + \"T1\".\"B\" > \"T2\".\"C\" + \"T2\".\"D\" "
+                + "order by \"T1\".\"A\" + \"T1\".\"B\"";
         Assert.assertEquals(
-                "\r\n select T1.cc2 as aa, T2.cc3 as bb from \r\n table1 \"T1\" inner join table2 \"T2\" on \"T1\".\"X\" = \"T2\".\"Y\" where T1.cc2 > T2.cc3 order by T1.cc2",
+                "\r\n select T1.cc2 as aa, T2.cc3 as bb from \r\n table1 \"T1\" inner join table2 "
+                        + "\"T2\" on \"T1\".\"X\" = \"T2\".\"Y\" where T1.cc2 > T2.cc3 order by T1.cc2",
                 ConvertToComputedColumn.replaceComputedColumn(sql2tableswithquote,
                         SqlSubqueryFinder.getSubqueries(sql2tableswithquote).get(0), mockCCs, queryAliasMatchInfo)
                         .getFirst());
 
         //        //sub query cannot be mocked here
-        //        String sqlwithsubquery = "select count(*), sum(t1.a + t1.b), sum(t22.w) from table1 t1 inner join (select t11.a + t11.b as aa, t22.c + t22.d as bb from table1 t11 inner join table2 t22 on t11.x = t22.y where t11.a + t11.b > t22.c + t22.d order by t11.a + t11.b) as t2 on t1.x = t2.aa group by substring(substring(t1.d,1,3),1,3) order by sum(t1.a) ";
+        //        String sqlwithsubquery = "select count(*), sum(t1.a + t1.b), sum(t22.w) from table1 t1 inner join " + 
+        // "(select t11.a + t11.b as aa, t22.c + t22.d as bb from table1 t11 inner join table2 t22 on t11.x = t22.y " + 
+        // "where t11.a + t11.b > t22.c + t22.d order by t11.a + t11.b) as t2 on t1.x = t2.aa " + 
+        // "group by substring(substring(t1.d,1,3),1,3) order by sum(t1.a) ";
         //        Assert.assertEquals(
-        //            "select T1.cc2 as aa, T2.cc3 as bb from table1 \"T1\" inner join table2 \"T2\" on \"T1\".\"X\" = \"T2\".\"Y\" where T1.cc2 > T2.cc3 order by T1.cc2",
+        //            "select T1.cc2 as aa, T2.cc3 as bb from table1 \"T1\" "+
+        // "inner join table2 \"T2\" on \"T1\".\"X\" = \"T2\".\"Y\" where T1.cc2 > T2.cc3 order by T1.cc2",
         //            ConvertToComputedColumn.replaceComputedColumn(sqlwithsubquery,
         //                SqlSubqueryFinder.getSubqueries(sqlwithsubquery).get(0), mockCCs, queryAliasMatchInfo));
+    }
+
+    @Test
+    public void testReplaceComputedColumnWithGroupKeys() throws SqlParseException {
+        List<ComputedColumnDesc> mockCCs = Lists.newArrayList(
+                mockComputedColumnDesc("cc0", "table1.a + table1.b + table1.c", "TABLE1"),
+                mockComputedColumnDesc("cc1", "sum(table1.a)", "TABLE1"), //
+                mockComputedColumnDesc("cc2", "table1.a + table1.b", "TABLE1"),
+                mockComputedColumnDesc("cc3", "table2.c + table2.d", "TABLE2"),
+                mockComputedColumnDesc("cc", "substring(substring(table1.d,1,3),1,3)", "TABLE1"),
+                mockComputedColumnDesc("cc4", "(table1.a + table1.b) + (table1.c + table1.d)", "TABLE1"),
+                mockComputedColumnDesc("cc5", "CAST(table1.a AS double)", "TABLE1"),
+                mockComputedColumnDesc("cc6", "{fn convert(table1.a, double)}", "TABLE1"));
+        mockCCs = ConvertToComputedColumn.getCCListSortByLength(mockCCs);
+        for (ComputedColumnDesc cc : mockCCs) {
+            System.out.println(cc.getColumnName());
+        }
+
+        BiMap<String, String> aliasMapping = HashBiMap.create();
+        aliasMapping.put("T1", "TABLE1");
+        aliasMapping.put("T2", "TABLE2");
+
+        ColumnRowType columnRowType1 = ColumnRowTypeMockUtil.mock("TABLE1", "T1", //
+                Pair.newPair("A", "integer"), //
+                Pair.newPair("B", "integer"), //
+                Pair.newPair("C", "integer"), //
+                Pair.newPair("D", "integer"));
+
+        LinkedHashMap<String, ColumnRowType> mockQueryAlias = Maps.newLinkedHashMap();
+        mockQueryAlias.put("TABLE1", columnRowType1);
+
+        QueryAliasMatchInfo queryAliasMatchInfo = new QueryAliasMatchInfo(aliasMapping, mockQueryAlias);
+
+        // test replacement non agg field
+        String sqlWithNonAggField = "select t1.a + t1.b, (t1 . a + t1.b + t1.c) as c from table1 as t1 "
+                + "group by c, t1 . a + t1.b + t1.c";
+        Assert.assertEquals("select t1.a + t1.b, (T1.cc0) as c from table1 as t1 group by c, T1.cc0",
+                ConvertToComputedColumn.replaceComputedColumn(sqlWithNonAggField,
+                        SqlSubqueryFinder.getSubqueries(sqlWithNonAggField).get(0), mockCCs, queryAliasMatchInfo)
+                        .getFirst());
+
+        // test replacement non agg field (case when)
+        String sqlWithNonAggCaseWhenField = "select case when (t1.a + t1.b) > 1 then 1 else 2 end from table1 as t1 "
+                + "group by (t1.a + t1.b)";
+        Assert.assertEquals("select case when (T1.cc2) > 1 then 1 else 2 end from table1 as t1 group by (T1.cc2)",
+                ConvertToComputedColumn.replaceComputedColumn(sqlWithNonAggCaseWhenField,
+                        SqlSubqueryFinder.getSubqueries(sqlWithNonAggCaseWhenField).get(0), mockCCs,
+                        queryAliasMatchInfo).getFirst());
+
+        String sqlWithNonAggCaseWhenFieldNoReplacement = "select case when (t1.a + t1.b) > 1 then 1 else 2 end "
+                + "from table1 as t1 group by a, b";
+        Assert.assertEquals("select case when (t1.a + t1.b) > 1 then 1 else 2 end from table1 as t1 group by a, b",
+                ConvertToComputedColumn.replaceComputedColumn(sqlWithNonAggCaseWhenFieldNoReplacement,
+                        SqlSubqueryFinder.getSubqueries(sqlWithNonAggCaseWhenFieldNoReplacement).get(0), mockCCs,
+                        queryAliasMatchInfo).getFirst());
+
+        // test replacement order by
+        String sqlOrderBy = "select count(1), sum(t1.a + t1.b)\n" + "from table1 as t1\n" + "where t1.a + t1.b > 1\n"
+                + "group by t1.a, t1.b\n" + "order by t1.a + t1.b";
+        String sqlOrderByExpected = "select count(1), sum(T1.cc2)\n" + "from table1 as t1\n" + "where T1.cc2 > 1\n"
+                + "group by t1.a, t1.b\n" + "order by t1.a + t1.b";
+        Assert.assertEquals(sqlOrderByExpected, ConvertToComputedColumn.replaceComputedColumn(sqlOrderBy,
+                SqlSubqueryFinder.getSubqueries(sqlOrderBy).get(0), mockCCs, queryAliasMatchInfo).getFirst());
+
+        String sqlOrderBy1 = "select count(1), sum(t1.a + t1.b)\n" + "from table1 as t1\n" + "where t1.a + t1.b > 1\n"
+                + "group by t1.a + t1.b\n" + "order by t1.a + t1.b";
+        String sqlOrderByExpected1 = "select count(1), sum(T1.cc2)\n" + "from table1 as t1\n" + "where T1.cc2 > 1\n"
+                + "group by T1.cc2\n" + "order by T1.cc2";
+        Assert.assertEquals(sqlOrderByExpected1, ConvertToComputedColumn.replaceComputedColumn(sqlOrderBy1,
+                SqlSubqueryFinder.getSubqueries(sqlOrderBy1).get(0), mockCCs, queryAliasMatchInfo).getFirst());
+
+        // test replacement having
+        String sqlHaving = "select count(1), sum(t1.a + t1.b)\n" + "from table1 as t1\n" + "where t1.a + t1.b > 1\n"
+                + "group by t1.a, t1.b\n" + "having t1.a + t1.b > 2";
+        String sqlHavingExpected = "select count(1), sum(T1.cc2)\n" + "from table1 as t1\n" + "where T1.cc2 > 1\n"
+                + "group by t1.a, t1.b\n" + "having t1.a + t1.b > 2";
+        Assert.assertEquals(sqlHavingExpected, ConvertToComputedColumn.replaceComputedColumn(sqlHaving,
+                SqlSubqueryFinder.getSubqueries(sqlHaving).get(0), mockCCs, queryAliasMatchInfo).getFirst());
+
+        String sqlHaving1 = "select count(1), sum(t1.a + t1.b)\n" + "from table1 as t1\n" + "where t1.a + t1.b > 1\n"
+                + "group by t1.a + t1.b\n" + "having t1.a + t1.b > 2";
+        String sqlHavingExpected1 = "select count(1), sum(T1.cc2)\n" + "from table1 as t1\n" + "where T1.cc2 > 1\n"
+                + "group by T1.cc2\n" + "having T1.cc2 > 2";
+        Assert.assertEquals(sqlHavingExpected1, ConvertToComputedColumn.replaceComputedColumn(sqlHaving1,
+                SqlSubqueryFinder.getSubqueries(sqlHaving1).get(0), mockCCs, queryAliasMatchInfo).getFirst());
     }
 }

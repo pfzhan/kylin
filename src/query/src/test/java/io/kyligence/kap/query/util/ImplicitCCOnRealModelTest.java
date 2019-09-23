@@ -425,10 +425,10 @@ public class ImplicitCCOnRealModelTest extends NLocalFileMetadataTestCase {
 
         // case 8
         originSql = "select sum(tmp.ab) from (\n"
-                + "  select timestampdiff(second, time0, time1)/timestampdiff(second, timestampadd(year,1, time1), time1) as ab\n"
+                + "  select sum(timestampdiff(second, time0, time1)/timestampdiff(second, timestampadd(year,1, time1), time1)) as ab\n"
                 + "  from tdvt.calcs as calcs group by ab order by ab ) tmp";
         ccSql = "select sum(tmp.ab) from (\n" //
-                + "  select CALCS._CC_CC_AUTO_18 as ab\n" //
+                + "  select sum(CALCS._CC_CC_AUTO_18) as ab\n" //
                 + "  from tdvt.calcs as calcs group by ab order by ab ) tmp";
         check(converter, originSql, ccSql, "tdvt");
 
