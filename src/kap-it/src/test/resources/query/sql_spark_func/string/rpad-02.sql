@@ -1,0 +1,1 @@
+select rpad(lstg_format_name, 8, '0') from TEST_KYLIN_FACT

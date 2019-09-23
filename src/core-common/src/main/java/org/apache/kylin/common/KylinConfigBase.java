@@ -1288,6 +1288,10 @@ abstract public class KylinConfigBase implements Serializable {
         udfMap.put("ifnull", "org.apache.kylin.query.udf.nullHandling.IfNullUDF");
         udfMap.put("isnull", "org.apache.kylin.query.udf.nullHandling.IsNullUDF");
         udfMap.put("split_part", "org.apache.kylin.query.udf.stringUdf.SplitPartUDF");
+        udfMap.put("spark_leaf_function", "org.apache.kylin.query.udf.SparkLeafUDF");
+        udfMap.put("spark_string_function", "org.apache.kylin.query.udf.SparkStringUDF");
+        udfMap.put("spark_misc_function", "org.apache.kylin.query.udf.SparkMiscUDF");
+        udfMap.put("spark_time_function", "org.apache.kylin.query.udf.SparkTimeUDF");
         Map<String, String> overrideUdfMap = getPropertiesByPrefix("kylin.query.udf.");
         udfMap.putAll(overrideUdfMap);
         return udfMap;

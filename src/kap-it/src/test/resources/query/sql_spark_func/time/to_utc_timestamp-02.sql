@@ -1,0 +1,1 @@
+select to_utc_timestamp(from_utc_timestamp(TEST_TIME_ENC, 'Asia/Seoul'), 'Asia/Seoul'), TEST_TIME_ENC from TEST_ORDER

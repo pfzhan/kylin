@@ -1,0 +1,1 @@
+select replace(lstg_format_name, 'IN', 'OUT') from TEST_KYLIN_FACT

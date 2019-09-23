@@ -195,6 +195,7 @@ class TestQueryAndBuildFunSuite
     assertNumScanFile(seg_pruning2, 1)
   }
 
+
   test("ensure spark split filter strategy") {
     val sql1 = "select count(*) from TEST_KYLIN_FACT where (LSTG_SITE_ID=10 or LSTG_SITE_ID>0) and LSTG_SITE_ID<100"
     val sql2 = "select count(*) from TEST_KYLIN_FACT where LSTG_SITE_ID=10 or (LSTG_SITE_ID>0 and LSTG_SITE_ID<100)"

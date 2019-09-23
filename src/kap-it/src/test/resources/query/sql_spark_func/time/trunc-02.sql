@@ -1,0 +1,1 @@
+select trunc(CAL_DT, 'MM') from TEST_KYLIN_FACT

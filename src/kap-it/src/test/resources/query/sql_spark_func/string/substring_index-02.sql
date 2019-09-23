@@ -1,0 +1,1 @@
+select  substring_index(lstg_format_name, 'I', 1), lstg_format_name from TEST_KYLIN_FACT

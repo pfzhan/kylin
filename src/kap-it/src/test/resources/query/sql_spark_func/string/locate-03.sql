@@ -1,0 +1,1 @@
+select locate('I',  lstg_format_name) from TEST_KYLIN_FACT

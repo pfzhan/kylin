@@ -24,6 +24,7 @@
 
 package org.apache.kylin.query.util;
 
+import java.lang.reflect.Method;
 import java.math.BigDecimal;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -71,6 +72,7 @@ import org.apache.kylin.query.relnode.ColumnRowType;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
@@ -291,7 +293,17 @@ public class RexToTblColRefTranslator {
         }
 
         private void registerUdfOperator(RexCall call) {
-            Set<String> udfs = KylinConfig.getInstanceFromEnv().getUDFs().keySet();
+            Set<String> udfs = Sets.newHashSet();
+            KylinConfig.getInstanceFromEnv().getUDFs().forEach((key, value) -> {
+                try {
+                    val methods = Class.forName(value).getMethods();
+                    for (Method method : methods) {
+                        udfs.add(method.getName().toLowerCase());
+                    }
+                } catch (Exception e) {
+                    log.error("registerUdfOperator not found method for :", e);
+                }
+            });
             if (udfs.contains(call.getOperator().toString().toLowerCase())) {
                 SqlOperator operator = call.getOperator();
                 this.registerEquivOp(operator);

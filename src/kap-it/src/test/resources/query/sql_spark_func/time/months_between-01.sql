@@ -1,0 +1,1 @@
+select months_between(timestamp '1997-02-28 10:30:00', timestamp '1996-10-30 10:30:00') from TEST_KYLIN_FACT

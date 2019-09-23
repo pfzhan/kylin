@@ -1,0 +1,1 @@
+select rtrim('  SparkSQL   ') from TEST_KYLIN_FACT

@@ -24,19 +24,37 @@
 
 package io.kyligence.kap.query.runtime
 
+import java.util.TimeZone
+
 import io.kyligence.kap.query.util.UnsupportedSparkFunctionException
 import org.apache.calcite.rel.`type`.RelDataType
+import org.apache.calcite.rex.RexCall
 import org.apache.calcite.sql.SqlKind
 import org.apache.calcite.sql.SqlKind._
 import org.apache.calcite.sql.`type`.SqlTypeName
 import org.apache.spark.sql.Column
 import org.apache.spark.sql.KapFunctions._
-import org.apache.spark.sql.catalyst.expressions.{If, IfNull, StringLocate}
+import org.apache.spark.sql.catalyst.expressions.{FromUnixTime, If, IfNull, Literal, StringLocate}
 import org.apache.spark.sql.catalyst.util.DateTimeUtils
 import org.apache.spark.sql.functions._
 import org.apache.spark.sql.util.SparderTypeUtil
 
+import scala.collection.mutable
+
 object ExpressionConverter {
+
+  val unaryParameterFunc = mutable.HashSet("ucase", "lcase", "base64",
+    "sentences", "unbase64", "crc32", "md5", "sha", "sha1")
+  val ternaryParameterFunc = mutable.HashSet("replace", "substring_index", "lpad", "rpad")
+  val binaryParameterFunc =
+    mutable.HashSet("decode", "encode", "find_in_set", "levenshtein", "sha2",
+    "trunc", "add_months", "date_add", "date_sub", "from_unixtime", "from_utc_timestamp", "to_utc_timestamp")
+
+  val noneParameterfunc = mutable.HashSet("current_database", "input_file_block_length", "input_file_block_start",
+    "input_file_name", "monotonically_increasing_id", "now", "spark_partition_id", "uuid"
+  )
+
+  val varArgsFunc = mutable.HashSet("months_between", "locate", "rtrim")
 
   // scalastyle:off
   def convert(sqlTypeName: SqlTypeName, relDataType: RelDataType, op: SqlKind, opName: String, children: Seq[Any]): Any = {
@@ -268,8 +286,17 @@ object ExpressionConverter {
             tan(k_lit(children.head))
           case "sin" =>
             sin(k_lit(children.head))
-          case "add_months" =>
-            kap_add_months(k_lit(children.head), k_lit(children.apply(1)))
+          case func if(noneParameterfunc.contains(func)) =>
+            callUDF(func)
+          case func if (unaryParameterFunc.contains(func)) =>
+            callUDF(func, k_lit(children.head))
+          case func if (binaryParameterFunc.contains(func)) =>
+            callUDF(func,  k_lit(children.head), k_lit(children.apply(1)))
+          case func if (ternaryParameterFunc.contains(func)) =>
+            callUDF(func, k_lit(children.head), k_lit(children.apply(1)), k_lit(children.apply(2)))
+          case func if (varArgsFunc.contains(func))  => {
+            callUDF(func,children.map(k_lit(_)):_*)
+          }
           case "date_part" | "date_trunc" =>
             var part = k_lit(children.head).toString().toUpperCase match {
               case "YEAR" =>

@@ -1,0 +1,1 @@
+select find_in_set('ab', concat(lstg_format_name, ',abc,b,c,d,ab,c,def')) from TEST_KYLIN_FACT

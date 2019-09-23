@@ -111,6 +111,9 @@ public class NAutoBuildAndQueryTest extends NAutoTestBase {
                 new TestScenario(CompareLevel.SAME, "query/sql_value"), //
                 new TestScenario(CompareLevel.SAME, "query/sql_verifyContent"), //
                 new TestScenario(CompareLevel.SAME, "query/sql_window/new_sql_window"), //
+                new TestScenario(CompareLevel.SAME, "query/sql_spark_func/time"),
+                new TestScenario(CompareLevel.SAME, "query/sql_spark_func/string"),
+                new TestScenario(CompareLevel.SAME, "query/sql_spark_func/misc"),
 
 
                 /* CompareLevel = SAME, JoinType = LEFT */
@@ -131,6 +134,7 @@ public class NAutoBuildAndQueryTest extends NAutoTestBase {
                 new TestScenario(CompareLevel.SAME_ORDER, "query/sql_window")
                 );
     }
+
 
     @Test
     @Ignore("For development")

@@ -1,0 +1,1 @@
+select md5('Spark') from TEST_KYLIN_FACT

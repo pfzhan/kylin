@@ -1,0 +1,1 @@
+select unbase64(base64(lstg_format_name)), lstg_format_name from TEST_KYLIN_FACT

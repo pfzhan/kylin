@@ -266,6 +266,7 @@ class SparderRexVisitor(val dfs: Array[DataFrame],
         val (left: Column, right: Any) = getOperands
         left mod right
       case _ =>
+
         ExpressionConverter.convert(call.getType.getSqlTypeName, call.`type`, op.getKind, op.getName, children)
     }
   }

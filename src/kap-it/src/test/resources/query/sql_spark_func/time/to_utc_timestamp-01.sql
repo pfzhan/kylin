@@ -1,0 +1,1 @@
+select to_utc_timestamp(from_utc_timestamp(timestamp '2016-08-31 00:00:00', 'Asia/Seoul'), 'Asia/Seoul') from TEST_KYLIN_FACT

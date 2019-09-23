@@ -1,0 +1,1 @@
+select locate ('bar', 'foobarbar', 5) from TEST_KYLIN_FACT

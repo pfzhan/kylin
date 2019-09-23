@@ -1,0 +1,1 @@
+select levenshtein('kitten', 'sitting') from TEST_KYLIN_FACT

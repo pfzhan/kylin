@@ -1,0 +1,1 @@
+select replace('ABCabc', 'abc', 'DEF') from TEST_KYLIN_FACT

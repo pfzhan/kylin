@@ -1,0 +1,1 @@
+select add_months(date '2009-02-12', 1) from TEST_KYLIN_FACT

@@ -1,0 +1,1 @@
+select ucase('SparkSql') from TEST_KYLIN_FACT

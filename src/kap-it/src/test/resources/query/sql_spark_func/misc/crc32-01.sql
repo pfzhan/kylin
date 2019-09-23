@@ -1,0 +1,1 @@
+select crc32('Spark') from TEST_KYLIN_FACT

@@ -1,0 +1,1 @@
+select sentences('Hi there! Good morning.') from TEST_KYLIN_FACT

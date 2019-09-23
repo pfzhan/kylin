@@ -1,0 +1,1 @@
+select trunc(date '2009-02-12', 'MM') from TEST_KYLIN_FACT

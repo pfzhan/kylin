@@ -1,0 +1,1 @@
+select date_sub(CAL_DT, 1) from TEST_KYLIN_FACT

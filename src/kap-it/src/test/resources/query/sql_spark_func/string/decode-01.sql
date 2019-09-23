@@ -1,0 +1,1 @@
+select decode(encode('abc', 'utf-8'), 'utf-8') from TEST_KYLIN_FACT

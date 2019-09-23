@@ -1,0 +1,1 @@
+select sha1('Spark') from TEST_KYLIN_FACT

@@ -1,0 +1,1 @@
+select months_between(TEST_TIME_ENC, timestamp '1996-10-30 10:30:00', false), TEST_TIME_ENC from TEST_ORDER

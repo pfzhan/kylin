@@ -1,0 +1,1 @@
+select from_unixtime(100, 'yyyy-MM-dd HH:mm:ss') from TEST_KYLIN_FACT

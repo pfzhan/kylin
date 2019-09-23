@@ -1,0 +1,1 @@
+select levenshtein(concat(lstg_format_name, 'ab'), lstg_format_name)  from TEST_KYLIN_FACT

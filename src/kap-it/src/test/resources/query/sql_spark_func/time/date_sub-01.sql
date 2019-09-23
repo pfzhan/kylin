@@ -1,0 +1,1 @@
+select date_sub(date_add(date '2016-07-31', 1), 1) from TEST_KYLIN_FACT
