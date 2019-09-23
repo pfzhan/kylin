@@ -29,6 +29,7 @@ import java.nio.file.Paths;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.spark.scheduler.SparkInfoCollector;
 import org.apache.spark.sql.SparderEnv;
 import org.springframework.boot.autoconfigure.AutoConfigureOrder;
 import org.springframework.context.annotation.Configuration;
@@ -45,6 +46,7 @@ public class SparderConfiguration {
     @EventListener(AppInitializedEvent.class)
     public void init(AppInitializedEvent event) {
         SparderEnv.init();
+        SparkInfoCollector.collectSparkInfo();
         if (System.getProperty("spark.local", "false").equals("true")) {
             log.debug("spark.local=true");
             return;

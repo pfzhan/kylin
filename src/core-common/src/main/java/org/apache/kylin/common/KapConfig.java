@@ -744,4 +744,8 @@ public class KapConfig {
         // driver memory that can be used by join(mostly BHJ)
         return Double.parseDouble(config.getOptional("kap.query.join-memory-fraction", "0.3"));
     }
+
+    public int getMonitorSparkPeriodSeconds() {
+        return Integer.parseInt(config.getOptional("kap.storage.monitor-spark-period-seconds", "30"));
+    }
 }
