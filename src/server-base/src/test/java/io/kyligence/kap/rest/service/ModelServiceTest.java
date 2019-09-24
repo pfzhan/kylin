@@ -243,9 +243,9 @@ public class ModelServiceTest extends CSVSourceTestCase {
         Assert.assertEquals("nmodel_basic", models.get(models.size() - 1).getAlias());
 
         models = modelService.getModels("", "default", false, "", "", "expansionrate", true);
-        Assert.assertEquals("nmodel_full_measure_test", models.get(0).getAlias());
+        Assert.assertEquals("nmodel_basic_inner", models.get(0).getAlias());
         models = modelService.getModels("", "default", false, "", "", "expansionrate", false);
-        Assert.assertEquals("nmodel_full_measure_test", models.get(3).getAlias());
+        Assert.assertEquals("nmodel_basic_inner", models.get(4).getAlias());
 
     }
 

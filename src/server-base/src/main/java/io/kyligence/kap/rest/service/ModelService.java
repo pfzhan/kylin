@@ -201,20 +201,33 @@ public class ModelService extends BasicService {
                 }
             }
         }
-        Comparator<NDataModelResponse> comparator = propertyComparator(
-                StringUtils.isEmpty(sortBy) ? "last_modify" : sortBy, !reverse);
-        filterModels.sort(comparator);
         if ("expansionrate".equalsIgnoreCase(sortBy)) {
-            List<NDataModelResponse> unknowModels = filterModels.stream()
-                    .filter(modle -> "-1".equalsIgnoreCase(modle.getExpansionrate())).collect(Collectors.toList());
-
-            List<NDataModelResponse> nDataModelResponses = filterModels.stream()
-                    .filter(modle -> !"-1".equalsIgnoreCase(modle.getExpansionrate())).collect(Collectors.toList());
-            nDataModelResponses.addAll(unknowModels);
-            return filterAuthorized(projectName, nDataModelResponses);
+            return filterAuthorized(projectName, sortExpansionRate(reverse, filterModels));
         } else {
+            Comparator<NDataModelResponse> comparator = propertyComparator(
+                    StringUtils.isEmpty(sortBy) ? "last_modify" : sortBy, !reverse);
+            filterModels.sort(comparator);
             return filterAuthorized(projectName, filterModels);
         }
+    }
+
+    private List<NDataModelResponse> sortExpansionRate(boolean reverse, List<NDataModelResponse> filterModels) {
+        List<NDataModelResponse> sorted;
+        if (!reverse) {
+            sorted = filterModels.stream().sorted(Comparator.comparing(a -> new BigDecimal(a.getExpansionrate())))
+                    .collect(Collectors.toList());
+        } else {
+            sorted = filterModels.stream().sorted(
+                    (a, b) -> new BigDecimal(b.getExpansionrate()).compareTo(new BigDecimal(a.getExpansionrate())))
+                    .collect(Collectors.toList());
+        }
+        List<NDataModelResponse> unknowModels = sorted.stream()
+                .filter(modle -> "-1".equalsIgnoreCase(modle.getExpansionrate())).collect(Collectors.toList());
+
+        List<NDataModelResponse> nDataModelResponses = sorted.stream()
+                .filter(modle -> !"-1".equalsIgnoreCase(modle.getExpansionrate())).collect(Collectors.toList());
+        nDataModelResponses.addAll(unknowModels);
+        return nDataModelResponses;
     }
 
     private List<NDataModelResponse> filterAuthorized(String project, List<NDataModelResponse> result) {
@@ -230,6 +243,7 @@ public class ModelService extends BasicService {
                     .collect(Collectors.toSet()));
             return CollectionUtils.isEmpty(copied.getAllTableRefs()) ? null : copied;
         }).filter(Objects::nonNull).collect(Collectors.toList());
+
     }
 
     private boolean isArgMatch(String valueToMatch, boolean exactMatch, String originValue) {

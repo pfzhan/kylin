@@ -52,7 +52,8 @@
     },
     "last_build_time" : 0,
     "source_count" : 9896,
-    "additionalInfo" : { }
+    "additionalInfo" : { },
+    "source_bytes_size": 10
   } ],
   "storage_location_identifier" : null
 }
