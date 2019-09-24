@@ -24,7 +24,6 @@
 
 package io.kyligence.kap.rest.response;
 
-import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -33,9 +32,9 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Getter;
 
 @Getter
-public class NInitTablesResponse implements Serializable {
+public class NInitTablesResponse {
     @Getter
-    public class DatabaseTables implements Serializable {
+    public class DatabaseTables {
         @JsonProperty("dbname")
         private String dbname;
         @JsonProperty("size")

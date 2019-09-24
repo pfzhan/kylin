@@ -1293,7 +1293,7 @@ public class TableService extends BasicService {
     }
 
     public interface ProjectTablesFilter {
-        List<?> process(String database, String table) throws Exception;
+        List process(String database, String table) throws Exception;
     }
 
     public NInitTablesResponse getProjectTables(String project, String table, Integer offset, Integer limit,
