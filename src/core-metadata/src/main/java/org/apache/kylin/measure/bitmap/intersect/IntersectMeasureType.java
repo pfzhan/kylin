@@ -59,17 +59,11 @@ public class IntersectMeasureType extends MeasureType<IntersectBitmapCounter> {
     public static final String FUNC_INTERSECT_COUNT_DISTINCT = FunctionDesc.FUNC_INTERSECT_COUNT;
     public static final String DATATYPE_BITMAP = "intersect_bitmap";
 
-    public DataType dataType;
-
-    public IntersectMeasureType(DataType dataType) {
-        this.dataType = dataType;
-    }
-
     public static class Factory extends MeasureTypeFactory<IntersectBitmapCounter> {
 
         @Override
         public MeasureType<IntersectBitmapCounter> createMeasureType(String funcName, DataType dataType) {
-            return new IntersectMeasureType(dataType);
+            return new IntersectMeasureType();
         }
 
         // cube chose
