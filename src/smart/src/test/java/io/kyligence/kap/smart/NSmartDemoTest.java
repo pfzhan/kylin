@@ -119,6 +119,7 @@ public class NSmartDemoTest {
 
         KylinConfig kylinConfig = KylinConfig.createKylinConfig(props);
         kylinConfig.setProperty("kylin.env", "UT");
+        kylinConfig.setProperty("kylin.query.security.acl-tcr-enabled", "false");
         try (SetAndUnsetThreadLocalConfig autoUnset = KylinConfig.setAndUnsetThreadLocalConfig(kylinConfig)) {
             NSmartMaster smartMaster = new NSmartMaster(kylinConfig, projectName, sqlList.toArray(new String[0]));
             smartMaster.runAll();

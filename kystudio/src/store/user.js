@@ -105,6 +105,9 @@ export default {
           reject()
         })
       })
+    },
+    [types.GET_ACCESS_DETAILS_BY_USER]: function ({ commit }, para) {
+      return api.user.getAccessDetailsByUser(para.projectName, para.roleOrName, para.data, para.type)
     }
   },
   getters: {

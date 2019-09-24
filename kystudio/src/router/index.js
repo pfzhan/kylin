@@ -4,6 +4,7 @@ import Component from 'vue-class-component'
 import topLeftRightView from 'components/layout/layout_left_right_top'
 import layoutFull from 'components/layout/layout_full'
 import projectList from 'components/project/project_list'
+import projectAuthority from 'components/project/project_authority'
 import login from 'components/user/login'
 import Insight from 'components/query/insight'
 import queryHistory from 'components/query/query_history'
@@ -74,6 +75,10 @@ let routerOptions = {
         name: 'Project',
         path: 'admin/project',
         component: projectList
+      }, {
+        name: 'ProjectAuthority',
+        path: 'admin/project/:projectName',
+        component: projectAuthority
       },
       {
         name: 'User',

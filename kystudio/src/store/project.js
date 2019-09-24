@@ -122,8 +122,11 @@ export default {
     [types.GET_PROJECT_ACCESS]: function ({ commit }, para) {
       return api.project.getProjectAccess(para.projectId, para.data)
     },
-    [types.DEL_PROJECT_ACCESS]: function ({ commit }, {id, aid, userName}) {
-      return api.project.delProjectAccess(id, aid, userName)
+    [types.DEL_PROJECT_ACCESS]: function ({ commit }, {id, aid, userName, principal}) {
+      return api.project.delProjectAccess(id, aid, userName, principal)
+    },
+    [types.SUBMIT_ACCESS_DATA]: function ({ commit }, {projectName, roleOrName, accessData}) {
+      return api.project.submitAccessData(projectName, roleOrName, accessData)
     },
     [types.ADD_PROJECT_FILTER]: function ({ commit }, filterData) {
       return api.project.saveProjectFilter(filterData)

@@ -24,16 +24,37 @@
 
 package org.apache.kylin.rest.security;
 
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.metadata.cachesync.CachedCrudAssist;
+import org.apache.kylin.rest.exception.BadRequestException;
+import org.apache.kylin.rest.msg.Message;
+import org.apache.kylin.rest.msg.MsgPicker;
+import org.apache.kylin.rest.util.AclPermissionUtil;
 import org.apache.kylin.rest.util.SpringContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.security.acls.domain.ConsoleAuditLogger;
+import org.springframework.security.acls.domain.DefaultPermissionGrantingStrategy;
 import org.springframework.security.acls.domain.PermissionFactory;
+import org.springframework.security.acls.domain.PrincipalSid;
+import org.springframework.security.acls.model.Acl;
+import org.springframework.security.acls.model.AlreadyExistsException;
+import org.springframework.security.acls.model.MutableAcl;
+import org.springframework.security.acls.model.NotFoundException;
+import org.springframework.security.acls.model.ObjectIdentity;
+import org.springframework.security.acls.model.Permission;
 import org.springframework.security.acls.model.PermissionGrantingStrategy;
+import org.springframework.security.acls.model.Sid;
+import org.springframework.security.core.context.SecurityContextHolder;
+
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 
 import lombok.val;
 
@@ -53,6 +74,10 @@ public class AclManager {
     }
 
     // ============================================================================
+
+    private final PermissionGrantingStrategy permissionGrantingStrategy = new DefaultPermissionGrantingStrategy(
+            new ConsoleAuditLogger());
+    private final PermissionFactory aclPermissionFactory = new AclPermissionFactory();
 
     private KylinConfig config;
     private CachedCrudAssist<AclRecord> crud;
@@ -94,5 +119,128 @@ public class AclManager {
 
     public AclRecord copyForWrite(AclRecord aclRecord) {
         return crud.copyForWrite(aclRecord);
+    }
+
+    public List<ObjectIdentity> findChildren(ObjectIdentity parentIdentity) {
+        List<ObjectIdentity> oids = Lists.newArrayList();
+        Collection<AclRecord> allAclRecords;
+        allAclRecords = crud.listAll();
+        for (AclRecord record : allAclRecords) {
+            ObjectIdentityImpl parent = record.getParentDomainObjectInfo();
+            if (parent != null && parent.equals(parentIdentity)) {
+                ObjectIdentityImpl child = record.getDomainObjectInfo();
+                oids.add(child);
+            }
+        }
+        return oids;
+    }
+
+    public MutableAclRecord readAcl(ObjectIdentity oid) {
+        return (MutableAclRecord) readAclById(oid);
+    }
+
+    public Acl readAclById(ObjectIdentity object) {
+        return readAclsById(Arrays.asList(object)).get(object);
+    }
+
+    public Map<ObjectIdentity, Acl> readAclsById(List<ObjectIdentity> oids) {
+        Map<ObjectIdentity, Acl> aclMaps = Maps.newHashMap();
+        for (ObjectIdentity oid : oids) {
+            AclRecord record = getAclRecordByCache(AclPermissionUtil.objID(oid));
+            if (record == null) {
+                Message msg = MsgPicker.getMsg();
+                throw new NotFoundException(String.format(msg.getACL_INFO_NOT_FOUND(), oid));
+            }
+
+            Acl parentAcl = null;
+            if (record.isEntriesInheriting() && record.getParentDomainObjectInfo() != null)
+                parentAcl = readAclById(record.getParentDomainObjectInfo());
+
+            record.init(parentAcl, aclPermissionFactory, permissionGrantingStrategy);
+
+            aclMaps.put(oid, new MutableAclRecord(record));
+        }
+        return aclMaps;
+    }
+
+    public MutableAcl createAcl(ObjectIdentity objectIdentity) {
+        AclRecord aclRecord = getAclRecordByCache(AclPermissionUtil.objID(objectIdentity));
+        if (aclRecord != null) {
+            throw new AlreadyExistsException(String.format("ACL of %s exists!", objectIdentity));
+        }
+        AclRecord record = newAclRecord(objectIdentity);
+        crud.save(record);
+        logger.debug("ACL of {} created successfully.", objectIdentity);
+
+        return (MutableAcl) readAclById(objectIdentity);
+    }
+
+    public void deleteAcl(ObjectIdentity objectIdentity, boolean deleteChildren) {
+        List<ObjectIdentity> children = findChildren(objectIdentity);
+        if (!deleteChildren && !children.isEmpty()) {
+            Message msg = MsgPicker.getMsg();
+            throw new BadRequestException(String.format(msg.getIDENTITY_EXIST_CHILDREN(), objectIdentity));
+        }
+        for (ObjectIdentity oid : children) {
+            deleteAcl(oid, deleteChildren);
+        }
+        crud.delete(AclPermissionUtil.objID(objectIdentity));
+        logger.debug("ACL of {} deleted successfully.", objectIdentity);
+    }
+
+    public MutableAcl updateAcl(MutableAcl mutableAcl) {
+        AclRecord record = ((MutableAclRecord) mutableAcl).getAclRecord();
+        crud.save(record);
+        logger.debug("ACL of {} updated successfully.", mutableAcl.getObjectIdentity());
+        return mutableAcl;
+    }
+
+    // a NULL permission means to delete the ace
+    public MutableAclRecord upsertAce(MutableAclRecord acl, final Sid sid, final Permission perm) {
+        return updateAcl(acl, (AclRecord record) -> record.upsertAce(perm, sid));
+    }
+
+    public void batchUpsertAce(MutableAclRecord acl, final Map<Sid, Permission> sidToPerm) {
+
+        updateAcl(acl, (AclRecord record) -> {
+            for (Map.Entry<Sid, Permission> entry : sidToPerm.entrySet()) {
+                record.upsertAce(entry.getValue(), entry.getKey());
+            }
+        });
+
+    }
+
+    public MutableAclRecord inherit(MutableAclRecord acl, final MutableAclRecord parentAcl) {
+
+        return updateAcl(acl, (AclRecord record) -> {
+            record.setEntriesInheriting(true);
+            record.setParent(parentAcl);
+        });
+    }
+
+    public AclRecord getAclRecordByCache(String id) {
+        return crud.get(id);
+    }
+
+    public AclRecord newAclRecord(ObjectIdentity objID) {
+        AclRecord acl = new AclRecord(objID, getCurrentSid());
+        acl.init(null, this.aclPermissionFactory, this.permissionGrantingStrategy);
+        acl.updateRandomUuid();
+        return acl;
+    }
+
+    private Sid getCurrentSid() {
+        return new PrincipalSid(SecurityContextHolder.getContext().getAuthentication());
+    }
+
+    public interface AclRecordUpdater {
+        void update(AclRecord copyForWrite);
+    }
+
+    private MutableAclRecord updateAcl(MutableAclRecord acl, AclRecordUpdater updater) {
+        val copyForWrite = crud.copyForWrite(acl.getAclRecord());
+        updater.update(copyForWrite);
+        crud.save(copyForWrite);
+        return readAcl(acl.getObjectIdentity()); // here we are done
     }
 }

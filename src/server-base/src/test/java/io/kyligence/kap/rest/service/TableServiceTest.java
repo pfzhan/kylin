@@ -116,6 +116,9 @@ public class TableServiceTest extends CSVSourceTestCase {
     @Mock
     private ModelService modelService = Mockito.spy(ModelService.class);
 
+    @Mock
+    private AclTCRService aclTCRService = Mockito.spy(AclTCRService.class);
+
     @Rule
     public ExpectedException thrown = ExpectedException.none();
 
@@ -124,6 +127,7 @@ public class TableServiceTest extends CSVSourceTestCase {
         super.setup();
         System.setProperty("HADOOP_USER_NAME", "root");
         ReflectionTestUtils.setField(tableService, "modelService", modelService);
+        ReflectionTestUtils.setField(tableService, "aclTCRService", aclTCRService);
 
         NProjectManager projectManager = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv());
         ProjectInstance projectInstance = projectManager.getProject("default");

@@ -27,7 +27,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Set;
+import java.util.Objects;
 
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlExplain;
@@ -36,7 +36,6 @@ import org.apache.calcite.sql.SqlOrderBy;
 import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.util.SqlBasicVisitor;
-import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.common.util.Pair;
@@ -45,18 +44,27 @@ import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.tool.CalciteParser;
 import org.apache.kylin.query.schema.OLAPSchemaFactory;
 import org.apache.kylin.query.util.QueryUtil;
+import org.apache.kylin.rest.constant.Constant;
+import org.apache.kylin.source.adhocquery.IPushDownConverter;
 
 import com.google.common.base.Preconditions;
 
 import io.kyligence.kap.common.obf.IKeep;
+import io.kyligence.kap.metadata.acl.AclTCR;
+import io.kyligence.kap.metadata.acl.AclTCRManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
-import io.kyligence.kap.metadata.acl.ColumnACLManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
 
-public class HackSelectStarWithColumnACL implements QueryUtil.IQueryTransformer, IKeep {
+public class HackSelectStarWithColumnACL implements QueryUtil.IQueryTransformer, IPushDownConverter, IKeep {
+
+    @Override
+    public String convert(String originSql, String project, String defaultSchema, boolean isPrepare) {
+        return transform(originSql, project, defaultSchema);
+    }
+
     @Override
     public String transform(String sql, String project, String defaultSchema) {
-        if (!isColumnInterceptorEnabled()) {
+        if (!KylinConfig.getInstanceFromEnv().isAclTCREnabled() || isAdmin(QueryContext.current())) {
             return sql;
         }
 
@@ -71,27 +79,16 @@ public class HackSelectStarWithColumnACL implements QueryUtil.IQueryTransformer,
             return sql;
         }
 
-        QueryContext context = QueryContext.current();
-        Set<String> columnBlackList = ColumnACLManager //
-                .getInstance(KylinConfig.getInstanceFromEnv()) //
-                .getColumnACLByCache(project) //
-                .getColumnBlackList(context.getUsername(), context.getGroups()); //
-
-        if (columnBlackList.isEmpty()) {
-            return sql;
-        }
-
-        String newSelectClause = getNewSelectClause(sqlNode, project, defaultSchema, columnBlackList);
+        String newSelectClause = getNewSelectClause(sqlNode, project, defaultSchema);
         int selectStarPos = getSelectStarPos(sql, sqlNode);
         StringBuilder result = new StringBuilder(sql);
         result.replace(selectStarPos, selectStarPos + 1, newSelectClause);
         return result.toString();
     }
 
-    static String getNewSelectClause(SqlNode sqlNode, String project, String defaultSchema,
-            Set<String> columnBlackList) {
+    static String getNewSelectClause(SqlNode sqlNode, String project, String defaultSchema) {
         StringBuilder newSelectClause = new StringBuilder();
-        List<String> allCols = getColsCanAccess(sqlNode, project, defaultSchema, columnBlackList);
+        List<String> allCols = getColsCanAccess(sqlNode, project, defaultSchema);
         for (String col : allCols) {
             if (!col.equals(allCols.get(allCols.size() - 1))) {
                 newSelectClause.append(col).append(", ");
@@ -102,26 +99,30 @@ public class HackSelectStarWithColumnACL implements QueryUtil.IQueryTransformer,
         return newSelectClause.toString();
     }
 
-    static List<String> getColsCanAccess(SqlNode sqlNode, String project, String defaultSchema,
-            Set<String> columnBlackList) {
+    static List<String> getColsCanAccess(SqlNode sqlNode, String project, String defaultSchema) {
         List<String> cols = new ArrayList<>();
 
+        QueryContext context = QueryContext.current();
+        final List<AclTCR> aclTCRs = AclTCRManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
+                .getAclTCRs(context.getUsername(), context.getGroups());
         List<RowFilter.Table> tblWithAlias = RowFilter.getTblWithAlias(defaultSchema, getSingleSelect(sqlNode));
         for (RowFilter.Table table : tblWithAlias) {
             TableDesc tableDesc = NTableMetadataManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
                     .getTableDesc(table.getName());
+            if (Objects.isNull(tableDesc)) {
+                throw new IllegalStateException(
+                        "Table " + table.getAlias() + " not found. Please add table " + table.getAlias()
+                                + " to data source. If this table does exist, mention it as DATABASE.TABLE.");
+            }
             List<ColumnDesc> columns = listExposedColumns(project, tableDesc);
             for (ColumnDesc column : columns) {
-                if (!columnBlackList.contains(tableDesc.getIdentity() + "." + column.getName())) {
+                if (aclTCRs.stream()
+                        .anyMatch(aclTCR -> aclTCR.isAuthorized(tableDesc.getIdentity(), column.getName()))) {
                     cols.add(table.getAlias() + "." + column.getName());
                 }
             }
         }
         return cols;
-    }
-
-    private static boolean isColumnInterceptorEnabled() {
-        return KapConfig.getInstanceFromEnv().isColumnACLEnabled();
     }
 
     private static boolean isSingleSelectStar(SqlNode sqlNode) {
@@ -152,13 +153,15 @@ public class HackSelectStarWithColumnACL implements QueryUtil.IQueryTransformer,
         List<ColumnDesc> columns = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv())
                 .listExposedColumns(project, tableDesc, OLAPSchemaFactory.exposeMore());
 
-        Collections.sort(columns, new Comparator<ColumnDesc>() {
-            @Override
-            public int compare(ColumnDesc o1, ColumnDesc o2) {
-                return o1.getZeroBasedIndex() - o2.getZeroBasedIndex();
-            }
-        });
+        Collections.sort(columns, Comparator.comparing(ColumnDesc::getZeroBasedIndex));
         return columns;
+    }
+
+    private static boolean isAdmin(QueryContext context) {
+        if (Objects.isNull(context) || Objects.isNull(context.getGroups())) {
+            return false;
+        }
+        return context.getGroups().stream().anyMatch(Constant.ROLE_ADMIN::equals);
     }
 
     static class SelectNumVisitor extends SqlBasicVisitor<SqlNode> {

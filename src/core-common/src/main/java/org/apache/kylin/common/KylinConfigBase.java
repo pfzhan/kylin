@@ -87,7 +87,7 @@ abstract public class KylinConfigBase implements Serializable {
     private static final Logger logger = LoggerFactory.getLogger(KylinConfigBase.class);
 
     private static final String WORKING_DIR_PROP = "kylin.env.hdfs-working-dir";
-    private static final String WORKING_DIR_DEFAULT = "/kylin";
+    private static final String KYLIN_ROOT = "/kylin";
 
     /*
      * DON'T DEFINE CONSTANTS FOR PROPERTY KEYS!
@@ -248,7 +248,7 @@ abstract public class KylinConfigBase implements Serializable {
 
         // https://github.com/kyligence/kap/issues/12654
         this.properties.put(WORKING_DIR_PROP,
-                makeQualified(new Path(this.properties.getProperty(WORKING_DIR_PROP, WORKING_DIR_DEFAULT))).toString());
+                makeQualified(new Path(this.properties.getProperty(WORKING_DIR_PROP, KYLIN_ROOT))).toString());
     }
 
     private Map<Integer, String> convertKeyToInteger(Map<String, String> map) {
@@ -298,7 +298,7 @@ abstract public class KylinConfigBase implements Serializable {
         if (cachedHdfsWorkingDirectory != null)
             return cachedHdfsWorkingDirectory;
 
-        String root = getOptional(WORKING_DIR_PROP, WORKING_DIR_DEFAULT);
+        String root = getOptional(WORKING_DIR_PROP, KYLIN_ROOT);
 
         Path path = new Path(root);
         if (!path.isAbsolute())
@@ -346,7 +346,7 @@ abstract public class KylinConfigBase implements Serializable {
     }
 
     public String getZookeeperBasePath() {
-        return getOptional("kylin.env.zookeeper-base-path", "/kylin");
+        return getOptional("kylin.env.zookeeper-base-path", KYLIN_ROOT);
     }
 
     /**
@@ -1384,6 +1384,10 @@ abstract public class KylinConfigBase implements Serializable {
 
     public int getPoolMinIdle() {
         return Integer.parseInt(this.getOptional("kylin.query.pushdown.jdbc.pool-min-idle", "0"));
+    }
+
+    public boolean isAclTCREnabled() {
+        return Boolean.valueOf(this.getOptional("kylin.query.security.acl-tcr-enabled", "true"));
     }
 
     public boolean isTableACLEnabled() {

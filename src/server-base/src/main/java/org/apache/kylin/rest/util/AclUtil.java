@@ -82,7 +82,7 @@ public class AclUtil {
         return true;
     }
 
-    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
     public boolean checkIsGlobalAdmin() {
         return true;
     }

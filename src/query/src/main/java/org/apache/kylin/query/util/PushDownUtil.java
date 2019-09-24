@@ -80,6 +80,7 @@ import org.apache.kylin.metadata.model.tool.CalciteParser;
 import org.apache.kylin.metadata.querymeta.SelectedColumnMeta;
 import org.apache.kylin.metadata.realization.NoRealizationFoundException;
 import org.apache.kylin.metadata.realization.RoutingIndicatorException;
+import org.apache.kylin.query.security.AccessDeniedException;
 import org.apache.kylin.source.adhocquery.IPushDownRunner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -238,7 +239,9 @@ public class PushDownUtil {
         } else {
             if (rootCause instanceof KylinTimeoutException)
                 return false;
-
+            if (rootCause instanceof AccessDeniedException) {
+                return false;
+            }
             if (rootCause instanceof RoutingIndicatorException) {
                 return true;
             }

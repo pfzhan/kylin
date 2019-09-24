@@ -40,7 +40,6 @@ import org.apache.kylin.common.persistence.WriteConflictException;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.metadata.MetadataConstants;
 import org.apache.kylin.rest.constant.Constant;
-import io.kyligence.kap.metadata.user.ManagedUser;
 import org.apache.kylin.rest.service.AccessService;
 import org.apache.kylin.rest.service.IUserGroupService;
 import org.apache.kylin.rest.service.UserService;
@@ -58,6 +57,7 @@ import com.google.common.collect.Maps;
 import com.google.common.io.ByteStreams;
 
 import io.kyligence.kap.metadata.acl.UserGroup;
+import io.kyligence.kap.metadata.user.ManagedUser;
 import io.kyligence.kap.rest.config.initialize.AppInitializedEvent;
 import io.kyligence.kap.rest.transaction.Transaction;
 
@@ -202,7 +202,8 @@ public class NUserGroupService implements ApplicationListener<AppInitializedEven
     public List<String> getAuthoritiesFilterByGroupName(String userGroupName) throws IOException {
         checkPermission(null);
         return StringUtils.isEmpty(userGroupName) ? getAllUserGroups()
-                : getAllUserGroups().stream().filter(userGroup -> userGroup.toUpperCase().contains(userGroupName.toUpperCase()))
+                : getAllUserGroups().stream()
+                        .filter(userGroup -> userGroup.toUpperCase().contains(userGroupName.toUpperCase()))
                         .collect(Collectors.toList());
     }
 

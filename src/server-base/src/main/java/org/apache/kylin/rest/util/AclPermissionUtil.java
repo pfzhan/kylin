@@ -43,15 +43,34 @@
 package org.apache.kylin.rest.util;
 
 import java.util.Collection;
-import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
+import java.util.stream.Collectors;
 
+import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.persistence.AclEntity;
+import org.apache.kylin.metadata.project.ProjectInstance;
+import org.apache.kylin.rest.constant.Constant;
+import org.apache.kylin.rest.security.AclEntityFactory;
+import org.apache.kylin.rest.security.AclEntityType;
+import org.apache.kylin.rest.security.AclManager;
+import org.apache.kylin.rest.security.AclPermission;
+import org.apache.kylin.rest.security.MutableAclRecord;
+import org.apache.kylin.rest.security.ObjectIdentityImpl;
+import org.springframework.security.acls.domain.GrantedAuthoritySid;
+import org.springframework.security.acls.domain.PrincipalSid;
+import org.springframework.security.acls.model.AccessControlEntry;
+import org.springframework.security.acls.model.ObjectIdentity;
+import org.springframework.security.acls.model.Sid;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 
 import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
+
+import io.kyligence.kap.metadata.project.NProjectManager;
 
 public class AclPermissionUtil {
 
@@ -68,10 +87,15 @@ public class AclPermissionUtil {
         return ret;
     }
 
-    public static Set<String> getCurrentUserGroups() {
-        Set<String> groups = new HashSet<>();
+    public static String getCurrentUsername() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        if (auth == null) {
+        return Objects.isNull(auth) ? null : auth.getName();
+    }
+
+    public static Set<String> getCurrentUserGroups() {
+        Set<String> groups = Sets.newHashSet();
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (Objects.isNull(auth)) {
             return groups;
         }
         Collection<? extends GrantedAuthority> authorities = auth.getAuthorities();
@@ -79,5 +103,117 @@ public class AclPermissionUtil {
             groups.add(authority.getAuthority());
         }
         return groups;
+    }
+
+    private static MutableAclRecord getProjectAcl(String project) {
+        ProjectInstance projectInstance = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv())
+                .getProject(project);
+        AclEntity ae = AclEntityFactory.createAclEntity(AclEntityType.PROJECT_INSTANCE, projectInstance.getUuid());
+        return AclManager.getInstance(KylinConfig.getInstanceFromEnv()).readAcl(new ObjectIdentityImpl(ae));
+    }
+
+    public static Set<String> getCurrentUserGroupsInProject(String project) {
+        Set<String> groups = getCurrentUserGroups();
+
+        MutableAclRecord acl = getProjectAcl(project);
+        if (Objects.isNull(acl)) {
+            return groups;
+        }
+        Sid sid;
+        Set<String> groupsInProject = Sets.newHashSet();
+        for (AccessControlEntry ace : acl.getEntries()) {
+            sid = ace.getSid();
+            if (sid instanceof PrincipalSid) {
+                continue;
+            }
+            groupsInProject.add(getName(sid));
+        }
+        return groups.stream().filter(g -> groupsInProject.contains(g)).collect(Collectors.toSet());
+    }
+
+    public static Set<String> getGroupsInProject(Set<String> groups, String project) {
+        if (groups.isEmpty()) {
+            return groups;
+        }
+        MutableAclRecord acl = getProjectAcl(project);
+        if (Objects.isNull(acl)) {
+            return groups;
+        }
+        return acl.getEntries().stream()
+                .filter(accessControlEntry -> accessControlEntry.getSid() instanceof GrantedAuthoritySid)
+                .filter(accessControlEntry -> groups.contains(getName(accessControlEntry.getSid())))
+                .map(accessControlEntry -> getName(accessControlEntry.getSid())).collect(Collectors.toSet());
+    }
+
+    public static boolean isAdmin() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        return Objects.nonNull(auth) && auth.getAuthorities().stream().map(GrantedAuthority::getAuthority)
+                .anyMatch(Constant.ROLE_ADMIN::equals);
+    }
+
+    public static boolean canUseACLGreenChannel(String project) {
+        return canUseACLGreenChannelInQuery(project);
+    }
+
+    public static boolean canUseACLGreenChannelInQuery(String project) {
+        return isAdmin() || !KylinConfig.getInstanceFromEnv().isAclTCREnabled();
+    }
+
+    public static boolean isAdminInProject(String project) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (Objects.isNull(auth)) {
+            return false;
+        }
+        String username = auth.getName();
+        Set<String> groups = getCurrentUserGroupsInProject(project);
+        MutableAclRecord acl = getProjectAcl(project);
+        if (Objects.isNull(acl)) {
+            return false;
+        }
+        Sid sid;
+        for (AccessControlEntry ace : acl.getEntries()) {
+            if (isProjectAdmin(ace)) {
+                sid = ace.getSid();
+                if (isCurrentUser(sid, username)) {
+                    return true;
+                }
+                if (isCurrentGroup(sid, groups)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    private static boolean isProjectAdmin(AccessControlEntry ace) {
+        return ace.getPermission().getMask() == AclPermission.ADMINISTRATION.getMask();
+    }
+
+    private static boolean isCurrentUser(Sid sid, String username) {
+        return (sid instanceof PrincipalSid) && (username.equals(((PrincipalSid) sid).getPrincipal()));
+    }
+
+    private static boolean isCurrentGroup(Sid sid, Set<String> groups) {
+        if (!(sid instanceof GrantedAuthoritySid)) {
+            return false;
+        }
+        for (String group : groups) {
+            if (group.equals(((GrantedAuthoritySid) sid).getGrantedAuthority())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public static String objID(ObjectIdentity domainObjId) {
+        return String.valueOf(domainObjId.getIdentifier());
+    }
+
+    public static String getName(Sid sid) {
+        if (sid instanceof PrincipalSid) {
+            return ((PrincipalSid) sid).getPrincipal();
+        } else {
+            return ((GrantedAuthoritySid) sid).getGrantedAuthority();
+        }
     }
 }

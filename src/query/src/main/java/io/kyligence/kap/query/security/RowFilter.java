@@ -26,14 +26,13 @@ package io.kyligence.kap.query.security;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.TreeSet;
 
-import io.kyligence.kap.metadata.acl.RowACLManager;
 import org.apache.calcite.sql.SqlAsOperator;
 import org.apache.calcite.sql.SqlBasicCall;
 import org.apache.calcite.sql.SqlCall;
@@ -46,30 +45,36 @@ import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.util.SqlBasicVisitor;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.text.StrBuilder;
-import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.common.util.Pair;
-import org.apache.kylin.metadata.MetadataConstants;
 import org.apache.kylin.metadata.model.tool.CalciteParser;
 import org.apache.kylin.query.util.QueryUtil;
+import org.apache.kylin.rest.constant.Constant;
+import org.apache.kylin.source.adhocquery.IPushDownConverter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
 
 import io.kyligence.kap.common.obf.IKeep;
+import io.kyligence.kap.metadata.acl.AclTCRManager;
 
-public class RowFilter implements QueryUtil.IQueryTransformer, IKeep {
+public class RowFilter implements QueryUtil.IQueryTransformer, IPushDownConverter, IKeep {
     private static final Logger logger = LoggerFactory.getLogger(RowFilter.class);
 
     @Override
+    public String convert(String originSql, String project, String defaultSchema, boolean isPrepare) {
+        return transform(originSql, project, defaultSchema);
+    }
+
+    @Override
     public String transform(String sql, String project, String defaultSchema) {
-        if (!KapConfig.getInstanceFromEnv().isRowACLEnabled()) {
+        if (!KylinConfig.getInstanceFromEnv().isAclTCREnabled() || isAdmin(QueryContext.current())) {
             return sql;
         }
 
-        List<Map<String, String>> allWhereCondWithTbls = getAllWhereCondWithTbls(project);
+        Map<String, String> allWhereCondWithTbls = getAllWhereCondWithTbls(project);
         if (needEscape(sql, defaultSchema, allWhereCondWithTbls)) {
             return sql;
         }
@@ -78,26 +83,22 @@ public class RowFilter implements QueryUtil.IQueryTransformer, IKeep {
         // if origin SQL has where clause, add "()", see KAP#2873
         sql = whereClauseBracketsCompletion(defaultSchema, sql, getCandidateTables(allWhereCondWithTbls));
 
-        for (Map<String, String> whereCondWithTbls : allWhereCondWithTbls) {
-            sql = rowFilter(defaultSchema, sql, whereCondWithTbls);
-        }
+        sql = rowFilter(defaultSchema, sql, allWhereCondWithTbls);
 
         logger.info("\nFinsh transforming SQL with row ACL.\n");
         return sql;
     }
 
-    static boolean needEscape(String sql, String defaultSchema, List<Map<String, String>> cond) {
+    static boolean needEscape(String sql, String defaultSchema, Map<String, String> cond) {
         return StringUtils.isEmpty(defaultSchema) //
                 || StringUtils.isEmpty(sql) //
                 || !StringUtils.containsIgnoreCase(sql, "from") //
                 || cond.isEmpty(); //
     }
 
-    private Set<String> getCandidateTables(List<Map<String, String>> allWhereCondWithTbls) {
+    private Set<String> getCandidateTables(Map<String, String> allWhereCondWithTbls) {
         Set<String> candidateTables = new TreeSet<>(String.CASE_INSENSITIVE_ORDER);
-        for (Map<String, String> allWhereCondWithTbl : allWhereCondWithTbls) {
-            candidateTables.addAll(allWhereCondWithTbl.keySet());
-        }
+        candidateTables.addAll(allWhereCondWithTbls.keySet());
         return candidateTables;
     }
 
@@ -124,18 +125,15 @@ public class RowFilter implements QueryUtil.IQueryTransformer, IKeep {
 
     static String rowFilter(String schema, String inputSQL, Map<String, String> whereCondWithTbls) {
         Map<SqlSelect, List<Table>> selectClausesWithTbls = getSelectClausesWithTbls(inputSQL, schema);
-        List<Pair<Integer, String>> toBeInsertedPosAndExprs = getInsertPosAndExpr(inputSQL, whereCondWithTbls, selectClausesWithTbls);
+        List<Pair<Integer, String>> toBeInsertedPosAndExprs = getInsertPosAndExpr(inputSQL, whereCondWithTbls,
+                selectClausesWithTbls);
         return afterInsertSQL(inputSQL, toBeInsertedPosAndExprs);
     }
 
     private static String afterInsertSQL(String inputSQL, List<Pair<Integer, String>> toBeInsertedPosAndExprs) {
         // latter replace position in the front of the list.
-        Collections.sort(toBeInsertedPosAndExprs, new Comparator<Pair<Integer, String>>() {
-            @Override
-            public int compare(Pair<Integer, String> o1, Pair<Integer, String> o2) {
-                return -(o1.getFirst() - o2.getFirst());
-            }
-        });
+        Collections.sort(toBeInsertedPosAndExprs,
+                (Pair<Integer, String> o1, Pair<Integer, String> o2) -> -(o1.getFirst() - o2.getFirst()));
 
         StrBuilder convertedSQL = new StrBuilder(inputSQL);
         for (Pair<Integer, String> toBeInserted : toBeInsertedPosAndExprs) {
@@ -147,10 +145,8 @@ public class RowFilter implements QueryUtil.IQueryTransformer, IKeep {
 
     // concat all table's row ACL defined condition and insert to user's inputSQL as where clause.
     // return [insertPos : toBeInsertExpr]
-    private static List<Pair<Integer, String>> getInsertPosAndExpr(
-            String inputSQL,
-            Map<String, String> whereCondWithTbls,
-            Map<SqlSelect, List<Table>> selectClausesWithTbls) {
+    private static List<Pair<Integer, String>> getInsertPosAndExpr(String inputSQL,
+            Map<String, String> whereCondWithTbls, Map<SqlSelect, List<Table>> selectClausesWithTbls) {
 
         List<Pair<Integer, String>> toBeReplacedPosAndExprs = new ArrayList<>();
 
@@ -176,7 +172,7 @@ public class RowFilter implements QueryUtil.IQueryTransformer, IKeep {
         int bracketNum = 0;
         //move the pos to the rightest ")", if has.
         //bracketNum if for the situation like that: "from ( select * from t where t.a > 0 )", the rightest ")" is not belong to where clause
-        for (int j = pos.getFirst() - 1; ; j--) {
+        for (int j = pos.getFirst() - 1;; j--) {
             if (inputSQL.charAt(j) == ' ' || inputSQL.charAt(j) == '\t' || inputSQL.charAt(j) == '\n') {
                 continue;
             } else if (inputSQL.charAt(j) == '(') {
@@ -199,7 +195,8 @@ public class RowFilter implements QueryUtil.IQueryTransformer, IKeep {
         return finalPos;
     }
 
-    private static String getToBeInsertCond(Map<String, String> whereCondWithTbls, SqlSelect select, List<Table> tables) {
+    private static String getToBeInsertCond(Map<String, String> whereCondWithTbls, SqlSelect select,
+            List<Table> tables) {
         StringBuilder whereCond = new StringBuilder();
         boolean isHeadCond = true;
         for (Table table : tables) {
@@ -261,6 +258,13 @@ public class RowFilter implements QueryUtil.IQueryTransformer, IKeep {
             }
         }
         return tblsWithAlias;
+    }
+
+    private static boolean isAdmin(QueryContext context) {
+        if (Objects.isNull(context) || Objects.isNull(context.getGroups())) {
+            return false;
+        }
+        return context.getGroups().stream().anyMatch(Constant.ROLE_ADMIN::equals);
     }
 
     /*visitor classes.Get all select nodes, include select clause in subquery*/
@@ -373,7 +377,8 @@ public class RowFilter implements QueryUtil.IQueryTransformer, IKeep {
         @Override
         public SqlNode visit(SqlIdentifier id) {
             // if table has no alias, will come into this method.Put table name as alias
-            String table = id.toString().toUpperCase().split("\\.")[id.toString().toUpperCase().split("\\.").length - 1];
+            String[] dotSplits = id.toString().toUpperCase().split("\\.");
+            String table = dotSplits[dotSplits.length - 1];
             tablesWithAlias.add(new Table(id.toString().toUpperCase(), table));
             return null;
         }
@@ -404,27 +409,8 @@ public class RowFilter implements QueryUtil.IQueryTransformer, IKeep {
     }
 
     //get all user/groups's row ACL
-    private List<Map<String, String>> getAllWhereCondWithTbls(String project) {
-        String username = QueryContext.current().getUsername();
-        Set<String> userGroups = QueryContext.current().getGroups();
-
-        RowACLManager rowACLManager = RowACLManager.getInstance(KylinConfig.getInstanceFromEnv());
-        List<Map<String, String>> list = new ArrayList<>();
-        Map<String, String> conds = rowACLManager.getConcatCondsByEntity(project, MetadataConstants.TYPE_USER, username);
-        logger.info("Start retrieving " + username + "'s row ACL.");
-        if (!conds.isEmpty()) {
-            list.add(conds);
-        }
-        if (userGroups == null || userGroups.isEmpty()) {
-            throw new RuntimeException("Can not get uses's group when in row ACL transforming");
-        }
-        for (String group : userGroups) {
-            Map<String, String> groupConds = rowACLManager.getConcatCondsByEntity(project, MetadataConstants.TYPE_GROUP, group);
-            if (!groupConds.isEmpty()) {
-                list.add(groupConds);
-            }
-        }
-        logger.info("Finished retrieving " + username + "'s row ACL.");
-        return list;
+    private Map<String, String> getAllWhereCondWithTbls(String project) {
+        return AclTCRManager.getInstance(KylinConfig.getInstanceFromEnv(), project).getTableColumnConcatWhereCondition(
+                QueryContext.current().getUsername(), QueryContext.current().getGroups());
     }
 }

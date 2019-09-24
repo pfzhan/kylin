@@ -57,5 +57,8 @@ export default {
   },
   getUsersByGroupName: (para) => {
     return Vue.resource(apiUrl + 'user_group/groupMembers/' + para.groupName).get(para)
+  },
+  getAccessDetailsByUser: (projectName, roleOrName, data, type) => {
+    return Vue.resource(apiUrl + `acl/${projectName}/sid/${type}/${roleOrName}`).get(data)
   }
 }

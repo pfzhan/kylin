@@ -74,6 +74,7 @@ import com.google.common.collect.Lists;
 import io.kyligence.kap.metadata.user.ManagedUser;
 import io.kyligence.kap.rest.config.initialize.AppInitializedEvent;
 import io.kyligence.kap.rest.request.PasswordChangeRequest;
+import io.kyligence.kap.rest.service.AclTCRService;
 import lombok.val;
 
 @Controller
@@ -94,6 +95,10 @@ public class NUserController extends NBasicController {
     @Autowired
     @Qualifier("accessService")
     private AccessService accessService;
+
+    @Autowired
+    @Qualifier("aclTCRService")
+    private AclTCRService aclTCRService;
 
     @Autowired
     private LicenseInfoService licenseInfoService;
@@ -202,6 +207,7 @@ public class NUserController extends NBasicController {
         }
         //delete user's project ACL
         accessService.revokeProjectPermission(username, MetadataConstants.TYPE_USER);
+        aclTCRService.revokeAclTCR(username, true);
         userService.deleteUser(username);
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, null, "");
     }

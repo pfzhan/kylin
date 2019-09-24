@@ -71,6 +71,7 @@ import com.google.common.collect.Lists;
 
 import io.kyligence.kap.metadata.user.ManagedUser;
 import io.kyligence.kap.rest.request.UpdateGroupRequest;
+import io.kyligence.kap.rest.service.AclTCRService;
 import io.kyligence.kap.rest.service.NUserGroupService;
 import lombok.val;
 
@@ -80,6 +81,9 @@ public class NUserGroupControllerTest {
 
     @Mock
     private NUserGroupService userGroupService;
+
+    @Mock
+    private AclTCRService aclTCRService;
 
     @Mock
     private UserService userService;
@@ -96,7 +100,8 @@ public class NUserGroupControllerTest {
     public void setup() {
         MockitoAnnotations.initMocks(this);
         ContentNegotiationManager contentNegotiationManager = new ContentNegotiationManager();
-        mockMvc = MockMvcBuilders.standaloneSetup(nUserGroupController).setContentNegotiationManager(contentNegotiationManager)
+        mockMvc = MockMvcBuilders.standaloneSetup(nUserGroupController)
+                .setContentNegotiationManager(contentNegotiationManager)
                 .defaultRequest(MockMvcRequestBuilders.get("/").servletPath("/api")).build();
         SecurityContextHolder.getContext().setAuthentication(authentication);
     }
@@ -108,6 +113,7 @@ public class NUserGroupControllerTest {
     @Test
     public void testGetUsersByGroup() throws Exception {
         Mockito.doReturn(mockManagedUser()).when(userGroupService).getGroupMembersByName(Mockito.anyString());
+        Mockito.doNothing().when(aclTCRService).revokeAclTCR(Mockito.anyString(), Mockito.anyBoolean());
         mockMvc.perform(MockMvcRequestBuilders.get("/api/user_group/groupMembers/{groupName:.+}", "g1@.h")
                 .contentType(MediaType.APPLICATION_JSON).param("pageOffset", "0").param("pageSize", "10")
                 .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))

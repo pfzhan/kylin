@@ -53,7 +53,6 @@ import lombok.val;
 
 public abstract class NAutoTestOnLearnKylinData {
 
-
     protected String proj = "learn_kylin";
     private File tmpMeta;
     private SetAndUnsetThreadLocalConfig localConfig;
@@ -70,6 +69,7 @@ public abstract class NAutoTestOnLearnKylinData {
 
         KylinConfig kylinConfig = KylinConfig.createKylinConfig(props);
         kylinConfig.setProperty("kylin.env", "UT");
+        kylinConfig.setProperty("kylin.query.security.acl-tcr-enabled", "false");
         localConfig = KylinConfig.setAndUnsetThreadLocalConfig(kylinConfig);
         favoriteQueryManager = FavoriteQueryManager.getInstance(kylinConfig, proj);
     }

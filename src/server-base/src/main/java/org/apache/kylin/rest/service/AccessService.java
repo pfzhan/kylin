@@ -43,12 +43,15 @@
 package org.apache.kylin.rest.service;
 
 import java.io.IOException;
+import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.stream.Collectors;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -91,6 +94,7 @@ import org.springframework.stereotype.Component;
 import com.google.common.base.Preconditions;
 
 import io.kyligence.kap.metadata.project.NProjectManager;
+import io.kyligence.kap.rest.request.AccessRequest;
 import io.kyligence.kap.rest.transaction.Transaction;
 
 @Component("accessService")
@@ -122,6 +126,21 @@ public class AccessService extends BasicService {
         }
 
         return acl;
+    }
+
+    @Transaction
+    public void batchGrant(List<AccessRequest> requests, String type, String uuid) {
+        AclEntity ae = getAclEntity(type, uuid);
+        Map<Sid, Permission> sid2perm = requests.stream().map(r -> {
+            Sid sid = getSid(r.getSid(), r.isPrincipal());
+            Permission permission = AclPermissionFactory.getPermission(r.getPermission());
+            if (Objects.nonNull(sid) && Objects.nonNull(permission)) {
+                return new AbstractMap.SimpleEntry<>(sid, permission);
+            } else {
+                return null;
+            }
+        }).filter(Objects::nonNull).collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+        batchGrant(ae, sid2perm);
     }
 
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#ae, 'ADMINISTRATION')")
@@ -324,8 +343,8 @@ public class AccessService extends BasicService {
         return acl;
     }
 
-    public Sid getSid(String sid, boolean isPrincepal) {
-        if (isPrincepal) {
+    public Sid getSid(String sid, boolean isPrincipal) {
+        if (isPrincipal) {
             return new PrincipalSid(sid);
         } else {
             return new GrantedAuthoritySid(sid);
@@ -403,7 +422,7 @@ public class AccessService extends BasicService {
     }
 
     public String getUserPermissionInPrj(String project) {
-        String grantedPermission = "";
+        String grantedPermission;
         List<String> groups = getGroupsFromCurrentUser();
         if (groups.contains(Constant.ROLE_ADMIN)) {
             return "GLOBAL_ADMIN";

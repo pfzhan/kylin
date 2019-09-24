@@ -90,6 +90,7 @@ import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.metadata.user.ManagedUser;
 import io.kyligence.kap.rest.request.PasswordChangeRequest;
 import io.kyligence.kap.rest.rules.ClearKEPropertiesRule;
+import io.kyligence.kap.rest.service.AclTCRService;
 import lombok.val;
 
 public class NUserControllerTest extends NLocalFileMetadataTestCase {
@@ -108,6 +109,9 @@ public class NUserControllerTest extends NLocalFileMetadataTestCase {
 
     @Mock
     private AclEvaluate aclEvaluate;
+
+    @Mock
+    private AclTCRService aclTCRService;
 
     @Mock
     Environment env;
@@ -232,7 +236,6 @@ public class NUserControllerTest extends NLocalFileMetadataTestCase {
     public void testDelUser() throws Exception {
         Mockito.doNothing().when(userService).deleteUser(Mockito.anyString());
         Mockito.doNothing().when(accessService).revokeProjectPermission(Mockito.anyString(), Mockito.anyString());
-
         mockMvc.perform(
                 MockMvcRequestBuilders.delete("/api/user/{username:.+}", "u1@.h").contentType(MediaType.APPLICATION_JSON)
                         .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))

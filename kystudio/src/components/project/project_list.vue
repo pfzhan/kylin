@@ -27,10 +27,10 @@
             <el-tab-pane label="Cubes" name="second">
               <cube_list :cubeList="props.row.realizations"></cube_list>
             </el-tab-pane> -->
-            <el-tab-pane :label="$t('access')" name="first">
+            <!-- <el-tab-pane :label="$t('access')" name="first">
               <access_edit :accessId="props.row.uuid" :projectName="props.row.name" own='project'></access_edit>
-            </el-tab-pane>
-            <el-tab-pane :label="$t('projectConfig')" name="second">
+            </el-tab-pane> -->
+            <el-tab-pane :label="$t('projectConfig')" name="first">
               <project_config :override="props.row.override_kylin_properties"></project_config>
             </el-tab-pane>
             <!-- <el-tab-pane :label="$t('externalFilters')" name="fourth">
@@ -86,6 +86,11 @@
           </span> -->
           <el-tooltip :content="$t('backup')" effect="dark" placement="top">
             <i class="el-icon-ksd-backup ksd-mr-10 ksd-fs-14" @click="backup(scope.row)"></i>
+          </el-tooltip><span>
+          </span><el-tooltip :content="$t('author')" effect="dark" placement="top">
+            <router-link :to="{path: '/admin/project/' + scope.row.name, query: {projectId: scope.row.uuid}}">
+              <i class="el-icon-ksd-security ksd-mr-10 ksd-fs-14" v-if="isAdmin"></i>
+            </router-link>
           </el-tooltip><span>
           </span><el-tooltip :content="$t('delete')" effect="dark" placement="top">
             <i class="el-icon-ksd-table_delete ksd-fs-14" @click="removeProject(scope.row)" v-if="isAdmin"></i>
@@ -243,8 +248,66 @@ export default {
     this.loadProjects(this.filterData)
   },
   locales: {
-    'en': {autoType: 'Smart Mode', manualType: 'Expert Mode', project: 'Project', name: 'Name', type: 'Type', owner: 'Owner', description: 'Description', createTime: 'Create Time', actions: 'Actions', setting: 'Setting', access: 'Access', externalFilters: 'External Filters', edit: 'Configure', backup: 'Backup', delete: 'Delete', delProjectTitle: 'Delete Project', cancel: 'Cancel', yes: 'Ok', saveSuccessful: 'Saved the project successful!', saveFailed: 'Save Failed!', deleteProjectTip: 'Once it\'s deleted, the project {projectName}\'s metadata and data will be cleaned up and can\'t be restored back.  ', projectConfig: 'Configuration', backupProject: 'Are you sure to backup this project ?', noProject: 'There is no Project.  You can click below button to add Project.', projectsList: 'Project List', projectFilter: 'Search Project', backupPro: 'Backup Project'},
-    'zh-cn': {autoType: '智能模式', manualType: '专家模式', project: '项目', name: '名称', type: '类型', owner: '所有者', description: '描述', createTime: '创建时间', actions: '操作', setting: '设置', access: '权限', externalFilters: '其他过滤', edit: '配置', backup: '备份', delete: '删除', delProjectTitle: '删除项目', cancel: '取消', yes: '确定', saveSuccessful: '保存项目成功!', saveFailed: '保存失败!', deleteProjectTip: '删除后, 项目 {projectName} 的定义及数据会被清除, 且不能恢复.', projectConfig: '项目配置', backupProject: '确认要备份此项目？', noProject: '您可以点击下面的按钮来添加项目。', projectsList: '项目列表', projectFilter: '搜索项目', backupPro: '备份项目'}
+    'en': {
+      autoType: 'Smart Mode',
+      manualType: 'Expert Mode',
+      project: 'Project',
+      name: 'Name',
+      type: 'Type',
+      owner: 'Owner',
+      description: 'Description',
+      createTime: 'Create Time',
+      actions: 'Actions',
+      setting: 'Setting',
+      access: 'Access',
+      externalFilters: 'External Filters',
+      edit: 'Configure',
+      backup: 'Backup',
+      delete: 'Delete',
+      delProjectTitle: 'Delete Project',
+      cancel: 'Cancel',
+      yes: 'Ok',
+      saveSuccessful: 'Saved the project successful!',
+      saveFailed: 'Save Failed!',
+      deleteProjectTip: 'Once it\'s deleted, the project {projectName}\'s metadata and data will be cleaned up and can\'t be restored back.  ',
+      projectConfig: 'Configuration',
+      backupProject: 'Are you sure to backup this project ?',
+      noProject: 'There is no Project.  You can click below button to add Project.',
+      projectsList: 'Project List',
+      projectFilter: 'Search Project',
+      backupPro: 'Backup Project',
+      author: 'Authorization'
+    },
+    'zh-cn': {
+      autoType: '智能模式',
+      manualType: '专家模式',
+      project: '项目',
+      name: '名称',
+      type: '类型',
+      owner: '所有者',
+      description: '描述',
+      createTime: '创建时间',
+      actions: '操作',
+      setting: '设置',
+      access: '权限',
+      externalFilters: '其他过滤',
+      edit: '配置',
+      backup: '备份',
+      delete: '删除',
+      delProjectTitle: '删除项目',
+      cancel: '取消',
+      yes: '确定',
+      saveSuccessful: '保存项目成功!',
+      saveFailed: '保存失败!',
+      deleteProjectTip: '删除后, 项目 {projectName} 的定义及数据会被清除, 且不能恢复.',
+      projectConfig: '项目配置',
+      backupProject: '确认要备份此项目？',
+      noProject: '您可以点击下面的按钮来添加项目。',
+      projectsList: '项目列表',
+      projectFilter: '搜索项目',
+      backupPro: '备份项目',
+      author: '授权'
+    }
   }
 }
 </script>
@@ -262,14 +325,18 @@ export default {
       }
     }
     .project-table {
+      .el-icon-ksd-security {
+        color: @text-title-color;
+        &:hover {
+          color: @base-color;
+        }
+      }
       .el-icon-ksd-backup:hover,
       .el-icon-ksd-table_delete:hover {
         color: @base-color;
       }
     }
     .el-table__expanded-cell[class*=cell] {
-      padding: 15px;
-      background-color: @table-stripe-color;
       .el-pagination.is-background {
         button,
         .el-pager li {

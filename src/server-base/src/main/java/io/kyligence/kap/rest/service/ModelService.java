@@ -33,6 +33,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -63,6 +64,7 @@ import org.apache.kylin.rest.exception.BadRequestException;
 import org.apache.kylin.rest.msg.Message;
 import org.apache.kylin.rest.msg.MsgPicker;
 import org.apache.kylin.rest.service.BasicService;
+import org.apache.kylin.rest.util.AclPermissionUtil;
 import org.apache.kylin.source.SourceFactory;
 import org.apache.kylin.source.adhocquery.PushDownConverterKeyWords;
 import org.apache.spark.sql.SparderEnv;
@@ -89,6 +91,7 @@ import io.kyligence.kap.event.model.Event;
 import io.kyligence.kap.event.model.MergeSegmentEvent;
 import io.kyligence.kap.event.model.PostMergeOrRefreshSegmentEvent;
 import io.kyligence.kap.event.model.RefreshSegmentEvent;
+import io.kyligence.kap.metadata.acl.AclTCR;
 import io.kyligence.kap.metadata.cube.cuboid.NSpanningTreeFactory;
 import io.kyligence.kap.metadata.cube.cuboid.NSpanningTreeForWeb;
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
@@ -208,10 +211,25 @@ public class ModelService extends BasicService {
             List<NDataModelResponse> nDataModelResponses = filterModels.stream()
                     .filter(modle -> !"-1".equalsIgnoreCase(modle.getExpansionrate())).collect(Collectors.toList());
             nDataModelResponses.addAll(unknowModels);
-            return nDataModelResponses;
+            return filterAuthorized(projectName, nDataModelResponses);
         } else {
-            return filterModels;
+            return filterAuthorized(projectName, filterModels);
         }
+    }
+
+    private List<NDataModelResponse> filterAuthorized(String project, List<NDataModelResponse> result) {
+        if (AclPermissionUtil.canUseACLGreenChannel(project)) {
+            return result;
+        }
+        List<AclTCR> aclTCRS = getAclTCRManager(project).getAclTCRs(AclPermissionUtil.getCurrentUsername(),
+                AclPermissionUtil.getCurrentUserGroups());
+        return result.stream().map(r -> {
+            NDataModelResponse copied = JsonUtil.deepCopyQuietly(r, NDataModelResponse.class);
+            copied.setAllTableRefs(r.getAllTableRefs().stream().filter(t -> t.getColumns().stream().allMatch(
+                    c -> aclTCRS.stream().anyMatch(aclTCR -> aclTCR.isAuthorized(t.getTableIdentity(), c.getName()))))
+                    .collect(Collectors.toSet()));
+            return CollectionUtils.isEmpty(copied.getAllTableRefs()) ? null : copied;
+        }).filter(Objects::nonNull).collect(Collectors.toList());
     }
 
     private boolean isArgMatch(String valueToMatch, boolean exactMatch, String originValue) {
@@ -226,8 +244,8 @@ public class ModelService extends BasicService {
         if (sourceBytesSize == 0) {
             return "-1";
         }
-        BigDecimal divide = new BigDecimal(storageBytesSize)
-                .divide(new BigDecimal(sourceBytesSize), 4, BigDecimal.ROUND_HALF_UP);
+        BigDecimal divide = new BigDecimal(storageBytesSize).divide(new BigDecimal(sourceBytesSize), 4,
+                BigDecimal.ROUND_HALF_UP);
         BigDecimal bigDecimal = divide.multiply(new BigDecimal(100)).setScale(2);
         return bigDecimal.toString();
     }
@@ -251,7 +269,6 @@ public class ModelService extends BasicService {
                 nDataModelResponse.setLastBuildEnd(lastSegment.getSegRange().getEnd().toString());
             } else {
                 nDataModelResponse.setLastBuildEnd("");
-
             }
         }
         return nDataModelResponse;

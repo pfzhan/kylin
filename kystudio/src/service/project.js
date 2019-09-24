@@ -18,7 +18,7 @@ export default {
     return Vue.resource(apiUrl + 'projects').save({projectDescData: projectDesc})
   },
   addProjectAccess: (accessData, projectId) => {
-    return Vue.resource(apiUrl + 'access/ProjectInstance/' + projectId).save(accessData)
+    return Vue.resource(apiUrl + 'access/batch/ProjectInstance/' + projectId).save(accessData)
   },
   editProjectAccess: (accessData, projectId) => {
     return Vue.resource(apiUrl + 'access/ProjectInstance/' + projectId).update(accessData)
@@ -29,11 +29,15 @@ export default {
   getProjectEndAccess: (projectId) => {
     return Vue.resource(apiUrl + 'access/all/ProjectInstance/' + projectId).get()
   },
-  delProjectAccess: (projectId, aid, userName) => {
+  delProjectAccess: (projectId, aid, userName, principal) => {
     return Vue.resource(apiUrl + 'access/ProjectInstance/' + projectId).delete({
       accessEntryId: aid,
-      sid: userName
+      sid: userName,
+      principal: principal
     })
+  },
+  submitAccessData: (projectName, roleOrName, accessData) => {
+    return Vue.resource(apiUrl + `acl/${projectName}/sid/user/${roleOrName}`).save(accessData)
   },
   saveProjectFilter: (filterData) => {
     return Vue.resource(apiUrl + 'extFilter/saveExtFilter').save(filterData)

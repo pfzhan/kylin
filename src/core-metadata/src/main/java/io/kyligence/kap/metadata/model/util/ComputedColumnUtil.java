@@ -30,7 +30,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlNode;
@@ -43,7 +42,10 @@ import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.tool.CalciteParser;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 
+import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.model.ComputedColumnDesc;
 import io.kyligence.kap.metadata.model.NDataModel;
 
@@ -86,10 +88,18 @@ public class ComputedColumnUtil {
         }
     }
 
+    public static Map<String, Set<String>> getCCUsedColsMapWithProject(String project, ColumnDesc columnDesc) {
+        return getCCUsedColsMapWithModel(getModel(project, columnDesc.getName()), columnDesc);
+    }
+
     public static Set<String> getCCUsedColsWithProject(String project, ColumnDesc columnDesc) {
         NDataModel model = getModel(project, columnDesc.getName());
         Set<String> usedCols = getCCUsedColsWithModel(model, columnDesc);
         return usedCols;
+    }
+
+    public static Map<String, Set<String>> getCCUsedColsMapWithModel(NDataModel model, ColumnDesc columnDesc) {
+        return getCCUsedColsMap(model, columnDesc.getName(), columnDesc.getComputedColumnExpr());
     }
 
     public static Set<String> getCCUsedColsWithModel(NDataModel model, ColumnDesc columnDesc) {
@@ -110,7 +120,8 @@ public class ComputedColumnUtil {
         return ccUsedColsInModel;
     }
 
-    public static ColumnDesc[] createComputedColumns(List<ComputedColumnDesc> computedColumnDescs, final TableDesc tableDesc) {
+    public static ColumnDesc[] createComputedColumns(List<ComputedColumnDesc> computedColumnDescs,
+            final TableDesc tableDesc) {
         final MutableInt id = new MutableInt(tableDesc.getColumnCount());
         return computedColumnDescs.stream()
                 .filter(input -> tableDesc.getIdentity().equalsIgnoreCase(input.getTableIdentity())).map(input -> {
@@ -122,6 +133,20 @@ public class ComputedColumnUtil {
                 }).toArray(ColumnDesc[]::new);
     }
 
+    private static Map<String, Set<String>> getCCUsedColsMap(NDataModel model, String colName, String ccExpr) {
+        Map<String, Set<String>> usedCols = Maps.newHashMap();
+        Map<String, String> aliasTableMap = getAliasTableMap(model);
+        Preconditions.checkState(aliasTableMap.size() > 0, "can not find cc:" + colName + "'s table alias");
+        List<Pair<String, String>> colsWithAlias = ExprIdentifierFinder.getExprIdentifiers(ccExpr);
+        for (Pair<String, String> cols : colsWithAlias) {
+            String tableIdentifier = aliasTableMap.get(cols.getFirst());
+            if (!usedCols.containsKey(tableIdentifier)) {
+                usedCols.put(tableIdentifier, Sets.newHashSet());
+            }
+            usedCols.get(tableIdentifier).add(cols.getSecond());
+        }
+        return usedCols;
+    }
 
     private static Set<String> getCCUsedCols(NDataModel model, String colName, String ccExpr) {
         Set<String> usedCols = new HashSet<>();
@@ -146,7 +171,8 @@ public class ComputedColumnUtil {
     }
 
     private static NDataModel getModel(String project, String ccName) {
-        List<NDataModel> models = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project).listUnderliningDataModels();
+        List<NDataModel> models = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
+                .listUnderliningDataModels();
         for (NDataModel modelDesc : models) {
             NDataModel model = modelDesc;
             Set<String> computedColumnNames = model.getComputedColumnNames();

@@ -46,6 +46,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
+import io.kyligence.kap.rest.service.AclTCRService;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.rest.constant.Constant;
@@ -107,6 +108,9 @@ public class NTableControllerTest {
 
     @Mock
     private TableSamplingService tableSamplingService;
+
+    @Mock
+    private AclTCRService aclTCRService;
 
     @Rule
     public ExpectedException thrown = ExpectedException.none();

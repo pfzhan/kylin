@@ -54,6 +54,7 @@ import org.springframework.web.bind.annotation.ResponseBody;
 
 import io.kyligence.kap.metadata.user.ManagedUser;
 import io.kyligence.kap.rest.request.UpdateGroupRequest;
+import io.kyligence.kap.rest.service.AclTCRService;
 import lombok.val;
 
 @Controller
@@ -67,6 +68,10 @@ public class NUserGroupController extends NBasicController {
     @Autowired
     @Qualifier("userService")
     private UserService userService;
+
+    @Autowired
+    @Qualifier("aclTCRService")
+    private AclTCRService aclTCRService;
 
     private static final Message msg = MsgPicker.getMsg();
 
@@ -146,6 +151,7 @@ public class NUserGroupController extends NBasicController {
     public EnvelopeResponse<String> delUserGroup(@PathVariable(value = "groupName") String groupName)
             throws IOException {
         userGroupService.deleteGroup(groupName);
+        aclTCRService.revokeAclTCR(groupName, false);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, null, "del user group");
     }
 

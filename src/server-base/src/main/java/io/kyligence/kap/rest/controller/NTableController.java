@@ -140,7 +140,8 @@ public class NTableController extends NBasicController {
             @RequestParam(value = "cascade", defaultValue = "false") Boolean cascade) {
 
         checkProjectName(project);
-        tableService.unloadTable(project, database + "." + table, cascade);
+        String dbTblName = database + "." + table;
+        tableService.unloadTable(project, dbTblName, cascade);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, null, "");
     }
 

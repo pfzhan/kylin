@@ -65,6 +65,7 @@ import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 import javax.annotation.PostConstruct;
@@ -147,6 +148,7 @@ import io.kyligence.kap.common.metrics.NMetricsName;
 import io.kyligence.kap.common.persistence.transaction.TransactionException;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWorkParams;
+import io.kyligence.kap.metadata.acl.AclTCR;
 import io.kyligence.kap.metadata.model.ComputedColumnDesc;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
@@ -758,7 +760,7 @@ public class QueryService extends BasicService {
             }
         }
 
-        return tableMetas;
+        return filterAuthorized(project, tableMetas);
     }
 
     @SuppressWarnings("checkstyle:methodlength")
@@ -792,7 +794,30 @@ public class QueryService extends BasicService {
         List<TableMetaWithType> tableMetas = Lists.newArrayList();
         tableMap.forEach((name, tableMeta) -> tableMetas.add(tableMeta));
 
-        return tableMetas;
+        return filterAuthorized(project, tableMetas);
+    }
+
+    private <T extends TableMeta> List<T> filterAuthorized(String project, List<T> result) {
+        if (AclPermissionUtil.canUseACLGreenChannel(project)) {
+            return result;
+        }
+        final List<AclTCR> aclTCRS = getAclTCRManager(project).getAclTCRs(AclPermissionUtil.getCurrentUsername(),
+                AclPermissionUtil.getCurrentUserGroups());
+        return result.stream().map(t -> {
+            String dbTblName = readTableIdentity(t);
+            if (aclTCRS.stream().anyMatch(aclTCR -> aclTCR.isAuthorized(dbTblName))) {
+                return null;
+            }
+            t.setColumns(t.getColumns().stream().filter(
+                    c -> aclTCRS.stream().anyMatch(aclTCR -> aclTCR.isAuthorized(dbTblName, c.getCOLUMN_NAME())))
+                    .collect(Collectors.toList()));
+            return t;
+        }).filter(Objects::nonNull).collect(Collectors.toList());
+    }
+
+    private <T extends TableMeta> String readTableIdentity(T tableMeta) {
+        String database = Objects.isNull(tableMeta.getTABLE_SCHEM()) ? "default" : tableMeta.getTABLE_SCHEM();
+        return String.format("%s.%s", database, tableMeta.getTABLE_NAME()).toUpperCase();
     }
 
     private LinkedHashMap<String, TableMetaWithType> constructTableMeta(DatabaseMetaData metaData) throws SQLException {

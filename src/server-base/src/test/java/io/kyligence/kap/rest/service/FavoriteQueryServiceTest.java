@@ -40,9 +40,11 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.InjectMocks;
+import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.springframework.security.authentication.TestingAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -95,6 +97,9 @@ public class FavoriteQueryServiceTest extends NLocalFileMetadataTestCase {
     @InjectMocks
     private TableService tableService = Mockito.spy(new TableService());
 
+    @Mock
+    private AclTCRService aclTCRService = Mockito.spy(AclTCRService.class);
+
     private void createTestFavoriteQuery() {
         FavoriteQueryManager favoriteQueryManager = FavoriteQueryManager.getInstance(getTestConfig(), PROJECT);
         FavoriteQuery favoriteQuery1 = new FavoriteQuery(QueryPatternUtil.normalizeSQLPattern(sqls[0]));
@@ -121,6 +126,7 @@ public class FavoriteQueryServiceTest extends NLocalFileMetadataTestCase {
         createTestMetadata();
         SecurityContextHolder.getContext()
                 .setAuthentication(new TestingAuthenticationToken("ADMIN", "ADMIN", Constant.ROLE_ADMIN));
+        ReflectionTestUtils.setField(tableService, "aclTCRService", aclTCRService);
         for (ProjectInstance projectInstance : NProjectManager.getInstance(getTestConfig()).listAllProjects()) {
             NFavoriteScheduler favoriteScheduler = NFavoriteScheduler.getInstance(projectInstance.getName());
             favoriteScheduler.init();

@@ -43,10 +43,12 @@ public class NLocalFileMetadataTestCase extends AbstractKylinTestCase {
     @Override
     public void createTestMetadata(String... overlay) {
         staticCreateTestMetadata(overlay);
+        getTestConfig().setProperty("kylin.query.security.acl-tcr-enabled", "false");
     }
 
     public void createTestMetadata() {
         staticCreateTestMetadata();
+        getTestConfig().setProperty("kylin.query.security.acl-tcr-enabled", "false");
     }
 
     @Override
@@ -58,12 +60,14 @@ public class NLocalFileMetadataTestCase extends AbstractKylinTestCase {
         String tempMetadataDir = TempMetadataBuilder.prepareNLocalTempMetadata(false, overlay);
         KylinConfig.setKylinConfigForLocalTest(tempMetadataDir);
         tempMetadataDirectory = new File(tempMetadataDir);
+        getTestConfig().setProperty("kylin.query.security.acl-tcr-enabled", "false");
     }
 
     public static void staticCreateTestMetadata() {
         String tempMetadataDir = TempMetadataBuilder.prepareNLocalTempMetadata();
         KylinConfig.setKylinConfigForLocalTest(tempMetadataDir);
         tempMetadataDirectory = new File(tempMetadataDir);
+        getTestConfig().setProperty("kylin.query.security.acl-tcr-enabled", "false");
     }
 
     public static KylinConfig getTestConfig() {

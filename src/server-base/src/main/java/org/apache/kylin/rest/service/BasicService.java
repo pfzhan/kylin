@@ -44,6 +44,7 @@ package org.apache.kylin.rest.service;
 
 import java.util.Comparator;
 
+import io.kyligence.kap.metadata.acl.AclTCRManager;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.dao.JobStatisticsManager;
@@ -150,6 +151,10 @@ public abstract class BasicService {
 
     public JobStatisticsManager getJobStatisticsManager(String project) {
         return JobStatisticsManager.getInstance(getConfig(), project);
+    }
+
+    public AclTCRManager getAclTCRManager(String project) {
+        return AclTCRManager.getInstance(getConfig(), project);
     }
 
     protected static <T> Comparator<T> propertyComparator(String property, boolean ascending) {

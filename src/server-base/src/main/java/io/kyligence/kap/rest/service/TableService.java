@@ -31,6 +31,8 @@ import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.Function;
@@ -62,12 +64,14 @@ import org.apache.kylin.rest.exception.BadRequestException;
 import org.apache.kylin.rest.msg.Message;
 import org.apache.kylin.rest.msg.MsgPicker;
 import org.apache.kylin.rest.service.BasicService;
+import org.apache.kylin.rest.util.AclPermissionUtil;
 import org.apache.kylin.rest.util.PagingUtil;
 import org.apache.kylin.source.ISourceMetadataExplorer;
 import org.apache.kylin.source.SourceFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 
 import com.google.common.base.Preconditions;
@@ -80,6 +84,7 @@ import com.google.common.collect.Sets;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.event.manager.EventManager;
 import io.kyligence.kap.event.model.Event;
+import io.kyligence.kap.metadata.acl.AclTCR;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.model.NDataLoadingRange;
@@ -137,10 +142,14 @@ public class TableService extends BasicService {
     @Autowired
     private TableSamplingService tableSamplingService;
 
+    @Autowired
+    @Qualifier("aclTCRService")
+    private AclTCRService aclTCRService;
+
     public List<TableDesc> getTableDesc(String project, boolean withExt, final String tableName, final String database,
             boolean isFuzzy) throws IOException {
         NTableMetadataManager nTableMetadataManager = getTableManager(project);
-        List<TableDesc> tables = new ArrayList<>();
+        List<TableDesc> tables = Lists.newArrayList();
         //get table not fuzzy,can use getTableDesc(tableName)
         if (StringUtils.isNotEmpty(tableName) && !isFuzzy) {
             val tableDesc = nTableMetadataManager.getTableDesc(database + "." + tableName);
@@ -159,8 +168,7 @@ public class TableService extends BasicService {
                 return tableDesc.getName().toLowerCase().contains(tableName.toLowerCase());
             }).sorted(this::compareTableDesc).collect(Collectors.toList()));
         }
-        tables = getTablesResponse(tables, project, withExt);
-        return tables;
+        return getTablesResponse(tables, project, withExt);
     }
 
     private int compareTableDesc(TableDesc table1, TableDesc table2) {
@@ -280,13 +288,26 @@ public class TableService extends BasicService {
     public List<String> getSourceTableNames(String project, String database, final String table) throws Exception {
         ISourceMetadataExplorer explr = SourceFactory.getSource(getProjectManager().getProject(project))
                 .getSourceMetadataExplorer();
-        return explr.listTables(database).stream().filter(s -> {
+        List<String> result = explr.listTables(database).stream().filter(s -> {
             if (StringUtils.isEmpty(table)) {
                 return true;
             } else {
                 return s.toLowerCase().contains(table.toLowerCase());
             }
         }).map(String::toUpperCase).collect(Collectors.toList());
+        return filterAuthorizedTableNames(project, database, result);
+    }
+
+    private List<String> filterAuthorizedTableNames(String project, String dbName, List<String> tables) {
+        if (AclPermissionUtil.canUseACLGreenChannel(project)) {
+            return tables;
+        }
+        List<AclTCR> aclTCRS = getAclTCRManager(project).getAclTCRs(AclPermissionUtil.getCurrentUsername(),
+                AclPermissionUtil.getCurrentUserGroups());
+        return tables.stream()
+                .filter(tblName -> aclTCRS.stream()
+                        .anyMatch(aclTCR -> aclTCR.isAuthorized(String.format("%s.%s", dbName, tblName))))
+                .collect(Collectors.toList());
     }
 
     public List<TableNameResponse> getTableNameResponses(String project, String database, final String table)
@@ -300,7 +321,20 @@ public class TableService extends BasicService {
             tableNameResponse.setLoaded(tableManager.getTableDesc(database + "." + tableName) != null);
             tableNameResponses.add(tableNameResponse);
         }
-        return tableNameResponses;
+        return filterAuthorizedTableNameResponses(project, database, tableNameResponses);
+    }
+
+    private List<TableNameResponse> filterAuthorizedTableNameResponses(String project, String dbName,
+            List<TableNameResponse> tables) {
+        if (AclPermissionUtil.canUseACLGreenChannel(project)) {
+            return tables;
+        }
+        List<AclTCR> all = getAclTCRManager(project).getAclTCRs(AclPermissionUtil.getCurrentUsername(),
+                AclPermissionUtil.getCurrentUserGroups());
+        return tables.stream()
+                .filter(t -> all.stream()
+                        .anyMatch(aclTCR -> aclTCR.isAuthorized(String.format("%s.%s", dbName, t.getTableName()))))
+                .collect(Collectors.toList());
     }
 
     private TableDescResponse getTableResponse(TableDesc table, String project) {
@@ -328,7 +362,14 @@ public class TableService extends BasicService {
             throws IOException {
         List<TableDesc> descs = new ArrayList<>();
         val dataflowManager = getDataflowManager(project);
-        for (val table : tables) {
+        final List<AclTCR> aclTCRS = getAclTCRManager(project).getAclTCRs(AclPermissionUtil.getCurrentUsername(),
+                AclPermissionUtil.getCurrentUserGroups());
+        final boolean isAclGreen = AclPermissionUtil.canUseACLGreenChannel(project);
+        for (val originTable : tables) {
+            TableDesc table = getAuthorizedTableDesc(isAclGreen, originTable, aclTCRS);
+            if (Objects.isNull(table)) {
+                continue;
+            }
             TableDescResponse rtableDesc;
             val models = dataflowManager.getModelsUsingRootTable(table);
             val modelsUsingTable = dataflowManager.getModelsUsingTable(table);
@@ -364,6 +405,20 @@ public class TableService extends BasicService {
         }
 
         return descs;
+    }
+
+    private TableDesc getAuthorizedTableDesc(boolean isAclGreen, TableDesc originTable, List<AclTCR> aclTCRS) {
+        if (isAclGreen) {
+            return originTable;
+        }
+        if (aclTCRS.stream().noneMatch(aclTCR -> aclTCR.isAuthorized(originTable.getIdentity()))) {
+            return null;
+        }
+        val table = JsonUtil.deepCopyQuietly(originTable, TableDesc.class);
+        table.setColumns(Optional.ofNullable(table.getColumns()).map(Arrays::stream).orElseGet(Stream::empty)
+                .filter(c -> aclTCRS.stream().anyMatch(aclTCR -> aclTCR.isAuthorized(table.getIdentity(), c.getName())))
+                .collect(Collectors.toList()).toArray(new ColumnDesc[] {}));
+        return table;
     }
 
     private long getSnapshotSize(String project, List<NDataModel> modelsUsingTable, String table) throws IOException {
@@ -703,6 +758,8 @@ public class TableService extends BasicService {
         if (dataLoadingRange != null) {
             dataLoadingRangeManager.removeDataLoadingRange(dataLoadingRange);
         }
+
+        aclTCRService.unloadTable(project, table);
     }
 
     @Transaction(project = 0, readonly = true)

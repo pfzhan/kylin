@@ -24,10 +24,11 @@
 
 package io.kyligence.kap.rest.controller;
 
+import static org.hamcrest.CoreMatchers.containsString;
+
 import java.util.ArrayList;
 import java.util.List;
 
-import io.kyligence.kap.rest.request.AccessRequest;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.job.constant.JobStatusEnum;
 import org.apache.kylin.job.execution.AbstractExecutable;
@@ -53,7 +54,8 @@ import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
-import static org.hamcrest.CoreMatchers.containsString;
+import io.kyligence.kap.rest.request.AccessRequest;
+import io.kyligence.kap.rest.service.AclTCRService;
 
 public class NAccessControllerTest {
 
@@ -64,6 +66,9 @@ public class NAccessControllerTest {
 
     @Mock
     private UserService userService;
+
+    @Mock
+    private AclTCRService aclTCRService;
 
     @Rule
     public ExpectedException thrown = ExpectedException.none();
@@ -112,6 +117,7 @@ public class NAccessControllerTest {
         accessRequest.setSid(sid);
         accessRequest.setPrincipal(true);
         Mockito.doReturn(true).when(userService).userExists(sid);
+        Mockito.doNothing().when(aclTCRService).updateAclTCR(uuid, null);
         Mockito.doNothing().when(accessService).grant(type, uuid, "1", true, "ADMIN");
         mockMvc.perform(MockMvcRequestBuilders.post("/api/access/{type}/{uuid}", type, uuid)
                 .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(accessRequest))
@@ -143,8 +149,7 @@ public class NAccessControllerTest {
         mockMvc.perform(MockMvcRequestBuilders.post("/api/access/{type}/{uuid}", type, uuid)
                 .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(accessRequest))
                 .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
-                .andExpect(MockMvcResultMatchers.content()
-                        .string(containsString(expectedMsg)));
+                .andExpect(MockMvcResultMatchers.content().string(containsString(expectedMsg)));
         Mockito.verify(nAccessController).grant(type, uuid, accessRequest);
     }
 

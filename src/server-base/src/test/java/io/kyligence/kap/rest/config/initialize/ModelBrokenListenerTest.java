@@ -62,6 +62,7 @@ import io.kyligence.kap.metadata.model.MaintainModelType;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
+import io.kyligence.kap.rest.service.AclTCRService;
 import io.kyligence.kap.rest.service.CSVSourceTestCase;
 import io.kyligence.kap.rest.service.TableExtService;
 import io.kyligence.kap.rest.service.TableService;
@@ -79,6 +80,9 @@ public class ModelBrokenListenerTest extends CSVSourceTestCase {
     @Mock
     private TableService tableService = Mockito.spy(TableService.class);
 
+    @Mock
+    private AclTCRService aclTCRService = Mockito.spy(AclTCRService.class);
+
     @InjectMocks
     private TableExtService tableExtService = Mockito.spy(new TableExtService());
 
@@ -92,7 +96,7 @@ public class ModelBrokenListenerTest extends CSVSourceTestCase {
         super.setup();
         SchedulerEventBusFactory.getInstance(getTestConfig()).register(modelBrokenListener);
         ReflectionTestUtils.setField(tableExtService, "tableService", tableService);
-
+        ReflectionTestUtils.setField(tableService, "aclTCRService", aclTCRService);
     }
 
     @After

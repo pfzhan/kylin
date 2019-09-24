@@ -27,9 +27,11 @@ package io.kyligence.kap.rest.controller;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Objects;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.persistence.AclEntity;
 import org.apache.kylin.metadata.MetadataConstants;
@@ -51,6 +53,7 @@ import org.springframework.security.acls.model.Acl;
 import org.springframework.security.acls.model.Permission;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
@@ -61,7 +64,7 @@ import com.google.common.collect.Lists;
 
 import io.kyligence.kap.metadata.user.ManagedUser;
 import io.kyligence.kap.rest.request.AccessRequest;
-import lombok.val;
+import io.kyligence.kap.rest.service.AclTCRService;
 
 @Controller
 @RequestMapping(value = "/access")
@@ -78,6 +81,10 @@ public class NAccessController extends NBasicController {
     @Autowired
     @Qualifier("userGroupService")
     private IUserGroupService userGroupService;
+
+    @Autowired
+    @Qualifier("aclTCRService")
+    private AclTCRService aclTCRService;
 
     private static final Pattern sidPattern = Pattern.compile("^[a-zA-Z0-9_]*$");
     private static final Message msg = MsgPicker.getMsg();
@@ -108,7 +115,7 @@ public class NAccessController extends NBasicController {
         Acl acl = accessService.getAcl(ae);
         List<String> oriList = Lists.newArrayList();
         if (sidType.equalsIgnoreCase(MetadataConstants.TYPE_USER)) {
-            oriList.addAll(getAllUsernames());
+            oriList.addAll(getAllUserNames());
             List<String> users = accessService.getAllAclSids(acl, MetadataConstants.TYPE_USER);
             oriList.removeAll(users);
         } else {
@@ -150,26 +157,29 @@ public class NAccessController extends NBasicController {
     /**
      * Grant a new access on a domain object to a user/role
      */
-    @RequestMapping(value = "/{type}/{uuid}", method = { RequestMethod.POST }, produces = {
+    @RequestMapping(value = "/{entityType}/{uuid}", method = { RequestMethod.POST }, produces = {
             "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public EnvelopeResponse grant(@PathVariable("type") String type, @PathVariable("uuid") String uuid,
+    public EnvelopeResponse grant(@PathVariable("entityType") String entityType, @PathVariable("uuid") String uuid,
             @RequestBody AccessRequest accessRequest) throws IOException {
-
-        val isPrincipal = accessRequest.isPrincipal();
-
-        val identifier = accessRequest.getSid();
-
-        checkSid(identifier);
-
-        if (isPrincipal && !userService.userExists(identifier)) {
-            throw new BadRequestException("Operation failed, user:" + identifier + " not exists, please add it first.");
+        checkSid(accessRequest);
+        if (AclEntityType.PROJECT_INSTANCE.equals(entityType)) {
+            aclTCRService.updateAclTCR(uuid, Lists.newArrayList(accessRequest));
         }
-        if (!isPrincipal && !userGroupService.exists(identifier)) {
-            throw new BadRequestException(
-                    "Operation failed, group:" + identifier + " not exists, please add it first.");
+        accessService.grant(entityType, uuid, accessRequest.getSid(), accessRequest.isPrincipal(),
+                accessRequest.getPermission());
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, null, "");
+    }
+
+    @PostMapping(value = "/batch/{entityType}/{uuid}", produces = { "application/vnd.apache.kylin-v2+json" })
+    @ResponseBody
+    public EnvelopeResponse batchGrant(@PathVariable("entityType") String entityType, @PathVariable("uuid") String uuid,
+            @RequestBody List<AccessRequest> requests) throws IOException {
+        checkSid(requests);
+        if (AclEntityType.PROJECT_INSTANCE.equals(entityType)) {
+            aclTCRService.updateAclTCR(uuid, requests);
         }
-        accessService.grant(type, uuid, identifier, isPrincipal, accessRequest.getPermission());
+        accessService.batchGrant(requests, entityType, uuid);
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, null, "");
     }
 
@@ -183,10 +193,13 @@ public class NAccessController extends NBasicController {
             "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
     public EnvelopeResponse updateAcl(@PathVariable("type") String type, @PathVariable("uuid") String uuid,
-            @RequestBody AccessRequest accessRequest) {
-
+            @RequestBody AccessRequest accessRequest) throws IOException {
+        checkSid(accessRequest);
         AclEntity ae = accessService.getAclEntity(type, uuid);
         Permission permission = AclPermissionFactory.getPermission(accessRequest.getPermission());
+        if (Objects.isNull(permission)) {
+            throw new BadRequestException("Operation failed, unknown permission:" + accessRequest.getPermission());
+        }
         accessService.update(ae, accessRequest.getAccessEntryId(), permission);
 
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, "", "");
@@ -203,21 +216,45 @@ public class NAccessController extends NBasicController {
     @ResponseBody
     public EnvelopeResponse revokeAcl(@PathVariable("entityType") String entityType, @PathVariable("uuid") String uuid,
             AccessRequest accessRequest) throws IOException {
+        checkSid(accessRequest);
         AclEntity ae = accessService.getAclEntity(entityType, uuid);
         accessService.revoke(ae, accessRequest.getAccessEntryId());
+        if (AclEntityType.PROJECT_INSTANCE.equals(entityType)) {
+            aclTCRService.revokeAclTCR(uuid, accessRequest.getSid(), accessRequest.isPrincipal());
+        }
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, "", "");
     }
 
-    private List<String> getAllUsernames() throws IOException {
+    private List<String> getAllUserNames() throws IOException {
         return userService.listUsers().stream().map(ManagedUser::getUsername).collect(Collectors.toList());
     }
 
-    private void checkSid(String sid) {
+    private void checkSid(AccessRequest request) throws IOException {
+        checkSid(Lists.newArrayList(request));
+    }
+
+    private void checkSid(List<AccessRequest> requests) throws IOException {
+        if (CollectionUtils.isEmpty(requests)) {
+            return;
+        }
+        for (AccessRequest r : requests) {
+            checkSid(r.getSid(), r.isPrincipal());
+        }
+    }
+
+    private void checkSid(String sid, boolean principal) throws IOException {
         if (StringUtils.isEmpty(sid)) {
             throw new BadRequestException(msg.getEMPTY_SID());
         }
         if (!sidPattern.matcher(sid).matches()) {
             throw new BadRequestException(msg.getINVALID_SID());
+        }
+
+        if (principal && !userService.userExists(sid)) {
+            throw new BadRequestException("Operation failed, user:" + sid + " not exists, please add it first.");
+        }
+        if (!principal && !userGroupService.exists(sid)) {
+            throw new BadRequestException("Operation failed, group:" + sid + " not exists, please add it first.");
         }
     }
 
