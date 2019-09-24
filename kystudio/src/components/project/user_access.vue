@@ -375,38 +375,40 @@ export default class UserAccess extends Vue {
     this.tables = []
     const response = await this.getAccessDetailsByUser({data: {authorizedOnly: authorizedOnly}, roleOrName: this.roleOrName, type: this.type, projectName: this.projectName})
     const result = await handleSuccessAsync(response)
-    this.allTables = result
-    this.tableAuthorizedNum = 0
-    this.totalNum = 0
-    this.currentTableId = ''
-    this.tables = result.map((database, key) => {
-      this.tableAuthorizedNum = this.tableAuthorizedNum + database.authorized_table_num
-      this.totalNum = this.totalNum + database.total_table_num
-      const labelNum = this.authorizedOnly ? ` (${database.authorized_table_num})` : ` (${database.authorized_table_num}/${database.total_table_num})`
-      return {
-        id: key + '',
-        label: database.database_name + labelNum,
-        children: database.tables.map((t, i) => {
-          const id = key + '_' + i
-          if (t.authorized && !authorizedOnly) {
-            this.defaultCheckedKeys.push(id)
-          }
-          if (t.table_name === this.currentTable) {
-            this.currentTableId = id
-          }
-          return {id: id, label: t.table_name, authorized: t.authorized, columns: t.columns, rows: t.rows, totalColNum: t.total_column_num}
-        })
-      }
-    })
-    this.isAllTablesAccess = this.tableAuthorizedNum === this.totalNum
-    this.$nextTick(() => {
-      if (this.currentTableId) {
-        const indexs = this.currentTableId.split('_')
-        this.handleNodeClick(this.tables[indexs[0]].children[indexs[1]])
-      } else {
-        this.handleNodeClick(this.tables[0].children[0])
-      }
-    })
+    if (result.length) {
+      this.allTables = result
+      this.tableAuthorizedNum = 0
+      this.totalNum = 0
+      this.currentTableId = ''
+      this.tables = result.map((database, key) => {
+        this.tableAuthorizedNum = this.tableAuthorizedNum + database.authorized_table_num
+        this.totalNum = this.totalNum + database.total_table_num
+        const labelNum = this.authorizedOnly ? ` (${database.authorized_table_num})` : ` (${database.authorized_table_num}/${database.total_table_num})`
+        return {
+          id: key + '',
+          label: database.database_name + labelNum,
+          children: database.tables.map((t, i) => {
+            const id = key + '_' + i
+            if (t.authorized && !authorizedOnly) {
+              this.defaultCheckedKeys.push(id)
+            }
+            if (t.table_name === this.currentTable) {
+              this.currentTableId = id
+            }
+            return {id: id, label: t.table_name, authorized: t.authorized, columns: t.columns, rows: t.rows, totalColNum: t.total_column_num}
+          })
+        }
+      })
+      this.isAllTablesAccess = this.tableAuthorizedNum === this.totalNum
+      this.$nextTick(() => {
+        if (this.currentTableId) {
+          const indexs = this.currentTableId.split('_')
+          this.handleNodeClick(this.tables[indexs[0]].children[indexs[1]])
+        } else {
+          this.handleNodeClick(this.tables[0].children[0])
+        }
+      })
+    }
   }
   created () {
     this.loadAccessDetails(true)

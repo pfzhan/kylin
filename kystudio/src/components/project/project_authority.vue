@@ -207,12 +207,6 @@ export default class ProjectAuthority extends Vue {
     label: this.$t('users'),
     options: []
   }]
-  roleOptions = [
-    {label: 'Admin', value: 'Admin'},
-    {label: 'Management', value: 'Management'},
-    {label: 'Operation', value: 'Operation'},
-    {label: 'Query', value: 'Query'}
-  ]
   showMask = {
     1: 'Query',
     16: 'Admin',
@@ -229,9 +223,9 @@ export default class ProjectAuthority extends Vue {
   userList = []
   groupList = []
   showMaskByOrder = [
-    { key: 'Query', value: 1 },
-    { key: 'Operation', value: 64 },
-    { key: 'Management', value: 32 },
+    // { key: 'Query', value: 1 },
+    // { key: 'Operation', value: 64 },
+    // { key: 'Management', value: 32 },
     { key: 'Admin', value: 16 }
   ]
   submitLoading = false
