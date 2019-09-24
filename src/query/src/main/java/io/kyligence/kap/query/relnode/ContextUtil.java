@@ -174,6 +174,8 @@ public class ContextUtil {
     private static boolean isJoinFromSameContext(Collection<Integer> indexOfInputCols, Join joinRel,
             OLAPContext subContext, boolean hasCountConstant) {
         // now support Cartesian Join if children are from different contexts
+        if (joinRel.getJoinType() == JoinRelType.LEFT && hasCountConstant)
+            return false;
         if (indexOfInputCols.isEmpty())
             return true;
         int maxIndex = Collections.max(indexOfInputCols);
@@ -188,8 +190,6 @@ public class ContextUtil {
             }
             return derivedFromSameContext(indexOfInputCols, potentialSubRel, subContext, hasCountConstant);
         }
-        if (joinRel.getJoinType() == JoinRelType.LEFT && hasCountConstant)
-            return false;
         int minIndex = Collections.min(indexOfInputCols);
         if (minIndex >= leftLength) {
             KapRel potentialSubRel = (KapRel) joinRel.getRight();

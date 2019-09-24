@@ -30,6 +30,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.apache.calcite.adapter.enumerable.EnumerableRel;
 import org.apache.calcite.adapter.enumerable.EnumerableThetaJoin;
@@ -62,6 +63,7 @@ import org.apache.kylin.metadata.model.TblColRef;
 import org.apache.kylin.query.relnode.ColumnRowType;
 import org.apache.kylin.query.relnode.OLAPContext;
 import org.apache.kylin.query.relnode.OLAPRel;
+import org.apache.kylin.query.util.RexToTblColRefTranslator;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
@@ -69,7 +71,6 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.query.util.ICutContextStrategy;
-import org.apache.kylin.query.util.RexToTblColRefTranslator;
 
 public class KapNonEquiJoinRel extends EnumerableThetaJoin implements KapRel {
 
@@ -80,9 +81,13 @@ public class KapNonEquiJoinRel extends EnumerableThetaJoin implements KapRel {
     private boolean isPreCalJoin = true;
     private boolean aboveContextPreCalcJoin = false;
 
+    // record left input size before rewrite for runtime join expression parseing
+    private int leftInputSizeBeforeRewrite = -1;
+
     public KapNonEquiJoinRel(RelOptCluster cluster, RelTraitSet traits, RelNode left, RelNode right, RexNode condition,
             Set<CorrelationId> variablesSet, JoinRelType joinType) throws InvalidRelException {
         super(cluster, traits, left, right, condition, variablesSet, joinType);
+        leftInputSizeBeforeRewrite = left.getRowType().getFieldList().size();
     }
 
     @Override
@@ -165,6 +170,7 @@ public class KapNonEquiJoinRel extends EnumerableThetaJoin implements KapRel {
                 for (TblColRef joinCol : joinCols) {
                     if (this.context.belongToContextTables(joinCol)) {
                         this.context.getSubqueryJoinParticipants().add(joinCol);
+                        this.context.allColumns.add(joinCol);
                     }
                 }
                 pushDownJoinColsToSubContexts(joinCols);
@@ -250,7 +256,7 @@ public class KapNonEquiJoinRel extends EnumerableThetaJoin implements KapRel {
     private Set<TblColRef> collectColumnsInJoinCondition(RexNode condition) {
         Set<TblColRef> joinColumns = new HashSet<>();
         doCollectColumnsInJoinCondition(condition, joinColumns);
-        return joinColumns;
+        return joinColumns.stream().flatMap(col -> col.getSourceColumns().stream()).collect(Collectors.toSet());
     }
 
     private void doCollectColumnsInJoinCondition(RexNode rexNode, Set<TblColRef> joinColumns) {
@@ -437,5 +443,9 @@ public class KapNonEquiJoinRel extends EnumerableThetaJoin implements KapRel {
         // both sides have the same first table, each side should allocate a context
         return !leftState.hasIncrementalTable() && !rightState.hasIncrementalTable() && leftState.hasFirstTable()
                 && rightState.hasFirstTable();
+    }
+
+    public int getLeftInputSizeBeforeRewrite() {
+        return leftInputSizeBeforeRewrite;
     }
 }

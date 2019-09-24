@@ -24,9 +24,12 @@
 
 package io.kyligence.kap.query.relnode;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.apache.calcite.adapter.enumerable.EnumerableJoin;
 import org.apache.calcite.adapter.enumerable.EnumerableRel;
@@ -221,7 +224,9 @@ public class KapJoinRel extends OLAPJoinRel implements KapRel {
             collectCtxOlapInfoIfExist();
         } else {
             Map<TblColRef, TblColRef> joinColumns = translateJoinColumn(this.getCondition());
-            pushDownJoinColsToSubContexts(joinColumns);
+            pushDownJoinColsToSubContexts(
+                    joinColumns.entrySet().stream().flatMap(e -> Stream.of(e.getKey(), e.getValue()))
+                            .collect(Collectors.toSet()));
         }
     }
 
@@ -238,20 +243,17 @@ public class KapJoinRel extends OLAPJoinRel implements KapRel {
             this.context.joins.add(join);
 
         } else {
-            Map<TblColRef, TblColRef> joinColumns = translateJoinColumn(this.getCondition());
-            for (Map.Entry<TblColRef, TblColRef> columnPair : joinColumns.entrySet()) {
-                TblColRef fromCol;
-                if (context.belongToContextTables(columnPair.getKey())) {
-                    fromCol = columnPair.getKey();
-                } else if (context.belongToContextTables(columnPair.getValue())) {
-                    fromCol = columnPair.getValue();
-                } else {
-                    continue;
-                }
-                this.context.getSubqueryJoinParticipants().add(fromCol);
-                this.context.allColumns.add(fromCol);
-            }
-            pushDownJoinColsToSubContexts(joinColumns);
+            Map<TblColRef, TblColRef> joinColumnsMap = translateJoinColumn(this.getCondition());
+            Collection<TblColRef> joinCols = joinColumnsMap.entrySet().stream()
+                    .flatMap(e -> Stream.of(e.getKey(), e.getValue())).collect(Collectors.toSet());
+            joinCols.stream()
+                    .flatMap(e -> e.getSourceColumns().stream())
+                    .filter(colRef -> context.belongToContextTables(colRef))
+                    .forEach(colRef -> {
+                        context.getSubqueryJoinParticipants().add(colRef);
+                        context.allColumns.add(colRef);
+                    });
+            pushDownJoinColsToSubContexts(joinCols);
         }
         if (this == context.getTopNode() && !context.isHasAgg())
             KapContext.amendAllColsIfNoAgg(this);
@@ -305,23 +307,17 @@ public class KapJoinRel extends OLAPJoinRel implements KapRel {
         }
     }
 
-    private void pushDownJoinColsToSubContexts(Map<TblColRef, TblColRef> joinColumns) {
+    private void pushDownJoinColsToSubContexts(Collection<TblColRef> joinColumns) {
         for (OLAPContext context : subContexts) {
             collectJoinColsToContext(joinColumns, context);
         }
     }
 
-    private void collectJoinColsToContext(Map<TblColRef, TblColRef> joinCols, OLAPContext context) {
-        for (Map.Entry<TblColRef, TblColRef> entry : joinCols.entrySet()) {
-            TblColRef colRef = entry.getKey();
-            if (context.belongToContextTables(colRef)) {
-                context.allColumns.add(colRef);
-            }
-            colRef = entry.getValue();
-            if (context.belongToContextTables(colRef)) {
-                context.allColumns.add(colRef);
-            }
-        }
+    private void collectJoinColsToContext(Collection<TblColRef> joinColumns, OLAPContext context) {
+        joinColumns.stream()
+                .flatMap(col -> col.getSourceColumns().stream())
+                .filter(context::belongToContextTables)
+                .forEach(coLRef -> context.allColumns.add(coLRef));
     }
 
     @Override

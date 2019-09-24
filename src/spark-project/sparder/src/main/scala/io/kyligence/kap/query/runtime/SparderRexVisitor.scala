@@ -49,15 +49,18 @@ import scala.collection.mutable.ListBuffer
  /**
   * Convert RexNode to a nested Column
   *
-  * @param dfs         dataframes
+  * @param inputFieldNames  fieldNames
   * @param rowType     rowtyple
   * @param dataContext context
   */
-class SparderRexVisitor(val dfs: Array[DataFrame],
+class SparderRexVisitor(val inputFieldNames: Array[String],
                         val rowType: RelDataType,
                         val dataContext: DataContext)
     extends RexVisitorImpl[Any](true) {
-  val fieldNames: Array[String] = dfs.flatMap(df => df.schema.fieldNames)
+
+  def this(dfs: Array[DataFrame],
+           rowType: RelDataType,
+           dataContext: DataContext) = this(dfs.flatMap(df => df.schema.fieldNames), rowType, dataContext)
 
   def this(df: DataFrame,
            rowType: RelDataType,
@@ -275,7 +278,7 @@ class SparderRexVisitor(val dfs: Array[DataFrame],
     throw new UnsupportedOperationException("local ref:" + localRef)
 
   override def visitInputRef(inputRef: RexInputRef): Column =
-    col(fieldNames(inputRef.getIndex))
+    col(inputFieldNames(inputRef.getIndex))
 
   override def visitLiteral(literal: RexLiteral): Any = {
     val v = convertFilterValueAfterAggr(literal)

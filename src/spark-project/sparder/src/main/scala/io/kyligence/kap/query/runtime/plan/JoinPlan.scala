@@ -39,8 +39,10 @@ object JoinPlan {
     // val schema = statefulDF.indexSchema
     val newLDataFrame = inputs.get(0).toDF(lSchemaNames: _*)
     val newRDataFrame = inputs.get(1).toDF(rSchemaNames: _*)
-
-    val visitor = new SparderRexVisitor(Array(newLDataFrame, newRDataFrame),
+    // slice lSchemaNames with rel.getLeftInputSizeBeforeRewrite
+    // to strip off the fields added during rewrite
+    // as those field will disturb the original index based join condition
+    val visitor = new SparderRexVisitor(Array(lSchemaNames.slice(0, rel.getLeftInputSizeBeforeRewrite), rSchemaNames).flatten,
       null,
       dataContext)
     val conditionExprCol = rel.getCondition.accept(visitor).asInstanceOf[Column]
