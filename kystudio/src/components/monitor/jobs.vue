@@ -1,10 +1,12 @@
 <template>
+  <div>
+  <el-alert :title="$t('adminTips')" type="info" class="admin-tips" v-if="$store.state.user.isShowAdminTips" @close="closeTips" show-icon></el-alert>
   <div class="jobs_list ksd-mrl-20" @click.stop>
     <div class="ksd-title-label ksd-mt-20">{{$t('jobsList')}}</div>
     <el-row :gutter="20" class="jobs_tools_row ksd-mt-10 ksd-mb-10">
       <el-col :span="18">
         <el-dropdown class="ksd-fleft waiting-jobs" trigger="click" placement="bottom-start" @command="handleCommand">
-          <el-button class="el-dropdown-link" size="medium" :disabled="!waittingJobModels.size">
+          <el-button class="el-dropdown-link" size="medium" :disabled="!waittingJobModels.size || $store.state.project.isAllProject">
             {{waittingJobModels.size}} {{$t('waitingjobs')}}<i class="el-icon-arrow-down el-icon--right"></i>
           </el-button>
           <el-dropdown-menu slot="dropdown">
@@ -58,6 +60,13 @@
         <template slot-scope="scope">
           {{$t(scope.row.job_name)}}
         </template>
+      </el-table-column>
+      <el-table-column v-if="$store.state.project.isAllProject"
+        :label="$t('project')"
+        sortable='custom'
+        :width="120"
+        show-overflow-tooltip
+        prop="project">
       </el-table-column>
       <el-table-column
         :label="$t('TargetSubject')"
@@ -275,11 +284,12 @@
       </span>
     </el-dialog>
   </div>
+  </div>
 </template>
 
 <script>
 import Vue from 'vue'
-import { Component } from 'vue-property-decorator'
+import { Component, Watch } from 'vue-property-decorator'
 import { mapActions, mapGetters } from 'vuex'
 import jobDialog from './job_dialog'
 import TWEEN from '@tweenjs/tween.js'
@@ -379,7 +389,9 @@ import { transToGmtTime, handleError, handleSuccess } from 'util/business'
       INDEX_MERGE: 'Merge Data',
       INDEX_BUILD: 'Build Index',
       INC_BUILD: 'Load Data',
-      TABLE_SAMPLING: 'Sample Table'
+      TABLE_SAMPLING: 'Sample Table',
+      project: 'Project',
+      adminTips: 'Admin user can view all job information via Select All option in the project list.'
     },
     'zh-cn': {
       dataRange: '数据范围',
@@ -447,7 +459,9 @@ import { transToGmtTime, handleError, handleSuccess } from 'util/business'
       INDEX_MERGE: '合并数据',
       INDEX_BUILD: '构建索引',
       INC_BUILD: '加载数据',
-      TABLE_SAMPLING: '抽样表数据'
+      TABLE_SAMPLING: '抽样表数据',
+      project: '项目',
+      adminTips: '系统管理员可以在项目列表中选择全部项目，查看所有项目下的任务信息。'
     }
   }
 })
@@ -501,6 +515,17 @@ export default class JobsList extends Vue {
   waitingJob = {modelName: '', jobsList: [], jobsSize: 0}
   waittingJobModels = {size: 0, data: null}
   stepId = ''
+  @Watch('$store.state.project.isAllProject')
+  selectAllProject (curVal) {
+    if (curVal) {
+      delete this.filter.project
+      this.loadJobsList(this.filter)
+    }
+  }
+  closeTips () {
+    this.$store.state.user.isShowAdminTips = false
+    this.scrollRightBar(true)
+  }
   handleCommand (uuid) {
     this.waitingJobListVisibel = true
     this.waittingJobsFilter.project = this.currentSelectedProject
@@ -631,7 +656,7 @@ export default class JobsList extends Vue {
             this.jobsList = data.jobList.map((m) => {
               if (this.selectedJob) {
                 if (m.id === this.selectedJob.id) {
-                  this.getJobDetail({project: this.filter.project, jobId: m.id}).then((res) => {
+                  this.getJobDetail({project: this.selectedJob.project, jobId: m.id}).then((res) => {
                     handleSuccess(res, (data) => {
                       this.selectedJob = m
                       this.selectedJob['details'] = data
@@ -693,15 +718,19 @@ export default class JobsList extends Vue {
       return ''
     }
   }
-  scrollRightBar () {
+  scrollRightBar (needRizeTop) {
     clearTimeout(this.scrollST)
     this.scrollST = setTimeout(() => {
       if (this.showStep) {
         var sTop = document.getElementById('scrollBox').scrollTop
-        if (sTop < this.beforeScrollPos) {
+        if (sTop < this.beforeScrollPos || needRizeTop) {
           var result = sTop
-          if (sTop < 90) {
-            result = 90
+          var defaultTop = 92
+          if (this.$el.querySelector('.admin-tips')) {
+            defaultTop = 129
+          }
+          if (sTop < defaultTop) {
+            result = defaultTop
           }
           document.getElementById('stepList').style.top = result + 'px'
         }
@@ -894,8 +923,13 @@ export default class JobsList extends Vue {
     }
   }
   refreshJobs () {
-    this.filter.project = this.currentSelectedProject
-    return Promise.all([this.getJobsList(), this.getWaittingJobModels()])
+    if (this.$store.state.project.isAllProject) {
+      delete this.filter.project
+      return this.getJobsList()
+    } else {
+      this.filter.project = this.currentSelectedProject
+      return Promise.all([this.getJobsList(), this.getWaittingJobModels()])
+    }
   }
   sortJobList ({ column, prop, order }) {
     if (order === 'ascending') {
@@ -1020,15 +1054,19 @@ export default class JobsList extends Vue {
       }
       this.showStep = needShow
       this.selectedJob = row
-      this.getJobDetail({project: this.currentSelectedProject, jobId: row.id}).then((res) => {
+      this.getJobDetail({project: this.selectedJob.project, jobId: row.id}).then((res) => {
         handleSuccess(res, (data) => {
           this.$nextTick(() => {
             this.$set(this.selectedJob, 'details', data)
             var sTop = document.getElementById('scrollBox').scrollTop
             this.beforeScrollPos = sTop
             var result = sTop
-            if (sTop < 90) {
-              result = 90
+            var defaultTop = 92
+            if (this.$el.querySelector('.admin-tips')) {
+              defaultTop = 129
+            }
+            if (sTop < defaultTop) {
+              result = defaultTop
             }
             document.getElementById('stepList').style.top = result + 'px'
           })

@@ -10,7 +10,8 @@ export default {
     usersGroupSize: 0,
     currentUser: null,
     currentUserAccess: null,
-    userDetail: null
+    userDetail: null,
+    isShowAdminTips: true
   },
   mutations: {
     [types.SAVE_USERS_LIST]: function (state, result) {

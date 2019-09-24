@@ -9,6 +9,7 @@ export default {
     allProject: [],
     projectTotalSize: 0,
     projectAutoApplyConfig: false,
+    isAllProject: false,
     selected_project: cacheSessionStorage('projectName') || cacheLocalStorage('projectName')
   },
   mutations: {

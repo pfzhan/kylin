@@ -173,6 +173,7 @@ let MessageBox = ElementUI.MessageBox
       // for newten
       // getEncoding: 'GET_ENCODINGS',
       resetPassword: 'RESET_PASSWORD',
+      getUserAccess: 'USER_ACCESS',
       getAboutKap: 'GET_ABOUTKAP',
       applySpeedInfo: 'APPLY_SPEED_INFO',
       ignoreSpeedInfo: 'IGNORE_SPEED_INFO',
@@ -463,10 +464,17 @@ export default class LayoutLeftRightTop extends Vue {
       }
     })
   }
+  _isAjaxProjectAcess (allProject, curProjectName, currentPathName, currentPath) {
+    let curProjectUserAccess = this.getUserAccess({project: curProjectName})
+    Promise.all([curProjectUserAccess]).then(() => {
+      this._replaceRouter(currentPathName, currentPath)
+    })
+  }
   changeProject (val) {
     this.setProject(val)
     var currentPathName = this.$router.currentRoute.name
-    this._replaceRouter(currentPathName)
+    var currentPath = this.$router.currentRoute.path
+    this._isAjaxProjectAcess(this.$store.state.project.allProject, val, currentPathName, currentPath)
   }
   async addProject () {
     try {
