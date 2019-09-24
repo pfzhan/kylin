@@ -22,7 +22,7 @@
       <div class="split" v-if="false">
         <i class="el-icon-ksd-more_03"></i>
       </div>
-      <div class="empty" v-if="treeData.length===0">
+      <div class="empty" v-if="!loadingTreeData && treeData.length===0">
         <p class="empty-text">{{$t('kylinLang.common.noData')}}</p>
       </div>
     </div>
@@ -158,6 +158,7 @@ export default class SourceHive extends Vue {
   filterText = ''
   errorMsg = ''
   defaultExpandedKeys= []
+  loadingTreeData = true
 
   get databaseOptions () {
     return this.treeData.map(database => ({
@@ -239,6 +240,7 @@ export default class SourceHive extends Vue {
     if (this.$refs['tree-list']) {
       this.$refs['tree-list'].showLoading()
     }
+    this.loadingTreeData = true
     try {
       const projectName = this.currentSelectedProject
       const sourceType = this.sourceType
@@ -255,6 +257,7 @@ export default class SourceHive extends Vue {
     if (this.$refs['tree-list']) {
       this.$refs['tree-list'].hideLoading()
     }
+    this.loadingTreeData = false
   }
   async loadTables ({database, tableName = '', isTableReset = false}) {
     const projectName = this.currentSelectedProject
@@ -271,6 +274,7 @@ export default class SourceHive extends Vue {
     if (this.$refs['tree-list']) {
       this.$refs['tree-list'].showLoading()
     }
+    this.loadingTreeData = true
     try {
       let params = {
         projectName: this.currentSelectedProject,
@@ -315,11 +319,15 @@ export default class SourceHive extends Vue {
     if (this.$refs['tree-list']) {
       this.$refs['tree-list'].hideLoading()
     }
+    this.loadingTreeData = false
   }
   handleFilter (filterText) {
     clearInterval(this.timer)
     return new Promise(async resolve => {
       this.timer = setTimeout(async () => {
+        // 每次发起搜索时，清空前一次的数据树
+        this.loadingTreeData = true
+        this.treeData = []
         // 发一个接口就行
         await this.loadDatabaseAndTables(filterText)
         this.filterText = filterText

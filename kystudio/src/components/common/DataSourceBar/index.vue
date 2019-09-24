@@ -314,7 +314,12 @@ export default class DataSourceBar extends Vue {
       await this.loadDatasources()
       // await this.loadDataBases()
       // await this.loadTables({ isReset: true })
-      await this.loadTreeData()
+      // 有加载数据源的情况，才去加载db 和 table，否则就处理loading字段
+      if (this.datasources.length > 0) {
+        await this.loadTreeData()
+      } else {
+        this.isLoadingTreeData = false
+      }
       freshTreeOrder(this)
       this.selectFirstTable()
     } catch (e) {
