@@ -305,28 +305,12 @@ public class ConvertToComputedColumn implements QueryUtil.IQueryTransformer, IKe
             // for select with group by, if the sql is like 'select expr(A) from tbl group by A'
             // do not replace expr(A) with CC
             if (selectOrOrderby instanceof SqlSelect && ((SqlSelect) selectOrOrderby).getGroup() != null) {
-                SqlSelect select = (SqlSelect) selectOrOrderby;
-                inputNodes.addAll(collectCandidateInputNodes(select.getSelectList(), select.getGroup()));
-                inputNodes.addAll(collectCandidateInputNodes(select.getOrderList(), select.getGroup()));
-                inputNodes.addAll(collectCandidateInputNode(select.getHaving(), select.getGroup()));
-                inputNodes.addAll(getInputTreeNodes(select.getWhere()));
-                inputNodes.addAll(getInputTreeNodes(select.getGroup()));
+                inputNodes.addAll(collectInputNodes((SqlSelect) selectOrOrderby));
             } else if (selectOrOrderby instanceof SqlOrderBy) {
                 SqlOrderBy sqlOrderBy = (SqlOrderBy) selectOrOrderby;
                 // for sql orderby
                 // 1. process order list
-                // if order list is not empty and query is a select
-                // then collect order list with checking on group keys
-                if (sqlOrderBy.orderList != null &&
-                        sqlOrderBy.query != null &&
-                        sqlOrderBy.query instanceof SqlSelect &&
-                        ((SqlSelect) sqlOrderBy.query).getGroup() != null) {
-                    inputNodes.addAll(collectCandidateInputNodes(sqlOrderBy.orderList, ((SqlSelect) sqlOrderBy.query).getGroup()));
-                } else {
-                    if (sqlOrderBy.orderList != null) {
-                        inputNodes.addAll(getInputTreeNodes(sqlOrderBy.orderList));
-                    }
-                }
+                inputNodes.addAll(collectInputNodes(sqlOrderBy));
 
                 // 2. process query part
                 // pass to getMatchedNodes directly
@@ -350,6 +334,33 @@ public class ConvertToComputedColumn implements QueryUtil.IQueryTransformer, IKe
         }
 
         return matchedNodes;
+    }
+
+    private static List<SqlNode> collectInputNodes(SqlSelect select) {
+        List<SqlNode> inputNodes = new LinkedList<>();
+        inputNodes.addAll(collectCandidateInputNodes(select.getSelectList(), select.getGroup()));
+        inputNodes.addAll(collectCandidateInputNodes(select.getOrderList(), select.getGroup()));
+        inputNodes.addAll(collectCandidateInputNode(select.getHaving(), select.getGroup()));
+        inputNodes.addAll(getInputTreeNodes(select.getWhere()));
+        inputNodes.addAll(getInputTreeNodes(select.getGroup()));
+        return inputNodes;
+    }
+
+    private static List<SqlNode> collectInputNodes(SqlOrderBy sqlOrderBy) {
+        // if order list is not empty and query is a select
+        // then collect order list with checking on group keys
+        List<SqlNode> inputNodes = new LinkedList<>();
+        if (sqlOrderBy.orderList != null &&
+                sqlOrderBy.query != null &&
+                sqlOrderBy.query instanceof SqlSelect &&
+                ((SqlSelect) sqlOrderBy.query).getGroup() != null) {
+            inputNodes.addAll(collectCandidateInputNodes(sqlOrderBy.orderList, ((SqlSelect) sqlOrderBy.query).getGroup()));
+        } else {
+            if (sqlOrderBy.orderList != null) {
+                inputNodes.addAll(getInputTreeNodes(sqlOrderBy.orderList));
+            }
+        }
+        return inputNodes;
     }
 
     private static List<SqlNode> collectCandidateInputNodes(SqlNodeList sqlNodeList, SqlNodeList groupSet) {
