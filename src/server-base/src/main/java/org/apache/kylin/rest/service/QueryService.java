@@ -135,6 +135,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Collections2;
@@ -808,10 +809,12 @@ public class QueryService extends BasicService {
             if (aclTCRS.stream().anyMatch(aclTCR -> aclTCR.isAuthorized(dbTblName))) {
                 return null;
             }
-            t.setColumns(t.getColumns().stream().filter(
+            T copied = JsonUtil.deepCopyQuietly(t, new TypeReference<T>() {
+            });
+            copied.setColumns(copied.getColumns().stream().filter(
                     c -> aclTCRS.stream().anyMatch(aclTCR -> aclTCR.isAuthorized(dbTblName, c.getCOLUMN_NAME())))
                     .collect(Collectors.toList()));
-            return t;
+            return copied;
         }).filter(Objects::nonNull).collect(Collectors.toList());
     }
 

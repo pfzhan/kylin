@@ -78,8 +78,7 @@ class NLocalQueryRunner extends AbstractQueryRunner {
         KylinConfig config = KylinConfig.createKylinConfig(properties);
         config.setProperty("kylin.query.pushdown.runner-class-name", MockupPushDownRunner.class.getName());
         config.setProperty("kylin.query.transformers", StringUtils.join(kylinConfig.getQueryTransformers(), ','));
-        config.setProperty("kap.query.security.row-acl-enabled", "false");
-        config.setProperty("kap.query.security.column-acl-enabled", "false");
+        config.setProperty("kylin.query.security.acl-tcr-enabled", "false");
 
         return config;
     }
