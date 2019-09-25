@@ -28,8 +28,11 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
@@ -61,9 +64,11 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
 import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 
 import io.kyligence.kap.metadata.user.ManagedUser;
 import io.kyligence.kap.rest.request.AccessRequest;
+import io.kyligence.kap.rest.request.BatchAccessRequest;
 import io.kyligence.kap.rest.service.AclTCRService;
 
 @Controller
@@ -174,7 +179,8 @@ public class NAccessController extends NBasicController {
     @PostMapping(value = "/batch/{entityType}/{uuid}", produces = { "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
     public EnvelopeResponse batchGrant(@PathVariable("entityType") String entityType, @PathVariable("uuid") String uuid,
-            @RequestBody List<AccessRequest> requests) throws IOException {
+            @RequestBody List<BatchAccessRequest> batchAccessRequests) throws IOException {
+        List<AccessRequest> requests = transform(batchAccessRequests);
         checkSid(requests);
         if (AclEntityType.PROJECT_INSTANCE.equals(entityType)) {
             aclTCRService.updateAclTCR(uuid, requests);
@@ -256,6 +262,23 @@ public class NAccessController extends NBasicController {
         if (!principal && !userGroupService.exists(sid)) {
             throw new BadRequestException("Operation failed, group:" + sid + " not exists, please add it first.");
         }
+    }
+
+    private List<AccessRequest> transform(List<BatchAccessRequest> batchAccessRequests) {
+        List<AccessRequest> result = Optional.ofNullable(batchAccessRequests).map(List::stream).orElseGet(Stream::empty)
+                .map(b -> Optional.ofNullable(b.getSids()).map(List::stream).orElseGet(Stream::empty).map(sid -> {
+                    AccessRequest r = new AccessRequest();
+                    r.setAccessEntryId(b.getAccessEntryId());
+                    r.setPermission(b.getPermission());
+                    r.setPrincipal(b.isPrincipal());
+                    r.setSid(sid);
+                    return r;
+                }).collect(Collectors.toList())).flatMap(List::stream).collect(Collectors.toList());
+        Set<String> sids = Sets.newHashSet();
+        result.stream().filter(r -> !sids.add(r.getSid())).findAny().ifPresent(r -> {
+            throw new BadRequestException("Operation failed, duplicated sid: " + r.getSid());
+        });
+        return result;
     }
 
 }
