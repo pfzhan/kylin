@@ -33,6 +33,9 @@ public class UnitOfWorkParams<T> {
     private UnitOfWork.Callback<T> processor;
 
     @Builder.Default
+    private boolean all = false;
+
+    @Builder.Default
     private String unitName = UnitOfWork.GLOBAL_UNIT;
 
     @Builder.Default

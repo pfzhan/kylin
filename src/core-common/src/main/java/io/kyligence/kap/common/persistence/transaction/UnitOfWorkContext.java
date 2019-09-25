@@ -75,7 +75,7 @@ public class UnitOfWorkContext {
     }
 
     void checkReentrant(UnitOfWorkParams params) {
-        Preconditions.checkState(project.equals(params.getUnitName()),
+        Preconditions.checkState(project.equals(params.getUnitName()) || this.params.isAll(),
                 "re-entry of UnitOfWork with different unit name? existing: %s, new: %s", project,
                 params.getUnitName());
         Preconditions.checkState(params.isReadonly() == isReadonly(),

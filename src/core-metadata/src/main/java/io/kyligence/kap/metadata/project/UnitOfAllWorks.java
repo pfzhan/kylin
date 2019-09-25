@@ -39,8 +39,8 @@ import lombok.val;
 public class UnitOfAllWorks {
 
     public static <T> T doInTransaction(UnitOfWork.Callback<T> f, boolean readonly) {
-        return UnitOfWork.doInTransactionWithRetry(
-                UnitOfWorkParams.<T> builder().readonly(readonly).unitName(UnitOfWork.GLOBAL_UNIT).processor(() -> {
+        return UnitOfWork.doInTransactionWithRetry(UnitOfWorkParams.<T> builder().readonly(readonly).all(true)
+                .unitName(UnitOfWork.GLOBAL_UNIT).processor(() -> {
                     val projectManager = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv());
                     val projects = projectManager.listAllProjects().stream()
                             .sorted(Comparator.comparing(RootPersistentEntity::getUuid)).collect(Collectors.toList());

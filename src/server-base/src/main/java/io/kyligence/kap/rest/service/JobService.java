@@ -39,6 +39,7 @@ import java.util.stream.Collectors;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
+import io.kyligence.kap.metadata.project.UnitOfAllWorks;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
@@ -176,7 +177,7 @@ public class JobService extends BasicService {
     }
 
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#ae, 'ADMINISTRATION')")
-    public List<ExecutableResponse> listAllJobs(final JobFilter jobFilter) {
+    public List<ExecutableResponse> listGlobalJobs(final JobFilter jobFilter) {
         List<AbstractExecutable> jobs = new ArrayList<>();
         for (ProjectInstance project : getReadableProjects()) {
             jobFilter.setProject(project.getName());
@@ -346,9 +347,11 @@ public class JobService extends BasicService {
         return result;
     }
 
-    @Transaction(project = 1)
-    public void batchUpdateJobStatus(List<String> jobIds, String project, String action, String filterStatus)
+    private void batchUpdateJobStatus0(List<String> jobIds, String project, String action, String filterStatus)
             throws IOException {
+        Preconditions.checkNotNull(project);
+        Preconditions.checkNotNull(jobIds);
+
         val executableManager = getExecutableManager(project);
         JobStatusEnum jobStatus = JobStatusEnum.getByName(filterStatus);
         ExecutableState executableState = Objects.isNull(jobStatus) ? null : parseToExecutableState(jobStatus);
@@ -358,8 +361,25 @@ public class JobService extends BasicService {
         }
     }
 
-    @Transaction(project = 0)
-    public void batchDropJob(String project, List<String> jobIds, String filterStatus) throws IOException {
+    @Transaction(project = 1)
+    public void batchUpdateJobStatus(List<String> jobIds, String project, String action, String filterStatus)
+            throws IOException {
+        batchUpdateJobStatus0(jobIds, project, action, filterStatus);
+    }
+
+    public void batchUpdateGlobalJobStatus(List<String> jobIds, String action, String filterStatus) {
+        UnitOfAllWorks.doInTransaction(() -> {
+            for (ProjectInstance project : getReadableProjects()) {
+                batchUpdateJobStatus0(jobIds, project.getName(), action, filterStatus);
+            }
+            return null;
+        }, false);
+    }
+
+    private void batchDropJob0(String project, List<String> jobIds, String filterStatus) throws IOException {
+        Preconditions.checkNotNull(project);
+        Preconditions.checkNotNull(jobIds);
+
         val executableManager = getExecutableManager(project);
         JobStatusEnum jobStatus = JobStatusEnum.getByName(filterStatus);
         ExecutableState executableState = Objects.isNull(jobStatus) ? null : parseToExecutableState(jobStatus);
@@ -367,6 +387,20 @@ public class JobService extends BasicService {
         for (val job : jobs) {
             dropJob(project, job.getId());
         }
+    }
+
+    @Transaction(project = 0)
+    public void batchDropJob(String project, List<String> jobIds, String filterStatus) throws IOException {
+        batchDropJob0(project, jobIds, filterStatus);
+    }
+
+    public void batchDropGlobalJob(List<String> jobIds, String filterStatus) {
+        UnitOfAllWorks.doInTransaction(() -> {
+            for (ProjectInstance project : getReadableProjects()) {
+                batchDropJob0(project.getName(), jobIds, filterStatus);
+            }
+            return null;
+        }, false);
     }
 
     public JobStatisticsResponse getJobStats(String project, long startTime, long endTime) {

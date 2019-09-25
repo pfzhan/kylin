@@ -88,7 +88,7 @@ public class NJobController extends NBasicController {
         if (!StringUtils.isEmpty(project)) {
             executables = jobService.listJobs(jobFilter);
         } else {
-            executables = jobService.listAllJobs(jobFilter);
+            executables = jobService.listGlobalJobs(jobFilter);
         }
         Map<String, Object> result = getDataResponse("jobList", executables, pageOffset, pageSize);
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, result, "");
@@ -132,18 +132,36 @@ public class NJobController extends NBasicController {
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, null, "");
     }
 
+    @RequestMapping(value = "", method = { RequestMethod.DELETE }, produces = {
+            "application/vnd.apache.kylin-v2+json" })
+    @ResponseBody
+    public EnvelopeResponse dropGlobalJob(@RequestParam(value = "jobIds", required = false) List<String> jobIds,
+            @RequestParam(value = "status", required = false) String status) throws IOException {
+        checkJobStatus(status);
+        if (CollectionUtils.isEmpty(jobIds) && StringUtils.isEmpty(status)) {
+            throw new BadRequestException("At least one job should be selected to delete!");
+        }
+        jobService.batchDropGlobalJob(jobIds, status);
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, null, "");
+    }
+
     @RequestMapping(value = "/status", method = { RequestMethod.PUT }, produces = {
             "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
     public EnvelopeResponse updateJobStatus(@RequestBody JobUpdateRequest jobUpdateRequest) throws IOException {
-        checkProjectName(jobUpdateRequest.getProject());
         checkJobStatus(jobUpdateRequest.getStatus());
         if (CollectionUtils.isEmpty(jobUpdateRequest.getJobIds())
                 && StringUtils.isEmpty(jobUpdateRequest.getStatus())) {
             throw new BadRequestException("At least one job should be selected to " + jobUpdateRequest.getAction());
         }
-        jobService.batchUpdateJobStatus(jobUpdateRequest.getJobIds(), jobUpdateRequest.getProject(),
-                jobUpdateRequest.getAction(), jobUpdateRequest.getStatus());
+
+        if (!StringUtils.isEmpty(jobUpdateRequest.getProject())) {
+            jobService.batchUpdateJobStatus(jobUpdateRequest.getJobIds(), jobUpdateRequest.getProject(),
+                    jobUpdateRequest.getAction(), jobUpdateRequest.getStatus());
+        } else {
+            jobService.batchUpdateGlobalJobStatus(jobUpdateRequest.getJobIds(), jobUpdateRequest.getAction(),
+                    jobUpdateRequest.getStatus());
+        }
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, null, "");
     }
 

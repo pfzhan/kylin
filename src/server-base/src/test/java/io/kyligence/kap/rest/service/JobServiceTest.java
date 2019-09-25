@@ -214,9 +214,11 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
     private List<ProjectInstance> mockProjects() {
         ProjectInstance defaultProject = new ProjectInstance();
         defaultProject.setName("default");
+        defaultProject.setMvcc(0);
 
         ProjectInstance defaultProject1 = new ProjectInstance();
         defaultProject1.setName("default1");
+        defaultProject1.setMvcc(0);
 
         return Lists.newArrayList(defaultProject, defaultProject1);
     }
@@ -255,7 +257,7 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
 
         List<String> jobNames = Lists.newArrayList();
         JobFilter jobFilter = new JobFilter("", jobNames, 4, "", "", "", "", true);
-        List<ExecutableResponse> jobs = jobService.listAllJobs(jobFilter);
+        List<ExecutableResponse> jobs = jobService.listGlobalJobs(jobFilter);
         Assert.assertEquals(4, jobs.size());
         Assert.assertEquals("default1", jobs.get(3).getProject());
     }
@@ -316,6 +318,35 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
         jobService.batchDropJob("default", Lists.newArrayList(executable.getId()), "");
         List<AbstractExecutable> executables = manager.getAllExecutables();
         Assert.assertTrue(!executables.contains(executable));
+    }
+
+    @Test
+    public void testGlobalBasic() throws IOException {
+        Mockito.doReturn(mockProjects()).when(jobService).getReadableProjects();
+
+        NExecutableManager manager = NExecutableManager.getInstance(jobService.getConfig(), "default");
+        NDataflowManager dsMgr = NDataflowManager.getInstance(jobService.getConfig(), "default");
+        SucceedChainedTestExecutable executable = new SucceedChainedTestExecutable();
+        manager.addJob(executable);
+
+        jobService.batchUpdateGlobalJobStatus(Lists.newArrayList(executable.getId()), "PAUSE", "");
+        Assert.assertEquals(ExecutableState.PAUSED, manager.getJob(executable.getId()).getStatus());
+
+        jobService.batchUpdateGlobalJobStatus(Lists.newArrayList(executable.getId()), "RESUME", "");
+        jobService.batchUpdateGlobalJobStatus(Lists.newArrayList(executable.getId()), "PAUSE", "OTHER_STATUS");
+        Assert.assertEquals(ExecutableState.PAUSED, manager.getJob(executable.getId()).getStatus());
+
+        jobService.batchUpdateGlobalJobStatus(Lists.newArrayList(executable.getId()), "RESUME", "STOPPED");
+        Assert.assertEquals(ExecutableState.READY, manager.getJob(executable.getId()).getStatus());
+
+        jobService.batchUpdateGlobalJobStatus(Lists.newArrayList(executable.getId()), "DISCARD", "");
+        Assert.assertEquals(ExecutableState.DISCARDED, manager.getJob(executable.getId()).getStatus());
+
+        Assert.assertNull(dsMgr.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa").getSegments().getFirstSegment());
+
+        Mockito.doNothing().when(tableExtService).removeJobIdFromTableExt(executable.getId(), "default");
+        jobService.batchDropGlobalJob(Lists.newArrayList(executable.getId()), "");
+        Assert.assertFalse(manager.getAllExecutables().contains(executable));
     }
 
     @Test
