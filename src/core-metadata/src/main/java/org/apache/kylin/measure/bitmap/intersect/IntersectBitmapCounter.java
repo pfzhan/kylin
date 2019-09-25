@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -51,6 +50,9 @@ import org.apache.kylin.measure.bitmap.BitmapCounter;
 import org.apache.kylin.measure.bitmap.BitmapCounterFactory;
 import org.apache.kylin.measure.bitmap.RoaringBitmapCounterFactory;
 
+/**
+ * @Deprecated 新的 intersect_count 实现已经不用这一套serializer, aggregator, counter了，但是要配合之前的框架，只能留下这个类
+ */
 @Deprecated
 public class IntersectBitmapCounter {
     private static final BitmapCounterFactory factory = RoaringBitmapCounterFactory.INSTANCE;
@@ -85,9 +87,13 @@ public class IntersectBitmapCounter {
             this.keyList = keyList;
         }
         if (this.keyList != null && this.keyList.contains(key)) {
-            BitmapCounter counter = map.get(key);
+            BitmapCounter counter = null;
+            if (map.containsKey(key)) {
+                counter = map.get(key);
+            }
             if (counter == null) {
-                map.put(key, counter = factory.newBitmap());
+                counter = factory.newBitmap();
+                map.put(key, counter);
             }
             counter.orWith((BitmapCounter) value);
         }
@@ -105,8 +111,7 @@ public class IntersectBitmapCounter {
         }
         BitmapCounter counter = null;
         for (Object key : keyList) {
-            BitmapCounter c = map.get(
-                    key);
+            BitmapCounter c = map.get(key);
             if (counter == null) {
                 counter = factory.newBitmap();
                 counter.orWith(c);
@@ -114,21 +119,24 @@ public class IntersectBitmapCounter {
                 counter.andWith(c);
             }
         }
-        return counter.getCount();
+        if (counter == null) {
+            return 0;
+        } else {
+            return counter.getCount();
+        }
     }
 
-
-    public void merge(IntersectBitmapCounter other){
+    public void merge(IntersectBitmapCounter other) {
         Map<Object, BitmapCounter> otherMap = other.getMap();
-       for(String key: keyList){
-           if (otherMap.containsKey(key)) {
-               if (map.containsKey(key)) {
-                   map.get(key).orWith(otherMap.get(key));
-               } else {
-                   map.put(key, otherMap.get(key));
-               }
-           }
-       }
+        for (String key : keyList) {
+            if (otherMap.containsKey(key)) {
+                if (map.containsKey(key)) {
+                    map.get(key).orWith(otherMap.get(key));
+                } else {
+                    map.put(key, otherMap.get(key));
+                }
+            }
+        }
     }
 
     public Map<Object, BitmapCounter> getMap() {

@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -45,17 +44,14 @@ package org.apache.kylin.measure.bitmap.intersect;
 
 import org.apache.kylin.measure.MeasureAggregator;
 import org.apache.kylin.measure.bitmap.BitmapCounter;
-import org.apache.kylin.measure.bitmap.BitmapCounterFactory;
-import org.apache.kylin.measure.bitmap.RoaringBitmapCounterFactory;
 
 /**
- *  This is dummy aggregator, the effective aggregation is done in org.apache.spark.sql.udf.SparderExternalAggFunc
+ * @Deprecated 新的 intersect_count 实现已经不用这一套serializer, aggregator, counter了，但是要配合之前的框架，只能留下这个类
  */
 @Deprecated
 public class IntersectMeasureAggregator extends MeasureAggregator<IntersectBitmapCounter> {
-    private static final BitmapCounterFactory bitmapFactory = RoaringBitmapCounterFactory.INSTANCE;
 
-    private IntersectBitmapCounter sum;
+    private transient IntersectBitmapCounter sum;
 
     @Override
     public void reset() {
@@ -64,6 +60,7 @@ public class IntersectMeasureAggregator extends MeasureAggregator<IntersectBitma
 
     @Override
     public void aggregate(IntersectBitmapCounter value) {
+        throw new UnsupportedOperationException();
     }
 
     @Override

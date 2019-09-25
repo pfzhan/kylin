@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -43,25 +42,21 @@
 
 package org.apache.kylin.measure.bitmap.intersect;
 
-import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.Map;
 
 import org.apache.kylin.common.util.Bytes;
 import org.apache.kylin.measure.bitmap.BitmapCounter;
-import org.apache.kylin.measure.bitmap.BitmapCounterFactory;
 import org.apache.kylin.measure.bitmap.BitmapSerializer;
-import org.apache.kylin.measure.bitmap.RoaringBitmapCounterFactory;
 import org.apache.kylin.metadata.datatype.DataType;
 import org.apache.kylin.metadata.datatype.DataTypeSerializer;
 
+/**
+ * @Deprecated 新的 intersect_count 实现已经不用这一套serializer, aggregator, counter了，但是要配合之前的框架，只能留下这个类
+ */
 @Deprecated
 public class IntersectSerializer extends DataTypeSerializer<IntersectBitmapCounter> {
 
-    private static final BitmapCounterFactory factory = RoaringBitmapCounterFactory.INSTANCE;
-    private static final BitmapCounter DELEGATE = factory.newBitmap();
-    private static final int IS_RESULT_FLAG = 1;
-    private static final int RESULT_SIZE = 12;
     private DataTypeSerializer<BitmapCounter> defaultSerializer;
 
     // called by reflection
@@ -120,15 +115,6 @@ public class IntersectSerializer extends DataTypeSerializer<IntersectBitmapCount
 
     @Override
     public ByteBuffer getFinalResult(ByteBuffer in) {
-        ByteBuffer out = ByteBuffer.allocate(RESULT_SIZE);
-        try {
-            BitmapCounter counter = factory.newBitmap(in);
-            out.putInt(IS_RESULT_FLAG);
-            out.putLong(counter.getCount());
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-        out.flip();
-        return out;
+        throw new UnsupportedOperationException();
     }
 }
