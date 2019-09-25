@@ -41,6 +41,9 @@ export default {
   removeJob: (para) => {
     return Vue.resource(apiUrl + 'jobs/' + para.project + '{?jobIds}').delete(para)
   },
+  removeJobForAll: (para) => {
+    return Vue.resource(apiUrl + 'jobs' + '{?jobIds}').delete(para)
+  },
   loadDashboardJobInfo: (para) => {
     return Vue.resource(apiUrl + 'jobs/statistics').get(para)
   },

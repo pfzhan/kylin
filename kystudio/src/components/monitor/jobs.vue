@@ -29,7 +29,7 @@
       </el-col>
     </el-row>
     <transition name="fade">
-      <div class="selectLabel" v-if="isSelectAllShow">
+      <div class="selectLabel" v-if="isSelectAllShow&&!$store.state.project.isAllProject">
         <span>{{$t('selectedJobs', {selectedNumber: selectedNumber})}}</span>
         <el-checkbox v-model="isSelectAll" @change="selectAllChange">{{$t('selectAll')}}</el-checkbox>
       </div>
@@ -47,7 +47,7 @@
       @cell-click="showLineSteps"
       :row-class-name="tableRowClassName"
       :style="{width:showStep?'70%':'100%'}"
-    >
+      :key="$store.state.project.isAllProject">
       <el-table-column type="selection" align="center" width="44"></el-table-column>
       <el-table-column align="center" width="40" prop="icon">
         <template slot-scope="scope">
@@ -118,16 +118,16 @@
         width="83">
         <template slot-scope="scope">
           <common-tip :content="$t('jobDrop')" v-if="scope.row.job_status=='DISCARDED' || scope.row.job_status=='FINISHED'">
-            <i class="el-icon-ksd-table_delete ksd-fs-14" @click.stop="drop([scope.row.id])"></i>
+            <i class="el-icon-ksd-table_delete ksd-fs-14" @click.stop="drop([scope.row.id], scope.row.project)"></i>
           </common-tip>
           <common-tip :content="$t('jobRestart')" v-if="scope.row.job_status=='ERROR'|| scope.row.job_status=='STOPPED'||scope.row.job_status=='RUNNING'">
-            <i class="el-icon-ksd-restart ksd-fs-14" @click.stop="restart([scope.row.id])"></i>
+            <i class="el-icon-ksd-restart ksd-fs-14" @click.stop="restart([scope.row.id], scope.row.project)"></i>
           </common-tip>
           <common-tip :content="$t('jobResume')" v-if="scope.row.job_status=='ERROR'|| scope.row.job_status=='STOPPED'">
-            <i class="el-icon-ksd-table_resume ksd-fs-14" @click.stop="resume([scope.row.id])"></i>
+            <i class="el-icon-ksd-table_resume ksd-fs-14" @click.stop="resume([scope.row.id], scope.row.project)"></i>
           </common-tip>
           <common-tip :content="$t('jobPause')" v-if="scope.row.job_status=='RUNNING'|| scope.row.job_status=='PENDING'">
-            <i class="el-icon-ksd-pause ksd-fs-14" @click.stop="pause([scope.row.id])"></i>
+            <i class="el-icon-ksd-pause ksd-fs-14" @click.stop="pause([scope.row.id], scope.row.project)"></i>
           </common-tip>
         </template>
       </el-table-column>
@@ -150,7 +150,7 @@
             <tr>
               <td>{{$t('TargetSubject')}}</td>
               <td>
-                <span v-if="selectedJob.job_name === 'TABLE_SAMPLING'">{{selectedJob.target_subject}}</span>
+                <span v-if="selectedJob.job_name === 'TABLE_SAMPLING' || $store.state.project.isAllProject">{{selectedJob.target_subject}}</span>
                 <a v-else @click="gotoModelList(selectedJob.target_subject)">{{selectedJob.target_subject}}</a>
               </td>
             </tr>
@@ -296,6 +296,7 @@ import TWEEN from '@tweenjs/tween.js'
 import $ from 'jquery'
 import { pageCount } from '../../config'
 import { transToGmtTime, handleError, handleSuccess } from 'util/business'
+import { cacheLocalStorage } from 'util/index'
 @Component({
   methods: {
     transToGmtTime: transToGmtTime,
@@ -304,6 +305,7 @@ import { transToGmtTime, handleError, handleSuccess } from 'util/business'
       getJobDetail: 'GET_JOB_DETAIL',
       loadStepOutputs: 'LOAD_STEP_OUTPUTS',
       removeJob: 'REMOVE_JOB',
+      removeJobForAll: 'ROMOVE_JOB_FOR_ALL',
       pauseJob: 'PAUSE_JOB',
       restartJob: 'RESTART_JOB',
       resumeJob: 'RESUME_JOB',
@@ -519,11 +521,15 @@ export default class JobsList extends Vue {
   selectAllProject (curVal) {
     if (curVal) {
       delete this.filter.project
-      this.loadJobsList(this.filter)
+      this.jobsList = []
+      this.$nextTick(() => {
+        this.loadJobsList(this.filter)
+      })
     }
   }
   closeTips () {
     this.$store.state.user.isShowAdminTips = false
+    cacheLocalStorage('isHideAdminTips', true)
     this.scrollRightBar(true)
   }
   handleCommand (uuid) {
@@ -674,8 +680,8 @@ export default class JobsList extends Vue {
             this.jobTotal = 0
           }
           this.searchLoading = false
-          resolve()
         })
+        resolve()
       }, (res) => {
         handleError(res)
         this.searchLoading = false
@@ -761,7 +767,9 @@ export default class JobsList extends Vue {
   reCallPolling () {
     this.isPausePolling = false
     this.getJobsList()
-    this.getWaittingJobModels()
+    if (!this.$store.state.project.isAllProject) {
+      this.getWaittingJobModels()
+    }
     this.autoFilter()
   }
   handleSelectionChange (val) {
@@ -835,10 +843,10 @@ export default class JobsList extends Vue {
       this.$message.warning(this.$t('noSelectJobs'))
     } else {
       if (this.isSelectAll && this.isSelectAllShow) {
-        this.resume([], 'batchAll')
+        this.resume([], this.currentSelectedProject, 'batchAll')
       } else {
         const jobIds = this.getJobIds()
-        this.resume(jobIds, 'batch')
+        this.resume(jobIds, this.currentSelectedProject, 'batch')
       }
     }
   }
@@ -847,10 +855,10 @@ export default class JobsList extends Vue {
       this.$message.warning(this.$t('noSelectJobs'))
     } else {
       if (this.isSelectAll && this.isSelectAllShow) {
-        this.restart([], 'batchAll')
+        this.restart([], this.currentSelectedProject, 'batchAll')
       } else {
         const jobIds = this.getJobIds()
-        this.restart(jobIds, 'batch')
+        this.restart(jobIds, this.currentSelectedProject, 'batch')
       }
     }
   }
@@ -859,10 +867,10 @@ export default class JobsList extends Vue {
       this.$message.warning(this.$t('noSelectJobs'))
     } else {
       if (this.isSelectAll && this.isSelectAllShow) {
-        this.pause([], 'batchAll')
+        this.pause([], this.currentSelectedProject, 'batchAll')
       } else {
         const jobIds = this.getJobIds()
-        this.pause(jobIds, 'batch')
+        this.pause(jobIds, this.currentSelectedProject, 'batch')
       }
     }
   }
@@ -871,10 +879,10 @@ export default class JobsList extends Vue {
       this.$message.warning(this.$t('noSelectJobs'))
     } else {
       if (this.isSelectAll && this.isSelectAllShow) {
-        this.drop([], 'batchAll')
+        this.drop([], this.currentSelectedProject, 'batchAll')
       } else {
         const jobIds = this.getJobIds()
-        this.drop(jobIds, 'batch')
+        this.drop(jobIds, this.currentSelectedProject, 'batch')
       }
     }
   }
@@ -938,9 +946,9 @@ export default class JobsList extends Vue {
       this.filter.reverse = true
     }
     this.filter.sortBy = prop
-    this.currentSelectedProject && this.getJobsList()
+    this.getJobsList()
   }
-  async resume (jobIds, isBatch) {
+  async resume (jobIds, project, isBatch) {
     await this.callGlobalDetailDialog({
       msg: this.$t('resumeJob', {count: (isBatch && isBatch === 'batchAll') ? this.selectedNumber : jobIds.length}),
       title: this.$t('resumeJobTitle'),
@@ -948,7 +956,11 @@ export default class JobsList extends Vue {
       dialogType: 'tip',
       showDetailBtn: false
     })
-    this.resumeJob({jobIds: jobIds, project: this.currentSelectedProject, action: 'RESUME', status: this.filter.status}).then(() => {
+    const resumeData = {jobIds: jobIds, project: project, action: 'RESUME', status: this.filter.status}
+    if (this.$store.state.project.isAllProject && isBatch) {
+      delete resumeData.project
+    }
+    this.resumeJob(resumeData).then(() => {
       this.$message({
         type: 'success',
         message: this.$t('kylinLang.common.actionSuccess')
@@ -966,7 +978,7 @@ export default class JobsList extends Vue {
       handleError(res)
     })
   }
-  async restart (jobIds, isBatch) {
+  async restart (jobIds, project, isBatch) {
     await this.callGlobalDetailDialog({
       msg: this.$t('restartJob', {count: (isBatch && isBatch === 'batchAll') ? this.selectedNumber : jobIds.length}),
       title: this.$t('restartJobTitle'),
@@ -974,7 +986,11 @@ export default class JobsList extends Vue {
       dialogType: 'tip',
       showDetailBtn: false
     })
-    this.restartJob({jobIds: jobIds, project: this.currentSelectedProject, action: 'RESTART', status: this.filter.status}).then(() => {
+    const restartData = {jobIds: jobIds, project: project, action: 'RESTART', status: this.filter.status}
+    if (this.$store.state.project.isAllProject && isBatch) {
+      delete restartData.project
+    }
+    this.restartJob(restartData).then(() => {
       this.$message({
         type: 'success',
         message: this.$t('kylinLang.common.actionSuccess')
@@ -992,7 +1008,7 @@ export default class JobsList extends Vue {
       handleError(res)
     })
   }
-  async pause (jobIds, isBatch) {
+  async pause (jobIds, project, isBatch) {
     await this.callGlobalDetailDialog({
       msg: this.$t('pauseJob', {count: (isBatch && isBatch === 'batchAll') ? this.selectedNumber : jobIds.length}),
       title: this.$t('pauseJobTitle'),
@@ -1000,7 +1016,11 @@ export default class JobsList extends Vue {
       dialogType: 'tip',
       showDetailBtn: false
     })
-    this.pauseJob({jobIds: jobIds, project: this.currentSelectedProject, action: 'PAUSE', status: this.filter.status}).then(() => {
+    const pauseData = {jobIds: jobIds, project: project, action: 'PAUSE', status: this.filter.status}
+    if (this.$store.state.project.isAllProject && isBatch) {
+      delete pauseData.project
+    }
+    this.pauseJob(pauseData).then(() => {
       this.$message({
         type: 'success',
         message: this.$t('kylinLang.common.actionSuccess')
@@ -1018,7 +1038,7 @@ export default class JobsList extends Vue {
       handleError(res)
     })
   }
-  async drop (jobIds, isBatch) {
+  async drop (jobIds, project, isBatch) {
     await this.callGlobalDetailDialog({
       msg: this.$t('dropJob', {count: (isBatch && isBatch === 'batchAll') ? this.selectedNumber : jobIds.length}),
       title: this.$t('dropJobTitle'),
@@ -1026,7 +1046,13 @@ export default class JobsList extends Vue {
       dialogType: 'warning',
       showDetailBtn: false
     })
-    this.removeJob({jobIds: jobIds, project: this.currentSelectedProject, status: this.filter.status}).then(() => {
+    const dropData = {jobIds: jobIds, project: project, status: this.filter.status}
+    let removeJobType = 'removeJob'
+    if (this.$store.state.project.isAllProject && isBatch) {
+      delete dropData.project
+      removeJobType = 'removeJobForAll'
+    }
+    this[removeJobType](dropData).then(() => {
       this.$message({
         type: 'success',
         message: this.$t('kylinLang.common.delSuccess')

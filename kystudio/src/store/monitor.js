@@ -34,6 +34,9 @@ export default {
     [types.REMOVE_JOB]: function ({ commit }, para) {
       return api.monitor.removeJob(para)
     },
+    [types.ROMOVE_JOB_FOR_ALL]: function ({ commit }, para) {
+      return api.monitor.removeJobForAll(para)
+    },
     [types.LOAD_DASHBOARD_JOB_INFO]: function ({ commit }, para) {
       return api.monitor.loadDashboardJobInfo(para)
     },

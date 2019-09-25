@@ -1,6 +1,7 @@
 import api from './../service/api'
 import * as types from './types'
 import { permissions } from '../config'
+import { cacheLocalStorage } from 'util/index'
 import { getAvailableOptions } from '../util/specParser'
 export default {
   state: {
@@ -11,7 +12,7 @@ export default {
     currentUser: null,
     currentUserAccess: null,
     userDetail: null,
-    isShowAdminTips: true
+    isShowAdminTips: !cacheLocalStorage('isHideAdminTips')
   },
   mutations: {
     [types.SAVE_USERS_LIST]: function (state, result) {

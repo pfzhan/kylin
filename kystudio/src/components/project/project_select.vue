@@ -22,7 +22,6 @@
 </template>
 <script>
 import { mapGetters } from 'vuex'
-import { cacheSessionStorage, cacheLocalStorage } from 'util/index'
 import { hasPermission, hasRole } from 'util/business'
 import { permissions } from '../../config'
 export default {
@@ -37,12 +36,8 @@ export default {
     changeProject (val) {
       if (val === '**') {
         this.$store.state.project.isAllProject = true
-        this.$router.replace({name: this.$router.currentRoute.name, params: { refresh: true }})
       } else {
         this.$store.state.project.isAllProject = false
-        cacheSessionStorage('projectName', val)
-        cacheLocalStorage('projectName', val)
-        this.$store.state.project.selected_project = val
         this.$emit('changePro', val)
       }
     },
