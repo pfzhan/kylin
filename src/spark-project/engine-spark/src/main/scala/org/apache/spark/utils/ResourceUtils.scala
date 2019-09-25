@@ -22,33 +22,31 @@
 
 package org.apache.spark.utils
 
-import java.util.{List => JList, Map => JMap}
-import scala.util.Try
-import scala.util.Success
-import scala.util.Failure
+import java.util.{Map => JMap}
 
 import io.kyligence.kap.cluster.{AvailableResource, ClusterInfoFetcher, ResourceInfo}
-import io.kyligence.kap.engine.spark.utils.SparkConfHelper._
 import io.kyligence.kap.engine.spark.job.SparkJobConstants
-import org.apache.kylin.common.KylinConfig
+import io.kyligence.kap.engine.spark.utils.SparkConfHelper._
 import org.apache.spark.SparkConf
 import org.apache.spark.internal.Logging
-import org.apache.spark.sql.hive.utils.EnumDetectItem
+import org.apache.spark.sql.hive.utils.DetectItem
 import org.apache.spark.util.Utils
+
+import scala.util.{Failure, Success, Try}
 
 
 object ResourceUtils extends Logging {
 
   @throws[Exception]
-  def caculateRequiredCores(sampSplitThreshold: String, detectItems: JMap[EnumDetectItem, String], rowCount: Long): String = {
+  def caculateRequiredCores(sampSplitThreshold: String, detectItems: JMap[String, String], rowCount: Long): String = {
 
     Try {
-      val lineCount = detectItems.get(EnumDetectItem.ESTIMATED_LINE_COUNT)
+      val lineCount = detectItems.get(DetectItem.ESTIMATED_LINE_COUNT)
       if (lineCount == "0") {
         logInfo(s"the lineCount is $lineCount")
         return SparkJobConstants.DEFAULT_REQUIRED_CORES
       }
-      val estimatedSize = detectItems.get(EnumDetectItem.ESTIMATED_SIZE)
+      val estimatedSize = detectItems.get(DetectItem.ESTIMATED_SIZE)
       val splitThreshold = Utils.byteStringAsBytes(sampSplitThreshold)
       val aveBytesSingleLine = estimatedSize.toDouble / lineCount.toDouble
       assert(splitThreshold > aveBytesSingleLine)

@@ -58,6 +58,18 @@ class TestResourceDetectUtils extends SparderBaseFunSuite {
     }
   }
 
+  test("write and read large size (more than 65535) resource paths") {
+    val map: JMap[String, JList[String]] = Maps.newHashMap()
+    val bytes = Array.fill(100000)('1')
+    map.put("test", Lists.newArrayList(bytes.mkString))
+    withTempPath { file =>
+      val path = new Path(file.getPath)
+      ResourceDetectUtils.write(path, map)
+      val actualMap: JMap[String, JList[String]] = ResourceDetectUtils.readResourcePathsAs(path)
+      assert(map == actualMap)
+    }
+  }
+
   test("getResourceSize") {
     val contents = List("test", "test_test_test")
     val tempDir = Utils.createTempDir()

@@ -25,11 +25,12 @@ package org.apache.spark.sql.hive.utils
 import java.io.IOException
 import java.util.{Map => JMap}
 
-import com.fasterxml.jackson.core.`type`.TypeReference
 import com.google.common.collect.Maps
+import com.google.gson.Gson
+import com.google.gson.reflect.TypeToken
 import io.kyligence.kap.metadata.cube.model.LayoutEntity
-import org.apache.hadoop.fs.{FileStatus, FSDataInputStream, FSDataOutputStream, Path, PathFilter}
-import org.apache.kylin.common.util.{HadoopUtil, JsonUtil}
+import org.apache.hadoop.fs._
+import org.apache.kylin.common.util.HadoopUtil
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.execution.columnar.InMemoryTableScanExec
 import org.apache.spark.sql.execution.{FileSourceScanExec, SparkPlan}
@@ -38,6 +39,8 @@ import org.apache.spark.sql.hive.execution.HiveTableScanExec
 import scala.collection.JavaConverters._
 
 object ResourceDetectUtils extends Logging {
+  private val json = new Gson()
+
   def getPaths(plan: SparkPlan): Seq[Path] = {
     var paths = Seq.empty[Path]
     plan.foreach {
@@ -82,14 +85,21 @@ object ResourceDetectUtils extends Logging {
   def findCountDistinctMeasure(layouts: java.util.Collection[LayoutEntity]): Boolean = {
     for (layoutEntity <- layouts.asScala) {
       for (measure <- layoutEntity.getOrderedMeasures.values.asScala) {
-        if (measure.getFunction.getExpression.equalsIgnoreCase("COUNT_DISTINCT"))  return true
+        if (measure.getFunction.getExpression.equalsIgnoreCase("COUNT_DISTINCT")) return true
       }
     }
     false
   }
 
   def getResourceSize(paths: Path*): Long = {
-    paths.map(path => HadoopUtil.getContentSummary(path.getFileSystem(HadoopUtil.getCurrentConfiguration), path).getLength).sum
+    paths.map(path => {
+      val fs = path.getFileSystem(HadoopUtil.getCurrentConfiguration)
+      if (fs.exists(path)) {
+        HadoopUtil.getContentSummary(fs, path).getLength
+      } else {
+        0L
+      }
+    }).sum
   }
 
   def getMaxResourceSize(shareDir: Path): Long = {
@@ -112,7 +122,10 @@ object ResourceDetectUtils extends Logging {
     var out: FSDataOutputStream = null
     try {
       out = fs.create(path)
-      out.writeUTF(JsonUtil.writeValueAsString(item))
+      val str = json.toJson(item)
+      val bytes = str.getBytes
+      out.writeInt(bytes.length)
+      out.write(bytes)
     } finally {
       if (out != null) {
         out.close()
@@ -121,33 +134,22 @@ object ResourceDetectUtils extends Logging {
   }
 
   def selectMaxValueInFiles(files: Array[FileStatus]): String = {
-    files.map(f => readResourcePathsAs[JMap[String, Integer]](f.getPath).values().asScala.max).max.toString
+    files.map(f => readResourcePathsAs[JMap[String, Double]](f.getPath).values().asScala.max).max.toString
   }
 
 
-  def readDetectItems(path: Path): JMap[EnumDetectItem, String] = {
-    log.info(s"Read detectItems from " + path)
-    val fs = HadoopUtil.getWorkingFileSystem()
-    val typeRef = new TypeReference[JMap[EnumDetectItem, String]]() {}
-    var in: FSDataInputStream = null
-    try {
-      in = fs.open(path)
-      JsonUtil.readValue(in.readUTF, typeRef)
-    } finally {
-      if (in != null) {
-        in.close()
-      }
-    }
-  }
+  def readDetectItems(path: Path): JMap[String, String] = readResourcePathsAs[JMap[String, String]](path)
 
   def readResourcePathsAs[T](path: Path): T = {
     log.info(s"Read resource paths form $path")
     val fs = HadoopUtil.getWorkingFileSystem
-    val typeRef = new TypeReference[T]() {}
     var in: FSDataInputStream = null
     try {
       in = fs.open(path)
-      JsonUtil.readValue(in.readUTF, typeRef)
+      val i = in.readInt()
+      val bytes = new Array[Byte](i)
+      in.readFully(bytes)
+      json.fromJson(new String(bytes), new TypeToken[T]() {}.getType)
     } finally {
       if (in != null) {
         in.close()

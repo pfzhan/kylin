@@ -24,6 +24,8 @@
 
 package io.kyligence.kap.engine.spark.application;
 
+import static io.kyligence.kap.engine.spark.utils.SparkConfHelper.COUNT_DISTICT;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
@@ -32,11 +34,9 @@ import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
 
-import io.kyligence.kap.engine.spark.job.BuildJobInfos;
-import io.kyligence.kap.engine.spark.job.LogJobInfoUtils;
-import io.kyligence.kap.engine.spark.job.SparkJobConstants;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
+import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.yarn.exceptions.YarnException;
 import org.apache.http.HttpResponse;
@@ -48,6 +48,7 @@ import org.apache.http.impl.client.HttpClients;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.util.Application;
+import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.TimeZoneUtils;
 import org.apache.spark.SparkConf;
@@ -69,7 +70,10 @@ import com.google.common.collect.Maps;
 
 import io.kyligence.kap.common.obf.IKeep;
 import io.kyligence.kap.common.persistence.metadata.MetadataStore;
+import io.kyligence.kap.engine.spark.job.BuildJobInfos;
 import io.kyligence.kap.engine.spark.job.KylinBuildEnv;
+import io.kyligence.kap.engine.spark.job.LogJobInfoUtils;
+import io.kyligence.kap.engine.spark.job.SparkJobConstants;
 import io.kyligence.kap.engine.spark.job.UdfManager;
 import io.kyligence.kap.engine.spark.utils.JobMetricsUtils;
 import io.kyligence.kap.engine.spark.utils.SparkConfHelper;
@@ -78,8 +82,6 @@ import io.kyligence.kap.spark.common.CredentialUtils;
 import lombok.val;
 import scala.runtime.AbstractFunction1;
 import scala.runtime.BoxedUnit;
-
-import static io.kyligence.kap.engine.spark.utils.SparkConfHelper.COUNT_DISTICT;
 
 public abstract class SparkApplication implements Application, IKeep {
     private static final Logger logger = LoggerFactory.getLogger(SparkApplication.class);
@@ -331,10 +333,17 @@ public abstract class SparkApplication implements Application, IKeep {
         return ResourceDetectUtils.getMaxResourceSize(shareDir) + "b";
     }
 
-    protected Boolean hasCountDistinct() {
+    protected Boolean hasCountDistinct() throws IOException {
         Path countDistinct = new Path(config.getJobTmpShareDir(project, jobId),
                 ResourceDetectUtils.countDistinctSuffix());
-        Boolean exist = ResourceDetectUtils.readResourcePathsAs(countDistinct);
+        FileSystem fileSystem = countDistinct.getFileSystem(HadoopUtil.getCurrentConfiguration());
+        Boolean exist;
+        if (fileSystem.exists(countDistinct)) {
+            exist = ResourceDetectUtils.readResourcePathsAs(countDistinct);
+        } else {
+            exist = false;
+            logger.info("File count_distinct.json doesn't exist, set hasCountDistinct to false.");
+        }
         logger.info("Exist count distinct measure: {}", exist);
         return exist;
     }

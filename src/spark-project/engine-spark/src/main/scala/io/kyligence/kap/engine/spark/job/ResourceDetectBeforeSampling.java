@@ -1,6 +1,5 @@
 package io.kyligence.kap.engine.spark.job;
 
-import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -11,8 +10,9 @@ import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.source.SourceFactory;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
+import org.apache.spark.sql.hive.utils.DetectItem;
 import org.apache.spark.sql.hive.utils.ResourceDetectUtils;
-import org.apache.spark.sql.hive.utils.EnumDetectItem;
+import org.apache.spark.util.SizeEstimator;
 
 import com.google.common.collect.Maps;
 
@@ -20,12 +20,9 @@ import io.kyligence.kap.engine.spark.NSparkCubingEngine;
 import io.kyligence.kap.engine.spark.application.SparkApplication;
 import io.kyligence.kap.metadata.cube.model.NBatchConstants;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
+import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 import scala.collection.JavaConversions;
-import lombok.val;
-import org.apache.spark.util.SizeEstimator;
-
-
 
 @Slf4j
 public class ResourceDetectBeforeSampling extends SparkApplication {
@@ -44,9 +41,9 @@ public class ResourceDetectBeforeSampling extends SparkApplication {
         val estimatedSize = SizeEstimator.estimate(sampledData);
         log.info("estimatedSize is " + estimatedSize);
 
-        EnumMap<EnumDetectItem, String> detectedItems = Maps.newEnumMap(EnumDetectItem.class);
-        detectedItems.put(EnumDetectItem.ESTIMATED_LINE_COUNT, String.valueOf(sampledData.size()));
-        detectedItems.put(EnumDetectItem.ESTIMATED_SIZE, String.valueOf(estimatedSize));
+        Map<String, String> detectedItems = Maps.newLinkedHashMap();
+        detectedItems.put(DetectItem.ESTIMATED_LINE_COUNT(), String.valueOf(sampledData.size()));
+        detectedItems.put(DetectItem.ESTIMATED_SIZE(), String.valueOf(estimatedSize));
 
         Map<String, List<String>> resourcePaths = Maps.newHashMap();
         resourcePaths.put(tableName, pathList);
@@ -55,9 +52,8 @@ public class ResourceDetectBeforeSampling extends SparkApplication {
                 new Path(config.getJobTmpShareDir(project, jobId), tableName + "_" + ResourceDetectUtils.fileName()),
                 resourcePaths);
 
-        ResourceDetectUtils.write(
-                new Path(config.getJobTmpShareDir(project, jobId), tableName + "_" + ResourceDetectUtils.samplingDetectItemFileSuffix()),
-                detectedItems);
+        ResourceDetectUtils.write(new Path(config.getJobTmpShareDir(project, jobId),
+                tableName + "_" + ResourceDetectUtils.samplingDetectItemFileSuffix()), detectedItems);
     }
 
     public static void main(String[] args) {

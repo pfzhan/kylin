@@ -24,9 +24,6 @@
 
 package io.kyligence.kap.engine.spark.job;
 
-import com.google.common.collect.Maps;
-import io.kyligence.kap.metadata.cube.model.NDataflow;
-import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -73,7 +70,9 @@ import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.model.NBatchConstants;
 import io.kyligence.kap.metadata.cube.model.NDataLayout;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
+import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
+import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
 import lombok.val;
 
 public class DFBuildJob extends SparkApplication {
@@ -160,7 +159,9 @@ public class DFBuildJob extends SparkApplication {
             logger.info("The maximum number of tasks required to run the job is {}", maxLeafTasksNums);
             val config = KylinConfig.getInstanceFromEnv();
             val factor = config.getSparkEngineTaskCoreFactor();
-            return String.valueOf(Integer.valueOf(maxLeafTasksNums) / factor);
+            int i = Double.valueOf(maxLeafTasksNums).intValue() / factor;
+            logger.info("require cores: " + i);
+            return String.valueOf(i);
         } else {
             return SparkJobConstants.DEFAULT_REQUIRED_CORES;
         }

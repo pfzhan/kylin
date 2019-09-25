@@ -22,17 +22,12 @@
 
 package org.apache.spark.utils
 
-import java.util
-import java.util.EnumMap
-
 import com.google.common.collect.Maps
 import io.kyligence.kap.cluster.{AvailableResource, ResourceInfo, YarnInfoFetcher}
-import io.kyligence.kap.engine.spark.job.KylinBuildEnv
-import org.apache.spark.sql.hive.utils.EnumDetectItem
 import io.kyligence.kap.engine.spark.utils.SparkConfHelper._
-import org.apache.kylin.common.KylinConfig
 import org.apache.spark.SparkConf
 import org.apache.spark.sql.common.SparderBaseFunSuite
+import org.apache.spark.sql.hive.utils.DetectItem
 import org.mockito.Mockito
 
 class TestResourceUtils extends SparderBaseFunSuite {
@@ -128,12 +123,12 @@ class TestResourceUtils extends SparderBaseFunSuite {
 
 
   test("test caculateRequiredCores") {
-    val detectedItems: util.EnumMap[EnumDetectItem, String] = Maps.newEnumMap(classOf[EnumDetectItem])
-    detectedItems.put(EnumDetectItem.ESTIMATED_LINE_COUNT, "10000")
-    detectedItems.put(EnumDetectItem.ESTIMATED_SIZE, "23120216")
+    val detectedItems: java.util.Map[String, String] = Maps.newLinkedHashMap()
+    detectedItems.put(DetectItem.ESTIMATED_LINE_COUNT, "10000")
+    detectedItems.put(DetectItem.ESTIMATED_SIZE, "23120216")
     assert(ResourceUtils.caculateRequiredCores("300m", detectedItems, 20000000) == "147")
     assert(ResourceUtils.caculateRequiredCores("300m", detectedItems, 136055) == "1")
-    detectedItems.put(EnumDetectItem.ESTIMATED_LINE_COUNT, "0")
+    detectedItems.put(DetectItem.ESTIMATED_LINE_COUNT, "0")
     assert(ResourceUtils.caculateRequiredCores("300m", detectedItems, 136055) == "1")
 
   }
