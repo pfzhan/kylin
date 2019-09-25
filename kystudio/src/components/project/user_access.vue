@@ -288,7 +288,7 @@ export default class UserAccess extends Vue {
   }
   submitAccess () {
     this.submitLoading = true
-    this.submitAccessData({projectName: this.projectName, roleOrName: this.roleOrName, accessData: this.allTables}).then((res) => {
+    this.submitAccessData({projectName: this.projectName, userType: this.type, roleOrName: this.roleOrName, accessData: this.allTables}).then((res) => {
       handleSuccess(res, () => {
         this.$message({
           type: 'success',

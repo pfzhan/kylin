@@ -125,8 +125,8 @@ export default {
     [types.DEL_PROJECT_ACCESS]: function ({ commit }, {id, aid, userName, principal}) {
       return api.project.delProjectAccess(id, aid, userName, principal)
     },
-    [types.SUBMIT_ACCESS_DATA]: function ({ commit }, {projectName, roleOrName, accessData}) {
-      return api.project.submitAccessData(projectName, roleOrName, accessData)
+    [types.SUBMIT_ACCESS_DATA]: function ({ commit }, {projectName, userType, roleOrName, accessData}) {
+      return api.project.submitAccessData(projectName, userType, roleOrName, accessData)
     },
     [types.ADD_PROJECT_FILTER]: function ({ commit }, filterData) {
       return api.project.saveProjectFilter(filterData)
