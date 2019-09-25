@@ -9,6 +9,7 @@
     @change="changeSelect"
     @handleOptionClick = "clickSelect"
     :disabled="disabled"
+    :multiple="multiple"
     :popper-append-to-body="false"
     :loading="loading">
     <el-option
@@ -24,7 +25,7 @@
 <script>
 export default {
   name: 'filterSelect',
-  props: ['list', 'size', 'placeholder', 'dataMap', 'value', 'disabled', 'asyn', 'delay'],
+  props: ['list', 'size', 'placeholder', 'dataMap', 'value', 'disabled', 'asyn', 'delay', 'multiple'],
   data () {
     return {
       loading: false,

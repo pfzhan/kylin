@@ -84,8 +84,8 @@
           <el-option label="user" :value="true"></el-option>
           <el-option label="group" :value="false"></el-option>
         </el-select>
-        <kap-filter-select class="name-select" :asyn="true" @req="filterUser" v-model="accessMeta.sid" :disabled="isEditAuthor"  :list="renderUserList" placeholder="kylinLang.common.pleaseInputUserName" :size="100" v-if="accessMeta.principal"></kap-filter-select>
-        <kap-filter-select class="name-select" :asyn="true" @req="filterGroup" v-model="accessMeta.sid" :disabled="isEditAuthor"  :list="renderGroupList"  placeholder="kylinLang.common.pleaseInputUserGroup" :size="100" v-else></kap-filter-select>
+        <kap-filter-select class="name-select" :asyn="true" @req="filterUser" v-model="accessMeta.sids" :disabled="isEditAuthor" multiple :list="renderUserList" placeholder="kylinLang.common.pleaseInputUserName" :size="100" v-if="accessMeta.principal"></kap-filter-select>
+        <kap-filter-select class="name-select" :asyn="true" @req="filterGroup" v-model="accessMeta.sids" :disabled="isEditAuthor" multiple :list="renderGroupList"  placeholder="kylinLang.common.pleaseInputUserGroup" :size="100" v-else></kap-filter-select>
         <el-select class="type-select" :placeholder="$t('access')" v-model="accessMeta.permission" size="medium">
           <el-option :label="item.key" :value="item.value" :key="item.value" v-for="item in showMaskByOrder"></el-option>
         </el-select>
@@ -219,7 +219,7 @@ export default class ProjectAuthority extends Vue {
     32: 'MANAGEMENT',
     64: 'OPERATION'
   }
-  accessMetas = [{permission: 16, principal: true, sid: ''}]
+  accessMetas = [{permission: 16, principal: true, sids: []}]
   userList = []
   groupList = []
   showMaskByOrder = [
@@ -246,16 +246,34 @@ export default class ProjectAuthority extends Vue {
     return this.$route.query.projectId
   }
   get renderUserList () {
-    var result = []
-    this.userList.forEach((u) => {
-      result.push({label: u, value: u})
+    var result = this.userList.filter((user) => {
+      let isSelected = false
+      for (let i = 0; i < this.accessMetas.length; i++) {
+        if (this.accessMetas[i].principal && this.accessMetas[i].sids.indexOf(user) !== -1) {
+          isSelected = true
+          break
+        }
+      }
+      return !isSelected
+    })
+    result = result.map((u) => {
+      return {label: u, value: u}
     })
     return result
   }
   get renderGroupList () {
-    var result = []
-    this.groupList.forEach((u) => {
-      result.push({label: u, value: u})
+    var result = this.groupList.filter((user) => {
+      let isSelected = false
+      for (let i = 0; i < this.accessMetas.length; i++) {
+        if (!this.accessMetas[i].principal && this.accessMetas[i].sids.indexOf(user) !== -1) {
+          isSelected = true
+          break
+        }
+      }
+      return !isSelected
+    })
+    result = result.map((u) => {
+      return {label: u, value: u}
     })
     return result
   }
@@ -307,7 +325,7 @@ export default class ProjectAuthority extends Vue {
     return this.getAvailableUserOrGroupList(para)
   }
   addAccessMetas () {
-    this.accessMetas.unshift({permission: 16, principal: true, sid: ''})
+    this.accessMetas.unshift({permission: 16, principal: true, sids: []})
   }
   removeAccessMetas (index) {
     this.accessMetas.splice(index, 1)
@@ -331,8 +349,8 @@ export default class ProjectAuthority extends Vue {
     })
   }
   changeUserType (index) {
-    if (this.accessMetas[index].sid !== '' && !this.isEditAuthor) {
-      this.accessMetas[index].sid = ''
+    if (this.accessMetas[index].sids.length && !this.isEditAuthor) {
+      this.accessMetas[index].sids = []
     }
   }
   authorUser () {
@@ -345,12 +363,13 @@ export default class ProjectAuthority extends Vue {
   editAuthorUser (row) {
     this.isEditAuthor = true
     this.authorizationVisible = true
-    this.accessMetas = [{permission: row.permission.mask, principal: row.type === 'User', sid: row.sid.grantedAuthority || row.sid.principal, accessEntryId: row.id}]
+    const sids = row.sid.grantedAuthority ? [row.sid.grantedAuthority] : [row.sid.principal]
+    this.accessMetas = [{permission: row.permission.mask, principal: row.type === 'User', sids: sids, accessEntryId: row.id}]
   }
   submitAuthor () {
     const accessMetas = objectClone(this.accessMetas)
     accessMetas.filter((acc) => {
-      return acc.sid && acc.permission
+      return acc.sids.length && acc.permission
     }).forEach((access) => {
       access.permission = this.mask[access.permission]
     })
@@ -376,7 +395,7 @@ export default class ProjectAuthority extends Vue {
     })
   }
   initAccessData () {
-    this.accessMetas = [{permission: 16, principal: true, sid: ''}]
+    this.accessMetas = [{permission: 16, principal: true, sids: []}]
   }
   reloadAvaliableUserAndGroup () {
     this.filterUser()
