@@ -83,10 +83,14 @@ object SparkSqlClient {
     val jobGroup = Thread.currentThread.getName
     ss.sparkContext.setJobGroup(jobGroup, s"Push down: $sql", interruptOnCancel = true)
     try {
-      val columns = df.schema.map(tp => col(s"`${tp.name}`").cast(StringType))
-      val fieldList = df.schema.map(field => SparderTypeUtil.convertSparkFieldToJavaField(field)).asJava
-      val frame = df.select(columns: _*)
+      val temporarySchema = df.schema.fields.zipWithIndex.map {
+        case (_, index) => s"temporary_$index"
+      }
+      val tempDF = df.toDF(temporarySchema: _*)
+      val columns = tempDF.schema.map(tp => col(s"`${tp.name}`").cast(StringType))
+      val frame = tempDF.select(columns: _*)
       val rowList = frame.collect().map(_.toSeq.map(_.asInstanceOf[String]).asJava).toSeq.asJava
+      val fieldList = df.schema.map(field => SparderTypeUtil.convertSparkFieldToJavaField(field)).asJava
       val (scanRows, scanBytes) = QueryMetricUtils.collectScanMetrics(frame.queryExecution.executedPlan)
       QueryContext.current().setScanRows(scanRows)
       QueryContext.current().setScanBytes(scanBytes)

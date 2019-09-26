@@ -158,4 +158,20 @@ public class PushDownRunnerSparkImplTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(1, returnColumnMeta.size());
         Assert.assertEquals(QueryContext.PUSHDOWN_HIVE, pushDownRunnerSpark.getName());
     }
+
+    @Test
+    public void testSelectTwoSameExpr() {
+        PushDownRunnerSparkImpl pushDownRunnerSpark = new PushDownRunnerSparkImpl();
+        pushDownRunnerSpark.init(null);
+
+        List<List<String>> returnRows = Lists.newArrayList();
+        List<SelectedColumnMeta> returnColumnMeta = Lists.newArrayList();
+
+        String sql = "select sum(price), sum(price) from TEST_KYLIN_FACT";
+        pushDownRunnerSpark.executeQuery(sql, returnRows, returnColumnMeta, null);
+
+        Assert.assertEquals(1, returnRows.size());
+        Assert.assertEquals(2, returnColumnMeta.size());
+        Assert.assertEquals(QueryContext.PUSHDOWN_HIVE, pushDownRunnerSpark.getName());
+    }
 }
