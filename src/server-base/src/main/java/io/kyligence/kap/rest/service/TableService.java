@@ -1311,7 +1311,7 @@ public class TableService extends BasicService {
                 continue;
             }
             List<?> tables;
-            if (database.toLowerCase().contains(table.toLowerCase())) {
+            if (exceptDatabase == null && database.toLowerCase().contains(table.toLowerCase())) {
                 tables = projectTablesFilter.process(database, "");
             } else {
                 tables = projectTablesFilter.process(database, table);

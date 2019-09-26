@@ -898,6 +898,17 @@ public class TableServiceTest extends CSVSourceTestCase {
     @Test
     public void testGetProjectTables() throws Exception {
         NInitTablesResponse response = null;
+        response = tableService.getProjectTables("default", "SSB.SS", 0, 14, (databaseName, tableName) -> {
+            return tableService.getTableNameResponses("default", databaseName, tableName);
+        });
+        Assert.assertEquals(response.getDatabases().size(), 0);
+
+        response = tableService.getProjectTables("default", "SSB.CU", 0, 14, (databaseName, tableName) -> {
+            return tableService.getTableNameResponses("default", databaseName, tableName);
+        });
+        Assert.assertEquals(response.getDatabases().size(), 1);
+        Assert.assertEquals(response.getDatabases().get(0).getTables().size(), 1);
+
         response = tableService.getProjectTables("default", "", 0, 14, (databaseName, tableName) -> {
             return tableService.getTableNameResponses("default", databaseName, tableName);
         });
