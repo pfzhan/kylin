@@ -370,10 +370,17 @@ export default class SourceHive extends Vue {
     }
   }
   async handleLoadMore (data) {
+    let dbName = (data.parent.label).toLocaleLowerCase()
     const database = this.treeData.find(database => database.id === data.parent.id)
     // 加载更多时，要将查询的关键字解析处理
-    let idx = this.filterText.indexOf('.')
-    const tableName = idx === -1 ? this.filterText : this.filterText.substring(idx + 1, this.filterText.length)
+    let tableName = ''
+    // 如果完全匹配 db，或者是搜索的关键字包含在 dbName 中，这时搜索table的关键字应该是空
+    if (dbName.indexOf(this.filterText.toLocaleLowerCase()) > -1) {
+      tableName = ''
+    } else { // 只有没有完全匹配db时，才会将关键字传
+      let idx = this.filterText.indexOf('.')
+      tableName = idx === -1 ? this.filterText : this.filterText.substring(idx + 1, this.filterText.length)
+    }
     this.loadTables({ database, tableName })
   }
   handleAddDatabase (addDatabaseId) {
