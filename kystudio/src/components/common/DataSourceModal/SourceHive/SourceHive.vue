@@ -2,6 +2,7 @@
   <div class="source-hive clearfix">
     <div class="list clearfix">
       <TreeList
+        :tree-key="treeKey"
         v-guide.hiveTree
         :show-overflow-tooltip="true"
         ref="tree-list"
@@ -159,6 +160,7 @@ export default class SourceHive extends Vue {
   errorMsg = ''
   defaultExpandedKeys= []
   loadingTreeData = true
+  treeKey = 'tree' + Number(new Date())
 
   get databaseOptions () {
     return this.treeData.map(database => ({
@@ -325,6 +327,7 @@ export default class SourceHive extends Vue {
     clearInterval(this.timer)
     return new Promise(async resolve => {
       this.timer = setTimeout(async () => {
+        this.treeKey = filterText + Number(new Date())
         // 每次发起搜索时，清空前一次的数据树
         this.loadingTreeData = true
         this.treeData = []
@@ -368,7 +371,9 @@ export default class SourceHive extends Vue {
   }
   async handleLoadMore (data) {
     const database = this.treeData.find(database => database.id === data.parent.id)
-    const tableName = this.filterText
+    // 加载更多时，要将查询的关键字解析处理
+    let idx = this.filterText.indexOf('.')
+    const tableName = idx === -1 ? this.filterText : this.filterText.substring(idx + 1, this.filterText.length)
     this.loadTables({ database, tableName })
   }
   handleAddDatabase (addDatabaseId) {

@@ -11,7 +11,7 @@
       </el-input>
     </div>
     <el-tree
-      :key="filterText"
+      :key="treeKey"
       v-loading="isLoading"
       ref="tree"
       v-guide.tableScroll
@@ -125,6 +125,10 @@ const filterDefaultWhiteList = ['isMore', 'isLoading']
     isRemote: {
       type: Boolean,
       default: false
+    },
+    treeKey: {
+      type: String,
+      default: ''
     }
   },
   locales: {

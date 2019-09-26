@@ -416,7 +416,9 @@ export default class DataSourceBar extends Vue {
   }
   async handleLoadMore (data, node) {
     const { id: databaseId } = data.parent
-    const tableName = this.filterText
+    // 加载更多时，要将查询的关键字解析处理
+    let idx = this.filterText.indexOf('.')
+    const tableName = idx === -1 ? this.filterText : this.filterText.substring(idx + 1, this.filterText.length)
     await this.loadTables({ databaseId, tableName })
   }
   handleClick (data, node) {

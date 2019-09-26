@@ -89,12 +89,9 @@ export function getTableTree (database, res, isTableReset) {
       setTimeout(() => {
         const currentEl = document.getElementById(currentId)
         const parentEl = currentEl && currentEl.parentNode.parentNode.parentNode
-        if (parentEl && !data.clickable) {
-          parentEl.style.backgroundColor = 'transparent'
-          parentEl.style.cursor = 'not-allowed'
-        } else {
-          parentEl.style.backgroundColor = null
-          parentEl.style.cursor = null
+        if (parentEl) {
+          parentEl.style.backgroundColor = !data.clickable ? 'transparent' : null
+          parentEl.style.cursor = !data.clickable ? 'not-allowed' : null
         }
       })
       const itemClassName = isLoaded ? 'is-synced' : ''
