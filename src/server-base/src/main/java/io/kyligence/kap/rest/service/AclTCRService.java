@@ -177,7 +177,7 @@ public class AclTCRService extends BasicService {
         return table.entrySet().stream().map(te -> {
             AclTCRResponse.Table tbl = new AclTCRResponse.Table();
             tbl.setTableName(te.getKey());
-            tbl.setAuthorized(!nonNull);
+            tbl.setAuthorized(false);
             AclTCR.ColumnRow authorizedColumnRow = null;
             if (nonNull) {
                 tbl.setAuthorized(authorizedTable.containsKey(te.getKey()));
@@ -244,8 +244,11 @@ public class AclTCRService extends BasicService {
     }
 
     private TreeMap<String, AclTCR.Table> getDbAclTable(String project, AclTCR authorized) {
-        if (Objects.isNull(authorized) || Objects.isNull(authorized.getTable())) {
+        if (Objects.isNull(authorized)) {
             return Maps.newTreeMap();
+        }
+        if (Objects.isNull(authorized.getTable())) {
+            return getAllDbAclTable(project);
         }
         TreeMap<String, AclTCR.Table> db2AclTable = Maps.newTreeMap(String.CASE_INSENSITIVE_ORDER);
         authorized.getTable().forEach((dbTblName, cr) -> {
@@ -369,6 +372,7 @@ public class AclTCRService extends BasicService {
 
                     aclTable.put(dbTblName, columnRow);
                 }));
+
         if (requests.stream().allMatch(d -> Optional.ofNullable(d.getTables()).map(List::stream)
                 .orElseGet(Stream::empty).allMatch(AclTCRRequest.Table::isAuthorized))) {
             getTableManager(project).listAllTables().stream().filter(t -> !aclTable.containsKey(t.getIdentity()))

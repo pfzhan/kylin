@@ -238,6 +238,10 @@ public class ModelService extends BasicService {
                 AclPermissionUtil.getCurrentUserGroups());
         return result.stream().map(r -> {
             NDataModelResponse copied = JsonUtil.deepCopyQuietly(r, NDataModelResponse.class);
+            copied.setConfig(r.getConfig());
+            copied.setProject(r.getProject());
+            copied.setMvcc(r.getMvcc());
+            copied.setLastModify(r.getLastModify());
             copied.setAllTableRefs(r.getAllTableRefs().stream().filter(t -> t.getColumns().stream().allMatch(
                     c -> aclTCRS.stream().anyMatch(aclTCR -> aclTCR.isAuthorized(t.getTableIdentity(), c.getName()))))
                     .collect(Collectors.toSet()));
