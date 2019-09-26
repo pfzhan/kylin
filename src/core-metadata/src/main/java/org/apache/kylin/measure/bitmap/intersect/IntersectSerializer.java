@@ -52,7 +52,7 @@ import org.apache.kylin.metadata.datatype.DataType;
 import org.apache.kylin.metadata.datatype.DataTypeSerializer;
 
 /**
- * @Deprecated 新的 intersect_count 实现已经不用这一套serializer, aggregator, counter了，但是要配合之前的框架，只能留下这个类
+ * @Deprecated This class will no longer be used， but leave it in order to make the framework work.
  */
 @Deprecated
 public class IntersectSerializer extends DataTypeSerializer<IntersectBitmapCounter> {
