@@ -24,11 +24,18 @@
 
 package io.kyligence.kap.rest.controller;
 
+import java.io.IOException;
 import java.util.List;
+import java.util.regex.Pattern;
 
+import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.metadata.MetadataConstants;
+import org.apache.kylin.rest.exception.BadRequestException;
+import org.apache.kylin.rest.msg.MsgPicker;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.response.ResponseCode;
+import org.apache.kylin.rest.service.IUserGroupService;
+import org.apache.kylin.rest.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Controller;
@@ -54,12 +61,23 @@ public class AclTCRController extends NBasicController {
     @Qualifier("aclTCRService")
     private AclTCRService aclTCRService;
 
+    @Autowired
+    @Qualifier("userService")
+    protected UserService userService;
+
+    @Autowired
+    @Qualifier("userGroupService")
+    private IUserGroupService userGroupService;
+
+    private static final Pattern sidPattern = Pattern.compile("^[a-zA-Z0-9_]*$");
+
     @GetMapping(value = "/sid/{sidType}/{sid}")
     @ResponseBody
     public EnvelopeResponse getProjectSidTCR(@PathVariable("project") String project, //
             @PathVariable("sidType") String sidType, //
             @PathVariable("sid") String sid, //
-            @RequestParam(value = "authorizedOnly", required = false, defaultValue = "false") boolean authorizedOnly) {
+            @RequestParam(value = "authorizedOnly", required = false, defaultValue = "false") boolean authorizedOnly)
+            throws IOException {
         List<AclTCRResponse> result;
         if (sidType.equalsIgnoreCase(MetadataConstants.TYPE_USER)) {
             result = getProjectSidTCR(project, sid, true, authorizedOnly);
@@ -71,17 +89,12 @@ public class AclTCRController extends NBasicController {
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, result, "");
     }
 
-    private List<AclTCRResponse> getProjectSidTCR(String project, String name, boolean principal,
-            boolean authorizedOnly) {
-        return aclTCRService.getAclTCRResponse(project, name, principal, authorizedOnly);
-    }
-
     @PostMapping(value = "/sid/{sidType}/{sid}")
     @ResponseBody
     public EnvelopeResponse updateProject(@PathVariable("project") String project, //
             @PathVariable("sidType") String sidType, //
             @PathVariable("sid") String sid, //
-            @RequestBody List<AclTCRRequest> requests) {
+            @RequestBody List<AclTCRRequest> requests) throws IOException {
         if (sidType.equalsIgnoreCase(MetadataConstants.TYPE_USER)) {
             updateSidAclTCR(project, sid, true, requests);
         } else if (sidType.equalsIgnoreCase(MetadataConstants.TYPE_GROUP)) {
@@ -90,8 +103,31 @@ public class AclTCRController extends NBasicController {
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, "", "");
     }
 
-    private void updateSidAclTCR(String project, String sid, boolean principal, List<AclTCRRequest> requests) {
+    private List<AclTCRResponse> getProjectSidTCR(String project, String sid, boolean principal, boolean authorizedOnly)
+            throws IOException {
+        checkSid(sid, principal);
+        return aclTCRService.getAclTCRResponse(project, sid, principal, authorizedOnly);
+    }
+
+    private void updateSidAclTCR(String project, String sid, boolean principal, List<AclTCRRequest> requests)
+            throws IOException {
+        checkSid(sid, principal);
         aclTCRService.updateAclTCR(project, sid, principal, requests);
     }
 
+    private void checkSid(String sid, boolean principal) throws IOException {
+        if (StringUtils.isEmpty(sid)) {
+            throw new BadRequestException(MsgPicker.getMsg().getEMPTY_SID());
+        }
+        if (!sidPattern.matcher(sid).matches()) {
+            throw new BadRequestException(MsgPicker.getMsg().getINVALID_SID());
+        }
+
+        if (principal && !userService.userExists(sid)) {
+            throw new BadRequestException("Operation failed, user:" + sid + " not exists, please add it first.");
+        }
+        if (!principal && !userGroupService.exists(sid)) {
+            throw new BadRequestException("Operation failed, group:" + sid + " not exists, please add it first.");
+        }
+    }
 }

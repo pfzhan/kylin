@@ -72,19 +72,26 @@ public class AclQueryInterceptor {
         final String project = getProjectName(contexts);
         // <"DB1.TABLE1":["COLUMN1"], "DB2.TABLE2":["COLUMN2"]>
         final Map<String, Set<String>> dbTblColumns = Maps.newHashMap();
-        contexts.stream().filter(Objects::nonNull)
-                .forEach(ctx -> ctx.allColumns.stream().filter(Objects::nonNull).forEach(tblColRef -> {
-                    String dbTblName = tblColRef.getTableRef().getTableIdentity();
-                    if (!dbTblColumns.containsKey(dbTblName)) {
-                        dbTblColumns.put(dbTblName, Sets.newHashSet());
-                    }
-                    ColumnDesc columnDesc = tblColRef.getColumnDesc();
-                    if (columnDesc.isComputedColumn()) {
-                        handleCC(project, columnDesc, dbTblColumns);
-                    } else {
-                        dbTblColumns.get(dbTblName).add(tblColRef.getName());
-                    }
-                }));
+        contexts.stream().filter(Objects::nonNull).forEach(ctx -> {
+            ctx.allTableScans.stream().filter(Objects::nonNull).forEach(tableScan -> {
+                String dbTblName = tableScan.getTableRef().getTableIdentity();
+                if (!dbTblColumns.containsKey(dbTblName)) {
+                    dbTblColumns.put(dbTblName, Sets.newHashSet());
+                }
+            });
+            ctx.allColumns.stream().filter(Objects::nonNull).forEach(tblColRef -> {
+                String dbTblName = tblColRef.getTableRef().getTableIdentity();
+                if (!dbTblColumns.containsKey(dbTblName)) {
+                    dbTblColumns.put(dbTblName, Sets.newHashSet());
+                }
+                ColumnDesc columnDesc = tblColRef.getColumnDesc();
+                if (columnDesc.isComputedColumn()) {
+                    handleCC(project, columnDesc, dbTblColumns);
+                } else {
+                    dbTblColumns.get(dbTblName).add(tblColRef.getName());
+                }
+            });
+        });
 
         AclTCRManager.getInstance(KylinConfig.getInstanceFromEnv(), project).failFastUnauthorizedTableColumn(
                 getUsername(contexts), Sets.newHashSet(getGroups(contexts)), dbTblColumns).ifPresent(identifier -> {

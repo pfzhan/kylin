@@ -36,6 +36,7 @@ import org.apache.calcite.sql.SqlOrderBy;
 import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.util.SqlBasicVisitor;
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.common.util.Pair;
@@ -56,6 +57,8 @@ import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
 
 public class HackSelectStarWithColumnACL implements QueryUtil.IQueryTransformer, IPushDownConverter, IKeep {
+
+    private static final String SELECT_STAR = "*";
 
     @Override
     public String convert(String originSql, String project, String defaultSchema, boolean isPrepare) {
@@ -89,6 +92,9 @@ public class HackSelectStarWithColumnACL implements QueryUtil.IQueryTransformer,
     static String getNewSelectClause(SqlNode sqlNode, String project, String defaultSchema) {
         StringBuilder newSelectClause = new StringBuilder();
         List<String> allCols = getColsCanAccess(sqlNode, project, defaultSchema);
+        if (CollectionUtils.isEmpty(allCols)) {
+            return SELECT_STAR;
+        }
         for (String col : allCols) {
             if (!col.equals(allCols.get(allCols.size() - 1))) {
                 newSelectClause.append(col).append(", ");
@@ -130,7 +136,7 @@ public class HackSelectStarWithColumnACL implements QueryUtil.IQueryTransformer,
             return false;
         }
         SqlSelect singleSelect = getSingleSelect(sqlNode);
-        return singleSelect.getSelectList().toString().equals("*");
+        return singleSelect.getSelectList().toString().equals(SELECT_STAR);
     }
 
     private static int getSelectStarPos(String sql, SqlNode sqlNode) {
