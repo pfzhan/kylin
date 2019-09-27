@@ -117,6 +117,7 @@ def prepare_project():
             continue
         with open(INPUT_ROOT + '/table/' + table_name) as table_file:
             table_json = json.load(table_file)
+            table_json['columns'] = [col for col in table_json['columns'] if 'cc_expr' not in col]
             table_content_dict[(plain_table_name, table_project)] = table_json
     for project_name in os.listdir(INPUT_ROOT + '/project'):
         if not os.path.exists(OUTPUT_ROOT + '/_global/project'):
@@ -127,9 +128,9 @@ def prepare_project():
             project_origin_json = json.load(project_file)
             project_json['uuid'] = project_origin_json['uuid']
             project_json['name'] = project_origin_json['name']
-            project_json['last_modified'] = project_origin_json['last_modified']
-            project_json['create_time'] = project_origin_json['create_time_utc']
-            project_json['create_time_utc'] = project_origin_json['create_time_utc']
+            project_json['last_modified'] = project_origin_json.get('last_modified', 0)
+            project_json['create_time'] = project_origin_json.get('create_time_utc', 0)
+            project_json['create_time_utc'] = project_origin_json.get('create_time_utc', 0)
 
             pm = ProjectMigrator(plain_project_name, list(
                 set([x['realization'] for x in project_origin_json['realizations']])),
