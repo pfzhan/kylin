@@ -46,23 +46,23 @@ import org.apache.calcite.linq4j.function.Parameter;
 import org.apache.calcite.sql.type.NotConstant;
 
 public class SparkMiscUDF implements NotConstant {
-    public Object CRC32(@Parameter(name = "str1") String exp) {
-        return null;
+    public Object CRC32(@Parameter(name = "str1") String exp) throws CalciteNotSupportException {
+        throw new CalciteNotSupportException();
     }
 
-    public Object MD5(@Parameter(name = "str1") String exp) {
-        return null;
+    public Object MD5(@Parameter(name = "str1") String exp) throws CalciteNotSupportException {
+        throw new CalciteNotSupportException();
     }
 
-    public Object SHA(@Parameter(name = "str1") String exp) {
-        return null;
+    public Object SHA(@Parameter(name = "str1") String exp) throws CalciteNotSupportException {
+        throw new CalciteNotSupportException();
     }
 
-    public Object SHA1(@Parameter(name = "str1") String exp) {
-        return null;
+    public Object SHA1(@Parameter(name = "str1") String exp) throws CalciteNotSupportException {
+        throw new CalciteNotSupportException();
     }
 
-    public Object SHA2(@Parameter(name = "str1") String exp1, @Parameter(name = "str2") Integer exp2) {
-        return null;
+    public Object SHA2(@Parameter(name = "str1") String exp1, @Parameter(name = "str2") Integer exp2) throws CalciteNotSupportException {
+        throw new CalciteNotSupportException();
     }
 }

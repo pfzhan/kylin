@@ -81,7 +81,9 @@ import org.apache.kylin.metadata.querymeta.SelectedColumnMeta;
 import org.apache.kylin.metadata.realization.NoRealizationFoundException;
 import org.apache.kylin.metadata.realization.RoutingIndicatorException;
 import org.apache.kylin.query.security.AccessDeniedException;
+import org.apache.kylin.query.udf.CalciteNotSupportException;
 import org.apache.kylin.source.adhocquery.IPushDownRunner;
+import org.codehaus.commons.compiler.CompileException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -243,6 +245,14 @@ public class PushDownUtil {
                 return false;
             }
             if (rootCause instanceof RoutingIndicatorException) {
+                return true;
+            }
+
+            if (rootCause instanceof CalciteNotSupportException) {
+                return true;
+            }
+
+            if (rootCause instanceof CompileException) {
                 return true;
             }
 

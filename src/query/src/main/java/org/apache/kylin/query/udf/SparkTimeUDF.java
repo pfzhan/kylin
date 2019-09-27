@@ -49,39 +49,39 @@ import java.sql.Date;
 import java.sql.Timestamp;
 
 public class SparkTimeUDF implements NotConstant {
-    public Object TRUNC(@Parameter(name = "date") Date exp1, @Parameter(name = "str2") String exp2) {
-        return null;
+    public Object TRUNC(@Parameter(name = "date") Date exp1, @Parameter(name = "str2") String exp2) throws CalciteNotSupportException {
+        throw new CalciteNotSupportException();
     }
 
-    public Object ADD_MONTHS(@Parameter(name = "date") Date exp1, @Parameter(name = "num2") Integer exp2) {
-        return null;
+    public Object ADD_MONTHS(@Parameter(name = "date") Date exp1, @Parameter(name = "num2") Integer exp2) throws CalciteNotSupportException {
+        throw new CalciteNotSupportException();
     }
 
-    public Object DATE_ADD(@Parameter(name = "date") Date exp1, @Parameter(name = "num2") Integer exp2) {
-        return null;
+    public Object DATE_ADD(@Parameter(name = "date") Date exp1, @Parameter(name = "num2") Integer exp2) throws CalciteNotSupportException {
+        throw new CalciteNotSupportException();
     }
 
-    public Object DATE_SUB(@Parameter(name = "date") Date exp1, @Parameter(name = "num2") Integer exp2) {
-        return null;
+    public Object DATE_SUB(@Parameter(name = "date") Date exp1, @Parameter(name = "num2") Integer exp2) throws CalciteNotSupportException {
+        throw new CalciteNotSupportException();
     }
 
-    public Object FROM_UNIXTIME(@Parameter(name = "long1") Long exp1, @Parameter(name = "str2") String exp2) {
-        return null;
+    public Object FROM_UNIXTIME(@Parameter(name = "long1") Long exp1, @Parameter(name = "str2") String exp2) throws CalciteNotSupportException {
+        throw new CalciteNotSupportException();
     }
 
-    public Object FROM_UTC_TIMESTAMP(@Parameter(name = "t1") Timestamp exp1, @Parameter(name = "str2") String exp2) {
-        return null;
+    public Object FROM_UTC_TIMESTAMP(@Parameter(name = "t1") Timestamp exp1, @Parameter(name = "str2") String exp2) throws CalciteNotSupportException {
+        throw new CalciteNotSupportException();
     }
 
-    public Object MONTHS_BETWEEN(@Parameter(name = "t1") Timestamp exp1, @Parameter(name = "t2") Timestamp exp2) {
-        return null;
+    public Object MONTHS_BETWEEN(@Parameter(name = "t1") Timestamp exp1, @Parameter(name = "t2") Timestamp exp2) throws CalciteNotSupportException {
+        throw new CalciteNotSupportException();
     }
 
-    public Object MONTHS_BETWEEN(@Parameter(name = "t1") Timestamp exp1, @Parameter(name = "t2") Timestamp exp2, @Parameter(name = "t2") Boolean exp3) {
-        return null;
+    public Object MONTHS_BETWEEN(@Parameter(name = "t1") Timestamp exp1, @Parameter(name = "t2") Timestamp exp2, @Parameter(name = "t2") Boolean exp3) throws CalciteNotSupportException {
+        throw new CalciteNotSupportException();
     }
 
-    public Object TO_UTC_TIMESTAMP(@Parameter(name = "t1") Timestamp exp1, @Parameter(name = "str2") String exp2) {
-        return null;
+    public Object TO_UTC_TIMESTAMP(@Parameter(name = "t1") Timestamp exp1, @Parameter(name = "str2") String exp2) throws CalciteNotSupportException {
+        throw new CalciteNotSupportException();
     }
 }
