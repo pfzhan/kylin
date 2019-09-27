@@ -27,6 +27,7 @@ package io.kyligence.kap.rest.service;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
@@ -1297,7 +1298,7 @@ public class TableService extends BasicService {
     }
 
     public NInitTablesResponse getProjectTables(String project, String table, Integer offset, Integer limit,
-            ProjectTablesFilter projectTablesFilter) throws Exception {
+            Boolean useHiveDatabase, ProjectTablesFilter projectTablesFilter) throws Exception {
         NInitTablesResponse response = new NInitTablesResponse();
         if (table == null)
             table = "";
@@ -1306,7 +1307,8 @@ public class TableService extends BasicService {
             exceptDatabase = table.split("\\.", 2)[0].trim();
             table = table.split("\\.", 2)[1].trim();
         }
-        for (String database : getSourceDbNames(project)) {
+        Collection<String> databases = useHiveDatabase ? getSourceDbNames(project) : getLoadedDatabases(project);
+        for (String database : databases) {
             if (exceptDatabase != null && !exceptDatabase.equalsIgnoreCase(database)) {
                 continue;
             }

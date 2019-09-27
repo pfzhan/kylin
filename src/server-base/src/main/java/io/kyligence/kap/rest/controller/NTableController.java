@@ -127,7 +127,7 @@ public class NTableController extends NBasicController {
 
         checkProjectName(project);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS,
-                tableService.getProjectTables(project, table, offset, limit, (databaseName, tableName) -> {
+                tableService.getProjectTables(project, table, offset, limit, false, (databaseName, tableName) -> {
                     return tableService.getTableDesc(project, withExt, tableName, databaseName, isFuzzy);
                 }), "");
     }
@@ -318,7 +318,7 @@ public class NTableController extends NBasicController {
             @RequestParam(value = "pageSize", required = false, defaultValue = "10") Integer limit) throws Exception {
         checkProjectName(project);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS,
-                tableService.getProjectTables(project, table, offset, limit, (databaseName, tableName) -> {
+                tableService.getProjectTables(project, table, offset, limit, true, (databaseName, tableName) -> {
                     return tableService.getTableNameResponses(project, databaseName, tableName);
                 }), "");
     }
