@@ -58,11 +58,31 @@ echo "Build with ${BUILD_SYSTEM} at" `date "+%Y-%m-%d %H:%M:%S"` >> build/commit
 cat > build/CHANGELOG.md <<EOL
 ### Release History
 
-#### KE 4.0.3 release note
+#### Kyligence Enterprise 4.0.4 release note
+
+**Feature**
+
+- Support cell level data access control
 
 **Enhancement**
 
-- Support to automatic upgrade via script
+- Support exporting query results to a CSV file
+- Support system admin user to view all job information across all projects in the job monitor page
+- Support some new query functions
+- Optimize the recognition and conversion of computed columns in smart mode project
+- Support searching database.table in data source loading page
+- Provide model/index group expansion rate
+
+**Bugfix**
+
+- Project information has not been updated after switching to other projects in the model editing page.
+- In expert mode, computed columns are unavailable to use when defining table index
+
+#### Kyligence Enterprise 4.0.3 release note
+
+**Enhancement**
+
+- Support automatic upgrade via script
 - Enhance diagnostic package
 - Support some new query functions
 - Optimize the recognition and conversion of computed columns in smart mode project
@@ -76,7 +96,7 @@ cat > build/CHANGELOG.md <<EOL
 - In smart mode, when querying the recommended computed column through Power BI, query pushdown will return error
 - Timestamp() function cannot support millisecond precision
 
-#### KE 4.0.2 release note
+#### Kyligence Enterprise 4.0.2 release note
 
 **Feature**
 
@@ -96,11 +116,11 @@ cat > build/CHANGELOG.md <<EOL
 
 - The password reset script for ADMIN user doesn’t take effect
 
-#### KE 4.0.1 release note
+#### Kyligence Enterprise 4.0.1 release note
 
 **Feature & Enhancement**
 
-- Optimize table encode
+- Optimize table encoding
 - Optimize building
 - Optimize TPCH query
 - Improve speed of table sampling
@@ -114,18 +134,16 @@ cat > build/CHANGELOG.md <<EOL
 - Wrong data range can be saved
 - Configuring incorrect metadata, the process is still running after the startup fails
 
-#### KE 4.0.0 release note
+#### Kyligence Enterprise 4.0.0 release note
 
 **Feature & Enhancement**
 
 - Metastore
   - Built-in PostgreSQL as metastore
-
 - Data Source
   - Integrate Hive as default data source
   - Quick table sampling in minutes level
   - If source schema changes, the system can detect missing column and impacted model
-
 - Model
   - Intuitive model design canvas to define table relations, dimensions, measures
   - Intelligent modeling based on user's query pattern
@@ -136,7 +154,6 @@ cat > build/CHANGELOG.md <<EOL
   - Full load data
   - Incremental load data by date / time
   - Segment management after loading data
-
 - Query Pushdown
   - Enable smart query pushdown by default to explore massive data in minutes
 - Query Acceleration
@@ -162,7 +179,7 @@ cat > build/CHANGELOG.md <<EOL
   - SmartBI Insight
   - FineBI and FineReport
 - Integrate with Excel and Python
-- Operation And Diagnose
+- Operation And Diagnosis
   - Environment check tool to ensure installation dependency and autority are pre-settled properly
   - Storage management at the project level and one-click to clean up low usage storage
   - System and job diagnoses tool to help trouble shooting
