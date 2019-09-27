@@ -17,8 +17,8 @@
             <i class="el-icon-ksd-info ksd-fs-14"></i>
             <span class="ksd-fs-12">{{$t('accessTips')}}</span>
           </div>
-          <div class="access-content">
-            <el-tree :data="tables" v-if="tables.length" :show-checkbox="isEdit" show-overflow-tooltip :props="defaultProps" @node-click="handleNodeClick" node-key="id" :default-expanded-keys="['0']" :default-checked-keys="defaultCheckedKeys" @check-change="checkChange" ref="tableTree" :highlight-current="true">
+          <div class="access-content tree-content" :class="{'all-tips': isAllTablesAccess&&!isEdit}">
+            <el-tree :data="tables" v-if="tables.length" :show-checkbox="isEdit" show-overflow-tooltip :props="defaultProps" @node-click="handleNodeClick" node-key="id" :render-after-expand="false" :default-expanded-keys="defaultExpandedKeys" :default-checked-keys="defaultCheckedKeys" @check-change="checkChange" ref="tableTree" :highlight-current="true" :filter-node-method="filterTable">
               <span class="custom-tree-node" slot-scope="{ node, data }">
                 <i class="ksd-mr-2" :class="data.icon"></i>
                 <span class="ky-ellipsis" :title="node.label">{{ node.label }}</span>
@@ -36,7 +36,7 @@
             <el-checkbox v-model="selectAllColumns" @change="checkAllColumns" v-else>{{$t('accessColumns')}} ({{colAuthorizedNum}}/{{columns.length}})</el-checkbox>
           </div>
           <div class="access-search">
-            <el-input size="small" :placeholder="$t('searchKey')" v-model="tableFilter">
+            <el-input size="small" :placeholder="$t('searchKey')" v-model="columnFilter">
               <i slot="prefix" class="el-input__icon el-icon-search"></i>
             </el-input>
           </div>
@@ -44,9 +44,9 @@
             <i class="el-icon-ksd-info ksd-fs-14"></i>
             <span class="ksd-fs-12">{{$t('accessColsTips')}}</span>
           </div>
-          <div class="access-content">
+          <div class="access-content" :class="{'all-tips': isAllColAccess&&!isEdit}">
             <ul v-if="columns.length">
-              <li v-for="(col, index) in columns" :key="col.name">
+              <li v-for="(col, index) in columns" :key="col.name" v-show="col.name.toLowerCase().indexOf(columnFilter.trim().toLowerCase()) !== -1">
                 <el-checkbox @change="val => selectColumn(val, index)" size="medium" v-if="isEdit" :value="col.authorized">{{col.name}}</el-checkbox>
                 <span v-else>{{col.name}}</span>
               </li>
@@ -63,7 +63,7 @@
             <el-button type="primary" plain size="small" icon="el-icon-ksd-add_2" class="ksd-fright ksd-mt-5" @click="addRowAccess" v-if="isEdit">{{$t('addRowAccess')}}</el-button>
           </div>
           <div class="access-search">
-            <el-input size="small" :placeholder="$t('searchKey')" v-model="tableFilter">
+            <el-input size="small" :placeholder="$t('searchKey')" v-model="rowFilter">
               <i slot="prefix" class="el-input__icon el-icon-search"></i>
             </el-input>
           </div>
@@ -73,7 +73,7 @@
           </div>
           <div class="access-content">
             <ul v-if="rows.length">
-              <li v-for="(row, key) in rows" :key="key" class="row-list">
+              <li v-for="(row, key) in rows" :key="key" class="row-list" v-show="isShowRow(row)">
                 <el-row>
                   <el-col :span="isEdit?21:24">
                     <span>{{row.column_name}}</span>
@@ -133,7 +133,7 @@
 
 <script>
 import Vue from 'vue'
-import { Component } from 'vue-property-decorator'
+import { Component, Watch } from 'vue-property-decorator'
 import { handleSuccessAsync, indexOfObjWithSomeKey, objectClone } from '../../util'
 import { handleSuccess, handleError } from '../../util/business'
 import { mapActions } from 'vuex'
@@ -195,6 +195,7 @@ export default class UserAccess extends Vue {
   tableAuthorizedNum = 0
   totalNum = 0
   defaultCheckedKeys = []
+  defaultExpandedKeys = []
   allTables = []
   databaseIndex = -1
   tableIndex = -1
@@ -211,6 +212,7 @@ export default class UserAccess extends Vue {
   handleNodeClick (data) {
     if (!data.children) { // tables data
       this.isSelectTable = true
+      this.currentTable = data.label
       this.isCurrentTableChecked = data.authorized
       this.currentTableId = data.id
       this.$refs.tableTree.setCurrentKey(this.currentTableId)
@@ -261,6 +263,8 @@ export default class UserAccess extends Vue {
       const indexs = data.id.split('_')
       this.allTables[indexs[0]].tables[indexs[1]].authorized = isChecked
       this.currentTable = data.label
+      this.currentTableId = data.id
+      this.$refs.tableTree.setCurrentKey(this.currentTableId)
       this.isCurrentTableChecked = isChecked
       this.selectAllColumns = isChecked
       this.allTables[indexs[0]].tables[indexs[1]].columns.forEach((col) => {
@@ -268,15 +272,41 @@ export default class UserAccess extends Vue {
       })
       this.allTables[indexs[0]].tables[indexs[1]].rows = []
       this.initColsAndRows(this.allTables[indexs[0]].tables[indexs[1]].columns, this.allTables[indexs[0]].tables[indexs[1]].rows, data.totalColNum)
+      const database = this.tables[indexs[0]]
       if (isChecked) {
         this.tableAuthorizedNum++
+        database.authorizedNum++
+        database.label = database.databaseName + ` (${database.authorizedNum}/${database.totalNum})`
       } else {
         this.tableAuthorizedNum--
+        database.authorizedNum--
+        database.label = database.databaseName + ` (${database.authorizedNum}/${database.totalNum})`
       }
     }
   }
   get rowAuthorTitle () {
     return !this.isRowAuthorEdit ? this.$t('addRowAccess1', {tableName: this.currentTable}) : this.$t('editRowAccess', {tableName: this.currentTable})
+  }
+  @Watch('tableFilter')
+  tableFilterChange (val) {
+    this.$refs.tableTree.filter(val)
+  }
+  filterTable (value, data, node) {
+    if (!value.trim()) return true
+    return data.label.toLowerCase().indexOf(value.trim().toLowerCase()) !== -1
+  }
+  isShowRow (row) {
+    let isShow = false
+    if (row.column_name.toLowerCase().indexOf(this.rowFilter.trim().toLowerCase()) !== -1) {
+      isShow = true
+    }
+    for (let i = 0; i < row.items.length; i++) {
+      if (row.items[i].toLowerCase().indexOf(this.rowFilter.trim().toLowerCase()) !== -1) {
+        isShow = true
+        break
+      }
+    }
+    return isShow
   }
   editAccess () {
     this.loadAccessDetails(false)
@@ -346,7 +376,7 @@ export default class UserAccess extends Vue {
           if (index === -1) {
             this.rows.push(row)
           } else {
-            this.rows[index].items = [...this.rows[index].items, row.items]
+            this.rows[index].items = [...this.rows[index].items, ...row.items]
           }
         }
       })
@@ -371,8 +401,11 @@ export default class UserAccess extends Vue {
   }
   async loadAccessDetails (authorizedOnly) {
     this.defaultCheckedKeys = []
+    this.defaultExpandedKeys = []
     this.allTables = []
     this.tables = []
+    this.rows = []
+    this.columns = []
     const response = await this.getAccessDetailsByUser({data: {authorizedOnly: authorizedOnly}, roleOrName: this.roleOrName, type: this.type, projectName: this.projectName})
     const result = await handleSuccessAsync(response)
     if (result.length) {
@@ -387,6 +420,9 @@ export default class UserAccess extends Vue {
         return {
           id: key + '',
           label: database.database_name + labelNum,
+          databaseName: database.database_name,
+          authorizedNum: database.authorized_table_num,
+          totalNum: database.total_table_num,
           children: database.tables.map((t, i) => {
             const id = key + '_' + i
             if (t.authorized && !authorizedOnly) {
@@ -403,8 +439,10 @@ export default class UserAccess extends Vue {
       this.$nextTick(() => {
         if (this.currentTableId) {
           const indexs = this.currentTableId.split('_')
+          this.defaultExpandedKeys = [indexs[0]]
           this.handleNodeClick(this.tables[indexs[0]].children[indexs[1]])
         } else {
+          this.defaultExpandedKeys = ['0']
           this.handleNodeClick(this.tables[0].children[0])
         }
       })

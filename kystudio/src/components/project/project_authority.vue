@@ -374,7 +374,14 @@ export default class ProjectAuthority extends Vue {
       access.permission = this.mask[access.permission]
     })
     this.submitLoading = true
-    const accessData = this.isEditAuthor ? accessMetas[0] : accessMetas
+    let accessData = null
+    if (this.isEditAuthor) {
+      accessData = accessMetas[0]
+      accessData.sid = accessData.sids[0]
+      delete accessData.sids
+    } else {
+      accessData = accessMetas
+    }
     const actionType = this.isEditAuthor ? 'editProjectAccess' : 'saveProjectAccess'
     this[actionType]({accessData: accessData, id: this.currentProjectId}).then((res) => {
       handleSuccess(res, (data) => {
@@ -513,8 +520,17 @@ export default class ProjectAuthority extends Vue {
       }
       .access-content {
         height: 264px;
-        overflow-y: scroll;
+        overflow-y: auto;
         position: relative;
+        &.all-tips {
+          height: 240px;
+        }
+        &.tree-content {
+          height: 300px;
+          &.all-tips {
+            height: 276px;
+          }
+        }
         .view-all-tips {
           margin: 0 auto;
           margin-top: 100px;
@@ -523,11 +539,7 @@ export default class ProjectAuthority extends Vue {
           width: 80%;
           text-align: center;
         }
-        .el-tree {
-          height: 240px;
-        }
         ul {
-          height: 240px;
           overflow-y: auto;
           li {
             height: 30px;
