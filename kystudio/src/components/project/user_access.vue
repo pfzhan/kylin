@@ -6,7 +6,7 @@
         <div class="access-card">
           <div class="access-title">
             <span v-if="!isEdit">{{$t('accessTables')}} ({{tableAuthorizedNum}})</span>
-            <el-checkbox v-model="selectAllTables" @change="checkAllTables" v-else>{{$t('accessTables')}} ({{tableAuthorizedNum}}/{{totalNum}})</el-checkbox>
+            <el-checkbox v-model="selectAllTables" @change="checkAllTables" :indeterminate="tableAuthorizedNum !== totalNum && tableAuthorizedNum>0" v-else>{{$t('accessTables')}} ({{tableAuthorizedNum}}/{{totalNum}})</el-checkbox>
           </div>
           <div class="access-search">
             <el-input size="small" :placeholder="$t('searchKey')" v-model="tableFilter">
@@ -33,7 +33,7 @@
         <div class="access-card column-card">
           <div class="access-title">
             <span v-if="!isEdit">{{$t('accessColumns')}} ({{colAuthorizedNum}})</span>
-            <el-checkbox v-model="selectAllColumns" @change="checkAllColumns" v-else>{{$t('accessColumns')}} ({{colAuthorizedNum}}/{{columns.length}})</el-checkbox>
+            <el-checkbox v-model="selectAllColumns" @change="checkAllColumns" :disabled="!isCurrentTableChecked" :indeterminate="colAuthorizedNum !== columns.length && colAuthorizedNum>0" v-else>{{$t('accessColumns')}} ({{colAuthorizedNum}}/{{columns.length}})</el-checkbox>
           </div>
           <div class="access-search">
             <el-input size="small" :placeholder="$t('searchKey')" v-model="columnFilter">
@@ -47,7 +47,7 @@
           <div class="access-content" :class="{'all-tips': isAllColAccess&&!isEdit}">
             <ul v-if="columns.length">
               <li v-for="(col, index) in columns" :key="col.name" v-show="col.name.toLowerCase().indexOf(columnFilter.trim().toLowerCase()) !== -1">
-                <el-checkbox @change="val => selectColumn(val, index)" size="medium" v-if="isEdit" :value="col.authorized">{{col.name}}</el-checkbox>
+                <el-checkbox @change="val => selectColumn(val, index)" :disabled="!isCurrentTableChecked" size="medium" v-if="isEdit" :value="col.authorized">{{col.name}}</el-checkbox>
                 <span v-else>{{col.name}}</span>
               </li>
             </ul>
@@ -60,7 +60,7 @@
         <div class="access-card row-card">
           <div class="access-title">
             <span>{{$t('accessRows')}}</span>
-            <el-button type="primary" plain size="small" icon="el-icon-ksd-add_2" class="ksd-fright ksd-mt-5" @click="addRowAccess" v-if="isEdit">{{$t('addRowAccess')}}</el-button>
+            <el-button type="primary" plain size="small" icon="el-icon-ksd-add_2" class="ksd-fright ksd-mt-5" @click="addRowAccess" v-if="isEdit" :disabled="!isCurrentTableChecked">{{$t('addRowAccess')}}</el-button>
           </div>
           <div class="access-search">
             <el-input size="small" :placeholder="$t('searchKey')" v-model="rowFilter">
@@ -212,14 +212,13 @@ export default class UserAccess extends Vue {
   handleNodeClick (data) {
     if (!data.children) { // tables data
       this.isSelectTable = true
-      this.currentTable = data.label
+      this.currentTable = data.database + '.' + data.label
       this.isCurrentTableChecked = data.authorized
       this.currentTableId = data.id
       this.$refs.tableTree.setCurrentKey(this.currentTableId)
       const indexs = data.id.split('_')
       this.databaseIndex = indexs[0]
       this.tableIndex = indexs[1]
-      this.currentTable = data.label
       this.initColsAndRows(data.columns, data.rows, data.totalColNum)
     }
   }
@@ -262,7 +261,9 @@ export default class UserAccess extends Vue {
       data.authorized = isChecked
       const indexs = data.id.split('_')
       this.allTables[indexs[0]].tables[indexs[1]].authorized = isChecked
-      this.currentTable = data.label
+      this.databaseIndex = indexs[0]
+      this.tableIndex = indexs[1]
+      this.currentTable = data.database + '.' + data.label
       this.currentTableId = data.id
       this.$refs.tableTree.setCurrentKey(this.currentTableId)
       this.isCurrentTableChecked = isChecked
@@ -428,10 +429,10 @@ export default class UserAccess extends Vue {
             if (t.authorized && !authorizedOnly) {
               this.defaultCheckedKeys.push(id)
             }
-            if (t.table_name === this.currentTable) {
+            if (database.database_name + '.' + t.table_name === this.currentTable) {
               this.currentTableId = id
             }
-            return {id: id, label: t.table_name, authorized: t.authorized, columns: t.columns, rows: t.rows, totalColNum: t.total_column_num}
+            return {id: id, label: t.table_name, database: database.database_name, authorized: t.authorized, columns: t.columns, rows: t.rows, totalColNum: t.total_column_num}
           })
         }
       })

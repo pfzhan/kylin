@@ -303,6 +303,7 @@ export default class ProjectAuthority extends Vue {
       this.delProjectAccess({id: this.currentProjectId, aid: id, userName: username, principal: principal}).then((res) => {
         this.initAccessData()
         this.loadAccess()
+        this.reloadAvaliableUserAndGroup()
         this.$message({
           type: 'success',
           message: this.$t('kylinLang.common.delSuccess')
