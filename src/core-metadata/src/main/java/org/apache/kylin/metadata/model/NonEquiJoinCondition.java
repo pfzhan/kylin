@@ -175,7 +175,8 @@ public class NonEquiJoinCondition implements Serializable {
         result = prime * result + type.hashCode();
         result = prime * result + dataType.hashCode();
         result = prime * result + op.hashCode();
-        if (opName != null) {
+        // consider opName only SqlKind OTHER
+        if ((op == SqlKind.OTHER || op == SqlKind.OTHER_FUNCTION) && opName != null) {
             result = prime * result + opName.hashCode();
         }
         for (NonEquiJoinCondition operand : operands) {

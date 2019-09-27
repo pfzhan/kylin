@@ -33,14 +33,23 @@ import java.util.Objects;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.kylin.metadata.model.NonEquiJoinCondition;
 import org.apache.kylin.metadata.model.NonEquiJoinConditionType;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class NonEquiJoinConditionComparator {
+
+    private static Logger logger = LoggerFactory.getLogger(NonEquiJoinConditionComparator.class);
 
     private NonEquiJoinConditionComparator() {
     }
 
     public static boolean equals(NonEquiJoinCondition cond1, NonEquiJoinCondition cond2) {
-        return TruthTable.equals(createTruthTable(cond1), createTruthTable(cond2));
+        try {
+            return TruthTable.equals(createTruthTable(cond1), createTruthTable(cond2));
+        } catch (Throwable e) {
+            logger.error("Error on compareing cond1 {}, cond2 {}", cond1, cond2, e);
+            return false;
+        }
     }
 
     private static TruthTable createTruthTable(NonEquiJoinCondition nonEquiJoinCondition) {
@@ -101,6 +110,7 @@ public class NonEquiJoinConditionComparator {
     private static boolean inverseCondOperator(NonEquiJoinCondition cond) {
         if (operatorInverseMapping.containsKey(cond.getOp())) {
             cond.setOp(operatorInverseMapping.get(cond.getOp()));
+            cond.setOpName(cond.getOp().sql);
             return true;
         }
         return false;
@@ -128,6 +138,13 @@ public class NonEquiJoinConditionComparator {
                     Objects.equals(cond1.getType(), cond2.getType()) &&
                     Objects.equals(cond1.getDataType(), cond2.getDataType()))) {
                 return 1;
+            }
+
+            // compare opName on for SqlKind OTHER
+            if (cond1.getOp() == SqlKind.OTHER || cond1.getOp() == SqlKind.OTHER_FUNCTION) {
+                if (!Objects.equals(cond1.getOpName(), cond2.getOpName())) {
+                    return 1;
+                }
             }
 
             if (cond1.getType() == NonEquiJoinConditionType.LITERAL) {

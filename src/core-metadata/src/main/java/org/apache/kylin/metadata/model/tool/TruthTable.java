@@ -126,6 +126,7 @@ public class TruthTable {
             Preconditions.checkArgument(operands.size() == inputValues.size());
             Map<Expr, Boolean> mappedInput = new HashMap<>();
             for (Expr expr : operands) {
+                Preconditions.checkArgument(inputValues.get(expr) != null, "Invalid table expr for operands mapping");
                 mappedInput.put(expr, inputValues.get(expr));
             }
             Preconditions.checkArgument(mappedInput.size() == inputValues.size());

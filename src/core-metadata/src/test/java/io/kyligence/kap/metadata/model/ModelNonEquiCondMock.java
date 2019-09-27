@@ -66,7 +66,7 @@ public class ModelNonEquiCondMock {
 
     public NonEquiJoinCondition colConstantCompareCond(SqlKind op, String col1, SqlTypeName col1Type, String constantValue, SqlTypeName constantType) {
         return new NonEquiJoinCondition(
-                null,
+                op.sql,
                 op,
                 new NonEquiJoinCondition[]{mockTblColRefCond(col1, col1Type), mockConstantCond(constantValue, constantType)},
                 mockDataType(SqlTypeName.BOOLEAN)
@@ -75,7 +75,16 @@ public class ModelNonEquiCondMock {
 
     public NonEquiJoinCondition colOp(SqlKind op, String col1) {
         return new NonEquiJoinCondition(
-                null,
+                op.sql,
+                op,
+                new NonEquiJoinCondition[]{mockTblColRefCond(col1, SqlTypeName.CHAR)},
+                mockDataType(SqlTypeName.BOOLEAN)
+        );
+    }
+
+    public NonEquiJoinCondition colOp(String sqlName, SqlKind op, String col1) {
+        return new NonEquiJoinCondition(
+                sqlName,
                 op,
                 new NonEquiJoinCondition[]{mockTblColRefCond(col1, SqlTypeName.CHAR)},
                 mockDataType(SqlTypeName.BOOLEAN)
@@ -84,7 +93,7 @@ public class ModelNonEquiCondMock {
 
     public NonEquiJoinCondition colCompareCond(SqlKind op, String col1, SqlTypeName col1Type, String col2, SqlTypeName col2Type) {
         return new NonEquiJoinCondition(
-                null,
+                op.sql,
                 op,
                 new NonEquiJoinCondition[]{mockTblColRefCond(col1, col1Type), mockTblColRefCond(col2, col2Type)},
                 mockDataType(SqlTypeName.BOOLEAN)
@@ -100,7 +109,7 @@ public class ModelNonEquiCondMock {
     }
 
     public static NonEquiJoinCondition composite(SqlKind op, NonEquiJoinCondition... conds) {
-        return new NonEquiJoinCondition(null, op, conds, mockDataType(SqlTypeName.BOOLEAN));
+        return new NonEquiJoinCondition(op.sql, op, conds, mockDataType(SqlTypeName.BOOLEAN));
     }
 
     public static NonEquiJoinCondition mockTblColRefCond(TblColRef tableCol, SqlTypeName colType) {

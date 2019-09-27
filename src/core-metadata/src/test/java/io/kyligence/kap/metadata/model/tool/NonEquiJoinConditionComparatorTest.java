@@ -153,4 +153,29 @@ public class NonEquiJoinConditionComparatorTest {
         );
         Assert.assertEquals(cond1, cond2);
     }
+    
+    @Test
+    public void testCondNormalizationsOnSqlKindOTHER() {
+        NonEquiJoinCondition cond1 = nonEquiMock.composite(SqlKind.EQUALS,
+                nonEquiMock.colOp("abs", SqlKind.OTHER_FUNCTION, "A.a9"),
+                nonEquiMock.colOp("abs", SqlKind.OTHER_FUNCTION, "B.a9"));
+        NonEquiJoinCondition cond2 = nonEquiMock.composite(SqlKind.EQUALS,
+                nonEquiMock.colOp("abs", SqlKind.OTHER_FUNCTION, "B.a9"),
+                nonEquiMock.colOp("abs", SqlKind.OTHER_FUNCTION, "A.a9")
+        );
+        Assert.assertEquals(cond1, cond2);
+    }
+
+    @Test
+    public void testCondNormalizationsOnSqlKindOTHERNotEqual() {
+        NonEquiJoinCondition cond1 = nonEquiMock.composite(SqlKind.EQUALS,
+                nonEquiMock.colOp("abs", SqlKind.OTHER_FUNCTION, "A.a9"),
+                nonEquiMock.colOp("abs", SqlKind.OTHER_FUNCTION, "B.a9"));
+        NonEquiJoinCondition cond2 = nonEquiMock.composite(SqlKind.EQUALS,
+                nonEquiMock.colOp("abs", SqlKind.OTHER_FUNCTION, "B.a9"),
+                nonEquiMock.colOp("cos", SqlKind.OTHER_FUNCTION, "A.a9")
+        );
+        Assert.assertNotEquals(cond1, cond2);
+    }
 }
+
