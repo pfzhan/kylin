@@ -6,7 +6,7 @@
         <div class="access-card">
           <div class="access-title">
             <span v-if="!isEdit">{{$t('accessTables')}} ({{tableAuthorizedNum}})</span>
-            <el-checkbox v-model="selectAllTables" @change="checkAllTables" :indeterminate="tableAuthorizedNum !== totalNum && tableAuthorizedNum>0" v-else>{{$t('accessTables')}} ({{tableAuthorizedNum}}/{{totalNum}})</el-checkbox>
+            <el-checkbox v-model="isAllTablesAccess" @change="checkAllTables" :indeterminate="tableAuthorizedNum !== totalNum && tableAuthorizedNum>0" v-else>{{$t('accessTables')}} ({{tableAuthorizedNum}}/{{totalNum}})</el-checkbox>
           </div>
           <div class="access-search">
             <el-input size="small" :placeholder="$t('searchKey')" v-model="tableFilter">
@@ -206,7 +206,6 @@ export default class UserAccess extends Vue {
   colAuthorizedNum = 0
   submitLoading = false
   isCurrentTableChecked = false
-  selectAllTables = false
   selectAllColumns = false
   currentTableId = ''
   handleNodeClick (data) {
