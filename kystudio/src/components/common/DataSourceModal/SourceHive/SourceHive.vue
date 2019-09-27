@@ -287,6 +287,7 @@ export default class SourceHive extends Vue {
       }
       const res = await this.fetctDatabaseAndTables(params)
       const results = await handleSuccessAsync(res)
+      this.treeKey = filterText + Number(new Date())
       this.treeData = this.getDatabaseTablesTree(results.databases)
       this.treeData.forEach((database, index) => {
         const pagination = database.pagination
@@ -327,7 +328,7 @@ export default class SourceHive extends Vue {
     clearInterval(this.timer)
     return new Promise(async resolve => {
       this.timer = setTimeout(async () => {
-        this.treeKey = filterText + Number(new Date())
+        // this.treeKey = filterText + Number(new Date())
         // 每次发起搜索时，清空前一次的数据树
         this.loadingTreeData = true
         this.treeData = []

@@ -22,6 +22,7 @@
       </div>
       <div v-scroll style="height:calc(100%)" v-guide.dataSourceScroll v-loading="isLoadingTreeData">
         <TreeList
+          :tree-key="treeKey"
           ref="treeList"
           :data="datasources"
           :placeholder="$t('searchTable')"
@@ -195,6 +196,7 @@ import { handleSuccessAsync, handleError } from '../../../util'
   locales
 })
 export default class DataSourceBar extends Vue {
+  treeKey = 'pagetree' + Number(new Date())
   filterText = ''
   isSearchIng = false
   isLoadingTreeData = true // 用于处理查询搜索时loading 效果
@@ -341,6 +343,7 @@ export default class DataSourceBar extends Vue {
     }
     const response = await this.fetchDBandTables(params)
     const results = await handleSuccessAsync(response)
+    this.treeKey = 'pageTree_' + filterText + Number(new Date())
     // 初始化数据中 db 一层的 render
     this.datasources.forEach((datasource, index) => {
       // 先处理 db 一层的render，以及初值的赋值
