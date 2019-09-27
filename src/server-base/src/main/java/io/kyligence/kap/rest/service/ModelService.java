@@ -33,7 +33,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -48,6 +47,7 @@ import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.common.util.StringUtil;
 import org.apache.kylin.job.JoinedFlatTable;
 import org.apache.kylin.job.execution.ExecutableState;
+import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.JoinDesc;
 import org.apache.kylin.metadata.model.JoinTableDesc;
 import org.apache.kylin.metadata.model.PartitionDesc;
@@ -57,6 +57,7 @@ import org.apache.kylin.metadata.model.SegmentStatusEnumToDisplay;
 import org.apache.kylin.metadata.model.Segments;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.TableRef;
+import org.apache.kylin.metadata.model.TblColRef;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 import org.apache.kylin.query.util.PushDownUtil;
@@ -234,7 +235,7 @@ public class ModelService extends BasicService {
         if (AclPermissionUtil.canUseACLGreenChannel(project)) {
             return result;
         }
-        List<AclTCR> aclTCRS = getAclTCRManager(project).getAclTCRs(AclPermissionUtil.getCurrentUsername(),
+        List<AclTCR> aclTCRs = getAclTCRManager(project).getAclTCRs(AclPermissionUtil.getCurrentUsername(),
                 AclPermissionUtil.getCurrentUserGroups());
         return result.stream().map(r -> {
             NDataModelResponse copied = JsonUtil.deepCopyQuietly(r, NDataModelResponse.class);
@@ -242,11 +243,18 @@ public class ModelService extends BasicService {
             copied.setProject(r.getProject());
             copied.setMvcc(r.getMvcc());
             copied.setLastModify(r.getLastModify());
-            copied.setAllTableRefs(r.getAllTableRefs().stream().filter(t -> t.getColumns().stream().allMatch(
-                    c -> aclTCRS.stream().anyMatch(aclTCR -> aclTCR.isAuthorized(t.getTableIdentity(), c.getName()))))
-                    .collect(Collectors.toSet()));
-            return CollectionUtils.isEmpty(copied.getAllTableRefs()) ? null : copied;
-        }).filter(Objects::nonNull).collect(Collectors.toList());
+            copied.setAllTableRefs(r.getAllTableRefs().stream()
+                    .filter(t -> aclTCRs.stream().anyMatch(aclTCR -> aclTCR.isAuthorized(t.getTableIdentity())))
+                    .map(t -> {
+                        TableDesc tableDesc = JsonUtil.deepCopyQuietly(t.getTableDesc(), TableDesc.class);
+                        tableDesc.setColumns(t.getColumns().stream().map(TblColRef::getColumnDesc)
+                                .filter(c -> aclTCRs.stream()
+                                        .anyMatch(aclTCR -> aclTCR.isAuthorized(t.getTableIdentity(), c.getName())))
+                                .toArray(ColumnDesc[]::new));
+                        return new TableRef(t.getModel(), t.getAlias(), tableDesc, false);
+                    }).collect(Collectors.toSet()));
+            return copied;
+        }).collect(Collectors.toList());
 
     }
 

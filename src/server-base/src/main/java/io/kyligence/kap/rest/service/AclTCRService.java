@@ -262,6 +262,9 @@ public class AclTCRService extends BasicService {
                 AclTCR.Column aclColumn = new AclTCR.Column();
                 aclColumn.addAll(getTableColumns(tableDesc));
                 columnRow.setColumn(aclColumn);
+                if (Objects.nonNull(cr)) {
+                    columnRow.setRow(cr.getRow());
+                }
                 db2AclTable.get(tableDesc.getDatabase()).put(tableDesc.getName(), columnRow);
             } else {
                 db2AclTable.get(tableDesc.getDatabase()).put(tableDesc.getName(), cr);
