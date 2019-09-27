@@ -159,6 +159,7 @@ public class NSmartMaster {
         optimizeModel();
         selectIndexPlan();
         optimizeIndexPlan();
+        shrinkIndexPlan();
     }
 
     private void save() {

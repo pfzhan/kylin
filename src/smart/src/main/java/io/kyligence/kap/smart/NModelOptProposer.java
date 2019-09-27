@@ -36,7 +36,6 @@ import org.apache.kylin.metadata.project.ProjectInstance;
 
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
-import io.kyligence.kap.metadata.model.MaintainModelType;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.smart.NSmartContext.NModelContext;
@@ -55,7 +54,7 @@ class NModelOptProposer extends NAbstractProposer {
             return;
 
         final ProjectInstance projectInstance = NProjectManager.getInstance(kylinConfig).getProject(project);
-        if (projectInstance.getMaintainModelType() == MaintainModelType.MANUAL_MAINTAIN) {
+        if (projectInstance.isExpertMode()) {
             logger.info("Expert mode doesn't support modify an existing model.");
             return;
         }

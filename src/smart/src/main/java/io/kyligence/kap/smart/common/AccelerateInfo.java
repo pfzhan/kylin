@@ -39,16 +39,14 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
 
+@Setter
 @Getter
 @NoArgsConstructor
 @ToString
 public class AccelerateInfo {
 
     private Set<QueryLayoutRelation> relatedLayouts = Sets.newHashSet();
-    @Setter
     private Throwable failedCause;
-
-    @Setter
     private String pendingMsg;
 
     public boolean isFailed() {
@@ -71,7 +69,9 @@ public class AccelerateInfo {
 
         @ToString.Exclude
         private String sql;
+        @Setter
         private String modelId;
+        @Setter
         private long layoutId;
         private int semanticVersion;
 
@@ -79,8 +79,7 @@ public class AccelerateInfo {
 
             Preconditions.checkNotNull(layout);
             return this.semanticVersion == layout.getModel().getSemanticVersion()
-                    && this.modelId.equalsIgnoreCase(layout.getModel().getId())
-                    && this.layoutId == layout.getId();
+                    && this.modelId.equalsIgnoreCase(layout.getModel().getId()) && this.layoutId == layout.getId();
         }
     }
 }

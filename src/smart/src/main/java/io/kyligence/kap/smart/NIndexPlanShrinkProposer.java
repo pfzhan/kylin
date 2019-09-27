@@ -24,7 +24,10 @@
 
 package io.kyligence.kap.smart;
 
+import org.apache.kylin.metadata.project.ProjectInstance;
+
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
+import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.smart.cube.NCubeMaster;
 
 public class NIndexPlanShrinkProposer extends NAbstractProposer {
@@ -38,15 +41,17 @@ public class NIndexPlanShrinkProposer extends NAbstractProposer {
         if (smartContext.getModelContexts() == null)
             return;
 
+        ProjectInstance projectInstance = NProjectManager.getInstance(smartContext.getKylinConfig())
+                .getProject(smartContext.getProject());
         for (NSmartContext.NModelContext modelCtx : smartContext.getModelContexts()) {
-            if (modelCtx.getOrigModel() == null || modelCtx.getOrigIndexPlan() == null
-                    || modelCtx.getTargetIndexPlan() == null) {
+            if (modelCtx.getTargetIndexPlan() == null) {
                 continue;
             }
 
             NCubeMaster cubeMaster = new NCubeMaster(modelCtx);
-            IndexPlan indexPlan = modelCtx.getTargetIndexPlan();
-            indexPlan = cubeMaster.reduceCuboids(indexPlan);
+            IndexPlan indexPlan = projectInstance.isSemiAutoMode()
+                    ? cubeMaster.reduceCuboids(modelCtx.getTargetIndexPlan())
+                    : modelCtx.getTargetIndexPlan(); // at present only semi-auto-mode use this for ci problem
             modelCtx.setTargetIndexPlan(indexPlan);
         }
     }

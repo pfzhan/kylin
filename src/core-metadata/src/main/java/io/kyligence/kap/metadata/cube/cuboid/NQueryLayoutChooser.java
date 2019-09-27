@@ -95,7 +95,8 @@ public class NQueryLayoutChooser {
                 matched = matchTableIndex(cuboid.getLayout(), segment.getDataflow(), unmatchedCols, needDerive,
                         tempResult);
                 if (!matched) {
-                    logger.info("Table index {} does not match sql {}, unmatched columns {}", cuboid, sqlDigest, unmatchedCols);
+                    logger.info("Table index {} does not match sql {}, unmatched columns {}", cuboid, sqlDigest,
+                            unmatchedCols);
                 }
             }
             if (!indexEntity.isTableIndex() && !sqlDigest.isRawQuery) {
@@ -104,7 +105,8 @@ public class NQueryLayoutChooser {
                 matched = matchAggIndex(sqlDigest, cuboid.getLayout(), segment.getDataflow(), unmatchedCols,
                         unmatchedMetrics, needDerive, tempResult);
                 if (!matched) {
-                    logger.info("Agg index {} does not match sql {}, unmatched columns {}, unmatched metrics {}", cuboid, sqlDigest, unmatchedCols, unmatchedMetrics);
+                    logger.info("Agg index {} does not match sql {}, unmatched columns {}, unmatched metrics {}",
+                            cuboid, sqlDigest, unmatchedCols, unmatchedMetrics);
                 }
             }
             if (!matched) {
@@ -146,11 +148,11 @@ public class NQueryLayoutChooser {
         Ordering<NLayoutCandidate> ordering = Ordering //
                 .from(derivedLayoutComparator()).compound(rowSizeComparator()) // L1 comparator, compare cuboid rows
                 .compound(filterColumnComparator(filterCols, config, segment.getProject())) // L2 comparator, order filter columns
-                .compound(columnSizeComparator()) // L3 comparator, order size of cuboid columns
+                .compound(dimensionSizeComparator()) // the lower dimension the best
+                .compound(measureSizeComparator()) // L3 comparator, order size of cuboid columns
                 .compound(nonFilterColumnComparator(nonFilterColumns, config)); // L4 comparator, order non-filter columns
         candidates.sort(ordering);
     }
-
 
     private static void unmatchedAggregations(Collection<FunctionDesc> aggregations, LayoutEntity cuboidLayout) {
         for (MeasureDesc measureDesc : cuboidLayout.getOrderedMeasures().values()) {
@@ -256,13 +258,16 @@ public class NQueryLayoutChooser {
         return Comparator.comparingDouble(NLayoutCandidate::getCost);
     }
 
-    private static Comparator<NLayoutCandidate> columnSizeComparator() {
-        return Comparator.comparingInt(candidate -> candidate.getCuboidLayout().getColOrder().size());
+    private static Comparator<NLayoutCandidate> dimensionSizeComparator() {
+        return Comparator.comparingInt(candidate -> candidate.getCuboidLayout().getOrderedDimensions().size());
+    }
+
+    private static Comparator<NLayoutCandidate> measureSizeComparator() {
+        return Comparator.comparingInt(candidate -> candidate.getCuboidLayout().getOrderedMeasures().size());
     }
 
     private static Comparator<NLayoutCandidate> filterColumnComparator(List<TblColRef> sortedFilters,
-            KylinConfig config,
-            String project) {
+            KylinConfig config, String project) {
         return Ordering.from(colComparator(sortedFilters, config)).compound(shardByComparator(sortedFilters, config));
     }
 

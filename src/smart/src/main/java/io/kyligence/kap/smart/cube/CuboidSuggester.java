@@ -129,10 +129,11 @@ class CuboidSuggester {
                 log.error("Unable to suggest cuboid for IndexPlan", e);
                 // under expert mode
                 if (e instanceof PendingException
-                        && projectInstance.getMaintainModelType() == MaintainModelType.MANUAL_MAINTAIN)
+                        && projectInstance.getMaintainModelType() == MaintainModelType.MANUAL_MAINTAIN) {
                     accelerateInfo.setPendingMsg(e.getMessage());
-                else
+                } else {
                     accelerateInfo.setFailedCause(e);
+                }
                 accelerateInfo.getRelatedLayouts().clear();
             } finally {
                 ctx.unfixModel();
@@ -154,26 +155,6 @@ class CuboidSuggester {
             shardBy.add(sortedDimIds.get(0));
         }
         return shardBy;
-    }
-
-    private List<Integer> suggestSortBy(OLAPContext ctx) {
-        Map<TblColRef, Integer> colIdMap = model.getEffectiveColsMap().inverse();
-        // TODO need a more proper fix
-        if (CollectionUtils.isEmpty(ctx.getSortColumns())) {
-            return Lists.newArrayList();
-        }
-
-        List<Integer> ret = Lists.newArrayList();
-        for (TblColRef col : ctx.getSortColumns()) {
-            final Integer id = colIdMap.get(col);
-            if (id == null) {
-                throw new PendingException(
-                        String.format(getMsgTemplateByModelMaintainType(COLUMN_NOT_FOUND_PTN, Type.COLUMN),
-                                model.getAlias(), col.getIdentity()));
-            }
-            ret.add(id);
-        }
-        return ret;
     }
 
     private QueryLayoutRelation ingest(OLAPContext ctx, NDataModel model) {
@@ -211,6 +192,7 @@ class CuboidSuggester {
         layout.setAuto(true);
         layout.setUpdateTime(System.currentTimeMillis());
         layout.setDraftVersion(smartContext.getDraftVersion());
+        layout.setInProposing(true);
 
         String modelId = model.getUuid();
         int semanticVersion = model.getSemanticVersion();
@@ -270,7 +252,8 @@ class CuboidSuggester {
         return generateDimensionIds(sortedDims, model.getEffectiveDimenionsMap().inverse());
     }
 
-    private List<TblColRef> sortDimensionColumns(Collection<TblColRef> filterColumnsCollection, Collection<TblColRef> nonFilterColumnsCollection) {
+    private List<TblColRef> sortDimensionColumns(Collection<TblColRef> filterColumnsCollection,
+            Collection<TblColRef> nonFilterColumnsCollection) {
         List<TblColRef> filterColumns = new ArrayList<>(filterColumnsCollection);
         List<TblColRef> nonFilterColumns = new ArrayList<>(nonFilterColumnsCollection);
         final Comparator<TblColRef> filterColComparator = ComparatorUtils

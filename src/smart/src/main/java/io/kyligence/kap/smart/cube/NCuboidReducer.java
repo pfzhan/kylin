@@ -26,21 +26,23 @@ package io.kyligence.kap.smart.cube;
 
 import java.util.List;
 import java.util.Map;
-
-import io.kyligence.kap.metadata.cube.model.IndexPlan;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
-import io.kyligence.kap.metadata.cube.model.IndexEntity.IndexIdentifier;
+import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
+import io.kyligence.kap.metadata.cube.utils.IndexPlanReduceUtil;
 import io.kyligence.kap.smart.NSmartContext.NModelContext;
+import io.kyligence.kap.smart.common.AccelerateInfo;
+import lombok.val;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 class NCuboidReducer extends NAbstractCubeProposer {
-
-    private static final Logger logger = LoggerFactory.getLogger(NCuboidReducer.class);
 
     NCuboidReducer(NModelContext context) {
         super(context);
@@ -49,36 +51,67 @@ class NCuboidReducer extends NAbstractCubeProposer {
     @Override
     public IndexPlan doPropose(IndexPlan indexPlan) {
 
-        // get to be removed cuboids
-        final Map<IndexIdentifier, IndexEntity> proposedCuboids = Maps.newLinkedHashMap();
+        log.debug("Start to reduce redundant layouts...");
+        List<IndexEntity> allProposedIndexes = indexPlan.getIndexes();
 
-        final CuboidSuggester cuboidSuggester = new CuboidSuggester(context, indexPlan, proposedCuboids);
-        cuboidSuggester.suggestIndexes(context.getModelTree());
-
-        // log before shrink cuboids
-        proposedCuboids.forEach((cuboidIdentifier, indexEntity) -> {
-            logger.debug("layouts after reduce:");
-            indexEntity.getLayouts().forEach(layout -> logger.debug("{}", layout.getId()));
+        // collect redundant layouts
+        List<IndexEntity> aggIndexList = allProposedIndexes.stream() //
+                .filter(indexEntity -> !indexEntity.isTableIndex()) //
+                .collect(Collectors.toList());
+        List<IndexEntity> tableIndexList = allProposedIndexes.stream() //
+                .filter(IndexEntity::isTableIndex) //
+                .collect(Collectors.toList());
+        Map<LayoutEntity, LayoutEntity> redundantToReservedMap = Maps.newHashMap();
+        redundantToReservedMap.putAll(IndexPlanReduceUtil.collectRedundantLayoutsOfAggIndex(aggIndexList, false));
+        redundantToReservedMap.putAll(IndexPlanReduceUtil.collectRedundantLayoutsOfTableIndex(tableIndexList, false));
+        redundantToReservedMap.forEach((redundant, reserved) -> {
+            val indexEntityOptional = allProposedIndexes.stream()
+                    .filter(index -> index.getId() == redundant.getIndexId()) //
+                    .findFirst();
+            indexEntityOptional.ifPresent(entity -> entity.getLayouts().remove(redundant));
         });
 
-        // remove cuboids
-        Map<IndexIdentifier, List<LayoutEntity>> cuboidLayoutMap = Maps.newHashMap();
+        Set<String> redundantRecord = Sets.newHashSet();
+        redundantToReservedMap.forEach((key, value) -> redundantRecord.add(key.getId() + "->" + value.getId()));
+        log.trace("In this round, IndexPlan({}) found redundant layout(s) is|are: {}", indexPlan.getUuid(),
+                String.join(", ", redundantRecord));
 
-        proposedCuboids.forEach((identifier, cuboid) -> cuboidLayoutMap.put(identifier, cuboid.getLayouts()));
+        // remove indexes without layouts
+        List<IndexEntity> allReservedIndexList = allProposedIndexes.stream()
+                .filter(indexEntity -> !indexEntity.getLayouts().isEmpty()) //
+                .collect(Collectors.toList());
+        log.debug("Proposed {} indexes, {} indexes will be reserved.", allProposedIndexes.size(),
+                allReservedIndexList.size());
+        allReservedIndexList.forEach(index -> index.getLayouts().forEach(layout -> layout.setInProposing(false)));
+        indexPlan.setIndexes(allReservedIndexList);
 
-        indexPlan.removeLayouts(cuboidLayoutMap, this::hasExternalRef, LayoutEntity::equals, true, false);
-
-        // log after shrink cuboids
-        cuboidLayoutMap.forEach((cuboidIdentifier, nCuboidLayouts) -> {
-            logger.debug("layouts after reduce:");
-            nCuboidLayouts.forEach(layout -> logger.debug("{}", layout.getId()));
-        });
-
+        // adjust acceleration info
+        adjustAccelerationInfo(redundantToReservedMap);
+        log.debug("End of reduce indexes and layouts!");
         return indexPlan;
     }
 
-    private boolean hasExternalRef(LayoutEntity layout) {
-        // TODO the mapping of sqlPattern to layout should get from favorite query
-        return false;
+    private void adjustAccelerationInfo(Map<LayoutEntity, LayoutEntity> redundantToReservedMap) {
+        Map<String, AccelerateInfo> accelerateInfoMap = context.getSmartContext().getAccelerateInfoMap();
+        Map<Long, LayoutEntity> redundantMap = Maps.newHashMap();
+        redundantToReservedMap.forEach((redundant, reserved) -> redundantMap.putIfAbsent(redundant.getId(), redundant));
+        accelerateInfoMap.forEach((key, value) -> {
+            if (value.getRelatedLayouts() == null) {
+                return;
+            }
+            value.getRelatedLayouts().forEach(relatedLayout -> {
+                if (redundantMap.containsKey(relatedLayout.getLayoutId())) {
+                    LayoutEntity entity = redundantMap.get(relatedLayout.getLayoutId());
+                    // confirm layoutInfo in accelerationInfoMap equals to redundant layout
+                    if (entity.getIndex().getIndexPlan().getUuid().equalsIgnoreCase(relatedLayout.getModelId())) {
+                        LayoutEntity reserved = redundantToReservedMap.get(entity);
+                        relatedLayout.setLayoutId(reserved.getId());
+                        relatedLayout.setModelId(reserved.getIndex().getIndexPlan().getUuid());
+                    }
+                }
+            });
+            value.setRelatedLayouts(Sets.newHashSet(value.getRelatedLayouts())); // may exist equal objects
+        });
     }
+
 }

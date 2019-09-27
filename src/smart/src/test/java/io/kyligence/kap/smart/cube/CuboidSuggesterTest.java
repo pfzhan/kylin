@@ -165,10 +165,12 @@ public class CuboidSuggesterTest extends NAutoTestOnLearnKylinData {
 
     @Test
     public void testSuggestWithoutDimension() {
+        // TODO add acceleration info map changed test case: [layout1, layout2, layout3] => [layout1, layout1, layout3] => [layout1, layout3]
+        // TODO add a case to verify redundant layout of aggGroup will not consider in auto-modeling, maybe CI test
         String[] sqls = new String[] { "select count(*) from kylin_sales", // count star
                 "select count(price) from kylin_sales", // measure with column
                 "select sum(price) from kylin_sales", //
-                "select 1 as ttt from kylin_sales" // no dimension and no measure, but will suggest count(*)
+                "select 1 as ttt from kylin_sales" // no dimension and no measure, but will add an extra dimension
         };
 
         NSmartMaster smartMaster = new NSmartMaster(getTestConfig(), proj, sqls);

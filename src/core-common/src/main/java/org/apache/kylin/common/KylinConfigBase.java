@@ -487,6 +487,10 @@ abstract public class KylinConfigBase implements Serializable {
         return getOptional("kylin.server.https.key.alias", null);
     }
 
+    public boolean isSemiAutoMode() {
+        return Boolean.parseBoolean(getOptional("kap.metadata.semi-automatic-mode", "false"));
+    }
+
     // ============================================================================
     // DICTIONARY & SNAPSHOT
     // ============================================================================

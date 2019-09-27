@@ -103,6 +103,9 @@ public class LayoutEntity implements IStorageAware, Serializable, IKeep {
     @JsonProperty("draft_version")
     private String draftVersion;
 
+    @Setter
+    private boolean isInProposing; // only used in the process of propose
+
     // computed fields below
 
     /**
@@ -194,6 +197,10 @@ public class LayoutEntity implements IStorageAware, Serializable, IKeep {
     public void setId(long id) {
         checkIsNotCachedAndShared();
         this.id = id;
+    }
+
+    public long getIndexId() {
+        return this.getId() - this.getId() % IndexEntity.INDEX_ID_STEP;
     }
 
     public ImmutableList<Integer> getColOrder() {

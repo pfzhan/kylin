@@ -222,6 +222,18 @@ public class ProjectInstance extends RootPersistentEntity implements ISourceAwar
         this.name = name;
     }
 
+    public boolean isSemiAutoMode() {
+        return getMaintainModelType() == MaintainModelType.MANUAL_MAINTAIN && getConfig().isSemiAutoMode();
+    }
+
+    public boolean isExpertMode() {
+        return getMaintainModelType() == MaintainModelType.MANUAL_MAINTAIN && !getConfig().isSemiAutoMode();
+    }
+
+    public boolean isSmartMode() {
+        return getMaintainModelType() == MaintainModelType.AUTO_MAINTAIN;
+    }
+
     public ImmutableList<RealizationEntry> getRealizationEntries() {
         return ImmutableList.copyOf(getRealizationsFromResource(name));
     }

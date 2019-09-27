@@ -43,7 +43,6 @@ import io.kyligence.kap.engine.spark.builder.CreateFlatTable$;
 import io.kyligence.kap.engine.spark.job.NSparkCubingUtil;
 import io.kyligence.kap.metadata.model.BadModelException;
 import io.kyligence.kap.metadata.model.ComputedColumnDesc;
-import io.kyligence.kap.metadata.model.MaintainModelType;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
@@ -71,9 +70,8 @@ public class ComputedColumnEvalUtil {
     }
 
     public static void evaluateExprAndTypes(NDataModel nDataModel, List<ComputedColumnDesc> computedColumns) {
-        MaintainModelType modelType = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv())
-                .getProject(nDataModel.getProject()).getMaintainModelType();
-        if (modelType == MaintainModelType.MANUAL_MAINTAIN) {
+        if (NProjectManager.getInstance(KylinConfig.getInstanceFromEnv()).getProject(nDataModel.getProject())
+                .isExpertMode()) {
             evalDataTypeOfCCInManual(computedColumns, nDataModel, 0, computedColumns.size());
         } else {
             evalDataTypeOfCCInAuto(computedColumns, nDataModel, 0, computedColumns.size());
