@@ -25,6 +25,7 @@
 package io.kyligence.kap.engine.spark.merger;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -75,8 +76,14 @@ public class AfterMergeOrRefreshResourceMerger extends SparkJobMetadataMerger {
         // only add layouts which still in segments, others maybe deleted by user
         List<NDataSegment> toRemoveSegments = distMgr.getToRemoveSegs(distDataflow, mergedSegment);
         if (JobTypeEnum.INDEX_MERGE.equals(jobType)) {
-            long totalSourceSize  = toRemoveSegments.stream().map(NDataSegment::getSourceBytesSize).reduce(Long::sum).get();
-            mergedSegment.setSourceBytesSize(totalSourceSize);
+            Optional<Long> reduce = toRemoveSegments.stream()
+                    .map(NDataSegment::getSourceBytesSize)
+                    .filter(size -> size != -1)
+                    .reduce(Long::sum);
+            if (reduce.isPresent()) {
+                long totalSourceSize = reduce.get();
+                mergedSegment.setSourceBytesSize(totalSourceSize);
+            }
         }
         val livedLayouts = mgr.getDataflow(dataflowId).getLatestReadySegment().getLayoutsMap().values().stream()
                 .map(NDataLayout::getLayoutId).collect(Collectors.toSet());
