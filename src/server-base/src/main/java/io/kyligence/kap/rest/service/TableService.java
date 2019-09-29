@@ -62,7 +62,6 @@ import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 import org.apache.kylin.query.util.PushDownUtil;
 import org.apache.kylin.rest.exception.BadRequestException;
-import org.apache.kylin.rest.msg.Message;
 import org.apache.kylin.rest.msg.MsgPicker;
 import org.apache.kylin.rest.service.BasicService;
 import org.apache.kylin.rest.util.AclPermissionUtil;
@@ -128,8 +127,6 @@ import lombok.var;
 public class TableService extends BasicService {
 
     private static final Logger logger = LoggerFactory.getLogger(TableService.class);
-
-    private static Message msg = MsgPicker.getMsg();
 
     @Autowired
     private ModelService modelService;
@@ -418,7 +415,7 @@ public class TableService extends BasicService {
         val table = JsonUtil.deepCopyQuietly(originTable, TableDesc.class);
         table.setColumns(Optional.ofNullable(table.getColumns()).map(Arrays::stream).orElseGet(Stream::empty)
                 .filter(c -> aclTCRS.stream().anyMatch(aclTCR -> aclTCR.isAuthorized(table.getIdentity(), c.getName())))
-                .collect(Collectors.toList()).toArray(new ColumnDesc[] {}));
+                .toArray(ColumnDesc[]::new));
         return table;
     }
 

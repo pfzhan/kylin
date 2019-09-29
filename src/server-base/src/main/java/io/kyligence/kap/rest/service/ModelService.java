@@ -47,7 +47,6 @@ import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.common.util.StringUtil;
 import org.apache.kylin.job.JoinedFlatTable;
 import org.apache.kylin.job.execution.ExecutableState;
-import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.JoinDesc;
 import org.apache.kylin.metadata.model.JoinTableDesc;
 import org.apache.kylin.metadata.model.PartitionDesc;
@@ -57,7 +56,6 @@ import org.apache.kylin.metadata.model.SegmentStatusEnumToDisplay;
 import org.apache.kylin.metadata.model.Segments;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.TableRef;
-import org.apache.kylin.metadata.model.TblColRef;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 import org.apache.kylin.query.util.PushDownUtil;
@@ -65,7 +63,6 @@ import org.apache.kylin.rest.exception.BadRequestException;
 import org.apache.kylin.rest.msg.Message;
 import org.apache.kylin.rest.msg.MsgPicker;
 import org.apache.kylin.rest.service.BasicService;
-import org.apache.kylin.rest.util.AclPermissionUtil;
 import org.apache.kylin.source.SourceFactory;
 import org.apache.kylin.source.adhocquery.PushDownConverterKeyWords;
 import org.apache.spark.sql.SparderEnv;
@@ -92,7 +89,6 @@ import io.kyligence.kap.event.model.Event;
 import io.kyligence.kap.event.model.MergeSegmentEvent;
 import io.kyligence.kap.event.model.PostMergeOrRefreshSegmentEvent;
 import io.kyligence.kap.event.model.RefreshSegmentEvent;
-import io.kyligence.kap.metadata.acl.AclTCR;
 import io.kyligence.kap.metadata.cube.cuboid.NSpanningTreeFactory;
 import io.kyligence.kap.metadata.cube.cuboid.NSpanningTreeForWeb;
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
@@ -203,12 +199,12 @@ public class ModelService extends BasicService {
             }
         }
         if ("expansionrate".equalsIgnoreCase(sortBy)) {
-            return filterAuthorized(projectName, sortExpansionRate(reverse, filterModels));
+            return sortExpansionRate(reverse, filterModels);
         } else {
             Comparator<NDataModelResponse> comparator = propertyComparator(
                     StringUtils.isEmpty(sortBy) ? "last_modify" : sortBy, !reverse);
             filterModels.sort(comparator);
-            return filterAuthorized(projectName, filterModels);
+            return filterModels;
         }
     }
 
@@ -229,33 +225,6 @@ public class ModelService extends BasicService {
                 .filter(modle -> !"-1".equalsIgnoreCase(modle.getExpansionrate())).collect(Collectors.toList());
         nDataModelResponses.addAll(unknowModels);
         return nDataModelResponses;
-    }
-
-    private List<NDataModelResponse> filterAuthorized(String project, List<NDataModelResponse> result) {
-        if (AclPermissionUtil.canUseACLGreenChannel(project)) {
-            return result;
-        }
-        List<AclTCR> aclTCRs = getAclTCRManager(project).getAclTCRs(AclPermissionUtil.getCurrentUsername(),
-                AclPermissionUtil.getCurrentUserGroups());
-        return result.stream().map(r -> {
-            NDataModelResponse copied = JsonUtil.deepCopyQuietly(r, NDataModelResponse.class);
-            copied.setConfig(r.getConfig());
-            copied.setProject(r.getProject());
-            copied.setMvcc(r.getMvcc());
-            copied.setLastModify(r.getLastModify());
-            copied.setAllTableRefs(r.getAllTableRefs().stream()
-                    .filter(t -> aclTCRs.stream().anyMatch(aclTCR -> aclTCR.isAuthorized(t.getTableIdentity())))
-                    .map(t -> {
-                        TableDesc tableDesc = JsonUtil.deepCopyQuietly(t.getTableDesc(), TableDesc.class);
-                        tableDesc.setColumns(t.getColumns().stream().map(TblColRef::getColumnDesc)
-                                .filter(c -> aclTCRs.stream()
-                                        .anyMatch(aclTCR -> aclTCR.isAuthorized(t.getTableIdentity(), c.getName())))
-                                .toArray(ColumnDesc[]::new));
-                        return new TableRef(t.getModel(), t.getAlias(), tableDesc, false);
-                    }).collect(Collectors.toSet()));
-            return copied;
-        }).collect(Collectors.toList());
-
     }
 
     private boolean isArgMatch(String valueToMatch, boolean exactMatch, String originValue) {

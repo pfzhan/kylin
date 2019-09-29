@@ -122,6 +122,9 @@ public class HackSelectStarWithColumnACL implements QueryUtil.IQueryTransformer,
             }
             List<ColumnDesc> columns = listExposedColumns(project, tableDesc);
             for (ColumnDesc column : columns) {
+                if (column.isComputedColumn()) {
+                    continue;
+                }
                 if (aclTCRs.stream()
                         .anyMatch(aclTCR -> aclTCR.isAuthorized(tableDesc.getIdentity(), column.getName()))) {
                     cols.add(table.getAlias() + "." + column.getName());
