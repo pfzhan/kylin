@@ -218,6 +218,8 @@ public class QueryService extends BasicService {
         Preconditions.checkNotNull(cacheManager, "cacheManager is not injected yet");
         SchedulerEventBusFactory.getInstance(KylinConfig.getInstanceFromEnv())
                 .register(new AclTCRListener(SUCCESS_QUERY_CACHE, cacheManager));
+        SchedulerEventBusFactory.getInstance(KylinConfig.getInstanceFromEnv())
+                .register(new AclTCRListener(EXCEPTION_QUERY_CACHE, cacheManager));
     }
 
     public SQLResponse query(SQLRequest sqlRequest) throws Exception {
@@ -555,8 +557,8 @@ public class QueryService extends BasicService {
 
             if (queryCacheEnabled && e.getCause() != null
                     && ExceptionUtils.getRootCause(e) instanceof ResourceLimitExceededException) {
-                Ehcache exceptionCache = getEhCache(EXCEPTION_QUERY_CACHE, sqlRequest.getProject());
-                exceptionCache.put(new Element(sqlRequest.getCacheKey(), sqlResponse));
+                getEhCache(EXCEPTION_QUERY_CACHE, sqlRequest.getProject())
+                        .put(new Element(sqlRequest.getCacheKey(), sqlResponse));
             }
             Trace.addTimelineAnnotation("error response");
         }
