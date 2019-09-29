@@ -84,8 +84,42 @@
           <el-option label="user" :value="true"></el-option>
           <el-option label="group" :value="false"></el-option>
         </el-select>
-        <kap-filter-select class="name-select" :asyn="true" @req="filterUser" v-model="accessMeta.sids" :disabled="isEditAuthor" multiple :list="renderUserList" placeholder="kylinLang.common.pleaseInputUserName" :size="100" v-if="accessMeta.principal"></kap-filter-select>
-        <kap-filter-select class="name-select" :asyn="true" @req="filterGroup" v-model="accessMeta.sids" :disabled="isEditAuthor" multiple :list="renderGroupList"  placeholder="kylinLang.common.pleaseInputUserGroup" :size="100" v-else></kap-filter-select>
+        <!-- <kap-filter-select class="name-select" :asyn="true" @req="filterUser" v-model="accessMeta.sids" :disabled="isEditAuthor" multiple :list="renderUserList" placeholder="kylinLang.common.pleaseInputUserName" :size="100" v-if="accessMeta.principal"></kap-filter-select> -->
+        <el-select
+          class="name-select"
+          v-model="accessMeta.sids"
+          :disabled="isEditAuthor"
+          multiple
+          filterable
+          remote
+          :placeholder="$t('kylinLang.common.pleaseInputUserName')"
+          :remote-method="filterUser"
+          v-if="accessMeta.principal">
+          <el-option
+            v-for="item in renderUserList"
+            :key="item.value"
+            :label="item.label"
+            :value="item.value">
+          </el-option>
+        </el-select>
+        <!-- <kap-filter-select class="name-select" :asyn="true" @req="filterGroup" v-model="accessMeta.sids" :disabled="isEditAuthor" multiple :list="renderGroupList"  placeholder="kylinLang.common.pleaseInputUserGroup" :size="100" v-else></kap-filter-select> -->
+        <el-select
+          class="name-select"
+          v-model="accessMeta.sids"
+          :disabled="isEditAuthor"
+          multiple
+          filterable
+          remote
+          :placeholder="$t('kylinLang.common.pleaseInputUserGroup')"
+          :remote-method="filterGroup"
+          v-else>
+          <el-option
+            v-for="item in renderGroupList"
+            :key="item.value"
+            :label="item.label"
+            :value="item.value">
+          </el-option>
+        </el-select>
         <el-select class="type-select" :placeholder="$t('access')" v-model="accessMeta.permission" size="medium">
           <el-option :label="item.key" :value="item.value" :key="item.value" v-for="item in showMaskByOrder"></el-option>
         </el-select>
@@ -181,6 +215,8 @@ import tableAccess from './table_access'
   }
 })
 export default class ProjectAuthority extends Vue {
+  userTimer = null
+  groupTimer = null
   accessView = 'user'
   userAccessList = []
   tableAccessList = [{name: 'Table A', type: 'Hive', users: []}]
@@ -332,22 +368,28 @@ export default class ProjectAuthority extends Vue {
     this.accessMetas.splice(index, 1)
   }
   filterUser (filterUserName) {
-    this.loadUserOrGroup(filterUserName, 'user').then((res) => {
-      handleSuccess(res, (data) => {
-        this.userList = data.sids
+    window.clearTimeout(this.userTimer)
+    this.userTimer = setTimeout(() => {
+      this.loadUserOrGroup(filterUserName, 'user').then((res) => {
+        handleSuccess(res, (data) => {
+          this.userList = data.sids
+        })
+      }, (res) => {
+        handleError(res)
       })
-    }, (res) => {
-      handleError(res)
-    })
+    }, 500)
   }
   filterGroup (filterUserName) {
-    this.loadUserOrGroup(filterUserName, 'group').then((res) => {
-      handleSuccess(res, (data) => {
-        this.groupList = data.sids
+    window.clearTimeout(this.groupTimer)
+    this.groupTimer = setTimeout(() => {
+      this.loadUserOrGroup(filterUserName, 'group').then((res) => {
+        handleSuccess(res, (data) => {
+          this.groupList = data.sids
+        })
+      }, (res) => {
+        handleError(res)
       })
-    }, (res) => {
-      handleError(res)
-    })
+    }, 500)
   }
   changeUserType (index) {
     if (this.accessMetas[index].sids.length && !this.isEditAuthor) {
