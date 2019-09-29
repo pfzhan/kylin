@@ -24,6 +24,8 @@
 package io.kyligence.kap.rest.metrics;
 
 import java.io.Serializable;
+import java.sql.Connection;
+import java.sql.SQLException;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
@@ -41,6 +43,7 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.metadata.realization.NoRealizationFoundException;
 import org.apache.kylin.metadata.realization.RoutingIndicatorException;
+import org.apache.kylin.query.QueryConnection;
 import org.apache.kylin.query.util.QueryUtil;
 import org.apache.kylin.rest.request.SQLRequest;
 import org.apache.kylin.rest.response.SQLResponse;
@@ -153,8 +156,15 @@ public class QueryMetricsContext {
     }
 
     private void doCollect(final SQLRequest request, final SQLResponse response, final QueryContext context) {
+        String defaultSchema = "DEFAULT";
+        try (Connection connection = QueryConnection.getConnection(request.getProject())) {
+            defaultSchema = connection.getSchema();
+        } catch (SQLException e) {
+            logger.warn("Failed to get connection, project: {}", request.getProject(), e);
+        }
+
         this.sql = QueryUtil.massageSql(request.getSql(), request.getProject(), request.getLimit(), request.getOffset(),
-                "DEFAULT", false);
+                defaultSchema, false);
 
         this.sqlPattern = QueryPatternUtil.normalizeSQLPattern(this.sql);
 
