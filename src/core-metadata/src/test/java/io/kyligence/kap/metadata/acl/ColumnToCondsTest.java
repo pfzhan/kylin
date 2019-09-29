@@ -24,22 +24,24 @@
 
 package io.kyligence.kap.metadata.acl;
 
-import com.google.common.collect.Lists;
-import io.kyligence.kap.junit.TimeZoneTestRunner;
-import org.apache.kylin.common.util.DateFormat;
-import org.junit.Assert;
-import org.junit.Test;
+import static io.kyligence.kap.metadata.acl.ColumnToConds.concatConds;
+import static io.kyligence.kap.metadata.acl.ColumnToConds.Cond.IntervalType.CLOSED;
+import static io.kyligence.kap.metadata.acl.ColumnToConds.Cond.IntervalType.LEFT_INCLUSIVE;
+import static io.kyligence.kap.metadata.acl.ColumnToConds.Cond.IntervalType.OPEN;
+import static io.kyligence.kap.metadata.acl.ColumnToConds.Cond.IntervalType.RIGHT_INCLUSIVE;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import org.apache.kylin.common.util.DateFormat;
+import org.junit.Assert;
+import org.junit.Test;
 import org.junit.runner.RunWith;
 
-import static io.kyligence.kap.metadata.acl.ColumnToConds.Cond.IntervalType.LEFT_INCLUSIVE;
-import static io.kyligence.kap.metadata.acl.ColumnToConds.Cond.IntervalType.RIGHT_INCLUSIVE;
-import static io.kyligence.kap.metadata.acl.ColumnToConds.Cond.IntervalType.CLOSED;
-import static io.kyligence.kap.metadata.acl.ColumnToConds.Cond.IntervalType.OPEN;
-import static io.kyligence.kap.metadata.acl.ColumnToConds.concatConds;
+import com.google.common.collect.Lists;
+
+import io.kyligence.kap.junit.TimeZoneTestRunner;
 
 @RunWith(TimeZoneTestRunner.class)
 public class ColumnToCondsTest {
@@ -47,11 +49,15 @@ public class ColumnToCondsTest {
     public void testTrimConds() {
         Assert.assertEquals("'a'", ColumnToConds.Cond.trim("a", "varchar(256)"));
         Assert.assertEquals("'a''b'", ColumnToConds.Cond.trim("a'b", "string"));
-        Assert.assertEquals("DATE '2017-08-30'", ColumnToConds.Cond.trim(DateFormat.stringToMillis("2017-08-30 20:17:40") + "", "date"));
-        Assert.assertEquals("TIME '20:17:40'", ColumnToConds.Cond.trim(DateFormat.stringToMillis("1979-01-01 20:17:40") + "", "time"));
-        Assert.assertEquals("TIMESTAMP '2017-09-13 04:12:12'", ColumnToConds.Cond.trim(DateFormat.stringToMillis("2017-09-13 04:12:12")+"", "datetime"));
+        Assert.assertEquals("DATE '2017-08-30'",
+                ColumnToConds.Cond.trim(DateFormat.stringToMillis("2017-08-30 20:17:40") + "", "date"));
+        Assert.assertEquals("TIME '20:17:40'",
+                ColumnToConds.Cond.trim(DateFormat.stringToMillis("1979-01-01 20:17:40") + "", "time"));
+        Assert.assertEquals("TIMESTAMP '2017-09-13 04:12:12'",
+                ColumnToConds.Cond.trim(DateFormat.stringToMillis("2017-09-13 04:12:12") + "", "datetime"));
 
-        Assert.assertEquals("TIMESTAMP '2017-09-13 04:12:12'", ColumnToConds.Cond.trim(DateFormat.stringToMillis("2017-09-13 04:12:12")+"", "timestamp"));
+        Assert.assertEquals("TIMESTAMP '2017-09-13 04:12:12'",
+                ColumnToConds.Cond.trim(DateFormat.stringToMillis("2017-09-13 04:12:12") + "", "timestamp"));
         Assert.assertEquals("7", ColumnToConds.Cond.trim("7", "int"));
     }
 
@@ -62,8 +68,10 @@ public class ColumnToCondsTest {
         columnWithType.put("COL1", "varchar(256)");
         columnWithType.put("COL2", "timestamp");
         columnWithType.put("COL3", "int");
-        List<ColumnToConds.Cond> cond1 = Lists.newArrayList(new ColumnToConds.Cond("a"), new ColumnToConds.Cond("b"), new ColumnToConds.Cond("a'b"));
-        List<ColumnToConds.Cond> cond6 = Lists.newArrayList(new ColumnToConds.Cond(LEFT_INCLUSIVE, DateFormat.stringToMillis("2017-09-13 04:12:12") + "", DateFormat.stringToMillis("2017-09-25 06:32:35") + "")); //timestamp
+        List<ColumnToConds.Cond> cond1 = Lists.newArrayList(new ColumnToConds.Cond("a"), new ColumnToConds.Cond("b"),
+                new ColumnToConds.Cond("a'b"));
+        List<ColumnToConds.Cond> cond6 = Lists
+                .newArrayList(new ColumnToConds.Cond(LEFT_INCLUSIVE, "2017-09-13 04:12:12", "2017-09-25 06:32:35")); //timestamp
         List<ColumnToConds.Cond> cond7 = Lists.newArrayList(new ColumnToConds.Cond(RIGHT_INCLUSIVE, "7", "100")); //normal type
         condsWithCol.put("COL1", cond1);
         condsWithCol.put("COL2", cond6);
