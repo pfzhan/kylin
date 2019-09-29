@@ -34,6 +34,10 @@ import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import io.kyligence.kap.common.obf.IKeep;
+import io.kyligence.kap.common.scheduler.SchedulerEventNotifier;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.Setter;
 
 @SuppressWarnings("serial")
 @JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.NONE, //
@@ -162,6 +166,16 @@ public class AclTCR extends RootPersistentEntity implements IKeep {
         // ["A", "B", "C"]
         public RealRow() {
             super(String.CASE_INSENSITIVE_ORDER);
+        }
+    }
+
+    @Getter
+    @Setter
+    @AllArgsConstructor
+    public static class ChangeEvent extends SchedulerEventNotifier {
+        public ChangeEvent(String project, String subject) {
+            this.project = project;
+            this.subject = subject;
         }
     }
 }

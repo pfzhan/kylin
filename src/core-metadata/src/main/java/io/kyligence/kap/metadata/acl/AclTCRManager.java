@@ -50,6 +50,7 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
+import io.kyligence.kap.common.scheduler.SchedulerEventBusFactory;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.model.util.ComputedColumnUtil;
 
@@ -117,6 +118,7 @@ public class AclTCRManager {
             aclTCR.getTable().remove(dbTblName);
             groupCrud.save(aclTCR);
         });
+        postAclChangeEvent(null);
     }
 
     public AclTCR getAclTCR(String sid, boolean principal) {
@@ -130,17 +132,19 @@ public class AclTCRManager {
         aclTCR.init(sid);
         if (principal) {
             userCrud.save(aclTCR);
-            return;
+        } else {
+            groupCrud.save(aclTCR);
         }
-        groupCrud.save(aclTCR);
+        postAclChangeEvent(sid);
     }
 
     public void revokeAclTCR(String sid, boolean principal) {
         if (principal) {
             userCrud.delete(sid);
-            return;
+        } else {
+            groupCrud.delete(sid);
         }
-        groupCrud.delete(sid);
+        postAclChangeEvent(sid);
     }
 
     public List<AclTCR> getAclTCRs(String username, Set<String> groups) {
@@ -317,5 +321,9 @@ public class AclTCRManager {
             authorizedCoarse.get(dbTblName).addAll(columnRow.getColumn());
         }));
         return authorizedCoarse;
+    }
+
+    private void postAclChangeEvent(String sid) {
+        SchedulerEventBusFactory.getInstance(config).post(new AclTCR.ChangeEvent(project, sid));
     }
 }

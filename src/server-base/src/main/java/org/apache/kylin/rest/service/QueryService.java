@@ -149,6 +149,7 @@ import io.kyligence.kap.common.metrics.NMetricsName;
 import io.kyligence.kap.common.persistence.transaction.TransactionException;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWorkParams;
+import io.kyligence.kap.common.scheduler.SchedulerEventBusFactory;
 import io.kyligence.kap.metadata.acl.AclTCR;
 import io.kyligence.kap.metadata.model.ComputedColumnDesc;
 import io.kyligence.kap.metadata.model.NDataModel;
@@ -157,6 +158,7 @@ import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.metadata.query.NativeQueryRealization;
 import io.kyligence.kap.rest.cluster.ClusterManager;
 import io.kyligence.kap.rest.config.AppConfig;
+import io.kyligence.kap.rest.config.initialize.AclTCRListener;
 import io.kyligence.kap.rest.metrics.QueryMetricsContext;
 import io.kyligence.kap.rest.transaction.Transaction;
 import lombok.AllArgsConstructor;
@@ -166,7 +168,9 @@ import lombok.Setter;
 import lombok.val;
 import net.sf.ehcache.Cache;
 import net.sf.ehcache.CacheManager;
+import net.sf.ehcache.Ehcache;
 import net.sf.ehcache.Element;
+import net.sf.ehcache.config.CacheConfiguration;
 
 /**
  * @author xduo
@@ -212,6 +216,8 @@ public class QueryService extends BasicService {
     @PostConstruct
     public void init() throws IOException {
         Preconditions.checkNotNull(cacheManager, "cacheManager is not injected yet");
+        SchedulerEventBusFactory.getInstance(KylinConfig.getInstanceFromEnv())
+                .register(new AclTCRListener(SUCCESS_QUERY_CACHE, cacheManager));
     }
 
     public SQLResponse query(SQLRequest sqlRequest) throws Exception {
@@ -525,10 +531,10 @@ public class QueryService extends BasicService {
                     && checkCondition(sqlResponse.getResults().size() < kylinConfig.getLargeQueryThreshold(),
                             "query response is too large: {} ({})", sqlResponse.getResults().size(),
                             kylinConfig.getLargeQueryThreshold())) {
-                cacheManager.getCache(SUCCESS_QUERY_CACHE).put(new Element(sqlRequest.getCacheKey(), sqlResponse));
+                getEhCache(SUCCESS_QUERY_CACHE, sqlRequest.getProject())
+                        .put(new Element(sqlRequest.getCacheKey(), sqlResponse));
             }
             Trace.addTimelineAnnotation("response from execution");
-
         } catch (Throwable e) { // calcite may throw AssertError
             logger.error("Exception while executing query", e);
             String errMsg = makeErrorMsgUserFriendly(e);
@@ -549,7 +555,7 @@ public class QueryService extends BasicService {
 
             if (queryCacheEnabled && e.getCause() != null
                     && ExceptionUtils.getRootCause(e) instanceof ResourceLimitExceededException) {
-                Cache exceptionCache = cacheManager.getCache(EXCEPTION_QUERY_CACHE);
+                Ehcache exceptionCache = getEhCache(EXCEPTION_QUERY_CACHE, sqlRequest.getProject());
                 exceptionCache.put(new Element(sqlRequest.getCacheKey(), sqlResponse));
             }
             Trace.addTimelineAnnotation("error response");
@@ -591,8 +597,8 @@ public class QueryService extends BasicService {
 
     public SQLResponse searchQueryInCache(SQLRequest sqlRequest) {
         SQLResponse response = null;
-        Cache exceptionCache = cacheManager.getCache(EXCEPTION_QUERY_CACHE);
-        Cache successCache = cacheManager.getCache(SUCCESS_QUERY_CACHE);
+        Ehcache exceptionCache = getEhCache(EXCEPTION_QUERY_CACHE, sqlRequest.getProject());
+        Ehcache successCache = getEhCache(SUCCESS_QUERY_CACHE, sqlRequest.getProject());
 
         Element element = null;
         if ((element = exceptionCache.get(sqlRequest.getCacheKey())) != null) {
@@ -1179,6 +1185,15 @@ public class QueryService extends BasicService {
         default:
             preparedState.setObject(index, isNull ? null : param.getValue());
         }
+    }
+
+    private Ehcache getEhCache(String prefix, String project) {
+        final String cacheName = prefix + project;
+        Ehcache ehcache = cacheManager.getEhcache(cacheName);
+        if (Objects.isNull(ehcache)) {
+            ehcache = cacheManager.addCacheIfAbsent(new Cache(new CacheConfiguration(cacheName, 0)));
+        }
+        return ehcache;
     }
 
     protected int getInt(String content) {
