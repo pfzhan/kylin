@@ -161,8 +161,8 @@ public class ColumnToConds extends CaseInsensitiveStringMap<List<ColumnToConds.C
 
         String toString(String column, String columnType) {
             Pair<String, String> op = getOp(type);
-            String leftValue = trim(leftExpr, columnType);
-            String rightValue = trim(rightExpr, columnType);
+            String leftValue = trimWithoutCheck(leftExpr, columnType);
+            String rightValue = trimWithoutCheck(rightExpr, columnType);
 
             if (leftValue == null && rightValue != null) {
                 if (type == IntervalType.OPEN) {
@@ -223,6 +223,28 @@ public class ColumnToConds extends CaseInsensitiveStringMap<List<ColumnToConds.C
                 expr = sdf.format(new Date(Long.valueOf(expr)));
                 //transform "1970-01-01 00:00:59" into "00:00:59"
                 expr = "TIME '" + expr.substring(TIME_START_POS, expr.length()) + "'";
+            }
+            return expr;
+        }
+
+        static String trimWithoutCheck(String expr, String type) {
+            if (expr == null) {
+                return null;
+            }
+            if (type.startsWith("varchar") || type.equals("string") || type.equals("char")) {
+                expr = expr.replaceAll("'", "''");
+                expr = "'" + expr + "'";
+            }
+            if (type.equals("date")) {
+                expr = "DATE '" + expr + "'";
+            }
+            if (type.equals("timestamp") || type.equals("datetime")) {
+                expr = "TIMESTAMP '" + expr + "'";
+            }
+            if (type.equals("time")) {
+                final int TIME_START_POS = 11; //"1970-01-01 ".length() = 11
+                //transform "1970-01-01 00:00:59" into "00:00:59"
+                expr = "TIME '" + expr.substring(TIME_START_POS) + "'";
             }
             return expr;
         }
