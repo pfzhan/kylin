@@ -46,8 +46,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
-import io.kyligence.kap.rest.service.AclTCRService;
 import org.apache.kylin.common.util.JsonUtil;
+import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.request.SamplingRequest;
@@ -85,6 +85,7 @@ import io.kyligence.kap.rest.request.TopTableRequest;
 import io.kyligence.kap.rest.response.LoadTableResponse;
 import io.kyligence.kap.rest.response.TableNameResponse;
 import io.kyligence.kap.rest.response.TablesAndColumnsResponse;
+import io.kyligence.kap.rest.service.AclTCRService;
 import io.kyligence.kap.rest.service.ModelService;
 import io.kyligence.kap.rest.service.TableExtService;
 import io.kyligence.kap.rest.service.TableSamplingService;
@@ -146,8 +147,8 @@ public class NTableControllerTest {
         final TableLoadRequest tableLoadRequest = new TableLoadRequest();
         tableLoadRequest.setProject("default");
         tableLoadRequest.setDatasourceType(11);
-        String[] tables = { "table1" };
-        String[] dbs = { "db1" };
+        String[] tables = { "table1", "DEFAULT.TEST_ACCOUNT" };
+        String[] dbs = { "db1", "default" };
         tableLoadRequest.setTables(tables);
         tableLoadRequest.setDatabases(dbs);
         return tableLoadRequest;
@@ -404,6 +405,17 @@ public class NTableControllerTest {
         return request;
     }
 
+    private void initMockito(LoadTableResponse loadTableResponse, TableLoadRequest tableLoadRequest) throws Exception {
+        String[] succTables = { "DEFAULT.TEST_ACCOUNT" };
+        String[] succDbs = { "DEFAULT" };
+        Mockito.when(tableService.classifyDbTables("default", tableLoadRequest.getTables()))
+                .thenReturn(new Pair<>(succTables, Sets.newHashSet("table1")));
+        Mockito.when(tableService.classifyDbTables("default", tableLoadRequest.getDatabases()))
+                .thenReturn(new Pair<>(succDbs, Sets.newHashSet("db1")));
+        Mockito.when(tableExtService.loadTables(succTables, "default")).thenReturn(loadTableResponse);
+        Mockito.when(tableExtService.loadTablesByDatabase("default", succDbs)).thenReturn(loadTableResponse);
+    }
+
     @Test
     public void testLoadTables() throws Exception {
         Set<String> loaded = Sets.newHashSet("table1");
@@ -413,10 +425,7 @@ public class NTableControllerTest {
         loadTableResponse.setLoaded(loaded);
         loadTableResponse.setFailed(failed);
         final TableLoadRequest tableLoadRequest = mockLoadTableRequest();
-        Mockito.when(tableExtService.loadTables(tableLoadRequest.getTables(), "default"))
-                .thenReturn(loadTableResponse);
-        Mockito.when(tableExtService.loadTablesByDatabase("default", tableLoadRequest.getDatabases()))
-                .thenReturn(loadTableResponse);
+        initMockito(loadTableResponse, tableLoadRequest);
         mockMvc.perform(MockMvcRequestBuilders.post("/api/tables") //
                 .contentType(MediaType.APPLICATION_JSON) //
                 .content(JsonUtil.writeValueAsString(tableLoadRequest)) //
@@ -436,8 +445,7 @@ public class NTableControllerTest {
         final TableLoadRequest tableLoadRequest = mockLoadTableRequest();
         tableLoadRequest.setTables(null);
         tableLoadRequest.setDatabases(null);
-        Mockito.when(tableExtService.loadTables(tableLoadRequest.getTables(), "default"))
-                .thenReturn(loadTableResponse);
+        Mockito.when(tableExtService.loadTables(tableLoadRequest.getTables(), "default")).thenReturn(loadTableResponse);
         Mockito.when(tableExtService.loadTablesByDatabase("default", tableLoadRequest.getDatabases()))
                 .thenReturn(loadTableResponse);
         final MvcResult mvcResult = mockMvc.perform(MockMvcRequestBuilders.post("/api/tables") //
@@ -518,8 +526,8 @@ public class NTableControllerTest {
     public void testGetRefreshDateRange() throws Exception {
         Mockito.doNothing().when(tableService).checkRefreshDataRangeReadiness("default", "DEFAULT.TEST_KYLIN_FACT", "0",
                 "100");
-        Mockito.doReturn(null).when(modelService).getRefreshAffectedSegmentsResponse("default", "DEFAULT.TEST_KYLIN_FACT", "0",
-                "100");
+        Mockito.doReturn(null).when(modelService).getRefreshAffectedSegmentsResponse("default",
+                "DEFAULT.TEST_KYLIN_FACT", "0", "100");
         mockMvc.perform(MockMvcRequestBuilders.get("/api/tables/affected_data_range") //
                 .contentType(MediaType.APPLICATION_JSON) //
                 .param("project", "default") //
@@ -657,11 +665,7 @@ public class NTableControllerTest {
         final TableLoadRequest tableLoadRequest = mockLoadTableRequest();
         tableLoadRequest.setNeedSampling(true);
         tableLoadRequest.setSamplingRows(20000);
-
-        Mockito.when(tableExtService.loadTables(tableLoadRequest.getTables(), "default"))
-                .thenReturn(loadTableResponse);
-        Mockito.when(tableExtService.loadTablesByDatabase("default", tableLoadRequest.getDatabases()))
-                .thenReturn(loadTableResponse);
+        initMockito(loadTableResponse, tableLoadRequest);
         mockMvc.perform(MockMvcRequestBuilders.post("/api/tables") //
                 .contentType(MediaType.APPLICATION_JSON) //
                 .content(JsonUtil.writeValueAsString(tableLoadRequest)) //
@@ -680,11 +684,7 @@ public class NTableControllerTest {
         tableLoadRequest.setSamplingRows(200);
 
         String errorMsg = "Sampling range should not be less than the max limit(10000 rows)!";
-        Mockito.when(tableExtService.loadTables(tableLoadRequest.getTables(), "default"))
-                .thenReturn(loadTableResponse);
-
-        Mockito.when(tableExtService.loadTablesByDatabase("default", tableLoadRequest.getDatabases()))
-                .thenReturn(loadTableResponse);
+        initMockito(loadTableResponse, tableLoadRequest);
         final MvcResult mvcResult = mockMvc.perform(MockMvcRequestBuilders.post("/api/tables") //
                 .contentType(MediaType.APPLICATION_JSON) //
                 .content(JsonUtil.writeValueAsString(tableLoadRequest)) //
@@ -705,10 +705,7 @@ public class NTableControllerTest {
         tableLoadRequest.setSamplingRows(30_000_000);
 
         String errorMsg = "Sampling range should not exceed the max limit(20000000 rows)!";
-        Mockito.when(tableExtService.loadTables(tableLoadRequest.getTables(), "default"))
-                .thenReturn(loadTableResponse);
-        Mockito.when(tableExtService.loadTablesByDatabase("default", tableLoadRequest.getDatabases()))
-                .thenReturn(loadTableResponse);
+        initMockito(loadTableResponse, tableLoadRequest);
         final MvcResult mvcResult = mockMvc.perform(MockMvcRequestBuilders.post("/api/tables") //
                 .contentType(MediaType.APPLICATION_JSON) //
                 .content(JsonUtil.writeValueAsString(tableLoadRequest)) //

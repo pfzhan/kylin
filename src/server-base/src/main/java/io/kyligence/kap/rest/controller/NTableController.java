@@ -31,6 +31,7 @@ import java.util.Set;
 
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.StringUtils;
+import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.rest.exception.BadRequestException;
 import org.apache.kylin.rest.msg.Message;
@@ -189,16 +190,21 @@ public class NTableController extends NBasicController {
         }
         LoadTableResponse loadTableResponse = new LoadTableResponse();
         if (ArrayUtils.isNotEmpty(tableLoadRequest.getTables())) {
-            LoadTableResponse loadByTable = tableExtService.loadTables(tableLoadRequest.getTables(),
+            Pair<String[], Set<String>> existsAndFails = tableService.classifyDbTables(tableLoadRequest.getProject(),
+                    tableLoadRequest.getTables());
+            LoadTableResponse loadByTable = tableExtService.loadTables(existsAndFails.getFirst(),
                     tableLoadRequest.getProject());
+            loadTableResponse.getFailed().addAll(existsAndFails.getSecond());
             loadTableResponse.getFailed().addAll(loadByTable.getFailed());
             loadTableResponse.getLoaded().addAll(loadByTable.getLoaded());
         }
 
         if (ArrayUtils.isNotEmpty(tableLoadRequest.getDatabases())) {
-
-            LoadTableResponse loadByDatabase = tableExtService.loadTablesByDatabase(tableLoadRequest.getProject(),
+            Pair<String[], Set<String>> existsAndFails = tableService.classifyDbTables(tableLoadRequest.getProject(),
                     tableLoadRequest.getDatabases());
+            LoadTableResponse loadByDatabase = tableExtService.loadTablesByDatabase(tableLoadRequest.getProject(),
+                    existsAndFails.getFirst());
+            loadTableResponse.getFailed().addAll(existsAndFails.getSecond());
             loadTableResponse.getFailed().addAll(loadByDatabase.getFailed());
             loadTableResponse.getLoaded().addAll(loadByDatabase.getLoaded());
         }

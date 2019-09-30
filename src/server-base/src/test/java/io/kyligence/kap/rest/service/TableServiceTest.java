@@ -951,4 +951,27 @@ public class TableServiceTest extends CSVSourceTestCase {
 
     }
 
+    @Test
+    public void testClassifyDbTables() throws Exception {
+        String project = "default";
+
+        String[] tables1 = { "ssb", "ssb.KK", "DEFAULT", "DEFAULT.TEST", "DEFAULT.TEST_ACCOUNT" };
+        Pair res = tableService.classifyDbTables(project, tables1);
+        Assert.assertEquals("ssb", ((String[]) res.getFirst())[0]);
+        Assert.assertEquals("DEFAULT", ((String[]) res.getFirst())[1]);
+        Assert.assertEquals("DEFAULT.TEST_ACCOUNT", ((String[]) res.getFirst())[2]);
+        Assert.assertEquals(2, ((Set) res.getSecond()).size());
+
+        String[] tables2 = { "KKK", "KKK.KK", ".DEFAULT", "DEFAULT.TEST", "DEFAULT.TEST_ACCOUNT" };
+        res = tableService.classifyDbTables(project, tables2);
+        Assert.assertEquals("DEFAULT.TEST_ACCOUNT", ((String[]) res.getFirst())[0]);
+        Assert.assertEquals(4, ((Set) res.getSecond()).size());
+
+        String[] tables3 = { "DEFAULT.TEST_ACCOUNT", "SsB" };
+        res = tableService.classifyDbTables(project, tables3);
+        Assert.assertEquals("DEFAULT.TEST_ACCOUNT", ((String[]) res.getFirst())[0]);
+        Assert.assertEquals("SsB", ((String[]) res.getFirst())[1]);
+        Assert.assertEquals(0, ((Set) res.getSecond()).size());
+    }
+
 }

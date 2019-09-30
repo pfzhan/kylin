@@ -29,6 +29,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -1321,6 +1322,40 @@ public class TableService extends BasicService {
             }
         }
         return response;
+    }
+
+    public Pair<String[], Set<String>> classifyDbTables(String project, String[] tables) throws Exception {
+        HashMap<String, Set<String>> map = new HashMap<>();
+        Set<String> dbs = new HashSet<>(getSourceDbNames(project));
+        List<String> existed = new ArrayList<>();
+        Set<String> failed = new HashSet<>();
+        for (String str : tables) {
+            String db = null;
+            String table = null;
+            if (str.contains(".")) {
+                db = str.split("\\.", 2)[0].trim().toUpperCase();
+                table = str.split("\\.", 2)[1].trim().toUpperCase();
+            } else {
+                db = str.toUpperCase();
+            }
+            if (!dbs.contains(db)) {
+                failed.add(str);
+                continue;
+            }
+            if (table != null) {
+                Set<String> tbs = map.get(db);
+                if (tbs == null) {
+                    tbs = new HashSet<>(getSourceTableNames(project, db, null));
+                    map.put(db, tbs);
+                }
+                if (!tbs.contains(table)) {
+                    failed.add(str);
+                    continue;
+                }
+            }
+            existed.add(str);
+        }
+        return new Pair<>(existed.toArray(new String[0]), failed);
     }
 
 }
