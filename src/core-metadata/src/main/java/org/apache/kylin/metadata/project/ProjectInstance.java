@@ -90,6 +90,8 @@ public class ProjectInstance extends RootPersistentEntity implements ISourceAwar
 
     public static final String DEFAULT_PROJECT_NAME = "default";
 
+    public static final String DEFAULT_DATABASE = "DEFAULT";
+
     private KylinConfigExt config;
 
     @JsonProperty("name")
@@ -103,6 +105,11 @@ public class ProjectInstance extends RootPersistentEntity implements ISourceAwar
 
     @JsonProperty("create_time_utc")
     private long createTimeUTC;
+
+    @JsonProperty("default_database")
+    @Getter
+    @Setter
+    private String defaultDatabase;
 
     @JsonProperty("description")
     private String description;
@@ -149,6 +156,7 @@ public class ProjectInstance extends RootPersistentEntity implements ISourceAwar
         projectInstance.setDescription(description);
         projectInstance.setStatus(ProjectStatusEnum.ENABLED);
         projectInstance.setCreateTimeUTC(System.currentTimeMillis());
+        projectInstance.setDefaultDatabase(ProjectInstance.DEFAULT_DATABASE);
         projectInstance.setOverrideKylinProps(overrideProps);
         if (maintainModelType != null) {
             projectInstance.setMaintainModelType(maintainModelType);

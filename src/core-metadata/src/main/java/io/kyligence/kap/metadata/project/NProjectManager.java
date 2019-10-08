@@ -31,6 +31,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -190,6 +191,15 @@ public class NProjectManager {
 
     public List<TableDesc> listDefinedTables(String project) {
         return projectLoader.listDefinedTables(project);
+    }
+
+    public Set<String> listDefinedDatabases(String project) {
+        return listDefinedTables(project).stream().map(TableDesc::getDatabase).map(String::toUpperCase)
+                .collect(Collectors.toSet());
+    }
+
+    public String getDefaultDatabase(String project) {
+        return getProject(project).getDefaultDatabase();
     }
 
     private Collection<TableDesc> listExposedTablesByRealizations(String project) {

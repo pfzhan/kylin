@@ -42,6 +42,7 @@ import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import io.kyligence.kap.metadata.project.NProjectManager;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.fs.FileSystem;
@@ -759,6 +760,16 @@ public class TableService extends BasicService {
         }
 
         aclTCRService.unloadTable(project, table);
+
+        NProjectManager npr = getProjectManager();
+        final ProjectInstance projectInstance = npr.getProject(project);
+        Set<String> databases = getLoadedDatabases(project).stream().map(String::toUpperCase)
+                .collect(Collectors.toSet());
+        if (tableDesc.getDatabase().equals(projectInstance.getDefaultDatabase())
+                && !databases.contains(projectInstance.getDefaultDatabase())) {
+            projectInstance.setDefaultDatabase(ProjectInstance.DEFAULT_DATABASE);
+            npr.updateProject(projectInstance);
+        }
     }
 
     @Transaction(project = 0, readonly = true)

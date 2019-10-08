@@ -143,7 +143,8 @@ public class ProjectService extends BasicService {
         // submitter group rule
         FavoriteRule.Condition submitterGroupCond = new FavoriteRule.Condition();
         submitterGroupCond.setRightThreshold("ROLE_ADMIN");
-        favoriteRuleManager.createRule(new FavoriteRule(Lists.newArrayList(submitterGroupCond), FavoriteRule.SUBMITTER_GROUP_RULE_NAME, true));
+        favoriteRuleManager.createRule(
+                new FavoriteRule(Lists.newArrayList(submitterGroupCond), FavoriteRule.SUBMITTER_GROUP_RULE_NAME, true));
         // duration rule
         FavoriteRule.Condition durationCond = new FavoriteRule.Condition();
         durationCond.setLeftThreshold("0");
@@ -316,6 +317,7 @@ public class ProjectService extends BasicService {
         response.setProject(project);
         response.setDescription(projectInstance.getDescription());
         response.setMaintainModelType(projectInstance.getMaintainModelType());
+        response.setDefaultDatabase(projectInstance.getDefaultDatabase());
 
         response.setStorageQuotaSize(config.getStorageQuotaSize());
 
@@ -346,7 +348,8 @@ public class ProjectService extends BasicService {
     public void updateShardNumConfig(String project, ShardNumConfigRequest req) {
         getProjectManager().updateProject(project, copyForWrite -> {
             try {
-                copyForWrite.getOverrideKylinProps().put("kylin.engine.shard-num-json", JsonUtil.writeValueAsString(req.getColToNum()));
+                copyForWrite.getOverrideKylinProps().put("kylin.engine.shard-num-json",
+                        JsonUtil.writeValueAsString(req.getColToNum()));
             } catch (JsonProcessingException e) {
                 logger.error("Can not write obj to json.", e);
             }
@@ -402,6 +405,29 @@ public class ProjectService extends BasicService {
         context.doAfterUnit(() -> new ProjectDropListener().onDelete(project));
     }
 
+    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
+    @Transaction(project = 0)
+    public void updateDefaultDatabase(String project, String defaultDatabase) {
+        Preconditions.checkNotNull(project);
+        Preconditions.checkNotNull(defaultDatabase);
+        String uppderDB = defaultDatabase.toUpperCase();
+
+        val prjManager = getProjectManager();
+        if (ProjectInstance.DEFAULT_DATABASE.equals(uppderDB)
+                || prjManager.listDefinedDatabases(project).contains(uppderDB)) {
+            final ProjectInstance projectInstance = prjManager.getProject(project);
+            if (uppderDB.equals(projectInstance.getDefaultDatabase())) {
+                return;
+            }
+
+            projectInstance.setDefaultDatabase(uppderDB);
+            prjManager.updateProject(projectInstance);
+        } else {
+            throw new BadRequestException(String
+                    .format("Update default database failed, cause by database: %s is not found.", defaultDatabase));
+        }
+    }
+
     public String backupProject(String project) throws Exception {
         return metadataBackupService.backupProject(project);
     }
@@ -435,11 +461,11 @@ public class ProjectService extends BasicService {
     public ProjectConfigResponse resetProjectConfig(String project, String resetItem) {
         if ("job_notification_config".equals(resetItem)) {
             resetJobNotificationConfig(project);
-        }else if ("query_accelerate_threshold".equals(resetItem)) {
+        } else if ("query_accelerate_threshold".equals(resetItem)) {
             resetQueryAccelerateThreshold(project);
-        }else if ("garbage_cleanup_config".equals(resetItem)) {
+        } else if ("garbage_cleanup_config".equals(resetItem)) {
             resetGarbageCleanupConfig(project);
-        }else if ("segment_config".equals(resetItem)) {
+        } else if ("segment_config".equals(resetItem)) {
             resetSegmentConfig(project);
         }
         return getProjectConfig(project);
@@ -470,8 +496,10 @@ public class ProjectService extends BasicService {
     private void resetSegmentConfig(String project) {
         getProjectManager().updateProject(project, copyForWrite -> {
             val projectInstance = new ProjectInstance();
-            copyForWrite.getSegmentConfig().setAutoMergeEnabled(projectInstance.getSegmentConfig().getAutoMergeEnabled());
-            copyForWrite.getSegmentConfig().setAutoMergeTimeRanges(projectInstance.getSegmentConfig().getAutoMergeTimeRanges());
+            copyForWrite.getSegmentConfig()
+                    .setAutoMergeEnabled(projectInstance.getSegmentConfig().getAutoMergeEnabled());
+            copyForWrite.getSegmentConfig()
+                    .setAutoMergeTimeRanges(projectInstance.getSegmentConfig().getAutoMergeTimeRanges());
             copyForWrite.getSegmentConfig().setVolatileRange(projectInstance.getSegmentConfig().getVolatileRange());
             copyForWrite.getSegmentConfig().setRetentionRange(projectInstance.getSegmentConfig().getRetentionRange());
         });

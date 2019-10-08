@@ -25,9 +25,12 @@ package io.kyligence.kap.rest.config.initialize;
 
 import static java.util.stream.Collectors.toSet;
 
+import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Set;
 
+import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.engine.JobEngineConfig;
 import org.apache.kylin.job.execution.AbstractExecutable;
@@ -35,8 +38,10 @@ import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
 import org.apache.kylin.job.lock.MockJobLock;
+import org.apache.kylin.metadata.model.DatabaseDesc;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.project.ProjectInstance;
+import org.apache.kylin.query.schema.OLAPSchemaFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -75,7 +80,7 @@ public class BootstrapCommand implements Runnable {
         val kylinConfig = KylinConfig.getInstanceFromEnv();
         val projectManager = NProjectManager.getInstance(kylinConfig);
         for (ProjectInstance project : projectManager.listAllProjects()) {
-            initProject(kylinConfig, project.getName());
+            initProject(kylinConfig, project);
         }
 
         for (val scheduler : NDefaultScheduler.listAllSchedulers()) {
@@ -88,56 +93,73 @@ public class BootstrapCommand implements Runnable {
         }
     }
 
-    void initProject(KylinConfig config, String project) {
+    void initProject(KylinConfig config, final ProjectInstance project) {
         val leaderInitiator = LeaderInitiator.getInstance(config);
         if (!leaderInitiator.isLeader()) {
             return;
         }
-        if (NFavoriteScheduler.getInstance(project).hasStarted()) {
+        if (NFavoriteScheduler.getInstance(project.getName()).hasStarted()) {
             return;
         }
         UnitOfWork.doInTransactionWithRetry(() -> {
-            EventOrchestratorManager.getInstance(config).addProject(project);
-            NDefaultScheduler scheduler = NDefaultScheduler.getInstance(project);
+            EventOrchestratorManager.getInstance(config).addProject(project.getName());
+            NDefaultScheduler scheduler = NDefaultScheduler.getInstance(project.getName());
             scheduler.init(new JobEngineConfig(config), new MockJobLock());
             if (!scheduler.hasStarted()) {
-                throw new RuntimeException("Scheduler for " + project + " has not been started");
+                throw new RuntimeException("Scheduler for " + project.getName() + " has not been started");
             }
 
-            NFavoriteScheduler favoriteScheduler = NFavoriteScheduler.getInstance(project);
+            NFavoriteScheduler favoriteScheduler = NFavoriteScheduler.getInstance(project.getName());
             favoriteScheduler.init();
 
             if (!favoriteScheduler.hasStarted()) {
-                throw new RuntimeException("Auto favorite scheduler for " + project + " has not been started");
+                throw new RuntimeException(
+                        "Auto favorite scheduler for " + project.getName() + " has not been started");
             }
-            return 0;
-        }, project, 1);
 
-        registerProjectMetrics(config, project);
-        log.info("init project {} finished", project);
+            // for upgrade, set default database
+            if (StringUtils.isEmpty(project.getDefaultDatabase())) {
+                NProjectManager npr = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv());
+                Collection<TableDesc> tables = npr.listDefinedTables(project.getName());
+                HashMap<String, Integer> schemaCounts = DatabaseDesc.extractDatabaseOccurenceCounts(tables);
+                String defaultDatabase = OLAPSchemaFactory.getDatabaseByMaxTables(schemaCounts);
+                project.setDefaultDatabase(defaultDatabase.toUpperCase());
+                npr.updateProject(project);
+            }
+
+            return 0;
+        }, project.getName(), 1);
+
+        registerProjectMetrics(config, project.getName());
+        log.info("init project {} finished", project.getName());
     }
 
     void registerFavoriteQueryMetrics(KylinConfig config, String project) {
         final FavoriteQueryManager favoriteQueryManager = FavoriteQueryManager.getInstance(config, project);
         NMetricsGroup.newGauge(NMetricsName.FQ_TO_BE_ACCELERATED, NMetricsCategory.PROJECT, project, () -> {
             final List<FavoriteQuery> list = favoriteQueryManager.getAll();
-            return list == null ? 0 : list.stream().filter(fq -> fq.getStatus() == FavoriteQueryStatusEnum.TO_BE_ACCELERATED).count();
+            return list == null ? 0
+                    : list.stream().filter(fq -> fq.getStatus() == FavoriteQueryStatusEnum.TO_BE_ACCELERATED).count();
         });
         NMetricsGroup.newGauge(NMetricsName.FQ_ACCELERATED, NMetricsCategory.PROJECT, project, () -> {
             final List<FavoriteQuery> list = favoriteQueryManager.getAll();
-            return list == null ? 0 : list.stream().filter(fq -> fq.getStatus() == FavoriteQueryStatusEnum.ACCELERATED).count();
+            return list == null ? 0
+                    : list.stream().filter(fq -> fq.getStatus() == FavoriteQueryStatusEnum.ACCELERATED).count();
         });
         NMetricsGroup.newGauge(NMetricsName.FQ_FAILED, NMetricsCategory.PROJECT, project, () -> {
             final List<FavoriteQuery> list = favoriteQueryManager.getAll();
-            return list == null ? 0 : list.stream().filter(fq -> fq.getStatus() == FavoriteQueryStatusEnum.FAILED).count();
+            return list == null ? 0
+                    : list.stream().filter(fq -> fq.getStatus() == FavoriteQueryStatusEnum.FAILED).count();
         });
         NMetricsGroup.newGauge(NMetricsName.FQ_ACCELERATING, NMetricsCategory.PROJECT, project, () -> {
             final List<FavoriteQuery> list = favoriteQueryManager.getAll();
-            return list == null ? 0 : list.stream().filter(fq -> fq.getStatus() == FavoriteQueryStatusEnum.ACCELERATING).count();
+            return list == null ? 0
+                    : list.stream().filter(fq -> fq.getStatus() == FavoriteQueryStatusEnum.ACCELERATING).count();
         });
         NMetricsGroup.newGauge(NMetricsName.FQ_PENDING, NMetricsCategory.PROJECT, project, () -> {
             final List<FavoriteQuery> list = favoriteQueryManager.getAll();
-            return list == null ? 0 : list.stream().filter(fq -> fq.getStatus() == FavoriteQueryStatusEnum.PENDING).count();
+            return list == null ? 0
+                    : list.stream().filter(fq -> fq.getStatus() == FavoriteQueryStatusEnum.PENDING).count();
         });
     }
 

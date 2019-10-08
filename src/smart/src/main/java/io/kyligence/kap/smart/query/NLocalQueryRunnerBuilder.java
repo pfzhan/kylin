@@ -30,6 +30,7 @@ import java.util.Set;
 
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
+import io.kyligence.kap.metadata.project.NProjectManager;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.RootPersistentEntity;
@@ -73,6 +74,8 @@ class NLocalQueryRunnerBuilder {
 
         ProjectInstance dumpProj = new ProjectInstance();
         dumpProj.setName(projectName);
+        dumpProj.setDefaultDatabase(
+                NProjectManager.getInstance(KylinConfig.getInstanceFromEnv()).getDefaultDatabase(projectName));
         dumpProj.init(KylinConfig.getInstanceFromEnv());
         mockupResources.put(dumpProj.getResourcePath(), dumpProj);
 
@@ -87,7 +90,8 @@ class NLocalQueryRunnerBuilder {
         });
     }
 
-    private void mockupDataflowAndIndexPlan(NDataModel dataModel, String projectName, Map<String, RootPersistentEntity> mockupResources) {
+    private void mockupDataflowAndIndexPlan(NDataModel dataModel, String projectName,
+            Map<String, RootPersistentEntity> mockupResources) {
         IndexPlan indexPlan = new IndexPlan();
         indexPlan.setUuid(dataModel.getUuid());
         indexPlan.setProject(projectName);

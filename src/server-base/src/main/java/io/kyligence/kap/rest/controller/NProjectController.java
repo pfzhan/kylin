@@ -30,6 +30,7 @@ import java.util.List;
 import javax.validation.Valid;
 
 import io.kyligence.kap.rest.request.DataSourceTypeRequest;
+import io.kyligence.kap.rest.request.DefaultDatabaseRequest;
 import io.kyligence.kap.rest.request.GarbageCleanUpConfigRequest;
 import io.kyligence.kap.rest.request.ProjectConfigResetRequest;
 import io.kyligence.kap.rest.request.ShardNumConfigRequest;
@@ -122,6 +123,18 @@ public class NProjectController extends NBasicController {
         }
         ProjectInstance createdProj = projectService.createProject(projectDesc.getName(), projectDesc);
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, createdProj, "");
+    }
+
+    @RequestMapping(value = "/default_database", method = { RequestMethod.PUT }, produces = {
+            "application/vnd.apache.kylin-v2+json" })
+    @ResponseBody
+    public EnvelopeResponse updateDefaultDatabase(@RequestBody DefaultDatabaseRequest defaultDatabaseRequest) {
+        checkProjectName(defaultDatabaseRequest.getProject());
+        checkRequiredArg("default_database", defaultDatabaseRequest.getDefaultDatabase());
+
+        projectService.updateDefaultDatabase(defaultDatabaseRequest.getProject(),
+                defaultDatabaseRequest.getDefaultDatabase());
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, null, "");
     }
 
     @RequestMapping(value = "/query_accelerate_threshold", method = { RequestMethod.PUT }, produces = {
@@ -254,10 +267,11 @@ public class NProjectController extends NBasicController {
             "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
     public EnvelopeResponse resetProjectConfig(@RequestBody ProjectConfigResetRequest projectConfigResetRequest,
-                                               @PathVariable(value = "project") String project) {
+            @PathVariable(value = "project") String project) {
         checkRequiredArg("reset_item", projectConfigResetRequest.getResetItem());
         checkRequiredArg("project", project);
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, projectService.resetProjectConfig(project, projectConfigResetRequest.getResetItem()), "");
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS,
+                projectService.resetProjectConfig(project, projectConfigResetRequest.getResetItem()), "");
 
     }
 

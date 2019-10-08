@@ -366,6 +366,24 @@ public class TableServiceTest extends CSVSourceTestCase {
     }
 
     @Test
+    public void testUnloadTable_RemoveDB() {
+        String removeDB = "EDW";
+        NProjectManager npr = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv());
+        ProjectInstance projectInstance = npr.getProject("default");
+        projectInstance.setDefaultDatabase(removeDB);
+        npr.updateProject(projectInstance);
+        Assert.assertEquals(removeDB, npr.getDefaultDatabase("default"));
+
+        for(TableDesc table: npr.listDefinedTables("default")) {
+            if(removeDB.equalsIgnoreCase(table.getDatabase())) {
+                tableService.unloadTable("default", table.getIdentity(), false);
+            }
+        }
+
+        Assert.assertEquals("DEFAULT", npr.getDefaultDatabase("default"));
+    }
+
+    @Test
     public void testUnloadTable_RemoveModels() throws IOException {
         val dfMgr = NDataflowManager.getInstance(getTestConfig(), "default");
         val originSize = dfMgr.listUnderliningDataModels().size();

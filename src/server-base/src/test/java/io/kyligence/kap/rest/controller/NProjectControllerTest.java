@@ -49,6 +49,7 @@ import io.kyligence.kap.metadata.model.AutoMergeTimeEnum;
 import io.kyligence.kap.metadata.model.RetentionRange;
 import io.kyligence.kap.metadata.model.VolatileRange;
 import io.kyligence.kap.metadata.project.NProjectManager;
+import io.kyligence.kap.rest.request.DefaultDatabaseRequest;
 import io.kyligence.kap.rest.request.JobNotificationConfigRequest;
 import io.kyligence.kap.rest.request.ProjectGeneralInfoRequest;
 import io.kyligence.kap.rest.request.ProjectRequest;
@@ -340,4 +341,16 @@ public class NProjectControllerTest {
         Mockito.verify(nProjectController).getProjectConfig("default");
     }
 
+    @Test
+    public void testUpdateDefaultDatabase() throws Exception {
+        val request = new DefaultDatabaseRequest();
+        request.setProject("default");
+        request.setDefaultDatabase("EDW");
+        Mockito.doNothing().when(projectService).updateDefaultDatabase(request.getProject(), request.getDefaultDatabase());
+        mockMvc.perform(MockMvcRequestBuilders.put("/api/projects/default_database")
+                .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
+                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
+        Mockito.verify(nProjectController).updateDefaultDatabase(request);
+    }
 }

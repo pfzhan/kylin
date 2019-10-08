@@ -383,6 +383,10 @@ public class ProjectServiceTest extends ServiceTestBase {
         var response = projectService.getProjectConfig(project);
         Assert.assertEquals(description, response.getDescription());
 
+        Assert.assertNull(response.getDefaultDatabase());
+        projectService.updateDefaultDatabase(project, "EDW");
+        Assert.assertEquals("EDW", projectService.getProjectConfig(project).getDefaultDatabase());
+
         val segmentConfigRequest = new SegmentConfigRequest();
         segmentConfigRequest.setAutoMergeEnabled(false);
         segmentConfigRequest.setProject(project);

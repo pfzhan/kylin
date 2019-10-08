@@ -50,6 +50,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 
 import org.apache.calcite.model.JsonFunction;
 import org.apache.calcite.schema.Schema;
@@ -61,6 +62,7 @@ import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.measure.MeasureTypeFactory;
 import org.apache.kylin.metadata.model.DatabaseDesc;
 import org.apache.kylin.metadata.model.TableDesc;
+import org.apache.kylin.metadata.project.ProjectInstance;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -89,27 +91,38 @@ public class OLAPSchemaFactory implements SchemaFactory {
         return KylinConfig.getInstanceFromEnv().isPushDownEnabled();
     }
 
-    public static File createTempOLAPJson(String project, KylinConfig config) throws SQLException {
-
-        Collection<TableDesc> tables = NProjectManager.getInstance(config).listExposedTables(project, exposeMore());
-
-        // "database" in TableDesc correspond to our schema
-        // the logic to decide which schema to be "default" in calcite:
-        // if some schema are named "default", use it.
-        // other wise use the schema with most tables
-        HashMap<String, Integer> schemaCounts = DatabaseDesc.extractDatabaseOccurenceCounts(tables);
-        String majoritySchemaName = "";
+    public static String getDatabaseByMaxTables(Map<String, Integer> schemaCounts) {
+        String majoritySchemaName = ProjectInstance.DEFAULT_DATABASE;
         int majoritySchemaCount = 0;
         for (Map.Entry<String, Integer> e : schemaCounts.entrySet()) {
-            if (e.getKey().equalsIgnoreCase("default")) {
-                majoritySchemaCount = Integer.MAX_VALUE;
+            if (e.getKey().equalsIgnoreCase(ProjectInstance.DEFAULT_DATABASE)) {
                 majoritySchemaName = e.getKey();
+                break;
             }
 
             if (e.getValue() >= majoritySchemaCount) {
                 majoritySchemaCount = e.getValue();
                 majoritySchemaName = e.getKey();
             }
+        }
+
+        return majoritySchemaName;
+    }
+
+    public static File createTempOLAPJson(String project, KylinConfig config) throws SQLException {
+
+        NProjectManager npr = NProjectManager.getInstance(config);
+        Collection<TableDesc> tables = npr.listExposedTables(project, exposeMore());
+
+        // "database" in TableDesc correspond to our schema
+        // the logic to decide which schema to be "default" in calcite:
+        // if some schema are named "default", use it.
+        // other wise use the schema with most tables
+        HashMap<String, Integer> schemaCounts = DatabaseDesc.extractDatabaseOccurenceCounts(tables);
+        String majoritySchemaName = npr.getDefaultDatabase(project);
+        // UT
+        if (Objects.isNull(majoritySchemaName)) {
+            majoritySchemaName = getDatabaseByMaxTables(schemaCounts);
         }
 
         try {
@@ -126,7 +139,8 @@ public class OLAPSchemaFactory implements SchemaFactory {
                 out.append("        {\n");
                 out.append("            \"type\": \"custom\",\n");
                 out.append("            \"name\": \"" + schemaName + "\",\n");
-                out.append("            \"factory\": \"" + KylinConfig.getInstanceFromEnv().getSchemaFactory() + "\",\n");
+                out.append(
+                        "            \"factory\": \"" + KylinConfig.getInstanceFromEnv().getSchemaFactory() + "\",\n");
                 out.append("            \"operand\": {\n");
                 out.append("                \"" + SCHEMA_PROJECT + "\": \"" + project + "\"\n");
                 out.append("            },\n");
