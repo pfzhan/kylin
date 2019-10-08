@@ -34,6 +34,7 @@ import org.apache.kylin.metadata.model.SegmentStatusEnum;
 
 import com.google.common.collect.Maps;
 
+import io.kyligence.kap.metadata.cube.garbage.LayoutGarbageCleaner;
 import io.kyligence.kap.metadata.cube.model.NDataLayout;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
@@ -51,10 +52,10 @@ public class GarbageStorageCollector implements StorageInfoCollector {
         for (val model : getModels(project)) {
             val dataflow = getDataflow(model);
 
-            val autoLayouts = dataflow.findLowFrequencyLayout();
-            if (CollectionUtils.isNotEmpty(autoLayouts)) {
-                storageSize += calculateLayoutSize(autoLayouts, dataflow);
-                garbageIndexMap.put(model.getId(), autoLayouts);
+            val garbageLayouts = LayoutGarbageCleaner.findGarbageLayouts(dataflow);
+            if (CollectionUtils.isNotEmpty(garbageLayouts)) {
+                storageSize += calculateLayoutSize(garbageLayouts, dataflow);
+                garbageIndexMap.put(model.getId(), garbageLayouts);
             }
         }
 

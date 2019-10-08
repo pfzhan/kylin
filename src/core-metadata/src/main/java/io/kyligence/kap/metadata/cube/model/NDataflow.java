@@ -32,7 +32,6 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
@@ -63,9 +62,9 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
 import io.kyligence.kap.common.obf.IKeep;
+import io.kyligence.kap.metadata.cube.garbage.FrequencyMap;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
-import io.kyligence.kap.metadata.project.NProjectManager;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.val;
@@ -128,6 +127,7 @@ public class NDataflow extends RootPersistentEntity implements Serializable, IRe
     @JsonProperty("storage_location_identifier")
     private String storageLocationIdentifier; // maybe useful in some cases..
 
+    @Getter
     @Setter
     private String project;
 
@@ -381,10 +381,6 @@ public class NDataflow extends RootPersistentEntity implements Serializable, IRe
     // NOTE THE SPECIAL GETTERS AND SETTERS TO PROTECT CACHED OBJECTS FROM BEING MODIFIED
     // ============================================================================
 
-    public String getProject() {
-        return project;
-    }
-
     public String getDescription() {
         return description;
     }
@@ -517,24 +513,6 @@ public class NDataflow extends RootPersistentEntity implements Serializable, IRe
         val model = modelManager.getDataModelDesc(uuid);
         return model == null || model.isBroken();
     }
-
-    public Set<Long> findLowFrequencyLayout() {
-        val indexPlan = getIndexPlan();
-        val hitFrequencyMap = getLayoutHitCount();
-        val projectInstance = NProjectManager.getInstance(config).getProject(project);
-        long frequencyTimeWindow = projectInstance.getConfig().getFavoriteQueryFrequencyTimeWindow();
-        return indexPlan.getWhitelistLayouts().stream().filter(layoutEntity -> !layoutEntity.isManual())
-                .filter(layout -> System.currentTimeMillis() - layout.getUpdateTime() >= frequencyTimeWindow)
-                .map(LayoutEntity::getId).filter(layoutId -> {
-                    val frequencyMap = hitFrequencyMap.get(layoutId);
-                    if (frequencyMap == null) {
-                        return true;
-                    }
-                    return frequencyMap.isLowFrequency(getProject());
-                }).collect(Collectors.toSet());
-
-    }
-
 
     public long getStorageBytesSize() {
         long bytesSize = 0L;

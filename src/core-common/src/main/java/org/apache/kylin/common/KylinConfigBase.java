@@ -592,6 +592,14 @@ abstract public class KylinConfigBase implements Serializable {
         return Boolean.parseBoolean(getOptional("kylin.cube.aggrgroup.is-mandatory-only-valid", "true"));
     }
 
+    public int getLowFrequencyThreshold() {
+        return Integer.parseInt(this.getOptional("kylin.cube.low-frequency-threshold", "5"));
+    }
+
+    public long getFrequencyTimeWindowByTs() {
+        return Long.parseLong(this.getOptional("kylin.cube.frequency-time-window", "30")) * 24 * 60 * 60 * 1000;
+    }
+
     // ============================================================================
     // Cube Planner
     // ============================================================================
@@ -1547,15 +1555,6 @@ abstract public class KylinConfigBase implements Serializable {
 
     public int getAutoCheckAccStatusBatchSize() {
         return Integer.parseInt(this.getOptional("kylin.favorite.auto-check-accelerate-batch-size", "100"));
-    }
-
-    public int getFavoriteQueryLowFrequency() {
-        return Integer.parseInt(this.getOptional("kylin.favorite.low-frequency-threshold", "5"));
-    }
-
-    // unit of day
-    public long getFavoriteQueryFrequencyTimeWindow() {
-        return Long.parseLong(this.getOptional("kylin.favorite.frequency-time-window", "30")) * 24 * 60 * 60 * 1000;
     }
 
     /**

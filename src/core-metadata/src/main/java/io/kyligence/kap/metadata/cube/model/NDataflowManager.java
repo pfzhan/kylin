@@ -24,7 +24,6 @@
 
 package io.kyligence.kap.metadata.cube.model;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -75,7 +74,7 @@ public class NDataflowManager implements IRealizationProvider, IKeepNames {
 
     // called by reflection
     @SuppressWarnings("unused")
-    static NDataflowManager newInstance(KylinConfig config, String project) throws IOException {
+    static NDataflowManager newInstance(KylinConfig config, String project) {
         return new NDataflowManager(config, project);
     }
 

@@ -27,6 +27,7 @@ package io.kyligence.kap.metadata.cube.storage;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Set;
 import java.util.TreeMap;
 
 import org.apache.kylin.common.util.TimeUtil;
@@ -39,12 +40,14 @@ import org.mockito.Mockito;
 import com.google.common.collect.Lists;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
-import io.kyligence.kap.metadata.cube.model.FrequencyMap;
+import io.kyligence.kap.metadata.cube.garbage.FrequencyMap;
+import io.kyligence.kap.metadata.cube.garbage.LayoutGarbageCleaner;
+import io.kyligence.kap.metadata.cube.garbage.LowFreqLayoutGcStrategy;
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
+import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
-import io.kyligence.kap.metadata.model.NDataModelManager;
 import lombok.val;
 
 public class ProjectStorageInfoCollectorTest extends NLocalFileMetadataTestCase {
@@ -71,30 +74,53 @@ public class ProjectStorageInfoCollectorTest extends NLocalFileMetadataTestCase 
         val storageVolumeInfo = collector.getStorageVolumeInfo(getTestConfig(), PROJECT);
 
         Assert.assertEquals(10240L * 1024 * 1024 * 1024, storageVolumeInfo.getStorageQuotaSize());
-        Assert.assertEquals(5112931L, storageVolumeInfo.getGarbageStorageSize());
+        Assert.assertEquals(4346979L, storageVolumeInfo.getGarbageStorageSize());
         Assert.assertEquals(5, storageVolumeInfo.getGarbageModelIndexMap().size());
-        Assert.assertEquals(8, storageVolumeInfo.getGarbageModelIndexMap().get(MODEL_ID).size());
-        // layout 1 was considered as garbage
+        Assert.assertEquals(7, storageVolumeInfo.getGarbageModelIndexMap().get(MODEL_ID).size());
+
+        //  layout 1L and 20_000_040_001L with low frequency => garbage
         Assert.assertTrue(storageVolumeInfo.getGarbageModelIndexMap().get(MODEL_ID).contains(1L));
-        // layout 40001 and 40002 were not considered as garbage
+        Assert.assertTrue(storageVolumeInfo.getGarbageModelIndexMap().get(MODEL_ID).contains(20_000_040_001L));
+
+        // without frequency hit layout => garbage
+        Assert.assertTrue(storageVolumeInfo.getGarbageModelIndexMap().get(MODEL_ID).contains(20_000_020_001L));
+
+        // layout 10_001L, 10002L, 40_001L, 40_002L and 20_000_010_001L were not considered as garbage
+        Assert.assertFalse(storageVolumeInfo.getGarbageModelIndexMap().get(MODEL_ID).contains(10001L));
+        Assert.assertFalse(storageVolumeInfo.getGarbageModelIndexMap().get(MODEL_ID).contains(10002L));
         Assert.assertFalse(storageVolumeInfo.getGarbageModelIndexMap().get(MODEL_ID).contains(40001L));
         Assert.assertFalse(storageVolumeInfo.getGarbageModelIndexMap().get(MODEL_ID).contains(40002L));
-        // manually built layout was not considered as garbage
-        Assert.assertFalse(storageVolumeInfo.getGarbageModelIndexMap().get(MODEL_ID)
-                .contains(IndexEntity.TABLE_INDEX_START_ID + 40001));
+        Assert.assertFalse(storageVolumeInfo.getGarbageModelIndexMap().get(MODEL_ID).contains(20_000_000_001L));
+        Assert.assertFalse(storageVolumeInfo.getGarbageModelIndexMap().get(MODEL_ID).contains(20_000_010_001L));
+    }
 
-        // layout 1 is only related to low frequency fq
-        Assert.assertTrue(storageVolumeInfo.getGarbageModelIndexMap().get(MODEL_ID).contains(1L));
-        Assert.assertFalse(storageVolumeInfo.getGarbageModelIndexMap().get(MODEL_ID)
-                .contains(IndexEntity.TABLE_INDEX_START_ID + 40001));
+    @Test
+    public void testLowFreqLayoutStrategy() {
+        initTestData();
+        NDataflowManager instance = NDataflowManager.getInstance(getTestConfig(), PROJECT);
+        NDataflow dataflow = instance.getDataflow(MODEL_ID);
+        Set<Long> garbageLayouts = LayoutGarbageCleaner.findGarbageLayouts(dataflow, new LowFreqLayoutGcStrategy());
+
+        //  layout 1L and 20_000_040_001L with low frequency => garbage
+        Assert.assertTrue(garbageLayouts.contains(1L));
+        Assert.assertTrue(garbageLayouts.contains(20_000_040_001L));
+
+        // without frequency hit layout => garbage
+        Assert.assertTrue(garbageLayouts.contains(20_000_020_001L));
+
+        // layout 10_001L, 10002L, 40_001L, 40_002L, 20_000_000_001L and 20_000_010_001L were not considered as garbage
+        Assert.assertFalse(garbageLayouts.contains(10001L));
+        Assert.assertFalse(garbageLayouts.contains(10002L));
+        Assert.assertFalse(garbageLayouts.contains(40001L));
+        Assert.assertFalse(garbageLayouts.contains(40002L));
+        Assert.assertFalse(garbageLayouts.contains(20_000_000_001L));
+        Assert.assertFalse(garbageLayouts.contains(20_000_010_001L));
     }
 
     private void initTestData() {
-        val modelMgr = NDataModelManager.getInstance(getTestConfig(), PROJECT);
-        val indePlanManager = NIndexPlanManager.getInstance(getTestConfig(), PROJECT);
+        val indexPlanManager = NIndexPlanManager.getInstance(getTestConfig(), PROJECT);
         val dataflowManager = NDataflowManager.getInstance(getTestConfig(), PROJECT);
-        val model = modelMgr.getDataModelDesc(MODEL_ID);
-        val cube = indePlanManager.getIndexPlan(MODEL_ID);
+        val cube = indexPlanManager.getIndexPlan(MODEL_ID);
 
         long currentTime = System.currentTimeMillis();
         long currentDate = TimeUtil.getDayStart(currentTime);
@@ -111,31 +137,41 @@ public class ProjectStorageInfoCollectorTest extends NLocalFileMetadataTestCase 
                     }));
                     put(40001L, new FrequencyMap(new TreeMap<Long, Integer>() {
                         {
-                            put(currentDate - 7 * 24 * 60 * 60 * 1000L, 1);
+                            put(currentDate - 7 * dayInMillis, 1);
                             put(currentDate, 2);
                         }
                     }));
                     put(40002L, new FrequencyMap(new TreeMap<Long, Integer>() {
                         {
-                            put(currentDate - 7 * 24 * 60 * 60 * 1000L, 1);
+                            put(currentDate - 7 * dayInMillis, 1);
                             put(currentDate, 2);
                         }
                     }));
                     put(10001L, new FrequencyMap(new TreeMap<Long, Integer>() {
                         {
-                            put(currentDate - 30 * 24 * 60 * 60 * 1000L, 10);
+                            put(currentDate - 30 * dayInMillis, 10);
                         }
                     }));
                     put(10002L, new FrequencyMap(new TreeMap<Long, Integer>() {
                         {
-                            put(currentDate - 30 * 24 * 60 * 60 * 1000L, 10);
+                            put(currentDate - 30 * dayInMillis, 10);
+                        }
+                    }));
+                    put(IndexEntity.TABLE_INDEX_START_ID + 10001L, new FrequencyMap(new TreeMap<Long, Integer>() {
+                        {
+                            put(currentDate - 7 * dayInMillis, 100);
+                        }
+                    }));
+                    put(IndexEntity.TABLE_INDEX_START_ID + 1L, new FrequencyMap(new TreeMap<Long, Integer>() {
+                        {
+                            put(currentDate - 7 * dayInMillis, 100);
                         }
                     }));
                 }
             });
         });
         // add some new layouts for cube
-        indePlanManager.updateIndexPlan(cube.getUuid(), copyForWrite -> {
+        indexPlanManager.updateIndexPlan(cube.getUuid(), copyForWrite -> {
             val newDesc = new IndexEntity();
             newDesc.setId(40000);
             newDesc.setDimensions(Lists.newArrayList(1, 2, 3, 4));

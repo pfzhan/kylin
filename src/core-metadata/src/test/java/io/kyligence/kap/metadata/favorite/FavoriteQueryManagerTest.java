@@ -46,7 +46,7 @@ import com.google.common.collect.Sets;
 import io.kyligence.kap.common.hystrix.CircuitBreakerException;
 import io.kyligence.kap.common.hystrix.NCircuitBreaker;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
-import io.kyligence.kap.metadata.cube.model.FrequencyMap;
+import io.kyligence.kap.metadata.cube.garbage.FrequencyMap;
 import lombok.val;
 
 public class FavoriteQueryManagerTest extends NLocalFileMetadataTestCase {

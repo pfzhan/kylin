@@ -53,7 +53,7 @@ import com.google.common.collect.Maps;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.junit.TimeZoneTestRunner;
-import io.kyligence.kap.metadata.cube.model.FrequencyMap;
+import io.kyligence.kap.metadata.cube.garbage.FrequencyMap;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.favorite.FavoriteQuery;
 import io.kyligence.kap.metadata.favorite.FavoriteQueryManager;
@@ -337,8 +337,8 @@ public class NFavoriteSchedulerTest extends NLocalFileMetadataTestCase {
 
         QueryHistoryDAO queryHistoryDAO = Mockito.mock(QueryHistoryDAO.class);
         Mockito.doReturn(Lists.newArrayList(succeededQueryHistory, failedQueryHistory, queryWithConstants,
-                syntaxValidQuery, updateQuery, notSupportedQuery))
-                .when(queryHistoryDAO).getQueryHistoriesByTime(Mockito.anyLong(), Mockito.anyLong());
+                syntaxValidQuery, updateQuery, notSupportedQuery)).when(queryHistoryDAO)
+                .getQueryHistoriesByTime(Mockito.anyLong(), Mockito.anyLong());
         Mockito.doReturn(queryHistoryDAO).when(favoriteScheduler).getQueryHistoryDao();
 
         autoMarkRunner.run();

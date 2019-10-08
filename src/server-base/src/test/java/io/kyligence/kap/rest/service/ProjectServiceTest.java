@@ -86,7 +86,7 @@ import com.google.common.collect.Lists;
 
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.event.manager.EventOrchestratorManager;
-import io.kyligence.kap.metadata.cube.model.FrequencyMap;
+import io.kyligence.kap.metadata.cube.garbage.FrequencyMap;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
@@ -522,8 +522,8 @@ public class ProjectServiceTest extends ServiceTestBase {
         projectService.updateGarbageCleanupConfig("default", request);
         val prjMgr = NProjectManager.getInstance(getTestConfig());
         val prj = prjMgr.getProject("default");
-        Assert.assertEquals(604800000L, prj.getConfig().getFavoriteQueryFrequencyTimeWindow());
-        Assert.assertEquals(12, prj.getConfig().getFavoriteQueryLowFrequency());
+        Assert.assertEquals(604800000L, prj.getConfig().getFrequencyTimeWindowByTs());
+        Assert.assertEquals(12, prj.getConfig().getLowFrequencyThreshold());
     }
 
     @Test

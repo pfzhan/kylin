@@ -29,6 +29,7 @@ import java.util.Set;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 
+import io.kyligence.kap.metadata.cube.garbage.LayoutGarbageCleaner;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
@@ -43,7 +44,7 @@ public class IndexCleaner implements MetadataCleaner {
         for (val model : dataflowManager.listUnderliningDataModels()) {
             val dataflow = dataflowManager.getDataflow(model.getId());
 
-            val garbageLayouts = dataflow.findLowFrequencyLayout();
+            val garbageLayouts = LayoutGarbageCleaner.findGarbageLayouts(dataflow);
 
             if (CollectionUtils.isNotEmpty(garbageLayouts)) {
                 cleanupIsolatedIndex(project, model.getId(), garbageLayouts);

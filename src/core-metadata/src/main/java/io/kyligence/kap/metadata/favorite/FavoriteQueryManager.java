@@ -254,7 +254,7 @@ public class FavoriteQueryManager implements IKeepNames {
 
     public List<FavoriteQuery> getLowFrequencyFQs() {
         ProjectInstance projectInstance = NProjectManager.getInstance(kylinConfig).getProject(project);
-        long favoriteQueryFrequencyTimeWindow = projectInstance.getConfig().getFavoriteQueryFrequencyTimeWindow();
+        long favoriteQueryFrequencyTimeWindow = projectInstance.getConfig().getFrequencyTimeWindowByTs();
         return getAll().stream()
                 .filter(fq -> System.currentTimeMillis() - fq.getCreateTime() >= favoriteQueryFrequencyTimeWindow)
                 .filter(fq -> fq.getFrequencyMap().isLowFrequency(project)).collect(Collectors.toList());

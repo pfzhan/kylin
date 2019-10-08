@@ -21,7 +21,7 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package io.kyligence.kap.metadata.cube.model;
+package io.kyligence.kap.metadata.cube.garbage;
 
 import java.io.Serializable;
 import java.util.Map;
@@ -96,12 +96,12 @@ public class FrequencyMap implements Serializable {
     public boolean isLowFrequency(String project) {
         int frequency = getFrequency(project);
         val prjMgr = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv());
-        return frequency < prjMgr.getProject(project).getConfig().getFavoriteQueryLowFrequency();
+        return frequency < prjMgr.getProject(project).getConfig().getLowFrequencyThreshold();
     }
 
     private long getDateBeforeFrequencyTimeWindow(String project) {
         val prjMgr = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv());
-        long daysInMillis = prjMgr.getProject(project).getConfig().getFavoriteQueryFrequencyTimeWindow();
+        long daysInMillis = prjMgr.getProject(project).getConfig().getFrequencyTimeWindowByTs();
         return getDateInMillis(System.currentTimeMillis()) - daysInMillis;
     }
 

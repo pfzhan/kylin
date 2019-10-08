@@ -348,9 +348,9 @@ public class ProjectService extends BasicService {
         response.setJobErrorNotificationEnabled(config.getJobErrorNotificationEnabled());
         response.setJobNotificationEmails(Lists.newArrayList(config.getAdminDls()));
 
-        response.setFrequencyTimeWindow(config.getFavoriteQueryFrequencyTimeWindow());
+        response.setFrequencyTimeWindow(config.getFrequencyTimeWindowByTs());
 
-        response.setLowFrequencyThreshold(config.getFavoriteQueryLowFrequency());
+        response.setLowFrequencyThreshold(config.getLowFrequencyThreshold());
 
         return response;
     }
@@ -469,9 +469,9 @@ public class ProjectService extends BasicService {
     @Transaction(project = 0)
     public void updateGarbageCleanupConfig(String project, GarbageCleanUpConfigRequest garbageCleanUpConfigRequest) {
         Map<String, String> overrideKylinProps = Maps.newHashMap();
-        overrideKylinProps.put("kylin.favorite.low-frequency-threshold",
+        overrideKylinProps.put("kylin.cube.low-frequency-threshold",
                 String.valueOf(garbageCleanUpConfigRequest.getLowFrequencyThreshold()));
-        overrideKylinProps.put("kylin.favorite.frequency-time-window",
+        overrideKylinProps.put("kylin.cube.frequency-time-window",
                 String.valueOf(garbageCleanUpConfigRequest.getFrequencyTimeWindow()));
         updateProjectOverrideKylinProps(project, overrideKylinProps);
     }
@@ -508,8 +508,8 @@ public class ProjectService extends BasicService {
 
     private void resetGarbageCleanupConfig(String project) {
         Set<String> toBeRemovedProps = Sets.newHashSet();
-        toBeRemovedProps.add("kylin.favorite.low-frequency-threshold");
-        toBeRemovedProps.add("kylin.favorite.frequency-time-window");
+        toBeRemovedProps.add("kylin.cube.low-frequency-threshold");
+        toBeRemovedProps.add("kylin.cube.frequency-time-window");
         removeProjectOveridedProps(project, toBeRemovedProps);
     }
 

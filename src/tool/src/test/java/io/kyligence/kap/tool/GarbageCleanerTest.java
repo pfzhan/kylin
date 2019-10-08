@@ -23,7 +23,6 @@
  */
 package io.kyligence.kap.tool;
 
-import io.kyligence.kap.junit.TimeZoneTestRunner;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
@@ -37,13 +36,15 @@ import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
-import io.kyligence.kap.metadata.cube.model.FrequencyMap;
+import io.kyligence.kap.junit.TimeZoneTestRunner;
+import io.kyligence.kap.metadata.cube.garbage.FrequencyMap;
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
@@ -57,7 +58,6 @@ import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.tool.garbage.GarbageCleaner;
 import lombok.val;
 import lombok.var;
-import org.junit.runner.RunWith;
 
 @RunWith(TimeZoneTestRunner.class)
 public class GarbageCleanerTest extends NLocalFileMetadataTestCase {
@@ -252,8 +252,8 @@ public class GarbageCleanerTest extends NLocalFileMetadataTestCase {
 
         val prjManager = NProjectManager.getInstance(getTestConfig());
         HashMap<String, String> overrideKylinProps = Maps.newHashMap();
-        overrideKylinProps.put("kylin.favorite.low-frequency-threshold", "2");
-        overrideKylinProps.put("kylin.favorite.frequency-time-window", "30");
+        overrideKylinProps.put("kylin.cube.low-frequency-threshold", "2");
+        overrideKylinProps.put("kylin.cube.frequency-time-window", "30");
         prjManager.updateProject(PROJECT, copyForWrite -> {
             copyForWrite.getOverrideKylinProps().putAll(overrideKylinProps);
         });
@@ -265,8 +265,8 @@ public class GarbageCleanerTest extends NLocalFileMetadataTestCase {
         //only fq1 cleaned
         Assert.assertEquals(3, favoriteQueryManager.getAll().size());
 
-        overrideKylinProps.put("kylin.favorite.low-frequency-threshold", "9");
-        overrideKylinProps.put("kylin.favorite.frequency-time-window", "7");
+        overrideKylinProps.put("kylin.cube.low-frequency-threshold", "9");
+        overrideKylinProps.put("kylin.cube.frequency-time-window", "7");
         prjManager.updateProject(PROJECT, copyForWrite -> {
             copyForWrite.getOverrideKylinProps().putAll(overrideKylinProps);
         });
@@ -283,8 +283,8 @@ public class GarbageCleanerTest extends NLocalFileMetadataTestCase {
         //only newFq remain
         Assert.assertEquals(1, favoriteQueryManager.getAll().size());
 
-        overrideKylinProps.put("kylin.favorite.low-frequency-threshold", "30");
-        overrideKylinProps.put("kylin.favorite.frequency-time-window", "30");
+        overrideKylinProps.put("kylin.cube.low-frequency-threshold", "30");
+        overrideKylinProps.put("kylin.cube.frequency-time-window", "30");
         prjManager.updateProject(PROJECT, copyForWrite -> {
             copyForWrite.getOverrideKylinProps().putAll(overrideKylinProps);
         });
