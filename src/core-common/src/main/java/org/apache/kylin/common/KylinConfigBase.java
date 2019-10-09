@@ -1646,6 +1646,10 @@ abstract public class KylinConfigBase implements Serializable {
         return getReadHdfsWorkingDirectory();
     }
 
+    public String getBuildConf() {
+        return getOptional("kylin.engine.submit-hadoop-conf-dir", "");
+    }
+
     public String getParquetReadFileSystem() {
         return getOptional("kylin.storage.columnar.file-system", "");
     }

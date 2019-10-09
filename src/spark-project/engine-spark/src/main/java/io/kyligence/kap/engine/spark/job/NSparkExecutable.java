@@ -32,6 +32,7 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Collections;
 import java.util.EnumSet;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
@@ -138,9 +139,15 @@ public class NSparkExecutable extends AbstractExecutable {
         return this.getParam(NBatchConstants.P_JARS);
     }
 
-    protected void setDistMetaUrl(String metaUrl) {
-        this.setParam(NBatchConstants.P_DIST_META_URL, metaUrl);
-        this.setParam(NBatchConstants.P_OUTPUT_META_URL, metaUrl + "_output");
+    protected void setDistMetaUrl(StorageURL storageURL) {
+        String fs = HadoopUtil.getWorkingFileSystem().getUri().toString();
+        HashMap<String, String> stringStringHashMap = Maps.newHashMap(storageURL.getAllParameters());
+        if (!fs.startsWith("file:")) {
+            stringStringHashMap.put("path", fs + storageURL.getParameter("path"));
+        }
+        StorageURL copy = storageURL.copy(stringStringHashMap);
+        this.setParam(NBatchConstants.P_DIST_META_URL, copy.toString());
+        this.setParam(NBatchConstants.P_OUTPUT_META_URL, copy + "_output");
     }
 
     public String getDistMetaUrl() {
@@ -161,8 +168,12 @@ public class NSparkExecutable extends AbstractExecutable {
         if (StringUtils.isEmpty(kylinJobJar) && !config.isUTEnv()) {
             throw new RuntimeException("Missing kylin job jar");
         }
-
         String hadoopConf = System.getProperty("kylin.hadoop.conf.dir");
+        logger.info("write hadoop conf is {} ", config.getBuildConf());
+        if (!config.getBuildConf().isEmpty()) {
+               logger.info("write hadoop conf is {} ", config.getBuildConf());
+               hadoopConf = config.getBuildConf();
+        }
         if (StringUtils.isEmpty(hadoopConf) && !config.isUTEnv()) {
             throw new RuntimeException(
                     "kylin_hadoop_conf_dir is empty, check if there's error in the output of 'kylin.sh start'");

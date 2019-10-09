@@ -56,7 +56,7 @@ public class JobStepFactory {
         //after addTask, step's id is changed
 
         step.setDistMetaUrl(
-                KylinConfig.getInstanceFromEnv().getJobTmpMetaStoreUrl(parent.getProject(), step.getId()).toString());
+                KylinConfig.getInstanceFromEnv().getJobTmpMetaStoreUrl(parent.getProject(), step.getId()));
         return step;
     }
 
@@ -93,7 +93,7 @@ public class JobStepFactory {
         }
         parent.addTask(step);
         //after addTask, step's id is changed
-        step.setDistMetaUrl(config.getJobTmpMetaStoreUrl(parent.getProject(), step.getId()).toString());
+        step.setDistMetaUrl(config.getJobTmpMetaStoreUrl(parent.getProject(), step.getId()));
         return step;
     }
 }
