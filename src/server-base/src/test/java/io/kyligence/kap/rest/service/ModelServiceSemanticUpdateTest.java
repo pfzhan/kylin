@@ -789,6 +789,17 @@ public class ModelServiceSemanticUpdateTest extends NLocalFileMetadataTestCase {
                 newCube.getRuleBasedIndex().getLayoutIdMapping().toString());
     }
 
+    @Test
+    public void testSetBlackListLayout() throws Exception {
+        val indexPlanManager = NIndexPlanManager.getInstance(getTestConfig(), "default");
+        val indexPlan = indexPlanManager.getIndexPlan("741ca86a-1f13-46da-a59f-95fb68615e3a");
+        val oldRule = indexPlan.getRuleBasedIndex();
+        var updatedPlan = semanticService.addRuleBasedIndexBlackListLayouts(indexPlan, oldRule.getLayoutIdMapping().subList(0, 1));
+        Assert.assertEquals(updatedPlan.getAllLayouts().size() + 1, indexPlan.getAllLayouts().size());
+        updatedPlan = semanticService.addRuleBasedIndexBlackListLayouts(indexPlan, oldRule.getLayoutIdMapping().subList(1, 2));
+        Assert.assertEquals(updatedPlan.getAllLayouts().size() + 2, indexPlan.getAllLayouts().size());
+    }
+
     private NDataModel getTestInnerModel() {
         val modelMgr = NDataModelManager.getInstance(getTestConfig(), "default");
         val model = modelMgr.getDataModelDesc("741ca86a-1f13-46da-a59f-95fb68615e3a");

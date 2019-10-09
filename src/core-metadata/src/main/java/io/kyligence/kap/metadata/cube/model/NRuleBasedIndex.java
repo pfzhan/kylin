@@ -28,12 +28,12 @@ import java.io.Serializable;
 import java.util.Arrays;
 import java.util.BitSet;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
 import org.apache.kylin.common.util.ImmutableBitSet;
 import org.apache.kylin.metadata.model.IStorageAware;
 import org.apache.kylin.metadata.model.MeasureDesc;
@@ -41,6 +41,7 @@ import org.apache.kylin.metadata.model.TblColRef;
 
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.ImmutableBiMap;
@@ -96,6 +97,11 @@ public class NRuleBasedIndex implements Serializable, IKeep {
     @Setter
     @JsonProperty("last_modify_time")
     private long lastModifiedTime = System.currentTimeMillis();
+
+    @Setter
+    @Getter
+    @JsonProperty("layout_black_list")
+    private Set<Long> layoutBlackList = new HashSet<>();
 
     // computed fields below
 
@@ -253,6 +259,10 @@ public class NRuleBasedIndex implements Serializable, IKeep {
         this.parentForward = parentForward;
     }
 
+    public void addBlackListLayouts(Collection<Long> layoutId) {
+        layoutBlackList.addAll(layoutId);
+    }
+
     @Getter(lazy = true)
     private final ImmutableBitSet measuresBitSet = initMeasuresBitSet();
 
@@ -329,6 +339,9 @@ public class NRuleBasedIndex implements Serializable, IKeep {
             result.add(layout);
             bitSet.clear();
         }
+
+        // remove layout in blacklist
+        result.removeIf(layout -> layoutBlackList.contains(layout.getId()));
     }
 
     private List<Integer> tailor(List<Integer> complete, long cuboidId) {

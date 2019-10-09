@@ -28,8 +28,8 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
-import io.kyligence.kap.metadata.cube.CubeTestUtils;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.util.JsonUtil;
 import org.hamcrest.CoreMatchers;
@@ -42,6 +42,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.metadata.cube.CubeTestUtils;
 import io.kyligence.kap.metadata.cube.cuboid.NAggregationGroup;
 import lombok.val;
 import lombok.var;
@@ -282,6 +283,31 @@ public class NRuleBasedCuboidDescTest extends NLocalFileMetadataTestCase {
         copy.setRuleBasedIndex(copy.getRuleBasedIndex(), true);
         Assert.assertEquals(JsonUtil.writeValueAsIndentString(indexPlan), JsonUtil.writeValueAsIndentString(copy));
     }
+
+    @Test
+    public void testAddBlackListLayout() throws Exception {
+        val indexPlanManager = NIndexPlanManager.getInstance(getTestConfig(), "default");
+        var newPlan = JsonUtil.readValue(getClass().getResourceAsStream("/ncude_rule_based.json"), IndexPlan.class);
+        newPlan.setLastModified(0L);
+
+        CubeTestUtils.createTmpModel(getTestConfig(), newPlan);
+
+        newPlan = indexPlanManager.createIndexPlan(newPlan);
+        logLayouts(newPlan.getAllLayouts());
+        Assert.assertEquals(12, newPlan.getAllLayouts().size());
+        NRuleBasedIndex oldRuleBasedIndex = newPlan.getRuleBasedIndex();
+        val indexPlan = indexPlanManager.updateIndexPlan(newPlan.getUuid(), copyForWrite -> {
+            copyForWrite.getRuleBasedIndex().addBlackListLayouts(oldRuleBasedIndex.getLayoutIdMapping().subList(0, 2));
+        });
+
+        Assert.assertTrue(indexPlan.getRuleBasedIndex().getLayoutBlackList().size() == 2);
+        Assert.assertEquals(indexPlan.getAllLayouts().size() + 2, newPlan.getAllLayouts().size());
+        Set<Long> originalPlanLayoutIds = newPlan.getAllLayouts().stream().map(LayoutEntity::getId).collect(Collectors.toSet());
+        Set<Long> newPlanLayoutIds = indexPlan.getAllLayouts().stream().map(LayoutEntity::getId).collect(Collectors.toSet());
+        originalPlanLayoutIds.removeAll(newPlanLayoutIds);
+        Assert.assertTrue(CollectionUtils.isEqualCollection(originalPlanLayoutIds, indexPlan.getRuleBasedIndex().getLayoutBlackList()));
+    }
+
     private void logLayouts(List<LayoutEntity> layouts) {
         layouts.sort((o1, o2) -> (int) (o1.getId() - o2.getId()));
         for (LayoutEntity allCuboidLayout : layouts) {

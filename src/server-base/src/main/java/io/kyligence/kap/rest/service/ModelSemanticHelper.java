@@ -25,6 +25,7 @@ package io.kyligence.kap.rest.service;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -423,4 +424,10 @@ public class ModelSemanticHelper extends BasicService {
 
     }
 
+    public IndexPlan addRuleBasedIndexBlackListLayouts(IndexPlan indexPlan, Collection<Long> blackListLayoutIds) {
+        val indexPlanManager = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), indexPlan.getProject());
+        return indexPlanManager.updateIndexPlan(indexPlan.getId(), indexPlanCopy -> {
+            indexPlanCopy.getRuleBasedIndex().addBlackListLayouts(blackListLayoutIds);
+        });
+    }
 }
