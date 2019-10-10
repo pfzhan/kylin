@@ -622,6 +622,17 @@ export default class ProjectAuthority extends Vue {
         .el-checkbox__input.is-checked+.el-checkbox__label {
           color: @text-title-color;
         }
+        .list-load-more {
+          height: 30px;
+          line-height: 30px;
+          text-align: center;
+          font-size: 12px;
+          cursor: pointer;
+          &:hover {
+            color: @base-color;
+            background-color: @base-color-9;
+          }
+        }
       }
       &.row-card {
         .access-content {

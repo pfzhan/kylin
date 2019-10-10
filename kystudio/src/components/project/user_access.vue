@@ -1,5 +1,5 @@
 <template>
-  <div class="user-access-block">
+  <div class="user-access-block" v-loading="loading">
     <el-button type="primary" plain size="small" class="ksd-mb-10" @click="editAccess" v-if="!isEdit">{{$t('kylinLang.common.edit')}}</el-button>
     <el-row>
       <el-col :span="8">
@@ -18,10 +18,24 @@
             <span class="ksd-fs-12">{{$t('accessTips')}}</span>
           </div>
           <div class="access-content tree-content" :class="{'all-tips': isAllTablesAccess&&!isEdit}">
-            <el-tree :data="tables" v-if="tables.length" :show-checkbox="isEdit" show-overflow-tooltip :props="defaultProps" @node-click="handleNodeClick" node-key="id" :render-after-expand="false" :default-expanded-keys="defaultExpandedKeys" :default-checked-keys="defaultCheckedKeys" @check-change="checkChange" ref="tableTree" :highlight-current="true" :filter-node-method="filterTable">
+            <el-tree
+              v-if="filterTableData.length&&isRerender"
+              show-overflow-tooltip
+              node-key="id"
+              ref="tableTree"
+              class="acl-tree"
+              :data="filterTableData"
+              :show-checkbox="isEdit"
+              :props="defaultProps"
+              :render-after-expand="false"
+              :highlight-current="true"
+              :default-expanded-keys="defaultExpandedKeys"
+              :default-checked-keys="defaultCheckedKeys"
+              @check="checkChange"
+              @node-click="handleNodeClick">
               <span class="custom-tree-node" slot-scope="{ node, data }">
                 <i class="ksd-mr-2" :class="data.icon"></i>
-                <span class="ky-ellipsis" :title="node.label">{{ node.label }}</span>
+                <span class="ky-ellipsis" :class="data.class" :title="node.label">{{ node.label }}</span>
               </span>
             </el-tree>
             <kap-nodata v-else>
@@ -45,12 +59,15 @@
             <span class="ksd-fs-12">{{$t('accessColsTips')}}</span>
           </div>
           <div class="access-content" :class="{'all-tips': isAllColAccess&&!isEdit}">
-            <ul v-if="columns.length">
-              <li v-for="(col, index) in columns" :key="col.name" v-show="col.name.toLowerCase().indexOf(columnFilter.trim().toLowerCase()) !== -1">
-                <el-checkbox @change="val => selectColumn(val, index)" :disabled="!isCurrentTableChecked" size="medium" v-if="isEdit" :value="col.authorized">{{col.name}}</el-checkbox>
-                <span v-else>{{col.name}}</span>
-              </li>
-            </ul>
+            <div v-if="pagedFilterColumns.length">
+              <ul>
+                <li v-for="(col, index) in pagedFilterColumns" :key="col.name">
+                  <el-checkbox @change="val => selectColumn(val, index)" :disabled="!isCurrentTableChecked" size="medium" v-if="isEdit" :value="col.authorized">{{col.name}}</el-checkbox>
+                  <span v-else>{{col.name}}</span>
+                </li>
+              </ul>
+              <div class="list-load-more" @click="loadMoreCols" v-if="pagedFilterColumns.length<filterCols.length">{{$t('loadMore')}}</div>
+            </div>
             <kap-nodata v-else>
             </kap-nodata>
           </div>
@@ -101,7 +118,7 @@
 
     <el-dialog :title="rowAuthorTitle" width="720px" class="author_dialog" :close-on-press-escape="false" :close-on-click-modal="false" :visible.sync="rowAccessVisible" @close="resetRowAccess">
       <div v-for="(row, key) in rowLists" :key="key" class="ksd-mb-10">
-        <el-select v-model="row.column_name" :placeholder="$t('kylinLang.common.pleaseSelect')" :disabled="isRowAuthorEdit">
+        <el-select v-model="row.column_name" :placeholder="$t('kylinLang.common.pleaseSelect')" filterable :disabled="isRowAuthorEdit">
           <el-option v-for="c in columns" :key="c.name" :label="c.name" :value="c.name">
           </el-option>
         </el-select>
@@ -133,10 +150,11 @@
 
 <script>
 import Vue from 'vue'
-import { Component, Watch } from 'vue-property-decorator'
+import { Component } from 'vue-property-decorator'
 import { handleSuccessAsync, indexOfObjWithSomeKey, objectClone } from '../../util'
 import { handleSuccess, handleError } from '../../util/business'
 import { mapActions } from 'vuex'
+import { pageSizeMapping } from '../../config'
 @Component({
   props: ['roleOrName', 'projectName', 'type'],
   methods: {
@@ -158,7 +176,8 @@ import { mapActions } from 'vuex'
       addRowAccess: 'Add Row ACL',
       addRowAccess1: 'Add Row ACL - {tableName}',
       editRowAccess: 'Edit Row ACL - {tableName}',
-      pleaseInput: 'Please hit enter to confirm each value. Multiple values are supported, please use comma to split.'
+      pleaseInput: 'Please hit enter to confirm each value. Multiple values are supported, please use comma to split.',
+      loadMore: 'Load More ...'
     },
     'zh-cn': {
       accessTables: '表级访问列表',
@@ -172,7 +191,8 @@ import { mapActions } from 'vuex'
       addRowAccess: '添加行级权限',
       addRowAccess1: '添加行级权限 - {tableName}',
       editRowAccess: '编辑行级权限 - {tableName}',
-      pleaseInput: '请输入后按回车确认。支持输入多个值，请用逗号分隔。'
+      pleaseInput: '请输入后按回车确认。支持输入多个值，请用逗号分隔。',
+      loadMore: '加载更多 ...'
     }
   }
 })
@@ -182,13 +202,16 @@ export default class UserAccess extends Vue {
     label: 'label'
   }
   tables = []
+  filterOriginDatas = []
   isEdit = false
+  isRerender = true
   isRowAuthorEdit = false
   rowAccessVisible = false
   tableFilter = ''
   columnFilter = ''
   rowFilter = ''
   columns = []
+  filterCols = []
   rows = []
   rowLists = [{column_name: '', items: []}]
   isSelectTable = false
@@ -208,8 +231,17 @@ export default class UserAccess extends Vue {
   isCurrentTableChecked = false
   selectAllColumns = false
   currentTableId = ''
-  handleNodeClick (data) {
-    if (!data.children) { // tables data
+  loading = false
+  columnPageSize = 100
+  columnCurrentPage = 1
+  showLoading () {
+    this.loading = true
+  }
+  hideLoading () {
+    this.loading = false
+  }
+  handleNodeClick (data, node) {
+    if (!data.children && !data.isMore) { // tables data 中‘非加载更多’的node
       this.isSelectTable = true
       this.currentTable = data.database + '.' + data.label
       this.isCurrentTableChecked = data.authorized
@@ -219,9 +251,23 @@ export default class UserAccess extends Vue {
       this.databaseIndex = indexs[0]
       this.tableIndex = indexs[1]
       this.initColsAndRows(data.columns, data.rows, data.totalColNum)
+    } else if (!data.children && data.isMore) {
+      data.currentIndex++
+      const renderNums = data.currentIndex * pageSizeMapping.TABLE_TREE
+      const renderMoreTables = node.parent.data.originTables.slice(0, renderNums)
+      if (renderNums < node.parent.data.originTables.length) {
+        renderMoreTables.push(data)
+      }
+      node.parent.data.children = renderMoreTables
+      this.isRerender = false
+      this.$nextTick(() => {
+        this.isRerender = true
+        this.handleLoadMoreStyle()
+      })
     }
   }
   initColsAndRows (columns, rows, totalColNum) {
+    this.columnCurrentPage = 1
     this.colAuthorizedNum = 0
     this.columns = columns.map((col) => {
       if (col.authorized) {
@@ -233,15 +279,30 @@ export default class UserAccess extends Vue {
     this.selectAllColumns = this.isAllColAccess
     this.rows = objectClone(rows)
   }
-  checkAllTables (val) {
-    const checkedKeys = this.tables.map((database) => {
-      return database.id
+  get pagedFilterColumns () {
+    const filterCols = objectClone(this.columns)
+    this.filterCols = filterCols.filter((col) => {
+      return col.name.toLowerCase().indexOf(this.columnFilter.trim().toLowerCase()) !== -1
     })
-    if (val) {
-      this.$refs.tableTree.setCheckedKeys(checkedKeys)
-    } else {
-      this.$refs.tableTree.setCheckedKeys([])
-    }
+    return this.filterCols.slice(0, this.columnCurrentPage * this.columnPageSize)
+  }
+  loadMoreCols () {
+    this.columnCurrentPage++
+  }
+  checkAllTables (val) {
+    this.showLoading()
+    setTimeout(() => {
+      for (let i = this.tables.length - 1; i >= 0; i--) {
+        this.tables[i].originTables.forEach((d) => {
+          if (!d.isMore) {
+            this.handleTableData(d, val)
+          }
+        })
+      }
+      this.setCurrentTable(this.tables[0].children[0], val)
+      this.reRenderTree()
+      this.hideLoading()
+    }, 500)
   }
   checkAllColumns (val) {
     this.colAuthorizedNum = 0
@@ -251,49 +312,134 @@ export default class UserAccess extends Vue {
         this.colAuthorizedNum++
       }
     })
-    this.allTables[this.databaseIndex].tables[this.tableIndex].columns.forEach((col) => {
+    const columns = this.allTables[this.databaseIndex].tables[this.tableIndex].columns
+    columns.forEach((col) => {
       col.authorized = val
     })
+    this.tables[this.databaseIndex].originTables[this.tableIndex].columns = columns
   }
-  checkChange (data, isChecked) {
-    if (!data.children) { // tables data
-      data.authorized = isChecked
-      const indexs = data.id.split('_')
-      this.allTables[indexs[0]].tables[indexs[1]].authorized = isChecked
-      this.databaseIndex = indexs[0]
-      this.tableIndex = indexs[1]
-      this.currentTable = data.database + '.' + data.label
-      this.currentTableId = data.id
-      this.$refs.tableTree.setCurrentKey(this.currentTableId)
-      this.isCurrentTableChecked = isChecked
-      this.selectAllColumns = isChecked
-      this.allTables[indexs[0]].tables[indexs[1]].columns.forEach((col) => {
-        col.authorized = isChecked
-      })
-      this.allTables[indexs[0]].tables[indexs[1]].rows = []
-      this.initColsAndRows(this.allTables[indexs[0]].tables[indexs[1]].columns, this.allTables[indexs[0]].tables[indexs[1]].rows, data.totalColNum)
-      const database = this.tables[indexs[0]]
-      if (isChecked) {
-        this.tableAuthorizedNum++
-        database.authorizedNum++
-        database.label = database.databaseName + ` (${database.authorizedNum}/${database.totalNum})`
-      } else {
-        this.tableAuthorizedNum--
-        database.authorizedNum--
-        database.label = database.databaseName + ` (${database.authorizedNum}/${database.totalNum})`
+  handleTableData (data, isChecked) {
+    const indexs = data.id.split('_')
+    this.allTables[indexs[0]].tables[indexs[1]].authorized = isChecked
+    let database = objectClone(this.tables[indexs[0]])
+    let defaultCheckedKeys = objectClone(this.defaultCheckedKeys)
+    if (isChecked && !data.authorized) {
+      this.tableAuthorizedNum++
+      database.authorizedNum++
+      database.label = database.databaseName + ` (${database.authorizedNum}/${database.totalNum})`
+      defaultCheckedKeys.push(data.id)
+      if (database.authorizedNum && database.authorizedNum === database.totalNum) {
+        defaultCheckedKeys.push(database.id)
+      }
+    } else if (!isChecked && data.authorized) {
+      this.tableAuthorizedNum--
+      database.authorizedNum--
+      database.label = database.databaseName + ` (${database.authorizedNum}/${database.totalNum})`
+      const removeKeyIndex = defaultCheckedKeys.indexOf(data.id)
+      defaultCheckedKeys.splice(removeKeyIndex, 1)
+      const removeDatabaseKeyIndex = defaultCheckedKeys.indexOf(database.id)
+      if (removeDatabaseKeyIndex !== -1) {
+        defaultCheckedKeys.splice(removeDatabaseKeyIndex, 1)
       }
     }
+    data.authorized = isChecked
+    data.columns.forEach((col) => {
+      col.authorized = isChecked
+    })
+    data.rows = []
+    database.originTables[indexs[1]] = data
+    this.tables[indexs[0]] = database
+    this.defaultCheckedKeys = defaultCheckedKeys
+    this.isAllTablesAccess = this.tableAuthorizedNum === this.totalNum
+  }
+  setCurrentTable (data, isChecked) {
+    const indexs = data.id.split('_')
+    this.databaseIndex = indexs[0]
+    this.tableIndex = indexs[1]
+    this.currentTable = data.database + '.' + data.label
+    this.currentTableId = data.id
+    this.isCurrentTableChecked = isChecked
+    this.selectAllColumns = isChecked
+    this.allTables[indexs[0]].tables[indexs[1]].columns.forEach((col) => {
+      col.authorized = isChecked
+    })
+    this.allTables[indexs[0]].tables[indexs[1]].rows = []
+    this.initColsAndRows(this.allTables[indexs[0]].tables[indexs[1]].columns, this.allTables[indexs[0]].tables[indexs[1]].rows, data.totalColNum)
+  }
+  checkChange (data, checkNode, node) {
+    const isChecked = node.checked
+    if (!data.children && !data.isMore) { // tables data 中‘非加载更多’的node
+      this.handleTableData(data, isChecked)
+      this.setCurrentTable(data, isChecked)
+      this.reRenderTree()
+    } else if (data.children && data.children.length) {
+      this.showLoading()
+      setTimeout(() => {
+        data.originTables.forEach((d) => {
+          if (!d.isMore) {
+            this.handleTableData(d, isChecked)
+          }
+        })
+        this.setCurrentTable(data.children[0], isChecked)
+        this.reRenderTree()
+        this.hideLoading()
+      }, 100)
+    }
+  }
+  reRenderTree () {
+    this.isRerender = false
+    this.$nextTick(() => {
+      this.tables = [...this.tables]
+      this.isRerender = true
+      this.handleLoadMoreStyle()
+      setTimeout(() => {
+        this.$refs.tableTree.setCurrentKey(this.currentTableId)
+        this.defaultExpandedKeys = [this.currentTableId.split('_')[0]]
+      })
+    })
   }
   get rowAuthorTitle () {
     return !this.isRowAuthorEdit ? this.$t('addRowAccess1', {tableName: this.currentTable}) : this.$t('editRowAccess', {tableName: this.currentTable})
   }
-  @Watch('tableFilter')
-  tableFilterChange (val) {
-    this.$refs.tableTree.filter(val)
+  handleLoadMoreStyle () {
+    this.$nextTick(() => {
+      const loadMore = this.$el.querySelectorAll('.acl-tree .load-more')
+      if (loadMore.length) {
+        loadMore.forEach((m) => {
+          const targetCheckbox = m.parentNode.parentNode.querySelector('.el-checkbox')
+          if (targetCheckbox) {
+            targetCheckbox.style.display = 'none'
+          }
+        })
+      }
+    })
   }
-  filterTable (value, data, node) {
-    if (!value.trim()) return true
-    return data.label.toLowerCase().indexOf(value.trim().toLowerCase()) !== -1
+  get filterTableData () {
+    let filterOriginDatas = objectClone(this.tables)
+    filterOriginDatas = filterOriginDatas.filter((data) => {
+      const originFilterTables = data.originTables.filter((t) => {
+        return t.label.toLowerCase().indexOf(this.tableFilter.trim().toLowerCase()) !== -1
+      })
+      const pagedFilterTables = originFilterTables.slice(0, pageSizeMapping.TABLE_TREE)
+      if (pageSizeMapping.TABLE_TREE < originFilterTables.length) {
+        pagedFilterTables.push({
+          id: data.id + '_more',
+          label: this.$t('loadMore'),
+          class: 'load-more ksd-fs-12',
+          currentIndex: 1,
+          isMore: true
+        })
+      }
+      data.children = pagedFilterTables
+      return pagedFilterTables.length > 0
+    })
+    this.$nextTick(() => {
+      this.handleLoadMoreStyle()
+      if (this.$refs.tableTree) {
+        this.$refs.tableTree.setCurrentKey(this.currentTableId)
+      }
+    })
+    return filterOriginDatas
   }
   isShowRow (row) {
     let isShow = false
@@ -309,8 +455,8 @@ export default class UserAccess extends Vue {
     return isShow
   }
   editAccess () {
-    this.loadAccessDetails(false)
     this.isEdit = true
+    this.loadAccessDetails(false)
   }
   cancelAccess () {
     this.isEdit = false
@@ -336,12 +482,14 @@ export default class UserAccess extends Vue {
   selectColumn (val, index) {
     let columns = this.allTables[this.databaseIndex].tables[this.tableIndex].columns
     columns[index].authorized = val
+    this.tables[this.databaseIndex].originTables[this.tableIndex].columns = columns
     this.columns[index].authorized = val
     if (val) {
       this.colAuthorizedNum++
     } else {
       this.colAuthorizedNum--
     }
+    this.selectAllColumns = this.colAuthorizedNum === this.columns.length
   }
   setRowValues (values, key) {
     let formatValues = []
@@ -364,6 +512,7 @@ export default class UserAccess extends Vue {
   deleteRowAccess (index) {
     this.rows.splice(index, 1)
     this.allTables[this.databaseIndex].tables[this.tableIndex].rows.splice(index, 1)
+    this.tables[this.databaseIndex].originTables[this.tableIndex].rows.splice(index, 1)
   }
   cancelRowAccess () {
     this.rowAccessVisible = false
@@ -388,6 +537,7 @@ export default class UserAccess extends Vue {
       }
     }
     this.allTables[this.databaseIndex].tables[this.tableIndex].rows = objectClone(this.rows)
+    this.tables[this.databaseIndex].originTables[this.tableIndex].rows = objectClone(this.rows)
     this.rowAccessVisible = false
   }
   addRow () {
@@ -409,7 +559,7 @@ export default class UserAccess extends Vue {
     const response = await this.getAccessDetailsByUser({data: {authorizedOnly: authorizedOnly}, roleOrName: this.roleOrName, type: this.type, projectName: this.projectName})
     const result = await handleSuccessAsync(response)
     if (result.length) {
-      this.allTables = result
+      this.allTables = objectClone(result)
       this.tableAuthorizedNum = 0
       this.totalNum = 0
       this.currentTableId = ''
@@ -417,22 +567,37 @@ export default class UserAccess extends Vue {
         this.tableAuthorizedNum = this.tableAuthorizedNum + database.authorized_table_num
         this.totalNum = this.totalNum + database.total_table_num
         const labelNum = this.authorizedOnly ? ` (${database.authorized_table_num})` : ` (${database.authorized_table_num}/${database.total_table_num})`
+        const originTableDatas = database.tables.map((t, i) => {
+          const id = key + '_' + i
+          if (t.authorized && !authorizedOnly) {
+            this.defaultCheckedKeys.push(id)
+          }
+          if (database.database_name + '.' + t.table_name === this.currentTable) {
+            this.currentTableId = id
+          }
+          return {id: id, label: t.table_name, database: database.database_name, authorized: t.authorized, columns: t.columns, rows: t.rows, totalColNum: t.total_column_num}
+        })
+        const pegedTableDatas = originTableDatas.slice(0, pageSizeMapping.TABLE_TREE)
+        if (pageSizeMapping.TABLE_TREE < originTableDatas.length) {
+          pegedTableDatas.push({
+            id: key + '_more',
+            label: this.$t('loadMore'),
+            class: 'ksd-fs-12',
+            currentIndex: 1,
+            isMore: true
+          })
+        }
+        if (database.authorized_table_num && database.authorized_table_num === database.total_table_num) {
+          this.defaultCheckedKeys.push(key + '')
+        }
         return {
           id: key + '',
           label: database.database_name + labelNum,
           databaseName: database.database_name,
           authorizedNum: database.authorized_table_num,
           totalNum: database.total_table_num,
-          children: database.tables.map((t, i) => {
-            const id = key + '_' + i
-            if (t.authorized && !authorizedOnly) {
-              this.defaultCheckedKeys.push(id)
-            }
-            if (database.database_name + '.' + t.table_name === this.currentTable) {
-              this.currentTableId = id
-            }
-            return {id: id, label: t.table_name, database: database.database_name, authorized: t.authorized, columns: t.columns, rows: t.rows, totalColNum: t.total_column_num}
-          })
+          originTables: originTableDatas,
+          children: pegedTableDatas
         }
       })
       this.isAllTablesAccess = this.tableAuthorizedNum === this.totalNum
@@ -445,6 +610,7 @@ export default class UserAccess extends Vue {
           this.defaultExpandedKeys = ['0']
           this.handleNodeClick(this.tables[0].children[0])
         }
+        this.handleLoadMoreStyle()
       })
     }
   }
