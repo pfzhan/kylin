@@ -172,6 +172,7 @@ export default {
           if (result && result.length > 0) {
             this.selectedL = this.selectedL.concat(result)
             this.selectedL = [...new Set(this.selectedL)]
+            this.$emit('refreshData', this.selectedL, this.refreshInfo)
           }
           if (this.$refs.select.$refs.input) {
             this.$refs.select.$refs.input.value = ''

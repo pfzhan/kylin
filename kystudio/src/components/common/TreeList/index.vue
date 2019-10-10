@@ -11,7 +11,7 @@
       </el-input>
     </div>
     <el-tree
-      :key="treeKey"
+      :key="treeKey || filterText"
       v-loading="isLoading"
       ref="tree"
       v-guide.tableScroll

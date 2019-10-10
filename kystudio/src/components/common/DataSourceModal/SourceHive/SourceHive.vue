@@ -1,18 +1,25 @@
 <template>
   <div class="source-hive clearfix">
     <div class="list clearfix">
+      <div class="ksd-ml-20 ksd-mt-20">
+        <el-input :placeholder="$t('filterTableName')" 
+                  v-model="filterText" 
+                  prefix-icon="el-icon-search" 
+                  @keyup.enter.native="handleFilter()" 
+                  @clear="handleFilter()">
+          <el-button slot="append" icon="el-icon-search" @click="handleFilter()"></el-button>
+        </el-input>
+      </div>
       <TreeList
         :tree-key="treeKey"
         v-guide.hiveTree
         :show-overflow-tooltip="true"
         ref="tree-list"
         class="table-tree"
-        :is-remote="true"
         :data="treeData"
         :placeholder="$t('filterTableName')"
-        :is-show-filter="true"
+        :is-show-filter="false"
         :is-show-resize-bar="false"
-        :on-filter="handleFilter"
         :filter-white-list-types="['datasource', 'database']"
         @resize="handleResize"
         @click="handleClickNode"
@@ -29,6 +36,45 @@
     </div>
     <div class="content" :style="contentStyle">
       <div class="content-body" :class="{ 'has-tips': isShowTips, 'has-error-msg': needSampling&&errorMsg }">
+        <div class="category databases">
+          <div class="header font-medium">
+            <span>{{$t('database')}}</span>
+            <span>({{selectDBNames.length}})</span>
+          </div>
+          <div class="names">
+            <arealabel
+              :validateRegex="regex.validateDB"
+              @validateFail="selectedDBValidateFail"
+              @refreshData="refreshDBData"
+              splitChar="," 
+              :selectedlabels="selectDBNames"
+              :allowcreate="true"
+              :placeholder="$t('dbPlaceholder')"
+              @removeTag="removeSelectedDB" 
+              :datamap="{label: 'label', value: 'value'}">
+            </arealabel>
+          </div>
+        </div>
+        <div class="category tables">
+          <div class="header font-medium">
+            <span>{{$t('tableName')}}</span>
+            <span>({{selectTablesNames.length}})</span>
+          </div>
+          <div class="names">
+            <arealabel
+              :validateRegex="regex.validateTable"
+              @validateFail="selectedTableValidateFail"
+              @refreshData="refreshTableData"
+              splitChar="," 
+              :selectedlabels="selectTablesNames"
+              :allowcreate="true"
+              :placeholder="$t('dbTablePlaceholder')"
+              @removeTag="removeSelectedTable" 
+              :datamap="{label: 'label', value: 'value'}">
+            </arealabel>
+          </div>
+        </div>
+        <!--
         <template v-if="selectedDatabases.length || selectedTables.length || isGuideMode">
           <div class="category databases" v-if="selectedDatabases.length">
             <div class="header font-medium">
@@ -69,6 +115,7 @@
             <p class="empty-text">{{$t('kylinLang.common.noData')}}</p>
           </div>
         </template>
+        -->
       </div>
       <transition name="fade">
         <div class="tips" v-if="isShowTips">
@@ -77,6 +124,7 @@
           <ul class="body">
             <li>{{sourceType === sourceTypes['HIVE'] ? $t('loadHiveTip1') : $t('loadTip1')}}</li>
             <li>{{sourceType === sourceTypes['HIVE'] ? $t('loadHiveTip2') : $t('loadTip2')}}</li>
+            <li>{{$t('loadTip3')}}</li>
           </ul>
         </div>
       </transition>
@@ -149,7 +197,7 @@ export default class SourceHive extends Vue {
   contentStyle = {
     marginLeft: null,
     width: null,
-    height: '334px'
+    height: '367px'
   }
   sourceTypes = sourceTypes
   timer = null
@@ -161,6 +209,13 @@ export default class SourceHive extends Vue {
   defaultExpandedKeys= []
   loadingTreeData = true
   treeKey = 'tree' + Number(new Date())
+  splitChar = ','
+  regex = {
+    validateTable: /^\s*;?(\w+\.\w+)\s*(,\s*\w+\.\w+)*;?\s*$/,
+    validateDB: /^\s*;?(\w+)\s*(,\s*\w+)*;?\s*$/
+  }
+  selectTablesNames = []
+  selectDBNames = []
 
   get databaseOptions () {
     return this.treeData.map(database => ({
@@ -200,6 +255,49 @@ export default class SourceHive extends Vue {
         }
       }
     }
+    this.selectTablesNames = this.selectedTables.map((table) => {
+      return table
+    })
+    this.selectDBNames = this.selectedDatabases.map((db) => {
+      return db
+    })
+  }
+  selectedDBValidateFail () {
+    this.$message(this.$t('selectedDBValidateFailText'))
+  }
+  selectedTableValidateFail () {
+    this.$message(this.$t('selectedTableValidateFailText'))
+  }
+  refreshDBData (val) {
+    this.selectDBNames = val
+    let selectedTables = [...this.selectedTables]
+    // DB 变更时 要去掉已加入的db下的表
+    val.forEach(database => {
+      selectedTables = this.selectedTables.filter(table => table.indexOf(`${database}.`) !== 0)
+    })
+    this.$emit('input', { selectedDatabases: [...val], selectedTables })
+  }
+  refreshTableData (val) {
+    let selectedTables = [...val]
+    // 表变更的时候，如果库已经全部加了，该表就不单独加入了
+    this.selectedDatabases.forEach(database => {
+      selectedTables = val.filter(table => table.indexOf(`${database}.`) !== 0)
+    })
+    this.selectTablesNames = [...selectedTables]
+    this.$emit('input', { selectedTables })
+  }
+  removeSelectedDB (val) {
+    this.selectDBNames.splice(this.selectDBNames.indexOf(val), 1)
+    let selectedDatabases = this.selectedDatabases.filter((db) => {
+      return db !== val
+    })
+    // 这个是用来通知，选中值变了，去更新左侧树的
+    this.$emit('input', { selectedDatabases })
+  }
+  removeSelectedTable (val) {
+    this.selectTablesNames.splice(this.selectTablesNames.indexOf(val), 1)
+    const selectedTables = this.selectedTables.filter(tableId => tableId !== val)
+    this.$emit('input', { selectedTables })
   }
   setNextPagination (pagination) {
     pagination.pageOffset++
@@ -324,20 +422,15 @@ export default class SourceHive extends Vue {
     }
     this.loadingTreeData = false
   }
-  handleFilter (filterText) {
-    clearInterval(this.timer)
+  handleFilter () {
     return new Promise(async resolve => {
-      this.timer = setTimeout(async () => {
-        // this.treeKey = filterText + Number(new Date())
-        // 每次发起搜索时，清空前一次的数据树
-        this.loadingTreeData = true
-        this.treeData = []
-        // 发一个接口就行
-        await this.loadDatabaseAndTables(filterText)
-        this.filterText = filterText
-        this.onSelectedItemsChange()
-        resolve()
-      }, 1000)
+      // 每次发起搜索时，清空前一次的数据树
+      this.loadingTreeData = true
+      this.treeData = []
+      // 发一个接口就行
+      await this.loadDatabaseAndTables(this.filterText)
+      this.onSelectedItemsChange()
+      resolve()
     })
   }
   async handleSelectDatabase (event, data) {
@@ -397,7 +490,7 @@ export default class SourceHive extends Vue {
     this.$emit('input', { needSampling })
     if (!needSampling) {
       this.errorMsg = ''
-      this.contentStyle.height = '334px'
+      this.contentStyle.height = '367px'
     }
   }
   handleSamplingRows (samplingRows) {
@@ -412,11 +505,11 @@ export default class SourceHive extends Vue {
       this.contentStyle.height = '317px'
     } else {
       this.errorMsg = ''
-      this.contentStyle.height = '334px'
+      this.contentStyle.height = '367px'
     }
     this.$emit('input', { samplingRows })
   }
-  handleRemoveDatabase (removeDatabaseId) {
+  handleRemoveDatabase (removeDatabaseId) { // 树上还是调用了这个的
     const selectedDatabases = this.selectedDatabases.filter(databaseId => databaseId !== removeDatabaseId)
     this.$emit('input', { selectedDatabases })
   }
@@ -424,7 +517,7 @@ export default class SourceHive extends Vue {
     const selectedTables = addTableId instanceof Array ? addTableId : [...this.selectedTables, addTableId]
     this.$emit('input', { selectedTables })
   }
-  handleRemoveTable (removeTableId) {
+  handleRemoveTable (removeTableId) { // 树上还是调用了这个的
     const selectedTables = this.selectedTables.filter(tableId => tableId !== removeTableId)
     this.$emit('input', { selectedTables })
   }
@@ -448,7 +541,7 @@ export default class SourceHive extends Vue {
   .table-tree {
     width: 480px;
     float: left;
-    padding: 20px 0;
+    padding: 10px 0 20px 0;
     margin-left: 20px;
   }
   .split {
@@ -466,7 +559,7 @@ export default class SourceHive extends Vue {
     width: 210px;
   }
   .filter-tree {
-    height: 418px;
+    height: 451px;
     overflow: auto;
     border: 1px solid @line-border-color;
   }
@@ -493,7 +586,7 @@ export default class SourceHive extends Vue {
   }
   .content-body {
     position: relative;
-    height: 334px;
+    height: 367px;
     border: 1px solid @line-border-color;
     transition: height .2s .2s;
     overflow: auto;
@@ -522,12 +615,14 @@ export default class SourceHive extends Vue {
     }
     .names .el-select .el-input__inner {
       border: none;
+      padding: 0 26px 0 0px;
     }
     .names .el-select .el-input__suffix {
       display: none;
     }
     .names .el-select .el-select__input {
-      width: 1px !important;
+      /* width: 1px !important; */
+      margin-left: 0px;
     }
     .el-tag {
       position: relative;
@@ -571,7 +666,8 @@ export default class SourceHive extends Vue {
   .tips {
     position: absolute;
     padding: 10px;
-    height: 63px;
+    /* height: 63px; */
+    height: 96px;
     border-radius: 2px;
     background-color: @base-color-9;
     bottom: 15px;
