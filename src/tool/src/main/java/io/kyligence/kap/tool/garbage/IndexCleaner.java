@@ -33,6 +33,8 @@ import io.kyligence.kap.metadata.cube.garbage.LayoutGarbageCleaner;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
+import io.kyligence.kap.metadata.project.NProjectManager;
+import io.kyligence.kap.metadata.recommendation.OptimizeRecommendationManager;
 import lombok.val;
 
 public class IndexCleaner implements MetadataCleaner {
@@ -40,6 +42,7 @@ public class IndexCleaner implements MetadataCleaner {
     public void cleanup(String project) {
         val config = KylinConfig.getInstanceFromEnv();
         val dataflowManager = NDataflowManager.getInstance(config, project);
+        val projectInstance = NProjectManager.getInstance(config).getProject(project);
 
         for (val model : dataflowManager.listUnderliningDataModels()) {
             val dataflow = dataflowManager.getDataflow(model.getId());
@@ -47,9 +50,20 @@ public class IndexCleaner implements MetadataCleaner {
             val garbageLayouts = LayoutGarbageCleaner.findGarbageLayouts(dataflow);
 
             if (CollectionUtils.isNotEmpty(garbageLayouts)) {
-                cleanupIsolatedIndex(project, model.getId(), garbageLayouts);
+                if (projectInstance.isSemiAutoMode()) {
+                    transferToRecommendation(model.getUuid(), project, garbageLayouts);
+                }
+                if (projectInstance.isSmartMode() || projectInstance.isExpertMode()) {
+                    cleanupIsolatedIndex(project, model.getId(), garbageLayouts);
+                }
             }
         }
+    }
+
+    private void transferToRecommendation(String modelId, String project, Set<Long> garbageLayouts) {
+        OptimizeRecommendationManager recMgr = OptimizeRecommendationManager
+                .getInstance(KylinConfig.getInstanceFromEnv(), project);
+        recMgr.removeLayouts(modelId, garbageLayouts);
     }
 
     private void cleanupIsolatedIndex(String project, String modelId, Set<Long> garbageLayouts) {
