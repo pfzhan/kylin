@@ -269,16 +269,20 @@ export default class SourceHive extends Vue {
     this.$message(this.$t('selectedTableValidateFailText'))
   }
   refreshDBData (val) {
-    this.selectDBNames = val
+    this.selectDBNames = val.map((item) => {
+      return item.toLocaleUpperCase()
+    })
     let selectedTables = [...this.selectedTables]
     // DB 变更时 要去掉已加入的db下的表
     val.forEach(database => {
       selectedTables = this.selectedTables.filter(table => table.indexOf(`${database}.`) !== 0)
     })
-    this.$emit('input', { selectedDatabases: [...val], selectedTables })
+    this.$emit('input', { selectedDatabases: [...this.selectDBNames], selectedTables })
   }
   refreshTableData (val) {
-    let selectedTables = [...val]
+    let selectedTables = val.map((item) => {
+      return item.toLocaleUpperCase()
+    })
     // 表变更的时候，如果库已经全部加了，该表就不单独加入了
     this.selectedDatabases.forEach(database => {
       selectedTables = val.filter(table => table.indexOf(`${database}.`) !== 0)
