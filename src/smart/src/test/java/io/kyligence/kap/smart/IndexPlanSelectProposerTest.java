@@ -55,11 +55,11 @@ public class IndexPlanSelectProposerTest extends NLocalFileMetadataTestCase {
         NSmartContext ctx = smartMaster.getContext();
         NSmartContext.NModelContext mdCtx = ctx.getModelContexts().get(0);
         Assert.assertEquals("89af4ee2-2cdb-4b07-b39e-4c29856309aa", mdCtx.getTargetModel().getUuid());
-        Assert.assertEquals("89af4ee2-2cdb-4b07-b39e-4c29856309aa", mdCtx.getOrigModel().getUuid());
+        Assert.assertEquals("89af4ee2-2cdb-4b07-b39e-4c29856309aa", mdCtx.getOriginModel().getUuid());
 
         // validate select the expected CubePlan
         smartMaster.selectIndexPlan();
-        Assert.assertEquals("89af4ee2-2cdb-4b07-b39e-4c29856309aa", mdCtx.getOrigIndexPlan().getUuid());
+        Assert.assertEquals("89af4ee2-2cdb-4b07-b39e-4c29856309aa", mdCtx.getOriginIndexPlan().getUuid());
         Assert.assertEquals("89af4ee2-2cdb-4b07-b39e-4c29856309aa", mdCtx.getTargetIndexPlan().getUuid());
     }
 }

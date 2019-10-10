@@ -226,7 +226,7 @@ public class NAutoComputedColumnTest extends NAutoTestBase {
         val modelContextsList1 = smartMaster.getContext().getModelContexts();
         Assert.assertEquals(1, modelContextsList1.size());
         val modelContext1 = modelContextsList1.get(0);
-        Assert.assertNotNull(modelContext1.getOrigModel());
+        Assert.assertNotNull(modelContext1.getOriginModel());
         val suggestCCList1 = modelContext1.getTargetModel().getComputedColumnDescs();
         Assert.assertEquals(2, suggestCCList1.size());
         val suggestedCC10 = suggestCCList1.get(0);
@@ -245,7 +245,7 @@ public class NAutoComputedColumnTest extends NAutoTestBase {
         smartMaster.runAll();
         val modelContextsList2 = smartMaster.getContext().getModelContexts();
         val modelContext2 = modelContextsList2.get(0);
-        Assert.assertNotNull(modelContext2.getOrigModel());
+        Assert.assertNotNull(modelContext2.getOriginModel());
         val suggestCCList2 = modelContext2.getTargetModel().getComputedColumnDescs();
         Assert.assertEquals(2, suggestCCList2.size());
         Assert.assertEquals(suggestCCList2, suggestCCList1);
@@ -273,7 +273,7 @@ public class NAutoComputedColumnTest extends NAutoTestBase {
         smartMaster = new NSmartMaster(kylinConfig, getProject(), new String[] { query2, query3 });
         smartMaster.runAll();
         val modelContext1 = smartMaster.getContext().getModelContexts().get(0);
-        Assert.assertNull(modelContext1.getOrigModel());
+        Assert.assertNull(modelContext1.getOriginModel());
         val suggestedCCList1 = modelContext1.getTargetModel().getComputedColumnDescs();
         Assert.assertEquals(1, suggestedCCList1.size());
         val suggestedCC10 = suggestedCCList1.get(0);
@@ -283,7 +283,7 @@ public class NAutoComputedColumnTest extends NAutoTestBase {
 
         // case 2: different cc expression on the same root fact table
         val modelContext2 = smartMaster.getContext().getModelContexts().get(1);
-        Assert.assertNull(modelContext2.getOrigModel());
+        Assert.assertNull(modelContext2.getOriginModel());
         val suggestedCCList2 = modelContext2.getTargetModel().getComputedColumnDescs();
         Assert.assertEquals(1, suggestedCCList2.size());
         val suggestedCC20 = suggestedCCList2.get(0);
@@ -314,7 +314,7 @@ public class NAutoComputedColumnTest extends NAutoTestBase {
         smartMaster = new NSmartMaster(kylinConfig, getProject(), new String[] { query4, query5 });
         smartMaster.runAll();
         val modelContext3 = smartMaster.getContext().getModelContexts().get(0);
-        Assert.assertNull(modelContext3.getOrigModel());
+        Assert.assertNull(modelContext3.getOriginModel());
         val suggestedCCList3 = modelContext3.getTargetModel().getComputedColumnDescs();
         Assert.assertEquals(1, suggestedCCList3.size());
         val suggestedCC30 = suggestedCCList3.get(0);
@@ -324,7 +324,7 @@ public class NAutoComputedColumnTest extends NAutoTestBase {
 
         // case 4: different cc expression on the different root fact table
         val modelContext4 = smartMaster.getContext().getModelContexts().get(1);
-        Assert.assertNull(modelContext4.getOrigModel());
+        Assert.assertNull(modelContext4.getOriginModel());
         val suggestedCCList4 = modelContext4.getTargetModel().getComputedColumnDescs();
         Assert.assertEquals(1, suggestedCCList4.size());
         val suggestedCC40 = suggestedCCList4.get(0);
@@ -844,9 +844,8 @@ public class NAutoComputedColumnTest extends NAutoTestBase {
         String[] sqls = new String[] {
                 "SELECT COUNT(SPLIT_PART(CONCAT(substr(lstg_format_name,1), '-apache-kylin'), '-', 1)) FROM test_kylin_fact",
                 "SELECT COUNT(SPLIT_PART(upper(substr(lstg_format_name,1)), 'A', 1)) FROM test_kylin_fact",
-                "SELECT sum(length(concat(cast(instr(cast(SELLER_ID as varchar),'0') as varchar),'ll'))) from test_kylin_fact\n" +
-                        "where instr(cast(SELLER_ID as varchar),'0') > 1 group by LSTG_FORMAT_NAME"
-        };
+                "SELECT sum(length(concat(cast(instr(cast(SELLER_ID as varchar),'0') as varchar),'ll'))) from test_kylin_fact\n"
+                        + "where instr(cast(SELLER_ID as varchar),'0') > 1 group by LSTG_FORMAT_NAME" };
 
         NSmartMaster smartMaster = new NSmartMaster(kylinConfig, getProject(), sqls);
         smartMaster.runAll();
@@ -864,9 +863,11 @@ public class NAutoComputedColumnTest extends NAutoTestBase {
         Assert.assertEquals("SPLIT_PART(UPPER(SUBSTR(TEST_KYLIN_FACT.LSTG_FORMAT_NAME, 1)), 'A', 1)",
                 computedColumns.get(1).getExpression().trim());
         Assert.assertEquals("VARCHAR", computedColumns.get(1).getDatatype());
-        Assert.assertEquals("LENGTH(CONCAT(CAST(INSTR(CAST(TEST_KYLIN_FACT.SELLER_ID AS VARCHAR), '0') AS VARCHAR), 'll'))",
+        Assert.assertEquals(
+                "LENGTH(CONCAT(CAST(INSTR(CAST(TEST_KYLIN_FACT.SELLER_ID AS VARCHAR), '0') AS VARCHAR), 'll'))",
                 computedColumns.get(2).getInnerExpression().trim());
-        Assert.assertEquals("LENGTH(CONCAT(CAST(INSTR(CAST(TEST_KYLIN_FACT.SELLER_ID AS VARCHAR), '0') AS VARCHAR), 'll'))",
+        Assert.assertEquals(
+                "LENGTH(CONCAT(CAST(INSTR(CAST(TEST_KYLIN_FACT.SELLER_ID AS VARCHAR), '0') AS VARCHAR), 'll'))",
                 computedColumns.get(2).getExpression().trim());
         Assert.assertEquals("INTEGER", computedColumns.get(2).getDatatype());
         Assert.assertEquals("INSTR(CAST(TEST_KYLIN_FACT.SELLER_ID AS VARCHAR), '0')",

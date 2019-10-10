@@ -119,9 +119,9 @@ public class NCorruptMetadataTest extends NAutoTestBase {
         AccelerateInfo accelerateInfo = accelerateInfoMap.get(sqls[0]);
         Assert.assertFalse(accelerateInfo.isFailed());
         NSmartContext.NModelContext modelContext = smartMaster.getContext().getModelContexts().get(0);
-        Assert.assertEquals(1, modelContext.getOrigIndexPlan().getAllIndexes().size());
+        Assert.assertEquals(1, modelContext.getOriginIndexPlan().getAllIndexes().size());
 
-        final List<IndexEntity> originalIndexes = modelContext.getOrigIndexPlan().getAllIndexes();
+        final List<IndexEntity> originalIndexes = modelContext.getOriginIndexPlan().getAllIndexes();
         Assert.assertEquals(20000000000L, originalIndexes.get(0).getId());
 
         Assert.assertEquals(2, modelContext.getTargetIndexPlan().getAllIndexes().size());
@@ -154,9 +154,10 @@ public class NCorruptMetadataTest extends NAutoTestBase {
         AccelerateInfo accelerateInfo = accelerateInfoMap.get(sqls[0]);
         Assert.assertFalse(accelerateInfo.isFailed());
         NSmartContext.NModelContext modelContext = smartMaster.getContext().getModelContexts().get(0);
-        Assert.assertEquals(1, modelContext.getOrigIndexPlan().getAllIndexes().get(0).getLayouts().size());
+        Assert.assertEquals(1, modelContext.getOriginIndexPlan().getAllIndexes().get(0).getLayouts().size());
 
-        final List<LayoutEntity> originalLayouts = modelContext.getOrigIndexPlan().getAllIndexes().get(0).getLayouts();
+        final List<LayoutEntity> originalLayouts = modelContext.getOriginIndexPlan().getAllIndexes().get(0)
+                .getLayouts();
         Assert.assertEquals(2, originalLayouts.get(0).getId());
 
         Assert.assertEquals(2, modelContext.getTargetIndexPlan().getAllIndexes().get(0).getLayouts().size());
@@ -184,7 +185,7 @@ public class NCorruptMetadataTest extends NAutoTestBase {
         AccelerateInfo accelerateInfo = smartMaster.getContext().getAccelerateInfoMap().get(sqls[0]);
         Assert.assertFalse(accelerateInfo.isFailed());
         List<NSmartContext.NModelContext> modelContexts = smartMaster.getContext().getModelContexts();
-        Assert.assertEquals(0, modelContexts.get(0).getOrigIndexPlan().getAllIndexes().size());
+        Assert.assertEquals(0, modelContexts.get(0).getOriginIndexPlan().getAllIndexes().size());
         Assert.assertEquals(1, modelContexts.get(0).getTargetIndexPlan().getAllIndexes().size());
     }
 
@@ -207,8 +208,8 @@ public class NCorruptMetadataTest extends NAutoTestBase {
         final Map<String, AccelerateInfo> accelerateInfoMap = smartMaster.getContext().getAccelerateInfoMap();
         Assert.assertFalse(accelerateInfoMap.get(sqls[0]).isFailed());
         final NSmartContext.NModelContext modelContext = smartMaster.getContext().getModelContexts().get(0);
-        Assert.assertNull(modelContext.getOrigModel());
-        Assert.assertNull(modelContext.getOrigIndexPlan());
+        Assert.assertNull(modelContext.getOriginModel());
+        Assert.assertNull(modelContext.getOriginIndexPlan());
         Assert.assertNotNull(modelContext.getTargetModel());
         Assert.assertNotNull(modelContext.getTargetIndexPlan());
     }
@@ -225,7 +226,7 @@ public class NCorruptMetadataTest extends NAutoTestBase {
         Assert.assertTrue(accelerateInfo.isPending());
         String expectedMessage = "No model matches the SQL. Please add a model matches the SQL before attempting to accelerate this query.";
         Assert.assertEquals(expectedMessage, accelerateInfo.getPendingMsg());
-        Assert.assertNull(smartMaster.getContext().getModelContexts().get(0).getOrigModel());
+        Assert.assertNull(smartMaster.getContext().getModelContexts().get(0).getOriginModel());
         Assert.assertNull(smartMaster.getContext().getModelContexts().get(0).getTargetModel());
     }
 
@@ -239,8 +240,8 @@ public class NCorruptMetadataTest extends NAutoTestBase {
         final Map<String, AccelerateInfo> accelerateInfoMap = smartMaster.getContext().getAccelerateInfoMap();
         Assert.assertFalse(accelerateInfoMap.get(sqls[0]).isFailed());
         final NSmartContext.NModelContext modelContext = smartMaster.getContext().getModelContexts().get(0);
-        Assert.assertNull(modelContext.getOrigModel());
-        Assert.assertNull(modelContext.getOrigIndexPlan());
+        Assert.assertNull(modelContext.getOriginModel());
+        Assert.assertNull(modelContext.getOriginIndexPlan());
         Assert.assertNotNull(modelContext.getTargetModel());
         Assert.assertNotNull(modelContext.getTargetIndexPlan());
     }
@@ -257,7 +258,7 @@ public class NCorruptMetadataTest extends NAutoTestBase {
         Assert.assertTrue(accelerateInfo.isPending());
         String expectedMessage = "No model matches the SQL. Please add a model matches the SQL before attempting to accelerate this query.";
         Assert.assertEquals(expectedMessage, accelerateInfo.getPendingMsg());
-        Assert.assertNull(smartMaster.getContext().getModelContexts().get(0).getOrigModel());
+        Assert.assertNull(smartMaster.getContext().getModelContexts().get(0).getOriginModel());
         Assert.assertNull(smartMaster.getContext().getModelContexts().get(0).getTargetModel());
     }
 
@@ -273,7 +274,7 @@ public class NCorruptMetadataTest extends NAutoTestBase {
         AccelerateInfo accelerateInfo = accelerateInfoMap.get(sqls[0]);
         Assert.assertFalse(accelerateInfo.isFailed());
         final NSmartContext.NModelContext modelContext = smartMaster.getContext().getModelContexts().get(0);
-        Assert.assertNull(modelContext.getOrigModel());
+        Assert.assertNull(modelContext.getOriginModel());
         Assert.assertEquals(11, modelContext.getTargetModel().getEffectiveCols().size());
     }
 
@@ -291,8 +292,8 @@ public class NCorruptMetadataTest extends NAutoTestBase {
         String expectedMessage = "No model matches the SQL. Please add a model matches the SQL before attempting to accelerate this query.";
         Assert.assertTrue(accelerateInfo.isPending());
         Assert.assertEquals(expectedMessage, accelerateInfo.getPendingMsg());
-        Assert.assertNull(smartMaster.getContext().getModelContexts().get(0).getOrigModel());
-        Assert.assertNull(smartMaster.getContext().getModelContexts().get(0).getOrigIndexPlan());
+        Assert.assertNull(smartMaster.getContext().getModelContexts().get(0).getOriginModel());
+        Assert.assertNull(smartMaster.getContext().getModelContexts().get(0).getOriginIndexPlan());
         Assert.assertNull(smartMaster.getContext().getModelContexts().get(0).getTargetModel());
         Assert.assertNull(smartMaster.getContext().getModelContexts().get(0).getTargetIndexPlan());
     }
@@ -311,7 +312,7 @@ public class NCorruptMetadataTest extends NAutoTestBase {
         AccelerateInfo accelerateInfo = accelerateInfoMap.get(sqls[0]);
         Assert.assertFalse(accelerateInfo.isFailed());
         final NSmartContext.NModelContext modelContext = smartMaster.getContext().getModelContexts().get(0);
-        Assert.assertEquals(7, modelContext.getOrigModel().getEffectiveCols().size());
+        Assert.assertEquals(7, modelContext.getOriginModel().getEffectiveCols().size());
         Assert.assertEquals(11, modelContext.getTargetModel().getEffectiveCols().size());
     }
 
@@ -328,8 +329,8 @@ public class NCorruptMetadataTest extends NAutoTestBase {
         AccelerateInfo accelerateInfo = accelerateInfoMap.get(sqls[0]);
         Assert.assertFalse(accelerateInfo.isFailed());
         final NSmartContext.NModelContext modelContext = smartMaster.getContext().getModelContexts().get(0);
-        Assert.assertEquals(modelContext.getTargetModel(), modelContext.getOrigModel());
-        Assert.assertEquals(7, modelContext.getOrigModel().getEffectiveCols().size());
+        Assert.assertEquals(modelContext.getTargetModel(), modelContext.getOriginModel());
+        Assert.assertEquals(7, modelContext.getOriginModel().getEffectiveCols().size());
     }
 
     /**
@@ -349,8 +350,8 @@ public class NCorruptMetadataTest extends NAutoTestBase {
         Assert.assertFalse(accelerateInfo.isFailed());
         Assert.assertEquals(1, accelerateInfo.getRelatedLayouts().size());
         final NSmartContext.NModelContext modelContext = smartMaster.getContext().getModelContexts().get(0);
-        Assert.assertNotNull(modelContext.getOrigModel());
-        Assert.assertNull(modelContext.getOrigModel().getPartitionDesc().getPartitionDateColumn());
+        Assert.assertNotNull(modelContext.getOriginModel());
+        Assert.assertNull(modelContext.getOriginModel().getPartitionDesc().getPartitionDateColumn());
         Assert.assertNotNull(modelContext.getTargetModel());
         Assert.assertEquals("TEST_KYLIN_FACT.CAL_DT",
                 modelContext.getTargetModel().getPartitionDesc().getPartitionDateColumn());
@@ -371,8 +372,8 @@ public class NCorruptMetadataTest extends NAutoTestBase {
         Assert.assertFalse(accelerateInfo.isFailed());
         Assert.assertEquals(1, accelerateInfo.getRelatedLayouts().size());
         final NSmartContext.NModelContext modelContext = smartMaster.getContext().getModelContexts().get(0);
-        Assert.assertEquals(modelContext.getOrigModel(), modelContext.getTargetModel());
-        Assert.assertNull(modelContext.getOrigModel().getPartitionDesc().getPartitionDateColumn());
+        Assert.assertEquals(modelContext.getOriginModel(), modelContext.getTargetModel());
+        Assert.assertNull(modelContext.getOriginModel().getPartitionDesc().getPartitionDateColumn());
         Assert.assertNull(modelContext.getTargetModel().getPartitionDesc().getPartitionDateColumn());
     }
 

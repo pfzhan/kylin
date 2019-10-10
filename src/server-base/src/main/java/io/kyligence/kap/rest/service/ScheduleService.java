@@ -25,13 +25,13 @@ package io.kyligence.kap.rest.service;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import io.kyligence.kap.common.metrics.NMetricsCategory;
-import io.kyligence.kap.common.metrics.NMetricsGroup;
-import io.kyligence.kap.common.metrics.NMetricsName;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
+import io.kyligence.kap.common.metrics.NMetricsCategory;
+import io.kyligence.kap.common.metrics.NMetricsGroup;
+import io.kyligence.kap.common.metrics.NMetricsName;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -52,7 +52,6 @@ public class ScheduleService {
     @Autowired
     QueryHistoryService queryHistoryService;
 
-
     @Scheduled(cron = "${kylin.metadata.ops-cron:0 0 0 * * *}")
     public void routineTask() throws Exception {
 
@@ -67,6 +66,7 @@ public class ScheduleService {
             backupService.backupAll();
             projectService.garbageCleanup();
             favoriteQueryService.adjustFalseAcceleratedFQ();
+            favoriteQueryService.generateRecommendation();
             queryHistoryService.cleanQueryHistories();
 
             logger.info("Finish to work");

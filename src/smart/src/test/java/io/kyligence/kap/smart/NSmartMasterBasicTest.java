@@ -111,7 +111,7 @@ public class NSmartMasterBasicTest extends NAutoTestOnLearnKylinData {
         smartMaster.selectModel();
         mdCtx = smartContext.getModelContexts().get(0);
         Assert.assertNull(mdCtx.getTargetModel());
-        Assert.assertNull(mdCtx.getOrigModel());
+        Assert.assertNull(mdCtx.getOriginModel());
 
         // optimize model
         smartMaster.optimizeModel();
@@ -125,7 +125,7 @@ public class NSmartMasterBasicTest extends NAutoTestOnLearnKylinData {
         // select IndexPlan
         smartMaster.selectIndexPlan();
         mdCtx = smartContext.getModelContexts().get(0);
-        Assert.assertNull(mdCtx.getOrigIndexPlan());
+        Assert.assertNull(mdCtx.getOriginIndexPlan());
         Assert.assertNull(mdCtx.getTargetIndexPlan());
 
         // optimize IndexPlan
@@ -191,14 +191,14 @@ public class NSmartMasterBasicTest extends NAutoTestOnLearnKylinData {
         smartMaster.selectModel();
         mdCtx = smartContext.getModelContexts().get(0);
         Assert.assertNotNull(mdCtx.getTargetModel());
-        Assert.assertNotNull(mdCtx.getOrigModel());
+        Assert.assertNotNull(mdCtx.getOriginModel());
 
         // optimize model
         smartMaster.optimizeModel();
         mdCtx = smartContext.getModelContexts().get(0);
         NDataModel model = mdCtx.getTargetModel();
         Assert.assertEquals(kylinSalesTblDesc, model.getRootFactTable().getTableDesc());
-        Assert.assertEquals(model.getUuid(), mdCtx.getOrigModel().getUuid());
+        Assert.assertEquals(model.getUuid(), mdCtx.getOriginModel().getUuid());
         Assert.assertFalse(model.getEffectiveColsMap().isEmpty());
         Assert.assertFalse(model.getEffectiveMeasureMap().isEmpty());
 
@@ -206,14 +206,14 @@ public class NSmartMasterBasicTest extends NAutoTestOnLearnKylinData {
         smartMaster.selectIndexPlan();
         mdCtx = smartContext.getModelContexts().get(0);
         Assert.assertNotNull(mdCtx.getTargetIndexPlan());
-        Assert.assertNotNull(mdCtx.getOrigIndexPlan());
+        Assert.assertNotNull(mdCtx.getOriginIndexPlan());
 
         // optimize IndexPlan
         smartMaster.optimizeIndexPlan();
         mdCtx = smartContext.getModelContexts().get(0);
         IndexPlan indexPlan = mdCtx.getTargetIndexPlan();
         Assert.assertNotNull(indexPlan);
-        Assert.assertEquals(indexPlan.getUuid(), mdCtx.getOrigIndexPlan().getUuid());
+        Assert.assertEquals(indexPlan.getUuid(), mdCtx.getOriginIndexPlan().getUuid());
         Assert.assertEquals(mdCtx.getTargetModel().getUuid(), indexPlan.getUuid());
         List<IndexEntity> indexEntities = indexPlan.getAllIndexes();
         Assert.assertEquals(4, indexEntities.size());
@@ -265,7 +265,7 @@ public class NSmartMasterBasicTest extends NAutoTestOnLearnKylinData {
         // select Model
         smartMaster.selectModel();
         for (NSmartContext.NModelContext modelContext : smartContext.getModelContexts()) {
-            Assert.assertNull(modelContext.getOrigModel());
+            Assert.assertNull(modelContext.getOriginModel());
             Assert.assertNull(modelContext.getTargetModel());
         }
 
@@ -285,7 +285,7 @@ public class NSmartMasterBasicTest extends NAutoTestOnLearnKylinData {
         // select IndexPlan
         smartMaster.selectIndexPlan();
         for (NSmartContext.NModelContext modelContext : smartContext.getModelContexts()) {
-            Assert.assertNull(modelContext.getOrigIndexPlan());
+            Assert.assertNull(modelContext.getOriginIndexPlan());
             Assert.assertNull(modelContext.getTargetIndexPlan());
         }
 
@@ -373,7 +373,7 @@ public class NSmartMasterBasicTest extends NAutoTestOnLearnKylinData {
         // select model
         smartMaster.selectModel();
         for (NSmartContext.NModelContext modelContext : smartContext.getModelContexts()) {
-            Assert.assertNotNull(modelContext.getOrigModel());
+            Assert.assertNotNull(modelContext.getOriginModel());
             Assert.assertNotNull(modelContext.getTargetModel());
         }
 
@@ -383,7 +383,7 @@ public class NSmartMasterBasicTest extends NAutoTestOnLearnKylinData {
         // select IndexPlan
         smartMaster.selectIndexPlan();
         for (NSmartContext.NModelContext modelContext : smartContext.getModelContexts()) {
-            Assert.assertNotNull(modelContext.getOrigIndexPlan());
+            Assert.assertNotNull(modelContext.getOriginIndexPlan());
         }
 
         // optimize IndexPlan

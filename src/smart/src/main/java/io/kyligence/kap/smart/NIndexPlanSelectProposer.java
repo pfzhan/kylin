@@ -27,9 +27,7 @@ package io.kyligence.kap.smart;
 import java.util.List;
 
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
-import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import io.kyligence.kap.metadata.model.NDataModel;
-import lombok.val;
 
 public class NIndexPlanSelectProposer extends NAbstractProposer {
 
@@ -46,17 +44,13 @@ public class NIndexPlanSelectProposer extends NAbstractProposer {
         for (NSmartContext.NModelContext modelContext : modelContexts) {
             IndexPlan indexPlan = findExisting(modelContext.getTargetModel());
             if (indexPlan != null) {
-                modelContext.setOrigIndexPlan(indexPlan);
+                modelContext.setOriginIndexPlan(indexPlan);
                 modelContext.setTargetIndexPlan(indexPlan.copy());
             }
         }
     }
 
     private IndexPlan findExisting(NDataModel model) {
-        if (model == null) {
-            return null;
-        }
-        val indexManager = NIndexPlanManager.getInstance(kylinConfig, project);
-        return indexManager.getIndexPlan(model.getUuid());
+        return model == null ? null : getOriginIndexPlan(model.getUuid());
     }
 }

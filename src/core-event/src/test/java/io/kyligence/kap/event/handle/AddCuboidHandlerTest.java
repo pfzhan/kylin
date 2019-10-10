@@ -23,12 +23,10 @@
  */
 package io.kyligence.kap.event.handle;
 
-import io.kyligence.kap.engine.spark.job.NSparkCubingStep;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
-import io.kyligence.kap.metadata.cube.model.NBatchConstants;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.ChainedExecutable;
 import org.apache.kylin.job.execution.NExecutableManager;
@@ -41,16 +39,18 @@ import org.mockito.Mockito;
 import com.google.common.collect.Lists;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
-import io.kyligence.kap.metadata.cube.model.IndexPlan;
-import io.kyligence.kap.metadata.cube.model.LayoutEntity;
-import io.kyligence.kap.metadata.cube.model.NDataSegment;
-import io.kyligence.kap.metadata.cube.model.NDataflow;
-import io.kyligence.kap.metadata.cube.model.NDataflowManager;
-import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
+import io.kyligence.kap.engine.spark.job.NSparkCubingStep;
 import io.kyligence.kap.event.manager.EventDao;
 import io.kyligence.kap.event.model.AddCuboidEvent;
 import io.kyligence.kap.event.model.Event;
 import io.kyligence.kap.event.model.EventContext;
+import io.kyligence.kap.metadata.cube.model.IndexPlan;
+import io.kyligence.kap.metadata.cube.model.LayoutEntity;
+import io.kyligence.kap.metadata.cube.model.NBatchConstants;
+import io.kyligence.kap.metadata.cube.model.NDataSegment;
+import io.kyligence.kap.metadata.cube.model.NDataflow;
+import io.kyligence.kap.metadata.cube.model.NDataflowManager;
+import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
 import io.kyligence.kap.smart.NSmartContext;
 import io.kyligence.kap.smart.NSmartMaster;
 import lombok.val;
@@ -91,10 +91,12 @@ public class AddCuboidHandlerTest extends NLocalFileMetadataTestCase {
         String jobId = ((AddCuboidEvent) eventContext.getEvent()).getJobId();
         AbstractExecutable job = NExecutableManager.getInstance(getTestConfig(), DEFAULT_PROJECT).getJob(jobId);
         Assert.assertNotNull(job);
-        Assert.assertEquals(NDataflowManager.getInstance(getTestConfig(), DEFAULT_PROJECT).getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa")
-                        .getSegments().getFirstSegment().getId(),
+        Assert.assertEquals(
+                NDataflowManager.getInstance(getTestConfig(), DEFAULT_PROJECT)
+                        .getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa").getSegments().getFirstSegment().getId(),
                 ((ChainedExecutable) job).getTasks().get(1).getParam("segmentIds"));
-        Assert.assertEquals("20000020001,20000030001,1010001", ((ChainedExecutable) job).getTask(NSparkCubingStep.class).getParam(NBatchConstants.P_LAYOUT_IDS));
+        Assert.assertEquals("20000020001,20000030001,1010001",
+                ((ChainedExecutable) job).getTask(NSparkCubingStep.class).getParam(NBatchConstants.P_LAYOUT_IDS));
     }
 
     @Test
@@ -127,7 +129,7 @@ public class AddCuboidHandlerTest extends NLocalFileMetadataTestCase {
         List<Long> targetLayoutIds = new ArrayList<>();
 
         NSmartContext.NModelContext context = contexts.get(0);
-        IndexPlan originIndexPlan = context.getOrigIndexPlan();
+        IndexPlan originIndexPlan = context.getOriginIndexPlan();
         IndexPlan targetIndexPlan = context.getTargetIndexPlan();
         for (LayoutEntity layout : originIndexPlan.getAllLayouts()) {
             originLayoutIds.add(layout.getId());

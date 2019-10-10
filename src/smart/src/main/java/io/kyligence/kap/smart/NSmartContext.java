@@ -133,12 +133,12 @@ public class NSmartContext {
         @Setter(AccessLevel.PACKAGE)
         private NDataModel targetModel; // output model
         @Setter(AccessLevel.PACKAGE)
-        private NDataModel origModel; // used when update existing models
+        private NDataModel originModel; // used when update existing models
 
         @Setter(AccessLevel.PACKAGE)
         private IndexPlan targetIndexPlan;
         @Setter(AccessLevel.PACKAGE)
-        private IndexPlan origIndexPlan;
+        private IndexPlan originIndexPlan;
 
         private NSmartContext smartContext;
         private Map<String, ComputedColumnDesc> usedCC = Maps.newHashMap();

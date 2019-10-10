@@ -68,6 +68,7 @@ import io.kyligence.kap.metadata.favorite.FavoriteQuery;
 import io.kyligence.kap.metadata.favorite.FavoriteQueryManager;
 import io.kyligence.kap.metadata.favorite.FavoriteQueryRealization;
 import io.kyligence.kap.metadata.favorite.FavoriteQueryStatusEnum;
+import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.query.util.QueryPatternUtil;
 import io.kyligence.kap.rest.rate.EnableRateLimit;
 import io.kyligence.kap.rest.transaction.Transaction;
@@ -252,11 +253,11 @@ public class FavoriteQueryService extends BasicService {
 
         for (NSmartContext.NModelContext modelContext : smartMaster.getContext().getModelContexts()) {
             // case in manual maintain type project and no model is selected
-            if (modelContext.getOrigModel() == null && modelContext.getTargetModel() == null)
+            if (modelContext.getOriginModel() == null && modelContext.getTargetModel() == null)
                 continue;
 
-            if ((modelContext.getOrigModel() == null && modelContext.getTargetModel() != null)
-                    || !modelContext.getOrigModel().equals(modelContext.getTargetModel())) {
+            if ((modelContext.getOriginModel() == null && modelContext.getTargetModel() != null)
+                    || !modelContext.getOriginModel().equals(modelContext.getTargetModel())) {
                 optimizedModelNum++;
             } else
                 modelContexts.add(modelContext);
@@ -272,8 +273,8 @@ public class FavoriteQueryService extends BasicService {
             List<LayoutEntity> origCuboidLayouts = Lists.newArrayList();
             List<LayoutEntity> targetCuboidLayouts = Lists.newArrayList();
 
-            if (modelContext.getOrigIndexPlan() != null)
-                origCuboidLayouts = modelContext.getOrigIndexPlan().getAllLayouts();
+            if (modelContext.getOriginIndexPlan() != null)
+                origCuboidLayouts = modelContext.getOriginIndexPlan().getAllLayouts();
 
             if (modelContext.getTargetIndexPlan() != null)
                 targetCuboidLayouts = modelContext.getTargetIndexPlan().getAllLayouts();
@@ -352,25 +353,36 @@ public class FavoriteQueryService extends BasicService {
             ignoreCountMap.put(project, 1);
     }
 
+    /**
+     * auto recommendation for semi-auto-mode
+     */
+    public void generateRecommendation() {
+        String oldThreadName = Thread.currentThread().getName();
+
+        try {
+            Thread.currentThread().setName("AutoRecommendation");
+            getProjectManager().listAllProjects().stream() //
+                    .filter(ProjectInstance::isSemiAutoMode) //
+                    .forEach(projectInstance -> {
+                        String projectName = projectInstance.getName();
+                        val config = KylinConfig.getInstanceFromEnv();
+                        accelerate(getAccelerableSqlPattern(projectName), projectName, config);
+                    });
+        } finally {
+            Thread.currentThread().setName(oldThreadName);
+        }
+    }
+
     private void accelerate(List<String> unAcceleratedSqlPatterns, String project, KylinConfig config) {
-        List<String> sqlPatterns = Lists.newArrayList();
         int batchAccelerateSize = config.getFavoriteAccelerateBatchSize();
-        int count = 1;
-
-        for (String sqlPattern : unAcceleratedSqlPatterns) {
-            sqlPatterns.add(sqlPattern);
-
-            if (count % batchAccelerateSize == 0) {
-                handleAcceleration(project, sqlPatterns, getUsername());
-                sqlPatterns.clear();
+        ProjectInstance projectInstance = NProjectManager.getInstance(config).getProject(project);
+        Lists.partition(unAcceleratedSqlPatterns, batchAccelerateSize).forEach(oneBatchPatterns -> {
+            if (projectInstance.isSemiAutoMode()) {
+                generateSuggestions(project, oneBatchPatterns);
+            } else {
+                handleAcceleration(project, oneBatchPatterns, getUsername());
             }
-
-            count++;
-        }
-
-        if (!sqlPatterns.isEmpty()) {
-            handleAcceleration(project, sqlPatterns, getUsername());
-        }
+        });
     }
 
     public void ignoreAccelerate(String project, int ignoreSize) {
@@ -379,6 +391,35 @@ public class FavoriteQueryService extends BasicService {
 
         int ignoreCount = ignoreSize / threshold + 1;
         ignoreCountMap.put(project, ignoreCount);
+    }
+
+    private void generateSuggestions(String project, List<String> sqlList) {
+        if (CollectionUtils.isEmpty(sqlList)) {
+            return;
+        }
+        KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
+        Set<String> sqlSet = Sets.newHashSet(sqlList);
+        NSmartMaster master = new NSmartMaster(kylinConfig, project, sqlList.toArray(new String[0]));
+        master.runOptRecommendation(smartContext -> {
+            Map<String, AccelerateInfo> notAccelerated = getNotAcceleratedSqlInfo(master.getContext());
+            if (!notAccelerated.isEmpty()) {
+                sqlSet.removeAll(notAccelerated.keySet());
+                updateNotAcceleratedSqlStatus(notAccelerated, KylinConfig.getInstanceFromEnv(), project);
+            } // case of sqls with constants
+            if (CollectionUtils.isEmpty(smartContext.getModelContexts())) {
+                updateFavoriteQueryStatus(sqlSet, project, FavoriteQueryStatusEnum.ACCELERATED);
+                return;
+            }
+            for (NSmartContext.NModelContext modelContext : smartContext.getModelContexts()) {
+                val sqls = getRelatedSqlsFromModelContext(modelContext, notAccelerated);
+                sqlSet.removeAll(sqls);
+                if (CollectionUtils.isEmpty(sqls)) {
+                    continue;
+                }
+                updateFavoriteQueryStatus(sqls, project, FavoriteQueryStatusEnum.ACCELERATED);
+            }
+            updateFavoriteQueryStatus(sqlSet, project, FavoriteQueryStatusEnum.ACCELERATED);
+        });
     }
 
     private void handleAcceleration(String project, List<String> sqlList, String user) {

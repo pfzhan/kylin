@@ -85,7 +85,7 @@ class NModelOptProposer extends NAbstractProposer {
 
     private void reduceSnapshotModel() {
         List<NModelContext> snapshotModelCandidate = smartContext.getModelContexts().stream()
-                .filter(ctx -> ctx.getOrigModel() == null && ctx.getTargetModel() != null
+                .filter(ctx -> ctx.getOriginModel() == null && ctx.getTargetModel() != null
                         && CollectionUtils.isEmpty(ctx.getTargetModel().getJoinTables())
                         && CollectionUtils.isEmpty(ctx.getTargetModel().getComputedColumnDescs())
                         && !ctx.getTargetModel().getRootFactTable().getTableDesc().isIncrementLoading())

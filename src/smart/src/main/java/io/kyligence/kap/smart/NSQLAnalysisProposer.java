@@ -33,7 +33,6 @@ import org.apache.kylin.metadata.realization.NoRealizationFoundException;
 
 import com.google.common.base.Preconditions;
 
-import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.smart.NSmartContext.NModelContext;
 import io.kyligence.kap.smart.common.AccelerateInfo;
@@ -60,7 +59,7 @@ class NSQLAnalysisProposer extends NAbstractProposer {
     @Override
     void propose() {
         initAccelerationInfo(sqls);
-        List<NDataModel> models = NDataflowManager.getInstance(kylinConfig, project).listUnderliningDataModels();
+        List<NDataModel> models = getOriginModels();
         try (AbstractQueryRunner extractor = NQueryRunnerFactory.createForModelSuggestion(kylinConfig, project, sqls,
                 models, DEFAULT_THREAD_NUM)) {
             extractor.execute();
@@ -68,8 +67,8 @@ class NSQLAnalysisProposer extends NAbstractProposer {
 
             final List<NModelContext> modelContexts = new GreedyModelTreesBuilder(kylinConfig, project, smartContext)
                     .build(Arrays.asList(sqls), extractor.getAllOLAPContexts(), null).stream()
-                    .filter(modelTree -> !modelTree.getOlapContexts().isEmpty())
-                    .map(smartContext::createModelContext).collect(Collectors.toList());
+                    .filter(modelTree -> !modelTree.getOlapContexts().isEmpty()).map(smartContext::createModelContext)
+                    .collect(Collectors.toList());
 
             smartContext.setModelContexts(modelContexts);
         } catch (Exception e) {

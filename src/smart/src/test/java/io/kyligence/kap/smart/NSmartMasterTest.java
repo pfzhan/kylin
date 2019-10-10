@@ -231,8 +231,8 @@ public class NSmartMasterTest extends NAutoTestOnLearnKylinData {
 
         final NSmartContext.NModelContext modelContext = smartMaster.getContext().getModelContexts().get(0);
         // null validation
-        final NDataModel originalModel = modelContext.getOrigModel();
-        final IndexPlan originalIndexPlan = modelContext.getOrigIndexPlan();
+        final NDataModel originalModel = modelContext.getOriginModel();
+        final IndexPlan originalIndexPlan = modelContext.getOriginIndexPlan();
         Assert.assertNull(originalModel);
         Assert.assertNull(originalIndexPlan);
 
@@ -450,8 +450,8 @@ public class NSmartMasterTest extends NAutoTestOnLearnKylinData {
         final NSmartContext context = smartMaster.getContext();
         final List<NSmartContext.NModelContext> modelContexts = context.getModelContexts();
         final NSmartContext.NModelContext modelContext = modelContexts.get(0);
-        val originalAllIndexesMap = modelContext.getOrigIndexPlan().getAllIndexesMap();
-        val originalWhiteListIndexesMap = modelContext.getOrigIndexPlan().getWhiteListIndexesMap();
+        val originalAllIndexesMap = modelContext.getOriginIndexPlan().getAllIndexesMap();
+        val originalWhiteListIndexesMap = modelContext.getOriginIndexPlan().getWhiteListIndexesMap();
         Assert.assertEquals(1, originalAllIndexesMap.size());
         Assert.assertEquals(0, originalWhiteListIndexesMap.size());
 

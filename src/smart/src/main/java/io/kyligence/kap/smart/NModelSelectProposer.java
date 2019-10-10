@@ -43,7 +43,6 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
-import io.kyligence.kap.metadata.model.MaintainModelType;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
@@ -87,7 +86,7 @@ public class NModelSelectProposer extends NAbstractProposer {
                 continue;
             }
             // found matched, then use it
-            modelContext.setOrigModel(model);
+            modelContext.setOriginModel(model);
             selectedModel.add(model.getUuid());
             NDataModel targetModel = dataModelManager.copyForWrite(model);
             initModel(targetModel);
@@ -97,10 +96,9 @@ public class NModelSelectProposer extends NAbstractProposer {
             modelContext.setTargetModel(targetModel);
         }
 
-        // if manual maintain type and selected model is null, record error message
+        // In expert mode and semi-auto mode, if selected model is null, record pending message
         final ProjectInstance projectInstance = NProjectManager.getInstance(kylinConfig).getProject(project);
-
-        if (projectInstance.getMaintainModelType() == MaintainModelType.MANUAL_MAINTAIN) {
+        if (projectInstance.isExpertMode() || projectInstance.isSemiAutoMode()) {
             smartContext.getModelContexts().forEach(modelCtx -> {
                 if (modelCtx.withoutTargetModel()) {
                     modelCtx.getModelTree().getOlapContexts().forEach(olapContext -> {
@@ -118,7 +116,8 @@ public class NModelSelectProposer extends NAbstractProposer {
     }
 
     private NDataModel selectExistedModel(ModelTree modelTree) {
-        for (NDataModel model : dataflowManager.listUnderliningDataModels()) {
+        List<NDataModel> originModels = getOriginModels();
+        for (NDataModel model : originModels) {
             if (matchModelTree(model, modelTree) && isContainAllCcColsInModel(model, modelTree)) {
                 return model;
             }

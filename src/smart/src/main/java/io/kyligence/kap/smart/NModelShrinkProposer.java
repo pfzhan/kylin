@@ -28,8 +28,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import io.kyligence.kap.metadata.cube.model.IndexPlan;
-import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import org.apache.kylin.metadata.model.PartitionDesc;
 import org.apache.kylin.metadata.model.TblColRef;
 
@@ -38,6 +36,8 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
+import io.kyligence.kap.metadata.cube.model.IndexPlan;
+import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModel.Measure;
 import io.kyligence.kap.metadata.model.NDataModel.NamedColumn;
@@ -55,7 +55,7 @@ public class NModelShrinkProposer extends NAbstractProposer {
             return;
 
         for (NSmartContext.NModelContext modelCtx : smartContext.getModelContexts()) {
-            if (modelCtx.getOrigModel() == null || modelCtx.getOrigIndexPlan() == null
+            if (modelCtx.getOriginModel() == null || modelCtx.getOriginIndexPlan() == null
                     || modelCtx.getTargetIndexPlan() == null) {
                 continue;
             }
@@ -109,7 +109,7 @@ public class NModelShrinkProposer extends NAbstractProposer {
     }
 
     private void refillModel(Map<String, IndexPlan> modelIndexPlans, Map<Integer, NamedColumn> colsById,
-                             Map<String, NamedColumn> colsByName, Map<Integer, Measure> measures) {
+            Map<String, NamedColumn> colsByName, Map<Integer, Measure> measures) {
         Set<NamedColumn> usedCols = Sets.newHashSet();
         Set<Measure> usedMeasures = Sets.newHashSet();
         for (IndexPlan indexPlan : modelIndexPlans.values()) {

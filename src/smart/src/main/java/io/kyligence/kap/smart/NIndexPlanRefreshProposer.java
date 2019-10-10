@@ -40,7 +40,7 @@ class NIndexPlanRefreshProposer extends NAbstractProposer {
         }
 
         for (NSmartContext.NModelContext modelCtx : smartContext.getModelContexts()) {
-            if (modelCtx.getOrigModel() == null || modelCtx.getOrigIndexPlan() == null
+            if (modelCtx.getOriginModel() == null || modelCtx.getOriginIndexPlan() == null
                     || modelCtx.getTargetIndexPlan() == null) {
                 continue;
             }

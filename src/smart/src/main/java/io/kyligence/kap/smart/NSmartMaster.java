@@ -46,6 +46,7 @@ import io.kyligence.kap.metadata.favorite.FavoriteQueryManager;
 import io.kyligence.kap.metadata.favorite.FavoriteQueryRealization;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
+import io.kyligence.kap.metadata.recommendation.OptimizeRecommendationManager;
 import io.kyligence.kap.smart.common.AccelerateInfo;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
@@ -145,9 +146,9 @@ public class NSmartMaster {
             }
 
             NDataModel targetModel = modelCtx.getTargetModel();
-            String alias = modelCtx.getOrigModel() == null //
+            String alias = modelCtx.getOriginModel() == null //
                     ? proposeModelAlias(targetModel, usedNames) //
-                    : modelCtx.getOrigModel().getAlias();
+                    : modelCtx.getOriginModel().getAlias();
             targetModel.setAlias(alias);
         }
         log.info("Model renaming completed successfully, takes {}ms", System.currentTimeMillis() - start);
@@ -157,13 +158,13 @@ public class NSmartMaster {
         analyzeSQLs();
         selectModel();
         optimizeModel();
+        renameModel();
         selectIndexPlan();
         optimizeIndexPlan();
         shrinkIndexPlan();
     }
 
     private void save() {
-        renameModel();
         saveModel();
         saveIndexPlan();
     }
@@ -171,6 +172,30 @@ public class NSmartMaster {
     // this method now only used for testing
     public void runAll() {
         runAllAndForContext(null);
+    }
+
+    // optimize recommendation
+    public void runOptRecommendation(Consumer<NSmartContext> hook) {
+        try {
+            UnitOfWork.doInTransactionWithRetry(new UnitOfWork.Callback<Object>() {
+                @Override
+                public Object process() {
+                    selectAndOptimize();
+                    genOptRecommendations();
+                    if (hook != null) {
+                        hook.accept(getContext());
+                    }
+                    return null;
+                }
+
+                @Override
+                public void onProcessError(Throwable throwable) {
+                    recordError(throwable);
+                }
+            }, project);
+        } finally {
+            saveAccelerationInfoInTransaction();
+        }
     }
 
     public void runAllAndForContext(Consumer<NSmartContext> hook) {
@@ -255,6 +280,25 @@ public class NSmartMaster {
             }
             favoriteQueryMgr.resetRealizations(sqlPattern, favoriteQueryRealizations);
         });
+    }
+
+    public void genOptRecommendations() {
+        log.info("Start generate optimized recommendations.");
+        OptimizeRecommendationManager optRecMgr = OptimizeRecommendationManager
+                .getInstance(KylinConfig.getInstanceFromEnv(), project);
+        for (NSmartContext.NModelContext modelCtx : context.getModelContexts()) {
+            if (modelCtx.withoutTargetModel() || modelCtx.withoutAnyIndexes()) {
+                continue;
+            }
+            NDataModel model = modelCtx.getTargetModel();
+            IndexPlan indexPlan = modelCtx.getTargetIndexPlan();
+            try {
+                optRecMgr.optimize(model, indexPlan);
+            } catch (Exception e) {
+                log.error("model({}) failed to generate recommendations", model.getUuid(), e);
+            }
+        }
+        log.info("Optimized recommendations are successfully saved to metadata.");
     }
 
     public void saveModel() {
