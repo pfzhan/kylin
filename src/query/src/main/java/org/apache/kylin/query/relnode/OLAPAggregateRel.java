@@ -389,6 +389,10 @@ public class OLAPAggregateRel extends Aggregate implements OLAPRel {
                     continue;
                 }
                 FunctionDesc newAgg = findInMeasures(aggFunc, measures);
+                if (newAgg == null && aggFunc.isCountOnColumn()
+                        && this.context.realization.getConfig().isReplaceColCountWithCountStar()) {
+                    newAgg = FunctionDesc.newCountOne();
+                }
                 if (newAgg == null) {
                     newAgg = aggFunc;
                 }

@@ -180,6 +180,21 @@ public class NExecAndComp {
         }
     }
 
+    public static boolean execAndCompareQueryResult(Pair<String, String> queryForKap,
+            Pair<String, String> queryForSpark, String joinType, String prj,
+            Map<String, CompareEntity> recAndQueryResult) {
+        String sqlForSpark = KylinTestBase.changeJoinType(queryForSpark.getSecond(), joinType);
+        addQueryPath(recAndQueryResult, queryForSpark, sqlForSpark);
+        Dataset<Row> sparkResult = queryWithSpark(prj, queryForSpark.getSecond(), queryForSpark.getFirst());
+        List<Row> sparkRows = sparkResult.toJavaRDD().collect();
+
+        String sqlForKap = KylinTestBase.changeJoinType(queryForKap.getSecond(), joinType);
+        Dataset<Row> cubeResult = queryWithKap(prj, joinType, Pair.newPair(sqlForKap, sqlForKap));
+        List<Row> kapRows = SparderQueryTest.castDataType(cubeResult, sparkResult).toJavaRDD().collect();
+
+        return sparkRows.equals(kapRows);
+    }
+
     private static List<Row> normRows(List<Row> rows) {
         List<Row> rowList = Lists.newArrayList();
         rows.forEach(row -> {

@@ -27,6 +27,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
+import io.kyligence.kap.metadata.model.NDataModel;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.metadata.model.ColumnDesc;
@@ -219,6 +220,35 @@ public class NQueryLayoutChooserTest extends NLocalWithSparkSessionTest {
         val pair2 = NQueryLayoutChooser.selectCuboidLayout(dataflow.getLatestReadySegment(), context2.getSQLDigest());
         Assert.assertNotNull(pair2);
         Assert.assertEquals(1010003, pair2.getFirst().getCuboidLayout().getId());
+    }
+
+    @Test
+    public void testUnmatchedCountColunm() {
+        System.setProperty("kylin.query.replace-count-column-with-count-star", "true");
+        String sql = "select avg(TEST_KYLIN_FACT.ITEM_COUNT) from TEST_KYLIN_FACT";
+        OLAPContext context = prepareOlapContext(sql).get(0);
+        NDataflow dataflow = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), PROJECT)
+                .getDataflow("abe3bf1a-c4bc-458d-8278-7ea8b00f5e96");
+        Map<String, String> sqlAlias2ModelName = RealizationChooser.matchJoins(dataflow.getModel(), context);
+        context.fixModel(dataflow.getModel(), sqlAlias2ModelName);
+        Pair<NLayoutCandidate, List<CapabilityResult.CapabilityInfluence>> pair = NQueryLayoutChooser
+                .selectCuboidLayout(dataflow.getLatestReadySegment(), context.getSQLDigest());
+
+        Assert.assertNotNull(pair);
+        List<NDataModel.Measure> allMeasures = dataflow.getModel().getAllMeasures();
+        Assert.assertTrue(containMeasure(allMeasures, "COUNT", "1"));
+        Assert.assertTrue(containMeasure(allMeasures, "SUM", "DEFAULT.TEST_KYLIN_FACT.PRICE"));
+        Assert.assertFalse(containMeasure(allMeasures, "COUNT", "DEFAULT.TEST_KYLIN_FACT.PRICE"));
+    }
+
+    public boolean containMeasure(List<NDataModel.Measure> allMeasures, String expression, String parameter) {
+        for (NDataModel.Measure measure : allMeasures) {
+            if (measure.getFunction().getExpression().equals(expression)
+                    && measure.getFunction().getParameters().get(0).toString().equals(parameter)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private List<OLAPContext> prepareOlapContext(String sql) {

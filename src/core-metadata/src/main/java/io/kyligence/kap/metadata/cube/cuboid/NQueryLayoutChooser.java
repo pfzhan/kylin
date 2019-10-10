@@ -160,12 +160,22 @@ public class NQueryLayoutChooser {
         }
     }
 
+    private static void unmatchedCountColumnIfExistCountStar(Collection<FunctionDesc> aggregations) {
+        KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
+        for (FunctionDesc functionDesc : aggregations) {
+            if (kylinConfig.isReplaceColCountWithCountStar() && functionDesc.isCountOnColumn()) {
+                aggregations.remove(functionDesc);
+            }
+        }
+    }
+
     private static boolean matchAggIndex(SQLDigest sqlDigest, final LayoutEntity cuboidLayout, final NDataflow dataFlow,
             Set<TblColRef> unmatchedCols, Collection<FunctionDesc> unmatchedMetrics,
             Map<TblColRef, DeriveInfo> needDerive, CapabilityResult result) {
         unmatchedCols.removeAll(cuboidLayout.getOrderedDimensions().values());
         goThruDerivedDims(cuboidLayout.getIndex(), dataFlow, needDerive, unmatchedCols, cuboidLayout.getModel());
         unmatchedAggregations(unmatchedMetrics, cuboidLayout);
+        unmatchedCountColumnIfExistCountStar(unmatchedMetrics);
 
         removeUnmatchedGroupingAgg(unmatchedMetrics);
         if (!unmatchedMetrics.isEmpty() || !unmatchedCols.isEmpty()) {

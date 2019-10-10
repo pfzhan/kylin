@@ -85,6 +85,10 @@ public class FunctionDesc implements Serializable {
         return r;
     }
 
+    public static FunctionDesc newCountOne() {
+        return newInstance(FunctionDesc.FUNC_COUNT, Lists.newArrayList(ParameterDesc.newInstance("1")), "bigint");
+    }
+
     public static String proposeReturnType(String expression, String colDataType) {
         return proposeReturnType(expression, colDataType, Maps.newHashMap());
     }

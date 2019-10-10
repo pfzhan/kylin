@@ -35,6 +35,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.apache.kylin.common.KapConfig;
+import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.KylinConfigExt;
 import org.apache.kylin.common.persistence.MissingRootPersistentEntity;
 import org.apache.kylin.common.persistence.RootPersistentEntity;
@@ -248,6 +249,10 @@ public class NDataflow extends RootPersistentEntity implements Serializable, IRe
         for (MeasureDesc measure : this.getMeasures()) {
             if (measure.getFunction().equals(aggrFunc))
                 return measure.getFunction();
+        }
+        KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
+        if (aggrFunc.isCountOnColumn() && kylinConfig.isReplaceColCountWithCountStar()) {
+            return FunctionDesc.newCountOne();
         }
         return aggrFunc;
     }

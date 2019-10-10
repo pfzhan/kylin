@@ -261,6 +261,34 @@ public class NMeasuresTest extends NLocalWithSparkSessionTest {
         NExecAndComp.execAndCompare(newArrayList(pair), getProject(), NExecAndComp.CompareLevel.SAME, "left");
     }
 
+    @Test
+    public void testAvgQueryWithSumAndCountOneMeasure() throws Exception {
+        System.setProperty("kylin.query.replace-count-column-with-count-star", "true");
+        NDataModel.Measure countOneMeasure = new NDataModel.Measure();
+        countOneMeasure.setName("COUNT_ONE");
+        countOneMeasure.setFunction(
+                FunctionDesc.newInstance(FUNC_COUNT, newArrayList(ParameterDesc.newInstance("1")), "bigint"));
+        countOneMeasure.id = 200001;
+
+        NDataModel.Measure sumColunmMeasure = new NDataModel.Measure();
+        sumColunmMeasure.setName("SUM_COLUNM");
+        sumColunmMeasure.setFunction(generateMeasList().get(8).getFunction());
+        sumColunmMeasure.id = 200002;
+
+        List<NDataModel.Measure> needMeasures = Lists.newArrayList();
+        needMeasures.add(countOneMeasure);
+        needMeasures.add(sumColunmMeasure);
+
+        buildCuboid(needMeasures);
+        UdfManager.create(ss);
+        KylinConfig config = KylinConfig.getInstanceFromEnv();
+        populateSSWithCSVData(config, "default", SparderEnv.getSparkSession());
+        Pair<String, String> pair1 = new Pair<>("queryForKap", "select Round(avg(price1),2) from TEST_MEASURE");
+        Pair<String, String> pair2 = new Pair<>("queryForSpark", "select Round(sum(price1)/count(1),2) from TEST_MEASURE");
+
+        Assert.assertTrue(NExecAndComp.execAndCompareQueryResult(pair1, pair2, "left", getProject(), null));
+    }
+
     private Double decodePercentileCol(Row row, int index) {
         PercentileSerializer ps = new PercentileSerializer(DataType.ANY);
         ByteBuffer buffer = ByteBuffer.wrap((byte[]) row.get(index));
