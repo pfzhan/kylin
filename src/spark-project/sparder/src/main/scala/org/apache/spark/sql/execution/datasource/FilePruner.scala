@@ -118,7 +118,7 @@ class FilePruner(val session: SparkSession,
     // we did not use the partitionBy mechanism of spark
     new StructType()
   }
-
+   var patten: String = _
   lazy val timePartitionSchema: StructType = {
     val desc: PartitionDesc = dataflow.getModel.getPartitionDesc
     StructType(
@@ -127,8 +127,12 @@ class FilePruner(val session: SparkSession,
         // only consider partition date column
         // we can only get col ID in layout cuz data schema is all ids.
         val id = layout.getOrderedDimensions.inverse().get(ref)
-        if (id != null && ref.getType.isDateTimeFamily) {
+        if (id != null && (ref.getType.isDateTimeFamily || ref.getType.isStringFamily)) {
+          if (ref.getType.isStringFamily) {
+            patten = desc.getPartitionDateFormat
+          }
           dataSchema.filter(_.name == id.toString)
+
         } else {
           Seq.empty
         }
@@ -246,7 +250,7 @@ class FilePruner(val session: SparkSession,
     val filteredStatuses = segDirs.filter {
       e => {
         val tsRange = dataflow.getSegment(e.segmentID).getTSRange
-        SegFilters(tsRange.getStart, tsRange.getEnd).foldFilter(reducedFilter) match {
+        SegFilters(tsRange.getStart, tsRange.getEnd, patten).foldFilter(reducedFilter) match {
           case Trivial(true) => true
           case Trivial(false) => false
         }
@@ -343,16 +347,19 @@ object FilePruner {
   }
 }
 
-case class SegFilters(start: Long, end: Long) extends Logging {
+case class SegFilters(start: Long, end: Long, patten: String) extends Logging {
 
   private def insurance(value: Any)
                        (func: Long => Filter): Filter = {
     value match {
-      // current we only support date/time range.
       case v: Date =>
         // see SPARK-27546
         val ts = DateFormat.stringToMillis(v.toString)
         func(ts)
+      case v: String if patten != null =>
+          val format = DateFormat.getDateFormat(patten)
+          val time = format.parse(v.toString).getTime
+          func(time)
       case v: Timestamp =>
         func(v.getTime)
       case _ =>
