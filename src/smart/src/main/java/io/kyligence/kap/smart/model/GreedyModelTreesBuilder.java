@@ -55,7 +55,6 @@ import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.smart.NSmartContext;
 import io.kyligence.kap.smart.common.AccelerateInfo;
 import io.kyligence.kap.smart.util.JoinDescUtil;
-import io.kyligence.kap.smart.util.OLAPContextUtil;
 import io.kyligence.kap.smart.util.TableAliasGenerator;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
@@ -147,6 +146,87 @@ public class GreedyModelTreesBuilder {
             this.smartContext = smartContext;
         }
 
+        /**
+         * based on the path to root node in JoinGraph to produce table alias, so that it can be unique in different ctx
+         * but same position, even if the alias is not equaled in query.
+         *
+         * @param ctx
+         * @param dict
+         * @return
+         */
+        static Map<TableRef, String> getUniqueTblAliasBasedOnPosInGraph(OLAPContext ctx,
+                TableAliasGenerator.TableAliasDict dict) {
+            JoinsGraph joinsGraph = ctx.getJoinsGraph();
+            if (joinsGraph == null) {
+                joinsGraph = new JoinsGraph(ctx.firstTableScan.getTableRef(), ctx.joins);
+            }
+            return TreeBuilder.getUniqueTblAliasBasedOnPosInGraph(joinsGraph, dict);
+        }
+
+        static Map<TableRef, String> getUniqueTblAliasBasedOnPosInGraph(JoinsGraph joinsGraph,
+                TableAliasGenerator.TableAliasDict dict) {
+
+            Map<TableRef, String> allTableAlias = new HashMap<>();
+            for (TableRef tableRef : joinsGraph.getAllTblRefNodes()) {
+                TableRef[] joinHierarchy = getJoinHierarchy(joinsGraph, tableRef);
+                String[] tableNames = new String[joinHierarchy.length];
+
+                for (int i = 0; i < joinHierarchy.length; i++) {
+                    TableRef table = joinHierarchy[i];
+                    tableNames[i] = table.getTableIdentity();
+                }
+
+                String tblAlias = (joinHierarchy.length == 1 && joinHierarchy[0] == joinsGraph.getCenter())
+                        ? joinsGraph.getCenter().getTableName()
+                        : dict.getHierachyAlias(tableNames);
+
+                allTableAlias.put(tableRef, tblAlias);
+            }
+            return allTableAlias;
+        }
+
+        static Map<TableRef, String> correctTblAliasAndKeepOriginAlias(Map<TableRef, String> tblRef2TreePathName,
+                TableDesc rootFact, Map<TableRef, String> originTblAlias) {
+            Map<String, TableDesc> classifiedAlias = new HashMap<>();
+            for (Map.Entry<TableRef, String> entry : tblRef2TreePathName.entrySet()) {
+                classifiedAlias.put(entry.getValue(), entry.getKey().getTableDesc());
+            }
+
+            Map<String, String> orig2corrected = new HashMap<>();
+            // correct fact table alias in 1st place
+            String factTableName = rootFact.getName();
+            orig2corrected.put(factTableName, factTableName);
+            classifiedAlias.remove(factTableName);
+            for (Map.Entry<TableRef, String> entry : originTblAlias.entrySet()) {
+                orig2corrected.putIfAbsent(tblRef2TreePathName.get(entry.getKey()), entry.getValue());
+                classifiedAlias.remove(tblRef2TreePathName.get(entry.getKey()));
+            }
+
+            for (Map.Entry<String, TableDesc> entry : classifiedAlias.entrySet()) {
+                String tableName = entry.getValue().getName();
+                String corrected = tableName;
+                int i = 1;
+                while (orig2corrected.containsValue(corrected)) {
+                    corrected = tableName + "_" + i;
+                    i++;
+                }
+                orig2corrected.put(entry.getKey(), corrected);
+            }
+
+            Map<TableRef, String> correctedTableAlias = Maps.newHashMap();
+            for (Map.Entry<TableRef, String> entry : tblRef2TreePathName.entrySet()) {
+                String corrected = orig2corrected.get(entry.getValue());
+                correctedTableAlias.put(entry.getKey(), corrected);
+            }
+
+            return correctedTableAlias;
+        }
+
+        private static Map<TableRef, String> correctTableAlias(Map<TableRef, String> innerTableRefAlias,
+                TableDesc rootFact) {
+            return correctTblAliasAndKeepOriginAlias(innerTableRefAlias, rootFact, Maps.newHashMap());
+        }
+
         private void addOLAPContext(String sql, OLAPContext ctx) {
             if (!this.contexts.containsKey(sql)) {
                 this.contexts.put(sql, new ArrayList<OLAPContext>());
@@ -174,15 +254,15 @@ public class GreedyModelTreesBuilder {
             inputCtxs.removeIf(Objects::isNull);
             inputCtxs.stream().filter(ctx -> matchContext(usedCtxs, ctx)).filter(ctx -> {
                 if (ctx.joins.isEmpty()) {// Digest single table contexts(no joins)
-                    innerTableRefAlias.putAll(getTableAliasMap(ctx, dict));
-                    correctedTableAlias.putAll(correctTableAlias(innerTableRefAlias));
+                    innerTableRefAlias.putAll(getUniqueTblAliasBasedOnPosInGraph(ctx, dict));
+                    correctedTableAlias.putAll(correctTableAlias(innerTableRefAlias, rootFact));
                     usedCtxs.add(ctx);
                     return false;
                 }
                 return true;
             }).forEach(context -> {
-                innerTableRefAlias.putAll(getTableAliasMap(context, dict));
-                correctedTableAlias.putAll(correctTableAlias(innerTableRefAlias));
+                innerTableRefAlias.putAll(getUniqueTblAliasBasedOnPosInGraph(context, dict));
+                correctedTableAlias.putAll(correctTableAlias(innerTableRefAlias, rootFact));
                 usedCtxs.add(context);
                 ctxsNeedMerge.add(context);
             });
@@ -214,14 +294,25 @@ public class GreedyModelTreesBuilder {
             return new ModelTree(rootFact, usedCtxs, joinTables, correctedTableAlias);
         }
 
-        public static void mergeContext(OLAPContext ctx, Map<String, JoinTableDesc> alias2JoinTables,
+        /**
+         *
+         * @param ctx
+         * @param alias2JoinTables unique alias name, usually depend on io.kyligence.kap.smart.util.TableAliasGenerator
+         * @param tableRef2Alias
+         * @param aliasRefMap
+         */
+        static void mergeContext(OLAPContext ctx, Map<String, JoinTableDesc> alias2JoinTables,
                 Map<TableRef, String> tableRef2Alias, Map<String, TableRef> aliasRefMap) {
+            mergeJoins(ctx.joins, alias2JoinTables, tableRef2Alias, aliasRefMap);
+        }
 
+        private static void mergeJoins(List<JoinDesc> joins, Map<String, JoinTableDesc> alias2JoinTables,
+                Map<TableRef, String> tableRef2Alias, Map<String, TableRef> aliasRefMap) {
             // Collect context updates and apply later
             Map<String, JoinTableDesc> alias2JoinTablesUpdates = new LinkedHashMap<>(alias2JoinTables);
             Map<TableRef, String> tableRef2AliasUpdates = new LinkedHashMap<>(tableRef2Alias);
 
-            List<Pair<JoinDesc, TableKind>> tableKindByJoins = JoinDescUtil.resolveTableType(ctx.joins);
+            List<Pair<JoinDesc, TableKind>> tableKindByJoins = JoinDescUtil.resolveTableType(joins);
             for (Pair<JoinDesc, TableKind> pair : tableKindByJoins) {
                 JoinDesc join = pair.getFirst();
                 TableKind kind = pair.getSecond();
@@ -262,64 +353,7 @@ public class GreedyModelTreesBuilder {
             tableRef2Alias.putAll(tableRef2AliasUpdates);
         }
 
-        private Map<TableRef, String> correctTableAlias(Map<TableRef, String> innerTableRefAlias) {
-            Map<String, TableDesc> classifiedAlias = new HashMap<>();
-            for (Map.Entry<TableRef, String> entry : innerTableRefAlias.entrySet()) {
-                classifiedAlias.put(entry.getValue(), entry.getKey().getTableDesc());
-            }
-            Map<String, String> orig2corrected = new HashMap<>();
-            // correct fact table alias in 1st place
-            String factTableName = rootFact.getName();
-            orig2corrected.put(factTableName, factTableName);
-            classifiedAlias.remove(factTableName);
-            Map<TableRef, String> correctedTableAlias = Maps.newHashMap();
-            for (Map.Entry<String, TableDesc> entry : classifiedAlias.entrySet()) {
-                String tableName = entry.getValue().getName();
-                String corrected = tableName;
-                int i = 1;
-                while (orig2corrected.containsValue(corrected)) {
-                    corrected = tableName + "_" + i;
-                    i++;
-                }
-                orig2corrected.put(entry.getKey(), corrected);
-            }
-
-            for (Map.Entry<TableRef, String> entry : innerTableRefAlias.entrySet()) {
-                String corrected = orig2corrected.get(entry.getValue());
-                correctedTableAlias.put(entry.getKey(), corrected);
-            }
-
-            return correctedTableAlias;
-        }
-
-        private Map<TableRef, String> getTableAliasMap(OLAPContext ctx, TableAliasGenerator.TableAliasDict dict) {
-            JoinsGraph joinsGraph = ctx.getJoinsGraph();
-            if (joinsGraph == null) {
-                joinsGraph = new JoinsGraph(ctx.firstTableScan.getTableRef(), ctx.joins);
-            }
-
-            Map<TableRef, String> allTableAlias = new HashMap<>();
-            TableRef[] allTables = OLAPContextUtil.getAllTableRef(ctx);
-
-            for (TableRef tableRef : allTables) {
-                TableRef[] joinHierarchy = getJoinHierarchy(joinsGraph, tableRef);
-                String[] tableNames = new String[joinHierarchy.length];
-
-                for (int i = 0; i < joinHierarchy.length; i++) {
-                    TableRef table = joinHierarchy[i];
-                    tableNames[i] = table.getTableIdentity();
-                }
-
-                String tblAlias = (joinHierarchy.length == 1 && joinHierarchy[0] == ctx.firstTableScan.getTableRef())
-                        ? ctx.firstTableScan.getTableRef().getTableName()
-                        : dict.getHierachyAlias(tableNames);
-
-                allTableAlias.put(tableRef, tblAlias);
-            }
-            return allTableAlias;
-        }
-
-        private TableRef[] getJoinHierarchy(JoinsGraph joinsTree, TableRef leaf) {
+        private static TableRef[] getJoinHierarchy(JoinsGraph joinsTree, TableRef leaf) {
             if (leaf == null) {
                 return new TableRef[0];
             }

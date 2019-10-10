@@ -61,6 +61,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
+import lombok.Getter;
 import lombok.NonNull;
 import lombok.Setter;
 
@@ -213,6 +214,7 @@ public class JoinsGraph implements Serializable {
         }
     }
 
+    @Getter
     private TableRef center;
     private Map<String, TableRef> nodes = new HashMap<>();
     private Map<TableRef, List<Edge>> edgesFromNode = new HashMap<>();
@@ -308,6 +310,10 @@ public class JoinsGraph implements Serializable {
             }
         }
         return false;
+    }
+
+    public List<TableRef> getAllTblRefNodes() {
+        return nodes == null ? Lists.newArrayList() : Lists.newArrayList(nodes.values());
     }
 
     /**

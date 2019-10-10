@@ -32,6 +32,8 @@ import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.TableRef;
 import org.apache.kylin.query.relnode.OLAPContext;
 
+import com.google.common.collect.Maps;
+
 import lombok.Getter;
 
 @Getter
@@ -47,5 +49,12 @@ public class ModelTree {
         this.olapContexts = contexts;
         this.joins = joins;
         this.tableRefAliasMap = tableRefAliasMap;
+    }
+
+    public ModelTree(TableDesc rootFactTable, Collection<OLAPContext> contexts, Map<String, JoinTableDesc> joins) {
+        this.rootFactTable = rootFactTable;
+        this.olapContexts = contexts;
+        this.joins = joins;
+        this.tableRefAliasMap = Maps.newHashMap();
     }
 }

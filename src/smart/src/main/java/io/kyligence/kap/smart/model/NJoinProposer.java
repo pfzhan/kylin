@@ -36,6 +36,7 @@ import com.google.common.collect.Maps;
 
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.smart.NSmartContext;
+import io.kyligence.kap.smart.util.TableAliasGenerator;
 import lombok.val;
 
 public class NJoinProposer extends NAbstractModelProposer {
@@ -46,21 +47,37 @@ public class NJoinProposer extends NAbstractModelProposer {
 
     @Override
     public void doPropose(NDataModel modelDesc) {
+
         ModelTree modelTree = modelContext.getModelTree();
         Map<String, JoinTableDesc> joinTables = new HashMap<>();
-        Map<TableRef, String> tableAliasMap = modelTree.getTableRefAliasMap();
-        Map<String, TableRef> aliasRefMap = Maps.newHashMap();
 
-        for (JoinTableDesc joinTableDesc : modelDesc.getJoinTables()) {
-            joinTables.put(joinTableDesc.getAlias(), joinTableDesc);
-            tableAliasMap.put(modelDesc.findTable(joinTableDesc.getAlias()), joinTableDesc.getAlias());
-        }
-
+        // step 1. produce unique aliasMap
+        final TableAliasGenerator.TableAliasDict dict = TableAliasGenerator
+                .generateCommonDictForSpecificModel(kylinConfig, project);
+        val uniqueTblAliasMap = GreedyModelTreesBuilder.TreeBuilder
+                .getUniqueTblAliasBasedOnPosInGraph(modelDesc.getJoinsGraph(), dict);
         for (OLAPContext ctx : modelTree.getOlapContexts()) {
             if (ctx == null || ctx.joins.isEmpty() || !isValidOlapContext(ctx)) {
                 continue;
             }
+            uniqueTblAliasMap.putAll(GreedyModelTreesBuilder.TreeBuilder.getUniqueTblAliasBasedOnPosInGraph(ctx, dict));
+        }
 
+        //step 2. correct table alias based on unique aliasMap and keep origin alias in model
+        Map<TableRef, String> originTblRefAlias = Maps.newHashMap();
+        for (JoinTableDesc joinTable : modelDesc.getJoinTables()) {
+            joinTables.put(joinTable.getAlias(), joinTable);
+            originTblRefAlias.put(modelDesc.findTable(joinTable.getAlias()), joinTable.getAlias());
+        }
+        Map<TableRef, String> tableAliasMap = GreedyModelTreesBuilder.TreeBuilder.correctTblAliasAndKeepOriginAlias(
+                uniqueTblAliasMap, modelDesc.getRootFactTable().getTableDesc(), originTblRefAlias);
+
+        // step 3. merge context and adjust target model
+        Map<String, TableRef> aliasRefMap = Maps.newHashMap();
+        for (OLAPContext ctx : modelTree.getOlapContexts()) {
+            if (ctx == null || ctx.joins.isEmpty() || !isValidOlapContext(ctx)) {
+                continue;
+            }
             try {
                 Map<String, JoinTableDesc> tmpJoinTablesMap = new HashMap<>();
                 GreedyModelTreesBuilder.TreeBuilder.mergeContext(ctx, tmpJoinTablesMap, tableAliasMap, aliasRefMap);

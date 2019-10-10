@@ -33,8 +33,12 @@ import java.util.Map;
 import java.util.Map.Entry;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.metadata.model.TableDesc;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import io.kyligence.kap.metadata.model.NTableMetadataManager;
 
 // Utility to generate shortest readable table alias
 public class TableAliasGenerator {
@@ -83,6 +87,11 @@ public class TableAliasGenerator {
         }
 
         return new TableAliasDict(dict);
+    }
+
+    public static TableAliasDict generateCommonDictForSpecificModel(KylinConfig config, String project) {
+        Map<String, TableDesc> allTablesMap = NTableMetadataManager.getInstance(config, project).getAllTablesMap();
+        return generateNewDict(allTablesMap.keySet().toArray(new String[0]));
     }
 
     private static Map<String, String> quickDict(String[] sourceNames) {
