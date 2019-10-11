@@ -26,6 +26,7 @@ import org.apache.spark.sql.catalyst.TableIdentifier
 import org.apache.spark.sql.common.{SharedSparkSession, SparderBaseFunSuite}
 import org.apache.spark.sql.types.StructType
 import org.apache.spark.sql.SparderEnv
+import org.apache.spark.sql.types.MetadataBuilder
 
 class NSparkTableMetaExplorerTest extends SparderBaseFunSuite with SharedSparkSession {
 
@@ -65,5 +66,26 @@ class NSparkTableMetaExplorerTest extends SparderBaseFunSuite with SharedSparkSe
     }
   }
 
+  test("Test load hive type") {
+    SparderEnv.setSparkSession(spark)
+    withTable("hive_table_types") {
 
+        val view = CatalogTable(
+          identifier = TableIdentifier("hive_table_types"),
+          tableType = CatalogTableType.MANAGED,
+          storage = CatalogStorageFormat.empty,
+          schema = new StructType()
+            .add("a", "string", nullable = true, new MetadataBuilder().putString("HIVE_TYPE_STRING", "char(10)").build())
+            .add("b", "string", nullable = true, new MetadataBuilder().putString("HIVE_TYPE_STRING", "varchar(33)").build())
+            .add("c", "int"),
+          properties = Map()
+        )
+
+        spark.sessionState.catalog.createTable(view, ignoreIfExists = false)
+        val meta = new NSparkTableMetaExplorer().getSparkTableMeta("", "hive_table_types")
+        assert(meta.allColumns.get(0).dataType == "char(10)")
+        assert(meta.allColumns.get(1).dataType == "varchar(33)")
+        assert(meta.allColumns.get(2).dataType == "int")
+    }
+  }
 }

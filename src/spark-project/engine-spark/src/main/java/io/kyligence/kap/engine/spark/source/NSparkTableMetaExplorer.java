@@ -23,10 +23,12 @@
  */
 package io.kyligence.kap.engine.spark.source;
 
-import com.google.common.collect.Lists;
 import java.io.Serializable;
 import java.net.URI;
+import java.util.EnumMap;
 import java.util.List;
+import java.util.Map;
+
 import org.apache.spark.sql.SparderEnv;
 import org.apache.spark.sql.catalyst.TableIdentifier;
 import org.apache.spark.sql.catalyst.catalog.CatalogTable;
@@ -34,11 +36,41 @@ import org.apache.spark.sql.catalyst.catalog.CatalogTableType;
 import org.apache.spark.sql.catalyst.catalog.SessionCatalog;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.collect.Lists;
+
 import scala.Option;
 
 public class NSparkTableMetaExplorer implements Serializable {
 
     private static final Logger logger = LoggerFactory.getLogger(NSparkTableMetaExplorer.class);
+
+    enum PROVIDER {
+        HIVE("hive"),
+        UNSPECIFIED("");
+
+        private static final PROVIDER[] ALL = new PROVIDER[] { HIVE };
+        private String value;
+
+        PROVIDER(String value) {
+            this.value = value;
+        }
+
+        public static PROVIDER fromString(String value) {
+            for (PROVIDER provider : ALL) {
+                if (provider.value.equals(value)) {
+                    return provider;
+                }
+            }
+            return UNSPECIFIED;
+        }
+    }
+
+    private static final Map<PROVIDER, String> PROVIDER_METADATA_TYPE_STRING = new EnumMap<>(PROVIDER.class);
+
+    static {
+        PROVIDER_METADATA_TYPE_STRING.put(PROVIDER.HIVE, "HIVE_TYPE_STRING");
+    }
 
     public NSparkTableMeta getSparkTableMeta(String database, String tableName) {
         SessionCatalog catalog = SparderEnv.getSparkSession().sessionState().catalog();
@@ -55,13 +87,17 @@ public class NSparkTableMetaExplorer implements Serializable {
         List<NSparkTableMeta.SparkTableColumnMeta> allColumns = Lists
                 .newArrayListWithCapacity(tableMetadata.schema().size());
         for (org.apache.spark.sql.types.StructField field : tableMetadata.schema().fields()) {
-            if (field.getComment().isDefined()) {
-                allColumns.add(new NSparkTableMeta.SparkTableColumnMeta(field.name(), field.dataType().simpleString(),
-                        field.getComment().get()));
-            } else {
-                allColumns.add(
-                        new NSparkTableMeta.SparkTableColumnMeta(field.name(), field.dataType().simpleString(), null));
+            String type = field.dataType().simpleString();
+
+            // fetch provider specified type
+            if (!field.metadata().map().isEmpty()) {
+                PROVIDER provider = PROVIDER.fromString(tableMetadata.provider().get());
+                if (provider != PROVIDER.UNSPECIFIED) {
+                    type = field.metadata().getString(PROVIDER_METADATA_TYPE_STRING.get(provider));
+                }
             }
+            allColumns.add(new NSparkTableMeta.SparkTableColumnMeta(
+                    field.name(), type, field.getComment().isDefined() ? field.getComment().get() : null));
         }
         builder.setAllColumns(allColumns);
         builder.setOwner(tableMetadata.owner());
