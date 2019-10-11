@@ -51,7 +51,10 @@ import com.google.common.collect.Maps;
 import io.kyligence.kap.metadata.cube.cuboid.NSpanningTreeForWeb;
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
+import io.kyligence.kap.rest.request.ApplyRecommendationsRequest;
 import io.kyligence.kap.rest.request.BuildIndexRequest;
+import io.kyligence.kap.rest.request.RemoveRecommendationsRequest;
+import io.kyligence.kap.rest.service.OptimizeRecommendationService;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.metadata.model.PartitionDesc;
@@ -100,6 +103,9 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
 
     @Mock
     private ModelService modelService;
+
+    @Mock
+    private OptimizeRecommendationService optimizeRecommendationService;
 
     @InjectMocks
     private NModelController nModelController = Mockito.spy(new NModelController());
@@ -371,7 +377,7 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
     public void testMergeSegments() throws Exception {
         SegmentsRequest request = mockSegmentRequest();
         request.setType(SegmentsRequest.SegmentsRequestType.MERGE);
-        request.setIds(new String[]{"0", "1"});
+        request.setIds(new String[] { "0", "1" });
         Mockito.doNothing().when(modelService).mergeSegmentsManually("89af4ee2-2cdb-4b07-b39e-4c29856309aa", "default",
                 request.getIds());
         mockMvc.perform(MockMvcRequestBuilders.put("/api/models/segments").contentType(MediaType.APPLICATION_JSON)
@@ -590,7 +596,6 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
         Mockito.verify(nModelController).buildIndicesManually(Mockito.any(BuildIndexRequest.class));
     }
 
-
     @Test
     public void testUnlinkModel() throws Exception {
         UnlinkModelRequest request = new UnlinkModelRequest();
@@ -636,8 +641,8 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
     @Test
     public void testGetModelConfig() throws Exception {
         Mockito.doReturn(new ArrayList<ModelConfigResponse>()).when(modelService).getModelConfig("default", null);
-        mockMvc.perform(MockMvcRequestBuilders.get("/api/models/config").param("project", "default").param("modelName", "")
-                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/models/config").param("project", "default")
+                .param("modelName", "").accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
                 .andExpect(MockMvcResultMatchers.status().isOk());
         Mockito.verify(nModelController).getModelConfig("", "default", 0, 10);
     }
@@ -654,6 +659,108 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
                 .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
                 .andExpect(MockMvcResultMatchers.status().isOk());
         Mockito.verify(nModelController).updateModelConfig("89af4ee2-2cdb-4b07-b39e-4c29856309aa", request);
+    }
+
+    @Test
+    public void testGetRecommendationsByModel() throws Exception {
+        mockMvc.perform(
+                MockMvcRequestBuilders.get("/api/models/recommendations").contentType(MediaType.APPLICATION_JSON)
+                        .param("project", "default").param("model", "89af4ee2-2cdb-4b07-b39e-4c29856309aa")
+                        .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .andExpect(MockMvcResultMatchers.status().isOk());
+        Mockito.verify(nModelController).getOptimizeRecommendations("default", "89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+
+        // project argument is empty
+        mockMvc.perform(
+                MockMvcRequestBuilders.get("/api/models/recommendations").contentType(MediaType.APPLICATION_JSON)
+                        .param("project", "").param("model", "89af4ee2-2cdb-4b07-b39e-4c29856309aa")
+                        .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .andExpect(MockMvcResultMatchers.status().isBadRequest());
+        Mockito.verify(nModelController).getOptimizeRecommendations("", "89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+    }
+
+    @Test
+    public void testApplyRecommendation() throws Exception {
+        val request = new ApplyRecommendationsRequest();
+        request.setProject("default");
+        request.setModelId("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+        Mockito.doNothing().when(optimizeRecommendationService).applyRecommendations(request, "default");
+        mockMvc.perform(MockMvcRequestBuilders.put("/api/models/recommendations")
+                .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
+                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .andExpect(MockMvcResultMatchers.status().isOk());
+        Mockito.verify(nModelController).applyOptimizeRecommendations(Mockito.any(ApplyRecommendationsRequest.class));
+
+        // project is empty
+        request.setProject("");
+        mockMvc.perform(MockMvcRequestBuilders.put("/api/models/recommendations")
+                .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
+                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .andExpect(MockMvcResultMatchers.status().isBadRequest());
+    }
+
+    @Test
+    public void testRemoveRecommendations() throws Exception {
+        val request = new RemoveRecommendationsRequest();
+        request.setProject("default");
+        request.setModelId("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+        Mockito.doNothing().when(optimizeRecommendationService)
+                .removeRecommendations(Mockito.any(RemoveRecommendationsRequest.class), Mockito.anyString());
+        mockMvc.perform(
+                MockMvcRequestBuilders.delete("/api/models/recommendations").contentType(MediaType.APPLICATION_JSON)
+                        .param("project", request.getProject()).param("model", request.getModelId())
+                        .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .andExpect(MockMvcResultMatchers.status().isOk());
+        Mockito.verify(nModelController).removeOptimizeRecommendations(request.getProject(), request.getModelId(), null,
+                null, null, null, null);
+
+        // project is empty
+        mockMvc.perform(
+                MockMvcRequestBuilders.delete("/api/models/recommendations").contentType(MediaType.APPLICATION_JSON)
+                        .param("project", "")
+                        .param("model", request.getModelId())
+                        .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .andExpect(MockMvcResultMatchers.status().isBadRequest());
+    }
+
+    @Test
+    public void testGetAggIndexContent() throws Exception {
+        Mockito.doReturn(null).when(optimizeRecommendationService).getAggIndexRecomContent("default",
+                "89af4ee2-2cdb-4b07-b39e-4c29856309aa", null, 10000L, 0, 10);
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/models/recommendations/agg_index")
+                .contentType(MediaType.APPLICATION_JSON).param("project", "default")
+                .param("model", "89af4ee2-2cdb-4b07-b39e-4c29856309aa").param("id", "10000")
+                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .andExpect(MockMvcResultMatchers.status().isOk());
+        Mockito.verify(nModelController).getAggIndexRecommendationContent("default",
+                "89af4ee2-2cdb-4b07-b39e-4c29856309aa", 10000L, null, 0, 10);
+
+        // model parameter is empty
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/models/recommendations/agg_index")
+                .contentType(MediaType.APPLICATION_JSON).param("project", "default")
+                .param("model", "").param("id", "10000")
+                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .andExpect(MockMvcResultMatchers.status().isBadRequest());
+    }
+
+    @Test
+    public void testGetTableIndexContent() throws Exception {
+        Mockito.doReturn(null).when(optimizeRecommendationService).getTableIndexRecomContent("default",
+                "89af4ee2-2cdb-4b07-b39e-4c29856309aa", null, 10000L, 0, 10);
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/models/recommendations/table_index")
+                .contentType(MediaType.APPLICATION_JSON).param("project", "default")
+                .param("model", "89af4ee2-2cdb-4b07-b39e-4c29856309aa").param("id", "10000")
+                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .andExpect(MockMvcResultMatchers.status().isOk());
+        Mockito.verify(nModelController).getTableIndexRecommendationContent("default",
+                "89af4ee2-2cdb-4b07-b39e-4c29856309aa", 10000L, null, 0, 10);
+
+        // model and project is empty
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/models/recommendations/table_index")
+                .contentType(MediaType.APPLICATION_JSON).param("project", "")
+                .param("model", "").param("id", "10000")
+                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .andExpect(MockMvcResultMatchers.status().isBadRequest());
     }
 
     private List<NSpanningTreeForWeb> mockRelations() {

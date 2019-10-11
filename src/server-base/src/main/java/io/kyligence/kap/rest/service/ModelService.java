@@ -279,6 +279,7 @@ public class ModelService extends BasicService {
         aclEvaluate.checkProjectReadPermission(projectName);
         List<NDataflow> dataflowList = getDataflowManager(projectName).listAllDataflows(true);
         val dfManager = getDataflowManager(projectName);
+        val optRecomManager = getOptRecommendationManager(projectName);
 
         List<NDataModelResponse> filterModels = new ArrayList<>();
         for (NDataflow dataflow : dataflowList) {
@@ -304,6 +305,7 @@ public class ModelService extends BasicService {
                     nDataModelResponse.setExpansionrate(
                             computeExpansionRate(nDataModelResponse.getStorage(), nDataModelResponse.getSource()));
                     nDataModelResponse.setUsage(dataflow.getQueryHitCount());
+                    nDataModelResponse.setRecommendationsCount(optRecomManager.getRecommendationCount(modelDesc.getId()));
                     filterModels.add(nDataModelResponse);
                 }
             }

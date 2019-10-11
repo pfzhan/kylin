@@ -121,7 +121,12 @@ public class OptimizeRecommendationManager {
         return crud.get(id);
     }
 
-    private OptimizeRecommendation save(OptimizeRecommendation recommendation) {
+    public int getRecommendationCount(String id) {
+        val optRecommendation = getOptimizeRecommendation(id);
+        return optRecommendation == null ? 0 : optRecommendation.getRecommendationsCount();
+    }
+
+    public OptimizeRecommendation save(OptimizeRecommendation recommendation) {
         return crud.save(recommendation);
     }
 
@@ -148,6 +153,8 @@ public class OptimizeRecommendationManager {
         recommendation.setEntity(indexEntity);
         recommendation.setAggIndex(!indexEntity.isTableIndex());
         recommendation.setAdd(add);
+        val recommendationType = add ? RecommendationType.ADDITION : RecommendationType.REMOVAL;
+        recommendation.setRecommendationType(recommendationType);
         return recommendation;
     }
 
@@ -598,7 +605,7 @@ public class OptimizeRecommendationManager {
         return context.getIndexPlan();
     }
 
-    void update(OptimizeContext context) {
+    public void update(OptimizeContext context) {
         update(context, context.getRecommendation().getLastVerifiedTime());
     }
 

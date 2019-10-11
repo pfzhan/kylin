@@ -68,6 +68,11 @@ public class IndexRecommendationItem implements Serializable, RecommendationItem
 
     @Getter
     @Setter
+    @JsonProperty("recommendation_type")
+    private RecommendationType recommendationType = RecommendationType.ADDITION;
+
+    @Getter
+    @Setter
     @JsonIgnore
     private boolean isCopy = false;
 

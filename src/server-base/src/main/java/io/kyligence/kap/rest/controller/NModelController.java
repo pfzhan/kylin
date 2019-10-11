@@ -31,6 +31,9 @@ import java.util.List;
 import java.util.Objects;
 
 import io.kyligence.kap.metadata.model.exception.LookupTableException;
+import io.kyligence.kap.rest.request.ApplyRecommendationsRequest;
+import io.kyligence.kap.rest.request.RemoveRecommendationsRequest;
+import io.kyligence.kap.rest.service.OptimizeRecommendationService;
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.rest.exception.BadRequestException;
@@ -88,6 +91,10 @@ public class NModelController extends NBasicController {
 
     @Autowired
     private ModelSemanticHelper semanticService;
+
+    @Autowired
+    @Qualifier("optimizeRecommendationService")
+    private OptimizeRecommendationService optimizeRecommendationService;
 
     @RequestMapping(value = "", method = { RequestMethod.GET }, produces = { "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
@@ -509,6 +516,87 @@ public class NModelController extends NBasicController {
         checkProjectName(request.getProject());
         modelService.updateModelConfig(request.getProject(), modelId, request);
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, null, "");
+    }
+
+    @RequestMapping(value = "/recommendations", method = { RequestMethod.GET }, produces = {
+            "application/vnd.apache.kylin-v2+json" })
+    @ResponseBody
+    public EnvelopeResponse getOptimizeRecommendations(@RequestParam(value = "project") String project,
+            @RequestParam(value = "model") String modelId) {
+        checkProjectName(project);
+        checkRequiredArg(MODEL_ID, modelId);
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS,
+                optimizeRecommendationService.getRecommendationByModel(project, modelId), "");
+    }
+
+    @RequestMapping(value = "/recommendations", method = { RequestMethod.PUT }, produces = {
+            "application/vnd.apache.kylin-v2+json" })
+    @ResponseBody
+    public EnvelopeResponse applyOptimizeRecommendations(@RequestBody ApplyRecommendationsRequest request) {
+        checkProjectName(request.getProject());
+        checkRequiredArg(MODEL_ID, request.getModelId());
+        optimizeRecommendationService.applyRecommendations(request, request.getProject());
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, null, "");
+    }
+
+    @RequestMapping(value = "/recommendations", method = { RequestMethod.DELETE }, produces = {
+            "application/vnd.apache.kylin-v2+json" })
+    @ResponseBody
+    public EnvelopeResponse removeOptimizeRecommendations(@RequestParam(value = "project") String project,
+                                                          @RequestParam(value = "model") String modelId,
+                                                          @RequestParam(value = "cc_recommendations", required = false) List<Long> ccItemIds,
+                                                          @RequestParam(value = "dimension_recommendations", required = false) List<Long> dimensionItemIds,
+                                                          @RequestParam(value = "measure_recommendations", required = false) List<Long> measureItemIds,
+                                                          @RequestParam(value = "agg_index_recommendations", required = false) List<Long> aggIndexItemIds,
+                                                          @RequestParam(value = "table_index_recommendations", required = false) List<Long> tableIndexItemIds) {
+        checkProjectName(project);
+        checkRequiredArg(MODEL_ID, modelId);
+        val request = new RemoveRecommendationsRequest();
+        request.setModelId(modelId);
+        request.setProject(project);
+        if (ccItemIds != null)
+            request.setCcItemIds(ccItemIds);
+        if (dimensionItemIds != null)
+            request.setDimensionItemIds(dimensionItemIds);
+        if (measureItemIds != null)
+            request.setMeasureItemIds(measureItemIds);
+        if (aggIndexItemIds != null)
+            request.setAggIndexItemIds(aggIndexItemIds);
+        if (tableIndexItemIds != null)
+            request.setTableIndexItemIds(tableIndexItemIds);
+
+        optimizeRecommendationService.removeRecommendations(request, request.getProject());
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, null, "");
+    }
+
+    @RequestMapping(value = "/recommendations/agg_index", method = { RequestMethod.GET }, produces = {
+            "application/vnd.apache.kylin-v2+json" })
+    @ResponseBody
+    public EnvelopeResponse getAggIndexRecommendationContent(@RequestParam(value = "project") String project,
+                                                             @RequestParam(value = "model") String modelId,
+                                                             @RequestParam(value = "id") long indexId,
+                                                             @RequestParam(value = "content", required = false) String content,
+                                                             @RequestParam(value = "pageOffset", required = false, defaultValue = "0") Integer offset,
+                                                             @RequestParam(value = "pageSize", required = false, defaultValue = "10") Integer limit) {
+        checkProjectName(project);
+        checkRequiredArg(MODEL_ID, modelId);
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS,
+                optimizeRecommendationService.getAggIndexRecomContent(project, modelId, content, indexId, offset, limit), "");
+    }
+
+    @RequestMapping(value = "/recommendations/table_index", method = { RequestMethod.GET }, produces = {
+            "application/vnd.apache.kylin-v2+json" })
+    @ResponseBody
+    public EnvelopeResponse getTableIndexRecommendationContent(@RequestParam(value = "project") String project,
+                                                               @RequestParam(value = "model") String modelId,
+                                                               @RequestParam(value = "id") long layoutId,
+                                                               @RequestParam(value = "content", required = false) String content,
+                                                               @RequestParam(value = "pageOffset", required = false, defaultValue = "0") Integer offset,
+                                                               @RequestParam(value = "pageSize", required = false, defaultValue = "10") Integer limit) {
+        checkProjectName(project);
+        checkRequiredArg(MODEL_ID, modelId);
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS,
+                optimizeRecommendationService.getTableIndexRecomContent(project, modelId, content, layoutId, offset, limit), "");
     }
 
     public void validatePartitionDesc(NDataModel model) {

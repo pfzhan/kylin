@@ -66,6 +66,14 @@ import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
+import io.kyligence.kap.event.manager.EventManager;
+import io.kyligence.kap.event.model.MergeSegmentEvent;
+import io.kyligence.kap.metadata.recommendation.CCRecommendationItem;
+import io.kyligence.kap.metadata.recommendation.DimensionRecommendationItem;
+import io.kyligence.kap.metadata.recommendation.IndexRecommendationItem;
+import io.kyligence.kap.metadata.recommendation.MeasureRecommendationItem;
+import io.kyligence.kap.metadata.recommendation.OptimizeRecommendation;
+import io.kyligence.kap.metadata.recommendation.OptimizeRecommendationManager;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
@@ -107,11 +115,9 @@ import com.google.common.collect.Collections2;
 import com.google.common.collect.Lists;
 
 import io.kyligence.kap.event.manager.EventDao;
-import io.kyligence.kap.event.manager.EventManager;
 import io.kyligence.kap.event.model.AddCuboidEvent;
 import io.kyligence.kap.event.model.AddSegmentEvent;
 import io.kyligence.kap.event.model.Event;
-import io.kyligence.kap.event.model.MergeSegmentEvent;
 import io.kyligence.kap.event.model.PostAddSegmentEvent;
 import io.kyligence.kap.event.model.PostMergeOrRefreshSegmentEvent;
 import io.kyligence.kap.event.model.RefreshSegmentEvent;
@@ -227,6 +233,51 @@ public class ModelServiceTest extends CSVSourceTestCase {
                 "DISABLED", "last_modify", true);
         Assert.assertEquals(0, model5.size());
 
+    }
+
+    @Test
+    public void testGetModelsWithRecommendationCount() {
+        val models = modelService.getModels("nmodel_basic", "default", true, "", "", "last_modify", true);
+        Assert.assertEquals(1, models.size());
+        Assert.assertEquals(0, models.get(0).getRecommendationsCount());
+
+        val modelId1 = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
+        val modelId2 = "741ca86a-1f13-46da-a59f-95fb68615e3a";
+
+        val recommendation1 = new OptimizeRecommendation();
+        recommendation1.setUuid(modelId1);
+        recommendation1.setProject("default");
+
+        val ccRecommendation1 = new CCRecommendationItem();
+        val ccRecommendation2 = new CCRecommendationItem();
+
+        recommendation1.setCcRecommendations(Lists.newArrayList(ccRecommendation1, ccRecommendation2));
+
+        val recommendationManager = Mockito.spy(OptimizeRecommendationManager.getInstance(getTestConfig(), "default"));
+        Mockito.doReturn(recommendation1).when(recommendationManager).getOptimizeRecommendation(modelId1);
+
+        val recommendation2 = new OptimizeRecommendation();
+        recommendation2.setUuid(modelId2);
+
+        recommendation2.setMeasureRecommendations(Lists.newArrayList(new MeasureRecommendationItem(), new MeasureRecommendationItem()));
+        recommendation2.setDimensionRecommendations(Lists.newArrayList(new DimensionRecommendationItem()));
+        val indexRecommendation1 = new IndexRecommendationItem();
+        val indexEntity = new IndexEntity();
+        indexEntity.setId(10000L);
+        indexRecommendation1.setEntity(indexEntity);
+        indexRecommendation1.setAggIndex(true);
+
+        val indexRecommendation2 = new IndexRecommendationItem();
+        indexRecommendation2.setEntity(indexEntity);
+        indexRecommendation2.setAggIndex(true);
+        recommendation2.setIndexRecommendations(Lists.newArrayList(indexRecommendation1, indexRecommendation2));
+
+        Mockito.doReturn(recommendation2).when(recommendationManager).getOptimizeRecommendation(modelId2);
+        Mockito.doReturn(recommendationManager).when(modelService).getOptRecommendationManager("default");
+
+        val allModels = modelService.getModels("", "default", false, "", "", "recommendations_count", true);
+        Assert.assertEquals(4, allModels.get(0).getRecommendationsCount());
+        Assert.assertEquals(2, allModels.get(1).getRecommendationsCount());
     }
 
     @Test

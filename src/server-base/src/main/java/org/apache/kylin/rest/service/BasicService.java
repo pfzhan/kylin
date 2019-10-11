@@ -44,6 +44,7 @@ package org.apache.kylin.rest.service;
 
 import java.util.Comparator;
 
+import io.kyligence.kap.metadata.recommendation.OptimizeRecommendationManager;
 import io.kyligence.kap.metadata.acl.AclTCRManager;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -87,6 +88,10 @@ public abstract class BasicService {
 
     public NDataModelManager getDataModelManager(String project) {
         return NDataModelManager.getInstance(getConfig(), project);
+    }
+
+    public OptimizeRecommendationManager getOptRecommendationManager(String project) {
+        return OptimizeRecommendationManager.getInstance(getConfig(), project);
     }
 
     public NDataflowManager getDataflowManager(String project) {

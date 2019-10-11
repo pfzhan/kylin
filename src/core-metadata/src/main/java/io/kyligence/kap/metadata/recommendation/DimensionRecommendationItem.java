@@ -50,6 +50,11 @@ public class DimensionRecommendationItem implements Serializable, Recommendation
 
     @Getter
     @Setter
+    @JsonProperty("recommendation_type")
+    private RecommendationType recommendationType = RecommendationType.ADDITION;
+
+    @Getter
+    @Setter
     @JsonProperty("is_auto_change_name")
     @JsonInclude(JsonInclude.Include.NON_DEFAULT)
     private boolean isAutoChangeName = true;

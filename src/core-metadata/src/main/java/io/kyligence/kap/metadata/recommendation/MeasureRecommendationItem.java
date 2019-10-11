@@ -53,6 +53,11 @@ public class MeasureRecommendationItem implements Serializable, RecommendationIt
 
     @Getter
     @Setter
+    @JsonProperty("recommendation_type")
+    private RecommendationType recommendationType = RecommendationType.ADDITION;
+
+    @Getter
+    @Setter
     @JsonProperty("measure_id")
     private int measureId;
 
@@ -121,7 +126,7 @@ public class MeasureRecommendationItem implements Serializable, RecommendationIt
                 val columns = real ? context.getRealColumnIdMap() : context.getVirtualColumnIdMap();
                 val value = context.getMeasureRecommendationItem(itemId).getMeasure().getFunction().getParameters()
                         .get(i).getValue();
-                if (!columns.containsKey(value)) {
+                if (!columns.containsKey(value.toUpperCase())) {
                     if (!real && context.getFailCCColumn().contains(value)) {
                         context.failMeasureRecommendationItem(itemId);
                         return;
