@@ -88,6 +88,7 @@ public class KapNonEquiJoinRel extends EnumerableThetaJoin implements KapRel {
             Set<CorrelationId> variablesSet, JoinRelType joinType) throws InvalidRelException {
         super(cluster, traits, left, right, condition, variablesSet, joinType);
         leftInputSizeBeforeRewrite = left.getRowType().getFieldList().size();
+        rowType = getRowType();
     }
 
     @Override
