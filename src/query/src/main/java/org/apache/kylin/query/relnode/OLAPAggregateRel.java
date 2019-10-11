@@ -322,7 +322,7 @@ public class OLAPAggregateRel extends Aggregate implements OLAPRel {
     }
 
     public boolean needRewrite() {
-        return this.context.realization != null && !this.afterAggregate;
+        return this.context.realization != null && !this.afterAggregate && !context.isAnsweredByTableIndex();
     }
 
     @Override

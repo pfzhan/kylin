@@ -27,6 +27,7 @@ import java.io.File;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
@@ -63,6 +64,7 @@ import org.spark_project.guava.collect.Sets;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.engine.spark.job.NSparkCubingJob;
@@ -77,16 +79,36 @@ import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import lombok.val;
+import lombok.extern.slf4j.Slf4j;
 
 @SuppressWarnings("serial")
+@Slf4j
 public class NLocalWithSparkSessionTest extends NLocalFileMetadataTestCase implements Serializable {
 
     private static final String CSV_TABLE_DIR = "../examples/test_metadata/data/%s.csv";
 
     protected static final String KAP_SQL_BASE_DIR = "../kap-it/src/test/resources/query";
-
+    private Map<String, String> systemProp = Maps.newHashMap();
     protected static SparkConf sparkConf;
     protected static SparkSession ss;
+
+    protected void overwriteSystemProp(String key, String value) {
+        systemProp.put(key, System.getProperty(key));
+        System.setProperty(key, value);
+    }
+
+    protected void restoreAllSystemProp() {
+        systemProp.forEach((prop, value) -> {
+            if (value == null) {
+                log.info("Clear {}", prop);
+                System.clearProperty(prop);
+            } else {
+                log.info("restore {}", prop);
+                System.setProperty(prop, value);
+            }
+        });
+        systemProp.clear();
+    }
 
     @BeforeClass
     public static void beforeClass() {
@@ -122,12 +144,14 @@ public class NLocalWithSparkSessionTest extends NLocalFileMetadataTestCase imple
 
     @Before
     public void setUp() throws Exception {
+        overwriteSystemProp("calcite.keep-in-clause", "true");
         this.createTestMetadata();
     }
 
     @After
     public void tearDown() throws Exception {
         this.cleanupTestMetadata();
+        restoreAllSystemProp();
     }
 
     public String getProject() {
@@ -135,7 +159,8 @@ public class NLocalWithSparkSessionTest extends NLocalFileMetadataTestCase imple
     }
 
     protected void init() throws Exception {
-        System.setProperty("kylin.job.scheduler.poll-interval-second", "1");
+        overwriteSystemProp("kylin.job.scheduler.poll-interval-second", "1");
+        overwriteSystemProp("calcite.keep-in-clause", "true");
         this.createTestMetadata();
         NDefaultScheduler scheduler = NDefaultScheduler.getInstance(getProject());
         scheduler.init(new JobEngineConfig(KylinConfig.getInstanceFromEnv()), new MockJobLock());

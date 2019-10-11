@@ -84,7 +84,7 @@ import lombok.extern.slf4j.Slf4j;
 public class NAutoTestBase extends NLocalWithSparkSessionTest {
 
     static final String IT_SQL_KAP_DIR = "../kap-it/src/test/resources/";
-    private Map<String, String> systemProp = Maps.newHashMap();
+
     protected KylinConfig kylinConfig;
     private static Set<String> excludedSqlPatterns = Sets.newHashSet();
 
@@ -95,30 +95,12 @@ public class NAutoTestBase extends NLocalWithSparkSessionTest {
         if (CollectionUtils.isEmpty(excludedSqlPatterns)) {
             excludedSqlPatterns = loadWhiteListSqlPatterns();
         }
-        overwriteSystemProp("calcite.keep-in-clause", "true");
+
     }
 
     @Override
     public String getProject() {
         return "newten";
-    }
-
-    void overwriteSystemProp(String key, String value) {
-        systemProp.put(key, System.getProperty(key));
-        System.setProperty(key, value);
-    }
-
-    private void restoreAllSystemProp() {
-        systemProp.forEach((prop, value) -> {
-            if (value == null) {
-                log.info("Clear {}", prop);
-                System.clearProperty(prop);
-            } else {
-                log.info("restore {}", prop);
-                System.setProperty(prop, value);
-            }
-        });
-        systemProp.clear();
     }
 
     @After

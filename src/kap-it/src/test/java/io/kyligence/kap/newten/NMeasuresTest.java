@@ -263,7 +263,7 @@ public class NMeasuresTest extends NLocalWithSparkSessionTest {
 
     @Test
     public void testCountOneReplaceCountColumn() throws Exception {
-        System.setProperty("kylin.query.replace-count-column-with-count-star", "true");
+        overwriteSystemProp("kylin.query.replace-count-column-with-count-star", "true");
         NDataModel.Measure countOneMeasure = new NDataModel.Measure();
         countOneMeasure.setName("COUNT_ONE");
         countOneMeasure.setFunction(
@@ -320,7 +320,7 @@ public class NMeasuresTest extends NLocalWithSparkSessionTest {
 
     @Test
     public void testCountOneNotReplaceCountColumn() throws Exception {
-        System.setProperty("kylin.query.replace-count-column-with-count-star", "true");
+        overwriteSystemProp("kylin.query.replace-count-column-with-count-star", "true");
         NDataModel.Measure countOneMeasure = new NDataModel.Measure();
         countOneMeasure.setName("COUNT_ONE");
         countOneMeasure.setFunction(

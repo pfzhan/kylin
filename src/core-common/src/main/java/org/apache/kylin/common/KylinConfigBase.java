@@ -1166,6 +1166,10 @@ abstract public class KylinConfigBase implements Serializable {
     // QUERY
     // ============================================================================
 
+    public boolean isUseTableIndexAnswerNonRawQuery() {
+        return Boolean.valueOf(getOptional("kylin.query.use-tableindex-answer-non-raw-query", "false"));
+    }
+
     public boolean isTransactionEnabledInQuery() {
         return Boolean.valueOf(getOptional("kylin.query.transaction-enable", "false"));
     }

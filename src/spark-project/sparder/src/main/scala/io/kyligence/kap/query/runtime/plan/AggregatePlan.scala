@@ -27,7 +27,7 @@ import io.kyligence.kap.query.runtime.RuntimeHelper
 import org.apache.calcite.DataContext
 import org.apache.calcite.rel.core.AggregateCall
 import org.apache.calcite.sql.SqlKind
-import org.apache.kylin.common.KapConfig
+import org.apache.kylin.common.{KapConfig}
 import org.apache.kylin.metadata.model.FunctionDesc
 import org.apache.kylin.query.relnode.{KylinAggregateCall, OLAPAggregateRel}
 import org.apache.spark.internal.Logging
@@ -60,7 +60,7 @@ object AggregatePlan extends Logging {
       .map(groupId => col(schemaNames.apply(groupId)))
       .toList
 
-    val df = if (KapConfig.getInstanceFromEnv.needReplaceAggWhenExactlyMatched() && isExactlyMatched(rel) && onlyHasOneSeg(rel)) {
+    val df = if (KapConfig.getInstanceFromEnv.needReplaceAggWhenExactlyMatched() && isExactlyMatched(rel) && onlyHasOneSeg(rel) && isAnsweredByAggIndex(rel)) {
 
       // exactly match, skip agg, direct project.
       val aggCols = rel.getRewriteAggCalls.asScala
@@ -106,6 +106,10 @@ object AggregatePlan extends Logging {
 
   private def onlyHasOneSeg(rel: KapAggregateRel): Boolean = {
     rel.getContext.realization.asInstanceOf[NDataflow].getQueryableSegments.size() == 1
+  }
+
+  private def isAnsweredByAggIndex(rel: KapAggregateRel): Boolean = {
+    return !rel.getContext.isAnsweredByTableIndex
   }
 
   private def isExactlyMatched(rel: KapAggregateRel): Boolean = {

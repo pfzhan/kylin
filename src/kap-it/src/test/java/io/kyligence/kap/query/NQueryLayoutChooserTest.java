@@ -27,7 +27,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
-import io.kyligence.kap.metadata.model.NDataModel;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.metadata.model.ColumnDesc;
@@ -55,6 +54,7 @@ import io.kyligence.kap.metadata.cube.model.NDataflowCapabilityChecker;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
+import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.smart.NSmartMaster;
 import lombok.val;
@@ -224,7 +224,7 @@ public class NQueryLayoutChooserTest extends NLocalWithSparkSessionTest {
 
     @Test
     public void testUnmatchedCountColunm() {
-        System.setProperty("kylin.query.replace-count-column-with-count-star", "true");
+        overwriteSystemProp("kylin.query.replace-count-column-with-count-star", "true");
         String sql = "select avg(TEST_KYLIN_FACT.ITEM_COUNT) from TEST_KYLIN_FACT";
         OLAPContext context = prepareOlapContext(sql).get(0);
         NDataflow dataflow = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), PROJECT)
@@ -239,6 +239,48 @@ public class NQueryLayoutChooserTest extends NLocalWithSparkSessionTest {
         Assert.assertTrue(containMeasure(allMeasures, "COUNT", "1"));
         Assert.assertTrue(containMeasure(allMeasures, "SUM", "DEFAULT.TEST_KYLIN_FACT.PRICE"));
         Assert.assertFalse(containMeasure(allMeasures, "COUNT", "DEFAULT.TEST_KYLIN_FACT.PRICE"));
+    }
+
+    @Test
+    public void testTableIndexAndAggIndex() {
+        overwriteSystemProp("kylin.query.use-tableindex-answer-non-raw-query", "true");
+        String uuid = "acfde546-2cc9-4eec-bc92-e3bd46d4e2ee";
+        NDataflow dataflow = NDataflowManager.getInstance(getTestConfig(), "table_index").getDataflow(uuid);
+
+        String sql1 = "select sum(ORDER_ID) from TEST_KYLIN_FACT";
+        OLAPContext context1 = prepareOlapContext(sql1).get(0);
+        Map<String, String> sqlAlias2ModelName1 = RealizationChooser.matchJoins(dataflow.getModel(), context1);
+        context1.fixModel(dataflow.getModel(), sqlAlias2ModelName1);
+        Pair<NLayoutCandidate, List<CapabilityResult.CapabilityInfluence>> pair1 = NQueryLayoutChooser.selectCuboidLayout(dataflow.getLatestReadySegment(), context1.getSQLDigest());
+        Assert.assertFalse(pair1.getFirst().getCuboidLayout().getIndex().isTableIndex());
+
+        String sql2 = "select max(ORDER_ID) from TEST_KYLIN_FACT";
+        OLAPContext context2 = prepareOlapContext(sql2).get(0);
+        Map<String, String> sqlAlias2ModelName2 = RealizationChooser.matchJoins(dataflow.getModel(), context2);
+        context2.fixModel(dataflow.getModel(), sqlAlias2ModelName2);
+        Pair<NLayoutCandidate, List<CapabilityResult.CapabilityInfluence>> pair2 = NQueryLayoutChooser.selectCuboidLayout(dataflow.getLatestReadySegment(), context2.getSQLDigest());
+        Assert.assertFalse(pair2.getFirst().getCuboidLayout().getIndex().isTableIndex());
+
+        String sql3 = "select min(ORDER_ID) from TEST_KYLIN_FACT";
+        OLAPContext context3 = prepareOlapContext(sql3).get(0);
+        Map<String, String> sqlAlias2ModelName3 = RealizationChooser.matchJoins(dataflow.getModel(), context3);
+        context3.fixModel(dataflow.getModel(), sqlAlias2ModelName3);
+        Pair<NLayoutCandidate, List<CapabilityResult.CapabilityInfluence>> pair3 = NQueryLayoutChooser.selectCuboidLayout(dataflow.getLatestReadySegment(), context3.getSQLDigest());
+        Assert.assertFalse(pair3.getFirst().getCuboidLayout().getIndex().isTableIndex());
+
+        String sql4 = "select count(ORDER_ID) from TEST_KYLIN_FACT";
+        OLAPContext context4 = prepareOlapContext(sql4).get(0);
+        Map<String, String> sqlAlias2ModelName4 = RealizationChooser.matchJoins(dataflow.getModel(), context4);
+        context4.fixModel(dataflow.getModel(), sqlAlias2ModelName4);
+        Pair<NLayoutCandidate, List<CapabilityResult.CapabilityInfluence>> pair4 = NQueryLayoutChooser.selectCuboidLayout(dataflow.getLatestReadySegment(), context4.getSQLDigest());
+        Assert.assertFalse(pair4.getFirst().getCuboidLayout().getIndex().isTableIndex());
+
+        String sql5 = "select count(distinct ORDER_ID) from TEST_KYLIN_FACT";
+        OLAPContext context5 = prepareOlapContext(sql5).get(0);
+        Map<String, String> sqlAlias2ModelName5 = RealizationChooser.matchJoins(dataflow.getModel(), context5);
+        context5.fixModel(dataflow.getModel(), sqlAlias2ModelName5);
+        Pair<NLayoutCandidate, List<CapabilityResult.CapabilityInfluence>> pair5 = NQueryLayoutChooser.selectCuboidLayout(dataflow.getLatestReadySegment(), context5.getSQLDigest());
+        Assert.assertFalse(pair5.getFirst().getCuboidLayout().getIndex().isTableIndex());
     }
 
     public boolean containMeasure(List<NDataModel.Measure> allMeasures, String expression, String parameter) {

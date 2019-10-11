@@ -44,6 +44,7 @@ package org.apache.kylin.query.routing;
 
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -57,6 +58,7 @@ import org.apache.kylin.metadata.model.JoinDesc;
 import org.apache.kylin.metadata.model.JoinTableDesc;
 import org.apache.kylin.metadata.model.JoinsGraph;
 import org.apache.kylin.metadata.model.MeasureDesc;
+import org.apache.kylin.metadata.model.ParameterDesc;
 import org.apache.kylin.metadata.model.TableRef;
 import org.apache.kylin.metadata.model.TblColRef;
 import org.apache.kylin.metadata.realization.CapabilityResult;
@@ -152,11 +154,35 @@ public class RealizationChooser {
                 buildDimensionsAndMetrics(context.getSQLDigest(), dimensions, metrics, (NDataflow) context.realization);
                 buildStorageContext(context.storageContext, dimensions, metrics,
                         (NLayoutCandidate) selectedCandidate.capability.getSelectedCandidate());
+                fixContextForTableIndexAnswerNonRawQuery(context);
             }
             return;
         }
 
         throw new NoRealizationFoundException("No realization found for " + toErrorMsg(context));
+    }
+
+    public static void fixContextForTableIndexAnswerNonRawQuery(OLAPContext context) {
+        if (KylinConfig.getInstanceFromEnv().isUseTableIndexAnswerNonRawQuery() && context.isAnsweredByTableIndex()) {
+            if (!context.aggregations.isEmpty()) {
+                List<FunctionDesc> aggregations = context.aggregations;
+                HashSet<TblColRef> needDimensions = Sets.newHashSet();
+                for (FunctionDesc aggregation : aggregations) {
+                    List<ParameterDesc> parameters = aggregation.getParameters();
+                    for (ParameterDesc aggParameter : parameters) {
+                        needDimensions.add(aggParameter.getColRef());
+                    }
+                }
+                context.storageContext.getDimensions().addAll(needDimensions);
+                context.aggregations.clear();
+            }
+            if (context.getSQLDigest().aggregations != null) {
+                context.getSQLDigest().aggregations.clear();
+            }
+            if (context.storageContext.getMetrics() != null) {
+                context.storageContext.getMetrics().clear();
+            }
+        }
     }
 
     private static void adjustForCapabilityInfluence(Candidate chosen, OLAPContext olapContext) {

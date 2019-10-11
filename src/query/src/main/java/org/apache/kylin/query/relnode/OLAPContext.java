@@ -424,6 +424,14 @@ public class OLAPContext {
             this.innerGroupByColumns.add(new TableColRefWIthRel(rel, tblColRef));
         }
     }
+    
+    public boolean isAnsweredByTableIndex() {
+        if (this.storageContext.getCandidate() != null
+                && this.storageContext.getCandidate().getCuboidLayout().getIndex().isTableIndex()) {
+            return true;
+        }
+        return false;
+    }
 
     @Override
     public String toString() {
