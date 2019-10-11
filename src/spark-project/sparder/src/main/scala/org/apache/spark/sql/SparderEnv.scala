@@ -34,7 +34,8 @@ import org.apache.spark.sql.catalyst.parser.ParseException
 import org.apache.spark.sql.catalyst.plans.logical.LogicalPlan
 import org.apache.spark.sql.execution.datasource.KylinSourceStrategy
 import org.apache.spark.sql.udf.UdfManager
-import org.apache.spark.{SparkConf, SparkEnv}
+import org.apache.spark.util.Utils
+import org.apache.spark.{SparkConf, SparkContext, SparkEnv}
 
 // scalastyle:off
 object SparderEnv extends Logging {
@@ -61,7 +62,11 @@ object SparderEnv extends Logging {
   def restartSpark(): Unit = withClassLoad {
     this.synchronized {
       if (spark != null && !spark.sparkContext.isStopped) {
-        spark.stop()
+        Utils.tryWithSafeFinally {
+          spark.stop()
+        } {
+          SparkContext.clearActiveContext
+        }
       }
 
       logInfo("Restart Spark")
