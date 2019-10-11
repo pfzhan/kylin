@@ -24,6 +24,7 @@
 package org.apache.spark.sql.catalyst.expressions
 
 import org.apache.spark.dict.{NBucketDictionary, NGlobalDictionaryV2}
+import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.expressions.aggregate.DeclarativeAggregate
 import org.apache.spark.sql.catalyst.expressions.codegen.{CodeGenerator, CodegenContext, ExprCode}
 import org.apache.spark.sql.catalyst.util.KapDateTimeUtils
@@ -330,6 +331,14 @@ case class DictEncode(left: Expression, mid: Expression, right: Expression) exte
 
   override protected def nullSafeEval(input1: Any, input2: Any, input3: Any): Any = {
     DictEncodeImpl.evaluate(input1.toString, input2.toString, input3.toString)
+  }
+
+  override def eval(input: InternalRow): Any = {
+    if (input != null) {
+      super.eval(input)
+    } else {
+      0L
+    }
   }
 
   override def dataType: DataType = LongType
