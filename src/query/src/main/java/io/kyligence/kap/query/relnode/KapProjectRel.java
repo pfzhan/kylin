@@ -30,6 +30,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import io.kyligence.kap.metadata.model.ComputedColumnDesc;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptCost;
 import org.apache.calcite.plan.RelOptPlanner;
@@ -166,6 +167,7 @@ public class KapProjectRel extends OLAPProjectRel implements KapRel {
         ColumnRowType inputColumnRowType = ((OLAPRel) getInput()).getColumnRowType();
         for (Map.Entry<String, RelDataType> rewriteField : this.context.rewriteFields.entrySet()) {
             String rewriteFieldName = rewriteField.getKey();
+            rewriteFieldName = ComputedColumnDesc.getOriginCcName(rewriteFieldName); // strip off _CC_ prefix if any
             int rowIndex = this.columnRowType.getIndexByNameAndByContext(this.context, rewriteFieldName);
             if (rowIndex >= 0) {
                 continue;

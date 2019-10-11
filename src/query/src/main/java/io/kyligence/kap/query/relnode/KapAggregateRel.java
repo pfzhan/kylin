@@ -25,21 +25,27 @@
 package io.kyligence.kap.query.relnode;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
+import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptCost;
 import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.InvalidRelException;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.RelWriter;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.util.ImmutableBitSet;
+import org.apache.calcite.util.Util;
 import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.metadata.model.FunctionDesc;
 import org.apache.kylin.metadata.model.TblColRef;
@@ -61,6 +67,8 @@ public class KapAggregateRel extends OLAPAggregateRel implements KapRel {
     private Set<TblColRef> groupByInnerColumns = new HashSet<>(); // inner columns in group keys, for CC generation
 
     private Set<OLAPContext> subContexts = Sets.newHashSet();
+
+    private Map<TblColRef, TblColRef> groupCCColRewriteMapping = new HashMap<>(); // map the group by col with CC expr to its CC column
 
     public KapAggregateRel(RelOptCluster cluster, RelTraitSet traits, RelNode child, boolean indicator,
                            ImmutableBitSet groupSet, List<ImmutableBitSet> groupSets, List<AggregateCall> aggCalls)
@@ -152,16 +160,43 @@ public class KapAggregateRel extends OLAPAggregateRel implements KapRel {
     @Override
     protected void buildGroups() {
         ColumnRowType inputColumnRowType = ((OLAPRel) getInput()).getColumnRowType();
-        this.groups = new ArrayList<TblColRef>();
+        List<TblColRef> groups = new ArrayList<>();
+        List<Integer> groupKeys = new LinkedList<>();
         for (int i = getGroupSet().nextSetBit(0); i >= 0; i = getGroupSet().nextSetBit(i + 1)) {
             TblColRef originalColumn = inputColumnRowType.getColumnByIndex(i);
-            Set<TblColRef> sourceColumns = inputColumnRowType.getSourceColumnsByIndex(i);
+            if (groupCCColRewriteMapping.containsKey(originalColumn)) {
+                groups.add(groupCCColRewriteMapping.get(originalColumn));
+                groupKeys.add(inputColumnRowType.getIndexByName(groupCCColRewriteMapping.get(originalColumn).getName()));
+            } else {
+                Set<TblColRef> sourceColumns = inputColumnRowType.getSourceColumnsByIndex(i);
+                groups.addAll(sourceColumns);
+                groupKeys.add(i);
+            }
 
-            this.groups.addAll(sourceColumns);
             if (originalColumn.isInnerColumn()) {
                 this.groupByInnerColumns.add(originalColumn);
             }
         }
+        this.groups = groups;
+        this.groupSet = ImmutableBitSet.of(groupKeys);
+    }
+
+    public void reBuildGroups(Map<TblColRef, TblColRef> colReplacementMapping) {
+        this.groupCCColRewriteMapping = colReplacementMapping;
+        ColumnRowType inputColumnRowType = ((OLAPRel) this.getInput()).getColumnRowType();
+        Set<TblColRef> groups = new HashSet<>();
+        for (int i = this.getGroupSet().nextSetBit(0); i >= 0; i = this.getGroupSet().nextSetBit(i + 1)) {
+            TblColRef originalColumn = inputColumnRowType.getColumnByIndex(i);
+            Set<TblColRef> sourceColumns = inputColumnRowType.getSourceColumnsByIndex(i);
+
+            if (colReplacementMapping.containsKey(originalColumn)) {
+                groups.add(colReplacementMapping.get(originalColumn));
+            } else {
+                groups.addAll(sourceColumns);
+            }
+        }
+        this.setGroups(new ArrayList<>(groups));
+        updateContextGroupByColumns();
     }
 
     private void updateContextGroupByColumns() {
@@ -170,7 +205,7 @@ public class KapAggregateRel extends OLAPAggregateRel implements KapRel {
                 context.getGroupByColumns().add(col);
             }
         }
-        context.getInnerGroupByColumns().addAll(groupByInnerColumns);
+        context.addInnerGroupColumns(this, groupByInnerColumns);
     }
 
     @Override
@@ -291,6 +326,25 @@ public class KapAggregateRel extends OLAPAggregateRel implements KapRel {
                 throw new IllegalStateException("Distinct count is only allowed in innermost sub-query.");
             }
         }
+    }
+
+    @Override
+    public RelWriter explainTerms(RelWriter pw) {
+        pw.input("input", getInput());
+        pw
+                .item("group-set", groupSet)
+                .itemIf("group-sets", groupSets, getGroupType() != Group.SIMPLE)
+                .item("groups", groups)
+                .itemIf("indicator", indicator, indicator)
+                .itemIf("aggs", rewriteAggCalls, pw.nest());
+        if (!pw.nest()) {
+            for (Ord<AggregateCall> ord : Ord.zip(rewriteAggCalls)) {
+                pw.item(Util.first(ord.e.name, "agg#" + ord.i), ord.e);
+            }
+        }
+        pw.item("ctx",
+                context == null ? "" : String.valueOf(context.id) + "@" + context.realization);
+        return pw;
     }
 
 }

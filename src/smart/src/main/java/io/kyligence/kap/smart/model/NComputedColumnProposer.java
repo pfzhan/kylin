@@ -38,6 +38,7 @@ import org.apache.kylin.metadata.model.TableExtDesc;
 import org.apache.kylin.metadata.model.TableRef;
 import org.apache.kylin.metadata.model.TblColRef;
 import org.apache.kylin.query.relnode.OLAPContext;
+import org.apache.kylin.query.relnode.TableColRefWIthRel;
 import org.apache.kylin.query.routing.RealizationChooser;
 
 import com.google.common.collect.Lists;
@@ -203,7 +204,8 @@ public class NComputedColumnProposer extends NAbstractModelProposer {
 
     private Collection<TblColRef> getGroupByInnerColumns(OLAPContext context) {
         Collection<TblColRef> resultSet = new HashSet<>();
-        for (TblColRef groupByColRef : context.getInnerGroupByColumns()) {
+        for (TableColRefWIthRel groupByColRefWithRel : context.getInnerGroupByColumns()) {
+            TblColRef groupByColRef = groupByColRefWithRel.getTblColRef();
             Set<TblColRef> groupSourceColumns = groupByColRef.getSourceColumns();
             if (!groupByColRef.getSourceColumns().isEmpty()
                     && checkColumnsMinCardinality(groupSourceColumns, modelContext.getSmartContext().getSmartConfig()

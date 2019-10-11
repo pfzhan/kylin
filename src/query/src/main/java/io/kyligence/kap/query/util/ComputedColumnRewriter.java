@@ -24,7 +24,9 @@
 
 package io.kyligence.kap.query.util;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.calcite.sql.SqlNode;
 import org.apache.commons.collections.CollectionUtils;
@@ -33,16 +35,19 @@ import org.apache.kylin.metadata.model.ParameterDesc;
 import org.apache.kylin.metadata.model.TblColRef;
 import org.apache.kylin.metadata.model.tool.CalciteParser;
 import org.apache.kylin.query.relnode.OLAPContext;
+import org.apache.kylin.query.relnode.TableColRefWIthRel;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Lists;
 
+import io.kyligence.kap.common.util.CollectionUtil;
 import io.kyligence.kap.metadata.model.ComputedColumnDesc;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.alias.ExpressionComparator;
 import io.kyligence.kap.metadata.model.util.ComputedColumnUtil;
+import io.kyligence.kap.query.relnode.KapAggregateRel;
 import lombok.var;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class ComputedColumnRewriter {
 
@@ -71,9 +76,16 @@ public class ComputedColumnRewriter {
                     continue;
                 }
 
+                SqlNode innerColExpr;
+                try {
+                    innerColExpr = CalciteParser.getExpNode(parameter.getColRef().getParserDescription());
+                } catch (IllegalStateException e) {
+                    logger.warn("Failed to resolve CC expr for {}", parameter.getColRef().getParserDescription(), e);
+                    continue;
+                }
+
                 for (ComputedColumnDesc cc : model.getComputedColumnDescs()) {
                     SqlNode ccExpressionNode = CalciteParser.getExpNode(cc.getExpression());
-                    SqlNode innerColExpr = CalciteParser.getExpNode(parameter.getColRef().getParserDescription());
                     if (ExpressionComparator.isNodeEqual(innerColExpr, ccExpressionNode, matchInfo,
                             new AliasDeduceImpl(matchInfo))) {
                         var ccCols = ComputedColumnUtil.createComputedColumns(Lists.newArrayList(cc),
@@ -94,7 +106,45 @@ public class ComputedColumnRewriter {
         if (CollectionUtils.isEmpty(model.getComputedColumnDescs())) {
             return;
         }
-        //todo
+
+        // collect all aggRel with candidate CC group keys
+        Map<KapAggregateRel, Map<TblColRef, TblColRef>> relColReplacementMapping = new HashMap<>();
+        for (TableColRefWIthRel tableColRefWIthRel : ctx.getInnerGroupByColumns()) {
+            SqlNode innerColExpr;
+            try {
+                innerColExpr = CalciteParser.getExpNode(tableColRefWIthRel.getTblColRef().getParserDescription());
+            } catch (IllegalStateException e) {
+                logger.warn("Failed to resolve CC expr for {}", tableColRefWIthRel.getTblColRef().getParserDescription(), e);
+                continue;
+            }
+            for (ComputedColumnDesc cc : model.getComputedColumnDescs()) {
+                SqlNode ccExpressionNode = CalciteParser.getExpNode(cc.getExpression());
+                if (ExpressionComparator.isNodeEqual(innerColExpr, ccExpressionNode, matchInfo,
+                        new AliasDeduceImpl(matchInfo))) {
+                    var ccCols = ComputedColumnUtil.createComputedColumns(Lists.newArrayList(cc),
+                            model.getRootFactTable().getTableDesc());
+
+                    CollectionUtil.find(
+                            ctx.firstTableScan.getColumnRowType().getAllColumns(),
+                            (colRef) -> colRef.getColumnDesc().equals(ccCols[0])
+                    ).ifPresent(ccColRef -> {
+                                relColReplacementMapping.putIfAbsent(
+                                        tableColRefWIthRel.getRelNodeAs(KapAggregateRel.class), new HashMap<>());
+                                relColReplacementMapping.get(tableColRefWIthRel.getRelNodeAs(KapAggregateRel.class))
+                                        .put(tableColRefWIthRel.getTblColRef(), ccColRef);
+                                logger.info("Replacing CC expr [{},{}] in group key {}",
+                                        cc.getColumnName(), cc.getExpression(), tableColRefWIthRel.getTblColRef());
+                            });
+                }
+            }
+        }
+
+        // rebuild aggRel group keys with CC cols
+        for (Map.Entry<KapAggregateRel, Map<TblColRef, TblColRef>> kapAggregateRelMapEntry : relColReplacementMapping.entrySet()) {
+            KapAggregateRel aggRel = kapAggregateRelMapEntry.getKey();
+            Map<TblColRef, TblColRef> colReplacementMapping = kapAggregateRelMapEntry.getValue();
+            aggRel.reBuildGroups(colReplacementMapping);
+        }
     }
 
     private static void rewriteFilterInnerCol(OLAPContext ctx, NDataModel model, QueryAliasMatchInfo matchInfo) {

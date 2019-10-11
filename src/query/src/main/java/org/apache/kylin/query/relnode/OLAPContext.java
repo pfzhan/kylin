@@ -77,6 +77,7 @@ import com.google.common.collect.Sets;
 
 import io.kyligence.kap.metadata.cube.cuboid.NLayoutCandidate;
 import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.query.relnode.KapRel;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -195,7 +196,7 @@ public class OLAPContext {
     @Getter
     // collect inner columns in group keys
     // this filed is used by CC proposer only
-    private Set<TblColRef> innerGroupByColumns = Sets.newLinkedHashSet();
+    private Set<TableColRefWIthRel> innerGroupByColumns = Sets.newLinkedHashSet();
     @Setter
     @Getter
     // collect inner columns in filter
@@ -408,6 +409,13 @@ public class OLAPContext {
 
     public interface IAccessController {
         void check(List<OLAPContext> contexts, OLAPRel tree, KylinConfig config);
+    }
+
+    public void addInnerGroupColumns(KapRel rel, Collection<TblColRef> innerGroupColumns) {
+        Set<TblColRef> innerGroupColumnsSet = new HashSet<>(innerGroupColumns);
+        for (TblColRef tblColRef : innerGroupColumnsSet) {
+            this.innerGroupByColumns.add(new TableColRefWIthRel(rel, tblColRef));
+        }
     }
 
     @Override

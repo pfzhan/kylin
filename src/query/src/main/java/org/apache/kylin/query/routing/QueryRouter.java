@@ -73,6 +73,23 @@ public class QueryRouter {
     public static Candidate selectRealization(OLAPContext olapContext, Set<IRealization> realizations, Map<String, String> aliasMap) {
         String factTableName = olapContext.firstTableScan.getTableName();
         String projectName = olapContext.olapSchema.getProjectName();
+        IRealization readyReal = null;
+        for (IRealization real : realizations) {
+            if (real.isReady()) {
+                readyReal = real;
+            }
+        }
+        if (readyReal == null) {
+            logger.warn("Realization {} is not ready", realizations);
+            return null;
+        }
+
+
+        BiMap<String, String> aliasMapping = HashBiMap.create();
+        aliasMapping.putAll(aliasMap);
+        ComputedColumnRewriter.rewriteCcInnerCol(olapContext, readyReal.getModel(),
+                new QueryAliasMatchInfo(aliasMapping, null));
+
         SQLDigest sqlDigest = olapContext.getSQLDigest();
         List<Candidate> candidates = Lists.newArrayListWithCapacity(realizations.size());
         for (IRealization real : realizations) {
@@ -80,19 +97,10 @@ public class QueryRouter {
                 candidates.add(new Candidate(real, sqlDigest, olapContext));
             }
         }
-        if (candidates.isEmpty()) {
-            logger.warn("Realization {} is not ready", realizations);
-            return null;
-        }
-
         logger.info("Find candidates by table {} and project={} : {}", factTableName, projectName,
                 StringUtils.join(candidates, ","));
         List<Candidate> originCandidates = Lists.newArrayList(candidates);
 
-        BiMap<String, String> aliasMapping = HashBiMap.create();
-        aliasMapping.putAll(aliasMap);
-        ComputedColumnRewriter.rewriteCcInnerCol(olapContext, candidates.get(0).getRealization().getModel(),
-                new QueryAliasMatchInfo(aliasMapping, null));
         // rule based realization selection, rules might reorder realizations or remove specific realization
         RoutingRule.applyRules(candidates);
 
