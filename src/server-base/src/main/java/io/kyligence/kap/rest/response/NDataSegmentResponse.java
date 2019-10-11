@@ -24,6 +24,7 @@
 
 package io.kyligence.kap.rest.response;
 
+import com.fasterxml.jackson.annotation.JsonUnwrapped;
 import org.apache.kylin.metadata.model.SegmentStatusEnumToDisplay;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -31,6 +32,8 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import lombok.Getter;
 import lombok.Setter;
+
+import java.io.Serializable;
 
 @Getter
 @Setter
@@ -65,6 +68,24 @@ public class NDataSegmentResponse extends NDataSegment {
         startTime = Long.parseLong(getSegRange().getStart().toString());
         endTime = Long.parseLong(getSegRange().getEnd().toString());
         storage = bytesSize;
+    }
+
+    /**
+     * for 3x rest api
+     */
+    @JsonUnwrapped
+    @Getter
+    @Setter
+    private OldParams oldParams;
+
+    @Getter
+    @Setter
+    public static class OldParams implements Serializable {
+        @JsonProperty("size_kb")
+        private long sizeKB;
+
+        @JsonProperty("input_records")
+        private long inputRecords;
     }
 
 }

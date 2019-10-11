@@ -28,6 +28,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import com.fasterxml.jackson.annotation.JsonUnwrapped;
 import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.TableExtDesc;
 import org.apache.kylin.metadata.model.TableRef;
@@ -66,6 +67,9 @@ public class NDataModelResponse extends NDataModel {
 
     @JsonProperty("root_fact_table_deleted")
     private boolean rootFactTableDeleted = false;
+
+    @JsonProperty("segments")
+    private List<NDataSegmentResponse> segments;
 
     private long lastModify;
 
@@ -137,4 +141,12 @@ public class NDataModelResponse extends NDataModel {
         }
         return columns;
     }
+
+    /**
+     * for 3x rest api
+     */
+    @JsonUnwrapped
+    @Getter
+    @Setter
+    private NDataModelOldParams oldParams;
 }

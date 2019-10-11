@@ -28,6 +28,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Objects;
 
 import io.kyligence.kap.metadata.model.exception.LookupTableException;
 import org.apache.commons.lang.ArrayUtils;
@@ -92,7 +93,8 @@ public class NModelController extends NBasicController {
     @ResponseBody
     public EnvelopeResponse getModels(@RequestParam(value = "model", required = false) String modelAlias,
             @RequestParam(value = "exact", required = false, defaultValue = "true") boolean exactMatch,
-            @RequestParam(value = "project", required = true) String project,
+            @RequestParam(value = "project", required = false) String project,
+            @RequestParam(value = "projectName", required = false) String projectName,
             @RequestParam(value = "owner", required = false) String owner,
             @RequestParam(value = "status", required = false) String status,
             @RequestParam(value = "table", required = false) String table,
@@ -100,6 +102,9 @@ public class NModelController extends NBasicController {
             @RequestParam(value = "pageSize", required = false, defaultValue = "10") Integer limit,
             @RequestParam(value = "sortBy", required = false, defaultValue = "last_modify") String sortBy,
             @RequestParam(value = "reverse", required = false, defaultValue = "true") Boolean reverse) {
+        if (Objects.nonNull(projectName)) {
+            project = projectName;
+        }
         checkProjectName(project);
         List<NDataModel> models = new ArrayList<>();
         if (StringUtils.isEmpty(table)) {
@@ -111,6 +116,8 @@ public class NModelController extends NBasicController {
         } else {
             models.addAll(modelService.getRelateModels(project, table, modelAlias));
         }
+
+        models = modelService.addOldParams(models);
 
         HashMap<String, Object> modelResponse = getDataResponse("models", models, offset, limit);
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, modelResponse, "");

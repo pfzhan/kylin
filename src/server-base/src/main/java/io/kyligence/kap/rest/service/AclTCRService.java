@@ -36,6 +36,10 @@ import java.util.TreeMap;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Preconditions;
+import io.kyligence.kap.metadata.model.NTableMetadataManager;
+import io.kyligence.kap.metadata.user.NKylinUserManager;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.collections.MapUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -395,5 +399,28 @@ public class AclTCRService extends BasicService {
             dbTblColNum.get(tableDesc.getDatabase()).put(tableDesc.getName(), tableDesc.getColumnCount());
         });
         return dbTblColNum;
+    }
+
+    @VisibleForTesting
+    public NKylinUserManager getKylinUserManager() {
+        return NKylinUserManager.getInstance(getConfig());
+    }
+
+    public List<TableDesc> getAuthorizedTables(String project, String user) {
+        Set<String> groups = getKylinUserManager().getUserGroups(user);
+        return getAuthorizedTables(project, user, groups);
+    }
+
+    @VisibleForTesting
+    public NTableMetadataManager getTableMetadataManager(String project) {
+        Preconditions.checkNotNull(project);
+        return NTableMetadataManager.getInstance(getConfig(), project);
+    }
+
+    public List<TableDesc> getAuthorizedTables(String project, String user, Set<String> groups) {
+        List<AclTCR> aclTCRS = getAclTCRManager(project).getAclTCRs(user, groups);
+        return getTableMetadataManager(project).listAllTables().stream()
+                .filter(tableDesc -> aclTCRS.stream().anyMatch(aclTCR -> aclTCR.isAuthorized(tableDesc.getIdentity())))
+                .collect(Collectors.toList());
     }
 }

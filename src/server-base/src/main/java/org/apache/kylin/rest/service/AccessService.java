@@ -488,6 +488,21 @@ public class AccessService extends BasicService {
         return SidWithPermission;
     }
 
+    public List<String> getGrantedProjectsOfUser(String user) {
+        List<ProjectInstance> projects = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv())
+                .listAllProjects();
+        List<String> grantedProjects = new ArrayList<>();
+
+        for (ProjectInstance project : projects) {
+            Map<String, Integer> projectPermission = getProjectPermission(project.getName());
+            if (projectPermission.keySet().contains(user)) {
+                grantedProjects.add(project.getName());
+            }
+        }
+
+        return grantedProjects;
+    }
+
     private List<String> getGroupsFromCurrentUser() {
         List<String> groups = new ArrayList<>();
         Collection<? extends GrantedAuthority> authorities = SecurityContextHolder.getContext().getAuthentication()

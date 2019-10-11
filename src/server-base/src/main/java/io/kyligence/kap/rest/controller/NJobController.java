@@ -87,6 +87,7 @@ public class NJobController extends NBasicController {
         List<ExecutableResponse> executables;
         if (!StringUtils.isEmpty(project)) {
             executables = jobService.listJobs(jobFilter);
+            executables = jobService.addOldParams(executables);
         } else {
             executables = jobService.listGlobalJobs(jobFilter);
         }

@@ -33,10 +33,12 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.rest.response.NDataModelOldParams;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -159,6 +161,9 @@ public class ModelService extends BasicService {
     @Autowired
     public AclEvaluate aclEvaluate;
 
+    @Autowired
+    private ProjectService projectService;
+
     private NDataModel getModelById(String modelId, String project) {
         NDataModelManager modelManager = getDataModelManager(project);
         NDataModel nDataModel = modelManager.getDataModelDesc(modelId);
@@ -166,6 +171,107 @@ public class ModelService extends BasicService {
             throw new BadRequestException(String.format(msg.getMODEL_NOT_FOUND(), modelId));
         }
         return nDataModel;
+    }
+
+    /**
+     * for 3x rest api
+     * @param modelList
+     * @return
+     */
+    public List<NDataModel> addOldParams(List<NDataModel> modelList) {
+        modelList.forEach(model -> {
+            NDataModelOldParams oldParams = new NDataModelOldParams();
+            oldParams.setName(model.getAlias());
+            oldParams.setJoinTables(model.getJoinTables());
+
+            if (model instanceof NDataModelResponse) {
+                ((NDataModelResponse) model).setOldParams(oldParams);
+            } else if (model instanceof RelatedModelResponse){
+                ((RelatedModelResponse) model).setOldParams(oldParams);
+            }
+        });
+
+        return modelList;
+    }
+
+    /**
+     * for 3x rest api
+     * @param modelAlias
+     * @return
+     */
+    public NDataModelResponse getCube(String modelAlias) {
+        for (ProjectInstance project : projectService.getReadableProjects()) {
+            List<NDataModelResponse> cubes = getCubes(modelAlias, project.getName());
+            if (!CollectionUtils.isEmpty(cubes)) {
+                return cubes.get(0);
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * for 3x rest api
+     * @param modelAlias
+     * @param project
+     * @return
+     */
+    public List<NDataModelResponse> getCubes(String modelAlias, String project) {
+        if (Objects.nonNull(project)) {
+            return getCubes0(modelAlias, project);
+        }
+
+        List<NDataModelResponse> cubes = Lists.newArrayList();
+        for (ProjectInstance prj : projectService.getReadableProjects()) {
+            cubes.addAll(getCubes0(modelAlias, prj.getName()));
+        }
+
+        return cubes;
+    }
+
+    /**
+     * for 3x rest api
+     * @param modelAlias
+     * @param project
+     * @return
+     */
+    public List<NDataModelResponse> getCubes0(String modelAlias, String project) {
+        Preconditions.checkNotNull(project);
+
+        List<NDataModelResponse> modelResponseList = getModels(modelAlias, project, false, null, null, "last_modify",
+                true);
+
+        modelResponseList.forEach(modelResponse -> {
+            NDataModelOldParams oldParams = new NDataModelOldParams();
+
+            long inputRecordCnt = 0L;
+            long inputRecordSizeBytes = 0L;
+            List<NDataSegmentResponse> segments = getSegmentsResponse(modelResponse.getId(), project, "1",
+                    "" + (Long.MAX_VALUE - 1), "last_modify", true, null);
+            for (NDataSegmentResponse segment : segments) {
+                Long sourceRows = segment.getSegDetails().getLayouts().stream()
+                        .map(NDataLayout::getSourceRows).max(Long::compareTo).orElse(0L);
+                inputRecordCnt += sourceRows;
+                inputRecordSizeBytes += segment.getSourceBytesSize();
+
+                NDataSegmentResponse.OldParams segmentOldParams = new NDataSegmentResponse.OldParams();
+                segmentOldParams.setSizeKB(segment.getBytesSize() / 1024);
+                segmentOldParams.setInputRecords(sourceRows);
+                segment.setOldParams(segmentOldParams);
+            }
+
+            oldParams.setName(modelResponse.getAlias());
+            oldParams.setProjectName(project);
+            oldParams.setStreaming(false);
+            oldParams.setSizeKB(modelResponse.getStorage() / 1024);
+            oldParams.setInputRecordSizeBytes(inputRecordSizeBytes);
+            oldParams.setInputRecordCnt(inputRecordCnt);
+
+            modelResponse.setSegments(segments);
+            modelResponse.setOldParams(oldParams);
+        });
+
+        return modelResponseList;
     }
 
     public List<NDataModelResponse> getModels(final String modelAlias, final String projectName, boolean exactMatch,
@@ -299,6 +405,9 @@ public class ModelService extends BasicService {
             nDataSegmentResponse.getAdditionalInfo().put(SEGMENT_PATH, dataflow.getSegmentHdfsPath(segment.getId()));
             nDataSegmentResponse.getAdditionalInfo().put(FILE_COUNT, segment.getStorageFileCount() + "");
             nDataSegmentResponse.setStatusToDisplay(dataflow.getSegments().getSegmentStatusToDisplay(segment));
+            nDataSegmentResponse.setSourceBytesSize(segment.getSourceBytesSize());
+            nDataSegmentResponse.setLastBuildTime(segment.getLastBuildTime());
+            nDataSegmentResponse.setSegDetails(segment.getSegDetails());
             segmentResponse.add(nDataSegmentResponse);
         }
         Comparator<NDataSegmentResponse> comparator = propertyComparator(

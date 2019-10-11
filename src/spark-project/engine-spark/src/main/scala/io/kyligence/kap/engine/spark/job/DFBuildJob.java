@@ -24,6 +24,8 @@
 
 package io.kyligence.kap.engine.spark.job;
 
+import io.kyligence.kap.metadata.cube.model.NDataflow;
+import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -70,9 +72,7 @@ import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.model.NBatchConstants;
 import io.kyligence.kap.metadata.cube.model.NDataLayout;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
-import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
-import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
 import lombok.val;
 
 public class DFBuildJob extends SparkApplication {
@@ -145,6 +145,7 @@ public class DFBuildJob extends SparkApplication {
         for(Map.Entry<String, Object> entry: toUpdateSegmentSourceSize.entrySet()) {
             NDataSegment segment = newDF.getSegment(entry.getKey());
             segment.setSourceBytesSize((Long)entry.getValue());
+            segment.setLastBuildTime(System.currentTimeMillis());
             nDataSegments.add(segment);
         }
         update.setToUpdateSegs(nDataSegments.toArray(new NDataSegment[0]));

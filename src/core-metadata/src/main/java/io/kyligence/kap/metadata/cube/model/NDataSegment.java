@@ -165,6 +165,11 @@ public class NDataSegment implements ISegment, Serializable, IKeep {
         this.timeRange = timeRange;
     }
 
+    public void setSegDetails(NDataSegDetails segDetails) {
+        checkIsNotCachedAndShared();
+        this.segDetails = segDetails;
+    }
+
     public NDataSegDetails getSegDetails() {
         return segDetails;
     }
@@ -347,6 +352,7 @@ public class NDataSegment implements ISegment, Serializable, IKeep {
     }
 
     public void setSourceBytesSize(long sourceBytesSize) {
+        checkIsNotCachedAndShared();
         this.sourceBytesSize = sourceBytesSize;
     }
 

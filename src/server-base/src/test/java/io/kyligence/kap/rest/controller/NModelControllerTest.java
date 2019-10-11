@@ -241,7 +241,7 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
                 .param("sortBy", "last_modify").param("reverse", "true")
                 .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
-        Mockito.verify(nModelController).getModels("model1", true, "default", "ADMIN", "NEW", "", 0, 10, "last_modify",
+        Mockito.verify(nModelController).getModels("model1", true, "default", null, "ADMIN", "NEW", "", 0, 10, "last_modify",
                 true);
     }
 
@@ -256,7 +256,7 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
                 .param("reverse", "true").param("table", "TEST_KYLIN_FACT")
                 .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
-        Mockito.verify(nModelController).getModels("model1", true, "default", "ADMIN", "NEW", "TEST_KYLIN_FACT", 0, 10,
+        Mockito.verify(nModelController).getModels("model1", true, "default", null,  "ADMIN", "NEW", "TEST_KYLIN_FACT", 0, 10,
                 "last_modify", true);
     }
 
@@ -271,7 +271,7 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
                         .param("sortBy", "last_modify").param("reverse", "true").param("table", "TEST_KYLIN_FACT")
                         .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
-        Mockito.verify(nModelController).getModels("", true, "default", "ADMIN", "NEW", "TEST_KYLIN_FACT", 0, 10,
+        Mockito.verify(nModelController).getModels("", true, "default", null, "ADMIN", "NEW", "TEST_KYLIN_FACT", 0, 10,
                 "last_modify", true);
     }
 

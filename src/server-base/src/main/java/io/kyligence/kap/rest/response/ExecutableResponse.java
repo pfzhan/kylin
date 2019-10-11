@@ -26,6 +26,7 @@ package io.kyligence.kap.rest.response;
 
 import java.util.List;
 
+import com.fasterxml.jackson.annotation.JsonUnwrapped;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import lombok.val;
@@ -58,7 +59,7 @@ public class ExecutableResponse implements Comparable<ExecutableResponse> {
     private long execStartTime;
     @JsonManagedReference
     @JsonProperty("steps")
-    private int steps;
+    private List<ExecutableStepResponse> steps;
     @JsonProperty("job_status")
     private JobStatusEnum status;
     @JsonProperty("job_name")
@@ -83,6 +84,10 @@ public class ExecutableResponse implements Comparable<ExecutableResponse> {
     private boolean targetSubjectError = false;
     @JsonProperty("project")
     private String project;
+    @JsonProperty("submitter")
+    private String submitter;
+    @JsonProperty("exec_end_time")
+    private long execEndTime;
 
     private static ExecutableResponse newInstance(AbstractExecutable abstractExecutable) {
         ExecutableResponse executableResponse = new ExecutableResponse();
@@ -98,6 +103,8 @@ public class ExecutableResponse implements Comparable<ExecutableResponse> {
         executableResponse.setTargetSegments(abstractExecutable.getTargetSegments());
         executableResponse.setTargetSubject(abstractExecutable.getTargetSubjectAlias());
         executableResponse.setWaitTime(abstractExecutable.getWaitTime());
+        executableResponse.setSubmitter(abstractExecutable.getSubmitter());
+        executableResponse.setExecEndTime(abstractExecutable.getEndTime());
         return executableResponse;
     }
 
@@ -126,7 +133,6 @@ public class ExecutableResponse implements Comparable<ExecutableResponse> {
         }
 
         List<? extends AbstractExecutable> tasks = ((ChainedExecutable) abstractExecutable).getTasks();
-        executableResponse.steps = tasks.size();
         int successSteps = 0;
         for (AbstractExecutable task : tasks) {
             if (task.getStatus().equals(ExecutableState.SUCCEED)) {
@@ -146,5 +152,39 @@ public class ExecutableResponse implements Comparable<ExecutableResponse> {
     @Override
     public int compareTo(ExecutableResponse o) {
         return o.lastModified < this.lastModified ? -1 : o.lastModified > this.lastModified ? 1 : 0;
+    }
+
+    /**
+     * for 3x rest api
+     */
+    @JsonUnwrapped
+    private OldParams oldParams;
+
+    @Getter
+    @Setter
+    public static class OldParams {
+        @JsonProperty("project_name")
+        private String projectName;
+
+        @JsonProperty("related_cube")
+        private String relatedCube;
+
+        @JsonProperty("display_cube_name")
+        private String displayCubeName;
+
+        @JsonProperty("udid")
+        private String udid;
+
+        @JsonProperty("type")
+        private String type;
+
+        @JsonProperty("name")
+        private String name;
+
+        @JsonProperty("exec_interrupt_time")
+        private long execInterruptTime;
+
+        @JsonProperty("mr_waiting")
+        private long mrWaiting;
     }
 }

@@ -3064,4 +3064,10 @@ public class ModelServiceTest extends CSVSourceTestCase {
         Assert.assertTrue(events.get(7) instanceof PostAddSegmentEvent);
     }
 
+    @Test
+    public void testGetCubes() {
+        List<NDataModelResponse> responses = modelService.getCubes("nmodel_full_measure_test", "default");
+        Assert.assertEquals(1, responses.size());
+    }
+
 }

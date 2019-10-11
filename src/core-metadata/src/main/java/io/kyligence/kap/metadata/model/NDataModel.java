@@ -762,13 +762,14 @@ public class NDataModel extends RootPersistentEntity {
             // Validate join in dimension
             if (pkCols.length != fkCols.length) {
                 throw new IllegalStateException("Primary keys(" + dimTable + ")" + Arrays.toString(pks)
-                        + " are not consistent with Foreign keys(" + join.getFKSide().getTableIdentity() + ") " + Arrays.toString(fks));
+                        + " are not consistent with Foreign keys(" + join.getFKSide().getTableIdentity() + ") "
+                        + Arrays.toString(fks));
             }
             for (int i = 0; i < fkCols.length; i++) {
                 if (!fkCols[i].getDatatype().equals(pkCols[i].getDatatype())) {
                     logger.warn("PK " + dimTable + "." + pkCols[i].getName() + "." + pkCols[i].getDatatype()
-                            + " are not consistent with FK " + join.getFKSide().getTableIdentity() + "." + fkCols[i].getName() + "."
-                            + fkCols[i].getDatatype());
+                            + " are not consistent with FK " + join.getFKSide().getTableIdentity() + "."
+                            + fkCols[i].getName() + "." + fkCols[i].getDatatype());
                 }
             }
         }

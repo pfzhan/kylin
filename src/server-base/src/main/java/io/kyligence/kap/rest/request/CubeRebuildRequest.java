@@ -21,47 +21,25 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+package io.kyligence.kap.rest.request;
 
-package io.kyligence.kap.rest.response;
-
-import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.annotation.JsonUnwrapped;
-import io.kyligence.kap.metadata.model.NDataModel;
 import lombok.Getter;
 import lombok.Setter;
-import org.apache.kylin.metadata.model.SegmentRange;
-import org.apache.kylin.metadata.model.SegmentStatusEnum;
-import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 
-import java.util.HashMap;
-import java.util.Map;
-
-@Setter
 @Getter
-public class RelatedModelResponse extends NDataModel {
+@Setter
+public class CubeRebuildRequest {
 
-    @JsonProperty("status")
-    private RealizationStatusEnum status;
-    @JsonProperty("segment_ranges")
-    private Map<SegmentRange, SegmentStatusEnum> segmentRanges = new HashMap<>();
-    @JsonProperty("has_error_jobs")
-    private boolean hasErrorJobs;
+    private String mpValues;
 
-    public RelatedModelResponse() {
-        super();
-    }
+    private long startTime;
 
-    public RelatedModelResponse(NDataModel dataModel) {
-        super(dataModel);
-        this.setMvcc(dataModel.getMvcc());
-    }
+    private long endTime;
 
-    /**
-     * for 3x rest api
-     */
-    @JsonUnwrapped
-    @Getter
-    @Setter
-    private NDataModelOldParams oldParams;
+    private String buildType;
+
+    private boolean force;
+
+    private String project;
 
 }

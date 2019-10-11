@@ -57,6 +57,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import javax.servlet.http.HttpServletResponse;
 
+import io.kyligence.kap.engine.spark.job.NSparkCubingJob;
 import org.apache.commons.io.FileUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.dao.ExecutableOutputPO;
@@ -632,5 +633,28 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
         if (!jobService.downloadHdfsLogFile(response, newHdfsLogPath)) {
             Assert.fail("download file failed!");
         }
+    }
+
+    @Test
+    public void testGetJobInstance_ManageJob() throws IOException {
+        String jobId = "job1";
+        ExecutableResponse executableResponse = new ExecutableResponse();
+        executableResponse.setId(jobId);
+
+        AbstractExecutable job = new NSparkCubingJob();
+
+        Mockito.doReturn(mockProjects()).when(jobService).getReadableProjects();
+        NExecutableManager manager = Mockito.mock(NExecutableManager.class);
+        Mockito.when(manager.getJob(jobId)).thenReturn(job);
+        Mockito.doReturn(manager).when(jobService).getExecutableManager("default");
+        Assert.assertEquals("default", jobService.getProjectByJobId(jobId));
+
+        Mockito.doReturn("default").when(jobService).getProjectByJobId(jobId);
+        Mockito.doReturn(executableResponse).when(jobService).convert(job);
+        Assert.assertEquals(jobId, jobService.getJobInstance(jobId).getId());
+
+        Mockito.doNothing().when(jobService).updateJobStatus(jobId, "default", "RESUME");
+
+        Assert.assertEquals(executableResponse, jobService.manageJob("default", executableResponse, "RESUME"));
     }
 }

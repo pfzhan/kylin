@@ -21,47 +21,37 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-
 package io.kyligence.kap.rest.response;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.annotation.JsonUnwrapped;
-import io.kyligence.kap.metadata.model.NDataModel;
 import lombok.Getter;
 import lombok.Setter;
-import org.apache.kylin.metadata.model.SegmentRange;
-import org.apache.kylin.metadata.model.SegmentStatusEnum;
-import org.apache.kylin.metadata.realization.RealizationStatusEnum;
+import org.apache.kylin.metadata.model.JoinTableDesc;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.io.Serializable;
+import java.util.List;
 
-@Setter
 @Getter
-public class RelatedModelResponse extends NDataModel {
+@Setter
+public class NDataModelOldParams implements Serializable {
+    @JsonProperty("name")
+    private String name;
 
-    @JsonProperty("status")
-    private RealizationStatusEnum status;
-    @JsonProperty("segment_ranges")
-    private Map<SegmentRange, SegmentStatusEnum> segmentRanges = new HashMap<>();
-    @JsonProperty("has_error_jobs")
-    private boolean hasErrorJobs;
+    @JsonProperty("lookups")
+    private List<JoinTableDesc> joinTables;
 
-    public RelatedModelResponse() {
-        super();
-    }
+    @JsonProperty("is_streaming")
+    private boolean streaming;
 
-    public RelatedModelResponse(NDataModel dataModel) {
-        super(dataModel);
-        this.setMvcc(dataModel.getMvcc());
-    }
+    @JsonProperty("size_kb")
+    private long sizeKB;
 
-    /**
-     * for 3x rest api
-     */
-    @JsonUnwrapped
-    @Getter
-    @Setter
-    private NDataModelOldParams oldParams;
+    @JsonProperty("input_records_count")
+    private long inputRecordCnt;
 
+    @JsonProperty("input_records_size")
+    private long inputRecordSizeBytes;
+
+    @JsonProperty("project")
+    private String projectName;
 }

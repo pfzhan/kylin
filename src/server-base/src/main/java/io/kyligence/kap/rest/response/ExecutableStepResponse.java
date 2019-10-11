@@ -25,6 +25,7 @@
 package io.kyligence.kap.rest.response;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonUnwrapped;
 import lombok.Getter;
 import lombok.Setter;
 import org.apache.kylin.job.constant.JobStatusEnum;
@@ -75,4 +76,16 @@ public class ExecutableStepResponse {
         getInfo().put(key, value);
     }
 
+    /**
+     * for 3x rest api
+     */
+    @JsonUnwrapped
+    private OldParams oldParams;
+
+    @Getter
+    @Setter
+    public static class OldParams {
+        @JsonProperty("exec_wait_time")
+        private long execWaitTime;
+    }
 }

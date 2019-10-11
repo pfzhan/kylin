@@ -83,6 +83,7 @@ public class AfterMergeOrRefreshResourceMerger extends SparkJobMetadataMerger {
             if (reduce.isPresent()) {
                 long totalSourceSize = reduce.get();
                 mergedSegment.setSourceBytesSize(totalSourceSize);
+                mergedSegment.setLastBuildTime(System.currentTimeMillis());
             }
         }
         val livedLayouts = mgr.getDataflow(dataflowId).getLatestReadySegment().getLayoutsMap().values().stream()

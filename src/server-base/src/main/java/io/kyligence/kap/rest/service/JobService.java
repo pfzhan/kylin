@@ -115,7 +115,26 @@ public class JobService extends BasicService {
     @Autowired
     private AclEvaluate aclEvaluate;
 
+    @Autowired
+    private ModelService modelService;
+
     private static final Logger logger = LoggerFactory.getLogger(JobService.class);
+
+    private static final Map<String, String> jobTypeMap = Maps.newHashMap();
+    static {
+        jobTypeMap.put("INDEX_REFRESH", "Refresh Data");
+        jobTypeMap.put("INDEX_MERGE", "Merge Data");
+        jobTypeMap.put("INDEX_BUILD", "Build Index");
+        jobTypeMap.put("INC_BUILD", "Load Data");
+        jobTypeMap.put("TABLE_SAMPLING", "Sample Table");
+    }
+
+    @VisibleForTesting
+    public ExecutableResponse convert(AbstractExecutable executable) {
+        ExecutableResponse executableResponse = ExecutableResponse.create(executable);
+        executableResponse.setStatus(parseToJobStatus(executable.getStatus()));
+        return executableResponse;
+    }
 
     private List<ExecutableResponse> filterAndSort(final JobFilter jobFilter, List<AbstractExecutable> jobs) {
         Preconditions.checkNotNull(jobFilter);
@@ -151,9 +170,7 @@ public class JobService extends BasicService {
             //if filter on uuid, then it must be accurate
             return abstractExecutable.getTargetSubject().equals(jobFilter.getSubject().trim());
         })).map(abstractExecutable -> {
-            ExecutableResponse executableResponse = ExecutableResponse.create(abstractExecutable);
-            executableResponse.setStatus(parseToJobStatus(abstractExecutable.getStatus()));
-            return executableResponse;
+            return convert(abstractExecutable);
         }).sorted(comparator).collect(Collectors.toList());
     }
 
@@ -174,6 +191,36 @@ public class JobService extends BasicService {
     public List<ExecutableResponse> listJobs(final JobFilter jobFilter) {
         aclEvaluate.checkProjectOperationPermission(jobFilter.getProject());
         return filterAndSort(jobFilter, listJobs0(jobFilter));
+    }
+
+    public List<ExecutableResponse> addOldParams(List<ExecutableResponse> executableResponseList) {
+        executableResponseList.forEach(executableResponse -> {
+            ExecutableResponse.OldParams oldParams = new ExecutableResponse.OldParams();
+            String modelName = modelService.getDataModelManager(executableResponse.getProject())
+                    .getDataModelDesc(executableResponse.getTargetModel()).getAlias();
+
+            List<ExecutableStepResponse> stepResponseList = getJobDetail(executableResponse.getProject(),
+                    executableResponse.getId());
+            stepResponseList.forEach(stepResponse -> {
+                ExecutableStepResponse.OldParams stepOldParams = new ExecutableStepResponse.OldParams();
+                stepOldParams.setExecWaitTime(stepResponse.getWaitTime());
+                stepResponse.setOldParams(stepOldParams);
+            });
+
+            oldParams.setProjectName(executableResponse.getProject());
+            oldParams.setRelatedCube(modelName);
+            oldParams.setDisplayCubeName(modelName);
+            oldParams.setUdid(executableResponse.getId());
+            oldParams.setType(jobTypeMap.get(executableResponse.getJobName()));
+            oldParams.setName(executableResponse.getJobName());
+            oldParams.setExecInterruptTime(0L);
+            oldParams.setMrWaiting(executableResponse.getWaitTime());
+
+            executableResponse.setOldParams(oldParams);
+            executableResponse.setSteps(stepResponseList);
+        });
+
+        return executableResponseList;
     }
 
     @VisibleForTesting
@@ -265,7 +312,8 @@ public class JobService extends BasicService {
         tableExtService.removeJobIdFromTableExt(jobId, project);
     }
 
-    private void updateJobStatus(String jobId, String project, String action) throws IOException {
+    @VisibleForTesting
+    public void updateJobStatus(String jobId, String project, String action) throws IOException {
         val executableManager = getExecutableManager(project);
         UnitOfWorkContext.AfterUnitTask afterUnitTask = () -> SchedulerEventBusFactory
                 .getInstance(KylinConfig.getInstanceFromEnv()).postWithLimit(new JobReadyNotifier(project));
@@ -303,6 +351,61 @@ public class JobService extends BasicService {
         }
         job.cancelJob();
         getExecutableManager(project).discardJob(job.getId());
+    }
+
+    /**
+     * for 3x api, jobId is unique.
+     * @param jobId
+     * @return
+     */
+    public String getProjectByJobId(String jobId) {
+        Preconditions.checkNotNull(jobId);
+
+        for (ProjectInstance projectInstance : getReadableProjects()) {
+            NExecutableManager executableManager = getExecutableManager(projectInstance.getName());
+            if (Objects.nonNull(executableManager.getJob(jobId))) {
+                return projectInstance.getName();
+            }
+        }
+        return null;
+    }
+
+    /**
+     * for 3x api
+     * @param jobId
+     * @return
+     */
+    public ExecutableResponse getJobInstance(String jobId) {
+        Preconditions.checkNotNull(jobId);
+        String project = getProjectByJobId(jobId);
+        Preconditions.checkNotNull(project, "Can not find the job: {}", jobId);
+
+        NExecutableManager executableManager = getExecutableManager(project);
+        AbstractExecutable executable = executableManager.getJob(jobId);
+
+        return convert(executable);
+    }
+
+    /**
+     * for 3x api
+     * @param project
+     * @param job
+     * @param action
+     * @return
+     * @throws IOException
+     */
+    @Transaction(project = 0)
+    public ExecutableResponse manageJob(String project, ExecutableResponse job, String action) throws IOException {
+        Preconditions.checkNotNull(project);
+        Preconditions.checkNotNull(job);
+        Preconditions.checkArgument(!StringUtils.isBlank(action));
+
+        if (JobActionEnum.DISCARD == JobActionEnum.valueOf(action)) {
+            return job;
+        }
+
+        updateJobStatus(job.getId(), project, action);
+        return job;
     }
 
     public List<ExecutableStepResponse> getJobDetail(String project, String jobId) {

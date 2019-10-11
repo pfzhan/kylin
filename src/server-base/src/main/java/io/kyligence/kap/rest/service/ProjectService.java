@@ -168,6 +168,10 @@ public class ProjectService extends BasicService {
         favoriteRuleManager.createRule(blacklist);
     }
 
+    public List<ProjectInstance> getReadableProjects() {
+        return getReadableProjects(null, false);
+    }
+
     public List<ProjectInstance> getReadableProjects(final String projectName, boolean exactMatch) {
         val allProjects = getProjectManager().listAllProjects();
 
