@@ -30,3 +30,10 @@ export function _getJobAlertSettings (data, isArrayDefaultValue) {
     job_notification_emails: jobEmails
   }
 }
+
+export function _getDefaultDBSettings (data) {
+  return {
+    project: data.project,
+    defaultDatabase: data.default_database
+  }
+}

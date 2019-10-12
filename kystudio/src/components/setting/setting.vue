@@ -199,6 +199,10 @@ export default class Setting extends Vue {
       font-size: 14px;
       color: @text-title-color;
     }
+    .warning{
+      color:@error-color-1;
+      font-weight: bold;
+    }
   }
   .setting-desc:last-child {
     margin-bottom: 0px;

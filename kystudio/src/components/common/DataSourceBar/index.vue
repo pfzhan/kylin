@@ -10,7 +10,6 @@
         </el-tooltip>
       </div>
     </section>
-
     <section class="body">
       <div v-if="isShowLoadSource" class="btn-group">
         <el-button plain size="medium" v-if="!isLoadingTreeData && showAddDatasourceBtn" type="primary" v-guide.addDatasource icon="el-icon-ksd-add_data_source" @click="importDataSource('selectSource', currentProjectData)">
@@ -348,7 +347,6 @@ export default class DataSourceBar extends Vue {
     this.datasources.forEach((datasource, index) => {
       // 先处理 db 一层的render，以及初值的赋值
       datasource.children = results.databases.map(resultDatabse => getDatabaseTablesObj(this, datasource, resultDatabse))
-
       // 然后处理 table 一级的render render 后变更页码，并存入store
       datasource.children.forEach((database, index) => {
         database.children = database.originTables.map(resultTable => getTableObj(this, database, resultTable, this.ignoreNodeTypes.indexOf('column') >= 0))
@@ -602,6 +600,12 @@ export default class DataSourceBar extends Vue {
     .tree-item {
       position: relative;
       width: calc(~'100% - 24px');
+      .database{
+        .defaultIcon{
+          color:#7f7f7f;
+          font-size: 12px;
+        }
+      }
       .top {
         display: none;
         font-size: 13px;

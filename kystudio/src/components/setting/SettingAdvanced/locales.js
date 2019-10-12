@@ -12,7 +12,13 @@ export default {
     emails: 'Emails:',
     noData: 'No Data',
     pleaseInputEmail: 'Please input email',
-    pleaseInputVaildEmail: 'Please input vaild email.'
+    pleaseInputVaildEmail: 'Please input vaild email.',
+    defaultDBTitle: 'Default Database',
+    defaultDB: 'Default Database',
+    defaultDBNote1: 'After setting the default database, the database name can be omitted in SQL statements when executing a query or importing a SQL file.',
+    defaultDBNote2: 'Note: modifying the default database may result in saved queries or SQL files being unavailable. Please modify the default database prudently. ',
+    confirmDefaultDBTitle: 'Modify Default Database',
+    confirmDefaultDBContent: 'Modifying the default database may result in saved queries or SQL files being unavailable. Please confirm whether to modify the default database to {dbName} ?'
   },
   'zh-cn': {
     acceThreshold: '加速提示',
@@ -27,6 +33,12 @@ export default {
     emails: '邮箱：',
     noData: '暂无数据',
     pleaseInputEmail: '请输入邮箱地址',
-    pleaseInputVaildEmail: '请输入正确的邮箱地址。'
+    pleaseInputVaildEmail: '请输入正确的邮箱地址。',
+    defaultDBTitle: '默认数据库',
+    defaultDB: '默认数据库',
+    defaultDBNote1: '设置为默认数据库后，执行查询语句时或导入 SQL 文件中可以省略数据库名称。',
+    defaultDBNote2: '注意：修改默认数据库可能会导致已保存的查询或 SQL 脚本文件不可用，请您谨慎修改默认数据库。',
+    confirmDefaultDBTitle: '修改默认数据库',
+    confirmDefaultDBContent: '修改默认数据库可能会导致已保存的查询或 SQL 脚本文件不可用，请确认是否修改默认数据库为 {dbName} ？'
   }
 }

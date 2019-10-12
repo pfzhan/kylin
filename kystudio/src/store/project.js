@@ -10,7 +10,8 @@ export default {
     projectTotalSize: 0,
     projectAutoApplyConfig: false,
     isAllProject: false,
-    selected_project: cacheSessionStorage('projectName') || cacheLocalStorage('projectName')
+    selected_project: cacheSessionStorage('projectName') || cacheLocalStorage('projectName'),
+    projectDefaultDB: ''
   },
   mutations: {
     [types.SAVE_PROJECT_LIST]: function (state, { list, size }) {
@@ -68,6 +69,9 @@ export default {
     },
     [types.CACHE_PROJECT_TIPS_CONFIG]: function (state, { projectAutoApplyConfig }) {
       state.projectAutoApplyConfig = projectAutoApplyConfig
+    },
+    [types.CACHE_PROJECT_DEFAULT_DB]: function (state, { projectDefaultDB }) {
+      state.projectDefaultDB = projectDefaultDB
     }
   },
   actions: {
@@ -155,6 +159,7 @@ export default {
     [types.FETCH_PROJECT_SETTINGS]: function ({ commit }, para) {
       return api.project.fetchProjectSettings(para.projectName).then((response) => {
         commit(types.CACHE_PROJECT_TIPS_CONFIG, {projectAutoApplyConfig: response.data.data.tips_enabled})
+        commit(types.CACHE_PROJECT_DEFAULT_DB, {projectDefaultDB: response.data.data.default_database})
         return response
       })
     },
@@ -184,6 +189,9 @@ export default {
     },
     [types.RESET_PROJECT_CONFIG]: function ({ commit }, para) {
       return api.project.resetConfig(para)
+    },
+    [types.UPDATE_DEFAULT_DB_SETTINGS]: function ({ commit }, para) {
+      return api.project.updateDefaultDBSettings(para)
     }
   },
   getters: {

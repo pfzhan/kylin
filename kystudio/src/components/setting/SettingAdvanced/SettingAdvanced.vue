@@ -35,6 +35,33 @@
         </div>
       </el-form>
     </EditableBlock>
+    <!-- 默认数据库设置 -->
+    <EditableBlock
+      :header-content="$t('defaultDBTitle')"
+      :is-keep-editing="true"
+      :is-edited="isFormEdited(form, 'defaultDB-settings')"
+      :is-reset="false"
+      @submit="(scb, ecb) => handleSubmit('defaultDB-settings', scb, ecb)">
+      <el-form ref="setDefaultDB" :model="form" :rules="setDefaultDBRules">
+        <div class="setting-item">
+          <div class="setting-label font-medium">{{$t('defaultDB')}}</div>
+          <el-form-item prop="default_database">
+            <el-select v-model="form.default_database">
+              <el-option
+                v-for="item in dbList"
+                :key="item"
+                :label="item"
+                :value="item">
+              </el-option>
+            </el-select>
+          </el-form-item>
+          <div class="setting-desc">
+            <p>{{$t('defaultDBNote1')}}</p>
+            <p class="warning">{{$t('defaultDBNote2')}}</p>
+          </div>
+        </div>
+      </el-form>
+    </EditableBlock>
     <!-- 任务邮件通知设置 -->
     <EditableBlock
       :header-content="$t('jobAlert')"
@@ -96,7 +123,7 @@ import { mapActions, mapGetters } from 'vuex'
 import { Component, Watch } from 'vue-property-decorator'
 
 import { handleError, handleSuccessAsync } from '../../../util'
-import { validate, _getAccelerationSettings, _getJobAlertSettings } from './handler'
+import { validate, _getAccelerationSettings, _getJobAlertSettings, _getDefaultDBSettings } from './handler'
 import EditableBlock from '../../common/EditableBlock/EditableBlock.vue'
 @Component({
   props: {
@@ -109,7 +136,9 @@ import EditableBlock from '../../common/EditableBlock/EditableBlock.vue'
     ...mapActions({
       updateAccelerationSettings: 'UPDATE_ACCELERATION_SETTINGS',
       updateJobAlertSettings: 'UPDATE_JOB_ALERT_SETTINGS',
-      resetConfig: 'RESET_PROJECT_CONFIG'
+      resetConfig: 'RESET_PROJECT_CONFIG',
+      updateDefaultDBSettings: 'UPDATE_DEFAULT_DB_SETTINGS',
+      fetchDatabases: 'FETCH_DATABASES'
     })
   },
   components: {
@@ -117,23 +146,31 @@ import EditableBlock from '../../common/EditableBlock/EditableBlock.vue'
   },
   computed: {
     ...mapGetters([
-      'currentSelectedProject'
+      'currentSelectedProject',
+      'currentProjectData'
     ])
   },
   locales
 })
 export default class SettingAdvanced extends Vue {
+  dbList = []
   form = {
     project: '',
     tips_enabled: true,
     threshold: 20,
     job_error_notification_enabled: true,
     data_load_empty_notification_enabled: true,
-    job_notification_emails: []
+    job_notification_emails: [],
+    default_database: this.$store.state.project.projectDefaultDB || ''
   }
   get accelerateRules () {
     return {
       'threshold': [{ validator: validate['positiveNumber'], trigger: 'blur' }]
+    }
+  }
+  get setDefaultDBRules () {
+    return {
+      'default_database': { required: true, message: this.$t('kylinLang.common.pleaseSelect'), trigger: 'change' }
     }
   }
   get emailRules () {
@@ -145,15 +182,30 @@ export default class SettingAdvanced extends Vue {
   @Watch('form', { deep: true })
   @Watch('project', { deep: true })
   onFormChange () {
-    const advanceSetting = this.isFormEdited(this.form, 'accelerate-settings') || this.isFormEdited(this.form, 'job-alert')
+    const advanceSetting = this.isFormEdited(this.form, 'accelerate-settings') || this.isFormEdited(this.form, 'job-alert') || this.isFormEdited(this.form, 'defaultDB-settings')
     this.$emit('form-changed', { advanceSetting })
   }
+  async loadDataBases () {
+    // 按单数据源来处理
+    const { override_kylin_properties: overrideKylinProperties } = this.currentProjectData || {}
+    let currentSourceTypes = overrideKylinProperties && overrideKylinProperties['kylin.source.default']
+      ? [+overrideKylinProperties['kylin.source.default']]
+      : []
+    const responses = await this.fetchDatabases({ projectName: this.currentSelectedProject, sourceType: currentSourceTypes[0] })
+    this.dbList = await handleSuccessAsync(responses)
+    if (this.dbList.indexOf('DEFAULT') === -1) {
+      this.dbList.push('DEFAULT')
+    }
+    this.form.default_database = this.$store.state.project.projectDefaultDB
+  }
   mounted () {
+    this.loadDataBases()
     this.initForm()
   }
   initForm () {
     this.handleInit('accelerate-settings')
     this.handleInit('job-alert')
+    this.handleInit('defaultDB-settings')
   }
   handleInit (type) {
     switch (type) {
@@ -164,6 +216,9 @@ export default class SettingAdvanced extends Vue {
       }
       case 'job-alert': {
         this.form = { ...this.form, ..._getJobAlertSettings(this.project, true) }; break
+      }
+      case 'defaultDB-settings': {
+        this.form = { ...this.form, ..._getDefaultDBSettings(this.project) }; break
       }
     }
   }
@@ -178,6 +233,26 @@ export default class SettingAdvanced extends Vue {
             return errorCallback()
           }
         }
+        case 'defaultDB-settings': {
+          // 需要二次确认
+          this.$confirm(this.$t('confirmDefaultDBContent', {dbName: this.form.default_database}), this.$t('confirmDefaultDBTitle'), {
+            confirmButtonText: this.$t('kylinLang.common.submit'),
+            cancelButtonText: this.$t('kylinLang.common.cancel'),
+            type: 'warning'
+          }).then(async () => {
+            if (await this.$refs['setDefaultDB'].validate()) {
+              const submitData = _getDefaultDBSettings(this.form)
+              await this.updateDefaultDBSettings(submitData)
+              successCallback()
+              this.$emit('reload-setting')
+              this.$message({ type: 'success', message: this.$t('kylinLang.common.updateSuccess') })
+            } else {
+              return errorCallback()
+            }
+          }).catch(() => {
+          })
+          break
+        }
         case 'job-alert': {
           if (await this.$refs['job-alert'].validate()) {
             const submitData = _getJobAlertSettings(this.form)
@@ -187,9 +262,12 @@ export default class SettingAdvanced extends Vue {
           }
         }
       }
-      successCallback()
-      this.$emit('reload-setting')
-      this.$message({ type: 'success', message: this.$t('kylinLang.common.updateSuccess') })
+      // 设置默认参数的有二次确认，所以成功的反馈不能在结尾调
+      if (type !== 'defaultDB-settings') {
+        successCallback()
+        this.$emit('reload-setting')
+        this.$message({ type: 'success', message: this.$t('kylinLang.common.updateSuccess') })
+      }
     } catch (e) {
       errorCallback()
       handleError(e)
@@ -210,6 +288,14 @@ export default class SettingAdvanced extends Vue {
           const data = await handleSuccessAsync(res)
           this.form = { ...this.form, ..._getJobAlertSettings(data, true) }
           this.$refs['job-alert'].clearValidate()
+          break
+        }
+        case 'defaultDB-settings': {
+          // 不用重置
+          /* const res = await this.resetConfig({project: this.currentSelectedProject, reset_item: 'query_accelerate_threshold'})
+          const data = await handleSuccessAsync(res)
+          this.form = { ...this.form, ..._getDefaultDBSettings(data) }
+          this.$refs['setDefaultDB'].clearValidate() */
           break
         }
       }
@@ -234,6 +320,8 @@ export default class SettingAdvanced extends Vue {
     switch (type) {
       case 'accelerate-settings':
         return JSON.stringify(_getAccelerationSettings(form)) !== JSON.stringify(_getAccelerationSettings(project))
+      case 'defaultDB-settings':
+        return JSON.stringify(_getDefaultDBSettings(form)) !== JSON.stringify(_getDefaultDBSettings(project))
       case 'job-alert':
         return JSON.stringify(_getJobAlertSettings(form, true)) !== JSON.stringify(_getJobAlertSettings(project, true))
     }

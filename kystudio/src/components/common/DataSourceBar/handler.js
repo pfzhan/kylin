@@ -20,14 +20,13 @@ export const render = {
   },
   database: {
     render (h, { node, data, store }) {
-      const { label } = data
-
+      const { label, isDefaultDB } = data
       return (
         <div class="database">
           <div class="left">
             <i class="tree-icon el-icon-ksd-data_source"></i>
           </div>
-          <span>{label}</span>
+          <span>{label}</span><span class="defaultIcon">{isDefaultDB ? ' (Default)' : ''}</span>
         </div>
       )
     }
@@ -128,6 +127,7 @@ export function getDatabaseObj (that, datasource, databaseItem) {
   return {
     id: `${datasource.id}.${databaseItem}`,
     label: databaseItem,
+    isDefaultDB: that.$store.state.project.projectDefaultDB === databaseItem,
     render: render.database.render.bind(that),
     children: [],
     type: 'database',
@@ -149,6 +149,7 @@ export function getDatabaseTablesObj (that, datasource, databaseItem) {
   return {
     id: `${datasource.id}.${databaseItem.dbname}`,
     label: databaseItem.dbname,
+    isDefaultDB: that.$store.state.project.projectDefaultDB === databaseItem.dbname,
     render: render.database.render.bind(that),
     children: [],
     originTables: databaseItem.tables || [],
@@ -252,7 +253,21 @@ export function getFirstTableData (datasourceTree) {
 
 export function freshTreeOrder (that) {
   that.datasources.forEach(datasource => {
-    datasource.children.sort((itemA, itemB) => itemA.label > itemB.label ? 1 : -1)
+    // 先将默认库取出来，将默认库以外的按字母排序
+    let tempArr = datasource.children.filter((db) => {
+      return db.label !== that.$store.state.project.projectDefaultDB
+    })
+    let defaultDB = datasource.children.filter((db) => {
+      return db.label === that.$store.state.project.projectDefaultDB
+    })
+    if (defaultDB.length) {
+      tempArr.sort((itemA, itemB) => itemA.label > itemB.label ? 1 : -1)
+      tempArr.unshift(defaultDB[0])
+    } else {
+      tempArr.sort((itemA, itemB) => itemA.label > itemB.label ? 1 : -1)
+    }
+    datasource.children = tempArr
+    // datasource.children.sort((itemA, itemB) => itemA.label > itemB.label ? 1 : -1)
     datasource.children.forEach(database => {
       database.children.sort((itemA, itemB) => {
         if (itemA.isTopSet !== itemB.isTopSet) {

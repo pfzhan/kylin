@@ -91,5 +91,8 @@ export default {
   },
   resetConfig (para) {
     return Vue.resource(apiUrl + 'projects/' + para.project + '/project_config').update({reset_item: para.reset_item})
+  },
+  updateDefaultDBSettings (body) {
+    return Vue.resource(apiUrl + 'projects/default_database').update(body)
   }
 }
