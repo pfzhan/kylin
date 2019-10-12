@@ -21,33 +21,40 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package io.kyligence.kap.common.persistence.transaction;
+package io.kyligence.kap.rest.health;
 
-import lombok.Builder;
-import lombok.Data;
+import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import org.junit.After;
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.Test;
+import org.mockito.Mockito;
+import org.springframework.boot.actuate.health.Health;
 
-@Data
-@Builder
-public class UnitOfWorkParams<T> {
+import java.io.IOException;
 
-    private UnitOfWork.Callback<T> processor;
+public class FileSystemHealthIndicatorTest extends NLocalFileMetadataTestCase {
 
-    @Builder.Default
-    private boolean all = false;
+    @Before
+    public void setup() throws Exception {
+        createTestMetadata();
+    }
 
-    @Builder.Default
-    private String unitName = UnitOfWork.GLOBAL_UNIT;
+    @After
+    public void teardown() {
+        cleanupTestMetadata();
+    }
 
-    @Builder.Default
-    private int maxRetry = 10;
+    @Test
+    public void testHeath() throws IOException {
+        FileSystemHealthIndicator indicator = Mockito
+                .spy(new FileSystemHealthIndicator());
 
-    @Builder.Default
-    private boolean readonly = false;
+        Assert.assertEquals(indicator.health().getStatus(), Health.up().build().getStatus());
 
-    @Builder.Default
-    private boolean useSandbox = true;
+        Mockito.doThrow(new IOException()).when(indicator).checkFileSystem();
 
-    @Builder.Default
-    private boolean skipAuditLog = false;
+        Assert.assertEquals(indicator.health().getStatus(), Health.down().build().getStatus());
+    }
 
 }

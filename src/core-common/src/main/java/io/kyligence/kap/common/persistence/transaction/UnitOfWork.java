@@ -252,9 +252,10 @@ public class UnitOfWork {
         // publish events here
         val unitMessages = packageEvents(eventList, get().getProject(), traceId);
         val metadataStore = ResourceStore.getKylinMetaStore(originConfig).getMetadataStore();
-        long entitiesSize = unitMessages.getMessages().stream().filter(event -> event instanceof ResourceRelatedEvent).count();
+        long entitiesSize = unitMessages.getMessages().stream().filter(event -> event instanceof ResourceRelatedEvent)
+                .count();
         log.debug("transaction {} updates {} metadata items", traceId, entitiesSize);
-        metadataStore.batchUpdate(unitMessages);
+        metadataStore.batchUpdate(unitMessages, get().getParams().isSkipAuditLog());
 
         try {
             // replayInTransaction in leader before release lock
@@ -270,7 +271,8 @@ public class UnitOfWork {
     private static UnitMessages packageEvents(List<Event> events, String project, String uuid) {
         Preconditions.checkState(events.stream().filter(e -> e instanceof ResourceRelatedEvent).allMatch(e -> {
             val event = (ResourceRelatedEvent) e;
-            return event.getResPath().startsWith("/" + project) || event.getResPath().endsWith("/" + project + ".json") || get().getParams().isAll();
+            return event.getResPath().startsWith("/" + project) || event.getResPath().endsWith("/" + project + ".json")
+                    || get().getParams().isAll();
         }), "some event are not in project " + project);
         events.add(0, new StartUnit(uuid));
         events.add(new EndUnit(uuid));

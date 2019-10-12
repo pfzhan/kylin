@@ -508,6 +508,18 @@ public class KapConfig {
     }
 
     /**
+     * health
+     */
+
+    public int getMetaStoreHealthWarningResponseMs() {
+        return Integer.parseInt(config.getOptional("kap.health.metastore-warning-response-ms", "300"));
+    }
+
+    public int getMetaStoreHealthErrorResponseMs() {
+        return Integer.parseInt(config.getOptional("kap.health.metastore-error-response-ms", "1000"));
+    }
+
+    /**
      * Diagnosis graph
      */
     public String getMetricWriteDest() {

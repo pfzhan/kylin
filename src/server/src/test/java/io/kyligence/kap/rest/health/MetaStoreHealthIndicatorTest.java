@@ -21,33 +21,37 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package io.kyligence.kap.common.persistence.transaction;
+package io.kyligence.kap.rest.health;
 
-import lombok.Builder;
-import lombok.Data;
+import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import org.apache.kylin.rest.constant.Constant;
+import org.junit.After;
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.Test;
+import org.mockito.Mockito;
+import org.springframework.boot.actuate.health.Health;
 
-@Data
-@Builder
-public class UnitOfWorkParams<T> {
+public class MetaStoreHealthIndicatorTest extends NLocalFileMetadataTestCase {
 
-    private UnitOfWork.Callback<T> processor;
+    @Before
+    public void setup() {
+        createTestMetadata();
+    }
 
-    @Builder.Default
-    private boolean all = false;
+    @After
+    public void teardown() {
+        cleanupTestMetadata();
+    }
 
-    @Builder.Default
-    private String unitName = UnitOfWork.GLOBAL_UNIT;
+    @Test
+    public void testHealth() {
+        MetaStoreHealthIndicator indicator = Mockito.spy(new MetaStoreHealthIndicator());
+        indicator.setServerMode(Constant.SERVER_MODE_ALL);
+        Assert.assertEquals(Health.up().build().getStatus(), indicator.health().getStatus());
 
-    @Builder.Default
-    private int maxRetry = 10;
-
-    @Builder.Default
-    private boolean readonly = false;
-
-    @Builder.Default
-    private boolean useSandbox = true;
-
-    @Builder.Default
-    private boolean skipAuditLog = false;
+        indicator.setServerMode(Constant.SERVER_MODE_QUERY);
+        Assert.assertEquals(Health.up().build().getStatus(), indicator.health().getStatus());
+    }
 
 }

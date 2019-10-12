@@ -21,33 +21,33 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package io.kyligence.kap.common.persistence.transaction;
+package io.kyligence.kap.rest.health;
 
-import lombok.Builder;
-import lombok.Data;
+import org.apache.kylin.common.KylinConfig;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.boot.actuate.health.HealthIndicator;
 
-@Data
-@Builder
-public class UnitOfWorkParams<T> {
+public abstract class AbstractKylinHealthIndicator implements HealthIndicator {
+    public static final Logger logger = LoggerFactory.getLogger(AbstractKylinHealthIndicator.class);
 
-    private UnitOfWork.Callback<T> processor;
+    protected KylinConfig config;
 
-    @Builder.Default
-    private boolean all = false;
+    protected int warningResponseMs;
+    protected int errorResponseMs;
 
-    @Builder.Default
-    private String unitName = UnitOfWork.GLOBAL_UNIT;
+    protected void checkTime(long start, String operation) throws InterruptedException {
+        // in case canary was timeout
+        if (Thread.interrupted())
+            throw new InterruptedException();
 
-    @Builder.Default
-    private int maxRetry = 10;
+        long response = System.currentTimeMillis() - start;
+        logger.info("{} took {} ms", operation, response);
 
-    @Builder.Default
-    private boolean readonly = false;
-
-    @Builder.Default
-    private boolean useSandbox = true;
-
-    @Builder.Default
-    private boolean skipAuditLog = false;
-
+        if (response > errorResponseMs) {
+            throw new RuntimeException("check time is time out");
+        } else if (response > warningResponseMs) {
+            logger.warn("found warning, {} took {} ms", operation, response);
+        }
+    }
 }

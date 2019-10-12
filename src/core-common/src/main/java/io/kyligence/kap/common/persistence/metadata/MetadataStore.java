@@ -86,6 +86,10 @@ public abstract class MetadataStore {
     public abstract RawResource load(String path) throws IOException;
 
     public void batchUpdate(UnitMessages unitMessages) throws Exception {
+        batchUpdate(unitMessages, false);
+    }
+
+    public void batchUpdate(UnitMessages unitMessages, boolean skipAuditLog) throws Exception {
         for (Event event : unitMessages.getMessages()) {
             if (event instanceof ResourceCreateOrUpdateEvent) {
                 val rawResource = ((ResourceCreateOrUpdateEvent) event).getCreatedOrUpdated();
@@ -94,7 +98,9 @@ public abstract class MetadataStore {
                 deleteResource(((ResourceDeleteEvent) event).getResPath());
             }
         }
-        auditLogStore.save(unitMessages);
+        if(!skipAuditLog) {
+            auditLogStore.save(unitMessages);
+        }
     }
 
     public void restore(ResourceStore store) throws IOException {

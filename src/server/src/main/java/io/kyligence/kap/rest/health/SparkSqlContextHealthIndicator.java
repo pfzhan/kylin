@@ -21,33 +21,25 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package io.kyligence.kap.common.persistence.transaction;
+package io.kyligence.kap.rest.health;
 
-import lombok.Builder;
-import lombok.Data;
+import io.kyligence.kap.rest.SparkContextCanary;
+import org.apache.spark.api.java.JavaSparkContext;
+import org.apache.spark.sql.SparderEnv;
+import org.springframework.boot.actuate.health.Health;
+import org.springframework.stereotype.Component;
 
-@Data
-@Builder
-public class UnitOfWorkParams<T> {
+@Component
+public class SparkSqlContextHealthIndicator extends AbstractKylinHealthIndicator {
 
-    private UnitOfWork.Callback<T> processor;
+    @Override
+    public Health health() {
+        JavaSparkContext jsc = new JavaSparkContext(SparderEnv.getSparkSession().sparkContext());
+        jsc.setLocalProperty("spark.scheduler.pool", "vip_tasks");
+        if (!SparkContextCanary.monitor(jsc)) {
+            return Health.down().build();
+        }
 
-    @Builder.Default
-    private boolean all = false;
-
-    @Builder.Default
-    private String unitName = UnitOfWork.GLOBAL_UNIT;
-
-    @Builder.Default
-    private int maxRetry = 10;
-
-    @Builder.Default
-    private boolean readonly = false;
-
-    @Builder.Default
-    private boolean useSandbox = true;
-
-    @Builder.Default
-    private boolean skipAuditLog = false;
-
+        return Health.up().build();
+    }
 }

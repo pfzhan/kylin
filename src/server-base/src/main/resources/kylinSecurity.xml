@@ -222,6 +222,7 @@
             <scr:csrf disabled="true"/>
             <scr:http-basic entry-point-ref="nUnauthorisedEntryPoint"/>
 
+            <scr:intercept-url pattern="/api/health" access="permitAll"/>
             <scr:intercept-url pattern="/api/user/authentication*/**" access="permitAll"/>
             <scr:intercept-url pattern="/api/query/history_queries/table_names" access="permitAll"/>
             <scr:intercept-url pattern="/api/models/model_info" access="permitAll"/>
