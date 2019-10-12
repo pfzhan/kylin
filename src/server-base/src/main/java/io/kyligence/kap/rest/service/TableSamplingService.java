@@ -32,6 +32,8 @@ import java.util.stream.Collectors;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.rest.service.BasicService;
+import org.apache.kylin.rest.util.AclEvaluate;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import com.google.common.collect.Maps;
@@ -45,8 +47,12 @@ import lombok.val;
 @Component("tableSamplingService")
 public class TableSamplingService extends BasicService {
 
+    @Autowired
+    private AclEvaluate aclEvaluate;
+
     @Transaction(project = 1)
     public void sampling(Set<String> tables, String project, int rows) {
+        aclEvaluate.checkProjectWritePermission(project);
         NExecutableManager execMgr = NExecutableManager.getInstance(getConfig(), project);
         NTableMetadataManager tableMgr = NTableMetadataManager.getInstance(getConfig(), project);
 

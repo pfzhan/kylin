@@ -42,11 +42,14 @@ import org.apache.kylin.rest.exception.BadRequestException;
 import org.apache.kylin.rest.msg.Message;
 import org.apache.kylin.rest.msg.MsgPicker;
 import org.apache.kylin.rest.security.AclManager;
+import org.apache.kylin.rest.security.AclPermission;
+import org.apache.kylin.rest.service.AccessService;
 import org.apache.kylin.rest.service.BasicService;
 import org.apache.kylin.rest.util.AclEvaluate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
@@ -94,6 +97,11 @@ public class ProjectService extends BasicService {
     @Autowired
     private AsyncTaskService asyncTaskService;
 
+    @Autowired
+    @Qualifier("accessService")
+    private AccessService accessService;
+
+    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
     public ProjectInstance deserializeProjectDesc(ProjectRequest projectRequest) {
         logger.debug("Saving project " + projectRequest.getProjectDescData());
         ProjectInstance projectDesc;
@@ -105,10 +113,10 @@ public class ProjectService extends BasicService {
         return projectDesc;
     }
 
+    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
     @Transaction
-    public ProjectInstance createProject(String name, ProjectInstance newProject) {
+    public ProjectInstance createProject(String projectName, ProjectInstance newProject) {
         Message msg = MsgPicker.getMsg();
-        String projectName = newProject.getName();
         String description = newProject.getDescription();
         LinkedHashMap<String, String> overrideProps = newProject.getOverrideKylinProps();
         ProjectInstance currentProject = getProjectManager().getProject(projectName);
@@ -119,6 +127,7 @@ public class ProjectService extends BasicService {
         ProjectInstance createdProject = getProjectManager().createProject(projectName, owner, description,
                 overrideProps, newProject.getMaintainModelType());
         logger.debug("New project created.");
+        UnitOfWork.get().doAfterUnit(() -> accessService.init(createdProject, AclPermission.ADMINISTRATION));
         UnitOfWork.get().doAfterUnit(() -> UnitOfWork.doInTransactionWithRetry(() -> {
             createDefaultRules(projectName);
             return 0;
@@ -166,10 +175,10 @@ public class ProjectService extends BasicService {
             return allProjects.stream().filter(
                     project -> (!exactMatch && project.getName().toUpperCase().contains(projectName.toUpperCase()))
                             || (exactMatch && project.getName().equals(projectName)))
-                    .filter(project -> aclEvaluate.hasProjectAdminPermission(project)).collect(Collectors.toList());
+                    .filter(project -> aclEvaluate.hasProjectReadPermission(project)).collect(Collectors.toList());
         }
 
-        return allProjects.stream().filter(project -> aclEvaluate.hasProjectAdminPermission(project))
+        return allProjects.stream().filter(project -> aclEvaluate.hasProjectReadPermission(project))
                 .collect(Collectors.toList());
     }
 
@@ -182,6 +191,7 @@ public class ProjectService extends BasicService {
         updateProjectOverrideKylinProps(project, overrideKylinProps);
     }
 
+    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#project, 'ADMINISTRATION')")
     public FavoriteQueryThresholdResponse getQueryAccelerateThresholdConfig(String project) {
         val projectInstance = getProjectManager().getProject(project);
         val thresholdResponse = new FavoriteQueryThresholdResponse();
@@ -309,6 +319,7 @@ public class ProjectService extends BasicService {
         return strValue;
     }
 
+    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#project, 'ADMINISTRATION')")
     public ProjectConfigResponse getProjectConfig(String project) {
         val response = new ProjectConfigResponse();
         val projectInstance = getProjectManager().getProject(project);
@@ -356,6 +367,7 @@ public class ProjectService extends BasicService {
         });
     }
 
+    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#project, 'ADMINISTRATION')")
     public String getShardNumConfig(String project) {
         return getProjectManager().getProject(project).getConfig().getExtendedOverrides()
                 .getOrDefault("kylin.engine.shard-num-json", "");
@@ -397,12 +409,14 @@ public class ProjectService extends BasicService {
         });
     }
 
+    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
     @Transaction(project = 0)
     public void dropProject(String project) {
         val prjManager = getProjectManager();
+        final ProjectInstance projectInstance = prjManager.getProject(project);
         prjManager.forceDropProject(project);
-        val context = UnitOfWork.get();
-        context.doAfterUnit(() -> new ProjectDropListener().onDelete(project));
+        UnitOfWork.get().doAfterUnit(() -> accessService.clean(projectInstance, true));
+        UnitOfWork.get().doAfterUnit(() -> new ProjectDropListener().onDelete(project));
     }
 
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
@@ -428,16 +442,19 @@ public class ProjectService extends BasicService {
         }
     }
 
+    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#project, 'ADMINISTRATION')")
     public String backupProject(String project) throws Exception {
         return metadataBackupService.backupProject(project);
     }
 
+    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#project, 'ADMINISTRATION')")
     public void clearManagerCache(String project) {
         val config = KylinConfig.getInstanceFromEnv();
         config.clearManagersByProject(project);
         config.clearManagersByClz(NProjectManager.class);
     }
 
+    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#project, 'ADMINISTRATION')")
     @Transaction
     public void setDataSourceType(String project, String sourceType) {
         getProjectManager().updateProject(project, copyForWrite -> {
@@ -445,8 +462,8 @@ public class ProjectService extends BasicService {
         });
     }
 
-    @Transaction(project = 0)
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#project, 'ADMINISTRATION')")
+    @Transaction(project = 0)
     public void updateGarbageCleanupConfig(String project, GarbageCleanUpConfigRequest garbageCleanUpConfigRequest) {
         Map<String, String> overrideKylinProps = Maps.newHashMap();
         overrideKylinProps.put("kylin.favorite.low-frequency-threshold",
@@ -456,8 +473,8 @@ public class ProjectService extends BasicService {
         updateProjectOverrideKylinProps(project, overrideKylinProps);
     }
 
-    @Transaction
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#project, 'ADMINISTRATION')")
+    @Transaction
     public ProjectConfigResponse resetProjectConfig(String project, String resetItem) {
         if ("job_notification_config".equals(resetItem)) {
             resetJobNotificationConfig(project);

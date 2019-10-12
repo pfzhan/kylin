@@ -38,6 +38,7 @@ import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.persistence.AclEntity;
 import org.apache.kylin.metadata.MetadataConstants;
+import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.exception.BadRequestException;
 import org.apache.kylin.rest.msg.Message;
 import org.apache.kylin.rest.msg.MsgPicker;
@@ -52,6 +53,7 @@ import org.apache.kylin.rest.service.UserService;
 import org.apache.kylin.rest.util.PagingUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.acls.model.Acl;
 import org.springframework.security.acls.model.Permission;
 import org.springframework.stereotype.Controller;
@@ -109,6 +111,7 @@ public class NAccessController extends NBasicController {
     @RequestMapping(value = "/available/{sidType}/{uuid}", method = { RequestMethod.GET }, produces = {
             "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
+    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
     public EnvelopeResponse getAvailableSids(@PathVariable("uuid") String uuid, @PathVariable("sidType") String sidType,
             @RequestParam(value = "project", required = false) String project,
             @RequestParam(value = "name", required = false) String nameSeg,
@@ -141,6 +144,7 @@ public class NAccessController extends NBasicController {
     @RequestMapping(value = "/{type}/{uuid}", method = { RequestMethod.GET }, produces = {
             "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
+    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
     public EnvelopeResponse getAccessEntities(@PathVariable("type") String type, @PathVariable("uuid") String uuid,
             @RequestParam(value = "name", required = false) String nameSeg,
             @RequestParam(value = "isCaseSensitive", required = false) boolean isCaseSensitive,
@@ -148,8 +152,7 @@ public class NAccessController extends NBasicController {
             @RequestParam(value = "pageSize", required = false, defaultValue = "10") Integer pageSize) {
 
         AclEntity ae = accessService.getAclEntity(type, uuid);
-        Acl acl = accessService.getAcl(ae);
-        List<AccessEntryResponse> resultsAfterFuzzyMatching = this.accessService.generateAceResponsesByFuzzMatching(acl,
+        List<AccessEntryResponse> resultsAfterFuzzyMatching = this.accessService.generateAceResponsesByFuzzMatching(ae,
                 nameSeg, isCaseSensitive);
         List<AccessEntryResponse> sublist = PagingUtil.cutPage(resultsAfterFuzzyMatching, pageOffset, pageSize);
 
@@ -178,6 +181,7 @@ public class NAccessController extends NBasicController {
 
     @PostMapping(value = "/batch/{entityType}/{uuid}", produces = { "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
+    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
     public EnvelopeResponse batchGrant(@PathVariable("entityType") String entityType, @PathVariable("uuid") String uuid,
             @RequestBody List<BatchAccessRequest> batchAccessRequests) throws IOException {
         List<AccessRequest> requests = transform(batchAccessRequests);

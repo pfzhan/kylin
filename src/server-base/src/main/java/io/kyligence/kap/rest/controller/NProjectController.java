@@ -29,11 +29,6 @@ import java.util.List;
 
 import javax.validation.Valid;
 
-import io.kyligence.kap.rest.request.DataSourceTypeRequest;
-import io.kyligence.kap.rest.request.DefaultDatabaseRequest;
-import io.kyligence.kap.rest.request.GarbageCleanUpConfigRequest;
-import io.kyligence.kap.rest.request.ProjectConfigResetRequest;
-import io.kyligence.kap.rest.request.ShardNumConfigRequest;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.rest.constant.Constant;
@@ -55,12 +50,17 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
+import io.kyligence.kap.rest.request.DataSourceTypeRequest;
+import io.kyligence.kap.rest.request.DefaultDatabaseRequest;
 import io.kyligence.kap.rest.request.FavoriteQueryThresholdRequest;
+import io.kyligence.kap.rest.request.GarbageCleanUpConfigRequest;
 import io.kyligence.kap.rest.request.JobNotificationConfigRequest;
+import io.kyligence.kap.rest.request.ProjectConfigResetRequest;
 import io.kyligence.kap.rest.request.ProjectGeneralInfoRequest;
 import io.kyligence.kap.rest.request.ProjectRequest;
 import io.kyligence.kap.rest.request.PushDownConfigRequest;
 import io.kyligence.kap.rest.request.SegmentConfigRequest;
+import io.kyligence.kap.rest.request.ShardNumConfigRequest;
 import io.kyligence.kap.rest.request.StorageQuotaRequest;
 import io.kyligence.kap.rest.service.ProjectService;
 
@@ -111,7 +111,6 @@ public class NProjectController extends NBasicController {
 
     @RequestMapping(value = "", method = { RequestMethod.POST }, produces = { "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
     public EnvelopeResponse saveProject(@Valid @RequestBody ProjectRequest projectRequest) {
 
         ProjectInstance projectDesc = projectService.deserializeProjectDesc(projectRequest);
@@ -163,6 +162,7 @@ public class NProjectController extends NBasicController {
     @RequestMapping(value = "/storage_volume_info", method = { RequestMethod.GET }, produces = {
             "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
+    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#project, 'ADMINISTRATION')")
     public EnvelopeResponse getStorageVolumeInfo(@RequestParam(value = "project", required = true) String project)
             throws Exception {
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, projectService.getStorageVolumeInfoResponse(project),

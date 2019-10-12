@@ -108,6 +108,7 @@ public class AccessService extends BasicService {
 
     // ~ Methods to manage acl life circle of domain objects ~
 
+    @Transaction
     public MutableAclRecord init(AclEntity ae, Permission initPermission) {
         MutableAclRecord acl = null;
         ObjectIdentity objectIdentity = new ObjectIdentityImpl(ae);
@@ -351,9 +352,14 @@ public class AccessService extends BasicService {
         }
     }
 
-    public List<AccessEntryResponse> generateAceResponsesByFuzzMatching(Acl acl, String nameSeg,
+    public List<AccessEntryResponse> generateAceResponsesByFuzzMatching(AclEntity ae, String nameSeg,
             boolean isCaseSensitive) {
-        if (null == acl) {
+        return generateAceResponsesByFuzzMatching(getAcl(ae), nameSeg, isCaseSensitive);
+    }
+
+    private List<AccessEntryResponse> generateAceResponsesByFuzzMatching(Acl acl, String nameSeg,
+            boolean isCaseSensitive) {
+        if (Objects.isNull(acl)) {
             return Collections.emptyList();
         }
 

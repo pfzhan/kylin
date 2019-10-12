@@ -68,6 +68,8 @@ import org.apache.kylin.metadata.model.TableExtDesc;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 import org.apache.kylin.rest.exception.BadRequestException;
+import org.apache.kylin.rest.util.AclEvaluate;
+import org.apache.kylin.rest.util.AclUtil;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -119,6 +121,9 @@ public class TableServiceTest extends CSVSourceTestCase {
     @Mock
     private AclTCRService aclTCRService = Mockito.spy(AclTCRService.class);
 
+    @Mock
+    private AclEvaluate aclEvaluate = Mockito.spy(AclEvaluate.class);
+
     @Rule
     public ExpectedException thrown = ExpectedException.none();
 
@@ -126,6 +131,10 @@ public class TableServiceTest extends CSVSourceTestCase {
     public void setup() {
         super.setup();
         System.setProperty("HADOOP_USER_NAME", "root");
+
+        ReflectionTestUtils.setField(aclEvaluate, "aclUtil", Mockito.spy(AclUtil.class));
+        ReflectionTestUtils.setField(modelService, "aclEvaluate", aclEvaluate);
+        ReflectionTestUtils.setField(tableService, "aclEvaluate", aclEvaluate);
         ReflectionTestUtils.setField(tableService, "modelService", modelService);
         ReflectionTestUtils.setField(tableService, "aclTCRService", aclTCRService);
 

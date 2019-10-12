@@ -31,23 +31,24 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 
-import io.kyligence.kap.metadata.model.ComputedColumnDesc;
-import io.kyligence.kap.metadata.model.NDataModelManager;
-import lombok.val;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.exception.BadRequestException;
 import org.apache.kylin.rest.exception.NotFoundException;
 import org.apache.kylin.rest.msg.MsgPicker;
 import org.apache.kylin.rest.request.FavoriteRuleUpdateRequest;
+import org.apache.kylin.rest.util.AclEvaluate;
+import org.apache.kylin.rest.util.AclUtil;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.InjectMocks;
+import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.security.authentication.TestingAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.google.common.collect.Lists;
@@ -56,8 +57,11 @@ import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.metadata.favorite.FavoriteQuery;
 import io.kyligence.kap.metadata.favorite.FavoriteQueryManager;
 import io.kyligence.kap.metadata.favorite.FavoriteRule;
+import io.kyligence.kap.metadata.model.ComputedColumnDesc;
+import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.query.AccelerateRatioManager;
 import io.kyligence.kap.rest.response.ImportSqlResponse;
+import lombok.val;
 import lombok.var;
 
 public class FavoriteRuleServiceTest extends NLocalFileMetadataTestCase {
@@ -67,11 +71,19 @@ public class FavoriteRuleServiceTest extends NLocalFileMetadataTestCase {
     @InjectMocks
     private FavoriteRuleService favoriteRuleService = Mockito.spy(new FavoriteRuleService());
 
+    @Mock
+    private AclUtil aclUtil = Mockito.spy(AclUtil.class);
+
+    @Mock
+    private AclEvaluate aclEvaluate = Mockito.spy(AclEvaluate.class);
+
     @Before
     public void setUp() {
         createTestMetadata();
         SecurityContextHolder.getContext()
                 .setAuthentication(new TestingAuthenticationToken("ADMIN", "ADMIN", Constant.ROLE_ADMIN));
+        ReflectionTestUtils.setField(aclEvaluate, "aclUtil", aclUtil);
+        ReflectionTestUtils.setField(favoriteRuleService, "aclEvaluate", aclEvaluate);
     }
 
     @After
@@ -96,14 +108,22 @@ public class FavoriteRuleServiceTest extends NLocalFileMetadataTestCase {
         FavoriteQuery favoriteQuery4 = new FavoriteQuery(sqlPattern4);
         favoriteQuery4.setChannel(FavoriteQuery.CHANNEL_FROM_IMPORTED);
 
-        favoriteQueryManager.create(new HashSet(){{add(favoriteQuery1);add(favoriteQuery2);add(favoriteQuery3);add(favoriteQuery4);}});
+        favoriteQueryManager.create(new HashSet() {
+            {
+                add(favoriteQuery1);
+                add(favoriteQuery2);
+                add(favoriteQuery3);
+                add(favoriteQuery4);
+            }
+        });
         List<FavoriteQuery> favoriteQueries = favoriteQueryManager.getAll();
         Assert.assertEquals(4, favoriteQueries.size());
         List<FavoriteRule.SQLCondition> blacklistSqls = favoriteRuleService.getBlacklistSqls(PROJECT, "");
         Assert.assertEquals(1, blacklistSqls.size());
 
         // append sql pattern1 to blacklist by batch
-        var fqUuids = Lists.newArrayList(favoriteQueryManager.get(sqlPattern1).getUuid(), favoriteQueryManager.get(sqlPattern2).getUuid());
+        var fqUuids = Lists.newArrayList(favoriteQueryManager.get(sqlPattern1).getUuid(),
+                favoriteQueryManager.get(sqlPattern2).getUuid());
         favoriteRuleService.batchDeleteFQs(PROJECT, fqUuids, true);
         blacklistSqls = favoriteRuleService.getBlacklistSqls(PROJECT, "");
         Assert.assertEquals(3, blacklistSqls.size());
@@ -111,7 +131,8 @@ public class FavoriteRuleServiceTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(2, favoriteQueries.size());
 
         // delete fq by batch
-        fqUuids = Lists.newArrayList(favoriteQueryManager.get(sqlPattern3).getUuid(), favoriteQueryManager.get(sqlPattern4).getUuid());
+        fqUuids = Lists.newArrayList(favoriteQueryManager.get(sqlPattern3).getUuid(),
+                favoriteQueryManager.get(sqlPattern4).getUuid());
         favoriteRuleService.batchDeleteFQs(PROJECT, fqUuids, false);
         blacklistSqls = favoriteRuleService.getBlacklistSqls(PROJECT, "");
         Assert.assertEquals(3, blacklistSqls.size());
@@ -121,7 +142,11 @@ public class FavoriteRuleServiceTest extends NLocalFileMetadataTestCase {
         // create fq whose sql pattern is in blacklist
         FavoriteQuery sqlPattern1FQ = new FavoriteQuery(sqlPattern1);
         sqlPattern1FQ.setChannel(FavoriteQuery.CHANNEL_FROM_RULE);
-        favoriteQueryManager.create(new HashSet(){{add(sqlPattern1FQ);}});
+        favoriteQueryManager.create(new HashSet() {
+            {
+                add(sqlPattern1FQ);
+            }
+        });
         Assert.assertEquals(0, favoriteQueryManager.getAll().size());
         blacklistSqls = favoriteRuleService.getBlacklistSqls(PROJECT, "");
         favoriteQueries = favoriteQueryManager.getAll();
@@ -160,13 +185,17 @@ public class FavoriteRuleServiceTest extends NLocalFileMetadataTestCase {
     @Test
     public void testLoadSqls() throws IOException {
         // import multiple files
-        MockMultipartFile file1 = new MockMultipartFile("sqls1.sql", "sqls1.sql", "text/plain", new FileInputStream(new File("./src/test/resources/ut_sqls_file/sqls1.sql")));
-        MockMultipartFile file2 = new MockMultipartFile("sqls2.txt", "sqls2.txt", "text/plain", new FileInputStream(new File("./src/test/resources/ut_sqls_file/sqls2.txt")));
-        MockMultipartFile exceptionFile = new MockMultipartFile("exception_file.sql", "exception_file.sql", "text/plain", "".getBytes());
+        MockMultipartFile file1 = new MockMultipartFile("sqls1.sql", "sqls1.sql", "text/plain",
+                new FileInputStream(new File("./src/test/resources/ut_sqls_file/sqls1.sql")));
+        MockMultipartFile file2 = new MockMultipartFile("sqls2.txt", "sqls2.txt", "text/plain",
+                new FileInputStream(new File("./src/test/resources/ut_sqls_file/sqls2.txt")));
+        MockMultipartFile exceptionFile = new MockMultipartFile("exception_file.sql", "exception_file.sql",
+                "text/plain", "".getBytes());
 
         Mockito.when(favoriteRuleService.transformFileToSqls(exceptionFile, PROJECT)).thenThrow(IOException.class);
 
-        Map<String, Object> result = favoriteRuleService.importSqls(new MultipartFile[]{file1, file2, exceptionFile}, PROJECT);
+        Map<String, Object> result = favoriteRuleService.importSqls(new MultipartFile[] { file1, file2, exceptionFile },
+                PROJECT);
         List<ImportSqlResponse> responses = (List<ImportSqlResponse>) result.get("data");
         Assert.assertEquals(9, responses.size());
         Assert.assertFalse(responses.get(0).isCapable());
@@ -178,8 +207,9 @@ public class FavoriteRuleServiceTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals("exception_file.sql parse failed", failedFilesMsg);
 
         // import empty file
-        MockMultipartFile emptyFile = new MockMultipartFile("empty_file.sql", "empty_file.sql", "text/plain", "".getBytes());
-        result = favoriteRuleService.importSqls(new MultipartFile[]{emptyFile}, PROJECT);
+        MockMultipartFile emptyFile = new MockMultipartFile("empty_file.sql", "empty_file.sql", "text/plain",
+                "".getBytes());
+        result = favoriteRuleService.importSqls(new MultipartFile[] { emptyFile }, PROJECT);
         Assert.assertNotNull(result);
         Assert.assertEquals(0, result.get("size"));
     }
@@ -191,8 +221,9 @@ public class FavoriteRuleServiceTest extends NLocalFileMetadataTestCase {
             favoriteRuleService.getFavoriteRules(PROJECT_NEWTEN);
         } catch (Throwable ex) {
             Assert.assertEquals(NotFoundException.class, ex.getClass());
-            Assert.assertEquals(String.format(MsgPicker.getMsg().getFAVORITE_RULE_NOT_FOUND(),
-                    FavoriteRule.FREQUENCY_RULE_NAME), ex.getMessage());
+            Assert.assertEquals(
+                    String.format(MsgPicker.getMsg().getFAVORITE_RULE_NOT_FOUND(), FavoriteRule.FREQUENCY_RULE_NAME),
+                    ex.getMessage());
         }
     }
 
@@ -296,7 +327,8 @@ public class FavoriteRuleServiceTest extends NLocalFileMetadataTestCase {
         String sql = "select * from test_kylin\n\n";
         var response = favoriteRuleService.sqlValidate(PROJECT, sql);
         Assert.assertFalse(response.isCapable());
-        Assert.assertEquals("Table 'TEST_KYLIN' not found.", Lists.newArrayList(response.getSqlAdvices()).get(0).getIncapableReason());
+        Assert.assertEquals("Table 'TEST_KYLIN' not found.",
+                Lists.newArrayList(response.getSqlAdvices()).get(0).getIncapableReason());
     }
 
     @Test
@@ -308,14 +340,15 @@ public class FavoriteRuleServiceTest extends NLocalFileMetadataTestCase {
         ccDesc.setDatatype("decimal(30,4)");
         ccDesc.setExpression("TEST_KYLIN_FACT.PRICE * TEST_KYLIN_FACT.ITEM_COUNT");
 
-        val basicModel = NDataModelManager.getInstance(getTestConfig(), PROJECT).getDataModelDescByAlias("nmodel_basic");
+        val basicModel = NDataModelManager.getInstance(getTestConfig(), PROJECT)
+                .getDataModelDescByAlias("nmodel_basic");
         Assert.assertTrue(basicModel.getComputedColumnDescs().contains(ccDesc));
 
         // PRICE * ITEM_COUNT expression already exists
         String sql = "SELECT SUM(PRICE * ITEM_COUNT), CAL_DT FROM TEST_KYLIN_FACT GROUP BY CAL_DT";
 
         MockMultipartFile file1 = new MockMultipartFile("file.sql", "file.sql", "text/plain", sql.getBytes());
-        Map<String, Object> result = favoriteRuleService.importSqls(new MultipartFile[]{file1}, PROJECT);
+        Map<String, Object> result = favoriteRuleService.importSqls(new MultipartFile[] { file1 }, PROJECT);
         List<ImportSqlResponse> responses = (List<ImportSqlResponse>) result.get("data");
         Assert.assertEquals(1, responses.size());
         Assert.assertTrue(responses.get(0).isCapable());

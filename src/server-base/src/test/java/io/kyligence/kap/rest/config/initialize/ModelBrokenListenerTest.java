@@ -33,6 +33,8 @@ import java.util.concurrent.TimeUnit;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.metadata.realization.RealizationStatusEnum;
+import org.apache.kylin.rest.util.AclEvaluate;
+import org.apache.kylin.rest.util.AclUtil;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -83,6 +85,9 @@ public class ModelBrokenListenerTest extends CSVSourceTestCase {
     @Mock
     private AclTCRService aclTCRService = Mockito.spy(AclTCRService.class);
 
+    @Mock
+    private AclEvaluate aclEvaluate = Mockito.spy(AclEvaluate.class);
+
     @InjectMocks
     private TableExtService tableExtService = Mockito.spy(new TableExtService());
 
@@ -95,8 +100,11 @@ public class ModelBrokenListenerTest extends CSVSourceTestCase {
         System.setProperty("kylin.job.event.poll-interval-second", "3");
         super.setup();
         SchedulerEventBusFactory.getInstance(getTestConfig()).register(modelBrokenListener);
-        ReflectionTestUtils.setField(tableExtService, "tableService", tableService);
+        ReflectionTestUtils.setField(aclEvaluate, "aclUtil", Mockito.spy(AclUtil.class));
+        ReflectionTestUtils.setField(tableService, "aclEvaluate", aclEvaluate);
+        ReflectionTestUtils.setField(tableExtService, "aclEvaluate", aclEvaluate);
         ReflectionTestUtils.setField(tableService, "aclTCRService", aclTCRService);
+        ReflectionTestUtils.setField(tableExtService, "tableService", tableService);
     }
 
     @After

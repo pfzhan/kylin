@@ -156,7 +156,7 @@ public class AclPermissionUtil {
     }
 
     public static boolean canUseACLGreenChannelInQuery(String project) {
-        return isAdmin() || !KylinConfig.getInstanceFromEnv().isAclTCREnabled();
+        return !KylinConfig.getInstanceFromEnv().isAclTCREnabled() || isAdmin() || isAdminInProject(project);
     }
 
     public static boolean isAdminInProject(String project) {

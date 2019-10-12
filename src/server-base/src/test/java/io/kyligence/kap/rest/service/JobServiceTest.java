@@ -55,6 +55,8 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 
+import javax.servlet.http.HttpServletResponse;
+
 import org.apache.commons.io.FileUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.dao.ExecutableOutputPO;
@@ -66,6 +68,8 @@ import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.rest.constant.Constant;
+import org.apache.kylin.rest.util.AclEvaluate;
+import org.apache.kylin.rest.util.AclUtil;
 import org.assertj.core.api.Assertions;
 import org.junit.After;
 import org.junit.Assert;
@@ -106,8 +110,6 @@ import io.kyligence.kap.rest.response.ExecutableStepResponse;
 import io.kyligence.kap.rest.response.JobStatisticsResponse;
 import lombok.val;
 
-import javax.servlet.http.HttpServletResponse;
-
 public class JobServiceTest extends NLocalFileMetadataTestCase {
 
     @InjectMocks
@@ -115,6 +117,12 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
 
     @Mock
     private TableExtService tableExtService = Mockito.spy(TableExtService.class);
+
+    @Mock
+    private AclUtil aclUtil = Mockito.spy(AclUtil.class);
+
+    @Mock
+    private AclEvaluate aclEvaluate = Mockito.spy(AclEvaluate.class);
 
     @Rule
     public ExpectedException thrown = ExpectedException.none();
@@ -128,8 +136,9 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
         staticCreateTestMetadata();
         SecurityContextHolder.getContext()
                 .setAuthentication(new TestingAuthenticationToken("ADMIN", "ADMIN", Constant.ROLE_ADMIN));
+        ReflectionTestUtils.setField(aclEvaluate, "aclUtil", aclUtil);
+        ReflectionTestUtils.setField(jobService, "aclEvaluate", aclEvaluate);
         ReflectionTestUtils.setField(jobService, "tableExtService", tableExtService);
-
     }
 
     @After

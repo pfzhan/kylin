@@ -33,6 +33,7 @@ import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.rest.msg.Message;
 import org.apache.kylin.rest.msg.MsgPicker;
 import org.apache.kylin.rest.service.BasicService;
+import org.apache.kylin.rest.util.AclEvaluate;
 import org.apache.spark.sql.SparderEnv;
 import org.apache.spark.sql.SparkSession;
 import org.slf4j.Logger;
@@ -60,7 +61,11 @@ public class FileSourceService extends BasicService {
     @Autowired
     private TableExtService tableExtService;
 
+    @Autowired
+    private AclEvaluate aclEvaluate;
+
     public LoadTableResponse saveCSV(String mode, CSVRequest csvRequest) throws Exception {
+        aclEvaluate.checkProjectOperationPermission(csvRequest.getProject());
         String sql;
         SparkSession ss = SparderEnv.getSparkSession();
 

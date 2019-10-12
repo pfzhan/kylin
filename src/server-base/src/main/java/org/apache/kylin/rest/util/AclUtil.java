@@ -58,26 +58,32 @@ public class AclUtil {
 
     //such method MUST NOT be called from within same class
     //do not change public to package private
-    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#project, 'ADMINISTRATION')"
-            + " or hasPermission(#project, 'MANAGEMENT')" + " or hasPermission(#project, 'OPERATION')"
-            + " or hasPermission(#project, 'READ')")
+    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + //
+            " or hasPermission(#project, 'ADMINISTRATION')" + // 
+            " or hasPermission(#project, 'MANAGEMENT')" + //
+            " or hasPermission(#project, 'OPERATION')" + //
+            " or hasPermission(#project, 'READ')")
     public boolean hasProjectReadPermission(ProjectInstance project) {
         return true;
     }
 
-    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#project, 'ADMINISTRATION')"
-            + " or hasPermission(#project, 'MANAGEMENT')" + " or hasPermission(#project, 'OPERATION')")
+    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + // 
+            " or hasPermission(#project, 'ADMINISTRATION')" + // 
+            " or hasPermission(#project, 'MANAGEMENT')" + //
+            " or hasPermission(#project, 'OPERATION')")
     public boolean hasProjectOperationPermission(ProjectInstance project) {
         return true;
     }
 
-    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#project, 'ADMINISTRATION')"
-            + " or hasPermission(#project, 'MANAGEMENT')")
+    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + // 
+            " or hasPermission(#project, 'ADMINISTRATION')" + // 
+            " or hasPermission(#project, 'MANAGEMENT')")
     public boolean hasProjectWritePermission(ProjectInstance project) {
         return true;
     }
 
-    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#project, 'ADMINISTRATION')")
+    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + // 
+            " or hasPermission(#project, 'ADMINISTRATION')")
     public boolean hasProjectAdminPermission(ProjectInstance project) {
         return true;
     }

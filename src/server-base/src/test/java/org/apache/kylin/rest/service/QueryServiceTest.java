@@ -134,7 +134,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
 
     @Mock
     private CacheManager cacheManager = Mockito
-            .spy(CacheManager.create(ClassLoader.getSystemResourceAsStream("ehcache-test.xml")));
+            .spy(CacheManager.create(ClassLoader.getSystemResourceAsStream("ehcache.xml")));
 
     private ClusterManager clusterManager = new DefaultClusterManager(8080);
 

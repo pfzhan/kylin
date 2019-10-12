@@ -66,8 +66,6 @@ import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
-import io.kyligence.kap.event.manager.EventManager;
-import io.kyligence.kap.event.model.MergeSegmentEvent;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
@@ -88,6 +86,8 @@ import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 import org.apache.kylin.query.util.PushDownUtil;
 import org.apache.kylin.rest.exception.BadRequestException;
+import org.apache.kylin.rest.util.AclEvaluate;
+import org.apache.kylin.rest.util.AclUtil;
 import org.hamcrest.BaseMatcher;
 import org.hamcrest.Description;
 import org.junit.After;
@@ -98,16 +98,20 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.mockito.InjectMocks;
+import org.mockito.Mock;
 import org.mockito.Mockito;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.Lists;
 
 import io.kyligence.kap.event.manager.EventDao;
+import io.kyligence.kap.event.manager.EventManager;
 import io.kyligence.kap.event.model.AddCuboidEvent;
 import io.kyligence.kap.event.model.AddSegmentEvent;
 import io.kyligence.kap.event.model.Event;
+import io.kyligence.kap.event.model.MergeSegmentEvent;
 import io.kyligence.kap.event.model.PostAddSegmentEvent;
 import io.kyligence.kap.event.model.PostMergeOrRefreshSegmentEvent;
 import io.kyligence.kap.event.model.RefreshSegmentEvent;
@@ -166,6 +170,12 @@ public class ModelServiceTest extends CSVSourceTestCase {
     @InjectMocks
     private SegmentHelper segmentHelper = new SegmentHelper();
 
+    @Mock
+    private AclUtil aclUtil = Mockito.spy(AclUtil.class);
+
+    @Mock
+    private AclEvaluate aclEvaluate = Mockito.spy(AclEvaluate.class);
+
     @Rule
     public ExpectedException thrown = ExpectedException.none();
 
@@ -174,6 +184,8 @@ public class ModelServiceTest extends CSVSourceTestCase {
         super.setup();
         System.setProperty("HADOOP_USER_NAME", "root");
 
+        ReflectionTestUtils.setField(aclEvaluate, "aclUtil", aclUtil);
+        ReflectionTestUtils.setField(modelService, "aclEvaluate", aclEvaluate);
         modelService.setSemanticUpdater(semanticService);
         modelService.setSegmentHelper(segmentHelper);
         val result1 = new QueryTimesResponse();
@@ -862,7 +874,8 @@ public class ModelServiceTest extends CSVSourceTestCase {
         EventDao eventDao = EventDao.getInstance(KylinConfig.getInstanceFromEnv(), "default");
         eventDao.deleteAllEvents();
 
-        modelService.mergeSegmentsManually(dfId, "default", new String[] { dataSegment1.getId(), dataSegment2.getId(), dataSegment3.getId() });
+        modelService.mergeSegmentsManually(dfId, "default",
+                new String[] { dataSegment1.getId(), dataSegment2.getId(), dataSegment3.getId() });
         List<Event> events = eventDao.getEvents();
         Assert.assertEquals(2, events.size());
 
@@ -876,8 +889,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         thrown.expectMessage(
                 "Can not remove or refresh segment (ID:" + dataSegment2.getId() + "), because the segment is LOCKED.");
         //refresh exception
-        modelService.mergeSegmentsManually(dfId, "default",
-                new String[] { dataSegment2.getId() });
+        modelService.mergeSegmentsManually(dfId, "default", new String[] { dataSegment2.getId() });
 
         // clear segments
         update.setToRemoveSegs(df.getSegments().toArray(new NDataSegment[0]));
@@ -919,7 +931,8 @@ public class ModelServiceTest extends CSVSourceTestCase {
 
         thrown.expect(BadRequestException.class);
         thrown.expectMessage("Cannot merge segments which are not ready");
-        modelService.mergeSegmentsManually(dfId, "default", new String[] { dataSegment1.getId(), dataSegment2.getId() });
+        modelService.mergeSegmentsManually(dfId, "default",
+                new String[] { dataSegment1.getId(), dataSegment2.getId() });
 
         // clear segments
         update.setToRemoveSegs(df.getSegments().toArray(new NDataSegment[0]));

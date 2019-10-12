@@ -34,11 +34,6 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-import com.google.common.collect.Lists;
-import io.kyligence.kap.metadata.cube.model.NDataflowManager;
-import io.kyligence.kap.metadata.project.NProjectManager;
-import io.kyligence.kap.metadata.query.NativeQueryRealization;
-import io.kyligence.kap.metadata.query.QueryHistory;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.RootPersistentEntity;
@@ -46,15 +41,22 @@ import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.rest.exception.BadRequestException;
 import org.apache.kylin.rest.msg.MsgPicker;
 import org.apache.kylin.rest.service.BasicService;
+import org.apache.kylin.rest.util.AclEvaluate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
+import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
+import io.kyligence.kap.metadata.project.NProjectManager;
+import io.kyligence.kap.metadata.query.NativeQueryRealization;
+import io.kyligence.kap.metadata.query.QueryHistory;
 import io.kyligence.kap.metadata.query.QueryHistoryDAO;
 import io.kyligence.kap.metadata.query.QueryHistoryRequest;
 import io.kyligence.kap.metadata.query.QueryStatistics;
@@ -65,8 +67,12 @@ import lombok.val;
 public class QueryHistoryService extends BasicService {
     private static final Logger logger = LoggerFactory.getLogger(QueryHistoryService.class);
 
+    @Autowired
+    private AclEvaluate aclEvaluate;
+
     public Map<String, Object> getQueryHistories(QueryHistoryRequest request, final int limit, final int offset) {
-        Preconditions.checkArgument(request.getProject() != null && StringUtils.isNotEmpty(request.getProject()));
+        Preconditions.checkArgument(StringUtils.isNotEmpty(request.getProject()));
+        aclEvaluate.checkProjectReadPermission(request.getProject());
         QueryHistoryDAO queryHistoryDAO = getQueryHistoryDao(request.getProject());
         val dataModelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), request.getProject());
 
@@ -126,7 +132,8 @@ public class QueryHistoryService extends BasicService {
     }
 
     public QueryStatisticsResponse getQueryStatistics(String project, long startTime, long endTime) {
-        Preconditions.checkArgument(project != null && StringUtils.isNotEmpty(project));
+        Preconditions.checkArgument(StringUtils.isNotEmpty(project));
+        aclEvaluate.checkProjectReadPermission(project);
         QueryHistoryDAO queryHistoryDAO = getQueryHistoryDao(project);
 
         QueryStatistics queryStatistics = queryHistoryDAO.getQueryCountAndAvgDuration(startTime, endTime);
@@ -134,7 +141,8 @@ public class QueryHistoryService extends BasicService {
     }
 
     public Map<String, Object> getQueryCount(String project, long startTime, long endTime, String dimension) {
-        Preconditions.checkArgument(project != null && StringUtils.isNotEmpty(project));
+        Preconditions.checkArgument(StringUtils.isNotEmpty(project));
+        aclEvaluate.checkProjectReadPermission(project);
         QueryHistoryDAO queryHistoryDAO = getQueryHistoryDao(project);
         List<QueryStatistics> queryStatistics;
 
@@ -148,7 +156,8 @@ public class QueryHistoryService extends BasicService {
     }
 
     public Map<String, Object> getAvgDuration(String project, long startTime, long endTime, String dimension) {
-        Preconditions.checkArgument(project != null && StringUtils.isNotEmpty(project));
+        Preconditions.checkArgument(StringUtils.isNotEmpty(project));
+        aclEvaluate.checkProjectReadPermission(project);
         QueryHistoryDAO queryHistoryDAO = getQueryHistoryDao(project);
         List<QueryStatistics> queryStatistics;
 

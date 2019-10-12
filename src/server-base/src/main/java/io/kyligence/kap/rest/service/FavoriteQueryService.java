@@ -43,8 +43,10 @@ import org.apache.kylin.query.util.QueryUtil;
 import org.apache.kylin.rest.msg.MsgPicker;
 import org.apache.kylin.rest.request.FavoriteRequest;
 import org.apache.kylin.rest.service.BasicService;
+import org.apache.kylin.rest.util.AclEvaluate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 
@@ -80,6 +82,9 @@ import lombok.var;
 public class FavoriteQueryService extends BasicService {
     private static final Logger logger = LoggerFactory.getLogger(FavoriteQueryService.class);
 
+    @Autowired
+    private AclEvaluate aclEvaluate;
+
     private Map<String, Integer> ignoreCountMap = Maps.newConcurrentMap();
 
     private static final String LAST_QUERY_TIME = "last_query_time";
@@ -97,6 +102,7 @@ public class FavoriteQueryService extends BasicService {
 
     @Transaction(project = 0)
     public Map<String, Integer> createFavoriteQuery(String project, FavoriteRequest request) {
+        aclEvaluate.checkProjectWritePermission(project);
         Map<String, Integer> result = Maps.newHashMap();
         result.put(BLACKLIST, 0);
         result.put(WAITING_TAB, 0);
@@ -154,6 +160,7 @@ public class FavoriteQueryService extends BasicService {
 
     public List<FavoriteQuery> filterAndSortFavoriteQueries(String project, String sortBy, boolean reverse,
             List<String> status) {
+        aclEvaluate.checkProjectWritePermission(project);
         // trigger favorite scheduler to fetch latest query histories
         SchedulerEventBusFactory.getInstance(KylinConfig.getInstanceFromEnv())
                 .postWithLimit(new FavoriteQueryListNotifier(project));
@@ -328,6 +335,7 @@ public class FavoriteQueryService extends BasicService {
 
     @Transaction(project = 0)
     public void acceptAccelerate(String project, int accelerateSize) {
+        aclEvaluate.checkProjectWritePermission(project);
         List<String> unAcceleratedSqlPattern = getAccelerableSqlPattern(project);
         if (accelerateSize > unAcceleratedSqlPattern.size()) {
             throw new IllegalArgumentException(
@@ -344,7 +352,7 @@ public class FavoriteQueryService extends BasicService {
             ignoreCountMap.put(project, 1);
     }
 
-    public void accelerate(List<String> unAcceleratedSqlPatterns, String project, KylinConfig config) {
+    private void accelerate(List<String> unAcceleratedSqlPatterns, String project, KylinConfig config) {
         List<String> sqlPatterns = Lists.newArrayList();
         int batchAccelerateSize = config.getFavoriteAccelerateBatchSize();
         int count = 1;

@@ -63,6 +63,7 @@ import org.apache.kylin.rest.exception.BadRequestException;
 import org.apache.kylin.rest.msg.Message;
 import org.apache.kylin.rest.msg.MsgPicker;
 import org.apache.kylin.rest.service.BasicService;
+import org.apache.kylin.rest.util.AclEvaluate;
 import org.apache.kylin.source.SourceFactory;
 import org.apache.kylin.source.adhocquery.PushDownConverterKeyWords;
 import org.apache.spark.sql.SparderEnv;
@@ -155,6 +156,9 @@ public class ModelService extends BasicService {
     @Autowired
     private SegmentHelper segmentHelper;
 
+    @Autowired
+    public AclEvaluate aclEvaluate;
+
     private NDataModel getModelById(String modelId, String project) {
         NDataModelManager modelManager = getDataModelManager(project);
         NDataModel nDataModel = modelManager.getDataModelDesc(modelId);
@@ -166,7 +170,7 @@ public class ModelService extends BasicService {
 
     public List<NDataModelResponse> getModels(final String modelAlias, final String projectName, boolean exactMatch,
             String owner, String status, String sortBy, boolean reverse) {
-
+        aclEvaluate.checkProjectReadPermission(projectName);
         List<NDataflow> dataflowList = getDataflowManager(projectName).listAllDataflows(true);
         val dfManager = getDataflowManager(projectName);
 
@@ -280,6 +284,7 @@ public class ModelService extends BasicService {
 
     public List<NDataSegmentResponse> getSegmentsResponse(String modelId, String project, String start, String end,
             String sortBy, boolean reverse, String status) {
+        aclEvaluate.checkProjectReadPermission(project);
         NDataflowManager dataflowManager = getDataflowManager(project);
         List<NDataSegmentResponse> segmentResponse = Lists.newArrayList();
         NDataflow dataflow = dataflowManager.getDataflow(modelId);
@@ -310,6 +315,7 @@ public class ModelService extends BasicService {
     }
 
     public List<IndexEntityResponse> getAggIndices(String modelId, String project) {
+        aclEvaluate.checkProjectReadPermission(project);
         List<IndexEntity> indexEntities = getIndexEntities(modelId, project);
         List<IndexEntityResponse> result = new ArrayList<>();
         for (IndexEntity indexEntity : indexEntities) {
@@ -322,6 +328,7 @@ public class ModelService extends BasicService {
     }
 
     public List<IndexEntityResponse> getTableIndices(String modelId, String project) {
+        aclEvaluate.checkProjectReadPermission(project);
         List<IndexEntity> indexEntities = getIndexEntities(modelId, project);
         List<IndexEntityResponse> result = new ArrayList<IndexEntityResponse>();
         for (IndexEntity indexEntity : indexEntities) {
@@ -341,22 +348,26 @@ public class ModelService extends BasicService {
     }
 
     public IndexEntityResponse getCuboidById(String modelId, String project, Long cuboidId) {
+        aclEvaluate.checkProjectReadPermission(project);
         IndexPlan indexPlan = getIndexPlan(modelId, project);
         IndexEntity cuboidDesc = indexPlan.getIndexEntity(cuboidId);
         return new IndexEntityResponse(cuboidDesc);
     }
 
     public String getModelJson(String modelId, String project) throws JsonProcessingException {
+        aclEvaluate.checkProjectReadPermission(project);
         NDataModel modelDesc = getDataModelManager(project).getDataModelDesc(modelId);
         return JsonUtil.writeValueAsIndentString(modelDesc);
     }
 
     public String getModelSql(String modelId, String project) {
+        aclEvaluate.checkProjectReadPermission(project);
         NDataModel modelDesc = getDataModelManager(project).getDataModelDesc(modelId);
         return JoinedFlatTable.generateSelectDataStatement(modelDesc, false);
     }
 
     public List<NSpanningTreeForWeb> getModelRelations(String modelId, String project) {
+        aclEvaluate.checkProjectReadPermission(project);
         val indexPlan = getIndexPlan(modelId, project);
         List<NSpanningTreeForWeb> result = new ArrayList<>();
         val allLayouts = Lists.<LayoutEntity> newArrayList();
@@ -373,6 +384,7 @@ public class ModelService extends BasicService {
     }
 
     public List<RelatedModelResponse> getRelateModels(String project, String table, String modelId) {
+        aclEvaluate.checkProjectReadPermission(project);
         TableDesc tableDesc = getTableManager(project).getTableDesc(table);
         val dataflowManager = getDataflowManager(project);
         val models = dataflowManager.getTableOrientedModelsUsingRootTable(tableDesc);
@@ -419,6 +431,7 @@ public class ModelService extends BasicService {
 
     @Transaction(project = 1)
     public void dropModel(String modelId, String project) {
+        aclEvaluate.checkProjectWritePermission(project);
         dropModel(modelId, project, false);
     }
 
@@ -459,6 +472,7 @@ public class ModelService extends BasicService {
 
     @Transaction(project = 1)
     public void purgeModelManually(String modelId, String project) {
+        aclEvaluate.checkProjectWritePermission(project);
         NDataModel dataModelDesc = getModelById(modelId, project);
         if (dataModelDesc.getManagementType().equals(ManagementType.TABLE_ORIENTED)) {
             throw new BadRequestException(
@@ -469,6 +483,7 @@ public class ModelService extends BasicService {
 
     @Transaction(project = 2)
     public void cloneModel(String modelId, String newModelName, String project) {
+        aclEvaluate.checkProjectWritePermission(project);
         checkAliasExist("", newModelName, project);
         NDataModelManager dataModelManager = getDataModelManager(project);
         NDataModel dataModelDesc = getModelById(modelId, project);
@@ -505,6 +520,7 @@ public class ModelService extends BasicService {
 
     @Transaction(project = 0)
     public void renameDataModel(String project, String modelId, String newAlias) {
+        aclEvaluate.checkProjectWritePermission(project);
         NDataModelManager modelManager = getDataModelManager(project);
         NDataModel nDataModel = getModelById(modelId, project);
         //rename
@@ -516,6 +532,7 @@ public class ModelService extends BasicService {
 
     @Transaction(project = 1)
     public void unlinkModel(String modelId, String project) {
+        aclEvaluate.checkProjectWritePermission(project);
         NDataLoadingRangeManager dataLoadingRangeManager = getDataLoadingRangeManager(project);
         NDataModelManager dataModelManager = getDataModelManager(project);
 
@@ -545,6 +562,7 @@ public class ModelService extends BasicService {
 
     @Transaction(project = 0)
     public void offlineAllModelsInProject(String project) {
+        aclEvaluate.checkProjectWritePermission(project);
         Set<String> ids = listAllModelIdsInProject(project);
         for (String id : ids) {
             updateDataModelStatus(id, project, "OFFLINE");
@@ -553,6 +571,7 @@ public class ModelService extends BasicService {
 
     @Transaction(project = 0)
     public void onlineAllModelsInProject(String project) {
+        aclEvaluate.checkProjectWritePermission(project);
         Set<String> ids = listAllModelIdsInProject(project);
         for (String id : ids) {
             updateDataModelStatus(id, project, "ONLINE");
@@ -561,6 +580,7 @@ public class ModelService extends BasicService {
 
     @Transaction(project = 1)
     public void updateDataModelStatus(String modelId, String project, String status) {
+        aclEvaluate.checkProjectWritePermission(project);
         NDataModel nDataModel = getModelById(modelId, project);
         IndexPlan indexPlan = getIndexPlan(nDataModel.getUuid(), project);
         NDataflowManager dataflowManager = getDataflowManager(project);
@@ -603,6 +623,7 @@ public class ModelService extends BasicService {
 
     public RefreshAffectedSegmentsResponse getRefreshAffectedSegmentsResponse(String project, String table,
             String start, String end) {
+        aclEvaluate.checkProjectOperationPermission(project);
         val dfManager = getDataflowManager(project);
         long byteSize = 0L;
         List<RelatedModelResponse> models = getRelateModels(project, table, "").stream().filter(
@@ -678,7 +699,7 @@ public class ModelService extends BasicService {
     @Transaction(project = 0)
     public void refreshSegments(String project, String table, String refreshStart, String refreshEnd,
             String affectedStart, String affectedEnd) throws IOException {
-
+        aclEvaluate.checkProjectOperationPermission(project);
         RefreshAffectedSegmentsResponse response = getRefreshAffectedSegmentsResponse(project, table, refreshStart,
                 refreshEnd);
         if (!response.getAffectedStart().equals(affectedStart) || !response.getAffectedEnd().equals(affectedEnd)) {
@@ -705,6 +726,7 @@ public class ModelService extends BasicService {
     }
 
     public NDataModel createModel(String project, ModelRequest modelRequest) throws Exception {
+        aclEvaluate.checkProjectWritePermission(project);
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication != null && authentication.getPrincipal() instanceof UserDetails) {
             modelRequest.setOwner(((UserDetails) authentication.getPrincipal()).getUsername());
@@ -883,6 +905,7 @@ public class ModelService extends BasicService {
     }
 
     public void buildSegmentsManually(String project, String modelId, String start, String end) throws Exception {
+        aclEvaluate.checkProjectOperationPermission(project);
         NDataModel modelDesc = getDataModelManager(project).getDataModelDesc(modelId);
         if (!modelDesc.getManagementType().equals(ManagementType.MODEL_BASED)) {
             throw new BadRequestException(
@@ -1059,7 +1082,7 @@ public class ModelService extends BasicService {
     @Transaction(project = 0)
     public void updateModelDataCheckDesc(String project, String modelId, long checkOptions, long faultThreshold,
             long faultActions) {
-
+        aclEvaluate.checkProjectWritePermission(project);
         final NDataModel dataModel = getDataModelManager(project).getDataModelDesc(modelId);
         if (dataModel == null) {
             throw new BadRequestException(String.format(msg.getMODEL_NOT_FOUND(), modelId));
@@ -1071,6 +1094,7 @@ public class ModelService extends BasicService {
 
     @Transaction(project = 1)
     public void deleteSegmentById(String model, String project, String[] ids) {
+        aclEvaluate.checkProjectOperationPermission(project);
         NDataModel dataModel = getDataModelManager(project).getDataModelDesc(model);
         if (dataModel.getManagementType().equals(ManagementType.TABLE_ORIENTED)) {
             throw new BadRequestException(
@@ -1135,6 +1159,7 @@ public class ModelService extends BasicService {
 
     @Transaction(project = 1)
     public void mergeSegmentsManually(String modelId, String project, String[] ids) {
+        aclEvaluate.checkProjectOperationPermission(project);
         val dfManager = getDataflowManager(project);
         val eventManager = getEventManager(project);
         val indexPlan = getIndexPlan(modelId, project);
@@ -1186,6 +1211,7 @@ public class ModelService extends BasicService {
 
     @Transaction(project = 1)
     public void refreshSegmentById(String modelId, String project, String[] ids) {
+        aclEvaluate.checkProjectOperationPermission(project);
         NDataflowManager dfMgr = getDataflowManager(project);
         EventManager eventManager = getEventManager(project);
         IndexPlan indexPlan = getIndexPlan(modelId, project);
@@ -1221,6 +1247,7 @@ public class ModelService extends BasicService {
 
     @Transaction(project = 0)
     public void updateDataModelSemantic(String project, ModelRequest request) throws Exception {
+        aclEvaluate.checkProjectWritePermission(project);
         checkModelRequest(request);
         val modelId = request.getUuid();
         val modelManager = getDataModelManager(project);
@@ -1278,6 +1305,7 @@ public class ModelService extends BasicService {
     }
 
     public NDataModel repairBrokenModel(String project, ModelRequest modelRequest) throws Exception {
+        aclEvaluate.checkProjectWritePermission(project);
         val modelManager = getDataModelManager(project);
         val origin = modelManager.getDataModelDesc(modelRequest.getId());
         val broken = getBrokenModel(project, origin.getId());
@@ -1325,6 +1353,7 @@ public class ModelService extends BasicService {
     }
 
     public AffectedModelsResponse getAffectedModelsByToggleTableType(String tableName, String project) {
+        aclEvaluate.checkProjectReadPermission(project);
         val dataflowManager = getDataflowManager(project);
         val table = getTableManager(project).getTableDesc(tableName);
         val response = new AffectedModelsResponse();
@@ -1340,6 +1369,7 @@ public class ModelService extends BasicService {
     }
 
     public AffectedModelsResponse getAffectedModelsByDeletingTable(String tableName, String project) {
+        aclEvaluate.checkProjectReadPermission(project);
         val dataflowManager = getDataflowManager(project);
         val table = getTableManager(project).getTableDesc(tableName);
         val response = new AffectedModelsResponse();
@@ -1355,6 +1385,7 @@ public class ModelService extends BasicService {
     }
 
     public void checkSingleIncrementingLoadingTable(String project, String tableName) {
+        aclEvaluate.checkProjectReadPermission(project);
         val dataflowManager = getDataflowManager(project);
         val table = getTableManager(project).getTableDesc(tableName);
         val modelsUsingTable = dataflowManager.getModelsUsingTable(table);
@@ -1446,6 +1477,7 @@ public class ModelService extends BasicService {
     }
 
     public List<ModelConfigResponse> getModelConfig(String project, String modelName) {
+        aclEvaluate.checkProjectReadPermission(project);
         val responseList = Lists.<ModelConfigResponse> newArrayList();
         getDataflowManager(project).listUnderliningDataModels().stream()
                 .filter(model -> StringUtils.isEmpty(modelName) || model.getAlias().contains(modelName))
@@ -1472,6 +1504,7 @@ public class ModelService extends BasicService {
 
     @Transaction(project = 0)
     public void updateModelConfig(String project, String modelId, ModelConfigRequest request) {
+        aclEvaluate.checkProjectWritePermission(project);
         val dataModelManager = getDataModelManager(project);
         dataModelManager.updateDataModel(modelId, copyForWrite -> {
             val segmentConfig = copyForWrite.getSegmentConfig();
@@ -1492,6 +1525,7 @@ public class ModelService extends BasicService {
 
     public ExistedDataRangeResponse getLatestDataRange(String project, String table, String column, String modelId)
             throws Exception {
+        aclEvaluate.checkProjectReadPermission(project);
         Pair<String, String> pushdownResult = new Pair<>();
         if (StringUtils.isNotEmpty(modelId)) {
             val df = getDataflowManager(project).getDataflow(modelId);
@@ -1511,6 +1545,7 @@ public class ModelService extends BasicService {
 
     @Transaction(project = 1)
     public BuildIndexResponse buildIndicesManually(String modelId, String project) {
+        aclEvaluate.checkProjectOperationPermission(project);
         NDataModel modelDesc = getDataModelManager(project).getDataModelDesc(modelId);
         if (!modelDesc.getManagementType().equals(ManagementType.MODEL_BASED)) {
             throw new BadRequestException(

@@ -214,6 +214,7 @@ public class NUserController extends NBasicController {
 
     @GetMapping(value = "", produces = { "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
+    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
     public EnvelopeResponse listAllUsers(@RequestParam(value = "project", required = false) String project,
             @RequestParam(value = "name", required = false) String nameSeg,
             @RequestParam(value = "isCaseSensitive", required = false) boolean isCaseSensitive,

@@ -32,6 +32,7 @@ import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.TableExtDesc;
 import org.apache.kylin.rest.service.BasicService;
+import org.apache.kylin.rest.util.AclEvaluate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -53,6 +54,9 @@ public class TableExtService extends BasicService {
     @Qualifier("tableService")
     private TableService tableService;
 
+    @Autowired
+    private AclEvaluate aclEvaluate;
+
     /**
      * Load a group of  tables
      *
@@ -64,8 +68,8 @@ public class TableExtService extends BasicService {
      */
     @Transaction(project = 1, retry = 1)
     public LoadTableResponse loadTables(String[] tables, String project) throws Exception {
-        List<Pair<TableDesc, TableExtDesc>> extractTableMeta = tableService.extractTableMeta(tables, project
-        );
+        aclEvaluate.checkProjectAdminPermission(project);
+        List<Pair<TableDesc, TableExtDesc>> extractTableMeta = tableService.extractTableMeta(tables, project);
         LoadTableResponse loadTableResponse = new LoadTableResponse();
         Set<String> loaded = Sets.newLinkedHashSet();
         Set<String> failed = Sets.newLinkedHashSet();
@@ -95,7 +99,7 @@ public class TableExtService extends BasicService {
      */
     @Transaction(project = 2)
     public void loadTable(TableDesc tableDesc, TableExtDesc extDesc, String project) {
-
+        aclEvaluate.checkProjectWritePermission(project);
         String[] loaded = tableService.loadTableToProject(tableDesc, extDesc, project);
         // sanity check when loaded is empty or loaded table is not the table
         String tableName = tableDesc.getIdentity();
@@ -106,6 +110,7 @@ public class TableExtService extends BasicService {
 
     @Transaction(project = 1)
     public void removeJobIdFromTableExt(String jobId, String project) {
+        aclEvaluate.checkProjectOperationPermission(project);
         NTableMetadataManager tableMetadataManager = getTableManager(project);
         for (TableDesc desc : tableMetadataManager.listAllTables()) {
             TableExtDesc extDesc = tableMetadataManager.getTableExtIfExists(desc);
@@ -122,8 +127,8 @@ public class TableExtService extends BasicService {
     }
 
     @Transaction(project = 0, retry = 1)
-    public LoadTableResponse loadTablesByDatabase(String project, final String[] databases)
-            throws Exception {
+    public LoadTableResponse loadTablesByDatabase(String project, final String[] databases) throws Exception {
+        aclEvaluate.checkProjectWritePermission(project);
         LoadTableResponse loadTableByDatabaseResponse = new LoadTableResponse();
         for (final String database : databases) {
             List<String> tables = tableService.getSourceTableNames(project, database, "");

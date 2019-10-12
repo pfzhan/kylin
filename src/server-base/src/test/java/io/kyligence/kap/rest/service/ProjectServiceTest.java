@@ -64,8 +64,11 @@ import org.apache.kylin.rest.exception.BadRequestException;
 import org.apache.kylin.rest.security.AclManager;
 import org.apache.kylin.rest.security.AclRecord;
 import org.apache.kylin.rest.security.ObjectIdentityImpl;
+import org.apache.kylin.rest.service.AccessService;
+import org.apache.kylin.rest.service.AclService;
 import org.apache.kylin.rest.service.ServiceTestBase;
 import org.apache.kylin.rest.util.AclEvaluate;
+import org.apache.kylin.rest.util.AclUtil;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -116,6 +119,9 @@ public class ProjectServiceTest extends ServiceTestBase {
     private AclEvaluate aclEvaluate = Mockito.spy(AclEvaluate.class);
 
     @Mock
+    private AccessService accessService = Mockito.spy(AccessService.class);
+
+    @Mock
     private AsyncTaskService asyncTaskService = Mockito.spy(AsyncTaskService.class);
 
     @Rule
@@ -129,10 +135,12 @@ public class ProjectServiceTest extends ServiceTestBase {
         staticCreateTestMetadata();
         SecurityContextHolder.getContext()
                 .setAuthentication(new TestingAuthenticationToken("ADMIN", "ADMIN", Constant.ROLE_ADMIN));
+        ReflectionTestUtils.setField(aclEvaluate, "aclUtil", Mockito.spy(AclUtil.class));
+        ReflectionTestUtils.setField(accessService, "aclService", Mockito.spy(AclService.class));
         ReflectionTestUtils.setField(projectService, "aclEvaluate", aclEvaluate);
+        ReflectionTestUtils.setField(projectService, "accessService", accessService);
         ReflectionTestUtils.setField(projectService, "asyncTaskService", asyncTaskService);
         projectManager = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv());
-
     }
 
     @After
@@ -209,11 +217,10 @@ public class ProjectServiceTest extends ServiceTestBase {
     }
 
     @Test
-    public void testGetReadableProjects_NoPermission() throws Exception {
-        Mockito.doReturn(false).when(aclEvaluate).hasProjectAdminPermission(Mockito.any(ProjectInstance.class));
+    public void testGetReadableProjects_NoPermission() {
+        Mockito.doReturn(false).when(aclEvaluate).hasProjectReadPermission(Mockito.any(ProjectInstance.class));
         List<ProjectInstance> projectInstances = projectService.getReadableProjects("", false);
         Assert.assertEquals(0, projectInstances.size());
-
     }
 
     @Test
@@ -430,8 +437,8 @@ public class ProjectServiceTest extends ServiceTestBase {
         shardNumConfigRequest.setColToNum(map);
         projectService.updateShardNumConfig(project, shardNumConfigRequest);
         val pi = NProjectManager.getInstance(getTestConfig()).getProject(project);
-        Assert.assertEquals(JsonUtil
-                .readValueAsMap(pi.getConfig().getExtendedOverrides().get("kylin.engine.shard-num-json")), map);
+        Assert.assertEquals(
+                JsonUtil.readValueAsMap(pi.getConfig().getExtendedOverrides().get("kylin.engine.shard-num-json")), map);
 
         getTestConfig().setProperty("kylin.query.pushdown.runner-class-name", "");
         pushDownConfigRequest.setProject(project);
@@ -551,7 +558,6 @@ public class ProjectServiceTest extends ServiceTestBase {
 
         projectService.updateQueryAccelerateThresholdConfig(PROJECT, 30, false);
 
-
         val request = new GarbageCleanUpConfigRequest();
         request.setFrequencyTimeWindow(GarbageCleanUpConfigRequest.FrequencyTimeWindowEnum.WEEK);
         request.setLowFrequencyThreshold(12);
@@ -573,7 +579,8 @@ public class ProjectServiceTest extends ServiceTestBase {
 
         Assert.assertFalse(response.isFavoriteQueryTipsEnabled());
         Assert.assertEquals(30, response.getFavoriteQueryThreshold());
-        Assert.assertEquals(GarbageCleanUpConfigRequest.FrequencyTimeWindowEnum.WEEK.name(), response.getFrequencyTimeWindow());
+        Assert.assertEquals(GarbageCleanUpConfigRequest.FrequencyTimeWindowEnum.WEEK.name(),
+                response.getFrequencyTimeWindow());
         Assert.assertEquals(12, response.getLowFrequencyThreshold());
         Assert.assertFalse(response.isAutoMergeEnabled());
 
@@ -582,7 +589,8 @@ public class ProjectServiceTest extends ServiceTestBase {
         Assert.assertEquals(20, response.getFavoriteQueryThreshold());
 
         response = projectService.resetProjectConfig(PROJECT, "garbage_cleanup_config");
-        Assert.assertEquals(GarbageCleanUpConfigRequest.FrequencyTimeWindowEnum.MONTH.name(), response.getFrequencyTimeWindow());
+        Assert.assertEquals(GarbageCleanUpConfigRequest.FrequencyTimeWindowEnum.MONTH.name(),
+                response.getFrequencyTimeWindow());
         Assert.assertEquals(5, response.getLowFrequencyThreshold());
 
         response = projectService.resetProjectConfig(PROJECT, "segment_config");

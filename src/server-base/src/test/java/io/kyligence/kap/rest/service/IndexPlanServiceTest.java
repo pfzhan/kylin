@@ -34,6 +34,8 @@ import org.apache.kylin.cube.model.SelectRule;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.response.AggIndexCombResult;
 import org.apache.kylin.rest.response.AggIndexResponse;
+import org.apache.kylin.rest.util.AclEvaluate;
+import org.apache.kylin.rest.util.AclUtil;
 import org.hamcrest.CoreMatchers;
 import org.junit.After;
 import org.junit.Assert;
@@ -42,9 +44,11 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.mockito.InjectMocks;
+import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.springframework.security.authentication.TestingAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import com.google.common.collect.Lists;
 
@@ -77,6 +81,12 @@ public class IndexPlanServiceTest extends NLocalFileMetadataTestCase {
     @InjectMocks
     private ModelSemanticHelper semanticService = Mockito.spy(new ModelSemanticHelper());
 
+    @Mock
+    private AclEvaluate aclEvaluate = Mockito.spy(AclEvaluate.class);
+
+    @Mock
+    private AclUtil aclUtil = Mockito.spy(AclUtil.class);
+
     @Rule
     public ExpectedException thrown = ExpectedException.none();
 
@@ -96,7 +106,8 @@ public class IndexPlanServiceTest extends NLocalFileMetadataTestCase {
         SecurityContextHolder.getContext()
                 .setAuthentication(new TestingAuthenticationToken("ADMIN", "ADMIN", Constant.ROLE_ADMIN));
         indexPlanService.setSemanticUpater(semanticService);
-
+        ReflectionTestUtils.setField(aclEvaluate, "aclUtil", aclUtil);
+        ReflectionTestUtils.setField(indexPlanService, "aclEvaluate", aclEvaluate);
     }
 
     @Test
@@ -104,15 +115,18 @@ public class IndexPlanServiceTest extends NLocalFileMetadataTestCase {
         val indexPlanManager = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
         val origin = indexPlanManager.getIndexPlan("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         NAggregationGroup aggregationGroup = new NAggregationGroup();
-        aggregationGroup.setIncludes(new Integer[]{1, 2, 3, 4});
+        aggregationGroup.setIncludes(new Integer[] { 1, 2, 3, 4 });
         val selectRule = new SelectRule();
         selectRule.mandatoryDims = new Integer[0];
         selectRule.hierarchyDims = new Integer[0][0];
         selectRule.jointDims = new Integer[0][0];
         aggregationGroup.setSelectRule(selectRule);
-        val saved = indexPlanService.updateRuleBasedCuboid("default",
-                UpdateRuleBasedCuboidRequest.builder().project("default").modelId("89af4ee2-2cdb-4b07-b39e-4c29856309aa")
-                        .aggregationGroups(Lists.<NAggregationGroup> newArrayList(aggregationGroup)).build()).getFirst();
+        val saved = indexPlanService
+                .updateRuleBasedCuboid("default",
+                        UpdateRuleBasedCuboidRequest.builder().project("default")
+                                .modelId("89af4ee2-2cdb-4b07-b39e-4c29856309aa")
+                                .aggregationGroups(Lists.<NAggregationGroup> newArrayList(aggregationGroup)).build())
+                .getFirst();
         Assert.assertNotNull(saved.getRuleBasedIndex());
         Assert.assertEquals(4, saved.getRuleBasedIndex().getDimensions().size());
         Assert.assertEquals(origin.getAllLayouts().size() + 15, saved.getAllLayouts().size());
@@ -122,7 +136,7 @@ public class IndexPlanServiceTest extends NLocalFileMetadataTestCase {
     public void testUpdateRuleBasedSortDimension() {
         String modelId = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
         val aggregationGroup1 = new NAggregationGroup();
-        aggregationGroup1.setIncludes(new Integer[]{1, 2, 3, 4});
+        aggregationGroup1.setIncludes(new Integer[] { 1, 2, 3, 4 });
         val selectRule = new SelectRule();
         selectRule.mandatoryDims = new Integer[0];
         selectRule.hierarchyDims = new Integer[0][0];
@@ -130,53 +144,61 @@ public class IndexPlanServiceTest extends NLocalFileMetadataTestCase {
         aggregationGroup1.setSelectRule(selectRule);
 
         val aggregationGroup2 = new NAggregationGroup();
-        aggregationGroup2.setIncludes(new Integer[]{4, 3, 5});
+        aggregationGroup2.setIncludes(new Integer[] { 4, 3, 5 });
         aggregationGroup2.setSelectRule(selectRule);
 
         var saved = indexPlanService.updateRuleBasedCuboid("default",
                 UpdateRuleBasedCuboidRequest.builder().project("default").modelId(modelId)
-                        .aggregationGroups(Lists.<NAggregationGroup> newArrayList(aggregationGroup1, aggregationGroup2)).build()).getFirst();
+                        .aggregationGroups(Lists.<NAggregationGroup> newArrayList(aggregationGroup1, aggregationGroup2))
+                        .build())
+                .getFirst();
         Assert.assertNotNull(saved.getRuleBasedIndex());
         Assert.assertEquals(5, saved.getRuleBasedIndex().getDimensions().size());
         Assert.assertEquals("[1, 2, 3, 4, 5]", saved.getRuleBasedIndex().getDimensions().toString());
 
-        aggregationGroup1.setIncludes(new Integer[]{1, 2, 3});
-        aggregationGroup2.setIncludes(new Integer[]{4, 3});
+        aggregationGroup1.setIncludes(new Integer[] { 1, 2, 3 });
+        aggregationGroup2.setIncludes(new Integer[] { 4, 3 });
 
         val aggregationGroup3 = new NAggregationGroup();
-        aggregationGroup3.setIncludes(new Integer[]{2, 4});
+        aggregationGroup3.setIncludes(new Integer[] { 2, 4 });
         aggregationGroup3.setSelectRule(selectRule);
 
         val aggregationGroup4 = new NAggregationGroup();
-        aggregationGroup4.setIncludes(new Integer[]{5, 4});
+        aggregationGroup4.setIncludes(new Integer[] { 5, 4 });
         aggregationGroup4.setSelectRule(selectRule);
 
         saved = indexPlanService.updateRuleBasedCuboid("default",
-                UpdateRuleBasedCuboidRequest.builder().project("default").modelId(modelId)
-                        .aggregationGroups(Lists.newArrayList(aggregationGroup1, aggregationGroup2, aggregationGroup3, aggregationGroup4)).build()).getFirst();
+                UpdateRuleBasedCuboidRequest.builder().project("default").modelId(modelId).aggregationGroups(
+                        Lists.newArrayList(aggregationGroup1, aggregationGroup2, aggregationGroup3, aggregationGroup4))
+                        .build())
+                .getFirst();
 
         Assert.assertEquals(5, saved.getRuleBasedIndex().getDimensions().size());
         Assert.assertEquals("[1, 2, 5, 4, 3]", saved.getRuleBasedIndex().getDimensions().toString());
 
-        aggregationGroup1.setIncludes(new Integer[]{1, 2, 3, 4});
-        aggregationGroup2.setIncludes(new Integer[]{2, 5, 6, 4});
-        aggregationGroup3.setIncludes(new Integer[]{5, 3});
+        aggregationGroup1.setIncludes(new Integer[] { 1, 2, 3, 4 });
+        aggregationGroup2.setIncludes(new Integer[] { 2, 5, 6, 4 });
+        aggregationGroup3.setIncludes(new Integer[] { 5, 3 });
 
         saved = indexPlanService.updateRuleBasedCuboid("default",
                 UpdateRuleBasedCuboidRequest.builder().project("default").modelId(modelId)
-                        .aggregationGroups(Lists.newArrayList(aggregationGroup1, aggregationGroup2, aggregationGroup3)).build()).getFirst();
+                        .aggregationGroups(Lists.newArrayList(aggregationGroup1, aggregationGroup2, aggregationGroup3))
+                        .build())
+                .getFirst();
 
         Assert.assertEquals(6, saved.getRuleBasedIndex().getDimensions().size());
         Assert.assertEquals("[1, 2, 5, 6, 3, 4]", saved.getRuleBasedIndex().getDimensions().toString());
 
-        aggregationGroup1.setIncludes(new Integer[]{1, 2, 3});
-        aggregationGroup2.setIncludes(new Integer[]{2, 4});
-        aggregationGroup3.setIncludes(new Integer[]{4, 3});
-        aggregationGroup4.setIncludes(new Integer[]{3, 2});
+        aggregationGroup1.setIncludes(new Integer[] { 1, 2, 3 });
+        aggregationGroup2.setIncludes(new Integer[] { 2, 4 });
+        aggregationGroup3.setIncludes(new Integer[] { 4, 3 });
+        aggregationGroup4.setIncludes(new Integer[] { 3, 2 });
 
         saved = indexPlanService.updateRuleBasedCuboid("default",
-                UpdateRuleBasedCuboidRequest.builder().project("default").modelId(modelId)
-                        .aggregationGroups(Lists.newArrayList(aggregationGroup1, aggregationGroup2, aggregationGroup3, aggregationGroup4)).build()).getFirst();
+                UpdateRuleBasedCuboidRequest.builder().project("default").modelId(modelId).aggregationGroups(
+                        Lists.newArrayList(aggregationGroup1, aggregationGroup2, aggregationGroup3, aggregationGroup4))
+                        .build())
+                .getFirst();
 
         Assert.assertEquals(4, saved.getRuleBasedIndex().getDimensions().size());
         Assert.assertEquals("[1, 2, 3, 4]", saved.getRuleBasedIndex().getDimensions().toString());
@@ -187,16 +209,18 @@ public class IndexPlanServiceTest extends NLocalFileMetadataTestCase {
         val indexPlanManager = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
         val origin = indexPlanManager.getIndexPlan("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         NAggregationGroup aggregationGroup = new NAggregationGroup();
-        aggregationGroup.setIncludes(new Integer[]{1, 2, 3, 4});
+        aggregationGroup.setIncludes(new Integer[] { 1, 2, 3, 4 });
         val selectRule = new SelectRule();
         selectRule.mandatoryDims = new Integer[0];
         selectRule.hierarchyDims = new Integer[0][0];
         selectRule.jointDims = new Integer[0][0];
         aggregationGroup.setSelectRule(selectRule);
-        val saved = indexPlanService.updateRuleBasedCuboid("default",
-                UpdateRuleBasedCuboidRequest.builder().project("default").modelId("89af4ee2-2cdb-4b07-b39e-4c29856309aa")
-                        .isLoadData(true)
-                        .aggregationGroups(Lists.<NAggregationGroup> newArrayList(aggregationGroup)).build()).getFirst();
+        val saved = indexPlanService
+                .updateRuleBasedCuboid("default",
+                        UpdateRuleBasedCuboidRequest.builder().project("default")
+                                .modelId("89af4ee2-2cdb-4b07-b39e-4c29856309aa").isLoadData(true)
+                                .aggregationGroups(Lists.<NAggregationGroup> newArrayList(aggregationGroup)).build())
+                .getFirst();
         Assert.assertNotNull(saved.getRuleBasedIndex());
         Assert.assertEquals(4, saved.getRuleBasedIndex().getDimensions().size());
         Assert.assertEquals(origin.getAllLayouts().size() + 15, saved.getAllLayouts().size());
@@ -204,8 +228,8 @@ public class IndexPlanServiceTest extends NLocalFileMetadataTestCase {
         long lastModifiedTime = saved.getRuleBasedIndex().getLastModifiedTime();
 
         val res = indexPlanService.updateRuleBasedCuboid("default",
-                UpdateRuleBasedCuboidRequest.builder().project("default").modelId("89af4ee2-2cdb-4b07-b39e-4c29856309aa")
-                        .isLoadData(true)
+                UpdateRuleBasedCuboidRequest.builder().project("default")
+                        .modelId("89af4ee2-2cdb-4b07-b39e-4c29856309aa").isLoadData(true)
                         .aggregationGroups(Lists.<NAggregationGroup> newArrayList(aggregationGroup)).build());
         long lastModifiedTime2 = res.getFirst().getRuleBasedIndex().getLastModifiedTime();
         Assert.assertEquals(BuildIndexResponse.BuildIndexType.NO_LAYOUT, res.getSecond().getType());
@@ -223,7 +247,7 @@ public class IndexPlanServiceTest extends NLocalFileMetadataTestCase {
         val origin = indexPlanManager.getIndexPlan("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
 
         NAggregationGroup aggregationGroup = new NAggregationGroup();
-        aggregationGroup.setIncludes(new Integer[]{1, 2, 3, 4});
+        aggregationGroup.setIncludes(new Integer[] { 1, 2, 3, 4 });
         val selectRule = new SelectRule();
         selectRule.mandatoryDims = new Integer[0];
         selectRule.hierarchyDims = new Integer[0][0];
@@ -231,8 +255,8 @@ public class IndexPlanServiceTest extends NLocalFileMetadataTestCase {
         aggregationGroup.setSelectRule(selectRule);
 
         val res = indexPlanService.updateRuleBasedCuboid("default",
-                UpdateRuleBasedCuboidRequest.builder().project("default").modelId("89af4ee2-2cdb-4b07-b39e-4c29856309aa")
-                        .isLoadData(true)
+                UpdateRuleBasedCuboidRequest.builder().project("default")
+                        .modelId("89af4ee2-2cdb-4b07-b39e-4c29856309aa").isLoadData(true)
                         .aggregationGroups(Lists.<NAggregationGroup> newArrayList(aggregationGroup)).build());
         val saved = res.getFirst();
         val response = res.getSecond();
@@ -341,8 +365,9 @@ public class IndexPlanServiceTest extends NLocalFileMetadataTestCase {
                         .sortByColumns(Arrays.asList("TEST_KYLIN_FACT.CAL_DT")).build());
         indexPlanService.removeTableIndex("default", "89af4ee2-2cdb-4b07-b39e-4c29856309aa", 20000040001L);
 
-        Assert.assertFalse(indexPlanService.getIndexPlanManager("default").getIndexPlan("89af4ee2-2cdb-4b07-b39e-4c29856309aa")
-                .getAllLayouts().stream().anyMatch(l -> l.getId() == 20000040001L));
+        Assert.assertFalse(
+                indexPlanService.getIndexPlanManager("default").getIndexPlan("89af4ee2-2cdb-4b07-b39e-4c29856309aa")
+                        .getAllLayouts().stream().anyMatch(l -> l.getId() == 20000040001L));
     }
 
     @Test
@@ -361,16 +386,19 @@ public class IndexPlanServiceTest extends NLocalFileMetadataTestCase {
                         .shardByColumns(Arrays.asList("TEST_KYLIN_FACT.TRANS_ID"))
                         .sortByColumns(Arrays.asList("TEST_KYLIN_FACT.CAL_DT")).build());
         val response = indexPlanService.updateTableIndex("default",
-                CreateTableIndexRequest.builder().id(prevMaxId).project("default").modelId("89af4ee2-2cdb-4b07-b39e-4c29856309aa")
+                CreateTableIndexRequest.builder().id(prevMaxId).project("default")
+                        .modelId("89af4ee2-2cdb-4b07-b39e-4c29856309aa")
                         .colOrder(Arrays.asList("TEST_KYLIN_FACT.TRANS_ID", "TEST_KYLIN_FACT.CAL_DT",
                                 "TEST_KYLIN_FACT.LSTG_FORMAT_NAME", "TEST_KYLIN_FACT.LSTG_SITE_ID"))
                         .shardByColumns(Arrays.asList("TEST_KYLIN_FACT.CAL_DT"))
                         .sortByColumns(Arrays.asList("TEST_KYLIN_FACT.TRANS_ID")).build());
 
-        Assert.assertFalse(indexPlanService.getIndexPlanManager("default").getIndexPlan("89af4ee2-2cdb-4b07-b39e-4c29856309aa")
-                .getAllLayouts().stream().anyMatch(l -> l.getId() == prevMaxId));
-        Assert.assertTrue(indexPlanService.getIndexPlanManager("default").getIndexPlan("89af4ee2-2cdb-4b07-b39e-4c29856309aa").getAllLayouts()
-                .stream().anyMatch(l -> l.getId() == prevMaxId + IndexEntity.INDEX_ID_STEP));
+        Assert.assertFalse(
+                indexPlanService.getIndexPlanManager("default").getIndexPlan("89af4ee2-2cdb-4b07-b39e-4c29856309aa")
+                        .getAllLayouts().stream().anyMatch(l -> l.getId() == prevMaxId));
+        Assert.assertTrue(
+                indexPlanService.getIndexPlanManager("default").getIndexPlan("89af4ee2-2cdb-4b07-b39e-4c29856309aa")
+                        .getAllLayouts().stream().anyMatch(l -> l.getId() == prevMaxId + IndexEntity.INDEX_ID_STEP));
         val eventDao = EventDao.getInstance(getTestConfig(), "default");
         val allEvents = eventDao.getEvents();
         allEvents.sort(Event::compareTo);
@@ -382,7 +410,8 @@ public class IndexPlanServiceTest extends NLocalFileMetadataTestCase {
     public void testGetTableIndex() {
         val originSize = indexPlanService.getTableIndexs("default", "89af4ee2-2cdb-4b07-b39e-4c29856309aa").size();
         indexPlanService.createTableIndex("default",
-                CreateTableIndexRequest.builder().project("default").modelId("89af4ee2-2cdb-4b07-b39e-4c29856309aa").name("ti1")
+                CreateTableIndexRequest.builder().project("default").modelId("89af4ee2-2cdb-4b07-b39e-4c29856309aa")
+                        .name("ti1")
                         .colOrder(Arrays.asList("TEST_KYLIN_FACT.TRANS_ID", "TEST_KYLIN_FACT.CAL_DT",
                                 "TEST_KYLIN_FACT.LSTG_FORMAT_NAME", "TEST_KYLIN_FACT.LSTG_SITE_ID"))
                         .shardByColumns(Arrays.asList("TEST_KYLIN_FACT.TRANS_ID"))
@@ -466,7 +495,6 @@ public class IndexPlanServiceTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals("FAIL", response.getTotalCount().getStatus());
     }
 
-
     @Test
     public void testCalculateAggIndexCountTwoGroups() throws Exception {
         String aggGroupStr1 = "{\"includes\":[0,1,2,3,4,5],\"select_rule\":{\"mandatory_dims\":[0, 1, 2],\"hierarchy_dims\":[],\"joint_dims\":[]}}";
@@ -488,10 +516,8 @@ public class IndexPlanServiceTest extends NLocalFileMetadataTestCase {
         } catch (IOException e) {
             log.error("Read value fail ", e);
         }
-        var request = UpdateRuleBasedCuboidRequest.builder()
-                .project("default")
-                .modelId("741ca86a-1f13-46da-a59f-95fb68615e3a")
-                .aggregationGroups(Lists.newArrayList(aggGroup))
+        var request = UpdateRuleBasedCuboidRequest.builder().project("default")
+                .modelId("741ca86a-1f13-46da-a59f-95fb68615e3a").aggregationGroups(Lists.newArrayList(aggGroup))
                 .build();
         indexPlanService.checkIndexCountWithinLimit(request);
     }
@@ -505,19 +531,15 @@ public class IndexPlanServiceTest extends NLocalFileMetadataTestCase {
         } catch (IOException e) {
             log.error("Read value fail ", e);
         }
-        var request = UpdateRuleBasedCuboidRequest.builder()
-                .project("default")
-                .modelId("741ca86a-1f13-46da-a59f-95fb68615e3a")
-                .aggregationGroups(Lists.newArrayList(aggGroup))
+        var request = UpdateRuleBasedCuboidRequest.builder().project("default")
+                .modelId("741ca86a-1f13-46da-a59f-95fb68615e3a").aggregationGroups(Lists.newArrayList(aggGroup))
                 .build();
         indexPlanService.checkIndexCountWithinLimit(request);
     }
 
     private AggIndexResponse calculateCount(List<NAggregationGroup> aggGroups) {
-        val request = UpdateRuleBasedCuboidRequest.builder()
-                .project("default")
-                .modelId("741ca86a-1f13-46da-a59f-95fb68615e3a")
-                .aggregationGroups(aggGroups).build();
+        val request = UpdateRuleBasedCuboidRequest.builder().project("default")
+                .modelId("741ca86a-1f13-46da-a59f-95fb68615e3a").aggregationGroups(aggGroups).build();
 
         return indexPlanService.calculateAggIndexCount(request);
     }

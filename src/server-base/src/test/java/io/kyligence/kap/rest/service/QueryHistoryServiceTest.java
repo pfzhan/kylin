@@ -33,13 +33,17 @@ import java.util.stream.Collectors;
 
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.rest.exception.BadRequestException;
+import org.apache.kylin.rest.util.AclEvaluate;
+import org.apache.kylin.rest.util.AclUtil;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.mockito.InjectMocks;
+import org.mockito.Mock;
 import org.mockito.Mockito;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import com.google.common.collect.Lists;
 
@@ -58,6 +62,9 @@ public class QueryHistoryServiceTest extends NLocalFileMetadataTestCase {
     @InjectMocks
     private QueryHistoryService queryHistoryService = Mockito.spy(new QueryHistoryService());
 
+    @Mock
+    private AclEvaluate aclEvaluate = Mockito.spy(AclEvaluate.class);
+
     @BeforeClass
     public static void setUpBeforeClass() {
         staticCreateTestMetadata();
@@ -66,6 +73,8 @@ public class QueryHistoryServiceTest extends NLocalFileMetadataTestCase {
     @Before
     public void setUp() {
         createTestMetadata();
+        ReflectionTestUtils.setField(aclEvaluate, "aclUtil", Mockito.spy(AclUtil.class));
+        ReflectionTestUtils.setField(queryHistoryService, "aclEvaluate", aclEvaluate);
     }
 
     @After
@@ -97,10 +106,12 @@ public class QueryHistoryServiceTest extends NLocalFileMetadataTestCase {
         // accelerated query
         QueryHistory acceleratedQuery = new QueryHistory();
         acceleratedQuery.setSql("select * from test_table_3");
-        acceleratedQuery.setQueryRealizations("741ca86a-1f13-46da-a59f-95fb68615e3a#1#Agg Index,89af4ee2-2cdb-4b07-b39e-4c29856309aa#1#Agg Index");
+        acceleratedQuery.setQueryRealizations(
+                "741ca86a-1f13-46da-a59f-95fb68615e3a#1#Agg Index,89af4ee2-2cdb-4b07-b39e-4c29856309aa#1#Agg Index");
 
         QueryHistoryDAO queryHistoryDAO = Mockito.mock(QueryHistoryDAO.class);
-        Mockito.doReturn(Lists.newArrayList(pushdownQuery, failedQuery, acceleratedQuery)).when(queryHistoryDAO).getQueryHistoriesByConditions(Mockito.any(), Mockito.anyInt(), Mockito.anyInt());
+        Mockito.doReturn(Lists.newArrayList(pushdownQuery, failedQuery, acceleratedQuery)).when(queryHistoryDAO)
+                .getQueryHistoriesByConditions(Mockito.any(), Mockito.anyInt(), Mockito.anyInt());
         Mockito.doReturn(10).when(queryHistoryDAO).getQueryHistoriesSize(Mockito.any());
         Mockito.doReturn(queryHistoryDAO).when(queryHistoryService).getQueryHistoryDao(PROJECT);
 
@@ -121,12 +132,14 @@ public class QueryHistoryServiceTest extends NLocalFileMetadataTestCase {
         Assert.assertNull(queryHistories.get(1).getEngineType());
         // assert accelerated query
         Assert.assertEquals(acceleratedQuery.getSql(), queryHistories.get(2).getSql());
-        val modelAlias = queryHistories.get(2).getNativeQueryRealizations().stream().map(NativeQueryRealization::getModelAlias).collect(Collectors.toSet());
+        val modelAlias = queryHistories.get(2).getNativeQueryRealizations().stream()
+                .map(NativeQueryRealization::getModelAlias).collect(Collectors.toSet());
         Assert.assertEquals(2, modelAlias.size());
         Assert.assertTrue(modelAlias.contains("nmodel_basic"));
         Assert.assertTrue(modelAlias.contains("nmodel_basic_inner"));
 
-        val modelIds = queryHistories.get(2).getNativeQueryRealizations().stream().map(NativeQueryRealization::getModelId).collect(Collectors.toSet());
+        val modelIds = queryHistories.get(2).getNativeQueryRealizations().stream()
+                .map(NativeQueryRealization::getModelId).collect(Collectors.toSet());
         Assert.assertTrue(modelIds.contains("741ca86a-1f13-46da-a59f-95fb68615e3a"));
         Assert.assertTrue(modelIds.contains("89af4ee2-2cdb-4b07-b39e-4c29856309aa"));
     }
@@ -150,7 +163,8 @@ public class QueryHistoryServiceTest extends NLocalFileMetadataTestCase {
     public void testGetQueryCount() throws ParseException {
         QueryHistoryDAO queryHistoryDAO = Mockito.mock(QueryHistoryDAO.class);
         Mockito.doReturn(getTestStatistics()).when(queryHistoryDAO).getQueryCountByModel(0, Long.MAX_VALUE);
-        Mockito.doReturn(getTestStatistics()).when(queryHistoryDAO).getQueryCountByTime(Mockito.anyLong(), Mockito.anyLong(), Mockito.anyString());
+        Mockito.doReturn(getTestStatistics()).when(queryHistoryDAO).getQueryCountByTime(Mockito.anyLong(),
+                Mockito.anyLong(), Mockito.anyString());
         Mockito.doReturn(queryHistoryDAO).when(queryHistoryService).getQueryHistoryDao(PROJECT);
 
         // query count by model
@@ -186,7 +200,8 @@ public class QueryHistoryServiceTest extends NLocalFileMetadataTestCase {
     public void testGetAvgDuration() throws ParseException {
         QueryHistoryDAO queryHistoryDAO = Mockito.mock(QueryHistoryDAO.class);
         Mockito.doReturn(getTestStatistics()).when(queryHistoryDAO).getAvgDurationByModel(0, Long.MAX_VALUE);
-        Mockito.doReturn(getTestStatistics()).when(queryHistoryDAO).getAvgDurationByTime(Mockito.anyLong(), Mockito.anyLong(), Mockito.anyString());
+        Mockito.doReturn(getTestStatistics()).when(queryHistoryDAO).getAvgDurationByTime(Mockito.anyLong(),
+                Mockito.anyLong(), Mockito.anyString());
         Mockito.doReturn(queryHistoryDAO).when(queryHistoryService).getQueryHistoryDao(PROJECT);
 
         // avg duration by model

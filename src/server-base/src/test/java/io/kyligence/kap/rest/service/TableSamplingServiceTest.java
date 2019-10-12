@@ -53,13 +53,17 @@ import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.rest.constant.Constant;
+import org.apache.kylin.rest.util.AclEvaluate;
+import org.apache.kylin.rest.util.AclUtil;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.InjectMocks;
+import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.springframework.security.authentication.TestingAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import com.google.common.collect.Sets;
 
@@ -79,6 +83,9 @@ public class TableSamplingServiceTest extends NLocalFileMetadataTestCase {
     @InjectMocks
     private TableSamplingService tableSamplingService = Mockito.spy(new TableSamplingService());
 
+    @Mock
+    private AclEvaluate aclEvaluate = Mockito.spy(AclEvaluate.class);
+
     @Before
     public void setup() {
         System.setProperty("HADOOP_USER_NAME", "root");
@@ -95,6 +102,8 @@ public class TableSamplingServiceTest extends NLocalFileMetadataTestCase {
                 MaintainModelType.AUTO_MAINTAIN);
         projectManager.updateProject(projectInstance, projectInstanceUpdate.getName(),
                 projectInstanceUpdate.getDescription(), projectInstanceUpdate.getOverrideKylinProps());
+        ReflectionTestUtils.setField(aclEvaluate, "aclUtil", Mockito.spy(AclUtil.class));
+        ReflectionTestUtils.setField(tableSamplingService, "aclEvaluate", aclEvaluate);
     }
 
     @Test

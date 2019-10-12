@@ -37,9 +37,8 @@ import java.util.Objects;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
-import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Preconditions;
-import io.kyligence.kap.metadata.project.UnitOfAllWorks;
+import javax.servlet.http.HttpServletResponse;
+
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
@@ -67,6 +66,7 @@ import org.apache.kylin.rest.exception.BadRequestException;
 import org.apache.kylin.rest.msg.Message;
 import org.apache.kylin.rest.msg.MsgPicker;
 import org.apache.kylin.rest.service.BasicService;
+import org.apache.kylin.rest.util.AclEvaluate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -74,6 +74,8 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Component;
 
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
 
 import io.kyligence.kap.common.metrics.NMetricsCategory;
@@ -88,6 +90,7 @@ import io.kyligence.kap.event.model.AddSegmentEvent;
 import io.kyligence.kap.event.model.Event;
 import io.kyligence.kap.event.model.MergeSegmentEvent;
 import io.kyligence.kap.event.model.RefreshSegmentEvent;
+import io.kyligence.kap.metadata.project.UnitOfAllWorks;
 import io.kyligence.kap.rest.request.JobActionEnum;
 import io.kyligence.kap.rest.request.JobFilter;
 import io.kyligence.kap.rest.response.EventModelResponse;
@@ -99,8 +102,6 @@ import io.kyligence.kap.rest.transaction.Transaction;
 import lombok.val;
 import lombok.var;
 
-import javax.servlet.http.HttpServletResponse;
-
 @Component("jobService")
 public class JobService extends BasicService {
 
@@ -110,6 +111,9 @@ public class JobService extends BasicService {
 
     @Autowired
     private ProjectService projectService;
+
+    @Autowired
+    private AclEvaluate aclEvaluate;
 
     private static final Logger logger = LoggerFactory.getLogger(JobService.class);
 
@@ -168,6 +172,7 @@ public class JobService extends BasicService {
     }
 
     public List<ExecutableResponse> listJobs(final JobFilter jobFilter) {
+        aclEvaluate.checkProjectOperationPermission(jobFilter.getProject());
         return filterAndSort(jobFilter, listJobs0(jobFilter));
     }
 
@@ -301,6 +306,7 @@ public class JobService extends BasicService {
     }
 
     public List<ExecutableStepResponse> getJobDetail(String project, String jobId) {
+        aclEvaluate.checkProjectOperationPermission(project);
         NExecutableManager executableManager = getExecutableManager(project);
         //executableManager.getJob only reply ChainedExecutable
         AbstractExecutable executable = executableManager.getJob(jobId);
@@ -364,9 +370,11 @@ public class JobService extends BasicService {
     @Transaction(project = 1)
     public void batchUpdateJobStatus(List<String> jobIds, String project, String action, String filterStatus)
             throws IOException {
+        aclEvaluate.checkProjectOperationPermission(project);
         batchUpdateJobStatus0(jobIds, project, action, filterStatus);
     }
 
+    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#ae, 'ADMINISTRATION')")
     public void batchUpdateGlobalJobStatus(List<String> jobIds, String action, String filterStatus) {
         UnitOfAllWorks.doInTransaction(() -> {
             for (ProjectInstance project : getReadableProjects()) {
@@ -391,9 +399,11 @@ public class JobService extends BasicService {
 
     @Transaction(project = 0)
     public void batchDropJob(String project, List<String> jobIds, String filterStatus) throws IOException {
+        aclEvaluate.checkProjectOperationPermission(project);
         batchDropJob0(project, jobIds, filterStatus);
     }
 
+    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#ae, 'ADMINISTRATION')")
     public void batchDropGlobalJob(List<String> jobIds, String filterStatus) {
         UnitOfAllWorks.doInTransaction(() -> {
             for (ProjectInstance project : getReadableProjects()) {
@@ -404,6 +414,7 @@ public class JobService extends BasicService {
     }
 
     public JobStatisticsResponse getJobStats(String project, long startTime, long endTime) {
+        aclEvaluate.checkProjectOperationPermission(project);
         JobStatisticsManager manager = getJobStatisticsManager(project);
         Pair<Integer, JobStatistics> stats = manager.getOverallJobStats(startTime, endTime);
         JobStatistics jobStatistics = stats.getSecond();
@@ -412,6 +423,7 @@ public class JobService extends BasicService {
     }
 
     public Map<String, Integer> getJobCount(String project, long startTime, long endTime, String dimension) {
+        aclEvaluate.checkProjectOperationPermission(project);
         JobStatisticsManager manager = getJobStatisticsManager(project);
         if (dimension.equals("model"))
             return manager.getJobCountByModel(startTime, endTime);
@@ -420,6 +432,7 @@ public class JobService extends BasicService {
     }
 
     public Map<String, Double> getJobDurationPerByte(String project, long startTime, long endTime, String dimension) {
+        aclEvaluate.checkProjectOperationPermission(project);
         JobStatisticsManager manager = getJobStatisticsManager(project);
         if (dimension.equals("model"))
             return manager.getDurationPerByteByModel(startTime, endTime);
@@ -428,6 +441,7 @@ public class JobService extends BasicService {
     }
 
     public Map<String, Object> getEventsInfoGroupByModel(String project) {
+        aclEvaluate.checkProjectOperationPermission(project);
         Map<String, Object> result = Maps.newHashMap();
         Map<String, EventModelResponse> models = Maps.newHashMap();
         List<Event> jobRelatedEvents = getEventDao(project).getJobRelatedEvents();
@@ -455,6 +469,7 @@ public class JobService extends BasicService {
     }
 
     public String getJobOutput(String project, String jobId) {
+        aclEvaluate.checkProjectOperationPermission(project);
         val executableManager = getExecutableManager(project);
         return executableManager.getOutputFromHDFSByJobId(jobId).getVerboseMsg();
     }
@@ -494,6 +509,7 @@ public class JobService extends BasicService {
      * @return
      */
     public String getHdfsLogPath(String project, String jobId) {
+        aclEvaluate.checkProjectOperationPermission(project);
         String hdfsPath = KylinConfig.getInstanceFromEnv().getJobTmpOutputStorePath(project, jobId);
 
         val executableManager = getExecutableManager(project);
@@ -528,6 +544,7 @@ public class JobService extends BasicService {
     }
 
     public List<EventResponse> getWaitingJobsByModel(String project, String modelId) {
+        aclEvaluate.checkProjectOperationPermission(project);
         List<Event> jobRelatedEvents = getEventDao(project).getJobRelatedEventsByModel(modelId);
 
         jobRelatedEvents.sort(Comparator.comparingLong(Event::getSequenceId).reversed());
@@ -562,6 +579,7 @@ public class JobService extends BasicService {
      */
     @Transaction(project = 0)
     public void updateSparkJobInfo(String project, String jobId, String taskId, String yarnAppId, String yarnAppUrl) {
+        aclEvaluate.checkProjectOperationPermission(project);
         val executableManager = getExecutableManager(project);
         Map<String, String> extraInfo = Maps.newHashMap();
         extraInfo.put(ExecutableConstants.YARN_APP_ID, yarnAppId);

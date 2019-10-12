@@ -42,7 +42,6 @@ import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import io.kyligence.kap.metadata.project.NProjectManager;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.fs.FileSystem;
@@ -66,6 +65,7 @@ import org.apache.kylin.query.util.PushDownUtil;
 import org.apache.kylin.rest.exception.BadRequestException;
 import org.apache.kylin.rest.msg.MsgPicker;
 import org.apache.kylin.rest.service.BasicService;
+import org.apache.kylin.rest.util.AclEvaluate;
 import org.apache.kylin.rest.util.AclPermissionUtil;
 import org.apache.kylin.rest.util.PagingUtil;
 import org.apache.kylin.source.ISourceMetadataExplorer;
@@ -76,6 +76,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Lists;
@@ -106,6 +107,7 @@ import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.model.VolatileRange;
+import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.rest.request.AutoMergeRequest;
 import io.kyligence.kap.rest.request.DateRangeRequest;
 import io.kyligence.kap.rest.request.ModelRequest;
@@ -143,11 +145,15 @@ public class TableService extends BasicService {
     private TableSamplingService tableSamplingService;
 
     @Autowired
+    private AclEvaluate aclEvaluate;
+
+    @Autowired
     @Qualifier("aclTCRService")
     private AclTCRService aclTCRService;
 
     public List<TableDesc> getTableDesc(String project, boolean withExt, final String tableName, final String database,
             boolean isFuzzy) throws IOException {
+        aclEvaluate.checkProjectReadPermission(project);
         NTableMetadataManager nTableMetadataManager = getTableManager(project);
         List<TableDesc> tables = Lists.newArrayList();
         //get table not fuzzy,can use getTableDesc(tableName)
@@ -312,6 +318,7 @@ public class TableService extends BasicService {
 
     public List<TableNameResponse> getTableNameResponses(String project, String database, final String table)
             throws Exception {
+        aclEvaluate.checkProjectReadPermission(project);
         List<TableNameResponse> tableNameResponses = new ArrayList<>();
         NTableMetadataManager tableManager = getTableManager(project);
         List<String> tables = getSourceTableNames(project, database, table);
@@ -493,6 +500,7 @@ public class TableService extends BasicService {
 
     @Transaction(project = 1)
     public void setPartitionKey(String table, String project, String column) {
+        aclEvaluate.checkProjectWritePermission(project);
         NDataLoadingRangeManager dataLoadingRangeManager = getDataLoadingRangeManager(project);
         val dataLoadingRange = dataLoadingRangeManager.getDataLoadingRange(table);
         String tableName = table.substring(table.lastIndexOf('.') + 1);
@@ -569,6 +577,7 @@ public class TableService extends BasicService {
     }
 
     public void setDataRange(String project, DateRangeRequest dateRangeRequest) throws Exception {
+        aclEvaluate.checkProjectWritePermission(project);
         String table = dateRangeRequest.getTable();
         NDataLoadingRange dataLoadingRange = getDataLoadingRange(project, table);
         Preconditions.checkNotNull(dataLoadingRange, "table " + table + " is not incremental, ");
@@ -607,6 +616,7 @@ public class TableService extends BasicService {
     }
 
     public ExistedDataRangeResponse getLatestDataRange(String project, String table) throws Exception {
+        aclEvaluate.checkProjectOperationPermission(project);
         NDataLoadingRange dataLoadingRange = getDataLoadingRange(project, table);
         Pair<String, String> pushdownResult = getMaxAndMinTimeInPartitionColumnByPushdown(project, table);
         val start = PushDownUtil.calcStart(pushdownResult.getFirst(), dataLoadingRange.getCoveredRange());
@@ -694,6 +704,7 @@ public class TableService extends BasicService {
         }
     }
 
+    @VisibleForTesting
     public SegmentRange getSegmentRangeByTable(DateRangeRequest dateRangeRequest) {
         String project = dateRangeRequest.getProject();
         String table = dateRangeRequest.getTable();
@@ -705,6 +716,7 @@ public class TableService extends BasicService {
     }
 
     public List<BatchLoadTableResponse> getBatchLoadTables(String project) {
+        aclEvaluate.checkProjectOperationPermission(project);
         final List<TableDesc> incrementalLoadTables = getTableManager(project).getAllIncrementalLoadTables();
         final List<BatchLoadTableResponse> result = Lists.newArrayList();
 
@@ -729,6 +741,7 @@ public class TableService extends BasicService {
     }
 
     public void batchLoadDataRange(String project, List<DateRangeRequest> requests) throws Exception {
+        aclEvaluate.checkProjectOperationPermission(project);
         for (DateRangeRequest request : requests) {
             setDataRange(project, request);
         }
@@ -736,6 +749,7 @@ public class TableService extends BasicService {
 
     @Transaction(project = 0)
     public void unloadTable(String project, String table, Boolean cascade) {
+        aclEvaluate.checkProjectWritePermission(project);
         NTableMetadataManager tableMetadataManager = getTableManager(project);
         val tableDesc = tableMetadataManager.getTableDesc(table);
         if (tableDesc == null) {
@@ -774,6 +788,7 @@ public class TableService extends BasicService {
 
     @Transaction(project = 0, readonly = true)
     public PreUnloadTableResponse preUnloadTable(String project, String tableIdentity) throws IOException {
+        aclEvaluate.checkProjectWritePermission(project);
         val response = new PreUnloadTableResponse();
         val dataflowManager = getDataflowManager(project);
         val tableMetadataManager = getTableManager(project);
@@ -798,6 +813,7 @@ public class TableService extends BasicService {
 
     @Transaction(project = 1)
     public void setTop(String table, String project, boolean top) {
+        aclEvaluate.checkProjectWritePermission(project);
         NTableMetadataManager nTableMetadataManager = getTableManager(project);
         TableDesc tableDesc = nTableMetadataManager.getTableDesc(table);
         tableDesc = nTableMetadataManager.copyForWrite(tableDesc);
@@ -806,6 +822,7 @@ public class TableService extends BasicService {
     }
 
     public List<TablesAndColumnsResponse> getTableAndColumns(String project) {
+        aclEvaluate.checkProjectReadPermission(project);
         List<TableDesc> tables = getTableManager(project).listAllTables();
         List<TablesAndColumnsResponse> result = new ArrayList<>();
         for (TableDesc table : tables) {
@@ -853,6 +870,7 @@ public class TableService extends BasicService {
 
     @Transaction(project = 0)
     public void setPushDownMode(String project, String table, boolean pushdownRangeLimited) {
+        aclEvaluate.checkProjectWritePermission(project);
         NDataLoadingRange dataLoadingRange = getDataLoadingRange(project, table);
         NDataLoadingRangeManager dataLoadingRangeManager = getDataLoadingRangeManager(project);
         NDataLoadingRange dataLoadingRangeUpdate = dataLoadingRangeManager.copyForWrite(dataLoadingRange);
@@ -861,6 +879,7 @@ public class TableService extends BasicService {
     }
 
     public AutoMergeConfigResponse getAutoMergeConfigByModel(String project, String modelId) {
+        aclEvaluate.checkProjectOperationPermission(project);
         NDataModelManager dataModelManager = getDataModelManager(project);
         AutoMergeConfigResponse mergeConfig = new AutoMergeConfigResponse();
 
@@ -877,6 +896,7 @@ public class TableService extends BasicService {
     }
 
     public AutoMergeConfigResponse getAutoMergeConfigByTable(String project, String tableName) {
+        aclEvaluate.checkProjectOperationPermission(project);
         AutoMergeConfigResponse mergeConfig = new AutoMergeConfigResponse();
         val segmentConfig = NSegmentConfigHelper.getTableSegmentConfig(project, tableName);
         Preconditions.checkState(segmentConfig != null);
@@ -888,6 +908,7 @@ public class TableService extends BasicService {
 
     @Transaction(project = 0)
     public void setAutoMergeConfigByModel(String project, AutoMergeRequest autoMergeRequest) {
+        aclEvaluate.checkProjectWritePermission(project);
         String modelId = autoMergeRequest.getModel();
         NDataModelManager dataModelManager = getDataModelManager(project);
         List<AutoMergeTimeEnum> autoMergeRanges = new ArrayList<>();
@@ -919,6 +940,7 @@ public class TableService extends BasicService {
     }
 
     public boolean getPushDownMode(String project, String table) {
+        aclEvaluate.checkProjectOperationPermission(project);
         NDataLoadingRangeManager dataLoadingRangeManager = getDataLoadingRangeManager(project);
         NDataLoadingRange dataLoadingRange = dataLoadingRangeManager.getDataLoadingRange(table);
         return dataLoadingRange.isPushdownRangeLimited();
@@ -926,6 +948,7 @@ public class TableService extends BasicService {
 
     @Transaction(project = 0)
     public void setAutoMergeConfigByTable(String project, AutoMergeRequest autoMergeRequest) {
+        aclEvaluate.checkProjectWritePermission(project);
         String tableName = autoMergeRequest.getTable();
         List<AutoMergeTimeEnum> autoMergeRanges = new ArrayList<>();
         for (String range : autoMergeRequest.getAutoMergeTimeRanges()) {
@@ -947,6 +970,7 @@ public class TableService extends BasicService {
 
     @Transaction(project = 0, readonly = true)
     public PreReloadTableResponse preProcessBeforeReload(String project, String tableIdentity) throws Exception {
+        aclEvaluate.checkProjectWritePermission(project);
         val context = calcReloadContext(project, tableIdentity);
         val result = new PreReloadTableResponse();
         result.setAddColumnCount(context.getAddColumns().size());
@@ -970,6 +994,7 @@ public class TableService extends BasicService {
     }
 
     public void reloadTable(String projectName, String tableIdentity, boolean needSample, int maxRows) {
+        aclEvaluate.checkProjectWritePermission(projectName);
         UnitOfWork.doInTransactionWithRetry(() -> {
             innerReloadTable(projectName, tableIdentity);
             if (needSample && maxRows > 0) {
@@ -1293,6 +1318,7 @@ public class TableService extends BasicService {
     }
 
     public Set<String> getLoadedDatabases(String project) {
+        aclEvaluate.checkProjectReadPermission(project);
         NTableMetadataManager tableManager = getTableManager(project);
         List<TableDesc> tables = tableManager.listAllTables();
         Set<String> loadedDatabases = new HashSet<>();
@@ -1308,6 +1334,7 @@ public class TableService extends BasicService {
 
     public NInitTablesResponse getProjectTables(String project, String table, Integer offset, Integer limit,
             Boolean useHiveDatabase, ProjectTablesFilter projectTablesFilter) throws Exception {
+        aclEvaluate.checkProjectReadPermission(project);
         NInitTablesResponse response = new NInitTablesResponse();
         if (table == null)
             table = "";
