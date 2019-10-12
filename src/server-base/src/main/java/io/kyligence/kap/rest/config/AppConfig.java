@@ -36,6 +36,7 @@ import org.springframework.core.io.ClassPathResource;
 import org.springframework.core.io.UrlResource;
 import org.springframework.scheduling.TaskScheduler;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
+import org.springframework.web.client.RestTemplate;
 import org.springframework.web.servlet.config.annotation.ContentNegotiationConfigurer;
 import org.springframework.web.servlet.config.annotation.EnableWebMvc;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurerAdapter;
@@ -91,6 +92,11 @@ public class AppConfig extends WebMvcConfigurerAdapter {
     @ConditionalOnMissingBean(ClusterManager.class)
     public ClusterManager clusterManager() {
         return new DefaultClusterManager(port);
+    }
+
+    @Bean(name = "normalRestTemplate")
+    public RestTemplate restTemplate() {
+        return new RestTemplate();
     }
 
     @Override

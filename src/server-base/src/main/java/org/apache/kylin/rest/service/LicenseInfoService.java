@@ -50,10 +50,16 @@ import org.apache.kylin.rest.exception.BadRequestException;
 import org.apache.kylin.rest.model.LicenseInfo;
 import org.apache.kylin.rest.msg.Message;
 import org.apache.kylin.rest.msg.MsgPicker;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.web.client.RestTemplate;
 
 import io.kyligence.kap.rest.config.initialize.AppInitializedEvent;
+import io.kyligence.kap.rest.request.LicenseRequest;
+import io.kyligence.kap.rest.response.RemoteLicenseResponse;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
@@ -107,9 +113,13 @@ public class LicenseInfoService extends BasicService {
         return System.getProperty((keyPrefix == null ? "" : keyPrefix) + key);
     }
 
+    @Autowired
+    @Qualifier("normalRestTemplate")
+    private RestTemplate restTemplate;
+
     @EventListener(AppInitializedEvent.class)
     public void init() {
-        init(code -> System.exit(code));
+        init(code -> log.info("code {}", code));
     }
 
     void init(Consumer<Integer> onError) {
@@ -139,6 +149,8 @@ public class LicenseInfoService extends BasicService {
 
         if (!StringUtils.isEmpty(System.getProperty(KE_LICENSE_SERVICEEND))) {
             result.setServiceEnd(System.getProperty(KE_LICENSE_SERVICEEND));
+        } else if (System.getProperty(KE_DATES) != null && System.getProperty(KE_DATES).contains(",")) {
+            result.setServiceEnd(System.getProperty(KE_DATES).split(",")[1]);
         }
 
         result.setNodes(System.getProperty(KE_LICENSE_NODES));
@@ -330,7 +342,7 @@ public class LicenseInfoService extends BasicService {
         return realNode;
     }
 
-    File backupAndDeleteLicense(String type) throws IOException {
+    public File backupAndDeleteLicense(String type) throws IOException {
         File kylinHome = KapConfig.getKylinHomeAtBestEffort();
         File licenseFile = new File(kylinHome, LICENSE_FILENAME);
         if (licenseFile.exists()) {
@@ -346,4 +358,33 @@ public class LicenseInfoService extends BasicService {
     public void setProperty(String key, UUID keyPrefix, String value) {
         System.setProperty((keyPrefix == null ? "" : keyPrefix) + key, value);
     }
+
+    public RemoteLicenseResponse getTrialLicense(LicenseRequest licenseRequest) throws Exception {
+        KapConfig kapConfig = KapConfig.getInstanceFromEnv();
+        String url = kapConfig.getKyAccountSiteUrl() + "/thirdParty/license";
+
+        LinkedMultiValueMap<String, String> parameters = new LinkedMultiValueMap<String, String>();
+        parameters.add("email", licenseRequest.getEmail());
+        parameters.add("userName", licenseRequest.getUsername());
+        parameters.add("company", licenseRequest.getCompany());
+        parameters.add("source", kapConfig.getChannelUser());
+        parameters.add("lang", licenseRequest.getLang());
+        parameters.add("productType", licenseRequest.getProductType());
+        parameters.add("category", licenseRequest.getCategory());
+
+        return restTemplate.postForObject(url, parameters, RemoteLicenseResponse.class);
+    }
+
+    public void updateLicense(byte[] bytes) throws IOException {
+
+        FileUtils.writeByteArrayToFile(backupAndDeleteLicense("backup"), bytes);
+
+        //refresh license
+        gatherLicenseInfo(getDefaultLicenseFile(), getDefaultCommitFile(), getDefaultVersionFile(), null);
+    }
+
+    public void updateLicense(String string) throws IOException {
+        updateLicense(string.getBytes("UTF-8"));
+    }
+
 }

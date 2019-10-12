@@ -45,19 +45,26 @@ package org.apache.kylin.rest.service;
 import java.io.File;
 import java.io.IOException;
 
-import lombok.extern.slf4j.Slf4j;
-import lombok.val;
 import org.apache.commons.io.FileUtils;
+import org.apache.kylin.common.KapConfig;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.mockito.InjectMocks;
+import org.mockito.Mock;
 import org.mockito.Mockito;
+import org.springframework.test.util.ReflectionTestUtils;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.web.client.RestTemplate;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.rest.request.LicenseRequest;
+import io.kyligence.kap.rest.response.RemoteLicenseResponse;
 import io.kyligence.kap.rest.rules.ClearKEPropertiesRule;
+import lombok.val;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class LicenseInfoServiceTest extends NLocalFileMetadataTestCase {
@@ -65,20 +72,24 @@ public class LicenseInfoServiceTest extends NLocalFileMetadataTestCase {
     @Rule
     public ClearKEPropertiesRule clearKEProperties = new ClearKEPropertiesRule();
 
+    @Mock
+    private RestTemplate restTemplate = Mockito.spy(new RestTemplate());
+
+    @InjectMocks
+    private LicenseInfoService licenseInfoService = Mockito.spy(new LicenseInfoService());
+
     @Before
     public void setupResource() {
         createTestMetadata();
+        ReflectionTestUtils.setField(licenseInfoService, "restTemplate", restTemplate);
         val commitFile = LicenseInfoService.getDefaultCommitFile();
         try {
-            FileUtils.write(commitFile, "daa973eada22ab76b7a740e1d81d5ef903809ace@KAP\n" +
-                    "Build with MANUAL at 2019-07-05 10:12:34");
+            FileUtils.write(commitFile,
+                    "daa973eada22ab76b7a740e1d81d5ef903809ace@KAP\n" + "Build with MANUAL at 2019-07-05 10:12:34");
             FileUtils.write(LicenseInfoService.getDefaultVersionFile(), "Kyligence Enterprise 4.0.0-SNAPSHOT");
         } catch (IOException ignore) {
         }
     }
-
-    @InjectMocks
-    private LicenseInfoService licenseInfoService = Mockito.spy(new LicenseInfoService());
 
     @After
     public void tearDown() {
@@ -105,7 +116,8 @@ public class LicenseInfoServiceTest extends NLocalFileMetadataTestCase {
         val licenseFilePath = LicenseInfoService.getDefaultLicenseFile().getAbsolutePath();
         try {
             FileUtils.copyFile(new File(licenseFilePath), new File(licenseFilePath + ".backup"));
-            FileUtils.copyFile(new File("src/test/resources/ut_license/wrong_volume_license"), new File(licenseFilePath));
+            FileUtils.copyFile(new File("src/test/resources/ut_license/wrong_volume_license"),
+                    new File(licenseFilePath));
             licenseInfoService.init(code -> log.info("code {}", code));
             Assert.assertTrue(new File(licenseFilePath + ".error").exists());
         } finally {
@@ -113,6 +125,31 @@ public class LicenseInfoServiceTest extends NLocalFileMetadataTestCase {
             FileUtils.deleteQuietly(new File(licenseFilePath + ".error"));
             FileUtils.deleteQuietly(new File(licenseFilePath + ".backup"));
         }
+    }
+
+    @Test
+    public void testGetTrialLicense() throws Exception {
+        LicenseRequest licenseRequest = new LicenseRequest();
+        licenseRequest.setUsername("a");
+        licenseRequest.setCompany("b");
+        licenseRequest.setEmail("c");
+        KapConfig kapConfig = KapConfig.getInstanceFromEnv();
+        String url = kapConfig.getKyAccountSiteUrl() + "/thirdParty/license";
+        LinkedMultiValueMap<String, String> parameters = new LinkedMultiValueMap<String, String>();
+        parameters.add("email", licenseRequest.getEmail());
+        parameters.add("userName", licenseRequest.getUsername());
+        parameters.add("company", licenseRequest.getCompany());
+        parameters.add("source", kapConfig.getChannelUser());
+        parameters.add("lang", licenseRequest.getLang());
+        parameters.add("productType", licenseRequest.getProductType());
+        parameters.add("category", licenseRequest.getCategory());
+        RemoteLicenseResponse response = new RemoteLicenseResponse();
+        response.setSuccess(true);
+        Mockito.when(restTemplate.postForObject(url, parameters, RemoteLicenseResponse.class)).thenReturn(response);
+
+        RemoteLicenseResponse remoteLicenseResponse = licenseInfoService.getTrialLicense(licenseRequest);
+        Assert.assertEquals(remoteLicenseResponse, response);
+
     }
 
 }
