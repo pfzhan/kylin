@@ -6,7 +6,10 @@ server:
     access-log-enabled: true
     access-log-pattern: '%h %l %u %t "%r" %s %b %D'
     basedir: "${KYLIN_HOME}"
-
+  compression:
+    enabled: true
+    min-response-size: 51200
+    mime-types: "text/html,text/xml,text/javascript,application/javascript,application/json,text/css,text/plain,application/vnd.apache.kylin-v2+json;charset=UTF-8"
 spring:
   http:
     multipart:
