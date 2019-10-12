@@ -15,7 +15,7 @@
             </el-dropdown-item>
           </el-dropdown-menu>
         </el-dropdown>
-        <el-button-group class="ksd-btn-groups action_groups ksd-ml-10 ksd-fleft">
+        <el-button-group class="ksd-btn-groups action_groups ksd-ml-10 ksd-fleft" v-if="monitorActions.includes('jobActions')">
           <el-button plain size="medium" icon="el-icon-ksd-table_resume" :disabled="!batchBtnsEnabled.resume" @click="batchResume">{{$t('jobResume')}}</el-button>
           <el-button plain size="medium" icon="el-icon-ksd-restart" :disabled="!batchBtnsEnabled.restart" @click="batchRestart">{{$t('jobRestart')}}</el-button>
           <el-button plain size="medium" icon="el-icon-ksd-pause" :disabled="!batchBtnsEnabled.pause" @click="batchPause">{{$t('jobPause')}}</el-button>
@@ -49,7 +49,7 @@
       :style="{width:showStep?'70%':'100%'}"
       :key="$store.state.project.isAllProject">
       <el-table-column type="selection" align="center" width="44"></el-table-column>
-      <el-table-column align="center" width="40" prop="icon">
+      <el-table-column align="center" width="40" prop="icon" v-if="monitorActions.includes('jobActions')">
         <template slot-scope="scope">
           <i :class="{
             'el-icon-arrow-right': scope.row.id !== selectedJob.id || !showStep,
@@ -115,6 +115,7 @@
       </el-table-column>
       <el-table-column
         :label="$t('Actions')"
+        v-if="monitorActions.includes('jobActions')"
         width="83">
         <template slot-scope="scope">
           <common-tip :content="$t('jobDrop')" v-if="scope.row.job_status=='DISCARDED' || scope.row.job_status=='FINISHED'">
@@ -318,7 +319,8 @@ import { cacheLocalStorage } from 'util/index'
   },
   computed: {
     ...mapGetters([
-      'currentSelectedProject'
+      'currentSelectedProject',
+      'monitorActions'
     ])
   },
   components: {

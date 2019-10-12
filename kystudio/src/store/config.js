@@ -88,6 +88,12 @@ export default {
       } else {
         return []
       }
+    },
+    dashboardActions (state, getters, rootState, rootGetters) {
+      const groupRole = rootGetters.userAuthorities
+      const projectRole = rootState.user.currentUserAccess
+
+      return getAvailableOptions('dashboardActions', { groupRole, projectRole })
     }
   }
 }

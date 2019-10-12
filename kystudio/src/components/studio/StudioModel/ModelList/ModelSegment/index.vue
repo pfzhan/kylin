@@ -1,11 +1,11 @@
 <template>
   <div class="model-segment">
     <div class="segment-actions clearfix">
-      <div class="left ky-no-br-space">
-        <el-button size="small" type="primary" :disabled="!selectedSegments.length" v-if="!isAutoProject" @click="handleRefreshSegment">{{$t('kylinLang.common.refresh')}}</el-button>
+      <div class="left ky-no-br-space" v-if="isShowSegmentActions">
+        <el-button size="small" type="primary" :disabled="!selectedSegments.length" @click="handleRefreshSegment">{{$t('kylinLang.common.refresh')}}</el-button>
         <!-- <el-button size="medium" type="primary" icon="el-icon-ksd-merge" @click="handleMergeSegment">{{$t('merge')}}</el-button> -->
-        <el-button size="small" type="default" :disabled="!selectedSegments.length" v-if="!isAutoProject" @click="handleDeleteSegment">{{$t('kylinLang.common.delete')}}</el-button>
-        <el-button size="small" type="default" v-if="!isAutoProject" @click="handlePurgeModel">{{$t('kylinLang.common.purge')}}</el-button>
+        <el-button size="small" type="default" :disabled="!selectedSegments.length" @click="handleDeleteSegment">{{$t('kylinLang.common.delete')}}</el-button>
+        <el-button size="small" type="default" @click="handlePurgeModel">{{$t('kylinLang.common.purge')}}</el-button>
       </div>
       <div class="right">
         <div class="segment-action ky-no-br-space">
@@ -124,6 +124,10 @@ import { formatSegments } from './handler'
   props: {
     model: {
       type: Object
+    },
+    isShowSegmentActions: {
+      type: Boolean,
+      default: true
     }
   },
   computed: {

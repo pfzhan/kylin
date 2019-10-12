@@ -3,9 +3,9 @@
      <kap-empty-data v-if="isNoData" size="small"></kap-empty-data>
      <div class="left-part">
       <div class="ksd-mb-20">
-        <el-button type="primary" size="small" icon="el-icon-ksd-add_2" v-visible="!isAutoProject && !isHideEdit" @click="editTableIndex(true)">{{$t('tableIndex')}}
+        <el-button type="primary" size="small" icon="el-icon-ksd-add_2" v-if="isShowTableIndexActions" v-visible="!isHideEdit" @click="editTableIndex(true)">{{$t('tableIndex')}}
         </el-button><el-button :loading="buildIndexLoading"
-          type="primary" size="small"  @click="buildTableIndex" v-visible="!isAutoProject && !isHideEdit">
+          type="primary" size="small"  @click="buildTableIndex" v-visible="isShowBulidIndex && !isHideEdit">
         {{$t('buildIndex')}}
        </el-button>
         <!-- <el-button type="primary" disabled icon="el-icon-ksd-table_refresh">Refresh</el-button> -->
@@ -33,7 +33,7 @@
                         <div class="sub-title"><span>{{$t('tableIndexId')}}</span>{{item.id}}</div>
                         <i class="el-icon-ksd-elapsed_time ksd-mr-4"></i>{{transToGmtTime(item.update_time)}}
                         <div class="actions ksd-fright">
-                          <span class="del-icon" v-if="item.manual" @click="delTableIndex(item.id, item.name)">{{$t('kylinLang.common.delete')}}</span>
+                          <span class="del-icon" v-if="item.manual&&isShowTableIndexActions" @click="delTableIndex(item.id, item.name)">{{$t('kylinLang.common.delete')}}</span>
                         </div>
                       </div>
                     </div>
@@ -110,7 +110,7 @@ import { BuildIndexStatus } from 'config/model'
 import TableIndexEdit from '../TableIndexEdit/tableindex_edit'
 import NModel from '../ModelEdit/model.js'
 @Component({
-  props: ['modelDesc', 'isHideEdit', 'layoutId'],
+  props: ['modelDesc', 'isHideEdit', 'layoutId', 'isShowTableIndexActions', 'isShowBulidIndex'],
   computed: {
     ...mapGetters([
       'currentSelectedProject',

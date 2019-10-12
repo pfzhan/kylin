@@ -3,7 +3,7 @@
  <!-- <el-button type="primary" plain class="ksd-mb-20 ksd-mt-10" v-if="isAdmin && (projectList && projectList.length)" @click="addProject">+{{$t('kylinLang.common.project')}}</el-button> -->
  <div class="ksd-title-label ksd-mt-20">{{$t('projectsList')}}</div>
   <div>
-    <el-button type="primary" plain size="medium" class="ksd-mb-10 ksd-mt-10" icon="el-icon-ksd-add_2" v-if="isAdmin" @click="newProject">{{$t('kylinLang.common.project')}}</el-button>
+    <el-button type="primary" plain size="medium" class="ksd-mb-10 ksd-mt-10" icon="el-icon-ksd-add_2" v-if="projectActions.includes('addProject')" @click="newProject">{{$t('kylinLang.common.project')}}</el-button>
     <div style="width:200px;" class="ksd-fright ksd-mtb-10">
       <el-input class="show-search-btn"
         size="medium"
@@ -85,15 +85,15 @@
           </el-tooltip><span>
           </span> -->
           <el-tooltip :content="$t('backup')" effect="dark" placement="top">
-            <i class="el-icon-ksd-backup ksd-mr-10 ksd-fs-14" @click="backup(scope.row)"></i>
+            <i class="el-icon-ksd-backup ksd-mr-10 ksd-fs-14" v-if="projectActions.includes('backUpProject')" @click="backup(scope.row)"></i>
           </el-tooltip><span>
           </span><el-tooltip :content="$t('author')" effect="dark" placement="top">
             <router-link :to="{path: '/admin/project/' + scope.row.name, query: {projectId: scope.row.uuid}}">
-              <i class="el-icon-ksd-security ksd-mr-10 ksd-fs-14" v-if="isAdmin"></i>
+              <i class="el-icon-ksd-security ksd-mr-10 ksd-fs-14" v-if="projectActions.includes('accessActions')"></i>
             </router-link>
           </el-tooltip><span>
           </span><el-tooltip :content="$t('delete')" effect="dark" placement="top">
-            <i class="el-icon-ksd-table_delete ksd-fs-14" @click="removeProject(scope.row)" v-if="isAdmin"></i>
+            <i class="el-icon-ksd-table_delete ksd-fs-14" @click="removeProject(scope.row)" v-if="projectActions.includes('deleteProject')"></i>
           </el-tooltip>
         </template>
       </el-table-column>
@@ -108,7 +108,7 @@
  </div>
 </template>
 <script>
-import { mapActions } from 'vuex'
+import { mapActions, mapGetters } from 'vuex'
 import cubeList from './cube_list'
 import modeList from './model_list'
 import accessEdit from './access_edit'
@@ -234,6 +234,9 @@ export default {
     'project_config': projectConfig
   },
   computed: {
+    ...mapGetters([
+      'projectActions'
+    ]),
     projectList () {
       return this.$store.state.project.projectList
     },

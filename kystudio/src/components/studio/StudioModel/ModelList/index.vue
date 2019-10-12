@@ -7,7 +7,7 @@
         <el-input :placeholder="$t('kylinLang.common.pleaseFilterByModelName')" style="width:200px" size="medium" :prefix-icon="searchLoading? 'el-icon-loading':'el-icon-search'" v-model="filterArgs.model"  @input="searchModels" class="show-search-btn" >
         </el-input>
       </div>
-      <el-button v-guide.addModelBtn icon="el-icon-ksd-add_2" type="primary" size="medium" plain class="ksd-mtb-10" id="addModel" v-visible="!isAutoProject && (isAdmin || hasPermissionOfProject())" @click="showAddModelDialog"><span>{{$t('kylinLang.common.model')}}</span></el-button>
+      <el-button v-guide.addModelBtn icon="el-icon-ksd-add_2" type="primary" size="medium" plain class="ksd-mtb-10" id="addModel" v-visible="datasourceActions.includes('modelActions')" @click="showAddModelDialog"><span>{{$t('kylinLang.common.model')}}</span></el-button>
       <el-table class="model_list_table"
         :data="modelArray"
         border
@@ -27,13 +27,22 @@
                 <div v-else class="row-action"  @click="toggleShowFull(props.$index, props.row)"><span class="tip-text">{{$t('exitFullScreen')}}</span><i class="el-icon-ksd-collapse_1 full-model-box" ></i></div>
                 <el-tabs class="el-tabs--default model-detail-tabs" type="card" v-model="props.row.tabTypes">
                   <el-tab-pane :label="$t('segment')" name="first">
-                    <ModelSegment ref="segmentComp" :model="props.row" v-if="props.row.tabTypes === 'first'" @purge-model="model => handleCommand('purge', model)" />
+                    <ModelSegment ref="segmentComp" :model="props.row" :isShowSegmentActions="datasourceActions.includes('segmentActions')" v-if="props.row.tabTypes === 'first'" @purge-model="model => handleCommand('purge', model)" />
                   </el-tab-pane>
                   <el-tab-pane :label="$t('aggregate')" name="second">
-                    <ModelAggregate :model="props.row" :project-name="currentSelectedProject" v-if="props.row.tabTypes === 'second'" />
+                    <ModelAggregate
+                      :model="props.row"
+                      :project-name="currentSelectedProject"
+                      :is-show-edit-agg="datasourceActions.includes('editAggGroup')"
+                      :is-show-bulid-index="datasourceActions.includes('bulidIndex')"
+                      v-if="props.row.tabTypes === 'second'" />
                   </el-tab-pane>
                   <el-tab-pane :label="$t('tableIndex')" name="third">
-                    <TableIndex :modelDesc="props.row" v-if="props.row.tabTypes === 'third'"></TableIndex>
+                    <TableIndex
+                      :modelDesc="props.row"
+                      :isShowTableIndexActions="datasourceActions.includes('tableIndexActions')"
+                      :isShowBulidIndex="datasourceActions.includes('bulidIndex')"
+                      v-if="props.row.tabTypes === 'third'" />
                   </el-tab-pane>
                   <el-tab-pane label="JSON" name="forth">
                     <ModelJson v-if="props.row.tabTypes === 'forth'" :model="props.row.uuid"/>
@@ -47,7 +56,7 @@
           </template>
         </el-table-column>
         <el-table-column
-        min-width="229px"
+        min-width="209px"
         show-overflow-tooltip
         prop="alias"
           :label="modelTableTitle">
@@ -55,7 +64,7 @@
         <el-table-column
           prop="fact_table"
           show-overflow-tooltip
-          min-width="229px"
+          min-width="129px"
           :label="$t('kylinLang.common.fact')">
           <template slot-scope="scope">
             <span :class="{'is-disabled': scope.row.root_fact_table_deleted}">{{scope.row.fact_table}}</span>
@@ -125,49 +134,44 @@
         v-if="!isAutoProject"
         :label="$t('kylinLang.common.action')">
           <template slot-scope="scope">
-            <span v-if="!(isAdmin || hasPermissionOfProject())"> N/A</span>
-             <div v-show="isAdmin || hasPermissionOfProject()">
-              <common-tip :content="$t('kylinLang.common.edit')"><i class="el-icon-ksd-table_edit ksd-fs-14" v-if="scope.row.status !== 'BROKEN'" @click="handleEditModel(scope.row.alias)"></i></common-tip>
-              <common-tip :content="$t('kylinLang.common.repair')"><i class="el-icon-ksd-fix_tool ksd-fs-14" v-if="scope.row.broken_reason === 'SCHEMA'" @click="handleEditModel(scope.row.alias)"></i></common-tip>
-              <common-tip :content="$t('build')" v-if="scope.row.status !== 'BROKEN'" class="ksd-ml-10"><i class="el-icon-ksd-data_range ksd-fs-14" @click="setModelBuldRange(scope.row)"></i></common-tip>
-              <common-tip :content="$t('kylinLang.common.moreActions')" class="ksd-ml-10">
-                <el-dropdown @command="(command) => {handleCommand(command, scope.row)}" :id="scope.row.name" trigger="click" >
-                  <span class="el-dropdown-link" >
-                      <i class="el-icon-ksd-table_others ksd-fs-14"></i>
-                  </span>
-                 <el-dropdown-menu slot="dropdown"  :uuid='scope.row.uuid' >
-                    <!-- 数据检测移动至project 级别处理， -->
-                    <!-- <el-dropdown-item command="dataCheck">{{$t('datacheck')}}</el-dropdown-item> -->
-                    <!-- 设置partition -->
-                    <el-dropdown-item command="dataLoad" v-if="scope.row.status !== 'BROKEN'">{{$t('modelPartitionSet')}}</el-dropdown-item>
-                    <!-- <el-dropdown-item command="favorite" disabled>{{$t('favorite')}}</el-dropdown-item> -->
-                    <el-dropdown-item command="importMDX" divided disabled v-if="scope.row.status !== 'BROKEN'">{{$t('importMdx')}}</el-dropdown-item>
-                    <el-dropdown-item command="exportTDS" disabled v-if="scope.row.status !== 'BROKEN'">{{$t('exportTds')}}</el-dropdown-item>
-                    <el-dropdown-item command="exportMDX" disabled v-if="scope.row.status !== 'BROKEN'">{{$t('exportMdx')}}</el-dropdown-item>
-                    <el-dropdown-item command="rename" divided v-if="scope.row.status !== 'BROKEN'">{{$t('rename')}}</el-dropdown-item>
-                    <el-dropdown-item command="clone" v-if="scope.row.status !== 'BROKEN'">{{$t('kylinLang.common.clone')}}</el-dropdown-item>
-                    <el-dropdown-item command="delete">{{$t('delete')}}</el-dropdown-item>
-                    <el-dropdown-item command="purge" v-if="scope.row.status !== 'BROKEN'">{{$t('purge')}}</el-dropdown-item>
-                    <el-dropdown-item command="offline" v-if="scope.row.status !== 'OFFLINE' && scope.row.status !== 'BROKEN'">{{$t('offLine')}}</el-dropdown-item>
-                    <el-dropdown-item command="online" v-if="scope.row.status !== 'ONLINE' && scope.row.status !== 'BROKEN'">{{$t('onLine')}}</el-dropdown-item>
-                    </el-dropdown-menu>
-                  </el-dropdown>
-                </common-tip>
-              </div>
+            <common-tip :content="$t('kylinLang.common.edit')" v-if="datasourceActions.includes('modelActions')">
+              <i class="el-icon-ksd-table_edit ksd-fs-14" v-if="scope.row.status !== 'BROKEN'" @click="handleEditModel(scope.row.alias)"></i>
+            </common-tip>
+            <common-tip :content="$t('kylinLang.common.repair')" v-if="datasourceActions.includes('modelActions')">
+              <i class="el-icon-ksd-fix_tool ksd-fs-14" v-if="scope.row.broken_reason === 'SCHEMA'" @click="handleEditModel(scope.row.alias)"></i>
+            </common-tip>
+            <common-tip :content="$t('build')" v-if="scope.row.status !== 'BROKEN'&&datasourceActions.includes('loadData')" class="ksd-ml-10">
+              <i class="el-icon-ksd-data_range ksd-fs-14" @click="setModelBuldRange(scope.row)"></i>
+            </common-tip>
+            <common-tip :content="$t('kylinLang.common.moreActions')" class="ksd-ml-10" v-if="datasourceActions.includes('modelActions')">
+              <el-dropdown @command="(command) => {handleCommand(command, scope.row)}" :id="scope.row.name" trigger="click" >
+                <span class="el-dropdown-link" >
+                    <i class="el-icon-ksd-table_others ksd-fs-14"></i>
+                </span>
+                <el-dropdown-menu slot="dropdown"  :uuid='scope.row.uuid' >
+                  <!-- 数据检测移动至project 级别处理， -->
+                  <!-- <el-dropdown-item command="dataCheck">{{$t('datacheck')}}</el-dropdown-item> -->
+                  <!-- 设置partition -->
+                  <el-dropdown-item command="dataLoad" v-if="scope.row.status !== 'BROKEN'">{{$t('modelPartitionSet')}}</el-dropdown-item>
+                  <!-- <el-dropdown-item command="favorite" disabled>{{$t('favorite')}}</el-dropdown-item> -->
+                  <el-dropdown-item command="importMDX" divided disabled v-if="scope.row.status !== 'BROKEN'">{{$t('importMdx')}}</el-dropdown-item>
+                  <el-dropdown-item command="exportTDS" disabled v-if="scope.row.status !== 'BROKEN'">{{$t('exportTds')}}</el-dropdown-item>
+                  <el-dropdown-item command="exportMDX" disabled v-if="scope.row.status !== 'BROKEN'">{{$t('exportMdx')}}</el-dropdown-item>
+                  <el-dropdown-item command="rename" divided v-if="scope.row.status !== 'BROKEN'">{{$t('rename')}}</el-dropdown-item>
+                  <el-dropdown-item command="clone" v-if="scope.row.status !== 'BROKEN'">{{$t('kylinLang.common.clone')}}</el-dropdown-item>
+                  <el-dropdown-item command="delete">{{$t('delete')}}</el-dropdown-item>
+                  <el-dropdown-item command="purge" v-if="scope.row.status !== 'BROKEN'">{{$t('purge')}}</el-dropdown-item>
+                  <el-dropdown-item command="offline" v-if="scope.row.status !== 'OFFLINE' && scope.row.status !== 'BROKEN'">{{$t('offLine')}}</el-dropdown-item>
+                  <el-dropdown-item command="online" v-if="scope.row.status !== 'ONLINE' && scope.row.status !== 'BROKEN'">{{$t('onLine')}}</el-dropdown-item>
+                </el-dropdown-menu>
+              </el-dropdown>
+            </common-tip>
           </template>
         </el-table-column>
       </el-table>
       <!-- 分页 -->
       <kap-pager class="ksd-center ksd-mtb-10" ref="pager"  :totalSize="modelsPagerRenderData.totalSize"  v-on:handleCurrentChange='pageCurrentChange'></kap-pager>
     </div>
-    <!-- <div class="ksd-null-pic-text" v-if="!showSearchResult">
-      <img src="../../../../assets/img/no_model.png">
-      <p v-if="!isAutoProject && (isAdmin || hasPermissionOfProject())">{{$t('noModel')}}</p>
-      <div>
-      <el-button v-guide.addModelBtn size="medium" type="primary" icon="el-icon-ksd-add_2"  v-if="!isAutoProject && (isAdmin || hasPermissionOfProject())" @click="showAddModelDialog">{{$t('kylinLang.common.model')}}</el-button>
-       </div>
-    </div> -->
-
     <!-- 模型检查 -->
     <ModelCheckDataModal/>
     <!-- 模型构建 -->
@@ -186,10 +190,10 @@
 import Vue from 'vue'
 import { Component, Watch } from 'vue-property-decorator'
 import { mapActions, mapGetters } from 'vuex'
-import { permissions, NamedRegex } from '../../../../config'
+import { NamedRegex } from '../../../../config'
 import { ModelStatusTagType } from '../../../../config/model.js'
 import locales from './locales'
-import { handleError, hasRole, hasPermission, kapConfirm, kapMessage, handleSuccess } from 'util/business'
+import { handleError, kapConfirm, kapMessage, handleSuccess } from 'util/business'
 
 import { objectClone } from 'util'
 import TableIndex from '../TableIndex/index.vue'
@@ -226,7 +230,8 @@ import '../../../../util/fly.js'
       'currentSelectedProject',
       'modelsPagerRenderData',
       'briefMenuGet',
-      'isAutoProject'
+      'isAutoProject',
+      'datasourceActions'
     ])
   },
   methods: {
@@ -555,12 +560,6 @@ export default class ModelList extends Vue {
   }
   showAddModelDialog () {
     this.callAddModelDialog()
-  }
-  hasPermissionOfProject () {
-    return hasPermission(this, permissions.ADMINISTRATION.mask, permissions.MANAGEMENT.mask)
-  }
-  get isAdmin () {
-    return hasRole(this, 'ROLE_ADMIN')
   }
 }
 </script>

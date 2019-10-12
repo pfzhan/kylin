@@ -3,7 +3,7 @@
     <div class="ksd-title-label ksd-mtb-20">
       <span>{{$t('acceleration')}}</span>
     </div>
-    <div class="btn-groups ky-no-br-space ksd-mb-15">
+    <div class="btn-groups ky-no-br-space ksd-mb-15" v-if="datasourceActions.includes('accelerationActions')">
       <span class="guide-checkData" v-if="!waitingSQLSize"></span>
       <el-button type="primary" v-guide.speedSqlNowBtn plain :disabled="!waitingSQLSize" :loading="isAcceSubmit" @click="applySpeed">{{$t('accelerateNow')}}</el-button>
       <el-button type="primary" plain @click="openImportSql">{{$t('importSql')}}</el-button>
@@ -25,7 +25,7 @@
       </div>
     </div>
     <div class="fav-tables ksd-mt-40">
-      <div class="btn-group">
+      <div class="btn-group" v-if="datasourceActions.includes('accelerationActions')">
         <!-- <el-button size="small" type="primary" icon="el-icon-ksd-setting" plain @click="openRuleSetting">{{$t('ruleSetting')}}</el-button><el-button size="small" type="primary" icon="el-icon-ksd-table_discard" plain @click="openBlackList">{{$t('blackList')}}</el-button> -->
         <el-dropdown @command="handleCommand">
           <el-button size="small" type="primary" plain class="el-dropdown-link">
@@ -354,7 +354,8 @@ import accelerationTable from './acceleration_table'
   },
   computed: {
     ...mapGetters([
-      'currentSelectedProject'
+      'currentSelectedProject',
+      'datasourceActions'
     ])
   },
   components: {

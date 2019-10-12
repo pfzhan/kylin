@@ -2,7 +2,7 @@
   <div id="dashboard">
     <el-alert class="quota_tips" type="error" :closable="false" show-icon v-if="isNoQuota">
       <span slot="title">
-        <span>{{noMoreQuotaTips1}}</span><a @click="gotoSetting">{{$t('quotaTips3')}}</a><span>{{$t('quotaTips4')}}</span>
+        <span>{{noMoreQuotaTips1}}</span><a v-if="dashboardActions.includes('viewSetting')" @click="gotoSetting">{{$t('quotaTips3')}}</a><span>{{$t('quotaTips4')}}</span>
       </span>
     </el-alert>
     <div class="dashboard-content">
@@ -16,7 +16,7 @@
                   <i class="el-icon-ksd-what ksd-fs-14"></i>
                 </el-tooltip>
               </span>
-              <a class="ky-a-like ksd-fright ksd-fs-12" @click="gotoSetting">{{$t('viewDetail')}}</a>
+              <a class="ky-a-like ksd-fright ksd-fs-12" v-if="dashboardActions.includes('viewSetting')" @click="gotoSetting">{{$t('viewDetail')}}</a>
             </div>
             <div class="quota-row">
               <div class="img-block ksd-fleft ksd-mr-15">
@@ -66,7 +66,7 @@
                     <span v-else>--</span><common-tip :content="$t('clear')">
                       <i class="el-icon-ksd-clear ksd-ml-10 clear-btn"
                       :class="{'is_no_quota': isNoQuota}"
-                    @click="clearStorage" v-if="quotaInfo.garbage_storage_size>0"></i>
+                    @click="clearStorage" v-if="dashboardActions.includes('clearStorage')&&quotaInfo.garbage_storage_size>0"></i>
                     </common-tip>
                   </div>
                 </div>
@@ -83,7 +83,7 @@
                   <i class="el-icon-ksd-what ksd-fs-14"></i>
                 </el-tooltip>
               </span>
-              <a class="ky-a-like ksd-fright ksd-fs-12" @click="gotoFavorite">{{$t('viewDetail')}}</a>
+              <a class="ky-a-like ksd-fright ksd-fs-12" v-if="dashboardActions.includes('viewAcceleration')" @click="gotoFavorite">{{$t('viewDetail')}}</a>
             </div>
             <svg id="ruleImpact" width="100%" height="168" class="ksd-mt-20"></svg>
           </div>
@@ -136,7 +136,7 @@
             <div class="inner-card">
               <div class="cart-title">
                 {{$t('jobCount')}}
-                <a class="ky-a-like ksd-fright ksd-fs-12" @click.stop="gotoJoblist">{{$t('viewDetail')}}</a>
+                <a class="ky-a-like ksd-fright ksd-fs-12" v-if="dashboardActions.includes('viewJobList')" @click.stop="gotoJoblist">{{$t('viewDetail')}}</a>
               </div>
               <div class="content">
                 <span class="num">{{jobCount}}</span>
@@ -149,7 +149,7 @@
             <div class="inner-card">
               <div class="cart-title">
                 {{$t('avgBulidTime')}}
-                <a class="ky-a-like ksd-fright ksd-fs-12" @click.stop="gotoJoblist">{{$t('viewDetail')}}</a>
+                <a class="ky-a-like ksd-fright ksd-fs-12" v-if="dashboardActions.includes('viewJobList')" @click.stop="gotoJoblist">{{$t('viewDetail')}}</a>
               </div>
               <div class="content" v-if="noEnoughData">
                 <span class="no-data">{{$t('noEnoughData')}}</span>
@@ -233,7 +233,8 @@ import LineChart from './LineChart'
   computed: {
     ...mapGetters([
       'currentSelectedProject',
-      'isAutoProject'
+      'isAutoProject',
+      'dashboardActions'
     ])
   },
   locales: {

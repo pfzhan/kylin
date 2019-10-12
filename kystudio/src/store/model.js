@@ -1,7 +1,6 @@
 import api from './../service/api'
 import * as types from './types'
 import { transToGmtTime } from 'util/business'
-import { getAvailableOptions } from '../util/specParser'
 export default {
   state: {
     modelsList: [],
@@ -260,14 +259,14 @@ export default {
         }
       }
     },
-    availableAggregateActions: (state, getters, rootState, rootGetters) => {
-      if (rootGetters.currentProjectData) {
-        const projectType = rootGetters.currentProjectData.maintain_model_type
-        return getAvailableOptions('aggregateActions', { projectType })
-      } else {
-        return []
-      }
-    },
+    // availableAggregateActions: (state, getters, rootState, rootGetters) => {
+    //   if (rootGetters.currentProjectData) {
+    //     const projectType = rootGetters.currentProjectData.maintain_model_type
+    //     return getAvailableOptions('aggregateActions', { projectType })
+    //   } else {
+    //     return []
+    //   }
+    // },
     modelsPagerRenderData: (state) => {
       return {
         totalSize: state.modelsTotal,

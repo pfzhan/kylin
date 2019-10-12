@@ -181,13 +181,15 @@ export default class SecurityUser extends Vue {
         name,
         groupName: this.currentGroup
       }
-
-      const { data: { data } } = !this.currentGroup
+      const res = !this.currentGroup
         ? await this.loadUsersList(parameter)
         : await this.loadUserListByGroupName(parameter)
 
-      this.userData = data && (data.users || data.groupMembers) || []
-      this.totalSize = data && data.size || 0
+      this.userData = res.data.data && (res.data.data.users || res.data.data.groupMembers) || []
+      this.totalSize = res.data.data && res.data.data.size || 0
+      if (res.status !== 200) {
+        handleError(res)
+      }
     } catch (e) {
       handleError(e)
     }

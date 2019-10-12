@@ -105,7 +105,11 @@ export default class SecurityGroup extends Vue {
   created () {
     this.loadGroupUsers()
     if (this.groupActions.includes('viewGroup')) {
-      this.loadUsers()
+      this.loadUsers().then((res) => {
+        if (res.status !== 200) {
+          handleError(res)
+        }
+      })
     }
   }
 
@@ -143,6 +147,9 @@ export default class SecurityGroup extends Vue {
     this.loadGroupUsersList({
       ...this.pagination,
       userGroupName: filterGroupName
+    }).then(() => {
+    }, (res) => {
+      handleError(res)
     })
   }
 

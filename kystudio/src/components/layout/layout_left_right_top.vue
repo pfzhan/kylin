@@ -182,7 +182,6 @@ let MessageBox = ElementUI.MessageBox
     ...mapMutations({
       setCurUser: 'SAVE_CURRENT_LOGIN_USER',
       resetProjectState: 'RESET_PROJECT_STATE',
-      resetMonitorState: 'RESET_MONITOR_STATE',
       toggleMenu: 'TOGGLE_MENU',
       cacheHistory: 'CACHE_HISTORY',
       saveTabs: 'SET_QUERY_TABS',
@@ -439,7 +438,7 @@ export default class LayoutLeftRightTop extends Vue {
     })
   }
   showMenuByRole (menuName) {
-    return this.availableMenus.includes(menuName)
+    return this.availableMenus.includes(menuName.toLowerCase())
   }
   getLicense () {
     location.href = 'mailto:g-ent-lic@kyligence.io'
@@ -526,7 +525,6 @@ export default class LayoutLeftRightTop extends Vue {
             localStorage.setItem('buyit', false)
             // reset 所有的project信息
             this.resetProjectState()
-            this.resetMonitorState()
             this.resetQueryTabs()
             this.$router.push({name: 'Login', params: { ignoreIntercept: true }})
           })
@@ -538,7 +536,6 @@ export default class LayoutLeftRightTop extends Vue {
           localStorage.setItem('buyit', false)
           // reset 所有的project信息
           this.resetProjectState()
-          this.resetMonitorState()
           this.resetQueryTabs()
           this.$router.push({name: 'Login'})
         })

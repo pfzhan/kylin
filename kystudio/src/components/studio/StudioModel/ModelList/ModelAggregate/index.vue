@@ -7,10 +7,10 @@
       <el-button type="primary" icon="el-icon-ksd-table_delete">
         {{$t('kylinLang.common.delete')}}
       </el-button> -->
-      <el-button type="primary" size="small" v-guide.addAggBtn icon="el-icon-ksd-table_edit" @click="handleAggregateGroup" v-if="availableAggregateActions.includes('viewAggGroup')">
+      <el-button type="primary" size="small" v-guide.addAggBtn icon="el-icon-ksd-table_edit" @click="handleAggregateGroup" v-if="isShowEditAgg">
         {{$t('aggregateGroup')}}
       </el-button><el-button
-        type="primary" size="small" :loading="buildIndexLoading" @click="buildAggIndex" v-if="availableAggregateActions.includes('viewAggGroup')">
+        type="primary" size="small" :loading="buildIndexLoading" @click="buildAggIndex" v-if="isShowBulidIndex">
         {{$t('buildIndex')}}
       </el-button>
     </div>
@@ -130,12 +130,19 @@ import { formatFlowerJson, getCuboidCounts, getStatusCuboidCounts, backgroundMap
     isShowAggregateAction: {
       type: Boolean,
       default: true
+    },
+    isShowEditAgg: {
+      type: Boolean,
+      default: true
+    },
+    isShowBulidIndex: {
+      type: Boolean,
+      default: true
     }
   },
   computed: {
     ...mapGetters([
-      'currentProjectData',
-      'availableAggregateActions'
+      'currentProjectData'
     ])
   },
   methods: {

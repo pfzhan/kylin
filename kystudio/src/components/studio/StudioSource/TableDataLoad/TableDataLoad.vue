@@ -65,7 +65,7 @@
     </template>
     <div class="hr"></div>
     <div class="ksd-mt-15 ksd-ml-10 ky-no-br-space">
-      <el-button type="primary" size="medium" v-if="~['incremental', 'full'].indexOf(table.storageType) || table.partitionColumn" @click="handleLoadData()" v-guide.tableLoadDataBtn>{{$t('loadData')}}</el-button>
+      <el-button type="primary" size="medium" v-if="(~['incremental', 'full'].indexOf(table.storageType) || table.partitionColumn)&&isShowLoadData" @click="handleLoadData()" v-guide.tableLoadDataBtn>{{$t('loadData')}}</el-button>
       <el-button v-if="~['incremental'].indexOf(table.storageType) || table.partitionColumn" size="medium" @click="handleRefreshData">{{$t('refreshData')}}</el-button>
     </div>
   </div>
@@ -88,6 +88,10 @@ import { getAffectedModelsType } from '../../../../config'
     },
     table: {
       type: Object
+    },
+    isShowLoadData: {
+      type: Boolean,
+      default: true
     }
   },
   methods: {

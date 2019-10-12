@@ -9,11 +9,12 @@
           ref="datasource-bar"
           :project-name="currentSelectedProject"
           :is-show-load-source="true"
+          :is-show-load-table="datasourceActions.includes('loadSource')"
           :is-show-settings="false"
           :is-show-selected="true"
           :is-expand-on-click-node="false"
           :is-first-select="true"
-          :is-show-source-switch="true"
+          :is-show-source-switch="datasourceActions.includes('sourceManagement')"
           :is-show-drag-width-bar="true"
           :expand-node-types="['datasource', 'database']"
           :searchable-node-types="['table', 'column']"
@@ -31,15 +32,15 @@
             <h1 class="table-name" :title="selectedTable.fullName">{{selectedTable.fullName}}</h1>
             <h2 class="table-update-at">{{$t('updateAt')}} {{selectedTable.updateAt | toGMTDate}}</h2>
             <div class="table-actions ky-no-br-space">
-              <el-button size="small" @click="sampleTable">{{$t('sample')}}</el-button>
-              <el-button size="small" :loading="reloadBtnLoading" plain @click="handleReload">{{$t('reload')}}</el-button>
-              <el-button size="small" :loading="delBtnLoading" @click="handleDelete" plain>{{$t('delete')}}</el-button>
+              <el-button size="small" @click="sampleTable" v-if="datasourceActions.includes('sampleSourceTable')">{{$t('sample')}}</el-button>
+              <el-button size="small" :loading="reloadBtnLoading" plain @click="handleReload" v-if="datasourceActions.includes('reloadSourceTable')">{{$t('reload')}}</el-button>
+              <el-button size="small" :loading="delBtnLoading" v-if="datasourceActions.includes('delSourceTable')" @click="handleDelete" plain>{{$t('delete')}}</el-button>
             </div>
           </div>
           <!-- Source Table详细信息 -->
           <el-tabs class="table-details" type="card" v-model="viewType">
             <el-tab-pane :label="$t('general')" :name="viewTypes.DATA_LOAD" v-if="isAutoProject">
-              <TableDataLoad :project="currentProjectData" :table="selectedTable" @fresh-tables="handleFreshTable"></TableDataLoad>
+              <TableDataLoad :project="currentProjectData" :table="selectedTable" :is-show-load-data="datasourceActions.includes('loadData')" @fresh-tables="handleFreshTable"></TableDataLoad>
             </el-tab-pane>
             <el-tab-pane :label="$t('columns')" :name="viewTypes.COLUMNS" >
               <TableColumns :table="selectedTable" v-if="viewType === viewTypes.COLUMNS"></TableColumns>
@@ -123,7 +124,8 @@ import { getFormattedTable } from '../../../util/UtilTable'
     ...mapGetters([
       'isAutoProject',
       'currentProjectData',
-      'currentSelectedProject'
+      'currentSelectedProject',
+      'datasourceActions'
     ])
   },
   methods: {

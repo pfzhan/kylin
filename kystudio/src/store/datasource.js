@@ -1,6 +1,7 @@
 import api from './../service/api'
 import { indexOfObjWithSomeKey } from 'util'
 import * as types from './types'
+import { getAvailableOptions } from '../util/specParser'
 export default {
   state: {
     dataSource: {},
@@ -14,6 +15,13 @@ export default {
   getters: {
     getQueryTabs (state) {
       return state.editableTabs
+    },
+    datasourceActions (state, getters, rootState, rootGetters) {
+      const groupRole = rootGetters.userAuthorities
+      const projectRole = rootState.user.currentUserAccess
+      const projectType = rootGetters.currentProjectData && rootGetters.currentProjectData.maintain_model_type
+
+      return getAvailableOptions('datasourceActions', { groupRole, projectType, projectRole })
     }
   },
   mutations: {

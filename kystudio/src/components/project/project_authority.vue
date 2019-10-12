@@ -5,7 +5,7 @@
       <el-col :span="24">
         <div class="ksd-fleft ky-no-br-space">
           <el-button plain type="primary" icon="el-icon-ksd-back" @click="$router.push('/admin/project')">{{$t('back')}}</el-button>
-          <el-button plain type="primary" icon="el-icon-ksd-add_2" @click="authorUser()">{{$t('userAccess')}}</el-button>
+          <el-button plain type="primary" icon="el-icon-ksd-add_2" v-if="projectActions.includes('accessActions')" @click="authorUser()">{{$t('userAccess')}}</el-button>
           <!-- <el-button v-if="accessView == 'user'" plain type="primary" @click="toggleView('table')">{{$t('toggleTableView')}}</el-button>
           <el-button v-if="accessView == 'table'" plain type="primary" @click="toggleView('user')">{{$t('toggleUserView')}}</el-button> -->
         </div>
@@ -141,7 +141,7 @@ import Vue from 'vue'
 import { Component } from 'vue-property-decorator'
 import { objectClone } from '../../util'
 import { handleSuccess, handleError, kapConfirm, hasRole, hasPermissionOfProjectAccess } from '../../util/business'
-import { mapActions } from 'vuex'
+import { mapActions, mapGetters } from 'vuex'
 import { pageCount, permissions } from 'config'
 import userAccess from './user_access'
 import tableAccess from './table_access'
@@ -156,6 +156,11 @@ import tableAccess from './table_access'
       editProjectAccess: 'EDIT_PROJECT_ACCESS',
       getUserAccessByProject: 'USER_ACCESS'
     })
+  },
+  computed: {
+    ...mapGetters([
+      'projectActions'
+    ])
   },
   components: {
     'user_access': userAccess,
@@ -255,14 +260,14 @@ export default class ProjectAuthority extends Vue {
     32: 'MANAGEMENT',
     64: 'OPERATION'
   }
-  accessMetas = [{permission: 16, principal: true, sids: []}]
+  accessMetas = [{permission: 1, principal: true, sids: []}]
   userList = []
   groupList = []
   showMaskByOrder = [
-    // { key: 'Query', value: 1 },
-    // { key: 'Operation', value: 64 },
-    // { key: 'Management', value: 32 },
-    { key: 'Admin', value: 16 }
+    { key: 'Query', value: 1 },
+    { key: 'Admin', value: 16 },
+    { key: 'Operation', value: 64 },
+    { key: 'Management', value: 32 }
   ]
   submitLoading = false
   projectAccess = null
@@ -362,7 +367,7 @@ export default class ProjectAuthority extends Vue {
     return this.getAvailableUserOrGroupList(para)
   }
   addAccessMetas () {
-    this.accessMetas.unshift({permission: 16, principal: true, sids: []})
+    this.accessMetas.unshift({permission: 1, principal: true, sids: []})
   }
   removeAccessMetas (index) {
     this.accessMetas.splice(index, 1)
@@ -445,7 +450,7 @@ export default class ProjectAuthority extends Vue {
     })
   }
   initAccessData () {
-    this.accessMetas = [{permission: 16, principal: true, sids: []}]
+    this.accessMetas = [{permission: 1, principal: true, sids: []}]
   }
   reloadAvaliableUserAndGroup () {
     this.filterUser()

@@ -111,7 +111,8 @@ import { insightKeyword } from '../../config'
   computed: {
     ...mapGetters([
       'currentSelectedProject',
-      'getQueryTabs'
+      'getQueryTabs',
+      'datasourceActions'
     ])
   },
   locales: {

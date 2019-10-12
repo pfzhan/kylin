@@ -13,9 +13,9 @@ export default {
       { "id": "studio", "value": "studio", "title": "Studio" },
       { "id": "setting", "value": "setting", "title": "setting" },
       { "id": "source", "value": "source", "title": "Source" },
-      { "id": "model", "value": "modelList", "title": "modelList" },
+      { "id": "model", "value": "modellist", "title": "modelList" },
       { "id": "index", "value": "index", "title": "Index" },
-      { "id": "modelEdit", "value": "modelEdit", "title": "Model Edit" },
+      { "id": "modelEdit", "value": "modeledit", "title": "Model Edit" },
       { "id": "monitor", "value": "monitor", "title": "Monitor" },
       { "id": "job", "value": "job", "title": "Job" },
       { "id": "admin", "value": "admin", "title": "Admin" },
@@ -42,6 +42,9 @@ export default {
     // 项目内权限
     "projectRole": [
       { "id": "admin", "value": "ADMINISTRATION", "title": "Admin" },
+      { "id": "management", "value": "MANAGEMENT", "title": "Admin" },
+      { "id": "operation", "value": "OPERATION", "title": "Admin" },
+      { "id": "read", "value": "READ", "title": "Admin" },
       { "id": "admin", "value": 16, "title": "Admin" }
     ],
     // 系统组权限
@@ -52,6 +55,24 @@ export default {
     /**
      * ACL权限配置
      */
+    "datasourceActions": [
+      { "id": "sourceManagement" },
+      { "id": "loadSource" },
+      { "id": "delSourceTable" },
+      { "id": "sampleSourceTable" },
+      { "id": "reloadSourceTable" },
+      { "id": "loadData" },
+      { "id": "accelerationActions" },
+      { "id": "modelActions" },
+      { "id": "segmentActions" },
+      { "id": "editAggGroup" },
+      { "id": "bulidIndex" },
+      { "id": "tableIndexActions" },
+      { "id": "viewDataSource" }
+    ],
+    "monitorActions": [
+      { "id": "jobActions" }
+    ],
     "userActions": [
       { "id": "addUser" },
       { "id": "editUser" },
@@ -61,50 +82,79 @@ export default {
       { "id": "disableUser" }
     ],
     "projectActions": [
-      { "id": "addGrant" },
-      { "id": "editGrant" },
-      { "id": "deleteGrant" }
+      { "id": "addProject" },
+      { "id": "deleteProject" },
+      { "id": "editProject" },
+      { "id": "backUpProject" },
+      { "id": "accessActions" }
     ],
     "groupActions": [
       { "id": "addGroup" },
       { "id": "editGroup" },
       { "id": "deleteGroup" }
     ],
-    "modelActions": [
-      { "id": "viewInRelated" },
-      { "id": "discard" },
-      { "id": "build" },
-      { "id": "factSwitcher" },
-      { "id": "deleteTable" },
-      { "id": "addJoin" }
+    "dashboardActions": [
+      { "id": "clearStorage" },
+      { "id": "viewJobList" },
+      { "id": "viewSetting" },
+      { "id": "viewAcceleration" }
     ],
-    "aggregateActions": [
-      { "id": "viewAggGroup" },
-      { "id": "editAggGroup" },
-      { "id": "addAggGroup" }
-    ]
   },
   "disableOptionMaps": {
-    // 菜单权限
-    "menu": {
-      "keyPattern": "groupRole-menu",
-      "entries": [
-        { "key": "systemAdmin-[project,user,group,groupDetail,projectAuthority]", "value": "dashboard,query,insight,queryHistory,acceleration,studio,setting,source,model,index,modelEdit,monitor,job" },
-        { "key": "systemAdmin-*", "value": "project,user,group,groupDetail,projectAuthority" },
-        { "key": "systemUser-*", "value": "admin,project,group,groupDetail,user,projectAuthority" }
-      ]
-    },
-    "modelActions": {
-      "keyPattern": "projectType-modelType",
-      "entries": [
-        { "key": "manualMaintain-tableOriented", "value": "build" },
-        { "key": "manualMaintain-modelBased", "value": "viewInRelated,discard" },
-        { "key": "autoMaintain-tableOriented", "value": "build" },
-        { "key": "autoMaintain-modelBased", "value": "viewInRelated,discard" }
-      ]
-    }
   },
   "enableOptionMaps": {
+    // 菜单权限
+    "menu": {
+      "keyPattern": "groupRole-projectRole-menu",
+      "entries": [
+        { "key": "systemAdmin-*-[project,user,group,groupDetail,projectAuthority]", "value": "admin,project,user,group,groupDetail" },
+        { "key": "systemAdmin-*-[dashboard,query,insight,queryHistory,acceleration,studio,setting,source,model,index,modelEdit,monitor,job]", "value": "dashboard,query,insight,queryHistory,acceleration,studio,setting,source,model,index,modelEdit,monitor,job,admin" },
+        { "key": "systemUser-admin-[project,user,group,groupDetail,projectAuthority]", "value": "project,admin" },
+        { "key": "systemUser-admin-[dashboard,query,insight,queryHistory,acceleration,studio,setting,source,model,index,modelEdit,monitor,job]", "value": "dashboard,query,insight,queryHistory,acceleration,studio,setting,source,model,index,modelEdit,monitor,job,admin" },
+        { "key": "systemUser-management-*", "value": "dashboard,query,insight,queryHistory,acceleration,studio,source,model,index,modelEdit,monitor,job" },
+        { "key": "systemUser-operation-*", "value": "dashboard,query,insight,queryHistory,studio,source,model,index,modelEdit,monitor,job" },
+        { "key": "systemUser-read-*", "value": "dashboard,query,insight,queryHistory,studio,model,index,modelEdit" }
+      ]
+    },
+    // 仪表盘
+    "dashboardActions": {
+      "keyPattern": "groupRole-projectRole",
+      "entries": [
+        { "key": "systemAdmin-*", "value": "clearStorage,viewJobList,viewSetting,viewAcceleration" },
+        { "key": "systemUser-admin", "value": "clearStorage,viewJobList,viewSetting,viewAcceleration" },
+        { "key": "systemUser-management", "value": "viewJobList,viewAcceleration" },
+        { "key": "systemUser-operation", "value": "viewJobList" },
+        { "key": "systemUser-read", "value": "none" }
+      ]
+    },
+    // 建模中心：数据源，加速引擎，模型
+    "datasourceActions": {
+      "keyPattern": "groupRole-projectType-projectRole",
+      "entries": [
+        { "key": "systemAdmin-manualMaintain-*", "value": "sourceManagement,loadSource,delSourceTable,sampleSourceTable,reloadSourceTable,loadData,accelerationActions,modelActions,segmentActions,editAggGroup,bulidIndex,tableIndexActions" },
+        { "key": "systemAdmin-autoMaintain-*", "value": "sourceManagement,loadSource,delSourceTable,sampleSourceTable,reloadSourceTable,loadData,accelerationActions" },
+
+        { "key": "systemUser-manualMaintain-admin", "value": "sourceManagement,loadSource,delSourceTable,sampleSourceTable,reloadSourceTable,loadData,accelerationActions,modelActions,segmentActions,editAggGroup,bulidIndex,tableIndexActions" },
+        { "key": "systemUser-autoMaintain-admin", "value": "sourceManagement,loadSource,delSourceTable,sampleSourceTable,reloadSourceTable,loadData,accelerationActions" },
+
+        { "key": "systemUser-manualMaintain-management", "value": "sampleSourceTable,reloadSourceTable,loadData,accelerationActions,modelActions,segmentActions,editAggGroup,bulidIndex,tableIndexActions" },
+        { "key": "systemUser-autoMaintain-management", "value": "sampleSourceTable,reloadSourceTable,loadData,accelerationActions" },
+
+        { "key": "systemUser-manualMaintain-operation", "value": "loadData,segmentActions,bulidIndex" },
+        { "key": "systemUser-autoMaintain-operation", "value": "loadData" },
+
+        { "key": "systemUser-*-read", "value": "none" }
+      ]
+    },
+    // 任务模块操作权限
+    "monitorActions": {
+      "keyPattern": "groupRole-projectRole",
+      "entries": [
+        { "key": "systemAdmin-*", "value": "jobActions" },
+        { "key": "systemUser-[admin,management,operation]", "value": "jobActions" },
+        { "key": "systemUser-read", "value": "none" }
+      ]
+    },
     // 用户操作权限
     "userActions": {
       "keyPattern": "groupRole",
@@ -125,16 +175,9 @@ export default {
     "projectActions": {
       "keyPattern": "groupRole-projectRole",
       "entries": [
-        { "key": "systemAdmin-*", "value": "addGrant,editGrant,deleteGrant" },
-        { "key": "systemUser-admin", "value": "addGrant,editGrant,deleteGrant" },
+        { "key": "systemAdmin-*", "value": "addProject,deleteProject,editProject,backUpProject,accessActions" },
+        { "key": "systemUser-admin", "value": "editProject,backUpProject" },
         { "key": "systemUser-[management,operation,read]", "value": "none" }
-      ]
-    },
-    "aggregateActions": {
-      "keyPattern": "projectType",
-      "entries": [
-        { "key": "manualMaintain", "value": "viewAggGroup,editAggGroup,addAggGroup" },
-        { "key": "autoMaintain", "value": "none" }
       ]
     }
   }

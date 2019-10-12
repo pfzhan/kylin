@@ -1,5 +1,6 @@
 import api from './../service/api'
 import * as types from './types'
+import { getAvailableOptions } from '../util/specParser'
 export default {
   state: {
   },
@@ -47,6 +48,13 @@ export default {
       return api.monitor.loadJobBulidChartData(para)
     }
   },
-  getters: {}
+  getters: {
+    monitorActions (state, getters, rootState, rootGetters) {
+      const groupRole = rootGetters.userAuthorities
+      const projectRole = rootState.user.currentUserAccess
+
+      return getAvailableOptions('monitorActions', { groupRole, projectRole })
+    }
+  }
 }
 
