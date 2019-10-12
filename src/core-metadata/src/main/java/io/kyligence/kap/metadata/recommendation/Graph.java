@@ -1,0 +1,72 @@
+/*
+ * Copyright (C) 2016 Kyligence Inc. All rights reserved.
+ *
+ * http://kyligence.io
+ *
+ * This software is the confidential and proprietary information of
+ * Kyligence Inc. ("Confidential Information"). You shall not disclose
+ * such Confidential Information and shall use it only in accordance
+ * with the terms of the license agreement you entered into with
+ * Kyligence Inc.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+ * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+ * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+package io.kyligence.kap.metadata.recommendation;
+
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
+
+public class Graph<T> {
+    public static class Node<T> {
+        public T val;
+        public int pathIn = 0;
+
+        public Node(T val) {
+            this.val = val;
+        }
+    }
+
+    public Set<Node<T>> vertexSet = new HashSet<>();
+    public Map<Node<T>, Set<Node<T>>> outNode = new HashMap<>();
+//    public Map<Node<T>, Set<Node<T>>> inNode = new HashMap<>();
+
+    public boolean addNode(Node<T> start, Node<T> end) {
+        vertexSet.add(start);
+        vertexSet.add(end);
+        if (outNode.containsKey(start) && outNode.get(start).contains(end)) {
+            return false;
+        }
+        if (outNode.containsKey(start)) {
+            outNode.get(start).add(end);
+        } else {
+            Set<Node<T>> temp = new HashSet<>();
+            temp.add(end);
+            outNode.put(start, temp);
+        }
+
+//        if (inNode.containsKey(end) && inNode.get(start).contains(start)) {
+//            return false;
+//        }
+//        if (inNode.containsKey(end)) {
+//            inNode.get(end).add(start);
+//        } else {
+//            Set<Node<T>> temp = new HashSet<>();
+//            temp.add(start);
+//            inNode.put(end, temp);
+//        }
+        end.pathIn++;
+        return true;
+    }
+}

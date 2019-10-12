@@ -107,6 +107,7 @@ public abstract class ResourceStore implements AutoCloseable {
     public static final String QUERY_FILTER_RULE_RESOURCE_ROOT = "/rule";
     public static final String FAVORITE_QUERY_RESOURCE_ROOT = "/favorite";
     public static final String JOB_STATISTICS = "/job_stats";
+    public static final String MODEL_OPTIMIZE_RECOMMENDATION = "/recommendation";
 
     public static final String METASTORE_IMAGE = "/_image";
     public static final String METASTORE_UUID_TAG = "/UUID";

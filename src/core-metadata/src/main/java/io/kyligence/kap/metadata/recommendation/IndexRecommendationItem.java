@@ -1,0 +1,279 @@
+/*
+ * Copyright (C) 2016 Kyligence Inc. All rights reserved.
+ *
+ * http://kyligence.io
+ *
+ * This software is the confidential and proprietary information of
+ * Kyligence Inc. ("Confidential Information"). You shall not disclose
+ * such Confidential Information and shall use it only in accordance
+ * with the terms of the license agreement you entered into with
+ * Kyligence Inc.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+ * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+ * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+package io.kyligence.kap.metadata.recommendation;
+
+import java.io.Serializable;
+import java.util.List;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+
+import org.apache.kylin.common.util.JsonUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.google.common.collect.Lists;
+
+import io.kyligence.kap.metadata.cube.model.IndexEntity;
+import io.kyligence.kap.metadata.cube.model.LayoutEntity;
+import lombok.Getter;
+import lombok.Setter;
+import lombok.val;
+import lombok.var;
+
+public class IndexRecommendationItem implements Serializable, RecommendationItem<IndexRecommendationItem> {
+    private static final Logger logger = LoggerFactory.getLogger(IndexRecommendationItem.class);
+
+    @Getter
+    @Setter
+    @JsonProperty("item_id")
+    private long itemId;
+
+    @Getter
+    @Setter
+    @JsonProperty("index_entity")
+    private IndexEntity entity;
+
+    @Getter
+    @Setter
+    @JsonProperty("is_agg_index")
+    private boolean isAggIndex;
+
+    @Getter
+    @Setter
+    @JsonProperty("is_add")
+    private boolean isAdd;
+
+    @Getter
+    @Setter
+    @JsonIgnore
+    private boolean isCopy = false;
+
+    private void checkAddTableIndexDependencies(OptimizeContext context, boolean real) {
+        var item = context.getIndexRecommendationItem(itemId);
+        for (int i = 0; i < item.entity.getDimensions().size(); i++) {
+            val idColumnMap = real ? context.getRealIdColumnMap() : context.getVirtualIdColumnMap();
+            if (!(idColumnMap.containsKey(item.entity.getDimensions().get(i)))) {
+                if (!real && (context.getFailCCColumnId().contains(item.entity.getDimensions().get(i)))) {
+                    context.failIndexRecommendationItem(itemId);
+                    return;
+                } else {
+                    throw new DependencyLostException(
+                            "table index lost dependency: column not exists, you may need pass it first");
+                }
+            }
+        }
+    }
+
+    private void checkAddAggIndexDependencies(OptimizeContext context, boolean real) {
+        var item = context.getIndexRecommendationItem(itemId);
+        for (int i = 0; i < item.entity.getDimensions().size(); i++) {
+            val idColumnMap = real ? context.getRealIdColumnMap() : context.getVirtualIdColumnMap();
+            if (!(idColumnMap.containsKey(item.entity.getDimensions().get(i))
+                    && idColumnMap.get(item.entity.getDimensions().get(i)).isDimension())) {
+                if (!real && (context.getFailCCColumnId().contains(item.entity.getDimensions().get(i)))
+                        || context.getFailDimension().contains(item.entity.getDimensions().get(i))) {
+                    context.failIndexRecommendationItem(itemId);
+                    return;
+                } else {
+                    throw new DependencyLostException(
+                            "agg index lost dependency: dimension not exists, you may need pass it first");
+                }
+            }
+        }
+
+        for (int i = 0; i < item.entity.getMeasures().size(); i++) {
+            val measures = real ? context.getRealMeasureIds() : context.getVirtualMeasureIds();
+            if (!measures.contains(item.entity.getMeasures().get(i))) {
+                if (!real && (context.getFailMeasure().contains(item.entity.getMeasures().get(i)))) {
+                    context.failIndexRecommendationItem(itemId);
+                    return;
+                } else {
+                    throw new DependencyLostException(
+                            "agg index lost dependency: measure not exists, you may need pass it first");
+                }
+            }
+        }
+    }
+
+    private void checkRemoveDependencies(OptimizeContext context, boolean real) {
+        var item = context.getIndexRecommendationItem(itemId);
+        val allIndexMap = context.getIndexPlan().getAllIndexesMap();
+        val identifier = item.getEntity().createIndexIdentifier();
+        if (!allIndexMap.containsKey(identifier)) {
+            if (real) {
+                throw new DependencyLostException("cannot remove index because index has already removed.");
+            }
+            context.getDeletedIndexRecommendations().add(itemId);
+            return;
+        }
+        val notExistsLayouts = Lists.<LayoutEntity> newArrayList();
+        item.getEntity().getLayouts().forEach(layout -> {
+            if (!allIndexMap.get(identifier).getLayouts().contains(layout)) {
+                notExistsLayouts.add(layout);
+            }
+        });
+        if (notExistsLayouts.isEmpty()) {
+            return;
+        }
+        if (real) {
+            throw new DependencyLostException("cannot remove index because index has already removed.");
+        }
+
+        val copy = context.copyIndexRecommendationItem(itemId);
+        copy.getEntity().getLayouts().removeAll(notExistsLayouts);
+
+    }
+
+    @Override
+    public void checkDependencies(OptimizeContext context, boolean real) {
+        if (context.getDeletedIndexRecommendations().contains(itemId)) {
+            return;
+        }
+        if (isAdd()) {
+            if (isAggIndex()) {
+                checkAddAggIndexDependencies(context, real);
+            } else {
+                checkAddTableIndexDependencies(context, real);
+            }
+        } else {
+            checkRemoveDependencies(context, real);
+        }
+    }
+
+    @Override
+    public void apply(OptimizeContext context, boolean real) {
+        if (context.getDeletedIndexRecommendations().contains(itemId)) {
+            return;
+        }
+
+        if (isAdd()) {
+            addLayouts(context);
+        } else {
+            removeLayouts(context);
+        }
+
+    }
+
+    private void addLayouts(OptimizeContext context) {
+        var item = context.getIndexRecommendationItem(itemId);
+        val identifier = item.getEntity().createIndexIdentifier();
+        if (!context.getVirtualIndexesMap().containsKey(identifier)) {
+            item.entity.setNextLayoutOffset(1);
+            val indexPlan = context.getIndexPlan();
+            val layouts = item.entity.getLayouts();
+            layouts.forEach(layout -> {
+                item.entity.setId(
+                        item.isAggIndex ? indexPlan.getNextAggregationIndexId() : indexPlan.getNextTableIndexId());
+                layout.setId(item.entity.getId() + item.entity.getNextLayoutOffset());
+                item.entity.setNextLayoutOffset(item.entity.getNextLayoutOffset() + 1);
+            });
+            val indexes = indexPlan.getIndexes();
+            indexes.add(item.entity);
+            indexPlan.setIndexes(indexes);
+            context.getVirtualIndexesMap().put(identifier, item.entity);
+
+        } else {
+            val indexEntity = context.getVirtualIndexesMap().get(identifier);
+            val layouts = item.entity.getLayouts();
+            layouts.forEach(layout -> {
+                layout.setId(indexEntity.getId() + indexEntity.getNextLayoutOffset());
+                indexEntity.setNextLayoutOffset(indexEntity.getNextLayoutOffset() + 1);
+                indexEntity.getLayouts().add(layout);
+            });
+        }
+    }
+
+    private void removeLayouts(OptimizeContext context) {
+        var item = context.getIndexRecommendationItem(itemId);
+        val identifier = item.getEntity().createIndexIdentifier();
+        if (context.getRealIndexesMap().containsKey(identifier)) {
+            val indexEntity = context.getRealIndexesMap().get(identifier);
+            var removeLayouts = item.getEntity().getLayouts().stream().filter(LayoutEntity::isAuto)
+                    .collect(Collectors.toList());
+            indexEntity.getLayouts().removeAll(removeLayouts);
+            context.getIndexPlan().getIndexes().stream()
+                    .filter(indexEntityInIndexPlan -> indexEntityInIndexPlan.getId() == indexEntity.getId()).findFirst()
+                    .ifPresent(indexEntityInIndexPlan -> indexEntityInIndexPlan.getLayouts().removeAll(removeLayouts));
+
+            context.getIndexPlan().getRuleBasedIndex().addBlackListLayouts(item.getEntity().getLayouts().stream()
+                    .filter(LayoutEntity::isManual).map(LayoutEntity::getId).collect(Collectors.toList()));
+        } else {
+            logger.warn("remove layouts not exists in index plan.");
+        }
+
+    }
+
+    @Override
+    public IndexRecommendationItem copy() {
+        if (this.isCopy()) {
+            return this;
+        }
+        val res = JsonUtil.deepCopyQuietly(this, IndexRecommendationItem.class);
+        res.setCopy(true);
+        return res;
+    }
+
+    @Override
+    public void translate(OptimizeContext context) {
+        if (context.getDeletedIndexRecommendations().contains(itemId)) {
+            return;
+        }
+        var item = context.getIndexRecommendationItem(itemId);
+
+        translate(context, i -> i.getEntity().getDimensions());
+        translate(context, i -> i.getEntity().getMeasures());
+        val translations = context.getTranslations();
+
+        for (int i = 0; i < item.entity.getLayouts().size(); i++) {
+            val layout = item.entity.getLayouts().get(i);
+            val colOrder = Lists.newArrayList(layout.getColOrder());
+            var modified = false;
+            for (int j = 0; j < colOrder.size(); j++) {
+                if (translations.containsKey(colOrder.get(j))) {
+                    colOrder.set(j, translations.get(colOrder.get(j)));
+                    modified = true;
+                }
+            }
+            if (modified) {
+                val copyLayout = context.copyIndexRecommendationItem(itemId).entity.getLayouts().get(i);
+                copyLayout.setColOrder(colOrder);
+            }
+        }
+    }
+
+    private void translate(OptimizeContext context, Function<IndexRecommendationItem, List<Integer>> function) {
+        var item = context.getIndexRecommendationItem(itemId);
+        val size = function.apply(item).size();
+        val translations = context.getTranslations();
+        for (int i = 0; i < size; i++) {
+            val id = function.apply(item).get(i);
+            if (translations.containsKey(id)) {
+                item = context.copyIndexRecommendationItem(itemId);
+                function.apply(item).set(i, translations.get(id));
+            }
+        }
+    }
+}

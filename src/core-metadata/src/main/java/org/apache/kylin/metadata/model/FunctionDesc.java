@@ -74,7 +74,7 @@ import lombok.Setter;
  */
 @SuppressWarnings("serial")
 @JsonAutoDetect(fieldVisibility = Visibility.NONE, getterVisibility = Visibility.NONE, isGetterVisibility = Visibility.NONE, setterVisibility = Visibility.NONE)
-public class FunctionDesc implements Serializable {
+public class  FunctionDesc implements Serializable {
 
     public static FunctionDesc newInstance(String expression, List<ParameterDesc> parameters, String returnType) {
         FunctionDesc r = new FunctionDesc();
