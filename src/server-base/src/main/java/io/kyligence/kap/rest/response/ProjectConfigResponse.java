@@ -47,6 +47,8 @@ public class ProjectConfigResponse {
     private MaintainModelType maintainModelType = MaintainModelType.AUTO_MAINTAIN;
     @JsonProperty("default_database")
     private String defaultDatabase;
+    @JsonProperty("semi_automatic_mode")
+    private boolean semiAutomaticMode;
 
     @JsonProperty("storage_quota_size")
     private long storageQuotaSize;

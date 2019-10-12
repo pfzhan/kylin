@@ -329,6 +329,7 @@ public class ProjectService extends BasicService {
         response.setDescription(projectInstance.getDescription());
         response.setMaintainModelType(projectInstance.getMaintainModelType());
         response.setDefaultDatabase(projectInstance.getDefaultDatabase());
+        response.setSemiAutomaticMode(config.isSemiAutoMode());
 
         response.setStorageQuotaSize(config.getStorageQuotaSize());
 
@@ -406,6 +407,8 @@ public class ProjectService extends BasicService {
     public void updateProjectGeneralInfo(String project, ProjectGeneralInfoRequest projectGeneralInfoRequest) {
         getProjectManager().updateProject(project, copyForWrite -> {
             copyForWrite.setDescription(projectGeneralInfoRequest.getDescription());
+            copyForWrite.getOverrideKylinProps().put("kap.metadata.semi-automatic-mode",
+                    String.valueOf(projectGeneralInfoRequest.isSemiAutoMode()));
         });
     }
 

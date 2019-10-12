@@ -45,30 +45,13 @@ package io.kyligence.kap.rest.controller;
 import java.util.ArrayList;
 import java.util.List;
 
-import io.kyligence.kap.metadata.model.AutoMergeTimeEnum;
-import io.kyligence.kap.metadata.model.RetentionRange;
-import io.kyligence.kap.metadata.model.VolatileRange;
-import io.kyligence.kap.metadata.project.NProjectManager;
-import io.kyligence.kap.rest.request.DefaultDatabaseRequest;
-import io.kyligence.kap.rest.request.JobNotificationConfigRequest;
-import io.kyligence.kap.rest.request.ProjectGeneralInfoRequest;
-import io.kyligence.kap.rest.request.ProjectRequest;
-import io.kyligence.kap.rest.request.FavoriteQueryThresholdRequest;
-import io.kyligence.kap.rest.request.PushDownConfigRequest;
-import io.kyligence.kap.rest.request.SegmentConfigRequest;
-import io.kyligence.kap.rest.request.ShardNumConfigRequest;
-import io.kyligence.kap.rest.request.StorageQuotaRequest;
-import io.kyligence.kap.rest.response.FavoriteQueryThresholdResponse;
-import io.kyligence.kap.rest.response.ProjectConfigResponse;
-import io.kyligence.kap.rest.response.StorageVolumeInfoResponse;
-import io.kyligence.kap.rest.service.ProjectService;
-import lombok.val;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.exception.BadRequestException;
 import org.apache.kylin.rest.msg.Message;
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -86,6 +69,25 @@ import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+
+import io.kyligence.kap.metadata.model.AutoMergeTimeEnum;
+import io.kyligence.kap.metadata.model.RetentionRange;
+import io.kyligence.kap.metadata.model.VolatileRange;
+import io.kyligence.kap.metadata.project.NProjectManager;
+import io.kyligence.kap.rest.request.DefaultDatabaseRequest;
+import io.kyligence.kap.rest.request.FavoriteQueryThresholdRequest;
+import io.kyligence.kap.rest.request.JobNotificationConfigRequest;
+import io.kyligence.kap.rest.request.ProjectGeneralInfoRequest;
+import io.kyligence.kap.rest.request.ProjectRequest;
+import io.kyligence.kap.rest.request.PushDownConfigRequest;
+import io.kyligence.kap.rest.request.SegmentConfigRequest;
+import io.kyligence.kap.rest.request.ShardNumConfigRequest;
+import io.kyligence.kap.rest.request.StorageQuotaRequest;
+import io.kyligence.kap.rest.response.FavoriteQueryThresholdResponse;
+import io.kyligence.kap.rest.response.ProjectConfigResponse;
+import io.kyligence.kap.rest.response.StorageVolumeInfoResponse;
+import io.kyligence.kap.rest.service.ProjectService;
+import lombok.val;
 
 public class NProjectControllerTest {
 
@@ -157,7 +159,8 @@ public class NProjectControllerTest {
         projectInstance.setName("test");
         ProjectRequest projectRequest = mockProjectRequest();
         Mockito.when(projectService.deserializeProjectDesc(projectRequest)).thenReturn(projectInstance);
-        Mockito.when(projectService.createProject(projectInstance.getName(), projectInstance)).thenReturn(projectInstance);
+        Mockito.when(projectService.createProject(projectInstance.getName(), projectInstance))
+                .thenReturn(projectInstance);
         MvcResult mvcResult = mockMvc
                 .perform(MockMvcRequestBuilders.post("/api/projects").contentType(MediaType.APPLICATION_JSON)
                         .content(JsonUtil.writeValueAsString(projectRequest))
@@ -176,20 +179,22 @@ public class NProjectControllerTest {
         favoriteQueryThresholdRequest.setTipsEnabled(true);
         Mockito.doNothing().when(projectService).updateQueryAccelerateThresholdConfig("default", 20, true);
         mockMvc.perform(MockMvcRequestBuilders.put("/api/projects/query_accelerate_threshold")
-                .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(favoriteQueryThresholdRequest))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(JsonUtil.writeValueAsString(favoriteQueryThresholdRequest))
                 .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
 
-        Mockito.verify(nProjectController).updateQueryAccelerateThresholdConfig(Mockito.any(FavoriteQueryThresholdRequest.class));
+        Mockito.verify(nProjectController)
+                .updateQueryAccelerateThresholdConfig(Mockito.any(FavoriteQueryThresholdRequest.class));
     }
-
 
     @Test
     public void testGetQueryAccelerateThreshold() throws Exception {
         FavoriteQueryThresholdResponse favoriteQueryThresholdResponse = new FavoriteQueryThresholdResponse();
         favoriteQueryThresholdResponse.setTipsEnabled(true);
         favoriteQueryThresholdResponse.setThreshold(20);
-        Mockito.doReturn(favoriteQueryThresholdResponse).when(projectService).getQueryAccelerateThresholdConfig("default");
+        Mockito.doReturn(favoriteQueryThresholdResponse).when(projectService)
+                .getQueryAccelerateThresholdConfig("default");
         mockMvc.perform(MockMvcRequestBuilders.get("/api/projects/query_accelerate_threshold")
                 .contentType(MediaType.APPLICATION_JSON).param("project", "default")
                 .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
@@ -231,9 +236,8 @@ public class NProjectControllerTest {
         Mockito.doReturn(projectInstance).when(projectManager).getProject("default");
         Mockito.doReturn(projectManager).when(projectService).getProjectManager();
         Mockito.doNothing().when(projectService).cleanupGarbage("default");
-        mockMvc.perform(MockMvcRequestBuilders.put("/api/projects/storage")
-                .contentType(MediaType.APPLICATION_JSON).param("project", "default")
-                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+        mockMvc.perform(MockMvcRequestBuilders.put("/api/projects/storage").contentType(MediaType.APPLICATION_JSON)
+                .param("project", "default").accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
 
         Mockito.verify(nProjectController).cleanupProjectStorage("default");
@@ -321,23 +325,27 @@ public class NProjectControllerTest {
     public void testUpdateProjectGeneralInfo() throws Exception {
         val request = new ProjectGeneralInfoRequest();
         request.setProject("default");
+        request.setSemiAutoMode(true);
         Mockito.doNothing().when(projectService).updateProjectGeneralInfo("default", request);
         mockMvc.perform(MockMvcRequestBuilders.put("/api/projects/project_general_info")
                 .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
                 .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
-        Mockito.verify(nProjectController).updateProjectGeneralInfo(request);
+       Mockito.verify(nProjectController).updateProjectGeneralInfo(request);
     }
 
     @Test
     public void testGetProjectConfig() throws Exception {
         val response = new ProjectConfigResponse();
         Mockito.doReturn(response).when(projectService).getProjectConfig("default");
-        mockMvc.perform(MockMvcRequestBuilders.get("/api/projects/project_config")
-                .contentType(MediaType.APPLICATION_JSON).param("project", "default")
-                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+        final MvcResult mvcResult = mockMvc
+                .perform(MockMvcRequestBuilders.get("/api/projects/project_config")
+                        .contentType(MediaType.APPLICATION_JSON).param("project", "default")
+                        .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
-
+        Assert.assertTrue(mvcResult.getResponse().getContentAsString().contains("\"semi_automatic_mode\":false"));
+        Assert.assertTrue(
+                mvcResult.getResponse().getContentAsString().contains("\"maintain_model_type\":\"AUTO_MAINTAIN\""));
         Mockito.verify(nProjectController).getProjectConfig("default");
     }
 
@@ -346,7 +354,8 @@ public class NProjectControllerTest {
         val request = new DefaultDatabaseRequest();
         request.setProject("default");
         request.setDefaultDatabase("EDW");
-        Mockito.doNothing().when(projectService).updateDefaultDatabase(request.getProject(), request.getDefaultDatabase());
+        Mockito.doNothing().when(projectService).updateDefaultDatabase(request.getProject(),
+                request.getDefaultDatabase());
         mockMvc.perform(MockMvcRequestBuilders.put("/api/projects/default_database")
                 .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
                 .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
