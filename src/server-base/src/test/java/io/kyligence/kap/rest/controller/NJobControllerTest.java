@@ -110,7 +110,7 @@ public class NJobControllerTest {
                 .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
 
-        Mockito.verify(nJobController).getJobList("NEW", jobNames, 1, "", "", "default", 0, 10, "last_modified", true);
+        Mockito.verify(nJobController).getJobList("NEW", jobNames, 1, "", "", "default", null, 0, 10, "last_modified", true);
     }
 
     @Test

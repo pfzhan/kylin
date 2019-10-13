@@ -39,6 +39,7 @@ import java.util.stream.Collectors;
 
 import javax.servlet.http.HttpServletResponse;
 
+import io.kyligence.kap.metadata.model.NDataModel;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
@@ -196,8 +197,9 @@ public class JobService extends BasicService {
     public List<ExecutableResponse> addOldParams(List<ExecutableResponse> executableResponseList) {
         executableResponseList.forEach(executableResponse -> {
             ExecutableResponse.OldParams oldParams = new ExecutableResponse.OldParams();
-            String modelName = modelService.getDataModelManager(executableResponse.getProject())
-                    .getDataModelDesc(executableResponse.getTargetModel()).getAlias();
+            NDataModel nDataModel = modelService.getDataModelManager(executableResponse.getProject())
+                    .getDataModelDesc(executableResponse.getTargetModel());
+            String modelName = Objects.isNull(nDataModel) ? null : nDataModel.getAlias();
 
             List<ExecutableStepResponse> stepResponseList = getJobDetail(executableResponse.getProject(),
                     executableResponse.getId());

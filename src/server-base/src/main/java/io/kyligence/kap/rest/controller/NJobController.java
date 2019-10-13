@@ -77,10 +77,14 @@ public class NJobController extends NBasicController {
             @RequestParam(value = "subject", required = false) String subject,
             @RequestParam(value = "subjectAlias", required = false) String subjectAlias,
             @RequestParam(value = "project", required = false) String project,
+            @RequestParam(value = "projectName", required = false) String projectName,
             @RequestParam(value = "pageOffset", required = false, defaultValue = "0") Integer pageOffset,
             @RequestParam(value = "pageSize", required = false, defaultValue = "10") Integer pageSize,
             @RequestParam(value = "sortBy", required = false, defaultValue = "last_modified") String sortBy,
             @RequestParam(value = "reverse", required = false, defaultValue = "true") Boolean reverse) {
+        if (Objects.nonNull(projectName)) {
+            project = projectName;
+        }
         checkJobStatus(status);
         JobFilter jobFilter = new JobFilter(status, jobNames, timeFilter, subject, subjectAlias, project, sortBy,
                 reverse);
