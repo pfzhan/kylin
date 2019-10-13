@@ -413,6 +413,22 @@ public class NExecutableManager {
         updateJobOutput(jobId, ExecutableState.DISCARDED);
     }
 
+    public void errorJob(String jobId) {
+        AbstractExecutable job = getJob(jobId);
+        if (job == null) {
+            return;
+        }
+
+        if (job instanceof DefaultChainedExecutable) {
+            List<? extends AbstractExecutable> tasks = ((DefaultChainedExecutable) job).getTasks();
+            tasks.stream().filter(task -> task.getStatus() != ExecutableState.ERROR)
+                    .filter(task -> task.getStatus() != ExecutableState.SUCCEED)
+                    .forEach(task -> updateJobOutput(task.getId(), ExecutableState.ERROR));
+        }
+
+        updateJobOutput(jobId, ExecutableState.ERROR);
+    }
+
     public void pauseJob(String jobId) {
         AbstractExecutable job = getJob(jobId);
         if (job == null) {
@@ -591,7 +607,8 @@ public class NExecutableManager {
         if (from != ExecutableState.RUNNING || to == null) {
             return false;
         }
-        return to == ExecutableState.PAUSED || to == ExecutableState.READY || to == ExecutableState.DISCARDED;
+        return to == ExecutableState.PAUSED || to == ExecutableState.READY || to == ExecutableState.DISCARDED
+                || to == ExecutableState.ERROR;
     }
 
     public void updateJobOutputToHDFS(String resPath, ExecutableOutputPO obj) {
@@ -639,7 +656,7 @@ public class NExecutableManager {
      * @return
      */
     public boolean isHdfsPathExists(String hdfsPath) {
-        if(StringUtils.isBlank(hdfsPath)) {
+        if (StringUtils.isBlank(hdfsPath)) {
             return false;
         }
 

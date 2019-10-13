@@ -1704,6 +1704,10 @@ abstract public class KylinConfigBase implements Serializable {
         return Integer.parseInt(getOptional("kylin.scheduler.schedule-limit-per-minute", "10"));
     }
 
+    public Integer getSchedulerJobTimeOutMinute() {
+        return Integer.parseInt(getOptional("kylin.scheduler.schedule-job-timeout-minute", "0"));
+    }
+
     public Long getRateLimitPermitsPerMinute() {
         return Long.valueOf(this.getOptional("kylin.ratelimit.permits-per-minutes", "10"));
     }

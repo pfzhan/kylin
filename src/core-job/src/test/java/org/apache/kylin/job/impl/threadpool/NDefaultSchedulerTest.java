@@ -38,8 +38,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.junit.rule.Repeat;
-import io.kyligence.kap.junit.rule.RepeatRule;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.JobProcessContext;
 import org.apache.kylin.common.KylinConfig;
@@ -59,6 +57,7 @@ import org.apache.kylin.job.execution.FailedTestExecutable;
 import org.apache.kylin.job.execution.FiveSecondErrorTestExecutable;
 import org.apache.kylin.job.execution.FiveSecondSucceedTestExecutable;
 import org.apache.kylin.job.execution.JobTypeEnum;
+import org.apache.kylin.job.execution.LongRunningTestExecutable;
 import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.job.execution.NoErrorStatusExecutableOnModel;
 import org.apache.kylin.job.execution.SucceedTestExecutable;
@@ -81,6 +80,8 @@ import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.common.persistence.transaction.mq.MessageQueue;
+import io.kyligence.kap.junit.rule.Repeat;
+import io.kyligence.kap.junit.rule.RepeatRule;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.model.NBatchConstants;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
@@ -117,12 +118,10 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         System.clearProperty("kylin.job.retry-exception-classes");
     }
 
-
     public ExpectedException thrown = ExpectedException.none();
 
     @Rule
-    public TestRule chain = RuleChain.outerRule(new RepeatRule())
-            .around(thrown);
+    public TestRule chain = RuleChain.outerRule(new RepeatRule()).around(thrown);
 
     @Test
     public void testSingleTaskJob() {
@@ -1678,6 +1677,27 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
 
         Assert.assertTrue(task.needRetry(1, new FileNotFoundException()));
         Assert.assertFalse(task.needRetry(1, new Exception("")));
+    }
+
+    @Test
+    public void testJobRunningTimeout() {
+        System.setProperty("kylin.scheduler.schedule-job-timeout-minute", "1");
+        val df = NDataflowManager.getInstance(getTestConfig(), project)
+                .getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+        DefaultChainedExecutable job = new DefaultChainedExecutable();
+        job.setProject("default");
+        job.setParam(NBatchConstants.P_LAYOUT_IDS, "1,2,3,4,5");
+        job.setTargetSubject(df.getModel().getUuid());
+        job.setTargetSegments(df.getSegments().stream().map(NDataSegment::getId).collect(Collectors.toList()));
+        BaseTestExecutable task = new LongRunningTestExecutable();
+        task.setTargetSubject(df.getModel().getUuid());
+        task.setTargetSegments(df.getSegments().stream().map(NDataSegment::getId).collect(Collectors.toList()));
+        job.addTask(task);
+        executableManager.addJob(job);
+        waitForJobFinish(job.getId(), 200000);
+
+        Assert.assertEquals(ExecutableState.ERROR, executableManager.getOutput(job.getId()).getState());
+        System.clearProperty("kylin.scheduler.schedule-job-timeout-minute");
     }
 
     @Test
