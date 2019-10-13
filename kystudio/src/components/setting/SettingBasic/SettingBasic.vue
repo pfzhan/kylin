@@ -64,7 +64,7 @@
           </el-select>
           <span>{{$t('storageGarbageDesc2')}}</span>
           <el-input size="small" style="width: 100px;" v-number="form.low_frequency_threshold" v-model="form.low_frequency_threshold"></el-input>
-          <span>{{$t('storageGarbageDesc3')}}</span>
+          <span>{{$store.state.project.isSemiAutomatic ? $t('storageGarbageDesc3ForSemiAutomatic') : $t('storageGarbageDesc3')}}</span>
         </div>
       </div>
     </EditableBlock>

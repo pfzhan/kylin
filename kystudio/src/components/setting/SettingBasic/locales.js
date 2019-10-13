@@ -43,6 +43,7 @@ export default {
     storageGarbageDesc1: 'When ',
     storageGarbageDesc2: ' usage is lower than ',
     storageGarbageDesc3: ' times, then the storage of accelerated queries and indexes would be regarded as low usage storage.',
+    storageGarbageDesc3ForSemiAutomatic: ' times, then the storage of indices would be regarded as low usage storage.',
     enableSemiAutomatic: 'Recommendation Mode:'
   },
   'zh-cn': {
@@ -89,6 +90,7 @@ export default {
     storageGarbageDesc1: '当',
     storageGarbageDesc2: '使用频率低于',
     storageGarbageDesc3: '次的加速查询和对应的存储即为低效存储。',
+    storageGarbageDesc3ForSemiAutomatic: '次的索引组为低效存储',
     enableSemiAutomatic: '智能推荐模式：'
   }
 }
