@@ -63,7 +63,7 @@
                   <div class="info-title ksd-mt-15">{{$t('trash')}}</div>
                   <div class="trash">
                     <span v-if="quotaInfo.garbage_storage_size>=0">{{quotaInfo.garbage_storage_size | dataSize}}</span>
-                    <span v-else>--</span><common-tip :content="$t('clear')">
+                    <span v-else>--</span><common-tip :content="$t('clear')" v-if="!$store.state.project.isSemiAutomatic"><!-- 半自动挡时隐藏清理按钮 -->
                       <i class="el-icon-ksd-clear ksd-ml-10 clear-btn"
                       :class="{'is_no_quota': isNoQuota}"
                     @click="clearStorage" v-if="dashboardActions.includes('clearStorage')&&quotaInfo.garbage_storage_size>0"></i>
