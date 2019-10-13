@@ -8,16 +8,27 @@
       :is-reset="false"
       @submit="(scb, ecb) => handleSubmit('basic-info', scb, ecb)">
       <div class="setting-item">
-        <div class="setting-label font-medium" style="width: 92px;">{{$t('projectName')}}</div>
+        <div class="setting-label font-medium">{{$t('projectName')}}</div>
         <div class="setting-value fixed">{{project.alias || project.project}}</div>
         <!-- <el-input class="setting-input" size="small" style="width: 250px;" v-model="form.alias"></el-input> -->
       </div>
       <div class="setting-item">
-        <div class="setting-label font-medium" style="width: 92px;">{{$t('projectType')}}</div>
+        <div class="setting-label font-medium">{{$t('projectType')}}</div>
         <div class="setting-value fixed"><i :class="projectIcon"></i>{{$t(project.maintain_model_type)}}</div>
       </div>
+      <div class="setting-item" v-if="project.maintain_model_type==='MANUAL_MAINTAIN'">
+        <span class="setting-label font-medium">{{$t('enableSemiAutomatic')}}</span>
+        <span class="setting-value fixed">
+          <el-switch
+            size="small"
+            v-model="form.semi_automatic_mode"
+            :active-text="$t('kylinLang.common.OFF')"
+            :inactive-text="$t('kylinLang.common.ON')">
+          </el-switch>
+        </span>
+      </div>
       <div class="setting-item clearfix">
-        <div class="setting-label font-medium" style="width: 92px;">{{$t('description')}}</div>
+        <div class="setting-label font-medium">{{$t('description')}}</div>
         <div class="setting-value">{{project.description}}</div>
         <el-input class="setting-input" :rows="3" type="textarea" size="small" v-model="form.description"></el-input>
       </div>
@@ -363,7 +374,7 @@ export default class SettingBasic extends Vue {
 .basic-setting {
   .clearfix .setting-value,
   .clearfix .setting-input {
-    width: calc(~'100% - 106px');
+    width: calc(~'100% - 114px');
   }
   .ksd-switch {
     transform: scale(0.91);

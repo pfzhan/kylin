@@ -11,12 +11,16 @@ export default {
     projectAutoApplyConfig: false,
     isAllProject: false,
     selected_project: cacheSessionStorage('projectName') || cacheLocalStorage('projectName'),
-    projectDefaultDB: ''
+    projectDefaultDB: '',
+    isSemiAutomatic: false
   },
   mutations: {
     [types.SAVE_PROJECT_LIST]: function (state, { list, size }) {
       state.projectList = list
       state.projectTotalSize = size
+    },
+    [types.UPDATE_PROJECT_SEMI_AUTOMATIC_STATUS]: function (state, result) {
+      state.isSemiAutomatic = result
     },
     [types.SET_PROJECT]: function (state, project) {
       cacheSessionStorage('preProjectName', state.selected_project) // 储存上一次选中的project
@@ -34,10 +38,12 @@ export default {
           if (p.name === selectedProject) {
             hasMatch = true
             state.selected_project = p.name // 之前没这句，在其他tab 切换了project，顶部会不变
+            state.isSemiAutomatic = p.override_kylin_properties && p.override_kylin_properties['kap.metadata.semi-automatic-mode'] === 'true' // 获取当前project 是否含有半自动的标志
           }
         })
         if (!hasMatch) {
           state.selected_project = state.allProject[0].name
+          state.isSemiAutomatic = state.allProject[0].override_kylin_properties && state.allProject[0].override_kylin_properties['kap.metadata.semi-automatic-mode'] === 'true'
           cacheSessionStorage('projectName', state.selected_project)
           cacheLocalStorage('projectName', state.selected_project)
         }
@@ -45,6 +51,7 @@ export default {
         cacheSessionStorage('projectName', '')
         cacheLocalStorage('projectName', '')
         state.selected_project = ''
+        state.isSemiAutomatic = false // 如果接口没取到，默认设为false
       }
     },
     [types.REMOVE_ALL_PROJECTS]: function (state) {
@@ -160,6 +167,8 @@ export default {
       return api.project.fetchProjectSettings(para.projectName).then((response) => {
         commit(types.CACHE_PROJECT_TIPS_CONFIG, {projectAutoApplyConfig: response.data.data.tips_enabled})
         commit(types.CACHE_PROJECT_DEFAULT_DB, {projectDefaultDB: response.data.data.default_database})
+        // 更新是否是半自动档标志
+        commit(types.UPDATE_PROJECT_SEMI_AUTOMATIC_STATUS, response.data.data.semi_automatic_mode)
         return response
       })
     },
