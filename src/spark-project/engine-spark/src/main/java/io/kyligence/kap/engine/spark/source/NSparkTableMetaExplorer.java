@@ -56,9 +56,13 @@ public class NSparkTableMetaExplorer implements Serializable {
             this.value = value;
         }
 
-        public static PROVIDER fromString(String value) {
+        public static PROVIDER fromString(Option<String> value) {
+            if (value.isEmpty()) {
+                return UNSPECIFIED;
+            }
+
             for (PROVIDER provider : ALL) {
-                if (provider.value.equals(value)) {
+                if (provider.value.equals(value.get())) {
                     return provider;
                 }
             }
@@ -90,11 +94,9 @@ public class NSparkTableMetaExplorer implements Serializable {
             String type = field.dataType().simpleString();
 
             // fetch provider specified type
-            if (!field.metadata().map().isEmpty()) {
-                PROVIDER provider = PROVIDER.fromString(tableMetadata.provider().get());
-                if (provider != PROVIDER.UNSPECIFIED) {
-                    type = field.metadata().getString(PROVIDER_METADATA_TYPE_STRING.get(provider));
-                }
+            PROVIDER provider = PROVIDER.fromString(tableMetadata.provider());
+            if (provider != PROVIDER.UNSPECIFIED && field.metadata().contains(PROVIDER_METADATA_TYPE_STRING.get(provider))) {
+                type = field.metadata().getString(PROVIDER_METADATA_TYPE_STRING.get(provider));
             }
             allColumns.add(new NSparkTableMeta.SparkTableColumnMeta(
                     field.name(), type, field.getComment().isDefined() ? field.getComment().get() : null));
