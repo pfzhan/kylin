@@ -48,6 +48,7 @@ import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.service.BasicService;
+import org.apache.kylin.rest.util.AclPermissionUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -417,7 +418,16 @@ public class AclTCRService extends BasicService {
         return NTableMetadataManager.getInstance(getConfig(), project);
     }
 
+    @VisibleForTesting
+    public boolean canUseACLGreenChannel(String project) {
+        return AclPermissionUtil.canUseACLGreenChannel(project);
+    }
+
     public List<TableDesc> getAuthorizedTables(String project, String user, Set<String> groups) {
+        if (canUseACLGreenChannel(project)) {
+            return getTableMetadataManager(project).listAllTables();
+        }
+
         List<AclTCR> aclTCRS = getAclTCRManager(project).getAclTCRs(user, groups);
         return getTableMetadataManager(project).listAllTables().stream()
                 .filter(tableDesc -> aclTCRS.stream().anyMatch(aclTCR -> aclTCR.isAuthorized(tableDesc.getIdentity())))

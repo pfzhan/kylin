@@ -55,6 +55,12 @@
 -keep class io.kyligence.kap.rest.service.OpenUserGroupService {*;}
 -keep class io.kyligence.kap.rest.security.OpenAuthenticationProvider {*;}
 -keep class io.kyligence.kap.metadata.user.ManagedUser {*;}
+-keep class io.kyligence.kap.common.persistence.transaction.UnitOfWorkParams {*;}
+-keep class io.kyligence.kap.common.persistence.transaction.UnitOfWorkParams$* {*;}
+-keep class io.kyligence.kap.common.persistence.transaction.UnitOfWork {*;}
+-keep class io.kyligence.kap.common.persistence.transaction.UnitOfWork$Callback {*;}
+-keep class org.apache.kylin.common.persistence.ResourceStore {*;}
+-keep class io.kyligence.kap.common.metrics.NMetricsGroup {*;}
 
 -keep class io.kyligence.kap.tool.shaded.** {*;}
 -keep class io.kyligence.kap.job.shaded.** {*;}
@@ -62,6 +68,7 @@
 
 -keep class * extends org.apache.log4j.AppenderSkeleton {*;}
 -keep class * extends org.apache.kylin.rest.service.BasicService {*;}
+-keep class * extends io.kyligence.kap.rest.health.AbstractKylinHealthIndicator {*;}
 -keep class * implements IGTCodeSystem {*;}
 -keep class * extends AbstractApplication {*;}
 
