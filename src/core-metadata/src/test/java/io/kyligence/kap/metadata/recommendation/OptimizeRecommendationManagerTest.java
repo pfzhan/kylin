@@ -101,13 +101,22 @@ public class OptimizeRecommendationManagerTest extends NLocalFileMetadataTestCas
     private final String selfSameMeasureNameModelFile = modelDir + "measure_same_name_model.json";
     private final String selfSameMeasureNameIndexPlanFile = indexDir + "measure_same_expr_index_plan.json";
 
-    private void prepare() throws IOException {
+    private void prepare(String optimizedModelFile, String optimizedIndexPlanFile) throws IOException {
         val originModel = JsonUtil.readValue(new File(baseModelFile), NDataModel.class);
         modelManager.createDataModelDesc(originModel, ownerTest);
         val originIndexPlan = JsonUtil.readValue(new File(baseIndexFile), IndexPlan.class);
         originIndexPlan.setUuid(id);
         originIndexPlan.setProject(projectDefault);
         indexPlanManager.createIndexPlan(originIndexPlan);
+        val optimized = modelManager.copyForWrite(modelManager.getDataModelDesc(id));
+        updateModelByFile(optimized, optimizedModelFile);
+        val indexPlanOptimized = indexPlanManager.getIndexPlan(id).copy();
+        updateIndexPlanByFile(indexPlanOptimized, optimizedIndexPlanFile);
+        recommendationManager.optimize(optimized, indexPlanOptimized);
+    }
+
+    private void prepare() throws IOException {
+        prepare(optimizedModelFile, optimizedIndexPlanFile);
     }
 
     private void updateModelByFile(NDataModel model, String fileName) throws IOException {
@@ -125,19 +134,13 @@ public class OptimizeRecommendationManagerTest extends NLocalFileMetadataTestCas
     @Test
     public void testOptimize() throws IOException {
         prepare();
-        val optimized = modelManager.copyForWrite(modelManager.getDataModelDesc(id));
-        updateModelByFile(optimized, optimizedModelFile);
-        recommendationManager.optimize(optimized);
         var recommendation = recommendationManager.getOptimizeRecommendation(id);
         Assert.assertNotNull(recommendation);
         Assert.assertEquals(2, recommendation.getCcRecommendations().size());
         Assert.assertEquals(3, recommendation.getDimensionRecommendations().size());
         Assert.assertEquals("bigint", recommendation.getDimensionRecommendations().get(0).getDataType());
         Assert.assertEquals(6, recommendation.getMeasureRecommendations().size());
-        val indexPlanOptimized = indexPlanManager.getIndexPlan(id).copy();
-        updateIndexPlanByFile(indexPlanOptimized, optimizedIndexPlanFile);
-        recommendation = recommendationManager.optimize(indexPlanOptimized);
-        Assert.assertEquals(4, recommendation.getIndexRecommendations().size());
+        Assert.assertEquals(2, recommendation.getIndexRecommendations().size());
         Assert.assertTrue(recommendation.getIndexRecommendations().stream().filter(item -> !item.isAggIndex())
                 .allMatch(item -> item.getEntity().getLayouts().size() == 1));
     }
@@ -145,41 +148,30 @@ public class OptimizeRecommendationManagerTest extends NLocalFileMetadataTestCas
     @Test
     public void testRemoveIndex() throws IOException {
         prepare();
-        val optimized = modelManager.copyForWrite(modelManager.getDataModelDesc(id));
-        updateModelByFile(optimized, optimizedModelFile);
-        recommendationManager.optimize(optimized);
-        val indexPlanOptimized = indexPlanManager.getIndexPlan(id).copy();
-        updateIndexPlanByFile(indexPlanOptimized, optimizedIndexPlanFile);
-        recommendationManager.optimize(indexPlanOptimized);
-
         val removeLayoutsId = Sets.<Long> newHashSet(1L, 150001L);
         recommendationManager.removeLayouts(id, removeLayoutsId);
 
         val recommendation = recommendationManager.getOptimizeRecommendation(id);
-        Assert.assertEquals(6, recommendation.getIndexRecommendations().size());
+        Assert.assertEquals(4, recommendation.getIndexRecommendations().size());
         Assert.assertEquals(2, recommendation.getIndexRecommendations().stream().filter(item -> !item.isAdd()).count());
     }
 
     @Test
     public void testApply() throws IOException {
         prepare();
-        val originInit = modelManager.getDataModelDesc(id);
-        val optimized = modelManager.copyForWrite(modelManager.getDataModelDesc(id));
-        updateModelByFile(optimized, optimizedModelFile);
-        var recommendation = recommendationManager.optimize(optimized);
-        val appliedModel = recommendationManager.apply(originInit, recommendation);
+        var recommendation = recommendationManager.getOptimizeRecommendation(id);
+        val appliedModel = recommendationManager.apply(modelManager.copyForWrite(modelManager.getDataModelDesc(id)),
+                recommendation);
         Assert.assertEquals(10000001, appliedModel.getAllNamedColumns().get(16).getId());
         Assert.assertEquals("CC_AUTO_1", appliedModel.getAllNamedColumns().get(16).getName());
         Assert.assertEquals(NDataModel.ColumnStatus.DIMENSION, appliedModel.getAllNamedColumns().get(16).getStatus());
         Assert.assertEquals(10000002, appliedModel.getAllNamedColumns().get(17).getId());
         Assert.assertEquals("TEST_KYLIN_FACT_CC_AUTO_2", appliedModel.getAllNamedColumns().get(17).getName());
         Assert.assertEquals(NDataModel.ColumnStatus.DIMENSION, appliedModel.getAllNamedColumns().get(17).getStatus());
-        val indexPlanOptimized = indexPlanManager.getIndexPlan(id).copy();
-        val indexId = indexPlanOptimized.getNextAggregationIndexId();
-        updateIndexPlanByFile(indexPlanOptimized, optimizedIndexPlanFile);
-        recommendation = recommendationManager.optimize(indexPlanOptimized);
-        val appliedIndexPlan = recommendationManager.apply(appliedModel, indexPlanManager.getIndexPlan(id).copy(),
-                recommendation);
+        val indexPlan = indexPlanManager.getIndexPlan(id).copy();
+        val indexId = indexPlan.getNextAggregationIndexId();
+        val appliedIndexPlan = recommendationManager.apply(modelManager.copyForWrite(modelManager.getDataModelDesc(id)),
+                indexPlanManager.getIndexPlan(id).copy(), recommendation);
         Assert.assertTrue(
                 appliedIndexPlan.getAllIndexes().stream().anyMatch(indexEntity -> indexEntity.getId() == indexId));
     }
@@ -187,13 +179,6 @@ public class OptimizeRecommendationManagerTest extends NLocalFileMetadataTestCas
     @Test
     public void testApplyRemove() throws IOException {
         prepare();
-        val optimized = modelManager.copyForWrite(modelManager.getDataModelDesc(id));
-        updateModelByFile(optimized, optimizedModelFile);
-        recommendationManager.optimize(optimized);
-        val indexPlanOptimized = indexPlanManager.getIndexPlan(id).copy();
-        updateIndexPlanByFile(indexPlanOptimized, optimizedIndexPlanFile);
-        recommendationManager.optimize(indexPlanOptimized);
-
         val removeLayoutsId = Sets.<Long> newHashSet(1L, 150001L, 20000000001L, 20000000002L);
         recommendationManager.removeLayouts(id, removeLayoutsId);
 
@@ -211,12 +196,10 @@ public class OptimizeRecommendationManagerTest extends NLocalFileMetadataTestCas
     public void testApply_ExistsDimensionRemoved() throws IOException {
         prepare();
         var originInit = modelManager.copyForWrite(modelManager.getDataModelDesc(id));
-        val optimized = modelManager.copyForWrite(modelManager.getDataModelDesc(id));
-        updateModelByFile(optimized, optimizedModelFile);
-        var recommendation = recommendationManager.optimize(optimized);
         originInit.getAllNamedColumns().get(1).setStatus(NDataModel.ColumnStatus.DIMENSION);
         modelManager.updateDataModelDesc(originInit);
         originInit = modelManager.copyForWrite(modelManager.getDataModelDesc(id));
+        var recommendation = recommendationManager.getOptimizeRecommendation(id);
         val appliedModel = recommendationManager.apply(originInit, recommendation);
         recommendation = recommendationManager.getOptimizeRecommendation(id);
         Assert.assertTrue(
@@ -227,10 +210,8 @@ public class OptimizeRecommendationManagerTest extends NLocalFileMetadataTestCas
         Assert.assertEquals(10000002, appliedModel.getAllNamedColumns().get(17).getId());
         Assert.assertEquals("TEST_KYLIN_FACT_CC_AUTO_2", appliedModel.getAllNamedColumns().get(17).getName());
         Assert.assertEquals(NDataModel.ColumnStatus.DIMENSION, appliedModel.getAllNamedColumns().get(17).getStatus());
-        val indexPlanOptimized = indexPlanManager.getIndexPlan(id).copy();
-        val indexId = indexPlanOptimized.getNextAggregationIndexId();
-        updateIndexPlanByFile(indexPlanOptimized, optimizedIndexPlanFile);
-        recommendation = recommendationManager.optimize(indexPlanOptimized);
+        val indexPlan = indexPlanManager.getIndexPlan(id).copy();
+        val indexId = indexPlan.getNextAggregationIndexId();
         val appliedIndexPlan = recommendationManager.apply(appliedModel, indexPlanManager.getIndexPlan(id).copy(),
                 recommendation);
         Assert.assertTrue(
@@ -239,15 +220,9 @@ public class OptimizeRecommendationManagerTest extends NLocalFileMetadataTestCas
 
     @Test
     public void testApply_CCSelfConflictSameNameSameExpr() throws IOException {
-        prepare();
+        prepare(optimizedModelFile, selfSameCCNameExprIndexPlanFile);
         var originInit = modelManager.copyForWrite(modelManager.getDataModelDesc(id));
-        val optimized = modelManager.copyForWrite(modelManager.getDataModelDesc(id));
-        updateModelByFile(optimized, optimizedModelFile);
-        recommendationManager.optimize(optimized);
         updateModelByFile(originInit, selfSameCCNameExprModelFile);
-        val indexPlanOptimized = indexPlanManager.getIndexPlan(id).copy();
-        updateIndexPlanByFile(indexPlanOptimized, selfSameCCNameExprIndexPlanFile);
-        recommendationManager.optimize(indexPlanOptimized);
         modelManager.updateDataModelDesc(originInit);
         originInit = modelManager.copyForWrite(modelManager.getDataModelDesc(id));
         var recommendation = recommendationManager.getOptimizeRecommendation(id);
@@ -261,15 +236,9 @@ public class OptimizeRecommendationManagerTest extends NLocalFileMetadataTestCas
 
     @Test
     public void testApply_CCSelfConflictSameExpr() throws IOException {
-        prepare();
+        prepare(optimizedModelFile, selfSameCCExprIndexPlanFile);
         var originInit = modelManager.copyForWrite(modelManager.getDataModelDesc(id));
-        val optimized = modelManager.copyForWrite(modelManager.getDataModelDesc(id));
-        updateModelByFile(optimized, optimizedModelFile);
-        recommendationManager.optimize(optimized);
         updateModelByFile(originInit, selfSameCCExprModelFile);
-        val indexPlanOptimized = indexPlanManager.getIndexPlan(id).copy();
-        updateIndexPlanByFile(indexPlanOptimized, selfSameCCExprIndexPlanFile);
-        recommendationManager.optimize(indexPlanOptimized);
         modelManager.updateDataModelDesc(originInit);
         originInit = modelManager.copyForWrite(modelManager.getDataModelDesc(id));
         var recommendation = recommendationManager.getOptimizeRecommendation(id);
@@ -287,15 +256,9 @@ public class OptimizeRecommendationManagerTest extends NLocalFileMetadataTestCas
 
     @Test
     public void testApply_CCSelfConflictSameName() throws IOException {
-        prepare();
+        prepare(optimizedModelFile, selfSameCCNameIndexPlanFile);
         var originInit = modelManager.copyForWrite(modelManager.getDataModelDesc(id));
-        val optimized = modelManager.copyForWrite(modelManager.getDataModelDesc(id));
-        updateModelByFile(optimized, optimizedModelFile);
-        recommendationManager.optimize(optimized);
         updateModelByFile(originInit, selfSameCCNameModelFile);
-        val indexPlanOptimized = indexPlanManager.getIndexPlan(id).copy();
-        updateIndexPlanByFile(indexPlanOptimized, selfSameCCNameIndexPlanFile);
-        recommendationManager.optimize(indexPlanOptimized);
         modelManager.updateDataModelDesc(originInit);
         originInit = modelManager.copyForWrite(modelManager.getDataModelDesc(id));
         var recommendation = recommendationManager.getOptimizeRecommendation(id);
@@ -306,12 +269,15 @@ public class OptimizeRecommendationManagerTest extends NLocalFileMetadataTestCas
         Assert.assertEquals("TEST_KYLIN_FACT.CC_AUTO_3 * 2",
                 recommendation.getCcRecommendations().get(1).getCc().getExpression());
         Assert.assertEquals(10000001, recommendation.getDimensionRecommendations().get(1).getColumn().getId());
-        Assert.assertEquals("TEST_KYLIN_FACT_CC_AUTO_1", recommendation.getDimensionRecommendations().get(1).getColumn().getName());
-        Assert.assertEquals("TEST_KYLIN_FACT.CC_AUTO_3", recommendation.getDimensionRecommendations().get(1).getColumn().getAliasDotColumn());
+        Assert.assertEquals("TEST_KYLIN_FACT_CC_AUTO_1",
+                recommendation.getDimensionRecommendations().get(1).getColumn().getName());
+        Assert.assertEquals("TEST_KYLIN_FACT.CC_AUTO_3",
+                recommendation.getDimensionRecommendations().get(1).getColumn().getAliasDotColumn());
         Assert.assertEquals(10000002, recommendation.getDimensionRecommendations().get(2).getColumn().getId());
-        Assert.assertEquals("TEST_KYLIN_FACT_CC_AUTO_2", recommendation.getDimensionRecommendations().get(2).getColumn().getName());
-        Assert.assertEquals("TEST_KYLIN_FACT.CC_AUTO_2", recommendation.getDimensionRecommendations().get(2).getColumn().getAliasDotColumn());
-
+        Assert.assertEquals("TEST_KYLIN_FACT_CC_AUTO_2",
+                recommendation.getDimensionRecommendations().get(2).getColumn().getName());
+        Assert.assertEquals("TEST_KYLIN_FACT.CC_AUTO_2",
+                recommendation.getDimensionRecommendations().get(2).getColumn().getAliasDotColumn());
 
     }
 
@@ -319,9 +285,6 @@ public class OptimizeRecommendationManagerTest extends NLocalFileMetadataTestCas
     public void testApply_SameCCNameAndExpr() throws IOException {
         prepare();
         var originInit = modelManager.copyForWrite(modelManager.getDataModelDesc(id));
-        val optimized = modelManager.copyForWrite(modelManager.getDataModelDesc(id));
-        updateModelByFile(optimized, optimizedModelFile);
-        recommendationManager.optimize(optimized);
         var recommendation = recommendationManager.getOptimizeRecommendation(id);
         val otherModel = JsonUtil.readValue(new File(otherSameCCNameExprModelFile), NDataModel.class);
         modelManager.createDataModelDesc(otherModel, ownerTest);
@@ -339,9 +302,6 @@ public class OptimizeRecommendationManagerTest extends NLocalFileMetadataTestCas
     public void testApply_CCConflictSameExpr() throws IOException {
         prepare();
         var originInit = modelManager.copyForWrite(modelManager.getDataModelDesc(id));
-        val optimized = modelManager.copyForWrite(modelManager.getDataModelDesc(id));
-        updateModelByFile(optimized, optimizedModelFile);
-        recommendationManager.optimize(optimized);
         var recommendation = recommendationManager.getOptimizeRecommendation(id);
         val otherModel = JsonUtil.readValue(new File(otherSameCCExprModelFile), NDataModel.class);
         modelManager.createDataModelDesc(otherModel, ownerTest);
@@ -364,9 +324,6 @@ public class OptimizeRecommendationManagerTest extends NLocalFileMetadataTestCas
     public void testApply_CCConflictSameName() throws IOException {
         prepare();
         var originInit = modelManager.copyForWrite(modelManager.getDataModelDesc(id));
-        val optimized = modelManager.copyForWrite(modelManager.getDataModelDesc(id));
-        updateModelByFile(optimized, optimizedModelFile);
-        recommendationManager.optimize(optimized);
         var recommendation = recommendationManager.getOptimizeRecommendation(id);
         val otherModel = JsonUtil.readValue(new File(otherSameCCNameModelFile), NDataModel.class);
         modelManager.createDataModelDesc(otherModel, ownerTest);
@@ -387,15 +344,9 @@ public class OptimizeRecommendationManagerTest extends NLocalFileMetadataTestCas
 
     @Test
     public void testApply_MeasureConflictSameExpr() throws IOException {
-        prepare();
+        prepare(optimizedModelFile, selfSameMeasureExprIndexPlanFile);
         var originInit = modelManager.copyForWrite(modelManager.getDataModelDesc(id));
-        val optimized = modelManager.copyForWrite(modelManager.getDataModelDesc(id));
-        updateModelByFile(optimized, optimizedModelFile);
-        recommendationManager.optimize(optimized);
         updateModelByFile(originInit, selfSameMeasureExprModelFile);
-        val indexPlanOptimized = indexPlanManager.getIndexPlan(id).copy();
-        updateIndexPlanByFile(indexPlanOptimized, selfSameMeasureExprIndexPlanFile);
-        recommendationManager.optimize(indexPlanOptimized);
         modelManager.updateDataModelDesc(originInit);
         originInit = modelManager.copyForWrite(modelManager.getDataModelDesc(id));
         var recommendation = recommendationManager.getOptimizeRecommendation(id);
@@ -411,7 +362,8 @@ public class OptimizeRecommendationManagerTest extends NLocalFileMetadataTestCas
                 recommendation.getCcRecommendations().get(0).getCc().getExpression());
         Assert.assertEquals(2, recommendation.getDimensionRecommendations().size());
         Assert.assertEquals(10000002, recommendation.getDimensionRecommendations().get(1).getColumn().getId());
-        Assert.assertEquals("TEST_KYLIN_FACT_CC_AUTO_2", recommendation.getDimensionRecommendations().get(1).getColumn().getName());
+        Assert.assertEquals("TEST_KYLIN_FACT_CC_AUTO_2",
+                recommendation.getDimensionRecommendations().get(1).getColumn().getName());
         Assert.assertTrue(recommendation.getIndexRecommendations().get(0).getEntity().getDimensions().contains(16));
         Assert.assertTrue(recommendation.getIndexRecommendations().get(0).getEntity().getLayouts().stream()
                 .allMatch(layout -> layout.getColOrder().contains(16)));
@@ -422,15 +374,9 @@ public class OptimizeRecommendationManagerTest extends NLocalFileMetadataTestCas
 
     @Test
     public void testApply_MeasureConflictSameName() throws IOException {
-        prepare();
+        prepare(optimizedModelFile, selfSameMeasureNameIndexPlanFile);
         var originInit = modelManager.copyForWrite(modelManager.getDataModelDesc(id));
-        val optimized = modelManager.copyForWrite(modelManager.getDataModelDesc(id));
-        updateModelByFile(optimized, optimizedModelFile);
-        recommendationManager.optimize(optimized);
         updateModelByFile(originInit, selfSameMeasureNameModelFile);
-        val indexPlanOptimized = indexPlanManager.getIndexPlan(id).copy();
-        updateIndexPlanByFile(indexPlanOptimized, selfSameMeasureNameIndexPlanFile);
-        recommendationManager.optimize(indexPlanOptimized);
         modelManager.updateDataModelDesc(originInit);
         originInit = modelManager.copyForWrite(modelManager.getDataModelDesc(id));
         var recommendation = recommendationManager.getOptimizeRecommendation(id);
@@ -445,12 +391,6 @@ public class OptimizeRecommendationManagerTest extends NLocalFileMetadataTestCas
     @Test
     public void testVerify_passAll() throws IOException {
         prepare();
-        val optimized = modelManager.copyForWrite(modelManager.getDataModelDesc(id));
-        updateModelByFile(optimized, optimizedModelFile);
-        recommendationManager.optimize(optimized);
-        val indexPlanOptimized = indexPlanManager.getIndexPlan(id).copy();
-        updateIndexPlanByFile(indexPlanOptimized, optimizedIndexPlanFile);
-        recommendationManager.optimize(indexPlanOptimized);
         val removeLayoutsId = Sets.<Long> newHashSet(1L, 150001L);
         recommendationManager.removeLayouts(id, removeLayoutsId);
 
@@ -529,12 +469,6 @@ public class OptimizeRecommendationManagerTest extends NLocalFileMetadataTestCas
     @Test
     public void testVerify_failAll() throws IOException {
         prepare();
-        val optimized = modelManager.copyForWrite(modelManager.getDataModelDesc(id));
-        updateModelByFile(optimized, optimizedModelFile);
-        recommendationManager.optimize(optimized);
-        val indexPlanOptimized = indexPlanManager.getIndexPlan(id).copy();
-        updateIndexPlanByFile(indexPlanOptimized, optimizedIndexPlanFile);
-        recommendationManager.optimize(indexPlanOptimized);
         val recommendation = recommendationManager.getOptimizeRecommendation(id);
         val failCCs = recommendation.getCcRecommendations().stream().map(CCRecommendationItem::getItemId)
                 .collect(Collectors.toSet());
@@ -575,12 +509,6 @@ public class OptimizeRecommendationManagerTest extends NLocalFileMetadataTestCas
     @Test
     public void testVerify_failAndDelete() throws IOException {
         prepare();
-        val optimized = modelManager.copyForWrite(modelManager.getDataModelDesc(id));
-        updateModelByFile(optimized, optimizedModelFile);
-        recommendationManager.optimize(optimized);
-        val indexPlanOptimized = indexPlanManager.getIndexPlan(id).copy();
-        updateIndexPlanByFile(indexPlanOptimized, optimizedIndexPlanFile);
-        recommendationManager.optimize(indexPlanOptimized);
         var passCCs = Sets.<Long> newHashSet();
         var failCCs = Sets.<Long> newHashSet(0L);
         val failDimensions = Sets.<Long> newHashSet();
@@ -614,18 +542,12 @@ public class OptimizeRecommendationManagerTest extends NLocalFileMetadataTestCas
                     }
                     return false;
                 })));
-        Assert.assertEquals(3, updateRecommendation.getIndexRecommendations().size());
+        Assert.assertEquals(1, updateRecommendation.getIndexRecommendations().size());
     }
 
     @Test
     public void testVerify_failPassConflict() throws IOException {
         prepare();
-        val optimized = modelManager.copyForWrite(modelManager.getDataModelDesc(id));
-        updateModelByFile(optimized, optimizedModelFile);
-        recommendationManager.optimize(optimized);
-        val indexPlanOptimized = indexPlanManager.getIndexPlan(id).copy();
-        updateIndexPlanByFile(indexPlanOptimized, optimizedIndexPlanFile);
-        recommendationManager.optimize(indexPlanOptimized);
         val recommendation = recommendationManager.getOptimizeRecommendation(id);
         var passCCs = recommendation.getCcRecommendations().stream().map(CCRecommendationItem::getItemId)
                 .collect(Collectors.toSet());
@@ -654,12 +576,6 @@ public class OptimizeRecommendationManagerTest extends NLocalFileMetadataTestCas
     @Test
     public void testVerify_passCCLostDependency() throws IOException {
         prepare();
-        val optimized = modelManager.copyForWrite(modelManager.getDataModelDesc(id));
-        updateModelByFile(optimized, optimizedModelFile);
-        recommendationManager.optimize(optimized);
-        val indexPlanOptimized = indexPlanManager.getIndexPlan(id).copy();
-        updateIndexPlanByFile(indexPlanOptimized, optimizedIndexPlanFile);
-        recommendationManager.optimize(indexPlanOptimized);
         val recommendation = recommendationManager.getOptimizeRecommendation(id);
         var passCCs = Sets.<Long> newHashSet(1L);
         var failCCs = Sets.<Long> newHashSet();
@@ -682,12 +598,6 @@ public class OptimizeRecommendationManagerTest extends NLocalFileMetadataTestCas
     @Test
     public void testVerify_passDimensionLostDependency() throws IOException {
         prepare();
-        val optimized = modelManager.copyForWrite(modelManager.getDataModelDesc(id));
-        updateModelByFile(optimized, optimizedModelFile);
-        recommendationManager.optimize(optimized);
-        val indexPlanOptimized = indexPlanManager.getIndexPlan(id).copy();
-        updateIndexPlanByFile(indexPlanOptimized, optimizedIndexPlanFile);
-        recommendationManager.optimize(indexPlanOptimized);
         val recommendation = recommendationManager.getOptimizeRecommendation(id);
         var passCCs = Sets.<Long> newHashSet();
         var failCCs = Sets.<Long> newHashSet();
@@ -710,12 +620,6 @@ public class OptimizeRecommendationManagerTest extends NLocalFileMetadataTestCas
     @Test
     public void testVerify_passMeasureLostDependency() throws IOException {
         prepare();
-        val optimized = modelManager.copyForWrite(modelManager.getDataModelDesc(id));
-        updateModelByFile(optimized, optimizedModelFile);
-        recommendationManager.optimize(optimized);
-        val indexPlanOptimized = indexPlanManager.getIndexPlan(id).copy();
-        updateIndexPlanByFile(indexPlanOptimized, optimizedIndexPlanFile);
-        recommendationManager.optimize(indexPlanOptimized);
         var passCCs = Sets.<Long> newHashSet();
         var failCCs = Sets.<Long> newHashSet();
         val passDimensions = Sets.<Long> newHashSet();
@@ -736,19 +640,13 @@ public class OptimizeRecommendationManagerTest extends NLocalFileMetadataTestCas
     @Test
     public void testVerify_passIndexLostDimensionDependency() throws IOException {
         prepare();
-        val optimized = modelManager.copyForWrite(modelManager.getDataModelDesc(id));
-        updateModelByFile(optimized, optimizedModelFile);
-        recommendationManager.optimize(optimized);
-        val indexPlanOptimized = indexPlanManager.getIndexPlan(id).copy();
-        updateIndexPlanByFile(indexPlanOptimized, optimizedIndexPlanFile);
-        recommendationManager.optimize(indexPlanOptimized);
         var passCCs = Sets.<Long> newHashSet();
         var failCCs = Sets.<Long> newHashSet();
         val passDimensions = Sets.<Long> newHashSet();
         val failDimensions = Sets.<Long> newHashSet();
         val passMeasures = Sets.<Long> newHashSet();
         val failMeasures = Sets.<Long> newHashSet();
-        var passIndexes = Sets.<Long> newHashSet(3L);
+        var passIndexes = Sets.<Long> newHashSet(0L);
         var failIndexes = Sets.<Long> newHashSet();
         val verifier = create(passCCs, failCCs, passDimensions, failDimensions, passMeasures, failMeasures, passIndexes,
                 failIndexes);
@@ -761,19 +659,13 @@ public class OptimizeRecommendationManagerTest extends NLocalFileMetadataTestCas
     @Test
     public void testVerify_passCCAndIndexLostDimensionDependency() throws IOException {
         prepare();
-        val optimized = modelManager.copyForWrite(modelManager.getDataModelDesc(id));
-        updateModelByFile(optimized, optimizedModelFile);
-        recommendationManager.optimize(optimized);
-        val indexPlanOptimized = indexPlanManager.getIndexPlan(id).copy();
-        updateIndexPlanByFile(indexPlanOptimized, optimizedIndexPlanFile);
-        recommendationManager.optimize(indexPlanOptimized);
         var passCCs = Sets.<Long> newHashSet(0L, 1L);
         var failCCs = Sets.<Long> newHashSet();
         val passDimensions = Sets.<Long> newHashSet();
         val failDimensions = Sets.<Long> newHashSet();
         val passMeasures = Sets.<Long> newHashSet();
         val failMeasures = Sets.<Long> newHashSet();
-        var passIndexes = Sets.<Long> newHashSet(3L);
+        var passIndexes = Sets.<Long> newHashSet(0L);
         var failIndexes = Sets.<Long> newHashSet();
         val verifier = create(passCCs, failCCs, passDimensions, failDimensions, passMeasures, failMeasures, passIndexes,
                 failIndexes);
@@ -785,19 +677,13 @@ public class OptimizeRecommendationManagerTest extends NLocalFileMetadataTestCas
     @Test
     public void testVerify_passCCAndIndexLostMeasureDependency() throws IOException {
         prepare();
-        val optimized = modelManager.copyForWrite(modelManager.getDataModelDesc(id));
-        updateModelByFile(optimized, optimizedModelFile);
-        recommendationManager.optimize(optimized);
-        val indexPlanOptimized = indexPlanManager.getIndexPlan(id).copy();
-        updateIndexPlanByFile(indexPlanOptimized, optimizedIndexPlanFile);
-        recommendationManager.optimize(indexPlanOptimized);
         var passCCs = Sets.<Long> newHashSet(0L, 1L);
         var failCCs = Sets.<Long> newHashSet();
         val passDimensions = Sets.<Long> newHashSet(0L, 1L, 2L);
         val failDimensions = Sets.<Long> newHashSet();
         val passMeasures = Sets.<Long> newHashSet();
         val failMeasures = Sets.<Long> newHashSet();
-        var passIndexes = Sets.<Long> newHashSet(3L);
+        var passIndexes = Sets.<Long> newHashSet(0L);
         var failIndexes = Sets.<Long> newHashSet();
         val verifier = create(passCCs, failCCs, passDimensions, failDimensions, passMeasures, failMeasures, passIndexes,
                 failIndexes);
@@ -809,9 +695,6 @@ public class OptimizeRecommendationManagerTest extends NLocalFileMetadataTestCas
     @Test
     public void testVerify_renameCCOtherConflictSameName() throws IOException {
         prepare();
-        val optimized = modelManager.copyForWrite(modelManager.getDataModelDesc(id));
-        updateModelByFile(optimized, optimizedModelFile);
-        recommendationManager.optimize(optimized);
         val otherModel = JsonUtil.readValue(new File(otherSameCCNameModelFile), NDataModel.class);
         modelManager.createDataModelDesc(otherModel, ownerTest);
         recommendationManager.updateOptimizeRecommendation(id, recommendation -> recommendation.getCcRecommendations()
@@ -834,9 +717,6 @@ public class OptimizeRecommendationManagerTest extends NLocalFileMetadataTestCas
     @Test
     public void testVerify_renameCCOtherConflictSameExpr() throws IOException {
         prepare();
-        val optimized = modelManager.copyForWrite(modelManager.getDataModelDesc(id));
-        updateModelByFile(optimized, optimizedModelFile);
-        recommendationManager.optimize(optimized);
         val otherModel = JsonUtil.readValue(new File(otherSameCCExprModelFile), NDataModel.class);
         modelManager.createDataModelDesc(otherModel, ownerTest);
         recommendationManager.updateOptimizeRecommendation(id, recommendation -> recommendation.getCcRecommendations()
@@ -860,12 +740,6 @@ public class OptimizeRecommendationManagerTest extends NLocalFileMetadataTestCas
     @Test
     public void testVerify_renameCCSelfConflictSameName() throws IOException {
         prepare();
-        val optimized = modelManager.copyForWrite(modelManager.getDataModelDesc(id));
-        updateModelByFile(optimized, optimizedModelFile);
-        recommendationManager.optimize(optimized);
-        val indexPlanOptimized = indexPlanManager.getIndexPlan(id).copy();
-        updateIndexPlanByFile(indexPlanOptimized, selfSameCCNameIndexPlanFile);
-        recommendationManager.optimize(indexPlanOptimized);
 
         var originInit = modelManager.copyForWrite(modelManager.getDataModelDesc(id));
         updateModelByFile(originInit, selfSameCCNameModelFile);
@@ -891,12 +765,6 @@ public class OptimizeRecommendationManagerTest extends NLocalFileMetadataTestCas
     @Test
     public void testVerify_renameCCSelfConflictSameExpr() throws IOException {
         prepare();
-        val optimized = modelManager.copyForWrite(modelManager.getDataModelDesc(id));
-        updateModelByFile(optimized, optimizedModelFile);
-        recommendationManager.optimize(optimized);
-        val indexPlanOptimized = indexPlanManager.getIndexPlan(id).copy();
-        updateIndexPlanByFile(indexPlanOptimized, selfSameCCNameIndexPlanFile);
-        recommendationManager.optimize(indexPlanOptimized);
 
         var originInit = modelManager.copyForWrite(modelManager.getDataModelDesc(id));
         updateModelByFile(originInit, selfSameCCExprModelFile);

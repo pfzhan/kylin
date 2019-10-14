@@ -209,8 +209,8 @@ public class IndexRecommendationItem implements Serializable, RecommendationItem
     private void removeLayouts(OptimizeContext context) {
         var item = context.getIndexRecommendationItem(itemId);
         val identifier = item.getEntity().createIndexIdentifier();
-        if (context.getRealIndexesMap().containsKey(identifier)) {
-            val indexEntity = context.getRealIndexesMap().get(identifier);
+        if (context.getAllIndexesMap().containsKey(identifier)) {
+            val indexEntity = context.getAllIndexesMap().get(identifier);
             var removeLayouts = item.getEntity().getLayouts().stream().filter(LayoutEntity::isAuto)
                     .collect(Collectors.toList());
             indexEntity.getLayouts().removeAll(removeLayouts);

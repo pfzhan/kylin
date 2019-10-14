@@ -49,6 +49,7 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
@@ -151,6 +152,11 @@ public class OptimizeRecommendationManager {
     }
 
     public OptimizeRecommendation optimize(NDataModel optimized) {
+        optimizeModel(optimized);
+        return getOptimizeRecommendation(optimized.getId());
+    }
+
+    private Map<Integer, Integer> optimizeModel(NDataModel optimized) {
         Preconditions.checkNotNull(optimized, "optimize model not exists");
         val manager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
         val origin = manager.copyForWrite(manager.getDataModelDesc(optimized.getId()));
@@ -162,8 +168,6 @@ public class OptimizeRecommendationManager {
 
         val originNamedColumns = origin.getAllNamedColumns();
         val optimizedNamedColumns = optimized.getAllNamedColumns();
-//        val optimizedDotColumnMap = optimized.getAllNamedColumns().stream()
-//                .collect(Collectors.toMap(NDataModel.NamedColumn::getAliasDotColumn, NDataModel.NamedColumn::getName));
 
         val originComputedColumnDescs = origin.getComputedColumnDescs();
         val optimizedComputedColumnDescs = optimized.getComputedColumnDescs();
@@ -176,7 +180,8 @@ public class OptimizeRecommendationManager {
 
         val ccRecommendations = topo(Sets
                 .difference(Sets.newHashSet(optimizedComputedColumnDescs), Sets.newHashSet(originComputedColumnDescs))
-                .stream().map(OptimizeRecommendationManager::createRecommendation).collect(Collectors.toList()), factTable);
+                .stream().map(OptimizeRecommendationManager::createRecommendation).collect(Collectors.toList()),
+                factTable);
 
         for (val recommendation : ccRecommendations) {
             recommendation.setCcColumnId(++baseIndex);
@@ -186,6 +191,9 @@ public class OptimizeRecommendationManager {
                 ccSuggestion -> factTable + "." + ccSuggestion.getCc().getColumnName(), ccSuggestion -> ccSuggestion));
 
         // change cc column to virtual id
+
+        Map<Integer, Integer> translations = Maps.newHashMap();
+
         val originNamedColumnsMap = originNamedColumns.stream()
                 .collect(Collectors.toMap(NDataModel.NamedColumn::getId, column -> column));
         val optimizedNamedColumnsMap = optimizedNamedColumns.stream()
@@ -193,6 +201,9 @@ public class OptimizeRecommendationManager {
         Sets.difference(optimizedNamedColumnsMap.keySet(), originNamedColumnsMap.keySet()).forEach(i -> {
             val namedColumn = optimizedNamedColumnsMap.get(i);
             val ccName = optimizedNamedColumnsMap.get(i).getAliasDotColumn();
+            val ccVirtualId = ccRecommendationsMap.get(ccName).getCcColumnId();
+            val ccRealId = namedColumn.getId();
+            translations.put(ccRealId, ccVirtualId);
             namedColumn.setId(ccRecommendationsMap.get(ccName).getCcColumnId());
         });
 
@@ -228,7 +239,10 @@ public class OptimizeRecommendationManager {
                 .map(OptimizeRecommendationManager::createRecommendation).collect(Collectors.toList());
 
         for (val item : measureRecommendations) {
-            item.setMeasureId(++measureIndex);
+            val virtualMeasureId = ++measureIndex;
+            val realMeasureId = item.getMeasure().getId();
+            translations.put(realMeasureId, virtualMeasureId);
+            item.setMeasureId(virtualMeasureId);
             item.getMeasure().setId(item.getMeasureId());
         }
 
@@ -239,7 +253,7 @@ public class OptimizeRecommendationManager {
         recommendation.addMeasureRecommendations(measureRecommendations);
         recommendation.setProject(project);
         updateOptimizeRecommendation(recommendation);
-        return getOptimizeRecommendation(optimized.getId());
+        return translations;
     }
 
     public interface NOptimizeRecommendationUpdater {
@@ -268,39 +282,78 @@ public class OptimizeRecommendationManager {
         return save(optimizeRecommendation);
     }
 
-    public OptimizeRecommendation optimize(IndexPlan optimized) {
+    private void optimizeIndexPlan(IndexPlan optimized, Map<Integer, Integer> translations) {
+        Preconditions.checkNotNull(optimized, "optimize index plan not exists");
+
         val optimizedAllIndexes = optimized.getAllIndexes();
         val indexManager = NIndexPlanManager.getInstance(config, project);
         val originIndexPlan = indexManager.getIndexPlan(optimized.getUuid());
 
         val originAllIndexes = originIndexPlan.getAllIndexes();
 
-        val optimizedAllLayouts = optimizedAllIndexes.stream().flatMap(indexEntity -> indexEntity.getLayouts().stream()
-                .map(layoutEntity -> new Pair<>(indexEntity, layoutEntity))).collect(Collectors.toSet());
+        val optimizedAllLayouts = optimizedAllIndexes.stream().flatMap(indexEntity -> {
+            IndexEntity.IndexIdentifier indexIdentifier = indexEntity.createIndexIdentifier();
+            return indexEntity.getLayouts().stream()
+                    .map(layoutEntity -> new Pair<>(indexIdentifier, layoutEntity));
+        }).collect(Collectors.toSet());
 
-        val originAllLayouts = originAllIndexes.stream().flatMap(indexEntity -> indexEntity.getLayouts().stream()
-                .map(layoutEntity -> new Pair<>(indexEntity, layoutEntity))).collect(Collectors.toSet());
+        val originAllLayouts = originAllIndexes.stream().flatMap(indexEntity -> {
+            IndexEntity.IndexIdentifier indexIdentifier = indexEntity.createIndexIdentifier();
+            return indexEntity.getLayouts().stream()
+                    .map(layoutEntity -> new Pair<>(indexIdentifier, layoutEntity));
+        }).collect(Collectors.toSet());
 
         val delta = Sets.difference(optimizedAllLayouts, originAllLayouts);
         val recommendation = copy(getOrCreate(optimized.getUuid()));
         List<IndexRecommendationItem> indexRecommendationItems = delta.stream()
                 .collect(Collectors.groupingBy(Pair::getFirst)).entrySet().stream().flatMap(entry -> {
-                    val index = entry.getKey();
                     val layouts = entry.getValue().stream().map(Pair::getSecond).collect(Collectors.toList());
+                    val index = layouts.get(0).getIndex();
                     if (!index.isTableIndex()) {
                         index.setLayouts(layouts);
+                        translateIndex(index, translations);
                         return Lists.newArrayList(createRecommendation(index, true)).stream();
                     } else {
                         return layouts.stream().map(layout -> {
                             val indexCopy = JsonUtil.deepCopyQuietly(index, IndexEntity.class);
                             indexCopy.setLayouts(Lists.newArrayList(layout));
+                            translateIndex(indexCopy, translations);
                             return createRecommendation(indexCopy, true);
                         });
                     }
                 }).collect(Collectors.toList());
         recommendation.addIndexRecommendations(indexRecommendationItems);
         crud.save(recommendation);
-        return getOptimizeRecommendation(optimized.getUuid());
+    }
+
+    private void translateIndex(IndexEntity indexEntity, Map<Integer, Integer> translations) {
+        indexEntity.setDimensions(translateIds(indexEntity.getDimensions(), translations));
+        indexEntity.setMeasures(translateIds(indexEntity.getMeasures(), translations));
+        indexEntity.getLayouts().forEach(layoutEntity -> {
+            layoutEntity.setColOrder(translateIds(Lists.newArrayList(layoutEntity.getColOrder()), translations));
+            translateIds(layoutEntity.getShardByColumns(), translations);
+            translateIds(layoutEntity.getSortByColumns(), translations);
+        });
+    }
+
+    private List<Integer> translateIds(List<Integer> ids, Map<Integer, Integer> translations) {
+        for (int i = 0; i < ids.size(); i++) {
+            if (translations.containsKey(ids.get(i))) {
+                ids.set(i, translations.get(ids.get(i)));
+            }
+        }
+        return ids;
+    }
+
+    public OptimizeRecommendation optimize(IndexPlan optimized) {
+        optimizeIndexPlan(optimized, Maps.newHashMap());
+        return getOptimizeRecommendation(optimized.getId());
+    }
+
+    public OptimizeRecommendation optimize(NDataModel model, IndexPlan indexPlan) {
+        val translations = optimizeModel(model);
+        optimizeIndexPlan(indexPlan, translations);
+        return getOptimizeRecommendation(model.getId());
     }
 
     private OptimizeRecommendation getOrCreate(String id) {
@@ -472,8 +525,7 @@ public class OptimizeRecommendationManager {
                     throw new PassConflictException(
                             String.format("dimension all named column %s has already used in model", name));
                 }
-                val newName = newAllName(r.getColumn().getAliasDotColumn().replace(".", "_"),
-                        context);
+                val newName = newAllName(r.getColumn().getAliasDotColumn().replace(".", "_"), context);
                 val recommendationItem = context.copyDimensionRecommendationItem(itemId);
                 recommendationItem.getColumn().setName(newName);
             }

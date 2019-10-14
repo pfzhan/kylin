@@ -154,7 +154,7 @@ public class OptimizeContext {
 
     }
 
-    private Map<IndexEntity.IndexIdentifier, IndexEntity> realIndexesMap;
+    private Map<IndexEntity.IndexIdentifier, IndexEntity> allIndexesMap;
     private Map<IndexEntity.IndexIdentifier, IndexEntity> virtualIndexesMap;
     private Map<IndexEntity.IndexIdentifier, Map<LayoutEntity, IndexRecommendationItem>> indexRecommendationItemsMap;
     private Map<IndexEntity.IndexIdentifier, List<IndexRecommendationItem>> realIndexRecommendationItemsMap;
@@ -163,8 +163,8 @@ public class OptimizeContext {
     public OptimizeContext(NDataModel model, IndexPlan indexPlan, OptimizeRecommendation recommendation) {
         this(model, recommendation);
         this.indexPlan = indexPlan;
-        this.realIndexesMap = indexPlan.getAllIndexesMap();
-        this.virtualIndexesMap = indexPlan.getAllIndexesMap();
+        this.allIndexesMap = indexPlan.getAllIndexesMap();
+        this.virtualIndexesMap = indexPlan.getWhiteListIndexesMap();
         this.indexRecommendationItemsMap = Maps.newHashMap();
 
         //        this.realIndexRecommendationItemsMap = Maps.newHashMap();
