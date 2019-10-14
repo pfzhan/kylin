@@ -200,8 +200,12 @@ export default class Setting extends Vue {
       color: @text-title-color;
     }
     .warning{
-      color:@error-color-1;
-      font-weight: bold;
+      margin-top:5px;
+      .el-icon-ksd-alert{
+        margin-right:5px;
+        color:@warning-color-1;
+        font-size: 14px;
+      }
     }
   }
   .setting-desc:last-child {

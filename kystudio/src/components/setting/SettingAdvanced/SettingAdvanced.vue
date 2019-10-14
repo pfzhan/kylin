@@ -57,7 +57,7 @@
           </el-form-item>
           <div class="setting-desc">
             <p>{{$t('defaultDBNote1')}}</p>
-            <p class="warning">{{$t('defaultDBNote2')}}</p>
+            <p class="warning"><i class="el-icon-ksd-alert"></i>{{$t('defaultDBNote2')}}</p>
           </div>
         </div>
       </el-form>
@@ -250,6 +250,7 @@ export default class SettingAdvanced extends Vue {
               return errorCallback()
             }
           }).catch(() => {
+            return errorCallback()
           })
           break
         }
