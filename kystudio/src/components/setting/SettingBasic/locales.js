@@ -44,7 +44,8 @@ export default {
     storageGarbageDesc2: ' usage is lower than ',
     storageGarbageDesc3: ' times, then the storage of accelerated queries and indexes would be regarded as low usage storage.',
     storageGarbageDesc3ForSemiAutomatic: ' times, then the storage of indices would be regarded as low usage storage.',
-    enableSemiAutomatic: 'Recommendation Mode:'
+    enableSemiAutomatic: 'Recommendation Mode:',
+    enableSemiAutomaticDesc: 'After enabling this mode, the system will provide some recommendations for existing models by analyzing the query history and model usage.'
   },
   'zh-cn': {
     basicInfo: '通用信息',
@@ -91,6 +92,7 @@ export default {
     storageGarbageDesc2: '使用频率低于',
     storageGarbageDesc3: '次的加速查询和对应的存储即为低效存储。',
     storageGarbageDesc3ForSemiAutomatic: '次的索引组为低效存储',
-    enableSemiAutomatic: '智能推荐模式：'
+    enableSemiAutomatic: '智能推荐模式：',
+    enableSemiAutomaticDesc: '开启智能推荐模式后，系统将根据您的查询历史及使用情况对已有模型进行优化建议。'
   }
 }

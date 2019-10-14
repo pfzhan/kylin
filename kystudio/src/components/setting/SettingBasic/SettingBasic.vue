@@ -26,6 +26,7 @@
             :inactive-text="$t('kylinLang.common.ON')">
           </el-switch>
         </span>
+        <div class="setting-desc">{{$t('enableSemiAutomaticDesc')}}</div>
       </div>
       <div class="setting-item clearfix">
         <div class="setting-label font-medium">{{$t('description')}}</div>
