@@ -284,8 +284,10 @@ export default class SourceHive extends Vue {
       return item.toLocaleUpperCase()
     })
     // 表变更的时候，如果库已经全部加了，该表就不单独加入了
-    this.selectedDatabases.forEach(database => {
-      selectedTables = val.filter(table => table.indexOf(`${database}.`) !== 0)
+    selectedTables = val.filter((table) => {
+      let itemDBIdx = table.indexOf('.')
+      let str = table.substring(0, itemDBIdx)
+      return this.selectedDatabases.indexOf(str) === -1
     })
     this.selectTablesNames = [...selectedTables]
     this.$emit('input', { selectedTables })

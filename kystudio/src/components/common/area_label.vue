@@ -87,6 +87,9 @@ export default {
             this.selectedL.splice(this.selectedL.length - 1, 1)
           }
         }
+        this.selectedL = this.selectedL.map((item) => {
+          return item.toLocaleUpperCase()
+        })
         this.$emit('refreshData', this.selectedL, this.refreshInfo)
         this.bindTagClick()
       })
@@ -172,6 +175,9 @@ export default {
           if (result && result.length > 0) {
             this.selectedL = this.selectedL.concat(result)
             this.selectedL = [...new Set(this.selectedL)]
+            this.selectedL = this.selectedL.map((item) => {
+              return item.toLocaleUpperCase()
+            })
             this.$emit('refreshData', this.selectedL, this.refreshInfo)
           }
           if (this.$refs.select.$refs.input) {
