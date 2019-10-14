@@ -47,6 +47,8 @@ import static org.apache.kylin.job.constant.ExecutableConstants.YARN_APP_ID;
 import static org.apache.kylin.job.constant.ExecutableConstants.YARN_APP_URL;
 
 import java.io.IOException;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.IllegalFormatException;
 import java.util.List;
 import java.util.Map;
@@ -56,9 +58,6 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
-import io.kyligence.kap.common.metrics.NMetricsCategory;
-import io.kyligence.kap.common.metrics.NMetricsGroup;
-import io.kyligence.kap.common.metrics.NMetricsName;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -80,6 +79,9 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
+import io.kyligence.kap.common.metrics.NMetricsCategory;
+import io.kyligence.kap.common.metrics.NMetricsGroup;
+import io.kyligence.kap.common.metrics.NMetricsName;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.common.util.ThrowableUtils;
 import io.kyligence.kap.metadata.cube.model.NBatchConstants;
@@ -647,12 +649,17 @@ public abstract class AbstractExecutable implements Executable {
         return 0;
     }
 
-    public static Integer computeDriverMemory(int cuboidNum) {
+    public static Integer computeDriverMemory(Integer cuboidNum) {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
-        int driverMemoryGrowth = config.getSparkEngineDriverMemoryGrowth();
+        int[] driverMemoryStrategy = config.getSparkEngineDriverMemoryStrategy();
+        List strategy = Lists.newArrayList(cuboidNum);
+        Arrays.stream(driverMemoryStrategy).forEach(x -> strategy.add(Integer.valueOf(x)));
+        Collections.sort(strategy);
+        int index = strategy.indexOf(cuboidNum);
         int driverMemoryMaximum = config.getSparkEngineDriverMemoryMaximum();
         int driverMemoryBase = config.getSparkEngineDriverMemoryBase();
-        driverMemoryBase += (cuboidNum / 1000) * driverMemoryGrowth;
+
+        driverMemoryBase += driverMemoryBase * index;
         return Math.min(driverMemoryBase, driverMemoryMaximum);
     }
 

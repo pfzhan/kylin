@@ -28,12 +28,17 @@ import org.apache.spark.sql.common.{LocalMetadata, SharedSparkSession, SparderBa
 class TestSparkCubingStep extends SparderBaseFunSuite with SharedSparkSession with LocalMetadata {
 
   test("auto set driver memory by cuboid num") {
-    assert(AbstractExecutable.computeDriverMemory(10) == 1024)
-    assert(AbstractExecutable.computeDriverMemory(100) == 1024)
-    assert(AbstractExecutable.computeDriverMemory(1000) == 1280)
-    assert(AbstractExecutable.computeDriverMemory(5000) == 2304)
-    assert(AbstractExecutable.computeDriverMemory(10000) == 3584)
-    assert(AbstractExecutable.computeDriverMemory(50000) == 4096)
-    assert(AbstractExecutable.computeDriverMemory(100000) == 4096)
+    assert(AbstractExecutable.computeDriverMemory(1) == 1024)
+    assert(AbstractExecutable.computeDriverMemory(2) == 1024)
+    assert(AbstractExecutable.computeDriverMemory(3) == 2048)
+    assert(AbstractExecutable.computeDriverMemory(4) == 2048)
+    assert(AbstractExecutable.computeDriverMemory(10) == 2048)
+    assert(AbstractExecutable.computeDriverMemory(15) == 2048)
+    assert(AbstractExecutable.computeDriverMemory(20) == 2048)
+    assert(AbstractExecutable.computeDriverMemory(25) == 3072)
+    assert(AbstractExecutable.computeDriverMemory(40) == 3072)
+    assert(AbstractExecutable.computeDriverMemory(50) == 3072)
+    assert(AbstractExecutable.computeDriverMemory(70) == 3072)
+    assert(AbstractExecutable.computeDriverMemory(110) == 4096)
   }
 }

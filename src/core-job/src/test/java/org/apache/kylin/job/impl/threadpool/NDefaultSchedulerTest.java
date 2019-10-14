@@ -101,13 +101,10 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         super("default");
     }
 
-    private static double SPARK_DRIVER_BASE_MEMORY;
-
     @Override
     public void setup() throws Exception {
         System.setProperty("kylin.job.auto-set-concurrent-jobs", "true");
         super.setup();
-        SPARK_DRIVER_BASE_MEMORY = KylinConfig.getInstanceFromEnv().getSparkEngineDriverMemoryBase();
     }
 
     @Override
@@ -902,7 +899,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
             return job.getStatus() == ExecutableState.RUNNING && StringUtils.isNotEmpty(runningStatus)
                     && runningStatus.equals("inRunning");
         });
-        assertMemoryRestore(currMem - SPARK_DRIVER_BASE_MEMORY);
+        assertMemoryRestore(currMem - job.computeStepDriverMemory());
         UnitOfWork.doInTransactionWithRetry(() -> {
             executableManager.pauseJob(job.getId());
             return null;
@@ -1102,7 +1099,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
                     .getStatus() == ExecutableState.RUNNING;
         });
 
-        assertMemoryRestore(currMem - SPARK_DRIVER_BASE_MEMORY);
+        assertMemoryRestore(currMem - job.computeStepDriverMemory());
 
         //scheduler failed due to some reason
         NDefaultScheduler.shutdownByProject("default");
@@ -1131,7 +1128,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         //restart
         startScheduler();
         currMem = NDefaultScheduler.currentAvailableMem();
-        assertMemoryRestore(currMem - SPARK_DRIVER_BASE_MEMORY);
+        assertMemoryRestore(currMem - job.computeStepDriverMemory());
         await().atMost(3000, TimeUnit.MILLISECONDS).until(() -> {
             return ((DefaultChainedExecutable) executableManager.getJob(job.getId())).getTasks().get(1)
                     .getStatus() == ExecutableState.RUNNING;
@@ -1168,7 +1165,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         executableManager.addJob(job);
         long createTime = executableManager.getJob(job.getId()).getCreateTime();
         Assert.assertTrue(createTime > 0L);
-        assertMemoryRestore(currMem - SPARK_DRIVER_BASE_MEMORY);
+        assertMemoryRestore(currMem - job.computeStepDriverMemory());
         await().atMost(60000, TimeUnit.MILLISECONDS)
                 .until(() -> ((DefaultChainedExecutable) executableManager.getJob(job.getId())).getTasks().get(0)
                         .getStatus() == ExecutableState.RUNNING);
@@ -1202,7 +1199,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
 
         //resume
         resumeJobWithLock(job.getId());
-        assertMemoryRestore(currMem - SPARK_DRIVER_BASE_MEMORY);
+        assertMemoryRestore(currMem - job.computeStepDriverMemory());
         await().atMost(60000, TimeUnit.MILLISECONDS)
                 .until(() -> ((DefaultChainedExecutable) executableManager.getJob(job.getId())).getTasks().get(1)
                         .getStatus() == ExecutableState.RUNNING);
@@ -1257,7 +1254,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         executableManager.addJob(job);
         long createTime = executableManager.getJob(job.getId()).getCreateTime();
         Assert.assertTrue(createTime > 0L);
-        assertMemoryRestore(currMem - SPARK_DRIVER_BASE_MEMORY);
+        assertMemoryRestore(currMem - job.computeStepDriverMemory());
         await().atMost(60000, TimeUnit.MILLISECONDS)
                 .until(() -> ((DefaultChainedExecutable) executableManager.getJob(job.getId())).getTasks().get(0)
                         .getStatus() == ExecutableState.RUNNING);
@@ -1326,7 +1323,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         task2.setTargetSegments(df.getSegments().stream().map(NDataSegment::getId).collect(Collectors.toList()));
         job.addTask(task2);
         executableManager.addJob(job);
-        assertMemoryRestore(currMem - SPARK_DRIVER_BASE_MEMORY);
+        assertMemoryRestore(currMem - job.computeStepDriverMemory());
         long createTime = executableManager.getJob(job.getId()).getCreateTime();
         Assert.assertTrue(createTime > 0L);
 
@@ -1358,7 +1355,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         assertMemoryRestore(currMem);
 
         restartJobWithLock(job.getId());
-        assertMemoryRestore(currMem - SPARK_DRIVER_BASE_MEMORY);
+        assertMemoryRestore(currMem - job.computeStepDriverMemory());
         try {
             Thread.sleep(100);
         } catch (InterruptedException e) {
@@ -1524,7 +1521,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         executableManager.addJob(job);
         long createTime = executableManager.getJob(job.getId()).getCreateTime();
         Assert.assertTrue(createTime > 0L);
-        assertMemoryRestore(currMem - SPARK_DRIVER_BASE_MEMORY);
+        assertMemoryRestore(currMem - job.computeStepDriverMemory());
 
         //sleep 3s to make sure SucceedTestExecutable is running
         await().atMost(60000, TimeUnit.MILLISECONDS)
@@ -1544,7 +1541,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
 
         //resume
         resumeJobWithLock(job.getId());
-        assertMemoryRestore(currMem - SPARK_DRIVER_BASE_MEMORY);
+        assertMemoryRestore(currMem - job.computeStepDriverMemory());
         await().atMost(60000, TimeUnit.MILLISECONDS)
                 .until(() -> ((DefaultChainedExecutable) executableManager.getJob(job.getId())).getTasks().get(0)
                         .getStatus() == ExecutableState.RUNNING);
@@ -1761,7 +1758,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         task1.setTargetSegments(df.getSegments().stream().map(NDataSegment::getId).collect(Collectors.toList()));
         job.addTask(task1);
         executableManager.addJob(job);
-        assertMemoryRestore(currMem - SPARK_DRIVER_BASE_MEMORY);
+        assertMemoryRestore(currMem - job.computeStepDriverMemory());
         waitForJobFinish(job.getId());
         assertMemoryRestore(currMem);
         Assert.assertEquals(ExecutableState.SUCCEED, executableManager.getOutput(job.getId()).getState());
@@ -1785,7 +1782,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         task1.setTargetSegments(df.getSegments().stream().map(NDataSegment::getId).collect(Collectors.toList()));
         job.addTask(task1);
         executableManager.addJob(job);
-        assertMemoryRestore(currMem - SPARK_DRIVER_BASE_MEMORY);
+        assertMemoryRestore(currMem - job.computeStepDriverMemory());
         waitForJobFinish(job.getId());
         assertMemoryRestore(currMem);
         Assert.assertEquals(ExecutableState.ERROR, executableManager.getOutput(job.getId()).getState());
@@ -1811,7 +1808,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         addParallelTasksForJob(dfs, executableManager);
 
         await().pollInterval(50, TimeUnit.MILLISECONDS).atMost(60000, TimeUnit.MILLISECONDS)
-                .until(() -> (NDefaultScheduler.currentAvailableMem() < baseMem));
+                .until(() -> (NDefaultScheduler.currentAvailableMem() <= baseMem));
         assertMemoryRestore(currMem);
     }
 
@@ -1820,7 +1817,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
             DefaultChainedExecutable job = new NoErrorStatusExecutableOnModel();
             job.setProject("default");
             job.setJobType(JobTypeEnum.INDEX_BUILD);
-            job.setParam(NBatchConstants.P_LAYOUT_IDS, "1,2,3,4,5");
+            job.setParam(NBatchConstants.P_LAYOUT_IDS, "1,2");
             job.setTargetSubject(dfs.get(i).getModel().getUuid());
             job.setTargetSegments(
                     dfs.get(i).getSegments().stream().map(NDataSegment::getId).collect(Collectors.toList()));

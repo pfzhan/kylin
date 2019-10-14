@@ -1093,8 +1093,9 @@ abstract public class KylinConfigBase implements Serializable {
         return Integer.parseInt(getOptional("kylin.engine.driver-memory-base", "1024"));
     }
 
-    public int getSparkEngineDriverMemoryGrowth() {
-        return Integer.parseInt(getOptional("kylin.engine.driver-memory-growth", "256"));
+    public int[] getSparkEngineDriverMemoryStrategy() {
+        String[] dft = { "2", "20", "100" };
+        return getOptionalIntArray("kylin.engine.driver-memory-strategy", dft);
     }
 
     public int getSparkEngineDriverMemoryMaximum() {
