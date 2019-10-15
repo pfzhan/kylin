@@ -1,7 +1,7 @@
 export default {
   'en': {
     capbility: 'Favorite Rate',
-    dataLoadTime: 'Data Load Time',
+    dataLoadTime: 'Last Modified Time',
     status: 'Status',
     modelPartitionSet: 'Model Partition',
     delModelTip: 'Are you sure to drop the model {modelName}?',
@@ -48,11 +48,13 @@ export default {
     indexGroup: 'index group',
     expansionRate: 'Expansion Rate',
     expansionRateTip: 'Expansion Rate = Storage Size / Source Table Size',
-    tentative: 'Tentative'
+    tentative: 'Tentative',
+    recommendations: 'Recommendation',
+    recommendationsTip: 'By analyzing the query history and model usage, the system will provide some recommendations.'
   },
   'zh-cn': {
     capbility: '加速比例',
-    dataLoadTime: '最新加载时间',
+    dataLoadTime: '最近修改时间',
     status: '状态',
     modelPartitionSet: '分区设置',
     delModelTip: '你确认要删除模型 {modelName}？',
@@ -99,6 +101,8 @@ export default {
     indexGroup: '索引组',
     expansionRate: '膨胀率',
     expansionRateTip: '膨胀率 = 存储数据大小/源表大小',
-    tentative: '未知'
+    tentative: '未知',
+    recommendations: '优化建议',
+    recommendationsTip: '系统将根据查询历史和模型使用情况，对当前模型的提供一些优化建议。'
   }
 }

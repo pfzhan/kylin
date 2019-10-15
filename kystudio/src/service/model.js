@@ -181,5 +181,20 @@ export default {
   },
   buildIndex: (para) => {
     return Vue.resource(apiUrl + 'models/indices').save(para)
+  },
+  getModelRecommendations: (para) => {
+    return Vue.resource(apiUrl + 'models/recommendations').get(para)
+  },
+  adoptModelRecommendations: (para) => { // 提交优化建议的内容
+    return Vue.resource(apiUrl + 'models/recommendations').update(para)
+  },
+  clearModelRecommendations: (para) => { // 删除优化建议的内容
+    return Vue.resource(apiUrl + 'models/recommendations').delete(para)
+  },
+  getAggIndexContentList: (para) => {
+    return Vue.resource(apiUrl + 'models/recommendations/agg_index').get(para)
+  },
+  getTableIndexContentList: (para) => {
+    return Vue.resource(apiUrl + 'models/recommendations/table_index').get(para)
   }
 }

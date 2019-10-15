@@ -247,6 +247,21 @@ export default {
     },
     [types.BUILD_INDEX] ({ commit }, paras) {
       return api.model.buildIndex(paras)
+    },
+    [types.GET_MODEL_RECOMMENDATIONS] ({ commit }, paras) {
+      return api.model.getModelRecommendations(paras)
+    },
+    [types.ADOPT_MODEL_RECOMMENDATIONS] ({ commit }, paras) {
+      return api.model.adoptModelRecommendations(paras)
+    },
+    [types.CLEAR_MODEL_RECOMMENDATIONS] ({ commit }, paras) {
+      return api.model.clearModelRecommendations(paras)
+    },
+    [types.GET_AGG_INDEX_CONTENTLIST] ({ commit }, paras) {
+      return api.model.getAggIndexContentList(paras)
+    },
+    [types.GET_TABLE_INDEX_CONTENTLIST] ({ commit }, paras) {
+      return api.model.getTableIndexContentList(paras)
     }
   },
   getters: {

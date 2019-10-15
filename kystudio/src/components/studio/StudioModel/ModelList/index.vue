@@ -96,6 +96,15 @@
          <el-table-column
           header-align="right"
           align="right"
+          prop="recommendations_count"
+          sortable="recommendations_count"
+          width="180px"
+          :render-header="renderAdviceHeader"
+          v-if="$store.state.project.isSemiAutomatic && datasourceActions.includes('accelerationActions')">
+         </el-table-column>
+         <el-table-column
+          header-align="right"
+          align="right"
           prop="storage"
           show-overflow-tooltip
           width="120px"
@@ -109,7 +118,7 @@
           prop="gmtTime"
           show-overflow-tooltip
           sortable="custom"
-          width="154px"
+          width="174px"
           :label="$t('dataLoadTime')">
         </el-table-column>
         <el-table-column
@@ -152,6 +161,7 @@
                   <!-- 数据检测移动至project 级别处理， -->
                   <!-- <el-dropdown-item command="dataCheck">{{$t('datacheck')}}</el-dropdown-item> -->
                   <!-- 设置partition -->
+                  <el-dropdown-item command="recommendations" v-if="scope.row.status !== 'BROKEN' && $store.state.project.isSemiAutomatic && datasourceActions.includes('accelerationActions')">{{$t('recommendations')}}</el-dropdown-item>
                   <el-dropdown-item command="dataLoad" v-if="scope.row.status !== 'BROKEN'">{{$t('modelPartitionSet')}}</el-dropdown-item>
                   <!-- <el-dropdown-item command="favorite" disabled>{{$t('favorite')}}</el-dropdown-item> -->
                   <el-dropdown-item command="importMDX" divided disabled v-if="scope.row.status !== 'BROKEN'">{{$t('importMdx')}}</el-dropdown-item>
@@ -184,6 +194,8 @@
     <ModelCloneModal/>
     <!-- 模型添加 -->
     <ModelAddModal/>
+    <!-- 模型优化建议 -->
+    <ModelRecommendModal/>
   </div>
 </template>
 <script>
@@ -207,6 +219,7 @@ import ModelBuildModal from './ModelBuildModal/build.vue'
 import ModelPartitionModal from './ModelPartitionModal/index.vue'
 import ModelJson from './ModelJson/modelJson.vue'
 import ModelSql from './ModelSql/ModelSql.vue'
+import ModelRecommendModal from './ModelRecommendModal/index.vue'
 import { mockSQL } from './mock'
 import '../../../../util/fly.js'
 @Component({
@@ -263,6 +276,9 @@ import '../../../../util/fly.js'
     }),
     ...mapActions('ModelPartitionModal', {
       callModelPartitionDialog: 'CALL_MODAL'
+    }),
+    ...mapActions('ModelRecommendModal', {
+      callModelRecommendDialog: 'CALL_MODAL'
     })
   },
   components: {
@@ -276,7 +292,8 @@ import '../../../../util/fly.js'
     ModelBuildModal,
     ModelPartitionModal,
     ModelJson,
-    ModelSql
+    ModelSql,
+    ModelRecommendModal
   },
   locales
 })
@@ -308,6 +325,14 @@ export default class ModelList extends Vue {
     return (<span class="ky-hover-icon" onClick={e => (e.stopPropagation())}>
       <span>{this.$t('usage')}</span>&nbsp;
       <common-tip placement="top" content={this.$t('usageTip', {mode: this.$t(modelMode)})}>
+       <span class='el-icon-ksd-what'></span>
+      </common-tip>
+    </span>)
+  }
+  renderAdviceHeader (h, { column, $index }) {
+    return (<span class="ky-hover-icon" onClick={e => (e.stopPropagation())}>
+      <span>{this.$t('recommendations')}</span>&nbsp;
+      <common-tip placement="top" content={this.$t('recommendationsTip')}>
        <span class='el-icon-ksd-what'></span>
       </common-tip>
     </span>)
@@ -393,6 +418,9 @@ export default class ModelList extends Vue {
           this.loadModelsList()
         }
       })
+    } else if (command === 'recommendations') {
+      const isSubmit = await this.callModelRecommendDialog({modelDesc: modelDesc})
+      isSubmit && this.loadModelsList()
     } else if (command === 'dataLoad') {
       this.getModelByModelName({model: modelDesc.alias, project: this.currentSelectedProject}).then((response) => {
         handleSuccess(response, (data) => {
