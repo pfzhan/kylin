@@ -39,6 +39,7 @@ export default {
             hasMatch = true
             state.selected_project = p.name // 之前没这句，在其他tab 切换了project，顶部会不变
             state.isSemiAutomatic = p.override_kylin_properties && p.override_kylin_properties['kap.metadata.semi-automatic-mode'] === 'true' // 获取当前project 是否含有半自动的标志
+            state.projectDefaultDB = p.default_database
           }
         })
         if (!hasMatch) {
@@ -46,12 +47,14 @@ export default {
           state.isSemiAutomatic = state.allProject[0].override_kylin_properties && state.allProject[0].override_kylin_properties['kap.metadata.semi-automatic-mode'] === 'true'
           cacheSessionStorage('projectName', state.selected_project)
           cacheLocalStorage('projectName', state.selected_project)
+          state.projectDefaultDB = state.allProject[0].default_database
         }
       } else {
         cacheSessionStorage('projectName', '')
         cacheLocalStorage('projectName', '')
         state.selected_project = ''
         state.isSemiAutomatic = false // 如果接口没取到，默认设为false
+        state.projectDefaultDB = ''
       }
     },
     [types.REMOVE_ALL_PROJECTS]: function (state) {
