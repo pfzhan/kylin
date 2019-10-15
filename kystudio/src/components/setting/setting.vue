@@ -23,12 +23,12 @@
 
 <script>
 import Vue from 'vue'
-import { mapGetters, mapActions } from 'vuex'
+import { mapGetters, mapActions, mapMutations } from 'vuex'
 import { Component } from 'vue-property-decorator'
 
 import locales from './locales'
 import { viewTypes } from './handler'
-import { handleError, handleSuccessAsync } from '../../util'
+import { handleError, handleSuccessAsync, cacheSessionStorage } from '../../util'
 import SettingBasic from './SettingBasic/SettingBasic.vue'
 import SettingAdvanced from './SettingAdvanced/SettingAdvanced.vue'
 import SettingModel from './SettingModel/SettingModel.vue'
@@ -42,7 +42,11 @@ import SettingModel from './SettingModel/SettingModel.vue'
   },
   methods: {
     ...mapActions({
-      fetchProjectSettings: 'FETCH_PROJECT_SETTINGS'
+      fetchProjectSettings: 'FETCH_PROJECT_SETTINGS',
+      getUserAccess: 'USER_ACCESS'
+    }),
+    ...mapMutations({
+      setProject: 'SET_PROJECT'
     })
   },
   components: {
@@ -73,7 +77,7 @@ export default class Setting extends Vue {
   handleFormChanged (changedForm) {
     this.changedForm = { ...this.changedForm, ...changedForm }
   }
-  async beforeRouteLeave (to, from, next) {
+  /* async beforeRouteLeave (to, from, next) {
     const [ tabName ] = Object.entries(this.changedForm).find(([tabName, isFormChanged]) => isFormChanged) || []
     try {
       tabName && await this.leaveConfirm()
@@ -81,6 +85,38 @@ export default class Setting extends Vue {
     } catch (e) {
       this.viewType = tabName
       next(false)
+    }
+  } */
+  beforeRouteLeave (to, from, next) {
+    const [ tabName ] = Object.entries(this.changedForm).find(([tabName, isFormChanged]) => isFormChanged) || []
+    if (!to.params.ignoreIntercept && tabName) {
+      next(false)
+      setTimeout(() => {
+        this.$confirm(window.kapVm.$t('kylinLang.common.willGo'), window.kapVm.$t('kylinLang.common.notice'), {
+          confirmButtonText: window.kapVm.$t('kylinLang.common.exit'),
+          cancelButtonText: window.kapVm.$t('kylinLang.common.cancel'),
+          type: 'warning'
+        }).then(() => {
+          if (to.name === 'refresh') { // 刷新逻辑下要手动重定向
+            next()
+            this.$nextTick(() => {
+              this.$router.replace({name: 'Setting', params: { refresh: true }})
+            })
+            return
+          }
+          next()
+        }).catch(() => {
+          if (to.name === 'refresh') { // 取消刷新逻辑，所有上一个project相关的要撤回
+            let preProject = cacheSessionStorage('preProjectName') // 恢复上一次的project
+            this.setProject(preProject)
+            this.getUserAccess({project: preProject})
+          }
+          this.viewType = tabName
+          next(false)
+        })
+      })
+    } else {
+      next()
     }
   }
   async getCurrentSettings () {
@@ -95,14 +131,14 @@ export default class Setting extends Vue {
     }
     this._hideLoading()
   }
-  leaveConfirm () {
+  /* leaveConfirm () {
     const confirmMessage = this.$t('kylinLang.common.willGo')
     const confirmTitle = this.$t('kylinLang.common.notice')
     const confirmButtonText = this.$t('kylinLang.common.exit')
     const cancelButtonText = this.$t('kylinLang.common.cancel')
     const type = 'warning'
     return this.$confirm(confirmMessage, confirmTitle, { confirmButtonText, cancelButtonText, type })
-  }
+  } */
   mounted () {
     if (this.currentProjectData) {
       this.getCurrentSettings()
