@@ -272,11 +272,13 @@ export default class SourceHive extends Vue {
     this.selectDBNames = val.map((item) => {
       return item.toLocaleUpperCase()
     })
-    let selectedTables = [...this.selectedTables]
     // DB 变更时 要去掉已加入的db下的表
-    val.forEach(database => {
-      selectedTables = this.selectedTables.filter(table => table.indexOf(`${database}.`) !== 0)
+    let selectedTables = this.selectedTables.filter((table) => {
+      let itemDBIdx = table.indexOf('.')
+      let str = table.substring(0, itemDBIdx)
+      return this.selectDBNames.indexOf(str) === -1
     })
+    this.selectTablesNames = [...selectedTables]
     this.$emit('input', { selectedDatabases: [...this.selectDBNames], selectedTables })
   }
   refreshTableData (val) {
