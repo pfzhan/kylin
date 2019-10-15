@@ -44,6 +44,7 @@ package org.apache.kylin.job.execution;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.function.Consumer;
 
@@ -54,10 +55,12 @@ import org.apache.kylin.job.exception.JobStoppedException;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 
 import io.kyligence.kap.common.metrics.NMetricsCategory;
 import io.kyligence.kap.common.metrics.NMetricsGroup;
 import io.kyligence.kap.common.metrics.NMetricsName;
+import io.kyligence.kap.common.metrics.NMetricsTag;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.common.scheduler.JobFinishedNotifier;
 import io.kyligence.kap.common.scheduler.SchedulerEventBusFactory;
@@ -216,6 +219,15 @@ public class DefaultChainedExecutable extends AbstractExecutable implements Chai
             NMetricsGroup.counterInc(NMetricsName.JOB_DURATION, NMetricsCategory.PROJECT, getProject(), getDuration());
             NMetricsGroup.histogramUpdate(NMetricsName.JOB_DURATION_HISTOGRAM, NMetricsCategory.PROJECT, getProject(),
                     getDuration());
+            NMetricsGroup.counterInc(NMetricsName.JOB_WAIT_DURATION, NMetricsCategory.PROJECT, getProject(), getWaitTime());
+
+            String modelAlias = getTargetModelAlias();
+            if (modelAlias != null) {
+                Map<String, String> tags = Maps.newHashMap();
+                tags.put(NMetricsTag.MODEL.getVal(), project.concat("-").concat(modelAlias));
+                NMetricsGroup.counterInc(NMetricsName.MODEL_BUILD_DURATION, NMetricsCategory.PROJECT, getProject(), tags, getDuration());
+                NMetricsGroup.counterInc(NMetricsName.MODEL_WAIT_DURATION, NMetricsCategory.PROJECT, getProject(), tags, getWaitTime());
+            }
         }
     }
 

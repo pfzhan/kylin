@@ -173,6 +173,10 @@ public class BootstrapCommand implements Runnable {
             List<AbstractExecutable> list = executableManager.getAllExecutables();
             return list == null ? 0 : list.stream().filter(e -> e.getStatus().isProgressing()).count();
         });
+        NMetricsGroup.newGauge(NMetricsName.JOB_PENDING_GAUGE, NMetricsCategory.PROJECT, project, () -> {
+            List<AbstractExecutable> list = executableManager.getAllExecutables();
+            return list == null ? 0 : list.stream().filter(e -> e.getStatus() == ExecutableState.READY).count();
+        });
     }
 
     void registerStorageMetrics(String project) {
@@ -229,7 +233,20 @@ public class BootstrapCommand implements Runnable {
         });
         NMetricsGroup.newGauge(NMetricsName.DB_GAUGE, NMetricsCategory.PROJECT, project, () -> {
             final List<TableDesc> list = tableMetadataManager.listAllTables();
-            return list == null ? 0 : list.stream().map(t -> t.getCaseSensitiveDatabase()).collect(toSet()).size();
+            return list == null ? 0 : list.stream().map(TableDesc::getCaseSensitiveDatabase).collect(toSet()).size();
         });
+
+        registerModelMetrics(config, project);
+    }
+
+    void registerModelMetrics(KylinConfig config, String project) {
+        NDataModelManager modelManager = NDataModelManager.getInstance(config, project);
+        modelManager.listAllModels().forEach(model ->
+            registerModelMetrics(project, model.getId(), model.getAlias())
+        );
+    }
+
+    void registerModelMetrics(String project, String modelId, String modelAlias) {
+        ModelDropAddListener.onAdd(project, modelId, modelAlias);
     }
 }

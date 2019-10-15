@@ -35,14 +35,25 @@ public enum NMetricsName {
 
     //model
     MODEL_GAUGE("model_num_gauge"), HEALTHY_MODEL_GAUGE("non_broken_model_num_gauge"), OFFLINE_MODEL_GAUGE(
-            "offline_model_num_gauge"),
+            "offline_model_num_gauge"), MODEL_SEGMENTS("model_segments_num_gauge"), MODEL_STORAGE(
+                    "model_total_storage_gauge"), MODEL_LAST_QUERY_TIME(
+                            "model_last_query_time_gauge"), MODEL_QUERY_COUNT(
+                                    "model_query_count_gauge"), MODEL_BUILD_DURATION("model_build_duration"), MODEL_WAIT_DURATION("model_wait_duration"),
 
     //query
     QUERY("query_total_times"), QUERY_SLOW("gt10s_query_total_times"), QUERY_FAILED(
-            "failed_query_total_times"), QUERY_PUSH_DOWN("pushdown_query_total_times"), QUERY_TIMEOUT(
+            "failed_query_total_times"), QUERY_PUSH_DOWN("pushdown_query_total_times"), QUERY_PUSH_DOWN_RATIO("pushdown_query_ratio"), QUERY_TIMEOUT(
                     "timeout_query_total_times"), QUERY_LATENCY("query_latency"), QUERY_SLOW_RATE(
                             "gt10s_query_rate"), QUERY_FAILED_RATE("failed_query_rate"), QUERY_PUSH_DOWN_RATE(
-                                    "pushdown_query_rate"), QUERY_TIMEOUT_RATE("timeout_query_rate"),
+                                    "pushdown_query_rate"), QUERY_TIMEOUT_RATE("timeout_query_rate"), QUERY_CACHE(
+                                            "cache_query_total_times"), QUERY_CACHE_RATIO("cache_query_ratio"), QUERY_AGG_INDEX(
+                                                    "agg_index_query_total_times"), QUERY_AGG_INDEX_RATIO("agg_index_query_ratio"),  QUERY_TABLE_INDEX(
+                                                            "table_index_query_total_times"), QUERY_TABLE_INDEX_RATIO("table_index_query_ratio"), QUERY_SCAN_BYTES(
+                                                                    "query_scan_bytes"), QUERY_LT_1S("lt_1s_total_times"), QUERY_1S_3S(
+                                                                                    "bw_1s_3s_total_times"), QUERY_3S_5S("bw_3s_5s_total_times"), QUERY_5S_10S(
+                                                                                            "bw_5s_10s_total_times"), QUERY_LT_1S_RATIO("lt_1s_ratio"), QUERY_1S_3S_RATIO(
+                                                                                                    "bw_1s_3s_ratio"), QUERY_3S_5S_RATIO("bw_3s_5s_ratio"), QUERY_5S_10S_RATIO(
+                                                                                                            "bw_5s_10s_ratio"), QUERY_SLOW_RATIO("gt10s_query_ratio"),
 
     //job
     JOB("job_created_total_times"), JOB_DURATION("finished_jobs_total_duration"), JOB_FINISHED(
@@ -51,7 +62,12 @@ public enum NMetricsName {
                             "failed_job_step_attempted_total_times"), JOB_RESUMED(
                                     "job_resumed_total_times"), JOB_DISCARDED("job_discarded_total_times"), JOB_ERROR(
                                             "error_job_total_times"), JOB_ERROR_GAUGE(
-                                                    "error_job_num_gauge"), JOB_RUNNING_GAUGE("running_job_num_gauge"),
+                                                    "error_job_num_gauge"), JOB_RUNNING_GAUGE("running_job_num_gauge"), JOB_PENDING_GAUGE(
+                                                            "pending_job_num_gauge"), JOB_WAIT_DURATION("job_wait_duration"),
+
+    // host
+    QUERY_HOST("query_num_per_host"), QUERY_SCAN_BYTES_HOST("query_scan_bytes_per_host"), QUERY_TIME_HOST(
+            "query_time_per_host"),
 
     //garbage management
     STORAGE_CLEAN("storage_clean_total_times"), STORAGE_CLEAN_DURATION(
@@ -83,6 +99,11 @@ public enum NMetricsName {
 
     //index
 
+    // JVM
+    HEAP_MAX("jvm_memory_heap_max"), HEAP_USED("jvm_memory_heap_used"), HEAP_USAGE(
+            "jvm_memory_heap_usage"), JVM_GC("jvm_garbage_collection"), JVM_AVAILABLE_CPU("jvm_available_cpu_count"),
+
+
     //spark context
     SPARDER_RESTART("sparder_restart_total_times"),
 
@@ -100,6 +121,8 @@ public enum NMetricsName {
 
     //rest api
     NON_QUERY_RESTAPI_LATENCY("non_query_restapi_latency"),
+
+    BUILD_UNAVAILABLE_DURATION("build_unavailable_duration"), QUERY_UNAVAILABLE_DURATION("query_unavailable_duration"),
 
     //event statistics
     EVENT_GAUGE("event_num_gauge"), EVENT_COUNTER("event_created_total_num");

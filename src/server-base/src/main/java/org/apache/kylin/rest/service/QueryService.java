@@ -145,9 +145,6 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
 import io.kyligence.kap.common.hystrix.NCircuitBreaker;
-import io.kyligence.kap.common.metrics.NMetricsCategory;
-import io.kyligence.kap.common.metrics.NMetricsGroup;
-import io.kyligence.kap.common.metrics.NMetricsName;
 import io.kyligence.kap.common.persistence.transaction.TransactionException;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWorkParams;
@@ -219,7 +216,6 @@ public class QueryService extends BasicService {
     }
 
     public SQLResponse query(SQLRequest sqlRequest) throws Exception {
-        NMetricsGroup.counterInc(NMetricsName.QUERY, NMetricsCategory.PROJECT, sqlRequest.getProject());
         SQLResponse ret;
         try {
             slowQueryDetector.queryStart();

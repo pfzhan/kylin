@@ -25,9 +25,13 @@ package io.kyligence.kap.rest.config;
 
 import static org.apache.kylin.common.persistence.ResourceStore.METASTORE_UUID_TAG;
 
+import java.lang.management.ManagementFactory;
+import java.lang.management.MemoryMXBean;
+import java.lang.management.MemoryUsage;
 import java.util.List;
 import java.util.UUID;
 
+import io.kyligence.kap.rest.config.initialize.ClusterInfoRunner;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
@@ -42,6 +46,9 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.event.EventListener;
 import org.springframework.core.annotation.Order;
 import org.springframework.scheduling.TaskScheduler;
+
+import com.codahale.metrics.RatioGauge;
+import com.codahale.metrics.jvm.GarbageCollectorMetricSet;
 
 import io.kyligence.kap.common.cluster.LeaderInitiator;
 import io.kyligence.kap.common.cluster.NodeCandidate;
@@ -59,6 +66,7 @@ import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.metadata.user.ManagedUser;
 import io.kyligence.kap.metadata.user.NKylinUserManager;
 import io.kyligence.kap.rest.config.initialize.AclTCRListener;
+import io.kyligence.kap.rest.cluster.ClusterManager;
 import io.kyligence.kap.rest.config.initialize.AppInitializedEvent;
 import io.kyligence.kap.rest.config.initialize.BootstrapCommand;
 import io.kyligence.kap.rest.config.initialize.FavoriteQueryUpdateListener;
@@ -85,10 +93,16 @@ public class AppInitializer {
     BootstrapCommand bootstrapCommand;
 
     @Autowired
+    ClusterManager clusterManager;
+
+    @Autowired
     LicenseInfoService licenseInfoService;
 
     @Autowired
     CacheManager cacheManager;
+
+    @Autowired
+    ClusterInfoRunner clusterInfoRunner;
 
     @EventListener(ApplicationPreparedEvent.class)
     public void init(ApplicationPreparedEvent event) throws Exception {
@@ -155,7 +169,12 @@ public class AppInitializer {
             taskScheduler.scheduleWithFixedDelay(bootstrapCommand, 10000);
             taskScheduler.scheduleWithFixedDelay(NHiveTableName.getInstance(),
                     kylinConfig.getLoadHiveTablenameIntervals() * 1000);
+            taskScheduler.scheduleWithFixedDelay(clusterInfoRunner, 1000);
         }
+
+        String host = clusterManager.getLocalServer();
+        // register host metrics
+        registerHostMetrics(host);
     }
 
     void registerGlobalMetrics(KylinConfig config) {
@@ -192,6 +211,27 @@ public class AppInitializer {
 
         NMetricsGroup.newCounter(NMetricsName.TRANSACTION_RETRY_COUNTER, NMetricsCategory.GLOBAL, GLOBAL);
         NMetricsGroup.newHistogram(NMetricsName.TRANSACTION_LATENCY, NMetricsCategory.GLOBAL, GLOBAL);
+
+        NMetricsGroup.newCounter(NMetricsName.BUILD_UNAVAILABLE_DURATION, NMetricsCategory.GLOBAL, GLOBAL);
+        NMetricsGroup.newCounter(NMetricsName.QUERY_UNAVAILABLE_DURATION, NMetricsCategory.GLOBAL, GLOBAL);
     }
 
+    void registerHostMetrics(String host) {
+        NMetricsGroup.newCounter(NMetricsName.QUERY_HOST, NMetricsCategory.HOST, host);
+        NMetricsGroup.newCounter(NMetricsName.QUERY_SCAN_BYTES_HOST, NMetricsCategory.HOST, host);
+        NMetricsGroup.newHistogram(NMetricsName.QUERY_TIME_HOST, NMetricsCategory.HOST, host);
+
+        MemoryMXBean mxBean = ManagementFactory.getMemoryMXBean();
+        NMetricsGroup.newGauge(NMetricsName.HEAP_MAX, NMetricsCategory.HOST, host, () -> mxBean.getHeapMemoryUsage().getMax());
+        NMetricsGroup.newGauge(NMetricsName.HEAP_USED, NMetricsCategory.HOST, host, () -> mxBean.getHeapMemoryUsage().getUsed());
+        NMetricsGroup.newGauge(NMetricsName.HEAP_USAGE, NMetricsCategory.HOST, host, () -> {
+            final MemoryUsage usage = mxBean.getHeapMemoryUsage();
+            return RatioGauge.Ratio.of(usage.getUsed(), usage.getMax()).getValue();
+        });
+
+        NMetricsGroup.newMetricSet(NMetricsName.JVM_GC, NMetricsCategory.HOST, host, new GarbageCollectorMetricSet());
+        NMetricsGroup.newGauge(NMetricsName.JVM_AVAILABLE_CPU, NMetricsCategory.HOST, host, () ->
+                Runtime.getRuntime().availableProcessors());
+
+    }
 }

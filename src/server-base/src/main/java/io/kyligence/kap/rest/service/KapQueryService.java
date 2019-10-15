@@ -132,31 +132,70 @@ public class KapQueryService extends QueryService {
             }
         }
 
-        if (TimeUnit.MILLISECONDS.toSeconds(sqlResponse.getDuration()) > 10) {
-            NMetricsGroup.counterInc(NMetricsName.QUERY_SLOW, NMetricsCategory.PROJECT, sqlRequest.getProject());
-            NMetricsGroup.meterMark(NMetricsName.QUERY_SLOW_RATE, NMetricsCategory.PROJECT, sqlRequest.getProject());
-        }
+        long duration = TimeUnit.MILLISECONDS.toSeconds(sqlResponse.getDuration());
+        String project = sqlRequest.getProject();
+        NMetricsGroup.counterInc(NMetricsName.QUERY, NMetricsCategory.PROJECT, project);
 
-        if (sqlResponse.isException()) {
-            NMetricsGroup.counterInc(NMetricsName.QUERY_FAILED, NMetricsCategory.PROJECT, sqlRequest.getProject());
-            NMetricsGroup.meterMark(NMetricsName.QUERY_FAILED_RATE, NMetricsCategory.PROJECT, sqlRequest.getProject());
-        }
+        updateQueryTimeMetrics(duration, project);
+        updateQueryTypeMetrics(sqlResponse, project);
 
-        if (sqlResponse.isQueryPushDown()) {
-            NMetricsGroup.counterInc(NMetricsName.QUERY_PUSH_DOWN, NMetricsCategory.PROJECT, sqlRequest.getProject());
-            NMetricsGroup.meterMark(NMetricsName.QUERY_PUSH_DOWN_RATE, NMetricsCategory.PROJECT,
-                    sqlRequest.getProject());
-        }
-
-        if (sqlResponse.isTimeout()) {
-            NMetricsGroup.counterInc(NMetricsName.QUERY_TIMEOUT, NMetricsCategory.PROJECT, sqlRequest.getProject());
-            NMetricsGroup.meterMark(NMetricsName.QUERY_TIMEOUT_RATE, NMetricsCategory.PROJECT, sqlRequest.getProject());
-        }
+        NMetricsGroup.counterInc(NMetricsName.QUERY_HOST, NMetricsCategory.HOST, sqlResponse.getServer());
+        NMetricsGroup.counterInc(NMetricsName.QUERY_SCAN_BYTES_HOST, NMetricsCategory.HOST, sqlResponse.getServer(), sqlResponse.getTotalScanBytes());
 
         NMetricsGroup.histogramUpdate(NMetricsName.QUERY_LATENCY, NMetricsCategory.PROJECT, sqlRequest.getProject(),
                 sqlResponse.getDuration());
+        NMetricsGroup.histogramUpdate(NMetricsName.QUERY_TIME_HOST, NMetricsCategory.HOST, sqlResponse.getServer(), sqlResponse.getDuration());
+
+        NMetricsGroup.histogramUpdate(NMetricsName.QUERY_SCAN_BYTES, NMetricsCategory.PROJECT, project, sqlResponse.getTotalScanBytes());
 
         super.recordMetric(sqlRequest, sqlResponse);
+    }
+
+    private void updateQueryTypeMetrics(SQLResponse sqlResponse, String project) {
+        if (sqlResponse.isException()) {
+            NMetricsGroup.counterInc(NMetricsName.QUERY_FAILED, NMetricsCategory.PROJECT, project);
+            NMetricsGroup.meterMark(NMetricsName.QUERY_FAILED_RATE, NMetricsCategory.PROJECT, project);
+        }
+
+        if (sqlResponse.isQueryPushDown()) {
+            NMetricsGroup.counterInc(NMetricsName.QUERY_PUSH_DOWN, NMetricsCategory.PROJECT, project);
+            NMetricsGroup.meterMark(NMetricsName.QUERY_PUSH_DOWN_RATE, NMetricsCategory.PROJECT, project);
+        }
+
+        if (sqlResponse.isTimeout()) {
+            NMetricsGroup.counterInc(NMetricsName.QUERY_TIMEOUT, NMetricsCategory.PROJECT, project);
+            NMetricsGroup.meterMark(NMetricsName.QUERY_TIMEOUT_RATE, NMetricsCategory.PROJECT, project);
+        }
+
+        if (sqlResponse.isHitExceptionCache() || sqlResponse.isStorageCacheUsed()) {
+            NMetricsGroup.counterInc(NMetricsName.QUERY_CACHE, NMetricsCategory.PROJECT, project);
+        }
+
+        if (sqlResponse.getNativeRealizations() != null) {
+            boolean hitAggIndex = sqlResponse.getNativeRealizations().stream().anyMatch(realization -> realization != null && QueryMetricsContext.AGG_INDEX.equals(realization.getIndexType()));
+            boolean hitTableIndex = sqlResponse.getNativeRealizations().stream().anyMatch(realization -> realization != null && QueryMetricsContext.TABLE_INDEX.equals(realization.getIndexType()));
+            if (hitAggIndex) {
+                NMetricsGroup.counterInc(NMetricsName.QUERY_AGG_INDEX, NMetricsCategory.PROJECT, project);
+            }
+            if (hitTableIndex) {
+                NMetricsGroup.counterInc(NMetricsName.QUERY_TABLE_INDEX, NMetricsCategory.PROJECT, project);
+            }
+        }
+    }
+
+    private void updateQueryTimeMetrics(long duration, String project) {
+        if (duration <= 1) {
+            NMetricsGroup.counterInc(NMetricsName.QUERY_LT_1S, NMetricsCategory.PROJECT, project);
+        } else if (duration <= 3) {
+            NMetricsGroup.counterInc(NMetricsName.QUERY_1S_3S, NMetricsCategory.PROJECT, project);
+        } else if (duration <= 5) {
+            NMetricsGroup.counterInc(NMetricsName.QUERY_3S_5S, NMetricsCategory.PROJECT, project);
+        } else if (duration <= 10) {
+            NMetricsGroup.counterInc(NMetricsName.QUERY_5S_10S, NMetricsCategory.PROJECT, project);
+        } else {
+            NMetricsGroup.counterInc(NMetricsName.QUERY_SLOW, NMetricsCategory.PROJECT, project);
+            NMetricsGroup.meterMark(NMetricsName.QUERY_SLOW_RATE, NMetricsCategory.PROJECT, project);
+        }
     }
 
     public QueryEngineStatisticsResponse getQueryStatisticsByEngine(String project, long startTime, long endTime) {

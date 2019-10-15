@@ -38,11 +38,13 @@ import io.kyligence.kap.common.metrics.NMetricsGroup;
 import io.kyligence.kap.common.metrics.NMetricsName;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.metadata.cube.garbage.FrequencyMap;
+import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.favorite.FavoriteQuery;
 import io.kyligence.kap.metadata.favorite.FavoriteQueryManager;
 import io.kyligence.kap.metadata.favorite.QueryHistoryTimeOffset;
 import io.kyligence.kap.metadata.favorite.QueryHistoryTimeOffsetManager;
+import io.kyligence.kap.metadata.query.NativeQueryRealization;
 import io.kyligence.kap.metadata.query.QueryHistory;
 import lombok.Data;
 import lombok.val;
@@ -105,10 +107,12 @@ public class UpdateUsageStatisticsRunner implements Runnable {
 
     private void updateRelatedMetadata(List<QueryHistory> queryHistories, long scannedOffset) {
         Map<String, FavoriteQuery> favoritesAboutToUpdate = Maps.newHashMap();
+        Map<String, Long> modelsLastQueryTime = Maps.newHashMap();
 
         val dfHitCountMap = collectDataflowHitCount(queryHistories);
         for (QueryHistory queryHistory : queryHistories) {
             updateFavoriteQuery(queryHistory, favoritesAboutToUpdate);
+            setLastQueryTime(queryHistory, modelsLastQueryTime);
         }
 
         List<FavoriteQuery> favoriteQueries = Lists.newArrayList();
@@ -120,6 +124,8 @@ public class UpdateUsageStatisticsRunner implements Runnable {
             KylinConfig config = KylinConfig.getInstanceFromEnv();
             // update model usage
             incQueryHitCount(dfHitCountMap);
+            // update model last query time
+            updateLastQueryTime(modelsLastQueryTime);
             // update favorite query statistics
             FavoriteQueryManager.getInstance(config, project).updateStatistics(favoriteQueries);
             QueryHistoryTimeOffset timeOffset = QueryHistoryTimeOffsetManager
@@ -128,6 +134,27 @@ public class UpdateUsageStatisticsRunner implements Runnable {
             QueryHistoryTimeOffsetManager.getInstance(config, project).save(timeOffset);
             return 0;
         }, project);
+    }
+
+    private void updateLastQueryTime(Map<String, Long> modelsLastQueryTime) {
+        val dfManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+        List<NDataflow> dataflows = dfManager.listAllDataflows();
+        dataflows.stream()
+                .filter(dataflow -> modelsLastQueryTime.containsKey(dataflow.getId()))
+                .forEach(dataflow ->
+                    dfManager.updateDataflow(dataflow.getId(), copyForWrite ->
+                        copyForWrite.setLastQueryTime(modelsLastQueryTime.get(dataflow.getId()))
+                    )
+                );
+    }
+
+    private void setLastQueryTime(QueryHistory queryHistory, Map<String, Long> modelsLastQueryTime) {
+        List<NativeQueryRealization> realizations = queryHistory.transformRealizations();
+        long queryTime = queryHistory.getQueryTime();
+        for (NativeQueryRealization realization : realizations) {
+            String modelId = realization.getModelId();
+            modelsLastQueryTime.put(modelId, queryTime);
+        }
     }
 
     private void incQueryHitCount(Map<String, DataflowHitCount> dfHitCountMap) {

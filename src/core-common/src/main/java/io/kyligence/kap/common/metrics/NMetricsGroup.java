@@ -24,7 +24,6 @@
 
 package io.kyligence.kap.common.metrics;
 
-import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toMap;
 
 import java.text.NumberFormat;
@@ -36,6 +35,7 @@ import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.collections.MapUtils;
@@ -49,9 +49,13 @@ import com.codahale.metrics.Counter;
 import com.codahale.metrics.Gauge;
 import com.codahale.metrics.Histogram;
 import com.codahale.metrics.Meter;
+import com.codahale.metrics.Metric;
 import com.codahale.metrics.MetricRegistry;
+import com.codahale.metrics.MetricSet;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.Maps;
 
+import io.kyligence.kap.common.metrics.gauges.QueryRatioGauge;
 import io.kyligence.kap.shaded.influxdb.org.influxdb.InfluxDB;
 import io.kyligence.kap.shaded.influxdb.org.influxdb.dto.Query;
 import io.kyligence.kap.shaded.influxdb.org.influxdb.dto.QueryResult;
@@ -73,44 +77,25 @@ public class NMetricsGroup {
     private NMetricsGroup() {
     }
 
-    public static <T> boolean newGauge(NMetricsName name, NMetricsCategory category, String entity, Gauge<T> metric) {
-        return newGauge(name, category, entity, Collections.emptyMap(), metric);
-    }
-
-    public static boolean newCounter(NMetricsName name, NMetricsCategory category, String entity) {
-        return newCounter(name, category, entity, Collections.emptyMap());
-    }
-
-    public static boolean newHistogram(NMetricsName name, NMetricsCategory category, String entity) {
-        return newHistogram(name, category, entity, Collections.emptyMap());
-    }
-
-    public static boolean newMeter(NMetricsName name, NMetricsCategory category, String entity) {
-        return newMeter(name, category, entity, Collections.emptyMap());
-    }
-
     public static boolean counterInc(NMetricsName name, NMetricsCategory category, String entity) {
         return counterInc(name, category, entity, Collections.emptyMap());
     }
 
     public static boolean counterInc(NMetricsName name, NMetricsCategory category, String entity,
-            Map<String, String> tags) {
-        try {
-            final Counter counter = registerCounterIfAbsent(name.getVal(), category.getVal(), entity, tags);
-            if (counter != null) {
-                counter.inc();
-                return true;
-            }
-        } catch (Exception e) {
-            logger.error("ke.metrics counterInc", e);
-        }
-        return false;
+                                     Map<String, String> tags) {
+        return counterInc(name, category, entity, tags, 1);
     }
 
     public static boolean counterInc(NMetricsName name, NMetricsCategory category, String entity, long increments) {
+        return counterInc(name, category, entity, Collections.emptyMap(), increments);
+    }
+
+    public static boolean counterInc(NMetricsName name, NMetricsCategory category, String entity, Map<String, String> tags, long increments) {
+        if (increments < 0) {
+            return false;
+        }
         try {
-            final Counter counter = registerCounterIfAbsent(name.getVal(), category.getVal(), entity,
-                    Collections.emptyMap());
+            final Counter counter = registerCounterIfAbsent(name.getVal(), category.getVal(), entity, tags);
             if (counter != null) {
                 counter.inc(increments);
                 return true;
@@ -127,6 +112,9 @@ public class NMetricsGroup {
 
     public static boolean histogramUpdate(NMetricsName name, NMetricsCategory category, String entity,
             Map<String, String> tags, long updateTo) {
+        if (updateTo < 0) {
+            return false;
+        }
         try {
             final Histogram histogram = registerHistogramIfAbsent(name.getVal(), category.getVal(), entity, tags);
             if (histogram != null) {
@@ -143,7 +131,7 @@ public class NMetricsGroup {
         return meterMark(name, category, entity, Collections.emptyMap());
     }
 
-    public static boolean meterMark(NMetricsName name, NMetricsCategory category, String entity,
+    private static boolean meterMark(NMetricsName name, NMetricsCategory category, String entity,
             Map<String, String> tags) {
         try {
             final Meter meter = registerMeterIfAbsent(name.getVal(), category.getVal(), entity, tags);
@@ -162,37 +150,64 @@ public class NMetricsGroup {
             if (StringUtils.isEmpty(projectName)) {
                 throw new IllegalArgumentException("removeProjectMetrics, projectName shouldn't be empty.");
             }
-            StringBuilder sb = new StringBuilder("category=");
-            sb.append(NMetricsCategory.PROJECT.getVal());
-            sb.append(",entity=");
-            sb.append(projectName);
-            final String projectTag = sb.toString();
+            final String metricNameSuffix = metricNameSuffix(NMetricsCategory.PROJECT.getVal(), projectName, Collections.emptyMap());
+
             final MetricRegistry registry = NMetricsController.getDefaultMetricRegistry();
-
-            synchronized (gauges) {
-                final Iterator<String> it = gauges.iterator();
-                doRemove(projectTag, it, registry);
-            }
-
-            synchronized (counters) {
-                final Iterator<String> it = counters.keySet().iterator();
-                doRemove(projectTag, it, registry);
-            }
-
-            synchronized (meters) {
-                final Iterator<String> it = meters.keySet().iterator();
-                doRemove(projectTag, it, registry);
-            }
-
-            synchronized (histograms) {
-                final Iterator<String> it = histograms.keySet().iterator();
-                doRemove(projectTag, it, registry);
-            }
+            removeMetrics(metricNameSuffix, registry);
             return true;
         } catch (Exception e) {
             logger.error("ke.metrics removeProjectMetrics, projectName: {}", projectName, e);
         }
         return false;
+    }
+
+    public static boolean removeModelMetrics(String project, String modelId) {
+        try {
+            if (StringUtils.isEmpty(project)) {
+                throw new IllegalArgumentException("removeModelMetrics, projectName shouldn't be empty.");
+            }
+            if (StringUtils.isEmpty(modelId)) {
+                throw new IllegalArgumentException("removeModelMetrics, modelId shouldn't be empty.");
+            }
+            Map<String, String> tags = Maps.newHashMap();
+            tags.put(NMetricsTag.MODEL.getVal(), modelId);
+            final String metricNameSuffix = metricNameSuffix(NMetricsCategory.PROJECT.getVal(), project, tags);
+            final MetricRegistry registry = NMetricsController.getDefaultMetricRegistry();
+
+            removeMetrics(metricNameSuffix, registry);
+            return true;
+        } catch (Exception e) {
+            logger.error("ke.metrics removeModelMetrics, modelId: {}, projectName: {}", modelId, project, e);
+        }
+        return false;
+    }
+
+    private static void removeMetrics(String metricNameSuffix, MetricRegistry registry) {
+        synchronized (gauges) {
+            final Iterator<String> it = gauges.iterator();
+            doRemove(metricNameSuffix, it, registry);
+        }
+
+        synchronized (counters) {
+            final Iterator<String> it = counters.keySet().iterator();
+            doRemove(metricNameSuffix, it, registry);
+        }
+
+        synchronized (meters) {
+            final Iterator<String> it = meters.keySet().iterator();
+            doRemove(metricNameSuffix, it, registry);
+        }
+
+        synchronized (histograms) {
+            final Iterator<String> it = histograms.keySet().iterator();
+            doRemove(metricNameSuffix, it, registry);
+        }
+    }
+
+    private static Counter getCounter(NMetricsName name, NMetricsCategory category, String entity,
+                                      Map<String, String> tags) {
+        final String metricName = metricName(name.getVal(), category.getVal(), entity, tags);
+        return counters.get(metricName);
     }
 
     public static boolean registerProjectMetrics(final String projectName) {
@@ -205,9 +220,35 @@ public class NMetricsGroup {
             newHistogram(NMetricsName.TRANSACTION_LATENCY, NMetricsCategory.PROJECT, projectName);
             // query
             newCounter(NMetricsName.QUERY, NMetricsCategory.PROJECT, projectName);
+            Counter denominator = getCounter(NMetricsName.QUERY, NMetricsCategory.PROJECT, projectName, Collections.emptyMap());
+            newCounter(NMetricsName.QUERY_LT_1S, NMetricsCategory.PROJECT, projectName);
+            Counter numerator = getCounter(NMetricsName.QUERY_LT_1S, NMetricsCategory.PROJECT, projectName, Collections.emptyMap());
+            newGauge(NMetricsName.QUERY_LT_1S_RATIO, NMetricsCategory.PROJECT, projectName, new QueryRatioGauge(numerator, denominator));
+            newCounter(NMetricsName.QUERY_1S_3S, NMetricsCategory.PROJECT, projectName);
+            numerator = getCounter(NMetricsName.QUERY_1S_3S, NMetricsCategory.PROJECT, projectName, Collections.emptyMap());
+            newGauge(NMetricsName.QUERY_1S_3S_RATIO, NMetricsCategory.PROJECT, projectName, new QueryRatioGauge(numerator, denominator));
+            newCounter(NMetricsName.QUERY_3S_5S, NMetricsCategory.PROJECT, projectName);
+            numerator = getCounter(NMetricsName.QUERY_3S_5S, NMetricsCategory.PROJECT, projectName, Collections.emptyMap());
+            newGauge(NMetricsName.QUERY_3S_5S_RATIO, NMetricsCategory.PROJECT, projectName, new QueryRatioGauge(numerator, denominator));
+            newCounter(NMetricsName.QUERY_5S_10S, NMetricsCategory.PROJECT, projectName);
+            numerator = getCounter(NMetricsName.QUERY_5S_10S, NMetricsCategory.PROJECT, projectName, Collections.emptyMap());
+            newGauge(NMetricsName.QUERY_5S_10S_RATIO, NMetricsCategory.PROJECT, projectName, new QueryRatioGauge(numerator, denominator));
             newCounter(NMetricsName.QUERY_SLOW, NMetricsCategory.PROJECT, projectName);
+            numerator = getCounter(NMetricsName.QUERY_SLOW, NMetricsCategory.PROJECT, projectName, Collections.emptyMap());
+            newGauge(NMetricsName.QUERY_SLOW_RATIO, NMetricsCategory.PROJECT, projectName, new QueryRatioGauge(numerator, denominator));
             newCounter(NMetricsName.QUERY_FAILED, NMetricsCategory.PROJECT, projectName);
             newCounter(NMetricsName.QUERY_PUSH_DOWN, NMetricsCategory.PROJECT, projectName);
+            numerator = getCounter(NMetricsName.QUERY_PUSH_DOWN, NMetricsCategory.PROJECT, projectName, Collections.emptyMap());
+            newGauge(NMetricsName.QUERY_PUSH_DOWN_RATIO, NMetricsCategory.PROJECT, projectName, new QueryRatioGauge(numerator, denominator));
+            newCounter(NMetricsName.QUERY_CACHE, NMetricsCategory.PROJECT, projectName);
+            numerator = getCounter(NMetricsName.QUERY_CACHE, NMetricsCategory.PROJECT, projectName, Collections.emptyMap());
+            newGauge(NMetricsName.QUERY_CACHE_RATIO, NMetricsCategory.PROJECT, projectName, new QueryRatioGauge(numerator, denominator));
+            newCounter(NMetricsName.QUERY_AGG_INDEX, NMetricsCategory.PROJECT, projectName);
+            numerator = getCounter(NMetricsName.QUERY_AGG_INDEX, NMetricsCategory.PROJECT, projectName, Collections.emptyMap());
+            newGauge(NMetricsName.QUERY_AGG_INDEX_RATIO, NMetricsCategory.PROJECT, projectName, new QueryRatioGauge(numerator, denominator));
+            newCounter(NMetricsName.QUERY_TABLE_INDEX, NMetricsCategory.PROJECT, projectName);
+            numerator = getCounter(NMetricsName.QUERY_TABLE_INDEX, NMetricsCategory.PROJECT, projectName, Collections.emptyMap());
+            newGauge(NMetricsName.QUERY_TABLE_INDEX_RATIO, NMetricsCategory.PROJECT, projectName, new QueryRatioGauge(numerator, denominator));
             newCounter(NMetricsName.QUERY_TIMEOUT, NMetricsCategory.PROJECT, projectName);
             newMeter(NMetricsName.QUERY_SLOW_RATE, NMetricsCategory.PROJECT, projectName);
             newMeter(NMetricsName.QUERY_FAILED_RATE, NMetricsCategory.PROJECT, projectName);
@@ -224,6 +265,7 @@ public class NMetricsGroup {
             newCounter(NMetricsName.JOB_DISCARDED, NMetricsCategory.PROJECT, projectName);
             newCounter(NMetricsName.JOB_ERROR, NMetricsCategory.PROJECT, projectName);
             newHistogram(NMetricsName.JOB_DURATION_HISTOGRAM, NMetricsCategory.PROJECT, projectName);
+            newCounter(NMetricsName.JOB_WAIT_DURATION, NMetricsCategory.PROJECT, projectName);
             // metadata management
             newCounter(NMetricsName.METADATA_CLEAN, NMetricsCategory.PROJECT, projectName);
             newCounter(NMetricsName.METADATA_BACKUP, NMetricsCategory.PROJECT, projectName);
@@ -242,6 +284,8 @@ public class NMetricsGroup {
             // event statistics
             newCounter(NMetricsName.EVENT_COUNTER, NMetricsCategory.PROJECT, projectName);
 
+            newHistogram(NMetricsName.QUERY_SCAN_BYTES, NMetricsCategory.PROJECT, projectName);
+
             return true;
         } catch (Exception e) {
             logger.error("ke.metrics registerProjectMetrics, projectName: {}", projectName, e);
@@ -249,8 +293,35 @@ public class NMetricsGroup {
         return false;
     }
 
-    private static <T> boolean newGauge(NMetricsName name, NMetricsCategory category, String entity,
-            Map<String, String> tags, Gauge<T> metric) {
+    public static void newMetricSet(NMetricsName name, NMetricsCategory category, String entity, MetricSet metricSet) {
+        newMetrics(name.getVal(), metricSet, category, entity);
+    }
+
+    private static void newMetrics(String name, MetricSet metricSet, NMetricsCategory category, String entity) {
+        for (Map.Entry<String, Metric> entry : metricSet.getMetrics().entrySet()) {
+            Metric value = entry.getValue();
+            if (value instanceof MetricSet) {
+                newMetrics(name(name, entry.getKey()), (MetricSet)value, category, entity);
+            }else {
+                newGauge(name(name, entry.getKey()), category, entity, Collections.emptyMap(), value);
+            }
+        }
+    }
+
+    private static String name(String prefix, String part) {
+        return "".concat(prefix).concat(".").concat(part);
+    }
+
+    public static <T> boolean newGauge(NMetricsName name, NMetricsCategory category, String entity, Map<String, String> tags, Gauge<T> metric) {
+        return newGauge(name.getVal(), category, entity, tags, metric);
+    }
+
+    public static <T> boolean newGauge(NMetricsName name, NMetricsCategory category, String entity, Gauge<T> metric) {
+        return newGauge(name.getVal(), category, entity, Collections.emptyMap(), metric);
+    }
+
+    private static boolean newGauge(String name, NMetricsCategory category, String entity,
+            Map<String, String> tags, Metric metric) {
         try {
             return registerGaugeIfAbsent(name, category, entity, tags, metric);
         } catch (Exception e) {
@@ -259,7 +330,11 @@ public class NMetricsGroup {
         return false;
     }
 
-    private static boolean newCounter(NMetricsName name, NMetricsCategory category, String entity,
+    public static boolean newCounter(NMetricsName name, NMetricsCategory category, String entity) {
+        return newCounter(name, category, entity, Collections.emptyMap());
+    }
+
+    public static boolean newCounter(NMetricsName name, NMetricsCategory category, String entity,
             Map<String, String> tags) {
         try {
             final Counter counter = registerCounterIfAbsent(name.getVal(), category.getVal(), entity, tags);
@@ -270,6 +345,10 @@ public class NMetricsGroup {
             logger.error("ke.metrics newCounter", e);
         }
         return false;
+    }
+
+    public static boolean newHistogram(NMetricsName name, NMetricsCategory category, String entity) {
+        return newHistogram(name, category, entity, Collections.emptyMap());
     }
 
     private static boolean newHistogram(NMetricsName name, NMetricsCategory category, String entity,
@@ -283,6 +362,10 @@ public class NMetricsGroup {
             logger.error("ke.metrics newHistogram", e);
         }
         return false;
+    }
+
+    public static boolean newMeter(NMetricsName name, NMetricsCategory category, String entity) {
+        return newMeter(name, category, entity, Collections.emptyMap());
     }
 
     private static boolean newMeter(NMetricsName name, NMetricsCategory category, String entity,
@@ -307,7 +390,13 @@ public class NMetricsGroup {
     private static String metricName(String name, String category, String entity, Map<String, String> tags) {
         Preconditions.checkNotNull(name);
         StringBuilder sb = new StringBuilder(name);
-        sb.append(":category=");
+        sb.append(":").append(metricNameSuffix(category, entity, tags));
+        return sb.toString();
+    }
+
+    private static String metricNameSuffix(String category, String entity, Map<String, String> tags) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("category=");
         sb.append(category);
         sb.append(",entity=");
         sb.append(entity);
@@ -315,16 +404,16 @@ public class NMetricsGroup {
         if (!MapUtils.isEmpty(tags)) {
             final SortedMap<String, String> filteredTags = filterTags(tags);
             if (!filteredTags.isEmpty()) {
-                sb.append(",").append(String.join(",", filteredTags.entrySet().stream()
-                        .map(e -> String.join("=", e.getKey(), e.getValue())).collect(toList())));
+                sb.append(",").append(filteredTags.entrySet().stream()
+                        .map(e -> String.join("=", e.getKey(), e.getValue())).collect(Collectors.joining(",")));
             }
         }
         return sb.toString();
     }
 
-    private static <T> boolean registerGaugeIfAbsent(NMetricsName name, NMetricsCategory category, String entity,
-            Map<String, String> tags, Gauge<T> metric) {
-        final String metricName = metricName(name.getVal(), category.getVal(), entity, tags);
+    private static boolean registerGaugeIfAbsent(String name, NMetricsCategory category, String entity,
+            Map<String, String> tags, Metric metric) {
+        final String metricName = metricName(name, category.getVal(), entity, tags);
         if (!gauges.contains(metricName)) {
             synchronized (gauges) {
                 if (!gauges.contains(metricName)) {
@@ -443,14 +532,14 @@ public class NMetricsGroup {
         return histograms.get(metricName);
     }
 
-    private static void doRemove(final String projectTag, final Iterator<String> it, final MetricRegistry registry) {
+    private static void doRemove(final String metricNameSuffix, final Iterator<String> it, final MetricRegistry registry) {
         // replace with removeIf
         while (it.hasNext()) {
             //some1:k1=v1,k2=v2,k3=v3,...
             final String metricName = it.next();
             try {
                 String[] arr = metricName.split(":", 2);
-                if (projectTag.equals(arr[1]) || arr[1].startsWith(projectTag + ",")) {
+                if (metricNameSuffix.equals(arr[1]) || arr[1].startsWith(metricNameSuffix + ",")) {
                     registry.remove(metricName);
                     it.remove();
                     logger.info("ke.metrics remove metric: {}", metricName);

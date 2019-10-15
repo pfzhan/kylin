@@ -87,6 +87,7 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
+import io.kyligence.kap.common.persistence.transaction.UnitOfWorkContext;
 import io.kyligence.kap.event.manager.EventDao;
 import io.kyligence.kap.event.manager.EventManager;
 import io.kyligence.kap.event.model.Event;
@@ -117,6 +118,7 @@ import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.metadata.query.QueryTimesResponse;
 import io.kyligence.kap.metadata.recommendation.OptimizeRecommendationManager;
 import io.kyligence.kap.query.util.KapQueryUtil;
+import io.kyligence.kap.rest.config.initialize.ModelDropAddListener;
 import io.kyligence.kap.rest.request.ModelConfigRequest;
 import io.kyligence.kap.rest.request.ModelRequest;
 import io.kyligence.kap.rest.response.AffectedModelsResponse;
@@ -572,6 +574,8 @@ public class ModelService extends BasicService {
     public void dropModel(String modelId, String project) {
         aclEvaluate.checkProjectWritePermission(project);
         dropModel(modelId, project, false);
+        UnitOfWorkContext context = UnitOfWork.get();
+        context.doAfterUnit(() -> ModelDropAddListener.onDelete(project, modelId));
     }
 
     void dropModel(String modelId, String project, boolean ignoreType) {
@@ -996,6 +1000,9 @@ public class ModelService extends BasicService {
         }
 
         saveDateFormatIfNotExist(project, model.getUuid(), partitionColFormat);
+
+        UnitOfWorkContext context = UnitOfWork.get();
+        context.doAfterUnit(() -> ModelDropAddListener.onAdd(project, model.getId(), model.getAlias()));
 
         return getDataModelManager(project).getDataModelDesc(model.getUuid());
     }

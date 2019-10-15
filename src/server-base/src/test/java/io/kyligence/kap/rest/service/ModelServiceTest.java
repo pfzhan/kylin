@@ -70,6 +70,7 @@ import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
+import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
@@ -572,16 +573,19 @@ public class ModelServiceTest extends CSVSourceTestCase {
         EventDao eventDao = EventDao.getInstance(getTestConfig(), project);
         Assert.assertEquals(2, eventDao.getEventsByModel(modelId).size());
         AtomicBoolean clean = new AtomicBoolean(false);
-        val recommendationManager = spyOptimizeRecommendationManager();
-        Mockito.doAnswer(invocation -> {
-            String id = invocation.getArgument(0);
-            if (modelId.equals(id)) {
-                clean.set(true);
-            }
-            return null;
-        }).when(recommendationManager).dropOptimizeRecommendation(Mockito.anyString());
 
-        modelService.dropModel("a8ba3ff1-83bd-4066-ad54-d2fb3d1f0e94", "default");
+        UnitOfWork.doInTransactionWithRetry(() -> {
+            val recommendationManager = spyOptimizeRecommendationManager();
+            Mockito.doAnswer(invocation -> {
+                String id = invocation.getArgument(0);
+                if (modelId.equals(id)) {
+                    clean.set(true);
+                }
+                return null;
+            }).when(recommendationManager).dropOptimizeRecommendation(Mockito.anyString());
+            modelService.dropModel("a8ba3ff1-83bd-4066-ad54-d2fb3d1f0e94", "default");
+            return null;
+        }, "default");
         List<NDataModelResponse> models = modelService.getModels("test_encoding", "default", true, "", "",
                 "last_modify", true);
         Assert.assertTrue(CollectionUtils.isEmpty(models));
@@ -815,14 +819,26 @@ public class ModelServiceTest extends CSVSourceTestCase {
     }
 
     private void prepareTwoOnlineModels() {
-        modelService.dropModel("82fa7671-a935-45f5-8779-85703601f49a", "default");
-        modelService.dropModel("abe3bf1a-c4bc-458d-8278-7ea8b00f5e96", "default");
+        UnitOfWork.doInTransactionWithRetry(() -> {
+            modelService.dropModel("82fa7671-a935-45f5-8779-85703601f49a", "default");
+            return null;
+        }, "default");
+        UnitOfWork.doInTransactionWithRetry(() -> {
+            modelService.dropModel("abe3bf1a-c4bc-458d-8278-7ea8b00f5e96", "default");
+            return null;
+        }, "default");
     }
 
     private void prepareTwoLagBehindModels() {
         //all lag behind
-        modelService.dropModel("82fa7671-a935-45f5-8779-85703601f49a", "default");
-        modelService.dropModel("abe3bf1a-c4bc-458d-8278-7ea8b00f5e96", "default");
+        UnitOfWork.doInTransactionWithRetry(() -> {
+            modelService.dropModel("82fa7671-a935-45f5-8779-85703601f49a", "default");
+            return null;
+        }, "default");
+        UnitOfWork.doInTransactionWithRetry(() -> {
+            modelService.dropModel("abe3bf1a-c4bc-458d-8278-7ea8b00f5e96", "default");
+            return null;
+        }, "default");
         val dfMgr = NDataflowManager.getInstance(getTestConfig(), "default");
         var df_basic = dfMgr.getDataflowByModelAlias("nmodel_basic");
         val df_basic_inner = dfMgr.getDataflowByModelAlias("nmodel_basic_inner");
@@ -837,8 +853,14 @@ public class ModelServiceTest extends CSVSourceTestCase {
 
     private void prepareOneLagBehindAndOneOnlineModels() {
         //one ONLINE one Lag_behind
-        modelService.dropModel("82fa7671-a935-45f5-8779-85703601f49a", "default");
-        modelService.dropModel("abe3bf1a-c4bc-458d-8278-7ea8b00f5e96", "default");
+        UnitOfWork.doInTransactionWithRetry(() -> {
+            modelService.dropModel("82fa7671-a935-45f5-8779-85703601f49a", "default");
+            return null;
+        }, "default");
+        UnitOfWork.doInTransactionWithRetry(() -> {
+            modelService.dropModel("abe3bf1a-c4bc-458d-8278-7ea8b00f5e96", "default");
+            return null;
+        }, "default");
         val dfMgr = NDataflowManager.getInstance(getTestConfig(), "default");
         var df_basic = dfMgr.getDataflowByModelAlias("nmodel_basic");
         NDataflowUpdate update1 = new NDataflowUpdate(df_basic.getUuid());

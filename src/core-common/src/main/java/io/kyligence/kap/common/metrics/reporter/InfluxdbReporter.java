@@ -353,6 +353,9 @@ public class InfluxdbReporter extends ScheduledReporter {
         }
 
         public Point build() {
+            if (this.fields.isEmpty()) {
+                return null;
+            }
             return Point.measurement(measurement).time(timestamp, timeUnit).tag(tags).fields(fields).build();
         }
     }
