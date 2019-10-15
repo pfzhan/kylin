@@ -465,6 +465,40 @@ public class OptimizeRecommendationManagerTest extends NLocalFileMetadataTestCas
     }
 
     @Test
+    public void testVerifyAll() throws IOException {
+        prepare();
+        val removeLayoutsId = Sets.<Long> newHashSet(1L, 150001L);
+        recommendationManager.removeLayouts(id, removeLayoutsId);
+
+        val verifier = new OptimizeRecommendationVerifier(getTestConfig(), projectDefault, id);
+        verifier.verifyAll();
+
+        val updatedModel = modelManager.getDataModelDesc(id);
+        val updateIndexPlan = indexPlanManager.getIndexPlan(id);
+
+        Assert.assertEquals(0, recommendationManager.getRecommendationCount(id));
+        Assert.assertEquals(NDataModel.ColumnStatus.DIMENSION, updatedModel.getAllNamedColumns().get(1).getStatus());
+        Assert.assertEquals(16, updatedModel.getAllNamedColumns().get(16).getId());
+        Assert.assertEquals("CC_AUTO_1", updatedModel.getAllNamedColumns().get(16).getName());
+        Assert.assertEquals(NDataModel.ColumnStatus.DIMENSION, updatedModel.getAllNamedColumns().get(16).getStatus());
+        Assert.assertEquals(17, updatedModel.getAllNamedColumns().get(17).getId());
+        Assert.assertEquals("TEST_KYLIN_FACT_CC_AUTO_2", updatedModel.getAllNamedColumns().get(17).getName());
+        Assert.assertEquals(NDataModel.ColumnStatus.DIMENSION, updatedModel.getAllNamedColumns().get(17).getStatus());
+        Assert.assertEquals(3, updateIndexPlan.getIndexes().size());
+        Assert.assertTrue(updateIndexPlan.getIndexes().get(2).getDimensions().contains(16));
+        Assert.assertTrue(updateIndexPlan.getIndexes().get(2).getLayouts().stream()
+                .allMatch(layout -> layout.getColOrder().contains(16)));
+        Assert.assertTrue(updateIndexPlan.getIndexes().get(2).getMeasures().contains(100002));
+        Assert.assertTrue(updateIndexPlan.getIndexes().get(2).getLayouts().stream()
+                .allMatch(layout -> layout.getColOrder().contains(100002)));
+        Assert.assertEquals(13, updateIndexPlan.getAllIndexes().size());
+        Assert.assertTrue(updateIndexPlan.getIndexes().stream().anyMatch(indexEntity -> indexEntity.getId() == 150000));
+        Assert.assertEquals(1, updateIndexPlan.getIndexes().get(0).getLayouts().size());
+        Assert.assertEquals(150002L, updateIndexPlan.getIndexes().get(0).getLayouts().get(0).getId());
+        Assert.assertTrue(updateIndexPlan.getRuleBasedIndex().getLayoutBlackList().contains(1L));
+    }
+
+    @Test
     public void testVerify_passAll() throws IOException {
         prepare();
         val removeLayoutsId = Sets.<Long> newHashSet(1L, 150001L);

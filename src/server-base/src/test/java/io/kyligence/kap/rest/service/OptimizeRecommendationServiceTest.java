@@ -382,4 +382,41 @@ public class OptimizeRecommendationServiceTest extends NLocalFileMetadataTestCas
         Assert.assertEquals(1, recommendation.getDimensionRecommendations().size());
         Assert.assertEquals(2, recommendation.getMeasureRecommendations().size());
     }
+
+    @Test
+    public void testGetRecommendationsStatsByProject() throws IOException {
+        prepare();
+        val recommendation = recommendationManager.getOptimizeRecommendation(id);
+        val response = service.getRecommendationsStatsByProject("default");
+        Assert.assertEquals(recommendation.getRecommendationsCount(), response.getTotalRecommendations());
+        Assert.assertEquals(1, response.getModels().size());
+        Assert.assertEquals("origin", response.getModels().get(0).getAlias());
+        Assert.assertEquals(recommendation.getRecommendationsCount(), response.getModels().get(0).getRecommendationsSize());
+
+        val response2 = service.getRecommendationsStatsByProject("match");
+        Assert.assertEquals(0, response2.getTotalRecommendations());
+        Assert.assertEquals(2, response2.getModels().size());
+        Assert.assertEquals(0, response2.getModels().get(0).getRecommendationsSize());
+
+        try {
+            service.getRecommendationsStatsByProject("not_exist_project");
+        } catch (Exception ex) {
+            Assert.assertTrue(ex instanceof IllegalArgumentException);
+            Assert.assertEquals("project [not_exist_project] does not exist", ex.getMessage());
+        }
+    }
+
+    @Test
+    public void testBatchApplyRecommendations() throws IOException {
+        prepare();
+
+        service.batchApplyRecommendations("default", null);
+        Assert.assertEquals(13, recommendationManager.getRecommendationCount(id));
+
+        service.batchApplyRecommendations("default", Lists.newArrayList("not_exist_model1"));
+        Assert.assertEquals(13, recommendationManager.getRecommendationCount(id));
+
+        service.batchApplyRecommendations("default", Lists.newArrayList("not_exist_model", "origin"));
+        Assert.assertEquals(0, recommendationManager.getRecommendationCount(id));
+    }
 }

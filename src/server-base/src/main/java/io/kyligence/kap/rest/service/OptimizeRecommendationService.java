@@ -24,9 +24,12 @@
 
 package io.kyligence.kap.rest.service;
 
+import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import io.kyligence.kap.rest.response.RecommendationStatsResponse;
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.rest.service.BasicService;
@@ -203,5 +206,54 @@ public class OptimizeRecommendationService extends BasicService {
         updatedRecom.getMeasureRecommendations().forEach(measureItem -> measureItem.translate(optContext));
 
         getOptRecommendationManager(request.getProject()).update(optContext);
+    }
+
+    public RecommendationStatsResponse getRecommendationsStatsByProject(String project) {
+        val projectInstance = getProjectManager().getProject(project);
+        if (projectInstance == null)
+            throw new IllegalArgumentException(String.format("project [%s] does not exist", project));
+
+        val recommendationManager = getOptRecommendationManager(project);
+        val modelStatsList = Lists.<RecommendationStatsResponse.RecommendationStatsByModel> newArrayList();
+        int recommendationCount = 0;
+        long lastAcceptedTime = 0;
+
+        for (NDataModel model : getDataModelManager(project).listAllModels()) {
+            val recommendation = recommendationManager.getOptimizeRecommendation(model.getId());
+
+            val modelStats = new RecommendationStatsResponse.RecommendationStatsByModel();
+            modelStats.setAlias(model.getAlias());
+            modelStats.setOwner(model.getOwner());
+            if (recommendation != null) {
+                recommendationCount += recommendation.getRecommendationsCount();
+                val modelLastAcceptedTime = recommendation.getLastVerifiedTime();
+                if (modelLastAcceptedTime > lastAcceptedTime)
+                    lastAcceptedTime = modelLastAcceptedTime;
+                modelStats.setLastAcceptedTime(modelLastAcceptedTime);
+                modelStats.setRecommendationsSize(recommendation.getRecommendationsCount());
+            }
+            modelStatsList.add(modelStats);
+        }
+
+        val response = new RecommendationStatsResponse();
+        response.setTotalRecommendations(recommendationCount);
+        response.setModels(modelStatsList);
+        response.setOwner(projectInstance.getOwner());
+        response.setLastAcceptedTime(lastAcceptedTime);
+        return response;
+    }
+
+    @Transaction(project = 0)
+    public void batchApplyRecommendations(String project, List<String> modelAlias) {
+        if (CollectionUtils.isEmpty(modelAlias))
+            return;
+
+        val models = getDataModelManager(project).listAllModels();
+        models.forEach(model -> {
+            if (modelAlias.contains(model.getAlias())) {
+                val verifier = new OptimizeRecommendationVerifier(KylinConfig.getInstanceFromEnv(), project, model.getId());
+                verifier.verifyAll();
+            }
+        });
     }
 }

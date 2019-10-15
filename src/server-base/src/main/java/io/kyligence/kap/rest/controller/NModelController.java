@@ -543,12 +543,12 @@ public class NModelController extends NBasicController {
             "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
     public EnvelopeResponse removeOptimizeRecommendations(@RequestParam(value = "project") String project,
-                                                          @RequestParam(value = "model") String modelId,
-                                                          @RequestParam(value = "cc_recommendations", required = false) List<Long> ccItemIds,
-                                                          @RequestParam(value = "dimension_recommendations", required = false) List<Long> dimensionItemIds,
-                                                          @RequestParam(value = "measure_recommendations", required = false) List<Long> measureItemIds,
-                                                          @RequestParam(value = "agg_index_recommendations", required = false) List<Long> aggIndexItemIds,
-                                                          @RequestParam(value = "table_index_recommendations", required = false) List<Long> tableIndexItemIds) {
+            @RequestParam(value = "model") String modelId,
+            @RequestParam(value = "cc_recommendations", required = false) List<Long> ccItemIds,
+            @RequestParam(value = "dimension_recommendations", required = false) List<Long> dimensionItemIds,
+            @RequestParam(value = "measure_recommendations", required = false) List<Long> measureItemIds,
+            @RequestParam(value = "agg_index_recommendations", required = false) List<Long> aggIndexItemIds,
+            @RequestParam(value = "table_index_recommendations", required = false) List<Long> tableIndexItemIds) {
         checkProjectName(project);
         checkRequiredArg(MODEL_ID, modelId);
         val request = new RemoveRecommendationsRequest();
@@ -573,30 +573,47 @@ public class NModelController extends NBasicController {
             "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
     public EnvelopeResponse getAggIndexRecommendationContent(@RequestParam(value = "project") String project,
-                                                             @RequestParam(value = "model") String modelId,
-                                                             @RequestParam(value = "id") long indexId,
-                                                             @RequestParam(value = "content", required = false) String content,
-                                                             @RequestParam(value = "pageOffset", required = false, defaultValue = "0") Integer offset,
-                                                             @RequestParam(value = "pageSize", required = false, defaultValue = "10") Integer limit) {
+            @RequestParam(value = "model") String modelId, @RequestParam(value = "id") long indexId,
+            @RequestParam(value = "content", required = false) String content,
+            @RequestParam(value = "pageOffset", required = false, defaultValue = "0") Integer offset,
+            @RequestParam(value = "pageSize", required = false, defaultValue = "10") Integer limit) {
         checkProjectName(project);
         checkRequiredArg(MODEL_ID, modelId);
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS,
-                optimizeRecommendationService.getAggIndexRecomContent(project, modelId, content, indexId, offset, limit), "");
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, optimizeRecommendationService
+                .getAggIndexRecomContent(project, modelId, content, indexId, offset, limit), "");
     }
 
     @RequestMapping(value = "/recommendations/table_index", method = { RequestMethod.GET }, produces = {
             "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
     public EnvelopeResponse getTableIndexRecommendationContent(@RequestParam(value = "project") String project,
-                                                               @RequestParam(value = "model") String modelId,
-                                                               @RequestParam(value = "id") long layoutId,
-                                                               @RequestParam(value = "content", required = false) String content,
-                                                               @RequestParam(value = "pageOffset", required = false, defaultValue = "0") Integer offset,
-                                                               @RequestParam(value = "pageSize", required = false, defaultValue = "10") Integer limit) {
+            @RequestParam(value = "model") String modelId, @RequestParam(value = "id") long layoutId,
+            @RequestParam(value = "content", required = false) String content,
+            @RequestParam(value = "pageOffset", required = false, defaultValue = "0") Integer offset,
+            @RequestParam(value = "pageSize", required = false, defaultValue = "10") Integer limit) {
         checkProjectName(project);
         checkRequiredArg(MODEL_ID, modelId);
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, optimizeRecommendationService
+                .getTableIndexRecomContent(project, modelId, content, layoutId, offset, limit), "");
+    }
+
+    @RequestMapping(value = "/recommendations/{project}", method = { RequestMethod.GET }, produces = {
+            "application/vnd.apache.kylin-v2+json" })
+    @ResponseBody
+    public EnvelopeResponse getRecommendationsByProject(@PathVariable("project") String project) {
+        checkProjectName(project);
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS,
-                optimizeRecommendationService.getTableIndexRecomContent(project, modelId, content, layoutId, offset, limit), "");
+                optimizeRecommendationService.getRecommendationsStatsByProject(project), "");
+    }
+
+    @RequestMapping(value = "/recommendations/batch", method = { RequestMethod.PUT }, produces = {
+            "application/vnd.apache.kylin-v2+json" })
+    @ResponseBody
+    public EnvelopeResponse batchApplyRecommendations(@RequestParam(value = "project") String project,
+                                                      @RequestParam(value = "model_names", required = false) List<String> modelAlias) {
+        checkProjectName(project);
+        optimizeRecommendationService.batchApplyRecommendations(project, modelAlias);
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, null, "");
     }
 
     public void validatePartitionDesc(NDataModel model) {

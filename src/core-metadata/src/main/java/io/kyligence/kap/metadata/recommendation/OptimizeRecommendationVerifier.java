@@ -109,6 +109,25 @@ public class OptimizeRecommendationVerifier {
         recommendationManager.update(context, System.currentTimeMillis());
     }
 
+    public void verifyAll() {
+        val recommendationManager = OptimizeRecommendationManager.getInstance(config, project);
+        val recommendation = recommendationManager.getOptimizeRecommendation(id);
+
+        if (recommendation == null)
+            return;
+
+        this.passCCItems = getItemIds(recommendation.getCcRecommendations());
+        this.passDimensionItems = getItemIds(recommendation.getDimensionRecommendations());
+        this.passMeasureItems = getItemIds(recommendation.getMeasureRecommendations());
+        this.passIndexItems = getItemIds(recommendation.getIndexRecommendations());
+
+        verify();
+    }
+
+    private <T extends RecommendationItem<T>> Set<Long> getItemIds(List<T> recommendationItems) {
+        return recommendationItems.stream().map(RecommendationItem::getItemId).collect(Collectors.toSet());
+    }
+
     private <T extends RecommendationItem<T>> void verify(OptimizeContext context, List<T> items, Set<Long> pass,
             Set<Long> fail, OptimizeContext.ContextRecommendationItems<T> contextItems) {
         verify(context, items, pass, fail, contextItems, item -> item.apply(context, false));
