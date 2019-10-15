@@ -61,19 +61,13 @@ import java.util.List;
 import java.util.Set;
 import java.util.TimeZone;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
-import io.kyligence.kap.event.manager.EventManager;
-import io.kyligence.kap.event.model.MergeSegmentEvent;
-import io.kyligence.kap.metadata.recommendation.CCRecommendationItem;
-import io.kyligence.kap.metadata.recommendation.DimensionRecommendationItem;
-import io.kyligence.kap.metadata.recommendation.IndexRecommendationItem;
-import io.kyligence.kap.metadata.recommendation.MeasureRecommendationItem;
-import io.kyligence.kap.metadata.recommendation.OptimizeRecommendation;
-import io.kyligence.kap.metadata.recommendation.OptimizeRecommendationManager;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
@@ -115,9 +109,11 @@ import com.google.common.collect.Collections2;
 import com.google.common.collect.Lists;
 
 import io.kyligence.kap.event.manager.EventDao;
+import io.kyligence.kap.event.manager.EventManager;
 import io.kyligence.kap.event.model.AddCuboidEvent;
 import io.kyligence.kap.event.model.AddSegmentEvent;
 import io.kyligence.kap.event.model.Event;
+import io.kyligence.kap.event.model.MergeSegmentEvent;
 import io.kyligence.kap.event.model.PostAddSegmentEvent;
 import io.kyligence.kap.event.model.PostMergeOrRefreshSegmentEvent;
 import io.kyligence.kap.event.model.RefreshSegmentEvent;
@@ -146,6 +142,12 @@ import io.kyligence.kap.metadata.model.exception.LookupTableException;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.metadata.query.QueryHistoryDAO;
 import io.kyligence.kap.metadata.query.QueryTimesResponse;
+import io.kyligence.kap.metadata.recommendation.CCRecommendationItem;
+import io.kyligence.kap.metadata.recommendation.DimensionRecommendationItem;
+import io.kyligence.kap.metadata.recommendation.IndexRecommendationItem;
+import io.kyligence.kap.metadata.recommendation.MeasureRecommendationItem;
+import io.kyligence.kap.metadata.recommendation.OptimizeRecommendation;
+import io.kyligence.kap.metadata.recommendation.OptimizeRecommendationManager;
 import io.kyligence.kap.rest.execution.SucceedChainedTestExecutable;
 import io.kyligence.kap.rest.request.ModelConfigRequest;
 import io.kyligence.kap.rest.request.ModelRequest;
@@ -259,7 +261,8 @@ public class ModelServiceTest extends CSVSourceTestCase {
         val recommendation2 = new OptimizeRecommendation();
         recommendation2.setUuid(modelId2);
 
-        recommendation2.setMeasureRecommendations(Lists.newArrayList(new MeasureRecommendationItem(), new MeasureRecommendationItem()));
+        recommendation2.setMeasureRecommendations(
+                Lists.newArrayList(new MeasureRecommendationItem(), new MeasureRecommendationItem()));
         recommendation2.setDimensionRecommendations(Lists.newArrayList(new DimensionRecommendationItem()));
         val indexRecommendation1 = new IndexRecommendationItem();
         val indexEntity = new IndexEntity();
@@ -1301,6 +1304,51 @@ public class ModelServiceTest extends CSVSourceTestCase {
 
         Assert.assertEquals("yyyy-MM-dd", model.getPartitionDesc().getPartitionDateFormat());
 
+    }
+
+    @Test
+    public void testChangeTableAlias_ClearRecommendation() throws Exception {
+        final String project = "default";
+        val modelMgr = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+
+        var model = modelMgr.getDataModelDescByAlias("nmodel_basic");
+        val modelId = model.getId();
+
+        modelMgr.updateDataModel(modelId, copyForWrite -> {
+            copyForWrite.setManagementType(ManagementType.MODEL_BASED);
+        });
+        model = modelMgr.getDataModelDesc(modelId);
+        val request = JsonUtil.readValue(JsonUtil.writeValueAsString(model), ModelRequest.class);
+        request.setProject(project);
+        request.setUuid("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+        request.setAllNamedColumns(model.getAllNamedColumns().stream().filter(NDataModel.NamedColumn::isDimension)
+                .collect(Collectors.toList()));
+        request.setSimplifiedMeasures(model.getAllMeasures().stream().filter(m -> !m.tomb)
+                .map(SimplifiedMeasure::fromMeasure).collect(Collectors.toList()));
+        val modelRequest = JsonUtil.readValue(JsonUtil.writeValueAsString(request), ModelRequest.class);
+
+        Assert.assertEquals("TEST_KYLIN_FACT.CAL_DT", modelRequest.getPartitionDesc().getPartitionDateColumn());
+
+        AtomicBoolean clean = new AtomicBoolean(false);
+        val manager = Mockito.spy(OptimizeRecommendationManager.getInstance(getTestConfig(), project));
+        Field filed = getTestConfig().getClass().getDeclaredField("managersByPrjCache");
+        filed.setAccessible(true);
+        ConcurrentHashMap<Class, ConcurrentHashMap<String, Object>> managersByPrjCache = (ConcurrentHashMap<Class, ConcurrentHashMap<String, Object>>) filed
+                .get(getTestConfig());
+        managersByPrjCache.get(OptimizeRecommendationManager.class).put(project, manager);
+        Mockito.doAnswer(invocation -> {
+            String id = invocation.getArgument(0);
+            if (modelId.equals(id)) {
+                clean.set(true);
+            }
+            return null;
+        }).when(manager).clearAll(Mockito.anyString());
+        val oldAlias = modelRequest.getJoinTables().get(0).getAlias();
+        modelRequest.getJoinTables().get(0).setAlias(oldAlias + "_1");
+
+        modelService.updateDataModelSemantic("default", modelRequest);
+
+        Assert.assertTrue(clean.get());
     }
 
     public void testChangePartitionDesc_OriginModelNoPartition() throws Exception {

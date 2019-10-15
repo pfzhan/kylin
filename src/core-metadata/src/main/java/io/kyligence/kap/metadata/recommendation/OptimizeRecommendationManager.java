@@ -353,6 +353,18 @@ public class OptimizeRecommendationManager {
         return getOptimizeRecommendation(optimized.getId());
     }
 
+    public void clearAll(String id) {
+        if (getOptimizeRecommendation(id) == null) {
+            return;
+        }
+        updateOptimizeRecommendation(id, recommendation -> {
+            recommendation.setCcRecommendations(Lists.newArrayList());
+            recommendation.setDimensionRecommendations(Lists.newArrayList());
+            recommendation.setMeasureRecommendations(Lists.newArrayList());
+            recommendation.setIndexRecommendations(Lists.newArrayList());
+        });
+    }
+
     public OptimizeRecommendation optimize(NDataModel model, IndexPlan indexPlan) {
         val translations = optimizeModel(model);
         optimizeIndexPlan(indexPlan, translations);

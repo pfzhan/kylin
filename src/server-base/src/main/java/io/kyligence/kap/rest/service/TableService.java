@@ -1055,10 +1055,14 @@ public class TableService extends BasicService {
         }
 
         cleanIndexPlan(projectName, model, removeAffectedModel);
-
+        cleanRecommendation(projectName, model);
         val request = new ModelRequest(JsonUtil.deepCopy(model, NDataModel.class));
         setRequest(request, model, removeAffectedModel, projectName);
         modelService.updateBrokenModel(projectName, request, removeAffectedModel.getColumnIds());
+    }
+
+    void cleanRecommendation(String project, NDataModel model) {
+        getOptimizeRecommendationManager(project).clearAll(model.getId());
     }
 
     void updateModelByReloadTable(ProjectInstance project, NDataModel model, ReloadTableContext context)
@@ -1082,6 +1086,7 @@ public class TableService extends BasicService {
         val events = eventDao.getEventsByModel(model.getId());
 
         cleanIndexPlan(projectName, model, removeAffectedModel);
+        cleanRecommendation(projectName, model);
 
         val request = new ModelRequest(JsonUtil.deepCopy(model, NDataModel.class));
         setRequest(request, model, removeAffectedModel, projectName);

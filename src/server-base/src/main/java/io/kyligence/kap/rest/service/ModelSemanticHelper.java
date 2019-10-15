@@ -69,6 +69,7 @@ import io.kyligence.kap.metadata.model.NDataModel.Measure;
 import io.kyligence.kap.metadata.model.NDataModel.NamedColumn;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
+import io.kyligence.kap.metadata.recommendation.OptimizeRecommendationManager;
 import io.kyligence.kap.rest.request.ModelRequest;
 import io.kyligence.kap.rest.response.BuildIndexResponse;
 import io.kyligence.kap.rest.response.SimplifiedMeasure;
@@ -285,6 +286,7 @@ public class ModelSemanticHelper extends BasicService {
         val config = KylinConfig.getInstanceFromEnv();
         val indePlanManager = NIndexPlanManager.getInstance(config, project);
         val modelMgr = NDataModelManager.getInstance(config, project);
+        val recommendationManager = OptimizeRecommendationManager.getInstance(config, project);
 
         val indexPlan = indePlanManager.getIndexPlan(model);
         val newModel = modelMgr.getDataModelDesc(model);
@@ -296,6 +298,7 @@ public class ModelSemanticHelper extends BasicService {
             modelMgr.updateDataModel(newModel.getUuid(),
                     copyForWrite -> copyForWrite.setSemanticVersion(copyForWrite.getSemanticVersion() + 1));
             handleReloadData(newModel, originModel, project, start, end);
+            recommendationManager.clearAll(model);
             return;
         }
         val dimensionsOnlyAdded = newModel.getEffectiveDimenionsMap().keySet()
@@ -384,10 +387,12 @@ public class ModelSemanticHelper extends BasicService {
 
             // from having partition to no partition
             if (newModel.getPartitionDesc() == null) {
-                dataflowManager.fillDfManually(df, Lists.newArrayList(SegmentRange.TimePartitionedSegmentRange.createInfinite()));
-            // change partition column and from no partition to having partition
+                dataflowManager.fillDfManually(df,
+                        Lists.newArrayList(SegmentRange.TimePartitionedSegmentRange.createInfinite()));
+                // change partition column and from no partition to having partition
             } else if (StringUtils.isNotEmpty(start) && StringUtils.isNotEmpty(end)) {
-                dataflowManager.fillDfManually(df, Lists.newArrayList(getSegmentRangeByModel(project, modelId, start, end)));
+                dataflowManager.fillDfManually(df,
+                        Lists.newArrayList(getSegmentRangeByModel(project, modelId, start, end)));
             }
         } else {
             List<SegmentRange> segmentRanges = Lists.newArrayList();

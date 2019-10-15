@@ -171,6 +171,17 @@ public class OptimizeRecommendationManagerTest extends NLocalFileMetadataTestCas
     }
 
     @Test
+    public void testClearAll() throws IOException {
+        testOptimize();
+        recommendationManager.clearAll(id);
+        var recommendation = recommendationManager.getOptimizeRecommendation(id);
+        Assert.assertEquals(0, recommendation.getCcRecommendations().size());
+        Assert.assertEquals(0, recommendation.getDimensionRecommendations().size());
+        Assert.assertEquals(0, recommendation.getMeasureRecommendations().size());
+        Assert.assertEquals(0, recommendation.getIndexRecommendations().size());
+    }
+
+    @Test
     public void testRemoveIndex() throws IOException {
         prepare();
         val removeLayoutsId = Sets.<Long> newHashSet(1L, 150001L);

@@ -44,8 +44,6 @@ package org.apache.kylin.rest.service;
 
 import java.util.Comparator;
 
-import io.kyligence.kap.metadata.recommendation.OptimizeRecommendationManager;
-import io.kyligence.kap.metadata.acl.AclTCRManager;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.dao.JobStatisticsManager;
@@ -58,6 +56,7 @@ import com.google.common.base.CaseFormat;
 
 import io.kyligence.kap.event.manager.EventDao;
 import io.kyligence.kap.event.manager.EventManager;
+import io.kyligence.kap.metadata.acl.AclTCRManager;
 import io.kyligence.kap.metadata.cube.model.NDataLoadingRangeManager;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
@@ -68,6 +67,7 @@ import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.metadata.query.AccelerateRatioManager;
 import io.kyligence.kap.metadata.query.QueryHistoryDAO;
+import io.kyligence.kap.metadata.recommendation.OptimizeRecommendationManager;
 import io.kyligence.kap.rest.service.NFavoriteScheduler;
 
 public abstract class BasicService {
@@ -100,6 +100,10 @@ public abstract class BasicService {
 
     public NIndexPlanManager getIndexPlanManager(String project) {
         return NIndexPlanManager.getInstance(getConfig(), project);
+    }
+
+    public OptimizeRecommendationManager getOptimizeRecommendationManager(String project) {
+        return OptimizeRecommendationManager.getInstance(getConfig(), project);
     }
 
     public NDataLoadingRangeManager getDataLoadingRangeManager(String project) {

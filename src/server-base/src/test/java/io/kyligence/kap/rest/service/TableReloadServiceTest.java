@@ -28,11 +28,14 @@ import static org.awaitility.Awaitility.await;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.lang.reflect.Field;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -49,6 +52,7 @@ import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.TestingAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -76,6 +80,7 @@ import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
+import io.kyligence.kap.metadata.recommendation.OptimizeRecommendationManager;
 import io.kyligence.kap.rest.config.initialize.ModelBrokenListener;
 import io.kyligence.kap.rest.request.ModelRequest;
 import lombok.val;
@@ -437,6 +442,41 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
     }
 
     @Test
+    public void testReload_CleanRecommendation() throws Exception {
+        UnitOfWork.doInTransactionWithRetry(() -> {
+            removeColumn("EDW.TEST_CAL_DT", "CAL_DT_UPD_USER");
+            tableService.innerReloadTable(PROJECT, "EDW.TEST_CAL_DT");
+
+            val modelManager = NDataModelManager.getInstance(getTestConfig(), PROJECT);
+            val model = modelManager.getDataModelDescByAlias("nmodel_basic_inner");
+
+            val modelId = model.getId();
+            AtomicBoolean clean = new AtomicBoolean(false);
+            val manager = Mockito.spy(OptimizeRecommendationManager.getInstance(getTestConfig(), PROJECT));
+            Field filed = getTestConfig().getClass().getDeclaredField("managersByPrjCache");
+            filed.setAccessible(true);
+            ConcurrentHashMap<Class, ConcurrentHashMap<String, Object>> managersByPrjCache = (ConcurrentHashMap<Class, ConcurrentHashMap<String, Object>>) filed
+                    .get(getTestConfig());
+            managersByPrjCache.get(OptimizeRecommendationManager.class).put(PROJECT, manager);
+            Mockito.doAnswer(invocation -> {
+                String id = invocation.getArgument(0);
+                if (modelId.equals(id)) {
+                    clean.set(true);
+                }
+                return null;
+            }).when(manager).clearAll(Mockito.anyString());
+
+            NTableMetadataManager.getInstance(getTestConfig(), PROJECT).getTableDesc("DEFAULT.TEST_COUNTRY");
+            prepareTableExt("DEFAULT.TEST_COUNTRY");
+            addColumn("DEFAULT.TEST_COUNTRY", true, new ColumnDesc("", "tmp1", "bigint", "", "", "", null));
+            tableService.innerReloadTable(PROJECT, "DEFAULT.TEST_COUNTRY");
+
+            Assert.assertTrue(clean.get());
+            return null;
+        }, PROJECT);
+    }
+
+    @Test
     public void testReload_ChangeColumn() throws Exception {
         removeColumn("EDW.TEST_CAL_DT", "CAL_DT_UPD_USER");
         tableService.innerReloadTable(PROJECT, "EDW.TEST_CAL_DT");
@@ -563,8 +603,9 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
         for (int i = 0; i < tableExt.getSampleRows().size(); i++) {
             val sampleRow = tableExt.getSampleRows().get(i);
             int finalI = i;
-            Assert.assertEquals(Stream.of(0, 2, 1).map(j -> "row_" + (finalI + 1) + "_col_" + j)
-                    .collect(Collectors.joining(",")), Joiner.on(",").join(sampleRow));
+            Assert.assertEquals(
+                    Stream.of(0, 2, 1).map(j -> "row_" + (finalI + 1) + "_col_" + j).collect(Collectors.joining(",")),
+                    Joiner.on(",").join(sampleRow));
         }
     }
 
